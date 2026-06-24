@@ -170,12 +170,13 @@ export default {
       this.txidLoaded = true
     },
     loadContract () {
-      this.fetchContract().then(() => {
-        // Only fetch balance after contract address is loaded
-        if (this.contract?.address) {
+      this.fetchContract()
+        .then(() => {
           this.fetchContractBalance()
-        }
-      })
+        })
+        .catch(() => {
+          this.fetchContractBalance()
+        })
     },
     fetchContractBalance () {
       return new Promise((resolve, reject) => {
@@ -185,7 +186,10 @@ export default {
           resolve(this.data.contractBalance)
           return
         }
-        if (!this.data?.escrow) return 0
+        if (!this.data?.escrow) {
+          resolve(0)
+          return
+        }
         // Use the escrow contract's own address by not passing any parameter
         // The RampContract will use its internally generated address
         this.data?.escrow?.getBalance()
@@ -369,8 +373,16 @@ export default {
               return this.delay(delayDuration)
                 .then(() => this.exponentialBackoff(fn, retries - 1, delayDuration * 2))
             }
+            console.error('Retry exhausted — balance condition not met')
+            this.verifyingTx = false
+            this.$q.notify({
+              message: this.$t('VerificationTimedOut', {}, 'Verification timed out. Please try again.'),
+              color: 'negative',
+              icon: 'error',
+              timeout: 5000
+            })
           } else {
-            this.disableBtn = false
+            this.submitAction()
           }
         })
         .catch(error => console.error(error))

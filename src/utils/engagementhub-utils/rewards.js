@@ -3,10 +3,12 @@ import axios from 'axios'
 import { Store } from 'src/store'
 import { convertCashAddress } from 'src/wallet/chipnet'
 import { getWalletHash } from 'src/utils/engagementhub-utils/shared'
+import { requestManager } from 'src/utils/request-manager'
 
 const ENGAGEMENT_HUB_URL =
   process.env.ENGAGEMENT_HUB_URL || 'https://engagementhub.paytaca.com/api/'
 export const REWARDS_URL = axios.create({ baseURL: `${ENGAGEMENT_HUB_URL}rewards/` })
+requestManager.attachTo(REWARDS_URL)
 export const PROMO_TOKEN_CATEGORY = process.env.PROMO_TOKEN_CATEGORY
 export const PROMO_TOKEN_DECIMALS = 2
 

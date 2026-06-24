@@ -1,5 +1,6 @@
 import { deriveNostrKeys, createUnsignedKind14, createNip17GiftWraps, computeRoomId, createKind10050, createReadReceiptGiftWrap, createReactionGiftWraps, createKind5DeletionGiftWraps } from 'src/wallet/nostr'
-import { finalizeEvent, verifyEvent, hexToBytes } from 'nostr-tools'
+import { finalizeEvent, verifyEvent, getEventHash, utils as nostrUtils } from 'nostr-tools'
+const { hexToBytes } = nostrUtils
 import { getMnemonic } from 'src/wallet'
 import { decode as nip19Decode } from 'nostr-tools/nip19'
 import * as relayService from 'src/services/nostr-chat'
@@ -63,6 +64,14 @@ export async function reinitialize ({ commit, dispatch, state, rootGetters }) {
 }
 
 export async function initialize ({ commit, dispatch, state, rootGetters }) {
+  if (state.initialized && state.keys?.pubKeyHex) {
+    dispatch('fetchHistoricalMessages')
+    if (!state.profile?.displayName || !state.profile?.bchAddress) {
+      dispatch('fetchOwnProfile', state.keys.pubKeyHex).catch(() => {})
+    }
+    return
+  }
+
   const walletIndex = rootGetters['global/getWalletIndex']
   const mnemonic = await getMnemonic(walletIndex)
   if (!mnemonic) throw new Error('No mnemonic available')
@@ -104,6 +113,28 @@ export async function initialize ({ commit, dispatch, state, rootGetters }) {
 
   // Register this wallet's Nostr pubkey in Watchtower
   dispatch('registerNostrPubkey')
+}
+
+export async function fetchOwnProfile ({ commit, dispatch, state }, pubKeyHex) {
+  if (!pubKeyHex) return
+  try {
+    const [displayName, bchAddress, avatar] = await Promise.all([
+      dispatch('fetchPublishedDisplayName', { pubKeyHex }),
+      dispatch('fetchPublishedBchAddress', { pubKeyHex }),
+      dispatch('fetchPublishedAvatar', { pubKeyHex }),
+    ])
+    if (displayName) {
+      commit('SET_PROFILE_DISPLAY_NAME', { displayName, publishedAt: Date.now() })
+    }
+    if (bchAddress) {
+      commit('SET_PROFILE_BCH_ADDRESS', { address: bchAddress, publishedAt: Date.now() })
+    }
+    if (avatar) {
+      commit('SET_PROFILE_AVATAR', { avatar, publishedAt: Date.now() })
+    }
+  } catch (err) {
+    console.warn('[Nostr] Failed to fetch own profile:', err)
+  }
 }
 
 export async function registerNostrPubkey ({ state, rootGetters }) {
@@ -231,20 +262,34 @@ export async function removeBchAddress ({ state, commit }) {
  * Fetch a user's published BCH address from relays.
  * Returns the address string or null if not found.
  */
-export async function fetchPublishedBchAddress ({ state }, { pubKeyHex }) {
+export async function fetchPublishedBchAddress ({ state, commit }, { pubKeyHex }) {
   if (!pubKeyHex) {
     throw new Error('pubKeyHex is required')
+  }
+
+  const cached = state.bchAddressCache?.[pubKeyHex]
+  const CACHE_TTL = 3600000 // 1 hour
+
+  // Return cached address if fresh
+  if (cached?.address && (Date.now() - cached.fetchedAt) < CACHE_TTL) {
+    return cached.address
   }
 
   const event = await relayService.fetchBchAddress(state.relays, pubKeyHex)
 
   if (!event) {
     console.log('[Nostr] No BCH address event found on relay')
+    // Fall back to stale cache if available
+    if (cached?.address) {
+      console.log('[Nostr] Falling back to cached BCH address')
+      return cached.address
+    }
     return null
   }
 
   if (!verifyEvent(event)) {
     console.warn('[Nostr] BCH address event failed signature verification')
+    if (cached?.address) return cached.address
     return null
   }
 
@@ -254,16 +299,19 @@ export async function fetchPublishedBchAddress ({ state }, { pubKeyHex }) {
     parsed = JSON.parse(event.content || '{}')
   } catch {
     console.warn('[Nostr] BCH address event has invalid JSON content')
+    if (cached?.address) return cached.address
     return null
   }
 
   const address = parsed?.data?.address?.trim()
   if (!address) {
     console.log('[Nostr] BCH address event has no address — was removed or empty')
+    if (cached?.address) return cached.address
     return null
   }
 
   console.log('[Nostr] Found BCH address:', address)
+  commit('CACHE_BCH_ADDRESS', { pubKeyHex, address })
   return address
 }
 
@@ -327,14 +375,25 @@ export async function removeDisplayName ({ state, commit }) {
  * Fetch a user's published display name from relays.
  * Returns the display name string or null if not found.
  */
-export async function fetchPublishedDisplayName ({ state }, { pubKeyHex }) {
+export async function fetchPublishedDisplayName ({ state, commit }, { pubKeyHex }) {
   if (!pubKeyHex) throw new Error('pubKeyHex is required')
 
+  const cached = state.displayNameCache?.[pubKeyHex]
+  const CACHE_TTL = 3600000 // 1 hour
+
+  if (cached?.displayName && (Date.now() - cached.fetchedAt) < CACHE_TTL) {
+    return cached.displayName
+  }
+
   const event = await relayService.fetchDisplayName(state.relays, pubKeyHex)
-  if (!event) return null
+  if (!event) {
+    if (cached?.displayName) return cached.displayName
+    return null
+  }
 
   if (!verifyEvent(event)) {
     console.warn('[Nostr] Display name event failed signature verification')
+    if (cached?.displayName) return cached.displayName
     return null
   }
 
@@ -343,13 +402,18 @@ export async function fetchPublishedDisplayName ({ state }, { pubKeyHex }) {
     parsed = JSON.parse(event.content || '{}')
   } catch {
     console.warn('[Nostr] Display name event has invalid JSON content')
+    if (cached?.displayName) return cached.displayName
     return null
   }
 
   const displayName = parsed?.data?.displayName?.trim()
-  if (!displayName) return null
+  if (!displayName) {
+    if (cached?.displayName) return cached.displayName
+    return null
+  }
 
   console.log('[Nostr] Found display name:', displayName)
+  commit('CACHE_DISPLAY_NAME', { pubKeyHex, displayName })
   return displayName
 }
 
@@ -414,14 +478,25 @@ export async function removeAvatar ({ state, commit }) {
  * Fetch a user's published avatar from relays.
  * Returns the avatar data URL string or null if not found.
  */
-export async function fetchPublishedAvatar ({ state }, { pubKeyHex }) {
+export async function fetchPublishedAvatar ({ state, commit }, { pubKeyHex }) {
   if (!pubKeyHex) throw new Error('pubKeyHex is required')
 
+  const cached = state.avatarCache?.[pubKeyHex]
+  const CACHE_TTL = 3600000 // 1 hour
+
+  if (cached?.avatar && (Date.now() - cached.fetchedAt) < CACHE_TTL) {
+    return cached.avatar
+  }
+
   const event = await relayService.fetchAvatar(state.relays, pubKeyHex)
-  if (!event) return null
+  if (!event) {
+    if (cached?.avatar) return cached.avatar
+    return null
+  }
 
   if (!verifyEvent(event)) {
     console.warn('[Nostr] Avatar event failed signature verification')
+    if (cached?.avatar) return cached.avatar
     return null
   }
 
@@ -430,13 +505,18 @@ export async function fetchPublishedAvatar ({ state }, { pubKeyHex }) {
     parsed = JSON.parse(event.content || '{}')
   } catch {
     console.warn('[Nostr] Avatar event has invalid JSON content')
+    if (cached?.avatar) return cached.avatar
     return null
   }
 
   const avatar = parsed?.data?.avatar?.trim()
-  if (!avatar) return null
+  if (!avatar) {
+    if (cached?.avatar) return cached.avatar
+    return null
+  }
 
   console.log('[Nostr] Found avatar')
+  commit('CACHE_AVATAR', { pubKeyHex, avatar })
   return avatar
 }
 
@@ -469,6 +549,14 @@ export async function fetchHistoricalMessages ({ state, dispatch }) {
     })
   } catch (err) {
     console.warn('[Nostr] Failed to fetch historical messages:', err)
+  }
+
+  // Clean up deletedRooms entries for rooms that were restored during the historical fetch.
+  // This allows future live messages to apply subject updates normally.
+  for (const roomId of Object.keys(state.deletedRooms || {})) {
+    if (state.rooms.some(r => r.id === roomId)) {
+      delete state.deletedRooms[roomId]
+    }
   }
 }
 
@@ -642,7 +730,7 @@ export async function sendMessage ({ state }, { roomId, text, replyTo, subject }
     subject,
   })
 
-  const giftWraps = await createNip17GiftWraps(unsignedKind14, senderPrivKey, memberHexes)
+  const giftWraps = await createNip17GiftWraps(unsignedKind14, senderPrivKey, memberHexes, senderPubKey)
   console.log('[sendMessage] created', giftWraps.length, 'gift-wraps for room', roomId, 'members:', memberHexes)
 
   const message = {
@@ -680,7 +768,7 @@ export async function sendEditMessage ({ state }, { roomId, text, editOf }) {
     editOf,
   })
 
-  const giftWraps = await createNip17GiftWraps(unsignedKind14, senderPrivKey, memberHexes)
+  const giftWraps = await createNip17GiftWraps(unsignedKind14, senderPrivKey, memberHexes, senderPubKey)
 
   const message = {
     id: unsignedKind14.id,
@@ -774,7 +862,7 @@ export async function sendFileMessage ({ state }, { roomId, file, replyTo, onPro
     replyTo,
   })
 
-  const giftWraps = await wrapKind15FileMessage(kind15Event, senderPrivKey, memberHexes)
+  const giftWraps = await wrapKind15FileMessage(kind15Event, senderPrivKey, memberHexes, senderPubKey)
   console.log('[sendFileMessage] created', giftWraps.length, 'gift-wraps for room', roomId, 'members:', memberHexes)
 
   if (onProgress) onProgress(0.95)
@@ -917,6 +1005,12 @@ export function receiveMessage ({ commit, state }, { rumor, sealPubkey }) {
   // NIP-17 seal pubkey verification is performed inside unwrapGiftWrap().
   // If we reach here, the rumor has already been verified.
 
+  // nip59.unwrapEvent returns unsigned rumors without an `id` field.
+  // Compute it so message-based dedup (deletedRooms.knownMessageIds) works.
+  if (!rumor.id) {
+    rumor.id = getEventHash(rumor)
+  }
+
   const myPubKey = state.keys.pubKeyHex
 
   // Handle Kind 7 read receipts (👀 reactions)
@@ -1012,6 +1106,8 @@ export function receiveMessage ({ commit, state }, { rumor, sealPubkey }) {
     let room = state.rooms.find(r => r.id === roomId)
     if (!room) {
       if (state.blockedContacts?.includes(rumor.pubkey)) return
+      const deletedEntry = state.deletedRooms?.[roomId]
+      if (deletedEntry?.knownMessageIds?.[rumor.id]) return
       const isGroup = roomMembers.length > 2
       const contact = state.contacts.find(c => c.pubKeyHex === rumor.pubkey)
       room = {
@@ -1024,6 +1120,7 @@ export function receiveMessage ({ commit, state }, { rumor, sealPubkey }) {
         updatedAt: rumor.created_at,
       }
       commit('ADD_ROOM', room)
+      if (state.deletedRooms?.[roomId]) delete state.deletedRooms[roomId]
     } else if (room.type !== 'group' && roomMembers.length > 2) {
       commit('UPDATE_ROOM_TYPE', { roomId, type: 'group' })
     }
@@ -1075,6 +1172,8 @@ export function receiveMessage ({ commit, state }, { rumor, sealPubkey }) {
       (r.members || []).slice().sort().join(',') === memberKey
     )
     if (existingByMembers) {
+      const deletedEntry = state.deletedRooms?.[existingByMembers.id]
+      if (deletedEntry?.knownMessageIds?.[rumor.id]) return
       // Reuse the existing room — store the message under its ID
       room = existingByMembers
       const replyTo = rumor.tags.find(t => t[0] === 'e')?.[1] || null
@@ -1108,6 +1207,9 @@ export function receiveMessage ({ commit, state }, { rumor, sealPubkey }) {
     // Skip auto-creation if the sender is blocked
     if (state.blockedContacts?.includes(rumor.pubkey)) return
 
+    const deletedEntry = state.deletedRooms?.[roomId]
+    if (deletedEntry?.knownMessageIds?.[rumor.id]) return
+
     const isGroup = roomMembers.length > 2
     const contact = state.contacts.find(c => c.pubKeyHex === rumor.pubkey)
     room = {
@@ -1134,7 +1236,8 @@ export function receiveMessage ({ commit, state }, { rumor, sealPubkey }) {
   // Only apply subject changes from messages that are not older than the
   // room's current updatedAt. This prevents old messages from re-applying
   // a subject that was cleared/updated by a newer local action.
-  if (hasSubjectTag && room.subject !== subject && rumor.created_at >= (room.updatedAt || 0)) {
+  // Also skip subject updates while the room is in deletedRooms (restored from delete).
+  if (hasSubjectTag && room.subject !== subject && rumor.created_at >= (room.updatedAt || 0) && !state.deletedRooms?.[roomId]) {
     commit('UPDATE_ROOM_SUBJECT', { roomId, subject: subject || null })
     if (!subject && room.type !== 'group') {
       const memberPubKeys = (room.members || []).filter(pk => pk !== state.keys?.pubKeyHex)
@@ -1284,6 +1387,9 @@ export function ensureSubscribed ({ dispatch, getters }) {
   if (!getters['isInitialized']) {
     dispatch('initialize').then(() => {
       dispatch('subscribeToRelays')
+    }).catch(err => {
+      console.warn('[Nostr] Failed to initialize, clearing cooldown for retry:', err)
+      _lastEnsureTime = 0
     })
   } else {
     dispatch('subscribeToRelays')

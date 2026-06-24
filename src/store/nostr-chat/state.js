@@ -12,6 +12,7 @@ export default function () {
     contacts: [],
     rooms: [],
     blockedContacts: [], // Hex pubkeys of blocked contacts — prevents room auto-creation
+    deletedRooms: {}, // { [roomId]: { deletedAt, knownMessageIds } } — prevents deleted rooms from being recreated by old relay messages
     messages: {},
     readReceipts: {}, // { roomId: { pubKeyHex: timestamp } }
     readMessageIds: {}, // { roomId: { msgId: true, ... } }
@@ -21,6 +22,9 @@ export default function () {
     initialized: false,
     isSubscribed: false,
     relayStatus: {},
+    bchAddressCache: {}, // { [pubKeyHex]: { address, fetchedAt } }
+    displayNameCache: {}, // { [pubKeyHex]: { displayName, fetchedAt } }
+    avatarCache: {}, // { [pubKeyHex]: { avatar, fetchedAt } }
     profile: {
       bchAddress: null,
       publishedAt: null,

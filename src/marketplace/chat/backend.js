@@ -1,6 +1,7 @@
 import BCHJS from "@psf/bch-js"
 import axios from "axios";
 import { backend, sigAuthInterceptor } from "../backend";
+import { requestManager } from "src/utils/request-manager";
 
 const bchjs = new BCHJS()
 
@@ -25,5 +26,6 @@ export function createBackend(opts={ chatIdentityRef: '', privkey: '' }) {
     }
   })
   chatBackend.interceptors.request.use(sigAuthInterceptor)
+  requestManager.attachTo(chatBackend)
   return chatBackend
 }

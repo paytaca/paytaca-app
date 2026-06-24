@@ -75,6 +75,16 @@ export function UPDATE_ROOM_TYPE (state, { roomId, type }) {
 }
 
 export function REMOVE_ROOM (state, roomId) {
+  if (!state.deletedRooms) state.deletedRooms = {}
+  const messages = state.messages[roomId] || []
+  const knownMessageIds = {}
+  for (const msg of messages) {
+    if (msg.id) knownMessageIds[msg.id] = true
+  }
+  state.deletedRooms[roomId] = {
+    deletedAt: Date.now(),
+    knownMessageIds,
+  }
   state.rooms = state.rooms.filter(r => r.id !== roomId)
   delete state.messages[roomId]
 }
@@ -206,6 +216,21 @@ export function REMOVE_MESSAGE_REACTION (state, { roomId, messageId, reactorPubK
 
 export function SET_RELAYS (state, relays) {
   state.relays = relays
+}
+
+export function CACHE_BCH_ADDRESS (state, { pubKeyHex, address }) {
+  if (!state.bchAddressCache) state.bchAddressCache = {}
+  state.bchAddressCache[pubKeyHex] = { address, fetchedAt: Date.now() }
+}
+
+export function CACHE_DISPLAY_NAME (state, { pubKeyHex, displayName }) {
+  if (!state.displayNameCache) state.displayNameCache = {}
+  state.displayNameCache[pubKeyHex] = { displayName, fetchedAt: Date.now() }
+}
+
+export function CACHE_AVATAR (state, { pubKeyHex, avatar }) {
+  if (!state.avatarCache) state.avatarCache = {}
+  state.avatarCache[pubKeyHex] = { avatar, fetchedAt: Date.now() }
 }
 
 export function SET_PROFILE_BCH_ADDRESS (state, { address, publishedAt }) {

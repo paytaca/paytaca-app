@@ -1,5 +1,6 @@
 import { decodeExtendedJson } from '@generalprotocols/anyhedge'
 import axios from 'axios'
+import { requestManager } from 'src/utils/request-manager'
 
 const baseUrl = new URL(process.env.ANYHEDGE_BACKEND_BASE_URL)
 //const baseUrl = new URL('https://watchtower.cash/api')
@@ -26,6 +27,9 @@ export const generalProtocolLPBackend = axios.create({
     }
   ],
 })
+
+requestManager.attachTo(anyhedgeBackend)
+requestManager.attachTo(generalProtocolLPBackend)
 
 export function connectWebsocketUpdates(walletHash) {
   const websocketUrl = new URL(baseUrl)

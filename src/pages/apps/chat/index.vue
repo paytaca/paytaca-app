@@ -417,6 +417,7 @@ export default {
       groupName: '',
       selectedMemberNpubs: [],
       fetchedContactDisplayName: null,
+      _profilePromptShown: false,
     }
   },
   computed: {
@@ -460,6 +461,30 @@ export default {
         return this.$t('NewPrivateGroup', {}, 'New Private Group')
       }
       return this.$t('NewChat', {}, 'New Chat')
+    },
+    missingProfileItems () {
+      const items = []
+      if (!this.$store.state.nostrChat.profile?.displayName) {
+        items.push(this.$t('DisplayName', {}, 'Display Name'))
+      }
+      if (!this.$store.state.nostrChat.profile?.bchAddress) {
+        items.push(this.$t('BchAddress', {}, 'BCH Address'))
+      }
+      return items
+    },
+    isProfileIncomplete () {
+      return this.missingProfileItems.length > 0
+    },
+    profilePromptMessage () {
+      const items = this.missingProfileItems
+      const suffix = this.$t('ProfilePromptAvatarHint', {}, ' You can also set a display image so others can recognize you.')
+      if (items.length === 2) {
+        return this.$t('ProfilePromptBothMissing', { displayName: items[0], bchAddress: items[1] }, `Set your ${items[0]} and ${items[1]} so others can identify you and send you payments.`) + suffix
+      }
+      if (items.length === 1) {
+        return this.$t('ProfilePromptOneMissing', { item: items[0] }, `Set your ${items[0]} so others can identify you and send you payments.`) + suffix
+      }
+      return ''
     },
   },
   watch: {
@@ -546,6 +571,16 @@ export default {
       if (scannedNpub && this.$route.query.npub) {
         this.handleScannedNpub(scannedNpub)
       }
+
+      // Show profile setup prompt if profile is incomplete (after a short delay
+      // to allow the background profile fetch from initialize() to complete)
+      if (!this._profilePromptShown && this.isProfileIncomplete) {
+        setTimeout(() => {
+          if (!this._profilePromptShown && this.isProfileIncomplete) {
+            this.showProfilePrompt()
+          }
+        }, 3000)
+      }
     } catch (err) {
       console.error('Failed to initialize Nostr chat:', err)
       this.$q.notify({
@@ -559,6 +594,29 @@ export default {
   },
   methods: {
     getDarkModeClass,
+    showProfilePrompt () {
+      const message = this.profilePromptMessage
+      if (!message) return
+      this._profilePromptShown = true
+      this.$q.dialog({
+        title: this.$t('CompleteYourProfile', {}, 'Complete Your Profile'),
+        message,
+        class: `pt-card text-bow ${this.getDarkModeClass(this.darkMode)}`,
+        cancel: {
+          label: this.$t('Later', {}, 'Later'),
+          flat: true,
+          color: 'grey',
+        },
+        ok: {
+          label: this.$t('SetUpNow', {}, 'Set Up Now'),
+          color: 'primary',
+          flat: true,
+        },
+        persistent: true,
+      }).onOk(() => {
+        this.$router.push('/apps/chat/profile')
+      })
+    },
     selectChatType (type) {
       this.selectedChatType = type
       if (type === 'dm') {
@@ -849,10 +907,10 @@ export default {
     },
     getRoomDisplayName (room) {
       const myPubKey = this.$store.getters['nostrChat/myPubKey']
-      if (!myPubKey) return room.subject || room.name || 'Chat'
+      if (!myPubKey) return room.subject || room.name || this.$t('Chat')
 
       const otherPubKey = room.members?.find(m => m !== myPubKey)
-      if (!otherPubKey) return room.subject || room.name || 'Chat'
+      if (!otherPubKey) return room.subject || room.name || this.$t('Chat')
 
       // If a subject has been set, use it as the conversation name
       if (room.subject) return room.subject
@@ -861,7 +919,7 @@ export default {
       try {
         otherNpub = npubEncode(otherPubKey)
       } catch {
-        return room.name || 'Chat'
+        return room.name || this.$t('Chat')
       }
 
       const contact = this.$store.getters['nostrChat/getContactByNpub'](otherNpub)
