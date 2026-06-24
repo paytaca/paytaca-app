@@ -799,7 +799,8 @@ animation: float 6s ease-in-out infinite;
 
 .tabs-wrapper {
   display: flex;
-  justify-content: space-between;
+  justify-content: center;
+  gap: 8px;
   overflow-x: auto;
   padding-bottom: 4px;
   
