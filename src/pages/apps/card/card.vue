@@ -88,7 +88,7 @@
             :card="activeCard"
             :key="activeCard.id"
           />
-          <CardSettings v-if="activeTab === 'Card Security'" :active-card="activeCard"/>
+          <CardSettings v-if="activeTab === 'Card Security'" :active-card="activeCard" @lock-status-changed="onLockStatusChanged"/>
           <div v-else-if="!activeCard" class="flex flex-center full-height">
             <q-spinner-dots color="primary" size="40px"/>
           </div>
@@ -545,6 +545,12 @@ export default {
       }
     },
 
+    onLockStatusChanged(isLocked) {
+      this.activeCard.raw.is_locked = isLocked
+      this.activeCard.raw.isLocked = isLocked
+      this.CardStorage.setCardProperty(this.activeCard.id, 'isLocked', isLocked)
+    },
+
     onCloseCashInDialog () {
       this.showCashInDialog = false
       this.getCardBchBalance() // Refresh balance after cash-in
@@ -641,49 +647,9 @@ export default {
       }
     },
 
-    // handleCashIn () {
-    //   if (!this.cashInAmount || parseFloat(this.cashInAmount) <= 0) {
-    //     this.notifyError('Please enter a valid amount greater than 0')
-    //     return
-    //   }
+    
 
-    //   // Convert to BCH based on selected currency using real market data
-    //   let amountInBCH
-      
-    //   if (this.cashInCurrency === 'BCH') {
-    //     amountInBCH = parseFloat(this.cashInAmount)
-    //   } else if (this.cashInCurrency === 'sats' || this.cashInCurrency === 'Satoshis') {
-    //     // 1 BCH = 100,000,000 satoshis
-    //     amountInBCH = parseFloat(this.cashInAmount) / 100000000
-    //   } else {
-    //     // Use real market price from store
-    //     const bchPrice = this.bchPriceInSelectedCurrency
-    //     if (!bchPrice) {
-    //       this.notifyError('Unable to fetch current BCH price. Please try again.')
-    //       return
-    //     }
-    //     // Convert fiat to BCH: amount / price = BCH
-    //     amountInBCH = parseFloat(this.cashInAmount) / bchPrice
-    //   }
-
-    //   // Update card balance in localStorage
-    //   if (this.activeCard) {
-    //     const updatedCard = this.CardStorage.incrementCardProperty(this.activeCard.id, 'balance', amountInBCH)
-    //     if (updatedCard) {
-    //       this.activeCard.balance = updatedCard.balance
-    //     }
-    //   }
-
-    //   this.$q.notify({
-    //     message: `Successfully added ${this.cashInAmount} ${this.cashInCurrency} (~${amountInBCH.toFixed(4)} BCH) to your card!`,
-    //     color: 'positive',
-    //     position: 'top',
-    //     timeout: 2000
-    //   })
-      
-    //   this.showCashInDialog = false
-    //   this.cashInAmount = ''
-    // },
+    
 
     handleOrderPhysicalCard () {
       if (!this.orderPhysicalCardData.fullName || !this.orderPhysicalCardData.city || 

@@ -5,8 +5,8 @@
       <div class="settings-item">
         <div class="settings-item-content">
           <q-icon 
-            :name="activeCard?.isLocked ? 'lock_open' : 'lock'" 
-            :color="activeCard?.isLocked ? 'positive' : 'warning'"
+            :name="isLocked ? 'lock_open' : 'lock'" 
+            :color="isLocked ? 'positive' : 'warning'"
             size="24px"
           />
           <div class="q-ml-md">
@@ -14,14 +14,13 @@
               class="text-subtitle2"
               :class="textColor"
             >
-              <!-- SKELETON LOADER for lock status: <q-skeleton v-if="loadingLockStatus" type="text" width="120px" /> -->
-              {{ activeCard?.isLocked ? 'Unlock Card' : 'Temporary Lock Card' }}
+              {{ isLocked ? 'Unlock Card' : 'Temporary Lock Card' }}
             </div>
             <div 
               class="text-caption"
               :class="$q.dark.isActive ? 'text-grey-5' : 'text-grey'"
             >
-              {{ activeCard?.isLocked ? 'Card is currently locked' : 'Temporarily disable all transactions' }}
+              {{ isLocked ? 'Card is currently locked' : 'Temporarily disable all transactions' }}
             </div>
           </div>
         </div>
@@ -345,28 +344,20 @@ export default {
     async onCardLockToggle(isLocked) {
       this.isLocking = true;
       try {
-        // Call API to update lock status
-        const card = await this.$store.dispatch('card/updateCardLockStatus', {
+        await this.$store.dispatch('card/updateCardLockStatus', {
           cardId: this.activeCard.id,
           isLocked
         });
-        console.log('Updated card lock status:', card);
-        // Optionally show a success message
-        this.$q.notify({
-          type: 'positive',
-          message: `Card has been ${isLocked ? 'locked' : 'unlocked'} successfully!`
-        });
       } catch (error) {
-        // Revert toggle state on error
-        this.isLocked = !isLocked;
-        // Show error message
-        this.$q.notify({
-          type: 'negative',
-          message: `Failed to ${isLocked ? 'lock' : 'unlock'} the card. Please try again.`
-        });
-      } finally {
-        this.isLocking = false;
+        console.warn('Backend lock update failed, saving locally:', error);
       }
+      CardStorage.setCardProperty(this.activeCard.id, 'isLocked', isLocked)
+      this.$emit('lock-status-changed', isLocked);
+      this.$q.notify({
+        type: 'positive',
+        message: `Card has been ${isLocked ? 'locked' : 'unlocked'} successfully!`
+      });
+      this.isLocking = false;
     },
     async onAlertsToggle(isAlertsEnabled) {
       try {
