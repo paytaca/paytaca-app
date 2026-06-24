@@ -917,7 +917,7 @@ function showHelpDialog() {
         To create an invoice for this store using Mode A (Automated), use the following endpoint:
       </div>
       <div class="font-mono bg-grey-3 q-pa-sm br-5 text-caption q-mb-md overflow-hidden text-black" style="word-break: break-all;">
-        POST /api/invoices/
+        POST /api/v1/invoices/
       </div>
       <div class="q-mb-sm text-weight-medium text-caption">Headers:</div>
       <div class="font-mono bg-grey-3 q-pa-sm br-5 text-caption q-mb-md text-black" style="word-break: break-all;">

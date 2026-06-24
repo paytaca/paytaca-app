@@ -23,7 +23,7 @@ const baseURL = process.env.PAYMENT_HUB_API || 'https://watchtower.cash/api'
  * Axios instance configured for the Payment Hub API.
  */
 export const backend = axios.create({
-  baseURL: baseURL
+  baseURL: `${baseURL}/v1`
 })
 
 const OAUTH_TOKEN_KEY = 'payment-hub-oauth-token'
@@ -120,7 +120,7 @@ export const authToken = {
     const timestamp = Math.floor(Date.now() / 1000)
 
     const client = new BitcoinCashOAuthClient({
-      serverUrl: baseURL,
+      serverUrl: `${baseURL}`,
       network: 'mainnet',
       fetch: axiosFetch
     })
