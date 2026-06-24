@@ -120,7 +120,7 @@ export default {
 .pt-custom-keyboard-row {
   width: 100%;
   color: #515151;
-  padding-bottom: env(safe-area-inset-bottom, 0px)
+  padding-bottom: env(safe-area-inset-bottom, 0px);
 }
 .pt-key-num {
   height: 45px;
