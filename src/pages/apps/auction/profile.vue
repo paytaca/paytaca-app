@@ -46,10 +46,12 @@
 </template>
 
 <script setup>
-import { useQuasar, date } from 'quasar'
+import { useQuasar } from 'quasar'
 import { useStore } from 'vuex'
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
-import { ref, computed, watch, onMounted } from 'vue'
+import { ref, computed } from 'vue'
+import { Store } from 'src/store'
+import { callAPI } from 'src/auction/api'
 
 // Components
 import HeaderNav from 'src/components/header-nav.vue'
@@ -57,7 +59,30 @@ import AuctionHeaderMenu from 'src/components/auction/AuctionHeaderMenu.vue'
 
 const $q = useQuasar()
 const $store = useStore()
+const $router = useRouter()
 const darkMode = computed(() => $store.getters['darkmode/getStatus'])
 
 const username = ref('')
+
+const handleEditUserProfile = async () => {
+  try {
+    const response = await callAPI('user-details', null , 'post', {
+      username: username.value,
+      user_id: Store.getters['global/getWallet']('bch')?.walletHash
+    })
+
+    if (response.success) {
+      $q.notify({
+        type: 'positive',
+        message: 'User profile updated!',
+        timeout: 3000
+      })
+    }
+  } catch (err) {
+    console.error(err)
+    $q.notify({ type: 'negative', message: err.message || 'Something went wrong.' })
+  } finally {
+    $router.push('/apps/auction')
+  }
+}
 </script>
