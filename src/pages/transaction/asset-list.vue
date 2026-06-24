@@ -84,8 +84,11 @@
     				   		<q-item>
     				   			<q-item-section v-if="asset.favorite === 1 || asset.favorite === true" side class="handle drag-handle">
     				   				<q-icon name="drag_indicator" size="20px" :color="darkmode ? 'grey-5' : 'grey-7'" />
-    				   			</q-item-section>		       					   				       		
-								      <q-item-section avatar :class="{'q-pl-md': asset.favorite !== 1 && asset.favorite !== true}">
+    				   			</q-item-section>
+    				   			<q-item-section v-else side class="hide-btn" @click.stop="hideAsset(asset)">
+    				   				<q-icon name="visibility_off" size="20px" :color="darkmode ? 'grey-5' : 'grey-7'" />
+    				   			</q-item-section>
+								      <q-item-section avatar>
 									          <q-avatar>
 									            <img 
 									              :src="getImageUrl(asset)" 
@@ -942,6 +945,22 @@ export default {
     transition: opacity 0.2s ease;
   }
   
+  &:hover .q-icon {
+    opacity: 0.8;
+  }
+}
+
+.hide-btn {
+  cursor: pointer;
+  user-select: none;
+  padding: 0 !important;
+  min-width: 30px !important;
+
+  .q-icon {
+    opacity: 0.4;
+    transition: opacity 0.2s ease;
+  }
+
   &:hover .q-icon {
     opacity: 0.8;
   }
