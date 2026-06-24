@@ -17,7 +17,7 @@ import { Loading, QSpinnerIos } from 'quasar'
 /**
  * Base URL for the Payment Hub API.
  */
-const baseURL = process.env.PAYMENT_HUB_API || 'https://watchtower.cash/api'
+const baseURL = process.env.PAYMENT_HUB_API || 'https://paymenthub.paytaca.com/api'
 
 /**
  * Axios instance configured for the Payment Hub API.
@@ -46,7 +46,7 @@ function getOAuthDomain() {
     return url.hostname
   } catch (e) {
     const match = baseURL.match(/https?:\/\/([^/]+)/)
-    return match ? match[1] : 'watchtower.cash'
+    return match ? match[1] : 'paymenthub.paytaca.com'
   }
 }
 

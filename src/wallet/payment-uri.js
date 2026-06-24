@@ -271,6 +271,7 @@ export class JPPSourceTypes {
       if (link.host.indexOf('bitcoin.com') >= 0) return this.BITCOIN_COM
       if (link.host.indexOf('bitpay') >= 0) return this.BITPAY
       if (link.host.indexOf('watchtower.cash') >= 0) return this.WATCHTOWER
+      if (link.host.indexOf('paymenthub.paytaca.com') >= 0) return this.BITPAY
       if (link.host.indexOf('localhost') >= 0) return this.WATCHTOWER
       if (link.host.indexOf('anypay') >= 0) return this.ANYPAY
       return this.DEFAULT
