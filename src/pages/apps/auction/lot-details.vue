@@ -1023,11 +1023,19 @@ const handleBuyItNow = async (payload = {}) => {
       })
 
       if (resIsSold) {
-        await walletToContract(Number(bidBch).toFixed(8), bidId)
+        $q.loading.show({
+          message: 'Processing smart contract...'
+        })
+
+        try {
+          await walletToContract(Number(bidBch).toFixed(8), bidId)
+        } finally {
+          $q.loading.hide()
+        }
 
         dutchAlreadySold.value = true
         clearDutchTimers()
-        await refresh()
+        await refresh(() => {})
         
         $q.notify({
           type: 'positive',
