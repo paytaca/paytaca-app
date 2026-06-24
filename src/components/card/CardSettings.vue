@@ -367,6 +367,7 @@ export default {
       showSweepFundsDialog: false,
       showDeleteCard: false,
       showDeleteCardDialog: false,
+      cardBalance: 0,
       replacementMap: null,
       replacementMarker: null,
       orderPhysicalCardData: {
@@ -379,10 +380,8 @@ export default {
     }
   },
   computed: {
-    async hasCardBalance() {
-      let balance = 0
-      balance = await this.activeCard?.getBchBalance()
-      return parseFloat(balance) > 0
+    hasCardBalance() {
+      return parseFloat(this.cardBalance) > 0
     },
     replacementReasons () {
       return [
@@ -394,7 +393,8 @@ export default {
       ]
     }
   },
-  mounted () {
+  async mounted () {
+    this.cardBalance = await this.activeCard?.getBchBalance() || 0
     this.loadCardReplacementStatus()
   },
   beforeUnmount () {
