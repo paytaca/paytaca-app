@@ -98,7 +98,7 @@
               <q-icon name="shopping_cart" size="32px" color="primary" />
             </div>
           </div>
-          <OrderCard />
+          <OrderCard :replacement-reason="replacementReasonLabel" />
         </div>
       </transition>
 
@@ -233,6 +233,19 @@ export default {
       return {
         background: `linear-gradient(to right, var(--q-primary) 0%, var(--q-primary) ${pct}%, rgba(128, 128, 128, 0.15) ${pct}%, rgba(128, 128, 128, 0.15) 100%)`
       }
+    },
+    isReplacement() {
+      return this.$route.query.replacement === 'true'
+    },
+    replacementReasonLabel() {
+      const reasons = {
+        lost: 'Card Lost',
+        stolen: 'Card Stolen',
+        damaged: 'Card Damaged',
+        fraud: 'Suspected Fraud',
+        other: 'Other'
+      }
+      return reasons[this.$route.query.reason] || this.$route.query.reason || ''
     },
   },
 

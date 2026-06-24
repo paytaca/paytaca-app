@@ -3,6 +3,14 @@
     <div v-if="!processing && !done" class="column items-center">
       <div class="text-h5 text-weight-bold q-mb-md" :class="textColor">Order Your Paytaca Card</div>
 
+      <div v-if="replacementReason" class="replacement-banner q-mb-md full-width">
+        <q-banner class="q-pa-sm text-center" rounded :class="$q.dark.isActive ? 'bg-grey-9' : 'bg-primary'" style="border-radius: 12px;">
+          <div class="text-caption text-weight-bold text-white">
+            Card Replacement — Reason: {{ replacementReason }}
+          </div>
+        </q-banner>
+      </div>
+
       <!-- Card Name -->
       <div class="full-width q-mb-md">
         <div class="text-subtitle2 q-mb-sm" :class="textColor">Card Name</div>
@@ -143,7 +151,7 @@
     <div v-else-if="done" class="column items-center q-pa-lg">
       <q-icon name="check_circle" color="positive" size="4rem" class="q-mb-md" />
       <div class="text-h5 text-weight-bold q-mb-sm" :class="textColor">Order Successful!</div>
-      <div class="text-body1 q-mb-md" :class="textColorGrey">Your Paytaca card has been ordered.</div>
+      <div class="text-body1 q-mb-md" :class="textColorGrey">{{ replacementReason ? 'Your Paytaca replacement card has been ordered.' : 'Your Paytaca card has been ordered.' }}</div>
 
       <div class="full-width q-mb-md q-pa-md br-10" :class="$q.dark.isActive ? 'glassmorphic-dark' : 'glassmorphic-light'" style="max-width: 400px;">
         <div class="row items-center q-mb-sm">
@@ -183,7 +191,8 @@
 export default {
   name: 'OrderCard',
   props: {
-    card: { type: Object, required: false, default: () => ({}) }
+    card: { type: Object, required: false, default: () => ({}) },
+    replacementReason: { type: String, required: false, default: '' }
   },
   data() {
     return {
