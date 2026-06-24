@@ -22,7 +22,7 @@ export async function callContractRelease(bidId) {
     const response = await callAPI('release', null, 'post', payload)
 
     if (response && response.success) {
-      console.log(`[callContractRelease] Successfully called release function from contract! Here are the details: ${response.data.tx_details}`)
+      console.log('[callContractRelease] Successfully called release function from contract! Here are the details: ', response.data.tx_details)
       return response.data.tx_details
     }
     throw new Error()
