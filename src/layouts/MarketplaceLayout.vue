@@ -509,6 +509,7 @@ export default {
 <style scoped>
 .footer-panel {
   pointer-events: none;
+  bottom: env(safe-area-inset-bottom, 0px);
 }
 .footer-panel * {
   pointer-events: auto;
