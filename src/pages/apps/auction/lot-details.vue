@@ -1005,6 +1005,7 @@ const handleBuyItNow = async (payload = {}) => {
   try {
     const bidBch = payload.bid_price_bch ?? dutchCurrentPriceBch.value
     const bidFiat = payload.bid_price_fiat ?? dutchCurrentPriceFiat.value
+    
     const res = await callAPI('biddings', null, 'post', {
       user_id: walletHash,
       lot_id: props.lotId,
@@ -1014,14 +1015,20 @@ const handleBuyItNow = async (payload = {}) => {
     })
 
     if (res.success) {
-      const resIsSold = await callAPI('lots', props.lotId, 'patch', { is_sold: true, date_sold: new Date().toISOString() })
+      const bidId = res.data?.id || res.id
+
+      const resIsSold = await callAPI('lots', props.lotId, 'patch', { 
+        is_sold: true, 
+        date_sold: new Date().toISOString() 
+      })
 
       if (resIsSold) {
-        await walletToContract(Number(bidBch).toFixed(8), props.lotId)
+        await walletToContract(Number(bidBch).toFixed(8), bidId)
 
         dutchAlreadySold.value = true
         clearDutchTimers()
         await refresh()
+        
         $q.notify({
           type: 'positive',
           message: `Secured for ${getFormattedBCH(dutchCurrentPriceBch.value).main}${getFormattedBCH(dutchCurrentPriceBch.value).zeros} BCH!`,
