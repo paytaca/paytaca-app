@@ -395,13 +395,10 @@ export default {
 	    },
     onDragChange (event) {
       if (event.moved) {
-        const { oldIndex, newIndex } = event.moved
         const hidden = this.hiddenIds
-        const visible = this.assetList.filter(a => !hidden.includes(a.id))
-        const [moved] = visible.splice(oldIndex, 1)
-        visible.splice(newIndex, 0, moved)
+        const reorderedVisible = [...this.visibleAssetList]
         const hiddenAssets = this.assetList.filter(a => hidden.includes(a.id))
-        this.assetList = [...visible, ...hiddenAssets]
+        this.assetList = [...reorderedVisible, ...hiddenAssets]
       }
     },
     async onDragEnd() {
