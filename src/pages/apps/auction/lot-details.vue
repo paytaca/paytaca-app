@@ -94,10 +94,13 @@
                     class="text-bold text-white full-width"
                     style="background-color: var(--q-secondary);"
                     padding="md"
-                    label="Place Bid"
-                    :disabled="lot.getLotStatus(auction.start_date, auction.end_date).label !== 'Open'"
-                    @click="openDialog = !openDialog"
                     unelevated
+                    :label="highestBidderId === walletHash ? 'Highest Bidder' : 'Place Bid'"
+                    :disabled="
+                      lot.getLotStatus(auction.start_date, auction.end_date).label !== 'Open' ||
+                      highestBidderId === walletHash
+                    "
+                    @click="openDialog = !openDialog"
                   />
                 </div>
  
@@ -606,7 +609,7 @@ import { callAPI } from 'src/auction/api'
 import { Store } from 'src/store'
 import { AuctionList, LotsList } from 'src/auction/object'
 import { walletToContract } from 'src/auction/payment'
-import { callContractRelease } from 'src/auction/arbiter'
+import { callContractRelease, callContractReturn } from 'src/auction/arbiter'
 
 // Components
 import HeaderNav from 'src/components/header-nav.vue'
@@ -688,15 +691,14 @@ const estimatedAmountFiat = computed(() => {
 // =========================== RELEASE TO SELLER ===========================
 // =========================================================================
 const confirmPickupTrigger = async () => {
-  const bidId = winningBid.value?.id
+  const bidId = auction.value?.type === 'English' ? highestBidId.value : winningBid.value?.id
 
   if (!bidId) {
-    $q.notify({ type: 'warning', message: 'Could not find bid to return funds for.' })
+    $q.notify({ type: 'warning', message: 'Could not find bid to release funds for.' })
     return
   }
 
   confirmedPickup.value = true
-
   $q.loading.show({ message: 'Confirming pickup...' })
   await callContractRelease(bidId)
   $q.loading.hide()
@@ -713,7 +715,9 @@ const englishBidPolling = ref(false)
 const hasBid = ref(false)
 const hasUserBid = ref(false)
 const highestBidderId = ref(null)
+const highestBidId = ref(null)
 const isSold = computed(() => lot.value?.is_sold || false)
+let englishPollingInterval = null
 
 const englishCurrentBch = computed(() => {
   if (!lot.value) return 0
@@ -744,37 +748,49 @@ const handlePlaceBid = async ({ bid_price_bch, bid_price_fiat }) => {
   }
 
   englishBidLoading.value = true
+
   try {
-    const payload = {
+    const bidResponse = await callAPI('biddings', null, 'post', {
       user_id: walletHash,
       lot_id: props.lotId,
       bid_price_bch: Number(bid_price_bch).toFixed(8),
       bid_price_fiat: Number(bid_price_fiat).toFixed(2),
       is_final_bid: true
-    }
-
-    const bidResponse = await callAPI('biddings', null, 'post', payload)
+    })
 
     if (!bidResponse.success) {
       throw new Error(bidResponse.error || 'Bid failed. Please try again.')
     }
 
+    const bidId = bidResponse.data?.id
     await callAPI('lots', props.lotId, 'patch', {
       threshold_bid_bch: Number(bid_price_bch).toFixed(8),
       threshold_bid_fiat: Number(bid_price_fiat).toFixed(2)
     })
+
+    $q.loading.show({ message: 'Processing smart contract...' })
+    await walletToContract(Number(bid_price_bch).toFixed(8), bidId)
     
+    const secondRes = await callAPI(`lots/${props.lotId}/second-highest-bidder`)
+    if (secondRes.success && secondRes.data?.id) {
+      await callContractReturn(secondRes.data.id)
+    }
+
+    $q.loading.hide()
+
     openDialog.value = false
     hasUserBid.value = true
+
     $q.notify({
       type: 'positive',
       icon: 'gavel',
       message: `Bid of ${getFormattedBCH(bid_price_bch).main}${getFormattedBCH(bid_price_bch).zeros} BCH placed!`,
       timeout: 3000
     })
-    
+
     await fetchLot()
     await checkBidStatus()
+    startEnglishPolling()
   } catch (err) {
     console.error(err)
     $q.notify({ type: 'negative', message: err.message || 'Something went wrong.' })
@@ -787,8 +803,9 @@ const checkBidStatus = async () => {
   try {
     const result = await callAPI(`lots/${props.lotId}/highest-bid`)
 
-    if (result.success && result.data && result.data.user_id !== null) {
+    if (result.success && result.data?.user_id) {
       hasBid.value = true
+      highestBidId.value = result.data.id
       highestBidderId.value = result.data.user_id
     } else {
       hasBid.value = false
@@ -796,8 +813,6 @@ const checkBidStatus = async () => {
     }
   } catch (err) {
     console.error('Error checking bid status:', err)
-    hasBid.value = false
-    highestBidderId.value = null
   }
 }
 
@@ -833,7 +848,7 @@ const bidStatus = computed(() => {
   if (!hasUserBid.value) {
     return null
   }
-
+  
   if (!hasBid.value) {
     return isLotClosed.value ? 'did-not-win' : null
   }
@@ -846,6 +861,24 @@ const bidStatus = computed(() => {
 })
 
 const isWinningBidder = computed(() => bidStatus.value === 'win')
+
+const startEnglishPolling = () => {
+  if (englishPollingInterval) return
+  englishPollingInterval = setInterval(async () => {
+    if (isLotClosed.value) {
+      stopEnglishPolling()
+      return
+    }
+    await checkBidStatus()
+  }, 8000)
+}
+
+const stopEnglishPolling = () => {
+  if (englishPollingInterval) {
+    clearInterval(englishPollingInterval)
+    englishPollingInterval = null
+  }
+}
 
 
 
@@ -1001,6 +1034,7 @@ const initializeDutchAuctionTimer = (lotData) => {
 
 onUnmounted(() => {
   if (visualCountdownTimer) clearInterval(visualCountdownTimer)
+  stopEnglishPolling()
 })
 
 const dutchFloorPriceBch = computed(() => Number(lot.value?.threshold_bid_bch || 0))
