@@ -72,7 +72,7 @@
     "capacitor-native-biometric": "^4.2.2",
     "capacitor-secure-storage-plugin": "^0.5.1",
     "cashscript": "^0.11.5",
-    "cashscript13": "npm:cashscript@^0.13.1",
+    "cashscript13": "npm:cashscript@^0.13.2",
     "chart.js": "^4.2.1",
     "client-zip": "^2.4.5",
     "core-js": "^3.6.5",
