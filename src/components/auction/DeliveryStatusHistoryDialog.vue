@@ -46,9 +46,29 @@ const $store = useStore()
 const darkMode = computed(() => $store.getters['darkmode/getStatus'])
 
 const statusHistory = [
-  { id: 1, status: 'Appeal Filed', timestamp: 'Jun 15, 2026 · 10:02 AM', color: 'warning',  icon: 'flag', note: 'Buyer filed a refund appeal.' },
-  { id: 2, status: 'Under Review', timestamp: 'Jun 15, 2026 · 10:15 AM', color: 'primary',  icon: 'search', note: 'Arbiter assigned and reviewing.' },
-  { id: 3, status: 'Evidence Period', timestamp: 'Jun 15, 2026 · 11:00 AM', color: 'secondary',icon: 'attach_file', note: 'Both parties submitted evidence.' },
-  { id: 4, status: 'Pending Decision', timestamp: 'Jun 16, 2026 · 12:00 AM', color: 'orange',   icon: 'hourglass_top', note: 'Awaiting arbiter final action.' },
+  { 
+    id: 1, 
+    status: 'Preparing', 
+    timestamp: 'Jun 22, 2026 · 09:15 AM', 
+    color: 'orange',  
+    icon: 'inventory_2', 
+    note: 'The seller is packaging your item and preparing it for dispatch.' 
+  },
+  { 
+    id: 2, 
+    status: 'Shipped', 
+    timestamp: 'Jun 23, 2026 · 02:30 PM', 
+    color: 'primary',  
+    icon: 'local_shipping', 
+    note: 'The item has been handed over to the courier and is on its way.' 
+  },
+  { 
+    id: 3, 
+    status: 'Delivered', 
+    timestamp: 'Jun 24, 2026 · 11:05 AM', 
+    color: 'positive', 
+    icon: 'task_alt', 
+    note: 'Parcel successfully arrived at the destination address.' 
+  },
 ]
 </script>
