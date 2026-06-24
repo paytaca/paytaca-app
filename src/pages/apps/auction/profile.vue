@@ -50,8 +50,9 @@ import { useQuasar } from 'quasar'
 import { useStore } from 'vuex'
 import { useRouter } from 'vue-router'
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
-import { ref, computed } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { Store } from 'src/store'
+import { getBidderPublicKey } from 'src/auction/payment'
 import { callAPI } from 'src/auction/api'
 
 // Components
@@ -64,18 +65,49 @@ const $router = useRouter()
 const darkMode = computed(() => $store.getters['darkmode/getStatus'])
 
 const username = ref('')
+const userId = ref(null)
+const isExistingUser = ref(false)
+
+onMounted(async () => {
+  try {
+    const pk = await getBidderPublicKey('0/0')
+    
+    if (pk) {
+      const response = await callAPI('user-details-by-pubkey', pk)
+
+      if (response && response.success && response.data) {
+        if (response.data.username) {
+          username.value = response.data.username
+          userId.value = response.data.id
+        }
+        isExistingUser.value = true
+      }
+    }
+  } catch (err) {
+    console.error('Failed to fetch existing profile username:', err)
+  }
+})
 
 const handleEditUserProfile = async () => {
   try {
-    const response = await callAPI('user-details', null , 'post', {
-      username: username.value,
-      user_id: Store.getters['global/getWallet']('bch')?.walletHash
-    })
+    const walletHash = Store.getters['global/getWallet']('bch')?.walletHash
+    const method = isExistingUser.value ? 'patch' : 'post'
+
+    let response
+
+    if (method === 'post') {
+      response = await callAPI('user-details', null, method, {
+        username: username.value,
+        user_id: walletHash
+      })
+    } else {
+      response = await callAPI(`user-details/${userId.value}/update`, null, method, { username: username.value })
+    }
 
     if (response.success) {
       $q.notify({
         type: 'positive',
-        message: 'User profile updated!',
+        message: isExistingUser.value ? 'User profile updated!' : 'User profile created!',
         timeout: 3000
       })
     }
