@@ -1,14 +1,18 @@
 /**
  * Centralized in-flight HTTP request manager.
  *
- * Each axios instance registers itself via `attachTo(axiosInstance)`.
- * Every outgoing request gets its own AbortController whose signal is
- * forwarded to axios.  Calling `abortAll()` cancels every pending request
- * at once — the router calls this on every navigation so that a user click
- * is never blocked waiting for a stale background request to finish.
+ * Covers axios (via `attachTo`), raw `fetch()` (via `attachToFetch`),
+ * and XMLHttpRequest (via `attachToXHR`).
  *
- * Requests that opt out (e.g. fire-and-forget mutations) can set
- * `config.skipAbortManager = true`.
+ * Every outgoing request gets its own AbortController whose signal is
+ * forwarded to the transport.  Calling `abortAll()` cancels every pending
+ * request at once — the router calls this on every navigation so that a
+ * user click is never blocked waiting for a stale background request.
+ *
+ * Opt-out mechanisms:
+ *   axios:     `config.skipAbortManager = true`
+ *   fetch:     `{ skipAbortManager: true }` in the init options
+ *   XMLHttpRequest: set `xhr.skipAbortManager = true` before calling `.send()`
  */
 
 class RequestManager {
@@ -102,6 +106,86 @@ class RequestManager {
         return Promise.reject(error)
       }
     )
+  }
+
+  /**
+   * Monkey-patch global `fetch` so every raw fetch() call is tracked and
+   * abortable via `abortAll()`.
+   *
+   * Opt out per-request by passing `{ skipAbortManager: true }` in the
+   * init options.
+   */
+  attachToFetch () {
+    const self = this
+    const originalFetch = window.fetch.bind(window)
+
+    window.fetch = function (input, init = {}) {
+      if (init.skipAbortManager) {
+        return originalFetch(input, init)
+      }
+
+      const { signal, cleanup } = self._register()
+
+      // Merge with any caller-supplied signal
+      if (init.signal) {
+        const callerSignal = init.signal
+        if (callerSignal.aborted) {
+          cleanup()
+          return Promise.reject(new DOMException('Aborted', 'AbortError'))
+        }
+
+        const mergedController = new AbortController()
+        const abort = () => { mergedController.abort(); cleanup() }
+        callerSignal.addEventListener('abort', abort, { once: true })
+        signal.addEventListener('abort', () => {
+          mergedController.abort()
+          callerSignal.removeEventListener('abort', abort)
+        }, { once: true })
+
+        init.signal = mergedController.signal
+      } else {
+        init.signal = signal
+      }
+
+      let promise
+      try {
+        promise = originalFetch(input, init)
+      } catch (e) {
+        cleanup()
+        throw e
+      }
+      promise.finally(cleanup)
+      return promise
+    }
+  }
+
+  /**
+   * Monkey-patch XMLHttpRequest.prototype.send so every XHR call is tracked
+   * and abortable via `abortAll()`.
+   *
+   * Opt out per-request by setting `xhr.skipAbortManager = true` before
+   * calling `.send()`.
+   */
+  attachToXHR () {
+    const self = this
+    const originalSend = XMLHttpRequest.prototype.send
+
+    XMLHttpRequest.prototype.send = function (...args) {
+      if (this._rmTracked || this.skipAbortManager) {
+        return originalSend.apply(this, args)
+      }
+      this._rmTracked = true
+
+      const { signal, cleanup } = self._register()
+      const abort = () => { this.abort(); cleanup() }
+      signal.addEventListener('abort', abort, { once: true })
+      this.addEventListener('loadend', () => {
+        signal.removeEventListener('abort', abort)
+        cleanup()
+      }, { once: true })
+
+      return originalSend.apply(this, args)
+    }
   }
 }
 

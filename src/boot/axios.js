@@ -13,6 +13,10 @@ const connectaAxios = axios.create({
 requestManager.attachTo(axiosInstance)
 requestManager.attachTo(connectaAxios)
 
+// Extend coverage to raw fetch() and XMLHttpRequest calls
+requestManager.attachToFetch()
+requestManager.attachToXHR()
+
 export default boot(({ app }) => {
   app.config.globalProperties.$axios = axiosInstance
   app.config.globalProperties.$connectaAxios = connectaAxios
