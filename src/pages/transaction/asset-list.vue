@@ -86,7 +86,7 @@
     				   				<q-icon name="drag_indicator" size="20px" :color="darkmode ? 'grey-5' : 'grey-7'" />
     				   			</q-item-section>
     				   			<q-item-section v-else side class="hide-btn" @click.stop="hideAsset(asset)">
-    				   				<q-icon name="visibility_off" size="20px" :color="darkmode ? 'grey-5' : 'grey-7'" />
+    				   				<q-icon name="visibility" size="20px" :color="darkmode ? 'grey-5' : 'grey-7'" />
     				   			</q-item-section>
 								      <q-item-section avatar>
 									          <q-avatar>
@@ -162,6 +162,9 @@
 			          </template>
 			          <q-card class="q-py-sm br-15 asset-card-hidden" :class="getDarkModeClass(darkmode)">
 			            <q-item>
+			              <q-item-section side class="hide-btn" @click.stop="onSwipeUnhide(asset)">
+			                <q-icon name="visibility_off" size="20px" :color="darkmode ? 'grey-5' : 'grey-7'" />
+			              </q-item-section>
 			              <q-item-section avatar>
 			                <q-avatar>
 			                  <img :src="getImageUrl(asset)" class="asset-icon" @contextmenu.prevent @selectstart.prevent>
