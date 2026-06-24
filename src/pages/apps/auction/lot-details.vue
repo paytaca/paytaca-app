@@ -699,9 +699,9 @@ const confirmPickupTrigger = async () => {
   }
 
   confirmedPickup.value = true
-  $q.loading.show({ message: 'Confirming pickup...' })
-  await callContractRelease(bidId)
-  $q.loading.hide()
+  // $q.loading.show({ message: 'Confirming pickup...' })
+  // await callContractRelease(bidId)
+  // $q.loading.hide()
 }
 
 
@@ -768,15 +768,15 @@ const handlePlaceBid = async ({ bid_price_bch, bid_price_fiat }) => {
       threshold_bid_fiat: Number(bid_price_fiat).toFixed(2)
     })
 
-    $q.loading.show({ message: 'Processing smart contract...' })
-    await walletToContract(Number(bid_price_bch).toFixed(8), bidId)
+    // $q.loading.show({ message: 'Processing smart contract...' })
+    // await walletToContract(Number(bid_price_bch).toFixed(8), bidId)
     
-    const secondRes = await callAPI(`lots/${props.lotId}/second-highest-bidder`)
-    if (secondRes.success && secondRes.data?.id) {
-      await callContractReturn(secondRes.data.id)
-    }
+    // const secondRes = await callAPI(`lots/${props.lotId}/second-highest-bidder`)
+    // if (secondRes.success && secondRes.data?.id) {
+    //   await callContractReturn(secondRes.data.id)
+    // }
 
-    $q.loading.hide()
+    // $q.loading.hide()
 
     openDialog.value = false
     hasUserBid.value = true
@@ -1078,13 +1078,13 @@ const handleBuyItNow = async (payload = {}) => {
       })
 
       if (resIsSold) {
-        $q.loading.show({ message: 'Processing smart contract...' })
+        // $q.loading.show({ message: 'Processing smart contract...' })
 
-        try {
-          await walletToContract(Number(bidBch).toFixed(8), bidId)
-        } finally {
-          $q.loading.hide()
-        }
+        // try {
+        //   await walletToContract(Number(bidBch).toFixed(8), bidId)
+        // } finally {
+        //   $q.loading.hide()
+        // }
 
         dutchAlreadySold.value = true
         clearDutchTimers()
