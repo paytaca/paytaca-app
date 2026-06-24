@@ -114,22 +114,19 @@
               <q-separator spaced="sm" />
 
               <div class="column q-gutter-y-xs">
-                <div
-                  v-if="getAuctionStatusInfo(auction).label !== 'Closed'"
-                  class="row items-center q-gutter-x-xs text-caption text-weight-bold"
-                >
+                <div class="row items-center q-gutter-x-xs text-caption text-weight-bold">
                   <q-icon
-                    :name="getAuctionStatusInfo(auction).label === 'Open' ? 'event_busy' : 'event_available'"
+                    :name="getAuctionStatusInfo(auction).label === 'Upcoming' ? 'event_available' : 'event_busy'"
                     style="font-size: 11px;"
                   />
                   <strong class="text-bow">
-                    {{ getAuctionStatusInfo(auction).label === 'Open' ? 'Ends' : 'Starts' }}
+                    {{ getAuctionStatusInfo(auction).label === 'Upcoming' ? 'Starts' : (getAuctionStatusInfo(auction).label === 'Closed' ? 'Ended' : 'Ends') }}
                   </strong>
                   <div>
                     {{
-                      getAuctionStatusInfo(auction).label === 'Open'
-                        ? formatAuctionDate(auction.end_date)
-                        : formatAuctionDate(auction.start_date)
+                      getAuctionStatusInfo(auction).label === 'Upcoming'
+                        ? formatAuctionDate(auction.start_date)
+                        : formatAuctionDate(auction.end_date)
                     }}
                   </div>
                 </div>
