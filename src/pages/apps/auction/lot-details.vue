@@ -175,6 +175,19 @@
                 </div>
               </q-banner>
             </div>
+
+            <div v-if="showPostAuctionActions && (isAuthor || isWinningBidder)" class="q-mt-md full-width">
+              <q-btn
+                outline
+                dense
+                no-caps
+                color="primary"
+                icon="history"
+                label="View Delivery Status"
+                class="full-width"
+                @click="showDeliveryHistory = true"
+              />
+            </div>
             
             <div v-if="showPostAuctionActions && (isAuthor || isWinningBidder)" class="q-mt-md full-width row q-col-gutter-none items-center justify-center">
               <div class="col text-center">
@@ -581,6 +594,11 @@
       @confirm-buy-it-now="handleBuyItNow"
     />
 
+    <DeliveryStatusHistoryDialog
+      v-model="showDeliveryHistory"
+      :lotId="props.lotId"
+    />
+
     <SellerDisputePopup
       v-model="showSellerDisputeDialog"
       :lot="lot"
@@ -618,6 +636,7 @@ import BuyItNowPopup from 'src/components/auction/BuyItNowPopup.vue'
 import BiddingHistoryPopup from 'src/components/auction/BiddingHistoryPopup.vue'
 import SellerDisputePopup from 'src/components/auction/SellerDisputePopup.vue'
 import RefundPopup from 'src/components/auction/RefundPopup.vue'
+import DeliveryStatusHistoryDialog from 'src/components/auction/DeliveryStatusHistoryDialog.vue'
 
 defineOptions({
   directives: {
@@ -641,13 +660,15 @@ const lotImages = ref([])
 const lot = ref(null)
 const auction = ref(null)
 const walletHash = Store.getters['global/getWallet']('bch')?.walletHash
-const showBidHistory = ref(false)
 const isLoading = ref(false)
 
 // Post-auction actions
 const showSellerDisputeDialog = ref(false)
 const showRefundDialog = ref(false)
 const confirmedPickup = ref(false)    // Temporary confirm pickup status
+
+const showBidHistory = ref(false)
+const showDeliveryHistory = ref(false)
 
 const $q = useQuasar()
 const $store = useStore()
