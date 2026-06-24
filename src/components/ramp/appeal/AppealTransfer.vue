@@ -130,7 +130,10 @@ export default {
     },
     fetchContractBalance () {
       return new Promise((resolve, reject) => {
-        if (!this.data?.escrow) return 0
+        if (!this.data?.escrow) {
+          resolve(0)
+          return
+        }
         this.data?.escrow?.getBalance()
           .then(balance => {
             this.contract.balance = balance

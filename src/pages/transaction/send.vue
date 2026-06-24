@@ -2608,12 +2608,23 @@ export default {
 
     async checkIfTransactionWasBroadcast (balanceBefore) {
       try {
-        const prevBalance = Number(balanceBefore?.balance ?? 0)
-        if (prevBalance === 0) return false
-
         await updateAssetBalanceOnLoad(this.assetId, this.wallet, this.$store)
         const refreshed = sendPageUtils.getAsset(this.assetId, this.symbol)
         const currentBalance = Number(refreshed?.balance ?? this.asset.balance)
+        const prevBalance = Number(balanceBefore?.balance ?? 0)
+
+        if (prevBalance === 0) {
+          // For a zero-balance wallet, check if the balance increased (receive-change scenario)
+          // or check the mempool for the pending transaction
+          if (currentBalance > 0) return true
+          try {
+            const watchtower = new Watchtower(this.isChipnet)
+            const txs = await watchtower.BCH.getTransactions({ address: sendPageUtils.getWallet('bch')?.lastAddress })
+            return txs?.length > 0
+          } catch {
+            return false
+          }
+        }
 
         return currentBalance < prevBalance
       } catch (err) {

@@ -3,6 +3,7 @@ describe('Home Page', () => {
     cy.restoreLocalStorage();
     cy.setPushErrorHandling();
     cy.visit('http://localhost:9000/#/apps');
+    cy.intercept('**/api/**').as('apiCalls');
   });
 
   afterEach(() => {
@@ -30,10 +31,10 @@ describe('Home Page', () => {
   //On every code push using Github actions or Bitrise
   //Track load time per screen
   const appScreens = [
-    { name: 'Chat', navigate: () => cy.get('#chat-button').click() },
-    { name: 'Send', navigate: () => cy.get('#send-button').click() },
-    { name: 'Apps', navigate: () => cy.get('#apps-button').click() },
-    { name: 'QRreader', navigate:() => cy.get('#qr-reader-button').click() }
+    { name: 'Chat', navigate: () => cy.get('#chat-button').click(), selector: '#app-container' },
+    { name: 'Send', navigate: () => cy.get('#send-button').click(), selector: '#app-container' },
+    { name: 'Apps', navigate: () => cy.get('#apps-button').click(), selector: '#apps' },
+    { name: 'QRreader', navigate: () => cy.get('#qr-reader-button').click(), selector: '#qr-reader-body' }
   ];
 
   appScreens.forEach(screen => {
@@ -67,8 +68,6 @@ describe('Home Page', () => {
 
 
   //Verify API responses if the screen loads data.
-  cy.intercept('**/api/**').as('apiCalls'); // Watch API requests
-
   appScreens.forEach(screen => {
     it(`Checks ${screen.name} screen performance & API`, () => {
       const t0 = Date.now();

@@ -186,7 +186,10 @@ export default {
           resolve(this.data.contractBalance)
           return
         }
-        if (!this.data?.escrow) return 0
+        if (!this.data?.escrow) {
+          resolve(0)
+          return
+        }
         // Use the escrow contract's own address by not passing any parameter
         // The RampContract will use its internally generated address
         this.data?.escrow?.getBalance()
