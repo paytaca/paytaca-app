@@ -194,7 +194,7 @@
                   icon="check_circle"
                   padding="sm"
                   label="Confirm Pickup"
-                  @click="confirmedPickup = true"
+                  @click="confirmPickupTrigger"
                 />
               </div>
 
@@ -606,6 +606,7 @@ import { callAPI } from 'src/auction/api'
 import { Store } from 'src/store'
 import { AuctionList, LotsList } from 'src/auction/object'
 import { walletToContract } from 'src/auction/payment'
+import { callContractRelease } from 'src/auction/arbiter'
 
 // Components
 import HeaderNav from 'src/components/header-nav.vue'
@@ -680,6 +681,26 @@ const estimatedAmountFiat = computed(() => {
   return Number(lot.value.estimated_amount_bch || 0) * bchToPhpRate.value
 })
 
+
+
+
+// =========================================================================
+// =========================== RELEASE TO SELLER ===========================
+// =========================================================================
+const confirmPickupTrigger = async () => {
+  const bidId = winningBid.value?.id
+
+  if (!bidId) {
+    $q.notify({ type: 'warning', message: 'Could not find bid to return funds for.' })
+    return
+  }
+
+  confirmedPickup.value = true
+
+  $q.loading.show({ message: 'Confirming pickup...' })
+  await callContractRelease(bidId)
+  $q.loading.hide()
+}
 
 
 
@@ -1023,9 +1044,7 @@ const handleBuyItNow = async (payload = {}) => {
       })
 
       if (resIsSold) {
-        $q.loading.show({
-          message: 'Processing smart contract...'
-        })
+        $q.loading.show({ message: 'Processing smart contract...' })
 
         try {
           await walletToContract(Number(bidBch).toFixed(8), bidId)
