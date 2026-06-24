@@ -8,7 +8,10 @@
       />
       <q-menu class="pt-card-2 text-bow" :class="getDarkModeClass(darkMode)">
         <q-list>
-          <q-item>
+          <q-item
+            clickable v-ripple
+            @click="$router.push({ name: 'app-auction-profile' })"
+          >
             <q-item-section avatar style="min-width:0px;">
               <q-icon name="person"/>
             </q-item-section>
