@@ -206,6 +206,10 @@ div#q-app:has(.sticky-header-container) {
   }
 }
 
+.fixed-bottom {
+  bottom: env(safe-area-inset-bottom, 0);
+}
+
 .bottom-card {
   @include bottom-card();
 }
