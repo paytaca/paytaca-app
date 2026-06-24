@@ -142,9 +142,12 @@
 <script setup>
 import { useQuasar, date } from 'quasar'
 import { useStore } from 'vuex'
+import { useRouter } from 'vue-router'
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 import { ref, computed, watch, onMounted } from 'vue'
 import { AuctionList } from 'src/auction/object.js'
+import { getBidderPublicKey } from 'src/auction/payment'
+import { callAPI } from 'src/auction/api'
 
 // Components
 import HeaderNav from 'src/components/header-nav.vue'
@@ -154,6 +157,7 @@ import noImage from 'src/assets/no-image.svg'
 
 const $q = useQuasar()
 const $store = useStore()
+const $router = useRouter()
 
 const auctionType = ref($store.state.auction?.auctionType || 'All');
 const auctionTypeOptions = ['English', 'Dutch', 'All']
@@ -165,6 +169,19 @@ onMounted(async () => {
   await $store.dispatch('auction/refreshCatalog')
   await $store.dispatch('auction/fetchArbiterPublicKey')
   await $store.dispatch('auction/fetchServicerPublicKey')
+
+  try {
+    const pk = await getBidderPublicKey('0/0')
+    const response = await callAPI('user-details-by-pubkey', pk)
+
+    if (!(response && response.success && response.data)) {
+      console.warn('User details missing, redirecting...')
+      $router.push({ name: 'app-auction-profile' })
+    }
+  } catch (error) {
+    console.error('Failed to fetch user details:', error)
+    $router.push({ name: 'app-auction' })
+  }
 })
 
 const auctionSearchQuery = ref('')

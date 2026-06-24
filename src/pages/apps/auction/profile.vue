@@ -48,6 +48,7 @@
 <script setup>
 import { useQuasar } from 'quasar'
 import { useStore } from 'vuex'
+import { useRouter } from 'vue-router'
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 import { ref, computed } from 'vue'
 import { Store } from 'src/store'
