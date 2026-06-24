@@ -37,7 +37,8 @@ contract Escrow(bytes20 arbiter, bytes20 bidder, bytes20 auctioneer, bytes20 ser
         require(tx.inputs.length == 1);
         require(tx.outputs.length == 1);
 
-        int amount = tx.inputs[this.activeInputIndex].value;   
+        int minerFee = 1000;
+        int amount = tx.inputs[this.activeInputIndex].value - minerFee;
         bool correctAmount = tx.outputs[0].value == amount;
 
         require(correctAmount);
