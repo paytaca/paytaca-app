@@ -759,6 +759,11 @@ export default {
 	    onSwipeUnhide(asset) {
 	      unhideAsset(this.walletHash, asset.id)
 	      this.refreshHiddenIds()
+	      const index = this.assetList.findIndex(a => a.id === asset.id)
+	      if (index !== -1) {
+	        const [unhidden] = this.assetList.splice(index, 1)
+	        this.assetList.push(unhidden)
+	      }
 	    },
 	    async fetchTokensDirectlyFromAPI () {
 	    	if (!this.isCashToken) {
