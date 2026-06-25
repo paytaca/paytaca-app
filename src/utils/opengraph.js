@@ -122,9 +122,6 @@ export async function fetchOpenGraph (url, { timeout = 8000 } = {}) {
     setCache(url, result)
     return result
   } catch (err) {
-    if (err?.name === 'AbortError') {
-      return { url, title: '', description: '', imageUrl: '', siteName: '' }
-    }
     const fallback = { url, title: '', description: '', imageUrl: '', siteName: '' }
     setCache(url, fallback)
     return fallback
