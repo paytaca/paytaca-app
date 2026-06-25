@@ -107,7 +107,88 @@
 		                />
 		              </template> -->
 		            </div>
-			
+
+			<!-- Token Info Card (shown when a specific token is selected, not "All" or BCH) -->
+			<div v-if="showTokenInfoCard" class="token-info-card q-mx-lg q-mt-sm" :class="[getDarkModeClass(darkmode), darkmode ? 'text-light' : 'text-dark']">
+				<div class="token-info-inner">
+					<div class="token-header">
+						<img
+							:src="getTokenImageUrl(selectedAsset)"
+							class="token-logo"
+							height="36"
+							alt=""
+							@contextmenu.prevent
+							@selectstart.prevent
+						/>
+						<div class="token-name-group">
+							<div class="token-name">{{ selectedAsset.name || selectedAsset.symbol }}</div>
+							<div class="token-symbol">{{ selectedAsset.symbol }}</div>
+						</div>
+					</div>
+
+					<div class="token-details">
+						<div class="token-price-row">
+							<span class="detail-label">{{ $t('Price') }}</span>
+							<span v-if="tokenPrice" class="detail-value">{{ formattedTokenPrice }}</span>
+							<span v-else-if="loadingTokenPrice" class="detail-value">
+								<q-skeleton type="text" width="80px" height="14px" class="inline-block" />
+							</span>
+							<span v-else class="detail-value text-grey-5">{{ $t('N/A') }}</span>
+						</div>
+						<div class="token-link-row">
+							<span class="detail-label">{{ $t('Metadata') }}</span>
+							<a
+								:href="assetLink"
+								class="detail-link"
+								target="_blank"
+								@click.stop
+							>
+								{{ selectedAsset?.id?.split('/')?.[1]?.slice(0, 7) }}...{{ selectedAsset?.id?.split('/')?.[1]?.slice(-7) }}
+								<q-icon name="open_in_new" size="12px" class="q-ml-xs" />
+							</a>
+						</div>
+					</div>
+
+					<div class="token-actions">
+						<q-btn
+							@click="goToSend"
+							unelevated
+							class="token-action-btn"
+							color="primary"
+							no-caps
+							size="sm"
+						>
+							<q-icon name="send" size="14px" class="q-mr-xs" />
+							{{ $t('Send') }}
+						</q-btn>
+						<q-btn
+							@click="goToReceive"
+							unelevated
+							class="token-action-btn"
+							color="primary"
+							no-caps
+							size="sm"
+						>
+							<q-icon name="qr_code_2" size="14px" class="q-mr-xs" />
+							{{ $t('Receive') }}
+						</q-btn>
+						<q-btn
+							v-if="selectedAsset.id?.startsWith?.('ct/')"
+							@click="goToSwap"
+							unelevated
+							class="token-action-btn"
+							color="primary"
+							no-caps
+							size="sm"
+							outline
+						>
+							<q-icon name="swap_horiz" size="14px" class="q-mr-xs" />
+							{{ $t('Swap') }}
+						</q-btn>
+					</div>
+				</div>
+			</div>
+
 			<transaction
 			  ref="transaction"
 			  :wallet="wallet"
@@ -190,7 +271,7 @@ import { cachedLoadWallet } from '../../wallet'
 import { getWalletByNetwork } from 'src/wallet/chipnet'
 import { updateAssetBalanceOnLoad } from 'src/utils/asset-utils'
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
-import { parseAssetDenomination } from 'src/utils/denomination-utils'
+import { parseAssetDenomination, parseFiatCurrency } from 'src/utils/denomination-utils'
 import { registerMemoUser, authMemo } from 'src/utils/transaction-memos'
 import { updateOrCreateKeypair } from 'src/exchange/chat/index'
 import { hexToRef, normalizeRefToHex, refToHex } from 'src/utils/reference-id-utils'
@@ -230,6 +311,7 @@ export default {
 		      },
 		    assetInfoShown: false,
 		    balanceLoaded: false,
+		    loadingTokenPrice: false,
 		    transactionRowHeight: 'auto'
 		}
 	},
@@ -306,6 +388,66 @@ export default {
 	      // }
 
 	      return assets
+	    },
+	    showTokenInfoCard () {
+	      if (!this.selectedAsset || !this.selectedAsset.id) return false
+	      if (this.selectedAsset.id === 'all') return false
+	      if (this.selectedAsset.id === 'bch') return false
+	      return this.selectedAsset.id.startsWith('ct/') || this.selectedAsset.id.startsWith('slp/')
+	    },
+	    selectedAssetLogoUrl () {
+	      if (!this.selectedAsset) return null
+	      return this.getImageUrl(this.selectedAsset)
+	    },
+	    assetDisplayName () {
+	      if (!this.selectedAsset) return ''
+	      if (this.selectedAsset.id === 'bch') return 'Bitcoin Cash'
+	      return this.selectedAsset.name || this.selectedAsset.symbol || ''
+	    },
+	    assetMarketPrices () {
+	      return this.$store.getters['market/assetPrices']
+	    },
+	    tokenPrice () {
+	      if (!this.selectedAsset?.id || this.selectedAsset.id === 'bch') return null
+	      const _ = this.assetMarketPrices
+	      const currency = this.$store.getters['market/selectedCurrency']
+	      const symbol = currency?.symbol
+	      if (!symbol) return null
+	      const price = this.$store.getters['market/getAssetPrice'](this.selectedAsset.id, symbol)
+	      if (!price || price === 0) return null
+	      return Number(price)
+	    },
+	    formattedTokenPrice () {
+	      if (!this.tokenPrice) return null
+	      const currency = this.$store.getters['market/selectedCurrency']
+	      return parseFiatCurrency(this.tokenPrice, currency?.symbol)
+	    },
+	    assetLink () {
+	      if (!this.selectedAsset?.id || this.selectedAsset.id === 'bch') return ''
+	      const parts = this.selectedAsset.id.split('/')
+	      if (parts.length < 2) return ''
+	      const tokenType = parts[0]
+	      const tokenId = parts[1]
+	      if (tokenType === 'ct') return `https://tokenexplorer.cash/?tokenId=${tokenId}`
+	      if (tokenType === 'slp') return `https://simpleledger.info/#token/${tokenId}`
+	      return ''
+	    },
+	    assetFiatValue () {
+	      if (!this.selectedAsset?.id) return ''
+	      const currency = this.$store.getters['market/selectedCurrency']
+	      const symbol = currency?.symbol
+	      if (!symbol) return ''
+	      const _ = this.assetMarketPrices
+	      const price = this.$store.getters['market/getAssetPrice'](this.selectedAsset.id, symbol)
+	      if (!price || price === 0) return ''
+
+	      let balance = Number(this.selectedAsset.balance || 0)
+	      if (this.selectedAsset.id !== 'bch' && this.selectedAsset.decimals) {
+	        const decimals = parseInt(this.selectedAsset.decimals) || 0
+	        if (decimals > 0) balance = balance / (10 ** decimals)
+	      }
+	      const computedBalance = balance * Number(price)
+	      return parseFiatCurrency(computedBalance.toFixed(2), symbol)
 	    }
 
 	},
@@ -364,6 +506,10 @@ export default {
 	    '$route.query.reference' () {
 	      // Deep-links can update query without remounting; apply route-driven search.
 	      this.applyRouteTxSearch()
+	    },
+	    selectedAsset () {
+	      // Recalculate height when token info card appears/disappears
+	      this.$nextTick(() => this.calculateTransactionRowHeight())
 	    }
 	},
 	methods: {
@@ -404,7 +550,24 @@ export default {
 			return true
 		},
 		parseAssetDenomination,
+		parseFiatCurrency,
 		getDarkModeClass,
+		async fetchTokenPrice () {
+			if (!this.selectedAsset?.id || this.selectedAsset.id === 'bch' || this.selectedAsset.id === 'all') return
+			const currency = this.$store.getters['market/selectedCurrency']
+			if (!currency?.symbol) return
+			this.loadingTokenPrice = true
+			try {
+				await this.$store.dispatch('market/updateAssetPrices', {
+					assetId: this.selectedAsset.id,
+					clearExisting: false
+				})
+			} catch (error) {
+				console.debug('Price not available for asset:', this.selectedAsset.id, error)
+			} finally {
+				this.loadingTokenPrice = false
+			}
+		},
 		async updateSelectedAssetFromQuery () {
 			const assetID = this.$route.query.assetID
 			let asset = []
@@ -469,6 +632,9 @@ export default {
 					this.calculateTransactionRowHeight()
 				})
 			}
+
+			// Fetch token price for the info card
+			this.fetchTokenPrice()
 		},
 		serializeTransaction (tx) {
 			if (!tx) return null
@@ -658,11 +824,13 @@ export default {
 	            } else {
 	              this.selectedAsset = asset
 	            }
-	            this.$nextTick(() => {
+this.$nextTick(() => {
 			        this.$refs['transaction-list-component'].resetValues(null, null, this.selectedAsset)
 			        this.$refs['transaction-list-component'].getTransactions()
 			        this.calculateTransactionRowHeight()
 			      })
+	            // Fetch token price for the info card
+	            this.fetchTokenPrice()
 	          })
 	    },
 	    toggleHideBalances () {
@@ -802,6 +970,50 @@ export default {
         query: queryWithFrom,
         state: { tx: serializedTx }
       })
+	    },
+	    getTokenImageUrl (asset) {
+	      if (asset?.logo) {
+	        if (asset.logo.startsWith('https://ipfs.paytaca.com/ipfs')) {
+	          return asset.logo + '?pinataGatewayToken=' + process.env.PINATA_GATEWAY_TOKEN
+	        }
+	        return asset.logo
+	      }
+	      const logoGenerator = this.$store.getters['global/getDefaultAssetLogo']
+	      return logoGenerator(String(asset?.id || ''))
+	    },
+	    tokenAssetLink (assetId) {
+	      if (!assetId) return '#'
+	      const parts = assetId.split('/')
+	      const tokenId = parts[1]
+	      if (parts[0] === 'ct') return `https://tokenexplorer.cash/?tokenId=${tokenId}`
+	      return `https://simpleledger.info/#token/${tokenId}`
+	    },
+	    goToSend () {
+	      this.$router.push({
+	        name: 'transaction-send',
+	        query: {
+	          network: this.selectedNetwork,
+	          assetId: this.selectedAsset.id,
+	          fixed: false
+	        }
+	      })
+	    },
+	    goToReceive () {
+	      this.$router.push({
+	        name: 'transaction-receive',
+	        query: {
+	          network: this.selectedNetwork,
+	          assetId: this.selectedAsset.id
+	        }
+	      })
+	    },
+	    goToSwap () {
+	      this.$router.push({
+	        name: 'app-cauldron',
+	        query: {
+	          selectTokenId: this.selectedAsset.id?.replace('ct/', '')
+	        }
+	      })
 	    },
 	    hideAssetInfo () {
 	      try {
@@ -958,5 +1170,135 @@ export default {
     white-space: nowrap;
     font-size: clamp(12px, 2.5vw, 16px);
     overflow: hidden;
+}
+
+/* Token Info Card */
+.token-info-card {
+  border-radius: 16px;
+  padding: 14px 16px;
+  margin-top: 12px;
+  margin-bottom: 12px;
+}
+
+.token-info-card.light {
+  background: #ffffff;
+  border: 1px solid rgba(0, 0, 0, 0.08);
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.04);
+  color: #1a1a1a;
+}
+
+.token-info-card.dark {
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.2);
+  color: #EAEEFF;
+}
+
+.token-info-inner {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.token-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.token-header .token-logo {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  object-fit: contain;
+  flex-shrink: 0;
+}
+
+.token-name-group {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  min-width: 0;
+  overflow: hidden;
+}
+
+.token-name-group .token-name {
+  font-size: 16px;
+  font-weight: 600;
+  line-height: 1.2;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.token-name-group .token-symbol {
+  font-size: 12px;
+  font-weight: 400;
+  opacity: 0.6;
+  line-height: 1.2;
+}
+
+.token-details {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.token-price-row,
+.token-link-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.detail-label {
+  font-size: 11px;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+  opacity: 0.55;
+  flex-shrink: 0;
+}
+
+.detail-value {
+  font-size: 14px;
+  font-weight: 600;
+  text-align: right;
+}
+
+.detail-link {
+  display: inline-flex;
+  align-items: center;
+  text-decoration: none;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--q-primary);
+  padding: 2px 8px;
+  border-radius: 6px;
+  transition: opacity 0.2s ease;
+  word-break: break-all;
+  text-align: right;
+}
+
+.detail-link:hover {
+  opacity: 0.7;
+}
+
+.token-actions {
+  display: flex;
+  gap: 8px;
+}
+
+.token-actions .token-action-btn {
+  flex: 1;
+  border-radius: 10px !important;
+  font-weight: 600;
+  font-size: 13px;
+  min-height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
 }
 </style>
