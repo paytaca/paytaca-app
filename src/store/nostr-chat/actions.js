@@ -107,8 +107,25 @@ export async function initialize ({ commit, dispatch, state, rootGetters }) {
       relayService.setAuthKey(keys.privKeyHex)
     }
     dispatch('fetchHistoricalMessages')
+
+    // Fill profile from caches if persisted profile is incomplete but cached data exists
+    const ownPubKeyHex = keys.pubKeyHex
+    if (!ws.profile?.displayName) {
+      const cachedDisplayName = ws.displayNameCache?.[ownPubKeyHex]?.displayName
+      if (cachedDisplayName) {
+        commit('SET_PROFILE_DISPLAY_NAME', { displayName: cachedDisplayName, publishedAt: Date.now() })
+      }
+    }
+    if (!ws.profile?.bchAddress) {
+      const cachedBchAddress = ws.bchAddressCache?.[ownPubKeyHex]?.address
+      if (cachedBchAddress) {
+        commit('SET_PROFILE_BCH_ADDRESS', { address: cachedBchAddress, publishedAt: Date.now() })
+      }
+    }
+
+    // If still incomplete after cache fallback, fetch from relay (with retries)
     if (!ws.profile?.displayName || !ws.profile?.bchAddress) {
-      dispatch('fetchOwnProfile', keys.pubKeyHex).catch(() => {})
+      dispatch('fetchOwnProfile', ownPubKeyHex).catch(() => {})
     }
     return
   }
@@ -159,25 +176,35 @@ export async function initialize ({ commit, dispatch, state, rootGetters }) {
   dispatch('registerNostrPubkey')
 }
 
-export async function fetchOwnProfile ({ commit, dispatch, state }, pubKeyHex) {
+export async function fetchOwnProfile ({ commit, dispatch }, pubKeyHex) {
   if (!pubKeyHex) return
-  try {
-    const [displayName, bchAddress, avatar] = await Promise.all([
-      dispatch('fetchPublishedDisplayName', { pubKeyHex }),
-      dispatch('fetchPublishedBchAddress', { pubKeyHex }),
-      dispatch('fetchPublishedAvatar', { pubKeyHex }),
-    ])
-    if (displayName) {
-      commit('SET_PROFILE_DISPLAY_NAME', { displayName, publishedAt: Date.now() })
+
+  const MAX_ATTEMPTS = 3
+  const RETRY_DELAY = 4000
+
+  for (let attempt = 0; attempt < MAX_ATTEMPTS; attempt++) {
+    try {
+      const [displayName, bchAddress, avatar] = await Promise.all([
+        dispatch('fetchPublishedDisplayName', { pubKeyHex }),
+        dispatch('fetchPublishedBchAddress', { pubKeyHex }),
+        dispatch('fetchPublishedAvatar', { pubKeyHex }),
+      ])
+      if (displayName) {
+        commit('SET_PROFILE_DISPLAY_NAME', { displayName, publishedAt: Date.now() })
+      }
+      if (bchAddress) {
+        commit('SET_PROFILE_BCH_ADDRESS', { address: bchAddress, publishedAt: Date.now() })
+      }
+      if (avatar) {
+        commit('SET_PROFILE_AVATAR', { avatar, publishedAt: Date.now() })
+      }
+      if (displayName || bchAddress || avatar) return
+    } catch (err) {
+      console.warn(`[Nostr] Own profile fetch attempt ${attempt + 1}/${MAX_ATTEMPTS} failed:`, err.message)
     }
-    if (bchAddress) {
-      commit('SET_PROFILE_BCH_ADDRESS', { address: bchAddress, publishedAt: Date.now() })
+    if (attempt < MAX_ATTEMPTS - 1) {
+      await new Promise(r => setTimeout(r, RETRY_DELAY))
     }
-    if (avatar) {
-      commit('SET_PROFILE_AVATAR', { avatar, publishedAt: Date.now() })
-    }
-  } catch (err) {
-    console.warn('[Nostr] Failed to fetch own profile:', err)
   }
 }
 
@@ -272,6 +299,7 @@ export async function publishBchAddress ({ state, commit }, { address }) {
     address,
     publishedAt: event.created_at,
   })
+  commit('CACHE_BCH_ADDRESS', { pubKeyHex: ws.keys.pubKeyHex, address })
   console.log('[Nostr] Published BCH address:', address)
 }
 
@@ -389,6 +417,7 @@ export async function publishDisplayName ({ state, commit }, { displayName }) {
   }
 
   commit('SET_PROFILE_DISPLAY_NAME', { displayName, publishedAt: event.created_at })
+  commit('CACHE_DISPLAY_NAME', { pubKeyHex: ws.keys.pubKeyHex, displayName })
   console.log('[Nostr] Published display name:', displayName)
 }
 

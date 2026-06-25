@@ -418,6 +418,7 @@ export default {
       selectedMemberNpubs: [],
       fetchedContactDisplayName: null,
       _profilePromptShown: false,
+      _pollTimer: null,
     }
   },
   computed: {
@@ -572,14 +573,10 @@ export default {
         this.handleScannedNpub(scannedNpub)
       }
 
-      // Show profile setup prompt if profile is incomplete (after a short delay
-      // to allow the background profile fetch from initialize() to complete)
+      // Show profile setup prompt if profile is incomplete.
+      // Poll periodically to allow background retry fetch from initialize() to complete.
       if (!this._profilePromptShown && this.isProfileIncomplete) {
-        setTimeout(() => {
-          if (!this._profilePromptShown && this.isProfileIncomplete) {
-            this.showProfilePrompt()
-          }
-        }, 3000)
+        this._pollProfileCheck(5)
       }
     } catch (err) {
       console.error('Failed to initialize Nostr chat:', err)
@@ -590,10 +587,20 @@ export default {
     }
   },
   beforeUnmount () {
+    clearTimeout(this._pollTimer)
     // Keep subscription alive for background messages
   },
   methods: {
     getDarkModeClass,
+    _pollProfileCheck (remaining) {
+      if (this._profilePromptShown) return
+      if (!this.isProfileIncomplete) return
+      if (remaining <= 0) {
+        this.showProfilePrompt()
+        return
+      }
+      this._pollTimer = setTimeout(() => this._pollProfileCheck(remaining - 1), 2000)
+    },
     showProfilePrompt () {
       const message = this.profilePromptMessage
       if (!message) return
