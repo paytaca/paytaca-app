@@ -146,8 +146,7 @@ export default {
                 const wallet = props.wallet.BCH
 
                 // Encrypt xpubkey with POS device's public key using ECIES
-                const addressIndex = 0
-                const merchantWallet = await loadCardMerchantWallet(addressIndex)
+                const merchantWallet = await loadCardMerchantWallet()
                 const _data = {
                     xpubkey: xpubkey,
                     privateKey: merchantWallet.privkey()
