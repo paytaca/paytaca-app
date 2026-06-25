@@ -221,8 +221,8 @@ export default {
           // active: !this.$store.getters['global/isChipnet'],
           // This is for development purposes only. Remove this and uncomment the comment about if on production
           active: true,             // remove this when production
-
-          beta: true
+          beta: true,
+          category: 'beta'
         },
         {
           id: 'eload-service',
