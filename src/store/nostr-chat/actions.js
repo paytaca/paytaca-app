@@ -617,7 +617,7 @@ export async function publishKind10050 ({ state }) {
   }
 }
 
-export async function fetchHistoricalMessages ({ state, dispatch }) {
+export async function fetchHistoricalMessages ({ state, dispatch, commit }) {
   const ws = getWalletState(state)
   if (!ws.keys.pubKeyHex) return
   try {
