@@ -11,9 +11,6 @@
       :title="roomName"
       :subtitle="isGroupRoom ? $t('MemberCount', { count: room?.members?.length || 0 }, `${room?.members?.length || 0} members`) : null"
     >
-      <template v-if="!isGroupRoom && isContactBlocked" v-slot:title-append>
-        <span class="blocked-pill">BLOCKED</span>
-      </template>
       <template v-if="room" v-slot:top-right-menu>
         <div class="header-actions">
           <q-btn
@@ -377,6 +374,11 @@
           <q-icon name="keyboard_arrow_down" size="24px" />
         </button>
       </transition>
+
+      <div v-if="!isGroupRoom && isContactBlocked" class="blocked-notice">
+        <q-icon name="block" size="16px" />
+        <span>{{ $t('ContactBlockedNotice', {}, 'Contact blocked') }}</span>
+      </div>
     </template>
 
     <!-- Non-member group: request to join card -->
@@ -2239,16 +2241,18 @@ export default {
   min-width: 180px;
 }
 
-.blocked-pill {
-  display: inline-block;
-  padding: 1px 6px;
-  border-radius: 4px;
-  background: #ef4444;
-  color: #ffffff;
-  font-size: 10px;
-  font-weight: 800;
-  letter-spacing: 0.5px;
-  line-height: 1.4;
-  vertical-align: middle;
+.blocked-notice {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 12px 16px;
+  color: #ef4444;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.dark .blocked-notice {
+  color: #f87171;
 }
 </style>
