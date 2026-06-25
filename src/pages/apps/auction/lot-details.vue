@@ -219,7 +219,7 @@
 
               <div class="col q-ml-md text-center">
                 <q-btn
-                  v-if="deliveryStatusId !== 3"
+                  v-if="!isAuthor && deliveryStatusId !== 3"
                   class="text-bold text-caption full-width"
                   color="negative"
                   text-color="white"
@@ -233,7 +233,7 @@
                 />
 
                 <q-btn
-                  v-else
+                  v-else-if="!isAuthor"
                   class="text-bold text-caption full-width"
                   color="negative"
                   text-color="white"
