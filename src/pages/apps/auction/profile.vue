@@ -125,12 +125,18 @@ const handleEditUserProfile = async () => {
         message: isExistingUser.value ? 'User profile updated!' : 'User profile created!',
         timeout: 3000
       })
+
+      $router.push('/apps/auction')
+    } else {
+      $q.notify({
+        type: 'negative',
+        message: 'Username already exists!',
+        timeout: 3000
+      })
     }
   } catch (err) {
     console.error(err)
     $q.notify({ type: 'negative', message: err.message || 'Something went wrong.' })
-  } finally {
-    $router.push('/apps/auction')
   }
 }
 </script>
