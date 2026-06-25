@@ -219,7 +219,7 @@
 
               <div class="col q-ml-md text-center">
                 <q-btn
-                  v-if="!confirmedPickup"
+                  v-if="deliveryStatusId !== 3"
                   class="text-bold text-caption full-width"
                   color="negative"
                   text-color="white"
@@ -668,7 +668,6 @@ const isLoading = ref(false)
 // Post-auction actions
 const showSellerDisputeDialog = ref(false)
 const showRefundDialog = ref(false)
-const confirmedPickup = ref(false)    // Temporary confirm pickup status
 
 const showBidHistory = ref(false)
 const showDeliveryHistory = ref(false)
@@ -727,22 +726,36 @@ const confirmDeliveryTrigger = async () => {
   } catch (err) {
     console.warn('Could not fetch delivery tracking:', err)
   } finally {
-    await refresh()
+    await refresh(() => {})
   }
 }
 
 const confirmPickupTrigger = async () => {
-  const bidId = auction.value?.type === 'English' ? highestBidId.value : winningBid.value?.id
+  try {
+    const bidId = auction.value?.type === 'English' ? highestBidId.value : winningBid.value?.id
 
-  if (!bidId) {
-    $q.notify({ type: 'warning', message: 'Could not find bid to release funds for.' })
-    return
+    if (!bidId) {
+      $q.notify({ type: 'warning', message: 'Could not find bid to release funds for.' })
+      return
+    }
+
+    const res = await callAPI('delivery-trackings', props.lotId, 'patch', {
+      status_id: 3,
+      delivered_date: new Date().toISOString()
+    })
+
+    if (res.success) {
+      $q.notify({ type: 'positive', message: 'Confirmed pickup!' })
+    }
+
+    // $q.loading.show({ message: 'Confirming pickup...' })
+    // await callContractRelease(bidId)
+    // $q.loading.hide()
+  } catch (err) {
+    console.warn('Could not fetch delivery tracking:', err)
+  } finally {
+    await refresh(() => {})
   }
-
-  confirmedPickup.value = true
-  // $q.loading.show({ message: 'Confirming pickup...' })
-  // await callContractRelease(bidId)
-  // $q.loading.hide()
 }
 
 
