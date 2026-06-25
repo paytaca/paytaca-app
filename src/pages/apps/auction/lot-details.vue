@@ -1109,6 +1109,15 @@ const handleBuyItNow = async (payload = {}) => {
 
         dutchAlreadySold.value = true
         clearDutchTimers()
+
+        await callAPI('delivery-trackings', null, 'post', {
+          auctioneer_id: auction.value.user_id,
+          bidder_id: walletHash,
+          lot_id: props.lotId,
+          status_id: 1,
+          preparing_date: new Date().toISOString()
+        })
+
         await refresh(() => {})
         
         $q.notify({
