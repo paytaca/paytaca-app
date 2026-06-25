@@ -299,6 +299,25 @@
             @click="confirmClearCache"
           />
         </div>
+
+        <!-- Reset Chat Data -->
+        <div class="danger-section q-mt-lg">
+          <div class="section-label">
+            {{ $t('ResetChat', {}, 'Reset Chat') }}
+          </div>
+          <div class="section-description">
+            {{ $t('ResetChatDescription', {}, 'Clear all conversations and re-fetch them from the relay. Your contacts and profile are preserved.') }}
+          </div>
+          <q-btn
+            :label="$t('ResetChat', {}, 'Reset Chat')"
+            color="negative"
+            outline
+            rounded
+            class="full-width"
+            :loading="resettingChat"
+            @click="confirmResetChat"
+          />
+        </div>
       </div>
     </div>
   </div>
@@ -336,6 +355,7 @@ export default {
       publishingDisplayName: false,
       removingDisplayName: false,
       clearingCache: false,
+      resettingChat: false,
       hasCache: false,
       cacheSizeBytes: 0,
       addressGeneratedFromWallet: false,
@@ -818,6 +838,33 @@ export default {
           })
         } finally {
           this.clearingCache = false
+        }
+      })
+    },
+    async confirmResetChat () {
+      this.$q.dialog({
+        title: this.$t('ResetChat', {}, 'Reset Chat'),
+        message: this.$t('ResetChatConfirm', {}, 'Clear all conversations and re-fetch them from the relay? Your contacts and profile will be preserved.'),
+        class: `pt-card text-bow ${this.getDarkModeClass(this.darkMode)}`,
+        cancel: { label: this.$t('Cancel', {}, 'Cancel'), flat: true, color: 'grey' },
+        ok: { label: this.$t('Reset', {}, 'Reset'), color: 'negative', flat: true },
+        persistent: true,
+      }).onOk(async () => {
+        this.resettingChat = true
+        try {
+          await this.$store.dispatch('nostrChat/resetAndRefetch')
+          await this.checkCache()
+          this.$q.notify({
+            type: 'positive',
+            message: this.$t('ChatResetSuccess', {}, 'Chat reset successfully. Conversations are being re-fetched.'),
+          })
+        } catch (err) {
+          this.$q.notify({
+            type: 'negative',
+            message: err.message || this.$t('ChatResetFailed', {}, 'Failed to reset chat'),
+          })
+        } finally {
+          this.resettingChat = false
         }
       })
     },

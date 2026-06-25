@@ -106,6 +106,23 @@ function tagSelfGiftWraps(giftWraps, recipientPubKeys, senderPubKey) {
 }
 
 /**
+ * Create a self-signed gift-wrap (kind 1059) that can be queried via authors: [senderPubKey].
+ * wrapManyEvents signs all wraps with random one-time keys, making them impossible
+ * to find on re-fetch. This archive wrap is signed with our real key so it survives relay queries.
+ */
+function createSelfSignedArchiveWrap(unsignedEvent, senderPrivKeyBytes, senderPubKey) {
+  const seal = nip59.createSeal(unsignedEvent, senderPrivKeyBytes, senderPubKey)
+  const conversationKey = nip44.getConversationKey(senderPrivKeyBytes, senderPubKey)
+  const content = nip44.encrypt(JSON.stringify(seal), conversationKey)
+  return finalizeEvent({
+    kind: 1059,
+    content,
+    created_at: Math.floor(Date.now() / 1000),
+    tags: [['p', senderPubKey]],
+  }, senderPrivKeyBytes)
+}
+
+/**
  * Create NIP-17 gift-wraps for every room member.
  * Uses nostr-tools nip59.wrapManyEvents internally.
  * @param {import('nostr-tools').UnsignedEvent} unsignedKind14
@@ -118,6 +135,7 @@ export async function createNip17GiftWraps(unsignedKind14, senderPrivKey, receiv
   const senderPrivKeyBytes = hexToBytes(senderPrivKey)
   const giftWraps = nip59.wrapManyEvents(unsignedKind14, senderPrivKeyBytes, receiverPubKeys)
   if (senderPubKey) {
+    giftWraps.push(createSelfSignedArchiveWrap(unsignedKind14, senderPrivKeyBytes, senderPubKey))
     return tagSelfGiftWraps(giftWraps, receiverPubKeys, senderPubKey)
   }
   return giftWraps

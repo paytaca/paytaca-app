@@ -101,6 +101,11 @@ export async function initialize ({ commit, dispatch, state, rootGetters }) {
 
   // Already initialized for this wallet — just fetch historical messages
   if (ws.initialized && ws.keys?.pubKeyHex === keys.pubKeyHex) {
+    // Restore private key if missing (stripped from persisted state for security)
+    if (!ws.keys.privKeyHex) {
+      commit('SET_KEYS', keys)
+      relayService.setAuthKey(keys.privKeyHex)
+    }
     dispatch('fetchHistoricalMessages')
     if (!ws.profile?.displayName || !ws.profile?.bchAddress) {
       dispatch('fetchOwnProfile', keys.pubKeyHex).catch(() => {})
@@ -1445,11 +1450,11 @@ export function ensureSubscribed ({ dispatch, getters }) {
   dispatch('registerNostrPubkey')
 
   // Skip if already subscribed and not stale
-  if (relayService.isSubscribed() && getters['isInitialized']) return
+  if (relayService.isSubscribed() && getters['isInitialized'] && getters['myPrivKey']) return
 
-  // Ensure we have an active relay subscription,
-  // especially after the app has been backgrounded or a push arrives.
-  if (!getters['isInitialized']) {
+  // Ensure we have keys (including privKeyHex which is stripped from persisted state)
+  // and an active relay subscription, especially after app backgrounding or push
+  if (!getters['isInitialized'] || !getters['myPrivKey']) {
     dispatch('initialize').then(() => {
       dispatch('subscribeToRelays')
     }).catch(err => {
@@ -1465,4 +1470,30 @@ export function disconnectRelays ({ commit }) {
   relayService.stopStatusPolling()
   relayService.disconnect()
   commit('SET_SUBSCRIBED', false)
+}
+
+export async function resetAndRefetch ({ commit, dispatch, state }) {
+  const ws = getWalletState(state)
+  if (!ws.keys?.pubKeyHex) {
+    console.warn('[Nostr] Cannot reset: no wallet keys')
+    return
+  }
+
+  // Disconnect existing relay subscriptions
+  relayService.stopStatusPolling()
+  relayService.disconnect()
+  commit('SET_SUBSCRIBED', false)
+
+  // Clear IndexedDB image cache
+  await clearChatCache().catch(err => console.warn('Failed to clear chat cache during reset:', err))
+
+  // Reset per-wallet chat data (rooms, messages, reactions, caches, etc.)
+  // Keeps keys and profile so we don't need to re-derive or re-fetch profile
+  commit('RESET_WALLET_CHAT_DATA')
+
+  // Re-fetch historical messages from relays
+  await dispatch('fetchHistoricalMessages')
+
+  // Re-subscribe to relays for live messages
+  dispatch('subscribeToRelays')
 }

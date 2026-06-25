@@ -21,6 +21,7 @@ const words = [
     Apps: "Apps",
     Balance: "Balance",
     Biometric: "Biometric",
+    Block: "Block",
     Bridge: "Bridge",
     Back: "Back",
     Branch: "Branch",
