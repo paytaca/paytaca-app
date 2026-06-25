@@ -84,10 +84,6 @@ export async function reinitialize ({ commit, dispatch, state, rootGetters }) {
       console.warn('[Nostr] Failed to fetch profile data during reinitialize:', err)
     }
 
-  // Restart relay subscription for the new identity
-  relayService.stopStatusPolling()
-  relayService.disconnect()
-  commit('SET_SUBSCRIBED', false)
   dispatch('subscribeToRelays')
 }
 
@@ -619,7 +615,7 @@ export async function publishKind10050 ({ state }) {
 
 export async function fetchHistoricalMessages ({ state, dispatch, commit }) {
   const ws = getWalletState(state)
-  if (!ws.keys.pubKeyHex) return
+  if (!ws?.keys?.pubKeyHex) return
   try {
     await relayService.fetchHistoricalGiftWraps(DISCOVERY_RELAYS, ws.keys.pubKeyHex, {
       async onEvent(event) {
