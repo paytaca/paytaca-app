@@ -432,6 +432,7 @@ export default {
 	      return ''
 	    },
 
+	},
 	components: {
 		headerNav,
 		Transaction,
