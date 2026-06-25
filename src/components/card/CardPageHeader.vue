@@ -28,8 +28,12 @@ export default {
     goBack() {
       const currentRoute = this.$route?.name
       
-      // If on cards list page or card home page, go to apps dashboard
-      if (currentRoute === 'card-list' || currentRoute === 'app-card' || this.$route?.path?.includes('/my-cards') || this.$route?.path === '/apps/card') {
+      // If on cards list page, go to card home page
+      if (currentRoute === 'card-list') {
+        this.$router.push({ name: 'app-card' })
+      }
+      // If on card home page, go to apps dashboard
+      else if (currentRoute === 'app-card' || this.$route?.path?.includes('/my-cards') || this.$route?.path === '/apps/card') {
         this.$router.push({ name: 'apps-dashboard' })
       }
       // For all other card pages, go back to the previous page (browser-like back)

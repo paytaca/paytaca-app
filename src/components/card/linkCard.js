@@ -267,13 +267,7 @@ export const linkCardLogic = {
     },
 
     checkExistingCards() {
-      // In production, this checks backend. For now, uses localStorage as cache
-      const cards = CardStorage.getCards();
-
-      // if user has existing cards and we are at the cards home page, redirect to card list
-      if (cards.length > 0 && this.$route.name === 'app-card'){
-        this.$router.push({ name: 'card-list' })
-      }
+      // No-op: home.vue is the default landing page regardless of card count
     },
 
     navigateToCardDetails(card, tab = 'transactions') {

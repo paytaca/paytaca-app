@@ -55,7 +55,7 @@
             </div>
           </div>
 
-          <div class="row justify-center full-width q-mt-sm">
+          <div class="row justify-center full-width q-mt-sm q-mb-sm">
             <q-btn label="Fund" class="cash-in-btn bg-grad text-white q-px-lg" @click="openCashInDialog" />
           </div>
         </div>
@@ -88,7 +88,7 @@
             :card="activeCard"
             :key="activeCard.id"
           />
-          <CardSettings v-if="activeTab === 'Card Security'" :active-card="activeCard"/>
+          <CardSettings v-if="activeTab === 'Card Security'" :active-card="activeCard" @lock-status-changed="onLockStatusChanged"/>
           <div v-else-if="!activeCard" class="flex flex-center full-height">
             <q-spinner-dots color="primary" size="40px"/>
           </div>
@@ -437,38 +437,6 @@ export default {
       return this.capitalizeFirst(name) || 'Card'
     },
 
-    /* Helper method to get card BCH balance using Card class
-     * Uses card.getBchBalance() which returns card.raw.bch_balance from backend
-     * Falls back to card.balance from localStorage if method not available
-     * 
-     * Usage: {{ getCardBchBalance() }} in template
-     * 
-     * getCardBchBalance () {
-     *   if (!this.activeCard) return '0.00'
-     *   try {
-     *     // Use getBchBalance() from Card class
-     *     const balance = this.activeCard.getBchBalance?.() ?? this.activeCard.balance
-     *     return typeof balance === 'number' ? balance.toFixed(2) : (balance || '0.00')
-     *   } catch (error) {
-     *     console.error('Error getting card balance:', error)
-     *     return this.activeCard?.balance || '0.00'
-     *   }
-     * },
-     * 
-     * // Async version for real-time blockchain balance
-     * async getCardContractBalance () {
-     *   if (!this.activeCard) return '0.00'
-     *   try {
-     *     // Fetches directly from blockchain using getContractBalance()
-     *     const balance = await this.activeCard.getContractBalance()
-     *     return typeof balance === 'number' ? balance.toFixed(8) : (balance || '0.00')
-     *   } catch (error) {
-     *     console.error('Error getting contract balance:', error)
-     *     return this.activeCard?.balance || '0.00'
-     *   }
-     * },
-     */
-
     async loadSpecificCard (fetchFreshCard = false) {
       // Try multiple ways to get the card ID
       let cardId = null
@@ -577,6 +545,12 @@ export default {
       }
     },
 
+    onLockStatusChanged(isLocked) {
+      this.activeCard.raw.is_locked = isLocked
+      this.activeCard.raw.isLocked = isLocked
+      this.CardStorage.setCardProperty(this.activeCard.id, 'isLocked', isLocked)
+    },
+
     onCloseCashInDialog () {
       this.showCashInDialog = false
       this.getCardBchBalance() // Refresh balance after cash-in
@@ -592,42 +566,6 @@ export default {
           this.bchBalance = 0
         })
     },
-
-    /*
-    async fetchBackendData () {
-      if (!this.activeCard?.id) return
-      
-      this.loading = true
-      this.dataError = null
-      
-      try {
-        const { Card } = await import('src/services/card/card')
-        const card = await Card.createInitialized({ raw: { id: this.activeCard.id } })
-        
-        // Fetch balances
-        const bchUtxos = await card.getBchUtxos()
-        const bchBalanceSats = bchUtxos.reduce((sum, utxo) => sum + BigInt(utxo.satoshis || 0), 0n)
-        const bchBalance = (Number(bchBalanceSats) / 100000000).toFixed(8)
-        
-        // Fetch addresses from raw data
-        this.backendData = {
-          balance: bchBalance,
-          contractAddress: card.raw?.contract_id,
-          tokenAddress: card.raw?.token_address,
-          cashAddress: card.raw?.cash_address,
-          category: card.raw?.category,
-          utxos: bchUtxos,
-          raw: card.raw
-        }
-      } catch (error) {
-        console.error('Failed to fetch card data from backend:', error)
-        this.dataError = error.message
-        // Keep backendData as null to show skeleton/empty state
-      } finally {
-        this.loading = false
-      }
-    },
-    */
 
     async saveCardName () {
       if (this.newCardName && this.newCardName.trim()) {
@@ -709,49 +647,9 @@ export default {
       }
     },
 
-    // handleCashIn () {
-    //   if (!this.cashInAmount || parseFloat(this.cashInAmount) <= 0) {
-    //     this.notifyError('Please enter a valid amount greater than 0')
-    //     return
-    //   }
+    
 
-    //   // Convert to BCH based on selected currency using real market data
-    //   let amountInBCH
-      
-    //   if (this.cashInCurrency === 'BCH') {
-    //     amountInBCH = parseFloat(this.cashInAmount)
-    //   } else if (this.cashInCurrency === 'sats' || this.cashInCurrency === 'Satoshis') {
-    //     // 1 BCH = 100,000,000 satoshis
-    //     amountInBCH = parseFloat(this.cashInAmount) / 100000000
-    //   } else {
-    //     // Use real market price from store
-    //     const bchPrice = this.bchPriceInSelectedCurrency
-    //     if (!bchPrice) {
-    //       this.notifyError('Unable to fetch current BCH price. Please try again.')
-    //       return
-    //     }
-    //     // Convert fiat to BCH: amount / price = BCH
-    //     amountInBCH = parseFloat(this.cashInAmount) / bchPrice
-    //   }
-
-    //   // Update card balance in localStorage
-    //   if (this.activeCard) {
-    //     const updatedCard = this.CardStorage.incrementCardProperty(this.activeCard.id, 'balance', amountInBCH)
-    //     if (updatedCard) {
-    //       this.activeCard.balance = updatedCard.balance
-    //     }
-    //   }
-
-    //   this.$q.notify({
-    //     message: `Successfully added ${this.cashInAmount} ${this.cashInCurrency} (~${amountInBCH.toFixed(4)} BCH) to your card!`,
-    //     color: 'positive',
-    //     position: 'top',
-    //     timeout: 2000
-    //   })
-      
-    //   this.showCashInDialog = false
-    //   this.cashInAmount = ''
-    // },
+    
 
     handleOrderPhysicalCard () {
       if (!this.orderPhysicalCardData.fullName || !this.orderPhysicalCardData.city || 

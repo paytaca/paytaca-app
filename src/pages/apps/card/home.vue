@@ -1,5 +1,5 @@
 <template>
-  <q-page class="column items-center q-px-md q-pb-md" style="padding-top: 0;">
+  <q-page class="column items-center q-px-md q-pb-md scroll" style="padding-top: 0; height: 100%;">
     <!-- Skeleton Loading -->
     <div v-if="!isloaded" class="column items-center full-width" style="max-width: 650px;">
       <div class="full-width q-mb-lg">
@@ -22,7 +22,7 @@
         <div class="journey-card q-pa-sm"
           :class="$q.dark.isActive ? 'journey-card-dark' : 'journey-card-light'">
           <div class="steps-row">
-            <div class="steps-track" :style="trackStyle" />
+            <div class="steps-track" :style="trackStyle"></div>
             <div class="row no-wrap items-start justify-between steps-items">
               <div v-for="(step, index) in journeySteps" :key="index"
                 class="step-item column items-center"
@@ -34,7 +34,7 @@
                   <div class="text-caption text-weight-bold">{{ step.label }}</div>
                 </div>
                 <div v-if="index < journeySteps.length - 1" class="step-connector"
-                  :class="step.status === 'done' ? 'connector-done' : 'connector-pending'" />
+                  :class="step.status === 'done' ? 'connector-done' : 'connector-pending'"></div>
               </div>
             </div>
           </div>
@@ -87,10 +87,6 @@
               </div>
             </div>
           </q-card>
-
-          <div class="text-body2 q-mt-md" :class="textColorGrey">
-            {{ $t('Your card will be created and linked to your wallet. You can customize the card name later.') }}
-          </div>
         </div>
       </transition>
 
@@ -102,7 +98,7 @@
               <q-icon name="shopping_cart" size="32px" color="primary" />
             </div>
           </div>
-          <OrderCard />
+          <OrderCard :replacement-reason="replacementReasonLabel" />
         </div>
       </transition>
 
@@ -237,7 +233,20 @@ export default {
       return {
         background: `linear-gradient(to right, var(--q-primary) 0%, var(--q-primary) ${pct}%, rgba(128, 128, 128, 0.15) ${pct}%, rgba(128, 128, 128, 0.15) 100%)`
       }
-    }
+    },
+    isReplacement() {
+      return this.$route.query.replacement === 'true'
+    },
+    replacementReasonLabel() {
+      const reasons = {
+        lost: 'Card Lost',
+        stolen: 'Card Stolen',
+        damaged: 'Card Damaged',
+        fraud: 'Suspected Fraud',
+        other: 'Other'
+      }
+      return reasons[this.$route.query.reason] || this.$route.query.reason || ''
+    },
   },
 
   created() {
@@ -252,7 +261,9 @@ export default {
     async loadData() {
       this.showLoading()
       await this.loadCardUser()
-      // this.checkExistingCards()
+      if (this.user?.cardCount > 0 && this.$store) {
+        this.$store.dispatch('card/fetchCards').catch(() => {})
+      }
       await this.checkExistingCreateCardAttempt()
       this.isloaded = true
       this.hideLoading()
@@ -271,11 +282,6 @@ export default {
       await this.loadCardUser({ forceLogin: true })
       this.hideLoading()
     },
-    checkExistingCards () {
-      if (this.user?.cardCount > 0 && this.$route.name === 'app-card'){
-        this.$router.push({ name: 'card-list' })
-      }
-    },
     switchView(view) {
       this.activeView = view
       if (view === 'link') {
@@ -284,6 +290,13 @@ export default {
           { label: 'Printing', icon: 'print', status: 'done' },
           { label: 'Delivery', icon: 'local_shipping', status: 'done' },
           { label: 'Linking', icon: 'link', status: 'active' },
+        ]
+      } else if (view === 'create') {
+        this.journeySteps = [
+          { label: 'Order Card', icon: 'shopping_cart', status: 'pending' },
+          { label: 'Printing', icon: 'print', status: 'pending' },
+          { label: 'Delivery', icon: 'local_shipping', status: 'pending' },
+          { label: 'Linking', icon: 'link', status: 'pending' },
         ]
       } else {
         this.journeySteps = [
@@ -294,6 +307,7 @@ export default {
         ]
       }
     },
+
     onCardCreated () {
       this.$router.push({ name: 'card-list' })
     },
