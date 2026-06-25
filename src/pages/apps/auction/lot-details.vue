@@ -877,8 +877,9 @@ const checkUserBid = async () => {
   }
 
   try {
-    const result = await callAPI('my-biddings')
-    hasUserBid.value = result.success && Array.isArray(result.data) && result.data.length > 0
+    const result = await callAPI('biddings-by-lot', props.lotId)
+    hasUserBid.value = result.success && Array.isArray(result.data) &&
+      result.data.some(bid => bid.user_id === walletHash)
   } catch (err) {
     console.error('Error checking user bid history:', err)
     hasUserBid.value = false
