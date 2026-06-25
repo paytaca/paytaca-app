@@ -666,20 +666,16 @@ export default {
     assets () {
       const vm = this
 
-      // Token cards display the first N tokens received in the wallet
-      // (7 for Paytaca Free, 24 for Paytaca Plus) with favorites prioritized.
-      // For both CashTokens and SLP, use Watchtower API responses (not Vuex store)
-      // because the API includes `favorite` and `favorite_order`.
-      
-      // Get the limit based on subscription tier
-      const limit = this.$store.getters['subscription/getLimit']('favoriteTokens')
-      
+      // Show up to 7 tokens on the home page regardless of subscription tier.
+      // Users can tap "View All" to see the full list.
+      const limit = 7
+
       const allTokens = vm.isCashToken
         ? (this.allTokensFromAPI || [])
         : (this.allSlpTokensFromAPI || [])
-      
+
       // API returns tokens ordered by favorites and favorite_order — preserve that order
-      // Filter out hidden tokens, then return the first N based on subscription limit
+      // Filter out hidden tokens, then return the first N
       const bchWalletHash = this.wallet?.BCH?.walletHash || this.wallet?.bch?.walletHash || ''
       const hiddenIds = getHiddenAssetIds(bchWalletHash)
       if (hiddenIds.length) {
