@@ -231,7 +231,7 @@
         rounded
         :label="$t('Continue')"
         class="q-mt-lg full-width primary-cta bg-grad"
-        @click="goToStep6"
+        @click="goToStep5"
       />
     </div>
 
@@ -1850,9 +1850,7 @@ export default {
     goToStep5 () {
       this.$router.push('/accounts/create/step-6')
     },
-    goToStep6 () {
-      this.$router.push('/accounts/create/step-6')
-    },
+
     setupSecurity (authType) {
       // Prevent multiple calls
       if (this.isRedirecting) return
