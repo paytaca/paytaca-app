@@ -666,15 +666,16 @@ export default {
     assets () {
       const vm = this
 
-      // Show up to 7 tokens on the home page regardless of subscription tier.
-      // Users can tap "View All" to see the full list.
-      const limit = 7
+      // Number of token cards follows the wallet's subscription tier limit
+      // (7 for Free, 24 for Plus). The API returns tokens ordered with
+      // favorites first (by favorite_order) then non-favorites, so slicing the
+      // first N naturally shows favorites first and fills with non-favorites.
+      const limit = this.$store.getters['subscription/getLimit']('favoriteTokens') || 7
 
       const allTokens = vm.isCashToken
         ? (this.allTokensFromAPI || [])
         : (this.allSlpTokensFromAPI || [])
 
-      // API returns tokens ordered by favorites and favorite_order — preserve that order
       // Filter out hidden tokens, then return the first N
       const bchWalletHash = this.wallet?.BCH?.walletHash || this.wallet?.bch?.walletHash || ''
       const hiddenIds = getHiddenAssetIds(bchWalletHash)
@@ -684,6 +685,8 @@ export default {
       return allTokens.slice(0, limit)
     },
     hasMoreTokens() {
+      // The View All card is shown whenever the wallet holds more than 7 tokens
+      // total, regardless of subscription tier.
       const allTokens = this.isCashToken
         ? (this.allTokensFromAPI || [])
         : (this.allSlpTokensFromAPI || [])
