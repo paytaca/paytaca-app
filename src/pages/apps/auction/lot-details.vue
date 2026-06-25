@@ -200,6 +200,7 @@
                   icon="check_circle"
                   padding="sm"
                   label="Confirm Delivery"
+                  :disable="deliveryStatusId !== 1"
                 />
                 <q-btn
                   v-else
@@ -210,6 +211,7 @@
                   icon="check_circle"
                   padding="sm"
                   label="Confirm Pickup"
+                  :disable="deliveryStatusId !== 2"
                   @click="confirmPickupTrigger"
                 />
               </div>
@@ -669,6 +671,7 @@ const confirmedPickup = ref(false)    // Temporary confirm pickup status
 
 const showBidHistory = ref(false)
 const showDeliveryHistory = ref(false)
+const deliveryStatusId = ref(null)
 
 const $q = useQuasar()
 const $store = useStore()
@@ -1198,10 +1201,23 @@ const fetchLot = async () => {
   }
 }
 
+const fetchDeliveryTracking = async () => {
+  try {
+    const res = await callAPI('delivery-trackings', props.lotId)
+    if (res.success && res.data) {
+      const data = Array.isArray(res.data) ? res.data[0] : res.data
+      deliveryStatusId.value = data?.status_id ?? null
+    }
+  } catch (err) {
+    console.warn('Could not fetch delivery tracking:', err)
+  }
+}
+
 const loadPageData = async () => {
   await Promise.all([fetchLot(), fetchAuction(), fetchDutchSoldStatus(), checkBidStatus(), checkUserBid()])
   initializeDutchAuctionTimer(lot.value)
   await fetchWinningBid()
+  await fetchDeliveryTracking()
 }
 
 watch(() => [props.lotId, props.auctionId], async () => {
