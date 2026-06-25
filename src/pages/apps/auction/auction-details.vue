@@ -34,7 +34,7 @@
                 </q-badge>
               </div>
               
-              <div v-if="isAuthor">
+              <div v-if="isAuthor && canEdit">
                 <q-btn
                   flat
                   round
@@ -503,6 +503,17 @@ const isLotEmpty = computed(() => {
 const isAuthor = computed(() => {
   const walletHash = Store.getters['global/getWallet']('bch')?.walletHash
   return walletHash === auction?.value.user_id
+})
+
+const canEdit = computed(() => {
+  if (!isAuthor.value || !auction.value?.start_date) return false
+
+  const now = new Date()
+  const startDate = new Date(auction.value.start_date)
+  
+  const minutesToStart = date.getDateDiff(startDate, now, 'minutes')
+  
+  return minutesToStart > 30
 })
 
 const smartBackPath = computed(() => {
