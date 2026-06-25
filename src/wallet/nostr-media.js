@@ -196,7 +196,7 @@ function createSelfSignedArchiveWrap(unsignedEvent, senderPrivKeyBytes, senderPu
     kind: 1059,
     content,
     created_at: Math.floor(Date.now() / 1000),
-    tags: [['p', senderPubKey]],
+    tags: [['p', senderPubKey], ['self']],
   }, senderPrivKeyBytes)
 }
 
