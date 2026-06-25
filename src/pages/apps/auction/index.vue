@@ -169,18 +169,11 @@ onMounted(async () => {
   await $store.dispatch('auction/refreshCatalog')
   await $store.dispatch('auction/fetchArbiterPublicKey')
   await $store.dispatch('auction/fetchServicerPublicKey')
+  await $store.dispatch('auction/fetchUsername')
 
-  try {
-    const pk = await getBidderPublicKey('0/0')
-    const response = await callAPI('user-details-by-pubkey', pk)
-
-    if (!(response && response.success && response.data)) {
-      console.warn('User details missing, redirecting...')
-      $router.push({ name: 'app-auction-profile' })
-    }
-  } catch (error) {
-    console.error('Failed to fetch user details:', error)
-    $router.push({ name: 'app-auction' })
+  if (!$store.getters['auction/username']) {
+    console.warn('User details missing, redirecting...')
+    $router.push({ name: 'app-auction-profile' })
   }
 })
 
