@@ -196,6 +196,7 @@
               :wallet="wallet"
               :isCashToken="isCashToken"
               :currentCountry="currentCountry"
+              :has-more-tokens="hasMoreTokens"
               :is-loading-initial="isLoadingAssets && !hasTokensButNoFavorites"
               @select-asset="asset => setSelectedAsset(asset)"
               @show-asset-info="asset => showAssetInfo(asset)"
@@ -219,6 +220,7 @@
               :wallet="wallet"
               :isCashToken="isCashToken"
               :currentCountry="currentCountry"
+              :has-more-tokens="hasMoreTokens"
               :is-loading-initial="isLoadingAssets && !hasTokensButNoFavorites"
               @select-asset="asset => setSelectedAsset(asset)"
               @show-asset-info="asset => showAssetInfo(asset)"
@@ -684,6 +686,13 @@ export default {
         return allTokens.filter(t => !hiddenIds.includes(t.id)).slice(0, limit)
       }
       return allTokens.slice(0, limit)
+    },
+    hasMoreTokens() {
+      const limit = this.$store.getters['subscription/getLimit']('favoriteTokens')
+      const allTokens = this.isCashToken
+        ? (this.allTokensFromAPI || [])
+        : (this.allSlpTokensFromAPI || [])
+      return allTokens.length > limit
     },
     tokenCardsAssets () {
       // Show temporary dummy tokens ONLY while the tutorial is active

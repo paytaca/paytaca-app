@@ -76,6 +76,21 @@
     </div>
     <!-- Manage button moved to inline with Tokens label in transaction/index.vue -->
     
+    <!-- View more card when there are additional tokens beyond the subscription limit -->
+    <div
+      v-if="hasMoreTokens"
+      class="method-cards asset-card-border view-more-card q-mr-none"
+      @click="goToAssetList"
+      :style="{ 'margin-left': filteredFavAssets && filteredFavAssets.length > 0 ? '12px' : '0px' }"
+    >
+      <div class="row items-center no-wrap justify-center" style="height: 100%;">
+        <div class="text-center">
+          <q-icon name="more_horiz" size="24px" class="q-mb-xs" style="color: #EAEEFF; opacity: 0.7;" />
+          <p class="view-more-label q-mb-none">View All</p>
+        </div>
+      </div>
+    </div>
+    
   </div>
 </template>
 
@@ -107,6 +122,10 @@ export default {
       default: () => []
     },
     isCashToken: { type: Boolean },
+    hasMoreTokens: {
+      type: Boolean,
+      default: false
+    },
     currentLanguage: { type: String },
     currentCountry: { type: String },
     isLoadingInitial: {
@@ -601,5 +620,44 @@ export default {
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
+  }
+  .view-more-card {
+    min-height: 90px;
+    height: auto;
+    min-width: 110px;
+    border-radius: 16px;
+    margin-bottom: 5px !important;
+    margin-left: 12px;
+    padding: 12px !important;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    cursor: pointer;
+    user-select: none;
+    -webkit-user-select: none;
+    -moz-user-select: none;
+    -ms-user-select: none;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    gap: 6px;
+    border: 1.5px dashed rgba(255, 255, 255, 0.35);
+
+    &:hover {
+      border-color: rgba(255, 255, 255, 0.6);
+      background: rgba(255, 255, 255, 0.06);
+    }
+
+    .view-more-icon {
+      font-size: 22px;
+      color: rgba(255, 255, 255, 0.6);
+    }
+
+    .view-more-label {
+      color: rgba(255, 255, 255, 0.6);
+      font-size: 12px;
+      font-weight: 500;
+      line-height: 1.2;
+      text-align: center;
+    }
   }
 </style>
