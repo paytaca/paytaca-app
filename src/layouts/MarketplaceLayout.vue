@@ -112,7 +112,7 @@
             <div>{{ $t('Discounts') }}</div>
             <q-space/>
             <div class="text-right">
-              <div class="text-grey q-gutter-xs row wrap">
+              <div class="text-grey q-gutter-xs row wrap justify-end">
                 <q-chip
                   v-for="discount in activeStorefrontCart?.discounts" :key="discount.id"
                   square outline dense
