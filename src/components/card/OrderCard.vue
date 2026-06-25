@@ -12,7 +12,7 @@
       </div>
 
       <!-- Card Name -->
-      <div class="full-width q-mb-md">
+      <!-- <div class="full-width q-mb-md">
         <div class="text-subtitle2 q-mb-sm" :class="textColor">Card Name</div>
         <q-input
           v-model="cardName"
@@ -24,7 +24,7 @@
           :dark="$q.dark.isActive"
           class="order-card-input"
         />
-      </div>
+      </div> -->
 
       <!-- Delivery Method -->
       <div class="full-width q-mb-md">
@@ -188,6 +188,13 @@
 </template>
 
 <script>
+import { 
+  getOrCreateKeyPair, 
+  getStoredPrivateKey, 
+  getStoredPublicKey } from 'src/services/card/address/key-storage';
+import { createEncryptedAddressPayload, decryptAddressPayload } from 'src/services/card/address/encryption';
+
+
 export default {
   name: 'OrderCard',
   props: {
@@ -232,7 +239,7 @@ export default {
       return this.$q.dark.isActive ? 'text-grey-5' : 'text-grey-6'
     },
     isFormValid() {
-      if (!this.cardName.trim()) return false
+      // if (!this.cardName.trim()) return false
       if (this.deliveryMethod === 'delivery') {
         return this.address.fullName && this.address.street && this.address.city && this.address.country
       }
@@ -245,11 +252,24 @@ export default {
       this.done = false
       this.resetSteps()
 
-      for (const step of this.steps) {
-        step.status = 'active'
-        await this.delay(1500)
-        step.status = 'done'
-      }
+      const keyPair = await getOrCreateKeyPair()
+      console.log('Key pair generated or retrieved:', keyPair)
+
+      // const privateKey = await getStoredPrivateKey() // Ensure the private key is generated and stored
+      // console.log('Private key retrieved from IndexedDB:', privateKey)
+
+      // const address = '123 Main St, Anytown, USA'
+      // const payload = await createEncryptedAddressPayload(address, await getStoredPublicKey(), await getStoredPublicKey())
+      // console.log('Encrypted Address Payload:', payload)
+
+      // const decryptedAddress = await decryptAddressPayload(payload, privateKey)
+      // console.log('Decrypted Address:', decryptedAddress)
+      // for (const step of this.steps) {
+      //   step.status = 'active'
+      //   await this.delay(1500)
+      //   step.status = 'done'
+      // }
+      getOrCreateKeyPair
 
       this.processing = false
       this.done = true

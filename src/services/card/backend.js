@@ -23,3 +23,20 @@ backend.interceptors.request.use(async (config) => {
   })
   return config
 })
+
+/**
+ * Fetches the active delivery public key from the backend.
+ * This key is used to encrypt the DEK (Data Encryption Key) for encrypting customer addresses.
+ * 
+ * @async
+ * @returns {Promise<string>} The active delivery public key in Base64 format.
+ */
+export async function fetchActiveDeliveryPublicKey() {
+  try {
+    const response = await backend.get('/card/delivery/public-key/');
+    return response.data.public_key;
+  } catch (error) {
+    console.error('Error fetching active delivery public key:', error);
+    throw error;
+  }
+}
