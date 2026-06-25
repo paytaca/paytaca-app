@@ -688,11 +688,10 @@ export default {
       return allTokens.slice(0, limit)
     },
     hasMoreTokens() {
-      const limit = this.$store.getters['subscription/getLimit']('favoriteTokens')
       const allTokens = this.isCashToken
         ? (this.allTokensFromAPI || [])
         : (this.allSlpTokensFromAPI || [])
-      return allTokens.length > limit
+      return allTokens.length > 7
     },
     tokenCardsAssets () {
       // Show temporary dummy tokens ONLY while the tutorial is active

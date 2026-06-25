@@ -85,7 +85,7 @@
     >
       <div class="row items-center no-wrap justify-center" style="height: 100%;">
         <div class="text-center">
-          <q-icon name="more_horiz" size="24px" class="q-mb-xs" style="color: #EAEEFF; opacity: 0.7;" />
+          <q-icon name="format_list_bulleted" size="24px" class="q-mb-xs view-more-icon" />
           <p class="view-more-label q-mb-none">View All</p>
         </div>
       </div>
@@ -194,14 +194,6 @@ export default {
     denomination () {
       return this.$store.getters['global/denomination']
     },
-    hasMoreTokens() {
-      if (this.customList) {
-        // Check if there are tokens that are not favorites
-        const nonFavoriteTokens = this.customList.filter(asset => asset && !this.favorites.includes(asset.id))
-        return nonFavoriteTokens.length > 0
-      }
-      return false
-    }
   },
   watch: {
     // For CashTokens on BCH, assets come from API with favorite field - no need to watch/save
@@ -644,16 +636,18 @@ export default {
 
     &:hover {
       border-color: rgba(255, 255, 255, 0.6);
-      background: rgba(255, 255, 255, 0.06);
+      background: rgba(128, 128, 128, 0.08);
     }
 
     .view-more-icon {
       font-size: 22px;
-      color: rgba(255, 255, 255, 0.6);
+      color: #EAEEFF;
+      opacity: 0.7;
     }
 
     .view-more-label {
-      color: rgba(255, 255, 255, 0.6);
+      color: #EAEEFF;
+      opacity: 0.7;
       font-size: 12px;
       font-weight: 500;
       line-height: 1.2;
