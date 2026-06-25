@@ -34,6 +34,10 @@ export class Card {
     return this.raw?.id;
   }
 
+  get uid() {
+    return this.raw?.uid;
+  }
+
   get cashAddress() {
     return this.raw?.cash_address;
   }
@@ -450,6 +454,10 @@ export class Card {
     }).catch(err => {
       console.error('Error subscribing to card transactions:', err.response || err)
     })
+  }
+
+  async activate() {
+    return await backend.post(`/cards/${this.id}/activate/`, null)
   }
 
   // ==================== AUTH NFT OPERATIONS ====================

@@ -103,16 +103,16 @@
       </transition>
 
       <!-- Link Card -->
-      <transition v-if="activeView === 'link'" name="fade-slide" mode="out-in">
+      <transition v-if="activeView === 'activate'" name="fade-slide" mode="out-in">
         <div class="full-width column items-center text-center q-pt-md" key="link">
           <div class="link-icon-ring q-mb-md">
             <div class="link-icon-inner">
               <q-icon name="link" size="32px" color="primary" />
             </div>
           </div>
-          <div class="text-h5 text-weight-bold q-mb-sm" :class="textColor">Link Your Paytaca Card</div>
+          <div class="text-h5 text-weight-bold q-mb-sm" :class="textColor">Activate Your Paytaca Card</div>
           <div class="text-body2 q-mb-md" style="max-width: 360px;" :class="textColorGrey">
-            If you already have a Paytaca card, link it to your wallet to start using it.
+            Activate your Paytaca card to start using it.
           </div>
 
           <div class="full-width link-methods q-mb-md">
@@ -149,19 +149,20 @@
           </div>
 
           <q-btn
-            label="Start Linking"
+            label="Activate"
             color="primary"
             unelevated
             rounded
             no-caps
             class="link-cta-btn q-mt-md"
-            @click="onOpenCreateCardForm"
+            @click="showActivateCardForm = true"
           />
         </div>
       </transition>
     </div>
 
     <CreateCardForm v-if="showCreateCardForm" @onClose="onCloseCreateCardForm" @card-created="onCardCreated" :idempotencyKey="idempotencyKey" />
+    <ActivateCardForm v-if="showActivateCardForm" @close="showActivateCardForm = false" @activate="onCardActivated" />
     <ResumeCreateCardDialog
       v-if="showResumeCreateCardDialog"
       @resumeAttempt="onResumeCardAttempt"
@@ -177,12 +178,14 @@ import ResumeCreateCardDialog from 'src/components/card/ResumeCreateCardDialog.v
 import OrderCard from 'src/components/card/OrderCard.vue';
 import { loadCardUser } from 'src/services/card/user';
 import CreateCardAttemptMixin from 'src/mixins/card/create-card-attempt-mixin'
+import ActivateCardForm from 'src/components/card/ActivateCardForm.vue';
 import bus from 'src/services/event-bus';
 
 export default {
   mixins: [CreateCardAttemptMixin],
   components: {
     CreateCardForm,
+    ActivateCardForm,
     ResumeCreateCardDialog,
     OrderCard
   },
@@ -190,11 +193,12 @@ export default {
   data () {
     return {
       isloaded: false,
+      showActivateCardForm: false,
       activeView: 'order',
       modes: [
         { key: 'create', label: 'Create Card', icon: 'add_card' },
         { key: 'order', label: 'Order Card', icon: 'shopping_cart' },
-        { key: 'link', label: 'Link Card', icon: 'link' },
+        { key: 'activate', label: 'Activate Card', icon: 'link' },
       ],
       journeySteps: [
         { label: 'Order Card', icon: 'shopping_cart', status: 'active' },
@@ -319,6 +323,19 @@ export default {
     hideLoading() {
       this.$q.loading.hide();
     },
+    onCardActivated() {
+      this.showActivateCardForm = false;
+      this.$q.dialog({
+        title: this.$t('Card Activated'),
+        message: this.$t('Your Paytaca card has been successfully activated.'),
+        ok: {
+          label: this.$t('OK'),
+          color: 'primary'
+        }
+      }).onOk(() => {
+        this.$router.push({ name: 'card-list' });
+      });
+    }
   }
 }
 </script>

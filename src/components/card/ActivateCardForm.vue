@@ -9,7 +9,7 @@
               <q-icon name="add_card" size="24px" color="primary" />
             </div>
             <div>
-              <div class="text-h6 text-weight-bold text-primary">Link your Card</div>
+              <div class="text-h6 text-weight-bold text-primary">Activate your Card</div>
             </div>
           </div>
             <q-btn icon="close" flat round dense color="primary" @click="closeDialog" />
@@ -17,14 +17,11 @@
       </div>
 
       <!-- Form State -->
-      <q-card-section class="q-px-lg q-py-md" v-if="state === 'form'">
-        <!-- Card UID Input Methods -->
+      <q-card-section class="q-px-lg q-py-md">
+        <!-- Input Methods -->
         <div class="input-methods q-mb-lg">
-          <div class="text-caption text-weight-medium q-mb-sm text-primary">
-            Card UID
-          </div>
           <div class="row q-col-gutter-sm q-mb-md">
-            <div class="col-4">
+            <div class="col">
               <q-btn 
                 class="method-btn full-width" 
                 :class="{ 'method-btn-active': selectedInputMethod === 'qr' }"
@@ -37,8 +34,9 @@
                 </div>
               </q-btn>
             </div>
-            <div class="col-4">
+            <div class="col">
               <q-btn 
+                disabled
                 class="method-btn full-width" 
                 :class="{ 'method-btn-active': selectedInputMethod === 'nfc' }"
                 flat 
@@ -48,9 +46,14 @@
                   <q-icon name="nfc" size="24px" color="primary" class="q-mb-xs" />
                   <div class="text-caption method-label">NFC</div>
                 </div>
+                <q-tooltip anchor="top middle" self="bottom middle" :offset="[0, 8]" transition-show="jump-down" transition-hide="jump-up">
+                  <div class="text-caption text-primary">
+                    NFC is currently disabled
+                  </div>
+                </q-tooltip>
               </q-btn>
             </div>
-            <div class="col-4">
+            <!-- <div class="col-4">
               <q-btn 
                 class="method-btn full-width" 
                 :class="{ 'method-btn-active': selectedInputMethod === 'manual' }"
@@ -62,11 +65,11 @@
                   <div class="text-caption method-label">Manual</div>
                 </div>
               </q-btn>
-            </div>
+            </div> -->
           </div>
         </div>
 
-        <!-- Manual Input Instructions -->
+        <!-- Manual Input Instructions
         <div class="input-section q-mb-lg method-content-area" v-if="selectedInputMethod === 'manual'">
           <div class="manual-input-card" :class="$q.dark.isActive ? 'manual-input-card-dark' : 'manual-input-card-light'">
             <div class="row items-center q-pa-md">
@@ -102,7 +105,7 @@
               </template>
             </q-input>
           </div>
-        </div>
+        </div> -->
 
         <!-- NFC Instructions -->
         <div class="nfc-instructions q-mb-lg method-content-area" v-if="selectedInputMethod === 'nfc'">
@@ -170,97 +173,38 @@
           @decode="onQrDecode"
         />
 
-        <!-- Card Name Input -->
         <div class="input-section">
-          <div class="text-caption text-weight-medium q-mb-sm text-primary">
-            Card Name
-          </div>
           <q-input
-            v-model="newCard.name"
-            label="Give your card a name"
+            v-model="newCard.uid"
+            label="Card UID"
             class="custom-input"
             :dark="$q.dark.isActive"
-            :rules="[
-              val => !!val || 'Card name is required',
-              val => val.length <= 10 || 'Maximum 10 characters'
-            ]"
             outlined
-            maxlength="10"
-            counter
-            hide-bottom-space>
+            readonly>
             <template v-slot:prepend>
               <q-icon name="credit_card" color="primary" />
             </template>
+            <template v-if="newCard.uid" v-slot:append>
+              <q-icon name="check_circle" size="16px" color="green" class="q-mr-xs" />
+            </template>
           </q-input>
-          <div class="text-caption q-mt-xs q-ml-md text-primary">
-            <q-icon name="short_text" size="12px" color="primary" class="q-mr-xs" />
-            Maximum 10 characters
-          </div>
         </div>
-      </q-card-section>
-
-      <!-- Minting Loading State -->
-      <q-card-section v-if="state === 'minting'" class="status-section q-pa-xl">
-        <div class="status-icon-container q-mb-lg">
-          <div class="pulse-ring"></div>
-          <q-icon name="token" size="56px" color="primary" />
+        <div class="input-section q-mt-md">
+          <q-input
+            v-model="newCard.cashAddress"
+            label="Card Address"
+            class="custom-input"
+            :dark="$q.dark.isActive"
+            outlined
+            readonly>
+            <template v-slot:prepend>
+              <q-icon name="currency_bitcoin" color="primary" />
+            </template>
+            <template v-if="newCard.cashAddress" v-slot:append>
+              <q-icon name="check_circle" size="16px" color="green" class="q-mr-xs" />
+            </template>
+          </q-input>
         </div>
-        <div class="text-h5 text-weight-bold q-mb-sm text-primary">
-          {{ mintingMessage || 'Creating your card...' }}
-        </div>
-        <div class="text-body2 q-mb-lg text-primary">
-          Please wait while we set up your new card
-        </div>
-        <div class="progress-container q-mb-md">
-          <q-linear-progress indeterminate color="primary" size="8px" rounded />
-        </div>
-        <div class="progress-steps row justify-center q-gutter-x-lg">
-          <div class="step-item">
-            <q-icon name="check_circle" size="20px" color="primary" />
-            <span class="text-caption q-ml-xs text-primary">Validating</span>
-          </div>
-          <div class="step-item">
-            <q-spinner-dots size="20px" color="primary" />
-            <span class="text-caption q-ml-xs text-primary">Minting</span>
-          </div>
-          <div class="step-item">
-            <q-icon name="schedule" size="20px" color="primary" />
-            <span class="text-caption q-ml-xs text-primary">Finalizing</span>
-          </div>
-        </div>
-      </q-card-section>
-
-      <!-- Success State -->
-      <q-card-section v-if="state === 'success'" class="status-section q-pa-xl">
-        <div class="success-animation q-mb-lg">
-          <q-icon name="check_circle" size="80px" color="primary" />
-        </div>
-        <div class="text-h5 text-weight-bold q-mb-sm text-primary">
-          Card Created Successfully!
-        </div>
-        <div class="text-body2 q-mb-lg text-primary">
-          Your new card is ready to use
-        </div>
-      </q-card-section>
-
-      <!-- Error State -->
-      <q-card-section v-if="state === 'error'" class="status-section q-pa-xl">
-        <div class="error-animation q-mb-lg">
-          <q-icon name="error_outline" size="80px" color="primary" />
-        </div>
-        <div class="text-h5 text-weight-bold q-mb-sm text-primary">
-          Error Creating Card
-        </div>
-        <div class="text-body2 q-mb-lg text-primary">
-          {{ mintingMessage || 'An error occurred while creating your card. Please try again.' }}
-        </div>
-        <q-btn 
-          color="primary" 
-          rounded
-          class="q-px-xl"
-          icon="refresh"
-          label="Try Again" 
-          @click="state = 'form'; formError = '';" />
       </q-card-section>
 
       <!-- Action Buttons (only show when in form state) -->
@@ -274,14 +218,14 @@
           @click="closeDialog" />
         <q-space />
         <q-btn 
-          label="Create Card" 
+          label="Activate Card" 
           color="primary" 
           rounded
           unelevated
           class="q-px-xl"
-          :disable="!inputValidation"
-          :loading="validatingUid"
-          @click="onSubmitForm()">
+          :disable="activatingCard || !!newCard && !newCard.uid || !newCard.cashAddress"
+          :loading="activatingCard"
+          @click="onActivateCard()">
           <template v-slot:loading>
             <q-spinner-dots color="primary" />
           </template>
@@ -292,13 +236,13 @@
 </template>
 
 <script>
-import Card from 'src/services/card/card';
 import { getCreateCardAttempt } from 'src/services/card/storage';
+import { loadCardUser } from 'src/services/card/user';
 import QrScanner from 'src/components/qr-scanner.vue';
 
 export default {
   name: 'LinkCardDialog',
-  emits: ['onClose', 'card-created'],
+  emits: ['close', 'activate'],
   components: {
     QrScanner
   },
@@ -311,11 +255,12 @@ export default {
   data () {
     return {
       showDialog: true,
+      activatingCard: false,
       newCardName: '',
       mintingMessage: '',
       state: 'form', // 'form' | 'minting' | 'success' | 'error'
       inputCardUid: true,
-      selectedInputMethod: 'manual', // 'qr' | 'nfc' | 'manual'
+      selectedInputMethod: 'qr', // 'qr' | 'nfc' 
       showQrScanner: false,
       validatingUid: false,
       formError: '',
@@ -343,7 +288,7 @@ export default {
     this.newCardName = '';
     this.mintingMessage = '';
     this.state = 'form';
-    this.selectedInputMethod = 'manual';
+    this.selectedInputMethod = 'qr';
     this.inputCardUid = true;
 
     if (this.idempotencyKey) {
@@ -359,7 +304,7 @@ export default {
 
   methods: {
     closeDialog () {
-      this.$emit('onClose');
+      this.$emit('close');
     },
 
     selectInputMethod (method) {
@@ -372,21 +317,30 @@ export default {
       this.showQrScanner = true
     },
 
-    onQrDecode (content) {
+    async onQrDecode (content) {
+      console.log('QR code decoded:', content)
       // Fill in the scanned QR code content as the card UID
-      this.newCard.uid = content
+      const address = content
+
+      // fetch the card with the scanned address to get the UID
+      const user = await loadCardUser()
+      await user.fetchCardByIdentifier(address)
+        .then(card => {
+          console.log('Fetched card data from server:', card);
+          console.log('Fetched card UID:', card?.uid);
+          this.newCard = card
+        })
+        .catch(error => {
+          console.error('Error fetching card data:', error);
+          this.$q.notify({
+            message: 'Failed to fetch card data. Please try again.',
+            color: 'negative',
+            position: 'top',
+            timeout: 2000
+          });
+        });
+
       this.showQrScanner = false
-      // Switch to manual input method to show the scanned UID
-      this.selectedInputMethod = 'manual'
-      this.inputCardUid = true
-      
-      // Show success notification
-      this.$q.notify({
-        message: 'QR code scanned successfully!',
-        color: 'primary',
-        position: 'top',
-        timeout: 2000
-      })
     },
 
     onCardMintingProgress (message) {
@@ -395,43 +349,19 @@ export default {
       this.mintingMessage = message;
     },
 
-    async onSubmitForm() {
-      this.validatingUid = true;
-      const { valid, message } = await Card.validateUid(this.newCard.uid);
-      this.validatingUid = false;
-      console.log('valid?', valid)
-      console.log('validation message:', message)
-      if (!valid) {
-        this.formError = message || 'Invalid Card UID';
-        return;
-      }
-      console.log("valid:", valid)
-      if (this.inputValidation && valid) {
-        this.linkCard();
-      }
-    },
-
-    async linkCard (lastAttempt = null) {
-      console.log('Linking card with name:', this.newCard.name, 'and UID:', this.newCard.uid);
-      this.state = 'minting';
-      const card = await Card.createInitialized()
-      const opts = {
-        idempotencyKey: this.idempotencyKey,
-        cardId: card.id
-      }
-      console.log('Calling Card.create with opts:', opts)
-      card.create(this.newCard, this.onCardMintingProgress, lastAttempt)
-        .then(card => {
-          console.log('Card created successfully:', card);
-          this.state = 'success';
-          this.$emit('card-created');
-        })
-        .catch(error => {
-          console.error('Error creating card:', error);
-          this.state = 'error'; // Set state to error on failure
-          this.mintingMessage = error.message || 'An error occurred while creating the card.';
-        });
-      }
+    async onActivateCard() {
+      this.activatingCard = true
+      await this.newCard.activate().then(response => {
+        console.log('Card activated successfully:', response);
+        this.$emit('activate', this.newCard);
+      }).catch((error) => {
+        console.error('Error activating card:', error);
+        this.state = 'error';
+        this.mintingMessage = error.message || 'An error occurred while activating your card.';
+      }).finally(() => {
+        this.activatingCard = false
+      })
+    }
   }
 }
 
