@@ -201,6 +201,7 @@
                   padding="sm"
                   label="Confirm Delivery"
                   :disable="deliveryStatusId !== 1"
+                  @click="confirmDeliveryTrigger"
                 />
                 <q-btn
                   v-else
@@ -712,8 +713,24 @@ const estimatedAmountFiat = computed(() => {
 
 
 // =========================================================================
-// =========================== RELEASE TO SELLER ===========================
+// ============================== POST-AUCTION =============================
 // =========================================================================
+const confirmDeliveryTrigger = async () => {
+  try {
+    const res = await callAPI('delivery-trackings', props.lotId, 'patch', {
+      status_id: 2,
+      shipping_date: new Date().toISOString()
+    })
+    if (res.success) {
+      $q.notify({ type: 'positive', message: 'Confirmed delivery!' })
+    }
+  } catch (err) {
+    console.warn('Could not fetch delivery tracking:', err)
+  } finally {
+    await refresh()
+  }
+}
+
 const confirmPickupTrigger = async () => {
   const bidId = auction.value?.type === 'English' ? highestBidId.value : winningBid.value?.id
 
