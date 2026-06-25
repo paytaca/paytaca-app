@@ -55,6 +55,7 @@
               {{ lastMessagePreview(room.id) }}
             </div>
             <div class="room-badges">
+              <div v-if="isRoomBlocked(room)" class="blocked-badge">BLOCKED</div>
               <div v-if="unreadCount(room.id) > 0" class="unread-badge">
                 {{ unreadCount(room.id) }}
               </div>
@@ -393,6 +394,17 @@ export default {
   align-items: center;
   justify-content: center;
   box-shadow: 0 2px 6px rgba(59, 130, 246, 0.3);
+}
+
+.blocked-badge {
+  padding: 1px 6px;
+  border-radius: 4px;
+  background: #ef4444;
+  color: #ffffff;
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.5px;
+  line-height: 1.4;
 }
 
 .empty-state {

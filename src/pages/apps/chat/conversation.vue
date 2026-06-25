@@ -11,6 +11,9 @@
       :title="roomName"
       :subtitle="isGroupRoom ? $t('MemberCount', { count: room?.members?.length || 0 }, `${room?.members?.length || 0} members`) : null"
     >
+      <template v-slot:title-append>
+        <span v-if="!isGroupRoom && isContactBlocked" class="blocked-pill">BLOCKED</span>
+      </template>
       <template v-if="room" v-slot:top-right-menu>
         <div class="header-actions">
           <q-btn
@@ -462,7 +465,7 @@
       <q-btn flat dense unelevated icon="close" size="sm" class="edit-bar-close" @click="cancelEdit" />
     </div>
 
-    <chat-input ref="chatInput" :room-id="roomId" :disabled="isRoomArchived" @send="onSend" @command="onCommand" @tip="onTipAction" @focus="onInputFocus" @blur="onInputBlur" />
+    <chat-input ref="chatInput" :room-id="roomId" :disabled="isRoomArchived || isContactBlocked" :blocked="isContactBlocked" @send="onSend" @command="onCommand" @tip="onTipAction" @focus="onInputFocus" @blur="onInputBlur" />
 
     <!-- Message context menu -->
     <q-menu ref="contextMenu" touch-position no-parent-event class="text-bow" :class="getDarkModeClass(darkMode)">
@@ -1511,6 +1514,7 @@ export default {
       }).onOk(() => {
         if (otherPubKey) {
           this.$store.commit('nostrChat/BLOCK_CONTACT', otherPubKey)
+          this.$store.commit('nostrChat/ARCHIVE_ROOM', this.roomId)
         }
         this.$router.replace('/apps/chat')
         this.$q.notify({
@@ -1532,6 +1536,7 @@ export default {
       }).onOk(() => {
         if (otherPubKey) {
           this.$store.commit('nostrChat/UNBLOCK_CONTACT', otherPubKey)
+          this.$store.commit('nostrChat/UNARCHIVE_ROOM', this.roomId)
         }
         this.$q.notify({
           type: 'positive',
@@ -2232,5 +2237,18 @@ export default {
 
 .request-join-btn {
   min-width: 180px;
+}
+
+.blocked-pill {
+  display: inline-block;
+  padding: 1px 6px;
+  border-radius: 4px;
+  background: #ef4444;
+  color: #ffffff;
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.5px;
+  line-height: 1.4;
+  vertical-align: middle;
 }
 </style>

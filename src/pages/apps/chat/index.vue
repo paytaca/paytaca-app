@@ -722,6 +722,7 @@ export default {
         persistent: true,
       }).onOk(() => {
         this.$store.commit('nostrChat/BLOCK_CONTACT', otherPubKey)
+        this.$store.commit('nostrChat/ARCHIVE_ROOM', roomId)
         this.$q.notify({
           type: 'info',
           message: this.$t('ContactBlocked', {}, 'Contact blocked'),
@@ -753,6 +754,7 @@ export default {
         persistent: true,
       }).onOk(() => {
         this.$store.commit('nostrChat/UNBLOCK_CONTACT', otherPubKey)
+        this.$store.commit('nostrChat/UNARCHIVE_ROOM', roomId)
         this.$q.notify({
           type: 'positive',
           message: this.$t('ContactUnblocked', {}, 'Contact unblocked'),
