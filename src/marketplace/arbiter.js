@@ -9,6 +9,7 @@ import { i18n } from 'src/boot/i18n';
 import { getCurrentWalletStorageKey, getWalletStorageKey } from 'src/utils/wallet-storage';
 import crypto from 'crypto'
 import * as secp from '@noble/secp256k1'
+import { requestManager } from 'src/utils/request-manager'
 
 
 const { t: $t } = i18n.global
@@ -51,6 +52,8 @@ export function ecdsaSign(wif, data) {
 export const arbiterBackend = axios.create({
   ...backend.defaults,
 })
+
+requestManager.attachTo(arbiterBackend)
 
 arbiterBackend.interceptors.request.use(async (config) => {
   let token

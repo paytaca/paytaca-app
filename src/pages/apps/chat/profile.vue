@@ -27,12 +27,12 @@
               <img v-if="avatarDisplaySrc" :src="avatarDisplaySrc" />
               <q-icon v-else name="account_circle" size="56px" />
             </q-avatar>
-            <div class="avatar-overlay">
+            <div class="avatar-overlay" :class="{ 'avatar-overlay--always': !avatarDisplaySrc }">
               <q-icon name="camera_alt" size="20px" />
             </div>
           </div>
           <div class="identity-info">
-            <div class="identity-name">{{ profileDisplayName || 'No display name' }}</div>
+            <div class="identity-name">{{ profileDisplayName || $t('NoDisplayName') }}</div>
             <div class="identity-npub" @click="copyNpub">
               <span class="npub-text">{{ displayNpub }}</span>
               <q-icon name="content_copy" size="14px" class="copy-icon" />
@@ -222,7 +222,7 @@
                 <template #hint>
                   <div v-if="addressGeneratedFromWallet" class="address-hint">
                     <q-icon name="info" size="14px" />
-                    <span>This is a fresh address generated from your wallet</span>
+                    <span>{{ $t('FreshAddressHint') }}</span>
                   </div>
                 </template>
               </q-input>
@@ -281,9 +281,10 @@
         </div>
 
         <!-- Cache Management -->
-        <div class="danger-section q-mt-lg">
+        <div v-if="hasCache" class="danger-section q-mt-lg">
           <div class="section-label">
             {{ $t('ChatCache', {}, 'Chat Cache') }}
+            <span class="cache-size-badge">{{ formattedCacheSize }}</span>
           </div>
           <div class="section-description">
             {{ $t('ChatCacheDescription', {}, 'Cached images are stored to improve loading speed. Clear cache to free up storage space.') }}
@@ -310,7 +311,7 @@ import { validateAddress } from 'src/utils/send-page-utils'
 import { getWalletByNetwork } from 'src/wallet/chipnet'
 import { cachedLoadWallet } from 'src/wallet'
 import { npubEncode } from 'nostr-tools/nip19'
-import { clearChatCache } from 'src/components/chat/MessageBubble.vue'
+import { clearChatCache, hasChatCache, getChatCacheSize } from 'src/components/chat/MessageBubble.vue'
 import { copyToClipboard } from 'quasar'
 import { uploadPublicToBlossom } from 'src/wallet/nostr-media'
 
@@ -335,6 +336,8 @@ export default {
       publishingDisplayName: false,
       removingDisplayName: false,
       clearingCache: false,
+      hasCache: false,
+      cacheSizeBytes: 0,
       addressGeneratedFromWallet: false,
       generatingAddress: false,
       pendingAvatar: null,
@@ -387,9 +390,17 @@ export default {
       if (theme === 'glassmorphic-gold') return '#ffa726'
       return '#3b82f6'
     },
+    formattedCacheSize () {
+      const bytes = this.cacheSizeBytes
+      if (bytes < 1024) return `${Math.round(bytes)} B`
+      if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`
+      if (bytes < 1024 * 1024 * 1024) return `${(bytes / (1024 * 1024)).toFixed(1)} MB`
+      return `${(bytes / (1024 * 1024 * 1024)).toFixed(2)} GB`
+    },
   },
   mounted () {
     document.addEventListener('pointerdown', this.onDocumentPointerDown, true)
+    this.checkCache()
   },
   beforeDestroy () {
     document.removeEventListener('pointerdown', this.onDocumentPointerDown, true)
@@ -771,6 +782,14 @@ export default {
         }
       })
     },
+    async checkCache () {
+      try {
+        this.hasCache = await hasChatCache()
+        if (this.hasCache) {
+          this.cacheSizeBytes = await getChatCacheSize()
+        }
+      } catch { this.hasCache = false }
+    },
     async confirmClearCache () {
       this.$q.dialog({
         title: this.$t('ClearChatCache', {}, 'Clear Chat Cache'),
@@ -784,6 +803,7 @@ export default {
         try {
           const success = await clearChatCache()
           if (success) {
+            this.hasCache = false
             this.$q.notify({
               type: 'positive',
               message: this.$t('ChatCacheCleared', {}, 'Chat cache cleared successfully'),
@@ -844,6 +864,10 @@ export default {
   border-radius: 50%;
   opacity: 0;
   transition: opacity 0.2s ease;
+}
+
+.avatar-overlay--always {
+  opacity: 1;
 }
 
 .identity-avatar {
@@ -1007,6 +1031,18 @@ export default {
   font-weight: 600;
   color: #dc2626;
   margin-bottom: 4px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.cache-size-badge {
+  font-size: 12px;
+  font-weight: 500;
+  padding: 2px 8px;
+  border-radius: 10px;
+  background: rgba(220, 38, 38, 0.1);
+  color: #dc2626;
 }
 
 .danger-section .section-description {

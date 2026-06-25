@@ -7,7 +7,7 @@
   >
     <HeaderNav
       title="Cauldron DEX"
-      backnavpath="/apps"
+      :backnavpath="backNavPath"
       class="apps-header"
     />
 
@@ -394,12 +394,24 @@ export default defineComponent({
     selectTokenId: String,
     buyAmount: [String, Number],
     amount: [String, Number],
+    backPath: String,
   },
   setup(props) {
     const { t: $t } = useI18n()
     const $q = useQuasar();
     const $store = useStore();
     const darkMode = computed(() => $store.getters['darkmode/getStatus']);
+    const backNavPath = computed(() => {
+      if (props.backPath) {
+        const [path, queryString] = props.backPath.split('?')
+        if (queryString) {
+          const query = Object.fromEntries(new URLSearchParams(queryString))
+          return { path, query }
+        }
+        return props.backPath
+      }
+      return '/apps'
+    });
     const exlab = new ExchangeLab();
     exlab.setDefaultPreferredTokenOutputBCHAmount(1000n);
     
@@ -1254,6 +1266,7 @@ export default defineComponent({
 
     return {
       darkMode,
+      backNavPath,
       getDarkModeClass,
 
       poolTracker,

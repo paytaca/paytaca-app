@@ -46,7 +46,14 @@
           {{ asset.symbol }}
         </p>
       </div>
-      <div class="row items-end justify-end">
+      <div class="row items-end justify-between">
+        <q-icon
+          v-if="asset.favorite === 1 || asset.favorite === true"
+          name="star"
+          size="14px"
+          class="favorite-star"
+        />
+        <div v-else></div>
         <div v-if="(!balanceLoaded && asset.id === selectedAsset.id) || refreshingTokenIds.includes(asset.id)" class="text-right">
           <q-skeleton type="rect" width="80px" height="18px" class="q-mb-none" />
           <template v-if="asset.id !== 'bch'">
@@ -66,9 +73,23 @@
           </div>
         </template>
       </div>
-      <button class="q-ml-sm" style="border: none; background-color: transparent"></button>
     </div>
     <!-- Manage button moved to inline with Tokens label in transaction/index.vue -->
+    
+    <!-- View more card when there are additional tokens beyond the subscription limit -->
+    <div
+      v-if="hasMoreTokens"
+      class="method-cards asset-card-border view-more-card q-mr-none"
+      @click="goToAssetList"
+      :style="{ 'margin-left': filteredFavAssets && filteredFavAssets.length > 0 ? '12px' : '0px' }"
+    >
+      <div class="row items-center no-wrap justify-center" style="height: 100%;">
+        <div class="text-center">
+          <q-icon name="format_list_bulleted" size="24px" class="q-mb-xs view-more-icon" />
+          <p class="view-more-label q-mb-none">View All</p>
+        </div>
+      </div>
+    </div>
     
   </div>
 </template>
@@ -101,6 +122,10 @@ export default {
       default: () => []
     },
     isCashToken: { type: Boolean },
+    hasMoreTokens: {
+      type: Boolean,
+      default: false
+    },
     currentLanguage: { type: String },
     currentCountry: { type: String },
     isLoadingInitial: {
@@ -169,14 +194,6 @@ export default {
     denomination () {
       return this.$store.getters['global/denomination']
     },
-    hasMoreTokens() {
-      if (this.customList) {
-        // Check if there are tokens that are not favorites
-        const nonFavoriteTokens = this.customList.filter(asset => asset && !this.favorites.includes(asset.id))
-        return nonFavoriteTokens.length > 0
-      }
-      return false
-    }
   },
   watch: {
     // For CashTokens on BCH, assets come from API with favorite field - no need to watch/save
@@ -356,7 +373,7 @@ export default {
       this.favResult = temp
       
       try { // temporary error handling to resolve temp being null
-        this.favorites = temp.filter(asset => asset.favorite === 1).map(asset => asset.id)
+        this.favorites = temp.filter(asset => asset.favorite === 1 || asset.favorite === true).map(asset => asset.id)
       } catch { }
     },
     formatAssetTokenAmount(asset) {
@@ -586,9 +603,55 @@ export default {
     pointer-events: auto; // keep horizontal scroll/pan working
     opacity: 0.95;
   }
+
+  .favorite-star {
+    color: #ffffff;
+    opacity: 0.5;
+  }
   .view-all-button {
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
+  }
+  .view-more-card {
+    min-height: 90px;
+    height: auto;
+    min-width: 110px;
+    border-radius: 16px;
+    margin-bottom: 5px !important;
+    margin-left: 12px;
+    padding: 12px !important;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    cursor: pointer;
+    user-select: none;
+    -webkit-user-select: none;
+    -moz-user-select: none;
+    -ms-user-select: none;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    gap: 6px;
+    border: 1.5px dashed rgba(255, 255, 255, 0.35);
+
+    &:hover {
+      border-color: rgba(255, 255, 255, 0.6);
+      background: rgba(128, 128, 128, 0.08);
+    }
+
+    .view-more-icon {
+      font-size: 22px;
+      color: #EAEEFF;
+      opacity: 0.7;
+    }
+
+    .view-more-label {
+      color: #EAEEFF;
+      opacity: 0.7;
+      font-size: 12px;
+      font-weight: 500;
+      line-height: 1.2;
+      text-align: center;
+    }
   }
 </style>

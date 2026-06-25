@@ -180,12 +180,15 @@ export function createKind15FileMessage({
 /**
  * Wrap a kind:15 file message for each recipient (NIP-17 gift-wrap).
  * Logs gift wrap sizes for debugging relay size limits.
+ * Self-addressed wraps get a ["self"] tag so the watchtower can skip
+ * push notifications for the sender's own events.
  * @param {import('nostr-tools').UnsignedEvent} kind15Event
  * @param {string} senderPrivKey - Hex private key of sender
  * @param {string[]} receiverPubKeys - All member pubkeys to send to
+ * @param {string} [senderPubKey] - Sender's own pubkey (for self-tagging; omit to skip)
  * @returns {Promise<import('nostr-tools').NostrEvent[]>}
  */
-export async function wrapKind15FileMessage(kind15Event, senderPrivKey, receiverPubKeys) {
+export async function wrapKind15FileMessage(kind15Event, senderPrivKey, receiverPubKeys, senderPubKey) {
   const senderPrivKeyBytes = hexToBytes(senderPrivKey)
   const giftWraps = nip59.wrapManyEvents(kind15Event, senderPrivKeyBytes, receiverPubKeys)
 
@@ -196,6 +199,13 @@ export async function wrapKind15FileMessage(kind15Event, senderPrivKey, receiver
     console.log(`[wrapKind15FileMessage] Gift wrap[${i}] JSON size: ${wrapJson.length} bytes, content size: ${giftWraps[i].content.length} chars`)
   }
 
+  if (senderPubKey) {
+    return giftWraps.map((gw, i) =>
+      (i === 0 || receiverPubKeys[i - 1] === senderPubKey)
+        ? { ...gw, tags: [...gw.tags, ['self']] }
+        : gw
+    )
+  }
   return giftWraps
 }
 

@@ -4,8 +4,11 @@ import { deleteAuthTokenForUserType, getAuthToken } from './auth'
 import { wallet } from './wallet'
 
 import { bus } from 'src/wallet/event-bus'
+import { requestManager } from 'src/utils/request-manager'
 
 export const backend = axios.create()
+
+requestManager.attachTo(backend)
 
 /**
  * @typedef {'peer'|'arbiter'} RampUserType
