@@ -35,6 +35,7 @@
         icon="add"
         size="sm"
         class="attach-btn"
+        :disable="disabled"
       >
         <q-menu
           class="chat-actions-menu"
@@ -90,8 +91,9 @@
           borderless
           :dark="darkMode"
           class="chat-text-field"
-          :placeholder="$t('TypeAMessage', {}, 'Type a message...')"
+          :placeholder="disabled ? $t('ConversationArchivedInputDisabled', {}, 'Conversation archived') : $t('TypeAMessage', {}, 'Type a message...')"
           :maxlength="MAX_CHARS"
+          :disable="disabled"
           @keydown.enter="onEnterKey"
           @focus="onFocus"
           @blur="onBlur"
@@ -104,7 +106,7 @@
         icon="send"
         size="sm"
         class="send-btn"
-        :disable="!text.trim() || remainingChars <= 0 || isSending"
+        :disable="disabled || !text.trim() || remainingChars <= 0 || isSending"
         @touchend.prevent="onSendTouch"
         @click="onSendClick"
       />
@@ -160,6 +162,7 @@ export default {
   emits: ['send', 'command', 'focus', 'blur', 'tip'],
   props: {
     roomId: { type: String, default: '' },
+    disabled: { type: Boolean, default: false },
   },
   data () {
     return {
