@@ -1315,6 +1315,12 @@ export default {
         
         vm.saveToVault()
         
+        // Reinitialize nostr chat for the new wallet so stale conversations
+        // from a previous wallet are cleared and keys are re-derived
+        vm.$store.dispatch('nostrChat/reinitialize').catch(err => {
+          console.warn('Nostr chat reinit failed after wallet creation:', err)
+        })
+        
         // Sync wallet name after saving to vault (for imported wallets)
         const walletIndex = vm.$store.getters['global/getWalletIndex']
         if (walletIndex >= 0) {
@@ -1827,7 +1833,7 @@ export default {
       if (this.importSeedPhrase && this.restoreStep === 3) {
         this.$router.push('/accounts/restore/step-4')
       } else {
-        this.$router.push('/accounts/create/step-4')
+        this.$router.push('/accounts/create/step-3')
       }
     },
     goToStep4 () {
@@ -1842,8 +1848,7 @@ export default {
       this.$router.push('/accounts/create/step-6')
     },
     goToStep6 () {
-      // This is the final step - no navigation needed, handled by setupSecurity
-      console.log('[Step 6] Security setup step reached')
+      this.$router.push('/accounts/create/step-6')
     },
     setupSecurity (authType) {
       // Prevent multiple calls

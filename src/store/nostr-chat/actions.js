@@ -29,8 +29,17 @@ export async function reinitialize ({ commit, dispatch, state, rootGetters }) {
   const keys = deriveNostrKeys(mnemonic)
   if (state.keys.pubKeyHex === keys.pubKeyHex) return
 
+  // Disconnect existing relay subscriptions for the old identity
+  relayService.stopStatusPolling()
+  relayService.disconnect()
+  commit('SET_SUBSCRIBED', false)
+
+  // Clear all per-identity data so the new wallet starts with a clean slate
+  commit('RESET_STATE')
+
   commit('SET_KEYS', keys)
-  commit('RESET_PROFILE')
+  commit('SET_READY', true)
+  commit('SET_INITIALIZED', true)
   relayService.setAuthKey(keys.privKeyHex)
 
   // Register this wallet's Nostr pubkey in Watchtower
@@ -64,7 +73,14 @@ export async function reinitialize ({ commit, dispatch, state, rootGetters }) {
 }
 
 export async function initialize ({ commit, dispatch, state, rootGetters }) {
-  if (state.initialized && state.keys?.pubKeyHex) {
+  const walletIndex = rootGetters['global/getWalletIndex']
+  const mnemonic = await getMnemonic(walletIndex)
+  if (!mnemonic) throw new Error('No mnemonic available')
+
+  const keys = deriveNostrKeys(mnemonic)
+
+  // Verify persisted keys still match the current wallet; if not, reset and re-initialize
+  if (state.initialized && state.keys?.pubKeyHex && state.keys.pubKeyHex === keys.pubKeyHex) {
     dispatch('fetchHistoricalMessages')
     if (!state.profile?.displayName || !state.profile?.bchAddress) {
       dispatch('fetchOwnProfile', state.keys.pubKeyHex).catch(() => {})
@@ -72,11 +88,14 @@ export async function initialize ({ commit, dispatch, state, rootGetters }) {
     return
   }
 
-  const walletIndex = rootGetters['global/getWalletIndex']
-  const mnemonic = await getMnemonic(walletIndex)
-  if (!mnemonic) throw new Error('No mnemonic available')
+  // Keys mismatch (wallet changed via creation, restore, or app restart) — reset everything
+  if (state.initialized || state.keys?.pubKeyHex) {
+    relayService.stopStatusPolling()
+    relayService.disconnect()
+    commit('SET_SUBSCRIBED', false)
+    commit('RESET_STATE')
+  }
 
-  const keys = deriveNostrKeys(mnemonic)
   commit('SET_KEYS', keys)
   commit('SET_READY', true)
   commit('SET_INITIALIZED', true)

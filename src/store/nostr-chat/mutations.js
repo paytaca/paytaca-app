@@ -279,3 +279,36 @@ export function RESET_PROFILE (state) {
     avatarPublishedAt: null,
   }
 }
+
+export function RESET_STATE (state) {
+  state.keys = {
+    npub: null,
+    nsec: null,
+    pubKeyHex: null,
+    privKeyHex: null,
+  }
+  state.contacts = []
+  state.rooms = []
+  state.blockedContacts = []
+  state.deletedRooms = {}
+  state.messages = {}
+  state.readReceipts = {}
+  state.readMessageIds = {}
+  state.messageReadBy = {}
+  state.reactions = {}
+  state.bchAddressCache = {}
+  state.displayNameCache = {}
+  state.avatarCache = {}
+  state.profile = {
+    bchAddress: null,
+    publishedAt: null,
+    displayName: null,
+    displayNamePublishedAt: null,
+    avatar: null,
+    avatarPublishedAt: null,
+  }
+  state.isReady = false
+  state.initialized = false
+  state.isSubscribed = false
+  state.relayStatus = {}
+}
