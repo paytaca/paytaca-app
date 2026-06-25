@@ -676,33 +676,14 @@ export default {
         ? (this.allTokensFromAPI || [])
         : (this.allSlpTokensFromAPI || [])
       
-      // Sort tokens: favorites first (ordered by favorite_order), then non-favorites
-      const sortedTokens = [...allTokens].sort((a, b) => {
-        const aIsFavorite = a.favorite === 1 || a.favorite === true
-        const bIsFavorite = b.favorite === 1 || b.favorite === true
-        
-        // Favorites come first
-        if (aIsFavorite && !bIsFavorite) return -1
-        if (!aIsFavorite && bIsFavorite) return 1
-        
-        // Both favorites: sort by favorite_order (lower order first)
-        if (aIsFavorite && bIsFavorite) {
-          const aOrder = a.favorite_order ?? Number.MAX_SAFE_INTEGER
-          const bOrder = b.favorite_order ?? Number.MAX_SAFE_INTEGER
-          return aOrder - bOrder
-        }
-        
-        // Neither is a favorite: maintain original order (by receive time from API)
-        return 0
-      })
-      
+      // API returns tokens ordered by favorites and favorite_order — preserve that order
       // Filter out hidden tokens, then return the first N based on subscription limit
       const bchWalletHash = this.wallet?.BCH?.walletHash || this.wallet?.bch?.walletHash || ''
       const hiddenIds = getHiddenAssetIds(bchWalletHash)
       if (hiddenIds.length) {
-        return sortedTokens.filter(t => !hiddenIds.includes(t.id)).slice(0, limit)
+        return allTokens.filter(t => !hiddenIds.includes(t.id)).slice(0, limit)
       }
-      return sortedTokens.slice(0, limit)
+      return allTokens.slice(0, limit)
     },
     tokenCardsAssets () {
       // Show temporary dummy tokens ONLY while the tutorial is active

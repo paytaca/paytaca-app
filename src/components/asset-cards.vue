@@ -46,7 +46,14 @@
           {{ asset.symbol }}
         </p>
       </div>
-      <div class="row items-end justify-end">
+      <div class="row items-end justify-between">
+        <q-icon
+          v-if="asset.favorite === 1 || asset.favorite === true"
+          name="star"
+          size="14px"
+          class="favorite-star"
+        />
+        <div v-else></div>
         <div v-if="(!balanceLoaded && asset.id === selectedAsset.id) || refreshingTokenIds.includes(asset.id)" class="text-right">
           <q-skeleton type="rect" width="80px" height="18px" class="q-mb-none" />
           <template v-if="asset.id !== 'bch'">
@@ -66,7 +73,6 @@
           </div>
         </template>
       </div>
-      <button class="q-ml-sm" style="border: none; background-color: transparent"></button>
     </div>
     <!-- Manage button moved to inline with Tokens label in transaction/index.vue -->
     
@@ -585,6 +591,11 @@ export default {
     cursor: default !important;
     pointer-events: auto; // keep horizontal scroll/pan working
     opacity: 0.95;
+  }
+
+  .favorite-star {
+    color: #ffffff;
+    opacity: 0.5;
   }
   .view-all-button {
     white-space: nowrap;
