@@ -89,6 +89,45 @@
               />
             </div>
           </div>
+          <div class="row q-col-gutter-sm">
+            <div class="col">
+              <q-input
+                v-model.number="form.min_period"
+                :label="$t('MinPeriod') || 'Min Interval (Blocks)'"
+                outlined
+                dense
+                type="number"
+                step="1"
+                hide-bottom-space
+              />
+            </div>
+            <div class="col">
+              <q-input
+                v-model.number="form.max_period"
+                :label="$t('MaxPeriod') || 'Max Interval (Blocks)'"
+                outlined
+                dense
+                type="number"
+                step="1"
+                hide-bottom-space
+              />
+            </div>
+          </div>
+
+          <div class="row q-col-gutter-sm">
+            <div class="col">
+              <q-input
+                v-model.number="form.max_reclaim"
+                :label="$t('MaxReclaim') || 'Max Reclaims'"
+                outlined
+                dense
+                type="number"
+                step="1"
+                hide-bottom-space
+                hint="Set to 0 for unlimited"
+              />
+            </div>
+          </div>
         </q-card-section>
 
         <q-card-actions align="right">
@@ -133,7 +172,10 @@ const form = reactive({
   amount: null,
   currency: 'BCH',
   period_value: 30,
-  period_type: 'days'
+  period_type: 'days',
+  min_period: 4320,
+  max_period: 4320,
+  max_reclaim: 0
 })
 
 async function onOKClick() {
@@ -144,7 +186,10 @@ async function onOKClick() {
     name: form.name,
     description: form.description,
     amount: form.amount,
-    currency: form.currency
+    currency: form.currency,
+    min_period: form.min_period,
+    max_period: form.max_period,
+    max_reclaim: form.max_reclaim
   }
 
   if (form.period_type === 'days') {
