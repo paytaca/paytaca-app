@@ -11,8 +11,8 @@
       :title="roomName"
       :subtitle="isGroupRoom ? $t('MemberCount', { count: room?.members?.length || 0 }, `${room?.members?.length || 0} members`) : null"
     >
-      <template v-slot:title-append>
-        <span v-if="!isGroupRoom && isContactBlocked" class="blocked-pill">BLOCKED</span>
+      <template v-if="!isGroupRoom && isContactBlocked" v-slot:title-append>
+        <span class="blocked-pill">BLOCKED</span>
       </template>
       <template v-if="room" v-slot:top-right-menu>
         <div class="header-actions">
