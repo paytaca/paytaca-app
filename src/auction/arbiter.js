@@ -15,7 +15,7 @@ export async function callContractRelease(bidId) {
 
   const payload = {
     bid_id: bidId,
-  user_pk: publicKey
+    user_pk: publicKey
   }
 
   try {

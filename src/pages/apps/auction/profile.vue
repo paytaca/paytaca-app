@@ -80,6 +80,7 @@ const isExistingUser = ref(false)
 const isLoading = ref(true)
 
 onMounted(async () => {
+  // not sure why this is needed
   try {
     const [pk] = await Promise.all([
       getBidderPublicKey('0/0'),
@@ -87,7 +88,7 @@ onMounted(async () => {
     ])
     
     if (pk) {
-      const response = await callAPI('user-details-by-pubkey', pk)
+      const response = await callAPI('user-details-by-public-key', pk)
 
       if (response && response.success && response.data) {
         if (response.data.username) {
@@ -113,7 +114,7 @@ const handleEditUserProfile = async () => {
     if (method === 'post') {
       response = await callAPI('user-details', null, method, {
         username: username.value,
-        user_id: walletHash
+        user: walletHash
       })
     } else {
       response = await callAPI(`user-details/${walletHash}/update`, null, method, { username: username.value })

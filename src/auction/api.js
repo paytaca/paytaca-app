@@ -15,7 +15,7 @@ export const backend = axios.create({
   - date formats: new Date().toISOString(),
   - images: need to be saved in a FormData object  (use this for reference: https://www.javascripttutorial.net/web-apis/javascript-formdata/)
   * @param pathname = pathname in url for api 
-  * @param id = could be pk, lot_id, etc. (specifically if we're referring to getting one item, so don't put anything if fetching multiple items)
+  * @param id = could be pk, lot, etc. (specifically if we're referring to getting one item, so don't put anything if fetching multiple items)
   * @param method = ['get', 'post', 'put', 'delete']; default is get 
   * @param payload = object containing the data for post/put (not needed for get/delete)
 */
