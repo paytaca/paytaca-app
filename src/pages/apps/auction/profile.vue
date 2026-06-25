@@ -9,13 +9,24 @@
         <AuctionHeaderMenu />
       </template>
     </HeaderNav>
-
+    
+    <div v-if="isLoading" class="row q-col-gutter-md q-px-md q-mt-xl q-mb-md">
+      <div class="col-12">
+        <q-skeleton type="text" width="30%" class="q-mb-xs" height="24px" />
+        <q-skeleton type="QInput" />
+      </div>
+      <div class="col-12 row justify-end q-mt-md">
+        <q-skeleton type="QBtn" width="150px" />
+      </div>
+    </div>
+    
     <q-form
+      v-else
       ref="auctionFormRef"
       @submit.prevent="handleEditUserProfile"
     >
       <div class="row q-col-gutter-md q-px-md q-mt-xl q-mb-md">
-        <div class="col-12 col-sm-6">
+        <div class="col-12">
           <label class="text-md text-weight-bold block q-mb-xs">Username</label>
           <q-input
             outlined
@@ -67,10 +78,14 @@ const darkMode = computed(() => $store.getters['darkmode/getStatus'])
 const username = ref('')
 const userId = ref(null)
 const isExistingUser = ref(false)
+const isLoading = ref(true)
 
 onMounted(async () => {
   try {
-    const pk = await getBidderPublicKey('0/0')
+    const [pk] = await Promise.all([
+      getBidderPublicKey('0/0'),
+      new Promise(resolve => setTimeout(resolve, 600)) 
+    ])
     
     if (pk) {
       const response = await callAPI('user-details-by-pubkey', pk)
@@ -85,6 +100,8 @@ onMounted(async () => {
     }
   } catch (err) {
     console.error('Failed to fetch existing profile username:', err)
+  } finally {
+    isLoading.value = false
   }
 })
 
