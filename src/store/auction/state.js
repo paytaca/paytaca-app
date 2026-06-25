@@ -6,6 +6,7 @@ export default function () {
     auctionType: 'All',
     activityType: 'My Biddings',
     arbiterPublicKey: '',
-    servicerPublicKey: ''
+    servicerPublicKey: '',
+    username: ''
   }
 }

@@ -25,3 +25,7 @@ export function setArbiterPublicKey(state, arbiterPk) {
 export function setServicerPublicKey(state, servicerPk) {
   state.servicerPublicKey = servicerPk
 }
+
+export function setUsername(state, username) {
+  state.username = username
+}

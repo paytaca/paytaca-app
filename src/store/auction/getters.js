@@ -36,3 +36,8 @@ export function arbiterPublicKey(state) {
 export function servicerPublicKey(state) {
   return state.servicerPublicKey
 }
+
+// Getter for stored username
+export function username(state) {
+  return state.username
+}

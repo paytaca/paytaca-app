@@ -1,5 +1,6 @@
 import { callAPI } from 'src/auction/api'
 import { AuctionList, LotsList } from 'src/auction/object'
+import { getWallet } from '../../auction/payment'
 
 export async function filterAuctionItems({ commit }, type) {
   commit('updateAuctionType', type)
@@ -37,7 +38,7 @@ export async function fetchMyBiddings({ commit }) {
         const lot = LotsList.parse(item)
 
         const [auctionResult, imageResult] = await Promise.all([
-          callAPI('auctions', lot.auction_id),
+          callAPI('auctions', lot.auction),
           callAPI('lot-images-by-lot', lot.id)
         ])
 
@@ -93,5 +94,24 @@ export async function fetchServicerPublicKey({ commit }) {
     }
   } catch (error) {
     console.error('API Sync Error inside fetchServicerPublicKey:', error)
+  } 
+}
+
+// Fetching ServicerPk for contract creation
+export async function fetchUsername({ commit }) {
+  try {
+    const wallet = await getWallet()
+    const publicKey = await wallet.BCH.getPublicKey(`0/0`)
+    const response = await callAPI('user-details-by-public-key', publicKey)
+
+    console.log(response)
+
+    if (response && response.success) {
+      const username = response.data.username
+      console.log(response.data)
+      commit('setUsername', username)
+    }
+  } catch (error) {
+    console.error('API Sync Error inside fetchUsername:', error)
   } 
 }
