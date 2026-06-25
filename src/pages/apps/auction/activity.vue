@@ -247,7 +247,7 @@
           <q-card
             class="pt-card text-bow cursor-pointer"
             :class="getDarkModeClass(darkMode)"
-            @click="$router.push({ name: 'app-auction-lot-details', params: { auctionId: lot.auction_id, lotId: lot.id }, query: { from: 'activity' }})"
+            @click="$router.push({ name: 'app-auction-lot-details', params: { auctionId: lot.auction, lotId: lot.id }, query: { from: 'activity' }})"
           >
             <div class="relative-position">
               <q-img
@@ -622,7 +622,7 @@ const fetchHasBidForLots = async (lotsArr) => {
   await Promise.all(englishLots.map(async (lot) => {
     try {
       const result = await callAPI(`lots/${lot.id}/highest-bid`)
-      lotHasBid.value[lot.id] = !!(result.success && result.data && result.data.user_id !== null)
+      lotHasBid.value[lot.id] = !!(result.success && result.data && result.data.user !== null)
     } catch (err) {
       console.error(`Failed to check bid status for lot ${lot.id}:`, err)
       lotHasBid.value[lot.id] = false

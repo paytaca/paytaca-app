@@ -28,9 +28,9 @@ export class LotsList {
    * @param {Boolean} data.is_fiat
    * @param {Boolean} data.is_sold
    * @param {String|null} data.date_sold
-   * @param {Number} data.category_id
+   * @param {Number} data.category
    * @param {String} data.auction_type
-   * @param {Number} data.auction_id
+   * @param {Number} data.auction
    * @param {Array<Object|String>} data.images
    */
   set raw(data) {
@@ -52,10 +52,10 @@ export class LotsList {
 
     this.is_sold = !!data.is_sold;
     this.date_sold = data.date_sold || null;
-    this.category_id = data.category_id || (data.category ? data.category.id : null);
-    this.category = data.category || (data.category_id === 1 ? 'Physical' : 'Digital');
+    this.category = data.category || (data.category ? data.category.id : null);
+    this.category = data.category || (data.category === 1 ? 'Physical' : 'Digital');
     this.auction_type = data.auction_type || null
-    this.auction_id = data.auction_id || (data.auction ? data.auction.id : null);
+    this.auction = data.auction || (data.auction ? data.auction.id : null);
     this.start_date = data.start_date || null;
     this.end_date = data.end_date || null;
     
@@ -136,8 +136,8 @@ export class AuctionList {
    * @param {Boolean} data.is_fiat
    * @param {String|null} data.image
    * @param {String} data.creation_date
-   * @param {Number} data.type_id
-   * @param {Number} data.user_id
+   * @param {Number} data.type
+   * @param {Number} data.user
    * @param {Array<Object>} data.lots
    */
   set raw(data) {
@@ -153,10 +153,10 @@ export class AuctionList {
     this.image = data.image || null;
     this.creation_date = data.creation_date || null;
     
-    this.type_id = data.type_id || (data.type ? data.type.id : null);
-    this.user_id = data.user_id || (data.user ? data.user.id : null);
+    this.type = data.type || (data.type ? data.type.id : null);
+    this.user = data.user || (data.user ? data.user.id : null);
 
-    if(data.type_id == 1) this.type = "English"
+    if(data.type == 1) this.type = "English"
     else this.type = "Dutch"
     
     this.lots = Array.isArray(data.lots)
@@ -186,10 +186,10 @@ export class AuctionList {
   }
 
   getEllipsisInMiddleUserId() {
-    if (!this.user_id || this.user_id.length <= 7 + 7) return this.user_id
+    if (!this.user || this.user.length <= 7 + 7) return this.user
     
-    const start = this.user_id.substring(0, 7)
-    const end = this.user_id.substring(this.user_id.length - 7)
+    const start = this.user.substring(0, 7)
+    const end = this.user.substring(this.user.length - 7)
     
     return `${start}........${end}`
   }

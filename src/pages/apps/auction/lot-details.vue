@@ -717,7 +717,7 @@ const estimatedAmountFiat = computed(() => {
 const confirmDeliveryTrigger = async () => {
   try {
     const res = await callAPI('delivery-trackings', props.lotId, 'patch', {
-      status_id: 2,
+      status: 2,
       shipping_date: new Date().toISOString()
     })
     if (res.success) {
@@ -740,7 +740,7 @@ const confirmPickupTrigger = async () => {
     }
 
     const res = await callAPI('delivery-trackings', props.lotId, 'patch', {
-      status_id: 3,
+      status: 3,
       delivered_date: new Date().toISOString()
     })
 
@@ -805,8 +805,8 @@ const handlePlaceBid = async ({ bid_price_bch, bid_price_fiat }) => {
 
   try {
     const bidResponse = await callAPI('biddings', null, 'post', {
-      user_id: walletHash,
-      lot_id: props.lotId,
+      user: walletHash,
+      lot: props.lotId,
       bid_price_bch: Number(bid_price_bch).toFixed(8),
       bid_price_fiat: Number(bid_price_fiat).toFixed(2),
       is_final_bid: true
@@ -857,10 +857,10 @@ const checkBidStatus = async () => {
   try {
     const result = await callAPI(`lots/${props.lotId}/highest-bid`)
 
-    if (result.success && result.data?.user_id) {
+    if (result.success && result.data?.user) {
       hasBid.value = true
       highestBidId.value = result.data.id
-      highestBidderId.value = result.data.user_id
+      highestBidderId.value = result.data.user
     } else {
       hasBid.value = false
       highestBidderId.value = null
@@ -879,7 +879,7 @@ const checkUserBid = async () => {
   try {
     const result = await callAPI('biddings-by-lot', props.lotId)
     hasUserBid.value = result.success && Array.isArray(result.data) &&
-      result.data.some(bid => bid.user_id === walletHash)
+      result.data.some(bid => bid.user === walletHash)
   } catch (err) {
     console.error('Error checking user bid history:', err)
     hasUserBid.value = false
@@ -1117,8 +1117,8 @@ const handleBuyItNow = async (payload = {}) => {
     const bidFiat = payload.bid_price_fiat ?? dutchCurrentPriceFiat.value
     
     const res = await callAPI('biddings', null, 'post', {
-      user_id: walletHash,
-      lot_id: props.lotId,
+      user: walletHash,
+      lot: props.lotId,
       bid_price_bch: Number(bidBch).toFixed(8),
       bid_price_fiat: Number(bidFiat).toFixed(2),
       is_final_bid: true
@@ -1145,10 +1145,10 @@ const handleBuyItNow = async (payload = {}) => {
         clearDutchTimers()
 
         await callAPI('delivery-trackings', null, 'post', {
-          auctioneer_id: auction.value.user_id,
-          bidder_id: walletHash,
-          lot_id: props.lotId,
-          status_id: 1,
+          auctioneer: auction.value.user,
+          bidder: walletHash,
+          lot: props.lotId,
+          status: 1,
           preparing_date: new Date().toISOString()
         })
 
@@ -1174,7 +1174,7 @@ const fetchDutchSoldStatus = async () => {
   if (auction.value?.type !== 'Dutch') return
   
   try {
-    const res = await callAPI('biddings', null, 'get', null, { lot_id: props.lotId, is_final_bid: true })
+    const res = await callAPI('biddings', null, 'get', null, { lot: props.lotId, is_final_bid: true })
     dutchAlreadySold.value = res.success && res.data?.length > 0
   } catch (err) {
     console.warn('Could not verify if lot was already sold:', err)
@@ -1240,10 +1240,10 @@ const initEnglishDeliveryTracking = async () => {
 
   try {
     await callAPI('delivery-trackings', null, 'post', {
-      auctioneer_id: auction.value.user_id,
-      bidder_id: walletHash,
-      lot_id: props.lotId,
-      status_id: 1,
+      auctioneer: auction.value.user,
+      bidder: walletHash,
+      lot: props.lotId,
+      status: 1,
       preparing_date: new Date().toISOString()
     })
     deliveryStatusId.value = 1
@@ -1257,7 +1257,7 @@ const fetchDeliveryTracking = async () => {
     const res = await callAPI('delivery-trackings', props.lotId)
     if (res.success && res.data) {
       const data = Array.isArray(res.data) ? res.data[0] : res.data
-      deliveryStatusId.value = data?.status_id ?? null
+      deliveryStatusId.value = data?.status ?? null
     }
   } catch (err) {
     console.warn('Could not fetch delivery tracking:', err)
@@ -1282,7 +1282,7 @@ watch(() => [props.lotId, props.auctionId], async () => {
 
 const isAuthor = computed(() => {
   const walletHash = Store.getters['global/getWallet']('bch')?.walletHash
-  return walletHash === auction.value?.user_id
+  return walletHash === auction.value?.user
 })
 
 const formatAuctionDate = (dateString) => {

@@ -349,12 +349,12 @@ const handleCreateAuction = async () => {
     const auctionFormData = new FormData()
     
     auctionFormData.append('title', auctionForm.value.title)
-    auctionFormData.append('type_id', auctionForm.value.type === 'English' ? 1 : 2)
+    auctionFormData.append('type', auctionForm.value.type === 'English' ? 1 : 2)
     auctionFormData.append('start_date', auctionForm.value.start_date ? new Date(auctionForm.value.start_date).toISOString() : '')
     auctionFormData.append('end_date', auctionForm.value.end_date ? new Date(auctionForm.value.end_date).toISOString() : '')
     auctionFormData.append('description', auctionForm.value.description)
     auctionFormData.append('is_fiat', auctionForm.value.isFiatUsed)
-    auctionFormData.append('user_id', Store.getters['global/getWallet']('bch')?.walletHash)
+    auctionFormData.append('user', Store.getters['global/getWallet']('bch')?.walletHash)
     auctionFormData.append('fiat_name', 'PHP')
     
     if (auctionForm.value.image) {
@@ -377,10 +377,10 @@ const handleCreateAuction = async () => {
       })
 
       const lotFormData = new FormData()
-      lotFormData.append('auction_id', parentAuctionId)
+      lotFormData.append('auction', parentAuctionId)
       lotFormData.append('title', lot.title)
       lotFormData.append('description', lot.description || '')
-      lotFormData.append('category_id', lot.type === 'Physical' ? 1 : 2)
+      lotFormData.append('category', lot.type === 'Physical' ? 1 : 2)
       lotFormData.append('estimated_amount_bch', lot.estimated_amount_bch || 0)
       lotFormData.append('estimated_amount_fiat', lot.estimated_amount_fiat || 0)
       lotFormData.append('starting_price_bch', lot.starting_price_bch || 0)
@@ -414,7 +414,7 @@ const handleCreateAuction = async () => {
 
       for (const file of files) {
         const imageFormData = new FormData()
-        imageFormData.append('lot_id', lotId)
+        imageFormData.append('lot', lotId)
         imageFormData.append('image', file)
 
         const imageResult = await callAPI('lot-images', null, 'post', imageFormData)
