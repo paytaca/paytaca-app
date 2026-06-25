@@ -100,6 +100,29 @@
             <q-icon name="chevron_right" size="16px" class="payment-chevron" />
           </div>
         </div>
+
+        <!-- Link preview card -->
+        <div v-if="linkPreview" class="link-preview q-mt-sm" @click="openLinkPreview">
+          <img
+            v-if="linkPreview.imageUrl"
+            :src="linkPreview.imageUrl"
+            class="link-preview-image"
+            @error="$event.target.style.display='none'"
+          />
+          <div class="link-preview-body">
+            <div v-if="linkPreview.siteName" class="link-preview-site">{{ linkPreview.siteName }}</div>
+            <div v-if="linkPreview.title" class="link-preview-title">{{ linkPreview.title }}</div>
+            <div v-if="linkPreview.description" class="link-preview-desc">{{ linkPreview.description }}</div>
+            <div class="link-preview-url">{{ shortenUrl(linkPreview.url || messageUrl) }}</div>
+          </div>
+        </div>
+        <div v-else-if="linkPreviewLoading" class="link-preview q-mt-sm link-preview-loading">
+          <div class="link-preview-body">
+            <q-skeleton type="text" width="40%" height="12px" class="q-mb-xs" />
+            <q-skeleton type="text" width="80%" height="14px" class="q-mb-xs" />
+            <q-skeleton type="text" width="60%" height="10px" />
+          </div>
+        </div>
       </template>
 
       <div class="message-meta">
@@ -189,6 +212,7 @@
 import { parseMessageMarkup } from 'src/utils/chat-markup'
 import { decryptFile, downloadFromBlossom } from 'src/wallet/nostr-media'
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
+import { extractFirstUrl, fetchOpenGraph } from 'src/utils/opengraph'
 
 const _replyThumbnailCache = new Map()
 
@@ -357,6 +381,8 @@ export default {
         imageFullUrl: null,      // Full resolution (loaded on click)
         showImageDialog: false,
         replyImageThumbnail: null, // Reply preview thumbnail (reactive)
+        linkPreview: null,       // OpenGraph metadata for detected URL
+        linkPreviewLoading: false,
       }
     },
     mounted () {
@@ -377,6 +403,9 @@ export default {
           }, { rootMargin: '200px' })
           this._imgObserver.observe(this.$el)
         }
+      }
+      if (this.messageUrl) {
+        this.loadLinkPreview()
       }
     },
    beforeUnmount () {
@@ -458,6 +487,10 @@ export default {
     markup () {
       return this.parsed.markup
     },
+    messageUrl () {
+      if (this.message.isFile || this.isImageFile) return null
+      return extractFirstUrl(this.displayText)
+    },
     groupedReactions () {
       const groups = {}
       for (const r of this.reactions) {
@@ -533,6 +566,22 @@ export default {
   },
   methods: {
     getDarkModeClass,
+    async loadLinkPreview () {
+      const url = this.messageUrl
+      if (!url || this.linkPreviewLoading) return
+      this.linkPreviewLoading = true
+      try {
+        const meta = await fetchOpenGraph(url)
+        if (this._unmounted) return
+        if (meta && (meta.title || meta.description || meta.imageUrl)) {
+          this.linkPreview = meta
+        }
+      } catch {
+        // silently fail
+      } finally {
+        this.linkPreviewLoading = false
+      }
+    },
     loadReplyThumbnail (msg) {
       const msgId = msg.id || msg.content
       const blossomServer = 'https://blossom.paytaca.com'
@@ -577,6 +626,20 @@ export default {
     formatTxid (txid) {
       if (!txid || txid.length < 16) return txid
       return txid.slice(0, 8) + '...' + txid.slice(-8)
+    },
+    openLinkPreview () {
+      const url = this.linkPreview?.url || this.messageUrl
+      if (url) window.open(url, '_blank')
+    },
+    shortenUrl (url) {
+      if (!url) return ''
+      try {
+        const parsed = new URL(url)
+        const path = parsed.pathname === '/' ? '' : parsed.pathname
+        return parsed.hostname + path
+      } catch {
+        return url
+      }
     },
     openTransactionDetail () {
       if (!this.markup?.txid) return
@@ -1503,6 +1566,114 @@ export default {
 
 .dark .payment-card:hover {
   box-shadow: 0 4px 12px rgba(34, 197, 94, 0.25);
+}
+
+/* Link preview card */
+.link-preview {
+  padding: 0;
+  border-radius: 12px;
+  overflow: hidden;
+  border: 1px solid rgba(0, 0, 0, 0.08);
+  cursor: pointer;
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+  max-width: 360px;
+}
+
+.link-preview:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+.link-preview:active {
+  transform: translateY(0);
+}
+
+.link-preview-image {
+  width: 100%;
+  height: 160px;
+  object-fit: cover;
+  display: block;
+}
+
+.link-preview-body {
+  padding: 10px 12px;
+}
+
+.link-preview-site {
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+  color: #6b7280;
+  margin-bottom: 2px;
+}
+
+.link-preview-title {
+  font-size: 14px;
+  font-weight: 600;
+  color: #1f2937;
+  line-height: 1.3;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  margin-bottom: 2px;
+}
+
+.link-preview-desc {
+  font-size: 12px;
+  color: #6b7280;
+  line-height: 1.35;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  margin-bottom: 4px;
+}
+
+.link-preview-url {
+  font-size: 11px;
+  color: #9ca3af;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.link-preview-loading {
+  padding: 12px;
+  border: 1px dashed rgba(0, 0, 0, 0.1);
+  background: rgba(0, 0, 0, 0.02);
+}
+
+/* Dark mode link preview */
+.dark .link-preview {
+  background: rgba(255, 255, 255, 0.04);
+  border-color: rgba(255, 255, 255, 0.08);
+}
+
+.dark .link-preview:hover {
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.25);
+}
+
+.dark .link-preview-site {
+  color: #9ca3af;
+}
+
+.dark .link-preview-title {
+  color: #e2e8f0;
+}
+
+.dark .link-preview-desc {
+  color: #94a3b8;
+}
+
+.dark .link-preview-url {
+  color: #64748b;
+}
+
+.dark .link-preview-loading {
+  background: rgba(255, 255, 255, 0.04);
+  border-color: rgba(255, 255, 255, 0.08);
 }
 
 .dark .read-receipt {
