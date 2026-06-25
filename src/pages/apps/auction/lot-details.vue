@@ -825,7 +825,7 @@ const handlePlaceBid = async ({ bid_price_bch, bid_price_fiat }) => {
     $q.loading.show({ message: 'Processing smart contract...' })
     await walletToContract(Number(bid_price_bch).toFixed(8), bidId)
     
-    const secondRes = await callAPI(`lots/${props.lotId}/second-highest-bidder`)
+    const secondRes = await callAPI(`lots/${props.lotId}/second-highest-bid`)
     if (secondRes.success && secondRes.data?.id) {
       await callContractReturn(secondRes.data.id)
     }
