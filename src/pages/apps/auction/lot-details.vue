@@ -1231,6 +1231,26 @@ const fetchLot = async () => {
   }
 }
 
+const initEnglishDeliveryTracking = async () => {
+  if (auction.value?.type !== 'English') return
+  if (!isLotClosed.value) return
+  if (highestBidderId.value !== walletHash) return
+  if (deliveryStatusId.value !== null) return
+
+  try {
+    await callAPI('delivery-trackings', null, 'post', {
+      auctioneer_id: auction.value.user_id,
+      bidder_id: walletHash,
+      lot_id: props.lotId,
+      status_id: 1,
+      preparing_date: new Date().toISOString()
+    })
+    deliveryStatusId.value = 1
+  } catch (err) {
+    console.warn('Could not init delivery tracking for English auction:', err)
+  }
+}
+
 const fetchDeliveryTracking = async () => {
   try {
     const res = await callAPI('delivery-trackings', props.lotId)
@@ -1248,6 +1268,7 @@ const loadPageData = async () => {
   initializeDutchAuctionTimer(lot.value)
   await fetchWinningBid()
   await fetchDeliveryTracking()
+  await initEnglishDeliveryTracking()
 }
 
 watch(() => [props.lotId, props.auctionId], async () => {
