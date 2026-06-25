@@ -264,7 +264,12 @@ export function subscribeGiftWraps(relays, myPubKey, callbacks = {}, options = {
   _subscriptionCallbacks = callbacks
 
   const pool = getPool()
-  const filter = { kinds: [1059], '#p': [myPubKey] }
+  // Subscribe to gift wraps addressed to us (messages from others) AND
+  // gift wraps authored by us (messages we sent to others)
+  const filters = [
+    { kinds: [1059], '#p': [myPubKey] },
+    { kinds: [1059], authors: [myPubKey] },
+  ]
 
   try {
     _subscribing = true
@@ -272,7 +277,7 @@ export function subscribeGiftWraps(relays, myPubKey, callbacks = {}, options = {
     // Subscribe to each relay individually so we can track which ones work
     for (const relayUrl of relays) {
       try {
-        const sub = pool.subscribeMany([relayUrl], filter, {
+        const sub = pool.subscribeMany([relayUrl], filters, {
           onevent(event) {
             if (_seenEventIds.has(event.id)) return
             _seenEventIds.add(event.id)
@@ -305,12 +310,14 @@ export function subscribeGiftWraps(relays, myPubKey, callbacks = {}, options = {
   if (!_pollInterval) {
     _pollInterval = setInterval(async () => {
       try {
-        const events = await pool.querySync(relays, {
-          kinds: [1059],
-          '#p': [myPubKey],
-          limit: 500,
-        })
-        if (!events || !events.length) return
+        const [receivedResult, sentResult] = await Promise.allSettled([
+          pool.querySync(relays, { kinds: [1059], '#p': [myPubKey], limit: 500 }),
+          pool.querySync(relays, { kinds: [1059], authors: [myPubKey], limit: 500 }),
+        ])
+        const received = receivedResult.status === 'fulfilled' ? receivedResult.value : []
+        const sent = sentResult.status === 'fulfilled' ? sentResult.value : []
+        const events = [...(received || []), ...(sent || [])]
+        if (!events.length) return
         const newEvents = events.filter(e => !_seenEventIds.has(e.id))
         if (!newEvents.length) return
         for (const event of newEvents) {
@@ -611,8 +618,17 @@ export async function fetchGroupMetadata(relays, roomId) {
 export async function fetchHistoricalGiftWraps(relays, myPubKey, callbacks = {}) {
   const pool = getPool()
   try {
-    const events = await pool.querySync(relays, { kinds: [1059], '#p': [myPubKey], limit: 200 })
-    if (!events || !events.length) return
+    // Fetch gift wraps addressed to us (messages from others) AND
+    // gift wraps authored by us (includes self-wraps of our sent messages)
+    // Use allSettled so a failure in one query doesn't drop the other's results
+    const [receivedResult, sentResult] = await Promise.allSettled([
+      pool.querySync(relays, { kinds: [1059], '#p': [myPubKey], limit: 200 }),
+      pool.querySync(relays, { kinds: [1059], authors: [myPubKey], limit: 200 }),
+    ])
+    const received = receivedResult.status === 'fulfilled' ? receivedResult.value : []
+    const sent = sentResult.status === 'fulfilled' ? sentResult.value : []
+    const events = [...(received || []), ...(sent || [])]
+    if (!events.length) return
     for (const event of events) {
       if (callbacks.onEvent) callbacks.onEvent(event)
     }

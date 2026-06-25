@@ -46,7 +46,7 @@
           {{ asset.symbol }}
         </p>
       </div>
-      <div class="row items-end justify-between">
+      <div class="row items-end no-wrap justify-between">
         <q-icon
           v-if="asset.favorite === 1 || asset.favorite === true"
           name="star"
@@ -337,18 +337,16 @@ export default {
       this.showAssetInfo(asset)
     },
     formatTokenCardBalance (asset) {
-      const base = parseAssetDenomination(this.denomination, { ...asset, excludeSymbol: true })
+      if (!asset || asset.id === 'bch') return parseAssetDenomination(this.denomination, { ...asset, excludeSymbol: true })
 
-      // Only apply rounding rule to token cards (not BCH) when the value is visually too long.
-      // The "too long" heuristic is based on formatted string length and presence of decimals.
-      if (!asset || asset.id === 'bch') return base
+      const decimals = asset.decimals || 0
+      const balance = Number(asset.balance || 0) / 10 ** decimals
 
-      const { decimal } = getLocaleSeparators()
-      const hasDecimalPart = typeof base === 'string' && base.includes(decimal)
-      const tooLong = typeof base === 'string' && base.length > 12 && hasDecimalPart && (asset.decimals || 0) > 2
-      if (!tooLong) return base
-
-      return parseAssetDenomination(this.denomination, { ...asset, excludeSymbol: true }, false, 0, 2)
+      for (let d = decimals; d >= 0; d--) {
+        const formatted = balance.toLocaleString('en-US', { maximumFractionDigits: d })
+        if (formatted.length <= 12) return formatted
+      }
+      return Math.round(balance).toLocaleString('en-US')
     },
     goToAssetList() {
       this.$router.push({ name: 'asset-list' })
@@ -549,7 +547,9 @@ export default {
   .method-cards {
     min-height: 90px;
     height: auto;
-    min-width: 150px;
+    min-width: 140px;
+    max-width: 200px;
+    flex: 0 1 auto;
     border-radius: 16px;
     margin-bottom: 5px !important;
     padding: 12px !important;
@@ -562,6 +562,7 @@ export default {
     display: flex;
     flex-direction: column;
     justify-content: space-between;
+    overflow: hidden;
     
     .asset-symbol {
       overflow: hidden;
@@ -573,18 +574,25 @@ export default {
       line-height: 1.2;
       margin: 0;
     }
-    .asset-balance {
+
+    .text-right {
+      min-width: 0;
       overflow: hidden;
-      text-overflow: ellipsis;
-      color: #EAEEFF;
-      font-size: 18px;
-      font-weight: 600;
-      line-height: 1.2;
-      margin: 0;
     }
+  .asset-balance {
+    overflow: hidden;
+    text-overflow: clip;
+    white-space: nowrap;
+    color: #EAEEFF;
+    font-size: 18px;
+    font-weight: 600;
+    line-height: 1.2;
+    margin: 0;
+  }
     .asset-fiat-value {
       overflow: hidden;
-      text-overflow: ellipsis;
+      text-overflow: clip;
+      white-space: nowrap;
       color: #EAEEFF;
       font-size: 11px;
       font-weight: 400;

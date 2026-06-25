@@ -11,7 +11,7 @@
 
 import { sha256 } from 'js-sha256'
 import { getEventHash, finalizeEvent } from 'nostr-tools'
-import { nip59 } from 'nostr-tools'
+import { nip44, nip59 } from 'nostr-tools'
 
 /**
  * Encrypt a file using AES-256-GCM.
@@ -188,6 +188,18 @@ export function createKind15FileMessage({
  * @param {string} [senderPubKey] - Sender's own pubkey (for self-tagging; omit to skip)
  * @returns {Promise<import('nostr-tools').NostrEvent[]>}
  */
+function createSelfSignedArchiveWrap(unsignedEvent, senderPrivKeyBytes, senderPubKey) {
+  const seal = nip59.createSeal(unsignedEvent, senderPrivKeyBytes, senderPubKey)
+  const conversationKey = nip44.getConversationKey(senderPrivKeyBytes, senderPubKey)
+  const content = nip44.encrypt(JSON.stringify(seal), conversationKey)
+  return finalizeEvent({
+    kind: 1059,
+    content,
+    created_at: Math.floor(Date.now() / 1000),
+    tags: [['p', senderPubKey], ['self']],
+  }, senderPrivKeyBytes)
+}
+
 export async function wrapKind15FileMessage(kind15Event, senderPrivKey, receiverPubKeys, senderPubKey) {
   const senderPrivKeyBytes = hexToBytes(senderPrivKey)
   const giftWraps = nip59.wrapManyEvents(kind15Event, senderPrivKeyBytes, receiverPubKeys)
@@ -200,6 +212,7 @@ export async function wrapKind15FileMessage(kind15Event, senderPrivKey, receiver
   }
 
   if (senderPubKey) {
+    giftWraps.push(createSelfSignedArchiveWrap(kind15Event, senderPrivKeyBytes, senderPubKey))
     return giftWraps.map((gw, i) =>
       (i === 0 || receiverPubKeys[i - 1] === senderPubKey)
         ? { ...gw, tags: [...gw.tags, ['self']] }
