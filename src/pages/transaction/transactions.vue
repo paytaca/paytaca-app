@@ -994,7 +994,8 @@ this.$nextTick(() => {
 	        query: {
 	          network: this.selectedNetwork,
 	          assetId: this.selectedAsset.id,
-	          fixed: false
+	          fixed: false,
+	          backPath: this.$route.fullPath
 	        }
 	      })
 	    },
@@ -1003,7 +1004,8 @@ this.$nextTick(() => {
 	        name: 'transaction-receive',
 	        query: {
 	          network: this.selectedNetwork,
-	          assetId: this.selectedAsset.id
+	          assetId: this.selectedAsset.id,
+	          backPath: this.$route.fullPath
 	        }
 	      })
 	    },
@@ -1011,7 +1013,8 @@ this.$nextTick(() => {
 	      this.$router.push({
 	        name: 'app-cauldron',
 	        query: {
-	          selectTokenId: this.selectedAsset.id?.replace('ct/', '')
+	          selectTokenId: this.selectedAsset.id?.replace('ct/', ''),
+	          backPath: this.$route.fullPath
 	        }
 	      })
 	    },

@@ -685,7 +685,14 @@ export default {
       return this.$store.getters['global/denomination']
     },
     backNavigationPath () {
-      if (this.backPath) return this.backPath
+      if (this.backPath) {
+        const [path, queryString] = this.backPath.split('?')
+        if (queryString) {
+          const query = Object.fromEntries(new URLSearchParams(queryString))
+          return { path, query }
+        }
+        return this.backPath
+      }
       return '/'
     },
     theme () {
