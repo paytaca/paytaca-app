@@ -1315,8 +1315,11 @@ export default {
         
         vm.saveToVault()
         
-        // Reinitialize nostr chat for the new wallet so stale conversations
-        // from a previous wallet are cleared and keys are re-derived
+        // Initialize nostr chat per-wallet state for the new wallet and reinitialize
+        const newWalletHash = vm.$store.getters['global/getWallet']('bch')?.walletHash
+        if (newWalletHash) {
+          vm.$store.commit('nostrChat/initializeWalletState', newWalletHash)
+        }
         vm.$store.dispatch('nostrChat/reinitialize').catch(err => {
           console.warn('Nostr chat reinit failed after wallet creation:', err)
         })

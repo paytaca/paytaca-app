@@ -116,9 +116,7 @@ export default {
       const myPubKey = this.myPubKey
       if (!myPubKey) return map
       for (const room of this.rooms) {
-        const msgs = this.$store.state.nostrChat.messages[room.id] || []
-        const readIds = this.$store.state.nostrChat.readMessageIds?.[room.id] || {}
-        map[room.id] = msgs.filter(m => m.sender !== myPubKey && !readIds[m.id]).length
+        map[room.id] = this.$store.getters['nostrChat/getUnreadCount'](room.id)
       }
       return map
     },

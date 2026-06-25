@@ -674,7 +674,7 @@ export default {
     allMessages () {
       const room = this.$store.getters['nostrChat/getRoom'](this.roomId)
       if (!room) return []
-      return this.$store.state.nostrChat.messages[this.roomId] || []
+      return this.$store.getters['nostrChat/getMessages'](this.roomId)
     },
     displayedMessages () {
       const total = this.allMessages.length
@@ -736,7 +736,7 @@ export default {
       const room = this.room
       if (!room || !myPubKey) return map
 
-      const readBy = this.$store.state.nostrChat.messageReadBy?.[this.roomId] || {}
+      const readBy = this.$store.getters['nostrChat/getMessageReadBy'](this.roomId)
 
       for (const msg of this.allMessages) {
         // Only check read status for messages I sent
@@ -754,7 +754,7 @@ export default {
       const room = this.room
       if (!room || !myPubKey || room.type !== 'group') return map
 
-      const readBy = this.$store.state.nostrChat.messageReadBy?.[this.roomId] || {}
+      const readBy = this.$store.getters['nostrChat/getMessageReadBy'](this.roomId)
       const contacts = this.contacts
 
       for (const msg of this.allMessages) {

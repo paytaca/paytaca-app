@@ -436,7 +436,7 @@ export default {
       return this.$store.getters['nostrChat/getArchivedRooms']
     },
     messages () {
-      return this.$store.state.nostrChat.messages
+      return this.$store.getters['nostrChat/getAllMessages']
     },
     contacts () {
       return this.$store.getters['nostrChat/getContacts']
@@ -464,10 +464,10 @@ export default {
     },
     missingProfileItems () {
       const items = []
-      if (!this.$store.state.nostrChat.profile?.displayName) {
+      if (!this.$store.getters['nostrChat/getProfile']?.displayName) {
         items.push(this.$t('DisplayName', {}, 'Display Name'))
       }
-      if (!this.$store.state.nostrChat.profile?.bchAddress) {
+      if (!this.$store.getters['nostrChat/getProfile']?.bchAddress) {
         items.push(this.$t('BchAddress', {}, 'BCH Address'))
       }
       return items
@@ -554,7 +554,7 @@ export default {
         this.selectedChatType = 'dm'
         this.dialogTab = 'add'
         this.showNewChatDialog = true
-      } else if (this.$store.state.nostrChat.initialized) {
+      } else if (this.$store.getters['nostrChat/isInitialized']) {
         // Existing contact + store already initialized — open chat immediately
         this.startChatWith(contact)
       }
@@ -650,7 +650,7 @@ export default {
     totalUnreadFor (rooms) {
       const myPubKey = this.$store.getters['nostrChat/myPubKey']
       if (!myPubKey) return 0
-      const readIdsMap = this.$store.state.nostrChat.readMessageIds || {}
+      const readIdsMap = this.$store.getters['nostrChat/getReadMessageIds']
       let total = 0
       for (const room of rooms) {
         const msgs = this.messages[room.id] || []

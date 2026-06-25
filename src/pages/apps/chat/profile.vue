@@ -366,13 +366,13 @@ export default {
       return npub.slice(0, 12) + '...' + npub.slice(-8)
     },
     profileAddress () {
-      return this.$store.state.nostrChat.profile?.bchAddress || null
+      return this.$store.getters['nostrChat/getProfile']?.bchAddress || null
     },
     profileDisplayName () {
-      return this.$store.state.nostrChat.profile?.displayName || null
+      return this.$store.getters['nostrChat/getProfile']?.displayName || null
     },
     profileAvatar () {
-      return this.$store.state.nostrChat.profile?.avatar || null
+      return this.$store.getters['nostrChat/getProfile']?.avatar || null
     },
     avatarDisplaySrc () {
       return this.pendingAvatar || this.profileAvatar
