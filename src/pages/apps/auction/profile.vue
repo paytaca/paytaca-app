@@ -76,7 +76,6 @@ const $router = useRouter()
 const darkMode = computed(() => $store.getters['darkmode/getStatus'])
 
 const username = ref('')
-const userId = ref(null)
 const isExistingUser = ref(false)
 const isLoading = ref(true)
 
@@ -93,7 +92,6 @@ onMounted(async () => {
       if (response && response.success && response.data) {
         if (response.data.username) {
           username.value = response.data.username
-          userId.value = response.data.id
         }
         isExistingUser.value = true
       }
@@ -118,7 +116,7 @@ const handleEditUserProfile = async () => {
         user_id: walletHash
       })
     } else {
-      response = await callAPI(`user-details/${userId.value}/update`, null, method, { username: username.value })
+      response = await callAPI(`user-details/${walletHash}/update`, null, method, { username: username.value })
     }
 
     if (response.success) {
