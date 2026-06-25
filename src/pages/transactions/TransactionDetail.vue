@@ -1925,35 +1925,36 @@ export default {
       })
     },
     async addTokenToFavorites () {
+      if (this.addingToFavorites) return
       if (!this.tokenAssetId || !this.tx || !this.tx.asset) return
-      
-      // Fetch current favorites to check count
-      let currentFavorites = await assetSettings.fetchFavorites()
-      if (!Array.isArray(currentFavorites)) {
-        currentFavorites = []
-      }
-      
-      // Count current favorites (where favorite === 1)
-      const currentFavoriteCount = currentFavorites.filter(fav => fav.favorite === 1 || fav.favorite === true).length
-      
-      // Check if this token is already a favorite
-      const isAlreadyFavorite = currentFavorites.some(fav => fav.id === this.tokenAssetId && (fav.favorite === 1 || fav.favorite === true))
-      
-      // If not already a favorite, check limit
-      if (!isAlreadyFavorite) {
-        const limit = this.$store.getters['subscription/getLimit']('favoriteTokens')
-        if (currentFavoriteCount >= limit) {
-          await showLimitDialogWithDeps(
-            { $q: this.$q, $store: this.$store },
-            'favoriteTokens',
-            { darkMode: this.darkMode, forceRefresh: true }
-          )
-          return
-        }
-      }
-      
+
       this.addingToFavorites = true
       try {
+        // Fetch current favorites to check count
+        let currentFavorites = await assetSettings.fetchFavorites()
+        if (!Array.isArray(currentFavorites)) {
+          currentFavorites = []
+        }
+
+        // Count current favorites (where favorite === 1)
+        const currentFavoriteCount = currentFavorites.filter(fav => fav.favorite === 1 || fav.favorite === true).length
+
+        // Check if this token is already a favorite
+        const isAlreadyFavorite = currentFavorites.some(fav => fav.id === this.tokenAssetId && (fav.favorite === 1 || fav.favorite === true))
+
+        // If not already a favorite, check limit
+        if (!isAlreadyFavorite) {
+          const limit = this.$store.getters['subscription/getLimit']('favoriteTokens')
+          if (currentFavoriteCount >= limit) {
+            await showLimitDialogWithDeps(
+              { $q: this.$q, $store: this.$store },
+              'favoriteTokens',
+              { darkMode: this.darkMode, forceRefresh: true }
+            )
+            return
+          }
+        }
+
         const hasAuth = await this.ensureAssetSettingsAuth()
         if (!hasAuth) {
           throw new Error('Asset settings auth token missing')

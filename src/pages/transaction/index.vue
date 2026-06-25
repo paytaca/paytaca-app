@@ -196,6 +196,7 @@
               :wallet="wallet"
               :isCashToken="isCashToken"
               :currentCountry="currentCountry"
+              :has-more-tokens="hasMoreTokens"
               :is-loading-initial="isLoadingAssets && !hasTokensButNoFavorites"
               @select-asset="asset => setSelectedAsset(asset)"
               @show-asset-info="asset => showAssetInfo(asset)"
@@ -219,6 +220,7 @@
               :wallet="wallet"
               :isCashToken="isCashToken"
               :currentCountry="currentCountry"
+              :has-more-tokens="hasMoreTokens"
               :is-loading-initial="isLoadingAssets && !hasTokensButNoFavorites"
               @select-asset="asset => setSelectedAsset(asset)"
               @show-asset-info="asset => showAssetInfo(asset)"
@@ -664,45 +666,31 @@ export default {
     assets () {
       const vm = this
 
-      // Token cards display the first N tokens received in the wallet
-      // (7 for Paytaca Free, 24 for Paytaca Plus) with favorites prioritized.
-      // For both CashTokens and SLP, use Watchtower API responses (not Vuex store)
-      // because the API includes `favorite` and `favorite_order`.
-      
-      // Get the limit based on subscription tier
-      const limit = this.$store.getters['subscription/getLimit']('favoriteTokens')
-      
+      // Number of token cards follows the wallet's subscription tier limit
+      // (7 for Free, 24 for Plus). The API returns tokens ordered with
+      // favorites first (by favorite_order) then non-favorites, so slicing the
+      // first N naturally shows favorites first and fills with non-favorites.
+      const limit = this.$store.getters['subscription/getLimit']('favoriteTokens') || 7
+
       const allTokens = vm.isCashToken
         ? (this.allTokensFromAPI || [])
         : (this.allSlpTokensFromAPI || [])
-      
-      // Sort tokens: favorites first (ordered by favorite_order), then non-favorites
-      const sortedTokens = [...allTokens].sort((a, b) => {
-        const aIsFavorite = a.favorite === 1 || a.favorite === true
-        const bIsFavorite = b.favorite === 1 || b.favorite === true
-        
-        // Favorites come first
-        if (aIsFavorite && !bIsFavorite) return -1
-        if (!aIsFavorite && bIsFavorite) return 1
-        
-        // Both favorites: sort by favorite_order (lower order first)
-        if (aIsFavorite && bIsFavorite) {
-          const aOrder = a.favorite_order ?? Number.MAX_SAFE_INTEGER
-          const bOrder = b.favorite_order ?? Number.MAX_SAFE_INTEGER
-          return aOrder - bOrder
-        }
-        
-        // Neither is a favorite: maintain original order (by receive time from API)
-        return 0
-      })
-      
-      // Filter out hidden tokens, then return the first N based on subscription limit
+
+      // Filter out hidden tokens, then return the first N
       const bchWalletHash = this.wallet?.BCH?.walletHash || this.wallet?.bch?.walletHash || ''
       const hiddenIds = getHiddenAssetIds(bchWalletHash)
       if (hiddenIds.length) {
-        return sortedTokens.filter(t => !hiddenIds.includes(t.id)).slice(0, limit)
+        return allTokens.filter(t => !hiddenIds.includes(t.id)).slice(0, limit)
       }
-      return sortedTokens.slice(0, limit)
+      return allTokens.slice(0, limit)
+    },
+    hasMoreTokens() {
+      // The View All card is shown whenever the wallet holds more than 7 tokens
+      // total, regardless of subscription tier.
+      const allTokens = this.isCashToken
+        ? (this.allTokensFromAPI || [])
+        : (this.allSlpTokensFromAPI || [])
+      return allTokens.length > 7
     },
     tokenCardsAssets () {
       // Show temporary dummy tokens ONLY while the tutorial is active
