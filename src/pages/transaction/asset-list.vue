@@ -293,7 +293,7 @@ export default {
 			// Skeleton loaders handle loading state
 		}
 	},
-	unmount() {
+	unmounted() {
 		// Cleanup if needed
 	},	
 	async mounted () {		

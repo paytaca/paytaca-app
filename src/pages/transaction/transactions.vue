@@ -301,7 +301,6 @@ export default {
 			// Prevent duplicate fetches when query updates multiple keys at once (e.g. txid + reference).
 			lastAppliedRouteTxSearchKey: '',
 			transactionsFilter: 'all',
-			stablehedgeView: false,
 			isCashToken: true,
 			selectedAsset: {
 		        id: 'all',
@@ -432,25 +431,7 @@ export default {
 	      if (tokenType === 'slp') return `https://simpleledger.info/#token/${tokenId}`
 	      return ''
 	    },
-	    assetFiatValue () {
-	      if (!this.selectedAsset?.id) return ''
-	      const currency = this.$store.getters['market/selectedCurrency']
-	      const symbol = currency?.symbol
-	      if (!symbol) return ''
-	      const _ = this.assetMarketPrices
-	      const price = this.$store.getters['market/getAssetPrice'](this.selectedAsset.id, symbol)
-	      if (!price || price === 0) return ''
 
-	      let balance = Number(this.selectedAsset.balance || 0)
-	      if (this.selectedAsset.id !== 'bch' && this.selectedAsset.decimals) {
-	        const decimals = parseInt(this.selectedAsset.decimals) || 0
-	        if (decimals > 0) balance = balance / (10 ** decimals)
-	      }
-	      const computedBalance = balance * Number(price)
-	      return parseFiatCurrency(computedBalance.toFixed(2), symbol)
-	    }
-
-	},
 	components: {
 		headerNav,
 		Transaction,
