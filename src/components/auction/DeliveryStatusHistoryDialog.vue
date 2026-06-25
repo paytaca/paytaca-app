@@ -7,9 +7,12 @@
         <q-btn icon="close" flat round dense v-close-popup />
       </q-card-section>
       <q-card-section>
-        <q-timeline color="primary" layout="dense">
+        <div v-if="isLoading" class="row justify-center q-py-md">
+          <q-spinner color="primary" size="24px" />
+        </div>
+        <q-timeline v-else color="primary" layout="dense">
           <q-timeline-entry
-            v-for="entry in statusHistory"
+            v-for="entry in history"
             :key="entry.id"
             :title="entry.status"
             :subtitle="entry.timestamp"
@@ -25,15 +28,14 @@
 </template>
 
 <script setup>
-import { computed } from 'vue'
+import { ref, computed, watch } from 'vue'
 import { useStore } from 'vuex'
+import { date } from 'quasar'
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
+import { callAPI } from 'src/auction/api'
 
-defineProps({
-  modelValue: {
-    type: Boolean,
-    default: false
-  },
+const props = defineProps({
+  modelValue: Boolean,
   lotId: {
     type: [String, Number],
     required: true
@@ -42,33 +44,66 @@ defineProps({
 
 defineEmits(['update:modelValue'])
 
-const $store = useStore()
-const darkMode = computed(() => $store.getters['darkmode/getStatus'])
+const store = useStore()
+const darkMode = computed(() => store.getters['darkmode/getStatus'])
 
-const statusHistory = [
-  { 
-    id: 1, 
-    status: 'Preparing', 
-    timestamp: 'Jun 22, 2026 · 09:15 AM', 
-    color: 'orange',  
+const history = ref([])
+const isLoading = ref(false)
+
+const statusConfig = {
+  preparing_date: { 
+    title: 'Preparing', 
+    color: 'warning',
     icon: 'inventory_2', 
     note: 'The seller is packaging your item and preparing it for dispatch.' 
   },
-  { 
-    id: 2, 
-    status: 'Shipped', 
-    timestamp: 'Jun 23, 2026 · 02:30 PM', 
-    color: 'primary',  
+  shipping_date: { 
+    title: 'Shipped', 
+    color: 'info',
     icon: 'local_shipping', 
     note: 'The item has been handed over to the courier and is on its way.' 
   },
-  { 
-    id: 3, 
-    status: 'Delivered', 
-    timestamp: 'Jun 24, 2026 · 11:05 AM', 
-    color: 'positive', 
+  delivered_date: { 
+    title: 'Delivered', 
+    color: 'positive',
     icon: 'task_alt', 
     note: 'Parcel successfully arrived at the destination address.' 
-  },
-]
+  }
+}
+
+async function loadHistory() {
+  if (!props.lotId) return
+  
+  isLoading.value = true
+  try {
+    const res = await callAPI('delivery-trackings', props.lotId)
+    if (!res?.success || !res.data) return
+
+    const trackingData = Array.isArray(res.data) ? res.data[0] : res.data
+    const timeline = []
+
+    for (const [key, config] of Object.entries(statusConfig)) {
+      if (trackingData[key]) {
+        timeline.push({
+          id: key,
+          status: config.title,
+          timestamp: date.formatDate(trackingData[key], 'MMM DD, YYYY · hh:mm A'),
+          note: config.note,
+          color: config.color,
+          icon: config.icon
+        })
+      }
+    }
+    
+    history.value = timeline
+  } catch (err) {
+    console.error('Failed to load tracking data:', err)
+  } finally {
+    isLoading.value = false
+  }
+}
+
+watch(() => props.modelValue, (isOpen) => {
+  if (isOpen) loadHistory()
+})
 </script>
