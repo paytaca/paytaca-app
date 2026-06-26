@@ -163,22 +163,24 @@
 							unelevated
 							class="token-action-btn"
 							color="primary"
+							text-color="primary"
 							no-caps
 							outline
 						>
-							<q-icon name="send" size="20px" />
-							{{ $t('Send') }}
+							<q-icon name="send" size="18px" />
+							<span class="action-label">{{ $t('Send') }}</span>
 						</q-btn>
 						<q-btn
 							@click="goToReceive"
 							unelevated
 							class="token-action-btn"
 							color="primary"
+							text-color="primary"
 							no-caps
 							outline
 						>
-							<q-icon name="qr_code_2" size="20px" />
-							{{ $t('Receive') }}
+							<q-icon name="qr_code_2" size="18px" />
+							<span class="action-label">{{ $t('Receive') }}</span>
 						</q-btn>
 						<q-btn
 							v-if="selectedAsset.id?.startsWith?.('ct/')"
@@ -186,11 +188,12 @@
 							unelevated
 							class="token-action-btn"
 							color="primary"
+							text-color="primary"
 							no-caps
 							outline
 						>
-							<q-icon name="swap_horiz" size="20px" />
-							{{ $t('Swap') }}
+							<q-icon name="swap_horiz" size="18px" />
+							<span class="action-label">{{ $t('Swap') }}</span>
 						</q-btn>
 					</div>
 				</div>
@@ -1311,13 +1314,33 @@ this.$nextTick(() => {
 
 .token-actions .token-action-btn {
   flex: 1;
+  min-width: 0;
   border-radius: 10px !important;
   font-weight: 600;
   font-size: 14px;
-  min-height: 48px;
+  min-height: 44px;
   display: flex;
+  flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 8px;
+  gap: 2px;
+  padding: 6px 12px;
+}
+
+.token-actions .token-action-btn .action-label {
+  font-weight: 600;
+  line-height: 1.2;
+  font-size: clamp(13px, 2.5vw, 16px);
+}
+
+@media (max-width: 480px) {
+  .token-actions {
+    gap: 6px;
+  }
+  .token-actions .token-action-btn {
+    min-height: 40px;
+    padding: 4px 10px;
+    gap: 2px;
+  }
 }
 </style>
