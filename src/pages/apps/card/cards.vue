@@ -36,9 +36,9 @@
                     :color="$q.dark.isActive ? 'white' : 'dark'"
                     icon="link"
                     size="md"
-                    @click="onOpenCreateCardForm"
+                    @click="showActivateCardForm = true"
                   >
-                    <q-tooltip>link your card</q-tooltip>
+                    <q-tooltip>Activate your card</q-tooltip>
                   </q-btn>
                 </div>
                 <div v-if="totalBchBalance && !balancesLoading" :style="{ fontSize: '11px', fontWeight: '400', color: $q.dark.isActive ? 'rgba(255,255,255,0.4)' : 'rgba(0,0,0,0.35)' }">
@@ -149,6 +149,7 @@
        
       <!-- Create Card Dialog -->
       <CreateCardForm v-if="showCreateCardForm" @onClose="onCloseCreateCardForm" @card-created="onCardCreated" :idempotencyKey="idempotencyKey"/>
+      <ActivateCardForm v-if="showActivateCardForm" @close="showActivateCardForm = false" @activate="onCardActivated" />
       <ResumeCreateCardDialog 
         v-if="showResumeCreateCardDialog" 
         @resumeAttempt="onResumeCardAttempt" 
@@ -161,6 +162,7 @@
 
 <script>
 import CreateCardForm from 'src/components/card/CreateCardForm.vue';
+import ActivateCardForm from 'src/components/card/ActivateCardForm.vue';
 import MultiWalletDropdown from 'src/components/transactions/MultiWalletDropdown.vue';
 import CardPageHeader from 'src/components/card/CardPageHeader.vue';
 import CreateCardAttemptMixin from 'src/mixins/card/create-card-attempt-mixin';
@@ -176,6 +178,7 @@ export default {
     MultiWalletDropdown,
     CardPageHeader,
     CreateCardForm,
+    ActivateCardForm,
     ResumeCreateCardDialog
   },
 
@@ -201,7 +204,8 @@ export default {
       // true while card balances are being fetched from backend
       balancesLoading: true,
       isLoaded: false,
-      showSwipeHint: true
+      showSwipeHint: true,
+      showActivateCardForm: false
     }
   },
 
@@ -276,6 +280,21 @@ export default {
       await this.onCloseCreateCardForm()
       await this.fetchCards()
       this.fetchCardsBalance()
+    },
+
+    onCardActivated() {
+      this.showActivateCardForm = false;
+      this.$q.dialog({
+        title: this.$t('Card Activated'),
+        message: this.$t('Your Paytaca card has been successfully activated.'),
+        ok: {
+          label: this.$t('OK'),
+          color: 'primary'
+        }
+      }).onOk(() => {
+        this.fetchCards();
+        this.fetchCardsBalance();
+      });
     },
 
     async fetchCards () {
