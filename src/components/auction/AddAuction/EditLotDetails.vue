@@ -22,10 +22,17 @@
                 placeholder="Enter lot name"
                 color="pt-primary1"
                 debounce="500"
+                :maxlength="100"
                 :bg-color="$q.dark.isActive ? 'pt-dark' : 'pt-light'"
                 lazy-rules hide-bottom-space
-                :rules="[ val => val && val.trim().length > 0 || 'Lot name is required' ]"
+                :rules="[
+                  val => val && val.trim().length > 0 || 'Lot name is required',
+                  val => !val || val.length <= 100 || 'Lot name must be 100 characters or less'
+                ]"
               />
+              <div class="text-right text-caption q-mt-xs" :class="lotName.length >= 100 ? 'text-negative' : 'text-grey-6'">
+                {{ lotName.length }} / 100
+              </div>
             </div>
             
             <div class="col-12 col-sm-6">
@@ -219,10 +226,17 @@
               v-model="lotDescription"
               placeholder="Enter lot description"
               color="pt-primary1"
+              :maxlength="1000"
               :bg-color="$q.dark.isActive ? 'pt-dark' : 'pt-light'"
               lazy-rules hide-bottom-space
-              :rules="[ val => val && val.trim().length > 0 || 'Lot description is required' ]"
+              :rules="[
+                val => val && val.trim().length > 0 || 'Lot description is required',
+                val => !val || val.length <= 1000 || 'Description must be 1000 characters or less'
+              ]"
             />
+            <div class="text-right text-caption q-mt-xs" :class="lotDescription.length >= 950 ? 'text-negative' : 'text-grey-6'">
+              {{ lotDescription.length }} / 1000
+            </div>
           </div>
 
           <div class="row justify-end q-mx-md">

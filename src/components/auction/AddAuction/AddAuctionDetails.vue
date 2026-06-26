@@ -10,10 +10,17 @@
             v-model="form.title"
             placeholder="Enter auction title"
             color="pt-primary1"
+            :maxlength="100"
             :bg-color="$q.dark.isActive ? 'pt-dark' : 'pt-light'"
             lazy-rules hide-bottom-space
-            :rules="[ val => val && val.trim().length > 0 || 'Auction title is required' ]"
+            :rules="[
+              val => val && val.trim().length > 0 || 'Auction title is required',
+              val => !val || val.length <= 100 || 'Auction title must be 100 characters or less'
+            ]"
           />
+          <div class="text-right text-caption q-mt-xs" :class="(form.title || '').length >= 100 ? 'text-negative' : 'text-grey-6'">
+            {{ (form.title || '').length }} / 100
+          </div>
         </div>
 
         <div class="col-12 col-sm-6">
@@ -69,13 +76,19 @@
           outlined
           dense
           v-model="form.description"
-          :maxlength="auctionDescriptionMaxChar"
+          :maxlength="1000"
           placeholder="Enter auction description"
           color="pt-primary1"
           :bg-color="$q.dark.isActive ? 'pt-dark' : 'pt-light'"
           lazy-rules hide-bottom-space
-          :rules="[ val => val && val.trim().length > 0 || 'Auction description is required' ]"
+          :rules="[
+            val => val && val.trim().length > 0 || 'Auction description is required',
+            val => !val || val.length <= 1000 || `Description must be 1000 characters or less`
+          ]"
         />
+        <div class="text-right text-caption q-mt-xs" :class="(form.description || '').length >= 950 ? 'text-negative' : 'text-grey-6'">
+          {{ (form.description || '').length }} / {{ 1000 }}
+        </div>
       </div>
 
       <div class="q-px-md q-mb-md">
@@ -129,7 +142,6 @@ const props = defineProps({
 const emit = defineEmits(['update:auction-form'])
 
 const auctionTypeOptions = ['English', 'Dutch']
-const auctionDescriptionMaxChar = 1500
 
 const form = computed({
   get: () => props.auctionForm,
