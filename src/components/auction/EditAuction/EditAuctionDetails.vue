@@ -9,14 +9,19 @@
               outlined
               dense
               v-model="form.title"
-              autocomplete="off"
-              placeholder="Enter lot name"
+              placeholder="Enter auction title"
               color="pt-primary1"
-              debounce="500"
+              :maxlength="100"
               :bg-color="$q.dark.isActive ? 'pt-dark' : 'pt-light'"
               lazy-rules hide-bottom-space
-              :rules="[ val => val && val.trim().length > 0 || 'Auction title is required' ]"
+              :rules="[
+                val => val && val.trim().length > 0 || 'Auction title is required',
+                val => !val || val.length <= 100 || 'Character limit reached'
+              ]"
             />
+            <div class="text-right text-caption q-mt-xs" :class="(form.title || '').length >= 100 ? 'text-negative' : 'text-grey-6'">
+              {{ (form.title || '').length }} / 100
+            </div>
           </div>
 
           <div class="col-12 col-sm-6">
@@ -27,7 +32,7 @@
               v-model="form.type"
               :options="auctionTypeOptions"
               autocomplete="off"
-              placeholder="Enter lot name"
+              placeholder="Enter auction type"
               color="pt-primary1"
               debounce="500"
               :bg-color="$q.dark.isActive ? 'pt-dark' : 'pt-light'"
@@ -45,8 +50,6 @@
               outlined
               dense
               v-model="form.start_date"
-              autocomplete="off"
-              placeholder="Enter lot name"
               color="pt-primary1"
               debounce="500"
               :bg-color="$q.dark.isActive ? 'pt-dark' : 'pt-light'"
@@ -59,10 +62,9 @@
             <label class="text-md text-weight-bold block q-mb-xs">Global Time End</label>
             <q-input
               type="datetime-local"
-              outlined dense
+              outlined
+              dense
               v-model="form.end_date"
-              autocomplete="off"
-              placeholder="Enter lot name"
               color="pt-primary1"
               debounce="500"
               :bg-color="$q.dark.isActive ? 'pt-dark' : 'pt-light'"
@@ -76,17 +78,22 @@
           <label class="text-md text-weight-bold block q-mb-xs">Description</label>
           <q-input
             type="textarea"
-            outlined dense
+            outlined
+            dense
             v-model="form.description"
-            :maxlength="auctionDescriptionMaxChar"
-            autocomplete="off"
-            placeholder="Enter lot name"
+            :maxlength="1000"
+            placeholder="Enter auction description"
             color="pt-primary1"
-            debounce="500"
             :bg-color="$q.dark.isActive ? 'pt-dark' : 'pt-light'"
             lazy-rules hide-bottom-space
-            :rules="[ val => val && val.trim().length > 0 || 'Auction description is required' ]"
+            :rules="[
+              val => val && val.trim().length > 0 || 'Auction description is required',
+              val => !val || val.length <= 1000 || 'Character limit reached'
+            ]"
           />
+          <div class="text-right text-caption q-mt-xs" :class="(form.description || '').length >= 950 ? 'text-negative' : 'text-grey-6'">
+            {{ (form.description || '').length }} / {{ 1000 }}
+          </div>
         </div>
 
         <div class="q-px-md q-mb-md">
@@ -158,7 +165,6 @@ const auctionTypeOptions = [
   'English',
   'Dutch'
 ]
-const auctionDescriptionMaxChar = 1500
 
 const form = computed({
   get: () => props.auctionForm,
