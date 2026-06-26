@@ -60,7 +60,7 @@ async function processPoints (url, data) {
       if (response.status === 200) return response.data
       else return null
     })
-    .catch(_error => { return null })
+    .catch(() => { return null })
 }
 
 async function getData (url) {
@@ -72,7 +72,9 @@ async function getData (url) {
       else return null
     })
     .catch(error => {
-      console.error(error)
+      if (!error?.message?.includes('aborted')) {
+        console.error(error)
+      }
       if (error?.message.includes('404')) return {}
       else return null
     })
@@ -83,7 +85,9 @@ async function createData (url) {
     .post(url)
     .then(response => { return response.data })
     .catch(error => {
-      console.error(error)
+      if (!error?.message?.includes('aborted')) {
+        console.error(error)
+      }
       return null
     })
 }
@@ -96,7 +100,9 @@ async function updateData (url, data) {
       else return null
     })
     .catch(error => {
-      console.error(error)
+      if (!error?.message?.includes('aborted')) {
+        console.error(error)
+      }
       return null
     })
 }
@@ -110,7 +116,9 @@ async function postFetchData (url, data) {
       else return null
     })
     .catch(error => {
-      console.error(error)
+      if (!error?.message?.includes('aborted')) {
+        console.error(error)
+      }
       if (error?.message.includes('404')) return {}
       else return null
     })

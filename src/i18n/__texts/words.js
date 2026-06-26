@@ -613,7 +613,11 @@ const words = [
     Congratulations: 'Congratulations!',
     ViewRewards: 'View Rewards',
     PointsEarned: 'Points Earned!',
-    Enter: 'Enter'
+    Enter: 'Enter',
+    Experimental: 'Experimental',
+    Later: 'Later',
+    Pinned: 'Pinned',
+    Utilities: 'Utilities'
   }
 ]
 
