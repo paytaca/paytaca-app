@@ -572,18 +572,18 @@ export default {
       if (scannedNpub && this.$route.query.npub) {
         this.handleScannedNpub(scannedNpub)
       }
-
-      // Show profile setup prompt if profile is incomplete.
-      // Poll periodically to allow background retry fetch from initialize() to complete.
-      if (!this._profilePromptShown && this.isProfileIncomplete) {
-        this._pollProfileCheck(5)
-      }
     } catch (err) {
       console.error('Failed to initialize Nostr chat:', err)
       this.$q.notify({
         type: 'negative',
         message: this.$t('ChatInitFailed', {}, 'Failed to initialize chat') + ': ' + err.message,
       })
+    }
+
+    // Show profile setup prompt if profile is incomplete.
+    // Poll periodically to allow background retry fetch from initialize() to complete.
+    if (!this._profilePromptShown && this.isProfileIncomplete) {
+      this._pollProfileCheck(5)
     }
   },
   beforeUnmount () {
