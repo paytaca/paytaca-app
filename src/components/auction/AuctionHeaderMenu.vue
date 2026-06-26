@@ -6,8 +6,17 @@
         name="person"
         size="40px"
       />
-      <q-menu class="pt-card-2 text-bow" :class="getDarkModeClass(darkMode)">
+      <q-menu class="pt-card-2 text-bow" :class="getDarkModeClass(darkMode)" style="width: 200px;">
         <q-list>
+          <q-item style="pointer-events: none;">
+            <q-item-section avatar style="min-width:0px;">
+              <q-icon name="account_circle" />
+            </q-item-section>
+            <q-item-section>
+              <q-item-label class="text-weight-bold">{{ username || 'Guest' }}</q-item-label>
+            </q-item-section>
+          </q-item>
+          <q-separator spaced="xs" />
           <q-item
             clickable v-ripple
             @click="$router.push({ name: 'app-auction-profile' })"
@@ -49,9 +58,11 @@ export default defineComponent({
     const $router = useRouter()
     
     const darkMode = computed(() => $store.getters['darkmode/getStatus'])
+    const username = computed(() => $store.getters['auction/username'])
 
     return {
       darkMode,
+      username,
       getDarkModeClass,
     }
   },
