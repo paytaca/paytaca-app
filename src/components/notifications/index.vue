@@ -236,7 +236,7 @@ export default {
     return {
       notifsList: [],
       checkboxList: null,
-      notifsTypes: ['MP', 'CB', 'AH', 'RP', 'TR', 'NF', 'EP', 'RW'],
+      notifsTypes: ['MP', 'CB', 'AH', 'RP', 'TR', 'NF', 'EP', 'RW', 'AU'],
 
       isLoading: false,
       isCheckboxClicked: false,
@@ -413,6 +413,35 @@ export default {
         } case 'RW': {
           vm.$router.push({ name: 'app-rewards' })
           break
+        } case 'AU': {
+          const urlArray = notif.extra_data.split(' ')
+          if (!urlArray) {
+            vm.$q.dialog({
+              component: NotificationMoreInfoDialog,
+              componentProps: {
+                title: notif.title,
+                message: notif.message,
+                url: ""
+              }
+            })
+            break
+          }
+
+          if(urlArray.length <= 1) {
+            vm.$router.push({ name: `app-auction-${urlArray[0]}` , params, query})
+            break
+          }
+
+          const params = {
+            auctionId: urlArray[1],
+            lotId: urlArray[2],
+          }
+
+          const query = {
+            from: 'activity',
+          }
+
+          vm.$router.push({ name: `app-auction-${urlArray[0]}` , params, query})
         } default:
           break
       }
