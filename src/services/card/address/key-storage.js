@@ -1,4 +1,5 @@
 import { Store } from 'src/store'
+import { backend } from 'src/services/card/backend'
 
 const DB_NAME = "secure-keys";
 const STORE_NAME = "keypairs";
@@ -167,4 +168,21 @@ export async function listStoredKeyIds() {
     };
     request.onerror = () => reject(request.error);
   });
+}
+
+/**
+ * Fetches the active dispatcher public key from the backend.
+ * This key is used to encrypt the DEK (Data Encryption Key) for encrypting customer addresses.
+ * 
+ * @async
+ * @returns {Promise<string>} The active dispatcher public key in Base64 format.
+ */
+export async function fetchActiveDispatcherPublicKey() {
+  try {
+    const response = await backend.get('/dispatcher/active-public-key/', { authorize: false });
+    return response.data.public_key;
+  } catch (error) {
+    console.error('Error fetching active dispatcher public key:', error);
+    throw error;
+  }
 }

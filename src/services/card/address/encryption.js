@@ -47,20 +47,20 @@ async function wrapDEKForRecipient(dek, recipientPublicKeyBytes) {
   return new Uint8Array(wrapped);
 }
 
-export async function createEncryptedAddressPayload(address, ownerPublicKeyBytes, deliveryPublicKeyBytes) {
+export async function createEncryptedAddressPayload(address, ownerPublicKeyBytes, dispatcherPublicKeyBytes) {
   console.log("Creating encrypted address payload for address:", address);
   console.log("Owner public key bytes:", ownerPublicKeyBytes);
-  console.log("Delivery public key bytes:", deliveryPublicKeyBytes);
+  console.log("Dispatcher public key bytes:", dispatcherPublicKeyBytes);
   const dek = await generateDEK();
 
   const encryptedAddress = await encryptAddress(dek, address);
   const encryptedKeyOwner = await wrapDEKForRecipient(dek, ownerPublicKeyBytes);
-  const encryptedKeyDelivery = await wrapDEKForRecipient(dek, deliveryPublicKeyBytes);
+  const encryptedKeyDispatcher = await wrapDEKForRecipient(dek, dispatcherPublicKeyBytes);
 
   return {
-    encryptedAddress: uint8ArrayToBase64(encryptedAddress),
-    encryptedKeyOwner: uint8ArrayToBase64(encryptedKeyOwner),
-    encryptedKeyDelivery: uint8ArrayToBase64(encryptedKeyDelivery),
+    encrypted_address: uint8ArrayToBase64(encryptedAddress),
+    encrypted_key_owner: uint8ArrayToBase64(encryptedKeyOwner),
+    encrypted_key_dispatcher: uint8ArrayToBase64(encryptedKeyDispatcher),
   };
 }
 
@@ -72,8 +72,8 @@ async function unwrapDEK(privateKey, encryptedKeyBytes) {
 }
 
 export async function decryptAddressPayload(payload, privateKey) {
-  const encryptedKeyBytes = base64ToUint8Array(payload.encryptedKeyOwner);
-  const encryptedAddressBytes = base64ToUint8Array(payload.encryptedAddress);
+  const encryptedKeyBytes = base64ToUint8Array(payload.encrypted_key_owner); // Assuming the owner is decrypting
+  const encryptedAddressBytes = base64ToUint8Array(payload.encrypted_address);
   const dek = await unwrapDEK(privateKey, encryptedKeyBytes);
   const nonce = encryptedAddressBytes.slice(0, 12);
   const ciphertext = encryptedAddressBytes.slice(12);

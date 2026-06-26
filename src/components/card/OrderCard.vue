@@ -191,14 +191,16 @@
 import { 
   getOrCreateKeyPair, 
   getStoredPrivateKey, 
-  getStoredPublicKey } from 'src/services/card/address/key-storage';
+  getStoredPublicKey,
+  fetchActiveDispatcherPublicKey } from 'src/services/card/address/key-storage';
 import { createEncryptedAddressPayload, decryptAddressPayload } from 'src/services/card/address/encryption';
-
+import { base64ToUint8Array } from 'src/utils/encoding';
+import { backend } from 'src/services/card/backend';
 
 export default {
   name: 'OrderCard',
   props: {
-    card: { type: Object, required: false, default: () => ({}) },
+    card: { type: Object, required: false, default: null },
     replacementReason: { type: String, required: false, default: '' }
   },
   data() {
@@ -208,10 +210,10 @@ export default {
       address: {
         fullName: '',
         street: '',
-        city: '',
+        city: 'Tacloban City',
         state: '',
-        zip: '',
-        country: ''
+        zip: '6500',
+        country: 'Philippines'
       },
       processing: false,
       done: false,
@@ -255,15 +257,26 @@ export default {
       const keyPair = await getOrCreateKeyPair()
       console.log('Key pair generated or retrieved:', keyPair)
 
-      // const privateKey = await getStoredPrivateKey() // Ensure the private key is generated and stored
-      // console.log('Private key retrieved from IndexedDB:', privateKey)
+      const address = `${this.address.street} ${this.address.city} ${this.address.state} ${this.address.zip} ${this.address.country}`.trim().replace(/\s+/g, ' ')
+      console.log('Concatenated Address:', address)
 
-      // const address = '123 Main St, Anytown, USA'
-      // const payload = await createEncryptedAddressPayload(address, await getStoredPublicKey(), await getStoredPublicKey())
-      // console.log('Encrypted Address Payload:', payload)
+      const dispatcherPublicKey = await fetchActiveDispatcherPublicKey()
+      console.log('Active Dispatcher Public Key:', dispatcherPublicKey)
+      const dispatcherPublicKeyBytes = base64ToUint8Array(dispatcherPublicKey)
+      console.log('Dispatcher Public Key Bytes:', dispatcherPublicKeyBytes)
+      const privateKey = await getStoredPrivateKey() // Ensure the private key is generated and stored
 
-      // const decryptedAddress = await decryptAddressPayload(payload, privateKey)
-      // console.log('Decrypted Address:', decryptedAddress)
+      const ownerPublicKeyBytes = await getStoredPublicKey()
+      const payload = await createEncryptedAddressPayload(address, ownerPublicKeyBytes, dispatcherPublicKeyBytes)
+      console.log('card:', this.card)
+      payload.card = 160 // hardcoded for now, replace with actual card ID when available
+      payload.type = this.deliveryMethod === 'delivery' ? 'DELIVERY' : 'PICKUP'
+      console.log('Encrypted Address Payload:', payload)
+
+      await this.submitOrder(payload)
+
+      const decryptedAddress = await decryptAddressPayload(payload, privateKey)
+      console.log('Decrypted Address:', decryptedAddress)
       // for (const step of this.steps) {
       //   step.status = 'active'
       //   await this.delay(1500)
@@ -273,6 +286,15 @@ export default {
 
       this.processing = false
       this.done = true
+    },
+    async submitOrder(payload) {
+      await backend.post('/orders/', payload)
+        .then(response => {
+          console.log('Order submitted successfully:', response.data)
+        })
+        .catch(error => {
+          console.error('Error submitting order:', error?.response?.data || error.message)
+        })
     },
     resetSteps() {
       this.steps.forEach(s => { s.status = 'pending' })
