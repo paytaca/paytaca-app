@@ -1133,8 +1133,11 @@ export default {
     darkMode () {
       this.updateBackgroundColors()
     },
-    recipientAddress (addr) {
-      if (addr) this.fetchMerchantData()
+    recipientAddress: {
+      handler (addr) {
+        if (addr) this.fetchMerchantData()
+      },
+      immediate: true
     },
     'tx.asset.id' () {
       // Fetch token price when asset changes
