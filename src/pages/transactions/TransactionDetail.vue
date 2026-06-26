@@ -2310,18 +2310,32 @@ export default {
           document.body.removeChild(wrapper)
         }
 
+        const canvasToBlob = async (cvs, mimeType, q) => {
+          try {
+            return await new Promise(resolve => {
+              cvs.toBlob(resolve, mimeType, q)
+            })
+          } catch {
+            return null
+          }
+        }
+
         const compressImage = async (canvas) => {
-          let quality = 0.95
-          let blob = await new Promise(resolve => {
-            canvas.toBlob(resolve, 'image/jpeg', quality)
-          })
-          for (const q of [0.92, 0.90, 0.88]) {
-            if (blob && blob.size > 300000) {
-              quality = q
-              blob = await new Promise(resolve => {
-                canvas.toBlob(resolve, 'image/jpeg', quality)
-              })
+          let blob = await canvasToBlob(canvas, 'image/png')
+          if (!blob) {
+            try {
+              const dataUrl = canvas.toDataURL('image/png')
+              const byteString = atob(dataUrl.split(',')[1])
+              const ab = new ArrayBuffer(byteString.length)
+              const ia = new Uint8Array(ab)
+              for (let i = 0; i < byteString.length; i++) ia[i] = byteString.charCodeAt(i)
+              blob = new Blob([ab], { type: 'image/png' })
+            } catch {
+              return null
             }
+          }
+          if (blob.size > 300000) {
+            blob = await canvasToBlob(canvas, 'image/jpeg', 0.92)
           }
           if (blob && blob.size > 300000) {
             const maxDimension = 1600
@@ -2335,9 +2349,7 @@ export default {
             resizedCtx.imageSmoothingEnabled = true
             resizedCtx.imageSmoothingQuality = 'high'
             resizedCtx.drawImage(canvas, 0, 0, newWidth, newHeight)
-            blob = await new Promise(resolve => {
-              resizedCanvas.toBlob(resolve, 'image/jpeg', 0.90)
-            })
+            blob = await canvasToBlob(resizedCanvas, 'image/jpeg', 0.90) || blob
           }
           if (blob && blob.size > 300000) {
             const maxDimension = 1400
@@ -2351,15 +2363,13 @@ export default {
             resizedCtx.imageSmoothingEnabled = true
             resizedCtx.imageSmoothingQuality = 'high'
             resizedCtx.drawImage(canvas, 0, 0, newWidth, newHeight)
-            blob = await new Promise(resolve => {
-              resizedCanvas.toBlob(resolve, 'image/jpeg', 0.88)
-            })
+            blob = await canvasToBlob(resizedCanvas, 'image/jpeg', 0.88) || blob
           }
           return blob
         }
 
         const blob = await compressImage(canvas)
-        if (!blob) throw new Error('Failed to create receipt image blob')
+        if (!blob) throw new Error('Failed to create receipt image blob: canvas export returned null')
 
         const shortTxId = this.transactionId.substring(0, 8)
         const filename = `receipt-${shortTxId}.jpg`
