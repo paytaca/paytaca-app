@@ -502,7 +502,9 @@ export default {
   name: 'TransactionDetailPage',
   components: { headerNav, ReceiptTemplate },
   props: {
-    txid: String
+    txid: String,
+    category: String,
+    from: String
   },
   data () {
     return {
