@@ -462,6 +462,7 @@
     :tx-fee-formatted="txFeeFormatted"
     :has-fee="hasFeeForReceipt"
     :tx-fee-in-fiat="txFeeInFiat"
+    :tx-fee-in-fiat-formatted="txFeeInFiatFormatted"
     :merchant-data="merchantData"
     :merchant-logo-src="merchantLogoSrcForReceipt"
     :has-memo="hasMemo"
@@ -707,6 +708,10 @@ export default {
 
       const fiatValue = this.txFee * price;
       return fiatValue;
+    },
+    txFeeInFiatFormatted() {
+      if (this.txFeeInFiat === null || this.txFeeInFiat === undefined) return ''
+      return this.formatTxFeeInFiat(this.txFeeInFiat)
     },
     txFeeFormatted() {
       if (this.txFee === null || Number.isNaN(this.txFee)) return '';

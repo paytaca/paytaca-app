@@ -85,6 +85,7 @@ export default {
     txFeeFormatted: { type: String, default: null },
     hasFee: Boolean,
     txFeeInFiat: { type: [Number, String], default: null },
+    txFeeInFiatFormatted: { type: String, default: '' },
     merchantData: { type: Object, default: null },
     merchantLogoSrc: { type: String, default: '' },
     hasMemo: Boolean,
@@ -164,8 +165,8 @@ export default {
     },
     txFeeString () {
       if (!this.txFeeFormatted) return ''
-      if (this.txFeeInFiat !== null && this.txFeeInFiat !== undefined && !Number.isNaN(Number(this.txFeeInFiat))) {
-        return `${this.txFeeFormatted} (${this.txFeeInFiat})`
+      if (this.txFeeInFiatFormatted) {
+        return `${this.txFeeFormatted} (${this.txFeeInFiatFormatted})`
       }
       return this.txFeeFormatted
     },
