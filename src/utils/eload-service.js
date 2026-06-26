@@ -13,8 +13,10 @@ import { mnemonicToSeedSync } from 'bip39'
 import { getMnemonicByHash } from 'src/wallet'
 import { pubkeyToAddress } from 'src/utils/crypto'
 import { SecureStoragePlugin } from 'capacitor-secure-storage-plugin'
+import { requestManager } from 'src/utils/request-manager'
 
 export const backend = axios.create()
+requestManager.attachTo(backend)
 const baseURL = process.env.ELOAD_SERVICE_API || ''
 
 const MAX_AUTH_RETRIES = 1

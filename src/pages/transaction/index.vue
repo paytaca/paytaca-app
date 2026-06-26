@@ -196,6 +196,7 @@
               :wallet="wallet"
               :isCashToken="isCashToken"
               :currentCountry="currentCountry"
+              :has-more-tokens="hasMoreTokens"
               :is-loading-initial="isLoadingAssets && !hasTokensButNoFavorites"
               @select-asset="asset => setSelectedAsset(asset)"
               @show-asset-info="asset => showAssetInfo(asset)"
@@ -219,6 +220,7 @@
               :wallet="wallet"
               :isCashToken="isCashToken"
               :currentCountry="currentCountry"
+              :has-more-tokens="hasMoreTokens"
               :is-loading-initial="isLoadingAssets && !hasTokensButNoFavorites"
               @select-asset="asset => setSelectedAsset(asset)"
               @show-asset-info="asset => showAssetInfo(asset)"
@@ -272,7 +274,6 @@
           <PendingTransactions :key="pendingTransactionsKey"/>
 
           <LatestTransactions 
-            v-if="wallet"
             ref="latest-transactions"
             :wallet="wallet"
             :denominationTabSelected="denominationTabSelected"
@@ -441,6 +442,7 @@ import AssetOptions from 'src/components/asset-options.vue'
 import PendingTransactions from 'src/components/transactions/PendingTransactions.vue'
 import LatestTransactions from 'src/components/transactions/LatestTransactions.vue'
 import * as assetSettings from 'src/utils/asset-settings'
+import { getHiddenAssetIds } from 'src/utils/hidden-assets'
 import { asyncSleep } from 'src/wallet/transaction-listener'
 import { cachedLoadWallet } from '../../wallet'
 import axios from 'axios'
@@ -664,40 +666,31 @@ export default {
     assets () {
       const vm = this
 
-      // Token cards display the first N tokens received in the wallet
-      // (7 for Paytaca Free, 24 for Paytaca Plus) with favorites prioritized.
-      // For both CashTokens and SLP, use Watchtower API responses (not Vuex store)
-      // because the API includes `favorite` and `favorite_order`.
-      
-      // Get the limit based on subscription tier
-      const limit = this.$store.getters['subscription/getLimit']('favoriteTokens')
-      
+      // Number of token cards follows the wallet's subscription tier limit
+      // (7 for Free, 24 for Plus). The API returns tokens ordered with
+      // favorites first (by favorite_order) then non-favorites, so slicing the
+      // first N naturally shows favorites first and fills with non-favorites.
+      const limit = this.$store.getters['subscription/getLimit']('favoriteTokens') || 7
+
       const allTokens = vm.isCashToken
         ? (this.allTokensFromAPI || [])
         : (this.allSlpTokensFromAPI || [])
-      
-      // Sort tokens: favorites first (ordered by favorite_order), then non-favorites
-      const sortedTokens = [...allTokens].sort((a, b) => {
-        const aIsFavorite = a.favorite === 1 || a.favorite === true
-        const bIsFavorite = b.favorite === 1 || b.favorite === true
-        
-        // Favorites come first
-        if (aIsFavorite && !bIsFavorite) return -1
-        if (!aIsFavorite && bIsFavorite) return 1
-        
-        // Both favorites: sort by favorite_order (lower order first)
-        if (aIsFavorite && bIsFavorite) {
-          const aOrder = a.favorite_order ?? Number.MAX_SAFE_INTEGER
-          const bOrder = b.favorite_order ?? Number.MAX_SAFE_INTEGER
-          return aOrder - bOrder
-        }
-        
-        // Neither is a favorite: maintain original order (by receive time from API)
-        return 0
-      })
-      
-      // Return the first N tokens based on subscription limit
-      return sortedTokens.slice(0, limit)
+
+      // Filter out hidden tokens, then return the first N
+      const bchWalletHash = this.wallet?.BCH?.walletHash || this.wallet?.bch?.walletHash || ''
+      const hiddenIds = getHiddenAssetIds(bchWalletHash)
+      if (hiddenIds.length) {
+        return allTokens.filter(t => !hiddenIds.includes(t.id)).slice(0, limit)
+      }
+      return allTokens.slice(0, limit)
+    },
+    hasMoreTokens() {
+      // The View All card is shown whenever the wallet holds more than 7 tokens
+      // total, regardless of subscription tier.
+      const allTokens = this.isCashToken
+        ? (this.allTokensFromAPI || [])
+        : (this.allSlpTokensFromAPI || [])
+      return allTokens.length > 7
     },
     tokenCardsAssets () {
       // Show temporary dummy tokens ONLY while the tutorial is active
@@ -1260,14 +1253,23 @@ export default {
 
             const logo = result.image_url ? convertIpfsUrl(result.image_url) : null
 
+            // Check store for existing metadata (may be more complete than API response)
+            const storeAssets = this.$store.getters['assets/getAsset'](result.id)
+            const storeAsset = Array.isArray(storeAssets) && storeAssets.length > 0 ? storeAssets[0] : null
+
+            const name = storeAsset?.name || result.name || 'Unknown Token'
+            const symbol = storeAsset?.symbol || result.symbol || ''
+            const decimals = storeAsset?.decimals !== undefined ? storeAsset.decimals : (result.decimals || 0)
+            const effectiveLogo = storeAsset?.logo || logo
+
             return {
               id: result.id,
-              name: result.name || 'Unknown Token',
-              symbol: result.symbol || '',
-              decimals: result.decimals || 0,
-              logo: logo,
+              name,
+              symbol,
+              decimals,
+              logo: effectiveLogo,
               balance: result.balance !== undefined ? result.balance : 0,
-              favorite: result.favorite === true ? 1 : 0,
+              favorite: result.favorite === true || result.favorite === 1 ? 1 : 0,
               favorite_order: result.favorite_order !== null && result.favorite_order !== undefined ? result.favorite_order : null
             }
           }).filter(Boolean) // Remove any null entries from invalid results
@@ -1290,29 +1292,45 @@ export default {
         const favorites = allTokens.filter(token => token.favorite === 1 || token.favorite === true)
         this.favoriteTokenIds = favorites.map(token => token.id).filter(id => id !== 'bch')
 
-        // Update store assets with balances and metadata (including icons) from API
+        // Update store assets with balances and metadata from API
         allTokens.forEach(token => {
-          // Update balance
           this.$store.commit('assets/updateAssetBalance', {
             id: token.id,
             balance: token.balance
           })
-          
-          // Update metadata including icon - API provides the latest icon
-          // Use both updateAssetMetadata and updateAssetImageUrl to ensure icon is updated
           if (token.logo) {
-            // Update full metadata
             this.$store.commit('assets/updateAssetMetadata', {
               id: token.id,
               name: token.name,
               symbol: token.symbol,
               decimals: token.decimals,
-              logo: token.logo // Use icon from API (always up-to-date)
+              logo: token.logo
             })
-            // Also update icon URL directly (works even if asset doesn't exist in store yet)
             this.$store.commit('assets/updateAssetImageUrl', {
               assetId: token.id,
               imageUrl: token.logo
+            })
+          }
+        })
+
+        // Background-fetch metadata from BCMR for tokens still missing name/symbol/logo
+        allTokens.forEach(token => {
+          if (!token.name || token.name === 'Unknown Token' || !token.symbol || !token.logo) {
+            this.$store.dispatch('assets/getAssetMetadata', token.id).then(metadata => {
+              if (metadata) {
+                const idx = this.allTokensFromAPI.findIndex(t => t.id === token.id)
+                if (idx !== -1) {
+                  this.allTokensFromAPI[idx] = {
+                    ...this.allTokensFromAPI[idx],
+                    name: metadata.name || this.allTokensFromAPI[idx].name,
+                    symbol: metadata.symbol || this.allTokensFromAPI[idx].symbol,
+                    decimals: metadata.decimals !== undefined ? metadata.decimals : this.allTokensFromAPI[idx].decimals,
+                    logo: metadata.logo || this.allTokensFromAPI[idx].logo,
+                  }
+                }
+              }
+            }).catch(err => {
+              console.warn(`[HomePage] Failed to fetch BCMR metadata for ${token.id}:`, err)
             })
           }
         })
@@ -1393,7 +1411,7 @@ export default {
               decimals: token?.decimals || 0,
               logo: logo,
               balance: token?.balance !== undefined ? token.balance : 0,
-              favorite: token?.favorite === true ? 1 : 0,
+              favorite: token?.favorite === true || token?.favorite === 1 ? 1 : 0,
               favorite_order: token?.favorite_order !== null && token?.favorite_order !== undefined ? token.favorite_order : null
             }
           })
@@ -1402,17 +1420,20 @@ export default {
         // Store raw list for computed favorites + "has tokens" checks
         this.allSlpTokensFromAPI = mappedTokens
 
-        // Merge into store for rendering in token cards (respect removed tokens locally).
+        // Merge into store for rendering in token cards (respect removed/hidden tokens).
         const assets = this.$store.getters['assets/getAssets'] || []
         const assetsId = assets.map(a => a.id)
         const walletIndex = this.$store.getters['global/getWalletIndex']
         const removedAssetIdsGetter = this.$store.getters['assets/getRemovedAssetIds']
         const vaultRemovedAssetIds = removedAssetIdsGetter?.[walletIndex]?.removedAssetIds ?? []
+        const bchWalletHash = this.wallet?.BCH?.walletHash || this.wallet?.bch?.walletHash || ''
+        const hiddenIds = getHiddenAssetIds(bchWalletHash)
 
         mappedTokens.forEach(token => {
           const assetId = token?.id
           if (!assetId) return
           if (vaultRemovedAssetIds.includes(assetId)) return
+          if (hiddenIds.includes(assetId)) return
 
           // Update balance/metadata if it already exists
           if (assetsId.includes(assetId)) {
@@ -2445,6 +2466,8 @@ export default {
         const walletIndex = vm.$store.getters['global/getWalletIndex']
         const removedAssetIdsGetter = vm.$store.getters['assets/getRemovedAssetIds']
         const vaultRemovedAssetIds = removedAssetIdsGetter?.[walletIndex]?.removedAssetIds ?? []
+        const bchWalletHash = vm.wallet?.BCH?.walletHash || vm.wallet?.bch?.walletHash || ''
+        const hiddenIds = getHiddenAssetIds(bchWalletHash)
         const assetsId = assets.map(a => a.id)
 
         if (vm.isCashToken) {
@@ -2453,7 +2476,8 @@ export default {
           const allTokensFromAPI = vm.allTokensFromAPI || []
           const newTokens = allTokensFromAPI.filter(token => 
             !assetsId.includes(token.id) && 
-            !vaultRemovedAssetIds.includes(token.id)
+            !vaultRemovedAssetIds.includes(token.id) &&
+            !hiddenIds.includes(token.id)
           )
 
           newTokens.forEach(token => {

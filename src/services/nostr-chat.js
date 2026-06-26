@@ -264,7 +264,12 @@ export function subscribeGiftWraps(relays, myPubKey, callbacks = {}, options = {
   _subscriptionCallbacks = callbacks
 
   const pool = getPool()
-  const filter = { kinds: [1059], '#p': [myPubKey] }
+  // Subscribe to gift wraps addressed to us (messages from others) AND
+  // gift wraps authored by us (messages we sent to others)
+  const filters = [
+    { kinds: [1059], '#p': [myPubKey] },
+    { kinds: [1059], authors: [myPubKey] },
+  ]
 
   try {
     _subscribing = true
@@ -272,7 +277,7 @@ export function subscribeGiftWraps(relays, myPubKey, callbacks = {}, options = {
     // Subscribe to each relay individually so we can track which ones work
     for (const relayUrl of relays) {
       try {
-        const sub = pool.subscribeMany([relayUrl], filter, {
+        const sub = pool.subscribeMany([relayUrl], filters, {
           onevent(event) {
             if (_seenEventIds.has(event.id)) return
             _seenEventIds.add(event.id)
@@ -305,12 +310,14 @@ export function subscribeGiftWraps(relays, myPubKey, callbacks = {}, options = {
   if (!_pollInterval) {
     _pollInterval = setInterval(async () => {
       try {
-        const events = await pool.querySync(relays, {
-          kinds: [1059],
-          '#p': [myPubKey],
-          limit: 500,
-        })
-        if (!events || !events.length) return
+        const [receivedResult, sentResult] = await Promise.allSettled([
+          pool.querySync(relays, { kinds: [1059], '#p': [myPubKey], limit: 500 }),
+          pool.querySync(relays, { kinds: [1059], authors: [myPubKey], limit: 500 }),
+        ])
+        const received = receivedResult.status === 'fulfilled' ? receivedResult.value : []
+        const sent = sentResult.status === 'fulfilled' ? sentResult.value : []
+        const events = [...(received || []), ...(sent || [])]
+        if (!events.length) return
         const newEvents = events.filter(e => !_seenEventIds.has(e.id))
         if (!newEvents.length) return
         for (const event of newEvents) {
@@ -339,7 +346,7 @@ export function subscribeGiftWraps(relays, myPubKey, callbacks = {}, options = {
     }, KEEPALIVE_INTERVAL_MS)
   }
 
-  _isSubscribed = true
+  _isSubscribed = _subs.length > 0
   _lastSubscribeTime = now
   _subscribedRelays = [...relays]
   _subscribedPubKey = myPubKey
@@ -456,17 +463,41 @@ export async function fetchKind10050(relays, pubKey) {
  */
 export async function fetchBchAddress(relays, pubKey) {
   const pool = getPool()
-  try {
-    const events = await pool.querySync(relays, { kinds: [30078], authors: [pubKey] })
-    const match = events?.find(e => {
-      const dTag = e.tags?.find(t => t[0] === 'd')
-      return dTag && dTag[1] === 'paytaca:bch-address'
-    })
-    return match || null
-  } catch (err) {
-    console.warn('[Nostr] Failed to fetch BCH address:', err)
-    return null
-  }
+  return new Promise((resolve) => {
+    let resolved = false
+    let activeRelays = relays.length
+    const timer = setTimeout(() => {
+      if (!resolved) {
+        resolved = true
+        resolve(null)
+      }
+    }, 8000)
+
+    const sub = pool.subscribeMany(
+      relays,
+      { kinds: [30078], authors: [pubKey] },
+      {
+        onevent(event) {
+          if (resolved) return
+          const dTag = event.tags?.find(t => t[0] === 'd')
+          if (dTag && dTag[1] === 'paytaca:bch-address') {
+            resolved = true
+            clearTimeout(timer)
+            sub.close()
+            resolve(event)
+          }
+        },
+        oneose() {
+          activeRelays--
+          if (activeRelays <= 0 && !resolved) {
+            resolved = true
+            clearTimeout(timer)
+            resolve(null)
+          }
+        },
+      }
+    )
+  })
 }
 
 /**
@@ -477,17 +508,38 @@ export async function fetchBchAddress(relays, pubKey) {
  */
 export async function fetchDisplayName(relays, pubKey) {
   const pool = getPool()
-  try {
-    const events = await pool.querySync(relays, { kinds: [30078], authors: [pubKey] })
-    const match = events?.find(e => {
-      const dTag = e.tags?.find(t => t[0] === 'd')
-      return dTag && dTag[1] === 'paytaca:display-name'
-    })
-    return match || null
-  } catch (err) {
-    console.warn('[Nostr] Failed to fetch display name:', err)
-    return null
-  }
+  return new Promise((resolve) => {
+    let resolved = false
+    let activeRelays = relays.length
+    const timer = setTimeout(() => {
+      if (!resolved) { resolved = true; resolve(null) }
+    }, 8000)
+
+    const sub = pool.subscribeMany(
+      relays,
+      { kinds: [30078], authors: [pubKey] },
+      {
+        onevent(event) {
+          if (resolved) return
+          const dTag = event.tags?.find(t => t[0] === 'd')
+          if (dTag && dTag[1] === 'paytaca:display-name') {
+            resolved = true
+            clearTimeout(timer)
+            sub.close()
+            resolve(event)
+          }
+        },
+        oneose() {
+          activeRelays--
+          if (activeRelays <= 0 && !resolved) {
+            resolved = true
+            clearTimeout(timer)
+            resolve(null)
+          }
+        },
+      }
+    )
+  })
 }
 
 /**
@@ -498,17 +550,38 @@ export async function fetchDisplayName(relays, pubKey) {
  */
 export async function fetchAvatar(relays, pubKey) {
   const pool = getPool()
-  try {
-    const events = await pool.querySync(relays, { kinds: [30078], authors: [pubKey] })
-    const match = events?.find(e => {
-      const dTag = e.tags?.find(t => t[0] === 'd')
-      return dTag && dTag[1] === 'paytaca:avatar'
-    })
-    return match || null
-  } catch (err) {
-    console.warn('[Nostr] Failed to fetch avatar:', err)
-    return null
-  }
+  return new Promise((resolve) => {
+    let resolved = false
+    let activeRelays = relays.length
+    const timer = setTimeout(() => {
+      if (!resolved) { resolved = true; resolve(null) }
+    }, 8000)
+
+    const sub = pool.subscribeMany(
+      relays,
+      { kinds: [30078], authors: [pubKey] },
+      {
+        onevent(event) {
+          if (resolved) return
+          const dTag = event.tags?.find(t => t[0] === 'd')
+          if (dTag && dTag[1] === 'paytaca:avatar') {
+            resolved = true
+            clearTimeout(timer)
+            sub.close()
+            resolve(event)
+          }
+        },
+        oneose() {
+          activeRelays--
+          if (activeRelays <= 0 && !resolved) {
+            resolved = true
+            clearTimeout(timer)
+            resolve(null)
+          }
+        },
+      }
+    )
+  })
 }
 
 /**
@@ -545,8 +618,17 @@ export async function fetchGroupMetadata(relays, roomId) {
 export async function fetchHistoricalGiftWraps(relays, myPubKey, callbacks = {}) {
   const pool = getPool()
   try {
-    const events = await pool.querySync(relays, { kinds: [1059], '#p': [myPubKey], limit: 200 })
-    if (!events || !events.length) return
+    // Fetch gift wraps addressed to us (messages from others) AND
+    // gift wraps authored by us (includes self-wraps of our sent messages)
+    // Use allSettled so a failure in one query doesn't drop the other's results
+    const [receivedResult, sentResult] = await Promise.allSettled([
+      pool.querySync(relays, { kinds: [1059], '#p': [myPubKey], limit: 200 }),
+      pool.querySync(relays, { kinds: [1059], authors: [myPubKey], limit: 200 }),
+    ])
+    const received = receivedResult.status === 'fulfilled' ? receivedResult.value : []
+    const sent = sentResult.status === 'fulfilled' ? sentResult.value : []
+    const events = [...(received || []), ...(sent || [])]
+    if (!events.length) return
     for (const event of events) {
       if (callbacks.onEvent) callbacks.onEvent(event)
     }

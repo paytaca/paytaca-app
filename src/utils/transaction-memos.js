@@ -3,6 +3,7 @@ import crypto from 'crypto'
 import { Store } from 'src/store'
 import { SecureStoragePlugin } from 'capacitor-secure-storage-plugin'
 import { getCurrentWalletStorageKey, getWalletStorageKey, getWalletHash } from 'src/utils/wallet-storage'
+import { requestManager } from 'src/utils/request-manager'
 
 import { compressEncryptedMessage, encryptMessage, compressEncryptedImage, encryptImage } from 'src/marketplace/chat/encryption'
 import { decompressEncryptedMessage, decryptMessage, decompressEncryptedImage, decryptImage } from 'src/marketplace/chat/encryption'
@@ -24,6 +25,7 @@ function getTokenStorageKey(walletHash = null) {
 
 
 export const backend = axios.create()
+requestManager.attachTo(backend)
 const baseURL = Store.getters['global/isChipnet'] ? process.env.CHIPNET_WATCHTOWER_BASE_URL : process.env.MAINNET_WATCHTOWER_BASE_URL || ''
 const walletHash = Store.getters['global/getWallet']('bch')?.walletHash
 

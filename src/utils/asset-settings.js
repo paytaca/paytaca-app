@@ -3,8 +3,10 @@ import { Store } from 'src/store'
 import crypto from 'crypto'
 import { SecureStoragePlugin } from 'capacitor-secure-storage-plugin'
 import { getCurrentWalletStorageKey, getWalletStorageKey, getWalletHash } from 'src/utils/wallet-storage'
+import { requestManager } from 'src/utils/request-manager'
 
 export const backend = axios.create()
+requestManager.attachTo(backend)
 const baseURL = Store.getters['global/isChipnet'] ? process.env.CHIPNET_WATCHTOWER_BASE_URL : process.env.MAINNET_WATCHTOWER_BASE_URL || ''
 
 const TOKEN_STORAGE_KEY_PREFIX = 'asset-auth-key'

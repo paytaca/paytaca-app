@@ -1,26 +1,29 @@
-export default function () {
+export function getInitialWalletState () {
   return {
+    // Identity (per-wallet; sensitive — derived from mnemonic)
     keys: {
       npub: null,
       nsec: null,
       pubKeyHex: null,
       privKeyHex: null,
     },
-    relays: [
-      'wss://relay.paytaca.com',
-    ],
-    contacts: [],
+
+    // Conversations (per-wallet)
     rooms: [],
-    blockedContacts: [], // Hex pubkeys of blocked contacts — prevents room auto-creation
+    blockedContacts: [],
+    deletedRooms: {},
     messages: {},
-    readReceipts: {}, // { roomId: { pubKeyHex: timestamp } }
-    readMessageIds: {}, // { roomId: { msgId: true, ... } }
-    messageReadBy: {}, // { roomId: { msgId: { [readerPubKey]: true } } }
-    reactions: {}, // { roomId: { messageId: [ { emoji, reactorPubKey } ] } }
-    isReady: false,
-    initialized: false,
-    isSubscribed: false,
-    relayStatus: {},
+    readReceipts: {},
+    readMessageIds: {},
+    messageReadBy: {},
+    reactions: {},
+
+    // Contact caches keyed by remote pubkey (per-wallet identity lookups)
+    bchAddressCache: {},
+    displayNameCache: {},
+    avatarCache: {},
+
+    // Own published profile (per-wallet)
     profile: {
       bchAddress: null,
       publishedAt: null,
@@ -29,5 +32,23 @@ export default function () {
       avatar: null,
       avatarPublishedAt: null,
     },
+
+    // Runtime/connection state for this identity
+    isReady: false,
+    initialized: false,
+    isSubscribed: false,
+    relayStatus: {},
+  }
+}
+
+export default function () {
+  return {
+    byWallet: {},
+
+    // Global (shared across wallets)
+    relays: [
+      'wss://relay.paytaca.com',
+    ],
+    contacts: [],
   }
 }

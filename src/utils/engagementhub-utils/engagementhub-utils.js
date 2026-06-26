@@ -3,6 +3,7 @@ import { i18n } from 'src/boot/i18n'
 import { Capacitor } from '@capacitor/core'
 import { BigNumber } from 'ethers'
 import { formatWithLocale } from '../denomination-utils'
+import { requestManager } from 'src/utils/request-manager'
 
 const { t: $t } = i18n.global
 const ENGAGEMENT_HUB_URL =
@@ -11,6 +12,7 @@ const ENGAGEMENT_HUB_URL =
 // ========== CASHBACK ========== //
 
 const CASHBACK_URL = axios.create({ baseURL: `${ENGAGEMENT_HUB_URL}cashback/` })
+requestManager.attachTo(CASHBACK_URL)
 
 const CASHBACK_LIMIT_MESSAGES = {
   WITH_LIMIT_MERCHANT_NAME: 'WithLimitMerchantNameMessage',
@@ -79,6 +81,7 @@ export function parseCashbackMessage (message, amountBchUnformatted, amountFiat,
 // ========== NOTIFICATIONS ========== //
 
 const NOTIFS_URL = axios.create({ baseURL: `${ENGAGEMENT_HUB_URL}devicenotif/` })
+requestManager.attachTo(NOTIFS_URL)
 const NOTIF_TYPES = {
   MP: $t('Marketplace'),
   CB: $t('Cashback'),

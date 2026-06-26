@@ -101,17 +101,17 @@ export default {
 					decimals: token.decimals || 0,
 					logo: token.logo,
 					balance: token.balance !== undefined ? token.balance : 0,
-					favorite: token.favorite === true ? 1 : 0,
+					favorite: token.favorite === true || token.favorite === 1 ? 1 : 0,
 					favorite_order: token.favorite_order !== null && token.favorite_order !== undefined ? token.favorite_order : null
 				}))
 
 			// Sort: favorites first (by favorite_order), then non-favorites
 			const sortedTokens = apiTokens.sort((a, b) => {
 				// If one is favorite and other is not, favorite comes first
-				if (a.favorite === 1 && b.favorite === 0) return -1
-				if (a.favorite === 0 && b.favorite === 1) return 1
+				if ((a.favorite === 1 || a.favorite === true) && (b.favorite === 0 || b.favorite === false)) return -1
+				if ((a.favorite === 0 || a.favorite === false) && (b.favorite === 1 || b.favorite === true)) return 1
 				// If both are favorites, sort by favorite_order
-				if (a.favorite === 1 && b.favorite === 1) {
+				if ((a.favorite === 1 || a.favorite === true) && (b.favorite === 1 || b.favorite === true)) {
 					const orderA = a.favorite_order || 0
 					const orderB = b.favorite_order || 0
 					return orderA - orderB
@@ -202,14 +202,18 @@ export default {
 							// Convert IPFS URLs if needed
 							const logo = result.image_url ? convertIpfsUrl(result.image_url) : null
 
+							// Prefer cached BCMR metadata from Vuex store
+							const storeAssets = this.$store.getters['assets/getAsset'](result.id)
+							const storeAsset = Array.isArray(storeAssets) && storeAssets.length > 0 ? storeAssets[0] : null
+
 							return {
 								id: result.id,
-								name: result.name || 'Unknown Token',
-								symbol: result.symbol || '',
-								decimals: result.decimals || 0,
-								logo: logo,
+								name: storeAsset?.name || result.name || 'Unknown Token',
+								symbol: storeAsset?.symbol || result.symbol || '',
+								decimals: storeAsset?.decimals !== undefined ? storeAsset.decimals : (result.decimals || 0),
+								logo: storeAsset?.logo || logo,
 								balance: result.balance !== undefined ? result.balance : 0,
-								favorite: result.favorite === true ? 1 : 0,
+								favorite: result.favorite === true || result.favorite === 1 ? 1 : 0,
 								favorite_order: result.favorite_order !== null && result.favorite_order !== undefined ? result.favorite_order : null
 							}
 						})
@@ -226,6 +230,27 @@ export default {
 				}
 
 				this.allTokensFromAPI = allTokens
+
+				// Enrich tokens with missing/generic metadata via BCMR
+				allTokens.forEach(token => {
+					if (!token.name || token.name === 'Unknown Token' || !token.symbol || !token.logo) {
+						this.$store.dispatch('assets/getAssetMetadata', token.id).then(metadata => {
+							if (metadata) {
+								const idx = this.allTokensFromAPI.findIndex(t => t.id === token.id)
+								if (idx !== -1) {
+									this.allTokensFromAPI = [
+										...this.allTokensFromAPI.slice(0, idx),
+										{ ...this.allTokensFromAPI[idx], ...metadata },
+										...this.allTokensFromAPI.slice(idx + 1),
+									]
+								}
+							}
+						}).catch(err => {
+							console.warn(`[AssetListDialog] Failed to fetch BCMR metadata for ${token.id}:`, err)
+						})
+					}
+				})
+
 				return allTokens
 			} catch (error) {
 				console.error('[AssetListDialog] Error fetching tokens from API:', error)

@@ -55,6 +55,7 @@
               {{ lastMessagePreview(room.id) }}
             </div>
             <div class="room-badges">
+              <div v-if="isRoomBlocked(room)" class="blocked-badge">BLOCKED</div>
               <div v-if="unreadCount(room.id) > 0" class="unread-badge">
                 {{ unreadCount(room.id) }}
               </div>
@@ -77,6 +78,7 @@ import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 import { formatDistanceToNow } from 'date-fns'
 import { npubEncode } from 'nostr-tools/nip19'
 import { parseMessageMarkup } from 'src/utils/chat-markup'
+import { getCachedAvatar, setCachedAvatar } from 'src/utils/avatar-cache'
 
 export default {
   name: 'RoomList',
@@ -115,12 +117,22 @@ export default {
       const myPubKey = this.myPubKey
       if (!myPubKey) return map
       for (const room of this.rooms) {
-        const msgs = this.$store.state.nostrChat.messages[room.id] || []
-        const readIds = this.$store.state.nostrChat.readMessageIds?.[room.id] || {}
-        map[room.id] = msgs.filter(m => m.sender !== myPubKey && !readIds[m.id]).length
+        map[room.id] = this.$store.getters['nostrChat/getUnreadCount'](room.id)
       }
       return map
     },
+  },
+  created () {
+    const cached = {}
+    for (const room of this.rooms) {
+      if (room.type === 'group') continue
+      const otherPubKey = room.members?.find(m => m !== this.myPubKey)
+      if (otherPubKey) {
+        const url = getCachedAvatar(otherPubKey)
+        if (url) cached[otherPubKey] = url
+      }
+    }
+    this.dmAvatars = cached
   },
   mounted () {
     this.fetchDmAvatars()
@@ -257,6 +269,7 @@ export default {
         try {
           const avatar = await this.$store.dispatch('nostrChat/fetchPublishedAvatar', { pubKeyHex })
           if (avatar) {
+            setCachedAvatar(pubKeyHex, avatar)
             this.dmAvatars = { ...this.dmAvatars, [pubKeyHex]: avatar }
           }
         } catch (err) {
@@ -381,6 +394,17 @@ export default {
   align-items: center;
   justify-content: center;
   box-shadow: 0 2px 6px rgba(59, 130, 246, 0.3);
+}
+
+.blocked-badge {
+  padding: 1px 6px;
+  border-radius: 4px;
+  background: #ef4444;
+  color: #ffffff;
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.5px;
+  line-height: 1.4;
 }
 
 .empty-state {

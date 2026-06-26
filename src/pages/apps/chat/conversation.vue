@@ -308,7 +308,7 @@
       </q-card>
     </q-dialog>
 
-    <!-- Member: normal messages + composer -->
+    <!-- Member: messages scroll area -->
     <template v-if="isRoomMember">
       <div ref="messagesContainer" class="messages-scroll-area col scroll" @click="hideContextMenu" @scroll="onMessagesScroll">
         <div v-if="displayedMessages.length === 0" class="empty-conversation">
@@ -319,7 +319,18 @@
           <div class="empty-subtitle">{{ $t('SendFirstMessage', {}, 'Send your first message') }}</div>
         </div>
 
-        <div v-else class="messages-list">
+        <div v-else-if="ready" class="messages-list">
+          <div v-if="allMessages.length > displayLimit" class="load-more-container">
+            <button
+              class="load-more-btn"
+              :class="getDarkModeClass(darkMode)"
+              :disabled="isLoadingMore"
+              @click="loadMoreMessages"
+            >
+              <q-spinner v-if="isLoadingMore" size="16px" class="load-more-spinner" />
+              <template v-else>{{ $t('LoadPreviousMessages', {}, 'Load previous messages') }}</template>
+            </button>
+          </div>
           <div
             v-for="(msg, index) in displayedMessages"
             :key="msg.id"
@@ -364,36 +375,10 @@
         </button>
       </transition>
 
-      <div v-if="replyToMessage" class="reply-bar" :class="getDarkModeClass(darkMode)">
-        <div class="reply-bar-indicator" :style="{ background: themeColor }"></div>
-        <q-icon
-          v-if="replyToMessage.isFile"
-          :name="replyToFileIcon"
-          size="18px"
-          class="reply-bar-file-icon"
-          :style="{ color: themeColor }"
-        />
-        <div class="reply-bar-body">
-          <div class="reply-bar-label" :style="{ color: themeColor }">
-            {{ $t('ReplyingTo', {}, 'Replying to') }} {{ replySenderName }}
-          </div>
-          <div class="reply-bar-snippet">{{ replyToSnippet }}</div>
-        </div>
-        <q-btn flat dense unelevated icon="close" size="sm" class="reply-bar-close" @click="cancelReply" />
+      <div v-if="!isGroupRoom && isContactBlocked" class="blocked-notice">
+        <q-icon name="block" size="16px" />
+        <span>{{ $t('ContactBlockedNotice', {}, 'Contact blocked') }}</span>
       </div>
-
-      <div v-if="editingMessage" class="edit-bar" :class="getDarkModeClass(darkMode)">
-        <div class="edit-bar-indicator" :style="{ background: themeColor }"></div>
-        <div class="edit-bar-body">
-          <div class="edit-bar-label" :style="{ color: themeColor }">
-            {{ $t('EditingMessage', {}, 'Editing message') }}
-          </div>
-          <div class="edit-bar-snippet">{{ editSnippet }}</div>
-        </div>
-        <q-btn flat dense unelevated icon="close" size="sm" class="edit-bar-close" @click="cancelEdit" />
-      </div>
-
-      <chat-input ref="chatInput" :room-id="roomId" @send="onSend" @command="onCommand" @focus="onInputFocus" @blur="onInputBlur" />
     </template>
 
     <!-- Non-member group: request to join card -->
@@ -452,6 +437,38 @@
       </div>
     </template>
 
+    <!-- Reply/Edit bars + Chat input (always rendered at bottom) -->
+    <div v-if="replyToMessage" class="reply-bar" :class="getDarkModeClass(darkMode)">
+      <div class="reply-bar-indicator" :style="{ background: themeColor }"></div>
+      <q-icon
+        v-if="replyToMessage.isFile"
+        :name="replyToFileIcon"
+        size="18px"
+        class="reply-bar-file-icon"
+        :style="{ color: themeColor }"
+      />
+      <div class="reply-bar-body">
+        <div class="reply-bar-label" :style="{ color: themeColor }">
+          {{ $t('ReplyingTo', {}, 'Replying to') }} {{ replySenderName }}
+        </div>
+        <div class="reply-bar-snippet">{{ replyToSnippet }}</div>
+      </div>
+      <q-btn flat dense unelevated icon="close" size="sm" class="reply-bar-close" @click="cancelReply" />
+    </div>
+
+    <div v-if="editingMessage" class="edit-bar" :class="getDarkModeClass(darkMode)">
+      <div class="edit-bar-indicator" :style="{ background: themeColor }"></div>
+      <div class="edit-bar-body">
+        <div class="edit-bar-label" :style="{ color: themeColor }">
+          {{ $t('EditingMessage', {}, 'Editing message') }}
+        </div>
+        <div class="edit-bar-snippet">{{ editSnippet }}</div>
+      </div>
+      <q-btn flat dense unelevated icon="close" size="sm" class="edit-bar-close" @click="cancelEdit" />
+    </div>
+
+    <chat-input ref="chatInput" :room-id="roomId" :disabled="isRoomArchived || isContactBlocked" :blocked="isContactBlocked" @send="onSend" @command="onCommand" @tip="onTipAction" @focus="onInputFocus" @blur="onInputBlur" />
+
     <!-- Message context menu -->
     <q-menu ref="contextMenu" touch-position no-parent-event class="text-bow" :class="getDarkModeClass(darkMode)">
       <q-list style="min-width: 150px">
@@ -505,6 +522,7 @@
     <!-- Send BCH Dialog -->
     <send-bch-dialog
       v-if="showSendDialog"
+      :command="sendCommand"
       :amount="sendAmount"
       :recipient-pub-key="sendRecipientPubKey"
       :recipient-name="getSendRecipientName()"
@@ -523,6 +541,7 @@ import MessageBubble from 'src/components/chat/MessageBubble.vue'
 import ChatInput from 'src/components/chat/ChatInput.vue'
 import SendBchDialog from 'src/components/chat/SendBchDialog.vue'
 import { npubEncode } from 'nostr-tools/nip19'
+import { getCachedAvatar, setCachedAvatar } from 'src/utils/avatar-cache'
 
 export default {
   name: 'ChatConversation',
@@ -542,6 +561,7 @@ export default {
       showRenameGroupDialog: false,
       renameGroupName: '',
       showSendDialog: false,
+      sendCommand: 'send',
       sendAmount: 0,
       sendRecipientPubKey: '',
       sendPreFilledAddress: '',
@@ -558,9 +578,12 @@ export default {
       _scrollToMessageId: null,
       // Guard to ignore the next pointerdown which may be the finger lifting
       _ignoreNextPointerDown: false,
+      ready: false,
+      _savedScrollTop: null,
       requestingToJoin: false,
       _fetchedGroupMeta: null,
       _fetchingMeta: false,
+      otherMemberAvatar: null,
     }
   },
   computed: {
@@ -615,6 +638,10 @@ export default {
       if (!npub) return null
       return this.$store.getters['nostrChat/getContactByNpub'](npub)
     },
+    otherMemberAvatarUrl () {
+      if (this.isGroupRoom || !this.otherMemberPubKey) return null
+      return this.otherMemberAvatar || getCachedAvatar(this.otherMemberPubKey)
+    },
     isUnknownContact () {
       return this.otherMemberPubKey && !this.otherMemberContact
     },
@@ -642,9 +669,9 @@ export default {
       }
       // DM: if a subject has been set, prefer it over the contact name
       if (room.subject) return room.subject
-      // If contact exists, use the room name (which is the contact name)
+      // If contact exists, use the contact's name (the other party)
       if (this.otherMemberContact) {
-        return room.name || this.$t('Chat', {}, 'Chat')
+        return this.otherMemberContact.name || room.name || this.$t('Chat', {}, 'Chat')
       }
       // Unknown contact: show npub in header
       return this.displayNpub || room.name || this.$t('Chat', {}, 'Chat')
@@ -652,7 +679,7 @@ export default {
     allMessages () {
       const room = this.$store.getters['nostrChat/getRoom'](this.roomId)
       if (!room) return []
-      return this.$store.state.nostrChat.messages[this.roomId] || []
+      return this.$store.getters['nostrChat/getMessages'](this.roomId)
     },
     displayedMessages () {
       const total = this.allMessages.length
@@ -714,7 +741,7 @@ export default {
       const room = this.room
       if (!room || !myPubKey) return map
 
-      const readBy = this.$store.state.nostrChat.messageReadBy?.[this.roomId] || {}
+      const readBy = this.$store.getters['nostrChat/getMessageReadBy'](this.roomId)
 
       for (const msg of this.allMessages) {
         // Only check read status for messages I sent
@@ -732,7 +759,7 @@ export default {
       const room = this.room
       if (!room || !myPubKey || room.type !== 'group') return map
 
-      const readBy = this.$store.state.nostrChat.messageReadBy?.[this.roomId] || {}
+      const readBy = this.$store.getters['nostrChat/getMessageReadBy'](this.roomId)
       const contacts = this.contacts
 
       for (const msg of this.allMessages) {
@@ -749,6 +776,21 @@ export default {
     },
   },
   watch: {
+    otherMemberPubKey: {
+      handler (pubKey) {
+        if (!pubKey || this.isGroupRoom) return
+        this.otherMemberAvatar = getCachedAvatar(pubKey)
+        this.$store.dispatch('nostrChat/fetchPublishedAvatar', { pubKeyHex: pubKey })
+          .then(avatar => {
+            if (avatar) {
+              setCachedAvatar(pubKey, avatar)
+              this.otherMemberAvatar = avatar
+            }
+          })
+          .catch(() => {})
+      },
+      immediate: true,
+    },
     'allMessages.length' (newLen, oldLen) {
       this.markAsRead()
 
@@ -812,6 +854,30 @@ export default {
         }
       }
     },
+    ready (val) {
+      if (val) {
+        this.$nextTick(() => {
+          if (this._scrollToMessageId) {
+            this.scrollToMessage(this._scrollToMessageId)
+            this._scrollToMessageId = null
+          } else if (this._savedScrollTop) {
+            const container = this.$refs.messagesContainer
+            if (container) {
+              container.scrollTop = parseInt(this._savedScrollTop, 10)
+            }
+            this._savedScrollTop = null
+          } else {
+            this.scrollToBottom()
+            requestAnimationFrame(() => this.scrollToBottom())
+            setTimeout(() => this.scrollToBottom(), 160)
+          }
+          sessionStorage.removeItem('chat_scroll_room_id')
+          sessionStorage.removeItem('chat_scroll_message_id')
+          sessionStorage.removeItem('chat_scroll_display_limit')
+          sessionStorage.removeItem('chat_scroll_top')
+        })
+      }
+    },
   },
   mounted () {
     if (!this.room && this._isGroupLink) {
@@ -836,6 +902,7 @@ export default {
       this.displayLimit = parseInt(savedDisplayLimit, 10)
       sessionStorage.removeItem('chat_scroll_display_limit')
     }
+    this._savedScrollTop = savedScrollTop
     this.markAsRead()
     this.ensureSubscribed()
     document.addEventListener('visibilitychange', this.onVisibilityChange)
@@ -847,31 +914,14 @@ export default {
       window.addEventListener('resize', this.onViewportResize)
     }
 
-    if (canRestoreScroll && this._scrollToMessageId) {
-      this.$nextTick(() => {
-        if (savedScrollTop) {
-          const container = this.$refs.messagesContainer
-          if (container) {
-            container.scrollTop = parseInt(savedScrollTop, 10)
-          }
-          sessionStorage.removeItem('chat_scroll_top')
-          sessionStorage.removeItem('chat_scroll_room_id')
-        } else {
-          this.scrollToMessage(this._scrollToMessageId)
-        }
-        this._scrollToMessageId = null
-      })
-    } else {
-      sessionStorage.removeItem('chat_scroll_room_id')
-      sessionStorage.removeItem('chat_scroll_message_id')
-      sessionStorage.removeItem('chat_scroll_display_limit')
-      sessionStorage.removeItem('chat_scroll_top')
-      this.scrollToBottom()
-      requestAnimationFrame(() => this.scrollToBottom())
-      setTimeout(() => this.scrollToBottom(), 160)
-    }
+    // Defer message rendering so the chat input is interactive first
+    this.$nextTick(() => {
+      this.ready = true
+    })
   },
   activated () {
+    this.markAsRead()
+    this.ensureSubscribed()
     const savedRoomId = sessionStorage.getItem('chat_scroll_room_id')
     const savedMessageId = sessionStorage.getItem('chat_scroll_message_id')
     const savedDisplayLimit = sessionStorage.getItem('chat_scroll_display_limit')
@@ -908,8 +958,15 @@ export default {
       requestAnimationFrame(() => this.scrollToBottom())
       setTimeout(() => this.scrollToBottom(), 160)
     }
+    this.$nextTick(() => {
+      this.ready = true
+    })
+  },
+  deactivated () {
+    this.ready = false
   },
   beforeUnmount () {
+    this.ready = false
     document.removeEventListener('visibilitychange', this.onVisibilityChange)
     document.removeEventListener('pointerdown', this.onDocumentPointerDown)
     if (window.visualViewport) {
@@ -1047,8 +1104,8 @@ export default {
       const yesterday = new Date(now)
       yesterday.setDate(yesterday.getDate() - 1)
 
-      if (d.toDateString() === now.toDateString()) return 'Today'
-      if (d.toDateString() === yesterday.toDateString()) return 'Yesterday'
+      if (d.toDateString() === now.toDateString()) return this.$t('Today')
+      if (d.toDateString() === yesterday.toDateString()) return this.$t('Yesterday')
       return d.toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: d.getFullYear() !== now.getFullYear() ? 'numeric' : undefined })
     },
     getMessageById (id) {
@@ -1160,10 +1217,6 @@ export default {
       if (!container) return
       const threshold = 80
       this.showScrollToBottom = container.scrollTop + container.clientHeight < container.scrollHeight - threshold
-
-      if (container.scrollTop < 50 && !this.isLoadingMore && !this._allMessagesLoaded) {
-        this.loadMoreMessages()
-      }
     },
     loadMoreMessages () {
       if (this.allMessages.length <= this.displayLimit) {
@@ -1249,6 +1302,18 @@ export default {
           })
         }
       })
+    },
+    onTipAction () {
+      const recipientPubKey = this.otherMemberPubKey
+      if (!recipientPubKey) {
+        this.$q.notify({ type: 'negative', message: this.$t('NoRecipientFound'), timeout: 5000, closeBtn: true })
+        return
+      }
+      this.sendAmount = 0
+      this.sendRecipientPubKey = recipientPubKey
+      this.sendPreFilledAddress = ''
+      this.sendCommand = 'tip'
+      this.showSendDialog = true
     },
     async onSend (text) {
       if (!this.room) return
@@ -1451,6 +1516,7 @@ export default {
       }).onOk(() => {
         if (otherPubKey) {
           this.$store.commit('nostrChat/BLOCK_CONTACT', otherPubKey)
+          this.$store.commit('nostrChat/ARCHIVE_ROOM', this.roomId)
         }
         this.$router.replace('/apps/chat')
         this.$q.notify({
@@ -1472,6 +1538,7 @@ export default {
       }).onOk(() => {
         if (otherPubKey) {
           this.$store.commit('nostrChat/UNBLOCK_CONTACT', otherPubKey)
+          this.$store.commit('nostrChat/UNARCHIVE_ROOM', this.roomId)
         }
         this.$q.notify({
           type: 'positive',
@@ -1552,15 +1619,16 @@ export default {
     async onCommand ({ type, amount, currency, originalText }) {
       if (type !== 'send') return
       if (!this.room) {
-        this.$q.notify({ type: 'negative', message: 'No active room', timeout: 5000, closeBtn: true })
+        this.$q.notify({ type: 'negative', message: this.$t('NoActiveRoom'), timeout: 5000, closeBtn: true })
         this.$refs.chatInput?.setText(originalText)
         return
       }
 
       const currencyUpper = (currency || 'BCH').toUpperCase()
+      const commandType = originalText?.trim().startsWith('/tip') ? 'tip' : 'send'
 
       if (currencyUpper === 'BCH') {
-        await this.handleBchSend(amount, originalText)
+        await this.handleBchSend(amount, originalText, commandType)
       } else {
         this.$q.notify({
           type: 'info',
@@ -1571,60 +1639,53 @@ export default {
         this.$refs.chatInput?.setText(originalText)
       }
     },
-    async handleBchSend (amount, originalText) {
+    async handleBchSend (amount, originalText, commandType = 'send') {
       const recipientPubKey = this.otherMemberPubKey
       if (!recipientPubKey) {
-        this.$q.notify({ type: 'negative', message: 'No recipient found', timeout: 5000, closeBtn: true })
+        this.$q.notify({ type: 'negative', message: this.$t('NoRecipientFound'), timeout: 5000, closeBtn: true })
         this.$refs.chatInput?.setText(originalText)
         return
       }
 
-      this.$q.loading.show({ message: 'Fetching recipient address...' })
+      this.$q.loading.show({ message: this.$t('FetchingRecipientAddress', {}, 'Fetching recipient address...') })
+      let address = null
       try {
-        const address = await this.$store.dispatch('nostrChat/fetchPublishedBchAddress', {
+        address = await this.$store.dispatch('nostrChat/fetchPublishedBchAddress', {
           pubKeyHex: recipientPubKey,
         })
-        this.$q.loading.hide()
-
-        if (!address) {
-          this.$q.notify({
-            type: 'negative',
-            message: this.$t('NoPublishedBCHAddress', {}, 'Recipient has not published a BCH address'),
-            timeout: 5000,
-            closeBtn: true,
-          })
-          this.$refs.chatInput?.setText(originalText)
-          return
-        }
-
-        this.sendAmount = amount
-        this.sendRecipientPubKey = recipientPubKey
-        this.sendPreFilledAddress = address
-        this.showSendDialog = true
       } catch (err) {
-        this.$q.loading.hide()
-        console.error('[Conversation] Failed to handle BCH send:', err)
+        console.error('[Conversation] Failed to fetch BCH address:', err)
+      }
+      this.$q.loading.hide()
+
+      if (!address) {
         this.$q.notify({
-          type: 'negative',
-          message: this.$t('FetchAddressFailed', {}, 'Failed to fetch recipient address'),
+          type: 'warning',
+          message: this.$t('NoPublishedBCHAddress', {}, 'Recipient has not published a BCH address — paste it manually below'),
           timeout: 5000,
           closeBtn: true,
         })
-        this.$refs.chatInput?.setText(originalText)
       }
+
+      this.sendAmount = amount || 0
+      this.sendRecipientPubKey = recipientPubKey
+      this.sendPreFilledAddress = address || ''
+      this.sendCommand = commandType
+      this.showSendDialog = true
     },
-    async onSendSuccess ({ txid, amount, recipient }) {
+    async onSendSuccess ({ txid, amount, symbol, recipient }) {
       this.showSendDialog = false
       this.sendPreFilledAddress = ''
+      const assetSymbol = symbol || 'BCH'
       this.$q.notify({
         type: 'positive',
-        message: this.$t('BchSentSuccess', { amount, txid: txid?.slice(0, 12) }, `Successfully sent ${amount} BCH`),
+        message: this.$t('BchSentSuccess', { amount, txid: txid?.slice(0, 12) }, `Successfully sent ${amount} ${assetSymbol}`),
       })
 
       // Send confirmation message in chat with embedded markup
       if (this.room && txid) {
         try {
-          const text = `Sent ${amount} BCH [/*t:payment,a:${amount},x:${txid}*/]`
+          const text = `Sent ${amount} ${assetSymbol} [/*t:payment,a:${amount},s:${assetSymbol},x:${txid}*/]`
           const { giftWraps, message, roomId } = await this.$store.dispatch('nostrChat/sendMessage', {
             roomId: this.roomId,
             text,
@@ -2046,6 +2107,54 @@ export default {
   background: #475569;
 }
 
+.load-more-container {
+  display: flex;
+  justify-content: center;
+  padding: 12px 0 4px;
+}
+
+.load-more-btn {
+  background: transparent;
+  border: 1px solid #d1d5db;
+  border-radius: 20px;
+  padding: 6px 20px;
+  font-size: 13px;
+  color: #6b7280;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.load-more-btn:hover {
+  background: #f3f4f6;
+  border-color: #9ca3af;
+  color: #374151;
+}
+
+.load-more-btn:active {
+  transform: scale(0.97);
+}
+
+.load-more-btn:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+.load-more-btn.dark {
+  border-color: #475569;
+  color: #94a3b8;
+}
+
+.load-more-btn.dark:hover {
+  background: #334155;
+  border-color: #64748b;
+  color: #e2e8f0;
+}
+
+.load-more-spinner {
+  display: inline-block;
+  vertical-align: middle;
+}
+
 .scroll-btn-fade-enter-active,
 .scroll-btn-fade-leave-active {
   transition: opacity 0.25s ease, transform 0.25s ease;
@@ -2130,5 +2239,20 @@ export default {
 
 .request-join-btn {
   min-width: 180px;
+}
+
+.blocked-notice {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 12px 16px;
+  color: #ef4444;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.dark .blocked-notice {
+  color: #f87171;
 }
 </style>

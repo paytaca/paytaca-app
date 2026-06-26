@@ -452,6 +452,9 @@ export async function switchWallet (context, walletHashOrIndex) {
           
           // Initialize paytacapos store state for the new wallet
           context.commit('paytacapos/initializeWalletState', walletHash, { root: true })
+
+          // Initialize nostr chat store state for the new wallet
+          context.commit('nostrChat/initializeWalletState', walletHash, { root: true })
            
           // Reset and reinitialize wizardconnect for the new wallet
           context.dispatch('wizardconnect/reset', null, { root: true })

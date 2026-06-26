@@ -4,12 +4,15 @@ import { loadRampWallet, wallet } from 'src/exchange/wallet'
 import axios from 'axios'
 import { generateChatIdentityRef } from '.'
 import { getCurrentWalletStorageKey, getWalletStorageKey } from 'src/utils/wallet-storage'
+import { requestManager } from 'src/utils/request-manager'
 
 const bchjs = new BCHJS()
 
 export const chatBackend = axios.create({
   baseURL: process.env.MARKETPLACE_BASE_URL || 'https://commercehub.paytaca.com/api'
 })
+
+requestManager.attachTo(chatBackend)
 
 chatBackend.interceptors.request.use(async (config) => {
   let data = config.data

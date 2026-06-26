@@ -1,5 +1,6 @@
 import { deriveNostrKeys, createUnsignedKind14, createNip17GiftWraps, computeRoomId, createKind10050, createReadReceiptGiftWrap, createReactionGiftWraps, createKind5DeletionGiftWraps } from 'src/wallet/nostr'
-import { finalizeEvent, verifyEvent, hexToBytes } from 'nostr-tools'
+import { finalizeEvent, verifyEvent, getEventHash, utils as nostrUtils } from 'nostr-tools'
+const { hexToBytes } = nostrUtils
 import { getMnemonic } from 'src/wallet'
 import { decode as nip19Decode } from 'nostr-tools/nip19'
 import * as relayService from 'src/services/nostr-chat'
@@ -15,6 +16,25 @@ import {
   parseKind15FileMessage,
   base64ToHex,
 } from 'src/wallet/nostr-media'
+import { clearChatCache } from 'src/components/chat/MessageBubble.vue'
+import { Store } from 'src/store'
+
+function getCurrentWalletHash () {
+  try {
+    const wallet = Store.getters['global/getWallet']('bch')
+    return wallet?.walletHash || null
+  } catch (error) {
+    return null
+  }
+}
+
+function getWalletState (state) {
+  const hash = getCurrentWalletHash()
+  if (!hash) return {}
+  if (!state.byWallet) return {}
+  if (!state.byWallet[hash]) return {}
+  return state.byWallet[hash]
+}
 
 const DISCOVERY_RELAYS = [
   'wss://relay.paytaca.com',
@@ -26,10 +46,19 @@ export async function reinitialize ({ commit, dispatch, state, rootGetters }) {
   if (!mnemonic) return
 
   const keys = deriveNostrKeys(mnemonic)
-  if (state.keys.pubKeyHex === keys.pubKeyHex) return
+  const ws = getWalletState(state)
+
+  if (ws.keys?.pubKeyHex === keys.pubKeyHex) return
+
+  // Disconnect existing relay subscriptions for the old identity
+  relayService.stopStatusPolling()
+  relayService.disconnect()
+  commit('SET_SUBSCRIBED', false)
+  clearChatCache().catch(err => console.warn('Failed to clear chat cache during reinitialize:', err))
 
   commit('SET_KEYS', keys)
-  commit('RESET_PROFILE')
+  commit('SET_READY', true)
+  commit('SET_INITIALIZED', true)
   relayService.setAuthKey(keys.privKeyHex)
 
   // Register this wallet's Nostr pubkey in Watchtower
@@ -55,10 +84,6 @@ export async function reinitialize ({ commit, dispatch, state, rootGetters }) {
       console.warn('[Nostr] Failed to fetch profile data during reinitialize:', err)
     }
 
-  // Restart relay subscription for the new identity
-  relayService.stopStatusPolling()
-  relayService.disconnect()
-  commit('SET_SUBSCRIBED', false)
   dispatch('subscribeToRelays')
 }
 
@@ -68,6 +93,47 @@ export async function initialize ({ commit, dispatch, state, rootGetters }) {
   if (!mnemonic) throw new Error('No mnemonic available')
 
   const keys = deriveNostrKeys(mnemonic)
+  const ws = getWalletState(state)
+
+  // Already initialized for this wallet — just fetch historical messages
+  if (ws.initialized && ws.keys?.pubKeyHex === keys.pubKeyHex) {
+    // Restore private key if missing (stripped from persisted state for security)
+    if (!ws.keys.privKeyHex) {
+      commit('SET_KEYS', keys)
+      relayService.setAuthKey(keys.privKeyHex)
+    }
+    dispatch('fetchHistoricalMessages')
+
+    // Fill profile from caches if persisted profile is incomplete but cached data exists
+    const ownPubKeyHex = keys.pubKeyHex
+    if (!ws.profile?.displayName) {
+      const cachedDisplayName = ws.displayNameCache?.[ownPubKeyHex]?.displayName
+      if (cachedDisplayName) {
+        commit('SET_PROFILE_DISPLAY_NAME', { displayName: cachedDisplayName, publishedAt: Date.now() })
+      }
+    }
+    if (!ws.profile?.bchAddress) {
+      const cachedBchAddress = ws.bchAddressCache?.[ownPubKeyHex]?.address
+      if (cachedBchAddress) {
+        commit('SET_PROFILE_BCH_ADDRESS', { address: cachedBchAddress, publishedAt: Date.now() })
+      }
+    }
+
+    // If still incomplete after cache fallback, fetch from relay (with retries)
+    if (!ws.profile?.displayName || !ws.profile?.bchAddress) {
+      dispatch('fetchOwnProfile', ownPubKeyHex).catch(() => {})
+    }
+    return
+  }
+
+  // Keys mismatch or first init — clear IndexedDB cache if switching from another wallet
+  if (ws.initialized || ws.keys?.pubKeyHex) {
+    relayService.stopStatusPolling()
+    relayService.disconnect()
+    commit('SET_SUBSCRIBED', false)
+    clearChatCache().catch(err => console.warn('Failed to clear chat cache during initialize:', err))
+  }
+
   commit('SET_KEYS', keys)
   commit('SET_READY', true)
   commit('SET_INITIALIZED', true)
@@ -106,8 +172,41 @@ export async function initialize ({ commit, dispatch, state, rootGetters }) {
   dispatch('registerNostrPubkey')
 }
 
+export async function fetchOwnProfile ({ commit, dispatch }, pubKeyHex) {
+  if (!pubKeyHex) return
+
+  const MAX_ATTEMPTS = 3
+  const RETRY_DELAY = 4000
+
+  for (let attempt = 0; attempt < MAX_ATTEMPTS; attempt++) {
+    try {
+      const [displayName, bchAddress, avatar] = await Promise.all([
+        dispatch('fetchPublishedDisplayName', { pubKeyHex }),
+        dispatch('fetchPublishedBchAddress', { pubKeyHex }),
+        dispatch('fetchPublishedAvatar', { pubKeyHex }),
+      ])
+      if (displayName) {
+        commit('SET_PROFILE_DISPLAY_NAME', { displayName, publishedAt: Date.now() })
+      }
+      if (bchAddress) {
+        commit('SET_PROFILE_BCH_ADDRESS', { address: bchAddress, publishedAt: Date.now() })
+      }
+      if (avatar) {
+        commit('SET_PROFILE_AVATAR', { avatar, publishedAt: Date.now() })
+      }
+      if (displayName || bchAddress || avatar) return
+    } catch (err) {
+      console.warn(`[Nostr] Own profile fetch attempt ${attempt + 1}/${MAX_ATTEMPTS} failed:`, err.message)
+    }
+    if (attempt < MAX_ATTEMPTS - 1) {
+      await new Promise(r => setTimeout(r, RETRY_DELAY))
+    }
+  }
+}
+
 export async function registerNostrPubkey ({ state, rootGetters }) {
-  if (!state.keys.pubKeyHex) {
+  const ws = getWalletState(state)
+  if (!ws.keys.pubKeyHex) {
     console.log('[Nostr] Skip pubkey registration: no pubkey')
     return
   }
@@ -123,7 +222,7 @@ export async function registerNostrPubkey ({ state, rootGetters }) {
 
   // Check if already registered
   try {
-    const checkResponse = await watchtower.BCH._api.get(`/nostr/check/${state.keys.pubKeyHex}/`)
+    const checkResponse = await watchtower.BCH._api.get(`/nostr/check/${ws.keys.pubKeyHex}/`)
     if (checkResponse?.data?.registered) {
       console.log('[Nostr] Pubkey already registered')
       return
@@ -133,7 +232,7 @@ export async function registerNostrPubkey ({ state, rootGetters }) {
   }
 
   const data = {
-    pubkey: state.keys.pubKeyHex,
+    pubkey: ws.keys.pubKeyHex,
     wallet_hash: walletHash,
   }
 
@@ -170,16 +269,17 @@ export async function registerNostrPubkey ({ state, rootGetters }) {
  * Signed by the user's Nostr key so any client can verify authenticity.
  */
 export async function publishBchAddress ({ state, commit }, { address }) {
-  if (!state.keys.privKeyHex) {
+  const ws = getWalletState(state)
+  if (!ws.keys.privKeyHex) {
     throw new Error('No Nostr private key available')
   }
-  const privKeyBytes = hexToBytes(state.keys.privKeyHex)
+  const privKeyBytes = hexToBytes(ws.keys.privKeyHex)
   const event = finalizeEvent({
     kind: 30078,
     created_at: Math.floor(Date.now() / 1000),
     tags: [
       ['d', 'paytaca:bch-address'],
-      ['p', state.keys.pubKeyHex],
+      ['p', ws.keys.pubKeyHex],
     ],
     content: JSON.stringify({ name: 'Paytaca BCH Address', data: { address } }),
   }, privKeyBytes)
@@ -195,6 +295,7 @@ export async function publishBchAddress ({ state, commit }, { address }) {
     address,
     publishedAt: event.created_at,
   })
+  commit('CACHE_BCH_ADDRESS', { pubKeyHex: ws.keys.pubKeyHex, address })
   console.log('[Nostr] Published BCH address:', address)
 }
 
@@ -202,16 +303,17 @@ export async function publishBchAddress ({ state, commit }, { address }) {
  * Remove the published BCH address by publishing an empty kind:30078 event.
  */
 export async function removeBchAddress ({ state, commit }) {
-  if (!state.keys.privKeyHex) {
+  const ws = getWalletState(state)
+  if (!ws.keys.privKeyHex) {
     throw new Error('No Nostr private key available')
   }
-  const privKeyBytes = hexToBytes(state.keys.privKeyHex)
+  const privKeyBytes = hexToBytes(ws.keys.privKeyHex)
   const event = finalizeEvent({
     kind: 30078,
     created_at: Math.floor(Date.now() / 1000),
     tags: [
       ['d', 'paytaca:bch-address'],
-      ['p', state.keys.pubKeyHex],
+      ['p', ws.keys.pubKeyHex],
     ],
     content: JSON.stringify({ name: 'Paytaca BCH Address', data: {} }),
   }, privKeyBytes)
@@ -231,20 +333,35 @@ export async function removeBchAddress ({ state, commit }) {
  * Fetch a user's published BCH address from relays.
  * Returns the address string or null if not found.
  */
-export async function fetchPublishedBchAddress ({ state }, { pubKeyHex }) {
+export async function fetchPublishedBchAddress ({ state, commit }, { pubKeyHex }) {
+  const ws = getWalletState(state)
   if (!pubKeyHex) {
     throw new Error('pubKeyHex is required')
+  }
+
+  const cached = ws.bchAddressCache?.[pubKeyHex]
+  const CACHE_TTL = 3600000 // 1 hour
+
+  // Return cached address if fresh
+  if (cached?.address && (Date.now() - cached.fetchedAt) < CACHE_TTL) {
+    return cached.address
   }
 
   const event = await relayService.fetchBchAddress(state.relays, pubKeyHex)
 
   if (!event) {
     console.log('[Nostr] No BCH address event found on relay')
+    // Fall back to stale cache if available
+    if (cached?.address) {
+      console.log('[Nostr] Falling back to cached BCH address')
+      return cached.address
+    }
     return null
   }
 
   if (!verifyEvent(event)) {
     console.warn('[Nostr] BCH address event failed signature verification')
+    if (cached?.address) return cached.address
     return null
   }
 
@@ -254,16 +371,19 @@ export async function fetchPublishedBchAddress ({ state }, { pubKeyHex }) {
     parsed = JSON.parse(event.content || '{}')
   } catch {
     console.warn('[Nostr] BCH address event has invalid JSON content')
+    if (cached?.address) return cached.address
     return null
   }
 
   const address = parsed?.data?.address?.trim()
   if (!address) {
     console.log('[Nostr] BCH address event has no address — was removed or empty')
+    if (cached?.address) return cached.address
     return null
   }
 
   console.log('[Nostr] Found BCH address:', address)
+  commit('CACHE_BCH_ADDRESS', { pubKeyHex, address })
   return address
 }
 
@@ -271,16 +391,17 @@ export async function fetchPublishedBchAddress ({ state }, { pubKeyHex }) {
  * Publish the user's display name as a NIP-78 replaceable event (kind:30078).
  */
 export async function publishDisplayName ({ state, commit }, { displayName }) {
-  if (!state.keys.privKeyHex) {
+  const ws = getWalletState(state)
+  if (!ws.keys.privKeyHex) {
     throw new Error('No Nostr private key available')
   }
-  const privKeyBytes = hexToBytes(state.keys.privKeyHex)
+  const privKeyBytes = hexToBytes(ws.keys.privKeyHex)
   const event = finalizeEvent({
     kind: 30078,
     created_at: Math.floor(Date.now() / 1000),
     tags: [
       ['d', 'paytaca:display-name'],
-      ['p', state.keys.pubKeyHex],
+      ['p', ws.keys.pubKeyHex],
     ],
     content: JSON.stringify({ name: 'Paytaca Display Name', data: { displayName } }),
   }, privKeyBytes)
@@ -292,6 +413,7 @@ export async function publishDisplayName ({ state, commit }, { displayName }) {
   }
 
   commit('SET_PROFILE_DISPLAY_NAME', { displayName, publishedAt: event.created_at })
+  commit('CACHE_DISPLAY_NAME', { pubKeyHex: ws.keys.pubKeyHex, displayName })
   console.log('[Nostr] Published display name:', displayName)
 }
 
@@ -299,16 +421,17 @@ export async function publishDisplayName ({ state, commit }, { displayName }) {
  * Remove the published display name by publishing an empty kind:30078 event.
  */
 export async function removeDisplayName ({ state, commit }) {
-  if (!state.keys.privKeyHex) {
+  const ws = getWalletState(state)
+  if (!ws.keys.privKeyHex) {
     throw new Error('No Nostr private key available')
   }
-  const privKeyBytes = hexToBytes(state.keys.privKeyHex)
+  const privKeyBytes = hexToBytes(ws.keys.privKeyHex)
   const event = finalizeEvent({
     kind: 30078,
     created_at: Math.floor(Date.now() / 1000),
     tags: [
       ['d', 'paytaca:display-name'],
-      ['p', state.keys.pubKeyHex],
+      ['p', ws.keys.pubKeyHex],
     ],
     content: JSON.stringify({ name: 'Paytaca Display Name', data: {} }),
   }, privKeyBytes)
@@ -327,14 +450,26 @@ export async function removeDisplayName ({ state, commit }) {
  * Fetch a user's published display name from relays.
  * Returns the display name string or null if not found.
  */
-export async function fetchPublishedDisplayName ({ state }, { pubKeyHex }) {
+export async function fetchPublishedDisplayName ({ state, commit }, { pubKeyHex }) {
+  const ws = getWalletState(state)
   if (!pubKeyHex) throw new Error('pubKeyHex is required')
 
+  const cached = ws.displayNameCache?.[pubKeyHex]
+  const CACHE_TTL = 3600000 // 1 hour
+
+  if (cached?.displayName && (Date.now() - cached.fetchedAt) < CACHE_TTL) {
+    return cached.displayName
+  }
+
   const event = await relayService.fetchDisplayName(state.relays, pubKeyHex)
-  if (!event) return null
+  if (!event) {
+    if (cached?.displayName) return cached.displayName
+    return null
+  }
 
   if (!verifyEvent(event)) {
     console.warn('[Nostr] Display name event failed signature verification')
+    if (cached?.displayName) return cached.displayName
     return null
   }
 
@@ -343,13 +478,18 @@ export async function fetchPublishedDisplayName ({ state }, { pubKeyHex }) {
     parsed = JSON.parse(event.content || '{}')
   } catch {
     console.warn('[Nostr] Display name event has invalid JSON content')
+    if (cached?.displayName) return cached.displayName
     return null
   }
 
   const displayName = parsed?.data?.displayName?.trim()
-  if (!displayName) return null
+  if (!displayName) {
+    if (cached?.displayName) return cached.displayName
+    return null
+  }
 
   console.log('[Nostr] Found display name:', displayName)
+  commit('CACHE_DISPLAY_NAME', { pubKeyHex, displayName })
   return displayName
 }
 
@@ -358,16 +498,17 @@ export async function fetchPublishedDisplayName ({ state }, { pubKeyHex }) {
  * Avatar is stored as a base64 data URL in the content.
  */
 export async function publishAvatar ({ state, commit }, { avatarDataUrl }) {
-  if (!state.keys.privKeyHex) {
+  const ws = getWalletState(state)
+  if (!ws.keys.privKeyHex) {
     throw new Error('No Nostr private key available')
   }
-  const privKeyBytes = hexToBytes(state.keys.privKeyHex)
+  const privKeyBytes = hexToBytes(ws.keys.privKeyHex)
   const event = finalizeEvent({
     kind: 30078,
     created_at: Math.floor(Date.now() / 1000),
     tags: [
       ['d', 'paytaca:avatar'],
-      ['p', state.keys.pubKeyHex],
+      ['p', ws.keys.pubKeyHex],
     ],
     content: JSON.stringify({ name: 'Paytaca Avatar', data: { avatar: avatarDataUrl } }),
   }, privKeyBytes)
@@ -386,16 +527,17 @@ export async function publishAvatar ({ state, commit }, { avatarDataUrl }) {
  * Remove the published avatar by publishing an empty kind:30078 event.
  */
 export async function removeAvatar ({ state, commit }) {
-  if (!state.keys.privKeyHex) {
+  const ws = getWalletState(state)
+  if (!ws.keys.privKeyHex) {
     throw new Error('No Nostr private key available')
   }
-  const privKeyBytes = hexToBytes(state.keys.privKeyHex)
+  const privKeyBytes = hexToBytes(ws.keys.privKeyHex)
   const event = finalizeEvent({
     kind: 30078,
     created_at: Math.floor(Date.now() / 1000),
     tags: [
       ['d', 'paytaca:avatar'],
-      ['p', state.keys.pubKeyHex],
+      ['p', ws.keys.pubKeyHex],
     ],
     content: JSON.stringify({ name: 'Paytaca Avatar', data: {} }),
   }, privKeyBytes)
@@ -414,14 +556,26 @@ export async function removeAvatar ({ state, commit }) {
  * Fetch a user's published avatar from relays.
  * Returns the avatar data URL string or null if not found.
  */
-export async function fetchPublishedAvatar ({ state }, { pubKeyHex }) {
+export async function fetchPublishedAvatar ({ state, commit }, { pubKeyHex }) {
+  const ws = getWalletState(state)
   if (!pubKeyHex) throw new Error('pubKeyHex is required')
 
+  const cached = ws.avatarCache?.[pubKeyHex]
+  const CACHE_TTL = 3600000 // 1 hour
+
+  if (cached?.avatar && (Date.now() - cached.fetchedAt) < CACHE_TTL) {
+    return cached.avatar
+  }
+
   const event = await relayService.fetchAvatar(state.relays, pubKeyHex)
-  if (!event) return null
+  if (!event) {
+    if (cached?.avatar) return cached.avatar
+    return null
+  }
 
   if (!verifyEvent(event)) {
     console.warn('[Nostr] Avatar event failed signature verification')
+    if (cached?.avatar) return cached.avatar
     return null
   }
 
@@ -430,20 +584,26 @@ export async function fetchPublishedAvatar ({ state }, { pubKeyHex }) {
     parsed = JSON.parse(event.content || '{}')
   } catch {
     console.warn('[Nostr] Avatar event has invalid JSON content')
+    if (cached?.avatar) return cached.avatar
     return null
   }
 
   const avatar = parsed?.data?.avatar?.trim()
-  if (!avatar) return null
+  if (!avatar) {
+    if (cached?.avatar) return cached.avatar
+    return null
+  }
 
   console.log('[Nostr] Found avatar')
+  commit('CACHE_AVATAR', { pubKeyHex, avatar })
   return avatar
 }
 
 export async function publishKind10050 ({ state }) {
-  if (!state.keys.privKeyHex) return
+  const ws = getWalletState(state)
+  if (!ws.keys.privKeyHex) return
   try {
-    const kind10050 = createKind10050(state.relays, state.keys.privKeyHex)
+    const kind10050 = createKind10050(state.relays, ws.keys.privKeyHex)
     const { accepted } = await relayService.publishEvent(state.relays, kind10050)
     if (accepted.length === 0) {
       console.warn('[Nostr] kind:10050 was not accepted by any relay — other clients may not be able to reply')
@@ -453,14 +613,15 @@ export async function publishKind10050 ({ state }) {
   }
 }
 
-export async function fetchHistoricalMessages ({ state, dispatch }) {
-  if (!state.keys.pubKeyHex) return
+export async function fetchHistoricalMessages ({ state, dispatch, commit }) {
+  const ws = getWalletState(state)
+  if (!ws?.keys?.pubKeyHex) return
   try {
-    await relayService.fetchHistoricalGiftWraps(DISCOVERY_RELAYS, state.keys.pubKeyHex, {
+    await relayService.fetchHistoricalGiftWraps(DISCOVERY_RELAYS, ws.keys.pubKeyHex, {
       async onEvent(event) {
         try {
           const { unwrapGiftWrap } = await import('src/wallet/nostr')
-          const { rumor, sealPubkey } = unwrapGiftWrap(event, state.keys.privKeyHex)
+          const { rumor, sealPubkey } = unwrapGiftWrap(event, ws.keys.privKeyHex)
           dispatch('receiveMessage', { rumor, sealPubkey })
         } catch (err) {
           console.warn('[Nostr] Failed to unwrap historical gift-wrap:', err)
@@ -469,6 +630,14 @@ export async function fetchHistoricalMessages ({ state, dispatch }) {
     })
   } catch (err) {
     console.warn('[Nostr] Failed to fetch historical messages:', err)
+  }
+
+  // Clean up deletedRooms entries for rooms that were restored during the historical fetch.
+  // This allows future live messages to apply subject updates normally.
+  for (const roomId of Object.keys(ws.deletedRooms || {})) {
+    if (ws.rooms.some(r => r.id === roomId)) {
+      commit('DELETE_ROOM_TRACKER', roomId)
+    }
   }
 }
 
@@ -504,10 +673,11 @@ export function removeContact ({ commit }, npub) {
 }
 
 export function createPrivateRoom ({ commit, getters, state }, contactNpub) {
+  const ws = getWalletState(state)
   const contact = getters.getContactByNpub(contactNpub)
   if (!contact) throw new Error('Contact not found')
 
-  const myPubKey = state.keys.pubKeyHex
+  const myPubKey = ws.keys.pubKeyHex
   const roomId = computeRoomId([myPubKey, contact.pubKeyHex])
 
   const room = {
@@ -527,7 +697,8 @@ export function createPrivateRoom ({ commit, getters, state }, contactNpub) {
 const MAX_GROUP_MEMBERS = 10
 
 export async function createGroupRoom ({ commit, state }, { name, members, subject }) {
-  const myPubKey = state.keys.pubKeyHex
+  const ws = getWalletState(state)
+  const myPubKey = ws.keys.pubKeyHex
   // Convert any npubs to hex pubkeys
   const memberHexes = members.map(m => {
     if (m.startsWith('npub1')) {
@@ -557,8 +728,9 @@ export async function createGroupRoom ({ commit, state }, { name, members, subje
 }
 
 export async function publishGroupMetadata ({ state }, { roomId, memberPubKeys, name }) {
-  const myPubKey = state.keys.pubKeyHex
-  const myPrivKey = state.keys.privKeyHex
+  const ws = getWalletState(state)
+  const myPubKey = ws.keys.pubKeyHex
+  const myPrivKey = ws.keys.privKeyHex
   if (!myPubKey || !myPrivKey) throw new Error('Not authenticated')
 
   const privKeyBytes = hexToBytes(myPrivKey)
@@ -596,8 +768,9 @@ export async function fetchGroupMetadata ({ state }, { roomId }) {
 }
 
 export async function requestToJoinGroup ({ state }, { roomId, memberPubKeys, name }) {
-  const myPubKey = state.keys.pubKeyHex
-  const myPrivKey = state.keys.privKeyHex
+  const ws = getWalletState(state)
+  const myPubKey = ws.keys.pubKeyHex
+  const myPrivKey = ws.keys.privKeyHex
   if (!myPubKey || !myPrivKey) throw new Error('Not authenticated')
 
   const existingMembers = memberPubKeys.filter(pk => pk !== myPubKey)
@@ -619,11 +792,12 @@ export async function requestToJoinGroup ({ state }, { roomId, memberPubKeys, na
 }
 
 export async function sendMessage ({ state }, { roomId, text, replyTo, subject }) {
-  const room = state.rooms.find(r => r.id === roomId)
+  const ws = getWalletState(state)
+  const room = ws.rooms.find(r => r.id === roomId)
   if (!room) throw new Error('Room not found')
 
-  const senderPrivKey = state.keys.privKeyHex
-  const senderPubKey = state.keys.pubKeyHex
+  const senderPrivKey = ws.keys.privKeyHex
+  const senderPubKey = ws.keys.pubKeyHex
 
   // Ensure members are hex pubkeys (convert any npubs)
   const memberHexes = room.members.map(m => {
@@ -642,7 +816,7 @@ export async function sendMessage ({ state }, { roomId, text, replyTo, subject }
     subject,
   })
 
-  const giftWraps = await createNip17GiftWraps(unsignedKind14, senderPrivKey, memberHexes)
+  const giftWraps = await createNip17GiftWraps(unsignedKind14, senderPrivKey, memberHexes, senderPubKey)
   console.log('[sendMessage] created', giftWraps.length, 'gift-wraps for room', roomId, 'members:', memberHexes)
 
   const message = {
@@ -659,11 +833,12 @@ export async function sendMessage ({ state }, { roomId, text, replyTo, subject }
 }
 
 export async function sendEditMessage ({ state }, { roomId, text, editOf }) {
-  const room = state.rooms.find(r => r.id === roomId)
+  const ws = getWalletState(state)
+  const room = ws.rooms.find(r => r.id === roomId)
   if (!room) throw new Error('Room not found')
 
-  const senderPrivKey = state.keys.privKeyHex
-  const senderPubKey = state.keys.pubKeyHex
+  const senderPrivKey = ws.keys.privKeyHex
+  const senderPubKey = ws.keys.pubKeyHex
 
   const memberHexes = room.members.map(m => {
     if (m.startsWith('npub1')) {
@@ -680,7 +855,7 @@ export async function sendEditMessage ({ state }, { roomId, text, editOf }) {
     editOf,
   })
 
-  const giftWraps = await createNip17GiftWraps(unsignedKind14, senderPrivKey, memberHexes)
+  const giftWraps = await createNip17GiftWraps(unsignedKind14, senderPrivKey, memberHexes, senderPubKey)
 
   const message = {
     id: unsignedKind14.id,
@@ -696,11 +871,12 @@ export async function sendEditMessage ({ state }, { roomId, text, editOf }) {
 }
 
 export async function sendDeleteMessage ({ state }, { roomId, messageId }) {
-  const room = state.rooms.find(r => r.id === roomId)
+  const ws = getWalletState(state)
+  const room = ws.rooms.find(r => r.id === roomId)
   if (!room) throw new Error('Room not found')
 
-  const senderPrivKey = state.keys.privKeyHex
-  const senderPubKey = state.keys.pubKeyHex
+  const senderPrivKey = ws.keys.privKeyHex
+  const senderPubKey = ws.keys.pubKeyHex
 
   const memberHexes = room.members.map(m => {
     if (m.startsWith('npub1')) {
@@ -731,11 +907,12 @@ export async function sendDeleteMessage ({ state }, { roomId, messageId }) {
  * @returns {Promise<{ giftWraps: any[], message: any, roomId: string }>}
  */
 export async function sendFileMessage ({ state }, { roomId, file, replyTo, onProgress, signal }) {
-  const room = state.rooms.find(r => r.id === roomId)
+  const ws = getWalletState(state)
+  const room = ws.rooms.find(r => r.id === roomId)
   if (!room) throw new Error('Room not found')
 
-  const senderPrivKey = state.keys.privKeyHex
-  const senderPubKey = state.keys.pubKeyHex
+  const senderPrivKey = ws.keys.privKeyHex
+  const senderPubKey = ws.keys.pubKeyHex
 
   const memberHexes = room.members.map(m => {
     if (m.startsWith('npub1')) {
@@ -774,7 +951,7 @@ export async function sendFileMessage ({ state }, { roomId, file, replyTo, onPro
     replyTo,
   })
 
-  const giftWraps = await wrapKind15FileMessage(kind15Event, senderPrivKey, memberHexes)
+  const giftWraps = await wrapKind15FileMessage(kind15Event, senderPrivKey, memberHexes, senderPubKey)
   console.log('[sendFileMessage] created', giftWraps.length, 'gift-wraps for room', roomId, 'members:', memberHexes)
 
   if (onProgress) onProgress(0.95)
@@ -803,11 +980,12 @@ export async function sendFileMessage ({ state }, { roomId, file, replyTo, onPro
 }
 
 export async function sendReaction ({ state, commit }, { roomId, messageId, emoji }) {
-  const room = state.rooms.find(r => r.id === roomId)
+  const ws = getWalletState(state)
+  const room = ws.rooms.find(r => r.id === roomId)
   if (!room) throw new Error('Room not found')
 
-  const reactorPrivKey = state.keys.privKeyHex
-  const reactorPubKey = state.keys.pubKeyHex
+  const reactorPrivKey = ws.keys.privKeyHex
+  const reactorPubKey = ws.keys.pubKeyHex
 
   // Convert npubs to hex and find other members (for group chats)
   const memberHexes = room.members.map(m => {
@@ -818,7 +996,7 @@ export async function sendReaction ({ state, commit }, { roomId, messageId, emoj
     return m
   })
   // Look up the actual message sender from the message being reacted to
-  const messages = state.messages[roomId] || []
+  const messages = ws.messages[roomId] || []
   const originalMessage = messages.find(m => m.id === messageId)
   const senderPubKey = originalMessage?.sender || memberHexes.find(m => m !== reactorPubKey) || reactorPubKey
 
@@ -845,11 +1023,12 @@ export async function sendReaction ({ state, commit }, { roomId, messageId, emoj
 }
 
 export async function removeReaction ({ state, commit }, { roomId, messageId, emoji }) {
-  const room = state.rooms.find(r => r.id === roomId)
+  const ws = getWalletState(state)
+  const room = ws.rooms.find(r => r.id === roomId)
   if (!room) throw new Error('Room not found')
 
-  const reactorPrivKey = state.keys.privKeyHex
-  const reactorPubKey = state.keys.pubKeyHex
+  const reactorPrivKey = ws.keys.privKeyHex
+  const reactorPubKey = ws.keys.pubKeyHex
 
   const memberHexes = room.members.map(m => {
     if (m.startsWith('npub1')) {
@@ -859,7 +1038,7 @@ export async function removeReaction ({ state, commit }, { roomId, messageId, em
     return m
   })
   // Look up the actual message sender from the message being un-reacted to
-  const messages = state.messages[roomId] || []
+  const messages = ws.messages[roomId] || []
   const originalMessage = messages.find(m => m.id === messageId)
   const senderPubKey = originalMessage?.sender || memberHexes.find(m => m !== reactorPubKey) || reactorPubKey
 
@@ -885,13 +1064,14 @@ export async function removeReaction ({ state, commit }, { roomId, messageId, em
 }
 
 export async function publishGiftWraps ({ state }, { giftWraps }) {
+  const ws = getWalletState(state)
   // Start with our own relays as fallback
   let targetRelays = new Set(state.relays)
 
   // Fetch each recipient's kind:10050 in parallel and add their preferred relays
   const recipients = giftWraps
     .map(gw => gw.tags.find(t => t[0] === 'p')?.[1])
-    .filter(r => r && r !== state.keys.pubKeyHex)
+    .filter(r => r && r !== ws.keys.pubKeyHex)
   const uniqueRecipients = [...new Set(recipients)]
   const results = await Promise.allSettled(
     uniqueRecipients.map(recipient => relayService.fetchKind10050(state.relays, recipient))
@@ -914,10 +1094,17 @@ export async function publishGiftWraps ({ state }, { giftWraps }) {
 }
 
 export function receiveMessage ({ commit, state }, { rumor, sealPubkey }) {
+  const ws = getWalletState(state)
   // NIP-17 seal pubkey verification is performed inside unwrapGiftWrap().
   // If we reach here, the rumor has already been verified.
 
-  const myPubKey = state.keys.pubKeyHex
+  // nip59.unwrapEvent returns unsigned rumors without an `id` field.
+  // Compute it so message-based dedup (deletedRooms.knownMessageIds) works.
+  if (!rumor.id) {
+    rumor.id = getEventHash(rumor)
+  }
+
+  const myPubKey = ws.keys.pubKeyHex
 
   // Handle Kind 7 read receipts (👀 reactions)
   if (rumor.kind === 7 && rumor.content === '👀') {
@@ -930,8 +1117,8 @@ export function receiveMessage ({ commit, state }, { rumor, sealPubkey }) {
     if (messageId && readerPubKey) {
       // Find the room that contains this message — avoids assuming a 2-person room,
       // which breaks for group chats where computeRoomId needs all member pubkeys.
-      const roomId = Object.keys(state.messages).find(
-        rid => state.messages[rid]?.some(m => m.id === messageId)
+      const roomId = Object.keys(ws.messages).find(
+        rid => ws.messages[rid]?.some(m => m.id === messageId)
       )
       if (roomId) {
         commit('SET_MESSAGE_READ_BY', {
@@ -957,8 +1144,8 @@ export function receiveMessage ({ commit, state }, { rumor, sealPubkey }) {
     if (messageId && reactorPubKey && content) {
       // Find the room that contains this message — avoids assuming a 2-person room,
       // which breaks for group chats where computeRoomId needs all member pubkeys.
-      const roomId = Object.keys(state.messages).find(
-        rid => state.messages[rid]?.some(m => m.id === messageId)
+      const roomId = Object.keys(ws.messages).find(
+        rid => ws.messages[rid]?.some(m => m.id === messageId)
       )
       if (!roomId) return
 
@@ -1009,9 +1196,11 @@ export function receiveMessage ({ commit, state }, { rumor, sealPubkey }) {
     const roomMembers = [...new Set([myPubKey, rumor.pubkey, ...pTags])]
     const roomId = computeRoomId(roomMembers)
 
-    let room = state.rooms.find(r => r.id === roomId)
+    let room = ws.rooms.find(r => r.id === roomId)
     if (!room) {
-      if (state.blockedContacts?.includes(rumor.pubkey)) return
+      if (ws.blockedContacts?.includes(rumor.pubkey)) return
+      const deletedEntry = ws.deletedRooms?.[roomId]
+      if (deletedEntry?.knownMessageIds?.[rumor.id]) return
       const isGroup = roomMembers.length > 2
       const contact = state.contacts.find(c => c.pubKeyHex === rumor.pubkey)
       room = {
@@ -1024,6 +1213,7 @@ export function receiveMessage ({ commit, state }, { rumor, sealPubkey }) {
         updatedAt: rumor.created_at,
       }
       commit('ADD_ROOM', room)
+      if (ws.deletedRooms?.[roomId]) commit('DELETE_ROOM_TRACKER', roomId)
     } else if (room.type !== 'group' && roomMembers.length > 2) {
       commit('UPDATE_ROOM_TYPE', { roomId, type: 'group' })
     }
@@ -1066,15 +1256,17 @@ export function receiveMessage ({ commit, state }, { rumor, sealPubkey }) {
   const roomMembers = [...new Set([myPubKey, rumor.pubkey, ...pTags])]
   const roomId = computeRoomId(roomMembers)
 
-  let room = state.rooms.find(r => r.id === roomId)
+  let room = ws.rooms.find(r => r.id === roomId)
   if (!room) {
     // Before creating a new room, check if an existing room has the same member set
     // (handles the case where a room was previously stored under a different ID)
     const memberKey = roomMembers.slice().sort().join(',')
-    const existingByMembers = state.rooms.find(r =>
+    const existingByMembers = ws.rooms.find(r =>
       (r.members || []).slice().sort().join(',') === memberKey
     )
     if (existingByMembers) {
+      const deletedEntry = ws.deletedRooms?.[existingByMembers.id]
+      if (deletedEntry?.knownMessageIds?.[rumor.id]) return
       // Reuse the existing room — store the message under its ID
       room = existingByMembers
       const replyTo = rumor.tags.find(t => t[0] === 'e')?.[1] || null
@@ -1084,7 +1276,7 @@ export function receiveMessage ({ commit, state }, { rumor, sealPubkey }) {
       if (hasSubjectTag && room.subject !== subject && rumor.created_at >= (room.updatedAt || 0)) {
         commit('UPDATE_ROOM_SUBJECT', { roomId: room.id, subject: subject || null })
         if (!subject && room.type !== 'group') {
-          const memberPubKeys = (room.members || []).filter(pk => pk !== state.keys?.pubKeyHex)
+          const memberPubKeys = (room.members || []).filter(pk => pk !== ws.keys?.pubKeyHex)
           const otherPubKey = memberPubKeys[0]
           const contact = state.contacts.find(c => c.pubKeyHex === otherPubKey)
           if (contact?.name) {
@@ -1106,7 +1298,10 @@ export function receiveMessage ({ commit, state }, { rumor, sealPubkey }) {
     }
 
     // Skip auto-creation if the sender is blocked
-    if (state.blockedContacts?.includes(rumor.pubkey)) return
+    if (ws.blockedContacts?.includes(rumor.pubkey)) return
+
+    const deletedEntry = ws.deletedRooms?.[roomId]
+    if (deletedEntry?.knownMessageIds?.[rumor.id]) return
 
     const isGroup = roomMembers.length > 2
     const contact = state.contacts.find(c => c.pubKeyHex === rumor.pubkey)
@@ -1134,10 +1329,11 @@ export function receiveMessage ({ commit, state }, { rumor, sealPubkey }) {
   // Only apply subject changes from messages that are not older than the
   // room's current updatedAt. This prevents old messages from re-applying
   // a subject that was cleared/updated by a newer local action.
-  if (hasSubjectTag && room.subject !== subject && rumor.created_at >= (room.updatedAt || 0)) {
+  // Also skip subject updates while the room is in deletedRooms (restored from delete).
+  if (hasSubjectTag && room.subject !== subject && rumor.created_at >= (room.updatedAt || 0) && !ws.deletedRooms?.[roomId]) {
     commit('UPDATE_ROOM_SUBJECT', { roomId, subject: subject || null })
     if (!subject && room.type !== 'group') {
-      const memberPubKeys = (room.members || []).filter(pk => pk !== state.keys?.pubKeyHex)
+      const memberPubKeys = (room.members || []).filter(pk => pk !== ws.keys?.pubKeyHex)
       const otherPubKey = memberPubKeys[0]
       const contact = state.contacts.find(c => c.pubKeyHex === otherPubKey)
       if (contact?.name) {
@@ -1147,16 +1343,16 @@ export function receiveMessage ({ commit, state }, { rumor, sealPubkey }) {
   }
 
   if (editOf) {
-    const originalMsg = (state.messages[roomId] || []).find(m => m.id === editOf)
+    const originalMsg = (ws.messages[roomId] || []).find(m => m.id === editOf)
     if (originalMsg) {
       commit('UPDATE_MESSAGE', { roomId, messageId: editOf, newContent: rumor.content })
       return
     }
     // Original message not found in this room (e.g., deep pagination).
     // Search across all rooms before falling through to insert as new.
-    for (const otherRoomId of Object.keys(state.messages)) {
+    for (const otherRoomId of Object.keys(ws.messages)) {
       if (otherRoomId === roomId) continue
-      const otherMsg = state.messages[otherRoomId]?.find(m => m.id === editOf)
+      const otherMsg = ws.messages[otherRoomId]?.find(m => m.id === editOf)
       if (otherMsg) {
         commit('UPDATE_MESSAGE', { roomId: otherRoomId, messageId: editOf, newContent: rumor.content })
         return
@@ -1182,16 +1378,17 @@ export function receiveMessage ({ commit, state }, { rumor, sealPubkey }) {
 }
 
 export async function markRoomAsRead ({ commit, state }, roomId) {
-  const myPubKey = state.keys.pubKeyHex
-  const myPrivKey = state.keys.privKeyHex
+  const ws = getWalletState(state)
+  const myPubKey = ws.keys.pubKeyHex
+  const myPrivKey = ws.keys.privKeyHex
   if (!myPubKey || !myPrivKey) return
 
-  const messages = state.messages[roomId] || []
-  const room = state.rooms.find(r => r.id === roomId)
+  const messages = ws.messages[roomId] || []
+  const room = ws.rooms.find(r => r.id === roomId)
   if (!room) return
 
   // Find messages sent by the OTHER person that we haven't read yet
-  const readIds = state.readMessageIds?.[roomId] || {}
+  const readIds = ws.readMessageIds?.[roomId] || {}
   const unreadMessages = messages.filter(
     m => m.sender !== myPubKey && !readIds[m.id]
   )
@@ -1231,7 +1428,8 @@ export async function markRoomAsRead ({ commit, state }, roomId) {
 }
 
 export function subscribeToRelays ({ state, dispatch, commit }) {
-  const myPubKey = state.keys.pubKeyHex
+  const ws = getWalletState(state)
+  const myPubKey = ws.keys.pubKeyHex
   if (!myPubKey) return
 
   const wasSubscribed = relayService.isSubscribed()
@@ -1239,7 +1437,7 @@ export function subscribeToRelays ({ state, dispatch, commit }) {
     async onEvent(event) {
       try {
         const { unwrapGiftWrap } = await import('src/wallet/nostr')
-        const { rumor, sealPubkey } = unwrapGiftWrap(event, state.keys.privKeyHex)
+        const { rumor, sealPubkey } = unwrapGiftWrap(event, ws.keys.privKeyHex)
         dispatch('receiveMessage', { rumor, sealPubkey })
       } catch (err) {
         console.warn('[Nostr] Failed to unwrap gift-wrap:', err)
@@ -1277,13 +1475,16 @@ export function ensureSubscribed ({ dispatch, getters }) {
   dispatch('registerNostrPubkey')
 
   // Skip if already subscribed and not stale
-  if (relayService.isSubscribed() && getters['isInitialized']) return
+  if (relayService.isSubscribed() && getters['isInitialized'] && getters['myPrivKey']) return
 
-  // Ensure we have an active relay subscription,
-  // especially after the app has been backgrounded or a push arrives.
-  if (!getters['isInitialized']) {
+  // Ensure we have keys (including privKeyHex which is stripped from persisted state)
+  // and an active relay subscription, especially after app backgrounding or push
+  if (!getters['isInitialized'] || !getters['myPrivKey']) {
     dispatch('initialize').then(() => {
       dispatch('subscribeToRelays')
+    }).catch(err => {
+      console.warn('[Nostr] Failed to initialize, clearing cooldown for retry:', err)
+      _lastEnsureTime = 0
     })
   } else {
     dispatch('subscribeToRelays')
@@ -1294,4 +1495,30 @@ export function disconnectRelays ({ commit }) {
   relayService.stopStatusPolling()
   relayService.disconnect()
   commit('SET_SUBSCRIBED', false)
+}
+
+export async function resetAndRefetch ({ commit, dispatch, state }) {
+  const ws = getWalletState(state)
+  if (!ws.keys?.pubKeyHex) {
+    console.warn('[Nostr] Cannot reset: no wallet keys')
+    return
+  }
+
+  // Disconnect existing relay subscriptions
+  relayService.stopStatusPolling()
+  relayService.disconnect()
+  commit('SET_SUBSCRIBED', false)
+
+  // Clear IndexedDB image cache
+  await clearChatCache().catch(err => console.warn('Failed to clear chat cache during reset:', err))
+
+  // Reset per-wallet chat data (rooms, messages, reactions, caches, etc.)
+  // Keeps keys and profile so we don't need to re-derive or re-fetch profile
+  commit('RESET_WALLET_CHAT_DATA')
+
+  // Re-fetch historical messages from relays
+  await dispatch('fetchHistoricalMessages')
+
+  // Re-subscribe to relays for live messages
+  dispatch('subscribeToRelays')
 }

@@ -22,9 +22,10 @@
           <q-avatar
             size="64px"
             class="dm-avatar"
-            :style="{ background: `linear-gradient(135deg, ${themeColor}, ${themeColor}dd)` }"
+            :style="{ background: avatarUrl ? 'transparent' : `linear-gradient(135deg, ${themeColor}, ${themeColor}dd)` }"
           >
-            <span class="avatar-initial">{{ contactInitial }}</span>
+            <img v-if="avatarUrl" :src="avatarUrl" style="width:100%;height:100%;object-fit:cover;border-radius:50%" />
+            <span v-else class="avatar-initial">{{ contactInitial }}</span>
           </q-avatar>
           <div class="contact-name-display">{{ contactDisplayName }}</div>
           <div class="contact-npub">{{ shortNpub }}</div>
@@ -196,6 +197,7 @@ import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 import HeaderNav from 'src/components/header-nav.vue'
 import { npubEncode } from 'nostr-tools/nip19'
 import { copyToClipboard } from 'quasar'
+import { getCachedAvatar, setCachedAvatar } from 'src/utils/avatar-cache'
 
 export default {
   name: 'DmInfo',
@@ -212,6 +214,7 @@ export default {
       editingContactName: false,
       editContactNameValue: '',
       fetchedContactDisplayName: null,
+      otherMemberAvatar: null,
     }
   },
   computed: {
@@ -246,6 +249,9 @@ export default {
     contactInitial () {
       return this.contactDisplayName.charAt(0).toUpperCase() || '?'
     },
+    avatarUrl () {
+      return this.otherMemberAvatar || (this.otherMemberPubKey ? getCachedAvatar(this.otherMemberPubKey) : null)
+    },
     shortNpub () {
       const npub = this.otherMemberNpub
       return npub ? npub.slice(0, 18) + '...' : ''
@@ -263,6 +269,21 @@ export default {
     },
   },
   watch: {
+    otherMemberPubKey: {
+      handler (pubKey) {
+        if (!pubKey) return
+        this.otherMemberAvatar = getCachedAvatar(pubKey)
+        this.$store.dispatch('nostrChat/fetchPublishedAvatar', { pubKeyHex: pubKey })
+          .then(avatar => {
+            if (avatar) {
+              setCachedAvatar(pubKey, avatar)
+              this.otherMemberAvatar = avatar
+            }
+          })
+          .catch(() => {})
+      },
+      immediate: true,
+    },
     room (val) {
       if (!val) {
         this.$router.replace('/apps/chat')
@@ -299,6 +320,7 @@ export default {
       this.$q.dialog({
         title: this.$t('ClearSubjectTitle', {}, 'Clear subject'),
         message: this.$t('ClearSubjectConfirm', {}, 'Are you sure you want to clear the subject?'),
+        class: `pt-card text-bow ${this.getDarkModeClass(this.darkMode)}`,
         cancel: true,
         persistent: true,
       }).onOk(() => {

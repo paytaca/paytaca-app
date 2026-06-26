@@ -417,6 +417,8 @@ export default {
       groupName: '',
       selectedMemberNpubs: [],
       fetchedContactDisplayName: null,
+      _profilePromptShown: false,
+      _pollTimer: null,
     }
   },
   computed: {
@@ -435,7 +437,7 @@ export default {
       return this.$store.getters['nostrChat/getArchivedRooms']
     },
     messages () {
-      return this.$store.state.nostrChat.messages
+      return this.$store.getters['nostrChat/getAllMessages']
     },
     contacts () {
       return this.$store.getters['nostrChat/getContacts']
@@ -460,6 +462,30 @@ export default {
         return this.$t('NewPrivateGroup', {}, 'New Private Group')
       }
       return this.$t('NewChat', {}, 'New Chat')
+    },
+    missingProfileItems () {
+      const items = []
+      if (!this.$store.getters['nostrChat/getProfile']?.displayName) {
+        items.push(this.$t('DisplayName', {}, 'Display Name'))
+      }
+      if (!this.$store.getters['nostrChat/getProfile']?.bchAddress) {
+        items.push(this.$t('BchAddress', {}, 'BCH Address'))
+      }
+      return items
+    },
+    isProfileIncomplete () {
+      return this.missingProfileItems.length > 0
+    },
+    profilePromptMessage () {
+      const items = this.missingProfileItems
+      const suffix = this.$t('ProfilePromptAvatarHint', {}, ' You can also set a display image so others can recognize you.')
+      if (items.length === 2) {
+        return this.$t('ProfilePromptBothMissing', { displayName: items[0], bchAddress: items[1] }, `Set your ${items[0]} and ${items[1]} so others can identify you and send you payments.`) + suffix
+      }
+      if (items.length === 1) {
+        return this.$t('ProfilePromptOneMissing', { item: items[0] }, `Set your ${items[0]} so others can identify you and send you payments.`) + suffix
+      }
+      return ''
     },
   },
   watch: {
@@ -529,7 +555,7 @@ export default {
         this.selectedChatType = 'dm'
         this.dialogTab = 'add'
         this.showNewChatDialog = true
-      } else if (this.$store.state.nostrChat.initialized) {
+      } else if (this.$store.getters['nostrChat/isInitialized']) {
         // Existing contact + store already initialized — open chat immediately
         this.startChatWith(contact)
       }
@@ -546,6 +572,12 @@ export default {
       if (scannedNpub && this.$route.query.npub) {
         this.handleScannedNpub(scannedNpub)
       }
+
+      // Show profile setup prompt if profile is incomplete.
+      // Poll periodically to allow background retry fetch from initialize() to complete.
+      if (!this._profilePromptShown && this.isProfileIncomplete) {
+        this._pollProfileCheck(5)
+      }
     } catch (err) {
       console.error('Failed to initialize Nostr chat:', err)
       this.$q.notify({
@@ -555,10 +587,43 @@ export default {
     }
   },
   beforeUnmount () {
+    clearTimeout(this._pollTimer)
     // Keep subscription alive for background messages
   },
   methods: {
     getDarkModeClass,
+    _pollProfileCheck (remaining) {
+      if (this._profilePromptShown) return
+      if (!this.isProfileIncomplete) return
+      if (remaining <= 0) {
+        this.showProfilePrompt()
+        return
+      }
+      this._pollTimer = setTimeout(() => this._pollProfileCheck(remaining - 1), 2000)
+    },
+    showProfilePrompt () {
+      const message = this.profilePromptMessage
+      if (!message) return
+      this._profilePromptShown = true
+      this.$q.dialog({
+        title: this.$t('CompleteYourProfile', {}, 'Complete Your Profile'),
+        message,
+        class: `pt-card text-bow ${this.getDarkModeClass(this.darkMode)}`,
+        cancel: {
+          label: this.$t('Later', {}, 'Later'),
+          flat: true,
+          color: 'grey',
+        },
+        ok: {
+          label: this.$t('SetUpNow', {}, 'Set Up Now'),
+          color: 'primary',
+          flat: true,
+        },
+        persistent: true,
+      }).onOk(() => {
+        this.$router.push('/apps/chat/profile')
+      })
+    },
     selectChatType (type) {
       this.selectedChatType = type
       if (type === 'dm') {
@@ -592,7 +657,7 @@ export default {
     totalUnreadFor (rooms) {
       const myPubKey = this.$store.getters['nostrChat/myPubKey']
       if (!myPubKey) return 0
-      const readIdsMap = this.$store.state.nostrChat.readMessageIds || {}
+      const readIdsMap = this.$store.getters['nostrChat/getReadMessageIds']
       let total = 0
       for (const room of rooms) {
         const msgs = this.messages[room.id] || []
@@ -657,6 +722,7 @@ export default {
         persistent: true,
       }).onOk(() => {
         this.$store.commit('nostrChat/BLOCK_CONTACT', otherPubKey)
+        this.$store.commit('nostrChat/ARCHIVE_ROOM', roomId)
         this.$q.notify({
           type: 'info',
           message: this.$t('ContactBlocked', {}, 'Contact blocked'),
@@ -688,6 +754,7 @@ export default {
         persistent: true,
       }).onOk(() => {
         this.$store.commit('nostrChat/UNBLOCK_CONTACT', otherPubKey)
+        this.$store.commit('nostrChat/UNARCHIVE_ROOM', roomId)
         this.$q.notify({
           type: 'positive',
           message: this.$t('ContactUnblocked', {}, 'Contact unblocked'),
@@ -849,10 +916,10 @@ export default {
     },
     getRoomDisplayName (room) {
       const myPubKey = this.$store.getters['nostrChat/myPubKey']
-      if (!myPubKey) return room.subject || room.name || 'Chat'
+      if (!myPubKey) return room.subject || room.name || this.$t('Chat')
 
       const otherPubKey = room.members?.find(m => m !== myPubKey)
-      if (!otherPubKey) return room.subject || room.name || 'Chat'
+      if (!otherPubKey) return room.subject || room.name || this.$t('Chat')
 
       // If a subject has been set, use it as the conversation name
       if (room.subject) return room.subject
@@ -861,7 +928,7 @@ export default {
       try {
         otherNpub = npubEncode(otherPubKey)
       } catch {
-        return room.name || 'Chat'
+        return room.name || this.$t('Chat')
       }
 
       const contact = this.$store.getters['nostrChat/getContactByNpub'](otherNpub)

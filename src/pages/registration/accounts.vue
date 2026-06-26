@@ -231,7 +231,7 @@
         rounded
         :label="$t('Continue')"
         class="q-mt-lg full-width primary-cta bg-grad"
-        @click="goToStep6"
+        @click="goToStep5"
       />
     </div>
 
@@ -1315,6 +1315,15 @@ export default {
         
         vm.saveToVault()
         
+        // Initialize nostr chat per-wallet state for the new wallet and reinitialize
+        const newWalletHash = vm.$store.getters['global/getWallet']('bch')?.walletHash
+        if (newWalletHash) {
+          vm.$store.commit('nostrChat/initializeWalletState', newWalletHash)
+        }
+        vm.$store.dispatch('nostrChat/reinitialize').catch(err => {
+          console.warn('Nostr chat reinit failed after wallet creation:', err)
+        })
+        
         // Sync wallet name after saving to vault (for imported wallets)
         const walletIndex = vm.$store.getters['global/getWalletIndex']
         if (walletIndex >= 0) {
@@ -1827,7 +1836,7 @@ export default {
       if (this.importSeedPhrase && this.restoreStep === 3) {
         this.$router.push('/accounts/restore/step-4')
       } else {
-        this.$router.push('/accounts/create/step-4')
+        this.$router.push('/accounts/create/step-3')
       }
     },
     goToStep4 () {
@@ -1841,10 +1850,7 @@ export default {
     goToStep5 () {
       this.$router.push('/accounts/create/step-6')
     },
-    goToStep6 () {
-      // This is the final step - no navigation needed, handled by setupSecurity
-      console.log('[Step 6] Security setup step reached')
-    },
+
     setupSecurity (authType) {
       // Prevent multiple calls
       if (this.isRedirecting) return

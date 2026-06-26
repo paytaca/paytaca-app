@@ -9,14 +9,14 @@
         <q-separator />
 
         <q-card-section class="pt-label" :class="getDarkModeClass(darkMode)">
-          <label>{{$t('AssetRemovalText') }}</label>
+          <label>{{$t('AssetHideText', {}, 'Do you want to hide this asset from your list? You can unhide it later.') }}</label>
         </q-card-section>
 
         <q-separator class="q-mb-sm" />
 
         <q-card-actions align="right">
             <q-btn rounded class="button" padding="0.5em 1.5em 0.5em 1.5em" :label="$t('Continue')" @click="onOKClick" />
-            <q-btn rounded class="button" padding="0.5em 2em 0.5em 2em" flat :label="$t('Cancel')" @click="onCancelClick" />
+            <q-btn rounded class="button" padding="0.5em 2em 0.5em 2em" flat color="grey" :label="$t('Cancel')" @click="onCancelClick" />
         </q-card-actions>
     </q-card>
   </q-dialog>
