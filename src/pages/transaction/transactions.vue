@@ -195,9 +195,24 @@
 							<q-icon name="swap_horiz" size="18px" />
 							<span class="action-label">{{ $t('Swap') }}</span>
 						</q-btn>
+						<q-btn
+							v-else-if="selectedAsset.id === 'bch'"
+							@click="showAssetInfoChart"
+							unelevated
+							class="token-action-btn"
+							color="primary"
+							text-color="primary"
+							no-caps
+							outline
+						>
+							<q-icon name="show_chart" size="18px" />
+							<span class="action-label">{{ $t('Chart') }}</span>
+						</q-btn>
 					</div>
 				</div>
 			</div>
+
+			<asset-info ref="asset-info" :network="selectedNetwork"></asset-info>
 
 			<transaction
 			  ref="transaction"
@@ -291,6 +306,7 @@ import Transaction from '../../components/transaction'
 import TransactionList from 'src/components/transactions/TransactionList'
 import TransactionTimestampSettings from 'src/components/transactions/TransactionTimestampSettings.vue'
 import AssetListDialog from '../../pages/transaction/dialog/AssetListDialog.vue'
+import AssetInfo from '../../pages/transaction/dialog/AssetInfo.vue'
 import StablehedgeHistory from 'src/components/stablehedge/StablehedgeHistory.vue'
 import headerNav from 'src/components/header-nav'
 
@@ -474,6 +490,7 @@ export default {
 		StablehedgeHistory,
 		TransactionTimestampSettings,
 		AssetListDialog,
+		AssetInfo,
 		// assetList
 	},
 	async mounted () {				
@@ -1033,6 +1050,11 @@ this.$nextTick(() => {
 	          backPath: this.$route.fullPath
 	        }
 	      })
+	    },
+	    showAssetInfoChart () {
+	      if (this.$refs['asset-info']) {
+	        this.$refs['asset-info'].show(this.selectedAsset)
+	      }
 	    },
 	    hideAssetInfo () {
 	      try {
