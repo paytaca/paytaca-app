@@ -112,12 +112,12 @@ const useRelativeTxTimestamp = computed(() => Boolean($store.getters['global/rel
 
 const badgeColor = computed(() => {
   const themeMap = {
-    'glassmorphic-blue': 'blue-2',
-    'glassmorphic-green': 'green-2',
-    'glassmorphic-gold': 'amber-2',
-    'glassmorphic-red': 'pink-2'
+    'glassmorphic-blue': 'blue-3',
+    'glassmorphic-green': 'green-3',
+    'glassmorphic-gold': 'amber-3',
+    'glassmorphic-red': 'pink-3'
   }
-  return themeMap[theme.value] || 'grey-3'
+  return themeMap[theme.value] || 'grey-4'
 })
 
 const decryptedMemo = ref('')

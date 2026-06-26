@@ -848,12 +848,12 @@ export default {
     },
     badgeColor () {
       const themeMap = {
-        'glassmorphic-blue': 'blue-2',
-        'glassmorphic-green': 'green-2',
-        'glassmorphic-gold': 'amber-2',
-        'glassmorphic-red': 'pink-2'
+        'glassmorphic-blue': 'blue-3',
+        'glassmorphic-green': 'green-3',
+        'glassmorphic-gold': 'amber-3',
+        'glassmorphic-red': 'pink-3'
       }
-      return themeMap[this.theme] || 'grey-3'
+      return themeMap[this.theme] || 'grey-4'
     },
     wrapperBackgroundStyle () {
       const theme = this.theme
