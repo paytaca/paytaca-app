@@ -331,6 +331,30 @@ export function CACHE_AVATAR (state, { pubKeyHex, avatar }) {
   ws.avatarCache[pubKeyHex] = { avatar, fetchedAt: Date.now() }
 }
 
+export function CLEAR_CACHE_BCH_ADDRESS (state, { pubKeyHex }) {
+  const ws = getOrInitWalletState(state)
+  if (!ws) return
+  if (ws.bchAddressCache && pubKeyHex) {
+    delete ws.bchAddressCache[pubKeyHex]
+  }
+}
+
+export function CLEAR_CACHE_DISPLAY_NAME (state, { pubKeyHex }) {
+  const ws = getOrInitWalletState(state)
+  if (!ws) return
+  if (ws.displayNameCache && pubKeyHex) {
+    delete ws.displayNameCache[pubKeyHex]
+  }
+}
+
+export function CLEAR_CACHE_AVATAR (state, { pubKeyHex }) {
+  const ws = getOrInitWalletState(state)
+  if (!ws) return
+  if (ws.avatarCache && pubKeyHex) {
+    delete ws.avatarCache[pubKeyHex]
+  }
+}
+
 // ---- Per-wallet profile mutations ----
 
 export function SET_PROFILE_BCH_ADDRESS (state, { address, publishedAt }) {

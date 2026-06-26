@@ -418,7 +418,7 @@ export default {
       selectedMemberNpubs: [],
       fetchedContactDisplayName: null,
       _profilePromptShown: false,
-      _pollTimer: null,
+      _profilePromptTimer: null,
     }
   },
   computed: {
@@ -581,25 +581,23 @@ export default {
     }
 
     // Show profile setup prompt if profile is incomplete.
-    // Poll periodically to allow background retry fetch from initialize() to complete.
+    // Delay to allow any background profile fetch (with retries) to resolve first.
     if (!this._profilePromptShown && this.isProfileIncomplete) {
-      this._pollProfileCheck(5)
+      this._profilePromptTimer = setTimeout(() => {
+        this._checkAndShowProfilePrompt()
+      }, 6000)
     }
   },
   beforeUnmount () {
-    clearTimeout(this._pollTimer)
+    clearTimeout(this._profilePromptTimer)
     // Keep subscription alive for background messages
   },
   methods: {
     getDarkModeClass,
-    _pollProfileCheck (remaining) {
+    _checkAndShowProfilePrompt () {
       if (this._profilePromptShown) return
       if (!this.isProfileIncomplete) return
-      if (remaining <= 0) {
-        this.showProfilePrompt()
-        return
-      }
-      this._pollTimer = setTimeout(() => this._pollProfileCheck(remaining - 1), 2000)
+      this.showProfilePrompt()
     },
     showProfilePrompt () {
       const message = this.profilePromptMessage

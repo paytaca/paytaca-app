@@ -326,6 +326,7 @@ export async function removeBchAddress ({ state, commit }) {
   }
 
   commit('CLEAR_PROFILE_BCH_ADDRESS')
+  commit('CLEAR_CACHE_BCH_ADDRESS', { pubKeyHex: ws.keys.pubKeyHex })
   console.log('[Nostr] Removed published BCH address')
 }
 
@@ -443,6 +444,7 @@ export async function removeDisplayName ({ state, commit }) {
   }
 
   commit('CLEAR_PROFILE_DISPLAY_NAME')
+  commit('CLEAR_CACHE_DISPLAY_NAME', { pubKeyHex: ws.keys.pubKeyHex })
   console.log('[Nostr] Removed published display name')
 }
 
@@ -549,6 +551,7 @@ export async function removeAvatar ({ state, commit }) {
   }
 
   commit('CLEAR_PROFILE_AVATAR')
+  commit('CLEAR_CACHE_AVATAR', { pubKeyHex: ws.keys.pubKeyHex })
   console.log('[Nostr] Removed published avatar')
 }
 
