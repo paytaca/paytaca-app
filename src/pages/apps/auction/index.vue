@@ -166,10 +166,16 @@ const darkMode = computed(() => $store.getters['darkmode/getStatus'])
 const isLoading = computed(() => $store.state.auction?.isLoading || false)
 
 onMounted(async () => {
-  await $store.dispatch('auction/refreshCatalog')
-  await $store.dispatch('auction/fetchArbiterPublicKey')
-  await $store.dispatch('auction/fetchServicerPublicKey')
-  await $store.dispatch('auction/fetchUsername')
+  $q.loading.show()
+
+  await Promise.all([
+    $store.dispatch('auction/refreshCatalog'),
+    $store.dispatch('auction/fetchArbiterPublicKey'),
+    $store.dispatch('auction/fetchServicerPublicKey'),
+    $store.dispatch('auction/fetchUsername'),
+  ])
+
+  $q.loading.hide()
 
   if (!$store.getters['auction/username']) {
     console.warn('User details missing, redirecting...')

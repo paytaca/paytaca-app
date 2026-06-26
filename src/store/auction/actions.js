@@ -97,7 +97,7 @@ export async function fetchServicerPublicKey({ commit }) {
   } 
 }
 
-// Fetching ServicerPk for contract creation
+// Fetching username
 export async function fetchUsername({ commit }) {
   try {
     commit('setUsername', '')
