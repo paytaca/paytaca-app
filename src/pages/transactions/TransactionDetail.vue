@@ -505,7 +505,10 @@ export default {
   props: {
     txid: String,
     category: String,
-    from: String
+    from: String,
+    assetID: String,
+    new: String,
+    recipient: String
   },
   data () {
     return {
