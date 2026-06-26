@@ -100,6 +100,8 @@ export async function fetchServicerPublicKey({ commit }) {
 // Fetching ServicerPk for contract creation
 export async function fetchUsername({ commit }) {
   try {
+    commit('setUsername', '')
+    
     const wallet = await getWallet()
     const publicKey = await wallet.BCH.getPublicKey(`0/0`)
     const response = await callAPI('user-details-by-public-key', publicKey)
