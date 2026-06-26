@@ -2284,10 +2284,16 @@ export default {
         wrapper.style.left = '0'
         wrapper.style.zIndex = '-9999'
         wrapper.style.opacity = '0'
+        wrapper.style.display = 'block'
+        wrapper.style.visibility = 'visible'
         document.body.appendChild(wrapper)
 
         await this.$nextTick()
         await new Promise(resolve => setTimeout(resolve, 200))
+
+        if (!wrapper.offsetWidth || !wrapper.offsetHeight) {
+          throw new Error('Receipt element has zero dimensions')
+        }
 
         const canvas = await html2canvas(wrapper, {
           backgroundColor: null,
