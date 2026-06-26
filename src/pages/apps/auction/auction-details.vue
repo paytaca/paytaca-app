@@ -41,10 +41,7 @@
                   dense
                   icon="edit"
                   :color="darkMode ? 'white' : 'grey-7'"
-                  @click="$router.push({ 
-                    name: 'app-auction-edit', 
-                    params: { auctionId: auction.id }
-                  })"
+                  @click="toggleEditAuction"
                 />
               </div>
             </div>
@@ -323,7 +320,7 @@ import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 import { vElementVisibility } from '@vueuse/components'
 import { useStore } from 'vuex'
 import { ref, computed, watch, onMounted, onActivated, onDeactivated, onUnmounted, watchEffect, nextTick } from 'vue'
-import { useRoute } from 'vue-router'
+import { useRoute, useRouter } from 'vue-router'
 import { useQuasar, date } from 'quasar'
 import { callAPI } from 'src/auction/api'
 import { Store } from 'src/store'
@@ -346,9 +343,11 @@ defineOptions({
   }
 })
 
-const $store = useStore();
+const $q = useQuasar()
+const $store = useStore()
 const darkMode = computed(() => $store.getters['darkmode/getStatus'])
 const $route = useRoute()
+const $router = useRouter()
 
 const formatFiat = (value) => {
   const numValue = Number(value) || 0
@@ -468,15 +467,35 @@ const filteredLots = computed(() => {
   return targetLots
 })
 
+const toggleEditAuction = async () => {
+  const now = new Date()
+  const startDate = new Date(auction.value.start_date)
+  
+  const minutesToStart = date.getDateDiff(startDate, now, 'minutes')
+
+  if (minutesToStart > 30) {
+    $router.push({ 
+      name: 'app-auction-edit', 
+      params: { auctionId: auction.id }
+    })
+  } else {
+    $q.notify({
+      type: 'negative',
+      message: 'You cannot modify this auction.'
+    })
+    await refresh(() => {})
+  }
+}
+
 
 
 
 const getFormattedBCH = (bch) => {
-  const numStr = Number(bch).toFixed(8);
-  const match = numStr.match(/^(.*?)0*$/);
-  const main = match ? match[1] : numStr;
-  const zeros = numStr.substring(main.length);
-  return { main, zeros, full: numStr };
+  const numStr = Number(bch).toFixed(8)
+  const match = numStr.match(/^(.*?)0*$/)
+  const main = match ? match[1] : numStr
+  const zeros = numStr.substring(main.length)
+  return { main, zeros, full: numStr }
 }
 
 const getEnglishPriceInfo = (lot) => {
@@ -489,9 +508,9 @@ const getEnglishPriceInfo = (lot) => {
 
 const getAuctionStatusInfo = (auction) => {
   if (auction && typeof auction.getStatus === 'function') {
-    return auction.getStatus();
+    return auction.getStatus()
   }
-  return { label: 'NaN', color: 'purple' };
+  return { label: 'NaN', color: 'purple' }
 }
 
 const formatAuctionDate = (dateString) => { return date.formatDate(dateString, 'MMM DD, YYYY hh:mm A') }
