@@ -2,7 +2,7 @@
   <q-layout view="lHh Lpr lFf" :class="[getDarkModeClass(darkMode), darkMode ? 'bg-pt-dark-page' : 'bg-pt-light-page']">
     <q-header class="shadow-2" :class="darkMode ? 'bg-pt-dark-page' : 'bg-pt-light-page'">
       <HeaderNav
-        :title="$t('HubSubscriptions') || 'Hub Subscriptions'"
+        :title="$t('RecurringPayments') || 'Recurring Payments'"
         :backnavpath="{ name: 'apps-dashboard' }"
         class="apps-header"
       />

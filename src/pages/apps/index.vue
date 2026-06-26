@@ -355,8 +355,8 @@ export default {
         },
         {
           id: 'payment-hub-subscriptions',
-          name: this.$t('HubSubscriptions', {}, 'Hub Subscriptions'),
-          description: this.$t('Apps.HubSubscriptions.Description', {}, 'Manage your recurring subscriptions.'),
+          name: this.$t('RecurringPayments', {}, 'Recurring Payments'),
+          description: this.$t('Apps.RecurringPayments.Description', {}, 'Manage your recurring payments.'),
           iconName: 'autorenew',
           path: '/apps/payment-hub-subscriptions/',
           iconStyle: 'font-size: 4.2em',

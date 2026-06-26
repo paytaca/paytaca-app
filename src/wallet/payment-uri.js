@@ -272,6 +272,7 @@ export class JPPSourceTypes {
       if (link.host.indexOf('bitpay') >= 0) return this.BITPAY
       if (link.host.indexOf('watchtower.cash') >= 0) return this.WATCHTOWER
       if (link.host.indexOf('paymenthub.paytaca.com') >= 0) return this.BITPAY
+      if (link.host.indexOf('ddrhckrzz-nixos.nuthatch-tilapia.ts.net') >= 0) return this.BITPAY // TEMP: REMOVE LATER
       if (link.host.indexOf('localhost') >= 0) return this.WATCHTOWER
       if (link.host.indexOf('anypay') >= 0) return this.ANYPAY
       return this.DEFAULT
