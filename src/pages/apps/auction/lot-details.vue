@@ -16,8 +16,8 @@
  
           <div class="row items-center q-gutter-sm q-mb-sm">
             <q-badge color="primary" class="q-pa-sm q-px-sm text-weight-bold">
-              <q-icon :name="lot.category === 'Digital' ? 'computer' : 'delivery_dining'" size="12px" class="q-mr-xs" />
-              {{ lot.category }}
+              <q-icon :name="lot.category_name === 'Digital' ? 'computer' : 'delivery_dining'" size="12px" class="q-mr-xs" />
+              {{ lot.category_name }}
             </q-badge>
             <q-badge
               :color="lot.getLotStatus(auction.start_date, auction.end_date).color"

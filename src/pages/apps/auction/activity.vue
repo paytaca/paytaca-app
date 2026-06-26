@@ -278,11 +278,11 @@
                 style="margin: 0; padding: 3px 8px; height: auto;"
               >
                 <q-icon
-                  :name="lot.category === 'Digital' ? 'computer' : 'delivery_dining'"
+                  :name="lot.category_name === 'Digital' ? 'computer' : 'delivery_dining'"
                   size="xs"
                   class="q-mr-xs"
                 />
-                {{ lot.category }}
+                {{ lot.category_name }}
               </q-chip>
 
               <div class="text-subtitle1 text-weight-medium ellipsis-2-lines q-mb-xs">
@@ -692,7 +692,7 @@ const filteredLots = computed(() => {
   let items = lotDetails.value
 
   if (lotType.value !== 'All') {
-    items = items.filter(lot => lot.category === lotType.value)
+    items = items.filter(lot => lot.category_name === lotType.value)
   }
 
   const query = searchQuery.value.toLowerCase().trim()

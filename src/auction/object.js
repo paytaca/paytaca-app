@@ -53,7 +53,7 @@ export class LotsList {
     this.is_sold = !!data.is_sold;
     this.date_sold = data.date_sold || null;
     this.category = data.category || (data.category ? data.category.id : null);
-    this.category = data.category || (data.category === 1 ? 'Physical' : 'Digital');
+    this.category_name = data.category === 1 ? 'Physical' : 'Digital';
     this.auction_type = data.auction_type || null
     this.auction = data.auction || (data.auction ? data.auction.id : null);
     this.start_date = data.start_date || null;
