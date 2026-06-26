@@ -288,7 +288,7 @@
                   rounded
                   @click.stop
                 >
-                  <img v-if="badge?.icon && badge?.icon.startsWith('img:')" :src="badge.icon" class="badge-icon-img q-mr-xs"/>
+                  <img v-if="badge?.icon && badge?.icon.startsWith('img:')" :src="badge.icon.replace('img:', '')" class="badge-icon-img q-mr-xs"/>
                   <q-icon v-else-if="badge?.icon" :name="badge?.icon" class="q-mr-xs" size="14px"/>
                   <span class="badge-text">
                     {{ badge?.text }}
