@@ -16,15 +16,21 @@ import { Loading, QSpinnerIos } from 'quasar'
 
 /**
  * Base URL for the Payment Hub API.
+ * Dynamically resolves based on the current global isChipnet state.
  */
-const baseURL = process.env.PAYMENT_HUB_API || 'https://paymenthub.paytaca.com/api'
+export function getBaseURL() {
+  const isChipnet = Store.getters['global/isChipnet']
+  if (isChipnet) {
+    return process.env.PAYMENT_HUB_CHIP_API || 'https://chipnet.paymenthub.paytaca.com/api'
+  }
+  return process.env.PAYMENT_HUB_API || 'https://paymenthub.paytaca.com/api'
+}
 
 /**
  * Axios instance configured for the Payment Hub API.
+ * The baseURL is set dynamically via request interceptors.
  */
-export const backend = axios.create({
-  baseURL: `${baseURL}/v1`
-})
+export const backend = axios.create()
 
 const OAUTH_TOKEN_KEY = 'payment-hub-oauth-token'
 const OAUTH_ADDRESS_PATH = "7/0" // Custom branch for Payment Hub identity
@@ -41,11 +47,12 @@ function getWalletHash() {
  * Extract domain from baseURL for OAuth message signing.
  */
 function getOAuthDomain() {
+  const currentBaseURL = getBaseURL()
   try {
-    const url = new URL(baseURL)
+    const url = new URL(currentBaseURL)
     return url.hostname
   } catch (e) {
-    const match = baseURL.match(/https?:\/\/([^/]+)/)
+    const match = currentBaseURL.match(/https?:\/\/([^/]+)/)
     return match ? match[1] : 'paymenthub.paytaca.com'
   }
 }
@@ -96,7 +103,9 @@ export const authToken = {
    */
   async get(wallet, forceRefresh = false) {
     const walletHash = wallet.BCH.walletHash
-    const storageKey = `${OAUTH_TOKEN_KEY}-${walletHash}`
+    const isChipnet = Store.getters['global/isChipnet']
+    const network = isChipnet ? 'chipnet' : 'mainnet'
+    const storageKey = `${OAUTH_TOKEN_KEY}-${walletHash}-${network}`
 
     if (!forceRefresh) {
       try {
@@ -118,9 +127,10 @@ export const authToken = {
     const address = pubkeyToAddress(publicKey, false)
     const domain = getOAuthDomain()
     const timestamp = Math.floor(Date.now() / 1000)
+    const currentBaseURL = getBaseURL()
 
     const client = new BitcoinCashOAuthClient({
-      serverUrl: `${baseURL}`,
+      serverUrl: `${currentBaseURL}`,
       network: 'mainnet',
       fetch: axiosFetch
     })
@@ -129,7 +139,7 @@ export const authToken = {
     const signature = await client.signAuthMessage(message, privateKeyHex)
 
     // Attempt to obtain token
-    let authResponse = await axiosFetch(`${baseURL}/auth/token`, {
+    let authResponse = await axiosFetch(`${currentBaseURL}/auth/token`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
@@ -150,7 +160,7 @@ export const authToken = {
       const newMessage = client.createAuthMessage(walletHash, newTimestamp, domain)
       const newSignature = await client.signAuthMessage(newMessage, privateKeyHex)
 
-      authResponse = await axiosFetch(`${baseURL}/auth/token`, {
+      authResponse = await axiosFetch(`${currentBaseURL}/auth/token`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -172,7 +182,9 @@ export const authToken = {
   },
 
   async clear(walletHash) {
-    const key = `${OAUTH_TOKEN_KEY}-${walletHash}`
+    const isChipnet = Store.getters['global/isChipnet']
+    const network = isChipnet ? 'chipnet' : 'mainnet'
+    const key = `${OAUTH_TOKEN_KEY}-${walletHash}-${network}`
     await SecureStoragePlugin.remove({ key })
   }
 }
@@ -182,6 +194,7 @@ export const authToken = {
  * Attaches the appropriate Authorization header based on the request type.
  */
 backend.interceptors.request.use(async (config) => {
+  config.baseURL = `${getBaseURL()}/v1`
   config.headers["X-Paytaca-App-Version"] = packageInfo.version
   
   if (config.apiKey) {
@@ -650,6 +663,72 @@ export class PaymentHub {
     // Note: reactivate is not officially documented yet, but kept as placeholder
     const oauth = await authToken.get(this.wallet)
     const response = await backend.post(`/subscriptions/${subscriptionId}/reactivate`, {}, {
+      headers: { Authorization: `Bearer ${oauth}` },
+      authorize: true,
+      wallet: this.wallet
+    })
+    return response.data
+  }
+
+  // --- Subscription Invoices Section ---
+
+  /**
+   * Lists invoices associated with a specific subscription.
+   * @param {String} subscriptionId - The UUID or short ID of the subscription.
+   * @param {Object} params - Query parameters (e.g. { page: 1, ordering: '-date_created' }).
+   */
+  async listSubscriptionInvoices(subscriptionId, params = {}) {
+    const oauth = await authToken.get(this.wallet)
+    const response = await backend.get(`/subscriptions/${subscriptionId}/invoices/`, {
+      params: params,
+      headers: { Authorization: `Bearer ${oauth}` },
+      authorize: true,
+      wallet: this.wallet
+    })
+    return response.data
+  }
+
+  /**
+   * Retrieves full details for a specific invoice under a subscription.
+   * @param {String} subscriptionId - The UUID or short ID of the subscription.
+   * @param {String} invoiceId - The UUID or short ID of the invoice.
+   */
+  async getSubscriptionInvoice(subscriptionId, invoiceId) {
+    const oauth = await authToken.get(this.wallet)
+    const response = await backend.get(`/subscriptions/${subscriptionId}/invoices/${invoiceId}`, {
+      headers: { Authorization: `Bearer ${oauth}` },
+      authorize: true,
+      wallet: this.wallet
+    })
+    return response.data
+  }
+
+  // --- Plan Invoices Section ---
+
+  /**
+   * Lists invoices associated with all subscriptions under a specific plan.
+   * @param {String} planId - The UUID or short ID of the plan.
+   * @param {Object} params - Query parameters (e.g. { page: 1, ordering: '-date_created' }).
+   */
+  async listPlanInvoices(planId, params = {}) {
+    const oauth = await authToken.get(this.wallet)
+    const response = await backend.get(`/plans/${planId}/invoices/`, {
+      params: params,
+      headers: { Authorization: `Bearer ${oauth}` },
+      authorize: true,
+      wallet: this.wallet
+    })
+    return response.data
+  }
+
+  /**
+   * Retrieves full details for a specific invoice under a plan.
+   * @param {String} planId - The UUID or short ID of the plan.
+   * @param {String} invoiceId - The UUID or short ID of the invoice.
+   */
+  async getPlanInvoice(planId, invoiceId) {
+    const oauth = await authToken.get(this.wallet)
+    const response = await backend.get(`/plans/${planId}/invoices/${invoiceId}`, {
       headers: { Authorization: `Bearer ${oauth}` },
       authorize: true,
       wallet: this.wallet
