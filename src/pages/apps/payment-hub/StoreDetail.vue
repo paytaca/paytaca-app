@@ -1196,10 +1196,19 @@ async function cancelSubscription(sub) {
         'p2pkh',
         getPayload(kit.outputs[0].to)
       )
-      const formattedInputs = kit.inputs.map(input => ({
-        ...input,
-        satoshis: BigInt(input.satoshis)
-      }))
+      const formattedInputs = kit.inputs.map(input => {
+        const formattedInput = {
+          ...input,
+          satoshis: BigInt(input.satoshis)
+        }
+        if (input.token) {
+          formattedInput.token = {
+            ...input.token,
+            amount: BigInt(input.token.amount)
+          }
+        }
+        return formattedInput
+      })
       const txBuilder = new TransactionBuilder({ provider })
       txBuilder.addInputs(formattedInputs, contract.unlock.merchantCancel(sig.getPublicKey(), sig))
       txBuilder.addOutput({ to: toAddress, amount: BigInt(kit.outputs[0].satoshis) })
