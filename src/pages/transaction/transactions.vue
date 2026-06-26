@@ -108,7 +108,7 @@
 		              </template> -->
 		            </div>
 
-			<!-- Token Info Card (shown when a specific token is selected, not "All" or BCH) -->
+			<!-- Token Info Card (shown when a specific asset is selected, not "All") -->
 			<div v-if="showTokenInfoCard" class="token-info-card q-mx-lg q-mt-sm" :class="[getDarkModeClass(darkmode), darkmode ? 'text-light' : 'text-dark']">
 				<div class="token-info-inner">
 					<div class="token-header">
@@ -143,7 +143,7 @@
 							</span>
 							<span v-else class="detail-value text-grey-5">{{ $t('N/A') }}</span>
 						</div>
-						<div class="token-link-row">
+						<div v-if="assetLink" class="token-link-row">
 							<span class="detail-label">{{ $t('Metadata') }}</span>
 							<a
 								:href="assetLink"
@@ -401,8 +401,7 @@ export default {
 	    showTokenInfoCard () {
 	      if (!this.selectedAsset || !this.selectedAsset.id) return false
 	      if (this.selectedAsset.id === 'all') return false
-	      if (this.selectedAsset.id === 'bch') return false
-	      return this.selectedAsset.id.startsWith('ct/') || this.selectedAsset.id.startsWith('slp/')
+	      return true
 	    },
 	    selectedAssetLogoUrl () {
 	      if (!this.selectedAsset) return null
@@ -417,7 +416,7 @@ export default {
 	      return this.$store.getters['market/assetPrices']
 	    },
 	    tokenPrice () {
-	      if (!this.selectedAsset?.id || this.selectedAsset.id === 'bch') return null
+	      if (!this.selectedAsset?.id) return null
 	      const _ = this.assetMarketPrices
 	      const currency = this.$store.getters['market/selectedCurrency']
 	      const symbol = currency?.symbol
