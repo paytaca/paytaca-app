@@ -27,7 +27,7 @@
                 lazy-rules hide-bottom-space
                 :rules="[
                   val => val && val.trim().length > 0 || 'Lot name is required',
-                  val => !val || val.length <= 100 || 'Lot name must be 100 characters or less'
+                  val => !val || val.length <= 100 || 'Character limit reached'
                 ]"
               />
               <div class="text-right text-caption q-mt-xs" :class="lotName.length >= 100 ? 'text-negative' : 'text-grey-6'">
@@ -231,7 +231,7 @@
               lazy-rules hide-bottom-space
               :rules="[
                 val => val && val.trim().length > 0 || 'Lot description is required',
-                val => !val || val.length <= 1000 || 'Description must be 1000 characters or less'
+                val => !val || val.length <= 1000 || 'Character limit reached'
               ]"
             />
             <div class="text-right text-caption q-mt-xs" :class="lotDescription.length >= 950 ? 'text-negative' : 'text-grey-6'">

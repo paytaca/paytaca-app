@@ -15,7 +15,7 @@
             lazy-rules hide-bottom-space
             :rules="[
               val => val && val.trim().length > 0 || 'Auction title is required',
-              val => !val || val.length <= 100 || 'Auction title must be 100 characters or less'
+              val => !val || val.length <= 100 || 'Character limit reached'
             ]"
           />
           <div class="text-right text-caption q-mt-xs" :class="(form.title || '').length >= 100 ? 'text-negative' : 'text-grey-6'">
@@ -83,7 +83,7 @@
           lazy-rules hide-bottom-space
           :rules="[
             val => val && val.trim().length > 0 || 'Auction description is required',
-            val => !val || val.length <= 1000 || `Description must be 1000 characters or less`
+            val => !val || val.length <= 1000 || 'Character limit reached'
           ]"
         />
         <div class="text-right text-caption q-mt-xs" :class="(form.description || '').length >= 950 ? 'text-negative' : 'text-grey-6'">
