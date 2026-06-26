@@ -1156,11 +1156,21 @@ async function cancelSubscription(sub) {
       // 1. Fetch contract artifact
       const artifactObj = await hub.value.getContractArtifact()
       const provider = new ElectrumNetworkProvider(isChipnet ? 'chipnet' : 'mainnet')
+      const paytacaPayload = getPayload(kit.paytaca_address)
+      const reversedCategoryHex = sub.category.match(/.{1,2}/g).reverse().join('')
+      const categoryBytes = new Uint8Array(reversedCategoryHex.match(/.{1,2}/g).map(byte => parseInt(byte, 16)))
+
       const contract = new Contract(artifactObj, [
         merchantPayload,
         funderPayload,
-        BigInt(sub.pledge_satoshis),
-        BigInt(sub.period_blocks)
+        paytacaPayload,
+        BigInt(sub.max_fee),
+        BigInt(sub.max_pledge || sub.pledge_satoshis),
+        BigInt(sub.min_period || sub.period_blocks),
+        BigInt(sub.max_period || sub.period_blocks),
+        categoryBytes,
+        BigInt(sub.contract_timestamp),
+        BigInt(sub.max_payments || 0)
       ], { provider })
 
       console.log("Locally Generated Contract Address:", contract.address)
