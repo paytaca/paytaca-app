@@ -847,13 +847,14 @@ export default {
       return this.$store.getters['global/theme']
     },
     badgeColor () {
+      const level = this.darkMode ? '1' : '3'
       const themeMap = {
-        'glassmorphic-blue': 'blue-3',
-        'glassmorphic-green': 'green-3',
-        'glassmorphic-gold': 'amber-3',
-        'glassmorphic-red': 'pink-3'
+        'glassmorphic-blue': `blue-${level}`,
+        'glassmorphic-green': `green-${level}`,
+        'glassmorphic-gold': `amber-${level}`,
+        'glassmorphic-red': `pink-${level}`
       }
-      return themeMap[this.theme] || 'grey-4'
+      return themeMap[this.theme] || (this.darkMode ? 'grey-8' : 'grey-4')
     },
     wrapperBackgroundStyle () {
       const theme = this.theme

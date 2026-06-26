@@ -111,13 +111,14 @@ const theme = computed(() => $store.getters['global/theme'])
 const useRelativeTxTimestamp = computed(() => Boolean($store.getters['global/relativeTxTimestamp']))
 
 const badgeColor = computed(() => {
+  const level = darkMode.value ? '1' : '3'
   const themeMap = {
-    'glassmorphic-blue': 'blue-3',
-    'glassmorphic-green': 'green-3',
-    'glassmorphic-gold': 'amber-3',
-    'glassmorphic-red': 'pink-3'
+    'glassmorphic-blue': `blue-${level}`,
+    'glassmorphic-green': `green-${level}`,
+    'glassmorphic-gold': `amber-${level}`,
+    'glassmorphic-red': `pink-${level}`
   }
-  return themeMap[theme.value] || 'grey-4'
+  return themeMap[theme.value] || (darkMode.value ? 'grey-8' : 'grey-4')
 })
 
 const decryptedMemo = ref('')
