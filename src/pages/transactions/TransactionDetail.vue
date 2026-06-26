@@ -2280,10 +2280,8 @@ export default {
 
         wrapper = templateEl.cloneNode(true)
         wrapper.style.position = 'fixed'
-        wrapper.style.top = '0'
-        wrapper.style.left = '0'
-        wrapper.style.zIndex = '-9999'
-        wrapper.style.opacity = '0'
+        wrapper.style.top = '-9999px'
+        wrapper.style.left = '-9999px'
         wrapper.style.display = 'block'
         wrapper.style.visibility = 'visible'
         document.body.appendChild(wrapper)
@@ -2296,7 +2294,7 @@ export default {
         }
 
         const canvas = await html2canvas(wrapper, {
-          backgroundColor: null,
+          backgroundColor: '#ffffff',
           scale: 4,
           logging: false,
           useCORS: true,
