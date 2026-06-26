@@ -418,6 +418,7 @@ export default {
       selectedMemberNpubs: [],
       fetchedContactDisplayName: null,
       _profilePromptShown: false,
+      _pollTimer: null,
     }
   },
   computed: {
@@ -436,7 +437,7 @@ export default {
       return this.$store.getters['nostrChat/getArchivedRooms']
     },
     messages () {
-      return this.$store.state.nostrChat.messages
+      return this.$store.getters['nostrChat/getAllMessages']
     },
     contacts () {
       return this.$store.getters['nostrChat/getContacts']
@@ -464,10 +465,10 @@ export default {
     },
     missingProfileItems () {
       const items = []
-      if (!this.$store.state.nostrChat.profile?.displayName) {
+      if (!this.$store.getters['nostrChat/getProfile']?.displayName) {
         items.push(this.$t('DisplayName', {}, 'Display Name'))
       }
-      if (!this.$store.state.nostrChat.profile?.bchAddress) {
+      if (!this.$store.getters['nostrChat/getProfile']?.bchAddress) {
         items.push(this.$t('BchAddress', {}, 'BCH Address'))
       }
       return items
@@ -554,7 +555,7 @@ export default {
         this.selectedChatType = 'dm'
         this.dialogTab = 'add'
         this.showNewChatDialog = true
-      } else if (this.$store.state.nostrChat.initialized) {
+      } else if (this.$store.getters['nostrChat/isInitialized']) {
         // Existing contact + store already initialized — open chat immediately
         this.startChatWith(contact)
       }
@@ -572,14 +573,10 @@ export default {
         this.handleScannedNpub(scannedNpub)
       }
 
-      // Show profile setup prompt if profile is incomplete (after a short delay
-      // to allow the background profile fetch from initialize() to complete)
+      // Show profile setup prompt if profile is incomplete.
+      // Poll periodically to allow background retry fetch from initialize() to complete.
       if (!this._profilePromptShown && this.isProfileIncomplete) {
-        setTimeout(() => {
-          if (!this._profilePromptShown && this.isProfileIncomplete) {
-            this.showProfilePrompt()
-          }
-        }, 3000)
+        this._pollProfileCheck(5)
       }
     } catch (err) {
       console.error('Failed to initialize Nostr chat:', err)
@@ -590,10 +587,20 @@ export default {
     }
   },
   beforeUnmount () {
+    clearTimeout(this._pollTimer)
     // Keep subscription alive for background messages
   },
   methods: {
     getDarkModeClass,
+    _pollProfileCheck (remaining) {
+      if (this._profilePromptShown) return
+      if (!this.isProfileIncomplete) return
+      if (remaining <= 0) {
+        this.showProfilePrompt()
+        return
+      }
+      this._pollTimer = setTimeout(() => this._pollProfileCheck(remaining - 1), 2000)
+    },
     showProfilePrompt () {
       const message = this.profilePromptMessage
       if (!message) return
@@ -650,7 +657,7 @@ export default {
     totalUnreadFor (rooms) {
       const myPubKey = this.$store.getters['nostrChat/myPubKey']
       if (!myPubKey) return 0
-      const readIdsMap = this.$store.state.nostrChat.readMessageIds || {}
+      const readIdsMap = this.$store.getters['nostrChat/getReadMessageIds']
       let total = 0
       for (const room of rooms) {
         const msgs = this.messages[room.id] || []
@@ -715,6 +722,7 @@ export default {
         persistent: true,
       }).onOk(() => {
         this.$store.commit('nostrChat/BLOCK_CONTACT', otherPubKey)
+        this.$store.commit('nostrChat/ARCHIVE_ROOM', roomId)
         this.$q.notify({
           type: 'info',
           message: this.$t('ContactBlocked', {}, 'Contact blocked'),
@@ -746,6 +754,7 @@ export default {
         persistent: true,
       }).onOk(() => {
         this.$store.commit('nostrChat/UNBLOCK_CONTACT', otherPubKey)
+        this.$store.commit('nostrChat/UNARCHIVE_ROOM', roomId)
         this.$q.notify({
           type: 'positive',
           message: this.$t('ContactUnblocked', {}, 'Contact unblocked'),

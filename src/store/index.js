@@ -151,7 +151,7 @@ function reducer(state) {
     if (Object.prototype.hasOwnProperty.call(state, moduleName)) {
       try {
         // Special handling for ramp and paytacapos stores with wallet-specific structure
-        if (moduleName === 'ramp' || moduleName === 'paytacapos') {
+        if (moduleName === 'ramp' || moduleName === 'paytacapos' || moduleName === 'nostrChat') {
           const moduleState = state[moduleName]
           serialized[moduleName] = {
             byWallet: {},
@@ -159,6 +159,10 @@ function reducer(state) {
             ...(moduleName === 'ramp' ? {
               itemsPerPage: moduleState.itemsPerPage,
               featureToggles: moduleState.featureToggles
+            } : {}),
+            ...(moduleName === 'nostrChat' ? {
+              relays: moduleState.relays,
+              contacts: moduleState.contacts,
             } : {})
           }
           
@@ -178,6 +182,16 @@ function reducer(state) {
                       // Only keep walletHash if available
                       if (value.walletHash) {
                         cleanWalletState.wallet = { walletHash: value.walletHash }
+                      }
+                      continue
+                    }
+
+                    // Strip sensitive Nostr private keys from persisted nostrChat state
+                    // (keys are re-derived from mnemonic on every initialize, so no need to persist them)
+                    if (moduleName === 'nostrChat' && key === 'keys' && value && typeof value === 'object') {
+                      cleanWalletState.keys = {
+                        npub: value.npub,
+                        pubKeyHex: value.pubKeyHex,
                       }
                       continue
                     }

@@ -37,6 +37,11 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
+      - name: Configure git identity
+        run: |
+          git config user.name "opencode[bot]"
+          git config user.email "opencode[bot]@users.noreply.github.com"
+
       - name: Run opencode
         uses: anomalyco/opencode/github@latest
         env:

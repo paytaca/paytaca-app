@@ -115,9 +115,12 @@ export default boot(async (obj) => {
         if (hasBroken || currentRelays.length === 0) {
           parsedState.nostrChat.relays = nostrChatDefaultState().relays
         }
-        // Ensure new properties exist in persisted state
-        if (!parsedState.nostrChat.readReceipts) {
-          parsedState.nostrChat.readReceipts = {}
+        // Ensure byWallet and global fields exist in persisted state
+        if (!parsedState.nostrChat.byWallet) {
+          parsedState.nostrChat.byWallet = {}
+        }
+        if (!parsedState.nostrChat.contacts) {
+          parsedState.nostrChat.contacts = []
         }
       }
 

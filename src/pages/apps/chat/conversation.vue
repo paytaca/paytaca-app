@@ -374,6 +374,11 @@
           <q-icon name="keyboard_arrow_down" size="24px" />
         </button>
       </transition>
+
+      <div v-if="!isGroupRoom && isContactBlocked" class="blocked-notice">
+        <q-icon name="block" size="16px" />
+        <span>{{ $t('ContactBlockedNotice', {}, 'Contact blocked') }}</span>
+      </div>
     </template>
 
     <!-- Non-member group: request to join card -->
@@ -462,7 +467,7 @@
       <q-btn flat dense unelevated icon="close" size="sm" class="edit-bar-close" @click="cancelEdit" />
     </div>
 
-    <chat-input ref="chatInput" :room-id="roomId" @send="onSend" @command="onCommand" @tip="onTipAction" @focus="onInputFocus" @blur="onInputBlur" />
+    <chat-input ref="chatInput" :room-id="roomId" :disabled="isRoomArchived || isContactBlocked" :blocked="isContactBlocked" @send="onSend" @command="onCommand" @tip="onTipAction" @focus="onInputFocus" @blur="onInputBlur" />
 
     <!-- Message context menu -->
     <q-menu ref="contextMenu" touch-position no-parent-event class="text-bow" :class="getDarkModeClass(darkMode)">
@@ -674,7 +679,7 @@ export default {
     allMessages () {
       const room = this.$store.getters['nostrChat/getRoom'](this.roomId)
       if (!room) return []
-      return this.$store.state.nostrChat.messages[this.roomId] || []
+      return this.$store.getters['nostrChat/getMessages'](this.roomId)
     },
     displayedMessages () {
       const total = this.allMessages.length
@@ -736,7 +741,7 @@ export default {
       const room = this.room
       if (!room || !myPubKey) return map
 
-      const readBy = this.$store.state.nostrChat.messageReadBy?.[this.roomId] || {}
+      const readBy = this.$store.getters['nostrChat/getMessageReadBy'](this.roomId)
 
       for (const msg of this.allMessages) {
         // Only check read status for messages I sent
@@ -754,7 +759,7 @@ export default {
       const room = this.room
       if (!room || !myPubKey || room.type !== 'group') return map
 
-      const readBy = this.$store.state.nostrChat.messageReadBy?.[this.roomId] || {}
+      const readBy = this.$store.getters['nostrChat/getMessageReadBy'](this.roomId)
       const contacts = this.contacts
 
       for (const msg of this.allMessages) {
@@ -1511,6 +1516,7 @@ export default {
       }).onOk(() => {
         if (otherPubKey) {
           this.$store.commit('nostrChat/BLOCK_CONTACT', otherPubKey)
+          this.$store.commit('nostrChat/ARCHIVE_ROOM', this.roomId)
         }
         this.$router.replace('/apps/chat')
         this.$q.notify({
@@ -1532,6 +1538,7 @@ export default {
       }).onOk(() => {
         if (otherPubKey) {
           this.$store.commit('nostrChat/UNBLOCK_CONTACT', otherPubKey)
+          this.$store.commit('nostrChat/UNARCHIVE_ROOM', this.roomId)
         }
         this.$q.notify({
           type: 'positive',
@@ -2232,5 +2239,20 @@ export default {
 
 .request-join-btn {
   min-width: 180px;
+}
+
+.blocked-notice {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 12px 16px;
+  color: #ef4444;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.dark .blocked-notice {
+  color: #f87171;
 }
 </style>

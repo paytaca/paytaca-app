@@ -112,6 +112,10 @@
 			<div v-if="showTokenInfoCard" class="token-info-card q-mx-lg q-mt-sm" :class="[getDarkModeClass(darkmode), darkmode ? 'text-light' : 'text-dark']">
 				<div class="token-info-inner">
 					<div class="token-header">
+						<div class="token-name-group">
+							<div class="token-name">{{ selectedAsset.name || selectedAsset.symbol }}</div>
+							<div class="token-symbol">{{ selectedAsset.symbol }}</div>
+						</div>
 						<img
 							:src="getTokenImageUrl(selectedAsset)"
 							class="token-logo"
@@ -120,13 +124,17 @@
 							@contextmenu.prevent
 							@selectstart.prevent
 						/>
-						<div class="token-name-group">
-							<div class="token-name">{{ selectedAsset.name || selectedAsset.symbol }}</div>
-							<div class="token-symbol">{{ selectedAsset.symbol }}</div>
-						</div>
 					</div>
 
 					<div class="token-details">
+						<div class="token-balance-row">
+							<span class="detail-label">{{ $t('Balance') }}</span>
+							<span class="detail-value">{{ formattedTokenBalance }}</span>
+						</div>
+						<div v-if="formattedTokenFiatValue" class="token-fiat-row">
+							<span class="detail-label">{{ $t('Value') }}</span>
+							<span class="detail-value">{{ formattedTokenFiatValue }}</span>
+						</div>
 						<div class="token-price-row">
 							<span class="detail-label">{{ $t('Price') }}</span>
 							<span v-if="tokenPrice" class="detail-value">{{ formattedTokenPrice }}</span>
@@ -156,9 +164,9 @@
 							class="token-action-btn"
 							color="primary"
 							no-caps
-							size="sm"
+							outline
 						>
-							<q-icon name="send" size="14px" class="q-mr-xs" />
+							<q-icon name="send" size="20px" />
 							{{ $t('Send') }}
 						</q-btn>
 						<q-btn
@@ -167,9 +175,9 @@
 							class="token-action-btn"
 							color="primary"
 							no-caps
-							size="sm"
+							outline
 						>
-							<q-icon name="qr_code_2" size="14px" class="q-mr-xs" />
+							<q-icon name="qr_code_2" size="20px" />
 							{{ $t('Receive') }}
 						</q-btn>
 						<q-btn
@@ -179,10 +187,9 @@
 							class="token-action-btn"
 							color="primary"
 							no-caps
-							size="sm"
 							outline
 						>
-							<q-icon name="swap_horiz" size="14px" class="q-mr-xs" />
+							<q-icon name="swap_horiz" size="20px" />
 							{{ $t('Swap') }}
 						</q-btn>
 					</div>
@@ -416,12 +423,37 @@ export default {
 	      if (!price || price === 0) return null
 	      return Number(price)
 	    },
-	    formattedTokenPrice () {
-	      if (!this.tokenPrice) return null
-	      const currency = this.$store.getters['market/selectedCurrency']
-	      return parseFiatCurrency(this.tokenPrice, currency?.symbol)
-	    },
-	    assetLink () {
+    formattedTokenPrice () {
+      if (!this.tokenPrice) return null
+      const currency = this.$store.getters['market/selectedCurrency']
+      return parseFiatCurrency(this.tokenPrice, currency?.symbol)
+    },
+    tokenBalanceDecimal () {
+      if (!this.selectedAsset?.id) return 0
+      const storeAsset = this.assets.find(a => a.id === this.selectedAsset.id)
+      const balance = storeAsset?.balance ?? this.selectedAsset.balance ?? 0
+      const decimals = this.selectedAsset.decimals ?? 0
+      return balance / 10 ** decimals
+    },
+    formattedTokenBalance () {
+      if (!this.selectedAsset?.id) return ''
+      const storeAsset = this.assets.find(a => a.id === this.selectedAsset.id)
+      const enriched = {
+        ...this.selectedAsset,
+        balance: storeAsset?.balance ?? this.selectedAsset.balance ?? 0,
+      }
+      return this.formatBalance(enriched)
+    },
+    tokenFiatValue () {
+      if (!this.tokenPrice || !this.tokenBalanceDecimal) return null
+      return this.tokenPrice * this.tokenBalanceDecimal
+    },
+    formattedTokenFiatValue () {
+      if (!this.tokenFiatValue) return null
+      const currency = this.$store.getters['market/selectedCurrency']
+      return parseFiatCurrency(this.tokenFiatValue, currency?.symbol)
+    },
+    assetLink () {
 	      if (!this.selectedAsset?.id || this.selectedAsset.id === 'bch') return ''
 	      const parts = this.selectedAsset.id.split('/')
 	      if (parts.length < 2) return ''
@@ -1188,7 +1220,7 @@ this.$nextTick(() => {
 .token-header {
   display: flex;
   align-items: center;
-  gap: 10px;
+  justify-content: space-between;
 }
 
 .token-header .token-logo {
@@ -1229,6 +1261,8 @@ this.$nextTick(() => {
   gap: 6px;
 }
 
+.token-balance-row,
+.token-fiat-row,
 .token-price-row,
 .token-link-row {
   display: flex;
@@ -1279,11 +1313,11 @@ this.$nextTick(() => {
   flex: 1;
   border-radius: 10px !important;
   font-weight: 600;
-  font-size: 13px;
-  min-height: 40px;
+  font-size: 14px;
+  min-height: 48px;
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 4px;
+  gap: 8px;
 }
 </style>
