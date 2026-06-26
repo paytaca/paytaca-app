@@ -204,7 +204,7 @@ export default {
         { label: 'Order Card', icon: 'shopping_cart', status: 'active' },
         { label: 'Printing', icon: 'print', status: 'pending' },
         { label: 'Delivery', icon: 'local_shipping', status: 'pending' },
-        { label: 'Linking', icon: 'link', status: 'pending' },
+        { label: 'Activation', icon: 'link', status: 'pending' },
       ]
     }
   },
@@ -288,26 +288,26 @@ export default {
     },
     switchView(view) {
       this.activeView = view
-      if (view === 'link') {
+      if (view === 'activate') {
         this.journeySteps = [
           { label: 'Order Card', icon: 'shopping_cart', status: 'done' },
           { label: 'Printing', icon: 'print', status: 'done' },
           { label: 'Delivery', icon: 'local_shipping', status: 'done' },
-          { label: 'Linking', icon: 'link', status: 'active' },
+          { label: 'Activation', icon: 'link', status: 'active' },
         ]
       } else if (view === 'create') {
         this.journeySteps = [
           { label: 'Order Card', icon: 'shopping_cart', status: 'pending' },
           { label: 'Printing', icon: 'print', status: 'pending' },
           { label: 'Delivery', icon: 'local_shipping', status: 'pending' },
-          { label: 'Linking', icon: 'link', status: 'pending' },
+          { label: 'Activation', icon: 'link', status: 'pending' },
         ]
       } else {
         this.journeySteps = [
           { label: 'Order Card', icon: 'shopping_cart', status: 'active' },
           { label: 'Printing', icon: 'print', status: 'pending' },
           { label: 'Delivery', icon: 'local_shipping', status: 'pending' },
-          { label: 'Linking', icon: 'link', status: 'pending' },
+          { label: 'Activation', icon: 'link', status: 'pending' },
         ]
       }
     },
@@ -325,6 +325,12 @@ export default {
     },
     onCardActivated() {
       this.showActivateCardForm = false;
+      this.journeySteps = [
+        { label: 'Order Card', icon: 'shopping_cart', status: 'done' },
+        { label: 'Printing', icon: 'print', status: 'done' },
+        { label: 'Delivery', icon: 'local_shipping', status: 'done' },
+        { label: 'Activation', icon: 'link', status: 'done' },
+      ];
       this.$q.dialog({
         title: this.$t('Card Activated'),
         message: this.$t('Your Paytaca card has been successfully activated.'),
