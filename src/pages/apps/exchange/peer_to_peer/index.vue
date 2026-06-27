@@ -270,6 +270,12 @@ export default {
       })
     },
     handleRequestError (error) {
+      // Suppress ECONNABORTED — these are XHR aborts from navigation
+      // (requestManager.abortAll), not actual HTTP timeouts. No timeout is
+      // configured on the backend axios instance, so ECONNABORTED can only
+      // come from a navigation-triggered abort.
+      if (error?.code === 'ECONNABORTED') return
+
       // Don't log or show 404/401 errors - they're often expected
       // 404: resource doesn't exist (e.g., user not registered yet)
       // 401: not authenticated (user will be prompted to login when needed)
@@ -291,10 +297,7 @@ export default {
       }
       
       console.error('Handling error:', error?.response || error)
-      if (error?.code === 'ECONNABORTED') {
-        // Request timeout
-        this.showErrorDialog('Request timed out. Please try again later.')
-      } else if (!error?.response) {
+      if (!error?.response) {
         // Network error
         bus.emit('network-error')
       } else {
