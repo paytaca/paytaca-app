@@ -810,6 +810,11 @@ export default {
       immediate: true,
     },
     'allMessages.length' (newLen, oldLen) {
+      // Only auto-mark-as-read when this conversation is actually visible.
+      // When deactivated (keep-alive, user navigated to chat index), the
+      // watcher still fires on new messages — skip it so the unread counter
+      // on the chat index page stays accurate.
+      if (!this._isActive) return
       this.markAsRead()
 
       if (newLen > oldLen) {
@@ -936,8 +941,10 @@ export default {
     this.$nextTick(() => {
       this.ready = true
     })
+    this._isActive = true
   },
   activated () {
+    this._isActive = true
     this.markAsRead()
     this.ensureSubscribed()
     const savedRoomId = sessionStorage.getItem('chat_scroll_room_id')
@@ -981,10 +988,12 @@ export default {
     })
   },
   deactivated () {
+    this._isActive = false
     this.ready = false
     this.flushMarkAsRead()
   },
   beforeUnmount () {
+    this._isActive = false
     this.ready = false
     this.flushMarkAsRead()
     if (this._vpRaf) { cancelAnimationFrame(this._vpRaf); this._vpRaf = null }

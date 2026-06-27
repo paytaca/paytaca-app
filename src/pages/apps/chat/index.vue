@@ -565,7 +565,7 @@ export default {
     try {
       // Initialize (skips if already initialized for this wallet)
       await this.$store.dispatch('nostrChat/initialize')
-      this.$store.dispatch('nostrChat/subscribeToRelays')
+      this.$store.dispatch('nostrChat/ensureSubscribed')
 
       // Handle any scanned npub that we deferred because the store
       // wasn't initialized yet (existing contact case).
@@ -587,9 +587,22 @@ export default {
         this._checkAndShowProfilePrompt()
       }, 6000)
     }
+
+    // Re-subscribe when tab becomes visible (e.g., after app backgrounding)
+    this._onVisibilityChange = () => {
+      if (document.visibilityState === 'visible') {
+        this.$store.dispatch('nostrChat/ensureSubscribed')
+      }
+    }
+    document.addEventListener('visibilitychange', this._onVisibilityChange)
+  },
+  activated () {
+    // Re-check subscription when returning to this page via keep-alive
+    this.$store.dispatch('nostrChat/ensureSubscribed')
   },
   beforeUnmount () {
     clearTimeout(this._profilePromptTimer)
+    document.removeEventListener('visibilitychange', this._onVisibilityChange)
     // Keep subscription alive for background messages
   },
   methods: {

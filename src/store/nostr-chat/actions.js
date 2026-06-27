@@ -1454,6 +1454,24 @@ export function subscribeToRelays ({ state, dispatch, commit }) {
   const myPubKey = ws.keys.pubKeyHex
   if (!myPubKey) return
 
+  // Compute `since` from existing messages so the relay doesn't re-send
+  // the entire history on every app start. NIP-17 randomizes created_at
+  // by ±2 days, so we subtract a 3-day buffer from the newest known message.
+  // If there are no existing messages (first ever subscription), `since` is
+  // undefined and the relay sends all history (needed to populate the chat).
+  let since
+  let maxCreatedAt = 0
+  for (const roomId in ws.messages) {
+    const msgs = ws.messages[roomId]
+    if (msgs && msgs.length) {
+      const last = msgs[msgs.length - 1]
+      if (last && last.created_at > maxCreatedAt) maxCreatedAt = last.created_at
+    }
+  }
+  if (maxCreatedAt > 0) {
+    since = maxCreatedAt - 259200 // 3-day buffer for NIP-17 ±2 day randomization
+  }
+
   const wasSubscribed = relayService.isSubscribed()
   const sub = relayService.subscribeGiftWraps(state.relays, myPubKey, {
     async onEvent(event) {
@@ -1465,7 +1483,7 @@ export function subscribeToRelays ({ state, dispatch, commit }) {
         console.warn('[Nostr] Failed to unwrap gift-wrap:', err)
       }
     },
-  })
+  }, { since })
 
   commit('SET_SUBSCRIBED', relayService.isSubscribed())
 
