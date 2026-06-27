@@ -43,22 +43,6 @@
           <q-icon :name="reason.icon" size="20px" class="q-mr-sm" style="opacity: 0.7;" />
           <div class="text-body2">{{ reason.label }}</div>
         </div>
-
-        <q-input
-          v-model="additionalDetails"
-          type="textarea"
-          outlined
-          dense
-          autogrow
-          :label="selectedReasons.includes('other') ? 'Describe the issue' : 'Additional details (optional)'"
-          class="q-mt-md"
-        />
-        <div
-          v-if="selectedReasons.includes('other') && !additionalDetails.trim()"
-          class="text-caption text-negative q-mt-xs"
-        >
-          Please provide details for "Other".
-        </div>
       </q-card-section>
 
       <q-card-actions align="right" class="q-px-md q-pb-md">
@@ -108,12 +92,10 @@ const reasonOptions = [
 ]
 
 const selectedReasons = ref([])
-const additionalDetails = ref('')
 
 watch(() => props.modelValue, (isOpen) => {
   if (isOpen) {
     selectedReasons.value = []
-    additionalDetails.value = ''
   }
 })
 
@@ -126,9 +108,7 @@ const toggleReason = (value) => {
 }
 
 const canSubmit = computed(() => {
-  if (!selectedReasons.value.length) return false
-  if (selectedReasons.value.includes('other') && !additionalDetails.value.trim()) return false
-  return true
+  return selectedReasons.value.length > 0
 })
 
 const handleSubmit = () => {
