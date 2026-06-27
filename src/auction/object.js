@@ -194,3 +194,46 @@ export class AuctionList {
     return `${start}........${end}`
   }
 }
+
+export class AppealList {
+  static parse(data) {
+    return new AppealList(data)
+  }
+
+  constructor(data) {
+    this.raw = data
+  }
+
+  get raw() {
+    return this.$raw
+  }
+
+  /**
+   * @param {Object} data
+   * @param {Number} data.id
+   * @param {String} data.status
+   * @param {String} data.creation_date
+   * @param {Array<String>} data.reasons
+   * @param {Object} data.bid
+   */
+  set raw(data) {
+    Object.defineProperty(this, '$raw', { enumerable: false, configurable: true, value: data })
+
+    this.id = data.id ? Number(data.id) : null
+
+    this.bid_id = data.bid ? Number(data.bid) : null
+    this.lot_id = data.lotId ? Number(data.lotId) : null
+    this.auction_id = data.auctionId ? Number(data.auctionId) : null
+
+    this.creation_date = data.creation_date || null
+    this.hoursSinceFiled = this.creation_date
+      ? Math.max(0, Math.floor((Date.now() - new Date(this.creation_date).getTime()) / 3600000))
+      : 0
+    
+    this.status = data.is_resolved ? 'Resolved' : 'Pending'
+
+    this.reasons = Array.isArray(data.dispute_reason)
+      ? data.dispute_reason
+      : (data.dispute_reason ? [data.dispute_reason] : [])
+  }
+}
