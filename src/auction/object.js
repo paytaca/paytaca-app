@@ -231,9 +231,11 @@ export class AppealList {
       : 0
     
     this.status = data.is_resolved ? 'Resolved' : 'Pending'
-
+    
     this.reasons = Array.isArray(data.dispute_reason)
-      ? data.dispute_reason
-      : (data.dispute_reason ? [data.dispute_reason] : [])
+      ? data.dispute_reason.flatMap(r => r.split(';').map(s => s.trim()).filter(Boolean))
+      : (data.dispute_reason
+          ? data.dispute_reason.split(';').map(s => s.trim()).filter(Boolean)
+          : [])
   }
 }
