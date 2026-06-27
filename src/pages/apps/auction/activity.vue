@@ -444,7 +444,7 @@
           <q-card
             class="pt-card text-bow cursor-pointer"
             :class="getDarkModeClass(darkMode)"
-            @click="$router.push({ name: 'app-auction-arbiter' })"
+            @click="$router.push({ name: 'app-auction-arbiter', params: { arbiterId: appeal.id } })"
           >
             <q-card-section class="q-py-sm">
               <div class="row items-center justify-between q-mb-xs q-mt-sm">
