@@ -65,6 +65,7 @@ import { ref, computed, onMounted } from 'vue'
 import { Store } from 'src/store'
 import { getBidderPublicKey } from 'src/auction/payment'
 import { callAPI } from 'src/auction/api'
+import { deriveOAuthCredentials } from 'src/auction/bch-oauth'
 
 // Components
 import HeaderNav from 'src/components/header-nav.vue'
@@ -107,6 +108,7 @@ onMounted(async () => {
 const handleEditUserProfile = async () => {
   try {
     const walletHash = Store.getters['global/getWallet']('bch')?.walletHash
+    const credentials = await deriveOAuthCredentials()
     const method = isExistingUser.value ? 'patch' : 'post'
 
     let response
@@ -114,7 +116,8 @@ const handleEditUserProfile = async () => {
     if (method === 'post') {
       response = await callAPI('user-details', null, method, {
         username: username.value,
-        user: walletHash
+        user: walletHash,
+        address: credentials.address
       })
     } else {
       response = await callAPI(`user-details/${walletHash}/update`, null, method, { username: username.value })
