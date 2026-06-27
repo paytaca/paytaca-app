@@ -459,7 +459,7 @@
                   {{ appeal.status }}
                 </q-chip>
                 <span class="text-caption q-mt-xs" style="opacity: 0.65;">
-                  <q-icon name="schedule" size="xs" /> {{ appeal.hoursSinceFiled }}h ago
+                  <q-icon name="schedule" size="xs" /> {{ appeal.timeSinceFiled }}h ago
                 </span>
               </div>
               

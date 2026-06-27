@@ -1,3 +1,5 @@
+import { date } from 'quasar'
+
 export class LotsList {
   static parse(data) {
     return new LotsList(data)
@@ -226,12 +228,37 @@ export class AppealList {
     this.auction_id = data.auctionId ? Number(data.auctionId) : null
 
     this.creation_date = data.creation_date || null
-    this.hoursSinceFiled = this.creation_date
-      ? Math.max(0, Math.floor((Date.now() - new Date(this.creation_date).getTime()) / 3600000))
-      : 0
+    this.timeSinceFiled = (() => {
+      if (!this.creation_date) return '0s'
+      
+      const now = new Date()
+      const past = new Date(this.creation_date)
+      
+      const seconds = Math.max(0, date.getDateDiff(now, past, 'seconds'))
+      if (seconds < 60) return `${seconds}`
+      
+      const minutes = date.getDateDiff(now, past, 'minutes')
+      if (minutes < 60) return `${minutes}`
+      
+      const hours = date.getDateDiff(now, past, 'hours')
+      if (hours < 24) return `${hours}`
+      
+      // 4. Check days
+      const days = date.getDateDiff(now, past, 'days')
+      if (days < 7) return `${days}`
+      
+      const weeks = Math.floor(days / 7)
+      if (weeks < 4) return `${weeks}`
+      
+      const months = date.getDateDiff(now, past, 'months')
+      if (months < 12) return `${months}`
+      
+      const years = date.getDateDiff(now, past, 'years')
+      return `${years}`
+    })()
     
     this.status = data.is_resolved ? 'Resolved' : 'Pending'
-    
+
     this.reasons = Array.isArray(data.dispute_reason)
       ? data.dispute_reason.flatMap(r => r.split(';').map(s => s.trim()).filter(Boolean))
       : (data.dispute_reason
