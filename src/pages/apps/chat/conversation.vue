@@ -1474,6 +1474,12 @@ export default {
         })
         this.$store.commit('nostrChat/ADD_MESSAGE', { roomId, message })
         this.$store.dispatch('nostrChat/publishGiftWraps', { giftWraps })
+        // Persist the new name on the relay so all members see it
+        this.$store.dispatch('nostrChat/publishGroupMetadata', {
+          roomId: this.roomId,
+          memberPubKeys: this.room?.members || [],
+          name,
+        }).catch(() => {})
         this.renameGroupName = ''
         this.showRenameGroupDialog = false
         this.$q.notify({ type: 'positive', message: this.$t('GroupRenamed', {}, 'Group renamed') })

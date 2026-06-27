@@ -1235,6 +1235,17 @@ export function receiveMessage ({ commit, state }, { rumor, sealPubkey }) {
         updatedAt: rumor.created_at,
       }
       commit('ADD_ROOM', room)
+
+      // Fire-and-forget: try to fetch the published group metadata name
+      // so this member sees the correct group name even if the first message
+      // they received didn't carry a subject tag (e.g., joining via group link).
+      if (isGroup) {
+        dispatch('fetchGroupMetadata', { roomId }).then(meta => {
+          if (meta?.name && meta.name !== room.name) {
+            commit('UPDATE_ROOM_NAME', { roomId, name: meta.name })
+          }
+        }).catch(() => {})
+      }
       if (ws.deletedRooms?.[roomId]) commit('DELETE_ROOM_TRACKER', roomId)
     } else if (room.type !== 'group' && roomMembers.length > 2) {
       commit('UPDATE_ROOM_TYPE', { roomId, type: 'group' })

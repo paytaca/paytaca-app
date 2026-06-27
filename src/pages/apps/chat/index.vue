@@ -917,6 +917,13 @@ export default {
         })
         this.$store.commit('nostrChat/ADD_MESSAGE', { roomId, message })
         await this.$store.dispatch('nostrChat/publishGiftWraps', { giftWraps })
+        // Publish group metadata so new members who join later can
+        // discover the group name from the relay.
+        this.$store.dispatch('nostrChat/publishGroupMetadata', {
+          roomId: room.id,
+          memberPubKeys: room.members,
+          name,
+        }).catch(() => {})
         this.showNewChatDialog = false
         this.$router.push(`/apps/chat/${room.id}`)
       } catch (err) {
