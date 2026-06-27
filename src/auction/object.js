@@ -337,14 +337,16 @@ export class AppealDetails {
       ? {
           user: data.auctioneer.user || null,
           username: data.auctioneer.username || null,
+          address: data.auctioneer.address || null
         }
-      : { user: null, username: null }
+      : { user: null, username: null, address: null }
 
     this.bidder = data.bidder
       ? {
           user: data.bidder.user || null,
           username: data.bidder.username || null,
+          address: data.bidder.address || null
         }
-      : { user: null, username: null }
+      : { user: null, username: null, address: null }
   }
 }

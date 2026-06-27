@@ -86,12 +86,12 @@
               </div>
               <div class="text-body2 text-weight-medium">{{ details.auctioneer.username ?? '—' }}</div>
               <div class="text-caption ellipsis" style="opacity: 0.55; max-width: 200px;">
-                {{ details.auctioneer.user ?? '—' }}
+                {{ details.auctioneer.address ?? '—' }}
               </div>
             </div>
             <q-btn
               flat round dense icon="content_copy" size="xs"
-              @click="copyToClipboard(details.auctioneer.user)"
+              @click="copyToClipboard(details.auctioneer.address)"
             />
           </div>
 
@@ -105,12 +105,12 @@
               </div>
               <div class="text-body2 text-weight-medium">{{ details.bidder.username ?? '—' }}</div>
               <div class="text-caption ellipsis" style="opacity: 0.55; max-width: 200px;">
-                {{ details.bidder.user ?? '—' }}
+                {{ details.bidder.address ?? '—' }}
               </div>
             </div>
             <q-btn
               flat round dense icon="content_copy" size="xs"
-              @click="copyToClipboard(details.bidder.user)"
+              @click="copyToClipboard(details.bidder.address)"
             />
           </div>
         </q-card-section>
@@ -341,6 +341,7 @@ onMounted(async () => {
             bidderData = {
               user: bidderResult.data.user,
               username: bidderResult.data.username,
+              address: bidderResult.data.address,
             }
           }
         }
@@ -358,6 +359,7 @@ onMounted(async () => {
                   auctioneerData = {
                     user: auctioneerResult.data.user,
                     username: auctioneerResult.data.username,
+                    address: auctioneerResult.data.address,
                   }
                 }
               }
