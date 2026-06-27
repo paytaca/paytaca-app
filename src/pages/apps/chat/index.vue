@@ -65,6 +65,8 @@
               @archive-room="confirmArchiveRoom"
               @block-room="confirmBlockRoom"
               @unblock-room="confirmUnblockRoom"
+              @leave-room="confirmLeaveGroup"
+              @rejoin-room="confirmRejoinGroup"
             />
           </q-tab-panel>
           <q-tab-panel name="archived" class="q-pa-none">
@@ -73,7 +75,8 @@
               :messages="messages"
               archived
               @select-room="openRoom"
-              @unarchive-room="unarchiveRoom"
+              @unarchive-room="unarchiveOrRejoinRoom"
+              @rejoin-room="confirmRejoinGroup"
               @delete-room="confirmDeleteRoom"
             />
           </q-tab-panel>
@@ -773,19 +776,83 @@ export default {
         })
       })
     },
-    unarchiveRoom (roomId) {
+    unarchiveOrRejoinRoom (roomId) {
+      // A left (blocked) group is archived; unarchiving it should rejoin it.
+      const room = this.archivedRooms.find(r => r.id === roomId)
+      if (room?.type === 'group' && this.$store.getters['nostrChat/isGroupBlocked'](roomId)) {
+        this.confirmRejoinGroup(roomId)
+        return
+      }
       this.$store.commit('nostrChat/UNARCHIVE_ROOM', roomId)
       this.$q.notify({
         type: 'positive',
         message: this.$t('ConversationUnarchived', {}, 'Conversation unarchived'),
       })
     },
+    confirmLeaveGroup (roomId) {
+      const room = this.rooms.find(r => r.id === roomId)
+      if (!room) return
+      const roomName = this.getRoomDisplayName(room)
+      this.$q.dialog({
+        title: this.$t('LeaveGroup', {}, 'Leave Group'),
+        message: this.$t('LeaveGroupConfirm', { name: roomName }, `Leave group "${roomName}"? The group will be archived and you won't receive new messages until you rejoin.`),
+        class: `pt-card text-bow ${this.getDarkModeClass(this.darkMode)}`,
+        cancel: { label: this.$t('Cancel', {}, 'Cancel'), flat: true, color: 'grey' },
+        ok: { label: this.$t('LeaveGroup', {}, 'Leave Group'), color: 'negative', flat: true },
+        persistent: true,
+      }).onOk(async () => {
+        try {
+          await this.$store.dispatch('nostrChat/leaveGroup', { roomId })
+          this.$q.notify({ type: 'info', message: this.$t('LeftGroup', {}, 'You left the group') })
+        } catch (err) {
+          this.$q.notify({ type: 'negative', message: err.message || this.$t('LeaveGroupFailed', {}, 'Failed to leave group') })
+        }
+      })
+    },
+    confirmRejoinGroup (roomId) {
+      const room = (this.rooms.find(r => r.id === roomId) || this.archivedRooms.find(r => r.id === roomId))
+      if (!room) return
+      const roomName = this.getGroupDisplayName(room)
+      this.$q.dialog({
+        title: this.$t('RejoinGroup', {}, 'Rejoin Group'),
+        message: this.$t('RejoinGroupConfirm', { name: roomName }, `Rejoin "${roomName}"? You will be able to send and receive messages again.`),
+        class: `pt-card text-bow ${this.getDarkModeClass(this.darkMode)}`,
+        cancel: { label: this.$t('Cancel', {}, 'Cancel'), flat: true, color: 'grey' },
+        ok: { label: this.$t('RejoinGroup', {}, 'Rejoin Group'), color: 'primary', flat: true },
+        persistent: true,
+      }).onOk(async () => {
+        await this.$store.dispatch('nostrChat/rejoinGroup', { roomId })
+        this.$q.notify({ type: 'positive', message: this.$t('GroupRejoined', {}, 'Group rejoined') })
+      })
+    },
+    getGroupDisplayName (room) {
+      return room?.name || room?.subject || this.$t('GroupChat', {}, 'Group Chat')
+    },
     confirmDeleteRoom (roomId) {
       const room = this.archivedRooms.find(r => r.id === roomId)
       if (!room) return
 
-      const otherPubKey = room.members?.find(m => m !== this.$store.getters['nostrChat/myPubKey'])
       const roomName = this.getRoomDisplayName(room)
+
+      // Groups: leaving already handles "blocking" via BLOCK_GROUP, so delete
+      // is a simple permanent removal. Also clear any group-block tracker.
+      if (room.type === 'group') {
+        this.$q.dialog({
+          title: this.$t('DeleteConversation', {}, 'Delete Conversation'),
+          message: this.$t('DeleteConversationConfirm', { name: roomName }, `Permanently delete "${roomName}"? This cannot be undone.`),
+          class: `pt-card text-bow ${this.getDarkModeClass(this.darkMode)}`,
+          cancel: { label: this.$t('Cancel', {}, 'Cancel'), flat: true, color: 'grey' },
+          ok: { label: this.$t('Delete', {}, 'Delete'), color: 'negative', flat: true },
+          persistent: true,
+        }).onOk(() => {
+          this.$store.commit('nostrChat/UNBLOCK_GROUP', roomId)
+          this.$store.commit('nostrChat/REMOVE_ROOM', roomId)
+          this.$q.notify({ type: 'info', message: this.$t('ConversationDeleted', {}, 'Conversation deleted') })
+        })
+        return
+      }
+
+      const otherPubKey = room.members?.find(m => m !== this.$store.getters['nostrChat/myPubKey'])
       const isBlocked = otherPubKey && this.$store.getters['nostrChat/isContactBlocked'](otherPubKey)
 
       // If already blocked, just offer delete

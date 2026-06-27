@@ -890,6 +890,42 @@ export async function sendEditMessage ({ state }, { roomId, text, editOf }) {
   return { giftWraps, message, roomId }
 }
 
+// Leaving a group sends a "left the group" notification to the other members,
+// then marks the group blocked + archived. While blocked, incoming messages
+// targeting the group are dropped in receiveMessage. Rejoining (unblocking)
+// reverses both flags — see components for the unblock flow.
+export async function leaveGroup ({ commit, dispatch, state }, { roomId }) {
+  const ws = getWalletState(state)
+  const room = ws.rooms.find(r => r.id === roomId)
+  if (!room) throw new Error('Room not found')
+
+  const myPub = ws.keys?.pubKeyHex
+  const contact = state.contacts.find(c => c.pubKeyHex === myPub)
+  const myDisplayName = contact?.name || ws.profile?.displayName || 'You'
+
+  const text = `${myDisplayName} left the group`
+  const { giftWraps, message, roomId: msgRoomId } = await dispatch('sendMessage', { roomId, text })
+  commit('ADD_MESSAGE', { roomId: msgRoomId, message })
+  await dispatch('publishGiftWraps', { giftWraps })
+
+  commit('BLOCK_GROUP', roomId)
+  commit('ARCHIVE_ROOM', roomId)
+}
+
+export async function rejoinGroup ({ commit, dispatch }, { roomId }) {
+  commit('UNBLOCK_GROUP', roomId)
+  commit('UNARCHIVE_ROOM', roomId)
+
+  try {
+    const meta = await dispatch('fetchGroupMetadata', { roomId })
+    if (meta?.name) {
+      commit('UPDATE_ROOM_NAME', { roomId, name: meta.name })
+    }
+  } catch {
+    // Non-critical — name stays as-is if fetch fails
+  }
+}
+
 export async function sendDeleteMessage ({ state }, { roomId, messageId }) {
   const ws = getWalletState(state)
   const room = ws.rooms.find(r => r.id === roomId)
@@ -1218,6 +1254,9 @@ export function receiveMessage ({ commit, state }, { rumor, sealPubkey }) {
     const roomMembers = [...new Set([myPubKey, rumor.pubkey, ...pTags])]
     const roomId = computeRoomId(roomMembers)
 
+    // Drop messages for a group we've left (blocked)
+    if (ws.blockedGroups?.includes(roomId)) return
+
     let room = ws.rooms.find(r => r.id === roomId)
     if (!room) {
       if (ws.blockedContacts?.includes(rumor.pubkey)) return
@@ -1289,6 +1328,9 @@ export function receiveMessage ({ commit, state }, { rumor, sealPubkey }) {
   const roomMembers = [...new Set([myPubKey, rumor.pubkey, ...pTags])]
   const roomId = computeRoomId(roomMembers)
 
+  // Drop messages for a group we've left (blocked)
+  if (ws.blockedGroups?.includes(roomId)) return
+
   let room = ws.rooms.find(r => r.id === roomId)
   if (!room) {
     // Before creating a new room, check if an existing room has the same member set
@@ -1302,6 +1344,9 @@ export function receiveMessage ({ commit, state }, { rumor, sealPubkey }) {
       if (deletedEntry?.knownMessageIds?.[rumor.id]) return
       // Reuse the existing room — store the message under its ID
       room = existingByMembers
+      // Drop messages for a group we've left (blocked) — the stored room id
+      // may differ from the computed roomId when legacy rooms exist.
+      if (ws.blockedGroups?.includes(room.id)) return
       const replyTo = rumor.tags.find(t => t[0] === 'e')?.[1] || null
       const hasSubjectTag = rumor.tags.some(t => t[0] === 'subject')
       const subjectRaw = rumor.tags.find(t => t[0] === 'subject')?.[1]

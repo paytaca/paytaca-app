@@ -226,9 +226,10 @@
           </q-card>
         </q-dialog>
 
-        <!-- Leave group -->
+        <!-- Leave / Rejoin group -->
         <div class="leave-section q-mt-md">
           <q-btn
+            v-if="!isGroupBlocked"
             :label="$t('LeaveGroup', {}, 'Leave Group')"
             color="negative"
             outline
@@ -236,12 +237,22 @@
             class="full-width"
             @click="confirmLeaveGroup"
           />
+          <q-btn
+            v-else
+            :label="$t('RejoinGroup', {}, 'Rejoin Group')"
+            color="primary"
+            outline
+            rounded
+            class="full-width"
+            @click="confirmRejoinGroup"
+          />
         </div>
 
         <!-- Info note -->
         <div class="info-note q-mt-md">
           <q-icon name="info" size="16px" color="grey-5" />
-          <span>{{ $t('LeaveGroupNote', {}, 'Leaving a group removes it from your view. A message will be sent to the group notifying them you left.') }}</span>
+          <span v-if="!isGroupBlocked">{{ $t('LeaveGroupNote', {}, 'Leaving a group archives it and stops new messages from arriving. A message will be sent to the group notifying them you left. You can rejoin later.') }}</span>
+          <span v-else>{{ $t('LeftGroupNote', {}, 'You left this group. Rejoin to send and receive messages again.') }}</span>
         </div>
       </div>
     </div>
@@ -279,6 +290,10 @@ export default {
     },
     room () {
       return this.$store.getters['nostrChat/getRoom'](this.roomId)
+    },
+    isGroupBlocked () {
+      if (!this.roomId) return false
+      return this.$store.getters['nostrChat/isGroupBlocked'](this.roomId)
     },
     myPubKey () {
       return this.$store.getters['nostrChat/myPubKey']
@@ -397,20 +412,25 @@ export default {
         persistent: true,
       }).onOk(async () => {
         try {
-          const myDisplayName = this.myDisplayName
-          const text = this.$t('LeftGroup', {}, `${myDisplayName} left the group`)
-          const { giftWraps, message, roomId } = await this.$store.dispatch('nostrChat/sendMessage', {
-            roomId: this.roomId,
-            text,
-          })
-          this.$store.commit('nostrChat/ADD_MESSAGE', { roomId, message })
-          await this.$store.dispatch('nostrChat/publishGiftWraps', { giftWraps })
-          this.$store.commit('nostrChat/REMOVE_ROOM', this.roomId)
+          await this.$store.dispatch('nostrChat/leaveGroup', { roomId: this.roomId })
           this.$router.replace('/apps/chat')
           this.$q.notify({ type: 'info', message: this.$t('LeftGroup', {}, 'You left the group') })
         } catch (err) {
           this.$q.notify({ type: 'negative', message: err.message || this.$t('LeaveGroupFailed', {}, 'Failed to leave group') })
         }
+      })
+    },
+    confirmRejoinGroup () {
+      this.$q.dialog({
+        title: this.$t('RejoinGroup', {}, 'Rejoin Group'),
+        message: this.$t('RejoinGroupConfirm', { name: this.room?.name }, `Rejoin "${this.room?.name}"? You will be able to send and receive messages again.`),
+        class: `pt-card text-bow ${this.getDarkModeClass(this.darkMode)}`,
+        cancel: { label: this.$t('Cancel', {}, 'Cancel'), flat: true, color: 'grey' },
+        ok: { label: this.$t('RejoinGroup', {}, 'Rejoin Group'), color: 'primary', flat: true },
+        persistent: true,
+      }).onOk(async () => {
+        await this.$store.dispatch('nostrChat/rejoinGroup', { roomId: this.roomId })
+        this.$q.notify({ type: 'positive', message: this.$t('GroupRejoined', {}, 'Group rejoined') })
       })
     },
 

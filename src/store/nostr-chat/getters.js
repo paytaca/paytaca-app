@@ -161,6 +161,18 @@ export function getBlockedContacts (state) {
   return ws.blockedContacts || []
 }
 
+// ---- Per-wallet blocked groups ("left" groups) ----
+
+export function isGroupBlocked (state) {
+  const ws = getWalletState(state)
+  return (roomId) => (ws.blockedGroups || []).includes(roomId) || false
+}
+
+export function getBlockedGroups (state) {
+  const ws = getWalletState(state)
+  return ws.blockedGroups || []
+}
+
 // ---- Per-wallet read receipts ----
 
 export function getMessageReadBy (state) {

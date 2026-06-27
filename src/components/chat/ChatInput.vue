@@ -91,7 +91,7 @@
           borderless
           :dark="darkMode"
           class="chat-text-field"
-          :placeholder="blocked ? $t('ContactBlockedInputDisabled', {}, 'Contact blocked') : (disabled ? $t('ConversationArchivedInputDisabled', {}, 'Conversation archived') : $t('TypeAMessage', {}, 'Type a message...'))"
+          :placeholder="blocked ? (blockedPlaceholder || $t('ContactBlockedInputDisabled', {}, 'Contact blocked')) : (disabled ? $t('ConversationArchivedInputDisabled', {}, 'Conversation archived') : $t('TypeAMessage', {}, 'Type a message...'))"
           :maxlength="MAX_CHARS"
           :disable="disabled"
           @keydown.enter="onEnterKey"
@@ -164,6 +164,7 @@ export default {
     roomId: { type: String, default: '' },
     disabled: { type: Boolean, default: false },
     blocked: { type: Boolean, default: false },
+    blockedPlaceholder: { type: String, default: '' },
   },
   data () {
     return {

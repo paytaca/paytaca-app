@@ -200,6 +200,27 @@ export function UNBLOCK_CONTACT (state, pubKeyHex) {
   ws.blockedContacts = ws.blockedContacts.filter(k => k !== pubKeyHex)
 }
 
+// ---- Per-wallet blocked groups (a.k.a. "left" groups) ----
+// Leaving a group marks it blocked + archived. While blocked, new messages
+// targeting the group are dropped (see receiveMessage). Unblocking a group
+// (rejoining) also unarchives it.
+
+export function BLOCK_GROUP (state, roomId) {
+  const ws = getOrInitWalletState(state)
+  if (!ws) return
+  if (!ws.blockedGroups) ws.blockedGroups = []
+  if (!ws.blockedGroups.includes(roomId)) {
+    ws.blockedGroups.push(roomId)
+  }
+}
+
+export function UNBLOCK_GROUP (state, roomId) {
+  const ws = getOrInitWalletState(state)
+  if (!ws) return
+  if (!ws.blockedGroups) return
+  ws.blockedGroups = ws.blockedGroups.filter(id => id !== roomId)
+}
+
 // ---- Per-wallet message mutations ----
 
 export function ADD_MESSAGE (state, { roomId, message }) {
@@ -437,6 +458,7 @@ export function RESET_WALLET_CHAT_DATA (state) {
   ws.messageReadBy = {}
   ws.reactions = {}
   ws.blockedContacts = []
+  ws.blockedGroups = []
   ws.bchAddressCache = {}
   ws.displayNameCache = {}
   ws.avatarCache = {}

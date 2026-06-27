@@ -11,6 +11,7 @@ export function getInitialWalletState () {
     // Conversations (per-wallet)
     rooms: [],
     blockedContacts: [],
+    blockedGroups: [],
     deletedRooms: {},
     messages: {},
     readReceipts: {},

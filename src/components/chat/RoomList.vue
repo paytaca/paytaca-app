@@ -10,9 +10,9 @@
     >
       <template v-slot:left>
         <div class="row items-center q-gutter-sm">
-          <q-icon :name="archived ? 'unarchive' : (isRoomBlocked(room) ? 'lock_open' : 'block')" size="20px" color="white" />
+          <q-icon :name="leftSwipeIcon(room)" size="20px" color="white" />
           <span class="text-white text-weight-medium" style="font-size: 13px;">
-            {{ archived ? $t('Unarchive', {}, 'Unarchive') : (isRoomBlocked(room) ? $t('Unblock', {}, 'Unblock') : $t('Block', {}, 'Block')) }}
+            {{ leftSwipeLabel(room) }}
           </span>
         </div>
       </template>
@@ -55,7 +55,7 @@
               {{ lastMessagePreview(room.id) }}
             </div>
             <div class="room-badges">
-              <div v-if="isRoomBlocked(room)" class="blocked-badge">BLOCKED</div>
+              <div v-if="isRoomBlocked(room)" class="blocked-badge">{{ room.type === 'group' ? $t('Left', {}, 'LEFT') : $t('Blocked', {}, 'BLOCKED') }}</div>
               <div v-if="unreadCount(room.id) > 0" class="unread-badge">
                 {{ unreadCount(room.id) }}
               </div>
@@ -87,7 +87,7 @@ export default {
     messages: { type: Object, default: () => ({}) },
     archived: { type: Boolean, default: false },
   },
-  emits: ['select-room', 'archive-room', 'unarchive-room', 'delete-room', 'block-room', 'unblock-room'],
+  emits: ['select-room', 'archive-room', 'unarchive-room', 'delete-room', 'block-room', 'unblock-room', 'leave-room', 'rejoin-room'],
   data () {
     return {
       dmAvatars: {},
@@ -148,19 +148,48 @@ export default {
   methods: {
     getDarkModeClass,
     isRoomBlocked (room) {
-      if (room.type === 'group') return false
+      if (room.type === 'group') {
+        return this.$store.getters['nostrChat/isGroupBlocked'](room.id)
+      }
       const otherPubKey = room.members?.find(m => m !== this.myPubKey)
       if (!otherPubKey) return false
       return this.$store.getters['nostrChat/isContactBlocked'](otherPubKey)
+    },
+    leftSwipeLabel (room) {
+      if (this.archived) return this.$t('Unarchive', {}, 'Unarchive')
+      const blocked = this.isRoomBlocked(room)
+      if (room.type === 'group') {
+        return blocked ? this.$t('Rejoin', {}, 'Rejoin') : this.$t('Leave', {}, 'Leave')
+      }
+      return blocked ? this.$t('Unblock', {}, 'Unblock') : this.$t('Block', {}, 'Block')
+    },
+    leftSwipeIcon (room) {
+      if (this.archived) return 'unarchive'
+      const blocked = this.isRoomBlocked(room)
+      if (room.type === 'group') {
+        return blocked ? 'group_add' : 'exit_to_app'
+      }
+      return blocked ? 'lock_open' : 'block'
     },
     onSwipeLeft (room, { reset }) {
       reset()
       if (this.archived) {
         this.$emit('unarchive-room', room.id)
-      } else if (this.isRoomBlocked(room)) {
-        this.$emit('unblock-room', room.id)
+        return
+      }
+      const blocked = this.isRoomBlocked(room)
+      if (room.type === 'group') {
+        if (blocked) {
+          this.$emit('rejoin-room', room.id)
+        } else {
+          this.$emit('leave-room', room.id)
+        }
       } else {
-        this.$emit('block-room', room.id)
+        if (blocked) {
+          this.$emit('unblock-room', room.id)
+        } else {
+          this.$emit('block-room', room.id)
+        }
       }
     },
     onSwipeRight (room, { reset }) {

@@ -132,7 +132,7 @@
               </q-item-section>
             </q-item>
             <q-item
-              v-if="isGroupRoom"
+              v-if="isGroupRoom && !isGroupBlocked"
               clickable
               v-close-popup
               @click="confirmLeaveGroup"
@@ -142,6 +142,19 @@
               </q-item-section>
               <q-item-section>
                 <span class="text-negative">{{ $t('LeaveGroup', {}, 'Leave Group') }}</span>
+              </q-item-section>
+            </q-item>
+            <q-item
+              v-if="isGroupRoom && isGroupBlocked"
+              clickable
+              v-close-popup
+              @click="confirmRejoinGroup"
+            >
+              <q-item-section side>
+                <q-icon name="group_add" size="18px" color="primary" />
+              </q-item-section>
+              <q-item-section>
+                {{ $t('RejoinGroup', {}, 'Rejoin Group') }}
               </q-item-section>
             </q-item>
           </q-menu>
@@ -379,6 +392,10 @@
         <q-icon name="block" size="16px" />
         <span>{{ $t('ContactBlockedNotice', {}, 'Contact blocked') }}</span>
       </div>
+      <div v-if="isGroupRoom && isGroupBlocked" class="blocked-notice">
+        <q-icon name="exit_to_app" size="16px" />
+        <span>{{ $t('LeftGroupNotice', {}, 'You left this group') }}</span>
+      </div>
     </template>
 
     <!-- Non-member group: request to join card -->
@@ -467,7 +484,7 @@
       <q-btn flat dense unelevated icon="close" size="sm" class="edit-bar-close" @click="cancelEdit" />
     </div>
 
-    <chat-input ref="chatInput" :room-id="roomId" :disabled="isRoomArchived || isContactBlocked" :blocked="isContactBlocked" @send="onSend" @command="onCommand" @tip="onTipAction" @focus="onInputFocus" @blur="onInputBlur" />
+    <chat-input ref="chatInput" :room-id="roomId" :disabled="isRoomArchived || isContactBlocked || isGroupBlocked" :blocked="isContactBlocked || isGroupBlocked" :blocked-placeholder="isGroupBlocked ? $t('LeftGroupInputDisabled', {}, 'You left this group') : null" @send="onSend" @command="onCommand" @tip="onTipAction" @focus="onInputFocus" @blur="onInputBlur" />
 
     <!-- Message context menu -->
     <q-menu ref="contextMenu" touch-position no-parent-event class="text-bow" :class="getDarkModeClass(darkMode)">
@@ -651,6 +668,10 @@ export default {
     },
     isRoomArchived () {
       return this.room?.archived === true
+    },
+    isGroupBlocked () {
+      if (!this.roomId) return false
+      return this.$store.getters['nostrChat/isGroupBlocked'](this.roomId)
     },
     isGroupRoom () {
       return this.room?.type === 'group'
@@ -1497,19 +1518,26 @@ export default {
         persistent: true,
       }).onOk(async () => {
         try {
-          const text = this.$t('LeftGroup', {}, `${this.myDisplayName} left the group`)
-          const { giftWraps, message, roomId } = await this.$store.dispatch('nostrChat/sendMessage', {
-            roomId: this.roomId,
-            text,
-          })
-          this.$store.commit('nostrChat/ADD_MESSAGE', { roomId, message })
-          await this.$store.dispatch('nostrChat/publishGiftWraps', { giftWraps })
-          this.$store.commit('nostrChat/REMOVE_ROOM', this.roomId)
+          await this.$store.dispatch('nostrChat/leaveGroup', { roomId: this.roomId })
           this.$router.replace('/apps/chat')
           this.$q.notify({ type: 'info', message: this.$t('LeftGroup', {}, 'You left the group') })
         } catch (err) {
           this.$q.notify({ type: 'negative', message: err.message || this.$t('LeaveGroupFailed', {}, 'Failed to leave group') })
         }
+      })
+    },
+    confirmRejoinGroup () {
+      const roomName = this.roomName
+      this.$q.dialog({
+        title: this.$t('RejoinGroup', {}, 'Rejoin Group'),
+        message: this.$t('RejoinGroupConfirm', { name: roomName }, `Rejoin "${roomName}"? You will be able to send and receive messages again.`),
+        class: `pt-card text-bow ${this.getDarkModeClass(this.darkMode)}`,
+        cancel: { label: this.$t('Cancel', {}, 'Cancel'), flat: true, color: 'grey' },
+        ok: { label: this.$t('RejoinGroup', {}, 'Rejoin Group'), color: 'primary', flat: true },
+        persistent: true,
+      }).onOk(async () => {
+        await this.$store.dispatch('nostrChat/rejoinGroup', { roomId: this.roomId })
+        this.$q.notify({ type: 'positive', message: this.$t('GroupRejoined', {}, 'Group rejoined') })
       })
     },
     async renameContact () {
@@ -1617,6 +1645,25 @@ export default {
       const roomName = this.roomName
       const otherPubKey = this.otherMemberPubKey
       const isBlocked = this.isContactBlocked
+
+      // Groups: leaving already handles "blocking" via BLOCK_GROUP, so delete
+      // is a simple permanent removal. Also clear any group-block tracker.
+      if (this.isGroupRoom) {
+        this.$q.dialog({
+          title: this.$t('DeleteConversation', {}, 'Delete Conversation'),
+          message: this.$t('DeleteConversationConfirm', { name: roomName }, `Delete "${roomName}"? This cannot be undone.`),
+          class: `pt-card text-bow ${this.getDarkModeClass(this.darkMode)}`,
+          cancel: { label: this.$t('Cancel', {}, 'Cancel'), flat: true, color: 'grey' },
+          ok: { label: this.$t('Delete', {}, 'Delete'), color: 'negative', flat: true },
+          persistent: true,
+        }).onOk(() => {
+          this.$store.commit('nostrChat/UNBLOCK_GROUP', this.roomId)
+          this.$store.commit('nostrChat/REMOVE_ROOM', this.roomId)
+          this.$router.replace('/apps/chat')
+          this.$q.notify({ type: 'info', message: this.$t('ConversationDeleted', {}, 'Conversation deleted') })
+        })
+        return
+      }
 
       if (isBlocked) {
         this.$q.dialog({
