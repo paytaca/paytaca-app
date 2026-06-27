@@ -98,9 +98,9 @@
                     :label="highestBidderId === walletHash ? 'Highest Bidder' : 'Place Bid'"
                     :disabled="
                       lot.getLotStatus(auction.start_date, auction.end_date).label !== 'Open' ||
-                      highestBidderId === walletHash
+                      highestBidderId === walletHash || englishBidLoading
                     "
-                    @click="openDialog = !openDialog"
+                    @click="openBidDialog"
                   />
                 </div>
  
@@ -110,7 +110,7 @@
                     style="background-color: var(--q-secondary);"
                     padding="md"
                     label="Buy It Now"
-                    :disabled="lot.getLotStatus(auction.start_date, auction.end_date).label !== 'Open' || dutchAlreadySold"
+                    :disabled="lot.getLotStatus(auction.start_date, auction.end_date).label !== 'Open' || dutchAlreadySold || buyItNowLoading"
                     @click="buyItNow"
                     unelevated
                   />
@@ -795,6 +795,24 @@ const englishCurrentFiat = computed(() => {
   return Number(lot.value.threshold_bid_bch || 0) * bchToPhpRate.value
 })
 
+const openBidDialog = async () => {
+  await checkBidStatus()
+  openDialog.value = true
+}
+
+const verifyStillHighestBid = async (bidId) => {
+  const result = await callAPI(`lots/${props.lotId}/highest-bid`)
+  if (!result.success || !result.data) {
+    throw new Error('Could not verify current highest bid.')
+  }
+
+  hasBid.value = true
+  highestBidId.value = result.data.id
+  highestBidderId.value = result.data.user
+
+  return result.data.id === bidId
+}
+
 const handlePlaceBid = async ({ bid_price_bch, bid_price_fiat }) => {
   if (!walletHash) {
     $q.notify({ type: 'warning', message: 'Please connect your wallet first.' })
@@ -817,23 +835,56 @@ const handlePlaceBid = async ({ bid_price_bch, bid_price_fiat }) => {
     }
 
     const bidId = bidResponse.data?.id
+
+    let isStillHighest
+
+    try {
+      isStillHighest = await verifyStillHighestBid(bidId)
+    } catch (err) {
+      console.error('Could not confirm bid outcome:', err)
+      hasUserBid.value = true
+      openDialog.value = false
+      await fetchLot()
+      startEnglishPolling()
+      $q.notify({
+        type: 'warning',
+        message: 'Your bid was submitted, but we could not confirm whether it is currently winning. Please check back.'
+      })
+      return
+    }
+
+    hasUserBid.value = true
+
+    if (!isStillHighest) {
+      await fetchLot()
+      openDialog.value = false
+      startEnglishPolling()
+      $q.notify({
+        type: 'warning',
+        icon: 'warning',
+        message: 'Someone placed a higher bid right as you submitted yours. You have not committed any funds — check the new highest bid and try again.'
+      })
+      return
+    }
+
     await callAPI('lots', props.lotId, 'patch', {
       threshold_bid_bch: Number(bid_price_bch).toFixed(8),
       threshold_bid_fiat: Number(bid_price_fiat).toFixed(2)
     })
 
     $q.loading.show({ message: 'Processing smart contract...' })
-    await walletToContract(Number(bid_price_bch).toFixed(8), bidId)
+    try {
+      await walletToContract(Number(bid_price_bch).toFixed(8), bidId)
+    } finally {
+      $q.loading.hide()
+    }
     
     const secondRes = await callAPI(`lots/${props.lotId}/second-highest-bid`)
     if (secondRes.success && secondRes.data?.id) {
       await callContractReturn(secondRes.data.id)
     }
 
-    $q.loading.hide()
-
     openDialog.value = false
-    hasUserBid.value = true
 
     $q.notify({
       type: 'positive',
@@ -858,9 +909,14 @@ const checkBidStatus = async () => {
     const result = await callAPI(`lots/${props.lotId}/highest-bid`)
 
     if (result.success && result.data?.user) {
+      const prevHighestId = highestBidId.value
       hasBid.value = true
       highestBidId.value = result.data.id
       highestBidderId.value = result.data.user
+      
+      if (prevHighestId !== result.data.id) {
+        await fetchLot()
+      }
     } else {
       hasBid.value = false
       highestBidderId.value = null
@@ -1047,6 +1103,49 @@ const clearDutchTimers = () => {
   }
 }
 
+let dutchPollingInterval = null
+
+const closeAuctionIfAllSold = async () => {
+  try {
+    const res = await callAPI(`lots-by-auction/${props.auctionId}`)
+    if (!res.success || !Array.isArray(res.data)) return
+    const allSold = res.data.every(l => l.is_sold)
+    if (allSold && new Date(auction.value.end_date) > new Date()) {
+      await callAPI('auctions', props.auctionId, 'patch', {
+        end_date: new Date().toISOString()
+      })
+      await fetchAuction()
+    }
+  } catch (err) {
+    console.warn('Could not close auction:', err)
+  }
+}
+
+const startDutchPolling = () => {
+  if (dutchPollingInterval) return
+  dutchPollingInterval = setInterval(async () => {
+    if (dutchAlreadySold.value) {
+      stopDutchPolling()
+      return
+    }
+    const res = await callAPI('lots', props.lotId)
+    if (res.success && res.data?.is_sold) {
+      lot.value = LotsList.parse(res.data)
+      dutchAlreadySold.value = true
+      clearDutchTimers()
+      stopDutchPolling()
+      await fetchWinningBid()
+    }
+  }, 8000)
+}
+
+const stopDutchPolling = () => {
+  if (dutchPollingInterval) {
+    clearInterval(dutchPollingInterval)
+    dutchPollingInterval = null
+  }
+}
+
 const startDutchCountdown = () => {
   if (visualCountdownTimer) clearInterval(visualCountdownTimer)
   computeCurrentPrice()
@@ -1090,6 +1189,7 @@ const initializeDutchAuctionTimer = (lotData) => {
 onUnmounted(() => {
   if (visualCountdownTimer) clearInterval(visualCountdownTimer)
   stopEnglishPolling()
+  stopDutchPolling()
 })
 
 const dutchFloorPriceBch = computed(() => Number(lot.value?.threshold_bid_bch || 0))
@@ -1126,6 +1226,17 @@ const handleBuyItNow = async (payload = {}) => {
 
     if (res.success) {
       const bidId = res.data?.id || res.id
+      
+      const freshLot = await callAPI('lots', props.lotId)
+      if (freshLot.success && freshLot.data?.is_sold) {
+        dutchAlreadySold.value = true
+        await fetchLot()
+        $q.notify({
+          type: 'warning',
+          message: 'Lot already sold!'
+        })
+        return
+      }
 
       const resIsSold = await callAPI('lots', props.lotId, 'patch', { 
         is_sold: true, 
@@ -1133,16 +1244,9 @@ const handleBuyItNow = async (payload = {}) => {
       })
 
       if (resIsSold) {
-        $q.loading.show({ message: 'Processing smart contract...' })
-
-        try {
-          await walletToContract(Number(bidBch).toFixed(8), bidId)
-        } finally {
-          $q.loading.hide()
-        }
-
         dutchAlreadySold.value = true
         clearDutchTimers()
+        await closeAuctionIfAllSold()
 
         await callAPI('delivery-trackings', null, 'post', {
           auctioneer: auction.value.user,
@@ -1151,6 +1255,14 @@ const handleBuyItNow = async (payload = {}) => {
           status: 1,
           preparing_date: new Date().toISOString()
         })
+
+        $q.loading.show({ message: 'Processing smart contract...' })
+
+        try {
+          await walletToContract(Number(bidBch).toFixed(8), bidId)
+        } finally {
+          $q.loading.hide()
+        }
 
         await refresh(() => {})
         
@@ -1172,13 +1284,7 @@ const handleBuyItNow = async (payload = {}) => {
 
 const fetchDutchSoldStatus = async () => {
   if (auction.value?.type !== 'Dutch') return
-  
-  try {
-    const res = await callAPI('biddings', null, 'get', null, { lot: props.lotId, is_final_bid: true })
-    dutchAlreadySold.value = res.success && res.data?.length > 0
-  } catch (err) {
-    console.warn('Could not verify if lot was already sold:', err)
-  }
+  dutchAlreadySold.value = lot.value?.is_sold ?? false
 }
 
 const fetchWinningBid = async () => {
@@ -1227,8 +1333,6 @@ const fetchLot = async () => {
     if (imageResult.success && Array.isArray(imageResult.data)) {
       lotImages.value = imageResult.data.map(item => item.image)
     }
-
-    initializeDutchAuctionTimer(lot.value)
   }
 }
 
@@ -1265,11 +1369,17 @@ const fetchDeliveryTracking = async () => {
 }
 
 const loadPageData = async () => {
-  await Promise.all([fetchLot(), fetchAuction(), fetchDutchSoldStatus(), checkBidStatus(), checkUserBid()])
+  await Promise.all([fetchLot(), fetchAuction()])
+  await Promise.all([fetchDutchSoldStatus(), checkBidStatus(), checkUserBid()])
   initializeDutchAuctionTimer(lot.value)
-  await fetchWinningBid()
-  await fetchDeliveryTracking()
+  await Promise.all([fetchWinningBid(), fetchDeliveryTracking()])
   await initEnglishDeliveryTracking()
+  if (auction.value?.type === 'English' && !isLotClosed.value && hasUserBid.value) {
+    startEnglishPolling()
+  }
+  if (auction.value?.type === 'Dutch' && !dutchAlreadySold.value) {
+    startDutchPolling()
+  }
 }
 
 watch(() => [props.lotId, props.auctionId], async () => {
@@ -1298,7 +1408,7 @@ const smartBackPath = computed(() => {
 
 const refresh = async (done) => {
   isLoading.value = true
-  dutchAlreadySold.value = false
+  if (auction.value?.type === 'Dutch') dutchAlreadySold.value = false
   await loadPageData()
   isLoading.value = false
   done()
