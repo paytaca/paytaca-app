@@ -59,11 +59,28 @@ const handleConfirm = async () => {
   isProcessing.value = true
   try {
     $q.loading.show({ message: 'Processing refund...' })
-    await callContractRefund(props.bidId)
+    
+    const result = await callContractRefund(props.bidId)
+    
+    if (result && result.success) {
+      $q.notify({ 
+        type: 'positive', 
+        message: 'Refund processed successfully!' 
+      })
+    } else {
+      $q.notify({ 
+        type: 'negative', 
+        message: 'Failed to process refund.' 
+      })
+    }
+    
     emit('confirm')
   } catch (err) {
     console.error('Failed to process refund:', err)
-    $q.notify({ type: 'negative', message: 'Failed to process refund.' })
+    $q.notify({ 
+      type: 'negative', 
+      message: 'Failed to process refund.' 
+    })
   } finally {
     $q.loading.hide()
     isProcessing.value = false

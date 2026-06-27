@@ -448,13 +448,6 @@ const confirmAction = () => {
   showRefundDialog.value = false
   showReleaseDialog.value = false
   swipeProgress.value = 0
-  $q.notify({
-    type: selectedAction.value === 'refund' ? 'negative' : 'positive',
-    message: selectedAction.value === 'refund'
-      ? `Refund initiated. Buyer will receive ${getFormattedBCH(contract.value.balance).main} BCH.`
-      : 'Funds released to seller.',
-    timeout: 3000
-  })
   selectedAction.value = null
 }
 
