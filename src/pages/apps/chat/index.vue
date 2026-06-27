@@ -581,11 +581,12 @@ export default {
     }
 
     // Show profile setup prompt if profile is incomplete.
-    // Delay to allow any background profile fetch (with retries) to resolve first.
+    // Short delay lets the synchronous cache-fill in initialize()
+    // settle in Vuex reactivity before we read the store.
     if (!this._profilePromptShown && this.isProfileIncomplete) {
       this._profilePromptTimer = setTimeout(() => {
         this._checkAndShowProfilePrompt()
-      }, 6000)
+      }, 1000)
     }
 
     // Re-subscribe when tab becomes visible (e.g., after app backgrounding)
