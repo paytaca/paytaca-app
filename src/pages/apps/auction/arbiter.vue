@@ -249,9 +249,9 @@
       </q-card>
     </div>
 
-    <ArbiterStatusHistoryDialog
+    <DeliveryStatusHistoryDialog
       v-model="showStatusHistory"
-      :status-history="statusHistory"
+      :lotId="details?.lot_id"
     />
 
     <ArbiterTransactionsDialog
@@ -289,8 +289,8 @@ import { AppealDetails } from 'src/auction/object.js'
 // Components
 import HeaderNav from 'src/components/header-nav.vue'
 import AuctionHeaderMenu from 'src/components/auction/AuctionHeaderMenu.vue'
+import DeliveryStatusHistoryDialog from 'src/components/auction/DeliveryStatusHistoryDialog.vue'
 import ArbiterTransactionsDialog from 'src/components/auction/Arbiter/ArbiterTransactionsDialog.vue'
-import ArbiterStatusHistoryDialog from 'src/components/auction/Arbiter/ArbiterStatusHistoryDialog.vue'
 import ArbiterRefundBuyerDialog from 'src/components/auction/Arbiter/ArbiterRefundBuyerDialog.vue'
 import ArbiterReleaseToSellerDialog from 'src/components/auction/Arbiter/ArbiterReleaseToSellerDialog.vue'
 
