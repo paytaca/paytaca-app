@@ -232,7 +232,12 @@ export class AppealList {
       if (!this.creation_date) return '0s'
       
       const now = new Date()
-      const past = new Date(this.creation_date)
+      
+      let dateStr = String(this.creation_date).trim().replace(' ', 'T')
+      if (!dateStr.endsWith('Z') && !dateStr.includes('+')) {
+        dateStr += 'Z'
+      }
+      const past = new Date(dateStr)
       
       const seconds = Math.max(0, date.getDateDiff(now, past, 'seconds'))
       if (seconds < 60) return `${seconds}`
@@ -301,7 +306,12 @@ export class AppealDetails {
       if (!this.creation_date) return '0s'
       
       const now = new Date()
-      const past = new Date(this.creation_date)
+      
+      let dateStr = String(this.creation_date).trim().replace(' ', 'T')
+      if (!dateStr.endsWith('Z') && !dateStr.includes('+')) {
+        dateStr += 'Z'
+      }
+      const past = new Date(dateStr)
       
       const seconds = Math.max(0, date.getDateDiff(now, past, 'seconds'))
       if (seconds < 60) return `${seconds}`
