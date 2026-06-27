@@ -464,18 +464,18 @@
               </div>
               
               <div class="text-subtitle1 text-weight-medium q-mb-xs">
-                Appeal #{{ appeal.number }}
+                Appeal #{{ appeal.id }}
               </div>
 
               <q-separator spaced="sm" />
               
               <div class="row items-center justify-between q-mb-xs text-caption">
                 <span class="text-weight-bold" style="text-transform: uppercase; letter-spacing: 0.4px;">Auction</span>
-                #{{ appeal.auctionId }}
+                #{{ appeal.auction_id }}
               </div>
               <div class="row items-center justify-between q-mb-xs text-caption">
                 <span class="text-weight-bold" style="text-transform: uppercase; letter-spacing: 0.4px;">Lot</span>
-                #{{ appeal.lotNumber }}
+                #{{ appeal.lot_id }}
               </div>
 
               <q-separator spaced="sm" />
@@ -504,7 +504,7 @@ import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 import { computed, ref, onMounted, watch, nextTick, onActivated, onUnmounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { callAPI } from 'src/auction/api'
-import { AuctionList } from 'src/auction/object.js'
+import { AuctionList, AppealList } from 'src/auction/object.js'
 
 // Components
 import HeaderNav from 'src/components/header-nav.vue'
@@ -550,64 +550,6 @@ const lotType = ref('All')
 const lotTypeOptions = ['Physical', 'Digital', 'All']
 const arbiterType = ref('All')
 const arbiterTypeOptions = ['Pending', 'Resolved', 'All']
-
-// Mock arbiter appeals data
-const appeals = ref([
-  {
-    id: 1,
-    number: '001',
-    auctionId: '12',
-    lotNumber: '3',
-    hoursSinceFiled: 2,
-    status: 'Pending',
-    reasons: ['Item misdescribed']
-  },
-  {
-    id: 2,
-    number: '002',
-    auctionId: '15',
-    lotNumber: '7',
-    hoursSinceFiled: 14,
-    status: 'Pending',
-    reasons: ['Item misdescribed', 'Non-delivery']
-  },
-  {
-    id: 3,
-    number: '003',
-    auctionId: '18',
-    lotNumber: '1',
-    hoursSinceFiled: 36,
-    status: 'Resolved',
-    reasons: ['Counterfeit item']
-  },
-  {
-    id: 4,
-    number: '004',
-    auctionId: '21',
-    lotNumber: '5',
-    hoursSinceFiled: 5,
-    status: 'Pending',
-    reasons: ['Non-delivery', 'Payment dispute']
-  },
-  {
-    id: 5,
-    number: '005',
-    auctionId: '24',
-    lotNumber: '2',
-    hoursSinceFiled: 72,
-    status: 'Resolved',
-    reasons: ['Item misdescribed', 'Counterfeit item']
-  },
-  {
-    id: 6,
-    number: '006',
-    auctionId: '30',
-    lotNumber: '9',
-    hoursSinceFiled: 1,
-    status: 'Pending',
-    reasons: ['Payment dispute']
-  }
-])
 
 const isLoading = ref(false)
 
@@ -664,12 +606,54 @@ const parseAuctionData = (data) => {
   return data instanceof AuctionList ? data : AuctionList.parse(data)
 }
 
+const arbiterDetails = ref([])
+
+const fetchArbiterData = async () => {
+  arbiterDetails.value = []
+  try {
+    const result = await callAPI('disputes')
+    if (!result.success || !Array.isArray(result.data)) return
+
+    arbiterDetails.value = await Promise.all(
+      result.data.map(async (dispute) => {
+        let lotId = null
+        let auctionId = null
+
+        if (dispute.bid) {
+          try {
+            const bidResult = await callAPI('biddings', dispute.bid)
+            if (bidResult.success && bidResult.data) {
+              const bid = bidResult.data
+              lotId = bid.lot
+
+              if (lotId) {
+                const lotResult = await callAPI('lots', lotId)
+                if (lotResult.success && lotResult.data) {
+                  auctionId = lotResult.data.auction
+                }
+              }
+            }
+          } catch (err) {
+            console.error(`Failed to resolve bid chain for dispute ${dispute.id}:`, err)
+          }
+        }
+
+        return AppealList.parse({ ...dispute, lotId, auctionId })
+      })
+    )
+  } catch (err) {
+    console.error('Failed to fetch disputes:', err)
+    arbiterDetails.value = []
+  }
+}
+
 onMounted(async () => {
   isLoading.value = true
 
   if(activityType.value === 'My Auctions') await fetchAuctionData()
+  else if(activityType.value === 'Arbiter') await fetchArbiterData()
   else await $store.dispatch('auction/fetchMyBiddings')
-  
+
   isLoading.value = false
 })
 
@@ -704,7 +688,7 @@ const filteredLots = computed(() => {
 })
 
 const filteredAppeals = computed(() => {
-  let items = appeals.value
+  let items = arbiterDetails.value
 
   if (arbiterType.value !== 'All') {
     items = items.filter(appeal => appeal.status === arbiterType.value)
@@ -727,6 +711,7 @@ watch(activityType, async (newType) => {
 
   if(newType === 'My Auctions') await fetchAuctionData()
   else if(newType === 'My Biddings') await $store.dispatch('auction/fetchMyBiddings')
+  else if(newType === 'Arbiter') await fetchArbiterData()
 
   isLoading.value = false
 
@@ -771,7 +756,8 @@ const refresh = async (done) => {
 
   if(activityType.value === 'My Auctions') await fetchAuctionData()
   else if(activityType.value === 'My Biddings') await $store.dispatch('auction/fetchMyBiddings')
-  
+  else if(activityType.value === 'Arbiter') await fetchArbiterData()
+
   isLoading.value = false
   done()
 }
