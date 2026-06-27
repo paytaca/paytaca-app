@@ -200,7 +200,7 @@ const routes = [
           { path: 'profile', component: () => import('src/pages/apps/auction/profile.vue'), name: 'app-auction-profile' },
           { path: 'add-auction', component: () => import('src/pages/apps/auction/add-auction.vue'), name: 'app-auction-add' },
           { path: 'edit-auction/:auctionId', component: () => import('src/pages/apps/auction/edit-auction.vue'), name: 'app-auction-edit', props: true },
-          { path: 'arbiter/:arbiterId', component: () => import('src/pages/apps/auction/arbiter.vue'), name: 'app-auction-arbiter', props: true },
+          { path: 'arbiter/:appealId', component: () => import('src/pages/apps/auction/arbiter.vue'), name: 'app-auction-arbiter', props: true },
           { path: ':auctionId', component: () => import('src/pages/apps/auction/auction-details.vue'), name: 'app-auction-details', props: true },
           { path: ':auctionId/lot/:lotId', component: () => import('src/pages/apps/auction/lot-details.vue'), name: 'app-auction-lot-details', props: true }
         ]
