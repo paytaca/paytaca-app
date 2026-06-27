@@ -345,7 +345,6 @@ export default {
     data () {
       return {
         expandedReaction: null,
-        now: Date.now(),
         // pointer long-press state
         _pressTimer: null,
         _pressStartX: 0,
@@ -360,7 +359,6 @@ export default {
       }
     },
     mounted () {
-      this._timer = setInterval(() => { this.now = Date.now() }, 1000)
       if (this.isImageFile && this.message.aesKeyHex && this.message.nonceHex) {
         // Check if thumbnail is already cached
         const cacheKey = this.message.id || this.message.content
@@ -381,7 +379,6 @@ export default {
     },
    beforeUnmount () {
      this._unmounted = true
-     clearInterval(this._timer)
      if (this._imgObserver) {
        this._imgObserver.disconnect()
        this._imgObserver = null
@@ -464,7 +461,7 @@ export default {
         if (!groups[r.emoji]) groups[r.emoji] = { emoji: r.emoji, count: 0, reactors: [], isRemovable: false }
         groups[r.emoji].count++
         groups[r.emoji].reactors.push({ pubKey: r.reactorPubKey, createdAt: r.createdAt })
-        if (r.reactorPubKey === this.myPubKey && this.now - (r.createdAt || 0) < 30000) {
+        if (r.reactorPubKey === this.myPubKey && Date.now() - (r.createdAt || 0) < 30000) {
           groups[r.emoji].isRemovable = true
         }
       }
@@ -639,7 +636,7 @@ export default {
     },
     canRemoveReaction (reactor) {
       if (reactor.pubKey !== this.myPubKey) return false
-      return this.now - (reactor.createdAt || 0) < 30000
+      return Date.now() - (reactor.createdAt || 0) < 30000
     },
     onReactionClick (reactor) {
       if (reactor.pubKey === this.myPubKey && this.canRemoveReaction(reactor)) {

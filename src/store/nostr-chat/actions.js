@@ -19,6 +19,23 @@ import {
 import { clearChatCache } from 'src/components/chat/MessageBubble.vue'
 import { Store } from 'src/store'
 
+const isDev = process.env.NODE_ENV !== 'production'
+const debug = (...args) => { if (isDev) console.log('[Nostr]', ...args) }
+
+// Per-recipient cache of kind:10050 relay-preference fetches. Each send was
+// previously issuing a `pool.querySync` per recipient before publishing the
+// gift-wrap, which blocked sends. Cache for 10 minutes; a stale relay list is
+// fine — delivery falls back to our own relays.
+const _kind10050Cache = new Map()
+const KIND10050_TTL_MS = 10 * 60 * 1000
+async function fetchKind10050Cached(relays, pubKey) {
+  const hit = _kind10050Cache.get(pubKey)
+  if (hit && Date.now() - hit.ts < KIND10050_TTL_MS) return hit.value
+  const value = await relayService.fetchKind10050(relays, pubKey)
+  _kind10050Cache.set(pubKey, { ts: Date.now(), value })
+  return value
+}
+
 function getCurrentWalletHash () {
   try {
     const wallet = Store.getters['global/getWallet']('bch')
@@ -207,14 +224,14 @@ export async function fetchOwnProfile ({ commit, dispatch }, pubKeyHex) {
 export async function registerNostrPubkey ({ state, rootGetters }) {
   const ws = getWalletState(state)
   if (!ws.keys.pubKeyHex) {
-    console.log('[Nostr] Skip pubkey registration: no pubkey')
+    debug('Skip pubkey registration: no pubkey')
     return
   }
 
   const walletIndex = rootGetters['global/getWalletIndex']
   const walletHash = rootGetters['global/getWalletHashByIndex']?.(walletIndex)
   if (!walletHash) {
-    console.log('[Nostr] Skip pubkey registration: no wallet hash')
+    debug('Skip pubkey registration: no wallet hash')
     return
   }
 
@@ -224,7 +241,7 @@ export async function registerNostrPubkey ({ state, rootGetters }) {
   try {
     const checkResponse = await watchtower.BCH._api.get(`/nostr/check/${ws.keys.pubKeyHex}/`)
     if (checkResponse?.data?.registered) {
-      console.log('[Nostr] Pubkey already registered')
+      debug('Pubkey already registered')
       return
     }
   } catch {
@@ -236,30 +253,30 @@ export async function registerNostrPubkey ({ state, rootGetters }) {
     wallet_hash: walletHash,
   }
 
-  console.log('[Nostr] Registering pubkey...', data)
+  debug('Registering pubkey...', data)
 
   try {
     const headers = await getAuthHeaders()
     const response = await watchtower.BCH._api.post('/nostr/register/', data, { headers })
-    console.log('[Nostr] Pubkey registration successful:', response.data)
+    debug('Pubkey registration successful:', response.data)
   } catch (err) {
     const status = err?.response?.status
-    
+
     // If token expired (401), clear it and retry once
     if (status === 401) {
-      console.log('[Nostr] Token expired, clearing and retrying...')
+      debug('Token expired, clearing and retrying...')
       await clearToken()
       try {
         const headers = await getAuthHeaders()
         const response = await watchtower.BCH._api.post('/nostr/register/', data, { headers })
-        console.log('[Nostr] Pubkey registration successful (retry):', response.data)
+        debug('Pubkey registration successful (retry):', response.data)
         return
       } catch (retryErr) {
         console.warn('[Nostr] Retry failed:', retryErr?.response?.status, retryErr?.response?.data, retryErr?.message || retryErr)
         return
       }
     }
-    
+
     console.warn('[Nostr] Failed to register pubkey:', status, err?.response?.data, err?.message || err)
   }
 }
@@ -1071,13 +1088,15 @@ export async function publishGiftWraps ({ state }, { giftWraps }) {
   // Start with our own relays as fallback
   let targetRelays = new Set(state.relays)
 
-  // Fetch each recipient's kind:10050 in parallel and add their preferred relays
+  // Fetch each recipient's kind:10050 in parallel and add their preferred relays.
+  // Cached per-recipient to avoid re-querying relays on every message send to
+  // the same contact (a `querySync` round-trip per recipient was blocking sends).
   const recipients = giftWraps
     .map(gw => gw.tags.find(t => t[0] === 'p')?.[1])
     .filter(r => r && r !== ws.keys.pubKeyHex)
   const uniqueRecipients = [...new Set(recipients)]
   const results = await Promise.allSettled(
-    uniqueRecipients.map(recipient => relayService.fetchKind10050(state.relays, recipient))
+    uniqueRecipients.map(recipient => fetchKind10050Cached(state.relays, recipient))
   )
   for (const result of results) {
     if (result.status === 'fulfilled' && result.value?.tags) {
@@ -1494,11 +1513,10 @@ export function ensureSubscribed ({ dispatch, getters }) {
   }
 }
 
-export function disconnectRelays ({ commit }) {
-  relayService.stopStatusPolling()
-  relayService.disconnect()
-  commit('SET_SUBSCRIBED', false)
-}
+// NOTE: A `disconnectRelays` action previously lived here but had no callers
+// and was removed. Relay teardown is handled by `reinitialize` (wallet switch)
+// and `resetAndRefetch` via `relayService.disconnect()`. If a page-scoped
+// teardown is needed later, re-add it and dispatch it from the chat pages.
 
 export async function resetAndRefetch ({ commit, dispatch, state }) {
   const ws = getWalletState(state)

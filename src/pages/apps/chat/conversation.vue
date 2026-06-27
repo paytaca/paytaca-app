@@ -681,6 +681,24 @@ export default {
       if (!room) return []
       return this.$store.getters['nostrChat/getMessages'](this.roomId)
     },
+    // O(1) id -> message lookup map, recomputed only when allMessages changes.
+    // Avoids per-row `allMessages.find()` calls in the template (was O(m) each).
+    messageIndexById () {
+      const map = new Map()
+      for (const m of this.allMessages) {
+        if (m.id) map.set(m.id, m)
+      }
+      return map
+    },
+    // O(1) pubKey -> contact lookup for reader-name resolution (avoids
+    // contacts.find() per reader per message in readByNamesMap).
+    contactsByPubKey () {
+      const map = new Map()
+      for (const c of this.contacts) {
+        if (c.pubKeyHex) map.set(c.pubKeyHex, c)
+      }
+      return map
+    },
     displayedMessages () {
       const total = this.allMessages.length
       const limit = this.displayLimit
@@ -760,14 +778,14 @@ export default {
       if (!room || !myPubKey || room.type !== 'group') return map
 
       const readBy = this.$store.getters['nostrChat/getMessageReadBy'](this.roomId)
-      const contacts = this.contacts
+      const contactsByPubKey = this.contactsByPubKey
 
       for (const msg of this.allMessages) {
         if (msg.sender !== myPubKey) continue
         const readers = Object.keys(readBy[msg.id] || {})
         if (!readers.length) continue
         map[msg.id] = readers.map(pubKey => {
-          const contact = contacts.find(c => c.pubKeyHex === pubKey)
+          const contact = contactsByPubKey.get(pubKey)
           return contact?.name || pubKey.slice(0, 8) + '...'
         })
       }
@@ -964,9 +982,12 @@ export default {
   },
   deactivated () {
     this.ready = false
+    this.flushMarkAsRead()
   },
   beforeUnmount () {
     this.ready = false
+    this.flushMarkAsRead()
+    if (this._vpRaf) { cancelAnimationFrame(this._vpRaf); this._vpRaf = null }
     document.removeEventListener('visibilitychange', this.onVisibilityChange)
     document.removeEventListener('pointerdown', this.onDocumentPointerDown)
     if (window.visualViewport) {
@@ -994,6 +1015,23 @@ export default {
       })
     },
     markAsRead () {
+      if (!this.roomId) return
+      // Debounce: the `allMessages.length` watcher used to fire `markRoomAsRead`
+      // on every incoming (or sent) message, and that action performs per-sender
+      // NIP-44 ECDH + a relay publish — enough to jank the UI during a 60s poll
+      // burst. Coalesce rapid calls into one dispatch at most every 3s, and
+      // guarantee a flush on deactivate/unmount via flushMarkAsRead().
+      if (this._markAsReadTimer) return
+      this._markAsReadTimer = setTimeout(() => {
+        this._markAsReadTimer = null
+        this.$store.dispatch('nostrChat/markRoomAsRead', this.roomId)
+      }, 3000)
+    },
+    flushMarkAsRead () {
+      if (this._markAsReadTimer) {
+        clearTimeout(this._markAsReadTimer)
+        this._markAsReadTimer = null
+      }
       if (this.roomId) {
         this.$store.dispatch('nostrChat/markRoomAsRead', this.roomId)
       }
@@ -1082,14 +1120,19 @@ export default {
       }
     },
     onViewportResize () {
-      if (this.inputFocused) {
-        this.$nextTick(() => {
-          const container = this.$refs.messagesContainer
-          if (container) {
-            container.scrollTop = container.scrollHeight
-          }
-        })
-      }
+      // visualViewport fires `resize` and `scroll` repeatedly while the
+      // mobile keyboard is animating, which used to force
+      // `$nextTick(scrollBottom)` on every tick and fight the user's own
+      // scroll. Coalesce with rAF, and only auto-follow if the user is
+      // already near the bottom (otherwise respect their scrolled-up view
+      // and let `showScrollToBottom` offer to jump back).
+      if (this._vpRaf) return
+      this._vpRaf = requestAnimationFrame(() => {
+        this._vpRaf = null
+        if (!this.inputFocused || this.showScrollToBottom) return
+        const container = this.$refs.messagesContainer
+        if (container) container.scrollTop = container.scrollHeight
+      })
     },
     showDateSeparator (index) {
       if (index === 0) return true
@@ -1110,7 +1153,7 @@ export default {
     },
     getMessageById (id) {
       if (!id) return null
-      return this.allMessages.find(m => m.id === id) || null
+      return this.messageIndexById.get(id) || null
     },
     getMessageReactions (messageId) {
       return this.$store.getters['nostrChat/getMessageReactions'](this.roomId, messageId)

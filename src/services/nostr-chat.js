@@ -7,6 +7,8 @@
 import { SimplePool } from 'nostr-tools/pool'
 import { finalizeEvent } from 'nostr-tools'
 
+const isDev = process.env.NODE_ENV !== 'production'
+
 let _pool = null
 let _subs = []
 let _authSigner = null
@@ -35,6 +37,41 @@ const KEEPALIVE_INTERVAL_MS = 30000
 let _resubscribeAttempts = 0
 const RESUBSCRIBE_BASE_MS = 1000
 const RESUBSCRIBE_MAX_MS = 60000
+
+// Polling/decryption batch tuning. The 60s querySync poll can surface up to
+// `limit` events per filter (×2 filters). Each event costs ~2 NIP-44 ECDH
+// decryptions, so processing the whole batch synchronously hijacks the main
+// thread. We drain new events in small chunks via requestIdleCallback (or a
+// short setTimeout fallback) so the UI thread can render between chunks.
+const POLL_INTERVAL_MS = 60000
+const EVENT_BATCH_SIZE = 8
+let _eventQueue = []
+let _drainScheduled = false
+
+function _scheduleDrain(callbacks) {
+  if (_drainScheduled) return
+  _drainScheduled = true
+  const drain = () => {
+    _drainScheduled = false
+    const batch = _eventQueue.splice(0, EVENT_BATCH_SIZE)
+    for (const ev of batch) {
+      try { callbacks.onEvent && callbacks.onEvent(ev) } catch (_) { /* ignore single-event failure */ }
+    }
+    if (_eventQueue.length > 0) {
+      _drainScheduled = true
+      if (typeof requestIdleCallback !== 'undefined') {
+        requestIdleCallback(drain, { timeout: 300 })
+      } else {
+        setTimeout(drain, 30)
+      }
+    }
+  }
+  if (typeof requestIdleCallback !== 'undefined') {
+    requestIdleCallback(drain, { timeout: 300 })
+  } else {
+    setTimeout(drain, 0)
+  }
+}
 
 function hexToBytes(hex) {
   const bytes = new Uint8Array(hex.length / 2)
@@ -97,6 +134,10 @@ export function disconnect() {
     clearInterval(_keepaliveInterval)
     _keepaliveInterval = null
   }
+  // Drop any pending decryption work so a wallet switch doesn't bleed old
+  // events into the new identity's store.
+  _eventQueue = []
+  _drainScheduled = false
   _isSubscribed = false
   _lastSubscribeTime = 0
   _subscribedRelays = []
@@ -105,6 +146,10 @@ export function disconnect() {
   _subscriptionCallbacks = null
   _statusBackoff = 1
   _resubscribeAttempts = 0
+  // Clear dedup set so a new wallet identity doesn't inherit the previous
+  // wallet's seen-event history. Bounded at 5000 anyway, but a wallet switch
+  // is the right place to reset it.
+  _seenEventIds.clear()
 }
 
 /**
@@ -287,7 +332,7 @@ export function subscribeGiftWraps(relays, myPubKey, callbacks = {}, options = {
             _resubscribeAttempts = 0
           },
           onclose(reasons) {
-            console.warn(`[Nostr] Subscription closed for ${relayUrl}:`, reasons)
+            if (isDev) console.warn(`[Nostr] Subscription closed for ${relayUrl}:`, reasons)
             if (!reasons.includes('closed by caller')) {
               _isSubscribed = false
               scheduleResubscribe()
@@ -304,9 +349,18 @@ export function subscribeGiftWraps(relays, myPubKey, callbacks = {}, options = {
   }
 
   // Polling fallback: query all relays every 30 seconds for gift-wraps.
-  // We do NOT use `since` because NIP-17 randomizes created_at up to 2 days in the past.
-  // Instead we track seen event IDs and only process new ones.
-  // Use module-level _seenEventIds so dedup survives across re-subscriptions.
+  // IMPORTANT: this is the primary path by which new gift-wraps actually
+  // arrive on this relay (the realtime `subscribeMany` push can be unreliable
+  // and subscriptions get "closed by caller"). This fallback is what drives
+  // the unread-message counter on non-chat pages (home/footer), so it must
+  // stay running app-wide. We do NOT use `since` because NIP-17 randomizes
+  // created_at up to 2 days in the past; instead we track seen event IDs and
+  // only process new ones.
+  //
+  // Polling cadence is 60s (was 30s) and new events are not handed to the
+  // callback synchronously — they are queued and drained in small batches via
+  // `requestIdleCallback` so the main thread can render between decryptions
+  // (each event costs ~2 NIP-44 ECDH operations).
   if (!_pollInterval) {
     _pollInterval = setInterval(async () => {
       try {
@@ -322,8 +376,10 @@ export function subscribeGiftWraps(relays, myPubKey, callbacks = {}, options = {
         if (!newEvents.length) return
         for (const event of newEvents) {
           _seenEventIds.add(event.id)
-          if (callbacks.onEvent) callbacks.onEvent(event)
         }
+        // Queue for batched decryption instead of synchronously driving the callback.
+        _eventQueue.push(...newEvents)
+        _scheduleDrain(callbacks)
         // Prevent unbounded growth. Keep more entries since polling limit increased.
         if (_seenEventIds.size > 5000) {
           const toDelete = Array.from(_seenEventIds).slice(0, _seenEventIds.size - 5000)
@@ -332,12 +388,14 @@ export function subscribeGiftWraps(relays, myPubKey, callbacks = {}, options = {
       } catch (err) {
         // Silently ignore poll errors
       }
-    }, 30000)
+    }, POLL_INTERVAL_MS)
   }
 
   // Keepalive: periodically verify subscription is alive.
   // If _isSubscribed was set to false (e.g., onclose fired) but the auto-resubscribe
-  // didn't trigger (e.g., back-to-back failures), this catches it.
+  // didn't trigger (e.g., back-to-back failures), this catches it. This is needed
+  // in addition to `scheduleResubscribe` because `onclose` with reason `closed by caller`
+  // deliberately skips `scheduleResubscribe`, and the pool can end up with no live subs.
   if (!_keepaliveInterval) {
     _keepaliveInterval = setInterval(() => {
       if (!_isSubscribed && _subscribedRelays.length > 0 && _subscribedPubKey && _subscriptionCallbacks) {
