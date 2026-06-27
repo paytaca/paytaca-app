@@ -81,23 +81,11 @@ const isExistingUser = ref(false)
 const isLoading = ref(true)
 
 onMounted(async () => {
-  // not sure why this is needed
   try {
-    const [pk] = await Promise.all([
-      getBidderPublicKey('0/0'),
-      new Promise(resolve => setTimeout(resolve, 600)) 
-    ])
-    
-    if (pk) {
-      const response = await callAPI('user-details-by-public-key', pk)
-
-      if (response && response.success && response.data) {
-        if (response.data.username) {
-          username.value = response.data.username
-        }
-        isExistingUser.value = true
-      }
+    if ($store.getters['auction/username']) {
+      username.value = $store.getters['auction/username']
     }
+    isExistingUser.value = true
   } catch (err) {
     console.error('Failed to fetch existing profile username:', err)
   } finally {
