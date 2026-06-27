@@ -1940,30 +1940,23 @@ export default {
             }
           })
 
-          // Still need to refresh BCH balance separately
-          return vm.getBalance('bch')
-            .catch(error => {
-              console.error('Error refreshing BCH balance:', error)
-              return null
-            })
+          // BCH balance is already fetched by the caller (onConnectivityChange),
+          // no need to call getBalance again here.
+          return Promise.resolve()
         } else {
           // For SLP, refresh token list from Watchtower and refresh BCH balance.
           await vm.fetchSlpTokensFromServer()
           if (!vm.refreshingTokenIds.includes('bch')) {
             vm.refreshingTokenIds.push('bch')
           }
-          
-          return vm.getBalance('bch')
-            .catch(error => {
-              console.error('Error refreshing BCH balance:', error)
-              return null
-            })
-            .finally(() => {
-              const index = vm.refreshingTokenIds.indexOf('bch')
-              if (index > -1) {
-                vm.refreshingTokenIds.splice(index, 1)
-              }
-            })
+
+          // BCH balance is already fetched by the caller (onConnectivityChange),
+          // no need to call getBalance again here.
+          const index = vm.refreshingTokenIds.indexOf('bch')
+          if (index > -1) {
+            vm.refreshingTokenIds.splice(index, 1)
+          }
+          return Promise.resolve()
         }
       } catch (error) {
         console.error('Error refreshing favorite token balances:', error)
