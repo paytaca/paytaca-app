@@ -11,28 +11,62 @@
       </q-card-section>
       
       <q-card-actions align="center" class="q-pb-md q-gutter-sm">
-        <q-btn flat no-caps label="Cancel" @click="$emit('cancel')" />
-        <q-btn unelevated no-caps color="negative" label="Confirm Refund" @click="$emit('confirm')" />
+        <q-btn flat no-caps label="Cancel" :disable="isProcessing" @click="$emit('cancel')" />
+        <q-btn
+          unelevated
+          no-caps
+          color="negative"
+          label="Confirm Refund"
+          :loading="isProcessing"
+          :disable="isProcessing"
+          @click="handleConfirm"
+        />
       </q-card-actions>
     </q-card>
   </q-dialog>
 </template>
 
 <script setup>
-import { computed } from 'vue'
+import { computed, ref } from 'vue'
 import { useStore } from 'vuex'
+import { useQuasar } from 'quasar'
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
+import { callContractRefund } from 'src/auction/arbiter';
 
-defineProps({
+const props = defineProps({
   modelValue: Boolean,
   balanceDisplay: {
     type: String,
     default: '0.000'
+  },
+  bidId: {
+    type: [String, Number],
+    default: null
   }
 })
 
-defineEmits(['update:modelValue', 'confirm', 'cancel'])
+const emit = defineEmits(['update:modelValue', 'confirm', 'cancel'])
 
+const $q = useQuasar()
 const $store = useStore()
 const darkMode = computed(() => $store.getters['darkmode/getStatus'])
+
+const isProcessing = ref(false)
+
+const handleConfirm = async () => {
+  if (isProcessing.value) return
+
+  isProcessing.value = true
+  try {
+    $q.loading.show({ message: 'Processing refund...' })
+    await callContractRefund(props.bidId)
+    emit('confirm')
+  } catch (err) {
+    console.error('Failed to process refund:', err)
+    $q.notify({ type: 'negative', message: 'Failed to process refund.' })
+  } finally {
+    $q.loading.hide()
+    isProcessing.value = false
+  }
+}
 </script>

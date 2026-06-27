@@ -262,6 +262,7 @@
     <ArbiterRefundBuyerDialog
       v-model="showRefundDialog"
       :balance-display="getFormattedBCH(contract.balance).main"
+      :bidId="details?.bid_id"
       @confirm="confirmAction"
       @cancel="cancelConfirm"
     />
@@ -302,8 +303,6 @@ const props = defineProps({
 const $q = useQuasar()
 const $store = useStore()
 const darkMode = computed(() => $store.getters['darkmode/getStatus'])
-const $router = useRouter()
-const $route = useRoute()
 
 const isLoading = ref(true)
 const details = ref(null)
@@ -313,15 +312,14 @@ const statusHistory = ref([])
 const transactions = ref([])
 
 onMounted(async () => {
-  const appealId = props.appealId
-  if (!appealId) {
+  if (!props.appealId) {
     isLoading.value = false
     return
   }
 
   isLoading.value = true
   try {
-    const disputeResult = await callAPI('disputes', appealId)
+    const disputeResult = await callAPI('disputes', props.appealId)
     if (!disputeResult.success || !disputeResult.data) throw new Error('Dispute not found')
     const dispute = disputeResult.data
     
@@ -455,7 +453,6 @@ const confirmAction = () => {
     message: selectedAction.value === 'refund'
       ? `Refund initiated. Buyer will receive ${getFormattedBCH(contract.value.balance).main} BCH.`
       : 'Funds released to seller.',
-    position: 'top',
     timeout: 3000
   })
   selectedAction.value = null
