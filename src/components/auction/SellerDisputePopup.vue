@@ -82,13 +82,12 @@ const $store = useStore()
 const darkMode = computed(() => $store.getters['darkmode/getStatus'])
 
 const reasonOptions = [
-  { value: 'seller_ghosting', label: 'Seller stopped replying' },
-  { value: 'no_tracking', label: 'No tracking information provided' },
-  { value: 'fake_tracking', label: 'Tracking number is invalid or fake' },
-  { value: 'late_shipping', label: 'Seller missed the shipping deadline' },
-  { value: 'wrong_address', label: 'Package sent to the wrong address' },
-  { value: 'shady_activity', label: 'Suspected scam or suspicious behavior' },
-  { value: 'other', label: 'Other pre-delivery issue' }
+  { value: 'seller_ghosting', label: 'Seller ghosting' },
+  { value: 'no_tracking', label: 'No tracking' },
+  { value: 'fake_tracking', label: 'Invalid tracking' },
+  { value: 'late_shipping', label: 'Late shipping' },
+  { value: 'wrong_address', label: 'Wrong address' },
+  { value: 'shady_activity', label: 'Suspicious activity' }
 ]
 
 const selectedReasons = ref([])

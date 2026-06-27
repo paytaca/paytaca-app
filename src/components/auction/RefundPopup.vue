@@ -82,13 +82,12 @@ const $store = useStore()
 const darkMode = computed(() => $store.getters['darkmode/getStatus'])
 
 const reasonOptions = [
-  { value: 'damaged_item', label: 'Item arrived damaged or broken' },
-  { value: 'not_as_described', label: 'Item is different from the description' },
-  { value: 'wrong_item', label: 'Received the wrong item entirely' },
-  { value: 'missing_parts', label: 'Missing parts or incomplete package' },
-  { value: 'fake_authentic', label: 'Item is counterfeit or a clone' },
-  { value: 'changed_mind', label: 'Changed mind or no longer wanted' },
-  { value: 'other', label: 'Other post-delivery issue' }
+  { value: 'damaged_item', label: 'Arrived damaged' },
+  { value: 'not_as_described', label: 'Wrong description' },
+  { value: 'wrong_item', label: 'Incorrect item' },
+  { value: 'missing_parts', label: 'Missing parts' },
+  { value: 'fake_authentic', label: 'Counterfeit item' },
+  { value: 'changed_mind', label: 'Bidder changed mind' }
 ]
 
 const selectedReasons = ref([])
