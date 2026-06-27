@@ -29,3 +29,7 @@ export function setServicerPublicKey(state, servicerPk) {
 export function setUsername(state, username) {
   state.username = username
 }
+
+export function setIsArbiter(state, isArbiter) {
+  state.isArbiter = isArbiter
+}

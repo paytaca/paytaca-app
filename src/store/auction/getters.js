@@ -41,3 +41,8 @@ export function servicerPublicKey(state) {
 export function username(state) {
   return state.username
 }
+
+// Getter for stored isArbiter
+export function isArbiter(state) {
+  return state.isArbiter
+}

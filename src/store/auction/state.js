@@ -7,6 +7,7 @@ export default function () {
     activityType: 'My Biddings',
     arbiterPublicKey: '',
     servicerPublicKey: '',
-    username: ''
+    username: '',
+    isArbiter: false
   }
 }

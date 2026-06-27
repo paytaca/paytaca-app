@@ -109,9 +109,9 @@ export async function fetchUsername({ commit }) {
     console.log(response)
 
     if (response && response.success) {
-      const username = response.data.username
       console.log(response.data)
-      commit('setUsername', username)
+      commit('setUsername', response.data.username)
+      commit('setIsArbiter', response.data.is_arbiter)
     }
   } catch (error) {
     console.error('API Sync Error inside fetchUsername:', error)
