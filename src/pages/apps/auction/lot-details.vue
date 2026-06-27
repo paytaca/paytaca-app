@@ -1233,7 +1233,7 @@ const handleBuyItNow = async (payload = {}) => {
         await fetchLot()
         $q.notify({
           type: 'warning',
-          message: 'Lot already sold!'
+          message: 'This lot has already been sold.'
         })
         return
       }
@@ -1383,8 +1383,24 @@ const loadPageData = async () => {
 }
 
 watch(() => [props.lotId, props.auctionId], async () => {
+  isLoading.value = true
   dutchAlreadySold.value = false
   await loadPageData()
+  isLoading.value = false
+
+  if (isSold.value) {
+    $q.notify({
+      type: 'info',
+      icon: 'lock',
+      message: 'This lot has already been sold.'
+    })
+  } else if (isLotClosed.value) {
+    $q.notify({
+      type: 'info',
+      icon: 'lock',
+      message: 'This lot is closed.'
+    })
+  }
 }, { immediate: true })
 
 
