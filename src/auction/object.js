@@ -240,25 +240,25 @@ export class AppealList {
       const past = new Date(dateStr)
       
       const seconds = Math.max(0, date.getDateDiff(now, past, 'seconds'))
-      if (seconds < 60) return `${seconds}`
+      if (seconds < 60) return `${seconds}s`
       
       const minutes = date.getDateDiff(now, past, 'minutes')
-      if (minutes < 60) return `${minutes}`
+      if (minutes < 60) return `${minutes}m`
       
       const hours = date.getDateDiff(now, past, 'hours')
-      if (hours < 24) return `${hours}`
+      if (hours < 24) return `${hours}h`
       
       const days = date.getDateDiff(now, past, 'days')
-      if (days < 7) return `${days}`
+      if (days < 7) return `${days}d`
       
       const weeks = Math.floor(days / 7)
-      if (weeks < 4) return `${weeks}`
+      if (weeks < 4) return `${weeks}w`
       
       const months = date.getDateDiff(now, past, 'months')
-      if (months < 12) return `${months}`
+      if (months < 12) return `${months}m`
       
       const years = date.getDateDiff(now, past, 'years')
-      return `${years}`
+      return `${years}y`
     })()
     
     this.status = data.is_resolved ? 'Resolved' : 'Pending'
@@ -314,25 +314,25 @@ export class AppealDetails {
       const past = new Date(dateStr)
       
       const seconds = Math.max(0, date.getDateDiff(now, past, 'seconds'))
-      if (seconds < 60) return `${seconds}`
+      if (seconds < 60) return `${seconds}s`
       
       const minutes = date.getDateDiff(now, past, 'minutes')
-      if (minutes < 60) return `${minutes}`
+      if (minutes < 60) return `${minutes}m`
       
       const hours = date.getDateDiff(now, past, 'hours')
-      if (hours < 24) return `${hours}`
+      if (hours < 24) return `${hours}h`
       
       const days = date.getDateDiff(now, past, 'days')
-      if (days < 7) return `${days}`
+      if (days < 7) return `${days}d`
       
       const weeks = Math.floor(days / 7)
-      if (weeks < 4) return `${weeks}`
+      if (weeks < 4) return `${weeks}w`
       
       const months = date.getDateDiff(now, past, 'months')
-      if (months < 12) return `${months}`
+      if (months < 12) return `${months}m`
       
       const years = date.getDateDiff(now, past, 'years')
-      return `${years}`
+      return `${years}y`
     })()
     
     this.status = data.is_resolved ? 'Resolved' : 'Pending'
