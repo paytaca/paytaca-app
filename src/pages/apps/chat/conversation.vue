@@ -988,14 +988,23 @@ export default {
     })
   },
   deactivated () {
-    this._isActive = false
     this.ready = false
-    this.flushMarkAsRead()
+    // Only flush mark-as-read if we were actually visible — not if we were
+    // already deactivated in keep-alive (e.g., user on chat index sees a new
+    // message arrive, then navigates to home; the Apps layout unmounts and
+    // triggers deactivated again, but we should NOT mark background-arrived
+    // messages as read).
+    if (this._isActive) {
+      this._isActive = false
+      this.flushMarkAsRead()
+    }
   },
   beforeUnmount () {
-    this._isActive = false
+    if (this._isActive) {
+      this._isActive = false
+      this.flushMarkAsRead()
+    }
     this.ready = false
-    this.flushMarkAsRead()
     if (this._vpRaf) { cancelAnimationFrame(this._vpRaf); this._vpRaf = null }
     document.removeEventListener('visibilitychange', this.onVisibilityChange)
     document.removeEventListener('pointerdown', this.onDocumentPointerDown)
