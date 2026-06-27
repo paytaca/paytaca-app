@@ -21,6 +21,10 @@ const bchjs = new BCHJS()
 let web3WalletInstance = null
 let isInitializing = false
 let isInitialized = false
+// Waiters waiting for the in-flight initialization to resolve. Replaces the
+// previous `while (isInitializing) await sleep(100)` busy-wait that polled the
+// event loop every 100ms when multiple boot callers raced.
+let _initWaiters = []
 
 // Track pending dialog for cancellation support
 let pendingDialog = null
@@ -36,13 +40,12 @@ export async function initWeb3Wallet () {
     return web3WalletInstance
   }
 
-  // Prevent concurrent initialization attempts
+  // Prevent concurrent initialization attempts — wait on a deferred promise
+  // instead of polling.
   if (isInitializing) {
-    // Wait for initialization to complete
-    while (isInitializing) {
-      await new Promise(resolve => setTimeout(resolve, 100))
-    }
-    return web3WalletInstance
+    return new Promise((resolve, reject) => {
+      _initWaiters.push({ resolve, reject })
+    })
   }
 
   isInitializing = true
@@ -72,6 +75,13 @@ export async function initWeb3Wallet () {
     throw error
   } finally {
     isInitializing = false
+    // Drain waiters
+    const waiters = _initWaiters
+    _initWaiters = []
+    for (const w of waiters) {
+      if (isInitialized && web3WalletInstance) w.resolve(web3WalletInstance)
+      else w.reject(new Error('WalletConnect initialization failed'))
+    }
   }
 }
 
@@ -410,113 +420,6 @@ export async function signBchTransaction(transaction, sourceOutputsUnpacked, wif
   })
 }
 
-export const sessionRequestsExample = [
-  {
-      "id": 1696568739152409,
-      "topic": "636a5c44e87dfa3bef15a223d5145a4bc9326f19239f8346622e72b8d1854065",
-      "params": {
-          "request": {
-              "method": "bch_signMessage",
-              "params": {
-                "account": "bitcoincash:qq4sh33hxw2v23g2hwmcp369tany3x73wugtc9p69g",
-                "message": "Test message",
-              }
-          },
-          "chainId": "bch:bitcoincash"
-      },
-      "verifyContext": {
-          "verified": {
-              "verifyUrl": "https://verify.walletconnect.com",
-              "validation": "UNKNOWN",
-              "origin": "https://tapswap.cash/"
-          }
-      }
-  },
-  {
-    "id": 1696572317609411,
-    "topic": "3874acf632e521460d77b8ab7bc790e27d83686fb6cf867d2317c0c6819c7a1a",
-    "params": {
-        "request": {
-            "method": "bch_signTransaction",
-            "params": {
-                "transaction": {
-                    "inputs": [
-                        {
-                            "outpointIndex": 1,
-                            "outpointTransactionHash": "<Uint8Array: 0x9eb5b4ae1d15e85d9e3d40036dd46424df203b4be3fb434077ff861509186499>",
-                            "sequenceNumber": 0,
-                            "unlockingBytecode": "<Uint8Array: 0x>"
-                        },
-                        {
-                            "outpointIndex": 1,
-                            "outpointTransactionHash": "<Uint8Array: 0xfa2f80f3c6d64359c87594d8303f9a621caf2623792ef6890797c68db7621675>",
-                            "sequenceNumber": 0,
-                            "unlockingBytecode": "<Uint8Array: 0x>"
-                        }
-                    ],
-                    "locktime": 0,
-                    "outputs": [
-                        {
-                            "lockingBytecode": "<Uint8Array: 0xa914b3195980e2a1978f32e2e1f683df10ef09b0936f87>",
-                            "token": {
-                                "amount": "<bigint: 0n>",
-                                "category": "<Uint8Array: 0x0115cba92eb3a79c9ed3c8a81f24909a78f5af25c80d13c1553d318f2a870f6d>",
-                                "nft": {
-                                    "capability": "none",
-                                    "commitment": "<Uint8Array: 0x5593401c8a0100000000000000000000000000003c570a0000000000000000000000000000000000>"
-                                }
-                            },
-                            "valueSatoshis": "<bigint: 1000n>"
-                        },
-                        {
-                            "lockingBytecode": "<Uint8Array: 0x6a044d5053570104043d400caf14e4da17ddbe40533c2a8638fdedf2c0997d46e9530480f0fa02000000142b0bc6373394c5450abbb780c7455f66489bd1770360e316>",
-                            "valueSatoshis": "<bigint: 0n>"
-                        },
-                        {
-                            "lockingBytecode": "<Uint8Array: 0x76a9142b0bc6373394c5450abbb780c7455f66489bd17788ac>",
-                            "valueSatoshis": "<bigint: 122857n>"
-                        }
-                    ],
-                    "version": 2
-                },
-                "sourceOutputs": [
-                    {
-                        "outpointIndex": 1,
-                        "outpointTransactionHash": "<Uint8Array: 0x9eb5b4ae1d15e85d9e3d40036dd46424df203b4be3fb434077ff861509186499>",
-                        "sequenceNumber": 0,
-                        "unlockingBytecode": "<Uint8Array: 0x>",
-                        "lockingBytecode": "<Uint8Array: 0x76a9142b0bc6373394c5450abbb780c7455f66489bd17788ac>",
-                        "valueSatoshis": "<bigint: 1000n>",
-                        "token": {
-                            "amount": "<bigint: 0n>",
-                            "category": "<Uint8Array: 0x0115cba92eb3a79c9ed3c8a81f24909a78f5af25c80d13c1553d318f2a870f6d>",
-                            "nft": {
-                                "capability": "none",
-                                "commitment": "<Uint8Array: 0x5593401c8a0100000000000000000000000000003c570a0000000000000000000000000000000000>"
-                            }
-                        }
-                    },
-                    {
-                        "outpointIndex": 1,
-                        "outpointTransactionHash": "<Uint8Array: 0xfa2f80f3c6d64359c87594d8303f9a621caf2623792ef6890797c68db7621675>",
-                        "sequenceNumber": 0,
-                        "unlockingBytecode": "<Uint8Array: 0x>",
-                        "lockingBytecode": "<Uint8Array: 0x76a9142b0bc6373394c5450abbb780c7455f66489bd17788ac>",
-                        "valueSatoshis": "<bigint: 123389n>"
-                    }
-                ],
-                "broadcast": false,
-                "userPrompt": "Sign to create a sell order"
-            }
-        },
-        "chainId": "bch:bitcoincash"
-    },
-    "verifyContext": {
-        "verified": {
-            "verifyUrl": "https://verify.walletconnect.com",
-            "validation": "UNKNOWN",
-            "origin": "https://tapswap.cash/"
-        }
-    }
-}
-]
+// NOTE: `sessionRequestsExample` (a large debug-only constant array) was
+// removed from production bundles. If needed for debugging, reconstruct from
+// git history or re-add locally.

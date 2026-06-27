@@ -1533,7 +1533,7 @@ const resetWallectConnect = async (opts = { silent: false }) => {
   }
 }
 
-window.test = compareAppVersions
+if (process.env.NODE_ENV !== 'production') window.test = compareAppVersions
 // NOTE: Can be removed if enough time has passed since writing
 async function wcVersionUpgradeMigration() {
   try {
@@ -1558,7 +1558,7 @@ const loadWeb3Wallet = async () => {
     // Fallback: initialize if not already done (e.g., if boot failed)
     web3Wallet.value = await initWeb3Wallet()
   }
-  window.w3w = web3Wallet.value
+  if (process.env.NODE_ENV !== 'production') window.w3w = web3Wallet.value
 }
 
 const onAuthRequest = async (...args) => {
@@ -1690,6 +1690,7 @@ const refreshComponent = async (showLoading = true) => {
 // Use watch with explicit dependencies to avoid unnecessary rebuilds
 // Defer execution to avoid blocking UI on initial load with many addresses
 // Note: mapSessionTopicWithAddress is now async and uses Watchtower API for on-demand lookups
+let _mappingIdleHandle = null
 watch(
   [() => activeSessions.value, () => walletAddresses.value, () => multisigWallets.value],
   ([newActiveSessions, newWalletAddresses, newMultisigWallets]) => {
@@ -1700,16 +1701,29 @@ watch(
     const executeMapping = async () => {
       await mapSessionTopicWithAddress(newActiveSessions, newWalletAddresses, newMultisigWallets)
     }
-    
+
+    // Cancel any previously scheduled but not-yet-run mapping to avoid
+    // stacking work across rapid watcher fires (especially on wallet switch).
+    if (_mappingIdleHandle != null) {
+      if (typeof cancelIdleCallback !== 'undefined' && typeof requestIdleCallback !== 'undefined') {
+        try { cancelIdleCallback(_mappingIdleHandle) } catch (_) {}
+      } else {
+        clearTimeout(_mappingIdleHandle)
+      }
+      _mappingIdleHandle = null
+    }
+
     if (typeof requestIdleCallback !== 'undefined') {
-      requestIdleCallback(() => {
+      _mappingIdleHandle = requestIdleCallback(() => {
+        _mappingIdleHandle = null
         executeMapping().catch(err => {
           console.error('Error in mapSessionTopicWithAddress:', err)
         })
       }, { timeout: 500 })
     } else {
       // Fallback: use setTimeout with minimal delay to yield to event loop
-      setTimeout(() => {
+      _mappingIdleHandle = setTimeout(() => {
+        _mappingIdleHandle = null
         executeMapping().catch(err => {
           console.error('Error in mapSessionTopicWithAddress:', err)
         })
@@ -1860,6 +1874,16 @@ onUnmounted(() => {
   stopPollingForCancellationRequest()
   // Clear pending dialog reference
   clearPendingDialog()
+  // Cancel any deferred session-topic mapping work so it doesn't run and
+  // call into the store/Watchtower after the component has torn down.
+  if (_mappingIdleHandle != null) {
+    if (typeof cancelIdleCallback !== 'undefined' && typeof requestIdleCallback !== 'undefined') {
+      try { cancelIdleCallback(_mappingIdleHandle) } catch (_) {}
+    } else {
+      clearTimeout(_mappingIdleHandle)
+    }
+    _mappingIdleHandle = null
+  }
 })
 
 defineExpose({
