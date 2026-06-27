@@ -367,7 +367,7 @@
     </div>
 
     <!-- All arbiters's DISPUTES actioned -->
-    <div v-if="activityType === 'Arbiter'" class="q-pa-sm text-bow" :class="getDarkModeClass(darkMode)">    
+    <div v-if="activityType === 'Arbiter' && isArbiter" class="q-pa-sm text-bow" :class="getDarkModeClass(darkMode)">    
       <div class="row items-center q-pa-sm q-mb-md">
         <div class="text-h5 q-px-xs">Arbiter</div>
         <q-select
@@ -536,12 +536,18 @@ const getFormattedBCH = (bch) => {
 
 
 
+const isArbiter = computed(() => !!$store.getters['auction/isArbiter'])
+
 const activityType = ref($store.state.auction?.activityType || 'My Biddings')
-const activityTypeOptions = [
-  'My Biddings',
-  'My Auctions',
-  'Arbiter'
-]
+if (activityType.value === 'Arbiter' && !isArbiter.value) {
+  activityType.value = 'My Biddings'
+}
+
+const activityTypeOptions = computed(() => {
+  const options = ['My Biddings', 'My Auctions']
+  if (isArbiter.value) options.push('Arbiter')
+  return options
+})
 
 const auctionType = ref('All');
 const auctionTypeOptions = ['English', 'Dutch', 'All']
@@ -610,6 +616,8 @@ const arbiterDetails = ref([])
 
 const fetchArbiterData = async () => {
   arbiterDetails.value = []
+  if (!isArbiter.value) return
+
   try {
     const result = await callAPI('disputes')
     if (!result.success || !Array.isArray(result.data)) return
