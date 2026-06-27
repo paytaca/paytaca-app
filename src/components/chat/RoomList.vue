@@ -45,6 +45,9 @@
           <div class="room-header">
             <div class="room-name" :class="getDarkModeClass(darkMode)">
               {{ roomName(room) }}
+              <q-badge v-if="room.type === 'group'" outline color="primary" class="q-ml-xs" style="font-size: 10px; padding: 1px 5px; font-weight: 500;">
+                {{ $t('Group', {}, 'Group') }}
+              </q-badge>
             </div>
             <div v-if="room.updatedAt" class="room-time">
               {{ formatTime(room.updatedAt) }}
@@ -378,6 +381,9 @@ export default {
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+  display: flex;
+  align-items: center;
+  gap: 4px;
 }
 
 .room-time {

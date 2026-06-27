@@ -271,7 +271,17 @@
         </q-card-section>
 
         <q-card-section class="q-pt-none">
+          <template v-if="fetchedDisplayName">
+            <div class="published-identity-row q-mb-md">
+              <q-avatar size="48px" color="grey-4" text-color="white" class="q-mr-sm">
+                <img v-if="fetchedAvatar" :src="fetchedAvatar" />
+                <template v-else>{{ fetchedDisplayName.charAt(0).toUpperCase() }}</template>
+              </q-avatar>
+              <span class="published-name-text"><strong>{{ fetchedDisplayName }}</strong></span>
+            </div>
+          </template>
           <q-input
+            v-else
             v-model="saveContactName"
             :label="$t('Name', {}, 'Name')"
             outlined
@@ -289,21 +299,6 @@
             readonly
             class="q-mb-md"
           />
-          <div v-if="fetchedDisplayName" class="use-published-name-row q-mb-md">
-            <q-icon name="badge" size="16px" color="primary" />
-            <span class="use-published-name-text">
-              {{ $t('UsePublishedDisplayName', {}, 'Use published display name:') }}
-              <strong>{{ fetchedDisplayName }}</strong>
-            </span>
-            <q-btn
-              flat
-              dense
-              :label="$t('Use', {}, 'Use')"
-              color="primary"
-              size="sm"
-              @click="useFetchedDisplayName"
-            />
-          </div>
           <q-btn
             :label="$t('AddContact', {}, 'Add Contact')"
             color="primary"
@@ -573,6 +568,7 @@ export default {
       showSaveContactDialog: false,
       saveContactName: '',
       fetchedDisplayName: null,
+      fetchedAvatar: null,
       showRenameDialog: false,
       renameContactName: '',
       showRenameGroupDialog: false,
@@ -870,13 +866,24 @@ export default {
     },
     async showSaveContactDialog (val) {
       this.fetchedDisplayName = null
+      this.fetchedAvatar = null
+      this.saveContactName = ''
       if (val && this.otherMemberPubKey) {
         try {
-          const displayName = await this.$store.dispatch('nostrChat/fetchPublishedDisplayName', {
-            pubKeyHex: this.otherMemberPubKey,
-          })
+          const [displayName, avatar] = await Promise.all([
+            this.$store.dispatch('nostrChat/fetchPublishedDisplayName', {
+              pubKeyHex: this.otherMemberPubKey,
+            }),
+            this.$store.dispatch('nostrChat/fetchPublishedAvatar', {
+              pubKeyHex: this.otherMemberPubKey,
+            }),
+          ])
           if (displayName) {
             this.fetchedDisplayName = displayName
+            this.saveContactName = displayName
+          }
+          if (avatar) {
+            this.fetchedAvatar = avatar
           }
         } catch (err) {
           console.warn('[Conversation] Failed to fetch display name:', err)
@@ -1980,6 +1987,24 @@ export default {
   padding-bottom: 8px;
 }
 
+.published-identity-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 12px;
+  background: rgba(59, 130, 246, 0.06);
+  border-radius: 8px;
+  border: 1px solid rgba(59, 130, 246, 0.15);
+}
+
+.published-name-text {
+  flex: 1;
+  font-size: 15px;
+  font-weight: 600;
+  color: #1f2937;
+  line-height: 1.3;
+}
+
 .use-published-name-row {
   display: flex;
   align-items: center;
@@ -2005,6 +2030,15 @@ export default {
 }
 
 /* Dark mode */
+.dark .published-identity-row {
+  background: rgba(59, 130, 246, 0.12);
+  border-color: rgba(59, 130, 246, 0.3);
+}
+
+.dark .published-name-text {
+  color: #f1f5f9;
+}
+
 .dark .use-published-name-row {
   background: rgba(59, 130, 246, 0.12);
   border-color: rgba(59, 130, 246, 0.3);

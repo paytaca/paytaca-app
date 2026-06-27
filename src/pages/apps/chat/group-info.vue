@@ -131,15 +131,15 @@
                 <q-avatar
                   :color="selectedMember.isMe ? 'primary' : 'grey-5'"
                   text-color="white"
-                  size="64px"
-                  style="font-size: 28px;"
+                  size="128px"
+                  style="font-size: 56px;"
                 >
                   <img v-if="selectedMember.avatar" :src="selectedMember.avatar" />
                   <template v-else>{{ selectedMember.initial }}</template>
                 </q-avatar>
                 <div class="member-header-info">
-                  <div v-if="!editingMemberName" class="member-display-name">
-                    {{ selectedMember.displayName }}
+                  <div class="member-display-name">
+                    {{ memberDisplayNames[selectedMember.pubKeyHex] || selectedMember.displayName }}
                     <q-badge
                       v-if="selectedMember.isMe"
                       color="primary"
@@ -149,64 +149,11 @@
                       {{ $t('You', {}, 'You') }}
                     </q-badge>
                   </div>
-                  <q-input
-                    v-else
-                    v-model="editMemberNameValue"
-                    outlined
-                    dense
-                    rounded
-                    class="member-name-input"
-                    autofocus
-                    @keyup.enter="saveMemberName"
-                  />
+                  <div v-if="selectedMember.contact?.name && memberDisplayNames[selectedMember.pubKeyHex] && memberDisplayNames[selectedMember.pubKeyHex] !== selectedMember.contact.name" class="member-contact-name">
+                    {{ selectedMember.contact.name }}
+                  </div>
                   <div class="member-npub-display">{{ selectedMember.displayNpub }}</div>
                 </div>
-              </div>
-
-              <!-- Edit name button / actions -->
-              <div v-if="!editingMemberName && !selectedMember.isMe && selectedMember.contact" class="edit-name-section">
-                <q-btn
-                  flat
-                  :label="$t('EditName', {}, 'Edit Name')"
-                  color="primary"
-                  icon="edit"
-                  class="full-width"
-                  @click="startEditMemberName"
-                />
-              </div>
-              <div v-else-if="editingMemberName" class="edit-actions-row">
-                <q-btn
-                  flat
-                  :label="$t('Cancel', {}, 'Cancel')"
-                  color="grey"
-                  rounded
-                  @click="cancelEditMemberName"
-                />
-                <q-btn
-                  unelevated
-                  :label="$t('Save', {}, 'Save')"
-                  color="primary"
-                  rounded
-                  :disable="!editMemberNameValue.trim()"
-                  @click="saveMemberName"
-                />
-              </div>
-
-              <!-- Use published name option -->
-              <div v-if="editingMemberName && fetchedMemberDisplayName" class="use-published-name-row q-mt-md">
-                <q-icon name="badge" size="16px" color="primary" />
-                <span class="use-published-name-text">
-                  {{ $t('UsePublishedDisplayName', {}, 'Use published display name:') }}
-                  <strong>{{ fetchedMemberDisplayName }}</strong>
-                </span>
-                <q-btn
-                  flat
-                  dense
-                  :label="$t('Use', {}, 'Use')"
-                  color="primary"
-                  size="sm"
-                  @click="useFetchedMemberDisplayName"
-                />
               </div>
 
               <!-- Copy npub -->
@@ -220,9 +167,6 @@
               />
             </q-card-section>
 
-            <q-card-actions align="right">
-              <q-btn flat :label="$t('Close', {}, 'Close')" color="primary" v-close-popup />
-            </q-card-actions>
           </q-card>
         </q-dialog>
 
@@ -278,10 +222,8 @@ export default {
       savingName: false,
       showMemberDetails: false,
       selectedMember: null,
-      editingMemberName: false,
-      editMemberNameValue: '',
-      fetchedMemberDisplayName: null,
       memberAvatars: {},
+      memberDisplayNames: {},
     }
   },
   computed: {
@@ -308,10 +250,11 @@ export default {
         let displayNpub = ''
         try { displayNpub = npubEncode(pubKeyHex) } catch { displayNpub = pubKeyHex }
         const initial = contact ? contact.name.charAt(0).toUpperCase() : (displayNpub.charAt(0) || '?').toUpperCase()
+        const publishedName = this.memberDisplayNames[pubKeyHex]
         return {
           pubKeyHex,
           isMe: pubKeyHex === this.myPubKey,
-          displayName: contact ? contact.name : displayNpub.slice(0, 12) + '...' + displayNpub.slice(-8),
+          displayName: contact ? contact.name : (publishedName || displayNpub.slice(0, 12) + '...' + displayNpub.slice(-8)),
           displayNpub: displayNpub.slice(0, 18) + '...',
           initial,
           contact,
@@ -333,6 +276,7 @@ export default {
   },
   mounted () {
     this.fetchMemberAvatars()
+    this.fetchMemberDisplayNames()
   },
   watch: {
     room (val) {
@@ -340,7 +284,9 @@ export default {
         this.$router.replace('/apps/chat')
       } else {
         this.memberAvatars = {}
+        this.memberDisplayNames = {}
         this.fetchMemberAvatars()
+        this.fetchMemberDisplayNames()
       }
     },
     async showMemberDetails (val) {
@@ -438,38 +384,6 @@ export default {
       this.selectedMember = member
       this.showMemberDetails = true
     },
-    startEditMemberName () {
-      this.editMemberNameValue = this.selectedMember.contact?.name || this.selectedMember.displayName
-      this.editingMemberName = true
-    },
-    cancelEditMemberName () {
-      this.editingMemberName = false
-      this.editMemberNameValue = ''
-    },
-    async saveMemberName () {
-      const name = this.editMemberNameValue.trim()
-      const contact = this.selectedMember?.contact
-      if (!name || !contact) return
-      try {
-        await this.$store.dispatch('nostrChat/updateContact', {
-          npub: contact.npub,
-          name,
-        })
-        // Update room name if it's a DM room matching this contact
-        const room = this.$store.getters['nostrChat/getRoomByMember'](contact.pubKeyHex)
-        if (room && room.members.length === 2) {
-          this.$store.commit('nostrChat/UPDATE_ROOM_NAME', {
-            roomId: room.id,
-            name,
-          })
-        }
-        this.editingMemberName = false
-        this.selectedMember.displayName = name
-        this.$q.notify({ type: 'positive', message: this.$t('ContactRenamed', {}, 'Contact renamed') })
-      } catch (err) {
-        this.$q.notify({ type: 'negative', message: err.message || this.$t('ContactRenameFailed', {}, 'Failed to rename contact') })
-      }
-    },
     copyMemberNpub () {
       if (!this.selectedMember?.npub) return
       copyToClipboard(this.selectedMember.npub)
@@ -503,6 +417,22 @@ export default {
           }
         } catch (err) {
           console.warn('[GroupInfo] Failed to fetch avatar:', err)
+        }
+      }
+    },
+    async fetchMemberDisplayNames () {
+      const members = this.room?.members || []
+      for (const pubKeyHex of members) {
+        if (this.memberDisplayNames[pubKeyHex]) continue
+        try {
+          const name = await this.$store.dispatch('nostrChat/fetchPublishedDisplayName', {
+            pubKeyHex,
+          })
+          if (name) {
+            this.memberDisplayNames = { ...this.memberDisplayNames, [pubKeyHex]: name }
+          }
+        } catch (err) {
+          console.warn('[GroupInfo] Failed to fetch display name:', err)
         }
       }
     },
@@ -622,6 +552,13 @@ export default {
   flex-wrap: wrap;
   gap: 6px;
   margin-bottom: 4px;
+}
+
+.member-contact-name {
+  font-size: 13px;
+  color: #9ca3af;
+  font-weight: 400;
+  margin-bottom: 2px;
 }
 
 .member-name-input {
@@ -745,6 +682,10 @@ export default {
 
 .dark .member-display-name {
   color: #f1f5f9;
+}
+
+.dark .member-contact-name {
+  color: #6b7280;
 }
 
 .dark .member-npub-display {
