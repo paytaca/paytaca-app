@@ -270,6 +270,7 @@
     <ArbiterReleaseToSellerDialog
       v-model="showReleaseDialog"
       :balance-display="getFormattedBCH(contract.balance).main"
+      :bidId="details?.bid_id"
       @confirm="confirmAction"
       @cancel="cancelConfirm"
     />
