@@ -40,7 +40,7 @@
               {{ details.status }}
             </q-chip>
             <span class="text-caption" style="opacity: 0.65;">
-              <q-icon name="schedule" size="xs" /> {{ details.timeSinceFiled }}h ago
+              <q-icon name="schedule" size="xs" /> {{ details.timeSinceFiled }} ago
             </span>
           </div>
 
@@ -303,7 +303,9 @@ const props = defineProps({
 
 const $q = useQuasar()
 const $store = useStore()
+const $router = useRouter()
 const darkMode = computed(() => $store.getters['darkmode/getStatus'])
+const isArbiter = computed(() => !!$store.getters['auction/isArbiter'])
 
 const isLoading = ref(true)
 const details = ref(null)
@@ -313,6 +315,12 @@ const statusHistory = ref([])
 const transactions = ref([])
 
 onMounted(async () => {
+  if (!isArbiter.value) {
+    $q.notify({ type: 'negative', message: 'You are not authorized to view this page.' })
+    $router.replace('/apps/auction/activity')
+    return
+  }
+
   if (!props.appealId) {
     isLoading.value = false
     return
