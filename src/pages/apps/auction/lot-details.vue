@@ -605,6 +605,7 @@
     <SellerDisputePopup
       v-model="showSellerDisputeDialog"
       :lot="lot"
+      :bidId="winningBidId"
     />
 
     <RefundPopup
