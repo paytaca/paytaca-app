@@ -64,6 +64,8 @@ import { useQuasar } from 'quasar'
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 import { computed, ref, watch } from 'vue'
 import { useStore } from 'vuex'
+import { callAPI } from 'src/auction/api'
+import { Store } from 'src/store'
 
 const props = defineProps({
   modelValue: {
@@ -73,6 +75,10 @@ const props = defineProps({
   lot: {
     type: Object,
     default: null
+  },
+  bidId: {
+    type: [String, Number],
+    default: null
   }
 })
 const emit = defineEmits(['update:modelValue', 'submit'])
@@ -80,14 +86,15 @@ const emit = defineEmits(['update:modelValue', 'submit'])
 const $q = useQuasar()
 const $store = useStore()
 const darkMode = computed(() => $store.getters['darkmode/getStatus'])
+const walletHash = Store.getters['global/getWallet']('bch')?.walletHash
 
 const reasonOptions = [
-  { value: 'damaged_item', label: 'Arrived damaged' },
-  { value: 'not_as_described', label: 'Wrong description' },
-  { value: 'wrong_item', label: 'Incorrect item' },
-  { value: 'missing_parts', label: 'Missing parts' },
-  { value: 'fake_authentic', label: 'Counterfeit item' },
-  { value: 'changed_mind', label: 'Bidder changed mind' }
+  { value: 'Arrived damaged', label: 'Arrived damaged' },
+  { value: 'Wrong description', label: 'Wrong description' },
+  { value: 'Incorrect item', label: 'Incorrect item' },
+  { value: 'Missing parts', label: 'Missing parts' },
+  { value: 'Counterfeit item', label: 'Counterfeit item' },
+  { value: 'Bidder changed mind', label: 'Bidder changed mind' }
 ]
 
 const selectedReasons = ref([])
@@ -110,16 +117,35 @@ const canSubmit = computed(() => {
   return selectedReasons.value.length > 0
 })
 
-const handleSubmit = () => {
+const handleSubmit = async () => {
   if (!canSubmit.value) return
 
-  $q.notify({
-    type: 'positive',
-    icon: 'gavel',
-    message: 'Refund submitted successfully!',
-    timeout: 4000
-  })
+  try {
+    const response = await callAPI('disputes', null, 'post', {
+      user: walletHash,
+      contract: 2,
+      bid: props.bidId,
+      dispute_reason: selectedReasons.value.join(';')
+    })
 
-  emit('update:modelValue', false)
+    if (!response.success) {
+      throw new Error(response.error || 'Failed to file backend dispute.')
+    }
+    
+    $q.notify({
+      type: 'positive',
+      icon: 'gavel',
+      message: 'Refund submitted successfully!',
+      timeout: 4000
+    })
+  } catch (error) {
+    console.error('Refund failed:', error)
+    $q.notify({
+      type: 'negative',
+      message: error.message || 'Something went wrong during the refund process.'
+    })
+  } finally {
+    emit('update:modelValue', false)
+  }
 }
 </script>

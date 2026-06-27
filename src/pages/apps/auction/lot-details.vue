@@ -610,6 +610,7 @@
     <RefundPopup
       v-model="showRefundDialog"
       :lot="lot"
+      :bidId="winningBidId"
     />
 
     <BiddingHistoryPopup
@@ -1312,6 +1313,10 @@ const getFormattedBCH = (bch) => {
   const zeros = numStr.substring(main.length)
   return { main, zeros, full: numStr }
 }
+
+const winningBidId = computed(() => 
+  auction.value?.type === 'English' ? highestBidId.value : winningBid.value?.id
+)
 
 const fetchAuction = async () => {
   try {
