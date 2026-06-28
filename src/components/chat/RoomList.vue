@@ -94,6 +94,7 @@ export default {
   data () {
     return {
       dmAvatars: {},
+      dmDisplayNames: {},
     }
   },
   computed: {
@@ -213,6 +214,9 @@ export default {
         if (contact) {
           return contact.name.charAt(0).toUpperCase()
         }
+        if (this.dmDisplayNames[otherPubKey]) {
+          return this.dmDisplayNames[otherPubKey].charAt(0).toUpperCase()
+        }
         // Unknown contact — use '?' as avatar initial
         return '?'
       }
@@ -231,6 +235,11 @@ export default {
       if (contact) {
         // Known contact — show their name
         return contact.name
+      }
+
+      // Check if we have a published display name from relays
+      if (this.dmDisplayNames[otherPubKey]) {
+        return this.dmDisplayNames[otherPubKey]
       }
 
       // Unknown contact — show truncated npub
@@ -289,15 +298,21 @@ export default {
       return { background: `linear-gradient(135deg, ${this.themeColor}, ${this.themeColor}dd)` }
     },
     async fetchDmAvatars () {
-      const toFetch = new Set()
+      const avatarsToFetch = new Set()
+      const namesToFetch = new Set()
       for (const room of this.rooms) {
         if (room.type === 'group') continue
         const otherPubKey = room.members?.find(m => m !== this.myPubKey)
-        if (otherPubKey && !this.dmAvatars[otherPubKey]) {
-          toFetch.add(otherPubKey)
+        if (!otherPubKey) continue
+        if (!this.dmAvatars[otherPubKey]) {
+          avatarsToFetch.add(otherPubKey)
+        }
+        const contact = this.contacts.find(c => c.pubKeyHex === otherPubKey)
+        if (!contact && !this.dmDisplayNames[otherPubKey]) {
+          namesToFetch.add(otherPubKey)
         }
       }
-      for (const pubKeyHex of toFetch) {
+      for (const pubKeyHex of avatarsToFetch) {
         try {
           const avatar = await this.$store.dispatch('nostrChat/fetchPublishedAvatar', { pubKeyHex })
           if (avatar) {
@@ -306,6 +321,16 @@ export default {
           }
         } catch (err) {
           console.warn('[RoomList] Failed to fetch avatar:', err)
+        }
+      }
+      for (const pubKeyHex of namesToFetch) {
+        try {
+          const displayName = await this.$store.dispatch('nostrChat/fetchPublishedDisplayName', { pubKeyHex })
+          if (displayName) {
+            this.dmDisplayNames = { ...this.dmDisplayNames, [pubKeyHex]: displayName }
+          }
+        } catch (err) {
+          console.warn('[RoomList] Failed to fetch display name:', err)
         }
       }
     },

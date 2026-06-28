@@ -351,17 +351,17 @@ export async function removeBchAddress ({ state, commit }) {
  * Fetch a user's published BCH address from relays.
  * Returns the address string or null if not found.
  */
-export async function fetchPublishedBchAddress ({ state, commit }, { pubKeyHex }) {
+export async function fetchPublishedBchAddress ({ state, commit }, { pubKeyHex, forceRefresh }) {
   const ws = getWalletState(state)
   if (!pubKeyHex) {
     throw new Error('pubKeyHex is required')
   }
 
   const cached = ws.bchAddressCache?.[pubKeyHex]
-  const CACHE_TTL = 3600000 // 1 hour
+  const CACHE_TTL = 86400000 // 24 hours
 
   // Return cached address if fresh
-  if (cached?.address && (Date.now() - cached.fetchedAt) < CACHE_TTL) {
+  if (!forceRefresh && cached?.address && (Date.now() - cached.fetchedAt) < CACHE_TTL) {
     return cached.address
   }
 
@@ -469,14 +469,14 @@ export async function removeDisplayName ({ state, commit }) {
  * Fetch a user's published display name from relays.
  * Returns the display name string or null if not found.
  */
-export async function fetchPublishedDisplayName ({ state, commit }, { pubKeyHex }) {
+export async function fetchPublishedDisplayName ({ state, commit }, { pubKeyHex, forceRefresh }) {
   const ws = getWalletState(state)
   if (!pubKeyHex) throw new Error('pubKeyHex is required')
 
   const cached = ws.displayNameCache?.[pubKeyHex]
-  const CACHE_TTL = 3600000 // 1 hour
+  const CACHE_TTL = 86400000 // 24 hours
 
-  if (cached?.displayName && (Date.now() - cached.fetchedAt) < CACHE_TTL) {
+  if (!forceRefresh && cached?.displayName && (Date.now() - cached.fetchedAt) < CACHE_TTL) {
     return cached.displayName
   }
 
@@ -576,14 +576,14 @@ export async function removeAvatar ({ state, commit }) {
  * Fetch a user's published avatar from relays.
  * Returns the avatar data URL string or null if not found.
  */
-export async function fetchPublishedAvatar ({ state, commit }, { pubKeyHex }) {
+export async function fetchPublishedAvatar ({ state, commit }, { pubKeyHex, forceRefresh }) {
   const ws = getWalletState(state)
   if (!pubKeyHex) throw new Error('pubKeyHex is required')
 
   const cached = ws.avatarCache?.[pubKeyHex]
-  const CACHE_TTL = 3600000 // 1 hour
+  const CACHE_TTL = 86400000 // 24 hours
 
-  if (cached?.avatar && (Date.now() - cached.fetchedAt) < CACHE_TTL) {
+  if (!forceRefresh && cached?.avatar && (Date.now() - cached.fetchedAt) < CACHE_TTL) {
     return cached.avatar
   }
 

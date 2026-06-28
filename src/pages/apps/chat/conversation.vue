@@ -690,6 +690,10 @@ export default {
       if (this.otherMemberContact) {
         return this.otherMemberContact.name || room.name || this.$t('Chat', {}, 'Chat')
       }
+      // Published display name from relay (fetched on conversation open)
+      if (this.fetchedDisplayName) {
+        return this.fetchedDisplayName
+      }
       // Unknown contact: show npub in header
       return this.displayNpub || room.name || this.$t('Chat', {}, 'Chat')
     },
@@ -814,8 +818,17 @@ export default {
     otherMemberPubKey: {
       handler (pubKey) {
         if (!pubKey || this.isGroupRoom) return
+        // Show cached avatar immediately for fast rendering
         this.otherMemberAvatar = getCachedAvatar(pubKey)
-        this.$store.dispatch('nostrChat/fetchPublishedAvatar', { pubKeyHex: pubKey })
+        // Force-refresh from relays on conversation open to pick up any updates
+        this.$store.dispatch('nostrChat/fetchPublishedDisplayName', { pubKeyHex: pubKey, forceRefresh: true })
+          .then(displayName => {
+            if (displayName) {
+              this.fetchedDisplayName = displayName
+            }
+          })
+          .catch(() => {})
+        this.$store.dispatch('nostrChat/fetchPublishedAvatar', { pubKeyHex: pubKey, forceRefresh: true })
           .then(avatar => {
             if (avatar) {
               setCachedAvatar(pubKey, avatar)
