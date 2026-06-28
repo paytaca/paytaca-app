@@ -247,6 +247,16 @@
                 />
               </div>
             </div>
+
+            <div v-if="showPostAuctionActions && (isAuthor || isWinningBidder) && deliveryStatusId === 3" class="q-mt-md full-width">
+              <q-btn
+                color="positive"
+                icon="check_circle"
+                label="Mark as Complete"
+                class="full-width"
+                unelevated
+              />
+            </div>
           </div>
  
           <div class="col-12 col-sm col-md-7">
