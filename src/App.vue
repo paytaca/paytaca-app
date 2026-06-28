@@ -68,7 +68,11 @@ export default {
         }
       })
       document.body.classList.add(`theme-${theme.value}`)
-      
+
+      // Update Quasar CSS variables (--q-primary, --q-secondary, ...) to match the
+      // active theme so components like QBtn outline buttons render with the correct colors.
+      updateCssThemeColors(theme.value)
+
       // Set quasar dark mode true/false
       $q.dark.set(darkMode.value)
     })
@@ -998,9 +1002,6 @@ export default {
   },
   created () {
     const vm = this
-    setTimeout(() => {
-      updateCssThemeColors(this.$store.getters['global/theme']);
-    }, 100)
     setTimeout(function () {
       if (vm.$refs?.container?.style?.display) vm.$refs.container.style.display = 'block'
 
