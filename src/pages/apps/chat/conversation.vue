@@ -402,7 +402,7 @@
           <div class="request-card-icon">
             <q-icon name="group" size="48px" />
           </div>
-          <div class="request-card-title">{{ room?.name || $t('GroupChat', {}, 'Group Chat') }}</div>
+          <div class="request-card-title">{{ room?.name || $t('Group', {}, 'Group') }}</div>
           <div class="request-card-meta">
             {{ $t('MemberCount', { count: room?.members?.length || 0 }, `${room?.members?.length || 0} members`) }}
           </div>
@@ -618,7 +618,7 @@ export default {
         return {
           id: this.roomId,
           type: 'group',
-          name: this._previewName || 'Group Chat',
+          name: this._previewName || 'Group',
           members: this._previewMembers,
         }
       }
@@ -690,7 +690,7 @@ export default {
       if (!room) return this.$t('Chat', {}, 'Chat')
       // Group rooms: use room.name directly
       if (room.type === 'group') {
-        return room.name || this.$t('GroupChat', {}, 'Group Chat')
+        return room.name || room.subject || this.$t('Group', {}, 'Group')
       }
       // DM: if a subject has been set, prefer it over the contact name
       if (room.subject) return room.subject
@@ -1256,6 +1256,13 @@ export default {
     },
     async shareGroupLink () {
       try {
+        if (!this.room?.name) {
+          this.$q.notify({
+            type: 'warning',
+            message: this.$t('GroupHasNoName', {}, 'Set a group name first before sharing'),
+          })
+          return
+        }
         await this.$store.dispatch('nostrChat/publishGroupMetadata', {
           roomId: this.roomId,
           memberPubKeys: this.room?.members || [],

@@ -849,7 +849,7 @@ export default {
       })
     },
     getGroupDisplayName (room) {
-      return room?.name || room?.subject || this.$t('GroupChat', {}, 'Group Chat')
+      return room?.name || room?.subject || this.$t('Group', {}, 'Group')
     },
     confirmDeleteRoom (roomId) {
       const room = this.archivedRooms.find(r => r.id === roomId)
@@ -1043,13 +1043,17 @@ export default {
       }
     },
     getRoomDisplayName (room) {
+      // Group rooms: always use room.name (kept in sync with subject by mutations)
+      if (room.type === 'group') {
+        return room.name || room.subject || this.$t('Group', {}, 'Group')
+      }
+      // Private (DM) rooms: prefer subject, then contact name, then npub
       const myPubKey = this.$store.getters['nostrChat/myPubKey']
       if (!myPubKey) return room.subject || room.name || this.$t('Chat')
 
       const otherPubKey = room.members?.find(m => m !== myPubKey)
       if (!otherPubKey) return room.subject || room.name || this.$t('Chat')
 
-      // If a subject has been set, use it as the conversation name
       if (room.subject) return room.subject
 
       let otherNpub = null

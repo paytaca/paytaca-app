@@ -234,7 +234,7 @@ export default {
       return name.charAt(0).toUpperCase()
     },
     roomName (room) {
-      if (room.type === 'group') return room.name || 'Group Chat'
+      if (room.type === 'group') return room.name || 'Group'
       // If a subject has been set, use it as the conversation name
       if (room.subject) return room.subject
       // Check if this room has a known contact

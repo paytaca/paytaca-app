@@ -771,7 +771,7 @@ export async function createGroupRoom ({ commit, state }, { name, members, subje
   const room = {
     id: roomId,
     type: 'group',
-    name: name || subject || 'Group Chat',
+    name: name || subject || 'Group',
     members: allMembers,
     subject: subject || null,
     createdAt: Math.floor(Date.now() / 1000),
@@ -796,11 +796,11 @@ export async function publishGroupMetadata ({ state }, { roomId, memberPubKeys, 
       ['d', `paytaca:group:${roomId}`],
     ],
     content: JSON.stringify({
-      name: 'Paytaca Group',
+      name: name || null,
       data: {
         roomId,
         members: memberPubKeys,
-        name: name || 'Group Chat',
+        name: name || null,
       },
     }),
   }, privKeyBytes)
@@ -1427,7 +1427,7 @@ export function receiveMessage ({ commit, state }, { rumor, sealPubkey }) {
       const hasSubjectTag = rumor.tags.some(t => t[0] === 'subject')
       const subjectRaw = rumor.tags.find(t => t[0] === 'subject')?.[1]
       const subject = hasSubjectTag ? (subjectRaw ?? '') : null
-      if (hasSubjectTag && room.subject !== subject && rumor.created_at >= (room.updatedAt || 0)) {
+      if (hasSubjectTag && room.subject !== subject && (room.subject === null || rumor.created_at >= (room.updatedAt || 0))) {
         commit('UPDATE_ROOM_SUBJECT', { roomId: room.id, subject: subject || null })
         if (!subject && room.type !== 'group') {
           const memberPubKeys = (room.members || []).filter(pk => pk !== ws.keys?.pubKeyHex)
@@ -1492,7 +1492,7 @@ export function receiveMessage ({ commit, state }, { rumor, sealPubkey }) {
   // room's current updatedAt. This prevents old messages from re-applying
   // a subject that was cleared/updated by a newer local action.
   // Also skip subject updates while the room is in deletedRooms (restored from delete).
-  if (hasSubjectTag && room.subject !== subject && rumor.created_at >= (room.updatedAt || 0) && !ws.deletedRooms?.[roomId]) {
+  if (hasSubjectTag && room.subject !== subject && (room.subject === null || rumor.created_at >= (room.updatedAt || 0)) && !ws.deletedRooms?.[roomId]) {
     commit('UPDATE_ROOM_SUBJECT', { roomId, subject: subject || null })
     if (!subject && room.type !== 'group') {
       const memberPubKeys = (room.members || []).filter(pk => pk !== ws.keys?.pubKeyHex)

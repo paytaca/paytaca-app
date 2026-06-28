@@ -555,11 +555,15 @@ export async function fetchGroupMetadata(relays, roomId) {
   const dTag = `paytaca:group:${roomId}`
   try {
     const events = await pool.querySync(relays, { kinds: [30078], '#d': [dTag] })
-    const match = events?.find(e => {
+    const matching = events?.filter(e => {
       const dt = e.tags?.find(t => t[0] === 'd')
       return dt && dt[1] === dTag
     })
-    return match || null
+    if (!matching || matching.length === 0) return null
+    // Pick the newest event by created_at so the most recent rename wins,
+    // regardless of which member published it. This makes group naming
+    // deterministic across all clients.
+    return matching.reduce((newest, e) => e.created_at > newest.created_at ? e : newest)
   } catch (err) {
     console.warn('[Nostr] Failed to fetch group metadata:', err)
     return null
