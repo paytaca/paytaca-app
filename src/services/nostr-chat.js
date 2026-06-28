@@ -115,6 +115,14 @@ export function isSubscribing() {
 }
 
 /**
+ * Clear the seen-event dedup cache. Used when rejoining a group so that
+ * messages dropped while the group was blocked can be re-fetched.
+ */
+export function clearSeenEventIds() {
+  _seenEventIds.clear()
+}
+
+/**
  * Actively probe connection status for each relay.
  * Uses pool.ensureRelay() so we don't depend on prior subscriptions.
  * @param {string[]} relays

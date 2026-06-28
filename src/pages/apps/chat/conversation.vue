@@ -357,6 +357,7 @@
               :my-pub-key="myPubKey"
               :show-sender-name="room?.type === 'group'"
               :contacts="contacts"
+              :display-names="memberDisplayNames"
               :is-read="messageReadMap[msg.id] || false"
               :read-by-names="readByNamesMap[msg.id] || []"
               :is-new="newMessageIds.has(msg.id)"
@@ -597,6 +598,7 @@ export default {
       _fetchedGroupMeta: null,
       _fetchingMeta: false,
       otherMemberAvatar: null,
+      memberDisplayNames: {},
     }
   },
   computed: {
@@ -742,7 +744,10 @@ export default {
     replySenderName () {
       if (!this.replyToMessage) return ''
       const contact = this.contacts.find(c => c.pubKeyHex === this.replyToMessage.sender)
-      return contact?.name || this.replyToMessage.sender?.slice(0, 12) + '...'
+      if (contact?.name) return contact.name
+      const displayName = this.memberDisplayNames[this.replyToMessage.sender]
+      if (displayName) return displayName
+      return this.replyToMessage.sender?.slice(0, 12) + '...'
     },
     replyToSnippet () {
       if (!this.replyToMessage) return ''
@@ -807,7 +812,10 @@ export default {
         if (!readers.length) continue
         map[msg.id] = readers.map(pubKey => {
           const contact = contactsByPubKey.get(pubKey)
-          return contact?.name || pubKey.slice(0, 8) + '...'
+          if (contact?.name) return contact.name
+          const displayName = this.memberDisplayNames[pubKey]
+          if (displayName) return displayName
+          return pubKey.slice(0, 8) + '...'
         })
       }
 
@@ -973,6 +981,16 @@ export default {
     this._savedScrollTop = savedScrollTop
     this.markAsRead()
     this.ensureSubscribed()
+    if (this.isGroupRoom && this.room?.members) {
+      const fetches = this.room.members.map(pk =>
+        this.$store.dispatch('nostrChat/fetchPublishedDisplayName', { pubKeyHex: pk })
+          .then(name => {
+            if (name) this.memberDisplayNames = { ...this.memberDisplayNames, [pk]: name }
+          })
+          .catch(() => {})
+      )
+      Promise.allSettled(fetches)
+    }
     document.addEventListener('visibilitychange', this.onVisibilityChange)
     document.addEventListener('pointerdown', this.onDocumentPointerDown)
     if (window.visualViewport) {
@@ -992,6 +1010,16 @@ export default {
     this._isActive = true
     this.markAsRead()
     this.ensureSubscribed()
+    if (this.isGroupRoom && this.room?.members) {
+      const fetches = this.room.members.map(pk =>
+        this.$store.dispatch('nostrChat/fetchPublishedDisplayName', { pubKeyHex: pk })
+          .then(name => {
+            if (name) this.memberDisplayNames = { ...this.memberDisplayNames, [pk]: name }
+          })
+          .catch(() => {})
+      )
+      Promise.allSettled(fetches)
+    }
     const savedRoomId = sessionStorage.getItem('chat_scroll_room_id')
     const savedMessageId = sessionStorage.getItem('chat_scroll_message_id')
     const savedDisplayLimit = sessionStorage.getItem('chat_scroll_display_limit')

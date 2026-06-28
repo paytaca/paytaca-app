@@ -334,6 +334,7 @@ export default {
     myPubKey: { type: String, default: '' },
     showSenderName: { type: Boolean, default: false },
     contacts: { type: Array, default: () => [] },
+    displayNames: { type: Object, default: () => ({}) },
     isRead: { type: Boolean, default: true },
     readByNames: { type: Array, default: () => [] },
     isNew: { type: Boolean, default: false },
@@ -407,12 +408,18 @@ export default {
     },
     senderName () {
       const contact = this.contacts.find(c => c.pubKeyHex === this.message.sender)
-      return contact?.name || this.message.sender?.slice(0, 12) + '...'
+      if (contact?.name) return contact.name
+      const displayName = this.displayNames[this.message.sender]
+      if (displayName) return displayName
+      return this.message.sender?.slice(0, 12) + '...'
     },
     replySenderName () {
       if (!this.replyToMessage) return ''
       const contact = this.contacts.find(c => c.pubKeyHex === this.replyToMessage.sender)
-      return contact?.name || this.replyToMessage.sender?.slice(0, 12) + '...'
+      if (contact?.name) return contact.name
+      const displayName = this.displayNames[this.replyToMessage.sender]
+      if (displayName) return displayName
+      return this.replyToMessage.sender?.slice(0, 12) + '...'
     },
     replySnippet () {
       if (!this.replyToMessage) return ''
@@ -632,7 +639,10 @@ export default {
     reactorName (pubKey) {
       if (pubKey === this.myPubKey) return this.$t('You', {}, 'You')
       const contact = this.contacts.find(c => c.pubKeyHex === pubKey)
-      return contact?.name || pubKey.slice(0, 12) + '...'
+      if (contact?.name) return contact.name
+      const displayName = this.displayNames[pubKey]
+      if (displayName) return displayName
+      return pubKey.slice(0, 12) + '...'
     },
     canRemoveReaction (reactor) {
       if (reactor.pubKey !== this.myPubKey) return false

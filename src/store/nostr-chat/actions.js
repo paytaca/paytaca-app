@@ -22,6 +22,12 @@ import { Store } from 'src/store'
 const isDev = process.env.NODE_ENV !== 'production'
 const debug = (...args) => { if (isDev) console.log('[Nostr]', ...args) }
 
+function fetchMemberDisplayNames (dispatch, memberPubKeys) {
+  for (const pk of memberPubKeys) {
+    dispatch('fetchPublishedDisplayName', { pubKeyHex: pk }).catch(() => {})
+  }
+}
+
 // Per-recipient cache of kind:10050 relay-preference fetches. Each send was
 // previously issuing a `pool.querySync` per recipient before publishing the
 // gift-wrap, which blocked sends. Cache for 10 minutes; a stale relay list is
@@ -912,7 +918,11 @@ export async function leaveGroup ({ commit, dispatch, state }, { roomId }) {
   commit('ARCHIVE_ROOM', roomId)
 }
 
-export async function rejoinGroup ({ commit, dispatch }, { roomId }) {
+export async function rejoinGroup ({ commit, dispatch, state }, { roomId }) {
+  const ws = getWalletState(state)
+  const room = ws.rooms.find(r => r.id === roomId)
+  if (!room) throw new Error('Room not found')
+
   commit('UNBLOCK_GROUP', roomId)
   commit('UNARCHIVE_ROOM', roomId)
 
@@ -923,6 +933,37 @@ export async function rejoinGroup ({ commit, dispatch }, { roomId }) {
     }
   } catch {
     // Non-critical — name stays as-is if fetch fails
+  }
+
+  // Re-fetch messages that arrived while the group was blocked.
+  // The subscription's _seenEventIds already recorded these events
+  // (before receiveMessage dropped them), so clear the cache and
+  // re-subscribe without `since` to re-fetch everything.
+  // ADD_MESSAGE's id-based dedup prevents duplicates.
+  relayService.clearSeenEventIds()
+  relayService.subscribeGiftWraps(state.relays, ws.keys.pubKeyHex, {
+    async onEvent(event) {
+      try {
+        const { unwrapGiftWrap } = await import('src/wallet/nostr')
+        const { rumor, sealPubkey } = unwrapGiftWrap(event, ws.keys.privKeyHex)
+        dispatch('receiveMessage', { rumor, sealPubkey })
+      } catch (err) {
+        console.warn('[Nostr] Failed to unwrap gift-wrap:', err)
+      }
+    },
+  }, { force: true })
+
+  try {
+    const myPub = ws.keys?.pubKeyHex
+    const contact = state.contacts.find(c => c.pubKeyHex === myPub)
+    const myDisplayName = contact?.name || ws.profile?.displayName || 'You'
+
+    const text = `${myDisplayName} rejoined the group`
+    const { giftWraps, message, roomId: msgRoomId } = await dispatch('sendMessage', { roomId, text })
+    commit('ADD_MESSAGE', { roomId: msgRoomId, message })
+    await dispatch('publishGiftWraps', { giftWraps })
+  } catch (err) {
+    console.warn('[Nostr] Failed to send rejoin notification:', err)
   }
 }
 
@@ -1267,7 +1308,7 @@ export function receiveMessage ({ commit, state }, { rumor, sealPubkey }) {
       room = {
         id: roomId,
         type: isGroup ? 'group' : 'private',
-        name: contact?.name || rumor.pubkey.slice(0, 12) + '...',
+        name: isGroup ? '' : (contact?.name || rumor.pubkey.slice(0, 12) + '...'),
         members: roomMembers,
         subject: null,
         createdAt: rumor.created_at,
@@ -1275,15 +1316,13 @@ export function receiveMessage ({ commit, state }, { rumor, sealPubkey }) {
       }
       commit('ADD_ROOM', room)
 
-      // Fire-and-forget: try to fetch the published group metadata name
-      // so this member sees the correct group name even if the first message
-      // they received didn't carry a subject tag (e.g., joining via group link).
       if (isGroup) {
         dispatch('fetchGroupMetadata', { roomId }).then(meta => {
-          if (meta?.name && meta.name !== room.name) {
+          if (meta?.name) {
             commit('UPDATE_ROOM_NAME', { roomId, name: meta.name })
           }
         }).catch(() => {})
+        fetchMemberDisplayNames(dispatch, roomMembers)
       }
       if (ws.deletedRooms?.[roomId]) commit('DELETE_ROOM_TRACKER', roomId)
     } else if (room.type !== 'group' && roomMembers.length > 2) {
@@ -1386,13 +1425,21 @@ export function receiveMessage ({ commit, state }, { rumor, sealPubkey }) {
     room = {
       id: roomId,
       type: isGroup ? 'group' : 'private',
-      name: contact?.name || rumor.pubkey.slice(0, 12) + '...',
+      name: isGroup ? '' : (contact?.name || rumor.pubkey.slice(0, 12) + '...'),
       members: roomMembers,
       subject: null,
       createdAt: rumor.created_at,
       updatedAt: rumor.created_at,
     }
     commit('ADD_ROOM', room)
+    if (isGroup) {
+      dispatch('fetchGroupMetadata', { roomId }).then(meta => {
+        if (meta?.name) {
+          commit('UPDATE_ROOM_NAME', { roomId, name: meta.name })
+        }
+      }).catch(() => {})
+      fetchMemberDisplayNames(dispatch, roomMembers)
+    }
   } else if (room.type !== 'group' && roomMembers.length > 2) {
     // Upgrade existing private room to group if we discover it has more than 2 members
     commit('UPDATE_ROOM_TYPE', { roomId, type: 'group' })
