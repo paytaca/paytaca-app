@@ -211,7 +211,9 @@ export default {
     otherMemberPubKey: {
       handler (pubKey) {
         if (!pubKey) return
-        this.otherMemberAvatar = getCachedAvatar(pubKey)
+        const walletHash = this.$store.getters['global/getWallet']('bch')?.walletHash
+        const walletState = walletHash ? this.$store.state.nostrChat?.byWallet?.[walletHash] : null
+        this.otherMemberAvatar = getCachedAvatar(pubKey) || walletState?.avatarCache?.[pubKey]?.avatar || null
         this.$store.dispatch('nostrChat/fetchPublishedAvatar', { pubKeyHex: pubKey })
           .then(avatar => {
             if (avatar) {

@@ -818,8 +818,12 @@ export default {
     otherMemberPubKey: {
       handler (pubKey) {
         if (!pubKey || this.isGroupRoom) return
-        // Show cached avatar immediately for fast rendering
-        this.otherMemberAvatar = getCachedAvatar(pubKey)
+        // Show cached values immediately for fast rendering
+        const walletHash = this.$store.getters['global/getWallet']('bch')?.walletHash
+        const walletState = walletHash ? this.$store.state.nostrChat?.byWallet?.[walletHash] : null
+        const cachedName = walletState?.displayNameCache?.[pubKey]?.displayName
+        if (cachedName) this.fetchedDisplayName = cachedName
+        this.otherMemberAvatar = getCachedAvatar(pubKey) || walletState?.avatarCache?.[pubKey]?.avatar || null
         // Force-refresh from relays on conversation open to pick up any updates
         this.$store.dispatch('nostrChat/fetchPublishedDisplayName', { pubKeyHex: pubKey, forceRefresh: true })
           .then(displayName => {

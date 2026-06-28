@@ -127,16 +127,26 @@ export default {
     },
   },
   created () {
-    const cached = {}
+    const walletHash = this.$store.getters['global/getWallet']('bch')?.walletHash
+    const walletState = walletHash ? this.$store.state.nostrChat?.byWallet?.[walletHash] : null
+    const nameCache = walletState?.displayNameCache || {}
+    const avatarStoreCache = walletState?.avatarCache || {}
+
+    const avatars = {}
+    const names = {}
     for (const room of this.rooms) {
       if (room.type === 'group') continue
       const otherPubKey = room.members?.find(m => m !== this.myPubKey)
-      if (otherPubKey) {
-        const url = getCachedAvatar(otherPubKey)
-        if (url) cached[otherPubKey] = url
-      }
+      if (!otherPubKey) continue
+
+      const url = getCachedAvatar(otherPubKey) || avatarStoreCache[otherPubKey]?.avatar || null
+      if (url) avatars[otherPubKey] = url
+
+      const cachedName = nameCache[otherPubKey]?.displayName
+      if (cachedName) names[otherPubKey] = cachedName
     }
-    this.dmAvatars = cached
+    this.dmAvatars = avatars
+    this.dmDisplayNames = names
   },
   mounted () {
     this.fetchDmAvatars()
