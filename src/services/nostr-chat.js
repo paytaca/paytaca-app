@@ -78,6 +78,7 @@ export function disconnect() {
       try { sub.close() } catch (_) {}
     }
     _subs = []
+    try { _pool.close(_subscribedRelays) } catch (_) {}
     _pool = null
   }
   if (_statusInterval) {
@@ -208,16 +209,13 @@ export function subscribeGiftWraps(relays, myPubKey, callbacks = {}, options = {
   const now = Date.now()
 
   // Guard: skip if subscribed recently with the same relays/pubkey (unless forced).
-  // Uses a time-based cooldown instead of _subs.length because the relay may
-  // silently close the subscription (no CLOSED message), leaving stale sub
-  // objects in _subs. With a length-based guard, stale subs make _isSubscribed
-  // return true, and ensureSubscribed skips re-creating the subscription —
-  // the user ends up with a dead listener until the 30s periodic resub fires.
-  // A time-based guard allows a fresh subscription on any subsequent call after
-  // the cooldown, even when stale subs linger in _subs.
+  // Uses a time-based cooldown (60s) to prevent navigation between pages from
+  // re-creating the subscription and re-fetching 3 days of history each time.
+  // The periodic re-subscription (every 30s) only fires when _subs is empty
+  // (subscription actually dead), so this cooldown doesn't block recovery.
   if (
     !options.force &&
-    (now - _lastSubscribeTime) < 10000 &&
+    (now - _lastSubscribeTime) < 60000 &&
     _subscribedPubKey === myPubKey &&
     arraysEqual(_subscribedRelays, relays)
   ) {
@@ -310,11 +308,16 @@ export function subscribeGiftWraps(relays, myPubKey, callbacks = {}, options = {
   if (!_resubInterval) {
     _resubInterval = setInterval(() => {
       if (_subscribedRelays.length > 0 && _subscribedPubKey && _subscriptionCallbacks) {
-        const since = Math.floor(Date.now() / 1000) - 259200 // 3 days ago
-        subscribeGiftWraps(_subscribedRelays, _subscribedPubKey, _subscriptionCallbacks, {
-          force: true,
-          since,
-        })
+        // Only re-subscribe if all subs have been closed (relay silently
+        // dropped them). If subs are still alive, the real-time subscription
+        // handles new messages — no need to re-fetch history.
+        if (_subs.length === 0) {
+          const since = Math.floor(Date.now() / 1000) - 259200 // 3 days for NIP-17 ±2 day randomization
+          subscribeGiftWraps(_subscribedRelays, _subscribedPubKey, _subscriptionCallbacks, {
+            force: true,
+            since,
+          })
+        }
       }
     }, RESUB_INTERVAL_MS)
   }
