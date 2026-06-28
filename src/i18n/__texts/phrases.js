@@ -2609,6 +2609,7 @@ const phrases = {
       CreateGroupFailed: 'Failed to create group',
       DeleteConversation: 'Delete Conversation',
       DeleteConversationConfirm: 'Permanently delete this conversation?',
+      DeleteConversationNote: 'This only removes it from this device. It stays on the relay and will be restored if you Reset Chat.',
       DeleteConversationOptions: 'How would you like to delete this conversation?',
       DeleteGroup: 'Delete Group',
       DeleteGroupConfirm: 'Delete group "{name}"?',

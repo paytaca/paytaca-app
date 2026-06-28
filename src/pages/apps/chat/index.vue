@@ -856,13 +856,14 @@ export default {
       if (!room) return
 
       const roomName = this.getRoomDisplayName(room)
+      const note = this.$t('DeleteConversationNote', {}, 'This only removes it from this device. It stays on the relay and will be restored if you Reset Chat.')
 
       // Groups: leaving already handles "blocking" via BLOCK_GROUP, so delete
       // is a simple permanent removal. Also clear any group-block tracker.
       if (room.type === 'group') {
         this.$q.dialog({
           title: this.$t('DeleteConversation', {}, 'Delete Conversation'),
-          message: this.$t('DeleteConversationConfirm', { name: roomName }, `Permanently delete "${roomName}"? This cannot be undone.`),
+          message: this.$t('DeleteConversationConfirm', { name: roomName }, `Permanently delete "${roomName}"?`) + '\n\n' + note,
           class: `pt-card text-bow ${this.getDarkModeClass(this.darkMode)}`,
           cancel: { label: this.$t('Cancel', {}, 'Cancel'), flat: true, color: 'grey' },
           ok: { label: this.$t('Delete', {}, 'Delete'), color: 'negative', flat: true },
@@ -882,7 +883,7 @@ export default {
       if (isBlocked) {
         this.$q.dialog({
           title: this.$t('DeleteConversation', {}, 'Delete Conversation'),
-          message: this.$t('DeleteConversationConfirm', { name: roomName }, `Permanently delete conversation with ${roomName}?`),
+          message: this.$t('DeleteConversationConfirm', { name: roomName }, `Delete conversation with ${roomName}?`) + '\n\n' + note,
           class: `pt-card text-bow ${this.getDarkModeClass(this.darkMode)}`,
           cancel: {
             label: this.$t('Cancel', {}, 'Cancel'),
@@ -908,7 +909,7 @@ export default {
       // Not blocked — offer both options
       this.$q.dialog({
         title: this.$t('DeleteConversation', {}, 'Delete Conversation'),
-        message: this.$t('DeleteConversationOptions', { name: roomName }, `How would you like to delete the conversation with ${roomName}?`),
+        message: this.$t('DeleteConversationOptions', { name: roomName }, `How would you like to delete the conversation with ${roomName}?`) + '\n\n' + note,
         class: `pt-card text-bow ${this.getDarkModeClass(this.darkMode)}`,
         options: {
           type: 'radio',

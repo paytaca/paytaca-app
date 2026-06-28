@@ -1799,13 +1799,14 @@ export default {
       const roomName = this.roomName
       const otherPubKey = this.otherMemberPubKey
       const isBlocked = this.isContactBlocked
+      const note = this.$t('DeleteConversationNote', {}, 'This only removes it from this device. It stays on the relay and will be restored if you Reset Chat.')
 
       // Groups: leaving already handles "blocking" via BLOCK_GROUP, so delete
       // is a simple permanent removal. Also clear any group-block tracker.
       if (this.isGroupRoom) {
         this.$q.dialog({
           title: this.$t('DeleteConversation', {}, 'Delete Conversation'),
-          message: this.$t('DeleteConversationConfirm', { name: roomName }, `Delete "${roomName}"? This cannot be undone.`),
+          message: this.$t('DeleteConversationConfirm', { name: roomName }, `Delete "${roomName}"?`) + '\n\n' + note,
           class: `pt-card text-bow ${this.getDarkModeClass(this.darkMode)}`,
           cancel: { label: this.$t('Cancel', {}, 'Cancel'), flat: true, color: 'grey' },
           ok: { label: this.$t('Delete', {}, 'Delete'), color: 'negative', flat: true },
@@ -1822,7 +1823,7 @@ export default {
       if (isBlocked) {
         this.$q.dialog({
           title: this.$t('DeleteConversation', {}, 'Delete Conversation'),
-          message: this.$t('DeleteConversationConfirm', { name: roomName }, `Delete conversation with ${roomName}? This cannot be undone.`),
+          message: this.$t('DeleteConversationConfirm', { name: roomName }, `Delete conversation with ${roomName}?`) + '\n\n' + note,
           class: `pt-card text-bow ${this.getDarkModeClass(this.darkMode)}`,
           cancel: { label: this.$t('Cancel', {}, 'Cancel'), flat: true, color: 'grey' },
           ok: { label: this.$t('Delete', {}, 'Delete'), color: 'negative', flat: true },
@@ -1838,7 +1839,7 @@ export default {
       } else {
         this.$q.dialog({
           title: this.$t('DeleteConversation', {}, 'Delete Conversation'),
-          message: this.$t('DeleteConversationOptions', { name: roomName }, `How would you like to delete the conversation with ${roomName}?`),
+          message: this.$t('DeleteConversationOptions', { name: roomName }, `How would you like to delete the conversation with ${roomName}?`) + '\n\n' + note,
           class: `pt-card text-bow ${this.getDarkModeClass(this.darkMode)}`,
           options: {
             type: 'radio',
