@@ -343,6 +343,7 @@
             v-for="(msg, index) in displayedMessages"
             :key="msg.id"
             :id="'msg-' + msg.id"
+            :data-msg-id="msg.id"
             class="message-group"
           >
             <div
@@ -599,6 +600,11 @@ export default {
       _fetchingMeta: false,
       otherMemberAvatar: null,
       memberDisplayNames: {},
+      _messageObserver: null,
+      _visibleTimers: {},
+      _pendingReadMsgIds: new Set(),
+      _readMsgFlushTimer: null,
+      _sentReadReceiptIds: new Set(),
     }
   },
   computed: {
@@ -883,6 +889,7 @@ export default {
         }
       }
       this.previousMessageCount = newLen
+    this.$nextTick(() => this.observeMessages())
     },
     room (val) {
       if (!val && !this._isGroupLink) {
@@ -1003,12 +1010,17 @@ export default {
     // Defer message rendering so the chat input is interactive first
     this.$nextTick(() => {
       this.ready = true
+      this.$nextTick(() => {
+        this.createMessageObserver()
+        this.observeMessages()
+      })
     })
     this._isActive = true
   },
   activated () {
     this._isActive = true
     this.markAsRead()
+    this.ensureSubscribed()
     this.ensureSubscribed()
     if (this.isGroupRoom && this.room?.members) {
       const fetches = this.room.members.map(pk =>
@@ -1058,6 +1070,10 @@ export default {
     }
     this.$nextTick(() => {
       this.ready = true
+      this.$nextTick(() => {
+        this.createMessageObserver()
+        this.observeMessages()
+      })
     })
   },
   deactivated () {
@@ -1087,6 +1103,19 @@ export default {
     } else {
       window.removeEventListener('resize', this.onViewportResize)
     }
+    if (this._messageObserver) {
+      this._messageObserver.disconnect()
+      this._messageObserver = null
+    }
+    for (const id of Object.keys(this._visibleTimers)) {
+      clearTimeout(this._visibleTimers[id])
+    }
+    this._visibleTimers = {}
+    if (this._readMsgFlushTimer) {
+      clearTimeout(this._readMsgFlushTimer)
+      this._readMsgFlushTimer = null
+    }
+    this._pendingReadMsgIds.clear()
   },
   methods: {
     getDarkModeClass,
@@ -1112,10 +1141,14 @@ export default {
       // NIP-44 ECDH + a relay publish — enough to jank the UI during a 60s poll
       // burst. Coalesce rapid calls into one dispatch at most every 3s, and
       // guarantee a flush on deactivate/unmount via flushMarkAsRead().
+      //
+      // Uses localOnly=true so this only marks messages as read locally (clears
+      // unread badge) WITHOUT publishing 👝 reactions. The IntersectionObserver
+      // handles publishing 👝 for messages the user actually views.
       if (this._markAsReadTimer) return
       this._markAsReadTimer = setTimeout(() => {
         this._markAsReadTimer = null
-        this.$store.dispatch('nostrChat/markRoomAsRead', this.roomId)
+        this.$store.dispatch('nostrChat/markRoomAsRead', { roomId: this.roomId, localOnly: true })
       }, 3000)
     },
     flushMarkAsRead () {
@@ -1124,8 +1157,68 @@ export default {
         this._markAsReadTimer = null
       }
       if (this.roomId) {
-        this.$store.dispatch('nostrChat/markRoomAsRead', this.roomId)
+        this.$store.dispatch('nostrChat/markRoomAsRead', { roomId: this.roomId, localOnly: true })
       }
+    },
+    createMessageObserver () {
+      if (this._messageObserver) {
+        this._messageObserver.disconnect()
+        this._messageObserver = null
+      }
+      const container = this.$refs.messagesContainer
+      if (!container) return
+      this._messageObserver = new IntersectionObserver((entries) => {
+        for (const entry of entries) {
+          const msgId = entry.target.dataset?.msgId
+          if (!msgId) continue
+          if (entry.isIntersecting) {
+            if (this._visibleTimers[msgId]) continue
+            this._visibleTimers[msgId] = setTimeout(() => {
+              delete this._visibleTimers[msgId]
+              this._pendingReadMsgIds.add(msgId)
+              this._flushReadMsgIds()
+            }, 2000)
+          } else {
+            if (this._visibleTimers[msgId]) {
+              clearTimeout(this._visibleTimers[msgId])
+              delete this._visibleTimers[msgId]
+            }
+          }
+        }
+      }, { root: container, threshold: 0.5 })
+    },
+    observeMessages () {
+      if (!this._messageObserver || !this.$refs.messagesContainer) return
+      const els = this.$refs.messagesContainer.querySelectorAll('.message-group')
+      els.forEach(el => this._messageObserver.observe(el))
+    },
+    _flushReadMsgIds () {
+      if (this._readMsgFlushTimer) return
+      this._readMsgFlushTimer = setTimeout(() => {
+        this._readMsgFlushTimer = null
+        const ids = Array.from(this._pendingReadMsgIds)
+        this._pendingReadMsgIds.clear()
+        if (!ids.length || !this.roomId) return
+        // Filter out own messages and already-processed IDs
+        const filtered = ids.filter(id => {
+          if (this._sentReadReceiptIds.has(id)) return false
+          const msg = this.allMessages.find(m => m.id === id)
+          return msg && msg.sender !== this.myPubKey
+        })
+        if (filtered.length) {
+          for (const id of filtered) this._sentReadReceiptIds.add(id)
+          this.$store.dispatch('nostrChat/markRoomAsRead', {
+            roomId: this.roomId,
+            messageIds: filtered,
+          })
+        }
+      }, 200)
+    },
+    markMessageAsRead (msgId) {
+      const msg = this.allMessages.find(m => m.id === msgId)
+      if (!msg || msg.sender === this.myPubKey) return
+      this._pendingReadMsgIds.add(msgId)
+      this._flushReadMsgIds()
     },
     ensureSubscribed () {
       // Always ensure we have an active subscription,
@@ -1208,6 +1301,7 @@ export default {
         }
         this._lastVisibilitySubscribe = Date.now()
         this.ensureSubscribed()
+        this.markAsRead()
       }
     },
     onViewportResize () {
@@ -1370,6 +1464,7 @@ export default {
           container.scrollTop = prevScrollTop + (newScrollHeight - prevScrollHeight)
         }
         this.isLoadingMore = false
+        this.observeMessages()
 
         if (this.allMessages.length <= this.displayLimit) {
           this._allMessagesLoaded = true

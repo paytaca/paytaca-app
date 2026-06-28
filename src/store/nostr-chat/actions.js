@@ -1,6 +1,35 @@
 import { deriveNostrKeys, createUnsignedKind14, createNip17GiftWraps, computeRoomId, createKind10050, createReadReceiptGiftWrap, createReactionGiftWraps, createKind5DeletionGiftWraps } from 'src/wallet/nostr'
 import { finalizeEvent, verifyEvent, getEventHash, utils as nostrUtils } from 'nostr-tools'
 const { hexToBytes } = nostrUtils
+
+// Tracks retry attempts for failed read receipt sends. Keyed by roomId:messageId,
+// value is the number of retries attempted so far. Prevents infinite retry loops
+// when a relay is persistently unreachable.
+const _readReceiptRetries = new Map()
+const MAX_READ_RECEIPT_RETRIES = 3
+const _markRoomLocks = new Set()
+
+// Pending read receipts where the referenced message hadn't arrived yet.
+// Keyed by messageId → [{ readerPubKey }]. Flushed at the end of every
+// receiveMessage call.
+const _pendingReadReceipts = new Map()
+
+function flushPendingReadReceipts (state, commit) {
+  if (!_pendingReadReceipts.size) return
+  const ws = getWalletState(state)
+  if (!ws) return
+  for (const [messageId, readers] of _pendingReadReceipts) {
+    for (const roomId of Object.keys(ws.messages)) {
+      if (ws.messages[roomId]?.some(m => m.id === messageId)) {
+        for (const { readerPubKey } of readers) {
+          commit('SET_MESSAGE_READ_BY', { roomId, messageId, readerPubKey })
+        }
+        _pendingReadReceipts.delete(messageId)
+        break
+      }
+    }
+  }
+}
 import { getMnemonic } from 'src/wallet'
 import { decode as nip19Decode } from 'nostr-tools/nip19'
 import * as relayService from 'src/services/nostr-chat'
@@ -1225,6 +1254,14 @@ export function receiveMessage ({ commit, state }, { rumor, sealPubkey }) {
           messageId,
           readerPubKey,
         })
+      } else {
+        // Message hasn't arrived yet — cache the receipt so it can be
+        // processed once the message is added to a room. Without this, a race
+        // condition (receipt arrives before the original message) silently
+        // drops the receipt forever.
+        const existing = _pendingReadReceipts.get(messageId) || []
+        existing.push({ readerPubKey })
+        _pendingReadReceipts.set(messageId, existing)
       }
     }
     return
@@ -1500,9 +1537,27 @@ export function receiveMessage ({ commit, state }, { rumor, sealPubkey }) {
   }
 
   commit('ADD_MESSAGE', { roomId, message })
+
+  // Flush any pending read receipts whose message has now arrived
+  flushPendingReadReceipts(state, commit)
 }
 
-export async function markRoomAsRead ({ commit, state }, roomId) {
+export async function markRoomAsRead ({ commit, state, dispatch }, { roomId, messageIds, force, localOnly } = {}) {
+  if (localOnly) {
+    const ws = getWalletState(state)
+    const myPubKey = ws.keys.pubKeyHex
+    if (!myPubKey) return
+    const messages = ws.messages[roomId] || []
+    const readIds = ws.readMessageIds?.[roomId] || {}
+    const ids = messages
+      .filter(m => m.sender !== myPubKey && !readIds[m.id] && (!messageIds || messageIds.includes(m.id)))
+      .map(m => m.id)
+    if (ids.length) commit('MARK_MESSAGES_AS_READ', { roomId, messageIds: ids })
+    return
+  }
+  if (_markRoomLocks.has(roomId)) return
+  _markRoomLocks.add(roomId)
+  try {
   const ws = getWalletState(state)
   const myPubKey = ws.keys.pubKeyHex
   const myPrivKey = ws.keys.privKeyHex
@@ -1512,22 +1567,21 @@ export async function markRoomAsRead ({ commit, state }, roomId) {
   const room = ws.rooms.find(r => r.id === roomId)
   if (!room) return
 
-  // Find messages sent by the OTHER person that we haven't read yet
+  // When force=true (retry path), skip the readIds check so we can retry
+  // messages whose receipt send failed on a previous attempt. The readIds
+  // check prevents retries once a message is committed locally.
   const readIds = ws.readMessageIds?.[roomId] || {}
-  const unreadMessages = messages.filter(
-    m => m.sender !== myPubKey && !readIds[m.id]
-  )
+  const candidateIds = messageIds ? new Set(messageIds) : null
+  const unreadMessages = force
+    ? messages.filter(m => m.sender !== myPubKey && (!candidateIds || candidateIds.has(m.id)))
+    : messages.filter(
+        m => m.sender !== myPubKey && !readIds[m.id] && (!candidateIds || candidateIds.has(m.id))
+      )
 
-  // Mark them as read locally
-  if (unreadMessages.length) {
-    commit('MARK_MESSAGES_AS_READ', {
-      roomId,
-      messageIds: unreadMessages.map(m => m.id),
-    })
-  }
+  if (!unreadMessages.length) return
 
   // Send Kind 7 "👀" read receipt gift-wraps back to each sender.
-  // This lets the sender's client know we've read their messages.
+  // Group messages by sender so each sender gets a single gift-wrap.
   const senderMap = new Map()
   for (const msg of unreadMessages) {
     if (!senderMap.has(msg.sender)) {
@@ -1537,18 +1591,80 @@ export async function markRoomAsRead ({ commit, state }, roomId) {
     }
   }
 
-  for (const [senderPubKey, messageIds] of senderMap) {
-    try {
-      const giftWrap = await createReadReceiptGiftWrap({
-        messageIds,
-        senderPubKey,
-        receiverPubKey: myPubKey,
-        receiverPrivKey: myPrivKey,
-      })
-      await relayService.publishEvent(state.relays, giftWrap)
-    } catch (err) {
-      console.warn('[Nostr] Failed to send read receipts for sender:', err)
+  // Only mark messages as read locally AFTER the 👝 reaction is successfully
+  // published. If we mark them first and the publish fails (or the app is
+  // killed before the retry fires), the messages are permanently marked as
+  // read locally but the sender never receives the 👝 — creating a permanent
+  // "never seen" gap on their side.
+  //
+  // Chunk messageIds per sender: relays reject gift-wraps whose content
+  // exceeds 8192 bytes. Each `e` tag (~140 bytes pre-encryption, ~250 bytes
+  // after double NIP-44 encryption + base64) means we can safely fit ~20
+  // messageIds per gift-wrap.
+  const MAX_IDS_PER_GIFT_WRAP = 20
+  const successfullyReadIds = []
+  const failedSenders = []
+  let chunkIndex = 0
+  for (const [senderPubKey, ids] of senderMap) {
+    for (let i = 0; i < ids.length; i += MAX_IDS_PER_GIFT_WRAP) {
+      const chunk = ids.slice(i, i + MAX_IDS_PER_GIFT_WRAP)
+      if (chunkIndex > 0) await new Promise(r => setTimeout(r, 500))
+      chunkIndex++
+      try {
+        const giftWrap = await createReadReceiptGiftWrap({
+          messageIds: chunk,
+          senderPubKey,
+          receiverPubKey: myPubKey,
+          receiverPrivKey: myPrivKey,
+        })
+        await relayService.publishEvent(state.relays, giftWrap)
+        successfullyReadIds.push(...chunk)
+        for (const id of chunk) _readReceiptRetries.delete(`${roomId}:${id}`)
+      } catch (err) {
+        console.warn('[Nostr] Failed to send read receipts for sender:', err)
+        failedSenders.push(chunk)
+      }
     }
+  }
+
+  // Mark as read locally only the messages whose 👝 reaction was sent.
+  // Failed messages stay "unread" so the next markRoomAsRead call re-attempts.
+  if (successfullyReadIds.length) {
+    commit('MARK_MESSAGES_AS_READ', {
+      roomId,
+      messageIds: successfullyReadIds,
+    })
+  }
+
+  // Retry failed sends after a delay so transient errors (network blip, relay
+  // timeout) don't create permanent gaps on the sender's side. Uses force=true
+  // to bypass the readIds check (in case some messages were marked by a prior
+  // partial success).
+  if (failedSenders.length) {
+    const exhaustedIds = []
+    const retryIds = failedSenders.flat().filter(id => {
+      const key = `${roomId}:${id}`
+      const count = (_readReceiptRetries.get(key) || 0) + 1
+      if (count > MAX_READ_RECEIPT_RETRIES) {
+        console.warn('[Nostr] Giving up on read receipt for', key, 'after', MAX_READ_RECEIPT_RETRIES, 'retries')
+        _readReceiptRetries.delete(key)
+        exhaustedIds.push(id)
+        return false
+      }
+      _readReceiptRetries.set(key, count)
+      return true
+    })
+    // Mark exhausted messages as read locally so the debounced markAsRead()
+    // stops picking them up and creating an infinite retry loop.
+    if (exhaustedIds.length) {
+      commit('MARK_MESSAGES_AS_READ', { roomId, messageIds: exhaustedIds })
+    }
+    if (retryIds.length) {
+      setTimeout(() => dispatch('markRoomAsRead', { roomId, messageIds: retryIds, force: true }), 5000)
+    }
+  }
+  } finally {
+    _markRoomLocks.delete(roomId)
   }
 }
 
