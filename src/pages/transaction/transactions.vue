@@ -267,8 +267,6 @@
 		              :transactionsFilter="transactionsFilter"
 		              :selectedDenomination="selectedDenomination"
 		              @resolved-transaction="onStablehedgeTransaction"
-		              @scroll-up="handleScrollUp"
-		              @scroll-down="handleScrollDown"
 		            />
 		            <TransactionList
 		              v-else
@@ -278,15 +276,12 @@
 		              :wallet="wallet"
 		              :selectedNetworkProps="selectedNetwork"
 		              @on-show-transaction-details="showTransactionDetails"
-		              @scroll-up="handleScrollUp"
-		              @scroll-down="handleScrollDown"
 		            />
 		          </KeepAlive>
 		        </div>
 		      </div>
 		</div>		
 
-		<footer-menu ref="footerMenu" />
 	</q-pull-to-refresh>
 </template>
 <script>
@@ -724,18 +719,15 @@ export default {
 					try {
 						const screenHeight = window.innerHeight
 						const fixedSection = this.$refs.fixedSection
-						const footerMenu = this.$refs.footerMenu?.$el
 
-						if (!fixedSection || !footerMenu) {
-							// Fallback if refs not available
-							this.transactionRowHeight = 'calc(100vh - 250px)'
+						if (!fixedSection) {
+							this.transactionRowHeight = 'calc(100vh - 160px)'
 							return
 						}
 
 						// Calculate the height of everything above the transaction row
 						let heightAbove = 0
 
-						// Get all children of fixedSection before transactionSection
 						const children = Array.from(fixedSection.children)
 						const transactionSectionIndex = children.indexOf(this.$refs.transactionSection)
 
@@ -743,16 +735,12 @@ export default {
 							heightAbove += children[i].offsetHeight
 						}
 
-						// Add footer menu height
-						const footerHeight = footerMenu.offsetHeight
-
-						// Calculate available height for transaction row
-						const availableHeight = screenHeight - heightAbove - footerHeight
+						const availableHeight = screenHeight - heightAbove
 
 						this.transactionRowHeight = `${availableHeight}px`
 					} catch (error) {
 						console.error('Error calculating transaction row height:', error)
-						this.transactionRowHeight = 'calc(100vh - 250px)'
+						this.transactionRowHeight = 'calc(100vh - 160px)'
 					}
 				})
 			})
@@ -781,18 +769,6 @@ export default {
 				if (this.txSearchActive) return
 				this.executeTxSearch('')
 			}, 150)
-		},
-		handleScrollUp() {
-			// User scrolling up (viewing newer transactions) - show footer
-			if (this.$refs.footerMenu) {
-				this.$refs.footerMenu.showFooter()
-			}
-		},
-		handleScrollDown() {
-			// User scrolling down (viewing older transactions) - hide footer
-			if (this.$refs.footerMenu) {
-				this.$refs.footerMenu.hideFooter()
-			}
 		},
 		getAssetImageUrl (asset) {
 			if (asset?.id === 'all') {
@@ -1141,7 +1117,7 @@ this.$nextTick(() => {
     height: 100%; // Fill parent
     display: flex;
     flex-direction: column;
-    padding-bottom: 90px; // Account for fixed footer menu
+    padding-bottom: 20px;
     overflow: hidden;
     
     // Make KeepAlive wrapper fill height
