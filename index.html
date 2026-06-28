@@ -20,84 +20,18 @@
     <style>
       html, body { margin: 0; padding: 0; }
 
-      /* Loading screen shown during app reload (e.g. wallet switch) */
-      /* Matches WalletSwitchLoading.vue design exactly for visual continuity */
-      #app-loading {
-        position: fixed;
-        top: 0;
-        left: 0;
-        right: 0;
-        bottom: 0;
-        z-index: 10000;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        overflow: hidden;
-        background: linear-gradient(-45deg, var(--loading-g1), var(--loading-g2), var(--loading-g3), var(--loading-g4));
-        background-size: 400% 400%;
-        animation: gradientShift 15s ease infinite;
+      #q-app {
+        animation: appFadeIn 0.3s ease forwards;
       }
 
-      #app-loading::before {
-        content: '';
-        position: absolute;
-        inset: 0;
-        background: var(--loading-theme-overlay);
-        pointer-events: none;
-      }
-
-      #app-loading-circle {
-        position: relative;
-        width: 110px;
-        height: 110px;
-        border-radius: 50%;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        padding: 25px;
-        backdrop-filter: blur(20px);
-        -webkit-backdrop-filter: blur(20px);
-        background: var(--circle-bg);
-        border: var(--circle-border);
-        box-shadow: var(--circle-shadow);
-        animation: pulse 3s ease-in-out infinite;
-        z-index: 1;
-      }
-
-      #app-loading-glow {
-        position: absolute;
-        inset: -10px;
-        border-radius: 50%;
-        opacity: 0.3;
-        filter: blur(20px);
-        pointer-events: none;
-        background: var(--loading-glow-color);
-      }
-
-      #app-loading-logo {
-        position: relative;
-        z-index: 1;
-        width: 100%;
-        height: auto;
-        object-fit: contain;
-        filter: drop-shadow(0 4px 12px rgba(0, 0, 0, 0.15));
-      }
-
-      @keyframes gradientShift {
-        0%, 100% { background-position: 0% 50%; }
-        50% { background-position: 100% 50%; }
-      }
-
-      @keyframes pulse {
-        0%, 100% { transform: scale(1); opacity: 0.8; }
-        50% { transform: scale(1.1); opacity: 1; }
+      @keyframes appFadeIn {
+        from { opacity: 0; }
+        to { opacity: 1; }
       }
     </style>
     <script>
       // Pre-paint the correct background color from persisted wallet state
       // to avoid a white flash during page reloads (e.g. wallet switching).
-      // Also sets CSS variables so the inline loading screen matches WalletSwitchLoading.vue
-      // in both light/dark mode and theme-specific styling.
       (function () {
         var themeBg = {
           'glassmorphic-blue': { dark: '#273746', light: '#ecf3f3' },
@@ -119,85 +53,12 @@
           var colors = themeBg[theme] || themeBg['glassmorphic-blue']
           var bg = darkMode ? colors.dark : colors.light
           document.documentElement.style.backgroundColor = bg
-
-          // Animated gradient colors (matching WalletSwitchLoading.vue)
-          var g1, g2, g3, g4
-          if (darkMode) {
-            g1 = '#1a1d23'; g2 = '#252930'; g3 = '#1e2229'; g4 = '#2a2f38'
-          } else {
-            g1 = '#f5f7fa'; g2 = '#e8eef5'; g3 = '#f0f4f8'; g4 = '#e3e9f0'
-          }
-          document.documentElement.style.setProperty('--loading-g1', g1)
-          document.documentElement.style.setProperty('--loading-g2', g2)
-          document.documentElement.style.setProperty('--loading-g3', g3)
-          document.documentElement.style.setProperty('--loading-g4', g4)
-
-          // Theme-specific radial overlay (matches ::before pseudo in WalletSwitchLoading)
-          var themeOverlay
-          var glowColor
-          switch (theme) {
-            case 'glassmorphic-blue':
-              themeOverlay = darkMode
-                ? 'radial-gradient(circle at 30% 50%, rgba(66, 165, 245, 0.08), transparent 50%), radial-gradient(circle at 70% 50%, rgba(21, 101, 192, 0.05), transparent 50%)'
-                : 'radial-gradient(circle at 30% 50%, rgba(66, 165, 245, 0.15), transparent 50%), radial-gradient(circle at 70% 50%, rgba(21, 101, 192, 0.1), transparent 50%)'
-              glowColor = 'radial-gradient(circle, rgba(66, 165, 245, 0.4), transparent 70%)'
-              break
-            case 'glassmorphic-gold':
-              themeOverlay = darkMode
-                ? 'radial-gradient(circle at 30% 50%, rgba(255, 167, 38, 0.08), transparent 50%), radial-gradient(circle at 70% 50%, rgba(230, 81, 0, 0.05), transparent 50%)'
-                : 'radial-gradient(circle at 30% 50%, rgba(255, 167, 38, 0.15), transparent 50%), radial-gradient(circle at 70% 50%, rgba(230, 81, 0, 0.1), transparent 50%)'
-              glowColor = 'radial-gradient(circle, rgba(255, 167, 38, 0.4), transparent 70%)'
-              break
-            case 'glassmorphic-green':
-              themeOverlay = darkMode
-                ? 'radial-gradient(circle at 30% 50%, rgba(76, 175, 80, 0.08), transparent 50%), radial-gradient(circle at 70% 50%, rgba(46, 125, 50, 0.05), transparent 50%)'
-                : 'radial-gradient(circle at 30% 50%, rgba(76, 175, 80, 0.15), transparent 50%), radial-gradient(circle at 70% 50%, rgba(46, 125, 50, 0.1), transparent 50%)'
-              glowColor = 'radial-gradient(circle, rgba(76, 175, 80, 0.4), transparent 70%)'
-              break
-            case 'glassmorphic-red':
-              themeOverlay = darkMode
-                ? 'radial-gradient(circle at 30% 50%, rgba(245, 66, 112, 0.08), transparent 50%), radial-gradient(circle at 70% 50%, rgba(192, 21, 67, 0.05), transparent 50%)'
-                : 'radial-gradient(circle at 30% 50%, rgba(245, 66, 112, 0.15), transparent 50%), radial-gradient(circle at 70% 50%, rgba(192, 21, 67, 0.1), transparent 50%)'
-              glowColor = 'radial-gradient(circle, rgba(245, 66, 112, 0.4), transparent 70%)'
-              break
-            case 'payhero':
-              themeOverlay = darkMode
-                ? 'radial-gradient(circle at 30% 50%, rgba(255, 167, 38, 0.08), transparent 50%), radial-gradient(circle at 70% 50%, rgba(230, 81, 0, 0.05), transparent 50%)'
-                : 'radial-gradient(circle at 30% 50%, rgba(255, 167, 38, 0.15), transparent 50%), radial-gradient(circle at 70% 50%, rgba(230, 81, 0, 0.1), transparent 50%)'
-              glowColor = 'radial-gradient(circle, rgba(255, 167, 38, 0.4), transparent 70%)'
-              break
-            default:
-              themeOverlay = darkMode
-                ? 'radial-gradient(circle at 30% 50%, rgba(66, 165, 245, 0.08), transparent 50%), radial-gradient(circle at 70% 50%, rgba(21, 101, 192, 0.05), transparent 50%)'
-                : 'radial-gradient(circle at 30% 50%, rgba(66, 165, 245, 0.15), transparent 50%), radial-gradient(circle at 70% 50%, rgba(21, 101, 192, 0.1), transparent 50%)'
-              glowColor = 'radial-gradient(circle, rgba(66, 165, 245, 0.4), transparent 70%)'
-          }
-          document.documentElement.style.setProperty('--loading-theme-overlay', themeOverlay)
-          document.documentElement.style.setProperty('--loading-glow-color', glowColor)
-
-          // Circle glass styles (dark/light)
-          if (darkMode) {
-            document.documentElement.style.setProperty('--circle-bg', 'rgba(255, 255, 255, 0.05)')
-            document.documentElement.style.setProperty('--circle-border', '2px solid rgba(255, 255, 255, 0.15)')
-            document.documentElement.style.setProperty('--circle-shadow', '0 12px 40px rgba(0, 0, 0, 0.3), 0 0 0 1px rgba(255, 255, 255, 0.05) inset')
-          } else {
-            document.documentElement.style.setProperty('--circle-bg', 'rgba(255, 255, 255, 0.5)')
-            document.documentElement.style.setProperty('--circle-border', '2px solid rgba(255, 255, 255, 0.6)')
-            document.documentElement.style.setProperty('--circle-shadow', '0 12px 40px rgba(0, 0, 0, 0.12), 0 0 0 1px rgba(255, 255, 255, 0.3) inset')
-          }
+          document.body && (document.body.style.backgroundColor = bg)
         } catch (e) {}
       })()
     </script>
   </head>
   <body>
-    <div id="app-loading">
-      <div id="app-loading-inner">
-        <div id="app-loading-circle">
-          <div id="app-loading-glow"></div>
-          <img src="paytaca_logo.png" alt="" id="app-loading-logo">
-        </div>
-      </div>
-    </div>
     <!-- quasar:entry-point -->
   </body>
 </html>

@@ -766,12 +766,6 @@ export default {
   async mounted () {
     const vm = this
 
-    // Remove the inline loading screen from index.html
-    const loadingEl = document.getElementById('app-loading')
-    if (loadingEl) {
-      loadingEl.remove()
-    }
-
     // Clear session-based backup reminder dismissal on fresh app start
     // App.vue only mounts on fresh app start (not during navigation), so always clear
     sessionStorage.removeItem('backupReminderDismissedTimestamp')
