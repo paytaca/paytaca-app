@@ -708,6 +708,7 @@ export default {
   DeleteContactSuccess: "An share lamba cikin nasara.",
   DeleteConversation: "Share Taɗi",
   DeleteConversationConfirm: "Share wannan tattaunawar har abada?",
+  DeleteConversationNote: "Wannan kawai yana cire shi daga wannan na'urar.Yana tsayawa akan gudun ba da sanda kuma za'a dawo dashi idan kun Sake saita Taɗi.",
   DeleteConversationOptions: "Ta yaya kuke son share wannan tattaunawar?",
   DeleteGroup: "Share Rukuni",
   DeleteGroupConfirm: "Share rukunin \"{name}\"?",

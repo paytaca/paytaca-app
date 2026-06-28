@@ -709,6 +709,7 @@ export default {
   DeleteContactSuccess: "联系人删除成功。",
   DeleteConversation: "删除对话",
   DeleteConversationConfirm: "永久删除此对话？",
+  DeleteConversationNote: "这只会将其从该设备中删除。它保留在中继上，如果您重置聊天，它将恢复。",
   DeleteConversationOptions: "您想如何删除此对话？",
   DeleteGroup: "删除组",
   DeleteGroupConfirm: "删除群组“{name}”？",

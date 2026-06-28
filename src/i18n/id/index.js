@@ -708,6 +708,7 @@ export default {
   DeleteContactSuccess: "Kontak berhasil dihapus.",
   DeleteConversation: "Hapus Percakapan",
   DeleteConversationConfirm: "Hapus percakapan ini secara permanen?",
+  DeleteConversationNote: "Ini hanya menghapusnya dari perangkat ini.Itu tetap ada di relai dan akan dipulihkan jika Anda Mengatur Ulang Obrolan.",
   DeleteConversationOptions: "Bagaimana Anda ingin menghapus percakapan ini?",
   DeleteGroup: "Hapus Grup",
   DeleteGroupConfirm: "Hapus grup \"{name}\"?",

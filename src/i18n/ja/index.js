@@ -708,6 +708,7 @@ export default {
   DeleteContactSuccess: "連絡先が正常に削除されました。",
   DeleteConversation: "会話の削除",
   DeleteConversationConfirm: "この会話を完全に削除しますか?",
+  DeleteConversationNote: "これは、このデバイスからのみ削除されます。リレー上に残り、チャットをリセットすると復元されます。",
   DeleteConversationOptions: "この会話を削除するにはどうすればよいですか?",
   DeleteGroup: "グループの削除",
   DeleteGroupConfirm: "グループ「{name}」を削除しますか?",

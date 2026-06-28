@@ -709,6 +709,7 @@ export default {
   DeleteContactSuccess: "Contacto eliminado exitosamente.",
   DeleteConversation: "Eliminar conversación",
   DeleteConversationConfirm: "¿Eliminar permanentemente esta conversación?",
+  DeleteConversationNote: "Esto sólo lo elimina de este dispositivo.Permanece en el relé y se restaurará si reinicia el chat.",
   DeleteConversationOptions: "¿Cómo te gustaría eliminar esta conversación?",
   DeleteGroup: "Eliminar grupo",
   DeleteGroupConfirm: "¿Eliminar el grupo \"{name}\"?",

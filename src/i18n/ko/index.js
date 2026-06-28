@@ -708,6 +708,7 @@ export default {
   DeleteContactSuccess: "연락처가 삭제되었습니다.",
   DeleteConversation: "대화 삭제",
   DeleteConversationConfirm: "이 대화를 영구적으로 삭제하시겠습니까?",
+  DeleteConversationNote: "이 장치에서만 제거됩니다.릴레이에 유지되며 채팅을 재설정하면 복원됩니다.",
   DeleteConversationOptions: "이 대화를 어떻게 삭제하시겠습니까?",
   DeleteGroup: "그룹 삭제",
   DeleteGroupConfirm: "\"{name}\" 그룹을 삭제하시겠습니까?",

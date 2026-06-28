@@ -708,6 +708,7 @@ export default {
   DeleteContactSuccess: "Contatto eliminato con successo.",
   DeleteConversation: "Elimina conversazione",
   DeleteConversationConfirm: "Eliminare definitivamente questa conversazione?",
+  DeleteConversationNote: "Questa operazione lo rimuove solo da questo dispositivo.Rimane sul relè e verrà ripristinato se si reimposta la chat.",
   DeleteConversationOptions: "Come vorresti eliminare questa conversazione?",
   DeleteGroup: "Elimina gruppo",
   DeleteGroupConfirm: "Eliminare il gruppo \"{name}\"?",

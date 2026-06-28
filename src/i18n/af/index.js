@@ -708,6 +708,7 @@ export default {
   DeleteContactSuccess: "Kontak suksesvol uitgevee.",
   DeleteConversation: "Vee gesprek uit",
   DeleteConversationConfirm: "Vee hierdie gesprek permanent uit?",
+  DeleteConversationNote: "Dit verwyder dit net van hierdie toestel af.Dit bly op die aflos en sal herstel word as jy Chat Herstel.",
   DeleteConversationOptions: "Hoe wil jy hierdie gesprek uitvee?",
   DeleteGroup: "Vee groep uit",
   DeleteGroupConfirm: "Vee groep \"{name}\" uit?",

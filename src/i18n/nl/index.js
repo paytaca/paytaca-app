@@ -708,6 +708,7 @@ export default {
   DeleteContactSuccess: "Contact succesvol verwijderd.",
   DeleteConversation: "Gesprek verwijderen",
   DeleteConversationConfirm: "Dit gesprek definitief verwijderen?",
+  DeleteConversationNote: "Hiermee wordt het alleen van dit apparaat verwijderd.Het blijft op het relais en wordt hersteld als u de chat reset.",
   DeleteConversationOptions: "Hoe wil je dit gesprek verwijderen?",
   DeleteGroup: "Groep verwijderen",
   DeleteGroupConfirm: "Groep \"{name}\" verwijderen?",

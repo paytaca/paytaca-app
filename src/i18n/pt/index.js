@@ -708,6 +708,7 @@ export default {
   DeleteContactSuccess: "Contato excluído com sucesso.",
   DeleteConversation: "Excluir conversa",
   DeleteConversationConfirm: "Excluir esta conversa permanentemente?",
+  DeleteConversationNote: "Isso apenas o remove deste dispositivo.Ele permanece no relé e será restaurado se você redefinir o bate-papo.",
   DeleteConversationOptions: "Você gostaria de excluir esta conversa?",
   DeleteGroup: "Excluir grupo",
   DeleteGroupConfirm: "Excluir grupo \"{name}\"?",
