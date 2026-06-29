@@ -51,7 +51,7 @@ export async function callContractReturn(bidId) {
     const response = await callAPI('return', null, 'post', payload)
 
     if (response && response.success) {
-      console.log(`[callContractReturn] Successfully called return function from contract! Here are the details: ${response.data.tx_details}`)
+      console.log('[callContractReturn] Successfully called return function from contract! Here are the details: ', response.data.tx_details)
       return response.data.tx_details
     }
     throw new Error()
