@@ -12,12 +12,17 @@ import { getMnemonicByHash } from 'src/wallet'
 import { pubkeyToAddress } from 'src/utils/crypto'
 import { SecureStoragePlugin } from 'capacitor-secure-storage-plugin'
 
-const OAUTH_TOKEN_KEY = 'watchtower-oauth-token'
+const OAUTH_TOKEN_KEY_PREFIX = 'watchtower-oauth-token-'
 const OAUTH_ADDRESS_PATH = "0/0"
 const BCH_DERIVATION_PATH = "m/44'/145'/0'"
 
 function getWalletHash () {
   return Store.getters['global/getWallet']('bch')?.walletHash
+}
+
+function getTokenKey () {
+  const walletHash = getWalletHash()
+  return walletHash ? `${OAUTH_TOKEN_KEY_PREFIX}${walletHash}` : OAUTH_TOKEN_KEY_PREFIX
 }
 
 function getWatchtowerUrl () {
@@ -68,7 +73,8 @@ async function deriveOAuthCredentials() {
 
 async function getStoredToken() {
   try {
-    const result = await SecureStoragePlugin.get({ key: OAUTH_TOKEN_KEY })
+    const key = getTokenKey()
+    const result = await SecureStoragePlugin.get({ key })
     return result.value
   } catch (error) {
     return null
@@ -77,7 +83,8 @@ async function getStoredToken() {
 
 async function saveToken(token) {
   try {
-    await SecureStoragePlugin.set({ key: OAUTH_TOKEN_KEY, value: token })
+    const key = getTokenKey()
+    await SecureStoragePlugin.set({ key, value: token })
   } catch (error) {
     console.error('[Watchtower OAuth] Failed to save token:', error)
   }
@@ -85,7 +92,8 @@ async function saveToken(token) {
 
 export async function clearToken() {
   try {
-    await SecureStoragePlugin.remove({ key: OAUTH_TOKEN_KEY })
+    const key = getTokenKey()
+    await SecureStoragePlugin.remove({ key })
   } catch (error) {
     // Token might not exist
   }

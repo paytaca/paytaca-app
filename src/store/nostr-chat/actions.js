@@ -932,7 +932,11 @@ export async function startActiveWs ({ state, commit, rootGetters }) {
           }, 5000)
         }
       },
-      error: (err) => { console.warn('[Nostr] Active status WS error:', err) },
+      error: () => {
+        // HTTP upgrade failure (e.g. 403) fires error before close.
+        // Clear the stale token so the reconnect picks up a fresh one.
+        clearToken().catch(() => {})
+      },
     }
     ws.addEventListener('open', handlers.open)
     ws.addEventListener('message', handlers.message)
