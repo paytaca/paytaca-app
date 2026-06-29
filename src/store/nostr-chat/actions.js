@@ -887,28 +887,26 @@ function startPubkeyRegistrationHeartbeat (dispatch) {
 }
 
 function getWsWatchtowerUrl (rootGetters) {
-  const walletIndex = rootGetters['global/getWalletIndex']
-  const walletHash = rootGetters['global/getWalletHashByIndex']?.(walletIndex)
+  const walletHash = rootGetters['global/getWallet']('bch')?.walletHash
   if (!walletHash) return null
   const isChipnet = rootGetters['global/isChipnet']
   const baseUrl = isChipnet ? 'https://chipnet.watchtower.cash' : 'https://watchtower.cash'
-  const url = new URL(baseUrl)
-  url.protocol = baseUrl.startsWith('https') ? 'wss:' : 'ws:'
-  url.pathname = `/ws/nostr/updates/${walletHash}/`
-  return url
+  return { walletHash, baseUrl }
 }
 
 async function getWsWatchtowerUrlWithToken (rootGetters) {
-  const url = getWsWatchtowerUrl(rootGetters)
-  if (!url) return null
+  const info = getWsWatchtowerUrl(rootGetters)
+  if (!info) return null
+  let url = `${info.baseUrl.replace('https:', 'wss:')}/ws/nostr/updates/${info.walletHash}/`
   try {
     const headers = await getAuthHeaders()
     const token = headers?.Authorization?.replace('Bearer ', '')
-    if (token) url.searchParams.set('token', token)
+    if (token) url += `?token=${encodeURIComponent(token)}`
+    console.log('[Nostr] WS URL:', url.slice(0, 80) + '...')
   } catch (err) {
     console.warn('[Nostr] Failed to get auth token for WS:', err)
   }
-  return url.toString()
+  return url
 }
 
 export async function startActiveWs ({ state, commit, rootGetters }) {
