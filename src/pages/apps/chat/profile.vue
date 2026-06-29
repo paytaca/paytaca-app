@@ -278,6 +278,25 @@
             </div>
           </div>
 
+          <q-separator :color="darkMode ? 'white-10' : 'black-5'" />
+
+          <!-- Show Active Status -->
+          <div class="setting-row">
+            <div class="setting-content">
+              <div class="setting-label">{{ $t('ShowActiveStatus', {}, 'Show Active Status') }}</div>
+              <div class="setting-description">
+                {{ $t('ActiveStatusDescription', {}, 'Let others see when you are active. When this is off, you will also not see their active status.') }}
+              </div>
+            </div>
+            <div class="setting-actions">
+              <q-toggle
+                :model-value="showActiveStatus"
+                color="primary"
+                @update:model-value="onToggleActiveStatus"
+              />
+            </div>
+          </div>
+
         </div>
 
         <!-- Cache Management -->
@@ -417,6 +436,9 @@ export default {
       if (bytes < 1024 * 1024 * 1024) return `${(bytes / (1024 * 1024)).toFixed(1)} MB`
       return `${(bytes / (1024 * 1024 * 1024)).toFixed(2)} GB`
     },
+    showActiveStatus () {
+      return this.$store.getters['nostrChat/getShowActiveStatus']
+    },
   },
   mounted () {
     document.addEventListener('pointerdown', this.onDocumentPointerDown, true)
@@ -427,6 +449,9 @@ export default {
   },
   methods: {
     getDarkModeClass,
+    onToggleActiveStatus (value) {
+      this.$store.dispatch('nostrChat/setShowActiveStatus', value)
+    },
     copyNpub () {
       if (!this.myNpub) return
       copyToClipboard(this.myNpub)
@@ -1018,6 +1043,13 @@ export default {
   font-size: 13px;
   color: #6b7280;
   word-break: break-all;
+}
+
+.setting-description {
+  font-size: 12px;
+  color: #9ca3af;
+  margin-top: 2px;
+  line-height: 1.4;
 }
 
 .setting-input {

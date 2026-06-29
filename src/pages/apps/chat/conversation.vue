@@ -1021,7 +1021,6 @@ export default {
     this._isActive = true
     this.markAsRead()
     this.ensureSubscribed()
-    this.ensureSubscribed()
     if (this.isGroupRoom && this.room?.members) {
       const fetches = this.room.members.map(pk =>
         this.$store.dispatch('nostrChat/fetchPublishedDisplayName', { pubKeyHex: pk })

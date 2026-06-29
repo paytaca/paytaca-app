@@ -222,6 +222,8 @@ export default {
   BCH: "BCH",
   BCHAddress: "BCH Address",
   BCHAddressRequired: "BCH address required.",
+  ShowActiveStatus: "Show Active Status",
+  ActiveStatusDescription: "Let others see when you are active. When this is off, you will also not see their active status.",
   BCHAmount: "BCH Amount",
   BCHBullDescription: "Create anyhedge contracts instantly with a liquidity provider",
   BCHGift: "BCH Gift",

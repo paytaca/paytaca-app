@@ -331,6 +331,14 @@ export default {
         
         this.$store.commit('nostrChat/ADD_MESSAGE', { roomId: this.roomId, message })
         await this.$store.dispatch('nostrChat/publishGiftWraps', { giftWraps })
+        const myPubKey = this.$store.getters['nostrChat/myPubKey']
+        const room = this.$store.getters['nostrChat/getRoom'](this.roomId)
+        if (this.$store.getters['nostrChat/getShowActiveStatus'] && myPubKey && room?.members) {
+          this.$store.dispatch('nostrChat/touchActive', {
+            pubkey: myPubKey,
+            recipients: room.members.filter(m => m !== myPubKey),
+          })
+        }
       } catch (error) {
         if (error.name === 'AbortError') return
         console.error('File upload error:', error)
