@@ -651,6 +651,11 @@ export default {
       }
     }
     document.addEventListener('visibilitychange', this._onVisibilityChange)
+
+    // Poll active status every 2 minutes while on this page
+    this._activeStatusPollTimer = setInterval(() => {
+      this.$store.dispatch('nostrChat/fetchActiveStatus')
+    }, 120000)
   },
   activated () {
     // Re-check subscription when returning to this page via keep-alive
@@ -659,6 +664,7 @@ export default {
   },
   beforeUnmount () {
     clearTimeout(this._profilePromptTimer)
+    clearInterval(this._activeStatusPollTimer)
     document.removeEventListener('visibilitychange', this._onVisibilityChange)
     // Keep subscription alive for background messages
   },
