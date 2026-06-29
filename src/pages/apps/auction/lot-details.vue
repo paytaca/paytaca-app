@@ -194,74 +194,101 @@
                 @click="showDeliveryHistory = true"
               />
             </div>
-            
-            <div v-if="showPostAuctionActions && (isAuthor || isWinningBidder)" class="q-mt-md full-width row q-col-gutter-none items-center justify-center">
-              <div class="col text-center">
-                <q-btn
-                  v-if="isAuthor"
-                  outline
-                  stack
-                  class="text-bold text-caption full-width"
-                  :color="darkMode ? 'white' : 'black'"
-                  icon="check_circle"
-                  padding="sm"
-                  label="Confirm Delivery"
-                  :disable="deliveryStatusId !== 1"
-                  @click="confirmDeliveryTrigger"
-                />
-                <q-btn
-                  v-else
-                  outline
-                  stack
-                  class="text-bold text-caption full-width"
-                  :color="darkMode ? 'white' : 'black'"
-                  icon="check_circle"
-                  padding="sm"
-                  label="Confirm Pickup"
-                  :disable="deliveryStatusId !== 2"
-                  @click="confirmPickupTrigger"
-                />
+
+            <div>
+              <div v-if="!isDisputeActive">
+                <div v-if="showPostAuctionActions && (isAuthor || isWinningBidder)" class="q-mt-md full-width row q-col-gutter-none items-center justify-center">
+                  <div class="col text-center">
+                    <q-btn
+                      v-if="isAuthor"
+                      outline
+                      stack
+                      class="text-bold text-caption full-width"
+                      :color="darkMode ? 'white' : 'black'"
+                      icon="check_circle"
+                      padding="sm"
+                      label="Confirm Delivery"
+                      :disable="deliveryStatusId !== 1"
+                      @click="confirmDeliveryTrigger"
+                    />
+                    <q-btn
+                      v-else
+                      outline
+                      stack
+                      class="text-bold text-caption full-width"
+                      :color="darkMode ? 'white' : 'black'"
+                      icon="check_circle"
+                      padding="sm"
+                      label="Confirm Pickup"
+                      :disable="deliveryStatusId !== 2"
+                      @click="confirmPickupTrigger"
+                    />
+                  </div>
+
+                  <div class="col q-ml-md text-center">
+                    <q-btn
+                      v-if="!isAuthor && deliveryStatusId !== 3"
+                      class="text-bold text-caption full-width"
+                      color="negative"
+                      text-color="white"
+                      stack
+                      content-class="q-gap-xs"
+                      icon="gavel"
+                      padding="sm"
+                      label="File a Dispute"
+                      unelevated
+                      @click="showSellerDisputeDialog = true"
+                    />
+
+                    <q-btn
+                      v-else-if="!isAuthor"
+                      class="text-bold text-caption full-width"
+                      color="negative"
+                      text-color="white"
+                      stack
+                      content-class="q-gap-xs"
+                      icon="assignment_return"
+                      padding="sm"
+                      label="Refund"
+                      unelevated
+                      @click="showRefundDialog = true"
+                    />
+                  </div>
+                </div>
+
+                <div v-if="showPostAuctionActions && isAuthor && isGrantedRefund && deliveryStatusId === 3" class="q-mt-md full-width">
+                  <q-btn
+                    color="positive"
+                    icon="check_circle"
+                    label="Mark as Return"
+                    class="full-width"
+                    unelevated
+                    :disable="isMarkedReturned"
+                    @click="markedAsReturned"
+                  />
+                </div>
+
+                <div v-if="showPostAuctionActions && isWinningBidder && !isGrantedRefund && deliveryStatusId === 3" class="q-mt-md full-width">
+                  <q-btn
+                    color="positive"
+                    icon="check_circle"
+                    label="Mark as Complete"
+                    class="full-width"
+                    unelevated
+                    :disable="isMarkedComplete"
+                    @click="markedAsCompleted"
+                  />
+                </div>
               </div>
-
-              <div class="col q-ml-md text-center">
-                <q-btn
-                  v-if="!isAuthor && deliveryStatusId !== 3"
-                  class="text-bold text-caption full-width"
-                  color="negative"
-                  text-color="white"
-                  stack
-                  content-class="q-gap-xs"
-                  icon="gavel"
-                  padding="sm"
-                  label="File a Dispute"
-                  unelevated
-                  @click="showSellerDisputeDialog = true"
-                />
-
-                <q-btn
-                  v-else-if="!isAuthor"
-                  class="text-bold text-caption full-width"
-                  color="negative"
-                  text-color="white"
-                  stack
-                  content-class="q-gap-xs"
-                  icon="assignment_return"
-                  padding="sm"
-                  label="Refund"
-                  unelevated
-                  @click="showRefundDialog = true"
-                />
+              
+              <div v-else>
+                <q-banner class="bg-warning text-black rounded-borders q-mt-md">
+                  <template v-slot:avatar>
+                    <q-icon name="gavel" />
+                  </template>
+                  An active dispute is currently pending review. Operations are temporarily locked.
+                </q-banner>
               </div>
-            </div>
-
-            <div v-if="showPostAuctionActions && (isAuthor || isWinningBidder) && deliveryStatusId === 3" class="q-mt-md full-width">
-              <q-btn
-                color="positive"
-                icon="check_circle"
-                label="Mark as Complete"
-                class="full-width"
-                unelevated
-              />
             </div>
           </div>
  
@@ -622,12 +649,14 @@
       v-model="showSellerDisputeDialog"
       :lot="lot"
       :bidId="winningBidId"
+      @submit="refresh(() => {})"
     />
 
     <RefundPopup
       v-model="showRefundDialog"
       :lot="lot"
       :bidId="winningBidId"
+      @submit="refresh(() => {})"
     />
 
     <BiddingHistoryPopup
@@ -691,6 +720,10 @@ const showRefundDialog = ref(false)
 const showBidHistory = ref(false)
 const showDeliveryHistory = ref(false)
 const deliveryStatusId = ref(null)
+const isMarkedComplete = ref(false)
+const isMarkedReturned = ref(false)
+const isGrantedRefund = ref(false)
+const currentDispute = ref(null)
 
 const viewCount = ref(0)
 const socket = null
@@ -774,13 +807,6 @@ const confirmDeliveryTrigger = async () => {
 
 const confirmPickupTrigger = async () => {
   try {
-    const bidId = auction.value?.type === 'English' ? highestBidId.value : winningBid.value?.id
-
-    if (!bidId) {
-      $q.notify({ type: 'warning', message: 'Could not find bid to release funds for.' })
-      return
-    }
-
     const res = await callAPI('delivery-trackings', props.lotId, 'patch', {
       status: 3,
       delivered_date: new Date().toISOString()
@@ -789,10 +815,44 @@ const confirmPickupTrigger = async () => {
     if (res.success) {
       $q.notify({ type: 'positive', message: 'Confirmed pickup!' })
     }
+  } catch (err) {
+    console.warn('Could not fetch delivery tracking:', err)
+  } finally {
+    await refresh(() => {})
+  }
+}
 
-    $q.loading.show({ message: 'Confirming pickup...' })
-    await callContractRelease(bidId)
+const markedAsCompleted = async () => {
+  try {
+    if (!winningBidId.value) {
+      $q.notify({ type: 'warning', message: 'Could not find bid to release funds for.' })
+      return
+    }
+
+    $q.loading.show({ message: 'Marking as complete, processing funds...' })
+    await callContractRelease(winningBidId.value)
     $q.loading.hide()
+
+    await callAPI('delivery-trackings', props.lotId, 'patch', { mark_as_completed: true })
+  } catch (err) {
+    console.warn('Could not fetch delivery tracking:', err)
+  } finally {
+    await refresh(() => {})
+  }
+}
+
+const markedAsReturned = async () => {
+  try {
+    if (!winningBidId.value) {
+      $q.notify({ type: 'warning', message: 'Could not find bid to release funds for.' })
+      return
+    }
+
+    $q.loading.show({ message: 'Marking as returned, processing funds...' })
+    await callContractReturn(winningBidId.value)
+    $q.loading.hide()
+
+    await callAPI('delivery-trackings', props.lotId, 'patch', { mark_as_returned: true })
   } catch (err) {
     console.warn('Could not fetch delivery tracking:', err)
   } finally {
@@ -1408,17 +1468,39 @@ const fetchDeliveryTracking = async () => {
     if (res.success && res.data) {
       const data = Array.isArray(res.data) ? res.data[0] : res.data
       deliveryStatusId.value = data?.status ?? null
+      isMarkedComplete.value = data?.mark_as_completed ?? false
+      isMarkedReturned.value = data?.mark_as_returned ?? false
     }
   } catch (err) {
     console.warn('Could not fetch delivery tracking:', err)
   }
 }
 
+const fetchDispute = async () => {
+  try {
+    const res = await callAPI('disputes-by-bid', winningBidId.value)
+    if (res.success && res.data) {
+      const data = Array.isArray(res.data) ? res.data[0] : res.data
+      currentDispute.value = data || null
+      isGrantedRefund.value = data?.is_granted_refund ?? false
+    }
+  } catch (err) {
+    console.warn('Could not fetch dispute:', err)
+    currentDispute.value = null
+  }
+}
+
+const isDisputeActive = computed(() => {
+  if (!currentDispute.value) return false
+  return !currentDispute.value.is_resolved
+})
+
 const loadPageData = async () => {
   await Promise.all([fetchLot(), fetchAuction()])
   await Promise.all([fetchDutchSoldStatus(), checkBidStatus(), checkUserBid()])
   initializeDutchAuctionTimer(lot.value)
-  await Promise.all([fetchWinningBid(), fetchDeliveryTracking()])
+  await fetchWinningBid()
+  await Promise.all([fetchDeliveryTracking(), fetchDispute()])
   await initEnglishDeliveryTracking()
   if (auction.value?.type === 'English' && !isLotClosed.value && hasUserBid.value) {
     startEnglishPolling()
