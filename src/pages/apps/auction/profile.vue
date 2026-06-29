@@ -77,7 +77,6 @@ const $router = useRouter()
 const darkMode = computed(() => $store.getters['darkmode/getStatus'])
 
 const username = ref('')
-const isExistingUser = ref(false)
 const isLoading = ref(true)
 
 onMounted(async () => {
@@ -85,7 +84,6 @@ onMounted(async () => {
     if ($store.getters['auction/username']) {
       username.value = $store.getters['auction/username']
     }
-    isExistingUser.value = true
   } catch (err) {
     console.error('Failed to fetch existing profile username:', err)
   } finally {
@@ -97,7 +95,7 @@ const handleEditUserProfile = async () => {
   try {
     const walletHash = Store.getters['global/getWallet']('bch')?.walletHash
     const credentials = await deriveOAuthCredentials()
-    const method = isExistingUser.value ? 'patch' : 'post'
+    const method = $store.getters['auction/username'] ? 'patch' : 'post'
 
     let response
 
@@ -114,7 +112,7 @@ const handleEditUserProfile = async () => {
     if (response.success) {
       $q.notify({
         type: 'positive',
-        message: isExistingUser.value ? 'User profile updated!' : 'User profile created!',
+        message: $store.getters['auction/username'] ? 'User profile updated!' : 'User profile created!',
         timeout: 3000
       })
 
