@@ -288,7 +288,7 @@
                   rounded
                   @click.stop
                 >
-                  <img v-if="badge?.icon && badge?.icon.startsWith('img:')" :src="badge.icon" class="badge-icon-img q-mr-xs"/>
+                  <img v-if="badge?.icon && badge?.icon.startsWith('img:')" :src="badge.icon.replace('img:', '')" class="badge-icon-img q-mr-xs"/>
                   <q-icon v-else-if="badge?.icon" :name="badge?.icon" class="q-mr-xs" size="14px"/>
                   <span class="badge-text">
                     {{ badge?.text }}
@@ -462,6 +462,7 @@
     :tx-fee-formatted="txFeeFormatted"
     :has-fee="hasFeeForReceipt"
     :tx-fee-in-fiat="txFeeInFiat"
+    :tx-fee-in-fiat-formatted="txFeeInFiatFormatted"
     :merchant-data="merchantData"
     :merchant-logo-src="merchantLogoSrcForReceipt"
     :has-memo="hasMemo"
@@ -502,7 +503,12 @@ export default {
   name: 'TransactionDetailPage',
   components: { headerNav, ReceiptTemplate },
   props: {
-    txid: String
+    txid: String,
+    category: String,
+    from: String,
+    assetID: String,
+    new: String,
+    recipient: String
   },
   data () {
     return {
@@ -706,6 +712,10 @@ export default {
       const fiatValue = this.txFee * price;
       return fiatValue;
     },
+    txFeeInFiatFormatted() {
+      if (this.txFeeInFiat === null || this.txFeeInFiat === undefined) return ''
+      return this.formatTxFeeInFiat(this.txFeeInFiat)
+    },
     txFeeFormatted() {
       if (this.txFee === null || Number.isNaN(this.txFee)) return '';
       return parseAssetDenomination(this.displayDenomination, { id: 'bch', symbol: 'BCH', balance: this.txFee })
@@ -847,13 +857,14 @@ export default {
       return this.$store.getters['global/theme']
     },
     badgeColor () {
+      if (this.darkMode) return 'grey-8'
       const themeMap = {
-        'glassmorphic-blue': 'blue-6',
-        'glassmorphic-green': 'green-6',
-        'glassmorphic-gold': 'amber-7',
-        'glassmorphic-red': 'pink-6'
+        'glassmorphic-blue': 'blue-3',
+        'glassmorphic-green': 'green-3',
+        'glassmorphic-gold': 'amber-3',
+        'glassmorphic-red': 'pink-3'
       }
-      return themeMap[this.theme] || 'blue-6'
+      return themeMap[this.theme] || 'grey-4'
     },
     wrapperBackgroundStyle () {
       const theme = this.theme
@@ -1122,8 +1133,11 @@ export default {
     darkMode () {
       this.updateBackgroundColors()
     },
-    recipientAddress (addr) {
-      if (addr) this.fetchMerchantData()
+    recipientAddress: {
+      handler (addr) {
+        if (addr) this.fetchMerchantData()
+      },
+      immediate: true
     },
     'tx.asset.id' () {
       // Fetch token price when asset changes
@@ -2277,17 +2291,21 @@ export default {
 
         wrapper = templateEl.cloneNode(true)
         wrapper.style.position = 'fixed'
-        wrapper.style.top = '0'
-        wrapper.style.left = '0'
-        wrapper.style.zIndex = '-9999'
-        wrapper.style.opacity = '0'
+        wrapper.style.top = '-9999px'
+        wrapper.style.left = '-9999px'
+        wrapper.style.display = 'block'
+        wrapper.style.visibility = 'visible'
         document.body.appendChild(wrapper)
 
         await this.$nextTick()
         await new Promise(resolve => setTimeout(resolve, 200))
 
+        if (!wrapper.offsetWidth || !wrapper.offsetHeight) {
+          throw new Error('Receipt element has zero dimensions')
+        }
+
         const canvas = await html2canvas(wrapper, {
-          backgroundColor: null,
+          backgroundColor: '#ffffff',
           scale: 4,
           logging: false,
           useCORS: true,
@@ -2307,18 +2325,32 @@ export default {
           document.body.removeChild(wrapper)
         }
 
+        const canvasToBlob = async (cvs, mimeType, q) => {
+          try {
+            return await new Promise(resolve => {
+              cvs.toBlob(resolve, mimeType, q)
+            })
+          } catch {
+            return null
+          }
+        }
+
         const compressImage = async (canvas) => {
-          let quality = 0.95
-          let blob = await new Promise(resolve => {
-            canvas.toBlob(resolve, 'image/jpeg', quality)
-          })
-          for (const q of [0.92, 0.90, 0.88]) {
-            if (blob && blob.size > 300000) {
-              quality = q
-              blob = await new Promise(resolve => {
-                canvas.toBlob(resolve, 'image/jpeg', quality)
-              })
+          let blob = await canvasToBlob(canvas, 'image/png')
+          if (!blob) {
+            try {
+              const dataUrl = canvas.toDataURL('image/png')
+              const byteString = atob(dataUrl.split(',')[1])
+              const ab = new ArrayBuffer(byteString.length)
+              const ia = new Uint8Array(ab)
+              for (let i = 0; i < byteString.length; i++) ia[i] = byteString.charCodeAt(i)
+              blob = new Blob([ab], { type: 'image/png' })
+            } catch {
+              return null
             }
+          }
+          if (blob.size > 300000) {
+            blob = await canvasToBlob(canvas, 'image/jpeg', 0.92)
           }
           if (blob && blob.size > 300000) {
             const maxDimension = 1600
@@ -2332,9 +2364,7 @@ export default {
             resizedCtx.imageSmoothingEnabled = true
             resizedCtx.imageSmoothingQuality = 'high'
             resizedCtx.drawImage(canvas, 0, 0, newWidth, newHeight)
-            blob = await new Promise(resolve => {
-              resizedCanvas.toBlob(resolve, 'image/jpeg', 0.90)
-            })
+            blob = await canvasToBlob(resizedCanvas, 'image/jpeg', 0.90) || blob
           }
           if (blob && blob.size > 300000) {
             const maxDimension = 1400
@@ -2348,15 +2378,13 @@ export default {
             resizedCtx.imageSmoothingEnabled = true
             resizedCtx.imageSmoothingQuality = 'high'
             resizedCtx.drawImage(canvas, 0, 0, newWidth, newHeight)
-            blob = await new Promise(resolve => {
-              resizedCanvas.toBlob(resolve, 'image/jpeg', 0.88)
-            })
+            blob = await canvasToBlob(resizedCanvas, 'image/jpeg', 0.88) || blob
           }
           return blob
         }
 
         const blob = await compressImage(canvas)
-        if (!blob) throw new Error('Failed to create receipt image blob')
+        if (!blob) throw new Error('Failed to create receipt image blob: canvas export returned null')
 
         const shortTxId = this.transactionId.substring(0, 8)
         const filename = `receipt-${shortTxId}.jpg`
@@ -2995,6 +3023,7 @@ export default {
   align-items: center;
   gap: 4px;
   cursor: pointer;
+  border: 1px solid rgba(128, 128, 128, 0.15);
   transition: all 0.2s ease;
 }
 

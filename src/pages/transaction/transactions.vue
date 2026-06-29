@@ -108,7 +108,7 @@
 		              </template> -->
 		            </div>
 
-			<!-- Token Info Card (shown when a specific token is selected, not "All" or BCH) -->
+			<!-- Token Info Card (shown when a specific asset is selected, not "All") -->
 			<div v-if="showTokenInfoCard" class="token-info-card q-mx-lg q-mt-sm" :class="[getDarkModeClass(darkmode), darkmode ? 'text-light' : 'text-dark']">
 				<div class="token-info-inner">
 					<div class="token-header">
@@ -143,7 +143,7 @@
 							</span>
 							<span v-else class="detail-value text-grey-5">{{ $t('N/A') }}</span>
 						</div>
-						<div class="token-link-row">
+						<div v-if="assetLink" class="token-link-row">
 							<span class="detail-label">{{ $t('Metadata') }}</span>
 							<a
 								:href="assetLink"
@@ -163,22 +163,24 @@
 							unelevated
 							class="token-action-btn"
 							color="primary"
+							text-color="primary"
 							no-caps
 							outline
 						>
-							<q-icon name="send" size="20px" />
-							{{ $t('Send') }}
+							<q-icon name="send" size="18px" />
+							<span class="action-label">{{ $t('Send') }}</span>
 						</q-btn>
 						<q-btn
 							@click="goToReceive"
 							unelevated
 							class="token-action-btn"
 							color="primary"
+							text-color="primary"
 							no-caps
 							outline
 						>
-							<q-icon name="qr_code_2" size="20px" />
-							{{ $t('Receive') }}
+							<q-icon name="qr_code_2" size="18px" />
+							<span class="action-label">{{ $t('Receive') }}</span>
 						</q-btn>
 						<q-btn
 							v-if="selectedAsset.id?.startsWith?.('ct/')"
@@ -186,15 +188,31 @@
 							unelevated
 							class="token-action-btn"
 							color="primary"
+							text-color="primary"
 							no-caps
 							outline
 						>
-							<q-icon name="swap_horiz" size="20px" />
-							{{ $t('Swap') }}
+							<q-icon name="swap_horiz" size="18px" />
+							<span class="action-label">{{ $t('Swap') }}</span>
+						</q-btn>
+						<q-btn
+							v-else-if="selectedAsset.id === 'bch'"
+							@click="showAssetInfoChart"
+							unelevated
+							class="token-action-btn"
+							color="primary"
+							text-color="primary"
+							no-caps
+							outline
+						>
+							<q-icon name="show_chart" size="18px" />
+							<span class="action-label">{{ $t('Chart') }}</span>
 						</q-btn>
 					</div>
 				</div>
 			</div>
+
+			<asset-info ref="asset-info" :network="selectedNetwork"></asset-info>
 
 			<transaction
 			  ref="transaction"
@@ -288,6 +306,7 @@ import Transaction from '../../components/transaction'
 import TransactionList from 'src/components/transactions/TransactionList'
 import TransactionTimestampSettings from 'src/components/transactions/TransactionTimestampSettings.vue'
 import AssetListDialog from '../../pages/transaction/dialog/AssetListDialog.vue'
+import AssetInfo from '../../pages/transaction/dialog/AssetInfo.vue'
 import StablehedgeHistory from 'src/components/stablehedge/StablehedgeHistory.vue'
 import headerNav from 'src/components/header-nav'
 
@@ -398,8 +417,7 @@ export default {
 	    showTokenInfoCard () {
 	      if (!this.selectedAsset || !this.selectedAsset.id) return false
 	      if (this.selectedAsset.id === 'all') return false
-	      if (this.selectedAsset.id === 'bch') return false
-	      return this.selectedAsset.id.startsWith('ct/') || this.selectedAsset.id.startsWith('slp/')
+	      return true
 	    },
 	    selectedAssetLogoUrl () {
 	      if (!this.selectedAsset) return null
@@ -414,7 +432,7 @@ export default {
 	      return this.$store.getters['market/assetPrices']
 	    },
 	    tokenPrice () {
-	      if (!this.selectedAsset?.id || this.selectedAsset.id === 'bch') return null
+	      if (!this.selectedAsset?.id) return null
 	      const _ = this.assetMarketPrices
 	      const currency = this.$store.getters['market/selectedCurrency']
 	      const symbol = currency?.symbol
@@ -472,6 +490,7 @@ export default {
 		StablehedgeHistory,
 		TransactionTimestampSettings,
 		AssetListDialog,
+		AssetInfo,
 		// assetList
 	},
 	async mounted () {				
@@ -1032,6 +1051,11 @@ this.$nextTick(() => {
 	        }
 	      })
 	    },
+	    showAssetInfoChart () {
+	      if (this.$refs['asset-info']) {
+	        this.$refs['asset-info'].show(this.selectedAsset)
+	      }
+	    },
 	    hideAssetInfo () {
 	      try {
 	        this.assetInfoShown = false
@@ -1311,13 +1335,33 @@ this.$nextTick(() => {
 
 .token-actions .token-action-btn {
   flex: 1;
+  min-width: 0;
   border-radius: 10px !important;
   font-weight: 600;
   font-size: 14px;
-  min-height: 48px;
+  min-height: 44px;
   display: flex;
+  flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 8px;
+  gap: 2px;
+  padding: 6px 12px;
+}
+
+.token-actions .token-action-btn .action-label {
+  font-weight: 600;
+  line-height: 1.2;
+  font-size: clamp(13px, 2.5vw, 16px);
+}
+
+@media (max-width: 480px) {
+  .token-actions {
+    gap: 6px;
+  }
+  .token-actions .token-action-btn {
+    min-height: 40px;
+    padding: 4px 10px;
+    gap: 2px;
+  }
 }
 </style>
