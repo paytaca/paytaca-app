@@ -9,7 +9,7 @@
       class="apps-header"
       backnavpath="/apps/chat"
       :title="roomName"
-      :subtitle="isGroupRoom ? $t('MemberCount', { count: room?.members?.length || 0 }, `${room?.members?.length || 0} members`) : null"
+      :subtitle="isGroupRoom ? $t('MemberCount', { count: room?.members?.length || 0 }, `${room?.members?.length || 0} members`) : otherMemberIsActive ? $t('ActiveNow', {}, 'Active now') : null"
     >
       <template v-if="room" v-slot:top-right-menu>
         <div class="header-actions">
@@ -556,6 +556,7 @@ import ChatInput from 'src/components/chat/ChatInput.vue'
 import SendBchDialog from 'src/components/chat/SendBchDialog.vue'
 import { npubEncode } from 'nostr-tools/nip19'
 import { getCachedAvatar, setCachedAvatar } from 'src/utils/avatar-cache'
+import { ACTIVE_THRESHOLD_MS } from 'src/store/nostr-chat/state'
 
 export default {
   name: 'ChatConversation',
@@ -679,6 +680,14 @@ export default {
     },
     isGroupRoom () {
       return this.room?.type === 'group'
+    },
+    otherMemberIsActive () {
+      const pk = this.otherMemberPubKey
+      if (!pk || this.isGroupRoom) return false
+      const activeData = this.$store.getters['nostrChat/getActiveStatusMap']
+      const entry = activeData[pk]
+      if (!entry?.lastActiveAt) return false
+      return Date.now() - new Date(entry.lastActiveAt).getTime() <= ACTIVE_THRESHOLD_MS
     },
     displayNpub () {
       const npub = this.otherMemberNpub
@@ -894,6 +903,11 @@ export default {
     room (val) {
       if (!val && !this._isGroupLink) {
         this.$router.replace('/apps/chat')
+      }
+    },
+    otherMemberIsActive (isActive, wasActive) {
+      if (!isActive && wasActive && this.otherMemberPubKey) {
+        this.$store.dispatch('nostrChat/fetchActiveStatus')
       }
     },
     async showSaveContactDialog (val) {
