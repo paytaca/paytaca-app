@@ -335,6 +335,9 @@ import {
   createUserPromoData,
   updateUserPromoData,
   getLiftConversionRatio,
+  Promos,
+  updateUserRewardsData,
+  updateRfPromoData,
 } from 'src/utils/engagementhub-utils/rewards'
 
 import HeaderNav from 'src/components/header-nav.vue'
@@ -640,7 +643,7 @@ export default {
           const walletIndex = this.$store.getters['global/getWalletIndex']
           const userPubkey = await getAddress0_0PublicKey(walletIndex)
           for (const type of this.pointsType) {
-            const promoId = upData[type]
+            const promoId = upData[type].pk
             if (promoId) {
               const targetPromo = PromosBytes[type.toUpperCase()]
               const contract = new PromoContract(userPubkey, targetPromo)
@@ -648,6 +651,24 @@ export default {
               this.totalPoints += promoBalance
               this.promos[type].points = promoBalance
               this.promos[type].id = promoId
+
+              if (contract.contract.tokenAddress !== upData[type].contract_ct_address) {
+                // update promo contract address in background
+                switch (type) {
+                  case Promos.USERREWARDS:
+                    updateUserRewardsData(
+                      promoId, { contract_ct_address: contract.contract.tokenAddress }
+                    )
+                    break
+                  case Promos.RFPROMO:
+                    updateRfPromoData(
+                      promoId, { contract_ct_address: contract.contract.tokenAddress }
+                    )
+                    break
+                  default:
+                    break
+                }
+              }
             }
           }
         } catch (error) {
