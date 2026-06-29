@@ -291,7 +291,7 @@ async function fetchInvoices() {
 
 function topUp() {
   if (sub.value?.contract_address) {
-    $router.push({ name: 'transaction-send', query: { address: sub.value.contract_address } })
+    $router.push({ name: 'transaction-send', query: { address: sub.value.contract_address, assetId: 'bch' } })
     onDialogHide()
   }
 }

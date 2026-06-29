@@ -210,7 +210,7 @@ function onSearch() {
 
 function topUp(sub) {
   if (sub.contract_address) {
-    $router.push({ name: 'transaction-send', query: { address: sub.contract_address } })
+    $router.push({ name: 'transaction-send', query: { address: sub.contract_address, assetId: 'bch' } })
   }
 }
 
