@@ -1,3 +1,5 @@
+export const ACTIVE_THRESHOLD_MS = 180000
+
 export function getInitialWalletState () {
   return {
     // Identity (per-wallet; sensitive — derived from mnemonic)

@@ -411,6 +411,7 @@
 </template>
 
 <script>
+import { ACTIVE_THRESHOLD_MS } from 'src/store/nostr-chat/state'
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 import HeaderNav from 'src/components/header-nav.vue'
 import RoomList from 'src/components/chat/RoomList.vue'
@@ -475,7 +476,7 @@ export default {
         if (!entry || !entry.lastActiveAt) {
           map[contact.pubKeyHex] = false
         } else {
-          map[contact.pubKeyHex] = Date.now() - new Date(entry.lastActiveAt).getTime() <= 60000
+          map[contact.pubKeyHex] = Date.now() - new Date(entry.lastActiveAt).getTime() <= ACTIVE_THRESHOLD_MS
         }
       }
       return map

@@ -1,3 +1,4 @@
+import { ACTIVE_THRESHOLD_MS } from './state'
 import sha256 from 'js-sha256'
 import { Store } from 'src/store'
 
@@ -65,7 +66,7 @@ export function getActiveStatus (state) {
     const entry = activeStatus[pubKeyHex]
     if (!entry || !entry.lastActiveAt) return { isActive: false, lastActiveAt: null }
     const elapsed = Date.now() - new Date(entry.lastActiveAt).getTime()
-    return { isActive: elapsed <= 60000, lastActiveAt: entry.lastActiveAt }
+    return { isActive: elapsed <= ACTIVE_THRESHOLD_MS, lastActiveAt: entry.lastActiveAt }
   }
 }
 

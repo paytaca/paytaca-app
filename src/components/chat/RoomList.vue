@@ -82,6 +82,7 @@
 </template>
 
 <script>
+import { ACTIVE_THRESHOLD_MS } from 'src/store/nostr-chat/state'
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 import { formatDistanceToNow } from 'date-fns'
 import { npubEncode } from 'nostr-tools/nip19'
@@ -145,7 +146,7 @@ export default {
         if (!entry || !entry.lastActiveAt) {
           map[room.id] = false
         } else {
-          map[room.id] = Date.now() - new Date(entry.lastActiveAt).getTime() <= 60000
+          map[room.id] = Date.now() - new Date(entry.lastActiveAt).getTime() <= ACTIVE_THRESHOLD_MS
         }
       }
       return map

@@ -1,3 +1,4 @@
+import { ACTIVE_THRESHOLD_MS } from './state'
 import { deriveNostrKeys, createUnsignedKind14, createNip17GiftWraps, computeRoomId, createKind10050, createReadReceiptGiftWrap, createReactionGiftWraps, createKind5DeletionGiftWraps } from 'src/wallet/nostr'
 import { finalizeEvent, verifyEvent, getEventHash, utils as nostrUtils } from 'nostr-tools'
 const { hexToBytes } = nostrUtils
@@ -731,6 +732,34 @@ let _activeServicesRunning = false
 let _heartbeatInterval = null
 let _activeWs = null
 let _activeWsReconnectTimer = null
+let _activeExpiryTimers = {}
+
+function clearActiveExpiry (pubkey) {
+  if (_activeExpiryTimers[pubkey]) {
+    clearTimeout(_activeExpiryTimers[pubkey])
+    delete _activeExpiryTimers[pubkey]
+  }
+}
+
+function clearAllActiveExpiries () {
+  for (const key in _activeExpiryTimers) {
+    clearTimeout(_activeExpiryTimers[key])
+  }
+  _activeExpiryTimers = {}
+}
+
+function scheduleActiveExpiry (pubkey, commit) {
+  clearActiveExpiry(pubkey)
+  _activeExpiryTimers[pubkey] = setTimeout(() => {
+    commit('SET_ACTIVE_STATUS', {
+      [pubkey]: {
+        lastActiveAt: null,
+        fetchedAt: Date.now(),
+      },
+    })
+    delete _activeExpiryTimers[pubkey]
+  }, ACTIVE_THRESHOLD_MS)
+}
 
 function collectActiveStatusPubkeys (state) {
   const ws = getWalletState(state)
@@ -759,7 +788,7 @@ export async function fetchActiveStatus ({ state, commit, rootGetters }) {
   try {
     const isChipnet = rootGetters['global/isChipnet']
     const baseUrl = isChipnet ? 'https://chipnet.watchtower.cash' : 'https://watchtower.cash'
-    const response = await fetch(`${baseUrl}/api/nostr/last-online/`, {
+    const response = await fetch(`${baseUrl}/api/nostr/last-active/`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ pubkeys }),
@@ -771,14 +800,36 @@ export async function fetchActiveStatus ({ state, commit, rootGetters }) {
     const data = await response.json()
     const statusMap = {}
     for (const pubkey of pubkeys) {
-      statusMap[pubkey] = {
-        lastActiveAt: data[pubkey] || null,
-        fetchedAt: Date.now(),
+      if (data[pubkey]) {
+        statusMap[pubkey] = {
+          lastActiveAt: data[pubkey],
+          fetchedAt: Date.now(),
+        }
+        scheduleActiveExpiry(pubkey, commit)
       }
     }
     commit('SET_ACTIVE_STATUS', statusMap)
   } catch (err) {
     console.warn('[Nostr] fetchActiveStatus error:', err)
+  }
+}
+
+export async function touchActive ({ rootGetters }, { pubkey, recipients }) {
+  if (!pubkey || !recipients?.length) return
+  try {
+    const headers = await getAuthHeaders()
+    const isChipnet = rootGetters['global/isChipnet']
+    const baseUrl = isChipnet ? 'https://chipnet.watchtower.cash' : 'https://watchtower.cash'
+    await fetch(`${baseUrl}/api/nostr/touch/`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        ...(headers?.Authorization ? { Authorization: headers.Authorization } : {}),
+      },
+      body: JSON.stringify({ pubkey, recipients }),
+    })
+  } catch (err) {
+    console.warn('[Nostr] touchActive error:', err)
   }
 }
 
@@ -822,6 +873,7 @@ export function startActiveWs ({ state, commit, rootGetters }) {
               fetchedAt: Date.now(),
             },
           })
+          scheduleActiveExpiry(msg.pubkey_hex, commit)
         }
       } catch (e) {
         console.warn('[Nostr] Failed to parse WS message:', e)
@@ -868,6 +920,7 @@ export function startActiveServices ({ dispatch, getters, state, commit, rootGet
 
 export function stopActiveServices () {
   _activeServicesRunning = false
+  clearAllActiveExpiries()
   if (_heartbeatInterval) {
     clearInterval(_heartbeatInterval)
     _heartbeatInterval = null
