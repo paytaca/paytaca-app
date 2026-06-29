@@ -46,8 +46,12 @@
               </div>
             </div>
 
-            <div class="text-h5 text-weight-medium q-mb-md">
+            <div class="text-h5 text-weight-medium">
               {{ auction?.title || 'N/A' }}
+            </div>
+            
+            <div class="q-mb-md text-secondary">
+              There {{ viewCount <= 1 ? 'is' : 'are'}} currently {{ viewCount }} {{ viewCount <= 1 ? 'person' : 'people' }} viewing this auction.
             </div>
 
             <q-card flat bordered class="q-mb-md self-start full-width">
@@ -56,7 +60,7 @@
                   <div class="text-caption col-4 q-mr-sm">
                     <q-icon name="person" size="13px" class="q-mr-xs" />Auctioneer
                   </div>
-                  <div class="col row items-center q-gutter-xs">
+                  <div czlass="col row items-center q-gutter-xs">
                     <span>{{ auction.getEllipsisInMiddleUserId() }}</span>
                     <q-badge v-if="isAuthor" color="positive" class="q-px-xs q-ml-sm">
                       <q-icon name="star" size="10px" class="q-mr-xs" />You
@@ -319,7 +323,7 @@ import noImage from 'src/assets/no-image.svg'
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 import { vElementVisibility } from '@vueuse/components'
 import { useStore } from 'vuex'
-import { ref, computed, watch, onMounted, onActivated, onDeactivated, onUnmounted, watchEffect, nextTick } from 'vue'
+import { ref, computed, watch, onMounted, onBeforeUnmount, onActivated, onDeactivated, onUnmounted, watchEffect, nextTick } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useQuasar, date } from 'quasar'
 import { callAPI } from 'src/auction/api'
@@ -329,6 +333,7 @@ import { AuctionList, LotsList } from 'src/auction/object.js'
 // Components
 import HeaderNav from 'src/components/header-nav.vue'
 import LotSearch from 'src/components/auction/LotSearch.vue'
+import { callAuctionWebsocket, callLotWebsocket, callRefundCountdownWebsocket } from 'src/auction/websocket'
 
 const props = defineProps({
   auctionId: {
@@ -336,6 +341,9 @@ const props = defineProps({
     required: true
   }
 })
+
+const viewCount = ref(0)
+let socket = null
 
 defineOptions({
   directives: {
@@ -445,7 +453,29 @@ onMounted(async () => {
   
   await fetchAllData()
 
+  // get the live auction websocket 
+  socket = callAuctionWebsocket(Number(props.auctionId))
+
+  socket.onopen = function(event) {
+    console.log("Connected to the auction websocket!")
+  };
+
+  socket.onmessage = (event) => {
+    const data = JSON.parse(event.data);
+    viewCount.value = data.viewer_count
+    console.log(viewCount.value)
+  };
+
+
+  socket.onclose = function(event) {
+    console.log("Disconnected from the auction websocket!")
+  };
+
   isLoading.value = false
+})
+
+onBeforeUnmount(() => {
+  socket?.close()
 })
 
 const lotSearchQuery = ref('')
@@ -486,9 +516,6 @@ const toggleEditAuction = async () => {
     await refresh(() => {})
   }
 }
-
-
-
 
 const getFormattedBCH = (bch) => {
   const numStr = Number(bch).toFixed(8)

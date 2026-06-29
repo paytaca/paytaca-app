@@ -86,7 +86,13 @@
                 />
               </div>
             </div>
- 
+            
+            <div class="row flex-center">
+              <div class="text-secondary q-m-auto q-mt-md">
+                There {{ viewCount <= 1 ? 'is' : 'are'}} currently {{ viewCount }} {{ viewCount <= 1 ? 'person' : 'people' }} viewing this lot.
+              </div>
+            </div>
+
             <div class="q-mt-md">
               <div v-if="!isAuthor" class="full-width">
                 <div v-if="auction?.type === 'English'">
@@ -125,7 +131,7 @@
                 <div :class="darkMode ? 'text-white' : 'text-black'">{{ $t('You are the author of this auction.') }}</div>
               </div>
             </div>
-
+            
             <div v-if="bidStatus" class="full-width q-mt-md">
               <q-banner
                 rounded
@@ -635,7 +641,7 @@
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 import { vElementVisibility } from '@vueuse/components'
 import { useStore } from 'vuex'
-import { ref, computed, watch, onMounted, onUnmounted } from 'vue'
+import { ref, computed, watch, onMounted, onUnmounted, onBeforeUnmount } from 'vue'
 import { useRoute } from 'vue-router'
 import { useQuasar, date } from 'quasar'
 import { callAPI } from 'src/auction/api'
@@ -652,6 +658,7 @@ import BiddingHistoryPopup from 'src/components/auction/BiddingHistoryPopup.vue'
 import SellerDisputePopup from 'src/components/auction/SellerDisputePopup.vue'
 import RefundPopup from 'src/components/auction/RefundPopup.vue'
 import DeliveryStatusHistoryDialog from 'src/components/auction/DeliveryStatusHistoryDialog.vue'
+import { callLotWebsocket } from 'src/auction/websocket'
 
 defineOptions({
   directives: {
@@ -684,6 +691,9 @@ const showRefundDialog = ref(false)
 const showBidHistory = ref(false)
 const showDeliveryHistory = ref(false)
 const deliveryStatusId = ref(null)
+
+const viewCount = ref(0)
+const socket = null
 
 const $q = useQuasar()
 const $store = useStore()
@@ -720,7 +730,27 @@ const estimatedAmountFiat = computed(() => {
   return Number(lot.value.estimated_amount_bch || 0) * bchToPhpRate.value
 })
 
+onMounted(async () => {
+  socket = callLotWebsocket(Number(props.lotId))
 
+  socket.onopen = function(event) {
+    console.log("Connected to the lot websocket!")
+  };
+
+  socket.onmessage = (event) => {
+    const data = JSON.parse(event.data);
+    viewCount.value = data.viewer_count
+    console.log(viewCount.value)
+  };
+
+  socket.onclose = function(event) {
+    console.log("Disconnected from the lot websocket!")
+  };
+})
+
+onBeforeUnmount(() => {
+  socket?.close()
+})
 
 
 // =========================================================================
