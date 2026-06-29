@@ -105,9 +105,9 @@ const props = defineProps({
     type: String,
     default: ''
   },
-  includeSubscriptions: {
+  hasSubscriptions: {
     type: Boolean,
-    default: true
+    default: false
   }
 })
 
@@ -153,7 +153,7 @@ watch(() => props.statusFilter, () => {
 watch(() => props.searchQuery, () => {
   refreshList()
 })
-watch(() => props.includeSubscriptions, () => {
+watch(() => props.hasSubscriptions, () => {
   refreshList()
 })
 
@@ -199,7 +199,7 @@ async function refreshList(isBackground = false) {
       page: 1,
       status: props.statusFilter || undefined,
       search: props.searchQuery || undefined,
-      include_subscriptions: props.includeSubscriptions,
+      has_subscription: props.hasSubscriptions,
       network: isChipnet.value ? 'test' : 'main',
       ordering: '-date_created'
     }
@@ -225,7 +225,7 @@ async function onLoadMore(index, done) {
       page: currentPage.value,
       status: props.statusFilter || undefined,
       search: props.searchQuery || undefined,
-      include_subscriptions: props.includeSubscriptions,
+      has_subscription: props.hasSubscriptions,
       network: isChipnet.value ? 'test' : 'main',
       ordering: '-date_created'
     }

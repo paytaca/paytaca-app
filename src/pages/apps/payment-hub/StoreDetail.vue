@@ -227,7 +227,7 @@
                     ref="invoiceListRef"
                     :store-id="storeId"
                     :status-filter="invoiceStatusFilter.join(',')"
-                    :include-subscriptions="includeSubscriptions"
+                    :hasSubscriptions="includeSubscriptions"
                     :search-query="invoiceSearchQuery"
                     @clear-search="clearInvoiceSearch"
                   />
