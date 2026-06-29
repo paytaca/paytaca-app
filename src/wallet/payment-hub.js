@@ -646,9 +646,10 @@ export class PaymentHub {
    * Retrieves full details of a specific subscription.
    * @param {String} subscriptionId - The UUID or Short ID of the subscription.
    */
-  async getSubscription(subscriptionId) {
+  async getSubscription(subscriptionId, params = {}) {
     const oauth = await authToken.get(this.wallet)
     const response = await backend.get(`/subscriptions/${subscriptionId}`, {
+      params: params,
       headers: { Authorization: `Bearer ${oauth}` },
       authorize: true,
       wallet: this.wallet

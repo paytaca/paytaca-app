@@ -266,7 +266,7 @@ async function fetchSubscription() {
   try {
     const wallet = await loadWallet('BCH', $store.getters['global/getWalletIndex'])
     if (!hub) hub = new PaymentHub(wallet)
-    sub.value = await hub.getSubscription(props.subscriptionId)
+    sub.value = await hub.getSubscription(props.subscriptionId, { customer: true })
     await fetchInvoices()
   } catch (err) {
     console.error('Error fetching subscription:', err)
@@ -280,7 +280,7 @@ async function fetchInvoices() {
   loadingInvoices.value = true
   try {
     // Note: The method `listSubscriptionInvoices` will be implemented in payment-hub.js
-    const data = await hub.listSubscriptionInvoices(props.subscriptionId, { page: 1 })
+    const data = await hub.listSubscriptionInvoices(props.subscriptionId, { page: 1, customer: true })
     invoices.value = data.results || []
   } catch (err) {
     console.error('Error fetching invoices:', err)
