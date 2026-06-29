@@ -1,3 +1,5 @@
+export const ACTIVE_THRESHOLD_MS = 180000
+
 export function getInitialWalletState () {
   return {
     // Identity (per-wallet; sensitive — derived from mnemonic)
@@ -11,6 +13,7 @@ export function getInitialWalletState () {
     // Conversations (per-wallet)
     rooms: [],
     blockedContacts: [],
+    blockedGroups: [],
     deletedRooms: {},
     messages: {},
     readReceipts: {},
@@ -38,6 +41,7 @@ export function getInitialWalletState () {
     initialized: false,
     isSubscribed: false,
     relayStatus: {},
+    showActiveStatus: true,
   }
 }
 
@@ -50,5 +54,6 @@ export default function () {
       'wss://relay.paytaca.com',
     ],
     contacts: [],
+    activeStatus: {},
   }
 }

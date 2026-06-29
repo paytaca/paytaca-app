@@ -68,6 +68,11 @@ export function SET_RELAY_STATUS (state, { url, status }) {
   ws.relayStatus = { ...ws.relayStatus, [url]: status }
 }
 
+export function SET_SHOW_ACTIVE_STATUS (state, value) {
+  const ws = getOrInitWalletState(state)
+  if (ws) ws.showActiveStatus = value
+}
+
 export function SET_SUBSCRIBED (state, val) {
   const ws = getOrInitWalletState(state)
   if (ws) ws.isSubscribed = val
@@ -94,6 +99,11 @@ export function REMOVE_CONTACT (state, npub) {
 
 export function SET_RELAYS (state, relays) {
   state.relays = relays
+}
+
+export function SET_ACTIVE_STATUS (state, statusMap) {
+  if (!state.activeStatus) state.activeStatus = {}
+  state.activeStatus = { ...state.activeStatus, ...statusMap }
 }
 
 // ---- Per-wallet room mutations ----
@@ -198,6 +208,27 @@ export function UNBLOCK_CONTACT (state, pubKeyHex) {
   const ws = getOrInitWalletState(state)
   if (!ws) return
   ws.blockedContacts = ws.blockedContacts.filter(k => k !== pubKeyHex)
+}
+
+// ---- Per-wallet blocked groups (a.k.a. "left" groups) ----
+// Leaving a group marks it blocked + archived. While blocked, new messages
+// targeting the group are dropped (see receiveMessage). Unblocking a group
+// (rejoining) also unarchives it.
+
+export function BLOCK_GROUP (state, roomId) {
+  const ws = getOrInitWalletState(state)
+  if (!ws) return
+  if (!ws.blockedGroups) ws.blockedGroups = []
+  if (!ws.blockedGroups.includes(roomId)) {
+    ws.blockedGroups.push(roomId)
+  }
+}
+
+export function UNBLOCK_GROUP (state, roomId) {
+  const ws = getOrInitWalletState(state)
+  if (!ws) return
+  if (!ws.blockedGroups) return
+  ws.blockedGroups = ws.blockedGroups.filter(id => id !== roomId)
 }
 
 // ---- Per-wallet message mutations ----
@@ -437,6 +468,7 @@ export function RESET_WALLET_CHAT_DATA (state) {
   ws.messageReadBy = {}
   ws.reactions = {}
   ws.blockedContacts = []
+  ws.blockedGroups = []
   ws.bchAddressCache = {}
   ws.displayNameCache = {}
   ws.avatarCache = {}

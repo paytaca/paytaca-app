@@ -589,6 +589,7 @@ export default {
       }
     },
     handleRequestError (error) {
+      if (error?.code === 'ECONNABORTED') return
       bus.emit('handle-request-error', error)
     }
   }

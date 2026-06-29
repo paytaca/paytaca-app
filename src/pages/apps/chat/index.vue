@@ -65,6 +65,8 @@
               @archive-room="confirmArchiveRoom"
               @block-room="confirmBlockRoom"
               @unblock-room="confirmUnblockRoom"
+              @leave-room="confirmLeaveGroup"
+              @rejoin-room="confirmRejoinGroup"
             />
           </q-tab-panel>
           <q-tab-panel name="archived" class="q-pa-none">
@@ -73,7 +75,8 @@
               :messages="messages"
               archived
               @select-room="openRoom"
-              @unarchive-room="unarchiveRoom"
+              @unarchive-room="unarchiveOrRejoinRoom"
+              @rejoin-room="confirmRejoinGroup"
               @delete-room="confirmDeleteRoom"
             />
           </q-tab-panel>
@@ -185,9 +188,17 @@
                     @click="startChatWith(contact)"
                   >
                     <q-item-section avatar>
-                      <q-avatar color="primary" text-color="white" size="44px">
-                        {{ contactInitial(contact) }}
-                      </q-avatar>
+                      <div class="contact-avatar-wrapper">
+                        <q-avatar color="primary" text-color="white" size="44px">
+                          <img v-if="contactAvatars[contact.npub]" :src="contactAvatars[contact.npub]" />
+                          <template v-else>{{ contactInitial(contact) }}</template>
+                        </q-avatar>
+                        <div
+                          v-if="activeContactMap[contact.pubKeyHex]"
+                          class="active-dot"
+                          :class="{ 'active-dot--dark': darkMode }"
+                        ></div>
+                      </div>
                     </q-item-section>
                     <q-item-section>
                       <q-item-label class="text-weight-medium">{{ contact.name }}</q-item-label>
@@ -225,7 +236,17 @@
                   </template>
                 </q-input>
 
+                <template v-if="fetchedContactDisplayName">
+                  <div class="published-identity-row q-mb-md">
+                    <q-avatar size="48px" color="grey-4" text-color="white" class="q-mr-sm">
+                      <img v-if="fetchedContactAvatar" :src="fetchedContactAvatar" />
+                      <template v-else>{{ fetchedContactDisplayName.charAt(0).toUpperCase() }}</template>
+                    </q-avatar>
+                    <span class="published-name-text"><strong>{{ fetchedContactDisplayName }}</strong></span>
+                  </div>
+                </template>
                 <q-input
+                  v-else
                   v-model="newContactName"
                   :label="$t('Name', {}, 'Name')"
                   outlined
@@ -233,13 +254,6 @@
                   rounded
                   class="q-mb-md"
                 />
-
-                <div v-if="fetchedContactDisplayName" class="fetched-name-hint q-mb-md">
-                  <q-icon name="badge" size="16px" color="primary" />
-                  <span class="fetched-name-text">
-                    {{ $t('UsingPublishedDisplayName', {}, 'Using published display name') }}
-                  </span>
-                </div>
 
                 <q-btn
                   :label="$t('AddContact', {}, 'Add Contact')"
@@ -305,7 +319,8 @@
                     </q-item-section>
                     <q-item-section avatar>
                       <q-avatar color="primary" text-color="white" size="36px">
-                        {{ contactInitial(contact) }}
+                        <img v-if="contactAvatars[contact.npub]" :src="contactAvatars[contact.npub]" />
+                        <template v-else>{{ contactInitial(contact) }}</template>
                       </q-avatar>
                     </q-item-section>
                     <q-item-section>
@@ -353,7 +368,17 @@
                   </template>
                 </q-input>
 
+                <template v-if="fetchedContactDisplayName">
+                  <div class="published-identity-row q-mb-md">
+                    <q-avatar size="48px" color="grey-4" text-color="white" class="q-mr-sm">
+                      <img v-if="fetchedContactAvatar" :src="fetchedContactAvatar" />
+                      <template v-else>{{ fetchedContactDisplayName.charAt(0).toUpperCase() }}</template>
+                    </q-avatar>
+                    <span class="published-name-text"><strong>{{ fetchedContactDisplayName }}</strong></span>
+                  </div>
+                </template>
                 <q-input
+                  v-else
                   v-model="newContactName"
                   :label="$t('Name', {}, 'Name')"
                   outlined
@@ -361,13 +386,6 @@
                   rounded
                   class="q-mb-md"
                 />
-
-                <div v-if="fetchedContactDisplayName" class="fetched-name-hint q-mb-md">
-                  <q-icon name="badge" size="16px" color="primary" />
-                  <span class="fetched-name-text">
-                    {{ $t('UsingPublishedDisplayName', {}, 'Using published display name') }}
-                  </span>
-                </div>
 
                 <q-btn
                   :label="$t('AddContact', {}, 'Add Contact')"
@@ -393,6 +411,7 @@
 </template>
 
 <script>
+import { ACTIVE_THRESHOLD_MS } from 'src/store/nostr-chat/state'
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 import HeaderNav from 'src/components/header-nav.vue'
 import RoomList from 'src/components/chat/RoomList.vue'
@@ -417,6 +436,8 @@ export default {
       groupName: '',
       selectedMemberNpubs: [],
       fetchedContactDisplayName: null,
+      fetchedContactAvatar: null,
+      contactAvatars: {},
       _profilePromptShown: false,
       _profilePromptTimer: null,
     }
@@ -441,6 +462,24 @@ export default {
     },
     contacts () {
       return this.$store.getters['nostrChat/getContacts']
+    },
+    showActiveStatus () {
+      return this.$store.getters['nostrChat/getShowActiveStatus']
+    },
+    activeContactMap () {
+      const map = {}
+      if (!this.showActiveStatus) return map
+      const activeStatus = this.$store.getters['nostrChat/getActiveStatusMap']
+      for (const contact of this.contacts) {
+        if (!contact.pubKeyHex) continue
+        const entry = activeStatus[contact.pubKeyHex]
+        if (!entry || !entry.lastActiveAt) {
+          map[contact.pubKeyHex] = false
+        } else {
+          map[contact.pubKeyHex] = Date.now() - new Date(entry.lastActiveAt).getTime() <= ACTIVE_THRESHOLD_MS
+        }
+      }
+      return map
     },
     canAddContact () {
       return this.newContactName.trim() && this.newContactNpub.trim().startsWith('npub')
@@ -503,13 +542,16 @@ export default {
       }
     },
     showNewChatDialog (val) {
-      if (!val) {
+      if (val) {
+        this.fetchContactAvatars()
+      } else {
         this.groupName = ''
         this.selectedMemberNpubs = []
         this.newContactName = ''
         this.newContactNpub = ''
         this.npubError = ''
         this.fetchedContactDisplayName = null
+        this.fetchedContactAvatar = null
         this.selectedChatType = null
         this.dialogTab = 'contacts'
         this.scannerOrigin = null
@@ -517,17 +559,26 @@ export default {
     },
     async newContactNpub (val) {
       this.fetchedContactDisplayName = null
+      this.fetchedContactAvatar = null
       const trimmed = val?.trim()
       if (trimmed && trimmed.startsWith('npub')) {
         try {
           const decoded = nip19Decode(trimmed)
           if (decoded.type === 'npub' && decoded.data) {
-            const displayName = await this.$store.dispatch('nostrChat/fetchPublishedDisplayName', {
-              pubKeyHex: decoded.data,
-            })
+            const [displayName, avatar] = await Promise.all([
+              this.$store.dispatch('nostrChat/fetchPublishedDisplayName', {
+                pubKeyHex: decoded.data,
+              }),
+              this.$store.dispatch('nostrChat/fetchPublishedAvatar', {
+                pubKeyHex: decoded.data,
+              }),
+            ])
             if (displayName && !this.newContactName.trim()) {
               this.fetchedContactDisplayName = displayName
               this.newContactName = displayName
+            }
+            if (avatar) {
+              this.fetchedContactAvatar = avatar
             }
           }
         } catch (err) {
@@ -565,7 +616,7 @@ export default {
     try {
       // Initialize (skips if already initialized for this wallet)
       await this.$store.dispatch('nostrChat/initialize')
-      this.$store.dispatch('nostrChat/subscribeToRelays')
+      this.$store.dispatch('nostrChat/ensureSubscribed')
 
       // Handle any scanned npub that we deferred because the store
       // wasn't initialized yet (existing contact case).
@@ -581,15 +632,29 @@ export default {
     }
 
     // Show profile setup prompt if profile is incomplete.
-    // Delay to allow any background profile fetch (with retries) to resolve first.
+    // Short delay lets the synchronous cache-fill in initialize()
+    // settle in Vuex reactivity before we read the store.
     if (!this._profilePromptShown && this.isProfileIncomplete) {
       this._profilePromptTimer = setTimeout(() => {
         this._checkAndShowProfilePrompt()
-      }, 6000)
+      }, 1000)
     }
+
+    // Re-subscribe when tab becomes visible (e.g., after app backgrounding)
+    this._onVisibilityChange = () => {
+      if (document.visibilityState === 'visible') {
+        this.$store.dispatch('nostrChat/ensureSubscribed')
+      }
+    }
+    document.addEventListener('visibilitychange', this._onVisibilityChange)
+  },
+  activated () {
+    // Re-check subscription when returning to this page via keep-alive
+    this.$store.dispatch('nostrChat/ensureSubscribed')
   },
   beforeUnmount () {
     clearTimeout(this._profilePromptTimer)
+    document.removeEventListener('visibilitychange', this._onVisibilityChange)
     // Keep subscription alive for background messages
   },
   methods: {
@@ -647,6 +712,7 @@ export default {
         this.newContactNpub = ''
         this.npubError = ''
         this.fetchedContactDisplayName = null
+        this.fetchedContactAvatar = null
         this.dialogTab = 'members'
       } catch (err) {
         this.npubError = err.message
@@ -759,26 +825,91 @@ export default {
         })
       })
     },
-    unarchiveRoom (roomId) {
+    unarchiveOrRejoinRoom (roomId) {
+      // A left (blocked) group is archived; unarchiving it should rejoin it.
+      const room = this.archivedRooms.find(r => r.id === roomId)
+      if (room?.type === 'group' && this.$store.getters['nostrChat/isGroupBlocked'](roomId)) {
+        this.confirmRejoinGroup(roomId)
+        return
+      }
       this.$store.commit('nostrChat/UNARCHIVE_ROOM', roomId)
       this.$q.notify({
         type: 'positive',
         message: this.$t('ConversationUnarchived', {}, 'Conversation unarchived'),
       })
     },
+    confirmLeaveGroup (roomId) {
+      const room = this.rooms.find(r => r.id === roomId)
+      if (!room) return
+      const roomName = this.getRoomDisplayName(room)
+      this.$q.dialog({
+        title: this.$t('LeaveGroup', {}, 'Leave Group'),
+        message: this.$t('LeaveGroupConfirm', { name: roomName }, `Leave group "${roomName}"? The group will be archived and you won't receive new messages until you rejoin.`),
+        class: `pt-card text-bow ${this.getDarkModeClass(this.darkMode)}`,
+        cancel: { label: this.$t('Cancel', {}, 'Cancel'), flat: true, color: 'grey' },
+        ok: { label: this.$t('LeaveGroup', {}, 'Leave Group'), color: 'negative', flat: true },
+        persistent: true,
+      }).onOk(async () => {
+        try {
+          await this.$store.dispatch('nostrChat/leaveGroup', { roomId })
+          this.$q.notify({ type: 'info', message: this.$t('LeftGroup', {}, 'You left the group') })
+        } catch (err) {
+          this.$q.notify({ type: 'negative', message: err.message || this.$t('LeaveGroupFailed', {}, 'Failed to leave group') })
+        }
+      })
+    },
+    confirmRejoinGroup (roomId) {
+      const room = (this.rooms.find(r => r.id === roomId) || this.archivedRooms.find(r => r.id === roomId))
+      if (!room) return
+      const roomName = this.getGroupDisplayName(room)
+      this.$q.dialog({
+        title: this.$t('RejoinGroup', {}, 'Rejoin Group'),
+        message: this.$t('RejoinGroupConfirm', { name: roomName }, `Rejoin "${roomName}"? You will be able to send and receive messages again.`),
+        class: `pt-card text-bow ${this.getDarkModeClass(this.darkMode)}`,
+        cancel: { label: this.$t('Cancel', {}, 'Cancel'), flat: true, color: 'grey' },
+        ok: { label: this.$t('RejoinGroup', {}, 'Rejoin Group'), color: 'primary', flat: true },
+        persistent: true,
+      }).onOk(async () => {
+        await this.$store.dispatch('nostrChat/rejoinGroup', { roomId })
+        this.$q.notify({ type: 'positive', message: this.$t('GroupRejoined', {}, 'Group rejoined') })
+      })
+    },
+    getGroupDisplayName (room) {
+      return room?.name || room?.subject || this.$t('Group', {}, 'Group')
+    },
     confirmDeleteRoom (roomId) {
       const room = this.archivedRooms.find(r => r.id === roomId)
       if (!room) return
 
-      const otherPubKey = room.members?.find(m => m !== this.$store.getters['nostrChat/myPubKey'])
       const roomName = this.getRoomDisplayName(room)
+      const note = this.$t('DeleteConversationNote', {}, 'This only removes it from this device. It stays on the relay and will be restored if you Reset Chat.')
+
+      // Groups: leaving already handles "blocking" via BLOCK_GROUP, so delete
+      // is a simple permanent removal. Also clear any group-block tracker.
+      if (room.type === 'group') {
+        this.$q.dialog({
+          title: this.$t('DeleteConversation', {}, 'Delete Conversation'),
+          message: this.$t('DeleteConversationConfirm', { name: roomName }, `Permanently delete "${roomName}"?`) + '\n\n' + note,
+          class: `pt-card text-bow ${this.getDarkModeClass(this.darkMode)}`,
+          cancel: { label: this.$t('Cancel', {}, 'Cancel'), flat: true, color: 'grey' },
+          ok: { label: this.$t('Delete', {}, 'Delete'), color: 'negative', flat: true },
+          persistent: true,
+        }).onOk(() => {
+          this.$store.commit('nostrChat/UNBLOCK_GROUP', roomId)
+          this.$store.commit('nostrChat/REMOVE_ROOM', roomId)
+          this.$q.notify({ type: 'info', message: this.$t('ConversationDeleted', {}, 'Conversation deleted') })
+        })
+        return
+      }
+
+      const otherPubKey = room.members?.find(m => m !== this.$store.getters['nostrChat/myPubKey'])
       const isBlocked = otherPubKey && this.$store.getters['nostrChat/isContactBlocked'](otherPubKey)
 
       // If already blocked, just offer delete
       if (isBlocked) {
         this.$q.dialog({
           title: this.$t('DeleteConversation', {}, 'Delete Conversation'),
-          message: this.$t('DeleteConversationConfirm', { name: roomName }, `Permanently delete conversation with ${roomName}?`),
+          message: this.$t('DeleteConversationConfirm', { name: roomName }, `Delete conversation with ${roomName}?`) + '\n\n' + note,
           class: `pt-card text-bow ${this.getDarkModeClass(this.darkMode)}`,
           cancel: {
             label: this.$t('Cancel', {}, 'Cancel'),
@@ -804,7 +935,7 @@ export default {
       // Not blocked — offer both options
       this.$q.dialog({
         title: this.$t('DeleteConversation', {}, 'Delete Conversation'),
-        message: this.$t('DeleteConversationOptions', { name: roomName }, `How would you like to delete the conversation with ${roomName}?`),
+        message: this.$t('DeleteConversationOptions', { name: roomName }, `How would you like to delete the conversation with ${roomName}?`) + '\n\n' + note,
         class: `pt-card text-bow ${this.getDarkModeClass(this.darkMode)}`,
         options: {
           type: 'radio',
@@ -872,6 +1003,25 @@ export default {
     contactInitial (contact) {
       return (contact.name || '').charAt(0).toUpperCase()
     },
+    async fetchContactAvatars () {
+      if (!this.contacts.length) return
+      const newAvatars = { ...this.contactAvatars }
+      for (const contact of this.contacts) {
+        if (newAvatars[contact.npub]) continue
+        try {
+          const decoded = nip19Decode(contact.npub)
+          if (decoded.type === 'npub' && decoded.data) {
+            const avatar = await this.$store.dispatch('nostrChat/fetchPublishedAvatar', {
+              pubKeyHex: decoded.data,
+            })
+            if (avatar) newAvatars[contact.npub] = avatar
+          }
+        } catch {
+          // skip
+        }
+      }
+      this.contactAvatars = newAvatars
+    },
     toggleMember (npub) {
       const idx = this.selectedMemberNpubs.indexOf(npub)
       if (idx >= 0) {
@@ -903,6 +1053,13 @@ export default {
         })
         this.$store.commit('nostrChat/ADD_MESSAGE', { roomId, message })
         await this.$store.dispatch('nostrChat/publishGiftWraps', { giftWraps })
+        // Publish group metadata so new members who join later can
+        // discover the group name from the relay.
+        this.$store.dispatch('nostrChat/publishGroupMetadata', {
+          roomId: room.id,
+          memberPubKeys: room.members,
+          name,
+        }).catch(() => {})
         this.showNewChatDialog = false
         this.$router.push(`/apps/chat/${room.id}`)
       } catch (err) {
@@ -913,13 +1070,17 @@ export default {
       }
     },
     getRoomDisplayName (room) {
+      // Group rooms: always use room.name (kept in sync with subject by mutations)
+      if (room.type === 'group') {
+        return room.name || room.subject || this.$t('Group', {}, 'Group')
+      }
+      // Private (DM) rooms: prefer subject, then contact name, then npub
       const myPubKey = this.$store.getters['nostrChat/myPubKey']
       if (!myPubKey) return room.subject || room.name || this.$t('Chat')
 
       const otherPubKey = room.members?.find(m => m !== myPubKey)
       if (!otherPubKey) return room.subject || room.name || this.$t('Chat')
 
-      // If a subject has been set, use it as the conversation name
       if (room.subject) return room.subject
 
       let otherNpub = null
@@ -945,6 +1106,8 @@ export default {
         this.newContactName = ''
         this.newContactNpub = ''
         this.npubError = ''
+        this.fetchedContactDisplayName = null
+        this.fetchedContactAvatar = null
         this.showNewChatDialog = false
       } catch (err) {
         this.npubError = err.message
@@ -1207,18 +1370,73 @@ export default {
   min-width: auto;
 }
 
+.use-published-name-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 12px;
+  background: rgba(59, 130, 246, 0.06);
+  border-radius: 8px;
+  border: 1px solid rgba(59, 130, 246, 0.15);
+}
+
+.use-published-name-text {
+  flex: 1;
+  font-size: 13px;
+  color: #374151;
+  line-height: 1.4;
+}
+
+.use-published-name-text strong {
+  display: block;
+  font-weight: 600;
+  color: #1f2937;
+  margin-top: 2px;
+}
+
 /* Dark mode */
+.published-identity-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 12px;
+  background: rgba(59, 130, 246, 0.06);
+  border-radius: 8px;
+  border: 1px solid rgba(59, 130, 246, 0.15);
+}
+
+.published-name-text {
+  flex: 1;
+  font-size: 15px;
+  font-weight: 600;
+  color: #1f2937;
+  line-height: 1.3;
+}
+
 .dark .contact-item:hover {
   background-color: rgba(255, 255, 255, 0.04);
 }
 
-.dark .fetched-name-hint {
+.dark .use-published-name-row {
   background: rgba(59, 130, 246, 0.12);
   border-color: rgba(59, 130, 246, 0.3);
 }
 
-.dark .fetched-name-text {
+.dark .use-published-name-text {
   color: #d1d5db;
+}
+
+.dark .use-published-name-text strong {
+  color: #f3f4f6;
+}
+
+.dark .published-identity-row {
+  background: rgba(59, 130, 246, 0.12);
+  border-color: rgba(59, 130, 246, 0.3);
+}
+
+.dark .published-name-text {
+  color: #f1f5f9;
 }
 
 .dark .group-member-item:hover {
@@ -1275,5 +1493,24 @@ export default {
   color: #94a3b8;
 }
 
+.contact-avatar-wrapper {
+  position: relative;
+  display: inline-block;
+}
 
+.active-dot {
+  position: absolute;
+  bottom: 0;
+  right: 0;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: #4caf50;
+  border: 3px solid #ffffff;
+  z-index: 1;
+}
+
+.active-dot--dark {
+  border-color: #1e293b;
+}
 </style>

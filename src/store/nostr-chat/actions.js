@@ -1,6 +1,36 @@
+import { ACTIVE_THRESHOLD_MS } from './state'
 import { deriveNostrKeys, createUnsignedKind14, createNip17GiftWraps, computeRoomId, createKind10050, createReadReceiptGiftWrap, createReactionGiftWraps, createKind5DeletionGiftWraps } from 'src/wallet/nostr'
 import { finalizeEvent, verifyEvent, getEventHash, utils as nostrUtils } from 'nostr-tools'
 const { hexToBytes } = nostrUtils
+
+// Tracks retry attempts for failed read receipt sends. Keyed by roomId:messageId,
+// value is the number of retries attempted so far. Prevents infinite retry loops
+// when a relay is persistently unreachable.
+const _readReceiptRetries = new Map()
+const MAX_READ_RECEIPT_RETRIES = 3
+const _markRoomLocks = new Set()
+
+// Pending read receipts where the referenced message hadn't arrived yet.
+// Keyed by messageId → [{ readerPubKey }]. Flushed at the end of every
+// receiveMessage call.
+const _pendingReadReceipts = new Map()
+
+function flushPendingReadReceipts (state, commit) {
+  if (!_pendingReadReceipts.size) return
+  const ws = getWalletState(state)
+  if (!ws) return
+  for (const [messageId, readers] of _pendingReadReceipts) {
+    for (const roomId of Object.keys(ws.messages)) {
+      if (ws.messages[roomId]?.some(m => m.id === messageId)) {
+        for (const { readerPubKey } of readers) {
+          commit('SET_MESSAGE_READ_BY', { roomId, messageId, readerPubKey })
+        }
+        _pendingReadReceipts.delete(messageId)
+        break
+      }
+    }
+  }
+}
 import { getMnemonic } from 'src/wallet'
 import { decode as nip19Decode } from 'nostr-tools/nip19'
 import * as relayService from 'src/services/nostr-chat'
@@ -18,6 +48,29 @@ import {
 } from 'src/wallet/nostr-media'
 import { clearChatCache } from 'src/components/chat/MessageBubble.vue'
 import { Store } from 'src/store'
+
+const isDev = process.env.NODE_ENV !== 'production'
+const debug = (...args) => { if (isDev) console.log('[Nostr]', ...args) }
+
+function fetchMemberDisplayNames (dispatch, memberPubKeys) {
+  for (const pk of memberPubKeys) {
+    dispatch('fetchPublishedDisplayName', { pubKeyHex: pk }).catch(() => {})
+  }
+}
+
+// Per-recipient cache of kind:10050 relay-preference fetches. Each send was
+// previously issuing a `pool.querySync` per recipient before publishing the
+// gift-wrap, which blocked sends. Cache for 10 minutes; a stale relay list is
+// fine — delivery falls back to our own relays.
+const _kind10050Cache = new Map()
+const KIND10050_TTL_MS = 10 * 60 * 1000
+async function fetchKind10050Cached(relays, pubKey) {
+  const hit = _kind10050Cache.get(pubKey)
+  if (hit && Date.now() - hit.ts < KIND10050_TTL_MS) return hit.value
+  const value = await relayService.fetchKind10050(relays, pubKey)
+  _kind10050Cache.set(pubKey, { ts: Date.now(), value })
+  return value
+}
 
 function getCurrentWalletHash () {
   try {
@@ -51,6 +104,7 @@ export async function reinitialize ({ commit, dispatch, state, rootGetters }) {
   if (ws.keys?.pubKeyHex === keys.pubKeyHex) return
 
   // Disconnect existing relay subscriptions for the old identity
+  stopActiveServices()
   relayService.stopStatusPolling()
   relayService.disconnect()
   commit('SET_SUBSCRIBED', false)
@@ -128,6 +182,7 @@ export async function initialize ({ commit, dispatch, state, rootGetters }) {
 
   // Keys mismatch or first init — clear IndexedDB cache if switching from another wallet
   if (ws.initialized || ws.keys?.pubKeyHex) {
+    stopActiveServices()
     relayService.stopStatusPolling()
     relayService.disconnect()
     commit('SET_SUBSCRIBED', false)
@@ -207,14 +262,14 @@ export async function fetchOwnProfile ({ commit, dispatch }, pubKeyHex) {
 export async function registerNostrPubkey ({ state, rootGetters }) {
   const ws = getWalletState(state)
   if (!ws.keys.pubKeyHex) {
-    console.log('[Nostr] Skip pubkey registration: no pubkey')
+    debug('Skip pubkey registration: no pubkey')
     return
   }
 
   const walletIndex = rootGetters['global/getWalletIndex']
   const walletHash = rootGetters['global/getWalletHashByIndex']?.(walletIndex)
   if (!walletHash) {
-    console.log('[Nostr] Skip pubkey registration: no wallet hash')
+    debug('Skip pubkey registration: no wallet hash')
     return
   }
 
@@ -224,7 +279,7 @@ export async function registerNostrPubkey ({ state, rootGetters }) {
   try {
     const checkResponse = await watchtower.BCH._api.get(`/nostr/check/${ws.keys.pubKeyHex}/`)
     if (checkResponse?.data?.registered) {
-      console.log('[Nostr] Pubkey already registered')
+      debug('Pubkey already registered')
       return
     }
   } catch {
@@ -236,30 +291,30 @@ export async function registerNostrPubkey ({ state, rootGetters }) {
     wallet_hash: walletHash,
   }
 
-  console.log('[Nostr] Registering pubkey...', data)
+  debug('Registering pubkey...', data)
 
   try {
     const headers = await getAuthHeaders()
     const response = await watchtower.BCH._api.post('/nostr/register/', data, { headers })
-    console.log('[Nostr] Pubkey registration successful:', response.data)
+    debug('Pubkey registration successful:', response.data)
   } catch (err) {
     const status = err?.response?.status
-    
+
     // If token expired (401), clear it and retry once
     if (status === 401) {
-      console.log('[Nostr] Token expired, clearing and retrying...')
+      debug('Token expired, clearing and retrying...')
       await clearToken()
       try {
         const headers = await getAuthHeaders()
         const response = await watchtower.BCH._api.post('/nostr/register/', data, { headers })
-        console.log('[Nostr] Pubkey registration successful (retry):', response.data)
+        debug('Pubkey registration successful (retry):', response.data)
         return
       } catch (retryErr) {
         console.warn('[Nostr] Retry failed:', retryErr?.response?.status, retryErr?.response?.data, retryErr?.message || retryErr)
         return
       }
     }
-    
+
     console.warn('[Nostr] Failed to register pubkey:', status, err?.response?.data, err?.message || err)
   }
 }
@@ -334,17 +389,17 @@ export async function removeBchAddress ({ state, commit }) {
  * Fetch a user's published BCH address from relays.
  * Returns the address string or null if not found.
  */
-export async function fetchPublishedBchAddress ({ state, commit }, { pubKeyHex }) {
+export async function fetchPublishedBchAddress ({ state, commit }, { pubKeyHex, forceRefresh }) {
   const ws = getWalletState(state)
   if (!pubKeyHex) {
     throw new Error('pubKeyHex is required')
   }
 
   const cached = ws.bchAddressCache?.[pubKeyHex]
-  const CACHE_TTL = 3600000 // 1 hour
+  const CACHE_TTL = 86400000 // 24 hours
 
   // Return cached address if fresh
-  if (cached?.address && (Date.now() - cached.fetchedAt) < CACHE_TTL) {
+  if (!forceRefresh && cached?.address && (Date.now() - cached.fetchedAt) < CACHE_TTL) {
     return cached.address
   }
 
@@ -452,14 +507,14 @@ export async function removeDisplayName ({ state, commit }) {
  * Fetch a user's published display name from relays.
  * Returns the display name string or null if not found.
  */
-export async function fetchPublishedDisplayName ({ state, commit }, { pubKeyHex }) {
+export async function fetchPublishedDisplayName ({ state, commit }, { pubKeyHex, forceRefresh }) {
   const ws = getWalletState(state)
   if (!pubKeyHex) throw new Error('pubKeyHex is required')
 
   const cached = ws.displayNameCache?.[pubKeyHex]
-  const CACHE_TTL = 3600000 // 1 hour
+  const CACHE_TTL = 86400000 // 24 hours
 
-  if (cached?.displayName && (Date.now() - cached.fetchedAt) < CACHE_TTL) {
+  if (!forceRefresh && cached?.displayName && (Date.now() - cached.fetchedAt) < CACHE_TTL) {
     return cached.displayName
   }
 
@@ -559,14 +614,14 @@ export async function removeAvatar ({ state, commit }) {
  * Fetch a user's published avatar from relays.
  * Returns the avatar data URL string or null if not found.
  */
-export async function fetchPublishedAvatar ({ state, commit }, { pubKeyHex }) {
+export async function fetchPublishedAvatar ({ state, commit }, { pubKeyHex, forceRefresh }) {
   const ws = getWalletState(state)
   if (!pubKeyHex) throw new Error('pubKeyHex is required')
 
   const cached = ws.avatarCache?.[pubKeyHex]
-  const CACHE_TTL = 3600000 // 1 hour
+  const CACHE_TTL = 86400000 // 24 hours
 
-  if (cached?.avatar && (Date.now() - cached.fetchedAt) < CACHE_TTL) {
+  if (!forceRefresh && cached?.avatar && (Date.now() - cached.fetchedAt) < CACHE_TTL) {
     return cached.avatar
   }
 
@@ -675,6 +730,245 @@ export function removeContact ({ commit }, npub) {
   commit('REMOVE_CONTACT', npub)
 }
 
+let _activeServicesRunning = false
+let _heartbeatInterval = null
+let _activeWs = null
+let _activeWsReconnectTimer = null
+let _activeWsHandlers = null
+let _activeExpiryTimers = {}
+
+function clearActiveExpiry (pubkey) {
+  if (_activeExpiryTimers[pubkey]) {
+    clearTimeout(_activeExpiryTimers[pubkey])
+    delete _activeExpiryTimers[pubkey]
+  }
+}
+
+function clearAllActiveExpiries () {
+  for (const key in _activeExpiryTimers) {
+    clearTimeout(_activeExpiryTimers[key])
+  }
+  _activeExpiryTimers = {}
+}
+
+function scheduleActiveExpiry (pubkey, commit) {
+  clearActiveExpiry(pubkey)
+  _activeExpiryTimers[pubkey] = setTimeout(() => {
+    commit('SET_ACTIVE_STATUS', {
+      [pubkey]: {
+        lastActiveAt: null,
+        fetchedAt: Date.now(),
+      },
+    })
+    delete _activeExpiryTimers[pubkey]
+  }, ACTIVE_THRESHOLD_MS)
+}
+
+function collectActiveStatusPubkeys (state) {
+  const ws = getWalletState(state)
+  const myPubKey = ws.keys?.pubKeyHex
+  const pubkeys = new Set()
+
+  for (const c of state.contacts) {
+    if (c.pubKeyHex) pubkeys.add(c.pubKeyHex)
+  }
+
+  if (myPubKey) {
+    for (const room of (ws.rooms || [])) {
+      for (const m of room.members) {
+        if (m !== myPubKey) pubkeys.add(m)
+      }
+    }
+  }
+
+  return [...pubkeys]
+}
+
+export async function fetchActiveStatus ({ state, commit, rootGetters }) {
+  const pubkeys = collectActiveStatusPubkeys(state)
+  if (!pubkeys.length) return
+
+  try {
+    const isChipnet = rootGetters['global/isChipnet']
+    const baseUrl = isChipnet ? 'https://chipnet.watchtower.cash' : 'https://watchtower.cash'
+    const response = await fetch(`${baseUrl}/api/nostr/last-active/`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ pubkeys }),
+    })
+    if (!response.ok) {
+      console.warn('[Nostr] fetchActiveStatus failed:', response.status)
+      return
+    }
+    const data = await response.json()
+    const statusMap = {}
+    for (const pubkey of pubkeys) {
+      if (data[pubkey]) {
+        statusMap[pubkey] = {
+          lastActiveAt: data[pubkey],
+          fetchedAt: Date.now(),
+        }
+        scheduleActiveExpiry(pubkey, commit)
+      }
+    }
+    commit('SET_ACTIVE_STATUS', statusMap)
+  } catch (err) {
+    console.warn('[Nostr] fetchActiveStatus error:', err)
+  }
+}
+
+export async function touchActive ({ rootGetters }, { pubkey, recipients }) {
+  if (!pubkey || !recipients?.length) return
+  const isChipnet = rootGetters['global/isChipnet']
+  const baseUrl = isChipnet ? 'https://chipnet.watchtower.cash' : 'https://watchtower.cash'
+
+  async function doTouch () {
+    const headers = await getAuthHeaders()
+    return fetch(`${baseUrl}/api/nostr/touch/`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        ...(headers?.Authorization ? { Authorization: headers.Authorization } : {}),
+      },
+      body: JSON.stringify({ pubkey, recipients }),
+    })
+  }
+
+  try {
+    const response = await doTouch()
+    if (response.status === 401) {
+      await clearToken()
+      const retryResponse = await doTouch()
+      if (!retryResponse.ok) {
+        console.warn('[Nostr] touchActive retry failed:', retryResponse.status)
+      }
+    } else if (!response.ok) {
+      console.warn('[Nostr] touchActive failed:', response.status)
+    }
+  } catch (err) {
+    console.warn('[Nostr] touchActive error:', err)
+  }
+}
+
+function startPubkeyRegistrationHeartbeat (dispatch) {
+  if (_heartbeatInterval) clearInterval(_heartbeatInterval)
+  dispatch('registerNostrPubkey')
+  _heartbeatInterval = setInterval(() => {
+    dispatch('registerNostrPubkey')
+  }, 120000)
+}
+
+function getWsWatchtowerUrl (rootGetters) {
+  const walletIndex = rootGetters['global/getWalletIndex']
+  const walletHash = rootGetters['global/getWalletHashByIndex']?.(walletIndex)
+  if (!walletHash) return null
+  const isChipnet = rootGetters['global/isChipnet']
+  const baseUrl = isChipnet ? 'https://chipnet.watchtower.cash' : 'https://watchtower.cash'
+  const url = new URL(baseUrl)
+  url.protocol = baseUrl.startsWith('https') ? 'wss:' : 'ws:'
+  url.pathname = `/ws/nostr/updates/${walletHash}/`
+  return url.toString()
+}
+
+export function startActiveWs ({ state, commit, rootGetters }) {
+  stopActiveWs()
+  const wsUrl = getWsWatchtowerUrl(rootGetters)
+  if (!wsUrl) return
+
+  try {
+    const ws = new WebSocket(wsUrl)
+    const handlers = {
+      open: () => { console.log('[Nostr] Active status WS connected') },
+      message: (event) => {
+        try {
+          const msg = JSON.parse(event.data)
+          if (msg.type === 'last_active' && msg.pubkey_hex && msg.timestamp) {
+            commit('SET_ACTIVE_STATUS', {
+              [msg.pubkey_hex]: {
+                lastActiveAt: msg.timestamp,
+                fetchedAt: Date.now(),
+              },
+            })
+            scheduleActiveExpiry(msg.pubkey_hex, commit)
+          }
+        } catch (e) {
+          console.warn('[Nostr] Failed to parse WS message:', e)
+        }
+      },
+      close: () => {
+        _activeWs = null
+        _activeWsHandlers = null
+        if (_activeServicesRunning) {
+          _activeWsReconnectTimer = setTimeout(() => {
+            startActiveWs({ state, commit, rootGetters })
+          }, 5000)
+        }
+      },
+      error: (err) => { console.warn('[Nostr] Active status WS error:', err) },
+    }
+    ws.addEventListener('open', handlers.open)
+    ws.addEventListener('message', handlers.message)
+    ws.addEventListener('close', handlers.close)
+    ws.addEventListener('error', handlers.error)
+    _activeWs = ws
+    _activeWsHandlers = handlers
+  } catch (err) {
+    console.warn('[Nostr] Failed to create active status WS:', err)
+  }
+}
+
+export function stopActiveWs () {
+  if (_activeWsReconnectTimer) {
+    clearTimeout(_activeWsReconnectTimer)
+    _activeWsReconnectTimer = null
+  }
+  if (_activeWs) {
+    if (_activeWsHandlers) {
+      _activeWs.removeEventListener('open', _activeWsHandlers.open)
+      _activeWs.removeEventListener('message', _activeWsHandlers.message)
+      _activeWs.removeEventListener('close', _activeWsHandlers.close)
+      _activeWs.removeEventListener('error', _activeWsHandlers.error)
+    }
+    _activeWs.close()
+  }
+  _activeWs = null
+  _activeWsHandlers = null
+}
+
+export function startActiveServices ({ dispatch, getters, state, commit, rootGetters }) {
+  if (_activeServicesRunning) return
+  _activeServicesRunning = true
+
+  dispatch('fetchActiveStatus')
+  dispatch('startActiveWs')
+
+  if (getters.getShowActiveStatus) {
+    startPubkeyRegistrationHeartbeat(dispatch)
+  }
+}
+
+export function stopActiveServices () {
+  _activeServicesRunning = false
+  clearAllActiveExpiries()
+  if (_heartbeatInterval) {
+    clearInterval(_heartbeatInterval)
+    _heartbeatInterval = null
+  }
+  stopActiveWs()
+}
+
+export function setShowActiveStatus ({ commit, dispatch, getters }, value) {
+  commit('SET_SHOW_ACTIVE_STATUS', value)
+  if (value && _activeServicesRunning) {
+    startPubkeyRegistrationHeartbeat(dispatch)
+  } else if (!value) {
+    if (_heartbeatInterval) {
+      clearInterval(_heartbeatInterval)
+      _heartbeatInterval = null
+    }
+  }
+}
+
 export function createPrivateRoom ({ commit, getters, state }, contactNpub) {
   const ws = getWalletState(state)
   const contact = getters.getContactByNpub(contactNpub)
@@ -719,7 +1013,7 @@ export async function createGroupRoom ({ commit, state }, { name, members, subje
   const room = {
     id: roomId,
     type: 'group',
-    name: name || subject || 'Group Chat',
+    name: name || subject || 'Group',
     members: allMembers,
     subject: subject || null,
     createdAt: Math.floor(Date.now() / 1000),
@@ -744,11 +1038,11 @@ export async function publishGroupMetadata ({ state }, { roomId, memberPubKeys, 
       ['d', `paytaca:group:${roomId}`],
     ],
     content: JSON.stringify({
-      name: 'Paytaca Group',
+      name: name || null,
       data: {
         roomId,
         members: memberPubKeys,
-        name: name || 'Group Chat',
+        name: name || null,
       },
     }),
   }, privKeyBytes)
@@ -871,6 +1165,77 @@ export async function sendEditMessage ({ state }, { roomId, text, editOf }) {
   }
 
   return { giftWraps, message, roomId }
+}
+
+// Leaving a group sends a "left the group" notification to the other members,
+// then marks the group blocked + archived. While blocked, incoming messages
+// targeting the group are dropped in receiveMessage. Rejoining (unblocking)
+// reverses both flags — see components for the unblock flow.
+export async function leaveGroup ({ commit, dispatch, state }, { roomId }) {
+  const ws = getWalletState(state)
+  const room = ws.rooms.find(r => r.id === roomId)
+  if (!room) throw new Error('Room not found')
+
+  const myPub = ws.keys?.pubKeyHex
+  const contact = state.contacts.find(c => c.pubKeyHex === myPub)
+  const myDisplayName = contact?.name || ws.profile?.displayName || 'You'
+
+  const text = `${myDisplayName} left the group`
+  const { giftWraps, message, roomId: msgRoomId } = await dispatch('sendMessage', { roomId, text })
+  commit('ADD_MESSAGE', { roomId: msgRoomId, message })
+  await dispatch('publishGiftWraps', { giftWraps })
+
+  commit('BLOCK_GROUP', roomId)
+  commit('ARCHIVE_ROOM', roomId)
+}
+
+export async function rejoinGroup ({ commit, dispatch, state }, { roomId }) {
+  const ws = getWalletState(state)
+  const room = ws.rooms.find(r => r.id === roomId)
+  if (!room) throw new Error('Room not found')
+
+  commit('UNBLOCK_GROUP', roomId)
+  commit('UNARCHIVE_ROOM', roomId)
+
+  try {
+    const meta = await dispatch('fetchGroupMetadata', { roomId })
+    if (meta?.name) {
+      commit('UPDATE_ROOM_NAME', { roomId, name: meta.name })
+    }
+  } catch {
+    // Non-critical — name stays as-is if fetch fails
+  }
+
+  // Re-fetch messages that arrived while the group was blocked.
+  // The subscription's _seenEventIds already recorded these events
+  // (before receiveMessage dropped them), so clear the cache and
+  // re-subscribe without `since` to re-fetch everything.
+  // ADD_MESSAGE's id-based dedup prevents duplicates.
+  relayService.clearSeenEventIds()
+  relayService.subscribeGiftWraps(state.relays, ws.keys.pubKeyHex, {
+    async onEvent(event) {
+      try {
+        const { unwrapGiftWrap } = await import('src/wallet/nostr')
+        const { rumor, sealPubkey } = unwrapGiftWrap(event, ws.keys.privKeyHex)
+        dispatch('receiveMessage', { rumor, sealPubkey })
+      } catch (err) {
+        console.warn('[Nostr] Failed to unwrap gift-wrap:', err)
+      }
+    },
+  }, { force: true })
+
+  try {
+    const myPub = ws.keys?.pubKeyHex
+    const contact = state.contacts.find(c => c.pubKeyHex === myPub)
+    const myDisplayName = contact?.name || ws.profile?.displayName || 'You'
+
+    const text = `${myDisplayName} rejoined the group`
+    const { giftWraps, message, roomId: msgRoomId } = await dispatch('sendMessage', { roomId, text })
+    commit('ADD_MESSAGE', { roomId: msgRoomId, message })
+    await dispatch('publishGiftWraps', { giftWraps })
+  } catch (err) {
+    console.warn('[Nostr] Failed to send rejoin notification:', err)
+  }
 }
 
 export async function sendDeleteMessage ({ state }, { roomId, messageId }) {
@@ -1071,13 +1436,15 @@ export async function publishGiftWraps ({ state }, { giftWraps }) {
   // Start with our own relays as fallback
   let targetRelays = new Set(state.relays)
 
-  // Fetch each recipient's kind:10050 in parallel and add their preferred relays
+  // Fetch each recipient's kind:10050 in parallel and add their preferred relays.
+  // Cached per-recipient to avoid re-querying relays on every message send to
+  // the same contact (a `querySync` round-trip per recipient was blocking sends).
   const recipients = giftWraps
     .map(gw => gw.tags.find(t => t[0] === 'p')?.[1])
     .filter(r => r && r !== ws.keys.pubKeyHex)
   const uniqueRecipients = [...new Set(recipients)]
   const results = await Promise.allSettled(
-    uniqueRecipients.map(recipient => relayService.fetchKind10050(state.relays, recipient))
+    uniqueRecipients.map(recipient => fetchKind10050Cached(state.relays, recipient))
   )
   for (const result of results) {
     if (result.status === 'fulfilled' && result.value?.tags) {
@@ -1129,6 +1496,14 @@ export function receiveMessage ({ commit, state }, { rumor, sealPubkey }) {
           messageId,
           readerPubKey,
         })
+      } else {
+        // Message hasn't arrived yet — cache the receipt so it can be
+        // processed once the message is added to a room. Without this, a race
+        // condition (receipt arrives before the original message) silently
+        // drops the receipt forever.
+        const existing = _pendingReadReceipts.get(messageId) || []
+        existing.push({ readerPubKey })
+        _pendingReadReceipts.set(messageId, existing)
       }
     }
     return
@@ -1199,6 +1574,9 @@ export function receiveMessage ({ commit, state }, { rumor, sealPubkey }) {
     const roomMembers = [...new Set([myPubKey, rumor.pubkey, ...pTags])]
     const roomId = computeRoomId(roomMembers)
 
+    // Drop messages for a group we've left (blocked)
+    if (ws.blockedGroups?.includes(roomId)) return
+
     let room = ws.rooms.find(r => r.id === roomId)
     if (!room) {
       if (ws.blockedContacts?.includes(rumor.pubkey)) return
@@ -1209,13 +1587,22 @@ export function receiveMessage ({ commit, state }, { rumor, sealPubkey }) {
       room = {
         id: roomId,
         type: isGroup ? 'group' : 'private',
-        name: contact?.name || rumor.pubkey.slice(0, 12) + '...',
+        name: isGroup ? '' : (contact?.name || rumor.pubkey.slice(0, 12) + '...'),
         members: roomMembers,
         subject: null,
         createdAt: rumor.created_at,
         updatedAt: rumor.created_at,
       }
       commit('ADD_ROOM', room)
+
+      if (isGroup) {
+        dispatch('fetchGroupMetadata', { roomId }).then(meta => {
+          if (meta?.name) {
+            commit('UPDATE_ROOM_NAME', { roomId, name: meta.name })
+          }
+        }).catch(() => {})
+        fetchMemberDisplayNames(dispatch, roomMembers)
+      }
       if (ws.deletedRooms?.[roomId]) commit('DELETE_ROOM_TRACKER', roomId)
     } else if (room.type !== 'group' && roomMembers.length > 2) {
       commit('UPDATE_ROOM_TYPE', { roomId, type: 'group' })
@@ -1259,6 +1646,9 @@ export function receiveMessage ({ commit, state }, { rumor, sealPubkey }) {
   const roomMembers = [...new Set([myPubKey, rumor.pubkey, ...pTags])]
   const roomId = computeRoomId(roomMembers)
 
+  // Drop messages for a group we've left (blocked)
+  if (ws.blockedGroups?.includes(roomId)) return
+
   let room = ws.rooms.find(r => r.id === roomId)
   if (!room) {
     // Before creating a new room, check if an existing room has the same member set
@@ -1272,11 +1662,14 @@ export function receiveMessage ({ commit, state }, { rumor, sealPubkey }) {
       if (deletedEntry?.knownMessageIds?.[rumor.id]) return
       // Reuse the existing room — store the message under its ID
       room = existingByMembers
+      // Drop messages for a group we've left (blocked) — the stored room id
+      // may differ from the computed roomId when legacy rooms exist.
+      if (ws.blockedGroups?.includes(room.id)) return
       const replyTo = rumor.tags.find(t => t[0] === 'e')?.[1] || null
       const hasSubjectTag = rumor.tags.some(t => t[0] === 'subject')
       const subjectRaw = rumor.tags.find(t => t[0] === 'subject')?.[1]
       const subject = hasSubjectTag ? (subjectRaw ?? '') : null
-      if (hasSubjectTag && room.subject !== subject && rumor.created_at >= (room.updatedAt || 0)) {
+      if (hasSubjectTag && room.subject !== subject && (room.subject === null || rumor.created_at >= (room.updatedAt || 0))) {
         commit('UPDATE_ROOM_SUBJECT', { roomId: room.id, subject: subject || null })
         if (!subject && room.type !== 'group') {
           const memberPubKeys = (room.members || []).filter(pk => pk !== ws.keys?.pubKeyHex)
@@ -1311,13 +1704,21 @@ export function receiveMessage ({ commit, state }, { rumor, sealPubkey }) {
     room = {
       id: roomId,
       type: isGroup ? 'group' : 'private',
-      name: contact?.name || rumor.pubkey.slice(0, 12) + '...',
+      name: isGroup ? '' : (contact?.name || rumor.pubkey.slice(0, 12) + '...'),
       members: roomMembers,
       subject: null,
       createdAt: rumor.created_at,
       updatedAt: rumor.created_at,
     }
     commit('ADD_ROOM', room)
+    if (isGroup) {
+      dispatch('fetchGroupMetadata', { roomId }).then(meta => {
+        if (meta?.name) {
+          commit('UPDATE_ROOM_NAME', { roomId, name: meta.name })
+        }
+      }).catch(() => {})
+      fetchMemberDisplayNames(dispatch, roomMembers)
+    }
   } else if (room.type !== 'group' && roomMembers.length > 2) {
     // Upgrade existing private room to group if we discover it has more than 2 members
     commit('UPDATE_ROOM_TYPE', { roomId, type: 'group' })
@@ -1333,7 +1734,7 @@ export function receiveMessage ({ commit, state }, { rumor, sealPubkey }) {
   // room's current updatedAt. This prevents old messages from re-applying
   // a subject that was cleared/updated by a newer local action.
   // Also skip subject updates while the room is in deletedRooms (restored from delete).
-  if (hasSubjectTag && room.subject !== subject && rumor.created_at >= (room.updatedAt || 0) && !ws.deletedRooms?.[roomId]) {
+  if (hasSubjectTag && room.subject !== subject && (room.subject === null || rumor.created_at >= (room.updatedAt || 0)) && !ws.deletedRooms?.[roomId]) {
     commit('UPDATE_ROOM_SUBJECT', { roomId, subject: subject || null })
     if (!subject && room.type !== 'group') {
       const memberPubKeys = (room.members || []).filter(pk => pk !== ws.keys?.pubKeyHex)
@@ -1378,9 +1779,27 @@ export function receiveMessage ({ commit, state }, { rumor, sealPubkey }) {
   }
 
   commit('ADD_MESSAGE', { roomId, message })
+
+  // Flush any pending read receipts whose message has now arrived
+  flushPendingReadReceipts(state, commit)
 }
 
-export async function markRoomAsRead ({ commit, state }, roomId) {
+export async function markRoomAsRead ({ commit, state, dispatch }, { roomId, messageIds, force, localOnly } = {}) {
+  if (localOnly) {
+    const ws = getWalletState(state)
+    const myPubKey = ws.keys.pubKeyHex
+    if (!myPubKey) return
+    const messages = ws.messages[roomId] || []
+    const readIds = ws.readMessageIds?.[roomId] || {}
+    const ids = messages
+      .filter(m => m.sender !== myPubKey && !readIds[m.id] && (!messageIds || messageIds.includes(m.id)))
+      .map(m => m.id)
+    if (ids.length) commit('MARK_MESSAGES_AS_READ', { roomId, messageIds: ids })
+    return
+  }
+  if (_markRoomLocks.has(roomId)) return
+  _markRoomLocks.add(roomId)
+  try {
   const ws = getWalletState(state)
   const myPubKey = ws.keys.pubKeyHex
   const myPrivKey = ws.keys.privKeyHex
@@ -1390,22 +1809,21 @@ export async function markRoomAsRead ({ commit, state }, roomId) {
   const room = ws.rooms.find(r => r.id === roomId)
   if (!room) return
 
-  // Find messages sent by the OTHER person that we haven't read yet
+  // When force=true (retry path), skip the readIds check so we can retry
+  // messages whose receipt send failed on a previous attempt. The readIds
+  // check prevents retries once a message is committed locally.
   const readIds = ws.readMessageIds?.[roomId] || {}
-  const unreadMessages = messages.filter(
-    m => m.sender !== myPubKey && !readIds[m.id]
-  )
+  const candidateIds = messageIds ? new Set(messageIds) : null
+  const unreadMessages = force
+    ? messages.filter(m => m.sender !== myPubKey && (!candidateIds || candidateIds.has(m.id)))
+    : messages.filter(
+        m => m.sender !== myPubKey && !readIds[m.id] && (!candidateIds || candidateIds.has(m.id))
+      )
 
-  // Mark them as read locally
-  if (unreadMessages.length) {
-    commit('MARK_MESSAGES_AS_READ', {
-      roomId,
-      messageIds: unreadMessages.map(m => m.id),
-    })
-  }
+  if (!unreadMessages.length) return
 
   // Send Kind 7 "👀" read receipt gift-wraps back to each sender.
-  // This lets the sender's client know we've read their messages.
+  // Group messages by sender so each sender gets a single gift-wrap.
   const senderMap = new Map()
   for (const msg of unreadMessages) {
     if (!senderMap.has(msg.sender)) {
@@ -1415,18 +1833,80 @@ export async function markRoomAsRead ({ commit, state }, roomId) {
     }
   }
 
-  for (const [senderPubKey, messageIds] of senderMap) {
-    try {
-      const giftWrap = await createReadReceiptGiftWrap({
-        messageIds,
-        senderPubKey,
-        receiverPubKey: myPubKey,
-        receiverPrivKey: myPrivKey,
-      })
-      await relayService.publishEvent(state.relays, giftWrap)
-    } catch (err) {
-      console.warn('[Nostr] Failed to send read receipts for sender:', err)
+  // Only mark messages as read locally AFTER the 👝 reaction is successfully
+  // published. If we mark them first and the publish fails (or the app is
+  // killed before the retry fires), the messages are permanently marked as
+  // read locally but the sender never receives the 👝 — creating a permanent
+  // "never seen" gap on their side.
+  //
+  // Chunk messageIds per sender: relays reject gift-wraps whose content
+  // exceeds 8192 bytes. Each `e` tag (~140 bytes pre-encryption, ~250 bytes
+  // after double NIP-44 encryption + base64) means we can safely fit ~20
+  // messageIds per gift-wrap.
+  const MAX_IDS_PER_GIFT_WRAP = 20
+  const successfullyReadIds = []
+  const failedSenders = []
+  let chunkIndex = 0
+  for (const [senderPubKey, ids] of senderMap) {
+    for (let i = 0; i < ids.length; i += MAX_IDS_PER_GIFT_WRAP) {
+      const chunk = ids.slice(i, i + MAX_IDS_PER_GIFT_WRAP)
+      if (chunkIndex > 0) await new Promise(r => setTimeout(r, 500))
+      chunkIndex++
+      try {
+        const giftWrap = await createReadReceiptGiftWrap({
+          messageIds: chunk,
+          senderPubKey,
+          receiverPubKey: myPubKey,
+          receiverPrivKey: myPrivKey,
+        })
+        await relayService.publishEvent(state.relays, giftWrap)
+        successfullyReadIds.push(...chunk)
+        for (const id of chunk) _readReceiptRetries.delete(`${roomId}:${id}`)
+      } catch (err) {
+        console.warn('[Nostr] Failed to send read receipts for sender:', err)
+        failedSenders.push(chunk)
+      }
     }
+  }
+
+  // Mark as read locally only the messages whose 👝 reaction was sent.
+  // Failed messages stay "unread" so the next markRoomAsRead call re-attempts.
+  if (successfullyReadIds.length) {
+    commit('MARK_MESSAGES_AS_READ', {
+      roomId,
+      messageIds: successfullyReadIds,
+    })
+  }
+
+  // Retry failed sends after a delay so transient errors (network blip, relay
+  // timeout) don't create permanent gaps on the sender's side. Uses force=true
+  // to bypass the readIds check (in case some messages were marked by a prior
+  // partial success).
+  if (failedSenders.length) {
+    const exhaustedIds = []
+    const retryIds = failedSenders.flat().filter(id => {
+      const key = `${roomId}:${id}`
+      const count = (_readReceiptRetries.get(key) || 0) + 1
+      if (count > MAX_READ_RECEIPT_RETRIES) {
+        console.warn('[Nostr] Giving up on read receipt for', key, 'after', MAX_READ_RECEIPT_RETRIES, 'retries')
+        _readReceiptRetries.delete(key)
+        exhaustedIds.push(id)
+        return false
+      }
+      _readReceiptRetries.set(key, count)
+      return true
+    })
+    // Mark exhausted messages as read locally so the debounced markAsRead()
+    // stops picking them up and creating an infinite retry loop.
+    if (exhaustedIds.length) {
+      commit('MARK_MESSAGES_AS_READ', { roomId, messageIds: exhaustedIds })
+    }
+    if (retryIds.length) {
+      setTimeout(() => dispatch('markRoomAsRead', { roomId, messageIds: retryIds, force: true }), 5000)
+    }
+  }
+  } finally {
+    _markRoomLocks.delete(roomId)
   }
 }
 
@@ -1434,6 +1914,24 @@ export function subscribeToRelays ({ state, dispatch, commit }) {
   const ws = getWalletState(state)
   const myPubKey = ws.keys.pubKeyHex
   if (!myPubKey) return
+
+  // Compute `since` from existing messages so the relay doesn't re-send
+  // the entire history on every app start. NIP-17 randomizes created_at
+  // by ±2 days, so we subtract a 3-day buffer from the newest known message.
+  // If there are no existing messages (first ever subscription), `since` is
+  // undefined and the relay sends all history (needed to populate the chat).
+  let since
+  let maxCreatedAt = 0
+  for (const roomId in ws.messages) {
+    const msgs = ws.messages[roomId]
+    if (msgs && msgs.length) {
+      const last = msgs[msgs.length - 1]
+      if (last && last.created_at > maxCreatedAt) maxCreatedAt = last.created_at
+    }
+  }
+  if (maxCreatedAt > 0) {
+    since = maxCreatedAt - 259200 // 3-day buffer for NIP-17 ±2 day randomization
+  }
 
   const wasSubscribed = relayService.isSubscribed()
   const sub = relayService.subscribeGiftWraps(state.relays, myPubKey, {
@@ -1446,7 +1944,7 @@ export function subscribeToRelays ({ state, dispatch, commit }) {
         console.warn('[Nostr] Failed to unwrap gift-wrap:', err)
       }
     },
-  })
+  }, { since })
 
   commit('SET_SUBSCRIBED', relayService.isSubscribed())
 
@@ -1459,6 +1957,8 @@ export function subscribeToRelays ({ state, dispatch, commit }) {
       }
     }, 15000)
   }
+
+  dispatch('startActiveServices')
 
   return sub
 }
@@ -1494,11 +1994,10 @@ export function ensureSubscribed ({ dispatch, getters }) {
   }
 }
 
-export function disconnectRelays ({ commit }) {
-  relayService.stopStatusPolling()
-  relayService.disconnect()
-  commit('SET_SUBSCRIBED', false)
-}
+// NOTE: A `disconnectRelays` action previously lived here but had no callers
+// and was removed. Relay teardown is handled by `reinitialize` (wallet switch)
+// and `resetAndRefetch` via `relayService.disconnect()`. If a page-scoped
+// teardown is needed later, re-add it and dispatch it from the chat pages.
 
 export async function resetAndRefetch ({ commit, dispatch, state }) {
   const ws = getWalletState(state)
@@ -1508,6 +2007,7 @@ export async function resetAndRefetch ({ commit, dispatch, state }) {
   }
 
   // Disconnect existing relay subscriptions
+  stopActiveServices()
   relayService.stopStatusPolling()
   relayService.disconnect()
   commit('SET_SUBSCRIBED', false)

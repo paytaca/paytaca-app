@@ -91,7 +91,7 @@
           borderless
           :dark="darkMode"
           class="chat-text-field"
-          :placeholder="blocked ? $t('ContactBlockedInputDisabled', {}, 'Contact blocked') : (disabled ? $t('ConversationArchivedInputDisabled', {}, 'Conversation archived') : $t('TypeAMessage', {}, 'Type a message...'))"
+          :placeholder="blocked ? (blockedPlaceholder || $t('ContactBlockedInputDisabled', {}, 'Contact blocked')) : (disabled ? $t('ConversationArchivedInputDisabled', {}, 'Conversation archived') : $t('TypeAMessage', {}, 'Type a message...'))"
           :maxlength="MAX_CHARS"
           :disable="disabled"
           @keydown.enter="onEnterKey"
@@ -164,6 +164,7 @@ export default {
     roomId: { type: String, default: '' },
     disabled: { type: Boolean, default: false },
     blocked: { type: Boolean, default: false },
+    blockedPlaceholder: { type: String, default: '' },
   },
   data () {
     return {
@@ -330,6 +331,14 @@ export default {
         
         this.$store.commit('nostrChat/ADD_MESSAGE', { roomId: this.roomId, message })
         await this.$store.dispatch('nostrChat/publishGiftWraps', { giftWraps })
+        const myPubKey = this.$store.getters['nostrChat/myPubKey']
+        const room = this.$store.getters['nostrChat/getRoom'](this.roomId)
+        if (this.$store.getters['nostrChat/getShowActiveStatus'] && myPubKey && room?.members) {
+          this.$store.dispatch('nostrChat/touchActive', {
+            pubkey: myPubKey,
+            recipients: room.members.filter(m => m !== myPubKey),
+          })
+        }
       } catch (error) {
         if (error.name === 'AbortError') return
         console.error('File upload error:', error)
