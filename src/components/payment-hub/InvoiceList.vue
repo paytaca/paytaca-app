@@ -270,7 +270,9 @@ function showInvoiceDetail(invoice) {
   $q.dialog({
     component: InvoiceDetailDialog,
     componentProps: {
-      invoiceId: invoice.invoice_id
+      invoiceId: invoice.invoice_id,
+      subscriptionId: invoice.subscription_id || invoice.subscription || null,
+      planId: invoice.plan_id || invoice.plan || null
     }
   })
 }

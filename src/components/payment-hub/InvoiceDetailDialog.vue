@@ -184,6 +184,14 @@ const props = defineProps({
   invoiceId: {
     type: String,
     required: true
+  },
+  subscriptionId: {
+    type: String,
+    default: null
+  },
+  planId: {
+    type: String,
+    default: null
   }
 })
 
@@ -213,7 +221,14 @@ async function fetchInvoice() {
     const walletIndex = $store.getters['global/getWalletIndex']
     const wallet = await loadWallet('BCH', walletIndex)
     const hub = new PaymentHub(wallet)
-    invoice.value = await hub.getInvoice(props.invoiceId)
+    
+    if (props.subscriptionId) {
+      invoice.value = await hub.getSubscriptionInvoice(props.subscriptionId, props.invoiceId)
+    } else if (props.planId) {
+      invoice.value = await hub.getPlanInvoice(props.planId, props.invoiceId)
+    } else {
+      invoice.value = await hub.getInvoice(props.invoiceId)
+    }
   } catch (err) {
     console.error('Error fetching invoice details:', err)
     error.value = 'Failed to load invoice details'

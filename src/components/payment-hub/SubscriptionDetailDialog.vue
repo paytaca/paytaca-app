@@ -195,7 +195,7 @@
             </div>
             <div v-else>
               <q-list separator class="br-10 border-grey-4">
-                <q-item v-for="inv in invoices" :key="inv.invoice_id" class="q-py-md">
+                <q-item v-for="inv in invoices" :key="inv.invoice_id" clickable v-ripple class="q-py-md" @click="showInvoiceDetail(inv)">
                   <q-item-section side top>
                     <q-badge
                       :color="inv.status === 'PAID' ? 'green-4' : (inv.status === 'PENDING' ? 'orange-4' : 'grey-5')"
@@ -239,6 +239,7 @@ import { date } from 'quasar'
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 import TopUpDialog from 'src/components/payment-hub/TopUpDialog.vue'
 import { PaymentHub } from 'src/wallet/payment-hub'
+import InvoiceDetailDialog from 'src/components/payment-hub/InvoiceDetailDialog.vue'
 import { loadWallet } from 'src/wallet'
 import { useI18n } from 'vue-i18n'
 
@@ -365,6 +366,16 @@ async function fetchInvoices() {
   } finally {
     loadingInvoices.value = false
   }
+}
+
+function showInvoiceDetail(inv) {
+  $q.dialog({
+    component: InvoiceDetailDialog,
+    componentProps: {
+      invoiceId: inv.invoice_id,
+      subscriptionId: props.subscriptionId || sub.value?.id
+    }
+  })
 }
 
 function topUp() {
