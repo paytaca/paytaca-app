@@ -316,6 +316,7 @@
         :wallet-hash="walletHash"
         :dark-mode="darkMode"
         :from-create-wallet="false"
+        :referral-code="code"
         @on-proceed-to-next-step="onReferralDialogClose"
       />
     </q-card>
@@ -345,6 +346,10 @@ import PromoContract from 'src/utils/rewards-utils/contracts/PromoContract'
 
 export default {
   name: 'RewardsPage',
+
+  props: {
+    code: { type: String, default: '' }
+  },
 
   components: {
     HeaderNav,
@@ -541,6 +546,10 @@ export default {
 
   async mounted () {
     await this.loadRewards()
+
+    if (this.code) {
+      this.isReferralDialogActive = true
+    }
   },
 
   methods: {
