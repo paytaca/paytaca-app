@@ -643,12 +643,14 @@
       v-model="showSellerDisputeDialog"
       :lot="lot"
       :bidId="winningBidId"
+      @submit="refresh(() => {})"
     />
 
     <RefundPopup
       v-model="showRefundDialog"
       :lot="lot"
       :bidId="winningBidId"
+      @submit="refresh(() => {})"
     />
 
     <BiddingHistoryPopup

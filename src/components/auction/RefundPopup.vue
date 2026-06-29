@@ -138,6 +138,8 @@ const handleSubmit = async () => {
       message: 'Refund submitted successfully!',
       timeout: 4000
     })
+
+    emit('submit')
   } catch (error) {
     console.error('Refund failed:', error)
     $q.notify({

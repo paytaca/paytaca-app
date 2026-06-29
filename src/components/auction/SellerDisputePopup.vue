@@ -123,7 +123,7 @@ const handleSubmit = async () => {
   try {
     const response = await callAPI('disputes', null, 'post', {
       user: walletHash,
-      contract: 2,
+      contract: 3,
       bid: props.bidId,
       dispute_reason: selectedReasons.value.join(';')
     })
@@ -138,6 +138,8 @@ const handleSubmit = async () => {
       message: 'Dispute submitted successfully!',
       timeout: 4000
     })
+
+    emit('submit')
   } catch (error) {
     console.error('Refund failed:', error)
     $q.notify({
