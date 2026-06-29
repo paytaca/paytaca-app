@@ -170,8 +170,9 @@ import { useQuasar, copyToClipboard } from 'quasar'
 import { useI18n } from 'vue-i18n'
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 import HeaderNav from 'src/components/header-nav'
-import SubscribeDialog from './SubscribeDialog.vue'
-import SubscriptionDetailDialog from './SubscriptionDetailDialog.vue'
+import SubscribeDialog from 'src/components/payment-hub/SubscribeDialog.vue'
+import TopUpDialog from 'src/components/payment-hub/TopUpDialog.vue'
+import SubscriptionDetailDialog from 'src/components/payment-hub/SubscriptionDetailDialog.vue'
 import { PaymentHub } from 'src/wallet/payment-hub'
 import { loadWallet } from 'src/wallet'
 
@@ -211,7 +212,10 @@ function onSearch() {
 
 function topUp(sub) {
   if (sub.contract_address) {
-    $router.push({ name: 'transaction-send', query: { address: sub.contract_address, assetId: 'bch', backPath: '/apps/payment-hub-subscriptions/' } })
+    $q.dialog({
+      component: TopUpDialog,
+      componentProps: { subscription: sub }
+    })
   }
 }
 
@@ -425,10 +429,16 @@ function openSubscribeDialog() {
         wallet_hash: bchWallet.walletHash
       }
 
-      await hub.value.createSubscription(payload)
+      const createdSub = await hub.value.createSubscription(payload)
 
       $q.notify({ type: 'positive', message: 'Successfully subscribed to plan' })
       await refreshPage()
+      
+      // Open TopUp Dialog
+      $q.dialog({
+        component: TopUpDialog,
+        componentProps: { subscription: createdSub }
+      })
     } catch (error) {
       console.error(error)
       const errorMsg = error.response?.data?.error || error.message

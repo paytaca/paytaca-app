@@ -218,6 +218,7 @@ import { useDialogPluginComponent, copyToClipboard, useQuasar } from 'quasar'
 import { useStore } from 'vuex'
 import { date } from 'quasar'
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
+import TopUpDialog from 'src/components/payment-hub/TopUpDialog.vue'
 import { PaymentHub } from 'src/wallet/payment-hub'
 import { loadWallet } from 'src/wallet'
 import { useI18n } from 'vue-i18n'
@@ -328,7 +329,10 @@ async function fetchInvoices() {
 
 function topUp() {
   if (sub.value?.contract_address) {
-    $router.push({ name: 'transaction-send', query: { address: sub.value.contract_address, assetId: 'bch', backPath: '/apps/payment-hub-subscriptions/' } })
+    $q.dialog({
+      component: TopUpDialog,
+      componentProps: { subscription: sub.value }
+    })
     onDialogHide()
   }
 }

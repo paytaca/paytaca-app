@@ -34,7 +34,7 @@
               <q-separator class="q-my-md" />
               
               <div class="row justify-between q-mt-sm items-start">
-                <div class="text-caption text-grey">{{ $t('Amount') }}</div>
+                <div class="text-caption text-grey">{{ $t('BillingAmount') || 'Billing Amount' }}</div>
                 <div class="text-right">
                   <div class="text-body2 text-weight-medium">{{ formatAmount(planDetails.amount) }} {{ planDetails.currency }}</div>
                   <div class="text-caption text-grey" v-if="planDetails.currency !== 'BCH' && bchPrice > 0">
