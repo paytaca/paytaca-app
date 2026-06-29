@@ -142,7 +142,14 @@ export default {
   props: {
     walletHash: { type: String, default: '' },
     darkMode: { type: Boolean, default: false },
-    fromCreateWallet: { type: Boolean, default: true }
+    fromCreateWallet: { type: Boolean, default: true },
+    referralCode: { type: String, default: '' }
+  },
+
+  mounted () {
+    if (this.referralCode) {
+      this.manualReferralCode = this.referralCode
+    }
   },
 
   emits: ['on-proceed-to-next-step'],
