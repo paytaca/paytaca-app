@@ -792,16 +792,56 @@ export async function fetchActiveStatus ({ state, commit, rootGetters }) {
   try {
     const isChipnet = rootGetters['global/isChipnet']
     const baseUrl = isChipnet ? 'https://chipnet.watchtower.cash' : 'https://watchtower.cash'
+    const authHeaders = await getAuthHeaders()
     const response = await fetch(`${baseUrl}/api/nostr/last-active/`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: {
+        'Content-Type': 'application/json',
+        ...authHeaders,
+      },
       body: JSON.stringify({ pubkeys }),
     })
+    if (response.status === 401) {
+      await clearToken()
+      const retryResponse = await fetch(`${baseUrl}/api/nostr/last-active/`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(await getAuthHeaders()),
+        },
+        body: JSON.stringify({ pubkeys }),
+      })
+      if (!retryResponse.ok) {
+        console.warn('[Nostr] fetchActiveStatus failed after token refresh:', retryResponse.status)
+        return
+      }
+      const data = await retryResponse.json()
+      return processActiveStatusResponse(data, pubkeys, commit)
+    }
     if (!response.ok) {
       console.warn('[Nostr] fetchActiveStatus failed:', response.status)
       return
     }
     const data = await response.json()
+    return processActiveStatusResponse(data, pubkeys, commit)
+  } catch (err) {
+    console.warn('[Nostr] fetchActiveStatus error:', err)
+  }
+}
+
+function processActiveStatusResponse (data, pubkeys, commit) {
+  const statusMap = {}
+  for (const pubkey of pubkeys) {
+    if (data[pubkey]) {
+      statusMap[pubkey] = {
+        lastActiveAt: data[pubkey],
+        fetchedAt: Date.now(),
+      }
+      scheduleActiveExpiry(pubkey, commit)
+    }
+  }
+  commit('SET_ACTIVE_STATUS', statusMap)
+}
     const statusMap = {}
     for (const pubkey of pubkeys) {
       if (data[pubkey]) {
