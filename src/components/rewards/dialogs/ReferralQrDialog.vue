@@ -368,7 +368,7 @@ export default {
         `
 
         const qrcode = new QRCode({
-          content: this.referralCodeFull,
+          content: this.referralShareUrl,
           width: 300,
           height: 300,
           swap: true,
