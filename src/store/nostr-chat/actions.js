@@ -850,7 +850,7 @@ export async function touchActive ({ rootGetters }, { pubkey, recipients }) {
   }
 }
 
-function startActiveHeartbeat (dispatch) {
+function startPubkeyRegistrationHeartbeat (dispatch) {
   if (_heartbeatInterval) clearInterval(_heartbeatInterval)
   dispatch('registerNostrPubkey')
   _heartbeatInterval = setInterval(() => {
@@ -922,11 +922,13 @@ export function stopActiveWs () {
     clearTimeout(_activeWsReconnectTimer)
     _activeWsReconnectTimer = null
   }
-  if (_activeWs && _activeWsHandlers) {
-    _activeWs.removeEventListener('open', _activeWsHandlers.open)
-    _activeWs.removeEventListener('message', _activeWsHandlers.message)
-    _activeWs.removeEventListener('close', _activeWsHandlers.close)
-    _activeWs.removeEventListener('error', _activeWsHandlers.error)
+  if (_activeWs) {
+    if (_activeWsHandlers) {
+      _activeWs.removeEventListener('open', _activeWsHandlers.open)
+      _activeWs.removeEventListener('message', _activeWsHandlers.message)
+      _activeWs.removeEventListener('close', _activeWsHandlers.close)
+      _activeWs.removeEventListener('error', _activeWsHandlers.error)
+    }
     _activeWs.close()
   }
   _activeWs = null
@@ -941,7 +943,7 @@ export function startActiveServices ({ dispatch, getters, state, commit, rootGet
   dispatch('startActiveWs')
 
   if (getters.getShowActiveStatus) {
-    startActiveHeartbeat(dispatch)
+    startPubkeyRegistrationHeartbeat(dispatch)
   }
 }
 
@@ -958,7 +960,7 @@ export function stopActiveServices () {
 export function setShowActiveStatus ({ commit, dispatch, getters }, value) {
   commit('SET_SHOW_ACTIVE_STATUS', value)
   if (value && _activeServicesRunning) {
-    startActiveHeartbeat(dispatch)
+    startPubkeyRegistrationHeartbeat(dispatch)
   } else if (!value) {
     if (_heartbeatInterval) {
       clearInterval(_heartbeatInterval)

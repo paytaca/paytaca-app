@@ -2707,6 +2707,8 @@ const phrases = {
       SetBio: 'Set Bio',
       SetDisplayName: 'Set Display Name',
       SetPicture: 'Set Picture',
+      ShowActiveStatus: 'Show Active Status',
+      ActiveStatusDescription: 'Let others see when you are active. When this is off, you will also not see their active status.',
       ShareGroupLink: 'Share Group Link',
       SubjectChangedTo: 'Changed subject to "{subject}"',
       SubjectUpdateFailed: 'Failed to update subject',
