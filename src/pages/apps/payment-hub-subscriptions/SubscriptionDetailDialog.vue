@@ -34,11 +34,7 @@
               {{ sub.status }}
             </q-badge>
             <div class="text-h6">{{ sub.plan_details?.name || 'Subscription' }}</div>
-            <div class="text-subtitle2 text-grey" v-if="sub.plan_details">
-              {{ sub.plan_details.amount }} {{ sub.plan_details.currency }}
-              /
-              {{ intervalLabel }}
-            </div>
+
             <!-- Vault Address Prominent -->
             <div class="q-mt-sm">
               <div class="text-caption text-grey">{{ $t('ContractAddress') || 'Contract Address' }}</div>
@@ -51,7 +47,7 @@
           <div class="col-auto text-right">
             <div class="q-mt-md">
               <q-btn
-                v-if="sub.status === 'ACTIVE' || sub.status === 'PENDING'"
+                v-if="isCustomer && (sub.status === 'ACTIVE' || sub.status === 'PENDING')"
                 unelevated
                 rounded
                 color="pt-primary1"
@@ -87,12 +83,28 @@
               <div class="text-body2">{{ sub.plan_details.description }}</div>
             </div>
 
-            <!-- Pledge -->
-            <div class="q-mb-md">
-              <div class="text-caption text-grey">{{ $t('PledgeAmount') || 'Pledge Amount' }}</div>
+            <!-- Billing Amount -->
+            <div class="q-mb-md" v-if="sub.plan_details">
+              <div class="row items-center q-gutter-x-xs text-caption text-grey">
+                <span>{{ $t('BillingAmount') || 'Billing Amount' }}</span>
+                <q-btn flat round dense icon="help_outline" size="xs" color="grey" @click="showBillingInfo" />
+              </div>
               <div class="row items-baseline q-gutter-x-sm">
-                <div class="text-weight-bold text-body1">{{ pledgeBch }} BCH</div>
-                <div class="text-caption text-grey">{{ pledge_satoshis_formatted }} sats</div>
+                <div class="text-weight-bold text-body1">{{ formatAmount(sub.plan_details.amount) }} {{ sub.plan_details.currency }}</div>
+                <div class="text-caption text-grey" v-if="sub.plan_details.currency !== 'BCH' && bchPrice > 0">
+                  ~{{ getEquivalentBch(sub.plan_details.amount) }} BCH
+                </div>
+              </div>
+            </div>
+
+            <!-- Billing Period -->
+            <div class="q-mb-md" v-if="sub.plan_details">
+              <div class="text-caption text-grey">{{ $t('BillingReceivingPeriod') || 'Billing/Receiving Period' }}</div>
+              <div class="row items-center">
+                <div class="text-body2 text-weight-medium">
+                  {{ getPeriodText(sub.plan_details) }}
+                </div>
+                <q-btn flat round dense icon="info" size="xs" color="grey" class="q-ml-xs" @click="showBlocksInfo(sub.plan_details.period_blocks)" v-if="sub.plan_details.period_blocks" />
               </div>
             </div>
 
@@ -208,9 +220,13 @@ import { date } from 'quasar'
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 import { PaymentHub } from 'src/wallet/payment-hub'
 import { loadWallet } from 'src/wallet'
+import { useI18n } from 'vue-i18n'
+
+const { t } = useI18n()
 
 const props = defineProps({
-  subscriptionId: { type: String, required: true }
+  subscriptionId: { type: String, required: true },
+  isCustomer: { type: Boolean, default: false }
 })
 
 defineEmits([...useDialogPluginComponent.emits])
@@ -240,16 +256,37 @@ const statusColor = computed(() => {
   return 'grey-5'
 })
 
-const intervalLabel = computed(() => {
-  if (!sub.value?.plan_details) return ''
-  const p = sub.value.plan_details
-  if (p.period_days) return `${p.period_days} day${p.period_days !== 1 ? 's' : ''}`
-  if (p.period_blocks) return `${p.period_blocks} blocks`
-  // Fall back to period_blocks on the subscription itself
-  if (sub.value.period_blocks) return `${sub.value.period_blocks} blocks`
-  return ''
+const bchPrice = computed(() => {
+  if (!sub.value?.plan_details || sub.value.plan_details.currency === 'BCH') return 0
+  return $store.getters['market/getAssetPrice']('bch', sub.value.plan_details.currency) || 0
 })
 
+function getEquivalentBch(amount) {
+  if (!bchPrice.value) return 0
+  const bchAmount = parseFloat(amount) / bchPrice.value
+  const sats = Math.round(bchAmount * 100000000)
+  return (sats / 100000000).toFixed(8).replace(/\.?0+$/, '') || '0'
+}
+
+function showBillingInfo() {
+  if (!sub.value?.plan_details) return
+  const p = sub.value.plan_details
+  const periodText = getPeriodText(p)
+  
+  let msg = ''
+  if (p.period_days) {
+    msg = t('BillingAmountInfoDays', { periodText }) || `This is the amount billed every ${periodText}.`
+  } else if (p.period_blocks) {
+    msg = t('BillingAmountInfoBlocks', { periodText, blocks: p.period_blocks }) || `This is the amount billed every ${periodText} or every ${p.period_blocks} blocks.`
+  }
+
+  $q.dialog({
+    title: t('BillingAmount') || 'Billing Amount',
+    message: msg,
+    color: 'pt-primary1',
+    ok: { flat: true, color: 'pt-primary1', label: 'OK' }
+  })
+}
 const pledgeBch = computed(() => {
   if (!sub.value?.pledge_satoshis) return '-'
   return (sub.value.pledge_satoshis / 1e8).toFixed(8).replace(/\.?0+$/, '')
@@ -266,7 +303,7 @@ async function fetchSubscription() {
   try {
     const wallet = await loadWallet('BCH', $store.getters['global/getWalletIndex'])
     if (!hub) hub = new PaymentHub(wallet)
-    sub.value = await hub.getSubscription(props.subscriptionId, { customer: true })
+    sub.value = await hub.getSubscription(props.subscriptionId, props.isCustomer ? { customer: true } : undefined)
     await fetchInvoices()
   } catch (err) {
     console.error('Error fetching subscription:', err)
@@ -280,7 +317,7 @@ async function fetchInvoices() {
   loadingInvoices.value = true
   try {
     // Note: The method `listSubscriptionInvoices` will be implemented in payment-hub.js
-    const data = await hub.listSubscriptionInvoices(props.subscriptionId, { page: 1, customer: true })
+    const data = await hub.listSubscriptionInvoices(props.subscriptionId, { page: 1, ...(props.isCustomer ? { customer: true } : {}) })
     invoices.value = data.results || []
   } catch (err) {
     console.error('Error fetching invoices:', err)
@@ -291,9 +328,54 @@ async function fetchInvoices() {
 
 function topUp() {
   if (sub.value?.contract_address) {
-    $router.push({ name: 'transaction-send', query: { address: sub.value.contract_address, assetId: 'bch' } })
+    $router.push({ name: 'transaction-send', query: { address: sub.value.contract_address, assetId: 'bch', backPath: '/apps/payment-hub-subscriptions/' } })
     onDialogHide()
   }
+}
+
+function formatAmount(amount) {
+  const num = parseFloat(amount)
+  if (isNaN(num)) return amount
+  return parseFloat(num.toFixed(2)).toString()
+}
+
+function getPeriodText(p) {
+  if (p.period_days) {
+    return `${p.period_days} ${p.period_days === 1 ? (t('Day') || 'day') : (t('Days') || 'days')}`
+  }
+  const blocks = p.period_blocks
+  if (!blocks) return ''
+  
+  let timeStr = ''
+  if (blocks % 4320 === 0) {
+    const v = blocks / 4320
+    timeStr = `${v} ${v === 1 ? (t('Month') || 'month') : (t('Months') || 'months')}`
+  } else if (blocks % 1008 === 0) {
+    const v = blocks / 1008
+    timeStr = `${v} ${v === 1 ? (t('Week') || 'week') : (t('Weeks') || 'weeks')}`
+  } else if (blocks % 144 === 0) {
+    const v = blocks / 144
+    timeStr = `${v} ${v === 1 ? (t('Day') || 'day') : (t('Days') || 'days')}`
+  } else if (blocks % 6 === 0) {
+    const v = blocks / 6
+    timeStr = `${v} ${v === 1 ? (t('Hour') || 'hour') : (t('Hours') || 'hours')}`
+  } else {
+    timeStr = `${blocks * 10} ${t('Minutes') || 'minutes'}`
+  }
+  return timeStr
+}
+
+function showBlocksInfo(blocks) {
+  $q.dialog({
+    title: t('BillingReceivingPeriod') || 'Billing/Receiving Period',
+    message: `${t('EstimatedTimeBasedOnBlocks') || 'The displayed time is an estimate based on the Bitcoin Cash network block target of 10 minutes per block. The exact interval is'} ${blocks} ${t('Blocks') || 'blocks'}.`,
+    color: 'pt-primary1',
+    ok: {
+      flat: true,
+      color: 'pt-primary1',
+      label: 'OK'
+    }
+  })
 }
 
 function formatDate(dateStr) {

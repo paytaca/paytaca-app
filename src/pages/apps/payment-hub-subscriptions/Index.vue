@@ -9,7 +9,8 @@
     </q-header>
 
     <q-page-container>
-      <q-page :class="darkMode ? 'bg-pt-dark-page' : 'bg-pt-light-page'" class="column no-wrap q-pa-md">
+      <q-page :class="darkMode ? 'bg-pt-dark-page' : 'bg-pt-light-page'" class="column no-wrap">
+        <q-pull-to-refresh @refresh="refreshPage" class="col column no-wrap q-pa-md">
         <div class="row items-center q-mb-md">
           <div class="text-h6 text-bow" :class="getDarkModeClass(darkMode)">
             {{ $t('MySubscriptions') || 'My Subscriptions' }}
@@ -155,7 +156,7 @@
             <q-tooltip>{{ $t('SubscribeToPlan') || 'Subscribe to Plan' }}</q-tooltip>
           </q-btn>
         </q-page-sticky>
-
+        </q-pull-to-refresh>
       </q-page>
     </q-page-container>
   </q-layout>
@@ -210,7 +211,7 @@ function onSearch() {
 
 function topUp(sub) {
   if (sub.contract_address) {
-    $router.push({ name: 'transaction-send', query: { address: sub.contract_address, assetId: 'bch' } })
+    $router.push({ name: 'transaction-send', query: { address: sub.contract_address, assetId: 'bch', backPath: '/apps/payment-hub-subscriptions/' } })
   }
 }
 
@@ -286,7 +287,7 @@ async function onLoadMoreSubscriptions(index, done) {
 function openDetail(sub) {
   $q.dialog({
     component: SubscriptionDetailDialog,
-    componentProps: { subscriptionId: sub.id }
+    componentProps: { subscriptionId: sub.id, isCustomer: true }
   })
 }
 

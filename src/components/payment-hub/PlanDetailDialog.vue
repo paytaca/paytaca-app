@@ -32,9 +32,10 @@
             <div class="text-h6 q-mt-sm">{{ plan.name }}</div>
           </div>
           <div class="col-auto text-right">
-            <div class="text-h6 text-weight-bold">{{ plan.amount }} {{ plan.currency }}</div>
-            <div class="text-subtitle2 text-grey">
-              {{ plan.period_days ? plan.period_days + ' ' + ($t('Days') || 'Days') : plan.period_blocks + ' ' + ($t('Blocks') || 'Blocks') }}
+            <div class="text-h6 text-weight-bold">{{ formatAmount(plan.amount) }} {{ plan.currency }}</div>
+            <div class="row items-center justify-end text-subtitle2 text-grey">
+              {{ getPeriodText(plan) }}
+              <q-btn flat round dense icon="info" size="xs" color="grey" class="q-ml-xs" @click="showBlocksInfo(plan.period_blocks)" v-if="plan.period_blocks" />
             </div>
           </div>
         </div>
@@ -100,6 +101,9 @@ import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 import { loadWallet } from 'src/wallet'
 import { PaymentHub } from 'src/wallet/payment-hub'
 import { date, openURL } from 'quasar'
+import { useI18n } from 'vue-i18n'
+
+const { t } = useI18n()
 
 const props = defineProps({
   planId: { type: String, required: true }
@@ -144,6 +148,51 @@ async function fetchPlan() {
 function formatDate(dateStr) {
   if (!dateStr) return '-'
   return date.formatDate(dateStr, 'MMM D, YYYY HH:mm')
+}
+
+function formatAmount(amount) {
+  const num = parseFloat(amount)
+  if (isNaN(num)) return amount
+  return parseFloat(num.toFixed(2)).toString()
+}
+
+function getPeriodText(p) {
+  if (p.period_days) {
+    return `Every ${p.period_days} ${p.period_days === 1 ? (t('Day') || 'day') : (t('Days') || 'days')}`
+  }
+  const blocks = p.period_blocks
+  if (!blocks) return ''
+  
+  let timeStr = ''
+  if (blocks % 4320 === 0) {
+    const v = blocks / 4320
+    timeStr = `${v} ${v === 1 ? (t('Month') || 'month') : (t('Months') || 'months')}`
+  } else if (blocks % 1008 === 0) {
+    const v = blocks / 1008
+    timeStr = `${v} ${v === 1 ? (t('Week') || 'week') : (t('Weeks') || 'weeks')}`
+  } else if (blocks % 144 === 0) {
+    const v = blocks / 144
+    timeStr = `${v} ${v === 1 ? (t('Day') || 'day') : (t('Days') || 'days')}`
+  } else if (blocks % 6 === 0) {
+    const v = blocks / 6
+    timeStr = `${v} ${v === 1 ? (t('Hour') || 'hour') : (t('Hours') || 'hours')}`
+  } else {
+    timeStr = `${blocks * 10} ${t('Minutes') || 'minutes'}`
+  }
+  return `Every ${timeStr}`
+}
+
+function showBlocksInfo(blocks) {
+  $q.dialog({
+    title: t('BillingReceivingPeriod') || 'Billing/Receiving Period',
+    message: `${t('EstimatedTimeBasedOnBlocks') || 'The displayed time is an estimate based on the Bitcoin Cash network block target of 10 minutes per block. The exact interval is'} ${blocks} ${t('Blocks') || 'blocks'}.`,
+    color: 'pt-primary1',
+    ok: {
+      flat: true,
+      color: 'pt-primary1',
+      label: 'OK'
+    }
+  })
 }
 
 function copyText(text, label = 'Text') {
