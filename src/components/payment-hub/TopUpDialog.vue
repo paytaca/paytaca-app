@@ -156,11 +156,18 @@ function getApproximateTime(blocks) {
 }
 
 function onConfirm() {
+  const bchAmount = totalBchFormatted.value
+  const contractAddress = props.subscription.contract_address || ''
+
+  // Embed amount as BIP21 URI parameter so the send page's onScannerDecode parses it
+  const addressWithAmount = bchAmount && parseFloat(bchAmount) > 0
+    ? `${contractAddress}?amount=${bchAmount}`
+    : contractAddress
+
   const query = { 
-    address: props.subscription.contract_address, 
+    address: addressWithAmount, 
     assetId: 'bch', 
-    backPath: '/apps/payment-hub-subscriptions/',
-    amount: totalBchFormatted.value
+    backPath: '/apps/payment-hub-subscriptions/'
   }
   
   onDialogOK()
