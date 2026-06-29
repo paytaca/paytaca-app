@@ -2,7 +2,18 @@
   <q-dialog ref="dialogRef" @hide="onDialogHide">
     <q-card class="br-15 pt-card-2 text-bow" :class="getDarkModeClass(darkMode)" style="width: 520px; max-width: 95vw;">
       <q-card-section class="row items-center q-pb-none">
-        <div class="text-h6">{{ $t('SubscriptionDetails') || 'Subscription Details' }}</div>
+        <template v-if="sub && sub.plan_details?.store_info">
+          <div class="row items-center">
+            <q-avatar size="40px" class="q-mr-sm" v-if="sub.plan_details.store_info.logo || sub.plan_details.store_info.logo_url">
+              <img :src="sub.plan_details.store_info.logo || sub.plan_details.store_info.logo_url" />
+            </q-avatar>
+            <q-avatar v-else size="40px" class="q-mr-sm bg-white">
+              <img src="~assets/paytaca_payment_hub_logo.png" />
+            </q-avatar>
+            <div class="text-h5 text-weight-bold">{{ sub.plan_details.store_info.name }}</div>
+          </div>
+        </template>
+        <div v-else class="text-h6">{{ $t('SubscriptionDetails') || 'Subscription Details' }}</div>
         <q-space />
         <q-btn icon="close" flat round dense v-close-popup />
       </q-card-section>
@@ -25,30 +36,24 @@
         <!-- Status header & Vault Focus -->
         <div class="row justify-between items-start q-mb-md">
           <div class="col">
-            <q-badge
-              :color="statusColor"
-              :text-color="darkMode ? 'black' : 'white'"
-              class="text-weight-bold q-px-md q-py-xs br-5 q-mb-sm"
-              style="font-size: 0.85rem;"
-            >
-              {{ sub.status }}
-            </q-badge>
-            <div class="text-h6">{{ sub.plan_details?.name || 'Subscription' }}</div>
-
-            <!-- Vault Address Prominent -->
-            <div class="q-mt-sm">
-              <div class="text-caption text-grey">{{ $t('ContractAddress') || 'Contract Address' }}</div>
-              <div class="row no-wrap items-center">
-                <div class="text-body2 font-mono ellipsis" style="max-width: 250px;">{{ sub.contract_address }}</div>
-                <q-btn flat round dense icon="content_copy" size="sm" class="q-ml-xs" @click="copyText(sub.contract_address, 'Contract Address')" />
-              </div>
+            <!-- Plan Name & Status -->
+            <div class="row items-center q-mb-sm">
+              <div class="text-h6 q-mr-sm">{{ sub.plan_details?.name || 'Subscription' }}</div>
+              <q-badge
+                :color="statusColor"
+                :text-color="darkMode ? 'black' : 'white'"
+                class="text-weight-bold q-px-sm q-py-xs br-5"
+                style="font-size: 0.75rem;"
+              >
+                {{ sub.status }}
+              </q-badge>
             </div>
 
             <!-- Contract Balance -->
-            <div class="q-mt-sm" v-if="sub.plan_details">
+            <div class="q-mb-sm" v-if="sub.plan_details">
               <div class="text-caption text-grey">{{ $t('ContractBalance') || 'Contract Balance' }}</div>
               <div class="row items-baseline q-gutter-x-sm">
-                <div class="text-body2 text-weight-medium">
+                <div class="text-subtitle1 text-weight-bold">
                   <span v-if="sub.plan_details.currency !== 'BCH' && bchPrice > 0">{{ contractBalanceFiat }} {{ sub.plan_details.currency }}</span>
                   <span v-else>{{ contractBalanceBch }} BCH</span>
                 </div>
@@ -60,9 +65,43 @@
                 </div>
               </div>
             </div>
+
+            <!-- Billing Amount -->
+            <div class="q-mb-sm" v-if="sub.plan_details">
+              <div class="row items-center q-gutter-x-xs text-caption text-grey">
+                <span>{{ $t('BillingAmount') || 'Billing Amount' }}</span>
+                <q-btn flat round dense icon="help_outline" size="xs" color="grey" @click="showBillingInfo" />
+              </div>
+              <div class="row items-baseline q-gutter-x-sm">
+                <div class="text-body2 text-weight-medium">{{ formatAmount(sub.plan_details.amount) }} {{ sub.plan_details.currency }}</div>
+                <div class="text-caption text-grey" v-if="sub.plan_details.currency !== 'BCH' && bchPrice > 0">
+                  ~{{ getEquivalentBch(sub.plan_details.amount) }} BCH
+                </div>
+              </div>
+            </div>
+
+            <!-- Billing Period -->
+            <div class="q-mb-sm" v-if="sub.plan_details">
+              <div class="text-caption text-grey">{{ $t('BillingReceivingPeriod') || 'Billing/Receiving Period' }}</div>
+              <div class="row items-center">
+                <div class="text-body2 text-weight-medium">
+                  {{ getPeriodText(sub.plan_details) }}
+                </div>
+                <q-btn flat round dense icon="info" size="xs" color="grey" class="q-ml-xs" @click="showBlocksInfo(sub.plan_details.period_blocks)" v-if="sub.plan_details.period_blocks" />
+              </div>
+            </div>
           </div>
           <div class="col-auto text-right">
-            <div class="q-mt-md">
+            <div class="q-mt-md row q-gutter-x-sm">
+              <q-btn
+                v-if="isCustomer && (sub.status === 'ACTIVE' || sub.status === 'PENDING')"
+                flat
+                rounded
+                color="red"
+                :label="$t('Cancel') || 'Cancel'"
+                class="q-px-sm"
+                @click="onCancelSubscriptionClick"
+              />
               <q-btn
                 v-if="isCustomer && (sub.status === 'ACTIVE' || sub.status === 'PENDING')"
                 unelevated
@@ -100,28 +139,12 @@
               <div class="text-body2">{{ sub.plan_details.description }}</div>
             </div>
 
-            <!-- Billing Amount -->
-            <div class="q-mb-md" v-if="sub.plan_details">
-              <div class="row items-center q-gutter-x-xs text-caption text-grey">
-                <span>{{ $t('BillingAmount') || 'Billing Amount' }}</span>
-                <q-btn flat round dense icon="help_outline" size="xs" color="grey" @click="showBillingInfo" />
-              </div>
-              <div class="row items-baseline q-gutter-x-sm">
-                <div class="text-weight-bold text-body1">{{ formatAmount(sub.plan_details.amount) }} {{ sub.plan_details.currency }}</div>
-                <div class="text-caption text-grey" v-if="sub.plan_details.currency !== 'BCH' && bchPrice > 0">
-                  ~{{ getEquivalentBch(sub.plan_details.amount) }} BCH
-                </div>
-              </div>
-            </div>
-
-            <!-- Billing Period -->
-            <div class="q-mb-md" v-if="sub.plan_details">
-              <div class="text-caption text-grey">{{ $t('BillingReceivingPeriod') || 'Billing/Receiving Period' }}</div>
-              <div class="row items-center">
-                <div class="text-body2 text-weight-medium">
-                  {{ getPeriodText(sub.plan_details) }}
-                </div>
-                <q-btn flat round dense icon="info" size="xs" color="grey" class="q-ml-xs" @click="showBlocksInfo(sub.plan_details.period_blocks)" v-if="sub.plan_details.period_blocks" />
+            <!-- Vault Address Prominent -->
+            <div class="q-mb-md">
+              <div class="text-caption text-grey">{{ $t('ContractAddress') || 'Contract Address' }}</div>
+              <div class="row no-wrap items-center">
+                <div class="text-body2 font-mono ellipsis" style="max-width: 320px;">{{ sub.contract_address }}</div>
+                <q-btn flat round dense icon="content_copy" size="sm" class="q-ml-xs" @click="copyText(sub.contract_address, 'Contract Address')" />
               </div>
             </div>
 
@@ -252,7 +275,7 @@ const props = defineProps({
 
 defineEmits([...useDialogPluginComponent.emits])
 
-const { dialogRef, onDialogHide } = useDialogPluginComponent()
+const { dialogRef, onDialogHide, onDialogOK } = useDialogPluginComponent()
 const $store = useStore()
 const $router = useRouter()
 const $q = useQuasar()
@@ -379,13 +402,16 @@ function showInvoiceDetail(inv) {
 }
 
 function topUp() {
-  if (sub.value?.contract_address) {
-    $q.dialog({
-      component: TopUpDialog,
-      componentProps: { subscription: sub.value }
-    })
-    onDialogHide()
-  }
+  $q.dialog({
+    component: TopUpDialog,
+    componentProps: { subscription: sub.value }
+  }).onOk(() => {
+    fetchSubscription()
+  })
+}
+
+function onCancelSubscriptionClick() {
+  onDialogOK({ action: 'cancel_subscription', subscription: sub.value })
 }
 
 function formatAmount(amount) {

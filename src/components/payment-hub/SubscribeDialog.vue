@@ -28,7 +28,17 @@
 
           <template v-else-if="step === 2">
             <div v-if="planDetails" class="q-gutter-y-sm">
-              <div class="text-subtitle2">{{ planDetails.name }}</div>
+              <div class="row items-center q-mb-sm" v-if="planDetails.store_info">
+                <q-avatar size="32px" class="q-mr-sm" v-if="planDetails.store_info.logo || planDetails.store_info.logo_url">
+                  <img :src="planDetails.store_info.logo || planDetails.store_info.logo_url" />
+                </q-avatar>
+                <q-avatar v-else size="32px" class="q-mr-sm bg-white">
+                  <img src="~assets/paytaca_payment_hub_logo.png" />
+                </q-avatar>
+                <div class="text-subtitle1 text-weight-medium">{{ planDetails.store_info.name }}</div>
+              </div>
+
+              <div class="text-subtitle1 text-weight-bold">{{ planDetails.name }}</div>
               <div class="text-body2 text-grey">{{ planDetails.description || $t('NoDescription') }}</div>
               
               <q-separator class="q-my-md" />

@@ -1121,6 +1121,10 @@ function openSubscriptionDetails(sub) {
   $q.dialog({
     component: SubscriptionDetailDialog,
     componentProps: { subscriptionId: sub.id }
+  }).onOk((payload) => {
+    if (payload?.action === 'cancel_subscription') {
+      cancelSubscription(payload.subscription)
+    }
   })
 }
 
