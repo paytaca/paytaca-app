@@ -813,20 +813,20 @@ export async function fetchActiveStatus ({ state, commit, rootGetters }) {
         body: JSON.stringify({ pubkeys }),
       })
       if (!retryResponse.ok) {
-        console.warn('[Nostr] fetchActiveStatus failed after token refresh:', retryResponse.status)
+        debug('fetchActiveStatus failed after token refresh:', retryResponse.status)
         return
       }
       const data = await retryResponse.json()
       return processActiveStatusResponse(data, pubkeys, commit)
     }
     if (!response.ok) {
-      console.warn('[Nostr] fetchActiveStatus failed:', response.status)
+      debug('fetchActiveStatus failed:', response.status)
       return
     }
     const data = await response.json()
     return processActiveStatusResponse(data, pubkeys, commit)
   } catch (err) {
-    console.warn('[Nostr] fetchActiveStatus error:', err)
+    debug('fetchActiveStatus error:', err)
   }
 }
 
@@ -867,13 +867,13 @@ export async function touchActive ({ rootGetters }, { pubkey, recipients }) {
       await clearToken()
       const retryResponse = await doTouch()
       if (!retryResponse.ok) {
-        console.warn('[Nostr] touchActive retry failed:', retryResponse.status)
+        debug('touchActive retry failed:', retryResponse.status)
       }
     } else if (!response.ok) {
-      console.warn('[Nostr] touchActive failed:', response.status)
+      debug('touchActive failed:', response.status)
     }
   } catch (err) {
-    console.warn('[Nostr] touchActive error:', err)
+    debug('touchActive error:', err)
   }
 }
 
