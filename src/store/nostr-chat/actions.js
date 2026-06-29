@@ -736,6 +736,8 @@ let _activeWs = null
 let _activeWsReconnectTimer = null
 let _activeWsHandlers = null
 let _activeWsHeartbeatTimer = null
+let _activeWsAuthRetries = 0
+const MAX_WS_AUTH_RETRIES = 5
 let _activeExpiryTimers = {}
 
 function clearActiveExpiry (pubkey) {
@@ -919,6 +921,7 @@ export async function startActiveWs ({ state, commit, rootGetters }) {
     const handlers = {
       open: () => {
         console.log('[Nostr] Active status WS connected')
+        _activeWsAuthRetries = 0
         clearInterval(_activeWsHeartbeatTimer)
         _activeWsHeartbeatTimer = setInterval(() => {
           _activeWs?.send(JSON.stringify({ type: 'heartbeat' }))
@@ -946,11 +949,15 @@ export async function startActiveWs ({ state, commit, rootGetters }) {
         _activeWs = null
         _activeWsHandlers = null
         if (_activeServicesRunning) {
-          // Clear cached OAuth token — if the server rejected the
-          // connection (code 4001 / abnormal close), the next attempt
-          // will re-authenticate and obtain a fresh token.
           if (event.code === 4001 || event.code === 1006) {
+            _activeWsAuthRetries++
             clearToken().catch(() => {})
+            if (_activeWsAuthRetries >= MAX_WS_AUTH_RETRIES) {
+              console.warn('[Nostr] WS auth retries exhausted, giving up')
+              _activeServicesRunning = false
+              return
+            }
+            console.warn(`[Nostr] WS disconnected (code ${event.code}), retry ${_activeWsAuthRetries}/${MAX_WS_AUTH_RETRIES}`)
           }
           _activeWsReconnectTimer = setTimeout(() => {
             startActiveWs({ state, commit, rootGetters })

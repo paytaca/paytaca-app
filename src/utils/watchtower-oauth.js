@@ -61,7 +61,8 @@ async function deriveOAuthCredentials() {
 
   const publicNode = deriveHdPublicNode(addressNode)
   const publicKey = binToHex(publicNode.publicKey)
-  const address = pubkeyToAddress(publicKey, false)
+  const isChipnet = Store.getters['global/isChipnet']
+  const address = pubkeyToAddress(publicKey, isChipnet)
 
   return {
     privateKey: binToHex(addressNode.privateKey),
@@ -148,6 +149,8 @@ export async function getAuthHeaders() {
   const domain = getOAuthDomain()
   const timestamp = Math.floor(Date.now() / 1000)
 
+  console.log('[OAuth] Authenticating wallet:', walletHash.slice(0, 16) + '...')
+
   try {
     // Try to authenticate first
     const auth = await client.authenticate(
@@ -158,12 +161,19 @@ export async function getAuthHeaders() {
       domain
     )
     
+    if (!auth.access_token) {
+      console.warn('[OAuth] Server returned no access_token in response')
+      throw new Error('No access_token in authentication response')
+    }
+    
     await saveToken(auth.access_token)
+    console.log('[OAuth] Token obtained successfully')
     return { 'Authorization': `Bearer ${auth.access_token}` }
   } catch (err) {
     // If user not found (404), register first then authenticate
     const statusCode = err?.statusCode || err?.status
     if (statusCode === 404) {
+      console.log('[OAuth] Wallet not registered, registering now')
       await client.register(
         credentials.address,
         credentials.privateKey,
@@ -183,10 +193,17 @@ export async function getAuthHeaders() {
         domain
       )
       
+      if (!auth.access_token) {
+        console.warn('[OAuth] Server returned no access_token after registration')
+        throw new Error('No access_token after registration')
+      }
+      
       await saveToken(auth.access_token)
+      console.log('[OAuth] Token obtained after registration')
       return { 'Authorization': `Bearer ${auth.access_token}` }
     }
     
+    console.warn('[OAuth] Authentication failed:', err?.message || err)
     throw err
   }
 }
