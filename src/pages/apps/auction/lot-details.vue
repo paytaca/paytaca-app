@@ -250,7 +250,7 @@
                   </div>
                 </div>
 
-                <div v-if="showPostAuctionActions && isAuthor && isGrantedRefund && deliveryStatusId !== 3" class="q-mt-md full-width">
+                <div v-if="showPostAuctionActions && isAuthor && isGrantedRefund && deliveryStatusId === 3" class="q-mt-md full-width">
                   <q-btn
                     color="positive"
                     icon="check_circle"
