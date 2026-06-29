@@ -735,6 +735,7 @@ let _heartbeatInterval = null
 let _activeWs = null
 let _activeWsReconnectTimer = null
 let _activeWsHandlers = null
+let _activeWsHeartbeatTimer = null
 let _activeExpiryTimers = {}
 
 function clearActiveExpiry (pubkey) {
@@ -867,18 +868,37 @@ function getWsWatchtowerUrl (rootGetters) {
   const url = new URL(baseUrl)
   url.protocol = baseUrl.startsWith('https') ? 'wss:' : 'ws:'
   url.pathname = `/ws/nostr/updates/${walletHash}/`
+  return url
+}
+
+async function getWsWatchtowerUrlWithToken (rootGetters) {
+  const url = getWsWatchtowerUrl(rootGetters)
+  if (!url) return null
+  try {
+    const headers = await getAuthHeaders()
+    const token = headers?.Authorization?.replace('Bearer ', '')
+    if (token) url.searchParams.set('token', token)
+  } catch (err) {
+    console.warn('[Nostr] Failed to get auth token for WS:', err)
+  }
   return url.toString()
 }
 
-export function startActiveWs ({ state, commit, rootGetters }) {
+export async function startActiveWs ({ state, commit, rootGetters }) {
   stopActiveWs()
-  const wsUrl = getWsWatchtowerUrl(rootGetters)
+  const wsUrl = await getWsWatchtowerUrlWithToken(rootGetters)
   if (!wsUrl) return
 
   try {
     const ws = new WebSocket(wsUrl)
     const handlers = {
-      open: () => { console.log('[Nostr] Active status WS connected') },
+      open: () => {
+        console.log('[Nostr] Active status WS connected')
+        clearInterval(_activeWsHeartbeatTimer)
+        _activeWsHeartbeatTimer = setInterval(() => {
+          _activeWs?.send(JSON.stringify({ type: 'heartbeat' }))
+        }, 30000)
+      },
       message: (event) => {
         try {
           const msg = JSON.parse(event.data)
@@ -896,6 +916,8 @@ export function startActiveWs ({ state, commit, rootGetters }) {
         }
       },
       close: () => {
+        clearInterval(_activeWsHeartbeatTimer)
+        _activeWsHeartbeatTimer = null
         _activeWs = null
         _activeWsHandlers = null
         if (_activeServicesRunning) {
@@ -918,6 +940,8 @@ export function startActiveWs ({ state, commit, rootGetters }) {
 }
 
 export function stopActiveWs () {
+  clearInterval(_activeWsHeartbeatTimer)
+  _activeWsHeartbeatTimer = null
   if (_activeWsReconnectTimer) {
     clearTimeout(_activeWsReconnectTimer)
     _activeWsReconnectTimer = null
