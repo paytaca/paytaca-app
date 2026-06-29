@@ -59,6 +59,8 @@ export default boot(({ router, /* store */ }) => {
       router.push({ name: 'claim-gift', query: { claimShare: url.searchParams.get('code') } })
     } else if (url.host === 'p2p.paytaca.com' && url.pathname.match('/ad/share/?')) {
       router.push({ name: 'exchange', query: { ad_id: url.searchParams.get('id') } })
+    } else if (url.host === 'rewards.paytaca.com' && url.pathname.match('/referral/?')) {
+      router.push({ name: 'app-rewards', query: { code: url.searchParams.get('code') } })
     }
   })
 
