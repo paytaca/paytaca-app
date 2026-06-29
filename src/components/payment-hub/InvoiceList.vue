@@ -55,7 +55,7 @@
 
               <!-- Middle: Memo -->
               <q-item-section>
-                <div class="text-body1 text-weight-medium ellipsis-2-lines" :class="getDarkModeClass(darkMode)">
+                <div class="text-body1 text-weight-medium ellipsis-2-lines" :class="getDarkModeClass(darkMode)" style="word-break: break-all;">
                   {{ invoice.memo || $t('NoMemo') }}
                 </div>
               </q-item-section>

@@ -43,7 +43,7 @@
         <!-- Memo -->
         <div class="q-mb-md">
           <div class="text-subtitle2 text-grey">{{ $t('Memo') }}</div>
-          <div class="text-body1">{{ invoice.memo || $t('NoMemo') }}</div>
+          <div class="text-body1" style="word-break: break-all;">{{ invoice.memo || $t('NoMemo') }}</div>
         </div>
 
         <q-separator class="q-my-md" :dark="darkMode" />

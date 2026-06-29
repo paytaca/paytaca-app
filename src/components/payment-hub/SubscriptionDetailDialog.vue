@@ -189,8 +189,10 @@
                     </q-badge>
                   </q-item-section>
                   <q-item-section>
-                    <div class="text-body2 ellipsis">{{ inv.memo || $t('NoMemo') || 'No Memo' }}</div>
-                    <div class="text-caption text-grey">{{ formatDate(inv.date_created) }}</div>
+                    <div class="text-body2 text-weight-medium ellipsis-2-lines" :class="getDarkModeClass(darkMode)" style="word-break: break-all;">
+                      {{ inv.memo || $t('NoMemo') || 'No Memo' }}
+                    </div>
+                    <div class="text-caption text-grey q-mt-xs">{{ formatDate(inv.date_created) }}</div>
                   </q-item-section>
                   <q-item-section side top class="text-right">
                     <div class="text-weight-bold">{{ inv.total_bch }} BCH</div>
