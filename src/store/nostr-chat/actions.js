@@ -915,12 +915,18 @@ export async function startActiveWs ({ state, commit, rootGetters }) {
           console.warn('[Nostr] Failed to parse WS message:', e)
         }
       },
-      close: () => {
+      close: (event) => {
         clearInterval(_activeWsHeartbeatTimer)
         _activeWsHeartbeatTimer = null
         _activeWs = null
         _activeWsHandlers = null
         if (_activeServicesRunning) {
+          // Clear cached OAuth token — if the server rejected the
+          // connection (code 4001 / abnormal close), the next attempt
+          // will re-authenticate and obtain a fresh token.
+          if (event.code === 4001 || event.code === 1006) {
+            clearToken().catch(() => {})
+          }
           _activeWsReconnectTimer = setTimeout(() => {
             startActiveWs({ state, commit, rootGetters })
           }, 5000)
