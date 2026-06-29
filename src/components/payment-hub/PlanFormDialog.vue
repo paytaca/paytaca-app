@@ -36,6 +36,7 @@
                 outlined
                 dense
                 type="number"
+                inputmode="decimal"
                 step="any"
                 lazy-rules
                 :rules="[
@@ -67,6 +68,7 @@
                 outlined
                 dense
                 type="number"
+                inputmode="decimal"
                 step="1"
                 lazy-rules
                 :rules="[
@@ -97,6 +99,7 @@
                 outlined
                 dense
                 type="number"
+                inputmode="decimal"
                 step="1"
                 hide-bottom-space
               />
@@ -108,6 +111,7 @@
                 outlined
                 dense
                 type="number"
+                inputmode="decimal"
                 step="1"
                 hide-bottom-space
               />
@@ -122,6 +126,7 @@
                 outlined
                 dense
                 type="number"
+                inputmode="decimal"
                 step="1"
                 hide-bottom-space
                 hint="Set to 0 for unlimited"

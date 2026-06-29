@@ -73,24 +73,42 @@
         <q-separator :dark="darkMode" />
 
         <!-- Sticky Section Header for Invoices -->
-        <div v-if="activeTab === 'invoices'" class="row no-wrap items-center q-px-md">
-          <q-tabs
-            v-model="invoiceStatusFilter"
-            dense
-            no-caps
-            class="text-grey col"
-            active-color="pt-primary1"
-            indicator-color="pt-primary1"
-            align="justify"
-            narrow-indicator
-          >
-            <q-tab name="ALL" :label="$t('All')" />
-            <q-tab name="PENDING" :label="$t('Pending')" />
-            <q-tab name="PAID" :label="$t('Paid')" />
-            <q-tab name="EXPIRED" :label="$t('Expired')" />
-            <q-tab name="CANCELLED" :label="$t('Cancelled')" />
-          </q-tabs>
-          <div class="col-auto q-pl-sm">
+        <div v-if="activeTab === 'invoices'" class="row items-center q-px-md q-py-sm q-gutter-x-sm">
+          <div class="col">
+            <q-select
+              v-model="invoiceStatusFilter"
+              :options="invoiceStatuses"
+              multiple
+              dense
+              outlined
+              rounded
+              :label="$t('Status') || 'Status'"
+              :bg-color="darkMode ? 'pt-dark' : 'white'"
+              :dark="darkMode"
+              clearable
+              emit-value
+              map-options
+              style="min-width: 150px;"
+            >
+              <template v-slot:selected-item="scope">
+                <q-badge
+                  color="pt-primary1"
+                  class="q-mr-xs"
+                >
+                  {{ scope.opt }}
+                </q-badge>
+              </template>
+            </q-select>
+          </div>
+          <div class="col-auto">
+            <q-checkbox
+              v-model="includeSubscriptions"
+              :label="$t('Subs') || 'Subs'"
+              dense
+              :dark="darkMode"
+            />
+          </div>
+          <div class="col-auto">
             <q-btn
               flat
               round
@@ -208,7 +226,8 @@
                   <InvoiceList
                     ref="invoiceListRef"
                     :store-id="storeId"
-                    :status-filter="invoiceStatusFilter"
+                    :status-filter="invoiceStatusFilter.join(',')"
+                    :include-subscriptions="includeSubscriptions"
                     :search-query="invoiceSearchQuery"
                     @clear-search="clearInvoiceSearch"
                   />
@@ -629,7 +648,8 @@ const hasNextSubscriptionsPage = ref(false)
 const invoiceListRef = ref(null)
 
 // Invoice Filter & Search state
-const invoiceStatusFilter = ref('ALL')
+const invoiceStatusFilter = ref([])
+const includeSubscriptions = ref(true)
 const invoiceSearchQuery = ref('')
 const tempInvoiceSearchQuery = ref('')
 const showInvoiceSearchDialog = ref(false)
@@ -643,37 +663,22 @@ function clearInvoiceSearch() {
   tempInvoiceSearchQuery.value = ''
 }
 
-const invoiceStatuses = ['ALL', 'PENDING', 'PAID', 'EXPIRED', 'CANCELLED']
+const invoiceStatuses = ['PENDING', 'PAID', 'EXPIRED', 'CANCELLED']
 const mainTabs = ['invoices', 'api_keys', 'plans', 'subscriptions', 'settings']
 
 function handleGlobalSwipe(details) {
-  if (activeTab.value === 'invoices') {
-    const currentIndex = invoiceStatuses.indexOf(invoiceStatusFilter.value)
-    if (details.direction === 'left') {
-      if (currentIndex < invoiceStatuses.length - 1) {
-        invoiceStatusFilter.value = invoiceStatuses[currentIndex + 1]
-        return
-      }
-    } else if (details.direction === 'right') {
-      if (currentIndex > 0) {
-        invoiceStatusFilter.value = invoiceStatuses[currentIndex - 1]
-        return
-      }
-    }
-  }
-
-  // Handle main tab switching (infinite)
+  // Swipe for main tabs only
   const currentMainIndex = mainTabs.indexOf(activeTab.value)
   if (details.direction === 'left') {
     const nextTab = mainTabs[(currentMainIndex + 1) % mainTabs.length]
     if (nextTab === 'invoices') {
-      invoiceStatusFilter.value = 'ALL'
+      invoiceStatusFilter.value = []
     }
     activeTab.value = nextTab
   } else if (details.direction === 'right') {
     const nextTab = mainTabs[(currentMainIndex - 1 + mainTabs.length) % mainTabs.length]
     if (nextTab === 'invoices') {
-      invoiceStatusFilter.value = 'CANCELLED'
+      invoiceStatusFilter.value = []
     }
     activeTab.value = nextTab
   }

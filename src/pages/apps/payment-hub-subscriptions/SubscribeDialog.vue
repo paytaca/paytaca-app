@@ -33,15 +33,23 @@
               
               <q-separator class="q-my-md" />
               
-              <div class="row justify-between q-mt-sm">
+              <div class="row justify-between q-mt-sm items-start">
                 <div class="text-caption text-grey">{{ $t('Amount') }}</div>
-                <div class="text-body2 text-weight-medium">{{ planDetails.amount }} {{ planDetails.currency }}</div>
+                <div class="text-right">
+                  <div class="text-body2 text-weight-medium">{{ formatAmount(planDetails.amount) }} {{ planDetails.currency }}</div>
+                  <div class="text-caption text-grey" v-if="planDetails.currency !== 'BCH' && bchPrice > 0">
+                    ~{{ getEquivalentBch(planDetails.amount) }} BCH
+                  </div>
+                </div>
               </div>
               
-              <div class="row justify-between">
-                <div class="text-caption text-grey">{{ $t('IntervalUnit') }}</div>
-                <div class="text-body2 text-weight-medium">
-                  {{ planDetails.period_days ? planDetails.period_days + ' ' + ($t('Days') || 'Days') : planDetails.period_blocks + ' ' + ($t('Blocks') || 'Blocks') }}
+              <div class="row justify-between items-center">
+                <div class="text-caption text-grey">{{ $t('BillingReceivingPeriod') || 'Billing/Receiving Period' }}</div>
+                <div class="row items-center">
+                  <div class="text-body2 text-weight-medium">
+                    {{ getPeriodText(planDetails) }}
+                  </div>
+                  <q-btn flat round dense icon="info" size="xs" color="grey" class="q-ml-xs" @click="showBlocksInfo" v-if="planDetails.period_blocks" />
                 </div>
               </div>
             </div>
@@ -72,10 +80,11 @@
 
 <script setup>
 import { ref, computed, reactive } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { useDialogPluginComponent, useQuasar } from 'quasar'
 import { useStore } from 'vuex'
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
-import { PaymentHub } from 'src/wallet/payment-hub'
+import { PaymentHub, extractPlanId } from 'src/wallet/payment-hub'
 import QrScanner from 'src/components/qr-scanner.vue'
 
 defineEmits([
@@ -83,6 +92,7 @@ defineEmits([
 ])
 
 const { dialogRef, onDialogHide, onDialogOK, onDialogCancel } = useDialogPluginComponent()
+const { t } = useI18n()
 const $store = useStore()
 const $q = useQuasar()
 const darkMode = computed(() => $store.getters['darkmode/getStatus'])
@@ -92,10 +102,68 @@ const step = ref(1)
 const isLoading = ref(false)
 const planDetails = ref(null)
 const showQrScanner = ref(false)
+const isChipnet = computed(() => $store.getters['global/isChipnet'])
 
 const form = reactive({
   plan: '',
 })
+
+const bchPrice = computed(() => {
+  if (!planDetails.value || planDetails.value.currency === 'BCH') return 0
+  return $store.getters['market/getAssetPrice']('bch', planDetails.value.currency) || 0
+})
+
+function formatAmount(amount) {
+  const num = parseFloat(amount)
+  if (isNaN(num)) return amount
+  return parseFloat(num.toFixed(8)).toString()
+}
+
+function getEquivalentBch(amount) {
+  if (!bchPrice.value) return 0
+  const bchAmount = parseFloat(amount) / bchPrice.value
+  const sats = Math.round(bchAmount * 100000000)
+  return (sats / 100000000).toFixed(8).replace(/\.?0+$/, '') || '0'
+}
+
+function getPeriodText(plan) {
+  if (plan.period_days) {
+    return `Every ${plan.period_days} ${plan.period_days === 1 ? (t('Day') || 'day') : (t('Days') || 'days')}`
+  }
+  const blocks = plan.period_blocks
+  if (!blocks) return ''
+  
+  let timeStr = ''
+  if (blocks % 4320 === 0) {
+    const v = blocks / 4320
+    timeStr = `${v} ${v === 1 ? (t('Month') || 'month') : (t('Months') || 'months')}`
+  } else if (blocks % 1008 === 0) {
+    const v = blocks / 1008
+    timeStr = `${v} ${v === 1 ? (t('Week') || 'week') : (t('Weeks') || 'weeks')}`
+  } else if (blocks % 144 === 0) {
+    const v = blocks / 144
+    timeStr = `${v} ${v === 1 ? (t('Day') || 'day') : (t('Days') || 'days')}`
+  } else if (blocks % 6 === 0) {
+    const v = blocks / 6
+    timeStr = `${v} ${v === 1 ? (t('Hour') || 'hour') : (t('Hours') || 'hours')}`
+  } else {
+    timeStr = `${blocks * 10} ${t('Minutes') || 'minutes'}`
+  }
+  return `Every ${timeStr}`
+}
+
+function showBlocksInfo() {
+  $q.dialog({
+    title: t('BillingReceivingPeriod') || 'Billing/Receiving Period',
+    message: `${t('EstimatedTimeBasedOnBlocks') || 'The displayed time is an estimate based on the Bitcoin Cash network block target of 10 minutes per block. The exact interval is'} ${planDetails.value.period_blocks} ${t('Blocks') || 'blocks'}.`,
+    color: 'pt-primary1',
+    ok: {
+      flat: true,
+      color: 'pt-primary1',
+      label: 'OK'
+    }
+  })
+}
 
 async function onFormSubmit() {
   const isValid = await formRef.value.validate()
@@ -132,24 +200,7 @@ async function fetchPlanDetails() {
 
 function onScannerDecode(content) {
   showQrScanner.value = false
-  let planId = content
-  
-  if (content.includes('paymenthub.paytaca.com') || content.includes('chipnet.paymenthub.paytaca.com')) {
-    try {
-      const url = new URL(content)
-      const pathParts = url.pathname.split('/').filter(p => p)
-      planId = pathParts[pathParts.length - 1]
-    } catch (e) {}
-  } else if (content.startsWith('paytaca:')) {
-    try {
-      const url = new URL(content)
-      if (url.searchParams.has('plan')) {
-        planId = url.searchParams.get('plan')
-      }
-    } catch(e) {}
-  }
-  
-  form.plan = planId
+  form.plan = extractPlanId(content)
 }
 
 function onCancelClick() {

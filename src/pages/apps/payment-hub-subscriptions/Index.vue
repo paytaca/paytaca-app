@@ -18,12 +18,61 @@
           <q-btn flat round dense icon="refresh" color="pt-primary1" @click="refreshPage(null, false)" />
         </div>
 
+        <div class="row items-center q-col-gutter-sm q-mb-md">
+          <div class="col">
+            <q-input
+              v-model="searchQuery"
+              dense
+              rounded
+              outlined
+              :placeholder="$t('Search') || 'Search'"
+              :bg-color="darkMode ? 'pt-dark' : 'white'"
+              :dark="darkMode"
+              @update:model-value="onSearch"
+              clearable
+            >
+              <template v-slot:prepend>
+                <q-icon name="search" />
+              </template>
+            </q-input>
+          </div>
+          <div class="col-auto">
+            <q-select
+              v-model="statusFilter"
+              :options="statusOptions"
+              dense
+              outlined
+              rounded
+              emit-value
+              map-options
+              :bg-color="darkMode ? 'pt-dark' : 'white'"
+              :dark="darkMode"
+              @update:model-value="refreshPage(null, true)"
+              style="min-width: 120px;"
+            />
+          </div>
+        </div>
+
         <q-linear-progress v-if="fetchingData" query rounded color="pt-primary1" class="q-mb-md" />
 
         <div v-if="!fetchingData && subscriptions.length === 0" class="text-center q-mt-xl">
-          <q-icon name="autorenew" size="4em" class="text-grey q-mb-md" />
-          <div class="text-h6 text-grey q-mb-xs">{{ $t('NoSubscriptions') || 'No Subscriptions' }}</div>
-          <div class="text-body2 text-grey q-mb-lg">{{ $t('YouHaveNoSubscriptions') || "You don't have any active subscriptions." }}</div>
+          <div v-if="!searchQuery && statusFilter === 'ALL'">
+            <q-icon name="autorenew" size="4em" class="text-grey q-mb-md" />
+            <div class="text-h6 text-grey q-mb-xs">{{ $t('NoSubscriptions') || 'No Subscriptions' }}</div>
+            <div class="text-body2 text-grey q-mb-lg">{{ $t('YouHaveNoSubscriptions') || "You don't have any active subscriptions." }}</div>
+          </div>
+          <div v-else>
+            <q-icon name="search_off" size="4em" class="text-grey q-mb-md" />
+            <div class="text-h6 text-grey q-mb-xs">{{ $t('NoResults') || 'No Results' }}</div>
+            <div class="text-body2 text-grey q-mb-lg">{{ $t('NoSearchMatches') || 'No subscriptions match your criteria.' }}</div>
+            <q-btn
+              flat
+              rounded
+              color="pt-primary1"
+              :label="$t('ClearFilter') || 'Clear filter'"
+              @click="searchQuery = ''; statusFilter = 'ALL'; refreshPage()"
+            />
+          </div>
         </div>
 
         <div v-else>
@@ -60,7 +109,19 @@
                         {{ sub.status }}
                       </q-badge>
                     </div>
-                    <div class="col-auto text-right q-pr-sm" style="width: 40px;">
+                    <div class="col-auto text-right q-pr-sm row no-wrap items-center">
+                      <q-btn
+                        v-if="sub.status === 'ACTIVE' || sub.status === 'PENDING'"
+                        flat
+                        rounded
+                        dense
+                        color="pt-primary1"
+                        size="sm"
+                        class="q-mr-xs q-px-sm"
+                        @click.stop="topUp(sub)"
+                      >
+                        {{ $t('TopUp') || 'Top Up' }}
+                      </q-btn>
                       <q-btn
                         v-if="sub.status === 'ACTIVE'"
                         flat
@@ -103,6 +164,7 @@
 <script setup>
 import { ref, computed, onMounted } from 'vue'
 import { useStore } from 'vuex'
+import { useRouter } from 'vue-router'
 import { useQuasar, copyToClipboard } from 'quasar'
 import { useI18n } from 'vue-i18n'
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
@@ -117,6 +179,7 @@ import { Contract, SignatureTemplate, ElectrumNetworkProvider, TransactionBuilde
 import { decodeCashAddress, encodeCashAddress } from '@bitauth/libauth'
 
 const $store = useStore()
+const $router = useRouter()
 const $q = useQuasar()
 const { t: $t } = useI18n()
 
@@ -129,9 +192,27 @@ const fetchingData = ref(false)
 const subscriptionsPage = ref(1)
 const hasNextSubscriptionsPage = ref(false)
 
+const searchQuery = ref('')
+const statusFilter = ref('ALL')
+const statusOptions = ['ALL', 'ACTIVE', 'PENDING', 'CANCELLED', 'TERMINATED']
+let searchTimeout = null
+
 onMounted(() => {
   refreshPage()
 })
+
+function onSearch() {
+  if (searchTimeout) clearTimeout(searchTimeout)
+  searchTimeout = setTimeout(() => {
+    refreshPage()
+  }, 500)
+}
+
+function topUp(sub) {
+  if (sub.contract_address) {
+    $router.push({ name: 'transaction-send', query: { address: sub.contract_address } })
+  }
+}
 
 async function initHub() {
   try {
@@ -141,6 +222,13 @@ async function initHub() {
     if (!hub.value) {
       hub.value = new PaymentHub(wallet.value)
     }
+
+    let registration = await hub.value.checkRegistration()
+    if (!registration) {
+      console.log('Wallet not registered on Payment Hub. Registering now...')
+      registration = await hub.value.registerWallet()
+    }
+
     return hub.value
   } catch (error) {
     console.error('Failed to init hub:', error)
@@ -153,7 +241,12 @@ async function refreshPage(done = null, showLoading = true) {
   subscriptionsPage.value = 1
   try {
     const paymentHub = await initHub()
-    const subsData = await paymentHub.listSubscriptions({ page: 1, customer: true })
+    const subsData = await paymentHub.listSubscriptions({
+      page: 1,
+      customer: true,
+      status: statusFilter.value === 'ALL' ? undefined : statusFilter.value,
+      search: searchQuery.value || undefined
+    })
     subscriptions.value = subsData.results || []
     hasNextSubscriptionsPage.value = !!subsData.next
   } catch (error) {
@@ -173,7 +266,12 @@ async function onLoadMoreSubscriptions(index, done) {
 
   try {
     subscriptionsPage.value++
-    const data = await hub.value.listSubscriptions({ page: subscriptionsPage.value, customer: true })
+    const data = await hub.value.listSubscriptions({
+      page: subscriptionsPage.value,
+      customer: true,
+      status: statusFilter.value === 'ALL' ? undefined : statusFilter.value,
+      search: searchQuery.value || undefined
+    })
     if (data.results?.length) {
       subscriptions.value.push(...data.results)
     }

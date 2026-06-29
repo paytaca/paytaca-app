@@ -99,11 +99,15 @@ const props = defineProps({
   },
   statusFilter: {
     type: String,
-    default: 'ALL'
+    default: '' // comma-separated or empty
   },
   searchQuery: {
     type: String,
     default: ''
+  },
+  includeSubscriptions: {
+    type: Boolean,
+    default: true
   }
 })
 
@@ -149,6 +153,9 @@ watch(() => props.statusFilter, () => {
 watch(() => props.searchQuery, () => {
   refreshList()
 })
+watch(() => props.includeSubscriptions, () => {
+  refreshList()
+})
 
 function checkExpirations() {
   if (!invoices.value || invoices.value.length === 0) return
@@ -167,7 +174,7 @@ function checkExpirations() {
   })
   
   // If we're filtering by status, we might need to refresh the list to apply filters correctly
-  if (hasChanges && props.statusFilter !== 'ALL') {
+  if (hasChanges && props.statusFilter) {
     // Small delay to allow user to see the state change before it disappears due to filter
     setTimeout(() => {
       refreshList(true)
@@ -190,8 +197,9 @@ async function refreshList(isBackground = false) {
   try {
     const params = {
       page: 1,
-      status: props.statusFilter === 'ALL' ? undefined : props.statusFilter,
+      status: props.statusFilter || undefined,
       search: props.searchQuery || undefined,
+      include_subscriptions: props.includeSubscriptions,
       network: isChipnet.value ? 'test' : 'main',
       ordering: '-date_created'
     }
@@ -215,8 +223,9 @@ async function onLoadMore(index, done) {
     currentPage.value++
     const params = {
       page: currentPage.value,
-      status: props.statusFilter === 'ALL' ? undefined : props.statusFilter,
+      status: props.statusFilter || undefined,
       search: props.searchQuery || undefined,
+      include_subscriptions: props.includeSubscriptions,
       network: isChipnet.value ? 'test' : 'main',
       ordering: '-date_created'
     }

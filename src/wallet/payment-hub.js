@@ -27,6 +27,40 @@ export function getBaseURL() {
 }
 
 /**
+ * Frontend URL for the Payment Hub.
+ */
+export function getFrontendURL() {
+  return getBaseURL().replace(/\/api$/, '')
+}
+
+/**
+ * Extracts a Plan ID from a URL or QR code content.
+ */
+export function extractPlanId(content) {
+  const mainFrontend = (process.env.PAYMENT_HUB_API || 'https://paymenthub.paytaca.com/api').replace(/\/api$/, '')
+  const chipFrontend = (process.env.PAYMENT_HUB_CHIP_API || 'https://chipnet.paymenthub.paytaca.com/api').replace(/\/api$/, '')
+
+  try {
+    const url = new URL(content)
+    const mainHost = new URL(mainFrontend).hostname
+    const chipHost = new URL(chipFrontend).hostname
+
+    if (url.hostname === mainHost || url.hostname === chipHost) {
+      const pathParts = url.pathname.split('/').filter(p => p)
+      return pathParts[pathParts.length - 1]
+    }
+    
+    if (url.protocol === 'paytaca:') {
+      if (url.searchParams.has('plan')) {
+        return url.searchParams.get('plan')
+      }
+    }
+  } catch (e) {}
+
+  return content
+}
+
+/**
  * Axios instance configured for the Payment Hub API.
  * The baseURL is set dynamically via request interceptors.
  */

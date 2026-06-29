@@ -65,6 +65,14 @@
             </div>
           </div>
 
+          <div class="col-12" v-if="plan.plan_url">
+            <div class="text-caption text-grey">{{ $t('PlanURL') || 'Plan URL' }}</div>
+            <div class="row no-wrap items-center">
+              <div class="text-body2 ellipsis q-mr-xs font-mono text-pt-primary1 cursor-pointer" @click="openUrl(plan.plan_url)">{{ plan.plan_url }}</div>
+              <q-btn flat round dense icon="content_copy" size="sm" @click="copyText(plan.plan_url, 'Plan URL')" />
+            </div>
+          </div>
+
           <div class="col-6">
             <div class="text-caption text-grey">{{ $t('DateCreated') }}</div>
             <div class="text-body2">{{ formatDate(plan.date_created) }}</div>
@@ -91,7 +99,7 @@ import { useStore } from 'vuex'
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 import { loadWallet } from 'src/wallet'
 import { PaymentHub } from 'src/wallet/payment-hub'
-import { date } from 'quasar'
+import { date, openURL } from 'quasar'
 
 const props = defineProps({
   planId: { type: String, required: true }
@@ -148,6 +156,10 @@ function copyText(text, label = 'Text') {
     position: 'bottom',
     timeout: 2000
   })
+}
+
+function openUrl(url) {
+  if (url) openURL(url)
 }
 
 onMounted(() => {
