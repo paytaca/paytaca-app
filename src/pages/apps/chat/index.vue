@@ -618,6 +618,9 @@ export default {
       await this.$store.dispatch('nostrChat/initialize')
       this.$store.dispatch('nostrChat/ensureSubscribed')
 
+      // Fetch last-active timestamps for all conversations on screen
+      this.$store.dispatch('nostrChat/fetchActiveStatus')
+
       // Handle any scanned npub that we deferred because the store
       // wasn't initialized yet (existing contact case).
       if (scannedNpub && this.$route.query.npub) {
@@ -640,10 +643,11 @@ export default {
       }, 1000)
     }
 
-    // Re-subscribe when tab becomes visible (e.g., after app backgrounding)
+    // Re-subscribe and refresh active status when tab becomes visible (e.g., after app backgrounding)
     this._onVisibilityChange = () => {
       if (document.visibilityState === 'visible') {
         this.$store.dispatch('nostrChat/ensureSubscribed')
+        this.$store.dispatch('nostrChat/fetchActiveStatus')
       }
     }
     document.addEventListener('visibilitychange', this._onVisibilityChange)
@@ -651,6 +655,7 @@ export default {
   activated () {
     // Re-check subscription when returning to this page via keep-alive
     this.$store.dispatch('nostrChat/ensureSubscribed')
+    this.$store.dispatch('nostrChat/fetchActiveStatus')
   },
   beforeUnmount () {
     clearTimeout(this._profilePromptTimer)
