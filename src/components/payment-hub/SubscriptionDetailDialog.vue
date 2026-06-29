@@ -43,6 +43,23 @@
                 <q-btn flat round dense icon="content_copy" size="sm" class="q-ml-xs" @click="copyText(sub.contract_address, 'Contract Address')" />
               </div>
             </div>
+
+            <!-- Contract Balance -->
+            <div class="q-mt-sm" v-if="sub.plan_details">
+              <div class="text-caption text-grey">{{ $t('ContractBalance') || 'Contract Balance' }}</div>
+              <div class="row items-baseline q-gutter-x-sm">
+                <div class="text-body2 text-weight-medium">
+                  <span v-if="sub.plan_details.currency !== 'BCH' && bchPrice > 0">{{ contractBalanceFiat }} {{ sub.plan_details.currency }}</span>
+                  <span v-else>{{ contractBalanceBch }} BCH</span>
+                </div>
+                <div class="text-caption text-grey" v-if="sub.plan_details.currency !== 'BCH' && bchPrice > 0">
+                  ~{{ contractBalanceBch }} BCH
+                </div>
+                <div class="text-caption text-grey" v-else>
+                  ({{ contractBalanceSats }} sats)
+                </div>
+              </div>
+            </div>
           </div>
           <div class="col-auto text-right">
             <div class="q-mt-md">
@@ -293,6 +310,27 @@ function showBillingInfo() {
 const pledgeBch = computed(() => {
   if (!sub.value?.pledge_satoshis) return '-'
   return (sub.value.pledge_satoshis / 1e8).toFixed(8).replace(/\.?0+$/, '')
+})
+
+const contractBalanceSats = computed(() => {
+  if (!sub.value?.balance && sub.value?.balance !== 0) return '0'
+  return sub.value.balance.toLocaleString()
+})
+
+const contractBalanceBch = computed(() => {
+  if (!sub.value?.balance) return '0'
+  return (sub.value.balance / 1e8).toFixed(8).replace(/\.?0+$/, '')
+})
+
+const contractBalanceFiat = computed(() => {
+  if (!sub.value?.plan_details) return '0.00'
+  if (!bchPrice.value || sub.value.plan_details.currency === 'BCH') return contractBalanceBch.value
+  
+  const bchVal = parseFloat(contractBalanceBch.value)
+  if (isNaN(bchVal)) return '0.00'
+  
+  const fiatVal = bchVal * bchPrice.value
+  return formatAmount(fiatVal)
 })
 
 const pledge_satoshis_formatted = computed(() => {
