@@ -643,7 +643,7 @@ export default {
           const walletIndex = this.$store.getters['global/getWalletIndex']
           const userPubkey = await getAddress0_0PublicKey(walletIndex)
           for (const type of this.pointsType) {
-            const promoId = upData[type].pk
+            const promoId = upData[type]?.pk ?? null
             if (promoId) {
               const targetPromo = PromosBytes[type.toUpperCase()]
               const contract = new PromoContract(userPubkey, targetPromo)
