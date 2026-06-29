@@ -266,8 +266,7 @@ export async function registerNostrPubkey ({ state, rootGetters }) {
     return
   }
 
-  const walletIndex = rootGetters['global/getWalletIndex']
-  const walletHash = rootGetters['global/getWalletHashByIndex']?.(walletIndex)
+  const walletHash = rootGetters['global/getWallet']('bch')?.walletHash
   if (!walletHash) {
     debug('Skip pubkey registration: no wallet hash')
     return
@@ -902,9 +901,10 @@ async function getWsWatchtowerUrlWithToken (rootGetters) {
     const headers = await getAuthHeaders()
     const token = headers?.Authorization?.replace('Bearer ', '')
     if (token) url += `?token=${encodeURIComponent(token)}`
-    console.log('[Nostr] WS URL:', url.slice(0, 80) + '...')
+    const safeUrl = url.replace(/\?.*$/, '')
+    debug('WS path:', safeUrl.slice(0, 80))
   } catch (err) {
-    console.warn('[Nostr] Failed to get auth token for WS:', err)
+    debug('Failed to get auth token for WS:', err)
   }
   return url
 }
@@ -918,7 +918,7 @@ export async function startActiveWs ({ state, commit, rootGetters }) {
     const ws = new WebSocket(wsUrl)
     const handlers = {
       open: () => {
-        console.log('[Nostr] Active status WS connected')
+        debug('Active status WS connected')
         _activeWsAuthRetries = 0
         clearInterval(_activeWsHeartbeatTimer)
         _activeWsHeartbeatTimer = setInterval(() => {
@@ -938,7 +938,7 @@ export async function startActiveWs ({ state, commit, rootGetters }) {
             scheduleActiveExpiry(msg.pubkey_hex, commit)
           }
         } catch (e) {
-          console.warn('[Nostr] Failed to parse WS message:', e)
+          debug('Failed to parse WS message:', e)
         }
       },
       close: (event) => {
@@ -951,11 +951,11 @@ export async function startActiveWs ({ state, commit, rootGetters }) {
             _activeWsAuthRetries++
             clearToken().catch(() => {})
             if (_activeWsAuthRetries >= MAX_WS_AUTH_RETRIES) {
-              console.warn('[Nostr] WS auth retries exhausted, giving up')
+              debug('WS auth retries exhausted, giving up')
               _activeServicesRunning = false
               return
             }
-            console.warn(`[Nostr] WS disconnected (code ${event.code}), retry ${_activeWsAuthRetries}/${MAX_WS_AUTH_RETRIES}`)
+            debug(`WS disconnected (code ${event.code}), retry ${_activeWsAuthRetries}/${MAX_WS_AUTH_RETRIES}`)
           }
           _activeWsReconnectTimer = setTimeout(() => {
             startActiveWs({ state, commit, rootGetters })
@@ -975,7 +975,7 @@ export async function startActiveWs ({ state, commit, rootGetters }) {
     _activeWs = ws
     _activeWsHandlers = handlers
   } catch (err) {
-    console.warn('[Nostr] Failed to create active status WS:', err)
+    debug('Failed to create active status WS:', err)
   }
 }
 

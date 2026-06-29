@@ -13,6 +13,8 @@ import { pubkeyToAddress } from 'src/utils/crypto'
 import { SecureStoragePlugin } from 'capacitor-secure-storage-plugin'
 
 const OAUTH_TOKEN_KEY_PREFIX = 'watchtower-oauth-token-'
+const isDev = process.env.NODE_ENV !== 'production'
+const debug = (...args) => { if (isDev) console.log('[OAuth]', ...args) }
 const OAUTH_ADDRESS_PATH = "0/0"
 const BCH_DERIVATION_PATH = "m/44'/145'/0'"
 
@@ -149,10 +151,9 @@ export async function getAuthHeaders() {
   const domain = getOAuthDomain()
   const timestamp = Math.floor(Date.now() / 1000)
 
-  console.log('[OAuth] Authenticating wallet:', walletHash.slice(0, 16) + '...')
+  debug('Authenticating wallet:', walletHash.slice(0, 16) + '...')
 
   try {
-    // Try to authenticate first
     const auth = await client.authenticate(
       walletHash,
       credentials.privateKey,
@@ -162,18 +163,17 @@ export async function getAuthHeaders() {
     )
     
     if (!auth.access_token) {
-      console.warn('[OAuth] Server returned no access_token in response')
+      debug('Server returned no access_token in response')
       throw new Error('No access_token in authentication response')
     }
     
     await saveToken(auth.access_token)
-    console.log('[OAuth] Token obtained successfully')
+    debug('Token obtained successfully')
     return { 'Authorization': `Bearer ${auth.access_token}` }
   } catch (err) {
-    // If user not found (404), register first then authenticate
     const statusCode = err?.statusCode || err?.status
     if (statusCode === 404) {
-      console.log('[OAuth] Wallet not registered, registering now')
+      debug('Wallet not registered, registering now')
       await client.register(
         credentials.address,
         credentials.privateKey,
@@ -183,7 +183,6 @@ export async function getAuthHeaders() {
         domain
       )
       
-      // Retry authentication after registration
       const newTimestamp = Math.floor(Date.now() / 1000)
       const auth = await client.authenticate(
         walletHash,
@@ -194,16 +193,16 @@ export async function getAuthHeaders() {
       )
       
       if (!auth.access_token) {
-        console.warn('[OAuth] Server returned no access_token after registration')
+        debug('Server returned no access_token after registration')
         throw new Error('No access_token after registration')
       }
       
       await saveToken(auth.access_token)
-      console.log('[OAuth] Token obtained after registration')
+      debug('Token obtained after registration')
       return { 'Authorization': `Bearer ${auth.access_token}` }
     }
     
-    console.warn('[OAuth] Authentication failed:', err?.message || err)
+    debug('Authentication failed:', err?.message || err)
     throw err
   }
 }

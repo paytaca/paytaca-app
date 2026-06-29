@@ -907,7 +907,7 @@ export default {
     },
     otherMemberIsActive (isActive, wasActive) {
       if (!isActive && wasActive && this.otherMemberPubKey) {
-        this.$store.dispatch('nostrChat/fetchActiveStatus')
+        this.$store.dispatch('nostrChat/fetchActiveStatus').catch(() => {})
       }
     },
     async showSaveContactDialog (val) {
@@ -1001,8 +1001,8 @@ export default {
     }
     this._savedScrollTop = savedScrollTop
     this.markAsRead()
-    this.ensureSubscribed()
-    this.$store.dispatch('nostrChat/fetchActiveStatus')
+    this.ensureSubscribed().catch(() => {})
+    this.$store.dispatch('nostrChat/fetchActiveStatus').catch(() => {})
     if (this.isGroupRoom && this.room?.members) {
       const fetches = this.room.members.map(pk =>
         this.$store.dispatch('nostrChat/fetchPublishedDisplayName', { pubKeyHex: pk })
@@ -1032,18 +1032,18 @@ export default {
     })
     // Poll active status every 2 minutes while on this page
     this._activeStatusPollTimer = setInterval(() => {
-      this.$store.dispatch('nostrChat/fetchActiveStatus')
+      this.$store.dispatch('nostrChat/fetchActiveStatus').catch(() => {})
     }, 120000)
     this._isActive = true
   },
   activated () {
     this._isActive = true
     this.markAsRead()
-    this.ensureSubscribed()
-    this.$store.dispatch('nostrChat/fetchActiveStatus')
+    this.ensureSubscribed().catch(() => {})
+    this.$store.dispatch('nostrChat/fetchActiveStatus').catch(() => {})
     if (!this._activeStatusPollTimer) {
       this._activeStatusPollTimer = setInterval(() => {
-        this.$store.dispatch('nostrChat/fetchActiveStatus')
+        this.$store.dispatch('nostrChat/fetchActiveStatus').catch(() => {})
       }, 120000)
     }
     if (this.isGroupRoom && this.room?.members) {
@@ -1335,9 +1335,9 @@ export default {
           if (elapsed < 2000) return
         }
         this._lastVisibilitySubscribe = Date.now()
-        this.ensureSubscribed()
+        this.ensureSubscribed().catch(() => {})
         this.markAsRead()
-        this.$store.dispatch('nostrChat/fetchActiveStatus')
+        this.$store.dispatch('nostrChat/fetchActiveStatus').catch(() => {})
       }
     },
     onViewportResize () {
