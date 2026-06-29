@@ -842,21 +842,6 @@ function processActiveStatusResponse (data, pubkeys, commit) {
   }
   commit('SET_ACTIVE_STATUS', statusMap)
 }
-    const statusMap = {}
-    for (const pubkey of pubkeys) {
-      if (data[pubkey]) {
-        statusMap[pubkey] = {
-          lastActiveAt: data[pubkey],
-          fetchedAt: Date.now(),
-        }
-        scheduleActiveExpiry(pubkey, commit)
-      }
-    }
-    commit('SET_ACTIVE_STATUS', statusMap)
-  } catch (err) {
-    console.warn('[Nostr] fetchActiveStatus error:', err)
-  }
-}
 
 export async function touchActive ({ rootGetters }, { pubkey, recipients }) {
   if (!pubkey || !recipients?.length) return
