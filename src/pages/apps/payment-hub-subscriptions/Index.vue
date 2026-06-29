@@ -425,7 +425,7 @@ function openSubscribeDialog() {
       const bchWallet = isChipnet ? wallet.value.BCH_CHIP : wallet.value.BCH
 
       const payload = {
-        ...formData,
+        plan: formData.plan,
         wallet_hash: bchWallet.walletHash
       }
 

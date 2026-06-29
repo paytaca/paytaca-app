@@ -31,24 +31,24 @@
         />
 
         <!-- Calculate amounts and periods -->
-        <div class="q-mb-md">
+        <div class="q-mb-md" v-if="planDetails">
           <div class="text-subtitle2 text-grey">{{ $t('TotalTopUpAmount') || 'Total Top Up Amount' }}</div>
           <div class="row items-baseline q-gutter-x-sm">
-            <div class="text-weight-bold text-h6">{{ totalAmountFormatted }} {{ subscription.plan_details.currency }}</div>
-            <div class="text-caption text-grey" v-if="subscription.plan_details.currency !== 'BCH' && bchPrice > 0">
+            <div class="text-weight-bold text-h6">{{ totalAmountFormatted }} {{ planDetails.currency }}</div>
+            <div class="text-caption text-grey" v-if="planDetails.currency !== 'BCH' && bchPrice > 0">
               ~{{ totalBchFormatted }} BCH
             </div>
           </div>
         </div>
 
-        <div class="q-mb-md" v-if="subscription.plan_details.period_blocks">
+        <div class="q-mb-md" v-if="planDetails && planDetails.period_blocks">
           <div class="text-subtitle2 text-grey">{{ $t('TotalDuration') || 'Total Duration' }}</div>
           <div class="text-body2 text-weight-medium">
             {{ totalBlocks }} {{ $t('Blocks') || 'blocks' }} (~{{ getApproximateTime(totalBlocks) }})
           </div>
         </div>
         
-        <div class="q-mb-md" v-else-if="subscription.plan_details.period_days">
+        <div class="q-mb-md" v-else-if="planDetails && planDetails.period_days">
           <div class="text-subtitle2 text-grey">{{ $t('TotalDuration') || 'Total Duration' }}</div>
           <div class="text-body2 text-weight-medium">
             {{ totalDays }} {{ totalDays === 1 ? ($t('Day') || 'day') : ($t('Days') || 'days') }}
@@ -95,13 +95,16 @@ const darkMode = computed(() => $store.getters['darkmode/getStatus'])
 
 const cycles = ref(1)
 
+const planDetails = computed(() => props.subscription?.plan_details || null)
+
 const bchPrice = computed(() => {
-  if (!props.subscription?.plan_details || props.subscription.plan_details.currency === 'BCH') return 0
-  return $store.getters['market/getAssetPrice']('bch', props.subscription.plan_details.currency) || 0
+  if (!planDetails.value || planDetails.value.currency === 'BCH') return 0
+  return $store.getters['market/getAssetPrice']('bch', planDetails.value.currency) || 0
 })
 
 const totalAmount = computed(() => {
-  const amt = parseFloat(props.subscription.plan_details.amount)
+  if (!planDetails.value) return 0
+  const amt = parseFloat(planDetails.value.amount)
   if (isNaN(amt)) return 0
   return amt * (cycles.value || 0)
 })
@@ -111,7 +114,8 @@ const totalAmountFormatted = computed(() => {
 })
 
 const totalBchFormatted = computed(() => {
-  if (props.subscription.plan_details.currency === 'BCH') {
+  if (!planDetails.value) return '0'
+  if (planDetails.value.currency === 'BCH') {
     return totalAmountFormatted.value
   }
   if (!bchPrice.value || totalAmount.value === 0) return '0'
@@ -121,11 +125,13 @@ const totalBchFormatted = computed(() => {
 })
 
 const totalBlocks = computed(() => {
-  return (props.subscription.plan_details.period_blocks || 0) * (cycles.value || 0)
+  if (!planDetails.value) return 0
+  return (planDetails.value.period_blocks || 0) * (cycles.value || 0)
 })
 
 const totalDays = computed(() => {
-  return (props.subscription.plan_details.period_days || 0) * (cycles.value || 0)
+  if (!planDetails.value) return 0
+  return (planDetails.value.period_days || 0) * (cycles.value || 0)
 })
 
 function getApproximateTime(blocks) {

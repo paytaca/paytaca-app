@@ -172,7 +172,7 @@ async function onFormSubmit() {
   if (step.value === 1) {
     await fetchPlanDetails()
   } else if (step.value === 2) {
-    onDialogOK({ plan: form.plan })
+    onDialogOK({ plan: form.plan, plan_details: planDetails.value })
   }
 }
 
