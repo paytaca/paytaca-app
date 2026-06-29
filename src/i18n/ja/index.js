@@ -2462,6 +2462,7 @@ export default {
   ShareGroupLink: "グループリンクを共有する",
   SharePartialSignature: "部分的な署名を共有する",
   SharePartialSignatureDescription: "部分的な署名を他の署名者と共有する",
+  ShareReferralCodeLink: "紹介コードリンクを共有",
   ShareSignedProposal: "署名された提案書を共有する",
   ShareSignedProposalHint: "署名された取引提案書を共有する",
   ShareTransactionProposal: "株式取引提案",

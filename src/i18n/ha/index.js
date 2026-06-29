@@ -2462,6 +2462,7 @@ export default {
   ShareGroupLink: "Raba Rukunin Link",
   SharePartialSignature: "Raba sa hannun sa hannu",
   SharePartialSignatureDescription: "Raba sa hannun ku tare da sauran masu sa hannu",
+  ShareReferralCodeLink: "Raba hanyar lambar neman",
   ShareSignedProposal: "Raba sa hannu akan tsari",
   ShareSignedProposalHint: "Raba shawarar ciniki da aka sanya hannu",
   ShareTransactionProposal: "Raba shawarwarin ciniki",

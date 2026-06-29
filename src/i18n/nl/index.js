@@ -2462,6 +2462,7 @@ export default {
   ShareGroupLink: "Groepslink delen",
   SharePartialSignature: "Deel gedeeltelijke handtekening",
   SharePartialSignatureDescription: "Deel uw gedeeltelijke handtekening met andere ondertekenaars",
+  ShareReferralCodeLink: "Deel verwijzingscode-link",
   ShareSignedProposal: "Deel ondertekend voorstel",
   ShareSignedProposalHint: "Deel het ondertekende transactievoorstel",
   ShareTransactionProposal: "Aandeeltransactievoorstel",

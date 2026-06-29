@@ -2462,6 +2462,7 @@ export default {
   ShareGroupLink: "Bagikan Tautan Grup",
   SharePartialSignature: "Bagikan sebagian tanda tangan",
   SharePartialSignatureDescription: "Bagikan sebagian tanda tangan Anda dengan penanda tangan lainnya",
+  ShareReferralCodeLink: "Bagikan tautan kode referral",
   ShareSignedProposal: "Bagikan proposal yang ditandatangani",
   ShareSignedProposalHint: "Bagikan proposal transaksi yang ditandatangani",
   ShareTransactionProposal: "Bagikan proposal transaksi",

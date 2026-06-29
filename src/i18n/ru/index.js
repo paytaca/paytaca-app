@@ -2462,6 +2462,7 @@ export default {
   ShareGroupLink: "Поделиться ссылкой на группу",
   SharePartialSignature: "Поделиться частичной подписью",
   SharePartialSignatureDescription: "Поделитесь своей частичной подписью с другими подписывающими сторонами",
+  ShareReferralCodeLink: "Поделиться ссылкой на реферальный код",
   ShareSignedProposal: "Поделиться подписанным предложением",
   ShareSignedProposalHint: "Поделитесь подписанным предложением о сделке",
   ShareTransactionProposal: "Предложение о сделке с акциями",

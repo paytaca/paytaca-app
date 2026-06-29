@@ -2462,6 +2462,7 @@ export default {
   ShareGroupLink: "Compartilhar link do grupo",
   SharePartialSignature: "Compartilhar assinatura parcial",
   SharePartialSignatureDescription: "Compartilhe sua assinatura parcial com outros signatários",
+  ShareReferralCodeLink: "Compartilhar link do código de indicação",
   ShareSignedProposal: "Compartilhar proposta assinada",
   ShareSignedProposalHint: "Compartilhe a proposta de transação assinada",
   ShareTransactionProposal: "Proposta de transação de compartilhamento",

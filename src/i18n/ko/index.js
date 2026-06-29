@@ -2462,6 +2462,7 @@ export default {
   ShareGroupLink: "그룹 링크 공유",
   SharePartialSignature: "부분 서명 공유",
   SharePartialSignatureDescription: "다른 서명자와 부분 서명 공유",
+  ShareReferralCodeLink: "추천 코드 링크 공유",
   ShareSignedProposal: "서명된 제안 공유",
   ShareSignedProposalHint: "서명된 거래 제안을 공유하세요",
   ShareTransactionProposal: "거래 제안 공유",

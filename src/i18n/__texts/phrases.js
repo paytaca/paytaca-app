@@ -2196,6 +2196,7 @@ const phrases = {
       FriendReferralQrTitle: 'Friend Referral QR',
       ReferralQrDescription: 'Have new users scan or copy the referral code when they create a new wallet.',
       FailedToCopyCode: 'Failed to copy code',
+      ShareReferralCodeLink: 'Share Referral Code Link',
 
       // redemption history dialog
       EmptyRedemptionHistoryTitle: 'No redemptions yet',

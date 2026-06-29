@@ -2462,6 +2462,7 @@ export default {
   ShareGroupLink: "Partager le lien du groupe",
   SharePartialSignature: "Partager la signature partielle",
   SharePartialSignatureDescription: "Partagez votre signature partielle avec d'autres signataires",
+  ShareReferralCodeLink: "Partager le lien du code de parrainage",
   ShareSignedProposal: "Partager la proposition signée",
   ShareSignedProposalHint: "Partagez la proposition de transaction signée",
   ShareTransactionProposal: "Proposition de transaction de partage",

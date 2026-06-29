@@ -84,8 +84,7 @@
           <q-separator class="q-my-sm" />
 
           <div class="text-subtitle1 text-bow q-mb-xs" :class="getDarkModeClass(darkMode)">
-            <!-- {{ $t('ShareReferralCodeLink') }} -->
-            Share Referral Code Link
+            {{ $t('ShareReferralCodeLink') }}
           </div>
           <div
             class="row items-center no-wrap q-py-sm q-px-sm rounded-borders"

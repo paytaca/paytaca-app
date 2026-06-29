@@ -2462,6 +2462,7 @@ export default {
   ShareGroupLink: "Ibahagi ang Link ng Grupo",
   SharePartialSignature: "Ibahagi ang bahagyang lagda",
   SharePartialSignatureDescription: "Ibahagi ang iyong bahagyang lagda sa ibang mga pumirma",
+  ShareReferralCodeLink: "Ibahagi ang link ng referral code",
   ShareSignedProposal: "Ibahagi ang nilagdaang panukala",
   ShareSignedProposalHint: "Ibahagi ang nilagdaang panukalang transaksyon",
   ShareTransactionProposal: "Ibahagi ang panukala sa transaksyon",

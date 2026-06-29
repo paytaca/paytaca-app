@@ -2464,6 +2464,7 @@ export default {
   ShareGroupLink: "分享群組連結",
   SharePartialSignature: "共享部分簽名",
   SharePartialSignatureDescription: "與其他簽名者分享您的部分簽名",
+  ShareReferralCodeLink: "分享推薦碼連結",
   ShareSignedProposal: "分享簽署的提案",
   ShareSignedProposalHint: "分享已簽署的交易提案",
   ShareTransactionProposal: "股份交易方案",

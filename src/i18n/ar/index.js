@@ -2462,6 +2462,7 @@ export default {
   ShareGroupLink: "مشاركة رابط المجموعة",
   SharePartialSignature: "مشاركة التوقيع الجزئي",
   SharePartialSignatureDescription: "شارك توقيعك الجزئي مع الموقعين الآخرين",
+  ShareReferralCodeLink: "مشاركة رابط رمز الإحالة",
   ShareSignedProposal: "حصة الاقتراح الموقع",
   ShareSignedProposalHint: "مشاركة مقترح المعاملة الموقعة",
   ShareTransactionProposal: "حصة اقتراح الصفقة",
