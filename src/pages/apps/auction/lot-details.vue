@@ -255,6 +255,8 @@
                 label="Mark as Complete"
                 class="full-width"
                 unelevated
+                :disable="isMarkedComplete"
+                @click="markedAsCompleted"
               />
             </div>
           </div>
@@ -684,6 +686,7 @@ const showRefundDialog = ref(false)
 const showBidHistory = ref(false)
 const showDeliveryHistory = ref(false)
 const deliveryStatusId = ref(null)
+const isMarkedComplete = ref(false)
 
 const $q = useQuasar()
 const $store = useStore()
@@ -744,13 +747,6 @@ const confirmDeliveryTrigger = async () => {
 
 const confirmPickupTrigger = async () => {
   try {
-    const bidId = auction.value?.type === 'English' ? highestBidId.value : winningBid.value?.id
-
-    if (!bidId) {
-      $q.notify({ type: 'warning', message: 'Could not find bid to release funds for.' })
-      return
-    }
-
     const res = await callAPI('delivery-trackings', props.lotId, 'patch', {
       status: 3,
       delivered_date: new Date().toISOString()
@@ -759,10 +755,25 @@ const confirmPickupTrigger = async () => {
     if (res.success) {
       $q.notify({ type: 'positive', message: 'Confirmed pickup!' })
     }
+  } catch (err) {
+    console.warn('Could not fetch delivery tracking:', err)
+  } finally {
+    await refresh(() => {})
+  }
+}
 
-    $q.loading.show({ message: 'Confirming pickup...' })
-    await callContractRelease(bidId)
+const markedAsCompleted = async () => {
+  try {
+    if (!winningBidId.value) {
+      $q.notify({ type: 'warning', message: 'Could not find bid to release funds for.' })
+      return
+    }
+
+    $q.loading.show({ message: 'Marking as complete, processing funds...' })
+    await callContractRelease(winningBidId.value)
     $q.loading.hide()
+
+    await callAPI('delivery-trackings', props.lotId, 'patch', { mark_as_completed: true })
   } catch (err) {
     console.warn('Could not fetch delivery tracking:', err)
   } finally {
@@ -1378,6 +1389,7 @@ const fetchDeliveryTracking = async () => {
     if (res.success && res.data) {
       const data = Array.isArray(res.data) ? res.data[0] : res.data
       deliveryStatusId.value = data?.status ?? null
+      isMarkedComplete.value = data?.mark_as_completed ?? null
     }
   } catch (err) {
     console.warn('Could not fetch delivery tracking:', err)
