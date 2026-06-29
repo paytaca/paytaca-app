@@ -239,6 +239,11 @@ export default {
         referralCode = null
       }
 
+      // if rewards url is found, parse code
+      if (referralCode.includes('rewards.paytaca.com')) {
+        referralCode = referralCode.split('=')[1]
+      }
+
       if (referralCode) {
         const resp = await this.submitReferralCode(referralCode)
         if (Object.keys(resp).length === 0) {
