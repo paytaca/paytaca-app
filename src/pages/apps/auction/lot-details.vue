@@ -1467,7 +1467,8 @@ const loadPageData = async () => {
   await Promise.all([fetchLot(), fetchAuction()])
   await Promise.all([fetchDutchSoldStatus(), checkBidStatus(), checkUserBid()])
   initializeDutchAuctionTimer(lot.value)
-  await Promise.all([fetchWinningBid(), fetchDeliveryTracking(), fetchDispute()])
+  await fetchWinningBid()
+  await Promise.all([fetchDeliveryTracking(), fetchDispute()])
   await initEnglishDeliveryTracking()
   if (auction.value?.type === 'English' && !isLotClosed.value && hasUserBid.value) {
     startEnglishPolling()
