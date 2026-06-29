@@ -31,7 +31,7 @@
             border-width="3px"
             border-color="var(--q-primary)"
             :qr-id="0"
-            :text="referralCodeFull"
+            :text="referralShareUrl"
             :size="180"
           />
         </div>
@@ -168,7 +168,7 @@ export default {
     },
     referralShareUrl () {
       const code = this.referralCodeFull
-      return `https://example.url.com/code/${code}`
+      return `https://rewards.paytaca.com/referral?code=${code}`
     },
     shareLinks () {
       const encodedUrl = encodeURI(this.referralShareUrl)
