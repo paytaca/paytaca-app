@@ -248,7 +248,19 @@
               </div>
             </div>
 
-            <div v-if="showPostAuctionActions && (isAuthor || isWinningBidder) && deliveryStatusId === 3" class="q-mt-md full-width">
+            <div v-if="showPostAuctionActions && isAuthor && isGrantedRefund && deliveryStatusId !== 3" class="q-mt-md full-width">
+              <q-btn
+                color="positive"
+                icon="check_circle"
+                label="Mark as Return"
+                class="full-width"
+                unelevated
+                :disable="isMarkedReturned"
+                @click="markedAsReturned"
+              />
+            </div>
+
+            <div v-if="showPostAuctionActions && isWinningBidder && !isGrantedRefund && deliveryStatusId === 3" class="q-mt-md full-width">
               <q-btn
                 color="positive"
                 icon="check_circle"
@@ -687,6 +699,8 @@ const showBidHistory = ref(false)
 const showDeliveryHistory = ref(false)
 const deliveryStatusId = ref(null)
 const isMarkedComplete = ref(false)
+const isMarkedReturned = ref(false)
+const isGrantedRefund = ref(false)
 
 const $q = useQuasar()
 const $store = useStore()
@@ -774,6 +788,25 @@ const markedAsCompleted = async () => {
     $q.loading.hide()
 
     await callAPI('delivery-trackings', props.lotId, 'patch', { mark_as_completed: true })
+  } catch (err) {
+    console.warn('Could not fetch delivery tracking:', err)
+  } finally {
+    await refresh(() => {})
+  }
+}
+
+const markedAsReturned = async () => {
+  try {
+    if (!winningBidId.value) {
+      $q.notify({ type: 'warning', message: 'Could not find bid to release funds for.' })
+      return
+    }
+
+    $q.loading.show({ message: 'Marking as returned, processing funds...' })
+    await callContractReturn(winningBidId.value)
+    $q.loading.hide()
+
+    await callAPI('delivery-trackings', props.lotId, 'patch', { mark_as_returned: true })
   } catch (err) {
     console.warn('Could not fetch delivery tracking:', err)
   } finally {
@@ -1389,10 +1422,23 @@ const fetchDeliveryTracking = async () => {
     if (res.success && res.data) {
       const data = Array.isArray(res.data) ? res.data[0] : res.data
       deliveryStatusId.value = data?.status ?? null
-      isMarkedComplete.value = data?.mark_as_completed ?? null
+      isMarkedComplete.value = data?.mark_as_completed ?? false
+      isMarkedReturned.value = data?.mark_as_returned ?? false
     }
   } catch (err) {
     console.warn('Could not fetch delivery tracking:', err)
+  }
+}
+
+const fetchDispute = async () => {
+  try {
+    const res = await callAPI('disputes-by-bid', winningBidId.value)
+    if (res.success && res.data) {
+      const data = Array.isArray(res.data) ? res.data[0] : res.data
+      isGrantedRefund.value = data?.is_granted_refund ?? false
+    }
+  } catch (err) {
+    console.warn('Could not fetch dispute:', err)
   }
 }
 
@@ -1400,7 +1446,7 @@ const loadPageData = async () => {
   await Promise.all([fetchLot(), fetchAuction()])
   await Promise.all([fetchDutchSoldStatus(), checkBidStatus(), checkUserBid()])
   initializeDutchAuctionTimer(lot.value)
-  await Promise.all([fetchWinningBid(), fetchDeliveryTracking()])
+  await Promise.all([fetchWinningBid(), fetchDeliveryTracking(), fetchDispute()])
   await initEnglishDeliveryTracking()
   if (auction.value?.type === 'English' && !isLotClosed.value && hasUserBid.value) {
     startEnglishPolling()
