@@ -1002,6 +1002,7 @@ export default {
     this._savedScrollTop = savedScrollTop
     this.markAsRead()
     this.ensureSubscribed()
+    this.$store.dispatch('nostrChat/fetchActiveStatus')
     if (this.isGroupRoom && this.room?.members) {
       const fetches = this.room.members.map(pk =>
         this.$store.dispatch('nostrChat/fetchPublishedDisplayName', { pubKeyHex: pk })
@@ -1029,12 +1030,22 @@ export default {
         this.observeMessages()
       })
     })
+    // Poll active status every 2 minutes while on this page
+    this._activeStatusPollTimer = setInterval(() => {
+      this.$store.dispatch('nostrChat/fetchActiveStatus')
+    }, 120000)
     this._isActive = true
   },
   activated () {
     this._isActive = true
     this.markAsRead()
     this.ensureSubscribed()
+    this.$store.dispatch('nostrChat/fetchActiveStatus')
+    if (!this._activeStatusPollTimer) {
+      this._activeStatusPollTimer = setInterval(() => {
+        this.$store.dispatch('nostrChat/fetchActiveStatus')
+      }, 120000)
+    }
     if (this.isGroupRoom && this.room?.members) {
       const fetches = this.room.members.map(pk =>
         this.$store.dispatch('nostrChat/fetchPublishedDisplayName', { pubKeyHex: pk })
@@ -1091,6 +1102,8 @@ export default {
   },
   deactivated () {
     this.ready = false
+    clearInterval(this._activeStatusPollTimer)
+    this._activeStatusPollTimer = null
     // Only flush mark-as-read if we were actually visible — not if we were
     // already deactivated in keep-alive (e.g., user on chat index sees a new
     // message arrive, then navigates to home; the Apps layout unmounts and
@@ -1102,6 +1115,8 @@ export default {
     }
   },
   beforeUnmount () {
+    clearInterval(this._activeStatusPollTimer)
+    this._activeStatusPollTimer = null
     if (this._isActive) {
       this._isActive = false
       this.flushMarkAsRead()
@@ -1322,6 +1337,7 @@ export default {
         this._lastVisibilitySubscribe = Date.now()
         this.ensureSubscribed()
         this.markAsRead()
+        this.$store.dispatch('nostrChat/fetchActiveStatus')
       }
     },
     onViewportResize () {
