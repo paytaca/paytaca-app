@@ -40,6 +40,11 @@
                 <q-icon v-else-if="room.type === 'group'" name="group" size="24px" />
                 <span v-else class="avatar-initial">{{ roomInitial(room) }}</span>
               </q-avatar>
+              <div
+                v-if="activeIndicatorMap[room.id]"
+                class="active-dot"
+                :class="{ 'active-dot--dark': darkMode }"
+              ></div>
         </div>
         <div class="room-content">
           <div class="room-header">
@@ -107,6 +112,9 @@ export default {
     contacts () {
       return this.$store.getters['nostrChat/getContacts']
     },
+    showActiveStatus () {
+      return this.$store.getters['nostrChat/getShowActiveStatus']
+    },
     themeColor () {
       const theme = this.$store.getters['global/theme']
       if (theme === 'glassmorphic-red') return '#f54270'
@@ -122,6 +130,23 @@ export default {
       if (!myPubKey) return map
       for (const room of this.rooms) {
         map[room.id] = this.$store.getters['nostrChat/getUnreadCount'](room.id)
+      }
+      return map
+    },
+    activeIndicatorMap () {
+      const map = {}
+      if (!this.showActiveStatus) return map
+      const activeStatus = this.$store.getters['nostrChat/getActiveStatusMap']
+      for (const room of this.rooms) {
+        if (room.type === 'group') continue
+        const otherPubKey = room.members?.find(m => m !== this.myPubKey)
+        if (!otherPubKey) continue
+        const entry = activeStatus[otherPubKey]
+        if (!entry || !entry.lastActiveAt) {
+          map[room.id] = false
+        } else {
+          map[room.id] = Date.now() - new Date(entry.lastActiveAt).getTime() <= 60000
+        }
       }
       return map
     },
@@ -379,6 +404,7 @@ export default {
 }
 
 .room-avatar {
+  position: relative;
   margin-right: 14px;
   flex-shrink: 0;
 }
@@ -523,6 +549,22 @@ export default {
 
 .dark .room-time {
   color: #64748b;
+}
+
+.active-dot {
+  position: absolute;
+  bottom: 0;
+  right: 0;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: #4caf50;
+  border: 3px solid #ffffff;
+  z-index: 1;
+}
+
+.active-dot--dark {
+  border-color: #1e293b;
 }
 
 .dark .unread-badge {

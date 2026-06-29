@@ -68,6 +68,11 @@ export function SET_RELAY_STATUS (state, { url, status }) {
   ws.relayStatus = { ...ws.relayStatus, [url]: status }
 }
 
+export function SET_SHOW_ACTIVE_STATUS (state, value) {
+  const ws = getOrInitWalletState(state)
+  if (ws) ws.showActiveStatus = value
+}
+
 export function SET_SUBSCRIBED (state, val) {
   const ws = getOrInitWalletState(state)
   if (ws) ws.isSubscribed = val
@@ -94,6 +99,11 @@ export function REMOVE_CONTACT (state, npub) {
 
 export function SET_RELAYS (state, relays) {
   state.relays = relays
+}
+
+export function SET_ACTIVE_STATUS (state, statusMap) {
+  if (!state.activeStatus) state.activeStatus = {}
+  state.activeStatus = { ...state.activeStatus, ...statusMap }
 }
 
 // ---- Per-wallet room mutations ----

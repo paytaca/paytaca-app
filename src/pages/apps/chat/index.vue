@@ -188,10 +188,17 @@
                     @click="startChatWith(contact)"
                   >
                     <q-item-section avatar>
-                      <q-avatar color="primary" text-color="white" size="44px">
-                        <img v-if="contactAvatars[contact.npub]" :src="contactAvatars[contact.npub]" />
-                        <template v-else>{{ contactInitial(contact) }}</template>
-                      </q-avatar>
+                      <div class="contact-avatar-wrapper">
+                        <q-avatar color="primary" text-color="white" size="44px">
+                          <img v-if="contactAvatars[contact.npub]" :src="contactAvatars[contact.npub]" />
+                          <template v-else>{{ contactInitial(contact) }}</template>
+                        </q-avatar>
+                        <div
+                          v-if="activeContactMap[contact.pubKeyHex]"
+                          class="active-dot"
+                          :class="{ 'active-dot--dark': darkMode }"
+                        ></div>
+                      </div>
                     </q-item-section>
                     <q-item-section>
                       <q-item-label class="text-weight-medium">{{ contact.name }}</q-item-label>
@@ -454,6 +461,24 @@ export default {
     },
     contacts () {
       return this.$store.getters['nostrChat/getContacts']
+    },
+    showActiveStatus () {
+      return this.$store.getters['nostrChat/getShowActiveStatus']
+    },
+    activeContactMap () {
+      const map = {}
+      if (!this.showActiveStatus) return map
+      const activeStatus = this.$store.getters['nostrChat/getActiveStatusMap']
+      for (const contact of this.contacts) {
+        if (!contact.pubKeyHex) continue
+        const entry = activeStatus[contact.pubKeyHex]
+        if (!entry || !entry.lastActiveAt) {
+          map[contact.pubKeyHex] = false
+        } else {
+          map[contact.pubKeyHex] = Date.now() - new Date(entry.lastActiveAt).getTime() <= 60000
+        }
+      }
+      return map
     },
     canAddContact () {
       return this.newContactName.trim() && this.newContactNpub.trim().startsWith('npub')
@@ -1467,5 +1492,24 @@ export default {
   color: #94a3b8;
 }
 
+.contact-avatar-wrapper {
+  position: relative;
+  display: inline-block;
+}
 
+.active-dot {
+  position: absolute;
+  bottom: 0;
+  right: 0;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: #4caf50;
+  border: 3px solid #ffffff;
+  z-index: 1;
+}
+
+.active-dot--dark {
+  border-color: #1e293b;
+}
 </style>

@@ -59,6 +59,20 @@ export function getRelays (state) {
   return state.relays || []
 }
 
+export function getActiveStatus (state) {
+  return (pubKeyHex) => {
+    const activeStatus = state.activeStatus || {}
+    const entry = activeStatus[pubKeyHex]
+    if (!entry || !entry.lastActiveAt) return { isActive: false, lastActiveAt: null }
+    const elapsed = Date.now() - new Date(entry.lastActiveAt).getTime()
+    return { isActive: elapsed <= 60000, lastActiveAt: entry.lastActiveAt }
+  }
+}
+
+export function getActiveStatusMap (state) {
+  return state.activeStatus || {}
+}
+
 // ---- Per-wallet room getters ----
 
 export function getRooms (state) {
@@ -251,6 +265,10 @@ export function getTotalUnreadCount (state) {
 
 export function getProfile (state) {
   return getWalletState(state).profile || {}
+}
+
+export function getShowActiveStatus (state) {
+  return getWalletState(state).showActiveStatus !== false
 }
 
 // ---- Per-wallet runtime flags ----

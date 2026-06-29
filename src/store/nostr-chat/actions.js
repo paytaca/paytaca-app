@@ -727,6 +727,166 @@ export function removeContact ({ commit }, npub) {
   commit('REMOVE_CONTACT', npub)
 }
 
+let _activeServicesRunning = false
+let _heartbeatInterval = null
+let _activeWs = null
+let _activeWsReconnectTimer = null
+
+function collectActiveStatusPubkeys (state) {
+  const ws = getWalletState(state)
+  const myPubKey = ws.keys?.pubKeyHex
+  const pubkeys = new Set()
+
+  for (const c of state.contacts) {
+    if (c.pubKeyHex) pubkeys.add(c.pubKeyHex)
+  }
+
+  if (myPubKey) {
+    for (const room of (ws.rooms || [])) {
+      for (const m of room.members) {
+        if (m !== myPubKey) pubkeys.add(m)
+      }
+    }
+  }
+
+  return [...pubkeys]
+}
+
+export async function fetchActiveStatus ({ state, commit, rootGetters }) {
+  const pubkeys = collectActiveStatusPubkeys(state)
+  if (!pubkeys.length) return
+
+  try {
+    const isChipnet = rootGetters['global/isChipnet']
+    const baseUrl = isChipnet ? 'https://chipnet.watchtower.cash' : 'https://watchtower.cash'
+    const response = await fetch(`${baseUrl}/api/nostr/last-online/`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ pubkeys }),
+    })
+    if (!response.ok) {
+      console.warn('[Nostr] fetchActiveStatus failed:', response.status)
+      return
+    }
+    const data = await response.json()
+    const statusMap = {}
+    for (const pubkey of pubkeys) {
+      statusMap[pubkey] = {
+        lastActiveAt: data[pubkey] || null,
+        fetchedAt: Date.now(),
+      }
+    }
+    commit('SET_ACTIVE_STATUS', statusMap)
+  } catch (err) {
+    console.warn('[Nostr] fetchActiveStatus error:', err)
+  }
+}
+
+function startActiveHeartbeat (dispatch) {
+  if (_heartbeatInterval) clearInterval(_heartbeatInterval)
+  dispatch('registerNostrPubkey')
+  _heartbeatInterval = setInterval(() => {
+    dispatch('registerNostrPubkey')
+  }, 120000)
+}
+
+function getWsWatchtowerUrl (rootGetters) {
+  const walletIndex = rootGetters['global/getWalletIndex']
+  const walletHash = rootGetters['global/getWalletHashByIndex']?.(walletIndex)
+  if (!walletHash) return null
+  const isChipnet = rootGetters['global/isChipnet']
+  const baseUrl = isChipnet ? 'https://chipnet.watchtower.cash' : 'https://watchtower.cash'
+  const url = new URL(baseUrl)
+  url.protocol = baseUrl.startsWith('https') ? 'wss:' : 'ws:'
+  url.pathname = `/ws/nostr/updates/${walletHash}/`
+  return url.toString()
+}
+
+export function startActiveWs ({ state, commit, rootGetters }) {
+  stopActiveWs()
+  const wsUrl = getWsWatchtowerUrl(rootGetters)
+  if (!wsUrl) return
+
+  try {
+    _activeWs = new WebSocket(wsUrl)
+    _activeWs.addEventListener('open', () => {
+      console.log('[Nostr] Active status WS connected')
+    })
+    _activeWs.addEventListener('message', (event) => {
+      try {
+        const msg = JSON.parse(event.data)
+        if (msg.type === 'last_active' && msg.pubkey_hex && msg.timestamp) {
+          commit('SET_ACTIVE_STATUS', {
+            [msg.pubkey_hex]: {
+              lastActiveAt: msg.timestamp,
+              fetchedAt: Date.now(),
+            },
+          })
+        }
+      } catch (e) {
+        console.warn('[Nostr] Failed to parse WS message:', e)
+      }
+    })
+    _activeWs.addEventListener('close', () => {
+      _activeWs = null
+      if (_activeServicesRunning) {
+        _activeWsReconnectTimer = setTimeout(() => {
+          startActiveWs({ state, commit, rootGetters })
+        }, 5000)
+      }
+    })
+    _activeWs.addEventListener('error', (err) => {
+      console.warn('[Nostr] Active status WS error:', err)
+    })
+  } catch (err) {
+    console.warn('[Nostr] Failed to create active status WS:', err)
+  }
+}
+
+export function stopActiveWs () {
+  if (_activeWsReconnectTimer) {
+    clearTimeout(_activeWsReconnectTimer)
+    _activeWsReconnectTimer = null
+  }
+  if (_activeWs) {
+    _activeWs.close()
+    _activeWs = null
+  }
+}
+
+export function startActiveServices ({ dispatch, getters, state, commit, rootGetters }) {
+  if (_activeServicesRunning) return
+  _activeServicesRunning = true
+
+  dispatch('fetchActiveStatus')
+  dispatch('startActiveWs')
+
+  if (getters.getShowActiveStatus) {
+    startActiveHeartbeat(dispatch)
+  }
+}
+
+export function stopActiveServices () {
+  _activeServicesRunning = false
+  if (_heartbeatInterval) {
+    clearInterval(_heartbeatInterval)
+    _heartbeatInterval = null
+  }
+  stopActiveWs()
+}
+
+export function setShowActiveStatus ({ commit, dispatch, getters }, value) {
+  commit('SET_SHOW_ACTIVE_STATUS', value)
+  if (value && _activeServicesRunning) {
+    startActiveHeartbeat(dispatch)
+  } else if (!value) {
+    if (_heartbeatInterval) {
+      clearInterval(_heartbeatInterval)
+      _heartbeatInterval = null
+    }
+  }
+}
+
 export function createPrivateRoom ({ commit, getters, state }, contactNpub) {
   const ws = getWalletState(state)
   const contact = getters.getContactByNpub(contactNpub)
@@ -1716,6 +1876,8 @@ export function subscribeToRelays ({ state, dispatch, commit }) {
     }, 15000)
   }
 
+  dispatch('startActiveServices')
+
   return sub
 }
 
@@ -1763,6 +1925,7 @@ export async function resetAndRefetch ({ commit, dispatch, state }) {
   }
 
   // Disconnect existing relay subscriptions
+  stopActiveServices()
   relayService.stopStatusPolling()
   relayService.disconnect()
   commit('SET_SUBSCRIBED', false)

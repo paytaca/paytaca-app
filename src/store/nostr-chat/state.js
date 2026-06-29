@@ -39,6 +39,7 @@ export function getInitialWalletState () {
     initialized: false,
     isSubscribed: false,
     relayStatus: {},
+    showActiveStatus: true,
   }
 }
 
@@ -51,5 +52,6 @@ export default function () {
       'wss://relay.paytaca.com',
     ],
     contacts: [],
+    activeStatus: {},
   }
 }
