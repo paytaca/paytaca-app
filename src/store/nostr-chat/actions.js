@@ -104,6 +104,7 @@ export async function reinitialize ({ commit, dispatch, state, rootGetters }) {
   if (ws.keys?.pubKeyHex === keys.pubKeyHex) return
 
   // Disconnect existing relay subscriptions for the old identity
+  stopActiveServices()
   relayService.stopStatusPolling()
   relayService.disconnect()
   commit('SET_SUBSCRIBED', false)
@@ -181,6 +182,7 @@ export async function initialize ({ commit, dispatch, state, rootGetters }) {
 
   // Keys mismatch or first init — clear IndexedDB cache if switching from another wallet
   if (ws.initialized || ws.keys?.pubKeyHex) {
+    stopActiveServices()
     relayService.stopStatusPolling()
     relayService.disconnect()
     commit('SET_SUBSCRIBED', false)
@@ -732,6 +734,7 @@ let _activeServicesRunning = false
 let _heartbeatInterval = null
 let _activeWs = null
 let _activeWsReconnectTimer = null
+let _activeWsHandlers = null
 let _activeExpiryTimers = {}
 
 function clearActiveExpiry (pubkey) {
@@ -873,37 +876,42 @@ export function startActiveWs ({ state, commit, rootGetters }) {
   if (!wsUrl) return
 
   try {
-    _activeWs = new WebSocket(wsUrl)
-    _activeWs.addEventListener('open', () => {
-      console.log('[Nostr] Active status WS connected')
-    })
-    _activeWs.addEventListener('message', (event) => {
-      try {
-        const msg = JSON.parse(event.data)
-        if (msg.type === 'last_active' && msg.pubkey_hex && msg.timestamp) {
-          commit('SET_ACTIVE_STATUS', {
-            [msg.pubkey_hex]: {
-              lastActiveAt: msg.timestamp,
-              fetchedAt: Date.now(),
-            },
-          })
-          scheduleActiveExpiry(msg.pubkey_hex, commit)
+    const ws = new WebSocket(wsUrl)
+    const handlers = {
+      open: () => { console.log('[Nostr] Active status WS connected') },
+      message: (event) => {
+        try {
+          const msg = JSON.parse(event.data)
+          if (msg.type === 'last_active' && msg.pubkey_hex && msg.timestamp) {
+            commit('SET_ACTIVE_STATUS', {
+              [msg.pubkey_hex]: {
+                lastActiveAt: msg.timestamp,
+                fetchedAt: Date.now(),
+              },
+            })
+            scheduleActiveExpiry(msg.pubkey_hex, commit)
+          }
+        } catch (e) {
+          console.warn('[Nostr] Failed to parse WS message:', e)
         }
-      } catch (e) {
-        console.warn('[Nostr] Failed to parse WS message:', e)
-      }
-    })
-    _activeWs.addEventListener('close', () => {
-      _activeWs = null
-      if (_activeServicesRunning) {
-        _activeWsReconnectTimer = setTimeout(() => {
-          startActiveWs({ state, commit, rootGetters })
-        }, 5000)
-      }
-    })
-    _activeWs.addEventListener('error', (err) => {
-      console.warn('[Nostr] Active status WS error:', err)
-    })
+      },
+      close: () => {
+        _activeWs = null
+        _activeWsHandlers = null
+        if (_activeServicesRunning) {
+          _activeWsReconnectTimer = setTimeout(() => {
+            startActiveWs({ state, commit, rootGetters })
+          }, 5000)
+        }
+      },
+      error: (err) => { console.warn('[Nostr] Active status WS error:', err) },
+    }
+    ws.addEventListener('open', handlers.open)
+    ws.addEventListener('message', handlers.message)
+    ws.addEventListener('close', handlers.close)
+    ws.addEventListener('error', handlers.error)
+    _activeWs = ws
+    _activeWsHandlers = handlers
   } catch (err) {
     console.warn('[Nostr] Failed to create active status WS:', err)
   }
@@ -914,10 +922,15 @@ export function stopActiveWs () {
     clearTimeout(_activeWsReconnectTimer)
     _activeWsReconnectTimer = null
   }
-  if (_activeWs) {
+  if (_activeWs && _activeWsHandlers) {
+    _activeWs.removeEventListener('open', _activeWsHandlers.open)
+    _activeWs.removeEventListener('message', _activeWsHandlers.message)
+    _activeWs.removeEventListener('close', _activeWsHandlers.close)
+    _activeWs.removeEventListener('error', _activeWsHandlers.error)
     _activeWs.close()
-    _activeWs = null
   }
+  _activeWs = null
+  _activeWsHandlers = null
 }
 
 export function startActiveServices ({ dispatch, getters, state, commit, rootGetters }) {

@@ -1568,10 +1568,12 @@ export default {
           this.editingMessage = null
           this.scrollToBottom()
           await this.$store.dispatch('nostrChat/publishGiftWraps', { giftWraps })
-          this.$store.dispatch('nostrChat/touchActive', {
-            pubkey: this.myPubKey,
-            recipients: this.room?.members?.filter(m => m !== this.myPubKey) || [],
-          })
+          if (this.$store.getters['nostrChat/getShowActiveStatus']) {
+            this.$store.dispatch('nostrChat/touchActive', {
+              pubkey: this.myPubKey,
+              recipients: this.room?.members?.filter(m => m !== this.myPubKey) || [],
+            })
+          }
         } else {
           const replyTo = this.replyToMessage?.id
           const { giftWraps, message, roomId } = await this.$store.dispatch('nostrChat/sendMessage', {
@@ -1583,10 +1585,12 @@ export default {
           this.replyToMessage = null
           this.scrollToBottom()
           await this.$store.dispatch('nostrChat/publishGiftWraps', { giftWraps })
-          this.$store.dispatch('nostrChat/touchActive', {
-            pubkey: this.myPubKey,
-            recipients: this.room?.members?.filter(m => m !== this.myPubKey) || [],
-          })
+          if (this.$store.getters['nostrChat/getShowActiveStatus']) {
+            this.$store.dispatch('nostrChat/touchActive', {
+              pubkey: this.myPubKey,
+              recipients: this.room?.members?.filter(m => m !== this.myPubKey) || [],
+            })
+          }
         }
       } catch (err) {
         console.error('Failed to send message:', err)
