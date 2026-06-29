@@ -1643,6 +1643,7 @@ const phrases = {
       'Apps.Support.Description': 'Get help, guides, and wallet information.',
       'Apps.Settings.Description': 'Customize your wallet preferences and security settings.',
       'Apps.Debug.Description': 'Developer tools and diagnostics.',
+      'Apps.Eload.Description': 'Buy Telco loads, Cable Subscription and Gamepins',
       'Apps.Sandbox.Description': 'Experimental playground for testing features.',
       'AppsTour.DefaultTitle': 'App'
     },
@@ -2771,6 +2772,17 @@ const phrases = {
       CountPointsRedeemed: '{points} points redeemed',
       EloadCountPointsEarned: 'You earned {points} points from this purchase.',
       MerchantPurchaseNotificationText: 'Congratulations! You have earned points for transacting with our partner merchant {merchantName}.',
+      AssetsAndRewards: 'Assets & Rewards',
+      CompleteYourProfile: 'Complete Your Profile',
+      LongPressToPin: 'Long press on the app to pin or unpin.',
+      MarketplaceAndMerchant: 'Marketplace & Merchant',
+      ProfilePromptAvatarHint: ' You can also set a display image so others can recognize you.',
+      ProfilePromptBothMissing: 'Set your {displayName} and {bchAddress} so others can identify you and send you payments.',
+      RampAndPayments: 'Ramp & Payments',
+      SearchApps: 'Search apps...',
+      SetUpNow: 'Set Up Now',
+      TradeAndDeFi: 'Trade & DeFi',
+      WalletAndConnections: 'Wallet & Connections',
     }
   ]
 }
