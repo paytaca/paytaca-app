@@ -816,11 +816,12 @@ export async function fetchActiveStatus ({ state, commit, rootGetters }) {
 
 export async function touchActive ({ rootGetters }, { pubkey, recipients }) {
   if (!pubkey || !recipients?.length) return
-  try {
+  const isChipnet = rootGetters['global/isChipnet']
+  const baseUrl = isChipnet ? 'https://chipnet.watchtower.cash' : 'https://watchtower.cash'
+
+  async function doTouch () {
     const headers = await getAuthHeaders()
-    const isChipnet = rootGetters['global/isChipnet']
-    const baseUrl = isChipnet ? 'https://chipnet.watchtower.cash' : 'https://watchtower.cash'
-    await fetch(`${baseUrl}/api/nostr/touch/`, {
+    return fetch(`${baseUrl}/api/nostr/touch/`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -828,6 +829,19 @@ export async function touchActive ({ rootGetters }, { pubkey, recipients }) {
       },
       body: JSON.stringify({ pubkey, recipients }),
     })
+  }
+
+  try {
+    const response = await doTouch()
+    if (response.status === 401) {
+      await clearToken()
+      const retryResponse = await doTouch()
+      if (!retryResponse.ok) {
+        console.warn('[Nostr] touchActive retry failed:', retryResponse.status)
+      }
+    } else if (!response.ok) {
+      console.warn('[Nostr] touchActive failed:', response.status)
+    }
   } catch (err) {
     console.warn('[Nostr] touchActive error:', err)
   }
