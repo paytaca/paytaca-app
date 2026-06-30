@@ -1305,7 +1305,7 @@ async function decryptRoomsList (rooms) {
       type: r.type,
       name: await decryptRoomName(r.name),
       members: r.members || [],
-      subject: r.subject,
+      subject: await decryptRoomName(r.subject),
       archived: !!r.archived,
       createdAt: typeof createdAt === 'string' ? Math.floor(new Date(createdAt).getTime() / 1000) : createdAt,
       updatedAt: typeof updatedAt === 'string' ? Math.floor(new Date(updatedAt).getTime() / 1000) : updatedAt,
@@ -1348,14 +1348,16 @@ export async function fetchRooms ({ commit, dispatch, state }) {
           }
 
           // Fallback: parse rename notification from message content.
-          // The rename message format is: "{name} changed group name to \"{new}\""
-          // or translations thereof. Match any text ending with the new name in quotes.
+          // Rename messages follow the pattern "{who} changed group name to \"{new}\""
+          // (or localized equivalent). The name always appears in the last quoted
+          // segment and the message contains "change" or "rename" keywords.
           if (!foundName) {
             for (let i = msgs.length - 1; i >= 0; i--) {
               const content = msgs[i].content || ''
-              // Look for the last quoted segment after "name to" or similar patterns
-              const match = content.match(/name\s+to\s+["""''`](.+?)["""''`]/i)
-                || content.match(/.+?["""''`](.+?)["""''`]/)
+              const hasRename = /change|rename|renamed|changed|renamed/i.test(content)
+              if (!hasRename) continue
+              const match = content.match(/["""''`](.+?)["""''`]\s*$/)
+                || content.match(/["""''`](.+?)["""''`]/)
               if (match) { foundName = match[1].trim(); break }
             }
           }
@@ -2327,6 +2329,7 @@ export function receiveMessage ({ commit, dispatch, state }, { rumor, sealPubkey
         roomId: room.id,
         replyTo,
         subject,
+        editOf,
       }
       commit('ADD_MESSAGE', { roomId: room.id, message: msg })
       queueRoomTouch(dispatch, room.id, new Date(rumor.created_at * 1000).toISOString())

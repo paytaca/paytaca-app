@@ -1683,7 +1683,7 @@ export default {
       try {
         const name = this.renameGroupName.trim()
         if (!name || !this.room) return
-        this.$store.dispatch('nostrChat/updateRoomName', { roomId: this.roomId, name })
+        await this.$store.dispatch('nostrChat/updateRoomName', { roomId: this.roomId, name })
         const text = this.$t('GroupRenamedTo', { name }, `Changed group name to "${name}"`)
         const { giftWraps, message, roomId } = await this.$store.dispatch('nostrChat/sendMessage', {
           roomId: this.roomId,
