@@ -263,11 +263,11 @@ export default {
       this.savingSubject = true
       try {
         if (subject) {
-          this.$store.commit('nostrChat/UPDATE_ROOM_NAME', { roomId: this.roomId, name: subject })
+          this.$store.dispatch('nostrChat/updateRoomName', { roomId: this.roomId, name: subject })
         } else if (this.otherMemberContact) {
-          this.$store.commit('nostrChat/UPDATE_ROOM_NAME', { roomId: this.roomId, name: this.otherMemberContact.name })
+          this.$store.dispatch('nostrChat/updateRoomName', { roomId: this.roomId, name: this.otherMemberContact.name })
         }
-        this.$store.commit('nostrChat/UPDATE_ROOM_SUBJECT', { roomId: this.roomId, subject: subject || null })
+        this.$store.dispatch('nostrChat/updateRoomSubject', { roomId: this.roomId, subject: subject || null })
         let text
         if (subject) {
           text = this.$t('SubjectChangedTo', { subject }, `Changed subject to "${subject}"`)

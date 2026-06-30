@@ -54,8 +54,8 @@
                 {{ $t('Group', {}, 'Group') }}
               </q-badge>
             </div>
-            <div v-if="room.updatedAt" class="room-time">
-              {{ formatTime(room.updatedAt) }}
+            <div v-if="room.lastMessageAt || lastMessageTime(room.id) || room.updatedAt" class="room-time">
+              {{ formatTime(room.lastMessageAt || lastMessageTime(room.id) || room.updatedAt) }}
             </div>
           </div>
           <div class="room-preview-row">
@@ -299,6 +299,12 @@ export default {
       }
       const { text } = parseMessageMarkup(last.content)
       return text
+    },
+    lastMessageTime (roomId) {
+      const msgs = this.messages[roomId] || []
+      if (!msgs.length) return null
+      const last = msgs[msgs.length - 1]
+      return last.created_at || null
     },
     formatTime (ts) {
       try {

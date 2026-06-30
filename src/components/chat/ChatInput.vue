@@ -330,6 +330,7 @@ export default {
         })
         
         this.$store.commit('nostrChat/ADD_MESSAGE', { roomId: this.roomId, message })
+        this.$store.dispatch('nostrChat/touchRoom', { roomId: this.roomId, timestamp: new Date().toISOString() })
         await this.$store.dispatch('nostrChat/publishGiftWraps', { giftWraps })
         const myPubKey = this.$store.getters['nostrChat/myPubKey']
         const room = this.$store.getters['nostrChat/getRoom'](this.roomId)

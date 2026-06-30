@@ -227,6 +227,7 @@
             outlined
             dense
             rounded
+            maxlength="100"
             class="q-mb-md"
             autofocus
             @keyup.enter="renameGroup"
@@ -1030,10 +1031,10 @@ export default {
         this.observeMessages()
       })
     })
-    // Poll active status every 2 minutes while on this page
+    // Poll active status every minute while on this page
     this._activeStatusPollTimer = setInterval(() => {
       this.$store.dispatch('nostrChat/fetchActiveStatus').catch(() => {})
-    }, 120000)
+    }, 60000)
     this._isActive = true
   },
   activated () {
@@ -1044,7 +1045,7 @@ export default {
     if (!this._activeStatusPollTimer) {
       this._activeStatusPollTimer = setInterval(() => {
         this.$store.dispatch('nostrChat/fetchActiveStatus').catch(() => {})
-      }, 120000)
+      }, 60000)
     }
     if (this.isGroupRoom && this.room?.members) {
       const fetches = this.room.members.map(pk =>
@@ -1611,6 +1612,7 @@ export default {
             replyTo,
           })
           this.$store.commit('nostrChat/ADD_MESSAGE', { roomId, message })
+          this.$store.dispatch('nostrChat/touchRoom', { roomId, timestamp: new Date().toISOString() })
           this.replyToMessage = null
           this.scrollToBottom()
           await this.$store.dispatch('nostrChat/publishGiftWraps', { giftWraps })
@@ -1640,7 +1642,7 @@ export default {
         // Update room name to the new contact name
         const contact = this.$store.getters['nostrChat/getContactByNpub'](npub)
         if (contact && this.room) {
-          this.$store.commit('nostrChat/UPDATE_ROOM_NAME', {
+          this.$store.dispatch('nostrChat/updateRoomName', {
             roomId: this.roomId,
             name: contact.name,
           })
@@ -1681,7 +1683,7 @@ export default {
       try {
         const name = this.renameGroupName.trim()
         if (!name || !this.room) return
-        this.$store.commit('nostrChat/UPDATE_ROOM_NAME', { roomId: this.roomId, name })
+        this.$store.dispatch('nostrChat/updateRoomName', { roomId: this.roomId, name })
         const text = this.$t('GroupRenamedTo', { name }, `Changed group name to "${name}"`)
         const { giftWraps, message, roomId } = await this.$store.dispatch('nostrChat/sendMessage', {
           roomId: this.roomId,
@@ -1748,7 +1750,7 @@ export default {
 
         // Update room name to match
         if (this.room) {
-          this.$store.commit('nostrChat/UPDATE_ROOM_NAME', {
+          this.$store.dispatch('nostrChat/updateRoomName', {
             roomId: this.roomId,
             name,
           })
@@ -1778,7 +1780,7 @@ export default {
         ok: { label: this.$t('Archive', {}, 'Archive'), color: 'primary', flat: true },
         persistent: true,
       }).onOk(() => {
-        this.$store.commit('nostrChat/ARCHIVE_ROOM', this.roomId)
+        this.$store.dispatch('nostrChat/archiveRoom', this.roomId)
         this.$router.replace('/apps/chat')
         this.$q.notify({
           type: 'info',
@@ -1787,7 +1789,7 @@ export default {
       })
     },
     unarchiveRoom () {
-      this.$store.commit('nostrChat/UNARCHIVE_ROOM', this.roomId)
+      this.$store.dispatch('nostrChat/unarchiveRoom', this.roomId)
       this.$q.notify({
         type: 'positive',
         message: this.$t('ConversationUnarchived', {}, 'Conversation unarchived'),
@@ -1805,8 +1807,8 @@ export default {
         persistent: true,
       }).onOk(() => {
         if (otherPubKey) {
-          this.$store.commit('nostrChat/BLOCK_CONTACT', otherPubKey)
-          this.$store.commit('nostrChat/ARCHIVE_ROOM', this.roomId)
+          this.$store.dispatch('nostrChat/blockContact', otherPubKey)
+          this.$store.dispatch('nostrChat/archiveRoom', this.roomId)
         }
         this.$router.replace('/apps/chat')
         this.$q.notify({
@@ -1827,8 +1829,8 @@ export default {
         persistent: true,
       }).onOk(() => {
         if (otherPubKey) {
-          this.$store.commit('nostrChat/UNBLOCK_CONTACT', otherPubKey)
-          this.$store.commit('nostrChat/UNARCHIVE_ROOM', this.roomId)
+          this.$store.dispatch('nostrChat/unblockContact', otherPubKey)
+          this.$store.dispatch('nostrChat/unarchiveRoom', this.roomId)
         }
         this.$q.notify({
           type: 'positive',
@@ -1853,8 +1855,8 @@ export default {
           ok: { label: this.$t('Delete', {}, 'Delete'), color: 'negative', flat: true },
           persistent: true,
         }).onOk(() => {
-          this.$store.commit('nostrChat/UNBLOCK_GROUP', this.roomId)
-          this.$store.commit('nostrChat/REMOVE_ROOM', this.roomId)
+          this.$store.dispatch('nostrChat/unblockGroup', this.roomId)
+          this.$store.dispatch('nostrChat/deleteRoom', this.roomId)
           this.$router.replace('/apps/chat')
           this.$q.notify({ type: 'info', message: this.$t('ConversationDeleted', {}, 'Conversation deleted') })
         })
@@ -1870,7 +1872,7 @@ export default {
           ok: { label: this.$t('Delete', {}, 'Delete'), color: 'negative', flat: true },
           persistent: true,
         }).onOk(() => {
-          this.$store.commit('nostrChat/REMOVE_ROOM', this.roomId)
+          this.$store.dispatch('nostrChat/deleteRoom', this.roomId)
           this.$router.replace('/apps/chat')
           this.$q.notify({
             type: 'info',
@@ -1903,9 +1905,9 @@ export default {
           persistent: true,
         }).onOk((option) => {
           if (option === 'block_delete' && otherPubKey) {
-            this.$store.commit('nostrChat/BLOCK_CONTACT', otherPubKey)
+            this.$store.dispatch('nostrChat/blockContact', otherPubKey)
           }
-          this.$store.commit('nostrChat/REMOVE_ROOM', this.roomId)
+          this.$store.dispatch('nostrChat/deleteRoom', this.roomId)
           this.$router.replace('/apps/chat')
           this.$q.notify({
             type: 'info',
@@ -2001,6 +2003,7 @@ export default {
             text,
           })
           this.$store.commit('nostrChat/ADD_MESSAGE', { roomId, message })
+          this.$store.dispatch('nostrChat/touchRoom', { roomId, timestamp: new Date().toISOString() })
           await this.$store.dispatch('nostrChat/publishGiftWraps', { giftWraps })
         } catch (err) {
           console.error('[Conversation] Failed to send confirmation message:', err)

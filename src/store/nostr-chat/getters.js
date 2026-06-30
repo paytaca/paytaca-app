@@ -82,7 +82,7 @@ export function getRooms (state) {
   if (!myPubKey) return []
   return (ws.rooms || [])
     .filter(r => r.members?.includes(myPubKey) && !r.archived)
-    .sort((a, b) => (b.updatedAt || 0) - (a.updatedAt || 0))
+    .sort((a, b) => (b.lastMessageAt || 0) - (a.lastMessageAt || 0))
 }
 
 export function getArchivedRooms (state) {
@@ -91,7 +91,7 @@ export function getArchivedRooms (state) {
   if (!myPubKey) return []
   return (ws.rooms || [])
     .filter(r => r.members?.includes(myPubKey) && r.archived)
-    .sort((a, b) => (b.updatedAt || 0) - (a.updatedAt || 0))
+    .sort((a, b) => (b.lastMessageAt || 0) - (a.lastMessageAt || 0))
 }
 
 export function getRoom (state) {

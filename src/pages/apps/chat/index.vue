@@ -296,6 +296,7 @@
                   outlined
                   dense
                   rounded
+                  maxlength="100"
                   class="q-mb-sm"
                   autofocus
                 />
@@ -652,10 +653,10 @@ export default {
     }
     document.addEventListener('visibilitychange', this._onVisibilityChange)
 
-    // Poll active status every 2 minutes while on this page
+    // Poll active status every minute while on this page
     this._activeStatusPollTimer = setInterval(() => {
       this.$store.dispatch('nostrChat/fetchActiveStatus').catch(() => {})
-    }, 120000)
+    }, 60000)
   },
   activated () {
     // Re-check subscription when returning to this page via keep-alive
@@ -765,7 +766,7 @@ export default {
         },
         persistent: true,
       }).onOk(() => {
-        this.$store.commit('nostrChat/ARCHIVE_ROOM', roomId)
+        this.$store.dispatch('nostrChat/archiveRoom', roomId)
         this.$q.notify({
           type: 'info',
           message: this.$t('ConversationArchived', {}, 'Conversation archived'),
@@ -796,8 +797,8 @@ export default {
         },
         persistent: true,
       }).onOk(() => {
-        this.$store.commit('nostrChat/BLOCK_CONTACT', otherPubKey)
-        this.$store.commit('nostrChat/ARCHIVE_ROOM', roomId)
+        this.$store.dispatch('nostrChat/blockContact', otherPubKey)
+        this.$store.dispatch('nostrChat/archiveRoom', roomId)
         this.$q.notify({
           type: 'info',
           message: this.$t('ContactBlocked', {}, 'Contact blocked'),
@@ -828,8 +829,8 @@ export default {
         },
         persistent: true,
       }).onOk(() => {
-        this.$store.commit('nostrChat/UNBLOCK_CONTACT', otherPubKey)
-        this.$store.commit('nostrChat/UNARCHIVE_ROOM', roomId)
+        this.$store.dispatch('nostrChat/unblockContact', otherPubKey)
+        this.$store.dispatch('nostrChat/unarchiveRoom', roomId)
         this.$q.notify({
           type: 'positive',
           message: this.$t('ContactUnblocked', {}, 'Contact unblocked'),
@@ -843,7 +844,7 @@ export default {
         this.confirmRejoinGroup(roomId)
         return
       }
-      this.$store.commit('nostrChat/UNARCHIVE_ROOM', roomId)
+      this.$store.dispatch('nostrChat/unarchiveRoom', roomId)
       this.$q.notify({
         type: 'positive',
         message: this.$t('ConversationUnarchived', {}, 'Conversation unarchived'),
@@ -906,8 +907,8 @@ export default {
           ok: { label: this.$t('Delete', {}, 'Delete'), color: 'negative', flat: true },
           persistent: true,
         }).onOk(() => {
-          this.$store.commit('nostrChat/UNBLOCK_GROUP', roomId)
-          this.$store.commit('nostrChat/REMOVE_ROOM', roomId)
+          this.$store.dispatch('nostrChat/unblockGroup', roomId)
+          this.$store.dispatch('nostrChat/deleteRoom', roomId)
           this.$q.notify({ type: 'info', message: this.$t('ConversationDeleted', {}, 'Conversation deleted') })
         })
         return
@@ -934,7 +935,7 @@ export default {
           },
           persistent: true,
         }).onOk(() => {
-          this.$store.commit('nostrChat/REMOVE_ROOM', roomId)
+          this.$store.dispatch('nostrChat/deleteRoom', roomId)
           this.$q.notify({
             type: 'info',
             message: this.$t('ConversationDeleted', {}, 'Conversation deleted'),
@@ -977,9 +978,9 @@ export default {
         persistent: true,
       }).onOk((option) => {
         if (option === 'block_delete' && otherPubKey) {
-          this.$store.commit('nostrChat/BLOCK_CONTACT', otherPubKey)
+          this.$store.dispatch('nostrChat/blockContact', otherPubKey)
         }
-        this.$store.commit('nostrChat/REMOVE_ROOM', roomId)
+        this.$store.dispatch('nostrChat/deleteRoom', roomId)
         this.$q.notify({
           type: 'info',
           message: this.$t('ConversationDeleted', {}, 'Conversation deleted'),
