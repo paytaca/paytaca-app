@@ -11,10 +11,14 @@ export function getInitialWalletState () {
     },
 
     // Conversations (per-wallet)
+    // Active rooms cache (minimal fields: id, type, name, members, subject, updatedAt)
+    // The full room list is stored server-side; this is a lightweight cache for the UI.
     rooms: [],
+    // Server-backed block list caches (re-fetched on init)
     blockedContacts: [],
     blockedGroups: [],
-    deletedRooms: {},
+    // Server-backed deleted room IDs cache (re-fetched on init)
+    deletedRooms: [],
     messages: {},
     readReceipts: {},
     readMessageIds: {},

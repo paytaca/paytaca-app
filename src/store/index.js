@@ -194,6 +194,12 @@ function reducer(state) {
                       }
                       continue
                     }
+
+                    // Room lists, deleted rooms, and block lists are stored server-side.
+                    // Only keep an in-memory cache; don't persist to localStorage.
+                    if (moduleName === 'nostrChat' && ['rooms', 'deletedRooms', 'blockedContacts', 'blockedGroups'].includes(key)) {
+                      continue
+                    }
                     
                     // Skip functions
                     if (typeof value === 'function') {
