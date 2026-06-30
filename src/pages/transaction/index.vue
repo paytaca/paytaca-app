@@ -2587,6 +2587,7 @@ export default {
       // Ensure loading state is reset even on error
       this.isLoadingAssets = false
       this.loadingBchPrice = false
+      this.$store.commit('global/setAppInitialLoadComplete', true)
     }
   },
 }

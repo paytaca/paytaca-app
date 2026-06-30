@@ -136,7 +136,7 @@ export async function updateAssetPrices (context, { clearExisting = false, custo
           
           const matchedRequestId = batch.find(requestId => {
             const normalized = requestId === 'bch' ? 'bch' : requestId.toLowerCase().trim()
-            return responseAsset === normalized || responseAsset === (requestId === 'bch' ? 'bch' : requestId.toLowerCase().trim())
+            return responseAsset === normalized
           })
           if (!matchedRequestId) return
           
