@@ -36,6 +36,17 @@ function debouncedRefetchRooms (dispatch) {
   }, 2000)
 }
 
+// Fetch group metadata from relay and update the server if a real name is found.
+// Shared by fetchRooms (placeholder recovery) and receiveMessage (new room sync).
+function fetchAndSyncGroupMetadata (dispatch, roomId) {
+  dispatch('fetchGroupMetadata', { roomId }).then(async meta => {
+    if (meta?.name) {
+      await updateRoomOnServer(roomId, { name: meta.name })
+      debouncedRefetchRooms(dispatch)
+    }
+  }).catch(() => {})
+}
+
 function queueRoomTouch (dispatch, roomId, timestamp) {
   _roomTouchPending[roomId] = timestamp
   if (_roomTouchTimers[roomId]) clearTimeout(_roomTouchTimers[roomId])
@@ -158,6 +169,10 @@ export async function reinitialize ({ commit, dispatch, state }) {
   relayService.disconnect()
   commit('SET_SUBSCRIBED', false)
   clearChatCache().catch(err => console.warn('Failed to clear chat cache during reinitialize:', err))
+
+  // Clear cached encryption key — the new wallet has a different mnemonic
+  _roomNameEncryptionKey = null
+  _roomNameEncryptionKeyPromise = null
 
   commit('SET_KEYS', keys)
   commit('SET_READY', true)
@@ -1332,12 +1347,15 @@ export async function fetchRooms ({ commit, dispatch, state }) {
             if (msgs[i].subject) { foundName = msgs[i].subject; break }
           }
 
-          // Fallback: parse "Changed group name to X" from message content
+          // Fallback: parse rename notification from message content.
+          // The rename message format is: "{name} changed group name to \"{new}\""
+          // or translations thereof. Match any text ending with the new name in quotes.
           if (!foundName) {
             for (let i = msgs.length - 1; i >= 0; i--) {
               const content = msgs[i].content || ''
-              const match = content.match(/(?:Changed group name to|GroupRenamedTo)\s*[""'](.+?)[""']/i)
-                || content.match(/(?:Changed group name to|GroupRenamedTo)\s+(.+)/i)
+              // Look for the last quoted segment after "name to" or similar patterns
+              const match = content.match(/name\s+to\s+["""''`](.+?)["""''`]/i)
+                || content.match(/.+?["""''`](.+?)["""''`]/)
               if (match) { foundName = match[1].trim(); break }
             }
           }
@@ -1346,37 +1364,13 @@ export async function fetchRooms ({ commit, dispatch, state }) {
             await updateRoomOnServer(room.id, { name: foundName })
             debouncedRefetchRooms(dispatch)
           } else {
-            // Fallback: fetch metadata from relay
-            dispatch('fetchGroupMetadata', { roomId: room.id }).then(async meta => {
-              if (meta?.name) {
-                await updateRoomOnServer(room.id, { name: meta.name })
-                debouncedRefetchRooms(dispatch)
-              }
-            }).catch(() => {})
+            fetchAndSyncGroupMetadata(dispatch, room.id)
           }
         }
       }
     }
   } catch (err) {
     debug('fetchRooms error:', err)
-  }
-}
-
-export async function fetchArchivedRooms () {
-  try {
-    const walletHash = getCurrentWalletHash()
-    if (!walletHash) return []
-    const baseUrl = getWatchtowerBaseUrl()
-    const response = await apiGet(baseUrl, `/api/nostr/rooms/?wallet_hash=${walletHash}&archived=true`)
-    if (!response.ok) {
-      debug('fetchArchivedRooms failed:', response.status)
-      return []
-    }
-    const data = await response.json()
-    return await decryptRoomsList(data.rooms || [])
-  } catch (err) {
-    debug('fetchArchivedRooms error:', err)
-    return []
   }
 }
 
@@ -1392,7 +1386,7 @@ async function syncRoomToServer (room) {
         type: room.type,
         name: await encryptRoomName(room.name || 'Group'),
         members: room.members,
-        subject: room.subject,
+        subject: room.subject ? await encryptRoomName(room.subject) : room.subject,
         created_at: new Date(room.createdAt * 1000).toISOString(),
         updated_at: new Date(room.updatedAt * 1000).toISOString(),
       },
@@ -1413,6 +1407,7 @@ async function updateRoomOnServer (roomId, fields) {
     const baseUrl = getWatchtowerBaseUrl()
     const patched = { ...fields }
     if (patched.name) patched.name = await encryptRoomName(patched.name)
+    if (patched.subject) patched.subject = await encryptRoomName(patched.subject)
     const response = await apiPatch(baseUrl, `/api/nostr/rooms/${roomId}/`, {
       wallet_hash: walletHash,
       ...patched,
@@ -1546,7 +1541,7 @@ export async function createPrivateRoom ({ commit, getters, state }, contactNpub
   }
 
   commit('ADD_ROOM', room)
-  syncRoomToServer(room)
+  await syncRoomToServer(room)
   return room
 }
 
@@ -1580,7 +1575,7 @@ export async function createGroupRoom ({ commit, state }, { name, members, subje
   }
 
   commit('ADD_ROOM', room)
-  syncRoomToServer(room)
+  await syncRoomToServer(room)
   return room
 }
 
@@ -2256,12 +2251,7 @@ export function receiveMessage ({ commit, dispatch, state }, { rumor, sealPubkey
       // For groups, fetch metadata from relay and update the server with
       // the real name (without mutating local room state).
       if (isGroup) {
-        dispatch('fetchGroupMetadata', { roomId }).then(async meta => {
-          if (meta?.name) {
-            await updateRoomOnServer(roomId, { name: meta.name })
-            debouncedRefetchRooms(dispatch)
-          }
-        }).catch(() => {})
+        fetchAndSyncGroupMetadata(dispatch, roomId)
       }
     }
 
@@ -2303,6 +2293,8 @@ export function receiveMessage ({ commit, dispatch, state }, { rumor, sealPubkey
   const pTags = rumor.tags.filter(t => t[0] === 'p').map(t => t[1])
   const roomMembers = [...new Set([myPubKey, rumor.pubkey, ...pTags])]
   const roomId = computeRoomId(roomMembers)
+  const replyTo = rumor.tags.find(t => t[0] === 'e')?.[1] || null
+  const editOf = rumor.tags.find(t => t[0] === 'edit')?.[1] || null
 
   // Drop messages for a group we've left (blocked)
   if (ws.blockedGroups?.includes(roomId)) return
@@ -2317,12 +2309,13 @@ export function receiveMessage ({ commit, dispatch, state }, { rumor, sealPubkey
     )
     if (existingByMembers) {
       if (ws.deletedRooms?.includes(existingByMembers.id)) return
+      // Drop messages for a blocked sender
+      if (ws.blockedContacts?.includes(rumor.pubkey)) return
       // Reuse the existing room — store the message under its ID
       room = existingByMembers
       // Drop messages for a group we've left (blocked) — the stored room id
       // may differ from the computed roomId when legacy rooms exist.
       if (ws.blockedGroups?.includes(room.id)) return
-      const replyTo = rumor.tags.find(t => t[0] === 'e')?.[1] || null
       const hasSubjectTag = rumor.tags.some(t => t[0] === 'subject')
       const subjectRaw = rumor.tags.find(t => t[0] === 'subject')?.[1]
       const subject = hasSubjectTag ? (subjectRaw ?? '') : null
@@ -2365,12 +2358,7 @@ export function receiveMessage ({ commit, dispatch, state }, { rumor, sealPubkey
     // For groups, fetch metadata from relay and update the server with
     // the real name (without mutating local room state).
     if (isGroupRoom) {
-      dispatch('fetchGroupMetadata', { roomId }).then(async meta => {
-        if (meta?.name) {
-          await updateRoomOnServer(roomId, { name: meta.name })
-          debouncedRefetchRooms(dispatch)
-        }
-      }).catch(() => {})
+      fetchAndSyncGroupMetadata(dispatch, roomId)
     }
 
     const earlyMsg = {
@@ -2379,17 +2367,14 @@ export function receiveMessage ({ commit, dispatch, state }, { rumor, sealPubkey
       sender: rumor.pubkey,
       created_at: rumor.created_at,
       kind14Id: rumor.id,
-      replyTo: null,
-      editOf: null,
+      replyTo,
+      editOf,
       localReceivedAt: Date.now(),
     }
     commit('ADD_MESSAGE', { roomId, message: earlyMsg })
     queueRoomTouch(dispatch, roomId, new Date(rumor.created_at * 1000).toISOString())
     return
   }
-
-  const replyTo = rumor.tags.find(t => t[0] === 'e')?.[1] || null
-  const editOf = rumor.tags.find(t => t[0] === 'edit')?.[1] || null
 
   if (editOf) {
     const originalMsg = (ws.messages[roomId] || []).find(m => m.id === editOf)
@@ -2605,7 +2590,10 @@ export function subscribeToRelays ({ state, dispatch, commit }) {
   }
 
   // Fetch room list and blocks from server (authoritative source for room list)
-  dispatch('fetchRooms').catch(() => {})
+  // If the server has no rooms yet (migration), seed from local messages.
+  dispatch('fetchRooms').catch(() => {}).then(() => {
+    dispatch('seedRoomsFromMessages').catch(() => {})
+  })
   dispatch('fetchBlocks').catch(() => {})
 
   dispatch('startActiveServices')
