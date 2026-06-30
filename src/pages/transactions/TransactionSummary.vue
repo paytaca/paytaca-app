@@ -312,7 +312,7 @@ async function fetchAllHistories () {
 
   try {
     const baseUrl = getWatchtowerApiUrl()
-    const params = { all: true, txids: props.txid };
+    const params = { all: true, txids: props.txid, exclude: 'senders,recipients' };
     const url = `${baseUrl}/history/wallet/${encodeURIComponent(walletHash.value)}/`
     const response = await axios.get(url, { params });
     const data = response?.data?.history || response?.data || []

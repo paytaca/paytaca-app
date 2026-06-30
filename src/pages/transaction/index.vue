@@ -2127,7 +2127,7 @@ export default {
         apiPath = isToken ? `history/wallet/${walletHash}/${tokenId}/` : `history/wallet/${walletHash}/`
       }
 
-      return watchtower.BCH._api(apiPath, { params: { txids: txid } })
+      return watchtower.BCH._api(apiPath, { params: { txids: txid, exclude: 'senders,recipients' } })
         .then(response => {
           return response?.data?.history?.find?.(tx => tx?.txid === txid)
         })
