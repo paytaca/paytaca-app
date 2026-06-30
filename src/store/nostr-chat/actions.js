@@ -15,6 +15,16 @@ const _markRoomLocks = new Set()
 // receiveMessage call.
 const _pendingReadReceipts = new Map()
 
+// Fast lookup: messageId → roomId. Populated by commitAddMessage below so that
+// kind 7 read-receipt processing (Object.keys(ws.messages).find(...)) doesn't
+// scan every room and every message per receipt. Reset on wallet switch.
+const _messageRoomMap = new Map()
+
+function commitAddMessage (commit, roomId, message) {
+  commit('ADD_MESSAGE', { roomId, message })
+  if (message?.id) _messageRoomMap.set(message.id, roomId)
+}
+
 // Per-room debounce timers for touchRoom. During the initial relay sync,
 // messages stream in rapidly — touching the server for every one would be
 // excessive. Instead we debounce: each new message resets a 2s timer for
@@ -175,6 +185,7 @@ export async function reinitialize ({ commit, dispatch, state }) {
   // Clear debounced timers from the previous wallet session to prevent
   // stale touchRoom/fetchRooms dispatches against the new wallet state.
   clearDebouncedTimers()
+  _messageRoomMap.clear()
 
   const keys = deriveNostrKeys(mnemonic)
   const ws = getWalletState(state)
@@ -774,7 +785,7 @@ export async function fetchHistoricalMessages ({ state, dispatch, commit }) {
 
   // Clean up deletedRooms entries for rooms that were restored during the historical fetch.
   // This allows future live messages to apply subject updates normally.
-  for (const roomId of Object.keys(ws.deletedRooms || {})) {
+  for (const roomId of (ws.deletedRooms || [])) {
     if (ws.rooms.some(r => r.id === roomId)) {
       commit('DELETE_ROOM_TRACKER', roomId)
     }
@@ -1290,12 +1301,13 @@ async function encryptRoomName (name) {
   if (!name) return name
   try {
     const key = await getRoomNameEncryptionKey()
-    if (!key) return name
+    if (!key) { debug('encryptRoomName: no encryption key — storing name in plaintext'); return name }
     const truncated = name.length > MAX_ROOM_NAME_LENGTH
       ? name.slice(0, MAX_ROOM_NAME_LENGTH)
       : name
     return nip44.encrypt(truncated, key)
-  } catch {
+  } catch (err) {
+    debug('encryptRoomName: encryption failed — storing name in plaintext:', err?.message)
     return name
   }
 }
@@ -2125,7 +2137,7 @@ export function receiveMessage ({ commit, dispatch, state }, { rumor, sealPubkey
   // If we reach here, the rumor has already been verified.
 
   // nip59.unwrapEvent returns unsigned rumors without an `id` field.
-  // Compute it so message-based dedup (deletedRooms.knownMessageIds) works.
+  // Compute it so message-based dedup works.
   if (!rumor.id) {
     rumor.id = getEventHash(rumor)
   }
@@ -2141,11 +2153,11 @@ export function receiveMessage ({ commit, dispatch, state }, { rumor, sealPubkey
     const readerPubKey = rumor.pubkey
 
     if (messageId && readerPubKey) {
-      // Find the room that contains this message — avoids assuming a 2-person room,
-      // which breaks for group chats where computeRoomId needs all member pubkeys.
-      const roomId = Object.keys(ws.messages).find(
-        rid => ws.messages[rid]?.some(m => m.id === messageId)
-      )
+      // Fast lookup via messageId → roomId map; fallback to scan.
+      const roomId = _messageRoomMap.get(messageId)
+        || Object.keys(ws.messages).find(
+          rid => ws.messages[rid]?.some(m => m.id === messageId)
+        )
       if (roomId) {
         commit('SET_MESSAGE_READ_BY', {
           roomId,
@@ -2178,7 +2190,9 @@ export function receiveMessage ({ commit, dispatch, state }, { rumor, sealPubkey
     if (messageId && reactorPubKey && content) {
       // Find the room that contains this message — avoids assuming a 2-person room,
       // which breaks for group chats where computeRoomId needs all member pubkeys.
-      const roomId = Object.keys(ws.messages).find(
+      // Fast lookup via messageId → roomId map; fallback to scan.
+      const roomId = _messageRoomMap.get(messageId)
+        || Object.keys(ws.messages).find(
         rid => ws.messages[rid]?.some(m => m.id === messageId)
       )
       if (!roomId) return
@@ -2288,7 +2302,7 @@ export function receiveMessage ({ commit, dispatch, state }, { rumor, sealPubkey
       isFile: true,
     }
 
-    commit('ADD_MESSAGE', { roomId, message })
+    commitAddMessage(commit, roomId, message)
     queueRoomTouch(dispatch, roomId, new Date(rumor.created_at * 1000).toISOString())
     return
   }
@@ -2326,22 +2340,14 @@ export function receiveMessage ({ commit, dispatch, state }, { rumor, sealPubkey
       const subjectRaw = rumor.tags.find(t => t[0] === 'subject')?.[1]
       const subject = hasSubjectTag ? (subjectRaw ?? '') : null
       if (editOf) {
-        // Edit targeting an existing message — update in place
+        // Edit targeting an existing message — update in place, or skip if
+        // the target is unknown to avoid creating a phantom new message.
         const target = (ws.messages[room.id] || []).find(m => m.id === editOf)
         if (target) {
           commit('UPDATE_MESSAGE', { roomId: room.id, messageId: editOf, newContent: rumor.content })
         } else {
-          const msg = {
-            id: rumor.id,
-            content: rumor.content,
-            sender: rumor.pubkey,
-            created_at: rumor.created_at,
-            roomId: room.id,
-            replyTo,
-            subject,
-            editOf,
-          }
-          commit('ADD_MESSAGE', { roomId: room.id, message: msg })
+          console.warn('[Nostr] Edit targets unknown message', editOf, 'in legacy room — skipping')
+          return
         }
       } else {
         const msg = {
@@ -2353,7 +2359,7 @@ export function receiveMessage ({ commit, dispatch, state }, { rumor, sealPubkey
           replyTo,
           subject,
         }
-        commit('ADD_MESSAGE', { roomId: room.id, message: msg })
+        commitAddMessage(commit, room.id, msg)
       }
       queueRoomTouch(dispatch, room.id, new Date(rumor.created_at * 1000).toISOString())
       return
@@ -2399,7 +2405,7 @@ export function receiveMessage ({ commit, dispatch, state }, { rumor, sealPubkey
     }
     const subjectRaw = rumor.tags.find(t => t[0] === 'subject')?.[1]
     if (subjectRaw !== undefined) earlyMsg.subject = subjectRaw
-    commit('ADD_MESSAGE', { roomId, message: earlyMsg })
+    commitAddMessage(commit, roomId, earlyMsg)
     queueRoomTouch(dispatch, roomId, new Date(rumor.created_at * 1000).toISOString())
     return
   }
@@ -2440,9 +2446,9 @@ export function receiveMessage ({ commit, dispatch, state }, { rumor, sealPubkey
   const subjectRaw = rumor.tags.find(t => t[0] === 'subject')?.[1]
   if (subjectRaw !== undefined) message.subject = subjectRaw
 
-  commit('ADD_MESSAGE', { roomId, message })
-  queueRoomTouch(dispatch, roomId, new Date(rumor.created_at * 1000).toISOString())
+  commitAddMessage(commit, roomId, message)
 
+  queueRoomTouch(dispatch, roomId, new Date(rumor.created_at * 1000).toISOString())
   // Flush any pending read receipts whose message has now arrived
   flushPendingReadReceipts(state, commit)
 }
