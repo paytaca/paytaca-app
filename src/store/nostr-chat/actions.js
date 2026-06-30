@@ -1347,21 +1347,6 @@ export async function fetchRooms ({ commit, dispatch, state }) {
             if (msgs[i].subject) { foundName = msgs[i].subject; break }
           }
 
-          // Fallback: parse rename notification from message content.
-          // Rename messages follow the pattern "{who} changed group name to \"{new}\""
-          // (or localized equivalent). The name always appears in the last quoted
-          // segment and the message contains "change" or "rename" keywords.
-          if (!foundName) {
-            for (let i = msgs.length - 1; i >= 0; i--) {
-              const content = msgs[i].content || ''
-              const hasRename = /change|rename|renamed|changed|renamed/i.test(content)
-              if (!hasRename) continue
-              const match = content.match(/["""''`](.+?)["""''`]\s*$/)
-                || content.match(/["""''`](.+?)["""''`]/)
-              if (match) { foundName = match[1].trim(); break }
-            }
-          }
-
           if (foundName) {
             await updateRoomOnServer(room.id, { name: foundName })
             debouncedRefetchRooms(dispatch)
@@ -1845,6 +1830,7 @@ export async function seedRoomsFromMessages ({ commit, dispatch, state }) {
 
   const existingRoomIds = new Set(ws.rooms.map(r => r.id))
   const now = Math.floor(Date.now() / 1000)
+  const syncPromises = []
 
   for (const roomId of Object.keys(ws.messages)) {
     if (existingRoomIds.has(roomId)) continue
@@ -1881,8 +1867,10 @@ export async function seedRoomsFromMessages ({ commit, dispatch, state }) {
       updatedAt: lastMsg.created_at || now,
     }
 
-    syncRoomToServer(room)
+    syncPromises.push(syncRoomToServer(room))
   }
+
+  await Promise.allSettled(syncPromises)
 
   // Re-fetch the room list from the server after seeding
   dispatch('fetchRooms').catch(() => {})
@@ -2374,6 +2362,8 @@ export function receiveMessage ({ commit, dispatch, state }, { rumor, sealPubkey
       editOf,
       localReceivedAt: Date.now(),
     }
+    const subjectRaw = rumor.tags.find(t => t[0] === 'subject')?.[1]
+    if (subjectRaw !== undefined) earlyMsg.subject = subjectRaw
     commit('ADD_MESSAGE', { roomId, message: earlyMsg })
     queueRoomTouch(dispatch, roomId, new Date(rumor.created_at * 1000).toISOString())
     return
@@ -2410,6 +2400,10 @@ export function receiveMessage ({ commit, dispatch, state }, { rumor, sealPubkey
     editOf,
     localReceivedAt: Date.now(),
   }
+
+  // Store subject tag if present — used for group name recovery
+  const subjectRaw = rumor.tags.find(t => t[0] === 'subject')?.[1]
+  if (subjectRaw !== undefined) message.subject = subjectRaw
 
   commit('ADD_MESSAGE', { roomId, message })
   queueRoomTouch(dispatch, roomId, new Date(rumor.created_at * 1000).toISOString())
@@ -2624,14 +2618,14 @@ export function ensureSubscribed ({ dispatch, getters }) {
   // Ensure we have keys (including privKeyHex which is stripped from persisted state)
   // and an active relay subscription, especially after app backgrounding or push
   if (!getters['isInitialized'] || !getters['myPrivKey']) {
-    dispatch('initialize').then(() => {
-      dispatch('subscribeToRelays')
+    return dispatch('initialize').then(() => {
+      return dispatch('subscribeToRelays')
     }).catch(err => {
       console.warn('[Nostr] Failed to initialize, clearing cooldown for retry:', err)
       _lastEnsureTime = 0
     })
   } else {
-    dispatch('subscribeToRelays')
+    return dispatch('subscribeToRelays')
   }
 }
 
