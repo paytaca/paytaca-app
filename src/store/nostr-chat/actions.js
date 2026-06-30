@@ -1113,6 +1113,7 @@ export function stopActiveServices () {
     _heartbeatInterval = null
   }
   stopActiveWs()
+  clearDebouncedTimers()
 }
 
 export async function setShowActiveStatus ({ commit, dispatch, getters, rootGetters }, value) {
@@ -1301,13 +1302,13 @@ async function encryptRoomName (name) {
   if (!name) return name
   try {
     const key = await getRoomNameEncryptionKey()
-    if (!key) { debug('encryptRoomName: no encryption key — storing name in plaintext'); return name }
+    if (!key) { console.warn('[Nostr] encryptRoomName: no encryption key — storing name in plaintext'); return name }
     const truncated = name.length > MAX_ROOM_NAME_LENGTH
       ? name.slice(0, MAX_ROOM_NAME_LENGTH)
       : name
     return nip44.encrypt(truncated, key)
   } catch (err) {
-    debug('encryptRoomName: encryption failed — storing name in plaintext:', err?.message)
+    console.warn('[Nostr] encryptRoomName: encryption failed — storing name in plaintext:', err?.message)
     return name
   }
 }
