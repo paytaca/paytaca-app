@@ -1976,18 +1976,13 @@ export default {
         // Always include BCH (id: 'bch')
         const tokensToRefresh = [...new Set([...displayedTokenIds, 'bch'])]
 
-        // Refresh prices for all displayed tokens + BCH using unified API
-        const pricePromises = tokensToRefresh.map(assetId => {
-          return vm.$store.dispatch('market/updateAssetPrices', {
-            assetId: assetId,
-            clearExisting: false
-          }).catch(error => {
-            console.error(`Error refreshing price for ${assetId}:`, error)
-            return null
-          })
+        // Batch all token IDs into a single API call instead of N individual requests
+        await vm.$store.dispatch('market/updateAssetPrices', {
+          assetId: tokensToRefresh,
+          clearExisting: false
+        }).catch(error => {
+          console.error('Error refreshing token prices:', error)
         })
-
-        return Promise.allSettled(pricePromises)
       } catch (error) {
         console.error('Error refreshing displayed token prices:', error)
         return Promise.resolve()
