@@ -143,6 +143,7 @@ export default function () {
      * Not persisted to localStorage
      */
     isUnlocked: false,
-    previousRoute: null
+    previousRoute: null,
+    appInitialLoadComplete: false
   }
 }

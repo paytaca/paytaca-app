@@ -345,6 +345,9 @@ export default {
         
         vm.isSwitching = false
         
+        // Set flag so App.vue skips the initial loading overlay on reload
+        try { sessionStorage.setItem('walletSwitchReload', '1') } catch (_) {}
+
         if (lockAppEnabled && !isUnlocked) {
           // Wallet is locked - go directly to lock screen with page reload
           // Use location.replace to avoid history entry and ensure reload
@@ -361,6 +364,7 @@ export default {
         } else {
           // Wallet is unlocked or has no lock - go to home with reload
           // Loading screen will be cleared by the reload
+          // Flag is set above (before the if/else) for both paths
           location.reload()
         }
       } catch (error) {
