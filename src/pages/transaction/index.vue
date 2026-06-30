@@ -1976,18 +1976,13 @@ export default {
         // Always include BCH (id: 'bch')
         const tokensToRefresh = [...new Set([...displayedTokenIds, 'bch'])]
 
-        // Refresh prices for all displayed tokens + BCH using unified API
-        const pricePromises = tokensToRefresh.map(assetId => {
-          return vm.$store.dispatch('market/updateAssetPrices', {
-            assetId: assetId,
-            clearExisting: false
-          }).catch(error => {
-            console.error(`Error refreshing price for ${assetId}:`, error)
-            return null
-          })
+        // Batch all token IDs into a single API call instead of N individual requests
+        await vm.$store.dispatch('market/updateAssetPrices', {
+          assetId: tokensToRefresh,
+          clearExisting: false
+        }).catch(error => {
+          console.error('Error refreshing token prices:', error)
         })
-
-        return Promise.allSettled(pricePromises)
       } catch (error) {
         console.error('Error refreshing displayed token prices:', error)
         return Promise.resolve()
@@ -2132,7 +2127,7 @@ export default {
         apiPath = isToken ? `history/wallet/${walletHash}/${tokenId}/` : `history/wallet/${walletHash}/`
       }
 
-      return watchtower.BCH._api(apiPath, { params: { txids: txid } })
+      return watchtower.BCH._api(apiPath, { params: { txids: txid, exclude: 'senders,recipients' } })
         .then(response => {
           return response?.data?.history?.find?.(tx => tx?.txid === txid)
         })
@@ -2567,6 +2562,9 @@ export default {
         console.error('Error initializing WizardConnect:', error)
       }
 
+      // Dismiss the initial app loading overlay
+      this.$store.commit('global/setAppInitialLoadComplete', true)
+
       // Set loading to false after initial mount operations complete
       // If assets exist, the watcher will handle it, otherwise set it after a delay
       this.$nextTick(() => {
@@ -2589,6 +2587,7 @@ export default {
       // Ensure loading state is reset even on error
       this.isLoadingAssets = false
       this.loadingBchPrice = false
+      this.$store.commit('global/setAppInitialLoadComplete', true)
     }
   },
 }

@@ -1,5 +1,6 @@
 <template>
     <div>
+      <AppLoading v-if="showInitialLoad" />
       <router-view />
       <v-offline @detected-condition="onConnectivityChange" />
       
@@ -30,6 +31,7 @@ import Watchtower from 'watchtower-cash-js'
 import { VOffline } from 'v-offline'
 import { checkWatchtowerStatus } from './utils/watchtower-status'
 import AppVersionUpdate from './components/dialogs/AppVersionUpdate.vue'
+import AppLoading from 'src/components/AppLoading.vue'
 import { App as CapacitorApp } from '@capacitor/app'
 import { Capacitor } from '@capacitor/core'
 import ScreenshotSecurity from './utils/screenshot-security'
@@ -46,7 +48,7 @@ BigInt.prototype["toJSON"] = function () {
 
 export default {
   name: 'App',
-  components: { VOffline },
+  components: { VOffline, AppLoading },
   setup () {
     const store = useStore()
     const $q = useQuasar()
@@ -104,6 +106,9 @@ export default {
     },
     lockAppEnabled() {
       return this.$store.getters['global/lockApp']
+    },
+    showInitialLoad() {
+      return !this.$store.state.global.appInitialLoadComplete
     }
   },
   watch: {
@@ -765,6 +770,16 @@ export default {
   },
   async mounted () {
     const vm = this
+
+    // If we just switched wallets, skip the initial loading screen
+    // WalletSwitchLoading already handled the transition
+    if (sessionStorage.getItem('walletSwitchReload')) {
+      sessionStorage.removeItem('walletSwitchReload')
+      vm.$store.commit('global/setAppInitialLoadComplete', true)
+    } else {
+      // Cold start: reset so the loading overlay shows until the home page is ready
+      vm.$store.commit('global/setAppInitialLoadComplete', false)
+    }
 
     // Clear session-based backup reminder dismissal on fresh app start
     // App.vue only mounts on fresh app start (not during navigation), so always clear
