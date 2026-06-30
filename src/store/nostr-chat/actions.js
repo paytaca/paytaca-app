@@ -74,6 +74,20 @@ function flushAllRoomTouches (dispatch) {
   }
 }
 
+function clearDebouncedTimers () {
+  for (const roomId of Object.keys(_roomTouchTimers)) {
+    clearTimeout(_roomTouchTimers[roomId])
+    delete _roomTouchTimers[roomId]
+  }
+  for (const roomId of Object.keys(_roomTouchPending)) {
+    delete _roomTouchPending[roomId]
+  }
+  if (_refetchRoomsTimer) {
+    clearTimeout(_refetchRoomsTimer)
+    _refetchRoomsTimer = null
+  }
+}
+
 function flushPendingReadReceipts (state, commit) {
   if (!_pendingReadReceipts.size) return
   const ws = getWalletState(state)
@@ -157,6 +171,10 @@ export async function reinitialize ({ commit, dispatch, state }) {
   if (!walletHash) return
   const mnemonic = await getMnemonicByHash(walletHash)
   if (!mnemonic) return
+
+  // Clear debounced timers from the previous wallet session to prevent
+  // stale touchRoom/fetchRooms dispatches against the new wallet state.
+  clearDebouncedTimers()
 
   const keys = deriveNostrKeys(mnemonic)
   const ws = getWalletState(state)
@@ -2645,6 +2663,7 @@ export function ensureSubscribed ({ dispatch, getters }) {
   }).catch(err => {
     console.warn('[Nostr] Failed to initialize, clearing cooldown for retry:', err)
     _lastEnsureTime = 0
+    throw err
   })
 }
 
