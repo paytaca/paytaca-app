@@ -1840,14 +1840,12 @@ export async function seedRoomsFromMessages ({ commit, dispatch, state }) {
     // Collect unique message senders (excluding self)
     const senders = [...new Set(msgs.map(m => m.sender).filter(s => s && s !== myPubKey))]
 
-    // Only seed DM rooms (2-person). Group classification from message
-    // senders alone is unreliable — only 1 other member may have spoken,
-    // causing the room to be misclassified as a DM and flip-flopping
-    // between member name/avatar and group name. Groups will be created
-    // by receiveMessage when a new message arrives from any member.
-    if (senders.length > 1) continue
-
-    if (!senders[0]) continue
+    // Only seed DM rooms (2-person). Skip one-sided DMs (senders.length === 0,
+    // meaning only self messages) — the other party's pubkey can't be determined
+    // from message data alone, so the room would be malformed. These rooms will
+    // be created normally when the user next opens the conversation.
+    // Also skip groups (senders.length > 1) — see comment above.
+    if (senders.length !== 1) continue
 
     const members = [myPubKey, senders[0]]
 
@@ -2309,17 +2307,36 @@ export function receiveMessage ({ commit, dispatch, state }, { rumor, sealPubkey
       const hasSubjectTag = rumor.tags.some(t => t[0] === 'subject')
       const subjectRaw = rumor.tags.find(t => t[0] === 'subject')?.[1]
       const subject = hasSubjectTag ? (subjectRaw ?? '') : null
-      const msg = {
-        id: rumor.id,
-        content: rumor.content,
-        sender: rumor.pubkey,
-        created_at: rumor.created_at,
-        roomId: room.id,
-        replyTo,
-        subject,
-        editOf,
+      if (editOf) {
+        // Edit targeting an existing message — update in place
+        const target = (ws.messages[room.id] || []).find(m => m.id === editOf)
+        if (target) {
+          commit('UPDATE_MESSAGE', { roomId: room.id, messageId: editOf, newContent: rumor.content })
+        } else {
+          const msg = {
+            id: rumor.id,
+            content: rumor.content,
+            sender: rumor.pubkey,
+            created_at: rumor.created_at,
+            roomId: room.id,
+            replyTo,
+            subject,
+            editOf,
+          }
+          commit('ADD_MESSAGE', { roomId: room.id, message: msg })
+        }
+      } else {
+        const msg = {
+          id: rumor.id,
+          content: rumor.content,
+          sender: rumor.pubkey,
+          created_at: rumor.created_at,
+          roomId: room.id,
+          replyTo,
+          subject,
+        }
+        commit('ADD_MESSAGE', { roomId: room.id, message: msg })
       }
-      commit('ADD_MESSAGE', { roomId: room.id, message: msg })
       queueRoomTouch(dispatch, room.id, new Date(rumor.created_at * 1000).toISOString())
       return
     }
@@ -2605,12 +2622,13 @@ export function ensureSubscribed ({ dispatch, getters }) {
   const now = Date.now()
 
   // Debounce: skip if we ensured recently
-  if ((now - _lastEnsureTime) < ENSURE_COOLDOWN_MS) return
+  if ((now - _lastEnsureTime) < ENSURE_COOLDOWN_MS) return Promise.resolve()
   _lastEnsureTime = now
 
-  // Always re-register pubkey-to-wallet mapping when chat opens
-  // This ensures the pubkey stays registered in Watchtower
-  dispatch('registerNostrPubkey')
+  // Always re-register pubkey-to-wallet mapping when chat opens.
+  // This ensures the pubkey stays registered in Watchtower. Chained into
+  // the returned promise so callers can rely on full setup completion.
+  return dispatch('registerNostrPubkey').then(() => {
 
   // Skip if already subscribed and not stale
   if (relayService.isSubscribed() && getters['isInitialized'] && getters['myPrivKey']) return
@@ -2620,13 +2638,14 @@ export function ensureSubscribed ({ dispatch, getters }) {
   if (!getters['isInitialized'] || !getters['myPrivKey']) {
     return dispatch('initialize').then(() => {
       return dispatch('subscribeToRelays')
-    }).catch(err => {
-      console.warn('[Nostr] Failed to initialize, clearing cooldown for retry:', err)
-      _lastEnsureTime = 0
     })
   } else {
     return dispatch('subscribeToRelays')
   }
+  }).catch(err => {
+    console.warn('[Nostr] Failed to initialize, clearing cooldown for retry:', err)
+    _lastEnsureTime = 0
+  })
 }
 
 // NOTE: A `disconnectRelays` action previously lived here but had no callers
