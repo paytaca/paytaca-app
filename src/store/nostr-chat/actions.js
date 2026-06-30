@@ -266,8 +266,7 @@ export async function registerNostrPubkey ({ state, rootGetters }) {
     return
   }
 
-  const walletIndex = rootGetters['global/getWalletIndex']
-  const walletHash = rootGetters['global/getWalletHashByIndex']?.(walletIndex)
+  const walletHash = rootGetters['global/getWallet']('bch')?.walletHash
   if (!walletHash) {
     debug('Skip pubkey registration: no wallet hash')
     return
@@ -735,6 +734,9 @@ let _heartbeatInterval = null
 let _activeWs = null
 let _activeWsReconnectTimer = null
 let _activeWsHandlers = null
+let _activeWsHeartbeatTimer = null
+let _activeWsAuthRetries = 0
+const MAX_WS_AUTH_RETRIES = 5
 let _activeExpiryTimers = {}
 
 function clearActiveExpiry (pubkey) {
@@ -791,30 +793,55 @@ export async function fetchActiveStatus ({ state, commit, rootGetters }) {
   try {
     const isChipnet = rootGetters['global/isChipnet']
     const baseUrl = isChipnet ? 'https://chipnet.watchtower.cash' : 'https://watchtower.cash'
+    const authHeaders = await getAuthHeaders()
     const response = await fetch(`${baseUrl}/api/nostr/last-active/`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: {
+        'Content-Type': 'application/json',
+        ...authHeaders,
+      },
       body: JSON.stringify({ pubkeys }),
     })
+    if (response.status === 401) {
+      await clearToken()
+      const retryResponse = await fetch(`${baseUrl}/api/nostr/last-active/`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(await getAuthHeaders()),
+        },
+        body: JSON.stringify({ pubkeys }),
+      })
+      if (!retryResponse.ok) {
+        debug('fetchActiveStatus failed after token refresh:', retryResponse.status)
+        return
+      }
+      const data = await retryResponse.json()
+      return processActiveStatusResponse(data, pubkeys, commit)
+    }
     if (!response.ok) {
-      console.warn('[Nostr] fetchActiveStatus failed:', response.status)
+      debug('fetchActiveStatus failed:', response.status)
       return
     }
     const data = await response.json()
-    const statusMap = {}
-    for (const pubkey of pubkeys) {
-      if (data[pubkey]) {
-        statusMap[pubkey] = {
-          lastActiveAt: data[pubkey],
-          fetchedAt: Date.now(),
-        }
-        scheduleActiveExpiry(pubkey, commit)
-      }
-    }
-    commit('SET_ACTIVE_STATUS', statusMap)
+    return processActiveStatusResponse(data, pubkeys, commit)
   } catch (err) {
-    console.warn('[Nostr] fetchActiveStatus error:', err)
+    debug('fetchActiveStatus error:', err)
   }
+}
+
+function processActiveStatusResponse (data, pubkeys, commit) {
+  const statusMap = {}
+  for (const pubkey of pubkeys) {
+    if (data[pubkey]) {
+      statusMap[pubkey] = {
+        lastActiveAt: data[pubkey],
+        fetchedAt: Date.now(),
+      }
+      scheduleActiveExpiry(pubkey, commit)
+    }
+  }
+  commit('SET_ACTIVE_STATUS', statusMap)
 }
 
 export async function touchActive ({ rootGetters }, { pubkey, recipients }) {
@@ -840,13 +867,13 @@ export async function touchActive ({ rootGetters }, { pubkey, recipients }) {
       await clearToken()
       const retryResponse = await doTouch()
       if (!retryResponse.ok) {
-        console.warn('[Nostr] touchActive retry failed:', retryResponse.status)
+        debug('touchActive retry failed:', retryResponse.status)
       }
     } else if (!response.ok) {
-      console.warn('[Nostr] touchActive failed:', response.status)
+      debug('touchActive failed:', response.status)
     }
   } catch (err) {
-    console.warn('[Nostr] touchActive error:', err)
+    debug('touchActive error:', err)
   }
 }
 
@@ -859,26 +886,45 @@ function startPubkeyRegistrationHeartbeat (dispatch) {
 }
 
 function getWsWatchtowerUrl (rootGetters) {
-  const walletIndex = rootGetters['global/getWalletIndex']
-  const walletHash = rootGetters['global/getWalletHashByIndex']?.(walletIndex)
+  const walletHash = rootGetters['global/getWallet']('bch')?.walletHash
   if (!walletHash) return null
   const isChipnet = rootGetters['global/isChipnet']
   const baseUrl = isChipnet ? 'https://chipnet.watchtower.cash' : 'https://watchtower.cash'
-  const url = new URL(baseUrl)
-  url.protocol = baseUrl.startsWith('https') ? 'wss:' : 'ws:'
-  url.pathname = `/ws/nostr/updates/${walletHash}/`
-  return url.toString()
+  return { walletHash, baseUrl }
 }
 
-export function startActiveWs ({ state, commit, rootGetters }) {
+async function getWsWatchtowerUrlWithToken (rootGetters) {
+  const info = getWsWatchtowerUrl(rootGetters)
+  if (!info) return null
+  let url = `${info.baseUrl.replace('https:', 'wss:')}/ws/nostr/updates/${info.walletHash}/`
+  try {
+    const headers = await getAuthHeaders()
+    const token = headers?.Authorization?.replace('Bearer ', '')
+    if (token) url += `?token=${encodeURIComponent(token)}`
+    const safeUrl = url.replace(/\?.*$/, '')
+    debug('WS path:', safeUrl.slice(0, 80))
+  } catch (err) {
+    debug('Failed to get auth token for WS:', err)
+  }
+  return url
+}
+
+export async function startActiveWs ({ state, commit, rootGetters }) {
   stopActiveWs()
-  const wsUrl = getWsWatchtowerUrl(rootGetters)
+  const wsUrl = await getWsWatchtowerUrlWithToken(rootGetters)
   if (!wsUrl) return
 
   try {
     const ws = new WebSocket(wsUrl)
     const handlers = {
-      open: () => { console.log('[Nostr] Active status WS connected') },
+      open: () => {
+        debug('Active status WS connected')
+        _activeWsAuthRetries = 0
+        clearInterval(_activeWsHeartbeatTimer)
+        _activeWsHeartbeatTimer = setInterval(() => {
+          _activeWs?.send(JSON.stringify({ type: 'heartbeat' }))
+        }, 30000)
+      },
       message: (event) => {
         try {
           const msg = JSON.parse(event.data)
@@ -892,19 +938,35 @@ export function startActiveWs ({ state, commit, rootGetters }) {
             scheduleActiveExpiry(msg.pubkey_hex, commit)
           }
         } catch (e) {
-          console.warn('[Nostr] Failed to parse WS message:', e)
+          debug('Failed to parse WS message:', e)
         }
       },
-      close: () => {
+      close: (event) => {
+        clearInterval(_activeWsHeartbeatTimer)
+        _activeWsHeartbeatTimer = null
         _activeWs = null
         _activeWsHandlers = null
         if (_activeServicesRunning) {
+          if (event.code === 4001 || event.code === 1006) {
+            _activeWsAuthRetries++
+            clearToken().catch(() => {})
+            if (_activeWsAuthRetries >= MAX_WS_AUTH_RETRIES) {
+              debug('WS auth retries exhausted, giving up')
+              _activeServicesRunning = false
+              return
+            }
+            debug(`WS disconnected (code ${event.code}), retry ${_activeWsAuthRetries}/${MAX_WS_AUTH_RETRIES}`)
+          }
           _activeWsReconnectTimer = setTimeout(() => {
             startActiveWs({ state, commit, rootGetters })
           }, 5000)
         }
       },
-      error: (err) => { console.warn('[Nostr] Active status WS error:', err) },
+      error: () => {
+        // HTTP upgrade failure (e.g. 403) fires error before close.
+        // Clear the stale token so the reconnect picks up a fresh one.
+        clearToken().catch(() => {})
+      },
     }
     ws.addEventListener('open', handlers.open)
     ws.addEventListener('message', handlers.message)
@@ -913,11 +975,13 @@ export function startActiveWs ({ state, commit, rootGetters }) {
     _activeWs = ws
     _activeWsHandlers = handlers
   } catch (err) {
-    console.warn('[Nostr] Failed to create active status WS:', err)
+    debug('Failed to create active status WS:', err)
   }
 }
 
 export function stopActiveWs () {
+  clearInterval(_activeWsHeartbeatTimer)
+  _activeWsHeartbeatTimer = null
   if (_activeWsReconnectTimer) {
     clearTimeout(_activeWsReconnectTimer)
     _activeWsReconnectTimer = null

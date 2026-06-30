@@ -9,7 +9,7 @@
       class="apps-header"
       backnavpath="/apps/chat"
       :title="roomName"
-      :subtitle="isGroupRoom ? $t('MemberCount', { count: room?.members?.length || 0 }, `${room?.members?.length || 0} members`) : null"
+      :subtitle="isGroupRoom ? $t('MemberCount', { count: room?.members?.length || 0 }, `${room?.members?.length || 0} members`) : otherMemberIsActive ? $t('ActiveNow', {}, 'Active now') : null"
     >
       <template v-if="room" v-slot:top-right-menu>
         <div class="header-actions">
@@ -556,6 +556,7 @@ import ChatInput from 'src/components/chat/ChatInput.vue'
 import SendBchDialog from 'src/components/chat/SendBchDialog.vue'
 import { npubEncode } from 'nostr-tools/nip19'
 import { getCachedAvatar, setCachedAvatar } from 'src/utils/avatar-cache'
+import { ACTIVE_THRESHOLD_MS } from 'src/store/nostr-chat/state'
 
 export default {
   name: 'ChatConversation',
@@ -679,6 +680,14 @@ export default {
     },
     isGroupRoom () {
       return this.room?.type === 'group'
+    },
+    otherMemberIsActive () {
+      const pk = this.otherMemberPubKey
+      if (!pk || this.isGroupRoom) return false
+      const activeData = this.$store.getters['nostrChat/getActiveStatusMap']
+      const entry = activeData[pk]
+      if (!entry?.lastActiveAt) return false
+      return Date.now() - new Date(entry.lastActiveAt).getTime() <= ACTIVE_THRESHOLD_MS
     },
     displayNpub () {
       const npub = this.otherMemberNpub
@@ -896,6 +905,11 @@ export default {
         this.$router.replace('/apps/chat')
       }
     },
+    otherMemberIsActive (isActive, wasActive) {
+      if (!isActive && wasActive && this.otherMemberPubKey) {
+        this.$store.dispatch('nostrChat/fetchActiveStatus').catch(() => {})
+      }
+    },
     async showSaveContactDialog (val) {
       this.fetchedDisplayName = null
       this.fetchedAvatar = null
@@ -987,7 +1001,8 @@ export default {
     }
     this._savedScrollTop = savedScrollTop
     this.markAsRead()
-    this.ensureSubscribed()
+    this.ensureSubscribed().catch(() => {})
+    this.$store.dispatch('nostrChat/fetchActiveStatus').catch(() => {})
     if (this.isGroupRoom && this.room?.members) {
       const fetches = this.room.members.map(pk =>
         this.$store.dispatch('nostrChat/fetchPublishedDisplayName', { pubKeyHex: pk })
@@ -1015,12 +1030,22 @@ export default {
         this.observeMessages()
       })
     })
+    // Poll active status every 2 minutes while on this page
+    this._activeStatusPollTimer = setInterval(() => {
+      this.$store.dispatch('nostrChat/fetchActiveStatus').catch(() => {})
+    }, 120000)
     this._isActive = true
   },
   activated () {
     this._isActive = true
     this.markAsRead()
-    this.ensureSubscribed()
+    this.ensureSubscribed().catch(() => {})
+    this.$store.dispatch('nostrChat/fetchActiveStatus').catch(() => {})
+    if (!this._activeStatusPollTimer) {
+      this._activeStatusPollTimer = setInterval(() => {
+        this.$store.dispatch('nostrChat/fetchActiveStatus').catch(() => {})
+      }, 120000)
+    }
     if (this.isGroupRoom && this.room?.members) {
       const fetches = this.room.members.map(pk =>
         this.$store.dispatch('nostrChat/fetchPublishedDisplayName', { pubKeyHex: pk })
@@ -1077,6 +1102,8 @@ export default {
   },
   deactivated () {
     this.ready = false
+    clearInterval(this._activeStatusPollTimer)
+    this._activeStatusPollTimer = null
     // Only flush mark-as-read if we were actually visible — not if we were
     // already deactivated in keep-alive (e.g., user on chat index sees a new
     // message arrive, then navigates to home; the Apps layout unmounts and
@@ -1088,6 +1115,8 @@ export default {
     }
   },
   beforeUnmount () {
+    clearInterval(this._activeStatusPollTimer)
+    this._activeStatusPollTimer = null
     if (this._isActive) {
       this._isActive = false
       this.flushMarkAsRead()
@@ -1306,8 +1335,9 @@ export default {
           if (elapsed < 2000) return
         }
         this._lastVisibilitySubscribe = Date.now()
-        this.ensureSubscribed()
+        this.ensureSubscribed().catch(() => {})
         this.markAsRead()
+        this.$store.dispatch('nostrChat/fetchActiveStatus').catch(() => {})
       }
     },
     onViewportResize () {

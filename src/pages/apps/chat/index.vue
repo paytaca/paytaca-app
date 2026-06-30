@@ -616,7 +616,10 @@ export default {
     try {
       // Initialize (skips if already initialized for this wallet)
       await this.$store.dispatch('nostrChat/initialize')
-      this.$store.dispatch('nostrChat/ensureSubscribed')
+      this.$store.dispatch('nostrChat/ensureSubscribed').catch(() => {})
+
+      // Fetch last-active timestamps for all conversations on screen
+      this.$store.dispatch('nostrChat/fetchActiveStatus').catch(() => {})
 
       // Handle any scanned npub that we deferred because the store
       // wasn't initialized yet (existing contact case).
@@ -640,20 +643,28 @@ export default {
       }, 1000)
     }
 
-    // Re-subscribe when tab becomes visible (e.g., after app backgrounding)
+    // Re-subscribe and refresh active status when tab becomes visible (e.g., after app backgrounding)
     this._onVisibilityChange = () => {
       if (document.visibilityState === 'visible') {
-        this.$store.dispatch('nostrChat/ensureSubscribed')
+        this.$store.dispatch('nostrChat/ensureSubscribed').catch(() => {})
+        this.$store.dispatch('nostrChat/fetchActiveStatus').catch(() => {})
       }
     }
     document.addEventListener('visibilitychange', this._onVisibilityChange)
+
+    // Poll active status every 2 minutes while on this page
+    this._activeStatusPollTimer = setInterval(() => {
+      this.$store.dispatch('nostrChat/fetchActiveStatus').catch(() => {})
+    }, 120000)
   },
   activated () {
     // Re-check subscription when returning to this page via keep-alive
-    this.$store.dispatch('nostrChat/ensureSubscribed')
+    this.$store.dispatch('nostrChat/ensureSubscribed').catch(() => {})
+    this.$store.dispatch('nostrChat/fetchActiveStatus').catch(() => {})
   },
   beforeUnmount () {
     clearTimeout(this._profilePromptTimer)
+    clearInterval(this._activeStatusPollTimer)
     document.removeEventListener('visibilitychange', this._onVisibilityChange)
     // Keep subscription alive for background messages
   },
