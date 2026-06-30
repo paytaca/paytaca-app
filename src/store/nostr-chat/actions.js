@@ -1021,7 +1021,7 @@ export function stopActiveServices () {
   stopActiveWs()
 }
 
-export function setShowActiveStatus ({ commit, dispatch, getters }, value) {
+export async function setShowActiveStatus ({ commit, dispatch, getters, rootGetters }, value) {
   commit('SET_SHOW_ACTIVE_STATUS', value)
   if (value && _activeServicesRunning) {
     startPubkeyRegistrationHeartbeat(dispatch)
@@ -1030,6 +1030,57 @@ export function setShowActiveStatus ({ commit, dispatch, getters }, value) {
       clearInterval(_heartbeatInterval)
       _heartbeatInterval = null
     }
+  }
+
+  try {
+    const walletHash = getCurrentWalletHash()
+    if (!walletHash) return
+
+    const isChipnet = rootGetters['global/isChipnet']
+    const baseUrl = isChipnet ? 'https://chipnet.watchtower.cash' : 'https://watchtower.cash'
+    const authHeaders = await getAuthHeaders()
+
+    async function doPost () {
+      const headers = await getAuthHeaders()
+      return fetch(`${baseUrl}/api/nostr/active-status/`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          ...headers,
+        },
+        body: JSON.stringify({
+          wallet_hash: walletHash,
+          show_active_status: value,
+        }),
+      })
+    }
+
+    const response = await doPost()
+    if (response.status === 401) {
+      await clearToken()
+      const retryResponse = await doPost()
+      if (!retryResponse.ok) {
+        debug('setShowActiveStatus failed after token refresh:', retryResponse.status)
+        return
+      }
+      const data = await retryResponse.json()
+      if (data.show_active_status !== undefined) {
+        commit('SET_SHOW_ACTIVE_STATUS', data.show_active_status)
+      }
+      return
+    }
+
+    if (!response.ok) {
+      debug('setShowActiveStatus failed:', response.status)
+      return
+    }
+
+    const data = await response.json()
+    if (data.show_active_status !== undefined) {
+      commit('SET_SHOW_ACTIVE_STATUS', data.show_active_status)
+    }
+  } catch (err) {
+    debug('setShowActiveStatus error:', err)
   }
 }
 

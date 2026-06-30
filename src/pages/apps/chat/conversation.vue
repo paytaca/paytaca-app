@@ -1252,11 +1252,11 @@ export default {
       // Always ensure we have an active subscription,
       // especially after the tab has been backgrounded.
       if (!this.$store.getters['nostrChat/isInitialized']) {
-        this.$store.dispatch('nostrChat/initialize').then(() => {
-          this.$store.dispatch('nostrChat/subscribeToRelays')
+        return this.$store.dispatch('nostrChat/initialize').then(() => {
+          return this.$store.dispatch('nostrChat/subscribeToRelays')
         })
       } else {
-        this.$store.dispatch('nostrChat/subscribeToRelays')
+        return this.$store.dispatch('nostrChat/subscribeToRelays')
       }
     },
     async requestToJoin () {
