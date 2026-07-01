@@ -705,7 +705,44 @@ export class PaymentHub {
     return response.data
   }
 
+
+  /**
+   * Gets the parameters needed to update a subscription NFT (update kit).
+   * @param {String} subscriptionId - The UUID of the subscription.
+   * @param {Object} data - { new_pledge: number, new_period: number }
+   */
+  async getSubscriptionUpdateKit(subscriptionId, data) {
+    const oauth = await authToken.get(this.wallet)
+    const response = await backend.post(`/subscriptions/${subscriptionId}/update_nft/`, { ...data, action: 'request-kit' }, {
+      headers: { Authorization: `Bearer ${oauth}` },
+      authorize: true,
+      wallet: this.wallet
+    })
+    return response.data
+  }
+
+  /**
+   * Submits a signed transaction to update a subscription NFT.
+   * @param {String} subscriptionId - The UUID of the subscription.
+   * @param {String} rawTx - The signed raw transaction hex.
+   * @param {Object} data - { new_pledge: number, new_period: number }
+   */
+  async submitSubscriptionUpdate(subscriptionId, rawTx, data) {
+    const oauth = await authToken.get(this.wallet)
+    const response = await backend.post(`/subscriptions/${subscriptionId}/update_nft/`, {
+      raw_tx_hex: rawTx,
+      ...data,
+      action: 'broadcast-tx'
+    }, {
+      headers: { Authorization: `Bearer ${oauth}` },
+      authorize: true,
+      wallet: this.wallet
+    })
+    return response.data
+  }
+
   // --- Subscription Invoices Section ---
+
 
   /**
    * Lists invoices associated with a specific subscription.

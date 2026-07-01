@@ -92,7 +92,7 @@
                     <div class="col ellipsis q-pr-sm">
                       <div class="text-weight-bold">{{ sub.plan_details?.name || 'Subscription' }}</div>
                       <div class="text-caption text-grey text-weight-regular">
-                        {{ sub.plan_details?.amount }} {{ sub.plan_details?.currency }}
+                        {{ sub.pledge_satoshis ? (sub.pledge_satoshis / 1e8).toFixed(8).replace(/\.?0+$/, '') + ' BCH' : (sub.plan_details?.amount + ' ' + sub.plan_details?.currency) }}
                         &bull;
                         <span v-if="sub.plan_details?.period_days">{{ sub.plan_details.period_days }} {{ $t('Days') || 'days' }}</span>
                         <span v-else-if="sub.plan_details?.period_blocks">{{ sub.plan_details.period_blocks }} {{ $t('Blocks') || 'blocks' }}</span>
@@ -295,6 +295,8 @@ function openDetail(sub) {
   }).onOk((payload) => {
     if (payload?.action === 'cancel_subscription') {
       cancelSubscription(payload.subscription)
+    } else if (payload?.action === 'update_subscription_nft') {
+      updateSubscriptionNft(payload.subscription, payload.data)
     }
   })
 }
@@ -311,7 +313,137 @@ function copyAddress(address) {
   })
 }
 
+
+async function updateSubscriptionNft(sub, data) {
+  try {
+    $q.loading.show({ message: 'Fetching update kit...' })
+    const kit = await hub.value.getSubscriptionUpdateKit(sub.id, data)
+
+    $q.loading.show({ message: 'Signing update transaction...' })
+
+    const getPayload = (addr) => {
+      if (/^[0-9a-fA-F]{40}$/.test(addr)) {
+        return new Uint8Array(addr.match(/.{1,2}/g).map(byte => parseInt(byte, 16)))
+      }
+      if (!addr.includes(':')) addr = 'bitcoincash:' + addr
+      const decoded = decodeCashAddress(addr)
+      if (typeof decoded === 'string') throw new Error(decoded)
+      return decoded.payload
+    }
+
+    const merchantPayload = getPayload(sub.merchant_address)
+    const funderPayload = getPayload(sub.funder_address)
+
+    const isChipnet = $store.getters['global/isChipnet']
+    const bchWallet = isChipnet ? wallet.value.BCH_CHIP : wallet.value.BCH
+
+    const artifactObj = await hub.value.getContractArtifact()
+    const provider = new ElectrumNetworkProvider(isChipnet ? 'chipnet' : 'mainnet')
+    const paytacaPayload = getPayload(kit.paytaca_address)
+    const reversedCategoryHex = sub.category.match(/.{1,2}/g).reverse().join('')
+    const categoryBytes = new Uint8Array(reversedCategoryHex.match(/.{1,2}/g).map(byte => parseInt(byte, 16)))
+
+    const contract = new Contract(artifactObj, [
+      merchantPayload,
+      funderPayload,
+      paytacaPayload,
+      BigInt(sub.max_fee),
+      BigInt(sub.max_pledge || sub.pledge_satoshis),
+      BigInt(sub.min_period || sub.period_blocks),
+      BigInt(sub.max_period || sub.period_blocks),
+      categoryBytes,
+      BigInt(sub.contract_timestamp),
+      BigInt(sub.max_payments || 0)
+    ], { provider })
+
+    const addressIndex = sub.merchant_address_index
+    if (addressIndex == null) throw new Error('Merchant address index not provided by backend')
+    const pathStr = `0/${addressIndex}`
+
+    const privKeyWif = await bchWallet.getPrivateKey(pathStr)
+    if (!privKeyWif) throw new Error('Could not derive private key for merchant address')
+
+    const sig = new SignatureTemplate(privKeyWif)
+    const toAddress = kit.outputs[0].to
+    const formattedInputs = kit.inputs.map(input => {
+      const formattedInput = {
+        ...input,
+        satoshis: BigInt(input.satoshis)
+      }
+      if (input.token) {
+        formattedInput.token = {
+          ...input.token,
+          amount: BigInt(input.token.amount)
+        }
+      }
+      return formattedInput
+    })
+    const bchUtxos = await bchWallet.getUtxos()
+    const plainUtxos = bchUtxos.filter(u => !u.token)
+    
+    let fundingUtxos = []
+    let totalFundingSatoshis = 0n
+    let estimatedFee = 1500n // Base fee for contract I/O and change output
+    
+    for (const utxo of plainUtxos) {
+      fundingUtxos.push(utxo)
+      totalFundingSatoshis += BigInt(utxo.satoshis ?? utxo.amount ?? utxo.value ?? 0)
+      if (totalFundingSatoshis >= estimatedFee) break
+      estimatedFee += 148n // Each additional input adds ~148 bytes
+    }
+    
+    if (totalFundingSatoshis < estimatedFee) {
+      throw new Error('Insufficient funds in merchant wallet to cover network fee')
+    }
+
+    const txBuilder = new TransactionBuilder({ provider })
+    txBuilder.addInputs(formattedInputs, contract.unlock.updateNft(BigInt(data.new_pledge), BigInt(data.new_period), sig.getPublicKey(), sig))
+
+    for (const fUtxo of fundingUtxos) {
+      const addressPath = fUtxo.address_path ?? ('0/' + String(fUtxo.wallet_index))
+      const fPrivKeyWif = await bchWallet.getPrivateKey(addressPath)
+      const fSig = new SignatureTemplate(fPrivKeyWif)
+
+      txBuilder.addInput({
+        txid: fUtxo.txid,
+        vout: fUtxo.vout,
+        satoshis: BigInt(fUtxo.satoshis ?? fUtxo.amount ?? fUtxo.value ?? 0)
+      }, fSig.unlockP2PKH())
+    }
+    
+    const outputSatoshis = BigInt(kit.outputs[0].satoshis)
+    const outputToken = kit.outputs[0].token ? {
+      amount: BigInt(kit.outputs[0].token.amount),
+      category: kit.outputs[0].token.category,
+      nft: kit.outputs[0].token.nft
+    } : undefined
+    
+    txBuilder.addOutput({ to: toAddress, amount: outputSatoshis, token: outputToken })
+
+    const changeSatoshis = totalFundingSatoshis - estimatedFee
+    if (changeSatoshis >= 546n) {
+      txBuilder.addOutput({ to: sub.merchant_address, amount: changeSatoshis })
+    }
+
+    const rawTx = await txBuilder.build()
+
+    $q.loading.show({ message: 'Submitting update...' })
+    await hub.value.submitSubscriptionUpdate(sub.id, rawTx, data)
+
+    fetchSubscriptions()
+    $q.notify({ type: 'positive', message: $t('SubscriptionUpdated') || 'Subscription updated successfully' })
+
+  } catch (error) {
+    console.error(error)
+    const errorMsg = error.response?.data?.error || error.message
+    $q.notify({ type: 'negative', message: ($t('ErrorUpdatingSubscription') || 'Error updating subscription: ') + errorMsg })
+  } finally {
+    $q.loading.hide()
+  }
+}
+
 async function cancelSubscription(sub) {
+
   $q.dialog({
     title: $t('CancelSubscription') || 'Cancel Subscription',
     message: ($t('CancelSubscriptionConfirm') || 'Are you sure you want to cancel the subscription to {plan}?').replace('{plan}', sub.plan_name || 'this plan'),

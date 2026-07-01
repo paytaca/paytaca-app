@@ -38,6 +38,7 @@
                 type="number"
                 inputmode="decimal"
                 step="any"
+                min="0.00000001"
                 lazy-rules
                 :rules="[
                   val => !!val || $t('Required'),
@@ -70,6 +71,7 @@
                 type="number"
                 inputmode="decimal"
                 step="1"
+                min="1"
                 lazy-rules
                 :rules="[
                   val => !!val || $t('Required'),
@@ -95,24 +97,30 @@
             <div class="col">
               <q-input
                 v-model.number="form.min_period"
-                :label="$t('MinPeriod') || 'Min Interval (Blocks)'"
+                :label="($t('MinPeriod') || 'Min Interval') + ' (' + (form.period_type === 'days' ? 'Days' : 'Blocks') + ')'"
                 outlined
                 dense
                 type="number"
                 inputmode="decimal"
                 step="1"
+                min="0"
+                lazy-rules
+                :rules="[val => val >= 0 || 'Must be non-negative']"
                 hide-bottom-space
               />
             </div>
             <div class="col">
               <q-input
                 v-model.number="form.max_period"
-                :label="$t('MaxPeriod') || 'Max Interval (Blocks)'"
+                :label="($t('MaxPeriod') || 'Max Interval') + ' (' + (form.period_type === 'days' ? 'Days' : 'Blocks') + ')'"
                 outlined
                 dense
                 type="number"
                 inputmode="decimal"
                 step="1"
+                min="0"
+                lazy-rules
+                :rules="[val => val >= 0 || 'Must be non-negative']"
                 hide-bottom-space
               />
             </div>
@@ -128,6 +136,9 @@
                 type="number"
                 inputmode="decimal"
                 step="1"
+                min="0"
+                lazy-rules
+                :rules="[val => val >= 0 || 'Must be non-negative']"
                 hide-bottom-space
                 hint="Set to 0 for unlimited"
               />
@@ -145,7 +156,7 @@
 </template>
 
 <script setup>
-import { ref, computed, reactive } from 'vue'
+import { ref, computed, reactive, watch } from 'vue'
 import { useDialogPluginComponent } from 'quasar'
 import { useStore } from 'vuex'
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
@@ -178,9 +189,15 @@ const form = reactive({
   currency: 'BCH',
   period_value: 30,
   period_type: 'days',
-  min_period: 4320,
-  max_period: 4320,
+  min_period: 30,
+  max_period: 30,
   max_reclaim: 0
+})
+
+watch([() => form.period_value, () => form.period_type], ([newVal, newType]) => {
+  if (newVal === null || newVal === undefined || newVal === '') return
+  form.min_period = newVal
+  form.max_period = newVal
 })
 
 async function onOKClick() {
@@ -192,8 +209,8 @@ async function onOKClick() {
     description: form.description,
     amount: form.amount,
     currency: form.currency,
-    min_period: form.min_period,
-    max_period: form.max_period,
+    min_period: form.period_type === 'days' ? form.min_period * 144 : form.min_period,
+    max_period: form.period_type === 'days' ? form.max_period * 144 : form.max_period,
     max_reclaim: form.max_reclaim
   }
 

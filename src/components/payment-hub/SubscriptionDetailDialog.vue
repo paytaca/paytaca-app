@@ -139,6 +139,15 @@
                 @click="onCancelSubscriptionClick"
               />
               <q-btn
+                v-if="!isCustomer && sub.status === 'ACTIVE'"
+                flat
+                rounded
+                color="pt-primary1"
+                :label="$t('Update') || 'Update'"
+                class="q-px-sm"
+                @click="openUpdateDialog"
+              />
+              <q-btn
                 v-if="isCustomer && (sub.status === 'ACTIVE' || sub.status === 'PENDING')"
                 unelevated
                 rounded
@@ -297,6 +306,7 @@ import { useStore } from 'vuex'
 import { date } from 'quasar'
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 import TopUpDialog from 'src/components/payment-hub/TopUpDialog.vue'
+import UpdateNftDialog from 'src/components/payment-hub/UpdateNftDialog.vue'
 import { PaymentHub } from 'src/wallet/payment-hub'
 import InvoiceDetailDialog from 'src/components/payment-hub/InvoiceDetailDialog.vue'
 import { loadWallet } from 'src/wallet'
@@ -531,6 +541,15 @@ function topUp() {
     componentProps: { subscription: sub.value }
   }).onOk(() => {
     fetchSubscription()
+  })
+}
+
+function openUpdateDialog() {
+  $q.dialog({
+    component: UpdateNftDialog,
+    componentProps: { subscription: sub.value }
+  }).onOk((data) => {
+    onDialogOK({ action: 'update_subscription_nft', subscription: sub.value, data })
   })
 }
 
