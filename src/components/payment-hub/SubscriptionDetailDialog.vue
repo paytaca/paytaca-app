@@ -97,7 +97,7 @@
             </div>
 
             <!-- Next Expected Payout -->
-            <div class="q-mb-sm" v-if="isCustomer && sub.status === 'ACTIVE' && nextPayoutDisplay">
+            <div class="q-mb-sm" v-if="sub.status === 'ACTIVE' && nextPayoutDisplay">
               <div class="row items-center q-gutter-x-xs text-caption text-grey">
                 <span>Next Expected Payout</span>
                 <q-icon name="info" size="xs" color="grey">
@@ -116,6 +116,14 @@
               <div class="text-caption text-grey">Remaining Payouts</div>
               <div class="text-body2 text-weight-medium text-pt-primary1">
                 {{ remainingPayouts }}
+              </div>
+            </div>
+
+            <!-- Overdue Payments -->
+            <div class="q-mb-sm" v-if="(sub.status === 'ACTIVE' || sub.status === 'PENDING') && overduePayments > 0">
+              <div class="text-caption text-red">Overdue Payments</div>
+              <div class="text-body2 text-weight-medium text-red">
+                {{ overduePayments }}
               </div>
             </div>
           </div>
@@ -429,6 +437,11 @@ const remainingPayouts = computed(() => {
   return Math.floor(available / totalCostSats.value)
 })
 
+const overduePayments = computed(() => {
+  if (!sub.value) return 0
+  return sub.value.num_overdue || 0
+})
+
 const nextPayoutDate = computed(() => {
   if (!sub.value) return null
   const blocks = sub.value.period_blocks || (sub.value.plan_details && sub.value.plan_details.period_blocks)
@@ -450,19 +463,25 @@ const nextPayoutDisplay = computed(() => {
   if (!expected) return ''
 
   const now = new Date()
-  if (now.getTime() > expected.getTime()) {
-    return 'Waiting for next block'
-  }
+  const isPast = now.getTime() > expected.getTime()
 
   const isSameDay = expected.getDate() === now.getDate() &&
                     expected.getMonth() === now.getMonth() &&
                     expected.getFullYear() === now.getFullYear()
 
-  if (isSameDay) {
-    return expected.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})
+  const dateString = isSameDay
+    ? expected.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})
+    : expected.toLocaleDateString([], {month: 'short', day: 'numeric', year: 'numeric'})
+
+  if (remainingPayouts.value === 0 && isPast) {
+    return `Overdue at ${dateString}`
   }
 
-  return expected.toLocaleDateString([], {month: 'short', day: 'numeric', year: 'numeric'})
+  if (isPast) {
+    return 'Waiting for next block'
+  }
+
+  return dateString
 })
 
 async function fetchSubscription() {
