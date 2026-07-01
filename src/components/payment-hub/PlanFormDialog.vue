@@ -97,7 +97,7 @@
             <div class="col">
               <q-input
                 v-model.number="form.min_period"
-                :label="($t('MinPeriod') || 'Min Interval') + ' (' + (form.period_type === 'days' ? 'Days' : 'Blocks') + ')'"
+                :label="'Min Interval (' + (form.period_type === 'days' ? 'Days' : 'Blocks') + ')'"
                 outlined
                 dense
                 type="number"
@@ -112,7 +112,7 @@
             <div class="col">
               <q-input
                 v-model.number="form.max_period"
-                :label="($t('MaxPeriod') || 'Max Interval') + ' (' + (form.period_type === 'days' ? 'Days' : 'Blocks') + ')'"
+                :label="'Max Interval (' + (form.period_type === 'days' ? 'Days' : 'Blocks') + ')'"
                 outlined
                 dense
                 type="number"
