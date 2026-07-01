@@ -250,7 +250,20 @@
                   </div>
                 </div>
 
-                <div v-if="showPostAuctionActions && isAuthor && isGrantedRefund && deliveryStatusId === 3" class="q-mt-md full-width">
+                <!-- Bidder side: Confirm items in shipping phase (status 4) -->
+                <div v-if="showPostAuctionActions && isAuthor && isGrantedRefund && deliveryStatusId === 4" class="q-mt-md full-width">
+                  <q-btn
+                    color="warning"
+                    icon="inventory"
+                    label="Confirm Returned Items"
+                    class="full-width"
+                    unelevated
+                    @click="confirmReturnedItems"
+                  />
+                </div>
+
+                <!-- Seller side: Mark as return (status 5) -->
+                <div v-if="showPostAuctionActions && isWinningBidder && isGrantedRefund && deliveryStatusId === 5" class="q-mt-md full-width">
                   <q-btn
                     color="positive"
                     icon="check_circle"
@@ -262,6 +275,19 @@
                   />
                 </div>
 
+                <!-- Bidder soide: Show confirm button if shipping phase -->
+                <div v-if="showPostAuctionActions && isWinningBidder && isGrantedRefund && deliveryStatusId === 3" class="q-mt-md full-width">
+                  <q-btn
+                    color="warning"
+                    icon="local_shipping"
+                    label="Confirm Ship To Seller"
+                    class="full-width"
+                    unelevated
+                    @click="confirmShipToSeller"
+                  />
+                </div>
+
+                <!-- Bidder side: Mark as complete (no refund, delivered) -->
                 <div v-if="showPostAuctionActions && isWinningBidder && !isGrantedRefund && deliveryStatusId === 3" class="q-mt-md full-width">
                   <q-btn
                     color="positive"
@@ -787,6 +813,38 @@ const confirmPickupTrigger = async () => {
     }
   } catch (err) {
     console.warn('Could not fetch delivery tracking:', err)
+  } finally {
+    await refresh(() => {})
+  }
+}
+
+const confirmShipToSeller = async () => {
+  try {
+    const res = await callAPI('delivery-trackings', props.lotId, 'patch', {
+      status: 4,
+      shipping_to_seller_date: new Date().toISOString()
+    })
+    if (res.success) {
+      $q.notify({ type: 'positive', message: 'Confirmed shipping back to seller!' })
+    }
+  } catch (err) {
+    console.warn('Could not update delivery tracking:', err)
+  } finally {
+    await refresh(() => {})
+  }
+}
+
+const confirmReturnedItems = async () => {
+  try {
+    const res = await callAPI('delivery-trackings', props.lotId, 'patch', {
+      status: 5,
+      returned_date: new Date().toISOString()
+    })
+    if (res.success) {
+      $q.notify({ type: 'positive', message: 'Confirmed items returned to seller!' })
+    }
+  } catch (err) {
+    console.warn('Could not update delivery tracking:', err)
   } finally {
     await refresh(() => {})
   }
