@@ -133,6 +133,7 @@ import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 import QRCode from 'qrcode-svg'
 import html2canvas from 'html2canvas'
 import SaveToGallery from 'src/utils/save-to-gallery'
+import paytacaLogoHorizontal from '../../../assets/paytaca_logo_horizontal.png'
 
 export default {
   name: 'ReferralQrDialog',
@@ -297,166 +298,334 @@ export default {
       if (!this.referralCodeFull) return
       if (this.savingQR) return
       this.savingQR = true
-
-      const primaryColor = getComputedStyle(document.documentElement).getPropertyValue('--q-primary').trim() || '#1976d2'
-
       let wrapper = null
 
       try {
+        const qrUrl = this.referralShareUrl
+        const referralCode = this.referralCodeFull
+
+        // Create a beautiful wrapper with gradient background
         wrapper = document.createElement('div')
         wrapper.style.cssText = `
-          background: #ffffff;
-          padding: 0;
+          background: linear-gradient(135deg, #1976d2 0%, #42a5f5 50%, #1976d2 100%);
+          padding: 60px 50px;
           font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Helvetica Neue', Arial, sans-serif;
-          width: 400px;
+          width: 800px;
           box-sizing: border-box;
-          border: 15px solid ${primaryColor};
+          position: relative;
+          overflow: hidden;
         `
 
-        const titleRow = document.createElement('div')
-        titleRow.style.cssText = `
+        // Add decorative background elements
+        const bgDecoration = document.createElement('div')
+        bgDecoration.style.cssText = `
+          position: absolute;
+          top: -100px;
+          right: -100px;
+          width: 400px;
+          height: 400px;
+          background: rgba(255, 255, 255, 0.1);
+          border-radius: 50%;
+          z-index: 0;
+        `
+        wrapper.appendChild(bgDecoration)
+
+        const bgDecoration2 = document.createElement('div')
+        bgDecoration2.style.cssText = `
+          position: absolute;
+          bottom: -150px;
+          left: -150px;
+          width: 500px;
+          height: 500px;
+          background: rgba(255, 255, 255, 0.08);
+          border-radius: 50%;
+          z-index: 0;
+        `
+        wrapper.appendChild(bgDecoration2)
+
+        // Main content container
+        const contentContainer = document.createElement('div')
+        contentContainer.style.cssText = `
+          position: relative;
+          z-index: 1;
+          background: white;
+          border-radius: 32px;
+          padding: 50px 40px;
+          box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+        `
+
+        // Header with icon and title
+        const header = document.createElement('div')
+        header.style.cssText = `
+          text-align: center;
+          margin-bottom: 40px;
+        `
+
+        // Icon and text container
+        const logoContainer = document.createElement('div')
+        logoContainer.style.cssText = `
           display: flex;
-          justify-content: center;
           align-items: center;
-          gap: 8px;
-          padding: 16px 24px 0;
+          justify-content: center;
+          gap: 16px;
+          margin-bottom: 30px;
         `
 
-        const titleText = document.createElement('span')
-        titleText.style.cssText = `
-          font-size: 20px;
+        // Referral icon
+        const referralIcon = document.createElement('div')
+        referralIcon.style.cssText = `
+          font-size: 48px;
+          line-height: 1;
+        `
+        referralIcon.innerHTML = '👥'
+        logoContainer.appendChild(referralIcon)
+
+        // Header text with highlighted Referral Code
+        const headerText = document.createElement('div')
+        headerText.style.cssText = `
+          font-size: 28px;
+          font-weight: 700;
+          color: #2d3748;
+          line-height: 1.4;
+        `
+
+        const textSpan = document.createElement('span')
+        textSpan.textContent = 'Join with my '
+        headerText.appendChild(textSpan)
+
+        const referralCodeSpan = document.createElement('span')
+        referralCodeSpan.style.cssText = `
+          background: linear-gradient(135deg, #1976d2 0%, #42a5f5 100%);
+          color: white;
+          font-weight: 800;
+          padding: 4px 12px;
+          border-radius: 8px;
+          box-shadow: 0 2px 8px rgba(25, 118, 210, 0.3);
+        `
+        referralCodeSpan.textContent = 'Referral Code'
+        headerText.appendChild(referralCodeSpan)
+
+        const textSpan2 = document.createElement('span')
+        textSpan2.textContent = '!'
+        headerText.appendChild(textSpan2)
+
+        logoContainer.appendChild(headerText)
+        header.appendChild(logoContainer)
+
+        // Referral code display with beautiful styling
+        const codeContainer = document.createElement('div')
+        codeContainer.style.cssText = `
+          background: linear-gradient(135deg, #1976d2 0%, #42a5f5 100%);
+          border-radius: 20px;
+          padding: 30px;
+          margin-bottom: 40px;
+          box-shadow: 0 8px 24px rgba(25, 118, 210, 0.3);
+        `
+
+        const codeLabel = document.createElement('div')
+        codeLabel.style.cssText = `
+          font-size: 14px;
           font-weight: 600;
-          color: #222;
+          color: rgba(255, 255, 255, 0.9);
+          text-transform: uppercase;
+          letter-spacing: 1.5px;
+          margin-bottom: 12px;
         `
-        titleText.textContent = this.$t(`${this.referralType}ReferralQrTitle`)
-        titleRow.appendChild(titleText)
-        wrapper.appendChild(titleRow)
+        codeLabel.textContent = this.$t('ReferralCode', {}, 'Referral Code')
+        codeContainer.appendChild(codeLabel)
 
-        const separator = document.createElement('div')
-        separator.style.cssText = `
-          height: 1px;
-          background: #e0e0e0;
-          margin: 16px 0 20px;
+        const codeValue = document.createElement('div')
+        codeValue.style.cssText = `
+          font-family: 'Courier New', monospace;
+          font-size: 48px;
+          font-weight: 800;
+          color: white;
+          letter-spacing: -1px;
         `
-        wrapper.appendChild(separator)
+        codeValue.textContent = referralCode
+        codeContainer.appendChild(codeValue)
 
-        const contentInner = document.createElement('div')
-        contentInner.style.cssText = `
-          padding: 0 24px;
-        `
+        header.appendChild(codeContainer)
+        contentContainer.appendChild(header)
 
-        const description = document.createElement('div')
-        description.style.cssText = `
-          font-size: 16px;
-          color: #555;
-          text-align: left;
-          margin-bottom: 24px;
-          line-height: 1.5;
-        `
-        description.textContent = this.$t('ReferralQrDescription')
-        contentInner.appendChild(description)
-
+        // QR Code container with nice frame
         const qrContainer = document.createElement('div')
         qrContainer.style.cssText = `
           display: flex;
           justify-content: center;
           align-items: center;
-          border: 3px solid ${primaryColor};
-          border-radius: 10px;
-          margin-bottom: 24px;
+          padding: 30px;
+          background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+          border-radius: 24px;
+          margin-bottom: 35px;
+          position: relative;
         `
 
+        const qrFrame = document.createElement('div')
+        qrFrame.style.cssText = `
+          background: white;
+          padding: 20px;
+          border-radius: 16px;
+          box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+          position: relative;
+        `
+
+        // Create QR code at native large size
         const qrcode = new QRCode({
-          content: this.referralShareUrl,
-          width: 300,
-          height: 300,
+          content: qrUrl,
+          width: 500,
+          height: 500,
           swap: true,
           join: true,
           ecl: 'Q',
-          padding: 4
+          padding: 0
         })
 
         const parser = new DOMParser()
         const svgDoc = parser.parseFromString(qrcode.svg(), 'image/svg+xml')
         const svgElement = svgDoc.documentElement
-        svgElement.setAttribute('width', '300')
-        svgElement.setAttribute('height', '300')
-        qrContainer.appendChild(svgElement)
-        contentInner.appendChild(qrContainer)
+        svgElement.setAttribute('width', '500')
+        svgElement.setAttribute('height', '500')
+        qrFrame.appendChild(svgElement)
 
-        const referralLabel = document.createElement('div')
-        referralLabel.style.cssText = `
-          font-size: 14px;
+        qrContainer.appendChild(qrFrame)
+        contentContainer.appendChild(qrContainer)
+
+        // Footer with instructions and logo
+        const footer = document.createElement('div')
+        footer.style.cssText = `
+          text-align: center;
+          padding-top: 30px;
+        `
+
+        // Instruction text
+        const instructionText = document.createElement('div')
+        instructionText.style.cssText = `
+          font-size: 28px;
           font-weight: 600;
-          color: #888;
-          text-align: center;
-          margin-bottom: 6px;
-          text-transform: uppercase;
-          letter-spacing: 1px;
+          color: #2d3748;
+          letter-spacing: -0.3px;
+          margin-bottom: 24px;
+          line-height: 1.4;
         `
-        referralLabel.textContent = this.$t('ReferralCode')
-        contentInner.appendChild(referralLabel)
+        instructionText.textContent = 'Join Paytaca Rewards with my referral code.'
+        footer.appendChild(instructionText)
 
-        const referralCodeDisplay = document.createElement('div')
-        referralCodeDisplay.style.cssText = `
-          font-family: 'Courier New', monospace;
-          font-size: 16px;
-          font-weight: bolder;
-          color: ${primaryColor};
-          text-align: center;
-          letter-spacing: 1px;
-          padding-bottom: 24px;
+        // Paytaca logo container
+        const paytacaLogoContainer = document.createElement('div')
+        paytacaLogoContainer.style.cssText = `
+          display: flex;
+          justify-content: center;
+          align-items: center;
+          margin-bottom: 16px;
         `
-        referralCodeDisplay.textContent = this.referralCodeFull
-        contentInner.appendChild(referralCodeDisplay)
 
-        wrapper.appendChild(contentInner)
-
-        document.body.appendChild(wrapper)
-
-        const canvas = await html2canvas(wrapper, {
-          backgroundColor: '#ffffff',
-          scale: 3,
-          logging: false,
-          useCORS: true,
-          allowTaint: true
-        })
-
-        document.body.removeChild(wrapper)
-
-        const blob = await new Promise(resolve => canvas.toBlob(resolve, 'image/png'))
-        if (!blob) {
-          throw new Error('canvas.toBlob() returned null')
+        // Load Paytaca horizontal logo
+        const loadPaytacaHorizontalLogo = () => {
+          return new Promise((resolve) => {
+            const logoImg = document.createElement('img')
+            logoImg.src = paytacaLogoHorizontal
+            logoImg.style.cssText = `
+              height: 120px;
+              width: auto;
+              object-fit: contain;
+              display: block;
+            `
+            logoImg.onload = () => {
+              paytacaLogoContainer.appendChild(logoImg)
+              resolve()
+            }
+            logoImg.onerror = () => {
+              resolve()
+            }
+          })
         }
 
-        const filename = `referral-code-${this.referralCodeFull}.png`
+        footer.appendChild(paytacaLogoContainer)
+        contentContainer.appendChild(footer)
 
-        const isMobile = Capacitor.getPlatform() !== 'web'
+        wrapper.appendChild(contentContainer)
+        document.body.appendChild(wrapper)
 
-        if (isMobile) {
-          const base64Data = await new Promise((resolve, reject) => {
-            const reader = new FileReader()
-            reader.onload = () => {
-              try {
-                if (typeof reader.result !== 'string') {
-                  return reject(new Error('FileReader result is not a string'))
-                }
-                const data = reader.result.split(',')[1]
-                if (!data) {
-                  return reject(new Error('Failed to extract base64 data'))
-                }
-                resolve(data)
-              } catch (e) {
-                reject(e)
-              }
-            }
-            reader.onerror = (event) => reject(reader.error || event)
-            reader.onabort = () => reject(new Error('FileReader aborted'))
-            reader.readAsDataURL(blob)
+        try {
+          // Wait for logo to load before capturing
+          await loadPaytacaHorizontalLogo()
+
+          // Small delay to ensure DOM updates are rendered
+          await new Promise(resolve => setTimeout(resolve, 100))
+
+          // Capture with html2canvas
+          const canvas = await html2canvas(wrapper, {
+            backgroundColor: null,
+            scale: 3,
+            logging: false,
+            useCORS: true,
+            allowTaint: true
           })
 
-          try {
-            await SaveToGallery.saveImage({ base64Data, filename })
+          // Remove temporary wrapper (success path)
+          document.body.removeChild(wrapper)
+
+          const blob = await new Promise(resolve => canvas.toBlob(resolve, 'image/png'))
+          if (!blob) {
+            throw new Error('canvas.toBlob() returned null')
+          }
+
+          const filename = `referral-code-${referralCode}.png`
+
+          const isMobile = Capacitor.getPlatform() !== 'web'
+
+          if (isMobile) {
+            const base64Data = await new Promise((resolve, reject) => {
+              const reader = new FileReader()
+              reader.onload = () => {
+                try {
+                  if (typeof reader.result !== 'string') {
+                    return reject(new Error('FileReader result is not a string'))
+                  }
+                  const data = reader.result.split(',')[1]
+                  if (!data) {
+                    return reject(new Error('Failed to extract base64 data'))
+                  }
+                  resolve(data)
+                } catch (e) {
+                  reject(e)
+                }
+              }
+              reader.onerror = (event) => reject(reader.error || event)
+              reader.onabort = () => reject(new Error('FileReader aborted'))
+              reader.readAsDataURL(blob)
+            })
+
+            try {
+              await SaveToGallery.saveImage({ base64Data, filename })
+              this.$q.notify({
+                message: this.$t('QRSavedToPhotos'),
+                color: 'positive',
+                icon: 'check_circle',
+                position: 'top',
+                timeout: 2000
+              })
+            } catch (error) {
+              console.error('[SaveReferralQR] Error saving to photos:', error)
+              this.$q.notify({
+                message: this.$t('ErrorSavingQR'),
+                color: 'negative',
+                icon: 'error',
+                position: 'top',
+                timeout: 3000
+              })
+            }
+          } else {
+            const url = URL.createObjectURL(blob)
+            const link = document.createElement('a')
+            link.href = url
+            link.download = filename
+            document.body.appendChild(link)
+            link.click()
+            document.body.removeChild(link)
+            URL.revokeObjectURL(url)
+
             this.$q.notify({
               message: this.$t('QRSavedToPhotos'),
               color: 'positive',
@@ -464,33 +633,12 @@ export default {
               position: 'top',
               timeout: 2000
             })
-          } catch (error) {
-            console.error('[SaveReferralQR] Error saving to photos:', error)
-            this.$q.notify({
-              message: this.$t('ErrorSavingQR'),
-              color: 'negative',
-              icon: 'error',
-              position: 'top',
-              timeout: 3000
-            })
           }
-        } else {
-          const url = URL.createObjectURL(blob)
-          const link = document.createElement('a')
-          link.href = url
-          link.download = filename
-          document.body.appendChild(link)
-          link.click()
-          document.body.removeChild(link)
-          URL.revokeObjectURL(url)
-
-          this.$q.notify({
-            message: this.$t('QRSavedToPhotos'),
-            color: 'positive',
-            icon: 'check_circle',
-            position: 'top',
-            timeout: 2000
-          })
+        } finally {
+          // Ensure wrapper is always removed, even if an error occurred
+          if (wrapper && wrapper.parentNode === document.body) {
+            document.body.removeChild(wrapper)
+          }
         }
       } catch (error) {
         console.error('[SaveReferralQR] Error creating image:', error)
@@ -502,9 +650,6 @@ export default {
           timeout: 3000
         })
       } finally {
-        if (wrapper && wrapper.parentNode === document.body) {
-          document.body.removeChild(wrapper)
-        }
         this.savingQR = false
       }
     }
