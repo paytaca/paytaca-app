@@ -176,6 +176,15 @@
               </q-banner>
             </div>
 
+            <div v-if="isMarkedComplete || isMarkedReturned" class="q-mt-md full-width">
+              <q-banner rounded dense class="bg-positive text-white q-pa-md">
+                <template v-slot:avatar>
+                  <q-icon name="check_circle" />
+                </template>
+                Transaction complete.
+              </q-banner>
+            </div>
+
             <div v-if="showPostAuctionActions && (isAuthor || isWinningBidder)" class="q-mt-md full-width">
               <q-btn
                 outline
@@ -245,6 +254,7 @@
                       padding="sm"
                       label="Refund"
                       unelevated
+                      :disable="!canRequestRefund"
                       @click="showRefundDialog = true"
                     />
                   </div>
@@ -261,7 +271,7 @@
                 </div>
 
                 <!-- Seller: confirm items shipped back (status 4) -->
-                <div v-if="showPostAuctionActions && isAuthor && isGrantedRefund && deliveryStatusId === 4" class="q-mt-md full-width">
+                <div v-if="showPostAuctionActions && !isMarkedReturned && isAuthor && isGrantedRefund && deliveryStatusId === 4" class="q-mt-md full-width">
                   <q-btn
                     color="warning"
                     icon="inventory"
@@ -273,7 +283,7 @@
                 </div>
 
                 <!-- Seller: mark as returned (status 5) -->
-                <div v-if="showPostAuctionActions && isAuthor && isGrantedRefund && deliveryStatusId === 5" class="q-mt-md full-width">
+                <div v-if="showPostAuctionActions && !isMarkedReturned && isAuthor && isGrantedRefund && deliveryStatusId === 5" class="q-mt-md full-width">
                   <q-btn
                     color="positive"
                     icon="check_circle"
@@ -286,7 +296,7 @@
                 </div>
 
                 <!-- Bidder: ship back to seller after refund granted (status 3) -->
-                <div v-if="showPostAuctionActions && isWinningBidder && isGrantedRefund && deliveryStatusId === 3" class="q-mt-md full-width">
+                <div v-if="showPostAuctionActions && !isMarkedReturned && isWinningBidder && isGrantedRefund && deliveryStatusId === 3" class="q-mt-md full-width">
                   <q-btn
                     color="warning"
                     icon="local_shipping"
@@ -298,7 +308,7 @@
                 </div>
 
                 <!-- Bidder: mark as complete (no refund, delivered) -->
-                <div v-if="showPostAuctionActions && isWinningBidder && !isGrantedRefund && deliveryStatusId === 3" class="q-mt-md full-width">
+                <div v-if="showPostAuctionActions && !isMarkedComplete && isWinningBidder && !isGrantedRefund && deliveryStatusId === 3" class="q-mt-md full-width">
                   <q-btn
                     color="positive"
                     icon="check_circle"
@@ -762,6 +772,7 @@ const showRefundDialog = ref(false)
 const showBidHistory = ref(false)
 const showDeliveryHistory = ref(false)
 const deliveryStatusId = ref(null)
+const deliveredDate = ref(null)
 const isMarkedComplete = ref(false)
 const isMarkedReturned = ref(false)
 const isGrantedRefund = ref(false)
@@ -1103,6 +1114,7 @@ const isLotClosed = computed(() => {
 })
 
 const showPostAuctionActions = computed(() => {
+  if (isMarkedComplete.value || isMarkedReturned.value) return false
   if (isSold.value) return true
   return auction.value?.type === 'English' && isLotClosed.value && hasBid.value
 })
@@ -1526,6 +1538,7 @@ const fetchDeliveryTracking = async () => {
     if (res.success && res.data) {
       const data = Array.isArray(res.data) ? res.data[0] : res.data
       deliveryStatusId.value = data?.status ?? null
+      deliveredDate.value = data?.delivered_date ?? null
       isMarkedComplete.value = data?.mark_as_completed ?? false
       isMarkedReturned.value = data?.mark_as_returned ?? false
     }
@@ -1552,6 +1565,13 @@ const fetchDispute = async () => {
 const isDisputeActive = computed(() => {
   if (!currentDispute.value) return false
   return !currentDispute.value.is_resolved
+})
+
+const canRequestRefund = computed(() => {
+  if (!deliveredDate.value) return false
+  const delivered = new Date(String(deliveredDate.value).trim().replace(' ', 'T'))
+  const deadline = new Date(delivered.getTime() + 6 * 60 * 60 * 1000)
+  return new Date() < deadline
 })
 
 const loadPageData = async () => {
