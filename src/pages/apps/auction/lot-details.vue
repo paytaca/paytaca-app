@@ -176,7 +176,7 @@
               </q-banner>
             </div>
 
-            <div v-if="isMarkedComplete || isMarkedReturned" class="q-mt-md full-width">
+            <div v-if="isMarkedComplete" class="q-mt-md full-width">
               <q-banner rounded dense class="bg-positive text-white q-pa-md">
                 <template v-slot:avatar>
                   <q-icon name="check_circle" />
@@ -285,13 +285,25 @@
                 <!-- Seller: mark as returned (status 5) -->
                 <div v-if="showPostAuctionActions && !isMarkedReturned && isAuthor && isGrantedRefund && deliveryStatusId === 5" class="q-mt-md full-width">
                   <q-btn
-                    color="positive"
-                    icon="check_circle"
+                    color="warning"
+                    icon="assignment_return"
                     label="Mark as Return"
                     class="full-width"
                     unelevated
                     :disable="isMarkedReturned"
                     @click="markedAsReturned"
+                  />
+                </div>
+
+                <!-- Seller: mark as complete after return confirmed -->
+                <div v-if="showPostAuctionActions && isMarkedReturned && !isMarkedComplete && isAuthor && isGrantedRefund" class="q-mt-md full-width">
+                  <q-btn
+                    color="positive"
+                    icon="check_circle"
+                    label="Mark as Complete"
+                    class="full-width"
+                    unelevated
+                    @click="markedAsCompleted"
                   />
                 </div>
 
@@ -1115,7 +1127,7 @@ const isLotClosed = computed(() => {
 })
 
 const showPostAuctionActions = computed(() => {
-  if (isMarkedComplete.value || isMarkedReturned.value) return false
+  if (isMarkedComplete.value) return false
   if (isSold.value) return true
   return auction.value?.type === 'English' && isLotClosed.value && hasBid.value
 })
