@@ -134,6 +134,7 @@ import QRCode from 'qrcode-svg'
 import html2canvas from 'html2canvas'
 import SaveToGallery from 'src/utils/save-to-gallery'
 import paytacaLogoHorizontal from '../../../assets/paytaca_logo_horizontal.png'
+import paytacaLogo from '../../../assets/paytaca_logo.png'
 
 export default {
   name: 'ReferralQrDialog',
@@ -488,6 +489,64 @@ export default {
         svgElement.setAttribute('height', '500')
         qrFrame.appendChild(svgElement)
 
+        // Add Paytaca logo overlay in the center
+        const logoOverlay = document.createElement('div')
+        logoOverlay.style.cssText = `
+          position: absolute;
+          top: 50%;
+          left: 50%;
+          transform: translate(-50%, -50%);
+          width: 90px;
+          height: 90px;
+          background: white;
+          border-radius: 50%;
+          padding: 10px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+          z-index: 10;
+        `
+
+        // Load Paytaca logo
+        const loadPaytacaLogo = () => {
+          return new Promise((resolve) => {
+            const logoImg = document.createElement('img')
+            logoImg.src = paytacaLogo
+            logoImg.style.cssText = `
+              width: 100%;
+              height: 100%;
+              object-fit: contain;
+              display: block;
+            `
+            logoImg.onload = () => {
+              logoOverlay.appendChild(logoImg)
+              resolve()
+            }
+            logoImg.onerror = () => {
+              // Fallback to styled badge if image fails
+              const logoInner = document.createElement('div')
+              logoInner.style.cssText = `
+                background: linear-gradient(135deg, #1976d2 0%, #42a5f5 100%);
+                color: white;
+                font-size: 18px;
+                font-weight: 800;
+                width: 100%;
+                height: 100%;
+                border-radius: 50%;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                letter-spacing: 1px;
+              `
+              logoInner.textContent = 'P'
+              logoOverlay.appendChild(logoInner)
+              resolve()
+            }
+          })
+        }
+
+        qrFrame.appendChild(logoOverlay)
         qrContainer.appendChild(qrFrame)
         contentContainer.appendChild(qrContainer)
 
@@ -548,8 +607,11 @@ export default {
         document.body.appendChild(wrapper)
 
         try {
-          // Wait for logo to load before capturing
-          await loadPaytacaHorizontalLogo()
+          // Wait for logos to load before capturing
+          await Promise.all([
+            loadPaytacaLogo(),
+            loadPaytacaHorizontalLogo()
+          ])
 
           // Small delay to ensure DOM updates are rendered
           await new Promise(resolve => setTimeout(resolve, 100))
