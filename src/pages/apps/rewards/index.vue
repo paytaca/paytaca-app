@@ -389,6 +389,7 @@ export default {
       // Referral banner state
       isReferralDialogActive: false,
       isReferralBannerDismissed: false,
+      referralCodeEligibilityDate: null,
       bannerRemainingTime: null,
       enableReferralBanner: false, // value coming from UserPromo API
 
@@ -422,6 +423,10 @@ export default {
 
     walletHash () {
       return this.$store.getters['global/getWallet']('bch')?.walletHash || ''
+    },
+
+    walletCreatedAt () {
+      return this.$store.getters['global/walletCreatedAt']
     },
 
     showReferralBanner () {
@@ -630,11 +635,12 @@ export default {
       const upData = upResp.value
       const ratioData = ratioResp.value
 
-      // Check referral banner dismissal timestamp from API
-      if (upData?.enable_referral_banner) {
-        this.bannerRemainingTime = upData?.banner_remaining_time
-        this.enableReferralBanner = upData?.enable_referral_banner
-      }
+      // process fetched ratioData
+      this.liftConversionRatio = ratioData.conversionRatio
+      this.referralCodeEligibilityDate = ratioData.eligibilityDate
+
+      // check referral code eligibility of wallet
+      this.checkReferralCodeEligibility(upData)
 
       // process fetched upData
       if (upData && Object.keys(upData).length > 0) {
@@ -681,9 +687,6 @@ export default {
         this.error = this.$t('PointsLoadError')
       }
 
-      // process fetched ratioData
-      this.liftConversionRatio = ratioData
-
       // Fetch LIFT token price from Cauldron API
       await this.fetchLiftPriceFromCauldron()
       
@@ -698,6 +701,18 @@ export default {
           updateUserPromoData({ last_viewed: new Date() })
         })
       }, 250)
+    },
+
+    checkReferralCodeEligibility (upData) {
+      // check if wallet creation date is older than referral code eligibility date
+      // check referral banner dismissal timestamp from API
+      if (
+        new Date(this.referralCodeEligibilityDate) > new Date(this.walletCreatedAt) &&
+        upData?.enable_referral_banner
+      ) {
+        this.bannerRemainingTime = upData?.banner_remaining_time
+        this.enableReferralBanner = upData?.enable_referral_banner
+      }
     },
 
     redirectToPromoPage (promo) {
