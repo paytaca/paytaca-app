@@ -35,6 +35,11 @@
             ]"
           />
 
+                    <div class="q-mb-md text-caption text-grey bg-grey-2 q-pa-sm rounded-borders" :class="darkMode ? 'bg-grey-9 text-grey-4' : ''">
+            <q-icon name="info" size="16px" class="q-mr-xs q-pb-xs" />
+            {{ $t('UpdateNftFeeInfo') || 'A network miner fee of approx. 1,500 satoshis (BCH) will be deducted from your merchant wallet to process this update.' }}
+          </div>
+
           <div class="row justify-end q-gutter-sm">
             <q-btn flat :label="$t('Cancel') || 'Cancel'" color="grey" v-close-popup />
             <q-btn unelevated rounded :label="$t('Update') || 'Update'" color="pt-primary1" type="submit" />
