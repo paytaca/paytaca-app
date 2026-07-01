@@ -51,7 +51,7 @@
             </div>
             
             <div class="q-mb-md text-secondary">
-              There {{ viewCount <= 1 ? 'is' : 'are'}} currently {{ viewCount }} {{ viewCount <= 1 ? 'person' : 'people' }} viewing this auction.
+              There {{ viewCount === 1 ? 'is' : 'are'}} {{ viewCount }} {{ viewCount === 1 ? 'person' : 'people' }} currently viewing this auction.
             </div>
 
             <q-card flat bordered class="q-mb-md self-start full-width">
@@ -111,6 +111,11 @@
                 <div class="text-body2 text-weight-medium">
                   {{ formatAuctionDate(auction?.start_date) }}
                 </div>
+                <div  v-if="getAuctionStatusInfo(auction).label === 'Upcoming'" class="text-secondary">
+                  Time Remaining: {{ auctionStartCountdown }}
+                </div>
+                <div  v-else class="text-secondary"></div>
+
               </div>
               <div class="col rounded-borders q-pa-sm" :class="darkMode ? 'bg-dark' : 'bg-grey-2'">
                 <div class="text-caption q-mb-xs">
@@ -119,8 +124,13 @@
                 <div class="text-body2 text-weight-medium">
                   {{ formatAuctionDate(auction?.end_date) }}
                 </div>
+                <div v-if="getAuctionStatusInfo(auction).label === 'Open'" class="text-secondary">
+                  Time Remaining: {{ auctionCountdown }}
+                </div>
+                <div  v-else class="text-secondary"></div>
               </div>
             </div>
+
           </div>
         </div>
 
@@ -332,7 +342,7 @@ import noImage from 'src/assets/no-image.svg'
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 import { vElementVisibility } from '@vueuse/components'
 import { useStore } from 'vuex'
-import { ref, computed, watch, onMounted, onBeforeUnmount, onActivated, onDeactivated, onUnmounted, watchEffect, nextTick } from 'vue'
+import { ref, computed, onMounted, onBeforeUnmount } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useQuasar, date } from 'quasar'
 import { callAPI } from 'src/auction/api'
@@ -342,7 +352,7 @@ import { AuctionList, LotsList } from 'src/auction/object.js'
 // Components
 import HeaderNav from 'src/components/header-nav.vue'
 import LotSearch from 'src/components/auction/LotSearch.vue'
-import { callAuctionWebsocket, callLotWebsocket, callRefundCountdownWebsocket } from 'src/auction/websocket'
+import { callAuctionWebsocket } from 'src/auction/websocket'
 
 const props = defineProps({
   auctionId: {
@@ -352,6 +362,9 @@ const props = defineProps({
 })
 
 const viewCount = ref(0)
+const auction = ref(null)
+const auctionCountdown = ref(0)
+const auctionStartCountdown = ref(0)
 let socket = null
 
 defineOptions({
@@ -380,7 +393,6 @@ const isLoading = ref(false)
 const lotType = ref('All')
 const lotTypeOptions = ['Physical', 'Digital', 'All']
 
-const auction = ref(null)
 const lots = ref([])
 
 const parseAuctionData = (data) => {
@@ -465,7 +477,7 @@ onMounted(async () => {
   const auctionData = $store.getters['auction/processedItems'] || []
   const specificAuctionData = auctionData.find(item => item.id === Number(props.auctionId))
   auction.value = parseAuctionData(specificAuctionData)
-  
+
   await fetchAllData()
 
   // get the live auction websocket 
@@ -476,11 +488,25 @@ onMounted(async () => {
   };
 
   socket.onmessage = (event) => {
-    const data = JSON.parse(event.data);
-    viewCount.value = data.viewer_count
-    console.log(viewCount.value)
-  };
+    const { type, data } = JSON.parse(event.data);
 
+    if (type === "live.viewing")
+      viewCount.value = data.viewer_count
+    else if(type === "auction.start_countdown")
+      auctionStartCountdown.value = data.time_left
+    else if(type === "auction.countdown")
+      auctionCountdown.value = data.time_left
+    else if(type === "auction.start"){
+      auctionCountdown.value = 0
+      auction.value.status = 2
+    }
+    else if(type === "auction.closed"){
+      auctionStartCountdown.value = 0
+      auction.value.status = 3
+    }
+
+    console.log(data)
+  };
 
   socket.onclose = function(event) {
     console.log("Disconnected from the auction websocket!")
@@ -490,6 +516,10 @@ onMounted(async () => {
 })
 
 onBeforeUnmount(() => {
+  socket.onmessage = null
+  socket.onopen = null
+  socket.onerror = null
+  socket.onclose = null
   socket?.close()
 })
 
