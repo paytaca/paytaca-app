@@ -434,6 +434,7 @@ function openSubscribeDialog() {
       }
 
       const createdSub = await hub.value.createSubscription(payload)
+      createdSub.plan_details = formData.plan_details
 
       $q.notify({ type: 'positive', message: 'Successfully subscribed to plan' })
       await refreshPage()

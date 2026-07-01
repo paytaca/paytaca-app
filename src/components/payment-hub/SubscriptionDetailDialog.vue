@@ -407,7 +407,9 @@ const pledge_satoshis_formatted = computed(() => {
 const minerFee = computed(() => 1000)
 
 const paytacaFee = computed(() => {
-  if (!sub.value?.pledge_satoshis) return 546
+  if (!sub.value) return 546
+  if (typeof sub.value.paytaca_fee === 'number') return sub.value.paytaca_fee
+  if (!sub.value.pledge_satoshis) return 546
   const pledge = sub.value.pledge_satoshis
   const maxFee = sub.value.max_fee || 546
   return Math.max(Math.min(maxFee, Math.floor(pledge / 100)), 546)
