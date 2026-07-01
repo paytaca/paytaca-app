@@ -124,15 +124,15 @@
           <div class="row items-center justify-between q-mb-sm">
             <span class="text-caption text-weight-bold">ADDRESS</span>
             <div class="row items-center q-gutter-x-xs">
-              <span class="text-caption text-weight-medium">{{ contract.address ?? '—' }}</span>
-              <q-btn flat round dense icon="content_copy" size="xs" @click="copyToClipboard(contract.address)" />
+              <span class="text-caption text-weight-medium">{{ details.contract_address ?? '—' }}</span>
+              <q-btn flat round dense icon="content_copy" size="xs" @click="copyToClipboard(details.contract_address)" />
             </div>
           </div>
 
           <div class="row items-center justify-between q-mb-sm">
             <span class="text-caption text-weight-bold">BALANCE</span>
             <span class="text-body2 text-weight-bold">
-              {{ getFormattedBCH(contract.balance).main }}<span style="opacity: 0.4;">{{ getFormattedBCH(contract.balance).zeros }}</span> BCH
+              {{ getFormattedBCH(details.balance).main }}<span style="opacity: 0.4;">{{ getFormattedBCH(details.balance).zeros }}</span> BCH
             </span>
           </div>
 
@@ -317,8 +317,6 @@ const deliveryStatus = ref(null)
 const isLoading = ref(true)
 const details = ref(null)
 
-const contract = ref({ address: null, balance: 0 })
-const statusHistory = ref([])
 const transactions = ref([])
 
 onMounted(async () => {
@@ -343,11 +341,14 @@ onMounted(async () => {
     let auctionId = null
     let auctioneerData = null
     let bidderData = null
+    let bidPriceBch = null
+    let contractAddress = null
 
     if (dispute.bid) {
       const bidResult = await callAPI('biddings', dispute.bid)
       if (bidResult.success && bidResult.data) {
         const bid = bidResult.data
+        bidPriceBch = bid.bid_price_bch
         lotId = bid.lot
         
         if (bid.user) {
@@ -387,7 +388,13 @@ onMounted(async () => {
           }
         }
       }
+
+      const contractResult = await callAPI('contract-address', dispute.bid)
+      if (contractResult.success && contractResult.data) {
+        contractAddress = contractResult.data.bch_address
+      }
     }
+    
     
     details.value = AppealDetails.parse({
       ...dispute,
@@ -395,14 +402,9 @@ onMounted(async () => {
       auctionId,
       auctioneer: auctioneerData,
       bidder: bidderData,
+      contract_address: contractAddress,
+      bid_price_bch: bidPriceBch,
     })
-    
-    if (dispute.contract) {
-      const contractResult = await callAPI('contracts', dispute.contract)
-      if (contractResult.success && contractResult.data) {
-        contract.value = contractResult.data
-      }
-    }
 
   } catch (err) {
     console.error('Failed to load appeal:', err)
