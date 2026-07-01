@@ -185,7 +185,7 @@
               </q-banner>
             </div>
 
-            <div v-if="showPostAuctionActions && (isAuthor || isWinningBidder)" class="q-mt-md full-width">
+            <div v-if="(isLotSold || showPostAuctionActions) && (isAuthor || isWinningBidder)" class="q-mt-md full-width">
               <q-btn
                 outline
                 dense
@@ -773,6 +773,7 @@ const showBidHistory = ref(false)
 const showDeliveryHistory = ref(false)
 const deliveryStatusId = ref(null)
 const deliveredDate = ref(null)
+const isLotSold = ref(false)
 const isMarkedComplete = ref(false)
 const isMarkedReturned = ref(false)
 const isGrantedRefund = ref(false)
@@ -1503,6 +1504,7 @@ const fetchAuction = async () => {
 const fetchLot = async () => {
   const result = await callAPI('lots', props.lotId)
   if (result.success) {
+    isLotSold.value = result.data.is_sold
     lot.value = LotsList.parse(result.data)
 
     const imageResult = await callAPI('lot-images-by-lot', props.lotId, 'get')
