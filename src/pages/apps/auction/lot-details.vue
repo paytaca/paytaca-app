@@ -250,7 +250,17 @@
                   </div>
                 </div>
 
-                <!-- Bidder side: Confirm items in shipping phase (status 4) -->
+                <!-- Resolved: funds returned by arbiter (status 1 or 2) -->
+                <div v-if="showPostAuctionActions && isGrantedReturn && (deliveryStatusId === 1 || deliveryStatusId === 2)" class="q-mt-md full-width">
+                  <q-banner rounded dense class="bg-positive text-white q-pa-md">
+                    <template v-slot:avatar>
+                      <q-icon name="check_circle" />
+                    </template>
+                    Dispute resolved. Funds have been returned to the buyer.
+                  </q-banner>
+                </div>
+
+                <!-- Seller: confirm items shipped back (status 4) -->
                 <div v-if="showPostAuctionActions && isAuthor && isGrantedRefund && deliveryStatusId === 4" class="q-mt-md full-width">
                   <q-btn
                     color="warning"
@@ -262,8 +272,8 @@
                   />
                 </div>
 
-                <!-- Seller side: Mark as return (status 5) -->
-                <div v-if="showPostAuctionActions && isWinningBidder && isGrantedRefund && deliveryStatusId === 5" class="q-mt-md full-width">
+                <!-- Seller: mark as returned (status 5) -->
+                <div v-if="showPostAuctionActions && isAuthor && isGrantedRefund && deliveryStatusId === 5" class="q-mt-md full-width">
                   <q-btn
                     color="positive"
                     icon="check_circle"
@@ -275,7 +285,7 @@
                   />
                 </div>
 
-                <!-- Bidder soide: Show confirm button if shipping phase -->
+                <!-- Bidder: ship back to seller after refund granted (status 3) -->
                 <div v-if="showPostAuctionActions && isWinningBidder && isGrantedRefund && deliveryStatusId === 3" class="q-mt-md full-width">
                   <q-btn
                     color="warning"
@@ -287,7 +297,7 @@
                   />
                 </div>
 
-                <!-- Bidder side: Mark as complete (no refund, delivered) -->
+                <!-- Bidder: mark as complete (no refund, delivered) -->
                 <div v-if="showPostAuctionActions && isWinningBidder && !isGrantedRefund && deliveryStatusId === 3" class="q-mt-md full-width">
                   <q-btn
                     color="positive"
@@ -742,6 +752,7 @@ const deliveryStatusId = ref(null)
 const isMarkedComplete = ref(false)
 const isMarkedReturned = ref(false)
 const isGrantedRefund = ref(false)
+const isGrantedReturn = ref(false)
 const currentDispute = ref(null)
 
 const $q = useQuasar()
@@ -1511,6 +1522,7 @@ const fetchDispute = async () => {
       const data = Array.isArray(res.data) ? res.data[0] : res.data
       currentDispute.value = data || null
       isGrantedRefund.value = data?.is_granted_refund ?? false
+      isGrantedReturn.value = data?.is_granted_return ?? false
     }
   } catch (err) {
     console.warn('Could not fetch dispute:', err)
