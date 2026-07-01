@@ -115,7 +115,7 @@
                   {{ $t('DirectMessage', {}, 'Direct Message') }}
                 </div>
                 <div class="chat-type-desc">
-                  {{ $t('DirectMessageDesc', {}, 'End-to-end encrypted one-on-one chat.') }}
+                  {{ $t('DirectMessageDesc', {}, 'End-to-end encrypted direct messages between two parties.') }}
                 </div>
               </div>
               <q-icon name="chevron_right" size="20px" class="chat-type-chevron" />
@@ -131,10 +131,10 @@
               </q-avatar>
               <div class="chat-type-text">
                 <div class="chat-type-title" :class="getDarkModeClass(darkMode)">
-                  {{ $t('PrivateGroup', {}, 'Private Group') }}
+                  {{ $t('PrivateGroup', {}, 'Closed Private Group') }}
                 </div>
                 <div class="chat-type-desc">
-                  {{ $t('PrivateGroupDesc', {}, 'End-to-end encrypted, up to 10 members. Members are fixed once created.') }}
+                  {{ $t('PrivateGroupDesc', {}, 'End-to-end encrypted group chat for up to 10 members. Members are fixed once created.') }}
                 </div>
               </div>
               <q-icon name="chevron_right" size="20px" class="chat-type-chevron" />
@@ -150,14 +150,14 @@
               <div class="chat-type-text">
                 <div class="chat-type-title-row">
                   <span class="chat-type-title" :class="getDarkModeClass(darkMode)">
-                    {{ $t('PublicGroup', {}, 'Public Group') }}
+                    {{ $t('PublicGroup', {}, 'Open Private Group') }}
                   </span>
                   <span class="coming-soon-badge">
                     {{ $t('ComingSoon', {}, 'Coming soon') }}
                   </span>
                 </div>
                 <div class="chat-type-desc">
-                  {{ $t('PublicGroupDesc', {}, 'Unencrypted, open membership with no limit.') }}
+                  {{ $t('PublicGroupDesc', {}, 'End-to-end encrypted group chat for up to 10,000 members. New members can join anytime.') }}
                 </div>
               </div>
             </div>
