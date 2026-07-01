@@ -474,10 +474,10 @@ const handleAction = async () => {
     }
 
     const payload = {
-      refund: { is_granted_refund: true, is_resolved: true },
-      norefund: { is_granted_refund: false, is_resolved: true },
-      release: { is_granted_refund: false, is_resolved: true },
-      resolve: { is_granted_refund: false, is_resolved: true },
+      refund: { is_granted_refund: true,  is_granted_return: false, is_resolved: true },
+      norefund: { is_granted_refund: false, is_granted_return: false, is_resolved: true },
+      release: { is_granted_refund: false, is_granted_return: true,  is_resolved: true },
+      resolve: { is_granted_refund: false, is_granted_return: false, is_resolved: true },
     }[selectedAction.value]
 
     await callAPI('disputes', props.appealId, 'patch', payload)
