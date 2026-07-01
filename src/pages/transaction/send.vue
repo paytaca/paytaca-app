@@ -2561,7 +2561,7 @@ export default {
         } else {
           // Redirect to transaction detail with state so it can show tx before watchtower indexes
           const { route, query, state } = vm.buildTransactionDetailState(result.txid, { timestamp: vm.txTimestamp })
-          vm.$router.push({
+          await vm.$router.push({
             name: route,
             params: { txid: result.txid },
             query,
