@@ -252,11 +252,14 @@
                       content-class="q-gap-xs"
                       icon="assignment_return"
                       padding="sm"
-                      label="Refund"
                       unelevated
                       :disable="!canRequestRefund"
                       @click="showRefundDialog = true"
-                    />
+                    >
+                      <div>
+                        Refund <span v-if="refundCountdown" class="text-caption">({{ refundCountdown }})</span>
+                      </div>
+                    </q-btn>
                   </div>
                 </div>
 
@@ -1367,6 +1370,7 @@ const initializeDutchAuctionTimer = (lotData) => {
 
 onUnmounted(() => {
   if (visualCountdownTimer) clearInterval(visualCountdownTimer)
+  if (refundCountdownInterval) clearInterval(refundCountdownInterval)
   stopEnglishPolling()
   stopDutchPolling()
 })
@@ -1588,12 +1592,35 @@ const canRequestRefund = computed(() => {
   return new Date() < deadline
 })
 
+const refundCountdown = ref('')
+let refundCountdownInterval = null
+
+const updateRefundCountdown = () => {
+  if (!deliveredDate.value) { refundCountdown.value = ''; return }
+  const delivered = new Date(String(deliveredDate.value).trim().replace(' ', 'T'))
+  const deadline = new Date(delivered.getTime() + 6 * 60 * 60 * 1000)
+  const diff = deadline - new Date()
+  if (diff <= 0) {
+    refundCountdown.value = '00:00:00'
+    clearInterval(refundCountdownInterval)
+    return
+  }
+  const h = Math.floor(diff / 3600000)
+  const m = Math.floor((diff % 3600000) / 60000)
+  const s = Math.floor((diff % 60000) / 1000)
+  refundCountdown.value = `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`
+}
+
 const loadPageData = async () => {
   await Promise.all([fetchLot(), fetchAuction()])
   await Promise.all([fetchDutchSoldStatus(), checkBidStatus(), checkUserBid()])
   initializeDutchAuctionTimer(lot.value)
   await fetchWinningBid()
   await Promise.all([fetchDeliveryTracking(), fetchDispute()])
+  if (deliveredDate.value) {
+    updateRefundCountdown()
+    refundCountdownInterval = setInterval(updateRefundCountdown, 1000)
+  }
   await initEnglishDeliveryTracking()
   if (auction.value?.type === 'English' && !isLotClosed.value && hasUserBid.value) {
     startEnglishPolling()
