@@ -566,7 +566,6 @@ export default {
       isFirstSevenComplete: false,
       isFirstTimeUser: true,
       hasReceivedFirstVisitBonus: false,
-      has_viewed_page: false,
       dateJoined: '',
       urContract: null,
 
@@ -694,31 +693,22 @@ export default {
         // new user; create and update necessary data
         urData = await createUserRewardsData()
         this.urId = urData.id
-        this.$router.replace({ params: { id: String(urData.id) } })
-        Promise.allSettled([
-          updateUserPromoData({ ur: urData.id }),
-          updateUserRewardsData(urData.id, {
-            contract_ct_address: this.urContract.contract.tokenAddress
-          })
-        ])
+        await this.$router.replace({ params: { id: String(urData.id) } })
+        updateUserPromoData({ ur: urData.id })
       } else {
         urData = await getUserRewardsData(this.urId)
       }
       
       if (urData && Object.keys(urData).length > 0) {
-        this.has_viewed_page = urData.has_viewed_page
-
         if (!urData.has_viewed_page) {
           // mark has_viewed_page to true
           urData = await updateUserRewardsData(this.urId, {
             has_viewed_page: true,
             contract_ct_address: this.urContract.contract.tokenAddress
           })
-          if (!urData) {
-            urData = await getUserRewardsData(this.urId)
-          }
 
           // send 5 initial points when user is a first time user and was referred
+          /*
           if (urData && urData.is_first_time_user) {
             // await awardInitialUP({ ur_id: this.urId }) // temporarily disabled
             urData = await getUserRewardsData(this.urId)
@@ -727,6 +717,7 @@ export default {
             this.points = await this.urContract.getTokenBalance()
             this.animatePointsCounter()
           }
+          */
 
           // display help dialog if has_viewed_page is false
           this.isOneTimeSectionExpanded = false

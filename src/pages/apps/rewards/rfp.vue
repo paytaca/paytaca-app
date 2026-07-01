@@ -426,7 +426,7 @@ export default {
         // new user; create and update necessary data
         rpData = await createRfPromoData()
         this.rpId = rpData.id
-        this.$router.replace({ params: { id: String(rpData.id) } })
+        await this.$router.replace({ params: { id: String(rpData.id) } })
         Promise.allSettled([
           updateUserPromoData({ rp: rpData.id }),
           updateRfPromoData(rpData.id, {
