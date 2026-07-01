@@ -182,7 +182,16 @@
               </q-banner>
             </div>
 
-            <div v-if="showPostAuctionActions && (isAuthor || isWinningBidder)" class="q-mt-md full-width">
+            <div v-if="isMarkedComplete" class="q-mt-md full-width">
+              <q-banner rounded dense class="bg-positive text-white q-pa-md">
+                <template v-slot:avatar>
+                  <q-icon name="check_circle" />
+                </template>
+                Transaction complete.
+              </q-banner>
+            </div>
+
+            <div v-if="(isLotSold || showPostAuctionActions) && (isAuthor || isWinningBidder)" class="q-mt-md full-width">
               <q-btn
                 outline
                 dense
@@ -249,17 +258,44 @@
                       content-class="q-gap-xs"
                       icon="assignment_return"
                       padding="sm"
-                      label="Refund"
                       unelevated
+                      :disable="!canRequestRefund"
                       @click="showRefundDialog = true"
-                    />
+                    >
+                      <div>
+                        Refund <span v-if="refundCountdown" class="text-caption">({{ refundCountdown }})</span>
+                      </div>
+                    </q-btn>
                   </div>
                 </div>
 
-                <div v-if="showPostAuctionActions && isAuthor && isGrantedRefund && deliveryStatusId === 3" class="q-mt-md full-width">
+                <!-- Resolved: funds returned by arbiter (status 1 or 2) -->
+                <div v-if="showPostAuctionActions && isGrantedReturn && (deliveryStatusId === 1 || deliveryStatusId === 2)" class="q-mt-md full-width">
+                  <q-banner rounded dense class="bg-positive text-white q-pa-md">
+                    <template v-slot:avatar>
+                      <q-icon name="check_circle" />
+                    </template>
+                    Dispute resolved. Funds have been returned to the buyer.
+                  </q-banner>
+                </div>
+
+                <!-- Seller: confirm items shipped back (status 4) -->
+                <div v-if="showPostAuctionActions && !isMarkedReturned && isAuthor && isGrantedRefund && deliveryStatusId === 4" class="q-mt-md full-width">
                   <q-btn
-                    color="positive"
-                    icon="check_circle"
+                    color="warning"
+                    icon="inventory"
+                    label="Confirm Returned Items"
+                    class="full-width"
+                    unelevated
+                    @click="confirmReturnedItems"
+                  />
+                </div>
+
+                <!-- Seller: mark as returned (status 5) -->
+                <div v-if="showPostAuctionActions && !isMarkedReturned && isAuthor && isGrantedRefund && deliveryStatusId === 5" class="q-mt-md full-width">
+                  <q-btn
+                    color="warning"
+                    icon="assignment_return"
                     label="Mark as Return"
                     class="full-width"
                     unelevated
@@ -268,7 +304,32 @@
                   />
                 </div>
 
-                <div v-if="showPostAuctionActions && isWinningBidder && !isGrantedRefund && deliveryStatusId === 3" class="q-mt-md full-width">
+                <!-- Seller: mark as complete after return confirmed -->
+                <div v-if="showPostAuctionActions && isMarkedReturned && !isMarkedComplete && isAuthor && isGrantedRefund" class="q-mt-md full-width">
+                  <q-btn
+                    color="positive"
+                    icon="check_circle"
+                    label="Mark as Complete"
+                    class="full-width"
+                    unelevated
+                    @click="markedAsCompletedRefund"
+                  />
+                </div>
+
+                <!-- Bidder: ship back to seller after refund granted (status 3) -->
+                <div v-if="showPostAuctionActions && !isMarkedReturned && isWinningBidder && isGrantedRefund && deliveryStatusId === 3" class="q-mt-md full-width">
+                  <q-btn
+                    color="warning"
+                    icon="local_shipping"
+                    label="Confirm Ship To Seller"
+                    class="full-width"
+                    unelevated
+                    @click="confirmShipToSeller"
+                  />
+                </div>
+
+                <!-- Bidder: mark as complete (no refund, delivered) -->
+                <div v-if="showPostAuctionActions && !isMarkedComplete && isWinningBidder && !isGrantedRefund && deliveryStatusId === 3" class="q-mt-md full-width">
                   <q-btn
                     color="positive"
                     icon="check_circle"
@@ -497,12 +558,25 @@
                   <div class="text-caption col-4 q-mr-sm">
                     <q-icon name="person" size="13px" class="q-mr-xs" />Auctioneer
                   </div>
-                  <div class="col row items-center q-gutter-xs">
-                    <span>{{ auction?.getEllipsisInMiddleUserId ? auction.getEllipsisInMiddleUserId() : 'N/A' }}</span>
-                    <q-badge v-if="isAuthor" color="positive" class="q-px-xs q-mr-sm">
-                      <q-icon name="star" size="10px" class="q-mr-xs" />You
-                    </q-badge>
+                  <div class="col column overflow-hidden">
+                    <div class="row items-center no-wrap full-width">
+                      <span 
+                        v-if="auction?.user?.username" 
+                        class="text-weight-medium ellipsis col-shrink q-mr-xs" 
+                      >
+                        {{ auction.user.username }}
+                      </span>
+                      
+                      <q-badge v-if="isAuthor" color="positive" class="q-px-xs no-shrink">
+                        <q-icon name="star" size="10px" class="q-mr-xs" />You
+                      </q-badge>
+                    </div>
+                    
+                    <span class="text-caption ellipsis" style="opacity: 0.6;">
+                      {{ auction?.getEllipsisInMiddleUserId ? auction.getEllipsisInMiddleUserId() : 'N/A' }}
+                    </span>
                   </div>
+                  <q-btn flat round dense icon="content_copy" size="xs" @click="copyToClipboard(auction?.user?.address)" />
                 </div>
                 <q-separator spaced="xs" />
                 <div class="row items-center q-py-xs">
@@ -720,9 +794,12 @@ const showRefundDialog = ref(false)
 const showBidHistory = ref(false)
 const showDeliveryHistory = ref(false)
 const deliveryStatusId = ref(null)
+const deliveredDate = ref(null)
+const isLotSold = ref(false)
 const isMarkedComplete = ref(false)
 const isMarkedReturned = ref(false)
 const isGrantedRefund = ref(false)
+const isGrantedReturn = ref(false)
 const currentDispute = ref(null)
 
 const viewCount = ref(0)
@@ -822,6 +899,38 @@ const confirmPickupTrigger = async () => {
   }
 }
 
+const confirmShipToSeller = async () => {
+  try {
+    const res = await callAPI('delivery-trackings', props.lotId, 'patch', {
+      status: 4,
+      shipping_to_seller_date: new Date().toISOString()
+    })
+    if (res.success) {
+      $q.notify({ type: 'positive', message: 'Confirmed shipping back to seller!' })
+    }
+  } catch (err) {
+    console.warn('Could not update delivery tracking:', err)
+  } finally {
+    await refresh(() => {})
+  }
+}
+
+const confirmReturnedItems = async () => {
+  try {
+    const res = await callAPI('delivery-trackings', props.lotId, 'patch', {
+      status: 5,
+      returned_date: new Date().toISOString()
+    })
+    if (res.success) {
+      $q.notify({ type: 'positive', message: 'Confirmed items returned to seller!' })
+    }
+  } catch (err) {
+    console.warn('Could not update delivery tracking:', err)
+  } finally {
+    await refresh(() => {})
+  }
+}
+
 const markedAsCompleted = async () => {
   try {
     if (!winningBidId.value) {
@@ -856,6 +965,18 @@ const markedAsReturned = async () => {
   } catch (err) {
     console.warn('Could not fetch delivery tracking:', err)
   } finally {
+    await refresh(() => {})
+  }
+}
+
+const markedAsCompletedRefund = async () => {
+  try {
+    $q.loading.show({ message: 'Marking as complete...' })
+    await callAPI('delivery-trackings', props.lotId, 'patch', { mark_as_completed: true })
+  } catch (err) {
+    console.warn('Could not fetch delivery tracking:', err)
+  } finally {
+    $q.loading.hide()
     await refresh(() => {})
   }
 }
@@ -1051,6 +1172,7 @@ const isLotClosed = computed(() => {
 })
 
 const showPostAuctionActions = computed(() => {
+  if (isMarkedComplete.value) return false
   if (isSold.value) return true
   return auction.value?.type === 'English' && isLotClosed.value && hasBid.value
 })
@@ -1290,6 +1412,7 @@ const initializeDutchAuctionTimer = (lotData) => {
 
 onUnmounted(() => {
   if (visualCountdownTimer) clearInterval(visualCountdownTimer)
+  if (refundCountdownInterval) clearInterval(refundCountdownInterval)
   stopEnglishPolling()
   stopDutchPolling()
 })
@@ -1424,6 +1547,12 @@ const fetchAuction = async () => {
     const result = await callAPI('auctions', Number(props.auctionId))
     if (result.success && result.data) {
       auction.value = AuctionList.parse(result.data)
+
+      const userId = auction.value.user?.id
+      if (userId) {
+        const userRes = await callAPI('user-details', userId)
+        if (userRes.success && userRes.data) auction.value.setUserDetails(userRes.data)
+      }
     }
   } catch (error) {
     console.error('Failed to update auction details:', error)
@@ -1433,6 +1562,7 @@ const fetchAuction = async () => {
 const fetchLot = async () => {
   const result = await callAPI('lots', props.lotId)
   if (result.success) {
+    isLotSold.value = result.data.is_sold
     lot.value = LotsList.parse(result.data)
 
     const imageResult = await callAPI('lot-images-by-lot', props.lotId, 'get')
@@ -1468,6 +1598,7 @@ const fetchDeliveryTracking = async () => {
     if (res.success && res.data) {
       const data = Array.isArray(res.data) ? res.data[0] : res.data
       deliveryStatusId.value = data?.status ?? null
+      deliveredDate.value = data?.delivered_date ?? null
       isMarkedComplete.value = data?.mark_as_completed ?? false
       isMarkedReturned.value = data?.mark_as_returned ?? false
     }
@@ -1483,6 +1614,7 @@ const fetchDispute = async () => {
       const data = Array.isArray(res.data) ? res.data[0] : res.data
       currentDispute.value = data || null
       isGrantedRefund.value = data?.is_granted_refund ?? false
+      isGrantedReturn.value = data?.is_granted_return ?? false
     }
   } catch (err) {
     console.warn('Could not fetch dispute:', err)
@@ -1495,12 +1627,42 @@ const isDisputeActive = computed(() => {
   return !currentDispute.value.is_resolved
 })
 
+const canRequestRefund = computed(() => {
+  if (!deliveredDate.value) return false
+  const delivered = new Date(String(deliveredDate.value).trim().replace(' ', 'T'))
+  const deadline = new Date(delivered.getTime() + 6 * 60 * 60 * 1000)
+  return new Date() < deadline
+})
+
+const refundCountdown = ref('')
+let refundCountdownInterval = null
+
+const updateRefundCountdown = () => {
+  if (!deliveredDate.value) { refundCountdown.value = ''; return }
+  const delivered = new Date(String(deliveredDate.value).trim().replace(' ', 'T'))
+  const deadline = new Date(delivered.getTime() + 6 * 60 * 60 * 1000)
+  const diff = deadline - new Date()
+  if (diff <= 0) {
+    refundCountdown.value = '00:00:00'
+    clearInterval(refundCountdownInterval)
+    return
+  }
+  const h = Math.floor(diff / 3600000)
+  const m = Math.floor((diff % 3600000) / 60000)
+  const s = Math.floor((diff % 60000) / 1000)
+  refundCountdown.value = `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`
+}
+
 const loadPageData = async () => {
   await Promise.all([fetchLot(), fetchAuction()])
   await Promise.all([fetchDutchSoldStatus(), checkBidStatus(), checkUserBid()])
   initializeDutchAuctionTimer(lot.value)
   await fetchWinningBid()
   await Promise.all([fetchDeliveryTracking(), fetchDispute()])
+  if (deliveredDate.value) {
+    updateRefundCountdown()
+    refundCountdownInterval = setInterval(updateRefundCountdown, 1000)
+  }
   await initEnglishDeliveryTracking()
   if (auction.value?.type === 'English' && !isLotClosed.value && hasUserBid.value) {
     startEnglishPolling()
@@ -1534,9 +1696,16 @@ watch(() => [props.lotId, props.auctionId], async () => {
 
 
 
+const copyToClipboard = (text) => {
+  if (!text) return
+  navigator.clipboard.writeText(text).then(() => {
+    $q.notify({ type: 'positive', message: 'Copied to clipboard!', timeout: 1500 })
+  })
+}
+
 const isAuthor = computed(() => {
   const walletHash = Store.getters['global/getWallet']('bch')?.walletHash
-  return walletHash === auction.value?.user
+  return walletHash === auction.value?.user?.id
 })
 
 const formatAuctionDate = (dateString) => {

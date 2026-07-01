@@ -40,7 +40,9 @@
               {{ details.status }}
             </q-chip>
             <span class="text-caption" style="opacity: 0.65;">
-              <q-icon name="schedule" size="xs" /> {{ details.timeSinceFiled }} ago
+              <q-icon name="schedule" size="xs" class="q-mr-xs" />
+              <span v-if="details.status === 'Resolved'">{{ details.timeSinceResolved }} ago</span>
+              <span v-else>{{ details.timeSinceFiled }} ago</span>
             </span>
           </div>
 
@@ -124,15 +126,15 @@
           <div class="row items-center justify-between q-mb-sm">
             <span class="text-caption text-weight-bold">ADDRESS</span>
             <div class="row items-center q-gutter-x-xs">
-              <span class="text-caption text-weight-medium">{{ contract.address ?? '—' }}</span>
-              <q-btn flat round dense icon="content_copy" size="xs" @click="copyToClipboard(contract.address)" />
+              <span class="text-caption text-weight-medium">{{ details.contract_address ?? '—' }}</span>
+              <q-btn flat round dense icon="content_copy" size="xs" @click="copyToClipboard(details.contract_address)" />
             </div>
           </div>
 
           <div class="row items-center justify-between q-mb-sm">
             <span class="text-caption text-weight-bold">BALANCE</span>
             <span class="text-body2 text-weight-bold">
-              {{ getFormattedBCH(contract.balance).main }}<span style="opacity: 0.4;">{{ getFormattedBCH(contract.balance).zeros }}</span> BCH
+              {{ getFormattedBCH(details.balance).main }}<span style="opacity: 0.4;">{{ getFormattedBCH(details.balance).zeros }}</span> BCH
             </span>
           </div>
 
@@ -167,32 +169,64 @@
         ARBITER ACTION
       </div>
       <q-card class="pt-card text-bow q-mb-md" :class="getDarkModeClass(darkMode)">
-        <q-card-section class="q-py-sm">
+        <q-card-section v-if="details.status === 'Resolved'" class="q-py-sm">
+          <div class="row items-center q-gutter-x-xs">
+            <q-icon name="check_circle" color="positive" size="xs" />
+            <span class="text-caption">
+              This dispute was resolved {{ details.timeSinceResolved }} ago.
+            </span>
+          </div>
+        </q-card-section>
+
+        <q-card-section v-else class="q-py-sm">
           <div class="text-caption q-mb-sm">
             Select how the contract balance should be resolved.
           </div>
+          
+          <template v-if="isDeliveryPhase">
+            <div class="row q-gutter-sm q-mb-md">
+              <q-btn
+                no-caps unelevated
+                :color="selectedAction === 'release' ? 'positive' : 'primary'"
+                text-color="white"
+                label="Return to Seller"
+                class="col"
+                @click="selectedAction = 'release'"
+              />
+              <q-btn
+                no-caps unelevated
+                :color="selectedAction === 'resolve' ? 'warning' : 'primary'"
+                text-color="white"
+                label="Resolve Dispute"
+                class="col"
+                @click="selectedAction = 'resolve'"
+              />
+            </div>
+          </template>
+          
+          <template v-else-if="isDelivered">
+            <div class="row q-gutter-sm q-mb-md">
+              <q-btn
+                no-caps unelevated
+                :color="selectedAction === 'refund' ? 'negative' : 'primary'"
+                text-color="white"
+                label="Refund Buyer"
+                class="col"
+                @click="selectedAction = 'refund'"
+              />
+              <q-btn
+                no-caps unelevated
+                :color="selectedAction === 'norefund' ? 'warning' : 'primary'"
+                text-color="white"
+                label="No Refund"
+                class="col"
+                @click="selectedAction = 'norefund'"
+              />
+            </div>
+          </template>
 
-          <div class="row q-gutter-sm q-mb-md">
-            <q-btn
-              no-caps
-              unelevated
-              :color="selectedAction === 'refund' ? 'negative' : 'primary'"
-              text-color="white"
-              label="Refund Buyer"
-              class="col"
-              content-class="justify-center"
-              @click="selectedAction = 'refund'"
-            />
-            <q-btn
-              no-caps
-              unelevated
-              :color="selectedAction === 'release' ? 'positive' : 'primary'"
-              text-color="white"
-              label="Release to Seller"
-              class="col"
-              content-class="justify-center"
-              @click="selectedAction = 'release'"
-            />
+          <div v-else class="text-caption text-grey q-mb-md">
+            Loading delivery status...
           </div>
 
           <div
@@ -206,7 +240,7 @@
                 class="text-caption text-weight-bold"
                 :style="{ opacity: swipeProgress > 0.4 ? 0 : 0.5 - swipeProgress }"
               >
-                Swipe to {{ selectedAction === 'refund' ? 'Refund' : 'Release' }}
+                Swipe to {{ { refund: 'Refund', norefund: 'No Refund', release: 'Return to Seller', resolve: 'Resolve' }[selectedAction] }}
               </span>
             </div>
 
@@ -215,7 +249,7 @@
               :style="{
                 width: `${swipeProgress * 100}%`,
                 height: '100%',
-                background: selectedAction === 'refund' ? 'var(--q-negative)' : 'var(--q-positive)',
+                background: { refund: 'var(--q-negative)', norefund: 'var(--q-warning)', release: 'var(--q-positive)', resolve: 'var(--q-warning)' }[selectedAction],
                 opacity: 0.2,
                 transition: isDragging ? 'none' : 'width 0.3s ease',
               }"
@@ -228,7 +262,7 @@
                 top: '4px',
                 width: '40px',
                 height: '40px',
-                background: selectedAction === 'refund' ? 'var(--q-negative)' : 'var(--q-positive)',
+                background: { refund: 'var(--q-negative)', norefund: 'var(--q-warning)', release: 'var(--q-positive)', resolve: 'var(--q-warning)' }[selectedAction],
                 transition: isDragging ? 'none' : 'left 0.3s ease',
               }"
               @mousedown="startSwipe"
@@ -258,22 +292,6 @@
       v-model="showTransactions"
       :transactions="transactions"
     />
-
-    <ArbiterRefundBuyerDialog
-      v-model="showRefundDialog"
-      :balance-display="getFormattedBCH(contract.balance).main"
-      :bidId="details?.bid_id"
-      @confirm="confirmAction"
-      @cancel="cancelConfirm"
-    />
-
-    <ArbiterReleaseToSellerDialog
-      v-model="showReleaseDialog"
-      :balance-display="getFormattedBCH(contract.balance).main"
-      :bidId="details?.bid_id"
-      @confirm="confirmAction"
-      @cancel="cancelConfirm"
-    />
   </div>
 </template>
 
@@ -281,18 +299,17 @@
 import { useQuasar } from 'quasar'
 import { useStore } from 'vuex'
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
-import { computed, ref, onMounted } from 'vue'
+import { computed, ref, onMounted, nextTick } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { callAPI } from 'src/auction/api'
 import { AppealDetails } from 'src/auction/object.js'
+import { callContractReturn } from 'src/auction/arbiter'
 
 // Components
 import HeaderNav from 'src/components/header-nav.vue'
 import AuctionHeaderMenu from 'src/components/auction/AuctionHeaderMenu.vue'
 import DeliveryStatusHistoryDialog from 'src/components/auction/DeliveryStatusHistoryDialog.vue'
-import ArbiterTransactionsDialog from 'src/components/auction/Arbiter/ArbiterTransactionsDialog.vue'
-import ArbiterRefundBuyerDialog from 'src/components/auction/Arbiter/ArbiterRefundBuyerDialog.vue'
-import ArbiterReleaseToSellerDialog from 'src/components/auction/Arbiter/ArbiterReleaseToSellerDialog.vue'
+import ArbiterTransactionsDialog from 'src/components/auction/ArbiterTransactionsDialog.vue'
 
 const props = defineProps({
   appealId: {
@@ -306,12 +323,11 @@ const $store = useStore()
 const $router = useRouter()
 const darkMode = computed(() => $store.getters['darkmode/getStatus'])
 const isArbiter = computed(() => !!$store.getters['auction/isArbiter'])
+const deliveryStatus = ref(null)
 
 const isLoading = ref(true)
 const details = ref(null)
 
-const contract = ref({ address: null, balance: 0 })
-const statusHistory = ref([])
 const transactions = ref([])
 
 onMounted(async () => {
@@ -336,11 +352,14 @@ onMounted(async () => {
     let auctionId = null
     let auctioneerData = null
     let bidderData = null
+    let bidPriceBch = null
+    let contractAddress = null
 
     if (dispute.bid) {
       const bidResult = await callAPI('biddings', dispute.bid)
       if (bidResult.success && bidResult.data) {
         const bid = bidResult.data
+        bidPriceBch = bid.bid_price_bch
         lotId = bid.lot
         
         if (bid.user) {
@@ -373,9 +392,20 @@ onMounted(async () => {
               }
             }
           }
+
+          const deliveryResult = await callAPI('delivery-trackings', lotId)
+          if (deliveryResult.success && deliveryResult.data) {
+            deliveryStatus.value = deliveryResult.data.status
+          }
         }
       }
+
+      const contractResult = await callAPI('contract-address', dispute.bid)
+      if (contractResult.success && contractResult.data) {
+        contractAddress = contractResult.data.bch_address
+      }
     }
+    
     
     details.value = AppealDetails.parse({
       ...dispute,
@@ -383,14 +413,9 @@ onMounted(async () => {
       auctionId,
       auctioneer: auctioneerData,
       bidder: bidderData,
+      contract_address: contractAddress,
+      bid_price_bch: bidPriceBch,
     })
-    
-    if (dispute.contract) {
-      const contractResult = await callAPI('contracts', dispute.contract)
-      if (contractResult.success && contractResult.data) {
-        contract.value = contractResult.data
-      }
-    }
 
   } catch (err) {
     console.error('Failed to load appeal:', err)
@@ -401,11 +426,14 @@ onMounted(async () => {
   }
 })
 
+const isDeliveryPhase = computed(() => deliveryStatus.value === 1 || deliveryStatus.value === 2)
+const isDelivered = computed(() => deliveryStatus.value === 3)
+
+
+
 const selectedAction = ref(null)
 const showStatusHistory = ref(false)
 const showTransactions = ref(false)
-const showRefundDialog = ref(false)
-const showReleaseDialog = ref(false)
 
 const swipeProgress = ref(0)
 const isDragging = ref(false)
@@ -415,10 +443,11 @@ let startX = 0
 
 const getTrackWidth = () => swipeTrackEl.value ? swipeTrackEl.value.offsetWidth : 300
 
-const startSwipe = (e) => {
+const startSwipe = async (e) => {
+  await nextTick()
+  swipeTrackWidth.value = swipeTrackEl.value ? swipeTrackEl.value.offsetWidth : 300
   isDragging.value = true
   startX = e.touches ? e.touches[0].clientX : e.clientX
-  swipeTrackWidth.value = getTrackWidth()
 
   const onMove = (ev) => {
     if (!isDragging.value) return
@@ -428,12 +457,11 @@ const startSwipe = (e) => {
     swipeProgress.value = Math.min(1, Math.max(0, delta / max))
   }
 
-  const onEnd = () => {
+  const onEnd = async () => {
     isDragging.value = false
     if (swipeProgress.value >= 0.85) {
       swipeProgress.value = 1
-      if (selectedAction.value === 'refund') showRefundDialog.value = true
-      else showReleaseDialog.value = true
+      await handleAction()
     } else {
       swipeProgress.value = 0
     }
@@ -449,17 +477,35 @@ const startSwipe = (e) => {
   window.addEventListener('touchend', onEnd)
 }
 
-const cancelConfirm = () => {
-  showRefundDialog.value = false
-  showReleaseDialog.value = false
-  swipeProgress.value = 0
-}
+const handleAction = async () => {
+  if (!selectedAction.value) return
+  try {
+    $q.loading.show({ message: 'Processing...' })
 
-const confirmAction = () => {
-  showRefundDialog.value = false
-  showReleaseDialog.value = false
-  swipeProgress.value = 0
-  selectedAction.value = null
+    if (selectedAction.value === 'release') {
+      await callContractReturn(details.value.bid_id)
+      await callAPI('delivery-trackings', details.value.lot_id, 'patch', { mark_as_completed: true })
+    }
+
+    const payload = {
+      refund: { is_granted_refund: true, is_granted_return: false, is_resolved: true },
+      norefund: { is_granted_refund: false, is_granted_return: false, is_resolved: true },
+      release: { is_granted_refund: false, is_granted_return: true, is_resolved: true },
+      resolve: { is_granted_refund: false, is_granted_return: false, is_resolved: true },
+    }[selectedAction.value]
+
+    await callAPI('disputes', props.appealId, 'patch', payload)
+
+    $q.notify({ type: 'positive', message: 'Action applied successfully.', position: 'top' })
+    selectedAction.value = null
+    swipeProgress.value = 0
+  } catch (err) {
+    console.error('Failed to apply action:', err)
+    $q.notify({ type: 'negative', message: 'Failed to apply action.', position: 'top' })
+    swipeProgress.value = 0
+  } finally {
+    $q.loading.hide()
+  }
 }
 
 const copyToClipboard = (text) => {

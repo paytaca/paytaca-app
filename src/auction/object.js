@@ -139,7 +139,7 @@ export class AuctionList {
    * @param {String|null} data.image
    * @param {String} data.creation_date
    * @param {Number} data.type
-   * @param {Number} data.user
+   * @param {Object|Number|String} data.user
    * @param {Array<Object>} data.lots
    */
   set raw(data) {
@@ -156,7 +156,13 @@ export class AuctionList {
     this.creation_date = data.creation_date || null;
     
     this.type = data.type || (data.type ? data.type.id : null);
-    this.user = data.user || (data.user ? data.user.id : null);
+    this.user = data.user && typeof data.user === 'object'
+      ? {
+          id: data.user.id || data.user.user || null,
+          username: data.user.username || null,
+          address: data.user.address || null
+        }
+      : { id: data.user || null, username: null, address: null };
 
     if(data.type == 1) this.type = "English"
     else this.type = "Dutch"
@@ -166,6 +172,15 @@ export class AuctionList {
       : [];
   }
   
+  setUserDetails(data) {
+    if (!data) return
+    this.user = {
+      ...this.user,
+      username: data.username || this.user.username,
+      address: data.address || this.user.address
+    }
+  }
+
   getStatus() {
     if (!this.start_date || !this.end_date) {
       return { label: 'Closed', color: 'red' };
@@ -186,12 +201,14 @@ export class AuctionList {
     
     return { label: 'Closed', color: 'red' }
   }
-
+  
   getEllipsisInMiddleUserId() {
-    if (!this.user || this.user.length <= 7 + 7) return this.user
+    const targetString = this.user.address || String(this.user.id || '');
     
-    const start = this.user.substring(0, 7)
-    const end = this.user.substring(this.user.length - 7)
+    if (!targetString || targetString.length <= 22) return targetString;
+    
+    const start = targetString.substring(0, 17)
+    const end = targetString.substring(targetString.length - 5)
     
     return `${start}........${end}`
   }
@@ -262,6 +279,40 @@ export class AppealList {
     })()
     
     this.status = data.is_resolved ? 'Resolved' : 'Pending'
+
+    this.resolution_date = data.resolution_date || null
+    this.timeSinceResolved = (() => {
+      if (!this.resolution_date) return '0s'
+      
+      const now = new Date()
+      
+      let dateStr = String(this.resolution_date).trim().replace(' ', 'T')
+      if (!dateStr.endsWith('Z') && !dateStr.includes('+')) {
+        dateStr += 'Z'
+      }
+      const past = new Date(dateStr)
+      
+      const seconds = Math.max(0, date.getDateDiff(now, past, 'seconds'))
+      if (seconds < 60) return `${seconds}s`
+      
+      const minutes = date.getDateDiff(now, past, 'minutes')
+      if (minutes < 60) return `${minutes}m`
+      
+      const hours = date.getDateDiff(now, past, 'hours')
+      if (hours < 24) return `${hours}h`
+      
+      const days = date.getDateDiff(now, past, 'days')
+      if (days < 7) return `${days}d`
+      
+      const weeks = Math.floor(days / 7)
+      if (weeks < 4) return `${weeks}w`
+      
+      const months = date.getDateDiff(now, past, 'months')
+      if (months < 12) return `${months}m`
+      
+      const years = date.getDateDiff(now, past, 'years')
+      return `${years}y`
+    })()
 
     this.reasons = Array.isArray(data.dispute_reason)
       ? data.dispute_reason.flatMap(r => r.split(';').map(s => s.trim()).filter(Boolean))
@@ -337,6 +388,40 @@ export class AppealDetails {
     
     this.status = data.is_resolved ? 'Resolved' : 'Pending'
 
+    this.resolution_date = data.resolution_date || null
+    this.timeSinceResolved = (() => {
+      if (!this.resolution_date) return '0s'
+      
+      const now = new Date()
+      
+      let dateStr = String(this.resolution_date).trim().replace(' ', 'T')
+      if (!dateStr.endsWith('Z') && !dateStr.includes('+')) {
+        dateStr += 'Z'
+      }
+      const past = new Date(dateStr)
+      
+      const seconds = Math.max(0, date.getDateDiff(now, past, 'seconds'))
+      if (seconds < 60) return `${seconds}s`
+      
+      const minutes = date.getDateDiff(now, past, 'minutes')
+      if (minutes < 60) return `${minutes}m`
+      
+      const hours = date.getDateDiff(now, past, 'hours')
+      if (hours < 24) return `${hours}h`
+      
+      const days = date.getDateDiff(now, past, 'days')
+      if (days < 7) return `${days}d`
+      
+      const weeks = Math.floor(days / 7)
+      if (weeks < 4) return `${weeks}w`
+      
+      const months = date.getDateDiff(now, past, 'months')
+      if (months < 12) return `${months}m`
+      
+      const years = date.getDateDiff(now, past, 'years')
+      return `${years}y`
+    })()
+
     this.reasons = Array.isArray(data.dispute_reason)
       ? data.dispute_reason.flatMap(r => r.split(';').map(s => s.trim()).filter(Boolean))
       : (data.dispute_reason
@@ -358,5 +443,8 @@ export class AppealDetails {
           address: data.bidder.address || null
         }
       : { user: null, username: null, address: null }
+
+    this.contract_address = data.contract_address || null
+    this.balance = data.bid_price_bch !== undefined ? Number(data.bid_price_bch) : 0.00000000;
   }
 }

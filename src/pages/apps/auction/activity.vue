@@ -339,7 +339,7 @@
                 <q-separator spaced="sm" />
 
                 <div class="column q-gap-y-none text-negative">
-                  <div class="text-caption text-weight-bold">DROPS EVERY {{ lot.getIntervalMinutes() }}M:</div>
+                  <div class="text-caption text-weight-bold">DROPS EVERY {{ getIntervalMinutesInfo(lot) }}M:</div>
 
                   <template v-if="lot.is_fiat">
                     <div class="text-caption text-weight-bold">
@@ -459,7 +459,9 @@
                   {{ appeal.status }}
                 </q-chip>
                 <span class="text-caption q-mt-xs" style="opacity: 0.65;">
-                  <q-icon name="schedule" size="xs" /> {{ appeal.timeSinceFiled }} ago
+                  <q-icon name="schedule" size="xs" class="q-mr-xs" />
+                  <span v-if="appeal.status === 'Resolved'">{{ appeal.timeSinceResolved }} ago</span>
+                  <span v-else>{{ appeal.timeSinceFiled }} ago</span>
                 </span>
               </div>
               
@@ -741,6 +743,13 @@ const getLotStatusInfo = (lot) => {
     return lot.getStatus();
   }
   return { label: 'NaN', color: 'purple' };
+}
+
+const getIntervalMinutesInfo = (lot) => {
+  if (lot && typeof lot.getIntervalMinutes === 'function') {
+    return lot.getIntervalMinutes();
+  }
+  return 10;
 }
 
 const isMyAuctionEmpty = computed(() => {

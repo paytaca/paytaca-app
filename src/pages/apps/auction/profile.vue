@@ -34,10 +34,20 @@
             v-model="username"
             placeholder="Enter username"
             color="pt-primary1"
+            :maxlength="25"
             :bg-color="$q.dark.isActive ? 'pt-dark' : 'pt-light'"
             lazy-rules hide-bottom-space
-            :rules="[ val => val && val.trim().length > 0 || 'Username is required' ]"
+            :rules="[ 
+              val => val && val.trim().length > 0 || 'Username is required',
+              val => !val || val.length <= 25 || 'Character limit reached'
+            ]"
           />
+          <div 
+            class="text-right text-caption q-mt-xs" 
+            :class="(username || '').length >= 25 ? 'text-negative' : 'text-grey-6'"
+          >
+            {{ (username || '').length }} / 25
+          </div>
         </div>
       </div>
 
