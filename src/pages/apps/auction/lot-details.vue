@@ -306,7 +306,7 @@
                     label="Mark as Complete"
                     class="full-width"
                     unelevated
-                    @click="markedAsCompleted"
+                    @click="markedAsCompletedRefund"
                   />
                 </div>
 
@@ -935,6 +935,18 @@ const markedAsReturned = async () => {
   } catch (err) {
     console.warn('Could not fetch delivery tracking:', err)
   } finally {
+    await refresh(() => {})
+  }
+}
+
+const markedAsCompletedRefund = async () => {
+  try {
+    $q.loading.show({ message: 'Marking as complete...' })
+    await callAPI('delivery-trackings', props.lotId, 'patch', { mark_as_completed: true })
+  } catch (err) {
+    console.warn('Could not fetch delivery tracking:', err)
+  } finally {
+    $q.loading.hide()
     await refresh(() => {})
   }
 }
