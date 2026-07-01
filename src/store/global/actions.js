@@ -15,7 +15,7 @@ const { SecureStoragePlugin } = Plugins
 import { privateKeyToCashAddress } from '../../wallet/walletconnect2/tx-sign-utils'
 import { toP2pkhTestAddress } from '../../utils/address-utils'
 import { backend } from 'src/exchange/backend'
-import { backend as posBackend } from 'src/wallet/pos'
+import { backend as posBackend, authToken } from 'src/wallet/pos'
 import { toTokenAddress } from 'src/utils/crypto'
 import { getWalletByNetwork } from 'src/wallet/chipnet'
 
@@ -128,6 +128,52 @@ export async function fetchWalletName (context, walletHash) {
     const response = await watchtower.BCH._api.get(`wallet/preferences/${walletHash}/`)
     return response?.data?.wallet_name
   } catch {}
+}
+
+export async function fetchWalletCreationDate (context) {
+  const walletHash = context.getters.getWallet('bch')?.walletHash
+  if (!walletHash) {
+    // No wallet exists yet
+    return
+  }
+
+  // Skip if already cached
+  const currentValue = context.getters.walletCreatedAt
+  if (currentValue) {
+    return currentValue
+  }
+
+  const fetchWithAuth = async () => {
+    const response = await posBackend.get('auth/wallet', { authorize: true })
+    return response?.data?.date_created || null
+  }
+
+  try {
+    let dateCreated = await fetchWithAuth()
+    if (dateCreated) {
+      context.commit('setWalletCreatedAt', dateCreated)
+      return dateCreated
+    }
+  } catch (error) {
+    if (error?.response?.status === 403) {
+      // Auth token expired or missing — regenerate and retry once
+      try {
+        const walletIndex = context.getters.getWalletIndex
+        const wallet = await loadWallet('BCH', walletIndex)
+        await authToken.generate(wallet)
+        const dateCreated = await fetchWithAuth()
+        if (dateCreated) {
+          context.commit('setWalletCreatedAt', dateCreated)
+          return dateCreated
+        }
+      } catch (retryError) {
+        console.warn('Failed to fetch wallet creation date after re-auth:', retryError)
+      }
+    } else {
+      console.warn('Failed to fetch wallet creation date:', error)
+    }
+  }
+  return null
 }
 
 /**

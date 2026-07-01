@@ -774,6 +774,9 @@ export default {
     // Skip if we just switched wallets (check for a flag or recent switch)
     await vm.$store.dispatch('global/ensureValidWalletIndex')
 
+    // Fetch wallet creation date from backend (fire-and-forget, non-blocking)
+    vm.$store.dispatch('global/fetchWalletCreationDate').catch(() => {})
+
     // Set up app lifecycle listener for lock screen
     if (Capacitor.isNativePlatform()) {
       await vm.setupAppLifecycleListener()
