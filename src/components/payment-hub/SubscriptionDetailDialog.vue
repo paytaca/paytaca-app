@@ -130,11 +130,11 @@
           <div class="col-auto text-right">
             <div class="q-mt-md row q-gutter-x-sm">
               <q-btn
-                v-if="isCustomer && (sub.status === 'ACTIVE' || sub.status === 'PENDING')"
+                v-if="isCustomer && sub.balance > 0"
                 flat
                 rounded
                 color="red"
-                :label="$t('Cancel') || 'Cancel'"
+                :label="sub.status === 'ACTIVE' || sub.status === 'PENDING' ? ($t('Cancel') || 'Cancel') : ($t('Reclaim') || 'Reclaim')"
                 class="q-px-sm"
                 @click="onCancelSubscriptionClick"
               />
