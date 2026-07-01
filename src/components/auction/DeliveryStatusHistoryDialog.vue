@@ -68,6 +68,18 @@ const statusConfig = {
     color: 'positive',
     icon: 'task_alt', 
     note: 'Parcel successfully arrived at the destination address.' 
+  },
+  shipping_to_seller_date: { 
+    title: 'Returning to Seller', 
+    color: 'orange-8',
+    icon: 'assignment_return', 
+    note: 'Refund approved. The item is currently in transit back to the seller.' 
+  },
+  returned_to_seller_date: { 
+    title: 'Returned to Seller', 
+    color: 'blue-grey-6',
+    icon: 'keyboard_return', 
+    note: 'The item has been successfully returned to the seller.' 
   }
 }
 
