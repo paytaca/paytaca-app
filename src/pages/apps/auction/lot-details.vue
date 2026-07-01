@@ -28,7 +28,6 @@
               <q-carousel-slide v-for="(img, index) in lotImages" :key="index" :name="index" :img-src="img" />
             </q-carousel>
 
-
             <div class="row justify-center items-center q-mt-sm full-width">
               <q-btn flat round icon="chevron_left" :color="darkMode ? 'white' : 'primary'"
                 @click="$refs.carousel.previous()" />
@@ -36,11 +35,9 @@
                 {{ activeSlide + 1 }} / {{ lotImages.length }}
               </span>
 
-
               <q-btn flat round icon="chevron_right" :color="darkMode ? 'white' : 'primary'"
                 @click="$refs.carousel.next()" />
             </div>
-
 
             <div class="row q-col-gutter-sm justify-center q-mt-sm">
               <div v-for="(imgSrc, index) in lotImages" :key="index" class="col-4">
@@ -55,7 +52,6 @@
                 currently viewing this lot.
               </div>
             </div>
-
 
             <div class="q-mt-md">
               <!--v-if="!isAuthor"-->
@@ -98,7 +94,6 @@
   " size="md" />
                 </template>
 
-
                 <div class="text-subtitle2 text-weight-bold" :class="bidStatus === 'highest' || bidStatus === 'win' ? 'text-green-9' :
                     bidStatus === 'outbid' ? 'text-red-9' : 'text-grey-8'
                   ">
@@ -120,7 +115,6 @@
               </q-banner>
             </div>
 
-
             <div v-if="isMarkedComplete" class="q-mt-md full-width">
               <q-banner rounded dense class="bg-positive text-white q-pa-md">
                 <template v-slot:avatar>
@@ -130,12 +124,10 @@
               </q-banner>
             </div>
 
-
             <div v-if="(isSold || showPostAuctionActions) && (isAuthor || isWinningBidder)" class="q-mt-md full-width">
               <q-btn outline dense no-caps color="primary" icon="history" label="View Delivery Status"
                 class="full-width" @click="showDeliveryHistory = true" />
             </div>
-
 
             <div>
               <div v-if="!isDisputeActive">
@@ -150,12 +142,10 @@
                       :disable="deliveryStatusId !== 2" @click="confirmPickupTrigger" />
                   </div>
 
-
                   <div class="col q-ml-md text-center">
                     <q-btn v-if="!isAuthor && deliveryStatusId !== 3" class="text-bold text-caption full-width"
                       color="negative" text-color="white" stack content-class="q-gap-xs" icon="gavel" padding="sm"
                       label="File a Dispute" unelevated @click="showSellerDisputeDialog = true" />
-
 
                     <q-btn v-else-if="!isAuthor" class="text-bold text-caption full-width" color="negative"
                       text-color="white" stack content-class="q-gap-xs" icon="assignment_return" padding="sm" unelevated
@@ -166,7 +156,6 @@
                     </q-btn>
                   </div>
                 </div>
-
 
                 <!-- Resolved: funds returned by arbiter (status 1 or 2) -->
                 <div
@@ -180,7 +169,6 @@
                   </q-banner>
                 </div>
 
-
                 <!-- Seller: confirm items shipped back (status 4) -->
                 <div
                   v-if="showPostAuctionActions && !isMarkedReturned && isAuthor && isGrantedRefund && deliveryStatusId === 4"
@@ -188,7 +176,6 @@
                   <q-btn color="warning" icon="inventory" label="Confirm Returned Items" class="full-width" unelevated
                     @click="confirmReturnedItems" />
                 </div>
-
 
                 <!-- Seller: mark as returned (status 5) -->
                 <div
@@ -198,7 +185,6 @@
                     :disable="isMarkedReturned" @click="markedAsReturned" />
                 </div>
 
-
                 <!-- Seller: mark as complete after return confirmed -->
                 <div
                   v-if="showPostAuctionActions && isMarkedReturned && !isMarkedComplete && isAuthor && isGrantedRefund"
@@ -206,7 +192,6 @@
                   <q-btn color="positive" icon="check_circle" label="Mark as Complete" class="full-width" unelevated
                     @click="markedAsCompletedRefund" />
                 </div>
-
 
                 <!-- Bidder: ship back to seller after refund granted (status 3) -->
                 <div
@@ -255,7 +240,6 @@
                         </div>
                       </div>
 
-
                       <div v-else>
                         <div class="text-h6 text-weight-bold text-primary" style="line-height: 1.2;">
                           {{ formatBCH(estimatedAmountBCH).main }}<span style="opacity: 0.4;">{{
@@ -270,7 +254,6 @@
                 </q-card>
               </div>
 
-
               <div class="col-12 col-sm-6">
                 <q-card v-if="auction?.type === 'English'" flat bordered class="full-height">
                   <q-card-section class="q-pa-sm">
@@ -284,7 +267,6 @@
                       -->
                     </div>
 
-
                     <div v-if="hasBid">
                       <div v-if="auction?.is_fiat">
                         <div class="text-h6 text-weight-bold text-positive" style="line-height: 1.2;">
@@ -297,7 +279,6 @@
                         </div>
                       </div>
 
-
                       <div v-else>
                         <div class="text-h6 text-weight-bold text-positive" style="line-height: 1.2;">
                           {{ formatBCH(englishCurrentBCH).main }}<span style="opacity: 0.4;">{{
@@ -309,7 +290,6 @@
                         </div>
                       </div>
                     </div>
-
 
                     <div v-else>
                       <div class="text-subtitle1 text-weight-bold q-my-none text-grey-6" style="line-height: 1.2;">
@@ -330,14 +310,12 @@
                   </q-card-section>
                 </q-card>
 
-
                 <q-card v-else flat bordered class="full-height">
                   <q-card-section v-if="lot.is_sold" class="q-pa-sm">
                     <div class="text-caption row items-center q-mb-sm">
                       <q-icon name="price_change" size="14px" class="q-mr-xs" />
                       Winning Bid Details
                     </div>
-
 
                     <div v-if="winningBid">
                       <div v-if="auction?.is_fiat">
@@ -350,7 +328,6 @@
                         </div>
                       </div>
 
-
                       <div v-else>
                         <div class="text-h6 text-weight-bold text-green" style="line-height: 1.2;">
                           {{ formatBCH(winningBid.bid_price_bch).main }}<span style="opacity: 0.4;">{{
@@ -361,19 +338,16 @@
                         </div>
                       </div>
 
-
                       <div class="text-caption text-grey-6 q-mt-xs">
                         <q-icon name="schedule" size="11px" class="q-mr-xs" />
                         {{ formatAuctionDate(winningBid.bidding_date) }}
                       </div>
                     </div>
 
-
                     <div v-else class="text-caption text-grey-6">
                       Loading bid details...
                     </div>
                   </q-card-section>
-
 
                   <q-card-section v-else class="q-pa-sm">
                     <div class="text-caption row items-center q-mb-xs">
@@ -413,7 +387,6 @@
                               formatBCH(dutchFloorPriceBCH).zeros }}</span> BCH
                           </div>
                         </div>
-
 
                         <div v-else>
                           <div class="text-subtitle2 text-weight-bold" style="line-height: 1.2;">
@@ -510,7 +483,6 @@
               </div>
             </div>
 
-
             <div v-if="auction?.type === 'English'" class="q-mt-md full-width">
               <q-btn outline dense no-caps color="primary" icon="history" label="View Bidding History"
                 class="col full-width" @click="showBidHistory = true" />
@@ -527,12 +499,10 @@
           </div>
         </div>
 
-
         <div
           class="row q-col-gutter-y-md q-col-gutter-x-none q-col-gutter-x-sm-md q-col-gutter-x-md-xl justify-center justify-sm-start items-start">
           <div class="col-12 col-sm-5 col-md-4 q-pr-md-lg" style="width: 100%; max-width: 380px; min-width: 280px;">
             <q-skeleton height="350px" class="rounded-borders full-width" />
-
 
             <div class="row justify-center items-center q-mt-sm full-width">
               <q-skeleton type="QAvatar" size="36px" />
@@ -545,7 +515,6 @@
               </div>
             </div>
 
-
             <q-skeleton class="rounded-borders full-width q-mt-md" height="48px" />
           </div>
           <div class="col-12 col-sm col-md-7">
@@ -554,17 +523,14 @@
                 <q-skeleton type="rect" width="100%" height="82px" class="rounded-borders" />
               </div>
 
-
               <div class="col-12 col-sm-6">
                 <q-skeleton type="rect" width="100%" height="82px" class="rounded-borders" />
               </div>
             </div>
 
-
             <div class="q-mb-md">
               <q-skeleton type="rect" width="100%" height="82px" class="rounded-borders" />
             </div>
-
 
             <div class="column q-mt-xs q-mb-md">
               <q-skeleton type="text" width="25%" class="q-mb-sm" />
@@ -577,7 +543,6 @@
                 <q-skeleton type="rect" width="100%" height="75px" class="rounded-borders" />
               </div>
 
-
               <div class="col rounded-borders">
                 <q-skeleton type="rect" width="100%" height="75px" class="rounded-borders" />
               </div>
@@ -587,31 +552,51 @@
       </div>
     </div>
 
-
     <!-- =================== POP UPS =================== -->
-    <BiddingPopup v-model="openDialog" :lot="lot" :auction="auction" :loading="englishBidLoading"
-      @place-bid="handlePlaceBid" />
+    <BiddingPopup 
+      v-model="openDialog" 
+      :lot="lot" 
+      :auction="auction" 
+      :loading="englishBidLoading"
+      @place-bid="handlePlaceBid" 
+    />
 
+    <BuyItNowPopup 
+      v-model:isToggledBuyItNow="isToggledBuyItNow" 
+      :lot="lot" 
+      :auction="auction"
+      :current-price-bch="dutchCurrentPriceBCH" 
+      :current-price-fiat="dutchCurrentPriceFiat" 
+      :is-fiat="auction?.is_fiat"
+      :loading="buyItNowLoading" 
+      @confirm-buy-it-now="handleBuyItNow" 
+    />
 
-    <BuyItNowPopup v-model:isToggledBuyItNow="isToggledBuyItNow" :lot="lot" :auction="auction"
-      :current-price-bch="dutchCurrentPriceBCH" :current-price-fiat="dutchCurrentPriceFiat" :is-fiat="auction?.is_fiat"
-      :loading="buyItNowLoading" @confirm-buy-it-now="handleBuyItNow" />
+    <DeliveryStatusHistoryDialog 
+      v-model="showDeliveryHistory" 
+      :lotId="props.lotId" 
+    />
 
+    <SellerDisputePopup 
+      v-model="showSellerDisputeDialog" 
+      :lot="lot" 
+      :bidId="winningBid.id"
+      @submit="refresh(() => { })" 
+    />
 
-    <DeliveryStatusHistoryDialog v-model="showDeliveryHistory" :lotId="props.lotId" />
+    <RefundPopup 
+      v-model="showRefundDialog" 
+      :lot="lot" 
+      :bidId="winningBid.id" 
+      @submit="refresh(() => { })" 
+    />
 
-
-    <SellerDisputePopup v-model="showSellerDisputeDialog" :lot="lot" :bidId="winningBid.id"
-      @submit="refresh(() => { })" />
-
-
-    <RefundPopup v-model="showRefundDialog" :lot="lot" :bidId="winningBid.id" @submit="refresh(() => { })" />
-
-
-    <BiddingHistoryPopup v-model="showBidHistory" :lotId="props.lotId" />
+    <BiddingHistoryPopup 
+      v-model="showBidHistory" 
+      :lotId="props.lotId" 
+    />
   </q-pull-to-refresh>
 </template>
-
 
 <script setup>
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
@@ -626,7 +611,6 @@ import { AuctionList, LotsList } from 'src/auction/object'
 import { walletToContract } from 'src/auction/payment'
 import { callContractRefund, callContractRelease, callContractReturn } from 'src/auction/arbiter'
 
-
 // Components
 import HeaderNav from 'src/components/header-nav.vue'
 import BiddingPopup from 'src/components/auction/BiddingPopup.vue'
@@ -637,13 +621,11 @@ import RefundPopup from 'src/components/auction/RefundPopup.vue'
 import DeliveryStatusHistoryDialog from 'src/components/auction/DeliveryStatusHistoryDialog.vue'
 import { callLotWebsocket } from 'src/auction/websocket'
 
-
 defineOptions({
   directives: {
     'element-visibility': vElementVisibility
   }
 })
-
 
 // props for the vue page
 const props = defineProps({
@@ -657,31 +639,25 @@ const props = defineProps({
   }
 })
 
-
 const $q = useQuasar()
 const $store = useStore()
 const $route = useRoute()
-
 
 const activeSlide = ref(0)
 const lotImages = ref([])
 const lot = ref(null)
 const auction = ref(null)
 
-
 const walletHash = Store.getters['global/getWallet']('bch')?.walletHash
 const darkMode = computed(() => $store.getters['darkmode/getStatus'])
 const bchToPhpRate = computed(() => $store.getters['market/getAssetPrice']('bch', 'php') || 0)
 
-
 const isLoading = ref(false)
 const viewCount = ref(0) // current live viewers
-
 
 // Post-auction actions
 const showSellerDisputeDialog = ref(false)
 const showRefundDialog = ref(false)
-
 
 const showBidHistory = ref(false)
 const showDeliveryHistory = ref(false)
@@ -693,10 +669,8 @@ const isGrantedRefund = ref(false)
 const isGrantedReturn = ref(false)
 const currentDispute = ref(null)
 
-
 // websocket variable
 let socket = null
-
 
 const lotStatus = computed(() => {
   if (!lot.value || !auction.value) return null
@@ -708,7 +682,6 @@ const lotStatus = computed(() => {
   )
 })
 
-
 // establish estimatedAmountBCH (dynamic)
 const estimatedAmountBCH = computed(() => {
   if (!lot.value) return 0
@@ -718,7 +691,6 @@ const estimatedAmountBCH = computed(() => {
     ? (rate > 0 ? Number(lot.value.estimated_amount_fiat || 0) / rate : 0)
     : Number(lot.value.estimated_amount_bch || 0)
 })
-
 
 // establish estimatedAmountFiat (dynamic)
 const estimatedAmountFiat = computed(() => {
@@ -730,15 +702,12 @@ const estimatedAmountFiat = computed(() => {
     : Number(lot.value.estimated_amount_bch || 0) * rate
 })
 
-
-
 // helper functions
 // formats fiat values
 const formatFiat = (fiatValue) => {
   const numValue = Number(fiatValue) || 0
   return `₱${numValue.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
 }
-
 
 // formats BCH values
 const formatBCH = (bchValue) => {
@@ -748,7 +717,6 @@ const formatBCH = (bchValue) => {
   const zeros = numStr.substring(main.length)
   return { main, zeros, full: numStr }
 }
-
 
 // =========================================================================
 // ============================== POST-AUCTION =============================
@@ -770,26 +738,21 @@ const updateDeliveryTracking = async (status, message) => {
   }
 }
 
-
 const confirmDeliveryTrigger = async () => {
   await updateDeliveryTracking(2, 'Confirmed delivery!')
 }
-
 
 const confirmPickupTrigger = async () => {
   await updateDeliveryTracking(3, 'Confirmed pickup!')
 }
 
-
 const confirmShipToSeller = async () => {
   await updateDeliveryTracking(4, 'Confirmed shipping back to seller!')
 }
 
-
 const confirmReturnedItems = async () => {
   await updateDeliveryTracking(5, 'Confirmed items returned to seller!')
 }
-
 
 // mark the delivery as completed
 const markedAsCompleted = async () => {
@@ -813,7 +776,6 @@ const markedAsCompleted = async () => {
   }
 }
 
-
 // mark the delivery as returned (refunded)
 const markedAsReturned = async () => {
   try {
@@ -836,7 +798,6 @@ const markedAsReturned = async () => {
   }
 }
 
-
 const markedAsCompletedRefund = async () => {
   try {
     $q.loading.show({ message: 'Marking as complete...' })
@@ -849,13 +810,11 @@ const markedAsCompletedRefund = async () => {
   }
 }
 
-
 // =========================================================================
 // ============================ ENGLISH AUCTION ============================
 // =========================================================================
 const openDialog = ref(false)
 const englishBidLoading = ref(false)
-
 
 // bidding-related ref vars
 const isSold = ref(false)
@@ -868,35 +827,29 @@ const highestBid = ref({
   bid_price_fiat: 0
 })
 
-
 // establish englishCurrentBCH (dynamic)
 const englishCurrentBCH = computed(() => {
   if (!lot.value) return 0
   const rate = bchToPhpRate.value
-
 
   return (auction.value?.is_fiat)
     ? (rate > 0 ? Number(highestBid.value.bid_price_fiat || 0) / rate : 0)
     : Number(highestBid.value.bid_price_bch || 0)
 })
 
-
 // establish englishCurrentFiat (dynamic)
 const englishCurrentFiat = computed(() => {
   if (!lot.value) return 0
   const rate = bchToPhpRate.value
-
 
   return (auction.value?.is_fiat)
     ? Number(highestBid.value.bid_price_fiat || 0)
     : Number(highestBid.value.bid_price_bch || 0) * rate
 })
 
-
 const openBidDialog = async () => {
   openDialog.value = true
 }
-
 
 let bidResolver = null
 function waitForBidAck() {
@@ -905,20 +858,17 @@ function waitForBidAck() {
   })
 }
 
-
 const handlePlaceBid = async ({ bid_price_bch, bid_price_fiat }) => {
   if (!walletHash) {
     $q.notify({ type: 'warning', message: 'Please connect your wallet first.' })
     return
   }
 
-
   englishBidLoading.value = true
   try {
     // if the socket is open, run the placebid
     if (!socket || socket.readyState !== WebSocket.OPEN)
       throw new Error(bidResponse.error || 'Bid failed. Please try again.')
-
 
     // else, send the bid to the websocket
     socket.send(JSON.stringify(
@@ -933,9 +883,7 @@ const handlePlaceBid = async ({ bid_price_bch, bid_price_fiat }) => {
       }
     ))
 
-
     const ack = await waitForBidAck()
-
 
     // create new contract for new bid (send BCH from wallet to contract)
     $q.loading.show({ message: 'Processing smart contract...' })
@@ -950,9 +898,7 @@ const handlePlaceBid = async ({ bid_price_bch, bid_price_fiat }) => {
       await callContractReturn(secondRes.data.id)
     }
 
-
     openDialog.value = false
-
 
     $q.notify({
       type: 'positive',
@@ -960,7 +906,6 @@ const handlePlaceBid = async ({ bid_price_bch, bid_price_fiat }) => {
       message: `Bid of ${formatBCH(bid_price_bch).main}${formatBCH(bid_price_bch).zeros} BCH placed!`,
       timeout: 3000
     })
-
 
   } catch (err) {
     console.error(err)
@@ -970,7 +915,6 @@ const handlePlaceBid = async ({ bid_price_bch, bid_price_fiat }) => {
   }
 }
 
-
 // shows the post-auction vue components
 const showPostAuctionActions = computed(() => {
   if (isMarkedComplete.value) return false
@@ -978,11 +922,9 @@ const showPostAuctionActions = computed(() => {
   return auction.value?.type === 'English' && lotStatus.value.label === 'Closed' && hasBid.value
 })
 
-
 // get the bid status
 const bidStatus = computed(() => {
   const isHighest = highestBid.value.user === walletHash
-
 
   if (!hasUserBid.value) // never bid
     return null
@@ -993,10 +935,8 @@ const bidStatus = computed(() => {
   return isHighest ? 'highest' : 'outbid' // highest bidder but lot not sold/closed
 })
 
-
 // gets the isWinningBidder status from bidStatus computed var
 const isWinningBidder = computed(() => bidStatus.value === 'win')
-
 
 // =========================================================================
 // ============================= DUTCH AUCTION =============================
@@ -1008,22 +948,19 @@ const winningBid = ref({
   id: null
 })
 
-
 const timeLeft = ref(0)
 const secondsRemaining = ref(0)
 const intervalDurationSec = ref(600)
 const dutchAtFloor = computed(() => {
-  return (auction.value.is_fiat)
+  return (auction.value?.is_fiat)
     ? dutchCurrentPriceFiat <= lot.threshold_bid_fiat
     : dutchCurrentPriceBCH <= lot.threshold_bid_bch
 })
-
 
 const dutchIntervalProgress = computed(() => {
   if (!intervalDurationSec.value) return 0
   return Math.max(0, Math.min(1, secondsRemaining.value / intervalDurationSec.value))
 })
-
 
 onUnmounted(() => {
   if (refundCountdownInterval) clearInterval(refundCountdownInterval)
@@ -1031,25 +968,21 @@ onUnmounted(() => {
 const dutchFloorPriceBCH = computed(() => Number(lot.value?.threshold_bid_bch || 0))
 const dutchFloorPriceFiat = computed(() => Number(lot.value?.threshold_bid_fiat || 0))
 
-
 const dutchPrice = ref(0)
-const dutchCurrentPriceBCH = computed(() => auction.value.is_fiat ? Number(dutchPrice.value || 0) : dutchPrice.value * bchToPhpRate.value)
+const dutchCurrentPriceBCH = computed(() => auction.value?.is_fiat ? Number(dutchPrice.value || 0) : dutchPrice.value * bchToPhpRate.value)
 const dutchCurrentPriceFiat = computed(() => {
-  return auction.value.is_fiat
+  return auction.value?.is_fiat
     ? bchToPhpRate.value > 0 ? dutchPrice.value / bchToPhpRate.value : 0
     : Number(dutchPrice.value || 0)
 })
-
 
 const buyItNow = () => {
   isToggledBuyItNow.value = true
 }
 
-
 const handleBuyItNow = async (payload = {}) => {
   isToggledBuyItNow.value = false
   if (auction.value?.type !== 'Dutch') return
-
 
   buyItNowLoading.value = true
   try {
@@ -1058,7 +991,6 @@ const handleBuyItNow = async (payload = {}) => {
     // if the socket is open, run the placebid
     if (!socket || socket.readyState !== WebSocket.OPEN)
       throw new Error(bidResponse.error || 'Bid failed. Please try again.')
-
 
     // else, send the bid to the websocket
     socket.send(JSON.stringify(
@@ -1073,10 +1005,8 @@ const handleBuyItNow = async (payload = {}) => {
       }
     ))
 
-
     const ack = await waitForBidAck()
     dutchAlreadySold.value = true
-
 
     await callAPI('delivery-trackings', null, 'post', {
       auctioneer: auction.value.user,
@@ -1086,16 +1016,13 @@ const handleBuyItNow = async (payload = {}) => {
       preparing_date: new Date().toISOString()
     })
 
-
     $q.loading.show({ message: 'Processing smart contract...' })
-
 
     try {
       await walletToContract(Number(bidBCH).toFixed(8), ack.id)
     } finally {
       $q.loading.hide()
     }
-
 
     await refresh(() => { })
     $q.notify({
@@ -1110,14 +1037,12 @@ const handleBuyItNow = async (payload = {}) => {
   }
 }
 
-
 // other functions
 const fetchAuction = async () => {
   try {
     const result = await callAPI('auctions', Number(props.auctionId))
     if (result.success && result.data) {
       auction.value = AuctionList.parse(result.data)
-
 
       const userId = auction.value.user?.id
       if (userId) {
@@ -1130,13 +1055,11 @@ const fetchAuction = async () => {
   }
 }
 
-
 const fetchLot = async () => {
   const result = await callAPI('lots', props.lotId)
   if (result.success) {
     isSold.value = result.data.is_sold
     lot.value = LotsList.parse(result.data)
-
 
     const imageResult = await callAPI('lot-images-by-lot', props.lotId, 'get')
     if (imageResult.success && Array.isArray(imageResult.data)) {
@@ -1145,13 +1068,11 @@ const fetchLot = async () => {
   }
 }
 
-
 const initEnglishDeliveryTracking = async () => {
   if (auction.value?.type !== 'English') return
   if (lotStatus.value.label !== 'Closed') return
   if (highestBid.value.user !== walletHash) return
   if (deliveryStatusId.value !== null) return
-
 
   try {
     await callAPI('delivery-trackings', null, 'post', {
@@ -1166,7 +1087,6 @@ const initEnglishDeliveryTracking = async () => {
     console.warn('Could not init delivery tracking for English auction:', err)
   }
 }
-
 
 const fetchDeliveryTracking = async () => {
   try {
@@ -1183,7 +1103,6 @@ const fetchDeliveryTracking = async () => {
   }
 }
 
-
 const fetchDispute = async () => {
   try {
     const res = await callAPI('disputes-by-bid', winningBid.value.id)
@@ -1199,12 +1118,10 @@ const fetchDispute = async () => {
   }
 }
 
-
 const isDisputeActive = computed(() => {
   if (!currentDispute.value) return false
   return !currentDispute.value.is_resolved
 })
-
 
 const canRequestRefund = computed(() => {
   if (!deliveredDate.value) return false
@@ -1213,16 +1130,13 @@ const canRequestRefund = computed(() => {
   return new Date() < deadline
 })
 
-
 const refundTimeLeft = ref('')
 const refundSecondsRemaining = ref(0)
 let refundCountdownInterval = null
 
-
 const loadPageData = async () => {
   await Promise.all([fetchLot(), fetchAuction()])
   await Promise.all([fetchDeliveryTracking(), fetchDispute()])
-
 
   if (deliveredDate.value) {
     clearInterval(refundCountdownInterval)
@@ -1231,15 +1145,12 @@ const loadPageData = async () => {
   await initEnglishDeliveryTracking()
 }
 
-
 watch(() => [props.lotId, props.auctionId], async () => {
   isLoading.value = true
   dutchAlreadySold.value = false
   await loadPageData()
 
-
   isLoading.value = false
-
 
   if (isSold.value) {
     $q.notify({
@@ -1247,7 +1158,7 @@ watch(() => [props.lotId, props.auctionId], async () => {
       icon: 'lock',
       message: 'This lot has already been sold.'
     })
-  } else if (isLotClosed.value) {
+  } else if (lotStatus.value.label === "Closed") {
     $q.notify({
       type: 'info',
       icon: 'lock',
@@ -1255,7 +1166,6 @@ watch(() => [props.lotId, props.auctionId], async () => {
     })
   }
 }, { immediate: true })
-
 
 // copies to clipboard
 const copyToClipboard = (text) => {
@@ -1265,12 +1175,10 @@ const copyToClipboard = (text) => {
   })
 }
 
-
 // checks if user is the author of the lot
 const isAuthor = computed(() => {
   return walletHash === auction.value?.user?.id
 })
-
 
 // helper func
 const formatAuctionDate = (dateString) => {
@@ -1278,13 +1186,11 @@ const formatAuctionDate = (dateString) => {
   return date.formatDate(dateString, 'MMM DD, YYYY hh:mm A')
 }
 
-
 const smartBackPath = computed(() => {
   const sourceContext = $route.query.from
   if (sourceContext === 'activity') return '/apps/auction/activity'
   return `/apps/auction/${props.auctionId}`
 })
-
 
 // refreshing the page
 const refresh = async (done) => {
@@ -1295,20 +1201,16 @@ const refresh = async (done) => {
   done?.()
 }
 
-
 // onMounted (general)
 onMounted(async () => {
   socket = callLotWebsocket(Number(props.lotId))
-
 
   socket.onopen = function () {
     console.log("Connected to the lot websocket!")
   };
 
-
   socket.onmessage = (event) => {
     const { type, data } = JSON.parse(event.data);
-
 
     switch (type) {
       // update the viewcount
@@ -1316,12 +1218,12 @@ onMounted(async () => {
         viewCount.value = data.viewer_count
         break
 
-
       // sends placebid acknowledgement
       case "place.bid_ack":
         bidResolver?.(data)
         bidResolver = null
         break
+
       // update the highest bidder
       case "update.highest_bid":
         hasBid.value = Boolean(data?.user)
@@ -1333,13 +1235,11 @@ onMounted(async () => {
         }
         break
 
-
       // update the winningBidId
       case "update.winner":
         isSold.value = Boolean(data?.is_sold)
         winningBid.value = data
         break
-
 
       // update the time interval
       case "time.interval":
@@ -1347,12 +1247,10 @@ onMounted(async () => {
         timeLeft.value = data.time_left
         break
 
-
       // update the price drop
       case "drop.price":
         dutchPrice.value = data.price
         break
-
 
       // broadcasts the live refund
       case "live.refund_countdown":
@@ -1360,24 +1258,20 @@ onMounted(async () => {
         refundTimeLeft.value = data.time_left
         break
 
-
       default:
         console.warn("Unknown websocket message:", type, data)
     }
     console.log(data)
   }
 
-
   socket.onclose = function () {
     console.log("Disconnected from the lot websocket!")
   };
-
 
   socket.onerror = function (event) {
     console.error("Lot websocket error:", event)
   }
 })
-
 
 onBeforeUnmount(() => {
   socket.onmessage = null
@@ -1386,6 +1280,4 @@ onBeforeUnmount(() => {
   socket.onclose = null
   socket?.close()
 })
-
-
 </script>
