@@ -205,10 +205,10 @@ export class AuctionList {
   getEllipsisInMiddleUserId() {
     const targetString = this.user.address || String(this.user.id || '');
     
-    if (!targetString || targetString.length <= 14) return targetString;
+    if (!targetString || targetString.length <= 22) return targetString;
     
-    const start = targetString.substring(0, 7)
-    const end = targetString.substring(targetString.length - 7)
+    const start = targetString.substring(0, 17)
+    const end = targetString.substring(targetString.length - 5)
     
     return `${start}........${end}`
   }
