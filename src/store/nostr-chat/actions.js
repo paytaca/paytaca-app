@@ -2680,9 +2680,14 @@ export function ensureSubscribed ({ dispatch, getters }) {
 // teardown is needed later, re-add it and dispatch it from the chat pages.
 
 export async function resetAndRefetch ({ commit, dispatch, state }) {
-  const ws = getWalletState(state)
-  if (!ws.keys?.pubKeyHex) {
-    console.warn('[Nostr] Cannot reset: no wallet keys')
+  const walletHash = getCurrentWalletHash()
+  if (!walletHash) {
+    console.warn('[Nostr] Cannot reset: no wallet hash')
+    return
+  }
+  const mnemonic = await getMnemonicByHash(walletHash)
+  if (!mnemonic) {
+    console.warn('[Nostr] Cannot reset: no mnemonic available')
     return
   }
 
@@ -2695,9 +2700,18 @@ export async function resetAndRefetch ({ commit, dispatch, state }) {
   // Clear IndexedDB image cache
   await clearChatCache().catch(err => console.warn('Failed to clear chat cache during reset:', err))
 
-  // Reset per-wallet chat data (rooms, messages, reactions, caches, etc.)
-  // Keeps keys and profile so we don't need to re-derive or re-fetch profile
+  // Reset all per-wallet chat data (keys, rooms, messages, caches, profile)
   commit('RESET_WALLET_CHAT_DATA')
+
+  // Clear global contacts list
+  commit('RESET_CONTACTS')
+
+  // Re-derive Nostr keys from the wallet seed phrase
+  const keys = deriveNostrKeys(mnemonic)
+  commit('SET_KEYS', keys)
+  commit('SET_READY', true)
+  commit('SET_INITIALIZED', true)
+  relayService.setAuthKey(keys.privKeyHex)
 
   // Re-fetch historical messages from relays
   await dispatch('fetchHistoricalMessages')

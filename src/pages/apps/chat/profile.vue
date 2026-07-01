@@ -869,7 +869,7 @@ export default {
     async confirmResetChat () {
       this.$q.dialog({
         title: this.$t('ResetChat', {}, 'Reset Chat'),
-        message: this.$t('ResetChatConfirm', {}, 'Clear all conversations and re-fetch them from the relay? Your contacts and profile will be preserved.'),
+        message: this.$t('ResetChatConfirm', {}, 'Clear all conversations and re-fetch them from the relay? Your contacts and profile will also be deleted.'),
         class: `pt-card text-bow ${this.getDarkModeClass(this.darkMode)}`,
         cancel: { label: this.$t('Cancel', {}, 'Cancel'), flat: true, color: 'grey' },
         ok: { label: this.$t('Reset', {}, 'Reset'), color: 'negative', flat: true },
@@ -881,7 +881,7 @@ export default {
           await this.checkCache()
           this.$q.notify({
             type: 'positive',
-            message: this.$t('ChatResetSuccess', {}, 'Chat reset successfully. Conversations are being re-fetched.'),
+            message: this.$t('ChatResetSuccess', {}, 'Chat reset successfully. Conversations are being re-fetched. Contacts and profile have been cleared.'),
           })
         } catch (err) {
           this.$q.notify({
