@@ -534,6 +534,7 @@
                       <q-icon name="star" size="10px" class="q-mr-xs" />You
                     </q-badge>
                   </div>
+                  <q-btn flat round dense icon="content_copy" size="xs" @click="copyToClipboard(auction?.user?.address)" />
                 </div>
                 <q-separator spaced="xs" />
                 <div class="row items-center q-py-xs">
@@ -1580,6 +1581,13 @@ watch(() => [props.lotId, props.auctionId], async () => {
 
 
 
+
+const copyToClipboard = (text) => {
+  if (!text) return
+  navigator.clipboard.writeText(text).then(() => {
+    $q.notify({ type: 'positive', message: 'Copied to clipboard!', timeout: 1500 })
+  })
+}
 
 const isAuthor = computed(() => {
   const walletHash = Store.getters['global/getWallet']('bch')?.walletHash

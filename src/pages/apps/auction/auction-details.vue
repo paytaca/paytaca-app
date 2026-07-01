@@ -63,6 +63,7 @@
                       <q-icon name="star" size="10px" class="q-mr-xs" />You
                     </q-badge>
                   </div>
+                  <q-btn flat round dense icon="content_copy" size="xs" @click="copyToClipboard(auction.user?.address)" />
                 </div>
 
                 <q-separator />
@@ -525,6 +526,13 @@ const formatAuctionDate = (dateString) => { return date.formatDate(dateString, '
 const isLotEmpty = computed(() => {
   return !isLoading.value && filteredLots.value.length === 0
 })
+
+const copyToClipboard = (text) => {
+  if (!text) return
+  navigator.clipboard.writeText(text).then(() => {
+    $q.notify({ type: 'positive', message: 'Copied to clipboard!', timeout: 1500 })
+  })
+}
 
 const isAuthor = computed(() => {
   const walletHash = Store.getters['global/getWallet']('bch')?.walletHash
