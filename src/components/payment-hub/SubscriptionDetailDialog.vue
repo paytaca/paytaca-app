@@ -66,16 +66,21 @@
               </div>
             </div>
 
-            <!-- Billing Amount -->
+            <!-- Billing Amount (Total Cost) -->
             <div class="q-mb-sm" v-if="sub.plan_details">
               <div class="row items-center q-gutter-x-xs text-caption text-grey">
                 <span>{{ $t('BillingAmount') || 'Billing Amount' }}</span>
                 <q-btn flat round dense icon="help_outline" size="xs" color="grey" @click="showBillingInfo" />
               </div>
               <div class="row items-baseline q-gutter-x-sm">
-                <div class="text-body2 text-weight-medium">{{ formatAmount(sub.plan_details.amount) }} {{ sub.plan_details.currency }}</div>
+                <div class="text-body2 text-weight-medium" v-if="sub.plan_details.currency !== 'BCH' && bchPrice > 0">
+                  ~{{ totalCostFiat }} {{ sub.plan_details.currency }}
+                </div>
+                <div class="text-body2 text-weight-medium" v-else>
+                  {{ totalCostBch }} BCH
+                </div>
                 <div class="text-caption text-grey" v-if="sub.plan_details.currency !== 'BCH' && bchPrice > 0">
-                  ~{{ getEquivalentBch(sub.plan_details.amount) }} BCH
+                  ({{ totalCostBch }} BCH)
                 </div>
               </div>
             </div>
@@ -88,6 +93,29 @@
                   {{ getPeriodText(sub.plan_details) }}
                 </div>
                 <q-btn flat round dense icon="info" size="xs" color="grey" class="q-ml-xs" @click="showBlocksInfo(sub.plan_details.period_blocks)" v-if="sub.plan_details.period_blocks" />
+              </div>
+            </div>
+
+            <!-- Next Expected Payout -->
+            <div class="q-mb-sm" v-if="isCustomer && sub.status === 'ACTIVE' && nextPayoutDisplay">
+              <div class="row items-center q-gutter-x-xs text-caption text-grey">
+                <span>Next Expected Payout</span>
+                <q-icon name="info" size="xs" color="grey">
+                  <q-tooltip class="bg-grey-9 text-body2" style="max-width: 250px">
+                    A block is estimated to be 10 mins. Block times may vary but rarely go past 30 mins.
+                  </q-tooltip>
+                </q-icon>
+              </div>
+              <div class="text-body2 text-weight-medium text-pt-primary1">
+                {{ nextPayoutDisplay }}
+              </div>
+            </div>
+
+            <!-- Remaining Payouts -->
+            <div class="q-mb-sm" v-if="sub.status === 'ACTIVE' || sub.status === 'PENDING'">
+              <div class="text-caption text-grey">Remaining Payouts</div>
+              <div class="text-body2 text-weight-medium text-pt-primary1">
+                {{ remainingPayouts }}
               </div>
             </div>
           </div>
@@ -131,7 +159,7 @@
         </q-tabs>
 
         <q-tab-panels v-model="tab" animated style="background: none;">
-          
+
           <q-tab-panel name="details" class="q-pa-none q-pt-md">
             <!-- Plan Details -->
             <div v-if="sub.plan_details?.description" class="q-mb-md">
@@ -316,21 +344,27 @@ function showBillingInfo() {
   if (!sub.value?.plan_details) return
   const p = sub.value.plan_details
   const periodText = getPeriodText(p)
-  
+
   let msg = ''
   if (p.period_days) {
-    msg = t('BillingAmountInfoDays', { periodText }) || `This is the amount billed every ${periodText}.`
+    msg = `This is the total amount billed every ${periodText}.`
   } else if (p.period_blocks) {
-    msg = t('BillingAmountInfoBlocks', { periodText, blocks: p.period_blocks }) || `This is the amount billed every ${periodText} or every ${p.period_blocks} blocks.`
+    msg = `This is the total amount billed every ${periodText} or every ${p.period_blocks} blocks.`
   }
 
+  const mFee = minerFee.value
+  const pFee = paytacaFee.value
+
+  msg += ` This total cost includes the base plan pledge, a small miner fee (${mFee} sats), and the Paytaca platform fee (${pFee} sats).`
+
   $q.dialog({
-    title: t('BillingAmount') || 'Billing Amount',
+    title: 'Billing Amount',
     message: msg,
     color: 'pt-primary1',
     ok: { flat: true, color: 'pt-primary1', label: 'OK' }
   })
 }
+
 const pledgeBch = computed(() => {
   if (!sub.value?.pledge_satoshis) return '-'
   return (sub.value.pledge_satoshis / 1e8).toFixed(8).replace(/\.?0+$/, '')
@@ -349,10 +383,10 @@ const contractBalanceBch = computed(() => {
 const contractBalanceFiat = computed(() => {
   if (!sub.value?.plan_details) return '0.00'
   if (!bchPrice.value || sub.value.plan_details.currency === 'BCH') return contractBalanceBch.value
-  
+
   const bchVal = parseFloat(contractBalanceBch.value)
   if (isNaN(bchVal)) return '0.00'
-  
+
   const fiatVal = bchVal * bchPrice.value
   return formatAmount(fiatVal)
 })
@@ -360,6 +394,75 @@ const contractBalanceFiat = computed(() => {
 const pledge_satoshis_formatted = computed(() => {
   if (!sub.value?.pledge_satoshis) return ''
   return sub.value.pledge_satoshis.toLocaleString()
+})
+
+const minerFee = computed(() => 1000)
+
+const paytacaFee = computed(() => {
+  if (!sub.value?.pledge_satoshis) return 546
+  const pledge = sub.value.pledge_satoshis
+  const maxFee = sub.value.max_fee || 546
+  return Math.max(Math.min(maxFee, Math.floor(pledge / 100)), 546)
+})
+
+const totalCostSats = computed(() => {
+  if (!sub.value?.pledge_satoshis) return 0
+  return sub.value.pledge_satoshis + paytacaFee.value + minerFee.value
+})
+
+const totalCostBch = computed(() => {
+  if (!totalCostSats.value) return '0'
+  return (totalCostSats.value / 1e8).toFixed(8).replace(/\.?0+$/, '')
+})
+
+const totalCostFiat = computed(() => {
+  if (!totalCostSats.value || !bchPrice.value) return '0.00'
+  const bchVal = parseFloat(totalCostBch.value)
+  const fiatVal = bchVal * bchPrice.value
+  return formatAmount(fiatVal)
+})
+
+const remainingPayouts = computed(() => {
+  if (!sub.value?.balance || !totalCostSats.value) return 0
+  const available = sub.value.balance - 1000
+  if (available <= 0) return 0
+  return Math.floor(available / totalCostSats.value)
+})
+
+const nextPayoutDate = computed(() => {
+  if (!sub.value) return null
+  const blocks = sub.value.period_blocks || (sub.value.plan_details && sub.value.plan_details.period_blocks)
+  if (!blocks) return null
+
+  let baseDateStr = sub.value.last_payment_date
+  if (!baseDateStr) {
+    baseDateStr = sub.value.date_created
+  }
+
+  if (!baseDateStr) return null
+
+  const baseDate = new Date(baseDateStr)
+  return new Date(baseDate.getTime() + blocks * 10 * 60000)
+})
+
+const nextPayoutDisplay = computed(() => {
+  const expected = nextPayoutDate.value
+  if (!expected) return ''
+
+  const now = new Date()
+  if (now.getTime() > expected.getTime()) {
+    return 'Waiting for next block'
+  }
+
+  const isSameDay = expected.getDate() === now.getDate() &&
+                    expected.getMonth() === now.getMonth() &&
+                    expected.getFullYear() === now.getFullYear()
+
+  if (isSameDay) {
+    return expected.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})
+  }
+
+  return expected.toLocaleDateString([], {month: 'short', day: 'numeric', year: 'numeric'})
 })
 
 async function fetchSubscription() {
@@ -426,7 +529,7 @@ function getPeriodText(p) {
   }
   const blocks = p.period_blocks
   if (!blocks) return ''
-  
+
   let timeStr = ''
   if (blocks % 4320 === 0) {
     const v = blocks / 4320
