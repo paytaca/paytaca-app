@@ -139,7 +139,7 @@ export class AuctionList {
    * @param {String|null} data.image
    * @param {String} data.creation_date
    * @param {Number} data.type
-   * @param {Number} data.user
+   * @param {Object|Number|String} data.user
    * @param {Array<Object>} data.lots
    */
   set raw(data) {
@@ -156,7 +156,13 @@ export class AuctionList {
     this.creation_date = data.creation_date || null;
     
     this.type = data.type || (data.type ? data.type.id : null);
-    this.user = data.user || (data.user ? data.user.id : null);
+    this.user = data.user && typeof data.user === 'object'
+      ? {
+          id: data.user.id || data.user.user || null,
+          username: data.user.username || null,
+          address: data.user.address || null
+        }
+      : { id: data.user || null, username: null, address: null };
 
     if(data.type == 1) this.type = "English"
     else this.type = "Dutch"
@@ -166,6 +172,15 @@ export class AuctionList {
       : [];
   }
   
+  setUserDetails(data) {
+    if (!data) return
+    this.user = {
+      ...this.user,
+      username: data.username || this.user.username,
+      address: data.address || this.user.address
+    }
+  }
+
   getStatus() {
     if (!this.start_date || !this.end_date) {
       return { label: 'Closed', color: 'red' };
@@ -186,12 +201,14 @@ export class AuctionList {
     
     return { label: 'Closed', color: 'red' }
   }
-
+  
   getEllipsisInMiddleUserId() {
-    if (!this.user || this.user.length <= 7 + 7) return this.user
+    const targetString = this.user.address || String(this.user.id || '');
     
-    const start = this.user.substring(0, 7)
-    const end = this.user.substring(this.user.length - 7)
+    if (!targetString || targetString.length <= 14) return targetString;
+    
+    const start = targetString.substring(0, 7)
+    const end = targetString.substring(targetString.length - 7)
     
     return `${start}........${end}`
   }
