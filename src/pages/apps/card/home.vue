@@ -42,8 +42,21 @@
       </div>
 
       <!-- View My Cards -->
-      <div class="full-width text-center q-mb-md">
-        <q-btn flat dense no-caps :color="$q.dark.isActive ? 'grey-4' : 'grey-7'" icon="credit_card" label="View My Cards" @click="$router.push({ name: 'card-list' })" />
+      <div class="full-width q-mb-md" style="max-width: 400px; margin-left: auto; margin-right: auto;">
+        <div
+          class="link-method-item cursor-pointer"
+          :class="$q.dark.isActive ? 'method-item-dark' : 'method-item-light'"
+          @click="$router.push({ name: 'card-list' })"
+        >
+          <div class="method-icon-box" :class="$q.dark.isActive ? 'icon-box-dark' : 'icon-box-light'">
+            <q-icon name="credit_card" size="22px" color="primary" />
+          </div>
+          <div class="method-text">
+            <div class="text-subtitle2 text-weight-bold" :class="textColor">{{ $t('View My Cards') }}</div>
+            <div class="text-caption" :class="textColorGrey">{{ $t('Manage your cards') }}</div>
+          </div>
+          <q-icon name="chevron_right" size="20px" :color="$q.dark.isActive ? 'grey-5' : 'grey-6'" />
+        </div>
       </div>
 
       <!-- Mode Toggle -->
