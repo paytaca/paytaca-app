@@ -527,12 +527,23 @@
                   <div class="text-caption col-4 q-mr-sm">
                     <q-icon name="person" size="13px" class="q-mr-xs" />Auctioneer
                   </div>
-                  <div class="col column">
-                    <span v-if="auction?.user?.username" class="text-weight-medium">{{ auction.user.username }}</span>
-                    <span class="text-caption" style="opacity: 0.6;">{{ auction?.getEllipsisInMiddleUserId ? auction.getEllipsisInMiddleUserId() : 'N/A' }}</span>
-                    <q-badge v-if="isAuthor" color="positive" class="q-px-xs q-mr-sm">
-                      <q-icon name="star" size="10px" class="q-mr-xs" />You
-                    </q-badge>
+                  <div class="col column overflow-hidden">
+                    <div class="row items-center no-wrap full-width">
+                      <span 
+                        v-if="auction?.user?.username" 
+                        class="text-weight-medium ellipsis col-shrink q-mr-xs" 
+                      >
+                        {{ auction.user.username }}
+                      </span>
+                      
+                      <q-badge v-if="isAuthor" color="positive" class="q-px-xs no-shrink">
+                        <q-icon name="star" size="10px" class="q-mr-xs" />You
+                      </q-badge>
+                    </div>
+                    
+                    <span class="text-caption ellipsis" style="opacity: 0.6;">
+                      {{ auction?.getEllipsisInMiddleUserId ? auction.getEllipsisInMiddleUserId() : 'N/A' }}
+                    </span>
                   </div>
                   <q-btn flat round dense icon="content_copy" size="xs" @click="copyToClipboard(auction?.user?.address)" />
                 </div>
