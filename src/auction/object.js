@@ -375,5 +375,8 @@ export class AppealDetails {
           address: data.bidder.address || null
         }
       : { user: null, username: null, address: null }
+
+    this.contract_address = data.contract_address || null
+    this.balance = data.bid_price_bch !== undefined ? Number(data.bid_price_bch) : 0.00000000;
   }
 }
