@@ -56,8 +56,9 @@
                   <div class="text-caption col-4 q-mr-sm">
                     <q-icon name="person" size="13px" class="q-mr-xs" />Auctioneer
                   </div>
-                  <div class="col row items-center q-gutter-xs">
-                    <span>{{ auction.getEllipsisInMiddleUserId() }}</span>
+                  <div class="col column">
+                    <span v-if="auction.user?.username" class="text-weight-medium">{{ auction.user.username }}</span>
+                    <span class="text-caption" style="opacity: 0.6;">{{ auction.getEllipsisInMiddleUserId() }}</span>
                     <q-badge v-if="isAuthor" color="positive" class="q-px-xs q-ml-sm">
                       <q-icon name="star" size="10px" class="q-mr-xs" />You
                     </q-badge>
@@ -376,6 +377,12 @@ const fetchAllData = async () => {
     const result = await callAPI('auctions', Number(props.auctionId))
     if (result.success && result.data) {
       auction.value = parseAuctionData(result.data)
+
+      const userId = auction.value.user?.id
+      if (userId) {
+        const userRes = await callAPI('user-details', userId)
+        if (userRes.success && userRes.data) auction.value.setUserDetails(userRes.data)
+      }
     }
   } catch (err) {
     console.error('Failed to update auction details:', err)
@@ -521,7 +528,7 @@ const isLotEmpty = computed(() => {
 
 const isAuthor = computed(() => {
   const walletHash = Store.getters['global/getWallet']('bch')?.walletHash
-  return walletHash === auction?.value.user_id
+  return walletHash === auction.value?.user?.id
 })
 
 const canEdit = computed(() => {
