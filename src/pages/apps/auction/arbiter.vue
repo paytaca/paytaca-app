@@ -483,13 +483,14 @@ const handleAction = async () => {
     $q.loading.show({ message: 'Processing...' })
 
     if (selectedAction.value === 'release') {
-      await callContractReturn(details.value.bid)
+      await callContractReturn(details.value.bid_id)
+      await callAPI('delivery-trackings', details.value.lot_id, 'patch', { mark_as_completed: true })
     }
 
     const payload = {
-      refund: { is_granted_refund: true,  is_granted_return: false, is_resolved: true },
+      refund: { is_granted_refund: true, is_granted_return: false, is_resolved: true },
       norefund: { is_granted_refund: false, is_granted_return: false, is_resolved: true },
-      release: { is_granted_refund: false, is_granted_return: true,  is_resolved: true },
+      release: { is_granted_refund: false, is_granted_return: true, is_resolved: true },
       resolve: { is_granted_refund: false, is_granted_return: false, is_resolved: true },
     }[selectedAction.value]
 
