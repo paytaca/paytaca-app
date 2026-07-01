@@ -280,6 +280,40 @@ export class AppealList {
     
     this.status = data.is_resolved ? 'Resolved' : 'Pending'
 
+    this.resolution_date = data.resolution_date || null
+    this.timeSinceResolved = (() => {
+      if (!this.resolution_date) return '0s'
+      
+      const now = new Date()
+      
+      let dateStr = String(this.resolution_date).trim().replace(' ', 'T')
+      if (!dateStr.endsWith('Z') && !dateStr.includes('+')) {
+        dateStr += 'Z'
+      }
+      const past = new Date(dateStr)
+      
+      const seconds = Math.max(0, date.getDateDiff(now, past, 'seconds'))
+      if (seconds < 60) return `${seconds}s`
+      
+      const minutes = date.getDateDiff(now, past, 'minutes')
+      if (minutes < 60) return `${minutes}m`
+      
+      const hours = date.getDateDiff(now, past, 'hours')
+      if (hours < 24) return `${hours}h`
+      
+      const days = date.getDateDiff(now, past, 'days')
+      if (days < 7) return `${days}d`
+      
+      const weeks = Math.floor(days / 7)
+      if (weeks < 4) return `${weeks}w`
+      
+      const months = date.getDateDiff(now, past, 'months')
+      if (months < 12) return `${months}m`
+      
+      const years = date.getDateDiff(now, past, 'years')
+      return `${years}y`
+    })()
+
     this.reasons = Array.isArray(data.dispute_reason)
       ? data.dispute_reason.flatMap(r => r.split(';').map(s => s.trim()).filter(Boolean))
       : (data.dispute_reason
@@ -353,6 +387,40 @@ export class AppealDetails {
     })()
     
     this.status = data.is_resolved ? 'Resolved' : 'Pending'
+
+    this.resolution_date = data.resolution_date || null
+    this.timeSinceResolved = (() => {
+      if (!this.resolution_date) return '0s'
+      
+      const now = new Date()
+      
+      let dateStr = String(this.resolution_date).trim().replace(' ', 'T')
+      if (!dateStr.endsWith('Z') && !dateStr.includes('+')) {
+        dateStr += 'Z'
+      }
+      const past = new Date(dateStr)
+      
+      const seconds = Math.max(0, date.getDateDiff(now, past, 'seconds'))
+      if (seconds < 60) return `${seconds}s`
+      
+      const minutes = date.getDateDiff(now, past, 'minutes')
+      if (minutes < 60) return `${minutes}m`
+      
+      const hours = date.getDateDiff(now, past, 'hours')
+      if (hours < 24) return `${hours}h`
+      
+      const days = date.getDateDiff(now, past, 'days')
+      if (days < 7) return `${days}d`
+      
+      const weeks = Math.floor(days / 7)
+      if (weeks < 4) return `${weeks}w`
+      
+      const months = date.getDateDiff(now, past, 'months')
+      if (months < 12) return `${months}m`
+      
+      const years = date.getDateDiff(now, past, 'years')
+      return `${years}y`
+    })()
 
     this.reasons = Array.isArray(data.dispute_reason)
       ? data.dispute_reason.flatMap(r => r.split(';').map(s => s.trim()).filter(Boolean))
