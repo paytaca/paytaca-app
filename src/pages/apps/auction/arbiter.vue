@@ -40,7 +40,9 @@
               {{ details.status }}
             </q-chip>
             <span class="text-caption" style="opacity: 0.65;">
-              <q-icon name="schedule" size="xs" /> {{ details.timeSinceFiled }} ago
+              <q-icon name="schedule" size="xs" class="q-mr-xs" />
+              <span v-if="details.status === 'Resolved'">{{ details.timeSinceResolved }} ago</span>
+              <span v-else>{{ details.timeSinceFiled }} ago</span>
             </span>
           </div>
 
@@ -167,7 +169,16 @@
         ARBITER ACTION
       </div>
       <q-card class="pt-card text-bow q-mb-md" :class="getDarkModeClass(darkMode)">
-        <q-card-section class="q-py-sm">
+        <q-card-section v-if="details.status === 'Resolved'" class="q-py-sm">
+          <div class="row items-center q-gutter-x-xs">
+            <q-icon name="check_circle" color="positive" size="xs" />
+            <span class="text-caption">
+              This dispute was resolved {{ details.timeSinceResolved }} ago.
+            </span>
+          </div>
+        </q-card-section>
+
+        <q-card-section v-else class="q-py-sm">
           <div class="text-caption q-mb-sm">
             Select how the contract balance should be resolved.
           </div>

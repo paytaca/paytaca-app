@@ -459,7 +459,9 @@
                   {{ appeal.status }}
                 </q-chip>
                 <span class="text-caption q-mt-xs" style="opacity: 0.65;">
-                  <q-icon name="schedule" size="xs" /> {{ appeal.timeSinceFiled }} ago
+                  <q-icon name="schedule" size="xs" class="q-mr-xs" />
+                  <span v-if="appeal.status === 'Resolved'">{{ appeal.timeSinceResolved }} ago</span>
+                  <span v-else>{{ appeal.timeSinceFiled }} ago</span>
                 </span>
               </div>
               
