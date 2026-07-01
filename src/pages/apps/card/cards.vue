@@ -79,10 +79,22 @@
                     <q-skeleton type="text" width="70px" height="16px" />
                   </div>
                   <div v-else>
-                    <div :style="{ fontSize: '10px', opacity: '0.6', fontWeight: '400', letterSpacing: '0.5px' }">BALANCE</div>
+                    <div class="row items-center no-wrap" style="gap: 6px;">
+                      <div :style="{ fontSize: '10px', opacity: '0.6', fontWeight: '400', letterSpacing: '0.5px' }">BALANCE</div>
+                      <q-btn
+                        flat
+                        dense
+                        round
+                        size="xs"
+                        class="text-white"
+                        style="opacity: 0.7; margin-left: 2px;"
+                        :icon="isBalanceHidden(card.id) ? 'visibility_off' : 'visibility'"
+                        @click.stop="toggleBalanceVisibility(card.id)"
+                      />
+                    </div>
                     <div class="row items-center no-wrap" style="gap: 6px;">
                       <div class="text-weight-medium" style="font-size: 22px; line-height: 1.2;">
-                        {{ satoshiToBch(getCardBalance(card.id)?.bch) }}
+                        {{ getDisplayedBalance(card.id) }}
                       </div>
                       <div class="row items-center justify-center" style="width: 24px; height: 24px; border-radius: 8px; background: rgba(255,255,255,0.15);">
                         <q-img src="~assets/bch-logo.png" style="width: 14px; height: 14px;" fit="contain" />
@@ -205,7 +217,8 @@ export default {
       balancesLoading: true,
       isLoaded: false,
       showSwipeHint: true,
-      showActivateCardForm: false
+      showActivateCardForm: false,
+      hiddenBalances: {}
     }
   },
 
@@ -265,6 +278,7 @@ export default {
       await this.checkExistingCreateCardAttempt()
       await this.fetchCards()
       this.fetchCardsBalance()
+      this.loadBalanceVisibility()
     },
 
     async loadCardUser () {
@@ -328,6 +342,33 @@ export default {
         cashtoken: card?.ct_balance ?? []
       }
       return temp
+    },
+
+    loadBalanceVisibility () {
+      const raw = localStorage.getItem('card_hidden_balances')
+      this.hiddenBalances = raw ? JSON.parse(raw) : {}
+    },
+
+    saveBalanceVisibility () {
+      localStorage.setItem('card_hidden_balances', JSON.stringify(this.hiddenBalances))
+    },
+
+    toggleBalanceVisibility (cardId) {
+      if (!cardId) return
+      this.hiddenBalances = {
+        ...this.hiddenBalances,
+        [cardId]: !this.hiddenBalances[cardId]
+      }
+      this.saveBalanceVisibility()
+    },
+
+    isBalanceHidden (cardId) {
+      return !!this.hiddenBalances[cardId]
+    },
+
+    getDisplayedBalance (cardId) {
+      if (this.isBalanceHidden(cardId)) return '••••••'
+      return this.satoshiToBch(this.getCardBalance(cardId)?.bch)
     },
     /*
     async fetchCardsBackendData () {

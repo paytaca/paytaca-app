@@ -32,10 +32,22 @@
 
               <!-- Balance - bottom left -->
               <div class="card-balance-container">
-                <div style="font-size: 10px; opacity: 0.6; font-weight: 400; letter-spacing: 0.5px;">BALANCE</div>
+                <div class="row items-center no-wrap" style="gap: 6px;">
+                  <div style="font-size: 10px; opacity: 0.6; font-weight: 400; letter-spacing: 0.5px;">BALANCE</div>
+                  <q-btn
+                    flat
+                    dense
+                    round
+                    size="xs"
+                    class="text-white"
+                    style="opacity: 0.7; margin-left: 2px;"
+                    :icon="balanceHidden ? 'visibility_off' : 'visibility'"
+                    @click.stop="toggleBalanceVisibility"
+                  />
+                </div>
                 <div class="row items-center no-wrap" style="gap: 6px;">
                   <div class="text-weight-medium" style="font-size: 22px; line-height: 1.2;">
-                    {{ bchBalance }}
+                    {{ getDisplayedBalance() }}
                   </div>
                   <div class="row items-center justify-center" style="width: 24px; height: 24px; border-radius: 8px; background: rgba(255,255,255,0.15);">
                     <q-img src="~assets/bch-logo.png" style="width: 14px; height: 14px;" fit="contain" />
@@ -271,6 +283,7 @@ export default {
       // backendData: null,
       // dataError: null,
       bchBalance: 0,
+      balanceHidden: false,
     }
   },
 
@@ -399,6 +412,7 @@ export default {
     // Load the specific card (from localStorage or backend)
     // await this.loadSpecificCard()
     this.getCardBchBalance()
+    this.loadBalanceVisibility()
     console.log('Active card loaded:', this.activeCard)
 
     this.subscribeToCardTransactions()
@@ -565,6 +579,24 @@ export default {
           console.error('Failed to fetch card balance:', error)
           this.bchBalance = 0
         })
+    },
+
+    loadBalanceVisibility () {
+      if (!this.activeCard?.id) return
+      const key = `card_balance_hidden_${this.activeCard.id}`
+      this.balanceHidden = localStorage.getItem(key) === 'true'
+    },
+
+    toggleBalanceVisibility () {
+      if (!this.activeCard?.id) return
+      this.balanceHidden = !this.balanceHidden
+      const key = `card_balance_hidden_${this.activeCard.id}`
+      localStorage.setItem(key, String(this.balanceHidden))
+    },
+
+    getDisplayedBalance () {
+      if (this.balanceHidden) return '••••••'
+      return this.bchBalance
     },
 
     async saveCardName () {
