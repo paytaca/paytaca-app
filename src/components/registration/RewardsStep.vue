@@ -93,6 +93,7 @@
         :label="$t('RewardsStepSkipButton')"
         class="text-bow skip-button button button-text-primary"
         :class="getDarkModeClass(darkMode)"
+        :loading="isSkipButtonLoading"
         @click="onSkipButtonPressed"
       />
     </div>
@@ -158,6 +159,7 @@ export default {
     return {
       showQrScanner: false,
       isLoading: false,
+      isSkipButtonLoading: false,
       isCodeProcessed: false,
       isProcessingError: false,
       manualReferralCode: '',
@@ -301,6 +303,7 @@ export default {
     },
 
     async onSkipButtonPressed () {
+      this.isSkipButtonLoading = true
       if (this.fromCreateWallet) {
         await processReferralCode({
           wallet_hash: this.walletHash,
@@ -309,6 +312,7 @@ export default {
           from_wallet_creation: this.fromCreateWallet
         })
       }
+      this.isSkipButtonLoading = false
       this.$emit('on-proceed-to-next-step')
     },
 
