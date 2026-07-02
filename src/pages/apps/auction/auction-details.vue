@@ -365,7 +365,6 @@ const viewCount = ref(0)
 const auction = ref(null)
 const auctionCountdown = ref(0)
 const auctionStartCountdown = ref(0)
-let socket = null
 
 defineOptions({
   directives: {
@@ -471,6 +470,8 @@ const fetchAllData = async () => {
   }
 }
 
+let socket = null
+
 onMounted(async () => {
   isLoading.value = true
   
@@ -481,37 +482,50 @@ onMounted(async () => {
   await fetchAllData()
 
   // get the live auction websocket 
-  socket = callAuctionWebsocket(Number(props.auctionId))
+  let reconnectAttempts = 0
+  let maxReconnectAttempts = 10
+  const connectWebsocket = () => {
+    const ws = callAuctionWebsocket(Number(props.auctionId))
 
-  socket.onopen = function(event) {
-    console.log("Connected to the auction websocket!")
-  };
+    ws.onopen = function(event) {
+      console.log("Connected to the auction websocket!")
+    };
 
-  socket.onmessage = (event) => {
-    const { type, data } = JSON.parse(event.data);
+    ws.onmessage = (event) => {
+      const { type, data } = JSON.parse(event.data);
 
-    if (type === "live.viewing")
-      viewCount.value = data.viewer_count
-    else if(type === "auction.start_countdown")
-      auctionStartCountdown.value = data.time_left
-    else if(type === "auction.countdown")
-      auctionCountdown.value = data.time_left
-    else if(type === "auction.start"){
-      auctionCountdown.value = 0
-      auction.value.status = 2
-    }
-    else if(type === "auction.closed"){
-      auctionStartCountdown.value = 0
-      auction.value.status = 3
-    }
+      if (type === "live.viewing")
+        viewCount.value = data.viewer_count
+      else if(type === "auction.start_countdown")
+        auctionStartCountdown.value = data.time_left
+      else if(type === "auction.countdown")
+        auctionCountdown.value = data.time_left
+      else if(type === "auction.start"){
+        auctionCountdown.value = 0
+        auction.value.status = 2
+      }
+      else if(type === "auction.closed"){
+        auctionStartCountdown.value = 0
+        auction.value.status = 3
+      }
 
-    console.log(data)
-  };
+      console.log(data)
+    };
 
-  socket.onclose = function(event) {
-    console.log("Disconnected from the auction websocket!")
-  };
+    ws.onclose = function(event) {
+      console.log("Disconnected from the auction websocket!")
+      if (!event.wasClean && reconnectAttempts < maxReconnectAttempts) {
+        const delay = Math.min(1000 * 2 ** reconnectAttempts, 30000);
+        reconnectAttempts++
+        setTimeout(connectWebsocket, delay);
+      }
+    };
 
+    return ws
+  }
+  
+  // call the connectWebsocket function
+  socket = connectWebsocket()
   isLoading.value = false
 })
 
