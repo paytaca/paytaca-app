@@ -582,6 +582,7 @@ export default {
   CountHoursRemaining: "{hours} oras ang natitira",
   CountMinuteRemaining: "{minute} minuto ang natitira",
   CountMinutesRemaining: "{minutes} minuto ang natitira",
+  CountPoint: "{points} puntos",
   CountPointEarned: "{point} na nakuhang puntos",
   CountPoints: "{points} puntos",
   CountPointsEarned: "{points} puntos na nakuha",

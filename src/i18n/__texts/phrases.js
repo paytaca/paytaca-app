@@ -2763,6 +2763,7 @@ const phrases = {
     // =========================
     {
       CountPoints: '{points} points',
+      CountPoint: '{points} point',
       CountHoursRemaining: '{hours} hours remaining',
       CountHourRemaining: '{hour} hour remaining',
       CountMinutesRemaining: '{minutes} minutes remaining',

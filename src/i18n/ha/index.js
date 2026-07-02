@@ -582,6 +582,7 @@ export default {
   CountHoursRemaining: "Saura awanni {hours}",
   CountMinuteRemaining: "saura minti {minute}",
   CountMinutesRemaining: "Mintina {minutes} ya rage",
+  CountPoint: "maki {points}",
   CountPointEarned: "maki da aka samu",
   CountPoints: "maki {points}",
   CountPointsEarned: "maki da aka samu",

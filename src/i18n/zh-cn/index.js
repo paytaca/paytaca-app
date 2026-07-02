@@ -583,6 +583,7 @@ export default {
   CountHoursRemaining: "还剩 {hours} 小时",
   CountMinuteRemaining: "还剩 {minute} 分钟",
   CountMinutesRemaining: "还剩 {minutes} 分钟",
+  CountPoint: "{points}点",
   CountPointEarned: "获得 {point} 积分",
   CountPoints: "{points}点",
   CountPointsEarned: "获得 {points} 积分",

@@ -582,6 +582,7 @@ export default {
   CountHoursRemaining: "{hours} jam tersisa",
   CountMinuteRemaining: "{minute} menit tersisa",
   CountMinutesRemaining: "{minutes} menit tersisa",
+  CountPoint: "{points} poin",
   CountPointEarned: "{point} poin diperoleh",
   CountPoints: "{points} poin",
   CountPointsEarned: "{points} poin diperoleh",

@@ -583,6 +583,7 @@ export default {
   CountHoursRemaining: "{hours} horas restantes",
   CountMinuteRemaining: "{minute} minuto restante",
   CountMinutesRemaining: "{minutes} minutos restantes",
+  CountPoint: "{points} punto",
   CountPointEarned: "{point} punto ganado",
   CountPoints: "{points} puntos",
   CountPointsEarned: "{points} puntos ganados",

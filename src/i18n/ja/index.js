@@ -582,6 +582,7 @@ export default {
   CountHoursRemaining: "残り {hours} 時間",
   CountMinuteRemaining: "残り {minute} 分",
   CountMinutesRemaining: "残り {minutes} 分",
+  CountPoint: "{points} ポイント",
   CountPointEarned: "{point} ポイント獲得",
   CountPoints: "{points} ポイント",
   CountPointsEarned: "{points} ポイント獲得",

@@ -582,6 +582,7 @@ export default {
   CountHoursRemaining: "{hours}시간 남음",
   CountMinuteRemaining: "{minute}분 남음",
   CountMinutesRemaining: "{minutes}분 남음",
+  CountPoint: "{points} 포인트",
   CountPointEarned: "{point}포인트 획득",
   CountPoints: "{points} 포인트",
   CountPointsEarned: "{points} 포인트 획득",
