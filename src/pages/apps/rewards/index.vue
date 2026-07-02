@@ -707,6 +707,8 @@ export default {
       // check if wallet creation date is older than referral code eligibility date
       // check referral banner dismissal timestamp from API
       if (
+        this.referralCodeEligibilityDate &&
+        this.walletCreatedAt &&
         new Date(this.referralCodeEligibilityDate) > new Date(this.walletCreatedAt) &&
         upData?.enable_referral_banner
       ) {
