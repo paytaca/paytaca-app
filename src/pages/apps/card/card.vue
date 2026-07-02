@@ -641,20 +641,6 @@ export default {
       this.showEditNameDialog = false
     },
 
-
-
-    // copyContractAddress () {
-    //   const address = this.getContractAddress(this.activeCard)
-    //   if (address) {
-    //     navigator.clipboard.writeText(address)
-    //     this.notifySuccess('Contract address copied!')
-    //   }
-    // },
-
-    // getContractAddress (card) {
-    //   return card?.contractAddress || this.contractAddress || 'bitcoincash:qz6zvkmuawgkp9c0flg6n6pycxm2v4gksgxlqefvjw'
-    // },
-
     openCashInDialog () {
       // Set default currency to the currently selected currency
       this.cashInCurrency = this.selectedCurrency?.symbol || 'USD'
@@ -678,10 +664,6 @@ export default {
         window.open(orderCardUrl, '_blank')
       }
     },
-
-    
-
-    
 
     handleOrderPhysicalCard () {
       if (!this.orderPhysicalCardData.fullName || !this.orderPhysicalCardData.city || 
@@ -980,8 +962,6 @@ export default {
         position: 'top'
       })
     },
-
-    // Card operations - moved from linkCard.js
     
     /**
      * Sweep UTXOs from card back to wallet

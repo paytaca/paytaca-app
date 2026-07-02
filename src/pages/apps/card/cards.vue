@@ -206,12 +206,8 @@ export default {
       gestureLock: null,
       carouselIndex: 0,
       wheelAccumulator: 0,
-      // showLinkCardDialog: false,
       newCardName: '',
       isMinting: false,
-      // Backend data fetching disabled
-      // loadingCards: true,
-      // backendDataMap: {} // Map of cardId -> backend data
       cardBalances: [],
       // true while card balances are being fetched from backend
       balancesLoading: true,
@@ -370,43 +366,7 @@ export default {
       if (this.isBalanceHidden(cardId)) return '••••••'
       return this.satoshiToBch(this.getCardBalance(cardId)?.bch)
     },
-    /*
-    async fetchCardsBackendData () {
-      if (this.subCards.length === 0) {
-        this.loadingCards = false
-        return
-      }
-      
-      this.loadingCards = true
-      
-      try {
-        // Fetch backend data for each card
-        const promises = this.subCards.map(async (card) => {
-          try {
-            const cardInstance = await Card.createInitialized({ raw: { id: card.id } })
-            const bchUtxos = await cardInstance.getBchUtxos()
-            const bchBalanceSats = bchUtxos.reduce((sum, utxo) => sum + BigInt(utxo.satoshis || 0), 0n)
-            const bchBalance = (Number(bchBalanceSats) / 100000000).toFixed(8)
-            
-            this.backendDataMap[card.id] = {
-              balance: bchBalance,
-              contractAddress: cardInstance.raw?.contract_id
-            }
-          } catch (error) {
-            console.error(`Failed to fetch data for card ${card.id}:`, error)
-            this.backendDataMap[card.id] = null
-          }
-        })
-        
-        await Promise.all(promises)
-      } catch (error) {
-        console.error('Failed to fetch cards backend data:', error)
-      } finally {
-        this.loadingCards = false
-      }
-    },
-    */
-
+   
     capitalizeFirst (str) {
       if (!str) return ''
       return str.charAt(0).toUpperCase() + str.slice(1)
@@ -427,25 +387,6 @@ export default {
       // Fall back to backend alias or name
       return this.capitalizeFirst(card.alias || card.name || 'Card')
     },
-
-    /* NEW: Helper method to get card BCH balance using Card class
-     * Uses card.getBchBalance() which returns card.raw.bch_balance from backend
-     * Falls back to card.balance from localStorage if method not available
-     * 
-     * Usage: {{ getCardBchBalance(card) }} in template
-     * 
-     * getCardBchBalance (card) {
-     *   if (!card) return '0.00'
-     *   try {
-     *     // Use getBchBalance() from Card class
-     *     const balance = card.getBchBalance?.() ?? card.balance
-     *     return typeof balance === 'number' ? balance.toFixed(2) : (balance || '0.00')
-     *   } catch (error) {
-     *     console.error('Error getting card balance:', error)
-     *     return card?.balance || '0.00'
-     *   }
-     * },
-     */
 
     getCardStyle (index) {
       const card = this.displayedCards[index]
