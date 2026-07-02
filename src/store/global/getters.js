@@ -31,6 +31,15 @@ export function lastBackupTimestamp (state) {
   return null
 }
 
+export function walletCreatedAt (state) {
+  // Get wallet creation date from current wallet's settings (ISO 8601 string)
+  const walletIndex = state.walletIndex
+  if (state.vault?.[walletIndex]?.settings) {
+    return state.vault[walletIndex].settings.walletCreatedAt || null
+  }
+  return null
+}
+
 export function theme (state) {
   return state.theme
 }

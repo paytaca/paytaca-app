@@ -270,7 +270,7 @@
                       <points-badge
                         :complete="item.has_transacted"
                         :dark-mode-class="getDarkModeClass(darkMode)"
-                        :points="10"
+                        :points="item.points_earned"
                       />
                     </div>
                   </q-card-section>
@@ -426,13 +426,11 @@ export default {
         // new user; create and update necessary data
         rpData = await createRfPromoData()
         this.rpId = rpData.id
-        this.$router.replace({ params: { id: String(rpData.id) } })
-        Promise.allSettled([
-          updateUserPromoData({ rp: rpData.id }),
-          updateRfPromoData(rpData.id, {
-            contract_ct_address: this.rpContract.contract.tokenAddress
-          })
-        ])
+        await this.$router.replace({ params: { id: String(rpData.id) } })
+        rpData = await updateRfPromoData(rpData.id, {
+          contract_ct_address: this.rpContract.contract.tokenAddress
+        })
+        updateUserPromoData({ rp: rpData.id })
       } else {
         rpData = await getRfPromoData(this.rpId)
       }
@@ -499,6 +497,8 @@ export default {
           promoType: Promos.RFPROMO,
           referralType: 'Friend'
         }
+      }).onDismiss(() => {
+        this.loadData()
       })
     },
     openRedeemPointsDialog () {

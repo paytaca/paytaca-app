@@ -7,6 +7,7 @@ import { requestManager } from 'src/utils/request-manager'
 
 const ENGAGEMENT_HUB_URL =
   process.env.ENGAGEMENT_HUB_URL || 'https://engagementhub.paytaca.com/api/'
+// const ENGAGEMENT_HUB_URL = 'http://127.0.0.1:8000/api/'
 export const REWARDS_URL = axios.create({ baseURL: `${ENGAGEMENT_HUB_URL}rewards/` })
 requestManager.attachTo(REWARDS_URL)
 export const PROMO_TOKEN_CATEGORY = process.env.PROMO_TOKEN_CATEGORY
@@ -145,11 +146,16 @@ export async function getRpMaxRedeemable () {
 }
 
 export async function getLiftConversionRatio () {
-  const conversionRatio = await getData('userpromo/get_lift_convertion_ratio/')
+  const resp = await getData('userpromo/get_lift_convertion_ratio/')
   // fallback to original value of 4 when something goes wrong with server fetch
-  return conversionRatio && Object.keys(conversionRatio).length > 0
-    ? conversionRatio.conversion_ratio
+  const conversionRatio = resp && Object.keys(resp).length > 0
+    ? resp.conversion_ratio
     : 4
+  const eligibilityDate = resp && Object.keys(resp).length > 0
+    ? resp.eligibility_date
+    : new Date('2026-07-01T00:00:00Z') // July 01, 2026
+
+  return { conversionRatio, eligibilityDate }
 }
 
 export async function getRewardsSwapContractDetails () {

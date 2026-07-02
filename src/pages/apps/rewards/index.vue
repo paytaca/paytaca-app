@@ -54,7 +54,7 @@
                 <!-- Line 1: Points → LIFT -->
                 <div class="text-weight-medium" style="font-size: 15px !important;">
                   <span class="text-primary">
-                    {{ $t('CountPoints', { points: totalPoints.toLocaleString() }) }}
+                    {{ totalPoints === 1 ? $t('CountPoint', { points: totalPoints.toLocaleString() }) : $t('CountPoints', { points: totalPoints.toLocaleString() }) }}
                   </span>
                   <span :class="darkMode ? 'text-grey-6' : 'text-grey-8'">
                     &nbsp;=&nbsp;
@@ -105,7 +105,7 @@
                 {{ $t('TotalPoints') }}
               </span>
               <span class="text-h6 text-weight-bold text-primary">
-                {{ $t('CountPoints', { points: totalPoints.toLocaleString() }) }}
+                {{ totalPoints === 1 ? $t('CountPoint', { points: totalPoints.toLocaleString() }) : $t('CountPoints', { points: totalPoints.toLocaleString() }) }}
               </span>
             </div>
             
@@ -211,6 +211,9 @@
           <template v-else-if="bannerRemainingTime.hours === 0 && bannerRemainingTime.minutes === 1">
             {{ $t('CountMinuteRemaining', { minute: bannerRemainingTime.minutes }) }}
           </template>
+          <template v-else>
+            {{ $t('LessThanMinuteRemaining') }}
+          </template>
         </span>
         <template v-slot:action>
           <div class="row q-mt-xs">
@@ -289,7 +292,7 @@
                 class="amount-text"
                 :class="getDarkModeClass(darkMode, '', 'text-grad')"
               >
-                {{ $t('CountPoints', { points: promo.points }) }}
+                {{ promo.points === 1 ? $t('CountPoint', { points: promo.points }) : $t('CountPoints', { points: promo.points }) }}
               </span>
             </div>
 
@@ -316,6 +319,7 @@
         :wallet-hash="walletHash"
         :dark-mode="darkMode"
         :from-create-wallet="false"
+        :referral-code="code"
         @on-proceed-to-next-step="onReferralDialogClose"
       />
     </q-card>
@@ -334,6 +338,9 @@ import {
   createUserPromoData,
   updateUserPromoData,
   getLiftConversionRatio,
+  Promos,
+  updateUserRewardsData,
+  updateRfPromoData,
 } from 'src/utils/engagementhub-utils/rewards'
 
 import HeaderNav from 'src/components/header-nav.vue'
@@ -345,6 +352,10 @@ import PromoContract from 'src/utils/rewards-utils/contracts/PromoContract'
 
 export default {
   name: 'RewardsPage',
+
+  props: {
+    code: { type: String, default: '' }
+  },
 
   components: {
     HeaderNav,
@@ -381,6 +392,7 @@ export default {
       // Referral banner state
       isReferralDialogActive: false,
       isReferralBannerDismissed: false,
+      referralCodeEligibilityDate: null,
       bannerRemainingTime: null,
       enableReferralBanner: false, // value coming from UserPromo API
 
@@ -414,6 +426,10 @@ export default {
 
     walletHash () {
       return this.$store.getters['global/getWallet']('bch')?.walletHash || ''
+    },
+
+    walletCreatedAt () {
+      return this.$store.getters['global/walletCreatedAt']
     },
 
     showReferralBanner () {
@@ -513,7 +529,9 @@ export default {
     // Format conversion ratio display
     formattedConversionRatio () {
       if (!this.liftConversionRatio || this.liftConversionRatio === 0) return '--'
-      const pointsTranslate = this.$t('CountPoints', { points: this.liftConversionRatio })
+      const pointsTranslate = this.liftConversionRatio === 1
+        ? this.$t('CountPoint', { points: this.liftConversionRatio })
+        : this.$t('CountPoints', { points: this.liftConversionRatio })
       return `${pointsTranslate} = 1 LIFT`
     }
   },
@@ -541,6 +559,10 @@ export default {
 
   async mounted () {
     await this.loadRewards()
+
+    if (this.code) {
+      this.isReferralDialogActive = true
+    }
   },
 
   methods: {
@@ -618,11 +640,12 @@ export default {
       const upData = upResp.value
       const ratioData = ratioResp.value
 
-      // Check referral banner dismissal timestamp from API
-      if (upData?.enable_referral_banner) {
-        this.bannerRemainingTime = upData?.banner_remaining_time
-        this.enableReferralBanner = upData?.enable_referral_banner
-      }
+      // process fetched ratioData
+      this.liftConversionRatio = ratioData.conversionRatio
+      this.referralCodeEligibilityDate = ratioData.eligibilityDate
+
+      // check referral code eligibility of wallet
+      this.checkReferralCodeEligibility(upData)
 
       // process fetched upData
       if (upData && Object.keys(upData).length > 0) {
@@ -631,7 +654,7 @@ export default {
           const walletIndex = this.$store.getters['global/getWalletIndex']
           const userPubkey = await getAddress0_0PublicKey(walletIndex)
           for (const type of this.pointsType) {
-            const promoId = upData[type]
+            const promoId = upData[type]?.pk ?? null
             if (promoId) {
               const targetPromo = PromosBytes[type.toUpperCase()]
               const contract = new PromoContract(userPubkey, targetPromo)
@@ -639,6 +662,24 @@ export default {
               this.totalPoints += promoBalance
               this.promos[type].points = promoBalance
               this.promos[type].id = promoId
+
+              if (contract.contract.tokenAddress !== upData[type].contract_ct_address) {
+                // update promo contract address in background
+                switch (type) {
+                  case Promos.USERREWARDS:
+                    updateUserRewardsData(
+                      promoId, { contract_ct_address: contract.contract.tokenAddress }
+                    )
+                    break
+                  case Promos.RFPROMO:
+                    updateRfPromoData(
+                      promoId, { contract_ct_address: contract.contract.tokenAddress }
+                    )
+                    break
+                  default:
+                    break
+                }
+              }
             }
           }
         } catch (error) {
@@ -650,9 +691,6 @@ export default {
       } else {
         this.error = this.$t('PointsLoadError')
       }
-
-      // process fetched ratioData
-      this.liftConversionRatio = ratioData
 
       // Fetch LIFT token price from Cauldron API
       await this.fetchLiftPriceFromCauldron()
@@ -668,6 +706,20 @@ export default {
           updateUserPromoData({ last_viewed: new Date() })
         })
       }, 250)
+    },
+
+    checkReferralCodeEligibility (upData) {
+      // check if wallet creation date is older than referral code eligibility date
+      // check referral banner dismissal timestamp from API
+      if (
+        this.referralCodeEligibilityDate &&
+        this.walletCreatedAt &&
+        new Date(this.referralCodeEligibilityDate) > new Date(this.walletCreatedAt) &&
+        upData?.enable_referral_banner
+      ) {
+        this.bannerRemainingTime = upData?.banner_remaining_time
+        this.enableReferralBanner = upData?.enable_referral_banner
+      }
     },
 
     redirectToPromoPage (promo) {

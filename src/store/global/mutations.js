@@ -24,7 +24,8 @@ function getDefaultWalletSettings() {
     preferredSecurity: 'pin', // 'pin' or 'biometric'
     lockApp: false, // Enable/disable app lock feature
     relativeTxTimestamp: true, // true: relative timestamps, false: absolute timestamps
-    lastBackupTimestamp: null // Timestamp when user last confirmed backup completion (Unix timestamp in milliseconds)
+    lastBackupTimestamp: null, // Timestamp when user last confirmed backup completion (Unix timestamp in milliseconds)
+    walletCreatedAt: null // ISO 8601 string from backend auth/wallet endpoint
   }
 }
 
@@ -49,6 +50,18 @@ export function setLastBackupTimestamp (state, timestamp) {
       state.vault[state.walletIndex].settings = getDefaultWalletSettings()
     }
     state.vault[state.walletIndex].settings.lastBackupTimestamp = timestamp !== null && timestamp !== undefined ? Number(timestamp) : null
+  }
+}
+
+export function setWalletCreatedAt (state, dateString) {
+  // dateString should be an ISO 8601 string (e.g., "2024-01-15T08:30:00Z")
+  // null or undefined means no creation date recorded
+  // Store per-wallet in vault settings
+  if (state.vault && state.vault[state.walletIndex]) {
+    if (!state.vault[state.walletIndex].settings) {
+      state.vault[state.walletIndex].settings = getDefaultWalletSettings()
+    }
+    state.vault[state.walletIndex].settings.walletCreatedAt = dateString !== null && dateString !== undefined ? String(dateString) : null
   }
 }
 

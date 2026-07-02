@@ -2157,6 +2157,7 @@ const phrases = {
       ReferralBannerText: "Missed your referral code? Enter it before it's too late!",
       CurrentLiftPrice: 'Current LIFT Price',
       PromoDataLoadingError: 'Unable to load promo data at the moment. Please try again later.',
+      LessThanMinuteRemaining: 'Less than a minute remaining',
 
       // user rewards index page
       OneTimePoints: 'One-time Points',
@@ -2201,6 +2202,9 @@ const phrases = {
       FriendReferralQrTitle: 'Friend Referral QR',
       ReferralQrDescription: 'Have new users scan or copy the referral code when they create a new wallet.',
       FailedToCopyCode: 'Failed to copy code',
+      ShareReferralCodeLink: 'Share Referral Code Link',
+      JoinWithMyReferralCode: 'Join with my {referralCode}!',
+      JoinPaytacaWithMyReferralCode: 'Join Paytaca with my referral code.',
 
       // redemption history dialog
       EmptyRedemptionHistoryTitle: 'No redemptions yet',
@@ -2765,6 +2769,7 @@ const phrases = {
     // =========================
     {
       CountPoints: '{points} points',
+      CountPoint: '{points} point',
       CountHoursRemaining: '{hours} hours remaining',
       CountHourRemaining: '{hour} hour remaining',
       CountMinutesRemaining: '{minutes} minutes remaining',

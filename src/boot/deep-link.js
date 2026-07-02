@@ -55,10 +55,12 @@ export default boot(({ router, /* store */ }) => {
         const txid = match[1]
         router.push({ name: 'transaction-list', query: { txid } })
       }
-    } else if (url.host === 'gifts.paytaca.com' && url.pathname.match('/claim/?')) {
+    } else if (url.host === 'gifts.paytaca.com' && url.pathname.match(/^\/claim\/?$/)) {
       router.push({ name: 'claim-gift', query: { claimShare: url.searchParams.get('code') } })
-    } else if (url.host === 'p2p.paytaca.com' && url.pathname.match('/ad/share/?')) {
+    } else if (url.host === 'p2p.paytaca.com' && url.pathname.match(/^\/ad\/share\/?$/)) {
       router.push({ name: 'exchange', query: { ad_id: url.searchParams.get('id') } })
+    } else if (url.host === 'rewards.paytaca.com' && /\/referral\/?$/.test(url.pathname)) {
+      router.push({ name: 'app-rewards', query: { code: url.searchParams.get('code') } })
     }
   })
 

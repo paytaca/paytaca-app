@@ -669,7 +669,8 @@ export default {
       await this.fetchContractPoints()
 
       // fetch LIFT conversion ratio
-      this.liftConversionRate = await getLiftConversionRatio()
+      const resp = await getLiftConversionRatio()
+      this.liftConversionRate = resp.conversionRatio
       
       // Store original total for display
       this.originalPoints = this.contractPoints
@@ -773,8 +774,8 @@ export default {
     },
     
     copyTokenAddress () {
-      if (navigator.clipboard && this.tokenAddress) {
-        navigator.clipboard.writeText(this.tokenAddress)
+      if (this.tokenAddress) {
+        this.$copyText(this.tokenAddress)
         this.$q.notify({
           type: 'positive',
           message: this.$t('AddressCopied'),

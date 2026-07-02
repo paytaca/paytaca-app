@@ -211,26 +211,26 @@ export default class PromoContract {
       // combine the two utxos and format to extract needed details
       const combinedUtxos = [...bchUtxos, ...ctUtxos]
 
-      if (combinedUtxos.length === 0) {
-        throw new Error('Fetched empty UTXOs from Watchtower. Falling to fallback to double check.')
-      }
-
-      for (const utxo of combinedUtxos) {
-        let token
-        if (utxo?.is_cashtoken) {
-          token = {
-            amount: BigInt(utxo.amount),
-            category: utxo.tokenid
+      // fallback removed for consistency with other contract logic in codebase
+      if (combinedUtxos.length > 0) {
+        for (const utxo of combinedUtxos) {
+          let token
+          if (utxo?.is_cashtoken) {
+            token = {
+              amount: BigInt(utxo.amount),
+              category: utxo.tokenid
+            }
           }
+  
+          contractUtxos.push({
+            satoshis: BigInt(utxo.value),
+            txid: utxo.txid,
+            vout: utxo.vout,
+            token
+          })
         }
-
-        contractUtxos.push({
-          satoshis: BigInt(utxo.value),
-          txid: utxo.txid,
-          vout: utxo.vout,
-          token
-        })
       }
+
     } catch (error) {
       console.error('Failed to fetch UTXOs from Watchtower. Using getUtxos() function as fallback.')
       console.error(error)
