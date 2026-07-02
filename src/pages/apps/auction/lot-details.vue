@@ -745,7 +745,11 @@ import { callAPI } from 'src/auction/api'
 import { Store } from 'src/store'
 import { AuctionList, LotsList } from 'src/auction/object'
 import { walletToContract } from 'src/auction/payment'
-import { callContractRelease, callContractReturn } from 'src/auction/arbiter'
+import {
+  callContractRelease,
+  callContractReturn,
+  callContractRefund
+} from 'src/auction/arbiter'
 
 // Components
 import HeaderNav from 'src/components/header-nav.vue'
@@ -928,7 +932,7 @@ const markedAsReturned = async () => {
     }
 
     $q.loading.show({ message: 'Marking as returned, processing funds...' })
-    await callContractReturn(winningBidId.value)
+    await callContractRefund(winningBidId.value)
     $q.loading.hide()
 
     await callAPI('delivery-trackings', props.lotId, 'patch', { mark_as_returned: true })
