@@ -54,7 +54,7 @@
                 <!-- Line 1: Points → LIFT -->
                 <div class="text-weight-medium" style="font-size: 15px !important;">
                   <span class="text-primary">
-                    {{ $t('CountPoints', { points: totalPoints.toLocaleString() }) }}
+                    {{ totalPoints === 1 ? $t('CountPoint', { points: totalPoints.toLocaleString() }) : $t('CountPoints', { points: totalPoints.toLocaleString() }) }}
                   </span>
                   <span :class="darkMode ? 'text-grey-6' : 'text-grey-8'">
                     &nbsp;=&nbsp;
@@ -105,7 +105,7 @@
                 {{ $t('TotalPoints') }}
               </span>
               <span class="text-h6 text-weight-bold text-primary">
-                {{ $t('CountPoints', { points: totalPoints.toLocaleString() }) }}
+                {{ totalPoints === 1 ? $t('CountPoint', { points: totalPoints.toLocaleString() }) : $t('CountPoints', { points: totalPoints.toLocaleString() }) }}
               </span>
             </div>
             
@@ -289,7 +289,7 @@
                 class="amount-text"
                 :class="getDarkModeClass(darkMode, '', 'text-grad')"
               >
-                {{ $t('CountPoints', { points: promo.points }) }}
+                {{ promo.points === 1 ? $t('CountPoint', { points: promo.points }) : $t('CountPoints', { points: promo.points }) }}
               </span>
             </div>
 
@@ -526,7 +526,9 @@ export default {
     // Format conversion ratio display
     formattedConversionRatio () {
       if (!this.liftConversionRatio || this.liftConversionRatio === 0) return '--'
-      const pointsTranslate = this.$t('CountPoints', { points: this.liftConversionRatio })
+      const pointsTranslate = this.liftConversionRatio === 1
+        ? this.$t('CountPoint', { points: this.liftConversionRatio })
+        : this.$t('CountPoints', { points: this.liftConversionRatio })
       return `${pointsTranslate} = 1 LIFT`
     }
   },
