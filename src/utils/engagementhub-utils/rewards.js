@@ -153,7 +153,7 @@ export async function getLiftConversionRatio () {
     : 4
   const eligibilityDate = resp && Object.keys(resp).length > 0
     ? resp.eligibility_date
-    : new Date('2026-07-01T06:50:16.192Z') // July 01, 2026
+    : new Date('2026-07-01T00:00:00Z') // July 01, 2026
 
   return { conversionRatio, eligibilityDate }
 }
