@@ -861,6 +861,7 @@ export default {
       })
     },
     confirmResetChat () {
+      if (this.resettingChat) return
       this.$q.dialog({
         component: ResetChatDialog,
       }).onOk(async () => {
