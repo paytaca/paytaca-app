@@ -1444,7 +1444,7 @@ const handleBuyItNow = async (payload = {}) => {
         await closeAuctionIfAllSold()
 
         await callAPI('delivery-trackings', null, 'post', {
-          auctioneer: auction.value.user,
+          auctioneer: auction.value.user.id,
           bidder: walletHash,
           lot: props.lotId,
           status: 1,
@@ -1550,7 +1550,7 @@ const initEnglishDeliveryTracking = async () => {
 
   try {
     await callAPI('delivery-trackings', null, 'post', {
-      auctioneer: auction.value.user,
+      auctioneer: auction.value.user.id,
       bidder: walletHash,
       lot: props.lotId,
       status: 1,
