@@ -263,6 +263,16 @@
                   </div>
                 </div>
 
+                <!-- Seller: refund granted banner -->
+                <div v-if="showPostAuctionActions && isAuthor && isGrantedRefund" class="q-mt-md full-width">
+                  <q-banner rounded dense class="bg-warning text-white q-pa-md">
+                    <template v-slot:avatar>
+                      <q-icon name="assignment_return" />
+                    </template>
+                    Refund has been granted. Please await the buyer's return shipment.
+                  </q-banner>
+                </div>
+
                 <!-- Resolved: funds returned by arbiter (status 1 or 2) -->
                 <div v-if="showPostAuctionActions && isGrantedReturn && (deliveryStatusId === 1 || deliveryStatusId === 2)" class="q-mt-md full-width">
                   <q-banner rounded dense class="bg-positive text-white q-pa-md">
