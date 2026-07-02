@@ -45,8 +45,21 @@ export function extractPlanId(content) {
     const mainHost = new URL(mainFrontend).hostname
     const chipHost = new URL(chipFrontend).hostname
 
-    if (url.hostname === mainHost || url.hostname === chipHost) {
-      const pathParts = url.pathname.split('/').filter(p => p)
+    // Check if the path contains 'plans' to extract the ID robustly
+    const pathParts = url.pathname.split('/').filter(p => p)
+    if (pathParts.includes('plans')) {
+      const plansIndex = pathParts.indexOf('plans')
+      if (plansIndex + 1 < pathParts.length) {
+        return pathParts[plansIndex + 1]
+      }
+    }
+
+    if (
+      url.hostname === mainHost || 
+      url.hostname === chipHost ||
+      url.hostname === 'paymenthub.paytaca.com' ||
+      url.hostname === 'chipnet.paymenthub.paytaca.com'
+    ) {
       return pathParts[pathParts.length - 1]
     }
     

@@ -561,9 +561,15 @@ async function cancelSubscription(sub) {
   })
 }
 
-function openSubscribeDialog() {
+function openSubscribeDialog(planId = null) {
+  const componentProps = {}
+  if (planId && typeof planId === 'string') {
+    componentProps.initialPlanId = planId
+  }
+
   $q.dialog({
-    component: SubscribeDialog
+    component: SubscribeDialog,
+    componentProps: componentProps
   }).onOk(async (formData) => {
     try {
       $q.loading.show()

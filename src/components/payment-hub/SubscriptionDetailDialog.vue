@@ -381,8 +381,9 @@ function showBillingInfo() {
 
   const mFee = minerFee.value
   const pFee = paytacaFee.value
+  const pledgeSats = sub.value?.pledge_satoshis || 0
 
-  msg += ` This total cost includes the base plan pledge, a small miner fee (${mFee} sats), and the Paytaca platform fee (${pFee} sats).`
+  msg += ` This total cost includes the base plan pledge (${pledgeSats} sats), which is the actual amount sent to the merchant, a small miner fee (${mFee} sats), and the Paytaca platform fee (${pFee} sats).`
 
   $q.dialog({
     title: 'Billing Amount',
