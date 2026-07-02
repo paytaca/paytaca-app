@@ -1,6 +1,6 @@
 @import url("https://unpkg.com/leaflet@1.9.4/dist/leaflet.css");
 
-.link-card-dialog {
+.activate-card-dialog {
 	width: 500px;
 	max-width: 90vw;
 	max-height: 80vh;
@@ -1072,9 +1072,6 @@ animation: float 6s ease-in-out infinite;
   }
 }
 
-.create-card-icon {
-  // Static, no hover effect
-}
 
 .tap-icon-container {
   transition: transform 0.3s ease;

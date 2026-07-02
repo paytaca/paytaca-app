@@ -1,6 +1,6 @@
 <template>
   <q-dialog v-model="showDialog" persistent :maximized="$q.screen.xs" transition-show="fade" transition-hide="fade">
-    <q-card class="link-card-dialog pt-card" :class="$q.dark.isActive ? 'dark' : 'light'">
+    <q-card class="activate-card-dialog pt-card" :class="$q.dark.isActive ? 'dark' : 'light'">
       <!-- Dialog Header -->
       <div class="dialog-header q-px-md q-pt-md q-pb-sm">
         <div class="row items-center justify-between">
@@ -241,7 +241,7 @@ import { loadCardUser } from 'src/services/card/user';
 import QrScanner from 'src/components/qr-scanner.vue';
 
 export default {
-  name: 'LinkCardDialog',
+  name: 'ActivateCardDialog',
   emits: ['close', 'activate'],
   components: {
     QrScanner
@@ -368,7 +368,7 @@ export default {
 </script>
 
 <style scoped>
-.link-card-dialog {
+.activate-card-dialog {
   width: 450px;
   max-width: 90vw;
   border-radius: 24px;
@@ -377,36 +377,36 @@ export default {
   font-family: 'Rubik', sans-serif;
 }
 
-.link-card-dialog.light {
+.activate-card-dialog.light {
   background: color-mix(in srgb, var(--q-primary) 12%, rgba(255, 255, 255, 0.75)) !important;
 }
 
 /* Dialog typography */
-.link-card-dialog :deep(.text-h6) {
+.activate-card-dialog :deep(.text-h6) {
   font-family: 'Rubik', sans-serif;
   font-weight: 600;
   letter-spacing: -0.3px;
 }
 
-.link-card-dialog :deep(.text-subtitle2) {
+.activate-card-dialog :deep(.text-subtitle2) {
   font-family: 'Rubik', sans-serif;
   font-weight: 600;
   letter-spacing: 0.2px;
 }
 
-.link-card-dialog :deep(.text-h5) {
+.activate-card-dialog :deep(.text-h5) {
   font-family: 'Rubik', sans-serif;
   font-weight: 600;
   letter-spacing: -0.5px;
 }
 
-.link-card-dialog :deep(.text-body2) {
+.activate-card-dialog :deep(.text-body2) {
   font-family: 'Rubik', sans-serif;
   font-weight: 400;
   letter-spacing: 0.2px;
 }
 
-.link-card-dialog :deep(.text-caption) {
+.activate-card-dialog :deep(.text-caption) {
   font-family: 'Rubik', sans-serif;
   font-weight: 400;
   letter-spacing: 0.3px;
@@ -927,7 +927,7 @@ export default {
 }
 
 /* Button typography */
-.link-card-dialog :deep(.q-btn) {
+.activate-card-dialog :deep(.q-btn) {
   font-family: 'Rubik', sans-serif;
   font-weight: 500;
   letter-spacing: 0.3px;
@@ -952,7 +952,7 @@ export default {
 
 /* Responsive */
 @media (max-width: 480px) {
-  .link-card-dialog {
+  .activate-card-dialog {
     min-width: 100%;
     max-width: 100%;
     border-radius: 0;
