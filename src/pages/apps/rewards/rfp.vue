@@ -427,12 +427,10 @@ export default {
         rpData = await createRfPromoData()
         this.rpId = rpData.id
         await this.$router.replace({ params: { id: String(rpData.id) } })
-        Promise.allSettled([
-          updateUserPromoData({ rp: rpData.id }),
-          updateRfPromoData(rpData.id, {
-            contract_ct_address: this.rpContract.contract.tokenAddress
-          })
-        ])
+        rpData = await updateRfPromoData(rpData.id, {
+          contract_ct_address: this.rpContract.contract.tokenAddress
+        })
+        updateUserPromoData({ rp: rpData.id })
       } else {
         rpData = await getRfPromoData(this.rpId)
       }
