@@ -129,7 +129,7 @@
                 >
                   <q-item-section side top>
                     <q-badge
-                      :color="inv.status === 'PAID' ? 'green-4' : (inv.status === 'PENDING' ? 'orange-4' : 'grey-5')"
+                      :color="getBadgeColor(inv.status)"
                       :text-color="darkMode ? 'black' : 'white'"
                       class="text-weight-bold br-5"
                     >
@@ -317,4 +317,15 @@ onMounted(async () => {
   }
 })
 
+function getBadgeColor(status) {
+  switch(status) {
+    case 'PAID': return 'green-4'
+    case 'PENDING': return 'orange-4'
+    case 'TOP UP': return 'blue-4'
+    case 'RECLAIMED': return 'purple-4'
+    case 'CANCELLED': return 'red-4'
+    case 'EXPIRED': return 'grey-5'
+    default: return 'grey-5'
+  }
+}
 </script>

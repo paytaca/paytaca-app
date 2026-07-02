@@ -601,7 +601,7 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted, onBeforeUnmount } from 'vue'
+import { ref, computed, onMounted, onBeforeUnmount, watch } from 'vue'
 import { useRoute } from 'vue-router'
 import { useStore } from 'vuex'
 import { useQuasar, copyToClipboard, openURL } from 'quasar'
@@ -650,7 +650,14 @@ const invoiceListRef = ref(null)
 
 // Invoice Filter & Search state
 const invoiceStatusFilter = ref([])
-const includeSubscriptions = ref(true)
+const savedIncludeSubscriptions = localStorage.getItem('phub_includeSubscriptions')
+const includeSubscriptions = ref(savedIncludeSubscriptions !== null ? savedIncludeSubscriptions === 'true' : false)
+
+watch(includeSubscriptions, (val) => {
+  localStorage.setItem('phub_includeSubscriptions', val)
+  invoiceStatusFilter.value = []
+})
+
 const invoiceSearchQuery = ref('')
 const tempInvoiceSearchQuery = ref('')
 const showInvoiceSearchDialog = ref(false)
@@ -664,7 +671,13 @@ function clearInvoiceSearch() {
   tempInvoiceSearchQuery.value = ''
 }
 
-const invoiceStatuses = ['PENDING', 'PAID', 'EXPIRED', 'CANCELLED']
+const invoiceStatuses = computed(() => {
+  if (includeSubscriptions.value) {
+    return ['TOP UP', 'PAID', 'RECLAIMED']
+  } else {
+    return ['PENDING', 'PAID', 'EXPIRED', 'CANCELLED']
+  }
+})
 const mainTabs = ['invoices', 'api_keys', 'plans', 'subscriptions', 'settings']
 
 function handleGlobalSwipe(details) {

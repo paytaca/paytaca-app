@@ -275,7 +275,7 @@
                 <q-item v-for="inv in invoices" :key="inv.invoice_id" clickable v-ripple class="q-py-md" @click="showInvoiceDetail(inv)">
                   <q-item-section side top>
                     <q-badge
-                      :color="inv.status === 'PAID' ? 'green-4' : (inv.status === 'PENDING' ? 'orange-4' : 'grey-5')"
+                      :color="getBadgeColor(inv.status)"
                       :text-color="darkMode ? 'black' : 'white'"
                       class="text-weight-bold br-5"
                     >
@@ -636,6 +636,17 @@ function copyText(text, label = 'Text') {
 onMounted(() => {
   fetchSubscription()
 })
+function getBadgeColor(status) {
+  switch(status) {
+    case 'PAID': return 'green-4'
+    case 'PENDING': return 'orange-4'
+    case 'TOP UP': return 'blue-4'
+    case 'RECLAIMED': return 'purple-4'
+    case 'CANCELLED': return 'red-4'
+    case 'EXPIRED': return 'grey-5'
+    default: return 'grey-5'
+  }
+}
 </script>
 
 <style scoped>

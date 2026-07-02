@@ -252,6 +252,8 @@ function getStatusIcon(status) {
     case 'PENDING': return 'schedule'
     case 'EXPIRED': return 'event_busy'
     case 'CANCELLED': return 'cancel'
+    case 'TOP UP': return 'savings'
+    case 'RECLAIMED': return 'settings_backup_restore'
     default: return 'help'
   }
 }
@@ -262,6 +264,8 @@ function getStatusColor(status) {
     case 'PENDING': return 'orange'
     case 'EXPIRED': return 'grey'
     case 'CANCELLED': return 'red'
+    case 'TOP UP': return 'blue'
+    case 'RECLAIMED': return 'purple'
     default: return 'grey'
   }
 }

@@ -243,6 +243,8 @@ function getStatusColor(status) {
     case 'PENDING': return 'orange'
     case 'EXPIRED': return 'grey'
     case 'CANCELLED': return 'red'
+    case 'TOP UP': return 'blue'
+    case 'RECLAIMED': return 'purple'
     default: return 'grey'
   }
 }
