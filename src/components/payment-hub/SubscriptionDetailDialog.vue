@@ -86,13 +86,13 @@
             </div>
 
             <!-- Billing Period -->
-            <div class="q-mb-sm" v-if="sub.plan_details">
+            <div class="q-mb-sm" v-if="sub.plan_details || sub.period_blocks">
               <div class="text-caption text-grey">{{ $t('BillingReceivingPeriod') || 'Billing/Receiving Period' }}</div>
               <div class="row items-center">
                 <div class="text-body2 text-weight-medium">
-                  {{ getPeriodText(sub.plan_details) }}
+                  {{ getPeriodText(sub) }}
                 </div>
-                <q-btn flat round dense icon="info" size="xs" color="grey" class="q-ml-xs" @click="showBlocksInfo(sub.plan_details.period_blocks)" v-if="sub.plan_details.period_blocks" />
+                <q-btn flat round dense icon="info" size="xs" color="grey" class="q-ml-xs" @click="showBlocksInfo(sub.period_blocks || sub.plan_details?.period_blocks)" v-if="sub.period_blocks || sub.plan_details?.period_blocks" />
               </div>
             </div>
 
@@ -135,6 +135,15 @@
                 rounded
                 color="red"
                 :label="sub.status === 'ACTIVE' || sub.status === 'PENDING' ? ($t('Cancel') || 'Cancel') : ($t('Reclaim') || 'Reclaim')"
+                class="q-px-sm"
+                @click="onCancelSubscriptionClick"
+              />
+              <q-btn
+                v-if="!isCustomer && (sub.status === 'ACTIVE' || sub.status === 'PENDING')"
+                flat
+                rounded
+                color="red"
+                :label="$t('Cancel') || 'Cancel'"
                 class="q-px-sm"
                 @click="onCancelSubscriptionClick"
               />
@@ -459,15 +468,18 @@ const nextPayoutDate = computed(() => {
   const blocks = sub.value.period_blocks || (sub.value.plan_details && sub.value.plan_details.period_blocks)
   if (!blocks) return null
 
-  let baseDateStr = sub.value.last_payment_date
-  if (!baseDateStr) {
-    baseDateStr = sub.value.date_created
-  }
+  if (!sub.value.date_created) return null
 
-  if (!baseDateStr) return null
+  const dateCreated = new Date(sub.value.date_created).getTime()
+  const periodMs = blocks * 10 * 60000
+  const now = Date.now()
 
-  const baseDate = new Date(baseDateStr)
-  return new Date(baseDate.getTime() + blocks * 10 * 60000)
+  // Calculate based on a fixed schedule relative to date_created
+  const totalExpected = Math.max(0, Math.floor((now - dateCreated) / periodMs))
+  const numOverdue = sub.value.num_overdue || 0
+  const paymentsMade = Math.max(0, totalExpected - numOverdue)
+
+  return new Date(dateCreated + (paymentsMade + 1) * periodMs)
 })
 
 const nextPayoutDisplay = computed(() => {
@@ -564,10 +576,11 @@ function formatAmount(amount) {
 }
 
 function getPeriodText(p) {
-  if (p.period_days) {
-    return `${p.period_days} ${p.period_days === 1 ? (t('Day') || 'day') : (t('Days') || 'days')}`
+  const periodDays = p.period_days || p.plan_details?.period_days
+  if (periodDays) {
+    return `${periodDays} ${periodDays === 1 ? (t('Day') || 'day') : (t('Days') || 'days')}`
   }
-  const blocks = p.period_blocks
+  const blocks = p.period_blocks || p.plan_details?.period_blocks
   if (!blocks) return ''
 
   let timeStr = ''
