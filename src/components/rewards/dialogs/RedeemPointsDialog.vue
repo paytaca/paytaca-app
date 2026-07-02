@@ -669,7 +669,8 @@ export default {
       await this.fetchContractPoints()
 
       // fetch LIFT conversion ratio
-      this.liftConversionRate = await getLiftConversionRatio()
+      const resp = await getLiftConversionRatio()
+      this.liftConversionRate = resp.conversionRatio
       
       // Store original total for display
       this.originalPoints = this.contractPoints
