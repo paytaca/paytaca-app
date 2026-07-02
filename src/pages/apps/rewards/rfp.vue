@@ -499,6 +499,8 @@ export default {
           promoType: Promos.RFPROMO,
           referralType: 'Friend'
         }
+      }).onDismiss(() => {
+        this.loadData()
       })
     },
     openRedeemPointsDialog () {
