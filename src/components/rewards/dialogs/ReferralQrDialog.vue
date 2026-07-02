@@ -172,7 +172,7 @@ export default {
       return `https://rewards.paytaca.com/referral?code=${code}`
     },
     shareLinks () {
-      const encodedUrl = encodeURI(this.referralShareUrl)
+      const encodedUrl = encodeURIComponent(this.referralShareUrl)
       const fbAppId = 438643061338284
       const isMobile = this.$q.platform.is.mobile
       const links = {}
