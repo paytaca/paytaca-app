@@ -198,6 +198,7 @@ const routes = [
           { path: '', component: () => import('src/pages/apps/auction/index.vue'), name: 'app-auction' },
           { path: 'activity', component: () => import('src/pages/apps/auction/activity.vue'), name: 'app-auction-activity' },
           { path: 'profile', component: () => import('src/pages/apps/auction/profile.vue'), name: 'app-auction-profile' },
+          { path: 'appeals', component: () => import('src/pages/apps/auction/appeals.vue'), name: 'app-auction-appeals' },
           { path: 'add-auction', component: () => import('src/pages/apps/auction/add-auction.vue'), name: 'app-auction-add' },
           { path: 'edit-auction/:auctionId', component: () => import('src/pages/apps/auction/edit-auction.vue'), name: 'app-auction-edit', props: true },
           { path: 'arbiter/:appealId', component: () => import('src/pages/apps/auction/arbiter.vue'), name: 'app-auction-arbiter', props: true },
