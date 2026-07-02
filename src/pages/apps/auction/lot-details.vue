@@ -253,11 +253,11 @@
                       icon="assignment_return"
                       padding="sm"
                       unelevated
-                      :disable="!canRequestRefund"
+                      :disable="!canRequestRefund || isGrantedRefund"
                       @click="showRefundDialog = true"
                     >
                       <div>
-                        Refund <span v-if="refundCountdown" class="text-caption">({{ refundCountdown }})</span>
+                        Refund <span v-if="refundCountdown && !isGrantedRefund" class="text-caption">({{ refundCountdown }})</span>
                       </div>
                     </q-btn>
                   </div>
@@ -1612,7 +1612,11 @@ const refundCountdown = ref('')
 let refundCountdownInterval = null
 
 const updateRefundCountdown = () => {
-  if (!deliveredDate.value) { refundCountdown.value = ''; return }
+  if (!deliveredDate.value || isGrantedRefund.value) {
+    refundCountdown.value = ''
+    clearInterval(refundCountdownInterval)
+    return
+  }
   const delivered = new Date(String(deliveredDate.value).trim().replace(' ', 'T'))
   const deadline = new Date(delivered.getTime() + 6 * 60 * 60 * 1000)
   const diff = deadline - new Date()
