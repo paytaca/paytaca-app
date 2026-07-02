@@ -267,15 +267,12 @@ export class JPPSourceTypes {
   static resolve(paymentUrl) {
     try {
       let link = new URL(paymentUrl)
-      
-      const mainPaymentHubHost = new URL(process.env.PAYMENT_HUB_API || 'https://paymenthub.paytaca.com/api').host
-      const chipPaymentHubHost = new URL(process.env.PAYMENT_HUB_CHIP_API || 'https://chipnet.paymenthub.paytaca.com/api').host
 
       if (link.host.indexOf('127.0.0.1') >= 0) return this.BITPAY
       if (link.host.indexOf('bitcoin.com') >= 0) return this.BITCOIN_COM
       if (link.host.indexOf('bitpay') >= 0) return this.BITPAY
       if (link.host.indexOf('watchtower.cash') >= 0) return this.WATCHTOWER
-      if (link.host.indexOf(mainPaymentHubHost) >= 0 || link.host.indexOf(chipPaymentHubHost) >= 0) return this.BITPAY
+      if (link.host.indexOf('paymenthub.paytaca.com') >= 0) return this.BITPAY
       if (link.host.indexOf('ddrhckrzz-nixos.nuthatch-tilapia.ts.net') >= 0) return this.BITPAY // TEMP: REMOVE LATER
       if (link.host.indexOf('localhost') >= 0) return this.WATCHTOWER
       if (link.host.indexOf('anypay') >= 0) return this.ANYPAY
@@ -438,8 +435,7 @@ export class JSONPaymentProtocol {
    */
   async getUtxosFromWallet(wallet, category, nft) {
     const params = {
-      // THIS IS TEMPORARY!!! NOTE: CHANGE THIS BACK WHEN IN PROD
-      // confirmed: this.source == JPPSourceTypes.BITPAY ? true : undefined,
+      confirmed: this.source == JPPSourceTypes.BITPAY ? true : undefined,
       is_cashtoken: category ? true : undefined,
       is_cashtoken_nft: nft?.capability ? true : undefined,
     }
