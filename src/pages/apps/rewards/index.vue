@@ -211,6 +211,9 @@
           <template v-else-if="bannerRemainingTime.hours === 0 && bannerRemainingTime.minutes === 1">
             {{ $t('CountMinuteRemaining', { minute: bannerRemainingTime.minutes }) }}
           </template>
+          <template v-else>
+            {{ $t('LessThanMinuteRemaining') }}
+          </template>
         </span>
         <template v-slot:action>
           <div class="row q-mt-xs">

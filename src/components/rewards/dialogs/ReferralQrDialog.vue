@@ -390,25 +390,33 @@ export default {
           line-height: 1.4;
         `
 
-        const textSpan = document.createElement('span')
-        textSpan.textContent = 'Join with my '
-        headerText.appendChild(textSpan)
+        const referralCodeText = this.$t('ReferralCode')
+        const fullHeaderText = this.$t('JoinWithMyReferralCode', { referralCode: referralCodeText })
+        const refCodeIdx = fullHeaderText.indexOf(referralCodeText)
 
-        const referralCodeSpan = document.createElement('span')
-        referralCodeSpan.style.cssText = `
-          background: linear-gradient(135deg, #1976d2 0%, #42a5f5 100%);
-          color: white;
-          font-weight: 800;
-          padding: 4px 12px;
-          border-radius: 8px;
-          box-shadow: 0 2px 8px rgba(25, 118, 210, 0.3);
-        `
-        referralCodeSpan.textContent = 'Referral Code'
-        headerText.appendChild(referralCodeSpan)
+        if (refCodeIdx >= 0) {
+          const textSpan = document.createElement('span')
+          textSpan.textContent = fullHeaderText.substring(0, refCodeIdx)
+          headerText.appendChild(textSpan)
 
-        const textSpan2 = document.createElement('span')
-        textSpan2.textContent = '!'
-        headerText.appendChild(textSpan2)
+          const referralCodeSpan = document.createElement('span')
+          referralCodeSpan.style.cssText = `
+            background: linear-gradient(135deg, #1976d2 0%, #42a5f5 100%);
+            color: white;
+            font-weight: 800;
+            padding: 4px 12px;
+            border-radius: 8px;
+            box-shadow: 0 2px 8px rgba(25, 118, 210, 0.3);
+          `
+          referralCodeSpan.textContent = referralCodeText
+          headerText.appendChild(referralCodeSpan)
+
+          const textSpan2 = document.createElement('span')
+          textSpan2.textContent = fullHeaderText.substring(refCodeIdx + referralCodeText.length)
+          headerText.appendChild(textSpan2)
+        } else {
+          headerText.textContent = fullHeaderText
+        }
 
         logoContainer.appendChild(headerText)
         header.appendChild(logoContainer)
@@ -567,7 +575,7 @@ export default {
           margin-bottom: 24px;
           line-height: 1.4;
         `
-        instructionText.textContent = 'Join Paytaca with my referral code.'
+        instructionText.textContent = this.$t('JoinPaytacaWithMyReferralCode')
         footer.appendChild(instructionText)
 
         // Paytaca logo container
