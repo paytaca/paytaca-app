@@ -177,6 +177,11 @@ onMounted(async () => {
 
   $q.loading.hide()
 
+  if ($store.getters['auction/isArbiter']) {
+    $router.push({ name: 'app-auction-appeals' })
+    return
+  }
+
   if (!$store.getters['auction/username']) {
     console.warn('User details missing, redirecting...')
     $router.push({ name: 'app-auction-profile' })
