@@ -101,6 +101,7 @@ export async function fetchServicerPublicKey({ commit }) {
 export async function fetchUsername({ commit }) {
   try {
     commit('setUsername', '')
+    commit('setIsArbiter', false)
     
     const wallet = await getWallet()
     const publicKey = await wallet.BCH.getPublicKey(`0/0`)
