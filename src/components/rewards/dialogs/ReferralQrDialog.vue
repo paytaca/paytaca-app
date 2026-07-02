@@ -616,10 +616,12 @@ export default {
           // Small delay to ensure DOM updates are rendered
           await new Promise(resolve => setTimeout(resolve, 100))
 
+          const isMobile = Capacitor.getPlatform() !== 'web'
+
           // Capture with html2canvas
           const canvas = await html2canvas(wrapper, {
             backgroundColor: null,
-            scale: 3,
+            scale: isMobile ? 2 : 3,
             logging: false,
             useCORS: true,
             allowTaint: true
@@ -634,8 +636,6 @@ export default {
           }
 
           const filename = `referral-code-${referralCode}.png`
-
-          const isMobile = Capacitor.getPlatform() !== 'web'
 
           if (isMobile) {
             const base64Data = await new Promise((resolve, reject) => {
