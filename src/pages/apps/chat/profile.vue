@@ -320,19 +320,12 @@
         </div>
 
         <!-- Reset Chat Data -->
-        <div class="danger-section q-mt-lg">
-          <div class="section-label">
-            {{ $t('ResetChat', {}, 'Reset Chat') }}
-          </div>
-          <div class="section-description">
-            {{ $t('ResetChatDescription', {}, 'Clear all conversations and re-fetch them from the relay. Your contacts and profile are preserved.') }}
-          </div>
+        <div class="reset-chat-section q-mt-lg">
           <q-btn
             :label="$t('ResetChat', {}, 'Reset Chat')"
-            color="negative"
-            outline
-            rounded
-            class="full-width"
+            flat
+            no-caps
+            color="grey"
             :loading="resettingChat"
             @click="confirmResetChat"
           />
@@ -352,10 +345,11 @@ import { npubEncode } from 'nostr-tools/nip19'
 import { clearChatCache, hasChatCache, getChatCacheSize } from 'src/components/chat/MessageBubble.vue'
 import { copyToClipboard } from 'quasar'
 import { uploadPublicToBlossom } from 'src/wallet/nostr-media'
+import ResetChatDialog from './ResetChatDialog.vue'
 
 export default {
   name: 'ChatProfile',
-  components: { HeaderNav },
+  components: { HeaderNav, ResetChatDialog },
   data () {
     return {
       showQrDialog: false,
@@ -866,14 +860,10 @@ export default {
         }
       })
     },
-    async confirmResetChat () {
+    confirmResetChat () {
+      if (this.resettingChat) return
       this.$q.dialog({
-        title: this.$t('ResetChat', {}, 'Reset Chat'),
-        message: this.$t('ResetChatConfirm', {}, 'Clear all conversations and re-fetch them from the relay? Your contacts and profile will be preserved.'),
-        class: `pt-card text-bow ${this.getDarkModeClass(this.darkMode)}`,
-        cancel: { label: this.$t('Cancel', {}, 'Cancel'), flat: true, color: 'grey' },
-        ok: { label: this.$t('Reset', {}, 'Reset'), color: 'negative', flat: true },
-        persistent: true,
+        component: ResetChatDialog,
       }).onOk(async () => {
         this.resettingChat = true
         try {
@@ -881,7 +871,7 @@ export default {
           await this.checkCache()
           this.$q.notify({
             type: 'positive',
-            message: this.$t('ChatResetSuccess', {}, 'Chat reset successfully. Conversations are being re-fetched.'),
+            message: this.$t('ChatResetSuccess', {}, 'Chat reset successfully. Conversations are being re-fetched. Contacts and profile have been cleared.'),
           })
         } catch (err) {
           this.$q.notify({
@@ -1129,6 +1119,13 @@ export default {
   color: #9ca3af;
   line-height: 1.5;
   margin-bottom: 12px;
+}
+
+.reset-chat-section {
+  display: flex;
+  justify-content: center;
+  border-top: 1px solid rgba(156, 163, 175, 0.15);
+  padding-top: 12px;
 }
 
 /* Dark mode */

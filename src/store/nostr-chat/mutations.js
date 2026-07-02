@@ -467,10 +467,16 @@ export function DELETE_ROOM_TRACKER (state, roomId) {
   }
 }
 
-// Reset per-wallet chat data (conversations, caches) but keep keys and profile
+// Reset all per-wallet chat data (keys, conversations, caches, profile)
 export function RESET_WALLET_CHAT_DATA (state) {
   const ws = getOrInitWalletState(state)
   if (!ws) return
+  ws.keys = {
+    npub: null,
+    nsec: null,
+    pubKeyHex: null,
+    privKeyHex: null,
+  }
   ws.rooms = []
   ws.deletedRooms = []
   ws.messages = {}
@@ -484,4 +490,16 @@ export function RESET_WALLET_CHAT_DATA (state) {
   ws.displayNameCache = {}
   ws.avatarCache = {}
   ws.isSubscribed = false
+  ws.profile = {
+    bchAddress: null,
+    publishedAt: null,
+    displayName: null,
+    displayNamePublishedAt: null,
+    avatar: null,
+    avatarPublishedAt: null,
+  }
+}
+
+export function RESET_CONTACTS (state) {
+  state.contacts = []
 }

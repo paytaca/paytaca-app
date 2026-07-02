@@ -96,7 +96,7 @@
             icon="arrow_back"
             @click="handleDialogBack"
           />
-          <div class="text-h6">{{ dialogTitle }}</div>
+          <div class="text-h6 text-bow" :class="getDarkModeClass(darkMode)">{{ dialogTitle }}</div>
         </q-card-section>
 
         <q-card-section class="q-pt-none">
@@ -115,7 +115,7 @@
                   {{ $t('DirectMessage', {}, 'Direct Message') }}
                 </div>
                 <div class="chat-type-desc">
-                  {{ $t('DirectMessageDesc', {}, 'End-to-end encrypted one-on-one chat.') }}
+                  {{ $t('DirectMessageDesc', {}, 'End-to-end encrypted direct messages between two parties.') }}
                 </div>
               </div>
               <q-icon name="chevron_right" size="20px" class="chat-type-chevron" />
@@ -131,10 +131,10 @@
               </q-avatar>
               <div class="chat-type-text">
                 <div class="chat-type-title" :class="getDarkModeClass(darkMode)">
-                  {{ $t('PrivateGroup', {}, 'Private Group') }}
+                  {{ $t('ClosedPrivateGroup', {}, 'Closed Private Group') }}
                 </div>
                 <div class="chat-type-desc">
-                  {{ $t('PrivateGroupDesc', {}, 'End-to-end encrypted, up to 10 members. Members are fixed once created.') }}
+                  {{ $t('ClosedPrivateGroupDesc', {}, 'End-to-end encrypted group chat for up to 10 members. Members are fixed once created.') }}
                 </div>
               </div>
               <q-icon name="chevron_right" size="20px" class="chat-type-chevron" />
@@ -145,19 +145,19 @@
               :class="getDarkModeClass(darkMode)"
             >
               <q-avatar size="44px" class="chat-type-icon public-group-icon">
-                <q-icon name="public" size="24px" color="white" />
+                <q-icon name="groups" size="24px" color="white" />
               </q-avatar>
               <div class="chat-type-text">
                 <div class="chat-type-title-row">
                   <span class="chat-type-title" :class="getDarkModeClass(darkMode)">
-                    {{ $t('PublicGroup', {}, 'Public Group') }}
+                    {{ $t('OpenPrivateGroup', {}, 'Open Private Group') }}
                   </span>
                   <span class="coming-soon-badge">
                     {{ $t('ComingSoon', {}, 'Coming soon') }}
                   </span>
                 </div>
                 <div class="chat-type-desc">
-                  {{ $t('PublicGroupDesc', {}, 'Unencrypted, open membership with no limit.') }}
+                  {{ $t('OpenPrivateGroupDesc', {}, 'End-to-end encrypted group chat for up to 10,000 members. New members can join anytime.') }}
                 </div>
               </div>
             </div>
@@ -1280,7 +1280,7 @@ export default {
 }
 
 .chat-type-icon.public-group-icon {
-  background: linear-gradient(135deg, #10b981, #047857);
+  background: linear-gradient(135deg, #a78bfa, #7c3aed);
 }
 
 .chat-type-text {
