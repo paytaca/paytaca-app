@@ -211,6 +211,7 @@ export default class PromoContract {
       // combine the two utxos and format to extract needed details
       const combinedUtxos = [...bchUtxos, ...ctUtxos]
 
+      // fallback removed for consistency with other contract logic in codebase
       if (combinedUtxos.length > 0) {
         for (const utxo of combinedUtxos) {
           let token
