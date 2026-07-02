@@ -2176,7 +2176,6 @@ export default {
   Reset: "재설정",
   ResetChat: "채팅 재설정",
   ResetChatConfirm: "모든 대화, 연락처, 프로필 데이터가 영구적으로 삭제됩니다.Nostr 키는 지갑 시드 문구에서 다시 파생됩니다.",
-  ResetChatDescription: "모든 대화를 지우고 릴레이에서 다시 가져옵니다.귀하의 연락처와 프로필도 삭제됩니다.",
   ResetChatTypeConfirm: "RESET을 입력하여 확인하세요.",
   ResetChatTypeConfirmPlaceholder: "여기에 RESET을 입력하세요.",
   ResetKeys: "키 재설정",

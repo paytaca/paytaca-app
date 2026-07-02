@@ -2176,7 +2176,6 @@ export default {
   Reset: "Stel terug",
   ResetChat: "Stel Chat terug",
   ResetChatConfirm: "Dit sal alle gesprekke, kontakte en profieldata permanent uitvee.Jou Nostr-sleutels sal herlei word van jou beursie-saadfrase.",
-  ResetChatDescription: "Vee alle gesprekke uit en haal dit weer van die aflos af.Jou kontakte en profiel word ook uitgevee.",
   ResetChatTypeConfirm: "Tik RESET om te bevestig:",
   ResetChatTypeConfirmPlaceholder: "Tik RESET hier",
   ResetKeys: "Stel sleutels terug",

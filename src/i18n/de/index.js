@@ -2176,7 +2176,6 @@ export default {
   Reset: "Zurücksetzen",
   ResetChat: "Chat zurücksetzen",
   ResetChatConfirm: "Dadurch werden alle Konversationen, Kontakte und Profildaten dauerhaft gelöscht.Ihre Nostr-Schlüssel werden aus Ihrer Wallet-Seed-Phrase neu abgeleitet.",
-  ResetChatDescription: "Löschen Sie alle Konversationen und rufen Sie sie erneut vom Relay ab.Ihre Kontakte und Ihr Profil werden ebenfalls gelöscht.",
   ResetChatTypeConfirm: "Geben Sie zur Bestätigung RESET ein:",
   ResetChatTypeConfirmPlaceholder: "Geben Sie hier RESET ein",
   ResetKeys: "Schlüssel zurücksetzen",

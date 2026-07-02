@@ -2176,7 +2176,6 @@ export default {
   Reset: "I-reset",
   ResetChat: "I-reset ang Chat",
   ResetChatConfirm: "Permanente nitong tatanggalin ang lahat ng pag-uusap, contact, at data ng profile.Ang iyong mga Nostr key ay muling kukunin mula sa iyong wallet seed phrase.",
-  ResetChatDescription: "I-clear ang lahat ng pag-uusap at kunin muli ang mga ito mula sa relay.Ang iyong mga contact at profile ay tinatanggal din.",
   ResetChatTypeConfirm: "I-type ang RESET para kumpirmahin:",
   ResetChatTypeConfirmPlaceholder: "I-type ang RESET dito",
   ResetKeys: "I-reset ang Mga Susi",

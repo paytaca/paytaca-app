@@ -2176,7 +2176,6 @@ export default {
   Reset: "Setel ulang",
   ResetChat: "Setel Ulang Obrolan",
   ResetChatConfirm: "Ini akan menghapus secara permanen semua percakapan, kontak, dan data profil.Kunci Nostr Anda akan diturunkan kembali dari frase awal dompet Anda.",
-  ResetChatDescription: "Hapus semua percakapan dan ambil kembali dari relai.Kontak dan profil Anda juga dihapus.",
   ResetChatTypeConfirm: "Ketik RESET untuk mengonfirmasi:",
   ResetChatTypeConfirmPlaceholder: "Ketik RESET di sini",
   ResetKeys: "Atur Ulang Tombol",

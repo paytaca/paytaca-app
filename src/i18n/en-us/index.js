@@ -2187,7 +2187,6 @@ export default {
   Reset: "Reset",
   ResetChat: "Reset Chat",
   ResetChatConfirm: "This will permanently delete all conversations, contacts, and profile data. Your Nostr keys will be re-derived from your wallet seed phrase.",
-  ResetChatDescription: "Clear all conversations and re-fetch them from the relay. Your contacts and profile are also deleted.",
   ResetChatTypeConfirm: "Type RESET to confirm:",
   ResetChatTypeConfirmPlaceholder: "Type RESET here",
   ResetKeys: "Reset Keys",

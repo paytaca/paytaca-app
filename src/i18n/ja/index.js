@@ -2176,7 +2176,6 @@ export default {
   Reset: "リセット",
   ResetChat: "チャットをリセット",
   ResetChatConfirm: "これにより、すべての会話、連絡先、プロフィール データが完全に削除されます。Nostr キーはウォレットのシードフレーズから再派生されます。",
-  ResetChatDescription: "すべての会話をクリアし、リレーから再取得します。連絡先とプロフィールも削除されます。",
   ResetChatTypeConfirm: "「RESET」と入力して確認します。",
   ResetChatTypeConfirmPlaceholder: "ここに「RESET」と入力します",
   ResetKeys: "リセットキー",

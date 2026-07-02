@@ -2176,7 +2176,6 @@ export default {
   Reset: "Opnieuw instellen",
   ResetChat: "Chat opnieuw instellen",
   ResetChatConfirm: "Hiermee worden alle gesprekken, contacten en profielgegevens permanent verwijderd.Uw Nostr-sleutels worden opnieuw afgeleid van de zaadzin van uw portemonnee.",
-  ResetChatDescription: "Wis alle gesprekken en haal ze opnieuw op van het relais.Uw contacten en profiel worden ook verwijderd.",
   ResetChatTypeConfirm: "Typ RESET om te bevestigen:",
   ResetChatTypeConfirmPlaceholder: "Typ hier RESET",
   ResetKeys: "Sleutels opnieuw instellen",

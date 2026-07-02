@@ -2176,7 +2176,6 @@ export default {
   Reset: "Réinitialiser",
   ResetChat: "Réinitialiser le chat",
   ResetChatConfirm: "Cela supprimera définitivement toutes les conversations, contacts et données de profil.Vos clés Nostr seront dérivées de la phrase de départ de votre portefeuille.",
-  ResetChatDescription: "Effacez toutes les conversations et récupérez-les depuis le relais.Vos contacts et votre profil sont également supprimés.",
   ResetChatTypeConfirm: "Tapez RESET pour confirmer :",
   ResetChatTypeConfirmPlaceholder: "Tapez RÉINITIALISER ici",
   ResetKeys: "Réinitialiser les clés",

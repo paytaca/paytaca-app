@@ -67,7 +67,6 @@ export default {
     onConfirmClick () {
       if (this.input === 'RESET') {
         this.$emit('ok')
-        this.hide()
       }
     },
   },

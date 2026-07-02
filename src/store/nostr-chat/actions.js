@@ -2700,6 +2700,11 @@ export async function resetAndRefetch ({ commit, dispatch, state }) {
   // Clear IndexedDB image cache
   await clearChatCache().catch(err => console.warn('Failed to clear chat cache during reset:', err))
 
+  // Clear module-level ephemeral caches
+  _messageRoomMap.clear()
+  _readReceiptRetries.clear()
+  _pendingReadReceipts.clear()
+
   // Reset all per-wallet chat data (keys, rooms, messages, caches, profile)
   commit('RESET_WALLET_CHAT_DATA')
 

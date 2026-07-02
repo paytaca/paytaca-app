@@ -2177,7 +2177,6 @@ export default {
   Reset: "Reiniciar",
   ResetChat: "Restablecer chat",
   ResetChatConfirm: "Esto eliminará permanentemente todas las conversaciones, contactos y datos de perfil.Sus claves Nostr se volverán a derivar de la frase inicial de su billetera.",
-  ResetChatDescription: "Borre todas las conversaciones y vuelva a recuperarlas del relé.Tus contactos y perfil también se eliminan.",
   ResetChatTypeConfirm: "Escriba RESET para confirmar:",
   ResetChatTypeConfirmPlaceholder: "Escriba RESET aquí",
   ResetKeys: "Restablecer claves",

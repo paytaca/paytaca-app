@@ -2176,7 +2176,6 @@ export default {
   Reset: "Sake saiti",
   ResetChat: "Sake saita Taɗi",
   ResetChatConfirm: "Wannan zai share duk tattaunawa har abada, lambobi, da bayanan martaba.Za a sake samun maɓallan Nostr ɗinku daga jumlar nau'in walat ɗin ku.",
-  ResetChatDescription: "Share duk tattaunawar kuma sake debo su daga relay.Za a kuma share lambobinku da bayanin martaba.",
   ResetChatTypeConfirm: "Buga RESET don tabbatarwa:",
   ResetChatTypeConfirmPlaceholder: "Rubuta RESET anan",
   ResetKeys: "Sake saitin Maɓallai",

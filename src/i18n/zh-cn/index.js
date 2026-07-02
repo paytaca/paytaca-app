@@ -2177,7 +2177,6 @@ export default {
   Reset: "重置",
   ResetChat: "重置聊天",
   ResetChatConfirm: "这将永久删除所有对话、联系人和个人资料数据。您的 Nostr 密钥将从您的钱包种子短语中重新派生。",
-  ResetChatDescription: "清除所有对话并从中继中重新获取它们。您的联系人和个人资料也将被删除。",
   ResetChatTypeConfirm: "键入 RESET 以确认：",
   ResetChatTypeConfirmPlaceholder: "在此输入重置",
   ResetKeys: "重置按键",

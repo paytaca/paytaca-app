@@ -2176,7 +2176,6 @@ export default {
   Reset: "Redefinir",
   ResetChat: "Redefinir bate-papo",
   ResetChatConfirm: "Isso excluirá permanentemente todas as conversas, contatos e dados de perfil.Suas chaves Nostr serão derivadas novamente da frase inicial de sua carteira.",
-  ResetChatDescription: "Limpe todas as conversas e recupere-as do retransmissor.Seus contatos e perfil também são excluídos.",
   ResetChatTypeConfirm: "Digite RESET para confirmar:",
   ResetChatTypeConfirmPlaceholder: "Digite RESET aqui",
   ResetKeys: "Redefinir chaves",
