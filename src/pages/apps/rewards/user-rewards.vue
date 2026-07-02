@@ -244,7 +244,7 @@
                         <points-badge
                           :complete="hasReceivedFirstTxBonus"
                           :dark-mode-class="getDarkModeClass(darkMode)"
-                          :points="5"
+                          :points="firstTxBonusPointsReceived"
                         />
                       </div>
                     </q-card-section>
@@ -562,6 +562,7 @@ export default {
       dataError: '',
 
       hasReceivedFirstTxBonus: false,
+      firstTxBonusPointsReceived: 0,
       firstTxDate: null,
       isFirstSevenComplete: false,
       isFirstTimeUser: true,
@@ -741,6 +742,7 @@ export default {
       this.isFirstSevenComplete = urData.is_first_seven_complete
       // this.hasReceivedFirstVisitBonus = urData.has_received_first_visit_bonus
       this.hasReceivedFirstTxBonus = urData.has_received_first_tx_bonus
+      this.firstTxBonusPointsReceived = urData.first_tx_bonus_points_received
       this.firstTxDate = urData.first_tx_date
       this.dateJoined = urData.date_joined
 
