@@ -290,16 +290,6 @@ export default {
     this.state = 'form';
     this.selectedInputMethod = 'qr';
     this.inputCardUid = true;
-
-    if (this.idempotencyKey) {
-      console.log('Resuming card creation with idempotency key:', this.idempotencyKey);
-      const attempt = await getCreateCardAttempt();
-      console.log('attempt from storage:', attempt)
-      if (attempt) {
-        this.newCardName = attempt?.alias || '';
-        this.linkCard(attempt); // Start the card creation process immediately if resuming
-      }
-    }
   },
 
   methods: {
