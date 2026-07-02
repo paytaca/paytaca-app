@@ -274,7 +274,7 @@ export default {
       this.copySuccess = false
       this.copyFailed = false
       
-      navigator.clipboard.writeText(this.referralCodeFull).then(() => {
+      this.$copyText(this.referralCodeFull).then(() => {
         // Success state
         this.copySuccess = true
         this.copyTooltip = this.$t('CodeCopied')
