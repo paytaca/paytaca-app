@@ -6,7 +6,7 @@
   >
     <HeaderNav
       :title="details ? `Appeal #${details.id}` : 'Appeal'"
-      backnavpath="/apps/auction/activity"
+      backnavpath="/apps/auction/appeals"
       class="header-nav"
     >
       <template v-slot:top-right-menu>
