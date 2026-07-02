@@ -521,7 +521,8 @@ const routes = [
           {
             path: '',
             name: 'payment-hub-subscriptions-index',
-            component: () => import('src/pages/apps/payment-hub-subscriptions/Index.vue')
+            component: () => import('src/pages/apps/payment-hub-subscriptions/Index.vue'),
+            props: route => Object.assign({}, route.params, route.query),
           }
         ]
       }

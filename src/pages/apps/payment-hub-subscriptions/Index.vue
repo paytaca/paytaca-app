@@ -180,6 +180,13 @@ import { loadWallet } from 'src/wallet'
 import { Contract, SignatureTemplate, ElectrumNetworkProvider, TransactionBuilder } from 'cashscript13'
 import { decodeCashAddress, encodeCashAddress } from '@bitauth/libauth'
 
+const props = defineProps({
+  plan: {
+    type: String,
+    required: false,
+  }
+})
+
 const $store = useStore()
 const $router = useRouter()
 const $q = useQuasar()
@@ -200,6 +207,10 @@ const statusOptions = ['ALL', 'ACTIVE', 'PENDING', 'CANCELLED', 'TERMINATED']
 let searchTimeout = null
 
 onMounted(() => {
+  if (props.plan) {
+    openSubscribeDialog(props.plan)
+  }
+
   refreshPage()
 })
 
