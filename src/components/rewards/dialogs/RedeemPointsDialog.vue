@@ -774,8 +774,8 @@ export default {
     },
     
     copyTokenAddress () {
-      if (navigator.clipboard && this.tokenAddress) {
-        navigator.clipboard.writeText(this.tokenAddress)
+      if (this.tokenAddress) {
+        this.$copyText(this.tokenAddress)
         this.$q.notify({
           type: 'positive',
           message: this.$t('AddressCopied'),
