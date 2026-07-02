@@ -11,8 +11,6 @@ export async function filterActivities({ commit }, type) {
 }
 
 export async function refreshCatalog({ commit }) {
-  commit('setLoading', true)
-  
   try {
     const response = await callAPI('auctions')
     
@@ -22,8 +20,6 @@ export async function refreshCatalog({ commit }) {
     }
   } catch (error) {
     console.error('API Sync Error inside refreshCatalog:', error)
-  } finally {
-    commit('setLoading', false)
   }
 }
 
