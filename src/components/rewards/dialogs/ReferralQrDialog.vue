@@ -567,7 +567,7 @@ export default {
           margin-bottom: 24px;
           line-height: 1.4;
         `
-        instructionText.textContent = 'Join Paytaca Rewards with my referral code.'
+        instructionText.textContent = 'Join Paytaca with my referral code.'
         footer.appendChild(instructionText)
 
         // Paytaca logo container
