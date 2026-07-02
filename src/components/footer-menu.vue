@@ -53,13 +53,15 @@ export default {
   name: 'footer-menu',
   data () {
     return {
-      darkMode: this.$store.getters['darkmode/getStatus'],
       lastScrollY: 0,
       isFooterHidden: false,
       scrollThreshold: 50
     }
   },
   computed: {
+    darkMode () {
+      return this.$store.getters['darkmode/getStatus']
+    },
     totalUnreadCount () {
       try {
         return this.$store.getters['nostrChat/getTotalUnreadCount'] || 0
@@ -155,7 +157,6 @@ export default {
       outline: none;
       background-color: transparent;
       font-size: 12px;
-      color: black;
       line-height: normal;
       min-width: 50px;
       text-align: center;

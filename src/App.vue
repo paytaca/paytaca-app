@@ -1,5 +1,6 @@
 <template>
     <div>
+      <AppLoading v-if="showInitialLoad" />
       <router-view />
       <v-offline @detected-condition="onConnectivityChange" />
       
@@ -30,6 +31,7 @@ import Watchtower from 'watchtower-cash-js'
 import { VOffline } from 'v-offline'
 import { checkWatchtowerStatus } from './utils/watchtower-status'
 import AppVersionUpdate from './components/dialogs/AppVersionUpdate.vue'
+import AppLoading from 'src/components/AppLoading.vue'
 import { App as CapacitorApp } from '@capacitor/app'
 import { Capacitor } from '@capacitor/core'
 import ScreenshotSecurity from './utils/screenshot-security'
@@ -46,7 +48,7 @@ BigInt.prototype["toJSON"] = function () {
 
 export default {
   name: 'App',
-  components: { VOffline },
+  components: { VOffline, AppLoading },
   setup () {
     const store = useStore()
     const $q = useQuasar()
@@ -68,7 +70,11 @@ export default {
         }
       })
       document.body.classList.add(`theme-${theme.value}`)
-      
+
+      // Update Quasar CSS variables (--q-primary, --q-secondary, ...) to match the
+      // active theme so components like QBtn outline buttons render with the correct colors.
+      updateCssThemeColors(theme.value)
+
       // Set quasar dark mode true/false
       $q.dark.set(darkMode.value)
     })
@@ -100,6 +106,9 @@ export default {
     },
     lockAppEnabled() {
       return this.$store.getters['global/lockApp']
+    },
+    showInitialLoad() {
+      return !this.$store.state.global.appInitialLoadComplete
     }
   },
   watch: {
@@ -762,6 +771,16 @@ export default {
   async mounted () {
     const vm = this
 
+    // If we just switched wallets, skip the initial loading screen
+    // WalletSwitchLoading already handled the transition
+    if (sessionStorage.getItem('walletSwitchReload')) {
+      sessionStorage.removeItem('walletSwitchReload')
+      vm.$store.commit('global/setAppInitialLoadComplete', true)
+    } else {
+      // Cold start: reset so the loading overlay shows until the home page is ready
+      vm.$store.commit('global/setAppInitialLoadComplete', false)
+    }
+
     // Clear session-based backup reminder dismissal on fresh app start
     // App.vue only mounts on fresh app start (not during navigation), so always clear
     sessionStorage.removeItem('backupReminderDismissedTimestamp')
@@ -1001,9 +1020,6 @@ export default {
   },
   created () {
     const vm = this
-    setTimeout(() => {
-      updateCssThemeColors(this.$store.getters['global/theme']);
-    }, 100)
     setTimeout(function () {
       if (vm.$refs?.container?.style?.display) vm.$refs.container.style.display = 'block'
 

@@ -1,3 +1,5 @@
+export const ACTIVE_THRESHOLD_MS = 180000
+
 export function getInitialWalletState () {
   return {
     // Identity (per-wallet; sensitive — derived from mnemonic)
@@ -9,9 +11,14 @@ export function getInitialWalletState () {
     },
 
     // Conversations (per-wallet)
+    // Active rooms cache (minimal fields: id, type, name, members, subject, updatedAt)
+    // The full room list is stored server-side; this is a lightweight cache for the UI.
     rooms: [],
+    // Server-backed block list caches (re-fetched on init)
     blockedContacts: [],
-    deletedRooms: {},
+    blockedGroups: [],
+    // Server-backed deleted room IDs cache (re-fetched on init)
+    deletedRooms: [],
     messages: {},
     readReceipts: {},
     readMessageIds: {},
@@ -38,6 +45,7 @@ export function getInitialWalletState () {
     initialized: false,
     isSubscribed: false,
     relayStatus: {},
+    showActiveStatus: true,
   }
 }
 
@@ -50,5 +58,6 @@ export default function () {
       'wss://relay.paytaca.com',
     ],
     contacts: [],
+    activeStatus: {},
   }
 }

@@ -704,3 +704,7 @@ export function setIsUnlocked (state, value) {
 export function setPreviousRoute (state, path) {
   state.previousRoute = path
 }
+
+export function setAppInitialLoadComplete (state, value) {
+  state.appInitialLoadComplete = Boolean(value)
+}

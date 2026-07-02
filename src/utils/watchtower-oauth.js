@@ -12,12 +12,19 @@ import { getMnemonicByHash } from 'src/wallet'
 import { pubkeyToAddress } from 'src/utils/crypto'
 import { SecureStoragePlugin } from 'capacitor-secure-storage-plugin'
 
-const OAUTH_TOKEN_KEY = 'watchtower-oauth-token'
+const OAUTH_TOKEN_KEY_PREFIX = 'watchtower-oauth-token-'
+const isDev = process.env.NODE_ENV !== 'production'
+const debug = (...args) => { if (isDev) console.log('[OAuth]', ...args) }
 const OAUTH_ADDRESS_PATH = "0/0"
 const BCH_DERIVATION_PATH = "m/44'/145'/0'"
 
 function getWalletHash () {
   return Store.getters['global/getWallet']('bch')?.walletHash
+}
+
+function getTokenKey () {
+  const walletHash = getWalletHash()
+  return walletHash ? `${OAUTH_TOKEN_KEY_PREFIX}${walletHash}` : OAUTH_TOKEN_KEY_PREFIX
 }
 
 function getWatchtowerUrl () {
@@ -56,7 +63,8 @@ async function deriveOAuthCredentials() {
 
   const publicNode = deriveHdPublicNode(addressNode)
   const publicKey = binToHex(publicNode.publicKey)
-  const address = pubkeyToAddress(publicKey, false)
+  const isChipnet = Store.getters['global/isChipnet']
+  const address = pubkeyToAddress(publicKey, isChipnet)
 
   return {
     privateKey: binToHex(addressNode.privateKey),
@@ -68,7 +76,8 @@ async function deriveOAuthCredentials() {
 
 async function getStoredToken() {
   try {
-    const result = await SecureStoragePlugin.get({ key: OAUTH_TOKEN_KEY })
+    const key = getTokenKey()
+    const result = await SecureStoragePlugin.get({ key })
     return result.value
   } catch (error) {
     return null
@@ -77,7 +86,8 @@ async function getStoredToken() {
 
 async function saveToken(token) {
   try {
-    await SecureStoragePlugin.set({ key: OAUTH_TOKEN_KEY, value: token })
+    const key = getTokenKey()
+    await SecureStoragePlugin.set({ key, value: token })
   } catch (error) {
     console.error('[Watchtower OAuth] Failed to save token:', error)
   }
@@ -85,7 +95,8 @@ async function saveToken(token) {
 
 export async function clearToken() {
   try {
-    await SecureStoragePlugin.remove({ key: OAUTH_TOKEN_KEY })
+    const key = getTokenKey()
+    await SecureStoragePlugin.remove({ key })
   } catch (error) {
     // Token might not exist
   }
@@ -140,8 +151,9 @@ export async function getAuthHeaders() {
   const domain = getOAuthDomain()
   const timestamp = Math.floor(Date.now() / 1000)
 
+  debug('Authenticating wallet:', walletHash.slice(0, 16) + '...')
+
   try {
-    // Try to authenticate first
     const auth = await client.authenticate(
       walletHash,
       credentials.privateKey,
@@ -150,12 +162,18 @@ export async function getAuthHeaders() {
       domain
     )
     
+    if (!auth.access_token) {
+      debug('Server returned no access_token in response')
+      throw new Error('No access_token in authentication response')
+    }
+    
     await saveToken(auth.access_token)
+    debug('Token obtained successfully')
     return { 'Authorization': `Bearer ${auth.access_token}` }
   } catch (err) {
-    // If user not found (404), register first then authenticate
     const statusCode = err?.statusCode || err?.status
     if (statusCode === 404) {
+      debug('Wallet not registered, registering now')
       await client.register(
         credentials.address,
         credentials.privateKey,
@@ -165,7 +183,6 @@ export async function getAuthHeaders() {
         domain
       )
       
-      // Retry authentication after registration
       const newTimestamp = Math.floor(Date.now() / 1000)
       const auth = await client.authenticate(
         walletHash,
@@ -175,10 +192,17 @@ export async function getAuthHeaders() {
         domain
       )
       
+      if (!auth.access_token) {
+        debug('Server returned no access_token after registration')
+        throw new Error('No access_token after registration')
+      }
+      
       await saveToken(auth.access_token)
+      debug('Token obtained after registration')
       return { 'Authorization': `Bearer ${auth.access_token}` }
     }
     
+    debug('Authentication failed:', err?.message || err)
     throw err
   }
 }

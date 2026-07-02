@@ -16,6 +16,47 @@
     <link rel="icon" type="image/png" sizes="32x32" href="icons/favicon-32x32.png">
     <link rel="icon" type="image/png" sizes="16x16" href="icons/favicon-16x16.png">
     <link rel="icon" type="image/ico" href="favicon.ico">
+
+    <style>
+      html, body { margin: 0; padding: 0; }
+
+      #q-app {
+        animation: appFadeIn 0.1s ease forwards;
+      }
+
+      @keyframes appFadeIn {
+        from { opacity: 0; }
+        to { opacity: 1; }
+      }
+    </style>
+    <script>
+      // Pre-paint the correct background color from persisted wallet state
+      // to avoid a white flash during page reloads (e.g. wallet switching).
+      (function () {
+        var themeBg = {
+          'glassmorphic-blue': { dark: '#273746', light: '#ecf3f3' },
+          'glassmorphic-gold': { dark: '#3d3224', light: '#fff8e1' },
+          'glassmorphic-green': { dark: '#263d32', light: '#e8f5e9' },
+          'glassmorphic-red': { dark: '#462733', light: '#f3ecec' },
+          'payhero': { dark: '#012121', light: '#ecf3f3' },
+        }
+        try {
+          var raw = localStorage.getItem('vuex')
+          if (!raw) return
+          var s = JSON.parse(raw)
+          var g = s.global || {}
+          var idx = g.walletIndex || 0
+          var vault = (g.vault || [])[idx]
+          var settings = (vault && vault.settings) || {}
+          var theme = settings.theme || g.theme || 'glassmorphic-blue'
+          var darkMode = settings.darkMode !== undefined ? settings.darkMode : (s.darkmode && s.darkmode.darkmode)
+          var colors = themeBg[theme] || themeBg['glassmorphic-blue']
+          var bg = darkMode ? colors.dark : colors.light
+          document.documentElement.style.backgroundColor = bg
+          document.body && (document.body.style.backgroundColor = bg)
+        } catch (e) {}
+      })()
+    </script>
   </head>
   <body>
     <!-- quasar:entry-point -->

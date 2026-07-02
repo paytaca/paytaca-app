@@ -194,6 +194,12 @@ function reducer(state) {
                       }
                       continue
                     }
+
+                    // Room lists, deleted rooms, and block lists are stored server-side.
+                    // Only keep an in-memory cache; don't persist to localStorage.
+                    if (moduleName === 'nostrChat' && ['rooms', 'deletedRooms', 'blockedContacts', 'blockedGroups'].includes(key)) {
+                      continue
+                    }
                     
                     // Skip functions
                     if (typeof value === 'function') {
@@ -211,9 +217,10 @@ function reducer(state) {
           // For global module, exclude session-only state like isUnlocked
           const globalState = state[moduleName]
           const serializedGlobal = serializeState(globalState)
-          // Remove isUnlocked from persisted state (it's session-only)
+          // Remove session-only state that should never be persisted
           if (serializedGlobal && typeof serializedGlobal === 'object') {
             delete serializedGlobal.isUnlocked
+            delete serializedGlobal.appInitialLoadComplete
           }
           serialized[moduleName] = serializedGlobal
         } else if (moduleName === 'wizardconnect') {

@@ -334,6 +334,7 @@ export default {
     myPubKey: { type: String, default: '' },
     showSenderName: { type: Boolean, default: false },
     contacts: { type: Array, default: () => [] },
+    displayNames: { type: Object, default: () => ({}) },
     isRead: { type: Boolean, default: true },
     readByNames: { type: Array, default: () => [] },
     isNew: { type: Boolean, default: false },
@@ -345,7 +346,6 @@ export default {
     data () {
       return {
         expandedReaction: null,
-        now: Date.now(),
         // pointer long-press state
         _pressTimer: null,
         _pressStartX: 0,
@@ -360,7 +360,6 @@ export default {
       }
     },
     mounted () {
-      this._timer = setInterval(() => { this.now = Date.now() }, 1000)
       if (this.isImageFile && this.message.aesKeyHex && this.message.nonceHex) {
         // Check if thumbnail is already cached
         const cacheKey = this.message.id || this.message.content
@@ -381,7 +380,6 @@ export default {
     },
    beforeUnmount () {
      this._unmounted = true
-     clearInterval(this._timer)
      if (this._imgObserver) {
        this._imgObserver.disconnect()
        this._imgObserver = null
@@ -410,12 +408,18 @@ export default {
     },
     senderName () {
       const contact = this.contacts.find(c => c.pubKeyHex === this.message.sender)
-      return contact?.name || this.message.sender?.slice(0, 12) + '...'
+      if (contact?.name) return contact.name
+      const displayName = this.displayNames[this.message.sender]
+      if (displayName) return displayName
+      return this.message.sender?.slice(0, 12) + '...'
     },
     replySenderName () {
       if (!this.replyToMessage) return ''
       const contact = this.contacts.find(c => c.pubKeyHex === this.replyToMessage.sender)
-      return contact?.name || this.replyToMessage.sender?.slice(0, 12) + '...'
+      if (contact?.name) return contact.name
+      const displayName = this.displayNames[this.replyToMessage.sender]
+      if (displayName) return displayName
+      return this.replyToMessage.sender?.slice(0, 12) + '...'
     },
     replySnippet () {
       if (!this.replyToMessage) return ''
@@ -464,7 +468,7 @@ export default {
         if (!groups[r.emoji]) groups[r.emoji] = { emoji: r.emoji, count: 0, reactors: [], isRemovable: false }
         groups[r.emoji].count++
         groups[r.emoji].reactors.push({ pubKey: r.reactorPubKey, createdAt: r.createdAt })
-        if (r.reactorPubKey === this.myPubKey && this.now - (r.createdAt || 0) < 30000) {
+        if (r.reactorPubKey === this.myPubKey && Date.now() - (r.createdAt || 0) < 30000) {
           groups[r.emoji].isRemovable = true
         }
       }
@@ -635,11 +639,14 @@ export default {
     reactorName (pubKey) {
       if (pubKey === this.myPubKey) return this.$t('You', {}, 'You')
       const contact = this.contacts.find(c => c.pubKeyHex === pubKey)
-      return contact?.name || pubKey.slice(0, 12) + '...'
+      if (contact?.name) return contact.name
+      const displayName = this.displayNames[pubKey]
+      if (displayName) return displayName
+      return pubKey.slice(0, 12) + '...'
     },
     canRemoveReaction (reactor) {
       if (reactor.pubKey !== this.myPubKey) return false
-      return this.now - (reactor.createdAt || 0) < 30000
+      return Date.now() - (reactor.createdAt || 0) < 30000
     },
     onReactionClick (reactor) {
       if (reactor.pubKey === this.myPubKey && this.canRemoveReaction(reactor)) {

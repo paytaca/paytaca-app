@@ -406,6 +406,7 @@
 
 <script>
 import { mapState } from 'vuex'
+import { getWeb3Wallet, isWalletConnectInitialized } from 'src/wallet/walletconnect2'
 import Watchtower from 'watchtower-cash-js'
 import walletAssetsMixin from '../../mixins/wallet-assets-mixin.js'
 import { markRaw } from '@vue/reactivity'
@@ -1494,10 +1495,7 @@ export default {
         
         // Refresh WalletConnect session requests
         this.$store.dispatch('walletconnect/loadSessionRequests')
-        
-        // Refresh WizardConnect (re-init to restore connections and receive pending requests)
-        this.$store.dispatch('wizardconnect/init')
-        
+
         // Refresh latest transactions
         if (this.$refs['latest-transactions']) {
           await this.$refs['latest-transactions'].refresh()
@@ -1942,30 +1940,23 @@ export default {
             }
           })
 
-          // Still need to refresh BCH balance separately
-          return vm.getBalance('bch')
-            .catch(error => {
-              console.error('Error refreshing BCH balance:', error)
-              return null
-            })
+          // BCH balance is already fetched by the caller (onConnectivityChange),
+          // no need to call getBalance again here.
+          return Promise.resolve()
         } else {
           // For SLP, refresh token list from Watchtower and refresh BCH balance.
           await vm.fetchSlpTokensFromServer()
           if (!vm.refreshingTokenIds.includes('bch')) {
             vm.refreshingTokenIds.push('bch')
           }
-          
-          return vm.getBalance('bch')
-            .catch(error => {
-              console.error('Error refreshing BCH balance:', error)
-              return null
-            })
-            .finally(() => {
-              const index = vm.refreshingTokenIds.indexOf('bch')
-              if (index > -1) {
-                vm.refreshingTokenIds.splice(index, 1)
-              }
-            })
+
+          // BCH balance is already fetched by the caller (onConnectivityChange),
+          // no need to call getBalance again here.
+          const index = vm.refreshingTokenIds.indexOf('bch')
+          if (index > -1) {
+            vm.refreshingTokenIds.splice(index, 1)
+          }
+          return Promise.resolve()
         }
       } catch (error) {
         console.error('Error refreshing favorite token balances:', error)
@@ -1985,18 +1976,13 @@ export default {
         // Always include BCH (id: 'bch')
         const tokensToRefresh = [...new Set([...displayedTokenIds, 'bch'])]
 
-        // Refresh prices for all displayed tokens + BCH using unified API
-        const pricePromises = tokensToRefresh.map(assetId => {
-          return vm.$store.dispatch('market/updateAssetPrices', {
-            assetId: assetId,
-            clearExisting: false
-          }).catch(error => {
-            console.error(`Error refreshing price for ${assetId}:`, error)
-            return null
-          })
+        // Batch all token IDs into a single API call instead of N individual requests
+        await vm.$store.dispatch('market/updateAssetPrices', {
+          assetId: tokensToRefresh,
+          clearExisting: false
+        }).catch(error => {
+          console.error('Error refreshing token prices:', error)
         })
-
-        return Promise.allSettled(pricePromises)
       } catch (error) {
         console.error('Error refreshing displayed token prices:', error)
         return Promise.resolve()
@@ -2141,7 +2127,7 @@ export default {
         apiPath = isToken ? `history/wallet/${walletHash}/${tokenId}/` : `history/wallet/${walletHash}/`
       }
 
-      return watchtower.BCH._api(apiPath, { params: { txids: txid } })
+      return watchtower.BCH._api(apiPath, { params: { txids: txid, exclude: 'senders,recipients' } })
         .then(response => {
           return response?.data?.history?.find?.(tx => tx?.txid === txid)
         })
@@ -2411,6 +2397,21 @@ export default {
     if (this.backupAlertTimeout) {
       clearTimeout(this.backupAlertTimeout)
     }
+    // Remove the scoped WC2 session_request listener
+    if (this._wcSessionRequestHandler) {
+      try {
+        const wallet = isWalletConnectInitialized() ? getWeb3Wallet() : null
+        if (wallet) {
+          wallet.off('session_request', this._wcSessionRequestHandler)
+          wallet.off('session_request_expire', this._wcSessionRequestHandler)
+        }
+      } catch (_) {}
+      this._wcSessionRequestHandler = null
+    }
+    // Stop WizardConnect's background buffer check when leaving the home page
+    try {
+      this.$store.dispatch('wizardconnect/stopPeriodicBufferCheck')
+    } catch (_) {}
   },
   created () {
     bus.on('handle-push-notification', this.handleOpenedNotification)
@@ -2534,12 +2535,35 @@ export default {
         console.error('Error loading WalletConnect session requests:', error)
       }
 
-      // Initialize WizardConnect to restore connections and receive pending requests
+      // Register a scoped `session_request` handler on the WC2 singleton so
+      // inbound dApp requests refresh the Pending section while the home page
+      // is active. This (and the WalletConnect page's own handler) are the
+      // only places the handler runs — it is NOT global at boot, so other
+      // pages don't pay the refresh cost.
+      try {
+        const wallet = isWalletConnectInitialized() ? getWeb3Wallet() : null
+        if (wallet) {
+          vm._wcSessionRequestHandler = () => {
+            vm.$store.dispatch('walletconnect/loadSessionRequests').catch(() => {})
+          }
+          wallet.on('session_request', vm._wcSessionRequestHandler)
+          wallet.on('session_request_expire', vm._wcSessionRequestHandler)
+        }
+      } catch (error) {
+        console.error('Error registering WC session_request listener on home page:', error)
+      }
+
+      // Initialize WizardConnect so its manager listeners catch pending sign
+      // requests and surface them in the Pending section. Scoped to the home
+      // page (and the wizard-connect page) rather than running globally at boot.
       try {
         vm.$store.dispatch('wizardconnect/init')
       } catch (error) {
         console.error('Error initializing WizardConnect:', error)
       }
+
+      // Dismiss the initial app loading overlay
+      this.$store.commit('global/setAppInitialLoadComplete', true)
 
       // Set loading to false after initial mount operations complete
       // If assets exist, the watcher will handle it, otherwise set it after a delay
@@ -2563,6 +2587,7 @@ export default {
       // Ensure loading state is reset even on error
       this.isLoadingAssets = false
       this.loadingBchPrice = false
+      this.$store.commit('global/setAppInitialLoadComplete', true)
     }
   },
 }

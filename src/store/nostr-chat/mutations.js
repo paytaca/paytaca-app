@@ -68,6 +68,11 @@ export function SET_RELAY_STATUS (state, { url, status }) {
   ws.relayStatus = { ...ws.relayStatus, [url]: status }
 }
 
+export function SET_SHOW_ACTIVE_STATUS (state, value) {
+  const ws = getOrInitWalletState(state)
+  if (ws) ws.showActiveStatus = value
+}
+
 export function SET_SUBSCRIBED (state, val) {
   const ws = getOrInitWalletState(state)
   if (ws) ws.isSubscribed = val
@@ -94,6 +99,11 @@ export function REMOVE_CONTACT (state, npub) {
 
 export function SET_RELAYS (state, relays) {
   state.relays = relays
+}
+
+export function SET_ACTIVE_STATUS (state, statusMap) {
+  if (!state.activeStatus) state.activeStatus = {}
+  state.activeStatus = { ...state.activeStatus, ...statusMap }
 }
 
 // ---- Per-wallet room mutations ----
@@ -150,15 +160,9 @@ export function UPDATE_ROOM_TYPE (state, { roomId, type }) {
 export function REMOVE_ROOM (state, roomId) {
   const ws = getOrInitWalletState(state)
   if (!ws) return
-  if (!ws.deletedRooms) ws.deletedRooms = {}
-  const messages = ws.messages[roomId] || []
-  const knownMessageIds = {}
-  for (const msg of messages) {
-    if (msg.id) knownMessageIds[msg.id] = true
-  }
-  ws.deletedRooms[roomId] = {
-    deletedAt: Date.now(),
-    knownMessageIds,
+  if (!ws.deletedRooms) ws.deletedRooms = []
+  if (!ws.deletedRooms.includes(roomId)) {
+    ws.deletedRooms.push(roomId)
   }
   ws.rooms = ws.rooms.filter(r => r.id !== roomId)
   delete ws.messages[roomId]
@@ -200,6 +204,44 @@ export function UNBLOCK_CONTACT (state, pubKeyHex) {
   ws.blockedContacts = ws.blockedContacts.filter(k => k !== pubKeyHex)
 }
 
+// ---- Per-wallet blocked groups (a.k.a. "left" groups) ----
+// Leaving a group marks it blocked + archived. While blocked, new messages
+// targeting the group are dropped (see receiveMessage). Unblocking a group
+// (rejoining) also unarchives it.
+
+export function BLOCK_GROUP (state, roomId) {
+  const ws = getOrInitWalletState(state)
+  if (!ws) return
+  if (!ws.blockedGroups) ws.blockedGroups = []
+  if (!ws.blockedGroups.includes(roomId)) {
+    ws.blockedGroups.push(roomId)
+  }
+}
+
+export function UNBLOCK_GROUP (state, roomId) {
+  const ws = getOrInitWalletState(state)
+  if (!ws) return
+  if (!ws.blockedGroups) return
+  ws.blockedGroups = ws.blockedGroups.filter(id => id !== roomId)
+}
+
+// ---- Server-backed cache mutations ----
+
+export function SET_BLOCKED_CONTACTS (state, pubKeys) {
+  const ws = getOrInitWalletState(state)
+  if (ws) ws.blockedContacts = pubKeys
+}
+
+export function SET_BLOCKED_GROUPS (state, roomIds) {
+  const ws = getOrInitWalletState(state)
+  if (ws) ws.blockedGroups = roomIds
+}
+
+export function SET_ROOMS (state, rooms) {
+  const ws = getOrInitWalletState(state)
+  if (ws) ws.rooms = rooms
+}
+
 // ---- Per-wallet message mutations ----
 
 export function ADD_MESSAGE (state, { roomId, message }) {
@@ -214,10 +256,8 @@ export function ADD_MESSAGE (state, { roomId, message }) {
     let i = arr.length
     while (i > 0 && arr[i - 1].created_at > message.created_at) i--
     arr.splice(i, 0, message)
-    const room = ws.rooms.find(r => r.id === roomId)
-    if (room) {
-      room.updatedAt = Math.max(room.updatedAt || 0, message.created_at)
-    }
+    // Note: room.updatedAt is NOT updated here — the room list ordering
+    // is driven by lastMessageAt from the server, not by local messages.
   }
 }
 
@@ -422,7 +462,9 @@ export function RESET_PROFILE (state) {
 export function DELETE_ROOM_TRACKER (state, roomId) {
   const ws = getOrInitWalletState(state)
   if (!ws) return
-  if (ws.deletedRooms?.[roomId]) delete ws.deletedRooms[roomId]
+  if (ws.deletedRooms) {
+    ws.deletedRooms = ws.deletedRooms.filter(id => id !== roomId)
+  }
 }
 
 // Reset per-wallet chat data (conversations, caches) but keep keys and profile
@@ -430,13 +472,14 @@ export function RESET_WALLET_CHAT_DATA (state) {
   const ws = getOrInitWalletState(state)
   if (!ws) return
   ws.rooms = []
-  ws.deletedRooms = {}
+  ws.deletedRooms = []
   ws.messages = {}
   ws.readReceipts = {}
   ws.readMessageIds = {}
   ws.messageReadBy = {}
   ws.reactions = {}
   ws.blockedContacts = []
+  ws.blockedGroups = []
   ws.bchAddressCache = {}
   ws.displayNameCache = {}
   ws.avatarCache = {}

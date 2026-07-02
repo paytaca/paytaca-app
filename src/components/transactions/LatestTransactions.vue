@@ -265,7 +265,8 @@ export default {
         const params = {
           all: true,
           page: 1,
-          type: recordType
+          type: recordType,
+          exclude: 'senders,recipients'
         }
 
         const response = await axios.get(url, { params })
