@@ -74,6 +74,15 @@ export class LotsList {
     const [hours, minutes] = parts
     return (hours * 60) + minutes
   }
+
+  // Returns the drop interval in seconds, parsed from the HH:MM:SS time_interval string
+  getIntervalSeconds() {
+    if (!this.time_interval) return 10
+    const parts = this.time_interval.split(':').map(Number)
+    if (parts.length !== 3 || parts.some(isNaN)) return 10
+    const [hours, minutes, seconds] = parts
+    return (hours * 60 * 60) + (minutes * 60) + seconds
+  }
   
   getFormattedBCH(bch) {
     const numStr = bch.toFixed(8);
