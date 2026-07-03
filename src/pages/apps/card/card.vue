@@ -21,11 +21,11 @@
                 </div>
                 <q-badge 
                   rounded 
-                  :color="activeCard?.isLocked ? 'negative' : 'positive'" 
+                  :color="!!activeCard?.isLocked ? 'negative' : 'positive'" 
                   size="xs" 
                   class="card-status-badge cursor-pointer blink-badge"
                 >
-                  <q-tooltip>{{ activeCard?.isLocked ? 'Card is locked' : 'Card is active' }}</q-tooltip>
+                  <q-tooltip>{{ !!activeCard?.isLocked ? 'Card is locked' : 'Card is active' }}</q-tooltip>
                 </q-badge>
                 <q-btn flat dense icon="edit" size="xs" class="text-white" style="opacity: 0.7" @click="showEditNameDialog = true"/>
               </div>
@@ -101,6 +101,32 @@
             :key="activeCard.id"
           />
           <CardSettings v-if="activeTab === 'Card Security'" :active-card="activeCard" @lock-status-changed="onLockStatusChanged"/>
+          <div v-else-if="activeTab === 'Order Card'" class="full-width column items-center q-pa-md">
+            <div class="full-width" style="max-width: 400px;">
+              <OrderCard :card="activeCard" />
+            </div>
+            <q-separator class="full-width q-my-lg" color="primary" style="opacity: 0.2;" />
+            <div class="full-width column items-center" style="max-width: 400px;">
+              <div class="link-icon-ring q-mb-md">
+                <div class="link-icon-inner">
+                  <q-icon name="link" size="32px" color="primary" />
+                </div>
+              </div>
+              <div class="text-h6 text-weight-bold q-mb-sm" :class="textColor">Activate Your Card</div>
+              <div class="text-body2 q-mb-md text-center" :class="textColorGrey" style="max-width: 360px;">
+                Scan the QR code on your card, tap NFC, or enter the Card UID manually to link it.
+              </div>
+              <q-btn
+                label="Activate"
+                color="primary"
+                unelevated
+                rounded
+                no-caps
+                class="link-cta-btn"
+                @click="showActivateCardForm = true"
+              />
+            </div>
+          </div>
           <div v-else-if="!activeCard" class="flex flex-center full-height">
             <q-spinner-dots color="primary" size="40px"/>
           </div>
@@ -224,6 +250,11 @@
       </q-dialog>
 
       <cash-in-dialog v-model="showCashInDialog" :card="activeCard" @close="onCloseCashInDialog"/>
+      <ActivateCardForm
+        v-if="showActivateCardForm"
+        @close="showActivateCardForm = false"
+        @activate="onCardActivated"
+      />
   </div>
 </template>
 
@@ -233,7 +264,8 @@ import TransactionHistory from 'src/components/card/TransactionHistory.vue'
 import ManageAuthNFTs from 'src/components/card/ManageAuthNFTs.vue'
 import CashInDialog from 'src/components/card/CashInDialog.vue'
 import CardSettings from 'src/components/card/CardSettings.vue'
-import L from 'leaflet'
+import OrderCard from 'src/components/card/OrderCard.vue'
+import ActivateCardForm from 'src/components/card/ActivateCardForm.vue'
 import { satoshiToBch } from 'src/exchange'
 import { loadCardUser } from 'src/services/card/user'
 import { Card } from 'src/services/card/card'
@@ -245,7 +277,9 @@ export default {
     TransactionHistory,
     ManageAuthNFTs,
     CashInDialog,
-    CardSettings
+    CardSettings,
+    OrderCard,
+    ActivateCardForm
   },
 
   provide () {
@@ -265,23 +299,9 @@ export default {
       showCashInDialog: false,
       cashInAmount: '',
       cashInCurrency: 'USD',
-      showOrderPhysicalCardForm: false,
-      orderPhysicalCardData: {
-        fullName: '',
-        city: '',
-        state: '',
-        zip: '',
-        country: ''
-      },
-      orderFormMap: null,
-      orderFormMarker: null,
       showSweepFundsDialog: false,
       showDeleteCardDialog: false,
-      loadingLockStatus: false, // Loading state for lock/unlock operations
-      // Backend data fetching disabled
-      // loading: true,
-      // backendData: null,
-      // dataError: null,
+      showActivateCardForm: false,
       bchBalance: 0,
       balanceHidden: false,
     }
@@ -299,7 +319,8 @@ export default {
         const tabMap = {
           'Transactions': 'transactions',
           'Manage Merchants': 'manage-merchants',
-          'Card Security': 'other-settings'
+          'Card Security': 'other-settings',
+          'Order Card': 'order-card'
         }
         this.$router.replace({ 
           query: { 
@@ -317,7 +338,8 @@ export default {
       return [
         { label: 'Transactions', icon: 'receipt_long' },
         { label: 'Manage Merchants', icon: 'storefront' },
-        { label: 'Card Security', icon: 'shield' }
+        { label: 'Card Security', icon: 'shield' },
+        { label: 'Order Card', icon: 'local_mall' }
       ]
     },
 
@@ -401,7 +423,8 @@ export default {
       const tabMap = {
         'transactions': 'Transactions',
         'manage-merchants': 'Manage Merchants',
-        'other-settings': 'Card Security'
+        'other-settings': 'Card Security',
+        'order-card': 'Order Card'
       }
       if (tabMap[requestedTab] && this.tabs.includes(tabMap[requestedTab])) {
         this.activeTab = tabMap[requestedTab]
@@ -522,7 +545,7 @@ export default {
         // Using Vuex getter for localStorage access
         let cardData = this.$store.getters['card/getCardById'](cardId)
         
-        if (fetchFreshCard) {
+        if (!cardData || fetchFreshCard) {
           const user = await loadCardUser()
           const fetchedCard = await user.fetchCardByIdentifier(cardId)
           cardData = fetchedCard?.raw ? { ...fetchedCard.raw } : fetchedCard
@@ -563,6 +586,18 @@ export default {
       this.activeCard.raw.is_locked = isLocked
       this.activeCard.raw.isLocked = isLocked
       this.CardStorage.setCardProperty(this.activeCard.id, 'isLocked', isLocked)
+    },
+
+    onCardActivated() {
+      this.showActivateCardForm = false;
+      this.$q.dialog({
+        title: this.$t('Card Activated'),
+        message: this.$t('Your Paytaca card has been successfully activated.'),
+        ok: {
+          label: this.$t('OK'),
+          color: 'primary'
+        }
+      });
     },
 
     onCloseCashInDialog () {
@@ -648,256 +683,7 @@ export default {
       this.showCashInDialog = true
     },
 
-    openOrderCardWebsite () {
-      // Official Paytaca website for ordering cards
-      const orderCardUrl = 'https://paytaca.com'
 
-      // Open in external browser
-      if (window.cordova && window.cordova.InAppBrowser) {
-        // Mobile: use InAppBrowser
-        window.cordova.InAppBrowser.open(orderCardUrl, '_system')
-      } else if (window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.Browser) {
-        // Capacitor
-        window.Capacitor.Plugins.Browser.open({ url: orderCardUrl })
-      } else {
-        // Web: use window.open
-        window.open(orderCardUrl, '_blank')
-      }
-    },
-
-    handleOrderPhysicalCard () {
-      if (!this.orderPhysicalCardData.fullName || !this.orderPhysicalCardData.city || 
-          !this.orderPhysicalCardData.state || !this.orderPhysicalCardData.zip || 
-          !this.orderPhysicalCardData.country) {
-        this.notifyError('Please fill in all required fields')
-        return
-      }
-
-      this.notifySuccess('Card order submitted successfully!')
-
-      if (this.activeCard) {
-        const updates = {
-          hasOrderedPhysicalCard: true,
-          shippingAddress: { ...this.orderPhysicalCardData }
-        }
-        const updatedCard = this.CardStorage.updateCard(this.activeCard.id, updates)
-        if (updatedCard) {
-          this.activeCard.hasOrderedPhysicalCard = updatedCard.hasOrderedPhysicalCard
-          this.activeCard.shippingAddress = updatedCard.shippingAddress
-        }
-      }
-
-      this.showOrderPhysicalCardForm = false
-      this.orderPhysicalCardData = {
-        fullName: '',
-        city: '',
-        state: '',
-        zip: '',
-        country: ''
-      }
-      this.destroyOrderFormMap()
-    },
-
-    initOrderFormMap () {
-      if (!this.$refs.orderFormMapContainer) return
-
-      if (this.orderFormMap) {
-        this.orderFormMap.remove()
-      }
-
-      this.orderFormMap = L.map(this.$refs.orderFormMapContainer).setView([7.123, 124.845], 13)
-
-      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-        maxZoom: 19,
-        attribution: '&copy; OpenStreetMap contributors'
-      }).addTo(this.orderFormMap)
-
-      this.orderFormMarker = L.marker([7.123, 124.845], {draggable: true}).addTo(this.orderFormMap)
-
-      this.orderFormMarker.on('dragend', this.handleOrderFormMarkerDrag)
-
-      this.orderFormMap.on('click', (e) => {
-        const { lat, lng } = e.latlng
-        this.orderFormMarker.setLatLng([lat, lng])
-        this.reverseGeocode(lat, lng)
-      })
-    },
-
-    async handleOrderFormMarkerDrag (event) {
-      const { lat, lng } = event.target.getLatLng()
-      await this.reverseGeocode(lat, lng)
-    },
-
-    async reverseGeocode (lat, lng) {
-      try {
-        const response = await fetch(
-          `https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${lat}&lon=${lng}`
-        )
-        const data = await response.json()
-        const addr = data.address
-
-        this.orderPhysicalCardData = {
-          ...this.orderPhysicalCardData,
-          city: addr.city || addr.town || addr.village || addr.municipality || addr.county || '',
-          state: addr.state || addr.region || addr.province || '',
-          zip: addr.zip || addr.postcode || '',
-          country: addr.country || '',
-        }
-        
-        this.$q.notify({
-          message: `Location set to ${this.orderPhysicalCardData.city || this.orderPhysicalCardData.state || 'Unknown'}`,
-          icon: 'check', 
-          color: 'positive',
-          timeout: 1500
-        })
-      }
-      catch (error) {
-        this.notifyError('Geocoding failed')
-      }
-    },
-
-    destroyOrderFormMap () {
-      if (this.orderFormMap) {
-        this.orderFormMap.remove()
-        this.orderFormMap = null
-        this.orderFormMarker = null
-      }
-    },
-
-    async activateOrderPhysicalCardForm () {
-      this.showOrderPhysicalCardForm = true
-      await this.$nextTick()
-      this.initOrderFormMap()
-    },
-
-    closeOrderPhysicalCardForm () {
-      this.showOrderPhysicalCardForm = false
-      this.destroyOrderFormMap()
-    },
-
-    onCardLockToggle (locked) {
-      if (!this.activeCard) return
-
-      // Save to localStorage
-      const updatedCard = this.CardStorage.setCardProperty(this.activeCard.id, 'isLocked', locked)
-      
-      if (updatedCard) {
-        // Ensure the activeCard is updated (it should already be reactive via v-model)
-        // This is just to ensure persistence
-        console.log('Card lock status updated:', updatedCard.isLocked)
-      }
-
-      this.$q.notify({
-        message: locked ? 'Card has been locked' : 'Card has been unlocked',
-        color: locked ? 'warning' : 'positive',
-        icon: locked ? 'lock' : 'lock_open',
-        timeout: 1500
-      })
-    },
-
-    /*
-     * BACKEND INTEGRATION for Card Lock/Unlock Toggle
-     * 
-     * Replace the toggleCardLock method above with this backend-enabled version:
-     * 
-     * async toggleCardLock (locked) {
-     *   if (!this.activeCard) return
-     *   
-     *   // Show loading state during API call
-     *   this.loadingLockStatus = true
-     *   
-     *   try {
-     *     // BACKEND API CALL: Update card lock status
-     *     const response = await fetch(`/api/cards/${this.activeCard.id}/lock`, {
-     *       method: 'POST',
-     *       headers: {
-     *         'Content-Type': 'application/json',
-     *         'Authorization': `Bearer ${this.getAuthToken()}` // Add auth method
-     *       },
-     *       body: JSON.stringify({
-     *         isLocked: locked,
-     *         reason: locked ? 'User initiated lock' : 'User initiated unlock'
-     *       })
-     *     })
-     *     
-     *     if (!response.ok) {
-     *       throw new Error(`Failed to ${locked ? 'lock' : 'unlock'} card`)
-     *     }
-     *     
-     *     const data = await response.json()
-     *     
-     *     // Update localStorage only after successful backend update
-     *     const updatedCard = this.CardStorage.setCardProperty(this.activeCard.id, 'isLocked', locked)
-     *     if (updatedCard) {
-     *       this.activeCard.isLocked = updatedCard.isLocked
-     *     }
-     *     
-     *     // Show success notification
-     *     this.$q.notify({
-     *       message: data.message || (locked ? 'Card has been locked' : 'Card has been unlocked'),
-     *       color: locked ? 'warning' : 'positive',
-     *       icon: locked ? 'lock' : 'lock_open',
-     *       timeout: 1500
-     *     })
-     *   } catch (error) {
-     *     console.error('Failed to toggle card lock:', error)
-     *     
-     *     // Revert the toggle on error
-     *     this.$q.notify({
-     *       message: `Failed to ${locked ? 'lock' : 'unlock'} card. Please try again.`,
-     *       color: 'negative',
-     *       icon: 'error',
-     *       timeout: 3000
-     *     })
-     *   } finally {
-     *     this.loadingLockStatus = false
-     *   }
-     * },
-     * 
-     * // Optional: Add a method to fetch current lock status from backend
-     * // This is useful when loading the card details page to ensure sync
-     * async fetchCardLockStatus () {
-     *   if (!this.activeCard?.id) return
-     *   
-     *   try {
-     *     const response = await fetch(`/api/cards/${this.activeCard.id}/status`, {
-     *       method: 'GET',
-     *       headers: {
-     *         'Authorization': `Bearer ${this.getAuthToken()}`
-     *       }
-     *     })
-     *     
-     *     if (response.ok) {
-     *       const data = await response.json()
-     *       
-     *       // Update local state and localStorage with backend status
-     *       if (data.isLocked !== undefined && data.isLocked !== this.activeCard.isLocked) {
-     *         const updatedCard = this.CardStorage.setCardProperty(
-     *           this.activeCard.id, 
-     *           'isLocked', 
-     *           data.isLocked
-     *         )
-     *         if (updatedCard) {
-     *           this.activeCard.isLocked = updatedCard.isLocked
-     *         }
-     *         
-     *         // Notify user if status changed from backend
-     *         this.$q.notify({
-     *           message: `Card status updated from server: ${data.isLocked ? 'Locked' : 'Unlocked'}`,
-     *           color: 'info',
-     *           icon: 'sync',
-     *           timeout: 2000
-     *         })
-     *       }
-     *     }
-     *   } catch (error) {
-     *     console.error('Failed to fetch card lock status:', error)
-     *   }
-     * }
-     * 
-     * // Call fetchCardLockStatus() in mounted() or when card is loaded:
-     * // await this.fetchCardLockStatus()
-     */
 
     handleSweepFunds () {
       if (!this.activeCard) return
@@ -950,19 +736,6 @@ export default {
       this.$router.push({ name: 'card-list' })
     },
 
-    saveCardSettings () {
-      if (!this.activeCard) return
-
-      const updatedCard = this.CardStorage.setCardProperty(this.activeCard.id, 'transactionAlerts', this.activeCard.transactionAlerts)
-      
-      this.$q.notify({
-        message: 'Settings saved',
-        color: 'positive',
-        icon: 'check',
-        position: 'top'
-      })
-    },
-    
     /**
      * Sweep UTXOs from card back to wallet
      * @param card {Card} - Card instance
@@ -1094,10 +867,6 @@ export default {
     },
   },
 
-  beforeUnmount () {
-    this.destroyOrderFormMap()
-  }
-
 }
 </script>
 
@@ -1121,5 +890,61 @@ export default {
 
   .pt-card.light {
     background: color-mix(in srgb, var(--q-primary) 12%, rgba(255, 255, 255, 0.75)) !important;
+  }
+
+  /* Order Card tab styles (ported from home.vue for visual consistency) */
+  .link-icon-ring {
+    width: 80px;
+    height: 80px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: color-mix(in srgb, var(--q-primary) 12%, transparent);
+    position: relative;
+  }
+
+  .link-icon-ring::before {
+    content: '';
+    position: absolute;
+    inset: -4px;
+    border-radius: 50%;
+    border: 2px solid color-mix(in srgb, var(--q-primary) 20%, transparent);
+    animation: ring-pulse 2s ease-in-out infinite;
+  }
+
+  .link-icon-inner {
+    width: 56px;
+    height: 56px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: color-mix(in srgb, var(--q-primary) 15%, transparent);
+  }
+
+  @keyframes ring-pulse {
+    0%, 100% {
+      transform: scale(1);
+      opacity: 1;
+    }
+    50% {
+      transform: scale(1.15);
+      opacity: 0.4;
+    }
+  }
+
+  .link-cta-btn {
+    min-width: 220px;
+    height: 48px;
+    font-size: 15px;
+    font-weight: 600;
+    letter-spacing: 0.3px;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+
+  .link-cta-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 24px color-mix(in srgb, var(--q-primary) 35%, transparent);
   }
 </style>
