@@ -192,7 +192,6 @@ export default {
 		}
 	},
 	async mounted () {
-		this.apiCallStatus.lastOrderStatus = null
 		await this.fetchOrder()
 		this.startPolling()
 	},
