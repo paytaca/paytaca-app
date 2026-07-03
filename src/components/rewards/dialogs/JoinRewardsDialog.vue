@@ -92,7 +92,12 @@ export default {
   methods: {
     getDarkModeClass,
     openRewardsApp () {
-      this.$router.push('/apps/rewards')
+      this.$router.push({
+        name: 'app-rewards',
+        query: {
+          joinedProgram: true
+        }
+      })
       this.$refs.dialogRef?.hide()
     },
     decline () {
