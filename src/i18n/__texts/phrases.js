@@ -2236,6 +2236,12 @@ const phrases = {
       DuplicateReferralError: 'Looks like this account has already been referred by someone. Please check your status with your referrer, or create a new account to redeem again.',
       InvalidCodeError: 'Sorry, that referral code appears to be invalid. Please double-check your code and try again.',
 
+      // join rewards dialog
+      JoinRewardsDialogTitle: 'Join the Paytaca Rewards Program',
+      JoinRewardsDialogSubtext: 'Earn points every time you transact and interact with the Paytaca ecosystem.',
+      JoinRewardsDialogSubtextSkip: 'If you change your mind, just go to the Rewards app to get started.',
+      GoToRewards: 'Go to Rewards',
+
       // others
       RampPurchaseNotificationText: 'Congratulations! You have earned points for this P2P Ramp purchase! Check your updated points in the Rewards app.',
       EloadPurchaseNotificationText: 'Congratulations! You have earned points for this Eload service purchase! Check your updated points in the Rewards app.',

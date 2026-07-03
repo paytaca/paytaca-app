@@ -24,16 +24,16 @@
 
           <!-- Title -->
           <h5 class="q-ma-none text-h5 text-weight-bold">
-            Join the Paytaca Rewards Program
+            {{ $t('JoinRewardsDialogTitle') }}
           </h5>
 
           <!-- Description -->
           <div class="column q-gutter-y-sm text-body1">
             <p v-if="!declined" class="q-ma-none">
-              Earn points every time you transact and interact with the Paytaca ecosystem.
+              {{ $t('JoinRewardsDialogSubtext') }}
             </p>
             <p v-else class="q-ma-none">
-              If you change your mind, just go to the Rewards app to get started.
+              {{ $t('JoinRewardsDialogSubtextSkip') }}
             </p>
           </div>
         </div>
@@ -43,27 +43,27 @@
       <q-card-actions class="q-px-md q-pb-md column items-center q-gutter-y-md">
         <q-btn
           v-if="!declined"
-          label="Go to Rewards"
           rounded
           class="button bg-grad button-glow cta-button"
+          :label="$t('GoToRewards')"
           :class="getDarkModeClass(darkMode)"
           @click="openRewardsApp"
         />
         <q-btn
           v-if="!declined"
-          label="Skip for Now"
           outline
           rounded
           color="primary"
           class="cta-button"
+          :label="$t('RewardsStepSkipButton')"
           @click="decline"
         />
         <q-btn
           v-else
-          label="Close"
           rounded
           class="button bg-grad cta-button"
           :class="getDarkModeClass(darkMode)"
+          :label="$t('Close')"
           v-close-popup
         />
       </q-card-actions>
