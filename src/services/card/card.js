@@ -16,6 +16,10 @@ import bus from 'src/services/event-bus';
 export class Card {
   constructor(data) {
     this.raw = data;
+    // Normalize default lock status to unlocked (false)
+    if (this.raw && this.raw.is_locked === undefined) {
+      this.raw.is_locked = false;
+    }
   }
 
   set raw(data) {
@@ -51,7 +55,7 @@ export class Card {
   }
 
   get isLocked() {
-    return this.raw?.is_locked;
+    return !!this.raw?.is_locked;
   }
 
   get isAlertsEnabled() {

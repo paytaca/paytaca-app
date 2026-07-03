@@ -102,8 +102,15 @@
           />
           <CardSettings v-if="activeTab === 'Card Security'" :active-card="activeCard" @lock-status-changed="onLockStatusChanged"/>
           <div v-else-if="activeTab === 'Order Card'" class="full-width column items-center q-pa-md">
+            <div class="full-width q-mb-md" style="max-width: 400px;">
+              <JourneyStepper
+                :steps="orderJourneySteps"
+                :title="$t('Card Delivery Status')"
+                :is-dark="$q.dark.isActive"
+              />
+            </div>
             <div class="full-width" style="max-width: 400px;">
-              <OrderCard :card="activeCard" />
+              <OrderCard :card="activeCard" @order-success="onOrderSuccess" />
             </div>
             <q-separator class="full-width q-my-lg" color="primary" style="opacity: 0.2;" />
             <div class="full-width column items-center" style="max-width: 400px;">
@@ -266,6 +273,7 @@ import CashInDialog from 'src/components/card/CashInDialog.vue'
 import CardSettings from 'src/components/card/CardSettings.vue'
 import OrderCard from 'src/components/card/OrderCard.vue'
 import ActivateCardForm from 'src/components/card/ActivateCardForm.vue'
+import JourneyStepper from 'src/components/card/JourneyStepper.vue'
 import { satoshiToBch } from 'src/exchange'
 import { loadCardUser } from 'src/services/card/user'
 import { Card } from 'src/services/card/card'
@@ -279,7 +287,8 @@ export default {
     CashInDialog,
     CardSettings,
     OrderCard,
-    ActivateCardForm
+    ActivateCardForm,
+    JourneyStepper
   },
 
   provide () {
@@ -304,6 +313,12 @@ export default {
       showActivateCardForm: false,
       bchBalance: 0,
       balanceHidden: false,
+      orderJourneySteps: [
+        { label: 'Order Card', icon: 'shopping_cart', status: 'active' },
+        { label: 'Printing', icon: 'print', status: 'pending' },
+        { label: 'Delivery', icon: 'local_shipping', status: 'pending' },
+        { label: 'Activation', icon: 'link', status: 'pending' },
+      ]
     }
   },
 
@@ -598,6 +613,15 @@ export default {
           color: 'primary'
         }
       });
+    },
+
+    onOrderSuccess() {
+      this.orderJourneySteps = [
+        { label: 'Order Card', icon: 'shopping_cart', status: 'done' },
+        { label: 'Printing', icon: 'print', status: 'active' },
+        { label: 'Delivery', icon: 'local_shipping', status: 'pending' },
+        { label: 'Activation', icon: 'link', status: 'pending' },
+      ];
     },
 
     onCloseCashInDialog () {

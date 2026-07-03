@@ -286,6 +286,7 @@ export default {
 
       this.processing = false
       this.done = true
+      this.$emit('order-success')
     },
     async submitOrder(payload) {
       await backend.post('/orders/', payload)

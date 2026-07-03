@@ -65,11 +65,11 @@
                   </div>
                   <q-badge
                     rounded
-                    :color="card?.isLocked ? 'negative' : 'positive'"
+                    :color="!!card?.isLocked ? 'negative' : 'positive'"
                     size="xs"
                     class="card-status-badge cursor-pointer blink-badge"
                   >
-                    <q-tooltip>{{ card?.isLocked ? 'Locked' : 'Active' }}</q-tooltip>
+                    <q-tooltip>{{ !!card?.isLocked ? 'Locked' : 'Active' }}</q-tooltip>
                   </q-badge>
                 </div>
 
