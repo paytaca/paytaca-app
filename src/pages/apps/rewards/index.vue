@@ -341,6 +341,7 @@ import {
   Promos,
   updateUserRewardsData,
   updateRfPromoData,
+  createUserRewardsData,
 } from 'src/utils/engagementhub-utils/rewards'
 
 import HeaderNav from 'src/components/header-nav.vue'
@@ -354,7 +355,8 @@ export default {
   name: 'RewardsPage',
 
   props: {
-    code: { type: String, default: '' }
+    code: { type: String, default: '' },
+    joinedProgram: { type: String, default: 'false' }
   },
 
   components: {
@@ -563,6 +565,21 @@ export default {
     if (this.code) {
       this.isReferralDialogActive = true
     }
+
+    if (this.joinedProgram === 'true' && !this.promos.ur.id) {
+      // generate user rewards data if not yet existing
+      const urData = await createUserRewardsData()
+      updateUserPromoData({ ur: urData.id })
+      // generate user rewards promo contract
+      const targetPromo = PromosBytes[type.toUpperCase()]
+      const contract = new PromoContract(userPubkey, targetPromo)
+      updateUserRewardsData({
+        contract_ct_address: contract.contract.tokenAddress
+      })
+      this.promos.ur.id = urData.id
+    }
+
+    this.isLoading = false
   },
 
   methods: {
@@ -697,8 +714,6 @@ export default {
       
       // Start polling Cauldron prices (every 60 seconds)
       this.startCauldronPricePolling()
-
-      this.isLoading = false
 
       setTimeout(() => {
         this.$nextTick(() => {
