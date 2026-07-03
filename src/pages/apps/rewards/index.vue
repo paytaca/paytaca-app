@@ -714,7 +714,7 @@ export default {
       if (
         this.referralCodeEligibilityDate &&
         this.walletCreatedAt &&
-        new Date(this.referralCodeEligibilityDate) > new Date(this.walletCreatedAt) &&
+        new Date(this.referralCodeEligibilityDate) < new Date(this.walletCreatedAt) &&
         upData?.enable_referral_banner
       ) {
         this.bannerRemainingTime = upData?.banner_remaining_time
