@@ -569,11 +569,11 @@ export default {
     if (this.joinedProgram === 'true' && !this.promos.ur.id) {
       // generate user rewards data if not yet existing
       const urData = await createUserRewardsData()
-      updateUserPromoData({ ur: urData.id })
+      await updateUserPromoData({ ur: urData.id })
       // generate user rewards promo contract
       const targetPromo = PromosBytes[type.toUpperCase()]
       const contract = new PromoContract(userPubkey, targetPromo)
-      updateUserRewardsData({
+      await updateUserRewardsData({
         contract_ct_address: contract.contract.tokenAddress
       })
       this.promos.ur.id = urData.id
