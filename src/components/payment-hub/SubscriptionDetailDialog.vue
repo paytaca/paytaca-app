@@ -120,7 +120,7 @@
             </div>
 
             <!-- Overdue Payments -->
-            <div class="q-mb-sm" v-if="(sub.status === 'ACTIVE' || sub.status === 'PENDING') && overduePayments > 0">
+            <div class="q-mb-sm" v-if="(sub.status === 'ACTIVE' || sub.status === 'PENDING') && overduePayments > 0 && remainingPayouts === 0">
               <div class="text-caption text-red">Overdue Payments</div>
               <div class="text-body2 text-weight-medium text-red">
                 {{ overduePayments }}
@@ -381,9 +381,8 @@ function showBillingInfo() {
 
   const mFee = minerFee.value
   const pFee = paytacaFee.value
-  const pledgeSats = sub.value?.pledge_satoshis || 0
 
-  msg += ` This total cost includes the base plan pledge (${pledgeSats} sats), which is the actual amount sent to the merchant, a small miner fee (${mFee} sats), and the Paytaca platform fee (${pFee} sats).`
+  msg += ` This total cost includes the base plan pledge, a small miner fee (${mFee} sats), and the Paytaca platform fee (${pFee} sats).`
 
   $q.dialog({
     title: 'Billing Amount',
@@ -432,7 +431,7 @@ const paytacaFee = computed(() => {
   if (!sub.value.pledge_satoshis) return 546
   const pledge = sub.value.pledge_satoshis
   const maxFee = sub.value.max_fee || 546
-  return Math.max(Math.min(maxFee, Math.floor(pledge / 100)), 546)
+  return Math.max(Math.min(maxFee, Math.floor(pledge / 100)), Math.floor(maxFee / 100))
 })
 
 const totalCostSats = computed(() => {

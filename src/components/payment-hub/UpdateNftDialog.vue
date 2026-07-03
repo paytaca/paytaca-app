@@ -18,7 +18,7 @@
                 dense
                 :rules="[
                   val => !!val || 'Pledge is required',
-                  () => finalPledgeSats <= subscription.max_pledge || `Cannot exceed max pledge of ${subscription.max_pledge} sats`
+                  () => !subscription.max_pledge || finalPledgeSats <= subscription.max_pledge || `Cannot exceed max pledge of ${subscription.max_pledge} sats`
                 ]"
               />
             </div>
