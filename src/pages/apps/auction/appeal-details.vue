@@ -183,50 +183,23 @@
             Select how the contract balance should be resolved.
           </div>
           
-          <template v-if="isDeliveryPhase">
-            <div class="row q-gutter-sm q-mb-md">
-              <q-btn
-                no-caps unelevated
-                :color="selectedAction === 'release' ? 'positive' : 'primary'"
-                text-color="white"
-                label="Return to Seller"
-                class="col"
-                @click="selectedAction = 'release'"
-              />
-              <q-btn
-                no-caps unelevated
-                :color="selectedAction === 'resolve' ? 'warning' : 'primary'"
-                text-color="white"
-                label="Resolve Dispute"
-                class="col"
-                @click="selectedAction = 'resolve'"
-              />
-            </div>
-          </template>
-          
-          <template v-else-if="isDelivered">
-            <div class="row q-gutter-sm q-mb-md">
-              <q-btn
-                no-caps unelevated
-                :color="selectedAction === 'refund' ? 'negative' : 'primary'"
-                text-color="white"
-                label="Refund Buyer"
-                class="col"
-                @click="selectedAction = 'refund'"
-              />
-              <q-btn
-                no-caps unelevated
-                :color="selectedAction === 'norefund' ? 'warning' : 'primary'"
-                text-color="white"
-                label="No Refund"
-                class="col"
-                @click="selectedAction = 'norefund'"
-              />
-            </div>
-          </template>
-
-          <div v-else class="text-caption text-grey q-mb-md">
-            Loading delivery status...
+          <div class="row q-gutter-sm q-mb-md">
+            <q-btn
+              no-caps unelevated
+              :color="selectedAction === 'refund' ? 'negative' : 'primary'"
+              text-color="white"
+              label="Refund to Bidder"
+              class="col"
+              @click="selectedAction = 'refund'"
+            />
+            <q-btn
+              no-caps unelevated
+              :color="selectedAction === 'release' ? 'positive' : 'primary'"
+              text-color="white"
+              label="Release to Seller"
+              class="col"
+              @click="selectedAction = 'release'"
+            />
           </div>
 
           <div
@@ -240,7 +213,7 @@
                 class="text-caption text-weight-bold"
                 :style="{ opacity: swipeProgress > 0.4 ? 0 : 0.5 - swipeProgress }"
               >
-                Swipe to {{ { refund: 'Refund', norefund: 'No Refund', release: 'Return to Seller', resolve: 'Resolve' }[selectedAction] }}
+                Swipe to {{ { refund: 'Refund', release: 'Release' }[selectedAction] }}
               </span>
             </div>
 
@@ -249,7 +222,7 @@
               :style="{
                 width: `${swipeProgress * 100}%`,
                 height: '100%',
-                background: { refund: 'var(--q-negative)', norefund: 'var(--q-warning)', release: 'var(--q-positive)', resolve: 'var(--q-warning)' }[selectedAction],
+                background: { refund: 'var(--q-negative)', release: 'var(--q-positive)' }[selectedAction],
                 opacity: 0.2,
                 transition: isDragging ? 'none' : 'width 0.3s ease',
               }"
@@ -262,7 +235,7 @@
                 top: '4px',
                 width: '40px',
                 height: '40px',
-                background: { refund: 'var(--q-negative)', norefund: 'var(--q-warning)', release: 'var(--q-positive)', resolve: 'var(--q-warning)' }[selectedAction],
+                background: { refund: 'var(--q-negative)', release: 'var(--q-positive)' }[selectedAction],
                 transition: isDragging ? 'none' : 'left 0.3s ease',
               }"
               @mousedown="startSwipe"
@@ -303,7 +276,7 @@ import { computed, ref, onMounted, nextTick } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { callAPI } from 'src/auction/api'
 import { AppealDetails } from 'src/auction/object.js'
-import { callContractReturn } from 'src/auction/arbiter'
+import { callContractReturn, callContractRefund } from 'src/auction/arbiter'
 
 // Components
 import HeaderNav from 'src/components/header-nav.vue'
@@ -323,7 +296,6 @@ const $store = useStore()
 const $router = useRouter()
 const darkMode = computed(() => $store.getters['darkmode/getStatus'])
 const isArbiter = computed(() => !!$store.getters['auction/isArbiter'])
-const deliveryStatus = ref(null)
 
 const isLoading = ref(true)
 const details = ref(null)
@@ -392,11 +364,6 @@ onMounted(async () => {
               }
             }
           }
-
-          const deliveryResult = await callAPI('delivery-trackings', lotId)
-          if (deliveryResult.success && deliveryResult.data) {
-            deliveryStatus.value = deliveryResult.data.status
-          }
         }
       }
 
@@ -425,11 +392,6 @@ onMounted(async () => {
     isLoading.value = false
   }
 })
-
-const isDeliveryPhase = computed(() => deliveryStatus.value === 1 || deliveryStatus.value === 2)
-const isDelivered = computed(() => deliveryStatus.value === 3)
-
-
 
 const selectedAction = ref(null)
 const showStatusHistory = ref(false)
@@ -485,16 +447,17 @@ const handleAction = async () => {
     if (selectedAction.value === 'release') {
       await callContractReturn(details.value.bid_id)
       await callAPI('delivery-trackings', details.value.lot_id, 'patch', { mark_as_completed: true })
+    } else if (selectedAction.value === 'refund') {
+      await callContractRefund(details.value.bid_id)
     }
 
     const payload = {
       refund: { is_granted_refund: true, is_granted_return: false, is_resolved: true },
-      norefund: { is_granted_refund: false, is_granted_return: false, is_resolved: true },
       release: { is_granted_refund: false, is_granted_return: true, is_resolved: true },
-      resolve: { is_granted_refund: false, is_granted_return: false, is_resolved: true },
     }[selectedAction.value]
 
     await callAPI('disputes', props.appealId, 'patch', payload)
+    await callAPI('delivery-trackings', props.lotId, 'patch', { mark_as_completed: true })
 
     $q.notify({ type: 'positive', message: 'Action applied successfully.', position: 'top' })
     selectedAction.value = null
