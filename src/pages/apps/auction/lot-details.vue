@@ -264,72 +264,23 @@
                 </div>
 
                 <!-- Seller: refund granted banner -->
-                <div v-if="showPostAuctionActions && isAuthor && isGrantedRefund" class="q-mt-md full-width">
+                <div v-if="isAuthor && isGrantedRefund" class="q-mt-md full-width">
                   <q-banner rounded dense class="bg-warning text-white q-pa-md">
                     <template v-slot:avatar>
                       <q-icon name="assignment_return" />
                     </template>
-                    Refund has been granted. Please await the buyer's return shipment.
+                    Refund has been granted. Funds will be released to the buyer directly.
                   </q-banner>
                 </div>
 
                 <!-- Resolved: funds returned by arbiter (status 1 or 2) -->
-                <div v-if="showPostAuctionActions && isGrantedReturn && (deliveryStatusId === 1 || deliveryStatusId === 2)" class="q-mt-md full-width">
+                <div v-if="isGrantedReturn && (deliveryStatusId === 1 || deliveryStatusId === 2)" class="q-mt-md full-width">
                   <q-banner rounded dense class="bg-positive text-white q-pa-md">
                     <template v-slot:avatar>
                       <q-icon name="check_circle" />
                     </template>
                     Dispute resolved. Funds have been returned to the buyer.
                   </q-banner>
-                </div>
-
-                <!-- Seller: confirm items shipped back (status 4) -->
-                <div v-if="showPostAuctionActions && !isMarkedReturned && isAuthor && isGrantedRefund && deliveryStatusId === 4" class="q-mt-md full-width">
-                  <q-btn
-                    color="warning"
-                    icon="inventory"
-                    label="Confirm Returned Items"
-                    class="full-width"
-                    unelevated
-                    @click="confirmReturnedItems"
-                  />
-                </div>
-
-                <!-- Seller: mark as returned (status 5) -->
-                <div v-if="showPostAuctionActions && !isMarkedReturned && isAuthor && isGrantedRefund && deliveryStatusId === 5" class="q-mt-md full-width">
-                  <q-btn
-                    color="warning"
-                    icon="assignment_return"
-                    label="Mark as Return"
-                    class="full-width"
-                    unelevated
-                    :disable="isMarkedReturned"
-                    @click="markedAsReturned"
-                  />
-                </div>
-
-                <!-- Seller: mark as complete after return confirmed -->
-                <div v-if="showPostAuctionActions && isMarkedReturned && !isMarkedComplete && isAuthor && isGrantedRefund" class="q-mt-md full-width">
-                  <q-btn
-                    color="positive"
-                    icon="check_circle"
-                    label="Mark as Complete"
-                    class="full-width"
-                    unelevated
-                    @click="markedAsCompletedRefund"
-                  />
-                </div>
-
-                <!-- Bidder: ship back to seller after refund granted (status 3) -->
-                <div v-if="showPostAuctionActions && !isMarkedReturned && isWinningBidder && isGrantedRefund && deliveryStatusId === 3" class="q-mt-md full-width">
-                  <q-btn
-                    color="warning"
-                    icon="local_shipping"
-                    label="Confirm Ship To Seller"
-                    class="full-width"
-                    unelevated
-                    @click="confirmShipToSeller"
-                  />
                 </div>
 
                 <!-- Bidder: mark as complete (no refund, delivered) -->
@@ -755,11 +706,7 @@ import { callAPI } from 'src/auction/api'
 import { Store } from 'src/store'
 import { AuctionList, LotsList } from 'src/auction/object'
 import { walletToContract } from 'src/auction/payment'
-import {
-  callContractRelease,
-  callContractReturn,
-  callContractRefund
-} from 'src/auction/arbiter'
+import { callContractRelease, callContractReturn } from 'src/auction/arbiter'
 
 // Components
 import HeaderNav from 'src/components/header-nav.vue'
@@ -804,7 +751,6 @@ const deliveryStatusId = ref(null)
 const deliveredDate = ref(null)
 const isLotSold = ref(false)
 const isMarkedComplete = ref(false)
-const isMarkedReturned = ref(false)
 const isGrantedRefund = ref(false)
 const isGrantedReturn = ref(false)
 const currentDispute = ref(null)
@@ -883,38 +829,6 @@ const confirmPickupTrigger = async () => {
   }
 }
 
-const confirmShipToSeller = async () => {
-  try {
-    const res = await callAPI('delivery-trackings', props.lotId, 'patch', {
-      status: 4,
-      shipping_to_seller_date: new Date().toISOString()
-    })
-    if (res.success) {
-      $q.notify({ type: 'positive', message: 'Confirmed shipping back to seller!' })
-    }
-  } catch (err) {
-    console.warn('Could not update delivery tracking:', err)
-  } finally {
-    await refresh(() => {})
-  }
-}
-
-const confirmReturnedItems = async () => {
-  try {
-    const res = await callAPI('delivery-trackings', props.lotId, 'patch', {
-      status: 5,
-      returned_date: new Date().toISOString()
-    })
-    if (res.success) {
-      $q.notify({ type: 'positive', message: 'Confirmed items returned to seller!' })
-    }
-  } catch (err) {
-    console.warn('Could not update delivery tracking:', err)
-  } finally {
-    await refresh(() => {})
-  }
-}
-
 const markedAsCompleted = async () => {
   try {
     if (!winningBidId.value) {
@@ -934,36 +848,7 @@ const markedAsCompleted = async () => {
   }
 }
 
-const markedAsReturned = async () => {
-  try {
-    if (!winningBidId.value) {
-      $q.notify({ type: 'warning', message: 'Could not find bid to release funds for.' })
-      return
-    }
 
-    $q.loading.show({ message: 'Marking as returned, processing funds...' })
-    await callContractRefund(winningBidId.value)
-    $q.loading.hide()
-
-    await callAPI('delivery-trackings', props.lotId, 'patch', { mark_as_returned: true })
-  } catch (err) {
-    console.warn('Could not fetch delivery tracking:', err)
-  } finally {
-    await refresh(() => {})
-  }
-}
-
-const markedAsCompletedRefund = async () => {
-  try {
-    $q.loading.show({ message: 'Marking as complete...' })
-    await callAPI('delivery-trackings', props.lotId, 'patch', { mark_as_completed: true })
-  } catch (err) {
-    console.warn('Could not fetch delivery tracking:', err)
-  } finally {
-    $q.loading.hide()
-    await refresh(() => {})
-  }
-}
 
 
 
@@ -1584,7 +1469,6 @@ const fetchDeliveryTracking = async () => {
       deliveryStatusId.value = data?.status ?? null
       deliveredDate.value = data?.delivered_date ?? null
       isMarkedComplete.value = data?.mark_as_completed ?? false
-      isMarkedReturned.value = data?.mark_as_returned ?? false
     }
   } catch (err) {
     console.warn('Could not fetch delivery tracking:', err)
