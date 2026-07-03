@@ -42,6 +42,10 @@ export function setBackupReminderDismissed (state, value) {
   state.backupReminderDismissed = Boolean(value)
 }
 
+export function setBackupDialogActive (state, value) {
+  state.backupDialogActive = Boolean(value)
+}
+
 export function setLastBackupTimestamp (state, timestamp) {
   // timestamp should be Unix timestamp in milliseconds (Date.now())
   // null or undefined means no backup timestamp recorded

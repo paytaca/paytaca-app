@@ -91,6 +91,7 @@ export default {
       lastPauseTime: 0, // Timestamp of last pause event (to detect genuine background/foreground transitions)
       showPrivacyOverlay: false, // Controls privacy overlay visibility for app preview protection
       androidInsetResizeHandler: null, // Window resize handler for android status bar inset
+      joinRewardsDialogPending: false, // Tracks whether join rewards dialog was deferred waiting for backup dialog
     }
   },
   computed: {
@@ -110,6 +111,9 @@ export default {
     },
     showInitialLoad() {
       return !this.$store.state.global.appInitialLoadComplete
+    },
+    backupDialogActive() {
+      return this.$store?.state?.global?.backupDialogActive
     }
   },
   watch: {
@@ -124,6 +128,13 @@ export default {
     // Show join rewards dialog after initial loading screen completes
     showInitialLoad (val, oldVal) {
       if (oldVal === true && val === false) {
+        this.maybeShowJoinRewardsDialog()
+      }
+    },
+    // Re-trigger join rewards dialog once backup dialog is dismissed
+    backupDialogActive (val, oldVal) {
+      if (oldVal === true && val === false && this.joinRewardsDialogPending) {
+        this.joinRewardsDialogPending = false
         this.maybeShowJoinRewardsDialog()
       }
     }
@@ -574,6 +585,12 @@ export default {
     maybeShowJoinRewardsDialog () {
       const vm = this
 
+      // Don't show if backup dialog is still active; defer until it's dismissed
+      if (vm.backupDialogActive) {
+        vm.joinRewardsDialogPending = true
+        return
+      }
+
       // Fetch from vault directly
       const vault = vm.$store.getters['global/getVault']
       const wallet = vault?.[vm.walletIndex]
@@ -817,9 +834,13 @@ export default {
     if (sessionStorage.getItem('walletSwitchReload')) {
       sessionStorage.removeItem('walletSwitchReload')
       vm.$store.commit('global/setAppInitialLoadComplete', true)
+      vm.$store.commit('global/setBackupDialogActive', false)
+      vm.joinRewardsDialogPending = false
     } else {
       // Cold start: reset so the loading overlay shows until the home page is ready
       vm.$store.commit('global/setAppInitialLoadComplete', false)
+      vm.$store.commit('global/setBackupDialogActive', false)
+      vm.joinRewardsDialogPending = false
     }
 
     // Clear session-based backup reminder dismissal on fresh app start

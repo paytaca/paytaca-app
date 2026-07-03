@@ -2334,12 +2334,17 @@ export default {
       sessionStorage.setItem('backupReminderDismissedTimestamp', Date.now().toString())
       this.alertDismissedForSession = true
       this.showBackupAlert = false
+      this.$store.commit('global/setBackupDialogActive', false)
     },
     goToBackupPage () {
       this.showBackupAlert = false
+      this.$store.commit('global/setBackupDialogActive', false)
       this.$router.push('/apps/wallet-backup')
     },
     checkAndShowBackupAlert () {
+      // Clear any stale backup dialog active state before re-evaluating
+      this.$store.commit('global/setBackupDialogActive', false)
+
       // If an app update dialog is active, don't show backup reminder (avoid competing dialogs).
       try {
         if (sessionStorage.getItem('appUpdateDialogActive') === '1') {
@@ -2374,6 +2379,7 @@ export default {
       
       if (isNewWallet) {
         // Show after delay for newly created wallets (4 seconds)
+        this.$store.commit('global/setBackupDialogActive', true)
         this.backupAlertTimeout = setTimeout(() => {
           this.showBackupAlert = true
           // Clear the query parameter after showing
@@ -2381,6 +2387,7 @@ export default {
         }, 4000)
       } else {
         // Show immediately for existing wallets
+        this.$store.commit('global/setBackupDialogActive', true)
         this.showBackupAlert = true
       }
     }

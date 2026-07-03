@@ -221,6 +221,7 @@ function reducer(state) {
           if (serializedGlobal && typeof serializedGlobal === 'object') {
             delete serializedGlobal.isUnlocked
             delete serializedGlobal.appInitialLoadComplete
+            delete serializedGlobal.backupDialogActive
           }
           serialized[moduleName] = serializedGlobal
         } else if (moduleName === 'wizardconnect') {
