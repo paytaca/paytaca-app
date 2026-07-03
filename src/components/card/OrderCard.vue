@@ -269,7 +269,7 @@ export default {
       const ownerPublicKeyBytes = await getStoredPublicKey()
       const payload = await createEncryptedAddressPayload(address, ownerPublicKeyBytes, dispatcherPublicKeyBytes)
       console.log('card:', this.card)
-      payload.card = 160 // hardcoded for now, replace with actual card ID when available
+      payload.card = this.card?.id || 160
       payload.type = this.deliveryMethod === 'delivery' ? 'DELIVERY' : 'PICKUP'
       console.log('Encrypted Address Payload:', payload)
 
