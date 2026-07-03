@@ -2338,13 +2338,9 @@ export default {
     },
     goToBackupPage () {
       this.showBackupAlert = false
-      this.$store.commit('global/setBackupDialogActive', false)
       this.$router.push('/apps/wallet-backup')
     },
     checkAndShowBackupAlert () {
-      // Clear any stale backup dialog active state before re-evaluating
-      this.$store.commit('global/setBackupDialogActive', false)
-
       // If an app update dialog is active, don't show backup reminder (avoid competing dialogs).
       try {
         if (sessionStorage.getItem('appUpdateDialogActive') === '1') {
@@ -2355,6 +2351,7 @@ export default {
             sessionStorage.removeItem('appUpdateDialogActive')
             sessionStorage.removeItem('appUpdateDialogActiveAt')
           } else {
+            this.$store.commit('global/setBackupDialogActive', false)
             return
           }
         }
@@ -2363,6 +2360,7 @@ export default {
       // Don't show if lastBackupTimestamp is already set for this wallet (user has confirmed backup)
       // Each wallet is tracked independently
       if (this.lastBackupTimestamp) {
+        this.$store.commit('global/setBackupDialogActive', false)
         return
       }
 
@@ -2371,6 +2369,7 @@ export default {
       const dismissedTimestamp = sessionStorage.getItem('backupReminderDismissedTimestamp')
       if (dismissedTimestamp) {
         this.alertDismissedForSession = true
+        this.$store.commit('global/setBackupDialogActive', false)
         return
       }
 
