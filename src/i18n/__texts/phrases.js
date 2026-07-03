@@ -1205,6 +1205,7 @@ const phrases = {
       TransactionReceived: 'Transaction Received',
       TransactionReceivedSuccessfully: 'Transaction Received Successfully!',
       ConsolidationTransactionNote: 'This transaction consolidates funds within your wallet.',
+      FreezeDisabledTooltip: 'Freeze is temporarily disabled',
     }, 
     {
       Volume24hr: 'Volume (24 hr)',

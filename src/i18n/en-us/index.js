@@ -1090,6 +1090,7 @@ export default {
   Free: "Free",
   FreeTierDescription: "Perfect for getting started. Create up to {wallets} wallets, add {favoriteTokens} favorite tokens, and manage {multisigWallets} multisig wallets per device.",
   Freeze: "Freeze",
+  FreezeDisabledTooltip: "Freeze is temporarily disabled",
   French: "French",
   FrequentlyAskedQuestions: "Frequently Asked Questions",
   FreshAddressHint: "This is a fresh address generated from your wallet",

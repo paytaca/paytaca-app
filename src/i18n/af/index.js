@@ -1085,6 +1085,7 @@ export default {
   Free: "Gratis",
   FreeTierDescription: "Gratis vlak beskrywing",
   Freeze: "Vries",
+  FreezeDisabledTooltip: "Vries is tydelik gedeaktiveer",
   French: "Frans",
   FrequentlyAskedQuestions: "Gereelde Vrae",
   FreshAddressHint: "Dit is 'n vars adres wat uit jou beursie gegenereer word",

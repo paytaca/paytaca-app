@@ -1085,6 +1085,7 @@ export default {
   Free: "무료",
   FreeTierDescription: "무료 등급 설명",
   Freeze: "동결",
+  FreezeDisabledTooltip: "동결이 일시적으로 비활성화되었습니다.",
   French: "프랑스어",
   FrequentlyAskedQuestions: "자주 묻는 질문",
   FreshAddressHint: "지갑에서 생성된 새로운 주소입니다.",

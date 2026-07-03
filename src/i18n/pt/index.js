@@ -1085,6 +1085,7 @@ export default {
   Free: "Grátis",
   FreeTierDescription: "Descrição do nível gratuito",
   Freeze: "Congelar",
+  FreezeDisabledTooltip: "O congelamento está temporariamente desativado",
   French: "Francês",
   FrequentlyAskedQuestions: "Perguntas frequentes",
   FreshAddressHint: "Este é um novo endereço gerado a partir da sua carteira",

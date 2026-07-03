@@ -1085,6 +1085,7 @@ export default {
   Free: "Kostenlos",
   FreeTierDescription: "Kostenlose Stufe Beschreibung",
   Freeze: "Einfrieren",
+  FreezeDisabledTooltip: "Das Einfrieren ist vorübergehend deaktiviert",
   French: "Französisch",
   FrequentlyAskedQuestions: "Häufig gestellte Fragen",
   FreshAddressHint: "Dies ist eine neue Adresse, die aus Ihrem Wallet generiert wurde",

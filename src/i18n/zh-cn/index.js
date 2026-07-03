@@ -1086,6 +1086,7 @@ export default {
   Free: "免费",
   FreeTierDescription: "免费层级描述",
   Freeze: "冻结",
+  FreezeDisabledTooltip: "冻结功能暂时禁用",
   French: "法语",
   FrequentlyAskedQuestions: "常见问题解答",
   FreshAddressHint: "这是从您的钱包生成的新地址",

@@ -1085,6 +1085,7 @@ export default {
   Free: "Gratuit",
   FreeTierDescription: "Description du niveau gratuit",
   Freeze: "Geler",
+  FreezeDisabledTooltip: "Le gel est temporairement désactivé",
   French: "Français",
   FrequentlyAskedQuestions: "Foire aux questions",
   FreshAddressHint: "Ceci est une nouvelle adresse générée à partir de votre portefeuille",

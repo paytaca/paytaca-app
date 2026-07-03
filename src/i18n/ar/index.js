@@ -1085,6 +1085,7 @@ export default {
   Free: "مجاني",
   FreeTierDescription: "وصف المستوى المجاني",
   Freeze: "تجميد",
+  FreezeDisabledTooltip: "تم تعطيل التجميد مؤقتًا",
   French: "الفرنسية",
   FrequentlyAskedQuestions: "الأسئلة المتداولة",
   FreshAddressHint: "هذا عنوان جديد تم إنشاؤه من محفظتك",

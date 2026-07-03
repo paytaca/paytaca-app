@@ -1085,6 +1085,7 @@ export default {
   Free: "Libre",
   FreeTierDescription: "Deskripsyon ng free tier",
   Freeze: "I-freeze",
+  FreezeDisabledTooltip: "Pansamantalang hindi pinagana ang freeze",
   French: "Pranses",
   FrequentlyAskedQuestions: "Mga Madalas Itanong",
   FreshAddressHint: "Ito ay isang bagong address na nabuo mula sa iyong wallet",

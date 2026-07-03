@@ -1085,6 +1085,7 @@ export default {
   Free: "Gratis",
   FreeTierDescription: "Deskripsi tingkat gratis",
   Freeze: "Bekukan",
+  FreezeDisabledTooltip: "Pembekuan dinonaktifkan untuk sementara",
   French: "Perancis",
   FrequentlyAskedQuestions: "Pertanyaan yang Sering Diajukan",
   FreshAddressHint: "Ini adalah alamat baru yang dihasilkan dari dompet Anda",

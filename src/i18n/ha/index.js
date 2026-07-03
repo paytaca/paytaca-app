@@ -1085,6 +1085,7 @@ export default {
   Free: "Kyauta",
   FreeTierDescription: "Bayanin matakin kyauta",
   Freeze: "Daskare",
+  FreezeDisabledTooltip: "An kashe daskare na ɗan lokaci",
   French: "Faransanci",
   FrequentlyAskedQuestions: "Tambayoyin da ake yawan yi",
   FreshAddressHint: "Wannan sabon adireshin da aka samar daga walat ɗin ku",

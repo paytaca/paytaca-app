@@ -1085,6 +1085,7 @@ export default {
   Free: "Бесплатно",
   FreeTierDescription: "Описание бесплатного уровня",
   Freeze: "Заморозить",
+  FreezeDisabledTooltip: "Заморозка временно отключена",
   French: "французский",
   FrequentlyAskedQuestions: "Часто задаваемые вопросы",
   FreshAddressHint: "Это новый адрес, сгенерированный из вашего кошелька.",

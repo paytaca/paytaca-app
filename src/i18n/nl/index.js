@@ -1085,6 +1085,7 @@ export default {
   Free: "Gratis",
   FreeTierDescription: "Gratis niveau beschrijving",
   Freeze: "Bevriezen",
+  FreezeDisabledTooltip: "Bevriezen is tijdelijk uitgeschakeld",
   French: "Frans",
   FrequentlyAskedQuestions: "Veelgestelde vragen",
   FreshAddressHint: "Dit is een nieuw adres dat is gegenereerd vanuit uw portemonnee",

@@ -1085,6 +1085,7 @@ export default {
   Free: "無料",
   FreeTierDescription: "無料ティアの説明",
   Freeze: "フリーズ",
+  FreezeDisabledTooltip: "フリーズは一時的に無効になります",
   French: "フランス語",
   FrequentlyAskedQuestions: "よくある質問",
   FreshAddressHint: "これはウォレットから生成された新しいアドレスです",
