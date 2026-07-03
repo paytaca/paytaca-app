@@ -25,7 +25,8 @@ function getDefaultWalletSettings() {
     lockApp: false, // Enable/disable app lock feature
     relativeTxTimestamp: true, // true: relative timestamps, false: absolute timestamps
     lastBackupTimestamp: null, // Timestamp when user last confirmed backup completion (Unix timestamp in milliseconds)
-    walletCreatedAt: null // ISO 8601 string from backend auth/wallet endpoint
+    walletCreatedAt: null, // ISO 8601 string from backend auth/wallet endpoint
+    joinRewardsPromptShown: false
   }
 }
 
