@@ -54,9 +54,9 @@ export async function getWalletTokenAddress (use0thAddressIndex=false) {
 
 // ========== reusable functions ==========
 
-async function processPoints (url, data) {
+async function processPoints (url, data, skipAbortManager=false) {
   return await REWARDS_URL
-    .post(url, data)
+    .post(url, data, skipAbortManager ? { skipAbortManager: true } : undefined)
     .then(response => {
       if (response.status === 200) return response.data
       else return null
@@ -238,7 +238,7 @@ export async function processRampCashinPoints (data) {
 }
 
 export async function processCauldronPoints (data) {
-  return await processPoints('userreward/process_cauldron_points/', data)
+  return await processPoints('userreward/process_cauldron_points/', data, true)
 }
 
 export async function processEloadPoints (data) {
