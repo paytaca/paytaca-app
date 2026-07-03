@@ -35,6 +35,7 @@ import AppLoading from 'src/components/AppLoading.vue'
 import { App as CapacitorApp } from '@capacitor/app'
 import { Capacitor } from '@capacitor/core'
 import ScreenshotSecurity from './utils/screenshot-security'
+import JoinRewardsDialog from './components/rewards/dialogs/JoinRewardsDialog.vue'
 
 // Module-level variable to track version update dialog instance
 // This persists across component remounts (important for iOS/Capacitor)
@@ -90,6 +91,7 @@ export default {
       lastPauseTime: 0, // Timestamp of last pause event (to detect genuine background/foreground transitions)
       showPrivacyOverlay: false, // Controls privacy overlay visibility for app preview protection
       androidInsetResizeHandler: null, // Window resize handler for android status bar inset
+      joinRewardsDialogPending: false, // Tracks whether join rewards dialog was deferred waiting for backup dialog
     }
   },
   computed: {
@@ -109,6 +111,9 @@ export default {
     },
     showInitialLoad() {
       return !this.$store.state.global.appInitialLoadComplete
+    },
+    backupDialogActive() {
+      return this.$store?.state?.global?.backupDialogActive
     }
   },
   watch: {
@@ -119,6 +124,19 @@ export default {
     // Watch for changes to lock app setting
     lockAppEnabled() {
       this.updateScreenshotSecurity()
+    },
+    // Show join rewards dialog after initial loading screen completes
+    showInitialLoad (val, oldVal) {
+      if (oldVal === true && val === false) {
+        this.maybeShowJoinRewardsDialog()
+      }
+    },
+    // Re-trigger join rewards dialog once backup dialog is dismissed
+    backupDialogActive (val, oldVal) {
+      if (oldVal === true && val === false && this.joinRewardsDialogPending) {
+        this.joinRewardsDialogPending = false
+        this.maybeShowJoinRewardsDialog()
+      }
     }
   },
   methods: {
@@ -564,6 +582,46 @@ export default {
         })
       }
     },
+    maybeShowJoinRewardsDialog () {
+      const vm = this
+
+      // Don't show if backup dialog is still active; defer until it's dismissed
+      if (vm.backupDialogActive) {
+        vm.joinRewardsDialogPending = true
+        return
+      }
+
+      // Fetch from vault directly
+      const vault = vm.$store.getters['global/getVault']
+      const wallet = vault?.[vm.walletIndex]
+
+      // Only show if wallet is loaded
+      const walletHash = wallet?.wallet?.bch?.walletHash || wallet?.bch?.walletHash
+      if (!walletHash) return
+
+      // Don't show if on lock screen
+      const currentRoute = vm.$router.currentRoute.value.path
+      if (currentRoute === '/lock') return
+
+      // Don't show if app is backgrounded (privacy overlay active)
+      if (vm.showPrivacyOverlay) return
+
+      // Don't show if already dismissed for this wallet
+      const alreadyShown = wallet?.settings?.joinRewardsPromptShown
+      if (alreadyShown) return
+
+      // Show dialog and mark as shown on dismiss
+      const dialog = vm.$q.dialog({
+        component: JoinRewardsDialog
+      })
+
+      dialog.onDismiss(() => {
+        vm.$store.commit('global/saveWalletSetting', {
+          key: 'joinRewardsPromptShown',
+          value: true
+        })
+      })
+    },
     setupImageContextMenuPrevention() {
       const vm = this
       
@@ -776,9 +834,13 @@ export default {
     if (sessionStorage.getItem('walletSwitchReload')) {
       sessionStorage.removeItem('walletSwitchReload')
       vm.$store.commit('global/setAppInitialLoadComplete', true)
+      vm.$store.commit('global/setBackupDialogActive', false)
+      vm.joinRewardsDialogPending = false
     } else {
       // Cold start: reset so the loading overlay shows until the home page is ready
       vm.$store.commit('global/setAppInitialLoadComplete', false)
+      vm.$store.commit('global/setBackupDialogActive', false)
+      vm.joinRewardsDialogPending = false
     }
 
     // Clear session-based backup reminder dismissal on fresh app start

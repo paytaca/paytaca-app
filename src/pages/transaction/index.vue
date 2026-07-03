@@ -2334,6 +2334,7 @@ export default {
       sessionStorage.setItem('backupReminderDismissedTimestamp', Date.now().toString())
       this.alertDismissedForSession = true
       this.showBackupAlert = false
+      this.$store.commit('global/setBackupDialogActive', false)
     },
     goToBackupPage () {
       this.showBackupAlert = false
@@ -2350,6 +2351,7 @@ export default {
             sessionStorage.removeItem('appUpdateDialogActive')
             sessionStorage.removeItem('appUpdateDialogActiveAt')
           } else {
+            this.$store.commit('global/setBackupDialogActive', false)
             return
           }
         }
@@ -2358,6 +2360,7 @@ export default {
       // Don't show if lastBackupTimestamp is already set for this wallet (user has confirmed backup)
       // Each wallet is tracked independently
       if (this.lastBackupTimestamp) {
+        this.$store.commit('global/setBackupDialogActive', false)
         return
       }
 
@@ -2366,6 +2369,7 @@ export default {
       const dismissedTimestamp = sessionStorage.getItem('backupReminderDismissedTimestamp')
       if (dismissedTimestamp) {
         this.alertDismissedForSession = true
+        this.$store.commit('global/setBackupDialogActive', false)
         return
       }
 
@@ -2374,6 +2378,7 @@ export default {
       
       if (isNewWallet) {
         // Show after delay for newly created wallets (4 seconds)
+        this.$store.commit('global/setBackupDialogActive', true)
         this.backupAlertTimeout = setTimeout(() => {
           this.showBackupAlert = true
           // Clear the query parameter after showing
@@ -2381,6 +2386,7 @@ export default {
         }, 4000)
       } else {
         // Show immediately for existing wallets
+        this.$store.commit('global/setBackupDialogActive', true)
         this.showBackupAlert = true
       }
     }

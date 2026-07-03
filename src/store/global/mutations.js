@@ -25,7 +25,8 @@ function getDefaultWalletSettings() {
     lockApp: false, // Enable/disable app lock feature
     relativeTxTimestamp: true, // true: relative timestamps, false: absolute timestamps
     lastBackupTimestamp: null, // Timestamp when user last confirmed backup completion (Unix timestamp in milliseconds)
-    walletCreatedAt: null // ISO 8601 string from backend auth/wallet endpoint
+    walletCreatedAt: null, // ISO 8601 string from backend auth/wallet endpoint
+    joinRewardsPromptShown: false
   }
 }
 
@@ -39,6 +40,10 @@ export function setWalletRecoveryMessage(state, value) {
 
 export function setBackupReminderDismissed (state, value) {
   state.backupReminderDismissed = Boolean(value)
+}
+
+export function setBackupDialogActive (state, value) {
+  state.backupDialogActive = Boolean(value)
 }
 
 export function setLastBackupTimestamp (state, timestamp) {

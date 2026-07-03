@@ -341,6 +341,7 @@ import {
   Promos,
   updateUserRewardsData,
   updateRfPromoData,
+  createUserRewardsData,
 } from 'src/utils/engagementhub-utils/rewards'
 
 import HeaderNav from 'src/components/header-nav.vue'
@@ -354,7 +355,8 @@ export default {
   name: 'RewardsPage',
 
   props: {
-    code: { type: String, default: '' }
+    code: { type: String, default: '' },
+    joinedProgram: { type: String, default: 'false' }
   },
 
   components: {
@@ -563,6 +565,26 @@ export default {
     if (this.code) {
       this.isReferralDialogActive = true
     }
+
+    if (this.joinedProgram === 'true' && !this.promos.ur.id) {
+      // generate user rewards data if not yet existing
+      try {
+        const urData = await createUserRewardsData()
+        updateUserPromoData({ ur: urData.id })
+        // generate user rewards promo contract
+        const walletIndex = this.$store.getters['global/getWalletIndex']
+        const userPubkey = await getAddress0_0PublicKey(walletIndex)
+        const contract = new PromoContract(userPubkey, PromosBytes.UR)
+        updateUserRewardsData(urData.id, {
+          contract_ct_address: contract.contract.tokenAddress
+        })
+        this.promos.ur.id = urData.id
+      } catch (error) {
+        console.error('Unable to create user rewards promo contract and data: ', error)
+      }
+    }
+
+    this.isLoading = false
   },
 
   methods: {
@@ -698,8 +720,6 @@ export default {
       // Start polling Cauldron prices (every 60 seconds)
       this.startCauldronPricePolling()
 
-      this.isLoading = false
-
       setTimeout(() => {
         this.$nextTick(() => {
           if (upData && !upData?.last_viewed) this.isHelpActive = true
@@ -714,7 +734,7 @@ export default {
       if (
         this.referralCodeEligibilityDate &&
         this.walletCreatedAt &&
-        new Date(this.referralCodeEligibilityDate) > new Date(this.walletCreatedAt) &&
+        new Date(this.referralCodeEligibilityDate) < new Date(this.walletCreatedAt) &&
         upData?.enable_referral_banner
       ) {
         this.bannerRemainingTime = upData?.banner_remaining_time

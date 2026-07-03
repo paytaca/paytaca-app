@@ -144,6 +144,7 @@ export default function () {
      */
     isUnlocked: false,
     previousRoute: null,
-    appInitialLoadComplete: false
+    appInitialLoadComplete: false,
+    backupDialogActive: false
   }
 }
