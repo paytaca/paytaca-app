@@ -35,6 +35,7 @@ import AppLoading from 'src/components/AppLoading.vue'
 import { App as CapacitorApp } from '@capacitor/app'
 import { Capacitor } from '@capacitor/core'
 import ScreenshotSecurity from './utils/screenshot-security'
+import JoinRewardsDialog from './components/rewards/dialogs/JoinRewardsDialog.vue'
 
 // Module-level variable to track version update dialog instance
 // This persists across component remounts (important for iOS/Capacitor)
@@ -119,6 +120,12 @@ export default {
     // Watch for changes to lock app setting
     lockAppEnabled() {
       this.updateScreenshotSecurity()
+    },
+    // Show join rewards dialog after initial loading screen completes
+    showInitialLoad (val, oldVal) {
+      if (oldVal === true && val === false) {
+        this.maybeShowJoinRewardsDialog()
+      }
     }
   },
   methods: {
@@ -563,6 +570,40 @@ export default {
           })
         })
       }
+    },
+    maybeShowJoinRewardsDialog () {
+      const vm = this
+
+      // Fetch from vault directly
+      const vault = vm.$store.getters['global/getVault']
+      const wallet = vault?.[vm.walletIndex]
+
+      // Only show if wallet is loaded
+      const walletHash = wallet?.wallet?.bch?.walletHash || wallet?.bch?.walletHash
+      if (!walletHash) return
+
+      // Don't show if on lock screen
+      const currentRoute = vm.$router.currentRoute.value.path
+      if (currentRoute === '/lock') return
+
+      // Don't show if app is backgrounded (privacy overlay active)
+      if (vm.showPrivacyOverlay) return
+
+      // Don't show if already dismissed for this wallet
+      const alreadyShown = wallet?.settings?.joinRewardsPromptShown
+      if (alreadyShown) return
+
+      // Show dialog and mark as shown on dismiss
+      const dialog = vm.$q.dialog({
+        component: JoinRewardsDialog
+      })
+
+      dialog.onDismiss(() => {
+        vm.$store.commit('global/saveWalletSetting', {
+          key: 'joinRewardsPromptShown',
+          value: true
+        })
+      })
     },
     setupImageContextMenuPrevention() {
       const vm = this
