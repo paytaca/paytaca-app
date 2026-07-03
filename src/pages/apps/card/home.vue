@@ -13,169 +13,147 @@
     </div>
 
     <div v-else class="column items-center full-width" style="max-width: 650px;">
-      <!-- Journey Steps -->
-      <div class="journey-steps full-width q-mb-md">
-        <div class="text-subtitle1 text-weight-bold text-center q-mb-sm" :class="textColor">
-          {{ $t('Onboarding') }}
-        </div>
-
-        <div class="journey-card q-pa-sm"
-          :class="$q.dark.isActive ? 'journey-card-dark' : 'journey-card-light'">
-          <div class="steps-row">
-            <div class="steps-track" :style="trackStyle"></div>
-            <div class="row no-wrap items-start justify-between steps-items">
-              <div v-for="(step, index) in journeySteps" :key="index"
-                class="step-item column items-center"
-                :style="{ width: `${100 / journeySteps.length}%` }">
-                <div class="step-indicator" :class="[step.status, $q.dark.isActive ? 'step-dark' : 'step-light']">
-                  <q-icon :name="step.status === 'done' ? 'check' : step.icon" size="18px" />
-                </div>
-                <div class="step-label text-center q-mt-xs" :class="'step-label-' + step.status">
-                  <div class="text-caption text-weight-bold">{{ step.label }}</div>
-                </div>
-                <div v-if="index < journeySteps.length - 1" class="step-connector"
-                  :class="step.status === 'done' ? 'connector-done' : 'connector-pending'"></div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <!-- View My Cards -->
-      <div class="full-width q-mb-md" style="max-width: 400px; margin-left: auto; margin-right: auto;">
-        <div
-          class="link-method-item cursor-pointer"
-          :class="$q.dark.isActive ? 'method-item-dark' : 'method-item-light'"
-          @click="$router.push({ name: 'card-list' })"
-        >
-          <div class="method-icon-box" :class="$q.dark.isActive ? 'icon-box-dark' : 'icon-box-light'">
-            <q-icon name="credit_card" size="22px" color="primary" />
-          </div>
-          <div class="method-text">
-            <div class="text-subtitle2 text-weight-bold" :class="textColor">{{ $t('View My Cards') }}</div>
-            <div class="text-caption" :class="textColorGrey">{{ $t('Manage your cards') }}</div>
-          </div>
-          <q-icon name="chevron_right" size="20px" :color="$q.dark.isActive ? 'grey-5' : 'grey-6'" />
-        </div>
-      </div>
-
-      <!-- Mode Toggle -->
-      <div class="mode-toggle-container full-width q-mb-md">
-        <div class="mode-toggle-inner row no-wrap items-center"
-          :class="$q.dark.isActive ? 'toggle-bg-dark' : 'toggle-bg-light'">
-          <button v-for="mode in modes" :key="mode.key"
-            class="mode-btn col"
-            :class="{
-              'mode-active': activeView === mode.key,
-              [$q.dark.isActive ? 'mode-btn-dark' : 'mode-btn-light']: true
-            }"
-            @click="switchView(mode.key)">
-            <q-icon :name="mode.icon" size="18px" class="q-mr-xs" />
-            <span>{{ mode.label }}</span>
-          </button>
-        </div>
-      </div>
-
-      <!-- Create Card -->
-      <transition v-if="activeView === 'create'" name="fade-slide" mode="out-in">
-        <div key="create" class="full-width column items-center text-center q-pt-md" style="max-width: 400px;">
-          <!-- Main Create Card Button - Large Card Style -->
-          <q-card
-            flat
-            class="create-card-action q-pa-xl text-center full-width cursor-pointer"
-            @click="onOpenCreateCardForm()"
-          >
-            <div class="text-h4 text-weight-bold q-mb-sm text-primary">
-              {{ $t('Create New Card') }}
-            </div>
-            
-            <div class="create-card-icon q-mb-md">
-              <q-icon name="add_circle_outline" size="48px" color="primary" />
-            </div>
-            
-            <div class="tap-icon-container text-center">
-              <q-icon name="touch_app" size="24px" color="primary" class="tap-icon q-mb-xs" />
-              <div class="text-caption text-primary">
-                {{ $t('Tap here to create') }}
-              </div>
-            </div>
-          </q-card>
-        </div>
-      </transition>
-
-      <!-- Order Card -->
-      <transition v-if="activeView === 'order'" name="fade-slide" mode="out-in">
-        <div key="order" class="order-card-root q-pt-md column items-center">
-          <div class="link-icon-ring q-mb-md">
+      <!-- WELCOME STATE (0 cards) -->
+      <transition v-if="wizardStep === 'welcome'" name="fade-slide" mode="out-in">
+        <div key="welcome" class="full-width column items-center text-center q-pt-xl">
+          <div class="link-icon-ring q-mb-lg">
             <div class="link-icon-inner">
-              <q-icon name="shopping_cart" size="32px" color="primary" />
+              <q-icon name="credit_card" size="32px" color="primary" />
             </div>
           </div>
-          <OrderCard :replacement-reason="replacementReasonLabel" />
-        </div>
-      </transition>
-
-      <!-- Link Card -->
-      <transition v-if="activeView === 'activate'" name="fade-slide" mode="out-in">
-        <div class="full-width column items-center text-center q-pt-md" key="link">
-          <div class="link-icon-ring q-mb-md">
-            <div class="link-icon-inner">
-              <q-icon name="link" size="32px" color="primary" />
-            </div>
+          <div class="text-h4 text-weight-bold q-mb-sm" :class="textColor">
+            {{ $t("Let's set up your Paytaca Card") }}
           </div>
-          <div class="text-h5 text-weight-bold q-mb-sm" :class="textColor">Activate Your Paytaca Card</div>
-          <div class="text-body2 q-mb-md" style="max-width: 360px;" :class="textColorGrey">
-            Activate your Paytaca card to start using it.
+          <div class="text-body2 q-mb-xl" style="max-width: 360px;" :class="textColorGrey">
+            {{ $t('Create a card to start using Paytaca. You can order a delivered card anytime.') }}
           </div>
-
-          <div class="full-width link-methods q-mb-md">
-            <div class="link-method-item"
-              :class="$q.dark.isActive ? 'method-item-dark' : 'method-item-light'">
-              <div class="method-icon-box" :class="$q.dark.isActive ? 'icon-box-dark' : 'icon-box-light'">
-                <q-icon name="qr_code_scanner" size="20px" color="primary" />
-              </div>
-              <div class="method-text">
-                <div class="text-subtitle2 text-weight-bold" :class="textColor">Scan QR</div>
-                <div class="text-caption" :class="textColorGrey">Scan the QR code on your card</div>
-              </div>
-            </div>
-            <div class="link-method-item"
-              :class="$q.dark.isActive ? 'method-item-dark' : 'method-item-light'">
-              <div class="method-icon-box" :class="$q.dark.isActive ? 'icon-box-dark' : 'icon-box-light'">
-                <q-icon name="nfc" size="20px" color="primary" />
-              </div>
-              <div class="method-text">
-                <div class="text-subtitle2 text-weight-bold" :class="textColor">Tap NFC</div>
-                <div class="text-caption" :class="textColorGrey">Hold your card near your phone</div>
-              </div>
-            </div>
-            <div class="link-method-item"
-              :class="$q.dark.isActive ? 'method-item-dark' : 'method-item-light'">
-              <div class="method-icon-box" :class="$q.dark.isActive ? 'icon-box-dark' : 'icon-box-light'">
-                <q-icon name="keyboard" size="20px" color="primary" />
-              </div>
-              <div class="method-text">
-                <div class="text-subtitle2 text-weight-bold" :class="textColor">Manual Entry</div>
-                <div class="text-caption" :class="textColorGrey">Type the Card UID manually</div>
-              </div>
-            </div>
-          </div>
-
           <q-btn
-            label="Activate"
+            label="Get Started"
             color="primary"
             unelevated
             rounded
             no-caps
-            class="link-cta-btn q-mt-md"
-            @click="showActivateCardForm = true"
+            class="link-cta-btn"
+            @click="onOpenCreateCardForm()"
           />
+        </div>
+      </transition>
+
+      <!-- CREATING STATE (dialog is open, handled by showCreateCardForm) -->
+      <!-- The CreateCardForm dialog overlays everything when showCreateCardForm is true -->
+
+      <!-- PREVIEW STATE (just created a card) -->
+      <transition v-if="wizardStep === 'preview'" name="fade-slide" mode="out-in">
+        <div key="preview" class="full-width column items-center text-center q-pt-md">
+          <div class="text-h5 text-weight-bold q-mb-md" :class="textColor">
+            {{ $t('Your Card is Ready') }}
+          </div>
+
+          <!-- Mini card preview -->
+          <q-card
+            flat
+            class="create-card-action q-pa-lg text-center full-width q-mb-lg cursor-pointer"
+            style="border-style: solid; max-width: 320px;"
+            @click="$router.push({ name: 'card-details', params: { id: createdCard.id } })"
+          >
+            <div class="text-h6 text-weight-bold q-mb-sm text-primary">
+              {{ createdCard?.alias || createdCard?.name || $t('Card') }}
+            </div>
+            <q-icon name="check_circle" size="48px" color="positive" class="q-mb-sm" />
+            <div class="text-caption text-primary">
+              {{ $t('Tap to view in your wallet') }}
+            </div>
+          </q-card>
+
+          <div class="row q-gutter-md justify-center full-width q-mb-md">
+            <q-btn
+              label="View Card"
+              color="primary"
+              unelevated
+              rounded
+              no-caps
+              class="link-cta-btn"
+              @click="$router.push({ name: 'card-details', params: { id: createdCard.id } })"
+            />
+            <q-btn
+              label="Order Card"
+              color="primary"
+              outline
+              rounded
+              no-caps
+              class="link-cta-btn"
+              @click="showInlineOrder = true"
+            />
+          </div>
+
+          <div v-if="showInlineOrder" class="full-width q-mt-md" style="max-width: 400px;">
+            <OrderCard :card="createdCard" :replacement-reason="replacementReasonLabel" />
+          </div>
+        </div>
+      </transition>
+
+      <!-- DASHBOARD STATE (has existing cards) -->
+      <transition v-if="wizardStep === 'dashboard'" name="fade-slide" mode="out-in">
+        <div key="dashboard" class="full-width column items-center q-pt-md">
+          <!-- Replacement banner -->
+          <div v-if="replacementReasonLabel" class="full-width q-mb-md" style="max-width: 400px;">
+            <q-banner class="q-pa-sm text-center" rounded :class="$q.dark.isActive ? 'bg-grey-9' : 'bg-primary'" style="border-radius: 12px;">
+              <div class="text-caption text-weight-bold text-white">
+                {{ $t('Card Replacement') }} — {{ $t('Reason') }}: {{ replacementReasonLabel }}
+              </div>
+            </q-banner>
+          </div>
+
+          <div class="text-h5 text-weight-bold q-mb-md" :class="textColor">
+            {{ $t('You have') }} {{ cardCount }} {{ $t(cardCount === 1 ? 'card' : 'cards') }}
+          </div>
+
+          <!-- View My Cards -->
+          <div class="full-width q-mb-md" style="max-width: 400px; margin-left: auto; margin-right: auto;">
+            <div
+              class="link-method-item cursor-pointer"
+              :class="$q.dark.isActive ? 'method-item-dark' : 'method-item-light'"
+              @click="$router.push({ name: 'card-list' })"
+            >
+              <div class="method-icon-box" :class="$q.dark.isActive ? 'icon-box-dark' : 'icon-box-light'">
+                <q-icon name="credit_card" size="22px" color="primary" />
+              </div>
+              <div class="method-text">
+                <div class="text-subtitle2 text-weight-bold" :class="textColor">{{ $t('View My Cards') }}</div>
+                <div class="text-caption" :class="textColorGrey">{{ $t('Manage your cards') }}</div>
+              </div>
+              <q-icon name="chevron_right" size="20px" :color="$q.dark.isActive ? 'grey-5' : 'grey-6'" />
+            </div>
+          </div>
+
+          <!-- Create Another Card -->
+          <div class="full-width q-mb-md" style="max-width: 400px; margin-left: auto; margin-right: auto;">
+            <div
+              class="link-method-item cursor-pointer"
+              :class="$q.dark.isActive ? 'method-item-dark' : 'method-item-light'"
+              @click="onOpenCreateCardForm()"
+            >
+              <div class="method-icon-box" :class="$q.dark.isActive ? 'icon-box-dark' : 'icon-box-light'">
+                <q-icon name="add_card" size="22px" color="primary" />
+              </div>
+              <div class="method-text">
+                <div class="text-subtitle2 text-weight-bold" :class="textColor">{{ $t('Create Another Card') }}</div>
+                <div class="text-caption" :class="textColorGrey">{{ $t('Add a new card to your wallet') }}</div>
+              </div>
+              <q-icon name="chevron_right" size="20px" :color="$q.dark.isActive ? 'grey-5' : 'grey-6'" />
+            </div>
+          </div>
+
+          <!-- Inline replacement order form -->
+          <div v-if="isReplacement" class="full-width q-mt-md" style="max-width: 400px;">
+            <OrderCard :replacement-reason="replacementReasonLabel" />
+          </div>
         </div>
       </transition>
     </div>
 
+    <!-- Dialogs -->
     <CreateCardForm v-if="showCreateCardForm" @onClose="onCloseCreateCardForm" @card-created="onCardCreated" :idempotencyKey="idempotencyKey" />
-    <ActivateCardForm v-if="showActivateCardForm" @close="showActivateCardForm = false" @activate="onCardActivated" />
     <ResumeCreateCardDialog
       v-if="showResumeCreateCardDialog"
       @resumeAttempt="onResumeCardAttempt"
@@ -191,14 +169,12 @@ import ResumeCreateCardDialog from 'src/components/card/ResumeCreateCardDialog.v
 import OrderCard from 'src/components/card/OrderCard.vue';
 import { loadCardUser } from 'src/services/card/user';
 import CreateCardAttemptMixin from 'src/mixins/card/create-card-attempt-mixin'
-import ActivateCardForm from 'src/components/card/ActivateCardForm.vue';
 import bus from 'src/services/event-bus';
 
 export default {
   mixins: [CreateCardAttemptMixin],
   components: {
     CreateCardForm,
-    ActivateCardForm,
     ResumeCreateCardDialog,
     OrderCard
   },
@@ -206,19 +182,9 @@ export default {
   data () {
     return {
       isloaded: false,
-      showActivateCardForm: false,
-      activeView: 'order',
-      modes: [
-        { key: 'create', label: 'Create Card', icon: 'add_card' },
-        { key: 'order', label: 'Order Card', icon: 'shopping_cart' },
-        { key: 'activate', label: 'Activate Card', icon: 'link' },
-      ],
-      journeySteps: [
-        { label: 'Order Card', icon: 'shopping_cart', status: 'active' },
-        { label: 'Printing', icon: 'print', status: 'pending' },
-        { label: 'Delivery', icon: 'local_shipping', status: 'pending' },
-        { label: 'Activation', icon: 'link', status: 'pending' },
-      ]
+      wizardStep: 'welcome', // 'welcome' | 'creating' | 'preview' | 'dashboard'
+      createdCard: null,
+      showInlineOrder: false
     }
   },
 
@@ -228,28 +194,6 @@ export default {
     },
     textColorGrey () {
       return this.$q.dark.isActive ? 'text-grey-4' : 'text-grey-6'
-    },
-    progressPercent() {
-      const steps = this.journeySteps
-      const total = steps.length - 1
-      let filled = 0
-      for (let i = 0; i < total; i++) {
-        if (steps[i].status === 'done') {
-          filled++
-        } else if (steps[i].status === 'active') {
-          filled += 0.5
-          break
-        } else {
-          break
-        }
-      }
-      return (filled / total) * 100
-    },
-    trackStyle() {
-      const pct = this.progressPercent
-      return {
-        background: `linear-gradient(to right, var(--q-primary) 0%, var(--q-primary) ${pct}%, rgba(128, 128, 128, 0.15) ${pct}%, rgba(128, 128, 128, 0.15) 100%)`
-      }
     },
     isReplacement() {
       return this.$route.query.replacement === 'true'
@@ -264,6 +208,9 @@ export default {
       }
       return reasons[this.$route.query.reason] || this.$route.query.reason || ''
     },
+    cardCount() {
+      return this.$store?.getters['card/cards']?.length || 0
+    }
   },
 
   created() {
@@ -282,6 +229,16 @@ export default {
         this.$store.dispatch('card/fetchCards').catch(() => {})
       }
       await this.checkExistingCreateCardAttempt()
+
+      // Determine wizard step
+      if (this.isReplacement) {
+        this.wizardStep = 'dashboard'
+      } else if (this.cardCount > 0) {
+        this.wizardStep = 'dashboard'
+      } else {
+        this.wizardStep = 'welcome'
+      }
+
       this.isloaded = true
       this.hideLoading()
     },
@@ -299,34 +256,15 @@ export default {
       await this.loadCardUser({ forceLogin: true })
       this.hideLoading()
     },
-    switchView(view) {
-      this.activeView = view
-      if (view === 'activate') {
-        this.journeySteps = [
-          { label: 'Order Card', icon: 'shopping_cart', status: 'done' },
-          { label: 'Printing', icon: 'print', status: 'done' },
-          { label: 'Delivery', icon: 'local_shipping', status: 'done' },
-          { label: 'Activation', icon: 'link', status: 'active' },
-        ]
-      } else if (view === 'create') {
-        this.journeySteps = [
-          { label: 'Order Card', icon: 'shopping_cart', status: 'pending' },
-          { label: 'Printing', icon: 'print', status: 'pending' },
-          { label: 'Delivery', icon: 'local_shipping', status: 'pending' },
-          { label: 'Activation', icon: 'link', status: 'pending' },
-        ]
-      } else {
-        this.journeySteps = [
-          { label: 'Order Card', icon: 'shopping_cart', status: 'active' },
-          { label: 'Printing', icon: 'print', status: 'pending' },
-          { label: 'Delivery', icon: 'local_shipping', status: 'pending' },
-          { label: 'Activation', icon: 'link', status: 'pending' },
-        ]
+    onCardCreated (card) {
+      this.createdCard = card
+      // Add to Vuex store so card.vue can find it when navigating
+      if (card?.raw && this.$store) {
+        this.$store.commit('card/addCard', card.raw)
       }
-    },
-
-    onCardCreated () {
-      this.$router.push({ name: 'card-list' })
+      this.showCreateCardForm = false
+      this.wizardStep = 'preview'
+      this.showInlineOrder = false
     },
     showLoading(message) {
       this.$q.loading.show({
@@ -335,25 +273,6 @@ export default {
     },
     hideLoading() {
       this.$q.loading.hide();
-    },
-    onCardActivated() {
-      this.showActivateCardForm = false;
-      this.journeySteps = [
-        { label: 'Order Card', icon: 'shopping_cart', status: 'done' },
-        { label: 'Printing', icon: 'print', status: 'done' },
-        { label: 'Delivery', icon: 'local_shipping', status: 'done' },
-        { label: 'Activation', icon: 'link', status: 'done' },
-      ];
-      this.$q.dialog({
-        title: this.$t('Card Activated'),
-        message: this.$t('Your Paytaca card has been successfully activated.'),
-        ok: {
-          label: this.$t('OK'),
-          color: 'primary'
-        }
-      }).onOk(() => {
-        this.$router.push({ name: 'card-list' });
-      });
     }
   }
 }
@@ -371,185 +290,7 @@ export default {
   border-radius: 24px;
 }
 
-// ====== Journey Steps ======
-.journey-steps {
-  max-width: 100%;
-}
-
-.journey-card-light {
-  background: transparent;
-}
-
-.journey-card-dark {
-  background: transparent;
-}
-
-.steps-row {
-  position: relative;
-}
-
-.steps-items {
-  position: relative;
-  z-index: 1;
-}
-
-.step-item {
-  position: relative;
-  flex-shrink: 0;
-}
-
-.step-indicator {
-  width: 36px;
-  height: 36px;
-  border-radius: 50%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  transition: all 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
-  z-index: 2;
-  position: relative;
-}
-
-.step-indicator.active {
-  background: var(--q-primary);
-  color: white;
-  box-shadow: 0 0 0 4px color-mix(in srgb, var(--q-primary) 25%, transparent),
-              0 4px 12px color-mix(in srgb, var(--q-primary) 30%, transparent);
-  transform: scale(1.1);
-}
-
-.step-indicator.pending {
-  color: rgba(128, 128, 128, 0.5);
-}
-
-.step-light.pending {
-  background: rgba(0, 0, 0, 0.04);
-  border: 2px solid rgba(128, 128, 128, 0.2);
-}
-
-.step-dark.pending {
-  background: rgba(255, 255, 255, 0.06);
-  border: 2px solid rgba(255, 255, 255, 0.12);
-}
-
-.step-indicator.done {
-  background: var(--q-positive);
-  color: white;
-  box-shadow: 0 4px 12px color-mix(in srgb, var(--q-positive) 35%, transparent);
-}
-
-.step-label {
-  transition: all 0.3s ease;
-}
-
-.step-label-active {
-  color: var(--q-primary);
-}
-
-.step-label-pending {
-  color: rgba(128, 128, 128, 0.5);
-}
-
-.step-label-done {
-  color: var(--q-positive);
-}
-
-.steps-track {
-  position: absolute;
-  top: 18px;
-  left: calc(12.5% + 18px);
-  right: calc(12.5% + 18px);
-  height: 3px;
-  border-radius: 2px;
-  z-index: 0;
-  pointer-events: none;
-  transition: background 0.6s cubic-bezier(0.34, 1.56, 0.64, 1);
-}
-
-// ====== Mode Toggle ======
-.mode-toggle-container {
-  max-width: 100%;
-  margin: 0 auto;
-}
-
-.mode-toggle-inner {
-  border-radius: 22px;
-  padding: 4px;
-  gap: 4px;
-}
-
-.toggle-bg-light {
-  background: rgba(0, 0, 0, 0.04);
-  border: 1px solid rgba(0, 0, 0, 0.06);
-}
-
-.toggle-bg-dark {
-  background: rgba(255, 255, 255, 0.06);
-  border: 1px solid rgba(255, 255, 255, 0.1);
-}
-
-.mode-btn {
-  border: none;
-  padding: 8px 16px;
-  border-radius: 18px;
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 14px;
-  font-weight: 500;
-  font-family: 'Rubik', sans-serif;
-  transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
-  outline: none;
-  gap: 4px;
-}
-
-.mode-btn-light {
-  background: transparent;
-  color: rgba(0, 0, 0, 0.55);
-}
-
-.mode-btn-dark {
-  background: transparent;
-  color: rgba(255, 255, 255, 0.5);
-}
-
-.mode-btn.mode-active {
-  background: var(--q-primary) !important;
-  color: white !important;
-  box-shadow: 0 4px 12px color-mix(in srgb, var(--q-primary) 35%, transparent);
-}
-
-.mode-btn:not(.mode-active):hover {
-  opacity: 0.75;
-}
-
-// ====== Link Card Section ======
-.link-hero {
-  border-radius: 24px;
-  transition: all 0.3s ease;
-}
-
-.link-hero-light {
-  background: rgba(255, 255, 255, 0.5);
-  backdrop-filter: blur(20px) saturate(180%);
-  -webkit-backdrop-filter: blur(20px) saturate(180%);
-  border: 1px solid rgba(255, 255, 255, 0.6);
-  box-shadow:
-    0 8px 32px color-mix(in srgb, var(--q-primary) 10%, transparent),
-    inset 0 1px 0 rgba(255, 255, 255, 0.8);
-}
-
-.link-hero-dark {
-  background: rgba(30, 30, 40, 0.6);
-  backdrop-filter: blur(20px) saturate(180%);
-  -webkit-backdrop-filter: blur(20px) saturate(180%);
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  box-shadow:
-    0 8px 32px rgba(0, 0, 0, 0.3),
-    inset 0 1px 0 rgba(255, 255, 255, 0.05);
-}
-
+// ====== Link Icon Ring ======
 .link-icon-ring {
   width: 80px;
   height: 80px;
@@ -592,14 +333,6 @@ export default {
 }
 
 // ====== Link Methods ======
-.link-methods {
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-  max-width: 400px;
-  margin: 0 auto;
-}
-
 .link-method-item {
   display: flex;
   align-items: center;
@@ -701,24 +434,8 @@ export default {
 
 // ====== Responsive ======
 @media (max-width: 599px) {
-  .step-indicator {
-    width: 32px;
-    height: 32px;
-  }
-
-  .steps-track {
-    top: 16px;
-    left: calc(12.5% + 16px);
-    right: calc(12.5% + 16px);
-  }
-
   .link-hero {
     padding: 24px 16px !important;
-  }
-
-  .mode-btn {
-    font-size: 13px;
-    padding: 7px 12px;
   }
 }
 

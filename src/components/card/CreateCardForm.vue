@@ -448,7 +448,7 @@ export default {
         .then(card => {
           console.log('Card created successfully:', card);
           this.state = 'success';
-          this.$emit('card-created');
+          this.$emit('card-created', card);
         })
         .catch(error => {
           console.error('Error creating card:', error);
