@@ -568,15 +568,20 @@ export default {
 
     if (this.joinedProgram === 'true' && !this.promos.ur.id) {
       // generate user rewards data if not yet existing
-      const urData = await createUserRewardsData()
-      await updateUserPromoData({ ur: urData.id })
-      // generate user rewards promo contract
-      const targetPromo = PromosBytes[type.toUpperCase()]
-      const contract = new PromoContract(userPubkey, targetPromo)
-      await updateUserRewardsData({
-        contract_ct_address: contract.contract.tokenAddress
-      })
-      this.promos.ur.id = urData.id
+      try {
+        const urData = await createUserRewardsData()
+        updateUserPromoData({ ur: urData.id })
+        // generate user rewards promo contract
+        const walletIndex = this.$store.getters['global/getWalletIndex']
+        const userPubkey = await getAddress0_0PublicKey(walletIndex)
+        const contract = new PromoContract(userPubkey, PromosBytes.UR)
+        updateUserRewardsData(urData.id, {
+          contract_ct_address: contract.contract.tokenAddress
+        })
+        this.promos.ur.id = urData.id
+      } catch (error) {
+        console.error('Unable to create user rewards promo contract and data: ', error)
+      }
     }
 
     this.isLoading = false
