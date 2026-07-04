@@ -186,6 +186,9 @@ export async function reinitialize ({ commit, dispatch, state }) {
   // stale touchRoom/fetchRooms dispatches against the new wallet state.
   clearDebouncedTimers()
   _messageRoomMap.clear()
+  for (const key of Object.keys(_lastTypingSent)) {
+    delete _lastTypingSent[key]
+  }
 
   const keys = deriveNostrKeys(mnemonic)
   const ws = getWalletState(state)
@@ -847,6 +850,37 @@ function clearAllActiveExpiries () {
   _activeExpiryTimers = {}
 }
 
+// ── Typing indicator timers ─────────────────────────────────────────
+// Per-sender auto-hide timers. Keyed by `${pubkeyHex}:${roomId}`.
+// On receipt of a typing event, the indicator shows and a 5s timer is
+// (re)set; if no new event arrives, the timer fires CLEAR_TYPING.
+const TYPING_HIDE_TIMEOUT_MS = 5000
+let _typingHideTimers = {}
+
+function clearTypingTimer (pubkeyHex, roomId) {
+  const key = `${pubkeyHex}:${roomId}`
+  if (_typingHideTimers[key]) {
+    clearTimeout(_typingHideTimers[key])
+    delete _typingHideTimers[key]
+  }
+}
+
+function clearAllTypingTimers () {
+  for (const key in _typingHideTimers) {
+    clearTimeout(_typingHideTimers[key])
+  }
+  _typingHideTimers = {}
+}
+
+function scheduleTypingHide (commit, pubkeyHex, roomId) {
+  const key = `${pubkeyHex}:${roomId}`
+  clearTypingTimer(pubkeyHex, roomId)
+  _typingHideTimers[key] = setTimeout(() => {
+    commit('CLEAR_TYPING', { roomId, pubKeyHex: pubkeyHex })
+    delete _typingHideTimers[key]
+  }, TYPING_HIDE_TIMEOUT_MS)
+}
+
 function scheduleActiveExpiry (pubkey, commit) {
   clearActiveExpiry(pubkey)
   _activeExpiryTimers[pubkey] = setTimeout(() => {
@@ -971,6 +1005,40 @@ export async function touchActive ({ rootGetters }, { pubkey, recipients }) {
   }
 }
 
+// ── Typing signal ──────────────────────────────────────────────────
+// Sends a { type: 'typing', room_id, recipients } message over the open
+// Nostr status WebSocket. Client-side throttled to 3s per room (the server
+// throttles at 3s and silently drops faster bursts). Respects the
+// show_active_status privacy toggle — if the sender has it off, no
+// typing signal is sent (the server also filters on the recipient side).
+const TYPING_SEND_THROTTLE_MS = 3000
+const _lastTypingSent = {}
+
+export function sendTyping ({ state, getters }, { roomId, recipients }) {
+  if (!roomId || !recipients?.length) return
+  const ws = getWalletState(state)
+  if (!ws.keys?.pubKeyHex) return
+  if (!_activeWs || _activeWs.readyState !== WebSocket.OPEN) return
+
+  // Privacy: don't send typing if the sender has active status off
+  if (!getters.getShowActiveStatus) return
+
+  const now = Date.now()
+  const lastSent = _lastTypingSent[roomId] || 0
+  if (now - lastSent < TYPING_SEND_THROTTLE_MS) return
+  _lastTypingSent[roomId] = now
+
+  try {
+    _activeWs.send(JSON.stringify({
+      type: 'typing',
+      room_id: roomId,
+      recipients,
+    }))
+  } catch (err) {
+    debug('Failed to send typing signal:', err)
+  }
+}
+
 function startPubkeyRegistrationHeartbeat (dispatch) {
   if (_heartbeatInterval) clearInterval(_heartbeatInterval)
   dispatch('registerNostrPubkey')
@@ -1030,6 +1098,9 @@ export async function startActiveWs ({ state, commit, rootGetters }) {
               },
             })
             scheduleActiveExpiry(msg.pubkey_hex, commit)
+          } else if (msg.type === 'typing' && msg.pubkey_hex && msg.room_id) {
+            commit('SET_TYPING', { roomId: msg.room_id, pubKeyHex: msg.pubkey_hex })
+            scheduleTypingHide(commit, msg.pubkey_hex, msg.room_id)
           }
         } catch (e) {
           debug('Failed to parse WS message:', e)
@@ -1108,6 +1179,7 @@ export function startActiveServices ({ dispatch, getters, state, commit, rootGet
 export function stopActiveServices () {
   _activeServicesRunning = false
   clearAllActiveExpiries()
+  clearAllTypingTimers()
   if (_heartbeatInterval) {
     clearInterval(_heartbeatInterval)
     _heartbeatInterval = null
@@ -2704,6 +2776,10 @@ export async function resetAndRefetch ({ commit, dispatch, state }) {
   _messageRoomMap.clear()
   _readReceiptRetries.clear()
   _pendingReadReceipts.clear()
+  clearAllTypingTimers()
+  for (const key of Object.keys(_lastTypingSent)) {
+    delete _lastTypingSent[key]
+  }
 
   // Reset all per-wallet chat data (keys, rooms, messages, caches, profile)
   commit('RESET_WALLET_CHAT_DATA')

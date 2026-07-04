@@ -348,6 +348,25 @@ export function REMOVE_MESSAGE_REACTION (state, { roomId, messageId, reactorPubK
   }
 }
 
+// ---- Per-wallet typing indicators ----
+
+export function SET_TYPING (state, { roomId, pubKeyHex }) {
+  const ws = getOrInitWalletState(state)
+  if (!ws) return
+  if (!ws.typing) ws.typing = {}
+  if (!ws.typing[roomId]) ws.typing[roomId] = {}
+  ws.typing[roomId][pubKeyHex] = Date.now()
+}
+
+export function CLEAR_TYPING (state, { roomId, pubKeyHex }) {
+  const ws = getOrInitWalletState(state)
+  if (!ws?.typing?.[roomId]) return
+  delete ws.typing[roomId][pubKeyHex]
+  if (Object.keys(ws.typing[roomId]).length === 0) {
+    delete ws.typing[roomId]
+  }
+}
+
 // ---- Per-wallet caches ----
 
 export function CACHE_BCH_ADDRESS (state, { pubKeyHex, address }) {
@@ -484,6 +503,7 @@ export function RESET_WALLET_CHAT_DATA (state) {
   ws.readMessageIds = {}
   ws.messageReadBy = {}
   ws.reactions = {}
+  ws.typing = {}
   ws.blockedContacts = []
   ws.blockedGroups = []
   ws.bchAddressCache = {}

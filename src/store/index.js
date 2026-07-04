@@ -200,6 +200,12 @@ function reducer(state) {
                     if (moduleName === 'nostrChat' && ['rooms', 'deletedRooms', 'blockedContacts', 'blockedGroups'].includes(key)) {
                       continue
                     }
+
+                    // Typing indicators are ephemeral (auto-expire after 5s);
+                    // never persist to localStorage.
+                    if (moduleName === 'nostrChat' && key === 'typing') {
+                      continue
+                    }
                     
                     // Skip functions
                     if (typeof value === 'function') {
