@@ -147,14 +147,34 @@
                       color="negative" text-color="white" stack content-class="q-gap-xs" icon="gavel" padding="sm"
                       label="File a Dispute" unelevated @click="showSellerDisputeDialog = true" />
 
-                    <q-btn v-else-if="!isAuthor" class="text-bold text-caption full-width" color="negative"
-                      text-color="white" stack content-class="q-gap-xs" icon="assignment_return" padding="sm" unelevated
-                      :disable="!canRequestRefund" @click="showRefundDialog = true">
+                    <q-btn
+                      v-else-if="!isAuthor"
+                      class="text-bold text-caption full-width"
+                      color="negative"
+                      text-color="white"
+                      stack
+                      content-class="q-gap-xs"
+                      icon="assignment_return"
+                      padding="sm"
+                      unelevated
+                      :disable="!canRequestRefund || isGrantedRefund"
+                      @click="showRefundDialog = true"
+                    >
                       <div>
-                        Refund <span v-if="refundCountdown" class="text-caption">({{ refundCountdown }})</span>
+                        Refund <span v-if="refundCountdown && !isGrantedRefund" class="text-caption">({{ refundCountdown }})</span>
                       </div>
                     </q-btn>
                   </div>
+                </div>
+
+                <!-- Seller: refund granted banner -->
+                <div v-if="isAuthor && isGrantedRefund" class="q-mt-md full-width">
+                  <q-banner rounded dense class="bg-warning text-white q-pa-md">
+                    <template v-slot:avatar>
+                      <q-icon name="assignment_return" />
+                    </template>
+                    Refund has been granted. Funds will be released to the buyer directly.
+                  </q-banner>
                 </div>
 
                 <!-- Resolved: funds returned by arbiter (status 1 or 2) -->
@@ -664,7 +684,6 @@ const showDeliveryHistory = ref(false)
 const deliveryStatusId = ref(null)
 const deliveredDate = ref(null)
 const isMarkedComplete = ref(false)
-const isMarkedReturned = ref(false)
 const isGrantedRefund = ref(false)
 const isGrantedReturn = ref(false)
 const currentDispute = ref(null)
@@ -1008,13 +1027,13 @@ const handleBuyItNow = async (payload = {}) => {
     const ack = await waitForBidAck()
     dutchAlreadySold.value = true
 
-    await callAPI('delivery-trackings', null, 'post', {
-      auctioneer: auction.value.user,
-      bidder: walletHash,
-      lot: props.lotId,
-      status: 1,
-      preparing_date: new Date().toISOString()
-    })
+        await callAPI('delivery-trackings', null, 'post', {
+          auctioneer: auction.value.user.id,
+          bidder: walletHash,
+          lot: props.lotId,
+          status: 1,
+          preparing_date: new Date().toISOString()
+        })
 
     $q.loading.show({ message: 'Processing smart contract...' })
 
@@ -1076,7 +1095,7 @@ const initEnglishDeliveryTracking = async () => {
 
   try {
     await callAPI('delivery-trackings', null, 'post', {
-      auctioneer: auction.value.user,
+      auctioneer: auction.value.user.id,
       bidder: walletHash,
       lot: props.lotId,
       status: 1,
@@ -1096,7 +1115,6 @@ const fetchDeliveryTracking = async () => {
       deliveryStatusId.value = data?.status ?? null
       deliveredDate.value = data?.delivered_date ?? null
       isMarkedComplete.value = data?.mark_as_completed ?? false
-      isMarkedReturned.value = data?.mark_as_returned ?? false
     }
   } catch (err) {
     console.warn('Could not fetch delivery tracking:', err)
@@ -1133,6 +1151,26 @@ const canRequestRefund = computed(() => {
 const refundTimeLeft = ref('')
 const refundSecondsRemaining = ref(0)
 let refundCountdownInterval = null
+
+const updateRefundCountdown = () => {
+  if (!deliveredDate.value || isGrantedRefund.value) {
+    refundCountdown.value = ''
+    clearInterval(refundCountdownInterval)
+    return
+  }
+  const delivered = new Date(String(deliveredDate.value).trim().replace(' ', 'T'))
+  const deadline = new Date(delivered.getTime() + 6 * 60 * 60 * 1000)
+  const diff = deadline - new Date()
+  if (diff <= 0) {
+    refundCountdown.value = '00:00:00'
+    clearInterval(refundCountdownInterval)
+    return
+  }
+  const h = Math.floor(diff / 3600000)
+  const m = Math.floor((diff % 3600000) / 60000)
+  const s = Math.floor((diff % 60000) / 1000)
+  refundCountdown.value = `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`
+}
 
 const loadPageData = async () => {
   await Promise.all([fetchLot(), fetchAuction()])

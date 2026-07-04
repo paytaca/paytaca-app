@@ -29,6 +29,7 @@
             </q-item-section>
           </q-item>
           <q-item
+            v-if="!isArbiter"
             clickable v-ripple
             @click="$router.push({ name: 'app-auction-activity' })"
           >
@@ -59,10 +60,12 @@ export default defineComponent({
     
     const darkMode = computed(() => $store.getters['darkmode/getStatus'])
     const username = computed(() => $store.getters['auction/username'])
+    const isArbiter = computed(() => !!$store.getters['auction/isArbiter'])
 
     return {
       darkMode,
       username,
+      isArbiter,
       getDarkModeClass,
     }
   },
