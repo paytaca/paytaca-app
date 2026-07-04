@@ -335,10 +335,10 @@ export default {
             }
             vm.$store.commit('ramp/saveTxid', txidData)
             vm.escrowBalance = await vm.escrowContract.getBalance(null, true)
-            vm.$emit('success', vm.txid)
             if (vm.order?.status?.value === 'CNF') {
               await vm.escrowPendingOrder()
             }
+            vm.$emit('success', vm.txid)
           } else {
             vm.sendErrors = []
             if (result) {
