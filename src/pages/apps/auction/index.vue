@@ -262,6 +262,8 @@ onMounted(async () => {
     }
     socket = connectWebsocket()
   }
+  
+  isLoading.value = false
 })
 
 onBeforeUnmount(() => {

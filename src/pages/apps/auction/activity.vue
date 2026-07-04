@@ -500,10 +500,11 @@ onMounted(async () => {
 
       switch (type) {
         // update a specific auction's status
-        case "activity.refresh_page":
-          refresh()
+        case "my.auctions_refresh_page":
+        case "my.bids_refresh_page":
+          if (activityType.value === 'My Auctions') refresh()
+          else if (activityType.value === 'My Biddings') refresh()
           break
-
         default:
           console.warn("Unknown websocket message:", type, data)
       }
