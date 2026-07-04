@@ -134,10 +134,13 @@
                 <div v-if="showPostAuctionActions && (isAuthor || isWinningBidder)"
                   class="q-mt-md full-width row q-col-gutter-none items-center justify-center">
                   <div class="col text-center">
+                    <!--
                     <q-btn v-if="isAuthor" outline stack class="text-bold text-caption full-width"
                       :color="darkMode ? 'white' : 'black'" icon="check_circle" padding="sm" label="Confirm Delivery"
                       :disable="deliveryStatusId !== 1" @click="confirmDeliveryTrigger" />
-                    <q-btn v-else outline stack class="text-bold text-caption full-width"
+                    -->
+                    <!--v-else-->
+                    <q-btn outline stack class="text-bold text-caption full-width"
                       :color="darkMode ? 'white' : 'black'" icon="check_circle" padding="sm" label="Confirm Pickup"
                       :disable="deliveryStatusId !== 2" @click="confirmPickupTrigger" />
                   </div>
@@ -655,16 +658,7 @@ const currentDispute = ref(null)
 
 // websocket variable
 let socket = null
-
-const lotStatus = computed(() => {
-  if (!lot.value || !auction.value) return null
-
-
-  return lot.value.getLotStatus(
-    auction.value.start_date,
-    auction.value.end_date
-  )
-})
+const lotStatus = computed(null)
 
 // establish estimatedAmountBCH (dynamic)
 const estimatedAmountBCH = computed(() => {
@@ -804,18 +798,21 @@ function waitForBidAck() {
 }
 
 const handlePlaceBid = async ({ bid_price_bch, bid_price_fiat }) => {
+  console.log(1)
   if (!walletHash) {
     $q.notify({ type: 'warning', message: 'Please connect your wallet first.' })
     return
   }
 
+  console.log(2)
   englishBidLoading.value = true
   try {
     // if the socket is open, run the placebid
     if (!socket || socket.readyState !== WebSocket.OPEN)
-      throw new Error(bidResponse.error || 'Bid failed. Please try again.')
-
+      throw new Error('Bid failed. Please try again.')
+    
     // else, send the bid to the websocket
+    console.log(3)
     socket.send(JSON.stringify(
       {
         type: "place_bid",
@@ -828,23 +825,31 @@ const handlePlaceBid = async ({ bid_price_bch, bid_price_fiat }) => {
       }
     ))
 
+    console.log(4)
     const ack = await waitForBidAck()
 
+    console.log(5)
     // create new contract for new bid (send BCH from wallet to contract)
     $q.loading.show({ message: 'Processing smart contract...' })
     try {
+      console.log(6)
       await walletToContract(Number(bid_price_bch).toFixed(8), ack.id)
     } finally {
+      console.log(7)
       $q.loading.hide()
     }
+    console.log(8)
     // return the contract funds to the second highest bid
     const secondRes = await callAPI(`lots/${props.lotId}/second-highest-bid`)
     if (secondRes.success && secondRes.data?.id) {
+      console.log(9)
       await callContractReturn(secondRes.data.id)
     }
 
+    console.log(10)
     openDialog.value = false
 
+    console.log(11)
     $q.notify({
       type: 'positive',
       icon: 'gavel',
@@ -856,6 +861,7 @@ const handlePlaceBid = async ({ bid_price_bch, bid_price_fiat }) => {
     console.error(err)
     $q.notify({ type: 'negative', message: err.message || 'Something went wrong.' })
   } finally {
+    console.log(12)
     englishBidLoading.value = false
   }
 }
@@ -894,17 +900,17 @@ const winningBid = ref({
 })
 
 const timeLeft = ref(0)
+const timeIntervalSeconds = computed(() => lot.value.getIntervalSeconds())
+
 const secondsRemaining = ref(0)
-const intervalDurationSec = ref(600)
 const dutchAtFloor = computed(() => {
   return (auction.value?.is_fiat)
-    ? dutchCurrentPriceFiat <= lot.threshold_bid_fiat
-    : dutchCurrentPriceBCH <= lot.threshold_bid_bch
+    ? dutchCurrentPriceFiat <= lot.value.threshold_bid_fiat
+    : dutchCurrentPriceBCH <= lot.value.threshold_bid_bch
 })
 
 const dutchIntervalProgress = computed(() => {
-  if (!intervalDurationSec.value) return 0
-  return Math.max(0, Math.min(1, secondsRemaining.value / intervalDurationSec.value))
+  return Math.max(0, Math.min(1, secondsRemaining.value / timeIntervalSeconds.value))
 })
 
 onUnmounted(() => {
@@ -914,12 +920,16 @@ const dutchFloorPriceBCH = computed(() => Number(lot.value?.threshold_bid_bch ||
 const dutchFloorPriceFiat = computed(() => Number(lot.value?.threshold_bid_fiat || 0))
 
 const dutchPrice = ref(0)
-const dutchCurrentPriceBCH = computed(() => auction.value?.is_fiat ? Number(dutchPrice.value || 0) : dutchPrice.value * bchToPhpRate.value)
-const dutchCurrentPriceFiat = computed(() => {
-  return auction.value?.is_fiat
-    ? bchToPhpRate.value > 0 ? dutchPrice.value / bchToPhpRate.value : 0
-    : Number(dutchPrice.value || 0)
-})
+const dutchCurrentPriceBCH = computed(() => 
+  (auction.value?.is_fiat) 
+    ? dutchPrice.value / bchToPhpRate.value
+    : (bchToPhpRate.value > 0) ? Number(dutchPrice.value || 0) / bchToPhpRate.value : 0
+)
+const dutchCurrentPriceFiat = computed(() => 
+  (auction.value?.is_fiat)
+    ? Number(dutchPrice.value || 0)
+    : Number(dutchPrice.value || 0) * bchToPhpRate.value 
+)
 
 const buyItNow = () => {
   isToggledBuyItNow.value = true
@@ -1074,8 +1084,7 @@ const canRequestRefund = computed(() => {
   return new Date() < deadline
 })
 
-const refundTimeLeft = ref('')
-const refundSecondsRemaining = ref(0)
+const refundCountdown = ref('')
 let refundCountdownInterval = null
 
 const updateRefundCountdown = () => {
@@ -1103,8 +1112,8 @@ const loadPageData = async () => {
   await Promise.all([fetchDeliveryTracking(), fetchDispute()])
 
   if (deliveredDate.value) {
-    clearInterval(refundCountdownInterval)
-    refundCountdownInterval = setInterval(refundSecondsRemaining, 1000)
+    updateRefundCountdown()
+    refundCountdownInterval = setInterval(updateRefundCountdown, 1000)
   }
   await initEnglishDeliveryTracking()
 }
@@ -1113,6 +1122,10 @@ watch(() => [props.lotId, props.auctionId], async () => {
   isLoading.value = true
   dutchAlreadySold.value = false
   await loadPageData()
+
+  dutchPrice.value = (auction.value.is_fiat) 
+    ? lot.value.starting_price_fiat 
+    : lot.value.starting_price_bch
 
   isLoading.value = false
 
@@ -1161,87 +1174,112 @@ const refresh = async (done) => {
   isLoading.value = true
   if (auction.value?.type === 'Dutch') dutchAlreadySold.value = false
   await loadPageData()
+
   isLoading.value = false
   done?.()
 }
 
 // onMounted (general)
 onMounted(async () => {
-  socket = callLotWebsocket(Number(props.lotId))
+  await loadPageData()
+  dutchPrice.value = (auction.value.is_fiat) 
+    ? lot.value.starting_price_fiat 
+    : lot.value.starting_price_bch
 
-  socket.onopen = function () {
-    console.log("Connected to the lot websocket!")
-  };
+  lotStatus.value = lot.value.getLotStatus(
+    auction.value.start_date,
+    auction.value.end_date
+  )
+  
+  let reconnectAttempts = 0
+  let maxReconnectAttempts = 10
+  const connectWebsocket = () => {
+    const ws = callLotWebsocket(Number(props.lotId))
+    ws.onopen = () => {
+      console.log("Connected to the lot websocket!")
+    };
 
-  socket.onmessage = (event) => {
-    const { type, data } = JSON.parse(event.data);
+    ws.onmessage = (event) => {
+      const { type, data } = JSON.parse(event.data);
 
-    switch (type) {
-      // update the viewcount
-      case "live.viewing":
-        viewCount.value = data.viewer_count
-        break
+      switch (type) {
+        // update the viewcount
+        case "live.viewing":
+          viewCount.value = data.viewer_count
+          break
 
-      // sends placebid acknowledgement
-      case "place.bid_ack":
-        bidResolver?.(data)
-        bidResolver = null
-        break
+        // start.close lot
+        case "lot.update_status":
+          lotStatus.value = lot.value.getLotStatus(
+            auction.value.start_date,
+            auction.value.end_date
+          )
+          break
 
-      // update the highest bidder
-      case "update.highest_bid":
-        hasBid.value = Boolean(data?.user)
-        highestBid.value = {
-          id: data?.id ?? null,
-          user: data?.user ?? null,
-          bid_price_fiat: data?.bid_price_fiat ?? 0,
-          bid_price_bch: data?.bid_price_bch ?? 0
-        }
-        break
+        // sends placebid acknowledgement
+        case "place.bid_ack":
+          bidResolver?.(data)
+          bidResolver = null
+          break
 
-      // update the winningBidId
-      case "update.winner":
-        isSold.value = Boolean(data?.is_sold)
-        winningBid.value = data
-        break
+        // update the highest bidder
+        case "update.highest_bid":
+          hasBid.value = Boolean(data?.user)
+          highestBid.value = {
+            id: data?.id ?? null,
+            user: data?.user ?? null,
+            bid_price_fiat: data?.bid_price_fiat ?? 0,
+            bid_price_bch: data?.bid_price_bch ?? 0
+          }
+          break
 
-      // update the time interval
-      case "time.interval":
-        secondsRemaining.value = data.seconds_remaining
-        timeLeft.value = data.time_left
-        break
+        // update the winningBidId
+        case "update.winner":
+          isSold.value = Boolean(data?.is_sold)
+          winningBid.value = data
+          break
 
-      // update the price drop
-      case "drop.price":
-        dutchPrice.value = data.price
-        break
+        // update the time interval
+        case "lot.time_interval":
+          secondsRemaining.value = data.seconds_remaining
+          timeLeft.value = data.time_left
+          break
 
-      // broadcasts the live refund
-      case "live.refund_countdown":
-        refundSecondsRemaining.value = data.seconds_remaining
-        refundTimeLeft.value = data.time_left
-        break
+        // update the price drop
+        case "lot.drop_price":
+          dutchPrice.value = data.price
+          break
 
-      default:
-        console.warn("Unknown websocket message:", type, data)
+        default:
+          console.warn("Unknown websocket message:", type, data)
+      }
+      console.log(data)
     }
-    console.log(data)
+
+    ws.onclose = (event) => {
+        console.log("Disconnected from the lot websocket!")
+        if (!event.wasClean && reconnectAttempts < maxReconnectAttempts) {
+          const delay = Math.min(1000 * 2 ** reconnectAttempts, 30000)
+          reconnectAttempts++
+          setTimeout(connectWebsocket, delay)
+        }
+      }
+
+    ws.onerror = (event) => {
+      console.error("Lot websocket error:", event)
+    }
+
+    return ws
   }
 
-  socket.onclose = function () {
-    console.log("Disconnected from the lot websocket!")
-  };
-
-  socket.onerror = function (event) {
-    console.error("Lot websocket error:", event)
-  }
+  socket = connectWebsocket()
 })
 
 onBeforeUnmount(() => {
+  socket?.close()
   socket.onmessage = null
   socket.onopen = null
   socket.onerror = null
   socket.onclose = null
-  socket?.close()
 })
 </script>
