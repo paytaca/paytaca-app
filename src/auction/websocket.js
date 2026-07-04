@@ -1,3 +1,11 @@
+export function callIndexAuctionWebsocket(){
+  return new WebSocket(`ws://localhost:8000/ws/all-auctions/`) 
+}
+
+export function callActivityWebsocket(username){
+  return new WebSocket(`ws://localhost:8000/ws/activity/${username}/`) 
+}
+
 export function callAuctionWebsocket(auctionId){
   return new WebSocket(`ws://localhost:8000/ws/auction/${auctionId}/`) 
 }
