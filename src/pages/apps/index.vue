@@ -251,8 +251,7 @@ export default {
           path: '/apps/chat',
           iconStyle: 'font-size: 4em',
           active: !this.$store.getters['global/isChipnet'],
-          beta: true,
-          category: 'beta'
+          category: 'wallet-connections'
         },
         {
           id: 'gifts',

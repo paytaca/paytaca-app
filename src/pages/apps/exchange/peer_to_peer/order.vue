@@ -131,7 +131,7 @@
             @sending="onSendingBCH"
             @success="onEscrowSuccess"
             @back="onBack"
-            @refresh="generateContract"
+            @refresh="() => generateContract(true)"
             @updateArbiterStatus="onUpdateArbiterStatus"
             @cancel="cancellingOrder"
           />
@@ -1011,6 +1011,8 @@ export default {
         await vm.fetchOrder('loadData')
         if (vm.order.contract && !vm.escrowContract) {
           await vm.generateContract()
+        } else if (vm.order.contract && !vm.contract?.address) {
+          await vm.generateContract(true)
         }
         await vm.fetchAd()
         await vm.fetchFeedback()
@@ -2560,7 +2562,7 @@ export default {
           this.wsFetchingOrder = true
           try {
             await this.fetchOrder('websocket')
-            if (message?.contract_address) {
+            if (message?.contract_address || (this.order?.contract && !this.escrowContract)) {
               await this.generateContract(true)
               this.escrowTransferKey++
             }
