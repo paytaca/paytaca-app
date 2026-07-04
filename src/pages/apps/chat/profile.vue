@@ -888,10 +888,19 @@ export default {
 </script>
 
 <style scoped>
+#app-container {
+  display: flex;
+  flex-direction: column;
+  overflow-x: hidden;
+}
+
 .profile-body {
   padding: 16px;
   max-width: 600px;
   margin: 0 auto;
+  width: 100%;
+  box-sizing: border-box;
+  overflow-x: hidden;
 }
 
 /* Identity card */
@@ -958,6 +967,8 @@ export default {
   margin: -4px -8px;
   border-radius: 6px;
   transition: background 0.15s ease;
+  max-width: 100%;
+  overflow: hidden;
 }
 
 .identity-npub:hover {
@@ -968,6 +979,10 @@ export default {
   font-family: 'Courier New', monospace;
   font-size: 13px;
   color: #6b7280;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  min-width: 0;
 }
 
 .copy-icon {
@@ -1017,6 +1032,12 @@ export default {
   gap: 12px;
 }
 
+@media (max-width: 480px) {
+  .setting-row {
+    flex-wrap: wrap;
+  }
+}
+
 .setting-content {
   flex: 1;
   min-width: 0;
@@ -1045,6 +1066,12 @@ export default {
 .setting-input {
   width: 100%;
   max-width: 280px;
+}
+
+@media (max-width: 480px) {
+  .setting-input {
+    max-width: 100%;
+  }
 }
 
 .setting-input :deep(.q-field__control) {
