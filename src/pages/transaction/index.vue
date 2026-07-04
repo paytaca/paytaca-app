@@ -2568,9 +2568,6 @@ export default {
         console.error('Error initializing WizardConnect:', error)
       }
 
-      // Dismiss the initial app loading overlay
-      this.$store.commit('global/setAppInitialLoadComplete', true)
-
       // Set loading to false after initial mount operations complete
       // If assets exist, the watcher will handle it, otherwise set it after a delay
       this.$nextTick(() => {
@@ -2593,7 +2590,6 @@ export default {
       // Ensure loading state is reset even on error
       this.isLoadingAssets = false
       this.loadingBchPrice = false
-      this.$store.commit('global/setAppInitialLoadComplete', true)
     }
   },
 }

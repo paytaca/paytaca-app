@@ -996,6 +996,12 @@ export default {
       this.$store.dispatch('nostrChat/ensureSubscribed')
     }
 
+    // Dismiss the initial app loading overlay regardless of which route
+    // was loaded on cold start. Previously this was only done in the home
+    // page (transaction/index.vue mounted), causing hard-reloaded deep
+    // links (e.g. /apps/chat/...) to hang on the loading screen forever.
+    vm.$store.commit('global/setAppInitialLoadComplete', true)
+
     if (vm.$q.platform.is.bex) {
       if (vm.$refs?.container?.style?.display) vm.$refs.container.style.display = 'none'
       document.body.style.width = '390px'
