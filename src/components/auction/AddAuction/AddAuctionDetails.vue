@@ -14,7 +14,7 @@
             :bg-color="$q.dark.isActive ? 'pt-dark' : 'pt-light'"
             lazy-rules hide-bottom-space
             :rules="[
-              val => val && val.trim().length > 0 || 'Auction title is required',
+              val => !!(val && val.trim()) || 'Auction title is required',
               val => !val || val.length <= 100 || 'Character limit reached'
             ]"
           />
@@ -49,8 +49,9 @@
             v-model="form.start_date"
             color="pt-primary1"
             :bg-color="$q.dark.isActive ? 'pt-dark' : 'pt-light'"
+            :min="minStartDate"
             lazy-rules hide-bottom-space
-            :rules="[ val => !!val || 'Global time start is required' ]"
+            :rules="startDateRules"
           />
         </div>
 
@@ -63,8 +64,9 @@
             v-model="form.end_date"
             color="pt-primary1"
             :bg-color="$q.dark.isActive ? 'pt-dark' : 'pt-light'"
+            :min="minEndDate"
             lazy-rules hide-bottom-space
-            :rules="[ val => !!val || 'Global time end is required' ]"
+            :rules="endDateRules"
           />
         </div>
       </div>
@@ -82,17 +84,17 @@
           :bg-color="$q.dark.isActive ? 'pt-dark' : 'pt-light'"
           lazy-rules hide-bottom-space
           :rules="[
-            val => val && val.trim().length > 0 || 'Auction description is required',
+            val => !!(val && val.trim()) || 'Auction description is required',
             val => !val || val.length <= 1000 || 'Character limit reached'
           ]"
         />
         <div class="text-right text-caption q-mt-xs" :class="(form.description || '').length >= 950 ? 'text-negative' : 'text-grey-6'">
-          {{ (form.description || '').length }} / {{ 1000 }}
+          {{ (form.description || '').length }} / 1000
         </div>
       </div>
 
       <div class="q-px-md q-mb-md">
-        <label class="text-md text-weight-bold block q-mb-xs">Insert Image <span class="text-caption block q-mb-xs text-italic">(Accepts .jpg, .jpeg., and .png only)</span></label>
+        <label class="text-md text-weight-bold block q-mb-xs">Insert Image <span class="text-caption block q-mb-xs text-italic">(Accepts .jpg, .jpeg, and .png only)</span></label>
         <q-file
           accept=".jpg, .jpeg, .png"
           outlined
@@ -103,7 +105,7 @@
           :bg-color="$q.dark.isActive ? 'pt-dark' : 'pt-light'"
           @rejected="onRejected"
           lazy-rules hide-bottom-space
-          :rules="[ val => !!(val && val.name) || 'Please upload at least 1 image' ]"
+          :rules="[ val => !!val || 'Please upload at least 1 image' ]"
         >
           <template v-slot:prepend><q-icon name="attach_file" /></template>
           <template v-slot:append v-if="form.image">
@@ -123,14 +125,13 @@
 </template>
 
 <script setup>
-import { useQuasar } from 'quasar'
+import { useQuasar, date } from 'quasar'
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
-import { computed } from 'vue'
+import { computed, watch } from 'vue'
 import { useStore } from 'vuex'
 
 const $q = useQuasar()
 const $store = useStore()
-const darkMode = computed(() => $store.getters['darkmode/getStatus'])
 
 const props = defineProps({
   auctionForm: {
@@ -143,12 +144,59 @@ const emit = defineEmits(['update:auction-form'])
 
 const auctionTypeOptions = ['English', 'Dutch']
 
+const darkMode = computed(() => $store.getters['darkmode/getStatus'])
 const form = computed({
   get: () => props.auctionForm,
   set: (val) => emit('update:auction-form', val)
 })
 
+const minStartJsDate = computed(() => date.addToDate(new Date(), { days: 1 }))
+const minStartDate = computed(() => date.formatDate(minStartJsDate.value, 'YYYY-MM-DDTHH:mm'))
+
+const minEndDate = computed(() => {
+  if (!form.value.start_date) return undefined
+  const start = date.extractDate(form.value.start_date, 'YYYY-MM-DDTHH:mm')
+  const endFallback = date.addToDate(start, { hours: 1 })
+  return date.formatDate(endFallback, 'YYYY-MM-DDTHH:mm')
+})
+
+const startDateRules = [
+  val => !!val || 'Global time start is required',
+  val => {
+    if (!val) return true
+    const selected = date.extractDate(val, 'YYYY-MM-DDTHH:mm')
+    return selected >= minStartJsDate.value || 'Global time start must be at least 1 day from now'
+  }
+]
+
+const endDateRules = [
+  val => !!val || 'Global time end is required',
+  val => {
+    if (!val || !form.value.start_date) return true
+    const start = date.extractDate(form.value.start_date, 'YYYY-MM-DDTHH:mm')
+    const end = date.extractDate(val, 'YYYY-MM-DDTHH:mm')
+    return date.getDateDiff(end, start, 'minutes') >= 60 || 'Auction must run for at least 1 hour'
+  }
+]
+
 const onRejected = () => {
   $q.notify({ type: 'negative', message: 'Invalid file format.' })
 }
+
+watch(
+  () => [form.value.start_date, form.value.end_date],
+  ([newStart, newEnd]) => {
+    if (!newStart) return
+    
+    const start = date.extractDate(newStart, 'YYYY-MM-DDTHH:mm')
+    const end = newEnd ? date.extractDate(newEnd, 'YYYY-MM-DDTHH:mm') : null
+
+    if (!end || date.getDateDiff(end, start, 'minutes') < 60) {
+      emit('update:auction-form', {
+        ...form.value,
+        end_date: date.formatDate(date.addToDate(start, { hours: 1 }), 'YYYY-MM-DDTHH:mm')
+      })
+    }
+  }
+)
 </script>
