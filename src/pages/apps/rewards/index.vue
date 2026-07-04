@@ -575,6 +575,7 @@ export default {
         const walletIndex = this.$store.getters['global/getWalletIndex']
         const userPubkey = await getAddress0_0PublicKey(walletIndex)
         const contract = new PromoContract(userPubkey, PromosBytes.UR)
+        await contract.subscribeAddress()
         updateUserRewardsData(urData.id, {
           contract_ct_address: contract.contract.tokenAddress
         })
