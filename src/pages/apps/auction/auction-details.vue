@@ -487,12 +487,12 @@ onMounted(async () => {
   const connectWebsocket = () => {
     const ws = callAuctionWebsocket(Number(props.auctionId))
 
-    ws.onopen = function(event) {
+    ws.onopen = (event) => {
       console.log("Connected to the auction websocket!")
-    };
+    }
 
     ws.onmessage = (event) => {
-      const { type, data } = JSON.parse(event.data);
+      const { type, data } = JSON.parse(event.data)
 
       if (type === "live.viewing")
         viewCount.value = data.viewer_count
@@ -510,16 +510,20 @@ onMounted(async () => {
       }
 
       console.log(data)
-    };
+    }
 
-    ws.onclose = function(event) {
+    ws.onclose = (event) => {
       console.log("Disconnected from the auction websocket!")
       if (!event.wasClean && reconnectAttempts < maxReconnectAttempts) {
-        const delay = Math.min(1000 * 2 ** reconnectAttempts, 30000);
+        const delay = Math.min(1000 * 2 ** reconnectAttempts, 30000)
         reconnectAttempts++
-        setTimeout(connectWebsocket, delay);
+        setTimeout(connectWebsocket, delay)
       }
-    };
+    }
+
+    ws.onerror = (event) => {
+      console.error("Auction websocket error:", event)
+    }
 
     return ws
   }
@@ -530,11 +534,11 @@ onMounted(async () => {
 })
 
 onBeforeUnmount(() => {
+  socket?.close()
   socket.onmessage = null
   socket.onopen = null
   socket.onerror = null
   socket.onclose = null
-  socket?.close()
 })
 
 const lotSearchQuery = ref('')
