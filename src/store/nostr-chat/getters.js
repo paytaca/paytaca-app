@@ -233,6 +233,26 @@ export function getMessageReactions (state) {
   }
 }
 
+// ---- Per-wallet typing indicators ----
+
+// Returns an array of pubKeyHexes currently typing in a room (excluding self).
+// Entries older than TYPING_TIMEOUT_MS are treated as expired and excluded.
+const TYPING_TIMEOUT_MS = 5000
+
+export function getTypingUsers (state) {
+  const ws = getWalletState(state)
+  const myPubKey = ws.keys?.pubKeyHex
+  return (roomId) => {
+    const room = ws.typing?.[roomId]
+    if (!room) return []
+    const now = Date.now()
+    return Object.keys(room).filter(pk => {
+      if (pk === myPubKey) return false
+      return now - room[pk] < TYPING_TIMEOUT_MS
+    })
+  }
+}
+
 // ---- Per-wallet unread counts ----
 
 export function getUnreadCount (state) {

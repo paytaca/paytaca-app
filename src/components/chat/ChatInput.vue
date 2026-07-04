@@ -197,6 +197,18 @@ export default {
       return MAX_CHARS - this.text.length
     },
   },
+  watch: {
+    text (newVal) {
+      if (!this.roomId || this.disabled || this.blocked) return
+      if (!newVal) return
+      const myPubKey = this.$store.getters['nostrChat/myPubKey']
+      const room = this.$store.getters['nostrChat/getRoom'](this.roomId)
+      if (!myPubKey || !room?.members) return
+      const recipients = room.members.filter(m => m !== myPubKey)
+      if (!recipients.length) return
+      this.$store.dispatch('nostrChat/sendTyping', { roomId: this.roomId, recipients })
+    },
+  },
   methods: {
     getDarkModeClass,
     onFocus () {

@@ -9,7 +9,7 @@
       class="apps-header"
       backnavpath="/apps/chat"
       :title="roomName"
-      :subtitle="isGroupRoom ? $t('MemberCount', { count: room?.members?.length || 0 }, `${room?.members?.length || 0} members`) : otherMemberIsActive ? $t('ActiveNow', {}, 'Active now') : null"
+      :subtitle="isGroupRoom ? $t('MemberCount', { count: room?.members?.length || 0 }, `${room?.members?.length || 0} members`) : typingDisplayText || (otherMemberIsActive ? $t('ActiveNow', {}, 'Active now') : null)"
     >
       <template v-if="room" v-slot:top-right-menu>
         <div class="header-actions">
@@ -482,6 +482,11 @@
       <q-btn flat dense unelevated icon="close" size="sm" class="edit-bar-close" @click="cancelEdit" />
     </div>
 
+    <div v-if="typingDisplayText" class="typing-indicator" :class="getDarkModeClass(darkMode)">
+      <span class="typing-dots"><span></span><span></span><span></span></span>
+      <span class="typing-text">{{ typingDisplayText }}</span>
+    </div>
+
     <chat-input ref="chatInput" :room-id="roomId" :disabled="isRoomArchived || isContactBlocked || isGroupBlocked" :blocked="isContactBlocked || isGroupBlocked" :blocked-placeholder="isGroupBlocked ? $t('LeftGroupInputDisabled', {}, 'You left this group') : null" @send="onSend" @command="onCommand" @tip="onTipAction" @focus="onInputFocus" @blur="onInputBlur" />
 
     <!-- Message context menu -->
@@ -689,6 +694,35 @@ export default {
       const entry = activeData[pk]
       if (!entry?.lastActiveAt) return false
       return Date.now() - new Date(entry.lastActiveAt).getTime() <= ACTIVE_THRESHOLD_MS
+    },
+    typingUsers () {
+      return this.$store.getters['nostrChat/getTypingUsers'](this.roomId)
+    },
+    displayNameCache () {
+      const walletHash = this.$store.getters['global/getWallet']('bch')?.walletHash
+      const walletState = walletHash ? this.$store.state.nostrChat?.byWallet?.[walletHash] : null
+      return walletState?.displayNameCache || {}
+    },
+    typingDisplayText () {
+      const users = this.typingUsers
+      if (!users.length) return ''
+      const cache = this.displayNameCache
+      const names = users.map(pk => {
+        const contact = this.contactsByPubKey.get(pk)
+        if (contact?.name) return contact.name
+        const cached = cache[pk]?.displayName
+        if (cached) return cached
+        const displayName = this.memberDisplayNames[pk]
+        if (displayName) return displayName
+        return pk.slice(0, 8) + '...'
+      })
+      if (names.length === 1) {
+        return this.$t('IsTyping', { name: names[0] }, '{name} is typing...')
+      }
+      if (names.length === 2) {
+        return this.$t('TwoTyping', { names: names.join(', ') }, '{names} are typing...')
+      }
+      return this.$t('MultipleTyping', {}, 'Several people are typing...')
     },
     displayNpub () {
       const npub = this.otherMemberNpub
@@ -2350,6 +2384,63 @@ export default {
 
 .dark .edit-bar-snippet {
   color: #94a3b8;
+}
+
+/* Typing indicator */
+.typing-indicator {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 20px 2px;
+  flex-shrink: 0;
+}
+
+.typing-dots {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  flex-shrink: 0;
+}
+
+.typing-dots span {
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: #9ca3af;
+  animation: typingBounce 1.4s infinite ease-in-out both;
+}
+
+.typing-dots span:nth-child(1) {
+  animation-delay: -0.32s;
+}
+
+.typing-dots span:nth-child(2) {
+  animation-delay: -0.16s;
+}
+
+@keyframes typingBounce {
+  0%, 80%, 100% {
+    transform: scale(0.6);
+    opacity: 0.4;
+  }
+  40% {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+.typing-text {
+  font-size: 12px;
+  color: #9ca3af;
+  font-style: italic;
+}
+
+.dark .typing-dots span {
+  background: #64748b;
+}
+
+.dark .typing-text {
+  color: #64748b;
 }
 
 /* Reaction emoji row */

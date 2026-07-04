@@ -25,6 +25,10 @@ export function getInitialWalletState () {
     messageReadBy: {},
     reactions: {},
 
+    // Ephemeral typing indicators: { [roomId]: { [pubKeyHex]: timestamp } }
+    // Not persisted — auto-expires after 5s of no new typing events.
+    typing: {},
+
     // Contact caches keyed by remote pubkey (per-wallet identity lookups)
     bchAddressCache: {},
     displayNameCache: {},
