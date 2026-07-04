@@ -418,32 +418,39 @@ export default {
       }
 
       // fetch and load data
-      let rpData = null
-      if (this.rpId === -1) {
-        // open help dialog
-        this.isHelpActive = true
+      try {
+        let rpData = null
+        if (this.rpId === -1) {
+          // open help dialog
+          this.isHelpActive = true
 
-        // new user; create and update necessary data
-        rpData = await createRfPromoData()
-        this.rpId = rpData.id
-        await this.$router.replace({ params: { id: String(rpData.id) } })
-        rpData = await updateRfPromoData(rpData.id, {
-          contract_ct_address: this.rpContract.contract.tokenAddress
-        })
-        updateUserPromoData({ rp: rpData.id })
-      } else {
-        rpData = await getRfPromoData(this.rpId)
-      }
+          // new user; create and update necessary data
+          rpData = await createRfPromoData()
+          if (!rpData) throw new Error('Failed to create RFP promo data')
 
-      if (rpData && Object.keys(rpData).length > 0) {
-        this.rpMax = await getRpMaxRedeemable()
-        this.redeemedPoints = rpData.redeemed_points
-        this.referralCode = rpData.referral_code
-        this.referralsList = (rpData.rp_referrals || []).sort((a, b) => {
-          return new Date(b.date_created) - new Date(a.date_created)
-        })
-        this.referralsOverallStats = rpData.rp_referrals_overall_stats
-      } else {
+          this.rpId = rpData.id
+          await this.$router.replace({ params: { id: String(rpData.id) } })
+          rpData = await updateRfPromoData(this.rpId, {
+            contract_ct_address: this.rpContract.contract.tokenAddress
+          })
+          updateUserPromoData({ rp: this.rpId })
+        } else {
+          rpData = await getRfPromoData(this.rpId)
+        }
+
+        if (rpData && Object.keys(rpData).length > 0) {
+          this.rpMax = await getRpMaxRedeemable()
+          this.redeemedPoints = rpData.redeemed_points
+          this.referralCode = rpData.referral_code
+          this.referralsList = (rpData.rp_referrals || []).sort((a, b) => {
+            return new Date(b.date_created) - new Date(a.date_created)
+          })
+          this.referralsOverallStats = rpData.rp_referrals_overall_stats
+        } else {
+          this.dataError = this.$t('DataLoadError')
+        }
+      } catch (error) {
+        console.error(error)
         this.dataError = this.$t('DataLoadError')
       }
 

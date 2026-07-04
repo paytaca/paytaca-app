@@ -190,7 +190,7 @@ export async function updateUserRewardsData(id, data) {
 }
 
 export async function updateRfPromoData (id, data) {
-  await updateData(`rfpromo/${id}/`, data)
+  return await updateData(`rfpromo/${id}/`, data)
 }
 
 // ========== other functions ==========
