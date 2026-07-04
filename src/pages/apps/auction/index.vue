@@ -152,7 +152,7 @@ import { useQuasar, date } from 'quasar'
 import { useStore } from 'vuex'
 import { useRouter } from 'vue-router'
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
-import { ref, computed, watch, onMounted, onUnmounted } from 'vue'
+import { ref, computed, watch, onMounted, onUnmounted, onBeforeUnmount } from 'vue'
 import { AuctionList } from 'src/auction/object.js'
 
 // Components
@@ -160,6 +160,7 @@ import HeaderNav from 'src/components/header-nav.vue'
 import AuctionHeaderMenu from 'src/components/auction/AuctionHeaderMenu.vue'
 import AuctionSearch from 'src/components/auction/AuctionSearch.vue'
 import noImage from 'src/assets/no-image.svg'
+import { callIndexAuctionWebsocket } from 'src/auction/websocket'
 
 const $q = useQuasar()
 const $store = useStore()
@@ -176,6 +177,8 @@ let isMounted = true
 onUnmounted(() => {
   isMounted = false
 })
+
+let socket = null
 
 onMounted(async () => {
   let usernameFetchWasCancelled = false
@@ -219,9 +222,57 @@ onMounted(async () => {
   if (!usernameFetchWasCancelled && !$store.getters['auction/username']) {
     console.warn('User details missing, redirecting...')
     $router.push({ name: 'app-auction-profile' })
-  }
+  } else {
+    let reconnectAttempts = 0
+    let maxReconnectAttempts = 10
+    const connectWebsocket = () => {
+      const ws = callIndexAuctionWebsocket()
+      ws.onopen = () => {
+        console.log("Connected to the index websocket!")
+      };
 
-  isLoading.value = false
+      ws.onmessage = (event) => {
+        const { type, data } = JSON.parse(event.data)
+
+        switch (type) {
+          // update a specific auction's status
+          case "auction.refresh_page":
+            refresh()
+            break
+
+          default:
+            console.warn("Unknown websocket message:", type, data)
+        }
+        console.log(data)
+      }
+
+      ws.onclose = (event) => {
+        console.log("Disconnected from the index auction websocket!")
+        if (!event.wasClean && reconnectAttempts < maxReconnectAttempts) {
+          const delay = Math.min(1000 * 2 ** reconnectAttempts, 30000)
+          reconnectAttempts++
+          setTimeout(connectWebsocket, delay)
+        }
+      };
+
+    ws.onerror = (event) => {
+      console.error("Index websocket error:", event)
+    }
+      return ws
+    }
+    socket = connectWebsocket()
+  }
+})
+
+onBeforeUnmount(() => {
+  if (socket) {
+    console.log('unmounting')
+    socket.close()
+    socket.onmessage = null
+    socket.onopen = null
+    socket.onerror = null
+    socket.onclose = null
+  }
 })
 
 const auctionSearchQuery = ref('')
@@ -260,7 +311,7 @@ watch(auctionType, (newType) => {
 
 const refresh = async (done) => {
   await $store.dispatch('auction/refreshCatalog')
-  done()
+  if (typeof done === 'function') done()
 }
 </script>
 
