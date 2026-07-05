@@ -622,14 +622,12 @@ const handleUpdateAuction = async () => {
     }
 
     $q.notify({ type: 'positive', message: 'All changes saved successfully!' })
-    
-    $router.push('/apps/auction/activity')
-    
   } catch (error) {
     $q.notify({ type: 'negative', message: 'Failed to update database.' })
     console.error(error)
   } finally {
     $q.loading.hide()
+    $router.push(`/apps/auction/${props.auctionId}`)
   }
 }
 
