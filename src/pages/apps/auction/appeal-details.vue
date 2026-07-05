@@ -263,6 +263,8 @@
 
     <TransactionsDialog
       v-model="showTransactions"
+      :bidId="details?.bid_id"
+      :lotId="details?.lot_id"
     />
   </div>
 </template>
