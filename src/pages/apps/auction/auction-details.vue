@@ -232,12 +232,12 @@
 
                 <q-chip
                   dense
-                  :color="lot.getStatus().color"
+                  :color="getReactiveLotStatus(lot).color"
                   text-color="white"
                   class="absolute text-caption text-weight-bold"
                   style="top: 8px; right: 8px; margin: 0; padding: 3px 8px; height: auto;"
                 >
-                  {{ lot.getStatus().label }}
+                  {{  getReactiveLotStatus(lot).label }}
                 </q-chip>
               </div>
 
@@ -473,6 +473,17 @@ const fetchAllData = async () => {
   }
 }
 
+const lotStatusVersion = ref(0)
+
+const refreshLotStatuses = () => {
+  lotStatusVersion.value++
+}
+
+const getReactiveLotStatus = (lot) => {
+  lotStatusVersion.value
+  return lot.getStatus()
+}
+
 let socket = null
 
 onMounted(async () => {
@@ -509,11 +520,28 @@ onMounted(async () => {
         case "auction.start":
           auctionCountdown.value = 'Starting Auction...'
           auction.value.status = 2
+
+          lots.value.forEach(lot => {
+            lot.start_date = auction.value.start_date
+            lot.end_date = auction.value.end_date
+          })
+
+          refreshLotStatuses()
           break
-        case "auction.closed":
+        case "auction.closed": {
           auctionStartCountdown.value = "Time's Up!"
           auction.value.status = 3
+
+          const endDate = data?.end_date || new Date().toISOString()
+          auction.value.end_date = endDate
+
+          lots.value.forEach(lot => {
+            lot.end_date = endDate
+          })
+
+          refreshLotStatuses()
           break
+        }
         default:
           console.log("Unrecognized websocket event: " + type)
           break
