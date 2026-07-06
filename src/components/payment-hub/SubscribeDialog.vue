@@ -46,9 +46,9 @@
               <div class="row justify-between q-mt-sm items-start">
                 <div class="text-caption text-grey">{{ $t('BillingAmount') || 'Billing Amount' }}</div>
                 <div class="text-right">
-                  <div class="text-body2 text-weight-medium">{{ formatAmount(planDetails.amount) }} {{ planDetails.currency }}</div>
+                  <div class="text-body2 text-weight-medium">{{ totalFiatStr }} {{ planDetails.currency }}</div>
                   <div class="text-caption text-grey" v-if="planDetails.currency !== 'BCH' && (planDetails.amount_satoshis > 0 || bchPrice > 0)">
-                    ~{{ getEquivalentBch(planDetails.amount) }} BCH
+                    ~{{ totalBchStr }} BCH
                   </div>
                 </div>
               </div>
@@ -129,15 +129,52 @@ function formatAmount(amount) {
   return parseFloat(num.toFixed(8)).toString()
 }
 
-function getEquivalentBch(amount) {
-  if (planDetails.value && planDetails.value.amount_satoshis) {
-    return (planDetails.value.amount_satoshis / 100000000).toFixed(8).replace(/\.?0+$/, '') || '0'
+const bchUsdPrice = computed(() => $store.getters['market/getAssetPrice']('bch', 'usd') || 0)
+
+const paytacaFeeSats = computed(() => {
+  if (!planDetails.value) return 0
+  
+  let pledgeSats = planDetails.value.amount_satoshis
+  if (!pledgeSats) {
+    if (!bchPrice.value) return 546
+    const bchAmount = parseFloat(planDetails.value.amount) / bchPrice.value
+    pledgeSats = Math.round(bchAmount * 100000000)
   }
-  if (!bchPrice.value) return 0
-  const bchAmount = parseFloat(amount) / bchPrice.value
-  const sats = Math.round(bchAmount * 100000000)
-  return (sats / 100000000).toFixed(8).replace(/\.?0+$/, '') || '0'
-}
+  
+  let maxFee = 50000 // default if no USD price
+  if (bchUsdPrice.value > 0) {
+    maxFee = Math.round((1 / bchUsdPrice.value) * 100000000)
+  }
+  
+  return Math.max(Math.min(maxFee, Math.floor(pledgeSats / 100)), Math.floor(maxFee / 100))
+})
+
+const totalCostSats = computed(() => {
+  if (!planDetails.value) return 0
+  let pledgeSats = planDetails.value.amount_satoshis
+  if (!pledgeSats) {
+    if (!bchPrice.value) return 0
+    const bchAmount = parseFloat(planDetails.value.amount) / bchPrice.value
+    pledgeSats = Math.round(bchAmount * 100000000)
+  }
+  return pledgeSats + paytacaFeeSats.value + 1000 // miner fee
+})
+
+const totalBchStr = computed(() => {
+  if (totalCostSats.value === 0) return '0'
+  return (totalCostSats.value / 100000000).toFixed(8).replace(/\.?0+$/, '') || '0'
+})
+
+const totalFiatStr = computed(() => {
+  if (!planDetails.value) return '0'
+  if (planDetails.value.currency === 'BCH') return totalBchStr.value
+  
+  if (totalCostSats.value > 0 && bchPrice.value > 0) {
+    const totalBch = totalCostSats.value / 100000000
+    return parseFloat((totalBch * bchPrice.value).toFixed(2)).toString()
+  }
+  return formatAmount(planDetails.value.amount)
+})
 
 function getPeriodText(plan) {
   if (plan.period_days) {

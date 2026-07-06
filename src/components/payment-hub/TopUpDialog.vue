@@ -34,10 +34,10 @@
         <div class="q-mb-md" v-if="planDetails">
           <div class="text-subtitle2 text-grey">{{ $t('TotalTopUpAmount') || 'Total Top Up Amount' }}</div>
           <div class="row items-baseline q-gutter-x-sm">
-            <div class="text-weight-bold text-h6">{{ totalBchFormatted }} BCH</div>
-            <div class="text-caption text-grey" v-if="planDetails.currency !== 'BCH' && bchPrice > 0">
+            <div class="text-weight-bold text-h6" v-if="planDetails.currency !== 'BCH' && bchPrice > 0">
               ~{{ totalFiatFormatted }} {{ planDetails.currency }}
             </div>
+            <div class="text-caption text-grey">{{ totalBchFormatted }} BCH</div>
           </div>
           <div class="text-caption text-grey-6 q-mt-xs" v-if="planDetails.currency !== 'BCH'">
             {{ $t('IncludesServiceAndMinerFees') || 'Includes service and miner fees' }}
@@ -50,7 +50,7 @@
             {{ totalBlocks }} {{ $t('Blocks') || 'blocks' }} (~{{ getApproximateTime(totalBlocks) }})
           </div>
         </div>
-        
+
         <div class="q-mb-md" v-else-if="planDetails && planDetails.period_days">
           <div class="text-subtitle2 text-grey">{{ $t('TotalDuration') || 'Total Duration' }}</div>
           <div class="text-body2 text-weight-medium">
@@ -204,12 +204,12 @@ function onConfirm() {
     ? `${contractAddress}?amount=${bchAmount}`
     : contractAddress
 
-  const query = { 
-    address: addressWithAmount, 
-    assetId: 'bch', 
+  const query = {
+    address: addressWithAmount,
+    assetId: 'bch',
     backPath: '/apps/payment-hub-subscriptions/'
   }
-  
+
   onDialogOK()
   $router.push({ name: 'transaction-send', query })
 }
