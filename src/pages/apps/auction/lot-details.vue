@@ -1569,11 +1569,23 @@ const updateRefundCountdown = () => {
   refundCountdown.value = `${hours}h`
 }
 
+const autoMarkLotSold = async () => {
+  if (auction.value?.type !== 'English') return
+  if (!hasBid.value || isSold.value) return
+  try {
+    await callAPI('lots', props.lotId, 'patch', { is_sold: true })
+    if (lot.value) lot.value.is_sold = true
+  } catch (err) {
+    console.warn('Could not auto-mark lot as sold:', err)
+  }
+}
+
 const loadPageData = async () => {
   await Promise.all([fetchLot(), fetchAuction()])
   await Promise.all([fetchDutchSoldStatus(), checkBidStatus(), checkUserBid()])
   initializeDutchAuctionTimer(lot.value)
   await fetchWinningBid()
+  await autoMarkLotSold()
   await Promise.all([fetchDeliveryTracking(), fetchDispute()])
   if (deliveredDate.value) {
     updateRefundCountdown()
@@ -1670,6 +1682,7 @@ onMounted(async () => {
             auction.value.start_date,
             auction.value.end_date
           )
+          await autoMarkLotSold()
           break
 
         // sends placebid acknowledgement
