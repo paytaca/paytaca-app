@@ -47,7 +47,7 @@
                 <div class="text-caption text-grey">{{ $t('BillingAmount') || 'Billing Amount' }}</div>
                 <div class="text-right">
                   <div class="text-body2 text-weight-medium">{{ formatAmount(planDetails.amount) }} {{ planDetails.currency }}</div>
-                  <div class="text-caption text-grey" v-if="planDetails.currency !== 'BCH' && bchPrice > 0">
+                  <div class="text-caption text-grey" v-if="planDetails.currency !== 'BCH' && (planDetails.amount_satoshis > 0 || bchPrice > 0)">
                     ~{{ getEquivalentBch(planDetails.amount) }} BCH
                   </div>
                 </div>
@@ -130,6 +130,9 @@ function formatAmount(amount) {
 }
 
 function getEquivalentBch(amount) {
+  if (planDetails.value && planDetails.value.amount_satoshis) {
+    return (planDetails.value.amount_satoshis / 100000000).toFixed(8).replace(/\.?0+$/, '') || '0'
+  }
   if (!bchPrice.value) return 0
   const bchAmount = parseFloat(amount) / bchPrice.value
   const sats = Math.round(bchAmount * 100000000)
