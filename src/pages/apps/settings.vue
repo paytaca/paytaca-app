@@ -361,7 +361,6 @@ export default {
       enableStablhedge: this.$store.getters['global/enableStablhedge'],
       currentCountry: this.$store.getters['global/country'].code,
       repoUrl: 'https://github.com/paytaca/paytaca-app',
-      enablePushNotifs: false,
       showSensitiveInfo: false,
       walletMasterFingerprint: ''
     }
