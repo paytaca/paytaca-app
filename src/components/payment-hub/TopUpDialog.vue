@@ -34,10 +34,13 @@
         <div class="q-mb-md" v-if="planDetails">
           <div class="text-subtitle2 text-grey">{{ $t('TotalTopUpAmount') || 'Total Top Up Amount' }}</div>
           <div class="row items-baseline q-gutter-x-sm">
-            <div class="text-weight-bold text-h6">{{ totalAmountFormatted }} {{ planDetails.currency }}</div>
-            <div class="text-caption text-grey" v-if="planDetails.currency !== 'BCH' && bchPrice > 0">
-              ~{{ totalBchFormatted }} BCH
+            <div class="text-weight-bold text-h6" v-if="planDetails.currency !== 'BCH' && bchPrice > 0">
+              ~{{ totalFiatFormatted }} {{ planDetails.currency }}
             </div>
+            <div class="text-caption text-grey">{{ totalBchFormatted }} BCH</div>
+          </div>
+          <div class="text-caption text-grey-6 q-mt-xs" v-if="planDetails.currency !== 'BCH'">
+            {{ $t('IncludesServiceAndMinerFees') || 'Includes service and miner fees' }}
           </div>
         </div>
 
@@ -47,7 +50,7 @@
             {{ totalBlocks }} {{ $t('Blocks') || 'blocks' }} (~{{ getApproximateTime(totalBlocks) }})
           </div>
         </div>
-        
+
         <div class="q-mb-md" v-else-if="planDetails && planDetails.period_days">
           <div class="text-subtitle2 text-grey">{{ $t('TotalDuration') || 'Total Duration' }}</div>
           <div class="text-body2 text-weight-medium">
@@ -102,6 +105,24 @@ const bchPrice = computed(() => {
   return $store.getters['market/getAssetPrice']('bch', planDetails.value.currency) || 0
 })
 
+const minerFee = computed(() => 1000)
+
+const paytacaFee = computed(() => {
+  const sub = props.subscription
+  if (!sub) return 546
+  if (typeof sub.paytaca_fee === 'number') return sub.paytaca_fee
+  if (!sub.pledge_satoshis) return 546
+  const pledge = sub.pledge_satoshis
+  const maxFee = sub.max_fee || 546
+  return Math.max(Math.min(maxFee, Math.floor(pledge / 100)), Math.floor(maxFee / 100))
+})
+
+const totalCostSatsPerCycle = computed(() => {
+  const sub = props.subscription
+  if (!sub?.pledge_satoshis) return 0
+  return sub.pledge_satoshis + paytacaFee.value + minerFee.value
+})
+
 const totalAmount = computed(() => {
   if (!planDetails.value) return 0
   const amt = parseFloat(planDetails.value.amount)
@@ -113,8 +134,27 @@ const totalAmountFormatted = computed(() => {
   return parseFloat(totalAmount.value.toFixed(2)).toString()
 })
 
+const totalFiatFormatted = computed(() => {
+  if (!planDetails.value || planDetails.value.currency === 'BCH') return '0'
+  if (!bchPrice.value) return totalAmountFormatted.value
+  const bchVal = parseFloat(totalBchFormatted.value)
+  if (isNaN(bchVal)) return '0'
+  const fiatVal = bchVal * bchPrice.value
+  return parseFloat(fiatVal.toFixed(2)).toString()
+})
+
 const totalBchFormatted = computed(() => {
   if (!planDetails.value) return '0'
+  const numCycles = cycles.value || 0
+  if (numCycles === 0) return '0'
+
+  // Use satoshi-based calculation (pledge + paytaca_fee + miner_fee per cycle)
+  if (totalCostSatsPerCycle.value > 0) {
+    const totalSats = totalCostSatsPerCycle.value * numCycles
+    return (totalSats / 100000000).toFixed(8).replace(/\.?0+$/, '') || '0'
+  }
+
+  // Fallback: fiat-based conversion (shouldn't normally reach here)
   if (planDetails.value.currency === 'BCH') {
     return totalAmountFormatted.value
   }
@@ -164,12 +204,12 @@ function onConfirm() {
     ? `${contractAddress}?amount=${bchAmount}`
     : contractAddress
 
-  const query = { 
-    address: addressWithAmount, 
-    assetId: 'bch', 
+  const query = {
+    address: addressWithAmount,
+    assetId: 'bch',
     backPath: '/apps/payment-hub-subscriptions/'
   }
-  
+
   onDialogOK()
   $router.push({ name: 'transaction-send', query })
 }

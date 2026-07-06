@@ -21,7 +21,6 @@
               hide-bottom-space
             >
               <template v-slot:append>
-                <q-btn flat round dense icon="image" @click="onQRUploaderClick" />
                 <q-btn flat round dense icon="qr_code_scanner" @click="showQrScanner = true" />
               </template>
             </q-input>
@@ -47,9 +46,9 @@
               <div class="row justify-between q-mt-sm items-start">
                 <div class="text-caption text-grey">{{ $t('BillingAmount') || 'Billing Amount' }}</div>
                 <div class="text-right">
-                  <div class="text-body2 text-weight-medium">{{ formatAmount(planDetails.amount) }} {{ planDetails.currency }}</div>
-                  <div class="text-caption text-grey" v-if="planDetails.currency !== 'BCH' && bchPrice > 0">
-                    ~{{ getEquivalentBch(planDetails.amount) }} BCH
+                  <div class="text-body2 text-weight-medium">{{ totalFiatStr }} {{ planDetails.currency }}</div>
+                  <div class="text-caption text-grey" v-if="planDetails.currency !== 'BCH' && (planDetails.amount_satoshis > 0 || bchPrice > 0)">
+                    ~{{ totalBchStr }} BCH
                   </div>
                 </div>
               </div>
@@ -82,10 +81,6 @@
       </q-form>
     </q-card>
     
-    <QRUploader
-      ref="qrUploadRef"
-      @detect-upload="onScannerDecode"
-    />
     <QrScanner
       v-model="showQrScanner"
       @decode="onScannerDecode"
@@ -94,25 +89,17 @@
 </template>
 
 <script setup>
-import { ref, computed, reactive, onMounted } from 'vue'
+import { ref, computed, reactive } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useDialogPluginComponent, useQuasar } from 'quasar'
 import { useStore } from 'vuex'
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 import { PaymentHub, extractPlanId } from 'src/wallet/payment-hub'
 import QrScanner from 'src/components/qr-scanner.vue'
-import QRUploader from 'src/components/QRUploader.vue'
 
 defineEmits([
   ...useDialogPluginComponent.emits
 ])
-
-const props = defineProps({
-  initialPlanId: {
-    type: String,
-    default: null
-  }
-})
 
 const { dialogRef, onDialogHide, onDialogOK, onDialogCancel } = useDialogPluginComponent()
 const { t } = useI18n()
@@ -125,20 +112,10 @@ const step = ref(1)
 const isLoading = ref(false)
 const planDetails = ref(null)
 const showQrScanner = ref(false)
-const qrUploadRef = ref(null)
 const isChipnet = computed(() => $store.getters['global/isChipnet'])
 
 const form = reactive({
-  plan: props.initialPlanId || '',
-})
-
-onMounted(() => {
-  if (props.initialPlanId) {
-    // Small delay to let the UI settle before fetching
-    setTimeout(() => {
-      onFormSubmit()
-    }, 100)
-  }
+  plan: '',
 })
 
 const bchPrice = computed(() => {
@@ -152,12 +129,52 @@ function formatAmount(amount) {
   return parseFloat(num.toFixed(8)).toString()
 }
 
-function getEquivalentBch(amount) {
-  if (!bchPrice.value) return 0
-  const bchAmount = parseFloat(amount) / bchPrice.value
-  const sats = Math.round(bchAmount * 100000000)
-  return (sats / 100000000).toFixed(8).replace(/\.?0+$/, '') || '0'
-}
+const bchUsdPrice = computed(() => $store.getters['market/getAssetPrice']('bch', 'usd') || 0)
+
+const paytacaFeeSats = computed(() => {
+  if (!planDetails.value) return 0
+  
+  let pledgeSats = planDetails.value.amount_satoshis
+  if (!pledgeSats) {
+    if (!bchPrice.value) return 546
+    const bchAmount = parseFloat(planDetails.value.amount) / bchPrice.value
+    pledgeSats = Math.round(bchAmount * 100000000)
+  }
+  
+  let maxFee = 50000 // default if no USD price
+  if (bchUsdPrice.value > 0) {
+    maxFee = Math.round((1 / bchUsdPrice.value) * 100000000)
+  }
+  
+  return Math.max(Math.min(maxFee, Math.floor(pledgeSats / 100)), Math.floor(maxFee / 100))
+})
+
+const totalCostSats = computed(() => {
+  if (!planDetails.value) return 0
+  let pledgeSats = planDetails.value.amount_satoshis
+  if (!pledgeSats) {
+    if (!bchPrice.value) return 0
+    const bchAmount = parseFloat(planDetails.value.amount) / bchPrice.value
+    pledgeSats = Math.round(bchAmount * 100000000)
+  }
+  return pledgeSats + paytacaFeeSats.value + 1000 // miner fee
+})
+
+const totalBchStr = computed(() => {
+  if (totalCostSats.value === 0) return '0'
+  return (totalCostSats.value / 100000000).toFixed(8).replace(/\.?0+$/, '') || '0'
+})
+
+const totalFiatStr = computed(() => {
+  if (!planDetails.value) return '0'
+  if (planDetails.value.currency === 'BCH') return totalBchStr.value
+  
+  if (totalCostSats.value > 0 && bchPrice.value > 0) {
+    const totalBch = totalCostSats.value / 100000000
+    return parseFloat((totalBch * bchPrice.value).toFixed(2)).toString()
+  }
+  return formatAmount(planDetails.value.amount)
+})
 
 function getPeriodText(plan) {
   if (plan.period_days) {
@@ -233,23 +250,7 @@ async function fetchPlanDetails() {
 
 function onScannerDecode(content) {
   showQrScanner.value = false
-  if (content) {
-    const stringContent = Array.isArray(content) ? content[0].rawValue : content
-    if (stringContent) {
-      form.plan = extractPlanId(stringContent)
-      if (form.plan) {
-        setTimeout(() => {
-          onFormSubmit()
-        }, 100)
-      }
-    }
-  }
-}
-
-function onQRUploaderClick() {
-  if (qrUploadRef.value) {
-    qrUploadRef.value.$refs['q-file'].pickFiles()
-  }
+  form.plan = extractPlanId(content)
 }
 
 function onCancelClick() {
