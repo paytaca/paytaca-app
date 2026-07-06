@@ -1465,7 +1465,9 @@ const fetchLot = async () => {
   }
 }
 
+const isCreatingDeliveryTracking = ref(false)
 const initEnglishDeliveryTracking = async () => {
+  if (isCreatingDeliveryTracking.value) return
   if (auction.value?.type !== 'English') return
   if (!isLotClosed.value) return
   if (highestBidderId.value !== walletHash) return
@@ -1482,6 +1484,8 @@ const initEnglishDeliveryTracking = async () => {
     deliveryStatusId.value = 1
   } catch (err) {
     console.warn('Could not init delivery tracking for English auction:', err)
+  } finally {
+    isCreatingDeliveryTracking.value = false
   }
 }
 
