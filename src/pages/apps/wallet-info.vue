@@ -252,8 +252,8 @@ export default {
         vm.$store.commit('assets/updatedCurrentAssets', index)
 
         vm.$store.dispatch('global/switchWallet', index).then(function () {
-          vm.$router.push('/')
-          setTimeout(() => { location.reload() }, 500)
+          vm.$store.commit('global/setWalletSwitchInProgress', true)
+          vm.$router.replace('/')
         })
       }
     },

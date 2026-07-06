@@ -2585,6 +2585,9 @@ export default {
         // Auto-run home tour only after backup is confirmed.
         this._maybeAutoStartHomeTourAfterBackup()
       }
+
+      // Full refresh after page mounts (especially after wallet switch)
+      this.onRefresh(() => {})
     } catch (error) {
       console.error('Error in mounted hook:', error)
       // Ensure loading state is reset even on error

@@ -340,33 +340,28 @@ export default {
         
         // Wait for localStorage to persist (important for Android)
         // Also wait for vuex-persistedstate to write the state
-        // Keep loading component visible until reload to prevent flicker
+        // Keep loading component visible until switch completes
         await new Promise(resolve => setTimeout(resolve, 500))
         
         vm.isSwitching = false
         
-        // Set flag so App.vue skips the initial loading overlay on reload
-        try { sessionStorage.setItem('walletSwitchReload', '1') } catch (_) {}
+        // Signal that a wallet switch is in progress
+        // This allows the router guard and App.vue watcher to respond appropriately
+        vm.$store.commit('global/setWalletSwitchInProgress', true)
 
         if (lockAppEnabled && !isUnlocked) {
-          // Wallet is locked - go directly to lock screen with page reload
-          // Use location.replace to avoid history entry and ensure reload
-          // Loading screen will be cleared by the reload
-          // Force a full page navigation to ensure the loading screen is cleared
-          window.location.replace('/#/lock?redirect=/')
-          // Add a fallback timeout to force reload if replace doesn't work
-          setTimeout(() => {
-            if (document.visibilityState === 'visible') {
-              console.warn('[MultiWallet] location.replace did not navigate, forcing reload')
-              location.reload()
-            }
-          }, 1000)
-        } else {
-          // Wallet is unlocked or has no lock - go to home with reload
-          // Loading screen will be cleared by the reload
-          // Flag is set above (before the if/else) for both paths
-          location.reload()
+          // Wallet is locked - navigate to lock screen
+          // After unlocking, the router guard redirects to /
+          vm.$router.replace('/lock?redirect=/')
         }
+        // If wallet is unlocked, no explicit navigation is needed.
+        // The :key on <router-view> (bound to walletIndex) will trigger
+        // recreation of the current page with the new wallet data.
+
+        // Wait for the new page to mount and initialize
+        await vm.$nextTick()
+        await new Promise(resolve => setTimeout(resolve, 1500))
+        loadingComponent.hide()
       } catch (error) {
         console.error('[MultiWallet] Switch error:', error)
         vm.isSwitching = false

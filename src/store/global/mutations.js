@@ -710,6 +710,10 @@ export function setPreviousRoute (state, path) {
   state.previousRoute = path
 }
 
+export function setWalletSwitchInProgress (state, value) {
+  state.walletSwitchInProgress = Boolean(value)
+}
+
 export function setAppInitialLoadComplete (state, value) {
   state.appInitialLoadComplete = Boolean(value)
 }
