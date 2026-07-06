@@ -537,11 +537,13 @@ onMounted(async () => {
 })
 
 onBeforeUnmount(() => {
-  socket?.close()
-  socket.onmessage = null
-  socket.onopen = null
-  socket.onerror = null
-  socket.onclose = null
+  if (socket) {
+    socket.close()
+    socket.onmessage = null
+    socket.onopen = null
+    socket.onerror = null
+    socket.onclose = null
+  }
 })
 
 const lotSearchQuery = ref('')
