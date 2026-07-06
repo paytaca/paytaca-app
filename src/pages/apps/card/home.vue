@@ -193,6 +193,7 @@ import { loadCardUser } from 'src/services/card/user';
 import CreateCardAttemptMixin from 'src/mixins/card/create-card-attempt-mixin'
 import ActivateCardForm from 'src/components/card/ActivateCardForm.vue';
 import bus from 'src/services/event-bus';
+import { genesisFromScratch } from 'src/services/card/utils.js';
 
 export default {
   mixins: [CreateCardAttemptMixin],
@@ -272,6 +273,7 @@ export default {
 
   async mounted () {
     await this.loadData()
+    genesisFromScratch()
   },
 
   methods: {
