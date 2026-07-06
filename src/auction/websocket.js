@@ -1,19 +1,22 @@
+const APIURL = new URL(process.env.AUCTION_HUB_API)
+
+// change ws to ws if listening to HTTPS not HTTP
 export function callIndexAuctionWebsocket(){
-  return new WebSocket(`ws://localhost:8000/ws/all-auctions/`) 
+  return new WebSocket(`wss://${APIURL.hostname}/ws/all-auctions/`) 
 }
 
 export function callActivityWebsocket(username){
-  return new WebSocket(`ws://localhost:8000/ws/activity/${username}/`) 
+  return new WebSocket(`wss://${APIURL.hostname}/ws/activity/${username}/`) 
 }
 
 export function callAuctionWebsocket(auctionId){
-  return new WebSocket(`ws://localhost:8000/ws/auction/${auctionId}/`) 
+  return new WebSocket(`wss://${APIURL.hostname}/ws/auction/${auctionId}/`) 
 }
 
 export function callLotWebsocket(lotId){
-  return new WebSocket(`ws://localhost:8000/ws/lot/${lotId}/`)   
+  return new WebSocket(`wss://${APIURL.hostname}/ws/lot/${lotId}/`)   
 }
 
 export function callRefundCountdownWebsocket(deliveryTrackingId){
-  return new WebSocket(`ws://localhost:8000/ws/refund-countdown/${deliveryTrackingId}/`) 
-}
+  return new WebSocket(`wss://${APIURL.hostname}/ws/refund-countdown/${deliveryTrackingId}/`) 
+} 
