@@ -366,8 +366,8 @@ const props = defineProps({
 
 const viewCount = ref(0)
 const auction = ref(null)
-const auctionCountdown = ref(0)
-const auctionStartCountdown = ref(0)
+const auctionCountdown = ref('Loading...')
+const auctionStartCountdown = ref('Loading...')
 
 defineOptions({
   directives: {
@@ -496,22 +496,28 @@ onMounted(async () => {
 
     ws.onmessage = (event) => {
       const { type, data } = JSON.parse(event.data)
-
-      if (type === "live.viewing")
-        viewCount.value = data.viewer_count
-      else if(type === "auction.start_countdown")
-        auctionStartCountdown.value = data.time_left
-      else if(type === "auction.countdown")
-        auctionCountdown.value = data.time_left
-      else if(type === "auction.start"){
-        auctionCountdown.value = 0
-        auction.value.status = 2
+      switch(type) {
+        case "live.viewing":
+          viewCount.value = data.viewer_count
+          break
+        case "auction.start_countdown":
+          auctionStartCountdown.value = formatCountdown(data.time_left)
+          break
+        case "auction.countdown":
+          auctionCountdown.value = formatCountdown(data.time_left)
+          break
+        case "auction.start":
+          auctionCountdown.value = 'Starting Auction...'
+          auction.value.status = 2
+          break
+        case "auction.closed":
+          auctionStartCountdown.value = "Time's Up!"
+          auction.value.status = 3
+          break
+        default:
+          console.log("Unrecognized websocket event: " + type)
+          break
       }
-      else if(type === "auction.closed"){
-        auctionStartCountdown.value = 0
-        auction.value.status = 3
-      }
-
       console.log(data)
     }
 
@@ -535,6 +541,19 @@ onMounted(async () => {
   socket = connectWebsocket()
   isLoading.value = false
 })
+
+const formatCountdown = (timeLeft) => {
+  const splitTime = (timeLeft).split(":")
+  const timeToIndex = ['day', 'hour', 'minute', 'second']
+  for (let [index, time] of splitTime.entries()){
+    const numTime = Number(time)
+    console.log(numTime)
+    if (numTime > 0) {
+      return `${numTime} ${timeToIndex[index]}${(numTime) > 1 ? 's':''} left.`
+    }
+  }
+  return "Time's Up!"
+}
 
 onBeforeUnmount(() => {
   if (socket) {
