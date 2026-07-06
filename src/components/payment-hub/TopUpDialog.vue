@@ -32,15 +32,15 @@
 
         <!-- Calculate amounts and periods -->
         <div class="q-mb-md" v-if="planDetails">
-          <div class="text-subtitle2 text-grey">{{ $t('TotalTopUpAmount') || 'Total Top Up Amount' }}</div>
+          <div class="text-subtitle2 text-grey">{{ 'Total Amount with Fees' }}</div>
           <div class="row items-baseline q-gutter-x-sm">
-            <div class="text-weight-bold text-h6" v-if="planDetails.currency !== 'BCH' && bchPrice > 0">
-              ~{{ totalFiatFormatted }} {{ planDetails.currency }}
-            </div>
-            <div class="text-caption text-grey">{{ totalBchFormatted }} BCH</div>
-          </div>
-          <div class="text-caption text-grey-6 q-mt-xs" v-if="planDetails.currency !== 'BCH'">
-            {{ $t('IncludesServiceAndMinerFees') || 'Includes service and miner fees' }}
+            <template v-if="planDetails.currency !== 'BCH' && bchPrice > 0">
+              <div class="text-weight-bold text-h6">~{{ totalFiatFormatted }} {{ planDetails.currency }}</div>
+              <div class="text-caption text-grey">{{ totalBchFormatted }} BCH</div>
+            </template>
+            <template v-else>
+              <div class="text-weight-bold text-h6">{{ totalBchFormatted }} BCH</div>
+            </template>
           </div>
         </div>
 
