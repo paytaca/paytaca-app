@@ -21,6 +21,7 @@
               hide-bottom-space
             >
               <template v-slot:append>
+                <q-btn flat round dense icon="image" @click="onQRUploaderClick" />
                 <q-btn flat round dense icon="qr_code_scanner" @click="showQrScanner = true" />
               </template>
             </q-input>
@@ -81,6 +82,10 @@
       </q-form>
     </q-card>
     
+    <QRUploader
+      ref="qrUploadRef"
+      @detect-upload="onScannerDecode"
+    />
     <QrScanner
       v-model="showQrScanner"
       @decode="onScannerDecode"
@@ -89,17 +94,25 @@
 </template>
 
 <script setup>
-import { ref, computed, reactive } from 'vue'
+import { ref, computed, reactive, onMounted } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useDialogPluginComponent, useQuasar } from 'quasar'
 import { useStore } from 'vuex'
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 import { PaymentHub, extractPlanId } from 'src/wallet/payment-hub'
 import QrScanner from 'src/components/qr-scanner.vue'
+import QRUploader from 'src/components/QRUploader.vue'
 
 defineEmits([
   ...useDialogPluginComponent.emits
 ])
+
+const props = defineProps({
+  initialPlanId: {
+    type: String,
+    default: null
+  }
+})
 
 const { dialogRef, onDialogHide, onDialogOK, onDialogCancel } = useDialogPluginComponent()
 const { t } = useI18n()
@@ -112,10 +125,20 @@ const step = ref(1)
 const isLoading = ref(false)
 const planDetails = ref(null)
 const showQrScanner = ref(false)
+const qrUploadRef = ref(null)
 const isChipnet = computed(() => $store.getters['global/isChipnet'])
 
 const form = reactive({
-  plan: '',
+  plan: props.initialPlanId || '',
+})
+
+onMounted(() => {
+  if (props.initialPlanId) {
+    // Small delay to let the UI settle before fetching
+    setTimeout(() => {
+      onFormSubmit()
+    }, 100)
+  }
 })
 
 const bchPrice = computed(() => {
@@ -250,7 +273,23 @@ async function fetchPlanDetails() {
 
 function onScannerDecode(content) {
   showQrScanner.value = false
-  form.plan = extractPlanId(content)
+  if (content) {
+    const stringContent = Array.isArray(content) ? content[0].rawValue : content
+    if (stringContent) {
+      form.plan = extractPlanId(stringContent)
+      if (form.plan) {
+        setTimeout(() => {
+          onFormSubmit()
+        }, 100)
+      }
+    }
+  }
+}
+
+function onQRUploaderClick() {
+  if (qrUploadRef.value) {
+    qrUploadRef.value.$refs['q-file'].pickFiles()
+  }
 }
 
 function onCancelClick() {
