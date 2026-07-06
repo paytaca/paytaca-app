@@ -252,15 +252,16 @@
                       content-class="q-gap-xs"
                       icon="assignment_return"
                       padding="sm"
+                      label="Refund"
                       unelevated
                       :disable="!canRequestRefund || isGrantedRefund"
                       @click="showRefundDialog = true"
-                    >
-                      <div>
-                        Refund <span v-if="refundCountdown && !isGrantedRefund" class="text-caption">({{ refundCountdown }})</span>
-                      </div>
-                    </q-btn>
+                    />
                   </div>
+                </div>
+
+                <div v-if="!isAuthor && deliveryStatusId === 3 && refundCountdown && !isGrantedRefund" class="text-caption text-right q-mt-xs">
+                  Time left for refund: {{ refundCountdown }}
                 </div>
 
                 <!-- Seller: refund granted banner -->
@@ -1511,18 +1512,34 @@ const updateRefundCountdown = () => {
     clearInterval(refundCountdownInterval)
     return
   }
-  const delivered = new Date(String(deliveredDate.value).trim().replace(' ', 'T'))
+
+  let dateStr = String(deliveredDate.value).trim().replace(' ', 'T')
+  if (!dateStr.endsWith('Z') && !dateStr.includes('+')) dateStr += 'Z'
+
+  const delivered = new Date(dateStr)
   const deadline = new Date(delivered.getTime() + 6 * 60 * 60 * 1000)
-  const diff = deadline - new Date()
-  if (diff <= 0) {
-    refundCountdown.value = '00:00:00'
+  const now = new Date()
+
+  if (now >= deadline) {
+    refundCountdown.value = 'Expired'
     clearInterval(refundCountdownInterval)
     return
   }
-  const h = Math.floor(diff / 3600000)
-  const m = Math.floor((diff % 3600000) / 60000)
-  const s = Math.floor((diff % 60000) / 1000)
-  refundCountdown.value = `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`
+
+  const seconds = Math.max(0, date.getDateDiff(deadline, now, 'seconds'))
+  if (seconds < 60) {
+    refundCountdown.value = `${seconds}s`;
+    return
+  }
+
+  const minutes = date.getDateDiff(deadline, now, 'minutes')
+  if (minutes < 60) {
+    refundCountdown.value = `${minutes}m`;
+    return
+  }
+
+  const hours = date.getDateDiff(deadline, now, 'hours')
+  refundCountdown.value = `${hours}h`
 }
 
 const loadPageData = async () => {
