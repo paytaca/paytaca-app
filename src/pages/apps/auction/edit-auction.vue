@@ -1,4 +1,8 @@
 <template>
+  <!--
+    This is where the user can edit their auctions. They cannot edit 30 minutes into
+    the auction start.
+  -->
   <div
     id="app-container"
     class="auction-container"

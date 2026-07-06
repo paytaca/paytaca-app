@@ -1,4 +1,7 @@
 <template>
+  <!--
+    ARBITER ONLY: This page contains the appeal details.
+  -->
   <div
     id="app-container"
     class="auction-container"

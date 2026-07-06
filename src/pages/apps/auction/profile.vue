@@ -1,4 +1,8 @@
 <template>
+  <!--
+    This page only contains setting up the username. The BCH address for this Auction app
+    is derived from the 'deriveOAuthCredentials' function from 'src/auction/bch-oauth'.
+  -->
   <div
     id="app-container"
     class="auction-container"

@@ -1,4 +1,7 @@
 <template>
+  <!--
+    ARBITER ONLY: This page contains the list of appeals for the Auction app.
+  -->
   <q-pull-to-refresh
     id="app-container"
     class="auction-container"

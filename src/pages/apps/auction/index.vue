@@ -1,4 +1,10 @@
 <template>
+  <!--
+    This is the landing page for the Auction app. Redirects to appeals.vue if the user is
+    set as Arbiter for the Auction app.
+
+    NOTE: Lines-of-code and files for the Auction app are subject to change.
+  -->
   <q-pull-to-refresh
     id="app-container"
     class="auction-container"

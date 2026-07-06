@@ -1,4 +1,7 @@
 <template>
+  <!--
+    This is where the user can auction their items.
+  -->
   <div
     id="app-container"
     class="auction-container"
