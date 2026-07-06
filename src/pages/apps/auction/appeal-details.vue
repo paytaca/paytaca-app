@@ -261,9 +261,10 @@
       :lotId="details?.lot_id"
     />
 
-    <ArbiterTransactionsDialog
+    <TransactionsDialog
       v-model="showTransactions"
-      :transactions="transactions"
+      :bidId="details?.bid_id"
+      :lotId="details?.lot_id"
     />
   </div>
 </template>
@@ -282,7 +283,7 @@ import { callContractReturn, callContractRefund } from 'src/auction/arbiter'
 import HeaderNav from 'src/components/header-nav.vue'
 import AuctionHeaderMenu from 'src/components/auction/AuctionHeaderMenu.vue'
 import DeliveryStatusHistoryDialog from 'src/components/auction/DeliveryStatusHistoryDialog.vue'
-import ArbiterTransactionsDialog from 'src/components/auction/ArbiterTransactionsDialog.vue'
+import TransactionsDialog from 'src/components/auction/TransactionsDialog.vue'
 
 const props = defineProps({
   appealId: {
@@ -299,8 +300,6 @@ const isArbiter = computed(() => !!$store.getters['auction/isArbiter'])
 
 const isLoading = ref(true)
 const details = ref(null)
-
-const transactions = ref([])
 
 onMounted(async () => {
   if (!isArbiter.value) {
