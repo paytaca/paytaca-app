@@ -1,4 +1,8 @@
 <template>
+  <!--
+    This page contains the lot details. It also has the lines-of-code for the auction
+    mechanisms.
+  -->
   <q-pull-to-refresh
     id="app-container"
     class="auction-container"

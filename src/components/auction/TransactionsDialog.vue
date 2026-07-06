@@ -87,6 +87,13 @@ const formatTxDate = (value) => {
   return date.formatDate(value, 'MMM DD, YYYY hh:mm A')
 }
 
+/**
+ * As of the moment, there is no transaction table from the backend.
+ * Hence, the details for Sent is from the winning bidder details,
+ * and the details for Receive is from the delivered date from the
+ * delivery tracking for the specific lot. Replace the bid price and
+ * the corresponding dates whenever the transaction table is built.
+ */
 const fetchBidData = async () => {
   if (!props.bidId) return
 

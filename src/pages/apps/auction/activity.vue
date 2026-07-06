@@ -1,4 +1,8 @@
 <template>
+  <!--
+    This page contains the user activity from the Auction app. It only contains user's
+    biddings and user's created auctions.
+  -->
   <q-pull-to-refresh
     id="app-container"
     class="auction-container"

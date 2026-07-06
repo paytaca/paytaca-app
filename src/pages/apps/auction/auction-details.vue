@@ -1,4 +1,7 @@
 <template>
+  <!--
+    This page contains the auction details and list of lots.
+  -->
   <q-pull-to-refresh
     id="app-container"
     class="auction-container"

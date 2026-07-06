@@ -86,6 +86,12 @@ async function saveToken(token) {
   }
 }
 
+/**
+ * NOTE: When creating or restoring a new wallet, it does not clear the
+ * token from the previous section (only when switching wallets). Import
+ * this function inside the file/s where it creates and/or restores a
+ * wallet.
+ */
 // oauth: clear token from secure storage
 export async function clearToken() {
   try {
