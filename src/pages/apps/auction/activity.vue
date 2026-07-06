@@ -192,9 +192,9 @@
     </div>
 
     <!-- All user's BIDDINGS made -->
-    <div v-if="activityType === 'My Biddings'" class="q-pa-sm text-bow" :class="getDarkModeClass(darkMode)">    
+    <div v-if="activityType === 'My Bids'" class="q-pa-sm text-bow" :class="getDarkModeClass(darkMode)">    
       <div class="row items-center q-pa-sm q-mb-md">
-        <div class="text-h5 q-px-xs">My Biddings</div>
+        <div class="text-h5 q-px-xs">My Bids</div>
         <q-select
           outlined
           dense
@@ -412,12 +412,12 @@ const getFormattedBCH = (bch) => {
 
 
 
-const activityType = ref($store.state.auction?.activityType || 'My Biddings')
+const activityType = ref($store.state.auction?.activityType || 'My Bids')
 if (activityType.value === 'Arbiter') {
-  activityType.value = 'My Biddings'
+  activityType.value = 'My Bids'
 }
 
-const activityTypeOptions = ['My Biddings', 'My Auctions']
+const activityTypeOptions = ['My Bids', 'My Auctions']
 
 const auctionType = ref('All');
 const auctionTypeOptions = ['English', 'Dutch', 'All']
@@ -520,14 +520,14 @@ const filteredLots = computed(() => {
 })
 
 watch(activityType, async (newType) => {
-  if (newType === 'My Biddings') {
+  if (newType === 'My Bids') {
     auctionDetails.value = []
   }
 
   isLoading.value = true
 
   if(newType === 'My Auctions') await fetchAuctionData()
-  else if(newType === 'My Biddings') await $store.dispatch('auction/fetchMyBiddings')
+  else if(newType === 'My Bids') await $store.dispatch('auction/fetchMyBiddings')
 
   isLoading.value = false
 
@@ -574,7 +574,7 @@ const refresh = async (done) => {
   isLoading.value = true
 
   if(activityType.value === 'My Auctions') await fetchAuctionData()
-  else if(activityType.value === 'My Biddings') await $store.dispatch('auction/fetchMyBiddings')
+  else if(activityType.value === 'My Bids') await $store.dispatch('auction/fetchMyBiddings')
 
   isLoading.value = false
   done()
