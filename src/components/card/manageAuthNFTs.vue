@@ -1076,12 +1076,6 @@ export default {
       this.showBurnTokenDialog = false
 
       // Placeholder only: wire actual burn transaction here.
-        merchantId: merchant.id,
-        merchantName: merchant.name,
-        nftId: nft.id,
-        tokenData: nft.token_data
-      })
-
       const result = await this.card?.burnMerchantAuthToken({
         merchant: {
           id: merchant.ref_id,

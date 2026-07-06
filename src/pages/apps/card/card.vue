@@ -506,14 +506,6 @@ export default {
         }
       }
       
-        'route.path': this.$route.path,
-        'route.params': this.$route.params,
-        'route.query': this.$route.query,
-        'route.name': this.$route.name,
-        'window.location.hash': window.location.hash,
-        'localStorage.lastActiveCardId': localStorage.getItem('lastActiveCardId')
-      })
-      
       if (!cardId) {
         this.$router.push({ name: 'card-list' })
         return
