@@ -49,12 +49,12 @@
               </div>
             </div>
 
-            <div class="text-h5 text-weight-medium">
+            <div class="text-h5 text-weight-medium" :class="{ 'q-mb-md': auction?.status === 3 }">
               {{ auction?.title || 'N/A' }}
             </div>
-            
-            <div class="q-mb-md text-secondary">
-              There {{ viewCount === 1 ? 'is' : 'are'}} {{ viewCount }} {{ viewCount === 1 ? 'person' : 'people' }} currently viewing this auction.
+
+            <div v-if="auction?.status !== 3" class="q-mb-md text-secondary">
+              There {{ viewCount === 1 ? 'is' : 'are' }} {{ viewCount }} {{ viewCount === 1 ? 'person' : 'people' }} currently viewing this auction.
             </div>
 
             <q-card flat bordered class="q-mb-md self-start full-width">
