@@ -58,6 +58,17 @@
             gnumake
             gcc
             pkg-config
+            (writeShellScriptBin "build-android-app" ''
+              cd src-capacitor && npm install
+              cd ..
+              npx quasar build -m capacitor -T android
+              
+              if command -v android-studio &> /dev/null; then
+                android-studio src-capacitor/android &
+              else
+                echo "android-studio command not found. Please open src-capacitor/android in Android Studio manually."
+              fi
+            '')
           ] ++ (if system == "x86_64-linux" || system == "aarch64-linux" then linuxDeps else []);
 
           shellHook = ''
@@ -74,8 +85,9 @@
             echo "Git: $(git --version)"
             echo ""
             echo "Commands:"
-            echo "  npm install      - Install dependencies"
-            echo "  npm run dev      - Start development server"
+            echo "  npm install         - Install dependencies"
+            echo "  npm run dev         - Start development server"
+            echo "  build-android-app   - Build and open Android app in IDE"
             echo ""
           '';
         };
