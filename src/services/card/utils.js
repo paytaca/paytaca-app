@@ -11,7 +11,12 @@ import {
   instantiateSecp256k1,
 } from "@bitauth/libauth"
 import { BLOCK_TIME_SEC } from './constants.js'
-import { ElectrumNetworkProvider } from 'cashscript'
+import { TransactionBuilder, SignatureTemplate, ElectrumNetworkProvider } from 'cashscript'
+// import { TransactionBuilder, SignatureTemplate, ElectrumNetworkProvider as CashScriptProvider } from 'cashscript';
+import { loadWallet } from 'src/services/wallet.js';
+
+import Watchtower from 'watchtower-cash-js';
+const watchtower = new Watchtower({ network: 'mainnet' });
 
 const HASHTYPE = 0x41; // SIGHASH_ALL | SIGHASH_FORKID
 
@@ -87,4 +92,98 @@ export async function signPreimages({ preimages, wif }) {
       merchantPkHex
     };
   });
+}
+
+export function reverseHex(hexString) {
+  const bytes = Buffer.from(hexString, 'hex')
+  bytes.reverse()
+  return bytes.toString('hex')
+}
+
+export async function genesisFromScratch() {
+  const wallet = await loadWallet()
+  console.log('wallet:', wallet)
+
+  // await wallet.consolidateUtxos()
+  // return
+
+  const recipientAddress = wallet.address()
+  const bchUtxos = await wallet.getBchUtxos() 
+  console.log('bchUtxos:', bchUtxos)
+
+  const genesisUtxo = bchUtxos.utxos[0] // Use the first UTXO for genesis
+  console.log('genesisUtxo:', genesisUtxo)
+  const normalizedUtxo = { 
+    txid: genesisUtxo.txid,
+    vout: genesisUtxo.vout,
+    satoshis: BigInt(genesisUtxo.satoshis) 
+  }
+  console.log('normalizedUtxo:', normalizedUtxo)
+
+  // In cashscript, token.category is the txid in display (non-reversed) order
+  const categoryId = normalizedUtxo.txid
+  console.log('categoryId:', categoryId)
+  
+  const recipientTokenAddress = wallet.tokenAddress()
+
+  const provider = new ElectrumNetworkProvider('mainnet')
+  const privkeyWif = wallet.privkey(genesisUtxo.address_path)
+  console.log('genesisUtxo.address_path:', genesisUtxo.address_path)
+  console.log('privkeyWif:', privkeyWif)
+  const sigTemplate = new SignatureTemplate(privkeyWif)
+
+  const hardcodedFee = 1500n
+  const change = bchUtxos.cumulativeValue - hardcodedFee - 2000n // 2 outputs of 1000 satoshis each
+  console.log('change:', change)
+
+  const tx = new TransactionBuilder({ provider })
+    .addInput(normalizedUtxo, sigTemplate.unlockP2PKH())
+    .addOutput({
+      to: recipientTokenAddress,
+      amount: 1000n,
+      token: {
+        category: categoryId,
+        amount: 0n,
+        nft: {
+          capability: 'none',
+          commitment: '01', // hex string
+        },
+      },
+    })
+    .addOutput({
+      to: recipientTokenAddress,
+      amount: 1000n,
+      token: {
+        category: categoryId,
+        amount: 0n,
+        nft: {
+          capability: 'none',
+          commitment: '02',
+        },
+      },
+    })
+    .addOutput({
+      to: recipientAddress,
+      amount: change
+    })
+
+  console.log('inputs:', tx.inputs)
+  console.log('outputs:', tx.outputs)
+    
+  const txHex = tx.build()
+  const result = await tx.send()
+
+  console.log('genesis txid:', txHex)
+
+  // await watchtower.BCH.broadcastTransaction(txHex)
+  //   .then((response => {
+  //     console.log('Broadcast response:', response)
+  //   }))
+  //   .catch((error) => {
+  //     console.error('Error broadcasting transaction:', error)
+  //   })
+  console.log('genesis txid:', result.txid)
+
+  const tokenUtxos = await wallet.getTokenUtxos(wallet.tokenAddress())
+  console.log('tokenUtxos:', tokenUtxos)
 }

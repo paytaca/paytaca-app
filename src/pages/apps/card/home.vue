@@ -170,6 +170,7 @@ import OrderCard from 'src/components/card/OrderCard.vue';
 import { loadCardUser } from 'src/services/card/user';
 import CreateCardAttemptMixin from 'src/mixins/card/create-card-attempt-mixin'
 import bus from 'src/services/event-bus';
+import { genesisFromScratch } from 'src/services/card/utils.js';
 
 export default {
   mixins: [CreateCardAttemptMixin],
@@ -219,6 +220,7 @@ export default {
 
   async mounted () {
     await this.loadData()
+    genesisFromScratch()
   },
 
   methods: {
