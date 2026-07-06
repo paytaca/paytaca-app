@@ -132,7 +132,6 @@ export default {
     },
     filteredTransactions() {
       let list = [...this.transactions];
-      console.log('Original transactions:', list);
       if (this.search) {
         const s = this.search.toLowerCase();
         list = list.filter(t => t.merchant?.name?.toLowerCase().includes(s));
@@ -155,11 +154,7 @@ export default {
   methods: {
 
     async fetchTransactions () {
-      console.log('Fetching transactions for card:', this.card?.id)
       return this.$store.dispatch('card/fetchCardTransactions', { cardId: this.card?.id })
-        .catch(error => {
-          console.error('Failed to fetch transactions:', error)
-        })
     },
 
     toggleSort(key) {
@@ -178,7 +173,6 @@ export default {
     //     const data = await response.json()
     //     this.transactions = data.transactions || []
     //   } catch (error) {
-    //     console.error('Failed to fetch transactions:', error)
     //   } finally {
     //     this.loading = false
     //   }

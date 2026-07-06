@@ -349,7 +349,6 @@ export default {
           isLocked
         });
       } catch (error) {
-        console.warn('Backend lock update failed, saving locally:', error);
       }
       CardStorage.setCardProperty(this.activeCard.id, 'isLocked', isLocked)
       this.$emit('lock-status-changed', isLocked);
@@ -382,7 +381,6 @@ export default {
       }
     },
     async handleSweepFunds () {
-      console.log('Initiating sweep funds process...')
       if (!this.activeCard) return
 
       this.$q.loading.show({
@@ -406,7 +404,6 @@ export default {
       }
 
       await this.activeCard.sweep({ broadcast: true }).then(result => {
-        console.log('Sweep successful:', result)
         this.$q.notify({
           message: `Successfully swept ${balance} BCH to your wallet`,
           color: 'positive',
@@ -414,7 +411,6 @@ export default {
           position: 'top'
         })
       }).catch((error) => {
-        console.error('Error sweeping funds:', error)
         this.$q.notify({
           message: 'Failed to sweep funds. Please try again.',
           color: 'negative',

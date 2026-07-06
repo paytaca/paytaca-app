@@ -180,7 +180,6 @@ export default {
     // Get the data from router state
     this.cardInfo = history.state?.cardInfo || null;
     this.walletInfo = history.state?.walletInfo || null;
-    console.log('walletInfo:', this.walletInfo)
 
     if (this.cardInfo) {
       this.loadAuthTokens();
@@ -198,7 +197,6 @@ export default {
       this.$q.loading.hide();
     },
     async loadAuthTokens() {
-      console.log('cardInfo:', this.cardInfo);
       
       // Add your auth token loading logic here
       const response = await fetchAuthNFTs(this.walletInfo?.walletHash)

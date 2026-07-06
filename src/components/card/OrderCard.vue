@@ -255,28 +255,21 @@ export default {
       this.resetSteps()
 
       const keyPair = await getOrCreateKeyPair()
-      console.log('Key pair generated or retrieved:', keyPair)
 
       const address = `${this.address.street} ${this.address.city} ${this.address.state} ${this.address.zip} ${this.address.country}`.trim().replace(/\s+/g, ' ')
-      console.log('Concatenated Address:', address)
 
       const dispatcherPublicKey = await fetchActiveDispatcherPublicKey()
-      console.log('Active Dispatcher Public Key:', dispatcherPublicKey)
       const dispatcherPublicKeyBytes = base64ToUint8Array(dispatcherPublicKey)
-      console.log('Dispatcher Public Key Bytes:', dispatcherPublicKeyBytes)
       const privateKey = await getStoredPrivateKey() // Ensure the private key is generated and stored
 
       const ownerPublicKeyBytes = await getStoredPublicKey()
       const payload = await createEncryptedAddressPayload(address, ownerPublicKeyBytes, dispatcherPublicKeyBytes)
-      console.log('card:', this.card)
       payload.card = this.card?.id || 160
       payload.type = this.deliveryMethod === 'delivery' ? 'DELIVERY' : 'PICKUP'
-      console.log('Encrypted Address Payload:', payload)
 
       await this.submitOrder(payload)
 
       const decryptedAddress = await decryptAddressPayload(payload, privateKey)
-      console.log('Decrypted Address:', decryptedAddress)
       // for (const step of this.steps) {
       //   step.status = 'active'
       //   await this.delay(1500)
@@ -290,12 +283,6 @@ export default {
     },
     async submitOrder(payload) {
       await backend.post('/orders/', payload)
-        .then(response => {
-          console.log('Order submitted successfully:', response.data)
-        })
-        .catch(error => {
-          console.error('Error submitting order:', error?.response?.data || error.message)
-        })
     },
     resetSteps() {
       this.steps.forEach(s => { s.status = 'pending' })

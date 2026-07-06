@@ -532,7 +532,6 @@ export default {
         const s = this.search.toLowerCase();
         list = list.filter(m => m.name.toLowerCase().includes(s));
       }
-      console.log('Filtered merchants:', list)
       return list;
     },
     textColor() {
@@ -577,7 +576,6 @@ export default {
     }
   },
   async mounted() {
-    console.log('ManageAuthNFTs MOUNTED, card:', this.card)
     this.loadSavedLocation()
     if (!this.userLocation) {
       await geolocationManager.getOrUpdateGeoIp()
@@ -600,7 +598,6 @@ export default {
             country: address.country || ''
           })
         } catch (error) {
-          console.error('Reverse geocoding on mount failed:', error)
         }
       }
     }
@@ -618,28 +615,21 @@ export default {
       this.displayLocation = null
       
       // Load saved data for this card
-      console.log('Loading saved location...')
       this.loadSavedLocation()
-      console.log('After loadSavedLocation, displayLocation:', this.displayLocation)
       
       // // Initialize display location from store if no saved location
       // if (!this.displayLocation) {
       //   const storeLocation = this.$store.getters['marketplace/sessionLocation']
-      //   console.log('Store location:', storeLocation)
       //   if (storeLocation) {
       //     this.displayLocation = { ...storeLocation }
-      //     console.log('Set displayLocation from store')
       //   }
       // }
       
       // Load saved merchants from card storage
-      console.log('Loading saved merchants...')
       this.loadSavedMerchants()
-      console.log('After loadSavedMerchants, merchants count:', this.merchants.length)
       
       // Load merchants if we have no saved merchants or they're expired
       if (this.merchants.length === 0) {
-        console.log('No saved merchants, loading from API...')
         await this.loadMerchantList({ reset: true })
         // Save merchants after loading
         this.saveMerchantsToCard()
@@ -657,7 +647,6 @@ export default {
       // Mark initialization complete
       this.$nextTick(() => {
         this.isInitializing = false
-        console.log('Initialization complete. Location:', this.displayLocation?.formatted?.substring(0, 50), 'Merchants:', this.merchants.length)
       })
     },
 
@@ -694,7 +683,6 @@ export default {
       if (!coords) return
 
       this.lastGeolocatePosition = coords
-      console.log('onGeolocated fired:', coords.latitude, coords.longitude)
 
       try {
         const response = await fetch(
@@ -702,7 +690,6 @@ export default {
         )
         const data = await response.json()
         const address = data?.address || {}
-        console.log('Reverse geocode result:', data.display_name)
         this.$store.commit('card/setUserLocation', {
           latitude: coords.latitude,
           longitude: coords.longitude,
@@ -714,7 +701,6 @@ export default {
           country: address.country || ''
         })
       } catch (error) {
-        console.error('Reverse geocoding failed:', error)
       }
     },
 
@@ -777,7 +763,6 @@ export default {
           userLocationComponents.city = address.city || address.town || address.village || address.county || ''
           userLocationComponents.country = address.country || ''
         } catch (error) {
-          console.error('Reverse geocoding failed:', error)
           userLocationComponents.formatted = `${coordinates.lat}, ${coordinates.lng}`
         }
         this.$store.commit('card/setUserLocation', userLocationComponents)
@@ -797,7 +782,6 @@ export default {
     async loadMerchantList(opts = {}) {
       // Use provided coordinates or fall back to store
       const locationCoords = opts.location || this.userLocation
-      console.log('locationCoords for loadMerchantList:', locationCoords)      
       if (!locationCoords || !Number.isFinite(locationCoords.latitude) || !Number.isFinite(locationCoords.longitude)) {
         this.loading = false
         return
@@ -834,10 +818,8 @@ export default {
           // radius: this.radius
         }
 
-        console.log('Fetching merchants with params:', params)
 
         const response = await getMerchantsByCity(locationCoords.city, params)
-        console.log('getMerchantsByCity:', response)
         
         // // Map new merchants with UI state
         // const newMerchants = response.results.map(merchant => ({
@@ -859,7 +841,6 @@ export default {
 
         this.merchants = response.results
 
-        console.log('merchants:', this.merchants)
         // Update pagination - use the filtered count
         this.merchantsPagination = {
           count: response.count,
@@ -868,9 +849,7 @@ export default {
           hasMore: response.hasMore
         }
 
-        // console.log(`Loaded ${newMerchants.length} merchants. Total displayed: ${this.merchants.length}/${response.count}`)
       } catch (error) {
-        console.error('Failed to load merchant list:', error);
         this.notifyError('Failed to load merchants near your location');
       } finally {
         this.loading = false
@@ -936,8 +915,6 @@ export default {
     },
 
     async onMerchantToggle(merchant, enabled) {
-      console.log('Toggling merchant:', merchant, 'Enabled:', enabled)
-      console.log('card:', this.card)
       if (enabled) {
         // merchant.spendLimit = merchant.spendLimit || '1';
         
@@ -947,7 +924,6 @@ export default {
         
         // Simulate minting delay (2 seconds)
         // await new Promise(resolve => setTimeout(resolve, 2000));
-        console.log('Issuing auth NFT for merchant:', merchant.name)
         this.$q.loading.show({
           message: `Minting auth NFT for ${merchant.name}...`,
           spinner: 'dots',
@@ -963,9 +939,7 @@ export default {
             pubkey: merchant.public_key,
           } 
         }).then(() => {
-          console.log('Minting successful for merchant:', merchant.name)
         }).catch(err => {
-          console.error('Minting failed for merchant:', merchant.name, err)
           this.$q.notify({
             message: `Failed to mint auth NFT for ${merchant.name}`,
             color: 'red',
@@ -1012,7 +986,6 @@ export default {
       this.spendLimitInput = initialSpendLimitSats != null
         ? (Number(initialSpendLimitSats) / 100000000).toFixed(8)
         : (merchant.spendLimit || '1')
-      console.log('selectedNFT set to:', this.selectedNFT)
       this.showMutateAuthDialog = true;
     },
 
@@ -1058,7 +1031,6 @@ export default {
         });
 
         await this.card.mutateMerchantAuthToken(mutation).then(() => {
-          console.log('Mutation successful for merchant:', this.selectedMerchant.name)
           this.$q.notify({
             message: `Spend limit set to ${this.selectedMerchant.spendLimit} BCH for ${this.selectedMerchant.name}`,
             color: 'positive',
@@ -1066,7 +1038,6 @@ export default {
             timeout: 1500
           });
         }).catch(err => {
-          console.error('Mutation failed for merchant:', this.selectedMerchant.name, err)
           this.$q.notify({
             message: `Failed to update auth NFT for ${this.selectedMerchant.name}`,
             color: 'red',
@@ -1105,7 +1076,6 @@ export default {
       this.showBurnTokenDialog = false
 
       // Placeholder only: wire actual burn transaction here.
-      console.log('Burn token requested:', {
         merchantId: merchant.id,
         merchantName: merchant.name,
         nftId: nft.id,
@@ -1120,7 +1090,6 @@ export default {
         broadcast: true
       })
         .catch(err => {
-          console.error('Burning auth token failed:', err)
           this.$q.notify({
             message: `Failed to burn NFT ${nft.id} for ${merchant.name}`,
             color: 'red',
@@ -1128,7 +1097,6 @@ export default {
             timeout: 4000,
           })
         })
-      console.log('Burn result:', result)
 
       this.$q.notify({
         message: `Burn action ready for NFT ${nft.id} (${merchant.name})`,
@@ -1149,7 +1117,6 @@ export default {
     },
 
     handleMerchantClick(merchant) {
-      console.log('handleMerchantClick:', merchant)
       this.selectedMerchant = merchant;
       if (this.selectMultipleMode) {
         // In select mode, toggle selection
@@ -1235,7 +1202,6 @@ export default {
           }, 2000);
           
         } catch (error) {
-          console.error(`Failed to mint merchant ${merchant.name}:`, error);
           this.mintingMerchants.delete(merchant.id);
           this.mintingMerchants = new Set(this.mintingMerchants);
           failCount++;
@@ -1298,7 +1264,6 @@ export default {
           });
         }
       } catch (error) {
-        console.error('Reverse geocoding failed:', error);
       }
     },
 
@@ -1343,7 +1308,6 @@ export default {
           });
         }
       } catch (error) {
-        console.error('Location search failed:', error);
         this.$q.notify({
           message: 'Search failed. Please try again.',
           color: 'negative',
@@ -1419,10 +1383,8 @@ export default {
 
     // Save location to card storage
     saveLocationToCard() {
-      console.log('saveLocationToCard called, card:', this.card?.id, 'displayLocation:', this.displayLocation?.formatted?.substring(0, 50));
       
       if (!this.card || !this.card.id) {
-        console.warn('Cannot save location - card or card.id not available')
         return;
       }
       
@@ -1432,13 +1394,11 @@ export default {
       };
       
       const cardId = String(this.card.id);
-      console.log('About to save location to CardStorage for card:', cardId, 'formatted:', locationData.displayLocation?.formatted?.substring(0, 50));
       
       CardStorage.setCardProperty(cardId, 'merchantLocation', locationData);
       
       // Verify it was saved
       const verify = CardStorage.getCardProperty(cardId, 'merchantLocation');
-      console.log('Verification - location saved:', verify ? 'YES' : 'NO');
     },
 
     // Load saved location from card storage
@@ -1448,16 +1408,11 @@ export default {
       // Debug: Check localStorage directly
       const rawStorage = localStorage.getItem('mock_subcards');
       const allCards = rawStorage ? JSON.parse(rawStorage) : [];
-      console.log('DEBUG: All cards in localStorage:', allCards.length);
       const thisCard = allCards.find(c => String(c.id) === cardId);
-      console.log('DEBUG: This card in localStorage:', thisCard ? 'YES' : 'NO');
       if (thisCard) {
-        console.log('DEBUG: Card properties:', Object.keys(thisCard));
-        console.log('DEBUG: merchantLocation:', thisCard.merchantLocation ? 'EXISTS' : 'NOT FOUND');
       }
       
       const savedLocation = CardStorage.getCardProperty(cardId, 'merchantLocation');
-      console.log('Loading saved location for card:', cardId, 'Found:', savedLocation ? 'YES' : 'NO', 'Value:', savedLocation);
       
       if (savedLocation && savedLocation.displayLocation) {
         // Check if saved location is not too old (e.g., 7 days)
@@ -1472,9 +1427,6 @@ export default {
             longitude: savedLocation.displayLocation.longitude,
             formatted: savedLocation.displayLocation.formatted || ''
           });
-          console.log('Loaded saved location for card:', cardId, 'Location:', this.displayLocation.formatted?.substring(0, 50));
-        } else {
-          console.log('Saved location is older than 7 days, using current location');
         }
       }
     },
@@ -1482,7 +1434,6 @@ export default {
     // Save merchants to card storage
     saveMerchantsToCard() {
       if (!this.card || !this.card.id || this.merchants.length === 0) {
-        console.warn('Cannot save merchants - card not available or no merchants')
         return;
       }
       
@@ -1501,19 +1452,16 @@ export default {
       
       const cardId = String(this.card.id);
       CardStorage.setCardProperty(cardId, 'merchantList', merchantData);
-      console.log('Merchants saved to card:', cardId, '- Count:', merchantsToSave.length);
     },
 
     // Load saved merchants from card storage
     loadSavedMerchants() {
       if (!this.card || !this.card.id) {
-        console.warn('Cannot load merchants - card or card.id not available')
         return;
       }
       
       const cardId = String(this.card.id);
       const savedData = CardStorage.getCardProperty(cardId, 'merchantList');
-      console.log('Loading saved merchants for card:', cardId, 'Found:', savedData ? 'YES' : 'NO');
       
       if (savedData && savedData.merchants && savedData.merchants.length > 0) {
         // Check if saved merchants are not too old (e.g., 1 day)
@@ -1533,10 +1481,6 @@ export default {
           if (savedData.pagination) {
             this.merchantsPagination = savedData.pagination;
           }
-          
-          console.log('Loaded saved merchants for card:', cardId, '- Count:', this.merchants.length);
-        } else {
-          console.log('Saved merchants are older than 24 hours, will reload');
         }
       }
     },
@@ -1573,7 +1517,6 @@ export default {
       }
     },
     selectedNFT(val) {
-      console.log('Current NFT tab changed to:', val);
     },
     'selectedNFT.id'(val) {
       const nft = this.selectedMerchant?.auth_nfts?.find(item => item.id === val)

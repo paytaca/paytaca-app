@@ -247,7 +247,6 @@ export default {
         const user = await loadCardUser(forceLogin);
         this.user = user;
       } catch (err) {
-        console.error('Error loading card user:', err);
         this.user = null;
       }
     },

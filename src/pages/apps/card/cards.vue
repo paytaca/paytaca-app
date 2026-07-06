@@ -281,7 +281,6 @@ export default {
       await loadCardUser().then(user => {
         this.user = user
       }).catch(err => {
-        console.error('Error loading card user:', err)
         this.user = null
       })   
     },
@@ -323,7 +322,6 @@ export default {
       try {
         this.cardBalances = (await this.user.fetchCardsBalance()).results
       } catch (err) {
-        console.error('Error fetching card balances:', err)
       } finally {
         this.balancesLoading = false
       }
@@ -602,14 +600,8 @@ export default {
     },
 
     goToCardDetails (card) {
-      console.log('goToCardDetails called with card:', card)
       if (card && card.id) {
-        console.log('Navigating to card-details with id:', card.id)
         this.$router.push({ name: 'card-details', params: {id: card.id} })
-          .then(() => console.log('Navigation to card-details successful'))
-          .catch(err => console.error('Navigation to card-details failed:', err))
-      } else {
-        console.warn('goToCardDetails: card or card.id is missing')
       }
     },
 

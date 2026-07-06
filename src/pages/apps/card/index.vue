@@ -47,7 +47,6 @@ export default {
 
   watch: {
     isloaded(newVal) {
-      console.log('isloaded changed:', newVal)
     }
   },
 
@@ -72,7 +71,6 @@ export default {
 
     async loadData () {
       await this.loadUser()
-      console.log('USER:', this.user)
     },
 
     async loadUser (forceLogin = false) {
@@ -81,15 +79,12 @@ export default {
         this.showLoading(this.$t('Refreshing session...'))
       }
       this.user = await loadCardUser(forceLogin).then(user => {
-        console.log('Loaded card user:', user)
         return user
       }).catch(err => {
-        console.error('Error loading card user:', err)
         return null
       }).finally(() => {
         this.hideLoading()
       })
-      console.log('Card user after loading:', this.user)
     },
 
     clearCards () {
@@ -97,12 +92,10 @@ export default {
     },
 
     goToHome () {
-      console.log('Going to card home page')
       this.$router.push({ name: 'app-card' })
     },
 
     goToCardsList () {
-      console.log('Going to cards list page')
       this.$router.push({ name: 'card-list' })
     },
     

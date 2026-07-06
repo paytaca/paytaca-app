@@ -355,9 +355,7 @@ export default {
     // this.inputCardUid = true;
 
     if (this.idempotencyKey) {
-      console.log('Resuming card creation with idempotency key:', this.idempotencyKey);
       const attempt = await getCreateCardAttempt();
-      console.log('attempt from storage:', attempt)
       if (attempt) {
         this.newCardName = attempt?.alias || '';
         this.createCard(attempt); // Start the card creation process immediately if resuming
@@ -399,7 +397,6 @@ export default {
 
     onCardMintingProgress (message) {
       // This can be used to update the UI with progress messages if desired
-      console.log('Card minting progress:', message);
       this.mintingMessage = message;
     },
 
@@ -407,13 +404,10 @@ export default {
       // this.validatingUid = true;
       // const { valid, message } = await Card.validateUid(this.newCard.uid);
       // this.validatingUid = false;
-      // console.log('valid?', valid)
-      // console.log('validation message:', message)
       // if (!valid) {
       //   this.formError = message || 'Invalid Card UID';
       //   return;
       // }
-      // console.log("valid:", valid)
       // if (this.inputValidation && valid) {
       //   this.createCard();
       // }
@@ -424,9 +418,7 @@ export default {
       this.mintingMessage = '';
       this.formError = '';
       if (this.idempotencyKey) {
-        console.log('Resuming card creation with idempotency key:', this.idempotencyKey);
         const attempt = await getCreateCardAttempt();
-        console.log('attempt from storage:', attempt)
         if (attempt) {
           this.newCardName = attempt?.alias || '';
           this.createCard(attempt); // Start the card creation process immediately if resuming
@@ -435,23 +427,18 @@ export default {
     },
 
     async createCard (lastAttempt = null) {
-      // console.log('Creating card with name:', this.newCard.name, 'and UID:', this.newCard.uid);
-      console.log('Creating card with name:', this.newCard.name)
       this.state = 'minting';
       const card = await Card.createInitialized()
       const opts = {
         idempotencyKey: this.idempotencyKey,
         cardId: card.id
       }
-      console.log('Calling Card.create with opts:', opts)
       card.create(this.newCard, this.onCardMintingProgress, lastAttempt)
         .then(card => {
-          console.log('Card created successfully:', card);
           this.state = 'success';
           this.$emit('card-created', card);
         })
         .catch(error => {
-          console.error('Error creating card:', error);
           this.state = 'error'; // Set state to error on failure
           this.mintingMessage = error.message || 'An error occurred while creating the card.';
         });

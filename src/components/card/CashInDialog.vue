@@ -191,9 +191,7 @@ export default {
     },
     bchPriceInSelectedCurrency () {
       const currencySymbol = this.selectedFiatCurrency || 'USD'
-      console.log('currencySymbol:', currencySymbol)
       const price = this.$store.getters['market/getAssetPrice']('bch', currencySymbol)
-      console.log('price:', price)
       return price || null
     },
     cryptoCurrencyOptions () {
@@ -271,7 +269,6 @@ export default {
       const user = await loadCardUser()
       const wallet = await user.wallet.getRawWallet()
       const result = await wallet.sendBch(sendAmount, this.card?.cashAddress)
-      console.log(result) // error: "18: txn-mempool-conflict"
       this.$q.loading.hide()
 
       if (result.success) {

@@ -374,7 +374,6 @@ export default {
   },
 
   async mounted () {
-    console.log('Mounted card.vue', 'Route path:', this.$route.path, 'Route params.id:', this.$route.params?.id, 'Route query.id:', this.$route.query?.id)
 
     // Load card user once and provide to child components
     this.cardUser = await loadCardUser()
@@ -389,17 +388,14 @@ export default {
     while ((!this.$route.params.id && !this.$route.query.id && !localStorage.getItem('lastActiveCardId')) && attempts < maxAttempts) {
       await new Promise(resolve => setTimeout(resolve, 50))
       attempts++
-      console.log(`Waiting for route params... attempt ${attempts}, params.id:`, this.$route.params?.id, 'query.id:', this.$route.query?.id)
     }
     
-    console.log('Final route check - params.id:', this.$route.params?.id, 'query.id:', this.$route.query?.id, 'localStorage:', localStorage.getItem('lastActiveCardId'))
     
     // Load the specific card (from localStorage or backend)
     await this.loadSpecificCard()
     
     // Only proceed with tab logic if we have a valid card
     if (!this.activeCard) {
-      console.error('No active card loaded, redirecting to card list')
       return
     }
     
@@ -410,25 +406,15 @@ export default {
     const rawCards = localStorage.getItem('mock_subcards')
     const allCards = rawCards ? JSON.parse(rawCards) : []
     const thisCard = allCards.find(c => String(c.id) === String(this.activeCard.id))
-    console.log('DEBUG TAB: Card in localStorage:', thisCard ? 'YES' : 'NO')
-    console.log('DEBUG TAB: Card properties:', thisCard ? Object.keys(thisCard) : 'N/A')
-    console.log('DEBUG TAB: activeTab property:', thisCard?.activeTab)
     
     // Load saved active tab for this card
     const savedTab = this.CardStorage.getCardProperty(this.activeCard.id, 'activeTab')
-    console.log('Saved tab from CardStorage for card', this.activeCard.id, ':', savedTab)
     
     // Force tabs to recompute by accessing it
     const availableTabs = this.tabs
-    console.log('Available tabs:', availableTabs)
     
     if (savedTab && availableTabs && availableTabs.includes(savedTab)) {
       this.activeTab = savedTab
-      console.log('SUCCESS: Restored saved tab:', savedTab)
-    } else if (savedTab) {
-      console.log('FAILED: Saved tab not in available tabs. Saved:', savedTab, 'Available:', availableTabs)
-    } else {
-      console.log('No saved tab found for card:', this.activeCard.id)
     }
     
     // Check if a specific tab is requested in query params (query param takes priority)
@@ -443,7 +429,6 @@ export default {
       }
       if (tabMap[requestedTab] && this.tabs.includes(tabMap[requestedTab])) {
         this.activeTab = tabMap[requestedTab]
-        console.log('Using query param tab:', this.activeTab)
       }
     }
     
@@ -451,15 +436,10 @@ export default {
     // await this.loadSpecificCard()
     this.getCardBchBalance()
     this.loadBalanceVisibility()
-    console.log('Active card loaded:', this.activeCard)
 
     this.subscribeToCardTransactions()
 
-    this.activeCard.getUtxos().then(utxos => {
-      console.log('Card UTXOs:', utxos)
-    }).catch(error => {
-      console.error('Error fetching card UTXOs:', error)
-    })
+    this.activeCard.getUtxos()
   },
 
   methods: {
@@ -496,44 +476,36 @@ export default {
       // Method 1: Route params (from /details/:id)
       if (this.$route.params && this.$route.params.id) {
         cardId = this.$route.params.id
-        console.log('Found card ID in route.params:', cardId, 'type:', typeof cardId)
       }
       
       // Method 2: Query params
       if (!cardId && this.$route.query && this.$route.query.id) {
         cardId = this.$route.query.id
-        console.log('Found card ID in route.query:', cardId, 'type:', typeof cardId)
       }
       
       // Method 3: localStorage backup
       if (!cardId) {
         const savedId = localStorage.getItem('lastActiveCardId')
-        console.log('Checking localStorage lastActiveCardId:', savedId)
         if (savedId) {
           cardId = savedId
-          console.log('Found card ID in localStorage:', cardId)
         }
       }
       
       // Method 4: Parse from URL hash directly (fallback for hash mode)
       if (!cardId && window.location.hash) {
         const hash = window.location.hash
-        console.log('Parsing hash:', hash)
         // Match patterns like #/apps/card/details/123 or #/card/details/123
         const match = hash.match(/\/details\/(\d+)/)
         if (match) {
           cardId = match[1]
-          console.log('Found card ID in URL hash:', cardId)
         }
         // Also try matching #/card/123 or #/apps/card/123
         const simpleMatch = hash.match(/#\/?(?:apps\/)?card\/(\d+)/)
         if (simpleMatch) {
           cardId = simpleMatch[1]
-          console.log('Found card ID in URL hash (simple):', cardId)
         }
       }
       
-      console.log('Final card ID:', cardId, 'All route info:', {
         'route.path': this.$route.path,
         'route.params': this.$route.params,
         'route.query': this.$route.query,
@@ -543,16 +515,12 @@ export default {
       })
       
       if (!cardId) {
-        console.error('No card ID found in route params, query, or localStorage')
-        console.error('Current URL:', window.location.href)
-        console.error('Route info:', { path: this.$route.path, name: this.$route.name, params: this.$route.params, query: this.$route.query })
         this.$router.push({ name: 'card-list' })
         return
       }
       
       // Save the card ID to localStorage for persistence across refreshes
       localStorage.setItem('lastActiveCardId', cardId)
-      console.log('Saved card ID to localStorage:', cardId)
       
       this.loading = true
       
@@ -574,7 +542,6 @@ export default {
           : await Card.createWithWallet(cardData)
 
         if (card) {
-          console.log('Card:', card)
           // // Ensure all reactive properties exist with defaults
           // const cardWithDefaults = {
           //   isLocked: false,
@@ -587,11 +554,9 @@ export default {
           return
         }
         
-        console.error("Card not found for ID:", cardId);
         this.loading = false
         this.$router.push({ name: 'card-list' });
       } catch (error) {
-        console.error('Error loading card:', error)
         this.loading = false
         this.$router.push({ name: 'card-list' });
       }
@@ -635,7 +600,6 @@ export default {
           this.bchBalance = balance
         })
         .catch(error => {
-          console.error('Failed to fetch card balance:', error)
           this.bchBalance = 0
         })
     },
@@ -673,7 +637,6 @@ export default {
             this.notifySuccess('Card name updated successfully')
           })
           .catch(error => {
-            console.error('Failed to update card name on server:', error)
             this.notifyError('Failed to update card name. Please try again.')
           })
 
@@ -691,7 +654,6 @@ export default {
           this.CardStorage.setCardProperty(this.activeCard.id, 'transactionAlerts', this.activeCard.transactionAlerts)
         }
         
-        console.log('Card name saved:', capitalizedName, 'for card:', this.activeCard.id)
         
         // Show success notification
         this.notifySuccess('Card name updated successfully')
@@ -766,11 +728,8 @@ export default {
      */
     async sweep(card) {
       const result = await card.sweep()
-      console.log('sweep result:', result)
 
-      await card.getUtxos().then(utxos => {
-        console.log('Card UTXOs (after sweep):', utxos)
-      })
+      await card.getUtxos()
     },
 
     /**
@@ -786,7 +745,6 @@ export default {
         const result = await cardUser.burnMerchantAuthToken(tokenId, merchant.id, merchant.pubkey)
         return result
       } catch (error) {
-        console.error('Error burning merchant auth token:', error)
         if (opts?.retryOnFundFailure)
           await this.createFundingUtxoAndCallback(error, this.burnMerchantAuthToken)
       }
@@ -804,21 +762,16 @@ export default {
         const result = await cardUser.burnGlobalAuthToken(tokenId)
         return result
       } catch (error) {
-        console.error('Error burning global auth token:', error)
         if (opts?.retryOnFundFailure)
           await this.createFundingUtxoAndCallback(error, this.burnGlobalAuthToken)
       }
     },
 
     async createFundingUtxoAndCallback(error, operationCallback) {
-      console.error(error)
       const satsNeeded = this.parseSatoshisNeeded(error.message)
-      console.log('Satoshis needed for operation:', satsNeeded)
       if (satsNeeded !== null) {
         const cardUser = await this.loadCardUser()
         const result = await cardUser.wallet.createFundingUtxo(satsNeeded)
-        console.log('Funding UTXO created:', result)
-        console.log('Retrying operation...')
         await operationCallback({retryOnFundFailure: false})
       }
     },
@@ -833,19 +786,11 @@ export default {
      */
     async mutateGlobalAuthToken(card, mutation) {
       if (!mutation) {
-        console.error('Mutation parameter is required')
         return
       }
       try {
         const result = await card.mutateGlobalAuthToken(mutation)
-        console.log('Mutate Global Auth Token result:', result)
       } catch(error) {
-        const satsNeeded = this.parseSatoshisNeeded(error.message)
-        if (satsNeeded !== null) {
-          console.error("Insufficient funds in contract:", error.message)
-        } else {
-          console.error(error)
-        }
       }
     },
 
@@ -861,14 +806,7 @@ export default {
     async mutateMerchantAuthToken(card, mutation) {
       try {
         const result = await card.mutateMerchantAuthToken(mutation)
-        console.log('Mutate Merchant Auth Token result:', result)
       } catch(error) {
-        const satsNeeded = this.parseSatoshisNeeded(error.message)
-        if (satsNeeded !== null) {
-          console.error("Insufficient funds in contract:", error.message)
-        } else {
-          console.error(error)
-        }
       }
     },
 
@@ -886,8 +824,6 @@ export default {
         }
       }
       const { mintResult, issueResult } = await card.issueMerchantAuthToken(mintParams)
-      console.log('Mint Result:', mintResult)
-      console.log('Issue Result:', issueResult)
     },
   },
 

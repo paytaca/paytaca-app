@@ -308,7 +308,6 @@ export default {
     },
 
     async onQrDecode (content) {
-      console.log('QR code decoded:', content)
       // Fill in the scanned QR code content as the card UID
       const address = content
 
@@ -316,12 +315,9 @@ export default {
       const user = await loadCardUser()
       await user.fetchCardByIdentifier(address)
         .then(card => {
-          console.log('Fetched card data from server:', card);
-          console.log('Fetched card UID:', card?.uid);
           this.newCard = card
         })
         .catch(error => {
-          console.error('Error fetching card data:', error);
           this.$q.notify({
             message: 'Failed to fetch card data. Please try again.',
             color: 'negative',
@@ -335,17 +331,14 @@ export default {
 
     onCardMintingProgress (message) {
       // This can be used to update the UI with progress messages if desired
-      console.log('Card minting progress:', message);
       this.mintingMessage = message;
     },
 
     async onActivateCard() {
       this.activatingCard = true
       await this.newCard.activate().then(response => {
-        console.log('Card activated successfully:', response);
         this.$emit('activate', this.newCard);
       }).catch((error) => {
-        console.error('Error activating card:', error);
         this.state = 'error';
         this.mintingMessage = error.message || 'An error occurred while activating your card.';
       }).finally(() => {
