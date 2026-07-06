@@ -154,7 +154,7 @@ export default {
   methods: {
 
     async fetchTransactions () {
-      return this.$store.dispatch('card/fetchCardTransactions', { cardId: this.card?.id })
+      return this.$store.dispatch('card/fetchCardTransactions', { cardId: this.card?.id }).catch(() => {})
     },
 
     toggleSort(key) {

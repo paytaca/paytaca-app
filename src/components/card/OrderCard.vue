@@ -282,7 +282,7 @@ export default {
       this.$emit('order-success')
     },
     async submitOrder(payload) {
-      await backend.post('/orders/', payload)
+      await backend.post('/orders/', payload).catch(() => {})
     },
     resetSteps() {
       this.steps.forEach(s => { s.status = 'pending' })
