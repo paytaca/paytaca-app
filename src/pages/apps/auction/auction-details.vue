@@ -49,8 +49,12 @@
               </div>
             </div>
 
-            <div class="text-h5 text-weight-medium q-mb-md">
+            <div class="text-h5 text-weight-medium" :class="{ 'q-mb-md': auction?.status === 3 }">
               {{ auction?.title || 'N/A' }}
+            </div>
+
+            <div v-if="auction?.status !== 3" class="q-mb-md text-secondary">
+              There {{ viewCount === 1 ? 'is' : 'are' }} {{ viewCount }} {{ viewCount === 1 ? 'person' : 'people' }} currently viewing this auction.
             </div>
 
             <q-card flat bordered class="q-mb-md self-start full-width">
@@ -110,6 +114,11 @@
                 <div class="text-body2 text-weight-medium">
                   {{ formatAuctionDate(auction?.start_date) }}
                 </div>
+                <div  v-if="getAuctionStatusInfo(auction).label === 'Upcoming'" class="text-secondary">
+                  Time Remaining: {{ auctionStartCountdown }}
+                </div>
+                <div  v-else class="text-secondary"></div>
+
               </div>
               <div class="col rounded-borders q-pa-sm" :class="darkMode ? 'bg-dark' : 'bg-grey-2'">
                 <div class="text-caption q-mb-xs">
@@ -118,8 +127,13 @@
                 <div class="text-body2 text-weight-medium">
                   {{ formatAuctionDate(auction?.end_date) }}
                 </div>
+                <div v-if="getAuctionStatusInfo(auction).label === 'Open'" class="text-secondary">
+                  Time Remaining: {{ auctionCountdown }}
+                </div>
+                <div  v-else class="text-secondary"></div>
               </div>
             </div>
+
           </div>
         </div>
 
@@ -331,7 +345,7 @@ import noImage from 'src/assets/no-image.svg'
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 import { vElementVisibility } from '@vueuse/components'
 import { useStore } from 'vuex'
-import { ref, computed, watch, onMounted, onActivated, onDeactivated, onUnmounted, watchEffect, nextTick } from 'vue'
+import { ref, computed, onMounted, onBeforeUnmount } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useQuasar, date } from 'quasar'
 import { callAPI } from 'src/auction/api'
@@ -341,6 +355,7 @@ import { AuctionList, LotsList } from 'src/auction/object.js'
 // Components
 import HeaderNav from 'src/components/header-nav.vue'
 import LotSearch from 'src/components/auction/LotSearch.vue'
+import { callAuctionWebsocket } from 'src/auction/websocket'
 
 const props = defineProps({
   auctionId: {
@@ -348,6 +363,11 @@ const props = defineProps({
     required: true
   }
 })
+
+const viewCount = ref(0)
+const auction = ref(null)
+const auctionCountdown = ref(0)
+const auctionStartCountdown = ref(0)
 
 defineOptions({
   directives: {
@@ -375,7 +395,6 @@ const isLoading = ref(false)
 const lotType = ref('All')
 const lotTypeOptions = ['Physical', 'Digital', 'All']
 
-const auction = ref(null)
 const lots = ref([])
 
 const parseAuctionData = (data) => {
@@ -454,16 +473,77 @@ const fetchAllData = async () => {
   }
 }
 
+let socket = null
+
 onMounted(async () => {
   isLoading.value = true
   
   const auctionData = $store.getters['auction/processedItems'] || []
   const specificAuctionData = auctionData.find(item => item.id === Number(props.auctionId))
   auction.value = parseAuctionData(specificAuctionData)
-  
+
   await fetchAllData()
 
+  // get the live auction websocket 
+  let reconnectAttempts = 0
+  let maxReconnectAttempts = 10
+  const connectWebsocket = () => {
+    const ws = callAuctionWebsocket(Number(props.auctionId))
+
+    ws.onopen = (event) => {
+      console.log("Connected to the auction websocket!")
+    }
+
+    ws.onmessage = (event) => {
+      const { type, data } = JSON.parse(event.data)
+
+      if (type === "live.viewing")
+        viewCount.value = data.viewer_count
+      else if(type === "auction.start_countdown")
+        auctionStartCountdown.value = data.time_left
+      else if(type === "auction.countdown")
+        auctionCountdown.value = data.time_left
+      else if(type === "auction.start"){
+        auctionCountdown.value = 0
+        auction.value.status = 2
+      }
+      else if(type === "auction.closed"){
+        auctionStartCountdown.value = 0
+        auction.value.status = 3
+      }
+
+      console.log(data)
+    }
+
+    ws.onclose = (event) => {
+      console.log("Disconnected from the auction websocket!")
+      if (!event.wasClean && reconnectAttempts < maxReconnectAttempts) {
+        const delay = Math.min(1000 * 2 ** reconnectAttempts, 30000)
+        reconnectAttempts++
+        setTimeout(connectWebsocket, delay)
+      }
+    }
+
+    ws.onerror = (event) => {
+      console.error("Auction websocket error:", event)
+    }
+
+    return ws
+  }
+  
+  // call the connectWebsocket function
+  socket = connectWebsocket()
   isLoading.value = false
+})
+
+onBeforeUnmount(() => {
+  if (socket) {
+    socket.close()
+    socket.onmessage = null
+    socket.onopen = null
+    socket.onerror = null
+    socket.onclose = null
+  }
 })
 
 const lotSearchQuery = ref('')
@@ -504,9 +584,6 @@ const toggleEditAuction = async () => {
     await refresh(() => {})
   }
 }
-
-
-
 
 const getFormattedBCH = (bch) => {
   const numStr = Number(bch).toFixed(8)

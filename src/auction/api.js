@@ -25,11 +25,11 @@ export async function callAPI(pathname, id=null, method="get", payload=null, arg
   if (Array.isArray(pathname)) { // other list apis
     for (let i = 0; i < pathname.length; i++) {
       apiURL += `${pathname[i]}/`
-      if(id?.[i] != null) apiURL += `${id[i]}/`
+      if(id?.[i] !== null) apiURL += `${id[i]}/`
     }
   } else { // GENERAL FORMAT
     apiURL += `${pathname}/` // list, post
-    if (id != null) { 
+    if (id !== null) { 
       apiURL += `${id}/`  // retrieve
       if (method === "put" || method === "patch")     // update, partial_update
         apiURL += `update/`

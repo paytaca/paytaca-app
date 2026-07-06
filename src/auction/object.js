@@ -74,6 +74,15 @@ export class LotsList {
     const [hours, minutes] = parts
     return (hours * 60) + minutes
   }
+
+  // Returns the drop interval in seconds, parsed from the HH:MM:SS time_interval string
+  getIntervalSeconds() {
+    if (!this.time_interval) return 10
+    const parts = this.time_interval.split(':').map(Number)
+    if (parts.length !== 3 || parts.some(isNaN)) return 10
+    const [hours, minutes, seconds] = parts
+    return (hours * 60 * 60) + (minutes * 60) + seconds
+  }
   
   getFormattedBCH(bch) {
     const numStr = bch.toFixed(8);
@@ -138,6 +147,7 @@ export class AuctionList {
    * @param {Boolean} data.is_fiat
    * @param {String|null} data.image
    * @param {String} data.creation_date
+   * @param {Number} data.status
    * @param {Number} data.type
    * @param {Object|Number|String} data.user
    * @param {Array<Object>} data.lots
@@ -154,6 +164,7 @@ export class AuctionList {
     this.is_fiat = data.is_fiat !== undefined ? !!data.is_fiat : true;
     this.image = data.image || null;
     this.creation_date = data.creation_date || null;
+    this.status = data.status || null
     
     this.type = data.type || (data.type ? data.type.id : null);
     this.user = data.user && typeof data.user === 'object'
@@ -182,23 +193,9 @@ export class AuctionList {
   }
 
   getStatus() {
-    if (!this.start_date || !this.end_date) {
-      return { label: 'Closed', color: 'red' };
-    }
-
-    const formatIso = (str) => typeof str === 'string' ? str.replace(' ', 'T') : str
-
-    const nowTime = new Date().getTime();
-    const startTime = new Date(formatIso(this.start_date)).getTime()
-    const endTime = new Date(formatIso(this.end_date)).getTime()
-    
-    if (nowTime < startTime) {
-      return { label: 'Upcoming', color: 'orange' }
-    }
-    if (nowTime >= startTime && nowTime <= endTime) {
-      return { label: 'Open', color: 'green' }
-    }
-    
+    if (!this.start_date || !this.end_date) return { label: 'Closed', color: 'red' }
+    if (this.status === 1) return { label: 'Upcoming', color: 'orange' }
+    if (this.status === 2) return { label: 'Open', color: 'green' }
     return { label: 'Closed', color: 'red' }
   }
   
