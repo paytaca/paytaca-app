@@ -3,7 +3,7 @@
     class="q-mx-md text-bow"
     :class="getDarkModeClass(darkMode)">
     <div class="q-pb-md" v-if="isLoaded">
-      <div class="text-center text-weight-bold q-mt-sm q-mb-md text-h5 text-grad">{{ $t('ConfirmAdDetails', {}, 'CONFIRM AD DETAILS') }}</div>
+      <div class="text-center text-weight-bold q-mt-sm q-mb-md text-h5 text-grad">{{ $t('ConfirmAdDetails', {}, 'Confirm Ad Details') }}</div>
       <div v-if="type === 'ads'" :style="`height: ${minHeight - 170}px;`" style="overflow-y:auto;">
         <div class="pt-card q-pa-md br-15" :class="darkMode ? 'dark' : 'light'">
         <div class="md-font-size pt-label" :class="getDarkModeClass(darkMode)">

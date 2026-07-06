@@ -258,12 +258,6 @@ export default {
 				})
 				.catch(error => {
 					console.error(error)
-					this.$q.notify({
-						color: 'negative',
-						message: this.$t('FailedToFetchOrders'),
-						icon: 'error',
-						timeout: 3000
-					})
 				})
 		},
 		async fetchAppeals (overwrite = false) {
@@ -288,12 +282,6 @@ export default {
 				})
 				.catch(error => {
 					console.error(error)
-					this.$q.notify({
-						color: 'negative',
-						message: this.$t('FailedToFetchAppeals'),
-						icon: 'error',
-						timeout: 3000
-					})
 				})
 		},
 		seeMoreOrders () {

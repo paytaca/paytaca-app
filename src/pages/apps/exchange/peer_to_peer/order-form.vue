@@ -55,13 +55,16 @@
         <!-- Form Body -->
         <div v-if="isloaded">
           <div class="q-mx-lg q-py-md text-h5 text-center text-weight-bold lg-font-size text-grad">
-            {{ ad?.trade_type === 'SELL' ? 'BUY BCH WITH' : 'SELL BCH FOR'}} {{ ad?.fiat_currency?.symbol }}
+            {{ ad?.trade_type === 'SELL' ? 'Buy BCH With' : 'Sell BCH For'}} {{ ad?.fiat_currency?.symbol }}
           </div>
           <q-scroll-area ref="scrollTargetRef" :style="`height: ${minHeight}px`" style="overflow-y:auto;" class="scroll-y" @touchstart.native="preventPull">
             <div class="q-mx-md q-mb-sm">
               <TradeInfoCard
                 :order="order"
                 :ad="ad"
+                :counterparty-peer-data="adOwnerPeerData"
+                :market-price="marketPrice"
+                :market-price-loading="marketPriceLoading"
                 type="ad"
                 @view-peer="onViewPeer"
                 @view-reviews="showReviews=true"/>
@@ -149,7 +152,7 @@
                       dense
                       :disable="!hasArbiters || createOrdersEnabled === false || isZeroTradeLimits()"
                       :class="getDarkModeClass(darkMode)"
-                      :label="$t('MIN')"
+                      :label="$t('Min', {}, 'Min')"
                       @click="updateInput(max=false, min=true)"/>
                     <q-btn
                       class="sm-font-size button button-text-primary"
@@ -157,7 +160,7 @@
                       flat
                       :disable="!hasArbiters || createOrdersEnabled === false || isZeroTradeLimits()"
                       :class="getDarkModeClass(darkMode)"
-                      :label="$t('MAX')"
+                      :label="$t('Max', {}, 'Max')"
                       @click="updateInput(max=true, min=false)"/>
                   </div>
                 </div>
@@ -205,7 +208,7 @@
                   unelevated
                   no-caps
                   size="lg"
-                  :label="ad?.trade_type === 'SELL' ? $t('BUY') : $t('SELL')"
+                  :label="ad?.trade_type === 'SELL' ? $t('Buy', {}, 'Buy') : $t('Sell', {}, 'Sell')"
                   class="full-width q-py-sm text-weight-bold bg-grad button"
                   @click="submit()">
                 </q-btn>
@@ -344,6 +347,7 @@ export default {
       fees: null,
       amountError: null,
       order: null,
+      adOwnerPeerData: null,
       openDialog: false,
       openReviews: false,
       dialogType: '',
@@ -358,6 +362,7 @@ export default {
         is_posted: false
       },
       marketPrice: 0,
+      marketPriceLoading: true,
       arbitersAvailable: [],
       arbiterAuthRequired: false,
       previousRoute: null,
@@ -524,6 +529,7 @@ export default {
       const vm = this
       vm.isloaded = false
       await vm.fetchAd()
+      await vm.fetchAdOwnerPeerData()
       // Only fetch arbiters if ad was successfully loaded with fiat_currency
       if (vm.ad && vm.ad.fiat_currency) {
         await vm.fetchArbiters()
@@ -647,6 +653,19 @@ export default {
           this.handleRequestError(error)
         })
     },
+    async fetchAdOwnerPeerData () {
+      if (this.adOwnerPeerData) return
+      const ownerId = this.ad?.owner?.id
+      if (!ownerId) return
+      try {
+        const response = await backend.get(`/ramp-p2p/peer/${ownerId}/`, { authorize: true })
+        if (response.data) {
+          this.adOwnerPeerData = { ...response.data }
+        }
+      } catch (error) {
+        this.handleRequestError(error)
+      }
+    },
     async createOrder () {
       const vm = this
       const body = {
@@ -756,7 +775,6 @@ export default {
         })
     },
     createGroupChat (orderId, members, createdAt) {
-      console.log('createGroupChat', orderId, members, createdAt)
       const vm = this
       const chatMembers = members.map(({ chat_identity_id }) => ({ chat_identity_id, is_admin: true }))
       const _members = [vm.order?.members.buyer.public_key, vm.order?.members.seller.public_key].join('')
@@ -1017,6 +1035,7 @@ export default {
         const price = parseFloat(message.price)
         if (price) {
           this.marketPrice = price
+          this.marketPriceLoading = false
           this.fetchAd()
         }
       })
@@ -1031,11 +1050,9 @@ export default {
       })
     },
     handleRequestError (error) {
+      if (error.code === 'ECONNABORTED') return
       console.error(error?.response || error)
-      if (error.code === 'ECONNABORTED') {
-        // Request timeout
-        this.showErrorDialog('Request timed out. Please try again later.')
-      } else if (!error.response) {
+      if (!error.response) {
         // Network error
         bus.emit('network-error')
       } else {
@@ -1052,7 +1069,7 @@ export default {
             break
           default:
             this.showErrorDialog(`Unexpected error: ${error.response.statusText}. Please try again later.`)
-            console.log(`Error: ${error.response.status}. ${error.response.statusText}`)
+            console.error(`Error: ${error.response.status}. ${error.response.statusText}`)
         }
       }
     },

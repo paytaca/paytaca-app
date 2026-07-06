@@ -116,6 +116,7 @@
               :key="tradeInfoCardKey"
               :order="order"
               :ad="ad"
+              :counterparty-peer-data="counterpartyPeerData"
               type="order"
               @view-ad="showAdSnapshot=true"
               @view-peer="onViewPeer"
@@ -130,7 +131,7 @@
             @sending="onSendingBCH"
             @success="onEscrowSuccess"
             @back="onBack"
-            @refresh="generateContract"
+            @refresh="() => generateContract(true)"
             @updateArbiterStatus="onUpdateArbiterStatus"
             @cancel="cancellingOrder"
           />
@@ -506,6 +507,10 @@ export default {
         order: null,
         chat: null
       },
+      wsFetchingOrder: false,
+      _fetchOrderLastTime: 0,
+      _fetchOrderInProgress: false,
+      loadingData: false,
       state: '',
       isloaded: false,
       confirmType: '',
@@ -516,8 +521,10 @@ export default {
 
       ad: null,
       order: null,
+      counterpartyPeerData: null,
       feedback: null,
       escrowContract: null,
+      contractBalance: null,
       contract: {
         address: null,
         addresses: []
@@ -572,6 +579,7 @@ export default {
       chatIdentity: null,
       keypair: {},
       chatMembers: [],
+      chatMembersRaw: null,
       chatPubkeys: [],
       sendingMessage: false,
       addingNewMessage: false,
@@ -765,24 +773,21 @@ export default {
              return formattedStatus || this.order?.status?.label || ''
            }
          case 'escrow-bch':
-           return 'Escrow bch'
-         case 'tx-confirmation':
-           return `verifying ${this.verifyAction}`
+            return 'Escrow BCH'
+          case 'tx-confirmation':
+            return `Verifying ${this.verifyAction.charAt(0) + this.verifyAction.slice(1).toLowerCase()}`
          case 'payment-confirmation':
            return this.confirmType === 'buyer' ? this.$t('PayFiat') : this.$t('ReleaseBCH')
          default:
            return ''
        }
      },
-getBackNavigationPath () {
-        console.log('Source param:', this.$route.query.source)
+      getBackNavigationPath () {
         // If we came from the home page (pending orders), go back there
         if (this.$route.query.source === 'home') {
-          console.log('Routing back to home page with name: transaction-index')
           return { name: 'transaction-index' }
         }
         // Default back path to orders list
-        console.log('Routing back to orders list')
         return '/apps/exchange/peer-to-peer/orders'
       },
     escrowTransferData () {
@@ -791,7 +796,8 @@ getBackNavigationPath () {
         arbiter: this.order?.arbiter,
         contractAddress: this.contract?.address,
         transferAmount: this.transferAmount,
-        fees: this.fees
+        fees: this.fees,
+        contractBalance: this.contractBalance
       }
     },
     verifyTransactionData () {
@@ -803,7 +809,8 @@ getBackNavigationPath () {
           address: this.contract.addresses.arbiter
         },
         action: this.verifyAction,
-        escrow: this.escrowContract
+        escrow: this.escrowContract,
+        contractBalance: this.contractBalance
       }
     },
     standByDisplayData () {
@@ -820,7 +827,8 @@ getBackNavigationPath () {
         feedback: this.feedback,
         contractAddress: this.contract.address,
         arbiter: arbiter,
-        escrow: this.escrowContract
+        escrow: this.escrowContract,
+        contractBalance: this.contractBalance
       }
     },
     paymentConfirmationData () {
@@ -834,7 +842,8 @@ getBackNavigationPath () {
           address: this.contract.addresses.arbiter
         },
         errors: this.errorMessages,
-        escrow: this.escrowContract
+        escrow: this.escrowContract,
+        contractBalance: this.contractBalance
       }
     },
     transferAmount () {
@@ -890,14 +899,12 @@ getBackNavigationPath () {
       } else if (newTab === 'chat') {
         // Only load chat if escrow is complete
         if (!this.isChatEnabled) {
-          console.log('Chat is not yet enabled - waiting for escrow')
           return
         }
         
         // Re-establish chat websocket connection when entering chat tab
         // This ensures both parties can receive messages even if one joined later
         if (this.chatRef && this.websockets.chat) {
-          console.log('Re-establishing chat websocket connection...')
           this.websockets.chat.closeConnection()
           this.websockets.chat = new WebSocketManager()
           this.websockets.chat.setWebSocketUrl(`${getChatBackendWsUrl()}${this.chatRef}/`)
@@ -997,22 +1004,36 @@ getBackNavigationPath () {
     },
 
     async loadData () {
+      if (this.loadingData) return
+      this.loadingData = true
       try {
         const vm = this
-        await vm.fetchOrder()
-        if (vm.order.contract) {
+        await vm.fetchOrder('loadData')
+        if (vm.order.contract && !vm.escrowContract) {
           await vm.generateContract()
+        } else if (vm.order.contract && !vm.contract?.address) {
+          await vm.generateContract(true)
         }
         await vm.fetchAd()
         await vm.fetchFeedback()
+        vm.fetchCounterpartyTradeStats()
         await vm.fetchStatusList() // Load status history
         vm.ensureChatCloseCountdownTimer()
+        
+        // Fetch unread count before potentially switching to chat tab
+        const escrowedStatuses = ['ESCRW', 'PD_PN', 'PD', 'RLS_PN', 'RLS', 'RFN_PN', 'RFN', 'APL']
+        if (escrowedStatuses.includes(vm.order?.status?.value)) {
+          await vm.fetchChatUnread(vm.chatRef)
+        }
+        
         if (this.notifType === 'new_message') { 
           this.activeTab = 'chat'
         }
         vm.isloaded = true
       } catch (error) {
         console.error(error)
+      } finally {
+        this.loadingData = false
       }
     },
 
@@ -1087,8 +1108,9 @@ getBackNavigationPath () {
         await this.loadKeyPair()
         await this.loadChatIdentity()
 
-        // Fetch chat members
-        const members = await fetchChatMembers(this.chatRef).catch(() => [])
+        // Fetch chat members (use cached from fetchChatUnread if available)
+        const members = this.chatMembersRaw || await fetchChatMembers(this.chatRef).catch(() => [])
+        this.chatMembersRaw = null
         if (members?.length) {
           this.chatMembers = members.map(member => ({
             id: member.chat_identity.id,
@@ -1150,7 +1172,6 @@ getBackNavigationPath () {
         // Re-establish chat websocket connection after loading chat data
         // This ensures fresh connection for receiving new messages
         if (this.chatRef && this.websockets.chat) {
-          console.log('Re-establishing chat websocket after loading chat data...')
           this.websockets.chat.closeConnection()
           this.websockets.chat = new WebSocketManager()
           this.websockets.chat.setWebSocketUrl(`${getChatBackendWsUrl()}${this.chatRef}/`)
@@ -1202,7 +1223,6 @@ getBackNavigationPath () {
       // Cooldown: Prevent loading too quickly (minimum 2 seconds between loads)
       const now = Date.now()
       if (now - this.lastLoadTime < 2000) {
-        console.log('[Chat Pagination] Cooldown active, waiting...')
         done()
         return
       }
@@ -1378,7 +1398,7 @@ getBackNavigationPath () {
         let attachment = vm.chatAttachment
         let useFormData = false
         
-        console.log('Sending message:', originalMessage, 'with attachment:', !!attachment)
+
         
         let message = originalMessage
 
@@ -1962,46 +1982,49 @@ getBackNavigationPath () {
       return formatDate(date, true)
     },
 
-    async fetchOrder () {
+    async fetchOrder (caller = 'unknown') {
       const vm = this
       const orderId = this.$route.params?.order
       if (!orderId) {
         console.warn('Order ID is missing from route params, skipping fetchOrder')
         return
       }
-      const url = `/ramp-p2p/order/${orderId}/`
-      await backend.get(url, { authorize: true })
-        .then(response => {
-          vm.order = response.data
-          vm.handleNewStatus(vm.order.status)
-          vm.updateOrderReadAt()
-          const members = [vm.order?.members.buyer.public_key, vm.order?.members.seller.public_key].join('')
-          const chatRef = generateChatRef(vm.order.id, vm.order.created_at, members)
-          vm.chatRef = chatRef
-          if (vm.order?.chat_session_ref !== chatRef && vm.order?.id) {
-            updateOrderChatSessionRef(vm.order.id, chatRef)
-            fetchChatSession(chatRef)
-              .catch(error => {
-                if (error.response?.status === 404 && vm.order?.id) {
-                  vm.createGroupChat(vm.order.id, chatRef)
-                } else if (error.response?.status === 403) {
-                  // 403 means chat identity not ready - silently ignore
-                  // Don't call handleRequestError for chat-related 403s
-                } else {
-                  this.handleRequestError(error)
-                }
-              })
-          }
-          
-          // Fetch unread count from chat members (only if chat is enabled)
-          const escrowedStatuses = ['ESCRW', 'PD_PN', 'PD', 'RLS_PN', 'RLS', 'RFN_PN', 'RFN', 'APL']
-          if (escrowedStatuses.includes(vm.order?.status?.value)) {
-            vm.fetchChatUnread(chatRef)
-          }
-        })
-        .catch(error => {
-          this.handleRequestError(error)
-        })
+      const now = Date.now()
+      if (caller === 'websocket' && vm._fetchOrderLastTime && now - vm._fetchOrderLastTime < 10000) {
+        return
+      }
+      if (vm._fetchOrderInProgress) {
+        return
+      }
+      vm._fetchOrderInProgress = true
+      try {
+        const url = `/ramp-p2p/order/${orderId}/`
+        const response = await backend.get(url, { authorize: true })
+        vm._fetchOrderLastTime = Date.now()
+        vm.order = response.data
+        await vm.handleNewStatus(vm.order.status)
+        vm.updateOrderReadAt()
+        const members = [vm.order?.members.buyer.public_key, vm.order?.members.seller.public_key].join('')
+        const chatRef = generateChatRef(vm.order.id, vm.order.created_at, members)
+        vm.chatRef = chatRef
+        if (vm.order?.chat_session_ref !== chatRef && vm.order?.id) {
+          updateOrderChatSessionRef(vm.order.id, chatRef)
+          fetchChatSession(chatRef)
+            .catch(error => {
+              if (error.response?.status === 404 && vm.order?.id) {
+                vm.createGroupChat(vm.order.id, chatRef)
+              } else if (error.response?.status === 403) {
+                // 403 means chat identity not ready - silently ignore
+              } else {
+                this.handleRequestError(error)
+              }
+            })
+        }
+      } catch (error) {
+        this.handleRequestError(error)
+      } finally {
+        vm._fetchOrderInProgress = false
+      }
     },
 
     async fetchChatUnread (chatRef) {
@@ -2016,6 +2039,7 @@ getBackNavigationPath () {
         
         this.unreadChatCount = userMember?.unread_count || 0
         this.hasUnread = this.unreadChatCount > 0
+        this.chatMembersRaw = response
       }).catch(error => {
         console.error('Error fetching chat unread:', error?.response || error)
       })
@@ -2023,13 +2047,12 @@ getBackNavigationPath () {
 
     async generateContract (shouldReloadChildren = false) {
       const vm = this
+      if (vm.escrowContract && !shouldReloadChildren) return
+
       await vm.fetchFees()
       await vm.fetchContract()
       
-      // Skip if no contract data, but allow regeneration if shouldReloadChildren is true
-      // (happens when websocket receives contract updates after initial load)
       if (!vm.contract) return
-      if (vm.escrowContract && !shouldReloadChildren) return
       
       const publicKeys = vm.contract.pubkeys
       const addresses = vm.contract.addresses
@@ -2062,6 +2085,29 @@ getBackNavigationPath () {
         .catch(error => {
           this.handleRequestError(error)
         })
+    },
+
+    async fetchCounterpartyTradeStats () {
+      const order = this.order
+      if (!order?.members) return
+
+      const user = this.$store.getters['ramp/getUser']
+      if (!user?.id) return
+
+      const counterparty = order.members.buyer?.id === user.id ? order.members.seller : order.members.buyer
+      if (!counterparty?.id) return
+
+      if (this.counterpartyPeerData) return
+
+      try {
+        const response = await backend.get(`/ramp-p2p/peer/${counterparty.id}/`, { authorize: true })
+        const data = response.data
+        if (data) {
+          this.counterpartyPeerData = { ...data }
+        }
+      } catch (error) {
+        this.handleRequestError(error)
+      }
     },
 
     async fetchFeedback () {
@@ -2143,14 +2189,13 @@ getBackNavigationPath () {
     },
 
     handleNewStatus (newStatus) {
-      this.updateStatus(newStatus)
-      this.updateStateByStatus(newStatus?.value)
-    },
-
-    updateStatus (newStatus) {
-      if (!newStatus || this.status === newStatus) return
+      if (!newStatus) return
+      const newValue = newStatus?.value || newStatus
+      const currentValue = this.status?.value || this.status
+      if (currentValue === newValue && this.status) return
       this.status = newStatus
       this.order.status = newStatus
+      return this.updateStateByStatus(newValue)
     },
 
     async updateStateByStatus (status = this.status.value) {
@@ -2173,6 +2218,7 @@ getBackNavigationPath () {
         case 'ESCRW_PN': { // Escrow Pending
           await this.generateContract()
           const balance = await this.escrowContract?.getBalance()
+          this.contractBalance = balance
 
           kwargs.orderId = order?.id
           kwargs.contractBalance = balance
@@ -2190,7 +2236,8 @@ getBackNavigationPath () {
           break
         case 'PD': { // Paid
           kwargs.orderId = order?.id
-          kwargs.contractBalance = await this.escrowContract?.getBalance()
+          this.contractBalance = await this.escrowContract?.getBalance()
+          kwargs.contractBalance = this.contractBalance
           state = this.getPaidState(kwargs)
           confirmType = this.getConfirmTypeByTradeType(kwargs)
           if (state === 'tx-confirmation') this.verifyTransactionKey++
@@ -2416,7 +2463,7 @@ getBackNavigationPath () {
     },
 
     async refreshPage (done) {
-      if (this.sendingBch || this.verifyingTx) {
+      if (this.sendingBch || this.verifyingTx || this.loadingData) {
         if (done) done()
         return
       }
@@ -2431,7 +2478,7 @@ getBackNavigationPath () {
     onVerifyTxSuccess () {
       this.sendingBch = false
       this.verifyingTx = false
-      this.fetchOrder()
+      this.fetchOrder('onVerifyTxSuccess')
     },
 
     onSendingBCH (sending) {
@@ -2493,7 +2540,7 @@ getBackNavigationPath () {
 
     onEscrowSuccess (txid) {
       this.txid = txid
-      this.fetchOrder()
+      this.fetchOrder('onEscrowSuccess')
     },
 
     setupWebSocket () {
@@ -2511,11 +2558,16 @@ getBackNavigationPath () {
             this.verifyingTx = false
             this.sendingBch = false
           }
-          await this.fetchOrder()
-          if (message?.contract_address) {
-            // Regenerate contract and reload children to update contract balance
-            await this.generateContract(true)
-            this.escrowTransferKey++
+          if (this.wsFetchingOrder) return
+          this.wsFetchingOrder = true
+          try {
+            await this.fetchOrder('websocket')
+            if (message?.contract_address || (this.order?.contract && !this.escrowContract)) {
+              await this.generateContract(true)
+              this.escrowTransferKey++
+            }
+          } finally {
+            this.wsFetchingOrder = false
           }
         } else {
           if ((message?.action === 'ESCROW' || message?.action === 'RELEASE') &&

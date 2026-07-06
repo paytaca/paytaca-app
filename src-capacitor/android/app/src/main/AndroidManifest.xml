@@ -64,6 +64,7 @@
                 <data android:host="gifts.paytaca.com" android:pathPrefix="/claim"/>
                 <data android:host="p2p.paytaca.com" android:pathPrefix="/ad"/>
                 <data android:host="explorer.paytaca.com" android:pathPrefix="/tx"/>
+                <data android:host="rewards.paytaca.com" android:pathPrefix="/referral"/>
             </intent-filter>
 
             <!-- Non-verified fallback for http explorer links -->

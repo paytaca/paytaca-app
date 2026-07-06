@@ -126,11 +126,14 @@ export default {
       if (this.transactionId) this.txidLoaded = true
     },
     loadContract () {
-      this.fetchContract().then(this.fetchContractBalance())
+      this.fetchContract().then(() => this.fetchContractBalance())
     },
     fetchContractBalance () {
       return new Promise((resolve, reject) => {
-        if (!this.data?.escrow) return 0
+        if (!this.data?.escrow) {
+          resolve(0)
+          return
+        }
         this.data?.escrow?.getBalance()
           .then(balance => {
             this.contract.balance = balance
@@ -204,7 +207,7 @@ export default {
             return this.delay(delayDuration)
               .then(() => this.exponentialBackoff(fn, retries - 1, delayDuration * 2))
           } else {
-            this.disableBtn = false
+            this.submitAction()
           }
         })
         .catch(error => console.error(error))

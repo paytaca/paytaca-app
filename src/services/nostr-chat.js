@@ -7,14 +7,14 @@
 import { SimplePool } from 'nostr-tools/pool'
 import { finalizeEvent } from 'nostr-tools'
 
+const isDev = process.env.NODE_ENV !== 'production'
+
 let _pool = null
 let _subs = []
 let _authSigner = null
-let _pollInterval = null
 let _statusInterval = null
-let _keepaliveInterval = null
+let _resubInterval = null
 let _seenEventIds = new Set()
-let _resubscribeTimer = null
 let _subscriptionCallbacks = null
 
 // Subscription state tracking
@@ -28,13 +28,12 @@ let _subscribing = false
 let _statusBackoff = 1
 const STATUS_BASE_INTERVAL = 15000
 const STATUS_MAX_INTERVAL = 60000
-const SUBSCRIBE_COOLDOWN_MS = 2000
-const KEEPALIVE_INTERVAL_MS = 30000
 
-// Resubscribe backoff state
-let _resubscribeAttempts = 0
-const RESUBSCRIBE_BASE_MS = 1000
-const RESUBSCRIBE_MAX_MS = 60000
+// Periodic re-subscription interval. Some relays silently close subscriptions
+// (no CLOSED message) after ~30s of inactivity or when nostr-tools' forced-ping
+// fires. Without this, the subscription dies and new messages are never
+// detected until the user navigates to a different page and back.
+const RESUB_INTERVAL_MS = 30000
 
 function hexToBytes(hex) {
   const bytes = new Uint8Array(hex.length / 2)
@@ -74,28 +73,21 @@ export function connect(relays) {
 }
 
 export function disconnect() {
-  if (_resubscribeTimer) {
-    clearTimeout(_resubscribeTimer)
-    _resubscribeTimer = null
-  }
   if (_pool) {
     for (const sub of _subs) {
       try { sub.close() } catch (_) {}
     }
     _subs = []
+    try { _pool.close(_subscribedRelays) } catch (_) {}
     _pool = null
-  }
-  if (_pollInterval) {
-    clearInterval(_pollInterval)
-    _pollInterval = null
   }
   if (_statusInterval) {
     clearTimeout(_statusInterval)
     _statusInterval = null
   }
-  if (_keepaliveInterval) {
-    clearInterval(_keepaliveInterval)
-    _keepaliveInterval = null
+  if (_resubInterval) {
+    clearInterval(_resubInterval)
+    _resubInterval = null
   }
   _isSubscribed = false
   _lastSubscribeTime = 0
@@ -104,7 +96,7 @@ export function disconnect() {
   _subscribing = false
   _subscriptionCallbacks = null
   _statusBackoff = 1
-  _resubscribeAttempts = 0
+  _seenEventIds.clear()
 }
 
 /**
@@ -121,6 +113,14 @@ export function isSubscribed() {
  */
 export function isSubscribing() {
   return _subscribing
+}
+
+/**
+ * Clear the seen-event dedup cache. Used when rejoining a group so that
+ * messages dropped while the group was blocked can be re-fetched.
+ */
+export function clearSeenEventIds() {
+  _seenEventIds.clear()
 }
 
 /**
@@ -185,60 +185,39 @@ export function stopStatusPolling() {
 }
 
 /**
- * Schedule a re-subscription attempt after a connection loss.
- * Debounces rapid close/reconnect cycles.
- */
-function scheduleResubscribe() {
-  if (_resubscribeTimer) return
-  const delay = Math.min(
-    RESUBSCRIBE_BASE_MS * Math.pow(2, _resubscribeAttempts),
-    RESUBSCRIBE_MAX_MS
-  )
-  _resubscribeAttempts++
-  _resubscribeTimer = setTimeout(() => {
-    _resubscribeTimer = null
-    if (
-      !_isSubscribed &&
-      _subscribedRelays.length > 0 &&
-      _subscribedPubKey &&
-      _subscriptionCallbacks
-    ) {
-      // If we've exhausted backoff, reset the pool to clear stale state
-      if (_resubscribeAttempts >= 6) {
-        const savedRelays = _subscribedRelays
-        const savedPubKey = _subscribedPubKey
-        const savedCallbacks = _subscriptionCallbacks
-        disconnect()
-        _pool = getPool()
-        _subscribedRelays = savedRelays
-        _subscribedPubKey = savedPubKey
-        _subscriptionCallbacks = savedCallbacks
-      }
-      subscribeGiftWraps(_subscribedRelays, _subscribedPubKey, _subscriptionCallbacks, { force: true })
-    }
-  }, delay)
-}
-
-/**
  * Subscribe to kind:1059 gift-wraps addressed to our pubkey.
- * Also sets up a polling fallback every 30 seconds.
+ *
+ * This creates a real-time WebSocket subscription that stays open after EOSE
+ * and receives new events as they are published. nostr-tools SimplePool
+ * (configured with enableReconnect + enablePing) handles:
+ *   - WebSocket keepalive via forced-ping every 29s
+ *   - Automatic reconnection with backoff on disconnect
+ *   - Re-establishing subscriptions on reconnect, using `since = lastEmitted + 1`
+ *     to only fetch events missed during the gap
+ *
+ * No polling fallback is needed — the subscription IS the delivery mechanism.
+ * The guard prevents unnecessary re-subscription which would cause relays to
+ * re-send ALL historical events.
+ *
  * @param {string[]} relays
  * @param {string} myPubKey - Hex pubkey
  * @param {{ onEvent(event): void }} callbacks
- * @param {{ force?: boolean }} options
+ * @param {{ force?: boolean, since?: number }} options
  * @returns {{ close(): void }}
  */
 export function subscribeGiftWraps(relays, myPubKey, callbacks = {}, options = {}) {
   const now = Date.now()
 
-  // Guard: skip if already subscribed to the same relays/pubkey (unless forced)
+  // Guard: skip if subscribed recently with the same relays/pubkey (unless forced).
+  // Uses a time-based cooldown (60s) to prevent navigation between pages from
+  // re-creating the subscription and re-fetching 3 days of history each time.
+  // The periodic re-subscription (every 30s) only fires when _subs is empty
+  // (subscription actually dead), so this cooldown doesn't block recovery.
   if (
     !options.force &&
-    _isSubscribed &&
-    _subs.length > 0 &&
+    (now - _lastSubscribeTime) < 60000 &&
     _subscribedPubKey === myPubKey &&
-    arraysEqual(_subscribedRelays, relays) &&
-    (now - _lastSubscribeTime) < SUBSCRIBE_COOLDOWN_MS
+    arraysEqual(_subscribedRelays, relays)
   ) {
     return { close() {} }
   }
@@ -248,120 +227,107 @@ export function subscribeGiftWraps(relays, myPubKey, callbacks = {}, options = {
     return { close() {} }
   }
 
-  // Cancel any pending auto-resubscribe since we're about to re-subscribe
-  if (_resubscribeTimer) {
-    clearTimeout(_resubscribeTimer)
-    _resubscribeTimer = null
-  }
-
   // Close any stale subscriptions before creating new ones
   for (const sub of _subs) {
     try { sub.close() } catch (_) {}
   }
   _subs = []
 
-  // Store callbacks for future auto-resubscribe
+  // Store callbacks for future reference
   _subscriptionCallbacks = callbacks
 
   const pool = getPool()
-  const filter = { kinds: [1059], '#p': [myPubKey] }
+  // Two filters: gift wraps addressed to us (received) AND authored by us (sent).
+  // Each filter must be passed individually to subscribeMany — nostr-tools
+  // expects a single filter object, not an array. Passing an array creates a
+  // nested REQ message like ["REQ","sub:1",[f1,f2]] which relays reject.
+  //
+  // `since` is set from the newest known message timestamp (minus a 3-day
+  // buffer for NIP-17 randomization — spec allows ±2 days) so the relay
+  // only sends events we haven't seen yet instead of re-sending the entire history.
+  const since = options.since
+  const filterReceived = { kinds: [1059], '#p': [myPubKey] }
+  const filterSent = { kinds: [1059], authors: [myPubKey] }
+  if (since) {
+    filterReceived.since = since
+    filterSent.since = since
+  }
+  const filters = [filterReceived, filterSent]
 
   try {
     _subscribing = true
 
-    // Subscribe to each relay individually so we can track which ones work
+    // Subscribe to each relay individually so we can track which ones work.
+    // Create a separate subscription per filter per relay.
     for (const relayUrl of relays) {
-      try {
-        const sub = pool.subscribeMany([relayUrl], filter, {
-          onevent(event) {
-            if (_seenEventIds.has(event.id)) return
-            _seenEventIds.add(event.id)
-            if (callbacks.onEvent) callbacks.onEvent(event)
-          },
-          oneose() {
-            _resubscribeAttempts = 0
-          },
-          onclose(reasons) {
-            console.warn(`[Nostr] Subscription closed for ${relayUrl}:`, reasons)
-            if (!reasons.includes('closed by caller')) {
-              _isSubscribed = false
-              scheduleResubscribe()
-            }
-          },
-        })
-        _subs.push(sub)
-      } catch (err) {
-        // Relay subscription failed silently
+      for (const filter of filters) {
+        try {
+          const sub = pool.subscribeMany([relayUrl], filter, {
+            onevent(event) {
+              if (_seenEventIds.has(event.id)) return
+              _seenEventIds.add(event.id)
+              // Prevent unbounded growth
+              if (_seenEventIds.size > 5000) {
+                const toDelete = Array.from(_seenEventIds).slice(0, _seenEventIds.size - 5000)
+                toDelete.forEach(id => _seenEventIds.delete(id))
+              }
+              if (callbacks.onEvent) callbacks.onEvent(event)
+            },
+            onclose(reasons) {
+              if (isDev) console.warn(`[Nostr] Subscription closed for ${relayUrl}:`, reasons)
+              // Remove this sub from our tracking. nostr-tools handles
+              // reconnection and re-subscription internally — we don't need
+              // our own resubscribe/keepalive logic.
+              const idx = _subs.indexOf(sub)
+              if (idx !== -1) _subs.splice(idx, 1)
+              if (_subs.length === 0) {
+                _isSubscribed = false
+              }
+            },
+          })
+          _subs.push(sub)
+        } catch (err) {
+          // Relay subscription failed silently
+        }
       }
     }
   } finally {
     _subscribing = false
   }
 
-  // Polling fallback: query all relays every 30 seconds for gift-wraps.
-  // We do NOT use `since` because NIP-17 randomizes created_at up to 2 days in the past.
-  // Instead we track seen event IDs and only process new ones.
-  // Use module-level _seenEventIds so dedup survives across re-subscriptions.
-  if (!_pollInterval) {
-    _pollInterval = setInterval(async () => {
-      try {
-        const events = await pool.querySync(relays, {
-          kinds: [1059],
-          '#p': [myPubKey],
-          limit: 500,
-        })
-        if (!events || !events.length) return
-        const newEvents = events.filter(e => !_seenEventIds.has(e.id))
-        if (!newEvents.length) return
-        for (const event of newEvents) {
-          _seenEventIds.add(event.id)
-          if (callbacks.onEvent) callbacks.onEvent(event)
-        }
-        // Prevent unbounded growth. Keep more entries since polling limit increased.
-        if (_seenEventIds.size > 5000) {
-          const toDelete = Array.from(_seenEventIds).slice(0, _seenEventIds.size - 5000)
-          toDelete.forEach(id => _seenEventIds.delete(id))
-        }
-      } catch (err) {
-        // Silently ignore poll errors
-      }
-    }, 30000)
-  }
-
-  // Keepalive: periodically verify subscription is alive.
-  // If _isSubscribed was set to false (e.g., onclose fired) but the auto-resubscribe
-  // didn't trigger (e.g., back-to-back failures), this catches it.
-  if (!_keepaliveInterval) {
-    _keepaliveInterval = setInterval(() => {
-      if (!_isSubscribed && _subscribedRelays.length > 0 && _subscribedPubKey && _subscriptionCallbacks) {
-        subscribeGiftWraps(_subscribedRelays, _subscribedPubKey, _subscriptionCallbacks, { force: true })
-      }
-    }, KEEPALIVE_INTERVAL_MS)
-  }
-
-  _isSubscribed = true
+  _isSubscribed = _subs.length > 0
   _lastSubscribeTime = now
   _subscribedRelays = [...relays]
   _subscribedPubKey = myPubKey
 
+  // Periodic re-subscription: some relays silently close subscriptions after
+  // ~30s. This force-recreates the subscription every 30s with `since` set to
+  // 3 days ago (NIP-17 randomizes created_at by ±2 days), so the relay only
+  // re-sends recent events (deduped by _seenEventIds). Without this, new
+  // messages stop being detected on pages where the user stays for a while.
+  if (!_resubInterval) {
+    _resubInterval = setInterval(() => {
+      if (_subscribedRelays.length > 0 && _subscribedPubKey && _subscriptionCallbacks) {
+        // Only re-subscribe if all subs have been closed (relay silently
+        // dropped them). If subs are still alive, the real-time subscription
+        // handles new messages — no need to re-fetch history.
+        if (_subs.length === 0) {
+          const since = Math.floor(Date.now() / 1000) - 259200 // 3 days for NIP-17 ±2 day randomization
+          subscribeGiftWraps(_subscribedRelays, _subscribedPubKey, _subscriptionCallbacks, {
+            force: true,
+            since,
+          })
+        }
+      }
+    }, RESUB_INTERVAL_MS)
+  }
+
   return {
     close() {
-      if (_resubscribeTimer) {
-        clearTimeout(_resubscribeTimer)
-        _resubscribeTimer = null
-      }
       for (const sub of _subs) {
         try { sub.close() } catch (_) {}
       }
       _subs = []
-      if (_pollInterval) {
-        clearInterval(_pollInterval)
-        _pollInterval = null
-      }
-      if (_keepaliveInterval) {
-        clearInterval(_keepaliveInterval)
-        _keepaliveInterval = null
-      }
       _isSubscribed = false
       _subscriptionCallbacks = null
     },
@@ -456,17 +422,41 @@ export async function fetchKind10050(relays, pubKey) {
  */
 export async function fetchBchAddress(relays, pubKey) {
   const pool = getPool()
-  try {
-    const events = await pool.querySync(relays, { kinds: [30078], authors: [pubKey] })
-    const match = events?.find(e => {
-      const dTag = e.tags?.find(t => t[0] === 'd')
-      return dTag && dTag[1] === 'paytaca:bch-address'
-    })
-    return match || null
-  } catch (err) {
-    console.warn('[Nostr] Failed to fetch BCH address:', err)
-    return null
-  }
+  return new Promise((resolve) => {
+    let resolved = false
+    let activeRelays = relays.length
+    const timer = setTimeout(() => {
+      if (!resolved) {
+        resolved = true
+        resolve(null)
+      }
+    }, 8000)
+
+    const sub = pool.subscribeMany(
+      relays,
+      { kinds: [30078], authors: [pubKey] },
+      {
+        onevent(event) {
+          if (resolved) return
+          const dTag = event.tags?.find(t => t[0] === 'd')
+          if (dTag && dTag[1] === 'paytaca:bch-address') {
+            resolved = true
+            clearTimeout(timer)
+            sub.close()
+            resolve(event)
+          }
+        },
+        oneose() {
+          activeRelays--
+          if (activeRelays <= 0 && !resolved) {
+            resolved = true
+            clearTimeout(timer)
+            resolve(null)
+          }
+        },
+      }
+    )
+  })
 }
 
 /**
@@ -477,17 +467,38 @@ export async function fetchBchAddress(relays, pubKey) {
  */
 export async function fetchDisplayName(relays, pubKey) {
   const pool = getPool()
-  try {
-    const events = await pool.querySync(relays, { kinds: [30078], authors: [pubKey] })
-    const match = events?.find(e => {
-      const dTag = e.tags?.find(t => t[0] === 'd')
-      return dTag && dTag[1] === 'paytaca:display-name'
-    })
-    return match || null
-  } catch (err) {
-    console.warn('[Nostr] Failed to fetch display name:', err)
-    return null
-  }
+  return new Promise((resolve) => {
+    let resolved = false
+    let activeRelays = relays.length
+    const timer = setTimeout(() => {
+      if (!resolved) { resolved = true; resolve(null) }
+    }, 8000)
+
+    const sub = pool.subscribeMany(
+      relays,
+      { kinds: [30078], authors: [pubKey] },
+      {
+        onevent(event) {
+          if (resolved) return
+          const dTag = event.tags?.find(t => t[0] === 'd')
+          if (dTag && dTag[1] === 'paytaca:display-name') {
+            resolved = true
+            clearTimeout(timer)
+            sub.close()
+            resolve(event)
+          }
+        },
+        oneose() {
+          activeRelays--
+          if (activeRelays <= 0 && !resolved) {
+            resolved = true
+            clearTimeout(timer)
+            resolve(null)
+          }
+        },
+      }
+    )
+  })
 }
 
 /**
@@ -498,17 +509,38 @@ export async function fetchDisplayName(relays, pubKey) {
  */
 export async function fetchAvatar(relays, pubKey) {
   const pool = getPool()
-  try {
-    const events = await pool.querySync(relays, { kinds: [30078], authors: [pubKey] })
-    const match = events?.find(e => {
-      const dTag = e.tags?.find(t => t[0] === 'd')
-      return dTag && dTag[1] === 'paytaca:avatar'
-    })
-    return match || null
-  } catch (err) {
-    console.warn('[Nostr] Failed to fetch avatar:', err)
-    return null
-  }
+  return new Promise((resolve) => {
+    let resolved = false
+    let activeRelays = relays.length
+    const timer = setTimeout(() => {
+      if (!resolved) { resolved = true; resolve(null) }
+    }, 8000)
+
+    const sub = pool.subscribeMany(
+      relays,
+      { kinds: [30078], authors: [pubKey] },
+      {
+        onevent(event) {
+          if (resolved) return
+          const dTag = event.tags?.find(t => t[0] === 'd')
+          if (dTag && dTag[1] === 'paytaca:avatar') {
+            resolved = true
+            clearTimeout(timer)
+            sub.close()
+            resolve(event)
+          }
+        },
+        oneose() {
+          activeRelays--
+          if (activeRelays <= 0 && !resolved) {
+            resolved = true
+            clearTimeout(timer)
+            resolve(null)
+          }
+        },
+      }
+    )
+  })
 }
 
 /**
@@ -523,11 +555,15 @@ export async function fetchGroupMetadata(relays, roomId) {
   const dTag = `paytaca:group:${roomId}`
   try {
     const events = await pool.querySync(relays, { kinds: [30078], '#d': [dTag] })
-    const match = events?.find(e => {
+    const matching = events?.filter(e => {
       const dt = e.tags?.find(t => t[0] === 'd')
       return dt && dt[1] === dTag
     })
-    return match || null
+    if (!matching || matching.length === 0) return null
+    // Pick the newest event by created_at so the most recent rename wins,
+    // regardless of which member published it. This makes group naming
+    // deterministic across all clients.
+    return matching.reduce((newest, e) => e.created_at > newest.created_at ? e : newest)
   } catch (err) {
     console.warn('[Nostr] Failed to fetch group metadata:', err)
     return null
@@ -545,9 +581,22 @@ export async function fetchGroupMetadata(relays, roomId) {
 export async function fetchHistoricalGiftWraps(relays, myPubKey, callbacks = {}) {
   const pool = getPool()
   try {
-    const events = await pool.querySync(relays, { kinds: [1059], '#p': [myPubKey], limit: 200 })
-    if (!events || !events.length) return
+    // Fetch gift wraps addressed to us (messages from others) AND
+    // gift wraps authored by us (includes self-wraps of our sent messages)
+    // Use allSettled so a failure in one query doesn't drop the other's results
+    const [receivedResult, sentResult] = await Promise.allSettled([
+      pool.querySync(relays, { kinds: [1059], '#p': [myPubKey], limit: 200 }),
+      pool.querySync(relays, { kinds: [1059], authors: [myPubKey], limit: 200 }),
+    ])
+    const received = receivedResult.status === 'fulfilled' ? receivedResult.value : []
+    const sent = sentResult.status === 'fulfilled' ? sentResult.value : []
+    const events = [...(received || []), ...(sent || [])]
+    if (!events.length) return
     for (const event of events) {
+      // Dedup against the real-time subscription's seen set so we don't
+      // process the same event twice (once here, once via onevent).
+      if (_seenEventIds.has(event.id)) continue
+      _seenEventIds.add(event.id)
       if (callbacks.onEvent) callbacks.onEvent(event)
     }
   } catch (err) {

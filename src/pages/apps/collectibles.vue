@@ -555,7 +555,8 @@ export default {
           type: 'all',
           exclude_attr: true,
           all: false,
-          token_type: 'nft'
+          token_type: 'nft',
+          exclude: 'senders,recipients'
         }
         
         const response = await axios.get(url, { params })

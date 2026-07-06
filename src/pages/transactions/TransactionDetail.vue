@@ -201,6 +201,33 @@
           <q-separator color="grey" class="q-mt-sm ref-separator-ss"/>
         </div>
 
+        <!-- Merchant Info -->
+        <div v-if="merchantData" id="receipt-merchant-section" class="section-block-ss q-mt-lg text-center" style="margin-top: 25px;">
+          <div class="text-grey text-weight-medium text-caption">&nbsp;{{ $t('PaidTo', {}, 'Paid To') }}</div>
+          <q-card
+            class="q-pa-sm q-my-sm inline-block"
+            :class="getDarkModeClass(darkMode)"
+          >
+            <q-avatar v-if="(merchantData.logoData || merchantData.logo)" size="36px" rounded>
+              <q-img :src="merchantData.logoData || merchantData.logo" />
+            </q-avatar>
+            <span class="q-ml-sm text-subtitle1">{{ merchantData.name }}</span>
+            <q-badge
+              :color="merchantData.verified ? 'positive' : 'grey-6'"
+              class="q-ml-sm"
+              align="middle"
+              transparent
+            >
+              <q-icon
+                :name="merchantData.verified ? 'mdi-shield-check' : 'mdi-shield-off'"
+                size="14px"
+                class="q-mr-xs"
+              />
+              {{ merchantData.verified ? $t('VerifiedMerchant', {}, 'Verified') : $t('UnverifiedMerchant', {}, 'Unverified') }}
+            </q-badge>
+          </q-card>
+        </div>
+
         <!-- Transaction ID block (copyable with explorer link below) -->
         <div class="transaction-id-section section-block-ss q-mt-md" style="margin-top: 25px;">
           <div class="text-grey text-weight-medium text-caption q-mb-sm">&nbsp;{{ $t('TransactionId')}}</div>
@@ -261,7 +288,7 @@
                   rounded
                   @click.stop
                 >
-                  <img v-if="badge?.icon && badge?.icon.startsWith('img:')" :src="badge.icon" class="badge-icon-img q-mr-xs"/>
+                  <img v-if="badge?.icon && badge?.icon.startsWith('img:')" :src="badge.icon.replace('img:', '')" class="badge-icon-img q-mr-xs"/>
                   <q-icon v-else-if="badge?.icon" :name="badge?.icon" class="q-mr-xs" size="14px"/>
                   <span class="badge-text">
                     {{ badge?.text }}
@@ -422,16 +449,37 @@
     </div>
   </div>
 
+
+  <receipt-template
+    ref="receiptTemplate"
+    v-show="false"
+    :is-received="tx && tx.record_type === 'incoming'"
+    :amount="displayAmountText"
+    :fiat-amount="fiatAmountForReceipt"
+    :date-time="formattedDateForReceipt"
+    :reference-id="referenceIdForReceipt"
+    :explorer-link="explorerLink"
+    :tx-fee-formatted="txFeeFormatted"
+    :has-fee="hasFeeForReceipt"
+    :tx-fee-in-fiat="txFeeInFiat"
+    :tx-fee-in-fiat-formatted="txFeeInFiatFormatted"
+    :merchant-data="merchantData"
+    :merchant-logo-src="merchantLogoSrcForReceipt"
+    :has-memo="hasMemo"
+    :transaction-memo="transactionMemo"
+    :transaction-id="transactionId"
+  />
 </template>
 
 <script>
+import ReceiptTemplate from 'src/components/receipt/ReceiptTemplate.vue'
 import headerNav from 'src/components/header-nav'
 import { cachedLoadWallet } from 'src/wallet'
 import axios from 'axios'
 import { getWatchtowerApiUrl } from 'src/wallet/chipnet'
 import { getAssetDenomination, parseAssetDenomination, parseFiatCurrency, formatWithLocale } from 'src/utils/denomination-utils'
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
-import { getExplorerLink } from 'src/utils/send-page-utils'
+import { getExplorerLink, lookupMerchantByAddress } from 'src/utils/send-page-utils'
 import * as memoService from 'src/utils/memo-service'
 import { hexToRef as hexToRefUtil } from 'src/utils/reference-id-utils'
 import confetti from 'canvas-confetti'
@@ -440,8 +488,6 @@ import { Capacitor } from '@capacitor/core'
 import AudioMode from 'src/utils/audio-mode'
 import html2canvas from 'html2canvas'
 import SaveToGallery from 'src/utils/save-to-gallery'
-import paytacaLogoHorizontal from '../../assets/paytaca_logo_horizontal.png'
-import QRCode from 'qrcode-svg'
 import { parseAttributesToGroups, parseAttributeToBadge } from 'src/utils/tx-attributes'
 import { anyhedgeBackend } from 'src/wallet/anyhedge/backend'
 import { parseHedgePositionData } from 'src/wallet/anyhedge/formatters'
@@ -455,9 +501,14 @@ import { showLimitDialogWithDeps } from 'src/composables/useTieredLimitGate'
 
 export default {
   name: 'TransactionDetailPage',
-  components: { headerNav },
+  components: { headerNav, ReceiptTemplate },
   props: {
-    txid: String
+    txid: String,
+    category: String,
+    from: String,
+    assetID: String,
+    new: String,
+    recipient: String
   },
   data () {
     return {
@@ -493,6 +544,7 @@ export default {
       txDetails: null, // Raw transaction details with outputs
       loadingTxDetails: false,
       showQuickActions: false, // Collapsed by default
+      merchantData: null,
     }
   },
   computed: {
@@ -639,6 +691,7 @@ export default {
       return this.gainLossAmount >= 0 ? 'text-green' : 'text-red'
     },
     txFee() {
+      if (!this.tx || this.tx.tx_fee === null || this.tx.tx_fee === undefined) return null;
       if (Number.isNaN(this.tx.tx_fee)) return null;
       return (this.tx.tx_fee / 10 ** 8);
     },
@@ -658,6 +711,10 @@ export default {
 
       const fiatValue = this.txFee * price;
       return fiatValue;
+    },
+    txFeeInFiatFormatted() {
+      if (this.txFeeInFiat === null || this.txFeeInFiat === undefined) return ''
+      return this.formatTxFeeInFiat(this.txFeeInFiat)
     },
     txFeeFormatted() {
       if (this.txFee === null || Number.isNaN(this.txFee)) return '';
@@ -785,12 +842,12 @@ export default {
       if (!this.isTokenTransaction || !this.tokenAssetId) return false
       // Check if token is not in favorites
       const favoriteIds = this.favorites
-        .filter(fav => fav.favorite === 1)
+        .filter(fav => fav.favorite === 1 || fav.favorite === true)
         .map(fav => fav.id)
       return !favoriteIds.includes(this.tokenAssetId)
     },
     txFeeMarketValue () {
-      if (!this.tx) return ''
+      if (!this.tx || this.tx.tx_fee === null || this.tx.tx_fee === undefined) return ''
       const bchMarketValue = this.$store.getters['market/getAssetPrice']('bch', this.selectedMarketCurrency)
       if (!bchMarketValue) return ''
       const gas = this.tx.tx_fee / (10 ** 8)
@@ -800,13 +857,14 @@ export default {
       return this.$store.getters['global/theme']
     },
     badgeColor () {
+      if (this.darkMode) return 'grey-8'
       const themeMap = {
-        'glassmorphic-blue': 'blue-6',
-        'glassmorphic-green': 'green-6',
-        'glassmorphic-gold': 'amber-7',
-        'glassmorphic-red': 'pink-6'
+        'glassmorphic-blue': 'blue-3',
+        'glassmorphic-green': 'green-3',
+        'glassmorphic-gold': 'amber-3',
+        'glassmorphic-red': 'pink-3'
       }
-      return themeMap[this.theme] || 'blue-6'
+      return themeMap[this.theme] || 'grey-4'
     },
     wrapperBackgroundStyle () {
       const theme = this.theme
@@ -923,22 +981,33 @@ export default {
       const outputs = this.txDetails?.details?.outputs || this.txDetails?.outputs || this.tx?.outputs
       
       if (outputs && Array.isArray(outputs)) {
-        // Find outputs that are not change and have an address
-        const nonChangeOutputs = outputs.filter(output => 
+        // First output (index 0) is normally the main recipient
+        // Filter out change outputs, then take the first one by position
+        const nonChangeOutputs = outputs.filter(output =>
           !output.is_change && output.address
         )
-        
-        // If there's exactly one non-change output, use it
-        if (nonChangeOutputs.length === 1) {
+
+        if (nonChangeOutputs.length >= 1) {
           return nonChangeOutputs[0].address
-        }
-        // If multiple, try to find the one with largest amount
-        if (nonChangeOutputs.length > 1) {
-          const sorted = nonChangeOutputs.sort((a, b) => (b.value || 0) - (a.value || 0))
-          return sorted[0].address
         }
       }
       return null
+    },
+    fiatAmountForReceipt () {
+      if (this.displayFiatAmount === null || this.displayFiatAmount === undefined) return null
+      return this.parseFiatCurrency(this.displayFiatAmount, this.selectedMarketCurrency)
+    },
+    formattedDateForReceipt () {
+      return this.formatDate(this.tx?.tx_timestamp || this.tx?.date_created)
+    },
+    referenceIdForReceipt () {
+      return this.transactionId ? this.hexToRef(this.transactionId.substring(0, 6)) : ''
+    },
+    hasFeeForReceipt () {
+      return this.txFee !== null && !Number.isNaN(this.txFee) && this.txFee > 0
+    },
+    merchantLogoSrcForReceipt () {
+      return this.merchantData?.logoData || this.merchantData?.logo || ''
     }
   },
   async mounted () {
@@ -1064,6 +1133,12 @@ export default {
     darkMode () {
       this.updateBackgroundColors()
     },
+    recipientAddress: {
+      handler (addr) {
+        if (addr) this.fetchMerchantData()
+      },
+      immediate: true
+    },
     'tx.asset.id' () {
       // Fetch token price when asset changes
       this.fetchTokenPrice()
@@ -1103,6 +1178,12 @@ export default {
     }
   },
   methods: {
+    async fetchMerchantData () {
+      const addr = this.recipientAddress
+      if (!addr) return
+      const data = await lookupMerchantByAddress(addr, this.$store.getters['global/isChipnet'])
+      this.merchantData = data
+    },
     async ensureAssetSettingsAuth () {
       // `fetchFavorites()` works without auth, but `saveFavorites()` / `saveCustomList()` require it.
       // Asset list page calls `assetSettings.authToken()` before saving; do the same here.
@@ -1858,35 +1939,36 @@ export default {
       })
     },
     async addTokenToFavorites () {
+      if (this.addingToFavorites) return
       if (!this.tokenAssetId || !this.tx || !this.tx.asset) return
-      
-      // Fetch current favorites to check count
-      let currentFavorites = await assetSettings.fetchFavorites()
-      if (!Array.isArray(currentFavorites)) {
-        currentFavorites = []
-      }
-      
-      // Count current favorites (where favorite === 1)
-      const currentFavoriteCount = currentFavorites.filter(fav => fav.favorite === 1).length
-      
-      // Check if this token is already a favorite
-      const isAlreadyFavorite = currentFavorites.some(fav => fav.id === this.tokenAssetId && fav.favorite === 1)
-      
-      // If not already a favorite, check limit
-      if (!isAlreadyFavorite) {
-        const limit = this.$store.getters['subscription/getLimit']('favoriteTokens')
-        if (currentFavoriteCount >= limit) {
-          await showLimitDialogWithDeps(
-            { $q: this.$q, $store: this.$store },
-            'favoriteTokens',
-            { darkMode: this.darkMode, forceRefresh: true }
-          )
-          return
-        }
-      }
-      
+
       this.addingToFavorites = true
       try {
+        // Fetch current favorites to check count
+        let currentFavorites = await assetSettings.fetchFavorites()
+        if (!Array.isArray(currentFavorites)) {
+          currentFavorites = []
+        }
+
+        // Count current favorites (where favorite === 1)
+        const currentFavoriteCount = currentFavorites.filter(fav => fav.favorite === 1 || fav.favorite === true).length
+
+        // Check if this token is already a favorite
+        const isAlreadyFavorite = currentFavorites.some(fav => fav.id === this.tokenAssetId && (fav.favorite === 1 || fav.favorite === true))
+
+        // If not already a favorite, check limit
+        if (!isAlreadyFavorite) {
+          const limit = this.$store.getters['subscription/getLimit']('favoriteTokens')
+          if (currentFavoriteCount >= limit) {
+            await showLimitDialogWithDeps(
+              { $q: this.$q, $store: this.$store },
+              'favoriteTokens',
+              { darkMode: this.darkMode, forceRefresh: true }
+            )
+            return
+          }
+        }
+
         const hasAuth = await this.ensureAssetSettingsAuth()
         if (!hasAuth) {
           throw new Error('Asset settings auth token missing')
@@ -1938,7 +2020,7 @@ export default {
             // If favorite_order doesn't exist, assign it position 1 and shift others
             if (existingOrder === null || existingOrder === undefined) {
               // Get all existing favorites with order
-              const existingFavorites = currentFavorites.filter(fav => fav.favorite === 1 && fav.id !== this.tokenAssetId && fav.favorite_order !== null && fav.favorite_order !== undefined)
+              const existingFavorites = currentFavorites.filter(fav => (fav.favorite === 1 || fav.favorite === true) && fav.id !== this.tokenAssetId && fav.favorite_order !== null && fav.favorite_order !== undefined)
               const maxOrder = existingFavorites.length > 0 
                 ? Math.max(...existingFavorites.map(f => f.favorite_order))
                 : 0
@@ -1949,7 +2031,7 @@ export default {
           // Add new favorite at position 1, increment all existing favorites' favorite_order by 1
           // First, increment all existing favorites' favorite_order
           currentFavorites.forEach(fav => {
-            if (fav.favorite === 1 && fav.favorite_order !== null && fav.favorite_order !== undefined) {
+            if ((fav.favorite === 1 || fav.favorite === true) && fav.favorite_order !== null && fav.favorite_order !== undefined) {
               fav.favorite_order = fav.favorite_order + 1
             }
           })
@@ -2178,7 +2260,9 @@ export default {
       })
     },
     formatDate (date) {
+      if (!date) return ''
       const dateObj = new Date(date)
+      if (isNaN(dateObj.getTime())) return ''
       const langs = [this.$store.getters['global/language'], 'en-US']
       return new Intl.DateTimeFormat(langs, {
         year: 'numeric',
@@ -2195,385 +2279,33 @@ export default {
       this.$q.notify({ color: 'blue-9', message: this.$t('CopiedToClipboard'), icon: 'mdi-clipboard-check', timeout: 200 })
     },
     async saveReceiptImage () {
-      const vm = this
-      if (!vm.tx || !vm.transactionId) return
-      if (vm.savingReceipt) return
+      if (!this.tx || !this.transactionId) return
+      if (this.savingReceipt) return
 
-      vm.savingReceipt = true
+      this.savingReceipt = true
       let wrapper = null
 
       try {
-        const isReceived = vm.tx.record_type === 'incoming'
-        const amount = vm.displayAmountText
-        const fiatAmount = vm.displayFiatAmount !== null && vm.displayFiatAmount !== undefined
-          ? vm.parseFiatCurrency(vm.displayFiatAmount, vm.selectedMarketCurrency)
-          : null
-        const dateTime = vm.formatDate(vm.tx.tx_timestamp || vm.tx.date_created)
-        const referenceId = vm.transactionId ? vm.hexToRef(vm.transactionId.substring(0, 6)) : ''
-        const explorerLink = vm.explorerLink
+        const templateEl = this.$refs.receiptTemplate?.$el
+        if (!templateEl) throw new Error('Receipt template not found')
 
-        // Create a beautiful wrapper with gradient background (transaction receipt theme)
-        wrapper = document.createElement('div')
-        wrapper.style.cssText = `
-          background: linear-gradient(135deg, #0ac18e 0%, #00d4aa 50%, #0d9488 100%);
-          padding: 40px 35px;
-          font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Helvetica Neue', Arial, sans-serif;
-          width: 600px;
-          box-sizing: border-box;
-          position: relative;
-          overflow: hidden;
-        `
-
-        // Add decorative background elements
-        const bgDecoration = document.createElement('div')
-        bgDecoration.style.cssText = `
-          position: absolute;
-          top: -100px;
-          right: -100px;
-          width: 400px;
-          height: 400px;
-          background: rgba(255, 255, 255, 0.1);
-          border-radius: 50%;
-          z-index: 0;
-        `
-        wrapper.appendChild(bgDecoration)
-
-        const bgDecoration2 = document.createElement('div')
-        bgDecoration2.style.cssText = `
-          position: absolute;
-          bottom: -150px;
-          left: -150px;
-          width: 500px;
-          height: 500px;
-          background: rgba(255, 255, 255, 0.08);
-          border-radius: 50%;
-          z-index: 0;
-        `
-        wrapper.appendChild(bgDecoration2)
-
-        // Main content container
-        const contentContainer = document.createElement('div')
-        contentContainer.style.cssText = `
-          position: relative;
-          z-index: 1;
-          background: white;
-          border-radius: 24px;
-          padding: 35px 30px;
-          box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
-        `
-
-        // Header with icon and title
-        const header = document.createElement('div')
-        header.style.cssText = `
-          text-align: center;
-          margin-bottom: 40px;
-        `
-
-        // Header text (no icon, cleaner design)
-        const headerText = document.createElement('div')
-        headerText.style.cssText = `
-          font-size: 32px;
-          font-weight: 700;
-          color: #2d3748;
-          line-height: 1.4;
-          margin-bottom: 30px;
-          text-align: center;
-        `
-        headerText.textContent = 'Transaction Receipt'
-        header.appendChild(headerText)
-
-        // Transaction type and amount container with gradient
-        const amountContainer = document.createElement('div')
-        amountContainer.style.cssText = `
-          background: linear-gradient(135deg, #0ac18e 0%, #00d4aa 100%);
-          border-radius: 20px;
-          padding: 30px;
-          margin-bottom: 40px;
-          box-shadow: 0 8px 24px rgba(10, 193, 142, 0.3);
-        `
-
-        const typeLabel = document.createElement('div')
-        typeLabel.style.cssText = `
-          font-size: 18px;
-          font-weight: 700;
-          color: rgba(255, 255, 255, 0.95);
-          text-transform: uppercase;
-          letter-spacing: 2px;
-          margin-bottom: 12px;
-        `
-        typeLabel.textContent = isReceived ? 'Received' : 'Sent'
-        amountContainer.appendChild(typeLabel)
-
-        const amountLen = amount.length
-        const amtFontSize = amountLen > 18 ? 28 : amountLen > 15 ? 34 : amountLen > 12 ? 42 : 48
-        const amountValue = document.createElement('div')
-        amountValue.style.cssText = `
-          font-size: ${amtFontSize}px;
-          font-weight: 800;
-          color: white;
-          letter-spacing: -1px;
-          white-space: nowrap;
-          margin-bottom: ${fiatAmount ? '12px' : '0'};
-        `
-        amountValue.textContent = amount
-        amountContainer.appendChild(amountValue)
-
-        if (fiatAmount) {
-          const fiatValue = document.createElement('div')
-          fiatValue.style.cssText = `
-            font-size: 24px;
-            font-weight: 600;
-            color: rgba(255, 255, 255, 0.9);
-            letter-spacing: 0.2px;
-          `
-          fiatValue.textContent = fiatAmount
-          amountContainer.appendChild(fiatValue)
-        }
-
-        header.appendChild(amountContainer)
-
-        // Transaction details section
-        const detailsSection = document.createElement('div')
-        detailsSection.style.cssText = `
-          margin-bottom: 35px;
-        `
-
-        // Network Fee (only when present and > 0)
-        const hasFee = vm.txFee !== null && !Number.isNaN(vm.txFee) && vm.txFee > 0
-        if (hasFee && vm.txFeeFormatted) {
-          const feeContainer = document.createElement('div')
-          feeContainer.style.cssText = `
-            margin-bottom: 20px;
-          `
-          const feeLabel = document.createElement('div')
-          feeLabel.style.cssText = `
-            font-size: 12px;
-            font-weight: 600;
-            color: #718096;
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-            margin-bottom: 6px;
-          `
-          feeLabel.textContent = vm.$t('NetworkFee', {}, 'Network Fee')
-          feeContainer.appendChild(feeLabel)
-          const feeValue = document.createElement('div')
-          feeValue.style.cssText = `
-            font-size: 18px;
-            font-weight: 600;
-            color: #2d3748;
-            letter-spacing: 0.2px;
-          `
-          let feeText = vm.txFeeFormatted
-          if (vm.txFeeInFiat !== null && !Number.isNaN(vm.txFeeInFiat)) {
-            feeText += ` (${vm.formatTxFeeInFiat(vm.txFeeInFiat)})`
-          }
-          feeValue.textContent = feeText
-          feeContainer.appendChild(feeValue)
-          detailsSection.appendChild(feeContainer)
-        }
-
-        // Reference ID
-        if (referenceId) {
-          const refContainer = document.createElement('div')
-          refContainer.style.cssText = `
-            margin-bottom: 20px;
-          `
-          const refLabel = document.createElement('div')
-          refLabel.style.cssText = `
-            font-size: 12px;
-            font-weight: 600;
-            color: #718096;
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-            margin-bottom: 6px;
-          `
-          refLabel.textContent = 'Reference ID'
-          refContainer.appendChild(refLabel)
-          const refValue = document.createElement('div')
-          refValue.style.cssText = `
-            font-size: 20px;
-            font-weight: 700;
-            color: #2d3748;
-            letter-spacing: 0.3px;
-          `
-          refValue.textContent = referenceId
-          refContainer.appendChild(refValue)
-          detailsSection.appendChild(refContainer)
-        }
-
-        // Transaction ID
-        const txIdContainer = document.createElement('div')
-        txIdContainer.style.cssText = `
-          margin-bottom: 20px;
-        `
-        const txIdLabel = document.createElement('div')
-        txIdLabel.style.cssText = `
-          font-size: 12px;
-          font-weight: 600;
-          color: #718096;
-          text-transform: uppercase;
-          letter-spacing: 0.5px;
-          margin-bottom: 6px;
-        `
-        txIdLabel.textContent = 'Transaction ID'
-        txIdContainer.appendChild(txIdLabel)
-        const txIdValue = document.createElement('div')
-        txIdValue.style.cssText = `
-          font-size: 18px;
-          color: #4a5568;
-          font-family: monospace;
-          word-break: break-all;
-          line-height: 1.4;
-        `
-        // Truncate transaction ID like in the transaction details page
-        const truncatedTxId = vm.transactionId ? `${vm.transactionId.slice(0, 8)}...${vm.transactionId.slice(-8)}` : ''
-        txIdValue.textContent = truncatedTxId
-        txIdContainer.appendChild(txIdValue)
-
-        // QR Code for explorer link
-        if (explorerLink) {
-          const qrContainer = document.createElement('div')
-          qrContainer.style.cssText = `
-            display: flex;
-            justify-content: center;
-            margin-top: 12px;
-            margin-bottom: 8px;
-          `
-
-          // Create QR code
-          const qrcode = new QRCode({
-            content: explorerLink,
-            width: 200,
-            height: 200,
-            padding: 2,
-            color: '#000000',
-            background: '#ffffff',
-            ecl: 'M'
-          })
-
-          const parser = new DOMParser()
-          const svgDoc = parser.parseFromString(qrcode.svg(), 'image/svg+xml')
-          const svgElement = svgDoc.documentElement
-          svgElement.setAttribute('width', '200')
-          svgElement.setAttribute('height', '200')
-          qrContainer.appendChild(svgElement)
-          txIdContainer.appendChild(qrContainer)
-        }
-
-        detailsSection.appendChild(txIdContainer)
-
-        // Date & Time
-        const dateContainer = document.createElement('div')
-        const dateLabel = document.createElement('div')
-        dateLabel.style.cssText = `
-          font-size: 12px;
-          font-weight: 600;
-          color: #718096;
-          text-transform: uppercase;
-          letter-spacing: 0.5px;
-          margin-bottom: 6px;
-        `
-        dateLabel.textContent = 'Date & Time'
-        dateContainer.appendChild(dateLabel)
-        const dateValue = document.createElement('div')
-        dateValue.style.cssText = `
-          font-size: 18px;
-          font-weight: 600;
-          color: #2d3748;
-          letter-spacing: 0.2px;
-        `
-        dateValue.textContent = dateTime
-        dateContainer.appendChild(dateValue)
-        detailsSection.appendChild(dateContainer)
-
-        header.appendChild(detailsSection)
-        contentContainer.appendChild(header)
-
-        // Memo section (if memo exists)
-        if (vm.hasMemo && vm.transactionMemo) {
-          const memoSection = document.createElement('div')
-          memoSection.style.cssText = `
-            margin-top: 25px;
-            margin-bottom: 25px;
-            text-align: center;
-          `
-          const memoLabel = document.createElement('div')
-          memoLabel.style.cssText = `
-            font-size: 12px;
-            font-weight: 600;
-            color: #718096;
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-            margin-bottom: 8px;
-          `
-          memoLabel.textContent = vm.$t('Memo', {}, 'Memo')
-          memoSection.appendChild(memoLabel)
-          const memoValue = document.createElement('div')
-          memoValue.style.cssText = `
-            font-size: 16px;
-            font-weight: 600;
-            color: #2d3748;
-            word-break: break-word;
-            line-height: 1.5;
-          `
-          memoValue.textContent = vm.transactionMemo
-          memoSection.appendChild(memoValue)
-          contentContainer.appendChild(memoSection)
-        }
-
-        // Footer with logo and website
-        const footer = document.createElement('div')
-        footer.style.cssText = `
-          text-align: center;
-          padding-top: 15px;
-        `
-
-        // Paytaca logo container
-        const paytacaLogoContainer = document.createElement('div')
-        paytacaLogoContainer.style.cssText = `
-          display: flex;
-          justify-content: center;
-          align-items: center;
-          margin-bottom: 12px;
-        `
-
-        // Load Paytaca logo
-        const loadPaytacaLogo = () => {
-          return new Promise((resolve) => {
-            const logoImg = document.createElement('img')
-            logoImg.src = paytacaLogoHorizontal
-            logoImg.style.cssText = `
-              height: 120px;
-              width: auto;
-              object-fit: contain;
-              display: block;
-            `
-            logoImg.onload = () => {
-              paytacaLogoContainer.appendChild(logoImg)
-              resolve()
-            }
-            logoImg.onerror = () => {
-              // If logo fails, just resolve (no logo)
-              resolve()
-            }
-          })
-        }
-
-        footer.appendChild(paytacaLogoContainer)
-        contentContainer.appendChild(footer)
-
-        wrapper.appendChild(contentContainer)
+        wrapper = templateEl.cloneNode(true)
+        wrapper.style.position = 'fixed'
+        wrapper.style.top = '-9999px'
+        wrapper.style.left = '-9999px'
+        wrapper.style.display = 'block'
+        wrapper.style.visibility = 'visible'
         document.body.appendChild(wrapper)
 
-        // Wait for logo to load before capturing
-        await loadPaytacaLogo()
+        await this.$nextTick()
+        await new Promise(resolve => setTimeout(resolve, 200))
 
-        // Small delay to ensure DOM updates are rendered
-        await new Promise(resolve => setTimeout(resolve, 100))
+        if (!wrapper.offsetWidth || !wrapper.offsetHeight) {
+          throw new Error('Receipt element has zero dimensions')
+        }
 
-        // Capture with html2canvas (maximum scale for best quality)
         const canvas = await html2canvas(wrapper, {
-          backgroundColor: null,
+          backgroundColor: '#ffffff',
           scale: 4,
           logging: false,
           useCORS: true,
@@ -2581,81 +2313,64 @@ export default {
           windowWidth: wrapper.offsetWidth,
           windowHeight: wrapper.offsetHeight,
           onclone: (clonedDoc) => {
-            // Ensure all text is rendered at high quality
-            const clonedWrapper = clonedDoc.querySelector('div')
-            if (clonedWrapper) {
-              clonedWrapper.style.transform = 'scale(1)'
-              clonedWrapper.style.transformOrigin = 'top left'
+            const cloned = clonedDoc.querySelector('.receipt-wrapper')
+            if (cloned) {
+              cloned.style.transform = 'scale(1)'
+              cloned.style.transformOrigin = 'top left'
             }
           }
         })
 
-        // Remove temporary wrapper
         if (document.body.contains(wrapper)) {
           document.body.removeChild(wrapper)
         }
 
-        // Compress image to keep under 300KB while maximizing quality
+        const canvasToBlob = async (cvs, mimeType, q) => {
+          try {
+            return await new Promise(resolve => {
+              cvs.toBlob(resolve, mimeType, q)
+            })
+          } catch {
+            return null
+          }
+        }
+
         const compressImage = async (canvas) => {
-          // Use JPEG directly (much smaller than PNG)
-          // Try to keep full resolution with very high quality
-          let quality = 0.95
-          let blob = await new Promise(resolve => {
-            canvas.toBlob(resolve, 'image/jpeg', quality)
-          })
-
-          // If too large, reduce quality gradually but keep it high
-          if (blob && blob.size > 300000) { // 300 KB
-            quality = 0.92
-            blob = await new Promise(resolve => {
-              canvas.toBlob(resolve, 'image/jpeg', quality)
-            })
+          let blob = await canvasToBlob(canvas, 'image/png')
+          if (!blob) {
+            try {
+              const dataUrl = canvas.toDataURL('image/png')
+              const byteString = atob(dataUrl.split(',')[1])
+              const ab = new ArrayBuffer(byteString.length)
+              const ia = new Uint8Array(ab)
+              for (let i = 0; i < byteString.length; i++) ia[i] = byteString.charCodeAt(i)
+              blob = new Blob([ab], { type: 'image/png' })
+            } catch {
+              return null
+            }
           }
-
-          if (blob && blob.size > 300000) {
-            quality = 0.90
-            blob = await new Promise(resolve => {
-              canvas.toBlob(resolve, 'image/jpeg', quality)
-            })
+          if (blob.size > 300000) {
+            blob = await canvasToBlob(canvas, 'image/jpeg', 0.92)
           }
-
           if (blob && blob.size > 300000) {
-            quality = 0.88
-            blob = await new Promise(resolve => {
-              canvas.toBlob(resolve, 'image/jpeg', quality)
-            })
-          }
-
-          // Only reduce dimensions as last resort, but use maximum quality smoothing
-          if (blob && blob.size > 300000) {
-            // Try a larger dimension first to maintain quality
             const maxDimension = 1600
             const ratio = Math.min(maxDimension / canvas.width, maxDimension / canvas.height, 1)
             const newWidth = Math.floor(canvas.width * ratio)
             const newHeight = Math.floor(canvas.height * ratio)
-
             const resizedCanvas = document.createElement('canvas')
             resizedCanvas.width = newWidth
             resizedCanvas.height = newHeight
             const resizedCtx = resizedCanvas.getContext('2d')
-            // Use best image smoothing for quality
             resizedCtx.imageSmoothingEnabled = true
             resizedCtx.imageSmoothingQuality = 'high'
-            // Use better interpolation
             resizedCtx.drawImage(canvas, 0, 0, newWidth, newHeight)
-
-            blob = await new Promise(resolve => {
-              resizedCanvas.toBlob(resolve, 'image/jpeg', 0.90)
-            })
+            blob = await canvasToBlob(resizedCanvas, 'image/jpeg', 0.90) || blob
           }
-
-          // Final fallback - smaller dimension but still high quality
           if (blob && blob.size > 300000) {
             const maxDimension = 1400
             const ratio = Math.min(maxDimension / canvas.width, maxDimension / canvas.height, 1)
             const newWidth = Math.floor(canvas.width * ratio)
             const newHeight = Math.floor(canvas.height * ratio)
-
             const resizedCanvas = document.createElement('canvas')
             resizedCanvas.width = newWidth
             resizedCanvas.height = newHeight
@@ -2663,82 +2378,47 @@ export default {
             resizedCtx.imageSmoothingEnabled = true
             resizedCtx.imageSmoothingQuality = 'high'
             resizedCtx.drawImage(canvas, 0, 0, newWidth, newHeight)
-
-            blob = await new Promise(resolve => {
-              resizedCanvas.toBlob(resolve, 'image/jpeg', 0.88)
-            })
+            blob = await canvasToBlob(resizedCanvas, 'image/jpeg', 0.88) || blob
           }
-
           return blob
         }
 
-        const blobToBase64Data = async (blob) => {
-          return await new Promise((resolve, reject) => {
-            const reader = new FileReader()
-            reader.onload = () => {
-              try {
-                if (typeof reader.result !== 'string') {
-                  return reject(new Error('FileReader result is not a string'))
-                }
-
-                const base64Data = reader.result.split(',')[1]
-                if (!base64Data) {
-                  return reject(new Error('Failed to extract base64 data from data URL'))
-                }
-                resolve(base64Data)
-              } catch (e) {
-                reject(e)
-              }
-            }
-            reader.onerror = (event) => reject(reader.error || event)
-            reader.onabort = () => reject(new Error('FileReader aborted'))
-            try {
-              reader.readAsDataURL(blob)
-            } catch (e) {
-              reject(e)
-            }
-          })
-        }
-
-        // Create filename with transaction ID (always JPEG now)
-        const shortTxId = vm.transactionId.substring(0, 8)
-        const filename = `receipt-${shortTxId}.jpg`
-
         const blob = await compressImage(canvas)
-        if (!blob) {
-          throw new Error('Failed to create receipt image blob')
-        }
+        if (!blob) throw new Error('Failed to create receipt image blob: canvas export returned null')
 
-        // Check if running on mobile
+        const shortTxId = this.transactionId.substring(0, 8)
+        const filename = `receipt-${shortTxId}.jpg`
         const isMobile = Capacitor.getPlatform() !== 'web'
 
         if (isMobile) {
-          const base64Data = await blobToBase64Data(blob)
+          const base64Data = await new Promise((resolve, reject) => {
+            const reader = new FileReader()
+            reader.onload = () => {
+              try {
+                if (typeof reader.result !== 'string') return reject(new Error('FileReader result is not a string'))
+                const data = reader.result.split(',')[1]
+                if (!data) return reject(new Error('Failed to extract base64 data'))
+                resolve(data)
+              } catch (e) { reject(e) }
+            }
+            reader.onerror = (event) => reject(reader.error || event)
+            reader.onabort = () => reject(new Error('FileReader aborted'))
+            reader.readAsDataURL(blob)
+          })
           try {
-            await SaveToGallery.saveImage({
-              base64Data,
-              filename
-            })
-
-            vm.$q.notify({
-              message: vm.$t('ReceiptSavedToPhotos', {}, 'Receipt saved to Photos'),
-              color: 'positive',
-              icon: 'check_circle',
-              position: 'top',
-              timeout: 2000
+            await SaveToGallery.saveImage({ base64Data, filename })
+            this.$q.notify({
+              message: this.$t('ReceiptSavedToPhotos', {}, 'Receipt saved to Photos'),
+              color: 'positive', icon: 'check_circle', position: 'top', timeout: 2000
             })
           } catch (error) {
             console.error('[SaveReceipt] Error saving to photos:', error)
-            vm.$q.notify({
-              message: vm.$t('ErrorSavingReceipt', {}, 'Error saving receipt. Please ensure photo library permissions are granted.'),
-              color: 'negative',
-              icon: 'error',
-              position: 'top',
-              timeout: 3000
+            this.$q.notify({
+              message: this.$t('ErrorSavingReceipt', {}, 'Error saving receipt. Please ensure photo library permissions are granted.'),
+              color: 'negative', icon: 'error', position: 'top', timeout: 3000
             })
           }
         } else {
-          // Desktop/web - use download link
           const url = URL.createObjectURL(blob)
           const link = document.createElement('a')
           link.href = url
@@ -2747,30 +2427,22 @@ export default {
           link.click()
           document.body.removeChild(link)
           URL.revokeObjectURL(url)
-
-          vm.$q.notify({
-            message: vm.$t('ReceiptSaved', {}, 'Receipt saved'),
-            color: 'positive',
-            icon: 'download',
-            position: 'top',
-            timeout: 2000
+          this.$q.notify({
+            message: this.$t('ReceiptSaved', {}, 'Receipt saved'),
+            color: 'positive', icon: 'download', position: 'top', timeout: 2000
           })
         }
       } catch (error) {
-        // Remove wrapper if it still exists
         if (wrapper && document.body.contains(wrapper)) {
           document.body.removeChild(wrapper)
         }
         console.error('Error saving receipt:', error)
-        vm.$q.notify({
-          message: vm.$t('ErrorSavingReceipt', {}, 'Error saving receipt'),
-          color: 'negative',
-          icon: 'error',
-          position: 'top',
-          timeout: 2000
+        this.$q.notify({
+          message: this.$t('ErrorSavingReceipt', {}, 'Error saving receipt'),
+          color: 'negative', icon: 'error', position: 'top', timeout: 2000
         })
       } finally {
-        vm.savingReceipt = false
+        this.savingReceipt = false
       }
     },
     getImageUrl (asset) {
@@ -3351,6 +3023,7 @@ export default {
   align-items: center;
   gap: 4px;
   cursor: pointer;
+  border: 1px solid rgba(128, 128, 128, 0.15);
   transition: all 0.2s ease;
 }
 

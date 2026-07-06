@@ -1,7 +1,7 @@
 <template>
   <div>
     <router-view v-slot="{ Component }">
-      <keep-alive :include="['cauldron-pool']">
+      <keep-alive :include="['cauldron-pool', 'ChatConversation']">
         <component :is="Component"/>
       </keep-alive>
     </router-view>

@@ -269,6 +269,10 @@ export default {
       type: String,
       required: false,
       default: ''
+    },
+    backPath: {
+      type: String,
+      default: null
     }
   },
   computed: {
@@ -276,6 +280,14 @@ export default {
       return this.$store.getters['darkmode/getStatus']
     },
     backNavPath () {
+      if (this.backPath) {
+        const [path, queryString] = this.backPath.split('?')
+        if (queryString) {
+          const query = Object.fromEntries(new URLSearchParams(queryString))
+          return { path, query }
+        }
+        return this.backPath
+      }
       const back = this.$router && this.$router.options && this.$router.options.history && this.$router.options.history.state
         ? this.$router.options.history.state.back || ''
         : ''

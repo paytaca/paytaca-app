@@ -172,7 +172,7 @@
                     <points-badge
                       :complete="item.has_transacted"
                       :dark-mode-class="getDarkModeClass(darkMode)"
-                      :points="10"
+                      :points="item.points_earned"
                     />
                   </div>
                 </q-card-section>

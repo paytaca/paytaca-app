@@ -133,6 +133,8 @@ export function setWalletConfig(walletIndex, isChipnet, walletHash = null) {
     _manager.disconnectAll()
     _manager = null
     _hdNodes = null
+    seedCache.clear()
+    relayKeyCache.clear()
   }
 }
 
@@ -147,6 +149,10 @@ export function reset() {
   _walletHash = null;
   _manager = null
   _hdNodes = null
+  // Clear unbounded module caches so they don't grow across wallet lifetimes
+  // or leak cached seeds between wallet switches.
+  seedCache.clear()
+  relayKeyCache.clear()
 }
 
 export async function connect(uri) {
@@ -165,6 +171,8 @@ export function disconnectAll() {
   }
   _manager = null
   _hdNodes = null
+  seedCache.clear()
+  relayKeyCache.clear()
 }
 
 export async function sendSignResponse(connectionId, sequence, signedTxHex) {

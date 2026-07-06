@@ -21,6 +21,7 @@ const words = [
     Apps: "Apps",
     Balance: "Balance",
     Biometric: "Biometric",
+    Block: "Block",
     Bridge: "Bridge",
     Back: "Back",
     Branch: "Branch",
@@ -247,6 +248,13 @@ const words = [
       Subtotal: 'Subtotal',
       Markup: 'Markup',
       Okay: 'Okay',
+      Group: 'Group',
+      Leave: 'Leave',
+      Left: 'Left',
+      Rejoin: 'Rejoin',
+      DirectMessage: 'Direct Message',
+      ClosedPrivateGroup: 'Closed Private Group',
+      OpenPrivateGroup: 'Open Private Group',
       Unavailable: 'Unavailable',
       Available: 'Available',
       Marketplace: 'Marketplace',
@@ -612,7 +620,11 @@ const words = [
     Congratulations: 'Congratulations!',
     ViewRewards: 'View Rewards',
     PointsEarned: 'Points Earned!',
-    Enter: 'Enter'
+    Enter: 'Enter',
+    Experimental: 'Experimental',
+    Later: 'Later',
+    Pinned: 'Pinned',
+    Utilities: 'Utilities'
   }
 ]
 

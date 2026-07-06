@@ -27,12 +27,12 @@
               <img v-if="avatarDisplaySrc" :src="avatarDisplaySrc" />
               <q-icon v-else name="account_circle" size="56px" />
             </q-avatar>
-            <div class="avatar-overlay">
+            <div class="avatar-overlay" :class="{ 'avatar-overlay--always': !avatarDisplaySrc }">
               <q-icon name="camera_alt" size="20px" />
             </div>
           </div>
           <div class="identity-info">
-            <div class="identity-name">{{ profileDisplayName || 'No display name' }}</div>
+            <div class="identity-name">{{ profileDisplayName || $t('NoDisplayName') }}</div>
             <div class="identity-npub" @click="copyNpub">
               <span class="npub-text">{{ displayNpub }}</span>
               <q-icon name="content_copy" size="14px" class="copy-icon" />
@@ -222,7 +222,7 @@
                 <template #hint>
                   <div v-if="addressGeneratedFromWallet" class="address-hint">
                     <q-icon name="info" size="14px" />
-                    <span>This is a fresh address generated from your wallet</span>
+                    <span>{{ $t('FreshAddressHint') }}</span>
                   </div>
                 </template>
               </q-input>
@@ -278,12 +278,32 @@
             </div>
           </div>
 
+          <q-separator :color="darkMode ? 'white-10' : 'black-5'" />
+
+          <!-- Show Active Status -->
+          <div class="setting-row">
+            <div class="setting-content">
+              <div class="setting-label">{{ $t('ShowActiveStatus', {}, 'Show Active Status') }}</div>
+              <div class="setting-description">
+                {{ $t('ActiveStatusDescription', {}, 'Let others see when you are active. When this is off, you will also not see their active status.') }}
+              </div>
+            </div>
+            <div class="setting-actions">
+              <q-toggle
+                :model-value="showActiveStatus"
+                color="primary"
+                @update:model-value="onToggleActiveStatus"
+              />
+            </div>
+          </div>
+
         </div>
 
         <!-- Cache Management -->
-        <div class="danger-section q-mt-lg">
+        <div v-if="hasCache" class="danger-section q-mt-lg">
           <div class="section-label">
             {{ $t('ChatCache', {}, 'Chat Cache') }}
+            <span class="cache-size-badge">{{ formattedCacheSize }}</span>
           </div>
           <div class="section-description">
             {{ $t('ChatCacheDescription', {}, 'Cached images are stored to improve loading speed. Clear cache to free up storage space.') }}
@@ -298,6 +318,18 @@
             @click="confirmClearCache"
           />
         </div>
+
+        <!-- Reset Chat Data -->
+        <div class="reset-chat-section q-mt-lg">
+          <q-btn
+            :label="$t('ResetChat', {}, 'Reset Chat')"
+            flat
+            no-caps
+            color="grey"
+            :loading="resettingChat"
+            @click="confirmResetChat"
+          />
+        </div>
       </div>
     </div>
   </div>
@@ -310,13 +342,14 @@ import { validateAddress } from 'src/utils/send-page-utils'
 import { getWalletByNetwork } from 'src/wallet/chipnet'
 import { cachedLoadWallet } from 'src/wallet'
 import { npubEncode } from 'nostr-tools/nip19'
-import { clearChatCache } from 'src/components/chat/MessageBubble.vue'
+import { clearChatCache, hasChatCache, getChatCacheSize } from 'src/components/chat/MessageBubble.vue'
 import { copyToClipboard } from 'quasar'
 import { uploadPublicToBlossom } from 'src/wallet/nostr-media'
+import ResetChatDialog from './ResetChatDialog.vue'
 
 export default {
   name: 'ChatProfile',
-  components: { HeaderNav },
+  components: { HeaderNav, ResetChatDialog },
   data () {
     return {
       showQrDialog: false,
@@ -335,6 +368,9 @@ export default {
       publishingDisplayName: false,
       removingDisplayName: false,
       clearingCache: false,
+      resettingChat: false,
+      hasCache: false,
+      cacheSizeBytes: 0,
       addressGeneratedFromWallet: false,
       generatingAddress: false,
       pendingAvatar: null,
@@ -363,13 +399,13 @@ export default {
       return npub.slice(0, 12) + '...' + npub.slice(-8)
     },
     profileAddress () {
-      return this.$store.state.nostrChat.profile?.bchAddress || null
+      return this.$store.getters['nostrChat/getProfile']?.bchAddress || null
     },
     profileDisplayName () {
-      return this.$store.state.nostrChat.profile?.displayName || null
+      return this.$store.getters['nostrChat/getProfile']?.displayName || null
     },
     profileAvatar () {
-      return this.$store.state.nostrChat.profile?.avatar || null
+      return this.$store.getters['nostrChat/getProfile']?.avatar || null
     },
     avatarDisplaySrc () {
       return this.pendingAvatar || this.profileAvatar
@@ -387,15 +423,29 @@ export default {
       if (theme === 'glassmorphic-gold') return '#ffa726'
       return '#3b82f6'
     },
+    formattedCacheSize () {
+      const bytes = this.cacheSizeBytes
+      if (bytes < 1024) return `${Math.round(bytes)} B`
+      if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`
+      if (bytes < 1024 * 1024 * 1024) return `${(bytes / (1024 * 1024)).toFixed(1)} MB`
+      return `${(bytes / (1024 * 1024 * 1024)).toFixed(2)} GB`
+    },
+    showActiveStatus () {
+      return this.$store.getters['nostrChat/getShowActiveStatus']
+    },
   },
   mounted () {
     document.addEventListener('pointerdown', this.onDocumentPointerDown, true)
+    this.checkCache()
   },
   beforeDestroy () {
     document.removeEventListener('pointerdown', this.onDocumentPointerDown, true)
   },
   methods: {
     getDarkModeClass,
+    onToggleActiveStatus (value) {
+      this.$store.dispatch('nostrChat/setShowActiveStatus', value)
+    },
     copyNpub () {
       if (!this.myNpub) return
       copyToClipboard(this.myNpub)
@@ -771,6 +821,14 @@ export default {
         }
       })
     },
+    async checkCache () {
+      try {
+        this.hasCache = await hasChatCache()
+        if (this.hasCache) {
+          this.cacheSizeBytes = await getChatCacheSize()
+        }
+      } catch { this.hasCache = false }
+    },
     async confirmClearCache () {
       this.$q.dialog({
         title: this.$t('ClearChatCache', {}, 'Clear Chat Cache'),
@@ -784,6 +842,7 @@ export default {
         try {
           const success = await clearChatCache()
           if (success) {
+            this.hasCache = false
             this.$q.notify({
               type: 'positive',
               message: this.$t('ChatCacheCleared', {}, 'Chat cache cleared successfully'),
@@ -801,15 +860,47 @@ export default {
         }
       })
     },
+    confirmResetChat () {
+      if (this.resettingChat) return
+      this.$q.dialog({
+        component: ResetChatDialog,
+      }).onOk(async () => {
+        this.resettingChat = true
+        try {
+          await this.$store.dispatch('nostrChat/resetAndRefetch')
+          await this.checkCache()
+          this.$q.notify({
+            type: 'positive',
+            message: this.$t('ChatResetSuccess', {}, 'Chat reset successfully. Conversations are being re-fetched. Contacts and profile have been cleared.'),
+          })
+        } catch (err) {
+          this.$q.notify({
+            type: 'negative',
+            message: err.message || this.$t('ChatResetFailed', {}, 'Failed to reset chat'),
+          })
+        } finally {
+          this.resettingChat = false
+        }
+      })
+    },
   },
 }
 </script>
 
 <style scoped>
+#app-container {
+  display: flex;
+  flex-direction: column;
+  overflow-x: hidden;
+}
+
 .profile-body {
   padding: 16px;
   max-width: 600px;
   margin: 0 auto;
+  width: 100%;
+  box-sizing: border-box;
+  overflow-x: hidden;
 }
 
 /* Identity card */
@@ -846,6 +937,10 @@ export default {
   transition: opacity 0.2s ease;
 }
 
+.avatar-overlay--always {
+  opacity: 1;
+}
+
 .identity-avatar {
   color: #ffffff;
   flex-shrink: 0;
@@ -872,6 +967,8 @@ export default {
   margin: -4px -8px;
   border-radius: 6px;
   transition: background 0.15s ease;
+  max-width: 100%;
+  overflow: hidden;
 }
 
 .identity-npub:hover {
@@ -882,6 +979,10 @@ export default {
   font-family: 'Courier New', monospace;
   font-size: 13px;
   color: #6b7280;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  min-width: 0;
 }
 
 .copy-icon {
@@ -931,6 +1032,12 @@ export default {
   gap: 12px;
 }
 
+@media (max-width: 480px) {
+  .setting-row {
+    flex-wrap: wrap;
+  }
+}
+
 .setting-content {
   flex: 1;
   min-width: 0;
@@ -949,9 +1056,22 @@ export default {
   word-break: break-all;
 }
 
+.setting-description {
+  font-size: 12px;
+  color: #9ca3af;
+  margin-top: 2px;
+  line-height: 1.4;
+}
+
 .setting-input {
   width: 100%;
   max-width: 280px;
+}
+
+@media (max-width: 480px) {
+  .setting-input {
+    max-width: 100%;
+  }
 }
 
 .setting-input :deep(.q-field__control) {
@@ -1007,6 +1127,18 @@ export default {
   font-weight: 600;
   color: #dc2626;
   margin-bottom: 4px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.cache-size-badge {
+  font-size: 12px;
+  font-weight: 500;
+  padding: 2px 8px;
+  border-radius: 10px;
+  background: rgba(220, 38, 38, 0.1);
+  color: #dc2626;
 }
 
 .danger-section .section-description {
@@ -1014,6 +1146,13 @@ export default {
   color: #9ca3af;
   line-height: 1.5;
   margin-bottom: 12px;
+}
+
+.reset-chat-section {
+  display: flex;
+  justify-content: center;
+  border-top: 1px solid rgba(156, 163, 175, 0.15);
+  padding-top: 12px;
 }
 
 /* Dark mode */

@@ -87,92 +87,97 @@ export async function updateAssetPrices (context, { clearExisting = false, custo
   
   // If assetId is provided, use the unified endpoint to fetch price for that specific asset
   // This works for tokens (ct/..., slp/...) as well as BCH
+  // assetId can be a single string or an array of strings for batching
   if (assetId) {
+    const assetIds = Array.isArray(assetId) ? assetId : [assetId]
+    if (!assetIds.length) return
+
     const vsCurrencies = buildVsCurrencies(currencySymbol, customCurrency)
     
     if (!vsCurrencies.length) return
-    
-    // Normalize asset ID for API (uppercase for BCH, keep as-is for tokens)
-    const normalizedAssetId = assetId === 'bch' ? 'BCH' : assetId
+
+    const BATCH_SIZE = 10
+    const batches = []
+    for (let i = 0; i < assetIds.length; i += BATCH_SIZE) {
+      batches.push(assetIds.slice(i, i + BATCH_SIZE))
+    }
     
     try {
-      const { data } = await axios.get(
-        'https://watchtower.cash/api/asset-prices/',
-        {
-          params: {
-            assets: normalizedAssetId,
-            vs_currencies: vsCurrencies.join(',')
+      const results = await Promise.allSettled(batches.map(async (batch) => {
+        const normalizedAssetIds = batch.map(id => id === 'bch' ? 'BCH' : id)
+        
+        const { data } = await axios.get(
+          'https://watchtower.cash/api/asset-prices/',
+          {
+            params: {
+              assets: normalizedAssetIds.join(','),
+              vs_currencies: vsCurrencies.join(',')
+            }
           }
-        }
-      )
+        )
+        
+        if (!data?.prices || !Array.isArray(data.prices)) return []
+        
+        return { prices: data.prices, batch }
+      }))
       
-      if (!data?.prices || !Array.isArray(data.prices)) return
+      // Group prices by asset ID from all batch responses
+      const pricesByAsset = {}
       
-      // Build prices object from response
-      // Filter by asset to ensure we get the correct price for this specific asset
-      // Note: For tokens, API returns tokens/currency (e.g., tokens per PHP), but we need currency/token (e.g., PHP per token)
-      // For BCH, API returns currency/BCH (e.g., PHP per BCH) which is already in the correct format
-      const prices = {}
-      const priceIds = {} // Store price_id per currency
-      const isToken = assetId && assetId !== 'bch' && assetId.includes('/')
-      
-      data.prices.forEach(priceData => {
-        // Since we're requesting a single asset, all prices in the response should be for that asset
-        // However, if the API includes an asset field, we should verify it matches
-        if (priceData?.asset) {
-          // Match the asset to ensure we're getting the right price
-          // Handle both normalized and original asset ID formats
-          const responseAsset = String(priceData.asset).toLowerCase().trim()
-          const expectedAsset = normalizedAssetId.toLowerCase().trim()
-          const originalAssetIdLower = assetId.toLowerCase().trim()
+      results.forEach(result => {
+        if (result.status !== 'fulfilled' || !result.value) return
+        const { prices: priceDataList, batch } = result.value
+        
+        priceDataList.forEach(priceData => {
+          const responseAssetRaw = priceData?.asset
+          if (!responseAssetRaw) return
           
-          // Match if response asset matches either normalized or original asset ID
-          if (responseAsset !== expectedAsset && responseAsset !== originalAssetIdLower) {
-            return
+          const responseAsset = String(responseAssetRaw).toLowerCase().trim()
+          
+          const matchedRequestId = batch.find(requestId => {
+            const normalized = requestId === 'bch' ? 'bch' : requestId.toLowerCase().trim()
+            return responseAsset === normalized
+          })
+          if (!matchedRequestId) return
+          
+          const isToken = matchedRequestId !== 'bch' && matchedRequestId.includes('/')
+          
+          const currency = priceData?.currency || priceData?.vs_currency || priceData?.currency_symbol
+          const priceValue = priceData?.price_value || priceData?.price || priceData?.value
+          const priceId = priceData?.id || priceData?.price_id
+          
+          if (!currency || priceValue === undefined || priceValue === null) return
+          
+          const currencyLower = String(currency).toLowerCase()
+          const rawPrice = parseFloat(priceValue)
+          if (!isFinite(rawPrice)) return
+          
+          const price = isToken && rawPrice !== 0 ? 1 / rawPrice : rawPrice
+          
+          if (!pricesByAsset[matchedRequestId]) {
+            pricesByAsset[matchedRequestId] = { prices: {}, priceIds: {} }
           }
-        }
-        // If no asset field exists, assume it's for the requested asset (since we only requested one)
-        
-        // Check for price data - handle different possible field names
-        const currency = priceData?.currency || priceData?.vs_currency || priceData?.currency_symbol
-        const priceValue = priceData?.price_value || priceData?.price || priceData?.value
-        const priceId = priceData?.id || priceData?.price_id
-        
-        if (!currency || priceValue === undefined || priceValue === null) return
-        
-        const currencyLower = String(currency).toLowerCase()
-        const rawPrice = parseFloat(priceValue)
-        if (!isFinite(rawPrice)) return
-        
-        // For tokens, convert from tokens/currency to currency/token (take reciprocal)
-        // For BCH, use the price directly as it's already currency/BCH
-        // Only take reciprocal if rawPrice is not zero to avoid division by zero
-        const price = isToken && rawPrice !== 0 ? 1 / rawPrice : rawPrice
-        
-        prices[currencyLower] = price
-        // Store price_id if available
-        if (priceId) {
-          priceIds[currencyLower] = priceId
-        }
+          pricesByAsset[matchedRequestId].prices[currencyLower] = price
+          if (priceId) {
+            pricesByAsset[matchedRequestId].priceIds[currencyLower] = priceId
+          }
+        })
       })
       
-      // Only commit prices if we actually have at least one price
-      // This prevents committing empty prices object when API succeeds but no prices match
-      const hasPrices = Object.keys(prices).length > 0
-      if (!hasPrices) return
+      const newAssetPrices = Object.entries(pricesByAsset).map(([id, data]) => ({
+        assetId: id,
+        prices: data.prices,
+        priceIds: data.priceIds
+      }))
       
-      const newAssetPrices = [{
-        assetId: assetId,
-        prices: prices,
-        priceIds: priceIds // Store price_ids per currency
-      }]
+      if (!newAssetPrices.length) return
       
       if (clearExisting) context.commit('clearAssetPrices')
       context.commit('updateAssetPrices', newAssetPrices)
       
       return
     } catch (error) {
-      console.error('Error fetching asset price:', error)
+      console.error('Error fetching asset prices:', error)
       return
     }
   }
@@ -256,11 +261,10 @@ export async function refreshMarketDataForSelectedCurrency (context, { assetIds 
     const uniqueAssetIds = Array.isArray(assetIds) ? [...new Set(assetIds.filter(Boolean))] : ['bch']
     if (!uniqueAssetIds.includes('bch')) uniqueAssetIds.push('bch')
 
-    const pricePromises = uniqueAssetIds.map(id => {
-      return context.dispatch('updateAssetPrices', {
-        assetId: id,
-        clearExisting: false,
-      })
+    // Batch all asset IDs into a single API call
+    const pricePromise = context.dispatch('updateAssetPrices', {
+      assetId: uniqueAssetIds,
+      clearExisting: false,
     })
 
     const fxPromise = currencySymbol
@@ -270,7 +274,7 @@ export async function refreshMarketDataForSelectedCurrency (context, { assetIds 
       )
       : Promise.resolve()
 
-    await Promise.allSettled([...pricePromises, fxPromise])
+    await Promise.allSettled([pricePromise, fxPromise])
   } finally {
     context.commit('setIsUpdatingPrices', false)
     context.commit('setPendingCurrencySymbol', null)

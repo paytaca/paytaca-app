@@ -34,6 +34,7 @@ class Translator {
 
   async translate (opts = { ignoreExisting: false }) {
     const ignoreExisting = opts?.ignoreExisting
+    const targetKeys = opts?.targetKeys
     /*
       check for supported language codes here
       https://github.com/shikar/NODE_GOOGLE_TRANSLATE/blob/master/languages.js
@@ -56,7 +57,7 @@ class Translator {
       'tl',
       'ru',
       'ar',
-      /* 
+      /*
         LANGUAGE BRANCH (variations)
 
         place the unsupported languages here,
@@ -79,7 +80,24 @@ class Translator {
     const sum = this.getTotalLines()
     console.log('Expected no. of translation keys on i18n files: ', sum)
     if (ignoreExisting) console.log('Will ignore keys with existing translation')
-    
+    if (targetKeys?.length) console.log('Targeting keys:', targetKeys.join(', '))
+
+    // When targeting specific keys, first strip them from all language files
+    // so old stale translations are removed before adding fresh ones
+    if (targetKeys?.length) {
+      for (let lang of supportedLangs) {
+        if (lang.includes(":")) continue
+        const existing = await this.getExistingTranslations(lang)
+        if (!existing) continue
+        let removed = false
+        targetKeys.forEach(key => { if (key in existing) { delete existing[key]; removed = true } })
+        if (!removed) continue
+        const strData = this.serializeData(existing)
+        await this.write(strData, lang)
+        console.log(`  Removed target keys from ${lang}`)
+      }
+    }
+
     let jsonData = {}
 
     for (let lang of supportedLangs) {
@@ -91,7 +109,7 @@ class Translator {
         continue
       }
 
-      if (ignoreExisting) {
+      if (ignoreExisting || targetKeys?.length) {
         const importedModule = await this.getExistingTranslations(lang)
         jsonData = importedModule || {}
       }
@@ -110,6 +128,13 @@ class Translator {
       for (const _group of this.texts) {
         const group = Object.assign({}, _group)
         // console.log(`Group keys: ${JSON.stringify(Object.keys(group))}`)
+
+        // If targetKeys specified, filter group to only include matching keys
+        if (targetKeys?.length) {
+          Object.keys(group).forEach(key => {
+            if (!targetKeys.includes(key)) delete group[key]
+          })
+        }
 
         const { filteredGroup, manualTranslations, existingTranslations } = this.filterGroup(
           group, manualTranslationsData, jsonData,
@@ -276,6 +301,15 @@ class Translator {
         obj[key] = unorderedObj[key]
         return obj
       }, {})
+  }
+
+  serializeData (data) {
+    let strData = '// NOTE: DONT EDIT THIS FILE\n'
+    strData += '// UPDATE ON i18n/translate.js and follow steps there to apply changes\n\n'
+    strData += 'export default '
+    strData += JSON.stringify(this.orderObj(data), null, 2)
+    strData = strData.replace(/"([a-zA-Z_$][a-zA-Z0-9_$]*)":/g, '$1:')
+    return strData
   }
 
   // writing to language index files
