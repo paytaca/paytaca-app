@@ -110,11 +110,6 @@ export default {
           selected: false
         },
         {
-          value: 'EP',
-          label: this.$t('EventsAndPromotions'),
-          selected: false
-        },
-        {
           value: 'RW',
           label: this.$t('Rewards'),
           selected: false
