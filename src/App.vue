@@ -865,8 +865,9 @@ export default {
 
     // Ensure current wallet index is valid (points to undeleted wallet)
     // This should run before any wallet operations
-    // Skip if we just switched wallets (check for a flag or recent switch)
     await vm.$store.dispatch('global/ensureValidWalletIndex')
+    // Clear stale flag from router guard (watcher won't fire if index unchanged)
+    vm.$store.commit('global/setWalletSwitchInProgress', false)
 
     // Fetch wallet creation date from backend (fire-and-forget, non-blocking)
     vm.$store.dispatch('global/fetchWalletCreationDate').catch(() => {})
