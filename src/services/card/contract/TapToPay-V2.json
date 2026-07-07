@@ -1,0 +1,354 @@
+{
+  "contractName": "TapToPay",
+  "constructorInputs": [
+    {
+      "name": "backendPkh",
+      "type": "bytes20"
+    },
+    {
+      "name": "category",
+      "type": "bytes"
+    }
+  ],
+  "abi": [
+    {
+      "name": "spend",
+      "inputs": [
+        {
+          "name": "merchantId",
+          "type": "bytes"
+        },
+        {
+          "name": "merchantSig",
+          "type": "sig"
+        },
+        {
+          "name": "merchantPk",
+          "type": "pubkey"
+        },
+        {
+          "name": "backendSig",
+          "type": "sig"
+        },
+        {
+          "name": "backendPk",
+          "type": "pubkey"
+        }
+      ]
+    },
+    {
+      "name": "setOwner",
+      "inputs": [
+        {
+          "name": "authCategory",
+          "type": "bytes"
+        },
+        {
+          "name": "ownerPk",
+          "type": "pubkey"
+        },
+        {
+          "name": "ownerSig",
+          "type": "sig"
+        }
+      ]
+    },
+    {
+      "name": "sweep",
+      "inputs": [
+        {
+          "name": "ownerPk",
+          "type": "pubkey"
+        },
+        {
+          "name": "ownerSig",
+          "type": "sig"
+        }
+      ]
+    }
+  ],
+  "bytecode": "OP_2 OP_PICK OP_0 OP_NUMEQUAL OP_IF OP_7 OP_PICK OP_HASH160 OP_EQUALVERIFY OP_5 OP_ROLL OP_6 OP_ROLL OP_CHECKSIGVERIFY OP_3 OP_ROLL OP_4 OP_PICK OP_CHECKSIGVERIFY OP_TXINPUTCOUNT OP_4 OP_GREATERTHANOREQUAL OP_VERIFY OP_TXOUTPUTCOUNT OP_4 OP_GREATERTHANOREQUAL OP_TXOUTPUTCOUNT OP_5 OP_LESSTHANOREQUAL OP_BOOLAND OP_VERIFY OP_1 OP_UTXOTOKENCATEGORY 20 OP_SPLIT OP_DROP OP_1 OP_UTXOTOKENCOMMITMENT 20 OP_SPLIT OP_DROP OP_2 OP_UTXOTOKENCATEGORY 20 OP_SPLIT OP_DROP OP_2SWAP OP_EQUALVERIFY OP_EQUALVERIFY a08601 OP_2 OP_UTXOTOKENCOMMITMENT OP_DUP OP_1 OP_SPLIT OP_8 OP_SPLIT OP_6 OP_ROLL OP_7 OP_ROLL OP_CAT OP_SHA256 1f OP_SPLIT OP_DROP OP_3 OP_OUTPUTVALUE OP_4 OP_ROLL OP_1 OP_EQUAL OP_3 OP_PICK OP_0 OP_EQUAL OP_3 OP_ROLL OP_4 OP_ROLL OP_EQUAL OP_DUP OP_4 OP_PICK OP_6 OP_ROLL OP_BIN2NUM OP_LESSTHANOREQUAL OP_BOOLAND OP_2 OP_PICK OP_5 OP_ROLL OP_7 OP_ROLL OP_LESSTHANOREQUAL OP_BOOLAND OP_BOOLOR OP_4 OP_ROLL OP_2 OP_OUTPUTTOKENCOMMITMENT OP_EQUAL OP_4 OP_ROLL OP_VERIFY OP_2SWAP OP_BOOLOR OP_VERIFY OP_SWAP OP_VERIFY OP_VERIFY OP_0 OP_UTXOBYTECODE OP_0 OP_OUTPUTBYTECODE OP_OVER OP_EQUAL OP_1 OP_OUTPUTBYTECODE OP_2 OP_PICK OP_EQUAL OP_BOOLAND OP_2 OP_OUTPUTBYTECODE OP_ROT OP_EQUAL OP_BOOLAND OP_NIP OP_ELSE OP_2 OP_PICK OP_1 OP_NUMEQUAL OP_IF OP_5 OP_ROLL OP_5 OP_PICK OP_CHECKSIGVERIFY OP_TXINPUTCOUNT OP_4 OP_LESSTHANOREQUAL OP_VERIFY OP_TXOUTPUTCOUNT OP_3 OP_LESSTHANOREQUAL OP_VERIFY OP_0 OP_UTXOTOKENCATEGORY 20 OP_SPLIT OP_DROP OP_1 OP_UTXOTOKENCATEGORY 20 OP_SPLIT OP_DROP OP_SWAP OP_3 OP_PICK OP_EQUAL OP_SWAP OP_3 OP_PICK OP_EQUAL OP_BOOLAND OP_VERIFY OP_2 OP_UTXOTOKENCATEGORY 20 OP_SPLIT OP_DROP OP_0 OP_UTXOTOKENCOMMITMENT OP_1 OP_SPLIT 20 OP_SPLIT OP_DROP OP_1 OP_UTXOTOKENCOMMITMENT OP_1 OP_SPLIT 20 OP_SPLIT OP_DROP OP_3 OP_ROLL 00 OP_EQUAL OP_ROT OP_1 OP_EQUAL OP_BOOLAND OP_VERIFY OP_SWAP OP_2 OP_PICK OP_EQUAL OP_SWAP OP_ROT OP_EQUAL OP_BOOLAND OP_VERIFY OP_0 OP_OUTPUTTOKENCATEGORY 20 OP_SPLIT OP_DROP OP_1 OP_OUTPUTTOKENCATEGORY 20 OP_SPLIT OP_DROP OP_SWAP OP_3 OP_PICK OP_EQUAL OP_SWAP OP_3 OP_ROLL OP_EQUAL OP_BOOLAND OP_VERIFY 00 OP_4 OP_ROLL OP_HASH160 OP_CAT OP_1 OP_4 OP_ROLL OP_CAT OP_0 OP_OUTPUTTOKENCOMMITMENT OP_1 OP_OUTPUTTOKENCOMMITMENT OP_0 OP_OUTPUTTOKENCOMMITMENT OP_4 OP_ROLL OP_EQUAL OP_1 OP_OUTPUTTOKENCOMMITMENT OP_4 OP_ROLL OP_EQUAL OP_BOOLAND OP_VERIFY OP_2DROP OP_2DROP OP_1 OP_ELSE OP_ROT OP_2 OP_NUMEQUALVERIFY OP_3 OP_ROLL OP_3 OP_PICK OP_CHECKSIGVERIFY OP_TXINPUTCOUNT OP_2 OP_GREATERTHANOREQUAL OP_VERIFY OP_TXOUTPUTCOUNT OP_2 OP_GREATERTHANOREQUAL OP_VERIFY OP_0 OP_UTXOTOKENCATEGORY OP_ROT OP_EQUAL OP_ROT OP_HASH160 OP_0 OP_UTXOTOKENCOMMITMENT 14 OP_SPLIT OP_DROP OP_EQUAL OP_BOOLAND OP_0 OP_OUTPUTBYTECODE OP_0 OP_UTXOBYTECODE OP_EQUAL OP_SWAP OP_VERIFY OP_NIP OP_ENDIF OP_ENDIF",
+  "source": "pragma cashscript 0.11.5;\n\ncontract TapToPay(bytes20 backendPkh, bytes category) {\n\n    function spend(\n        bytes merchantId, \n        sig merchantSig, \n        pubkey merchantPk, \n        sig backendSig, \n        pubkey backendPk) {\n\n        /**\n            inputs:\n                - [0] Contract's owner NFT (with commitment = owner's public key): from contract\n                - [1] Contract's auth NFT (with commitment = auth tokenid): from contract\n                - [2] Merchant's auth NFT (with tokenCategory == input[1].tokenCategory): from contract\n                - [>=3] BCH UTXOs : from contract\n            outputs:\n                - [0] Contract's owner NFT (with commitment = owner's public key): sent back to contract\n                - [1] Contract's auth NFT (with commitment = auth tokenid): sent back to contract\n                - [2] Merchant's auth NFT (with tokenCategory == input[1].tokenCategory): sent back to contract\n                - [3] BCH UTXO with amount to send to merchant: sent to merchant\n                - [4] (optional) BCH UTXO with change amount: sent back to contract\n         */\n        \n        require(hash160(backendPk) == backendPkh, 'Invalid backend public key hash');\n        require(checkSig(backendSig, backendPk), 'Invalid backend signature');\n        require(checkSig(merchantSig, merchantPk), 'Invalid merchant signature');\n\n        require(tx.inputs.length >= 4, 'Unexpected number of inputs, must be at least 4');\n        require(tx.outputs.length >= 4 && tx.outputs.length <= 5, 'Unexpected number of outputs, must be 4 or 5');\n\n        // Enforce that the auth NFT and merchant NFT have the same token category as the contract's auth NFT\n        bytes contractCategory = (tx.inputs[1].tokenCategory).split(32)[0];\n        bytes expectedMerchantCategory = tx.inputs[1].nftCommitment.split(32)[0];\n        bytes merchantCategory = (tx.inputs[2].tokenCategory).split(32)[0];\n        \n        require(contractCategory == category, 'Invalid contract auth token category'); \n        require(merchantCategory == expectedMerchantCategory, 'Invalid merchant token category'); \n\n        int maxGlobalAuthSpendLimit = 100000; // 0.001 BCH \n\n        // Parse the commitment of the merchant auth NFT\n        bytes commitment = tx.inputs[2].nftCommitment;\n        bytes authFlag, bytes rest = commitment.split(1); // (1 byte) authFlag = 0x00 (not authorized) | 0x01 (authorized)\n        bytes spendLimit, bytes expectedMerchantHash = rest.split(8); // (8 bytes) spendLimit in satoshis, (remaining bytes) expectedMerchantHash\n        bytes fullHash = sha256(merchantId + merchantPk);\n        bytes merchantHash = fullHash.split(31)[0];\n        \n        int actualSendAmount = tx.outputs[3].value;\n        bool isAuthorized = authFlag == 0x01;\n        bool isGlobalAuth = expectedMerchantHash == 0x;\n        bool isMerchantAuth = merchantHash == expectedMerchantHash;\n        bool isSendAmountWithinLimit = (isMerchantAuth && (actualSendAmount <= int(spendLimit))) || \n            (isGlobalAuth && (actualSendAmount <= maxGlobalAuthSpendLimit));\n        bool commitmentUnchanged = commitment == tx.outputs[2].nftCommitment;\n\n        require(isAuthorized, 'Access denied: Merchant is not authorized');\n        require(isGlobalAuth || isMerchantAuth, 'Access denied: Invalid global auth or merchant hash');\n        require(isSendAmountWithinLimit, 'Send amount exceeds spend limit');\n        require(commitmentUnchanged, 'Auth NFT output commitment should not change');\n\n        // Require that NFTs are sent back to this contract\n        bytes contractLock = tx.inputs[0].lockingBytecode;\n        require(\n            tx.outputs[0].lockingBytecode == contractLock &&\n            tx.outputs[1].lockingBytecode == contractLock &&\n            tx.outputs[2].lockingBytecode == contractLock, \n            'Auth NFT must send back to this contract'\n        );    \n    }\n\n    function setOwner(bytes authCategory, pubkey ownerPk, sig ownerSig) {\n        /**\n            inputs: \n                - [0] Contract's owner NFT (commitment = 0x0<xcategory>)\n                - [1] Contract's auth NFT (commitment = 0x1<xcategory>)\n                - [2] Caller's NFT (category=xcategory)\n            \n            outputs:\n                - [0] Contract's owner NFT (now should hold the owner's public key)\n                - [1] Contract's auth NFT (now should hold the auth tokenid)\n         */ \n        require(checkSig(ownerSig, ownerPk), 'Invalid signature');\n        require(tx.inputs.length <= 4, 'Must have at most 4 inputs');\n        require(tx.outputs.length <= 3, 'Must have at most 3 outputs');\n        \n        bytes inputTokenCategory0 = tx.inputs[0].tokenCategory.split(32)[0];\n        bytes inputTokenCategory1 = tx.inputs[1].tokenCategory.split(32)[0];\n\n        console.log(\"category: \", category);\n        console.log(\"tx.inputs[0].tokenCategory: \", inputTokenCategory0);\n        console.log(\"tx.inputs[1].tokenCategory: \", inputTokenCategory1);\n        \n        require(\n            inputTokenCategory0 == category && \n            inputTokenCategory1 == category, \n            'Inputs 1 and 2 must be contract tokens'\n        );\n\n        bytes xcategory = tx.inputs[2].tokenCategory.split(32)[0];\n        bytes pkh_key, bytes pkh_rest = tx.inputs[0].nftCommitment.split(1);\n        bytes pkh_xcategory = pkh_rest.split(32)[0];\n\n        bytes auth_key, bytes auth_rest = tx.inputs[1].nftCommitment.split(1);\n        bytes auth_xcategory = auth_rest.split(32)[0];\n\n        console.log(\"xcategory: \", xcategory);\n        console.log(\"pkh_xcategory: \", pkh_xcategory);\n        console.log(\"auth_xcategory: \", auth_xcategory);\n\n        require(\n            pkh_key == 0x00 && \n            auth_key == 0x01,\n            \"Inputs do not have expected keys in commitments (0x00 for owner, 0x01 for auth)\"\n        );\n\n        require(\n            pkh_xcategory == xcategory && \n            auth_xcategory == xcategory, \n            'Input 3 category does not match the expected category of inputs 1 and 2'\n        );\n\n        bytes outputTokenCategory0 = tx.outputs[0].tokenCategory.split(32)[0];\n        bytes outputTokenCategory1 = tx.outputs[1].tokenCategory.split(32)[0];\n        console.log(\"tx.outputs[0].tokenCategory: \", outputTokenCategory0);\n        console.log(\"tx.outputs[1].tokenCategory: \", outputTokenCategory1);\n\n        require(\n            outputTokenCategory0 == category && \n            outputTokenCategory1 == category,\n            'Outputs do not have expected token category'\n        );\n        \n        bytes xpkh_commitment = 0x00 + hash160(ownerPk);\n        bytes xauth_commitment = 0x01 + authCategory;\n        bytes output1_commitment = tx.outputs[0].nftCommitment;\n        bytes output2_commitment = tx.outputs[1].nftCommitment;\n\n        console.log(\"xpkh_commitment: \", xpkh_commitment);\n        console.log(\"output1_commitment: \", output1_commitment);\n        console.log(\"xauth_commitment: \", xauth_commitment);\n        console.log(\"output2_commitment: \", output2_commitment);\n\n        require(\n            tx.outputs[0].nftCommitment == xpkh_commitment && \n            tx.outputs[1].nftCommitment == xauth_commitment,\n            'Outputs do not have expected commitments'\n        );\n    }\n\n    function sweep(pubkey ownerPk, sig ownerSig) {\n        require(checkSig(ownerSig, ownerPk), 'Invalid owner signature');\n        require(tx.inputs.length >= 2, 'Must have at least 2 inputs');\n        require(tx.outputs.length >= 2, 'Must have at least 2 outputs');\n        \n        bool isValidOwnerNFT = tx.inputs[0].tokenCategory == category && \n            hash160(ownerPk) == tx.inputs[0].nftCommitment.split(20)[0];\n        bool sendsOwnerNFTBack = tx.outputs[0].lockingBytecode == tx.inputs[0].lockingBytecode;\n\n        require(isValidOwnerNFT, 'Invalid owner NFT in input 0');\n        require(sendsOwnerNFTBack, 'Output 0 must be sent back to contract');\n    }\n}",
+  "debug": {
+    "bytecode": "5279009c635779a988557a567aad537a5479adc354a269c454a2c455a19a6951ce01207f7551cf01207f7552ce01207f7572888803a0860152cf76517f587f567a577a7ea8011f7f7553cc547a518753790087537a547a87765479567a81a19a5279557a577aa19a9b547a52d287547a69729b697c696900c700cd788751cd5279879a52cd7b879a77675279519c63557a5579adc354a169c453a16900ce01207f7551ce01207f757c5379877c5379879a6952ce01207f7500cf517f01207f7551cf517f01207f75537a0100877b51879a697c5279877c7b879a6900d101207f7551d101207f757c5379877c537a879a690100547aa97e51547a7e00d251d200d2547a8751d2547a879a696d6d51677b529d537a5379adc352a269c452a26900ce7b877ba900cf01147f75879a00cd00c7877c69776868",
+    "sourceMap": "5:4:71:5;;;;;26:24:26:33;;:16::34:1;:8::85;27:25:27:35:0;;:37::46;;:8::78:1;28:25:28:36:0;;:38::48;;:8::81:1;30:16:30:32:0;:36::37;:16:::1;:8::90;31:16:31:33:0;:37::38;:16:::1;:42::59:0;:63::64;:42:::1;:16;:8::114;34:44:34:45:0;:34::60:1;:68::70:0;:33::71:1;:::74;35:51:35:52:0;:41::67:1;:74::76:0;:41::77:1;:::80;36:44:36:45:0;:34::60:1;:68::70:0;:33::71:1;:::74;38:16:38:44:0;:8::86:1;39::39:97;41:38:41:44:0;44:37:44:38;:27::53:1;45:37:45:47:0;:54::55;:37::56:1;46:66:46:67:0;:55::68:1;47:32:47:42:0;;:45::55;;:32:::1;:25::56;48:44:48:46:0;:29::47:1;:::50;50:42:50:43:0;:31::50:1;51:28:51:36:0;;:40::44;:28:::1;52::52:48:0;;:52::54;:28:::1;53:30:53:42:0;;:46::66;;:30:::1;54:40:54:54:0;:59::75;;:83::93;;:79::94:1;:59;:40::95;55:13:55:25:0;;:30::46;;:50::73;;:30:::1;:13::74;54:39::75;56:35:56:45:0;;:60::61;:49::76:1;:35;58:16:58:28:0;;:8::75:1;59:16:59:46:0;::::1;:8::103;60:16:60:39:0;:8::76:1;61::61:85;64:39:64:40:0;:29::57:1;66:23:66:24:0;:12::41:1;:45::57:0;:12:::1;67:23:67:24:0;:12::41:1;:45::57:0;;:12:::1;66;68:23:68:24:0;:12::41:1;:45::57:0;:12:::1;65:8:70:10;5:4:71:5;;73::150::0;;;;;84:25:84:33;;:35::42;;:8::66:1;85:16:85:32:0;:36::37;:16:::1;:8::69;86:16:86:33:0;:37::38;:16:::1;:8::71;88:46:88:47:0;:36::62:1;:69::71:0;:36::72:1;:::75;89:46:89:47:0;:36::62:1;:69::71:0;:36::72:1;:::75;96:12:96:31:0;:35::43;;:12:::1;97::97:31:0;:35::43;;:12:::1;96;95:8:99:10;101:36:101:37:0;:26::52:1;:59::61:0;:26::62:1;:::65;102:50:102:51:0;:40::66:1;:73::74:0;:40::75:1;103:45:103:47:0;:30::48:1;:::51;105:52:105:53:0;:42::68:1;:75::76:0;:42::77:1;106:47:106:49:0;:31::50:1;:::53;113:12:113:19:0;;:23::27;:12:::1;114::114:20:0;:24::28;:12:::1;113;112:8:116:10;119:12:119:25:0;:29::38;;:12:::1;120::120:26:0;:30::39;:12:::1;119;118:8:122:10;124:48:124:49:0;:37::64:1;:71::73:0;:37::74:1;:::77;125:48:125:49:0;:37::64:1;:71::73:0;:37::74:1;:::77;130:12:130:32:0;:36::44;;:12:::1;131::131:32:0;:36::44;;:12:::1;130;129:8:133:10;135:32:135:36:0;:47::54;;:39::55:1;:32;136:33:136:37:0;:40::52;;:33:::1;137:46:137:47:0;:35::62:1;138:46:138:47:0;:35::62:1;146:23:146:24:0;:12::39:1;:43::58:0;;:12:::1;147:23:147:24:0;:12::39:1;:43::59:0;;:12:::1;146;145:8:149:10;73:4:150:5;;;;152::163::0;;;153:25:153:33;;:35::42;;:8::72:1;154:16:154:32:0;:36::37;:16:::1;:8::70;155:16:155:33:0;:37::38;:16:::1;:8::72;157:41:157:42:0;:31::57:1;:61::69:0;:31:::1;158:20:158:27:0;:12::28:1;:42::43:0;:32::58:1;:65::67:0;:32::68:1;:::71;:12;157:31;159:44:159:45:0;:33::62:1;:76::77:0;:66::94:1;:33;161:16:161:31:0;:8::65:1;152:4:163:5;3:0:164:1;",
+    "logs": [
+      {
+        "ip": 161,
+        "line": 91,
+        "data": [
+          "category: ",
+          {
+            "stackIndex": 3,
+            "type": "bytes",
+            "ip": 161
+          }
+        ]
+      },
+      {
+        "ip": 161,
+        "line": 92,
+        "data": [
+          "tx.inputs[0].tokenCategory: ",
+          {
+            "stackIndex": 1,
+            "type": "bytes",
+            "ip": 161
+          }
+        ]
+      },
+      {
+        "ip": 161,
+        "line": 93,
+        "data": [
+          "tx.inputs[1].tokenCategory: ",
+          {
+            "stackIndex": 0,
+            "type": "bytes",
+            "ip": 161
+          }
+        ]
+      },
+      {
+        "ip": 190,
+        "line": 108,
+        "data": [
+          "xcategory: ",
+          {
+            "stackIndex": 4,
+            "type": "bytes",
+            "ip": 190
+          }
+        ]
+      },
+      {
+        "ip": 190,
+        "line": 109,
+        "data": [
+          "pkh_xcategory: ",
+          {
+            "stackIndex": 2,
+            "type": "bytes",
+            "ip": 190
+          }
+        ]
+      },
+      {
+        "ip": 190,
+        "line": 110,
+        "data": [
+          "auth_xcategory: ",
+          {
+            "stackIndex": 0,
+            "type": "bytes",
+            "ip": 190
+          }
+        ]
+      },
+      {
+        "ip": 218,
+        "line": 126,
+        "data": [
+          "tx.outputs[0].tokenCategory: ",
+          {
+            "stackIndex": 1,
+            "type": "bytes",
+            "ip": 218
+          }
+        ]
+      },
+      {
+        "ip": 218,
+        "line": 127,
+        "data": [
+          "tx.outputs[1].tokenCategory: ",
+          {
+            "stackIndex": 0,
+            "type": "bytes",
+            "ip": 218
+          }
+        ]
+      },
+      {
+        "ip": 241,
+        "line": 140,
+        "data": [
+          "xpkh_commitment: ",
+          {
+            "stackIndex": 3,
+            "type": "bytes",
+            "ip": 241
+          }
+        ]
+      },
+      {
+        "ip": 241,
+        "line": 141,
+        "data": [
+          "output1_commitment: ",
+          {
+            "stackIndex": 1,
+            "type": "bytes",
+            "ip": 241
+          }
+        ]
+      },
+      {
+        "ip": 241,
+        "line": 142,
+        "data": [
+          "xauth_commitment: ",
+          {
+            "stackIndex": 2,
+            "type": "bytes",
+            "ip": 241
+          }
+        ]
+      },
+      {
+        "ip": 241,
+        "line": 143,
+        "data": [
+          "output2_commitment: ",
+          {
+            "stackIndex": 0,
+            "type": "bytes",
+            "ip": 241
+          }
+        ]
+      }
+    ],
+    "requires": [
+      {
+        "ip": 10,
+        "line": 26,
+        "message": "Invalid backend public key hash"
+      },
+      {
+        "ip": 15,
+        "line": 27,
+        "message": "Invalid backend signature"
+      },
+      {
+        "ip": 20,
+        "line": 28,
+        "message": "Invalid merchant signature"
+      },
+      {
+        "ip": 24,
+        "line": 30,
+        "message": "Unexpected number of inputs, must be at least 4"
+      },
+      {
+        "ip": 32,
+        "line": 31,
+        "message": "Unexpected number of outputs, must be 4 or 5"
+      },
+      {
+        "ip": 49,
+        "line": 38,
+        "message": "Invalid contract auth token category"
+      },
+      {
+        "ip": 50,
+        "line": 39,
+        "message": "Invalid merchant token category"
+      },
+      {
+        "ip": 107,
+        "line": 58,
+        "message": "Access denied: Merchant is not authorized"
+      },
+      {
+        "ip": 110,
+        "line": 59,
+        "message": "Access denied: Invalid global auth or merchant hash"
+      },
+      {
+        "ip": 112,
+        "line": 60,
+        "message": "Send amount exceeds spend limit"
+      },
+      {
+        "ip": 113,
+        "line": 61,
+        "message": "Auth NFT output commitment should not change"
+      },
+      {
+        "ip": 131,
+        "line": 65,
+        "message": "Auth NFT must send back to this contract"
+      },
+      {
+        "ip": 142,
+        "line": 84,
+        "message": "Invalid signature"
+      },
+      {
+        "ip": 146,
+        "line": 85,
+        "message": "Must have at most 4 inputs"
+      },
+      {
+        "ip": 150,
+        "line": 86,
+        "message": "Must have at most 3 outputs"
+      },
+      {
+        "ip": 170,
+        "line": 95,
+        "message": "Inputs 1 and 2 must be contract tokens"
+      },
+      {
+        "ip": 198,
+        "line": 112,
+        "message": "Inputs do not have expected keys in commitments (0x00 for owner, 0x01 for auth)"
+      },
+      {
+        "ip": 207,
+        "line": 118,
+        "message": "Input 3 category does not match the expected category of inputs 1 and 2"
+      },
+      {
+        "ip": 227,
+        "line": 129,
+        "message": "Outputs do not have expected token category"
+      },
+      {
+        "ip": 252,
+        "line": 145,
+        "message": "Outputs do not have expected commitments"
+      },
+      {
+        "ip": 264,
+        "line": 153,
+        "message": "Invalid owner signature"
+      },
+      {
+        "ip": 268,
+        "line": 154,
+        "message": "Must have at least 2 inputs"
+      },
+      {
+        "ip": 272,
+        "line": 155,
+        "message": "Must have at least 2 outputs"
+      },
+      {
+        "ip": 292,
+        "line": 161,
+        "message": "Invalid owner NFT in input 0"
+      },
+      {
+        "ip": 293,
+        "line": 162,
+        "message": "Output 0 must be sent back to contract"
+      }
+    ]
+  },
+  "compiler": {
+    "name": "cashc",
+    "version": "0.11.5"
+  },
+  "updatedAt": "2026-07-07T10:16:07.760Z"
+}

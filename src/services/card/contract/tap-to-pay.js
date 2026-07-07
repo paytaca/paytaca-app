@@ -7,9 +7,17 @@ import { binToHex } from '@bitauth/libauth';
 import { pubkeyToPkHash } from '../utils.js';
 import { decodeCommitment, encodeCommitment, encodeMerchantHash } from '../auth-nft.js';
 import artifact from './TapToPay.json';
+import artifactV2 from './TapToPay-V2.json';
 import Watchtower from 'src/lib/watchtower/index.js';
 import { loadWallet } from 'src/services/wallet.js';
 import { isTokenAddress } from 'src/utils/address-utils.js';
+
+import { 
+    encodeOwnershipCommitment, 
+    decodeOwnershipCommitment,
+    encodeLinkingCommitment,
+    decodeLinkingCommitment
+} from '../utils.js';
 
 /**
  * Reverses a hex string by byte (2-char) pairs.
@@ -36,33 +44,17 @@ const toBigInt = (v) => (typeof v === 'bigint' ? v : BigInt(v ?? 0))
  * exposing convenience methods to query UTXOs and perform contract actions
  * like mutate and sweep for that specific contract instance.
  */
-export class TapToPay {
+class TapToPay {
     constructor (contractId) {
         this.contractId = contractId;
-        const contract = MainnetContract.fromId(contractId);
-
-        const parameters = [];
-        contract.parameters.forEach((param) => {
-            parameters.push(Buffer(param).toString('hex'));
-        })
-
-        this.params = {
-            ownerPkh: parameters[0],
-            backendPkh: parameters[1],
-            authCategory: parameters[2]
-        };
     }
 
     /**
      * Contract creation parameters extracted from the on-chain contract.
-     * @returns {{ ownerPkh: string, backendPkh: string, authCategory: string }}
+     * @returns {{ ownerPkh: string, backendPkh: string, category: string }}
      */
     get contractCreationParams () {
-        return {
-            ownerPkh: this.params.ownerPkh,
-            backendPkh: this.params.backendPkh,
-            authCategory: this.params.authCategory,
-        };
+        throw new Error('contractCreationParams getter must be implemented in subclass');
     }
 
     /**
@@ -70,15 +62,7 @@ export class TapToPay {
      * @returns {Contract}
      */
     getContract () {
-        const contractCreationParams = this.contractCreationParams
-        const contractParams = [
-            contractCreationParams.ownerPkh,
-            contractCreationParams.backendPkh,
-            contractCreationParams.authCategory
-        ];
-
-        const contract = new Contract(artifact, contractParams)
-        return contract;
+        throw new Error('getContract() must be implemented in subclass');
     } 
 
     /**
@@ -196,6 +180,90 @@ export class TapToPay {
         };
     }
 
+    async mutate () {}
+    async sweep () {}
+    async burn () {}
+
+    estimateFee({ numContractInputs = 0, numP2pkhInputs = 0, numOutputs = 2, feeRate = 2n } = {}) {
+        // CashScript contract inputs are larger due to unlocking script (redeem script + args)
+        // Approximate: ~300 bytes per contract input, ~148 bytes per P2PKH input
+        const CONTRACT_INPUT_SIZE = 300
+        const P2PKH_INPUT_SIZE = 148
+        const OUTPUT_SIZE = 34
+        const TX_OVERHEAD = 10
+
+        const estimatedSize = TX_OVERHEAD
+            + (numContractInputs * CONTRACT_INPUT_SIZE)
+            + (numP2pkhInputs * P2PKH_INPUT_SIZE)
+            + (numOutputs * OUTPUT_SIZE)
+
+        return BigInt(estimatedSize) * feeRate
+    }
+
+    /**
+     * Broadcasts a raw transaction hex via Watchtower.
+     * @param {string} txHex
+     * @returns {Promise<Object>}
+     */
+    async broadcastTransaction(txHex) {
+        console.log('[broadcastTransaction] Broadcasting transaction...')
+        return await (new Watchtower().broadcastTx(txHex))
+    }
+}
+
+export class TapToPayV1 extends TapToPay {
+    constructor (contractId, params = null) {
+        super(contractId)
+
+        if (contractId) {
+            const contract = MainnetContract.fromId(contractId);
+            const parameters = [];
+            contract.parameters.forEach((param) => {
+                parameters.push(Buffer(param).toString('hex'));
+            })
+
+            this.params = {
+                ownerPkh: parameters[0],
+                backendPkh: parameters[1],
+                category: parameters[2]
+            };
+        } else if (params) {
+            this.params = {
+                ownerPkh: params.ownerPkh,
+                backendPkh: params.backendPkh,
+                category: params.category
+            };
+        }
+    }
+
+    /**
+     * Contract creation parameters extracted from the on-chain contract.
+     * @returns {{ ownerPkh: string, backendPkh: string, category: string }}
+     */
+    get contractCreationParams () {
+        return {
+            ownerPkh: this.params.ownerPkh,
+            backendPkh: this.params.backendPkh,
+            category: this.params.category,
+        };
+    }
+
+    /**
+     * Builds and returns a CashScript contract instance.
+     * @returns {Contract}
+     */
+    getContract () {
+        const contractCreationParams = this.contractCreationParams
+        const contractParams = [
+            contractCreationParams.ownerPkh,
+            contractCreationParams.backendPkh,
+            contractCreationParams.category
+        ];
+
+        const contract = new Contract(artifact, contractParams)
+        return contract;
+    } 
+
     /**
      * Mutates authorization NFTs held by this contract.
      *
@@ -224,7 +292,7 @@ export class TapToPay {
             throw new Error('Sender public key hash does not match the owner public key hash');
         }
 
-        const tokenId = reverseHex(this.contractCreationParams.authCategory)
+        const tokenId = reverseHex(this.contractCreationParams.category)
         const tokenUtxos = await this.getTokenUtxos(tokenId, contract.tokenAddress)
 
         // Get the merchant hashes from the mutations
@@ -501,7 +569,7 @@ export class TapToPay {
             throw new Error('Owner public key hash does not match the contract\'s owner public key hash')
         }
 
-        const tokenId = reverseHex(this.contractCreationParams.authCategory)
+        const tokenId = reverseHex(this.contractCreationParams.category)
         const tokenUtxos = await this.getTokenUtxos(tokenId, contract.tokenAddress)
         const utxoToBurn = tokenUtxos.find(utxo => {
             const matchingTokenId = utxo.token.category === tokenId
@@ -574,29 +642,201 @@ export class TapToPay {
         return result
     }
 
-    estimateFee({ numContractInputs = 0, numP2pkhInputs = 0, numOutputs = 2, feeRate = 2n } = {}) {
-        // CashScript contract inputs are larger due to unlocking script (redeem script + args)
-        // Approximate: ~300 bytes per contract input, ~148 bytes per P2PKH input
-        const CONTRACT_INPUT_SIZE = 300
-        const P2PKH_INPUT_SIZE = 148
-        const OUTPUT_SIZE = 34
-        const TX_OVERHEAD = 10
+}
 
-        const estimatedSize = TX_OVERHEAD
-            + (numContractInputs * CONTRACT_INPUT_SIZE)
-            + (numP2pkhInputs * P2PKH_INPUT_SIZE)
-            + (numOutputs * OUTPUT_SIZE)
+export class TapToPayV2 extends TapToPay {
+    constructor (contractId, params = null) {
+        super(contractId)
 
-        return BigInt(estimatedSize) * feeRate
+        if (contractId) {
+            const contract = MainnetContract.fromId(contractId);
+            const parameters = [];
+            contract.parameters.forEach((param) => {
+                parameters.push(Buffer(param).toString('hex'));
+            })
+
+            this.params = {
+                backendPkh: parameters[0],
+                category: parameters[1]
+            };
+        } else if (params) {
+            this.params = {
+                backendPkh: params.backendPkh,
+                category: params.category
+            };
+        }
     }
 
     /**
-     * Broadcasts a raw transaction hex via Watchtower.
-     * @param {string} txHex
-     * @returns {Promise<Object>}
+     * Contract creation parameters extracted from the on-chain contract.
+     * @returns {{ backendPkh: string, category: string }}
      */
-    async broadcastTransaction(txHex) {
-        console.log('[broadcastTransaction] Broadcasting transaction...')
-        return await (new Watchtower().broadcastTx(txHex))
+    get contractCreationParams () {
+        return {
+            backendPkh: this.params.backendPkh,
+            category: this.params.category,
+        };
+    }
+
+    /**
+     * Builds and returns a CashScript contract instance.
+     * @returns {Contract}
+     */
+    getContract () {
+        const contractCreationParams = this.contractCreationParams
+        const contractParams = [
+            contractCreationParams.backendPkh,
+            reverseHex(contractCreationParams.category)
+        ];
+
+        const contract = new Contract(artifactV2, contractParams)
+        return contract;
+    }
+
+    async setOwnership (ownerWif, authCategory) {
+        const contract = this.getContract()
+        const ownerSig = new SignatureTemplate(ownerWif)
+        const ownerPk = binToHex(ownerSig.getPublicKey())
+        const ownerPkh = pubkeyToPkHash(ownerPk)
+        console.log('-----ownerPkh:', ownerPkh)
+
+        // get contract token utxos
+        const tokenId = this.contractCreationParams.category
+        const ownershipTokens = await this.getTokenUtxos(tokenId, contract.tokenAddress)
+        console.log('ownershipTokens:', ownershipTokens)  
+
+        if (ownershipTokens.length === 0 || ownershipTokens.length !== 2) {
+            throw new Error('Expected exactly 2 token UTXOs for setOwnership, but found ' + ownershipTokens.length)
+        }
+
+        // Construct the ownership token inputs
+        const sortedOwnershipTokens = []
+        // index[0] = pkh token
+        // index[1] = cat token
+
+        let pkhCategory, catCategory = ""
+        for (let i = 0; i < ownershipTokens.length; i++) {
+            const utxo = ownershipTokens[i]
+            // Get the linking token
+            const commitment = utxo.token.nft?.commitment
+            const decodedCommitment = decodeOwnershipCommitment(commitment)
+            console.log('decodedCommitment:', decodedCommitment)
+            if (decodedCommitment?.type === 'pkh') {
+                sortedOwnershipTokens[0] = utxo
+                pkhCategory = decodedCommitment.category
+            } else if (decodedCommitment?.type === 'cat') {
+                sortedOwnershipTokens[1] = utxo
+                catCategory = decodedCommitment.category
+            }
+        }
+
+        console.log('pkhCategory:', pkhCategory)
+        console.log('catCategory:', catCategory)
+
+        if (pkhCategory !==  catCategory) {
+            throw new Error('Ownership token categories do not match: pkhCategory=' + pkhCategory + ', catCategory=' + catCategory)
+        }
+
+        console.log('sortedOwnershipTokens:', sortedOwnershipTokens)
+        const linkingCategory = reverseHex(pkhCategory)
+
+        const wallet = await loadWallet()
+        const linkingTokens = await wallet.getTokenUtxos(linkingCategory, wallet.tokenAddress())
+        console.log('linkingTokens:', linkingTokens)
+
+        if (linkingTokens.length !== 1) {
+            throw new Error('Expected exactly 1 linking token UTXO for setOwnership, but found ' + linkingTokens.length)
+        }
+
+        const normalizedOwnershipTokens = sortedOwnershipTokens.map(utxo => ({
+            txid: utxo.txid,
+            vout: utxo.vout,
+            satoshis: toBigInt(utxo.satoshis || utxo.value),
+            token: utxo.token
+        }))
+
+        const normalizedLinkingToken = {
+            txid: linkingTokens[0].txid,
+            vout: linkingTokens[0].vout,
+            satoshis: toBigInt(linkingTokens[0].satoshis || linkingTokens[0].value),
+            token: linkingTokens[0].token
+        }
+
+        console.log('normalizedOwnershipTokens:', normalizedOwnershipTokens)
+        console.log('normalizedLinkingToken:', normalizedLinkingToken)
+
+        const estimatedFee = this.estimateFee({ 
+            numContractInputs: normalizedOwnershipTokens.length + 1, 
+            numP2pkhInputs: 1, 
+            numOutputs: 2 
+        })
+        const fundingUtxosResult = await this.getFundingInputs(estimatedFee)
+        const { 
+            cumulativeValue: fundingAmount, 
+            groupedUtxos: fundingUtxos, 
+            changeAddress 
+        } = fundingUtxosResult
+        const changeAmount = fundingAmount - estimatedFee
+
+        if (fundingAmount < BigInt(estimatedFee)) {
+            throw new Error('Insufficient BCH balance to cover fee for setOwnership')
+        }
+
+        console.log('fundingAmount:', fundingAmount)
+        console.log('fundingUtxos:', fundingUtxos)
+        console.log('changeAddress:', changeAddress)
+        console.log('changeAmount:', changeAmount)
+
+        const outputs = []
+
+        for (let i = 0; i < normalizedOwnershipTokens.length; i++) {
+            const utxo = normalizedOwnershipTokens[i]
+            const decodedOwnershipCommitment = decodeOwnershipCommitment(utxo.token.nft.commitment)
+            const holderType = decodedOwnershipCommitment.type
+            const valueHex = holderType === 'pkh' ? ownerPkh : reverseHex(authCategory)
+            console.log('---->>>>holderType:', holderType)
+            console.log('---->>>>valueHex:', valueHex)
+            const encodedCommitment = encodeLinkingCommitment({
+                holderType: holderType,
+                valueHex: valueHex
+            })
+            console.log('---->>>>encodedCommitment:', encodedCommitment)
+            const output = {
+                to: contract.tokenAddress,
+                amount: utxo.satoshis,
+                token: {
+                    amount: utxo.token.amount,
+                    category: utxo.token.category,
+                    nft: {
+                        capability: utxo.token.nft.capability,
+                        commitment: encodedCommitment
+                    }
+                }
+            }
+            outputs.push(output)
+        }
+
+        if (changeAmount > 0n) {
+            outputs.push({ to: changeAddress, amount: changeAmount });
+        }
+
+        const provider = new ElectrumNetworkProvider(Network.MAINNET)
+        const tx = new TransactionBuilder({provider})
+
+        tx.addInputs(normalizedOwnershipTokens, contract.unlock.setOwner(reverseHex(authCategory), ownerPk, ownerSig))
+        tx.addInput(normalizedLinkingToken, ownerSig.unlockP2PKH())
+        fundingUtxos.forEach(({ inputs, signatureTemplate }) => {
+            tx.addInputs(inputs, signatureTemplate.unlockP2PKH())
+        })
+        tx.addOutputs(outputs)
+
+        console.log('---------inputs:', tx.inputs)
+        console.log('---------outputs:', tx.outputs)
+
+        const txHex = tx.build()
+        console.log('txHex:', txHex)
+        // const result = await this.broadcastTransaction(txHex)
+        const result = await tx.send()
+        console.log('result:', result)
     }
 }
