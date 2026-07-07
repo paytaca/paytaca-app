@@ -913,7 +913,6 @@ export default {
   EscrowingFunds: "Депонирование средств",
   EstimatedFee: "Ориентировочная плата",
   EstimatedValue: "Оценочная стоимость",
-  EventsAndPromotions: "События и акции",
   Example: "Пример",
   ExceededBalanceError: "Превышение баланса {spendableBchValue}",
   ExceededFreeTierLimits: "Вы превысили лимиты бесплатного уровня.Обновитесь до Paytaca Plus, чтобы разблокировать более высокие лимиты и специальные функции.",

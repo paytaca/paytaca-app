@@ -913,7 +913,6 @@ export default {
   EscrowingFunds: "Ƙimar Kuɗi",
   EstimatedFee: "Ƙimar kuɗi",
   EstimatedValue: "Ƙimar Ƙimar",
-  EventsAndPromotions: "Abubuwan da ke faruwa da Ci gaba",
   Example: "Misali",
   ExceededBalanceError: "Wucewa ma'auni {spendableBchValue}",
   ExceededFreeTierLimits: "Kun ƙetare iyakokin matakin Kyauta.Haɓaka zuwa Paytaca Plus don buɗe iyakoki mafi girma da fasali na musamman.",

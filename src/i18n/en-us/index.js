@@ -918,7 +918,6 @@ export default {
   EscrowingFunds: "Escrowing Funds",
   EstimatedFee: "Estimated fee",
   EstimatedValue: "Estimated Value",
-  EventsAndPromotions: "Events and Promotions",
   Example: "Example",
   ExceededBalanceError: "Exceeding balance {spendableBchValue}",
   ExceededFreeTierLimits: "You have exceeded the limits of the Free tier. Upgrade to Paytaca Plus to unlock higher limits and special features.",

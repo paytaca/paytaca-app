@@ -914,7 +914,6 @@ export default {
   EscrowingFunds: "託管資金",
   EstimatedFee: "預計費用",
   EstimatedValue: "預估價值",
-  EventsAndPromotions: "活動和促銷",
   Example: "示例",
   ExceededBalanceError: "超出餘額 {spendableBchValue}",
   ExceededFreeTierLimits: "您已超出免費套餐的限制。升級到 Paytaca Plus 以解鎖更高的限制和特殊功能。",

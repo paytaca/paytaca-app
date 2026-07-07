@@ -913,7 +913,6 @@ export default {
   EscrowingFunds: "에스크로 자금",
   EstimatedFee: "예상 수수료",
   EstimatedValue: "추정 가치",
-  EventsAndPromotions: "이벤트 및 프로모션",
   Example: "예",
   ExceededBalanceError: "잔액 {spendableBchValue} 초과",
   ExceededFreeTierLimits: "무료 등급의 한도를 초과했습니다.더 높은 한도와 특수 기능을 잠금 해제하려면 Paytaca Plus로 업그레이드하세요.",
