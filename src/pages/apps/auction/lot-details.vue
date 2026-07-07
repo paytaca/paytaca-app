@@ -272,7 +272,7 @@
                     </div>
                   </div>
 
-                  <div v-if="!isAuthor && deliveryStatusId === 3 && refundCountdown && !isGrantedRefund" class="text-caption text-right q-mt-xs">
+                  <div v-if="showPostAuctionActions && !isAuthor && deliveryStatusId === 3 && refundCountdown && !isGrantedRefund" class="text-caption text-right q-mt-xs">
                     Time left for refund: {{ refundCountdown }}
                   </div>
 
