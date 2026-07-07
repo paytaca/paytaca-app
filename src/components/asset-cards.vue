@@ -46,7 +46,14 @@
           {{ asset.symbol }}
         </p>
       </div>
-      <div class="row items-end justify-end">
+      <div class="row items-end no-wrap justify-between">
+        <q-icon
+          v-if="asset.favorite === 1 || asset.favorite === true"
+          name="star"
+          size="14px"
+          class="favorite-star"
+        />
+        <div v-else></div>
         <div v-if="(!balanceLoaded && asset.id === selectedAsset.id) || refreshingTokenIds.includes(asset.id)" class="text-right">
           <q-skeleton type="rect" width="80px" height="18px" class="q-mb-none" />
           <template v-if="asset.id !== 'bch'">
@@ -66,9 +73,23 @@
           </div>
         </template>
       </div>
-      <button class="q-ml-sm" style="border: none; background-color: transparent"></button>
     </div>
     <!-- Manage button moved to inline with Tokens label in transaction/index.vue -->
+    
+    <!-- View more card when there are additional tokens beyond the subscription limit -->
+    <div
+      v-if="hasMoreTokens"
+      class="method-cards asset-card-border view-more-card q-mr-none"
+      @click="goToAssetList"
+      :style="{ 'margin-left': filteredFavAssets && filteredFavAssets.length > 0 ? '12px' : '0px' }"
+    >
+      <div class="row items-center no-wrap justify-center" style="height: 100%;">
+        <div class="text-center">
+          <q-icon name="format_list_bulleted" size="24px" class="q-mb-xs view-more-icon" />
+          <p class="view-more-label q-mb-none">View All</p>
+        </div>
+      </div>
+    </div>
     
   </div>
 </template>
@@ -101,6 +122,10 @@ export default {
       default: () => []
     },
     isCashToken: { type: Boolean },
+    hasMoreTokens: {
+      type: Boolean,
+      default: false
+    },
     currentLanguage: { type: String },
     currentCountry: { type: String },
     isLoadingInitial: {
@@ -169,14 +194,6 @@ export default {
     denomination () {
       return this.$store.getters['global/denomination']
     },
-    hasMoreTokens() {
-      if (this.customList) {
-        // Check if there are tokens that are not favorites
-        const nonFavoriteTokens = this.customList.filter(asset => asset && !this.favorites.includes(asset.id))
-        return nonFavoriteTokens.length > 0
-      }
-      return false
-    }
   },
   watch: {
     // For CashTokens on BCH, assets come from API with favorite field - no need to watch/save
@@ -320,18 +337,16 @@ export default {
       this.showAssetInfo(asset)
     },
     formatTokenCardBalance (asset) {
-      const base = parseAssetDenomination(this.denomination, { ...asset, excludeSymbol: true })
+      if (!asset || asset.id === 'bch') return parseAssetDenomination(this.denomination, { ...asset, excludeSymbol: true })
 
-      // Only apply rounding rule to token cards (not BCH) when the value is visually too long.
-      // The "too long" heuristic is based on formatted string length and presence of decimals.
-      if (!asset || asset.id === 'bch') return base
+      const decimals = asset.decimals || 0
+      const balance = Number(asset.balance || 0) / 10 ** decimals
 
-      const { decimal } = getLocaleSeparators()
-      const hasDecimalPart = typeof base === 'string' && base.includes(decimal)
-      const tooLong = typeof base === 'string' && base.length > 12 && hasDecimalPart && (asset.decimals || 0) > 2
-      if (!tooLong) return base
-
-      return parseAssetDenomination(this.denomination, { ...asset, excludeSymbol: true }, false, 0, 2)
+      for (let d = decimals; d >= 0; d--) {
+        const formatted = balance.toLocaleString('en-US', { maximumFractionDigits: d })
+        if (formatted.length <= 12) return formatted
+      }
+      return Math.round(balance).toLocaleString('en-US')
     },
     goToAssetList() {
       this.$router.push({ name: 'asset-list' })
@@ -356,7 +371,7 @@ export default {
       this.favResult = temp
       
       try { // temporary error handling to resolve temp being null
-        this.favorites = temp.filter(asset => asset.favorite === 1).map(asset => asset.id)
+        this.favorites = temp.filter(asset => asset.favorite === 1 || asset.favorite === true).map(asset => asset.id)
       } catch { }
     },
     formatAssetTokenAmount(asset) {
@@ -532,7 +547,9 @@ export default {
   .method-cards {
     min-height: 90px;
     height: auto;
-    min-width: 150px;
+    min-width: 140px;
+    max-width: 200px;
+    flex: 0 1 auto;
     border-radius: 16px;
     margin-bottom: 5px !important;
     padding: 12px !important;
@@ -545,6 +562,7 @@ export default {
     display: flex;
     flex-direction: column;
     justify-content: space-between;
+    overflow: hidden;
     
     .asset-symbol {
       overflow: hidden;
@@ -556,18 +574,25 @@ export default {
       line-height: 1.2;
       margin: 0;
     }
-    .asset-balance {
+
+    .text-right {
+      min-width: 0;
       overflow: hidden;
-      text-overflow: ellipsis;
-      color: #EAEEFF;
-      font-size: 18px;
-      font-weight: 600;
-      line-height: 1.2;
-      margin: 0;
     }
+  .asset-balance {
+    overflow: hidden;
+    text-overflow: clip;
+    white-space: nowrap;
+    color: #EAEEFF;
+    font-size: 18px;
+    font-weight: 600;
+    line-height: 1.2;
+    margin: 0;
+  }
     .asset-fiat-value {
       overflow: hidden;
-      text-overflow: ellipsis;
+      text-overflow: clip;
+      white-space: nowrap;
       color: #EAEEFF;
       font-size: 11px;
       font-weight: 400;
@@ -586,9 +611,55 @@ export default {
     pointer-events: auto; // keep horizontal scroll/pan working
     opacity: 0.95;
   }
+
+  .favorite-star {
+    color: #ffffff;
+    opacity: 0.5;
+  }
   .view-all-button {
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
+  }
+  .view-more-card {
+    min-height: 90px;
+    height: auto;
+    min-width: 110px;
+    border-radius: 16px;
+    margin-bottom: 5px !important;
+    margin-left: 12px;
+    padding: 12px !important;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    cursor: pointer;
+    user-select: none;
+    -webkit-user-select: none;
+    -moz-user-select: none;
+    -ms-user-select: none;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    gap: 6px;
+    border: 1.5px dashed rgba(255, 255, 255, 0.35);
+
+    &:hover {
+      border-color: rgba(255, 255, 255, 0.6);
+      background: rgba(128, 128, 128, 0.08);
+    }
+
+    .view-more-icon {
+      font-size: 22px;
+      color: #EAEEFF;
+      opacity: 0.7;
+    }
+
+    .view-more-label {
+      color: #EAEEFF;
+      opacity: 0.7;
+      font-size: 12px;
+      font-weight: 500;
+      line-height: 1.2;
+      text-align: center;
+    }
   }
 </style>

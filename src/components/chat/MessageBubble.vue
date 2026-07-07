@@ -63,7 +63,7 @@
           <q-icon :name="fileIcon" size="28px" class="file-icon" :style="{ color: themeColor }" />
           <div class="file-info">
             <div class="file-name">{{ message.fileName || getFileName(message.content) }}</div>
-            <div class="file-meta">{{ formatFileSize(message.fileSize || message.encryptedSize) }} • {{ message.fileType || 'File' }}</div>
+            <div class="file-meta">{{ formatFileSize(message.fileSize || message.encryptedSize) }} • {{ message.fileType || $t('File') }}</div>
           </div>
         </div>
         <div class="file-card-actions">
@@ -76,7 +76,7 @@
             :loading="isDownloading"
             @click.stop="downloadFile"
           >
-            <q-tooltip>Download</q-tooltip>
+            <q-tooltip>{{ $t('Download') }}</q-tooltip>
           </q-btn>
         </div>
       </div>
@@ -92,10 +92,10 @@
         >
           <div class="payment-amount-row">
             <q-icon name="img:bitcoin-cash-circle.svg" size="22px" />
-            <span class="payment-amount">{{ markup.amount }} BCH</span>
+            <span class="payment-amount">{{ markup.amount }} {{ markup.symbol || 'BCH' }}</span>
           </div>
           <div v-if="markup.txid" class="payment-txid">
-            <span class="txid-label">TXID</span>
+            <span class="txid-label">{{ $t('TXID') }}</span>
             <span class="txid-value">{{ formatTxid(markup.txid) }}</span>
             <q-icon name="chevron_right" size="16px" class="payment-chevron" />
           </div>
@@ -263,6 +263,55 @@ export async function clearChatCache() {
   }
 }
 
+export async function hasChatCache() {
+  try {
+    if (_imageThumbnailCache.size > 0 || _replyThumbnailCache.size > 0) return true
+    const db = await openDatabase()
+    return await new Promise((resolve) => {
+      const tx = db.transaction(STORE_NAME, 'readonly')
+      const store = tx.objectStore(STORE_NAME)
+      const countReq = store.count()
+      countReq.onsuccess = () => resolve(countReq.result > 0)
+      countReq.onerror = () => resolve(false)
+    })
+  } catch {
+    return false
+  }
+}
+
+export async function getChatCacheSize () {
+  try {
+    let totalChars = 0
+    for (const url of _imageThumbnailCache.values()) {
+      totalChars += typeof url === 'string' ? url.length : 0
+    }
+    for (const url of _replyThumbnailCache.values()) {
+      totalChars += typeof url === 'string' ? url.length : 0
+    }
+    const db = await openDatabase()
+    const dbSize = await new Promise((resolve) => {
+      const tx = db.transaction(STORE_NAME, 'readonly')
+      const store = tx.objectStore(STORE_NAME)
+      const cursorReq = store.openCursor()
+      cursorReq.onsuccess = () => {
+        const cursor = cursorReq.result
+        if (cursor) {
+          const val = cursor.value
+          if (val?.thumbnailUrl) totalChars += val.thumbnailUrl.length
+          cursor.continue()
+        } else {
+          resolve(totalChars)
+        }
+      }
+      cursorReq.onerror = () => resolve(totalChars)
+    })
+    const approxBytes = dbSize * 0.75
+    return approxBytes
+  } catch {
+    return 0
+  }
+}
+
 function evictOldestThumbnail() {
   if (_imageThumbnailCache.size >= MAX_THUMBNAIL_CACHE_SIZE) {
     const firstKey = _imageThumbnailCache.keys().next().value
@@ -285,6 +334,7 @@ export default {
     myPubKey: { type: String, default: '' },
     showSenderName: { type: Boolean, default: false },
     contacts: { type: Array, default: () => [] },
+    displayNames: { type: Object, default: () => ({}) },
     isRead: { type: Boolean, default: true },
     readByNames: { type: Array, default: () => [] },
     isNew: { type: Boolean, default: false },
@@ -296,7 +346,6 @@ export default {
     data () {
       return {
         expandedReaction: null,
-        now: Date.now(),
         // pointer long-press state
         _pressTimer: null,
         _pressStartX: 0,
@@ -311,7 +360,6 @@ export default {
       }
     },
     mounted () {
-      this._timer = setInterval(() => { this.now = Date.now() }, 1000)
       if (this.isImageFile && this.message.aesKeyHex && this.message.nonceHex) {
         // Check if thumbnail is already cached
         const cacheKey = this.message.id || this.message.content
@@ -332,7 +380,6 @@ export default {
     },
    beforeUnmount () {
      this._unmounted = true
-     clearInterval(this._timer)
      if (this._imgObserver) {
        this._imgObserver.disconnect()
        this._imgObserver = null
@@ -361,12 +408,18 @@ export default {
     },
     senderName () {
       const contact = this.contacts.find(c => c.pubKeyHex === this.message.sender)
-      return contact?.name || this.message.sender?.slice(0, 12) + '...'
+      if (contact?.name) return contact.name
+      const displayName = this.displayNames[this.message.sender]
+      if (displayName) return displayName
+      return this.message.sender?.slice(0, 12) + '...'
     },
     replySenderName () {
       if (!this.replyToMessage) return ''
       const contact = this.contacts.find(c => c.pubKeyHex === this.replyToMessage.sender)
-      return contact?.name || this.replyToMessage.sender?.slice(0, 12) + '...'
+      if (contact?.name) return contact.name
+      const displayName = this.displayNames[this.replyToMessage.sender]
+      if (displayName) return displayName
+      return this.replyToMessage.sender?.slice(0, 12) + '...'
     },
     replySnippet () {
       if (!this.replyToMessage) return ''
@@ -415,7 +468,7 @@ export default {
         if (!groups[r.emoji]) groups[r.emoji] = { emoji: r.emoji, count: 0, reactors: [], isRemovable: false }
         groups[r.emoji].count++
         groups[r.emoji].reactors.push({ pubKey: r.reactorPubKey, createdAt: r.createdAt })
-        if (r.reactorPubKey === this.myPubKey && this.now - (r.createdAt || 0) < 30000) {
+        if (r.reactorPubKey === this.myPubKey && Date.now() - (r.createdAt || 0) < 30000) {
           groups[r.emoji].isRemovable = true
         }
       }
@@ -586,11 +639,14 @@ export default {
     reactorName (pubKey) {
       if (pubKey === this.myPubKey) return this.$t('You', {}, 'You')
       const contact = this.contacts.find(c => c.pubKeyHex === pubKey)
-      return contact?.name || pubKey.slice(0, 12) + '...'
+      if (contact?.name) return contact.name
+      const displayName = this.displayNames[pubKey]
+      if (displayName) return displayName
+      return pubKey.slice(0, 12) + '...'
     },
     canRemoveReaction (reactor) {
       if (reactor.pubKey !== this.myPubKey) return false
-      return this.now - (reactor.createdAt || 0) < 30000
+      return Date.now() - (reactor.createdAt || 0) < 30000
     },
     onReactionClick (reactor) {
       if (reactor.pubKey === this.myPubKey && this.canRemoveReaction(reactor)) {
@@ -599,7 +655,7 @@ export default {
       }
     },
     getFileName (url) {
-      if (!url) return 'Unknown file'
+      if (!url) return this.$t('UnknownFile')
       const parts = url.split('/')
       const lastPart = parts[parts.length - 1]
       // If it's a hash, add extension based on type
@@ -607,7 +663,7 @@ export default {
         const ext = this.getFileExtension()
         return `file${ext}`
       }
-      return lastPart || 'Unknown file'
+      return lastPart || this.$t('UnknownFile')
     },
     formatFileSize (bytes) {
       if (!bytes || bytes < 1024) return (bytes || 0) + ' B'

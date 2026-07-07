@@ -49,6 +49,7 @@ module.exports = defineConfig((ctx) => {
       'walletconnect',
       'keyboard',
       'deep-link',
+      'nostr-chat',
       'directives',
     ],
 

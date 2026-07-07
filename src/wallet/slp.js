@@ -25,9 +25,19 @@ export class SlpWallet {
   }
 
   async _getMasterHDNode () {
+    if (this._masterHDNodeCache && this._masterHDNodeExpiry > Date.now()) {
+      return this._masterHDNodeCache
+    }
+    this._masterHDNodeCache = null
     const seedBuffer = await bchjs.Mnemonic.toSeed(this.mnemonic)
-    const masterHDNode = bchjs.HDNode.fromSeed(seedBuffer)
-    return masterHDNode
+    this._masterHDNodeCache = bchjs.HDNode.fromSeed(seedBuffer)
+    this._masterHDNodeExpiry = Date.now() + 3600000
+    return this._masterHDNodeCache
+  }
+
+  clearMasterHDNodeCache () {
+    this._masterHDNodeCache = null
+    this._masterHDNodeExpiry = 0
   }
 
   async getXPubKey () {
@@ -193,6 +203,7 @@ export class SlpWallet {
     let changeDone = false
     let currentIndex = 0
     let totalScanned = 0
+    const scanAddressSets = []
 
     while (totalScanned < maxScans && !(receivingDone && changeDone)) {
       const batchEnd = Math.min(currentIndex + batchSize, maxScans)
@@ -204,6 +215,10 @@ export class SlpWallet {
           address_index: i,
           receiving: addresses.receiving,
           change: addresses.change,
+        })
+        scanAddressSets.push({
+          address_index: i,
+          addresses: { receiving: addresses.receiving, change: addresses.change },
         })
       }
 
@@ -292,12 +307,18 @@ export class SlpWallet {
           phase: 'subscribing',
         })
       }
-      const subscribeResult = await this.scanAddresses({
-        startIndex: 0,
-        count: subscribeCount,
-      })
-      if (subscribeResult.success) {
+
+      const subscribePayload = {
+        address_sets: scanAddressSets.slice(0, subscribeCount),
+        wallet_hash: this.walletHash,
+        project_id: this.projectId,
+      }
+
+      try {
+        await this.watchtower.BCH._api.post('wallet/address-scan/', subscribePayload)
         result.subscribed = subscribeCount
+      } catch (error) {
+        result.error = error?.message || String(error)
       }
     }
 

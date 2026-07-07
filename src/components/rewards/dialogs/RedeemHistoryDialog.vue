@@ -13,7 +13,7 @@
       <div class="row justify-between items-center q-pa-md" :class="getDarkModeClass(darkMode)">
         <div class="row items-center q-gutter-sm">
           <q-icon name="history" size="28px" color="primary" />
-          <span class="text-h6 text-weight-bold">Redemption History</span>
+          <span class="text-h6 text-weight-bold">{{ $t('RedemptionHistory') }}</span>
         </div>
         <q-btn
           flat
@@ -48,17 +48,17 @@
         </template>
 
         <!-- Error State -->
-        <ErrorCard
+        <error-card
           v-else-if="hasError"
-          error-text="Failed to load redemption history"
+          :error-text="$t('RedemptionHistoryError')"
           @on-retry="fetchRedemptionHistory"
         />
 
         <!-- Empty State -->
         <div v-else-if="redemptions.length === 0" class="empty-state q-pa-xl text-center">
           <q-icon name="redeem" size="64px" class="text-bow-muted q-mb-md" :class="getDarkModeClass(darkMode)" />
-          <div class="text-subtitle1 text-bow-muted q-mb-sm">No redemptions yet</div>
-          <div class="text-body2 text-bow-muted">Start redeeming your points to see them here</div>
+          <div class="text-subtitle1 text-bow-muted q-mb-sm">{{ $t('EmptyRedemptionHistoryTitle') }}</div>
+          <div class="text-body2 text-bow-muted">{{ $t('EmptyRedemptionHistoryBody') }}</div>
         </div>
 
         <!-- Redemption List -->
@@ -83,7 +83,7 @@
                 <!-- Primary Info Row -->
                 <div class="row items-center justify-between">
                   <q-item-label class="text-weight-bold text-body1">
-                    -{{ formatNumber(redemption.redeemed_points) }} pts
+                    -{{ $t('CountPoints', { points: formatNumber(redemption.redeemed_points) }) }}
                   </q-item-label>
                   <q-item-label caption :class="darkMode ? 'text-grey-6' : 'text-grey-8'">
                     {{ formatDateLocaleRelative(redemption.redeemed_date, false) }}
@@ -106,7 +106,7 @@
 
                 <q-item-label caption class="q-mt-xs">
                   <span :class="darkMode ? 'text-grey-6' : 'text-grey-8'">
-                    LIFT Received: {{ formatNumber(redemption.lift_received) }} LIFT
+                    {{ $t('LiftReceived') }}: {{ formatNumber(redemption.lift_received) }} LIFT
                   </span>
                 </q-item-label>
 
@@ -118,7 +118,7 @@
                     class="monthly-badge"
                   >
                     <q-icon name="info" size="12px" class="q-mr-xs" />
-                    Max {{ formatNumber(redemption.month_max) }} pts/mo
+                    {{ $t('MaxPointsPerMonth', { points: formatNumber(redemption.month_max) }) }}
                   </q-badge>
                 </q-item-label>
               </q-item-section>
@@ -135,7 +135,7 @@
               class="load-more-btn"
             >
               <q-icon name="expand_more" class="q-mr-sm" />
-              Load More
+              {{ $t('LoadMore') }}
             </q-btn>
           </div>
 
@@ -143,7 +143,7 @@
           <div v-else-if="redemptions.length > 0 && !hasMoreData" class="text-center q-pa-md end-of-list">
             <q-icon name="check_circle" size="24px" color="positive" />
             <span class="text-caption q-ml-sm" :class="darkMode ? 'text-grey-6' : 'text-grey-8'">
-              All redemptions loaded
+              {{ $t('AllRedemptionsLoaded') }}
             </span>
           </div>
         </template>

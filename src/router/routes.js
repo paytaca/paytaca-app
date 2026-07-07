@@ -310,6 +310,7 @@ const routes = [
           {
             path: '',
             name: 'app-rewards',
+            props: route => route.query,
             component: () => import('src/pages/apps/rewards/index.vue'),
           },
           {

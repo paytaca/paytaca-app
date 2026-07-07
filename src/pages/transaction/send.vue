@@ -625,6 +625,7 @@ export default {
         isLegacyAddress: false,
         isWalletAddress: false,
         cashbackData: null,
+        merchantData: null,
         incorrectAddress: false,
         cauldron: {
           enable: false,
@@ -691,7 +692,14 @@ export default {
       return this.$store.getters['global/denomination']
     },
     backNavigationPath () {
-      if (this.backPath) return this.backPath
+      if (this.backPath) {
+        const [path, queryString] = this.backPath.split('?')
+        if (queryString) {
+          const query = Object.fromEntries(new URLSearchParams(queryString))
+          return { path, query }
+        }
+        return this.backPath
+      }
       return '/'
     },
     theme () {
@@ -1346,6 +1354,9 @@ export default {
           const response = await getCashbackAmount(payload)
           currentInputExtras.cashbackData = response
         }
+
+        // Look up merchant by address
+        vm.lookupMerchantForCurrentRecipient()
       }
     },
 
@@ -1437,6 +1448,73 @@ export default {
     // jpp
     async onJppPaymentSucess () {
       this.$forceUpdate()
+      const txid = this.jpp?.txids?.[0]
+      if (!txid) return
+      
+      this.txid = txid
+      this.txTimestamp = Date.now()
+
+      // Set amount and recipient data from JPP so showSendSuccess displays correctly
+      const totalSats = this.jpp?.totalSendAmountSats ?? this.jpp?.total ?? 0
+      if (totalSats > 0) {
+        const bchAmount = totalSats / 10 ** 8
+        this.totalAmountSent = bchAmount
+        this.totalFiatAmountSent = Number(this.convertToFiatAmount(bchAmount))
+      }
+      if (this.jpp?.parsed?.outputs?.length) {
+        const walletAddress = sendPageUtils.getWallet('bch')?.lastAddress
+        this.recipients = this.jpp.parsed.outputs.map((output) => {
+          const amountBch = (output.amount || 0) / 10 ** 8
+          return {
+            amount: amountBch,
+            fiatAmount: this.convertToFiatAmount(amountBch),
+            fixedAmount: true,
+            recipientAddress: output.address ?? '',
+            paymentAckMemo: ''
+          }
+        })
+        this.inputExtras = this.jpp.parsed.outputs.map((output) => {
+          const [, , isWalletAddress] = sendPageUtils.addressPrechecks(
+            output.address ?? '',
+            [],
+            walletAddress
+          )
+          const amountBch = (output.amount || 0) / 10 ** 8
+          return {
+            amountFormatted: formatWithLocale(amountBch, this.decimalObj(false)),
+            fiatFormatted: formatWithLocale(
+              this.convertToFiatAmount(amountBch),
+              this.decimalObj(true)
+            ),
+            balanceExceeded: false,
+            setMax: false,
+            emptyRecipient: false,
+            selectedDenomination: this.denomination,
+            isBip21: false,
+            isLegacyAddress: false,
+            isWalletAddress,
+            cashbackData: null,
+            merchantData: null,
+            incorrectAddress: false
+          }
+        })
+      }
+      
+      // Show send success only for consolidation (own-wallet) sends; otherwise go to transaction detail.
+      const isConsolidation = await this.checkConsolidationViaAddressInfo()
+
+      if (isConsolidation) {
+        this.showSendSuccess()
+      } else {
+        // Redirect to transaction detail with state so it can show tx before watchtower indexes
+        const { route, query, state } = this.buildTransactionDetailState(txid, { timestamp: this.txTimestamp })
+        this.$router.push({
+          name: route,
+          params: { txid },
+          query,
+          state
+        })
+      }
     },
 
     // bip21
@@ -1704,6 +1782,7 @@ export default {
           cashbackData: null,
           incorrectAddress: false,
           cauldron: { enable: false, token: null, amountFormatted: '' },
+          merchantData: null,
         })
         this.currentWalletBalances.push({ balance: 0, assetId: this.asset.id })
         this.adjustWalletBalance();
@@ -1846,16 +1925,23 @@ export default {
         try {
           vm.sending = true
           vm.sliderStatus = false;
-          const broadcastResult = await executeSendWithCauldron({
-            asset: vm.asset,
-            recipients: vm.recipients,
-            inputExtras: vm.inputExtras,
-            tradeResults: vm.tradeResults,
-            bchWallet: getWalletByNetwork(vm.wallet, 'bch'),
-          });
+          const cauldronBalanceBefore = { balance: vm.asset.balance, spendable: vm.asset.spendable }
+          const broadcastResult = await sendPageUtils.withTimeout(
+            executeSendWithCauldron({
+              asset: vm.asset,
+              recipients: vm.recipients,
+              inputExtras: vm.inputExtras,
+              tradeResults: vm.tradeResults,
+              bchWallet: getWalletByNetwork(vm.wallet, 'bch'),
+            })
+          );
           vm.submitPromiseResponseHandler(broadcastResult, vm.walletType);
         } catch(error) {
-          vm.handleCauldronError(error);
+          if (error?.message === 'Broadcast request timed out') {
+            vm.handleBroadcastError(error, cauldronBalanceBefore)
+          } else {
+            vm.handleCauldronError(error);
+          }
         } finally {
           vm.sending = false;
           vm.sliderStatus = true;
@@ -1934,9 +2020,13 @@ export default {
             }
           }
 
-          getWalletByNetwork(vm.wallet, 'bch')
-            .sendBch(0, '', changeAddress, token, undefined, toSendBchRecipients, priceIdToUse, fiatAmounts, fiatCurrency)
+          const bchBalanceBefore = { balance: vm.asset.balance, spendable: vm.asset.spendable }
+          sendPageUtils.withTimeout(
+            getWalletByNetwork(vm.wallet, 'bch')
+              .sendBch(0, '', changeAddress, token, undefined, toSendBchRecipients, priceIdToUse, fiatAmounts, fiatCurrency)
+          )
             .then(result => vm.submitPromiseResponseHandler(result, vm.walletType))
+            .catch(error => vm.handleBroadcastError(error, bchBalanceBefore))
         } else if (toSendSlpRecipients.length > 0) {
           const tokenId = vm.assetId.split('slp/')[1]
           const bchWallet = sendPageUtils.getWallet('bch')
@@ -1951,9 +2041,13 @@ export default {
             slp: await sendPageUtils.getChangeAddress('slp')
           }
   
-          getWalletByNetwork(vm.wallet, 'slp')
-            .sendSlp(tokenId, vm.tokenType, feeFunder, changeAddresses, toSendSlpRecipients)
+          const slpBalanceBefore = { balance: vm.asset.balance, spendable: vm.asset.spendable }
+          sendPageUtils.withTimeout(
+            getWalletByNetwork(vm.wallet, 'slp')
+              .sendSlp(tokenId, vm.tokenType, feeFunder, changeAddresses, toSendSlpRecipients)
+          )
             .then(result => vm.submitPromiseResponseHandler(result, vm.walletType))
+            .catch(error => vm.handleBroadcastError(error, slpBalanceBefore))
         }
       } else {
         vm.sending = false
@@ -2099,6 +2193,15 @@ export default {
     onQRScannerClick (value) {
       this.showQrScanner = value
     },
+    async lookupMerchantForCurrentRecipient () {
+      const currentRecipient = this.recipients[this.currentRecipientIndex]
+      const address = currentRecipient?.recipientAddress
+      if (!address) return
+      const valid = this.checkAddressValidity(address)
+      if (!valid) return
+      const merchantData = await sendPageUtils.lookupMerchantByAddress(address, this.isChipnet)
+      this.inputExtras[this.currentRecipientIndex].merchantData = merchantData
+    },
     onRecipientInput (value) {
       const [isLegacy, isDuplicate, isWalletAddress] = sendPageUtils.addressPrechecks(
         value ?? '',
@@ -2115,10 +2218,14 @@ export default {
       this.recipients[this.currentRecipientIndex].recipientAddress = value
       this.inputExtras[this.currentRecipientIndex].emptyRecipient = value === ''
       this.inputExtras[this.currentRecipientIndex].incorrectAddress = false
+      this.inputExtras[this.currentRecipientIndex].merchantData = null
       this.updateAddressPrecheckValues(isLegacy, isWalletAddress)
     },
     onEmptyRecipient (value) {
       this.inputExtras[this.currentRecipientIndex].emptyRecipient = value
+      if (!value) {
+        this.lookupMerchantForCurrentRecipient()
+      }
     },
     onSelectedDenomination (value) {
       this.inputExtras[this.currentRecipientIndex].selectedDenomination = value.denomination
@@ -2462,7 +2569,7 @@ export default {
         } else {
           // Redirect to transaction detail with state so it can show tx before watchtower indexes
           const { route, query, state } = vm.buildTransactionDetailState(result.txid, { timestamp: vm.txTimestamp })
-          vm.$router.push({
+          await vm.$router.push({
             name: route,
             params: { txid: result.txid },
             query,
@@ -2474,15 +2581,13 @@ export default {
             ref_id: hexToRef(result.txid.substring(0, 6)),
             tx_id: result.txid,
             customer_address: sendPageUtils.getWallet('bch')?.lastAddress,
-            merchant_address: this.recipients[0].recipientAddress
+            merchant_address: this.recipients[0].recipientAddress,
+            bch_spent: Number(this.recipients[0].amount)
           }).then(resp => {
             if (resp) {
               vm.$q.dialog({
                 component: PointsReceivedDialog,
                 componentProps: {
-                  isFirstSevenTx: resp.is_first_seven_tx,
-                  hasReceivedFirstTxBonus: resp.has_received_first_tx_bonus,
-                  isMerchantOtcTx: true,
                   merchantName: resp.merchant_name ?? ''
                 }
               })
@@ -2492,6 +2597,55 @@ export default {
           })
         }
       } else sendPageUtils.submitPromiseErrorResponseHandler(result, walletType)
+    },
+
+    async handleBroadcastError (error, balanceBefore) {
+      const vm = this
+      vm.sending = false
+      vm.sliderStatus = true
+
+      const errorMessage = error?.message || ''
+      const isTimeout = errorMessage === 'Broadcast request timed out'
+
+      if (isTimeout) {
+        raiseNotifyError(vm.$t('BroadcastTimedOut', {}, 'Broadcast timed out. The backend took too long to respond.'))
+      } else if (errorMessage) {
+        console.warn('[Send] Broadcast error:', error)
+        raiseNotifyError(vm.$t('BroadcastFailed', {}, 'Broadcast failed') + ': ' + errorMessage)
+      }
+
+      // Check if the transaction was actually broadcast despite the error/timeout
+      const txSent = await vm.checkIfTransactionWasBroadcast(balanceBefore)
+      if (txSent) {
+        raiseNotifyError(vm.$t('TxAlreadySent', {}, 'The transaction was already sent. Please check your balance.'))
+      }
+    },
+
+    async checkIfTransactionWasBroadcast (balanceBefore) {
+      try {
+        await updateAssetBalanceOnLoad(this.assetId, this.wallet, this.$store)
+        const refreshed = sendPageUtils.getAsset(this.assetId, this.symbol)
+        const currentBalance = Number(refreshed?.balance ?? this.asset.balance)
+        const prevBalance = Number(balanceBefore?.balance ?? 0)
+
+        if (prevBalance === 0) {
+          // For a zero-balance wallet, check if the balance increased (receive-change scenario)
+          // or check the mempool for the pending transaction
+          if (currentBalance > 0) return true
+          try {
+            const watchtower = new Watchtower(this.isChipnet)
+            const txs = await watchtower.BCH.getTransactions({ address: sendPageUtils.getWallet('bch')?.lastAddress })
+            return txs?.length > 0
+          } catch {
+            return false
+          }
+        }
+
+        return currentBalance < prevBalance
+      } catch (err) {
+        console.warn('[Send] Failed to check balance after broadcast error:', err)
+        return false
+      }
     },
 
     // uncategorized

@@ -3,10 +3,13 @@ import axios from 'axios'
 import { Store } from 'src/store'
 import { convertCashAddress } from 'src/wallet/chipnet'
 import { getWalletHash } from 'src/utils/engagementhub-utils/shared'
+import { requestManager } from 'src/utils/request-manager'
 
 const ENGAGEMENT_HUB_URL =
   process.env.ENGAGEMENT_HUB_URL || 'https://engagementhub.paytaca.com/api/'
+// const ENGAGEMENT_HUB_URL = 'http://127.0.0.1:8000/api/'
 export const REWARDS_URL = axios.create({ baseURL: `${ENGAGEMENT_HUB_URL}rewards/` })
+requestManager.attachTo(REWARDS_URL)
 export const PROMO_TOKEN_CATEGORY = process.env.PROMO_TOKEN_CATEGORY
 export const PROMO_TOKEN_DECIMALS = 2
 
@@ -51,14 +54,14 @@ export async function getWalletTokenAddress (use0thAddressIndex=false) {
 
 // ========== reusable functions ==========
 
-async function processPoints (url, data) {
+async function processPoints (url, data, skipAbortManager=false) {
   return await REWARDS_URL
-    .post(url, data)
+    .post(url, data, skipAbortManager ? { skipAbortManager: true } : undefined)
     .then(response => {
       if (response.status === 200) return response.data
       else return null
     })
-    .catch(_error => { return null })
+    .catch(() => { return null })
 }
 
 async function getData (url) {
@@ -70,7 +73,9 @@ async function getData (url) {
       else return null
     })
     .catch(error => {
-      console.error(error)
+      if (!error?.message?.includes('aborted')) {
+        console.error(error)
+      }
       if (error?.message.includes('404')) return {}
       else return null
     })
@@ -81,7 +86,9 @@ async function createData (url) {
     .post(url)
     .then(response => { return response.data })
     .catch(error => {
-      console.error(error)
+      if (!error?.message?.includes('aborted')) {
+        console.error(error)
+      }
       return null
     })
 }
@@ -94,7 +101,9 @@ async function updateData (url, data) {
       else return null
     })
     .catch(error => {
-      console.error(error)
+      if (!error?.message?.includes('aborted')) {
+        console.error(error)
+      }
       return null
     })
 }
@@ -108,7 +117,9 @@ async function postFetchData (url, data) {
       else return null
     })
     .catch(error => {
-      console.error(error)
+      if (!error?.message?.includes('aborted')) {
+        console.error(error)
+      }
       if (error?.message.includes('404')) return {}
       else return null
     })
@@ -135,11 +146,16 @@ export async function getRpMaxRedeemable () {
 }
 
 export async function getLiftConversionRatio () {
-  const conversionRatio = await getData('userpromo/get_lift_convertion_ratio/')
+  const resp = await getData('userpromo/get_lift_convertion_ratio/')
   // fallback to original value of 4 when something goes wrong with server fetch
-  return conversionRatio && Object.keys(conversionRatio).length > 0
-    ? conversionRatio.conversion_ratio
+  const conversionRatio = resp && Object.keys(resp).length > 0
+    ? resp.conversion_ratio
     : 4
+  const eligibilityDate = resp && Object.keys(resp).length > 0
+    ? resp.eligibility_date
+    : new Date('2026-07-01T00:00:00Z') // July 01, 2026
+
+  return { conversionRatio, eligibilityDate }
 }
 
 export async function getRewardsSwapContractDetails () {
@@ -174,7 +190,7 @@ export async function updateUserRewardsData(id, data) {
 }
 
 export async function updateRfPromoData (id, data) {
-  await updateData(`rfpromo/${id}/`, data)
+  return await updateData(`rfpromo/${id}/`, data)
 }
 
 // ========== other functions ==========
@@ -222,7 +238,7 @@ export async function processRampCashinPoints (data) {
 }
 
 export async function processCauldronPoints (data) {
-  return await processPoints('userreward/process_cauldron_points/', data)
+  return await processPoints('userreward/process_cauldron_points/', data, true)
 }
 
 export async function processEloadPoints (data) {

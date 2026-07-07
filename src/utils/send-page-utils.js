@@ -336,6 +336,14 @@ export function paymentUriPromiseResponseHandler (error, opts = { defaultError: 
   }
 }
 
+export function withTimeout (promise, ms = 120000) {
+  let timer
+  const timeout = new Promise((_, reject) => {
+    timer = setTimeout(() => reject(new Error('Broadcast request timed out')), ms)
+  })
+  return Promise.race([promise, timeout]).finally(() => clearTimeout(timer))
+}
+
 export function submitPromiseErrorResponseHandler (result, walletType) {
   if (result.error.indexOf('not enough balance in sender') > -1) {
     if (walletType === 'bch') raiseNotifyError($t('NotEnoughForBoth'))
@@ -399,6 +407,32 @@ export async function addressBelongsToWallet (address, walletHashHex, isChipnet)
     return ourDigest.toLowerCase() === String(apiDigest).toLowerCase()
   } catch {
     return false
+  }
+}
+
+/**
+ * Look up merchant info associated with a BCH cash address.
+ * @param {string} address - BCH cash address
+ * @param {boolean} isChipnet - Whether chipnet/mainnet
+ * @returns {Promise<{name:string, logo:string, logoData:string, verified:boolean}|null>} Merchant data or null
+ */
+export async function lookupMerchantByAddress (address, isChipnet) {
+  if (!address) return null
+  const baseUrl = getWatchtowerApiUrl(isChipnet)
+  const url = `${baseUrl}/paytacapos/merchants/vault_address/`
+  try {
+    const { data } = await axios.post(url, { address }, { timeout: 10000 })
+    if (data?.name) {
+      return {
+        name: data.name,
+        logo: data?.logos?.['60x60'] || '',
+        logoData: data.logo_data || '',
+        verified: Boolean(data.verified)
+      }
+    }
+    return null
+  } catch {
+    return null
   }
 }
 

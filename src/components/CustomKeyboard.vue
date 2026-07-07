@@ -110,7 +110,7 @@ export default {
   z-index: 9000;
 }
 .pt-keyboard-container {
-  height: 250px;
+  height: calc(250px + env(safe-area-inset-bottom, 0px));
   background: #fff;
 }
 .br-top-15 {
@@ -120,6 +120,7 @@ export default {
 .pt-custom-keyboard-row {
   width: 100%;
   color: #515151;
+  padding-bottom: env(safe-area-inset-bottom, 0px);
 }
 .pt-key-num {
   height: 45px;

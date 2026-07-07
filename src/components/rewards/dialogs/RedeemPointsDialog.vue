@@ -16,7 +16,7 @@
       <div class="row justify-between items-center q-mb-sm dialog-header">
         <div class="row items-center q-gutter-sm">
           <q-icon name="card_giftcard" size="28px" color="primary" />
-          <span class="text-h6 text-weight-bold">{{ $t('RedeemPoints', 'Redeem Points') }}</span>
+          <span class="text-h6 text-weight-bold">{{ $t('RedeemPoints') }}</span>
         </div>
         <q-btn
           flat
@@ -79,7 +79,7 @@
               :class="darkMode ? 'bg-dark-3' : 'bg-grey-2'"
             >
               <div class="text-caption text-uppercase q-mb-xs" :class="darkMode ? 'text-grey-6' : 'text-grey-8'">
-                {{ $t('RemainingPoints', 'Remaining Points') }}
+                {{ $t('RemainingPoints') }}
               </div>
               <div class="row flex-center">
                 <span 
@@ -92,7 +92,7 @@
                   class="text-subtitle1 text-weight-bold q-ml-sm"
                   :class="darkMode ? 'text-grey-6' : 'text-grey-8'"
                 >
-                  points
+                  {{ $t('PointsLower') }}
                 </span>
               </div>
 
@@ -103,7 +103,7 @@
                 </span>
                 <span v-if="liftFiatPrice && !priceError"> ≈ {{ formattedRemainingFiat }}</span>
                 <span v-else-if="priceError" :class="darkMode ? 'text-red-5' : 'text-negative'">
-                  <q-icon name="error" size="xs" class="q-mr-xs" /> Price unavailable
+                  <q-icon name="error" size="xs" class="q-mr-xs" /> {{ $t('PriceUnavailable') }}
                 </span>
               </div>
 
@@ -111,13 +111,13 @@
               <div v-if="redeemablePoints" class="promo-limit-section q-mt-md">
                 <div class="row justify-between items-center q-mb-xs">
                   <span class="text-caption" :class="darkMode ? 'text-grey-7' : 'text-grey-7'">
-                    {{ $t('PromoLimit', 'Promo Limit') }}
+                    {{ $t('PromoLimit') }}
                   </span>
                   <span 
                     class="text-caption text-weight-medium"
                     :class="promoLimitExceeded ? 'text-negative' : 'text-positive'"
                   >
-                    {{ Math.max(0, redeemablePoints - Number(pointsToRedeem || 0)) }} points remaining
+                    {{ $t('CountPointsRemaining', { points: Math.max(0, redeemablePoints - Number(pointsToRedeem || 0)) }) }}
                   </span>
                 </div>
                 <q-linear-progress
@@ -129,7 +129,7 @@
                   :class="{ 'exceeded': promoLimitExceeded }"
                 />
                 <div class="text-caption q-mt-xs" :class="darkMode ? 'text-grey-7' : 'text-grey-7'">
-                  {{ $t('MaxRedeemable', 'Max redeemable') }}: {{ maxRedeemable }} points
+                  {{ $t('MaxRedeemable') }}: {{ $t('CountPoints', { points: maxRedeemable }) }}
                 </div>
               </div>
             </div>
@@ -140,7 +140,7 @@
             <q-card-section class="q-px-md q-py-sm">
               <div class="text-subtitle2 text-weight-medium q-mb-sm">
                 <q-icon name="toll" size="16px" class="q-mr-sm" color="primary" />
-                {{ $t('AmountToRedeem', 'Amount to Redeem') }}
+                {{ $t('AmountToRedeem') }}
               </div>
               
               <q-input
@@ -156,7 +156,7 @@
               >
                 <template v-slot:append>
                   <div class="text-weight-bold text-primary" style="font-size: 14px;">
-                    points
+                    {{ $t('PointsLower') }}
                   </div>
                 </template>
               </q-input>
@@ -173,7 +173,7 @@
                   size="sm"
                   class="quick-amount-btn col"
                   :class="getDarkModeClass(darkMode)"
-                  :label="percent === 100 ? 'MAX' : `${percent}%`"
+                  :label="percent === 100 ? $t('MAX') : `${percent}%`"
                   @click="setQuickAmount(percent)"
                   :disable="isCalculatingQuickAmount"
                 />
@@ -193,11 +193,11 @@
                 <q-card-section class="q-pa-sm">
                   <div class="row items-center q-gutter-md">
                     <div class="preview-icon-container">
-                      <q-icon name="arrow_forward" size="24px" color="white" />
+                      <q-icon name="img:lift-token.png" size="40px" color="white" />
                     </div>
                     <div class="col">
-                      <div class="text-caption text-uppercase" :class="darkMode ? 'text-grey-6' : 'text-grey-7'">
-                        {{ $t('YouWillReceive') }}
+                      <div class="text-caption" :class="darkMode ? 'text-grey-6' : 'text-grey-7'">
+                        {{ $t('YouWillReceive').toLocaleUpperCase() }}
                       </div>
                       <div class="text-h6 text-weight-bold text-positive">
                         {{ formattedLiftToReceive }} LIFT
@@ -206,10 +206,7 @@
                         ≈ {{ formattedLiftToReceiveFiat }}
                       </div>
                       <div v-else-if="priceError" class="text-caption text-weight-medium" :class="darkMode ? 'text-red-5' : 'text-negative'">
-                        <q-icon name="error" size="xs" class="q-mr-xs" /> Price unavailable
-                      </div>
-                      <div class="text-caption" :class="darkMode ? 'text-grey-7' : 'text-grey-7'">
-                        {{ $t('ToYourTokenAddress', 'to your token address') }}
+                        <q-icon name="error" size="xs" class="q-mr-xs" /> {{ $t('PriceUnavailable') }}
                       </div>
                     </div>
                   </div>
@@ -241,7 +238,7 @@
               <div class="row items-center q-gutter-sm">
                 <q-icon name="account_balance_wallet" size="20px" color="primary" />
                 <span class="text-caption text-weight-medium">
-                  {{ $t('DestinationAddress', 'Destination Address') }}
+                  {{ $t('DestinationAddress') }}
                 </span>
               </div>
               <div class="q-mt-sm q-px-sm q-py-xs rounded-borders token-address-box">
@@ -273,14 +270,14 @@
           <div class="text-center full-width">
             <progress-loader :isTight="true" class="q-mb-md" />
             <div class="text-caption" :class="darkMode ? 'text-grey-6' : 'text-grey-7'">
-              Processing redemption...
+              {{ $t('ProcessingRedemption') }}...
             </div>
             <div
               v-if="displayAdditionalRedeemText"
               class="text-caption"
               :class="darkMode ? 'text-grey-6' : 'text-grey-7'"
             >
-              (A tiny fee will be taken from your wallet for this process.)
+              ({{ $t('ProcessingRedemptionSubtext') }})
             </div>
           </div>
         </template>
@@ -317,17 +314,17 @@
         <div class="celebration-content text-center">
           <q-icon name="celebration" size="64px" color="warning" class="celebration-icon" />
           <div class="text-h4 text-weight-bold text-white q-mt-md">
-            {{ $t('RedemptionSuccessful', 'Redemption Successful!') }}
+            {{ $t('RedemptionSuccessful') }}
           </div>
           <div class="text-subtitle1 text-white q-mt-sm">
-            {{ pointsToRedeem }} {{ $t('Redeemed', 'points redeemed') }}
+            {{ $t('CountPointsRedeemed', { points: pointsToRedeem }) }}
           </div>
           <q-btn
             rounded
             color="white"
             text-color="primary"
             class="q-mt-lg"
-            :label="$t('Awesome', 'Awesome!')"
+            :label="$t('Awesome')"
             @click="closeCelebration"
           />
         </div>
@@ -480,10 +477,10 @@ export default {
     validationErrorMessage () {
       const amount = Number(this.pointsToRedeem || 0)
       if (amount > this.contractPoints) {
-        return this.$t('BalanceExceeded', 'Amount exceeds available balance')
+        return this.$t('BalanceExceededError')
       }
       if (this.redeemablePoints && amount > this.redeemablePoints) {
-        return this.$t('PromoLimitExceeded', 'Amount exceeds promo limit')
+        return this.$t('PromoLimitExceededError')
       }
       return ''
     },
@@ -639,11 +636,11 @@ export default {
         } else {
           this.liftBchPriceValue = null
           this.liftUsdPriceValue = null
-          this.priceError = 'LIFT token not found on Cauldron'
+          this.priceError = this.$t('LiftTokenNotFoundError')
         }
       } catch (error) {
         console.error('Error fetching LIFT price from Cauldron:', error)
-        this.priceError = 'Unable to fetch LIFT price from Cauldron'
+        this.priceError = this.$t('LiftTokenPriceFetchError')
         this.liftBchPriceValue = null
         this.liftUsdPriceValue = null
       }
@@ -672,7 +669,8 @@ export default {
       await this.fetchContractPoints()
 
       // fetch LIFT conversion ratio
-      this.liftConversionRate = await getLiftConversionRatio()
+      const resp = await getLiftConversionRatio()
+      this.liftConversionRate = resp.conversionRatio
       
       // Store original total for display
       this.originalPoints = this.contractPoints
@@ -691,7 +689,7 @@ export default {
         this.contractPoints = await this.contract.getTokenBalance()
       } catch (error) {
         console.error('Error initializing redeem dialog:', error)
-        this.loadingError = this.$t('FailedToLoadPoints', 'Failed to load points data. Please try again later.')
+        this.loadingError = this.$t('PointsLoadError')
       }
     },
     async fetchRewardsSwapContractDetails () {
@@ -701,7 +699,7 @@ export default {
         this.rewardsSwapContractBytecode = resp.bytecode
       } else {
         console.error('Error fetching rewards swap contract address.')
-        this.loadingError = this.$t('FailedToLoadPoints', 'Failed to load points data. Please try again later.')
+        this.loadingError = this.$t('PointsLoadError')
       }
     },
     
@@ -776,11 +774,11 @@ export default {
     },
     
     copyTokenAddress () {
-      if (navigator.clipboard && this.tokenAddress) {
-        navigator.clipboard.writeText(this.tokenAddress)
+      if (this.tokenAddress) {
+        this.$copyText(this.tokenAddress)
         this.$q.notify({
           type: 'positive',
-          message: this.$t('AddressCopied', 'Address copied to clipboard'),
+          message: this.$t('AddressCopied'),
           timeout: 1500,
           position: 'bottom'
         })
@@ -892,7 +890,7 @@ export default {
         if (error.message.includes('which is less than the required minimum') && retries < 3) {
           const feeBch = fee / 10 ** 8
           if (this.walletBalance < feeBch) {
-            notifyMessage = 'Failed to redeem points. Ensure that your wallet has enough BCH balance before trying again.'
+            notifyMessage = this.$t('PointsRedemptionInsufficientBalanceError')
           } else {
             this.displayAdditionalRedeemText = true
             // send small balance from user's wallet to PromoContract
@@ -918,7 +916,7 @@ export default {
           }
         // other errors
         } else {
-          notifyMessage = 'Failed to redeem points. Please try again later.'
+          notifyMessage = this.$t('PointsRedemptionGenericError')
         }
         
         if (notifyMessage !== '') raiseNotifyError(notifyMessage)

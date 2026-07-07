@@ -18,7 +18,7 @@
           color="negative"
           @click="cancelUpload"
         >
-          <q-tooltip>Cancel upload</q-tooltip>
+          <q-tooltip>{{ $t('CancelUpload') }}</q-tooltip>
         </q-btn>
       </div>
       <q-linear-progress :value="uploadProgress" color="primary" class="q-mt-sm" />
@@ -27,17 +27,49 @@
     <!-- Composer (hidden while uploading) -->
     <template v-else>
     <div class="chat-input-container">
-      <!-- File attachment button -->
+      <!-- Actions button -->
       <q-btn
         round
         unelevated
         color="grey-7"
-        icon="attach_file"
+        icon="add"
         size="sm"
         class="attach-btn"
-        @click="onAttachClick"
+        :disable="disabled"
       >
-        <q-tooltip>Attach file</q-tooltip>
+        <q-menu
+          class="chat-actions-menu"
+          anchor="top left"
+          self="bottom left"
+          transition-show="scale"
+          transition-hide="scale"
+          :dark="darkMode"
+        >
+          <q-list dense class="chat-actions-list">
+            <q-item clickable v-close-popup @click="onAttachClick" class="chat-action-item">
+              <q-item-section avatar>
+                <div class="action-icon-wrapper action-icon-file">
+                  <q-icon name="attach_file" size="18px" color="white" />
+                </div>
+              </q-item-section>
+              <q-item-section>
+                <div class="action-label">{{ $t('File', {}, 'File') }}</div>
+                <div class="action-hint">{{ $t('AttachFileHint') }}</div>
+              </q-item-section>
+            </q-item>
+            <q-item clickable v-close-popup @click="onTipClick" class="chat-action-item">
+              <q-item-section avatar>
+                <div class="action-icon-wrapper action-icon-tip">
+                  <q-icon name="volunteer_activism" size="18px" color="white" />
+                </div>
+              </q-item-section>
+              <q-item-section>
+                <div class="action-label">{{ $t('Tip', {}, 'Tip') }}</div>
+                <div class="action-hint">{{ $t('SendTipHint') }}</div>
+              </q-item-section>
+            </q-item>
+          </q-list>
+        </q-menu>
       </q-btn>
       
       <!-- Quasar q-file component for iOS compatibility -->
@@ -59,8 +91,9 @@
           borderless
           :dark="darkMode"
           class="chat-text-field"
-          :placeholder="$t('TypeAMessage', {}, 'Type a message...')"
+          :placeholder="blocked ? (blockedPlaceholder || $t('ContactBlockedInputDisabled', {}, 'Contact blocked')) : (disabled ? $t('ConversationArchivedInputDisabled', {}, 'Conversation archived') : $t('TypeAMessage', {}, 'Type a message...'))"
           :maxlength="MAX_CHARS"
+          :disable="disabled"
           @keydown.enter="onEnterKey"
           @focus="onFocus"
           @blur="onBlur"
@@ -73,7 +106,7 @@
         icon="send"
         size="sm"
         class="send-btn"
-        :disable="!text.trim() || remainingChars <= 0 || isSending"
+        :disable="disabled || !text.trim() || remainingChars <= 0 || isSending"
         @touchend.prevent="onSendTouch"
         @click="onSendClick"
       />
@@ -88,8 +121,8 @@
     <q-dialog v-model="showResizeDialog" persistent>
       <q-card style="min-width: 320px">
         <q-card-section class="q-pb-none">
-          <div class="text-h6">Resize Image</div>
-          <div class="text-caption text-grey">Original: {{ formatFileSize(imageOriginalSize) }}</div>
+          <div class="text-h6">{{ $t('ResizeImage') }}</div>
+          <div class="text-caption text-grey">{{ $t('OriginalSize', { size: formatFileSize(imageOriginalSize) }) }}</div>
         </q-card-section>
         <q-card-section>
           <q-option-group
@@ -100,8 +133,8 @@
           />
         </q-card-section>
         <q-card-actions align="right">
-          <q-btn flat label="Skip" color="grey" v-close-popup @click="sendResizedFile(null)" />
-          <q-btn unelevated label="Resize & Send" color="primary" v-close-popup @click="sendResizedFile(resizeOption)" />
+          <q-btn flat :label="$t('Skip')" color="grey" v-close-popup @click="sendResizedFile(null)" />
+          <q-btn unelevated :label="$t('ResizeAndSend')" color="primary" v-close-popup @click="sendResizedFile(resizeOption)" />
         </q-card-actions>
       </q-card>
     </q-dialog>
@@ -112,22 +145,26 @@
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 import { resizeImage } from 'src/wallet/nostr-media'
 
-const SEND_COMMAND_PATTERN = /^\/send\s+([\d.]+)\s*([A-Za-z0-9]+)?\s*$/i
+const SEND_COMMAND_PATTERN = /^\/(send|tip)\s+([\d.]+)\s*([A-Za-z0-9]+)?\s*$/i
+const SEND_BARE_PATTERN = /^\/(send|tip)\s*$/i
 const MAX_CHARS = 3000
 const MAX_FILE_SIZE = 50 * 1024 * 1024 // 50MB
 const RESIZE_THRESHOLD = 1 * 1024 * 1024 // 1MB
 
 const RESIZE_OPTIONS = [
-  { label: 'Small (≈0.3 MB)', value: 'small', description: '800px max, 70% quality' },
-  { label: 'Medium (≤1 MB)', value: 'medium', description: '1600px max, up to 90% quality' },
-  { label: 'Large (≤2.5 MB)', value: 'large', description: '2048px max, up to 85% quality' },
+  { labelKey: 'ResizeSmall', value: 'small', description: '800px max, 70% quality' },
+  { labelKey: 'ResizeMedium', value: 'medium', description: '1600px max, up to 90% quality' },
+  { labelKey: 'ResizeLarge', value: 'large', description: '2048px max, up to 85% quality' },
 ]
 
 export default {
   name: 'ChatInput',
-  emits: ['send', 'command', 'focus', 'blur'],
+  emits: ['send', 'command', 'focus', 'blur', 'tip'],
   props: {
     roomId: { type: String, default: '' },
+    disabled: { type: Boolean, default: false },
+    blocked: { type: Boolean, default: false },
+    blockedPlaceholder: { type: String, default: '' },
   },
   data () {
     return {
@@ -148,13 +185,28 @@ export default {
   },
   computed: {
     resizeOptions () {
-      return RESIZE_OPTIONS
+      return RESIZE_OPTIONS.map(opt => ({
+        ...opt,
+        label: this.$t(opt.labelKey),
+      }))
     },
     darkMode () {
       return this.$store.getters['darkmode/getStatus']
     },
     remainingChars () {
       return MAX_CHARS - this.text.length
+    },
+  },
+  watch: {
+    text (newVal) {
+      if (!this.roomId || this.disabled || this.blocked) return
+      if (!newVal) return
+      const myPubKey = this.$store.getters['nostrChat/myPubKey']
+      const room = this.$store.getters['nostrChat/getRoom'](this.roomId)
+      if (!myPubKey || !room?.members) return
+      const recipients = room.members.filter(m => m !== myPubKey)
+      if (!recipients.length) return
+      this.$store.dispatch('nostrChat/sendTyping', { roomId: this.roomId, recipients })
     },
   },
   methods: {
@@ -183,6 +235,9 @@ export default {
           this.$refs.qFile.pickFiles()
         }
       })
+    },
+    onTipClick () {
+      this.$emit('tip')
     },
     onFileSelected (file) {
       if (!file) return
@@ -287,7 +342,16 @@ export default {
         })
         
         this.$store.commit('nostrChat/ADD_MESSAGE', { roomId: this.roomId, message })
+        this.$store.dispatch('nostrChat/touchRoom', { roomId: this.roomId, timestamp: new Date().toISOString() })
         await this.$store.dispatch('nostrChat/publishGiftWraps', { giftWraps })
+        const myPubKey = this.$store.getters['nostrChat/myPubKey']
+        const room = this.$store.getters['nostrChat/getRoom'](this.roomId)
+        if (this.$store.getters['nostrChat/getShowActiveStatus'] && myPubKey && room?.members) {
+          this.$store.dispatch('nostrChat/touchActive', {
+            pubkey: myPubKey,
+            recipients: room.members.filter(m => m !== myPubKey),
+          })
+        }
       } catch (error) {
         if (error.name === 'AbortError') return
         console.error('File upload error:', error)
@@ -326,15 +390,15 @@ export default {
       this.text = ''
       this.isSending = true
 
-      if (trimmed.startsWith('/send')) {
+      if (trimmed.match(/^\/(send|tip)\b/i)) {
         const commandMatch = trimmed.match(SEND_COMMAND_PATTERN)
         if (commandMatch) {
-          const amount = parseFloat(commandMatch[1])
+          const amount = parseFloat(commandMatch[2])
           if (!isNaN(amount) && amount > 0) {
             this.$emit('command', {
               type: 'send',
               amount,
-              currency: (commandMatch[2] || 'BCH').toUpperCase(),
+              currency: (commandMatch[3] || 'BCH').toUpperCase(),
               originalText: trimmed,
             })
             this.dismissKeyboard()
@@ -342,10 +406,22 @@ export default {
             return
           }
         }
+        // Bare /send or /tip — open send dialog without pre-filled amount
+        if (trimmed.match(SEND_BARE_PATTERN)) {
+          this.$emit('command', {
+            type: 'send',
+            amount: 0,
+            currency: 'BCH',
+            originalText: trimmed,
+          })
+          this.dismissKeyboard()
+          this.$nextTick(() => { this.isSending = false })
+          return
+        }
         this.isSending = false
         this.$q.notify({
           type: 'warning',
-          message: this.$t('InvalidSendCommand', {}, 'Invalid /send command. Usage: /send <amount> <currency>'),
+          message: this.$t('InvalidSendCommand', {}, 'Usage: /send or /send <amount> <currency>'),
           timeout: 5000,
           closeBtn: true,
         })
@@ -382,6 +458,7 @@ export default {
   border: 1px solid rgba(0, 0, 0, 0.04);
   transition: box-shadow 0.2s ease, transform 0.2s ease;
   position: relative;
+  overflow: visible;
 }
 
 .chat-input-container:focus-within {
@@ -553,5 +630,70 @@ export default {
 
 .dark .file-size {
   color: #94a3b8;
+}
+</style>
+
+<!-- Non-scoped styles for teleported q-menu -->
+<style>
+.chat-actions-menu {
+  background: #ffffff !important;
+  border: none !important;
+  border-radius: 16px !important;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.12), 0 2px 8px rgba(0, 0, 0, 0.08) !important;
+  padding: 6px !important;
+  min-width: 220px !important;
+  overflow: hidden;
+}
+.chat-actions-list {
+  padding: 0 !important;
+}
+.chat-action-item {
+  border-radius: 12px !important;
+  padding: 10px 12px !important;
+  transition: background 0.15s ease !important;
+}
+.chat-action-item:hover {
+  background: #f1f5f9 !important;
+}
+.action-icon-wrapper {
+  width: 36px;
+  height: 36px;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.action-icon-file {
+  background: linear-gradient(135deg, #3b82f6, #2563eb);
+}
+.action-icon-tip {
+  background: linear-gradient(135deg, #10b981, #059669);
+}
+.action-label {
+  font-size: 14px;
+  font-weight: 600;
+  color: #1e293b;
+  line-height: 1.2;
+}
+.action-hint {
+  font-size: 11px;
+  color: #94a3b8;
+  line-height: 1.2;
+  margin-top: 2px;
+}
+
+/* Dark mode menu */
+body.dark .chat-actions-menu {
+  background: #1e293b !important;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4), 0 2px 8px rgba(0, 0, 0, 0.3) !important;
+}
+body.dark .chat-action-item:hover {
+  background: #334155 !important;
+}
+body.dark .action-label {
+  color: #e2e8f0;
+}
+body.dark .action-hint {
+  color: #64748b;
 }
 </style>

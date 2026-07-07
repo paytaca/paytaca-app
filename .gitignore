@@ -46,3 +46,4 @@ yarn-error.log*
 .npm-cache
 .opencode
 RELEASE.md
+RELEASE_NOTES.md

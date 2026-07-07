@@ -1,7 +1,7 @@
 const Translator = require('./translator')
 
 /**
- * 
+ *
  *  * To execute this script:
  * 1) go to the directory of this file
  * 2) run "node translate.js"
@@ -11,9 +11,14 @@ const Translator = require('./translator')
  * - --langs <codes>          translate multiple languages (comma-separated)
  *                             (e.g. --langs en-us,de)
  * - --include-existing       DO NOT ignore existing keys (use with care)
- *                             (default: ignore existing keys)
- * 
- * 
+ *                             (default: ignore existing keys when not targeting specific keys)
+ * - --key <key>              translate a single key (e.g. --key TokensInstruction)
+ * - --keys <keys>            translate multiple keys (comma-separated)
+ *                             (e.g. --keys TokensInstruction,HideHiddenAssets)
+ *                             When --key or --keys is specified, existing translations
+ *                             for those keys are automatically overwritten.
+ *
+ *
  */
 
 const argv = process.argv.slice(2)
@@ -29,10 +34,16 @@ const supportedLangs = (langs || lang)
   ? (langs || lang).split(',').map(s => s.trim()).filter(Boolean)
   : undefined
 
+const key = getArgValue('--key')
+const keys = getArgValue('--keys')
+const targetKeys = (keys || key)
+  ? (keys || key).split(',').map(s => s.trim()).filter(Boolean)
+  : undefined
+
 const opts = {
-  // default: ignore existing keys to avoid re-translation
   ignoreExisting: !argv.includes('--include-existing'),
   supportedLangs,
+  targetKeys,
 }
 
 const translator = new Translator()

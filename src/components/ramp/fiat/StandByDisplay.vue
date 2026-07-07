@@ -69,7 +69,7 @@
               <div class="text-weight-bold md-font-size">{{ $t('Appealed') }}</div>
               <div v-if="appeal" class="q-mt-xs">
                 <template v-if="appeal.type && appealAmountBCH">
-                  {{ $t('AppealStatement', { action: appealAction, amount: appealAmountBCH, recipient: appealRecipient }, `You have appealed to ${appealAction} the ${appealAmountBCH} BCH to ${appealRecipient}.`) }}
+                  {{ appealStatementText }}
                 </template>
                 <div class="q-mt-xs">
                   <span class="text-weight-medium">{{ $t('Reason', {}, 'Reason') }}:</span>
@@ -88,7 +88,7 @@
         </div>
         <!-- Payment methods -->
         <div v-if="showSelectedPaymentMethod" class="q-px-xs q-pt-sm">
-          <div class="md-font-size q-pb-xs q-pl-sm text-center text-weight-bold">PAYMENT METHODS</div>
+          <div class="md-font-size q-pb-xs q-pl-sm text-center text-weight-bold">Payment Methods</div>
             <div class="text-center sm-font-size q-mx-md q-mb-sm">
             <span v-if="userType === 'buyer'">You selected the following payment methods</span>
             <span v-if="userType === 'seller'">The buyer selected the following payment methods</span>
@@ -362,18 +362,39 @@ export default {
     isAppealed () {
       return this.data?.order?.status?.value === 'APL'
     },
-    appealRecipient () {
-      if (!this.appeal?.type?.value) return ''
+    isOwnAppeal () {
+      return this.appeal?.owner?.id === this.$store.getters['ramp/getUser']?.id
+    },
+    appealSubject () {
+      if (!this.appeal?.owner) return this.$t('Someone', {}, 'Someone')
+      if (this.isOwnAppeal) return this.$t('You', {}, 'You')
+      const ownerId = this.appeal.owner.id
+      const buyerId = this.data?.order?.members?.buyer?.id
+      const sellerId = this.data?.order?.members?.seller?.id
+      if (ownerId === buyerId) return this.$t('TheBuyer', {}, 'The buyer')
+      if (ownerId === sellerId) return this.$t('TheSeller', {}, 'The seller')
+      return this.appeal.owner.name || this.$t('Someone', {}, 'Someone')
+    },
+    appealHasOrHave () {
+      return this.isOwnAppeal ? this.$t('HaveAppealed', {}, 'have appealed') : this.$t('HasAppealed', {}, 'has appealed')
+    },
+    isSelfBeneficiary () {
+      if (!this.appeal?.type?.value) return false
+      const isRelease = this.appeal.type.value === 'RLS'
+      const ownerIsBuyer = this.appeal?.owner?.id === this.data?.order?.members?.buyer?.id
+      return (isRelease && ownerIsBuyer) || (!isRelease && !ownerIsBuyer)
+    },
+    appealRecipientPhrase () {
+      if (!this.appeal?.type?.value || this.isSelfBeneficiary) return ''
       const isRelease = this.appeal.type.value === 'RLS'
       const isBuyer = this.userType === 'buyer'
-      if (isRelease) {
-        return isBuyer
-          ? this.$t('YouTheBuyer', {}, 'you (the buyer)')
-          : this.$t('TheBuyer', {}, 'the buyer')
-      }
-      return isBuyer
-        ? this.$t('TheSeller', {}, 'the seller')
-        : this.$t('YouTheSeller', {}, 'you (the seller)')
+      return isRelease
+        ? ` ${this.$t('ToTheBuyer', {}, 'to the buyer')}`
+        : ` ${this.$t('ToTheSeller', {}, 'to the seller')}`
+    },
+    appealStatementText () {
+      if (!this.appeal?.type || !this.appealAmountBCH) return ''
+      return `${this.appealSubject} ${this.appealHasOrHave} to ${this.appealAction} the ${this.appealAmountBCH} BCH${this.appealRecipientPhrase}.`
     },
     appealAction () {
       if (!this.appeal?.type?.value) return ''
@@ -570,7 +591,6 @@ export default {
       await backend.get(`/ramp-p2p/order/${vm.data?.order?.id}/appeal/`, { authorize: 'peer' })
         .then(response => {
           vm.appeal = response.data?.appeal
-          console.log('appeal:', vm.appeal)
         })
         .catch(error => {
           this.handleRequestError(error)
@@ -578,6 +598,10 @@ export default {
     },
     async fetchContractBalance () {
       const vm = this
+      if (vm.data?.contractBalance != null) {
+        vm.contractBalance = vm.data.contractBalance.toString()
+        return
+      }
       if (this.data?.escrow) {
         await vm.data?.escrow?.getBalance(vm.data?.contractAddress, true)
           .then(balance => {

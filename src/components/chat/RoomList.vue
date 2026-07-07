@@ -10,9 +10,9 @@
     >
       <template v-slot:left>
         <div class="row items-center q-gutter-sm">
-          <q-icon :name="archived ? 'unarchive' : (isRoomBlocked(room) ? 'lock_open' : 'block')" size="20px" color="white" />
+          <q-icon :name="leftSwipeIcon(room)" size="20px" color="white" />
           <span class="text-white text-weight-medium" style="font-size: 13px;">
-            {{ archived ? $t('Unarchive', {}, 'Unarchive') : (isRoomBlocked(room) ? $t('Unblock', {}, 'Unblock') : $t('Block', {}, 'Block')) }}
+            {{ leftSwipeLabel(room) }}
           </span>
         </div>
       </template>
@@ -40,14 +40,22 @@
                 <q-icon v-else-if="room.type === 'group'" name="group" size="24px" />
                 <span v-else class="avatar-initial">{{ roomInitial(room) }}</span>
               </q-avatar>
+              <div
+                v-if="activeIndicatorMap[room.id]"
+                class="active-dot"
+                :class="{ 'active-dot--dark': darkMode }"
+              ></div>
         </div>
         <div class="room-content">
           <div class="room-header">
             <div class="room-name" :class="getDarkModeClass(darkMode)">
               {{ roomName(room) }}
+              <q-badge v-if="room.type === 'group'" outline color="primary" class="q-ml-xs" style="font-size: 10px; padding: 1px 5px; font-weight: 500;">
+                {{ $t('Group', {}, 'Group') }}
+              </q-badge>
             </div>
-            <div v-if="room.updatedAt" class="room-time">
-              {{ formatTime(room.updatedAt) }}
+            <div v-if="room.lastMessageAt || lastMessageTime(room.id) || room.updatedAt" class="room-time">
+              {{ formatTime(room.lastMessageAt || lastMessageTime(room.id) || room.updatedAt) }}
             </div>
           </div>
           <div class="room-preview-row">
@@ -55,6 +63,7 @@
               {{ lastMessagePreview(room.id) }}
             </div>
             <div class="room-badges">
+              <div v-if="isRoomBlocked(room)" class="blocked-badge">{{ room.type === 'group' ? $t('Left', {}, 'LEFT') : $t('Blocked', {}, 'BLOCKED') }}</div>
               <div v-if="unreadCount(room.id) > 0" class="unread-badge">
                 {{ unreadCount(room.id) }}
               </div>
@@ -73,10 +82,12 @@
 </template>
 
 <script>
+import { ACTIVE_THRESHOLD_MS } from 'src/store/nostr-chat/state'
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 import { formatDistanceToNow } from 'date-fns'
 import { npubEncode } from 'nostr-tools/nip19'
 import { parseMessageMarkup } from 'src/utils/chat-markup'
+import { getCachedAvatar, setCachedAvatar } from 'src/utils/avatar-cache'
 
 export default {
   name: 'RoomList',
@@ -85,10 +96,11 @@ export default {
     messages: { type: Object, default: () => ({}) },
     archived: { type: Boolean, default: false },
   },
-  emits: ['select-room', 'archive-room', 'unarchive-room', 'delete-room', 'block-room', 'unblock-room'],
+  emits: ['select-room', 'archive-room', 'unarchive-room', 'delete-room', 'block-room', 'unblock-room', 'leave-room', 'rejoin-room'],
   data () {
     return {
       dmAvatars: {},
+      dmDisplayNames: {},
     }
   },
   computed: {
@@ -100,6 +112,9 @@ export default {
     },
     contacts () {
       return this.$store.getters['nostrChat/getContacts']
+    },
+    showActiveStatus () {
+      return this.$store.getters['nostrChat/getShowActiveStatus']
     },
     themeColor () {
       const theme = this.$store.getters['global/theme']
@@ -115,12 +130,49 @@ export default {
       const myPubKey = this.myPubKey
       if (!myPubKey) return map
       for (const room of this.rooms) {
-        const msgs = this.$store.state.nostrChat.messages[room.id] || []
-        const readIds = this.$store.state.nostrChat.readMessageIds?.[room.id] || {}
-        map[room.id] = msgs.filter(m => m.sender !== myPubKey && !readIds[m.id]).length
+        map[room.id] = this.$store.getters['nostrChat/getUnreadCount'](room.id)
       }
       return map
     },
+    activeIndicatorMap () {
+      const map = {}
+      if (!this.showActiveStatus) return map
+      const activeStatus = this.$store.getters['nostrChat/getActiveStatusMap']
+      for (const room of this.rooms) {
+        if (room.type === 'group') continue
+        const otherPubKey = room.members?.find(m => m !== this.myPubKey)
+        if (!otherPubKey) continue
+        const entry = activeStatus[otherPubKey]
+        if (!entry || !entry.lastActiveAt) {
+          map[room.id] = false
+        } else {
+          map[room.id] = Date.now() - new Date(entry.lastActiveAt).getTime() <= ACTIVE_THRESHOLD_MS
+        }
+      }
+      return map
+    },
+  },
+  created () {
+    const walletHash = this.$store.getters['global/getWallet']('bch')?.walletHash
+    const walletState = walletHash ? this.$store.state.nostrChat?.byWallet?.[walletHash] : null
+    const nameCache = walletState?.displayNameCache || {}
+    const avatarStoreCache = walletState?.avatarCache || {}
+
+    const avatars = {}
+    const names = {}
+    for (const room of this.rooms) {
+      if (room.type === 'group') continue
+      const otherPubKey = room.members?.find(m => m !== this.myPubKey)
+      if (!otherPubKey) continue
+
+      const url = getCachedAvatar(otherPubKey) || avatarStoreCache[otherPubKey]?.avatar || null
+      if (url) avatars[otherPubKey] = url
+
+      const cachedName = nameCache[otherPubKey]?.displayName
+      if (cachedName) names[otherPubKey] = cachedName
+    }
+    this.dmAvatars = avatars
+    this.dmDisplayNames = names
   },
   mounted () {
     this.fetchDmAvatars()
@@ -136,19 +188,48 @@ export default {
   methods: {
     getDarkModeClass,
     isRoomBlocked (room) {
-      if (room.type === 'group') return false
+      if (room.type === 'group') {
+        return this.$store.getters['nostrChat/isGroupBlocked'](room.id)
+      }
       const otherPubKey = room.members?.find(m => m !== this.myPubKey)
       if (!otherPubKey) return false
       return this.$store.getters['nostrChat/isContactBlocked'](otherPubKey)
+    },
+    leftSwipeLabel (room) {
+      if (this.archived) return this.$t('Unarchive', {}, 'Unarchive')
+      const blocked = this.isRoomBlocked(room)
+      if (room.type === 'group') {
+        return blocked ? this.$t('Rejoin', {}, 'Rejoin') : this.$t('Leave', {}, 'Leave')
+      }
+      return blocked ? this.$t('Unblock', {}, 'Unblock') : this.$t('Block', {}, 'Block')
+    },
+    leftSwipeIcon (room) {
+      if (this.archived) return 'unarchive'
+      const blocked = this.isRoomBlocked(room)
+      if (room.type === 'group') {
+        return blocked ? 'group_add' : 'exit_to_app'
+      }
+      return blocked ? 'lock_open' : 'block'
     },
     onSwipeLeft (room, { reset }) {
       reset()
       if (this.archived) {
         this.$emit('unarchive-room', room.id)
-      } else if (this.isRoomBlocked(room)) {
-        this.$emit('unblock-room', room.id)
+        return
+      }
+      const blocked = this.isRoomBlocked(room)
+      if (room.type === 'group') {
+        if (blocked) {
+          this.$emit('rejoin-room', room.id)
+        } else {
+          this.$emit('leave-room', room.id)
+        }
       } else {
-        this.$emit('block-room', room.id)
+        if (blocked) {
+          this.$emit('unblock-room', room.id)
+        } else {
+          this.$emit('block-room', room.id)
+        }
       }
     },
     onSwipeRight (room, { reset }) {
@@ -169,6 +250,9 @@ export default {
         if (contact) {
           return contact.name.charAt(0).toUpperCase()
         }
+        if (this.dmDisplayNames[otherPubKey]) {
+          return this.dmDisplayNames[otherPubKey].charAt(0).toUpperCase()
+        }
         // Unknown contact — use '?' as avatar initial
         return '?'
       }
@@ -176,7 +260,7 @@ export default {
       return name.charAt(0).toUpperCase()
     },
     roomName (room) {
-      if (room.type === 'group') return room.name || 'Group Chat'
+      if (room.type === 'group') return room.name || 'Group'
       // If a subject has been set, use it as the conversation name
       if (room.subject) return room.subject
       // Check if this room has a known contact
@@ -187,6 +271,11 @@ export default {
       if (contact) {
         // Known contact — show their name
         return contact.name
+      }
+
+      // Check if we have a published display name from relays
+      if (this.dmDisplayNames[otherPubKey]) {
+        return this.dmDisplayNames[otherPubKey]
       }
 
       // Unknown contact — show truncated npub
@@ -210,6 +299,12 @@ export default {
       }
       const { text } = parseMessageMarkup(last.content)
       return text
+    },
+    lastMessageTime (roomId) {
+      const msgs = this.messages[roomId] || []
+      if (!msgs.length) return null
+      const last = msgs[msgs.length - 1]
+      return last.created_at || null
     },
     formatTime (ts) {
       try {
@@ -245,22 +340,39 @@ export default {
       return { background: `linear-gradient(135deg, ${this.themeColor}, ${this.themeColor}dd)` }
     },
     async fetchDmAvatars () {
-      const toFetch = new Set()
+      const avatarsToFetch = new Set()
+      const namesToFetch = new Set()
       for (const room of this.rooms) {
         if (room.type === 'group') continue
         const otherPubKey = room.members?.find(m => m !== this.myPubKey)
-        if (otherPubKey && !this.dmAvatars[otherPubKey]) {
-          toFetch.add(otherPubKey)
+        if (!otherPubKey) continue
+        if (!this.dmAvatars[otherPubKey]) {
+          avatarsToFetch.add(otherPubKey)
+        }
+        const contact = this.contacts.find(c => c.pubKeyHex === otherPubKey)
+        if (!contact && !this.dmDisplayNames[otherPubKey]) {
+          namesToFetch.add(otherPubKey)
         }
       }
-      for (const pubKeyHex of toFetch) {
+      for (const pubKeyHex of avatarsToFetch) {
         try {
           const avatar = await this.$store.dispatch('nostrChat/fetchPublishedAvatar', { pubKeyHex })
           if (avatar) {
+            setCachedAvatar(pubKeyHex, avatar)
             this.dmAvatars = { ...this.dmAvatars, [pubKeyHex]: avatar }
           }
         } catch (err) {
           console.warn('[RoomList] Failed to fetch avatar:', err)
+        }
+      }
+      for (const pubKeyHex of namesToFetch) {
+        try {
+          const displayName = await this.$store.dispatch('nostrChat/fetchPublishedDisplayName', { pubKeyHex })
+          if (displayName) {
+            this.dmDisplayNames = { ...this.dmDisplayNames, [pubKeyHex]: displayName }
+          }
+        } catch (err) {
+          console.warn('[RoomList] Failed to fetch display name:', err)
         }
       }
     },
@@ -299,6 +411,7 @@ export default {
 }
 
 .room-avatar {
+  position: relative;
   margin-right: 14px;
   flex-shrink: 0;
 }
@@ -336,6 +449,9 @@ export default {
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+  display: flex;
+  align-items: center;
+  gap: 4px;
 }
 
 .room-time {
@@ -381,6 +497,17 @@ export default {
   align-items: center;
   justify-content: center;
   box-shadow: 0 2px 6px rgba(59, 130, 246, 0.3);
+}
+
+.blocked-badge {
+  padding: 1px 6px;
+  border-radius: 4px;
+  background: #ef4444;
+  color: #ffffff;
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.5px;
+  line-height: 1.4;
 }
 
 .empty-state {
@@ -429,6 +556,22 @@ export default {
 
 .dark .room-time {
   color: #64748b;
+}
+
+.active-dot {
+  position: absolute;
+  bottom: 0;
+  right: 0;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: #4caf50;
+  border: 3px solid #ffffff;
+  z-index: 1;
+}
+
+.active-dot--dark {
+  border-color: #1e293b;
 }
 
 .dark .unread-badge {

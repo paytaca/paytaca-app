@@ -3,6 +3,7 @@ describe('Home Page', () => {
     cy.restoreLocalStorage();
     cy.setPushErrorHandling();
     cy.visit('http://localhost:9000/#/apps');
+    cy.intercept('**/api/**').as('apiCalls');
   });
 
   afterEach(() => {
@@ -18,10 +19,10 @@ describe('Home Page', () => {
   it('Checks Dashboard Tabs', () => {
     cy.visit('/', { timeout: 10000 });
 
-    cy.measureHomeButtonLoadTime('#home-button', '#home-button', 'Home');
+    cy.measureHomeButtonLoadTime('#chat-button', '#chat-button', 'Chat');
 
-    testTabNavigation('#send-button', 'http://localhost:9000/#/send/select-asset', '#SEND');
-    testTabNavigation('#receive-button', 'http://localhost:9000/#/receive/select-asset', '#RECEIVE');
+    testTabNavigation('#chat-button', 'http://localhost:9000/#/apps/chat', '#Chat');
+    testTabNavigation('#send-button', 'http://localhost:9000/#/transaction/list?assetID=all', '#send-button');
     testTabNavigation('#apps-button', 'http://localhost:9000/#/apps', '#Applications');
     testTabNavigation('#qr-reader-button', 'http://localhost:9000/#/qr-reader', '#qr-reader-body');
   });
@@ -30,11 +31,10 @@ describe('Home Page', () => {
   //On every code push using Github actions or Bitrise
   //Track load time per screen
   const appScreens = [
-    { name: 'Home', navigate: () => cy.get('#home-button').click() },
-    { name: 'Send', navigate: () => cy.get('#send-button').click() },
-    { name: 'Receive', navigate: () => cy.get('#receive-button').click() },
-    { name: 'Apps', navigate: () => cy.get('#apps-button').click() },
-    { name: 'QRreader', navigate:() => cy.get('#qr-reader-button').click() }
+    { name: 'Chat', navigate: () => cy.get('#chat-button').click(), selector: '#app-container' },
+    { name: 'Send', navigate: () => cy.get('#send-button').click(), selector: '#app-container' },
+    { name: 'Apps', navigate: () => cy.get('#apps-button').click(), selector: '#apps' },
+    { name: 'QRreader', navigate: () => cy.get('#qr-reader-button').click(), selector: '#qr-reader-body' }
   ];
 
   appScreens.forEach(screen => {
@@ -68,8 +68,6 @@ describe('Home Page', () => {
 
 
   //Verify API responses if the screen loads data.
-  cy.intercept('**/api/**').as('apiCalls'); // Watch API requests
-
   appScreens.forEach(screen => {
     it(`Checks ${screen.name} screen performance & API`, () => {
       const t0 = Date.now();

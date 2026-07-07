@@ -1,6 +1,6 @@
 <template>
   <div>
-    <router-view :key="$route.path"></router-view>
+    <router-view :key="$route.name"></router-view>
     <NoticeBoardDialog v-if="showNoticeBoard" :type="noticeBoardType" :message="noticeBoardMessage" @hide="showNoticeBoard=false"/>
     <FooterMenu v-if="showFooterMenu" :tab="currentPage" :data="footerData"/>
     <RampLogin v-if="showLogin" :force-login="forceLogin" @logged-in="showLogin = false; forceLogin = false"/>
@@ -85,7 +85,7 @@ export default {
     bus.on('post-notice', this.postNotice)
     bus.on('handle-request-error', this.handleRequestError)
   },  
-  async mounted () {    
+  async mounted () {
     await this.loadWallet()
     
     // Ensure wallet state is initialized before accessing getters
@@ -270,6 +270,12 @@ export default {
       })
     },
     handleRequestError (error) {
+      // Suppress ECONNABORTED — these are XHR aborts from navigation
+      // (requestManager.abortAll), not actual HTTP timeouts. No timeout is
+      // configured on the backend axios instance, so ECONNABORTED can only
+      // come from a navigation-triggered abort.
+      if (error?.code === 'ECONNABORTED') return
+
       // Don't log or show 404/401 errors - they're often expected
       // 404: resource doesn't exist (e.g., user not registered yet)
       // 401: not authenticated (user will be prompted to login when needed)
@@ -291,10 +297,7 @@ export default {
       }
       
       console.error('Handling error:', error?.response || error)
-      if (error?.code === 'ECONNABORTED') {
-        // Request timeout
-        this.showErrorDialog('Request timed out. Please try again later.')
-      } else if (!error?.response) {
+      if (!error?.response) {
         // Network error
         bus.emit('network-error')
       } else {
