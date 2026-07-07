@@ -29,7 +29,7 @@
           <q-badge
             rounded
             color="blue-grey-6"
-            class="q-px-sm q-py-xs text-subtitle2"
+            class="q-px-sm q-py-xs text-subtitle2 filter-badge"
             :outline="!selectedAll"
             @click="allClicked"
           >
@@ -39,7 +39,7 @@
             rounded
             v-for="(type, index) in notifTypesList"
             color="blue-grey-6"
-            class="q-px-sm q-py-xs text-subtitle2"
+            class="q-px-sm q-py-xs text-subtitle2 filter-badge"
             :outline="!type.selected"
             :key="`choice-${index}`"
             @click="itemClicked(type)"
@@ -162,3 +162,12 @@ export default {
   }
 }
 </script>
+
+<style scoped>
+.filter-badge {
+  border: 1px solid transparent;
+}
+.filter-badge.q-badge--outline {
+  border-color: currentColor;
+}
+</style>
