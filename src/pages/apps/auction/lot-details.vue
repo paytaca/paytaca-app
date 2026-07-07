@@ -187,7 +187,7 @@
               </q-banner>
             </div>
 
-            <div v-if="bidStatus && bidStatus === 'win'">
+            <div v-if="(bidStatus && bidStatus === 'win') || isAuthor">
               <div v-if="isMarkedComplete" class="q-mt-md full-width">
                 <q-banner rounded dense class="bg-positive text-white q-pa-md">
                   <template v-slot:avatar>
