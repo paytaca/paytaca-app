@@ -1574,6 +1574,7 @@ const updateRefundCountdown = () => {
 const autoMarkLotSold = async () => {
   if (auction.value?.type !== 'English') return
   if (!hasBid.value || isSold.value) return
+  if (!isLotClosed.value) return
   try {
     await callAPI('lots', props.lotId, 'patch', { is_sold: true })
     if (lot.value) lot.value.is_sold = true
