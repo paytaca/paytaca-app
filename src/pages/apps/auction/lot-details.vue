@@ -186,136 +186,138 @@
                 </div>
               </q-banner>
             </div>
-
-            <div v-if="isMarkedComplete" class="q-mt-md full-width">
-              <q-banner rounded dense class="bg-positive text-white q-pa-md">
-                <template v-slot:avatar>
-                  <q-icon name="check_circle" />
-                </template>
-                Transaction complete.
-              </q-banner>
-            </div>
-
-            <div v-if="(isLotSold || showPostAuctionActions) && (isAuthor || isWinningBidder)" class="q-mt-md full-width">
-              <q-btn
-                outline
-                dense
-                no-caps
-                color="primary"
-                icon="history"
-                label="View Delivery Status"
-                class="full-width"
-                @click="showDeliveryHistory = true"
-              />
-            </div>
-
-            <div>
-              <div v-if="!isDisputeActive">
-                <div v-if="showPostAuctionActions && (isAuthor || isWinningBidder)" class="q-mt-md full-width row q-col-gutter-none items-center justify-center">
-                  <div class="col text-center">
-                    <q-btn
-                      v-if="isAuthor"
-                      outline
-                      stack
-                      class="text-bold text-caption full-width"
-                      :color="darkMode ? 'white' : 'black'"
-                      icon="check_circle"
-                      padding="sm"
-                      label="Confirm Delivery"
-                      :disable="deliveryStatusId !== 1"
-                      @click="confirmDeliveryTrigger"
-                    />
-                    <q-btn
-                      v-else
-                      outline
-                      stack
-                      class="text-bold text-caption full-width"
-                      :color="darkMode ? 'white' : 'black'"
-                      icon="check_circle"
-                      padding="sm"
-                      label="Confirm Pickup"
-                      :disable="deliveryStatusId !== 2"
-                      @click="confirmPickupTrigger"
-                    />
-                  </div>
-
-                  <div class="col q-ml-md text-center">
-                    <q-btn
-                      v-if="!isAuthor && deliveryStatusId !== 3"
-                      class="text-bold text-caption full-width"
-                      color="negative"
-                      text-color="white"
-                      stack
-                      content-class="q-gap-xs"
-                      icon="gavel"
-                      padding="sm"
-                      label="File a Dispute"
-                      unelevated
-                      @click="showSellerDisputeDialog = true"
-                    />
-
-                    <q-btn
-                      v-else-if="!isAuthor"
-                      class="text-bold text-caption full-width"
-                      color="negative"
-                      text-color="white"
-                      stack
-                      content-class="q-gap-xs"
-                      icon="assignment_return"
-                      padding="sm"
-                      label="Refund"
-                      unelevated
-                      :disable="!canRequestRefund || isGrantedRefund"
-                      @click="showRefundDialog = true"
-                    />
-                  </div>
-                </div>
-
-                <div v-if="!isAuthor && deliveryStatusId === 3 && refundCountdown && !isGrantedRefund" class="text-caption text-right q-mt-xs">
-                  Time left for refund: {{ refundCountdown }}
-                </div>
-
-                <!-- Seller: refund granted banner -->
-                <div v-if="isAuthor && isGrantedRefund" class="q-mt-md full-width">
-                  <q-banner rounded dense class="bg-warning text-white q-pa-md">
-                    <template v-slot:avatar>
-                      <q-icon name="assignment_return" />
-                    </template>
-                    Refund has been granted. Funds will be released to the buyer directly.
-                  </q-banner>
-                </div>
-
-                <!-- Resolved: funds returned by arbiter (status 1 or 2) -->
-                <div v-if="isGrantedReturn && (deliveryStatusId === 1 || deliveryStatusId === 2)" class="q-mt-md full-width">
-                  <q-banner rounded dense class="bg-positive text-white q-pa-md">
-                    <template v-slot:avatar>
-                      <q-icon name="check_circle" />
-                    </template>
-                    Dispute resolved. Funds have been returned to the buyer.
-                  </q-banner>
-                </div>
-
-                <!-- Bidder: mark as complete (no refund, delivered) -->
-                <div v-if="showPostAuctionActions && !isMarkedComplete && isWinningBidder && !isGrantedRefund && deliveryStatusId === 3" class="q-mt-md full-width">
-                  <q-btn
-                    color="positive"
-                    icon="check_circle"
-                    label="Mark as Complete"
-                    class="full-width"
-                    unelevated
-                    :disable="isMarkedComplete"
-                    @click="markedAsCompleted"
-                  />
-                </div>
-              </div>
-              
-              <div v-else>
-                <q-banner class="bg-warning text-black rounded-borders q-mt-md">
+            
+            <div v-if="bidStatus && bidStatus === 'did-not-win'">
+              <div v-if="isMarkedComplete" class="q-mt-md full-width">
+                <q-banner rounded dense class="bg-positive text-white q-pa-md">
                   <template v-slot:avatar>
-                    <q-icon name="gavel" />
+                    <q-icon name="check_circle" />
                   </template>
-                  An active dispute is currently pending review. Operations are temporarily locked.
+                  Transaction complete.
                 </q-banner>
+              </div>
+
+              <div v-if="(isLotSold || showPostAuctionActions) && (isAuthor || isWinningBidder)" class="q-mt-md full-width">
+                <q-btn
+                  outline
+                  dense
+                  no-caps
+                  color="primary"
+                  icon="history"
+                  label="View Delivery Status"
+                  class="full-width"
+                  @click="showDeliveryHistory = true"
+                />
+              </div>
+
+              <div>
+                <div v-if="!isDisputeActive">
+                  <div v-if="showPostAuctionActions && (isAuthor || isWinningBidder)" class="q-mt-md full-width row q-col-gutter-none items-center justify-center">
+                    <div class="col text-center">
+                      <q-btn
+                        v-if="isAuthor"
+                        outline
+                        stack
+                        class="text-bold text-caption full-width"
+                        :color="darkMode ? 'white' : 'black'"
+                        icon="check_circle"
+                        padding="sm"
+                        label="Confirm Delivery"
+                        :disable="deliveryStatusId !== 1"
+                        @click="confirmDeliveryTrigger"
+                      />
+                      <q-btn
+                        v-else
+                        outline
+                        stack
+                        class="text-bold text-caption full-width"
+                        :color="darkMode ? 'white' : 'black'"
+                        icon="check_circle"
+                        padding="sm"
+                        label="Confirm Pickup"
+                        :disable="deliveryStatusId !== 2"
+                        @click="confirmPickupTrigger"
+                      />
+                    </div>
+
+                    <div class="col q-ml-md text-center">
+                      <q-btn
+                        v-if="!isAuthor && deliveryStatusId !== 3"
+                        class="text-bold text-caption full-width"
+                        color="negative"
+                        text-color="white"
+                        stack
+                        content-class="q-gap-xs"
+                        icon="gavel"
+                        padding="sm"
+                        label="File a Dispute"
+                        unelevated
+                        @click="showSellerDisputeDialog = true"
+                      />
+
+                      <q-btn
+                        v-else-if="!isAuthor"
+                        class="text-bold text-caption full-width"
+                        color="negative"
+                        text-color="white"
+                        stack
+                        content-class="q-gap-xs"
+                        icon="assignment_return"
+                        padding="sm"
+                        label="Refund"
+                        unelevated
+                        :disable="!canRequestRefund || isGrantedRefund"
+                        @click="showRefundDialog = true"
+                      />
+                    </div>
+                  </div>
+
+                  <div v-if="!isAuthor && deliveryStatusId === 3 && refundCountdown && !isGrantedRefund" class="text-caption text-right q-mt-xs">
+                    Time left for refund: {{ refundCountdown }}
+                  </div>
+
+                  <!-- Seller: refund granted banner -->
+                  <div v-if="isAuthor && isGrantedRefund" class="q-mt-md full-width">
+                    <q-banner rounded dense class="bg-warning text-white q-pa-md">
+                      <template v-slot:avatar>
+                        <q-icon name="assignment_return" />
+                      </template>
+                      Refund has been granted. Funds will be released to the buyer directly.
+                    </q-banner>
+                  </div>
+
+                  <!-- Resolved: funds returned by arbiter (status 1 or 2) -->
+                  <div v-if="isGrantedReturn && (deliveryStatusId === 1 || deliveryStatusId === 2)" class="q-mt-md full-width">
+                    <q-banner rounded dense class="bg-positive text-white q-pa-md">
+                      <template v-slot:avatar>
+                        <q-icon name="check_circle" />
+                      </template>
+                      Dispute resolved. Funds have been returned to the buyer.
+                    </q-banner>
+                  </div>
+
+                  <!-- Bidder: mark as complete (no refund, delivered) -->
+                  <div v-if="showPostAuctionActions && !isMarkedComplete && isWinningBidder && !isGrantedRefund && deliveryStatusId === 3" class="q-mt-md full-width">
+                    <q-btn
+                      color="positive"
+                      icon="check_circle"
+                      label="Mark as Complete"
+                      class="full-width"
+                      unelevated
+                      :disable="isMarkedComplete"
+                      @click="markedAsCompleted"
+                    />
+                  </div>
+                </div>
+                
+                <div v-else>
+                  <q-banner class="bg-warning text-black rounded-borders q-mt-md">
+                    <template v-slot:avatar>
+                      <q-icon name="gavel" />
+                    </template>
+                    An active dispute is currently pending review. Operations are temporarily locked.
+                  </q-banner>
+                </div>
               </div>
             </div>
           </div>
