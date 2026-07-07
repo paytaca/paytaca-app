@@ -525,7 +525,9 @@ export default {
       const index = vm.$store.getters['global/getWalletIndex']
       const mnemonic = await getMnemonic(index).catch(() => null)
       if (!mnemonic) {
-        vm.$store.commit('global/setWalletSwitchInProgress', false)
+        if (vm.$store.getters['global/getWalletIndex'] === index) {
+          vm.$store.commit('global/setWalletSwitchInProgress', false)
+        }
         return
       }
 
@@ -534,7 +536,9 @@ export default {
       vm.resubscribeAddresses(mnemonic)
       vm.$store.dispatch('nostrChat/ensureSubscribed')
 
-      vm.$store.commit('global/setWalletSwitchInProgress', false)
+      if (vm.$store.getters['global/getWalletIndex'] === index) {
+        vm.$store.commit('global/setWalletSwitchInProgress', false)
+      }
     },
     async resubscribeAddresses(mnemonic) {
       this.resubscribeBCHAddresses(mnemonic)
