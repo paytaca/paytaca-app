@@ -388,7 +388,8 @@ export default {
           path: '/apps/payment-hub/',
           iconStyle: 'width: 100%; height: 100%;',
           active: true,
-          beta: true
+          beta: true,
+          category: 'payment-hub'
         },
         {
           id: 'payment-hub-subscriptions',
@@ -398,7 +399,8 @@ export default {
           path: '/apps/payment-hub-subscriptions/',
           iconStyle: 'font-size: 4.2em',
           active: true,
-          beta: true
+          beta: true,
+          category: 'payment-hub'
         },
         {
           id: 'support',
@@ -480,6 +482,7 @@ export default {
         { id: 'assets-rewards', label: this.$t('AssetsAndRewards', {}, 'Assets & Rewards') },
         { id: 'wallet-connections', label: this.$t('WalletAndConnections', {}, 'Wallet & Connections') },
         { id: 'marketplace', label: this.$t('MarketplaceAndMerchant', {}, 'Marketplace & Merchant') },
+        { id: 'payment-hub', label: this.$t('PaymentHub', {}, 'Payment Hub') },
         { id: 'utilities', label: this.$t('Utilities', {}, 'Utilities') },
         { id: 'beta', label: this.$t('Experimental', {}, 'Experimental'), isBeta: true },
       ]
