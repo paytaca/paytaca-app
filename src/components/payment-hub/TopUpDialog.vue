@@ -150,7 +150,10 @@ const totalBchFormatted = computed(() => {
 
   // Use satoshi-based calculation (pledge + paytaca_fee + miner_fee per cycle)
   if (totalCostSatsPerCycle.value > 0) {
-    const totalSats = totalCostSatsPerCycle.value * numCycles
+    let totalSats = totalCostSatsPerCycle.value * numCycles
+    if (props.subscription?.status === 'PENDING') {
+      totalSats += 1000 // Extra 1000 sats buffer for the NFT dust limit and merge fee
+    }
     return (totalSats / 100000000).toFixed(8).replace(/\.?0+$/, '') || '0'
   }
 
