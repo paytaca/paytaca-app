@@ -66,8 +66,10 @@
         >
           <q-tab name="invoices" :label="$t('Invoices')" />
           <q-tab name="api_keys" :label="$t('APIKeys')" />
-          <q-tab name="plans" :label="$t('Plans') || 'Plans'" />
-          <q-tab name="subscriptions" :label="$t('Subscriptions') || 'Subscriptions'" />
+          <template v-if="displaySubs">
+            <q-tab name="plans" :label="$t('Plans') || 'Plans'" />
+            <q-tab name="subscriptions" :label="$t('Subscriptions') || 'Subscriptions'" />
+          </template>
           <q-tab name="settings" :label="$t('Settings')" />
         </q-tabs>
         <q-separator :dark="darkMode" />
@@ -100,7 +102,7 @@
               </template>
             </q-select>
           </div>
-          <div class="col-auto">
+          <div v-if="displaySubs" class="col-auto">
             <q-checkbox
               v-model="includeSubscriptions"
               :label="$t('Subs') || 'Subs'"
@@ -217,6 +219,7 @@
           <div v-touch-swipe.horizontal.mouse="handleGlobalSwipe" class="col column no-wrap">
             <q-tab-panels
               v-model="activeTab"
+              keep-alive
               animated
               class="bg-transparent col"
             >
@@ -226,7 +229,7 @@
                   <InvoiceList
                     ref="invoiceListRef"
                     :store-id="storeId"
-                    :status-filter="invoiceStatusFilter.join(',')"
+                    :status-filter="invoiceStatusFilterText"
                     :hasSubscriptions="includeSubscriptions"
                     :search-query="invoiceSearchQuery"
                     @clear-search="clearInvoiceSearch"
@@ -320,6 +323,7 @@
               <q-tab-panel name="plans" class="q-pa-none">
                 <q-linear-progress v-if="fetchingData" query reverse rounded color="pt-primary1" class="q-mt-none" />
                 <div v-else style="height: 4px;"></div>
+                <div style="height:8px;"></div>
 
                 <div class="q-px-md q-pb-md" :class="darkMode ? 'text-grey-2' : 'text-grey-10'">
                   <div class="row items-center q-mb-md">
@@ -554,7 +558,7 @@
                       </div>
                     </q-card-section>
                     <q-card-actions v-if="webhookPublicKey" align="right">
-                      <q-btn flat dense color="pt-primary1" icon="content_copy" :label="$t('CopyKey')" @click="copyKey(webhookPublicKey)" />
+                      <q-btn flat dense color="pt-primary1" icon="content_copy" :label="$t('CopyKey')" @click="copyApiKey(webhookPublicKey)" />
                     </q-card-actions>
                   </q-card>
                 </div>
@@ -629,6 +633,8 @@ const darkMode = computed(() => $store.getters['darkmode/getStatus'])
 const storeId = computed(() => $route.params.storeId)
 const storeName = computed(() => $route.query.name)
 
+const displaySubs = ref(false);
+
 // Core state
 const wallet = ref(null)
 const hub = ref(null)
@@ -650,6 +656,11 @@ const invoiceListRef = ref(null)
 
 // Invoice Filter & Search state
 const invoiceStatusFilter = ref([])
+const invoiceStatusFilterText = computed(() => {
+  if (Array.isArray(invoiceStatusFilter.value)) return invoiceStatusFilter.value.join(',')
+  if (typeof invoiceStatusFilter.value === 'string') return invoiceStatusFilter.value
+  return ''
+})
 const savedIncludeSubscriptions = localStorage.getItem('phub_includeSubscriptions')
 const includeSubscriptions = ref(savedIncludeSubscriptions !== null ? savedIncludeSubscriptions === 'true' : false)
 
