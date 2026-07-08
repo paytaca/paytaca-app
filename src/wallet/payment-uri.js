@@ -795,6 +795,7 @@ export class JSONPaymentProtocol {
       currency: data?.chain,
       requiredFeePerByte: txInstruction?.requiredFeeRate,
       outputs: txInstruction?.outputs?.map(output => Object({
+        description: output?.description,
         amount: output?.amount,
         address: isTokenAddress(output.address) ? output.address : bchjs.Address.toCashAddress(output?.address),
         token: !output?.token ? undefined : {

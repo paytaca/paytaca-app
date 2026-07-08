@@ -1,12 +1,10 @@
 <template>
   <q-dialog ref="dialogRef" @hide="onDialogHide" persistent>
     <q-card class="br-15 pt-card-2 text-bow" :class="getDarkModeClass(darkMode)" style="width: 500px; max-width: 90vw;">
-      <div class="row no-wrap items-center justify-center q-pl-md">
+      <div class="row no-wrap items-center justify-center q-pl-md sticky-header">
         <div class="text-h6 q-space q-mt-sm">
-          {{ storeData?.id ? $t('EditStore') : $t('AddStore') }}
-          <span v-if="storeData?.id" class="text-grey">
-            #{{ storeData?.id }}
-          </span>
+          <div>{{ storeData?.id ? $t('EditStore') : $t('AddStore') }}</div>
+          <div v-if="storeData?.id" class="text-grey text-caption bottom">#{{ storeData?.id }}</div>
         </div>
         <q-btn
           flat
