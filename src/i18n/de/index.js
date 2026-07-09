@@ -913,7 +913,6 @@ export default {
   EscrowingFunds: "Treuhandgelder",
   EstimatedFee: "Geschätzte Gebühr",
   EstimatedValue: "Geschätzter Wert",
-  EventsAndPromotions: "Veranstaltungen und Werbeaktionen",
   Example: "Beispiel",
   ExceededBalanceError: "Überschreitung des Guthabens {spendableBchValue}",
   ExceededFreeTierLimits: "Sie haben die Grenzen des kostenlosen Kontingents überschritten.Upgraden Sie auf Paytaca Plus, um höhere Limits und Sonderfunktionen freizuschalten.",

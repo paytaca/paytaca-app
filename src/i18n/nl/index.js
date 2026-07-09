@@ -913,7 +913,6 @@ export default {
   EscrowingFunds: "Escrowfondsen",
   EstimatedFee: "Geschatte vergoeding",
   EstimatedValue: "Geschatte waarde",
-  EventsAndPromotions: "Evenementen en promoties",
   Example: "Voorbeeld",
   ExceededBalanceError: "Exceeding balance {spendableBchValue}",
   ExceededFreeTierLimits: "Je hebt de limieten van de Free-laag overschreden.Upgrade naar Paytaca Plus om hogere limieten en speciale functies te ontgrendelen.",

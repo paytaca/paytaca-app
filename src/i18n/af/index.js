@@ -913,7 +913,6 @@ export default {
   EscrowingFunds: "Escrowing Fondse",
   EstimatedFee: "Geskatte fooi",
   EstimatedValue: "Geskatte waarde",
-  EventsAndPromotions: "Geleenthede en promosies",
   Example: "Voorbeeld",
   ExceededBalanceError: "Oorskry saldo {spendableBchValue}",
   ExceededFreeTierLimits: "Jy het die limiete van die gratis vlak oorskry.Gradeer op na Paytaca Plus om hoër limiete en spesiale kenmerke te ontsluit.",

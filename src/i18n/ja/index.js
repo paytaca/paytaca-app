@@ -913,7 +913,6 @@ export default {
   EscrowingFunds: "資金をエスクローする",
   EstimatedFee: "料金の目安",
   EstimatedValue: "推定値",
-  EventsAndPromotions: "イベントとプロモーション",
   Example: "例",
   ExceededBalanceError: "残高 {spendableBchValue} を超過しています",
   ExceededFreeTierLimits: "無料利用枠の制限を超えています。Paytaca Plus にアップグレードすると、より高い制限と特別機能が利用可能になります。",

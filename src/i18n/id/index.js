@@ -913,7 +913,6 @@ export default {
   EscrowingFunds: "Menampung Dana",
   EstimatedFee: "Perkiraan biaya",
   EstimatedValue: "Perkiraan Nilai",
-  EventsAndPromotions: "Acara dan Promosi",
   Example: "Contoh",
   ExceededBalanceError: "Melebihi saldo {spendableBchValue}",
   ExceededFreeTierLimits: "Anda telah melampaui batas tingkat Gratis.Tingkatkan ke Paytaca Plus untuk membuka batas yang lebih tinggi dan fitur khusus.",
