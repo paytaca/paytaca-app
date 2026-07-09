@@ -348,6 +348,39 @@ export class CardUser {
             throw error;
         }
     }
+
+    async fetchContractByCategory(category) {
+        try {
+            const contract = await backend.get(`/contracts/${category}`);
+            return contract.data;
+        } catch (error) {
+            console.error('Error fetching contract by category:', error);
+            throw error;
+        }
+    }
+
+    async _requestLinkingToken(category) {
+        this._assertWallet()
+
+        try {
+            const body = {
+                category: category,
+                to_address: this.wallet.tokenAddress()
+            }
+            const response = await backend.post('/contracts/linking-token/', body);
+            return response.data.linking_token;
+        } catch (error) {
+            console.error('Error requesting linking token:', error);
+            throw error;
+        }
+    }
+
+    async linkAndActivateCard(category) {
+        // Request to obtain the linking token first
+        const linkingToken = await this._requestLinkingToken(category);
+        console.log('Obtained linking token:', linkingToken);
+        // Link the contract and the card using the linking token
+    }
 }
 
 /**

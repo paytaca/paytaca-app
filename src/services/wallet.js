@@ -7,6 +7,7 @@ import { markRaw } from 'vue'
 import { minTokenValue } from './card/constants'
 import { toTokenAddress } from 'src/utils/crypto.js'
 import { isTokenAddress } from 'src/utils/address-utils.js'
+import { DUST_LIMIT } from 'src/services/card/constants.js'
 
 const DEFAULT_CHANGE_INDEX = 0
 const DEFAULT_ADDRESS_INDEX = 0
@@ -308,16 +309,16 @@ export class Wallet {
 
   estimateFee({ numP2pkhInputs = 0, numOutputs = 2, feeRate = 2n } = {}) {
     // Approximate: ~148 bytes per P2PKH input
-    const P2PKH_INPUT_SIZE = 148
-    const OUTPUT_SIZE = 34
-    const TX_OVERHEAD = 10
+    const P2PKH_INPUT_SIZE = 148n;
+    const OUTPUT_SIZE = 34n;
+    const TX_OVERHEAD = 10n;
 
     const estimatedSize = TX_OVERHEAD
-        + (numP2pkhInputs * P2PKH_INPUT_SIZE)
-        + (numOutputs * OUTPUT_SIZE)
+      + (BigInt(numP2pkhInputs) * P2PKH_INPUT_SIZE)
+      + (BigInt(numOutputs) * OUTPUT_SIZE);
 
-    return BigInt(estimatedSize) * feeRate
-    }
+    return estimatedSize * feeRate;
+  }
 
   /**
    * Estimates satoshis needed for token-related operation
@@ -344,6 +345,71 @@ export class Wallet {
     });
 
     return total;
+  }
+
+  async createGenesisUtxo() {
+    console.log('Starting UTXO consolidation process...');
+    
+    const receivingAddress = this.address(); // Use the wallet's own address for consolidation
+    const { cumulativeValue, utxos } = await this.getBchUtxos(null, 100000); // Get UTXOs up to 100k sats
+    console.log('cumulativeValue:', cumulativeValue);
+    console.log('UTXOs found for consolidation:', utxos);
+    
+    if (utxos.length === 0) {
+      throw new Error('Cannot consolidate, 0 UTXOs found.');
+    }
+
+    const estimatedFee = this.estimateFee({ numP2pkhInputs: utxos.length, numOutputs: 1 }); // Estimated fee for consolidation transaction
+    const satsAmount = cumulativeValue - estimatedFee;
+    console.log('Estimated fee for consolidation:', estimatedFee);
+    console.log('Consolidation amount:', satsAmount);
+    console.log(`Consolidating ${utxos.length} UTXOs totaling ${satsAmount} sats to address:`, receivingAddress);
+
+    const privateKey = this.privkey();
+    const provider = new ElectrumNetworkProvider('mainnet')
+    const sigTemplate = new SignatureTemplate(privateKey)
+
+    const tx = new TransactionBuilder({ provider })
+        .addInputs(utxos, sigTemplate.unlockP2PKH())
+        .addOutput({ to: receivingAddress, amount: satsAmount })
+
+    console.log('===inputs:', tx.inputs)
+    console.log('===outputs:', tx.outputs)
+
+    const txHex = tx.build()
+    console.log('Built consolidation transaction hex:', txHex)
+
+    const rawWallet = this.getRawWallet()
+    const sendResult = await rawWallet.watchtower.BCH.broadcastTransaction(txHex)
+    console.log('Consolidation transaction broadcast result:', sendResult)
+    
+    return sendResult;
+  }
+
+  async getOrCreateGenesisUtxo() {
+    const bchUtxos = await this.getBchUtxos() 
+    console.log('bchUtxos:', bchUtxos)
+
+    if (!bchUtxos || !bchUtxos.utxos || bchUtxos.utxos.length === 0) {
+        throw new Error('No BCH UTXOs available for genesis creation')
+    }
+
+    let genesisUtxo = bchUtxos.utxos[0] // Use the first UTXO for genesis
+
+    if (genesisUtxo.vout !== 0 || genesisUtxo.satoshis <= DUST_LIMIT) {
+      await this.createGenesisUtxo({consolidate: true})
+      setTimeout(async () => {
+          const updatedBchUtxos = await this.getBchUtxos()
+          console.log('updatedBchUtxos:', updatedBchUtxos)
+          genesisUtxo = updatedBchUtxos.utxos[0]
+      }, 5000) 
+    }
+
+    if (genesisUtxo.satoshis <= DUST_LIMIT) {
+      throw new Error(`Genesis UTXO is below dust limit: ${genesisUtxo.satoshis} sats`)
+    }
+
+    return genesisUtxo
   }
 }
 

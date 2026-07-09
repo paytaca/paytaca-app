@@ -17,7 +17,7 @@
       </div>
 
       <!-- Form State -->
-      <q-card-section class="q-px-lg q-py-md">
+      <q-card-section v-if="!activatingCard" class="q-px-lg q-py-md">
         <!-- Input Methods -->
         <div class="input-methods q-mb-lg">
           <div class="row q-col-gutter-sm q-mb-md">
@@ -175,8 +175,8 @@
 
         <div class="input-section">
           <q-input
-            v-model="newCard.uid"
-            label="Card UID"
+            v-model="contract.category"
+            label="Token ID"
             class="custom-input"
             :dark="$q.dark.isActive"
             outlined
@@ -184,14 +184,14 @@
             <template v-slot:prepend>
               <q-icon name="credit_card" color="primary" />
             </template>
-            <template v-if="newCard.uid" v-slot:append>
+            <template v-if="contract.category" v-slot:append>
               <q-icon name="check_circle" size="16px" color="green" class="q-mr-xs" />
             </template>
           </q-input>
         </div>
         <div class="input-section q-mt-md">
           <q-input
-            v-model="newCard.cashAddress"
+            v-model="contract.address"
             label="Card Address"
             class="custom-input"
             :dark="$q.dark.isActive"
@@ -200,10 +200,25 @@
             <template v-slot:prepend>
               <q-icon name="currency_bitcoin" color="primary" />
             </template>
-            <template v-if="newCard.cashAddress" v-slot:append>
+            <template v-if="contract.address" v-slot:append>
               <q-icon name="check_circle" size="16px" color="green" class="q-mr-xs" />
             </template>
           </q-input>
+        </div>
+      </q-card-section>
+
+      <q-card-section v-if="activatingCard" class="q-px-lg q-pt-md q-pb-lg">
+        <div class="status-section">
+          <div class="status-icon-container q-mb-md">
+            <div class="pulse-ring"></div>
+            <q-spinner color="primary" size="64px" />
+          </div>
+          <div class="text-subtitle2 text-weight-bold text-primary q-mb-sm">
+            Activating your card...
+          </div>
+          <div class="text-caption text-primary">
+            {{ progressMessage || 'Please wait while we activate your card.' }}
+          </div>
         </div>
       </q-card-section>
 
@@ -215,6 +230,7 @@
           label="Cancel" 
           class="q-px-lg"
           color="primary" 
+          :disable="activatingCard"
           @click="closeDialog" />
         <q-space />
         <q-btn 
@@ -223,7 +239,7 @@
           rounded
           unelevated
           class="q-px-xl"
-          :disable="activatingCard || !!newCard && !newCard.uid || !newCard.cashAddress"
+          :disable="activatingCard"
           :loading="activatingCard"
           @click="onActivateCard()">
           <template v-slot:loading>
@@ -236,7 +252,7 @@
 </template>
 
 <script>
-import { getCreateCardAttempt } from 'src/services/card/storage';
+import { getCardActivationAttempt } from 'src/services/card/storage';
 import { loadCardUser } from 'src/services/card/user';
 import QrScanner from 'src/components/qr-scanner.vue';
 
@@ -254,10 +270,11 @@ export default {
   },
   data () {
     return {
+      user: null,
       showDialog: true,
       activatingCard: false,
       newCardName: '',
-      mintingMessage: '',
+      progressMessage: '',
       state: 'form', // 'form' | 'minting' | 'success' | 'error'
       inputCardUid: true,
       selectedInputMethod: 'qr', // 'qr' | 'nfc' 
@@ -267,6 +284,10 @@ export default {
       newCard: {
         uid: '',
         name: ''
+      },
+      contract: {
+        category: '',
+        address: ''
       }
     }
   },
@@ -286,10 +307,11 @@ export default {
   async mounted() {
     // Reset state when dialog is opened
     this.newCardName = '';
-    this.mintingMessage = '';
+    this.progressMessage = '';
     this.state = 'form';
     this.selectedInputMethod = 'qr';
     this.inputCardUid = true;
+    this.user = await loadCardUser();
   },
 
   methods: {
@@ -310,47 +332,69 @@ export default {
     async onQrDecode (content) {
       console.log('QR code decoded:', content)
       // Fill in the scanned QR code content as the card UID
-      const address = content
+      const contractCategory = content
 
       // fetch the card with the scanned address to get the UID
-      const user = await loadCardUser()
-      await user.fetchCardByIdentifier(address)
-        .then(card => {
-          console.log('Fetched card data from server:', card);
-          console.log('Fetched card UID:', card?.uid);
-          this.newCard = card
-        })
+      const contract = await this.user.fetchContractByCategory(contractCategory)
         .catch(error => {
-          console.error('Error fetching card data:', error);
+          console.error('Error fetching contract by category:', error);
           this.$q.notify({
-            message: 'Failed to fetch card data. Please try again.',
+            message: 'Failed to fetch contract data. Please try again.',
             color: 'negative',
             position: 'top',
             timeout: 2000
           });
         });
 
+      console.log('Fetched contract data from server:', contract);
+      
+      if (!contract) {
+        this.$q.notify({
+          message: 'No contract found for the scanned category. Please check the QR code.',
+          color: 'negative',
+          position: 'top',
+          timeout: 2000
+        });
+        this.showQrScanner = false;
+        return;
+      }
+
+      this.contract = {
+        category: contract.ownership_token,
+        address: contract.cash_address
+      }
+      console.log('Contract data set in component state:', this.contract);
+
       this.showQrScanner = false
     },
 
-    onCardMintingProgress (message) {
+    onProgress (message) {
       // This can be used to update the UI with progress messages if desired
       console.log('Card minting progress:', message);
-      this.mintingMessage = message;
+      this.progressMessage = message;
     },
 
     async onActivateCard() {
       this.activatingCard = true
-      await this.newCard.activate().then(response => {
-        console.log('Card activated successfully:', response);
-        this.$emit('activate', this.newCard);
-      }).catch((error) => {
+      const category = this.contract.category
+      
+      try {
+        this.onProgress('Fetching linking token')
+        await this.user.linkAndActivateCard(category)
+        this.onProgress('Linking the contract to the card')
+        // await 
+        this.onProgress('Activating the card')
+
+      } catch (error) {
         console.error('Error activating card:', error);
         this.state = 'error';
-        this.mintingMessage = error.message || 'An error occurred while activating your card.';
-      }).finally(() => {
+        this.progressMessage = error.message || 'An error occurred while activating your card.';
+      } finally {
         this.activatingCard = false
-      })
+      }
+      setTimeout(() => {
+        this.activatingCard = false
+      }, 3000)
     }
   }
 }

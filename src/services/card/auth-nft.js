@@ -4,6 +4,7 @@ import { NFTCapability, TokenMintRequest, TokenSendRequest, Wallet } from 'mainn
 import { defaultSpendLimitSats, minTokenValue } from './constants';
 import { loadWallet } from 'src/services/wallet.js';
 import Watchtower from 'watchtower-cash-js'
+import { ElectrumNetworkProvider, SignatureTemplate, TransactionBuilder } from 'cashscript';
 
 const watchtower = new Watchtower()
 const MINT_VALUE = 1000n;
@@ -71,22 +72,90 @@ class AuthNftService {
         return balance;
     }
 
-    /**
-     * Mints a genesis token with minting capability.
-     * @returns {Promise<Object>} API response with created genesis token
-     */
-    async genesis() {
-        this._assertWallet();
+    // /**
+    //  * Mints a genesis token with minting capability.
+    //  * @returns {Promise<Object>} API response with created genesis token
+    //  */
+    // async genesis() {
+    //     this._assertWallet();
 
-        // Create a genesis token
-        const response = await this.ctWallet.tokenGenesis({
-            amount: 0n,
-            commitment: '',
-            capability: NFTCapability.minting,
-            value: MINT_VALUE,
-        });
+    //     // Create a genesis token
+    //     const response = await this.ctWallet.tokenGenesis({
+    //         amount: 0n,
+    //         commitment: '',
+    //         capability: NFTCapability.minting,
+    //         value: MINT_VALUE,
+    //     });
 
-        return response;
+    //     return response;
+    // }
+
+    async mintGenesis(opts = {broadcast: true}) {
+        console.log('====== Minting Token ======')
+    
+        const genesisUtxo = await this.wallet.getOrCreateGenesisUtxo()
+        const categoryId = genesisUtxo.txid
+        const nftValue = 1000n // 10000 satoshis for each NFT output
+        
+        const changeAddress = this.wallet.address()
+        const estimatedFee = this.wallet.estimateFee({ numP2pkhInputs: 1, numOutputs: 1, feeRate: 2n })
+        const change = genesisUtxo.satoshis - estimatedFee - nftValue
+        
+        // console.log('categoryId:', categoryId)
+        console.log('estimatedFee:', estimatedFee)
+        console.log('change:', change)
+        const tokenAddress = this.wallet.tokenAddress()
+
+        const outputs = [
+            { to: changeAddress, amount: change },
+            {
+                to: tokenAddress,
+                amount: nftValue,
+                token: {
+                    category: categoryId,
+                    amount: 0n,
+                    nft: {
+                        capability: 'minting',
+                        commitment: ''
+                    }
+                }
+            }
+        ]
+
+        // console.log('outputs:', outputs)
+        const privateKey = this.wallet.privkey()
+        const provider = new ElectrumNetworkProvider('mainnet')
+        const sigTemplate = new SignatureTemplate(privateKey)
+
+        const tx = new TransactionBuilder({ provider })
+            .addInput(genesisUtxo, sigTemplate.unlockP2PKH())
+            .addOutputs(outputs)
+            
+        console.log('inputs:', tx.inputs)
+        console.log('outputs:', tx.outputs)
+        
+        let result
+        try {
+            // Build the transaction
+            const txHex = tx.build()
+            console.log('Built transaction hex:', txHex)
+
+            if (opts?.broadcast) {
+                const txResult = await watchtower.BCH.broadcastTransaction(txHex)
+                console.log('Transaction broadcast result:', txResult.data)
+                result = { 
+                    success: txResult.data.success, 
+                    txid: txResult.data.txid, 
+                    category: categoryId 
+                }
+            } else {
+                result = { success: true, txHex }
+            }
+        } catch (error) {
+            throw error
+        }
+
+        return result
     }
 
     /**

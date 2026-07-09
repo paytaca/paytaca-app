@@ -282,51 +282,67 @@ export default {
 
   async mounted () {
     await this.loadData()
-
-    // -------- Backend Steps ---------
-    // Step 1: Mint Linking Token
-    // const mintLinkingResult = await mintLinkingToken()
-    // console.log('mintLinkingToken result:', mintLinkingResult)
-    // const linkingCategory = mintLinkingResult.category
-    const linkingCategory = "a3b98f21c9c69380694078e48f89d1423cd336c48613c773515fe66f9b88af7b"
-    console.log('linkingCategory:', linkingCategory)
-
-    // Step 2: Mint Ownership Tokens set commitments to expect category of Step 1
-    // const mintOwnershipResult = await mintOwnershipTokens(linkingCategory)
-    // const ownershipCategory = mintOwnershipResult.category
-    const ownershipCategory = "83da12c3b1d8782568acc950cadb432fe94ad0f9c1b6ac121577de97a8fd4cc3"
-    console.log('ownershipCategory:', ownershipCategory)
-
-    // Step 3: Create Tap-to-Pay Contract using category of Step 2
-    const tapToPay = await createV2Contract(ownershipCategory)
-    const contract = tapToPay.getContract()
-    const tokenAddress = toTokenAddress(contract.address)
-
-    console.log('contract address:', contract.address)
-    console.log('tokenAddress:', tokenAddress)
-
-    // Step 4: Send Ownership Tokens to Contract
-    // const sendResult = await sendOwnershipTokensToContract({ ownershipCategory, contractAddress: contract.address })
-    // console.log('sendOwnershipTokensToContract result:', sendResult)
-    const contractTokens = await contract.getUtxos()
-    console.log('>>>>>>>>contractTokens:', contractTokens)
-
-    // ----------- User Steps -----------
-    // Step 1: Mint Authorization Token
-    // const mintAuthResult = await mintLinkingToken()
-    // console.log('mintAuthResult:', mintAuthResult)
-    // const authTokenId = mintAuthResult.category;
-    const authTokenId = "ddcc4aa5567243ca0ab1e24e9aa8557199250a6ee4e47ee1a135b62a4dccb9a1"
-    console.log('authTokenId:', authTokenId)
-
-    // Step 2: Set ownership of contract using owner's public key and category of Step 1
     const wallet = await loadWallet()
-    const ownerSig = new SignatureTemplate(wallet.privkey())
-    const ownerPk = binToHex(ownerSig.getPublicKey())
-    const ownerPkh = pubkeyToPkHash(ownerPk)
-    console.log('-----ownerPkh:', ownerPkh)
-    // const setOwnershipResult = await tapToPay.setOwnership(wallet.privkey(), authTokenId)
-    // console.log('setOwnership result:', setOwnershipResult)
+    console.log('wallet address:', wallet.address())
+    console.log('wallet pubkey:', wallet.pubkey())
+    console.log('wallet privkey:', wallet.privkey())
+    console.log('wallet hash:', wallet.walletHash)
+    console.log('wallet tokenAddress:', wallet.tokenAddress())
+
+    // const authNftService = await AuthNftService.initializeWithWallet(wallet.privkey())
+    // console.log('authNftService:', authNftService)
+    // const result = await authNftService.mintGenesis()
+    // console.log('mintGenesis result:', result)
+
+    const user = await loadCardUser()
+    const card = await user.fetchCardByIdentifier('ce3610b26b3c694386a506b6e5788385cd79e899491050de876b06e1555e99d8')    
+    console.log('card:', card)
+
+    // await wallet.consolidateUtxos()
+    // // -------- Backend Steps ---------
+    // // Step 1: Mint Linking Token
+    // // const mintLinkingResult = await mintLinkingToken()
+    // // console.log('mintLinkingToken result:', mintLinkingResult)
+    // // const linkingCategory = mintLinkingResult.category
+    // const linkingCategory = "a3b98f21c9c69380694078e48f89d1423cd336c48613c773515fe66f9b88af7b"
+    // console.log('linkingCategory:', linkingCategory)
+
+    // // Step 2: Mint Ownership Tokens set commitments to expect category of Step 1
+    // // const mintOwnershipResult = await mintOwnershipTokens(linkingCategory)
+    // // const ownershipCategory = mintOwnershipResult.category
+    // const ownershipCategory = "83da12c3b1d8782568acc950cadb432fe94ad0f9c1b6ac121577de97a8fd4cc3"
+    // console.log('ownershipCategory:', ownershipCategory)
+
+    // // Step 3: Create Tap-to-Pay Contract using category of Step 2
+    // const tapToPay = await createV2Contract(ownershipCategory)
+    // const contract = tapToPay.getContract()
+    // const tokenAddress = toTokenAddress(contract.address)
+
+    // console.log('contract address:', contract.address)
+    // console.log('tokenAddress:', tokenAddress)
+
+    // // Step 4: Send Ownership Tokens to Contract
+    // // const sendResult = await sendOwnershipTokensToContract({ ownershipCategory, contractAddress: contract.address })
+    // // console.log('sendOwnershipTokensToContract result:', sendResult)
+    // const contractTokens = await contract.getUtxos()
+    // console.log('>>>>>>>>contractTokens:', contractTokens)
+
+    // // ----------- User Steps -----------
+    // // Step 1: Mint Authorization Token
+    // // const mintAuthResult = await mintLinkingToken()
+    // // console.log('mintAuthResult:', mintAuthResult)
+    // // const authTokenId = mintAuthResult.category;
+    // const authTokenId = "ddcc4aa5567243ca0ab1e24e9aa8557199250a6ee4e47ee1a135b62a4dccb9a1"
+    // console.log('authTokenId:', authTokenId)
+
+    // // Step 2: Set ownership of contract using owner's public key and category of Step 1
+    // const wallet = await loadWallet()
+    // const ownerSig = new SignatureTemplate(wallet.privkey())
+    // const ownerPk = binToHex(ownerSig.getPublicKey())
+    // const ownerPkh = pubkeyToPkHash(ownerPk)
+    // console.log('-----ownerPkh:', ownerPkh)
+    // // const setOwnerResult = await tapToPay.setOwner(wallet.privkey(), authTokenId)
+    // // console.log('setOwner result:', setOwnerResult)
 
   },
 
