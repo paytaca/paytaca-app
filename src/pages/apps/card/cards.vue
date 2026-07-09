@@ -690,6 +690,8 @@ export default {
 </style>
 
 <style lang="scss">
+  @import "src/css/app-card.scss";
+
   // Kept in sync with app-card.scss global overrides section
   html, body {
     overflow: hidden !important;
@@ -705,10 +707,4 @@ export default {
     height: 100dvh !important;
     overflow: hidden !important;
   }
-</style>
-
-<style>
-.card-page-bg-light {
-  background: color-mix(in srgb, var(--q-primary) 8%, rgba(248, 249, 253, 0.95)) !important;
-}
 </style>

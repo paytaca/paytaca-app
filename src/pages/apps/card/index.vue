@@ -116,8 +116,6 @@ export default {
 @import 'src/css/app-card.scss';
 </style>
 
-<style>
-.card-page-bg-light {
-  background: color-mix(in srgb, var(--q-primary) 8%, rgba(248, 249, 253, 0.95)) !important;
-}
+<style lang="scss">
+@import 'src/css/app-card.scss';
 </style>

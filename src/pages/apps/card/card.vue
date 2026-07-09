@@ -811,9 +811,11 @@ export default {
 }
 </script>
 
-<style lang="scss" scoped>
-  @import "src/css/app-card.scss";
+<style lang="scss">
+@import "src/css/app-card.scss";
+</style>
 
+<style lang="scss" scoped>
   .blink-badge {
     animation: blink-pulse 1.5s ease-in-out infinite;
   }
