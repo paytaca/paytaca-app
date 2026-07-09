@@ -693,7 +693,7 @@ export class TapToPayV2 extends TapToPay {
         return contract;
     }
 
-    async setOwnership (ownerWif, authCategory) {
+    async setOwner (ownerWif, authCategory) {
         const contract = this.getContract()
         const ownerSig = new SignatureTemplate(ownerWif)
         const ownerPk = binToHex(ownerSig.getPublicKey())

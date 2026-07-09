@@ -5,11 +5,12 @@ import { backend } from './backend';
 import { loadWallet } from '../wallet';
 import { loadCardUser } from './user';
 import { 
-  saveCreateCardAttempt, 
-  updateCreateCardAttempt, 
-  getCreateCardAttempt,
-  clearCreateCardAttempt,
-  CardCreateAttemptStatus 
+  saveCardActivationAttempt, 
+  updateCardActivationAttempt, 
+  getCardActivationAttempt,
+  clearCardActivationAttempt,
+  CardActivationAttemptStatus, 
+  CardActivationStatus
 } from './storage';
 import bus from 'src/services/event-bus';
 
@@ -162,69 +163,49 @@ export class Card {
     this.contract = new TapToPay(this.raw.contract_id);
   }
 
-  /**
-   * Ensures the card user is authenticated
-   * @private
-   * @returns {Promise<void>}
-   */
-  async _ensureCardUserAuthenticated() {
-    await loadCardUser();
-  }
-
   // ==================== WORKFLOWS ====================
-
   /**
    * Complete card creation workflow
    * @returns {Promise<Card>}
    */
-  async create(newCard, callbackOnProgress=null, lastAttempt = null) {
-    this._notifyCallbackFn(callbackOnProgress, 'Starting card creation workflow');
-
-    const alias = newCard?.name
-
+  async activate(alias, category, callbackOnProgress=null, lastAttempt = null) {
+    this._notifyCallbackFn(callbackOnProgress, 'Authenticating user');
+    const user = await loadCardUser();   
+      
     try {
 
-      let currentStatus = lastAttempt ? lastAttempt.status : CardCreateAttemptStatus.CARD_INITIATED;
+      // Mint genesis token and save to server
+      // Use the linking token to set contract owner and auth token category
+      // Set the card user = this user
+
+      let currentStatus = lastAttempt ? lastAttempt.status : CardActivationStatus.CARD_INITIATED;
       let cardId = lastAttempt?.cardId || null;
 
-      if (currentStatus < CardCreateAttemptStatus.CARD_SAVED) {
-        const { id: newCardId } = await this._createCardEntry(alias);
-        cardId = newCardId;
-
-        this._notifyCallbackFn(callbackOnProgress, 'Card entry created on server');
-        
-        currentStatus = CardCreateAttemptStatus.CARD_SAVED;
-        updateCreateCardAttempt(this.wallet.walletHash, { cardId, status: currentStatus });
-      } else {
-        console.log('Resuming card creation with:', lastAttempt);
-        
-        this._notifyCallbackFn(callbackOnProgress, 'Resuming card creation workflow');
+      if (!cardId) {
+        // fetch the contract ID from the server by category
+        const contract = await user.fetchContractByCategory(category);
+        // const card = await 
       }
       
       // Mints the genesis token for the card
       let category
-      if (currentStatus <= CardCreateAttemptStatus.CARD_SAVED) {
+      // if (currentStatus <= CardActivationStatus.CARD_SAVED) {
         console.log('Minting genesis token for card ID:', cardId);
-        
         this._notifyCallbackFn(callbackOnProgress, 'Minting genesis token. This may take a minute...');
         
-        const genesisResult = await this._mintGenesisToken();
-        category = genesisResult.tokenId
+        ({ category } = await this._mintGenesisAuthToken());
         
         this._notifyCallbackFn(callbackOnProgress, 'Genesis token minted');
         
-        currentStatus = CardCreateAttemptStatus.GENESIS_MINTED;
-        updateCreateCardAttempt(this.wallet.walletHash, { category: category, status: currentStatus });
-      }
+        currentStatus = CardActivationStatus.GENESIS_MINTED;
+        updateCardActivationAttempt(this.wallet.walletHash, { category: category, status: currentStatus });
+      // }
 
-      await this._ensureCardUserAuthenticated();      
-      this._notifyCallbackFn(callbackOnProgress, 'Card user authenticated');
-
-      if (currentStatus <= CardCreateAttemptStatus.GENESIS_MINTED) {
+      if (currentStatus <= CardActivationStatus.GENESIS_MINTED) {
         let savedAttempt = lastAttempt
         
         if (!category) {
-          savedAttempt = await getCreateCardAttempt(this.wallet.walletHash);
+          savedAttempt = await getCardActivationAttempt(this.wallet.walletHash);
           console.log('Re-fetching last attempt for category:', savedAttempt);
           category = savedAttempt?.category;
         }
@@ -232,18 +213,18 @@ export class Card {
         // Save the auth token category to the server
         this.raw = await this._saveGenesis(cardId, category);
         this._notifyCallbackFn(callbackOnProgress, 'Genesis token saved to server');
-        currentStatus = CardCreateAttemptStatus.GENESIS_SAVED;
-        updateCreateCardAttempt(this.wallet.walletHash, { status: currentStatus });      
+        currentStatus = CardActivationStatus.GENESIS_SAVED;
+        updateCardActivationAttempt(this.wallet.walletHash, { status: currentStatus });
       } 
 
       // Create the contract
-      if (currentStatus <= CardCreateAttemptStatus.GENESIS_SAVED) {
+      if (currentStatus <= CardActivationStatus.GENESIS_SAVED) {
         if (!lastAttempt) {
-          lastAttempt = await getCreateCardAttempt(this.wallet.walletHash);
+          lastAttempt = await getCardActivationAttempt(this.wallet.walletHash);
         }
         await this._generateContract(lastAttempt?.idempotencyKey);
-        currentStatus = CardCreateAttemptStatus.CONTRACT_CREATED;
-        updateCreateCardAttempt(this.wallet.walletHash, { status: currentStatus });
+        currentStatus = CardActivationStatus.CONTRACT_CREATED;
+        updateCardActivationAttempt(this.wallet.walletHash, { status: currentStatus });
       }
       
       this.raw = (await backend.get(`/cards/${cardId}/`)).data;
@@ -251,28 +232,28 @@ export class Card {
       this._initializeContract();
       this._notifyCallbackFn(callbackOnProgress, 'Contract initialized locally');
 
-      // if (currentStatus <= CardCreateAttemptStatus.CONTRACT_CREATED) {
+      // if (currentStatus <= CardActivationStatus.CONTRACT_CREATED) {
       //   await this._issueGlobalAuthToken(currentStatus, callbackOnProgress);
       // }
 
-      if (currentStatus <= CardCreateAttemptStatus.AUTH_MINTED) {
+      if (currentStatus <= CardActivationStatus.AUTH_MINTED) {
         await this._mintGlobalAuthToken();
-        currentStatus = CardCreateAttemptStatus.AUTH_MINTED;
-        updateCreateCardAttempt(this.wallet.walletHash, { status: currentStatus });
+        currentStatus = CardActivationStatus.AUTH_MINTED;
+        updateCardActivationAttempt(this.wallet.walletHash, { status: currentStatus });
         this._notifyCallbackFn(callbackOnProgress, 'Global auth token minted');
       }
 
-      if (currentStatus <= CardCreateAttemptStatus.AUTH_MINTED) {
+      if (currentStatus <= CardActivationStatus.AUTH_MINTED) {
         await this._issueAuthTokens();
-        currentStatus = CardCreateAttemptStatus.AUTH_ISSUED;
-        updateCreateCardAttempt(this.wallet.walletHash, { status: currentStatus });
+        currentStatus = CardActivationStatus.AUTH_ISSUED;
+        updateCardActivationAttempt(this.wallet.walletHash, { status: currentStatus });
         this._notifyCallbackFn(callbackOnProgress, 'Global auth token issued');
       }
 
-      if (currentStatus <= CardCreateAttemptStatus.AUTH_ISSUED) {
+      if (currentStatus <= CardActivationStatus.AUTH_ISSUED) {
         console.log('Card creation completed successfully');
-        // Clear the create card attempt from local storage since workflow is complete
-        await clearCreateCardAttempt(this.wallet.walletHash);
+        // Clear the card activation attempt from local storage since workflow is complete
+        await clearCardActivationAttempt(this.wallet.walletHash);
         this._notifyCallbackFn(callbackOnProgress, 'Card created successfully!');
       }
       return this;
@@ -314,7 +295,7 @@ export class Card {
       address_path: this.wallet.addressPath()
     };
 
-    saveCreateCardAttempt(this.wallet.walletHash, {
+    saveCardActivationAttempt(this.wallet.walletHash, {
       idempotencyKey,
       alias: alias || "",
       walletHash: this.wallet.walletHash,
@@ -332,7 +313,7 @@ export class Card {
     
     const cardEntry = response.data;
     console.log('Card entry created:', cardEntry);
-    updateCreateCardAttempt(this.wallet.walletHash, { cardId: cardEntry.id, status: CardCreateAttemptStatus.CARD_SAVED });
+    updateCardActivationAttempt(this.wallet.walletHash, { cardId: cardEntry.id, status: CardActivationAttemptStatus.CARD_SAVED });
 
     return cardEntry;
   }
@@ -467,44 +448,29 @@ export class Card {
   // ==================== AUTH NFT OPERATIONS ====================
 
   /**
-   * Mints genesis token, creates vout=0 UTXO if needed
+   * Mints genesis auth token, creates vout=0 UTXO if needed
    * @private
    * @returns {Promise<{tokenId: string, utxos: Array}>}
    */
-  async _mintGenesisToken(retryOnFailure = true) {
+  async _mintGenesisAuthToken() {
     console.log('Starting genesis token minting...');
     this._assertAuthNftService();
 
     try {
-      const result = await this.authNftService.genesis();
+      const result = await this.authNftService.mintGenesis();
       console.log('Genesis result:', result);
       
-      if (result && result.tokenIds && result.tokenIds[0]) {
-        const tokenId = result.tokenIds[0];
-        const utxos = await this.authNftService.getTokenUtxos(tokenId);
+      if (result && result.success) {
+        const category = result.category
+        const utxos = await this.authNftService.getTokenUtxos(category);
         
-        return { tokenId, utxos };
+        return { category, utxos };
       }
       
       throw new Error('No token ID returned from genesis');
       
     } catch (error) {
       console.error('Error during genesis minting:', error.message || error);
-      const satsNeeded = this.parseSatoshisNeeded(error.message) * 2 || this.estimateCreateCardSatsRequirement(); // Default to estimated requirement if parsing fails
-      if (satsNeeded) {
-        console.log(`Creating vout=0 UTXO with ${satsNeeded} sats...`);
-        await this._createFundingUtxo(BigInt(satsNeeded));
-        await this._waitForTransaction();
-        if (retryOnFailure) {
-          console.log('Retrying genesis minting after creating UTXO...');
-          return this._mintGenesisToken(false);
-        }
-      }
-      
-      if (this._isVoutZeroError(error)) {
-        console.error('Still getting vout=0 error after ensuring UTXO exists');
-        console.error('Possible causes: UTXO not confirmed, wallet sync issues');
-      }
       throw error;
     }
   }

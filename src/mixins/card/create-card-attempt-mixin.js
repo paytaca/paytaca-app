@@ -1,4 +1,4 @@
-import { clearCreateCardAttempt, getCreateCardAttempt } from 'src/services/card/storage';
+import { clearCreateCardAttempt, getCardActivationAttempt } from 'src/services/card/storage';
 import Card from 'src/services/card/card';
 
 export default {
@@ -17,7 +17,7 @@ export default {
           console.log('No wallet hash available to load create card attempt');
           return null;
       }
-      const attempt = await getCreateCardAttempt(walletHash);
+      const attempt = await getCardActivationAttempt(walletHash);
       console.log('Loaded create card attempt:', attempt);
       return attempt;
     },

@@ -301,7 +301,7 @@
 
 <script>
 import Card from 'src/services/card/card';
-import { getCreateCardAttempt } from 'src/services/card/storage';
+import { getCardActivationAttempt } from 'src/services/card/storage';
 import QrScanner from 'src/components/qr-scanner.vue';
 
 export default {
@@ -355,7 +355,9 @@ export default {
     // this.inputCardUid = true;
 
     if (this.idempotencyKey) {
-      const attempt = await getCreateCardAttempt();
+      console.log('Resuming card creation with idempotency key:', this.idempotencyKey);
+      const attempt = await getCardActivationAttempt();
+      console.log('attempt from storage:', attempt)
       if (attempt) {
         this.newCardName = attempt?.alias || '';
         this.createCard(attempt); // Start the card creation process immediately if resuming
@@ -418,7 +420,9 @@ export default {
       this.mintingMessage = '';
       this.formError = '';
       if (this.idempotencyKey) {
-        const attempt = await getCreateCardAttempt();
+        console.log('Resuming card creation with idempotency key:', this.idempotencyKey);
+        const attempt = await getCardActivationAttempt();
+        console.log('attempt from storage:', attempt)
         if (attempt) {
           this.newCardName = attempt?.alias || '';
           this.createCard(attempt); // Start the card creation process immediately if resuming
