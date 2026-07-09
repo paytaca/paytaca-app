@@ -691,20 +691,4 @@ export default {
 
 <style lang="scss">
   @import "src/css/app-card.scss";
-
-  // Kept in sync with app-card.scss global overrides section
-  html, body {
-    overflow: hidden !important;
-    height: 100% !important;
-  }
-
-  .q-layout {
-    height: 100dvh !important;
-    overflow: hidden !important;
-  }
-
-  .q-page-container {
-    height: 100dvh !important;
-    overflow: hidden !important;
-  }
 </style>
