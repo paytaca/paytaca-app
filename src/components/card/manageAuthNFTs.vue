@@ -281,45 +281,43 @@
 
     <!-- Allow All Merchants Confirmation Dialog -->
     <q-dialog v-model="showAllowAllMerchantsDialog" persistent>
-      <q-card style="min-width: 320px">
-        <q-card-section>
-          <div class="text-h6" :class="textColor">
-            {{ $t('AllowAllMerchantsDialogTitle') }}
+      <q-card class="pt-card" :class="$q.dark.isActive ? 'dark' : 'light'" style="min-width: 320px; border-radius: 24px;">
+        <q-card-section class="q-pa-lg">
+          <div class="row items-center justify-between q-mb-sm">
+            <div class="text-h6 text-weight-bold" :class="textColor">
+              {{ $t('AllowAllMerchantsDialogTitle') }}
+            </div>
+            <q-btn flat round dense icon="close" :color="$q.dark.isActive ? 'grey-4' : 'grey-6'" @click="cancelAllowAllMerchants" />
           </div>
-        </q-card-section>
-
-        <q-card-section class="q-pt-none">
-          <div :class="textColor">
+          <div :class="textColor" class="q-mb-sm">
             {{ $t('AllowAllMerchantsDialogMessage', { amount: formatSpendLimit(GLOBAL_SPEND_LIMIT_BCH) }) }}
           </div>
-          <div class="q-mt-md text-caption" :class="$q.dark.isActive ? 'text-grey-4' : 'text-grey-7'">
+          <div class="text-caption" :class="$q.dark.isActive ? 'text-grey-4' : 'text-grey-7'">
             {{ $t('AllowAllMerchantsDialogSubtext') }}
           </div>
         </q-card-section>
 
-        <q-card-actions align="right">
-          <q-btn flat :label="$t('AllowAllMerchantsCancel')" color="primary" @click="cancelAllowAllMerchants" />
-          <q-btn flat :label="$t('AllowAllMerchantsEnable')" color="primary" @click="confirmAllowAllMerchants" />
+        <q-card-actions align="right" class="q-px-lg q-pb-md">
+          <q-btn flat label="Cancel" :color="$q.dark.isActive ? 'grey-4' : 'grey-7'" rounded @click="cancelAllowAllMerchants" />
+          <q-btn unelevated label="Enable" color="primary" class="bg-grad text-white" rounded @click="confirmAllowAllMerchants" />
         </q-card-actions>
       </q-card>
     </q-dialog>
 
     <!-- Spend Limit Dialog -->
     <q-dialog v-model="showMutateAuthDialog">
-      <q-card style="min-width: 320px">
-        <q-card-section>
-          <div class="text-h6" :class="textColor">
-            Edit Authorization NFT
+      <q-card class="pt-card" :class="$q.dark.isActive ? 'dark' : 'light'" style="min-width: 320px; border-radius: 24px;">
+        <q-card-section class="q-pa-lg">
+          <div class="row items-center justify-between q-mb-sm">
+            <div class="text-h6 text-weight-bold" :class="textColor">
+              Edit Authorization NFT
+            </div>
+            <q-btn flat round dense icon="close" :color="$q.dark.isActive ? 'grey-4' : 'grey-6'" @click="closeSpendLimitDialog" />
           </div>
-        </q-card-section>
-        <q-card-section class="q-pt-none" :class="textColor">
-          <div class="q-mb-sm" :class="textColor">
+          <div class="q-mb-md" :class="textColor">
             <span class="text-weight-bold">Merchant: {{ selectedMerchant?.name }}</span>
           </div>
-          <!-- <div class="q-mb-md text-caption" :class="$q.dark.isActive ? 'text-grey-4' : 'text-grey'">
-            Available Balance: {{ formatBalance(card?.balance) }} BCH
-          </div> -->
-          <q-tabs v-model="selectedNFT.id" class="text-subtitle2" :dark="$q.dark.isActive">
+          <q-tabs v-model="selectedNFT.id" class="text-subtitle2 bg-transparent" :dark="$q.dark.isActive">
             <q-tab
               v-for="nft in selectedMerchant.auth_nfts"
               :key="nft.id"
@@ -329,7 +327,7 @@
             />
             <q-tab v-if="selectedMerchant.auth_nfts.length === 0" name="no-nft" label="No NFTs" :disable="true" />
           </q-tabs>
-          <q-tab-panels v-model="selectedNFT.id" animated>
+          <q-tab-panels v-model="selectedNFT.id" animated class="bg-transparent">
             <q-tab-panel :name="selectedNFT.id">
               <q-toggle 
                 left-label
@@ -355,23 +353,23 @@
                 <div><span class="text-weight-medium">Global Auth:</span> {{ selectedAuthNFT.token?.is_global_auth ? 'Yes' : 'No' }}</div>
                 <div><span class="text-weight-medium">Spend Limit:</span> {{ formatSpendLimitFromSats(selectedAuthNFT.token?.spend_limit_sats) }} BCH</div>
               </div>
-              
             </q-tab-panel>
           </q-tab-panels>
         </q-card-section>
 
-        <q-card-actions align="between">
+        <q-card-actions align="between" class="q-px-lg q-pb-md">
           <q-btn
             flat
             color="negative"
             icon="local_fire_department"
             label="Burn Token"
+            rounded
             :disable="!selectedAuthNFT"
             @click="burnSelectedToken"
           />
           <div class="row items-center q-gutter-sm">
-            <q-btn flat label="Cancel" color="primary" @click="closeSpendLimitDialog" />
-            <q-btn flat label="Save" color="primary" @click="submitMutation" />
+            <q-btn flat label="Cancel" :color="$q.dark.isActive ? 'grey-4' : 'grey-7'" rounded @click="closeSpendLimitDialog" />
+            <q-btn unelevated label="Save" color="primary" class="bg-grad text-white" rounded @click="submitMutation" />
           </div>
         </q-card-actions>
       </q-card>
@@ -379,31 +377,32 @@
 
     <!-- Burn Token Confirmation Dialog -->
     <q-dialog v-model="showBurnTokenDialog" persistent>
-      <q-card style="min-width: 320px">
-        <q-card-section>
-          <div class="text-h6" :class="textColor">Burn Authorization NFT</div>
-        </q-card-section>
-        <q-card-section class="q-pt-none">
+      <q-card class="pt-card" :class="$q.dark.isActive ? 'dark' : 'light'" style="min-width: 320px; border-radius: 24px;">
+        <q-card-section class="q-pa-lg">
+          <div class="row items-center justify-between q-mb-sm">
+            <div class="text-h6 text-weight-bold" :class="textColor">Burn Authorization NFT</div>
+            <q-btn flat round dense icon="close" :color="$q.dark.isActive ? 'grey-4' : 'grey-6'" @click="showBurnTokenDialog = false" />
+          </div>
           <div :class="textColor">
             Are you sure you want to burn NFT {{ selectedAuthNFT?.id }} for {{ selectedMerchant?.name }}? This action is irreversible.
           </div>
         </q-card-section>
-        <q-card-actions align="right">
-          <q-btn flat label="Cancel" color="primary" @click="showBurnTokenDialog = false" />
-          <q-btn flat label="Burn Token" color="negative" @click="confirmBurnToken" />
+        <q-card-actions align="right" class="q-px-lg q-pb-md">
+          <q-btn flat label="Cancel" :color="$q.dark.isActive ? 'grey-4' : 'grey-7'" rounded @click="showBurnTokenDialog = false" />
+          <q-btn unelevated label="Burn Token" color="negative" rounded @click="confirmBurnToken" />
         </q-card-actions>
       </q-card>
     </q-dialog>
 
     <!-- Location Map Dialog -->
     <q-dialog v-model="showLocationMapDialog" persistent maximized>
-      <q-card :class="$q.dark.isActive ? 'bg-dark' : 'bg-white'">
+      <q-card class="pt-card" :class="$q.dark.isActive ? 'dark' : 'light'">
         <q-card-section class="row items-center justify-between q-pa-sm">
           <div class="text-h6" :class="textColor">
             <q-icon name="location_on" color="primary" class="q-mr-sm" />
             Update Your Location
           </div>
-          <q-btn icon="close" flat round dense v-close-popup :color="$q.dark.isActive ? 'grey-4' : 'grey-7'" />
+          <q-btn icon="close" flat round dense v-close-popup :color="$q.dark.isActive ? 'grey-4' : 'grey-6'" />
         </q-card-section>
 
         <q-card-section class="q-pa-none" style="height: calc(100vh - 140px);">
@@ -438,6 +437,7 @@
               label="Confirm Location" 
               unelevated
               rounded
+              class="bg-grad text-white"
               @click="confirmLocationUpdate"
             />
           </div>

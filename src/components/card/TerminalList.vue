@@ -1,10 +1,10 @@
 <template>
   <div>
-    <q-dialog class="br-12 text-bow" v-model="showDialog" full-width @before-hide="onDialogHide">
-      <q-card :class="['q-pa-md', $q.dark.isActive ? 'bg-grey-9' : 'bg-white']" style="height: 80vh;">
-        <q-card-section class="text-h6 text-center">
-          <div :class="textColor">Select Merchants</div>
-          <!-- <div class="text-subtitle2" style="opacity: 0.6; font-size: 12px;">Select the merchants you want to allow for this card</div> -->
+    <q-dialog class="text-bow" v-model="showDialog" full-width @before-hide="onDialogHide">
+      <q-card class="pt-card" :class="$q.dark.isActive ? 'dark' : 'light'" style="height: 80vh; border-radius: 24px;">
+        <q-card-section class="q-pa-lg row items-center justify-between">
+          <div class="text-h6 text-weight-bold" :class="textColor">Select Merchants</div>
+          <q-btn flat round dense icon="close" :color="$q.dark.isActive ? 'grey-4' : 'grey-6'" v-close-popup />
         </q-card-section>
         <q-card-section class="q-px-md q-py-none">
           <q-input
@@ -44,8 +44,10 @@
         </q-card-section>
         <q-card-actions class="justify-center" style="position: absolute; bottom: 0; width: 90%;">
           <q-btn
-            class="q-mb-md"
+            class="q-mb-md bg-grad text-white"
             color="primary"
+            unelevated
+            rounded
             :label="`Authorize (${selectedTerminals.length}/${issuanceBatchCount})`"
             :disabled="!terminals.some(t => t.selected)"
             :loading="loadingAuthorizeBtn"
