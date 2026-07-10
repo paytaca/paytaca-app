@@ -14,6 +14,9 @@ import { SecureStoragePlugin } from 'capacitor-secure-storage-plugin'
 import packageInfo from '../../package.json'
 import { Loading, QSpinnerIos } from 'quasar'
 
+
+export const DISPLAY_SUBS_APP = true;
+
 /**
  * Base URL for the Payment Hub API.
  * Dynamically resolves based on the current global isChipnet state.

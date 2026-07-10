@@ -168,6 +168,7 @@ import BetaAppDialog from 'src/components/apps/BetaAppDialog.vue'
 import HeaderNav from '../../components/header-nav'
 import { webSocketManager } from 'src/exchange/websocket/manager'
 import { isNativeIOS } from 'src/utils/native-platform'
+import { DISPLAY_SUBS_APP } from 'src/wallet/payment-hub';
 
 export default {
   name: 'apps',
@@ -391,7 +392,7 @@ export default {
           beta: true,
           category: 'payment-hub'
         },
-        {
+        ...(DISPLAY_SUBS_APP ? [{
           id: 'payment-hub-subscriptions',
           name: this.$t('RecurringPayments', {}, 'Recurring Payments'),
           description: this.$t('Apps.RecurringPayments.Description', {}, 'Manage your recurring payments.'),
@@ -401,7 +402,7 @@ export default {
           active: true,
           beta: true,
           category: 'payment-hub'
-        },
+        }]: []),
         {
           id: 'support',
           name: this.$t('Support', {}, 'Support'),

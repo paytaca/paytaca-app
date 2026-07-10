@@ -618,7 +618,7 @@ import PlanFormDialog from 'src/components/payment-hub/PlanFormDialog.vue'
 import PlanDetailDialog from 'src/components/payment-hub/PlanDetailDialog.vue'
 import SubscriptionDetailDialog from 'src/components/payment-hub/SubscriptionDetailDialog.vue'
 import InvoiceList from 'src/components/payment-hub/InvoiceList.vue'
-import { PaymentHub } from 'src/wallet/payment-hub'
+import { DISPLAY_SUBS_APP, PaymentHub } from 'src/wallet/payment-hub'
 import { loadWallet } from 'src/wallet'
 
 import { Contract, SignatureTemplate, ElectrumNetworkProvider, TransactionBuilder } from 'cashscript13'
@@ -633,7 +633,7 @@ const darkMode = computed(() => $store.getters['darkmode/getStatus'])
 const storeId = computed(() => $route.params.storeId)
 const storeName = computed(() => $route.query.name)
 
-const displaySubs = ref(false);
+const displaySubs = ref(DISPLAY_SUBS_APP);
 
 // Core state
 const wallet = ref(null)
