@@ -431,7 +431,7 @@ export async function switchWallet (context, walletHashOrIndex) {
                 newWallet?.walletHash
     
     // Update wallet index IMMEDIATELY (synchronously) so router guard sees correct index
-    // NOTE: We still need to sync the OLD wallet in the setTimeout block below
+    // NOTE: We still need to sync the OLD wallet before initializing the new wallet state
     context.commit('updateWalletIndex', index)
     context.commit('updateCurrentWallet', index)
   }
