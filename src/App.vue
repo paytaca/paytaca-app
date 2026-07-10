@@ -1,7 +1,7 @@
 <template>
     <div>
       <AppLoading v-if="showInitialLoad" />
-      <router-view />
+      <router-view :key="$store.getters['global/getWalletIndex']" />
       <v-offline @detected-condition="onConnectivityChange" />
       
       <!-- Privacy overlay for app switcher/background preview -->
@@ -117,9 +117,11 @@ export default {
     }
   },
   watch: {
-    // Watch for wallet switches to update screenshot security
-    walletIndex() {
+    // Watch for wallet switches to update screenshot security and re-initialize
+    async walletIndex(newIndex, oldIndex) {
+      if (newIndex === oldIndex || oldIndex === undefined) return
       this.updateScreenshotSecurity()
+      await this.handleWalletSwitch()
     },
     // Watch for changes to lock app setting
     lockAppEnabled() {
@@ -518,6 +520,26 @@ export default {
         localStorage.setItem('slpResubscribe', JSON.stringify(resubscriptionInfo))
       }
     },
+    async handleWalletSwitch() {
+      const vm = this
+      const index = vm.$store.getters['global/getWalletIndex']
+      const mnemonic = await getMnemonic(index).catch(() => null)
+      if (!mnemonic) {
+        if (vm.$store.getters['global/getWalletIndex'] === index) {
+          vm.$store.commit('global/setWalletSwitchInProgress', false)
+        }
+        return
+      }
+
+      vm.subscribedPushNotifications = false
+      vm.subscribePushNotifications()
+      vm.resubscribeAddresses(mnemonic)
+      vm.$store.dispatch('nostrChat/ensureSubscribed')
+
+      if (vm.$store.getters['global/getWalletIndex'] === index) {
+        vm.$store.commit('global/setWalletSwitchInProgress', false)
+      }
+    },
     async resubscribeAddresses(mnemonic) {
       this.resubscribeBCHAddresses(mnemonic)
       this.resubscribeSLPAddresses(mnemonic)
@@ -829,19 +851,10 @@ export default {
   async mounted () {
     const vm = this
 
-    // If we just switched wallets, skip the initial loading screen
-    // WalletSwitchLoading already handled the transition
-    if (sessionStorage.getItem('walletSwitchReload')) {
-      sessionStorage.removeItem('walletSwitchReload')
-      vm.$store.commit('global/setAppInitialLoadComplete', true)
-      vm.$store.commit('global/setBackupDialogActive', false)
-      vm.joinRewardsDialogPending = false
-    } else {
-      // Cold start: reset so the loading overlay shows until the home page is ready
-      vm.$store.commit('global/setAppInitialLoadComplete', false)
-      vm.$store.commit('global/setBackupDialogActive', false)
-      vm.joinRewardsDialogPending = false
-    }
+    // Cold start: reset so the loading overlay shows until the home page is ready
+    vm.$store.commit('global/setAppInitialLoadComplete', false)
+    vm.$store.commit('global/setBackupDialogActive', false)
+    vm.joinRewardsDialogPending = false
 
     // Clear session-based backup reminder dismissal on fresh app start
     // App.vue only mounts on fresh app start (not during navigation), so always clear
@@ -852,8 +865,9 @@ export default {
 
     // Ensure current wallet index is valid (points to undeleted wallet)
     // This should run before any wallet operations
-    // Skip if we just switched wallets (check for a flag or recent switch)
     await vm.$store.dispatch('global/ensureValidWalletIndex')
+    // Clear stale flag from router guard (watcher won't fire if index unchanged)
+    vm.$store.commit('global/setWalletSwitchInProgress', false)
 
     // Fetch wallet creation date from backend (fire-and-forget, non-blocking)
     vm.$store.dispatch('global/fetchWalletCreationDate').catch(() => {})

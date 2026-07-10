@@ -1294,7 +1294,6 @@ const phrases = {
       StablehedgeUnFreezeDesc: "Exchange stablehedge tokens and receive BCH of equal value based on the market price at the time of transaction",
       MaintainingLiquidity: "Maintaining liquidity",
       StablehedgeLiquidityDesc2: "the remaining funds are kept in the smart contract to be used as liquidty for unfreezing BCH",
-      EventsAndPromotions: 'Events and Promotions',
       NoNotifications: 'No notifications',
       NoAssetsAvailable: 'No assets available',
       SameWalletAddressWarning: 'You are about to send funds to your own address. This will combine unspent transaction outputs into a single transaction. If this is not your intended action, please enter another address.',

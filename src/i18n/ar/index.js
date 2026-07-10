@@ -913,7 +913,6 @@ export default {
   EscrowingFunds: "صناديق الضمان",
   EstimatedFee: "الرسوم المقدرة",
   EstimatedValue: "القيمة المقدرة",
-  EventsAndPromotions: "الأحداث والعروض الترويجية",
   Example: "مثال",
   ExceededBalanceError: "تجاوز الرصيد {spendableBchValue}",
   ExceededFreeTierLimits: "لقد تجاوزت حدود الطبقة المجانية.قم بالترقية إلى Paytaca Plus لفتح الحدود الأعلى والميزات الخاصة.",

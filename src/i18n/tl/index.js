@@ -913,7 +913,6 @@ export default {
   EscrowingFunds: "Escrowing Funds",
   EstimatedFee: "Tinatayang bayad",
   EstimatedValue: "Tinantyang Halaga",
-  EventsAndPromotions: "Mga Kaganapan at Promosyon",
   Example: "Halimbawa",
   ExceededBalanceError: "Labis na balanse {spendableBchValue}",
   ExceededFreeTierLimits: "Lumagpas ka na sa mga limitasyon ng Free tier.Mag-upgrade sa Paytaca Plus para i-unlock ang mas matataas na limitasyon at mga espesyal na feature.",

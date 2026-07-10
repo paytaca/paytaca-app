@@ -89,7 +89,6 @@ const NOTIF_TYPES = {
   RP: 'P2P Ramp',
   TR: $t('Transactions'),
   NF: $t('Collectibles'),
-  EP: $t('EventsAndPromotions'),
   RW: $t('Rewards')
 }
 

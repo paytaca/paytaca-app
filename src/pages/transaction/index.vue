@@ -1474,10 +1474,12 @@ export default {
         return []
       }
     },
-    async onRefresh (done) {
+    async onRefresh (done, skipConnectivity) {
       try {
         // Refresh wallet balances and token icons
-        await this.onConnectivityChange(true)
+        if (!skipConnectivity) {
+          await this.onConnectivityChange(true)
+        }
         
         // Fetch favorite tokens from API (includes balances for CashTokens)
         await this.refreshFavoriteTokenBalances()
@@ -2585,6 +2587,11 @@ export default {
         // Auto-run home tour only after backup is confirmed.
         this._maybeAutoStartHomeTourAfterBackup()
       }
+
+      // Full refresh after page mounts (especially after wallet switch)
+      // skipConnectivity = true to avoid duplicate onConnectivityChange call
+      // (already called earlier in the mount flow at line 2438)
+      this.onRefresh(() => {}, true)
     } catch (error) {
       console.error('Error in mounted hook:', error)
       // Ensure loading state is reset even on error

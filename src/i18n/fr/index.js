@@ -913,7 +913,6 @@ export default {
   EscrowingFunds: "Fonds séquestrés",
   EstimatedFee: "Frais estimés",
   EstimatedValue: "Valeur estimée",
-  EventsAndPromotions: "Événements et promotions",
   Example: "Exemple",
   ExceededBalanceError: "Solde dépassé {spendableBchValue}",
   ExceededFreeTierLimits: "Vous avez dépassé les limites du niveau Gratuit.Passez à Paytaca Plus pour débloquer des limites plus élevées et des fonctionnalités spéciales.",
