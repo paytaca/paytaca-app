@@ -514,7 +514,11 @@ export default {
             name: 'app-wizard-connect',
             query: { uri: value }
           })
-        } else if (url && url.host === 'paymenthub.paytaca.com' && url.pathname.match('/plans')) {
+        } else if (
+          url &&
+          (url.host === 'paymenthub.paytaca.com' || url.host === 'chipnet.paymenthub.paytaca.com') &&
+          url.pathname.match('/plans')
+        ) {
           const shortUuid = url.pathname.match('/plans/([A-Za-z0-9]+)/?')?.[1];
           vm.$router.push({ name: 'payment-hub-subscriptions-index', query: { plan: shortUuid } })
         } else {

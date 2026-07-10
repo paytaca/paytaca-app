@@ -177,7 +177,7 @@ import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 import { PaymentHub } from 'src/wallet/payment-hub'
 import { loadWallet } from 'src/wallet'
 import { getExplorerLink } from 'src/utils/send-page-utils'
-import { convertIpfsUrl } from 'src/wallet/cashtokens'
+import { getTokenImage } from 'src/wallet/cashtokens'
 import CopyButton from 'src/components/CopyButton.vue'
 
 const props = defineProps({
@@ -199,6 +199,7 @@ defineEmits([
   ...useDialogPluginComponent.emits
 ])
 
+const { getTokenImage } = useCauldronValueFormatters()
 const { dialogRef, onDialogHide } = useDialogPluginComponent()
 const $store = useStore()
 const $q = useQuasar()
@@ -269,11 +270,7 @@ function getTokenIcon(token) {
   
   if (asset && asset.logo) {
     // Convert ipfs:// URLs to https://ipfs.paytaca.com/ipfs/ format
-    const convertedLogo = convertIpfsUrl(asset.logo)
-    if (convertedLogo.startsWith('https://ipfs.paytaca.com/ipfs')) {
-      return convertedLogo + '?pinataGatewayToken=' + process.env.PINATA_GATEWAY_TOKEN
-    }
-    return convertedLogo
+    return getTokenImage(asset.logo)
   }
   
   const logoGenerator = $store.getters['global/getDefaultAssetLogo']

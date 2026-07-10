@@ -61,7 +61,10 @@ export default boot(({ router, /* store */ }) => {
       router.push({ name: 'exchange', query: { ad_id: url.searchParams.get('id') } })
     } else if (url.host === 'rewards.paytaca.com' && /\/referral\/?$/.test(url.pathname)) {
       router.push({ name: 'app-rewards', query: { code: url.searchParams.get('code') } })
-    } else if (url.host === 'paymenthub.paytaca.com' && url.pathname.match('/plans')) {
+    } else if (
+      (url.host === 'paymenthub.paytaca.com' || url.host === 'chipnet.paymenthub.paytaca.com') &&
+      url.pathname.match('/plans')
+    ) {
       // Not handling chipnet for now
       const shortUuid = url.pathname.match('/plans/([A-Za-z0-9]+)/?')?.[1];
       router.push({ name: 'payment-hub-subscriptions-index', query: { plan: shortUuid } })
