@@ -228,6 +228,8 @@ function reducer(state) {
             delete serializedGlobal.isUnlocked
             delete serializedGlobal.appInitialLoadComplete
             delete serializedGlobal.backupDialogActive
+            delete serializedGlobal.walletSwitchInProgress
+            delete serializedGlobal.walletSwitchLoading
           }
           serialized[moduleName] = serializedGlobal
         } else if (moduleName === 'wizardconnect') {

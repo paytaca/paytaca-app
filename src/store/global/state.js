@@ -146,6 +146,7 @@ export default function () {
     previousRoute: null,
     appInitialLoadComplete: false,
     backupDialogActive: false,
-    walletSwitchInProgress: false
+    walletSwitchInProgress: false,
+    walletSwitchLoading: false
   }
 }

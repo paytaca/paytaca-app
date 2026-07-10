@@ -9,6 +9,7 @@
     @before-hide="onDialogHide"    
   >
     <q-card
+      v-show="!hideSidebarInstantly"
       class="wallet-card"
       :class="getDarkModeClass(darkMode)"
       :style="sidebarCardStyle"
@@ -133,7 +134,8 @@ export default {
       isloading: false,
       secondDialog: false,
       touchData: {}, // Track touch events for tap detection
-      isSwitching: false // Prevent multiple simultaneous wallet switches
+      isSwitching: false, // Prevent multiple simultaneous wallet switches
+      hideSidebarInstantly: false // Instantly hides sidebar content during wallet switch
     }
   },
   components: {
@@ -313,16 +315,21 @@ export default {
       // Set switching flag
       vm.isSwitching = true
 
+      // Hide the wallet list sidebar instantly (before loading overlay)
+      vm.hideSidebarInstantly = true
+
+      // Show full-screen loading with pulsating logo immediately
+      vm.$store.commit('global/setWalletSwitchLoading', true)
+
+      // Force the browser to paint the loading overlay before proceeding
+      await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)))
+
+      // Clean up the dialog (proper Quasar close for backdrop etc.)
       vm.hide()
       
-      // Show full-screen loading with pulsating logo
-      const loadingComponent = vm.$q.dialog({
-        component: WalletSwitchLoading,
-        persistent: true
-      })
-      
+      const loadingStartTime = Date.now()
       try {
-        // Execute wallet switch - this includes a 1 second delay for syncing
+        // Execute wallet switch (syncs old wallet to vault, updates index, inits per-wallet state)
         await vm.$store.dispatch('global/switchWallet', actualIndex)
         
         // Verify wallet index was updated correctly
@@ -338,13 +345,8 @@ export default {
         const lockAppEnabled = vm.$store.getters['global/lockApp']
         const isUnlocked = vm.$store.getters['global/isUnlocked']
         
-        // Wait for localStorage to persist (important for Android)
-        // Also wait for vuex-persistedstate to write the state
-        // Keep loading component visible until switch completes
-        await new Promise(resolve => setTimeout(resolve, 500))
-        
         vm.isSwitching = false
-        
+
         // Signal that a wallet switch is in progress
         // This allows the router guard and App.vue watcher to respond appropriately
         vm.$store.commit('global/setWalletSwitchInProgress', true)
@@ -358,14 +360,20 @@ export default {
         // The :key on <router-view> (bound to walletIndex) will trigger
         // recreation of the current page with the new wallet data.
 
-        // Wait for the new page to mount and initialize
+        // Give the new page one tick to mount, then dismiss the loading overlay.
         await vm.$nextTick()
-        await new Promise(resolve => setTimeout(resolve, 1500))
-        loadingComponent.hide()
+
+        // Keep the loading screen visible for 500ms
+        const elapsed = Date.now() - loadingStartTime
+        const displayDuration = 500
+        if (elapsed < displayDuration) {
+          await new Promise(resolve => setTimeout(resolve, displayDuration - elapsed))
+        }
+        vm.$store.commit('global/setWalletSwitchLoading', false)
       } catch (error) {
         console.error('[MultiWallet] Switch error:', error)
         vm.isSwitching = false
-        loadingComponent.hide()
+        vm.$store.commit('global/setWalletSwitchLoading', false)
         
         // Show error notification
         vm.$q.notify({
@@ -542,6 +550,8 @@ export default {
       this.$emit('dialog-hide')
     },
     async onDialogShow () {
+      // Reset instant-hide flag so sidebar content is visible
+      this.hideSidebarInstantly = false
       // Refresh wallet list every time the sidebar is shown
       // Update current index first
       this.currentIndex = this.$store.getters['global/getWalletIndex']
