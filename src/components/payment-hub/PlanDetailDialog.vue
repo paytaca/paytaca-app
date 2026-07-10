@@ -194,7 +194,7 @@ const loadingInvoices = ref(false)
 let hub = null
 
 async function initHub() {
-  const wallet = await loadWallet()
+  const wallet = await loadWallet('BCH', $store.getters['global/getWalletIndex'])
   if (!wallet) throw new Error('Wallet not found')
   if (!hub) hub = new PaymentHub(wallet)
   return hub
