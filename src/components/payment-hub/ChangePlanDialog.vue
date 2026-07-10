@@ -83,12 +83,14 @@
 import { ref, computed, onMounted } from 'vue'
 import { useDialogPluginComponent, useQuasar } from 'quasar'
 import { useStore } from 'vuex'
-import PaymentHub from 'src/wallet/payment-hub'
-import { encodeCashAddress, decodeCashAddress } from '@bitauth/libauth'
-import { Contract, TransactionBuilder, SignatureTemplate } from 'cashscript'
-import { ElectrumNetworkProvider } from 'cashscript'
+import { PaymentHub } from 'src/wallet/payment-hub'
+import { encodeCashAddress } from '@bitauth/libauth'
+import { Contract, TransactionBuilder, SignatureTemplate } from 'cashscript13'
+import { ElectrumNetworkProvider } from 'cashscript13'
 import { useI18n } from 'vue-i18n'
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
+import { loadWallet } from 'src/wallet'
+import { getPkhash } from 'src/wallet/payment-hub-cashscript'
 
 const props = defineProps({
   subscription: { type: Object, required: true }
@@ -99,17 +101,21 @@ defineEmits([...useDialogPluginComponent.emits])
 const { dialogRef, onDialogHide, onDialogOK } = useDialogPluginComponent()
 const $store = useStore()
 const $q = useQuasar()
-const { t } = useI18n()
+const { t: $t } = useI18n()
 
 const darkMode = computed(() => $store.getters['darkmode/getStatus'])
-const activeWalletId = computed(() => $store.getters['wallet/getActiveWalletId'])
-const wallet = computed(() => $store.getters['wallet/getWallet'](activeWalletId.value))
-const hub = computed(() => new PaymentHub(wallet.value.BCH))
+const wallet = ref()
+const hub = ref()
 
 const fetchingPlans = ref(true)
 const availablePlans = ref([])
 const selectedPlan = ref(null)
 const loading = ref(false)
+
+async function initHub() {
+  if (!wallet.value) wallet.value = await loadWallet()
+  if (!hub.value) hub.value = new PaymentHub(wallet.value);
+}
 
 onMounted(async () => {
   try {
@@ -144,6 +150,7 @@ async function submitChangePlan() {
 
   loading.value = true
   try {
+    await initHub()
     $q.loading.show({ message: 'Fetching plan update kit...' })
     const kit = await hub.value.getSubscriptionUpdateKit(props.subscription.id, selectedPlan.value.id)
 
@@ -153,19 +160,9 @@ async function submitChangePlan() {
 
     $q.loading.show({ message: 'Signing update transaction...' })
 
-    const getPayload = (addr) => {
-      if (/^[0-9a-fA-F]{40}$/.test(addr)) {
-        return new Uint8Array(addr.match(/.{1,2}/g).map(byte => parseInt(byte, 16)))
-      }
-      if (!addr.includes(':')) addr = 'bitcoincash:' + addr
-      const decoded = decodeCashAddress(addr)
-      if (typeof decoded === 'string') throw new Error(decoded)
-      return decoded.payload
-    }
-
     const sub = props.subscription
-    const merchantPayload = getPayload(sub.merchant_address)
-    const funderPayload = getPayload(sub.funder_address)
+    const merchantPayload = getPkhash(sub.merchant_address)
+    const funderPayload = getPkhash(sub.funder_address)
 
     const isChipnet = $store.getters['global/isChipnet']
     const bchWallet = isChipnet ? wallet.value.BCH_CHIP : wallet.value.BCH
@@ -173,7 +170,7 @@ async function submitChangePlan() {
     // 1. Fetch contract artifact
     const artifactObj = await hub.value.getContractArtifact()
     const provider = new ElectrumNetworkProvider(isChipnet ? 'chipnet' : 'mainnet')
-    const paytacaPayload = getPayload(kit.paytaca_address)
+    const paytacaPayload = getPkhash(kit.paytaca_address)
     const reversedCategoryHex = sub.category.match(/.{1,2}/g).reverse().join('')
     const categoryBytes = new Uint8Array(reversedCategoryHex.match(/.{1,2}/g).map(byte => parseInt(byte, 16)))
 
@@ -203,7 +200,7 @@ async function submitChangePlan() {
     const toAddress = encodeCashAddress(
       isChipnet ? 'bchtest' : 'bitcoincash',
       'p2pkh',
-      getPayload(kit.outputs[0].to)
+      getPkhash(kit.outputs[0].to)
     )
     const formattedInputs = kit.inputs.map(input => {
       const formattedInput = {
@@ -236,11 +233,11 @@ async function submitChangePlan() {
       }
     })
 
-    const rawTx = await txBuilder.build()
+    const rawTx = txBuilder.build()
 
     // 4. Submit to Payment Hub
     $q.loading.show({ message: 'Submitting plan update...' })
-    await hub.value.submitSubscriptionUpdate(sub.id, selectedPlan.value.id, rawTx)
+    await hub.value.submitSubscriptionUpdate(sub.id, rawTx, {})
 
     $q.notify({ type: 'positive', message: $t('PlanUpdatedSuccessfully') || 'Plan updated successfully' })
     onDialogOK()

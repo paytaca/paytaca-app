@@ -178,7 +178,8 @@ import { loadWallet } from 'src/wallet'
 
 // Add imports for subscription cancelling signing logic
 import { Contract, SignatureTemplate, ElectrumNetworkProvider, TransactionBuilder } from 'cashscript13'
-import { decodeCashAddress, encodeCashAddress } from '@bitauth/libauth'
+import { encodeCashAddress } from '@bitauth/libauth'
+import { getPkhash } from 'src/wallet/payment-hub-cashscript'
 
 const props = defineProps({
   plan: {
@@ -332,25 +333,15 @@ async function updateSubscriptionNft(sub, data) {
 
     $q.loading.show({ message: 'Signing update transaction...' })
 
-    const getPayload = (addr) => {
-      if (/^[0-9a-fA-F]{40}$/.test(addr)) {
-        return new Uint8Array(addr.match(/.{1,2}/g).map(byte => parseInt(byte, 16)))
-      }
-      if (!addr.includes(':')) addr = 'bitcoincash:' + addr
-      const decoded = decodeCashAddress(addr)
-      if (typeof decoded === 'string') throw new Error(decoded)
-      return decoded.payload
-    }
-
-    const merchantPayload = getPayload(sub.merchant_address)
-    const funderPayload = getPayload(sub.funder_address)
+    const merchantPayload = getPkhash(sub.merchant_address)
+    const funderPayload = getPkhash(sub.funder_address)
 
     const isChipnet = $store.getters['global/isChipnet']
     const bchWallet = isChipnet ? wallet.value.BCH_CHIP : wallet.value.BCH
 
     const artifactObj = await hub.value.getContractArtifact()
     const provider = new ElectrumNetworkProvider(isChipnet ? 'chipnet' : 'mainnet')
-    const paytacaPayload = getPayload(kit.paytaca_address)
+    const paytacaPayload = getPkhash(kit.paytaca_address)
     const reversedCategoryHex = sub.category.match(/.{1,2}/g).reverse().join('')
     const categoryBytes = new Uint8Array(reversedCategoryHex.match(/.{1,2}/g).map(byte => parseInt(byte, 16)))
 
@@ -441,7 +432,7 @@ async function updateSubscriptionNft(sub, data) {
     $q.loading.show({ message: 'Submitting update...' })
     await hub.value.submitSubscriptionUpdate(sub.id, rawTx, data)
 
-    fetchSubscriptions()
+    refreshPage()
     $q.notify({ type: 'positive', message: $t('SubscriptionUpdated') || 'Subscription updated successfully' })
 
   } catch (error) {
@@ -472,18 +463,8 @@ async function cancelSubscription(sub) {
 
       $q.loading.show({ message: 'Signing cancellation transaction...' })
 
-      const getPayload = (addr) => {
-        if (/^[0-9a-fA-F]{40}$/.test(addr)) {
-          return new Uint8Array(addr.match(/.{1,2}/g).map(byte => parseInt(byte, 16)))
-        }
-        if (!addr.includes(':')) addr = 'bitcoincash:' + addr
-        const decoded = decodeCashAddress(addr)
-        if (typeof decoded === 'string') throw new Error(decoded)
-        return decoded.payload
-      }
-
-      const merchantPayload = getPayload(sub.merchant_address)
-      const funderPayload = getPayload(sub.funder_address)
+      const merchantPayload = getPkhash(sub.merchant_address)
+      const funderPayload = getPkhash(sub.funder_address)
 
       const isChipnet = $store.getters['global/isChipnet']
       const bchWallet = isChipnet ? wallet.value.BCH_CHIP : wallet.value.BCH
@@ -491,7 +472,7 @@ async function cancelSubscription(sub) {
       // 1. Fetch contract artifact
       const artifactObj = await hub.value.getContractArtifact()
       const provider = new ElectrumNetworkProvider(isChipnet ? 'chipnet' : 'mainnet')
-      const paytacaPayload = getPayload(kit.paytaca_address)
+      const paytacaPayload = getPkhash(kit.paytaca_address)
       const reversedCategoryHex = sub.category.match(/.{1,2}/g).reverse().join('')
       const categoryBytes = new Uint8Array(reversedCategoryHex.match(/.{1,2}/g).map(byte => parseInt(byte, 16)))
 
@@ -523,7 +504,7 @@ async function cancelSubscription(sub) {
       const toAddress = encodeCashAddress(
         isChipnet ? 'bchtest' : 'bitcoincash',
         'p2pkh',
-        getPayload(kit.outputs[0].to)
+        getPkhash(kit.outputs[0].to)
       )
       const formattedInputs = kit.inputs.map(input => {
         const formattedInput = {

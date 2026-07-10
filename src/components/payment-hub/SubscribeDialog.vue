@@ -102,6 +102,7 @@ import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 import { PaymentHub, extractPlanId } from 'src/wallet/payment-hub'
 import QrScanner from 'src/components/qr-scanner.vue'
 import QRUploader from 'src/components/QRUploader.vue'
+import { loadWallet } from 'src/wallet'
 
 defineEmits([
   ...useDialogPluginComponent.emits
@@ -252,7 +253,7 @@ async function onFormSubmit() {
 async function fetchPlanDetails() {
   isLoading.value = true
   try {
-    const wallet = $store.getters['global/getWallet']('bch')
+    const wallet = await loadWallet()
     const paymentHub = new PaymentHub(wallet)
     
     const plan = await paymentHub.getPlan(form.plan)

@@ -138,7 +138,7 @@ onMounted(async () => {
   }, 15000)
   
   // Local timer to automatically mark pending invoices as expired
-  expirationCheckInterval = setInterval(checkExpirations, 1000)
+  expirationCheckInterval = setInterval(checkExpirations, 5000)
 })
 
 onBeforeUnmount(() => {

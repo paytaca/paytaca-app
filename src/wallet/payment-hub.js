@@ -559,7 +559,6 @@ export class PaymentHub {
 
   /**
    * Retrieves the contract artifact for the given script type.
-   * @param {String} scriptType - The type of script (e.g. 'recurring_payments')
    */
   async getContractArtifact() {
     const response = await backend.get(`/contract/artifact`)
@@ -631,10 +630,8 @@ export class PaymentHub {
    * @param {Object} params - Query parameters (e.g. { store_id: '...', status: 'ACTIVE' })
    */
   async listSubscriptions(params = {}) {
-    const oauth = await authToken.get(this.wallet)
     const response = await backend.get('/subscriptions/', {
       params: params,
-      headers: { Authorization: `Bearer ${oauth}` },
       authorize: true,
       wallet: this.wallet
     })
@@ -648,9 +645,7 @@ export class PaymentHub {
    * @param {String} apiKey - Required if called from public context, otherwise uses auth.
    */
   async createSubscription(subscriptionData, apiKey = null) {
-    const oauth = await authToken.get(this.wallet)
     const config = apiKey ? { apiKey } : { 
-      headers: { Authorization: `Bearer ${oauth}` },
       authorize: true, 
       wallet: this.wallet 
     }
@@ -663,10 +658,8 @@ export class PaymentHub {
    * @param {String} subscriptionId - The UUID or Short ID of the subscription.
    */
   async getSubscription(subscriptionId, params = {}) {
-    const oauth = await authToken.get(this.wallet)
     const response = await backend.get(`/subscriptions/${subscriptionId}`, {
       params: params,
-      headers: { Authorization: `Bearer ${oauth}` },
       authorize: true,
       wallet: this.wallet
     })
@@ -679,9 +672,7 @@ export class PaymentHub {
    */
   async getSubscriptionCancelKit(subscriptionId, isMerchant = false) {
     const action = isMerchant ? 'merchant-cancel' : 'cancel'
-    const oauth = await authToken.get(this.wallet)
     const response = await backend.get(`/subscriptions/${subscriptionId}/${action}`, {
-      headers: { Authorization: `Bearer ${oauth}` },
       authorize: true, // Needs auth/ownership (merchant or customer wallet)
       wallet: this.wallet
     })
@@ -695,11 +686,9 @@ export class PaymentHub {
    */
   async submitSubscriptionCancel(subscriptionId, rawTx, isMerchant = false) {
     const action = isMerchant ? 'merchant-cancel' : 'cancel'
-    const oauth = await authToken.get(this.wallet)
     const response = await backend.post(`/subscriptions/${subscriptionId}/${action}`, {
       raw_tx_hex: rawTx
     }, {
-      headers: { Authorization: `Bearer ${oauth}` },
       authorize: true,
       wallet: this.wallet
     })
@@ -712,9 +701,7 @@ export class PaymentHub {
    */
   async reactivateSubscription(subscriptionId) {
     // Note: reactivate is not officially documented yet, but kept as placeholder
-    const oauth = await authToken.get(this.wallet)
     const response = await backend.post(`/subscriptions/${subscriptionId}/reactivate`, {}, {
-      headers: { Authorization: `Bearer ${oauth}` },
       authorize: true,
       wallet: this.wallet
     })
@@ -728,9 +715,7 @@ export class PaymentHub {
    * @param {Object} data - { new_pledge: number, new_period: number }
    */
   async getSubscriptionUpdateKit(subscriptionId, data) {
-    const oauth = await authToken.get(this.wallet)
     const response = await backend.post(`/subscriptions/${subscriptionId}/update_nft/`, { ...data, action: 'request-kit' }, {
-      headers: { Authorization: `Bearer ${oauth}` },
       authorize: true,
       wallet: this.wallet
     })
@@ -744,13 +729,11 @@ export class PaymentHub {
    * @param {Object} data - { new_pledge: number, new_period: number }
    */
   async submitSubscriptionUpdate(subscriptionId, rawTx, data) {
-    const oauth = await authToken.get(this.wallet)
     const response = await backend.post(`/subscriptions/${subscriptionId}/update_nft/`, {
       raw_tx_hex: rawTx,
       ...data,
       action: 'broadcast-tx'
     }, {
-      headers: { Authorization: `Bearer ${oauth}` },
       authorize: true,
       wallet: this.wallet
     })
@@ -766,10 +749,8 @@ export class PaymentHub {
    * @param {Object} params - Query parameters (e.g. { page: 1, ordering: '-date_created' }).
    */
   async listSubscriptionInvoices(subscriptionId, params = {}) {
-    const oauth = await authToken.get(this.wallet)
     const response = await backend.get(`/subscriptions/${subscriptionId}/invoices/`, {
       params: params,
-      headers: { Authorization: `Bearer ${oauth}` },
       authorize: true,
       wallet: this.wallet
     })
@@ -782,9 +763,7 @@ export class PaymentHub {
    * @param {String} invoiceId - The UUID or short ID of the invoice.
    */
   async getSubscriptionInvoice(subscriptionId, invoiceId) {
-    const oauth = await authToken.get(this.wallet)
     const response = await backend.get(`/subscriptions/${subscriptionId}/invoices/${invoiceId}`, {
-      headers: { Authorization: `Bearer ${oauth}` },
       authorize: true,
       wallet: this.wallet
     })
@@ -799,10 +778,8 @@ export class PaymentHub {
    * @param {Object} params - Query parameters (e.g. { page: 1, ordering: '-date_created' }).
    */
   async listPlanInvoices(planId, params = {}) {
-    const oauth = await authToken.get(this.wallet)
     const response = await backend.get(`/plans/${planId}/invoices/`, {
       params: params,
-      headers: { Authorization: `Bearer ${oauth}` },
       authorize: true,
       wallet: this.wallet
     })
@@ -815,9 +792,7 @@ export class PaymentHub {
    * @param {String} invoiceId - The UUID or short ID of the invoice.
    */
   async getPlanInvoice(planId, invoiceId) {
-    const oauth = await authToken.get(this.wallet)
     const response = await backend.get(`/plans/${planId}/invoices/${invoiceId}`, {
-      headers: { Authorization: `Bearer ${oauth}` },
       authorize: true,
       wallet: this.wallet
     })

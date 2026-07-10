@@ -94,7 +94,7 @@ const props = defineProps({
 const { dialogRef, onDialogHide, onDialogOK } = useDialogPluginComponent()
 
 const $store = useStore()
-const darkMode = computed(() => $store.state.global.darkMode)
+const darkMode = computed(() => $store.getters['darkmode/getStatus'])
 
 const planCurrency = props.subscription.plan_details?.currency
 const pledgeUnitOptions = ['Satoshis', 'BCH']
