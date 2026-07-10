@@ -402,8 +402,7 @@ export async function switchWallet (context, walletHashOrIndex) {
   // This is critical: we need to sync the old wallet before switching
   const oldWalletIndex = context.getters.getWalletIndex
   
-  // Determine target index/hash SYNCHRONOUSLY before the async setTimeout
-  // This allows immediate index update so router guard sees correct index
+  // Determine target index/hash synchronously so router guard sees correct index
   let walletHash = null
   let index = null
   let newWallet = null
