@@ -28,6 +28,34 @@
         from { opacity: 0; }
         to { opacity: 1; }
       }
+
+      #app-loading-static {
+        position: fixed;
+        top: 0; left: 0; right: 0; bottom: 0;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        z-index: 9999;
+        pointer-events: none;
+      }
+
+      #app-loading-static-logo {
+        width: 110px;
+        height: 110px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        backdrop-filter: blur(20px);
+        -webkit-backdrop-filter: blur(20px);
+      }
+
+      #app-loading-static-logo img {
+        width: 100%;
+        height: auto;
+        object-fit: contain;
+        filter: drop-shadow(0 4px 12px rgba(0, 0, 0, 0.15));
+      }
     </style>
     <script>
       // Pre-paint the correct background color from persisted wallet state
@@ -54,11 +82,30 @@
           var bg = darkMode ? colors.dark : colors.light
           document.documentElement.style.backgroundColor = bg
           document.body && (document.body.style.backgroundColor = bg)
+
+          // Style the static loading logo to match theme
+          var logo = document.getElementById('app-loading-static-logo')
+          if (logo) {
+            if (darkMode) {
+              logo.style.background = 'rgba(255, 255, 255, 0.05)'
+              logo.style.border = '2px solid rgba(255, 255, 255, 0.15)'
+              logo.style.boxShadow = '0 12px 40px rgba(0, 0, 0, 0.3), 0 0 0 1px rgba(255, 255, 255, 0.05) inset'
+            } else {
+              logo.style.background = 'rgba(255, 255, 255, 0.5)'
+              logo.style.border = '2px solid rgba(255, 255, 255, 0.6)'
+              logo.style.boxShadow = '0 12px 40px rgba(0, 0, 0, 0.12), 0 0 0 1px rgba(255, 255, 255, 0.3) inset'
+            }
+          }
         } catch (e) {}
       })()
     </script>
   </head>
   <body>
+    <div id="app-loading-static">
+      <div id="app-loading-static-logo">
+        <img src="icons/favicon-128x128.png" alt="">
+      </div>
+    </div>
     <!-- quasar:entry-point -->
   </body>
 </html>
