@@ -321,6 +321,9 @@ export default {
         persistent: true
       })
       
+      // Yield to ensure the dialog renders before starting the switch
+      await vm.$nextTick()
+      
       const loadingStartTime = Date.now()
       try {
         // Execute wallet switch (syncs old wallet to vault, updates index, inits per-wallet state)
