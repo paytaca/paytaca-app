@@ -1157,11 +1157,6 @@ function openSubscriptionDetails(sub) {
   })
 }
 
-function calculateMinerFee(numInputs, numOuputs) {
-  return numInputs * 460 + numOutputs * 60
-}
-
-
 async function updateSubscriptionNft(sub, data) {
   try {
     $q.loading.show({ message: 'Fetching update kit...' })

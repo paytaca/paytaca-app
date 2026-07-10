@@ -1,6 +1,6 @@
 import { decodeCashAddress } from '@bitauth/libauth'
 
-export function getPkhash() {
+export function getPkhash(addr) {
   if (/^[0-9a-fA-F]{40}$/.test(addr)) {
     return new Uint8Array(addr.match(/.{1,2}/g).map(byte => parseInt(byte, 16)))
   }
