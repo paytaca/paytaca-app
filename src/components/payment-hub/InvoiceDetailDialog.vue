@@ -199,7 +199,6 @@ defineEmits([
   ...useDialogPluginComponent.emits
 ])
 
-const { getTokenImage } = useCauldronValueFormatters()
 const { dialogRef, onDialogHide } = useDialogPluginComponent()
 const $store = useStore()
 const $q = useQuasar()

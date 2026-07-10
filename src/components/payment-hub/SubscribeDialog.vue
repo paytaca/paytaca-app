@@ -254,7 +254,7 @@ async function onFormSubmit() {
 async function fetchPlanDetails() {
   isLoading.value = true
   try {
-    const wallet = await loadWallet()
+    const wallet = await loadWallet('BCH', $store.getters['global/getWalletIndex']);
     const paymentHub = new PaymentHub(wallet)
     
     const plan = await paymentHub.getPlan(form.plan)
