@@ -168,6 +168,7 @@ import BetaAppDialog from 'src/components/apps/BetaAppDialog.vue'
 import HeaderNav from '../../components/header-nav'
 import { webSocketManager } from 'src/exchange/websocket/manager'
 import { isNativeIOS } from 'src/utils/native-platform'
+import { DISPLAY_SUBS_APP } from 'src/wallet/payment-hub';
 
 export default {
   name: 'apps',
@@ -381,6 +382,28 @@ export default {
           category: 'marketplace'
         },
         {
+          id: 'payment-hub',
+          name: this.$t('PaymentHub', {}, 'Payment Hub'),
+          description: this.$t('Apps.PaymentHub.Description', {}, 'Manage Payment Hub Stores, API Keys, and Invoices.'),
+          iconName: 'img:paytaca_payment_hub_logo_bg.png',
+          path: '/apps/payment-hub/',
+          iconStyle: 'width: 100%; height: 100%;',
+          active: true,
+          beta: true,
+          category: 'payment-hub'
+        },
+        ...(DISPLAY_SUBS_APP ? [{
+          id: 'payment-hub-subscriptions',
+          name: this.$t('RecurringPayments', {}, 'Recurring Payments'),
+          description: this.$t('Apps.RecurringPayments.Description', {}, 'Manage your recurring payments.'),
+          iconName: 'autorenew',
+          path: '/apps/payment-hub-subscriptions/',
+          iconStyle: 'font-size: 4.2em',
+          active: true,
+          beta: true,
+          category: 'payment-hub'
+        }]: []),
+        {
           id: 'support',
           name: this.$t('Support', {}, 'Support'),
           description: this.$t('Apps.Support.Description', {}, 'Get help, guides, and wallet information.'),
@@ -460,6 +483,7 @@ export default {
         { id: 'assets-rewards', label: this.$t('AssetsAndRewards', {}, 'Assets & Rewards') },
         { id: 'wallet-connections', label: this.$t('WalletAndConnections', {}, 'Wallet & Connections') },
         { id: 'marketplace', label: this.$t('MarketplaceAndMerchant', {}, 'Marketplace & Merchant') },
+        { id: 'payment-hub', label: this.$t('PaymentHub', {}, 'Payment Hub') },
         { id: 'utilities', label: this.$t('Utilities', {}, 'Utilities') },
         { id: 'beta', label: this.$t('Experimental', {}, 'Experimental'), isBeta: true },
       ]
