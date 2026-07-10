@@ -363,11 +363,12 @@ export default {
         // Give the new page one tick to mount, then dismiss the loading overlay.
         await vm.$nextTick()
 
-        // Keep the loading screen visible briefly so the user perceives it
+        // Keep the loading screen visible for 1-2 seconds
         const elapsed = Date.now() - loadingStartTime
-        const briefVisibleTime = 400
-        if (elapsed < briefVisibleTime) {
-          await new Promise(resolve => setTimeout(resolve, briefVisibleTime - elapsed))
+        const minDisplayTime = 1000
+        const maxDisplayTime = 2000
+        if (elapsed < minDisplayTime) {
+          await new Promise(resolve => setTimeout(resolve, Math.min(minDisplayTime - elapsed, maxDisplayTime - elapsed)))
         }
         vm.$store.commit('global/setWalletSwitchLoading', false)
       } catch (error) {
