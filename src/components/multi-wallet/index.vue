@@ -363,9 +363,9 @@ export default {
         // Give the new page one tick to mount, then dismiss the loading overlay.
         await vm.$nextTick()
 
-        // Keep the loading screen visible for exactly 2 seconds
+        // Keep the loading screen visible for 500ms
         const elapsed = Date.now() - loadingStartTime
-        const displayDuration = 2000
+        const displayDuration = 500
         if (elapsed < displayDuration) {
           await new Promise(resolve => setTimeout(resolve, displayDuration - elapsed))
         }
