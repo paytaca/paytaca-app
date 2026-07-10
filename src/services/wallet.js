@@ -205,7 +205,7 @@ export class Wallet {
     }
   }
 
-  async getTokenUtxos (tokenId, tokenAddress = null) {
+  async getTokenUtxos (tokenId, tokenAddress = null, opts = {}) {
     const wallet = await this.getRawWallet()
     if (!tokenAddress) tokenAddress = this.address()
     
@@ -215,12 +215,16 @@ export class Wallet {
       return []
     }
 
+    const params = {
+      is_cashtoken_nft: true
+    }
+
+    if (opts.capability) {
+      params.capability = opts.capability
+    }
+
     let result = []
-    const response = await wallet.watchtower.BCH._api.get(`utxo/ct/${tokenAddress}/${tokenId}/`, {
-      params: {
-        is_cashtoken_nft: true
-      }}
-    )
+    const response = await wallet.watchtower.BCH._api.get(`utxo/ct/${tokenAddress}/${tokenId}/`, { params: params })
     result = response.data?.utxos
     console.log('Returning token UTXOs:', result)
     return result.map(utxo => ({
@@ -358,6 +362,10 @@ export class Wallet {
     if (utxos.length === 0) {
       throw new Error('Cannot consolidate, 0 UTXOs found.');
     }
+
+    if (cumulativeValue <= DUST_LIMIT) {
+      throw new Error(`Cannot consolidate, cumulative value ${cumulativeValue} is below dust limit ${DUST_LIMIT}.`);
+    } 
 
     const estimatedFee = this.estimateFee({ numP2pkhInputs: utxos.length, numOutputs: 1 }); // Estimated fee for consolidation transaction
     const satsAmount = cumulativeValue - estimatedFee;

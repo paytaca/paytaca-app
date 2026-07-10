@@ -180,6 +180,7 @@ import AuthNftService from 'src/services/card/auth-nft';
 import { SignatureTemplate } from 'cashscript'
 import { binToHex } from '@bitauth/libauth';
 import { pubkeyToPkHash } from 'src/services/card/utils.js';
+import Card from 'src/services/card/card.js';
 
 export default {
   mixins: [CreateCardAttemptMixin],
@@ -241,9 +242,22 @@ export default {
     // const result = await authNftService.mintGenesis()
     // console.log('mintGenesis result:', result)
 
-    const user = await loadCardUser()
-    const card = await user.fetchCardByIdentifier('ce3610b26b3c694386a506b6e5788385cd79e899491050de876b06e1555e99d8')    
-    console.log('card:', card)
+    // Check if card is not yet linked to a user wallet
+    const user = await loadCardUser();   
+    const category = "750063dfb55b6a79b6730e020e479530631fa04d87ec6eba9c8b01ddd9de569f"
+    console.log('category:', category)
+    console.log('reverseHex(category):', reverseHex(category))
+    console.log('reverseHex(reverseHex(category)):', reverseHex(reverseHex(category)))
+    const { _rawData: data } = await user.fetchCardByIdentifier(category)
+      .catch((err) => {
+        console.error('Error fetching card by identifier:', err.response || err.message);
+        throw err;
+      });
+
+    console.log('Fetched card by identifier:', data);
+    const card = await Card.createInitialized(data)
+    console.log('Initialized card:', card)
+    await card.activate('My First Card')
 
     // await wallet.consolidateUtxos()
     // // -------- Backend Steps ---------

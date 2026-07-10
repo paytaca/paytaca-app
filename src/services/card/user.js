@@ -349,16 +349,6 @@ export class CardUser {
         }
     }
 
-    async fetchContractByCategory(category) {
-        try {
-            const contract = await backend.get(`/contracts/${category}`);
-            return contract.data;
-        } catch (error) {
-            console.error('Error fetching contract by category:', error);
-            throw error;
-        }
-    }
-
     async _requestLinkingToken(category) {
         this._assertWallet()
 
@@ -373,6 +363,11 @@ export class CardUser {
             console.error('Error requesting linking token:', error);
             throw error;
         }
+    }
+
+    async linkWithCard(category) {
+        const response = await backend.post('/cards/claim/', { category });
+        return response.data;
     }
 
     async linkAndActivateCard(category) {
