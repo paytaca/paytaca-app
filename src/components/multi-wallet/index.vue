@@ -321,8 +321,9 @@ export default {
         persistent: true
       })
       
+      const loadingStartTime = Date.now()
       try {
-        // Execute wallet switch - this includes a 1 second delay for syncing
+        // Execute wallet switch (syncs old wallet to vault, updates index, inits per-wallet state)
         await vm.$store.dispatch('global/switchWallet', actualIndex)
         
         // Verify wallet index was updated correctly
@@ -338,13 +339,8 @@ export default {
         const lockAppEnabled = vm.$store.getters['global/lockApp']
         const isUnlocked = vm.$store.getters['global/isUnlocked']
         
-        // Wait for localStorage to persist (important for Android)
-        // Also wait for vuex-persistedstate to write the state
-        // Keep loading component visible until switch completes
-        await new Promise(resolve => setTimeout(resolve, 500))
-        
         vm.isSwitching = false
-        
+
         // Signal that a wallet switch is in progress
         // This allows the router guard and App.vue watcher to respond appropriately
         vm.$store.commit('global/setWalletSwitchInProgress', true)
@@ -358,9 +354,15 @@ export default {
         // The :key on <router-view> (bound to walletIndex) will trigger
         // recreation of the current page with the new wallet data.
 
-        // Wait for the new page to mount and initialize
+        // Give the new page one tick to mount, then dismiss the loading overlay.
         await vm.$nextTick()
-        await new Promise(resolve => setTimeout(resolve, 1500))
+
+        // Keep the loading screen visible briefly so the user perceives it
+        const elapsed = Date.now() - loadingStartTime
+        const briefVisibleTime = 400
+        if (elapsed < briefVisibleTime) {
+          await new Promise(resolve => setTimeout(resolve, briefVisibleTime - elapsed))
+        }
         loadingComponent.hide()
       } catch (error) {
         console.error('[MultiWallet] Switch error:', error)

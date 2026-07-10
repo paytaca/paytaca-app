@@ -853,6 +853,7 @@ export default {
 
     // Cold start: reset so the loading overlay shows until the home page is ready
     vm.$store.commit('global/setAppInitialLoadComplete', false)
+    vm._loadingStartTime = Date.now()
     vm.$store.commit('global/setBackupDialogActive', false)
     vm.joinRewardsDialogPending = false
 
@@ -1014,6 +1015,14 @@ export default {
     // was loaded on cold start. Previously this was only done in the home
     // page (transaction/index.vue mounted), causing hard-reloaded deep
     // links (e.g. /apps/chat/...) to hang on the loading screen forever.
+
+    // Ensure the loading screen is visible briefly so the user perceives it
+    const elapsed = Date.now() - vm._loadingStartTime
+    const briefVisibleTime = 400
+    if (elapsed < briefVisibleTime) {
+      await new Promise(resolve => setTimeout(resolve, briefVisibleTime - elapsed))
+    }
+
     vm.$store.commit('global/setAppInitialLoadComplete', true)
 
     if (vm.$q.platform.is.bex) {

@@ -2590,8 +2590,14 @@ export default {
 
       // Full refresh after page mounts (especially after wallet switch)
       // skipConnectivity = true to avoid duplicate onConnectivityChange call
-      // (already called earlier in the mount flow at line 2438)
-      this.onRefresh(() => {}, true)
+      // (already called earlier in the mount flow above)
+      // Note: onConnectivityChange(true) above already calls refreshFavoriteTokenBalances()
+      // and refreshDisplayedTokenPrices(), so we only refresh transactions here to avoid
+      // duplicating balance/price fetches and the associated store mutations.
+      if (this.$refs['latest-transactions']) {
+        this.$refs['latest-transactions'].refresh().catch(() => {})
+      }
+      this.pendingTransactionsKey++
     } catch (error) {
       console.error('Error in mounted hook:', error)
       // Ensure loading state is reset even on error
