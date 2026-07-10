@@ -9,6 +9,7 @@
     @before-hide="onDialogHide"    
   >
     <q-card
+      v-show="!hideSidebarInstantly"
       class="wallet-card"
       :class="getDarkModeClass(darkMode)"
       :style="sidebarCardStyle"
@@ -133,7 +134,8 @@ export default {
       isloading: false,
       secondDialog: false,
       touchData: {}, // Track touch events for tap detection
-      isSwitching: false // Prevent multiple simultaneous wallet switches
+      isSwitching: false, // Prevent multiple simultaneous wallet switches
+      hideSidebarInstantly: false // Instantly hides sidebar content during wallet switch
     }
   },
   components: {
@@ -313,17 +315,16 @@ export default {
       // Set switching flag
       vm.isSwitching = true
 
-      // Show full-screen loading with pulsating logo immediately,
-      // before hiding the wallet list dialog
-      const loadingComponent = vm.$q.dialog({
-        component: WalletSwitchLoading,
-        persistent: true
-      })
-      
-      // Yield to ensure the dialog renders before proceeding
-      await vm.$nextTick()
-      
-      // Close the wallet list dialog (after loading overlay is visible)
+      // Hide the wallet list sidebar instantly (before loading overlay)
+      vm.hideSidebarInstantly = true
+
+      // Show full-screen loading with pulsating logo immediately
+      vm.$store.commit('global/setWalletSwitchLoading', true)
+
+      // Force the browser to paint the loading overlay before proceeding
+      await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)))
+
+      // Clean up the dialog (proper Quasar close for backdrop etc.)
       vm.hide()
       
       const loadingStartTime = Date.now()
@@ -368,11 +369,11 @@ export default {
         if (elapsed < briefVisibleTime) {
           await new Promise(resolve => setTimeout(resolve, briefVisibleTime - elapsed))
         }
-        loadingComponent.hide()
+        vm.$store.commit('global/setWalletSwitchLoading', false)
       } catch (error) {
         console.error('[MultiWallet] Switch error:', error)
         vm.isSwitching = false
-        loadingComponent.hide()
+        vm.$store.commit('global/setWalletSwitchLoading', false)
         
         // Show error notification
         vm.$q.notify({
@@ -549,6 +550,8 @@ export default {
       this.$emit('dialog-hide')
     },
     async onDialogShow () {
+      // Reset instant-hide flag so sidebar content is visible
+      this.hideSidebarInstantly = false
       // Refresh wallet list every time the sidebar is shown
       // Update current index first
       this.currentIndex = this.$store.getters['global/getWalletIndex']

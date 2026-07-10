@@ -1,6 +1,7 @@
 <template>
     <div>
       <AppLoading v-if="showInitialLoad" />
+      <WalletSwitchLoading v-if="showWalletSwitchLoading" />
       <router-view :key="$store.getters['global/getWalletIndex']" />
       <v-offline @detected-condition="onConnectivityChange" />
       
@@ -32,6 +33,7 @@ import { VOffline } from 'v-offline'
 import { checkWatchtowerStatus } from './utils/watchtower-status'
 import AppVersionUpdate from './components/dialogs/AppVersionUpdate.vue'
 import AppLoading from 'src/components/AppLoading.vue'
+import WalletSwitchLoading from 'src/components/WalletSwitchLoading.vue'
 import { App as CapacitorApp } from '@capacitor/app'
 import { Capacitor } from '@capacitor/core'
 import ScreenshotSecurity from './utils/screenshot-security'
@@ -49,7 +51,7 @@ BigInt.prototype["toJSON"] = function () {
 
 export default {
   name: 'App',
-  components: { VOffline, AppLoading },
+  components: { VOffline, AppLoading, WalletSwitchLoading },
   setup () {
     const store = useStore()
     const $q = useQuasar()
@@ -111,6 +113,9 @@ export default {
     },
     showInitialLoad() {
       return !this.$store.state.global.appInitialLoadComplete
+    },
+    showWalletSwitchLoading() {
+      return this.$store.state.global.walletSwitchLoading
     },
     backupDialogActive() {
       return this.$store?.state?.global?.backupDialogActive
