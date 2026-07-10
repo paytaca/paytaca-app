@@ -1025,12 +1025,6 @@ export default {
 
     vm.$store.commit('global/setAppInitialLoadComplete', true)
 
-    // Remove the static loading splash rendered in index.html
-    var staticSplash = document.getElementById('app-loading-static')
-    if (staticSplash) {
-      staticSplash.style.display = 'none'
-    }
-
     if (vm.$q.platform.is.bex) {
       if (vm.$refs?.container?.style?.display) vm.$refs.container.style.display = 'none'
       document.body.style.width = '390px'

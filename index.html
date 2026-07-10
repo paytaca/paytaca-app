@@ -40,6 +40,7 @@
       }
 
       #app-loading-static-logo {
+        position: relative;
         width: 110px;
         height: 110px;
         border-radius: 50%;
@@ -48,9 +49,23 @@
         justify-content: center;
         backdrop-filter: blur(20px);
         -webkit-backdrop-filter: blur(20px);
+        padding: 25px;
+        box-sizing: border-box;
+        transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+      }
+
+      #app-loading-static-glow {
+        position: absolute;
+        inset: -10px;
+        border-radius: 50%;
+        opacity: 0.3;
+        filter: blur(20px);
+        pointer-events: none;
       }
 
       #app-loading-static-logo img {
+        position: relative;
+        z-index: 1;
         width: 100%;
         height: auto;
         object-fit: contain;
@@ -82,20 +97,6 @@
           var bg = darkMode ? colors.dark : colors.light
           document.documentElement.style.backgroundColor = bg
           document.body && (document.body.style.backgroundColor = bg)
-
-          // Style the static loading logo to match theme
-          var logo = document.getElementById('app-loading-static-logo')
-          if (logo) {
-            if (darkMode) {
-              logo.style.background = 'rgba(255, 255, 255, 0.05)'
-              logo.style.border = '2px solid rgba(255, 255, 255, 0.15)'
-              logo.style.boxShadow = '0 12px 40px rgba(0, 0, 0, 0.3), 0 0 0 1px rgba(255, 255, 255, 0.05) inset'
-            } else {
-              logo.style.background = 'rgba(255, 255, 255, 0.5)'
-              logo.style.border = '2px solid rgba(255, 255, 255, 0.6)'
-              logo.style.boxShadow = '0 12px 40px rgba(0, 0, 0, 0.12), 0 0 0 1px rgba(255, 255, 255, 0.3) inset'
-            }
-          }
         } catch (e) {}
       })()
     </script>
@@ -103,9 +104,61 @@
   <body>
     <div id="app-loading-static">
       <div id="app-loading-static-logo">
-        <img src="icons/favicon-128x128.png" alt="">
+        <div id="app-loading-static-glow"></div>
+        <img src="icons/paytaca_logo.png" alt="">
       </div>
     </div>
+    <script>
+      // Style the static loading logo now that the DOM elements exist.
+      // Theme/darkMode were already parsed in the head script above.
+      (function () {
+        var themeBg = {
+          'glassmorphic-blue': { dark: '#273746', light: '#ecf3f3' },
+          'glassmorphic-gold': { dark: '#3d3224', light: '#fff8e1' },
+          'glassmorphic-green': { dark: '#263d32', light: '#e8f5e9' },
+          'glassmorphic-red': { dark: '#462733', light: '#f3ecec' },
+          'payhero': { dark: '#012121', light: '#ecf3f3' },
+        }
+        try {
+          var raw = localStorage.getItem('vuex')
+          var theme = 'glassmorphic-blue'
+          var darkMode = false
+          if (raw) {
+            var s = JSON.parse(raw)
+            var g = s.global || {}
+            var idx = g.walletIndex || 0
+            var vault = (g.vault || [])[idx]
+            var settings = (vault && vault.settings) || {}
+            theme = settings.theme || g.theme || 'glassmorphic-blue'
+            darkMode = settings.darkMode !== undefined ? settings.darkMode : (s.darkmode && s.darkmode.darkmode)
+          }
+          var logo = document.getElementById('app-loading-static-logo')
+          var glow = document.getElementById('app-loading-static-glow')
+          if (darkMode) {
+            logo.style.background = 'rgba(255, 255, 255, 0.05)'
+            logo.style.border = '2px solid rgba(255, 255, 255, 0.15)'
+            logo.style.boxShadow = '0 12px 40px rgba(0, 0, 0, 0.3), 0 0 0 1px rgba(255, 255, 255, 0.05) inset'
+          } else {
+            logo.style.background = 'rgba(255, 255, 255, 0.5)'
+            logo.style.border = '2px solid rgba(255, 255, 255, 0.6)'
+            logo.style.boxShadow = '0 12px 40px rgba(0, 0, 0, 0.12), 0 0 0 1px rgba(255, 255, 255, 0.3) inset'
+          }
+          if (theme === 'glassmorphic-blue') {
+            logo.style.boxShadow += ', 0 12px 40px rgba(66, 165, 245, 0.25), 0 0 0 1px rgba(66, 165, 245, 0.2) inset'
+            if (glow) glow.style.background = 'radial-gradient(circle, rgba(66, 165, 245, 0.4), transparent 70%)'
+          } else if (theme === 'glassmorphic-gold') {
+            logo.style.boxShadow += ', 0 12px 40px rgba(255, 167, 38, 0.25), 0 0 0 1px rgba(255, 167, 38, 0.2) inset'
+            if (glow) glow.style.background = 'radial-gradient(circle, rgba(255, 167, 38, 0.4), transparent 70%)'
+          } else if (theme === 'glassmorphic-green') {
+            logo.style.boxShadow += ', 0 12px 40px rgba(76, 175, 80, 0.25), 0 0 0 1px rgba(76, 175, 80, 0.2) inset'
+            if (glow) glow.style.background = 'radial-gradient(circle, rgba(76, 175, 80, 0.4), transparent 70%)'
+          } else if (theme === 'glassmorphic-red') {
+            logo.style.boxShadow += ', 0 12px 40px rgba(245, 66, 112, 0.25), 0 0 0 1px rgba(245, 66, 112, 0.2) inset'
+            if (glow) glow.style.background = 'radial-gradient(circle, rgba(245, 66, 112, 0.4), transparent 70%)'
+          }
+        } catch (e) {}
+      })()
+    </script>
     <!-- quasar:entry-point -->
   </body>
 </html>
