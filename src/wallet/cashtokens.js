@@ -32,9 +32,13 @@ export function convertIpfsUrl(url='', baseURL='https://ipfs.paytaca.com/ipfs/')
 
 export function getTokenImage(url) {
   const ipfsUrl = convertIpfsUrl(url);
-  if (ipfsUrl.startsWith('https://ipfs.paytaca.com/ipfs')) {
-    return ipfsUrl + '?pinataGatewayToken=' + process.env.PINATA_GATEWAY_TOKEN;
-  } else {
+  try {
+    const url = new URL(ipfsUrl);
+    if (url.host === 'ipfs.paytaca.com') {
+      url.searchParams.set('pinataGatewayToken', process.env.PINATA_GATEWAY_TOKEN);
+    }
+    return String(url);
+  } catch {
     return ipfsUrl;
   }
 }
