@@ -2,13 +2,12 @@ import { loadCardUser } from "./user"
 import Card from "./card"
 
 export const CardActivationStatus = {
-  CARD_INITIATED: -1,
-  CARD_SAVED: 0,
-  GENESIS_MINTED: 1,
-  GENESIS_SAVED: 2,
-  CONTRACT_CREATED: 3,
-  AUTH_MINTED: 4,
-  AUTH_ISSUED: 5
+  NONE: -1,
+  GENESIS_MINTED: 0,
+  OWNERSHIP_UPDATED: 1,
+  VALIDATION_REQUESTED: 2,
+  GLOBAL_AUTH_MINTED: 3,
+  GLOBAL_AUTH_ISSUED: 4
 }
 
 const CARD_ACTIVATION_STORAGE_KEY = 'card:activation-attempt'

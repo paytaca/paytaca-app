@@ -11,6 +11,7 @@ import artifactV2 from './TapToPay-V2.json';
 import Watchtower from 'src/lib/watchtower/index.js';
 import { loadWallet } from 'src/services/wallet.js';
 import { isTokenAddress } from 'src/utils/address-utils.js';
+import { reverseHex } from 'src/marketplace/escrow/utils.js';
 
 import { 
     encodeOwnershipCommitment, 
@@ -19,20 +20,20 @@ import {
     decodeLinkingCommitment
 } from '../utils.js';
 
-/**
- * Reverses a hex string by byte (2-char) pairs.
- *
- * Used to flip the on-chain token category endianness when matching
- * authorization NFT UTXOs in `mutate()`.
- *
- * @param {string} hex - Hex string to reverse.
- * @returns {string} Reversed hex string; returns input when empty or invalid.
- */
-function reverseHex(hex) {
-  if (!hex) return hex;
-  const pairs = hex.match(/.{1,2}/g);
-  return pairs ? pairs.reverse().join('') : hex;
-}
+// /**
+//  * Reverses a hex string by byte (2-char) pairs.
+//  *
+//  * Used to flip the on-chain token category endianness when matching
+//  * authorization NFT UTXOs in `mutate()`.
+//  *
+//  * @param {string} hex - Hex string to reverse.
+//  * @returns {string} Reversed hex string; returns input when empty or invalid.
+//  */
+// function reverseHex(hex) {
+//   if (!hex) return hex;
+//   const pairs = hex.match(/.{1,2}/g);
+//   return pairs ? pairs.reverse().join('') : hex;
+// }
 
 // Helper to safely convert numbers/strings to BigInt
 const toBigInt = (v) => (typeof v === 'bigint' ? v : BigInt(v ?? 0))
@@ -657,8 +658,9 @@ export class TapToPayV2 extends TapToPay {
 
             this.params = {
                 backendPkh: parameters[0],
-                category: parameters[1]
+                category: reverseHex(parameters[1])
             };
+            console.log('=>>>>>>>TapToPayV2 contract parameters:', this.params)
         } else if (params) {
             this.params = {
                 backendPkh: params.backendPkh,
@@ -674,7 +676,7 @@ export class TapToPayV2 extends TapToPay {
     get contractCreationParams () {
         return {
             backendPkh: this.params.backendPkh,
-            category: this.params.category,
+            category: reverseHex(this.params.category),
         };
     }
 
@@ -686,8 +688,9 @@ export class TapToPayV2 extends TapToPay {
         const contractCreationParams = this.contractCreationParams
         const contractParams = [
             contractCreationParams.backendPkh,
-            reverseHex(contractCreationParams.category)
+            contractCreationParams.category
         ];
+        console.log('contractParams:', contractParams)
 
         const contract = new Contract(artifactV2, contractParams)
         return contract;
@@ -698,10 +701,13 @@ export class TapToPayV2 extends TapToPay {
         const ownerSig = new SignatureTemplate(ownerWif)
         const ownerPk = binToHex(ownerSig.getPublicKey())
         const ownerPkh = pubkeyToPkHash(ownerPk)
-        console.log('-----ownerPkh:', ownerPkh)
+        // console.log('-----ownerPkh:', ownerPkh)
 
         // get contract token utxos
-        const tokenId = this.contractCreationParams.category
+        const tokenId = reverseHex(this.contractCreationParams.category)
+        // console.log('-----tokenId:', tokenId)
+        console.log('contract.address:', contract.address)
+        console.log('contract.tokenAddress:', contract.tokenAddress)
         const ownershipTokens = await this.getTokenUtxos(tokenId, contract.tokenAddress)
         console.log('ownershipTokens:', ownershipTokens)  
 
@@ -720,7 +726,7 @@ export class TapToPayV2 extends TapToPay {
             // Get the linking token
             const commitment = utxo.token.nft?.commitment
             const decodedCommitment = decodeOwnershipCommitment(commitment)
-            console.log('decodedCommitment:', decodedCommitment)
+            // console.log('decodedCommitment:', decodedCommitment)
             if (decodedCommitment?.type === 'pkh') {
                 sortedOwnershipTokens[0] = utxo
                 pkhCategory = decodedCommitment.category
@@ -734,7 +740,21 @@ export class TapToPayV2 extends TapToPay {
         console.log('catCategory:', catCategory)
 
         if (pkhCategory !==  catCategory) {
-            throw new Error('Ownership token categories do not match: pkhCategory=' + pkhCategory + ', catCategory=' + catCategory)
+            console.warn('Ownership token categories do not match: pkhCategory=' + pkhCategory + ', catCategory=' + catCategory)
+            
+            if (pkhCategory === ownerPkh) {
+                console.warn('pkh ownership token already set to ownerPkh')
+            }
+            if (catCategory === reverseHex(authCategory)) {
+                console.warn('cat ownership token already set to authCategory')
+            }
+
+            const alreadySet = (pkhCategory === ownerPkh && catCategory === reverseHex(authCategory))
+            console.log('Ownership tokens already set: ' + alreadySet)
+            return {
+                success: true,
+                message: 'Ownership tokens already set to the desired values.'
+            }
         }
 
         console.log('sortedOwnershipTokens:', sortedOwnershipTokens)
@@ -835,8 +855,7 @@ export class TapToPayV2 extends TapToPay {
 
         const txHex = tx.build()
         console.log('txHex:', txHex)
-        // const result = await this.broadcastTransaction(txHex)
-        const result = await tx.send()
+        const result = await this.broadcastTransaction(txHex)
         console.log('result:', result)
     }
 }

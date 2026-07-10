@@ -90,7 +90,7 @@ class AuthNftService {
     //     return response;
     // }
 
-    async mintGenesis(opts = {broadcast: true}) {
+    async genesis(opts = {broadcast: true}) {
         console.log('====== Minting Token ======')
     
         const genesisUtxo = await this.wallet.getOrCreateGenesisUtxo()
@@ -170,7 +170,9 @@ class AuthNftService {
         console.log('minting auth NFTs for merchants:', merchants)
         this._assertWallet();
 
-        const tokenMintRequests = [];
+        const mintingTokenUtxo = await this.wallet.getTokenUtxos(tokenId, null, { capability: NFTCapability.minting })
+        console.log('mintingTokenUtxo:', mintingTokenUtxo)
+        const outputs = [];
         for (let i = 0; i < merchants.length; i++) {
             const merchant = merchants[i]
             const commitmentData = {
@@ -186,24 +188,34 @@ class AuthNftService {
             }
 
             const commitment = encodeCommitment(commitmentData)
-            tokenMintRequests.push(new TokenMintRequest({
-                cashaddr: this.ctWallet.cashaddr,
-                capability: NFTCapability.mutable,
-                commitment: commitment,
-                value: MINT_VALUE
-            }));
+            outputs.push({
+                to: this.wallet.tokenAddress(),
+                value: MINT_VALUE,
+                token: {
+                    category: tokenId,
+                    amount: 0n,
+                    nft: {
+                        capability: NFTCapability.mutable,
+                        commitment: commitment,
+                    }
+                }
+            });
         }
 
-        console.log('Token mint requests:', tokenMintRequests);
-        console.log('Minting with wallet:', this.ctWallet);
-        const response = await this.ctWallet.tokenMint(
-            tokenId,
-            tokenMintRequests,
-            false,
-            options
-        );
-        console.log('Token mint response:', response);
-        return response;
+        console.log('??????Mint outputs:', outputs);
+        // console.log('Minting with wallet:', this.ctWallet);
+        // const response = await this.ctWallet.tokenMint(
+        //     tokenId,
+        //     tokenMintRequests,
+        //     false,
+        //     options
+        // );
+
+        const provider = new ElectrumNetworkProvider('mainnet')
+        const sigTemplate = new SignatureTemplate(this.wallet.privkey())
+
+        // console.log('Token mint response:', response);
+        // return response;
     }
 
     /**
