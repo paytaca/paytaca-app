@@ -173,6 +173,7 @@ const paytacaFeeSats = computed(() => {
   return Math.max(Math.min(maxFee, Math.floor(pledgeSats / 100)), Math.floor(maxFee / 100))
 })
 
+const WITHDRAW_MINER_FEE_SATS = 1000
 const totalCostSats = computed(() => {
   if (!planDetails.value) return 0
   let pledgeSats = planDetails.value.amount_satoshis
@@ -181,7 +182,7 @@ const totalCostSats = computed(() => {
     const bchAmount = parseFloat(planDetails.value.amount) / bchPrice.value
     pledgeSats = Math.round(bchAmount * 100000000)
   }
-  return pledgeSats + paytacaFeeSats.value + 1000 // miner fee
+  return pledgeSats + paytacaFeeSats.value + WITHDRAW_MINER_FEE_SATS // miner fee
 })
 
 const totalBchStr = computed(() => {

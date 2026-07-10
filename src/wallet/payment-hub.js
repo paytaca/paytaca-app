@@ -556,10 +556,6 @@ export class PaymentHub {
   }
 
   // --- Contract Artifact Section ---
-
-  /**
-   * Retrieves the contract artifact for the given script type.
-   */
   async getContractArtifact() {
     const response = await backend.get(`/contract/artifact`)
     return response.data

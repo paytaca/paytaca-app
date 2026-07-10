@@ -392,11 +392,6 @@ function showBillingInfo() {
   })
 }
 
-const pledgeBch = computed(() => {
-  if (!sub.value?.pledge_satoshis) return '-'
-  return (sub.value.pledge_satoshis / 1e8).toFixed(8).replace(/\.?0+$/, '')
-})
-
 const contractBalanceSats = computed(() => {
   if (!sub.value?.balance && sub.value?.balance !== 0) return '0'
   return sub.value.balance.toLocaleString()
@@ -418,12 +413,8 @@ const contractBalanceFiat = computed(() => {
   return formatAmount(fiatVal)
 })
 
-const pledge_satoshis_formatted = computed(() => {
-  if (!sub.value?.pledge_satoshis) return ''
-  return sub.value.pledge_satoshis.toLocaleString()
-})
-
 const minerFee = computed(() => 1000)
+const cashtokenDustAmount = computed(() => 1000)
 
 const paytacaFee = computed(() => {
   if (!sub.value) return 546
@@ -453,7 +444,7 @@ const totalCostFiat = computed(() => {
 
 const remainingPayouts = computed(() => {
   if (!sub.value?.balance || !totalCostSats.value) return 0
-  const available = sub.value.balance - 1000
+  const available = sub.value.balance - cashtokenDustAmount.value
   if (available <= 0) return 0
   return Math.floor(available / totalCostSats.value)
 })

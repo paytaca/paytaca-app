@@ -143,6 +143,7 @@ const totalFiatFormatted = computed(() => {
   return parseFloat(fiatVal.toFixed(2)).toString()
 })
 
+const MERGE_FEE_SATS = 1000;
 const totalBchFormatted = computed(() => {
   if (!planDetails.value) return '0'
   const numCycles = cycles.value || 0
@@ -152,7 +153,7 @@ const totalBchFormatted = computed(() => {
   if (totalCostSatsPerCycle.value > 0) {
     let totalSats = totalCostSatsPerCycle.value * numCycles
     if (props.subscription?.status === 'PENDING') {
-      totalSats += 1000 // Extra 1000 sats buffer for the NFT dust limit and merge fee
+      totalSats += MERGE_FEE_SATS // Extra 1000 sats buffer for the NFT dust limit and merge fee
     }
     return (totalSats / 100000000).toFixed(8).replace(/\.?0+$/, '') || '0'
   }
