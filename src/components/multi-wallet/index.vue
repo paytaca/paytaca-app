@@ -313,16 +313,18 @@ export default {
       // Set switching flag
       vm.isSwitching = true
 
-      vm.hide()
-      
-      // Show full-screen loading with pulsating logo
+      // Show full-screen loading with pulsating logo immediately,
+      // before hiding the wallet list dialog
       const loadingComponent = vm.$q.dialog({
         component: WalletSwitchLoading,
         persistent: true
       })
       
-      // Yield to ensure the dialog renders before starting the switch
+      // Yield to ensure the dialog renders before proceeding
       await vm.$nextTick()
+      
+      // Close the wallet list dialog (after loading overlay is visible)
+      vm.hide()
       
       const loadingStartTime = Date.now()
       try {
