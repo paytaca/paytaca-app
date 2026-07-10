@@ -13,6 +13,7 @@ import SingleWallet from './single-wallet'
 import { TransactionBalancer } from './stablehedge/transaction-utils'
 import { toTokenAddress } from 'src/utils/crypto'
 import { watchtowerUtxoToCashscriptP2pkh } from 'src/utils/utxo-utils'
+import { isTokenAddress } from 'src/utils/address-utils'
 
 const bchjs = new BCHJS()
 /**
@@ -266,9 +267,12 @@ export class JPPSourceTypes {
   static resolve(paymentUrl) {
     try {
       let link = new URL(paymentUrl)
+
+      if (link.host.indexOf('127.0.0.1') >= 0) return this.BITPAY
       if (link.host.indexOf('bitcoin.com') >= 0) return this.BITCOIN_COM
       if (link.host.indexOf('bitpay') >= 0) return this.BITPAY
       if (link.host.indexOf('watchtower.cash') >= 0) return this.WATCHTOWER
+      if (link.host.indexOf('paymenthub.paytaca.com') >= 0) return this.BITPAY
       if (link.host.indexOf('localhost') >= 0) return this.WATCHTOWER
       if (link.host.indexOf('anypay') >= 0) return this.ANYPAY
       return this.DEFAULT
@@ -461,7 +465,7 @@ export class JSONPaymentProtocol {
    * @param {Wallet} wallet 
    */
   async prepareTransaction(wallet, changeAddress) {
-    if (this.parsed.outputs.find(output => !output.address.startsWith('bitcoincash'))) {
+    if (this.parsed.outputs.find(output => !output.address.startsWith('bitcoincash') && !output.address.startsWith('bchtest:'))) {
       throw JsonPaymentProtocolError('Invalid recipient address')
     }
 
@@ -790,8 +794,17 @@ export class JSONPaymentProtocol {
       currency: data?.chain,
       requiredFeePerByte: txInstruction?.requiredFeeRate,
       outputs: txInstruction?.outputs?.map(output => Object({
+        description: output?.description,
         amount: output?.amount,
-        address: bchjs.Address.toCashAddress(output?.address),
+        address: isTokenAddress(output.address) ? output.address : bchjs.Address.toCashAddress(output?.address),
+        token: !output?.token ? undefined : {
+          amount: output.token?.amount,
+          category: output.token?.category,
+          nft: !output.token?.nft ? undefined : {
+            capability: output.token.nft?.capability,
+            commitment: output.token.nft?.commitment,
+          }
+        }
       })),
     }
   }

@@ -1,6 +1,7 @@
 <template>
     <div>
       <AppLoading v-if="showInitialLoad" />
+      <WalletSwitchLoading v-if="showWalletSwitchLoading" />
       <router-view :key="$store.getters['global/getWalletIndex']" />
       <v-offline @detected-condition="onConnectivityChange" />
       
@@ -32,6 +33,7 @@ import { VOffline } from 'v-offline'
 import { checkWatchtowerStatus } from './utils/watchtower-status'
 import AppVersionUpdate from './components/dialogs/AppVersionUpdate.vue'
 import AppLoading from 'src/components/AppLoading.vue'
+import WalletSwitchLoading from 'src/components/WalletSwitchLoading.vue'
 import { App as CapacitorApp } from '@capacitor/app'
 import { Capacitor } from '@capacitor/core'
 import ScreenshotSecurity from './utils/screenshot-security'
@@ -49,7 +51,7 @@ BigInt.prototype["toJSON"] = function () {
 
 export default {
   name: 'App',
-  components: { VOffline, AppLoading },
+  components: { VOffline, AppLoading, WalletSwitchLoading },
   setup () {
     const store = useStore()
     const $q = useQuasar()
@@ -111,6 +113,9 @@ export default {
     },
     showInitialLoad() {
       return !this.$store.state.global.appInitialLoadComplete
+    },
+    showWalletSwitchLoading() {
+      return this.$store.state.global.walletSwitchLoading
     },
     backupDialogActive() {
       return this.$store?.state?.global?.backupDialogActive
@@ -853,6 +858,7 @@ export default {
 
     // Cold start: reset so the loading overlay shows until the home page is ready
     vm.$store.commit('global/setAppInitialLoadComplete', false)
+    vm._loadingStartTime = Date.now()
     vm.$store.commit('global/setBackupDialogActive', false)
     vm.joinRewardsDialogPending = false
 
@@ -1014,6 +1020,14 @@ export default {
     // was loaded on cold start. Previously this was only done in the home
     // page (transaction/index.vue mounted), causing hard-reloaded deep
     // links (e.g. /apps/chat/...) to hang on the loading screen forever.
+
+    // Ensure the loading screen is visible briefly so the user perceives it
+    const elapsed = Date.now() - vm._loadingStartTime
+    const briefVisibleTime = 400
+    if (elapsed < briefVisibleTime) {
+      await new Promise(resolve => setTimeout(resolve, briefVisibleTime - elapsed))
+    }
+
     vm.$store.commit('global/setAppInitialLoadComplete', true)
 
     if (vm.$q.platform.is.bex) {

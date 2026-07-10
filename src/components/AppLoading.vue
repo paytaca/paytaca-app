@@ -18,6 +18,13 @@ import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 
 export default {
   name: 'AppLoading',
+  mounted() {
+    // Remove the static loading splash from index.html so both don't coexist
+    var staticSplash = document.getElementById('app-loading-static')
+    if (staticSplash) {
+      staticSplash.style.display = 'none'
+    }
+  },
   computed: {
     darkMode() {
       return this.$store?.state?.darkmode?.darkmode

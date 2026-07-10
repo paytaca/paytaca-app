@@ -499,6 +499,33 @@ const routes = [
         name: 'group-chat-link',
         props: true,
         component: () => import('src/pages/apps/chat/conversation.vue')
+      },
+      {
+        path: 'payment-hub',
+        children: [
+          {
+            path: '',
+            name: 'payment-hub-index',
+            component: () => import('src/pages/apps/payment-hub/Index.vue')
+          },
+          {
+            path: 'store/:storeId',
+            name: 'payment-hub-store-detail',
+            component: () => import('src/pages/apps/payment-hub/StoreDetail.vue'),
+            props: true
+          }
+        ]
+      },
+      {
+        path: 'payment-hub-subscriptions',
+        children: [
+          {
+            path: '',
+            name: 'payment-hub-subscriptions-index',
+            component: () => import('src/pages/apps/payment-hub-subscriptions/Index.vue'),
+            props: route => Object.assign({}, route.params, route.query),
+          }
+        ]
       }
     ]
   },

@@ -714,6 +714,10 @@ export function setWalletSwitchInProgress (state, value) {
   state.walletSwitchInProgress = Boolean(value)
 }
 
+export function setWalletSwitchLoading (state, value) {
+  state.walletSwitchLoading = Boolean(value)
+}
+
 export function setAppInitialLoadComplete (state, value) {
   state.appInitialLoadComplete = Boolean(value)
 }

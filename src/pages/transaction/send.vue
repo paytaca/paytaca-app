@@ -30,12 +30,17 @@
           :is-cash-token="isCashToken"
           :back-path="backPath"
         />
-        <div v-else-if="jpp && !jpp.txids?.length" class="jpp-panel-container">
+        <div v-else-if="jpp" class="jpp-panel-container">
           <JppPaymentPanel
+            v-if="!jpp.txids?.length"
             :jpp="jpp"
             :wallet="wallet"
             class="q-mx-md"
             @paid="onJppPaymentSucess()"
+          />
+          <JppPaymentSuccessPanel
+            v-else
+            :jpp="jpp"
           />
         </div>
         <div
@@ -481,6 +486,7 @@ import QRUploader from 'src/components/QRUploader'
 import PointsReceivedDialog from 'src/components/rewards/dialogs/PointsReceivedDialog.vue'
 import LoadingWalletDialog from 'src/components/multi-wallet/LoadingWalletDialog.vue'
 import SendSuccessPage from 'src/components/send-page/SendSuccessPage.vue'
+import JppPaymentSuccessPanel from 'src/components/send-page/JppPaymentSuccessPanel.vue'
 import { hexToRef } from 'src/utils/reference-id-utils'
 import CauldronSendSummary from 'src/components/send-page/CauldronSendSummary.vue'
 import { MultiCauldronPoolTracker } from 'src/wallet/cauldron/pool-tracker'
@@ -509,6 +515,7 @@ export default {
     Pin,
     BiometricWarningAttempt,
     SendSuccessPage,
+    JppPaymentSuccessPanel,
     CauldronSendSummary,
   },
 
@@ -1431,6 +1438,7 @@ export default {
       // skip the usual route when found a valid JSON payment protocol url
       if (paymentUriData?.jpp?.valid) {
         this.jpp = await sendPageUtils.handleJpp(paymentUriData.jpp.paymentUri, this.darkMode)
+        window.jpp = this.jpp;
         return
       }
 
