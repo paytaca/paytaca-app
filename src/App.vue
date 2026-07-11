@@ -2,7 +2,7 @@
     <div>
       <AppLoading v-if="showInitialLoad" />
       <WalletSwitchLoading v-if="showWalletSwitchLoading" />
-      <router-view :key="$store.getters['global/getWalletIndex']" />
+      <router-view v-show="!showInitialLoad" :key="$store.getters['global/getWalletIndex']" />
       <v-offline @detected-condition="onConnectivityChange" />
       
       <!-- Privacy overlay for app switcher/background preview -->
@@ -1023,7 +1023,7 @@ export default {
 
     // Ensure the loading screen is visible briefly so the user perceives it
     const elapsed = Date.now() - vm._loadingStartTime
-    const briefVisibleTime = 400
+    const briefVisibleTime = 800
     if (elapsed < briefVisibleTime) {
       await new Promise(resolve => setTimeout(resolve, briefVisibleTime - elapsed))
     }
