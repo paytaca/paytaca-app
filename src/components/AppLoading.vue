@@ -4,7 +4,7 @@
     :class="[getDarkModeClass(darkMode), themeClass]"
   >
     <div class="animated-background" :class="themeClass"></div>
-    <div class="logo-section">
+    <div class="logo-section fade-in">
       <div class="logo-glass-circle" :class="[getDarkModeClass(darkMode), themeClass]">
         <div class="logo-glow" :class="themeClass"></div>
         <img src="~/assets/paytaca_logo.png" height="50" alt="" class="logo-image">
@@ -75,18 +75,17 @@ export default {
   align-items: center;
   justify-content: center;
   overflow: hidden;
-  animation: fadeIn 0.4s ease forwards;
 
   &.light {
     background: linear-gradient(-45deg, #f5f7fa, #e8eef5, #f0f4f8, #e3e9f0);
     background-size: 400% 400%;
-    animation: fadeIn 0.4s ease forwards, gradientShift 15s ease infinite;
+    animation: gradientShift 15s ease infinite;
   }
 
   &.dark {
     background: linear-gradient(-45deg, #1a1d23, #252930, #1e2229, #2a2f38);
     background-size: 400% 400%;
-    animation: fadeIn 0.4s ease forwards, gradientShift 15s ease infinite;
+    animation: gradientShift 15s ease infinite;
   }
 
   &.theme-glassmorphic-blue {
@@ -180,6 +179,10 @@ export default {
   display: flex;
   flex-direction: column;
   align-items: center;
+}
+
+.logo-section.fade-in {
+  animation: fadeIn 0.4s ease forwards;
 }
 
 .logo-glass-circle {

@@ -2,7 +2,7 @@
     <div>
       <AppLoading v-if="showInitialLoad" />
       <WalletSwitchLoading v-if="showWalletSwitchLoading" />
-      <router-view v-show="!showInitialLoad" :key="$store.getters['global/getWalletIndex']" />
+      <router-view :key="$store.getters['global/getWalletIndex']" />
       <v-offline @detected-condition="onConnectivityChange" />
       
       <!-- Privacy overlay for app switcher/background preview -->
