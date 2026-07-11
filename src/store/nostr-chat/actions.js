@@ -358,7 +358,7 @@ export async function fetchOwnProfile ({ commit, dispatch }, pubKeyHex) {
 
 export async function registerNostrPubkey ({ state, rootGetters }) {
   const ws = getWalletState(state)
-  if (!ws.keys.pubKeyHex) {
+  if (!ws.keys?.pubKeyHex) {
     debug('Skip pubkey registration: no pubkey')
     return
   }
