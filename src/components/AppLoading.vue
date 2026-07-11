@@ -19,10 +19,13 @@ import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 export default {
   name: 'AppLoading',
   mounted() {
-    // Remove the static loading splash from index.html so both don't coexist
+    // Cross-fade: fade out the static loading splash from index.html
     var staticSplash = document.getElementById('app-loading-static')
     if (staticSplash) {
-      staticSplash.style.display = 'none'
+      staticSplash.classList.add('fade-out')
+      staticSplash.addEventListener('transitionend', function () {
+        staticSplash.remove()
+      }, { once: true })
     }
   },
   computed: {
@@ -48,6 +51,11 @@ export default {
   50% { background-position: 100% 50%; }
 }
 
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
 @keyframes pulse {
   0%, 100% { transform: scale(1); opacity: 0.8; }
   50% { transform: scale(1.1); opacity: 1; }
@@ -67,17 +75,18 @@ export default {
   align-items: center;
   justify-content: center;
   overflow: hidden;
+  animation: fadeIn 0.4s ease forwards;
 
   &.light {
     background: linear-gradient(-45deg, #f5f7fa, #e8eef5, #f0f4f8, #e3e9f0);
     background-size: 400% 400%;
-    animation: gradientShift 15s ease infinite;
+    animation: fadeIn 0.4s ease forwards, gradientShift 15s ease infinite;
   }
 
   &.dark {
     background: linear-gradient(-45deg, #1a1d23, #252930, #1e2229, #2a2f38);
     background-size: 400% 400%;
-    animation: gradientShift 15s ease infinite;
+    animation: fadeIn 0.4s ease forwards, gradientShift 15s ease infinite;
   }
 
   &.theme-glassmorphic-blue {
@@ -186,7 +195,7 @@ export default {
   -webkit-backdrop-filter: blur(20px);
   padding: 25px;
   transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
-  animation: pulse 3s ease-in-out infinite;
+  animation: pulse 3s ease-in-out 0.4s infinite;
 
   &.dark {
     background: rgba(255, 255, 255, 0.05);
