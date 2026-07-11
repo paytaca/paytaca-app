@@ -74,6 +74,13 @@ export default {
 
   methods: {
     getDarkModeClass,
+    updateLabelMaxWidth () {
+      const buttonEl = this.$refs.walletButton?.$el
+      const labelEl = this.$refs.walletLabel
+      if (buttonEl && labelEl && buttonEl.clientWidth > 0) {
+        labelEl.style.maxWidth = `${Math.floor(buttonEl.clientWidth * 0.9)}px`
+      }
+    },
     showMultiWalletDialog () {
       if (this.isShow) {
         this.$refs['multi-wallet-parent'].$refs['multi-wallet'].hide()
@@ -89,9 +96,12 @@ export default {
   },
 
   mounted () {
-    const buttonEl = this.$refs.walletButton.$el
-    const labelEl = this.$refs.walletLabel
-    labelEl.style.maxWidth = `${Math.floor(buttonEl.clientWidth * 0.9)}px`
+    requestAnimationFrame(this.updateLabelMaxWidth)
+  },
+  watch: {
+    walletName () {
+      this.$nextTick(() => requestAnimationFrame(this.updateLabelMaxWidth))
+    }
   }
 }
 </script>
