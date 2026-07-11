@@ -4,7 +4,7 @@
     :class="[getDarkModeClass(darkMode), themeClass]"
   >
     <div class="animated-background" :class="themeClass"></div>
-    <div class="logo-section">
+    <div class="logo-section fade-in">
       <div class="logo-glass-circle" :class="[getDarkModeClass(darkMode), themeClass]">
         <div class="logo-glow" :class="themeClass"></div>
         <img src="~/assets/paytaca_logo.png" height="50" alt="" class="logo-image">
@@ -19,10 +19,13 @@ import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 export default {
   name: 'AppLoading',
   mounted() {
-    // Remove the static loading splash from index.html so both don't coexist
+    // Cross-fade: fade out the static loading splash from index.html
     var staticSplash = document.getElementById('app-loading-static')
     if (staticSplash) {
-      staticSplash.style.display = 'none'
+      staticSplash.classList.add('fade-out')
+      staticSplash.addEventListener('transitionend', function () {
+        staticSplash.remove()
+      }, { once: true })
     }
   },
   computed: {
@@ -46,6 +49,11 @@ export default {
 @keyframes gradientShift {
   0%, 100% { background-position: 0% 50%; }
   50% { background-position: 100% 50%; }
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
 }
 
 @keyframes pulse {
@@ -173,6 +181,10 @@ export default {
   align-items: center;
 }
 
+.logo-section.fade-in {
+  animation: fadeIn 0.4s ease forwards;
+}
+
 .logo-glass-circle {
   position: relative;
   width: 110px;
@@ -186,7 +198,7 @@ export default {
   -webkit-backdrop-filter: blur(20px);
   padding: 25px;
   transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
-  animation: pulse 3s ease-in-out infinite;
+  animation: pulse 3s ease-in-out 0.4s infinite;
 
   &.dark {
     background: rgba(255, 255, 255, 0.05);
