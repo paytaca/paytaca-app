@@ -426,7 +426,7 @@
     </template>
 
     <!-- Loading group metadata -->
-    <template v-else-if="_fetchingMeta || chatLoading">
+    <template v-else-if="_fetchingMeta || _loadingRoom">
       <div class="request-to-join-container">
         <div class="request-to-join-card" :class="getDarkModeClass(darkMode)">
           <q-spinner color="primary" size="36px" />
@@ -605,6 +605,7 @@ export default {
       requestingToJoin: false,
       _fetchedGroupMeta: null,
       _fetchingMeta: false,
+      _loadingRoom: true,
       otherMemberAvatar: null,
       memberDisplayNames: {},
       _messageObserver: null,
@@ -634,9 +635,6 @@ export default {
     isRoomMember () {
       if (!this.room || !this.myPubKey) return false
       return this.room.members?.includes(this.myPubKey)
-    },
-    chatLoading () {
-      return !this.$store.getters['nostrChat/isInitialized']
     },
     _isGroupLink () {
       return this.$route?.name === 'group-chat-link'
@@ -939,7 +937,11 @@ export default {
     this.$nextTick(() => this.observeMessages())
     },
     room (val) {
-      if (!val && !this._isGroupLink) {
+      if (val) {
+        this._loadingRoom = false
+        return
+      }
+      if (!this._isGroupLink) {
         this.$router.replace('/apps/chat')
       }
     },
@@ -1015,13 +1017,18 @@ export default {
     },
   },
   mounted () {
+    if (this.room) {
+      this._loadingRoom = false
+    }
     if (!this.room && this._isGroupLink) {
       this._fetchingMeta = true
       this.$store.dispatch('nostrChat/fetchGroupMetadata', { roomId: this.roomId }).then(meta => {
         this._fetchedGroupMeta = meta
         this._fetchingMeta = false
+        this._loadingRoom = false
       }).catch(() => {
         this._fetchingMeta = false
+        this._loadingRoom = false
       })
     }
     const savedRoomId = sessionStorage.getItem('chat_scroll_room_id')
@@ -1040,6 +1047,9 @@ export default {
     this._savedScrollTop = savedScrollTop
     this.markAsRead()
     this.ensureSubscribed().catch(() => {})
+    this._loadingFallbackTimer = setTimeout(() => {
+      this._loadingRoom = false
+    }, 15000)
     this.$store.dispatch('nostrChat/fetchActiveStatus').catch(() => {})
     if (this.isGroupRoom && this.room?.members) {
       const fetches = this.room.members.map(pk =>
@@ -1154,6 +1164,7 @@ export default {
   },
   beforeUnmount () {
     clearInterval(this._activeStatusPollTimer)
+    clearTimeout(this._loadingFallbackTimer)
     this._activeStatusPollTimer = null
     if (this._isActive) {
       this._isActive = false
