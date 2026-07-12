@@ -213,6 +213,7 @@ import { parseMessageMarkup } from 'src/utils/chat-markup'
 import { decryptFile, downloadFromBlossom } from 'src/wallet/nostr-media'
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 import { getCachedVideoBlob } from 'src/utils/video-blob-cache'
+import { getCachedVideo, setCachedVideo, getCachedVideoThumb, setCachedVideoThumb } from 'src/utils/video-cache'
 
 const _replyThumbnailCache = new Map()
 
@@ -222,7 +223,7 @@ const MAX_THUMBNAIL_CACHE_SIZE = 200
 
 // IndexedDB for persistent thumbnail cache
 const DB_NAME = 'paytaca-chat-cache'
-const DB_VERSION = 1
+const DB_VERSION = 2
 const STORE_NAME = 'thumbnails'
 
 let _dbPromise = null
@@ -239,6 +240,12 @@ function openDatabase() {
         const db = event.target.result
         if (!db.objectStoreNames.contains(STORE_NAME)) {
           db.createObjectStore(STORE_NAME, { keyPath: 'id' })
+        }
+        if (!db.objectStoreNames.contains('videos')) {
+          db.createObjectStore('videos', { keyPath: 'id' })
+        }
+        if (!db.objectStoreNames.contains('videoThumbs')) {
+          db.createObjectStore('videoThumbs', { keyPath: 'id' })
         }
       }
     })
@@ -275,9 +282,10 @@ async function saveThumbnailToDB(cacheKey, thumbnailUrl) {
 export async function clearChatCache() {
   try {
     const db = await openDatabase()
-    const tx = db.transaction(STORE_NAME, 'readwrite')
-    const store = tx.objectStore(STORE_NAME)
-    store.clear()
+    const tx = db.transaction([STORE_NAME, 'videos', 'videoThumbs'], 'readwrite')
+    tx.objectStore(STORE_NAME).clear()
+    tx.objectStore('videos').clear()
+    tx.objectStore('videoThumbs').clear()
     _imageThumbnailCache.clear()
     _replyThumbnailCache.clear()
     return true
@@ -291,13 +299,19 @@ export async function hasChatCache() {
   try {
     if (_imageThumbnailCache.size > 0 || _replyThumbnailCache.size > 0) return true
     const db = await openDatabase()
-    return await new Promise((resolve) => {
-      const tx = db.transaction(STORE_NAME, 'readonly')
-      const store = tx.objectStore(STORE_NAME)
-      const countReq = store.count()
-      countReq.onsuccess = () => resolve(countReq.result > 0)
-      countReq.onerror = () => resolve(false)
-    })
+    const stores = [STORE_NAME, 'videos', 'videoThumbs']
+    for (const name of stores) {
+      if (!db.objectStoreNames.contains(name)) continue
+      const has = await new Promise((resolve) => {
+        const tx = db.transaction(name, 'readonly')
+        const store = tx.objectStore(name)
+        const countReq = store.count()
+        countReq.onsuccess = () => resolve(countReq.result > 0)
+        countReq.onerror = () => resolve(false)
+      })
+      if (has) return true
+    }
+    return false
   } catch {
     return false
   }
@@ -305,32 +319,36 @@ export async function hasChatCache() {
 
 export async function getChatCacheSize () {
   try {
-    let totalChars = 0
+    let totalBytes = 0
     for (const url of _imageThumbnailCache.values()) {
-      totalChars += typeof url === 'string' ? url.length : 0
+      totalBytes += typeof url === 'string' ? url.length * 0.75 : 0
     }
     for (const url of _replyThumbnailCache.values()) {
-      totalChars += typeof url === 'string' ? url.length : 0
+      totalBytes += typeof url === 'string' ? url.length * 0.75 : 0
     }
     const db = await openDatabase()
-    const dbSize = await new Promise((resolve) => {
-      const tx = db.transaction(STORE_NAME, 'readonly')
-      const store = tx.objectStore(STORE_NAME)
-      const cursorReq = store.openCursor()
-      cursorReq.onsuccess = () => {
-        const cursor = cursorReq.result
-        if (cursor) {
-          const val = cursor.value
-          if (val?.thumbnailUrl) totalChars += val.thumbnailUrl.length
-          cursor.continue()
-        } else {
-          resolve(totalChars)
+    const stores = [STORE_NAME, 'videos', 'videoThumbs']
+    for (const name of stores) {
+      if (!db.objectStoreNames.contains(name)) continue
+      await new Promise((resolve) => {
+        const tx = db.transaction(name, 'readonly')
+        const store = tx.objectStore(name)
+        const cursorReq = store.openCursor()
+        cursorReq.onsuccess = () => {
+          const cursor = cursorReq.result
+          if (cursor) {
+            const val = cursor.value
+            if (val?.thumbnailUrl) totalBytes += val.thumbnailUrl.length * 0.75
+            if (val?.blob?.size) totalBytes += val.blob.size
+            cursor.continue()
+          } else {
+            resolve()
+          }
         }
-      }
-      cursorReq.onerror = () => resolve(totalChars)
-    })
-    const approxBytes = dbSize * 0.75
-    return approxBytes
+        cursorReq.onerror = () => resolve()
+      })
+    }
+    return totalBytes
   } catch {
     return 0
   }
@@ -885,13 +903,20 @@ export default {
       if (this.videoThumbnailUrl || this._unmounted) return
       const { thumbUrl, thumbAesKeyHex, thumbNonceHex } = this.message
       if (!thumbUrl || !thumbAesKeyHex || !thumbNonceHex) return
+      const cacheKey = this.message.id || this.message.content
       try {
+        const cached = await getCachedVideoThumb(cacheKey)
+        if (cached?.blob) {
+          this.videoThumbnailUrl = URL.createObjectURL(cached.blob)
+          return
+        }
         const blossomServer = 'https://blossom.paytaca.com'
         const encryptedData = await downloadFromBlossom(thumbUrl, blossomServer)
         const decryptedData = await decryptFile(encryptedData, thumbAesKeyHex, thumbNonceHex)
         if (this._unmounted) return
         const blob = new Blob([decryptedData], { type: 'image/jpeg' })
         this.videoThumbnailUrl = URL.createObjectURL(blob)
+        setCachedVideoThumb(cacheKey, blob)
       } catch (err) {
         console.error('[MessageBubble] Video thumbnail load error:', err)
       }
@@ -906,6 +931,17 @@ export default {
         this.isVideoLoading = false
         return
       }
+      const cacheKey = this.message.id || this.message.content
+      const mimeType = this.message.fileType || 'video/mp4'
+
+      const cached = await getCachedVideo(cacheKey)
+      if (cached?.blob) {
+        this.videoError = false
+        this.videoUrl = URL.createObjectURL(cached.blob)
+        this.isVideoLoading = false
+        return
+      }
+
       const blossomServer = 'https://blossom.paytaca.com'
       const maxRetries = 3
       for (let attempt = 1; attempt <= maxRetries; attempt++) {
@@ -916,10 +952,10 @@ export default {
         try {
           const encryptedData = await downloadFromBlossom(fileUrl, blossomServer)
           const decryptedData = await decryptFile(encryptedData, aesKeyHex, nonceHex)
-          const mimeType = this.message.fileType || 'video/mp4'
           const blob = new Blob([decryptedData], { type: mimeType })
           this.videoError = false
           this.videoUrl = URL.createObjectURL(blob)
+          setCachedVideo(cacheKey, blob, mimeType)
           this.isVideoLoading = false
           return
         } catch (err) {
