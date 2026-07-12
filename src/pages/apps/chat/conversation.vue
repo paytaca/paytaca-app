@@ -426,7 +426,7 @@
     </template>
 
     <!-- Loading group metadata -->
-    <template v-else-if="_fetchingMeta">
+    <template v-else-if="_fetchingMeta || chatLoading">
       <div class="request-to-join-container">
         <div class="request-to-join-card" :class="getDarkModeClass(darkMode)">
           <q-spinner color="primary" size="36px" />
@@ -634,6 +634,9 @@ export default {
     isRoomMember () {
       if (!this.room || !this.myPubKey) return false
       return this.room.members?.includes(this.myPubKey)
+    },
+    chatLoading () {
+      return !this.$store.getters['nostrChat/isInitialized']
     },
     _isGroupLink () {
       return this.$route?.name === 'group-chat-link'
