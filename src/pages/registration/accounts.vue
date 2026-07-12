@@ -1840,15 +1840,18 @@ export default {
       }
     },
     goToStep4 () {
-      // Handle restore flow navigation
-      if (this.importSeedPhrase && this.restoreStep === 4) {
-        this.$router.push('/accounts/restore/step-5')
+      if (this.importSeedPhrase) {
+        this.$router.push('/accounts/restore/step-4')
       } else {
         this.$router.push('/accounts/create/step-5')
       }
     },
     goToStep5 () {
-      this.$router.push('/accounts/create/step-6')
+      if (this.importSeedPhrase) {
+        this.$router.push('/accounts/restore/step-5')
+      } else {
+        this.$router.push('/accounts/create/step-6')
+      }
     },
 
     setupSecurity (authType) {
