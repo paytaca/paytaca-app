@@ -6,8 +6,8 @@
   >
     <div
       class="message-bubble"
-      :class="{ 'new-message': isNew, 'is-deleted': message.deleted, 'is-image-bubble': isImageFile }"
-      :style="isMine && !isImageFile ? { background: `linear-gradient(135deg, ${themeColor}, ${themeColor}dd)` } : {}"
+      :class="{ 'new-message': isNew, 'is-deleted': message.deleted, 'is-image-bubble': isImageFile, 'is-video-bubble': isVideoFile }"
+      :style="isMine && !isImageFile && !isVideoFile ? { background: `linear-gradient(135deg, ${themeColor}, ${themeColor}dd)` } : {}"
       @pointerdown="onPointerDown"
       @pointerup="onPointerUp"
       @pointermove="onPointerMove"
@@ -54,6 +54,29 @@
         <div class="image-frame" :style="imageFrameStyle">
           <q-skeleton v-if="!imageThumbnailUrl" type="rect" animation="wave" class="image-fill" />
           <img v-else :src="imageThumbnailUrl" class="image-fill" draggable="false" @contextmenu.prevent />
+        </div>
+      </div>
+
+      <!-- Video message (no bubble styling, just the player) -->
+      <div v-else-if="isVideoFile" class="video-message">
+        <div v-if="hasVideoSrc && !videoError" class="video-frame" :style="videoFrameStyle">
+          <video
+            :src="videoSrc"
+            class="video-element"
+            controls
+            playsinline
+            preload="metadata"
+            @click.stop
+            @error="onVideoError"
+          />
+        </div>
+        <div v-else class="video-frame video-frame-loading" :style="videoFrameStyle" @click="loadVideo">
+          <img v-if="videoThumbnailUrl" :src="videoThumbnailUrl" class="video-fill" draggable="false" />
+          <q-skeleton v-else type="rect" animation="wave" class="video-fill" />
+          <div class="video-play-overlay">
+            <q-spinner v-if="isVideoLoading" size="36px" color="white" class="video-spinner" />
+            <q-icon v-else name="play_circle_filled" size="48px" color="white" class="video-play-icon" />
+          </div>
         </div>
       </div>
 
@@ -189,6 +212,7 @@
 import { parseMessageMarkup } from 'src/utils/chat-markup'
 import { decryptFile, downloadFromBlossom } from 'src/wallet/nostr-media'
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
+import { getCachedVideoBlob } from 'src/utils/video-blob-cache'
 
 const _replyThumbnailCache = new Map()
 
@@ -356,6 +380,10 @@ export default {
         imageThumbnailUrl: null, // Small preview for fast browsing
         imageFullUrl: null,      // Full resolution (loaded on click)
         showImageDialog: false,
+        videoUrl: null,
+        videoThumbnailUrl: null,
+        isVideoLoading: false,
+        videoError: false,
         replyImageThumbnail: null, // Reply preview thumbnail (reactive)
       }
     },
@@ -377,6 +405,21 @@ export default {
           this._imgObserver.observe(this.$el)
         }
       }
+      if (this.isVideoFile) {
+        const cached = getCachedVideoBlob(this.message.id)
+        if (cached) {
+          this.videoUrl = cached
+        } else if (this.message.thumbUrl && this.message.thumbAesKeyHex && this.message.thumbNonceHex) {
+          this._videoObserver = new IntersectionObserver((entries) => {
+            if (entries[0].isIntersecting) {
+              this._videoObserver.disconnect()
+              this._videoObserver = null
+              this.loadVideoThumbnail()
+            }
+          }, { rootMargin: '200px' })
+          this._videoObserver.observe(this.$el)
+        }
+      }
     },
    beforeUnmount () {
      this._unmounted = true
@@ -384,10 +427,20 @@ export default {
        this._imgObserver.disconnect()
        this._imgObserver = null
      }
+     if (this._videoObserver) {
+       this._videoObserver.disconnect()
+       this._videoObserver = null
+     }
       // Only revoke full image URL (thumbnails are cached globally)
       if (this.imageFullUrl) {
         URL.revokeObjectURL(this.imageFullUrl)
       }
+       if (this.videoUrl) {
+         URL.revokeObjectURL(this.videoUrl)
+       }
+       if (this.videoThumbnailUrl) {
+         URL.revokeObjectURL(this.videoThumbnailUrl)
+       }
        // Revoke any in-flight thumbnail blob URL
        if (this._pendingThumbnailUrl) {
          URL.revokeObjectURL(this._pendingThumbnailUrl)
@@ -487,6 +540,15 @@ export default {
     isImageFile () {
       return this.message.fileType?.startsWith('image/')
     },
+    isVideoFile () {
+      return this.message.fileType?.startsWith('video/')
+    },
+    videoSrc () {
+      return this.videoUrl || getCachedVideoBlob(this.message.id) || null
+    },
+    hasVideoSrc () {
+      return !!(this.videoUrl || getCachedVideoBlob(this.message.id))
+    },
     imageFrameStyle () {
       const w = this.message.imageWidth
       const h = this.message.imageHeight
@@ -508,6 +570,27 @@ export default {
       
       return { 
         width: `${finalWidth}px`,
+        paddingBottom: `${(cappedHeight / finalWidth) * 100}%`
+      }
+    },
+    videoFrameStyle () {
+      const w = this.message.imageWidth
+      const h = this.message.imageHeight
+      if (!w || !h) {
+        return { width: '100%', paddingBottom: '56.25%' }
+      }
+
+      const aspectRatio = h / w
+      const maxWidth = 360
+      const maxHeight = 360
+
+      const displayWidth = Math.min(w, maxWidth)
+      const displayHeight = displayWidth * aspectRatio
+      const cappedHeight = Math.min(displayHeight, maxHeight)
+      const finalWidth = cappedHeight < displayHeight ? cappedHeight / aspectRatio : displayWidth
+
+      return {
+        width: `${Math.round(finalWidth)}px`,
         paddingBottom: `${(cappedHeight / finalWidth) * 100}%`
       }
     },
@@ -790,6 +873,75 @@ export default {
       } finally {
         this.isDownloading = false
       }
+    },
+    onVideoError () {
+      this.videoError = true
+      if (this.videoUrl) {
+        URL.revokeObjectURL(this.videoUrl)
+      }
+      this.videoUrl = null
+    },
+    async loadVideoThumbnail () {
+      if (this.videoThumbnailUrl || this._unmounted) return
+      const { thumbUrl, thumbAesKeyHex, thumbNonceHex } = this.message
+      if (!thumbUrl || !thumbAesKeyHex || !thumbNonceHex) return
+      try {
+        const blossomServer = 'https://blossom.paytaca.com'
+        const encryptedData = await downloadFromBlossom(thumbUrl, blossomServer)
+        const decryptedData = await decryptFile(encryptedData, thumbAesKeyHex, thumbNonceHex)
+        if (this._unmounted) return
+        const blob = new Blob([decryptedData], { type: 'image/jpeg' })
+        this.videoThumbnailUrl = URL.createObjectURL(blob)
+      } catch (err) {
+        console.error('[MessageBubble] Video thumbnail load error:', err)
+      }
+    },
+    async loadVideo () {
+      if (this.videoUrl || this.isVideoLoading) return
+      this.isVideoLoading = true
+      const aesKeyHex = this.message.aesKeyHex
+      const nonceHex = this.message.nonceHex
+      const fileUrl = this.message.content
+      if (!aesKeyHex || !nonceHex || !fileUrl) {
+        this.isVideoLoading = false
+        return
+      }
+      const blossomServer = 'https://blossom.paytaca.com'
+      const maxRetries = 3
+      for (let attempt = 1; attempt <= maxRetries; attempt++) {
+        if (this._unmounted) {
+          this.isVideoLoading = false
+          return
+        }
+        try {
+          const encryptedData = await downloadFromBlossom(fileUrl, blossomServer)
+          const decryptedData = await decryptFile(encryptedData, aesKeyHex, nonceHex)
+          const mimeType = this.message.fileType || 'video/mp4'
+          const blob = new Blob([decryptedData], { type: mimeType })
+          this.videoError = false
+          this.videoUrl = URL.createObjectURL(blob)
+          this.isVideoLoading = false
+          return
+        } catch (err) {
+          console.error('[MessageBubble] loadVideo attempt', attempt, 'failed:', err.name, err.message)
+          if (attempt === maxRetries) {
+            if (this._unmounted) {
+              this.isVideoLoading = false
+              return
+            }
+            try {
+              this.$q.notify({
+                type: 'negative',
+                message: this.$t('VideoLoadFailed', {}, 'Failed to load video') + ': ' + (err.message || err.name),
+                timeout: 5000,
+              })
+            } catch (_) {}
+          } else {
+            await new Promise(r => setTimeout(r, 1000 * attempt))
+          }
+        }
+      }
+      this.isVideoLoading = false
     },
     onImageClick () {
       if (!this.imageThumbnailUrl) return
@@ -1232,7 +1384,8 @@ export default {
   transform: translateY(0);
 }
 
-.message-row.mine .message-bubble.is-image-bubble {
+.message-row.mine .message-bubble.is-image-bubble,
+.message-row.mine .message-bubble.is-video-bubble {
   background: transparent !important;
   box-shadow: none !important;
   border: none !important;
@@ -1256,7 +1409,8 @@ export default {
   color: #34d399;
 }
 
-.message-row.theirs .message-bubble.is-image-bubble {
+.message-row.theirs .message-bubble.is-image-bubble,
+.message-row.theirs .message-bubble.is-video-bubble {
   background: transparent !important;
   box-shadow: none !important;
   border: none !important;
@@ -1439,6 +1593,75 @@ export default {
 
 .dark .file-card:hover {
   box-shadow: 0 4px 12px rgba(59, 130, 246, 0.25);
+}
+
+/* Video message (no bubble styling, just the player) */
+.video-message {
+  display: block;
+}
+
+.video-frame {
+  position: relative;
+  display: inline-block;
+  height: 0;
+  border-radius: 12px;
+  overflow: hidden;
+  width: 100%;
+  max-width: 360px;
+  background: #000;
+}
+
+.video-frame-loading {
+  cursor: pointer;
+}
+
+.video-fill {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  border-radius: 12px;
+  background: #000;
+  pointer-events: none;
+}
+
+.video-element {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  border-radius: 12px;
+  background: #000;
+}
+
+.video-play-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1;
+  pointer-events: none;
+}
+
+.video-play-overlay * {
+  pointer-events: none;
+}
+
+.video-play-icon {
+  opacity: 0.9;
+  filter: drop-shadow(0 2px 8px rgba(0, 0, 0, 0.5));
+}
+
+.video-spinner {
+  filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.5));
 }
 
 .payment-amount-row {

@@ -77,7 +77,6 @@
         ref="qFile"
         style="display: none;"
         accept="image/*,video/*,audio/*,application/pdf"
-        :max-file-size="MAX_FILE_SIZE"
         @update:model-value="onFileSelected"
       />
       
@@ -144,6 +143,7 @@
 <script>
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 import { resizeImage } from 'src/wallet/nostr-media'
+import { cacheVideoBlob } from 'src/utils/video-blob-cache'
 
 const SEND_COMMAND_PATTERN = /^\/(send|tip)\s+([\d.]+)\s*([A-Za-z0-9]+)?\s*$/i
 const SEND_BARE_PATTERN = /^\/(send|tip)\s*$/i
@@ -355,7 +355,11 @@ export default {
           onProgress: (p) => { this.uploadProgress = p },
           signal: this.uploadAbortController.signal,
         })
-        
+
+        if (this.selectedFile.type?.startsWith('video/')) {
+          const localUrl = URL.createObjectURL(this.selectedFile)
+          cacheVideoBlob(message.id, localUrl)
+        }
         this.$store.commit('nostrChat/ADD_MESSAGE', { roomId: this.roomId, message })
         this.$store.dispatch('nostrChat/touchRoom', { roomId: this.roomId, timestamp: new Date().toISOString() })
         await this.$store.dispatch('nostrChat/publishGiftWraps', { giftWraps })

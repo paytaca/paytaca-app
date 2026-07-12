@@ -121,6 +121,8 @@ import Watchtower from 'watchtower-cash-js'
 import { getAuthHeaders, clearToken } from 'src/utils/watchtower-oauth'
 import {
   encryptFile,
+  encryptBytes,
+  captureAndEncryptVideoThumbnail,
   decryptFile,
   createKind15FileMessage,
   wrapKind15FileMessage,
@@ -2031,13 +2033,49 @@ export async function sendFileMessage ({ state }, { roomId, file, replyTo, onPro
 
   if (signal?.aborted) throw new DOMException('Upload cancelled', 'AbortError')
 
+  const blossomServer = 'https://blossom.paytaca.com'
+
   if (onProgress) onProgress(0.05)
   const { encrypted, aesKeyHex, nonceHex, hash, mimeType, size: encryptedSize, imageWidth, imageHeight } = await encryptFile(file)
 
   if (signal?.aborted) throw new DOMException('Upload cancelled', 'AbortError')
 
+  let thumbEncrypted = null
+  let thumbAesKeyHex = null
+  let thumbNonceHex = null
+  let thumbHash = null
+  let thumbUrl = null
+
+  if (mimeType?.startsWith('video/')) {
+    try {
+      const thumb = await captureAndEncryptVideoThumbnail(file)
+      if (thumb) {
+        thumbEncrypted = thumb.encrypted
+        thumbAesKeyHex = thumb.aesKeyHex
+        thumbNonceHex = thumb.nonceHex
+        thumbHash = thumb.hash
+      }
+    } catch (e) {
+      console.warn('[sendFileMessage] Thumbnail capture failed, continuing without:', e.message)
+    }
+
+    if (signal?.aborted) throw new DOMException('Upload cancelled', 'AbortError')
+
+    if (thumbEncrypted) {
+      try {
+        const { url: tUrl } = await uploadToBlossom(thumbEncrypted, blossomServer, senderPrivKey, senderPubKey, { signal })
+        thumbUrl = tUrl
+      } catch (e) {
+        console.warn('[sendFileMessage] Thumbnail upload failed, continuing without:', e.message)
+        thumbEncrypted = null
+        thumbAesKeyHex = null
+        thumbNonceHex = null
+        thumbHash = null
+      }
+    }
+  }
+
   if (onProgress) onProgress(0.1)
-  const blossomServer = 'https://blossom.paytaca.com'
   const { url: fileUrl } = await uploadToBlossom(encrypted, blossomServer, senderPrivKey, senderPubKey, {
     onProgress: (p) => {
       if (onProgress) onProgress(0.1 + p * 0.8)
@@ -2056,6 +2094,9 @@ export async function sendFileMessage ({ state }, { roomId, file, replyTo, onPro
     imageWidth,
     imageHeight,
     replyTo,
+    thumbHash,
+    thumbAesKeyHex,
+    thumbNonceHex,
   })
 
   const giftWraps = await wrapKind15FileMessage(kind15Event, senderPrivKey, memberHexes, senderPubKey)
@@ -2077,6 +2118,9 @@ export async function sendFileMessage ({ state }, { roomId, file, replyTo, onPro
     nonceHex,
     imageWidth,
     imageHeight,
+    thumbUrl,
+    thumbAesKeyHex,
+    thumbNonceHex,
     replyTo,
     localSentAt: Date.now(),
     isFile: true,
@@ -2370,6 +2414,9 @@ export function receiveMessage ({ commit, dispatch, state }, { rumor, sealPubkey
       nonceHex: parsed.nonceHex,
       imageWidth: parsed.imageWidth,
       imageHeight: parsed.imageHeight,
+      thumbUrl: parsed.thumbUrl || null,
+      thumbAesKeyHex: parsed.thumbAesKeyHex || null,
+      thumbNonceHex: parsed.thumbNonceHex || null,
       replyTo,
       localReceivedAt: Date.now(),
       isFile: true,

@@ -46,8 +46,8 @@ export async function encryptFile(file) {
 
   let imageWidth = null
   let imageHeight = null
-  if (file.type?.startsWith('image/')) {
-    const dims = await getImageDimensions(file)
+  if (file.type?.startsWith('image/') || file.type?.startsWith('video/')) {
+    const dims = await getMediaDimensions(file)
     if (dims) {
       imageWidth = dims.width
       imageHeight = dims.height
@@ -69,24 +69,157 @@ export async function encryptFile(file) {
 }
 
 /**
- * Get image dimensions from a File/Blob.
+ * Get media dimensions from a File/Blob (image or video).
  * @param {File|Blob} file
  * @returns {Promise<{ width: number, height: number }|null>}
  */
-export function getImageDimensions(file) {
+export function getMediaDimensions(file) {
   return new Promise((resolve) => {
     const url = URL.createObjectURL(file)
-    const img = new Image()
-    img.onload = () => {
+    let settled = false
+
+    const finish = (val) => {
+      if (settled) return
+      settled = true
       URL.revokeObjectURL(url)
-      resolve({ width: img.naturalWidth, height: img.naturalHeight })
+      resolve(val)
     }
-    img.onerror = () => {
+
+    const timeout = setTimeout(() => finish(null), 10000)
+
+    if (file.type?.startsWith('video/')) {
+      const video = document.createElement('video')
+      video.preload = 'metadata'
+      video.onloadedmetadata = () => {
+        clearTimeout(timeout)
+        finish({ width: video.videoWidth, height: video.videoHeight })
+      }
+      video.onerror = () => {
+        clearTimeout(timeout)
+        finish(null)
+      }
+      video.src = url
+    } else {
+      const img = new Image()
+      img.onload = () => {
+        clearTimeout(timeout)
+        finish({ width: img.naturalWidth, height: img.naturalHeight })
+      }
+      img.onerror = () => {
+        clearTimeout(timeout)
+        finish(null)
+      }
+      img.src = url
+    }
+  })
+}
+
+/**
+ * Capture a thumbnail frame from a video file as a JPEG data URL.
+ * @param {File|Blob} file - The video file
+ * @returns {Promise<string|null>} - JPEG data URL or null on failure
+ */
+export function getVideoThumbnail(file) {
+  return new Promise((resolve) => {
+    const url = URL.createObjectURL(file)
+    const video = document.createElement('video')
+    video.preload = 'metadata'
+    video.muted = true
+    let settled = false
+
+    const cleanup = () => {
       URL.revokeObjectURL(url)
+      video.onloadedmetadata = null
+      video.onseeked = null
+      video.onerror = null
+    }
+
+    const timeout = setTimeout(() => {
+      if (settled) return
+      settled = true
+      cleanup()
+      resolve(null)
+    }, 10000)
+
+    video.onloadedmetadata = () => {
+      const seekTo = Math.min(1, video.duration * 0.1)
+      video.currentTime = seekTo
+    }
+    video.onseeked = () => {
+      if (settled) return
+      settled = true
+      clearTimeout(timeout)
+      try {
+        const canvas = document.createElement('canvas')
+        const maxDim = 360
+        const scale = Math.min(maxDim / video.videoWidth, maxDim / video.videoHeight, 1)
+        canvas.width = Math.round(video.videoWidth * scale)
+        canvas.height = Math.round(video.videoHeight * scale)
+        const ctx = canvas.getContext('2d')
+        ctx.drawImage(video, 0, 0, canvas.width, canvas.height)
+        cleanup()
+        resolve(canvas.toDataURL('image/jpeg', 0.85))
+      } catch {
+        cleanup()
+        resolve(null)
+      }
+    }
+    video.onerror = () => {
+      if (settled) return
+      settled = true
+      clearTimeout(timeout)
+      cleanup()
       resolve(null)
     }
-    img.src = url
+    video.src = url
   })
+}
+
+/**
+ * Encrypt raw bytes (e.g. a thumbnail JPEG) with a fresh AES-256-GCM key.
+ * @param {Uint8Array} data - Raw plaintext bytes to encrypt
+ * @returns {Promise<{ encrypted: Uint8Array, aesKeyHex: string, nonceHex: string, hash: string }>}
+ */
+export async function encryptBytes(data) {
+  const aesKey = await window.crypto.subtle.generateKey(
+    { name: 'AES-GCM', length: 256 },
+    true,
+    ['encrypt', 'decrypt']
+  )
+  const nonce = window.crypto.getRandomValues(new Uint8Array(12))
+  const encryptedBuffer = await window.crypto.subtle.encrypt(
+    { name: 'AES-GCM', iv: nonce },
+    aesKey,
+    data
+  )
+  const encrypted = new Uint8Array(encryptedBuffer)
+  const exportedKey = await window.crypto.subtle.exportKey('raw', aesKey)
+  return {
+    encrypted,
+    aesKeyHex: bytesToHex(new Uint8Array(exportedKey)),
+    nonceHex: bytesToHex(nonce),
+    hash: sha256(encryptedBuffer),
+  }
+}
+
+/**
+ * Capture a video thumbnail, encrypt it, and return everything needed to upload + reference it.
+ * @param {File|Blob} file - The video file
+ * @returns {Promise<{ encrypted: Uint8Array, aesKeyHex: string, nonceHex: string, hash: string, width: number, height: number }|null>}
+ */
+export async function captureAndEncryptVideoThumbnail(file) {
+  const dataUrl = await getVideoThumbnail(file)
+  if (!dataUrl) return null
+
+  const base64 = dataUrl.split(',')[1]
+  const binary = atob(base64)
+  const bytes = new Uint8Array(binary.length)
+  for (let i = 0; i < binary.length; i++) {
+    bytes[i] = binary.charCodeAt(i)
+  }
+
+  const result = await encryptBytes(bytes)
+  return { ...result, width: 0, height: 0 }
 }
 
 /**
@@ -146,6 +279,9 @@ export function createKind15FileMessage({
   imageWidth,
   imageHeight,
   replyTo,
+  thumbHash,
+  thumbAesKeyHex,
+  thumbNonceHex,
 }) {
   const tags = []
 
@@ -164,6 +300,9 @@ export function createKind15FileMessage({
   if (imageWidth) tags.push(['w', String(imageWidth)])
   if (imageHeight) tags.push(['h', String(imageHeight)])
   if (replyTo) tags.push(['e', replyTo, '', 'reply'])
+  if (thumbHash) {
+    tags.push(['thumb', thumbHash, thumbAesKeyHex, thumbNonceHex])
+  }
 
   const event = {
     kind: 15,
@@ -385,13 +524,31 @@ export async function downloadFromBlossom(url, serverUrl) {
 
   const downloadUrl = `${serverUrl}/${hash}`
 
-  const response = await fetch(downloadUrl)
-  if (!response.ok) {
-    throw new Error(`Blossom download failed: ${response.status}`)
-  }
+  return new Promise((resolve, reject) => {
+    const xhr = new XMLHttpRequest()
+    xhr.open('GET', downloadUrl, true)
+    xhr.responseType = 'arraybuffer'
 
-  const arrayBuffer = await response.arrayBuffer()
-  return new Uint8Array(arrayBuffer)
+    xhr.onload = () => {
+      if (xhr.status >= 200 && xhr.status < 300) {
+        resolve(new Uint8Array(xhr.response))
+      } else {
+        reject(new Error(`Blossom download failed: ${xhr.status}`))
+      }
+    }
+
+    xhr.onerror = () => {
+      reject(new Error(`Blossom download network error`))
+    }
+
+    xhr.ontimeout = () => {
+      reject(new Error(`Blossom download timed out`))
+    }
+
+    xhr.timeout = 300000
+
+    xhr.send()
+  })
 }
 
 /**
@@ -443,11 +600,21 @@ export function parseKind15FileMessage(event) {
   imageWidth = parseInt(event.tags.find(t => t[0] === 'w')?.[1]) || null
   imageHeight = parseInt(event.tags.find(t => t[0] === 'h')?.[1]) || null
 
+  const thumbTag = event.tags.find(t => t[0] === 'thumb')
+  const thumbHash = thumbTag?.[1] || null
+  const thumbAesKeyHex = thumbTag?.[2] || null
+  const thumbNonceHex = thumbTag?.[3] || null
+
   let fileUrl = null
   if (hashHex) {
     fileUrl = `https://blossom.paytaca.com/${hashHex}`
   } else if (event.content?.startsWith('https://')) {
     fileUrl = event.content
+  }
+
+  let thumbUrl = null
+  if (thumbHash) {
+    thumbUrl = `https://blossom.paytaca.com/${thumbHash}`
   }
 
   return {
@@ -460,6 +627,9 @@ export function parseKind15FileMessage(event) {
     fileName,
     imageWidth,
     imageHeight,
+    thumbUrl,
+    thumbAesKeyHex,
+    thumbNonceHex,
   }
 }
 
