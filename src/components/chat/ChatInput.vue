@@ -148,7 +148,20 @@ import { resizeImage } from 'src/wallet/nostr-media'
 const SEND_COMMAND_PATTERN = /^\/(send|tip)\s+([\d.]+)\s*([A-Za-z0-9]+)?\s*$/i
 const SEND_BARE_PATTERN = /^\/(send|tip)\s*$/i
 const MAX_CHARS = 3000
-const MAX_FILE_SIZE = 50 * 1024 * 1024 // 50MB
+const FILE_SIZE_LIMITS = {
+  'image/': 10 * 1024 * 1024,
+  'video/': 50 * 1024 * 1024,
+  'audio/': 25 * 1024 * 1024,
+  'application/': 25 * 1024 * 1024,
+}
+const MAX_FILE_SIZE = Math.max(...Object.values(FILE_SIZE_LIMITS))
+
+function getFileSizeLimit (fileType) {
+  if (!fileType) return FILE_SIZE_LIMITS['application/']
+  const prefix = Object.keys(FILE_SIZE_LIMITS).find(p => fileType.startsWith(p))
+  return FILE_SIZE_LIMITS[prefix] || FILE_SIZE_LIMITS['application/']
+}
+
 const RESIZE_THRESHOLD = 1 * 1024 * 1024 // 1MB
 
 const RESIZE_OPTIONS = [
@@ -245,10 +258,12 @@ export default {
       const selectedFile = Array.isArray(file) ? file[0] : file
       if (!selectedFile) return
       
-      if (selectedFile.size > MAX_FILE_SIZE) {
+      const sizeLimit = getFileSizeLimit(selectedFile.type)
+      if (selectedFile.size > sizeLimit) {
+        const sizeMB = Math.round(sizeLimit / (1024 * 1024))
         this.$q.notify({
           type: 'error',
-          message: this.$t('FileTooLarge', {}, 'File is too large. Maximum size is 50MB.'),
+          message: this.$t('FileTooLarge', {}, `File is too large. Maximum size is ${sizeMB}MB.`),
           timeout: 5000,
         })
         this.clearFileSelection()
