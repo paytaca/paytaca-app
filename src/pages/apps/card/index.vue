@@ -55,11 +55,13 @@ export default {
   },
 
   async mounted () {
+    document.documentElement.classList.add('cards-page')
     await this.loadData()
     this.isloaded = true
   },
 
   beforeUnmount () {
+    document.documentElement.classList.remove('cards-page')
     clearCardUserCache()
     this.clearCards()
   },

@@ -1627,18 +1627,18 @@ animation: float 6s ease-in-out infinite;
   }
 }
 
-// ====== Global overrides for cards.vue ======
-html, body {
+// ====== Global overrides for cards.vue (only when .cards-page is on <html>) ======
+html.cards-page, html.cards-page body {
   overflow: hidden !important;
   height: 100% !important;
 }
 
-.q-layout {
+html.cards-page .q-layout {
   height: 100dvh !important;
   overflow: hidden !important;
 }
 
-.q-page-container {
+html.cards-page .q-page-container {
 	height: 100dvh !important;
 	overflow: hidden !important;
 }
