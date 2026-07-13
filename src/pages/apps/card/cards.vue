@@ -13,6 +13,7 @@
               v-for="n in 3"
               :key="n"
               class="skeleton-card"
+              :class="$q.dark.isActive ? 'virtual-card-dark' : 'virtual-card-light'"
               :style="getSkeletonCardStyle(n-1)"
             ></div>
           </div>
@@ -51,7 +52,7 @@
                   v-for="(card, index) in displayedCards"
                 :key="card.id"
                 class="stacked-card"
-                :class="{ 'is-dragging': currentCardId === card.id }"
+                :class="[$q.dark.isActive ? 'virtual-card-dark' : 'virtual-card-light', { 'is-dragging': currentCardId === card.id }]"
                 :style="getCardStyle(index)"
                 @mousedown="onPointerDown($event, card)"
                 @touchstart="onPointerDown($event, card)"
@@ -429,9 +430,6 @@ export default {
         left: '5%',
         transform: `translateX(${tx}px) scale(${scale})`,
         transformOrigin: 'center bottom',
-        background: this.$q.dark.isActive 
-          ? 'linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%)' 
-          : 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
         borderRadius: '16px',
         height: '220px',
         boxShadow: isFrontCard
@@ -479,9 +477,6 @@ export default {
         position: 'absolute',
         width: '90%',
         left: '5%',
-        background: this.$q.dark.isActive 
-          ? 'linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%)' 
-          : 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
         borderRadius: '16px',
         height: '220px',
         pointerEvents: 'none'

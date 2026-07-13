@@ -520,12 +520,14 @@ animation: float 6s ease-in-out infinite;
 	transform: translateY(-4px);
 }
 
-.virtual-card-light {
+.stacked-card.virtual-card-light,
+.skeleton-card.virtual-card-light {
 	background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
 	color: white;
 }
 
-.virtual-card-dark {
+.stacked-card.virtual-card-dark,
+.skeleton-card.virtual-card-dark {
 	background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
 	color: white;
 }
