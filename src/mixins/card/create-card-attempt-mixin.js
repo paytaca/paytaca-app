@@ -1,11 +1,11 @@
-import { clearCreateCardAttempt, getCardActivationAttempt } from 'src/services/card/storage';
+import { clearCardActivationAttempt, getCardActivationAttempt } from 'src/services/card/storage';
 import Card from 'src/services/card/card';
 
 export default {
   data() {
     return {
       user: null,
-      showCreateCardForm: false,
+      showActivateCardForm: false,
       showResumeCreateCardDialog: false,
       idempotencyKey: ''
     }
@@ -34,20 +34,20 @@ export default {
     },
     async onOpenCreateCardForm() {
       await this.checkExistingCreateCardAttempt()
-      this.showCreateCardForm = true;
+      this.showActivateCardForm = true;
     },
     async onCloseCreateCardForm() {
-      this.showCreateCardForm = false;
+      this.showActivateCardForm = false;
       await this.checkExistingCreateCardAttempt()
     },
     async onResumeCardAttempt() {
       this.showResumeCreateCardDialog = false;
-      this.showCreateCardForm = true;
+      this.showActivateCardForm = true;
     },
     async onDeleteCardAttempt() {
       this.showResumeCreateCardDialog = false;
       // Clear the existing attempt from local storage
-      await clearCreateCardAttempt();
+      await clearCardActivationAttempt();
       // Delete the attempt from the server as well
       await Card.deleteCardAttempt(this.idempotencyKey).catch(err => {
         console.error(err.response?.data);

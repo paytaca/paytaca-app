@@ -20,17 +20,17 @@ export async function saveCardActivationAttempt(walletHash, attempt) {
       throw new Error('Wallet hash is required to save create card attempt')
     }
   }
+  console.log('Saving card activation attempt for walletHash:', walletHash, 'attempt:', attempt)
   const storageKey = `${CARD_ACTIVATION_STORAGE_KEY}:${walletHash}`
   localStorage.setItem(
     storageKey,
     JSON.stringify({
       idempotencyKey: attempt.idempotencyKey,
-      alias: attempt.alias || '',
-      uid: attempt.uid || '',
       walletHash: attempt.walletHash,
-      cardId: attempt.cardId || null,
-      category: attempt.category || null,
-      status: attempt.status || CardActivationStatus.CARD_SAVED,
+      ownerCategory: attempt.ownerCategory || null,
+      authCategory: attempt.authCategory || null,
+      linkingTxid: attempt.linkingTxid || null,
+      status: attempt.status,
       createdAt: attempt.createdAt || Date.now(),
       updatedAt: Date.now(),
     })

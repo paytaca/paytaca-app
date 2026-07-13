@@ -12,9 +12,9 @@
       <q-skeleton type="rect" width="100%" height="400px" class="skeleton-card" />
     </div>
 
-    <div v-else class="column items-center full-width" style="max-width: 650px;">
+    <div v-else class="column items-center full-width q-mt-lg" style="max-width: 650px;">
       <!-- Journey Steps -->
-      <div class="journey-steps full-width q-mb-md">
+      <!-- <div class="journey-steps full-width q-mb-md">
         <div class="text-subtitle1 text-weight-bold text-center q-mb-sm" :class="textColor">
           {{ $t('Onboarding') }}
         </div>
@@ -39,28 +39,10 @@
             </div>
           </div>
         </div>
-      </div>
-
-      <!-- View My Cards -->
-      <div class="full-width q-mb-md" style="max-width: 400px; margin-left: auto; margin-right: auto;">
-        <div
-          class="link-method-item cursor-pointer"
-          :class="$q.dark.isActive ? 'method-item-dark' : 'method-item-light'"
-          @click="$router.push({ name: 'card-list' })"
-        >
-          <div class="method-icon-box" :class="$q.dark.isActive ? 'icon-box-dark' : 'icon-box-light'">
-            <q-icon name="credit_card" size="22px" color="primary" />
-          </div>
-          <div class="method-text">
-            <div class="text-subtitle2 text-weight-bold" :class="textColor">{{ $t('View My Cards') }}</div>
-            <div class="text-caption" :class="textColorGrey">{{ $t('Manage your cards') }}</div>
-          </div>
-          <q-icon name="chevron_right" size="20px" :color="$q.dark.isActive ? 'grey-5' : 'grey-6'" />
-        </div>
-      </div>
+      </div> -->
 
       <!-- Mode Toggle -->
-      <div class="mode-toggle-container full-width q-mb-md">
+      <!-- <div class="mode-toggle-container full-width q-mb-md">
         <div class="mode-toggle-inner row no-wrap items-center"
           :class="$q.dark.isActive ? 'toggle-bg-dark' : 'toggle-bg-light'">
           <button v-for="mode in modes" :key="mode.key"
@@ -74,12 +56,11 @@
             <span>{{ mode.label }}</span>
           </button>
         </div>
-      </div>
+      </div> -->
 
       <!-- Create Card -->
-      <transition v-if="activeView === 'create'" name="fade-slide" mode="out-in">
+      <!-- <transition v-if="activeView === 'create'" name="fade-slide" mode="out-in">
         <div key="create" class="full-width column items-center text-center q-pt-md" style="max-width: 400px;">
-          <!-- Main Create Card Button - Large Card Style -->
           <q-card
             flat
             class="create-card-action q-pa-xl text-center full-width cursor-pointer"
@@ -101,10 +82,10 @@
             </div>
           </q-card>
         </div>
-      </transition>
+      </transition> -->
 
       <!-- Order Card -->
-      <transition v-if="activeView === 'order'" name="fade-slide" mode="out-in">
+      <!-- <transition v-if="activeView === 'order'" name="fade-slide" mode="out-in">
         <div key="order" class="order-card-root q-pt-md column items-center">
           <div class="link-icon-ring q-mb-md">
             <div class="link-icon-inner">
@@ -113,22 +94,39 @@
           </div>
           <OrderCard :replacement-reason="replacementReasonLabel" />
         </div>
-      </transition>
+      </transition> -->
 
       <!-- Link Card -->
       <transition v-if="activeView === 'activate'" name="fade-slide" mode="out-in">
         <div class="full-width column items-center text-center q-pt-md" key="link">
-          <div class="link-icon-ring q-mb-md">
-            <div class="link-icon-inner">
-              <q-icon name="link" size="32px" color="primary" />
-            </div>
-          </div>
           <div class="text-h5 text-weight-bold q-mb-sm" :class="textColor">Activate Your Paytaca Card</div>
-          <div class="text-body2 q-mb-md" style="max-width: 360px;" :class="textColorGrey">
+          <!-- <div class="text-body2 q-mb-md" style="max-width: 360px;" :class="textColorGrey">
             Activate your Paytaca card to start using it.
+          </div> -->
+
+          <div key="create" class="full-width column items-center text-center q-pt-md" style="max-width: 400px;">
+            <q-card
+              flat
+              class="create-card-action q-pa-xl text-center full-width cursor-pointer"
+              @click="onOpenCreateCardForm()">
+              <div class="text-h4 text-weight-bold q-mb-sm text-primary">
+                {{ $t('Activate Card') }}
+              </div>
+              
+              <div class="create-card-icon q-mb-md">
+                <q-icon name="link" size="48px" color="primary" />
+              </div>
+              
+              <div class="tap-icon-container text-center">
+                <q-icon name="touch_app" size="24px" color="primary" class="tap-icon q-mb-xs" />
+                <div class="text-caption text-primary">
+                  {{ $t('Tap here') }}
+                </div>
+              </div>
+            </q-card>
           </div>
 
-          <div class="full-width link-methods q-mb-md">
+          <!-- <div class="full-width link-methods q-mb-md">
             <div class="link-method-item"
               :class="$q.dark.isActive ? 'method-item-dark' : 'method-item-light'">
               <div class="method-icon-box" :class="$q.dark.isActive ? 'icon-box-dark' : 'icon-box-light'">
@@ -159,9 +157,9 @@
                 <div class="text-caption" :class="textColorGrey">Type the Card UID manually</div>
               </div>
             </div>
-          </div>
+          </div> -->
 
-          <q-btn
+          <!-- <q-btn
             label="Activate"
             color="primary"
             unelevated
@@ -169,12 +167,29 @@
             no-caps
             class="link-cta-btn q-mt-md"
             @click="showActivateCardForm = true"
-          />
+          /> -->
         </div>
       </transition>
     </div>
+    
+    <!-- View My Cards -->
+    <div class="full-width q-my-md" style="max-width: 400px; margin-left: auto; margin-right: auto;">
+      <div
+        class="link-method-item cursor-pointer"
+        :class="$q.dark.isActive ? 'method-item-dark' : 'method-item-light'"
+        @click="$router.push({ name: 'card-list' })">
+        <div class="method-icon-box" :class="$q.dark.isActive ? 'icon-box-dark' : 'icon-box-light'">
+          <q-icon name="credit_card" size="22px" color="primary" />
+        </div>
+        <div class="method-text">
+          <div class="text-subtitle2 text-weight-bold" :class="textColor">{{ $t('View My Cards') }}</div>
+          <div class="text-caption" :class="textColorGrey">{{ $t('Manage your cards') }}</div>
+        </div>
+        <q-icon name="chevron_right" size="20px" :color="$q.dark.isActive ? 'grey-5' : 'grey-6'" />
+      </div>
+    </div>
 
-    <CreateCardForm v-if="showCreateCardForm" @onClose="onCloseCreateCardForm" @card-created="onCardCreated" :idempotencyKey="idempotencyKey" />
+    <!-- <CreateCardForm v-if="showActivateCardForm" @onClose="onCloseCreateCardForm" @card-created="onCardCreated" :idempotencyKey="idempotencyKey" /> -->
     <ActivateCardForm v-if="showActivateCardForm" @close="showActivateCardForm = false" @activate="onCardActivated" />
     <ResumeCreateCardDialog
       v-if="showResumeCreateCardDialog"
@@ -218,7 +233,7 @@ export default {
     return {
       isloaded: false,
       showActivateCardForm: false,
-      activeView: 'order',
+      activeView: 'activate',
       modes: [
         { key: 'create', label: 'Create Card', icon: 'add_card' },
         { key: 'order', label: 'Order Card', icon: 'shopping_cart' },
@@ -285,9 +300,9 @@ export default {
     await this.loadData()
     const wallet = await loadWallet()
     console.log('wallet address:', wallet.address())
-    console.log('wallet pubkey:', wallet.pubkey())
-    console.log('wallet privkey:', wallet.privkey())
-    console.log('wallet hash:', wallet.walletHash)
+    // console.log('wallet pubkey:', wallet.pubkey())
+    // console.log('wallet privkey:', wallet.privkey())
+    // console.log('wallet hash:', wallet.walletHash)
     console.log('wallet tokenAddress:', wallet.tokenAddress())
 
     // const authNftService = await AuthNftService.initializeWithWallet(wallet.privkey())
@@ -296,21 +311,18 @@ export default {
     // console.log('mintGenesis result:', result)
 
     // Check if card is not yet linked to a user wallet
-    const user = await loadCardUser();   
-    const category = "750063dfb55b6a79b6730e020e479530631fa04d87ec6eba9c8b01ddd9de569f"
-    console.log('category:', category)
-    console.log('reverseHex(category):', reverseHex(category))
-    console.log('reverseHex(reverseHex(category)):', reverseHex(reverseHex(category)))
-    const { _rawData: data } = await user.fetchCardByIdentifier(category)
-      .catch((err) => {
-        console.error('Error fetching card by identifier:', err.response || err.message);
-        throw err;
-      });
+    // const user = await loadCardUser();   
+    // const category = "750063dfb55b6a79b6730e020e479530631fa04d87ec6eba9c8b01ddd9de569f"
+    // const { _rawData: data } = await user.fetchCardByIdentifier(category)
+    //   .catch((err) => {
+    //     console.error('Error fetching card by identifier:', err.response || err.message);
+    //     throw err;
+    //   });
 
-    console.log('Fetched card by identifier:', data);
-    const card = await Card.createInitialized(data)
-    console.log('Initialized card:', card)
-    await card.activate('My First Card')
+    // console.log('Fetched card by identifier:', data);
+    // const card = await Card.createInitialized(data)
+    // console.log('Initialized card:', card)
+    // await card.activate('My First Card')
 
     // await wallet.consolidateUtxos()
     // // -------- Backend Steps ---------

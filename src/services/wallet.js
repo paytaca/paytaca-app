@@ -8,9 +8,12 @@ import { minTokenValue } from './card/constants'
 import { toTokenAddress } from 'src/utils/crypto.js'
 import { isTokenAddress } from 'src/utils/address-utils.js'
 import { DUST_LIMIT } from 'src/services/card/constants.js'
+import { ElectrumNetworkProvider, SignatureTemplate, TransactionBuilder } from 'cashscript'
 
 const DEFAULT_CHANGE_INDEX = 0
 const DEFAULT_ADDRESS_INDEX = 0
+
+const toBigInt = (v) => (typeof v === 'bigint' ? v : BigInt(v ?? 0))
 
 /**
  * Lightweight wrapper around LibauthHDWallet providing only the essential cryptographic 
@@ -190,9 +193,12 @@ export class Wallet {
     let result = { cumulativeValue: 0, utxos: [] }
     const wallet = await this.getRawWallet()
     if (address) {
-      result = await wallet.watchtower.BCH.getBchUtxos(address, amount, { confirmed: true })
+      result = await wallet.watchtower.BCH.getBchUtxos(address, parseInt(amount), { confirmed: true })
+    } else {
+      result = await wallet.watchtower.BCH.getBchUtxos(`wallet:${this.walletHash}`, parseInt(amount), { confirmed: true })
     }
-    result = await wallet.watchtower.BCH.getBchUtxos(`wallet:${this.walletHash}`, amount, { confirmed: true })
+    console.log('Fetched BCH UTXOs:', result)
+
     return {
       cumulativeValue: result.cumulativeValue,
       utxos: result.utxos.map(utxo => ({
@@ -205,13 +211,14 @@ export class Wallet {
     }
   }
 
-  async getTokenUtxos (tokenId, tokenAddress = null, opts = {}) {
+  async getTokenUtxos (tokenId, tokenAddress, opts = {}) {
+    console.log('Fetching token UTXOs for tokenId:', tokenId, 'at tokenAddress:', tokenAddress, 'with options:', opts)
     const wallet = await this.getRawWallet()
-    if (!tokenAddress) tokenAddress = this.address()
+    let handle = tokenAddress ? tokenAddress : this.tokenAddress()
     
     console.log('Getting token UTXOs for tokenId:', tokenId, 'at tokenAddress:', tokenAddress)
-    if (!tokenAddress || isTokenAddress(tokenAddress) === false) {
-      console.warn('Invalid or missing token address for getTokenUtxos:', tokenAddress)
+    if (tokenAddress && isTokenAddress(tokenAddress) === false) {
+      console.warn('Invalid token address for getTokenUtxos:', tokenAddress)
       return []
     }
 
@@ -223,8 +230,11 @@ export class Wallet {
       params.capability = opts.capability
     }
 
+    console.log('handle:', handle)
+    console.log('tokenId:', tokenId)
+
     let result = []
-    const response = await wallet.watchtower.BCH._api.get(`utxo/ct/${tokenAddress}/${tokenId}/`, { params: params })
+    const response = await wallet.watchtower.BCH._api.get(`utxo/ct/${handle}/${tokenId}/`, { params: params })
     result = response.data?.utxos
     console.log('Returning token UTXOs:', result)
     return result.map(utxo => ({
@@ -240,6 +250,56 @@ export class Wallet {
       vout: utxo.vout,
       value: BigInt(utxo.value)
     }))
+  }
+
+  /**
+   * Fetches funding inputs for the wallet's cash address.
+   * @param {number} amount - Optional minimum cumulative amount of BCH UTXOs to fetch.
+   * @returns {Promise<{cumulativeValue: bigint, groupedUtxos: Array, changeAddress: string}>}
+   */
+  async getFundingUtxos (amount = 0) {
+    const wallet = await loadWallet()
+    const changeAddress = wallet.changeAddress()
+    const handle = `wallet:${wallet.walletHash}`
+    const { cumulativeValue, utxos } = await wallet.getBchUtxos(handle, parseInt(amount))
+
+    // Watchtower returns utxos from both cashAddress and its changeAddress.
+    // But we need to use the correct keypair for signing based on which address the UTXO belongs to
+    // So we group the UTXOs by address_path
+    let utxosByAddressPath = {}
+    if (utxos.length > 0) {
+      utxosByAddressPath = utxos.reduce((acc, utxo) => {
+        const path = utxo.address_path || 'unknown'
+        if (!acc[path]) {
+          let privkey = wallet.privkey()
+          if (path !== 'unknown') privkey = wallet.privkey(path)
+          acc[path] = { 
+            privkey: privkey,
+            utxos: [] 
+          }
+        }
+        acc[path].utxos.push(utxo)
+        return acc
+      }, {})
+    }
+
+    // Keep funding UTXOs grouped by source key so each group can be signed correctly.
+    const groupedBchFundingInputs = Object.values(utxosByAddressPath)
+      .filter(group => group?.privkey && Array.isArray(group?.utxos) && group.utxos.length > 0)
+      .map(group => ({
+        signatureTemplate: new SignatureTemplate(group.privkey),
+        inputs: group.utxos.map((input) => ({
+          satoshis: toBigInt(input.satoshis),
+          txid: input.txid,
+          vout: input.vout
+        }))
+      }))
+
+    return { 
+      cumulativeValue, 
+      groupedUtxos: groupedBchFundingInputs, 
+      changeAddress
+    };
   }
 
   /**
@@ -355,11 +415,11 @@ export class Wallet {
     console.log('Starting UTXO consolidation process...');
     
     const receivingAddress = this.address(); // Use the wallet's own address for consolidation
-    const { cumulativeValue, utxos } = await this.getBchUtxos(null, 100000); // Get UTXOs up to 100k sats
+    const { cumulativeValue, groupedUtxos, changeAddress } = await this.getFundingUtxos(10000); // Get UTXOs up to 10k sats
     console.log('cumulativeValue:', cumulativeValue);
-    console.log('UTXOs found for consolidation:', utxos);
-    
-    if (utxos.length === 0) {
+    console.log('UTXOs found for consolidation:', groupedUtxos);
+
+    if (groupedUtxos.length === 0) {
       throw new Error('Cannot consolidate, 0 UTXOs found.');
     }
 
@@ -367,19 +427,18 @@ export class Wallet {
       throw new Error(`Cannot consolidate, cumulative value ${cumulativeValue} is below dust limit ${DUST_LIMIT}.`);
     } 
 
-    const estimatedFee = this.estimateFee({ numP2pkhInputs: utxos.length, numOutputs: 1 }); // Estimated fee for consolidation transaction
+    const estimatedFee = this.estimateFee({ numP2pkhInputs: groupedUtxos.length, numOutputs: 1 }); // Estimated fee for consolidation transaction
     const satsAmount = cumulativeValue - estimatedFee;
     console.log('Estimated fee for consolidation:', estimatedFee);
     console.log('Consolidation amount:', satsAmount);
-    console.log(`Consolidating ${utxos.length} UTXOs totaling ${satsAmount} sats to address:`, receivingAddress);
+    console.log(`Consolidating ${groupedUtxos.length} UTXOs totaling ${satsAmount} sats to address:`, receivingAddress);
 
-    const privateKey = this.privkey();
     const provider = new ElectrumNetworkProvider('mainnet')
-    const sigTemplate = new SignatureTemplate(privateKey)
-
     const tx = new TransactionBuilder({ provider })
-        .addInputs(utxos, sigTemplate.unlockP2PKH())
-        .addOutput({ to: receivingAddress, amount: satsAmount })
+    groupedUtxos.forEach(({ inputs, signatureTemplate }) => {
+      tx.addInputs(inputs, signatureTemplate.unlockP2PKH())
+    })
+    tx.addOutput({ to: receivingAddress, amount: satsAmount });
 
     console.log('===inputs:', tx.inputs)
     console.log('===outputs:', tx.outputs)
@@ -387,8 +446,8 @@ export class Wallet {
     const txHex = tx.build()
     console.log('Built consolidation transaction hex:', txHex)
 
-    const rawWallet = this.getRawWallet()
-    const sendResult = await rawWallet.watchtower.BCH.broadcastTransaction(txHex)
+    const wallet = await this.getRawWallet()
+    const sendResult = await wallet.watchtower.BCH.broadcastTransaction(txHex)
     console.log('Consolidation transaction broadcast result:', sendResult)
     
     return sendResult;
