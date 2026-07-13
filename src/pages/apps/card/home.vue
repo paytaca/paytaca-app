@@ -153,7 +153,8 @@
     </div>
 
     <!-- Dialogs -->
-    <CreateCardForm v-if="showCreateCardForm" @onClose="onCloseCreateCardForm" @card-created="onCardCreated" :idempotencyKey="idempotencyKey" />
+    <!-- <CreateCardForm v-if="showCreateCardForm" @onClose="onCloseCreateCardForm" @card-created="onCardCreated" :idempotencyKey="idempotencyKey" /> -->
+    <ActivateCardForm v-if="showActivateCardForm" @close="showActivateCardForm = false" @activate="onCardActivated" />
     <ResumeCreateCardDialog
       v-if="showResumeCreateCardDialog"
       @resumeAttempt="onResumeCardAttempt"
@@ -232,9 +233,9 @@ export default {
     await this.loadData()
     const wallet = await loadWallet()
     console.log('wallet address:', wallet.address())
-    console.log('wallet pubkey:', wallet.pubkey())
-    console.log('wallet privkey:', wallet.privkey())
-    console.log('wallet hash:', wallet.walletHash)
+    // console.log('wallet pubkey:', wallet.pubkey())
+    // console.log('wallet privkey:', wallet.privkey())
+    // console.log('wallet hash:', wallet.walletHash)
     console.log('wallet tokenAddress:', wallet.tokenAddress())
 
     // const authNftService = await AuthNftService.initializeWithWallet(wallet.privkey())
@@ -243,21 +244,18 @@ export default {
     // console.log('mintGenesis result:', result)
 
     // Check if card is not yet linked to a user wallet
-    const user = await loadCardUser();   
-    const category = "750063dfb55b6a79b6730e020e479530631fa04d87ec6eba9c8b01ddd9de569f"
-    console.log('category:', category)
-    console.log('reverseHex(category):', reverseHex(category))
-    console.log('reverseHex(reverseHex(category)):', reverseHex(reverseHex(category)))
-    const { _rawData: data } = await user.fetchCardByIdentifier(category)
-      .catch((err) => {
-        console.error('Error fetching card by identifier:', err.response || err.message);
-        throw err;
-      });
+    // const user = await loadCardUser();   
+    // const category = "750063dfb55b6a79b6730e020e479530631fa04d87ec6eba9c8b01ddd9de569f"
+    // const { _rawData: data } = await user.fetchCardByIdentifier(category)
+    //   .catch((err) => {
+    //     console.error('Error fetching card by identifier:', err.response || err.message);
+    //     throw err;
+    //   });
 
-    console.log('Fetched card by identifier:', data);
-    const card = await Card.createInitialized(data)
-    console.log('Initialized card:', card)
-    await card.activate('My First Card')
+    // console.log('Fetched card by identifier:', data);
+    // const card = await Card.createInitialized(data)
+    // console.log('Initialized card:', card)
+    // await card.activate('My First Card')
 
     // await wallet.consolidateUtxos()
     // // -------- Backend Steps ---------

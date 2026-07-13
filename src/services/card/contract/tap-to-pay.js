@@ -745,11 +745,8 @@ export class TapToPayV2 extends TapToPay {
             if (pkhCategory === ownerPkh) {
                 console.warn('pkh ownership token already set to ownerPkh')
             }
-            if (catCategory === reverseHex(authCategory)) {
-                console.warn('cat ownership token already set to authCategory')
-            }
 
-            const alreadySet = (pkhCategory === ownerPkh && catCategory === reverseHex(authCategory))
+            const alreadySet = (pkhCategory === ownerPkh)
             console.log('Ownership tokens already set: ' + alreadySet)
             return {
                 success: true,
@@ -833,17 +830,26 @@ export class TapToPayV2 extends TapToPay {
                     }
                 }
             }
+            console.log('---->>>>output:', output)
             outputs.push(output)
+
         }
+
+        console.log('---->>>>outputs:', outputs)
 
         if (changeAmount > 0n) {
             outputs.push({ to: changeAddress, amount: changeAmount });
         }
 
-        const provider = new ElectrumNetworkProvider(Network.MAINNET)
+        console.log('----->>>>outputs:', outputs)
+
+        const provider = new ElectrumNetworkProvider('mainnet')
         const tx = new TransactionBuilder({provider})
 
-        tx.addInputs(normalizedOwnershipTokens, contract.unlock.setOwner(reverseHex(authCategory), ownerPk, ownerSig))
+        console.log('reverseHex(authCategory):', reverseHex(authCategory))
+        const unlocker = contract.unlock.setOwner(reverseHex(authCategory), ownerPk, ownerSig)
+        console.log('unlocker:', unlocker)
+        tx.addInputs(normalizedOwnershipTokens, unlocker)
         tx.addInput(normalizedLinkingToken, ownerSig.unlockP2PKH())
         fundingUtxos.forEach(({ inputs, signatureTemplate }) => {
             tx.addInputs(inputs, signatureTemplate.unlockP2PKH())
@@ -857,5 +863,6 @@ export class TapToPayV2 extends TapToPay {
         console.log('txHex:', txHex)
         const result = await this.broadcastTransaction(txHex)
         console.log('result:', result)
+        return result
     }
 }

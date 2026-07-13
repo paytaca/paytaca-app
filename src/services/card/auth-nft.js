@@ -94,6 +94,8 @@ class AuthNftService {
         console.log('====== Minting Token ======')
     
         const genesisUtxo = await this.wallet.getOrCreateGenesisUtxo()
+        console.log('????????Genesis UTXO:', genesisUtxo)
+
         const categoryId = genesisUtxo.txid
         const nftValue = 1000n // 10000 satoshis for each NFT output
         
@@ -163,16 +165,55 @@ class AuthNftService {
      * @param {Object} params
      * @param {string} params.tokenId
      * @param {Array<Object>} params.merchants
-     * @param {Object} [params.options]
+     * @param {Object} [params.opts]
      * @returns {Promise<Object>}
      */
-    async mint({ tokenId, merchants, options }) {
+    async mint({ tokenId, merchants, opts = { broadcast: true } }) {
         console.log('minting auth NFTs for merchants:', merchants)
         this._assertWallet();
 
-        const mintingTokenUtxo = await this.wallet.getTokenUtxos(tokenId, null, { capability: NFTCapability.minting })
-        console.log('mintingTokenUtxo:', mintingTokenUtxo)
-        const outputs = [];
+        const mintingTokenUtxoRespose = await this.wallet.getTokenUtxos(tokenId, null, { capability: NFTCapability.minting })
+        if (!mintingTokenUtxoRespose || mintingTokenUtxoRespose.length === 0) {
+            throw new Error(`No minting UTXO found for tokenId: ${tokenId}`);
+        }
+
+        const mintingTokenUtxo = mintingTokenUtxoRespose.map(utxo => ({
+            txid: utxo.txid,
+            vout: utxo.vout,
+            satoshis: utxo.satoshis || utxo.value,
+            token: {
+                category: utxo.token.category,
+                amount: 0n,
+                nft: {
+                    capability: utxo.token.nft.capability,
+                    commitment: utxo.token.nft.commitment
+                }
+            }
+        }));
+
+        const txFee = this.wallet.estimateFee({ numP2pkhInputs: 2, numOutputs: merchants.length })
+        const mintFee = (BigInt(merchants.length) * MINT_VALUE)
+        const totalFee = txFee + mintFee
+        const { cumulativeValue, groupedUtxos: groupedBchFundingInputs, changeAddress } = await this.wallet.getFundingUtxos(totalFee)
+
+        const change = cumulativeValue - totalFee
+        if (change < 0) {
+            throw new Error(`Insufficient funds for minting. Required: ${totalFee}, Available: ${cumulativeValue}`);
+        }
+
+        const outputs = mintingTokenUtxo.map(utxo => ({
+            to: this.wallet.tokenAddress(),
+            amount: utxo.satoshis || utxo.value,
+            token: {
+                category: utxo.token.category,
+                amount: 0n,
+                nft: {
+                    capability: utxo.token.nft.capability,
+                    commitment: utxo.token.nft.commitment
+                }
+            }
+        }));
+
         for (let i = 0; i < merchants.length; i++) {
             const merchant = merchants[i]
             const commitmentData = {
@@ -190,7 +231,7 @@ class AuthNftService {
             const commitment = encodeCommitment(commitmentData)
             outputs.push({
                 to: this.wallet.tokenAddress(),
-                value: MINT_VALUE,
+                amount: MINT_VALUE,
                 token: {
                     category: tokenId,
                     amount: 0n,
@@ -202,20 +243,35 @@ class AuthNftService {
             });
         }
 
-        console.log('??????Mint outputs:', outputs);
-        // console.log('Minting with wallet:', this.ctWallet);
-        // const response = await this.ctWallet.tokenMint(
-        //     tokenId,
-        //     tokenMintRequests,
-        //     false,
-        //     options
-        // );
+        if (change > 0) {
+            outputs.push({
+                to: changeAddress,
+                amount: change,
+            });
+        }
 
         const provider = new ElectrumNetworkProvider('mainnet')
         const sigTemplate = new SignatureTemplate(this.wallet.privkey())
+        const tx = new TransactionBuilder({ provider })
+        
+        tx.addInput(mintingTokenUtxo[0], sigTemplate.unlockP2PKH())
+        groupedBchFundingInputs.forEach(({ inputs, signatureTemplate }) => {
+            tx.addInputs(inputs, signatureTemplate.unlockP2PKH())
+        })
+        tx.addOutputs(outputs)
 
-        // console.log('Token mint response:', response);
-        // return response;
+        const txHex = tx.build()
+        console.log('Built mint transaction hex:', txHex)
+
+        if (opts?.broadcast) {
+            const txResult = await watchtower.BCH.broadcastTransaction(txHex)
+            console.log('Mint transaction broadcast result:', txResult.data)
+            return { 
+                success: txResult.data.success, 
+                txid: txResult.data.txid
+            }
+        } 
+        return { success: true, txHex }
     }
 
     /**
@@ -224,27 +280,75 @@ class AuthNftService {
      * @param {Array<Object>} params.recipients
      * @returns {Promise<Object>}
      */
-    async issue({ recipients }) {
+    async issue(tokenUtxos, toTokenAddress, opts = { broadcast: true }) {
+        console.log('====== Sending Token ======')
+
         this._assertWallet();
 
-        const sendRequests = [];
-        for (let i = 0; i < recipients.length; i++) {
-            const recipient = recipients[i];
+        const estimatedFee = this.wallet.estimateFee({ numP2pkhInputs: 1, numOutputs: 1 + tokenUtxos.length, feeRate: 2n })
+        const { cumulativeValue, groupedUtxos: groupedBchFundingInputs, changeAddress } = await this.wallet.getFundingUtxos(estimatedFee)
+        const change = cumulativeValue - estimatedFee 
+        
+        const inputTokenUtxos = tokenUtxos.map(utxo => ({
+            txid: utxo.txid,
+            vout: utxo.vout,
+            satoshis: utxo.satoshis || utxo.value,
+            token: {
+                category: utxo.token.category,
+                amount: utxo.token.amount,
+                nft: {
+                    capability: utxo.token.nft.capability,
+                    commitment: utxo.token.nft.commitment
+                }
+            }
+        }))
 
-            const data = {
-                cashaddr: recipient.address,
-                tokenId: recipient.tokenId,
-                capability: recipient.capability,
-                commitment: recipient.commitment,
-                amount: recipient.amount
-            };
-
-            sendRequests.push(new TokenSendRequest(data));
+        const outputs = []
+        for (const utxo of tokenUtxos) {
+            outputs.push({
+                to: toTokenAddress,
+                amount: utxo.satoshis || utxo.value,
+                token: {
+                    category: utxo.token.category,
+                    amount: utxo.token.amount,
+                    nft: {
+                        capability: utxo.token.nft.capability,
+                        commitment: utxo.token.nft.commitment
+                    }
+                }
+            })
         }
-        console.log('Token send requests:', sendRequests);
-        const result = await this.ctWallet.send(sendRequests);
-        console.log(result);
-        return result;
+
+        if (change > 0) {
+            outputs.push({
+                to: changeAddress,
+                amount: change,
+            })
+        }
+
+        const provider = new ElectrumNetworkProvider('mainnet')
+        const sigTemplate = new SignatureTemplate(this.wallet.privkey())
+
+        const tx = new TransactionBuilder({ provider })
+        
+        tx.addInputs(inputTokenUtxos, sigTemplate.unlockP2PKH())
+        groupedBchFundingInputs.forEach(({ inputs, signatureTemplate }) => {
+            tx.addInputs(inputs, signatureTemplate.unlockP2PKH())
+        })
+        tx.addOutputs(outputs)
+            
+        // Build the transaction
+        const txHex = tx.build()
+        console.log('Built transaction hex:', txHex)
+        console.log('Broadcasting transaction...')
+
+        if (opts?.broadcast) {
+            const txResult = await watchtower.BCH.broadcastTransaction(txHex)
+            console.log('Transaction broadcast result:', txResult.data)
+            return { success: txResult.data.success, txid: txResult.data.txid }
+        }
+
+        return { success: true, txHex }
     }
 
     /**
@@ -274,7 +378,7 @@ class AuthNftService {
                 commitment: newCommitment
             }
         })
-        await this.issue({ recipients })
+        // await this.issue({ recipients })
     }
 
     /**
