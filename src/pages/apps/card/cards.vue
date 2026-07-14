@@ -653,8 +653,6 @@ export default {
 </script>
 
 <style lang="scss" scoped>
-  @import "src/css/app-card.scss";
-
   .swipe-overlay {
     position: fixed;
     inset: 0;

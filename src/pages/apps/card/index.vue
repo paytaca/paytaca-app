@@ -114,10 +114,6 @@ export default {
 }
 </script>
 
-<style lang="scss" scoped>
-@import 'src/css/app-card.scss';
-</style>
-
 <style lang="scss">
 @import 'src/css/app-card.scss';
 </style>
