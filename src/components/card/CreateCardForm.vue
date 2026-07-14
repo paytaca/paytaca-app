@@ -1,6 +1,6 @@
 <template>
   <q-dialog v-model="showDialog" persistent :maximized="$q.screen.xs" transition-show="fade" transition-hide="fade">
-    <q-card class="create-card-dialog pt-card" :class="$q.dark.isActive ? 'dark' : 'light'">
+    <q-card class="create-card-dialog pt-card" :class="$q.dark.isActive ? 'dark' : 'light'" style="min-width: 320px; border-radius: 24px;">
       <!-- Dialog Header -->
       <div class="dialog-header q-px-md q-pt-md q-pb-sm">
         <div class="row items-center justify-between">
