@@ -491,6 +491,6 @@ export default {
   }
 }
 </script>
-<style lang="scss" scoped>
+<style lang="scss">
   @import "src/css/app-card.scss";
 </style>

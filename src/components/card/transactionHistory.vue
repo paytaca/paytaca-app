@@ -181,9 +181,11 @@ export default {
 }
 </script>
 
-<style lang="scss" scoped>
+<style lang="scss">
   @import "src/css/app-card.scss";
+</style>
 
+<style lang="scss" scoped>
   .search-input-wrapper {
     background: transparent;
     border-radius: 14px;
