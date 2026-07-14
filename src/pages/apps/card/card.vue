@@ -816,78 +816,7 @@ export default {
 </style>
 
 <style lang="scss" scoped>
-  .blink-badge {
-    animation: blink-pulse 1.5s ease-in-out infinite;
-  }
-
-  @keyframes blink-pulse {
-    0%, 100% {
-      opacity: 1;
-      transform: scale(1);
-    }
-    50% {
-      opacity: 0.5;
-      transform: scale(0.85);
-    }
-  }
-
   .pt-card.light {
     background: color-mix(in srgb, var(--q-primary) 12%, rgba(255, 255, 255, 0.75)) !important;
-  }
-
-  /* Order Card tab styles (ported from home.vue for visual consistency) */
-  .link-icon-ring {
-    width: 80px;
-    height: 80px;
-    border-radius: 50%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    background: color-mix(in srgb, var(--q-primary) 12%, transparent);
-    position: relative;
-  }
-
-  .link-icon-ring::before {
-    content: '';
-    position: absolute;
-    inset: -4px;
-    border-radius: 50%;
-    border: 2px solid color-mix(in srgb, var(--q-primary) 20%, transparent);
-    animation: ring-pulse 2s ease-in-out infinite;
-  }
-
-  .link-icon-inner {
-    width: 56px;
-    height: 56px;
-    border-radius: 50%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    background: color-mix(in srgb, var(--q-primary) 15%, transparent);
-  }
-
-  @keyframes ring-pulse {
-    0%, 100% {
-      transform: scale(1);
-      opacity: 1;
-    }
-    50% {
-      transform: scale(1.15);
-      opacity: 0.4;
-    }
-  }
-
-  .link-cta-btn {
-    min-width: 220px;
-    height: 48px;
-    font-size: 15px;
-    font-weight: 600;
-    letter-spacing: 0.3px;
-    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-  }
-
-  .link-cta-btn:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 8px 24px color-mix(in srgb, var(--q-primary) 35%, transparent);
   }
 </style>
