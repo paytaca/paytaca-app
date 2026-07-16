@@ -143,7 +143,9 @@ const totalFiatFormatted = computed(() => {
   return parseFloat(fiatVal.toFixed(2)).toString()
 })
 
-const MERGE_FEE_SATS = 1000;
+// merge fee sats usually involve 2 inputs and 1 output, according to smart contract is
+// 850 * inputCount + 60 * outputCount
+const MERGE_FEE_SATS = 1760;
 const totalBchFormatted = computed(() => {
   if (!planDetails.value) return '0'
   const numCycles = cycles.value || 0
@@ -151,10 +153,7 @@ const totalBchFormatted = computed(() => {
 
   // Use satoshi-based calculation (pledge + paytaca_fee + miner_fee per cycle)
   if (totalCostSatsPerCycle.value > 0) {
-    let totalSats = totalCostSatsPerCycle.value * numCycles
-    if (props.subscription?.status === 'PENDING') {
-      totalSats += MERGE_FEE_SATS // Extra 1000 sats buffer for the NFT dust limit and merge fee
-    }
+    const totalSats = totalCostSatsPerCycle.value * numCycles + MERGE_FEE_SATS
     return (totalSats / 100000000).toFixed(8).replace(/\.?0+$/, '') || '0'
   }
 
