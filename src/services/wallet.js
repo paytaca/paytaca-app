@@ -193,9 +193,9 @@ export class Wallet {
     let result = { cumulativeValue: 0, utxos: [] }
     const wallet = await this.getRawWallet()
     if (address) {
-      result = await wallet.watchtower.BCH.getBchUtxos(address, parseInt(amount), { confirmed: true })
+      result = await wallet.watchtower.BCH.getBchUtxos(address, parseInt(amount))
     } else {
-      result = await wallet.watchtower.BCH.getBchUtxos(`wallet:${this.walletHash}`, parseInt(amount), { confirmed: true })
+      result = await wallet.watchtower.BCH.getBchUtxos(`wallet:${this.walletHash}`, parseInt(amount))
     }
     console.log('Fetched BCH UTXOs:', result)
 
@@ -211,6 +211,13 @@ export class Wallet {
     }
   }
 
+  /**
+   * 
+   * @param {string} tokenId - The ID of the token.
+   * @param {string} tokenAddress - The address of the token.
+   * @param {Object} opts - Additional options.
+   * @returns {Promise<Array>} - The list of token UTXOs.
+   */
   async getTokenUtxos (tokenId, tokenAddress, opts = {}) {
     console.log('Fetching token UTXOs for tokenId:', tokenId, 'at tokenAddress:', tokenAddress, 'with options:', opts)
     const wallet = await this.getRawWallet()
