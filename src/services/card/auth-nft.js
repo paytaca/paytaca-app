@@ -125,7 +125,9 @@ class AuthNftService {
         ]
 
         // console.log('outputs:', outputs)
-        const privateKey = this.wallet.privkey()
+        const privateKey = this.wallet.privkey(genesisUtxo.address_path)
+        console.log('address_path:', genesisUtxo.address_path)
+        console.log('privateKey:', privateKey)
         const provider = new ElectrumNetworkProvider('mainnet')
         const sigTemplate = new SignatureTemplate(privateKey)
 

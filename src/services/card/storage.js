@@ -3,11 +3,13 @@ import Card from "./card"
 
 export const CardActivationStatus = {
   NONE: -1,
-  GENESIS_MINTED: 0,
-  OWNERSHIP_UPDATED: 1,
-  VALIDATION_REQUESTED: 2,
-  GLOBAL_AUTH_MINTED: 3,
-  GLOBAL_AUTH_ISSUED: 4
+  LINKING_TOKEN_REQUESTED: 0,
+  LINKING_TOKEN_OBTAINED: 1,
+  GENESIS_MINTED: 2,
+  OWNERSHIP_UPDATED: 3,
+  VALIDATION_REQUESTED: 4,
+  GLOBAL_AUTH_MINTED: 5,
+  GLOBAL_AUTH_ISSUED: 6
 }
 
 const CARD_ACTIVATION_STORAGE_KEY = 'card:activation-attempt'
@@ -28,6 +30,7 @@ export async function saveCardActivationAttempt(walletHash, attempt) {
       idempotencyKey: attempt.idempotencyKey,
       walletHash: attempt.walletHash,
       ownerCategory: attempt.ownerCategory || null,
+      linkingCategory: attempt.linkingCategory || null,
       authCategory: attempt.authCategory || null,
       linkingTxid: attempt.linkingTxid || null,
       status: attempt.status,

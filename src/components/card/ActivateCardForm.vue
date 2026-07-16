@@ -275,7 +275,7 @@
           rounded
           unelevated
           class="q-px-xl"
-          :disable="activatingCard || inputValidation"
+          :disable="activatingCard || !isFormInputValid"
           :loading="activatingCard"
           @click="onActivateCard()">
           <template v-slot:loading>
@@ -340,7 +340,11 @@ export default {
     textColorGrey () {
       return 'text-primary';
     },
-    inputValidation() {
+    isFormInputValid() {
+      console.log('this.card.category:', this.card.category)
+      console.log('this.card.address:', this.card.address)
+      console.log('this.card.isActivated:', this.card.isActivated)
+      console.log('Input validation result:', (this.card.category && this.card.address && !this.card.isActivated))
       return this.card.category && this.card.address && !this.card.isActivated;
     }
   },

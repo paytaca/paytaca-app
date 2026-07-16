@@ -12,6 +12,7 @@ import Watchtower from 'src/lib/watchtower/index.js';
 import { loadWallet } from 'src/services/wallet.js';
 import { isTokenAddress } from 'src/utils/address-utils.js';
 import { reverseHex } from 'src/marketplace/escrow/utils.js';
+import { toTokenAddress } from "src/utils/crypto";
 
 import { 
     encodeOwnershipCommitment, 
@@ -34,6 +35,13 @@ import {
 //   const pairs = hex.match(/.{1,2}/g);
 //   return pairs ? pairs.reverse().join('') : hex;
 // }
+
+export function sortUtxos(utxos = []) {
+    return [...utxos].sort((a, b) => {
+        if (a.txid === b.txid) return a.vout - b.vout
+        return a.txid.localeCompare(b.txid)
+    })
+}
 
 // Helper to safely convert numbers/strings to BigInt
 const toBigInt = (v) => (typeof v === 'bigint' ? v : BigInt(v ?? 0))
@@ -660,7 +668,7 @@ export class TapToPayV2 extends TapToPay {
                 backendPkh: parameters[0],
                 category: reverseHex(parameters[1])
             };
-            console.log('=>>>>>>>TapToPayV2 contract parameters:', this.params)
+            // console.log('=>>>>>>>TapToPayV2 contract parameters:', this.params)
         } else if (params) {
             this.params = {
                 backendPkh: params.backendPkh,
@@ -690,7 +698,7 @@ export class TapToPayV2 extends TapToPay {
             contractCreationParams.backendPkh,
             contractCreationParams.category
         ];
-        console.log('contractParams:', contractParams)
+        // console.log('contractParams:', contractParams)
 
         const contract = new Contract(artifactV2, contractParams)
         return contract;
@@ -799,10 +807,10 @@ export class TapToPayV2 extends TapToPay {
             throw new Error('Insufficient BCH balance to cover fee for setOwnership')
         }
 
-        console.log('fundingAmount:', fundingAmount)
-        console.log('fundingUtxos:', fundingUtxos)
-        console.log('changeAddress:', changeAddress)
-        console.log('changeAmount:', changeAmount)
+        // console.log('fundingAmount:', fundingAmount)
+        // console.log('fundingUtxos:', fundingUtxos)
+        // console.log('changeAddress:', changeAddress)
+        // console.log('changeAmount:', changeAmount)
 
         const outputs = []
 
@@ -811,13 +819,13 @@ export class TapToPayV2 extends TapToPay {
             const decodedOwnershipCommitment = decodeOwnershipCommitment(utxo.token.nft.commitment)
             const holderType = decodedOwnershipCommitment.type
             const valueHex = holderType === 'pkh' ? ownerPkh : reverseHex(authCategory)
-            console.log('---->>>>holderType:', holderType)
-            console.log('---->>>>valueHex:', valueHex)
+            // console.log('---->>>>holderType:', holderType)
+            // console.log('---->>>>valueHex:', valueHex)
             const encodedCommitment = encodeLinkingCommitment({
                 holderType: holderType,
                 valueHex: valueHex
             })
-            console.log('---->>>>encodedCommitment:', encodedCommitment)
+            // console.log('---->>>>encodedCommitment:', encodedCommitment)
             const output = {
                 to: contract.tokenAddress,
                 amount: utxo.satoshis,
@@ -830,25 +838,25 @@ export class TapToPayV2 extends TapToPay {
                     }
                 }
             }
-            console.log('---->>>>output:', output)
+            // console.log('---->>>>output:', output)
             outputs.push(output)
 
         }
 
-        console.log('---->>>>outputs:', outputs)
+        // console.log('---->>>>outputs:', outputs)
 
         if (changeAmount > 0n) {
             outputs.push({ to: changeAddress, amount: changeAmount });
         }
 
-        console.log('----->>>>outputs:', outputs)
+        // console.log('----->>>>outputs:', outputs)
 
         const provider = new ElectrumNetworkProvider('mainnet')
         const tx = new TransactionBuilder({provider})
 
         console.log('reverseHex(authCategory):', reverseHex(authCategory))
         const unlocker = contract.unlock.setOwner(reverseHex(authCategory), ownerPk, ownerSig)
-        console.log('unlocker:', unlocker)
+        // console.log('unlocker:', unlocker)
         tx.addInputs(normalizedOwnershipTokens, unlocker)
         tx.addInput(normalizedLinkingToken, ownerSig.unlockP2PKH())
         fundingUtxos.forEach(({ inputs, signatureTemplate }) => {
@@ -862,7 +870,162 @@ export class TapToPayV2 extends TapToPay {
         const txHex = tx.build()
         console.log('txHex:', txHex)
         const result = await this.broadcastTransaction(txHex)
+        // const result = await tx.send()
         console.log('result:', result)
         return result
+    }
+
+    async getMerchantAuthCategory () {
+        // Get ownership tokens
+        const ownershipCategory = this.params.category
+        const tokenAddress = toTokenAddress(this.getContract().address)
+        const ownershipTokens = await this.getTokenUtxos(ownershipCategory, tokenAddress)
+
+        // Find the auth ownership token
+        let authCategory
+        const authOwnershipToken = ownershipTokens.find(utxo => {
+            const decodedCommitment = utxo.token?.nft?.commitment ? decodeOwnershipCommitment(utxo.token.nft.commitment) : undefined
+            if (decodedCommitment.type === 'cat') {
+                authCategory = decodedCommitment.category
+                return true
+            }
+            return false
+        })
+        return { authOwnershipToken, authCategory: reverseHex(authCategory) };
+    }
+
+    /**
+     * Test function to directly call contract's spend function
+     * @param {*} params
+     * @param {string} params.backendWif - Backend WIF for signing.
+     * @param {string} params.merchantWif - Merchant WIF for signing.
+     * @param {Object} params.merchant - Merchant object with id and pubkey.
+     * @param {Object} params.recipient - Recipient object with address and amount.
+     * @param {boolean} [params.broadcast=true] - Whether to broadcast the transaction.
+     * @returns {Promise<Object>} Transaction result or `{ success: true, txHex }` when not broadcasting.
+     */
+    async spend({ backendWif, merchantWif, merchant, recipient, broadcast = true }) {
+        const backendSig = new SignatureTemplate(backendWif)
+        const backendPk = binToHex(backendSig.getPublicKey())  
+        const backendPkh = pubkeyToPkHash(backendPk)
+
+        const merchantSig = new SignatureTemplate(merchantWif)
+        const merchantPk = binToHex(merchantSig.getPublicKey())
+
+        if (backendPkh !== this.contractCreationParams.backendPkh) {
+            throw new Error('Invalid validator public key hash')
+        }
+
+        // const { rawContract : contract } = this.getRawContract();
+        const contract = this.getContract();
+        const { utxos } = await this.getBchUtxos()
+        const bchUtxos = sortUtxos(utxos.filter(utxo => utxo.token === undefined))
+
+        const tokenAddress = toTokenAddress(contract.address)
+        const {authOwnershipToken, authCategory: merchantAuthCategory} = await this.getMerchantAuthCategory()
+        const authTokenUtxos = await this.getTokenUtxos(merchantAuthCategory, tokenAddress)
+
+        // console.log('Auth Ownership Token:', merchantAuthCategory)
+        // console.log('BCH UTXOs:', bchUtxos)
+        // console.log('Auth Token UTXOs:', authTokenUtxos)
+
+        // Segregate the global auth token and merchant-specific auth tokens
+        let globalAuthNft
+        let merchantAuthNfts = []
+        authTokenUtxos.forEach(utxo => {
+            if (utxo.token) {
+                const token = utxo.token
+                if (token.category === merchantAuthCategory && token.nft) {
+                    const commitment = utxo.token.nft.commitment
+                    const decodedCommitment = commitment ? decodeCommitment(commitment) : undefined
+                    const nftData = { decodedCommitment, utxo }
+                    if (decodedCommitment.hash === undefined) {
+                        // this is the global auth token
+                        globalAuthNft = nftData
+                    } else {
+                        // these are merchant-specific auth token
+                        merchantAuthNfts.push(nftData)
+                    }
+                }
+            }
+        })
+
+        // Use the globalAuthNft if it is ON
+        let authNft
+        let useGlobalAuthNft = globalAuthNft && globalAuthNft.decodedCommitment.authorized
+        
+        if (useGlobalAuthNft) {
+            authNft = globalAuthNft.utxo
+        } else {
+            const {hex: merchantHash} = encodeMerchantHash({
+                merchantId: merchant.id,
+                merchantPk: merchant.pubkey
+            })
+            const merchantAuthNft = merchantAuthNfts.find(nft => {
+                return nft.decodedCommitment.hash === merchantHash
+            })
+            authNft = merchantAuthNft ? merchantAuthNft.utxo : undefined
+        }
+
+        if (!authNft) {
+            throw new Error('No valid authentication NFT found for this merchant')
+        }
+
+        const inputs = [
+            authOwnershipToken,
+            authNft,
+            ...bchUtxos
+        ]
+
+        const encodedMerchantId = Buffer.from(merchant.id, 'utf8');
+        const outputs = [
+            {
+                to: toTokenAddress(contract.address),
+                amount: authOwnershipToken.satoshis,
+                token: authOwnershipToken.token // auth ownership token not mutated
+            },
+            {
+                to: toTokenAddress(contract.address),
+                amount: authNft.satoshis,
+                token: authNft.token // merchant auth token not mutated
+            },
+            {
+                to: recipient.address,
+                amount: recipient.amount
+            }
+            // change handled automatically
+        ]
+        
+        // const hardcodedFee = 1000n
+        const estimatedFee = this.estimateFee({
+            numInputs: inputs.length, // 3 (authOwnershipToken + globalAuthNft + merchantAuthToken) + bchUtxos
+            numOutputs: outputs.length + 1 // outputs + change
+        })
+
+        console.log(`Estimated fee: ${estimatedFee} satoshis`)
+        const tx = contract.functions
+            .spend(
+                encodedMerchantId,
+                merchantSig, 
+                merchantPk, 
+                backendSig,
+                backendPk
+            )
+            .from(inputs)
+            .to(outputs)
+
+        console.log('>>>> inputs:', inputs)
+        console.log('>>>> outputs:', outputs)
+
+        const builtHex = await tx.build()
+        console.log('[spend] Built transaction hex:', builtHex)
+
+        if (broadcast) {
+            const result = await this.broadcastTransaction(builtHex)
+            console.log('[spend] Broadcast result:', result)
+            return result
+        } else {
+            return { success: true, txHex: builtHex }
+        }
     }
 }
