@@ -88,7 +88,7 @@ import { useStore } from 'vuex'
 import { useQuasar } from 'quasar'
 import ago from 's-ago'
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
-import { PaymentHub } from 'src/wallet/payment-hub'
+import { PaymentHub } from 'src/wallet/payment-hub/index.js'
 import { loadWallet } from 'src/wallet'
 import InvoiceDetailDialog from './InvoiceDetailDialog.vue'
 

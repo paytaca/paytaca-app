@@ -166,7 +166,7 @@
 import { ref, computed, onMounted } from 'vue'
 import { useStore } from 'vuex'
 import { useRouter } from 'vue-router'
-import { useQuasar, copyToClipboard } from 'quasar'
+import { useQuasar } from 'quasar'
 import { useI18n } from 'vue-i18n'
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 import HeaderNav from 'src/components/header-nav'
@@ -177,9 +177,7 @@ import { PaymentHub } from 'src/wallet/payment-hub'
 import { loadWallet } from 'src/wallet'
 
 // Add imports for subscription cancelling signing logic
-import { Contract, SignatureTemplate, ElectrumNetworkProvider, TransactionBuilder } from 'cashscript13'
-import { encodeCashAddress } from '@bitauth/libauth'
-import { getPkhash } from 'src/wallet/payment-hub-cashscript'
+import { createCancelSubscriptionTransaction } from 'src/wallet/payment-hub/services'
 
 const props = defineProps({
   plan: {
@@ -321,76 +319,14 @@ async function cancelSubscription(sub) {
     class: `br-15 pt-card-2 text-bow ${getDarkModeClass(darkMode.value)}`
   }).onOk(async () => {
     try {
-      $q.loading.show({ message: 'Fetching cancellation kit...' })
-      const kit = await hub.value.getSubscriptionCancelKit(sub.id)
-
-      if (!kit.inputs || kit.inputs.length === 0) {
-        throw new Error('No funds available to cancel. This subscription may have already been cancelled or drained.')
-      }
-
-      $q.loading.show({ message: 'Signing cancellation transaction...' })
-
-      const merchantPayload = getPkhash(sub.merchant_address)
-      const funderPayload = getPkhash(sub.funder_address)
-
-      const isChipnet = $store.getters['global/isChipnet']
-      const bchWallet = isChipnet ? wallet.value.BCH_CHIP : wallet.value.BCH
-
-      // 1. Fetch contract artifact
-      const artifactObj = await hub.value.getContractArtifact()
-      const provider = new ElectrumNetworkProvider(isChipnet ? 'chipnet' : 'mainnet')
-      const paytacaPayload = getPkhash(kit.paytaca_address)
-      const reversedCategoryHex = sub.category.match(/.{1,2}/g).reverse().join('')
-      const categoryBytes = new Uint8Array(reversedCategoryHex.match(/.{1,2}/g).map(byte => parseInt(byte, 16)))
-
-      const contract = new Contract(artifactObj, [
-        merchantPayload,
-        funderPayload,
-        paytacaPayload,
-        BigInt(sub.max_fee),
-        BigInt(sub.max_pledge || sub.pledge_satoshis), // fallback to pledge_satoshis if max_pledge is undefined
-        BigInt(sub.min_period || sub.period_blocks),
-        BigInt(sub.max_period || sub.period_blocks),
-        categoryBytes,
-        BigInt(sub.contract_timestamp),
-        BigInt(sub.max_payments || 0)
-      ], { provider })
-
-      // 2. Fetch private key using the exact address index
-      const addressIndex = sub.funder_address_index
-      if (addressIndex == null) throw new Error('Funder address index not provided by backend')
-      const pathStr = `0/${addressIndex}`
-
-      const privKeyWif = await bchWallet.getPrivateKey(pathStr)
-      console.log("Funder Payload Target:", String(funderPayload))
-      console.log("Derived Path:", pathStr)
-      if (!privKeyWif) throw new Error('Could not derive private key for funder address')
-
-      // 3. Build & sign transaction
-      const sig = new SignatureTemplate(privKeyWif)
-      const toAddress = encodeCashAddress(
-        isChipnet ? 'bchtest' : 'bitcoincash',
-        'p2pkh',
-        getPkhash(kit.outputs[0].to)
-      )
-      const formattedInputs = kit.inputs.map(input => {
-        const formattedInput = {
-          ...input,
-          satoshis: BigInt(input.satoshis)
-        }
-        if (input.token) {
-          formattedInput.token = {
-            ...input.token,
-            amount: BigInt(input.token.amount)
-          }
-        }
-        return formattedInput
+      $q.loading.show({ message: 'Generating cancel transaction...' })
+      const rawTx = await createCancelSubscriptionTransaction({
+        hub: hub.value,
+        wallet: wallet.value,
+        isChipnet: $store.getters['global/isChipnet'],
+        isMerchant: false,
+        sub: sub,
       })
-      const txBuilder = new TransactionBuilder({ provider })
-      txBuilder.addInputs(formattedInputs, contract.unlock.reclaim(sig.getPublicKey(), sig))
-      txBuilder.addOutput({ to: toAddress, amount: BigInt(kit.outputs[0].satoshis) })
-
-      const rawTx = await txBuilder.build()
 
       // 4. Submit to Payment Hub
       $q.loading.show({ message: 'Submitting cancellation...' })
@@ -398,7 +334,6 @@ async function cancelSubscription(sub) {
 
       await refreshPage()
       $q.notify({ type: 'positive', message: $t('SubscriptionCancelled') || 'Subscription cancelled successfully' })
-
     } catch (error) {
       console.error(error)
       const errorMsg = error.response?.data?.error || error.message
