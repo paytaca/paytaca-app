@@ -1642,6 +1642,7 @@ export default {
             replyTo,
           })
           this.$store.commit('nostrChat/ADD_MESSAGE', { roomId, message })
+          this.$store.commit('nostrChat/TOUCH_ROOM_LAST_MESSAGE_AT', roomId)
           this.$store.dispatch('nostrChat/touchRoom', { roomId, timestamp: new Date().toISOString() })
           this.replyToMessage = null
           this.scrollToBottom()
@@ -1721,6 +1722,7 @@ export default {
           subject: name,
         })
         this.$store.commit('nostrChat/ADD_MESSAGE', { roomId, message })
+        this.$store.commit('nostrChat/TOUCH_ROOM_LAST_MESSAGE_AT', roomId)
         this.$store.dispatch('nostrChat/publishGiftWraps', { giftWraps })
         // Persist the new name on the relay so all members see it
         this.$store.dispatch('nostrChat/publishGroupMetadata', {
@@ -1965,6 +1967,7 @@ export default {
           text,
         })
         this.$store.commit('nostrChat/ADD_MESSAGE', { roomId, message })
+        this.$store.commit('nostrChat/TOUCH_ROOM_LAST_MESSAGE_AT', roomId)
         this.$store.dispatch('nostrChat/touchRoom', { roomId, timestamp: new Date().toISOString() })
         await this.$store.dispatch('nostrChat/publishGiftWraps', { giftWraps })
         this.$q.notify({

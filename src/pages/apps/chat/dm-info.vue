@@ -281,6 +281,7 @@ export default {
           subject,
         })
         this.$store.commit('nostrChat/ADD_MESSAGE', { roomId, message })
+        this.$store.commit('nostrChat/TOUCH_ROOM_LAST_MESSAGE_AT', roomId)
         await this.$store.dispatch('nostrChat/publishGiftWraps', { giftWraps })
         this.editingSubject = false
         this.$q.notify({

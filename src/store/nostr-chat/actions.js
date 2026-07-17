@@ -20,9 +20,19 @@ const _pendingReadReceipts = new Map()
 // scan every room and every message per receipt. Reset on wallet switch.
 const _messageRoomMap = new Map()
 
-function commitAddMessage (commit, roomId, message) {
+// Add a message to the store. When bumpIfNew is true and the message is
+// not already in the store (genuinely new), also set room.lastMessageAt
+// to wall-clock time so the conversation list re-sorts instantly.
+// bumpIfNew should be false for historical message loads.
+function commitAddMessage (commit, state, roomId, message, { bumpIfNew = true } = {}) {
+  const ws = getWalletState(state)
+  const existed = ws.messages?.[roomId]?.some(m => m.id === message.id)
   commit('ADD_MESSAGE', { roomId, message })
   if (message?.id) _messageRoomMap.set(message.id, roomId)
+  if (bumpIfNew && !existed) {
+    commit('TOUCH_ROOM_LAST_MESSAGE_AT', roomId)
+  }
+  return !existed
 }
 
 // Per-room debounce timers for touchRoom. During the initial relay sync,
@@ -778,7 +788,7 @@ export async function fetchHistoricalMessages ({ state, dispatch, commit }) {
         try {
           const { unwrapGiftWrap } = await import('src/wallet/nostr')
           const { rumor, sealPubkey } = unwrapGiftWrap(event, ws.keys.privKeyHex)
-          dispatch('receiveMessage', { rumor, sealPubkey })
+          dispatch('receiveMessage', { rumor, sealPubkey, isHistorical: true })
         } catch (err) {
           console.warn('[Nostr] Failed to unwrap historical gift-wrap:', err)
         }
@@ -1041,6 +1051,25 @@ export function sendTyping ({ state, getters }, { roomId, recipients }) {
   }
 }
 
+export function sendStopTyping ({ state, getters }, { roomId, recipients }) {
+  if (!roomId || !recipients?.length) return
+  const ws = getWalletState(state)
+  if (!ws.keys?.pubKeyHex) return
+  if (!_activeWs || _activeWs.readyState !== WebSocket.OPEN) return
+
+  if (!getters.getShowActiveStatus) return
+
+  try {
+    _activeWs.send(JSON.stringify({
+      type: 'stop_typing',
+      room_id: roomId,
+      recipients,
+    }))
+  } catch (err) {
+    debug('Failed to send stop_typing signal:', err)
+  }
+}
+
 function startPubkeyRegistrationHeartbeat (dispatch) {
   if (_heartbeatInterval) clearInterval(_heartbeatInterval)
   dispatch('registerNostrPubkey')
@@ -1103,6 +1132,9 @@ export async function startActiveWs ({ state, commit, rootGetters }) {
           } else if (msg.type === 'typing' && msg.pubkey_hex && msg.room_id) {
             commit('SET_TYPING', { roomId: msg.room_id, pubKeyHex: msg.pubkey_hex })
             scheduleTypingHide(commit, msg.pubkey_hex, msg.room_id)
+          } else if (msg.type === 'stop_typing' && msg.pubkey_hex && msg.room_id) {
+            commit('CLEAR_TYPING', { roomId: msg.room_id, pubKeyHex: msg.pubkey_hex })
+            clearTypingTimer(msg.pubkey_hex, msg.room_id)
           }
         } catch (e) {
           debug('Failed to parse WS message:', e)
@@ -1830,6 +1862,7 @@ export async function leaveGroup ({ commit, dispatch, state }, { roomId }) {
   const text = `${myDisplayName} left the group`
   const { giftWraps, message, roomId: msgRoomId } = await dispatch('sendMessage', { roomId, text })
   commit('ADD_MESSAGE', { roomId: msgRoomId, message })
+  commit('TOUCH_ROOM_LAST_MESSAGE_AT', msgRoomId)
   await dispatch('publishGiftWraps', { giftWraps })
 
   await dispatch('blockGroup', roomId)
@@ -1881,6 +1914,7 @@ export async function rejoinGroup ({ commit, dispatch, state }, { roomId }) {
     const text = `${myDisplayName} rejoined the group`
     const { giftWraps, message, roomId: msgRoomId } = await dispatch('sendMessage', { roomId, text })
     commit('ADD_MESSAGE', { roomId: msgRoomId, message })
+    commit('TOUCH_ROOM_LAST_MESSAGE_AT', msgRoomId)
     await dispatch('publishGiftWraps', { giftWraps })
   } catch (err) {
     console.warn('[Nostr] Failed to send rejoin notification:', err)
@@ -1912,10 +1946,6 @@ export async function updateRoomSubject ({ commit }, { roomId, subject }) {
 
 export async function touchRoom ({ dispatch }, { roomId, timestamp } = {}) {
   await touchRoomOnServer(roomId, timestamp)
-  // Re-fetch the room list from the server so ordering updates
-  // authoritatively — no local lastMessageAt mutation that would
-  // cause intermediate reordering.
-  debouncedRefetchRooms(dispatch)
 }
 
 export async function deleteRoom ({ commit }, roomId) {
@@ -2246,7 +2276,7 @@ export async function publishGiftWraps ({ state }, { giftWraps }) {
   await relayService.publish(Array.from(targetRelays), giftWraps)
 }
 
-export function receiveMessage ({ commit, dispatch, state }, { rumor, sealPubkey }) {
+export function receiveMessage ({ commit, dispatch, state }, { rumor, sealPubkey, isHistorical = false }) {
   const ws = getWalletState(state)
   if (!ws.keys?.pubKeyHex) return
 
@@ -2422,8 +2452,8 @@ export function receiveMessage ({ commit, dispatch, state }, { rumor, sealPubkey
       isFile: true,
     }
 
-    commitAddMessage(commit, roomId, message)
-    queueRoomTouch(dispatch, roomId, new Date(rumor.created_at * 1000).toISOString())
+    const isNew = commitAddMessage(commit, state, roomId, message, { bumpIfNew: !isHistorical })
+    if (!isHistorical && isNew) queueRoomTouch(dispatch, roomId, new Date().toISOString())
     return
   }
 
@@ -2479,9 +2509,9 @@ export function receiveMessage ({ commit, dispatch, state }, { rumor, sealPubkey
           replyTo,
           subject,
         }
-        commitAddMessage(commit, room.id, msg)
+        const isNew = commitAddMessage(commit, state, room.id, msg, { bumpIfNew: !isHistorical })
+        if (!isHistorical && isNew) queueRoomTouch(dispatch, room.id, new Date().toISOString())
       }
-      queueRoomTouch(dispatch, room.id, new Date(rumor.created_at * 1000).toISOString())
       return
     }
 
@@ -2525,8 +2555,8 @@ export function receiveMessage ({ commit, dispatch, state }, { rumor, sealPubkey
     }
     const subjectRaw = rumor.tags.find(t => t[0] === 'subject')?.[1]
     if (subjectRaw !== undefined) earlyMsg.subject = subjectRaw
-    commitAddMessage(commit, roomId, earlyMsg)
-    queueRoomTouch(dispatch, roomId, new Date(rumor.created_at * 1000).toISOString())
+    const isNew = commitAddMessage(commit, state, roomId, earlyMsg, { bumpIfNew: !isHistorical })
+    if (!isHistorical && isNew) queueRoomTouch(dispatch, roomId, new Date().toISOString())
     return
   }
 
@@ -2566,9 +2596,9 @@ export function receiveMessage ({ commit, dispatch, state }, { rumor, sealPubkey
   const subjectRaw = rumor.tags.find(t => t[0] === 'subject')?.[1]
   if (subjectRaw !== undefined) message.subject = subjectRaw
 
-  commitAddMessage(commit, roomId, message)
+  const isNew = commitAddMessage(commit, state, roomId, message, { bumpIfNew: !isHistorical })
 
-  queueRoomTouch(dispatch, roomId, new Date(rumor.created_at * 1000).toISOString())
+  if (!isHistorical && isNew) queueRoomTouch(dispatch, roomId, new Date().toISOString())
   // Flush any pending read receipts whose message has now arrived
   flushPendingReadReceipts(state, commit)
 }

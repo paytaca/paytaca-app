@@ -333,6 +333,7 @@ export default {
           subject: name,
         })
         this.$store.commit('nostrChat/ADD_MESSAGE', { roomId, message })
+        this.$store.commit('nostrChat/TOUCH_ROOM_LAST_MESSAGE_AT', roomId)
         await this.$store.dispatch('nostrChat/publishGiftWraps', { giftWraps })
         // Persist the new name on the relay so all members see it
         this.$store.dispatch('nostrChat/publishGroupMetadata', {

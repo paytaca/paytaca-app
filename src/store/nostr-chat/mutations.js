@@ -239,7 +239,19 @@ export function SET_BLOCKED_GROUPS (state, roomIds) {
 
 export function SET_ROOMS (state, rooms) {
   const ws = getOrInitWalletState(state)
-  if (ws) ws.rooms = rooms
+  if (!ws) return
+  // Preserve local lastMessageAt — once set by TOUCH_ROOM_LAST_MESSAGE_AT
+  // (wall-clock time) or a previous server fetch, never overwrite it with
+  // a server value. Server data is only used as fallback for rooms that
+  // have never been loaded.
+  const localMap = new Map((ws.rooms || []).map(r => [r.id, r]))
+  ws.rooms = rooms.map(sr => {
+    const lr = localMap.get(sr.id)
+    if (lr?.lastMessageAt) {
+      return { ...sr, lastMessageAt: lr.lastMessageAt }
+    }
+    return sr
+  })
 }
 
 // ---- Per-wallet message mutations ----
@@ -257,11 +269,20 @@ export function ADD_MESSAGE (state, { roomId, message }) {
     while (i > 0 && arr[i - 1].created_at > message.created_at) i--
     arr.splice(i, 0, message)
   }
-  // Update the room's lastMessageAt so the conversation list re-sorts
-  // immediately without waiting for the server round-trip.
+}
+
+// Set room.lastMessageAt to wall-clock time for instant list re-sorting.
+// Called only when a genuinely new message is sent or received live —
+// never for historical messages or replayed duplicates.
+export function TOUCH_ROOM_LAST_MESSAGE_AT (state, roomId) {
+  const ws = getOrInitWalletState(state)
+  if (!ws) return
   const room = ws.rooms?.find(r => r.id === roomId)
-  if (room && message.created_at > (room.lastMessageAt || 0)) {
-    room.lastMessageAt = message.created_at
+  if (room) {
+    const now = Math.floor(Date.now() / 1000)
+    if (now > (room.lastMessageAt || 0)) {
+      room.lastMessageAt = now
+    }
   }
 }
 

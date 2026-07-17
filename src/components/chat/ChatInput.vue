@@ -213,12 +213,15 @@ export default {
   watch: {
     text (newVal) {
       if (!this.roomId || this.disabled || this.blocked) return
-      if (!newVal) return
       const myPubKey = this.$store.getters['nostrChat/myPubKey']
       const room = this.$store.getters['nostrChat/getRoom'](this.roomId)
       if (!myPubKey || !room?.members) return
       const recipients = room.members.filter(m => m !== myPubKey)
       if (!recipients.length) return
+      if (!newVal) {
+        this.$store.dispatch('nostrChat/sendStopTyping', { roomId: this.roomId, recipients })
+        return
+      }
       this.$store.dispatch('nostrChat/sendTyping', { roomId: this.roomId, recipients })
     },
   },
@@ -361,6 +364,7 @@ export default {
           cacheVideoBlob(message.id, localUrl)
         }
         this.$store.commit('nostrChat/ADD_MESSAGE', { roomId: this.roomId, message })
+        this.$store.commit('nostrChat/TOUCH_ROOM_LAST_MESSAGE_AT', this.roomId)
         this.$store.dispatch('nostrChat/touchRoom', { roomId: this.roomId, timestamp: new Date().toISOString() })
         await this.$store.dispatch('nostrChat/publishGiftWraps', { giftWraps })
         const myPubKey = this.$store.getters['nostrChat/myPubKey']
