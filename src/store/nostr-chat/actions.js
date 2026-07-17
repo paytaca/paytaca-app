@@ -2804,6 +2804,12 @@ export function ensureSubscribed ({ dispatch, getters }) {
   // the returned promise so callers can rely on full setup completion.
   return dispatch('registerNostrPubkey').then(() => {
 
+  // Refresh room list on every activation so the list populates even
+  // if the initial fetchRooms failed (e.g. server not ready yet).
+  dispatch('fetchRooms').catch(() => {}).then(() => {
+    dispatch('seedRoomsFromMessages').catch(() => {})
+  })
+
   // Skip if already subscribed and not stale
   if (relayService.isSubscribed() && getters['isInitialized'] && getters['myPrivKey']) return
 
