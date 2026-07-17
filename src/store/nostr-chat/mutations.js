@@ -256,8 +256,12 @@ export function ADD_MESSAGE (state, { roomId, message }) {
     let i = arr.length
     while (i > 0 && arr[i - 1].created_at > message.created_at) i--
     arr.splice(i, 0, message)
-    // Note: room.updatedAt is NOT updated here — the room list ordering
-    // is driven by lastMessageAt from the server, not by local messages.
+  }
+  // Update the room's lastMessageAt so the conversation list re-sorts
+  // immediately without waiting for the server round-trip.
+  const room = ws.rooms?.find(r => r.id === roomId)
+  if (room && message.created_at > (room.lastMessageAt || 0)) {
+    room.lastMessageAt = message.created_at
   }
 }
 
