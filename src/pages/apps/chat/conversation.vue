@@ -653,7 +653,7 @@ export default {
     },
     otherMemberAvatarUrl () {
       if (this.isGroupRoom || !this.otherMemberPubKey) return null
-      return this.otherMemberAvatar || getCachedAvatar(this.otherMemberPubKey)
+      return this.otherMemberAvatar || null
     },
     isUnknownContact () {
       return this.otherMemberPubKey && !this.otherMemberContact
@@ -859,14 +859,15 @@ export default {
   },
   watch: {
     otherMemberPubKey: {
-      handler (pubKey) {
+      async handler (pubKey) {
         if (!pubKey || this.isGroupRoom) return
         // Show cached values immediately for fast rendering
         const walletHash = this.$store.getters['global/getWallet']('bch')?.walletHash
         const walletState = walletHash ? this.$store.state.nostrChat?.byWallet?.[walletHash] : null
         const cachedName = walletState?.displayNameCache?.[pubKey]?.displayName
         if (cachedName) this.fetchedDisplayName = cachedName
-        this.otherMemberAvatar = getCachedAvatar(pubKey) || walletState?.avatarCache?.[pubKey]?.avatar || null
+        const cachedUrl = await getCachedAvatar(pubKey)
+        this.otherMemberAvatar = cachedUrl || walletState?.avatarCache?.[pubKey]?.avatar || null
         // Force-refresh from relays on conversation open to pick up any updates
         this.$store.dispatch('nostrChat/fetchPublishedDisplayName', { pubKeyHex: pubKey, forceRefresh: true })
           .then(displayName => {

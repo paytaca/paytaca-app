@@ -152,7 +152,7 @@ export default {
       return map
     },
   },
-  created () {
+  async created () {
     const walletHash = this.$store.getters['global/getWallet']('bch')?.walletHash
     const walletState = walletHash ? this.$store.state.nostrChat?.byWallet?.[walletHash] : null
     const nameCache = walletState?.displayNameCache || {}
@@ -165,7 +165,8 @@ export default {
       const otherPubKey = room.members?.find(m => m !== this.myPubKey)
       if (!otherPubKey) continue
 
-      const url = getCachedAvatar(otherPubKey) || avatarStoreCache[otherPubKey]?.avatar || null
+      const cachedUrl = await getCachedAvatar(otherPubKey)
+      const url = cachedUrl || avatarStoreCache[otherPubKey]?.avatar || null
       if (url) avatars[otherPubKey] = url
 
       const cachedName = nameCache[otherPubKey]?.displayName
@@ -174,8 +175,8 @@ export default {
     this.dmAvatars = avatars
     this.dmDisplayNames = names
   },
-  mounted () {
-    this.fetchDmAvatars()
+  async mounted () {
+    await this.fetchDmAvatars()
   },
   watch: {
     rooms: {
@@ -356,6 +357,11 @@ export default {
       }
       for (const pubKeyHex of avatarsToFetch) {
         try {
+          const cachedUrl = await getCachedAvatar(pubKeyHex)
+          if (cachedUrl) {
+            this.dmAvatars = { ...this.dmAvatars, [pubKeyHex]: cachedUrl }
+            continue
+          }
           const avatar = await this.$store.dispatch('nostrChat/fetchPublishedAvatar', { pubKeyHex })
           if (avatar) {
             setCachedAvatar(pubKeyHex, avatar)
