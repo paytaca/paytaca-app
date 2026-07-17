@@ -585,6 +585,10 @@ export default {
     backPath: {
       type: String,
       default: null
+    },
+    chatRoomId: {
+      type: String,
+      default: null
     }
   },
 
@@ -1503,7 +1507,9 @@ export default {
       // Show send success only for consolidation (own-wallet) sends; otherwise go to transaction detail.
       const isConsolidation = await this.checkConsolidationViaAddressInfo()
 
-      if (isConsolidation) {
+      if (this.chatRoomId) {
+        this.redirectToChatAfterTip(txid)
+      } else if (isConsolidation) {
         this.showSendSuccess()
       } else {
         // Redirect to transaction detail with state so it can show tx before watchtower indexes
@@ -2162,7 +2168,9 @@ export default {
             // Show send success only for consolidation; otherwise go to transaction detail.
             const isConsolidation = await vm.checkConsolidationViaAddressInfo()
 
-            if (isConsolidation) {
+            if (vm.chatRoomId) {
+              vm.redirectToChatAfterTip(txId)
+            } else if (isConsolidation) {
               vm.showSendSuccess()
             } else {
               // Redirect to transaction detail with state so it can show tx before watchtower indexes
@@ -2545,6 +2553,11 @@ export default {
       )
     },
 
+    redirectToChatAfterTip (txid) {
+      const symbol = this.asset?.symbol || this.symbol || 'BCH'
+      const amount = this.totalAmountSent
+      this.$router.replace(`/apps/chat/${this.chatRoomId}?tipTxid=${txid}&tipAmount=${amount}&tipSymbol=${symbol}`)
+    },
     /**
      * Show send success page for consolidation transactions.
      * Persists state so it survives background / app lock / process recreation.
@@ -2564,7 +2577,9 @@ export default {
 
         // Show send success immediately (don't wait for points API)
         const isConsolidation = await vm.checkConsolidationViaAddressInfo()
-        if (isConsolidation) {
+        if (vm.chatRoomId) {
+          vm.redirectToChatAfterTip(result.txid)
+        } else if (isConsolidation) {
           vm.showSendSuccess()
         } else {
           // Redirect to transaction detail with state so it can show tx before watchtower indexes
@@ -3168,9 +3183,11 @@ export default {
   created () {
     const vm = this
 
-    if (vm.assetId && vm.amount && vm.recipient) {
-      vm.recipients[0].amount = vm.amount
-      vm.recipients[0].fixedAmount = vm.fixed
+    if (vm.assetId && vm.recipient) {
+      if (vm.amount) {
+        vm.recipients[0].amount = vm.amount
+        vm.recipients[0].fixedAmount = vm.fixed
+      }
       vm.recipients[0].recipientAddress = vm.recipient
       vm.scanner.show = false
       vm.sliderStatus = true

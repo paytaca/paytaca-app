@@ -539,17 +539,6 @@
       </q-list>
     </q-menu>
 
-    <!-- Send BCH Dialog -->
-    <send-bch-dialog
-      v-if="showSendDialog"
-      :command="sendCommand"
-      :amount="sendAmount"
-      :recipient-pub-key="sendRecipientPubKey"
-      :recipient-name="getSendRecipientName()"
-      :pre-filled-address="sendPreFilledAddress"
-      @ok="onSendSuccess"
-      @cancel="onSendCancel"
-    />
   </div>
 </template>
 
@@ -559,14 +548,13 @@ import { parseMessageMarkup } from 'src/utils/chat-markup'
 import HeaderNav from 'src/components/header-nav.vue'
 import MessageBubble from 'src/components/chat/MessageBubble.vue'
 import ChatInput from 'src/components/chat/ChatInput.vue'
-import SendBchDialog from 'src/components/chat/SendBchDialog.vue'
 import { npubEncode } from 'nostr-tools/nip19'
 import { getCachedAvatar, setCachedAvatar } from 'src/utils/avatar-cache'
 import { ACTIVE_THRESHOLD_MS } from 'src/store/nostr-chat/state'
 
 export default {
   name: 'ChatConversation',
-  components: { HeaderNav, MessageBubble, ChatInput, SendBchDialog },
+  components: { HeaderNav, MessageBubble, ChatInput },
   props: {
     roomId: { type: String, required: true },
   },
@@ -582,11 +570,7 @@ export default {
       renameContactName: '',
       showRenameGroupDialog: false,
       renameGroupName: '',
-      showSendDialog: false,
-      sendCommand: 'send',
-      sendAmount: 0,
-      sendRecipientPubKey: '',
-      sendPreFilledAddress: '',
+
       inputFocused: false,
       replyToMessage: null,
       editingMessage: null,
@@ -1017,6 +1001,7 @@ export default {
     },
   },
   mounted () {
+    this.handleTipResult()
     if (this.room) {
       this._loadingRoom = false
     }
@@ -1623,11 +1608,7 @@ export default {
         this.$q.notify({ type: 'negative', message: this.$t('NoRecipientFound'), timeout: 5000, closeBtn: true })
         return
       }
-      this.sendAmount = 0
-      this.sendRecipientPubKey = recipientPubKey
-      this.sendPreFilledAddress = ''
-      this.sendCommand = 'tip'
-      this.showSendDialog = true
+      this.sendTipNavigate(recipientPubKey, 0)
     },
     async onSend (text) {
       if (!this.room) return
@@ -1964,17 +1945,34 @@ export default {
         })
       }
     },
-    openSendDialog ({ amount, recipientPubKey }) {
-      this.sendAmount = amount
-      this.sendRecipientPubKey = recipientPubKey
-      this.showSendDialog = true
+    handleTipResult () {
+      const { tipTxid, tipAmount, tipSymbol } = this.$route.query
+      if (!tipTxid || !tipAmount) return
+      const query = { ...this.$route.query }
+      delete query.tipTxid
+      delete query.tipAmount
+      delete query.tipSymbol
+      this.$router.replace({ query })
+      this.$nextTick(() => this.sendTipConfirmationMessage(tipTxid, parseFloat(tipAmount), tipSymbol || 'BCH'))
     },
-    onSendCancel () {
-      this.showSendDialog = false
-    },
-    getSendRecipientName () {
-      const contact = this.contacts.find(c => c.pubKeyHex === this.sendRecipientPubKey)
-      return contact?.name || ''
+    async sendTipConfirmationMessage (txid, amount, symbol) {
+      if (!this.room || !txid) return
+      try {
+        const text = `Sent ${amount} ${symbol} [/*t:payment,a:${amount},s:${symbol},x:${txid}*/]`
+        const { giftWraps, message, roomId } = await this.$store.dispatch('nostrChat/sendMessage', {
+          roomId: this.roomId,
+          text,
+        })
+        this.$store.commit('nostrChat/ADD_MESSAGE', { roomId, message })
+        this.$store.dispatch('nostrChat/touchRoom', { roomId, timestamp: new Date().toISOString() })
+        await this.$store.dispatch('nostrChat/publishGiftWraps', { giftWraps })
+        this.$q.notify({
+          type: 'positive',
+          message: this.$t('BchSentSuccess', { amount, txid: txid?.slice(0, 12) }, `Successfully sent ${amount} ${symbol}`),
+        })
+      } catch (err) {
+        console.error('[Conversation] Failed to send tip confirmation:', err)
+      }
     },
     async onCommand ({ type, amount, currency, originalText }) {
       if (type !== 'send') return
@@ -1985,10 +1983,9 @@ export default {
       }
 
       const currencyUpper = (currency || 'BCH').toUpperCase()
-      const commandType = originalText?.trim().startsWith('/tip') ? 'tip' : 'send'
 
       if (currencyUpper === 'BCH') {
-        await this.handleBchSend(amount, originalText, commandType)
+        await this.sendTipNavigate(this.otherMemberPubKey, amount, originalText)
       } else {
         this.$q.notify({
           type: 'info',
@@ -1999,11 +1996,10 @@ export default {
         this.$refs.chatInput?.setText(originalText)
       }
     },
-    async handleBchSend (amount, originalText, commandType = 'send') {
-      const recipientPubKey = this.otherMemberPubKey
+    async sendTipNavigate (recipientPubKey, amount, originalText = null) {
       if (!recipientPubKey) {
         this.$q.notify({ type: 'negative', message: this.$t('NoRecipientFound'), timeout: 5000, closeBtn: true })
-        this.$refs.chatInput?.setText(originalText)
+        if (originalText) this.$refs.chatInput?.setText(originalText)
         return
       }
 
@@ -2018,45 +2014,11 @@ export default {
       }
       this.$q.loading.hide()
 
-      if (!address) {
-        this.$q.notify({
-          type: 'warning',
-          message: this.$t('NoPublishedBCHAddress', {}, 'Recipient has not published a BCH address — paste it manually below'),
-          timeout: 5000,
-          closeBtn: true,
-        })
-      }
+      const query = { assetId: 'bch', chatRoomId: this.roomId, backPath: `/apps/chat/${this.roomId}` }
+      if (address) query.recipient = address
+      if (amount > 0) query.amount = amount
 
-      this.sendAmount = amount || 0
-      this.sendRecipientPubKey = recipientPubKey
-      this.sendPreFilledAddress = address || ''
-      this.sendCommand = commandType
-      this.showSendDialog = true
-    },
-    async onSendSuccess ({ txid, amount, symbol, recipient }) {
-      this.showSendDialog = false
-      this.sendPreFilledAddress = ''
-      const assetSymbol = symbol || 'BCH'
-      this.$q.notify({
-        type: 'positive',
-        message: this.$t('BchSentSuccess', { amount, txid: txid?.slice(0, 12) }, `Successfully sent ${amount} ${assetSymbol}`),
-      })
-
-      // Send confirmation message in chat with embedded markup
-      if (this.room && txid) {
-        try {
-          const text = `Sent ${amount} ${assetSymbol} [/*t:payment,a:${amount},s:${assetSymbol},x:${txid}*/]`
-          const { giftWraps, message, roomId } = await this.$store.dispatch('nostrChat/sendMessage', {
-            roomId: this.roomId,
-            text,
-          })
-          this.$store.commit('nostrChat/ADD_MESSAGE', { roomId, message })
-          this.$store.dispatch('nostrChat/touchRoom', { roomId, timestamp: new Date().toISOString() })
-          await this.$store.dispatch('nostrChat/publishGiftWraps', { giftWraps })
-        } catch (err) {
-          console.error('[Conversation] Failed to send confirmation message:', err)
-        }
-      }
+      this.$router.push({ name: 'transaction-send', query })
     },
   },
 }
