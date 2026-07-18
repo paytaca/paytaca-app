@@ -3209,7 +3209,14 @@ export default {
         vm.recipients[0].amount = vm.amount
         vm.recipients[0].fixedAmount = vm.fixed
       }
-      vm.recipients[0].recipientAddress = vm.recipient
+
+      if (vm.assetId?.startsWith?.('ct/')) {
+        const addressObj = new Address(vm.recipient)
+        vm.recipients[0].recipientAddress = toTokenAddress(addressObj.toCashAddress(vm.recipient))
+      } else {
+        vm.recipients[0].recipientAddress = vm.recipient
+      }
+
       vm.scanner.show = false
       vm.sliderStatus = true
     }
