@@ -114,7 +114,8 @@
           @click="openTransactionDetail"
         >
           <div class="payment-amount-row">
-            <q-icon :name="markup.logo ? `img:${markup.logo}` : 'img:bitcoin-cash-circle.svg'" size="22px" />
+            <img v-if="markup.logo" :src="tokenLogoUrl" class="payment-token-logo" />
+            <q-icon v-else name="img:bitcoin-cash-circle.svg" size="22px" />
             <span class="payment-amount">{{ markup.amount }} {{ markup.symbol || 'BCH' }}</span>
           </div>
           <div v-if="markup.txid" class="payment-txid">
@@ -532,6 +533,14 @@ export default {
     },
     markup () {
       return this.parsed.markup
+    },
+    tokenLogoUrl () {
+      if (!this.markup?.logo) return ''
+      const url = this.markup.logo
+      if (url.startsWith('https://ipfs.paytaca.com/ipfs')) {
+        return url + '?pinataGatewayToken=' + process.env.PINATA_GATEWAY_TOKEN
+      }
+      return url
     },
     groupedReactions () {
       const groups = {}
@@ -1704,6 +1713,13 @@ export default {
   display: flex;
   align-items: center;
   gap: 8px;
+}
+
+.payment-token-logo {
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  object-fit: cover;
 }
 
 .payment-amount {
