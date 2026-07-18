@@ -33,6 +33,7 @@ const KEY_MAP = {
   a: 'amount',
   x: 'txid',
   s: 'symbol',
+  l: 'logo',
 }
 
 /**

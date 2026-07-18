@@ -1949,19 +1949,22 @@ export default {
       }
     },
     handleTipResult () {
-      const { tipTxid, tipAmount, tipSymbol } = this.$route.query
+      const { tipTxid, tipAmount, tipSymbol, tipLogo } = this.$route.query
       if (!tipTxid || !tipAmount) return
       const query = { ...this.$route.query }
       delete query.tipTxid
       delete query.tipAmount
       delete query.tipSymbol
+      delete query.tipLogo
       this.$router.replace({ query })
-      this.$nextTick(() => this.sendTipConfirmationMessage(tipTxid, parseFloat(tipAmount), tipSymbol || 'BCH'))
+      this.$nextTick(() => this.sendTipConfirmationMessage(tipTxid, parseFloat(tipAmount), tipSymbol || 'BCH', tipLogo || ''))
     },
-    async sendTipConfirmationMessage (txid, amount, symbol) {
+    async sendTipConfirmationMessage (txid, amount, symbol, logo) {
       if (!this.room || !txid) return
       try {
-        const text = `Sent ${amount} ${symbol} [/*t:payment,a:${amount},s:${symbol},x:${txid}*/]`
+        let markup = `t:payment,a:${amount},s:${symbol},x:${txid}`
+        if (logo) markup += `,l:${logo}`
+        const text = `Sent ${amount} ${symbol} [/*${markup}*/]`
         const { giftWraps, message, roomId } = await this.$store.dispatch('nostrChat/sendMessage', {
           roomId: this.roomId,
           text,

@@ -114,7 +114,7 @@
           @click="openTransactionDetail"
         >
           <div class="payment-amount-row">
-            <q-icon name="img:bitcoin-cash-circle.svg" size="22px" />
+            <q-icon :name="markup.logo ? `img:${markup.logo}` : 'img:bitcoin-cash-circle.svg'" size="22px" />
             <span class="payment-amount">{{ markup.amount }} {{ markup.symbol || 'BCH' }}</span>
           </div>
           <div v-if="markup.txid" class="payment-txid">

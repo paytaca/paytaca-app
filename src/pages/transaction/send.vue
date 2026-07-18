@@ -2561,7 +2561,10 @@ export default {
     redirectToChatAfterTip (txid) {
       const symbol = this.asset?.symbol || this.symbol || 'BCH'
       const amount = this.totalAmountSent
-      this.$router.replace(`/apps/chat/${this.chatRoomId}?tipTxid=${txid}&tipAmount=${amount}&tipSymbol=${symbol}`)
+      const logo = this.asset?.logo || ''
+      let url = `/apps/chat/${this.chatRoomId}?tipTxid=${txid}&tipAmount=${amount}&tipSymbol=${symbol}`
+      if (logo) url += `&tipLogo=${encodeURIComponent(logo)}`
+      this.$router.replace(url)
     },
     /**
      * Show send success page for consolidation transactions.
