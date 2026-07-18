@@ -284,8 +284,18 @@ export function validateAddress (address, walletType, isCashToken) {
 
         new Address(address).toCashAddress()
       } else {
-        addressIsValid = isTokenAddress(address.split('?c=')[0])
-        formattedAddress = address
+        addressIsValid = true
+
+        if (isTokenAddress(address.split('?c=')[0])) {
+          formattedAddress = address
+        } else if (
+          (addressObj.isLegacyAddress() || addressObj.isCashAddress()) &&
+          addressObj.isValidBCHAddress(isChipnet)
+        ) {
+          formattedAddress = addressObj.toCashAddress(address)
+        }
+
+        new Address(address).toCashAddress()
       }
     }
     if (walletType === 'slp') {
