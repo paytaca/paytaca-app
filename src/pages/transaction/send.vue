@@ -1621,7 +1621,12 @@ export default {
       this.currentWalletBalances = currentWalletBalances;
       this.currentRecipientIndex = 0
       this.expandedItems = { R1: true }
-      this.updateCauldronAndRemainingBalance()
+      if (currentInputExtras.cauldron.enable) {
+        this.prepareCauldronTrade()
+        this.adjustWalletBalance()
+      } else {
+        this.updateCauldronAndRemainingBalance()
+      }
       this.sliderStatus = true
     },
 
@@ -3156,6 +3161,22 @@ export default {
       const container = document.querySelector('.send-form-container')
       if (container) {
         container.addEventListener('scroll', this.handleScroll)
+      }
+
+      // Auto-focus the amount input and show custom keyboard when recipient is pre-filled
+      if (vm.recipient && vm.assetId) {
+        this.$nextTick(() => {
+          const sendPageForm = this.$refs.sendPageRef?.[0]
+          if (!sendPageForm) return
+          const field = vm.assetId === 'bch' ? 'fiat' : 'bch'
+          const inputRef = field === 'fiat' ? sendPageForm.$refs.fiatInput : sendPageForm.$refs.amountInput
+          if (inputRef && inputRef.focus) {
+            inputRef.focus()
+            this.focusedInputField = field
+            this.customKeyboardState = 'show'
+            sendPageUtils.addRemoveInputFocus(0, field)
+          }
+        })
       }
     })
   },

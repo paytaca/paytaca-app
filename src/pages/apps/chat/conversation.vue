@@ -2018,11 +2018,11 @@ export default {
       }
       this.$q.loading.hide()
 
-      const query = { assetId: 'bch', chatRoomId: this.roomId, backPath: `/apps/chat/${this.roomId}` }
-      if (address) query.recipient = address
+      const query = { chatRoomId: this.roomId, backPath: `/apps/chat/${this.roomId}` }
+      if (address) query.address = address
       if (amount > 0) query.amount = amount
 
-      this.$router.push({ name: 'transaction-send', query })
+      this.$router.push({ name: 'transaction-send-select-asset', query })
     },
   },
 }
