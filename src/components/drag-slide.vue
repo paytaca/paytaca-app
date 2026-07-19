@@ -18,13 +18,13 @@
             </div>
           </template>
 
-          <q-item :class="[disable ? 'bg-grey-5' : 'bg-grad', 'text-white q-py-md']">
+          <q-item :class="[disable ? 'drag-slide-disabled' : 'bg-grad', 'text-white q-py-md']">
             <q-item-section avatar>
-              <q-icon v-if="disable" name="lock" size="sm" class="bg-grey-7 q-pa-sm" style="border-radius: 50%" />
+              <q-icon v-if="disable" name="lock" size="sm" class="drag-slide-disabled-icon q-pa-sm" style="border-radius: 50%" />
               <q-icon v-else name="mdi-chevron-double-right" size="xl" class="bg-blue" style="border-radius: 50%" />
             </q-item-section>
             <q-item-section class="text-right">
-              <h5 :class="disable ? 'text-grey-3' : 'text-grey-4'" class="q-my-sm text-uppercase" style="font-size: clamp(14px, 3.5vw, 18px);">{{ sliderText }}</h5>
+              <h5 :class="disable ? 'text-grey-4' : 'text-grey-4'" class="q-my-sm text-uppercase" style="font-size: clamp(14px, 3.5vw, 18px);">{{ sliderText }}</h5>
             </q-item-section>
           </q-item>
         </q-slide-item>
@@ -109,6 +109,28 @@ export default {
       z-index: -1;
     }
   }
+}
+
+.drag-slide-disabled {
+  background: rgba(128, 128, 128, 0.25) !important;
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  box-shadow: 0 2px 12px 0 rgba(128, 128, 128, 0.08);
+}
+
+.drag-slide-disabled-icon {
+  background: rgba(128, 128, 128, 0.45) !important;
+}
+
+/* Dark mode disabled */
+body.body--dark .drag-slide-disabled {
+  background: rgba(128, 128, 128, 0.2) !important;
+  border-color: rgba(255, 255, 255, 0.08);
+}
+
+body.body--dark .drag-slide-disabled-icon {
+  background: rgba(128, 128, 128, 0.35) !important;
 }
 
 /* Dark mode background */
