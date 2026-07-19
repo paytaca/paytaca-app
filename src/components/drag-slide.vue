@@ -20,8 +20,10 @@
 
           <q-item :class="[disable ? 'drag-slide-disabled' : 'bg-grad', 'text-white q-py-md']">
             <q-item-section avatar>
-              <q-icon v-if="disable" name="lock" size="sm" class="drag-slide-disabled-icon q-pa-sm" style="border-radius: 50%" />
-              <q-icon v-else name="mdi-chevron-double-right" size="xl" class="bg-blue" style="border-radius: 50%" />
+              <Transition name="icon-swap" mode="out-in">
+                <q-icon v-if="disable" key="lock" name="lock" size="sm" class="drag-slide-disabled-icon q-pa-sm" style="border-radius: 50%" />
+                <q-icon v-else key="arrow" name="mdi-chevron-double-right" size="xl" class="bg-blue icon-arrow-hint" style="border-radius: 50%" />
+              </Transition>
             </q-item-section>
             <q-item-section class="text-right">
               <h5 :class="disable ? 'text-grey-4' : 'text-grey-4'" class="q-my-sm text-uppercase" style="font-size: clamp(14px, 3.5vw, 18px);">{{ sliderText }}</h5>
@@ -131,6 +133,54 @@ body.body--dark .drag-slide-disabled {
 
 body.body--dark .drag-slide-disabled-icon {
   background: rgba(128, 128, 128, 0.35) !important;
+}
+
+/* Lock → Arrow transition */
+.icon-swap-leave-active {
+  transition: all 180ms cubic-bezier(0.25, 1, 0.5, 1);
+}
+.icon-swap-leave-to {
+  opacity: 0;
+  transform: translateY(-6px) scale(0.9);
+}
+.icon-swap-enter-active {
+  transition: all 220ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+.icon-swap-enter-from {
+  opacity: 0;
+  transform: translateY(8px) scale(0.9);
+}
+
+/* Arrow pulse + sway hint */
+@keyframes arrow-hint {
+  0%, 100% {
+    transform: translateX(0) scale(1);
+  }
+  40% {
+    transform: translateX(5px) scale(1.12);
+  }
+  60% {
+    transform: translateX(5px) scale(1.12);
+  }
+}
+.icon-arrow-hint {
+  animation: arrow-hint 1.6s ease-in-out infinite;
+  animation-delay: 300ms;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .icon-swap-leave-active,
+  .icon-swap-enter-active {
+    transition: none;
+  }
+  .icon-swap-leave-to,
+  .icon-swap-enter-from {
+    opacity: 1;
+    transform: none;
+  }
+  .icon-arrow-hint {
+    animation: none;
+  }
 }
 
 /* Dark mode background */
