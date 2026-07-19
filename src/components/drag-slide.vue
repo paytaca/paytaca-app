@@ -165,7 +165,7 @@ body.body--dark .drag-slide-disabled-icon {
   animation-delay: 300ms;
 }
 
-/* Shimmer sweep on enabled slide */
+/* Shimmer sweep — arrow-shaped highlight */
 .bg-grad {
   position: relative;
   overflow: hidden;
@@ -178,15 +178,16 @@ body.body--dark .drag-slide-disabled-icon {
   left: 0;
   width: 55%;
   height: 100%;
-  background: linear-gradient(90deg, transparent, rgba(255,255,255,0.13), transparent);
+  background: linear-gradient(90deg, transparent, rgba(255,255,255,0.12), rgba(255,255,255,0.15), transparent);
+  clip-path: polygon(0% 0%, 65% 0%, 100% 50%, 65% 100%, 0% 100%, 25% 50%);
   transform: translateX(-100%);
   animation: shimmer-sweep 2.8s ease-in-out infinite;
   pointer-events: none;
 }
 @keyframes shimmer-sweep {
   0% { transform: translateX(-100%); }
-  45% { transform: translateX(180%); }
-  100% { transform: translateX(180%); }
+  45% { transform: translateX(160%); }
+  100% { transform: translateX(160%); }
 }
 
 @media (prefers-reduced-motion: reduce) {
