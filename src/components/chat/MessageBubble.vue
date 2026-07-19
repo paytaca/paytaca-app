@@ -1220,9 +1220,8 @@ export default {
   font-size: 15px;
   white-space: pre-wrap;
   word-break: break-word;
-  -webkit-user-select: none;
-  user-select: none;
-  -webkit-touch-callout: none;
+  -webkit-user-select: text;
+  user-select: text;
 }
 
 .message-reactions {

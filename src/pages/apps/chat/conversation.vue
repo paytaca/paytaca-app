@@ -492,14 +492,6 @@
     <!-- Message context menu -->
     <q-menu ref="contextMenu" touch-position no-parent-event class="text-bow" :class="getDarkModeClass(darkMode)">
       <q-list style="min-width: 150px">
-        <q-item clickable v-close-popup @click.stop="setReply(contextMessage)" @pointerdown.stop.prevent="menuPointerDown('reply', $event)">
-          <q-item-section avatar>
-            <q-icon name="reply" size="20px" />
-          </q-item-section>
-          <q-item-section>
-            <q-item-label>{{ $t('Reply', {}, 'Reply') }}</q-item-label>
-          </q-item-section>
-        </q-item>
         <q-item clickable v-close-popup @click.stop="copyMessage(contextMessage)" @pointerdown.stop.prevent="menuPointerDown('copy', $event)">
           <q-item-section avatar>
             <q-icon name="content_copy" size="20px" />
@@ -508,42 +500,52 @@
             <q-item-label>{{ $t('Copy', {}, 'Copy') }}</q-item-label>
           </q-item-section>
         </q-item>
-        <q-item
-          v-if="contextMessage?.sender === myPubKey && canEditMessage(contextMessage)"
-          clickable
-          v-close-popup
-          @click.stop="setEdit(contextMessage)"
-          @pointerdown.stop.prevent="menuPointerDown('edit', $event)"
-        >
-          <q-item-section avatar>
-            <q-icon name="edit" size="20px" />
-          </q-item-section>
-          <q-item-section>
-            <q-item-label>{{ $t('Edit', {}, 'Edit') }}</q-item-label>
-          </q-item-section>
-        </q-item>
-        <q-item
-          v-if="contextMessage?.sender === myPubKey && canDeleteMessage(contextMessage)"
-          clickable
-          v-close-popup
-          @click.stop="confirmDeleteMessage(contextMessage)"
-          @pointerdown.stop.prevent="menuPointerDown('delete', $event)"
-        >
-          <q-item-section avatar>
-            <q-icon name="delete" size="20px" color="negative" />
-          </q-item-section>
-          <q-item-section>
-            <span class="text-negative">{{ $t('Delete', {}, 'Delete') }}</span>
-          </q-item-section>
-        </q-item>
-        <q-item-label header class="q-px-md q-pt-sm q-pb-none">{{ $t('React', {}, 'React') }}</q-item-label>
-        <q-item class="q-px-sm q-py-xs">
-          <q-item-section>
-            <div class="react-emoji-row">
-              <span v-for="emoji in quickReactions" :key="emoji" class="react-emoji" v-close-popup @click.stop="onReact(contextMessage, emoji)" @pointerdown.stop.prevent="menuPointerDown('emoji-'+emoji, $event)">{{ emoji }}</span>
-            </div>
-          </q-item-section>
-        </q-item>
+        <template v-if="!hasTextSelection">
+          <q-item clickable v-close-popup @click.stop="setReply(contextMessage)" @pointerdown.stop.prevent="menuPointerDown('reply', $event)">
+            <q-item-section avatar>
+              <q-icon name="reply" size="20px" />
+            </q-item-section>
+            <q-item-section>
+              <q-item-label>{{ $t('Reply', {}, 'Reply') }}</q-item-label>
+            </q-item-section>
+          </q-item>
+          <q-item
+            v-if="contextMessage?.sender === myPubKey && canEditMessage(contextMessage)"
+            clickable
+            v-close-popup
+            @click.stop="setEdit(contextMessage)"
+            @pointerdown.stop.prevent="menuPointerDown('edit', $event)"
+          >
+            <q-item-section avatar>
+              <q-icon name="edit" size="20px" />
+            </q-item-section>
+            <q-item-section>
+              <q-item-label>{{ $t('Edit', {}, 'Edit') }}</q-item-label>
+            </q-item-section>
+          </q-item>
+          <q-item
+            v-if="contextMessage?.sender === myPubKey && canDeleteMessage(contextMessage)"
+            clickable
+            v-close-popup
+            @click.stop="confirmDeleteMessage(contextMessage)"
+            @pointerdown.stop.prevent="menuPointerDown('delete', $event)"
+          >
+            <q-item-section avatar>
+              <q-icon name="delete" size="20px" color="negative" />
+            </q-item-section>
+            <q-item-section>
+              <span class="text-negative">{{ $t('Delete', {}, 'Delete') }}</span>
+            </q-item-section>
+          </q-item>
+          <q-item-label header class="q-px-md q-pt-sm q-pb-none">{{ $t('React', {}, 'React') }}</q-item-label>
+          <q-item class="q-px-sm q-py-xs">
+            <q-item-section>
+              <div class="react-emoji-row">
+                <span v-for="emoji in quickReactions" :key="emoji" class="react-emoji" v-close-popup @click.stop="onReact(contextMessage, emoji)" @pointerdown.stop.prevent="menuPointerDown('emoji-'+emoji, $event)">{{ emoji }}</span>
+              </div>
+            </q-item-section>
+          </q-item>
+        </template>
       </q-list>
     </q-menu>
 
@@ -583,6 +585,7 @@ export default {
       replyToMessage: null,
       editingMessage: null,
       contextMessage: null,
+      hasTextSelection: false,
       quickReactions: ['😂', '🎉', '❤️', '😊', '👍', '💯', '🔥', '🙏', '🤔', '😮', '😢', '👎'],
       showScrollToBottom: false,
       isContextMenuOpen: false,
@@ -1423,14 +1426,13 @@ export default {
       return this.$store.getters['nostrChat/getMessageReactions'](this.roomId, messageId)
     },
     openMessageMenu (message, event) {
-      // Debugging: log when menu opens and what message is bound
       this.contextMessage = message
+      const sel = window.getSelection()
+      this.hasTextSelection = sel && !sel.isCollapsed
       this.$nextTick(() => {
         this.$refs.contextMenu?.show(event)
         this.isContextMenuOpen = true
-        // Ignore the next pointerdown to avoid immediate dismissal on touch
         this._ignoreNextPointerDown = true
-        // Also clear the guard after a short window to avoid permanently blocking interactions
         setTimeout(() => { this._ignoreNextPointerDown = false }, 350)
       })
     },
@@ -1561,9 +1563,15 @@ export default {
       container.scrollTo({ top: container.scrollHeight, behavior: 'smooth' })
     },
     copyMessage (message) {
-      const { text } = parseMessageMarkup(message.content || '')
-      const content = text || message.content || ''
-      navigator.clipboard.writeText(content)
+      const sel = window.getSelection()
+      const selectedText = sel && !sel.isCollapsed && sel.toString().trim()
+      if (selectedText) {
+        navigator.clipboard.writeText(selectedText)
+      } else {
+        const { text } = parseMessageMarkup(message.content || '')
+        const content = text || message.content || ''
+        navigator.clipboard.writeText(content)
+      }
       this.$q.notify({
         type: 'positive',
         message: this.$t('MessageCopied', {}, 'Message copied'),
