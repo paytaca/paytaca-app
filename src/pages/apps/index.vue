@@ -78,9 +78,8 @@
         </div>
 
         <div
-          v-if="cat.isPinned && draggedAppId && dragSupported"
           class="unpin-bin"
-          :class="getDarkModeClass(darkMode)"
+          :class="[getDarkModeClass(darkMode), { 'unpin-bin-visible': cat.isPinned && draggedAppId && dragSupported }]"
           @dragover.prevent
           @drop="onUnpinDrop"
         >
@@ -1157,7 +1156,7 @@ export default {
     &.light { color: rgba(59, 123, 246, 0.6); }
   }
   .unpin-bin {
-    display: flex;
+    display: none;
     align-items: center;
     justify-content: center;
     gap: 8px;
@@ -1167,6 +1166,7 @@ export default {
     font-size: 13px;
     font-weight: 500;
     transition: background 0.15s ease, border-color 0.15s ease;
+    &.unpin-bin-visible { display: flex; }
     &.dark {
       background: rgba(239, 83, 80, 0.08);
       border: 2px dashed rgba(239, 83, 80, 0.4);
