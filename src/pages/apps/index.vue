@@ -100,6 +100,7 @@
               v-if="cat.isPinned"
               :draggable="dragSupported ? 'true' : false"
               class="app-drag-handle"
+              :class="getDarkModeClass(darkMode)"
               @dragstart="onDragStart(app, $event)"
               @touchstart.stop
               @mousedown.stop
@@ -218,9 +219,11 @@ export default {
         let isPending = false
         let longPressTriggered = false
         let activeSource = null
+        let lastLongPressTime = 0
 
         function start (x, y, e, source) {
           if (activeSource && activeSource !== source) return
+          if (Date.now() - lastLongPressTime < 100) return
           startX = x
           startY = y
           isPending = true
@@ -230,6 +233,7 @@ export default {
             timer = null
             isPending = false
             longPressTriggered = true
+            lastLongPressTime = Date.now()
             handler(e)
           }, 500)
         }
@@ -255,6 +259,7 @@ export default {
             e.preventDefault()
             e.stopPropagation()
             longPressTriggered = false
+            lastLongPressTime = 0
           }
         }
 
@@ -1220,14 +1225,18 @@ export default {
     width: 28px;
     height: 48px;
     cursor: grab;
-    color: rgba(255,255,255,0.4);
     transition: color 0.15s ease;
     -webkit-user-select: none;
     user-select: none;
     &:active { cursor: grabbing; }
-    &:hover { color: rgba(255,255,255,0.8); }
-    .light & { color: rgba(0,0,0,0.25); }
-    .light &:hover { color: rgba(0,0,0,0.6); }
+    &.dark {
+      color: rgba(255,255,255,0.4);
+      &:hover { color: rgba(255,255,255,0.8); }
+    }
+    &.light {
+      color: rgba(0,0,0,0.25);
+      &:hover { color: rgba(0,0,0,0.6); }
+    }
   }
 
   .app-unpin-icon {
