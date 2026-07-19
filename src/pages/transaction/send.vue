@@ -406,7 +406,7 @@
           </div>
 
           <!-- Keyboard + Slide: shown together when keyboard is visible -->
-          <div v-if="customKeyboardState === 'show' && !sending" class="keyboard-slide-wrapper">
+          <div v-if="customKeyboardState === 'show' && !sending" class="keyboard-slide-panel">
             <CustomKeyboard 
               :custom-keyboard-state="customKeyboardState"
               hide-check-key
@@ -936,13 +936,16 @@ export default {
     recipients: {
       deep: true,
       handler () {
-        if (this.autoFocusTriggered) return
-        if (this.recipients.some(r => !!r.recipientAddress)) {
-          this.autoFocusTriggered = true
-          this.$nextTick(() => {
-            this.$nextTick(() => this.autoFocusAmount())
-          })
+        const hasAddress = this.recipients.some(r => !!r.recipientAddress)
+        if (!hasAddress) {
+          this.autoFocusTriggered = false
+          return
         }
+        if (this.autoFocusTriggered) return
+        this.autoFocusTriggered = true
+        this.$nextTick(() => {
+          this.$nextTick(() => this.autoFocusAmount())
+        })
       }
     }
   },
@@ -2604,33 +2607,39 @@ export default {
           vm.showSendSuccess()
         } else {
           // Redirect to transaction detail with state so it can show tx before watchtower indexes
-          const { route, query, state } = vm.buildTransactionDetailState(result.txid, { timestamp: vm.txTimestamp })
-          await vm.$router.push({
-            name: route,
-            params: { txid: result.txid },
-            query,
-            state
-          })
-          
-          // Handle points in background (non-blocking) – do not delay success feedback
-          processMerchantOtcPoints({
-            ref_id: hexToRef(result.txid.substring(0, 6)),
-            tx_id: result.txid,
-            customer_address: sendPageUtils.getWallet('bch')?.lastAddress,
-            merchant_address: this.recipients[0].recipientAddress,
-            bch_spent: Number(this.recipients[0].amount)
-          }).then(resp => {
-            if (resp) {
-              vm.$q.dialog({
-                component: PointsReceivedDialog,
-                componentProps: {
-                  merchantName: resp.merchant_name ?? ''
-                }
-              })
-            }
-          }).catch(err => {
-            console.warn('[Send] Points API failed:', err)
-          })
+          try {
+            const { route, query, state } = vm.buildTransactionDetailState(result.txid, { timestamp: vm.txTimestamp })
+            await vm.$router.push({
+              name: route,
+              params: { txid: result.txid },
+              query,
+              state
+            })
+            
+            // Handle points in background (non-blocking) – do not delay success feedback
+            processMerchantOtcPoints({
+              ref_id: hexToRef(result.txid.substring(0, 6)),
+              tx_id: result.txid,
+              customer_address: sendPageUtils.getWallet('bch')?.lastAddress,
+              merchant_address: this.recipients[0].recipientAddress,
+              bch_spent: Number(this.recipients[0].amount)
+            }).then(resp => {
+              if (resp) {
+                vm.$q.dialog({
+                  component: PointsReceivedDialog,
+                  componentProps: {
+                    merchantName: resp.merchant_name ?? ''
+                  }
+                })
+              }
+            }).catch(err => {
+              console.warn('[Send] Points API failed:', err)
+            })
+          } catch (e) {
+            console.error('[Send] redirect failed:', e)
+            vm.sending = false
+            raiseNotifyError(vm.$t('NavigationError'))
+          }
         }
       } else sendPageUtils.submitPromiseErrorResponseHandler(result, walletType)
     },
@@ -3454,26 +3463,6 @@ export default {
   }
   .expansion-item-error {
     color: #e57373
-  }
-
-  /* Bottom panel for keyboard + slide when shown together */
-  .keyboard-slide-wrapper {
-    position: fixed;
-    bottom: 0;
-    left: 0;
-    right: 0;
-    z-index: 9000;
-    display: flex;
-    flex-direction: column;
-    background: #fff;
-    padding-bottom: env(safe-area-inset-bottom, 0px);
-    border-top-left-radius: 15px;
-    border-top-right-radius: 15px;
-    box-shadow: 0 1px 5px rgba(0,0,0,.2), 0 2px 2px rgba(0,0,0,.14), 0 3px 1px -2px rgba(0,0,0,.12);
-  }
-  body.body--dark .keyboard-slide-wrapper {
-    background: #1d2631;
-    box-shadow: 0 1px 5px rgba(0,0,0,.4), 0 2px 2px rgba(0,0,0,.28), 0 3px 1px -2px rgba(0,0,0,.24);
   }
 
   /* Ensure DragSlide is visible on iOS */

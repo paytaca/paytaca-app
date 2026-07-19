@@ -1055,10 +1055,6 @@ export default defineComponent({
       tradeResult.value = null;
     }
 
-    const showSlider = computed(() => {
-      return Boolean(tradeResult.value)
-    });
-
     function securityCheck(resetSwipe=() => {}) {
       $q.dialog({ component: SecurityCheckDialog })
         .onOk(() => commitTrade())
@@ -1331,7 +1327,6 @@ export default defineComponent({
       formattedMaxAmount,
       explorerLink,
 
-      showSlider,
       securityCheck,
     
       selectToken,
