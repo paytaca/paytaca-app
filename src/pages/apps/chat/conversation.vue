@@ -1069,6 +1069,7 @@ export default {
     }
     document.addEventListener('visibilitychange', this.onVisibilityChange)
     document.addEventListener('pointerdown', this.onDocumentPointerDown)
+    document.addEventListener('pointerup', this.onDocumentPointerUp)
     if (window.visualViewport) {
       window.visualViewport.addEventListener('resize', this.onViewportResize)
       window.visualViewport.addEventListener('scroll', this.onViewportResize)
@@ -1180,6 +1181,7 @@ export default {
     if (this._vpRaf) { cancelAnimationFrame(this._vpRaf); this._vpRaf = null }
     document.removeEventListener('visibilitychange', this.onVisibilityChange)
     document.removeEventListener('pointerdown', this.onDocumentPointerDown)
+    document.removeEventListener('pointerup', this.onDocumentPointerUp)
     if (window.visualViewport) {
       window.visualViewport.removeEventListener('resize', this.onViewportResize)
       window.visualViewport.removeEventListener('scroll', this.onViewportResize)
@@ -1435,6 +1437,7 @@ export default {
       return this.$store.getters['nostrChat/getMessageReactions'](this.roomId, messageId)
     },
     openMessageMenu (message, event) {
+      if (this.isContextMenuOpen) this.hideContextMenu()
       this.contextMessage = message
       const sel = window.getSelection()
       const hasSelection = sel && !sel.isCollapsed
@@ -1473,6 +1476,33 @@ export default {
       if (target && target.__qclosepopup) return
       
       this.hideContextMenu()
+    },
+    onDocumentPointerUp (e) {
+      if (e.button !== 0) return
+      if (this.isContextMenuOpen) return
+      const sel = window.getSelection()
+      if (!sel || sel.isCollapsed) return
+      const msgEl = sel.anchorNode?.parentElement?.closest?.('[data-msg-id]')
+      if (!msgEl) return
+      const msgId = msgEl.dataset.msgId
+      const message = this.getMessageById(msgId)
+      if (!message) return
+      const selectedText = sel.toString().trim()
+      if (!selectedText) return
+      this.contextMessage = message
+      this.hasTextSelection = true
+      this.selectedText = selectedText
+      const range = sel.getRangeAt(0)
+      const rect = range.getBoundingClientRect()
+      this.$nextTick(() => {
+        this.$refs.contextMenu?.show({
+          clientX: rect.left + rect.width / 2,
+          clientY: rect.bottom + 4,
+        })
+        this.isContextMenuOpen = true
+        this._ignoreNextPointerDown = true
+        setTimeout(() => { this._ignoreNextPointerDown = false }, 350)
+      })
     },
     onReact (message, emoji) {
       this.$refs.contextMenu?.hide()
