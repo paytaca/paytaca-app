@@ -93,12 +93,15 @@
             @dragover="cat.isPinned && onDragOver(app, $event)"
             @dragleave="cat.isPinned && onDragLeave()"
             @drop="cat.isPinned && onDrop(app, $event)"
+            @dragend="cat.isPinned && onDragEnd(app)"
           >
             <div
               v-if="cat.isPinned"
               :draggable="'true'"
               class="app-drag-handle"
               @dragstart="onDragStart(app, $event)"
+              @touchstart.stop
+              @mousedown.stop
             >
               <q-icon name="drag_indicator" size="20px" />
             </div>
@@ -140,6 +143,7 @@
           <div
             v-for="(app, index) in cat.apps"
             :key="app.id || index"
+            :draggable="cat.isPinned ? 'true' : false"
             class="app-grid-item"
             :class="[
               getDarkModeClass(darkMode),
@@ -147,26 +151,13 @@
             ]"
             @click="openApp(app)"
             v-on-long-press="[(event) => showAppContextMenu(app, event)]"
+            @dragstart="cat.isPinned && onDragStart(app, $event)"
             @dragover="cat.isPinned && onDragOver(app, $event)"
             @dragleave="cat.isPinned && onDragLeave()"
             @drop="cat.isPinned && onDrop(app, $event)"
+            @dragend="cat.isPinned && onDragEnd(app)"
           >
             <div class="relative-position" style="display: inline-block;">
-              <div
-                v-if="cat.isPinned"
-                :draggable="'true'"
-                class="app-grid-drag-handle"
-                @dragstart="onDragStart(app, $event)"
-              >
-                <q-icon name="drag_indicator" size="16px" color="white" />
-              </div>
-              <div
-                v-if="cat.isPinned"
-                class="app-grid-unpin-btn"
-                @click.stop="togglePin(app.id)"
-              >
-                <q-icon name="mdi-pin-off" size="14px" color="white" />
-              </div>
               <div class="app-grid-tile bg-grad" :class="{ 'tile-inactive': !app.active }">
                 <q-icon size="30px" color="white" :name="app.iconName" />
               </div>
@@ -737,15 +728,22 @@ export default {
       this.draggedAppId = null
       this.dragOverAppId = null
     },
+    onDragEnd (app) {
+      if (this.draggedAppId) {
+        this.togglePin(app.id)
+      }
+      this.draggedAppId = null
+      this.dragOverAppId = null
+    },
     showAppContextMenu (app, event) {
       if (!app.active) return
-      if (this.isPinned(app.id)) return
+      const pinned = this.isPinned(app.id)
       this.$q.bottomSheet({
         class: `text-bow ${this.getDarkModeClass(this.darkMode)}`,
         actions: [
           {
-            label: this.$t('Pin', {}, 'Pin'),
-            icon: 'mdi-pin',
+            label: pinned ? this.$t('Unpin', {}, 'Unpin') : this.$t('Pin', {}, 'Pin'),
+            icon: pinned ? 'mdi-pin-off' : 'mdi-pin',
             id: 'pin',
             color: this.themeColor,
           },
@@ -1290,49 +1288,16 @@ export default {
       max-width: calc(16.666% - 4px);
     }
     &.app-inactive { cursor: default; }
+    &[draggable="true"] {
+      cursor: grab;
+      &:active { cursor: grabbing; }
+    }
     &.drag-over {
       .app-grid-tile {
         outline: 3px solid rgba(59, 123, 246, 0.6);
         outline-offset: 3px;
       }
     }
-  }
-  .app-grid-drag-handle {
-    position: absolute;
-    top: -4px;
-    right: -4px;
-    z-index: 12;
-    width: 22px;
-    height: 22px;
-    border-radius: 50%;
-    background: rgba(0,0,0,0.5);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    cursor: grab;
-    -webkit-user-select: none;
-    user-select: none;
-    &:active { cursor: grabbing; }
-    opacity: 0;
-    transition: opacity 0.2s ease;
-    .app-grid-item:hover & { opacity: 1; }
-  }
-  .app-grid-unpin-btn {
-    position: absolute;
-    top: -4px;
-    left: -4px;
-    z-index: 12;
-    width: 22px;
-    height: 22px;
-    border-radius: 50%;
-    background: rgba(0,0,0,0.5);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    cursor: pointer;
-    opacity: 0;
-    transition: opacity 0.2s ease;
-    .app-grid-item:hover & { opacity: 1; }
   }
   .app-grid-tile {
     width: 56px;
