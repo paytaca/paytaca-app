@@ -405,16 +405,28 @@
             />
           </div>
 
-          <CustomKeyboard 
-            :custom-keyboard-state="customKeyboardState"
-            v-on:addKey="setAmount"
-            v-on:makeKeyAction="makeKeyAction"
-          />
+          <!-- Keyboard + Slide: shown together when keyboard is visible -->
+          <div v-if="customKeyboardState === 'show'" class="keyboard-slide-wrapper">
+            <CustomKeyboard 
+              :custom-keyboard-state="customKeyboardState"
+              hide-check-key
+              embedded
+              @addKey="setAmount"
+              @makeKeyAction="makeKeyAction"
+            />
+            <DragSlide
+              :disable="!canSlide"
+              disable-absolute-bottom
+              @swiped="slideToSubmit"
+            />
+          </div>
 
+          <!-- Slide alone: shown when form is active but keyboard is hidden (NFT, pre-filled amounts) -->
           <DragSlide
-            v-if="showSlider && !disableSending"
-            @swiped="slideToSubmit"
+            v-if="customKeyboardState !== 'show' && formActive && !disableSending"
+            :disable="!canSlide"
             class="absolute-bottom"
+            @swiped="slideToSubmit"
           />
 
         </div>
@@ -666,7 +678,6 @@ export default {
       txid: '',
       txTimestamp: Date.now(),
       customKeyboardState: 'dismiss',
-      sliderStatus: false,
       showQrScanner: false,
       computingMax: false,
       paymentCurrency: null,
@@ -714,7 +725,7 @@ export default {
     },
     hideFooter () {
       if (this.customKeyboardState === 'show') return true
-      if (this.showSlider) return true
+      if (this.formActive && this.customKeyboardState !== 'show') return true
       if (this.sending) return true
       if (this.isScrolledToBottom) return true
 
@@ -773,15 +784,12 @@ export default {
       const currency = this.$store.getters['market/selectedCurrency']
       return currency && currency.symbol
     },
-    showSlider () {
-      if (this.sliderStatus && this.isNFT && !this.sending) return true
-
+    canSlide () {
+      if (this.sending || this.disableSending) return false
       if (this.calculatingCauldronTrade) {
         if (this.inputExtras.some(extra => extra?.cauldron?.enable)) return false;
       }
-
       return (
-        !this.sending && this.sliderStatus &&
         // check if amount is greater than zero
         this.recipients.map(a => a.amount > 0).findIndex(i => !i) < 0 &&
         // check if there are any amount that exceeded current balance
@@ -793,9 +801,12 @@ export default {
         )
       )
     },
+    formActive () {
+      return this.recipients.some(r => !!r.recipientAddress)
+    },
     showAddRecipientButton () {
       return (
-        this.showSlider &&
+        this.canSlide &&
         !this.isNFT &&
         this.recipients.length < 10 &&
         // check if user clicked MAX on any recipient (disable button if yes)
@@ -1244,7 +1255,6 @@ export default {
       vm.disableSending = false
       vm.bip21Expires = null
       vm.showQrScanner = false
-      vm.sliderStatus = false
 
       content = Array.isArray(content) ? content[0].rawValue : content
       let amount = null
@@ -1339,7 +1349,6 @@ export default {
             'en-us', { maximumFractionDigits: vm.asset?.decimals || 0 }
           )
           currentRecipient.fixedAmount = true
-          vm.sliderStatus = true
         }
 
         // call cashback API to check if merchant is part of campaign
@@ -1543,7 +1552,6 @@ export default {
         currentRecipient.recipientAddress = value.split('?')[0]
         currentInputExtras.isBip21 = true
         currentInputExtras.emptyRecipient = false
-        this.sliderStatus = true
 
         const addressParse = new URLSearchParams(value.split('?')[1])
         if (addressParse.has('expires')) {
@@ -1560,8 +1568,6 @@ export default {
         this.disableSending = false
         return true
       }
-
-      if (value && this.isNFT) this.sliderStatus = true
 
       return false
     },
@@ -1627,7 +1633,6 @@ export default {
       } else {
         this.updateCauldronAndRemainingBalance()
       }
-      this.sliderStatus = true
     },
 
     // keyboard
@@ -1748,11 +1753,7 @@ export default {
           this.currentRecipientIndex, this.focusedInputField
         )
       } else {
-        // Enabled submit slider
-        this.sliderStatus = !currentInputExtras.balanceExceeded
-        this.customKeyboardState = 'dismiss'
-        this.focusedInputField = ''
-        sendPageUtils.addRemoveInputFocus(this.currentRecipientIndex, '')
+        // No-op: checkmark key is hidden in the new combined keyboard+slide layout
       }
 
       this.updateCauldronAndRemainingBalance();
@@ -1800,7 +1801,6 @@ export default {
         for (let i = 1; i <= recipientsLength; i++) {
           this.expandedItems[`R${i}`] = false
         }
-        this.sliderStatus = false
       } else raiseNotifyError(this.$t('CannotAddRecipient'))
     },
     removeLastRecipient (index) {
@@ -1808,7 +1808,6 @@ export default {
       this.expandedItems[`R${index + 1}`] = true
       this.recipients.splice(index, 1)
       this.inputExtras.splice(index, 1)
-      this.sliderStatus = true
     },
 
     // sending
@@ -1935,7 +1934,6 @@ export default {
 
         try {
           vm.sending = true
-          vm.sliderStatus = false;
           const cauldronBalanceBefore = { balance: vm.asset.balance, spendable: vm.asset.spendable }
           const broadcastResult = await sendPageUtils.withTimeout(
             executeSendWithCauldron({
@@ -1955,7 +1953,6 @@ export default {
           }
         } finally {
           vm.sending = false;
-          vm.sliderStatus = true;
         }
         return;
       }
@@ -2062,7 +2059,6 @@ export default {
         }
       } else {
         vm.sending = false
-        vm.sliderStatus = true
       }
     },
     processSlpData (toSendData) {
@@ -2078,7 +2074,6 @@ export default {
 
         if (addressIsValid && amountIsValid) {
           vm.sending = true
-          vm.sliderStatus = false
 
           const recipientAddress = addressObj.toSLPAddress()
           toSendSlpRecipients.push({
@@ -2110,7 +2105,6 @@ export default {
 
         if (addressIsValid && amountIsValid) {
           vm.sending = true
-          vm.sliderStatus = false
 
           const recipientAddress = addressObj.toCashAddress()
           if (tokenId) {
@@ -2155,7 +2149,6 @@ export default {
 
         if (addressIsValid && amountIsValid) {
           vm.sending = true
-          vm.sliderStatus = false
 
           try {
             const w = await window.TestNetWallet.named('mywallet')
@@ -2504,7 +2497,6 @@ export default {
         address = address.split('?')[0]
 
         if (!Number.isNaN(amount)) currentRecipient.amount = amount
-        if (amount > 0) this.sliderStatus = true
       }
 
       const addressValidation = this.validateAddress(address)
@@ -2513,7 +2505,6 @@ export default {
         return true
       } else {
         raiseNotifyError(this.$t('InvalidAddress'))
-        this.sliderStatus = false
         return false
       }
     },
@@ -2526,7 +2517,6 @@ export default {
       const vm = this
 
       vm.sending = false
-      vm.sliderStatus = true
 
       if (!addressIsValid) {
         raiseNotifyError(vm.$t(
@@ -2627,7 +2617,6 @@ export default {
     async handleBroadcastError (error, balanceBefore) {
       const vm = this
       vm.sending = false
-      vm.sliderStatus = true
 
       const errorMessage = error?.message || ''
       const isTimeout = errorMessage === 'Broadcast request timed out'
@@ -3223,7 +3212,6 @@ export default {
       }
 
       vm.scanner.show = false
-      vm.sliderStatus = true
     }
 
     if (vm.isNFT) vm.recipients[0].amount = 0.00001
@@ -3449,11 +3437,31 @@ export default {
     color: #e57373
   }
 
+  /* Bottom panel for keyboard + slide when shown together */
+  .keyboard-slide-wrapper {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    z-index: 9000;
+    display: flex;
+    flex-direction: column;
+    background: #fff;
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+    border-top-left-radius: 15px;
+    border-top-right-radius: 15px;
+    box-shadow: 0 1px 5px rgba(0,0,0,.2), 0 2px 2px rgba(0,0,0,.14), 0 3px 1px -2px rgba(0,0,0,.12);
+  }
+  body.body--dark .keyboard-slide-wrapper {
+    background: #1d2631;
+    box-shadow: 0 1px 5px rgba(0,0,0,.4), 0 2px 2px rgba(0,0,0,.28), 0 3px 1px -2px rgba(0,0,0,.24);
+  }
+
   /* Ensure DragSlide is visible on iOS */
   .send-form-container {
     position: relative;
     
-    /* Add padding at bottom to prevent content from being hidden under the slider */
+    /* Add padding at bottom to prevent content from being hidden under the slide */
     padding-bottom: 120px !important;
   }
 
