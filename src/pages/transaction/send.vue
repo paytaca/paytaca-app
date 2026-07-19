@@ -694,7 +694,8 @@ export default {
       priceIdPrice: null,
       selectedOtherWallet: null,
       generatingOtherWalletAddress: false,
-      showSendSuccessPage: false
+      showSendSuccessPage: false,
+      autoFocusTriggered: false
     }
   },
 
@@ -941,6 +942,18 @@ export default {
 
       if (isDuplicate) raiseNotifyError(this.$t('AddressAlreadyAdded'))
       this.updateAddressPrecheckValues(isLegacy, isWalletAddress)
+    },
+    recipients: {
+      deep: true,
+      handler () {
+        if (this.autoFocusTriggered) return
+        if (this.recipients.some(r => !!r.recipientAddress)) {
+          this.autoFocusTriggered = true
+          this.$nextTick(() => {
+            this.$nextTick(() => this.autoFocusAmount())
+          })
+        }
+      }
     }
   },
 
@@ -1632,6 +1645,22 @@ export default {
         this.adjustWalletBalance()
       } else {
         this.updateCauldronAndRemainingBalance()
+      }
+    },
+    autoFocusAmount () {
+      const index = this.currentRecipientIndex
+      const sendPageForm = this.$refs.sendPageRef?.[index]
+      if (!sendPageForm) return
+
+      const field = this.asset?.id === 'bch' ? 'fiat' : 'bch'
+      const inputRef = field === 'fiat' ? sendPageForm.$refs.fiatInput : sendPageForm.$refs.amountInput
+
+      if (inputRef && typeof inputRef.focus === 'function') {
+        inputRef.focus()
+        this.currentRecipientIndex = index
+        this.focusedInputField = field
+        this.customKeyboardState = 'show'
+        sendPageUtils.addRemoveInputFocus(index, field)
       }
     },
 
@@ -3212,6 +3241,9 @@ export default {
       }
 
       vm.scanner.show = false
+      vm.autoFocusTriggered = true
+
+      vm.$nextTick(() => vm.autoFocusAmount())
     }
 
     if (vm.isNFT) vm.recipients[0].amount = 0.00001
