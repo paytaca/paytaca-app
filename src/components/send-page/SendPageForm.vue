@@ -176,30 +176,64 @@
     </div>
   </div>
   <template v-if="!isNFT && !cauldronEnabled">
-    <div v-if="asset?.id?.startsWith?.('ct/') && (!asset?.balance || asset?.balance === 0)" class="q-mt-sm text-center text-weight-medium text-bow">
-      <p class="q-mb-xs text-caption">
-        {{ $t('NoTokenBalanceCauldronHint', { symbol: (asset?.symbol || '').toUpperCase() }, 'You have no {symbol} tokens, click below to auto-swap from BCH') }}
-      </p>
-      <q-btn
-        no-caps
-        :label="$t('SendUsingBchWithCauldron')"
-        icon="img:cauldron-logo.svg"
-        color="pt-primary1"
-        padding="sm md"
-        class="full-width q-my-sm"
-        @click="toggleCauldron"
-      />
+    <div v-if="asset?.id?.startsWith?.('ct/') && (!asset?.balance || asset?.balance === 0)">
+      <div v-if="showAdvancedOptions">
+        <p class="q-mb-xs text-caption text-center text-weight-medium text-bow">
+          {{ $t('NoTokenBalanceCauldronHint', { symbol: (asset?.symbol || '').toUpperCase() }, 'You have no {symbol} tokens, click below to auto-swap from BCH') }}
+        </p>
+        <q-btn
+          no-caps
+          :label="$t('SendUsingBchWithCauldron')"
+          icon="img:cauldron-logo.svg"
+          color="pt-primary1"
+          padding="sm md"
+          class="full-width q-my-sm"
+          @click="toggleCauldron"
+        />
+      </div>
+      <div
+        v-else
+        class="q-mt-sm text-center"
+      >
+        <q-btn
+          no-caps
+          flat
+          dense
+          color="pt-primary1"
+          class="text-caption"
+          @click="showAdvancedOptions = true"
+        >
+          {{ $t('ShowAdvancedOptions', {}, 'Show Advanced Options') }}
+        </q-btn>
+      </div>
     </div>
-    <div v-else-if="asset?.id === 'bch'" class="q-mt-sm">
-      <q-btn
-        no-caps
-        :label="$t('SendUsingTokensWithCauldron')"
-        icon="img:cauldron-logo.svg"
-        color="pt-primary1"
-        padding="sm md"
-        class="full-width q-my-sm"
-        @click="toggleCauldron"
-      />
+    <div v-else-if="asset?.id === 'bch'">
+      <div v-if="showAdvancedOptions">
+        <q-btn
+          no-caps
+          :label="$t('SendUsingTokensWithCauldron')"
+          icon="img:cauldron-logo.svg"
+          color="pt-primary1"
+          padding="sm md"
+          class="full-width q-my-sm"
+          @click="toggleCauldron"
+        />
+      </div>
+      <div
+        v-else
+        class="q-mt-sm text-center"
+      >
+        <q-btn
+          no-caps
+          flat
+          dense
+          color="pt-primary1"
+          class="text-caption"
+          @click="showAdvancedOptions = true"
+        >
+          {{ $t('ShowAdvancedOptions', {}, 'Show Advanced Options') }}
+        </q-btn>
+      </div>
     </div>
   </template>
   <div v-else-if="!isNFT && cauldronEnabled" class="row items-start no-wrap q-mt-sm">
@@ -365,6 +399,7 @@ export default {
       cauldronTokenDialog: false,
       cauldronToken: null,
       cauldronEnabled: false,
+      showAdvancedOptions: false,
       cauldronAmount: '',
       cauldronAmountFormatted: '',
       activeKeyboardTip: null,
