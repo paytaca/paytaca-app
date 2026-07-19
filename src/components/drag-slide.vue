@@ -165,6 +165,30 @@ body.body--dark .drag-slide-disabled-icon {
   animation-delay: 300ms;
 }
 
+/* Shimmer sweep on enabled slide */
+.bg-grad {
+  position: relative;
+  overflow: hidden;
+  border-radius: clamp(30px, 10vw, 40px);
+}
+.bg-grad::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 55%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255,255,255,0.13), transparent);
+  transform: translateX(-100%);
+  animation: shimmer-sweep 2.8s ease-in-out infinite;
+  pointer-events: none;
+}
+@keyframes shimmer-sweep {
+  0% { transform: translateX(-100%); }
+  45% { transform: translateX(180%); }
+  100% { transform: translateX(180%); }
+}
+
 @media (prefers-reduced-motion: reduce) {
   .icon-swap-leave-active,
   .icon-swap-enter-active {
@@ -176,6 +200,9 @@ body.body--dark .drag-slide-disabled-icon {
     transform: none;
   }
   .icon-arrow-hint {
+    animation: none;
+  }
+  .bg-grad::after {
     animation: none;
   }
 }
