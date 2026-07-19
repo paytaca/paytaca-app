@@ -171,7 +171,7 @@
           >
             <div class="relative-position" style="display: inline-block;">
               <div class="app-grid-tile bg-grad" :class="{ 'tile-inactive': !app.active }">
-                <span draggable="false"><q-icon size="30px" color="white" :name="app.iconName" /></span>
+                <q-icon size="30px" color="white" :name="app.iconName" />
               </div>
               <span v-if="app.beta" class="app-beta-pill-grid">BETA</span>
               <div
@@ -182,7 +182,6 @@
               </div>
             </div>
             <p
-              draggable="false"
               class="app-grid-name pt-label"
               :class="[getDarkModeClass(darkMode), !app.active ? 'text-grey' : '']"
             >
@@ -1379,6 +1378,7 @@ export default {
     &[draggable="true"] {
       cursor: grab;
       &:active { cursor: grabbing; }
+      img, i, span { -webkit-user-drag: none; user-drag: none; }
     }
     &.drag-over {
       .app-grid-tile {
