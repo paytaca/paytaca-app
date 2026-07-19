@@ -151,7 +151,7 @@
               { 'app-inactive': !app.active, 'drag-over': cat.isPinned && dragSupported && dragOverAppId === app.id }
             ]"
             @click="openApp(app)"
-            v-on-long-press="[(event) => showAppContextMenu(app, event)]"
+            v-on-long-press="!cat.isPinned ? [(event) => showAppContextMenu(app, event)] : undefined"
             @dragstart="cat.isPinned && dragSupported && onDragStart(app, $event)"
             @dragover="cat.isPinned && dragSupported && onDragOver(app, $event)"
             @dragleave="cat.isPinned && dragSupported && onDragLeave()"
