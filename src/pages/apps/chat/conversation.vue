@@ -586,6 +586,7 @@ export default {
       editingMessage: null,
       contextMessage: null,
       hasTextSelection: false,
+      selectedText: '',
       quickReactions: ['😂', '🎉', '❤️', '😊', '👍', '💯', '🔥', '🙏', '🤔', '😮', '😢', '👎'],
       showScrollToBottom: false,
       isContextMenuOpen: false,
@@ -1428,7 +1429,9 @@ export default {
     openMessageMenu (message, event) {
       this.contextMessage = message
       const sel = window.getSelection()
-      this.hasTextSelection = sel && !sel.isCollapsed
+      const hasSelection = sel && !sel.isCollapsed
+      this.hasTextSelection = hasSelection
+      this.selectedText = hasSelection ? sel.toString().trim() : ''
       this.$nextTick(() => {
         this.$refs.contextMenu?.show(event)
         this.isContextMenuOpen = true
@@ -1437,13 +1440,12 @@ export default {
       })
     },
     hideContextMenu () {
-      // If we're within the ignore window, don't immediately hide (prevents the opening gesture from closing it)
       if (this._ignoreNextPointerDown) return
       this.$refs.contextMenu?.hide()
       this.isContextMenuOpen = false
+      this.selectedText = ''
     },
     onDocumentPointerDown (e) {
-      // Ignore pointerdown immediately following opening the menu (same interaction)
       if (this._ignoreNextPointerDown) {
         this._ignoreNextPointerDown = false
         return
@@ -1563,10 +1565,8 @@ export default {
       container.scrollTo({ top: container.scrollHeight, behavior: 'smooth' })
     },
     copyMessage (message) {
-      const sel = window.getSelection()
-      const selectedText = sel && !sel.isCollapsed && sel.toString().trim()
-      if (selectedText) {
-        navigator.clipboard.writeText(selectedText)
+      if (this.selectedText) {
+        navigator.clipboard.writeText(this.selectedText)
       } else {
         const { text } = parseMessageMarkup(message.content || '')
         const content = text || message.content || ''
