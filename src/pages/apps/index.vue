@@ -1378,7 +1378,6 @@ export default {
     &[draggable="true"] {
       cursor: grab;
       &:active { cursor: grabbing; }
-      img, i, span { -webkit-user-drag: none; user-drag: none; }
     }
     &.drag-over {
       .app-grid-tile {
@@ -1395,6 +1394,7 @@ export default {
     align-items: center;
     justify-content: center;
     &.tile-inactive { filter: grayscale(1) opacity(0.4); }
+    .app-grid-item[draggable="true"] & { pointer-events: none; }
   }
   .app-grid-name {
     margin: 6px 0 0;
