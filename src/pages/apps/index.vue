@@ -77,6 +77,17 @@
           <span class="section-title">{{ cat.label }}</span>
         </div>
 
+        <div
+          v-if="cat.isPinned && draggedAppId && dragSupported"
+          class="unpin-bin"
+          :class="getDarkModeClass(darkMode)"
+          @dragover.prevent
+          @drop="onUnpinDrop"
+        >
+          <q-icon name="mdi-pin-off" size="20px" />
+          <span>{{ $t('DropToUnpin', {}, 'Drop here to unpin') }}</span>
+        </div>
+
         <div class="section-divider" :class="getDarkModeClass(darkMode)"></div>
 
         <!-- List view -->
@@ -772,9 +783,13 @@ export default {
       this.draggedAppId = null
       this.dragOverAppId = null
     },
-    onDragEnd (app) {
+    onDragEnd () {
+      this.draggedAppId = null
+      this.dragOverAppId = null
+    },
+    onUnpinDrop () {
       if (this.draggedAppId) {
-        this.togglePin(app.id)
+        this.togglePin(this.draggedAppId)
       }
       this.draggedAppId = null
       this.dragOverAppId = null
@@ -1140,6 +1155,30 @@ export default {
   .section-pin-icon {
     &.dark { color: rgba(59, 123, 246, 0.7); }
     &.light { color: rgba(59, 123, 246, 0.6); }
+  }
+  .unpin-bin {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    margin: 0 14px 8px;
+    padding: 12px;
+    border-radius: 10px;
+    font-size: 13px;
+    font-weight: 500;
+    transition: background 0.15s ease, border-color 0.15s ease;
+    &.dark {
+      background: rgba(239, 83, 80, 0.08);
+      border: 2px dashed rgba(239, 83, 80, 0.4);
+      color: rgba(239, 83, 80, 0.7);
+      &:hover { background: rgba(239, 83, 80, 0.15); border-color: rgba(239, 83, 80, 0.6); }
+    }
+    &.light {
+      background: rgba(239, 83, 80, 0.06);
+      border: 2px dashed rgba(239, 83, 80, 0.3);
+      color: rgba(239, 83, 80, 0.65);
+      &:hover { background: rgba(239, 83, 80, 0.12); border-color: rgba(239, 83, 80, 0.5); }
+    }
   }
   .pin-indicator {
     &.dark { color: rgba(59, 123, 246, 0.6); }
