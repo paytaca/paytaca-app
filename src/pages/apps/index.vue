@@ -730,10 +730,6 @@ export default {
         this.$router.push(app.path)
       }
     },
-    onLongPressApp(event, app) {
-      event.preventDefault()
-      app?.onLongPress?.(event)
-    },
     isPinned (appId) {
       return this.pinnedAppIds.includes(appId)
     },
@@ -795,6 +791,10 @@ export default {
     },
     showAppContextMenu (app, event) {
       if (!app.active) return
+      if (app.onLongPress) {
+        app.onLongPress(event)
+        return
+      }
       const pinned = this.isPinned(app.id)
       this.$q.bottomSheet({
         class: `text-bow ${this.getDarkModeClass(this.darkMode)}`,
