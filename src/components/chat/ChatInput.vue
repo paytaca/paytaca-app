@@ -238,6 +238,9 @@ export default {
     setText (val) {
       this.text = val
     },
+    focus () {
+      this.$nextTick(() => this.$refs.inputField?.focus())
+    },
     onEnterKey (event) {
       if (!event.shiftKey) {
         event.preventDefault()

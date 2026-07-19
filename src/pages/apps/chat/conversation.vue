@@ -1573,7 +1573,7 @@ export default {
     setReply (message) {
       this.replyToMessage = message
       this.$nextTick(() => {
-        this.$refs.chatInput?.$el?.querySelector('input')?.focus()
+        this.$refs.chatInput?.focus()
       })
     },
     cancelReply () {
@@ -1595,7 +1595,7 @@ export default {
       this.editingMessage = message
       this.$nextTick(() => {
         this.$refs.chatInput?.setText(message.content)
-        this.$refs.chatInput?.$el?.querySelector('input')?.focus()
+        this.$refs.chatInput?.focus()
       })
     },
     cancelEdit () {
