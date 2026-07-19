@@ -60,6 +60,7 @@
     </div>
     <div class="apps-hint-text q-px-md q-mt-xs" :class="getDarkModeClass(darkMode)">
       {{ $t('LongPressToPin', {}, 'Long press on the app to pin or unpin.') }}
+      <template v-if="dragSupported">{{ $t('DragToReorder', {}, 'Drag pinned apps to reorder.') }}</template>
     </div>
 
     <div id="apps" ref="apps" class="apps-list-container" :class="[getDarkModeClass(darkMode), `view-${viewMode}`]">
@@ -86,18 +87,18 @@
             class="app-row"
             :class="[
               getDarkModeClass(darkMode),
-              { 'app-inactive': !app.active, 'app-beta-row': cat.isBeta, 'app-pinned-row': cat.isPinned, 'drag-over': cat.isPinned && dragOverAppId === app.id }
+              { 'app-inactive': !app.active, 'app-beta-row': cat.isBeta, 'app-pinned-row': cat.isPinned, 'drag-over': cat.isPinned && dragSupported && dragOverAppId === app.id }
             ]"
             @click="openApp(app)"
             v-on-long-press="[(event) => showAppContextMenu(app, event)]"
-            @dragover="cat.isPinned && onDragOver(app, $event)"
-            @dragleave="cat.isPinned && onDragLeave()"
-            @drop="cat.isPinned && onDrop(app, $event)"
-            @dragend="cat.isPinned && onDragEnd(app)"
+            @dragover="cat.isPinned && dragSupported && onDragOver(app, $event)"
+            @dragleave="cat.isPinned && dragSupported && onDragLeave()"
+            @drop="cat.isPinned && dragSupported && onDrop(app, $event)"
+            @dragend="cat.isPinned && dragSupported && onDragEnd(app)"
           >
             <div
               v-if="cat.isPinned"
-              :draggable="'true'"
+              :draggable="dragSupported ? 'true' : false"
               class="app-drag-handle"
               @dragstart="onDragStart(app, $event)"
               @touchstart.stop
@@ -143,19 +144,19 @@
           <div
             v-for="(app, index) in cat.apps"
             :key="app.id || index"
-            :draggable="cat.isPinned ? 'true' : false"
+            :draggable="(cat.isPinned && dragSupported) ? 'true' : false"
             class="app-grid-item"
             :class="[
               getDarkModeClass(darkMode),
-              { 'app-inactive': !app.active, 'drag-over': cat.isPinned && dragOverAppId === app.id }
+              { 'app-inactive': !app.active, 'drag-over': cat.isPinned && dragSupported && dragOverAppId === app.id }
             ]"
             @click="openApp(app)"
             v-on-long-press="[(event) => showAppContextMenu(app, event)]"
-            @dragstart="cat.isPinned && onDragStart(app, $event)"
-            @dragover="cat.isPinned && onDragOver(app, $event)"
-            @dragleave="cat.isPinned && onDragLeave()"
-            @drop="cat.isPinned && onDrop(app, $event)"
-            @dragend="cat.isPinned && onDragEnd(app)"
+            @dragstart="cat.isPinned && dragSupported && onDragStart(app, $event)"
+            @dragover="cat.isPinned && dragSupported && onDragOver(app, $event)"
+            @dragleave="cat.isPinned && dragSupported && onDragLeave()"
+            @drop="cat.isPinned && dragSupported && onDrop(app, $event)"
+            @dragend="cat.isPinned && dragSupported && onDragEnd(app)"
           >
             <div class="relative-position" style="display: inline-block;">
               <div class="app-grid-tile bg-grad" :class="{ 'tile-inactive': !app.active }">
@@ -215,14 +216,20 @@ export default {
         let startX = 0
         let startY = 0
         let isPending = false
+        let longPressTriggered = false
+        let activeSource = null
 
-        function start (x, y, e) {
+        function start (x, y, e, source) {
+          if (activeSource && activeSource !== source) return
           startX = x
           startY = y
           isPending = true
+          longPressTriggered = false
+          activeSource = source
           timer = setTimeout(() => {
             timer = null
             isPending = false
+            longPressTriggered = true
             handler(e)
           }, 500)
         }
@@ -233,6 +240,7 @@ export default {
             timer = null
           }
           isPending = false
+          activeSource = null
         }
 
         function move (x, y) {
@@ -242,29 +250,57 @@ export default {
           if (dx > 10 || dy > 10) cancel()
         }
 
-        el.addEventListener('touchstart', (e) => {
-          const t = e.touches[0]
-          start(t.clientX, t.clientY, e)
-        }, { passive: true })
+        function suppressClick (e) {
+          if (longPressTriggered) {
+            e.preventDefault()
+            e.stopPropagation()
+            longPressTriggered = false
+          }
+        }
 
-        el.addEventListener('touchmove', (e) => {
+        function onTouchStart (e) {
+          const t = e.touches[0]
+          start(t.clientX, t.clientY, e, 'touch')
+        }
+
+        function onTouchMove (e) {
           const t = e.touches[0]
           move(t.clientX, t.clientY)
-        }, { passive: true })
+        }
 
+        function onMouseDown (e) {
+          start(e.clientX, e.clientY, e, 'mouse')
+        }
+
+        function onMouseMove (e) {
+          move(e.clientX, e.clientY)
+        }
+
+        el.addEventListener('touchstart', onTouchStart, { passive: true })
+        el.addEventListener('touchmove', onTouchMove, { passive: true })
         el.addEventListener('touchend', cancel)
         el.addEventListener('touchcancel', cancel)
-
-        el.addEventListener('mousedown', (e) => {
-          start(e.clientX, e.clientY, e)
-        })
-
-        el.addEventListener('mousemove', (e) => {
-          move(e.clientX, e.clientY)
-        })
-
+        el.addEventListener('mousedown', onMouseDown)
+        el.addEventListener('mousemove', onMouseMove)
         el.addEventListener('mouseup', cancel)
         el.addEventListener('mouseleave', cancel)
+        el.addEventListener('click', suppressClick, true)
+
+        el._longPressCleanup = () => {
+          cancel()
+          el.removeEventListener('touchstart', onTouchStart)
+          el.removeEventListener('touchmove', onTouchMove)
+          el.removeEventListener('touchend', cancel)
+          el.removeEventListener('touchcancel', cancel)
+          el.removeEventListener('mousedown', onMouseDown)
+          el.removeEventListener('mousemove', onMouseMove)
+          el.removeEventListener('mouseup', cancel)
+          el.removeEventListener('mouseleave', cancel)
+          el.removeEventListener('click', suppressClick, true)
+        }
+      },
+      unmounted (el) {
+        el._longPressCleanup?.()
       }
     },
   },
@@ -541,6 +577,9 @@ export default {
     },
     isNativeIOS () {
       return isNativeIOS()
+    },
+    dragSupported () {
+      return !Platform.is.mobile && !Platform.is.nativeMobile
     },
     theme () {
       return this.$store.getters['global/theme']
