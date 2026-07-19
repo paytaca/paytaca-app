@@ -77,16 +77,6 @@
           <span class="section-title">{{ cat.label }}</span>
         </div>
 
-        <div
-          class="unpin-bin"
-          :class="[getDarkModeClass(darkMode), { 'unpin-bin-visible': cat.isPinned && draggedAppId && dragSupported }]"
-          @dragover.prevent
-          @drop="onUnpinDrop"
-        >
-          <q-icon name="mdi-pin-off" size="20px" />
-          <span>{{ $t('DropToUnpin', {}, 'Drop here to unpin') }}</span>
-        </div>
-
         <div class="section-divider" :class="getDarkModeClass(darkMode)"></div>
 
         <!-- List view -->
@@ -94,6 +84,7 @@
           <div
             v-for="(app, index) in cat.apps"
             :key="app.id || index"
+            :data-app-id="app.id"
             class="app-row"
             :class="[
               getDarkModeClass(darkMode),
@@ -108,12 +99,10 @@
           >
             <div
               v-if="cat.isPinned"
-              :draggable="dragSupported ? 'true' : false"
               class="app-drag-handle"
               :class="getDarkModeClass(darkMode)"
-              @dragstart="onDragStart(app, $event)"
-              @touchstart.stop
-              @mousedown.stop
+              @mousedown="onHandleDragStart(app, $event, 'mouse')"
+              @touchstart="onHandleDragStart(app, $event, 'touch')"
             >
               <q-icon name="drag_indicator" size="20px" />
             </div>
@@ -169,25 +158,37 @@
             @drop="cat.isPinned && dragSupported && onDrop(app, $event)"
             @dragend="cat.isPinned && dragSupported && onDragEnd()"
           >
-            <div class="relative-position" style="display: inline-block;">
+            <div class="relative-position" draggable="false" style="display: inline-block;">
               <div class="app-grid-tile bg-grad" :class="{ 'tile-inactive': !app.active }">
-                <q-icon size="30px" color="white" :name="app.iconName" />
+                <q-icon size="30px" color="white" :name="app.iconName" draggable="false" />
               </div>
-              <span v-if="app.beta" class="app-beta-pill-grid">BETA</span>
+              <span v-if="app.beta" class="app-beta-pill-grid" draggable="false">BETA</span>
               <div
                 v-if="app.id === 'chat' && chatUnreadCount > 0"
                 class="app-unread-badge"
+                draggable="false"
               >
                 {{ chatUnreadCountLabel }}
               </div>
             </div>
             <p
+              draggable="false"
               class="app-grid-name pt-label"
               :class="[getDarkModeClass(darkMode), !app.active ? 'text-grey' : '']"
             >
               {{ app.name }}
             </p>
           </div>
+        </div>
+
+        <div
+          class="unpin-bin"
+          :class="[getDarkModeClass(darkMode), { 'unpin-bin-visible': cat.isPinned && draggedAppId && dragSupported }]"
+          @dragover.prevent
+          @drop="onUnpinDrop"
+        >
+          <q-icon name="mdi-pin-off" size="20px" />
+          <span>{{ $t('DropToUnpin', {}, 'Drop here to unpin') }}</span>
         </div>
       </section>
 
@@ -741,6 +742,41 @@ export default {
       }
       localStorage.setItem('pinnedAppIds', JSON.stringify(this.pinnedAppIds))
     },
+    onHandleDragStart (app, event, source) {
+      event.preventDefault()
+      this.draggedAppId = app.id
+      const getPos = (e) => source === 'mouse'
+        ? { x: e.clientX, y: e.clientY }
+        : { x: e.touches[0].clientX, y: e.touches[0].clientY }
+      let pos = getPos(event)
+      const onMove = (e) => {
+        e.preventDefault()
+        pos = getPos(e)
+        const el = document.elementFromPoint(pos.x, pos.y)
+        const row = el && el.closest('[data-app-id]')
+        if (row) {
+          const id = row.getAttribute('data-app-id')
+          this.dragOverAppId = id !== this.draggedAppId ? id : null
+        } else {
+          this.dragOverAppId = null
+        }
+      }
+      const onEnd = () => {
+        document.removeEventListener('mousemove', onMove)
+        document.removeEventListener('mouseup', onEnd)
+        document.removeEventListener('touchmove', onMove)
+        document.removeEventListener('touchend', onEnd)
+        if (this.draggedAppId && this.dragOverAppId) {
+          this.completeReorder(this.draggedAppId, this.dragOverAppId)
+        }
+        this.draggedAppId = null
+        this.dragOverAppId = null
+      }
+      document.addEventListener('mousemove', onMove)
+      document.addEventListener('mouseup', onEnd)
+      document.addEventListener('touchmove', onMove, { passive: false })
+      document.addEventListener('touchend', onEnd)
+    },
     onDragStart (app, event) {
       this.draggedAppId = app.id
       event.dataTransfer.effectAllowed = 'move'
@@ -777,6 +813,16 @@ export default {
       localStorage.setItem('pinnedAppIds', JSON.stringify(ids))
       this.draggedAppId = null
       this.dragOverAppId = null
+    },
+    completeReorder (fromId, toId) {
+      const ids = [...this.pinnedAppIds]
+      const fromIndex = ids.indexOf(fromId)
+      const toIndex = ids.indexOf(toId)
+      if (fromIndex === -1 || toIndex === -1) return
+      ids.splice(fromIndex, 1)
+      ids.splice(toIndex, 0, fromId)
+      this.pinnedAppIds = ids
+      localStorage.setItem('pinnedAppIds', JSON.stringify(ids))
     },
     onDragEnd () {
       this.draggedAppId = null
