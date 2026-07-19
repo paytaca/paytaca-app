@@ -170,8 +170,8 @@
             @dragend="cat.isPinned && dragSupported && onDragEnd(app)"
           >
             <div class="relative-position" style="display: inline-block;">
-              <div class="app-grid-tile bg-grad" draggable="false" :class="{ 'tile-inactive': !app.active }">
-                <q-icon size="30px" color="white" draggable="false" :name="app.iconName" />
+              <div class="app-grid-tile bg-grad" :class="{ 'tile-inactive': !app.active }">
+                <span draggable="false"><q-icon size="30px" color="white" :name="app.iconName" /></span>
               </div>
               <span v-if="app.beta" class="app-beta-pill-grid">BETA</span>
               <div
