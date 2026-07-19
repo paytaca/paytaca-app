@@ -241,7 +241,7 @@ export async function captureAndEncryptVideoThumbnail(file) {
   }
 
   const result = await encryptBytes(bytes)
-  return { ...result, width: 0, height: 0 }
+  return result
 }
 
 /**

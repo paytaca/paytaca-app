@@ -991,9 +991,7 @@ export default {
       const cacheKey = this.message.id || this.message.content
       const cached = await getCachedPdf(cacheKey)
       if (cached?.blob) {
-        const mimeType = cached.mimeType || 'application/pdf'
-        const blob = new Blob([cached.blob], { type: mimeType })
-        this.pdfBlobUrl = URL.createObjectURL(blob)
+        this.pdfBlobUrl = URL.createObjectURL(cached.blob)
         this.pdfFileName = this.message.fileName || this.getFileName(this.message.content)
         this.showPdfDialog = true
         return

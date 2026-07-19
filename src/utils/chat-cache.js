@@ -4,7 +4,7 @@ const STORE_NAME = 'thumbnails'
 
 let _dbPromise = null
 
-function openDatabase() {
+export function openDatabase() {
   if (!_dbPromise) {
     _dbPromise = new Promise((resolve, reject) => {
       const request = indexedDB.open(DB_NAME, DB_VERSION)

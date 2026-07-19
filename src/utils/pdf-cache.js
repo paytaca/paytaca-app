@@ -1,35 +1,8 @@
-const DB_NAME = 'paytaca-chat-cache'
-const DB_VERSION = 3
+import { openDatabase } from 'src/utils/chat-cache'
+
 const PDF_STORE = 'pdfs'
 const TTL_MS = 24 * 60 * 60 * 1000
 const MAX_PDF_ENTRIES = 30
-
-let _dbPromise = null
-
-function openDatabase () {
-  if (_dbPromise) return _dbPromise
-  _dbPromise = new Promise((resolve, reject) => {
-    const request = indexedDB.open(DB_NAME, DB_VERSION)
-    request.onerror = () => reject(request.error)
-    request.onsuccess = () => resolve(request.result)
-    request.onupgradeneeded = (event) => {
-      const db = event.target.result
-      if (!db.objectStoreNames.contains(PDF_STORE)) {
-        db.createObjectStore(PDF_STORE, { keyPath: 'id' })
-      }
-      if (!db.objectStoreNames.contains('thumbnails')) {
-        db.createObjectStore('thumbnails', { keyPath: 'id' })
-      }
-      if (!db.objectStoreNames.contains('videos')) {
-        db.createObjectStore('videos', { keyPath: 'id' })
-      }
-      if (!db.objectStoreNames.contains('videoThumbs')) {
-        db.createObjectStore('videoThumbs', { keyPath: 'id' })
-      }
-    }
-  })
-  return _dbPromise
-}
 
 function isExpired (entry) {
   return !entry || !entry.timestamp || (Date.now() - entry.timestamp) > TTL_MS
