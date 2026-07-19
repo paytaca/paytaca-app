@@ -98,11 +98,11 @@
             @dragend="cat.isPinned && dragSupported && onDragEnd()"
           >
             <div
-              v-if="cat.isPinned"
+              v-if="cat.isPinned && dragSupported"
               class="app-drag-handle"
               :class="getDarkModeClass(darkMode)"
-              @mousedown="onHandleDragStart(app, $event, 'mouse')"
-              @touchstart="onHandleDragStart(app, $event, 'touch')"
+              @mousedown.stop="onHandleDragStart(app, $event, 'mouse')"
+              @touchstart.stop="onHandleDragStart(app, $event, 'touch')"
             >
               <q-icon name="drag_indicator" size="20px" />
             </div>
