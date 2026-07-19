@@ -2601,6 +2601,7 @@ export default {
       const vm = this
 
       if (result.success) {
+        vm.customKeyboardState = 'dismiss'
         vm.txid = result.txid
         vm.txTimestamp = Date.now()
         vm.sending = false
