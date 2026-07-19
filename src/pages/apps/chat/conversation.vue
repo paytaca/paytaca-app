@@ -426,7 +426,7 @@
     </template>
 
     <!-- Loading group metadata -->
-    <template v-else-if="_fetchingMeta">
+    <template v-else-if="_fetchingMeta || _loadingRoom">
       <div class="request-to-join-container">
         <div class="request-to-join-card" :class="getDarkModeClass(darkMode)">
           <q-spinner color="primary" size="36px" />
@@ -492,64 +492,71 @@
     <!-- Message context menu -->
     <q-menu ref="contextMenu" touch-position no-parent-event class="text-bow" :class="getDarkModeClass(darkMode)">
       <q-list style="min-width: 150px">
-        <q-item clickable v-close-popup @click.stop="setReply(contextMessage)" @pointerdown.stop.prevent="menuPointerDown('reply', $event)">
+        <q-item clickable v-close-popup @click.stop="copyMessage(contextMessage)" @pointerdown.stop.prevent="menuPointerDown('copy', $event)">
           <q-item-section avatar>
-            <q-icon name="reply" size="20px" />
+            <q-icon name="content_copy" size="20px" />
           </q-item-section>
           <q-item-section>
-            <q-item-label>{{ $t('Reply', {}, 'Reply') }}</q-item-label>
+            <q-item-label>{{ $t('Copy', {}, 'Copy') }}</q-item-label>
           </q-item-section>
         </q-item>
-        <q-item
-          v-if="contextMessage?.sender === myPubKey && canEditMessage(contextMessage)"
-          clickable
-          v-close-popup
-          @click.stop="setEdit(contextMessage)"
-          @pointerdown.stop.prevent="menuPointerDown('edit', $event)"
-        >
+        <q-item v-if="hasTextSelection" clickable v-close-popup @click.stop="quoteMessage(contextMessage)" @pointerdown.stop.prevent="menuPointerDown('quote', $event)">
           <q-item-section avatar>
-            <q-icon name="edit" size="20px" />
+            <q-icon name="format_quote" size="20px" />
           </q-item-section>
           <q-item-section>
-            <q-item-label>{{ $t('Edit', {}, 'Edit') }}</q-item-label>
+            <q-item-label>{{ $t('Quote', {}, 'Quote') }}</q-item-label>
           </q-item-section>
         </q-item>
-        <q-item
-          v-if="contextMessage?.sender === myPubKey && canDeleteMessage(contextMessage)"
-          clickable
-          v-close-popup
-          @click.stop="confirmDeleteMessage(contextMessage)"
-          @pointerdown.stop.prevent="menuPointerDown('delete', $event)"
-        >
-          <q-item-section avatar>
-            <q-icon name="delete" size="20px" color="negative" />
-          </q-item-section>
-          <q-item-section>
-            <span class="text-negative">{{ $t('Delete', {}, 'Delete') }}</span>
-          </q-item-section>
-        </q-item>
-        <q-item-label header class="q-px-md q-pt-sm q-pb-none">{{ $t('React', {}, 'React') }}</q-item-label>
-        <q-item class="q-px-sm q-py-xs">
-          <q-item-section>
-            <div class="react-emoji-row">
-              <span v-for="emoji in quickReactions" :key="emoji" class="react-emoji" v-close-popup @click.stop="onReact(contextMessage, emoji)" @pointerdown.stop.prevent="menuPointerDown('emoji-'+emoji, $event)">{{ emoji }}</span>
-            </div>
-          </q-item-section>
-        </q-item>
+        <template v-if="!hasTextSelection">
+          <q-item clickable v-close-popup @click.stop="setReply(contextMessage)" @pointerdown.stop.prevent="menuPointerDown('reply', $event)">
+            <q-item-section avatar>
+              <q-icon name="reply" size="20px" />
+            </q-item-section>
+            <q-item-section>
+              <q-item-label>{{ $t('Reply', {}, 'Reply') }}</q-item-label>
+            </q-item-section>
+          </q-item>
+          <q-item
+            v-if="contextMessage?.sender === myPubKey && canEditMessage(contextMessage)"
+            clickable
+            v-close-popup
+            @click.stop="setEdit(contextMessage)"
+            @pointerdown.stop.prevent="menuPointerDown('edit', $event)"
+          >
+            <q-item-section avatar>
+              <q-icon name="edit" size="20px" />
+            </q-item-section>
+            <q-item-section>
+              <q-item-label>{{ $t('Edit', {}, 'Edit') }}</q-item-label>
+            </q-item-section>
+          </q-item>
+          <q-item
+            v-if="contextMessage?.sender === myPubKey && canDeleteMessage(contextMessage)"
+            clickable
+            v-close-popup
+            @click.stop="confirmDeleteMessage(contextMessage)"
+            @pointerdown.stop.prevent="menuPointerDown('delete', $event)"
+          >
+            <q-item-section avatar>
+              <q-icon name="delete" size="20px" color="negative" />
+            </q-item-section>
+            <q-item-section>
+              <span class="text-negative">{{ $t('Delete', {}, 'Delete') }}</span>
+            </q-item-section>
+          </q-item>
+          <q-item-label header class="q-px-md q-pt-sm q-pb-none">{{ $t('React', {}, 'React') }}</q-item-label>
+          <q-item class="q-px-sm q-py-xs">
+            <q-item-section>
+              <div class="react-emoji-row">
+                <span v-for="emoji in quickReactions" :key="emoji" class="react-emoji" v-close-popup @click.stop="onReact(contextMessage, emoji)" @pointerdown.stop.prevent="menuPointerDown('emoji-'+emoji, $event)">{{ emoji }}</span>
+              </div>
+            </q-item-section>
+          </q-item>
+        </template>
       </q-list>
     </q-menu>
 
-    <!-- Send BCH Dialog -->
-    <send-bch-dialog
-      v-if="showSendDialog"
-      :command="sendCommand"
-      :amount="sendAmount"
-      :recipient-pub-key="sendRecipientPubKey"
-      :recipient-name="getSendRecipientName()"
-      :pre-filled-address="sendPreFilledAddress"
-      @ok="onSendSuccess"
-      @cancel="onSendCancel"
-    />
   </div>
 </template>
 
@@ -559,14 +566,13 @@ import { parseMessageMarkup } from 'src/utils/chat-markup'
 import HeaderNav from 'src/components/header-nav.vue'
 import MessageBubble from 'src/components/chat/MessageBubble.vue'
 import ChatInput from 'src/components/chat/ChatInput.vue'
-import SendBchDialog from 'src/components/chat/SendBchDialog.vue'
 import { npubEncode } from 'nostr-tools/nip19'
 import { getCachedAvatar, setCachedAvatar } from 'src/utils/avatar-cache'
 import { ACTIVE_THRESHOLD_MS } from 'src/store/nostr-chat/state'
 
 export default {
   name: 'ChatConversation',
-  components: { HeaderNav, MessageBubble, ChatInput, SendBchDialog },
+  components: { HeaderNav, MessageBubble, ChatInput },
   props: {
     roomId: { type: String, required: true },
   },
@@ -582,15 +588,13 @@ export default {
       renameContactName: '',
       showRenameGroupDialog: false,
       renameGroupName: '',
-      showSendDialog: false,
-      sendCommand: 'send',
-      sendAmount: 0,
-      sendRecipientPubKey: '',
-      sendPreFilledAddress: '',
+
       inputFocused: false,
       replyToMessage: null,
       editingMessage: null,
       contextMessage: null,
+      hasTextSelection: false,
+      selectedText: '',
       quickReactions: ['😂', '🎉', '❤️', '😊', '👍', '💯', '🔥', '🙏', '🤔', '😮', '😢', '👎'],
       showScrollToBottom: false,
       isContextMenuOpen: false,
@@ -605,6 +609,7 @@ export default {
       requestingToJoin: false,
       _fetchedGroupMeta: null,
       _fetchingMeta: false,
+      _loadingRoom: true,
       otherMemberAvatar: null,
       memberDisplayNames: {},
       _messageObserver: null,
@@ -668,7 +673,7 @@ export default {
     },
     otherMemberAvatarUrl () {
       if (this.isGroupRoom || !this.otherMemberPubKey) return null
-      return this.otherMemberAvatar || getCachedAvatar(this.otherMemberPubKey)
+      return this.otherMemberAvatar || null
     },
     isUnknownContact () {
       return this.otherMemberPubKey && !this.otherMemberContact
@@ -874,14 +879,15 @@ export default {
   },
   watch: {
     otherMemberPubKey: {
-      handler (pubKey) {
+      async handler (pubKey) {
         if (!pubKey || this.isGroupRoom) return
         // Show cached values immediately for fast rendering
         const walletHash = this.$store.getters['global/getWallet']('bch')?.walletHash
         const walletState = walletHash ? this.$store.state.nostrChat?.byWallet?.[walletHash] : null
         const cachedName = walletState?.displayNameCache?.[pubKey]?.displayName
         if (cachedName) this.fetchedDisplayName = cachedName
-        this.otherMemberAvatar = getCachedAvatar(pubKey) || walletState?.avatarCache?.[pubKey]?.avatar || null
+        const cachedUrl = await getCachedAvatar(pubKey)
+        this.otherMemberAvatar = cachedUrl || walletState?.avatarCache?.[pubKey]?.avatar || null
         // Force-refresh from relays on conversation open to pick up any updates
         this.$store.dispatch('nostrChat/fetchPublishedDisplayName', { pubKeyHex: pubKey, forceRefresh: true })
           .then(displayName => {
@@ -936,7 +942,11 @@ export default {
     this.$nextTick(() => this.observeMessages())
     },
     room (val) {
-      if (!val && !this._isGroupLink) {
+      if (val) {
+        this._loadingRoom = false
+        return
+      }
+      if (!this._isGroupLink) {
         this.$router.replace('/apps/chat')
       }
     },
@@ -1012,13 +1022,19 @@ export default {
     },
   },
   mounted () {
+    this.handleTipResult()
+    if (this.room) {
+      this._loadingRoom = false
+    }
     if (!this.room && this._isGroupLink) {
       this._fetchingMeta = true
       this.$store.dispatch('nostrChat/fetchGroupMetadata', { roomId: this.roomId }).then(meta => {
         this._fetchedGroupMeta = meta
         this._fetchingMeta = false
+        this._loadingRoom = false
       }).catch(() => {
         this._fetchingMeta = false
+        this._loadingRoom = false
       })
     }
     const savedRoomId = sessionStorage.getItem('chat_scroll_room_id')
@@ -1037,6 +1053,9 @@ export default {
     this._savedScrollTop = savedScrollTop
     this.markAsRead()
     this.ensureSubscribed().catch(() => {})
+    this._loadingFallbackTimer = setTimeout(() => {
+      this._loadingRoom = false
+    }, 15000)
     this.$store.dispatch('nostrChat/fetchActiveStatus').catch(() => {})
     if (this.isGroupRoom && this.room?.members) {
       const fetches = this.room.members.map(pk =>
@@ -1050,6 +1069,7 @@ export default {
     }
     document.addEventListener('visibilitychange', this.onVisibilityChange)
     document.addEventListener('pointerdown', this.onDocumentPointerDown)
+    document.addEventListener('pointerup', this.onDocumentPointerUp)
     if (window.visualViewport) {
       window.visualViewport.addEventListener('resize', this.onViewportResize)
       window.visualViewport.addEventListener('scroll', this.onViewportResize)
@@ -1151,6 +1171,7 @@ export default {
   },
   beforeUnmount () {
     clearInterval(this._activeStatusPollTimer)
+    clearTimeout(this._loadingFallbackTimer)
     this._activeStatusPollTimer = null
     if (this._isActive) {
       this._isActive = false
@@ -1160,6 +1181,7 @@ export default {
     if (this._vpRaf) { cancelAnimationFrame(this._vpRaf); this._vpRaf = null }
     document.removeEventListener('visibilitychange', this.onVisibilityChange)
     document.removeEventListener('pointerdown', this.onDocumentPointerDown)
+    document.removeEventListener('pointerup', this.onDocumentPointerUp)
     if (window.visualViewport) {
       window.visualViewport.removeEventListener('resize', this.onViewportResize)
       window.visualViewport.removeEventListener('scroll', this.onViewportResize)
@@ -1415,25 +1437,26 @@ export default {
       return this.$store.getters['nostrChat/getMessageReactions'](this.roomId, messageId)
     },
     openMessageMenu (message, event) {
-      // Debugging: log when menu opens and what message is bound
+      if (this.isContextMenuOpen) this.hideContextMenu()
       this.contextMessage = message
+      const sel = window.getSelection()
+      const hasSelection = sel && !sel.isCollapsed
+      this.hasTextSelection = hasSelection
+      this.selectedText = hasSelection ? sel.toString().trim() : ''
       this.$nextTick(() => {
         this.$refs.contextMenu?.show(event)
         this.isContextMenuOpen = true
-        // Ignore the next pointerdown to avoid immediate dismissal on touch
         this._ignoreNextPointerDown = true
-        // Also clear the guard after a short window to avoid permanently blocking interactions
         setTimeout(() => { this._ignoreNextPointerDown = false }, 350)
       })
     },
     hideContextMenu () {
-      // If we're within the ignore window, don't immediately hide (prevents the opening gesture from closing it)
       if (this._ignoreNextPointerDown) return
       this.$refs.contextMenu?.hide()
       this.isContextMenuOpen = false
+      this.selectedText = ''
     },
     onDocumentPointerDown (e) {
-      // Ignore pointerdown immediately following opening the menu (same interaction)
       if (this._ignoreNextPointerDown) {
         this._ignoreNextPointerDown = false
         return
@@ -1453,6 +1476,33 @@ export default {
       if (target && target.__qclosepopup) return
       
       this.hideContextMenu()
+    },
+    onDocumentPointerUp (e) {
+      if (e.button !== 0) return
+      if (this.isContextMenuOpen) return
+      const sel = window.getSelection()
+      if (!sel || sel.isCollapsed) return
+      const msgEl = sel.anchorNode?.parentElement?.closest?.('[data-msg-id]')
+      if (!msgEl) return
+      const msgId = msgEl.dataset.msgId
+      const message = this.getMessageById(msgId)
+      if (!message) return
+      const selectedText = sel.toString().trim()
+      if (!selectedText) return
+      this.contextMessage = message
+      this.hasTextSelection = true
+      this.selectedText = selectedText
+      const range = sel.getRangeAt(0)
+      const rect = range.getBoundingClientRect()
+      this.$nextTick(() => {
+        this.$refs.contextMenu?.show({
+          clientX: rect.left + rect.width / 2,
+          clientY: rect.bottom + 4,
+        })
+        this.isContextMenuOpen = true
+        this._ignoreNextPointerDown = true
+        setTimeout(() => { this._ignoreNextPointerDown = false }, 350)
+      })
     },
     onReact (message, emoji) {
       this.$refs.contextMenu?.hide()
@@ -1505,10 +1555,15 @@ export default {
       if (container) {
         sessionStorage.setItem('chat_scroll_top', container.scrollTop)
       }
+      const query = { from: 'chat', roomId: this.roomId }
+      if (markup.category) {
+        query.assetID = `ct/${markup.category}`
+        query.category = markup.category
+      }
       this.$router.push({
         name: 'transaction-detail',
         params: { txid: markup.txid },
-        query: { from: 'chat', roomId: this.roomId },
+        query,
       })
     },
     onMessagesScroll () {
@@ -1547,10 +1602,37 @@ export default {
       if (!container) return
       container.scrollTo({ top: container.scrollHeight, behavior: 'smooth' })
     },
+    copyMessage (message) {
+      if (this.selectedText) {
+        navigator.clipboard.writeText(this.selectedText)
+      } else {
+        const { text } = parseMessageMarkup(message.content || '')
+        const content = text || message.content || ''
+        navigator.clipboard.writeText(content)
+      }
+      this.$q.notify({
+        type: 'positive',
+        message: this.$t('MessageCopied', {}, 'Message copied'),
+        timeout: 2000,
+      })
+    },
+    quoteMessage (message) {
+      const { text } = parseMessageMarkup(message.content || '')
+      const quoteText = this.selectedText || text || message.content || ''
+      this.replyToMessage = message
+      this.$nextTick(() => {
+        this.$refs.chatInput?.setText(`> ${quoteText}\n\n`)
+        setTimeout(() => {
+          this.$refs.chatInput?.focus()
+        }, 150)
+      })
+    },
     setReply (message) {
       this.replyToMessage = message
       this.$nextTick(() => {
-        this.$refs.chatInput?.$el?.querySelector('input')?.focus()
+        setTimeout(() => {
+          this.$refs.chatInput?.focus()
+        }, 150)
       })
     },
     cancelReply () {
@@ -1572,7 +1654,7 @@ export default {
       this.editingMessage = message
       this.$nextTick(() => {
         this.$refs.chatInput?.setText(message.content)
-        this.$refs.chatInput?.$el?.querySelector('input')?.focus()
+        this.$refs.chatInput?.focus()
       })
     },
     cancelEdit () {
@@ -1609,11 +1691,7 @@ export default {
         this.$q.notify({ type: 'negative', message: this.$t('NoRecipientFound'), timeout: 5000, closeBtn: true })
         return
       }
-      this.sendAmount = 0
-      this.sendRecipientPubKey = recipientPubKey
-      this.sendPreFilledAddress = ''
-      this.sendCommand = 'tip'
-      this.showSendDialog = true
+      this.sendTipNavigate(recipientPubKey, 0)
     },
     async onSend (text) {
       if (!this.room) return
@@ -1646,6 +1724,7 @@ export default {
             replyTo,
           })
           this.$store.commit('nostrChat/ADD_MESSAGE', { roomId, message })
+          this.$store.commit('nostrChat/TOUCH_ROOM_LAST_MESSAGE_AT', roomId)
           this.$store.dispatch('nostrChat/touchRoom', { roomId, timestamp: new Date().toISOString() })
           this.replyToMessage = null
           this.scrollToBottom()
@@ -1725,6 +1804,7 @@ export default {
           subject: name,
         })
         this.$store.commit('nostrChat/ADD_MESSAGE', { roomId, message })
+        this.$store.commit('nostrChat/TOUCH_ROOM_LAST_MESSAGE_AT', roomId)
         this.$store.dispatch('nostrChat/publishGiftWraps', { giftWraps })
         // Persist the new name on the relay so all members see it
         this.$store.dispatch('nostrChat/publishGroupMetadata', {
@@ -1950,17 +2030,40 @@ export default {
         })
       }
     },
-    openSendDialog ({ amount, recipientPubKey }) {
-      this.sendAmount = amount
-      this.sendRecipientPubKey = recipientPubKey
-      this.showSendDialog = true
+    handleTipResult () {
+      const { tipTxid, tipAmount, tipSymbol, tipLogo, tipAssetId } = this.$route.query
+      if (!tipTxid || !tipAmount) return
+      const query = { ...this.$route.query }
+      delete query.tipTxid
+      delete query.tipAmount
+      delete query.tipSymbol
+      delete query.tipLogo
+      delete query.tipAssetId
+      this.$router.replace({ query })
+      this.$nextTick(() => this.sendTipConfirmationMessage(tipTxid, parseFloat(tipAmount), tipSymbol || 'BCH', tipLogo || '', tipAssetId || ''))
     },
-    onSendCancel () {
-      this.showSendDialog = false
-    },
-    getSendRecipientName () {
-      const contact = this.contacts.find(c => c.pubKeyHex === this.sendRecipientPubKey)
-      return contact?.name || ''
+    async sendTipConfirmationMessage (txid, amount, symbol, logo, assetId) {
+      if (!this.room || !txid) return
+      try {
+        let markup = `t:payment,a:${amount},s:${symbol},x:${txid}`
+        if (logo) markup += `,l:${logo}`
+        if (assetId) markup += `,c:${assetId}`
+        const text = `Sent ${amount} ${symbol} [/*${markup}*/]`
+        const { giftWraps, message, roomId } = await this.$store.dispatch('nostrChat/sendMessage', {
+          roomId: this.roomId,
+          text,
+        })
+        this.$store.commit('nostrChat/ADD_MESSAGE', { roomId, message })
+        this.$store.commit('nostrChat/TOUCH_ROOM_LAST_MESSAGE_AT', roomId)
+        this.$store.dispatch('nostrChat/touchRoom', { roomId, timestamp: new Date().toISOString() })
+        await this.$store.dispatch('nostrChat/publishGiftWraps', { giftWraps })
+        this.$q.notify({
+          type: 'positive',
+          message: this.$t('BchSentSuccess', { amount, txid: txid?.slice(0, 12) }, `Successfully sent ${amount} ${symbol}`),
+        })
+      } catch (err) {
+        console.error('[Conversation] Failed to send tip confirmation:', err)
+      }
     },
     async onCommand ({ type, amount, currency, originalText }) {
       if (type !== 'send') return
@@ -1971,10 +2074,9 @@ export default {
       }
 
       const currencyUpper = (currency || 'BCH').toUpperCase()
-      const commandType = originalText?.trim().startsWith('/tip') ? 'tip' : 'send'
 
       if (currencyUpper === 'BCH') {
-        await this.handleBchSend(amount, originalText, commandType)
+        await this.sendTipNavigate(this.otherMemberPubKey, amount, originalText)
       } else {
         this.$q.notify({
           type: 'info',
@@ -1985,11 +2087,10 @@ export default {
         this.$refs.chatInput?.setText(originalText)
       }
     },
-    async handleBchSend (amount, originalText, commandType = 'send') {
-      const recipientPubKey = this.otherMemberPubKey
+    async sendTipNavigate (recipientPubKey, amount, originalText = null) {
       if (!recipientPubKey) {
         this.$q.notify({ type: 'negative', message: this.$t('NoRecipientFound'), timeout: 5000, closeBtn: true })
-        this.$refs.chatInput?.setText(originalText)
+        if (originalText) this.$refs.chatInput?.setText(originalText)
         return
       }
 
@@ -2004,45 +2105,11 @@ export default {
       }
       this.$q.loading.hide()
 
-      if (!address) {
-        this.$q.notify({
-          type: 'warning',
-          message: this.$t('NoPublishedBCHAddress', {}, 'Recipient has not published a BCH address — paste it manually below'),
-          timeout: 5000,
-          closeBtn: true,
-        })
-      }
+      const query = { chatRoomId: this.roomId, backPath: `/apps/chat/${this.roomId}` }
+      if (address) query.address = address
+      if (amount > 0) query.amount = amount
 
-      this.sendAmount = amount || 0
-      this.sendRecipientPubKey = recipientPubKey
-      this.sendPreFilledAddress = address || ''
-      this.sendCommand = commandType
-      this.showSendDialog = true
-    },
-    async onSendSuccess ({ txid, amount, symbol, recipient }) {
-      this.showSendDialog = false
-      this.sendPreFilledAddress = ''
-      const assetSymbol = symbol || 'BCH'
-      this.$q.notify({
-        type: 'positive',
-        message: this.$t('BchSentSuccess', { amount, txid: txid?.slice(0, 12) }, `Successfully sent ${amount} ${assetSymbol}`),
-      })
-
-      // Send confirmation message in chat with embedded markup
-      if (this.room && txid) {
-        try {
-          const text = `Sent ${amount} ${assetSymbol} [/*t:payment,a:${amount},s:${assetSymbol},x:${txid}*/]`
-          const { giftWraps, message, roomId } = await this.$store.dispatch('nostrChat/sendMessage', {
-            roomId: this.roomId,
-            text,
-          })
-          this.$store.commit('nostrChat/ADD_MESSAGE', { roomId, message })
-          this.$store.dispatch('nostrChat/touchRoom', { roomId, timestamp: new Date().toISOString() })
-          await this.$store.dispatch('nostrChat/publishGiftWraps', { giftWraps })
-        } catch (err) {
-          console.error('[Conversation] Failed to send confirmation message:', err)
-        }
-      }
+      this.$router.push({ name: 'transaction-send-select-asset', query })
     },
   },
 }

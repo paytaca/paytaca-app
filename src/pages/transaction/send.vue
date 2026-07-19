@@ -585,6 +585,10 @@ export default {
     backPath: {
       type: String,
       default: null
+    },
+    chatRoomId: {
+      type: String,
+      default: null
     }
   },
 
@@ -1503,7 +1507,9 @@ export default {
       // Show send success only for consolidation (own-wallet) sends; otherwise go to transaction detail.
       const isConsolidation = await this.checkConsolidationViaAddressInfo()
 
-      if (isConsolidation) {
+      if (this.chatRoomId) {
+        this.redirectToChatAfterTip(txid)
+      } else if (isConsolidation) {
         this.showSendSuccess()
       } else {
         // Redirect to transaction detail with state so it can show tx before watchtower indexes
@@ -1615,7 +1621,12 @@ export default {
       this.currentWalletBalances = currentWalletBalances;
       this.currentRecipientIndex = 0
       this.expandedItems = { R1: true }
-      this.updateCauldronAndRemainingBalance()
+      if (currentInputExtras.cauldron.enable) {
+        this.prepareCauldronTrade()
+        this.adjustWalletBalance()
+      } else {
+        this.updateCauldronAndRemainingBalance()
+      }
       this.sliderStatus = true
     },
 
@@ -2162,7 +2173,9 @@ export default {
             // Show send success only for consolidation; otherwise go to transaction detail.
             const isConsolidation = await vm.checkConsolidationViaAddressInfo()
 
-            if (isConsolidation) {
+            if (vm.chatRoomId) {
+              vm.redirectToChatAfterTip(txId)
+            } else if (isConsolidation) {
               vm.showSendSuccess()
             } else {
               // Redirect to transaction detail with state so it can show tx before watchtower indexes
@@ -2545,6 +2558,16 @@ export default {
       )
     },
 
+    redirectToChatAfterTip (txid) {
+      const symbol = this.asset?.symbol || this.symbol || 'BCH'
+      const amount = this.totalAmountSent
+      const logo = this.asset?.logo || ''
+      const assetId = this.asset?.id || ''
+      let url = `/apps/chat/${this.chatRoomId}?tipTxid=${txid}&tipAmount=${amount}&tipSymbol=${symbol}`
+      if (logo) url += `&tipLogo=${encodeURIComponent(logo)}`
+      if (assetId && assetId.startsWith('ct/')) url += `&tipAssetId=${assetId.replace('ct/', '')}`
+      this.$router.replace(url)
+    },
     /**
      * Show send success page for consolidation transactions.
      * Persists state so it survives background / app lock / process recreation.
@@ -2564,7 +2587,9 @@ export default {
 
         // Show send success immediately (don't wait for points API)
         const isConsolidation = await vm.checkConsolidationViaAddressInfo()
-        if (isConsolidation) {
+        if (vm.chatRoomId) {
+          vm.redirectToChatAfterTip(result.txid)
+        } else if (isConsolidation) {
           vm.showSendSuccess()
         } else {
           // Redirect to transaction detail with state so it can show tx before watchtower indexes
@@ -3142,6 +3167,22 @@ export default {
       if (container) {
         container.addEventListener('scroll', this.handleScroll)
       }
+
+      // Auto-focus the amount input and show custom keyboard when recipient is pre-filled
+      if (vm.recipient && vm.assetId) {
+        this.$nextTick(() => {
+          const sendPageForm = this.$refs.sendPageRef?.[0]
+          if (!sendPageForm) return
+          const field = vm.assetId === 'bch' ? 'fiat' : 'bch'
+          const inputRef = field === 'fiat' ? sendPageForm.$refs.fiatInput : sendPageForm.$refs.amountInput
+          if (inputRef && inputRef.focus) {
+            inputRef.focus()
+            this.focusedInputField = field
+            this.customKeyboardState = 'show'
+            sendPageUtils.addRemoveInputFocus(0, field)
+          }
+        })
+      }
     })
   },
 
@@ -3168,10 +3209,19 @@ export default {
   created () {
     const vm = this
 
-    if (vm.assetId && vm.amount && vm.recipient) {
-      vm.recipients[0].amount = vm.amount
-      vm.recipients[0].fixedAmount = vm.fixed
-      vm.recipients[0].recipientAddress = vm.recipient
+    if (vm.assetId && vm.recipient) {
+      if (vm.amount) {
+        vm.recipients[0].amount = vm.amount
+        vm.recipients[0].fixedAmount = vm.fixed
+      }
+
+      if (vm.assetId?.startsWith?.('ct/')) {
+        const addressObj = new Address(vm.recipient)
+        vm.recipients[0].recipientAddress = toTokenAddress(addressObj.toCashAddress(vm.recipient))
+      } else {
+        vm.recipients[0].recipientAddress = vm.recipient
+      }
+
       vm.scanner.show = false
       vm.sliderStatus = true
     }

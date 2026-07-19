@@ -175,17 +175,33 @@
       <KeyboardTooltip v-if="activeKeyboardTip === 'fiat'" :dark-mode="darkMode" :key="'fiat-' + keyboardTipCounter" />
     </div>
   </div>
-  <div v-if="!isNFT && !cauldronEnabled" class="q-mt-sm">
-    <q-btn
-      no-caps
-      :label="asset?.id === 'bch' ? $t('SendUsingTokensWithCauldron') : $t('SendUsingBchWithCauldron')"
-      icon="img:cauldron-logo.svg"
-      color="pt-primary1"
-      padding="sm md"
-      class="full-width q-my-sm"
-      @click="toggleCauldron"
-    />
-  </div>
+  <template v-if="!isNFT && !cauldronEnabled">
+    <div v-if="asset?.id?.startsWith?.('ct/') && (!asset?.balance || asset?.balance === 0)" class="q-mt-sm text-center text-weight-medium text-bow">
+      <p class="q-mb-xs text-caption">
+        {{ $t('NoTokenBalanceCauldronHint', { symbol: (asset?.symbol || '').toUpperCase() }, 'You have no {symbol} tokens, click below to auto-swap from BCH') }}
+      </p>
+      <q-btn
+        no-caps
+        :label="$t('SendUsingBchWithCauldron')"
+        icon="img:cauldron-logo.svg"
+        color="pt-primary1"
+        padding="sm md"
+        class="full-width q-my-sm"
+        @click="toggleCauldron"
+      />
+    </div>
+    <div v-else-if="asset?.id === 'bch'" class="q-mt-sm">
+      <q-btn
+        no-caps
+        :label="$t('SendUsingTokensWithCauldron')"
+        icon="img:cauldron-logo.svg"
+        color="pt-primary1"
+        padding="sm md"
+        class="full-width q-my-sm"
+        @click="toggleCauldron"
+      />
+    </div>
+  </template>
   <div v-else-if="!isNFT && cauldronEnabled" class="row items-start no-wrap q-mt-sm">
     <div class="full-width">
       <q-input
@@ -558,6 +574,15 @@ export default {
       this.emitCauldronToggle();
 
       if (this.cauldronEnabled && !this.cauldronToken && this.assetIsBch) this.cauldronTokenDialog = true
+
+      // When enabling cauldron for a CashToken, focus the amount input and show the custom keyboard
+      if (this.cauldronEnabled && this.asset?.id?.startsWith?.('ct/')) {
+        this.$nextTick(() => {
+          if (this.$refs.amountInput) {
+            this.$refs.amountInput.focus()
+          }
+        })
+      }
     },
     onCauldronTokenSelect (token) {
       this.cauldronToken = token

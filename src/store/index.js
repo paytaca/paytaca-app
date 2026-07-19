@@ -99,6 +99,11 @@ function serializeState(obj, seen = new Map()) {
             if (typeof value === 'function' || typeof value === 'symbol') {
               continue
             }
+
+            // Skip session-scoped blob URLs that don't survive page reloads
+            if (key === 'localVideoUrl') {
+              continue
+            }
             
             // Skip wallet instances and other complex objects that might have circular refs
             // Check for common non-serializable patterns
