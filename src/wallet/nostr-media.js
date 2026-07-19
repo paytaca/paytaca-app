@@ -227,7 +227,7 @@ export async function encryptBytes(data) {
 /**
  * Capture a video thumbnail, encrypt it, and return everything needed to upload + reference it.
  * @param {File|Blob} file - The video file
- * @returns {Promise<{ encrypted: Uint8Array, aesKeyHex: string, nonceHex: string, hash: string, width: number, height: number }|null>}
+ * @returns {Promise<{ encrypted: Uint8Array, aesKeyHex: string, nonceHex: string, hash: string }|null>}
  */
 export async function captureAndEncryptVideoThumbnail(file) {
   const dataUrl = await getVideoThumbnail(file)

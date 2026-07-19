@@ -69,6 +69,10 @@ export async function saveThumbnailToDB(cacheKey, thumbnailUrl) {
     const tx = db.transaction(STORE_NAME, 'readwrite')
     const store = tx.objectStore(STORE_NAME)
     store.put({ id: cacheKey, thumbnailUrl, timestamp: Date.now() })
+    await new Promise((resolve, reject) => {
+      tx.oncomplete = resolve
+      tx.onerror = () => reject(tx.error)
+    })
   } catch (err) {
     console.warn('[chat-cache] Failed to save thumbnail to IndexedDB:', err)
   }
@@ -82,6 +86,10 @@ export async function clearChatCache() {
     tx.objectStore('videos').clear()
     tx.objectStore('videoThumbs').clear()
     tx.objectStore('pdfs').clear()
+    await new Promise((resolve, reject) => {
+      tx.oncomplete = resolve
+      tx.onerror = () => reject(tx.error)
+    })
     _imageThumbnailCache.clear()
     _replyThumbnailCache.clear()
     return true

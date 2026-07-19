@@ -282,6 +282,7 @@ export default {
         isVideoLoading: false,
         videoError: false,
         _cachedVideoBlob: null,
+        _videoUrlIsCachedBlob: false,
         replyImageThumbnail: null, // Reply preview thumbnail (reactive)
         showPdfDialog: false,
         pdfBlobUrl: null,
@@ -337,7 +338,7 @@ export default {
        if (this.imageFullUrl) {
          URL.revokeObjectURL(this.imageFullUrl)
        }
-        if (this.videoUrl) {
+        if (this.videoUrl && !this._videoUrlIsCachedBlob) {
           URL.revokeObjectURL(this.videoUrl)
         }
         if (this.videoThumbnailUrl) {
@@ -833,6 +834,7 @@ export default {
       if (this._cachedVideoBlob) {
         this.videoError = false
         this.videoUrl = this._cachedVideoBlob
+        this._videoUrlIsCachedBlob = true
         this._cachedVideoBlob = null
         this.isVideoLoading = false
         this.$nextTick(() => {
