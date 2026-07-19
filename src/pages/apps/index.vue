@@ -104,7 +104,7 @@
             @dragover="cat.isPinned && dragSupported && onDragOver(app, $event)"
             @dragleave="cat.isPinned && dragSupported && onDragLeave()"
             @drop="cat.isPinned && dragSupported && onDrop(app, $event)"
-            @dragend="cat.isPinned && dragSupported && onDragEnd(app)"
+            @dragend="cat.isPinned && dragSupported && onDragEnd()"
           >
             <div
               v-if="cat.isPinned"
@@ -162,12 +162,12 @@
               { 'app-inactive': !app.active, 'drag-over': cat.isPinned && dragSupported && dragOverAppId === app.id }
             ]"
             @click="openApp(app)"
-            v-on-long-press="!cat.isPinned ? [(event) => showAppContextMenu(app, event)] : undefined"
+            v-on-long-press="(cat.isPinned && dragSupported) ? undefined : [(event) => showAppContextMenu(app, event)]"
             @dragstart="cat.isPinned && dragSupported && onDragStart(app, $event)"
             @dragover="cat.isPinned && dragSupported && onDragOver(app, $event)"
             @dragleave="cat.isPinned && dragSupported && onDragLeave()"
             @drop="cat.isPinned && dragSupported && onDrop(app, $event)"
-            @dragend="cat.isPinned && dragSupported && onDragEnd(app)"
+            @dragend="cat.isPinned && dragSupported && onDragEnd()"
           >
             <div class="relative-position" style="display: inline-block;">
               <div class="app-grid-tile bg-grad" :class="{ 'tile-inactive': !app.active }">
