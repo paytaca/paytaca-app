@@ -500,6 +500,14 @@
             <q-item-label>{{ $t('Reply', {}, 'Reply') }}</q-item-label>
           </q-item-section>
         </q-item>
+        <q-item clickable v-close-popup @click.stop="copyMessage(contextMessage)" @pointerdown.stop.prevent="menuPointerDown('copy', $event)">
+          <q-item-section avatar>
+            <q-icon name="content_copy" size="20px" />
+          </q-item-section>
+          <q-item-section>
+            <q-item-label>{{ $t('Copy', {}, 'Copy') }}</q-item-label>
+          </q-item-section>
+        </q-item>
         <q-item
           v-if="contextMessage?.sender === myPubKey && canEditMessage(contextMessage)"
           clickable
@@ -1551,6 +1559,16 @@ export default {
       const container = this.$refs.messagesContainer
       if (!container) return
       container.scrollTo({ top: container.scrollHeight, behavior: 'smooth' })
+    },
+    copyMessage (message) {
+      const { text } = parseMessageMarkup(message.content || '')
+      const content = text || message.content || ''
+      navigator.clipboard.writeText(content)
+      this.$q.notify({
+        type: 'positive',
+        message: this.$t('MessageCopied', {}, 'Message copied'),
+        timeout: 2000,
+      })
     },
     setReply (message) {
       this.replyToMessage = message
