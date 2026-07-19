@@ -76,14 +76,19 @@ export default {
 .pdf-viewer {
   display: flex;
   flex-direction: column;
-  height: 100%;
+  height: 100dvh;
+  width: 100dvw;
   background: #000000;
 }
 
 .pdf-viewer-header {
   display: flex;
   align-items: center;
-  padding: 8px 12px;
+  padding:
+    calc(env(safe-area-inset-top, 0px) + 8px)
+    calc(env(safe-area-inset-right, 0px) + 12px)
+    8px
+    calc(env(safe-area-inset-left, 0px) + 12px);
   gap: 8px;
   color: #ffffff;
   flex-shrink: 0;
@@ -111,6 +116,7 @@ export default {
   justify-content: center;
   overflow: hidden;
   min-height: 0;
+  padding-bottom: env(safe-area-inset-bottom, 0px);
   background: #525659;
 }
 
@@ -131,5 +137,12 @@ export default {
   color: rgba(255, 255, 255, 0.8);
   font-size: 14px;
   font-weight: 500;
+}
+</style>
+
+<style>
+/* Fullscreen dialogs must cover safe areas on notched phones */
+.q-dialog__inner--maximized > div {
+  max-height: 100dvh !important;
 }
 </style>

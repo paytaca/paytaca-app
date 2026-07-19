@@ -1613,18 +1613,23 @@ export default {
   border-radius: 12px;
 }
 
-/* Fullscreen image viewer */
+/* Fullscreen image viewer — extends into safe areas */
 .image-viewer {
   display: flex;
   flex-direction: column;
-  height: 100%;
+  height: 100dvh;
+  width: 100dvw;
   background: #000000;
 }
 
 .image-viewer-header {
   display: flex;
   align-items: center;
-  padding: 8px 12px;
+  padding:
+    calc(env(safe-area-inset-top, 0px) + 8px)
+    calc(env(safe-area-inset-right, 0px) + 12px)
+    8px
+    calc(env(safe-area-inset-left, 0px) + 12px);
   gap: 8px;
   color: #ffffff;
   flex-shrink: 0;
@@ -1652,6 +1657,7 @@ export default {
   justify-content: center;
   overflow: auto;
   min-height: 0;
+  padding-bottom: env(safe-area-inset-bottom, 0px);
 }
 
 .fullscreen-image {
@@ -1951,6 +1957,11 @@ export default {
 </style>
 
 <style>
+/* Fullscreen dialogs must cover safe areas on notched phones */
+.q-dialog__inner--maximized > div {
+  max-height: 100dvh !important;
+}
+
 /* Global styles for seen-by q-menu portal content (unscoped — q-menu renders outside component) */
 .seen-by-menu-inner {
   padding: 10px 14px;
