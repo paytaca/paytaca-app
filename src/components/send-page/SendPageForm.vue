@@ -176,9 +176,9 @@
     </div>
   </div>
   <template v-if="!isNFT && !cauldronEnabled">
-    <div v-if="asset?.id?.startsWith?.('ct/') && (!asset?.balance || asset?.balance === 0)">
+    <div v-if="asset?.id?.startsWith?.('ct/') && (!asset?.balance || asset?.balance === 0)" class="q-mt-sm text-center">
       <div v-if="showAdvancedOptions">
-        <p class="q-mb-xs text-caption text-center text-weight-medium text-bow">
+        <p class="q-mb-xs text-caption text-weight-medium text-bow">
           {{ $t('NoTokenBalanceCauldronHint', { symbol: (asset?.symbol || '').toUpperCase() }, 'You have no {symbol} tokens, click below to auto-swap from BCH') }}
         </p>
         <q-btn
@@ -191,23 +191,18 @@
           @click="toggleCauldron"
         />
       </div>
-      <div
-        v-else
-        class="q-mt-sm text-center"
+      <q-btn
+        no-caps
+        flat
+        dense
+        color="pt-primary1"
+        class="text-caption"
+        @click="showAdvancedOptions = !showAdvancedOptions"
       >
-        <q-btn
-          no-caps
-          flat
-          dense
-          color="pt-primary1"
-          class="text-caption"
-          @click="showAdvancedOptions = true"
-        >
-          {{ $t('ShowAdvancedOptions', {}, 'Show Advanced Options') }}
-        </q-btn>
-      </div>
+        {{ showAdvancedOptions ? $t('HideAdvancedOptions', {}, 'Hide Advanced Options') : $t('ShowAdvancedOptions', {}, 'Show Advanced Options') }}
+      </q-btn>
     </div>
-    <div v-else-if="asset?.id === 'bch'">
+    <div v-else-if="asset?.id === 'bch'" class="q-mt-sm text-center">
       <div v-if="showAdvancedOptions">
         <q-btn
           no-caps
@@ -219,21 +214,16 @@
           @click="toggleCauldron"
         />
       </div>
-      <div
-        v-else
-        class="q-mt-sm text-center"
+      <q-btn
+        no-caps
+        flat
+        dense
+        color="pt-primary1"
+        class="text-caption"
+        @click="showAdvancedOptions = !showAdvancedOptions"
       >
-        <q-btn
-          no-caps
-          flat
-          dense
-          color="pt-primary1"
-          class="text-caption"
-          @click="showAdvancedOptions = true"
-        >
-          {{ $t('ShowAdvancedOptions', {}, 'Show Advanced Options') }}
-        </q-btn>
-      </div>
+        {{ showAdvancedOptions ? $t('HideAdvancedOptions', {}, 'Hide Advanced Options') : $t('ShowAdvancedOptions', {}, 'Show Advanced Options') }}
+      </q-btn>
     </div>
   </template>
   <div v-else-if="!isNFT && cauldronEnabled" class="row items-start no-wrap q-mt-sm">

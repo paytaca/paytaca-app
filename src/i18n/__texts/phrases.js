@@ -347,6 +347,7 @@ const phrases = {
       SendUsingTokensWithCauldron: 'Send using tokens with Cauldron',
       SendUsingBchWithCauldron: 'Send using BCH with Cauldron',
       ShowAdvancedOptions: 'Show Advanced Options',
+      HideAdvancedOptions: 'Hide Advanced Options',
       AddLiquidity: 'Add Liquidity',
       APY: 'APY',
       BasedOnSelectedPeriod: 'Based on selected period',
