@@ -60,6 +60,7 @@
     </div>
     <div class="apps-hint-text q-px-md q-mt-xs" :class="getDarkModeClass(darkMode)">
       {{ $t('LongPressToPin', {}, 'Long press on the app to pin or unpin.') }}
+      <template v-if="dragSupported">{{ $t('DragToReorder', {}, 'Drag pinned apps to reorder.') }}</template>
     </div>
 
     <div id="apps" ref="apps" class="apps-list-container" :class="[getDarkModeClass(darkMode), `view-${viewMode}`]">
@@ -83,14 +84,28 @@
           <div
             v-for="(app, index) in cat.apps"
             :key="app.id || index"
+            :data-app-id="app.id"
             class="app-row"
             :class="[
               getDarkModeClass(darkMode),
-              { 'app-inactive': !app.active, 'app-beta-row': cat.isBeta, 'app-pinned-row': cat.isPinned }
+              { 'app-inactive': !app.active, 'app-beta-row': cat.isBeta, 'app-pinned-row': cat.isPinned, 'drag-over': cat.isPinned && dragSupported && dragOverAppId === app.id }
             ]"
-            v-on-long-press="[(event) => showAppContextMenu(app, event)]"
             @click="openApp(app)"
+            v-on-long-press="[(event) => showAppContextMenu(app, event)]"
+            @dragover="cat.isPinned && dragSupported && onDragOver(app, $event)"
+            @dragleave="cat.isPinned && dragSupported && onDragLeave()"
+            @drop="cat.isPinned && dragSupported && onDrop(app, $event)"
+            @dragend="cat.isPinned && dragSupported && onDragEnd()"
           >
+            <div
+              v-if="cat.isPinned && dragSupported"
+              class="app-drag-handle"
+              :class="getDarkModeClass(darkMode)"
+              @mousedown.stop="onHandleDragStart(app, $event, 'mouse')"
+              @touchstart.stop="onHandleDragStart(app, $event, 'touch')"
+            >
+              <q-icon name="drag_indicator" size="20px" />
+            </div>
             <div class="app-icon-tile bg-grad" :class="{ 'tile-inactive': !app.active }">
               <q-icon size="26px" color="white" :name="app.iconName" />
             </div>
@@ -105,6 +120,14 @@
               <div v-if="app.id === 'chat' && chatUnreadCount > 0" class="app-unread-badge">
                 {{ chatUnreadCountLabel }}
               </div>
+              <q-icon
+                v-if="cat.isPinned"
+                name="mdi-pin-off"
+                size="18px"
+                class="app-unpin-icon"
+                :class="getDarkModeClass(darkMode)"
+                @click.stop="togglePin(app.id)"
+              />
               <q-icon
                 v-if="app.active"
                 name="chevron_right"
@@ -121,33 +144,51 @@
           <div
             v-for="(app, index) in cat.apps"
             :key="app.id || index"
+            :draggable="(cat.isPinned && dragSupported) ? 'true' : false"
             class="app-grid-item"
             :class="[
               getDarkModeClass(darkMode),
-              { 'app-inactive': !app.active }
+              { 'app-inactive': !app.active, 'drag-over': cat.isPinned && dragSupported && dragOverAppId === app.id }
             ]"
-            v-on-long-press="[(event) => showAppContextMenu(app, event)]"
             @click="openApp(app)"
+            v-on-long-press="(cat.isPinned && dragSupported) ? undefined : [(event) => showAppContextMenu(app, event)]"
+            @dragstart="cat.isPinned && dragSupported && onDragStart(app, $event)"
+            @dragover="cat.isPinned && dragSupported && onDragOver(app, $event)"
+            @dragleave="cat.isPinned && dragSupported && onDragLeave()"
+            @drop="cat.isPinned && dragSupported && onDrop(app, $event)"
+            @dragend="cat.isPinned && dragSupported && onDragEnd()"
           >
-            <div class="relative-position" style="display: inline-block;">
+            <div class="relative-position" draggable="false" style="display: inline-block;">
               <div class="app-grid-tile bg-grad" :class="{ 'tile-inactive': !app.active }">
-                <q-icon size="30px" color="white" :name="app.iconName" />
+                <q-icon size="30px" color="white" :name="app.iconName" draggable="false" />
               </div>
-              <span v-if="app.beta" class="app-beta-pill-grid">BETA</span>
+              <span v-if="app.beta" class="app-beta-pill-grid" draggable="false">BETA</span>
               <div
                 v-if="app.id === 'chat' && chatUnreadCount > 0"
                 class="app-unread-badge"
+                draggable="false"
               >
                 {{ chatUnreadCountLabel }}
               </div>
             </div>
             <p
+              draggable="false"
               class="app-grid-name pt-label"
               :class="[getDarkModeClass(darkMode), !app.active ? 'text-grey' : '']"
             >
               {{ app.name }}
             </p>
           </div>
+        </div>
+
+        <div
+          class="unpin-bin"
+          :class="[getDarkModeClass(darkMode), { 'unpin-bin-visible': cat.isPinned && draggedAppId && dragSupported }]"
+          @dragover.prevent
+          @drop="onUnpinDrop"
+        >
+          <q-icon name="mdi-pin-off" size="20px" />
+          <span>{{ $t('DropToUnpin', {}, 'Drop here to unpin') }}</span>
         </div>
       </section>
 
@@ -161,7 +202,6 @@
 
 <script>
 import { Platform } from 'quasar';
-import { vOnLongPress } from '@vueuse/components'
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 import MarketplaceAppSelectionDialog from 'src/components/marketplace/MarketplaceAppSelectionDialog.vue'
 import BetaAppDialog from 'src/components/apps/BetaAppDialog.vue'
@@ -177,7 +217,108 @@ export default {
     BetaAppDialog
   },
   directives: {
-    'on-long-press': vOnLongPress,
+    'on-long-press': {
+      mounted (el, binding) {
+        const handler = typeof binding.value === 'function'
+          ? binding.value
+          : Array.isArray(binding.value) ? binding.value[0] : null
+        if (!handler) return
+
+        let timer = null
+        let startX = 0
+        let startY = 0
+        let isPending = false
+        let longPressTriggered = false
+        let activeSource = null
+        let lastLongPressTime = 0
+
+        function start (x, y, e, source) {
+          if (activeSource && activeSource !== source) return
+          if (Date.now() - lastLongPressTime < 100) return
+          startX = x
+          startY = y
+          isPending = true
+          longPressTriggered = false
+          activeSource = source
+          timer = setTimeout(() => {
+            timer = null
+            isPending = false
+            longPressTriggered = true
+            lastLongPressTime = Date.now()
+            handler(e)
+          }, 500)
+        }
+
+        function cancel () {
+          if (timer) {
+            clearTimeout(timer)
+            timer = null
+          }
+          isPending = false
+          activeSource = null
+        }
+
+        function move (x, y) {
+          if (!isPending) return
+          const dx = Math.abs(x - startX)
+          const dy = Math.abs(y - startY)
+          if (dx > 10 || dy > 10) cancel()
+        }
+
+        function suppressClick (e) {
+          if (longPressTriggered) {
+            e.preventDefault()
+            e.stopPropagation()
+            longPressTriggered = false
+            lastLongPressTime = 0
+          }
+        }
+
+        function onTouchStart (e) {
+          const t = e.touches[0]
+          start(t.clientX, t.clientY, e, 'touch')
+        }
+
+        function onTouchMove (e) {
+          const t = e.touches[0]
+          move(t.clientX, t.clientY)
+        }
+
+        function onMouseDown (e) {
+          start(e.clientX, e.clientY, e, 'mouse')
+        }
+
+        function onMouseMove (e) {
+          move(e.clientX, e.clientY)
+        }
+
+        el.addEventListener('touchstart', onTouchStart, { passive: true })
+        el.addEventListener('touchmove', onTouchMove, { passive: true })
+        el.addEventListener('touchend', cancel)
+        el.addEventListener('touchcancel', cancel)
+        el.addEventListener('mousedown', onMouseDown)
+        el.addEventListener('mousemove', onMouseMove)
+        el.addEventListener('mouseup', cancel)
+        el.addEventListener('mouseleave', cancel)
+        el.addEventListener('click', suppressClick, true)
+
+        el._longPressCleanup = () => {
+          cancel()
+          el.removeEventListener('touchstart', onTouchStart)
+          el.removeEventListener('touchmove', onTouchMove)
+          el.removeEventListener('touchend', cancel)
+          el.removeEventListener('touchcancel', cancel)
+          el.removeEventListener('mousedown', onMouseDown)
+          el.removeEventListener('mousemove', onMouseMove)
+          el.removeEventListener('mouseup', cancel)
+          el.removeEventListener('mouseleave', cancel)
+          el.removeEventListener('click', suppressClick, true)
+        }
+      },
+      unmounted (el) {
+        el._longPressCleanup?.()
+      }
+    },
   },
   data () {
     return {
@@ -385,12 +526,12 @@ export default {
           id: 'payment-hub',
           name: this.$t('PaymentHub', {}, 'Payment Hub'),
           description: this.$t('Apps.PaymentHub.Description', {}, 'Manage Payment Hub Stores, API Keys, and Invoices.'),
-          iconName: 'img:paytaca_payment_hub_logo_bg.png',
+          iconName: 'hub',
           path: '/apps/payment-hub/',
           iconStyle: 'width: 100%; height: 100%;',
           active: true,
-          beta: true,
-          category: 'payment-hub'
+          beta: false,
+          category: 'marketplace'
         },
         ...(DISPLAY_SUBS_APP ? [{
           id: 'payment-hub-subscriptions',
@@ -441,7 +582,9 @@ export default {
       rampAppSelection: false,
       disableRampSelection: false,
       activeCategory: null,
-      categoryObserver: null
+      categoryObserver: null,
+      draggedAppId: null,
+      dragOverAppId: null
     }
   },
   computed: {
@@ -450,6 +593,9 @@ export default {
     },
     isNativeIOS () {
       return isNativeIOS()
+    },
+    dragSupported () {
+      return !Platform.is.mobile && !Platform.is.nativeMobile
     },
     theme () {
       return this.$store.getters['global/theme']
@@ -494,7 +640,9 @@ export default {
       for (const cat of this.categoryDefinitions) {
         let apps
         if (cat.isPinned) {
-          apps = this.filteredApps.filter(app => this.pinnedAppIds.includes(app.id))
+          apps = this.filteredApps
+            .filter(app => this.pinnedAppIds.includes(app.id))
+            .sort((a, b) => this.pinnedAppIds.indexOf(a.id) - this.pinnedAppIds.indexOf(b.id))
         } else {
           apps = this.filteredApps.filter(app => app.category === cat.id)
         }
@@ -583,10 +731,6 @@ export default {
         this.$router.push(app.path)
       }
     },
-    onLongPressApp(event, app) {
-      event.preventDefault()
-      app?.onLongPress?.(event)
-    },
     isPinned (appId) {
       return this.pinnedAppIds.includes(appId)
     },
@@ -598,15 +742,112 @@ export default {
       }
       localStorage.setItem('pinnedAppIds', JSON.stringify(this.pinnedAppIds))
     },
+    onHandleDragStart (app, event, source) {
+      event.preventDefault()
+      this.draggedAppId = app.id
+      const getPos = (e) => source === 'mouse'
+        ? { x: e.clientX, y: e.clientY }
+        : { x: e.touches[0].clientX, y: e.touches[0].clientY }
+      let pos = getPos(event)
+      const onMove = (e) => {
+        e.preventDefault()
+        pos = getPos(e)
+        const el = document.elementFromPoint(pos.x, pos.y)
+        const row = el && el.closest('[data-app-id]')
+        if (row) {
+          const id = row.getAttribute('data-app-id')
+          this.dragOverAppId = id !== this.draggedAppId ? id : null
+        } else {
+          this.dragOverAppId = null
+        }
+      }
+      const onEnd = () => {
+        document.removeEventListener('mousemove', onMove)
+        document.removeEventListener('mouseup', onEnd)
+        document.removeEventListener('touchmove', onMove)
+        document.removeEventListener('touchend', onEnd)
+        if (this.draggedAppId && this.dragOverAppId) {
+          this.completeReorder(this.draggedAppId, this.dragOverAppId)
+        }
+        this.draggedAppId = null
+        this.dragOverAppId = null
+      }
+      document.addEventListener('mousemove', onMove)
+      document.addEventListener('mouseup', onEnd)
+      document.addEventListener('touchmove', onMove, { passive: false })
+      document.addEventListener('touchend', onEnd)
+    },
+    onDragStart (app, event) {
+      this.draggedAppId = app.id
+      event.dataTransfer.effectAllowed = 'move'
+      event.dataTransfer.setData('text/plain', app.id)
+    },
+    onDragOver (app, event) {
+      if (!this.draggedAppId || this.draggedAppId === app.id) return
+      event.preventDefault()
+      this.dragOverAppId = app.id
+    },
+    onDragLeave () {
+      this.dragOverAppId = null
+    },
+    onDrop (app, event) {
+      event.preventDefault()
+      const fromId = this.draggedAppId
+      const toId = app.id
+      if (!fromId || !toId || fromId === toId) {
+        this.draggedAppId = null
+        this.dragOverAppId = null
+        return
+      }
+      const ids = [...this.pinnedAppIds]
+      const fromIndex = ids.indexOf(fromId)
+      const toIndex = ids.indexOf(toId)
+      if (fromIndex === -1 || toIndex === -1) {
+        this.draggedAppId = null
+        this.dragOverAppId = null
+        return
+      }
+      ids.splice(fromIndex, 1)
+      ids.splice(toIndex, 0, fromId)
+      this.pinnedAppIds = ids
+      localStorage.setItem('pinnedAppIds', JSON.stringify(ids))
+      this.draggedAppId = null
+      this.dragOverAppId = null
+    },
+    completeReorder (fromId, toId) {
+      const ids = [...this.pinnedAppIds]
+      const fromIndex = ids.indexOf(fromId)
+      const toIndex = ids.indexOf(toId)
+      if (fromIndex === -1 || toIndex === -1) return
+      ids.splice(fromIndex, 1)
+      ids.splice(toIndex, 0, fromId)
+      this.pinnedAppIds = ids
+      localStorage.setItem('pinnedAppIds', JSON.stringify(ids))
+    },
+    onDragEnd () {
+      this.draggedAppId = null
+      this.dragOverAppId = null
+    },
+    onUnpinDrop () {
+      if (this.draggedAppId) {
+        this.togglePin(this.draggedAppId)
+      }
+      this.draggedAppId = null
+      this.dragOverAppId = null
+    },
     showAppContextMenu (app, event) {
       if (!app.active) return
+      if (app.onLongPress) {
+        app.onLongPress(event)
+        return
+      }
       const pinned = this.isPinned(app.id)
       this.$q.bottomSheet({
         class: `text-bow ${this.getDarkModeClass(this.darkMode)}`,
         actions: [
           {
             label: pinned ? this.$t('Unpin', {}, 'Unpin') : this.$t('Pin', {}, 'Pin'),
-            icon: pinned ? ' mdi-pin-off' : 'mdi-pin',
+            icon: pinned ? 'mdi-pin-off' : 'mdi-pin',
             id: 'pin',
             color: this.themeColor,
           },
@@ -960,6 +1201,31 @@ export default {
     &.dark { color: rgba(59, 123, 246, 0.7); }
     &.light { color: rgba(59, 123, 246, 0.6); }
   }
+  .unpin-bin {
+    display: none;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    margin: 0 14px 8px;
+    padding: 12px;
+    border-radius: 10px;
+    font-size: 13px;
+    font-weight: 500;
+    transition: background 0.15s ease, border-color 0.15s ease;
+    &.unpin-bin-visible { display: flex; }
+    &.dark {
+      background: rgba(239, 83, 80, 0.08);
+      border: 2px dashed rgba(239, 83, 80, 0.4);
+      color: rgba(239, 83, 80, 0.7);
+      &:hover { background: rgba(239, 83, 80, 0.15); border-color: rgba(239, 83, 80, 0.6); }
+    }
+    &.light {
+      background: rgba(239, 83, 80, 0.06);
+      border: 2px dashed rgba(239, 83, 80, 0.3);
+      color: rgba(239, 83, 80, 0.65);
+      &:hover { background: rgba(239, 83, 80, 0.12); border-color: rgba(239, 83, 80, 0.5); }
+    }
+  }
   .pin-indicator {
     &.dark { color: rgba(59, 123, 246, 0.6); }
     &.light { color: rgba(59, 123, 246, 0.5); }
@@ -1029,6 +1295,40 @@ export default {
       cursor: default;
       .app-name, .app-desc { opacity: 0.35; }
     }
+    &.drag-over {
+      background: rgba(59, 123, 246, 0.12) !important;
+      outline: 2px dashed rgba(59, 123, 246, 0.5);
+      outline-offset: -2px;
+    }
+  }
+
+  .app-drag-handle {
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 28px;
+    height: 48px;
+    cursor: grab;
+    transition: color 0.15s ease;
+    -webkit-user-select: none;
+    user-select: none;
+    &:active { cursor: grabbing; }
+    &.dark {
+      color: rgba(255,255,255,0.4);
+      &:hover { color: rgba(255,255,255,0.8); }
+    }
+    &.light {
+      color: rgba(0,0,0,0.25);
+      &:hover { color: rgba(0,0,0,0.6); }
+    }
+  }
+
+  .app-unpin-icon {
+    cursor: pointer;
+    opacity: 0.5;
+    transition: opacity 0.15s ease;
+    &:hover { opacity: 1; }
   }
 
   .app-icon-tile {
@@ -1121,6 +1421,16 @@ export default {
       max-width: calc(16.666% - 4px);
     }
     &.app-inactive { cursor: default; }
+    &[draggable="true"] {
+      cursor: grab;
+      &:active { cursor: grabbing; }
+    }
+    &.drag-over {
+      .app-grid-tile {
+        outline: 3px solid rgba(59, 123, 246, 0.6);
+        outline-offset: 3px;
+      }
+    }
   }
   .app-grid-tile {
     width: 56px;
@@ -1130,6 +1440,7 @@ export default {
     align-items: center;
     justify-content: center;
     &.tile-inactive { filter: grayscale(1) opacity(0.4); }
+    .app-grid-item[draggable="true"] & { pointer-events: none; }
   }
   .app-grid-name {
     margin: 6px 0 0;
