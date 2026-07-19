@@ -346,7 +346,6 @@
     >
       <template #slide>
         <DragSlide
-          v-if="slideReady"
           disable-absolute-bottom
           :text="$t('Swap')"
           :disable="!hasSufficientBalance"

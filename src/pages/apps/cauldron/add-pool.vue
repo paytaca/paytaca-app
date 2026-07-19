@@ -239,10 +239,9 @@
     >
       <template #slide>
         <DragSlide
-          v-if="slideReady"
           disable-absolute-bottom
           :text="$t('AddLiquidity')"
-          :disable="Boolean(insufficientBalanceMessage)"
+          :disable="!slideReady || Boolean(insufficientBalanceMessage)"
           @swiped="securityCheck"
         />
       </template>
