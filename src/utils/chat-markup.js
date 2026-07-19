@@ -34,6 +34,7 @@ const KEY_MAP = {
   x: 'txid',
   s: 'symbol',
   l: 'logo',
+  c: 'category',
 }
 
 /**

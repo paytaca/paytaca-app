@@ -2562,8 +2562,10 @@ export default {
       const symbol = this.asset?.symbol || this.symbol || 'BCH'
       const amount = this.totalAmountSent
       const logo = this.asset?.logo || ''
+      const assetId = this.asset?.id || ''
       let url = `/apps/chat/${this.chatRoomId}?tipTxid=${txid}&tipAmount=${amount}&tipSymbol=${symbol}`
       if (logo) url += `&tipLogo=${encodeURIComponent(logo)}`
+      if (assetId && assetId.startsWith('ct/')) url += `&tipAssetId=${assetId.replace('ct/', '')}`
       this.$router.replace(url)
     },
     /**

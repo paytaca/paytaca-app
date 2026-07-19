@@ -1505,10 +1505,15 @@ export default {
       if (container) {
         sessionStorage.setItem('chat_scroll_top', container.scrollTop)
       }
+      const query = { from: 'chat', roomId: this.roomId }
+      if (markup.category) {
+        query.assetID = `ct/${markup.category}`
+        query.category = markup.category
+      }
       this.$router.push({
         name: 'transaction-detail',
         params: { txid: markup.txid },
-        query: { from: 'chat', roomId: this.roomId },
+        query,
       })
     },
     onMessagesScroll () {
@@ -1949,21 +1954,23 @@ export default {
       }
     },
     handleTipResult () {
-      const { tipTxid, tipAmount, tipSymbol, tipLogo } = this.$route.query
+      const { tipTxid, tipAmount, tipSymbol, tipLogo, tipAssetId } = this.$route.query
       if (!tipTxid || !tipAmount) return
       const query = { ...this.$route.query }
       delete query.tipTxid
       delete query.tipAmount
       delete query.tipSymbol
       delete query.tipLogo
+      delete query.tipAssetId
       this.$router.replace({ query })
-      this.$nextTick(() => this.sendTipConfirmationMessage(tipTxid, parseFloat(tipAmount), tipSymbol || 'BCH', tipLogo || ''))
+      this.$nextTick(() => this.sendTipConfirmationMessage(tipTxid, parseFloat(tipAmount), tipSymbol || 'BCH', tipLogo || '', tipAssetId || ''))
     },
-    async sendTipConfirmationMessage (txid, amount, symbol, logo) {
+    async sendTipConfirmationMessage (txid, amount, symbol, logo, assetId) {
       if (!this.room || !txid) return
       try {
         let markup = `t:payment,a:${amount},s:${symbol},x:${txid}`
         if (logo) markup += `,l:${logo}`
+        if (assetId) markup += `,c:${assetId}`
         const text = `Sent ${amount} ${symbol} [/*${markup}*/]`
         const { giftWraps, message, roomId } = await this.$store.dispatch('nostrChat/sendMessage', {
           roomId: this.roomId,
