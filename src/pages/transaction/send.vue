@@ -406,7 +406,7 @@
           </div>
 
           <!-- Keyboard + Slide: shown together when keyboard is visible -->
-          <div v-if="customKeyboardState === 'show'" class="keyboard-slide-wrapper">
+          <div v-if="customKeyboardState === 'show' && !sending" class="keyboard-slide-wrapper">
             <CustomKeyboard 
               :custom-keyboard-state="customKeyboardState"
               hide-check-key
@@ -423,7 +423,7 @@
 
           <!-- Slide alone: shown when form is active but keyboard is hidden (NFT, pre-filled amounts) -->
           <DragSlide
-            v-if="customKeyboardState !== 'show' && formActive && !disableSending"
+            v-if="customKeyboardState !== 'show' && formActive && !disableSending && !sending"
             :disable="!canSlide"
             class="absolute-bottom"
             @swiped="slideToSubmit"
@@ -1963,6 +1963,7 @@ export default {
         })
 
         try {
+          vm.customKeyboardState = 'dismiss'
           vm.sending = true
           const cauldronBalanceBefore = { balance: vm.asset.balance, spendable: vm.asset.spendable }
           const broadcastResult = await sendPageUtils.withTimeout(
