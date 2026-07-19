@@ -61,11 +61,13 @@
       <div v-else-if="isVideoFile" class="video-message">
         <div v-if="hasVideoSrc && !videoError" class="video-frame" :style="videoFrameStyle">
           <video
+            ref="videoPlayer"
             :src="videoSrc"
             class="video-element"
             controls
             playsinline
-            preload="metadata"
+            preload="auto"
+            :poster="videoThumbnailUrl || undefined"
             @click.stop
             @error="onVideoError"
           />
@@ -405,6 +407,7 @@ export default {
         videoThumbnailUrl: null,
         isVideoLoading: false,
         videoError: false,
+        _cachedVideoBlob: null,
         replyImageThumbnail: null, // Reply preview thumbnail (reactive)
       }
     },
@@ -429,8 +432,9 @@ export default {
       if (this.isVideoFile) {
         const cached = getCachedVideoBlob(this.message.id)
         if (cached) {
-          this.videoUrl = cached
-        } else if (this.message.thumbUrl && this.message.thumbAesKeyHex && this.message.thumbNonceHex) {
+          this._cachedVideoBlob = cached
+        }
+        if (this.message.thumbUrl && this.message.thumbAesKeyHex && this.message.thumbNonceHex) {
           this._videoObserver = new IntersectionObserver((entries) => {
             if (entries[0].isIntersecting) {
               this._videoObserver.disconnect()
@@ -576,10 +580,10 @@ export default {
       return this.message.fileType?.startsWith('video/')
     },
     videoSrc () {
-      return this.videoUrl || getCachedVideoBlob(this.message.id) || null
+      return this.videoUrl || null
     },
     hasVideoSrc () {
-      return !!(this.videoUrl || getCachedVideoBlob(this.message.id))
+      return !!this.videoUrl
     },
     imageFrameStyle () {
       const w = this.message.imageWidth
@@ -938,6 +942,19 @@ export default {
     async loadVideo () {
       if (this.videoUrl || this.isVideoLoading) return
       this.isVideoLoading = true
+      const mimeType = this.message.fileType || 'video/mp4'
+
+      if (this._cachedVideoBlob) {
+        this.videoError = false
+        this.videoUrl = this._cachedVideoBlob
+        this._cachedVideoBlob = null
+        this.isVideoLoading = false
+        this.$nextTick(() => {
+          this.$refs.videoPlayer?.play()
+        })
+        return
+      }
+
       const aesKeyHex = this.message.aesKeyHex
       const nonceHex = this.message.nonceHex
       const fileUrl = this.message.content
@@ -946,7 +963,6 @@ export default {
         return
       }
       const cacheKey = this.message.id || this.message.content
-      const mimeType = this.message.fileType || 'video/mp4'
 
       const cached = await getCachedVideo(cacheKey)
       if (cached?.blob) {

@@ -123,15 +123,26 @@ export function getVideoThumbnail(file) {
   return new Promise((resolve) => {
     const url = URL.createObjectURL(file)
     const video = document.createElement('video')
-    video.preload = 'metadata'
     video.muted = true
+    video.setAttribute('playsinline', '')
+    video.style.position = 'absolute'
+    video.style.left = '-9999px'
+    video.style.top = '-9999px'
+    video.style.width = '360px'
+    video.style.height = '360px'
+    video.style.opacity = '0.01'
+    document.body.appendChild(video)
+
     let settled = false
 
     const cleanup = () => {
       URL.revokeObjectURL(url)
-      video.onloadedmetadata = null
-      video.onseeked = null
+      video.onloadeddata = null
+      video.ontimeupdate = null
+      video.onplaying = null
       video.onerror = null
+      try { video.pause() } catch (_) {}
+      video.remove()
     }
 
     const timeout = setTimeout(() => {
@@ -141,20 +152,18 @@ export function getVideoThumbnail(file) {
       resolve(null)
     }, 10000)
 
-    video.onloadedmetadata = () => {
-      const seekTo = Math.min(1, video.duration * 0.1)
-      video.currentTime = seekTo
-    }
-    video.onseeked = () => {
+    const captureFrame = () => {
       if (settled) return
       settled = true
       clearTimeout(timeout)
       try {
         const canvas = document.createElement('canvas')
         const maxDim = 360
-        const scale = Math.min(maxDim / video.videoWidth, maxDim / video.videoHeight, 1)
-        canvas.width = Math.round(video.videoWidth * scale)
-        canvas.height = Math.round(video.videoHeight * scale)
+        const w = video.videoWidth || 360
+        const h = video.videoHeight || 360
+        const scale = Math.min(maxDim / w, maxDim / h, 1)
+        canvas.width = Math.round(w * scale)
+        canvas.height = Math.round(h * scale)
         const ctx = canvas.getContext('2d')
         ctx.drawImage(video, 0, 0, canvas.width, canvas.height)
         cleanup()
@@ -162,6 +171,18 @@ export function getVideoThumbnail(file) {
       } catch {
         cleanup()
         resolve(null)
+      }
+    }
+
+    video.onloadedmetadata = () => {
+      video.play().catch(() => {})
+    }
+    video.onloadeddata = () => {
+      if (!settled) video.play().catch(() => {})
+    }
+    video.ontimeupdate = () => {
+      if (video.currentTime > 0) {
+        captureFrame()
       }
     }
     video.onerror = () => {
@@ -172,6 +193,7 @@ export function getVideoThumbnail(file) {
       resolve(null)
     }
     video.src = url
+    video.load()
   })
 }
 
