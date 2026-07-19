@@ -151,20 +151,17 @@ body.body--dark .drag-slide-disabled-icon {
   transform: translateY(8px) scale(0.9);
 }
 
-/* Arrow pulse + sway hint */
+/* Arrow sway hint */
 @keyframes arrow-hint {
   0%, 100% {
-    transform: translateX(0) scale(1);
+    transform: translateX(0);
   }
-  40% {
-    transform: translateX(5px) scale(1.12);
-  }
-  60% {
-    transform: translateX(5px) scale(1.12);
+  50% {
+    transform: translateX(6px);
   }
 }
 .icon-arrow-hint {
-  animation: arrow-hint 1.6s ease-in-out infinite;
+  animation: arrow-hint 1.4s ease-in-out infinite;
   animation-delay: 300ms;
 }
 
