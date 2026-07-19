@@ -340,6 +340,7 @@
     <KeyboardSlidePanel
       :panel-visible="panelVisible"
       :keyboard-state="keyboardState"
+      hide-check-key
       @addKey="customInputRef?.setAmount($event)"
       @makeKeyAction="customInputRef?.makeKeyAction($event)"
     >

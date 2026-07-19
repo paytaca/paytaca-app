@@ -233,6 +233,7 @@
     <KeyboardSlidePanel
       :panel-visible="panelVisible"
       :keyboard-state="keyboardState"
+      hide-check-key
       @addKey="routeKey($event)"
       @makeKeyAction="routeAction($event)"
     >
