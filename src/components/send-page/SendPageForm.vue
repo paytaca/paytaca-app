@@ -113,6 +113,7 @@
       </template>
     </q-input>
   </div>
+<template v-if="!sending">
   <div class="row" v-if="!isNFT">
     <div class="col q-mt-xs" style="position: relative;">
       <q-input
@@ -176,7 +177,7 @@
     </div>
   </div>
   <template v-if="!isNFT && !cauldronEnabled">
-    <div v-if="asset?.id?.startsWith?.('ct/') && (!asset?.balance || asset?.balance === 0)" class="q-mt-sm text-center">
+    <div v-if="asset?.id?.startsWith?.('ct/')" class="q-mt-sm text-center">
       <div v-if="showAdvancedOptions">
         <p class="q-mb-xs text-caption text-weight-medium text-bow">
           {{ $t('NoTokenBalanceCauldronHint', { symbol: (asset?.symbol || '').toUpperCase() }, 'You have no {symbol} tokens, click below to auto-swap from BCH') }}
@@ -190,6 +191,17 @@
           class="full-width q-my-sm"
           @click="toggleCauldron"
         />
+        <q-btn
+          v-if="addAnotherRecipient"
+          no-caps
+          icon="person_add"
+          color="pt-primary1"
+          padding="sm md"
+          class="full-width q-my-sm"
+          @click="addAnotherRecipient"
+        >
+          {{ $t('AddAnotherRecipient') }}
+        </q-btn>
       </div>
       <q-btn
         no-caps
@@ -213,6 +225,42 @@
           class="full-width q-my-sm"
           @click="toggleCauldron"
         />
+        <q-btn
+          v-if="addAnotherRecipient"
+          no-caps
+          icon="person_add"
+          color="pt-primary1"
+          padding="sm md"
+          class="full-width q-my-sm"
+          @click="addAnotherRecipient"
+        >
+          {{ $t('AddAnotherRecipient') }}
+        </q-btn>
+      </div>
+      <q-btn
+        no-caps
+        flat
+        dense
+        color="pt-primary1"
+        class="text-caption"
+        @click="showAdvancedOptions = !showAdvancedOptions"
+      >
+        {{ showAdvancedOptions ? $t('HideAdvancedOptions', {}, 'Hide Advanced Options') : $t('ShowAdvancedOptions', {}, 'Show Advanced Options') }}
+      </q-btn>
+    </div>
+    <div v-else class="q-mt-sm text-center">
+      <div v-if="showAdvancedOptions">
+        <q-btn
+          v-if="addAnotherRecipient"
+          no-caps
+          icon="person_add"
+          color="pt-primary1"
+          padding="sm md"
+          class="full-width q-my-sm"
+          @click="addAnotherRecipient"
+        >
+          {{ $t('AddAnotherRecipient') }}
+        </q-btn>
       </div>
       <q-btn
         no-caps
@@ -291,7 +339,8 @@
       />
     </div>
   </div>
-  <q-card
+</template>
+<q-card
     class="row text-center justify-center q-pa-sm q-my-sm text-subtitle2 pt-card"
     :class="getDarkModeClass(darkMode)"
     v-if="inputExtras.cashbackData && inputExtras.cashbackData.cashback_amount > -1"
@@ -362,6 +411,8 @@ export default {
     setMaximumSendAmount: { type: Function },
     defaultSelectedFtChangeAddress: { type: String },
     walletType: { type: String },
+    addAnotherRecipient: { type: Function, default: undefined },
+    sending: { type: Boolean, default: false },
   },
 
   emits: [
@@ -743,5 +794,12 @@ export default {
     background-color: rgb(253,253,253, .023);
     border: 1px solid #80808038;
     border-radius: 15px;
+  }
+
+  .bch-input-field.q-field--focused .q-field__control,
+  .fiat-input-field.q-field--focused .q-field__control {
+    box-shadow: 0 0 0 2px var(--q-primary);
+    border-radius: 4px;
+    transition: box-shadow 0.2s ease;
   }
 </style>

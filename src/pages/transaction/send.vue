@@ -346,10 +346,12 @@
                       @on-qr-uploader-click="onQRUploaderClick"
                       @on-selected-change-address="onUserSelectedChangeAddress"
                       @on-cauldron-toggle="onCauldronToggle"
+                      :add-another-recipient="index === recipients.length - 1 ? addAnotherRecipient : undefined"
+                      :sending="sending"
                       ref="sendPageRef"
                     />
 
-                    <div class="row" v-if="recipients.length > 1">
+                    <div class="row" v-if="recipients.length > 1 && !sending">
                       <p class="remove-recipient-button" @click="removeLastRecipient(index)">
                         {{ $t('RemoveRecipient') }} #{{ index + 1 }}
                       </p>
@@ -374,6 +376,7 @@
                     :currentSendPageCurrency="currentSendPageCurrency"
                     :setMaximumSendAmount="setMaximumSendAmount"
                     :walletType="walletType"
+                    :sending="sending"
                     @on-qr-scanner-click="onQRScannerClick"
                     @on-input-focus="onInputFocus"
                     @on-recipient-input="onRecipientInput"
@@ -386,9 +389,6 @@
                   />
                 </template>
               </q-list>
-              <div class="add-recipient-button" v-if="!disableSending" @click.prevent="addAnotherRecipient">
-                <q-btn v-if="showAddRecipientButton" :label="$t('AddAnotherRecipient')" class="button" />
-              </div>
               <div class="row" v-if="sending">
                 <div class="col-12 text-center">
                   <ProgressLoader />
@@ -804,17 +804,6 @@ export default {
     },
     formActive () {
       return this.recipients.some(r => !!r.recipientAddress)
-    },
-    showAddRecipientButton () {
-      return (
-        this.canSlide &&
-        !this.isNFT &&
-        this.recipients.length < 10 &&
-        // check if user clicked MAX on any recipient (disable button if yes)
-        this.inputExtras
-          .map(data => data.setMax)
-          .findIndex(i => i) < 0
-      )
     },
     connectedApps () {
       const distinct = (value, index, list) => {
@@ -3263,11 +3252,6 @@ export default {
     padding-top: 1rem;
     padding-bottom:120px;
     position: relative;
-  }
-  .add-recipient-button {
-    display: flex;
-    justify-content: center;
-    margin-top: 20px
   }
   .q-expansion-item-recipient {
     font-size: 18px;
