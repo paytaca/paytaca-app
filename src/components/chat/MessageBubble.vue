@@ -83,7 +83,7 @@
       </div>
 
       <!-- Non-image file card -->
-      <div v-else-if="message.isFile || parsed.markup?.type === 'file'" class="file-card" @click="downloadFile">
+      <div v-else-if="message.isFile || parsed.markup?.type === 'file'" class="file-card" @click="onFileCardClick">
         <div class="file-card-header">
           <q-icon :name="fileIcon" size="28px" class="file-icon" :style="{ color: themeColor }" />
           <div class="file-info">
@@ -92,6 +92,17 @@
           </div>
         </div>
         <div class="file-card-actions">
+          <q-btn
+            v-if="isPdfFile"
+            flat
+            dense
+            round
+            icon="visibility"
+            size="sm"
+            @click.stop="openPdfViewer"
+          >
+            <q-tooltip>{{ $t('View') }}</q-tooltip>
+          </q-btn>
           <q-btn
             flat
             dense
@@ -210,6 +221,9 @@
         </div>
       </div>
     </q-dialog>
+
+    <!-- PDF viewer dialog -->
+    <PdfViewerDialog v-model="showPdfDialog" :pdf-url="pdfBlobUrl" :file-name="pdfFileName" />
   </div>
 </template>
 
@@ -219,6 +233,8 @@ import { decryptFile, downloadFromBlossom } from 'src/wallet/nostr-media'
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 import { getCachedVideoBlob } from 'src/utils/video-blob-cache'
 import { getCachedVideo, setCachedVideo, getCachedVideoThumb, setCachedVideoThumb } from 'src/utils/video-cache'
+import PdfViewerDialog from 'src/components/chat/PdfViewerDialog.vue'
+import { getCachedPdf, setCachedPdf } from 'src/utils/pdf-cache'
 
 const _replyThumbnailCache = new Map()
 
@@ -228,7 +244,7 @@ const MAX_THUMBNAIL_CACHE_SIZE = 200
 
 // IndexedDB for persistent thumbnail cache
 const DB_NAME = 'paytaca-chat-cache'
-const DB_VERSION = 2
+const DB_VERSION = 3
 const STORE_NAME = 'thumbnails'
 
 let _dbPromise = null
@@ -251,6 +267,9 @@ function openDatabase() {
         }
         if (!db.objectStoreNames.contains('videoThumbs')) {
           db.createObjectStore('videoThumbs', { keyPath: 'id' })
+        }
+        if (!db.objectStoreNames.contains('pdfs')) {
+          db.createObjectStore('pdfs', { keyPath: 'id' })
         }
       }
     })
@@ -287,10 +306,11 @@ async function saveThumbnailToDB(cacheKey, thumbnailUrl) {
 export async function clearChatCache() {
   try {
     const db = await openDatabase()
-    const tx = db.transaction([STORE_NAME, 'videos', 'videoThumbs'], 'readwrite')
+    const tx = db.transaction([STORE_NAME, 'videos', 'videoThumbs', 'pdfs'], 'readwrite')
     tx.objectStore(STORE_NAME).clear()
     tx.objectStore('videos').clear()
     tx.objectStore('videoThumbs').clear()
+    tx.objectStore('pdfs').clear()
     _imageThumbnailCache.clear()
     _replyThumbnailCache.clear()
     return true
@@ -304,7 +324,7 @@ export async function hasChatCache() {
   try {
     if (_imageThumbnailCache.size > 0 || _replyThumbnailCache.size > 0) return true
     const db = await openDatabase()
-    const stores = [STORE_NAME, 'videos', 'videoThumbs']
+    const stores = [STORE_NAME, 'videos', 'videoThumbs', 'pdfs']
     for (const name of stores) {
       if (!db.objectStoreNames.contains(name)) continue
       const has = await new Promise((resolve) => {
@@ -332,7 +352,7 @@ export async function getChatCacheSize () {
       totalBytes += typeof url === 'string' ? url.length * 0.75 : 0
     }
     const db = await openDatabase()
-    const stores = [STORE_NAME, 'videos', 'videoThumbs']
+    const stores = [STORE_NAME, 'videos', 'videoThumbs', 'pdfs']
     for (const name of stores) {
       if (!db.objectStoreNames.contains(name)) continue
       await new Promise((resolve) => {
@@ -376,6 +396,7 @@ function bytesToHex(bytes) {
 
 export default {
   name: 'MessageBubble',
+  components: { PdfViewerDialog },
   props: {
     message: { type: Object, required: true },
     myPubKey: { type: String, default: '' },
@@ -409,6 +430,9 @@ export default {
         videoError: false,
         _cachedVideoBlob: null,
         replyImageThumbnail: null, // Reply preview thumbnail (reactive)
+        showPdfDialog: false,
+        pdfBlobUrl: null,
+        pdfFileName: '',
       }
     },
     mounted () {
@@ -456,16 +480,19 @@ export default {
        this._videoObserver.disconnect()
        this._videoObserver = null
      }
-      // Only revoke full image URL (thumbnails are cached globally)
-      if (this.imageFullUrl) {
-        URL.revokeObjectURL(this.imageFullUrl)
-      }
-       if (this.videoUrl) {
-         URL.revokeObjectURL(this.videoUrl)
+       // Only revoke full image URL (thumbnails are cached globally)
+       if (this.imageFullUrl) {
+         URL.revokeObjectURL(this.imageFullUrl)
        }
-       if (this.videoThumbnailUrl) {
-         URL.revokeObjectURL(this.videoThumbnailUrl)
-       }
+        if (this.videoUrl) {
+          URL.revokeObjectURL(this.videoUrl)
+        }
+        if (this.videoThumbnailUrl) {
+          URL.revokeObjectURL(this.videoThumbnailUrl)
+        }
+        if (this.pdfBlobUrl) {
+          URL.revokeObjectURL(this.pdfBlobUrl)
+        }
        // Revoke any in-flight thumbnail blob URL
        if (this._pendingThumbnailUrl) {
          URL.revokeObjectURL(this._pendingThumbnailUrl)
@@ -512,6 +539,7 @@ export default {
       if (this.replyToMessage.fileType?.startsWith('image/')) return 'image'
       if (this.replyToMessage.fileType?.startsWith('video/')) return 'videocam'
       if (this.replyToMessage.fileType?.startsWith('audio/')) return 'audiotrack'
+      if (this.replyToMessage.fileType === 'application/pdf') return 'picture_as_pdf'
       return 'description'
     },
     replyToImageThumbStyle () {
@@ -571,6 +599,7 @@ export default {
       if (this.message.fileType?.startsWith('image/')) return 'image'
       if (this.message.fileType?.startsWith('video/')) return 'videocam'
       if (this.message.fileType?.startsWith('audio/')) return 'audiotrack'
+      if (this.message.fileType === 'application/pdf') return 'picture_as_pdf'
       return 'description'
     },
     isImageFile () {
@@ -578,6 +607,9 @@ export default {
     },
     isVideoFile () {
       return this.message.fileType?.startsWith('video/')
+    },
+    isPdfFile () {
+      return this.message.fileType === 'application/pdf'
     },
     videoSrc () {
       return this.videoUrl || null
@@ -793,6 +825,7 @@ export default {
       if (this.message.fileType?.includes('image')) return '.jpg'
       if (this.message.fileType?.includes('video')) return '.mp4'
       if (this.message.fileType?.includes('audio')) return '.mp3'
+      if (this.message.fileType === 'application/pdf') return '.pdf'
       return ''
     },
     async loadThumbnail () {
@@ -1088,6 +1121,62 @@ export default {
         })
       } finally {
         this.isDownloadSaving = false
+      }
+    },
+    onFileCardClick () {
+      if (this.isPdfFile) {
+        this.openPdfViewer()
+      } else {
+        this.downloadFile()
+      }
+    },
+    async openPdfViewer () {
+      if (this.pdfBlobUrl) {
+        this.showPdfDialog = true
+        return
+      }
+      const cacheKey = this.message.id || this.message.content
+      const cached = await getCachedPdf(cacheKey)
+      if (cached?.blob) {
+        const mimeType = cached.mimeType || 'application/pdf'
+        const blob = new Blob([cached.blob], { type: mimeType })
+        this.pdfBlobUrl = URL.createObjectURL(blob)
+        this.pdfFileName = this.message.fileName || this.getFileName(this.message.content)
+        this.showPdfDialog = true
+        return
+      }
+      const aesKeyHex = this.message.aesKeyHex
+      const nonceHex = this.message.nonceHex
+      const fileUrl = this.message.content
+      if (!aesKeyHex || !nonceHex || !fileUrl) {
+        this.$q.notify({
+          type: 'negative',
+          message: this.$t('FileDecryptKeyMissing', {}, 'Decryption key not available'),
+          timeout: 3000,
+        })
+        return
+      }
+      this.isDownloading = true
+      try {
+        const blossomServer = 'https://blossom.paytaca.com'
+        const encryptedData = await downloadFromBlossom(fileUrl, blossomServer)
+        const decryptedData = await decryptFile(encryptedData, aesKeyHex, nonceHex)
+        if (this._unmounted) return
+        const mimeType = this.message.fileType || 'application/pdf'
+        const blob = new Blob([decryptedData], { type: mimeType })
+        this.pdfBlobUrl = URL.createObjectURL(blob)
+        this.pdfFileName = this.message.fileName || this.getFileName(fileUrl)
+        this.showPdfDialog = true
+        setCachedPdf(cacheKey, blob, mimeType)
+      } catch (err) {
+        console.error('PDF decrypt error:', err)
+        this.$q.notify({
+          type: 'negative',
+          message: this.$t('PdfLoadFailed', {}, 'Failed to open PDF') + ': ' + err.message,
+          timeout: 5000,
+        })
+      } finally {
+        this.isDownloading = false
       }
     },
   },

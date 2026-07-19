@@ -295,6 +295,7 @@ export default {
         const icon = last.fileType?.startsWith('image/') ? '🖼'
           : last.fileType?.startsWith('video/') ? '🎥'
           : last.fileType?.startsWith('audio/') ? '🎵'
+          : last.fileType === 'application/pdf' ? '📄'
           : '📎'
         return icon + ' ' + (last.fileName || this.$t('File', {}, 'File'))
       }

@@ -342,6 +342,7 @@ export default {
       if (file.type.startsWith('image/')) return 'image'
       if (file.type.startsWith('video/')) return 'videocam'
       if (file.type.startsWith('audio/')) return 'audiotrack'
+      if (file.type === 'application/pdf') return 'picture_as_pdf'
       return 'description'
     },
     formatFileSize (bytes) {

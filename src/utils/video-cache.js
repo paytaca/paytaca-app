@@ -1,5 +1,5 @@
 const DB_NAME = 'paytaca-chat-cache'
-const DB_VERSION = 2
+const DB_VERSION = 3
 const VIDEO_STORE = 'videos'
 const VIDEO_THUMB_STORE = 'videoThumbs'
 const TTL_MS = 24 * 60 * 60 * 1000
@@ -23,6 +23,9 @@ function openDatabase () {
       }
       if (!db.objectStoreNames.contains('thumbnails')) {
         db.createObjectStore('thumbnails', { keyPath: 'id' })
+      }
+      if (!db.objectStoreNames.contains('pdfs')) {
+        db.createObjectStore('pdfs', { keyPath: 'id' })
       }
     }
   })
