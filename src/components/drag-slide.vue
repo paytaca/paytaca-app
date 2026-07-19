@@ -18,13 +18,13 @@
             </div>
           </template>
 
-          <q-item class="bg-grad text-white q-py-md">
+          <q-item :class="[disable ? 'bg-grey-5' : 'bg-grad', 'text-white q-py-md']">
             <q-item-section avatar>
-              <q-icon v-if="disable" name="lock" size="sm" class="bg-blue q-pa-sm" style="border-radius: 50%" />
+              <q-icon v-if="disable" name="lock" size="sm" class="bg-grey-7 q-pa-sm" style="border-radius: 50%" />
               <q-icon v-else name="mdi-chevron-double-right" size="xl" class="bg-blue" style="border-radius: 50%" />
             </q-item-section>
             <q-item-section class="text-right">
-              <h5 class="q-my-sm text-grey-4 text-uppercase" style="font-size: clamp(14px, 3.5vw, 18px);">{{ sliderText }}</h5>
+              <h5 :class="disable ? 'text-grey-3' : 'text-grey-4'" class="q-my-sm text-uppercase" style="font-size: clamp(14px, 3.5vw, 18px);">{{ sliderText }}</h5>
             </q-item-section>
           </q-item>
         </q-slide-item>
