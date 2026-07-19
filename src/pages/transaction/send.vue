@@ -2594,7 +2594,6 @@ export default {
         vm.customKeyboardState = 'dismiss'
         vm.txid = result.txid
         vm.txTimestamp = Date.now()
-        vm.sending = false
 
         // Show send success immediately (don't wait for points API)
         const isConsolidation = await vm.checkConsolidationViaAddressInfo()

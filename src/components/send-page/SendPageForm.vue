@@ -113,7 +113,6 @@
       </template>
     </q-input>
   </div>
-<template v-if="!sending">
   <div class="row" v-if="!isNFT">
     <div class="col q-mt-xs" style="position: relative;">
       <q-input
@@ -313,7 +312,7 @@
     />
   </div>
 
-  <div class="row" v-if="!isNFT && !recipient.fixedAmount" style="padding-bottom: 15px">
+  <div class="row" v-if="!isNFT && !recipient.fixedAmount && !sending" style="padding-bottom: 15px">
     <div class="col q-mt-md balance-max-container" :class="getDarkModeClass(darkMode)">
       <template v-if="currentWalletBalanceAsAsset?.id === 'bch' && asset?.id === 'bch'">
         <span v-bch-amount="{ denomination: selectedDenomination }">
@@ -339,8 +338,7 @@
       />
     </div>
   </div>
-</template>
-<q-card
+  <q-card
     class="row text-center justify-center q-pa-sm q-my-sm text-subtitle2 pt-card"
     :class="getDarkModeClass(darkMode)"
     v-if="inputExtras.cashbackData && inputExtras.cashbackData.cashback_amount > -1"
@@ -721,6 +719,9 @@ export default {
     fiatFormatted () {
       clearTimeout(this.keyboardTipTimer)
       this.activeKeyboardTip = null
+    },
+    sending (val) {
+      if (val) this.showAdvancedOptions = false
     },
   }
 }
