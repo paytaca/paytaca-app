@@ -1855,6 +1855,7 @@ export default {
 
       // Directly execute security checking without intermediate dialog
       console.log('[SendPage] slideToSubmit: Calling executeSecurityChecking directly (no SecurityCheckDialog)')
+      vm.customKeyboardState = 'dismiss'
       vm.executeSecurityChecking(reset)
     },
     executeSecurityChecking (reset = () => {}) {
