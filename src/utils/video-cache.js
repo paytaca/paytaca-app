@@ -67,13 +67,12 @@ export async function setCachedVideo (id, blob, mimeType) {
     const countReq = store.count()
     countReq.onsuccess = () => {
       if (countReq.result >= MAX_VIDEO_ENTRIES) {
-        const cursorReq = store.openCursor()
-        cursorReq.onsuccess = () => {
-          const cursor = cursorReq.result
-          if (cursor) {
-            cursor.delete()
-            store.put({ id, blob, mimeType, timestamp: Date.now() })
-          }
+        const allReq = store.getAll()
+        allReq.onsuccess = () => {
+          const entries = allReq.result
+          const oldest = entries.reduce((a, b) => a.timestamp < b.timestamp ? a : b)
+          store.delete(oldest.id)
+          store.put({ id, blob, mimeType, timestamp: Date.now() })
         }
       } else {
         store.put({ id, blob, mimeType, timestamp: Date.now() })

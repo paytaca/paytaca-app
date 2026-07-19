@@ -141,7 +141,7 @@ import {
   parseKind15FileMessage,
   base64ToHex,
 } from 'src/wallet/nostr-media'
-import { clearChatCache } from 'src/components/chat/MessageBubble.vue'
+import { clearChatCache } from 'src/utils/chat-cache'
 import { Store } from 'src/store'
 
 const isDev = process.env.NODE_ENV !== 'production'

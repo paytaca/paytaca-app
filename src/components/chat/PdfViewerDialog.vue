@@ -139,10 +139,3 @@ export default {
   font-weight: 500;
 }
 </style>
-
-<style>
-/* Fullscreen dialogs must cover safe areas on notched phones */
-.q-dialog__inner--maximized > div {
-  max-height: 100dvh !important;
-}
-</style>
