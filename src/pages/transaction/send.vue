@@ -790,6 +790,7 @@ export default {
       if (this.calculatingCauldronTrade) {
         if (this.inputExtras.some(extra => extra?.cauldron?.enable)) return false;
       }
+      if (this.isNFT) return true
       return (
         // check if amount is greater than zero
         this.recipients.map(a => a.amount > 0).findIndex(i => !i) < 0 &&
