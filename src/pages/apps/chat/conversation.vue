@@ -500,6 +500,14 @@
             <q-item-label>{{ $t('Copy', {}, 'Copy') }}</q-item-label>
           </q-item-section>
         </q-item>
+        <q-item v-if="hasTextSelection" clickable v-close-popup @click.stop="quoteMessage(contextMessage)" @pointerdown.stop.prevent="menuPointerDown('quote', $event)">
+          <q-item-section avatar>
+            <q-icon name="format_quote" size="20px" />
+          </q-item-section>
+          <q-item-section>
+            <q-item-label>{{ $t('Quote', {}, 'Quote') }}</q-item-label>
+          </q-item-section>
+        </q-item>
         <template v-if="!hasTextSelection">
           <q-item clickable v-close-popup @click.stop="setReply(contextMessage)" @pointerdown.stop.prevent="menuPointerDown('reply', $event)">
             <q-item-section avatar>
@@ -1576,6 +1584,17 @@ export default {
         type: 'positive',
         message: this.$t('MessageCopied', {}, 'Message copied'),
         timeout: 2000,
+      })
+    },
+    quoteMessage (message) {
+      const { text } = parseMessageMarkup(message.content || '')
+      const quoteText = this.selectedText || text || message.content || ''
+      this.replyToMessage = message
+      this.$nextTick(() => {
+        this.$refs.chatInput?.setText(`> ${quoteText}\n\n`)
+        setTimeout(() => {
+          this.$refs.chatInput?.focus()
+        }, 150)
       })
     },
     setReply (message) {

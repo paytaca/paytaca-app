@@ -105,7 +105,9 @@
       </div>
       
       <template v-else>
-        <div class="message-text">{{ displayText }}</div>
+        <div class="message-text">
+          <div v-for="(line, i) in textLines" :key="i" :class="{ 'quote-line': line.startsWith('>') }" class="message-line">{{ line }}</div>
+        </div>
 
         <!-- Rich markup card: payment -->
         <div
@@ -530,6 +532,9 @@ export default {
     },
     displayText () {
       return this.parsed.text
+    },
+    textLines () {
+      return (this.displayText || '').split('\n')
     },
     markup () {
       return this.parsed.markup
@@ -1222,6 +1227,18 @@ export default {
   word-break: break-word;
   -webkit-user-select: text;
   user-select: text;
+}
+
+.message-line {
+  min-height: 1em;
+}
+
+.quote-line {
+  padding-left: 10px;
+  border-left: 3px solid currentColor;
+  opacity: 0.85;
+  font-style: italic;
+  margin-bottom: 4px;
 }
 
 .message-reactions {
