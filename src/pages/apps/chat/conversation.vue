@@ -1573,7 +1573,9 @@ export default {
     setReply (message) {
       this.replyToMessage = message
       this.$nextTick(() => {
-        this.$refs.chatInput?.focus()
+        setTimeout(() => {
+          this.$refs.chatInput?.focus()
+        }, 150)
       })
     },
     cancelReply () {

@@ -239,7 +239,9 @@ export default {
       this.text = val
     },
     focus () {
-      this.$nextTick(() => this.$refs.inputField?.focus())
+      this.$refs.inputField?.focus()
+      const nativeEl = this.$refs.inputField?.$el?.querySelector('textarea')
+      if (nativeEl) nativeEl.focus()
     },
     onEnterKey (event) {
       if (!event.shiftKey) {
