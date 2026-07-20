@@ -99,6 +99,8 @@
                   getDarkModeClass(darkMode),
                   { 'app-inactive': !app.active, 'app-pinned-row': true }
                 ]"
+                @click="openApp(app)"
+                v-on-long-press="(event) => showAppContextMenu(app, event)"
               >
                 <div class="app-drag-handle" :class="getDarkModeClass(darkMode)">
                   <q-icon name="drag_indicator" size="20px" />
@@ -138,6 +140,8 @@
             :list="cat.apps"
             item-key="id"
             :animation="600"
+            :delay="100"
+            :delay-on-touch-only="true"
             class="app-grid"
             @start="onDragState(true, $event, cat)"
             @end="onPinnedReorder($event, cat)"
@@ -150,6 +154,8 @@
                   getDarkModeClass(darkMode),
                   { 'app-inactive': !app.active }
                 ]"
+                @click="openApp(app)"
+                v-on-long-press="(event) => showAppContextMenu(app, event)"
               >
                 <div class="relative-position" style="display: inline-block;">
                   <div class="app-grid-tile bg-grad" :class="{ 'tile-inactive': !app.active }">

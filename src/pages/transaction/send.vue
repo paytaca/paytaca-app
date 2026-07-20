@@ -1644,29 +1644,20 @@ export default {
     autoFocusAmount () {
       const index = this.currentRecipientIndex
       const recipient = this.recipients[index]
-      if (recipient?.fixedAmount) {
-        console.debug('[SendPage] autoFocusAmount: fixedAmount, skipping')
-        return
-      }
+      if (recipient?.fixedAmount) return
 
       const sendPageForm = this.$refs.sendPageRef?.[index]
-      if (!sendPageForm) {
-        console.debug('[SendPage] autoFocusAmount: sendPageForm not found', { sendPageRef: this.$refs.sendPageRef })
-        return
-      }
+      if (!sendPageForm) return
 
       const field = this.asset?.id === 'bch' ? 'fiat' : 'bch'
       const inputRef = field === 'fiat' ? sendPageForm.$refs.fiatInput : sendPageForm.$refs.amountInput
 
       if (inputRef && typeof inputRef.focus === 'function') {
-        console.debug('[SendPage] autoFocusAmount: focusing', { index, field, inputRef })
         inputRef.focus()
         this.currentRecipientIndex = index
         this.focusedInputField = field
         this.customKeyboardState = 'show'
         sendPageUtils.addRemoveInputFocus(index, field)
-      } else {
-        console.debug('[SendPage] autoFocusAmount: inputRef not found or no focus method', { inputRef })
       }
     },
 
@@ -1860,26 +1851,20 @@ export default {
       }
 
       // Directly execute security checking without intermediate dialog
-      console.log('[SendPage] slideToSubmit: Calling executeSecurityChecking directly (no SecurityCheckDialog)')
       vm.customKeyboardState = 'dismiss'
       vm.executeSecurityChecking(reset)
     },
     executeSecurityChecking (reset = () => {}) {
       const vm = this
-      console.log('[SendPage] executeSecurityChecking: Starting authentication (no SecurityCheckDialog)')
       setTimeout(() => {
         const preferredSecurity = vm.$store?.getters?.['global/preferredSecurity']
-        console.log('[SendPage] executeSecurityChecking: preferredSecurity =', preferredSecurity)
         if (preferredSecurity === 'pin') {
-          console.log('[SendPage] executeSecurityChecking: Setting pinDialogAction to VERIFY')
           // Reset first to ensure watcher is triggered
           vm.pinDialogAction = ''
           vm.$nextTick(() => {
             vm.pinDialogAction = 'VERIFY'
-            console.log('[SendPage] executeSecurityChecking: pinDialogAction set to VERIFY')
           })
         } else {
-          console.log('[SendPage] executeSecurityChecking: Calling verifyBiometric')
           vm.verifyBiometric(reset)
         }
       }, 300)
@@ -1960,14 +1945,6 @@ export default {
       // Placed here to include calculation `totalFiatAmountSent` and `totalAmountSend`, although;
       // this data will be lacking since there's potentially bch & one or more cashtokens actually sent
       if (hasCauldronEnabled) {
-        console.debug('[CauldronSend] Executing send', {
-          asset: vm.asset,
-          recipients: vm.recipients,
-          inputExtras: vm.inputExtras,
-          tradeResults: vm.tradeResults,
-          bchWallet: getWalletByNetwork(vm.wallet, 'bch'),
-        })
-
         try {
           vm.customKeyboardState = 'dismiss'
           vm.sending = true
@@ -2228,7 +2205,6 @@ export default {
 
     // emitted methods
     onInputFocus (value) {
-      console.debug('[SendPage] onInputFocus', value)
       this.currentRecipientIndex = value.index
       this.focusedInputField = value.field
       this.customKeyboardState = value.field !== '' ? 'show' : 'dismiss'
@@ -2285,7 +2261,6 @@ export default {
     // ========= cauldron related ==========
     onCauldronToggle (cauldronData) {
       this.currentRecipientIndex = cauldronData.index;
-      console.debug(this.currentRecipientIndex, cauldronData)
       this.inputExtras[this.currentRecipientIndex].cauldron = {
         enable: cauldronData.enable,
         token: cauldronData.token,
@@ -2348,7 +2323,6 @@ export default {
       }
 
       this.calculatingCauldronTrade = true;
-      console.trace('Preparing cauldron trade', this.asset, this.recipients, this.inputExtras, this.poolTracker.getTokenPoolsMap());
 
       // This function is passed for cauldron enabled recipients with supply mode(i.e. setMax)
       // Since supply mode sets the amount & fiatAmount using cauldronAmount
@@ -2368,7 +2342,6 @@ export default {
         amountToFiat,
       );
 
-      console.debug('[CauldronSendPrepare]', { recipients, inputExtras, tradeResults, tradeErrors });
       this.tradeResults = tradeResults;
       this.cauldronTradePrepErrors = tradeErrors;
       this.calculatingCauldronTrade = !this.inputExtras.every((inputExtra, index) => {
@@ -2380,9 +2353,7 @@ export default {
      * @param {CauldronSendError} error
      */
     handleCauldronError(error) {
-      console.debug('CauldronError', error);
       const isCauldronError = error instanceof CauldronSendError;
-      console.debug('CauldronError', isCauldronError);
       if (!isCauldronError) throw error;
 
       const code = error.code;
@@ -2511,7 +2482,6 @@ export default {
         }
         return data
       })
-      console.debug('Adjusting wallet balances', amountsData);
       this.currentWalletBalances = sendPageUtils.adjustWalletBalances(
         this.asset,
         amountsData,
@@ -2522,8 +2492,6 @@ export default {
       this.inputExtras.forEach((extra, index) => {
         extra.balanceExceeded =  this.currentWalletBalances[index].balance < 0;
       })
-
-      console.debug('Wallet balances', this.currentWalletBalances);
     },
 
     // address checking/validation
@@ -3047,18 +3015,17 @@ export default {
     if (vm.$route.query.assetData) {
       try {
         const passedAsset = JSON.parse(vm.$route.query.assetData)
-        console.log('[Send] Received asset data from select-asset page:', passedAsset)
-        
+
         if (passedAsset && passedAsset.id) {
           // Use the passed asset data immediately
           // Ensure symbol has a value - use fallback if empty
           let symbol = passedAsset.symbol || passedAsset.name || ''
-          
+
           // If still no symbol, extract from ID (e.g., "ct/abc123" -> use token name or "TOKEN")
           if (!symbol && passedAsset.id.startsWith('ct/')) {
             symbol = passedAsset.name || 'TOKEN'
           }
-          
+
           // BCH decimals should always be 8; some callers omit it.
           const normalizedDecimals = passedAsset.id === 'bch'
             ? 8
@@ -3072,7 +3039,6 @@ export default {
             logo: passedAsset.logo || null,
             balance: passedAsset.balance !== undefined ? passedAsset.balance : undefined
           }
-          console.log('[Send] Set asset with symbol:', vm.asset.symbol)
 
           // Ensure the asset exists in the `assets` store so balance refreshes
           // (`updateAssetBalanceOnLoad` -> `assets/updateAssetBalance`) can update it.
@@ -3094,7 +3060,7 @@ export default {
           } catch (e) {
             console.warn('[Send] Failed to ensure asset exists in store:', e)
           }
-          
+
           // Don't fall through to the default logic - we have everything we need
           // Continue with the rest of mounted() logic below
         } else {
@@ -3107,7 +3073,6 @@ export default {
         vm.asset = sendPageUtils.getAsset(vm.assetId, vm.symbol)
       }
     } else {
-      console.log('[Send] No asset data passed in query, using default logic')
       // No asset data passed, use default logic
       vm.asset = sendPageUtils.getAsset(vm.assetId, vm.symbol)
       // Ensure the asset exists in the `assets` store so balance refresh works for deep-linked tokens.

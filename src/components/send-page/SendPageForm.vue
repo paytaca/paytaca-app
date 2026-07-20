@@ -576,7 +576,6 @@ export default {
       this.keyboardTipTimer = setTimeout(() => { this.activeKeyboardTip = null }, 10000)
     },
     onInputFocus (index, field) {
-      console.debug('[SendPageForm] onInputFocus', { index, field })
       clearTimeout(this.keyboardTipTimer)
       this.activeKeyboardTip = null
       this.currentFocusedField = field
