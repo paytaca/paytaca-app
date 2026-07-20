@@ -596,7 +596,7 @@ export default {
       return isNativeIOS()
     },
     dragSupported () {
-      return true
+      return !this.isNativeIOS
     },
     theme () {
       return this.$store.getters['global/theme']
@@ -782,10 +782,15 @@ export default {
       this.draggedAppId = app.id
       event.dataTransfer.effectAllowed = 'move'
       event.dataTransfer.setData('text/plain', app.id)
+      // Transparent drag image to prevent iOS Safari black square ghost
+      const img = new Image()
+      img.src = 'data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7'
+      event.dataTransfer.setDragImage(img, 0, 0)
     },
     onDragOver (app, event) {
       if (!this.draggedAppId || this.draggedAppId === app.id) return
       event.preventDefault()
+      event.dataTransfer.dropEffect = 'move'
       this.dragOverAppId = app.id
     },
     onDragLeave () {
@@ -1425,6 +1430,10 @@ export default {
     &[draggable="true"] {
       cursor: grab;
       &:active { cursor: grabbing; }
+    }
+    &[draggable="true"] {
+      -webkit-user-drag: element;
+      user-drag: element;
     }
     &.drag-over {
       .app-grid-tile {
