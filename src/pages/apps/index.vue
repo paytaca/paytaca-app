@@ -60,7 +60,7 @@
     </div>
     <div class="apps-hint-text q-px-md q-mt-xs" :class="getDarkModeClass(darkMode)">
       {{ $t('LongPressToPin', {}, 'Long press on the app to pin or unpin.') }}
-      <template v-if="dragSupported">{{ $t('DragToReorder', {}, 'Drag pinned apps to reorder.') }}</template>
+      {{ $t('DragToReorder', {}, 'Drag pinned apps to reorder.') }}
     </div>
 
     <div id="apps" ref="apps" class="apps-list-container" :class="[getDarkModeClass(darkMode), `view-${viewMode}`]">
@@ -79,122 +79,170 @@
 
         <div class="section-divider" :class="getDarkModeClass(darkMode)"></div>
 
-        <!-- List view -->
-        <div v-if="viewMode === 'list'" class="app-rows">
-          <div
-            v-for="(app, index) in cat.apps"
-            :key="app.id || index"
-            :data-app-id="app.id"
-            class="app-row"
-            :class="[
-              getDarkModeClass(darkMode),
-              { 'app-inactive': !app.active, 'app-beta-row': cat.isBeta, 'app-pinned-row': cat.isPinned, 'drag-over': cat.isPinned && dragSupported && dragOverAppId === app.id, 'drag-active': draggedAppId === app.id }
-            ]"
-            @click="openApp(app)"
-            v-on-long-press="cat.isPinned ? undefined : [(event) => showAppContextMenu(app, event)]"
-            @touchstart="cat.isPinned && !dragSupported && onGridDragStart(app, $event)"
-            @dragover="cat.isPinned && dragSupported && onDragOver(app, $event)"
-            @dragleave="cat.isPinned && dragSupported && onDragLeave()"
-            @drop="cat.isPinned && dragSupported && onDrop(app, $event)"
-            @dragend="cat.isPinned && dragSupported && onDragEnd()"
+        <!-- Pinned section: draggable for smooth cross-platform reorder -->
+        <template v-if="cat.isPinned">
+          <draggable
+            v-if="viewMode === 'list'"
+            :list="cat.apps"
+            item-key="id"
+            handle=".app-drag-handle"
+            :animation="600"
+            class="app-rows"
+            @start="onDragState(true, $event)"
+            @end="onPinnedReorder"
           >
-            <div
-              v-if="cat.isPinned"
-              class="app-drag-handle"
-              :class="getDarkModeClass(darkMode)"
-              @mousedown.stop="onHandleDragStart(app, $event, 'mouse')"
-              @touchstart.stop="onHandleDragStart(app, $event, 'touch')"
-            >
-              <q-icon name="drag_indicator" size="20px" />
-            </div>
-            <div class="app-icon-tile bg-grad" :class="{ 'tile-inactive': !app.active }">
-              <q-icon size="26px" color="white" :name="app.iconName" />
-            </div>
-
-            <div class="app-info">
-              <div class="app-name" :class="getDarkModeClass(darkMode)">{{ app.name }}</div>
-              <div class="app-desc" :class="getDarkModeClass(darkMode)">{{ app.description }}</div>
-            </div>
-
-            <div class="app-row-end">
-              <span v-if="app.beta" class="app-beta-pill">BETA</span>
-              <div v-if="app.id === 'chat' && chatUnreadCount > 0" class="app-unread-badge">
-                {{ chatUnreadCountLabel }}
-              </div>
-              <q-icon
-                v-if="cat.isPinned"
-                name="mdi-pin-off"
-                size="18px"
-                class="app-unpin-icon"
-                :class="getDarkModeClass(darkMode)"
-                @click.stop="togglePin(app.id)"
-              />
-              <q-icon
-                v-if="app.active"
-                name="chevron_right"
-                size="22px"
-                class="app-chevron"
-                :class="getDarkModeClass(darkMode)"
-              />
-            </div>
-          </div>
-        </div>
-
-        <!-- Grid view -->
-        <div v-else class="app-grid">
-          <div
-            v-for="(app, index) in cat.apps"
-            :key="app.id || index"
-            :draggable="(cat.isPinned && dragSupported) ? 'true' : false"
-            :data-app-id="app.id"
-            class="app-grid-item"
-            :class="[
-              getDarkModeClass(darkMode),
-              { 'app-inactive': !app.active, 'drag-over': cat.isPinned && dragOverAppId === app.id, 'drag-active': draggedAppId === app.id }
-            ]"
-            @click="openApp(app)"
-            v-on-long-press="
-              cat.isPinned
-                ? undefined
-                : [(event) => showAppContextMenu(app, event)]
-            "
-            @touchstart="cat.isPinned && !dragSupported && onGridDragStart(app, $event)"
-            @dragstart="cat.isPinned && dragSupported && onDragStart(app, $event)"
-            @dragover="cat.isPinned && dragSupported && onDragOver(app, $event)"
-            @dragleave="cat.isPinned && dragSupported && onDragLeave()"
-            @drop="cat.isPinned && dragSupported && onDrop(app, $event)"
-            @dragend="cat.isPinned && dragSupported && onDragEnd()"
-          >
-            <div class="relative-position" draggable="false" style="display: inline-block;">
-              <div class="app-grid-tile bg-grad" :class="{ 'tile-inactive': !app.active }">
-                <q-icon size="30px" color="white" :name="app.iconName" draggable="false" />
-              </div>
-              <span v-if="app.beta" class="app-beta-pill-grid" draggable="false">BETA</span>
+            <template #item="{ element: app }">
               <div
-                v-if="app.id === 'chat' && chatUnreadCount > 0"
-                class="app-unread-badge"
-                draggable="false"
+                :data-app-id="app.id"
+                class="app-row"
+                :class="[
+                  getDarkModeClass(darkMode),
+                  { 'app-inactive': !app.active, 'app-pinned-row': true }
+                ]"
               >
-                {{ chatUnreadCountLabel }}
+                <div class="app-drag-handle" :class="getDarkModeClass(darkMode)">
+                  <q-icon name="drag_indicator" size="20px" />
+                </div>
+                <div class="app-icon-tile bg-grad" :class="{ 'tile-inactive': !app.active }">
+                  <q-icon size="26px" color="white" :name="app.iconName" />
+                </div>
+                <div class="app-info">
+                  <div class="app-name" :class="getDarkModeClass(darkMode)">{{ app.name }}</div>
+                  <div class="app-desc" :class="getDarkModeClass(darkMode)">{{ app.description }}</div>
+                </div>
+                <div class="app-row-end">
+                  <span v-if="app.beta" class="app-beta-pill">BETA</span>
+                  <div v-if="app.id === 'chat' && chatUnreadCount > 0" class="app-unread-badge">
+                    {{ chatUnreadCountLabel }}
+                  </div>
+                  <q-icon
+                    name="mdi-pin-off"
+                    size="18px"
+                    class="app-unpin-icon"
+                    :class="getDarkModeClass(darkMode)"
+                    @click.stop="togglePin(app.id)"
+                  />
+                  <q-icon
+                    v-if="app.active"
+                    name="chevron_right"
+                    size="22px"
+                    class="app-chevron"
+                    :class="getDarkModeClass(darkMode)"
+                  />
+                </div>
+              </div>
+            </template>
+          </draggable>
+          <draggable
+            v-else
+            :list="cat.apps"
+            item-key="id"
+            :animation="600"
+            class="app-grid"
+            @start="onDragState(true, $event)"
+            @end="onPinnedReorder"
+          >
+            <template #item="{ element: app }">
+              <div
+                :data-app-id="app.id"
+                class="app-grid-item"
+                :class="[
+                  getDarkModeClass(darkMode),
+                  { 'app-inactive': !app.active }
+                ]"
+              >
+                <div class="relative-position" style="display: inline-block;">
+                  <div class="app-grid-tile bg-grad" :class="{ 'tile-inactive': !app.active }">
+                    <q-icon size="30px" color="white" :name="app.iconName" />
+                  </div>
+                  <span v-if="app.beta" class="app-beta-pill-grid">BETA</span>
+                  <div
+                    v-if="app.id === 'chat' && chatUnreadCount > 0"
+                    class="app-unread-badge"
+                  >
+                    {{ chatUnreadCountLabel }}
+                  </div>
+                </div>
+                <p
+                  class="app-grid-name pt-label"
+                  :class="[getDarkModeClass(darkMode), !app.active ? 'text-grey' : '']"
+                >
+                  {{ app.name }}
+                </p>
+              </div>
+            </template>
+          </draggable>
+        </template>
+
+        <!-- Non-pinned section: static display -->
+        <template v-else>
+          <div v-if="viewMode === 'list'" class="app-rows">
+            <div
+              v-for="(app, index) in cat.apps"
+              :key="app.id || index"
+              class="app-row"
+              :class="[
+                getDarkModeClass(darkMode),
+                { 'app-inactive': !app.active, 'app-beta-row': cat.isBeta }
+              ]"
+              @click="openApp(app)"
+              v-on-long-press="(event) => showAppContextMenu(app, event)"
+            >
+              <div class="app-icon-tile bg-grad" :class="{ 'tile-inactive': !app.active }">
+                <q-icon size="26px" color="white" :name="app.iconName" />
+              </div>
+              <div class="app-info">
+                <div class="app-name" :class="getDarkModeClass(darkMode)">{{ app.name }}</div>
+                <div class="app-desc" :class="getDarkModeClass(darkMode)">{{ app.description }}</div>
+              </div>
+              <div class="app-row-end">
+                <span v-if="app.beta" class="app-beta-pill">BETA</span>
+                <div v-if="app.id === 'chat' && chatUnreadCount > 0" class="app-unread-badge">
+                  {{ chatUnreadCountLabel }}
+                </div>
+                <q-icon
+                  v-if="app.active"
+                  name="chevron_right"
+                  size="22px"
+                  class="app-chevron"
+                  :class="getDarkModeClass(darkMode)"
+                />
               </div>
             </div>
-            <p
-              draggable="false"
-              class="app-grid-name pt-label"
-              :class="[getDarkModeClass(darkMode), !app.active ? 'text-grey' : '']"
-            >
-              {{ app.name }}
-            </p>
           </div>
-        </div>
+          <div v-else class="app-grid">
+            <div
+              v-for="(app, index) in cat.apps"
+              :key="app.id || index"
+              class="app-grid-item"
+              :class="[
+                getDarkModeClass(darkMode),
+                { 'app-inactive': !app.active }
+              ]"
+              @click="openApp(app)"
+              v-on-long-press="(event) => showAppContextMenu(app, event)"
+            >
+              <div class="relative-position" style="display: inline-block;">
+                <div class="app-grid-tile bg-grad" :class="{ 'tile-inactive': !app.active }">
+                  <q-icon size="30px" color="white" :name="app.iconName" />
+                </div>
+                <span v-if="app.beta" class="app-beta-pill-grid">BETA</span>
+                <div v-if="app.id === 'chat' && chatUnreadCount > 0" class="app-unread-badge">
+                  {{ chatUnreadCountLabel }}
+                </div>
+              </div>
+              <p class="app-grid-name pt-label" :class="[getDarkModeClass(darkMode), !app.active ? 'text-grey' : '']">
+                {{ app.name }}
+              </p>
+            </div>
+          </div>
+        </template>
 
         <div
           v-if="viewMode !== 'list'"
           class="unpin-bin"
-          :class="[getDarkModeClass(darkMode), { 'unpin-bin-visible': cat.isPinned && draggedAppId }]"
-          @dragover.prevent
-          @drop="onUnpinDrop"
-          @touchend.prevent="draggedAppId && onUnpinDrop()"
+          :class="[getDarkModeClass(darkMode), { 'unpin-bin-visible': cat.isPinned && dragging }]"
+          @click="dragItemId && (togglePin(dragItemId), dragItemId = null, dragging = false)"
         >
           <q-icon name="mdi-pin-off" size="20px" />
           <span>{{ $t('DropToUnpin', {}, 'Drop here to unpin') }}</span>
@@ -212,18 +260,20 @@
 <script>
 import { Platform } from 'quasar';
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
+import draggable from 'vuedraggable'
+import { isNativeIOS } from 'src/utils/native-platform'
 
 import BetaAppDialog from 'src/components/apps/BetaAppDialog.vue'
 import HeaderNav from '../../components/header-nav'
 import { webSocketManager } from 'src/exchange/websocket/manager'
-import { isNativeIOS } from 'src/utils/native-platform'
 import { DISPLAY_SUBS_APP } from 'src/wallet/payment-hub';
 
 export default {
   name: 'apps',
   components: {
     HeaderNav,
-    BetaAppDialog
+    BetaAppDialog,
+    draggable
   },
   directives: {
     'on-long-press': {
@@ -586,8 +636,8 @@ export default {
       disableRampSelection: false,
       activeCategory: null,
       categoryObserver: null,
-      draggedAppId: null,
-      dragOverAppId: null
+      dragging: false,
+      dragItemId: null
     }
   },
   computed: {
@@ -598,7 +648,7 @@ export default {
       return isNativeIOS()
     },
     dragSupported () {
-      return !this.isNativeIOS
+      return true
     },
     theme () {
       return this.$store.getters['global/theme']
@@ -745,126 +795,24 @@ export default {
       }
       localStorage.setItem('pinnedAppIds', JSON.stringify(this.pinnedAppIds))
     },
-    onHandleDragStart (app, event, source) {
-      event.preventDefault()
-      this.draggedAppId = app.id
-      const getPos = (e) => source === 'mouse'
-        ? { x: e.clientX, y: e.clientY }
-        : { x: e.touches[0].clientX, y: e.touches[0].clientY }
-      let pos = getPos(event)
-      const onMove = (e) => {
-        e.preventDefault()
-        pos = getPos(e)
-        const el = document.elementFromPoint(pos.x, pos.y)
-        const row = el && el.closest('[data-app-id]')
-        if (row) {
-          const id = row.getAttribute('data-app-id')
-          this.dragOverAppId = id !== this.draggedAppId ? id : null
-        } else {
-          this.dragOverAppId = null
+    onDragState (active, event) {
+      this.dragging = active
+      this.dragItemId = active && event?.item?.dataset?.appId ? event.item.dataset.appId : null
+    },
+    onPinnedReorder () {
+      const newOrder = []
+      for (const cat of this.categorizedApps) {
+        if (cat.isPinned) {
+          for (const app of cat.apps) {
+            newOrder.push(app.id)
+          }
         }
       }
-      const onEnd = () => {
-        document.removeEventListener('mousemove', onMove)
-        document.removeEventListener('mouseup', onEnd)
-        document.removeEventListener('touchmove', onMove)
-        document.removeEventListener('touchend', onEnd)
-        if (this.draggedAppId && this.dragOverAppId) {
-          this.completeReorder(this.draggedAppId, this.dragOverAppId)
-        }
-        this.draggedAppId = null
-        this.dragOverAppId = null
+      if (newOrder.length > 0) {
+        this.pinnedAppIds = newOrder
+        localStorage.setItem('pinnedAppIds', JSON.stringify(newOrder))
       }
-      document.addEventListener('mousemove', onMove)
-      document.addEventListener('mouseup', onEnd)
-      document.addEventListener('touchmove', onMove, { passive: false })
-      document.addEventListener('touchend', onEnd)
-    },
-    onGridDragStart (app, event) {
-      event.preventDefault()
-      this.draggedAppId = app.id
-      const startPos = { x: event.touches[0].clientX, y: event.touches[0].clientY }
-      const onMove = (e) => {
-        e.preventDefault()
-        const el = document.elementFromPoint(e.touches[0].clientX, e.touches[0].clientY)
-        const gridItem = el && el.closest('[data-app-id]')
-        if (gridItem) {
-          const id = gridItem.getAttribute('data-app-id')
-          this.dragOverAppId = id !== this.draggedAppId ? id : null
-        } else {
-          this.dragOverAppId = null
-        }
-      }
-      const onEnd = () => {
-        document.removeEventListener('touchmove', onMove)
-        document.removeEventListener('touchend', onEnd)
-        if (this.draggedAppId && this.dragOverAppId) {
-          this.completeReorder(this.draggedAppId, this.dragOverAppId)
-        }
-        this.draggedAppId = null
-        this.dragOverAppId = null
-      }
-      document.addEventListener('touchmove', onMove, { passive: false })
-      document.addEventListener('touchend', onEnd)
-    },
-    onDragStart (app, event) {
-      this.draggedAppId = app.id
-      event.dataTransfer.effectAllowed = 'move'
-      event.dataTransfer.setData('text/plain', app.id)
-    },
-    onDragOver (app, event) {
-      if (!this.draggedAppId || this.draggedAppId === app.id) return
-      event.preventDefault()
-      event.dataTransfer.dropEffect = 'move'
-      this.dragOverAppId = app.id
-    },
-    onDragLeave () {
-      this.dragOverAppId = null
-    },
-    onDrop (app, event) {
-      event.preventDefault()
-      const fromId = this.draggedAppId
-      const toId = app.id
-      if (!fromId || !toId || fromId === toId) {
-        this.draggedAppId = null
-        this.dragOverAppId = null
-        return
-      }
-      const ids = [...this.pinnedAppIds]
-      const fromIndex = ids.indexOf(fromId)
-      const toIndex = ids.indexOf(toId)
-      if (fromIndex === -1 || toIndex === -1) {
-        this.draggedAppId = null
-        this.dragOverAppId = null
-        return
-      }
-      ids.splice(fromIndex, 1)
-      ids.splice(toIndex, 0, fromId)
-      this.pinnedAppIds = ids
-      localStorage.setItem('pinnedAppIds', JSON.stringify(ids))
-      this.draggedAppId = null
-      this.dragOverAppId = null
-    },
-    completeReorder (fromId, toId) {
-      const ids = [...this.pinnedAppIds]
-      const fromIndex = ids.indexOf(fromId)
-      const toIndex = ids.indexOf(toId)
-      if (fromIndex === -1 || toIndex === -1) return
-      ids.splice(fromIndex, 1)
-      ids.splice(toIndex, 0, fromId)
-      this.pinnedAppIds = ids
-      localStorage.setItem('pinnedAppIds', JSON.stringify(ids))
-    },
-    onDragEnd () {
-      this.draggedAppId = null
-      this.dragOverAppId = null
-    },
-    onUnpinDrop () {
-      if (this.draggedAppId) {
-        this.togglePin(this.draggedAppId)
-      }
-      this.draggedAppId = null
-      this.dragOverAppId = null
+      this.dragging = false
     },
     showAppContextMenu (app, event) {
       if (!app.active) return
@@ -1333,16 +1281,6 @@ export default {
       cursor: default;
       .app-name, .app-desc { opacity: 0.35; }
     }
-    &.drag-over {
-      background: rgba(59, 123, 246, 0.12) !important;
-      outline: 2px dashed rgba(59, 123, 246, 0.5);
-      outline-offset: -2px;
-    }
-    &.drag-active {
-      opacity: 0.5;
-      transform: scale(0.97);
-      transition: opacity 0.15s, transform 0.15s;
-    }
   }
 
   .app-drag-handle {
@@ -1464,25 +1402,6 @@ export default {
       max-width: calc(16.666% - 4px);
     }
     &.app-inactive { cursor: default; }
-    &[draggable="true"] {
-      cursor: grab;
-      &:active { cursor: grabbing; }
-    }
-    &[draggable="true"] {
-      -webkit-user-drag: element;
-      user-drag: element;
-    }
-    &.drag-over {
-      .app-grid-tile {
-        outline: 3px solid rgba(59, 123, 246, 0.6);
-        outline-offset: 3px;
-      }
-    }
-    &.drag-active {
-      opacity: 0.5;
-      transform: scale(0.95);
-      transition: opacity 0.15s, transform 0.15s;
-    }
   }
   .app-grid-tile {
     width: 56px;
@@ -1492,7 +1411,6 @@ export default {
     align-items: center;
     justify-content: center;
     &.tile-inactive { filter: grayscale(1) opacity(0.4); }
-    .app-grid-item[draggable="true"] & { pointer-events: none; }
   }
   .app-grid-name {
     margin: 6px 0 0;
@@ -1512,5 +1430,23 @@ export default {
   .view-grid .relative-position {
     position: relative;
     display: inline-block;
+  }
+
+  // Smooth drag reorder animation
+  :deep(.sortable-ghost) {
+    opacity: 0.3;
+    transform: scale(0.95);
+  }
+  :deep(.sortable-drag) {
+    opacity: 0.9;
+    transform: scale(1.05);
+    box-shadow: 0 8px 16px rgba(0, 0, 0, 0.2);
+    z-index: 1000;
+    .app-drag-handle {
+      cursor: grabbing !important;
+    }
+  }
+  :deep(.sortable-chosen) {
+    background-color: rgba(0, 0, 0, 0.05);
   }
 </style>
