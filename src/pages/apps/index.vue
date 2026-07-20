@@ -182,6 +182,7 @@
         </div>
 
         <div
+          v-if="viewMode !== 'list'"
           class="unpin-bin"
           :class="[getDarkModeClass(darkMode), { 'unpin-bin-visible': cat.isPinned && draggedAppId && dragSupported }]"
           @dragover.prevent
