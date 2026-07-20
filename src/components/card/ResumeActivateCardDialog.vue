@@ -12,7 +12,7 @@
 
         <q-card-actions align="center" class="q-pb-lg q-px-lg">
           <q-btn flat label="Cancel" :color="$q.dark.isActive ? 'grey-4' : 'grey-7'" rounded @click="onCancelAttempt"/>
-          <q-btn flat label="No, Discard it" color="primary" rounded @click="onDeleteAttempt"/>
+          <q-btn v-if="!mustBeResumed" flat label="No, Discard it" color="primary" rounded @click="onDeleteAttempt"/>
           <q-btn unelevated label="Yes, Resume" color="primary" class="bg-grad text-white" rounded @click="onResumeAttempt"/>
         </q-card-actions>
       </q-card>
@@ -20,12 +20,20 @@
     </q-dialog>
 </template>
 <script>
+import { CardActivationStatus } from 'src/services/card/storage';
+
 export default {
   name: 'ResumeActivateCardDialog',
   emits: ['resumeAttempt', 'deleteAttempt', 'cancelAttempt'],
+  props: {
+    status: {
+      type: Number,
+      required: true
+    }
+  },
   data() {
     return {
-        showDialog: true
+      showDialog: true
     }
   },
   computed: {
@@ -34,7 +42,13 @@ export default {
     },
     textColorGrey() {
       return this.$q.dark.isActive ? 'text-grey-4' : 'text-grey-7'
+    },
+    mustBeResumed() {
+      return this.status >= CardActivationStatus.OWNERSHIP_UPDATED;
     }
+  },
+  mounted() {
+    console.log('ResumeActivateCardDialog mounted with status:', this.status);
   },
   methods: {
     onResumeAttempt() {

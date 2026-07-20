@@ -7,7 +7,8 @@ export default {
       user: null,
       showActivateCardForm: false,
       showResumeActivateCardDialog: false,
-      idempotencyKey: ''
+      idempotencyKey: '',
+      lastAttempt: null,
     }
   },
   methods: {
@@ -19,15 +20,15 @@ export default {
       }
       const attempt = await getCardActivationAttempt(walletHash);
       console.log('Loaded activate card attempt:', attempt);
-      return attempt;
+      this.lastAttempt = attempt; // Store the last attempt for use in the dialog
     },
     async checkExistingActivateCardAttempt() {
       this.idempotencyKey = '' // Reset idempotency key before checking
-      const attempt = await this.loadActivateCardAttempt();
-      if (attempt) {
-        console.log('Existing card activation attempt found:', attempt);
+      await this.loadActivateCardAttempt();
+      if (this.lastAttempt) {
+        console.log('Existing card activation attempt found:', this.lastAttempt);
         this.showResumeActivateCardDialog = true;
-        this.idempotencyKey = attempt.idempotencyKey || '';
+        this.idempotencyKey = this.lastAttempt.idempotencyKey || '';
       } else {
         console.log('No existing card activation attempt found');
       }

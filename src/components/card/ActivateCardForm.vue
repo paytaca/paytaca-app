@@ -294,6 +294,7 @@
   </q-dialog>
   <ResumeActivateCardDialog
     v-if="showResumeActivateCardDialog"
+    :status="lastAttempt?.status"
     @resumeAttempt="onRetryActivation"
     @deleteAttempt="onDeleteCardAttempt"
     @cancelAttempt="onCancelCardAttempt"
@@ -307,6 +308,7 @@ import { loadCardUser } from 'src/services/card/user';
 import QrScanner from 'src/components/qr-scanner.vue';
 import ResumeActivateCardDialog from 'src/components/card/ResumeActivateCardDialog.vue';
 import ActivateCardAttemptMixin from 'src/mixins/card/activate-card-mixin';
+import { clearCardActivationAttempt } from 'src/services/card/storage';
 
 export default {
   name: 'ActivateCardForm',
@@ -433,8 +435,40 @@ export default {
       console.log('Contract data set in component state:', this.card);
     },
 
-    onViewCard() {
-      console.log('this.card.id:', this.card.id)
+    async onViewCard() {
+      if (!this.card.id) {
+        const lastAttempt = await getCardActivationAttempt(this.user.wallet.walletHash)
+        const category = lastAttempt?.ownershipCategory
+        const fetchedCard = await this.user.fetchCardByIdentifier(category)
+          .catch((err) => {
+            console.error('Error fetching card by identifier:', err.response || err.message);
+            this.$q.notify({
+              message: 'Failed to fetch card details. Please try again.',
+              color: 'negative',
+              position: 'top',
+              timeout: 2000
+            });
+            throw err;
+          });
+        this.card = {
+          id: fetchedCard.id,
+          category: fetchedCard.raw?.contract?.ownership_token,
+          address: fetchedCard.cashAddress,
+          isActivated: fetchedCard.isActivated
+        };
+      }
+     
+      if (!this.card.id) {
+        console.error('Card ID is missing. Cannot navigate to card details.');
+        this.$q.notify({
+          message: 'Card ID is missing. Cannot navigate to card details.',
+          color: 'negative',
+          position: 'top',
+          timeout: 2000
+        });
+        return;
+      }
+
       this.$router.push({ name: 'card-details',  params: { id: this.card.id } });
     },
 
