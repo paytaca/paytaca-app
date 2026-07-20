@@ -26,19 +26,21 @@
 	    	</div>
 	    	
 	    	<q-list class="q-ma-md" style="margin-top: 12px;">
-	    		<div v-for="i in 8" :key="i" class="asset-row" :class="getDarkModeClass(darkmode)" style="padding: 12px 10px; display: flex; align-items: center; gap: 14px; border-radius: 10px;">
-	    			<div style="width: 28px; flex-shrink: 0;">
-	    				<q-skeleton type="QIcon" size="20px" />
-	    			</div>
-	    			<div style="width: 48px; height: 48px; flex-shrink: 0; border-radius: 14px; overflow: hidden;">
-	    				<q-skeleton type="QAvatar" size="48px" />
-	    			</div>
-	    			<div style="flex: 1; min-width: 0;">
-	    				<q-skeleton type="text" width="60%" height="18px" />
-	    				<q-skeleton type="text" width="40%" height="14px" class="q-mt-xs" />
-	    			</div>
-	    			<div style="flex-shrink: 0;">
-	    				<q-skeleton type="QBtn" width="30px" height="30px" />
+	    		<div v-for="i in 8" :key="i" class="q-my-sm">
+	    			<div class="asset-row" :class="getDarkModeClass(darkmode)">
+	    				<div style="width: 28px; flex-shrink: 0;">
+	    					<q-skeleton type="QIcon" size="20px" />
+	    				</div>
+	    				<div style="width: 48px; height: 48px; flex-shrink: 0; border-radius: 14px; overflow: hidden;">
+	    					<q-skeleton type="QAvatar" size="48px" />
+	    				</div>
+	    				<div style="flex: 1; min-width: 0;">
+	    					<q-skeleton type="text" width="60%" height="18px" />
+	    					<q-skeleton type="text" width="40%" height="14px" class="q-mt-xs" />
+	    				</div>
+	    				<div style="flex-shrink: 0;">
+	    					<q-skeleton type="QBtn" width="30px" height="30px" />
+	    				</div>
 	    			</div>
 	    		</div>
 	    	</q-list>
