@@ -88,7 +88,7 @@
             handle=".app-drag-handle"
             :animation="600"
             class="app-rows"
-            @start="onDragState(true, $event)"
+            @start="onDragState(true, $event, cat)"
             @end="onPinnedReorder"
           >
             <template #item="{ element: app }">
@@ -139,7 +139,7 @@
             item-key="id"
             :animation="600"
             class="app-grid"
-            @start="onDragState(true, $event)"
+            @start="onDragState(true, $event, cat)"
             @end="onPinnedReorder"
           >
             <template #item="{ element: app }">
@@ -795,9 +795,11 @@ export default {
       }
       localStorage.setItem('pinnedAppIds', JSON.stringify(this.pinnedAppIds))
     },
-    onDragState (active, event) {
+    onDragState (active, event, cat) {
       this.dragging = active
-      this.dragItemId = active && event?.item?.dataset?.appId ? event.item.dataset.appId : null
+      this.dragItemId = active && cat && event?.oldIndex !== undefined
+        ? cat.apps[event.oldIndex]?.id
+        : null
     },
     onPinnedReorder () {
       const newOrder = []
