@@ -34,7 +34,7 @@
             rounded
             no-caps
             class="link-cta-btn"
-            @click="onOpenCreateCardForm()"
+            @click="onOpenActivateCardForm()"
           />
         </div>
       </transition>
