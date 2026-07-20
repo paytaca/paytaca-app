@@ -26,20 +26,21 @@
 	    	</div>
 	    	
 	    	<q-list class="q-ma-md" style="margin-top: 12px;">
-	    		<q-card v-for="i in 8" :key="i" class="q-py-sm q-my-sm br-15">
-	    			<q-item>
-	    				<q-item-section avatar>
-	    					<q-skeleton type="QAvatar" size="50px" />
-	    				</q-item-section>
-	    				<q-item-section>
-	    					<q-skeleton type="text" width="60%" />
-	    					<q-skeleton type="text" width="40%" class="q-mt-xs" />
-	    				</q-item-section>
-	    				<q-item-section side>
-	    					<q-skeleton type="QBtn" width="30px" height="30px" />
-	    				</q-item-section>
-	    			</q-item>
-	    		</q-card>
+	    		<div v-for="i in 8" :key="i" class="asset-row" :class="getDarkModeClass(darkmode)" style="padding: 12px 10px; display: flex; align-items: center; gap: 14px; border-radius: 10px;">
+	    			<div style="width: 28px; flex-shrink: 0;">
+	    				<q-skeleton type="QIcon" size="20px" />
+	    			</div>
+	    			<div style="width: 48px; height: 48px; flex-shrink: 0; border-radius: 14px; overflow: hidden;">
+	    				<q-skeleton type="QAvatar" size="48px" />
+	    			</div>
+	    			<div style="flex: 1; min-width: 0;">
+	    				<q-skeleton type="text" width="60%" height="18px" />
+	    				<q-skeleton type="text" width="40%" height="14px" class="q-mt-xs" />
+	    			</div>
+	    			<div style="flex-shrink: 0;">
+	    				<q-skeleton type="QBtn" width="30px" height="30px" />
+	    			</div>
+	    		</div>
 	    	</q-list>
 	    </div>
 	    
@@ -80,51 +81,60 @@
 			      	    				<q-icon name="visibility_off" size="24px" color="white" />
 			      	    			</div>
 			      	    		</template>
-    				   	<q-card class="q-py-sm br-15 asset-card" :class="{'has-drag-handle': asset.favorite === 1 || asset.favorite === true}">
-    				   		<q-item>
-    				   			<q-item-section v-if="asset.favorite === 1 || asset.favorite === true" side class="handle drag-handle">
-    				   				<q-icon name="drag_indicator" size="20px" :color="darkmode ? 'grey-5' : 'grey-7'" />
-    				   			</q-item-section>
-    				   			<q-item-section v-else side class="hide-btn" @click.stop="hideAsset(asset)">
-    				   				<q-icon name="visibility" size="20px" :color="darkmode ? 'grey-5' : 'grey-7'" />
-    				   			</q-item-section>
-								      <q-item-section avatar>
-									          <q-avatar>
-									            <img 
-									              :src="getImageUrl(asset)" 
-									              class="asset-icon"
-									              @contextmenu.prevent
-									              @selectstart.prevent
-									            >
-									          </q-avatar>
-									        </q-item-section>
-									        <q-item-section>
-									        	<div class="text-bold ">{{ asset.name}}</div>
-									        	<div :class="darkmode ? 'text-grey-5' : 'text-grey-8'">
-									      			{{ formatAssetTokenAmount(asset) }} {{ asset.symbol }}			      			
-									      		</div>
-									        </q-item-section>
-									      	<q-item-section side>			      		
-									      		<q-spinner
-									      			v-if="favoriteLoading[asset.id]"
-									      			size="2em"
-									      			color="amber-6"
-									      			/>
-									      		<q-rating
-									      			v-else
-									      			readonly
-											        v-model="asset.favorite"
-											        max="1"
-											        size="2em"
-											        color="amber-6"
-											        icon="star_border"
-											        icon-selected="star"
-											        @click.stop="updateFavorite(asset)"					      
-											      />			      						      				      	
-									      	</q-item-section>
-				      	    		</q-item>			      	    	
-								      </q-card>
-							      </q-slide-item>
+			      	    		<div
+			      	    		  class="asset-row"
+			      	    		  :class="[
+			      	    		    getDarkModeClass(darkmode),
+			      	    		    { 'has-drag-handle': asset.favorite === 1 || asset.favorite === true }
+			      	    		  ]"
+			      	    		>
+			      	    		  <div
+			      	    		    v-if="asset.favorite === 1 || asset.favorite === true"
+			      	    		    class="asset-left handle drag-handle"
+			      	    		  >
+			      	    		    <q-icon name="drag_indicator" size="20px" :color="darkmode ? 'grey-5' : 'grey-7'" />
+			      	    		  </div>
+			      	    		  <div
+			      	    		    v-else
+			      	    		    class="asset-left hide-btn"
+			      	    		    @click.stop="hideAsset(asset)"
+			      	    		  >
+			      	    		    <q-icon name="visibility" size="20px" :color="darkmode ? 'grey-5' : 'grey-7'" />
+			      	    		  </div>
+			      	    		  <div class="asset-icon-tile">
+			      	    		    <q-avatar>
+			      	    		      <img
+			      	    		        :src="getImageUrl(asset)"
+			      	    		        class="asset-icon"
+			      	    		        @contextmenu.prevent
+			      	    		        @selectstart.prevent
+			      	    		      >
+			      	    		    </q-avatar>
+			      	    		  </div>
+			      	    		  <div class="asset-info">
+			      	    		    <div class="asset-name" :class="getDarkModeClass(darkmode)">{{ asset.name }}</div>
+			      	    		    <div class="asset-balance" :class="getDarkModeClass(darkmode)">{{ formatAssetTokenAmount(asset) }} {{ asset.symbol }}</div>
+			      	    		  </div>
+			      	    		  <div class="asset-right">
+			      	    		    <q-spinner
+			      	    		      v-if="favoriteLoading[asset.id]"
+			      	    		      size="2em"
+			      	    		      color="amber-6"
+			      	    		    />
+			      	    		    <q-rating
+			      	    		      v-else
+			      	    		      readonly
+			      	    		      v-model="asset.favorite"
+			      	    		      max="1"
+			      	    		      size="2em"
+			      	    		      color="amber-6"
+			      	    		      icon="star_border"
+			      	    		      icon-selected="star"
+			      	    		      @click.stop="updateFavorite(asset)"
+			      	    		    />
+			      	    		  </div>
+			      	    		</div>
+						      </q-slide-item>
 			      	    </template>			      
 			        </draggable>  
 			    </q-list>
@@ -160,24 +170,23 @@
 			              <q-icon name="visibility" size="24px" color="white" />
 			            </div>
 			          </template>
-			          <q-card class="q-py-sm br-15 asset-card-hidden" :class="getDarkModeClass(darkmode)">
-			            <q-item>
-			              <q-item-section side class="hide-btn" @click.stop="onSwipeUnhide(asset)">
-			                <q-icon name="visibility_off" size="20px" :color="darkmode ? 'grey-5' : 'grey-7'" />
-			              </q-item-section>
-			              <q-item-section avatar>
-			                <q-avatar>
-			                  <img :src="getImageUrl(asset)" class="asset-icon" @contextmenu.prevent @selectstart.prevent>
-			                </q-avatar>
-			              </q-item-section>
-			              <q-item-section>
-			                <div class="text-bold">{{ asset.name }}</div>
-			                <div :class="darkmode ? 'text-grey-5' : 'text-grey-8'">
-			                  {{ formatAssetTokenAmount(asset) }} {{ asset.symbol }}
-			                </div>
-			              </q-item-section>
-			            </q-item>
-			          </q-card>
+			          <div
+			            class="asset-row asset-row-hidden"
+			            :class="getDarkModeClass(darkmode)"
+			          >
+			            <div class="asset-left hide-btn" @click.stop="onSwipeUnhide(asset)">
+			              <q-icon name="visibility_off" size="20px" :color="darkmode ? 'grey-5' : 'grey-7'" />
+			            </div>
+			            <div class="asset-icon-tile">
+			              <q-avatar>
+			                <img :src="getImageUrl(asset)" class="asset-icon" @contextmenu.prevent @selectstart.prevent>
+			              </q-avatar>
+			            </div>
+			            <div class="asset-info">
+			              <div class="asset-name" :class="getDarkModeClass(darkmode)">{{ asset.name }}</div>
+			              <div class="asset-balance" :class="getDarkModeClass(darkmode)">{{ formatAssetTokenAmount(asset) }} {{ asset.symbol }}</div>
+			            </div>
+			          </div>
 			        </q-slide-item>
 			      </q-list>
 			    </div>
@@ -754,51 +763,99 @@ export default {
   padding-bottom: calc(140px + env(safe-area-inset-bottom));
 }
 
-.drag-handle {
-  cursor: grab;
+// ---- Asset row (matching apps list design) ----
+.asset-row {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 12px 10px;
+  cursor: default;
+  position: relative;
+  -webkit-user-select: none;
   user-select: none;
-  padding: 0 !important;
-  min-width: 30px !important;
-  
-  &:active {
-    cursor: grabbing;
+  border-radius: 10px;
+  transition: background 0.15s ease, opacity 0.15s ease;
+
+  &.dark {
+    background: rgba(255,255,255,0.03);
+    &:active { background: rgba(255,255,255,0.08); }
   }
-  
-  .q-icon {
-    opacity: 0.5;
-    transition: opacity 0.2s ease;
-  }
-  
-  &:hover .q-icon {
-    opacity: 0.8;
+  &.light {
+    background: rgba(0,0,0,0.025);
+    &:active { background: rgba(0,0,0,0.06); }
   }
 }
 
-.hide-btn {
-  cursor: pointer;
-  user-select: none;
-  padding: 0 !important;
-  min-width: 30px !important;
+.asset-row-hidden {
+  opacity: 0.5;
+}
 
+.asset-left {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 48px;
+  cursor: pointer;
   .q-icon {
     opacity: 0.4;
     transition: opacity 0.2s ease;
   }
-
-  &:hover .q-icon {
-    opacity: 0.8;
+  &:hover .q-icon { opacity: 0.8; }
+  &.drag-handle {
+    cursor: grab;
+    &:active { cursor: grabbing; }
+    .q-icon { opacity: 0.5; }
+    &:hover .q-icon { opacity: 0.8; }
   }
 }
 
-.asset-card {
-  &.has-drag-handle:hover .drag-handle .q-icon {
-    opacity: 0.7;
-  }
-  
-  // Non-favorites should not appear draggable
-  &:not(.has-drag-handle) {
-    cursor: default;
-  }
+.asset-icon-tile {
+  flex-shrink: 0;
+  width: 48px;
+  height: 48px;
+  border-radius: 14px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+}
+
+.asset-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.asset-name {
+  font-size: 15px;
+  font-weight: 600;
+  line-height: 1.3;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  &.dark { color: #ffffff; }
+  &.light { color: #000000; }
+}
+
+.asset-balance {
+  font-size: 12px;
+  font-weight: 400;
+  line-height: 1.4;
+  margin-top: 2px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  &.dark { color: rgba(255,255,255,0.75); }
+  &.light { color: rgba(0,0,0,0.65); }
+}
+
+.asset-right {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  position: relative;
 }
 
 .banner {
@@ -812,26 +869,20 @@ export default {
 // Smooth transition animation for reordering
 .asset-list-transition {
   transition: all 0.6s ease;
-  
-  .q-card {
-    transition: all 0.6s cubic-bezier(0.25, 0.8, 0.25, 1);
-    transition-property: transform, opacity;
-  }
 }
 
 // Animation classes for sortable.js
 :deep(.sortable-ghost) {
-  opacity: 0.4;
-  transform: scale(1.02);
+  opacity: 0.3;
+  transform: scale(0.95);
 }
 
 :deep(.sortable-drag) {
-  opacity: 0.8;
+  opacity: 0.9;
   transform: scale(1.05);
   box-shadow: 0 8px 16px rgba(0, 0, 0, 0.2);
   z-index: 1000;
-  
-  .drag-handle {
+  .asset-left.drag-handle {
     cursor: grabbing !important;
   }
 }
@@ -846,7 +897,7 @@ export default {
 }
 
 :deep(.q-slide-item__content) {
-  border-radius: 0;
+  border-radius: 10px;
   overflow: visible;
 }
 
@@ -867,10 +918,5 @@ export default {
   &:hover { opacity: 0.8; }
   &.dark { color: rgba(255,255,255,0.6); }
   &.light { color: rgba(0,0,0,0.5); }
-}
-
-.asset-card-hidden {
-  opacity: 0.5;
-  border-radius: 15px;
 }
 </style>
