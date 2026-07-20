@@ -78,8 +78,11 @@
               v-for="tab in tabs"
               :key="tab.label"
               class="tab-item"
-              :class="{ 'tab-active': activeTab === tab.label }"
-              @click="activeTab = tab.label"
+              :class="{
+                'tab-active': activeTab === tab.label,
+                'tab-disabled': tab.label === 'Order Card'
+              }"
+              @click="onTabClick(tab.label)"
             >
               <q-icon :name="tab.icon" size="1.3rem" />
               <span class="tab-label">{{ tab.label }}</span>
@@ -641,6 +644,11 @@ export default {
       }
       this.loadSpecificCard(true)
       this.showEditNameDialog = false
+    },
+
+    onTabClick (label) {
+      if (label === 'Order Card') return
+      this.activeTab = label
     },
 
     openCashInDialog () {
