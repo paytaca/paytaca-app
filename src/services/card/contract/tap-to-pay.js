@@ -8,11 +8,13 @@ import { pubkeyToPkHash } from '../utils.js';
 import { decodeCommitment, encodeCommitment, encodeMerchantHash } from '../auth-nft.js';
 import artifact from './TapToPay.json';
 import artifactV2 from './TapToPay-V2.json';
-import Watchtower from 'src/lib/watchtower/index.js';
 import { loadWallet } from 'src/services/wallet.js';
 import { isTokenAddress } from 'src/utils/address-utils.js';
 import { reverseHex } from 'src/marketplace/escrow/utils.js';
 import { toTokenAddress } from "src/utils/crypto";
+
+import Watchtower from 'watchtower-cash-js'
+const watchtower = new Watchtower()
 
 import { 
     encodeOwnershipCommitment, 
@@ -92,13 +94,13 @@ class TapToPay {
     async getTokenUtxos (tokenId, tokenAddress) {      
         if (!tokenAddress || isTokenAddress(tokenAddress) === false) {
             console.warn('Invalid or missing token address for getTokenUtxos:', tokenAddress)
-            return []
+            tokenAddress = toTokenAddress(this.getContract().address)
         }
+
+        console.log("========> tokenAddress:", tokenAddress)
     
         let result = []
-        const wallet = await loadWallet()
-        const rawWallet = await wallet.getRawWallet()
-        const response = await rawWallet.watchtower.BCH._api.get(`utxo/ct/${tokenAddress}/${tokenId}/`, {
+        const response = await watchtower.BCH._api.get(`utxo/ct/${tokenAddress}/${tokenId}/`, {
             params: {
                 is_cashtoken_nft: true
             }}
@@ -216,7 +218,7 @@ class TapToPay {
      */
     async broadcastTransaction(txHex) {
         console.log('[broadcastTransaction] Broadcasting transaction...')
-        return await (new Watchtower().broadcastTx(txHex))
+        return await watchtower.BCH.broadcastTransaction(txHex)
     }
 }
 
@@ -872,7 +874,7 @@ export class TapToPayV2 extends TapToPay {
         const result = await this.broadcastTransaction(txHex)
         // const result = await tx.send()
         console.log('result:', result)
-        return result
+        return result.data
     }
 
     async getMerchantAuthCategory () {
@@ -894,138 +896,8 @@ export class TapToPayV2 extends TapToPay {
         return { authOwnershipToken, authCategory: reverseHex(authCategory) };
     }
 
-    /**
-     * Test function to directly call contract's spend function
-     * @param {*} params
-     * @param {string} params.backendWif - Backend WIF for signing.
-     * @param {string} params.merchantWif - Merchant WIF for signing.
-     * @param {Object} params.merchant - Merchant object with id and pubkey.
-     * @param {Object} params.recipient - Recipient object with address and amount.
-     * @param {boolean} [params.broadcast=true] - Whether to broadcast the transaction.
-     * @returns {Promise<Object>} Transaction result or `{ success: true, txHex }` when not broadcasting.
-     */
-    async spend({ backendWif, merchantWif, merchant, recipient, broadcast = true }) {
-        const backendSig = new SignatureTemplate(backendWif)
-        const backendPk = binToHex(backendSig.getPublicKey())  
-        const backendPkh = pubkeyToPkHash(backendPk)
-
-        const merchantSig = new SignatureTemplate(merchantWif)
-        const merchantPk = binToHex(merchantSig.getPublicKey())
-
-        if (backendPkh !== this.contractCreationParams.backendPkh) {
-            throw new Error('Invalid validator public key hash')
-        }
-
-        // const { rawContract : contract } = this.getRawContract();
-        const contract = this.getContract();
-        const { utxos } = await this.getBchUtxos()
-        const bchUtxos = sortUtxos(utxos.filter(utxo => utxo.token === undefined))
-
-        const tokenAddress = toTokenAddress(contract.address)
-        const {authOwnershipToken, authCategory: merchantAuthCategory} = await this.getMerchantAuthCategory()
-        const authTokenUtxos = await this.getTokenUtxos(merchantAuthCategory, tokenAddress)
-
-        // console.log('Auth Ownership Token:', merchantAuthCategory)
-        // console.log('BCH UTXOs:', bchUtxos)
-        // console.log('Auth Token UTXOs:', authTokenUtxos)
-
-        // Segregate the global auth token and merchant-specific auth tokens
-        let globalAuthNft
-        let merchantAuthNfts = []
-        authTokenUtxos.forEach(utxo => {
-            if (utxo.token) {
-                const token = utxo.token
-                if (token.category === merchantAuthCategory && token.nft) {
-                    const commitment = utxo.token.nft.commitment
-                    const decodedCommitment = commitment ? decodeCommitment(commitment) : undefined
-                    const nftData = { decodedCommitment, utxo }
-                    if (decodedCommitment.hash === undefined) {
-                        // this is the global auth token
-                        globalAuthNft = nftData
-                    } else {
-                        // these are merchant-specific auth token
-                        merchantAuthNfts.push(nftData)
-                    }
-                }
-            }
-        })
-
-        // Use the globalAuthNft if it is ON
-        let authNft
-        let useGlobalAuthNft = globalAuthNft && globalAuthNft.decodedCommitment.authorized
-        
-        if (useGlobalAuthNft) {
-            authNft = globalAuthNft.utxo
-        } else {
-            const {hex: merchantHash} = encodeMerchantHash({
-                merchantId: merchant.id,
-                merchantPk: merchant.pubkey
-            })
-            const merchantAuthNft = merchantAuthNfts.find(nft => {
-                return nft.decodedCommitment.hash === merchantHash
-            })
-            authNft = merchantAuthNft ? merchantAuthNft.utxo : undefined
-        }
-
-        if (!authNft) {
-            throw new Error('No valid authentication NFT found for this merchant')
-        }
-
-        const inputs = [
-            authOwnershipToken,
-            authNft,
-            ...bchUtxos
-        ]
-
-        const encodedMerchantId = Buffer.from(merchant.id, 'utf8');
-        const outputs = [
-            {
-                to: toTokenAddress(contract.address),
-                amount: authOwnershipToken.satoshis,
-                token: authOwnershipToken.token // auth ownership token not mutated
-            },
-            {
-                to: toTokenAddress(contract.address),
-                amount: authNft.satoshis,
-                token: authNft.token // merchant auth token not mutated
-            },
-            {
-                to: recipient.address,
-                amount: recipient.amount
-            }
-            // change handled automatically
-        ]
-        
-        // const hardcodedFee = 1000n
-        const estimatedFee = this.estimateFee({
-            numInputs: inputs.length, // 3 (authOwnershipToken + globalAuthNft + merchantAuthToken) + bchUtxos
-            numOutputs: outputs.length + 1 // outputs + change
-        })
-
-        console.log(`Estimated fee: ${estimatedFee} satoshis`)
-        const tx = contract.functions
-            .spend(
-                encodedMerchantId,
-                merchantSig, 
-                merchantPk, 
-                backendSig,
-                backendPk
-            )
-            .from(inputs)
-            .to(outputs)
-
-        console.log('>>>> inputs:', inputs)
-        console.log('>>>> outputs:', outputs)
-
-        const builtHex = await tx.build()
-        console.log('[spend] Built transaction hex:', builtHex)
-
-        if (broadcast) {
-            const result = await this.broadcastTransaction(builtHex)
-            console.log('[spend] Broadcast result:', result)
-            return result
-        } else {
-            return { success: true, txHex: builtHex }
-        }
+    async isOwnershipSet () {
+        const { authOwnershipToken } = await this.getMerchantAuthCategory()
+        return !!authOwnershipToken
     }
 }

@@ -418,27 +418,27 @@ export class Wallet {
     return total;
   }
 
-  async createGenesisUtxo() {
+  async createGenesisUtxo(amountSats = 5000) {
     console.log('Starting UTXO consolidation process...');
     
     const receivingAddress = this.address(); // Use the wallet's own address for consolidation
-    const { cumulativeValue, groupedUtxos, changeAddress } = await this.getFundingUtxos(10000); // Get UTXOs up to 10k sats
-    console.log('cumulativeValue:', cumulativeValue);
-    console.log('UTXOs found for consolidation:', groupedUtxos);
+    const { cumulativeValue, groupedUtxos, changeAddress } = await this.getFundingUtxos(amountSats); // Get UTXOs up to the specified amount
+    // console.log('cumulativeValue:', cumulativeValue);
+    // console.log('UTXOs found for consolidation:', groupedUtxos);
 
     if (groupedUtxos.length === 0) {
-      throw new Error('Cannot consolidate, 0 UTXOs found.');
+      throw new Error('Cannot create genesis UTXO, 0 UTXOs found.');
     }
 
-    if (cumulativeValue <= DUST_LIMIT) {
-      throw new Error(`Cannot consolidate, cumulative value ${cumulativeValue} is below dust limit ${DUST_LIMIT}.`);
+    if (cumulativeValue < DUST_LIMIT) {
+      throw new Error(`Cannot create genesis UTXO, cumulative value ${cumulativeValue} is below dust limit ${DUST_LIMIT}.`);
     } 
 
     const estimatedFee = this.estimateFee({ numP2pkhInputs: groupedUtxos.length, numOutputs: 1 }); // Estimated fee for consolidation transaction
     const satsAmount = cumulativeValue - estimatedFee;
-    console.log('Estimated fee for consolidation:', estimatedFee);
-    console.log('Consolidation amount:', satsAmount);
-    console.log(`Consolidating ${groupedUtxos.length} UTXOs totaling ${satsAmount} sats to address:`, receivingAddress);
+    console.log('Estimated fee for creating genesis UTXO:', estimatedFee);
+    console.log('Genesis UTXO amount:', satsAmount);
+    console.log(`Creating genesis UTXO from ${groupedUtxos.length} UTXOs totaling ${satsAmount} sats to address:`, receivingAddress);
 
     const provider = new ElectrumNetworkProvider('mainnet')
     const tx = new TransactionBuilder({ provider })
@@ -462,16 +462,15 @@ export class Wallet {
 
   async getOrCreateGenesisUtxo() {
     const bchUtxos = await this.getBchUtxos() 
-    console.log('bchUtxos:', bchUtxos)
 
     if (!bchUtxos || !bchUtxos.utxos || bchUtxos.utxos.length === 0) {
-        throw new Error('No BCH UTXOs available for genesis creation')
+      throw new Error('Insufficient balance to create genesis UTXO. Please fund your wallet with BCH.')
     }
 
     let genesisUtxo = bchUtxos.utxos[0] // Use the first UTXO for genesis
 
     if (genesisUtxo.vout !== 0 || genesisUtxo.satoshis <= DUST_LIMIT) {
-      await this.createGenesisUtxo({consolidate: true})
+      await this.createGenesisUtxo(5000) // Create a new genesis UTXO with 5k sats
       setTimeout(async () => {
           const updatedBchUtxos = await this.getBchUtxos()
           console.log('updatedBchUtxos:', updatedBchUtxos)

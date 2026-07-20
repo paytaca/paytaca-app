@@ -5,6 +5,7 @@ import { defaultSpendLimitSats, minTokenValue } from './constants';
 import { loadWallet } from 'src/services/wallet.js';
 import Watchtower from 'watchtower-cash-js'
 import { ElectrumNetworkProvider, SignatureTemplate, TransactionBuilder } from 'cashscript';
+import { DUST_LIMIT } from '@generalprotocols/anyhedge';
 
 const watchtower = new Watchtower()
 const MINT_VALUE = 1000n;
@@ -58,7 +59,6 @@ class AuthNftService {
      */
     async getMutableTokens(tokenId, tokenAddress) {
         const utxos = await this.getTokenUtxos(tokenId, tokenAddress);
-        console.log('Fetched Auth Tokens:', utxos);
         return utxos.filter(utxo => utxo.token?.nft?.capability === 'mutable')
     }
 
@@ -72,62 +72,43 @@ class AuthNftService {
         return balance;
     }
 
-    // /**
-    //  * Mints a genesis token with minting capability.
-    //  * @returns {Promise<Object>} API response with created genesis token
-    //  */
-    // async genesis() {
-    //     this._assertWallet();
-
-    //     // Create a genesis token
-    //     const response = await this.ctWallet.tokenGenesis({
-    //         amount: 0n,
-    //         commitment: '',
-    //         capability: NFTCapability.minting,
-    //         value: MINT_VALUE,
-    //     });
-
-    //     return response;
-    // }
-
     async genesis(opts = {broadcast: true}) {
         console.log('====== Minting Token ======')
     
         const genesisUtxo = await this.wallet.getOrCreateGenesisUtxo()
-        console.log('????????Genesis UTXO:', genesisUtxo)
-
         const categoryId = genesisUtxo.txid
         const nftValue = 1000n // 10000 satoshis for each NFT output
+
+        console.log('genesisUtxo:', genesisUtxo)
         
         const changeAddress = this.wallet.address()
         const estimatedFee = this.wallet.estimateFee({ numP2pkhInputs: 1, numOutputs: 1, feeRate: 2n })
         const change = genesisUtxo.satoshis - estimatedFee - nftValue
-        
-        // console.log('categoryId:', categoryId)
-        console.log('estimatedFee:', estimatedFee)
-        console.log('change:', change)
         const tokenAddress = this.wallet.tokenAddress()
 
-        const outputs = [
-            { to: changeAddress, amount: change },
-            {
-                to: tokenAddress,
-                amount: nftValue,
-                token: {
-                    category: categoryId,
-                    amount: 0n,
-                    nft: {
-                        capability: 'minting',
-                        commitment: ''
-                    }
+        const outputs = []
+
+        if (change > DUST_LIMIT) {
+            outputs.push({
+                to: changeAddress,
+                amount: change,
+            })
+        }
+
+        outputs.push({
+            to: tokenAddress,
+            amount: nftValue,
+            token: {
+                category: categoryId,
+                amount: 0n,
+                nft: {
+                    capability: 'minting',
+                    commitment: ''
                 }
             }
-        ]
+        })
 
-        // console.log('outputs:', outputs)
         const privateKey = this.wallet.privkey(genesisUtxo.address_path)
-        console.log('address_path:', genesisUtxo.address_path)
-        console.log('privateKey:', privateKey)
         const provider = new ElectrumNetworkProvider('mainnet')
         const sigTemplate = new SignatureTemplate(privateKey)
 
@@ -135,9 +116,6 @@ class AuthNftService {
             .addInput(genesisUtxo, sigTemplate.unlockP2PKH())
             .addOutputs(outputs)
             
-        console.log('inputs:', tx.inputs)
-        console.log('outputs:', tx.outputs)
-        
         let result
         try {
             // Build the transaction
@@ -171,7 +149,6 @@ class AuthNftService {
      * @returns {Promise<Object>}
      */
     async mint({ tokenId, merchants, opts = { broadcast: true } }) {
-        console.log('minting auth NFTs for merchants:', merchants)
         this._assertWallet();
 
         const mintingTokenUtxoRespose = await this.wallet.getTokenUtxos(tokenId, null, { capability: NFTCapability.minting })
@@ -198,10 +175,12 @@ class AuthNftService {
         const totalFee = txFee + mintFee
         const { cumulativeValue, groupedUtxos: groupedBchFundingInputs, changeAddress } = await this.wallet.getFundingUtxos(totalFee)
 
-        const change = cumulativeValue - totalFee
-        if (change < 0) {
-            throw new Error(`Insufficient funds for minting. Required: ${totalFee}, Available: ${cumulativeValue}`);
+        console.log('cumulativeValue:', cumulativeValue)
+        if (cumulativeValue < totalFee) {
+            throw new Error(`Insufficient BCH funds to cover minting fee. Required: ${totalFee}, Available: ${cumulativeValue}`);
         }
+
+        const change = cumulativeValue - totalFee
 
         const outputs = mintingTokenUtxo.map(utxo => ({
             to: this.wallet.tokenAddress(),
@@ -245,7 +224,7 @@ class AuthNftService {
             });
         }
 
-        if (change > 0) {
+        if (change > DUST_LIMIT) {
             outputs.push({
                 to: changeAddress,
                 amount: change,
@@ -261,6 +240,8 @@ class AuthNftService {
             tx.addInputs(inputs, signatureTemplate.unlockP2PKH())
         })
         tx.addOutputs(outputs)
+
+        console.log('-------->>>>>>outputs:', outputs)
 
         const txHex = tx.build()
         console.log('Built mint transaction hex:', txHex)
@@ -289,6 +270,11 @@ class AuthNftService {
 
         const estimatedFee = this.wallet.estimateFee({ numP2pkhInputs: 1, numOutputs: 1 + tokenUtxos.length, feeRate: 2n })
         const { cumulativeValue, groupedUtxos: groupedBchFundingInputs, changeAddress } = await this.wallet.getFundingUtxos(estimatedFee)
+
+        if (cumulativeValue < estimatedFee) {
+            throw new Error(`Insufficient BCH funds to cover transaction fee. Required: ${estimatedFee}, Available: ${cumulativeValue}`);
+        }
+        
         const change = cumulativeValue - estimatedFee 
         
         const inputTokenUtxos = tokenUtxos.map(utxo => ({
@@ -321,7 +307,7 @@ class AuthNftService {
             })
         }
 
-        if (change > 0) {
+        if (change > DUST_LIMIT) {
             outputs.push({
                 to: changeAddress,
                 amount: change,
@@ -330,7 +316,6 @@ class AuthNftService {
 
         const provider = new ElectrumNetworkProvider('mainnet')
         const sigTemplate = new SignatureTemplate(this.wallet.privkey())
-
         const tx = new TransactionBuilder({ provider })
         
         tx.addInputs(inputTokenUtxos, sigTemplate.unlockP2PKH())
@@ -432,7 +417,6 @@ class AuthNftService {
                 capability: element.token.capability,
                 commitment: element.token.commitment
             }, "burn")
-            console.log(burnResponse)
             burnResponses.push(burnResponse);
         }
         return burnResponses;

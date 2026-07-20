@@ -33,16 +33,12 @@ export default {
       }
     },
     async onOpenActivateCardForm() {
-      await this.checkExistingActivateCardAttempt()
       this.showActivateCardForm = true;
+      await this.checkExistingActivateCardAttempt()
     },
     async onCloseActivateCardForm() {
       this.showActivateCardForm = false;
       await this.checkExistingActivateCardAttempt()
-    },
-    async onResumeCardAttempt() {
-      this.showResumeActivateCardDialog = false;
-      this.showActivateCardForm = true;
     },
     async onDeleteCardAttempt() {
       this.showResumeActivateCardDialog = false;

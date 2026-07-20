@@ -71,7 +71,7 @@ export class Card {
     return this.raw?.contract?.auth_token;
   }
 
-  get ownerCategory() {
+  get ownershipCategory() {
     return this.raw?.contract?.ownership_token;
   }
 
@@ -245,32 +245,46 @@ export class Card {
       }
       console.log('linkingCategory:', linkingCategory)
       console.log('currentStatus:', currentStatus)
+
+      let authCategory = lastAttempt.authCategory ? lastAttempt.authCategory : null;
       if (currentStatus < CardActivationStatus.LINKING_TOKEN_OBTAINED) {
-        const result = await this.pollForLinkingToken(linkingCategory, 1000, 10);
-        console.log('Linking token found in wallet:', result);
+        const { authCategory: _authCategory } = await this.contract.getMerchantAuthCategory();
+        console.log('_authCategory:', _authCategory)
+        console.log('this.ownershipCategory:', this.ownershipCategory)
+        if (_authCategory !== this.ownershipCategory) {
+          const result = await this.pollForLinkingToken(linkingCategory, 1000, 10);
+          console.log('Linking token found in wallet:', result);
+        } else {
+          authCategory = _authCategory;
+        }
         currentStatus = CardActivationStatus.LINKING_TOKEN_OBTAINED;
         await updateCardActivationAttempt(this.wallet.walletHash, { status: currentStatus });
       }
-      
+      console.log('-------------authCategory:', authCategory)
+
       // Mint the genesis token if not yet minted
-      let authCategory = lastAttempt ? lastAttempt.authCategory : null;
-      if (currentStatus < CardActivationStatus.GENESIS_MINTED) {
+      if (!authCategory && currentStatus < CardActivationStatus.GENESIS_MINTED) {
         console.log('Minting genesis token');
         this._notifyCallbackFn(callbackOnProgress, 'Minting genesis token. This may take a minute...');
             
         ({ category: authCategory } = await this._mintGenesisAuthToken());
         this._notifyCallbackFn(callbackOnProgress, 'Genesis token minted');
-        
+
+        if (!authCategory) {
+          throw new Error('Failed to mint genesis token');
+        }
+
         currentStatus = CardActivationStatus.GENESIS_MINTED;
         await updateCardActivationAttempt(this.wallet.walletHash, { authCategory, status: currentStatus });
       }
 
-      // console.log('authCategory:', authCategory)
+      console.log('????authCategory:', authCategory)
       // console.log('contract:', this.contract)
       // console.log('currentStatus:', currentStatus)
 
+      // throw new Error('Testing idempotency after minting genesis token');
       // Set contract ownership
-      let linkingTxid = lastAttempt?.linkingTxid ? lastAttempt.linkingTxid : "2320153729786bd24fe224ac928334a329be39e8a84f81cf2e09bb9f83aa1938";
+      let linkingTxid = lastAttempt?.linkingTxid ? lastAttempt.linkingTxid : null;
       if (currentStatus < CardActivationStatus.OWNERSHIP_UPDATED) {
         console.log('Setting contract ownership with authCategory:', authCategory);
         const privateKey = this.wallet.privkey();
@@ -283,13 +297,15 @@ export class Card {
 
         linkingTxid = result.txid
 
-        this._notifyCallbackFn(callbackOnProgress, 'Contract ownership updated. Waiting for confirmation...');
-        currentStatus = CardActivationStatus.OWNERSHIP_UPDATED;
-        await updateCardActivationAttempt(this.wallet.walletHash, { linkingTxid, status: currentStatus });
+        if (!linkingTxid && result.success) {
+          currentStatus = CardActivationStatus.VALIDATION_REQUESTED;
+          await updateCardActivationAttempt(this.wallet.walletHash, { status: currentStatus });
+        } else {
+          this._notifyCallbackFn(callbackOnProgress, 'Contract ownership updated. Waiting for confirmation...');
+          currentStatus = CardActivationStatus.OWNERSHIP_UPDATED;
+          await updateCardActivationAttempt(this.wallet.walletHash, { linkingTxid, status: currentStatus });
+        }
       }
-
-      // console.log('linkingTxid:', linkingTxid)
-      // console.log('currentStatus:', currentStatus)
 
       if (currentStatus < CardActivationStatus.VALIDATION_REQUESTED) {
         console.log('Requesting server to process linking transaction with txid:', linkingTxid);
@@ -305,9 +321,10 @@ export class Card {
         await updateCardActivationAttempt(this.wallet.walletHash, { status: currentStatus });
       }
 
+      
       if (currentStatus < CardActivationStatus.GLOBAL_AUTH_MINTED) {
         console.log('Minting global auth token for card...');
-        await this._mintGlobalAuthToken();
+        await this._mintGlobalAuthToken(authCategory);
         currentStatus = CardActivationStatus.GLOBAL_AUTH_MINTED;
         await updateCardActivationAttempt(this.wallet.walletHash, { status: currentStatus });
         this._notifyCallbackFn(callbackOnProgress, 'Global auth token minted');
@@ -315,7 +332,7 @@ export class Card {
 
       if (currentStatus < CardActivationStatus.GLOBAL_AUTH_ISSUED) {
         console.log('Issuing global auth token for card...');
-        await this._issueAuthTokens();
+        await this._issueAuthTokens(authCategory);
         currentStatus = CardActivationStatus.GLOBAL_AUTH_ISSUED;
         await updateCardActivationAttempt(this.wallet.walletHash, { status: currentStatus });
         this._notifyCallbackFn(callbackOnProgress, 'Global auth token issued');
@@ -397,7 +414,7 @@ export class Card {
 
     await saveCardActivationAttempt(this.wallet.walletHash, {
       idempotencyKey,
-      ownerCategory: this.ownerCategory,
+      ownershipCategory: this.ownershipCategory,
       walletHash: this.wallet.walletHash,
       createdAt: Date.now(),
     });
@@ -474,7 +491,8 @@ export class Card {
         }
         throw error;
       });
-    return response.data?.linking_token || null;
+    console.log('response:', response.data)
+    return response.data || null;
   }
 
   /**
@@ -556,7 +574,7 @@ export class Card {
    * @returns {Promise<{tokenId: string, utxos: Array}>}
    */
   // this function should poll as well as mempool conflict happens
-  async _mintGenesisAuthToken(interval = 1000, maxAttempts = 5) {
+  async _mintGenesisAuthToken(interval = 1000, maxAttempts = 10) {
     console.log('Starting genesis token minting...');
     this._assertAuthNftService();
 
@@ -570,7 +588,7 @@ export class Card {
             const category = result.category
             const utxos = await this.authNftService.getTokenUtxos(category);
             
-            return { category, utxos };
+            return { success: true, category, utxos };
           } else {
             console.error(result.error)
             throw new Error('Genesis minting failed: ' + (result.error || 'Unknown error'));
@@ -604,45 +622,22 @@ export class Card {
     return null;
   }
 
-  // /** 
-  //  * Complete workflow to issue global and merchant auth tokens
-  //  * @private
-  //  * @returns {Promise<void>}
-  //  */
-  // async _issueGlobalAuthToken(currentStatus = null, callbackOnProgress = null) {
-    
-  //   if (currentStatus <= CardCreateAttemptStatus.AUTH_MINTED) {
-  //     await this._mintGlobalAuthToken();
-  //     currentStatus = CardCreateAttemptStatus.AUTH_MINTED;
-  //     updateCreateCardAttempt(this.wallet.walletHash, { status: currentStatus });
-  //     this._notifyCallbackFn(callbackOnProgress, 'Global auth token minted');
-  //   }
-    
-  //   if (currentStatus <= CardCreateAttemptStatus.AUTH_MINTED) {
-  //     await this._issueAuthTokens();
-  //     currentStatus = CardCreateAttemptStatus.AUTH_ISSUED;
-  //     updateCreateCardAttempt(this.wallet.walletHash, { status: currentStatus });
-  //     this._notifyCallbackFn(callbackOnProgress, 'Global auth token issued');
-  //   }
-  // }
-
   /**
    * Mints global auth token for card
    * @private
    * @returns {Promise<Object>}
    */
-  // this function should poll as well as mempool conflic happens
-  async _mintGlobalAuthToken({ authorized = true, spendLimitSats } = {}, interval = 1000, maxAttempts = 5) {
+  async _mintGlobalAuthToken(tokenId, interval = 1000, maxAttempts = 10) {
     console.log('Minting global auth token...');
     this._assertAuthNftService();
-    console.log('authCategory:', this.authCategory)
+    console.log('tokenId:', tokenId)
     while (maxAttempts > 0) {
       try {
         const result = await this.authNftService.mint({ 
-            tokenId: this.authCategory,
+            tokenId: tokenId,
             merchants: [{
-              authorized: authorized,
-              spendLimitSats: spendLimitSats || defaultSpendLimitSats,
+              authorized: true,
+              spendLimitSats: defaultSpendLimitSats,
             }]
         });
         
@@ -768,12 +763,12 @@ export class Card {
    * @returns {Promise<Object>}
    */
   // this function should poll a few retries
-  async _issueAuthTokens(interval = 1000, maxAttempts = 5) {
+  async _issueAuthTokens(tokenId, interval = 1000, maxAttempts = 5) {
     this._assertAuthNftService();
 
     while (maxAttempts > 0) {
       try {
-        const result = await this._attemptIssueAuthTokens();
+        const result = await this._attemptIssueAuthTokens(tokenId);
         return result;
       } catch (error) {
         console.error('Error issuing auth tokens:', error.message || error);
@@ -788,9 +783,9 @@ export class Card {
     }
   }
 
-  async _attemptIssueAuthTokens() {
+  async _attemptIssueAuthTokens(tokenId) {
     this._assertAuthNftService();
-    const tokenUtxos = await this.wallet.getTokenUtxos(this.authCategory)
+    const tokenUtxos = await this.wallet.getTokenUtxos(tokenId)
     const mutableTokens = tokenUtxos.filter(utxo => utxo?.token?.nft?.capability === 'mutable');
     console.log('Token UTXOs before issuing auth tokens:', tokenUtxos);
     console.log('mutableTokens:', mutableTokens);

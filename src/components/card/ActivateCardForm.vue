@@ -236,6 +236,13 @@
         <div class="text-body2 q-mb-lg text-primary">
           Your new card is ready to use
         </div>
+        <q-btn 
+          color="primary" 
+          class="q-px-xl"
+          rounded
+          dense
+          label="View Card" 
+          @click="onViewCard" />
       </q-card-section>
 
       <!-- Error State -->
@@ -287,7 +294,7 @@
   </q-dialog>
   <ResumeActivateCardDialog
     v-if="showResumeActivateCardDialog"
-    @resumeAttempt="onResumeCardAttempt"
+    @resumeAttempt="onRetryActivation"
     @deleteAttempt="onDeleteCardAttempt"
     @cancelAttempt="onCancelCardAttempt"
   />
@@ -309,12 +316,6 @@ export default {
     QrScanner,
     ResumeActivateCardDialog
   },
-  props: {
-    resume: {
-      type: Boolean,
-      default: false
-    }
-  },
   data () {
     return {
       user: null,
@@ -335,11 +336,11 @@ export default {
         name: ''
       },
       card: {
+        id: '',
         category: '',
         address: '',
         isActivated: false
       },
-      lastAttempt: null
     }
   },
 
@@ -367,14 +368,7 @@ export default {
     this.selectedInputMethod = 'qr';
     this.inputCardUid = true;
     this.user = await loadCardUser();
-    this.lastAttempt = await getCardActivationAttempt(this.user.wallet.walletHash)
-
     await this.checkExistingActivateCardAttempt()
-
-    if (this.resume) {
-      console.log('Resume flag is true');
-      this.onActivateCard();
-    }
   },
 
   methods: {
@@ -431,11 +425,17 @@ export default {
       }
 
       this.card = {
+        id: card.id,
         category: card.raw?.contract?.ownership_token,
         address: card.cashAddress,
         isActivated: card.isActivated
       }
       console.log('Contract data set in component state:', this.card);
+    },
+
+    onViewCard() {
+      console.log('this.card.id:', this.card.id)
+      this.$router.push({ name: 'card-details',  params: { id: this.card.id } });
     },
 
     onProgress (message) {
@@ -445,14 +445,20 @@ export default {
     },
 
     async onRetryActivation() {
-      this.lastAttempt = await getCardActivationAttempt(this.user.wallet.walletHash)
-      this.onActivateCard();
+      this.showResumeActivateCardDialog = false;
+      this.onActivateCard(true);
     },
 
-    async onActivateCard() {
+    async onActivateCard(retry = false) {
       this.state = 'processing';
       this.activatingCard = true
-      const category = this.card.category
+      
+      let lastAttempt = null;
+      if (retry) {
+        lastAttempt = await getCardActivationAttempt(this.user.wallet.walletHash)
+      }
+
+      const category = this.card.category || lastAttempt?.ownershipCategory
       console.log('Activating card with category:', category)
       try {
         const user = await loadCardUser();   
@@ -465,8 +471,7 @@ export default {
         console.log('Fetched card by identifier:', data);
         const card = await Card.createInitialized(data)
         console.log('Initialized card:', card)
-        
-        let lastAttempt = this.resume ? this.lastAttempt : null;
+
         await card.activate(this.onProgress, lastAttempt)
         this.state = "success";
 

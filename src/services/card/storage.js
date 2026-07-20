@@ -29,7 +29,7 @@ export async function saveCardActivationAttempt(walletHash, attempt) {
     JSON.stringify({
       idempotencyKey: attempt.idempotencyKey,
       walletHash: attempt.walletHash,
-      ownerCategory: attempt.ownerCategory || null,
+      ownershipCategory: attempt.ownershipCategory || null,
       linkingCategory: attempt.linkingCategory || null,
       authCategory: attempt.authCategory || null,
       linkingTxid: attempt.linkingTxid || null,
