@@ -88,17 +88,18 @@
             class="app-row"
             :class="[
               getDarkModeClass(darkMode),
-              { 'app-inactive': !app.active, 'app-beta-row': cat.isBeta, 'app-pinned-row': cat.isPinned, 'drag-over': cat.isPinned && dragSupported && dragOverAppId === app.id }
+              { 'app-inactive': !app.active, 'app-beta-row': cat.isBeta, 'app-pinned-row': cat.isPinned, 'drag-over': cat.isPinned && dragSupported && dragOverAppId === app.id, 'drag-active': draggedAppId === app.id }
             ]"
             @click="openApp(app)"
             v-on-long-press="cat.isPinned ? undefined : [(event) => showAppContextMenu(app, event)]"
+            @touchstart="cat.isPinned && !dragSupported && onGridDragStart(app, $event)"
             @dragover="cat.isPinned && dragSupported && onDragOver(app, $event)"
             @dragleave="cat.isPinned && dragSupported && onDragLeave()"
             @drop="cat.isPinned && dragSupported && onDrop(app, $event)"
             @dragend="cat.isPinned && dragSupported && onDragEnd()"
           >
             <div
-              v-if="cat.isPinned && dragSupported"
+              v-if="cat.isPinned"
               class="app-drag-handle"
               :class="getDarkModeClass(darkMode)"
               @mousedown.stop="onHandleDragStart(app, $event, 'mouse')"
@@ -1336,6 +1337,11 @@ export default {
       background: rgba(59, 123, 246, 0.12) !important;
       outline: 2px dashed rgba(59, 123, 246, 0.5);
       outline-offset: -2px;
+    }
+    &.drag-active {
+      opacity: 0.5;
+      transform: scale(0.97);
+      transition: opacity 0.15s, transform 0.15s;
     }
   }
 
