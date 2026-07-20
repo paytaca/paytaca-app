@@ -178,9 +178,7 @@
   <template v-if="!isNFT && !cauldronEnabled">
     <div v-if="asset?.id?.startsWith?.('ct/')" class="q-mt-sm text-center">
       <div v-if="showAdvancedOptions">
-        <p class="q-mb-xs text-caption text-weight-medium text-bow">
-          {{ $t('NoTokenBalanceCauldronHint', { symbol: (asset?.symbol || '').toUpperCase() }, 'You have no {symbol} tokens, click below to auto-swap from BCH') }}
-        </p>
+        
         <q-btn
           no-caps
           :label="$t('SendUsingBchWithCauldron')"

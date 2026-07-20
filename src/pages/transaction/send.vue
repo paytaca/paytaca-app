@@ -404,33 +404,34 @@
               :tradeResults="tradeResults"
             />
           </div>
-
-          <!-- Keyboard + Slide: shown together when keyboard is visible -->
-          <div v-if="customKeyboardState === 'show' && !sending" class="keyboard-slide-panel">
-            <CustomKeyboard 
-              :custom-keyboard-state="customKeyboardState"
-              hide-check-key
-              embedded
-              @addKey="setAmount"
-              @makeKeyAction="makeKeyAction"
-            />
-            <DragSlide
-              :disable="!canSlide"
-              disable-absolute-bottom
-              @swiped="slideToSubmit"
-            />
-          </div>
-
-          <!-- Slide alone: shown when form is active but keyboard is hidden (NFT, pre-filled amounts) -->
-          <DragSlide
-            v-if="customKeyboardState !== 'show' && formActive && !disableSending && !sending"
-            :disable="!canSlide"
-            class="absolute-bottom"
-            @swiped="slideToSubmit"
-          />
-
         </div>
       </template>
+
+      <teleport to="body">
+        <!-- Keyboard + Slide: shown together when keyboard is visible -->
+        <div v-if="customKeyboardState === 'show' && !sending" class="keyboard-slide-panel">
+          <CustomKeyboard 
+            :custom-keyboard-state="customKeyboardState"
+            hide-check-key
+            embedded
+            @addKey="setAmount"
+            @makeKeyAction="makeKeyAction"
+          />
+          <DragSlide
+            :disable="!canSlide"
+            disable-absolute-bottom
+            @swiped="slideToSubmit"
+          />
+        </div>
+
+        <!-- Slide alone: shown when form is active but keyboard is hidden (NFT, pre-filled amounts) -->
+        <DragSlide
+          v-if="customKeyboardState !== 'show' && formActive && !disableSending && !sending"
+          :disable="!canSlide"
+          class="absolute-bottom"
+          @swiped="slideToSubmit"
+        />
+      </teleport>
     </div>
 
     <Pin
@@ -1642,6 +1643,9 @@ export default {
     },
     autoFocusAmount () {
       const index = this.currentRecipientIndex
+      const recipient = this.recipients[index]
+      if (recipient?.fixedAmount) return
+
       const sendPageForm = this.$refs.sendPageRef?.[index]
       if (!sendPageForm) return
 
@@ -3190,6 +3194,9 @@ export default {
       // Auto-focus the amount input and show custom keyboard when recipient is pre-filled
       if (vm.recipient && vm.assetId) {
         this.$nextTick(() => {
+          const recipient = this.recipients[0]
+          if (recipient?.fixedAmount) return
+
           const sendPageForm = this.$refs.sendPageRef?.[0]
           if (!sendPageForm) return
           const field = vm.assetId === 'bch' ? 'fiat' : 'bch'
