@@ -893,11 +893,11 @@ export default {
 
 // Swipe-to-delete styling
 :deep(.q-slide-item) {
-  overflow: visible;
+  overflow: hidden;
+  border-radius: 10px;
 }
 
 :deep(.q-slide-item__content) {
-  border-radius: 10px;
   overflow: visible;
 }
 
