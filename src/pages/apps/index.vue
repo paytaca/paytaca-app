@@ -103,8 +103,8 @@
                 <div class="app-drag-handle" :class="getDarkModeClass(darkMode)">
                   <q-icon name="drag_indicator" size="20px" />
                 </div>
-                <div class="app-icon-tile bg-grad" :class="{ 'tile-inactive': !app.active }" @contextmenu.prevent @selectstart.prevent>
-                  <q-icon size="26px" color="white" :name="app.iconName" />
+                <div class="app-icon-tile bg-grad" :class="{ 'tile-inactive': !app.active }">
+                  <q-icon size="26px" color="white" :name="app.iconName" @contextmenu.prevent @selectstart.prevent />
                 </div>
                 <div class="app-info">
                   <div class="app-name" :class="getDarkModeClass(darkMode)">{{ app.name }}</div>
@@ -152,8 +152,8 @@
                 ]"
               >
                 <div class="relative-position" style="display: inline-block;">
-                  <div class="app-grid-tile bg-grad" :class="{ 'tile-inactive': !app.active }" @contextmenu.prevent @selectstart.prevent>
-                    <q-icon size="30px" color="white" :name="app.iconName" />
+                  <div class="app-grid-tile bg-grad" :class="{ 'tile-inactive': !app.active }">
+                    <q-icon size="30px" color="white" :name="app.iconName" @contextmenu.prevent @selectstart.prevent />
                   </div>
                   <span v-if="app.beta" class="app-beta-pill-grid">BETA</span>
                   <div
@@ -188,8 +188,8 @@
               @click="openApp(app)"
               v-on-long-press="(event) => showAppContextMenu(app, event)"
             >
-              <div class="app-icon-tile bg-grad" :class="{ 'tile-inactive': !app.active }" @contextmenu.prevent @selectstart.prevent>
-                <q-icon size="26px" color="white" :name="app.iconName" />
+              <div class="app-icon-tile bg-grad" :class="{ 'tile-inactive': !app.active }">
+                <q-icon size="26px" color="white" :name="app.iconName" @contextmenu.prevent @selectstart.prevent />
               </div>
               <div class="app-info">
                 <div class="app-name" :class="getDarkModeClass(darkMode)">{{ app.name }}</div>
@@ -223,8 +223,8 @@
               v-on-long-press="(event) => showAppContextMenu(app, event)"
             >
               <div class="relative-position" style="display: inline-block;">
-                <div class="app-grid-tile bg-grad" :class="{ 'tile-inactive': !app.active }" @contextmenu.prevent @selectstart.prevent>
-                  <q-icon size="30px" color="white" :name="app.iconName" />
+                <div class="app-grid-tile bg-grad" :class="{ 'tile-inactive': !app.active }">
+                  <q-icon size="30px" color="white" :name="app.iconName" @contextmenu.prevent @selectstart.prevent />
                 </div>
                 <span v-if="app.beta" class="app-beta-pill-grid">BETA</span>
                 <div v-if="app.id === 'chat' && chatUnreadCount > 0" class="app-unread-badge">
@@ -1321,6 +1321,7 @@ export default {
     align-items: center;
     justify-content: center;
     position: relative;
+    -webkit-touch-callout: none;
     &.tile-inactive { filter: grayscale(1) opacity(0.4); }
   }
 
@@ -1410,6 +1411,7 @@ export default {
     display: inline-flex;
     align-items: center;
     justify-content: center;
+    -webkit-touch-callout: none;
     &.tile-inactive { filter: grayscale(1) opacity(0.4); }
   }
   .app-grid-name {
