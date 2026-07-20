@@ -145,13 +145,19 @@
             v-for="(app, index) in cat.apps"
             :key="app.id || index"
             :draggable="(cat.isPinned && dragSupported) ? 'true' : false"
+            :data-app-id="app.id"
             class="app-grid-item"
             :class="[
               getDarkModeClass(darkMode),
-              { 'app-inactive': !app.active, 'drag-over': cat.isPinned && dragSupported && dragOverAppId === app.id }
+              { 'app-inactive': !app.active, 'drag-over': cat.isPinned && dragOverAppId === app.id, 'drag-active': draggedAppId === app.id }
             ]"
             @click="openApp(app)"
-            v-on-long-press="(cat.isPinned && dragSupported) ? undefined : [(event) => showAppContextMenu(app, event)]"
+            v-on-long-press="
+              cat.isPinned
+                ? undefined
+                : [(event) => showAppContextMenu(app, event)]
+            "
+            @touchstart="cat.isPinned && !dragSupported && onGridDragStart(app, $event)"
             @dragstart="cat.isPinned && dragSupported && onDragStart(app, $event)"
             @dragover="cat.isPinned && dragSupported && onDragOver(app, $event)"
             @dragleave="cat.isPinned && dragSupported && onDragLeave()"
@@ -184,9 +190,10 @@
         <div
           v-if="viewMode !== 'list'"
           class="unpin-bin"
-          :class="[getDarkModeClass(darkMode), { 'unpin-bin-visible': cat.isPinned && draggedAppId && dragSupported }]"
+          :class="[getDarkModeClass(darkMode), { 'unpin-bin-visible': cat.isPinned && draggedAppId }]"
           @dragover.prevent
           @drop="onUnpinDrop"
+          @touchend.prevent="draggedAppId && onUnpinDrop()"
         >
           <q-icon name="mdi-pin-off" size="20px" />
           <span>{{ $t('DropToUnpin', {}, 'Drop here to unpin') }}</span>
@@ -769,6 +776,33 @@ export default {
       }
       document.addEventListener('mousemove', onMove)
       document.addEventListener('mouseup', onEnd)
+      document.addEventListener('touchmove', onMove, { passive: false })
+      document.addEventListener('touchend', onEnd)
+    },
+    onGridDragStart (app, event) {
+      event.preventDefault()
+      this.draggedAppId = app.id
+      const startPos = { x: event.touches[0].clientX, y: event.touches[0].clientY }
+      const onMove = (e) => {
+        e.preventDefault()
+        const el = document.elementFromPoint(e.touches[0].clientX, e.touches[0].clientY)
+        const gridItem = el && el.closest('[data-app-id]')
+        if (gridItem) {
+          const id = gridItem.getAttribute('data-app-id')
+          this.dragOverAppId = id !== this.draggedAppId ? id : null
+        } else {
+          this.dragOverAppId = null
+        }
+      }
+      const onEnd = () => {
+        document.removeEventListener('touchmove', onMove)
+        document.removeEventListener('touchend', onEnd)
+        if (this.draggedAppId && this.dragOverAppId) {
+          this.completeReorder(this.draggedAppId, this.dragOverAppId)
+        }
+        this.draggedAppId = null
+        this.dragOverAppId = null
+      }
       document.addEventListener('touchmove', onMove, { passive: false })
       document.addEventListener('touchend', onEnd)
     },
@@ -1437,6 +1471,11 @@ export default {
         outline: 3px solid rgba(59, 123, 246, 0.6);
         outline-offset: 3px;
       }
+    }
+    &.drag-active {
+      opacity: 0.5;
+      transform: scale(0.95);
+      transition: opacity 0.15s, transform 0.15s;
     }
   }
   .app-grid-tile {
