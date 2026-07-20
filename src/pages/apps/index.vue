@@ -103,7 +103,7 @@
                 <div class="app-drag-handle" :class="getDarkModeClass(darkMode)">
                   <q-icon name="drag_indicator" size="20px" />
                 </div>
-                <div class="app-icon-tile bg-grad" :class="{ 'tile-inactive': !app.active }">
+                <div class="app-icon-tile bg-grad" :class="{ 'tile-inactive': !app.active }" @contextmenu.prevent @selectstart.prevent>
                   <q-icon size="26px" color="white" :name="app.iconName" />
                 </div>
                 <div class="app-info">
@@ -152,7 +152,7 @@
                 ]"
               >
                 <div class="relative-position" style="display: inline-block;">
-                  <div class="app-grid-tile bg-grad" :class="{ 'tile-inactive': !app.active }">
+                  <div class="app-grid-tile bg-grad" :class="{ 'tile-inactive': !app.active }" @contextmenu.prevent @selectstart.prevent>
                     <q-icon size="30px" color="white" :name="app.iconName" />
                   </div>
                   <span v-if="app.beta" class="app-beta-pill-grid">BETA</span>
@@ -188,7 +188,7 @@
               @click="openApp(app)"
               v-on-long-press="(event) => showAppContextMenu(app, event)"
             >
-              <div class="app-icon-tile bg-grad" :class="{ 'tile-inactive': !app.active }">
+              <div class="app-icon-tile bg-grad" :class="{ 'tile-inactive': !app.active }" @contextmenu.prevent @selectstart.prevent>
                 <q-icon size="26px" color="white" :name="app.iconName" />
               </div>
               <div class="app-info">
@@ -223,7 +223,7 @@
               v-on-long-press="(event) => showAppContextMenu(app, event)"
             >
               <div class="relative-position" style="display: inline-block;">
-                <div class="app-grid-tile bg-grad" :class="{ 'tile-inactive': !app.active }">
+                <div class="app-grid-tile bg-grad" :class="{ 'tile-inactive': !app.active }" @contextmenu.prevent @selectstart.prevent>
                   <q-icon size="30px" color="white" :name="app.iconName" />
                 </div>
                 <span v-if="app.beta" class="app-beta-pill-grid">BETA</span>
