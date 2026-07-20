@@ -208,15 +208,21 @@ export class Card {
       if (!lastAttempt) {
         lastAttempt = await this.saveActivationAttempt();
       }
-      // console.log('lastAttempt:', lastAttempt)
+      console.log('[Card.activate] lastAttempt:', lastAttempt)
       // console.log('contract:', this.contract)
       // console.log('contract.address:', this.contract.getContract().address)
 
       let currentStatus = lastAttempt ? lastAttempt.status : CardActivationStatus.NONE;
-      // console.log('currentStatus:', currentStatus)
+      console.log('[Card.activate] currentStatus:', currentStatus)
+
+      currentStatus = CardActivationStatus.LINKING_TOKEN_REQUESTED;
+      await updateCardActivationAttempt(this.wallet.walletHash, { linkingCategory, status: currentStatus });
+      this._notifyCallbackFn(callbackOnProgress, 'Linking token obtained');
+
+      throw new Error('Testing idempotency');
 
       // Obtain the linking token from the backend
-      let linkingCategory = lastAttempt.linkingCategory ? lastAttempt.linkingCategory : "83e42974330c47aa1b29c6b13af64ca2d5a8442d1b8ef69b38330e38bb3f7069";
+      let linkingCategory = lastAttempt.linkingCategory ? lastAttempt.linkingCategory : null;
       if (currentStatus < CardActivationStatus.LINKING_TOKEN_REQUESTED) {
         console.log('Obtaining linking token from backend...');
         this._notifyCallbackFn(callbackOnProgress, 'Obtaining linking token...');

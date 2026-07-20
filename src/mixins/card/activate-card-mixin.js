@@ -6,46 +6,46 @@ export default {
     return {
       user: null,
       showActivateCardForm: false,
-      showResumeCreateCardDialog: false,
+      showResumeActivateCardDialog: false,
       idempotencyKey: ''
     }
   },
   methods: {
-    async loadCreateCardAttempt() {
+    async loadActivateCardAttempt() {
       const walletHash = this.user?.wallet?.walletHash;
       if (!walletHash) {
-          console.log('No wallet hash available to load create card attempt');
+          console.log('No wallet hash available to load activate card attempt');
           return null;
       }
       const attempt = await getCardActivationAttempt(walletHash);
-      console.log('Loaded create card attempt:', attempt);
+      console.log('Loaded activate card attempt:', attempt);
       return attempt;
     },
-    async checkExistingCreateCardAttempt() {
+    async checkExistingActivateCardAttempt() {
       this.idempotencyKey = '' // Reset idempotency key before checking
-      const attempt = await this.loadCreateCardAttempt();
+      const attempt = await this.loadActivateCardAttempt();
       if (attempt) {
-        console.log('Existing card creation attempt found:', attempt);
-        this.showResumeCreateCardDialog = true;
+        console.log('Existing card activation attempt found:', attempt);
+        this.showResumeActivateCardDialog = true;
         this.idempotencyKey = attempt.idempotencyKey || '';
       } else {
-        console.log('No existing card creation attempt found');
+        console.log('No existing card activation attempt found');
       }
     },
-    async onOpenCreateCardForm() {
-      await this.checkExistingCreateCardAttempt()
+    async onOpenActivateCardForm() {
+      await this.checkExistingActivateCardAttempt()
       this.showActivateCardForm = true;
     },
-    async onCloseCreateCardForm() {
+    async onCloseActivateCardForm() {
       this.showActivateCardForm = false;
-      await this.checkExistingCreateCardAttempt()
+      await this.checkExistingActivateCardAttempt()
     },
     async onResumeCardAttempt() {
-      this.showResumeCreateCardDialog = false;
+      this.showResumeActivateCardDialog = false;
       this.showActivateCardForm = true;
     },
     async onDeleteCardAttempt() {
-      this.showResumeCreateCardDialog = false;
+      this.showResumeActivateCardDialog = false;
       // Clear the existing attempt from local storage
       await clearCardActivationAttempt();
       // Delete the attempt from the server as well
@@ -54,8 +54,8 @@ export default {
       });
     },
     onCancelCardAttempt() {
-      this.showResumeCreateCardDialog = false;
-      this.$router.push({ path: '/apps' }) // Redirect to the same page to reset state
+      this.showResumeActivateCardDialog = false;
+      this.$router.push({ path: '/apps/card' }) // Redirect to the same page to reset state
     }
   }
 }

@@ -285,6 +285,12 @@
       </q-card-actions>
     </q-card>
   </q-dialog>
+  <ResumeActivateCardDialog
+    v-if="showResumeActivateCardDialog"
+    @resumeAttempt="onResumeCardAttempt"
+    @deleteAttempt="onDeleteCardAttempt"
+    @cancelAttempt="onCancelCardAttempt"
+  />
 </template>
 
 <script>
@@ -292,17 +298,21 @@ import { getCardActivationAttempt } from 'src/services/card/storage';
 import Card from 'src/services/card/card.js';
 import { loadCardUser } from 'src/services/card/user';
 import QrScanner from 'src/components/qr-scanner.vue';
+import ResumeActivateCardDialog from 'src/components/card/ResumeActivateCardDialog.vue';
+import ActivateCardAttemptMixin from 'src/mixins/card/activate-card-mixin';
 
 export default {
-  name: 'ActivateCardDialog',
+  name: 'ActivateCardForm',
+  mixins: [ActivateCardAttemptMixin],
   emits: ['close', 'activate'],
   components: {
-    QrScanner
+    QrScanner,
+    ResumeActivateCardDialog
   },
   props: {
-    idempotencyKey: {
-      type: String,
-      default: ""
+    resume: {
+      type: Boolean,
+      default: false
     }
   },
   data () {
@@ -357,12 +367,13 @@ export default {
     this.selectedInputMethod = 'qr';
     this.inputCardUid = true;
     this.user = await loadCardUser();
+    this.lastAttempt = await getCardActivationAttempt(this.user.wallet.walletHash)
 
-    this.lastAttempt = await getCardActivationAttempt(this.user.wallet.walletHash);
-    console.log('Last activation attempt:', this.lastAttempt);
-    if (this.lastAttempt) {
-      this.card.category = this.lastAttempt.ownerCategory;
-      this.onActivateCard(null, this.lastAttempt);
+    await this.checkExistingActivateCardAttempt()
+
+    if (this.resume) {
+      console.log('Resume flag is true');
+      this.onActivateCard();
     }
   },
 
@@ -433,8 +444,9 @@ export default {
       this.progressMessage = message;
     },
 
-    onRetryActivation() {
-      this.onActivateCard()
+    async onRetryActivation() {
+      this.lastAttempt = await getCardActivationAttempt(this.user.wallet.walletHash)
+      this.onActivateCard();
     },
 
     async onActivateCard() {
@@ -453,9 +465,9 @@ export default {
         console.log('Fetched card by identifier:', data);
         const card = await Card.createInitialized(data)
         console.log('Initialized card:', card)
-
-        this.lastAttempt = this.lastAttempt || await getCardActivationAttempt(user.wallet.walletHash)
-        await card.activate(this.onProgress, this.lastAttempt)
+        
+        let lastAttempt = this.resume ? this.lastAttempt : null;
+        await card.activate(this.onProgress, lastAttempt)
         this.state = "success";
 
       } catch (error) {

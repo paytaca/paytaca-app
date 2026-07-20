@@ -4,8 +4,8 @@
         <q-card-section class="q-pa-lg row items-center">
           <q-avatar icon="warning" color="orange" text-color="white" size="56px"/>
           <div class="col q-ml-md">
-            <div class="text-h6 text-weight-bold" :class="textColor">Resume Card Creation?</div>
-            <div class="text-subtitle2" :class="textColorGrey">We noticed you have an unfinished card creation process. Would you like to resume where you left off?</div>
+            <div class="text-h6 text-weight-bold" :class="textColor">Resume Card Activation?</div>
+            <div class="text-subtitle2" :class="textColorGrey">We noticed you have an unfinished card activation process. Would you like to resume where you left off?</div>
           </div>
           <q-btn flat round dense icon="close" :color="$q.dark.isActive ? 'grey-4' : 'grey-6'" @click="onCancelAttempt" class="absolute-top-right q-mt-sm q-mr-sm" />
         </q-card-section>
@@ -21,7 +21,7 @@
 </template>
 <script>
 export default {
-  name: 'ResumeCreateCardDialog',
+  name: 'ResumeActivateCardDialog',
   emits: ['resumeAttempt', 'deleteAttempt', 'cancelAttempt'],
   data() {
     return {

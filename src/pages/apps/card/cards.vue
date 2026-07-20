@@ -163,7 +163,7 @@
       <!-- Create Card Dialog -->
       <CreateCardForm v-if="showCreateCardForm" @onClose="onCloseCreateCardForm" @card-created="onCardCreated" :idempotencyKey="idempotencyKey"/>
       <ActivateCardForm v-if="showActivateCardForm" @close="showActivateCardForm = false" @activate="onCardActivated" />
-      <ResumeCreateCardDialog 
+      <ResumeActivateCardDialog 
         v-if="showResumeCreateCardDialog" 
         @resumeAttempt="onResumeCardAttempt" 
         @deleteAttempt="onDeleteCardAttempt" 
@@ -178,21 +178,21 @@ import CreateCardForm from 'src/components/card/CreateCardForm.vue';
 import ActivateCardForm from 'src/components/card/ActivateCardForm.vue';
 import MultiWalletDropdown from 'src/components/transactions/MultiWalletDropdown.vue';
 import CardPageHeader from 'src/components/card/CardPageHeader.vue';
-import CreateCardAttemptMixin from 'src/mixins/card/create-card-attempt-mixin';
-import ResumeCreateCardDialog from 'src/components/card/ResumeCreateCardDialog.vue';
+import LinkCardMixin from 'src/mixins/card/activate-card-mixin';
+import ResumeActivateCardDialog from 'src/components/card/ResumeActivateCardDialog.vue';
 import { loadCardUser } from 'src/services/card/user.js';
 import { satoshiToBch } from 'src/exchange';
 import { bus } from 'src/wallet/event-bus';
 import { CardStorage } from 'src/components/card/createCard.js';
 
 export default {
-  mixins: [CreateCardAttemptMixin],
+  mixins: [LinkCardMixin],
   components : {
     MultiWalletDropdown,
     CardPageHeader,
     CreateCardForm,
     ActivateCardForm,
-    ResumeCreateCardDialog
+    ResumeActivateCardDialog
   },
 
   data () {
@@ -272,7 +272,7 @@ export default {
 
     async loadData () {
       await this.loadCardUser()
-      await this.checkExistingCreateCardAttempt()
+      await this.checkExistingActivateCardAttempt()
       await this.fetchCards()
       this.fetchCardsBalance()
       this.loadBalanceVisibility()

@@ -105,7 +105,7 @@
           </div>
 
           <div class="text-h5 text-weight-bold q-mb-md" :class="textColor">
-            {{ $t('You have') }} {{ cardCount }} {{ $t(cardCount === 1 ? 'card' : 'cards') }}
+            {{ $t('You have') }} {{ user?.cardCount }} {{ $t(user?.cardCount === 1 ? 'card' : 'cards') }}
           </div>
 
           <!-- View My Cards -->
@@ -126,19 +126,19 @@
             </div>
           </div>
 
-          <!-- Create Another Card -->
+          <!-- Activate Another Card -->
           <div class="full-width q-mb-md" style="max-width: 400px; margin-left: auto; margin-right: auto;">
             <div
               class="link-method-item cursor-pointer"
               :class="$q.dark.isActive ? 'method-item-dark' : 'method-item-light'"
-              @click="onOpenCreateCardForm()"
+              @click="onOpenActivateCardForm()"
             >
               <div class="method-icon-box" :class="$q.dark.isActive ? 'icon-box-dark' : 'icon-box-light'">
                 <q-icon name="add_card" size="22px" color="primary" />
               </div>
               <div class="method-text">
-                <div class="text-subtitle2 text-weight-bold" :class="textColor">{{ $t('Create Another Card') }}</div>
-                <div class="text-caption" :class="textColorGrey">{{ $t('Add a new card to your wallet') }}</div>
+                <div class="text-subtitle2 text-weight-bold" :class="textColor">{{ $t('Activate Another Card') }}</div>
+                <div class="text-caption" :class="textColorGrey">{{ $t('Activate a new card in your wallet') }}</div>
               </div>
               <q-icon name="chevron_right" size="20px" :color="$q.dark.isActive ? 'grey-5' : 'grey-6'" />
             </div>
@@ -155,28 +155,20 @@
     <!-- Dialogs -->
     <!-- <CreateCardForm v-if="showCreateCardForm" @onClose="onCloseCreateCardForm" @card-created="onCardCreated" :idempotencyKey="idempotencyKey" /> -->
     <ActivateCardForm v-if="showActivateCardForm" @close="showActivateCardForm = false" @activate="onCardActivated" />
-    <ResumeCreateCardDialog
-      v-if="showResumeCreateCardDialog"
-      @resumeAttempt="onResumeCardAttempt"
-      @deleteAttempt="onDeleteCardAttempt"
-      @cancelAttempt="onCancelCardAttempt"
-    />
   </q-page>
 </template>
 
 <script>
-import CreateCardForm from 'src/components/card/CreateCardForm.vue';
-import ResumeCreateCardDialog from 'src/components/card/ResumeCreateCardDialog.vue';
+import ActivateCardForm from 'src/components/card/ActivateCardForm.vue';
 import OrderCard from 'src/components/card/OrderCard.vue';
 import { loadCardUser } from 'src/services/card/user';
-import CreateCardAttemptMixin from 'src/mixins/card/create-card-attempt-mixin'
+import ActivateCardAttemptMixin from 'src/mixins/card/activate-card-mixin'
 import bus from 'src/services/event-bus';
 
 export default {
-  mixins: [CreateCardAttemptMixin],
-  components: {
-    CreateCardForm,
-    ResumeCreateCardDialog,
+  mixins: [ActivateCardAttemptMixin],
+  components: { 
+    ActivateCardForm,
     OrderCard
   },
 
@@ -185,7 +177,8 @@ export default {
       isloaded: false,
       wizardStep: 'welcome', // 'welcome' | 'creating' | 'preview' | 'dashboard'
       createdCard: null,
-      showInlineOrder: false
+      showInlineOrder: false,
+      showActivateCardForm: false
     }
   },
 
@@ -229,12 +222,12 @@ export default {
       if (this.user?.cardCount > 0 && this.$store) {
         this.$store.dispatch('card/fetchCards').catch(() => {})
       }
-      await this.checkExistingCreateCardAttempt()
+      // await this.checkExistingActivateCardAttempt()
 
       // Determine wizard step
       if (this.isReplacement) {
         this.wizardStep = 'dashboard'
-      } else if (this.cardCount > 0) {
+      } else if (this.user?.cardCount > 0) {
         this.wizardStep = 'dashboard'
       } else {
         this.wizardStep = 'welcome'
