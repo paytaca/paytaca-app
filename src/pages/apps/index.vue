@@ -91,7 +91,7 @@
               { 'app-inactive': !app.active, 'app-beta-row': cat.isBeta, 'app-pinned-row': cat.isPinned, 'drag-over': cat.isPinned && dragSupported && dragOverAppId === app.id }
             ]"
             @click="openApp(app)"
-            v-on-long-press="[(event) => showAppContextMenu(app, event)]"
+            v-on-long-press="cat.isPinned ? undefined : [(event) => showAppContextMenu(app, event)]"
             @dragover="cat.isPinned && dragSupported && onDragOver(app, $event)"
             @dragleave="cat.isPinned && dragSupported && onDragLeave()"
             @drop="cat.isPinned && dragSupported && onDrop(app, $event)"
@@ -595,7 +595,7 @@ export default {
       return isNativeIOS()
     },
     dragSupported () {
-      return !Platform.is.mobile && !Platform.is.nativeMobile
+      return true
     },
     theme () {
       return this.$store.getters['global/theme']
