@@ -592,7 +592,6 @@ export default {
     },
     onEmptyRecipient () {
       this.emptyRecipient = this.recipientAddress === ''
-      console.debug('onEmptyRecipient', { recipientAddress: this.recipientAddress, emptyRecipient: this.emptyRecipient })
       this.$emit('on-empty-recipient', this.emptyRecipient)
     },
     onQRUploaderClick () {
@@ -669,7 +668,6 @@ export default {
       })
     },
     syncPropsData() {
-      console.debug('Syncing Props data');
 
       // Syncing this.recipient.recipientAddress is handled somewhere else
       this.amount = this.recipient.amount

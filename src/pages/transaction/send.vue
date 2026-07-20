@@ -1589,15 +1589,12 @@ export default {
         const isBch = this.asset.id === 'bch';
         const assetId = isBch ? `ct/${currentInputExtras.cauldron?.token?.token_id}` : 'bch';
         const asset = sendPageUtils.getAsset(assetId);
-        console.debug('[SetMax]', { isBch, assetId, asset });
 
         const tokenId = isBch ? currentInputExtras.cauldron?.token?.token_id : this.asset.id.replace('ct/', '');
         const pools = this.poolTracker.getPoolsForToken(tokenId);
         currentRecipient.cauldronAmount = calculateMaxSpendableForCauldron(asset, pools);
 
         currentInputExtras.cauldron.amountFormatted = currentRecipient.cauldronAmount;
-        console.debug('[SetMax] currentRecipient', {...currentRecipient});
-        console.debug('[SetMax] currentInputExtras.cauldron', { ...currentInputExtras.cauldron });
 
         currentRecipient.amount = '';
         currentRecipient.fiatAmount = '';
@@ -2296,11 +2293,9 @@ export default {
       }
     },
     checkCauldronPoolsForFallback() {
-      console.debug('[CauldronFallback] Checking');
       for (var index = 0; index < this.inputExtras.length; index++) {
         const status = this.getPoolTrackerStatus(index);
         if (!status) continue;
-        console.debug('[CauldronFallback]', { ...status, index });
 
         if (status.shouldSubscribe) {
           this.poolTracker.subscribeToken(status.tokenId);
