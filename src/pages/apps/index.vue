@@ -776,10 +776,6 @@ export default {
       this.draggedAppId = app.id
       event.dataTransfer.effectAllowed = 'move'
       event.dataTransfer.setData('text/plain', app.id)
-      // Transparent drag image to prevent iOS Safari black square ghost
-      const img = new Image()
-      img.src = 'data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7'
-      event.dataTransfer.setDragImage(img, 0, 0)
     },
     onDragOver (app, event) {
       if (!this.draggedAppId || this.draggedAppId === app.id) return
