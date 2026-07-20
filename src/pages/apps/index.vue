@@ -87,6 +87,7 @@
             item-key="id"
             handle=".app-drag-handle"
             :animation="600"
+            :group="{ name: 'pinned-apps', pull: true, put: true }"
             class="app-rows"
             @start="onDragState(true, $event, cat)"
             @end="onPinnedReorder($event, cat)"
@@ -142,6 +143,7 @@
             :animation="600"
             :delay="100"
             :delay-on-touch-only="true"
+            :group="{ name: 'pinned-apps', pull: true, put: true }"
             class="app-grid"
             @start="onDragState(true, $event, cat)"
             @end="onPinnedReorder($event, cat)"
@@ -248,8 +250,20 @@
           v-if="viewMode !== 'list'"
           class="unpin-bin"
           :class="[getDarkModeClass(darkMode), { 'unpin-bin-visible': cat.isPinned && dragging }]"
-          @click="dragItemId && (togglePin(dragItemId), dragItemId = null, dragging = false)"
         >
+          <draggable
+            :key="'unpin-bin-' + cat.id + '-' + unpinBinKey"
+            :list="unpinBinList"
+            item-key="id"
+            :group="{ name: 'pinned-apps', pull: false, put: true }"
+            :animation="150"
+            class="unpin-bin-drop"
+            @add="onUnpinDrop"
+          >
+            <template #item="{ element }">
+              <div :key="element.id" class="unpin-bin-item"></div>
+            </template>
+          </draggable>
           <q-icon name="mdi-pin-off" size="20px" />
           <span>{{ $t('DropToUnpin', {}, 'Drop here to unpin') }}</span>
         </div>
@@ -643,7 +657,10 @@ export default {
       activeCategory: null,
       categoryObserver: null,
       dragging: false,
-      dragItemId: null
+      dragItemId: null,
+      unpinBinList: [],
+      unpinBinKey: 0,
+      justDragged: false
     }
   },
   computed: {
@@ -737,7 +754,7 @@ export default {
       return active ? '' : 'disabled'
     },
     openApp (app) {
-      if (!app.active) return
+      if (!app.active || this.justDragged) return
       
       if (app.id === 'wizardconnect') {
         const loadingGroupName = 'wizardconnect-init';
@@ -806,25 +823,23 @@ export default {
       this.dragItemId = active && cat && event?.oldIndex !== undefined
         ? cat.apps[event.oldIndex]?.id
         : null
+      if (active) {
+        this.justDragged = true
+      }
+    },
+    onUnpinDrop (event) {
+      const item = this.unpinBinList[event.newIndex]
+      const appId = item?.id
+      this.unpinBinList.splice(event.newIndex, 1)
+      this.unpinBinKey++
+      if (appId) {
+        this.togglePin(appId)
+      }
+      this.dragItemId = null
+      this.dragging = false
+      setTimeout(() => { this.justDragged = false }, 300)
     },
     onPinnedReorder (event, cat) {
-      // Check if dropped on the unpin-bin
-      if (this.dragging && this.dragItemId) {
-        const unpinBin = this.$el.querySelector('.unpin-bin')
-        if (unpinBin && unpinBin.classList.contains('unpin-bin-visible')) {
-          const rect = unpinBin.getBoundingClientRect()
-          const evt = event?.originalEvent || event
-          const x = evt.clientX ?? evt.changedTouches?.[0]?.clientX
-          const y = evt.clientY ?? evt.changedTouches?.[0]?.clientY
-          if (x != null && y != null && x >= rect.left && x <= rect.right && y >= rect.top && y <= rect.bottom) {
-            this.togglePin(this.dragItemId)
-            this.dragItemId = null
-            this.dragging = false
-            return
-          }
-        }
-      }
-
       const newOrder = []
       for (const c of this.categorizedApps) {
         if (c.isPinned) {
@@ -838,9 +853,10 @@ export default {
         localStorage.setItem('pinnedAppIds', JSON.stringify(newOrder))
       }
       this.dragging = false
+      setTimeout(() => { this.justDragged = false }, 300)
     },
     showAppContextMenu (app, event) {
-      if (!app.active) return
+      if (!app.active || this.justDragged) return
       const pinned = this.isPinned(app.id)
       const actions = [
         {
@@ -1222,6 +1238,7 @@ export default {
     border-radius: 10px;
     font-size: 13px;
     font-weight: 500;
+    position: relative;
     transition: background 0.15s ease, border-color 0.15s ease;
     &.unpin-bin-visible { display: flex; }
     &.dark {
@@ -1236,6 +1253,17 @@ export default {
       color: rgba(239, 83, 80, 0.65);
       &:hover { background: rgba(239, 83, 80, 0.12); border-color: rgba(239, 83, 80, 0.5); }
     }
+  }
+  .unpin-bin-drop {
+    position: absolute;
+    inset: 0;
+    z-index: 1;
+    min-height: 100%;
+  }
+  .unpin-bin-item {
+    width: 100%;
+    height: 0;
+    visibility: hidden;
   }
   .pin-indicator {
     &.dark { color: rgba(59, 123, 246, 0.6); }
