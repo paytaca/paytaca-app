@@ -215,11 +215,11 @@ export class Card {
       let currentStatus = lastAttempt ? lastAttempt.status : CardActivationStatus.NONE;
       console.log('[Card.activate] currentStatus:', currentStatus)
 
-      currentStatus = CardActivationStatus.LINKING_TOKEN_REQUESTED;
-      await updateCardActivationAttempt(this.wallet.walletHash, { linkingCategory, status: currentStatus });
-      this._notifyCallbackFn(callbackOnProgress, 'Linking token obtained');
+      // currentStatus = CardActivationStatus.LINKING_TOKEN_REQUESTED;
+      // await updateCardActivationAttempt(this.wallet.walletHash, { linkingCategory, status: currentStatus });
+      // this._notifyCallbackFn(callbackOnProgress, 'Linking token obtained');
 
-      throw new Error('Testing idempotency');
+      // throw new Error('Testing idempotency');
 
       // Obtain the linking token from the backend
       let linkingCategory = lastAttempt.linkingCategory ? lastAttempt.linkingCategory : null;
