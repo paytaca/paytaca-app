@@ -407,23 +407,23 @@
         </div>
       </template>
 
-      <teleport to="body">
-        <!-- Keyboard + Slide: shown together when keyboard is visible -->
-        <div v-if="customKeyboardState === 'show' && !sending" class="keyboard-slide-panel">
-          <CustomKeyboard 
-            :custom-keyboard-state="customKeyboardState"
-            hide-check-key
-            embedded
-            @addKey="setAmount"
-            @makeKeyAction="makeKeyAction"
-          />
+      <KeyboardSlidePanel
+        :panel-visible="customKeyboardState === 'show' && !sending"
+        :keyboard-state="customKeyboardState"
+        hide-check-key
+        @addKey="setAmount"
+        @makeKeyAction="makeKeyAction"
+      >
+        <template #slide>
           <DragSlide
             :disable="!canSlide"
             disable-absolute-bottom
             @swiped="slideToSubmit"
           />
-        </div>
+        </template>
+      </KeyboardSlidePanel>
 
+      <teleport to="body">
         <!-- Slide alone: shown when form is active but keyboard is hidden (NFT, pre-filled amounts) -->
         <DragSlide
           v-if="customKeyboardState !== 'show' && formActive && !disableSending && !sending"
@@ -492,7 +492,7 @@ import { NativeBiometric } from 'capacitor-native-biometric'
 import JppPaymentPanel from 'src/components/JppPaymentPanel.vue'
 import ProgressLoader from 'src/components/ProgressLoader'
 import HeaderNav from 'src/components/header-nav'
-import CustomKeyboard from 'src/components/CustomKeyboard.vue'
+import KeyboardSlidePanel from 'src/components/KeyboardSlidePanel.vue'
 import QrScanner from 'src/components/qr-scanner.vue'
 import SendPageForm from 'src/components/send-page/SendPageForm.vue'
 import QRUploader from 'src/components/QRUploader'
@@ -519,7 +519,7 @@ export default {
     JppPaymentPanel,
     ProgressLoader,
     HeaderNav,
-    CustomKeyboard,
+    KeyboardSlidePanel,
     QrScanner,
     SendPageForm,
     QRUploader,
@@ -1644,20 +1644,29 @@ export default {
     autoFocusAmount () {
       const index = this.currentRecipientIndex
       const recipient = this.recipients[index]
-      if (recipient?.fixedAmount) return
+      if (recipient?.fixedAmount) {
+        console.debug('[SendPage] autoFocusAmount: fixedAmount, skipping')
+        return
+      }
 
       const sendPageForm = this.$refs.sendPageRef?.[index]
-      if (!sendPageForm) return
+      if (!sendPageForm) {
+        console.debug('[SendPage] autoFocusAmount: sendPageForm not found', { sendPageRef: this.$refs.sendPageRef })
+        return
+      }
 
       const field = this.asset?.id === 'bch' ? 'fiat' : 'bch'
       const inputRef = field === 'fiat' ? sendPageForm.$refs.fiatInput : sendPageForm.$refs.amountInput
 
       if (inputRef && typeof inputRef.focus === 'function') {
+        console.debug('[SendPage] autoFocusAmount: focusing', { index, field, inputRef })
         inputRef.focus()
         this.currentRecipientIndex = index
         this.focusedInputField = field
         this.customKeyboardState = 'show'
         sendPageUtils.addRemoveInputFocus(index, field)
+      } else {
+        console.debug('[SendPage] autoFocusAmount: inputRef not found or no focus method', { inputRef })
       }
     },
 
@@ -2219,6 +2228,7 @@ export default {
 
     // emitted methods
     onInputFocus (value) {
+      console.debug('[SendPage] onInputFocus', value)
       this.currentRecipientIndex = value.index
       this.focusedInputField = value.field
       this.customKeyboardState = value.field !== '' ? 'show' : 'dismiss'
@@ -3476,8 +3486,8 @@ export default {
   .send-form-container {
     position: relative;
     
-    /* Add padding at bottom to prevent content from being hidden under the slide */
-    padding-bottom: 120px !important;
+    /* Keep content visible above the fixed keyboard panel (~250px keyboard + ~80px slide) */
+    padding-bottom: 340px !important;
   }
 
   /* iOS-specific fixes for DragSlide positioning */
