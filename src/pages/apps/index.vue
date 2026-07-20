@@ -89,7 +89,7 @@
             :animation="600"
             class="app-rows"
             @start="onDragState(true, $event, cat)"
-            @end="onPinnedReorder"
+            @end="onPinnedReorder($event, cat)"
           >
             <template #item="{ element: app }">
               <div
@@ -140,7 +140,7 @@
             :animation="600"
             class="app-grid"
             @start="onDragState(true, $event, cat)"
-            @end="onPinnedReorder"
+            @end="onPinnedReorder($event, cat)"
           >
             <template #item="{ element: app }">
               <div
@@ -801,11 +801,28 @@ export default {
         ? cat.apps[event.oldIndex]?.id
         : null
     },
-    onPinnedReorder () {
+    onPinnedReorder (event, cat) {
+      // Check if dropped on the unpin-bin
+      if (this.dragging && this.dragItemId) {
+        const unpinBin = this.$el.querySelector('.unpin-bin')
+        if (unpinBin && unpinBin.classList.contains('unpin-bin-visible')) {
+          const rect = unpinBin.getBoundingClientRect()
+          const evt = event?.originalEvent || event
+          const x = evt.clientX ?? evt.changedTouches?.[0]?.clientX
+          const y = evt.clientY ?? evt.changedTouches?.[0]?.clientY
+          if (x != null && y != null && x >= rect.left && x <= rect.right && y >= rect.top && y <= rect.bottom) {
+            this.togglePin(this.dragItemId)
+            this.dragItemId = null
+            this.dragging = false
+            return
+          }
+        }
+      }
+
       const newOrder = []
-      for (const cat of this.categorizedApps) {
-        if (cat.isPinned) {
-          for (const app of cat.apps) {
+      for (const c of this.categorizedApps) {
+        if (c.isPinned) {
+          for (const app of c.apps) {
             newOrder.push(app.id)
           }
         }
