@@ -204,7 +204,7 @@
 <script>
 import { Platform } from 'quasar';
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
-import MarketplaceAppSelectionDialog from 'src/components/marketplace/MarketplaceAppSelectionDialog.vue'
+
 import BetaAppDialog from 'src/components/apps/BetaAppDialog.vue'
 import HeaderNav from '../../components/header-nav'
 import { webSocketManager } from 'src/exchange/websocket/manager'
@@ -347,12 +347,6 @@ export default {
           active: !this.$store.getters['global/isChipnet'],
           iconStyle: 'width:45%; height: 45%;',
           category: 'marketplace',
-          onLongPress: (event) => {
-            event?.preventDefault?.()
-            this.$q.dialog({
-              component: MarketplaceAppSelectionDialog,
-            })
-          }
         },
         {
           id: 'eload-service',
@@ -843,31 +837,38 @@ export default {
     },
     showAppContextMenu (app, event) {
       if (!app.active) return
-      if (app.onLongPress) {
-        app.onLongPress(event)
-        return
-      }
       const pinned = this.isPinned(app.id)
+      const actions = [
+        {
+          label: pinned ? this.$t('Unpin', {}, 'Unpin') : this.$t('Pin', {}, 'Pin'),
+          icon: pinned ? 'mdi-pin-off' : 'mdi-pin',
+          id: 'pin',
+          color: this.themeColor,
+        },
+        {
+          label: this.$t('Open', {}, 'Open'),
+          icon: 'open_in_new',
+          id: 'open',
+        },
+      ]
+      if (app.id === 'marketplace') {
+        actions.splice(1, 0, {
+          label: this.$t('OpenArbiterInterface', {}, 'Open Arbiter Interface'),
+          icon: 'gavel',
+          id: 'arbiter',
+          color: this.themeColor,
+        })
+      }
       this.$q.bottomSheet({
         class: `text-bow ${this.getDarkModeClass(this.darkMode)}`,
-        actions: [
-          {
-            label: pinned ? this.$t('Unpin', {}, 'Unpin') : this.$t('Pin', {}, 'Pin'),
-            icon: pinned ? 'mdi-pin-off' : 'mdi-pin',
-            id: 'pin',
-            color: this.themeColor,
-          },
-          {
-            label: this.$t('Open', {}, 'Open'),
-            icon: 'open_in_new',
-            id: 'open',
-          },
-        ],
+        actions,
       }).onOk(action => {
         if (action.id === 'pin') {
           this.togglePin(app.id)
         } else if (action.id === 'open') {
           this.openApp(app)
+        } else if (action.id === 'arbiter') {
+          this.$router.push('/apps/marketplace/arbiter')
         }
       })
     },
