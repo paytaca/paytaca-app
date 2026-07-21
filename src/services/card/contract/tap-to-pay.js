@@ -2,7 +2,7 @@
 
 import { Contract as MainnetContract } from '@mainnet-cash/contract';
 import { SignatureTemplate, Contract, TransactionBuilder, Network, ElectrumNetworkProvider } from 'cashscript';
-import { P2PKH_DUST, TX_FEE } from '../constants.js';
+import { DUST_LIMIT, P2PKH_DUST, TX_FEE } from '../constants.js';
 import { binToHex } from '@bitauth/libauth';
 import { pubkeyToPkHash } from '../utils.js';
 import { decodeCommitment, encodeCommitment, encodeMerchantHash } from '../auth-nft.js';
@@ -737,10 +737,10 @@ export class TapToPayV2 extends TapToPay {
             // console.log('decodedCommitment:', decodedCommitment)
             if (decodedCommitment?.type === 'pkh') {
                 sortedOwnershipTokens[0] = utxo
-                pkhCategory = decodedCommitment.category
+                pkhCategory = decodedCommitment.value
             } else if (decodedCommitment?.type === 'cat') {
                 sortedOwnershipTokens[1] = utxo
-                catCategory = decodedCommitment.category
+                catCategory = decodedCommitment.value
             }
         }
 
@@ -886,7 +886,7 @@ export class TapToPayV2 extends TapToPay {
         const authOwnershipToken = ownershipTokens.find(utxo => {
             const decodedCommitment = utxo.token?.nft?.commitment ? decodeOwnershipCommitment(utxo.token.nft.commitment) : undefined
             if (decodedCommitment.type === 'cat') {
-                authCategory = decodedCommitment.category
+                authCategory = decodedCommitment.value
                 return true
             }
             return false
@@ -899,6 +899,19 @@ export class TapToPayV2 extends TapToPay {
         return !!authOwnershipToken
     }
 
+    async getOwnerTokenUtxo () {
+        const ownershipCategory = this.params.category
+        const tokenAddress = toTokenAddress(this.getContract().address)
+        const ownershipTokens = await this.getTokenUtxos(ownershipCategory, tokenAddress)
+
+        // Find the pkh ownership token
+        const ownerTokenUtxo = ownershipTokens.find(utxo => {
+            const decodedCommitment = utxo.token?.nft?.commitment ? decodeOwnershipCommitment(utxo.token.nft.commitment) : undefined
+            return decodedCommitment?.type === 'pkh'
+        })
+        return ownerTokenUtxo
+    }
+
     /**
      * Sweeps all contract-held tokens and BCH to the provided address.
      *
@@ -908,44 +921,65 @@ export class TapToPayV2 extends TapToPay {
      * @param {boolean} [params.broadcast=false] - Broadcast transactions when true.
      * @returns {Promise<Object>} Sweep results for tokens and BCH.
      */
-    async sweep ({ ownerWif, toAddress, broadcast = false }) {
-        console.log('[sweep] Starting sweep with params:', { ownerWif, toAddress, broadcast })
+    async sweep ({ ownerWif, toAddress, broadcast = true }) {
+        console.log('[sweep] Starting sweep process with params:', { toAddress, broadcast })
         
         const contract = this.getContract()
         const ownerSig = new SignatureTemplate(ownerWif)
         const ownerPk = binToHex(ownerSig.getPublicKey())
         const ownerPkh = pubkeyToPkHash(ownerPk)
-
-        if (ownerPkh !== this.contractCreationParams.ownerPkh) {
-            throw new Error('Owner public key hash does not match the contract\'s owner public key hash')
-        }
+        
+        console.log('[sweep] Owner public key hash:', ownerPkh)
 
         const sweepResult = {}
+
+        const ownerUtxo = await this.getOwnerTokenUtxo()
+        const decodedCommitment = ownerUtxo.token?.nft?.commitment ? decodeOwnershipCommitment(ownerUtxo.token.nft.commitment) : undefined
+        if (!decodedCommitment || decodedCommitment.value !== ownerPkh) {
+            throw new Error('Invalid owner token UTXO or ownership not set correctly. Cannot proceed with sweep.')
+        }
+
+        console.log('[sweep] Owner UTXO:', ownerUtxo)
         const { cumulativeValue: sweepAmount, utxos: bchUtxos } = await this.getBchUtxos()
         console.log('[sweep] BCH UTXOs:', bchUtxos)
         
         // Prepare inputs
+        const inputs = [{
+            satoshis: toBigInt(ownerUtxo.satoshis),
+            txid: ownerUtxo.txid,
+            vout: ownerUtxo.vout,
+            token: ownerUtxo.token
+        }]
+
         const bchInputs = bchUtxos.map(utxo => {
-            const normalized = { 
+            return { 
                 satoshis: toBigInt(utxo.satoshis),
                 txid: utxo.txid,
                 vout: utxo.vout
             }
-            return normalized
         })
+
+        inputs.push(...bchInputs)
+
+        console.log('[sweep] Prepared inputs:', inputs)
 
         // Prepare outputs
         const outputs = [
+            { to: contract.tokenAddress, amount: toBigInt(ownerUtxo.satoshis), token: ownerUtxo.token },
             { to: toAddress, amount: sweepAmount }
         ]
 
+        console.log('[sweep] Prepared outputs:', outputs)
+
         // Estimate fee
-        const estimatedFee = this.estimateFee({ numContractInputs: bchInputs.length, numP2pkhInputs: 1, numOutputs: 2 })
+        const estimatedFee = this.estimateFee({ numContractInputs: inputs.length, numP2pkhInputs: 1, numOutputs: 3 })
         const { 
             cumulativeValue: fundingAmount, 
             groupedUtxos: groupedBchFundingInputs, 
             changeAddress 
         } = await this.getFundingInputs(estimatedFee)
+
+        console.log('[sweep] Estimated fee:', estimatedFee)
         
         const changeAmount = fundingAmount - BigInt(estimatedFee)
         
@@ -954,18 +988,21 @@ export class TapToPayV2 extends TapToPay {
             return sweepResult
         }
 
-        if (changeAmount > P2PKH_DUST) {
+        if (changeAmount > DUST_LIMIT) {
             outputs.push({ to: changeAddress, amount: changeAmount })
         }
 
         const provider = new ElectrumNetworkProvider(Network.MAINNET)
         const tx = new TransactionBuilder({provider})
 
-        tx.addInputs(bchInputs, contract.unlock.sweep(ownerPk, ownerSig))
+        tx.addInputs(inputs, contract.unlock.sweep(ownerPk, ownerSig))
         groupedBchFundingInputs.forEach(({ inputs, signatureTemplate }) => {
             tx.addInputs(inputs, signatureTemplate.unlockP2PKH())
         })
         tx.addOutputs(outputs)
+
+        console.log('[sweep] Transaction inputs:', tx.inputs)
+        console.log('[sweep] Transaction outputs:', tx.outputs)
 
         let result
         try {
@@ -974,12 +1011,14 @@ export class TapToPayV2 extends TapToPay {
             console.log('[sweep] Built transaction hex:', txHex)
 
             if (broadcast) {
-                result = await this.broadcastTransaction(txHex)
+                console.log('[sweep] Broadcasting transaction...')
+                result = (await this.broadcastTransaction(txHex)).data
             } else {
                 result = { success: true, txHex }
             }
 
         } catch (error) {
+            console.error('[sweep] Error during sweep transaction build or broadcast:', error)
             throw error
         }
 

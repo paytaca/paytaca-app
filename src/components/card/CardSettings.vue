@@ -398,7 +398,7 @@ export default {
         return
       }
 
-      await this.activeCard.sweep({ broadcast: false }).then(result => {
+      await this.activeCard.sweep({ broadcast: true }).then(result => {
         this.$q.notify({
           message: `Successfully swept ${balance} BCH to your wallet`,
           color: 'positive',

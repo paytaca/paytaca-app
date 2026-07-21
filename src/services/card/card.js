@@ -170,10 +170,7 @@ export class Card {
    * @returns {void}
    */
   _initializeContract() {
-    console.log('this.raw:', this.raw)
-    console.log('this.raw?.contract?.contract_id:', this.raw?.contract?.contract_id)
     if (!this.raw?.contract?.contract_id) return;
-    console.log('TapToPay:', TapToPay)
     this.contract = new TapToPay(this.raw?.contract?.contract_id);
   }
 

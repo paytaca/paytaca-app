@@ -51,81 +51,86 @@
 
           <!-- Crypto Amount -->
           <div class="q-mb-sm pt-card-2" :class="$q.dark.isActive ? 'dark' : 'light'" style="border-radius: 14px; overflow: hidden;">
-            <q-input
-              class="amount-input"
-              v-model="cryptoCashInAmount"
-              filled
-              hide-bottom-space
-              input-class="text-h6 text-weight-bold"
-              :dark="$q.dark.isActive"
-              :rules="amountValidationRules"
-              @focus="onFocusCryptoInput"
-              @blur="onBlurCryptoInput">
-              <template v-slot:prepend>
-                <q-btn-dropdown
-                  flat
-                  dense
-                  dropdown-icon="expand_more"
-                  class="currency-selector crypto-selector">
-                  <template v-slot:label>
-                    <div class="currency-badge" :class="$q.dark.isActive ? 'badge-dark' : 'badge-light'">
-                      <q-icon name="currency_bitcoin" size="18px" class="q-mr-xs" />
-                      <span class="text-weight-bold">{{ selectedCryptoCurrency }}</span>
-                    </div>
-                  </template>
-                  <q-list>
-                    <q-item v-for="option in cryptoCurrencyOptions" :key="option" clickable v-close-popup @click="selectedCryptoCurrency = option">
-                      <q-item-section>
-                        <q-item-label>{{ option }}</q-item-label>
-                      </q-item-section>
-                    </q-item>
-                  </q-list>
-                </q-btn-dropdown>
-              </template>
-            </q-input>
+            <div class="row items-center no-wrap" >
+              <q-btn-dropdown
+                flat
+                dense
+                dropdown-icon="expand_more"
+                class="currency-selector crypto-selector">
+                <template v-slot:label>
+                  <div class="currency-badge" :class="$q.dark.isActive ? 'badge-dark' : 'badge-light'">
+                    <q-icon name="currency_bitcoin" size="18px" class="q-mr-xs" />
+                    <span class="text-weight-bold">{{ selectedCryptoCurrency }}</span>
+                  </div>
+                </template>
+                <q-list>
+                  <q-item v-for="option in cryptoCurrencyOptions" :key="option" clickable v-close-popup @click="selectedCryptoCurrency = option">
+                    <q-item-section>
+                      <q-item-label>{{ option }}</q-item-label>
+                    </q-item-section>
+                  </q-item>
+                </q-list>
+              </q-btn-dropdown>
+              <q-input
+                class="amount-input"
+                v-model="cryptoCashInAmount"
+                filled
+                hide-bottom-space
+                input-class="text-h6 text-weight-bold"
+                :dark="$q.dark.isActive"
+                @focus="onFocusCryptoInput"
+                @blur="onBlurCryptoInput">
+              </q-input>
+            </div>
           </div>
 
           <!-- Fiat Amount -->
           <div class="q-mb-sm pt-card-2" :class="$q.dark.isActive ? 'dark' : 'light'" style="border-radius: 14px; overflow: hidden;">
-            <q-input
-              class="amount-input"
-              v-model="fiatCashInAmount"
-              filled
-              hide-bottom-space
-              input-class="text-h6 text-weight-bold"
-              :dark="$q.dark.isActive"
-              :rules="amountValidationRules"
-              @focus="onFocusFiatInput"
-              @blur="onBlurFiatInput">
-              <template v-slot:prepend>
-                <q-btn-dropdown
-                  flat
-                  dense
-                  dropdown-icon="expand_more"
-                  class="currency-selector">
-                  <template v-slot:label>
-                    <div class="currency-badge fiat-badge" :class="$q.dark.isActive ? 'badge-dark' : 'badge-light'">
-                      <q-icon name="attach_money" size="18px" class="q-mr-xs" />
-                      <span class="text-weight-bold">{{ selectedFiatCurrency }}</span>
-                    </div>
-                  </template>
-                  <q-list v-for="option in marketCurrencyOptions" :key="option.symbol" :style="{color: $q.dark.isActive ? 'white' : 'black'}">
-                    <q-item clickable v-close-popup @click="selectedFiatCurrency = option.symbol">
-                      <q-item-section>
-                        <q-item-label>{{ option.name }} ({{ option.symbol }})</q-item-label>
-                      </q-item-section>
-                    </q-item>
-                  </q-list>
-                </q-btn-dropdown>
-              </template>
-            </q-input>
+            <div class="row items-center no-wrap">
+              <q-btn-dropdown
+                flat
+                dense
+                dropdown-icon="expand_more"
+                class="currency-selector">
+                <template v-slot:label>
+                  <div class="currency-badge fiat-badge" :class="$q.dark.isActive ? 'badge-dark' : 'badge-light'">
+                    <q-icon name="attach_money" size="18px" class="q-mr-xs" />
+                    <span class="text-weight-bold">{{ selectedFiatCurrency }}</span>
+                  </div>
+                </template>
+                <q-list v-for="option in marketCurrencyOptions" :key="option.symbol" :style="{color: $q.dark.isActive ? 'white' : 'black'}">
+                  <q-item clickable v-close-popup @click="selectedFiatCurrency = option.symbol">
+                    <q-item-section>
+                      <q-item-label>{{ option.name }} ({{ option.symbol }})</q-item-label>
+                    </q-item-section>
+                  </q-item>
+                </q-list>
+              </q-btn-dropdown>
+              <q-input
+                class="amount-input"
+                v-model="fiatCashInAmount"
+                filled
+                hide-bottom-space
+                input-class="text-h6 text-weight-bold"
+                :dark="$q.dark.isActive"
+                @focus="onFocusFiatInput"
+                @blur="onBlurFiatInput">
+              </q-input>
+            </div>
           </div>
 
           <!-- Exchange Rate -->
-          <div class="exchange-rate q-mb-md">
-            <div class="row items-center no-wrap text-caption" :class="$q.dark.isActive ? 'text-grey-5' : 'text-grey-6'" style="gap: 6px;">
-              <span>Exchange Rate</span>
-              <span class="text-weight-medium">1 BCH ≈ {{ bchPriceInSelectedCurrency ? bchPriceInSelectedCurrency.toFixed(2) : '--' }} {{ selectedFiatCurrency }}</span>
+          <div class="row justify-between items-center">
+            <div class="exchange-rate q-mb-md">
+              <div class="row items-center no-wrap text-caption" :class="$q.dark.isActive ? 'text-grey-5' : 'text-grey-6'" style="gap: 6px;">
+                <span>Exchange Rate</span>
+                <span class="text-weight-medium">1 BCH ≈ {{ bchPriceInSelectedCurrency ? bchPriceInSelectedCurrency.toFixed(2) : '--' }} {{ selectedFiatCurrency }}</span>
+              </div>
+            </div>
+            <div v-if="inputErrorMessage" class="q-mb-md" >
+              <div class="row items-center no-wrap" style="gap: 6px; color: red;">
+                <span>{{ inputErrorMessage }}</span>
+              </div>
             </div>
           </div>
         </div>
@@ -169,6 +174,7 @@ export default {
       fiatCashInAmount: 0,
       selectedFiatCurrency: 'USD',
       selectedCryptoCurrency: 'BCH',
+      inputErrorMessage: null
     };
   },
   computed: {
@@ -202,10 +208,12 @@ export default {
     cryptoCashInAmount() {
       if (!this.cryptoInputFocused) return
       this.syncFiatFromCrypto()
+      this.checkInputValidation()
     },
     fiatCashInAmount() {
       if (!this.fiatInputFocused) return
       this.syncCryptoFromFiat()
+      this.checkInputValidation()
     },
     preferredCurrency: {
       handler(currency) {
@@ -225,6 +233,9 @@ export default {
     },
   },
   methods: {
+    updateInputErrorMessage(message) {
+      this.inputErrorMessage = message  
+    },
     syncFiatFromCrypto() {
       if (!this.cryptoCashInAmount || !this.bchPriceInSelectedCurrency) return
       if (this.selectedCryptoCurrency === 'BCH') {
@@ -248,12 +259,22 @@ export default {
     },
     onBlurCryptoInput() {
       this.cryptoInputFocused = false
+      this.checkInputValidation()
     },
     onFocusFiatInput() {
       this.fiatInputFocused = true
+      this.checkInputValidation()
     },
     onBlurFiatInput() {
       this.fiatInputFocused = false
+      this.checkInputValidation()
+    },
+    checkInputValidation() {
+      if (!this.isAmountValid()) {
+        this.updateInputErrorMessage('Please enter a valid amount')
+      } else {
+        this.updateInputErrorMessage(null)
+      }
     },
     isAmountValid() {
       const validFiatAmount = (this.fiatCashInAmount && parseFloat(this.fiatCashInAmount) > 0) && !isNaN(this.fiatCashInAmount)

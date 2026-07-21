@@ -229,7 +229,8 @@ export class CardUser {
         try {
             const response = await backend.get(`/cards/by-identifier/${identifier}/`);
             const cardData = response.data;
-            const card = cardData?.contract_id
+            console.log('cardData received:', cardData);
+            const card = cardData?.contract?.contract_id
                 ? await Card.createInitialized(cardData)
                 : await Card.createWithWallet(cardData);
             return card;

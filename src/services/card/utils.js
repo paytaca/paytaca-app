@@ -150,7 +150,7 @@ export function decodeOwnershipCommitment(hex) {
     const buf = Buffer.from(hex, 'hex');
     return {
         type: buf[0] === 1 ? 'cat' : 'pkh',
-        category: buf.subarray(1, buf.length).toString('hex')
+        value: buf.subarray(1, buf.length).toString('hex')
     };
 }
 

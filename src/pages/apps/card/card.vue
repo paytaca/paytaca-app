@@ -248,7 +248,7 @@
         </q-card>
       </q-dialog>
 
-      <cash-in-dialog v-model="showCashInDialog" :card="activeCard" @close="onCloseCashInDialog"/>
+      <CashInDialog v-model="showCashInDialog" :card="activeCard" @close="onCloseCashInDialog"/>
       <ActivateCardForm
         v-if="showActivateCardForm"
         @close="showActivateCardForm = false"
@@ -581,9 +581,8 @@ export default {
       this.showCashInDialog = true
     },
 
-
-
     handleSweepFunds () {
+      console.log('handleSweepFunds:', this.activeCard)
       if (!this.activeCard) return
 
       const balance = parseFloat(this.activeCard?.balance) || 0
