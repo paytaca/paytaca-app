@@ -1,9 +1,10 @@
 import AuthNftService from './auth-nft.js';
+import Card from './card.js';
 import { SecureStoragePlugin } from 'capacitor-secure-storage-plugin'
 import { loadWallet } from 'src/services/wallet';
 import { backend } from './backend.js';
-import Card from './card.js';
 import { bus } from 'src/wallet/event-bus.js';
+import { isSessionExpired } from 'src/services/card/utils.js';
 
 const TOKEN_STORAGE_KEY = 'card-auth-key'
 
@@ -211,6 +212,9 @@ export class CardUser {
             return cards;
         } catch (error) {
             console.error('Error fetching cards:', error);
+            if (isSessionExpired(error)) {
+                bus.emit('card-session-expired');
+            }
             throw error;
         }
     }
@@ -231,6 +235,9 @@ export class CardUser {
             return card;
         } catch (error) {
             console.error(`Error fetching card info for identifier ${identifier}:`, error);
+            if (isSessionExpired(error)) {
+                bus.emit('card-session-expired');
+            }
             throw error;
         }
     }
@@ -245,6 +252,9 @@ export class CardUser {
             return response.data;
         } catch (error) {
             console.error('Error fetching card balances:', error);
+            if (isSessionExpired(error)) {
+                bus.emit('card-session-expired');
+            }
             throw error;
         }
     }
@@ -263,6 +273,9 @@ export class CardUser {
             return utxos;
         } catch (error) {
             console.error('Error fetching token UTXOs:', error);
+            if (isSessionExpired(error)) {
+                bus.emit('card-session-expired');
+            }
             throw error;
         }
     }
@@ -281,6 +294,9 @@ export class CardUser {
             return utxos;
         } catch (error) {
             console.error('Error fetching mutable auth token UTXOs:', error);
+            if (isSessionExpired(error)) {
+                bus.emit('card-session-expired');
+            }
             throw error;
         }
     }
@@ -416,7 +432,7 @@ let _cachedUser = null;
  * Loads CardUser for active wallet and ensures authenticated session.
  * @returns {Promise<CardUser>}
  */
-export async function loadCardUser(forceLogin = false) {
+export async function loadCardUser({ forceLogin = false } = {}) {
     if (_cachedUser && !forceLogin) return _cachedUser;
 
     console.log('Loading Card User session...');

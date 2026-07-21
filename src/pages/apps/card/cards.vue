@@ -161,14 +161,8 @@
       </div>
        
       <!-- Create Card Dialog -->
-      <CreateCardForm v-if="showCreateCardForm" @onClose="onCloseCreateCardForm" @card-created="onCardCreated" :idempotencyKey="idempotencyKey"/>
+      <!-- <CreateCardForm v-if="showCreateCardForm" @onClose="onCloseCreateCardForm" @card-created="onCardCreated" :idempotencyKey="idempotencyKey"/> -->
       <ActivateCardForm v-if="showActivateCardForm" @close="showActivateCardForm = false" @activate="onCardActivated" />
-      <ResumeActivateCardDialog 
-        v-if="showResumeCreateCardDialog" 
-        @resumeAttempt="onResumeCardAttempt" 
-        @deleteAttempt="onDeleteCardAttempt" 
-        @cancelAttempt="onCancelCardAttempt"
-        />
     </q-page-container>
   </q-layout>
 </template>
@@ -178,21 +172,19 @@ import CreateCardForm from 'src/components/card/CreateCardForm.vue';
 import ActivateCardForm from 'src/components/card/ActivateCardForm.vue';
 import MultiWalletDropdown from 'src/components/transactions/MultiWalletDropdown.vue';
 import CardPageHeader from 'src/components/card/CardPageHeader.vue';
-import LinkCardMixin from 'src/mixins/card/activate-card-mixin';
-import ResumeActivateCardDialog from 'src/components/card/ResumeActivateCardDialog.vue';
+import CardActivateMixin from 'src/mixins/card/activate-card-mixin';
+import CardMixin from 'src/mixins/card/card-mixin.js';
 import { loadCardUser } from 'src/services/card/user.js';
 import { satoshiToBch } from 'src/exchange';
-import { bus } from 'src/wallet/event-bus';
 import { CardStorage } from 'src/components/card/createCard.js';
 
 export default {
-  mixins: [LinkCardMixin],
+  mixins: [CardActivateMixin, CardMixin],
   components : {
     MultiWalletDropdown,
     CardPageHeader,
     CreateCardForm,
-    ActivateCardForm,
-    ResumeActivateCardDialog
+    ActivateCardForm
   },
 
   data () {
@@ -264,47 +256,19 @@ export default {
 
   methods: {
     satoshiToBch,
-    dismissSwipeHint () {
-      this.showSwipeHint = false
-      window.removeEventListener('touchstart', this.dismissSwipeHint)
-      window.removeEventListener('mousedown', this.dismissSwipeHint)
-    },
 
     async loadData () {
-      await this.loadCardUser()
+      await this.loadUser()
       await this.checkExistingActivateCardAttempt()
       await this.fetchCards()
       this.fetchCardsBalance()
       this.loadBalanceVisibility()
     },
 
-    async loadCardUser () {
-      await loadCardUser().then(user => {
-        this.user = user
-      }).catch(err => {
-        this.user = null
-      })   
-    },
-
     async onCardCreated () {
       await this.onCloseCreateCardForm()
       await this.fetchCards()
       this.fetchCardsBalance()
-    },
-
-    onCardActivated() {
-      this.showActivateCardForm = false;
-      this.$q.dialog({
-        title: this.$t('Card Activated'),
-        message: this.$t('Your Paytaca card has been successfully activated.'),
-        ok: {
-          label: this.$t('OK'),
-          color: 'primary'
-        }
-      }).onOk(() => {
-        this.fetchCards();
-        this.fetchCardsBalance();
-      });
     },
 
     async fetchCards () {
@@ -364,6 +328,13 @@ export default {
     getDisplayedBalance (cardId) {
       if (this.isBalanceHidden(cardId)) return '••••••'
       return this.satoshiToBch(this.getCardBalance(cardId)?.bch)
+    },
+
+    // ====== Utility functions ======
+    dismissSwipeHint () {
+      this.showSwipeHint = false
+      window.removeEventListener('touchstart', this.dismissSwipeHint)
+      window.removeEventListener('mousedown', this.dismissSwipeHint)
     },
    
     capitalizeFirst (str) {
@@ -595,58 +566,30 @@ export default {
     },
 
     goToCardDetails (card) {
+      console.log('Navigating to card details for card:', card)
       if (card && card.id) {
         this.$router.push({ name: 'card-details', params: {id: card.id} })
       }
     },
 
-    closeDialog () {
-      this.showCreateCardForm = false
-      this.newCardName = ''
-      this.isMinting = false
+    onCardActivated() {
+      this.showActivateCardForm = false;
+      this.$q.dialog({
+        title: this.$t('Card Activated'),
+        message: this.$t('Your Paytaca card has been successfully activated.'),
+        ok: {
+          label: this.$t('OK'),
+          color: 'primary'
+        }
+      }).onOk(() => {
+        this.fetchCards();
+        this.fetchCardsBalance();
+      });
     },
 
-    async createCard () {
-      if (!this.newCardName || !this.newCardName.trim()) {
-        this.notifyError('Please enter a card name')
-        return
-      }
-
-      // Show minting state
-      this.isMinting = true
-
-      // Simulate minting delay (2 seconds)
-      await new Promise(resolve => setTimeout(resolve, 2000))
-
-      // Create new card with 0 balance
-      const newCard = {
-        id: Date.now(),
-        name: this.newCardName.trim(),  // Add name property for display
-        raw: { alias: this.newCardName.trim() },
-        balance: '0.0000', // New card has 0 BCH balance
-        status: 'Active',
-        contractAddress: this.contractAddress,
-        isLocked: false,
-        cardReplacementStatus: 'none'
-      }
-
-      // Save to localStorage using CardStorage
-      const linkedCard = this.CardStorage.createCard(newCard);
-
-      // Update the displayed cards
-      this.subCards = this.CardStorage.getCards();
-
-      // Reset dialog state
-      this.closeDialog()
-
-      // Show success notification
-      this.$q.notify({
-        message: 'Card created successfully!',
-        color: 'positive',
-        icon: 'check_circle',
-        position: 'top',
-        timeout: 1500
-      })
+    closeDialog () {
+      this.newCardName = ''
+      this.isMinting = false
     }
   }
 }

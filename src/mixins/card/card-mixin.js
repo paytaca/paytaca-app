@@ -1,4 +1,13 @@
+import bus from 'src/services/event-bus';
+import { loadCardUser } from 'src/services/card/user.js';
+
 export default {
+  data () {
+    return {
+      isLoaded: false,
+      user: null
+    }
+  },
   computed: {
      textColor() {
       return this.$q.dark.isActive ? 'text-white' : 'text-black'
@@ -16,7 +25,29 @@ export default {
       return this.$q.dark.isActive ? 'bg-grey-9' : 'bg-grey-2'
     }
   },
+  
+  created() {
+    bus.on('card-session-expired', this.onCardSessionExpired)
+  },
+
+  mounted() {
+    if (typeof this.loadData !== 'function') {
+      console.warn('This mixin requires a `loadData` method on the component.')
+      return
+    }
+  },
+
   methods: {
+    async loadUser() {
+      this.user = await loadCardUser()
+    },
+
+    onCardSessionExpired() {
+      console.log('Session expired')
+      loadCardUser({ forceLogin: true })
+      this.loadData()
+    },
+
     formatContractAddress(address) {
       if (!address) return ''
       const addr = typeof address === 'object' ? address.contractAddress : address
@@ -42,5 +73,15 @@ export default {
         ...opts
       })
     },
+    showLoading(message) {
+      this.isLoaded = false
+      this.$q.loading.show({
+        message: message || this.$t('Loading...')
+      });
+    },
+    hideLoading() {
+      this.isLoaded = true
+      this.$q.loading.hide();
+    }
   }
 }

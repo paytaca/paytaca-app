@@ -134,7 +134,9 @@ export class Card {
    * @returns {void}
    */
   _assertContract() {
+    console.log('this.contract:', this.contract)
     if (!this.contract) {
+      console.log('contract is null or undefined')
       throw new Error('TapToPay not initialized. Ensure card has contract_id and call initializeContract() first.');
     }
   }
@@ -276,7 +278,7 @@ export class Card {
       let linkingTxid = lastAttempt?.linkingTxid ? lastAttempt.linkingTxid : null;
       if (currentStatus < CardActivationStatus.OWNERSHIP_UPDATED) {
         console.log('[Card.activate] Setting contract ownership with linking token...');
-        
+
         const privateKey = this.wallet.privkey();
         const result = await this.contract.setOwner(privateKey, authCategory);
         
@@ -964,8 +966,13 @@ export class Card {
    * @returns {Promise<Object>}
    */
   async sweep(opts = { broadcast: true }) {
+    console.log('[card.sweep] Sweeping card BCH balance to external address...');
     this._assertContract();
+    console.log('[card.sweep] Contract initialized:', this.contract);
     this._assertWallet();
+    
+
+    console.log('Sweeping card BCH balance to external address...');
 
     const privateKey = this.wallet.privkey();
     const sweepResponse = await this.contract.sweep({
@@ -973,6 +980,8 @@ export class Card {
       toAddress: this.wallet.address(),
       broadcast: opts.broadcast
     });
+
+    console.log('Sweep response:', sweepResponse);
 
     if (sweepResponse.txid) {
       this.processTransaction(sweepResponse.txid);

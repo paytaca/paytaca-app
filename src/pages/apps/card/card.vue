@@ -80,7 +80,7 @@
               class="tab-item"
               :class="{
                 'tab-active': activeTab === tab.label,
-                'tab-disabled': tab.label === 'Order Card'
+                'tab-disabled': tab.disabled
               }"
               @click="onTabClick(tab.label)"
             >
@@ -259,6 +259,7 @@
 
 <script>
 import {createCardLogic} from 'src/components/card/createCard.js'
+import CardMixin from 'src/mixins/card/card-mixin.js'
 import TransactionHistory from 'src/components/card/TransactionHistory.vue'
 import ManageAuthNFTs from 'src/components/card/ManageAuthNFTs.vue'
 import CashInDialog from 'src/components/card/CashInDialog.vue'
@@ -269,10 +270,9 @@ import JourneyStepper from 'src/components/card/JourneyStepper.vue'
 import { satoshiToBch } from 'src/exchange'
 import { loadCardUser } from 'src/services/card/user'
 import { Card } from 'src/services/card/card'
-import { computed } from 'vue'
 
 export default {
-  mixins: [createCardLogic],
+  mixins: [createCardLogic, CardMixin],
   components: {
     TransactionHistory,
     ManageAuthNFTs,
@@ -283,18 +283,17 @@ export default {
     JourneyStepper
   },
 
-  provide () {
-    return {
-      cardUser: computed(() => this.cardUser)
-    }
-  },
+  // provide() {
+  //   return {
+  //     user: computed(() => this.cardUser)
+  //   }
+  // },
 
   data () {
     return {
-      cardUser: null,
       activeCard: null,
       loading: false, // Loading state while fetching card from backend
-      activeTab: 'Transactions',
+      activeTab: 'Card Security', // Default tab
       showEditNameDialog: false,
       newCardName: '',
       showCashInDialog: false,
@@ -343,20 +342,16 @@ export default {
   computed: {
     tabs () {
       return [
-        { label: 'Transactions', icon: 'receipt_long' },
-        { label: 'Manage Merchants', icon: 'storefront' },
-        { label: 'Card Security', icon: 'shield' },
-        { label: 'Order Card', icon: 'local_mall' }
+        { label: 'Transactions', icon: 'receipt_long', disabled: true },
+        { label: 'Manage Merchants', icon: 'storefront', disabled: true },
+        { label: 'Card Security', icon: 'shield', disabled: false },
+        { label: 'Order Card', icon: 'local_mall', disabled: true }
       ]
     },
 
     selectedCurrency () {
       return this.$store.getters['market/selectedCurrency']
     },
-
-  
-
-  
 
     hasCardBalance () {
       const balance = parseFloat(this.activeCard?.balance) || 0
@@ -366,25 +361,7 @@ export default {
   },
 
   async mounted () {
-
-    // Load card user once and provide to child components
-    this.cardUser = await loadCardUser()
-
-    // Wait for router to be ready
-    await this.$router.isReady()
-    
-    // Try multiple times to get route params (they might not be immediately available)
-    let attempts = 0
-    const maxAttempts = 10
-    
-    while ((!this.$route.params.id && !this.$route.query.id && !localStorage.getItem('lastActiveCardId')) && attempts < maxAttempts) {
-      await new Promise(resolve => setTimeout(resolve, 50))
-      attempts++
-    }
-    
-    
-    // Load the specific card (from localStorage or backend)
-    await this.loadSpecificCard()
+    await this.loadData()
     
     // Only proceed with tab logic if we have a valid card
     if (!this.activeCard) {
@@ -435,6 +412,37 @@ export default {
   },
 
   methods: {
+    async loadData () {
+      console.log('Loading user and specific card data...')
+      await this.loadUser()
+      await this.loadActiveCard()
+    },
+
+    async loadActiveCard () {
+      await this.$router.isReady()  
+      const cardId = this.$route.params?.id
+
+      this.loading = true
+      
+      try {
+        let card = this.$store.getters['card/getCardById'](cardId)
+        console.log('Card data from store:', card)
+        
+        card = await this.user.fetchCardByIdentifier(cardId)
+        if (!card) {
+          this.loading = false
+          this.$router.push({ name: 'card-list' });
+        }
+
+        this.activeCard = card
+        this.newCardName = card.alias
+      } catch (error) {
+        this.$router.push({ name: 'card-list' });
+      } finally {
+        this.loading = false
+      }
+    },
+
     async subscribeToCardTransactions () {
       if (!this.activeCard) return
       await this.activeCard.subscribeToTransactions()
@@ -459,91 +467,6 @@ export default {
       // Backend option: card.name || this.backendData?.raw?.alias
       const name = card.name
       return this.capitalizeFirst(name) || 'Card'
-    },
-
-    async loadSpecificCard (fetchFreshCard = false) {
-      // Try multiple ways to get the card ID
-      let cardId = null
-      
-      // Method 1: Route params (from /details/:id)
-      if (this.$route.params && this.$route.params.id) {
-        cardId = this.$route.params.id
-      }
-      
-      // Method 2: Query params
-      if (!cardId && this.$route.query && this.$route.query.id) {
-        cardId = this.$route.query.id
-      }
-      
-      // Method 3: localStorage backup
-      if (!cardId) {
-        const savedId = localStorage.getItem('lastActiveCardId')
-        if (savedId) {
-          cardId = savedId
-        }
-      }
-      
-      // Method 4: Parse from URL hash directly (fallback for hash mode)
-      if (!cardId && window.location.hash) {
-        const hash = window.location.hash
-        // Match patterns like #/apps/card/details/123 or #/card/details/123
-        const match = hash.match(/\/details\/(\d+)/)
-        if (match) {
-          cardId = match[1]
-        }
-        // Also try matching #/card/123 or #/apps/card/123
-        const simpleMatch = hash.match(/#\/?(?:apps\/)?card\/(\d+)/)
-        if (simpleMatch) {
-          cardId = simpleMatch[1]
-        }
-      }
-      
-      if (!cardId) {
-        this.$router.push({ name: 'card-list' })
-        return
-      }
-      
-      // Save the card ID to localStorage for persistence across refreshes
-      localStorage.setItem('lastActiveCardId', cardId)
-      
-      this.loading = true
-      
-      try {
-        // Using Vuex getter for localStorage access
-        let cardData = this.$store.getters['card/getCardById'](cardId)
-        
-        if (!cardData || fetchFreshCard) {
-          const user = await loadCardUser()
-          const fetchedCard = await user.fetchCardByIdentifier(cardId)
-          cardData = fetchedCard?.raw ? { ...fetchedCard.raw } : fetchedCard
-          if (cardData) {
-            this.$store.commit('card/updateCard', cardData)
-          }
-        }
-
-        const card = cardData?.contract_id
-          ? await Card.createInitialized(cardData)
-          : await Card.createWithWallet(cardData)
-
-        if (card) {
-          // // Ensure all reactive properties exist with defaults
-          // const cardWithDefaults = {
-          //   isLocked: false,
-          //   transactionAlerts: false,
-          //   ...card
-          // }
-          this.activeCard = card
-          this.newCardName = card.name || ''
-          this.loading = false
-          return
-        }
-        
-        this.loading = false
-        this.$router.push({ name: 'card-list' });
-      } catch (error) {
-        this.loading = false
-        this.$router.push({ name: 'card-list' });
-      }
     },
 
     onLockStatusChanged(isLocked) {

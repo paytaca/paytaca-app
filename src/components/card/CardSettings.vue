@@ -42,11 +42,8 @@
             :color="activeCard?.isAlertsEnabled ? 'primary' : 'grey'"
             size="24px"
           />
-          <div class="q-ml-md">
-            <div class="text-subtitle2"
-              :class="textColor">
-              Transaction Alerts
-            </div>
+          <div class="q-ml-md disabled-item">
+            <div class="text-subtitle2" :class="textColor">Transaction Alerts</div>
             <div 
               class="text-caption"
               :class="$q.dark.isActive ? 'text-grey-5' : 'text-grey'">
@@ -54,7 +51,8 @@
             </div>
           </div>
         </div>
-        <q-toggle 
+        <q-toggle
+          disabled 
           v-model="isAlertsEnabled"
           color="primary"
           @update:model-value="onAlertsToggle"
@@ -63,7 +61,8 @@
 
       <q-separator color="primary" />
 
-      <div class="settings-item clickable" :class="{ 'cursor-not-allowed': hasCardBalance, 'opacity-50': hasCardBalance }" @click="handleCardReplacementToggle">
+      <!-- <div class="settings-item clickable" :class="{ 'cursor-not-allowed': hasCardBalance, 'opacity-50': hasCardBalance }" @click="handleCardReplacementToggle"> -->
+      <div class="settings-item" :class="{ 'clickable': false, 'disabled-item': true }">
         <div class="settings-item-content">
           <q-icon name="autorenew" color="primary" size="24px" />
           <div class="q-ml-md">
@@ -223,21 +222,13 @@
     <q-separator color="primary" />
 
     <div class="settings-list">
-      <div 
-        class="settings-item" 
-        :class="{ 'clickable': !hasCardBalance, 'disabled-item': hasCardBalance }"
-        @click="showDeleteCard = !showDeleteCard"
-      >
+      <!-- <div class="settings-item" :class="{ 'clickable': !hasCardBalance, 'disabled-item': hasCardBalance }" @click="showDeleteCard = !showDeleteCard"> -->
+      <div class="settings-item" :class="{ 'clickable': false, 'disabled-item': true }">
         <div class="settings-item-content">
           <q-icon name="delete" :color="hasCardBalance ? 'grey-5' : 'negative'" size="24px" />
           <div class="q-ml-md">
             <div :class="hasCardBalance ? 'text-grey-5' : 'text-subtitle2 text-negative'">Delete Card</div>
-            <div 
-              class="text-caption"
-              :class="$q.dark.isActive ? 'text-grey-5' : 'text-grey'"
-            >
-              Permanently remove this card
-            </div>
+            <div class="text-caption" :class="$q.dark.isActive ? 'text-grey-5' : 'text-grey'">Permanently remove this card</div>
           </div>
         </div>
         <q-icon :name="showDeleteCard ? 'expand_less' : 'expand_more'" :color="$q.dark.isActive ? 'grey-5' : 'grey-7'" />
@@ -383,6 +374,8 @@ export default {
       }
     },
     async handleSweepFunds () {
+      console.log('[CardSettings] handleSweepFunds called')
+      console.log('[CardSettings] activeCard:', this.activeCard)
       if (!this.activeCard) return
 
       this.$q.loading.show({
@@ -405,7 +398,7 @@ export default {
         return
       }
 
-      await this.activeCard.sweep({ broadcast: true }).then(result => {
+      await this.activeCard.sweep({ broadcast: false }).then(result => {
         this.$q.notify({
           message: `Successfully swept ${balance} BCH to your wallet`,
           color: 'positive',

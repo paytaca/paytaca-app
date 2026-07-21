@@ -1,7 +1,7 @@
 <template>
   <q-page class="column items-center q-px-md q-pb-md scroll" style="padding-top: 0; height: 100%;">
     <!-- Skeleton Loading -->
-    <div v-if="!isloaded" class="column items-center full-width" style="max-width: 650px;">
+    <div v-if="!isLoaded" class="column items-center full-width" style="max-width: 650px;">
       <div class="full-width q-mb-lg">
         <q-skeleton type="text" width="120px" height="28px" class="q-mx-auto q-mb-md" />
         <div class="row justify-center q-gutter-sm">
@@ -161,20 +161,25 @@
 <script>
 import ActivateCardForm from 'src/components/card/ActivateCardForm.vue';
 import OrderCard from 'src/components/card/OrderCard.vue';
-import { loadCardUser } from 'src/services/card/user';
-import ActivateCardAttemptMixin from 'src/mixins/card/activate-card-mixin'
-import bus from 'src/services/event-bus';
+import ActivateCardMixin from 'src/mixins/card/activate-card-mixin'
+import CardMixin from 'src/mixins/card/card-mixin';
+import { computed } from 'vue'
 
 export default {
-  mixins: [ActivateCardAttemptMixin],
+  mixins: [CardMixin, ActivateCardMixin],
   components: { 
     ActivateCardForm,
     OrderCard
   },
 
+  provide() {
+    return {
+      user: computed(() => this.user)
+    }
+  },
+
   data () {
     return {
-      isloaded: false,
       wizardStep: 'welcome', // 'welcome' | 'creating' | 'preview' | 'dashboard'
       createdCard: null,
       showInlineOrder: false,
@@ -207,10 +212,6 @@ export default {
     }
   },
 
-  created() {
-    bus.on('session-expired', this.handleSessionExpired);
-  },
-
   async mounted () {
     await this.loadData()
   },
@@ -218,12 +219,19 @@ export default {
   methods: {
     async loadData() {
       this.showLoading()
-      await this.loadCardUser()
-      if (this.user?.cardCount > 0 && this.$store) {
-        this.$store.dispatch('card/fetchCards').catch(() => {})
-      }
-      // await this.checkExistingActivateCardAttempt()
+      await this.loadUser()
+      this.loadCardList()
+      this.loadWizardStep()
+      this.hideLoading()
+    },
 
+    loadCardList() {
+      if (this.user?.cardCount > 0) {
+        this.$store.dispatch('card/fetchCards')
+      }
+    },
+
+    loadWizardStep() {
       // Determine wizard step
       if (this.isReplacement) {
         this.wizardStep = 'dashboard'
@@ -232,41 +240,18 @@ export default {
       } else {
         this.wizardStep = 'welcome'
       }
+    },
 
-      this.isloaded = true
-      this.hideLoading()
-    },
-    async loadCardUser({ forceLogin = false } = {}) {
-      try {
-        const user = await loadCardUser(forceLogin);
-        this.user = user;
-      } catch (err) {
-        this.user = null;
-      }
-    },
-    async handleSessionExpired() {
-      this.showLoading()
-      await this.loadCardUser({ forceLogin: true })
-      this.hideLoading()
-    },
-    onCardCreated (card) {
-      this.createdCard = card
-      // Add to Vuex store so card.vue can find it when navigating
-      if (card?.raw && this.$store) {
-        this.$store.commit('card/addCard', card.raw)
-      }
-      this.showCreateCardForm = false
-      this.wizardStep = 'preview'
-      this.showInlineOrder = false
-    },
-    showLoading(message) {
-      this.$q.loading.show({
-        message: message || this.$t('Loading...')
-      });
-    },
-    hideLoading() {
-      this.$q.loading.hide();
-    }
+    // onCardCreated (card) {
+    //   this.createdCard = card
+    //   // Add to Vuex store so card.vue can find it when navigating
+    //   if (card?.raw && this.$store) {
+    //     this.$store.commit('card/addCard', card.raw)
+    //   }
+    //   this.showCreateCardForm = false
+    //   this.wizardStep = 'preview'
+    //   this.showInlineOrder = false
+    // }
   }
 }
 </script>

@@ -128,9 +128,7 @@ class TapToPay {
      */
     async getBchUtxos (amount = 0) {
         const cashAddress = this.getContract().address
-        const wallet = await loadWallet()
-        const rawWallet = await wallet.getRawWallet()
-        const { cumulativeValue, utxos } = await rawWallet.watchtower.BCH.getBchUtxos(cashAddress, amount)
+        const { cumulativeValue, utxos } = await watchtower.BCH.getBchUtxos(cashAddress, amount)
         return {
             cumulativeValue,
             utxos: utxos?.map(utxo => ({
@@ -899,5 +897,93 @@ export class TapToPayV2 extends TapToPay {
     async isOwnershipSet () {
         const { authOwnershipToken } = await this.getMerchantAuthCategory()
         return !!authOwnershipToken
+    }
+
+    /**
+     * Sweeps all contract-held tokens and BCH to the provided address.
+     *
+     * @param {Object} params
+     * @param {string} params.ownerWif - Owner WIF used to authorize the sweep.
+     * @param {string} params.toAddress - Destination cash address for BCH.
+     * @param {boolean} [params.broadcast=false] - Broadcast transactions when true.
+     * @returns {Promise<Object>} Sweep results for tokens and BCH.
+     */
+    async sweep ({ ownerWif, toAddress, broadcast = false }) {
+        console.log('[sweep] Starting sweep with params:', { ownerWif, toAddress, broadcast })
+        
+        const contract = this.getContract()
+        const ownerSig = new SignatureTemplate(ownerWif)
+        const ownerPk = binToHex(ownerSig.getPublicKey())
+        const ownerPkh = pubkeyToPkHash(ownerPk)
+
+        if (ownerPkh !== this.contractCreationParams.ownerPkh) {
+            throw new Error('Owner public key hash does not match the contract\'s owner public key hash')
+        }
+
+        const sweepResult = {}
+        const { cumulativeValue: sweepAmount, utxos: bchUtxos } = await this.getBchUtxos()
+        console.log('[sweep] BCH UTXOs:', bchUtxos)
+        
+        // Prepare inputs
+        const bchInputs = bchUtxos.map(utxo => {
+            const normalized = { 
+                satoshis: toBigInt(utxo.satoshis),
+                txid: utxo.txid,
+                vout: utxo.vout
+            }
+            return normalized
+        })
+
+        // Prepare outputs
+        const outputs = [
+            { to: toAddress, amount: sweepAmount }
+        ]
+
+        // Estimate fee
+        const estimatedFee = this.estimateFee({ numContractInputs: bchInputs.length, numP2pkhInputs: 1, numOutputs: 2 })
+        const { 
+            cumulativeValue: fundingAmount, 
+            groupedUtxos: groupedBchFundingInputs, 
+            changeAddress 
+        } = await this.getFundingInputs(estimatedFee)
+        
+        const changeAmount = fundingAmount - BigInt(estimatedFee)
+        
+        if (fundingAmount < BigInt(estimatedFee)) {
+            sweepResult = { success: false, message: 'Insufficient BCH balance to cover sweep fee.' }
+            return sweepResult
+        }
+
+        if (changeAmount > P2PKH_DUST) {
+            outputs.push({ to: changeAddress, amount: changeAmount })
+        }
+
+        const provider = new ElectrumNetworkProvider(Network.MAINNET)
+        const tx = new TransactionBuilder({provider})
+
+        tx.addInputs(bchInputs, contract.unlock.sweep(ownerPk, ownerSig))
+        groupedBchFundingInputs.forEach(({ inputs, signatureTemplate }) => {
+            tx.addInputs(inputs, signatureTemplate.unlockP2PKH())
+        })
+        tx.addOutputs(outputs)
+
+        let result
+        try {
+            // Build the transaction
+            const txHex = tx.build()
+            console.log('[sweep] Built transaction hex:', txHex)
+
+            if (broadcast) {
+                result = await this.broadcastTransaction(txHex)
+            } else {
+                result = { success: true, txHex }
+            }
+
+        } catch (error) {
+            throw error
+        }
+
+        console.log('[sweep] Sweep result:', result)
+        return result
     }
 }
