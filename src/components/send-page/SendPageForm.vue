@@ -178,9 +178,7 @@
   <template v-if="!isNFT && !cauldronEnabled">
     <div v-if="asset?.id?.startsWith?.('ct/')" class="q-mt-sm text-center">
       <div v-if="showAdvancedOptions">
-        <p class="q-mb-xs text-caption text-weight-medium text-bow">
-          {{ $t('NoTokenBalanceCauldronHint', { symbol: (asset?.symbol || '').toUpperCase() }, 'You have no {symbol} tokens, click below to auto-swap from BCH') }}
-        </p>
+        
         <q-btn
           no-caps
           :label="$t('SendUsingBchWithCauldron')"
@@ -594,7 +592,6 @@ export default {
     },
     onEmptyRecipient () {
       this.emptyRecipient = this.recipientAddress === ''
-      console.debug('onEmptyRecipient', { recipientAddress: this.recipientAddress, emptyRecipient: this.emptyRecipient })
       this.$emit('on-empty-recipient', this.emptyRecipient)
     },
     onQRUploaderClick () {
@@ -671,7 +668,6 @@ export default {
       })
     },
     syncPropsData() {
-      console.debug('Syncing Props data');
 
       // Syncing this.recipient.recipientAddress is handled somewhere else
       this.amount = this.recipient.amount
