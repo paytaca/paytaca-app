@@ -1,12 +1,13 @@
 <template>
   <div :class="$q.dark.isActive ? 'bg-dark' : 'card-page-bg-light'">
     <!-- Loading state while fetching card -->
-    <q-page v-if="loading" class="flex flex-center">
-        <q-spinner color="primary" size="3em" />
-        <div class="text-subtitle1 q-ml-md" :class="textColor">Loading card...</div>
-      </q-page>
+    <q-page v-if="!isLoaded" class="flex flex-center">
+      <q-spinner color="primary" size="3em" />
+      <div class="text-subtitle1 q-ml-md" :class="textColor">Loading card...</div>
+    </q-page>
 
-      <q-page v-else-if="activeCard" class="q-px-md">
+    <div v-else>
+      <q-page v-if="activeCard" class="q-px-md">
         <div style="max-height: calc(100vh - 60px); overflow-y: auto; padding-bottom: 20px;">
           <div class="column items-center">
             <div class="flex flex-center full-width q-mb-md">
@@ -91,6 +92,7 @@
         </div>
 
         <div 
+          v-if="isLoaded"
           class="content-box flex flex-center"
           :class="$q.dark.isActive ? 'content-box-dark' : 'content-box-light'"
         >
@@ -103,7 +105,12 @@
             :card="activeCard"
             :key="activeCard.id"
           />
-          <CardSettings v-if="activeTab === 'Card Security'" :active-card="activeCard" @lock-status-changed="onLockStatusChanged"/>
+          <CardSettings v-if="activeTab === 'Card Security'" 
+            :key="cardSettingsKey"
+            :active-card="activeCard" 
+            @lock-status-changed="onLockStatusChanged" 
+            @sweep-funds="onSweepFunds"
+            />
           <div v-else-if="activeTab === 'Order Card'" class="full-width column items-center q-pa-md">
             <div class="full-width q-mb-md" style="max-width: 400px;">
               <JourneyStepper
@@ -143,10 +150,6 @@
           <div style="height: 120px;"></div>
           </div>
         </div>
-      </q-page>
-
-      <q-page v-else class flex flex-center>
-        <q-spinner-dots color="primary" size="40px" />
       </q-page>
 
       <q-dialog v-model="showEditNameDialog">
@@ -254,6 +257,7 @@
         @close="showActivateCardForm = false"
         @activate="onCardActivated"
       />
+    </div>
   </div>
 </template>
 
@@ -309,7 +313,8 @@ export default {
         { label: 'Printing', icon: 'print', status: 'pending' },
         { label: 'Delivery', icon: 'local_shipping', status: 'pending' },
         { label: 'Activation', icon: 'link', status: 'pending' },
-      ]
+      ],
+      cardSettingsKey: 0, // Key to force re-render of CardSettings component
     }
   },
 
@@ -370,19 +375,14 @@ export default {
     
     // Wait for computed properties to be ready
     await this.$nextTick()
-    
-    // Debug: Check localStorage directly
-    const rawCards = localStorage.getItem('mock_subcards')
-    const allCards = rawCards ? JSON.parse(rawCards) : []
-    const thisCard = allCards.find(c => String(c.id) === String(this.activeCard.id))
-    
+        
     // Load saved active tab for this card
     const savedTab = this.CardStorage.getCardProperty(this.activeCard.id, 'activeTab')
     
     // Force tabs to recompute by accessing it
     const availableTabs = this.tabs
     
-    if (savedTab && availableTabs && availableTabs.includes(savedTab)) {
+    if (savedTab && availableTabs && availableTabs.some(tab => tab.label === savedTab)) {
       this.activeTab = savedTab
     }
     
@@ -396,33 +396,27 @@ export default {
         'other-settings': 'Card Security',
         'order-card': 'Order Card'
       }
-      if (tabMap[requestedTab] && this.tabs.includes(tabMap[requestedTab])) {
+      if (tabMap[requestedTab] && this.tabs.some(tab => tab.label === tabMap[requestedTab])) {
         this.activeTab = tabMap[requestedTab]
       }
     }
-    
-    // Load the specific card (from localStorage or backend)
-    // await this.loadSpecificCard()
-    this.getCardBchBalance()
-    this.loadBalanceVisibility()
-
-    this.subscribeToCardTransactions()
-
-    this.activeCard.getUtxos()
   },
 
   methods: {
     async loadData () {
-      console.log('Loading user and specific card data...')
+      this.isLoaded = false
       await this.loadUser()
       await this.loadActiveCard()
+      this.getCardBchBalance()
+      this.loadBalanceVisibility()
+      this.isLoaded = true
     },
 
     async loadActiveCard () {
       await this.$router.isReady()  
       const cardId = this.$route.params?.id
 
-      this.loading = true
+      // this.loading = true
       
       try {
         let card = this.$store.getters['card/getCardById'](cardId)
@@ -430,7 +424,7 @@ export default {
         
         card = await this.user.fetchCardByIdentifier(cardId)
         if (!card) {
-          this.loading = false
+          // this.loading = false
           this.$router.push({ name: 'card-list' });
         }
 
@@ -438,14 +432,7 @@ export default {
         this.newCardName = card.alias
       } catch (error) {
         this.$router.push({ name: 'card-list' });
-      } finally {
-        this.loading = false
       }
-    },
-
-    async subscribeToCardTransactions () {
-      if (!this.activeCard) return
-      await this.activeCard.subscribeToTransactions()
     },
 
     capitalizeFirst (str) {
@@ -499,6 +486,11 @@ export default {
     onCloseCashInDialog () {
       this.showCashInDialog = false
       this.getCardBchBalance() // Refresh balance after cash-in
+      this.cardSettingsKey++ // Force re-render of CardSettings component to reflect updated balance
+    },
+
+    onSweepFunds () {
+      this.getCardBchBalance()
     },
 
     async getCardBchBalance() {
@@ -565,7 +557,7 @@ export default {
         // Show success notification
         this.notifySuccess('Card name updated successfully')
       }
-      this.loadSpecificCard(true)
+      this.loadActiveCard()
       this.showEditNameDialog = false
     },
 

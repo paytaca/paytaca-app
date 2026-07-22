@@ -52,7 +52,7 @@
           </div>
         </div>
         <q-toggle
-          disabled 
+          disable
           v-model="isAlertsEnabled"
           color="primary"
           @update:model-value="onAlertsToggle"
@@ -165,7 +165,7 @@
       <template v-if="showSweepFunds">
         <div class="q-pa-md full-width">
           <div class="text-caption q-mb-md" :class="$q.dark.isActive ? 'text-grey-5' : 'text-grey'">
-            This will transfer all funds ({{ activeCard?.balance || 0 }} BCH) from your card back to your wallet.
+            This will transfer all funds ({{ satoshiToBch(cardBalance) || 0 }} BCH) from your card back to your wallet.
           </div>
           <div class="row justify-center">
             <q-btn
@@ -193,7 +193,7 @@
             <q-btn flat round dense icon="close" :color="$q.dark.isActive ? 'grey-4' : 'grey-6'" @click="showSweepFundsDialog = false" />
           </div>
           <div class="q-mb-md" :class="textColorGrey">
-            This will transfer all funds ({{ activeCard?.balance || 0 }} BCH) from your card back to your wallet.
+            This will transfer all funds ({{ satoshiToBch(cardBalance) || 0 }} BCH) from your card back to your wallet.
           </div>
           <div class="text-caption text-negative">
             Are you sure you want to sweep all funds?
@@ -223,11 +223,13 @@
 
     <div class="settings-list">
       <!-- <div class="settings-item" :class="{ 'clickable': !hasCardBalance, 'disabled-item': hasCardBalance }" @click="showDeleteCard = !showDeleteCard"> -->
-      <div class="settings-item" :class="{ 'clickable': false, 'disabled-item': true }">
+      <div class="settings-item disabled-item">
         <div class="settings-item-content">
-          <q-icon name="delete" :color="hasCardBalance ? 'grey-5' : 'negative'" size="24px" />
+          <!-- <q-icon name="delete" :color="hasCardBalance ? 'grey-5' : 'negative'" size="24px" /> -->
+          <q-icon name="delete" color="grey-5" size="24px" />
           <div class="q-ml-md">
-            <div :class="hasCardBalance ? 'text-grey-5' : 'text-subtitle2 text-negative'">Delete Card</div>
+            <!-- <div :class="hasCardBalance ? 'text-grey-5' : 'text-subtitle2 text-negative'">Delete Card</div> -->
+            <div class="text-grey-5">Delete Card</div>
             <div class="text-caption" :class="$q.dark.isActive ? 'text-grey-5' : 'text-grey'">Permanently remove this card</div>
           </div>
         </div>
@@ -290,6 +292,7 @@
 <script>
 import CardMixin from 'src/mixins/card/card-mixin';
 import { CardStorage } from 'src/components/card/createCard'
+import { satoshiToBch } from 'src/exchange';
 
 export default {
   name: 'CardSettings',
@@ -300,6 +303,7 @@ export default {
       required: true
     },
   },
+  emits: ['lock-status-changed', 'sweep-funds'],
   data() {
     return {
       isLocked: this.activeCard?.isLocked || false,
@@ -329,27 +333,43 @@ export default {
       ]
     }
   },
-  async mounted () {
-    this.cardBalance = await this.activeCard?.getBchBalance() || 0
-    this.loadCardReplacementStatus()
+  mounted () {
+    this.loadData()
   },
   methods: {
+    satoshiToBch,
+    async loadData() {
+      this.isLocked = this.activeCard.isLocked || false;
+      this.isAlertsEnabled = this.activeCard.isAlertsEnabled || false;
+      await this.loadCardBalance()
+      this.loadCardReplacementStatus()
+    },
+    async loadCardBalance() {
+      this.cardBalance = await this.activeCard?.getBchBalance() || 0
+    },
     async onCardLockToggle(isLocked) {
       this.isLocking = true;
       try {
         await this.$store.dispatch('card/updateCardLockStatus', {
-          cardId: this.activeCard.id,
+          cardId: this.activeCard?.id,
           isLocked
         });
+
+        this.$emit('lock-status-changed', isLocked);
+        this.$q.notify({
+          type: 'positive',
+          message: `Card has been ${isLocked ? 'locked' : 'unlocked'} successfully!`
+        });
       } catch (error) {
+        console.error('Failed to update card lock status:', error);
+        this.isLocked = !isLocked; // Revert toggle state on error
+        this.$q.notify({
+          type: 'negative',
+          message: `Failed to ${isLocked ? 'lock' : 'unlock'} the card. Please try again.`
+        });
+      } finally {
+        this.isLocking = false;
       }
-      CardStorage.setCardProperty(this.activeCard.id, 'isLocked', isLocked)
-      this.$emit('lock-status-changed', isLocked);
-      this.$q.notify({
-        type: 'positive',
-        message: `Card has been ${isLocked ? 'locked' : 'unlocked'} successfully!`
-      });
-      this.isLocking = false;
     },
     async onAlertsToggle(isAlertsEnabled) {
       try {
@@ -376,18 +396,13 @@ export default {
     async handleSweepFunds () {
       console.log('[CardSettings] handleSweepFunds called')
       console.log('[CardSettings] activeCard:', this.activeCard)
-      if (!this.activeCard) return
 
       this.$q.loading.show({
         message: 'Sweeping funds, please wait...',
-        spinner: 'dots',
-        backgroundColor: 'rgba(0, 0, 0, 0.5)',
-        delay: 200
+        backgroundColor: 'rgba(0, 0, 0, 0.5)'
       })
-
-      const balance = parseFloat(await this.activeCard?.getBchBalance()) || 0
       
-      if (balance <= 0) {
+      if (this.cardBalance <= 0) {
         this.$q.notify({
           message: 'No funds to sweep',
           color: 'warning',
@@ -398,14 +413,17 @@ export default {
         return
       }
 
-      await this.activeCard.sweep({ broadcast: true }).then(result => {
+      await this.activeCard.sweep({ broadcast: true }).then(() => {
+        this.loadCardBalance()
         this.$q.notify({
-          message: `Successfully swept ${balance} BCH to your wallet`,
+          message: `Successfully sent ${this.satoshiToBch(this.cardBalance)} BCH to your wallet`,
           color: 'positive',
           icon: 'check_circle',
           position: 'top'
         })
+        this.$emit('sweep-funds')
       }).catch((error) => {
+        console.error('[CardSettings] Sweep funds failed:', error)
         this.$q.notify({
           message: 'Failed to sweep funds. Please try again.',
           color: 'negative',

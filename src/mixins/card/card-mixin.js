@@ -25,13 +25,6 @@ export default {
     }
   },
 
-  mounted() {
-    if (typeof this.loadData !== 'function') {
-      console.warn('This mixin requires a `loadData` method on the component.')
-      return
-    }
-  },
-
   methods: {
     async loadUser() {
       this.user = await loadCardUser()

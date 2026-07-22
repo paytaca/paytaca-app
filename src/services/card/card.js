@@ -323,7 +323,7 @@ export class Card {
         await updateCardActivationAttempt(this.wallet.walletHash, { status: currentStatus });
       }
 
-      if (currentStatus === CardActivationStatus.GLOBAL_AUTH_ISSUED) {
+      if (currentStatus === CardActivationStatus.VALIDATION_REQUESTED) {
         console.log('[Card.activate] Card creation completed successfully');
         // Clear the card activation attempt from local storage since workflow is complete
         await clearCardActivationAttempt(this.wallet.walletHash);
