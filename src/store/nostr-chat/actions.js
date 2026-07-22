@@ -203,11 +203,7 @@ export async function reinitialize ({ commit, dispatch, state }) {
   }
 
   const keys = deriveNostrKeys(mnemonic)
-  const ws = getWalletState(state)
 
-  if (ws.keys?.pubKeyHex === keys.pubKeyHex) return
-
-  // Disconnect existing relay subscriptions for the old identity
   stopActiveServices()
   relayService.stopStatusPolling()
   relayService.disconnect()
