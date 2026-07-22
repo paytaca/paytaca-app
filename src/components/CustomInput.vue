@@ -24,7 +24,7 @@
   <KeyboardTooltip v-if="showTooltip" :dark-mode="darkMode" :key="'tip-' + tipCounter" />
   </div>
 
-  <teleport to="body">
+  <teleport to="body" v-if="!noKeyboard">
     <custom-keyboard
       :custom-keyboard-state="keyboardState"
       v-on:addKey="setAmount"
@@ -58,6 +58,10 @@ export default {
     decimalObj: {
       // type: { min: Number, max: Number },
       default: () => ({ min: 0, max: 2 }),
+    },
+    noKeyboard: {
+      type: Boolean,
+      default: false,
     }
   },
 

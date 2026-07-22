@@ -2,6 +2,7 @@
   <q-pull-to-refresh
     id="app-container"
     :class="getDarkModeClass(darkMode)"
+    :style="{ paddingBottom: bottomPadding }"
     @refresh="refreshPage"
   >
     <HeaderNav
@@ -187,8 +188,11 @@
               </div>
             </div>
             <CustomInput
+              ref="tokenInputRef"
+              :no-keyboard="true"
               v-model="tokenAmount"
               @update:model-value="syncBchAmountFromTokenAmount"
+              @keyboard-state-change="onTokenKeyboardStateChange"
               :input-symbol="tokenSymbol"
               :label="$t('Token') + ' ' + $t('Amount')"
               :asset="selectedTokenAsAsset"
@@ -196,37 +200,52 @@
             />
 
             <CustomInput
+              ref="bchInputRef"
+              :no-keyboard="true"
               v-model="bchAmount"
               @update:model-value="syncTokenAmountFromBch"
+              @keyboard-state-change="onBchKeyboardStateChange"
               input-symbol="BCH"
               :label="$t('BCHAmount')"
               :asset="bchAsset"
               :decimal-obj="{ min: 0, max: 8 }"
             />
 
-            <q-slide-transition>
-              <div v-if="bchAmount && tokenAmount">
-                <div
-                  v-if="insufficientBalanceMessage"
-                  class="insufficient-balance-alert q-mb-md"
-                  :class="getDarkModeClass(darkMode)"
-                >
-                  <q-icon name="info" size="16px" class="q-mr-xs" />
-                  <span class="insufficient-balance-text">{{ insufficientBalanceMessage }}</span>
-                </div>
-                <DragSlide
-                  disable-absolute-bottom
-                  :text="$t('AddLiquidity')"
-                  :disable="Boolean(insufficientBalanceMessage)"
-                  @swiped="securityCheck"
-                />
+            <div
+              v-if="bchAmount && tokenAmount"
+              class="q-mb-md"
+            >
+              <div
+                v-if="insufficientBalanceMessage"
+                class="insufficient-balance-alert q-mb-md"
+                :class="getDarkModeClass(darkMode)"
+              >
+                <q-icon name="info" size="16px" class="q-mr-xs" />
+                <span class="insufficient-balance-text">{{ insufficientBalanceMessage }}</span>
               </div>
-            </q-slide-transition>
+            </div>
           </q-card-section>
         </q-card>
         <TokenSelectDialog v-model="showTokenSelectDialog" @select-token="onTokenSelect"/>
       </div>
     </div>
+
+    <KeyboardSlidePanel
+      :panel-visible="panelVisible"
+      :keyboard-state="keyboardState"
+      hide-check-key
+      @addKey="routeKey($event)"
+      @makeKeyAction="routeAction($event)"
+    >
+      <template #slide>
+        <DragSlide
+          disable-absolute-bottom
+          :text="$t('AddLiquidity')"
+          :disable="!slideReady || Boolean(insufficientBalanceMessage)"
+          @swiped="securityCheck"
+        />
+      </template>
+    </KeyboardSlidePanel>
   </q-pull-to-refresh>
 </template>
 <script>
@@ -248,6 +267,7 @@ import TokenSelectDialog from "src/components/cauldron/TokenSelectDialog.vue";
 import SecurityCheckDialog from 'src/components/SecurityCheckDialog.vue';
 import CustomInput from 'src/components/CustomInput.vue';
 import DragSlide from 'src/components/drag-slide.vue';
+import KeyboardSlidePanel from 'src/components/KeyboardSlidePanel.vue';
 
 export default defineComponent({
   name: 'cauldron-add-pool',
@@ -258,6 +278,7 @@ export default defineComponent({
     SecurityCheckDialog,
     CustomInput,
     DragSlide,
+    KeyboardSlidePanel,
   },
   props: {
     tokenId: String,
@@ -326,6 +347,33 @@ export default defineComponent({
 
     const selectedMarketCurrency  = computed(() => $store.getters['market/selectedCurrency']?.symbol)
     const bchPriceInFiat = computed(() => $store.getters['market/getAssetPrice']('bch', selectedMarketCurrency.value))
+
+    const keyboardState = ref('dismiss')
+    const activeInput = ref(null)
+    const tokenInputRef = ref(null)
+    const bchInputRef = ref(null)
+
+    function onTokenKeyboardStateChange(state) {
+      activeInput.value = 'token'
+      keyboardState.value = state
+    }
+    function onBchKeyboardStateChange(state) {
+      activeInput.value = 'bch'
+      keyboardState.value = state
+    }
+
+    const slideReady = computed(() => bchAmount.value && tokenAmount.value)
+    const panelVisible = computed(() => keyboardState.value === 'show' || slideReady.value)
+    const bottomPadding = computed(() => panelVisible.value ? '320px' : '0px')
+
+    function routeKey(key) {
+      if (activeInput.value === 'token') tokenInputRef.value?.setAmount(key)
+      else if (activeInput.value === 'bch') bchInputRef.value?.setAmount(key)
+    }
+    function routeAction(action) {
+      if (activeInput.value === 'token') tokenInputRef.value?.makeKeyAction(action)
+      else if (activeInput.value === 'bch') bchInputRef.value?.makeKeyAction(action)
+    }
 
     const showTokenSelectDialog = ref(false)
     function onTokenSelect(tokenData) {
@@ -660,6 +708,17 @@ export default defineComponent({
       tokenBalance,
       satoshisBalance,
       insufficientBalanceMessage,
+      keyboardState,
+      activeInput,
+      tokenInputRef,
+      bchInputRef,
+      onTokenKeyboardStateChange,
+      onBchKeyboardStateChange,
+      slideReady,
+      panelVisible,
+      bottomPadding,
+      routeKey,
+      routeAction,
 
       securityCheck,
       addLiquidityPool,
@@ -678,10 +737,6 @@ export default defineComponent({
 </script>
 
 <style lang="scss" scoped>
-#app-container {
-  padding-bottom: 50vh;
-}
-
 .insufficient-balance-alert {
   display: flex;
   align-items: center;
