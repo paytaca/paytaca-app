@@ -1056,6 +1056,7 @@ export default defineComponent({
     }
 
     function securityCheck(resetSwipe=() => {}) {
+      keyboardState.value = 'dismiss';
       $q.dialog({ component: SecurityCheckDialog })
         .onOk(() => commitTrade())
         .onCancel(() => resetSwipe?.())
@@ -1063,6 +1064,7 @@ export default defineComponent({
 
     async function commitTrade() {
       isSwapping.value = true;
+      keyboardState.value = 'dismiss';
       let dialog
       try {
         const _tokenData = selectedToken.value
