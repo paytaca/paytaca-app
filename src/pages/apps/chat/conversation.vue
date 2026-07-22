@@ -1480,6 +1480,7 @@ export default {
     onDocumentPointerUp (e) {
       if (e.button !== 0) return
       if (this.isContextMenuOpen) return
+      if (this.isMobileDevice()) return
       const sel = window.getSelection()
       if (!sel || sel.isCollapsed) return
       const msgEl = sel.anchorNode?.parentElement?.closest?.('[data-msg-id]')
@@ -1521,6 +1522,10 @@ export default {
       // Log pointerdown inside menu items to check event flow
       
       
+    },
+    isMobileDevice () {
+      if (typeof navigator === 'undefined') return false
+      return /Android|iPhone|iPad|iPod|webOS|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent)
     },
     onRemoveReaction ({ messageId, emoji }) {
       if (!messageId || !emoji) return
