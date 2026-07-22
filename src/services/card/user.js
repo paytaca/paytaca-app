@@ -3,8 +3,6 @@ import Card from './card.js';
 import { SecureStoragePlugin } from 'capacitor-secure-storage-plugin'
 import { loadWallet } from 'src/services/wallet';
 import { backend } from './backend.js';
-import { bus } from 'src/wallet/event-bus.js';
-import { isSessionExpired } from 'src/services/card/utils.js';
 
 const TOKEN_STORAGE_KEY = 'card-auth-key'
 
@@ -174,6 +172,8 @@ export class CardUser {
 
             // send to backend to verify and create card session
             const loginResp = await this.verifyChallenge(keypair.publicKey, signature);
+
+            console.log('Login successful. Received session data:', loginResp);
             
             // Save token if provided
             if (loginResp?.token) {
@@ -212,9 +212,6 @@ export class CardUser {
             return cards;
         } catch (error) {
             console.error('Error fetching cards:', error);
-            if (isSessionExpired(error)) {
-                bus.emit('card-session-expired');
-            }
             throw error;
         }
     }
@@ -236,9 +233,6 @@ export class CardUser {
             return card;
         } catch (error) {
             console.error(`Error fetching card info for identifier ${identifier}:`, error);
-            if (isSessionExpired(error)) {
-                bus.emit('card-session-expired');
-            }
             throw error;
         }
     }
@@ -253,9 +247,6 @@ export class CardUser {
             return response.data;
         } catch (error) {
             console.error('Error fetching card balances:', error);
-            if (isSessionExpired(error)) {
-                bus.emit('card-session-expired');
-            }
             throw error;
         }
     }
@@ -274,9 +265,6 @@ export class CardUser {
             return utxos;
         } catch (error) {
             console.error('Error fetching token UTXOs:', error);
-            if (isSessionExpired(error)) {
-                bus.emit('card-session-expired');
-            }
             throw error;
         }
     }
@@ -295,9 +283,6 @@ export class CardUser {
             return utxos;
         } catch (error) {
             console.error('Error fetching mutable auth token UTXOs:', error);
-            if (isSessionExpired(error)) {
-                bus.emit('card-session-expired');
-            }
             throw error;
         }
     }
@@ -426,6 +411,21 @@ export async function fetchOrCreateCardUser(wallet) {
     }
 }
 
+async function fetchCardUser(wallet) {
+    try {
+        const response = await backend.get(`/auth/user/${wallet.walletHash}`);
+        return CardUser.createInitialized(response.data);
+    } catch (error) {
+        console.error('Card User fetch failed:', error.response?.status || error.message);
+        if (error.response && error.response.status === 404) {
+            console.error('Card User not found for this wallet.');
+            await clearAuthToken();
+            clearCardUserCache();
+        }
+        throw error;
+    }
+}
+
 
 let _cachedUser = null;
 
@@ -439,13 +439,17 @@ export async function loadCardUser({ forceLogin = false } = {}) {
     console.log('Loading Card User session...');
     try {
         const wallet = await loadWallet();
-        const user = await fetchOrCreateCardUser(wallet);
+        let user = await fetchOrCreateCardUser(wallet);
         
         if (forceLogin || !user.is_authenticated) {
             await user.login();
+            user = await fetchCardUser(wallet);
+            console.log('Card User reloaded after login:', user);
         }
         
         _cachedUser = user;
+
+        console.log('Card User loaded successfully:', user);
 
         return user;
     } catch (error) {

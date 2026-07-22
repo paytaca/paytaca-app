@@ -1,4 +1,3 @@
-import bus from 'src/services/event-bus';
 import { loadCardUser } from 'src/services/card/user.js';
 
 export default {
@@ -25,10 +24,6 @@ export default {
       return this.$q.dark.isActive ? 'bg-grey-9' : 'bg-grey-2'
     }
   },
-  
-  created() {
-    bus.on('card-session-expired', this.onCardSessionExpired)
-  },
 
   mounted() {
     if (typeof this.loadData !== 'function') {
@@ -40,12 +35,6 @@ export default {
   methods: {
     async loadUser() {
       this.user = await loadCardUser()
-    },
-
-    onCardSessionExpired() {
-      console.log('Session expired')
-      loadCardUser({ forceLogin: true })
-      this.loadData()
     },
 
     formatContractAddress(address) {

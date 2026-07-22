@@ -4,8 +4,6 @@ import { loadCardUser } from 'src/services/card/user';
 import { backend as posBackend } from "src/wallet/pos";
 import { Card } from 'src/services/card/card';
 import { getMerchantList } from 'src/services/card/merchants';
-import bus from 'src/services/event-bus';
-import { isSessionExpired } from 'src/services/card/utils';
 
 function toPlainCard(card) {
     if (!card) return null;

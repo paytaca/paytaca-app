@@ -21,7 +21,6 @@
 import CardPageHeader from 'src/components/card/CardPageHeader.vue';
 import { createCardLogic } from 'src/components/card/createCard.js';
 import { clearCardUserCache, loadCardUser } from 'src/services/card/user';
-import { bus } from 'src/wallet/event-bus';
 
 export default {
   mixins: [createCardLogic],
@@ -45,15 +44,6 @@ export default {
     }
   },
 
-  watch: {
-    isloaded(newVal) {
-    }
-  },
-
-  created() {
-    bus.on('sessionExpired', this.handleSessionExpiredEvent)
-  },
-
   async mounted () {
     document.documentElement.classList.add('cards-page')
     await this.loadData()
@@ -67,10 +57,6 @@ export default {
   },
 
   methods: {
-    handleSessionExpiredEvent() {
-      this.loadUser(true) // Force login to refresh session
-    },
-
     async loadData () {
       await this.loadUser()
     },

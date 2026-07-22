@@ -177,6 +177,7 @@ import CardMixin from 'src/mixins/card/card-mixin.js';
 import { loadCardUser } from 'src/services/card/user.js';
 import { satoshiToBch } from 'src/exchange';
 import { CardStorage } from 'src/components/card/createCard.js';
+import bus from 'src/services/event-bus';
 
 export default {
   mixins: [CardActivateMixin, CardMixin],

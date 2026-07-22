@@ -12,8 +12,6 @@ import {
   clearCardActivationAttempt,
   CardActivationStatus
 } from './storage';
-import bus from 'src/services/event-bus';
-
 export class Card {
   constructor(data) {
     this.raw = data;
@@ -349,9 +347,7 @@ export class Card {
       })
       .catch(error => {
         console.error('Error processing linking transaction:', error.response || error.message);
-        if (error.response && error.response.status === 403) {
-          bus.emit('sessionExpired') // Emit sessionExpired event for testing
-        }
+        throw error;
       });
   }
 
@@ -427,9 +423,6 @@ export class Card {
     const response = await backend.patch(`/cards/${cardId}/`, data)
       .catch(error => {
         console.error('Error saving genesis token ID to server:', error.response || error.message);
-        if (error.response && error.response.status === 403) {
-          bus.emit('session-expired') // Emit sessionExpired event for testing
-        }
         throw error;
       });
 
@@ -447,9 +440,6 @@ export class Card {
       headers: { 'Idempotency-Key': idempotencyKey },
     }).catch(error => {
       console.error('Error generating contract:', error.response || error.message);
-      if (error.response && error.response.status === 403) {
-        bus.emit('sessionExpired') // Emit sessionExpired event for testing
-      }
       throw error;
     });
 
@@ -474,9 +464,6 @@ export class Card {
     const response = await backend.post(`/cards/${this.id}/linking-token/`, data)
       .catch(error => {
         console.error('Error requesting linking token:', error.response || error.message);
-        if (error.response && error.response.status === 401) {
-          bus.emit('sessionExpired') // Emit sessionExpired event for testing
-        }
         throw error;
       });
     console.log('response:', response.data)
@@ -491,9 +478,6 @@ export class Card {
     const response = await backend.get(`/cards/${this.id}/transactions/`)
       .catch(error => {
         console.error('Error fetching transactions:', error.response || error.message);
-        if (error.response && error.response.status === 401) {
-          bus.emit('sessionExpired') // Emit sessionExpired event for testing
-        }
         throw error;
       });
     return response.data?.results || [];
@@ -507,9 +491,6 @@ export class Card {
     const response = await backend.get(`/auth-nfts/${this.raw.token_address}`)
       .catch(error => {
         console.error('Error fetching auth NFTs:', error.response || error.message);
-        if (error.response && error.response.status === 401) {
-          bus.emit('sessionExpired') // Emit sessionExpired event for testing
-        }
         throw error;
       });
     return response.data
@@ -800,9 +781,6 @@ export class Card {
     const response = await backend.get(`/cards/${this.id}/bch-balance/`)
     .catch(error => {
       console.error('Error fetching BCH balance:', error.response || error.message);
-      if (error.response && error.response.status === 401) {
-        bus.emit('sessionExpired') // Emit sessionExpired event for testing
-      }
       throw error;
     });
     return response.data?.bch_balance || 0;
