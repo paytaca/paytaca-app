@@ -2064,7 +2064,7 @@ export default {
         await this.$store.dispatch('nostrChat/publishGiftWraps', { giftWraps })
         this.$q.notify({
           type: 'positive',
-          message: this.$t('BchSentSuccess', { amount, txid: txid?.slice(0, 12) }, `Successfully sent ${amount} ${symbol}`),
+          message: this.$t('BchSentSuccess', { amount, symbol, txid: txid?.slice(0, 12) }, `Successfully sent ${amount} ${symbol}`),
         })
       } catch (err) {
         console.error('[Conversation] Failed to send tip confirmation:', err)

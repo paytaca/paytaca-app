@@ -276,7 +276,7 @@ export default {
   BchBalance: "BCH Balance",
   BchEscrowed: "BCH Escrowed",
   BchSent: "BCH sent successfully",
-  BchSentSuccess: "BCH sent successfully",
+  BchSentSuccess: "{symbol} sent successfully",
   BchToReceive: "BCH to receive",
   BchToSend: "BCH to send",
   BchWalletUnavailable: "BCH wallet unavailable",
