@@ -2289,13 +2289,16 @@ export function receiveMessage ({ commit, dispatch, state }, { rumor, sealPubkey
 
   // Handle Kind 7 read receipts (👀 reactions)
   if (rumor.kind === 7 && rumor.content === '👀') {
-    const eTag = rumor.tags.find(t => t[0] === 'e')
-    if (!eTag) return
+    const eTags = rumor.tags.filter(t => t[0] === 'e')
+    if (!eTags.length) return
 
-    const messageId = eTag[1]
     const readerPubKey = rumor.pubkey
+    if (!readerPubKey) return
 
-    if (messageId && readerPubKey) {
+    for (const eTag of eTags) {
+      const messageId = eTag[1]
+      if (!messageId) continue
+
       // Fast lookup via messageId → roomId map; fallback to scan.
       const roomId = _messageRoomMap.get(messageId)
         || Object.keys(ws.messages).find(
