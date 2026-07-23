@@ -25,7 +25,7 @@
             {{ $t("Let's set up your Paytaca Card") }}
           </div>
           <div class="text-body2 q-mb-xl" style="max-width: 360px;" :class="textColorGrey">
-            {{ $t('Create a card to start using Paytaca. You can order a delivered card anytime.') }}
+            {{ $t("Create a card now and order whenever you're ready.") }}
           </div>
           <q-btn
             label="Get Started"
