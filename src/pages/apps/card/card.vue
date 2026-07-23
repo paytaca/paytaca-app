@@ -287,11 +287,6 @@ export default {
     JourneyStepper
   },
 
-  // provide() {
-  //   return {
-  //     user: computed(() => this.cardUser)
-  //   }
-  // },
 
   data () {
     return {
@@ -360,7 +355,6 @@ export default {
 
     hasCardBalance () {
       const balance = parseFloat(this.activeCard?.balance) || 0
-      // NEW: Use Card class method: const balance = parseFloat(this.activeCard?.getBchBalance ? this.activeCard.getBchBalance() : (this.activeCard?.balance || 0)) || 0
       return balance > 0
     }
   },
@@ -532,9 +526,6 @@ export default {
             this.notifyError('Failed to update card name. Please try again.')
           })
 
-        // // Save to localStorage - use setCardProperty to ensure card exists
-        // this.CardStorage.setCardProperty(this.activeCard.id, 'name', capitalizedName)
-        
         // Also save other important properties
         if (this.activeCard.balance !== undefined) {
           this.CardStorage.setCardProperty(this.activeCard.id, 'balance', this.activeCard.balance)
@@ -545,7 +536,6 @@ export default {
         if (this.activeCard.transactionAlerts !== undefined) {
           this.CardStorage.setCardProperty(this.activeCard.id, 'transactionAlerts', this.activeCard.transactionAlerts)
         }
-        
         
         // Show success notification
         this.notifySuccess('Card name updated successfully')
@@ -571,8 +561,7 @@ export default {
       if (!this.activeCard) return
 
       const balance = parseFloat(this.activeCard?.balance) || 0
-      // NEW: Use Card class method: const balance = parseFloat(this.activeCard?.getBchBalance ? this.activeCard.getBchBalance() : (this.activeCard?.balance || 0)) || 0
-
+      
       if (balance <= 0) {
         this.$q.notify({
           message: 'No funds to sweep',
