@@ -189,17 +189,18 @@
     </div>
   </div>
 
-  <!-- Add DragSlide -->
-  <RampDragSlide
-    v-touch-swipe.mouse="checkDragslideStatus"
-    :key="dragSlideKey"
-    v-if="showDragSlide && state === 'form' && !chatOpen"
-    :locked="!selectedAction"
-    @click="checkDragslideStatus()"
-    @ok="onSubmit"
-    @cancel="onSecurityCancel"
-    :text="$t('SwipeToConfirmLower')"
-  />
+  <Teleport to="body">
+    <RampDragSlide
+      v-touch-swipe.mouse="checkDragslideStatus"
+      :key="dragSlideKey"
+      v-if="showDragSlide && state === 'form' && !chatOpen"
+      :locked="!selectedAction"
+      @click="checkDragslideStatus()"
+      @ok="onSubmit"
+      @cancel="onSecurityCancel"
+      :text="$t('SwipeToConfirmLower')"
+    />
+  </Teleport>
   <OrderStatusDialog v-if="showStatusHistory" :order-id="order?.id" @back="showStatusHistory = false" />
   <TransactionHistoryDialog v-if="showTransactionHistory" :data="txHistoryData" @back="showTransactionHistory = false"/>
   <AttachmentDialog :show="showAttachmentDialog" :url="attachmentUrl" @back="showAttachmentDialog=false"/>

@@ -4,7 +4,7 @@
       <OrderListings :key="orderListingsKey" />
     </div>
     <div v-else>
-      <router-view :key="$route.path"></router-view>
+      <router-view :key="$route.params.order"></router-view>
     </div>
   </template>
 <script>
@@ -39,7 +39,6 @@ export default {
         switch (to.name) {
           case 'p2p-order':
           case 'exchange':
-            console.log('to: ', to)
             if ('ad_id' in to.query) {
               next()
             } else {
@@ -55,7 +54,6 @@ export default {
     }
   },
   mounted () {
-    console.log('Query', this.$route.query)
     if ('order_id' in this.$route.query) {
       this.$router.push({ 
         name: 'p2p-order', 
@@ -63,6 +61,9 @@ export default {
         query: this.$route.query
       })
     }
+  },
+  beforeUnmount () {
+    bus.off('relogged', this.refreshPage)
   }
 }
 </script>

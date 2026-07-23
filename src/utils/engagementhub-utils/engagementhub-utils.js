@@ -3,6 +3,7 @@ import { i18n } from 'src/boot/i18n'
 import { Capacitor } from '@capacitor/core'
 import { BigNumber } from 'ethers'
 import { formatWithLocale } from '../denomination-utils'
+import { requestManager } from 'src/utils/request-manager'
 
 const { t: $t } = i18n.global
 const ENGAGEMENT_HUB_URL =
@@ -11,6 +12,7 @@ const ENGAGEMENT_HUB_URL =
 // ========== CASHBACK ========== //
 
 const CASHBACK_URL = axios.create({ baseURL: `${ENGAGEMENT_HUB_URL}cashback/` })
+requestManager.attachTo(CASHBACK_URL)
 
 const CASHBACK_LIMIT_MESSAGES = {
   WITH_LIMIT_MERCHANT_NAME: 'WithLimitMerchantNameMessage',
@@ -79,6 +81,7 @@ export function parseCashbackMessage (message, amountBchUnformatted, amountFiat,
 // ========== NOTIFICATIONS ========== //
 
 const NOTIFS_URL = axios.create({ baseURL: `${ENGAGEMENT_HUB_URL}devicenotif/` })
+requestManager.attachTo(NOTIFS_URL)
 const NOTIF_TYPES = {
   MP: $t('Marketplace'),
   CB: $t('Cashback'),
@@ -86,7 +89,6 @@ const NOTIF_TYPES = {
   RP: 'P2P Ramp',
   TR: $t('Transactions'),
   NF: $t('Collectibles'),
-  EP: $t('EventsAndPromotions'),
   RW: $t('Rewards')
 }
 
@@ -153,8 +155,6 @@ export async function getWalletUnreadNotifs (walletHash) {
   return count
 }
 
-// ========== ADVERTISEMENTS SETTINGS ========== //
-
 export function parseDeviceId (deviceId) {
   const platform = Capacitor.getPlatform()
   if (platform === 'ios') {
@@ -163,90 +163,4 @@ export function parseDeviceId (deviceId) {
     return BigNumber.from('0x' + deviceId).toString()
   }
   else return deviceId
-}
-
-export async function getPushNotifConfigs (deviceId) {
-  let data = null
-
-  await NOTIFS_URL.post(
-    '/wallethashdevice/get_push_notifs_settings/',
-    { device_id: deviceId }
-  )
-    .then(response => {
-      data = response.data
-    })
-    .catch(error => {
-      console.log(error)
-    })
-
-  return data
-}
-
-export async function updateDeviceNotifType (deviceNotifTypesId, type, deviceId) {
-  let respId = deviceNotifTypesId
-
-  if (respId !== -1) { // patch
-    if (type) {
-      const data = {}
-      if (type.db_col === 'is_events_promotions_enabled') {
-        data.is_events_promotions_enabled = type.value
-      } else if (type.db_col === 'is_by_country_enabled') {
-        data.is_by_country_enabled = type.value
-      } else if (type.db_col === 'is_by_city_enabled') {
-        data.is_by_city_enabled = type.value
-      } else if (type.db_col === 'country') {
-        data.country = type.value
-        data.city = null
-      } else if (type.db_col === 'city') data.city = type.value
-
-      await NOTIFS_URL.patch(
-        `devicenotiftype/${respId}/`,
-        data
-      ).then(response => {
-        console.log('Device advertisement settings updated successfully.')
-      }).catch(error => {
-        console.log(error)
-      })
-    }
-  } else { // post
-    const platform = Capacitor.getPlatform()
-
-    const data = {
-      apns_device: undefined,
-      gcm_device: undefined
-    }
-
-    if (platform === 'ios') data.apns_device = deviceId
-    else if (platform === 'android') data.gcm_device = deviceId
-
-    await NOTIFS_URL
-      .post('devicenotiftype/create_device_notif_type/', data)
-      .then(response => {
-        respId = response.data.id
-      }).catch(error => {
-        console.log(error)
-      })
-  }
-
-  return respId
-}
-
-export async function deleteDeviceNotifType (deviceNotifTypesId) {
-  await NOTIFS_URL
-    .delete(`devicenotiftype/${deviceNotifTypesId}/`)
-    .then(response => {
-      console.log('Device notif type deleted successfully.')
-    }).catch(error => {
-      console.log(error)
-    })
-}
-
-export async function getCountryCityData () {
-  let data = []
-  await NOTIFS_URL
-    .get('devicenotiftype/get_country_and_city/')
-    .then(response => { data = response.data })
-    .catch(error => console.log(error))
-
-  return data
 }

@@ -147,62 +147,14 @@
 				</div>
 			</div>
 
-			<!-- Rewards Section - Shown when order succeeds and API triggered -->
-			<q-card 
-				v-if="showRewardsSection" 
-				class="q-pa-md br-15 q-mt-md q-mb-xl rewards-card"
-				:class="getDarkModeClass(darkMode)"
-			>
-				<div class="column items-center text-center q-gutter-y-md">
-					<!-- Celebration Icon -->
-					<q-icon
-						name="celebration"
-						size="45px"
-						color="primary"
-						class="animated heartBeat slower"
-					/>
-					
-					<!-- Congratulatory Title -->
-					<div class="text-h6 text-weight-bold" :class="darkMode ? 'text-white' : 'text-grey-9'">
-						Congratulations!
-					</div>
-					
-					<!-- Points Earned Display -->
-					<div 
-						class="text-body1 q-px-sm"
-						:class="darkMode ? 'text-grey-5' : 'text-grey-8'"
-					>
-						You earned {{ pointsEarned }} points from this purchase.
-					</div>
-					
-					<!-- Instruction Text -->
-					<div 
-						class="text-body1 q-px-sm q-mt-sm"
-						:class="darkMode ? 'text-grey-5' : 'text-grey-8'"
-					>
-						Check your points in the Rewards app for a detailed breakdown.
-					</div>
-					
-					<!-- Navigate to Rewards Button -->
-					<q-btn
-						label="View Rewards"
-						icon="stars"
-						rounded
-						class="button bg-grad button-glow q-mt-md"
-						:class="getDarkModeClass(darkMode)"
-						@click="openRewardsApp"
-					/>
-				</div>
-			</q-card>
+
 		</q-pull-to-refresh>
 	</div>
 </template>
 <script>
 import * as eloadServiceAPI from 'src/utils/eload-service.js'
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
-import { getChangeAddress, getExplorerLink } from 'src/utils/send-page-utils'
-import { processEloadPoints } from 'src/utils/engagementhub-utils/rewards'
-import { raiseNotifySuccess } from 'src/utils/notify-utils'
+import { getExplorerLink } from 'src/utils/send-page-utils'
 
 export default {
 	data () {
@@ -212,15 +164,7 @@ export default {
 			loading: true,
 			promoSnapshot: null,
 			loadError: '',
-			pollTimer: null,
-			apiCallStatus: {
-				triggered: false,
-				loading: false,
-				error: null,
-				lastOrderStatus: null
-			},
-			showRewardsSection: false,
-			pointsEarned: 0
+			pollTimer: null
 		}
 	},
 	computed: {
@@ -245,14 +189,9 @@ export default {
 				}
 			}
 			return ''
-		},
-		calculatedPoints () {
-			const fee = Number.parseFloat(this.promoSnapshot?.convenience_fee_php || 0)
-			return fee * 2
 		}
 	},
 	async mounted () {
-		this.apiCallStatus.lastOrderStatus = null
 		await this.fetchOrder()
 		this.startPolling()
 	},
@@ -293,40 +232,7 @@ export default {
 				this.pollTimer = null
 			}
 		},
-		async triggerSuccessApiCall (order) {
-			if (this.apiCallStatus.triggered || this.apiCallStatus.loading) return
 
-			this.apiCallStatus.loading = true
-			this.showRewardsSection = false
-			try {
-				const payload = {
-					bch_address: await getChangeAddress('bch'),
-					order_txn_id: order.txn_id,
-					order_id: order.id,
-					points_earned: this.calculatedPoints
-				}
-				const eloadResp = await processEloadPoints(payload)
-				if (eloadResp) {
-					this.apiCallStatus.triggered = true
-					this.pointsEarned = this.calculatedPoints
-					this.showRewardsSection = true
-					raiseNotifySuccess(
-						`Congratulations! You have earned ${this.pointsEarned} points!`,
-						3000, 'bottom', 'mdi-party-popper'
-					)
-				} else {
-					throw new Error('Unable to process eload points for rewards.')
-				}
-			} catch (error) {
-				console.error('[Eload] API call failed:', error)
-				this.apiCallStatus.error = error.message
-			} finally {
-				this.apiCallStatus.loading = false
-			}
-		},
-		openRewardsApp () {
-			this.$router.push({ name: 'app-rewards' })
-		},
 		async fetchOrder (isPoll = false) {
 			if (!isPoll) {
 				this.loading = true
@@ -341,18 +247,8 @@ export default {
 
 				if (result?.success) {
 					const newOrder = result.data || {}
-					const previousStatus = this.apiCallStatus.lastOrderStatus
-					const currentStatus = newOrder.status
-
 					this.order = newOrder
 					this.promoSnapshot = newOrder.promo_snapshot || {}
-
-					if (previousStatus === 'pending' && currentStatus === 'success') {
-						console.log('[Eload] Order transitioned from pending to success!')
-						await this.triggerSuccessApiCall(newOrder)
-					}
-
-					this.apiCallStatus.lastOrderStatus = currentStatus
 
 					if (this.isTerminalStatus(this.order?.status)) {
 						this.stopPolling()
@@ -468,45 +364,5 @@ export default {
     box-sizing: border-box;
   }
   
-  /* Rewards Card Styling */
-  .rewards-card {
-    background: linear-gradient(135deg, rgba(var(--q-primary-rgb), 0.05) 0%, rgba(var(--q-primary-rgb), 0.02) 100%);
-    border: 1px solid rgba(var(--q-primary-rgb), 0.2);
-  }
 
-  /* Button Glow Animation */
-  .button-glow {
-    &.dark {
-      animation: glow-pulse-dark 2s ease-in-out infinite;
-    }
-    &.light {
-      animation: glow-pulse-light 2s ease-in-out infinite;
-    }
-  }
-
-  @keyframes glow-pulse-dark {
-    0%, 100% {
-      box-shadow: 0 0 5px rgba(255, 215, 0, 0.4),
-                  0 0 10px rgba(255, 215, 0, 0.3),
-                  0 0 15px rgba(255, 215, 0, 0.2);
-    }
-    50% {
-      box-shadow: 0 0 10px rgba(255, 215, 0, 0.6),
-                  0 0 20px rgba(255, 215, 0, 0.4),
-                  0 0 30px rgba(255, 215, 0, 0.3);
-    }
-  }
-
-  @keyframes glow-pulse-light {
-    0%, 100% {
-      box-shadow: 0 0 5px rgba(218, 165, 32, 0.5),
-                  0 0 10px rgba(218, 165, 32, 0.4),
-                  0 0 15px rgba(218, 165, 32, 0.3);
-    }
-    50% {
-      box-shadow: 0 0 10px rgba(218, 165, 32, 0.7),
-                  0 0 20px rgba(218, 165, 32, 0.5),
-                  0 0 30px rgba(218, 165, 32, 0.4);
-    }
-  }
 </style>

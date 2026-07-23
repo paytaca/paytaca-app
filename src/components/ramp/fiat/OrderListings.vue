@@ -323,15 +323,15 @@ export default {
       switch (order.trade_type) {
         case 'BUY':
           if (order.owner.name === this.userInfo.name) {
-            return 'BUYING FROM'
+            return 'Buying From'
           } else {
-            return 'SELLING TO'
+            return 'Selling To'
           }
         case 'SELL':
           if (order.owner.name === this.userInfo.name) {
-            return 'SELLING TO'
+            return 'Selling To'
           } else {
-            return 'BUYING FROM'
+            return 'Buying From'
           }
       }
     },
@@ -624,6 +624,11 @@ export default {
       await vm.resetAndRefetchListings()
     },
     handleRequestError (error) {
+      // Suppress ECONNABORTED — these are XHR aborts from navigation
+      // (requestManager.abortAll), not actual HTTP timeouts. No timeout is
+      // configured on the backend axios instance, so ECONNABORTED can only
+      // come from a navigation-triggered abort.
+      if (error?.code === 'ECONNABORTED') return
       bus.emit('handle-request-error', error)
     }
   }

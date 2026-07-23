@@ -119,6 +119,14 @@ export default {
     backPath: {
       type: String,
       default: null
+    },
+    chatRoomId: {
+      type: String,
+      default: null
+    },
+    amount: {
+      type: Number,
+      default: null
     }
   },
   components: {
@@ -201,17 +209,17 @@ export default {
             decimals: token.decimals || 0,
             logo: token.logo,
             balance: token.balance !== undefined ? token.balance : 0,
-            favorite: token.favorite === true ? 1 : 0,
+            favorite: token.favorite === true || token.favorite === 1 ? 1 : 0,
             favorite_order: token.favorite_order !== null && token.favorite_order !== undefined ? token.favorite_order : null
           }))
 
         // Sort: favorites first (by favorite_order), then non-favorites
         const sortedTokens = apiTokens.sort((a, b) => {
           // If one is favorite and other is not, favorite comes first
-          if (a.favorite === 1 && b.favorite === 0) return -1
-          if (a.favorite === 0 && b.favorite === 1) return 1
+          if ((a.favorite === 1 || a.favorite === true) && (b.favorite === 0 || b.favorite === false)) return -1
+          if ((a.favorite === 0 || a.favorite === false) && (b.favorite === 1 || b.favorite === true)) return 1
           // If both are favorites, sort by favorite_order
-          if (a.favorite === 1 && b.favorite === 1) {
+          if ((a.favorite === 1 || a.favorite === true) && (b.favorite === 1 || b.favorite === true)) {
             const orderA = a.favorite_order || 0
             const orderB = b.favorite_order || 0
             return orderA - orderB
@@ -221,8 +229,8 @@ export default {
         })
 
         // Separate favorites and non-favorites
-        const favoriteTokens = sortedTokens.filter(token => token.favorite === 1)
-        const nonFavoriteTokens = sortedTokens.filter(token => token.favorite === 0)
+        const favoriteTokens = sortedTokens.filter(token => token.favorite === 1 || token.favorite === true)
+        const nonFavoriteTokens = sortedTokens.filter(token => token.favorite === 0 || token.favorite === false)
 
         // Ordering: BCH first (if not excluded), then favorites, then others
         const allAssets = [
@@ -362,17 +370,19 @@ export default {
               return true
             })
             .map(result => {
-              // Convert IPFS URLs if needed
-              const logo = result.image_url ? convertIpfsUrl(result.image_url) : null
+              const storeAssets = this.$store.getters['assets/getAsset'](result.id)
+              const storeAsset = Array.isArray(storeAssets) && storeAssets.length > 0 ? storeAssets[0] : null
+
+              const logo = storeAsset?.logo || (result.image_url ? convertIpfsUrl(result.image_url) : null)
 
               return {
                 id: result.id,
-                name: result.name || 'Unknown Token',
-                symbol: result.symbol || '',
-                decimals: result.decimals || 0,
+                name: storeAsset?.name || result.name || 'Unknown Token',
+                symbol: storeAsset?.symbol || result.symbol || '',
+                decimals: storeAsset?.decimals !== undefined ? storeAsset.decimals : (result.decimals || 0),
                 logo: logo,
                 balance: result.balance !== undefined ? result.balance : 0,
-                favorite: result.favorite === true ? 1 : 0, // Convert boolean to 1/0 format
+                favorite: result.favorite === true || result.favorite === 1 ? 1 : 0,
                 favorite_order: result.favorite_order !== null && result.favorite_order !== undefined ? result.favorite_order : null
               }
             })
@@ -393,6 +403,28 @@ export default {
         console.error('Error fetching tokens from API:', error)
         return []
       }
+    },
+    _enrichTokenMetadata () {
+      this.allTokensFromAPI.forEach(token => {
+        if (!token.name || token.name === 'Unknown Token' || !token.symbol || !token.logo) {
+          this.$store.dispatch('assets/getAssetMetadata', token.id).then(metadata => {
+            if (metadata) {
+              const idx = this.allTokensFromAPI.findIndex(t => t.id === token.id)
+              if (idx !== -1) {
+                this.allTokensFromAPI[idx] = {
+                  ...this.allTokensFromAPI[idx],
+                  name: metadata.name || this.allTokensFromAPI[idx].name,
+                  symbol: metadata.symbol || this.allTokensFromAPI[idx].symbol,
+                  decimals: metadata.decimals !== undefined ? metadata.decimals : this.allTokensFromAPI[idx].decimals,
+                  logo: metadata.logo || this.allTokensFromAPI[idx].logo,
+                }
+              }
+            }
+          }).catch(err => {
+            console.warn(`[SelectAssetSend] Failed to fetch BCMR metadata for ${token.id}:`, err)
+          })
+        }
+      })
     },
     shouldShowFavoritesLabel(asset, index) {
       // Show label if:
@@ -453,10 +485,13 @@ export default {
           assetId: asset.id,
           tokenType: 1,
           network: this.selectedNetwork,
-          address: this.address,
+          recipient: this.address,
           backPath: this.backPath,
-          // Pass asset data as JSON string to preserve structure
+          chatRoomId: this.chatRoomId,
           assetData: assetData ? JSON.stringify(assetData) : undefined
+        }
+        if (this.amount) {
+          query.amount = this.amount
         }
         // If paymentUrl is provided, pass it to preserve all BIP21 parameters
         if (this.paymentUrl) {
@@ -489,6 +524,7 @@ export default {
     // For CashTokens, fetch tokens directly from API
     if (vm.isCashToken) {
       vm.allTokensFromAPI = await vm.fetchTokensFromAPI()
+      vm._enrichTokenMetadata()
     } else {
       // For SLP, use store data (legacy behavior)
       const assets = vm.$store.getters['assets/getAssets']
@@ -541,6 +577,7 @@ export default {
       if (this.isCashToken) {
         this.fetchTokensFromAPI().then(tokens => {
           this.allTokensFromAPI = tokens
+          this._enrichTokenMetadata()
         })
       }
     },

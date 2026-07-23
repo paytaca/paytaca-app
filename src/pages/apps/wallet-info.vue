@@ -200,6 +200,7 @@ import HeaderNav from '../../components/header-nav'
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 import { loadWallet, getMnemonic } from 'src/wallet'
 import { getWalletByNetwork } from 'src/wallet/chipnet'
+import { updateAssetBalanceOnLoad } from 'src/utils/asset-utils'
 
 export default {
   name: 'app-support',
@@ -251,8 +252,8 @@ export default {
         vm.$store.commit('assets/updatedCurrentAssets', index)
 
         vm.$store.dispatch('global/switchWallet', index).then(function () {
-          vm.$router.push('/')
-          setTimeout(() => { location.reload() }, 500)
+          vm.$store.commit('global/setWalletSwitchInProgress', true)
+          vm.$router.replace('/')
         })
       }
     },
@@ -377,12 +378,11 @@ export default {
       if (vm.scanningAddresses) return
 
       vm.scanningAddresses = true
+      const walletIndex = vm.$store.getters['global/getWalletIndex']
+      const wallet = await loadWallet('BCH', walletIndex)
+      const isChipnet = vm.$store.getters['global/isChipnet']
+      const bchWallet = getWalletByNetwork(wallet, 'bch')
       try {
-        const walletIndex = vm.$store.getters['global/getWalletIndex']
-        const wallet = await loadWallet('BCH', walletIndex)
-        const isChipnet = vm.$store.getters['global/isChipnet']
-        const bchWallet = getWalletByNetwork(wallet, 'bch')
-
         // Try smart discovery first (checks transaction history via Watchtower node)
         // This finds addresses used by other wallets (e.g. Electron Cash CashFusion)
         // even if they have zero balance but have transaction history
@@ -399,8 +399,9 @@ export default {
           })
 
           if (discoveryResult.success) {
-            usedDiscovery = true
             const total = discoveryResult.discoveredReceiving.length + discoveryResult.discoveredChange.length
+            usedDiscovery = total > 0
+
             vm.$q.notify({
               message: vm.$t(
                 'AddressScanComplete',
@@ -417,6 +418,13 @@ export default {
               await vm.$store.dispatch('global/loadWalletLastAddressIndex')
             } catch (e) {
               console.warn('Failed to refresh last address index after discovery:', e)
+            }
+
+            // Refresh BCH balance so updated funds appear immediately
+            try {
+              await updateAssetBalanceOnLoad('bch', wallet, vm.$store)
+            } catch (e) {
+              console.warn('Failed to refresh BCH balance after address scan:', e)
             }
           }
         } catch (discoveryError) {
@@ -440,6 +448,13 @@ export default {
               color: 'blue-9',
               icon: 'check_circle'
             })
+
+            // Refresh BCH balance so updated funds appear immediately
+            try {
+              await updateAssetBalanceOnLoad('bch', wallet, vm.$store)
+            } catch (e) {
+              console.warn('Failed to refresh BCH balance after address scan:', e)
+            }
           } else {
             throw new Error(result.error || 'Address scan failed')
           }
@@ -454,6 +469,7 @@ export default {
         })
       } finally {
         vm.scanningAddresses = false
+        bchWallet?.clearMasterHDNodeCache()
       }
     }
   },

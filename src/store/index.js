@@ -100,6 +100,11 @@ function serializeState(obj, seen = new Map()) {
             if (typeof value === 'function' || typeof value === 'symbol') {
               continue
             }
+
+            // Skip session-scoped blob URLs that don't survive page reloads
+            if (key === 'localVideoUrl') {
+              continue
+            }
             
             // Skip wallet instances and other complex objects that might have circular refs
             // Check for common non-serializable patterns
@@ -151,7 +156,7 @@ function reducer(state) {
     if (Object.prototype.hasOwnProperty.call(state, moduleName)) {
       try {
         // Special handling for ramp and paytacapos stores with wallet-specific structure
-        if (moduleName === 'ramp' || moduleName === 'paytacapos') {
+        if (moduleName === 'ramp' || moduleName === 'paytacapos' || moduleName === 'nostrChat') {
           const moduleState = state[moduleName]
           serialized[moduleName] = {
             byWallet: {},
@@ -159,6 +164,10 @@ function reducer(state) {
             ...(moduleName === 'ramp' ? {
               itemsPerPage: moduleState.itemsPerPage,
               featureToggles: moduleState.featureToggles
+            } : {}),
+            ...(moduleName === 'nostrChat' ? {
+              relays: moduleState.relays,
+              contacts: moduleState.contacts,
             } : {})
           }
           
@@ -181,6 +190,28 @@ function reducer(state) {
                       }
                       continue
                     }
+
+                    // Strip sensitive Nostr private keys from persisted nostrChat state
+                    // (keys are re-derived from mnemonic on every initialize, so no need to persist them)
+                    if (moduleName === 'nostrChat' && key === 'keys' && value && typeof value === 'object') {
+                      cleanWalletState.keys = {
+                        npub: value.npub,
+                        pubKeyHex: value.pubKeyHex,
+                      }
+                      continue
+                    }
+
+                    // Room lists, deleted rooms, and block lists are stored server-side.
+                    // Only keep an in-memory cache; don't persist to localStorage.
+                    if (moduleName === 'nostrChat' && ['rooms', 'deletedRooms', 'blockedContacts', 'blockedGroups'].includes(key)) {
+                      continue
+                    }
+
+                    // Typing indicators are ephemeral (auto-expire after 5s);
+                    // never persist to localStorage.
+                    if (moduleName === 'nostrChat' && key === 'typing') {
+                      continue
+                    }
                     
                     // Skip functions
                     if (typeof value === 'function') {
@@ -198,9 +229,13 @@ function reducer(state) {
           // For global module, exclude session-only state like isUnlocked
           const globalState = state[moduleName]
           const serializedGlobal = serializeState(globalState)
-          // Remove isUnlocked from persisted state (it's session-only)
+          // Remove session-only state that should never be persisted
           if (serializedGlobal && typeof serializedGlobal === 'object') {
             delete serializedGlobal.isUnlocked
+            delete serializedGlobal.appInitialLoadComplete
+            delete serializedGlobal.backupDialogActive
+            delete serializedGlobal.walletSwitchInProgress
+            delete serializedGlobal.walletSwitchLoading
           }
           serialized[moduleName] = serializedGlobal
         } else if (moduleName === 'wizardconnect') {

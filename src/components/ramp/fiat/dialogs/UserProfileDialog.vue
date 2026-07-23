@@ -15,48 +15,33 @@
             <div v-if="user" class="q-mt-lg q-pt-md">
                 <div class="text-center q-pt-none">
                     <q-icon size="4em" name='o_account_circle' :color="darkMode ? 'blue-grey-1' : 'blue-grey-6'"/>
-                    <div class="text-weight-bold lg-font-size q-pt-sm">{{ user.name }}</div>
                 </div>
-                <!-- User Stats -->
-                <div class="row justify-center q-px-sm">
-                    <q-rating readonly :model-value="user.rating ? user.rating : 0" :v-model="user.rating" size="1.2em" color="yellow-9" icon="star"/>
-                    <span class="q-mx-sm sm-font-size">
-                      {{
-                        $t(
-                          'RatingValue',
-                          { rating: user.rating ? user.rating?.toFixed(1) : 0 },
-                          `(${ user.rating ? user.rating?.toFixed(1) : 0 } rating)`
-                        )
-                      }}
-                    </span>
-                </div>
-                <div class="text-center sm-font-size q-pt-sm">
-                    <span>
-                      {{
-                        $t(
-                          'TradeCount',
-                          { count: user.trade_count },
-                          `${ user.trade_count || 0 } trades`
-                        )
-                      }}
-                    </span>
-                    &nbsp;&nbsp;
-                    <span>|</span>
-                    &nbsp;&nbsp;
-                    <span>
-                      {{
-                        $t(
-                          'CompletionPercentage',
-                          { percentage: user.completion_rate ? user.completion_rate.toFixed(1) : 0 },
-                          `${ user.completion_rate ? user.completion_rate.toFixed(1) : 0 }% completion`
-                        )
-                      }}
-                    </span>
-                </div>
+                <PeerInfo
+                  :peer="user"
+                  :clickable-name="false"
+                  :show-online-status="false"
+                  :show-last-online="false"
+                  centered
+                />
+            </div>
+            <!-- Report User -->
+            <div class="row q-mx-lg q-px-md q-pt-sm" v-if="!user?.self">
+              <q-btn
+                rounded
+                no-caps
+                :label="$t('ReportUser')"
+                :color="reportSubmitted ? 'grey-5' : 'red-8'"
+                :disable="reportSubmitted"
+                class="q-space q-mx-md button"
+                size="sm"
+                icon="flag"
+                @click="confirmReportUser"
+              >
+              </q-btn>
             </div>
             <div class="row q-mb-sm br-15 text-center pt-card btn-transaction md-font-size" :class="getDarkModeClass(darkMode)" :style="`background-color: ${darkMode ? '' : '#f2f3fc !important;'}`">
-                <button class="col-grow br-15 btn-custom fiat-tab q-mt-none" :class="{'dark': darkMode, 'active-btn': user.self === false && activeTab === 'reviews'}" @click="activeTab = 'reviews'"> {{ $t('REVIEWS') }} </button>
-                <button v-if="!user?.self" class="col-grow br-15 btn-custom fiat-tab q-mt-none" :class="{'dark': darkMode, 'active-btn': activeTab === 'ads'}" @click="activeTab = 'ads'">ADS</button>
+                <button class="col-grow br-15 btn-custom fiat-tab q-mt-none" :class="{'dark': darkMode, 'active-btn': user.self === false && activeTab === 'reviews'}" @click="activeTab = 'reviews'"> {{ $t('Reviews', {}, 'Reviews') }} </button>
+                <button v-if="!user?.self" class="col-grow br-15 btn-custom fiat-tab q-mt-none" :class="{'dark': darkMode, 'active-btn': activeTab === 'ads'}" @click="activeTab = 'ads'">{{ $t('Ads', {}, 'Ads') }}</button>
             </div>
             <q-scroll-area :style="`height: ${minHeight - 260}px`" style="overflow-y:auto;">
                 <!-- Reviews tab -->
@@ -153,9 +138,12 @@
         </div>
     </q-card>
     </q-dialog>
+    <ReportDialog v-model="showReportDialog" @submit="handleReportSubmit" @back="showReportDialog = false"/>
   </template>
 <script>
 import ProgressLoader from 'src/components/ProgressLoader.vue'
+import ReportDialog from 'src/components/ramp/fiat/dialogs/ReportDialog.vue'
+import PeerInfo from 'src/components/ramp/fiat/PeerInfo.vue'
 import { formatDate, formatCurrency, getAppealCooldown } from 'src/exchange'
 import { bus } from 'src/wallet/event-bus.js'
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
@@ -185,7 +173,9 @@ export default {
       adsPageNumber: 1,
       loadingAds: false,
       showUserProfile: true,
-      minHeight: this.$q.platform.is.ios ? this.$q.screen.height - (90 + 120) : this.$q.screen.height - (60 + 100)
+      minHeight: this.$q.platform.is.ios ? this.$q.screen.height - (90 + 120) : this.$q.screen.height - (60 + 100),
+      reportSubmitted: false,
+      showReportDialog: false
     }
   },
   props: {
@@ -197,7 +187,9 @@ export default {
   },
   emits: ['back'],
   components: {
-    ProgressLoader
+    ProgressLoader,
+    ReportDialog,
+    PeerInfo
   },
   watch: {
     activeTab (value) {
@@ -342,7 +334,7 @@ export default {
           page: vm.adsPageNumber,
           owner_id: vm.user.id
         }
-        params.to_peer = this.userId
+
         backend.get('/ramp-p2p/ad/', {
           params: params,
           authorize: true
@@ -368,13 +360,43 @@ export default {
       }
     },
     formatCompletionRate (value) {
-      return Math.floor(value).toString()
+      return Math.floor(value || 0).toString()
     },
     appealCooldown (appealCooldownChoice) {
       return getAppealCooldown(appealCooldownChoice)
     },
     handleRequestError (error) {
       bus.emit('handle-request-error', error)
+    },
+    confirmReportUser () {
+      this.showReportDialog = true
+    },
+    async handleReportSubmit (reason) {
+      await this.reportUser(reason)
+    },
+    async reportUser (reason) {
+      const vm = this
+      try {
+        await backend.post(`/ramp-p2p/peer/${vm.user.id}/report/`, { reason }, { authorize: true })
+        vm.reportSubmitted = true
+        vm.$q.notify({
+          type: 'positive',
+          message: vm.$t('ReportUserSuccess'),
+          position: 'bottom',
+          timeout: 3000
+        })
+      } catch (error) {
+        if (error.response?.status === 409) {
+          vm.reportSubmitted = true
+          vm.$q.notify({ type: 'info', message: vm.$t('ReportUserAlreadyReported'), position: 'bottom' })
+        } else if (error.response?.status === 403) {
+          vm.$q.notify({ type: 'warning', message: vm.$t('ReportUserTradeRequired'), position: 'bottom' })
+        } else if (error.response?.status === 400) {
+          vm.$q.notify({ type: 'warning', message: vm.$t('ReportUserSelfError'), position: 'bottom' })
+        } else {
+          vm.handleRequestError(error)
+        }
+      }
     }
   }
 }

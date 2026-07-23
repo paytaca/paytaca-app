@@ -1,16 +1,24 @@
 <template>
-  <div class="pt-custom-keyboard" v-if="keyboard">
+  <div class="pt-custom-keyboard" :class="{'pt-custom-keyboard--embedded': embedded}" v-if="keyboard">
     <div class="pt-keyboard-container shadow-2 br-top-15 pt-card" :class="getDarkModeClass(darkMode)">
       <div class="row q-px-sm q-mb-none q-py-sm pt-custom-keyboard-row br-top-15 full-height bg-grad q-pb-lg q-pt-md">
         <div class="col-3 pt-col-key" v-for="(key, index) in 15" :key="index">
           <q-btn
             push
-            v-if="[4, 8, 12].includes(key)"
-            @click="makeKeyAction(key === 4 ? 'delete' : key === 8 ? 'backspace' : key === 12 ? 'ready to submit' : '')"
+            v-if="[4, 8].includes(key)"
+            @click="makeKeyAction(key === 4 ? 'delete' : 'backspace')"
             class="pt-key-del"
             style="width: 95%; height: 95%"
-            :class="[key === 12 ? 'pt-check-key' : 'pt-remove-key', {'bg-grey-9 text-white': darkMode && key !== 12}]"
-            :icon="key === 4 ? 'delete' : key === 8 ? 'backspace' : key === 12 ? 'done' : ''" />
+            :class="['pt-remove-key', {'bg-grey-9 text-white': darkMode}]"
+            :icon="key === 4 ? 'delete' : 'backspace'" />
+          <q-btn
+            push
+            v-else-if="key === 12 && !hideCheckKey"
+            @click="makeKeyAction('ready to submit')"
+            class="pt-key-del pt-check-key"
+            style="width: 95%; height: 95%"
+            icon="done" />
+          <div v-else-if="key === 12 && hideCheckKey" />
           <q-btn
             push
             class="pt-key-num"
@@ -36,6 +44,14 @@ export default {
     modelValue: {
       type: [String, Number],
       default: ''
+    },
+    hideCheckKey: {
+      type: Boolean,
+      default: false
+    },
+    embedded: {
+      type: Boolean,
+      default: false
     }
   },
   data () {
@@ -109,9 +125,26 @@ export default {
   bottom: 0 !important;
   z-index: 9000;
 }
+.pt-custom-keyboard--embedded {
+  position: relative !important;
+  left: auto !important;
+  bottom: auto !important;
+}
+.pt-custom-keyboard--embedded .pt-keyboard-container,
+.pt-custom-keyboard--embedded .pt-custom-keyboard-row {
+  border-radius: 0 !important;
+  box-shadow: none !important;
+}
+.pt-custom-keyboard--embedded .pt-keyboard-container {
+  background: transparent !important;
+  margin-bottom: 20px;
+}
 .pt-keyboard-container {
-  height: 250px;
+  height: calc(250px + env(safe-area-inset-bottom, 0px));
   background: #fff;
+}
+.pt-custom-keyboard--embedded .pt-keyboard-container {
+  height: 250px;
 }
 .br-top-15 {
   border-top-left-radius: 15px;
@@ -120,7 +153,9 @@ export default {
 .pt-custom-keyboard-row {
   width: 100%;
   color: #515151;
+  padding-bottom: env(safe-area-inset-bottom, 0px);
 }
+
 .pt-key-num {
   height: 45px;
   font-size: 16px;

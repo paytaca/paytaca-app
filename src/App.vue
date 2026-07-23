@@ -1,6 +1,8 @@
 <template>
     <div>
-      <router-view />
+      <AppLoading v-if="showInitialLoad" />
+      <WalletSwitchLoading v-if="showWalletSwitchLoading" />
+      <router-view :key="$store.getters['global/getWalletIndex']" />
       <v-offline @detected-condition="onConnectivityChange" />
       
       <!-- Privacy overlay for app switcher/background preview -->
@@ -30,9 +32,12 @@ import Watchtower from 'watchtower-cash-js'
 import { VOffline } from 'v-offline'
 import { checkWatchtowerStatus } from './utils/watchtower-status'
 import AppVersionUpdate from './components/dialogs/AppVersionUpdate.vue'
+import AppLoading from 'src/components/AppLoading.vue'
+import WalletSwitchLoading from 'src/components/WalletSwitchLoading.vue'
 import { App as CapacitorApp } from '@capacitor/app'
 import { Capacitor } from '@capacitor/core'
 import ScreenshotSecurity from './utils/screenshot-security'
+import JoinRewardsDialog from './components/rewards/dialogs/JoinRewardsDialog.vue'
 
 // Module-level variable to track version update dialog instance
 // This persists across component remounts (important for iOS/Capacitor)
@@ -46,7 +51,7 @@ BigInt.prototype["toJSON"] = function () {
 
 export default {
   name: 'App',
-  components: { VOffline },
+  components: { VOffline, AppLoading, WalletSwitchLoading },
   setup () {
     const store = useStore()
     const $q = useQuasar()
@@ -68,7 +73,11 @@ export default {
         }
       })
       document.body.classList.add(`theme-${theme.value}`)
-      
+
+      // Update Quasar CSS variables (--q-primary, --q-secondary, ...) to match the
+      // active theme so components like QBtn outline buttons render with the correct colors.
+      updateCssThemeColors(theme.value)
+
       // Set quasar dark mode true/false
       $q.dark.set(darkMode.value)
     })
@@ -84,6 +93,7 @@ export default {
       lastPauseTime: 0, // Timestamp of last pause event (to detect genuine background/foreground transitions)
       showPrivacyOverlay: false, // Controls privacy overlay visibility for app preview protection
       androidInsetResizeHandler: null, // Window resize handler for android status bar inset
+      joinRewardsDialogPending: false, // Tracks whether join rewards dialog was deferred waiting for backup dialog
     }
   },
   computed: {
@@ -100,16 +110,40 @@ export default {
     },
     lockAppEnabled() {
       return this.$store.getters['global/lockApp']
+    },
+    showInitialLoad() {
+      return !this.$store.state.global.appInitialLoadComplete
+    },
+    showWalletSwitchLoading() {
+      return this.$store.state.global.walletSwitchLoading
+    },
+    backupDialogActive() {
+      return this.$store?.state?.global?.backupDialogActive
     }
   },
   watch: {
-    // Watch for wallet switches to update screenshot security
-    walletIndex() {
+    // Watch for wallet switches to update screenshot security and re-initialize
+    async walletIndex(newIndex, oldIndex) {
+      if (newIndex === oldIndex || oldIndex === undefined) return
       this.updateScreenshotSecurity()
+      await this.handleWalletSwitch()
     },
     // Watch for changes to lock app setting
     lockAppEnabled() {
       this.updateScreenshotSecurity()
+    },
+    // Show join rewards dialog after initial loading screen completes
+    showInitialLoad (val, oldVal) {
+      if (oldVal === true && val === false) {
+        this.maybeShowJoinRewardsDialog()
+      }
+    },
+    // Re-trigger join rewards dialog once backup dialog is dismissed
+    backupDialogActive (val, oldVal) {
+      if (oldVal === true && val === false && this.joinRewardsDialogPending) {
+        this.joinRewardsDialogPending = false
+        this.maybeShowJoinRewardsDialog()
+      }
     }
   },
   methods: {
@@ -491,6 +525,26 @@ export default {
         localStorage.setItem('slpResubscribe', JSON.stringify(resubscriptionInfo))
       }
     },
+    async handleWalletSwitch() {
+      const vm = this
+      const index = vm.$store.getters['global/getWalletIndex']
+      const mnemonic = await getMnemonic(index).catch(() => null)
+      if (!mnemonic) {
+        if (vm.$store.getters['global/getWalletIndex'] === index) {
+          vm.$store.commit('global/setWalletSwitchInProgress', false)
+        }
+        return
+      }
+
+      vm.subscribedPushNotifications = false
+      vm.subscribePushNotifications()
+      vm.resubscribeAddresses(mnemonic)
+      vm.$store.dispatch('nostrChat/ensureSubscribed')
+
+      if (vm.$store.getters['global/getWalletIndex'] === index) {
+        vm.$store.commit('global/setWalletSwitchInProgress', false)
+      }
+    },
     async resubscribeAddresses(mnemonic) {
       this.resubscribeBCHAddresses(mnemonic)
       this.resubscribeSLPAddresses(mnemonic)
@@ -554,6 +608,46 @@ export default {
           })
         })
       }
+    },
+    maybeShowJoinRewardsDialog () {
+      const vm = this
+
+      // Don't show if backup dialog is still active; defer until it's dismissed
+      if (vm.backupDialogActive) {
+        vm.joinRewardsDialogPending = true
+        return
+      }
+
+      // Fetch from vault directly
+      const vault = vm.$store.getters['global/getVault']
+      const wallet = vault?.[vm.walletIndex]
+
+      // Only show if wallet is loaded
+      const walletHash = wallet?.wallet?.bch?.walletHash || wallet?.bch?.walletHash
+      if (!walletHash) return
+
+      // Don't show if on lock screen
+      const currentRoute = vm.$router.currentRoute.value.path
+      if (currentRoute === '/lock') return
+
+      // Don't show if app is backgrounded (privacy overlay active)
+      if (vm.showPrivacyOverlay) return
+
+      // Don't show if already dismissed for this wallet
+      const alreadyShown = wallet?.settings?.joinRewardsPromptShown
+      if (alreadyShown) return
+
+      // Show dialog and mark as shown on dismiss
+      const dialog = vm.$q.dialog({
+        component: JoinRewardsDialog
+      })
+
+      dialog.onDismiss(() => {
+        vm.$store.commit('global/saveWalletSetting', {
+          key: 'joinRewardsPromptShown',
+          value: true
+        })
+      })
     },
     setupImageContextMenuPrevention() {
       const vm = this
@@ -762,6 +856,12 @@ export default {
   async mounted () {
     const vm = this
 
+    // Cold start: reset so the loading overlay shows until the home page is ready
+    vm.$store.commit('global/setAppInitialLoadComplete', false)
+    vm._loadingStartTime = Date.now()
+    vm.$store.commit('global/setBackupDialogActive', false)
+    vm.joinRewardsDialogPending = false
+
     // Clear session-based backup reminder dismissal on fresh app start
     // App.vue only mounts on fresh app start (not during navigation), so always clear
     sessionStorage.removeItem('backupReminderDismissedTimestamp')
@@ -771,8 +871,12 @@ export default {
 
     // Ensure current wallet index is valid (points to undeleted wallet)
     // This should run before any wallet operations
-    // Skip if we just switched wallets (check for a flag or recent switch)
     await vm.$store.dispatch('global/ensureValidWalletIndex')
+    // Clear stale flag from router guard (watcher won't fire if index unchanged)
+    vm.$store.commit('global/setWalletSwitchInProgress', false)
+
+    // Fetch wallet creation date from backend (fire-and-forget, non-blocking)
+    vm.$store.dispatch('global/fetchWalletCreationDate').catch(() => {})
 
     // Set up app lifecycle listener for lock screen
     if (Capacitor.isNativePlatform()) {
@@ -908,7 +1012,23 @@ export default {
         this.$pushNotifications.events.addEventListener('pushNotificationReceived', this._nostrPushListener)
       }
       this.resubscribeAddresses(mnemonic)
+
+      this.$store.dispatch('nostrChat/ensureSubscribed')
     }
+
+    // Dismiss the initial app loading overlay regardless of which route
+    // was loaded on cold start. Previously this was only done in the home
+    // page (transaction/index.vue mounted), causing hard-reloaded deep
+    // links (e.g. /apps/chat/...) to hang on the loading screen forever.
+
+    // Ensure the loading screen is visible briefly so the user perceives it
+    const elapsed = Date.now() - vm._loadingStartTime
+    const briefVisibleTime = 800
+    if (elapsed < briefVisibleTime) {
+      await new Promise(resolve => setTimeout(resolve, briefVisibleTime - elapsed))
+    }
+
+    vm.$store.commit('global/setAppInitialLoadComplete', true)
 
     if (vm.$q.platform.is.bex) {
       if (vm.$refs?.container?.style?.display) vm.$refs.container.style.display = 'none'
@@ -996,9 +1116,6 @@ export default {
   },
   created () {
     const vm = this
-    setTimeout(() => {
-      updateCssThemeColors(this.$store.getters['global/theme']);
-    }, 100)
     setTimeout(function () {
       if (vm.$refs?.container?.style?.display) vm.$refs.container.style.display = 'block'
 

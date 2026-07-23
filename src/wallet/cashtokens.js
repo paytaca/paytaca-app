@@ -30,6 +30,20 @@ export function convertIpfsUrl(url='', baseURL='https://ipfs.paytaca.com/ipfs/')
   return url.replace('ipfs://', baseURL)
 }
 
+export function getTokenImage(url) {
+  const ipfsUrl = convertIpfsUrl(url);
+  try {
+    const url = new URL(ipfsUrl);
+    if (url.host === 'ipfs.paytaca.com') {
+      url.searchParams.set('pinataGatewayToken', process.env.PINATA_GATEWAY_TOKEN);
+    }
+    return String(url);
+  } catch {
+    return ipfsUrl;
+  }
+}
+
+
 export class CashNonFungibleToken {
   static parse(...args) {
     return new CashNonFungibleToken(...args)    

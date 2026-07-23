@@ -3,6 +3,7 @@ import { getMnemonic } from '../wallet'
 import routes from './routes'
 import useStore from '../store'
 import { isNativeIOS } from '../utils/native-platform'
+import { requestManager } from '../utils/request-manager'
 
 /*
  * If not building with SSR mode, you can
@@ -34,7 +35,10 @@ export default function () {
   })
 
   Router.beforeEach(async (to, from, next) => {
+    // Cancel all in-flight HTTP requests so the previous page's background
+    // work never blocks the UI from responding to user navigation.
     if (from.path && from.path !== to.path) {
+      requestManager.abortAll()
       store.commit('global/setPreviousRoute', from.path)
     }
 
@@ -172,8 +176,14 @@ export default function () {
         }
 
         if (_mnemonic && walletIndex !== currentWalletIndex) {
+          // If a wallet switch is already in progress from the UI, let it complete
+          if (store.state.global.walletSwitchInProgress) {
+            next()
+            return
+          }
           await store.dispatch(`global/switchWallet`, walletIndex).catch(console.error)
-          location.reload()
+          store.commit('global/setWalletSwitchInProgress', true)
+          next()
           return
         }
 

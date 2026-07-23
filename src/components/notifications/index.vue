@@ -37,18 +37,27 @@
             v-if="isCheckboxClicked"
             flat
             round
-            color="primary"
-            :disable="isLoading"
-            icon="cancel"
-            @click="isCheckboxClicked = false"
+            :icon="hasSelection ? 'delete' : 'cancel'"
+            :color="hasSelection ? 'red' : 'primary'"
+            :disable="isLoading || notifsList.length === 0"
+            @click="hasSelection ? massDeleteNotifs() : (isCheckboxClicked = false)"
           />
           <q-btn
+            v-else
             flat
             round
+            icon="format_list_bulleted"
+            color="primary"
             :disable="isLoading || notifsList.length === 0"
-            :icon="isCheckboxClicked ? 'delete' : 'check_box_outline_blank'"
-            :color="isCheckboxClicked ? 'red' : 'primary'"
-            @click="massDeleteNotifs"
+            @click="isCheckboxClicked = true"
+          />
+          <q-checkbox
+            v-if="isCheckboxClicked"
+            :model-value="allSelected"
+            :indeterminate="someSelected"
+            @update:model-value="toggleSelectAll"
+            size="sm"
+            color="primary"
           />
           <q-btn
             flat
@@ -209,7 +218,6 @@ import {
 import ProgressLoader from 'src/components/ProgressLoader.vue'
 import NotificationsFilterDialog from 'src/components/notifications/NotificationsFilterDialog.vue'
 import NotificationBody from 'src/components/notifications/NotificationBody.vue'
-import NotificationMoreInfoDialog from 'src/components/notifications/NotificationMoreInfoDialog.vue'
 
 export default {
   name: 'Notifications',
@@ -227,7 +235,7 @@ export default {
     return {
       notifsList: [],
       checkboxList: null,
-      notifsTypes: ['MP', 'CB', 'AH', 'RP', 'TR', 'NF', 'EP', 'RW'],
+      notifsTypes: ['MP', 'CB', 'AH', 'RP', 'TR', 'NF', 'RW'],
 
       isLoading: false,
       isCheckboxClicked: false,
@@ -264,6 +272,15 @@ export default {
       return this.$store.getters['assets/getAssets'].filter(
         item => item && item.id !== 'bch'
       )
+    },
+    allSelected () {
+      return this.checkboxList && this.checkboxList.length > 0 && this.checkboxList.every(v => v)
+    },
+    someSelected () {
+      return this.checkboxList && this.checkboxList.some(v => v) && !this.allSelected
+    },
+    hasSelection () {
+      return this.checkboxList && this.checkboxList.some(v => v)
     }
   },
 
@@ -381,17 +398,6 @@ export default {
         } case 'NF': {
           vm.$router.push({ name: 'app-collectibles' })
           break
-        } case 'EP': {
-          const urlArray = notif.extra_data.split(' ')
-          vm.$q.dialog({
-            component: NotificationMoreInfoDialog,
-            componentProps: {
-              title: notif.title,
-              message: notif.message,
-              url: urlArray
-            }
-          })
-          break
         } case 'RW': {
           vm.$router.push({ name: 'app-rewards' })
           break
@@ -404,25 +410,25 @@ export default {
         this.checkboxList = new Array(this.notifsList.length).fill(false)
       }
     },
+    toggleSelectAll (val) {
+      if (!this.checkboxList) return
+      this.checkboxList = this.checkboxList.map(() => val)
+    },
     async massDeleteNotifs () {
       const vm = this
+      const checkboxTrueList = []
 
-      if (!vm.isCheckboxClicked) vm.isCheckboxClicked = true
-      else if (vm.checkboxList.filter(a => a === true).length > 0) {
-        const checkboxTrueList = []
+      vm.checkboxList.forEach((check, i) => {
+        if (check) checkboxTrueList.push(i)
+      })
 
-        vm.checkboxList.forEach((check, i) => {
-          if (check) checkboxTrueList.push(i)
-        })
+      const notifsIds = vm.notifsList
+        .filter((a, i) => checkboxTrueList.includes(i))
+        .map(b => b.id)
 
-        const notifsIds = vm.notifsList
-          .filter((a, i) => checkboxTrueList.includes(i))
-          .map(b => b.id)
-
-        await massHideNotifs(notifsIds)
-        await vm.refreshNotifsList(null)
-        vm.isCheckboxClicked = false
-      }
+      await massHideNotifs(notifsIds)
+      await vm.refreshNotifsList(null)
+      vm.isCheckboxClicked = false
     },
     async markAllAsRead () {
       await markWalletNotifsAsRead(this.currentWalletHash)

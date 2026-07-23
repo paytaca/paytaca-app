@@ -4,16 +4,16 @@
 
   <div v-if="!isLoading" class="content-section center-viewport" :class="getDarkModeClass(darkMode)">
     <h5 class="q-ma-none text-center text-bow step-title" :class="getDarkModeClass(darkMode)">
-      {{ $t('RewardsStepTitle', 'Referral Code') }}
+      {{ $t('RewardsStepTitle') }}
     </h5>
     <p class="text-center text-bow step-subtitle" :class="getDarkModeClass(darkMode)">
-      {{ $t('RewardsStepSubtitle', 'Were you referred by someone?') }}
+      {{ $t('RewardsStepSubtitle') }}
     </p>
 
     <div v-if="!isCodeProcessed" class="glass-panel q-mt-md" :class="getDarkModeClass(darkMode)">
       <div class="q-pa-md">
         <p class="text-body2 text-bow q-mb-md" :class="getDarkModeClass(darkMode)">
-          {{ $t('ReferredStepDescription2', 'Enter their referral code so you can both receive points!') }}
+          {{ $t('RewardsStepBody') }}
         </p>
         
         <!-- Manual Code Input -->
@@ -24,14 +24,14 @@
           outlined
           class="glass-textarea bg-white q-mb-md"
           :class="getDarkModeClass(darkMode)"
-          :placeholder="$t('RewardsStepManualInputLabel', 'Enter referral code')"
+          :placeholder="$t('RewardsStepInputLabel')"
           @keyup.enter="processManualCode"
         >
           <template v-slot:append>
             <q-btn
               flat
               dense
-              label="Enter"
+              :label="$t('Enter')"
               icon-right="arrow_circle_right"
               :color="isValidManualCode ? 'positive' : 'negative'"
               :disable="!isValidManualCode"
@@ -43,7 +43,7 @@
         <!-- QR Scan/Upload Options -->
         <div class="text-center q-mb-md">
           <span class="text-caption text-bow" :class="getDarkModeClass(darkMode)">
-            {{ $t('RewardsStepScanOrUpload', 'Or scan/upload their QR code') }}
+            {{ $t('RewardsStepScanOrUpload') }}
           </span>
         </div>
 
@@ -78,10 +78,10 @@
     <div v-else class="glass-panel q-mt-md q-pa-md text-center" :class="getDarkModeClass(darkMode)">
       <q-icon name="check_circle" color="positive" size="48px" class="q-mt-md" />
       <p class="text-subtitle1 text-bow q-px-md" :class="getDarkModeClass(darkMode)">
-        {{ $t('ReferredStepSuccess1', 'Referral code successfully processed!') }}
+        {{ $t('ReferredStepSuccessTitle') }}
       </p>
       <p class="text-body2 text-bow q-mt-sm q-px-md" :class="getDarkModeClass(darkMode)">
-        {{ $t('RewardsStepSuccessDescription', 'You and your referrer will both receive rewards.') }}
+        {{ $t('RewardsStepSuccessSubtitle') }}
       </p>
     </div>
 
@@ -90,9 +90,10 @@
       <q-btn
         outline
         no-caps
-        :label="$t('RewardsStepSkipButton', 'Skip for now')"
+        :label="$t('RewardsStepSkipButton')"
         class="text-bow skip-button button button-text-primary"
         :class="getDarkModeClass(darkMode)"
+        :loading="isSkipButtonLoading"
         @click="onSkipButtonPressed"
       />
     </div>
@@ -111,7 +112,7 @@
   <div v-else class="content-section center-viewport">
     <div class="text-center q-mt-lg">
       <span class="text-subtitle1 text-bow" :class="getDarkModeClass(darkMode)">
-        {{ $t('ProcessingReferralCode', 'Processing referral code') }} ...
+        {{ $t('ProcessingReferralCode') }}...
       </span>
     </div>
     <div class="row justify-center q-mt-md">
@@ -142,7 +143,14 @@ export default {
   props: {
     walletHash: { type: String, default: '' },
     darkMode: { type: Boolean, default: false },
-    fromCreateWallet: { type: Boolean, default: true }
+    fromCreateWallet: { type: Boolean, default: true },
+    referralCode: { type: String, default: '' }
+  },
+
+  mounted () {
+    if (this.referralCode) {
+      this.manualReferralCode = this.referralCode
+    }
   },
 
   emits: ['on-proceed-to-next-step'],
@@ -151,6 +159,7 @@ export default {
     return {
       showQrScanner: false,
       isLoading: false,
+      isSkipButtonLoading: false,
       isCodeProcessed: false,
       isProcessingError: false,
       manualReferralCode: '',
@@ -232,38 +241,40 @@ export default {
         referralCode = null
       }
 
+      // if rewards url is found, parse code
+      try {
+        const url = new URL(referralCode)
+        referralCode = url.searchParams.get('code')
+      } catch { /* not a URL, use raw value */ }
+
       if (referralCode) {
-        const resp = await this.submitReferralCode(referralCode)
-        if (Object.keys(resp).length === 0) {
-          this.isProcessingError = false
-        } else {
-          this.isProcessingError = true
-          this.processErrorMessage(resp)
-        }
+        await this.executeReferralSubmission(referralCode)
       } else {
         this.isProcessingError = true
-        this.errorMessage = 'An error occurred while processing the referral code. Please try again.'
+        this.errorMessage = this.$t('ProcessingReferralCodeError')
+        this.isCodeProcessed = false
+        this.isLoading = false
       }
-
-      this.isCodeProcessed = !this.isProcessingError
-      this.isLoading = false
     },
 
     async processManualCode () {
       if (!this.isValidManualCode) return
-      
+      await this.executeReferralSubmission(this.manualReferralCode.trim())
+    },
+
+    async executeReferralSubmission (code) {
       this.isLoading = true
       this.isProcessingError = false
       this.errorMessage = ''
-      
-      const resp = await this.submitReferralCode(this.manualReferralCode.trim())
+
+      const resp = await this.submitReferralCode(code)
       if (Object.keys(resp).length === 0) {
         this.isProcessingError = false
       } else {
         this.isProcessingError = true
         this.processErrorMessage(resp)
       }
-      
+
       this.isCodeProcessed = !this.isProcessingError
       this.isLoading = false
     },
@@ -289,27 +300,31 @@ export default {
     },
 
     async onSkipButtonPressed () {
-      await processReferralCode({
-        wallet_hash: this.walletHash,
-        has_deferred_code_entering: true,
-        has_entered_code: false,
-        from_wallet_creation: this.fromCreateWallet
-      })
+      this.isSkipButtonLoading = true
+      if (this.fromCreateWallet) {
+        await processReferralCode({
+          wallet_hash: this.walletHash,
+          has_deferred_code_entering: true,
+          has_entered_code: false,
+          from_wallet_creation: this.fromCreateWallet
+        })
+      }
+      this.isSkipButtonLoading = false
       this.$emit('on-proceed-to-next-step')
     },
 
     processErrorMessage (resp) {
       if (resp?.code === 'non_mobile_referral') {
-        this.errorMessage = "Oops, scanning won't work here! Please use your mobile device to scan the referral code."
+        this.errorMessage = this.$t('NonMobileReferralError')
       } else if (resp?.code === 'duplicate_device') {
-        this.errorMessage = "Looks like this referral code has already been scanned here! Try using a different device to redeem it again."
+        this.errorMessage = this.$t('DuplicateDeviceError')
       } else if (resp?.code === 'duplicate_referral') {
-        this.errorMessage = "Looks like this account has already been referred by someone. Please check your status with your referrer, or create a new account to redeem again."
+        this.errorMessage = this.$t('DuplicateReferralError')
       } else if (resp?.code === 'invalid_code') {
         console.error(resp?.message)
-        this.errorMessage = "Sorry, that referral code appears to be invalid. Please double-check and try again."
+        this.errorMessage = this.$t('InvalidCodeError')
       } else {
-        this.errorMessage = 'We cannot process your referral code right now. Please try again later.'
+        this.errorMessage = this.$t('ProcessingReferralCodeError')
       }
     }
   }

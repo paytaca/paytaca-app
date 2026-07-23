@@ -2,12 +2,12 @@
   <q-pull-to-refresh
     id="app-container"
     :class="getDarkModeClass(darkMode)"
-    style="padding-bottom:250px;"
+    :style="{ paddingBottom: bottomPadding }"
     @refresh="refreshPage"
   >
     <HeaderNav
       title="Cauldron DEX"
-      backnavpath="/apps"
+      :backnavpath="backNavPath"
       class="apps-header"
     />
 
@@ -197,9 +197,11 @@
                 </template>
                 <CustomInput
                   v-else
+                  ref="customInputRef"
+                  :no-keyboard="true"
                   :model-value="amountInputString"
                   @update:model-value="updateAmountInput($event)"
-                  @keyboard-state-change="handleKeyboardStateChange"
+                  @keyboard-state-change="onKeyboardStateChange"
                   :input-symbol="amountInputSymbol"
                   :label="isBuyingToken ? $t('AmountToReceive') : $t('AmountToSupply')"
                   :decimal-obj="amountInputDecimalObj"
@@ -318,17 +320,7 @@
                 </div>
               </div>
 
-              <!-- Swap Button -->
-              <q-slide-transition>
-                <div v-if="tradeResult && tradeResult.summary && amountInput > 0 && selectedToken && !isKeyboardVisible">
-                  <DragSlide
-                    disable-absolute-bottom
-                    :text="$t('Swap')"
-                    :disable="!hasSufficientBalance"
-                    @swiped="securityCheck"
-                  />
-                </div>
-              </q-slide-transition>
+              <!-- Swap Button (in keyboard-slide panel) -->
             </template>
           </q-card-section>
           <div class="row justify-center q-mb-md text-grey-6">
@@ -344,6 +336,23 @@
         />
       </div>
     </div>
+
+    <KeyboardSlidePanel
+      :panel-visible="panelVisible"
+      :keyboard-state="keyboardState"
+      hide-check-key
+      @addKey="customInputRef?.setAmount($event)"
+      @makeKeyAction="customInputRef?.makeKeyAction($event)"
+    >
+      <template #slide>
+        <DragSlide
+          disable-absolute-bottom
+          :text="$t('Swap')"
+          :disable="!hasSufficientBalance"
+          @swiped="securityCheck"
+        />
+      </template>
+    </KeyboardSlidePanel>
   </q-pull-to-refresh>
 </template>
 <script>
@@ -367,6 +376,7 @@ import HeaderNav from 'src/components/header-nav'
 import SecurityCheckDialog from 'src/components/SecurityCheckDialog.vue';
 import DragSlide from 'src/components/drag-slide.vue';
 import CustomInput from 'src/components/CustomInput.vue';
+import KeyboardSlidePanel from 'src/components/KeyboardSlidePanel.vue';
 import CauldronHeaderMenu from 'src/components/cauldron/CauldronHeaderMenu.vue';
 import TokenSelectDialog from 'src/components/cauldron/TokenSelectDialog.vue';
 import LiftTokenDexComingSoonDialog from 'src/components/subscription/LiftTokenDexComingSoonDialog.vue'
@@ -387,6 +397,7 @@ export default defineComponent({
     HeaderNav,
     DragSlide,
     CustomInput,
+    KeyboardSlidePanel,
     CauldronHeaderMenu,
     TokenSelectDialog,
   },
@@ -394,12 +405,24 @@ export default defineComponent({
     selectTokenId: String,
     buyAmount: [String, Number],
     amount: [String, Number],
+    backPath: String,
   },
   setup(props) {
     const { t: $t } = useI18n()
     const $q = useQuasar();
     const $store = useStore();
     const darkMode = computed(() => $store.getters['darkmode/getStatus']);
+    const backNavPath = computed(() => {
+      if (props.backPath) {
+        const [path, queryString] = props.backPath.split('?')
+        if (queryString) {
+          const query = Object.fromEntries(new URLSearchParams(queryString))
+          return { path, query }
+        }
+        return props.backPath
+      }
+      return '/apps'
+    });
     const exlab = new ExchangeLab();
     exlab.setDefaultPreferredTokenOutputBCHAmount(1000n);
     
@@ -469,7 +492,8 @@ export default defineComponent({
     const showTokenDialog = ref(false);
     const isRecomputingTrade = ref(false);
     const tokenSelectDialog = ref();
-    const isKeyboardVisible = ref(false);
+    const keyboardState = ref('dismiss');
+    const customInputRef = ref(null);
 
     function updateAmountInput(value) {
       amountInputString.value = value || '';
@@ -480,9 +504,13 @@ export default defineComponent({
       }
     }
 
-    function handleKeyboardStateChange(state) {
-      isKeyboardVisible.value = state === 'show';
+    function onKeyboardStateChange(state) {
+      keyboardState.value = state;
     }
+
+    const slideReady = computed(() => tradeResult.value?.summary && amountInput.value > 0 && selectedToken.value);
+    const panelVisible = computed(() => keyboardState.value === 'show' || slideReady.value);
+    const bottomPadding = computed(() => panelVisible.value ? '320px' : '0px');
 
     /** 
      * Input field always shows tokens (consistent UX)
@@ -1027,11 +1055,8 @@ export default defineComponent({
       tradeResult.value = null;
     }
 
-    const showSlider = computed(() => {
-      return Boolean(tradeResult.value)
-    });
-
     function securityCheck(resetSwipe=() => {}) {
+      keyboardState.value = 'dismiss';
       $q.dialog({ component: SecurityCheckDialog })
         .onOk(() => commitTrade())
         .onCancel(() => resetSwipe?.())
@@ -1039,6 +1064,7 @@ export default defineComponent({
 
     async function commitTrade() {
       isSwapping.value = true;
+      keyboardState.value = 'dismiss';
       let dialog
       try {
         const _tokenData = selectedToken.value
@@ -1140,7 +1166,7 @@ export default defineComponent({
 
         if (pointsResp) {
           raiseNotifySuccess(
-            `Congratulations! You have earned points for this Cauldron transaction!<br><br>Check your points balance in the Rewards app.`,
+            `Congratulations! You have earned points for this Cauldron transaction! Check your points balance in the Rewards app.`,
 						3000, 'bottom', 'mdi-party-popper'
           )
         } else {
@@ -1254,6 +1280,7 @@ export default defineComponent({
 
     return {
       darkMode,
+      backNavPath,
       getDarkModeClass,
 
       poolTracker,
@@ -1270,8 +1297,12 @@ export default defineComponent({
       amountInput,
       amountInputString,
       updateAmountInput,
-      handleKeyboardStateChange,
-      isKeyboardVisible,
+      onKeyboardStateChange,
+      keyboardState,
+      customInputRef,
+      slideReady,
+      panelVisible,
+      bottomPadding,
       amountInputSymbol,
       amountInputDecimalObj,
       amountInputAsset,
@@ -1298,7 +1329,6 @@ export default defineComponent({
       formattedMaxAmount,
       explorerLink,
 
-      showSlider,
       securityCheck,
     
       selectToken,

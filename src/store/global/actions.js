@@ -15,7 +15,7 @@ const { SecureStoragePlugin } = Plugins
 import { privateKeyToCashAddress } from '../../wallet/walletconnect2/tx-sign-utils'
 import { toP2pkhTestAddress } from '../../utils/address-utils'
 import { backend } from 'src/exchange/backend'
-import { backend as posBackend } from 'src/wallet/pos'
+import { backend as posBackend, authToken } from 'src/wallet/pos'
 import { toTokenAddress } from 'src/utils/crypto'
 import { getWalletByNetwork } from 'src/wallet/chipnet'
 
@@ -128,6 +128,52 @@ export async function fetchWalletName (context, walletHash) {
     const response = await watchtower.BCH._api.get(`wallet/preferences/${walletHash}/`)
     return response?.data?.wallet_name
   } catch {}
+}
+
+export async function fetchWalletCreationDate (context) {
+  const walletHash = context.getters.getWallet('bch')?.walletHash
+  if (!walletHash) {
+    // No wallet exists yet
+    return
+  }
+
+  // Skip if already cached
+  const currentValue = context.getters.walletCreatedAt
+  if (currentValue) {
+    return currentValue
+  }
+
+  const fetchWithAuth = async () => {
+    const response = await posBackend.get('auth/wallet', { authorize: true })
+    return response?.data?.date_created || null
+  }
+
+  try {
+    let dateCreated = await fetchWithAuth()
+    if (dateCreated) {
+      context.commit('setWalletCreatedAt', dateCreated)
+      return dateCreated
+    }
+  } catch (error) {
+    if (error?.response?.status === 403) {
+      // Auth token expired or missing — regenerate and retry once
+      try {
+        const walletIndex = context.getters.getWalletIndex
+        const wallet = await loadWallet('BCH', walletIndex)
+        await authToken.generate(wallet)
+        const dateCreated = await fetchWithAuth()
+        if (dateCreated) {
+          context.commit('setWalletCreatedAt', dateCreated)
+          return dateCreated
+        }
+      } catch (retryError) {
+        console.warn('Failed to fetch wallet creation date after re-auth:', retryError)
+      }
+    } else {
+      console.warn('Failed to fetch wallet creation date:', error)
+    }
+  }
+  return null
 }
 
 /**
@@ -356,8 +402,7 @@ export async function switchWallet (context, walletHashOrIndex) {
   // This is critical: we need to sync the old wallet before switching
   const oldWalletIndex = context.getters.getWalletIndex
   
-  // Determine target index/hash SYNCHRONOUSLY before the async setTimeout
-  // This allows immediate index update so router guard sees correct index
+  // Determine target index/hash synchronously so router guard sees correct index
   let walletHash = null
   let index = null
   let newWallet = null
@@ -385,119 +430,116 @@ export async function switchWallet (context, walletHashOrIndex) {
                 newWallet?.walletHash
     
     // Update wallet index IMMEDIATELY (synchronously) so router guard sees correct index
-    // NOTE: We still need to sync the OLD wallet in the setTimeout block below
+    // NOTE: We still need to sync the OLD wallet before initializing the new wallet state
     context.commit('updateWalletIndex', index)
     context.commit('updateCurrentWallet', index)
   }
   
-  return new Promise((resolve, reject) => {
-    setTimeout(async () => {
-      try {
-        // CRITICAL: Sync the OLD wallet to vault BEFORE switching to the new wallet
-        // This ensures we save the current wallet's state to the correct vault slot
-        // For index-based switching: index was already updated synchronously, so we temporarily restore old index
-        // For hash-based switching: index is still the old one, so we can sync directly
-        if (oldWalletIndex !== null && oldWalletIndex !== undefined && oldWalletIndex !== index) {
-          const currentIndexBeforeSync = context.getters.getWalletIndex
-          
-          // Temporarily restore old index to sync the old wallet (only if it's different)
-          if (currentIndexBeforeSync !== oldWalletIndex) {
-            context.commit('updateWalletIndex', oldWalletIndex)
-            context.commit('updateCurrentWallet', oldWalletIndex)
-          }
-          
-          // Sync the old wallet to its vault slot
-          await context.dispatch('syncCurrentWalletToVault')
-          
-          // Restore to target index (for index-based switching) or keep old index (for hash-based, will update below)
-          if (index !== null) {
-            // Index-based switching: restore to the target index that was set synchronously
-            context.commit('updateWalletIndex', index)
-            context.commit('updateCurrentWallet', index)
-          }
-          // For hash-based switching (index === null), we keep the old index for now and update it below
-        }
-        
-        // If wallet hash was provided, find index now
-        if (walletHash && index === null) {
-          index = await getVaultIndexByWalletHashAsync(walletHash)
-          
-          if (index === null || index === -1) {
-            console.error(`[switchWallet] Wallet hash ${walletHash} not found in vault`)
-            reject(new Error(`Wallet hash ${walletHash} not found in vault`))
-            return
-          }
-          
-          newWallet = vault[index]
-          // Update index now that we found it
-          context.commit('updateWalletIndex', index)
-          context.commit('updateCurrentWallet', index)
-        }
-        
-        // Index was already updated synchronously above, but ensure it's still correct
-        if (context.getters.getWalletIndex !== index) {
-          context.commit('updateWalletIndex', index)
-          context.commit('updateCurrentWallet', index)
-        }
-        
-        context.commit('assets/updatedCurrentAssets', index, { root: true })
-        
-        // Initialize wallet-specific state if hash is available
-        if (walletHash) {
-          // Initialize ramp store state for the new wallet
-          context.commit('ramp/initializeWalletState', walletHash, { root: true })
+  try {
+    // CRITICAL: Sync the OLD wallet to vault BEFORE switching to the new wallet
+    // This ensures we save the current wallet's state to the correct vault slot
+    // For index-based switching: index was already updated synchronously, so we temporarily restore old index
+    // For hash-based switching: index is still the old one, so we can sync directly
+    if (oldWalletIndex !== null && oldWalletIndex !== undefined && oldWalletIndex !== index) {
+      const currentIndexBeforeSync = context.getters.getWalletIndex
 
-          // Clear Eload OAuth Token key
-          eloadServiceAPI.clearToken()
-          
-          // Initialize paytacapos store state for the new wallet
-          context.commit('paytacapos/initializeWalletState', walletHash, { root: true })
-           
-          // Reset and reinitialize wizardconnect for the new wallet
-          context.dispatch('wizardconnect/reset', null, { root: true })
-          // Skipping init since it will run when page is refreshed after this one
-          // context.dispatch('wizardconnect/init', null, { root: true }).catch(err => {
-          //   console.warn('WizardConnect init failed during wallet switch:', err.message)
-          // })
-
-          // Reinitialize nostr chat keys and subscriptions for the new wallet
-          context.dispatch('nostrChat/reinitialize', null, { root: true }).catch(err => {
-            console.warn('Nostr chat reinit failed during wallet switch:', err.message)
-          })
-          
-          // Trigger migration if needed (try to migrate, but don't fail if it doesn't work)
-          // Import migration dynamically to avoid circular dependencies
-          try {
-            const { migrateGlobalToWalletSpecific } = await import('src/utils/wallet-migration')
-            await migrateGlobalToWalletSpecific(walletHash)
-          } catch (migrationError) {
-            // Migration errors are non-critical - app can continue with fresh state
-            console.warn('Migration failed (non-critical):', migrationError)
-          }
-        }
-        
-        // Removed all reset/clear commits - data is now wallet-specific and persists
-        // No need to clear data when switching wallets since each wallet has its own state
-        // Note: wallet index was already updated above
-        
-        // SECURITY: Check if destination wallet has lock enabled
-        // If it does AND we're switching from a different wallet, reset unlock state
-        // This requires authentication before showing balances of the new wallet
-        const lockAppEnabledAfter = context.rootGetters['global/lockApp']
-        if (lockAppEnabledAfter && oldWalletIndex !== index) {
-          context.commit('setIsUnlocked', false)
-        }
-        
-        // Sync settings to darkmode and market modules
-        context.dispatch('syncSettingsToModules')
-        resolve()
-      } catch (error) {
-        console.error('[switchWallet] Error during wallet switch:', error)
-        console.error('[switchWallet] Error stack:', error.stack)
-        reject(error)
+      // Temporarily restore old index to sync the old wallet (only if it's different)
+      if (currentIndexBeforeSync !== oldWalletIndex) {
+        context.commit('updateWalletIndex', oldWalletIndex)
+        context.commit('updateCurrentWallet', oldWalletIndex)
       }
-    }, 1000)
-  })
+
+      // Sync the old wallet to its vault slot
+      await context.dispatch('syncCurrentWalletToVault')
+
+      // Restore to target index (for index-based switching) or keep old index (for hash-based, will update below)
+      if (index !== null) {
+        // Index-based switching: restore to the target index that was set synchronously
+        context.commit('updateWalletIndex', index)
+        context.commit('updateCurrentWallet', index)
+      }
+      // For hash-based switching (index === null), we keep the old index for now and update it below
+    }
+
+    // If wallet hash was provided, find index now
+    if (walletHash && index === null) {
+      index = await getVaultIndexByWalletHashAsync(walletHash)
+
+      if (index === null || index === -1) {
+        console.error(`[switchWallet] Wallet hash ${walletHash} not found in vault`)
+        throw new Error(`Wallet hash ${walletHash} not found in vault`)
+      }
+
+      newWallet = vault[index]
+      // Update index now that we found it
+      context.commit('updateWalletIndex', index)
+      context.commit('updateCurrentWallet', index)
+    }
+
+    // Index was already updated synchronously above, but ensure it's still correct
+    if (context.getters.getWalletIndex !== index) {
+      context.commit('updateWalletIndex', index)
+      context.commit('updateCurrentWallet', index)
+    }
+
+    context.commit('assets/updatedCurrentAssets', index, { root: true })
+
+    // Initialize wallet-specific state if hash is available
+    if (walletHash) {
+      // Initialize ramp store state for the new wallet
+      context.commit('ramp/initializeWalletState', walletHash, { root: true })
+
+      // Clear Eload OAuth Token key
+      eloadServiceAPI.clearToken()
+
+      // Initialize paytacapos store state for the new wallet
+      context.commit('paytacapos/initializeWalletState', walletHash, { root: true })
+
+      // Initialize nostr chat store state for the new wallet
+      context.commit('nostrChat/initializeWalletState', walletHash, { root: true })
+
+      // Reset and reinitialize wizardconnect for the new wallet
+      context.dispatch('wizardconnect/reset', null, { root: true })
+      // Skipping init since it will run when page is refreshed after this one
+      // context.dispatch('wizardconnect/init', null, { root: true }).catch(err => {
+      //   console.warn('WizardConnect init failed during wallet switch:', err.message)
+      // })
+
+      // Reinitialize nostr chat keys and subscriptions for the new wallet
+      context.dispatch('nostrChat/reinitialize', null, { root: true }).catch(err => {
+        console.warn('Nostr chat reinit failed during wallet switch:', err.message)
+      })
+
+      // Trigger migration if needed (try to migrate, but don't fail if it doesn't work)
+      // Import migration dynamically to avoid circular dependencies
+      try {
+        const { migrateGlobalToWalletSpecific } = await import('src/utils/wallet-migration')
+        await migrateGlobalToWalletSpecific(walletHash)
+      } catch (migrationError) {
+        // Migration errors are non-critical - app can continue with fresh state
+        console.warn('Migration failed (non-critical):', migrationError)
+      }
+    }
+
+    // Removed all reset/clear commits - data is now wallet-specific and persists
+    // No need to clear data when switching wallets since each wallet has its own state
+    // Note: wallet index was already updated above
+
+    // SECURITY: Check if destination wallet has lock enabled
+    // If it does AND we're switching from a different wallet, reset unlock state
+    // This requires authentication before showing balances of the new wallet
+    const lockAppEnabledAfter = context.rootGetters['global/lockApp']
+    if (lockAppEnabledAfter && oldWalletIndex !== index) {
+      context.commit('setIsUnlocked', false)
+    }
+
+    // Sync settings to darkmode and market modules
+    context.dispatch('syncSettingsToModules')
+  } catch (error) {
+    console.error('[switchWallet] Error during wallet switch:', error)
+    console.error('[switchWallet] Error stack:', error.stack)
+    throw error
+  }
 }
 
 /**

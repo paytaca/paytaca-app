@@ -506,8 +506,8 @@
               class="q-pa-sm"
               rounded
               color="blue-grey-6"
-              :outline="!(selectedReasons.includes(reason))"
-              @click="updateAppealReasons(reason)"
+              :outline="selectedReason !== reason"
+              @click="selectedReason = reason"
               v-for="reason in reasonOpts" :key="reason" >
               {{ reason }}
             </q-badge>
@@ -521,7 +521,7 @@
           flat
           :label="$t('Submit')"
           class="button"
-          :disable="!selectedAppealType || selectedReasons.length === 0"
+          :disable="!selectedAppealType || !selectedReason"
           @click="submitData()"
           v-close-popup
         />
@@ -660,7 +660,7 @@ export default {
         this.$t('AppealFormReasonOpt2'),
         this.$t('AppealFormReasonOpt3'),
       ],
-      selectedReasons: [],
+      selectedReason: null,
       ongoingStatuses: [
         { value: 'SBM', label: this.$t('Submitted') },
         { value: 'CNF', label: this.$t('Confirmed') },
@@ -1072,7 +1072,7 @@ export default {
         case 'appeal':
           vm.info = {
             type: vm.selectedAppealType.value,
-            reasons: vm.selectedReasons
+            reasons: [vm.selectedReason]
           }
           return 'submit'
         default:
@@ -1129,16 +1129,7 @@ export default {
       this.appeal = false
       this.appealForm = true
     },
-    updateAppealReasons (reason) {
-      if (this.selectedReasons.includes(reason)) {
-        const index = this.selectedReasons.indexOf(reason)
-        if (index > -1) {
-          this.selectedReasons.splice(index, 1)
-        }
-      } else {
-        this.selectedReasons.push(reason)
-      }
-    }
+
   }
 }
 </script>

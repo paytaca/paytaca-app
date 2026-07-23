@@ -108,7 +108,8 @@ export default {
   emits: ['click', 'long-press-title'],
   data () {
     return {
-      addedBodyPadding: false
+      addedBodyPadding: false,
+      titleIsTall: false,
     }
   },
   computed: {
@@ -116,27 +117,20 @@ export default {
       return this.$store.getters['darkmode/getStatus']
     },
     headerNavStyle () {
-      /**
-       * Prevent header overlap with the OS status bar / cutouts.
-       * - iOS: keep the existing visual spacing, but also respect safe-area insets.
-       * - Android: add safe-area inset on top of the normal padding so the back button
-       *   stays clickable on devices where the status bar overlays the webview.
-       * Match home page - safe area padding + 9px spacing.
-       */
       const safeTop = 'max(env(safe-area-inset-top, 0px), var(--q-safe-area-top, 0px), var(--safe-area-inset-top, 0px), var(--pt-android-statusbar, 0px))'
+      const extraHeight = this.titleIsTall ? 30 : 0
 
       if (this.$q.platform.is.ios) {
         return {
-          // Match home page - safe area + 9px spacing
           paddingTop: `calc(${safeTop} + 9px)`,
-          height: `calc(${safeTop} + 53px)`,
+          height: `calc(${safeTop} + ${53 + extraHeight}px)`,
           paddingBottom: '0px'
         }
       }
 
       return {
         paddingTop: `calc(${safeTop} + 9px)`,
-        height: `calc(53px + ${safeTop})`,
+        height: `calc(${53 + extraHeight}px + ${safeTop})`,
         paddingBottom: '0px'
       }
     },
@@ -152,27 +146,26 @@ export default {
     }
   },
   mounted () {
-    // Mark that this route has a header so global safe-area padding won't double-apply.
     document.body.classList.add('pt-has-header-nav')
-
-    // adjust header-nav div height when header title breaks into two lines
-    const headerTitleHeight = this.$refs['header-title']?.clientHeight
-    const headerNavEl = this.$refs['header-nav']
-
-    if (!headerNavEl || typeof headerTitleHeight !== 'number') return
-
-    if (!this.$q.platform.is.ios) {
-      const safeTop = 'max(env(safe-area-inset-top, 0px), var(--q-safe-area-top, 0px), var(--safe-area-inset-top, 0px), var(--pt-android-statusbar, 0px))'
-      headerNavEl.style.height = headerTitleHeight > 32
-        ? `calc(83px + ${safeTop})`
-        : `calc(53px + ${safeTop})`
-
-      if (headerTitleHeight > 32) {
-        // move all elements 30px down due to the change in height
-        document.body.style.paddingTop = '30px'
-        this.addedBodyPadding = true
+    this.$nextTick(() => {
+      const headerTitleHeight = this.$refs['header-title']?.clientHeight
+      if (typeof headerTitleHeight === 'number' && headerTitleHeight > 32) {
+        this.titleIsTall = true
+        if (!this.$q.platform.is.ios) {
+          document.body.style.paddingTop = '30px'
+          this.addedBodyPadding = true
+        }
       }
+    })
+  },
+  activated () {
+    document.body.classList.add('pt-has-header-nav')
+    if (this.addedBodyPadding && !this.$q.platform.is.ios) {
+      document.body.style.paddingTop = '30px'
     }
+  },
+  deactivated () {
+    if (this.addedBodyPadding) document.body.style.paddingTop = ''
   },
   beforeUnmount () {
     if (this.addedBodyPadding) document.body.style.paddingTop = ''
@@ -180,7 +173,7 @@ export default {
   },
   methods: {
     getDarkModeClass,
-    async onClick () {
+    onClick () {
       // Check if backnavpath is a valid non-empty string or a non-empty object
       const hasValidPath = typeof this.backnavpath === 'string' 
         ? this.backnavpath.trim() !== ''
@@ -188,9 +181,9 @@ export default {
 
       if (hasValidPath) {
         if (typeof this.backnavpath === 'object') {
-          await this.$router.push(this.backnavpath)
+          this.$router.push(this.backnavpath)
         } else {
-          await this.$router.push({ path: this.backnavpath })
+          this.$router.push({ path: this.backnavpath })
         }
       } else {
         this.$router.go(-1)

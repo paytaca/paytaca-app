@@ -24,7 +24,9 @@ function getDefaultWalletSettings() {
     preferredSecurity: 'pin', // 'pin' or 'biometric'
     lockApp: false, // Enable/disable app lock feature
     relativeTxTimestamp: true, // true: relative timestamps, false: absolute timestamps
-    lastBackupTimestamp: null // Timestamp when user last confirmed backup completion (Unix timestamp in milliseconds)
+    lastBackupTimestamp: null, // Timestamp when user last confirmed backup completion (Unix timestamp in milliseconds)
+    walletCreatedAt: null, // ISO 8601 string from backend auth/wallet endpoint
+    joinRewardsPromptShown: false
   }
 }
 
@@ -40,6 +42,10 @@ export function setBackupReminderDismissed (state, value) {
   state.backupReminderDismissed = Boolean(value)
 }
 
+export function setBackupDialogActive (state, value) {
+  state.backupDialogActive = Boolean(value)
+}
+
 export function setLastBackupTimestamp (state, timestamp) {
   // timestamp should be Unix timestamp in milliseconds (Date.now())
   // null or undefined means no backup timestamp recorded
@@ -49,6 +55,18 @@ export function setLastBackupTimestamp (state, timestamp) {
       state.vault[state.walletIndex].settings = getDefaultWalletSettings()
     }
     state.vault[state.walletIndex].settings.lastBackupTimestamp = timestamp !== null && timestamp !== undefined ? Number(timestamp) : null
+  }
+}
+
+export function setWalletCreatedAt (state, dateString) {
+  // dateString should be an ISO 8601 string (e.g., "2024-01-15T08:30:00Z")
+  // null or undefined means no creation date recorded
+  // Store per-wallet in vault settings
+  if (state.vault && state.vault[state.walletIndex]) {
+    if (!state.vault[state.walletIndex].settings) {
+      state.vault[state.walletIndex].settings = getDefaultWalletSettings()
+    }
+    state.vault[state.walletIndex].settings.walletCreatedAt = dateString !== null && dateString !== undefined ? String(dateString) : null
   }
 }
 
@@ -690,4 +708,16 @@ export function setIsUnlocked (state, value) {
 
 export function setPreviousRoute (state, path) {
   state.previousRoute = path
+}
+
+export function setWalletSwitchInProgress (state, value) {
+  state.walletSwitchInProgress = Boolean(value)
+}
+
+export function setWalletSwitchLoading (state, value) {
+  state.walletSwitchLoading = Boolean(value)
+}
+
+export function setAppInitialLoadComplete (state, value) {
+  state.appInitialLoadComplete = Boolean(value)
 }

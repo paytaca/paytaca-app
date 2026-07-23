@@ -104,23 +104,14 @@
                             {{ listing.price_type }}
                           </span><br>
                           <div class="row q-gutter-md">
-                            <span>
-                              {{
-                                $t(
-                                  'TradeCount',
-                                  { count: listing.trade_count },
-                                  `${ listing.trade_count } trades`
-                                )
-                              }}
+                            <span class="text-green">
+                              {{ $t('TradesCompleted', { count: listing.completed_trades ?? 0 }) }}
+                            </span>
+                            <span class="text-red">
+                              {{ $t('TradesFailed', { count: listing.failed_trades ?? 0 }) }}
                             </span>
                             <span>
-                              {{
-                                $t(
-                                  'CompletionPercentage',
-                                  { percentage: Number(listing.completion_rate?.toFixed(2)) },
-                                  `${ Number(listing.completion_rate?.toFixed(2)) }% completion`
-                                )
-                              }}
+                              {{ $t('CompletionPercentage', { percentage: formatCompletionRate(listing.completion_rate) }) }}
                             </span>
                           </div>
                           <span class="text-weight-bold pt-label col-transaction lg-font-size" :class="getDarkModeClass(darkMode)">
@@ -327,6 +318,9 @@ export default {
     getDarkModeClass,
     formatCurrency,
     parseFiatCurrency,
+    formatCompletionRate (value) {
+      return Math.floor(value || 0).toString()
+    },
     getThemeColor () {
       const themeColors = {
         'glassmorphic-blue': '#42a5f5',
@@ -339,7 +333,6 @@ export default {
     async getFiatCurrencies () {
       try {
         const { data: currencies } = await backend.get('/ramp-p2p/ad/currency/', { params: { trade_type: this.transactionType }, authorize: true })
-        console.log('currencies: ', currencies)
         this.disableCreateBtn = currencies.length === 0
       } catch (error) {
         this.handleRequestError(error)
@@ -350,7 +343,6 @@ export default {
       if (showAdLimitMessage) {
         backend.get('/ramp-p2p/ad/check/limit/', { params: { trade_type: this.transactionType }, authorize: true })
           .then(response => {
-            console.log(response)
             if (response.data?.exceeds_limit) {
               bus.emit('post-notice', 'ad-limit')
             }
@@ -562,6 +554,7 @@ export default {
       }
     },
     handleRequestError (error) {
+      if (error?.code === 'ECONNABORTED') return
       bus.emit('handle-request-error', error)
     }
   }

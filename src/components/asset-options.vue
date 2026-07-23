@@ -2,9 +2,12 @@
 	<div v-bind="$attrs" class="asset-option text-center" :class="darkmode ? 'text-light' : 'text-dark'">
 		<div v-if="stablehedgeView">
 			<div class="row">
-				<div class="col" v-for="opt in stablehedgeOpt">
-		            <q-btn color="primary" class="button-default" :class="darkmode ? 'dark' : 'light'" round size="14px" :disable="!loaded" @click="handleButton(opt.name)">
+				<div class="col" v-for="opt in stablehedgeOpt" :key="opt.name">
+		            <q-btn color="primary" class="button-default" :class="darkmode ? 'dark' : 'light'" round size="14px" :disable="!loaded || opt.name === 'freeze'" @click="handleButton(opt.name)">
 		            	<q-icon class="default-text-color" size="24px" :name="opt.icon"/>
+                    <q-tooltip v-if="opt.name === 'freeze'" anchor="top middle" self="bottom middle">
+                        {{ $t('FreezeDisabledTooltip') }}
+                    </q-tooltip>
 		            </q-btn>
 		            <div class="q-pt-xs text-center text-capitalize" style="font-size: 13px;">{{ opt.label }}</div>
 		        </div>	         

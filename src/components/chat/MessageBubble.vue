@@ -6,8 +6,8 @@
   >
     <div
       class="message-bubble"
-      :class="{ 'new-message': isNew, 'is-deleted': message.deleted, 'is-image-bubble': isImageFile }"
-      :style="isMine && !isImageFile ? { background: `linear-gradient(135deg, ${themeColor}, ${themeColor}dd)` } : {}"
+      :class="{ 'new-message': isNew, 'is-deleted': message.deleted, 'is-image-bubble': isImageFile, 'is-video-bubble': isVideoFile }"
+      :style="isMine && !isImageFile && !isVideoFile ? { background: `linear-gradient(135deg, ${themeColor}, ${themeColor}dd)` } : {}"
       @pointerdown="onPointerDown"
       @pointerup="onPointerUp"
       @pointermove="onPointerMove"
@@ -57,16 +57,52 @@
         </div>
       </div>
 
+      <!-- Video message (no bubble styling, just the player) -->
+      <div v-else-if="isVideoFile" class="video-message">
+        <div v-if="hasVideoSrc && !videoError" class="video-frame" :style="videoFrameStyle">
+          <video
+            ref="videoPlayer"
+            :src="videoSrc"
+            class="video-element"
+            controls
+            playsinline
+            preload="auto"
+            :poster="videoThumbnailUrl || undefined"
+            @click.stop
+            @error="onVideoError"
+          />
+        </div>
+        <div v-else class="video-frame video-frame-loading" :style="videoFrameStyle" @click="loadVideo">
+          <img v-if="videoThumbnailUrl" :src="videoThumbnailUrl" class="video-fill" draggable="false" />
+          <q-skeleton v-else type="rect" animation="wave" class="video-fill" />
+          <div class="video-play-overlay">
+            <q-spinner v-if="isVideoLoading" size="36px" color="white" class="video-spinner" />
+            <q-icon v-else name="play_circle_filled" size="48px" color="white" class="video-play-icon" />
+          </div>
+        </div>
+      </div>
+
       <!-- Non-image file card -->
-      <div v-else-if="message.isFile || parsed.markup?.type === 'file'" class="file-card" @click="downloadFile">
+      <div v-else-if="message.isFile || parsed.markup?.type === 'file'" class="file-card" @click="onFileCardClick">
         <div class="file-card-header">
           <q-icon :name="fileIcon" size="28px" class="file-icon" :style="{ color: themeColor }" />
           <div class="file-info">
             <div class="file-name">{{ message.fileName || getFileName(message.content) }}</div>
-            <div class="file-meta">{{ formatFileSize(message.fileSize || message.encryptedSize) }} • {{ message.fileType || 'File' }}</div>
+            <div class="file-meta">{{ formatFileSize(message.fileSize || message.encryptedSize) }} • {{ message.fileType || $t('File') }}</div>
           </div>
         </div>
         <div class="file-card-actions">
+          <q-btn
+            v-if="isPdfFile"
+            flat
+            dense
+            round
+            icon="visibility"
+            size="sm"
+            @click.stop="openPdfViewer"
+          >
+            <q-tooltip>{{ $t('View') }}</q-tooltip>
+          </q-btn>
           <q-btn
             flat
             dense
@@ -76,13 +112,15 @@
             :loading="isDownloading"
             @click.stop="downloadFile"
           >
-            <q-tooltip>Download</q-tooltip>
+            <q-tooltip>{{ $t('Download') }}</q-tooltip>
           </q-btn>
         </div>
       </div>
       
       <template v-else>
-        <div class="message-text">{{ displayText }}</div>
+        <div class="message-text">
+          <div v-for="(line, i) in textLines" :key="i" :class="{ 'quote-line': line.startsWith('>') }" class="message-line">{{ line }}</div>
+        </div>
 
         <!-- Rich markup card: payment -->
         <div
@@ -91,11 +129,12 @@
           @click="openTransactionDetail"
         >
           <div class="payment-amount-row">
-            <q-icon name="img:bitcoin-cash-circle.svg" size="22px" />
-            <span class="payment-amount">{{ markup.amount }} BCH</span>
+            <img v-if="markup.logo" :src="tokenLogoUrl" class="payment-token-logo" />
+            <q-icon v-else name="img:bitcoin-cash-circle.svg" size="22px" />
+            <span class="payment-amount">{{ markup.amount }} {{ markup.symbol || 'BCH' }}</span>
           </div>
           <div v-if="markup.txid" class="payment-txid">
-            <span class="txid-label">TXID</span>
+            <span class="txid-label">{{ $t('TXID') }}</span>
             <span class="txid-value">{{ formatTxid(markup.txid) }}</span>
             <q-icon name="chevron_right" size="16px" class="payment-chevron" />
           </div>
@@ -182,6 +221,9 @@
         </div>
       </div>
     </q-dialog>
+
+    <!-- PDF viewer dialog -->
+    <PdfViewerDialog v-model="showPdfDialog" :pdf-url="pdfBlobUrl" :file-name="pdfFileName" />
   </div>
 </template>
 
@@ -189,90 +231,17 @@
 import { parseMessageMarkup } from 'src/utils/chat-markup'
 import { decryptFile, downloadFromBlossom } from 'src/wallet/nostr-media'
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
-
-const _replyThumbnailCache = new Map()
-
-// Module-level cache for image thumbnails (LRU with max 100 entries)
-const _imageThumbnailCache = new Map()
-const MAX_THUMBNAIL_CACHE_SIZE = 200
-
-// IndexedDB for persistent thumbnail cache
-const DB_NAME = 'paytaca-chat-cache'
-const DB_VERSION = 1
-const STORE_NAME = 'thumbnails'
-
-let _dbPromise = null
-
-function openDatabase() {
-  if (!_dbPromise) {
-    _dbPromise = new Promise((resolve, reject) => {
-      const request = indexedDB.open(DB_NAME, DB_VERSION)
-      
-      request.onerror = () => reject(request.error)
-      request.onsuccess = () => resolve(request.result)
-      
-      request.onupgradeneeded = (event) => {
-        const db = event.target.result
-        if (!db.objectStoreNames.contains(STORE_NAME)) {
-          db.createObjectStore(STORE_NAME, { keyPath: 'id' })
-        }
-      }
-    })
-  }
-  return _dbPromise
-}
-
-async function getThumbnailFromDB(cacheKey) {
-  try {
-    const db = await openDatabase()
-    return new Promise((resolve) => {
-      const tx = db.transaction(STORE_NAME, 'readonly')
-      const store = tx.objectStore(STORE_NAME)
-      const request = store.get(cacheKey)
-      request.onsuccess = () => resolve(request.result?.thumbnailUrl || null)
-      request.onerror = () => resolve(null)
-    })
-  } catch {
-    return null
-  }
-}
-
-async function saveThumbnailToDB(cacheKey, thumbnailUrl) {
-  try {
-    const db = await openDatabase()
-    const tx = db.transaction(STORE_NAME, 'readwrite')
-    const store = tx.objectStore(STORE_NAME)
-    store.put({ id: cacheKey, thumbnailUrl, timestamp: Date.now() })
-  } catch (err) {
-    console.warn('Failed to save thumbnail to IndexedDB:', err)
-  }
-}
-
-export async function clearChatCache() {
-  try {
-    const db = await openDatabase()
-    const tx = db.transaction(STORE_NAME, 'readwrite')
-    const store = tx.objectStore(STORE_NAME)
-    store.clear()
-    _imageThumbnailCache.clear()
-    _replyThumbnailCache.clear()
-    return true
-  } catch (err) {
-    console.error('Failed to clear chat cache:', err)
-    return false
-  }
-}
-
-function evictOldestThumbnail() {
-  if (_imageThumbnailCache.size >= MAX_THUMBNAIL_CACHE_SIZE) {
-    const firstKey = _imageThumbnailCache.keys().next().value
-    const url = _imageThumbnailCache.get(firstKey)
-    if (url && url.startsWith('blob:')) {
-      URL.revokeObjectURL(url)
-    }
-    _imageThumbnailCache.delete(firstKey)
-  }
-}
+import { getCachedVideoBlob } from 'src/utils/video-blob-cache'
+import { getCachedVideo, setCachedVideo, getCachedVideoThumb, setCachedVideoThumb } from 'src/utils/video-cache'
+import PdfViewerDialog from 'src/components/chat/PdfViewerDialog.vue'
+import { getCachedPdf, setCachedPdf } from 'src/utils/pdf-cache'
+import {
+  _imageThumbnailCache,
+  _replyThumbnailCache,
+  evictOldestThumbnail,
+  getThumbnailFromDB,
+  saveThumbnailToDB,
+} from 'src/utils/chat-cache'
 
 function bytesToHex(bytes) {
   return Array.from(bytes).map(b => b.toString(16).padStart(2, '0')).join('')
@@ -280,11 +249,13 @@ function bytesToHex(bytes) {
 
 export default {
   name: 'MessageBubble',
+  components: { PdfViewerDialog },
   props: {
     message: { type: Object, required: true },
     myPubKey: { type: String, default: '' },
     showSenderName: { type: Boolean, default: false },
     contacts: { type: Array, default: () => [] },
+    displayNames: { type: Object, default: () => ({}) },
     isRead: { type: Boolean, default: true },
     readByNames: { type: Array, default: () => [] },
     isNew: { type: Boolean, default: false },
@@ -296,7 +267,6 @@ export default {
     data () {
       return {
         expandedReaction: null,
-        now: Date.now(),
         // pointer long-press state
         _pressTimer: null,
         _pressStartX: 0,
@@ -307,11 +277,19 @@ export default {
         imageThumbnailUrl: null, // Small preview for fast browsing
         imageFullUrl: null,      // Full resolution (loaded on click)
         showImageDialog: false,
+        videoUrl: null,
+        videoThumbnailUrl: null,
+        isVideoLoading: false,
+        videoError: false,
+        _cachedVideoBlob: null,
+        _videoUrlIsCachedBlob: false,
         replyImageThumbnail: null, // Reply preview thumbnail (reactive)
+        showPdfDialog: false,
+        pdfBlobUrl: null,
+        pdfFileName: '',
       }
     },
     mounted () {
-      this._timer = setInterval(() => { this.now = Date.now() }, 1000)
       if (this.isImageFile && this.message.aesKeyHex && this.message.nonceHex) {
         // Check if thumbnail is already cached
         const cacheKey = this.message.id || this.message.content
@@ -329,18 +307,46 @@ export default {
           this._imgObserver.observe(this.$el)
         }
       }
+      if (this.isVideoFile) {
+        const cached = getCachedVideoBlob(this.message.id)
+        if (cached) {
+          this._cachedVideoBlob = cached
+        }
+        if (this.message.thumbUrl && this.message.thumbAesKeyHex && this.message.thumbNonceHex) {
+          this._videoObserver = new IntersectionObserver((entries) => {
+            if (entries[0].isIntersecting) {
+              this._videoObserver.disconnect()
+              this._videoObserver = null
+              this.loadVideoThumbnail()
+            }
+          }, { rootMargin: '200px' })
+          this._videoObserver.observe(this.$el)
+        }
+      }
     },
    beforeUnmount () {
      this._unmounted = true
-     clearInterval(this._timer)
      if (this._imgObserver) {
        this._imgObserver.disconnect()
        this._imgObserver = null
      }
-      // Only revoke full image URL (thumbnails are cached globally)
-      if (this.imageFullUrl) {
-        URL.revokeObjectURL(this.imageFullUrl)
-      }
+     if (this._videoObserver) {
+       this._videoObserver.disconnect()
+       this._videoObserver = null
+     }
+       // Only revoke full image URL (thumbnails are cached globally)
+       if (this.imageFullUrl) {
+         URL.revokeObjectURL(this.imageFullUrl)
+       }
+        if (this.videoUrl && !this._videoUrlIsCachedBlob) {
+          URL.revokeObjectURL(this.videoUrl)
+        }
+        if (this.videoThumbnailUrl) {
+          URL.revokeObjectURL(this.videoThumbnailUrl)
+        }
+        if (this.pdfBlobUrl) {
+          URL.revokeObjectURL(this.pdfBlobUrl)
+        }
        // Revoke any in-flight thumbnail blob URL
        if (this._pendingThumbnailUrl) {
          URL.revokeObjectURL(this._pendingThumbnailUrl)
@@ -361,12 +367,18 @@ export default {
     },
     senderName () {
       const contact = this.contacts.find(c => c.pubKeyHex === this.message.sender)
-      return contact?.name || this.message.sender?.slice(0, 12) + '...'
+      if (contact?.name) return contact.name
+      const displayName = this.displayNames[this.message.sender]
+      if (displayName) return displayName
+      return this.message.sender?.slice(0, 12) + '...'
     },
     replySenderName () {
       if (!this.replyToMessage) return ''
       const contact = this.contacts.find(c => c.pubKeyHex === this.replyToMessage.sender)
-      return contact?.name || this.replyToMessage.sender?.slice(0, 12) + '...'
+      if (contact?.name) return contact.name
+      const displayName = this.displayNames[this.replyToMessage.sender]
+      if (displayName) return displayName
+      return this.replyToMessage.sender?.slice(0, 12) + '...'
     },
     replySnippet () {
       if (!this.replyToMessage) return ''
@@ -381,6 +393,7 @@ export default {
       if (this.replyToMessage.fileType?.startsWith('image/')) return 'image'
       if (this.replyToMessage.fileType?.startsWith('video/')) return 'videocam'
       if (this.replyToMessage.fileType?.startsWith('audio/')) return 'audiotrack'
+      if (this.replyToMessage.fileType === 'application/pdf') return 'picture_as_pdf'
       return 'description'
     },
     replyToImageThumbStyle () {
@@ -406,8 +419,19 @@ export default {
     displayText () {
       return this.parsed.text
     },
+    textLines () {
+      return (this.displayText || '').split('\n')
+    },
     markup () {
       return this.parsed.markup
+    },
+    tokenLogoUrl () {
+      if (!this.markup?.logo) return ''
+      const url = this.markup.logo
+      if (url.startsWith('https://ipfs.paytaca.com/ipfs')) {
+        return url + '?pinataGatewayToken=' + process.env.PINATA_GATEWAY_TOKEN
+      }
+      return url
     },
     groupedReactions () {
       const groups = {}
@@ -415,7 +439,7 @@ export default {
         if (!groups[r.emoji]) groups[r.emoji] = { emoji: r.emoji, count: 0, reactors: [], isRemovable: false }
         groups[r.emoji].count++
         groups[r.emoji].reactors.push({ pubKey: r.reactorPubKey, createdAt: r.createdAt })
-        if (r.reactorPubKey === this.myPubKey && this.now - (r.createdAt || 0) < 30000) {
+        if (r.reactorPubKey === this.myPubKey && Date.now() - (r.createdAt || 0) < 30000) {
           groups[r.emoji].isRemovable = true
         }
       }
@@ -429,10 +453,23 @@ export default {
       if (this.message.fileType?.startsWith('image/')) return 'image'
       if (this.message.fileType?.startsWith('video/')) return 'videocam'
       if (this.message.fileType?.startsWith('audio/')) return 'audiotrack'
+      if (this.message.fileType === 'application/pdf') return 'picture_as_pdf'
       return 'description'
     },
     isImageFile () {
       return this.message.fileType?.startsWith('image/')
+    },
+    isVideoFile () {
+      return this.message.fileType?.startsWith('video/')
+    },
+    isPdfFile () {
+      return this.message.fileType === 'application/pdf'
+    },
+    videoSrc () {
+      return this.videoUrl || null
+    },
+    hasVideoSrc () {
+      return !!this.videoUrl
     },
     imageFrameStyle () {
       const w = this.message.imageWidth
@@ -455,6 +492,27 @@ export default {
       
       return { 
         width: `${finalWidth}px`,
+        paddingBottom: `${(cappedHeight / finalWidth) * 100}%`
+      }
+    },
+    videoFrameStyle () {
+      const w = this.message.imageWidth
+      const h = this.message.imageHeight
+      if (!w || !h) {
+        return { width: '100%', paddingBottom: '56.25%' }
+      }
+
+      const aspectRatio = h / w
+      const maxWidth = 360
+      const maxHeight = 360
+
+      const displayWidth = Math.min(w, maxWidth)
+      const displayHeight = displayWidth * aspectRatio
+      const cappedHeight = Math.min(displayHeight, maxHeight)
+      const finalWidth = cappedHeight < displayHeight ? cappedHeight / aspectRatio : displayWidth
+
+      return {
+        width: `${Math.round(finalWidth)}px`,
         paddingBottom: `${(cappedHeight / finalWidth) * 100}%`
       }
     },
@@ -586,11 +644,14 @@ export default {
     reactorName (pubKey) {
       if (pubKey === this.myPubKey) return this.$t('You', {}, 'You')
       const contact = this.contacts.find(c => c.pubKeyHex === pubKey)
-      return contact?.name || pubKey.slice(0, 12) + '...'
+      if (contact?.name) return contact.name
+      const displayName = this.displayNames[pubKey]
+      if (displayName) return displayName
+      return pubKey.slice(0, 12) + '...'
     },
     canRemoveReaction (reactor) {
       if (reactor.pubKey !== this.myPubKey) return false
-      return this.now - (reactor.createdAt || 0) < 30000
+      return Date.now() - (reactor.createdAt || 0) < 30000
     },
     onReactionClick (reactor) {
       if (reactor.pubKey === this.myPubKey && this.canRemoveReaction(reactor)) {
@@ -599,7 +660,7 @@ export default {
       }
     },
     getFileName (url) {
-      if (!url) return 'Unknown file'
+      if (!url) return this.$t('UnknownFile')
       const parts = url.split('/')
       const lastPart = parts[parts.length - 1]
       // If it's a hash, add extension based on type
@@ -607,7 +668,7 @@ export default {
         const ext = this.getFileExtension()
         return `file${ext}`
       }
-      return lastPart || 'Unknown file'
+      return lastPart || this.$t('UnknownFile')
     },
     formatFileSize (bytes) {
       if (!bytes || bytes < 1024) return (bytes || 0) + ' B'
@@ -618,6 +679,7 @@ export default {
       if (this.message.fileType?.includes('image')) return '.jpg'
       if (this.message.fileType?.includes('video')) return '.mp4'
       if (this.message.fileType?.includes('audio')) return '.mp3'
+      if (this.message.fileType === 'application/pdf') return '.pdf'
       return ''
     },
     async loadThumbnail () {
@@ -735,6 +797,106 @@ export default {
         this.isDownloading = false
       }
     },
+    onVideoError () {
+      this.videoError = true
+      if (this.videoUrl) {
+        URL.revokeObjectURL(this.videoUrl)
+      }
+      this.videoUrl = null
+    },
+    async loadVideoThumbnail () {
+      if (this.videoThumbnailUrl || this._unmounted) return
+      const { thumbUrl, thumbAesKeyHex, thumbNonceHex } = this.message
+      if (!thumbUrl || !thumbAesKeyHex || !thumbNonceHex) return
+      const cacheKey = this.message.id || this.message.content
+      try {
+        const cached = await getCachedVideoThumb(cacheKey)
+        if (cached?.blob) {
+          this.videoThumbnailUrl = URL.createObjectURL(cached.blob)
+          return
+        }
+        const blossomServer = 'https://blossom.paytaca.com'
+        const encryptedData = await downloadFromBlossom(thumbUrl, blossomServer)
+        const decryptedData = await decryptFile(encryptedData, thumbAesKeyHex, thumbNonceHex)
+        if (this._unmounted) return
+        const blob = new Blob([decryptedData], { type: 'image/jpeg' })
+        this.videoThumbnailUrl = URL.createObjectURL(blob)
+        setCachedVideoThumb(cacheKey, blob)
+      } catch (err) {
+        console.error('[MessageBubble] Video thumbnail load error:', err)
+      }
+    },
+    async loadVideo () {
+      if (this.videoUrl || this.isVideoLoading) return
+      this.isVideoLoading = true
+      const mimeType = this.message.fileType || 'video/mp4'
+
+      if (this._cachedVideoBlob) {
+        this.videoError = false
+        this.videoUrl = this._cachedVideoBlob
+        this._videoUrlIsCachedBlob = true
+        this._cachedVideoBlob = null
+        this.isVideoLoading = false
+        this.$nextTick(() => {
+          this.$refs.videoPlayer?.play()
+        })
+        return
+      }
+
+      const aesKeyHex = this.message.aesKeyHex
+      const nonceHex = this.message.nonceHex
+      const fileUrl = this.message.content
+      if (!aesKeyHex || !nonceHex || !fileUrl) {
+        this.isVideoLoading = false
+        return
+      }
+      const cacheKey = this.message.id || this.message.content
+
+      const cached = await getCachedVideo(cacheKey)
+      if (cached?.blob) {
+        this.videoError = false
+        this.videoUrl = URL.createObjectURL(cached.blob)
+        this.isVideoLoading = false
+        return
+      }
+
+      const blossomServer = 'https://blossom.paytaca.com'
+      const maxRetries = 3
+      for (let attempt = 1; attempt <= maxRetries; attempt++) {
+        if (this._unmounted) {
+          this.isVideoLoading = false
+          return
+        }
+        try {
+          const encryptedData = await downloadFromBlossom(fileUrl, blossomServer)
+          const decryptedData = await decryptFile(encryptedData, aesKeyHex, nonceHex)
+          const blob = new Blob([decryptedData], { type: mimeType })
+          this.videoError = false
+          this.videoUrl = URL.createObjectURL(blob)
+          setCachedVideo(cacheKey, blob, mimeType)
+          this.isVideoLoading = false
+          return
+        } catch (err) {
+          console.error('[MessageBubble] loadVideo attempt', attempt, 'failed:', err.name, err.message)
+          if (attempt === maxRetries) {
+            if (this._unmounted) {
+              this.isVideoLoading = false
+              return
+            }
+            try {
+              this.$q.notify({
+                type: 'negative',
+                message: this.$t('VideoLoadFailed', {}, 'Failed to load video') + ': ' + (err.message || err.name),
+                timeout: 5000,
+              })
+            } catch (_) {}
+          } else {
+            await new Promise(r => setTimeout(r, 1000 * attempt))
+          }
+        }
+      }
+      this.isVideoLoading = false
+    },
     onImageClick () {
       if (!this.imageThumbnailUrl) return
       this.showImageDialog = true
@@ -814,6 +976,60 @@ export default {
         })
       } finally {
         this.isDownloadSaving = false
+      }
+    },
+    onFileCardClick () {
+      if (this.isPdfFile) {
+        this.openPdfViewer()
+      } else {
+        this.downloadFile()
+      }
+    },
+    async openPdfViewer () {
+      if (this.pdfBlobUrl) {
+        this.showPdfDialog = true
+        return
+      }
+      const cacheKey = this.message.id || this.message.content
+      const cached = await getCachedPdf(cacheKey)
+      if (cached?.blob) {
+        this.pdfBlobUrl = URL.createObjectURL(cached.blob)
+        this.pdfFileName = this.message.fileName || this.getFileName(this.message.content)
+        this.showPdfDialog = true
+        return
+      }
+      const aesKeyHex = this.message.aesKeyHex
+      const nonceHex = this.message.nonceHex
+      const fileUrl = this.message.content
+      if (!aesKeyHex || !nonceHex || !fileUrl) {
+        this.$q.notify({
+          type: 'negative',
+          message: this.$t('FileDecryptKeyMissing', {}, 'Decryption key not available'),
+          timeout: 3000,
+        })
+        return
+      }
+      this.isDownloading = true
+      try {
+        const blossomServer = 'https://blossom.paytaca.com'
+        const encryptedData = await downloadFromBlossom(fileUrl, blossomServer)
+        const decryptedData = await decryptFile(encryptedData, aesKeyHex, nonceHex)
+        if (this._unmounted) return
+        const mimeType = this.message.fileType || 'application/pdf'
+        const blob = new Blob([decryptedData], { type: mimeType })
+        this.pdfBlobUrl = URL.createObjectURL(blob)
+        this.pdfFileName = this.message.fileName || this.getFileName(fileUrl)
+        this.showPdfDialog = true
+        setCachedPdf(cacheKey, blob, mimeType)
+      } catch (err) {
+        console.error('PDF decrypt error:', err)
+        this.$q.notify({
+          type: 'negative',
+          message: this.$t('PdfLoadFailed', {}, 'Failed to open PDF') + ': ' + err.message,
+          timeout: 5000,
+        })
+      } finally {
+        this.isDownloading = false
       }
     },
   },
@@ -967,9 +1183,20 @@ export default {
   font-size: 15px;
   white-space: pre-wrap;
   word-break: break-word;
-  -webkit-user-select: none;
-  user-select: none;
-  -webkit-touch-callout: none;
+  -webkit-user-select: text;
+  user-select: text;
+}
+
+.message-line {
+  min-height: 1em;
+}
+
+.quote-line {
+  padding-left: 10px;
+  border-left: 3px solid currentColor;
+  opacity: 0.85;
+  font-style: italic;
+  margin-bottom: 4px;
 }
 
 .message-reactions {
@@ -1176,7 +1403,8 @@ export default {
   transform: translateY(0);
 }
 
-.message-row.mine .message-bubble.is-image-bubble {
+.message-row.mine .message-bubble.is-image-bubble,
+.message-row.mine .message-bubble.is-video-bubble {
   background: transparent !important;
   box-shadow: none !important;
   border: none !important;
@@ -1200,7 +1428,8 @@ export default {
   color: #34d399;
 }
 
-.message-row.theirs .message-bubble.is-image-bubble {
+.message-row.theirs .message-bubble.is-image-bubble,
+.message-row.theirs .message-bubble.is-video-bubble {
   background: transparent !important;
   box-shadow: none !important;
   border: none !important;
@@ -1237,18 +1466,23 @@ export default {
   border-radius: 12px;
 }
 
-/* Fullscreen image viewer */
+/* Fullscreen image viewer — extends into safe areas */
 .image-viewer {
   display: flex;
   flex-direction: column;
-  height: 100%;
+  height: 100dvh;
+  width: 100dvw;
   background: #000000;
 }
 
 .image-viewer-header {
   display: flex;
   align-items: center;
-  padding: 8px 12px;
+  padding:
+    calc(env(safe-area-inset-top, 0px) + 8px)
+    calc(env(safe-area-inset-right, 0px) + 12px)
+    8px
+    calc(env(safe-area-inset-left, 0px) + 12px);
   gap: 8px;
   color: #ffffff;
   flex-shrink: 0;
@@ -1276,6 +1510,7 @@ export default {
   justify-content: center;
   overflow: auto;
   min-height: 0;
+  padding-bottom: env(safe-area-inset-bottom, 0px);
 }
 
 .fullscreen-image {
@@ -1385,10 +1620,86 @@ export default {
   box-shadow: 0 4px 12px rgba(59, 130, 246, 0.25);
 }
 
+/* Video message (no bubble styling, just the player) */
+.video-message {
+  display: block;
+}
+
+.video-frame {
+  position: relative;
+  display: inline-block;
+  height: 0;
+  border-radius: 12px;
+  overflow: hidden;
+  width: 100%;
+  max-width: 360px;
+  background: #000;
+}
+
+.video-frame-loading {
+  cursor: pointer;
+}
+
+.video-fill {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  border-radius: 12px;
+  background: #000;
+  pointer-events: none;
+}
+
+.video-element {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  border-radius: 12px;
+  background: #000;
+}
+
+.video-play-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1;
+  pointer-events: none;
+}
+
+.video-play-overlay * {
+  pointer-events: none;
+}
+
+.video-play-icon {
+  opacity: 0.9;
+  filter: drop-shadow(0 2px 8px rgba(0, 0, 0, 0.5));
+}
+
+.video-spinner {
+  filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.5));
+}
+
 .payment-amount-row {
   display: flex;
   align-items: center;
   gap: 8px;
+}
+
+.payment-token-logo {
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  object-fit: cover;
 }
 
 .payment-amount {

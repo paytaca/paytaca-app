@@ -170,16 +170,26 @@ export default {
       this.txidLoaded = true
     },
     loadContract () {
-      this.fetchContract().then(() => {
-        // Only fetch balance after contract address is loaded
-        if (this.contract?.address) {
+      this.fetchContract()
+        .then(() => {
           this.fetchContractBalance()
-        }
-      })
+        })
+        .catch(() => {
+          this.fetchContractBalance()
+        })
     },
     fetchContractBalance () {
       return new Promise((resolve, reject) => {
-        if (!this.data?.escrow) return 0
+        if (this.data?.contractBalance != null) {
+          this.contract.balance = this.data.contractBalance
+          this.balanceLoaded = true
+          resolve(this.data.contractBalance)
+          return
+        }
+        if (!this.data?.escrow) {
+          resolve(0)
+          return
+        }
         // Use the escrow contract's own address by not passing any parameter
         // The RampContract will use its internally generated address
         this.data?.escrow?.getBalance()
@@ -228,8 +238,21 @@ export default {
         // Success - emit success event
         vm.$emit('success')
       } catch (error) {
+        const errorMsg = error.response?.data?.error || ''
+        // If the order has already been released (server detected it on-chain),
+        // verify-release is unnecessary — treat it as success.
+        if (errorMsg.includes('Action requires status')) {
+          try {
+            const { data: order } = await backend.get(`/ramp-p2p/order/${vm.data?.orderId}/`, { authorize: true })
+            if (order?.status?.value === 'RLS') {
+              vm.verifyingTx = false
+              vm.$emit('success')
+              return
+            }
+          } catch { /* fall through to retry */ }
+        }
         vm.verifyingTx = false
-        vm.errorMessage = error.response?.data?.error || 'Verification failed'
+        vm.errorMessage = errorMsg || 'Verification failed'
 
         // Attempt auto-retry
         await vm.attemptAutoRetry(vm.verifyRelease)
@@ -363,8 +386,16 @@ export default {
               return this.delay(delayDuration)
                 .then(() => this.exponentialBackoff(fn, retries - 1, delayDuration * 2))
             }
+            console.error('Retry exhausted — balance condition not met')
+            this.verifyingTx = false
+            this.$q.notify({
+              message: this.$t('VerificationTimedOut', {}, 'Verification timed out. Please try again.'),
+              color: 'negative',
+              icon: 'error',
+              timeout: 5000
+            })
           } else {
-            this.disableBtn = false
+            this.submitAction()
           }
         })
         .catch(error => console.error(error))

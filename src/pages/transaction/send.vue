@@ -30,12 +30,17 @@
           :is-cash-token="isCashToken"
           :back-path="backPath"
         />
-        <div v-else-if="jpp && !jpp.txids?.length" class="jpp-panel-container">
+        <div v-else-if="jpp" class="jpp-panel-container">
           <JppPaymentPanel
+            v-if="!jpp.txids?.length"
             :jpp="jpp"
             :wallet="wallet"
             class="q-mx-md"
             @paid="onJppPaymentSucess()"
+          />
+          <JppPaymentSuccessPanel
+            v-else
+            :jpp="jpp"
           />
         </div>
         <div
@@ -341,10 +346,12 @@
                       @on-qr-uploader-click="onQRUploaderClick"
                       @on-selected-change-address="onUserSelectedChangeAddress"
                       @on-cauldron-toggle="onCauldronToggle"
+                      :add-another-recipient="index === recipients.length - 1 ? addAnotherRecipient : undefined"
+                      :sending="sending"
                       ref="sendPageRef"
                     />
 
-                    <div class="row" v-if="recipients.length > 1">
+                    <div class="row" v-if="recipients.length > 1 && !sending">
                       <p class="remove-recipient-button" @click="removeLastRecipient(index)">
                         {{ $t('RemoveRecipient') }} #{{ index + 1 }}
                       </p>
@@ -369,6 +376,7 @@
                     :currentSendPageCurrency="currentSendPageCurrency"
                     :setMaximumSendAmount="setMaximumSendAmount"
                     :walletType="walletType"
+                    :sending="sending"
                     @on-qr-scanner-click="onQRScannerClick"
                     @on-input-focus="onInputFocus"
                     @on-recipient-input="onRecipientInput"
@@ -381,9 +389,6 @@
                   />
                 </template>
               </q-list>
-              <div class="add-recipient-button" v-if="!disableSending" @click.prevent="addAnotherRecipient">
-                <q-btn v-if="showAddRecipientButton" :label="$t('AddAnotherRecipient')" class="button" />
-              </div>
               <div class="row" v-if="sending">
                 <div class="col-12 text-center">
                   <ProgressLoader />
@@ -399,21 +404,34 @@
               :tradeResults="tradeResults"
             />
           </div>
-
-          <CustomKeyboard 
-            :custom-keyboard-state="customKeyboardState"
-            v-on:addKey="setAmount"
-            v-on:makeKeyAction="makeKeyAction"
-          />
-
-          <DragSlide
-            v-if="showSlider && !disableSending"
-            @swiped="slideToSubmit"
-            class="absolute-bottom"
-          />
-
         </div>
       </template>
+
+      <KeyboardSlidePanel
+        :panel-visible="customKeyboardState === 'show' && !sending"
+        :keyboard-state="customKeyboardState"
+        hide-check-key
+        @addKey="setAmount"
+        @makeKeyAction="makeKeyAction"
+      >
+        <template #slide>
+          <DragSlide
+            :disable="!canSlide"
+            disable-absolute-bottom
+            @swiped="slideToSubmit"
+          />
+        </template>
+      </KeyboardSlidePanel>
+
+      <teleport to="body">
+        <!-- Slide alone: shown when form is active but keyboard is hidden (NFT, pre-filled amounts) -->
+        <DragSlide
+          v-if="customKeyboardState !== 'show' && formActive && !disableSending && !sending"
+          :disable="!canSlide"
+          class="absolute-bottom"
+          @swiped="slideToSubmit"
+        />
+      </teleport>
     </div>
 
     <Pin
@@ -474,13 +492,14 @@ import { NativeBiometric } from 'capacitor-native-biometric'
 import JppPaymentPanel from 'src/components/JppPaymentPanel.vue'
 import ProgressLoader from 'src/components/ProgressLoader'
 import HeaderNav from 'src/components/header-nav'
-import CustomKeyboard from 'src/components/CustomKeyboard.vue'
+import KeyboardSlidePanel from 'src/components/KeyboardSlidePanel.vue'
 import QrScanner from 'src/components/qr-scanner.vue'
 import SendPageForm from 'src/components/send-page/SendPageForm.vue'
 import QRUploader from 'src/components/QRUploader'
 import PointsReceivedDialog from 'src/components/rewards/dialogs/PointsReceivedDialog.vue'
 import LoadingWalletDialog from 'src/components/multi-wallet/LoadingWalletDialog.vue'
 import SendSuccessPage from 'src/components/send-page/SendSuccessPage.vue'
+import JppPaymentSuccessPanel from 'src/components/send-page/JppPaymentSuccessPanel.vue'
 import { hexToRef } from 'src/utils/reference-id-utils'
 import CauldronSendSummary from 'src/components/send-page/CauldronSendSummary.vue'
 import { MultiCauldronPoolTracker } from 'src/wallet/cauldron/pool-tracker'
@@ -500,7 +519,7 @@ export default {
     JppPaymentPanel,
     ProgressLoader,
     HeaderNav,
-    CustomKeyboard,
+    KeyboardSlidePanel,
     QrScanner,
     SendPageForm,
     QRUploader,
@@ -509,6 +528,7 @@ export default {
     Pin,
     BiometricWarningAttempt,
     SendSuccessPage,
+    JppPaymentSuccessPanel,
     CauldronSendSummary,
   },
 
@@ -578,6 +598,10 @@ export default {
     backPath: {
       type: String,
       default: null
+    },
+    chatRoomId: {
+      type: String,
+      default: null
     }
   },
 
@@ -618,6 +642,7 @@ export default {
         isLegacyAddress: false,
         isWalletAddress: false,
         cashbackData: null,
+        merchantData: null,
         incorrectAddress: false,
         cauldron: {
           enable: false,
@@ -654,7 +679,6 @@ export default {
       txid: '',
       txTimestamp: Date.now(),
       customKeyboardState: 'dismiss',
-      sliderStatus: false,
       showQrScanner: false,
       computingMax: false,
       paymentCurrency: null,
@@ -671,7 +695,8 @@ export default {
       priceIdPrice: null,
       selectedOtherWallet: null,
       generatingOtherWalletAddress: false,
-      showSendSuccessPage: false
+      showSendSuccessPage: false,
+      autoFocusTriggered: false
     }
   },
 
@@ -684,7 +709,14 @@ export default {
       return this.$store.getters['global/denomination']
     },
     backNavigationPath () {
-      if (this.backPath) return this.backPath
+      if (this.backPath) {
+        const [path, queryString] = this.backPath.split('?')
+        if (queryString) {
+          const query = Object.fromEntries(new URLSearchParams(queryString))
+          return { path, query }
+        }
+        return this.backPath
+      }
       return '/'
     },
     theme () {
@@ -695,7 +727,7 @@ export default {
     },
     hideFooter () {
       if (this.customKeyboardState === 'show') return true
-      if (this.showSlider) return true
+      if (this.formActive && this.customKeyboardState !== 'show') return true
       if (this.sending) return true
       if (this.isScrolledToBottom) return true
 
@@ -754,15 +786,13 @@ export default {
       const currency = this.$store.getters['market/selectedCurrency']
       return currency && currency.symbol
     },
-    showSlider () {
-      if (this.sliderStatus && this.isNFT && !this.sending) return true
-
+    canSlide () {
+      if (this.sending || this.disableSending) return false
       if (this.calculatingCauldronTrade) {
         if (this.inputExtras.some(extra => extra?.cauldron?.enable)) return false;
       }
-
+      if (this.isNFT) return true
       return (
-        !this.sending && this.sliderStatus &&
         // check if amount is greater than zero
         this.recipients.map(a => a.amount > 0).findIndex(i => !i) < 0 &&
         // check if there are any amount that exceeded current balance
@@ -774,16 +804,8 @@ export default {
         )
       )
     },
-    showAddRecipientButton () {
-      return (
-        this.showSlider &&
-        !this.isNFT &&
-        this.recipients.length < 10 &&
-        // check if user clicked MAX on any recipient (disable button if yes)
-        this.inputExtras
-          .map(data => data.setMax)
-          .findIndex(i => i) < 0
-      )
+    formActive () {
+      return this.recipients.some(r => !!r.recipientAddress)
     },
     connectedApps () {
       const distinct = (value, index, list) => {
@@ -911,6 +933,21 @@ export default {
 
       if (isDuplicate) raiseNotifyError(this.$t('AddressAlreadyAdded'))
       this.updateAddressPrecheckValues(isLegacy, isWalletAddress)
+    },
+    recipients: {
+      deep: true,
+      handler () {
+        const hasAddress = this.recipients.some(r => !!r.recipientAddress)
+        if (!hasAddress) {
+          this.autoFocusTriggered = false
+          return
+        }
+        if (this.autoFocusTriggered) return
+        this.autoFocusTriggered = true
+        this.$nextTick(() => {
+          this.$nextTick(() => this.autoFocusAmount())
+        })
+      }
     }
   },
 
@@ -1225,7 +1262,6 @@ export default {
       vm.disableSending = false
       vm.bip21Expires = null
       vm.showQrScanner = false
-      vm.sliderStatus = false
 
       content = Array.isArray(content) ? content[0].rawValue : content
       let amount = null
@@ -1320,7 +1356,6 @@ export default {
             'en-us', { maximumFractionDigits: vm.asset?.decimals || 0 }
           )
           currentRecipient.fixedAmount = true
-          vm.sliderStatus = true
         }
 
         // call cashback API to check if merchant is part of campaign
@@ -1339,6 +1374,9 @@ export default {
           const response = await getCashbackAmount(payload)
           currentInputExtras.cashbackData = response
         }
+
+        // Look up merchant by address
+        vm.lookupMerchantForCurrentRecipient()
       }
     },
 
@@ -1420,6 +1458,7 @@ export default {
       // skip the usual route when found a valid JSON payment protocol url
       if (paymentUriData?.jpp?.valid) {
         this.jpp = await sendPageUtils.handleJpp(paymentUriData.jpp.paymentUri, this.darkMode)
+        window.jpp = this.jpp;
         return
       }
 
@@ -1475,6 +1514,7 @@ export default {
             isLegacyAddress: false,
             isWalletAddress,
             cashbackData: null,
+            merchantData: null,
             incorrectAddress: false
           }
         })
@@ -1483,7 +1523,9 @@ export default {
       // Show send success only for consolidation (own-wallet) sends; otherwise go to transaction detail.
       const isConsolidation = await this.checkConsolidationViaAddressInfo()
 
-      if (isConsolidation) {
+      if (this.chatRoomId) {
+        this.redirectToChatAfterTip(txid)
+      } else if (isConsolidation) {
         this.showSendSuccess()
       } else {
         // Redirect to transaction detail with state so it can show tx before watchtower indexes
@@ -1517,7 +1559,6 @@ export default {
         currentRecipient.recipientAddress = value.split('?')[0]
         currentInputExtras.isBip21 = true
         currentInputExtras.emptyRecipient = false
-        this.sliderStatus = true
 
         const addressParse = new URLSearchParams(value.split('?')[1])
         if (addressParse.has('expires')) {
@@ -1535,8 +1576,6 @@ export default {
         return true
       }
 
-      if (value && this.isNFT) this.sliderStatus = true
-
       return false
     },
 
@@ -1550,15 +1589,12 @@ export default {
         const isBch = this.asset.id === 'bch';
         const assetId = isBch ? `ct/${currentInputExtras.cauldron?.token?.token_id}` : 'bch';
         const asset = sendPageUtils.getAsset(assetId);
-        console.debug('[SetMax]', { isBch, assetId, asset });
 
         const tokenId = isBch ? currentInputExtras.cauldron?.token?.token_id : this.asset.id.replace('ct/', '');
         const pools = this.poolTracker.getPoolsForToken(tokenId);
         currentRecipient.cauldronAmount = calculateMaxSpendableForCauldron(asset, pools);
 
         currentInputExtras.cauldron.amountFormatted = currentRecipient.cauldronAmount;
-        console.debug('[SetMax] currentRecipient', {...currentRecipient});
-        console.debug('[SetMax] currentInputExtras.cauldron', { ...currentInputExtras.cauldron });
 
         currentRecipient.amount = '';
         currentRecipient.fiatAmount = '';
@@ -1595,8 +1631,31 @@ export default {
       this.currentWalletBalances = currentWalletBalances;
       this.currentRecipientIndex = 0
       this.expandedItems = { R1: true }
-      this.updateCauldronAndRemainingBalance()
-      this.sliderStatus = true
+      if (currentInputExtras.cauldron.enable) {
+        this.prepareCauldronTrade()
+        this.adjustWalletBalance()
+      } else {
+        this.updateCauldronAndRemainingBalance()
+      }
+    },
+    autoFocusAmount () {
+      const index = this.currentRecipientIndex
+      const recipient = this.recipients[index]
+      if (recipient?.fixedAmount) return
+
+      const sendPageForm = this.$refs.sendPageRef?.[index]
+      if (!sendPageForm) return
+
+      const field = this.asset?.id === 'bch' ? 'fiat' : 'bch'
+      const inputRef = field === 'fiat' ? sendPageForm.$refs.fiatInput : sendPageForm.$refs.amountInput
+
+      if (inputRef && typeof inputRef.focus === 'function') {
+        inputRef.focus()
+        this.currentRecipientIndex = index
+        this.focusedInputField = field
+        this.customKeyboardState = 'show'
+        sendPageUtils.addRemoveInputFocus(index, field)
+      }
     },
 
     // keyboard
@@ -1717,11 +1776,7 @@ export default {
           this.currentRecipientIndex, this.focusedInputField
         )
       } else {
-        // Enabled submit slider
-        this.sliderStatus = !currentInputExtras.balanceExceeded
-        this.customKeyboardState = 'dismiss'
-        this.focusedInputField = ''
-        sendPageUtils.addRemoveInputFocus(this.currentRecipientIndex, '')
+        // No-op: checkmark key is hidden in the new combined keyboard+slide layout
       }
 
       this.updateCauldronAndRemainingBalance();
@@ -1762,13 +1817,13 @@ export default {
           cashbackData: null,
           incorrectAddress: false,
           cauldron: { enable: false, token: null, amountFormatted: '' },
+          merchantData: null,
         })
         this.currentWalletBalances.push({ balance: 0, assetId: this.asset.id })
         this.adjustWalletBalance();
         for (let i = 1; i <= recipientsLength; i++) {
           this.expandedItems[`R${i}`] = false
         }
-        this.sliderStatus = false
       } else raiseNotifyError(this.$t('CannotAddRecipient'))
     },
     removeLastRecipient (index) {
@@ -1776,7 +1831,6 @@ export default {
       this.expandedItems[`R${index + 1}`] = true
       this.recipients.splice(index, 1)
       this.inputExtras.splice(index, 1)
-      this.sliderStatus = true
     },
 
     // sending
@@ -1794,25 +1848,20 @@ export default {
       }
 
       // Directly execute security checking without intermediate dialog
-      console.log('[SendPage] slideToSubmit: Calling executeSecurityChecking directly (no SecurityCheckDialog)')
+      vm.customKeyboardState = 'dismiss'
       vm.executeSecurityChecking(reset)
     },
     executeSecurityChecking (reset = () => {}) {
       const vm = this
-      console.log('[SendPage] executeSecurityChecking: Starting authentication (no SecurityCheckDialog)')
       setTimeout(() => {
         const preferredSecurity = vm.$store?.getters?.['global/preferredSecurity']
-        console.log('[SendPage] executeSecurityChecking: preferredSecurity =', preferredSecurity)
         if (preferredSecurity === 'pin') {
-          console.log('[SendPage] executeSecurityChecking: Setting pinDialogAction to VERIFY')
           // Reset first to ensure watcher is triggered
           vm.pinDialogAction = ''
           vm.$nextTick(() => {
             vm.pinDialogAction = 'VERIFY'
-            console.log('[SendPage] executeSecurityChecking: pinDialogAction set to VERIFY')
           })
         } else {
-          console.log('[SendPage] executeSecurityChecking: Calling verifyBiometric')
           vm.verifyBiometric(reset)
         }
       }, 300)
@@ -1893,30 +1942,28 @@ export default {
       // Placed here to include calculation `totalFiatAmountSent` and `totalAmountSend`, although;
       // this data will be lacking since there's potentially bch & one or more cashtokens actually sent
       if (hasCauldronEnabled) {
-        console.debug('[CauldronSend] Executing send', {
-          asset: vm.asset,
-          recipients: vm.recipients,
-          inputExtras: vm.inputExtras,
-          tradeResults: vm.tradeResults,
-          bchWallet: getWalletByNetwork(vm.wallet, 'bch'),
-        })
-
         try {
+          vm.customKeyboardState = 'dismiss'
           vm.sending = true
-          vm.sliderStatus = false;
-          const broadcastResult = await executeSendWithCauldron({
-            asset: vm.asset,
-            recipients: vm.recipients,
-            inputExtras: vm.inputExtras,
-            tradeResults: vm.tradeResults,
-            bchWallet: getWalletByNetwork(vm.wallet, 'bch'),
-          });
+          const cauldronBalanceBefore = { balance: vm.asset.balance, spendable: vm.asset.spendable }
+          const broadcastResult = await sendPageUtils.withTimeout(
+            executeSendWithCauldron({
+              asset: vm.asset,
+              recipients: vm.recipients,
+              inputExtras: vm.inputExtras,
+              tradeResults: vm.tradeResults,
+              bchWallet: getWalletByNetwork(vm.wallet, 'bch'),
+            })
+          );
           vm.submitPromiseResponseHandler(broadcastResult, vm.walletType);
         } catch(error) {
-          vm.handleCauldronError(error);
+          if (error?.message === 'Broadcast request timed out') {
+            vm.handleBroadcastError(error, cauldronBalanceBefore)
+          } else {
+            vm.handleCauldronError(error);
+          }
         } finally {
           vm.sending = false;
-          vm.sliderStatus = true;
         }
         return;
       }
@@ -1992,9 +2039,13 @@ export default {
             }
           }
 
-          getWalletByNetwork(vm.wallet, 'bch')
-            .sendBch(0, '', changeAddress, token, undefined, toSendBchRecipients, priceIdToUse, fiatAmounts, fiatCurrency)
+          const bchBalanceBefore = { balance: vm.asset.balance, spendable: vm.asset.spendable }
+          sendPageUtils.withTimeout(
+            getWalletByNetwork(vm.wallet, 'bch')
+              .sendBch(0, '', changeAddress, token, undefined, toSendBchRecipients, priceIdToUse, fiatAmounts, fiatCurrency)
+          )
             .then(result => vm.submitPromiseResponseHandler(result, vm.walletType))
+            .catch(error => vm.handleBroadcastError(error, bchBalanceBefore))
         } else if (toSendSlpRecipients.length > 0) {
           const tokenId = vm.assetId.split('slp/')[1]
           const bchWallet = sendPageUtils.getWallet('bch')
@@ -2009,13 +2060,16 @@ export default {
             slp: await sendPageUtils.getChangeAddress('slp')
           }
   
-          getWalletByNetwork(vm.wallet, 'slp')
-            .sendSlp(tokenId, vm.tokenType, feeFunder, changeAddresses, toSendSlpRecipients)
+          const slpBalanceBefore = { balance: vm.asset.balance, spendable: vm.asset.spendable }
+          sendPageUtils.withTimeout(
+            getWalletByNetwork(vm.wallet, 'slp')
+              .sendSlp(tokenId, vm.tokenType, feeFunder, changeAddresses, toSendSlpRecipients)
+          )
             .then(result => vm.submitPromiseResponseHandler(result, vm.walletType))
+            .catch(error => vm.handleBroadcastError(error, slpBalanceBefore))
         }
       } else {
         vm.sending = false
-        vm.sliderStatus = true
       }
     },
     processSlpData (toSendData) {
@@ -2031,7 +2085,6 @@ export default {
 
         if (addressIsValid && amountIsValid) {
           vm.sending = true
-          vm.sliderStatus = false
 
           const recipientAddress = addressObj.toSLPAddress()
           toSendSlpRecipients.push({
@@ -2063,7 +2116,6 @@ export default {
 
         if (addressIsValid && amountIsValid) {
           vm.sending = true
-          vm.sliderStatus = false
 
           const recipientAddress = addressObj.toCashAddress()
           if (tokenId) {
@@ -2108,7 +2160,6 @@ export default {
 
         if (addressIsValid && amountIsValid) {
           vm.sending = true
-          vm.sliderStatus = false
 
           try {
             const w = await window.TestNetWallet.named('mywallet')
@@ -2126,7 +2177,9 @@ export default {
             // Show send success only for consolidation; otherwise go to transaction detail.
             const isConsolidation = await vm.checkConsolidationViaAddressInfo()
 
-            if (isConsolidation) {
+            if (vm.chatRoomId) {
+              vm.redirectToChatAfterTip(txId)
+            } else if (isConsolidation) {
               vm.showSendSuccess()
             } else {
               // Redirect to transaction detail with state so it can show tx before watchtower indexes
@@ -2157,6 +2210,15 @@ export default {
     onQRScannerClick (value) {
       this.showQrScanner = value
     },
+    async lookupMerchantForCurrentRecipient () {
+      const currentRecipient = this.recipients[this.currentRecipientIndex]
+      const address = currentRecipient?.recipientAddress
+      if (!address) return
+      const valid = this.checkAddressValidity(address)
+      if (!valid) return
+      const merchantData = await sendPageUtils.lookupMerchantByAddress(address, this.isChipnet)
+      this.inputExtras[this.currentRecipientIndex].merchantData = merchantData
+    },
     onRecipientInput (value) {
       const [isLegacy, isDuplicate, isWalletAddress] = sendPageUtils.addressPrechecks(
         value ?? '',
@@ -2173,10 +2235,14 @@ export default {
       this.recipients[this.currentRecipientIndex].recipientAddress = value
       this.inputExtras[this.currentRecipientIndex].emptyRecipient = value === ''
       this.inputExtras[this.currentRecipientIndex].incorrectAddress = false
+      this.inputExtras[this.currentRecipientIndex].merchantData = null
       this.updateAddressPrecheckValues(isLegacy, isWalletAddress)
     },
     onEmptyRecipient (value) {
       this.inputExtras[this.currentRecipientIndex].emptyRecipient = value
+      if (!value) {
+        this.lookupMerchantForCurrentRecipient()
+      }
     },
     onSelectedDenomination (value) {
       this.inputExtras[this.currentRecipientIndex].selectedDenomination = value.denomination
@@ -2192,7 +2258,6 @@ export default {
     // ========= cauldron related ==========
     onCauldronToggle (cauldronData) {
       this.currentRecipientIndex = cauldronData.index;
-      console.debug(this.currentRecipientIndex, cauldronData)
       this.inputExtras[this.currentRecipientIndex].cauldron = {
         enable: cauldronData.enable,
         token: cauldronData.token,
@@ -2228,11 +2293,9 @@ export default {
       }
     },
     checkCauldronPoolsForFallback() {
-      console.debug('[CauldronFallback] Checking');
       for (var index = 0; index < this.inputExtras.length; index++) {
         const status = this.getPoolTrackerStatus(index);
         if (!status) continue;
-        console.debug('[CauldronFallback]', { ...status, index });
 
         if (status.shouldSubscribe) {
           this.poolTracker.subscribeToken(status.tokenId);
@@ -2255,7 +2318,6 @@ export default {
       }
 
       this.calculatingCauldronTrade = true;
-      console.trace('Preparing cauldron trade', this.asset, this.recipients, this.inputExtras, this.poolTracker.getTokenPoolsMap());
 
       // This function is passed for cauldron enabled recipients with supply mode(i.e. setMax)
       // Since supply mode sets the amount & fiatAmount using cauldronAmount
@@ -2275,7 +2337,6 @@ export default {
         amountToFiat,
       );
 
-      console.debug('[CauldronSendPrepare]', { recipients, inputExtras, tradeResults, tradeErrors });
       this.tradeResults = tradeResults;
       this.cauldronTradePrepErrors = tradeErrors;
       this.calculatingCauldronTrade = !this.inputExtras.every((inputExtra, index) => {
@@ -2287,9 +2348,7 @@ export default {
      * @param {CauldronSendError} error
      */
     handleCauldronError(error) {
-      console.debug('CauldronError', error);
       const isCauldronError = error instanceof CauldronSendError;
-      console.debug('CauldronError', isCauldronError);
       if (!isCauldronError) throw error;
 
       const code = error.code;
@@ -2418,7 +2477,6 @@ export default {
         }
         return data
       })
-      console.debug('Adjusting wallet balances', amountsData);
       this.currentWalletBalances = sendPageUtils.adjustWalletBalances(
         this.asset,
         amountsData,
@@ -2429,8 +2487,6 @@ export default {
       this.inputExtras.forEach((extra, index) => {
         extra.balanceExceeded =  this.currentWalletBalances[index].balance < 0;
       })
-
-      console.debug('Wallet balances', this.currentWalletBalances);
     },
 
     // address checking/validation
@@ -2442,7 +2498,6 @@ export default {
         address = address.split('?')[0]
 
         if (!Number.isNaN(amount)) currentRecipient.amount = amount
-        if (amount > 0) this.sliderStatus = true
       }
 
       const addressValidation = this.validateAddress(address)
@@ -2451,7 +2506,6 @@ export default {
         return true
       } else {
         raiseNotifyError(this.$t('InvalidAddress'))
-        this.sliderStatus = false
         return false
       }
     },
@@ -2464,7 +2518,6 @@ export default {
       const vm = this
 
       vm.sending = false
-      vm.sliderStatus = true
 
       if (!addressIsValid) {
         raiseNotifyError(vm.$t(
@@ -2496,6 +2549,16 @@ export default {
       )
     },
 
+    redirectToChatAfterTip (txid) {
+      const symbol = this.asset?.symbol || this.symbol || 'BCH'
+      const amount = this.totalAmountSent
+      const logo = this.asset?.logo || ''
+      const assetId = this.asset?.id || ''
+      let url = `/apps/chat/${this.chatRoomId}?tipTxid=${txid}&tipAmount=${amount}&tipSymbol=${symbol}`
+      if (logo) url += `&tipLogo=${encodeURIComponent(logo)}`
+      if (assetId && assetId.startsWith('ct/')) url += `&tipAssetId=${assetId.replace('ct/', '')}`
+      this.$router.replace(url)
+    },
     /**
      * Show send success page for consolidation transactions.
      * Persists state so it survives background / app lock / process recreation.
@@ -2509,47 +2572,101 @@ export default {
       const vm = this
 
       if (result.success) {
+        vm.customKeyboardState = 'dismiss'
         vm.txid = result.txid
         vm.txTimestamp = Date.now()
-        vm.sending = false
 
         // Show send success immediately (don't wait for points API)
         const isConsolidation = await vm.checkConsolidationViaAddressInfo()
-        if (isConsolidation) {
+        if (vm.chatRoomId) {
+          vm.redirectToChatAfterTip(result.txid)
+        } else if (isConsolidation) {
           vm.showSendSuccess()
         } else {
           // Redirect to transaction detail with state so it can show tx before watchtower indexes
-          const { route, query, state } = vm.buildTransactionDetailState(result.txid, { timestamp: vm.txTimestamp })
-          vm.$router.push({
-            name: route,
-            params: { txid: result.txid },
-            query,
-            state
-          })
-          
-          // Handle points in background (non-blocking) – do not delay success feedback
-          processMerchantOtcPoints({
-            ref_id: hexToRef(result.txid.substring(0, 6)),
-            tx_id: result.txid,
-            customer_address: sendPageUtils.getWallet('bch')?.lastAddress,
-            merchant_address: this.recipients[0].recipientAddress
-          }).then(resp => {
-            if (resp) {
-              vm.$q.dialog({
-                component: PointsReceivedDialog,
-                componentProps: {
-                  isFirstSevenTx: resp.is_first_seven_tx,
-                  hasReceivedFirstTxBonus: resp.has_received_first_tx_bonus,
-                  isMerchantOtcTx: true,
-                  merchantName: resp.merchant_name ?? ''
-                }
-              })
-            }
-          }).catch(err => {
-            console.warn('[Send] Points API failed:', err)
-          })
+          try {
+            const { route, query, state } = vm.buildTransactionDetailState(result.txid, { timestamp: vm.txTimestamp })
+            await vm.$router.push({
+              name: route,
+              params: { txid: result.txid },
+              query,
+              state
+            })
+            
+            // Handle points in background (non-blocking) – do not delay success feedback
+            processMerchantOtcPoints({
+              ref_id: hexToRef(result.txid.substring(0, 6)),
+              tx_id: result.txid,
+              customer_address: sendPageUtils.getWallet('bch')?.lastAddress,
+              merchant_address: this.recipients[0].recipientAddress,
+              bch_spent: Number(this.recipients[0].amount)
+            }).then(resp => {
+              if (resp) {
+                vm.$q.dialog({
+                  component: PointsReceivedDialog,
+                  componentProps: {
+                    merchantName: resp.merchant_name ?? ''
+                  }
+                })
+              }
+            }).catch(err => {
+              console.warn('[Send] Points API failed:', err)
+            })
+          } catch (e) {
+            console.error('[Send] redirect failed:', e)
+            vm.sending = false
+            raiseNotifyError(vm.$t('NavigationError'))
+          }
         }
       } else sendPageUtils.submitPromiseErrorResponseHandler(result, walletType)
+    },
+
+    async handleBroadcastError (error, balanceBefore) {
+      const vm = this
+      vm.sending = false
+
+      const errorMessage = error?.message || ''
+      const isTimeout = errorMessage === 'Broadcast request timed out'
+
+      if (isTimeout) {
+        raiseNotifyError(vm.$t('BroadcastTimedOut', {}, 'Broadcast timed out. The backend took too long to respond.'))
+      } else if (errorMessage) {
+        console.warn('[Send] Broadcast error:', error)
+        raiseNotifyError(vm.$t('BroadcastFailed', {}, 'Broadcast failed') + ': ' + errorMessage)
+      }
+
+      // Check if the transaction was actually broadcast despite the error/timeout
+      const txSent = await vm.checkIfTransactionWasBroadcast(balanceBefore)
+      if (txSent) {
+        raiseNotifyError(vm.$t('TxAlreadySent', {}, 'The transaction was already sent. Please check your balance.'))
+      }
+    },
+
+    async checkIfTransactionWasBroadcast (balanceBefore) {
+      try {
+        await updateAssetBalanceOnLoad(this.assetId, this.wallet, this.$store)
+        const refreshed = sendPageUtils.getAsset(this.assetId, this.symbol)
+        const currentBalance = Number(refreshed?.balance ?? this.asset.balance)
+        const prevBalance = Number(balanceBefore?.balance ?? 0)
+
+        if (prevBalance === 0) {
+          // For a zero-balance wallet, check if the balance increased (receive-change scenario)
+          // or check the mempool for the pending transaction
+          if (currentBalance > 0) return true
+          try {
+            const watchtower = new Watchtower(this.isChipnet)
+            const txs = await watchtower.BCH.getTransactions({ address: sendPageUtils.getWallet('bch')?.lastAddress })
+            return txs?.length > 0
+          } catch {
+            return false
+          }
+        }
+
+        return currentBalance < prevBalance
+      } catch (err) {
+        console.warn('[Send] Failed to check balance after broadcast error:', err)
+        return false
+      }
     },
 
     // uncategorized
@@ -2893,18 +3010,17 @@ export default {
     if (vm.$route.query.assetData) {
       try {
         const passedAsset = JSON.parse(vm.$route.query.assetData)
-        console.log('[Send] Received asset data from select-asset page:', passedAsset)
-        
+
         if (passedAsset && passedAsset.id) {
           // Use the passed asset data immediately
           // Ensure symbol has a value - use fallback if empty
           let symbol = passedAsset.symbol || passedAsset.name || ''
-          
+
           // If still no symbol, extract from ID (e.g., "ct/abc123" -> use token name or "TOKEN")
           if (!symbol && passedAsset.id.startsWith('ct/')) {
             symbol = passedAsset.name || 'TOKEN'
           }
-          
+
           // BCH decimals should always be 8; some callers omit it.
           const normalizedDecimals = passedAsset.id === 'bch'
             ? 8
@@ -2918,7 +3034,6 @@ export default {
             logo: passedAsset.logo || null,
             balance: passedAsset.balance !== undefined ? passedAsset.balance : undefined
           }
-          console.log('[Send] Set asset with symbol:', vm.asset.symbol)
 
           // Ensure the asset exists in the `assets` store so balance refreshes
           // (`updateAssetBalanceOnLoad` -> `assets/updateAssetBalance`) can update it.
@@ -2940,7 +3055,7 @@ export default {
           } catch (e) {
             console.warn('[Send] Failed to ensure asset exists in store:', e)
           }
-          
+
           // Don't fall through to the default logic - we have everything we need
           // Continue with the rest of mounted() logic below
         } else {
@@ -2953,7 +3068,6 @@ export default {
         vm.asset = sendPageUtils.getAsset(vm.assetId, vm.symbol)
       }
     } else {
-      console.log('[Send] No asset data passed in query, using default logic')
       // No asset data passed, use default logic
       vm.asset = sendPageUtils.getAsset(vm.assetId, vm.symbol)
       // Ensure the asset exists in the `assets` store so balance refresh works for deep-linked tokens.
@@ -3046,6 +3160,25 @@ export default {
       if (container) {
         container.addEventListener('scroll', this.handleScroll)
       }
+
+      // Auto-focus the amount input and show custom keyboard when recipient is pre-filled
+      if (vm.recipient && vm.assetId) {
+        this.$nextTick(() => {
+          const recipient = this.recipients[0]
+          if (recipient?.fixedAmount) return
+
+          const sendPageForm = this.$refs.sendPageRef?.[0]
+          if (!sendPageForm) return
+          const field = vm.assetId === 'bch' ? 'fiat' : 'bch'
+          const inputRef = field === 'fiat' ? sendPageForm.$refs.fiatInput : sendPageForm.$refs.amountInput
+          if (inputRef && inputRef.focus) {
+            inputRef.focus()
+            this.focusedInputField = field
+            this.customKeyboardState = 'show'
+            sendPageUtils.addRemoveInputFocus(0, field)
+          }
+        })
+      }
     })
   },
 
@@ -3072,12 +3205,23 @@ export default {
   created () {
     const vm = this
 
-    if (vm.assetId && vm.amount && vm.recipient) {
-      vm.recipients[0].amount = vm.amount
-      vm.recipients[0].fixedAmount = vm.fixed
-      vm.recipients[0].recipientAddress = vm.recipient
+    if (vm.assetId && vm.recipient) {
+      if (vm.amount) {
+        vm.recipients[0].amount = vm.amount
+        vm.recipients[0].fixedAmount = vm.fixed
+      }
+
+      if (vm.assetId?.startsWith?.('ct/')) {
+        const addressObj = new Address(vm.recipient)
+        vm.recipients[0].recipientAddress = toTokenAddress(addressObj.toCashAddress(vm.recipient))
+      } else {
+        vm.recipients[0].recipientAddress = vm.recipient
+      }
+
       vm.scanner.show = false
-      vm.sliderStatus = true
+      vm.autoFocusTriggered = true
+
+      vm.$nextTick(() => vm.autoFocusAmount())
     }
 
     if (vm.isNFT) vm.recipients[0].amount = 0.00001
@@ -3094,11 +3238,6 @@ export default {
     padding-top: 1rem;
     padding-bottom:120px;
     position: relative;
-  }
-  .add-recipient-button {
-    display: flex;
-    justify-content: center;
-    margin-top: 20px
   }
   .q-expansion-item-recipient {
     font-size: 18px;
@@ -3307,8 +3446,8 @@ export default {
   .send-form-container {
     position: relative;
     
-    /* Add padding at bottom to prevent content from being hidden under the slider */
-    padding-bottom: 120px !important;
+    /* Keep content visible above the fixed keyboard panel (~250px keyboard + ~80px slide) */
+    padding-bottom: 340px !important;
   }
 
   /* iOS-specific fixes for DragSlide positioning */

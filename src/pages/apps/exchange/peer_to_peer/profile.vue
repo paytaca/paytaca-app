@@ -64,6 +64,7 @@
                 size="1em"
                 color="green"
                 name="circle"/>
+                <q-badge class="q-ml-xs" v-if="isReported(user.reported_at)" rounded size="xs" color="red" label="Reported" />
                 <q-icon
                   @click="editNickname = true"
                   v-if="user?.self"
@@ -101,8 +102,23 @@
               </q-btn>
             </div> -->
 
+            <!-- Report User -->
+            <div class="row q-mx-lg q-px-md q-pt-md" v-if="!user?.self">
+              <q-btn
+                rounded
+                no-caps
+                :label="$t('ReportUser')"
+                :color="reportSubmitted ? 'grey-5' : 'red-8'"
+                :disable="reportSubmitted"
+                class="q-space q-mx-md button"
+                icon="flag"
+                @click="confirmReportUser"
+              >
+              </q-btn>
+            </div>
+
             <!-- User Stats -->
-            <div class="row justify-center q-px-sm q-pt-sm">
+            <div class="row justify-center q-px-sm q-pt-sm" :class="{ 'reported-greyed': isReported(user.reported_at) }">
               <q-rating
                 readonly
                 :model-value="user.rating ? user.rating : 0"
@@ -122,27 +138,17 @@
               }}
             </span>
             </div>
-            <div class="text-center sm-font-size q-pt-sm">
-                <span>
-                {{
-                  $t(
-                    'TradeCount',
-                    { count: user.trade_count },
-                    `${ user.trade_count || 0 } trades`
-                  )
-                }}
+            <div class="text-center sm-font-size q-pt-sm" :class="{ 'reported-greyed': isReported(user.reported_at) }">
+              <span class="text-green">
+                {{ $t('TradesCompleted', { count: user.completed_trades ?? 0 }) }}
               </span>
-              &nbsp;&nbsp;
-                <span>|</span>
-              &nbsp;&nbsp;
+              <span> &middot; </span>
+              <span class="text-red">
+                {{ $t('TradesFailed', { count: user.failed_trades ?? 0 }) }}
+              </span>
+              <span> &middot; </span>
                 <span>
-                {{
-                  $t(
-                    'CompletionPercentage',
-                    { percentage: user.completion_rate ? user.completion_rate.toFixed(1) : 0 },
-                    `${ user.completion_rate ? user.completion_rate.toFixed(1) : 0 }% completion`
-                  )
-                }}
+                {{ $t('CompletionPercentage', { percentage: formatCompletionRate(user.completion_rate) }) }}
               </span>
             </div>
           </div>
@@ -155,14 +161,14 @@
             class="col-grow br-15 btn-custom fiat-tab q-mt-none"
             :class="{'dark': darkMode, 'active-btn': user?.self === false && activeTab === 'reviews'}"
             @click="activeTab = 'reviews'">
-            {{ $t('REVIEWS') }}
+            {{ $t('Reviews', {}, 'Reviews') }}
           </button>
           <button
             v-if="!user?.self"
             class="col-grow br-15 btn-custom fiat-tab q-mt-none"
             :class="{'dark': darkMode, 'active-btn': activeTab === 'ads'}"
             @click="activeTab = 'ads'">
-            {{ $t('ADS') }}
+            {{ $t('Ads', {}, 'Ads') }}
           </button>
         </div>
         <q-scroll-area :style="`height: ${!user?.self ? minHeight - 240 : minHeight - 280}px`" style="overflow-y:auto;" class="scroll-y" @touchstart.native="preventPull">
@@ -214,24 +220,15 @@
                 <q-item-section>
                   <div class="q-py-sm" :style="darkMode ? 'border-bottom: 1px solid grey' : 'border-bottom: 1px solid #DAE0E7'">
                     <q-badge rounded :color="ad.trade_type === 'SELL'? 'blue': 'red'">{{ ad.trade_type }}</q-badge>
-                    <div class="sm-font-size q-mr-sm">
-                      <span class="q-mr-sm">
-                        {{
-                          $t(
-                            'TradeCount',
-                            { count: ad.trade_count },
-                            `${ ad.trade_count || 0 } trades`
-                          )
-                        }}
+                    <div class="sm-font-size q-mr-sm" :class="{ 'reported-greyed': isReported(ad.owner?.reported_at) }">
+                      <span class="text-green q-mr-sm">
+                        {{ $t('TradesCompleted', { count: ad.owner?.completed_trades ?? 0 }) }}
                       </span>
-                      <span class="q-ml-sm">
-                        {{
-                          $t(
-                            'CompletionPercentage',
-                            { percentage: formatCompletionRate(ad.completion_rate) },
-                            `${ formatCompletionRate(ad.completion_rate) }% completion`
-                          )
-                        }}
+                      <span class="text-red q-mr-sm">
+                        {{ $t('TradesFailed', { count: ad.owner?.failed_trades ?? 0 }) }}
+                      </span>
+                      <span>
+                        {{ $t('CompletionPercentage', { percentage: formatCompletionRate(ad.owner?.completion_rate) }) }}
                       </span><br>
                     </div>
                     <span
@@ -284,6 +281,7 @@
   </div>
   <AddPaymentMethods ref="addPaymentMethods" v-if="$route.query?.edit === 'payments'" :type="'Profile'"/>
   <MiscDialogs ref="misc" v-if="editNickname" :type="'editNickname'" v-on:back="editNickname = false" v-on:submit="updateUserName"/>
+  <ReportDialog v-model="showReportDialog" @submit="handleReportSubmit" @back="showReportDialog = false"/>
 </template>
 <script>
 import HeaderNav from 'src/components/header-nav.vue'
@@ -291,6 +289,7 @@ import MiscDialogs from 'src/components/ramp/fiat/dialogs/MiscDialogs.vue'
 import AddPaymentMethods from 'src/components/ramp/fiat/AddPaymentMethods.vue'
 import ProgressLoader from 'src/components/ProgressLoader.vue'
 import FeedbackDialog from 'src/components/ramp/fiat/dialogs/FeedbackDialog.vue'
+import ReportDialog from 'src/components/ramp/fiat/dialogs/ReportDialog.vue'
 import { updateChatIdentity } from 'src/exchange/chat'
 import { formatDate, formatCurrency, getAppealCooldown } from 'src/exchange'
 import { bus } from 'src/wallet/event-bus.js'
@@ -304,6 +303,7 @@ export default {
     AddPaymentMethods,
     ProgressLoader,
     FeedbackDialog,
+    ReportDialog,
     HeaderNav
   },
   data () {
@@ -332,7 +332,9 @@ export default {
       pageName: null,
       previousRoute: null,
       errorDialogActive: false,
-      wallet: null
+      wallet: null,
+      reportSubmitted: false,
+      showReportDialog: false
     }
   },
   props: {
@@ -506,7 +508,6 @@ export default {
           page: vm.adsPageNumber,
           owner_id: vm.user.id
         }
-        params.to_peer = this.userId
         backend.get('/ramp-p2p/ad/', {
           params: params,
           authorize: true
@@ -583,7 +584,11 @@ export default {
       this.$emit('select-listing', ad)
     },
     formatCompletionRate (value) {
-      return Math.floor(value).toString()
+      return Math.floor(value || 0).toString()
+    },
+    isReported (reportedAt) {
+      if (!reportedAt) return false
+      return Date.now() - new Date(reportedAt).getTime() < 24 * 60 * 60 * 1000
     },
     formattedCurrency (value, currency) {
       return formatCurrency(value, currency)
@@ -592,11 +597,9 @@ export default {
       return getAppealCooldown(appealCooldownChoice)
     },
     handleRequestError (error) {
+      if (error.code === 'ECONNABORTED') return
       console.error(error?.response || error)
-      if (error.code === 'ECONNABORTED') {
-        // Request timeout
-        this.showErrorDialog('Request timed out. Please try again later.')
-      } else if (!error.response) {
+      if (!error.response) {
         // Network error
         bus.emit('network-error')
       } else {
@@ -612,7 +615,7 @@ export default {
             this.showErrorDialog('Internal Server Error. Please try again later.')
             break
           default:
-            console.log(`Error: ${error.response.status}. ${error.response.statusText}`)
+            console.error(`Error: ${error.response.status}. ${error.response.statusText}`)
         }
       }
     },
@@ -629,9 +632,40 @@ export default {
           }
         })
       }
+      }
+    },
+    confirmReportUser () {
+      this.showReportDialog = true
+    },
+    async handleReportSubmit (reason) {
+      await this.reportUser(reason)
+    },
+    async reportUser (reason) {
+      const vm = this
+      try {
+        await backend.post(`/ramp-p2p/peer/${vm.user.id}/report/`, { reason }, { authorize: true })
+        vm.reportSubmitted = true
+        vm.$q.notify({
+          type: 'positive',
+          message: vm.$t('ReportUserSuccess'),
+          position: 'bottom',
+          timeout: 3000
+        })
+      } catch (error) {
+        const errorMsg = error.response?.data?.error
+        if (error.response?.status === 409) {
+          vm.reportSubmitted = true
+          vm.$q.notify({ type: 'info', message: vm.$t('ReportUserAlreadyReported'), position: 'bottom' })
+        } else if (error.response?.status === 403) {
+          vm.$q.notify({ type: 'warning', message: vm.$t('ReportUserTradeRequired'), position: 'bottom' })
+        } else if (error.response?.status === 400 && errorMsg) {
+          vm.$q.notify({ type: 'warning', message: errorMsg, position: 'bottom' })
+        } else {
+          vm.showErrorDialog(vm.$t('ReportUserTradeRequired'))
+        }
+      }
     }
   }
-}
 </script>
 <style lang="scss" scoped>
   .xs-font-size {
@@ -719,5 +753,11 @@ export default {
   .q-item:hover {
     transform: translateY(-2px);
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  }
+  .reported-greyed {
+    filter: grayscale(1);
+    opacity: 0.4;
+    user-select: none;
+    pointer-events: none;
   }
 </style>

@@ -1,6 +1,6 @@
 <template>
   <div id="app-container" class="row" :class="getDarkModeClass(darkMode)" v-if="!openVersionUpdate">
-    <router-view v-if="isloaded" :key="$route.path"></router-view>
+    <router-view v-if="isloaded" :key="$route.name"></router-view>
     
     <!-- Skeleton Loading State for Initial Auth -->
     <div v-else class="full-width">
@@ -147,8 +147,7 @@ export default {
         })
     },
      goToMainPage () {
-       console.log('goToMainPage - query:', this.$route.query)
-       this.$store.commit('ramp/updateUser', this.user)
+        this.$store.commit('ramp/updateUser', this.user)
        if (this.user?.is_arbiter) {
          if ('appeal_id' in this.$route.query) {
            this.$router?.push({ name: 'arbiter-appeals', query: this.$route.query})
@@ -165,15 +164,13 @@ export default {
            if (this.$route.query.source) {
              queryParams.source = this.$route.query.source
            }
-           console.log('Redirecting to orders with params:', queryParams)
-           this.$router?.push({ name: 'p2p-orders', query: queryParams })
+            this.$router?.push({ name: 'p2p-orders', query: queryParams })
          } else {
            this.$router?.push({ name: 'p2p-store' })
          }
        }
      },
     handleDisconnectedWS (url) {
-      console.log('handleDisconnectedWS:', url)
     },
     async checkVersionUpdate () {
       const vm = this

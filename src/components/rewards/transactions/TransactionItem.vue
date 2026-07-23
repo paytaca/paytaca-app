@@ -95,49 +95,49 @@ export default {
         order: {
           icon: 'shopping_cart',
           bgClass: 'bg-primary',
-          label: (data) => `Order #${data.order_id}`,
+          label: (data) => this.$t('OrderNumber', { id: data.order_id }),
           redirect: 'order',
           showMerchantName: true
         },
         otc: {
           icon: 'store',
           bgClass: 'bg-secondary',
-          label: (data) => `Ref ID ${data.ref_id}`,
+          label: (data) => this.$t('RefId', { id: data.ref_id }),
           redirect: 'transaction',
           showMerchantName: true
         },
         ramp: {
           icon: 'img:ramp_icon_white.png',
           bgClass: 'bg-primary',
-          label: (data) => `Ref ID ${data.ref_id}`,
+          label: (data) => this.$t('RefId', { id: data.ref_id }),
           redirect: 'transaction',
           showMerchantName: false
         },
         cauldron: {
           icon: 'img:cauldron-logo.svg',
           bgClass: 'bg-primary',
-          label: (data) => `Ref ID ${data.ref_id}`,
+          label: (data) => this.$t('RefId', { id: data.ref_id }),
           redirect: 'transaction',
           showMerchantName: false
         },
         vm: {
           icon: 'mdi-cash-plus',
           bgClass: 'bg-secondary',
-          label: (data) => data.ref_id ? `Ref ID ${data.ref_id}` : 'Vending Machine Cash-in',
+          label: (data) => data.ref_id ? this.$t('RefId', { id: data.ref_id }) : this.$t('VendingMachineCashin'),
           redirect: 'transaction',
           showMerchantName: false
         },
         eload: {
           icon: 'card_membership',
           bgClass: 'bg-primary',
-          label: (data) => `Order ID ${data.order_txn_id}`,
+          label: (data) => this.$t('OrderId', { id: data.order_txn_id }),
           redirect: 'transaction',
           showMerchantName: false
         },
         pending: {
           icon: null,
           bgClass: 'bg-grey-5',
-          label: () => 'Not yet completed',
+          label: () => this.$t('NotYetCompleted'),
           redirect: 'none',
           showMerchantName: false
         }

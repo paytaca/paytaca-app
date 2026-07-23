@@ -1,4 +1,27 @@
 <template>
+  <q-card
+    v-if="inputExtras.merchantData"
+    class="q-pa-sm q-mt-md q-mb-sm row items-center"
+    :class="getDarkModeClass(darkMode)"
+  >
+    <q-avatar v-if="(inputExtras.merchantData.logoData || inputExtras.merchantData.logo)" size="36px" rounded>
+      <q-img :src="inputExtras.merchantData.logoData || inputExtras.merchantData.logo" />
+    </q-avatar>
+    <span class="q-ml-sm text-subtitle1">{{ inputExtras.merchantData.name }}</span>
+    <q-badge
+      :color="inputExtras.merchantData.verified ? 'positive' : 'grey-6'"
+      class="q-ml-sm"
+      align="middle"
+      transparent
+    >
+      <q-icon
+        :name="inputExtras.merchantData.verified ? 'mdi-shield-check' : 'mdi-shield-off'"
+        size="14px"
+        class="q-mr-xs"
+      />
+      {{ inputExtras.merchantData.verified ? $t('VerifiedMerchant', {}, 'Verified') : $t('UnverifiedMerchant', {}, 'Unverified') }}
+    </q-badge>
+  </q-card>
   <div class="row">
     <div class="col q-mt-sm se recipient-input-qr">
       <q-input
@@ -152,17 +175,102 @@
       <KeyboardTooltip v-if="activeKeyboardTip === 'fiat'" :dark-mode="darkMode" :key="'fiat-' + keyboardTipCounter" />
     </div>
   </div>
-  <div v-if="!isNFT && !cauldronEnabled" class="q-mt-sm">
-    <q-btn
-      no-caps
-      :label="asset?.id === 'bch' ? $t('SendUsingTokensWithCauldron') : $t('SendUsingBchWithCauldron')"
-      icon="img:cauldron-logo.svg"
-      color="pt-primary1"
-      padding="sm md"
-      class="full-width q-my-sm"
-      @click="toggleCauldron"
-    />
-  </div>
+  <template v-if="!isNFT && !cauldronEnabled">
+    <div v-if="asset?.id?.startsWith?.('ct/')" class="q-mt-sm text-center">
+      <div v-if="showAdvancedOptions">
+        
+        <q-btn
+          no-caps
+          :label="$t('SendUsingBchWithCauldron')"
+          icon="img:cauldron-logo.svg"
+          color="pt-primary1"
+          padding="sm md"
+          class="full-width q-my-sm"
+          @click="toggleCauldron"
+        />
+        <q-btn
+          v-if="addAnotherRecipient"
+          no-caps
+          icon="person_add"
+          color="pt-primary1"
+          padding="sm md"
+          class="full-width q-my-sm"
+          @click="addAnotherRecipient"
+        >
+          {{ $t('AddAnotherRecipient') }}
+        </q-btn>
+      </div>
+      <q-btn
+        no-caps
+        flat
+        dense
+        color="pt-primary1"
+        class="text-caption"
+        @click="showAdvancedOptions = !showAdvancedOptions"
+      >
+        {{ showAdvancedOptions ? $t('HideAdvancedOptions', {}, 'Hide Advanced Options') : $t('ShowAdvancedOptions', {}, 'Show Advanced Options') }}
+      </q-btn>
+    </div>
+    <div v-else-if="asset?.id === 'bch'" class="q-mt-sm text-center">
+      <div v-if="showAdvancedOptions">
+        <q-btn
+          no-caps
+          :label="$t('SendUsingTokensWithCauldron')"
+          icon="img:cauldron-logo.svg"
+          color="pt-primary1"
+          padding="sm md"
+          class="full-width q-my-sm"
+          @click="toggleCauldron"
+        />
+        <q-btn
+          v-if="addAnotherRecipient"
+          no-caps
+          icon="person_add"
+          color="pt-primary1"
+          padding="sm md"
+          class="full-width q-my-sm"
+          @click="addAnotherRecipient"
+        >
+          {{ $t('AddAnotherRecipient') }}
+        </q-btn>
+      </div>
+      <q-btn
+        no-caps
+        flat
+        dense
+        color="pt-primary1"
+        class="text-caption"
+        @click="showAdvancedOptions = !showAdvancedOptions"
+      >
+        {{ showAdvancedOptions ? $t('HideAdvancedOptions', {}, 'Hide Advanced Options') : $t('ShowAdvancedOptions', {}, 'Show Advanced Options') }}
+      </q-btn>
+    </div>
+    <div v-else class="q-mt-sm text-center">
+      <div v-if="showAdvancedOptions">
+        <q-btn
+          v-if="addAnotherRecipient"
+          no-caps
+          icon="person_add"
+          color="pt-primary1"
+          padding="sm md"
+          class="full-width q-my-sm"
+          @click="addAnotherRecipient"
+        >
+          {{ $t('AddAnotherRecipient') }}
+        </q-btn>
+      </div>
+      <q-btn
+        no-caps
+        flat
+        dense
+        color="pt-primary1"
+        class="text-caption"
+        @click="showAdvancedOptions = !showAdvancedOptions"
+      >
+        {{ showAdvancedOptions ? $t('HideAdvancedOptions', {}, 'Hide Advanced Options') : $t('ShowAdvancedOptions', {}, 'Show Advanced Options') }}
+      </q-btn>
+    </div>
+  </template>
   <div v-else-if="!isNFT && cauldronEnabled" class="row items-start no-wrap q-mt-sm">
     <div class="full-width">
       <q-input
@@ -202,7 +310,7 @@
     />
   </div>
 
-  <div class="row" v-if="!isNFT && !recipient.fixedAmount" style="padding-bottom: 15px">
+  <div class="row" v-if="!isNFT && !recipient.fixedAmount && !sending" style="padding-bottom: 15px">
     <div class="col q-mt-md balance-max-container" :class="getDarkModeClass(darkMode)">
       <template v-if="currentWalletBalanceAsAsset?.id === 'bch' && asset?.id === 'bch'">
         <span v-bch-amount="{ denomination: selectedDenomination }">
@@ -299,6 +407,8 @@ export default {
     setMaximumSendAmount: { type: Function },
     defaultSelectedFtChangeAddress: { type: String },
     walletType: { type: String },
+    addAnotherRecipient: { type: Function, default: undefined },
+    sending: { type: Boolean, default: false },
   },
 
   emits: [
@@ -326,6 +436,7 @@ export default {
       cauldronTokenDialog: false,
       cauldronToken: null,
       cauldronEnabled: false,
+      showAdvancedOptions: false,
       cauldronAmount: '',
       cauldronAmountFormatted: '',
       activeKeyboardTip: null,
@@ -481,7 +592,6 @@ export default {
     },
     onEmptyRecipient () {
       this.emptyRecipient = this.recipientAddress === ''
-      console.debug('onEmptyRecipient', { recipientAddress: this.recipientAddress, emptyRecipient: this.emptyRecipient })
       this.$emit('on-empty-recipient', this.emptyRecipient)
     },
     onQRUploaderClick () {
@@ -535,6 +645,15 @@ export default {
       this.emitCauldronToggle();
 
       if (this.cauldronEnabled && !this.cauldronToken && this.assetIsBch) this.cauldronTokenDialog = true
+
+      // When enabling cauldron for a CashToken, focus the amount input and show the custom keyboard
+      if (this.cauldronEnabled && this.asset?.id?.startsWith?.('ct/')) {
+        this.$nextTick(() => {
+          if (this.$refs.amountInput) {
+            this.$refs.amountInput.focus()
+          }
+        })
+      }
     },
     onCauldronTokenSelect (token) {
       this.cauldronToken = token
@@ -549,7 +668,6 @@ export default {
       })
     },
     syncPropsData() {
-      console.debug('Syncing Props data');
 
       // Syncing this.recipient.recipientAddress is handled somewhere else
       this.amount = this.recipient.amount
@@ -597,6 +715,9 @@ export default {
     fiatFormatted () {
       clearTimeout(this.keyboardTipTimer)
       this.activeKeyboardTip = null
+    },
+    sending (val) {
+      if (val) this.showAdvancedOptions = false
     },
   }
 }
@@ -670,5 +791,12 @@ export default {
     background-color: rgb(253,253,253, .023);
     border: 1px solid #80808038;
     border-radius: 15px;
+  }
+
+  .bch-input-field.q-field--focused .q-field__control,
+  .fiat-input-field.q-field--focused .q-field__control {
+    box-shadow: 0 0 0 2px var(--q-primary);
+    border-radius: 4px;
+    transition: box-shadow 0.2s ease;
   }
 </style>
