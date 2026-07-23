@@ -1441,8 +1441,15 @@ export default {
       this.contextMessage = message
       const sel = window.getSelection()
       const hasSelection = sel && !sel.isCollapsed
-      this.hasTextSelection = hasSelection
-      this.selectedText = hasSelection ? sel.toString().trim() : ''
+      if (hasSelection) {
+        const msgEl = sel.anchorNode?.parentElement?.closest?.('[data-msg-id]')
+        if (!msgEl || msgEl.dataset.msgId !== message.id) {
+          sel.removeAllRanges()
+        }
+      }
+      const finalSel = window.getSelection()
+      this.hasTextSelection = finalSel && !finalSel.isCollapsed
+      this.selectedText = this.hasTextSelection ? finalSel.toString().trim() : ''
       this.$nextTick(() => {
         this.$refs.contextMenu?.show(event)
         this.isContextMenuOpen = true
@@ -1476,6 +1483,7 @@ export default {
       if (target && target.__qclosepopup) return
       
       this.hideContextMenu()
+      window.getSelection()?.removeAllRanges()
     },
     onDocumentPointerUp (e) {
       if (e.button !== 0) return
