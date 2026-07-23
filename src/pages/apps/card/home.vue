@@ -247,16 +247,7 @@ export default {
       this.$router.push({ name: 'card-list' });
     },
 
-    // onCardCreated (card) {
-    //   this.createdCard = card
-    //   // Add to Vuex store so card.vue can find it when navigating
-    //   if (card?.raw && this.$store) {
-    //     this.$store.commit('card/addCard', card.raw)
-    //   }
-    //   this.showCreateCardForm = false
-    //   this.wizardStep = 'preview'
-    //   this.showInlineOrder = false
-    // }
+   
   }
 }
 </script>
