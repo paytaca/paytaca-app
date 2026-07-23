@@ -577,11 +577,13 @@ export default {
         },
         {
           name: this.$t('Card'),
+          description: this.$t('Apps.Card.Description', {}, 'Manage your Paytaca Card and view your card activity.'),
           iconName: 'mdi-card-bulleted',
           path: '/apps/card',
           active: true,
           iconStyle: 'font-size: 4em',
-          active: !this.$store.getters['global/isChipnet']
+          active: !this.$store.getters['global/isChipnet'],
+          category: 'marketplace'
         },
         {
           id: 'merchant-admin',
