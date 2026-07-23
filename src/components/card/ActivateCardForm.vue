@@ -53,59 +53,9 @@
                 </q-tooltip>
               </q-btn>
             </div>
-            <!-- <div class="col-4">
-              <q-btn 
-                class="method-btn full-width" 
-                :class="{ 'method-btn-active': selectedInputMethod === 'manual' }"
-                flat 
-                dense 
-                @click="selectInputMethod('manual')">
-                <div class="column items-center q-py-xs">
-                  <q-icon name="keyboard" size="24px" color="primary" class="q-mb-xs" />
-                  <div class="text-caption method-label">Manual</div>
-                </div>
-              </q-btn>
-            </div> -->
+            
           </div>
         </div>
-
-        <!-- Manual Input Instructions
-        <div class="input-section q-mb-lg method-content-area" v-if="selectedInputMethod === 'manual'">
-          <div class="manual-input-card" :class="$q.dark.isActive ? 'manual-input-card-dark' : 'manual-input-card-light'">
-            <div class="row items-center q-pa-md">
-              <div class="manual-icon-container q-mr-md" :class="$q.dark.isActive ? 'manual-icon-dark' : 'manual-icon-light'">
-                <q-icon name="keyboard" size="32px" color="primary" />
-              </div>
-              <div class="col">
-                <div class="text-subtitle2 text-weight-bold q-mb-xs text-primary">
-                  Manual Entry
-                </div>
-                <div class="text-caption text-primary">
-                  Locate the UID printed on the back of your card and enter it below
-                </div>
-              </div>
-              <div class="typing-animation q-ml-sm">
-                <div class="typing-cursor"></div>
-              </div>
-            </div>
-          </div>
-          <div class="q-mt-md">
-            <q-input
-              v-model="newCard.uid"
-              label="Card UID"
-              class="custom-input full-width"
-              :error="!!formError"
-              :error-message="formError"
-              :dark="$q.dark.isActive"
-              :rules="[val => !!val || 'Card UID is required']"
-              outlined
-              hide-bottom-space>
-              <template v-slot:prepend>
-                <q-icon name="tag" color="primary" />
-              </template>
-            </q-input>
-          </div>
-        </div> -->
 
         <!-- NFC Instructions -->
         <div class="nfc-instructions q-mb-lg method-content-area" v-if="selectedInputMethod === 'nfc'">
