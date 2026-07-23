@@ -464,14 +464,7 @@ export default {
 
     onCardActivated() {
       this.showActivateCardForm = false;
-      this.$q.dialog({
-        title: this.$t('Card Activated'),
-        message: this.$t('Your Paytaca card has been successfully activated.'),
-        ok: {
-          label: this.$t('OK'),
-          color: 'primary'
-        }
-      });
+      this.$router.push({ name: 'card-list' });
     },
 
     onOrderSuccess() {

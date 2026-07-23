@@ -242,6 +242,11 @@ export default {
       }
     },
 
+    onCardActivated() {
+      this.showActivateCardForm = false;
+      this.$router.push({ name: 'card-list' });
+    },
+
     // onCardCreated (card) {
     //   this.createdCard = card
     //   // Add to Vuex store so card.vue can find it when navigating

@@ -508,6 +508,7 @@ export default {
 
         await card.activate(this.onProgress, lastAttempt)
         this.state = "success";
+        this.$emit('activate');
 
       } catch (error) {
         console.error('Error activating card:', error);
