@@ -1198,6 +1198,7 @@ export default {
       this.flushMarkAsRead()
     }
     this.ready = false
+    this._stopWatchingSelection()
     if (this._vpRaf) { cancelAnimationFrame(this._vpRaf); this._vpRaf = null }
     document.removeEventListener('visibilitychange', this.onVisibilityChange)
     document.removeEventListener('pointerdown', this.onDocumentPointerDown)
@@ -1702,11 +1703,6 @@ export default {
       }).catch(err => {
         console.error('[Conversation] Failed to send reaction:', err)
       })
-    },
-    menuPointerDown (tag, e) {
-      // Log pointerdown inside menu items to check event flow
-      
-      
     },
     isMobileDevice () {
       if (typeof navigator === 'undefined') return false
@@ -2258,7 +2254,7 @@ export default {
         await this.$store.dispatch('nostrChat/publishGiftWraps', { giftWraps })
         this.$q.notify({
           type: 'positive',
-          message: this.$t('BchSentSuccess', { amount, symbol, txid: txid?.slice(0, 12) }, `Successfully sent ${amount} ${symbol}`),
+          message: this.$t('BchSentSuccess', { symbol }, `${symbol} sent successfully`),
         })
       } catch (err) {
         console.error('[Conversation] Failed to send tip confirmation:', err)
