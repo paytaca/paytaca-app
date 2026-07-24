@@ -304,10 +304,10 @@ export default {
       return 'text-primary';
     },
     isFormInputValid() {
-      console.log('this.card.category:', this.card.category)
-      console.log('this.card.address:', this.card.address)
-      console.log('this.card.isActivated:', this.card.isActivated)
-      console.log('Input validation result:', (this.card.category && this.card.address && !this.card.isActivated))
+      // console.log('this.card.category:', this.card.category)
+      // console.log('this.card.address:', this.card.address)
+      // console.log('this.card.isActivated:', this.card.isActivated)
+      // console.log('Input validation result:', (this.card.category && this.card.address && !this.card.isActivated))
       return this.card.category && this.card.address && !this.card.isActivated;
     }
   },
@@ -343,7 +343,7 @@ export default {
     },
 
     async onQrDecode (content) {
-      console.log('QR code decoded:', content)
+      // console.log('QR code decoded:', content)
       this.fetchCardByCategory(content)
       this.showQrScanner = false
     },
@@ -352,7 +352,7 @@ export default {
       this.loadingContract = true
       const card = await this.user.fetchCardByIdentifier(category)
         .catch(error => {
-          console.error('Error fetching contract by category:', error);
+          // console.error('Error fetching contract by category:', error);
           this.$q.notify({
             message: 'Failed to fetch contract data. Please try again.',
             color: 'negative',
@@ -363,7 +363,7 @@ export default {
         });
       
       this.loadingContract = false
-      console.log('Fetched card data from server:', card);
+      // console.log('Fetched card data from server:', card);
       
       if (!card) {
         this.$q.notify({
@@ -382,7 +382,7 @@ export default {
         address: card.cashAddress,
         isActivated: card.isActivated
       }
-      console.log('Contract data set in component state:', this.card);
+      // console.log('Contract data set in component state:', this.card);
     },
 
     async onViewCard() {
@@ -391,7 +391,7 @@ export default {
         const category = lastAttempt?.ownershipCategory
         const fetchedCard = await this.user.fetchCardByIdentifier(category)
           .catch((err) => {
-            console.error('Error fetching card by identifier:', err.response || err.message);
+            // console.error('Error fetching card by identifier:', err.response || err.message);
             this.$q.notify({
               message: 'Failed to fetch card details. Please try again.',
               color: 'negative',
@@ -409,7 +409,6 @@ export default {
       }
      
       if (!this.card.id) {
-        console.error('Card ID is missing. Cannot navigate to card details.');
         this.$q.notify({
           message: 'Card ID is missing. Cannot navigate to card details.',
           color: 'negative',
@@ -424,7 +423,7 @@ export default {
 
     onProgress (message) {
       // This can be used to update the UI with progress messages if desired
-      console.log('Card minting progress:', message);
+      // console.log('Card minting progress:', message);
       this.progressMessage = message;
     },
 
@@ -443,25 +442,22 @@ export default {
       }
 
       const category = this.card.category || lastAttempt?.ownershipCategory
-      console.log('Activating card with category:', category)
+      // console.log('Activating card with category:', category)
       try {
         const user = await loadCardUser();   
         const { _rawData: data } = await user.fetchCardByIdentifier(category)
           .catch((err) => {
-            console.error('Error fetching card by identifier:', err.response || err.message);
             throw err;
           });
 
-        console.log('Fetched card by identifier:', data);
         const card = await Card.createInitialized(data)
-        console.log('Initialized card:', card)
+        // console.log('Initialized card:', card)
 
         await card.activate(this.onProgress, lastAttempt)
         this.state = "success";
         this.$emit('activate');
 
       } catch (error) {
-        console.error('Error activating card:', error);
         this.state = 'error';
         this.errorMessage = error.message || 'An error occurred while activating your card.';
       } finally {

@@ -567,7 +567,7 @@ export default {
     },
 
     goToCardDetails (card) {
-      console.log('Navigating to card details for card:', card)
+      // console.log('Navigating to card details for card:', card)
       if (card && card.id) {
         this.$router.push({ name: 'card-details', params: {id: card.id} })
       }

@@ -414,7 +414,6 @@ export default {
       
       try {
         let card = this.$store.getters['card/getCardById'](cardId)
-        console.log('Card data from store:', card)
         
         card = await this.user.fetchCardByIdentifier(cardId)
         if (!card) {
@@ -557,7 +556,6 @@ export default {
     },
 
     handleSweepFunds () {
-      console.log('handleSweepFunds:', this.activeCard)
       if (!this.activeCard) return
 
       const balance = parseFloat(this.activeCard?.balance) || 0
