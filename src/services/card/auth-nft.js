@@ -182,18 +182,21 @@ class AuthNftService {
 
         const change = cumulativeValue - totalFee
 
-        const outputs = mintingTokenUtxo.map(utxo => ({
+        // Only re-emit the first minting UTXO as output since only it is consumed as input.
+        // Consuming multiple minting UTXOs in one transaction is not supported by this flow.
+        const consumedMintingUtxo = mintingTokenUtxo[0]
+        const outputs = [{
             to: this.wallet.tokenAddress(),
-            amount: utxo.satoshis || utxo.value,
+            amount: consumedMintingUtxo.satoshis || consumedMintingUtxo.value,
             token: {
-                category: utxo.token.category,
+                category: consumedMintingUtxo.token.category,
                 amount: 0n,
                 nft: {
-                    capability: utxo.token.nft.capability,
-                    commitment: utxo.token.nft.commitment
+                    capability: consumedMintingUtxo.token.nft.capability,
+                    commitment: consumedMintingUtxo.token.nft.commitment
                 }
             }
-        }));
+        }];
 
         for (let i = 0; i < merchants.length; i++) {
             const merchant = merchants[i]

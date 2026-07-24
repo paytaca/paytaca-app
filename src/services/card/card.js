@@ -333,8 +333,8 @@ export class Card {
 
       return this;
     } catch (error) {
-      console.error('Error:', error);
-      console.error('Card creation workflow failed:', error.response || error.message);
+      cardLogger.error('Error:', error);
+      cardLogger.error('Card creation workflow failed:', error.response || error.message);
       throw error;
     }
   }
@@ -347,7 +347,7 @@ export class Card {
         return response.data;
       })
       .catch(error => {
-        console.error('Error processing linking transaction:', error.response || error.message);
+        cardLogger.error('Error processing linking transaction:', error.response || error.message);
         throw error;
       });
   }
@@ -365,7 +365,7 @@ export class Card {
           cardLogger.log(`Attempt ${attempts + 1}/${maxAttempts}: Linking token not found yet. Retrying in ${interval}ms...`);
         }
       } catch (error) {
-        console.error('Error polling for linking token:', error.response || error.message);
+        cardLogger.error('Error polling for linking token:', error.response || error.message);
       }
       attempts++;
       await new Promise(resolve => setTimeout(resolve, interval));
@@ -423,7 +423,7 @@ export class Card {
     const data = { category };
     const response = await backend.patch(`/cards/${cardId}/`, data)
       .catch(error => {
-        console.error('Error saving genesis token ID to server:', error.response || error.message);
+        cardLogger.error('Error saving genesis token ID to server:', error.response || error.message);
         throw error;
       });
 
@@ -440,7 +440,7 @@ export class Card {
     const response = await backend.post(`/cards/generate-contract/`, null, {
       headers: { 'Idempotency-Key': idempotencyKey },
     }).catch(error => {
-      console.error('Error generating contract:', error.response || error.message);
+      cardLogger.error('Error generating contract:', error.response || error.message);
       throw error;
     });
 
@@ -464,7 +464,7 @@ export class Card {
     cardLogger.log('Requesting linking token with data:', data)
     const response = await backend.post(`/cards/${this.id}/linking-token/`, data)
       .catch(error => {
-        console.error('Error requesting linking token:', error.response || error.message);
+        cardLogger.error('Error requesting linking token:', error.response || error.message);
         throw error;
       });
     cardLogger.log('response:', response.data)
@@ -478,7 +478,7 @@ export class Card {
   async getTransactions() {
     const response = await backend.get(`/cards/${this.id}/transactions/`)
       .catch(error => {
-        console.error('Error fetching transactions:', error.response || error.message);
+        cardLogger.error('Error fetching transactions:', error.response || error.message);
         throw error;
       });
     return response.data?.results || [];
@@ -491,7 +491,7 @@ export class Card {
   async getAuthNfts() {
     const response = await backend.get(`/auth-nfts/${this.raw.token_address}`)
       .catch(error => {
-        console.error('Error fetching auth NFTs:', error.response || error.message);
+        cardLogger.error('Error fetching auth NFTs:', error.response || error.message);
         throw error;
       });
     return response.data
@@ -532,7 +532,7 @@ export class Card {
     await backend.post(`/cards/${this.id}/subscribe-transactions/`, null).then(() => {
       cardLogger.log('Successfully subscribed to card transactions')
     }).catch(err => {
-      console.error('Error subscribing to card transactions:', err.response || err)
+      cardLogger.error('Error subscribing to card transactions:', err.response || err)
     })
   }
 
@@ -560,7 +560,7 @@ export class Card {
             
             return { success: true, category, utxos };
           } else {
-            console.error(result.error)
+            cardLogger.error(result.error)
             throw new Error('Genesis minting failed: ' + (result.error || 'Unknown error'));
           }
         } else {
@@ -568,7 +568,7 @@ export class Card {
         }
         
       } catch (error) {
-        console.error('Error during genesis minting:', error.message || error);
+        cardLogger.error('Error during genesis minting:', error.message || error);
         maxAttempts--;
         if (maxAttempts === 0) {
           throw error;
@@ -615,7 +615,7 @@ export class Card {
 
         return result;
       } catch (error) {
-        console.error('Error during global auth token minting:', error.message || error);
+        cardLogger.error('Error during global auth token minting:', error.message || error);
       }
       maxAttempts--;
       if (maxAttempts > 0) {
@@ -627,94 +627,94 @@ export class Card {
     }
   }
 
-  /**
-   * Mints and issues merchant auth token for specific merchant
-   * @param {Object} options
-   * @param {boolean} [options.authorized=true] - Whether to authorize the merchant
-   * @param {number} [options.spendLimitSats] - Spend limit in satoshis (Optional, defaults to 1 BCH)
-   * @param {Object} options.merchant - Merchant info
-   * @param {string} options.merchant.id - Merchant ID
-   * @param {string} options.merchant.pubkey - Merchant public key
-   * @returns {Promise<{mintResult: Object, issueResult: Object}>}
-   */
-  async issueMerchantAuthToken({ authorized = true, spendLimitSats = defaultSpendLimitSats, merchant } = {}, retryOnFailure = true) {
-    cardLogger.log('Issuing merchant auth token...');
-    if (!merchant?.id || !merchant?.pubkey) {
-      throw new Error('Merchant id and pubkey are required to issue merchant auth token');
-    }
+  // /**
+  //  * Mints and issues merchant auth token for specific merchant
+  //  * @param {Object} options
+  //  * @param {boolean} [options.authorized=true] - Whether to authorize the merchant
+  //  * @param {number} [options.spendLimitSats] - Spend limit in satoshis (Optional, defaults to 1 BCH)
+  //  * @param {Object} options.merchant - Merchant info
+  //  * @param {string} options.merchant.id - Merchant ID
+  //  * @param {string} options.merchant.pubkey - Merchant public key
+  //  * @returns {Promise<{mintResult: Object, issueResult: Object}>}
+  //  */
+  // async issueMerchantAuthToken({ authorized = true, spendLimitSats = defaultSpendLimitSats, merchant } = {}, retryOnFailure = true) {
+  //   cardLogger.log('Issuing merchant auth token...');
+  //   if (!merchant?.id || !merchant?.pubkey) {
+  //     throw new Error('Merchant id and pubkey are required to issue merchant auth token');
+  //   }
 
-    // Guard against minting a duplicate auth token for the same merchant.
-    const { merchant_auth_nfts: merchantAuthNfts = [] } = await this.getAuthNfts();
-    const { hex: merchantHash } = encodeMerchantHash({ merchantId: merchant.id, merchantPk: merchant.pubkey });
-    const hasExistingToken = merchantAuthNfts.some(
-      token => token?.commitment?.decoded?.hash === merchantHash
-    );
+  //   // Guard against minting a duplicate auth token for the same merchant.
+  //   const { merchant_auth_nfts: merchantAuthNfts = [] } = await this.getAuthNfts();
+  //   const { hex: merchantHash } = encodeMerchantHash({ merchantId: merchant.id, merchantPk: merchant.pubkey });
+  //   const hasExistingToken = merchantAuthNfts.some(
+  //     token => token?.commitment?.decoded?.hash === merchantHash
+  //   );
 
-    if (hasExistingToken) {
-      throw new Error('Merchant auth token with matching commitment already exists.');
-    }
+  //   if (hasExistingToken) {
+  //     throw new Error('Merchant auth token with matching commitment already exists.');
+  //   }
 
-    try {
-      const mintResult = await this._mintMerchantAuthToken({ authorized, spendLimitSats, merchant }, retryOnFailure);
-      const issueResult = await this._issueAuthTokens();
-      return { mintResult, issueResult };
-    } catch (error) {
-      console.error('Error during merchant auth token issuance:', error.message || error);
-      throw error;
-    }
-  }
+  //   try {
+  //     const mintResult = await this._mintMerchantAuthToken({ authorized, spendLimitSats, merchant }, retryOnFailure);
+  //     const issueResult = await this._issueAuthTokens();
+  //     return { mintResult, issueResult };
+  //   } catch (error) {
+  //     cardLogger.error('Error during merchant auth token issuance:', error.message || error);
+  //     throw error;
+  //   }
+  // }
 
-  /**
-   *  Mints merchant auth token for specific merchant
-   * @private
-   * @param {Object} options
-   * @param {boolean} [options.authorized=true] - Whether to authorize the merchant
-   * @param {number} [options.spendLimitSats] - Spend limit in satoshis (Optional, defaults to 1 BCH)
-   * @param {Object} options.merchant - Merchant info
-   * @param {string} options.merchant.id - Merchant ID
-   * @param {string} options.merchant.pubkey - Merchant public key
-   * @returns {Promise<Object>}
-   */
-  async _mintMerchantAuthToken({ authorized = true, spendLimitSats, merchant } = {}, retryOnFailure = true) {
-    cardLogger.log('Minting merchant auth token...');
-    this._assertWallet();
-    this._assertAuthNftService();
+  // /**
+  //  *  Mints merchant auth token for specific merchant
+  //  * @private
+  //  * @param {Object} options
+  //  * @param {boolean} [options.authorized=true] - Whether to authorize the merchant
+  //  * @param {number} [options.spendLimitSats] - Spend limit in satoshis (Optional, defaults to 1 BCH)
+  //  * @param {Object} options.merchant - Merchant info
+  //  * @param {string} options.merchant.id - Merchant ID
+  //  * @param {string} options.merchant.pubkey - Merchant public key
+  //  * @returns {Promise<Object>}
+  //  */
+  // async _mintMerchantAuthToken({ authorized = true, spendLimitSats, merchant } = {}, retryOnFailure = true) {
+  //   cardLogger.log('Minting merchant auth token...');
+  //   this._assertWallet();
+  //   this._assertAuthNftService();
 
-    if (!merchant || !merchant.id || !merchant.pubkey) {
-      throw new Error('Merchant id and pubkey are required to mint merchant auth token');
-    }
+  //   if (!merchant || !merchant.id || !merchant.pubkey) {
+  //     throw new Error('Merchant id and pubkey are required to mint merchant auth token');
+  //   }
 
-    // // TODO: Prevent minting a duplicate auth token for the same merchant.
-    // // Encode the merchant hash and check first if a token with 
-    // // matching commitment already exists in the contract
-    // const merchantHash = encodeMerchantHash({ merchantId: merchant.id, merchantPk: merchant.pubkey }).hex;
-    // cardLogger.log('Encoded merchant hash:', merchantHash);
-    // const cardTokenUtxos = await this.getTokenUtxos()
+  //   // // TODO: Prevent minting a duplicate auth token for the same merchant.
+  //   // // Encode the merchant hash and check first if a token with 
+  //   // // matching commitment already exists in the contract
+  //   // const merchantHash = encodeMerchantHash({ merchantId: merchant.id, merchantPk: merchant.pubkey }).hex;
+  //   // cardLogger.log('Encoded merchant hash:', merchantHash);
+  //   // const cardTokenUtxos = await this.getTokenUtxos()
 
-    const { cumulativeValue } = await this.wallet.getBchUtxos();
-    const availableSats = cumulativeValue;
-    const mintSatsRequired = this.estimateTokenOpSatsRequirement();
+  //   const { cumulativeValue } = await this.wallet.getBchUtxos();
+  //   const availableSats = cumulativeValue;
+  //   const mintSatsRequired = this.estimateTokenOpSatsRequirement();
 
-    // If utxos are enough, use them to mint the auth token
-    if (availableSats < mintSatsRequired) {
-      // Otherwise, create a UTXO by sending the required satoshi to the current wallet's cashaddress
-      cardLogger.warn('Insufficient BCH UTXOs available in wallet for minting. Creating UTXO...');
-      await this._createFundingUtxo(mintSatsRequired - availableSats + 10000n); // Adding buffer
-      await this._waitForTransaction();
-    }
+  //   // If utxos are enough, use them to mint the auth token
+  //   if (availableSats < mintSatsRequired) {
+  //     // Otherwise, create a UTXO by sending the required satoshi to the current wallet's cashaddress
+  //     cardLogger.warn('Insufficient BCH UTXOs available in wallet for minting. Creating UTXO...');
+  //     // await this._createFundingUtxo(mintSatsRequired - availableSats + 10000n); // Adding buffer
+  //     await this._waitForTransaction();
+  //   }
 
-    const result = await this.authNftService.mint({ 
-        tokenId: this.raw?.category, 
-        merchants: [{
-          id: merchant.id,
-          pubkey: merchant.pubkey,
-          authorized: authorized,
-          spendLimitSats: spendLimitSats || defaultSpendLimitSats,
-        }]
-    });
-    cardLogger.log('Merchant auth token minted:', result);
-    return result;
-  }
+  //   const result = await this.authNftService.mint({ 
+  //       tokenId: this.raw?.category, 
+  //       merchants: [{
+  //         id: merchant.id,
+  //         pubkey: merchant.pubkey,
+  //         authorized: authorized,
+  //         spendLimitSats: spendLimitSats || defaultSpendLimitSats,
+  //       }]
+  //   });
+  //   cardLogger.log('Merchant auth token minted:', result);
+  //   return result;
+  // }
 
   /**
    * Issues all auth tokens to card's token address
@@ -731,7 +731,7 @@ export class Card {
         return result;
       } catch (error) {
         lastError = error;
-        console.error('Error issuing auth tokens:', error.message || error);
+        cardLogger.error('Error issuing auth tokens:', error.message || error);
         maxAttempts--;
         if (maxAttempts > 0) {
           cardLogger.log(`Retrying in ${interval}ms... (${maxAttempts} attempts left)`);
@@ -767,7 +767,7 @@ export class Card {
   async getBchBalance() {
     const response = await backend.get(`/cards/${this.id}/bch-balance/`)
     .catch(error => {
-      console.error('Error fetching BCH balance:', error.response || error.message);
+      cardLogger.error('Error fetching BCH balance:', error.response || error.message);
       throw error;
     });
     return response.data?.bch_balance || 0;
@@ -797,10 +797,7 @@ export class Card {
    */
   async getUtxos() {
     this._assertContract();
-    // const temp = await this.wallet.getUtxos()
-    // cardLogger.log('Wallet UTXOs:', temp);
     const contractUtxos = await this.contract.getUtxos();
-    cardLogger.log('>>>>>> contractUtxos:', contractUtxos)
     return contractUtxos;
   }
 
@@ -966,7 +963,7 @@ export class Card {
     this._assertWallet();
 
     const privateKey = this.wallet.privkey();
-    const tokenId = this.category;
+    const tokenId = this.authCategory;
     const params = {
       ownerWif: privateKey,
       tokenId,
@@ -985,69 +982,25 @@ export class Card {
 
   // ==================== UTXO MANAGEMENT ====================
 
-  /**
-   * Checks for available vout=0 UTXOs and returns total satoshis
-   * @returns {Promise<number>} Total satoshis available in vout=0 UTXOs
-   */
-  async _checkForFundingUtxos() {
-    try {
-      cardLogger.log('Checking for existing vout=0 UTXOs...');
-      this._assertWallet();
-      
-      const resp = await this.wallet.getBchUtxos()
-      const utxos = resp.utxos || [];
-      const voutZeroUtxos = utxos.filter(utxo => utxo.tx_pos === 0);
-      
-      const totalSats = voutZeroUtxos.reduce((sum, utxo) => sum + utxo.value, 0n);
-      cardLogger.log(`Found ${voutZeroUtxos.length} existing vout=0 UTXOs with total ${totalSats} sats`);
-      return totalSats;
-      
-    } catch (error) {
-      cardLogger.warn('Could not check existing UTXOs:', error.message);
-      return 0n;
-    }
-  }
+  // /**
+  //  * Estimates satoshis needed for minting a token
+  //  * @returns {Promise<bigint>} Estimated satoshis needed for minting auth token
+  //  */
+  // estimateTokenOpSatsRequirement() {
+  //   this._assertWallet();
+  //   return this.wallet.estimateTokenOpSatsRequirement();
+  // }
 
-  /**
-   * Creates vout=0 UTXO by sending BCH to self
-   * @param {number} [amount] - Amount in satoshis to send (defaults to full estimated requirement)
-   * @returns {Promise<Object>}
-   */
-  async _createFundingUtxo(amount) {
-    cardLogger.log('Creating vout=0 transaction...');
-    this._assertWallet();
-    return await this.wallet.createFundingUtxo(amount);
-    // return await this.wallet.consolidateUtxos(amount)
-  }
-
-  /**
-   * Estimates total satoshis needed for both genesis and global auth token minting
-   * @returns {bigint} Estimated total satoshis needed
-   */
-  estimateCreateCardSatsRequirement() {
-    this._assertWallet();
-    return this.estimateTokenOpSatsRequirement() * 3n; // Multiplying by 3 because we are minting 2 tokens: genesis and global auth token + buffer
-  }
-
-  /**
-   * Estimates satoshis needed for minting a token
-   * @returns {Promise<bigint>} Estimated satoshis needed for minting auth token
-   */
-  estimateTokenOpSatsRequirement() {
-    this._assertWallet();
-    return this.wallet.estimateTokenOpSatsRequirement();
-  }
-
-  /**
-   * Waits for transaction confirmation
-   * @private
-   * @param {number} [delayMs=6000]
-   * @returns {Promise<void>}
-   */
-  async _waitForTransaction(delayMs = 6000) {
-    cardLogger.log('Waiting for transaction confirmation for ', delayMs / 1000, 'seconds...');
-    await new Promise(resolve => setTimeout(resolve, delayMs));
-  }
+  // /**
+  //  * Waits for transaction confirmation
+  //  * @private
+  //  * @param {number} [delayMs=6000]
+  //  * @returns {Promise<void>}
+  //  */
+  // async _waitForTransaction(delayMs = 6000) {
+  //   cardLogger.log('Waiting for transaction confirmation for ', delayMs / 1000, 'seconds...');
+  //   await new Promise(resolve => setTimeout(resolve, delayMs));
+  // }
 
   async processTransaction(txid) {
     // Process the transaction and update card state as needed
@@ -1056,20 +1009,8 @@ export class Card {
       cardLogger.log('Transaction processed successfully:', response.data);
       // Optionally update card state based on response
     }).catch(error => {
-      console.error('Error processing transaction:', error.response || error.message);
+      cardLogger.error('Error processing transaction:', error.response || error.message);
     });
-  }
-
-  // ==================== UTILITIES ====================
-
-  /**
-   * Checks if error is vout=0 related
-   * @private
-   * @param {Error} error
-   * @returns {boolean}
-   */
-  _isVoutZeroError(error) {
-    return error.message?.includes('No suitable inputs with vout=0 available for new token genesis');
   }
 }
 

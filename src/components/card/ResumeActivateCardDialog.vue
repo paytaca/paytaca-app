@@ -44,7 +44,7 @@ export default {
       return this.$q.dark.isActive ? 'text-grey-4' : 'text-grey-7'
     },
     mustBeResumed() {
-      return this.status >= CardActivationStatus.OWNERSHIP_UPDATED;
+      return this.status >= CardActivationStatus.LINKING_TOKEN_OBTAINED;
     }
   },
   mounted() {

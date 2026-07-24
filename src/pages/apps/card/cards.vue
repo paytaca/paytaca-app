@@ -160,15 +160,13 @@
         </div>
       </div>
        
-      <!-- Create Card Dialog -->
-      <!-- <CreateCardForm v-if="showCreateCardForm" @onClose="onCloseCreateCardForm" @card-created="onCardCreated" :idempotencyKey="idempotencyKey"/> -->
+      <!-- Activate Card Dialog -->
       <ActivateCardForm v-if="showActivateCardForm" @close="showActivateCardForm = false" @activate="onCardActivated" />
     </q-page-container>
   </q-layout>
 </template>
 
 <script>
-import CreateCardForm from 'src/components/card/CreateCardForm.vue';
 import ActivateCardForm from 'src/components/card/ActivateCardForm.vue';
 import MultiWalletDropdown from 'src/components/transactions/MultiWalletDropdown.vue';
 import CardPageHeader from 'src/components/card/CardPageHeader.vue';
@@ -184,7 +182,6 @@ export default {
   components : {
     MultiWalletDropdown,
     CardPageHeader,
-    CreateCardForm,
     ActivateCardForm
   },
 
@@ -269,12 +266,6 @@ export default {
       await this.fetchCards()
       this.fetchCardsBalance()
       this.loadBalanceVisibility()
-    },
-
-    async onCardCreated () {
-      await this.onCloseCreateCardForm()
-      await this.fetchCards()
-      this.fetchCardsBalance()
     },
 
     async fetchCards () {

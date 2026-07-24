@@ -449,7 +449,7 @@
 </template>
 
 <script>
-import { createCardLogic, CardStorage } from './createCard.js'
+// import { createCardLogic, CardStorage } from './createCard.js'
 import { getMerchantList, getMerchantsByCity } from 'src/services/card/merchants'
 import { geolocationManager } from 'src/boot/geolocation'
 import GeolocateBtn from 'src/components/GeolocateBtn.vue'
@@ -460,7 +460,7 @@ import { bchToSatoshi } from 'src/exchange/index.js';
 
 export default {
   name: 'ManageAuthNFTs',
-  mixins: [createCardLogic],
+  // mixins: [createCardLogic],
   components: { GeolocateBtn },
   inject: ['cardUser'],
   props: {
@@ -1389,10 +1389,10 @@ export default {
       
       const cardId = String(this.card.id);
       
-      CardStorage.setCardProperty(cardId, 'merchantLocation', locationData);
+      // CardStorage.setCardProperty(cardId, 'merchantLocation', locationData);
       
       // Verify it was saved
-      const verify = CardStorage.getCardProperty(cardId, 'merchantLocation');
+      // const verify = CardStorage.getCardProperty(cardId, 'merchantLocation');
     },
 
     // Load saved location from card storage
@@ -1406,7 +1406,7 @@ export default {
       if (thisCard) {
       }
       
-      const savedLocation = CardStorage.getCardProperty(cardId, 'merchantLocation');
+      // const savedLocation = CardStorage.getCardProperty(cardId, 'merchantLocation');
       
       if (savedLocation && savedLocation.displayLocation) {
         // Check if saved location is not too old (e.g., 7 days)

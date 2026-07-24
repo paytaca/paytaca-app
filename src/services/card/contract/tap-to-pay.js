@@ -130,7 +130,7 @@ class TapToPay {
         const cashAddress = this.getContract().address
         const { cumulativeValue, utxos } = await watchtower.BCH.getBchUtxos(cashAddress, amount)
         return {
-            cumulativeValue,
+            cumulativeValue: BigInt(cumulativeValue),
             utxos: utxos?.map(utxo => ({
                 txid: utxo.tx_hash,
                 vout: utxo.tx_pos,
@@ -844,7 +844,7 @@ export class TapToPayV2 extends TapToPay {
 
         // cardLogger.log('---->>>>outputs:', outputs)
 
-        if (changeAmount > 0n) {
+        if (changeAmount > DUST_LIMIT) {
             outputs.push({ to: changeAddress, amount: changeAmount });
         }
 

@@ -21,7 +21,7 @@
               <q-icon name="info" size="1.5em"/>
             </div>
             <div class="row">
-              Make sure the POS device is using the latest version of Paytaca POS. 
+              {{ $t('PosDeviceLatestVersionWarning', {}, 'Make sure the POS device is using the latest version of Paytaca POS.') }} 
             </div>
           </div>
         </q-banner>
@@ -30,12 +30,12 @@
             dense
             outlined
             class="full-width"
-            label="Encryption Public Key"
-            hint="Please enter the encryption public key of the POS device."
+            :label="$t('EncryptionPublicKey', {}, 'Encryption Public Key')"
+            :hint="$t('EnterPosEncryptionPublicKey', {}, 'Please enter the encryption public key of the POS device.')"
             v-model="encryptionPublicKeyInput">
             <template v-slot:control>
               <span class="ellipsis" style="direction: rtl;">
-                {{ encryptionPublicKeyInput || 'Loading...' }}
+                {{ encryptionPublicKeyInput || $t('Loading', {}, 'Loading...') }}
               </span>
             </template>
             <template v-slot:append>

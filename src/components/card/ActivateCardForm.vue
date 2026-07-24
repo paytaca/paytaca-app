@@ -9,7 +9,7 @@
               <q-icon name="add_card" size="24px" color="primary" />
             </div>
             <div>
-              <div class="text-h6 text-weight-bold text-primary">Activate your Card</div>
+              <div class="text-h6 text-weight-bold text-primary">{{ $t('ActivateYourCard', {}, 'Activate your Card') }}</div>
             </div>
           </div>
             <q-btn icon="close" flat round dense color="primary" @click="closeDialog" />
@@ -30,7 +30,7 @@
                 @click="selectInputMethod('qr')">
                 <div class="column items-center q-py-xs">
                   <q-icon name="qr_code" size="24px" color="primary" class="q-mb-xs" />
-                  <div class="text-caption method-label">Scan QR</div>
+                  <div class="text-caption method-label">{{ $t('ScanQR', {}, 'Scan QR') }}</div>
                 </div>
               </q-btn>
             </div>
@@ -44,11 +44,11 @@
                 @click="selectInputMethod('nfc')">
                 <div class="column items-center q-py-xs">
                   <q-icon name="nfc" size="24px" color="primary" class="q-mb-xs" />
-                  <div class="text-caption method-label">NFC</div>
+                  <div class="text-caption method-label">{{ $t('NFC', {}, 'NFC') }}</div>
                 </div>
                 <q-tooltip anchor="top middle" self="bottom middle" :offset="[0, 8]" transition-show="jump-down" transition-hide="jump-up">
                   <div class="text-caption text-primary">
-                    NFC is currently disabled
+                    {{ $t('NFCDisabled', {}, 'NFC is currently disabled') }}
                   </div>
                 </q-tooltip>
               </q-btn>
@@ -66,10 +66,10 @@
               </div>
               <div class="col">
                 <div class="text-subtitle2 text-weight-bold q-mb-xs text-primary">
-                  Tap Your Card
+                  {{ $t('TapYourCard', {}, 'Tap Your Card') }}
                 </div>
                 <div class="text-caption text-primary">
-                  Hold your card near the back of your phone to read the NFC chip
+                  {{ $t('HoldCardToPhone', {}, 'Hold your card near the back of your phone to read the NFC chip') }}
                 </div>
               </div>
               <div class="nfc-ripple q-ml-sm">
@@ -81,7 +81,7 @@
           </div>
           <div class="text-caption q-mt-xs q-ml-md text-primary">
             <q-icon name="info" size="12px" color="primary" class="q-mr-xs" />
-            Make sure NFC is enabled in your phone settings
+            {{ $t('EnableNFCInSettings', {}, 'Make sure NFC is enabled in your phone settings') }}
           </div>
         </div>
 
@@ -94,10 +94,10 @@
               </div>
               <div class="col">
                 <div class="text-subtitle2 text-weight-bold q-mb-xs text-primary">
-                  Scan QR Code
+                  {{ $t('ScanQRCode', {}, 'Scan QR Code') }}
                 </div>
                 <div class="text-caption text-primary">
-                  Tap to open camera and scan the QR code on your card
+                  {{ $t('TapToScanQRCode', {}, 'Tap to open camera and scan the QR code on your card') }}
                 </div>
               </div>
               <div class="qr-scan-animation q-ml-sm">
@@ -113,7 +113,7 @@
           </div>
           <div class="text-caption q-mt-xs q-ml-md text-primary">
             <q-icon name="info" size="12px" color="primary" class="q-mr-xs" />
-            Ensure the QR code is clearly visible and well-lit
+            {{ $t('EnsureQRCodeVisible', {}, 'Ensure the QR code is clearly visible and well-lit') }}
           </div>
         </div>
 
@@ -126,7 +126,7 @@
         <div class="input-section">
           <q-input
             v-model="card.category"
-            label="Token ID"
+            :label="$t('TokenID', {}, 'Token ID')"
             class="custom-input"
             :dark="$q.dark.isActive"
             outlined
@@ -142,13 +142,13 @@
         <div class="input-section q-mt-md">
           <q-input
             v-model="card.address"
-            label="Card Address"
+            :label="$t('CardAddress', {}, 'Card Address')"
             class="custom-input"
             outlined
             :dark="$q.dark.isActive"
             :loading="loadingContract"
             :hide-hint="!card.isActivated"
-            hint="Card already activated"
+            :hint="$t('CardAlreadyActivated', {}, 'Card already activated')"
             readonly>
             <template v-slot:prepend>
               <q-icon name="currency_bitcoin" color="primary" />
@@ -167,10 +167,10 @@
             <q-spinner color="primary" size="64px" />
           </div>
           <div class="text-subtitle2 text-weight-bold text-primary q-mb-sm">
-            Activating your card...
+            {{ $t('ActivatingYourCard', {}, 'Activating your card...') }}
           </div>
           <div class="text-caption text-primary">
-            {{ progressMessage || 'Please wait while we activate your card.' }}
+            {{ progressMessage || $t('PleaseWaitActivateCard', {}, 'Please wait while we activate your card.') }}
           </div>
         </div>
       </q-card-section>
@@ -181,17 +181,17 @@
           <q-icon name="check_circle" size="80px" color="primary" />
         </div>
         <div class="text-h5 text-weight-bold q-mb-sm text-primary">
-          Card Created Successfully!
+          {{ $t('CardCreatedSuccessfully', {}, 'Card Created Successfully!') }}
         </div>
         <div class="text-body2 q-mb-lg text-primary">
-          Your new card is ready to use
+          {{ $t('CardReadyToUse', {}, 'Your new card is ready to use') }}
         </div>
         <q-btn 
           color="primary" 
           class="q-px-xl"
           rounded
           dense
-          label="View Card" 
+          :label="$t('ViewCard', {}, 'View Card')" 
           @click="onViewCard" />
       </q-card-section>
 
@@ -201,17 +201,17 @@
           <q-icon name="error_outline" size="80px" color="primary" />
         </div>
         <div class="text-h5 text-weight-bold q-mb-sm text-primary">
-          Error Creating Card
+          {{ $t('ErrorCreatingCard', {}, 'Error Creating Card') }}
         </div>
         <div class="text-body2 q-mb-lg text-primary">
-          {{ errorMessage || 'An error occurred while creating your card. Please try again.' }}
+          {{ errorMessage || $t('ErrorCreatingCardMessage', {}, 'An error occurred while creating your card. Please try again.') }}
         </div>
         <q-btn 
           color="primary" 
           rounded
           class="q-px-xl"
           icon="refresh"
-          label="Try Again" 
+          :label="$t('TryAgain', {}, 'Try Again')" 
           @click="onRetryActivation" />
       </q-card-section>
 
@@ -220,14 +220,14 @@
         <q-btn 
           flat 
           rounded
-          label="Cancel" 
+          :label="$t('Cancel', {}, 'Cancel')" 
           class="q-px-lg"
           color="primary" 
           :disable="activatingCard"
           @click="closeDialog" />
         <q-space />
         <q-btn 
-          label="Activate Card" 
+          :label="$t('ActivateCard', {}, 'Activate Card')" 
           color="primary" 
           rounded
           unelevated

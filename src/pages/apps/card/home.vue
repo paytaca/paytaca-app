@@ -153,7 +153,6 @@
     </div>
 
     <!-- Dialogs -->
-    <!-- <CreateCardForm v-if="showCreateCardForm" @onClose="onCloseCreateCardForm" @card-created="onCardCreated" :idempotencyKey="idempotencyKey" /> -->
     <ActivateCardForm v-if="showActivateCardForm" @close="showActivateCardForm = false" @activate="onCardActivated" />
   </q-page>
 </template>

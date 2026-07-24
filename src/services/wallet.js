@@ -202,11 +202,11 @@ export class Wallet {
     cardLogger.log('Fetched BCH UTXOs:', result)
 
     return {
-      cumulativeValue: result.cumulativeValue,
+      cumulativeValue: BigInt(result.cumulativeValue),
       utxos: result.utxos.map(utxo => ({
         txid: utxo.tx_hash,
         vout: utxo.tx_pos,
-        satoshis: utxo.value,
+        satoshis: BigInt(utxo.value),
         address_path: utxo.address_path,
         wallet_index: utxo.wallet_index
       }))

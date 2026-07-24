@@ -3,6 +3,7 @@ import Card from './card.js';
 import { SecureStoragePlugin } from 'capacitor-secure-storage-plugin'
 import { loadWallet } from 'src/services/wallet';
 import { backend } from './backend.js';
+import { cardLogger } from 'src/utils/debug-logger.js'
 
 const TOKEN_STORAGE_KEY = 'card-auth-key'
 
@@ -129,7 +130,7 @@ export class CardUser {
             const { data: { challenge } } = await backend.post('/auth/user/challenge/', payload);
             return challenge;
         } catch (error) {
-            console.error('Failed to get challenge:', error);
+            cardLogger.error('Failed to get challenge:', error);
             throw new Error('Failed to obtain authentication challenge');
         }
     }
@@ -149,7 +150,7 @@ export class CardUser {
             const verifyResponse = await backend.post('/auth/user/verify/', body);
             return verifyResponse.data;
         } catch (error) {
-            console.error('Failed to verify challenge:', error);
+            cardLogger.error('Failed to verify challenge:', error);
             throw new Error('Challenge verification failed');
         }
     }
@@ -159,7 +160,7 @@ export class CardUser {
      * @returns {Promise<void>}
      */
     async login() {
-        console.log('Starting Card User login process...');
+        cardLogger.log('Starting Card User login process...');
 
         try {
             const keypair = this.wallet.keypair();
@@ -173,7 +174,7 @@ export class CardUser {
             // send to backend to verify and create card session
             const loginResp = await this.verifyChallenge(keypair.publicKey, signature);
 
-            console.log('Login successful. Received session data:', loginResp);
+            cardLogger.log('Login successful. Received session data:', loginResp);
             
             // Save token if provided
             if (loginResp?.token) {
@@ -181,7 +182,7 @@ export class CardUser {
             }
 
         } catch (error) {
-            console.error('Login failed:', error);
+            cardLogger.error('Login failed:', error);
             throw error;
         }
     }
@@ -211,7 +212,7 @@ export class CardUser {
             );
             return cards;
         } catch (error) {
-            console.error('Error fetching cards:', error);
+            cardLogger.error('Error fetching cards:', error);
             throw error;
         }
     }
@@ -222,17 +223,17 @@ export class CardUser {
      * @returns {Promise<Card>}
      */
     async fetchCardByIdentifier(identifier) {
-        console.log(`Fetching card info for identifier: ${identifier}`);
+        cardLogger.log(`Fetching card info for identifier: ${identifier}`);
         try {
             const response = await backend.get(`/cards/by-identifier/${identifier}/`);
             const cardData = response.data;
-            console.log('cardData received:', cardData);
+            cardLogger.log('cardData received:', cardData);
             const card = cardData?.contract?.contract_id
                 ? await Card.createInitialized(cardData)
                 : await Card.createWithWallet(cardData);
             return card;
         } catch (error) {
-            console.error(`Error fetching card info for identifier ${identifier}:`, error);
+            cardLogger.error(`Error fetching card info for identifier ${identifier}:`, error);
             throw error;
         }
     }
@@ -246,7 +247,7 @@ export class CardUser {
             const response = await backend.get('/cards/balance/');
             return response.data;
         } catch (error) {
-            console.error('Error fetching card balances:', error);
+            cardLogger.error('Error fetching card balances:', error);
             throw error;
         }
     }
@@ -264,7 +265,7 @@ export class CardUser {
             const utxos = await this.authNftService.getTokenUtxos(tokenId);
             return utxos;
         } catch (error) {
-            console.error('Error fetching token UTXOs:', error);
+            cardLogger.error('Error fetching token UTXOs:', error);
             throw error;
         }
     }
@@ -282,7 +283,7 @@ export class CardUser {
             const utxos = await this.authNftService.getMutableTokens(tokenId);
             return utxos;
         } catch (error) {
-            console.error('Error fetching mutable auth token UTXOs:', error);
+            cardLogger.error('Error fetching mutable auth token UTXOs:', error);
             throw error;
         }
     }
@@ -346,7 +347,7 @@ export class CardUser {
             const result = await this.authNftService.burn({ tokenId, merchants, opts });
             return result;
         } catch (error) {
-            console.error('Error burning auth tokens:', error);
+            cardLogger.error('Error burning auth tokens:', error);
             throw error;
         }
     }
@@ -362,7 +363,7 @@ export class CardUser {
             const response = await backend.post('/contracts/linking-token/', body);
             return response.data.linking_token;
         } catch (error) {
-            console.error('Error requesting linking token:', error);
+            cardLogger.error('Error requesting linking token:', error);
             throw error;
         }
     }
@@ -389,9 +390,9 @@ export async function fetchOrCreateCardUser(wallet) {
         const response = await backend.get(`/auth/user/${wallet.walletHash}`);
         return CardUser.createInitialized(response.data);
     } catch (error) {
-        console.error('Card User fetch failed:', error.response?.status || error.message);
+        cardLogger.error('Card User fetch failed:', error.response?.status || error.message);
         if (error.response && error.response.status === 404) {
-            console.error('Card User not found for this wallet.');
+            cardLogger.error('Card User not found for this wallet.');
             await clearAuthToken();
             clearCardUserCache();
 
@@ -401,7 +402,7 @@ export async function fetchOrCreateCardUser(wallet) {
                 address_path: wallet.addressPath()
             }
             const response = await backend.post('/user/', body).catch(err => {
-                console.error('Failed to create Card User:', err.response?.status || err.message);
+                cardLogger.error('Failed to create Card User:', err.response?.status || err.message);
                 throw new Error('Failed to create Card User');
             });
             return CardUser.createInitialized(response.data);
@@ -415,9 +416,9 @@ async function fetchCardUser(wallet) {
         const response = await backend.get(`/auth/user/${wallet.walletHash}`);
         return CardUser.createInitialized(response.data);
     } catch (error) {
-        console.error('Card User fetch failed:', error.response?.status || error.message);
+        cardLogger.error('Card User fetch failed:', error.response?.status || error.message);
         if (error.response && error.response.status === 404) {
-            console.error('Card User not found for this wallet.');
+            cardLogger.error('Card User not found for this wallet.');
             await clearAuthToken();
             clearCardUserCache();
         }
@@ -435,7 +436,7 @@ let _cachedUser = null;
 export async function loadCardUser({ forceLogin = false } = {}) {
     if (_cachedUser && !forceLogin) return _cachedUser;
 
-    console.log('Loading Card User session...');
+    cardLogger.log('Loading Card User session...');
     try {
         const wallet = await loadWallet();
         let user = await fetchOrCreateCardUser(wallet);
@@ -443,18 +444,18 @@ export async function loadCardUser({ forceLogin = false } = {}) {
         if (forceLogin || !user.is_authenticated) {
             await user.login();
             user = await fetchCardUser(wallet);
-            console.log('Card User reloaded after login:', user);
+            cardLogger.log('Card User reloaded after login:', user);
         }
         
         _cachedUser = user;
 
-        console.log('Card User loaded successfully:', user);
+        cardLogger.log('Card User loaded successfully:', user);
 
         return user;
     } catch (error) {
-        console.error('Error loading Card User:', error);
+        cardLogger.error('Error loading Card User:', error);
         if (error.response && error.response.status === 404) {
-            console.error('Card User not found for this wallet.');
+            cardLogger.error('Card User not found for this wallet.');
             await clearAuthToken();
             clearCardUserCache();
         }
@@ -486,7 +487,7 @@ export async function getAuthSession () {
             return rawValue;
         }
     } catch (error) {
-        console.error(`Item with key ${TOKEN_STORAGE_KEY} does not exist:`, error);
+        cardLogger.error(`Item with key ${TOKEN_STORAGE_KEY} does not exist:`, error);
         return null;
     }
 }
@@ -519,7 +520,7 @@ export async function saveAuthToken (value) {
         const result = await SecureStoragePlugin.set({ key: TOKEN_STORAGE_KEY, value: storedValue });
         return result.value;
     } catch (error) {
-        console.error('Failed to save auth token:', error);
+        cardLogger.error('Failed to save auth token:', error);
         throw error;
     }
 }
@@ -530,9 +531,9 @@ export async function saveAuthToken (value) {
  */
 export async function clearAuthToken () {
     try {
-        SecureStoragePlugin.remove({ key: TOKEN_STORAGE_KEY })
+        await SecureStoragePlugin.remove({ key: TOKEN_STORAGE_KEY })
     } catch (error) {
-        console.error('Failed to clear auth token:', error);
+        cardLogger.error('Failed to clear auth token:', error);
         throw error;
     }
 }

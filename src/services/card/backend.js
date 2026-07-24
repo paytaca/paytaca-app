@@ -18,9 +18,10 @@ backend.interceptors.request.use(async (config) => {
   }
   const wallet = await loadWallet();
   config.headers['wallet-hash'] = wallet.walletHash
-  await getAuthToken().then(token => {
+  const token = await getAuthToken()
+  if (token) {
     config.headers.Authorization = `Token ${token}`
-  })
+  }
   return config
 })
 
