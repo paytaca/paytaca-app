@@ -189,9 +189,7 @@ class TapToPay {
         };
     }
 
-    async mutate () {}
     async sweep () {}
-    async burn () {}
 
     estimateFee({ numContractInputs = 0, numP2pkhInputs = 0, numOutputs = 2, feeRate = 2n } = {}) {
         // CashScript contract inputs are larger due to unlocking script (redeem script + args)
@@ -667,7 +665,6 @@ export class TapToPayV2 extends TapToPay {
                 backendPkh: parameters[0],
                 category: reverseHex(parameters[1])
             };
-            // cardLogger.log('=>>>>>>>TapToPayV2 contract parameters:', this.params)
         } else if (params) {
             this.params = {
                 backendPkh: params.backendPkh,
@@ -708,15 +705,10 @@ export class TapToPayV2 extends TapToPay {
         const ownerSig = new SignatureTemplate(ownerWif)
         const ownerPk = binToHex(ownerSig.getPublicKey())
         const ownerPkh = pubkeyToPkHash(ownerPk)
-        // cardLogger.log('-----ownerPkh:', ownerPkh)
 
         // get contract token utxos
         const tokenId = reverseHex(this.contractCreationParams.category)
-        // cardLogger.log('-----tokenId:', tokenId)
-        cardLogger.log('contract.address:', contract.address)
-        cardLogger.log('contract.tokenAddress:', contract.tokenAddress)
         const ownershipTokens = await this.getTokenUtxos(tokenId, contract.tokenAddress)
-        cardLogger.log('ownershipTokens:', ownershipTokens)  
 
         if (ownershipTokens.length === 0 || ownershipTokens.length !== 2) {
             throw new Error('Expected exactly 2 token UTXOs for setOwnership, but found ' + ownershipTokens.length)
@@ -724,8 +716,6 @@ export class TapToPayV2 extends TapToPay {
 
         // Construct the ownership token inputs
         const sortedOwnershipTokens = []
-        // index[0] = pkh token
-        // index[1] = cat token
 
         let pkhCategory, catCategory = ""
         for (let i = 0; i < ownershipTokens.length; i++) {
@@ -733,7 +723,6 @@ export class TapToPayV2 extends TapToPay {
             // Get the linking token
             const commitment = utxo.token.nft?.commitment
             const decodedCommitment = decodeOwnershipCommitment(commitment)
-            // cardLogger.log('decodedCommitment:', decodedCommitment)
             if (decodedCommitment?.type === 'pkh') {
                 sortedOwnershipTokens[0] = utxo
                 pkhCategory = decodedCommitment.value
@@ -742,9 +731,6 @@ export class TapToPayV2 extends TapToPay {
                 catCategory = decodedCommitment.value
             }
         }
-
-        cardLogger.log('pkhCategory:', pkhCategory)
-        cardLogger.log('catCategory:', catCategory)
 
         if (pkhCategory !==  catCategory) {
             cardLogger.warn('Ownership token categories do not match: pkhCategory=' + pkhCategory + ', catCategory=' + catCategory)
@@ -761,12 +747,10 @@ export class TapToPayV2 extends TapToPay {
             }
         }
 
-        cardLogger.log('sortedOwnershipTokens:', sortedOwnershipTokens)
         const linkingCategory = reverseHex(pkhCategory)
 
         const wallet = await loadWallet()
         const linkingTokens = await wallet.getTokenUtxos(linkingCategory, wallet.tokenAddress())
-        cardLogger.log('linkingTokens:', linkingTokens)
 
         if (linkingTokens.length !== 1) {
             throw new Error('Expected exactly 1 linking token UTXO for setOwnership, but found ' + linkingTokens.length)
@@ -786,9 +770,6 @@ export class TapToPayV2 extends TapToPay {
             token: linkingTokens[0].token
         }
 
-        cardLogger.log('normalizedOwnershipTokens:', normalizedOwnershipTokens)
-        cardLogger.log('normalizedLinkingToken:', normalizedLinkingToken)
-
         const estimatedFee = this.estimateFee({ 
             numContractInputs: normalizedOwnershipTokens.length + 1, 
             numP2pkhInputs: 1, 
@@ -806,11 +787,6 @@ export class TapToPayV2 extends TapToPay {
             throw new Error('Insufficient BCH balance to cover fee for setOwnership')
         }
 
-        // cardLogger.log('fundingAmount:', fundingAmount)
-        // cardLogger.log('fundingUtxos:', fundingUtxos)
-        // cardLogger.log('changeAddress:', changeAddress)
-        // cardLogger.log('changeAmount:', changeAmount)
-
         const outputs = []
 
         for (let i = 0; i < normalizedOwnershipTokens.length; i++) {
@@ -818,13 +794,10 @@ export class TapToPayV2 extends TapToPay {
             const decodedOwnershipCommitment = decodeOwnershipCommitment(utxo.token.nft.commitment)
             const holderType = decodedOwnershipCommitment.type
             const valueHex = holderType === 'pkh' ? ownerPkh : reverseHex(authCategory)
-            // cardLogger.log('---->>>>holderType:', holderType)
-            // cardLogger.log('---->>>>valueHex:', valueHex)
             const encodedCommitment = encodeLinkingCommitment({
                 holderType: holderType,
                 valueHex: valueHex
             })
-            // cardLogger.log('---->>>>encodedCommitment:', encodedCommitment)
             const output = {
                 to: contract.tokenAddress,
                 amount: utxo.satoshis,
@@ -837,25 +810,18 @@ export class TapToPayV2 extends TapToPay {
                     }
                 }
             }
-            // cardLogger.log('---->>>>output:', output)
             outputs.push(output)
 
         }
-
-        // cardLogger.log('---->>>>outputs:', outputs)
 
         if (changeAmount > DUST_LIMIT) {
             outputs.push({ to: changeAddress, amount: changeAmount });
         }
 
-        // cardLogger.log('----->>>>outputs:', outputs)
-
         const provider = new ElectrumNetworkProvider('mainnet')
         const tx = new TransactionBuilder({provider})
 
-        cardLogger.log('reverseHex(authCategory):', reverseHex(authCategory))
         const unlocker = contract.unlock.setOwner(reverseHex(authCategory), ownerPk, ownerSig)
-        // cardLogger.log('unlocker:', unlocker)
         tx.addInputs(normalizedOwnershipTokens, unlocker)
         tx.addInput(normalizedLinkingToken, ownerSig.unlockP2PKH())
         fundingUtxos.forEach(({ inputs, signatureTemplate }) => {
@@ -863,13 +829,9 @@ export class TapToPayV2 extends TapToPay {
         })
         tx.addOutputs(outputs)
 
-        cardLogger.log('---------inputs:', tx.inputs)
-        cardLogger.log('---------outputs:', tx.outputs)
-
         const txHex = tx.build()
         cardLogger.log('txHex:', txHex)
         const result = await this.broadcastTransaction(txHex)
-        // const result = await tx.send()
         cardLogger.log('result:', result)
         return result.data
     }

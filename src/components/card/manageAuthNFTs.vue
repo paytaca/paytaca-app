@@ -358,7 +358,7 @@
         </q-card-section>
 
         <q-card-actions align="between" class="q-px-lg q-pb-md">
-          <q-btn
+          <!-- <q-btn
             flat
             color="negative"
             icon="local_fire_department"
@@ -366,7 +366,7 @@
             rounded
             :disable="!selectedAuthNFT"
             @click="burnSelectedToken"
-          />
+          /> -->
           <div class="row items-center q-gutter-sm">
             <q-btn flat label="Cancel" :color="$q.dark.isActive ? 'grey-4' : 'grey-7'" rounded @click="closeSpendLimitDialog" />
             <q-btn unelevated label="Save" color="primary" class="bg-grad text-white" rounded @click="submitMutation" />
@@ -376,7 +376,7 @@
     </q-dialog>
 
     <!-- Burn Token Confirmation Dialog -->
-    <q-dialog v-model="showBurnTokenDialog" persistent>
+    <!-- <q-dialog v-model="showBurnTokenDialog" persistent>
       <q-card class="pt-card" :class="$q.dark.isActive ? 'dark' : 'light'" style="min-width: 320px; border-radius: 24px;">
         <q-card-section class="q-pa-lg">
           <div class="row items-center justify-between q-mb-sm">
@@ -392,7 +392,7 @@
           <q-btn unelevated label="Burn Token" color="negative" rounded @click="confirmBurnToken" />
         </q-card-actions>
       </q-card>
-    </q-dialog>
+    </q-dialog> -->
 
     <!-- Location Map Dialog -->
     <q-dialog v-model="showLocationMapDialog" persistent maximized>
@@ -470,7 +470,7 @@ export default {
   data() {
     return {
       search: '',
-      showBurnTokenDialog: false,
+      // showBurnTokenDialog: false,
       genericAuthEnabled: false,
       // Hardcoded global spend limit: ~500 PHP worth of BCH (approximately 0.0017 BCH)
       GLOBAL_SPEND_LIMIT_BCH: '0.0017',
@@ -1051,54 +1051,6 @@ export default {
       }
 
       this.closeSpendLimitDialog();
-    },
-
-    burnSelectedToken() {
-      const merchant = this.selectedMerchant
-      const nft = this.selectedAuthNFT
-
-      if (!merchant || !nft) {
-        this.$q.notify({
-          message: 'No NFT selected to burn',
-          color: 'warning',
-          icon: 'warning',
-          timeout: 1500
-        })
-        return
-      }
-
-      this.showBurnTokenDialog = true
-    },
-
-    async confirmBurnToken() {
-      const merchant = this.selectedMerchant
-      const nft = this.selectedAuthNFT
-
-      this.showBurnTokenDialog = false
-
-      // Placeholder only: wire actual burn transaction here.
-      const result = await this.card?.burnMerchantAuthToken({
-        merchant: {
-          id: merchant.ref_id,
-          pubkey: merchant.public_key
-        },
-        broadcast: true
-      })
-        .catch(err => {
-          this.$q.notify({
-            message: `Failed to burn NFT ${nft.id} for ${merchant.name}`,
-            color: 'red',
-            icon: 'error',
-            timeout: 4000,
-          })
-        })
-
-      this.$q.notify({
-        message: `Burn action ready for NFT ${nft.id} (${merchant.name})`,
-        color: 'warning',
-        icon: 'local_fire_department',
-        timeout: 2000
-      })
     },
 
     // Select Multiple Mode Methods

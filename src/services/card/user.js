@@ -289,13 +289,13 @@ export class CardUser {
     }
 
 
-    /** Burns all auth tokens for the current wallet and token ID.
-     * @param {string} tokenId Token ID/category to burn.
-     * @returns {Promise<void>}
-     */
-    async burnAllAuthTokens(tokenId) {
-        return await this._burnAuthTokens({ tokenId, opts: { all: true } });
-    }
+    // /** Burns all auth tokens for the current wallet and token ID.
+    //  * @param {string} tokenId Token ID/category to burn.
+    //  * @returns {Promise<void>}
+    //  */
+    // async burnAllAuthTokens(tokenId) {
+    //     return await this._burnAuthTokens({ tokenId, opts: { all: true } });
+    // }
 
     /**
      * Burns global auth tokens for the current wallet and token ID.
@@ -332,25 +332,25 @@ export class CardUser {
         return await this._burnAuthTokens({ tokenId, merchants: [merchant] });
     }
 
-    /**
-     * Burns auth tokens for the current wallet, token ID, and optional merchants.
-     * @private
-     * @param {string} tokenId Token ID/category to burn.
-     * @param {Array} merchants Optional array of merchant objects with id and pubkey.
-     * @returns {Promise<void>}
-     */
-    async _burnAuthTokens({ tokenId, merchants = [], opts = {} }) {
-        this._assertWallet();
-        this._assertAuthNftService();
+    // /**
+    //  * Burns auth tokens for the current wallet, token ID, and optional merchants.
+    //  * @private
+    //  * @param {string} tokenId Token ID/category to burn.
+    //  * @param {Array} merchants Optional array of merchant objects with id and pubkey.
+    //  * @returns {Promise<void>}
+    //  */
+    // async _burnAuthTokens({ tokenId, merchants = [], opts = {} }) {
+    //     this._assertWallet();
+    //     this._assertAuthNftService();
 
-        try {
-            const result = await this.authNftService.burn({ tokenId, merchants, opts });
-            return result;
-        } catch (error) {
-            cardLogger.error('Error burning auth tokens:', error);
-            throw error;
-        }
-    }
+    //     try {
+    //         const result = await this.authNftService.burn({ tokenId, merchants, opts });
+    //         return result;
+    //     } catch (error) {
+    //         cardLogger.error('Error burning auth tokens:', error);
+    //         throw error;
+    //     }
+    // }
 
     async _requestLinkingToken(category) {
         this._assertWallet()

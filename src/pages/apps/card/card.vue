@@ -205,29 +205,6 @@
         </q-card>
       </q-dialog>
 
-      <q-dialog v-model="showSweepFundsDialog" persistent>
-        <q-card class="pt-card" :class="$q.dark.isActive ? 'dark' : 'light'" style="min-width: 320px; border-radius: 24px;">
-          <q-card-section class="q-pa-lg">
-            <div class="row items-center justify-between q-mb-sm">
-              <div class="text-h6 text-weight-bold" :class="textColor">Sweep Funds</div>
-              <q-btn flat round dense icon="close" :color="$q.dark.isActive ? 'grey-4' : 'grey-6'" @click="showSweepFundsDialog = false" />
-            </div>
-
-            <div class="q-mb-md" :class="textColorGrey">
-              This will transfer all funds ({{ formatBalance(activeCard?.balance) }} BCH) from your card back to your wallet.
-            </div>
-            <div class="text-caption text-negative">
-              Are you sure you want to sweep all funds?
-            </div>
-          </q-card-section>
-
-          <q-card-actions align="right" class="q-px-lg q-pb-md">
-            <q-btn flat label="Cancel" :color="$q.dark.isActive ? 'grey-4' : 'grey-7'" rounded @click="showSweepFundsDialog = false" />
-            <q-btn unelevated label="Sweep Funds" color="primary" class="bg-grad text-white" rounded @click="handleSweepFunds" />
-          </q-card-actions>
-        </q-card>
-      </q-dialog>
-
       <q-dialog v-model="showDeleteCardDialog" persistent>
         <q-card class="pt-card" :class="$q.dark.isActive ? 'dark' : 'light'" style="min-width: 320px; border-radius: 24px;">
           <q-card-section class="q-pa-lg">
@@ -299,7 +276,6 @@ export default {
       showCashInDialog: false,
       cashInAmount: '',
       cashInCurrency: 'USD',
-      showSweepFundsDialog: false,
       showDeleteCardDialog: false,
       showActivateCardForm: false,
       bchBalance: 0,
@@ -561,37 +537,6 @@ export default {
       this.showCashInDialog = true
     },
 
-    handleSweepFunds () {
-      if (!this.activeCard) return
-
-      const balance = parseFloat(this.activeCard?.balance) || 0
-      
-      if (balance <= 0) {
-        this.$q.notify({
-          message: 'No funds to sweep',
-          color: 'warning',
-          position: 'top',
-          timeout: 1500
-        })
-        this.showSweepFundsDialog = false
-        return
-      }
-
-      const updatedCard = this.CardStorage.setCardProperty(this.activeCard.id, 'balance', '0')
-      if (updatedCard) {
-        this.activeCard.balance = updatedCard.balance
-      }
-
-      this.$q.notify({
-        message: `Successfully swept ${balance} BCH to your wallet`,
-        color: 'positive',
-        icon: 'check_circle',
-        position: 'top'
-      })
-
-      this.showSweepFundsDialog = false
-    },
-
     handleDeleteCard () {
       if (!this.activeCard) return
 
@@ -609,60 +554,6 @@ export default {
 
       this.showDeleteCardDialog = false
       this.$router.push({ name: 'card-list' })
-    },
-
-    /**
-     * Sweep UTXOs from card back to wallet
-     * @param card {Card} - Card instance
-     */
-    async sweep(card) {
-      const result = await card.sweep()
-
-      await card.getUtxos()
-    },
-
-    /**
-     * Burn a Merchant Auth Token to revoke authorization for a specific merchant
-     * @param card {Card} - Card instance
-     * @param merchant {Object} - merchant details {id, pubkey}
-     * @param opts {Object} - options {retryOnFundFailure: boolean}
-     */
-    async burnMerchantAuthToken(card, merchant, opts = { retryOnFundFailure: true }) {
-      try {
-        const cardUser = await this.loadCardUser()
-        const tokenId = card.raw.category
-        const result = await cardUser.burnMerchantAuthToken(tokenId, merchant.id, merchant.pubkey)
-        return result
-      } catch (error) {
-        if (opts?.retryOnFundFailure)
-          await this.createFundingUtxoAndCallback(error, this.burnMerchantAuthToken)
-      }
-    },
-
-    /**
-     * Burn a Global Auth Token to revoke all authorizations
-     * @param card {Card} - Card instance
-     * @param opts {Object} - options {retryOnFundFailure: boolean}
-     */
-    async burnGlobalAuthToken(card, opts = { retryOnFundFailure: true }) {
-      try {
-        const cardUser = await this.loadCardUser()
-        const tokenId = card.raw.category
-        const result = await cardUser.burnGlobalAuthToken(tokenId)
-        return result
-      } catch (error) {
-        if (opts?.retryOnFundFailure)
-          await this.createFundingUtxoAndCallback(error, this.burnGlobalAuthToken)
-      }
-    },
-
-    async createFundingUtxoAndCallback(error, operationCallback) {
-      const satsNeeded = this.parseSatoshisNeeded(error.message)
-      if (satsNeeded !== null) {
-        const cardUser = await this.loadCardUser()
-        const result = await cardUser.wallet.createFundingUtxo(satsNeeded)
-        await operationCallback({retryOnFundFailure: false})
-      }
     },
 
     /**
