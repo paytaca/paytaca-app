@@ -163,6 +163,7 @@ import OrderCard from 'src/components/card/OrderCard.vue';
 import ActivateCardMixin from 'src/mixins/card/activate-card-mixin'
 import CardMixin from 'src/mixins/card/card-mixin';
 import { computed } from 'vue'
+import { cardLogger } from 'src/utils/debug-logger.js'
 
 export default {
   mixins: [CardMixin, ActivateCardMixin],
@@ -223,7 +224,7 @@ export default {
         this.loadCardList()
         this.loadWizardStep()
       } catch (err) {
-        console.error('Error loading card home data:', err)
+        cardLogger.error('Error loading card home data:', err)
       } finally {
         this.hideLoading()
       }

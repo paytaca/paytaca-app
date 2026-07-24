@@ -64,6 +64,7 @@
 import AuthTokenManager, { decodeCommitment } from 'src/services/card/auth-nft';
 import { Wallet } from 'mainnet-js';
 import { Contract } from '@mainnet-cash/contract'
+import { cardLogger } from 'src/utils/debug-logger.js';
 
 export default {
   props: {
@@ -130,7 +131,7 @@ export default {
     async fetchTerminals () {
       try {
         const response = await fetchUnissuedTerminals(this.cardInfo.id);
-        console.log('Fetched terminals:', response);
+        cardLogger.log('Fetched terminals:', response);
         this.terminals = response.results.map(terminal => ({
           id: terminal.id,
           merchant_name: terminal.merchant_name,
@@ -138,12 +139,12 @@ export default {
           selected: false
         })) || [];
       } catch (error) {
-        console.error('Error fetching terminals:', error);
+        cardLogger.error('Error fetching terminals:', error);
       }
     },
     async onAuthorize() {
       if (this.selectedTerminals.length === 0) {
-        console.warn('No terminals selected for authorization');
+        cardLogger.warn('No terminals selected for authorization');
         return;
       }
       
@@ -158,13 +159,13 @@ export default {
 
         const wallet = await Wallet.fromWIF(this.walletInfo.wif)  
         const _utxos = await wallet.getTokenUtxos()
-        console.log('_utxos:', _utxos)
+        cardLogger.log('_utxos:', _utxos)
         this.showLoading('Issuing authorization NFTs')
         await this.issueAuthNfts(authNfts)
 
         await this.fetchTerminals()
       } catch (error) {
-        console.error('Error issuing authorization NFTs:', error.response || error);
+        cardLogger.error('Error issuing authorization NFTs:', error.response || error);
       }
 
       this.hideLoading();
@@ -214,7 +215,7 @@ export default {
     async issueAuthNfts(authNfts) {
       const tokenManager = new AuthTokenManager(this.walletInfo.wif)
       const recipients = []
-      console.log('___authNfts:', authNfts)
+      cardLogger.log('___authNfts:', authNfts)
       for (const nft of authNfts) {
         recipients.push({
           address: this.cardInfo?.tokenaddr,
@@ -225,12 +226,12 @@ export default {
           value: nft.satoshis
         })
       }
-      console.log('recipients:', recipients)
+      cardLogger.log('recipients:', recipients)
       const response = await tokenManager.issue({ recipients })
       const contract = Contract.fromId(this.cardInfo.contract_id)
-      console.log('___contract:', contract)
+      cardLogger.log('___contract:', contract)
       const utxosContract = await contract.getUtxos()
-      console.log('++++++utxosContract:', utxosContract)
+      cardLogger.log('++++++utxosContract:', utxosContract)
       return response
     }
   }

@@ -304,10 +304,6 @@ export default {
       return 'text-primary';
     },
     isFormInputValid() {
-      // console.log('this.card.category:', this.card.category)
-      // console.log('this.card.address:', this.card.address)
-      // console.log('this.card.isActivated:', this.card.isActivated)
-      // console.log('Input validation result:', (this.card.category && this.card.address && !this.card.isActivated))
       return this.card.category && this.card.address && !this.card.isActivated;
     }
   },
@@ -343,7 +339,6 @@ export default {
     },
 
     async onQrDecode (content) {
-      // console.log('QR code decoded:', content)
       this.fetchCardByCategory(content)
       this.showQrScanner = false
     },
@@ -352,9 +347,8 @@ export default {
       this.loadingContract = true
       const card = await this.user.fetchCardByIdentifier(category)
         .catch(error => {
-          // console.error('Error fetching contract by category:', error);
           this.$q.notify({
-            message: 'Failed to fetch contract data. Please try again.',
+            message: this.$t('FailedToFetchContractData', {}, 'Failed to fetch contract data. Please try again.'),
             color: 'negative',
             position: 'top',
             timeout: 2000
@@ -363,11 +357,10 @@ export default {
         });
       
       this.loadingContract = false
-      // console.log('Fetched card data from server:', card);
       
       if (!card) {
         this.$q.notify({
-          message: 'No contract found for the scanned category. Please check the QR code.',
+          message: this.$t('NoContractFoundForCategory', {}, 'No contract found for the scanned category. Please check the QR code.'),
           color: 'negative',
           position: 'top',
           timeout: 2000
@@ -382,7 +375,6 @@ export default {
         address: card.cashAddress,
         isActivated: card.isActivated
       }
-      // console.log('Contract data set in component state:', this.card);
     },
 
     async onViewCard() {
@@ -391,9 +383,8 @@ export default {
         const category = lastAttempt?.ownershipCategory
         const fetchedCard = await this.user.fetchCardByIdentifier(category)
           .catch((err) => {
-            // console.error('Error fetching card by identifier:', err.response || err.message);
             this.$q.notify({
-              message: 'Failed to fetch card details. Please try again.',
+              message: this.$t('FailedToFetchCardDetails', {}, 'Failed to fetch card details. Please try again.'),
               color: 'negative',
               position: 'top',
               timeout: 2000
@@ -410,7 +401,7 @@ export default {
      
       if (!this.card.id) {
         this.$q.notify({
-          message: 'Card ID is missing. Cannot navigate to card details.',
+          message: this.$t('CardIdMissingCannotNavigate', {}, 'Card ID is missing. Cannot navigate to card details.'),
           color: 'negative',
           position: 'top',
           timeout: 2000
@@ -422,8 +413,6 @@ export default {
     },
 
     onProgress (message) {
-      // This can be used to update the UI with progress messages if desired
-      // console.log('Card minting progress:', message);
       this.progressMessage = message;
     },
 
@@ -442,7 +431,6 @@ export default {
       }
 
       const category = this.card.category || lastAttempt?.ownershipCategory
-      // console.log('Activating card with category:', category)
       try {
         const user = await loadCardUser();   
         const { _rawData: data } = await user.fetchCardByIdentifier(category)
@@ -451,7 +439,6 @@ export default {
           });
 
         const card = await Card.createInitialized(data)
-        // console.log('Initialized card:', card)
 
         await card.activate(this.onProgress, lastAttempt)
         this.state = "success";
@@ -459,7 +446,7 @@ export default {
 
       } catch (error) {
         this.state = 'error';
-        this.errorMessage = error.message || 'An error occurred while activating your card.';
+        this.errorMessage = error.message || this.$t('ErrorActivatingCardMessage', {}, 'An error occurred while activating your card.');
       } finally {
         this.activatingCard = false
       }

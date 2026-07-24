@@ -7,7 +7,7 @@
           v-if="userLocation"
           class="row items-center q-mb-md q-px-sm cursor-pointer location-info"
           :class="$q.dark.isActive ? 'text-grey-4' : 'text-grey-7'"
-          @click="() => attemptGeolocate().catch(console.error).then(() => openLocationMapDialog())"
+          @click="() => attemptGeolocate().catch(err => cardLogger.error(err)).then(() => openLocationMapDialog())"
         >
           <q-icon name="location_on" size="1.2rem" class="q-mr-xs" color="primary" />
           <span class="text-caption ellipsis">
@@ -20,7 +20,7 @@
           v-else
           class="row items-center q-mb-md q-px-sm cursor-pointer location-info"
           :class="$q.dark.isActive ? 'text-grey-5' : 'text-grey'"
-          @click="() => attemptGeolocate().catch(console.error).then(() => openLocationMapDialog())"
+          @click="() => attemptGeolocate().catch(err => cardLogger.error(err)).then(() => openLocationMapDialog())"
         >
           <q-icon name="location_off" size="1.2rem" class="q-mr-xs" />
           <span class="text-caption">Detecting your location... (click to set manually)</span>
@@ -456,6 +456,7 @@ import GeolocateBtn from 'src/components/GeolocateBtn.vue'
 import PinLocationDialog from 'src/components/PinLocationDialog.vue';
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils.js';
 import { bchToSatoshi } from 'src/exchange/index.js';
+import { cardLogger } from 'src/utils/debug-logger.js'
 
 
 export default {

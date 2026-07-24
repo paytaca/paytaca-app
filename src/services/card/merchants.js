@@ -1,5 +1,6 @@
 import { backend } from 'src/marketplace/backend';
 import { backend as cardBackend } from './backend';
+import { cardLogger } from 'src/utils/debug-logger.js';
 
 /**
  * Fetches verified merchants from commercehub storefronts endpoint
@@ -78,7 +79,7 @@ export async function getMerchantList(params = {}) {
  */
 export async function getMerchantsByCity(city, params = {limit: 50, offset: 0, token_id: null}) {
   const response = await cardBackend.get(`/merchants/by-city/${city}`, { params: params });
-  console.log('Fetched merchants by city:', response?.data);
+  cardLogger.log('Fetched merchants by city:', response?.data);
   
   return {
     results: response?.data?.results || [],

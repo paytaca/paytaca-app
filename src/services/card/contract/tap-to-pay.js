@@ -1016,7 +1016,7 @@ export class TapToPayV2 extends TapToPay {
             }
 
         } catch (error) {
-            console.error('[sweep] Error during sweep transaction build or broadcast:', error)
+            cardLogger.error('[sweep] Error during sweep transaction build or broadcast:', error)
             throw error
         }
 

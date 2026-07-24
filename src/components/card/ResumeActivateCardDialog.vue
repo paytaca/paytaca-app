@@ -21,6 +21,7 @@
 </template>
 <script>
 import { CardActivationStatus } from 'src/services/card/storage';
+import { cardLogger } from 'src/utils/debug-logger.js';
 
 export default {
   name: 'ResumeActivateCardDialog',
@@ -48,7 +49,7 @@ export default {
     }
   },
   mounted() {
-    console.log('ResumeActivateCardDialog mounted with status:', this.status);
+    cardLogger.log('ResumeActivateCardDialog mounted with status:', this.status);
   },
   methods: {
     onResumeAttempt() {

@@ -176,6 +176,7 @@ import { loadCardUser } from 'src/services/card/user.js';
 import { satoshiToBch } from 'src/exchange';
 import { CardStorage } from 'src/components/card/createCard.js';
 import bus from 'src/services/event-bus';
+import { cardLogger } from 'src/utils/debug-logger.js'
 
 export default {
   mixins: [CardActivateMixin, CardMixin],
@@ -237,7 +238,7 @@ export default {
     try {
       await this.loadData()
     } catch (err) {
-      console.error('Error loading card list data:', err)
+      cardLogger.error('Error loading card list data:', err)
     } finally {
       this.isLoaded = true
     }
@@ -563,7 +564,6 @@ export default {
     },
 
     goToCardDetails (card) {
-      // console.log('Navigating to card details for card:', card)
       if (card && card.id) {
         this.$router.push({ name: 'card-details', params: {id: card.id} })
       }

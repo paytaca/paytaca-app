@@ -293,6 +293,7 @@
 import CardMixin from 'src/mixins/card/card-mixin';
 import { CardStorage } from 'src/components/card/createCard'
 import { satoshiToBch } from 'src/exchange';
+import { cardLogger } from 'src/utils/debug-logger.js';
 
 export default {
   name: 'CardSettings',
@@ -358,14 +359,14 @@ export default {
         this.$emit('lock-status-changed', isLocked);
         this.$q.notify({
           type: 'positive',
-          message: `Card has been ${isLocked ? 'locked' : 'unlocked'} successfully!`
+          message: this.$t('CardLockStatusUpdated', { status: isLocked ? this.$t('Locked', {}, 'locked') : this.$t('Unlocked', {}, 'unlocked') }, `Card has been ${isLocked ? 'locked' : 'unlocked'} successfully!`)
         });
       } catch (error) {
-        console.error('Failed to update card lock status:', error);
+        cardLogger.error('Failed to update card lock status:', error);
         this.isLocked = !isLocked; // Revert toggle state on error
         this.$q.notify({
           type: 'negative',
-          message: `Failed to ${isLocked ? 'lock' : 'unlock'} the card. Please try again.`
+          message: this.$t('FailedToUpdateCardLock', { action: isLocked ? this.$t('Lock', {}, 'lock') : this.$t('Unlock', {}, 'unlock') }, `Failed to ${isLocked ? 'lock' : 'unlock'} the card. Please try again.`)
         });
       } finally {
         this.isLocking = false;
@@ -381,7 +382,7 @@ export default {
         // Optionally show a success message
         this.$q.notify({
           type: 'positive',
-          message: `Transaction alerts have been ${isAlertsEnabled ? 'enabled' : 'disabled'} successfully!`
+          message: this.$t('TransactionAlertsUpdated', { status: isAlertsEnabled ? this.$t('Enabled', {}, 'enabled') : this.$t('Disabled', {}, 'disabled') }, `Transaction alerts have been ${isAlertsEnabled ? 'enabled' : 'disabled'} successfully!`)
         });
       } catch (error) {
         // Revert toggle state on error
@@ -389,22 +390,22 @@ export default {
         // Show error message
         this.$q.notify({
           type: 'negative',
-          message: `Failed to update transaction alerts. Please try again.`
+          message: this.$t('FailedToUpdateTransactionAlerts', {}, 'Failed to update transaction alerts. Please try again.')
         });
       }
     },
     async handleSweepFunds () {
-      console.log('[CardSettings] handleSweepFunds called')
-      console.log('[CardSettings] activeCard:', this.activeCard)
+      cardLogger.log('[CardSettings] handleSweepFunds called')
+      cardLogger.log('[CardSettings] activeCard:', this.activeCard)
 
       this.$q.loading.show({
-        message: 'Sweeping funds, please wait...',
+        message: this.$t('SweepingFundsPleaseWait', {}, 'Sweeping funds, please wait...'),
         backgroundColor: 'rgba(0, 0, 0, 0.5)'
       })
       
       if (this.cardBalance <= 0) {
         this.$q.notify({
-          message: 'No funds to sweep',
+          message: this.$t('NoFundsToSweep', {}, 'No funds to sweep'),
           color: 'warning',
           position: 'top',
           timeout: 1500
@@ -423,9 +424,9 @@ export default {
         })
         this.$emit('sweep-funds')
       }).catch((error) => {
-        console.error('[CardSettings] Sweep funds failed:', error)
+        cardLogger.error('[CardSettings] Sweep funds failed:', error)
         this.$q.notify({
-          message: 'Failed to sweep funds. Please try again.',
+          message: this.$t('FailedToSweepFunds', {}, 'Failed to sweep funds. Please try again.'),
           color: 'negative',
           position: 'top',
           timeout: 2000
@@ -442,7 +443,7 @@ export default {
 
       if (deleted) {
         this.$q.notify({
-          message: 'Card has been deleted',
+          message: this.$t('CardHasBeenDeleted', {}, 'Card has been deleted'),
           color: 'positive',
           icon: 'delete',
           position: 'top',

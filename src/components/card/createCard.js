@@ -1,6 +1,7 @@
 
 import { loadCardUser } from 'src/services/card/user';
 import { getMerchantList } from 'src/services/card/merchants';
+import { cardLogger } from 'src/utils/debug-logger.js';
 
 // CardStorage utility for localStorage CRUD operations - used for UI state persistence
 // NOTE: Keeping 'mock_subcards' for backward compatibility with existing cards
@@ -194,10 +195,10 @@ export const createCardLogic = {
      */
     async getCards() {
       const cardUser = await this.loadCardUser()
-      console.log('Card User loaded:', cardUser)
+      cardLogger.log('Card User loaded:', cardUser)
       const cards = await cardUser.fetchCards()
       this.subCards = cards
-      console.log('Fetched Cards:', cards)
+      cardLogger.log('Fetched Cards:', cards)
       return cards
     },
 
@@ -210,11 +211,11 @@ export const createCardLogic = {
       // This is a base implementation - components can override
       try {
         const data = await getMerchantList({ limit: 0, offset: 0 })
-        console.log('Merchants loaded:', data.results?.length || 0, 'merchants')
+        cardLogger.log('Merchants loaded:', data.results?.length || 0, 'merchants')
         return data.results || []
       }
       catch (error) {
-        console.error("Error fetching merchants: ", error)
+        cardLogger.error("Error fetching merchants: ", error)
         return []
       }
     },

@@ -274,6 +274,7 @@ import JourneyStepper from 'src/components/card/JourneyStepper.vue'
 import { satoshiToBch } from 'src/exchange'
 import { loadCardUser } from 'src/services/card/user'
 import { Card } from 'src/services/card/card'
+import { cardLogger } from 'src/utils/debug-logger.js'
 
 export default {
   mixins: [createCardLogic, CardMixin],
@@ -405,7 +406,7 @@ export default {
         this.getCardBchBalance()
         this.loadBalanceVisibility()
       } catch (err) {
-        console.error('Error loading card details:', err)
+        cardLogger.error('Error loading card details:', err)
       } finally {
         this.isLoaded = true
       }

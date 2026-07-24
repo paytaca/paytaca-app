@@ -21,6 +21,7 @@
 import CardPageHeader from 'src/components/card/CardPageHeader.vue';
 import { createCardLogic } from 'src/components/card/createCard.js';
 import { clearCardUserCache, loadCardUser } from 'src/services/card/user';
+import { cardLogger } from 'src/utils/debug-logger.js'
 
 export default {
   mixins: [createCardLogic],
@@ -49,7 +50,7 @@ export default {
     try {
       await this.loadData()
     } catch (err) {
-      console.error('Error loading card layout data:', err)
+      cardLogger.error('Error loading card layout data:', err)
     } finally {
       this.isloaded = true
     }

@@ -284,7 +284,7 @@ export default {
 
     async handleCashIn () {
       this.$q.loading.show({
-        message: 'Processing cash in...'
+        message: this.$t('ProcessingCashIn', {}, 'Processing cash in...')
       })
       const sendAmount = this.cryptoCashInAmount
       const user = await loadCardUser()

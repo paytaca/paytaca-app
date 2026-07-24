@@ -1,5 +1,6 @@
 import { Store } from 'src/store'
 import { backend } from 'src/services/card/backend'
+import { cardLogger } from 'src/utils/debug-logger.js'
 
 const DB_NAME = "secure-keys";
 const STORE_NAME = "keypairs";
@@ -182,7 +183,7 @@ export async function fetchActiveDispatcherPublicKey() {
     const response = await backend.get('/dispatcher/active-public-key/', { authorize: false });
     return response.data.public_key;
   } catch (error) {
-    console.error('Error fetching active dispatcher public key:', error);
+    cardLogger.error('Error fetching active dispatcher public key:', error);
     throw error;
   }
 }

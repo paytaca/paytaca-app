@@ -382,6 +382,12 @@ class AuthNftService {
      * @param {Array<Object>} params.merchants
      * @param {{ all?: boolean }} [params.options]
      * @returns {Promise<Array>}
+     *
+     * FIXME: This method is WIP and likely to be restructured or deleted.
+     * The caller passes `opts` but this method destructures `options`,
+     * and property paths (token.capability, token.commitment) do not match
+     * the actual UTXO shape returned by Wallet.getTokenUtxos (token.nft.capability,
+     * token.nft.commitment). Do not rely on this implementation as-is.
      */
     async burn ({ tokenId, merchants, options = { all: false } }) {
         this._assertWallet();
