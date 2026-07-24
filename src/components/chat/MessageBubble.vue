@@ -6,7 +6,7 @@
   >
     <div
       class="message-bubble"
-      :class="{ 'new-message': isNew, 'is-deleted': message.deleted, 'is-image-bubble': isImageFile, 'is-video-bubble': isVideoFile }"
+      :class="{ 'new-message': isNew, 'is-deleted': message.deleted, 'is-image-bubble': isImageFile, 'is-video-bubble': isVideoFile, 'is-selected': isSelected }"
       :style="isMine && !isImageFile && !isVideoFile ? { background: `linear-gradient(135deg, ${themeColor}, ${themeColor}dd)` } : {}"
       @pointerdown="onPointerDown"
       @pointerup="onPointerUp"
@@ -261,6 +261,7 @@ export default {
     isNew: { type: Boolean, default: false },
     replyToMessage: { type: Object, default: null },
     isReplying: { type: Boolean, default: false },
+    isSelected: { type: Boolean, default: false },
     reactions: { type: Array, default: () => [] },
   },
   emits: ['context-menu', 'remove-reaction', 'scroll-to-message'],
@@ -1065,6 +1066,13 @@ export default {
   user-select: none;
   min-width: 0;
   overflow: hidden;
+  transition: transform 0.25s cubic-bezier(0.4, 0, 0.2, 1), box-shadow 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+  will-change: transform, box-shadow;
+}
+
+.message-bubble.is-selected {
+  transform: scale(1.03);
+  z-index: 100;
 }
 
 .message-row.mine .message-bubble {
@@ -1073,12 +1081,20 @@ export default {
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
 }
 
+.message-row.mine .message-bubble.is-selected {
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.25), 0 0 0 1px rgba(255, 255, 255, 0.1);
+}
+
 .message-row.theirs .message-bubble {
   background: #ffffff;
   color: #1f2937;
   border: 1px solid rgba(0, 0, 0, 0.06);
   border-bottom-left-radius: 4px;
   box-shadow: 0 1px 4px rgba(0, 0, 0, 0.04);
+}
+
+.message-row.theirs .message-bubble.is-selected {
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.18), 0 0 0 1px rgba(0, 0, 0, 0.06);
 }
 
 .message-bubble.is-deleted {
@@ -1740,6 +1756,14 @@ export default {
   color: #e2e8f0;
   border-color: rgba(255, 255, 255, 0.06);
   box-shadow: 0 1px 4px rgba(0, 0, 0, 0.2);
+}
+
+.dark .message-row.theirs .message-bubble.is-selected {
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4), 0 0 0 1px rgba(255, 255, 255, 0.06);
+}
+
+.dark .message-row.mine .message-bubble.is-selected {
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4), 0 0 0 1px rgba(255, 255, 255, 0.08);
 }
 
 .dark .payment-card {

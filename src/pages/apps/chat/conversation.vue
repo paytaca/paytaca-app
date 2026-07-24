@@ -366,6 +366,7 @@
               :reply-to-message="getMessageById(msg.replyTo)"
               :is-replying="replyToMessage?.id === msg.id"
               :reactions="getMessageReactions(msg.id)"
+              :is-selected="selectedMessageId === msg.id"
               @context-menu="openMessageMenu"
               @remove-reaction="onRemoveReaction"
               @scroll-to-message="scrollToMessage"
@@ -490,72 +491,87 @@
     <chat-input ref="chatInput" :room-id="roomId" :disabled="isRoomArchived || isContactBlocked || isGroupBlocked" :blocked="isContactBlocked || isGroupBlocked" :blocked-placeholder="isGroupBlocked ? $t('LeftGroupInputDisabled', {}, 'You left this group') : null" @send="onSend" @command="onCommand" @tip="onTipAction" @focus="onInputFocus" @blur="onInputBlur" />
 
     <!-- Message context menu -->
-    <q-menu ref="contextMenu" touch-position no-parent-event class="text-bow" :class="getDarkModeClass(darkMode)">
-      <q-list style="min-width: 150px">
-        <q-item clickable v-close-popup @click.stop="copyMessage(contextMessage)" @pointerdown.stop.prevent="menuPointerDown('copy', $event)">
-          <q-item-section avatar>
-            <q-icon name="content_copy" size="20px" />
-          </q-item-section>
-          <q-item-section>
-            <q-item-label>{{ $t('Copy', {}, 'Copy') }}</q-item-label>
-          </q-item-section>
-        </q-item>
-        <q-item v-if="hasTextSelection" clickable v-close-popup @click.stop="quoteMessage(contextMessage)" @pointerdown.stop.prevent="menuPointerDown('quote', $event)">
-          <q-item-section avatar>
-            <q-icon name="format_quote" size="20px" />
-          </q-item-section>
-          <q-item-section>
-            <q-item-label>{{ $t('Quote', {}, 'Quote') }}</q-item-label>
-          </q-item-section>
-        </q-item>
-        <template v-if="!hasTextSelection">
-          <q-item clickable v-close-popup @click.stop="setReply(contextMessage)" @pointerdown.stop.prevent="menuPointerDown('reply', $event)">
-            <q-item-section avatar>
-              <q-icon name="reply" size="20px" />
-            </q-item-section>
-            <q-item-section>
-              <q-item-label>{{ $t('Reply', {}, 'Reply') }}</q-item-label>
-            </q-item-section>
-          </q-item>
-          <q-item
-            v-if="contextMessage?.sender === myPubKey && canEditMessage(contextMessage)"
-            clickable
-            v-close-popup
-            @click.stop="setEdit(contextMessage)"
-            @pointerdown.stop.prevent="menuPointerDown('edit', $event)"
-          >
-            <q-item-section avatar>
-              <q-icon name="edit" size="20px" />
-            </q-item-section>
-            <q-item-section>
-              <q-item-label>{{ $t('Edit', {}, 'Edit') }}</q-item-label>
-            </q-item-section>
-          </q-item>
-          <q-item
-            v-if="contextMessage?.sender === myPubKey && canDeleteMessage(contextMessage)"
-            clickable
-            v-close-popup
-            @click.stop="confirmDeleteMessage(contextMessage)"
-            @pointerdown.stop.prevent="menuPointerDown('delete', $event)"
-          >
-            <q-item-section avatar>
-              <q-icon name="delete" size="20px" color="negative" />
-            </q-item-section>
-            <q-item-section>
-              <span class="text-negative">{{ $t('Delete', {}, 'Delete') }}</span>
-            </q-item-section>
-          </q-item>
-          <q-item-label header class="q-px-md q-pt-sm q-pb-none">{{ $t('React', {}, 'React') }}</q-item-label>
-          <q-item class="q-px-sm q-py-xs">
-            <q-item-section>
-              <div class="react-emoji-row">
-                <span v-for="emoji in quickReactions" :key="emoji" class="react-emoji" v-close-popup @click.stop="onReact(contextMessage, emoji)" @pointerdown.stop.prevent="menuPointerDown('emoji-'+emoji, $event)">{{ emoji }}</span>
-              </div>
-            </q-item-section>
-          </q-item>
-        </template>
-      </q-list>
-    </q-menu>
+    <transition name="context-menu-scale">
+      <div
+        v-if="showContextMenuDialog"
+        class="context-menu-backdrop"
+        :class="getDarkModeClass(darkMode)"
+        @click="hideContextMenu"
+        @contextmenu.prevent="hideContextMenu"
+        @pointerdown="onContextMenuBackdropPointerDown"
+      >
+        <div
+          ref="contextMenuEl"
+          class="context-menu text-bow"
+          :class="getDarkModeClass(darkMode)"
+          :style="contextMenuStyle"
+          @click.stop
+        >
+          <q-list style="min-width: 150px">
+            <q-item clickable @mousedown.prevent @click.stop="copyMessage(contextMessage)">
+              <q-item-section avatar>
+                <q-icon name="content_copy" size="20px" />
+              </q-item-section>
+              <q-item-section>
+                <q-item-label>{{ $t('Copy', {}, 'Copy') }}</q-item-label>
+              </q-item-section>
+            </q-item>
+            <q-item v-if="hasTextSelection" clickable @mousedown.prevent @click.stop="quoteMessage(contextMessage)">
+              <q-item-section avatar>
+                <q-icon name="format_quote" size="20px" />
+              </q-item-section>
+              <q-item-section>
+                <q-item-label>{{ $t('Quote', {}, 'Quote') }}</q-item-label>
+              </q-item-section>
+            </q-item>
+            <template v-if="!hasTextSelection">
+              <q-item clickable @mousedown.prevent @click.stop="setReply(contextMessage)">
+                <q-item-section avatar>
+                  <q-icon name="reply" size="20px" />
+                </q-item-section>
+                <q-item-section>
+                  <q-item-label>{{ $t('Reply', {}, 'Reply') }}</q-item-label>
+                </q-item-section>
+              </q-item>
+              <q-item
+                v-if="contextMessage?.sender === myPubKey && canEditMessage(contextMessage)"
+                clickable
+                @mousedown.prevent
+                @click.stop="setEdit(contextMessage)"
+              >
+                <q-item-section avatar>
+                  <q-icon name="edit" size="20px" />
+                </q-item-section>
+                <q-item-section>
+                  <q-item-label>{{ $t('Edit', {}, 'Edit') }}</q-item-label>
+                </q-item-section>
+              </q-item>
+              <q-item
+                v-if="contextMessage?.sender === myPubKey && canDeleteMessage(contextMessage)"
+                clickable
+                @mousedown.prevent
+                @click.stop="confirmDeleteMessage(contextMessage)"
+              >
+                <q-item-section avatar>
+                  <q-icon name="delete" size="20px" color="negative" />
+                </q-item-section>
+                <q-item-section>
+                  <span class="text-negative">{{ $t('Delete', {}, 'Delete') }}</span>
+                </q-item-section>
+              </q-item>
+              <q-item-label header class="q-px-md q-pt-sm q-pb-none">{{ $t('React', {}, 'React') }}</q-item-label>
+              <q-item class="q-px-sm q-py-xs">
+                <q-item-section>
+                  <div class="react-emoji-row">
+                    <span v-for="emoji in quickReactions" :key="emoji" class="react-emoji" @mousedown.prevent @click.stop="onReact(contextMessage, emoji)">{{ emoji }}</span>
+                  </div>
+                </q-item-section>
+              </q-item>
+            </template>
+          </q-list>
+        </div>
+      </div>
+    </transition>
 
   </div>
 </template>
@@ -598,12 +614,16 @@ export default {
       quickReactions: ['😂', '🎉', '❤️', '😊', '👍', '💯', '🔥', '🙏', '🤔', '😮', '😢', '👎'],
       showScrollToBottom: false,
       isContextMenuOpen: false,
+      showContextMenuDialog: false,
+      selectedMessageId: null,
+      contextMenuStyle: {},
       displayLimit: 15,
       isLoadingMore: false,
       _allMessagesLoaded: false,
       _scrollToMessageId: null,
       // Guard to ignore the next pointerdown which may be the finger lifting
       _ignoreNextPointerDown: false,
+      _selectionChangeHandler: null,
       ready: false,
       _savedScrollTop: null,
       requestingToJoin: false,
@@ -1178,6 +1198,7 @@ export default {
       this.flushMarkAsRead()
     }
     this.ready = false
+    this._stopWatchingSelection()
     if (this._vpRaf) { cancelAnimationFrame(this._vpRaf); this._vpRaf = null }
     document.removeEventListener('visibilitychange', this.onVisibilityChange)
     document.removeEventListener('pointerdown', this.onDocumentPointerDown)
@@ -1273,9 +1294,20 @@ export default {
       }, { root: container, threshold: 0.5 })
     },
     observeMessages () {
-      if (!this._messageObserver || !this.$refs.messagesContainer) return
-      const els = this.$refs.messagesContainer.querySelectorAll('.message-group')
-      els.forEach(el => this._messageObserver.observe(el))
+      if (this._messageObserver && this.$refs.messagesContainer) {
+        const els = this.$refs.messagesContainer.querySelectorAll('.message-group')
+        els.forEach(el => this._messageObserver.observe(el))
+      }
+      this.markDisplayedMessagesAsRead()
+    },
+    markDisplayedMessagesAsRead () {
+      if (!this.roomId || !this.myPubKey || !this._isActive) return
+      for (const msg of this.displayedMessages) {
+        if (msg.sender === this.myPubKey) continue
+        if (this._sentReadReceiptIds.has(msg.id)) continue
+        this._pendingReadMsgIds.add(msg.id)
+      }
+      this._flushReadMsgIds()
     },
     _flushReadMsgIds () {
       if (this._readMsgFlushTimer) return
@@ -1287,7 +1319,7 @@ export default {
         // Filter out own messages and already-processed IDs
         const filtered = ids.filter(id => {
           if (this._sentReadReceiptIds.has(id)) return false
-          const msg = this.allMessages.find(m => m.id === id)
+          const msg = this.messageIndexById.get(id)
           return msg && msg.sender !== this.myPubKey
         })
         if (filtered.length) {
@@ -1439,22 +1471,131 @@ export default {
     openMessageMenu (message, event) {
       if (this.isContextMenuOpen) this.hideContextMenu()
       this.contextMessage = message
+      this.selectedMessageId = message.id
+
       const sel = window.getSelection()
       const hasSelection = sel && !sel.isCollapsed
-      this.hasTextSelection = hasSelection
-      this.selectedText = hasSelection ? sel.toString().trim() : ''
-      this.$nextTick(() => {
-        this.$refs.contextMenu?.show(event)
+      if (hasSelection) {
+        const msgEl = sel.anchorNode?.parentElement?.closest?.('[data-msg-id]')
+        if (!msgEl || msgEl.dataset.msgId !== message.id) {
+          sel.removeAllRanges()
+        }
+      }
+      const finalSel = window.getSelection()
+      this.hasTextSelection = finalSel && !finalSel.isCollapsed
+      this.selectedText = this.hasTextSelection ? finalSel.toString().trim() : ''
+
+      this.$nextTick(async () => {
+        const msgElement = document.getElementById('msg-' + message.id)
+        if (!msgElement) {
+          this.showContextMenuCenter()
+          return
+        }
+
+        const msgRect = msgElement.getBoundingClientRect()
+        const menuMargin = 12
+        const padding = 16
+        const estimatedMenuHeight = this.hasTextSelection ? 140 : 340
+        const spaceBelow = window.innerHeight - msgRect.bottom
+
+        let scrollNeeded = 0
+        if (spaceBelow < estimatedMenuHeight + menuMargin) {
+          scrollNeeded = estimatedMenuHeight + menuMargin - spaceBelow + padding
+        }
+
+        const isMine = message.sender === this.myPubKey
+
+        if (scrollNeeded > 0 && this.$refs.messagesContainer) {
+          this.$refs.messagesContainer.scrollBy({ top: scrollNeeded, behavior: 'smooth' })
+          await new Promise(r => setTimeout(r, 250))
+          const newRect = msgElement.getBoundingClientRect()
+          this.positionContextMenu(newRect, isMine, menuMargin, estimatedMenuHeight)
+        } else {
+          this.positionContextMenu(msgRect, isMine, menuMargin, estimatedMenuHeight)
+        }
+
+        this.showContextMenuDialog = true
         this.isContextMenuOpen = true
         this._ignoreNextPointerDown = true
         setTimeout(() => { this._ignoreNextPointerDown = false }, 350)
+
+        this._startWatchingSelection(message.id)
       })
+    },
+    positionContextMenu (msgRect, isMine, margin, menuHeight = 340) {
+      const menuWidth = 200
+      const padding = 16
+      let top = msgRect.bottom + margin
+      let left = Math.max(padding, msgRect.left)
+
+      if (isMine) {
+        left = Math.max(padding, msgRect.right - menuWidth)
+      }
+
+      if (top + menuHeight > window.innerHeight - padding) {
+        top = window.innerHeight - menuHeight - padding
+      }
+      if (left + menuWidth + padding > window.innerWidth) {
+        left = window.innerWidth - menuWidth - padding
+      }
+
+      this.contextMenuStyle = {
+        position: 'fixed',
+        top: top + 'px',
+        left: left + 'px',
+      }
+    },
+    showContextMenuCenter () {
+      this.contextMenuStyle = {
+        position: 'fixed',
+        top: '40%',
+        left: '50%',
+        transform: 'translateX(-50%)',
+      }
+      this.showContextMenuDialog = true
+      this.isContextMenuOpen = true
+      this._ignoreNextPointerDown = true
+      setTimeout(() => { this._ignoreNextPointerDown = false }, 350)
+      if (this.contextMessage) {
+        this._startWatchingSelection(this.contextMessage.id)
+      }
+    },
+    _startWatchingSelection (messageId) {
+      this._stopWatchingSelection()
+      this._selectionChangeHandler = () => {
+        const sel = window.getSelection()
+        if (!sel || sel.isCollapsed) {
+          if (this.hasTextSelection) {
+            this.hasTextSelection = false
+            this.selectedText = ''
+          }
+          return
+        }
+        const msgEl = document.getElementById('msg-' + messageId)
+        if (!msgEl) return
+        if (msgEl.contains(sel.anchorNode) && msgEl.contains(sel.focusNode)) {
+          const text = sel.toString().trim()
+          if (text && text !== this.selectedText) {
+            this.hasTextSelection = true
+            this.selectedText = text
+          }
+        }
+      }
+      document.addEventListener('selectionchange', this._selectionChangeHandler)
+    },
+    _stopWatchingSelection () {
+      if (this._selectionChangeHandler) {
+        document.removeEventListener('selectionchange', this._selectionChangeHandler)
+        this._selectionChangeHandler = null
+      }
     },
     hideContextMenu () {
       if (this._ignoreNextPointerDown) return
-      this.$refs.contextMenu?.hide()
+      this._stopWatchingSelection()
+      this.showContextMenuDialog = false
       this.isContextMenuOpen = false
       this.selectedText = ''
+      this.selectedMessageId = null
     },
     onDocumentPointerDown (e) {
       if (this._ignoreNextPointerDown) {
@@ -1463,23 +1604,34 @@ export default {
       }
 
       if (!this.isContextMenuOpen) return
-      const menuEl = this.$refs.contextMenu?.$el
+      const menuEl = this.$refs.contextMenuEl
       const target = e.target
-      // Use composedPath if available to accurately detect clicks inside teleported popups
-      const path = (typeof e.composedPath === 'function') ? e.composedPath() : (e.path || [])
-      const pathContainsMenu = path && menuEl && path.indexOf(menuEl) !== -1
-      const pathHasQClose = path && path.some && path.some(n => n && n.__qclosepopup)
       if (menuEl && (menuEl.contains && menuEl.contains(target))) return
-      if (pathContainsMenu) return
-      if (pathHasQClose) return
-      // As a last resort, check for the special Quasar close marker on the target
-      if (target && target.__qclosepopup) return
-      
+      const path = (typeof e.composedPath === 'function') ? e.composedPath() : (e.path || [])
+      if (path && menuEl && path.indexOf(menuEl) !== -1) return
+      const backdrop = target.closest?.('.context-menu-backdrop')
+      if (backdrop) return
+
+      // Allow clicking inside the selected message without closing the menu
+      // so users can select/copy text while the context menu is visible.
+      if (this.selectedMessageId) {
+        const msgEl = document.getElementById('msg-' + this.selectedMessageId)
+        if (msgEl && (msgEl.contains && msgEl.contains(target))) return
+      }
+
       this.hideContextMenu()
+      window.getSelection()?.removeAllRanges()
+    },
+    onContextMenuBackdropPointerDown (e) {
+      if (this._ignoreNextPointerDown) {
+        this._ignoreNextPointerDown = false
+        return
+      }
     },
     onDocumentPointerUp (e) {
       if (e.button !== 0) return
       if (this.isContextMenuOpen) return
+      if (this.isMobileDevice()) return
       const sel = window.getSelection()
       if (!sel || sel.isCollapsed) return
       const msgEl = sel.anchorNode?.parentElement?.closest?.('[data-msg-id]')
@@ -1490,25 +1642,58 @@ export default {
       const selectedText = sel.toString().trim()
       if (!selectedText) return
       this.contextMessage = message
+      this.selectedMessageId = message.id
       this.hasTextSelection = true
       this.selectedText = selectedText
       const range = sel.getRangeAt(0)
       const rect = range.getBoundingClientRect()
-      this.$nextTick(() => {
-        this.$refs.contextMenu?.show({
-          clientX: rect.left + rect.width / 2,
-          clientY: rect.bottom + 4,
-        })
+
+      this.$nextTick(async () => {
+        const msgElement = document.getElementById('msg-' + message.id)
+        if (!msgElement) {
+          this.contextMenuStyle = {
+            position: 'fixed',
+            top: (rect.bottom + 4) + 'px',
+            left: Math.max(16, rect.left + rect.width / 2 - 100) + 'px',
+          }
+          this.showContextMenuDialog = true
+          this.isContextMenuOpen = true
+          this._ignoreNextPointerDown = true
+          setTimeout(() => { this._ignoreNextPointerDown = false }, 350)
+          this._startWatchingSelection(message.id)
+          return
+        }
+
+        const msgRect = msgElement.getBoundingClientRect()
+        const menuMargin = 12
+        const estimatedMenuHeight = 140
+        const spaceBelow = window.innerHeight - msgRect.bottom
+        const padding = 16
+
+        let scrollNeeded = 0
+        if (spaceBelow < estimatedMenuHeight + menuMargin) {
+          scrollNeeded = estimatedMenuHeight + menuMargin - spaceBelow + padding
+        }
+
+        if (scrollNeeded > 0 && this.$refs.messagesContainer) {
+          this.$refs.messagesContainer.scrollBy({ top: scrollNeeded, behavior: 'smooth' })
+          await new Promise(r => setTimeout(r, 250))
+          const newRect = msgElement.getBoundingClientRect()
+          this.positionContextMenu(newRect, message.sender === this.myPubKey, menuMargin, estimatedMenuHeight)
+        } else {
+          this.positionContextMenu(msgRect, message.sender === this.myPubKey, menuMargin, estimatedMenuHeight)
+        }
+
+        this.showContextMenuDialog = true
         this.isContextMenuOpen = true
         this._ignoreNextPointerDown = true
         setTimeout(() => { this._ignoreNextPointerDown = false }, 350)
+        this._startWatchingSelection(message.id)
       })
     },
     onReact (message, emoji) {
-      this.$refs.contextMenu?.hide()
+      this.hideContextMenu()
       if (!message || !emoji) return
-      // Visible debug feedback so we can see handlers firing without remote console
-      
       this.$store.dispatch('nostrChat/sendReaction', {
         roomId: this.roomId,
         messageId: message.id || message.kind14Id,
@@ -1517,10 +1702,9 @@ export default {
         console.error('[Conversation] Failed to send reaction:', err)
       })
     },
-    menuPointerDown (tag, e) {
-      // Log pointerdown inside menu items to check event flow
-      
-      
+    isMobileDevice () {
+      if (typeof navigator === 'undefined') return false
+      return /Android|iPhone|iPad|iPod|webOS|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent)
     },
     onRemoveReaction ({ messageId, emoji }) {
       if (!messageId || !emoji) return
@@ -1603,8 +1787,11 @@ export default {
       container.scrollTo({ top: container.scrollHeight, behavior: 'smooth' })
     },
     copyMessage (message) {
-      if (this.selectedText) {
-        navigator.clipboard.writeText(this.selectedText)
+      const sel = window.getSelection()
+      const selection = sel && !sel.isCollapsed ? sel.toString().trim() : ''
+      this.hideContextMenu()
+      if (selection) {
+        navigator.clipboard.writeText(selection)
       } else {
         const { text } = parseMessageMarkup(message.content || '')
         const content = text || message.content || ''
@@ -1617,8 +1804,11 @@ export default {
       })
     },
     quoteMessage (message) {
+      const sel = window.getSelection()
+      const selection = sel && !sel.isCollapsed ? sel.toString().trim() : ''
+      this.hideContextMenu()
       const { text } = parseMessageMarkup(message.content || '')
-      const quoteText = this.selectedText || text || message.content || ''
+      const quoteText = selection || text || message.content || ''
       this.replyToMessage = message
       this.$nextTick(() => {
         this.$refs.chatInput?.setText(`> ${quoteText}\n\n`)
@@ -1628,6 +1818,7 @@ export default {
       })
     },
     setReply (message) {
+      this.hideContextMenu()
       this.replyToMessage = message
       this.$nextTick(() => {
         setTimeout(() => {
@@ -1649,6 +1840,7 @@ export default {
       return elapsed <= 60
     },
     setEdit (message) {
+      this.hideContextMenu()
       if (!this.canEditMessage(message)) return
       if (this.replyToMessage) this.replyToMessage = null
       this.editingMessage = message
@@ -1661,6 +1853,7 @@ export default {
       this.editingMessage = null
     },
     confirmDeleteMessage (message) {
+      this.hideContextMenu()
       this.$q.dialog({
         title: this.$t('DeleteMessage', {}, 'Delete Message'),
         message: this.$t('DeleteMessageConfirm', {}, 'Delete this message? This cannot be undone.'),
@@ -2059,7 +2252,7 @@ export default {
         await this.$store.dispatch('nostrChat/publishGiftWraps', { giftWraps })
         this.$q.notify({
           type: 'positive',
-          message: this.$t('BchSentSuccess', { amount, txid: txid?.slice(0, 12) }, `Successfully sent ${amount} ${symbol}`),
+          message: this.$t('BchSentSuccess', { symbol }, `${symbol} sent successfully`),
         })
       } catch (err) {
         console.error('[Conversation] Failed to send tip confirmation:', err)
@@ -2752,5 +2945,115 @@ export default {
 
 .dark .blocked-notice {
   color: #f87171;
+}
+
+/* Custom context menu */
+.context-menu-backdrop {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 2000;
+  background: transparent;
+  pointer-events: none;
+}
+
+.context-menu {
+  background: #ffffff;
+  border-radius: 12px;
+  box-shadow: 0 8px 40px rgba(0, 0, 0, 0.18), 0 0 0 1px rgba(0, 0, 0, 0.04);
+  padding: 6px 0;
+  overflow: hidden;
+  z-index: 2001;
+  min-width: 180px;
+  max-width: 260px;
+  pointer-events: auto;
+}
+
+.context-menu.dark {
+  background: #1e293b;
+  box-shadow: 0 8px 40px rgba(0, 0, 0, 0.4), 0 0 0 1px rgba(255, 255, 255, 0.06);
+}
+
+.context-menu :deep(.q-item) {
+  min-height: 44px;
+  padding: 8px 16px;
+  cursor: pointer;
+}
+
+.context-menu :deep(.q-item.q-item-label) {
+  cursor: default;
+}
+
+.context-menu :deep(.q-item:hover) {
+  background: rgba(0, 0, 0, 0.04);
+}
+
+.context-menu.dark :deep(.q-item:hover) {
+  background: rgba(255, 255, 255, 0.06);
+}
+
+.context-menu :deep(.q-item__section--avatar) {
+  min-width: 36px;
+  padding-right: 4px;
+}
+
+.context-menu :deep(.q-item__label--header) {
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: #9ca3af;
+  padding: 10px 16px 4px;
+}
+
+.context-menu.dark :deep(.q-item__label--header) {
+  color: #64748b;
+}
+
+.context-menu :deep(.react-emoji-row) {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 4px;
+  justify-items: center;
+  padding: 0 8px;
+}
+
+.context-menu :deep(.react-emoji) {
+  font-size: 22px;
+  cursor: pointer;
+  padding: 6px;
+  border-radius: 8px;
+  transition: background-color 0.15s ease, transform 0.15s ease;
+  line-height: 1;
+}
+
+.context-menu :deep(.react-emoji:hover) {
+  background: rgba(0, 0, 0, 0.06);
+  transform: scale(1.2);
+}
+
+.context-menu.dark :deep(.react-emoji:hover) {
+  background: rgba(255, 255, 255, 0.08);
+}
+
+/* Context menu scale transition */
+.context-menu-scale-enter-active {
+  transition: opacity 0.15s ease, transform 0.15s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.context-menu-scale-leave-active {
+  transition: opacity 0.1s ease, transform 0.1s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.context-menu-scale-enter-from {
+  opacity: 0;
+  transform: scale(0.92);
+}
+
+.context-menu-scale-leave-to {
+  opacity: 0;
+  transform: scale(0.92);
 }
 </style>
