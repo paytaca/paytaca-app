@@ -1293,9 +1293,20 @@ export default {
       }, { root: container, threshold: 0.5 })
     },
     observeMessages () {
-      if (!this._messageObserver || !this.$refs.messagesContainer) return
-      const els = this.$refs.messagesContainer.querySelectorAll('.message-group')
-      els.forEach(el => this._messageObserver.observe(el))
+      if (this._messageObserver && this.$refs.messagesContainer) {
+        const els = this.$refs.messagesContainer.querySelectorAll('.message-group')
+        els.forEach(el => this._messageObserver.observe(el))
+      }
+      this.markDisplayedMessagesAsRead()
+    },
+    markDisplayedMessagesAsRead () {
+      if (!this.roomId || !this.myPubKey || !this._isActive) return
+      for (const msg of this.displayedMessages) {
+        if (msg.sender === this.myPubKey) continue
+        if (this._sentReadReceiptIds.has(msg.id)) continue
+        this._pendingReadMsgIds.add(msg.id)
+      }
+      this._flushReadMsgIds()
     },
     _flushReadMsgIds () {
       if (this._readMsgFlushTimer) return
