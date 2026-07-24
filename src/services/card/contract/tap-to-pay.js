@@ -700,6 +700,85 @@ export class TapToPayV2 extends TapToPay {
         return contract;
     }
 
+    /**
+     * Gets the ownership category of the contract.
+     * @returns {string} Ownership category.
+     */
+    getOwnershipCategory() {
+        return this.params.category
+    }
+    
+    /**
+     * Gets the merchant authorization category and the corresponding ownership token UTXO.
+     * @returns {{ authOwnershipToken: Object, authCategory: string }}
+     */
+    async getMerchantAuthCategory () {
+        // Get ownership tokens
+        const ownershipCategory = this.params.category
+        const tokenAddress = toTokenAddress(this.getContract().address)
+        const ownershipTokens = await this.getTokenUtxos(ownershipCategory, tokenAddress)
+
+        // Find the auth ownership token
+        let authCategory
+        const authOwnershipToken = ownershipTokens.find(utxo => {
+            const decodedCommitment = utxo.token?.nft?.commitment ? decodeOwnershipCommitment(utxo.token.nft.commitment) : undefined
+            if (decodedCommitment.type === 'cat') {
+                authCategory = decodedCommitment.value
+                return true
+            }
+            return false
+        })
+        return { authOwnershipToken, authCategory: reverseHex(authCategory) };
+    }
+
+    /**
+     * Gets the owner ownership token UTXO.
+     * @returns {Promise<Object>} Owner ownership token UTXO.
+     */
+    async getOwnershipPkhUtxo() {
+        const ownershipCategory = this.params.category
+        const tokenAddress = toTokenAddress(this.getContract().address)
+        const ownershipTokens = await this.getTokenUtxos(ownershipCategory, tokenAddress)
+
+        // Find the pkh ownership token
+        const pkhTokenUtxo = ownershipTokens.find(utxo => {
+            const decodedCommitment = utxo.token?.nft?.commitment ? decodeOwnershipCommitment(utxo.token.nft.commitment) : undefined
+            return decodedCommitment?.type === 'pkh'
+        })
+        return pkhTokenUtxo
+    }
+
+    /**
+     * Gets the category ownership token UTXO.
+     * @returns {Promise<Object>} Category ownership token UTXO.
+     */
+    async getOwnershipCatUtxo() {
+        const ownershipCategory = this.params.category
+        const tokenAddress = toTokenAddress(this.getContract().address)
+        const ownershipTokens = await this.getTokenUtxos(ownershipCategory, tokenAddress)
+
+        // Find the cat ownership token
+        const catTokenUtxo = ownershipTokens.find(utxo => {
+            const decodedCommitment = utxo.token?.nft?.commitment ? decodeOwnershipCommitment(utxo.token.nft.commitment) : undefined
+            return decodedCommitment?.type === 'cat'
+        })
+        return catTokenUtxo
+    }
+
+    async isOwnershipSet () {
+        const { authOwnershipToken } = await this.getMerchantAuthCategory()
+        return !!authOwnershipToken
+    }
+
+    // ================ Contract Methods ================
+
+    /**
+     * Sets the owner of the contract.
+     * Sets the ownership NFT commitments to the provided owner public key hash and authorization category.
+     * @param {string} ownerWif - Owner WIF used to authorize the setOwner operation.
+     * @param {string} authCategory - Authorization category for the ownership token.
+     * @returns {Promise<Object>} Result of the setOwner operation.
+     */
     async setOwner (ownerWif, authCategory) {
         const contract = this.getContract()
         const ownerSig = new SignatureTemplate(ownerWif)
@@ -836,45 +915,8 @@ export class TapToPayV2 extends TapToPay {
         return result.data
     }
 
-    async getMerchantAuthCategory () {
-        // Get ownership tokens
-        const ownershipCategory = this.params.category
-        const tokenAddress = toTokenAddress(this.getContract().address)
-        const ownershipTokens = await this.getTokenUtxos(ownershipCategory, tokenAddress)
-
-        // Find the auth ownership token
-        let authCategory
-        const authOwnershipToken = ownershipTokens.find(utxo => {
-            const decodedCommitment = utxo.token?.nft?.commitment ? decodeOwnershipCommitment(utxo.token.nft.commitment) : undefined
-            if (decodedCommitment.type === 'cat') {
-                authCategory = decodedCommitment.value
-                return true
-            }
-            return false
-        })
-        return { authOwnershipToken, authCategory: reverseHex(authCategory) };
-    }
-
-    async isOwnershipSet () {
-        const { authOwnershipToken } = await this.getMerchantAuthCategory()
-        return !!authOwnershipToken
-    }
-
-    async getOwnerTokenUtxo () {
-        const ownershipCategory = this.params.category
-        const tokenAddress = toTokenAddress(this.getContract().address)
-        const ownershipTokens = await this.getTokenUtxos(ownershipCategory, tokenAddress)
-
-        // Find the pkh ownership token
-        const ownerTokenUtxo = ownershipTokens.find(utxo => {
-            const decodedCommitment = utxo.token?.nft?.commitment ? decodeOwnershipCommitment(utxo.token.nft.commitment) : undefined
-            return decodedCommitment?.type === 'pkh'
-        })
-        return ownerTokenUtxo
-    }
-
     /**
-     * Sweeps all contract-held tokens and BCH to the provided address.
+     * Sweeps all contract-held BCH to the provided address.
      *
      * @param {Object} params
      * @param {string} params.ownerWif - Owner WIF used to authorize the sweep.
@@ -892,9 +934,7 @@ export class TapToPayV2 extends TapToPay {
         
         cardLogger.log('[sweep] Owner public key hash:', ownerPkh)
 
-        let sweepResult = {}
-
-        const ownerUtxo = await this.getOwnerTokenUtxo()
+        const ownerUtxo = await this.getOwnershipPkhUtxo()
         const decodedCommitment = ownerUtxo.token?.nft?.commitment ? decodeOwnershipCommitment(ownerUtxo.token.nft.commitment) : undefined
         if (!decodedCommitment || decodedCommitment.value !== ownerPkh) {
             throw new Error('Invalid owner token UTXO or ownership not set correctly. Cannot proceed with sweep.')
@@ -985,4 +1025,111 @@ export class TapToPayV2 extends TapToPay {
         cardLogger.log('[sweep] Sweep result:', result)
         return result
     }
+
+    /**
+     * 
+     * @param {Object} param0
+     * @param {string} param0.ownerWif - Owner WIF used to authorize the mutations.
+     * @param {Array<Object>} param0.mutations - List of mutations to apply to the contract.
+     * @param {string} param0.mutations[].merchantId - ID of the merchant to mutate. If null, mutates the global auth token.
+     * @param {boolean} param0.mutations[].authorized - Authorization status for the mutation.
+     * @param {number} [param0.mutations[].spendLimitSats] - Optional spend limit in satoshis for the mutation.
+     * @param {boolean} [param0.broadcast=true] - Broadcast transactions when true.
+     * @returns {Promise<Object>} Result of the mutate operation.
+     */
+    async mutate({ ownerWif, mutations, broadcast = true }) {
+        const contract = this.getContract()
+        const ownerSig = new SignatureTemplate(ownerWif)
+        const ownerPk = binToHex(ownerSig.getPublicKey())
+        const ownerPkh = pubkeyToPkHash(ownerPk)
+
+        // Get the ownership owner token UTXO
+        // Get the ownership category token UTXO
+        const ownerUtxo = await this.getOwnershipPkhUtxo()
+        const catUtxo = await this.getOwnershipCatUtxo()
+
+        if (!ownerUtxo || !catUtxo) {
+            throw new Error('Ownership tokens not found. Cannot perform mutations.')
+        }
+        
+        // Get the auth tokens to mutate based on params.mutations
+        const authCategory = this.getMerchantAuthCategory()
+        const tokenUtxos = await this.getTokenUtxos(authCategory, contract.tokenAddress)
+        console.log('tokenUtxos:', tokenUtxos)
+
+        const inputs = [ownerUtxo, catUtxo]
+        const outputs = []
+        for (let i = 0; i < mutations.length; i++) {
+            const mutation = mutations[i]
+            const merchantHash = encodeMerchantHash({ 
+                merchantId: mutation.merchant?.id, 
+                merchantPk: mutation.merchant?.pubkey 
+            }).hex
+            console.log('merchantHash:', merchantHash)
+            const utxoToMutate = tokenUtxos.find(utxo => {
+                const commitment = utxo.token?.nft?.commitment
+                const decodedCommitment = decodeCommitment(commitment)
+                return decodedCommitment.hash === merchantHash
+            })
+
+            if (!utxoToMutate) {
+                cardLogger.warn(`No matching UTXO found for mutation with merchant hash ${merchantHash}. Skipping this mutation.`)
+                continue
+            }
+
+            // Prepare the output rewriting the commitment
+            const newCommitmentData = {
+                authorized: mutation.authorized,
+                spendLimitSats: mutation.spendLimitSats || 0,
+                merchant: mutation.merchant
+            }
+            const newCommitment = encodeCommitment(newCommitmentData)
+
+            if (newCommitment === utxoToMutate.token.nft.commitment) {
+                cardLogger.warn(`New commitment is the same as the current commitment for merchant hash ${merchantHash}. Skipping this mutation.`)
+                continue
+            }
+
+            inputs.push(utxoToMutate)
+            outputs.push({
+                to: contract.tokenAddress,
+                amount: toBigInt(utxoToMutate.satoshis),
+                token: {
+                    amount: toBigInt(utxoToMutate.token?.amount ?? 0), // NFTs: 0n
+                    category: String(utxoToMutate.token?.category),
+                    nft: {
+                        capability: String(utxoToMutate.token?.nft?.capability),
+                        commitment: String(newCommitment)
+                    }
+                }
+            })
+        }
+
+        // Estimate the fee based on the number of inputs and outputs, and get funding UTXOs to cover it
+        const estimatedFee = this.estimateFee({ 
+            numContractInputs: 1, // The token UTXO being mutated
+            numP2pkhInputs: 1, // Assume at least 1 P2PKH input for funding
+            numOutputs: outputs.length + 1 // Mutation outputs + potential change output
+        })
+        
+        const { 
+            cumulativeValue, 
+            groupedUtxos: groupedBchFundingInputs, 
+            changeAddress
+        } = await this.getFundingInputs(estimatedFee)
+        
+        const changeAmount = cumulativeValue - BigInt(estimatedFee)
+
+        // Add change output if there's leftover BCH after covering the fee
+        if (changeAmount > DUST_LIMIT) {
+            outputs.push({
+                to: changeAddress,
+                amount: toBigInt(changeAmount)
+            })
+        }
+
+        // Prepare the contract transaction from the combined inputs and outputs
+        const provider = new ElectrumNetworkProvider(Network.MAINNET)
+        const tx = new TransactionBuilder({provider})
+    }  
 }

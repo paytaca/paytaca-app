@@ -173,9 +173,70 @@ export class Card {
     this.contract = new TapToPay(this.raw?.contract?.contract_id);
   }
 
+  // ==================== CONTRACT OPERATIONS ====================
+  /**
+   * Returns BCH balance for card address. 
+   * Fetches from server data, server queries blockchain.
+   * @returns {number}
+   */
+  async getBchBalance() {
+    const response = await backend.get(`/cards/${this.id}/bch-balance/`)
+    .catch(error => {
+      cardLogger.error('Error fetching BCH balance:', error.response || error.message);
+      throw error;
+    });
+    return response.data?.bch_balance || 0;
+  }
+
+  /**
+   * Returns token balance for card token address
+   * @returns {number}
+   */
+  getTokenBalance() {
+    return this.raw?.ct_balance.length || 0;
+  }
+
+  /**
+   * Gets token UTXOs for card token address
+   * @returns {Promise<Array>}
+   */
+  async getTokenUtxos() {
+    this._assertWallet();
+    const tokenId = this.authCategory;
+    const tokenAddress = this.tokenAddress
+    return await this.wallet.getTokenUtxos(tokenId, tokenAddress);
+  }
+
+  /**
+   * Gets BCH UTXOs for card address
+   * @returns {Promise<Object>}
+   */
+  async getBchUtxos() {
+    this._assertContract();
+    return await this.contract.getBchUtxos();
+  }
+
+  /**
+   * Gets the TapToPay contract instance
+   * @returns {Promise<Object>}
+   */
+  getContract(){
+    return this.contract
+  }
+
+  /**
+   * Returns Cashscript contract instance of TapToPay
+   * @returns {Object} Cashscript contract instance
+   */
+  getRawContract() {
+    this._assertContract();
+    const contract = this.contract.getContract()
+    return contract
+  }
+
   // ==================== WORKFLOWS ====================
   /**
-   * Complete card creation workflow
+   * Complete card activation workflow
    * @returns {Promise<Card>}
    */
   async activate(callbackOnProgress=null, lastAttempt = null) {
@@ -373,18 +434,6 @@ export class Card {
     throw new Error('Max attempts reached while polling for linking token');
   }
 
-  /**
-   * Helper to call progress callback if provided
-   * @private
-   * @param {Function} callback
-   * @param {string} message
-   */
-  _notifyCallbackFn(callback, message) {
-    if (callback && typeof callback === 'function') {
-      callback(message);
-    }
-  }
-
   // ==================== SERVER API ====================
 
   /**
@@ -409,42 +458,6 @@ export class Card {
 
     const attempt = await getCardActivationAttempt(this.wallet.walletHash)
     return attempt;
-  }
-
-  /**
-   * Saves genesis token id (category) to server
-   * @private
-   * @param {number} cardId
-   * @param {String} category
-   * @returns {Promise<Object>}
-   */
-  async _saveGenesis(cardId, category) {
-    cardLogger.log('Saving genesis token to server:', { cardId, category });
-    const data = { category };
-    const response = await backend.patch(`/cards/${cardId}/`, data)
-      .catch(error => {
-        cardLogger.error('Error saving genesis token ID to server:', error.response || error.message);
-        throw error;
-      });
-
-    return response.data;
-  }
-
-  /**
-   * Generates a contract for the given card
-   * @private
-   * @param {string} idempotencyKey 
-   * @returns {Promise<Object>}
-   */
-  async _generateContract(idempotencyKey) {
-    const response = await backend.post(`/cards/generate-contract/`, null, {
-      headers: { 'Idempotency-Key': idempotencyKey },
-    }).catch(error => {
-      cardLogger.error('Error generating contract:', error.response || error.message);
-      throw error;
-    });
-
-    return response.data;
   }
 
   /**
@@ -543,7 +556,6 @@ export class Card {
    * @private
    * @returns {Promise<{tokenId: string, utxos: Array}>}
    */
-  // this function should poll as well as mempool conflict happens
   async _mintGenesisAuthToken(interval = 1000, maxAttempts = 10) {
     cardLogger.log('Starting genesis token minting...');
     this._assertAuthNftService();
@@ -576,20 +588,6 @@ export class Card {
         await new Promise(resolve => setTimeout(resolve, interval));
       }
     }
-  }
-
-  parseSatoshisNeeded(message) {
-    const patterns = [
-      /(\d+)\s+satoshis\s+needed/i,
-      /needed\s*\((\d+)\)/i
-    ];
-
-    for (const pattern of patterns) {
-      const match = message.match(pattern);
-      if (match) return Number(match[1]);
-    }
-
-    return null;
   }
 
   /**
@@ -758,87 +756,6 @@ export class Card {
     return result;
   }
 
-  // ==================== CONTRACT OPERATIONS ====================
-  /**
-   * Returns BCH balance for card address. 
-   * Fetches from server data, server queries blockchain.
-   * @returns {number}
-   */
-  async getBchBalance() {
-    const response = await backend.get(`/cards/${this.id}/bch-balance/`)
-    .catch(error => {
-      cardLogger.error('Error fetching BCH balance:', error.response || error.message);
-      throw error;
-    });
-    return response.data?.bch_balance || 0;
-  }
-
-  /**
-   * Returns token balance for card token address
-   * @returns {number}
-   */
-  getTokenBalance() {
-    return this.raw?.ct_balance.length || 0;
-  }
-
-  /**
-   * Gets the TapToPay contract balance. 
-   * Fetches directly from blockchain, may be more up-to-date than server data.
-   * @returns {Promise<number>}
-   */
-  async getContractBalance() {
-    this._initializeContract()
-    return await this.contract.getRawContract().getBalance();
-  }
-  
-  /**
-   * Gets UTXOs for card address
-   * @returns {Promise<Array>}
-   */
-  async getUtxos() {
-    this._assertContract();
-    const contractUtxos = await this.contract.getUtxos();
-    return contractUtxos;
-  }
-
-  /**
-   * Gets token UTXOs for card token address
-   * @returns {Promise<Array>}
-   */
-  async getTokenUtxos() {
-    this._assertWallet();
-    const tokenId = this.authCategory;
-    const tokenAddress = this.tokenAddress
-    return await this.wallet.getTokenUtxos(tokenId, tokenAddress);
-  }
-
-  /**
-   * Gets BCH UTXOs for card address
-   * @returns {Promise<Object>}
-   */
-  async getBchUtxos() {
-    this._assertContract();
-    return await this.contract.getBchUtxos();
-  }
-
-  /**
-   * Gets the TapToPay contract instance
-   * @returns {Promise<Object>}
-   */
-  getContract(){
-    return this.contract
-  }
-
-  /**
-   * Returns Cashscript contract instance of TapToPay
-   * @returns {Object} Cashscript contract instance
-   */
-  getRawContract() {
-    this._assertContract();
-    const contract = this.contract.getContract()
-    return contract
-  }
-
   /**
    * Mutates the global auth token commitment
    * @param {Object} options
@@ -941,76 +858,21 @@ export class Card {
     });
 
     cardLogger.log('Sweep response:', sweepResponse);
-
-    if (sweepResponse.txid) {
-      this.processTransaction(sweepResponse.txid);
-    }
-
     return sweepResponse;
   }
 
-  // /**
-  //  * Burns a merchant auth token
-  //  * @param {Object} options
-  //  * @param {Object} options.merchant - Merchant info
-  //  * @param {string} options.merchant.id - Merchant ID
-  //  * @param {string} options.merchant.pubkey - Merchant public key
-  //  * @param {boolean} [options.broadcast=true] - Whether to broadcast the transaction
-  //  * @returns {Promise<Object>}
-  //  */
-  // async burnMerchantAuthToken({ merchant, broadcast = true } = {}) {
-  //   this._assertContract();
-  //   this._assertWallet();
+  // ==================== HELPERS ====================
 
-  //   const privateKey = this.wallet.privkey();
-  //   const tokenId = this.authCategory;
-  //   const params = {
-  //     ownerWif: privateKey,
-  //     tokenId,
-  //     merchant,
-  //     broadcast
-  //   }
-  //   cardLogger.log('Burning auth token with params:', params);
-  //   const burnResponse = await this.contract.burn(params);
-    
-  //   if (burnResponse.txid) {
-  //     this.processTransaction(burnResponse.txid);
-  //   }
-
-  //   return burnResponse;
-  // }
-
-  // ==================== UTXO MANAGEMENT ====================
-
-  // /**
-  //  * Estimates satoshis needed for minting a token
-  //  * @returns {Promise<bigint>} Estimated satoshis needed for minting auth token
-  //  */
-  // estimateTokenOpSatsRequirement() {
-  //   this._assertWallet();
-  //   return this.wallet.estimateTokenOpSatsRequirement();
-  // }
-
-  // /**
-  //  * Waits for transaction confirmation
-  //  * @private
-  //  * @param {number} [delayMs=6000]
-  //  * @returns {Promise<void>}
-  //  */
-  // async _waitForTransaction(delayMs = 6000) {
-  //   cardLogger.log('Waiting for transaction confirmation for ', delayMs / 1000, 'seconds...');
-  //   await new Promise(resolve => setTimeout(resolve, delayMs));
-  // }
-
-  async processTransaction(txid) {
-    // Process the transaction and update card state as needed
-    cardLogger.log('Processing transaction:', txid);
-    await backend.post(`/cards/${this.id}/process-transaction/`, { txid }).then(response => {
-      cardLogger.log('Transaction processed successfully:', response.data);
-      // Optionally update card state based on response
-    }).catch(error => {
-      cardLogger.error('Error processing transaction:', error.response || error.message);
-    });
+    /**
+   * Helper to call progress callback if provided
+   * @private
+   * @param {Function} callback
+   * @param {string} message
+   */
+  _notifyCallbackFn(callback, message) {
+    if (callback && typeof callback === 'function') {
+      callback(message);
+    }
   }
 }
 
