@@ -1,4 +1,5 @@
 
+import { cardLogger } from 'src/utils/debug-logger.js'
 import { decodePrivateKeyWif, binToHex, secp256k1, utf8ToBin, sha256, hexToBin } from '@bitauth/libauth'
 import { IncorrectWIFError } from '@generalprotocols/anyhedge'
 import { loadLibauthHdWallet, loadWallet as loadBchWallet } from 'src/wallet'
@@ -139,7 +140,7 @@ export class Wallet {
    */
   pubkey (addressPath = '') {
     if (!addressPath) addressPath = this.addressPath()
-    console.log('>>>>>>>>pubkey:', this.libauthWallet.getPubkeyAt(addressPath))
+    cardLogger.log('>>>>>>>>pubkey:', this.libauthWallet.getPubkeyAt(addressPath))
     return this.libauthWallet.getPubkeyAt(addressPath)
   }
 
@@ -190,7 +191,7 @@ export class Wallet {
   }
 
   async getBchUtxos (address = null, amount = null) {
-    console.log(`Fetching BCH UTXOs for address: ${address}, with amount: ${amount}`)
+    cardLogger.log(`Fetching BCH UTXOs for address: ${address}, with amount: ${amount}`)
     let result = { cumulativeValue: 0, utxos: [] }
     const wallet = await this.getRawWallet()
     if (address) {
@@ -198,7 +199,7 @@ export class Wallet {
     } else {
       result = await wallet.watchtower.BCH.getBchUtxos(`wallet:${this.walletHash}`, parseInt(amount))
     }
-    console.log('Fetched BCH UTXOs:', result)
+    cardLogger.log('Fetched BCH UTXOs:', result)
 
     return {
       cumulativeValue: result.cumulativeValue,
@@ -220,13 +221,13 @@ export class Wallet {
    * @returns {Promise<Array>} - The list of token UTXOs.
    */
   async getTokenUtxos (tokenId, tokenAddress, opts = {}) {
-    console.log('Fetching token UTXOs for tokenId:', tokenId, 'at tokenAddress:', tokenAddress, 'with options:', opts)
+    cardLogger.log('Fetching token UTXOs for tokenId:', tokenId, 'at tokenAddress:', tokenAddress, 'with options:', opts)
     const wallet = await this.getRawWallet()
     let handle = tokenAddress ? tokenAddress : this.tokenAddress()
     
-    console.log('Getting token UTXOs for tokenId:', tokenId, 'at tokenAddress:', tokenAddress)
+    cardLogger.log('Getting token UTXOs for tokenId:', tokenId, 'at tokenAddress:', tokenAddress)
     if (tokenAddress && isTokenAddress(tokenAddress) === false) {
-      console.warn('Invalid token address for getTokenUtxos:', tokenAddress)
+      cardLogger.warn('Invalid token address for getTokenUtxos:', tokenAddress)
       return []
     }
 
@@ -238,13 +239,13 @@ export class Wallet {
       params.capability = opts.capability
     }
 
-    console.log('handle:', handle)
-    console.log('tokenId:', tokenId)
+    cardLogger.log('handle:', handle)
+    cardLogger.log('tokenId:', tokenId)
 
     let result = []
     const response = await wallet.watchtower.BCH._api.get(`utxo/ct/${handle}/${tokenId}/`, { params: params })
     result = response.data?.utxos
-    console.log('Returning token UTXOs:', result)
+    cardLogger.log('Returning token UTXOs:', result)
     return result.map(utxo => ({
       txid: utxo.txid,
       token: {
@@ -323,22 +324,22 @@ export class Wallet {
     }
 
     const { cumulativeValue, utxos } = await this.getBchUtxos(null, parseInt(satsAmount)); // Get UTXOs up to 100k sats
-    console.log('cumulativeValue:', cumulativeValue);
-    console.log('UTXOs found for vout=0:', utxos);
+    cardLogger.log('cumulativeValue:', cumulativeValue);
+    cardLogger.log('UTXOs found for vout=0:', utxos);
     if (utxos.length === 0) {
-      console.log('No consolidation needed, 0 UTXOs found.');
+      cardLogger.log('No consolidation needed, 0 UTXOs found.');
       return;
     }
     
     // Use provided amount or estimate full requirement
     const estimatedFee = this.estimateFee({ numP2pkhInputs: utxos.length, numOutputs: 1 }); // Estimated fee for transaction
-    const satsToSend = cumulativeValue - estimatedFee
+    const satsToSend = BigInt(cumulativeValue) - estimatedFee
     const bchAmount = Number(satsToSend) / 1e8;
     
-    console.log(`Sending ${satsToSend} sats (${bchAmount} BCH) to address:`, receivingAddress);
+    cardLogger.log(`Sending ${satsToSend} sats (${bchAmount} BCH) to address:`, receivingAddress);
     
     const sendResult = await wallet.sendBch(bchAmount, receivingAddress);
-    console.log('Transaction sent:', sendResult);
+    cardLogger.log('Transaction sent:', sendResult);
 
     if (sendResult.success == false) {
       throw new Error(`Failed to create vout=0 UTXO: ${sendResult.error}`);
@@ -348,29 +349,29 @@ export class Wallet {
   }
 
   async consolidateUtxos (receivingAddress = null) {
-    console.log('Starting UTXO consolidation process...');
+    cardLogger.log('Starting UTXO consolidation process...');
     const wallet = await this.getRawWallet();
     if (!receivingAddress) {
       receivingAddress = (await wallet.getAddressSetAt(0)).receiving;
     }
 
     const { cumulativeValue, utxos } = await this.getBchUtxos(null, 100000); // Get UTXOs up to 100k sats
-    console.log('cumulativeValue:', cumulativeValue);
-    console.log('UTXOs found for consolidation:', utxos);
+    cardLogger.log('cumulativeValue:', cumulativeValue);
+    cardLogger.log('UTXOs found for consolidation:', utxos);
     if (utxos.length === 0) {
-      console.log('No consolidation needed, 0 UTXOs found.');
+      cardLogger.log('No consolidation needed, 0 UTXOs found.');
       return;
     }
 
     const estimatedFee = this.estimateFee({ numP2pkhInputs: utxos.length, numOutputs: 1 }); // Estimated fee for consolidation transaction
-    const consolidationAmount = cumulativeValue - estimatedFee;
-    console.log('Estimated fee for consolidation:', estimatedFee);
-    console.log('Consolidation amount:', consolidationAmount);
-    console.log(`Consolidating ${utxos.length} UTXOs totaling ${consolidationAmount} sats to address:`, receivingAddress);
+    const consolidationAmount = BigInt(cumulativeValue) - estimatedFee;
+    cardLogger.log('Estimated fee for consolidation:', estimatedFee);
+    cardLogger.log('Consolidation amount:', consolidationAmount);
+    cardLogger.log(`Consolidating ${utxos.length} UTXOs totaling ${consolidationAmount} sats to address:`, receivingAddress);
     
     const bchAmount = Number(consolidationAmount) / 1e8;
     const sendResult = await wallet.sendBch(bchAmount, receivingAddress);
-    console.log('Consolidation transaction sent:', sendResult);
+    cardLogger.log('Consolidation transaction sent:', sendResult);
 
     if (sendResult.success == false) {
       throw new Error(`Failed to consolidate UTXOs: ${sendResult.error}`);
@@ -408,7 +409,7 @@ export class Wallet {
     
     const total = tokenOutputValue + estimatedFee + dustLimit + buffer;
     
-    console.log('Estimated token operation sats requirement:', {
+    cardLogger.log('Estimated token operation sats requirement:', {
       tokenOutputValue,
       estimatedFee,
       dustLimit,
@@ -420,26 +421,26 @@ export class Wallet {
   }
 
   async createGenesisUtxo(amountSats = 5000) {
-    console.log('Starting UTXO consolidation process...');
+    cardLogger.log('Starting UTXO consolidation process...');
     
     const receivingAddress = this.address(); // Use the wallet's own address for consolidation
     const { cumulativeValue, groupedUtxos, changeAddress } = await this.getFundingUtxos(amountSats); // Get UTXOs up to the specified amount
-    // console.log('cumulativeValue:', cumulativeValue);
-    // console.log('UTXOs found for consolidation:', groupedUtxos);
+    // cardLogger.log('cumulativeValue:', cumulativeValue);
+    // cardLogger.log('UTXOs found for consolidation:', groupedUtxos);
 
     if (groupedUtxos.length === 0) {
       throw new Error('Cannot create genesis UTXO, 0 UTXOs found.');
     }
 
-    if (cumulativeValue < DUST_LIMIT) {
+    if (BigInt(cumulativeValue) < DUST_LIMIT) {
       throw new Error(`Cannot create genesis UTXO, cumulative value ${cumulativeValue} is below dust limit ${DUST_LIMIT}.`);
     } 
 
     const estimatedFee = this.estimateFee({ numP2pkhInputs: groupedUtxos.length, numOutputs: 1 }); // Estimated fee for consolidation transaction
-    const satsAmount = cumulativeValue - estimatedFee;
-    console.log('Estimated fee for creating genesis UTXO:', estimatedFee);
-    console.log('Genesis UTXO amount:', satsAmount);
-    console.log(`Creating genesis UTXO from ${groupedUtxos.length} UTXOs totaling ${satsAmount} sats to address:`, receivingAddress);
+    const satsAmount = BigInt(cumulativeValue) - estimatedFee;
+    cardLogger.log('Estimated fee for creating genesis UTXO:', estimatedFee);
+    cardLogger.log('Genesis UTXO amount:', satsAmount);
+    cardLogger.log(`Creating genesis UTXO from ${groupedUtxos.length} UTXOs totaling ${satsAmount} sats to address:`, receivingAddress);
 
     const provider = new ElectrumNetworkProvider('mainnet')
     const tx = new TransactionBuilder({ provider })
@@ -448,15 +449,15 @@ export class Wallet {
     })
     tx.addOutput({ to: receivingAddress, amount: satsAmount });
 
-    console.log('===inputs:', tx.inputs)
-    console.log('===outputs:', tx.outputs)
+    cardLogger.log('===inputs:', tx.inputs)
+    cardLogger.log('===outputs:', tx.outputs)
 
     const txHex = tx.build()
-    console.log('Built consolidation transaction hex:', txHex)
+    cardLogger.log('Built consolidation transaction hex:', txHex)
 
     const wallet = await this.getRawWallet()
     const sendResult = await wallet.watchtower.BCH.broadcastTransaction(txHex)
-    console.log('Consolidation transaction broadcast result:', sendResult)
+    cardLogger.log('Consolidation transaction broadcast result:', sendResult)
     
     return sendResult;
   }

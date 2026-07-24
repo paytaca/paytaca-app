@@ -27,7 +27,12 @@ export default {
 
   methods: {
     async loadUser() {
-      this.user = await loadCardUser()
+      try {
+        this.user = await loadCardUser()
+      } catch (err) {
+        console.error('Failed to load card user:', err)
+        this.user = null
+      }
     },
 
     formatContractAddress(address) {

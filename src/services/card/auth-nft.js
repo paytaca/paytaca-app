@@ -1,11 +1,11 @@
 
+import { cardLogger } from 'src/utils/debug-logger.js'
 import { createHash } from 'crypto';
 import { NFTCapability, TokenMintRequest, TokenSendRequest, Wallet } from 'mainnet-js';
-import { defaultSpendLimitSats, minTokenValue } from './constants';
+import { defaultSpendLimitSats, minTokenValue, DUST_LIMIT } from './constants';
 import { loadWallet } from 'src/services/wallet.js';
 import Watchtower from 'watchtower-cash-js'
 import { ElectrumNetworkProvider, SignatureTemplate, TransactionBuilder } from 'cashscript';
-import { DUST_LIMIT } from '@generalprotocols/anyhedge';
 
 const watchtower = new Watchtower()
 const MINT_VALUE = 1000n;
@@ -73,13 +73,13 @@ class AuthNftService {
     }
 
     async genesis(opts = {broadcast: true}) {
-        console.log('====== Minting Token ======')
+        cardLogger.log('====== Minting Token ======')
     
         const genesisUtxo = await this.wallet.getOrCreateGenesisUtxo()
         const categoryId = genesisUtxo.txid
         const nftValue = 1000n // 10000 satoshis for each NFT output
 
-        console.log('genesisUtxo:', genesisUtxo)
+        cardLogger.log('genesisUtxo:', genesisUtxo)
         
         const changeAddress = this.wallet.address()
         const estimatedFee = this.wallet.estimateFee({ numP2pkhInputs: 1, numOutputs: 1, feeRate: 2n })
@@ -120,11 +120,11 @@ class AuthNftService {
         try {
             // Build the transaction
             const txHex = tx.build()
-            console.log('Built transaction hex:', txHex)
+            cardLogger.log('Built transaction hex:', txHex)
 
             if (opts?.broadcast) {
                 const txResult = await watchtower.BCH.broadcastTransaction(txHex)
-                console.log('Transaction broadcast result:', txResult.data)
+                cardLogger.log('Transaction broadcast result:', txResult.data)
                 result = { 
                     success: txResult.data.success, 
                     txid: txResult.data.txid, 
@@ -175,7 +175,7 @@ class AuthNftService {
         const totalFee = txFee + mintFee
         const { cumulativeValue, groupedUtxos: groupedBchFundingInputs, changeAddress } = await this.wallet.getFundingUtxos(totalFee)
 
-        console.log('cumulativeValue:', cumulativeValue)
+        cardLogger.log('cumulativeValue:', cumulativeValue)
         if (cumulativeValue < totalFee) {
             throw new Error(`Insufficient BCH funds to cover minting fee. Required: ${totalFee}, Available: ${cumulativeValue}`);
         }
@@ -241,14 +241,14 @@ class AuthNftService {
         })
         tx.addOutputs(outputs)
 
-        console.log('-------->>>>>>outputs:', outputs)
+        cardLogger.log('-------->>>>>>outputs:', outputs)
 
         const txHex = tx.build()
-        console.log('Built mint transaction hex:', txHex)
+        cardLogger.log('Built mint transaction hex:', txHex)
 
         if (opts?.broadcast) {
             const txResult = await watchtower.BCH.broadcastTransaction(txHex)
-            console.log('Mint transaction broadcast result:', txResult.data)
+            cardLogger.log('Mint transaction broadcast result:', txResult.data)
             return { 
                 success: txResult.data.success, 
                 txid: txResult.data.txid
@@ -264,7 +264,7 @@ class AuthNftService {
      * @returns {Promise<Object>}
      */
     async issue(tokenUtxos, toTokenAddress, opts = { broadcast: true }) {
-        console.log('====== Sending Token ======')
+        cardLogger.log('====== Sending Token ======')
 
         this._assertWallet();
 
@@ -326,12 +326,12 @@ class AuthNftService {
             
         // Build the transaction
         const txHex = tx.build()
-        console.log('Built transaction hex:', txHex)
-        console.log('Broadcasting transaction...')
+        cardLogger.log('Built transaction hex:', txHex)
+        cardLogger.log('Broadcasting transaction...')
 
         if (opts?.broadcast) {
             const txResult = await watchtower.BCH.broadcastTransaction(txHex)
-            console.log('Transaction broadcast result:', txResult.data)
+            cardLogger.log('Transaction broadcast result:', txResult.data)
             return { success: txResult.data.success, txid: txResult.data.txid }
         }
 

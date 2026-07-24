@@ -1,5 +1,5 @@
 export function getUser (state) {
-  return state.user
+  return state.cards?.find(c => c?.isOwner) ?? null
 }
 
 export function getCardById (state) {

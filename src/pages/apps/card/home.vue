@@ -219,10 +219,15 @@ export default {
   methods: {
     async loadData() {
       this.showLoading()
-      await this.loadUser()
-      this.loadCardList()
-      this.loadWizardStep()
-      this.hideLoading()
+      try {
+        await this.loadUser()
+        this.loadCardList()
+        this.loadWizardStep()
+      } catch (err) {
+        console.error('Error loading card home data:', err)
+      } finally {
+        this.hideLoading()
+      }
     },
 
     loadCardList() {

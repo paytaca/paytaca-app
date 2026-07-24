@@ -46,8 +46,13 @@ export default {
 
   async mounted () {
     document.documentElement.classList.add('cards-page')
-    await this.loadData()
-    this.isloaded = true
+    try {
+      await this.loadData()
+    } catch (err) {
+      console.error('Error loading card layout data:', err)
+    } finally {
+      this.isloaded = true
+    }
   },
 
   beforeUnmount () {

@@ -1,3 +1,4 @@
+import { cardLogger } from 'src/utils/debug-logger.js'
 import AuthNftService, { encodeMerchantHash } from './auth-nft';
 import { defaultSpendLimitSats } from './constants';
 import { TapToPayV2 as TapToPay } from './contract/tap-to-pay';
@@ -96,7 +97,7 @@ export class Card {
    */
   static async createInitialized(data) {
     const card = await Card.createWithWallet(data);
-    console.log('created with wallet:', card)
+    cardLogger.log('created with wallet:', card)
     await card._initializeAuthNftService();
     card._initializeContract();
     return card;
@@ -132,9 +133,9 @@ export class Card {
    * @returns {void}
    */
   _assertContract() {
-    console.log('this.contract:', this.contract)
+    cardLogger.log('this.contract:', this.contract)
     if (!this.contract) {
-      console.log('contract is null or undefined')
+      cardLogger.log('contract is null or undefined')
       throw new Error('TapToPay not initialized. Ensure card has contract_id and call initializeContract() first.');
     }
   }
@@ -178,7 +179,7 @@ export class Card {
    * @returns {Promise<Card>}
    */
   async activate(callbackOnProgress=null, lastAttempt = null) {
-    console.log('Starting card activation...',);
+    cardLogger.log('Starting card activation...',);
 
     try {
 
@@ -203,15 +204,15 @@ export class Card {
       if (!lastAttempt) {
         lastAttempt = await this.saveActivationAttempt();
       }
-      console.log('[Card.activate] lastAttempt:', lastAttempt)
+      cardLogger.log('[Card.activate] lastAttempt:', lastAttempt)
 
       let currentStatus = lastAttempt ? lastAttempt.status : CardActivationStatus.NONE;
-      console.log('[Card.activate] currentStatus:', currentStatus)
+      cardLogger.log('[Card.activate] currentStatus:', currentStatus)
 
       // Obtain the linking token from the backend
       let linkingCategory = lastAttempt.linkingCategory ? lastAttempt.linkingCategory : null;
       if (currentStatus < CardActivationStatus.LINKING_TOKEN_REQUESTED) {
-        console.log('[Card.activate] Obtaining linking token from backend...');
+        cardLogger.log('[Card.activate] Obtaining linking token from backend...');
 
         this._notifyCallbackFn(callbackOnProgress, 'Obtaining linking token...');
         const result = await this.requestLinkingToken();
@@ -232,14 +233,14 @@ export class Card {
 
       let authCategory = lastAttempt.authCategory ? lastAttempt.authCategory : null;
       if (currentStatus < CardActivationStatus.LINKING_TOKEN_OBTAINED) {
-        console.log('[Card.activate] Polling for linking token in wallet...');
+        cardLogger.log('[Card.activate] Polling for linking token in wallet...');
 
         const { authCategory: _authCategory } = await this.contract.getMerchantAuthCategory();
 
         // Check if the ownership tokens are already set in the contract which indicates that the linking token has been obtained 
         // and consumed. If not, poll for the linking token in the wallet.
         const ownershipTokensNotSet = _authCategory !== this.ownershipCategory
-        console.log('[Card.activate] ownershipTokensNotSet:', ownershipTokensNotSet)
+        cardLogger.log('[Card.activate] ownershipTokensNotSet:', ownershipTokensNotSet)
         
         if (ownershipTokensNotSet) {
           await this.pollForLinkingToken(linkingCategory, 1000, 10);
@@ -253,12 +254,12 @@ export class Card {
 
       // Mint the genesis token if not yet minted
       if (!authCategory && currentStatus < CardActivationStatus.GENESIS_MINTED) {
-        console.log('[Card.activate] Minting genesis token');
+        cardLogger.log('[Card.activate] Minting genesis token');
 
         this._notifyCallbackFn(callbackOnProgress, 'Minting genesis token. This may take a minute...');
             
         ({ category: authCategory } = await this._mintGenesisAuthToken());
-        console.log('[Card.activate] Genesis token minted with category:', authCategory);
+        cardLogger.log('[Card.activate] Genesis token minted with category:', authCategory);
         this._notifyCallbackFn(callbackOnProgress, 'Genesis token minted');
 
         if (!authCategory) {
@@ -272,7 +273,7 @@ export class Card {
       // Set contract ownership
       let linkingTxid = lastAttempt?.linkingTxid ? lastAttempt.linkingTxid : null;
       if (currentStatus < CardActivationStatus.OWNERSHIP_UPDATED) {
-        console.log('[Card.activate] Setting contract ownership with linking token...');
+        cardLogger.log('[Card.activate] Setting contract ownership with linking token...');
 
         const privateKey = this.wallet.privkey();
         const result = await this.contract.setOwner(privateKey, authCategory);
@@ -294,7 +295,7 @@ export class Card {
       
       // Mint global auth token
       if (currentStatus < CardActivationStatus.GLOBAL_AUTH_MINTED) {
-        console.log('[Card.activate] Minting global auth token...');
+        cardLogger.log('[Card.activate] Minting global auth token...');
         await this._mintGlobalAuthToken(authCategory);
         currentStatus = CardActivationStatus.GLOBAL_AUTH_MINTED;
         await updateCardActivationAttempt(this.wallet.walletHash, { status: currentStatus });
@@ -303,7 +304,7 @@ export class Card {
 
       // Send the global auth token to the contract
       if (currentStatus < CardActivationStatus.GLOBAL_AUTH_ISSUED) {
-        console.log('[Card.activate] Issuing global auth token to contract...');
+        cardLogger.log('[Card.activate] Issuing global auth token to contract...');
         await this._issueAuthTokens(authCategory);
         currentStatus = CardActivationStatus.GLOBAL_AUTH_ISSUED;
         await updateCardActivationAttempt(this.wallet.walletHash, { status: currentStatus });
@@ -311,7 +312,7 @@ export class Card {
       }
 
       if (currentStatus < CardActivationStatus.VALIDATION_REQUESTED) {
-        console.log('[Card.activate] Requesting server to process linking transaction with txid:', linkingTxid);
+        cardLogger.log('[Card.activate] Requesting server to process linking transaction with txid:', linkingTxid);
         if (!linkingTxid) linkingTxid = lastAttempt?.linkingTxid;
 
         const result = await this.processLinkingTx(linkingTxid);
@@ -324,7 +325,7 @@ export class Card {
       }
 
       if (currentStatus === CardActivationStatus.VALIDATION_REQUESTED) {
-        console.log('[Card.activate] Card creation completed successfully');
+        cardLogger.log('[Card.activate] Card creation completed successfully');
         // Clear the card activation attempt from local storage since workflow is complete
         await clearCardActivationAttempt(this.wallet.walletHash);
         this._notifyCallbackFn(callbackOnProgress, 'Card created successfully!');
@@ -339,10 +340,10 @@ export class Card {
   }
 
   async processLinkingTx(linkingTxid) {
-    console.log('Processing linking transaction with txid:', linkingTxid);
+    cardLogger.log('Processing linking transaction with txid:', linkingTxid);
     return await backend.post(`/cards/process-linking-tx/`, { linking_txid: linkingTxid })
       .then(response => {
-        console.log('Linking transaction processed successfully:', response.data);
+        cardLogger.log('Linking transaction processed successfully:', response.data);
         return response.data;
       })
       .catch(error => {
@@ -352,16 +353,16 @@ export class Card {
   }
 
   async pollForLinkingToken(tokenId, interval = 1000, maxAttempts = 10) {
-    console.log(`Polling for linking token with tokenId: ${tokenId}`);
+    cardLogger.log(`Polling for linking token with tokenId: ${tokenId}`);
     let attempts = 0;
     while (attempts < maxAttempts) {
       try {
         const tokenUtxos = await this.wallet.getTokenUtxos(tokenId);
         if (tokenUtxos.length > 0) {
-          console.log('Linking token found in wallet:', tokenUtxos);
+          cardLogger.log('Linking token found in wallet:', tokenUtxos);
           return tokenUtxos;
         } else {
-          console.log(`Attempt ${attempts + 1}/${maxAttempts}: Linking token not found yet. Retrying in ${interval}ms...`);
+          cardLogger.log(`Attempt ${attempts + 1}/${maxAttempts}: Linking token not found yet. Retrying in ${interval}ms...`);
         }
       } catch (error) {
         console.error('Error polling for linking token:', error.response || error.message);
@@ -392,7 +393,7 @@ export class Card {
    * @returns {Promise<Object>}
    */
   async saveActivationAttempt() {
-    console.log('Creating card entry...');
+    cardLogger.log('Creating card entry...');
     this._assertWallet();
     const idempotencyKey = `create-card-${this.wallet.pubkey()}-${crypto.randomUUID()}`;
 
@@ -403,7 +404,7 @@ export class Card {
       createdAt: Date.now(),
     });
     
-    console.log('Card activation attempt created with idempotencyKey:', idempotencyKey);
+    cardLogger.log('Card activation attempt created with idempotencyKey:', idempotencyKey);
     await updateCardActivationAttempt(this.wallet.walletHash, { idempotencyKey, status: CardActivationStatus.NONE });
 
     const attempt = await getCardActivationAttempt(this.wallet.walletHash)
@@ -418,7 +419,7 @@ export class Card {
    * @returns {Promise<Object>}
    */
   async _saveGenesis(cardId, category) {
-    console.log('Saving genesis token to server:', { cardId, category });
+    cardLogger.log('Saving genesis token to server:', { cardId, category });
     const data = { category };
     const response = await backend.patch(`/cards/${cardId}/`, data)
       .catch(error => {
@@ -460,13 +461,13 @@ export class Card {
     const data = {
       to_address: this.wallet.tokenAddress(),
     }
-    console.log('Requesting linking token with data:', data)
+    cardLogger.log('Requesting linking token with data:', data)
     const response = await backend.post(`/cards/${this.id}/linking-token/`, data)
       .catch(error => {
         console.error('Error requesting linking token:', error.response || error.message);
         throw error;
       });
-    console.log('response:', response.data)
+    cardLogger.log('response:', response.data)
     return response.data || null;
   }
 
@@ -520,16 +521,16 @@ export class Card {
    * @returns {Promise<Object>} - The updated card data
    */
   async update(data = {}) {
-    console.log('Updating card with data:', data);
+    cardLogger.log('Updating card with data:', data);
     const response = await backend.patch(`/cards/${this.id}/`, data);
     return response.data;
   }
 
   async subscribeToTransactions() {
     if (this.isSubscribed) return;
-    console.log('Subscribing to transactions for card ID:', this.id)
+    cardLogger.log('Subscribing to transactions for card ID:', this.id)
     await backend.post(`/cards/${this.id}/subscribe-transactions/`, null).then(() => {
-      console.log('Successfully subscribed to card transactions')
+      cardLogger.log('Successfully subscribed to card transactions')
     }).catch(err => {
       console.error('Error subscribing to card transactions:', err.response || err)
     })
@@ -544,13 +545,13 @@ export class Card {
    */
   // this function should poll as well as mempool conflict happens
   async _mintGenesisAuthToken(interval = 1000, maxAttempts = 10) {
-    console.log('Starting genesis token minting...');
+    cardLogger.log('Starting genesis token minting...');
     this._assertAuthNftService();
 
     while (maxAttempts > 0) {
       try {
         const result = await this.authNftService.genesis();
-        console.log('Genesis result:', result);
+        cardLogger.log('Genesis result:', result);
         
         if (result) {
           if (result.success) {
@@ -597,9 +598,9 @@ export class Card {
    * @returns {Promise<Object>}
    */
   async _mintGlobalAuthToken(tokenId, interval = 1000, maxAttempts = 10) {
-    console.log('Minting global auth token...');
+    cardLogger.log('Minting global auth token...');
     this._assertAuthNftService();
-    console.log('tokenId:', tokenId)
+    cardLogger.log('tokenId:', tokenId)
     while (maxAttempts > 0) {
       try {
         const result = await this.authNftService.mint({ 
@@ -610,7 +611,7 @@ export class Card {
             }]
         });
         
-        console.log('Global auth token minted:', result);
+        cardLogger.log('Global auth token minted:', result);
 
         return result;
       } catch (error) {
@@ -618,7 +619,7 @@ export class Card {
       }
       maxAttempts--;
       if (maxAttempts > 0) {
-        console.log(`Retrying in ${interval}ms... (${maxAttempts} attempts left)`);
+        cardLogger.log(`Retrying in ${interval}ms... (${maxAttempts} attempts left)`);
         await new Promise(resolve => setTimeout(resolve, interval));
       } else {
         throw new Error('Max attempts reached while minting global auth token');
@@ -637,7 +638,7 @@ export class Card {
    * @returns {Promise<{mintResult: Object, issueResult: Object}>}
    */
   async issueMerchantAuthToken({ authorized = true, spendLimitSats = defaultSpendLimitSats, merchant } = {}, retryOnFailure = true) {
-    console.log('Issuing merchant auth token...');
+    cardLogger.log('Issuing merchant auth token...');
     if (!merchant?.id || !merchant?.pubkey) {
       throw new Error('Merchant id and pubkey are required to issue merchant auth token');
     }
@@ -675,7 +676,7 @@ export class Card {
    * @returns {Promise<Object>}
    */
   async _mintMerchantAuthToken({ authorized = true, spendLimitSats, merchant } = {}, retryOnFailure = true) {
-    console.log('Minting merchant auth token...');
+    cardLogger.log('Minting merchant auth token...');
     this._assertWallet();
     this._assertAuthNftService();
 
@@ -687,7 +688,7 @@ export class Card {
     // // Encode the merchant hash and check first if a token with 
     // // matching commitment already exists in the contract
     // const merchantHash = encodeMerchantHash({ merchantId: merchant.id, merchantPk: merchant.pubkey }).hex;
-    // console.log('Encoded merchant hash:', merchantHash);
+    // cardLogger.log('Encoded merchant hash:', merchantHash);
     // const cardTokenUtxos = await this.getTokenUtxos()
 
     const { cumulativeValue } = await this.wallet.getBchUtxos();
@@ -697,7 +698,7 @@ export class Card {
     // If utxos are enough, use them to mint the auth token
     if (availableSats < mintSatsRequired) {
       // Otherwise, create a UTXO by sending the required satoshi to the current wallet's cashaddress
-      console.warn('Insufficient BCH UTXOs available in wallet for minting. Creating UTXO...');
+      cardLogger.warn('Insufficient BCH UTXOs available in wallet for minting. Creating UTXO...');
       await this._createFundingUtxo(mintSatsRequired - availableSats + 10000n); // Adding buffer
       await this._waitForTransaction();
     }
@@ -711,7 +712,7 @@ export class Card {
           spendLimitSats: spendLimitSats || defaultSpendLimitSats,
         }]
     });
-    console.log('Merchant auth token minted:', result);
+    cardLogger.log('Merchant auth token minted:', result);
     return result;
   }
 
@@ -733,7 +734,7 @@ export class Card {
         console.error('Error issuing auth tokens:', error.message || error);
         maxAttempts--;
         if (maxAttempts > 0) {
-          console.log(`Retrying in ${interval}ms... (${maxAttempts} attempts left)`);
+          cardLogger.log(`Retrying in ${interval}ms... (${maxAttempts} attempts left)`);
           await new Promise(resolve => setTimeout(resolve, interval));
         } else {
           throw new Error(`Error: ${lastError?.message || lastError}`);
@@ -753,7 +754,7 @@ export class Card {
 
     const toAddress = this.tokenAddress
     const result = await this.authNftService.issue(mutableTokens, toAddress);
-    console.log('Auth tokens issued:', result);
+    cardLogger.log('Auth tokens issued:', result);
     return result;
   }
 
@@ -797,9 +798,9 @@ export class Card {
   async getUtxos() {
     this._assertContract();
     // const temp = await this.wallet.getUtxos()
-    // console.log('Wallet UTXOs:', temp);
+    // cardLogger.log('Wallet UTXOs:', temp);
     const contractUtxos = await this.contract.getUtxos();
-    console.log('>>>>>> contractUtxos:', contractUtxos)
+    cardLogger.log('>>>>>> contractUtxos:', contractUtxos)
     return contractUtxos;
   }
 
@@ -904,7 +905,7 @@ export class Card {
       const mutations = [mutation];
       const mutationTarget = merchant ? 'merchant' : 'global';
 
-      console.log(`Mutating ${mutationTarget} auth token commitment:`, mutations);
+      cardLogger.log(`Mutating ${mutationTarget} auth token commitment:`, mutations);
 
       const privateKey = this.wallet.privkey();
       const mutateResponse = await this.contract.mutate({
@@ -913,7 +914,7 @@ export class Card {
         broadcast
       });
 
-      console.log('>>>>>>mutateResponse:', mutateResponse);
+      cardLogger.log('>>>>>>mutateResponse:', mutateResponse);
       return mutateResponse;
     } catch (error) {
       throw error;
@@ -927,13 +928,13 @@ export class Card {
    * @returns {Promise<Object>}
    */
   async sweep(opts = { broadcast: true }) {
-    console.log('[card.sweep] Sweeping card BCH balance to external address...');
+    cardLogger.log('[card.sweep] Sweeping card BCH balance to external address...');
     this._assertContract();
-    console.log('[card.sweep] Contract initialized:', this.contract);
+    cardLogger.log('[card.sweep] Contract initialized:', this.contract);
     this._assertWallet();
     
 
-    console.log('Sweeping card BCH balance to external address...');
+    cardLogger.log('Sweeping card BCH balance to external address...');
 
     const privateKey = this.wallet.privkey();
     const sweepResponse = await this.contract.sweep({
@@ -942,7 +943,7 @@ export class Card {
       broadcast: opts.broadcast
     });
 
-    console.log('Sweep response:', sweepResponse);
+    cardLogger.log('Sweep response:', sweepResponse);
 
     if (sweepResponse.txid) {
       this.processTransaction(sweepResponse.txid);
@@ -972,7 +973,7 @@ export class Card {
       merchant,
       broadcast
     }
-    console.log('Burning auth token with params:', params);
+    cardLogger.log('Burning auth token with params:', params);
     const burnResponse = await this.contract.burn(params);
     
     if (burnResponse.txid) {
@@ -990,7 +991,7 @@ export class Card {
    */
   async _checkForFundingUtxos() {
     try {
-      console.log('Checking for existing vout=0 UTXOs...');
+      cardLogger.log('Checking for existing vout=0 UTXOs...');
       this._assertWallet();
       
       const resp = await this.wallet.getBchUtxos()
@@ -998,12 +999,12 @@ export class Card {
       const voutZeroUtxos = utxos.filter(utxo => utxo.tx_pos === 0);
       
       const totalSats = voutZeroUtxos.reduce((sum, utxo) => sum + utxo.value, 0n);
-      console.log(`Found ${voutZeroUtxos.length} existing vout=0 UTXOs with total ${totalSats} sats`);
+      cardLogger.log(`Found ${voutZeroUtxos.length} existing vout=0 UTXOs with total ${totalSats} sats`);
       return totalSats;
       
     } catch (error) {
-      console.warn('Could not check existing UTXOs:', error.message);
-      return 0;
+      cardLogger.warn('Could not check existing UTXOs:', error.message);
+      return 0n;
     }
   }
 
@@ -1013,7 +1014,7 @@ export class Card {
    * @returns {Promise<Object>}
    */
   async _createFundingUtxo(amount) {
-    console.log('Creating vout=0 transaction...');
+    cardLogger.log('Creating vout=0 transaction...');
     this._assertWallet();
     return await this.wallet.createFundingUtxo(amount);
     // return await this.wallet.consolidateUtxos(amount)
@@ -1044,15 +1045,15 @@ export class Card {
    * @returns {Promise<void>}
    */
   async _waitForTransaction(delayMs = 6000) {
-    console.log('Waiting for transaction confirmation for ', delayMs / 1000, 'seconds...');
+    cardLogger.log('Waiting for transaction confirmation for ', delayMs / 1000, 'seconds...');
     await new Promise(resolve => setTimeout(resolve, delayMs));
   }
 
   async processTransaction(txid) {
     // Process the transaction and update card state as needed
-    console.log('Processing transaction:', txid);
+    cardLogger.log('Processing transaction:', txid);
     await backend.post(`/cards/${this.id}/process-transaction/`, { txid }).then(response => {
-      console.log('Transaction processed successfully:', response.data);
+      cardLogger.log('Transaction processed successfully:', response.data);
       // Optionally update card state based on response
     }).catch(error => {
       console.error('Error processing transaction:', error.response || error.message);

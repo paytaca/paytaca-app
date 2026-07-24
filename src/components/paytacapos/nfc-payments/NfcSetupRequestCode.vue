@@ -212,7 +212,7 @@ export default {
   align-content: center;
 
   border-radius: 16px;
-  border: 2px solid #ed5f59;
+  border: 2px solid var(--q-negative, #ed5f59);
 
   padding: 1rem;
 }

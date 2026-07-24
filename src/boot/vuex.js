@@ -147,7 +147,7 @@ export default boot(async (obj) => {
     store.subscribe((mutation, state) => {
       try {
         // Log any state changes that might be problematic
-        if (mutation.type.includes('update') || mutation.type.includes('set')) {
+        if (process.env.NODE_ENV === 'development' && (mutation.type.includes('update') || mutation.type.includes('set'))) {
           console.debug('Store mutation:', mutation.type, mutation.payload)
         }
       } catch (err) {

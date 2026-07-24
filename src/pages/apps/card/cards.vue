@@ -237,8 +237,13 @@ export default {
   },
 
   async mounted () {
-    await this.loadData()
-    this.isLoaded = true
+    try {
+      await this.loadData()
+    } catch (err) {
+      console.error('Error loading card list data:', err)
+    } finally {
+      this.isLoaded = true
+    }
     this.$nextTick(() => {
       window.addEventListener('touchstart', this.dismissSwipeHint, { once: true })
       window.addEventListener('mousedown', this.dismissSwipeHint, { once: true })

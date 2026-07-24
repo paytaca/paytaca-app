@@ -399,11 +399,16 @@ export default {
   methods: {
     async loadData () {
       this.isLoaded = false
-      await this.loadUser()
-      await this.loadActiveCard()
-      this.getCardBchBalance()
-      this.loadBalanceVisibility()
-      this.isLoaded = true
+      try {
+        await this.loadUser()
+        await this.loadActiveCard()
+        this.getCardBchBalance()
+        this.loadBalanceVisibility()
+      } catch (err) {
+        console.error('Error loading card details:', err)
+      } finally {
+        this.isLoaded = true
+      }
     },
 
     async loadActiveCard () {

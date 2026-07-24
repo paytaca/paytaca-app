@@ -1,3 +1,4 @@
+import { cardLogger } from 'src/utils/debug-logger.js'
 import { loadCardUser } from "./user"
 import Card from "./card"
 
@@ -22,7 +23,7 @@ export async function saveCardActivationAttempt(walletHash, attempt) {
       throw new Error('Wallet hash is required to save create card attempt')
     }
   }
-  console.log('Saving card activation attempt for walletHash:', walletHash, 'attempt:', attempt)
+  cardLogger.log('Saving card activation attempt for walletHash:', walletHash, 'attempt:', attempt)
   const storageKey = `${CARD_ACTIVATION_STORAGE_KEY}:${walletHash}`
   localStorage.setItem(
     storageKey,
@@ -86,7 +87,7 @@ export async function clearCardActivationAttempt(walletHash) {
   const idempotencyKey = attempt?.idempotencyKey
   if (idempotencyKey) {
     await Card.deleteCardAttempt(idempotencyKey).catch(err => {
-      console.warn(`Failed to delete card attempt from server: ${err.response?.data?.message || err.message}`)
+      cardLogger.warn(`Failed to delete card attempt from server: ${err.response?.data?.message || err.message}`)
     })
   }
   const storageKey = `${CARD_ACTIVATION_STORAGE_KEY}:${walletHash}`
