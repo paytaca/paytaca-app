@@ -1319,7 +1319,7 @@ export default {
         // Filter out own messages and already-processed IDs
         const filtered = ids.filter(id => {
           if (this._sentReadReceiptIds.has(id)) return false
-          const msg = this.allMessages.find(m => m.id === id)
+          const msg = this.messageIndexById.get(id)
           return msg && msg.sender !== this.myPubKey
         })
         if (filtered.length) {
@@ -1509,9 +1509,9 @@ export default {
           this.$refs.messagesContainer.scrollBy({ top: scrollNeeded, behavior: 'smooth' })
           await new Promise(r => setTimeout(r, 250))
           const newRect = msgElement.getBoundingClientRect()
-          this.positionContextMenu(newRect, isMine, menuMargin)
+          this.positionContextMenu(newRect, isMine, menuMargin, estimatedMenuHeight)
         } else {
-          this.positionContextMenu(msgRect, isMine, menuMargin)
+          this.positionContextMenu(msgRect, isMine, menuMargin, estimatedMenuHeight)
         }
 
         this.showContextMenuDialog = true
@@ -1522,7 +1522,7 @@ export default {
         this._startWatchingSelection(message.id)
       })
     },
-    positionContextMenu (msgRect, isMine, margin) {
+    positionContextMenu (msgRect, isMine, margin, menuHeight = 340) {
       const menuWidth = 200
       const padding = 16
       let top = msgRect.bottom + margin
@@ -1532,8 +1532,8 @@ export default {
         left = Math.max(padding, msgRect.right - menuWidth)
       }
 
-      if (top + 340 > window.innerHeight - padding) {
-        top = window.innerHeight - 340 - padding
+      if (top + menuHeight > window.innerHeight - padding) {
+        top = window.innerHeight - menuHeight - padding
       }
       if (left + menuWidth + padding > window.innerWidth) {
         left = window.innerWidth - menuWidth - padding
@@ -1679,9 +1679,9 @@ export default {
           this.$refs.messagesContainer.scrollBy({ top: scrollNeeded, behavior: 'smooth' })
           await new Promise(r => setTimeout(r, 250))
           const newRect = msgElement.getBoundingClientRect()
-          this.positionContextMenu(newRect, message.sender === this.myPubKey, menuMargin)
+          this.positionContextMenu(newRect, message.sender === this.myPubKey, menuMargin, estimatedMenuHeight)
         } else {
-          this.positionContextMenu(msgRect, message.sender === this.myPubKey, menuMargin)
+          this.positionContextMenu(msgRect, message.sender === this.myPubKey, menuMargin, estimatedMenuHeight)
         }
 
         this.showContextMenuDialog = true
@@ -1694,8 +1694,6 @@ export default {
     onReact (message, emoji) {
       this.hideContextMenu()
       if (!message || !emoji) return
-      // Visible debug feedback so we can see handlers firing without remote console
-      
       this.$store.dispatch('nostrChat/sendReaction', {
         roomId: this.roomId,
         messageId: message.id || message.kind14Id,
