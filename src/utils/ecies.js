@@ -25,20 +25,22 @@ export function encryptWithPublicKey(data, recipientPubkey) {
   const recipientPubBytes = secp.etc.hexToBytes(recipientPubkey)
   const sharedPoint = secp.getSharedSecret(ephemeralPrivkey, recipientPubBytes)
   const sharedSecret = sharedPoint.slice(1, 33) // Use X coordinate (32 bytes)
-  
-  const ivSource = crypto.createHash('sha256')
-    .update(ephemeralPubkey)
-    .digest()
-  const iv = ivSource.slice(0, 16) // AES-256-CBC needs 16 byte IV
-  
-  const cipher = crypto.createCipheriv('aes-256-cbc', Buffer.from(sharedSecret), iv)
-  const encrypted = Buffer.concat([
+
+  // Use a random IV with AES-256-GCM for authenticated encryption (IND-CCA2 secure)
+  const iv = crypto.randomBytes(12) // 96-bit IV recommended for GCM
+
+  const cipher = crypto.createCipheriv('aes-256-gcm', Buffer.from(sharedSecret), iv)
+  const ciphertext = Buffer.concat([
     cipher.update(Buffer.from(plaintext, 'utf8')),
     cipher.final()
   ])
-  
+  const authTag = cipher.getAuthTag() // 16-byte GCM authentication tag
+
+  // Encode as iv (12) + authTag (16) + ciphertext, all base64
+  const combined = Buffer.concat([iv, authTag, ciphertext])
+
   return {
-    encryptedData: encrypted.toString('base64'),
+    encryptedData: combined.toString('base64'),
     encryptKey: secp.etc.bytesToHex(ephemeralPubkey)
   }
 }

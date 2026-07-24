@@ -254,8 +254,7 @@ async function generateLinkCode(opts) {
     const xpubkey = await wallet.getXPubKey()
 
     // Encrypt xpubkey with POS device's public key using ECIES
-    const addressIndex = 0
-    const merchantWallet = await loadCardMerchantWallet(addressIndex)
+    const merchantWallet = await loadCardMerchantWallet()
     const _data = {
       xpubkey: xpubkey,
       privateKey: merchantWallet.privkey()

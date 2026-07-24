@@ -27,7 +27,6 @@ async function encryptAddress(dek, address) {
   const combined = new Uint8Array(nonce.length + ciphertext.byteLength);
   combined.set(nonce, 0);
   combined.set(new Uint8Array(ciphertext), nonce.length);
-  console.log("Encrypted address (nonce + ciphertext):", combined);
   return combined;
 }
 
@@ -48,9 +47,6 @@ async function wrapDEKForRecipient(dek, recipientPublicKeyBytes) {
 }
 
 export async function createEncryptedAddressPayload(address, ownerPublicKeyBytes, dispatcherPublicKeyBytes) {
-  console.log("Creating encrypted address payload for address:", address);
-  console.log("Owner public key bytes:", ownerPublicKeyBytes);
-  console.log("Dispatcher public key bytes:", dispatcherPublicKeyBytes);
   const dek = await generateDEK();
 
   const encryptedAddress = await encryptAddress(dek, address);

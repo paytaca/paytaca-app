@@ -139,6 +139,7 @@ export class Wallet {
    */
   pubkey (addressPath = '') {
     if (!addressPath) addressPath = this.addressPath()
+    console.log('>>>>>>>>pubkey:', this.libauthWallet.getPubkeyAt(addressPath))
     return this.libauthWallet.getPubkeyAt(addressPath)
   }
 
@@ -471,11 +472,9 @@ export class Wallet {
 
     if (genesisUtxo.vout !== 0 || genesisUtxo.satoshis <= DUST_LIMIT) {
       await this.createGenesisUtxo(5000) // Create a new genesis UTXO with 5k sats
-      setTimeout(async () => {
-          const updatedBchUtxos = await this.getBchUtxos()
-          console.log('updatedBchUtxos:', updatedBchUtxos)
-          genesisUtxo = updatedBchUtxos.utxos[0]
-      }, 5000) 
+      await new Promise(resolve => setTimeout(resolve, 5000))
+      const updatedBchUtxos = await this.getBchUtxos()
+      genesisUtxo = updatedBchUtxos.utxos[0]
     }
 
     if (genesisUtxo.satoshis <= DUST_LIMIT) {

@@ -659,17 +659,6 @@ export class Card {
       return { mintResult, issueResult };
     } catch (error) {
       console.error('Error during merchant auth token issuance:', error.message || error);
-      const satsNeeded = this.parseSatoshisNeeded(error.message) * 2 || this.estimateCreateCardSatsRequirement(); // Default to estimated requirement if parsing fails
-      if (satsNeeded) {
-        console.log(`Creating vout=0 UTXO with ${satsNeeded} sats...`);
-        await this._createFundingUtxo(BigInt(satsNeeded));
-        await this._waitForTransaction();
-        console.log('Retrying merchant auth token issuance after creating UTXO...');
-        if (retryOnFailure) {
-          console.log('retryOnFailure:', retryOnFailure)
-          return this.issueMerchantAuthToken({ authorized, spendLimitSats, merchant }, false);
-        }
-      }
       throw error;
     }
   }
@@ -757,15 +746,12 @@ export class Card {
     this._assertAuthNftService();
     const tokenUtxos = await this.wallet.getTokenUtxos(tokenId)
     const mutableTokens = tokenUtxos.filter(utxo => utxo?.token?.nft?.capability === 'mutable');
-    console.log('Token UTXOs before issuing auth tokens:', tokenUtxos);
-    console.log('mutableTokens:', mutableTokens);
     
     if (mutableTokens.length === 0) {
       throw new Error('No mutable auth tokens available to issue.');
     }
 
     const toAddress = this.tokenAddress
-    console.log('>>>>>>>>>>>>>toAddress:', toAddress)
     const result = await this.authNftService.issue(mutableTokens, toAddress);
     console.log('Auth tokens issued:', result);
     return result;

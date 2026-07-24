@@ -82,9 +82,13 @@ export async function clearCardActivationAttempt(walletHash) {
       throw new Error('Wallet hash is required to clear create card attempt')
     }
   }
-  await Card.deleteCardAttempt(walletHash).catch(err => {
-    console.warn(`Failed to delete card attempt from server: ${err.response?.data?.message || err.message}`)
-  })
+  const attempt = await getCardActivationAttempt(walletHash)
+  const idempotencyKey = attempt?.idempotencyKey
+  if (idempotencyKey) {
+    await Card.deleteCardAttempt(idempotencyKey).catch(err => {
+      console.warn(`Failed to delete card attempt from server: ${err.response?.data?.message || err.message}`)
+    })
+  }
   const storageKey = `${CARD_ACTIVATION_STORAGE_KEY}:${walletHash}`
   localStorage.removeItem(storageKey)
 }

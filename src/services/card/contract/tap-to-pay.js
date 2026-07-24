@@ -489,7 +489,7 @@ export class TapToPayV1 extends TapToPay {
             throw new Error('Owner public key hash does not match the contract\'s owner public key hash')
         }
 
-        const sweepResult = {}
+        let sweepResult = {}
         const { 
             cumulativeValue: sweepAmount, 
             utxos: bchUtxos
@@ -527,8 +527,7 @@ export class TapToPayV1 extends TapToPay {
         const changeAmount = fundingAmount - BigInt(estimatedFee)
         
         if (fundingAmount < BigInt(estimatedFee)) {
-            sweepResult = { success: false, message: 'Insufficient BCH balance to cover sweep fee.' }
-            return sweepResult
+            return { success: false, message: 'Insufficient BCH balance to cover sweep fee.' }
         }
 
         if (changeAmount > P2PKH_DUST) {
@@ -608,7 +607,7 @@ export class TapToPayV1 extends TapToPay {
 
         // get funding utxos to cover the burn fee
         const estimatedFee = this.estimateFee({ 
-            numContractInputs: utxoToBurn.length, // The token UTXO being burned
+            numContractInputs: 1, // The token UTXO being burned
             numP2pkhInputs: 1, // Assume at least 1 P2PKH input for funding
             numOutputs: outputs.length + 1 // Burn output + potential change output
         })
@@ -931,7 +930,7 @@ export class TapToPayV2 extends TapToPay {
         
         console.log('[sweep] Owner public key hash:', ownerPkh)
 
-        const sweepResult = {}
+        let sweepResult = {}
 
         const ownerUtxo = await this.getOwnerTokenUtxo()
         const decodedCommitment = ownerUtxo.token?.nft?.commitment ? decodeOwnershipCommitment(ownerUtxo.token.nft.commitment) : undefined
@@ -984,8 +983,7 @@ export class TapToPayV2 extends TapToPay {
         const changeAmount = fundingAmount - BigInt(estimatedFee)
         
         if (fundingAmount < BigInt(estimatedFee)) {
-            sweepResult = { success: false, message: 'Insufficient BCH balance to cover sweep fee.' }
-            return sweepResult
+            return { success: false, message: 'Insufficient BCH balance to cover sweep fee.' }
         }
 
         if (changeAmount > DUST_LIMIT) {

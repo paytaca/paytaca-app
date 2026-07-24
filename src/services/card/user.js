@@ -375,7 +375,6 @@ export class CardUser {
     async linkAndActivateCard(category) {
         // Request to obtain the linking token first
         const linkingToken = await this._requestLinkingToken(category);
-        console.log('Obtained linking token:', linkingToken);
         // Link the contract and the card using the linking token
     }
 }
@@ -515,12 +514,9 @@ export async function getAuthToken () {
  * @returns {Promise<string|undefined>}
  */
 export async function saveAuthToken (value) {
-    console.log('Saving auth token...');
     try {
         const storedValue = typeof value === 'string' ? value : JSON.stringify(value);
         const result = await SecureStoragePlugin.set({ key: TOKEN_STORAGE_KEY, value: storedValue });
-        const temp = await getAuthToken();
-        console.log('Auth token after saving:', temp);
         return result.value;
     } catch (error) {
         console.error('Failed to save auth token:', error);
@@ -533,12 +529,8 @@ export async function saveAuthToken (value) {
  * @returns {Promise<void>}
  */
 export async function clearAuthToken () {
-    console.log('Clearing auth token...');
     try {
         SecureStoragePlugin.remove({ key: TOKEN_STORAGE_KEY })
-        console.log('Card auth token deleted');
-        const authToken = await getAuthToken();
-        console.log('Auth token after deletion (should be null):', authToken);
     } catch (error) {
         console.error('Failed to clear auth token:', error);
         throw error;
