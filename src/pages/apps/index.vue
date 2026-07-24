@@ -576,6 +576,16 @@ export default {
           category: 'wallet-connections'
         },
         {
+          name: this.$t('Card'),
+          description: this.$t('Apps.Card.Description', {}, 'Manage your Paytaca Card and view your card activity.'),
+          iconName: 'mdi-card-bulleted',
+          path: '/apps/card',
+          active: true,
+          iconStyle: 'font-size: 4em',
+          active: !this.$store.getters['global/isChipnet'],
+          category: 'marketplace'
+        },
+        {
           id: 'merchant-admin',
           name: this.$t('MerchantAdmin', {}, 'Merchant Admin'),
           description: this.$t('Apps.MerchantAdmin.Description', {}, 'Manage your merchant tools and settings.'),
@@ -626,6 +636,14 @@ export default {
           active: true,
           iconStyle: 'font-size: 4em',
           category: 'utilities'
+        },
+        {
+          name: this.$t('WalletBackup'),
+          iconName: 'img:wallet-backup.png',
+          path: '/apps/wallet-backup',
+          active: true,
+          iconStyle: 'width:45%; height: 45%;',
+          smartBCHOnly: false
         },
         {
           id: 'settings',

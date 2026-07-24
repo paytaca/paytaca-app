@@ -1,0 +1,91 @@
+import { backend } from 'src/marketplace/backend';
+import { backend as cardBackend } from './backend';
+import { cardLogger } from 'src/utils/debug-logger.js';
+
+/**
+ * Fetches verified merchants from commercehub storefronts endpoint
+ * Filters by user location and distance radius
+ * @param {Object} params - Query parameters
+ * @param {number} params.limit - Number of results per page (default: 50)
+ * @param {number} params.offset - Offset for pagination (default: 0)
+ * @param {Object} params.location - User location coordinates
+ * @param {number} params.location.latitude - Latitude
+ * @param {number} params.location.longitude - Longitude
+ * @param {number} params.radius - Search radius in km (default: 10)
+ * @returns {Promise<Object>} Response with results, count, limit, offset
+ */
+export async function getMerchantList(params = {}) {
+  const {
+    limit = 50,
+    offset = 0,
+    location = null,
+    radius = 10
+  } = params;
+
+  const queryParams = {
+    limit,
+    offset,
+    active: true,
+    annotate_is_open_at: new Date().toISOString(),
+    ordering: 'in_prelaunch,-is_open',
+  };
+
+  // Add distance filter if location coordinates are provided
+  if (location && Number.isFinite(location.latitude) && Number.isFinite(location.longitude)) {
+    queryParams.distance = btoa(JSON.stringify({
+      lat: location.latitude,
+      lon: location.longitude,
+      radius: radius * 1000 // Convert km to meters
+    }));
+    queryParams.ordering = [queryParams.ordering, 'distance'].join(',');
+  }
+
+  const response = await backend.get('connecta/storefronts/', { params: queryParams });
+  
+  // Transform storefront data to merchant format
+  const merchants = response?.data?.results?.map(storefront => ({
+    id: storefront.id,
+    name: storefront.name,
+    address: storefront.location?.formatted || storefront.address || 'Address not available',
+    location: storefront.location,
+    isOpen: storefront.is_open,
+    inPrelaunch: storefront.in_prelaunch,
+    distance: storefront.distance, // Distance in meters from user location
+    shopId: storefront.shop_id, // Shop ID indicates a verified merchant with POS
+    // Additional storefront data
+    imageUrl: storefront.logo_url,
+    currency: storefront.currency?.code,
+    description: storefront.description,
+    // Original storefront data for reference
+    storefrontData: storefront
+  })) || [];
+
+  return {
+    results: merchants,
+    count: response?.data?.count || 0,
+    limit: response?.data?.limit || limit,
+    offset: response?.data?.offset || offset,
+    hasMore: (response?.data?.offset || offset) + merchants.length < (response?.data?.count || 0)
+  };
+}
+
+/**
+ * Fetches merchants by city
+ * @param {string} city - City name
+ * @param {Object} params - Query parameters
+ * @param {number} params.limit - Number of results per page (default: 50)
+ * @param {number} params.offset - Offset for pagination (default: 0)
+ * @returns {Promise<Object>} Response with results, count, limit, offset
+ */
+export async function getMerchantsByCity(city, params = {limit: 50, offset: 0, token_id: null}) {
+  const response = await cardBackend.get(`/merchants/by-city/${city}`, { params: params });
+  cardLogger.log('Fetched merchants by city:', response?.data);
+  
+  return {
+    results: response?.data?.results || [],
+    count: response?.data?.count || 0,
+    limit: response?.data?.limit || params.limit,
+    offset: response?.data?.offset || params.offset,
+    hasMore: (response?.data?.offset || params.offset) + (response?.data?.results?.length || 0) < (response?.data?.count || 0)
+  };
+}
