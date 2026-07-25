@@ -2864,14 +2864,13 @@ export default {
 
         // IMPORTANT: Address reuse strategy
         // We use lastAddressIndex directly (not lastAddressIndex + 1) to check if the last address
-        // has a balance. This allows us to:
-        // 1. Reuse addresses that were previously used but now have zero balance (funds were spent)
-        //    - This is safe and privacy-preserving since the address has no balance
-        //    - It prevents unnecessary address index growth
-        // 2. Only increment to a new address if the last address still has a balance
-        //    - This ensures we never reuse an address that currently holds funds
-        // This behavior is intentional and correct - we check balance first, then decide whether
-        // to reuse or increment, rather than always incrementing.
+        // has been used (balance or prior transaction history). This allows us to:
+        // 1. Reuse addresses that have never been used (fresh addresses)
+        //    - This prevents unnecessary address index growth
+        // 2. Only increment to a new address if the last address has been used
+        //    - This ensures we never reuse an address that has any on-chain history
+        // This behavior is intentional and correct - we check both balance and tx history, then
+        // decide whether to reuse or increment, rather than always incrementing.
 
         // IMPORTANT: Use the asset type being sent for derivation path, not the selected wallet's type
         // The asset type determines whether we need a BCH address (m/44'/145'/0') or SLP address (m/44'/245'/0')
@@ -2893,7 +2892,7 @@ export default {
           }
           finalAddress = subscribeResult
         } else {
-          // Step 1: Generate address from lastAddressIndex WITHOUT subscribing (just to check balance)
+          // Step 1: Generate address from lastAddressIndex WITHOUT subscribing (just to check if used)
           const addressResult = await generateAddressSetWithoutSubscription({
             walletIndex: selectedWallet.index,
             derivationPath: derivationPath,
@@ -2925,7 +2924,7 @@ export default {
             
             finalAddress = subscribeResult
           } else {
-            // Step 4: If address has balance (already used), generate a new address by incrementing
+            // Step 4: If address has been used, generate a new address by incrementing
             let newAddressIndex = validAddressIndex + 1
             // Skip address 0/0 (reserved for message encryption)
             newAddressIndex = vm.ensureAddressIndexNotZero(newAddressIndex)
