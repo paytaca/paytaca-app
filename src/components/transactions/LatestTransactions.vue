@@ -352,28 +352,43 @@ export default {
         }
 
         const enrichedTransactions = await this.enrichTransactionsWithAssetInfo(transactions)
-        const currentCached = getCachedTransactions(this.walletHash, this.transactionsFilter)
-        let merged
-        if (currentCached && Array.isArray(currentCached.transactions) && currentCached.transactions.length) {
-          merged = mergeTransactions(currentCached.transactions, enrichedTransactions)
+        let display
+        let hasMore
+
+        if (this.txAssetFilter !== 'all') {
+          enrichedTransactions.sort((a, b) => {
+            const tA = a.tx_timestamp || a.date_created || 0
+            const tB = b.tx_timestamp || b.date_created || 0
+            return tB - tA
+          })
+          display = enrichedTransactions.slice(0, 5)
+          hasMore = response.data?.has_next || enrichedTransactions.length > 5
         } else {
-          merged = enrichedTransactions
+          const currentCached = getCachedTransactions(this.walletHash, this.transactionsFilter)
+          let merged
+          if (currentCached && Array.isArray(currentCached.transactions) && currentCached.transactions.length) {
+            merged = mergeTransactions(currentCached.transactions, enrichedTransactions)
+          } else {
+            merged = enrichedTransactions
+          }
+
+          merged.sort((a, b) => {
+            const tA = a.tx_timestamp || a.date_created || 0
+            const tB = b.tx_timestamp || b.date_created || 0
+            return tB - tA
+          })
+
+          display = merged.slice(0, 5)
+          hasMore = response.data?.has_next || enrichedTransactions.length > 5
         }
-
-        merged.sort((a, b) => {
-          const tA = a.tx_timestamp || a.date_created || 0
-          const tB = b.tx_timestamp || b.date_created || 0
-          return tB - tA
-        })
-
-        const display = merged.slice(0, 5)
-        const hasMore = response.data?.has_next || enrichedTransactions.length > 5
 
         this.transactions = display
         this.hasMoreTransactions = hasMore
         this.transactionsLoaded = true
 
-        setCachedTransactions(this.walletHash, this.transactionsFilter, enrichedTransactions, hasMore)
+        if (this.txAssetFilter === 'all') {
+          setCachedTransactions(this.walletHash, this.transactionsFilter, enrichedTransactions, hasMore)
+        }
       } catch (error) {
         console.error('Error loading latest transactions:', error)
         if (!this.transactionsLoaded) {
