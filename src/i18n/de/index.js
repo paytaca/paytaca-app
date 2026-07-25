@@ -168,7 +168,7 @@ export default {
   "Apps.Eload.Description": "Kaufen Sie Telekommunikationslasten, Kabelabonnements und Gamepins",
   "Apps.Gifts.Description": "Erstellen und lösen Sie BCH-Geschenke ein.",
   "Apps.HubSubscriptions.Description": "Verwalten Sie Ihre wiederkehrenden Zahlungen.",
-  "Apps.LiftToken.Description": "Sehen Sie sich Ihre LIFT-Token-Aktivität an und verwalten Sie zugehörige Aktionen.",
+  "Apps.LiftToken.Description": "Kaufen Sie LIFT-Token und verfolgen Sie den Vesting-Fortschritt",
   "Apps.Marketplace.Description": "Kaufen Sie Waren bei Händlern in Ihrer Nähe und lassen Sie sich Ihre Bestellungen liefern.",
   "Apps.MerchantAdmin.Description": "Verwalten Sie Ihre Händler-Tools und -Einstellungen.",
   "Apps.MerchantMap.Description": "Finden Sie Händler, die BCH akzeptieren.",

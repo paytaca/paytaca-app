@@ -168,7 +168,7 @@ export default {
   "Apps.Eload.Description": "Bumili ng Telco load, Cable Subscription at Gamepins",
   "Apps.Gifts.Description": "Gumawa at kunin ang mga regalo sa BCH.",
   "Apps.HubSubscriptions.Description": "Pamahalaan ang iyong mga umuulit na pagbabayad.",
-  "Apps.LiftToken.Description": "Tingnan ang iyong LIFT token na aktibidad at pamahalaan ang mga nauugnay na pagkilos.",
+  "Apps.LiftToken.Description": "Bumili ng LIFT token at subaybayan ang pag-unlad ng vesting",
   "Apps.Marketplace.Description": "Bumili ng mga kalakal mula sa mga mangangalakal sa paligid ng iyong lugar at ipahatid sa iyo ang iyong mga order.",
   "Apps.MerchantAdmin.Description": "Pamahalaan ang iyong mga tool at setting ng merchant.",
   "Apps.MerchantMap.Description": "Maghanap ng mga merchant na tumatanggap ng BCH.",

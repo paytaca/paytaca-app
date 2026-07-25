@@ -168,7 +168,7 @@ export default {
   "Apps.Eload.Description": "Покупайте телекоммуникационную нагрузку, подписку на кабельное телевидение и игровые значки.",
   "Apps.Gifts.Description": "Создавайте и обменивайте подарки BCH.",
   "Apps.HubSubscriptions.Description": "Управляйте регулярными платежами.",
-  "Apps.LiftToken.Description": "Просматривайте активность своего токена LIFT и управляйте соответствующими действиями.",
+  "Apps.LiftToken.Description": "Покупайте токены LIFT и отслеживайте прогресс перехода",
   "Apps.Marketplace.Description": "Покупайте товары у торговцев в вашем районе и доставляйте заказы вам.",
   "Apps.MerchantAdmin.Description": "Управляйте инструментами и настройками вашего продавца.",
   "Apps.MerchantMap.Description": "Найдите продавцов, которые принимают BCH.",

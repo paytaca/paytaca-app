@@ -168,7 +168,7 @@ export default {
   "Apps.Eload.Description": "Beli beban Telco, Langganan Kabel, dan Gamepin",
   "Apps.Gifts.Description": "Buat dan tukarkan hadiah BCH.",
   "Apps.HubSubscriptions.Description": "Kelola pembayaran berulang Anda.",
-  "Apps.LiftToken.Description": "Lihat aktivitas token LIFT Anda dan kelola tindakan terkait.",
+  "Apps.LiftToken.Description": "Beli token LIFT dan lacak kemajuan vesting",
   "Apps.Marketplace.Description": "Beli barang dari pedagang di sekitar wilayah Anda dan pesanan Anda akan dikirimkan kepada Anda.",
   "Apps.MerchantAdmin.Description": "Kelola alat dan pengaturan pedagang Anda.",
   "Apps.MerchantMap.Description": "Temukan pedagang yang menerima BCH.",

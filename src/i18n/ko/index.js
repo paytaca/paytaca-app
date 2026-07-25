@@ -168,7 +168,7 @@ export default {
   "Apps.Eload.Description": "통신 부하, 케이블 구독 및 게임핀 구매",
   "Apps.Gifts.Description": "BCH 선물을 만들고 교환하세요.",
   "Apps.HubSubscriptions.Description": "반복 결제를 관리하세요.",
-  "Apps.LiftToken.Description": "LIFT 토큰 활동을 보고 관련 작업을 관리하세요.",
+  "Apps.LiftToken.Description": "LIFT 토큰을 구매하고 베스팅 진행 상황을 추적하세요.",
   "Apps.Marketplace.Description": "주변 지역의 판매자로부터 상품을 구매하고 주문한 상품을 배송받으세요.",
   "Apps.MerchantAdmin.Description": "판매자 도구 및 설정을 관리하세요.",
   "Apps.MerchantMap.Description": "BCH를 허용하는 판매자를 찾으세요.",

@@ -168,7 +168,7 @@ export default {
   "Apps.Eload.Description": "Koop Telco-vragte, kabelintekening en spelpenne",
   "Apps.Gifts.Description": "Skep en los BCH-geskenke in.",
   "Apps.HubSubscriptions.Description": "Bestuur jou herhalende betalings.",
-  "Apps.LiftToken.Description": "Bekyk jou LIFT-tokenaktiwiteit en bestuur verwante handelinge.",
+  "Apps.LiftToken.Description": "Koop LIFT-tokens en volg vestigingsvordering",
   "Apps.Marketplace.Description": "Koop goedere by handelaars in jou omgewing en kry jou bestellings by jou afgelewer.",
   "Apps.MerchantAdmin.Description": "Bestuur jou handelaarnutsgoed en -instellings.",
   "Apps.MerchantMap.Description": "Soek handelaars wat BCH aanvaar.",

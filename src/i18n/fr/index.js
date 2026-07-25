@@ -168,7 +168,7 @@ export default {
   "Apps.Eload.Description": "Achetez des charges Telco, un abonnement au câble et des Gamepins",
   "Apps.Gifts.Description": "Créez et échangez des cadeaux BCH.",
   "Apps.HubSubscriptions.Description": "Gérez vos paiements récurrents.",
-  "Apps.LiftToken.Description": "Affichez l'activité de votre jeton LIFT et gérez les actions associées.",
+  "Apps.LiftToken.Description": "Achetez des jetons LIFT et suivez la progression de l'acquisition",
   "Apps.Marketplace.Description": "Achetez des produits auprès des commerçants de votre région et faites-vous livrer vos commandes.",
   "Apps.MerchantAdmin.Description": "Gérez vos outils et paramètres marchands.",
   "Apps.MerchantMap.Description": "Trouvez des marchands qui acceptent le BCH.",

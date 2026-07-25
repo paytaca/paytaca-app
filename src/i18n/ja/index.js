@@ -168,7 +168,7 @@ export default {
   "Apps.Eload.Description": "電話会社の負荷、ケーブルのサブスクリプション、ゲームピンを購入する",
   "Apps.Gifts.Description": "BCH ギフトを作成して引き換えます。",
   "Apps.HubSubscriptions.Description": "定期的な支払いを管理します。",
-  "Apps.LiftToken.Description": "LIFT トークンのアクティビティを表示し、関連するアクションを管理します。",
+  "Apps.LiftToken.Description": "LIFT トークンを購入し、権利確定の進行状況を追跡する",
   "Apps.Marketplace.Description": "お住まいの地域の販売者から商品を購入し、注文した商品を配達してもらいます。",
   "Apps.MerchantAdmin.Description": "販売者のツールと設定を管理します。",
   "Apps.MerchantMap.Description": "BCH を受け入れる加盟店を探します。",

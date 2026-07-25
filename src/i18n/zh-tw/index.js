@@ -169,7 +169,7 @@ export default {
   "Apps.Eload.Description": "購買電信負載、有線電視訂閱和遊戲引腳",
   "Apps.Gifts.Description": "創建並兌換 BCH 禮物。",
   "Apps.HubSubscriptions.Description": "管理您的定期付款。",
-  "Apps.LiftToken.Description": "查看您的 LIFT 代幣活動並管理相關操作。",
+  "Apps.LiftToken.Description": "購買 LIFT 代幣並追蹤歸屬進度",
   "Apps.Marketplace.Description": "從您所在地區附近的商家購買商品並將訂單交付給您。",
   "Apps.MerchantAdmin.Description": "管理您的商家工具和設置。",
   "Apps.MerchantMap.Description": "查找接受 BCH 的商家。",

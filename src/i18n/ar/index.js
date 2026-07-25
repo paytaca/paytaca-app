@@ -168,7 +168,7 @@ export default {
   "Apps.Eload.Description": "قم بشراء أحمال Telco واشتراك الكابلات وألعاب Gamepins",
   "Apps.Gifts.Description": "إنشاء واسترداد هدايا BCH.",
   "Apps.HubSubscriptions.Description": "إدارة المدفوعات المتكررة الخاصة بك.",
-  "Apps.LiftToken.Description": "عرض نشاط رمز LIFT الخاص بك وإدارة الإجراءات ذات الصلة.",
+  "Apps.LiftToken.Description": "قم بشراء رموز LIFT وتتبع تقدم الاستحقاق",
   "Apps.Marketplace.Description": "قم بشراء البضائع من التجار في جميع أنحاء منطقتك واحصل على طلباتك التي يتم توصيلها إليك.",
   "Apps.MerchantAdmin.Description": "إدارة أدوات التاجر وإعداداته.",
   "Apps.MerchantMap.Description": "ابحث عن التجار الذين يقبلون BCH.",

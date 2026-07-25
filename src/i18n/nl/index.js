@@ -168,7 +168,7 @@ export default {
   "Apps.Eload.Description": "Koop Telco-ladingen, kabelabonnementen en gamepins",
   "Apps.Gifts.Description": "Create and redeem BCH gifts.",
   "Apps.HubSubscriptions.Description": "Beheer uw terugkerende betalingen.",
-  "Apps.LiftToken.Description": "Bekijk uw LIFT-tokenactiviteit en beheer gerelateerde acties.",
+  "Apps.LiftToken.Description": "Koop LIFT-tokens en volg de voortgang van het verwerven",
   "Apps.Marketplace.Description": "Koop goederen bij verkopers bij u in de buurt en laat uw bestellingen bij u bezorgen.",
   "Apps.MerchantAdmin.Description": "Manage your merchant tools and settings.",
   "Apps.MerchantMap.Description": "Find merchants that accept BCH.",

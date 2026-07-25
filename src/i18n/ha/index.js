@@ -168,7 +168,7 @@ export default {
   "Apps.Eload.Description": "Saya Telco lodi, Biyan Kuɗi na USB da Gamepins",
   "Apps.Gifts.Description": "Ƙirƙiri ku fanshi kyaututtukan BCH.",
   "Apps.HubSubscriptions.Description": "Sarrafa biyan kuɗin ku akai-akai.",
-  "Apps.LiftToken.Description": "Duba ayyukan alamar LIFT ɗin ku kuma sarrafa ayyuka masu alaƙa.",
+  "Apps.LiftToken.Description": "Sayi alamomin LIFT kuma ku bi diddigin ci gaba",
   "Apps.Marketplace.Description": "Sayi kaya daga ƴan kasuwa a kusa da yankin ku kuma a kai muku odar ku.",
   "Apps.MerchantAdmin.Description": "Sarrafa kayan aikin kasuwancin ku da saituna.",
   "Apps.MerchantMap.Description": "Nemo 'yan kasuwa waɗanda suka karɓi BCH.",

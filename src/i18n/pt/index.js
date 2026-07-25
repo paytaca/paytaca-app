@@ -168,7 +168,7 @@ export default {
   "Apps.Eload.Description": "Compre cargas Telco, assinatura de cabo e gamepins",
   "Apps.Gifts.Description": "Crie e resgate presentes BCH.",
   "Apps.HubSubscriptions.Description": "Gerencie seus pagamentos recorrentes.",
-  "Apps.LiftToken.Description": "Visualize sua atividade de token LIFT e gerencie ações relacionadas.",
+  "Apps.LiftToken.Description": "Compre tokens LIFT e acompanhe o progresso da aquisição",
   "Apps.Marketplace.Description": "Compre produtos de comerciantes em sua área e receba seus pedidos.",
   "Apps.MerchantAdmin.Description": "Gerencie as ferramentas e configurações do seu comerciante.",
   "Apps.MerchantMap.Description": "Encontre comerciantes que aceitam BCH.",
