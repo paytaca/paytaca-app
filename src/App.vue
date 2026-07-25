@@ -448,6 +448,9 @@ export default {
         persistent: true
       }).onOk(() => {
         this.$store.commit('global/toggleIsChipnet')
+        this.$nextTick(() => {
+          window.location.reload()
+        })
       })
     },
     async onConnectivityChange (online) {
