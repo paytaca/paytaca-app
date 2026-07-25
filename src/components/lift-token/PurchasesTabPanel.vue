@@ -122,7 +122,17 @@
               </div>
             </div>
 
-            <div class="row col-12 justify-center q-mb-xs">
+            <template v-if="getPurchaseDiscount(purchase) > 0">
+              <div class="row col-12 justify-center q-mb-xs items-baseline">
+                <span class="price-per-token text-caption">
+                  @ ${{ getDiscountedPricePerToken(purchase) }}/LIFT
+                </span>
+                <span class="original-price text-caption text-strike q-ml-xs" :class="darkMode ? 'text-grey-6' : 'text-grey-5'">
+                  @ ${{ getBasePricePerToken(purchase) }}/LIFT
+                </span>
+              </div>
+            </template>
+            <div v-else class="row col-12 justify-center q-mb-xs">
               <span class="price-per-token text-caption" :class="darkMode ? 'text-grey-4' : 'text-grey-7'">
                 @ ${{ getPricePerToken(purchase) }}/LIFT
               </span>
@@ -146,12 +156,7 @@
               </div>
               <span class="bch-amount text-subtitle1 text-weight-medium">
                 <template v-if="purchase.purchase_more_details.payment_method === 'bch'">
-                  {{
-                    getAssetDenomination(
-                      denomination,
-                      purchase.purchased_amount_sats / 10 ** 8
-                    )
-                  }}
+                  {{ getBchAmountParts(purchase).main }}<span class="trailing-zeroes">{{ getBchAmountParts(purchase).trailing }}</span> {{ denomination }}
                 </template>
                 <template v-else>
                   {{ $t(
@@ -265,7 +270,6 @@ import {
 } from "src/utils/engagementhub-utils/shared";
 import {
   parseFiatCurrency,
-  getAssetDenomination,
   formatWithLocale,
 } from "src/utils/denomination-utils";
 
@@ -315,7 +319,6 @@ export default {
     getDarkModeClass,
     parseLiftToken,
     parseFiatCurrency,
-    getAssetDenomination,
     formatWithLocale,
     parseLocaleDate,
 
@@ -338,6 +341,29 @@ export default {
     getBasePricePerToken(purchase) {
       const saleGroup = purchase.purchase_more_details?.sale_group
       return this.formatWithLocale(SaleGroupPrice[saleGroup] || 0, { min: 2, max: 6 })
+    },
+    getBchAmountParts (purchase) {
+      const sats = purchase.purchase_partial_details?.sats_paid || purchase.purchased_amount_sats || 0
+      const bch = sats / 10 ** 8
+      const formatted = bch.toFixed(8)
+      const decimals = formatted.split('.')[1] || ''
+      let lastNonZero = -1
+      for (let i = 0; i < decimals.length; i++) {
+        if (decimals[i] !== '0') lastNonZero = i
+      }
+      if (lastNonZero === -1) return { main: formatted.split('.')[0] + '.', trailing: decimals }
+      const cutIndex = formatted.indexOf('.') + lastNonZero + 2
+      return {
+        main: formatted.slice(0, cutIndex),
+        trailing: formatted.slice(cutIndex)
+      }
+    },
+    getDiscountedPricePerToken(purchase) {
+      const tknPaid = purchase.purchase_partial_details?.tkn_paid || 0
+      const usdPaid = this.getDiscountedPriceUsd(purchase)
+      if (tknPaid === 0) return '0'
+      const ppt = (usdPaid * 100) / tknPaid
+      return this.formatWithLocale(ppt, { min: 2, max: 6 })
     },
 
     filterPurchasesList(saleGroup) {
@@ -528,6 +554,11 @@ export default {
   .dark & {
     color: #6ee7b7;
   }
+}
+
+.trailing-zeroes {
+  opacity: 0.4;
+  font-weight: 400;
 }
 
 .info-section {

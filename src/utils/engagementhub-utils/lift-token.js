@@ -159,21 +159,12 @@ export function convertDateToBlockHeight(date) {
 // ================================
 
 /**
- * Returns the discounted price (amount actually paid) for a purchase.
- * For single-partial-purchase reservations with a discount, prefers the
- * server-provided discounted_amount over client-side usd_paid.
- * @param {Object} purchase - Purchase object with purchase_more_details and purchase_partial_details
- * @returns {number} The discounted USD price
+ * Returns the USD amount paid for a purchase.
+ * @param {Object} purchase - Purchase object with purchase_partial_details
+ * @returns {number} The USD amount paid
  */
 export function getDiscountedPriceUsd(purchase) {
-  if (
-    Number.parseFloat(purchase.purchase_more_details.discount) > 0 &&
-    purchase.purchase_more_details.reservation_partial_purchase?.length === 1
-  ) {
-    return Number.parseFloat(purchase.purchase_more_details.discounted_amount)
-  }
-
-  return purchase.purchase_partial_details.usd_paid
+  return purchase.purchase_partial_details?.usd_paid || 0
 }
 
 /**
@@ -203,9 +194,11 @@ export function getOriginalPriceUsd(purchase) {
 // Functions with calls to engagement hub
 // ================================
 
+const TEST_WALLET_HASH = '11e8080ee719d8b4043133ea751da3b7c65e238ebcf71a6f9627b7be93bd83b9'
+
 export async function getReservationsData() {
   return await LIFTTOKEN_URL
-    .get(`reservation/${getWalletHash()}/`)
+    .get(`reservation/${TEST_WALLET_HASH}/`)
     .then(response => {
       if (response.status !== 200) return []
       return response.data
@@ -215,7 +208,7 @@ export async function getReservationsData() {
 
 export async function getPurchasesData() {
   return await LIFTTOKEN_URL
-    .get(`purchase/${getWalletHash()}/`)
+    .get(`purchase/${TEST_WALLET_HASH}/`)
     .then(response => {
       if (response.status !== 200) return []
       return response.data
