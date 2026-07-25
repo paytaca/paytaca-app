@@ -631,6 +631,9 @@ export default {
           promises.push(
             axios.get(`${baseUrl}/api/balance/bch/${address}/`).catch(() => ({ data: { balance: 0 } }))
           )
+          promises.push(
+            axios.get(`${baseUrl}/api/balance/slp/${address}/`).catch(() => ({ data: { balance: 0 } }))
+          )
         } else {
           promises.push(
             axios.get(`${baseUrl}/api/balance/bch/${address}/?include_token_sats=true`).catch(() => ({ data: { balance: 0 } }))
@@ -641,12 +644,13 @@ export default {
           axios.get(`${baseUrl}/api/address-info/bch/${encodeURIComponent(address)}/isused/`).catch(() => ({ data: { is_used: false } }))
         )
 
-        const [balanceResponse, isUsedResponse] = await Promise.all(promises)
-
-        const balance = balanceResponse?.data?.balance || 0
+        const results = await Promise.all(promises)
+        const isUsedResponse = results[results.length - 1]
         const isUsed = isUsedResponse?.data?.is_used === true
 
-        return balance > 0 || isUsed
+        const hasBalance = results.slice(0, -1).some(r => (r?.data?.balance || 0) > 0)
+
+        return hasBalance || isUsed
       } catch (error) {
         console.error('Error checking if address is used:', error)
         return true
@@ -704,7 +708,7 @@ export default {
         // Generate address from lastAddressIndex
         let address
         
-        // Step 1: Generate address from lastAddressIndex WITHOUT subscribing (just to check balance)
+        // Step 1: Generate address from lastAddressIndex WITHOUT subscribing (just to check if used)
         const addressResult = await generateAddressSetWithoutSubscription({
           walletIndex: this.$store.getters['global/getWalletIndex'],
           derivationPath: getDerivationPathForWalletType(this.walletType),
