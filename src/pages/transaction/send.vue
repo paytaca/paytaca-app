@@ -2785,29 +2785,38 @@ export default {
      * @param {string} walletType - 'bch' or 'slp'
      * @returns {Promise<boolean>} True if address has balance, false otherwise
      */
-    async checkAddressBalance (address, walletType) {
+    async isAddressUsed (address, walletType) {
       try {
         const baseUrl = this.isChipnet ? 'https://chipnet.watchtower.cash' : 'https://watchtower.cash'
         
+        const promises = []
+
         if (walletType === 'slp') {
-          // For SLP, check both BCH balance and SLP token balance
-          // An address should not be reused if it has either BCH or SLP tokens
-          const [bchResponse, slpResponse] = await Promise.all([
-            axios.get(`${baseUrl}/api/balance/bch/${address}/`).catch(() => ({ data: { balance: 0 } })),
+          promises.push(
+            axios.get(`${baseUrl}/api/balance/bch/${address}/`).catch(() => ({ data: { balance: 0 } }))
+          )
+          promises.push(
             axios.get(`${baseUrl}/api/balance/slp/${address}/`).catch(() => ({ data: { balance: 0 } }))
-          ])
-          const bchBalance = bchResponse?.data?.balance || 0
-          const slpBalance = slpResponse?.data?.balance || 0
-          return bchBalance > 0 || slpBalance > 0
+          )
         } else {
-          // For BCH, check balance including token sats
-          const response = await axios.get(`${baseUrl}/api/balance/bch/${address}/?include_token_sats=true`)
-          const balance = response?.data?.balance || 0
-          return balance > 0
+          promises.push(
+            axios.get(`${baseUrl}/api/balance/bch/${address}/?include_token_sats=true`)
+          )
         }
+
+        promises.push(
+          axios.get(`${baseUrl}/api/address-info/bch/${encodeURIComponent(address)}/isused/`).catch(() => ({ data: { is_used: false } }))
+        )
+
+        const results = await Promise.all(promises)
+        const isUsedResponse = results[results.length - 1]
+        const isUsed = isUsedResponse?.data?.is_used === true
+
+        const hasBalance = results.slice(0, -1).some(r => (r?.data?.balance || 0) > 0)
+
+        return hasBalance || isUsed
       } catch (error) {
-        console.error('Error checking address balance:', error)
-        // If check fails, assume has balance to be safe (prevents address reuse when balance cannot be verified)
+        console.error('Error checking if address is used:', error)
         return true
       }
     },
@@ -2898,11 +2907,11 @@ export default {
           
           const address = addressResult.addresses.receiving
           
-          // Step 2: Check if that address has balance (including token sats)
-          const hasBalance = await vm.checkAddressBalance(address, assetType)
+          // Step 2: Check if that address has been used (balance or tx history)
+          const isUsed = await vm.isAddressUsed(address, assetType)
           
-          if (!hasBalance) {
-            // Step 3: If balance is zero, subscribe and use that address
+          if (!isUsed) {
+            // Step 3: If address is unused, subscribe and use that address
             const subscribeResult = await generateReceivingAddress({
               walletIndex: selectedWallet.index,
               derivationPath: derivationPath,

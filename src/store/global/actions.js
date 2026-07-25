@@ -1191,12 +1191,20 @@ export async function autoGenerateAddress(context, opts) {
     }
   }
 
+  promises.push(
+    axios.get(`${baseUrl}/api/address-info/bch/${encodeURIComponent(address)}/isused/`).catch(() => ({ data: { is_used: false } }))
+  )
+
   const promiseResults = await Promise.all(promises)
-  const generateNewAddress = promiseResults.some(response => {
+  const isUsedResponse = promiseResults[promiseResults.length - 1]
+  const isUsed = isUsedResponse?.data?.is_used === true
+  const hasBalance = promiseResults.slice(0, -1).some(response => {
     return response?.data?.balance > 0
   })
 
-  if (!generateNewAddress) return { address, message: 'Address has no balance',  }
+  const generateNewAddress = hasBalance || isUsed
+
+  if (!generateNewAddress) return { address, message: 'Address has no balance or history',  }
 
   const newAddressIndex = parseInt(lastAddressIndex)+1 || 0
   const wallet = await loadWallet(context.getters['getWalletIndex'])
