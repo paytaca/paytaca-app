@@ -1,8 +1,36 @@
 <template>
   <div class="latest-transactions-section" :class="getDarkModeClass(darkMode)">
     <div class="row items-center justify-between q-mb-sm q-mt-sm">
-      <div class="q-ml-lg button button-text-primary" :class="getDarkModeClass(darkMode)" style="font-size: 20px;">
-        {{ $t('Transactions', {}, 'Transactions') }}
+      <div class="q-ml-lg row items-center no-wrap" :class="getDarkModeClass(darkMode)" style="font-size: 20px;">
+        <span class="button button-text-primary">{{ $t('Transactions', {}, 'Transactions') }}</span>
+        <q-btn
+          flat
+          round
+          dense
+          icon="filter_alt"
+          size="sm"
+          :color="txAssetFilter !== 'all' ? (darkMode ? 'blue-4' : 'blue-6') : (darkMode ? 'grey-5' : 'grey-7')"
+          :aria-label="$t('TransactionAssetFilter', {}, 'Transaction asset filter')"
+          @click.stop
+        >
+          <q-menu anchor="bottom left" self="top left" :offset="[0, 8]">
+            <q-list style="min-width: 220px">
+              <q-item
+                v-for="opt in txAssetFilterOpts" :key="opt.value"
+                clickable
+                dense
+                @click.stop="txAssetFilter = opt.value"
+              >
+                <q-item-section>
+                  <q-item-label :style="darkMode ? 'color: white;' : 'color: black;'">{{ opt.label }}</q-item-label>
+                </q-item-section>
+                <q-item-section side v-if="txAssetFilter === opt.value">
+                  <q-icon name="check" :color="darkMode ? 'blue-4' : 'blue-6'" size="sm" />
+                </q-item-section>
+              </q-item>
+            </q-list>
+          </q-menu>
+        </q-btn>
       </div>
       <div class="q-mr-lg">
         <q-btn
@@ -120,6 +148,7 @@ export default {
       transactionsLoaded: false,
       hasMoreTransactions: false,
       transactionsFilter: 'all',
+      txAssetFilter: localStorage.getItem('txAssetFilter') || 'all',
       allAsset: {
         id: 'all',
         symbol: 'All',
@@ -143,7 +172,36 @@ export default {
       if (this.tutorialMode && this.tutorialStepId === 'transactions' && this.transactionsLoaded && this.transactions.length === 0) {
         return this.getTutorialDummyTransactions()
       }
-      return this.transactions
+      if (this.txAssetFilter === 'all') {
+        return this.transactions
+      }
+      const favoriteIds = this.favoriteTokenIdSet
+      return this.transactions.filter(tx => {
+        const assetId = tx?.asset?.id || ''
+        if (this.txAssetFilter === 'bch-only') {
+          return assetId === 'bch'
+        }
+        if (this.txAssetFilter === 'favorites-only') {
+          return assetId !== 'bch' && favoriteIds.has(assetId)
+        }
+        if (this.txAssetFilter === 'bch+favorites') {
+          return assetId === 'bch' || favoriteIds.has(assetId)
+        }
+        return true
+      })
+    },
+    favoriteTokenIdSet () {
+      const assets = this.$store.getters['assets/getAssets']
+      if (!assets) return new Set()
+      return new Set(assets.filter(a => a.favorite === 1).map(a => a.id))
+    },
+    txAssetFilterOpts () {
+      return [
+        { label: this.$t('All'), value: 'all' },
+        { label: this.$t('BCHOnly', {}, 'BCH only'), value: 'bch-only' },
+        { label: this.$t('BCHPlusFavorites', {}, 'BCH + favorite tokens'), value: 'bch+favorites' },
+        { label: this.$t('FavoritesOnly', {}, 'Favorite tokens only'), value: 'favorites-only' }
+      ]
     },
     displayHasMoreTransactions () {
       if (this.tutorialMode && this.tutorialStepId === 'transactions' && this.transactionsLoaded && this.transactions.length === 0) return false
@@ -157,7 +215,13 @@ export default {
       ]
     }
   },
-  
+
+  watch: {
+    txAssetFilter (value) {
+      localStorage.setItem('txAssetFilter', value)
+    }
+  },
+
   created () {
     this.walletHash = this.resolveWalletHash()
     if (this.walletHash) {
