@@ -12,7 +12,7 @@
           icon="support"
           :color="darkMode ? 'blue-4' : 'blue-6'"
           :aria-label="$t('Support', {}, 'Support')"
-          @click="$router.push({ name: 'app-support' })"
+          @click="$router.push({ name: 'app-support', query: { from: 'home' } })"
         />
         <TransactionTimestampSettings />
       </div>
