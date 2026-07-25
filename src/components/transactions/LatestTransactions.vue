@@ -172,28 +172,7 @@ export default {
       if (this.tutorialMode && this.tutorialStepId === 'transactions' && this.transactionsLoaded && this.transactions.length === 0) {
         return this.getTutorialDummyTransactions()
       }
-      if (this.txAssetFilter === 'all') {
-        return this.transactions
-      }
-      const favoriteIds = this.favoriteTokenIdSet
-      return this.transactions.filter(tx => {
-        const assetId = tx?.asset?.id || ''
-        if (this.txAssetFilter === 'bch-only') {
-          return assetId === 'bch'
-        }
-        if (this.txAssetFilter === 'favorites-only') {
-          return assetId !== 'bch' && favoriteIds.has(assetId)
-        }
-        if (this.txAssetFilter === 'bch+favorites') {
-          return assetId === 'bch' || favoriteIds.has(assetId)
-        }
-        return true
-      })
-    },
-    favoriteTokenIdSet () {
-      const assets = this.$store.getters['assets/getAssets']
-      if (!assets) return new Set()
-      return new Set(assets.filter(a => a.favorite === 1).map(a => a.id))
+      return this.transactions
     },
     favoriteTokenIdsForApi () {
       const assets = this.$store.getters['assets/getAssets']
