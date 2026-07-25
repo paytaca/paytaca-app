@@ -5,6 +5,15 @@
         {{ $t('Transactions', {}, 'Transactions') }}
       </div>
       <div class="q-mr-lg">
+        <q-btn
+          flat
+          round
+          dense
+          icon="support"
+          :color="darkMode ? 'blue-4' : 'blue-6'"
+          :aria-label="$t('Support', {}, 'Support')"
+          @click="$router.push({ name: 'app-support' })"
+        />
         <TransactionTimestampSettings />
       </div>
     </div>
