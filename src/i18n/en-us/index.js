@@ -244,6 +244,7 @@ export default {
   BCHGift: "BCH Gift",
   BCHOnly: "BCH only",
   BCHPlusFavorites: "BCH + favorite tokens",
+  FavoritesOnly: "Favorite tokens only",
   BIP38DecryptError: "Failed to decrypt wallet. Try again later or use another passphrase.",
   BIP38WalletDetected: "Detected a BIP38-encrypted wallet. Enter its passphrase to unlock.",
   BIP38WalletPassphrase: "BIP38 wallet passphrase",
