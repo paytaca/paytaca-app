@@ -195,6 +195,14 @@ export default {
       if (!assets) return new Set()
       return new Set(assets.filter(a => a.favorite === 1).map(a => a.id))
     },
+    favoriteTokenIdsForApi () {
+      const assets = this.$store.getters['assets/getAssets']
+      if (!assets) return ''
+      return assets
+        .filter(a => a.favorite === 1 && a.id !== 'bch')
+        .map(a => a.id)
+        .join(',')
+    },
     txAssetFilterOpts () {
       return [
         { label: this.$t('All'), value: 'all' },
@@ -340,6 +348,15 @@ export default {
           page: 1,
           type: recordType,
           exclude: 'senders,recipients'
+        }
+        if (this.txAssetFilter === 'bch-only') {
+          params.asset_filter = 'bch-only'
+        } else if (this.txAssetFilter === 'favorites-only') {
+          params.asset_filter = 'favorites'
+          params.token_ids = this.favoriteTokenIdsForApi
+        } else if (this.txAssetFilter === 'bch+favorites') {
+          params.asset_filter = 'bch-and-favorites'
+          params.token_ids = this.favoriteTokenIdsForApi
         }
 
         const response = await axios.get(url, { params })
