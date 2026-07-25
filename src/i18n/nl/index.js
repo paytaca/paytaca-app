@@ -1027,6 +1027,7 @@ export default {
   FavoriteTokens: "Favoriete tokens",
   FavoriteTokensLimitReached: "Favorieten token limiet bereikt. Upgrade naar Paytaca Plus voor meer favorieten.",
   Favorites: "Favorieten",
+  FavoritesOnly: "Alleen favoriete tokens",
   FeatureBlockedInYourCountry: "Sorry.Deze functie is geblokkeerd in uw land",
   Features: "Features",
   Fee: "Vergoeding",

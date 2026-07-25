@@ -1027,6 +1027,7 @@ export default {
   FavoriteTokens: "お気に入りのトークン",
   FavoriteTokensLimitReached: "お気に入りトークンの制限に達しました。Paytaca Plusにアップグレードすると、より多くのお気に入りを追加できます。",
   Favorites: "お気に入り",
+  FavoritesOnly: "お気に入りのトークンのみ",
   FeatureBlockedInYourCountry: "ごめん。この機能はお住まいの国ではブロックされています",
   Features: "特長",
   Fee: "料金",

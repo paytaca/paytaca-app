@@ -1027,6 +1027,7 @@ export default {
   FavoriteTokens: "الرموز المفضلة",
   FavoriteTokensLimitReached: "تم الوصول إلى حد الرموز المفضلة. قم بالترقية إلى Paytaca Plus للحصول على المزيد من المفضلات.",
   Favorites: "المفضلة",
+  FavoritesOnly: "الرموز المفضلة فقط",
   FeatureBlockedInYourCountry: "آسف.هذه الميزة محظورة في بلدك",
   Features: "الميزات",
   Fee: "رسوم",

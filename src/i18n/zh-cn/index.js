@@ -1028,6 +1028,7 @@ export default {
   FavoriteTokens: "最喜欢的代币",
   FavoriteTokensLimitReached: "已达到收藏代币限制。升级到 Paytaca Plus 以获得更多收藏。",
   Favorites: "收藏夹",
+  FavoritesOnly: "仅限最喜欢的代币",
   FeatureBlockedInYourCountry: "对不起。此功能在您所在的国家/地区被阻止",
   Features: "特点",
   Fee: "费用",

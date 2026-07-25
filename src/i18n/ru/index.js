@@ -1027,6 +1027,7 @@ export default {
   FavoriteTokens: "Любимые токены",
   FavoriteTokensLimitReached: "Достигнут лимит избранных токенов. Обновитесь до Paytaca Plus для большего количества избранных.",
   Favorites: "Избранное",
+  FavoritesOnly: "Только любимые токены",
   FeatureBlockedInYourCountry: "Извини.Эта функция заблокирована в вашей стране",
   Features: "Особенности",
   Fee: "Плата",

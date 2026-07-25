@@ -1027,6 +1027,7 @@ export default {
   FavoriteTokens: "Mga Paboritong Token",
   FavoriteTokensLimitReached: "Naabot na ang limit ng favorite tokens. Mag-upgrade sa Paytaca Plus para sa higit pang favorites.",
   Favorites: "Mga paborito",
+  FavoritesOnly: "Mga paboritong token lang",
   FeatureBlockedInYourCountry: "Paumanhin.Naka-block ang feature na ito sa iyong bansa",
   Features: "Mga tampok",
   Fee: "Bayad",

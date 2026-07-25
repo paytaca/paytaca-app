@@ -1027,6 +1027,7 @@ export default {
   FavoriteTokens: "Token Favorit",
   FavoriteTokensLimitReached: "Batas token favorit tercapai. Tingkatkan ke Paytaca Plus untuk lebih banyak favorit.",
   Favorites: "Favorit",
+  FavoritesOnly: "Hanya token favorit",
   FeatureBlockedInYourCountry: "Maaf.Fitur ini diblokir di negara Anda",
   Features: "Fitur",
   Fee: "Biaya",

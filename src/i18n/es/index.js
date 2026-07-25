@@ -1028,6 +1028,7 @@ export default {
   FavoriteTokens: "Fichas favoritas",
   FavoriteTokensLimitReached: "Límite de tokens favoritos alcanzado. Actualice a Paytaca Plus para más favoritos.",
   Favorites: "Favoritos",
+  FavoritesOnly: "Solo fichas favoritas",
   FeatureBlockedInYourCountry: "Lo siento.Esta función está bloqueada en tu país.",
   Features: "Características",
   Fee: "Tarifa",

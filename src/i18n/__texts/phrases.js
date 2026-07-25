@@ -118,6 +118,7 @@ const phrases = {
       BalanceModeTitle: "Balance",
       BCHOnly: "BCH only",
       BCHPlusFavorites: "BCH + favorite tokens",
+      FavoritesOnly: "Favorite tokens only",
       DerivationPath: "Derivation Path",
       DeviceSuspended: "Device suspended",
       DeviceUnsuspended: "Device unsuspended",

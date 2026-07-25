@@ -1027,6 +1027,7 @@ export default {
   FavoriteTokens: "좋아하는 토큰",
   FavoriteTokensLimitReached: "즐겨찾기 토큰 제한에 도달했습니다. 더 많은 즐겨찾기를 위해 Paytaca Plus로 업그레이드하세요.",
   Favorites: "즐겨찾기",
+  FavoritesOnly: "즐겨찾는 토큰만",
   FeatureBlockedInYourCountry: "죄송합니다.이 기능은 해당 국가에서 차단되어 있습니다.",
   Features: "특징",
   Fee: "수수료",

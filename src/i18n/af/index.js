@@ -1027,6 +1027,7 @@ export default {
   FavoriteTokens: "Gunsteling Tokens",
   FavoriteTokensLimitReached: "Gunstelinge token limiet bereik. Gradeer op na Paytaca Plus vir meer gunstelinge.",
   Favorites: "Gunstelinge",
+  FavoritesOnly: "Slegs gunsteling tekens",
   FeatureBlockedInYourCountry: "Jammer.Hierdie kenmerk is in jou land geblokkeer",
   Features: "Kenmerke",
   Fee: "Fooi",

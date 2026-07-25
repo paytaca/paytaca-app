@@ -1027,6 +1027,7 @@ export default {
   FavoriteTokens: "Alamu na Fi so",
   FavoriteTokensLimitReached: "An kai iyakar tokens na abubuwan da aka fi so. Yi haɓaka zuwa Paytaca Plus don ƙarin abubuwan da aka fi so.",
   Favorites: "Abubuwan da aka fi so",
+  FavoritesOnly: "Alamomin da aka fi so kawai",
   FeatureBlockedInYourCountry: "Yi hakuri.An toshe wannan fasalin a cikin ƙasar ku",
   Features: "Siffofin",
   Fee: "Kudin",
