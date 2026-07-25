@@ -1169,12 +1169,15 @@ export async function autoGenerateAddress(context, opts) {
   const address = opts?.address || context.getters['getAddress'](walletType)
   const lastAddressIndex = context.getters['getLastAddressIndex'](walletType)
 
-  const baseUrl = this.isChipnet ? 'https://chipnet.watchtower.cash' : 'https://watchtower.cash'
+  const baseUrl = context.state.isChipnet ? 'https://chipnet.watchtower.cash' : 'https://watchtower.cash'
 
   const promises = []
   if (walletType === 'slp') {
     let url = `${baseUrl}/api/balance/slp/${address}/`
     if (opts?.tokenId) url = url + `/${opts?.tokenId}/`
+    promises.push(
+      axios.get(url).catch(() => false)
+    )
     promises.push(
       axios.get(`${baseUrl}/api/balance/bch/${address}/`).catch(() => false)
     )

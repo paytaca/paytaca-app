@@ -649,7 +649,7 @@ export default {
         return balance > 0 || isUsed
       } catch (error) {
         console.error('Error checking if address is used:', error)
-        return false
+        return true
       }
     },
     async refreshDynamicAddress() {
@@ -718,11 +718,11 @@ export default {
         
         address = addressResult.addresses.receiving
         
-        // Step 2: Check if that address has balance (including token sats)
+        // Step 2: Check if that address has been used (balance or tx history)
         const isUsed = await this.isAddressUsed(address, this.walletType)
         
         if (!isUsed) {
-          // Step 3: If balance is zero, subscribe and render that address
+          // Step 3: If address is unused, subscribe and render that address
           // Now subscribe the address since we're using it
           const subscribeResult = await generateReceivingAddress({
             walletIndex: this.$store.getters['global/getWalletIndex'],

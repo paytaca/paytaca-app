@@ -2780,10 +2780,10 @@ export default {
     },
 
     /**
-     * Check if an address has balance (including token sats)
+     * Check if an address has been used (balance or prior transaction history)
      * @param {string} address - The address to check
      * @param {string} walletType - 'bch' or 'slp'
-     * @returns {Promise<boolean>} True if address has balance, false otherwise
+     * @returns {Promise<boolean>} True if address has been used, false otherwise
      */
     async isAddressUsed (address, walletType) {
       try {
