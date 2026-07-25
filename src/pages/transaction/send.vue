@@ -2780,34 +2780,43 @@ export default {
     },
 
     /**
-     * Check if an address has balance (including token sats)
+     * Check if an address has been used (balance or prior transaction history)
      * @param {string} address - The address to check
      * @param {string} walletType - 'bch' or 'slp'
-     * @returns {Promise<boolean>} True if address has balance, false otherwise
+     * @returns {Promise<boolean>} True if address has been used, false otherwise
      */
-    async checkAddressBalance (address, walletType) {
+    async isAddressUsed (address, walletType) {
       try {
         const baseUrl = this.isChipnet ? 'https://chipnet.watchtower.cash' : 'https://watchtower.cash'
         
+        const promises = []
+
         if (walletType === 'slp') {
-          // For SLP, check both BCH balance and SLP token balance
-          // An address should not be reused if it has either BCH or SLP tokens
-          const [bchResponse, slpResponse] = await Promise.all([
-            axios.get(`${baseUrl}/api/balance/bch/${address}/`).catch(() => ({ data: { balance: 0 } })),
+          promises.push(
+            axios.get(`${baseUrl}/api/balance/bch/${address}/`).catch(() => ({ data: { balance: 0 } }))
+          )
+          promises.push(
             axios.get(`${baseUrl}/api/balance/slp/${address}/`).catch(() => ({ data: { balance: 0 } }))
-          ])
-          const bchBalance = bchResponse?.data?.balance || 0
-          const slpBalance = slpResponse?.data?.balance || 0
-          return bchBalance > 0 || slpBalance > 0
+          )
         } else {
-          // For BCH, check balance including token sats
-          const response = await axios.get(`${baseUrl}/api/balance/bch/${address}/?include_token_sats=true`)
-          const balance = response?.data?.balance || 0
-          return balance > 0
+          promises.push(
+            axios.get(`${baseUrl}/api/balance/bch/${address}/?include_token_sats=true`)
+          )
         }
+
+        promises.push(
+          axios.get(`${baseUrl}/api/address-info/bch/${encodeURIComponent(address)}/isused/`).catch(() => ({ data: { is_used: false } }))
+        )
+
+        const results = await Promise.all(promises)
+        const isUsedResponse = results[results.length - 1]
+        const isUsed = isUsedResponse?.data?.is_used === true
+
+        const hasBalance = results.slice(0, -1).some(r => (r?.data?.balance || 0) > 0)
+
+        return hasBalance || isUsed
       } catch (error) {
-        console.error('Error checking address balance:', error)
-        // If check fails, assume has balance to be safe (prevents address reuse when balance cannot be verified)
+        console.error('Error checking if address is used:', error)
         return true
       }
     },
@@ -2855,14 +2864,13 @@ export default {
 
         // IMPORTANT: Address reuse strategy
         // We use lastAddressIndex directly (not lastAddressIndex + 1) to check if the last address
-        // has a balance. This allows us to:
-        // 1. Reuse addresses that were previously used but now have zero balance (funds were spent)
-        //    - This is safe and privacy-preserving since the address has no balance
-        //    - It prevents unnecessary address index growth
-        // 2. Only increment to a new address if the last address still has a balance
-        //    - This ensures we never reuse an address that currently holds funds
-        // This behavior is intentional and correct - we check balance first, then decide whether
-        // to reuse or increment, rather than always incrementing.
+        // has been used (balance or prior transaction history). This allows us to:
+        // 1. Reuse addresses that have never been used (fresh addresses)
+        //    - This prevents unnecessary address index growth
+        // 2. Only increment to a new address if the last address has been used
+        //    - This ensures we never reuse an address that has any on-chain history
+        // This behavior is intentional and correct - we check both balance and tx history, then
+        // decide whether to reuse or increment, rather than always incrementing.
 
         // IMPORTANT: Use the asset type being sent for derivation path, not the selected wallet's type
         // The asset type determines whether we need a BCH address (m/44'/145'/0') or SLP address (m/44'/245'/0')
@@ -2884,7 +2892,7 @@ export default {
           }
           finalAddress = subscribeResult
         } else {
-          // Step 1: Generate address from lastAddressIndex WITHOUT subscribing (just to check balance)
+          // Step 1: Generate address from lastAddressIndex WITHOUT subscribing (just to check if used)
           const addressResult = await generateAddressSetWithoutSubscription({
             walletIndex: selectedWallet.index,
             derivationPath: derivationPath,
@@ -2898,11 +2906,11 @@ export default {
           
           const address = addressResult.addresses.receiving
           
-          // Step 2: Check if that address has balance (including token sats)
-          const hasBalance = await vm.checkAddressBalance(address, assetType)
+          // Step 2: Check if that address has been used (balance or tx history)
+          const isUsed = await vm.isAddressUsed(address, assetType)
           
-          if (!hasBalance) {
-            // Step 3: If balance is zero, subscribe and use that address
+          if (!isUsed) {
+            // Step 3: If address is unused, subscribe and use that address
             const subscribeResult = await generateReceivingAddress({
               walletIndex: selectedWallet.index,
               derivationPath: derivationPath,
@@ -2916,7 +2924,7 @@ export default {
             
             finalAddress = subscribeResult
           } else {
-            // Step 4: If address has balance (already used), generate a new address by incrementing
+            // Step 4: If address has been used, generate a new address by incrementing
             let newAddressIndex = validAddressIndex + 1
             // Skip address 0/0 (reserved for message encryption)
             newAddressIndex = vm.ensureAddressIndexNotZero(newAddressIndex)

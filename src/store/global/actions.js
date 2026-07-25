@@ -1169,12 +1169,15 @@ export async function autoGenerateAddress(context, opts) {
   const address = opts?.address || context.getters['getAddress'](walletType)
   const lastAddressIndex = context.getters['getLastAddressIndex'](walletType)
 
-  const baseUrl = this.isChipnet ? 'https://chipnet.watchtower.cash' : 'https://watchtower.cash'
+  const baseUrl = context.state.isChipnet ? 'https://chipnet.watchtower.cash' : 'https://watchtower.cash'
 
   const promises = []
   if (walletType === 'slp') {
     let url = `${baseUrl}/api/balance/slp/${address}/`
     if (opts?.tokenId) url = url + `/${opts?.tokenId}/`
+    promises.push(
+      axios.get(url).catch(() => false)
+    )
     promises.push(
       axios.get(`${baseUrl}/api/balance/bch/${address}/`).catch(() => false)
     )
@@ -1191,12 +1194,20 @@ export async function autoGenerateAddress(context, opts) {
     }
   }
 
+  promises.push(
+    axios.get(`${baseUrl}/api/address-info/bch/${encodeURIComponent(address)}/isused/`).catch(() => ({ data: { is_used: false } }))
+  )
+
   const promiseResults = await Promise.all(promises)
-  const generateNewAddress = promiseResults.some(response => {
+  const isUsedResponse = promiseResults[promiseResults.length - 1]
+  const isUsed = isUsedResponse?.data?.is_used === true
+  const hasBalance = promiseResults.slice(0, -1).some(response => {
     return response?.data?.balance > 0
   })
 
-  if (!generateNewAddress) return { address, message: 'Address has no balance',  }
+  const generateNewAddress = hasBalance || isUsed
+
+  if (!generateNewAddress) return { address, message: 'Address has no balance or history',  }
 
   const newAddressIndex = parseInt(lastAddressIndex)+1 || 0
   const wallet = await loadWallet(context.getters['getWalletIndex'])
