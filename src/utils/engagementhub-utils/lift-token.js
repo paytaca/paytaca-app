@@ -194,11 +194,9 @@ export function getOriginalPriceUsd(purchase) {
 // Functions with calls to engagement hub
 // ================================
 
-const TEST_WALLET_HASH = '11e8080ee719d8b4043133ea751da3b7c65e238ebcf71a6f9627b7be93bd83b9'
-
 export async function getReservationsData() {
   return await LIFTTOKEN_URL
-    .get(`reservation/${TEST_WALLET_HASH}/`)
+    .get(`reservation/${getWalletHash()}/`)
     .then(response => {
       if (response.status !== 200) return []
       return response.data
@@ -208,7 +206,7 @@ export async function getReservationsData() {
 
 export async function getPurchasesData() {
   return await LIFTTOKEN_URL
-    .get(`purchase/${TEST_WALLET_HASH}/`)
+    .get(`purchase/${getWalletHash()}/`)
     .then(response => {
       if (response.status !== 200) return []
       return response.data
