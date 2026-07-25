@@ -131,6 +131,10 @@ export default {
   props: {
     wallet: Object,
     denominationTabSelected: String,
+    favoriteTokenIds: {
+      type: Array,
+      default: () => []
+    },
     tutorialMode: {
       type: Boolean,
       default: false
@@ -174,14 +178,6 @@ export default {
       }
       return this.transactions
     },
-    favoriteTokenIdsForApi () {
-      const assets = this.$store.getters['assets/getAssets']
-      if (!assets) return ''
-      return assets
-        .filter(a => a.favorite === 1 && a.id !== 'bch')
-        .map(a => a.id)
-        .join(',')
-    },
     txAssetFilterOpts () {
       return [
         { label: this.$t('All'), value: 'all' },
@@ -206,6 +202,12 @@ export default {
   watch: {
     txAssetFilter (value) {
       localStorage.setItem('txAssetFilter', value)
+      this.loadTransactions()
+    },
+    favoriteTokenIds () {
+      if (this.txAssetFilter === 'favorites-only' || this.txAssetFilter === 'bch+favorites') {
+        this.loadTransactions()
+      }
     }
   },
 
@@ -314,6 +316,8 @@ export default {
       return null
     },
     async loadTransactions () {
+      this.transactions = []
+      this.transactionsLoaded = false
       try {
         if (!this.walletHash) {
           this.walletHash = getWalletByNetwork(this.wallet, 'bch').getWalletHash()
@@ -332,10 +336,10 @@ export default {
           params.asset_filter = 'bch-only'
         } else if (this.txAssetFilter === 'favorites-only') {
           params.asset_filter = 'favorites'
-          params.token_ids = this.favoriteTokenIdsForApi
+          params.token_ids = (this.favoriteTokenIds || []).join(',')
         } else if (this.txAssetFilter === 'bch+favorites') {
           params.asset_filter = 'bch-and-favorites'
-          params.token_ids = this.favoriteTokenIdsForApi
+          params.token_ids = (this.favoriteTokenIds || []).join(',')
         }
 
         const response = await axios.get(url, { params })

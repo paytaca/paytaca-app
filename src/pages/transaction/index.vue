@@ -277,6 +277,7 @@
             ref="latest-transactions"
             :wallet="wallet"
             :denominationTabSelected="denominationTabSelected"
+            :favoriteTokenIds="favoriteTokenIds"
             data-tour="transactions"
             :tutorialMode="homeTour.active"
             :tutorialStepId="homeTour.steps?.[homeTour.stepIndex]?.id"
