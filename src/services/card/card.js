@@ -1,5 +1,5 @@
 import { cardLogger } from 'src/utils/debug-logger.js'
-import AuthNftService, { encodeMerchantHash } from './auth-nft';
+import AuthNftService, { decodeCommitment, encodeMerchantHash } from './auth-nft';
 import { defaultSpendLimitSats } from './constants';
 import { TapToPayV2 as TapToPay } from './contract/tap-to-pay';
 import { backend } from './backend';
@@ -13,6 +13,9 @@ import {
   clearCardActivationAttempt,
   CardActivationStatus
 } from './storage';
+
+import { encodeCommitment } from 'src/services/card/auth-nft';
+
 export class Card {
   constructor(data) {
     this.raw = data;
@@ -197,23 +200,22 @@ export class Card {
   }
 
   /**
-   * Gets token UTXOs for card token address
-   * @returns {Promise<Array>}
-   */
-  async getTokenUtxos() {
-    this._assertWallet();
-    const tokenId = this.authCategory;
-    const tokenAddress = this.tokenAddress
-    return await this.wallet.getTokenUtxos(tokenId, tokenAddress);
-  }
-
-  /**
    * Gets BCH UTXOs for card address
    * @returns {Promise<Object>}
    */
   async getBchUtxos() {
     this._assertContract();
     return await this.contract.getBchUtxos();
+  }
+
+  /**
+   * Gets token UTXOs for card token address
+   * @returns {Promise<Array>}
+   */
+  async getAuthTokenUtxos({ commitment = null } = {}) {
+    this._assertContract();
+    const tokenId = this.authCategory
+    return await this.contract.getTokenUtxos(tokenId, { commitment });
   }
 
   /**
@@ -502,12 +504,8 @@ export class Card {
    * @returns {Promise<Object>}
    */
   async getAuthNfts() {
-    const response = await backend.get(`/auth-nfts/${this.raw.token_address}`)
-      .catch(error => {
-        cardLogger.error('Error fetching auth NFTs:', error.response || error.message);
-        throw error;
-      });
-    return response.data
+    const response = await this.getTokenUtxos()
+    return response || null
   }
 
   /**
@@ -515,8 +513,23 @@ export class Card {
    * @returns {Promise<Object>}
    */
   async getGlobalAuthNft() {
-    const { global_auth_nft } = await this.getAuthNfts()
-    return global_auth_nft
+    const authTokenUtxos = await this.getAuthTokenUtxos();
+
+    let decodedCommitment = null;
+    const globalAuthNft = authTokenUtxos.find(utxo => {
+      const mutableNft = utxo?.token?.nft?.capability === 'mutable'
+      if (!mutableNft) return false
+
+      const commitment = utxo?.token?.nft?.commitment
+      if (!commitment) return false
+      
+      decodedCommitment = decodeCommitment(commitment)
+      if (!decodedCommitment) return false
+
+      const isGlobalMerchantHash = decodedCommitment.hash === ""
+      return mutableNft && isGlobalMerchantHash
+    });
+    return { globalAuthNft, ...decodedCommitment}
   }
 
   /**
@@ -759,19 +772,20 @@ export class Card {
   /**
    * Mutates the global auth token commitment
    * @param {Object} options
-   * @param {boolean} [options.authorize=true] - Whether to authorize the terminal
+   * @param {boolean} [options.authorized=true] - Whether to authorize the terminal
    * @param {number} [options.spendLimitSats] - Spend limit in satoshis
    * @param {boolean} [options.broadcast=true] - Whether to broadcast the transaction
    * @returns {Promise<Object>}
    */
-  async mutateGlobalAuthToken({ authorize = true, spendLimitSats, broadcast = true }) {
-    return this._mutateAuthToken({ authorize, spendLimitSats, broadcast });
+  async mutateGlobalAuthToken({ authorized = true, spendLimitSats, broadcast = true }) {
+    console.log('Mutating global auth token with options:', { authorized, spendLimitSats, broadcast });
+    return this._mutateAuthToken({ authorized, spendLimitSats, broadcast });
   }
 
   /**
    * Mutates the merchant auth token commitment
    * @param {Object} options
-   * @param {boolean} [options.authorize=true] - Whether to authorize the merchant
+   * @param {boolean} [options.authorized=true] - Whether to authorize the merchant
    * @param {number} [options.spendLimitSats] - Spend limit in satoshis
    * @param {Object} options.merchant - Merchant info
    * @param {string} options.merchant.id - Merchant ID
@@ -779,15 +793,15 @@ export class Card {
    * @param {boolean} [options.broadcast=true] - Whether to broadcast the transaction
    * @returns {Promise<Object>}
    */
-  async mutateMerchantAuthToken({ authorize = true, spendLimitSats, merchant, broadcast = true }) {
-    return this._mutateAuthToken({ authorize, spendLimitSats, merchant, broadcast });
+  async mutateMerchantAuthToken({ authorized = true, spendLimitSats, merchant, broadcast = true }) {
+    return this._mutateAuthToken({ authorized, spendLimitSats, merchant, broadcast });
   }
 
   /**
    * Mutates auth token commitment (global or merchant).
    * @private
    * @param {Object} options
-   * @param {boolean} [options.authorize=true] - Whether to authorize
+   * @param {boolean} [options.authorized=true] - Whether to authorize
    * @param {number} [options.spendLimitSats] - Spend limit in satoshis
    * @param {Object} [options.merchant] - Merchant info (omit for global)
    * @param {string} [options.merchant.id] - Merchant ID
@@ -795,9 +809,11 @@ export class Card {
    * @param {boolean} [options.broadcast=true] - Whether to broadcast the transaction
    * @returns {Promise<Object>}
    */
-  async _mutateAuthToken({ authorize = true, spendLimitSats, merchant, broadcast = true } = {}) {
+  async _mutateAuthToken({ authorized = true, spendLimitSats, merchant, broadcast = true } = {}) {
     this._assertContract();
     this._assertWallet();
+
+    console.log('[_mutateAuthToken]Mutating auth token with options:', { authorized, spendLimitSats, merchant, broadcast });
 
     if (merchant && (!merchant.id || !merchant.pubkey)) {
       throw new Error('Merchant id and pubkey are required to mutate merchant auth token');
@@ -805,7 +821,7 @@ export class Card {
 
     try {
       const mutation = {
-        authorized: authorize,
+        authorized: authorized,
         spendLimitSats: spendLimitSats,
       };
 
@@ -819,11 +835,12 @@ export class Card {
       const mutations = [mutation];
       const mutationTarget = merchant ? 'merchant' : 'global';
 
+      console.log(`Mutating ${mutationTarget} auth token commitment with mutations:`, mutations);
       cardLogger.log(`Mutating ${mutationTarget} auth token commitment:`, mutations);
 
       const privateKey = this.wallet.privkey();
       const mutateResponse = await this.contract.mutate({
-        senderWif: privateKey,
+        ownerWif: privateKey,
         mutations,
         broadcast
       });

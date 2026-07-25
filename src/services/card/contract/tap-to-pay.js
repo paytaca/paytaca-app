@@ -91,20 +91,23 @@ class TapToPay {
      * @param {string} tokenAddress - Token address to query for UTXOs.
      * @returns {Promise<Array>}
      */
-    async getTokenUtxos (tokenId, tokenAddress) {      
+    async getTokenUtxos (tokenId, tokenAddress, opts = {}) {
         if (!tokenAddress || isTokenAddress(tokenAddress) === false) {
             cardLogger.warn('Invalid or missing token address for getTokenUtxos:', tokenAddress)
             tokenAddress = toTokenAddress(this.getContract().address)
         }
 
         cardLogger.log("========> tokenAddress:", tokenAddress)
+        let params = {
+            is_cashtoken_nft: true
+        }
+
+        if (opts.commitment) {
+            params.commitment = opts.commitment
+        }
     
         let result = []
-        const response = await watchtower.BCH._api.get(`utxo/ct/${tokenAddress}/${tokenId}/`, {
-            params: {
-                is_cashtoken_nft: true
-            }}
-        )
+        const response = await watchtower.BCH._api.get(`utxo/ct/${tokenAddress}/${tokenId}/`, { params })
         result = response.data?.utxos
         return result?.map(utxo => ({
             txid: utxo.txid,
@@ -192,6 +195,7 @@ class TapToPay {
     async sweep () {}
 
     estimateFee({ numContractInputs = 0, numP2pkhInputs = 0, numOutputs = 2, feeRate = 2n } = {}) {
+        console.log('[estimateFee] numContractInputs:', numContractInputs, 'numP2pkhInputs:', numP2pkhInputs, 'numOutputs:', numOutputs, 'feeRate:', feeRate)
         // CashScript contract inputs are larger due to unlocking script (redeem script + args)
         // Approximate: ~300 bytes per contract input, ~148 bytes per P2PKH input
         const CONTRACT_INPUT_SIZE = 300
@@ -710,7 +714,7 @@ export class TapToPayV2 extends TapToPay {
     
     /**
      * Gets the merchant authorization category and the corresponding ownership token UTXO.
-     * @returns {{ authOwnershipToken: Object, authCategory: string }}
+     * @returns {Promise<{ authOwnershipToken: Object, authCategory: string }>} Merchant authorization category and ownership token UTXO.
      */
     async getMerchantAuthCategory () {
         // Get ownership tokens
@@ -1038,6 +1042,7 @@ export class TapToPayV2 extends TapToPay {
      * @returns {Promise<Object>} Result of the mutate operation.
      */
     async mutate({ ownerWif, mutations, broadcast = true }) {
+        console.log('[mutate] Starting mutation process with params:', { mutations, broadcast })
         const contract = this.getContract()
         const ownerSig = new SignatureTemplate(ownerWif)
         const ownerPk = binToHex(ownerSig.getPublicKey())
@@ -1053,12 +1058,17 @@ export class TapToPayV2 extends TapToPay {
         }
         
         // Get the auth tokens to mutate based on params.mutations
-        const authCategory = this.getMerchantAuthCategory()
+        const { authCategory } = await this.getMerchantAuthCategory()
         const tokenUtxos = await this.getTokenUtxos(authCategory, contract.tokenAddress)
         console.log('tokenUtxos:', tokenUtxos)
 
         const inputs = [ownerUtxo, catUtxo]
-        const outputs = []
+        const outputs = [ownerUtxo, catUtxo].map(utxo => ({
+            to: contract.tokenAddress,
+            amount: toBigInt(utxo.satoshis),
+            token: utxo.token
+        }))
+
         for (let i = 0; i < mutations.length; i++) {
             const mutation = mutations[i]
             const merchantHash = encodeMerchantHash({ 
@@ -1072,18 +1082,26 @@ export class TapToPayV2 extends TapToPay {
                 return decodedCommitment.hash === merchantHash
             })
 
+            console.log('utxoToMutate:', utxoToMutate)
+
             if (!utxoToMutate) {
                 cardLogger.warn(`No matching UTXO found for mutation with merchant hash ${merchantHash}. Skipping this mutation.`)
                 continue
             }
 
+            const decodedCommitment = decodeCommitment(utxoToMutate?.token?.nft?.commitment)
+            console.log('decodedCommitment:', decodedCommitment)
+
             // Prepare the output rewriting the commitment
             const newCommitmentData = {
                 authorized: mutation.authorized,
-                spendLimitSats: mutation.spendLimitSats || 0,
+                spendLimitSats: mutation.spendLimitSats || decodedCommitment.spendLimitSats,
                 merchant: mutation.merchant
             }
+            console.log('newCommitmentData:', newCommitmentData)
             const newCommitment = encodeCommitment(newCommitmentData)
+
+            console.log('newCommitment:', newCommitment)
 
             if (newCommitment === utxoToMutate.token.nft.commitment) {
                 cardLogger.warn(`New commitment is the same as the current commitment for merchant hash ${merchantHash}. Skipping this mutation.`)
@@ -1105,20 +1123,29 @@ export class TapToPayV2 extends TapToPay {
             })
         }
 
+        console.log('[mutate] Prepared inputs:', inputs)
+        console.log('[mutate] Prepared outputs:', outputs)
+
         // Estimate the fee based on the number of inputs and outputs, and get funding UTXOs to cover it
         const estimatedFee = this.estimateFee({ 
-            numContractInputs: 1, // The token UTXO being mutated
+            numContractInputs: inputs.length, // The token UTXO being mutated
             numP2pkhInputs: 1, // Assume at least 1 P2PKH input for funding
-            numOutputs: outputs.length + 1 // Mutation outputs + potential change output
+            numOutputs: outputs.length + 1, // Mutation outputs + potential change output
+            feeRate: 3n // Use a fee rate of 1 sat/byte for estimation
         })
+
+        console.log('[mutate] Estimated fee:', estimatedFee)
         
         const { 
             cumulativeValue, 
             groupedUtxos: groupedBchFundingInputs, 
             changeAddress
         } = await this.getFundingInputs(estimatedFee)
+        console.log('groupedBchFundingInputs:', groupedBchFundingInputs)
         
         const changeAmount = cumulativeValue - BigInt(estimatedFee)
+
+        console.log('[changeAmount]:', changeAmount)
 
         // Add change output if there's leftover BCH after covering the fee
         if (changeAmount > DUST_LIMIT) {
@@ -1131,5 +1158,24 @@ export class TapToPayV2 extends TapToPay {
         // Prepare the contract transaction from the combined inputs and outputs
         const provider = new ElectrumNetworkProvider(Network.MAINNET)
         const tx = new TransactionBuilder({provider})
+
+        tx.addInputs(inputs, contract.unlock.mutate(ownerPk, ownerSig))
+        groupedBchFundingInputs.forEach(({ inputs, signatureTemplate }) => {
+            tx.addInputs(inputs, signatureTemplate.unlockP2PKH())
+        })
+        tx.addOutputs(outputs)
+        
+        console.log('[mutate] Transaction inputs:', tx.inputs)
+        console.log('[mutate] Transaction outputs:', tx.outputs)
+
+        const txHex = tx.build()
+
+        if (broadcast) {
+            const result = await this.broadcastTransaction(txHex)
+            cardLogger.log('[mutate] Transaction result:', result)
+            return result.data
+        } else {
+            return { success: true, txHex }
+        }
     }  
 }

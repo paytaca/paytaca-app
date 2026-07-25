@@ -320,7 +320,7 @@ export default {
     tabs () {
       return [
         { label: 'Transactions', icon: 'receipt_long', disabled: true },
-        { label: 'Manage Merchants', icon: 'storefront', disabled: true },
+        { label: 'Manage Merchants', icon: 'storefront', disabled: false },
         { label: 'Card Security', icon: 'shield', disabled: false },
         { label: 'Order Card', icon: 'local_mall', disabled: true }
       ]

@@ -5,9 +5,9 @@
       <template #default="{ attemptGeolocate }">
         <div
           v-if="userLocation"
-          class="row items-center q-mb-md q-px-sm cursor-pointer location-info"
+          class="row items-center q-mb-md q-px-sm cursor-pointer location-info disabled"
           :class="$q.dark.isActive ? 'text-grey-4' : 'text-grey-7'"
-          @click="() => attemptGeolocate().catch(err => cardLogger.error(err)).then(() => openLocationMapDialog())"
+          @click="onSelectLocation"
         >
           <q-icon name="location_on" size="1.2rem" class="q-mr-xs" color="primary" />
           <span class="text-caption ellipsis">
@@ -93,15 +93,61 @@
 
     <!-- Generic Auth NFT Toggle -->
     <div 
-      class="row items-center justify-between q-pa-md br-10 q-mb-md manage-auth-generic-toggle"
+      class="q-pa-md br-10 q-mb-md manage-auth-generic-toggle"
       :class="$q.dark.isActive ? 'glassmorphic-generic-toggle-dark' : 'glassmorphic-generic-toggle-light'"
     >
-      <div class="text-subtitle2 text-weight-bold text-primary">{{ $t('AllowAllMerchantsDialogTitle') }}</div>
-      <q-toggle 
-        :model-value="genericAuthEnabled"
-        color="primary"
-        @update:model-value="onGenericAuthToggle"
-      />
+
+      <div class="row items-center q-gutter-x-sm">
+        <div class="text-subtitle2 text-weight-bold text-primary">Global Authentication NFT</div>
+        <q-btn
+          flat
+          dense
+          auto-close
+          transition-show="scale"
+          transition-hide="scale"
+          anchor="bottom middle"
+          self="top middle"
+        >
+          <q-btn dense flat round icon="info" color="primary" />
+          <q-menu class="bg-white text-black" :dark="$q.dark.isActive">
+            <q-card class="q-pa-md" style="min-width: 250px; max-width: 300px;">
+              <div class="text-subtitle2 text-weight-bold q-mb-sm">Global Authentication NFT</div>
+              <div class="text-body2">
+                Enabling the Global Authentication NFT will authorize all merchants in your city to accept payments from your card. This is a convenient option if you want to quickly enable payments for all merchants without having to select them individually.
+              </div>
+              <div class="text-caption q-mt-sm">
+                Note: This will override any individual merchant selections you have made.
+              </div>
+            </q-card>
+          </q-menu>
+        </q-btn>
+      </div>
+      <q-separator horizontal :dark="$q.dark.isActive" class="row q-my-sm" />
+      <div class="row justify-between items-center q-gutter-x-sm q-mx-md">
+        <span>Authorization</span> 
+        <q-toggle 
+          left-label
+          :label="globalAuthNftAuthorizedLabel"
+          :model-value="globalAuthNft.authorized"
+          color="primary"
+          @update:model-value="toggleGlobalAuthNft"
+        />
+      </div>
+      <div class="row justify-between items-center q-gutter-x-sm q-mx-md">
+        <span>Spend Limit</span> 
+        <div>
+          <span v-if="globalAuthNft.spendLimitSats !== null">{{ `${satoshiToBch(globalAuthNft.spendLimitSats)} BCH (per transaction)` }}</span>
+          <span v-else>...</span>
+          <q-btn flat dense label="Edit" color="primary" class="q-px-sm q-ml-sm"/>
+        </div>
+      </div>
+       <!-- <div>
+        <q-toggle 
+          :model-value="genericAuthEnabled"
+          color="primary"
+          @update:model-value="onGenericAuthToggle"
+        />
+      </div> -->
     </div>
 
     <!-- Global Spend Limit Display (shown when Generic Auth NFT is enabled) -->
@@ -457,6 +503,7 @@ import PinLocationDialog from 'src/components/PinLocationDialog.vue';
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils.js';
 import { bchToSatoshi } from 'src/exchange/index.js';
 import { cardLogger } from 'src/utils/debug-logger.js'
+import { satoshiToBch } from 'src/exchange/index.js';
 
 
 export default {
@@ -511,9 +558,18 @@ export default {
       selectedNFT: {
         id: null
       },
+      globalAuthNft: {
+        authorized: null
+      }
     }
   },
   computed: {
+    globalAuthNftAuthorizedLabel() {
+      if (this.globalAuthNft.authorized === null) {
+        return 'Loading...'
+      }
+      return this.globalAuthNft.authorized ? 'Enabled' : 'Disabled'
+    },
     userLocation() {
       return this.$store.getters['card/userLocation']
     },
@@ -577,36 +633,38 @@ export default {
     }
   },
   async mounted() {
-    this.loadSavedLocation()
-    if (!this.userLocation) {
-      await geolocationManager.getOrUpdateGeoIp()
-      const geoip = geolocationManager.geoip.value
-      if (geoip?.latitude && geoip?.longitude) {
-        try {
-          const response = await fetch(
-            `https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${geoip.latitude}&lon=${geoip.longitude}`
-          )
-          const data = await response.json()
-          const address = data?.address || {}
-          this.$store.commit('card/setUserLocation', {
-            latitude: geoip.latitude,
-            longitude: geoip.longitude,
-            formatted: data.display_name || '',
-            location: address.suburb || address.city_district || address.town || '',
-            landmark: address.suburb || '',
-            street: address.road || address.street || '',
-            city: address.city || address.town || address.village || address.county || '',
-            country: address.country || ''
-          })
-        } catch (error) {
-        }
-      }
-    }
-    this.loadMerchantList()
+    // this.loadSavedLocation()
+    // if (!this.userLocation) {
+    //   await geolocationManager.getOrUpdateGeoIp()
+    //   const geoip = geolocationManager.geoip.value
+    //   if (geoip?.latitude && geoip?.longitude) {
+    //     try {
+    //       const response = await fetch(
+    //         `https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${geoip.latitude}&lon=${geoip.longitude}`
+    //       )
+    //       const data = await response.json()
+    //       const address = data?.address || {}
+    //       this.$store.commit('card/setUserLocation', {
+    //         latitude: geoip.latitude,
+    //         longitude: geoip.longitude,
+    //         formatted: data.display_name || '',
+    //         location: address.suburb || address.city_district || address.town || '',
+    //         landmark: address.suburb || '',
+    //         street: address.road || address.street || '',
+    //         city: address.city || address.town || address.village || address.county || '',
+    //         country: address.country || ''
+    //       })
+    //     } catch (error) {
+    //     }
+    //   }
+    // }
+    // this.loadMerchantList()
+    this.loadGlobalAuthNft()
   },
 
   methods: {
     // Initialize component - called on mount and when card changes
+    satoshiToBch,
     getDarkModeClass,
     async initializeComponent() {
       this.isInitializing = true
@@ -616,7 +674,7 @@ export default {
       this.displayLocation = null
       
       // Load saved data for this card
-      this.loadSavedLocation()
+      // this.loadSavedLocation()
       
       // // Initialize display location from store if no saved location
       // if (!this.displayLocation) {
@@ -649,6 +707,47 @@ export default {
       this.$nextTick(() => {
         this.isInitializing = false
       })
+
+      this.loadGlobalAuthNft()
+    },
+
+    toggleGlobalAuthNft() {
+      if (this.globalAuthNft.authorized) {
+        // If currently enabled, disable it
+        this.mutateGlobalAuthNft(false, null)
+      } else {
+        // If currently disabled, show confirmation dialog to enable
+        this.showAllowAllMerchantsDialog = true
+      }
+    },
+
+    mutateGlobalAuthNft(authorized, spendLimitSats) {
+      // mutate the globalAuthNft
+      this.card.mutateGlobalAuthToken({ authorized, spendLimitSats })
+        .then(() => {
+          this.globalAuthNft.authorized = authorized
+          this.$q.notify({
+            message: `Global Authentication NFT ${authorized ? 'enabled' : 'disabled'}`,
+            color: 'positive',
+            icon: 'check_circle',
+            timeout: 3000,
+          })
+        })
+        .catch(err => {
+          console.error('Error toggling global auth NFT:', err)
+          this.$q.notify({
+            message: `Failed to ${authorized ? 'enable' : 'disable'} Global Authentication NFT`,
+            color: 'negative',
+            icon: 'error',
+            timeout: 4000,
+          })
+        })
+    },
+
+    onSelectLocation() {
+      return
+      console.log('Opening location map dialog...')
+      this.openLocationMapDialog({ autoFocusSearch: true })
     },
 
     async getInitialSelectCoordinatePosition() {
@@ -778,6 +877,17 @@ export default {
         icon: 'error',
         timeout: 4000,
       })
+    },
+
+    async loadGlobalAuthNft() {
+      try {
+        this.globalAuthNft = await this.card.getGlobalAuthNft()
+        console.log('Global Auth NFT fetched:', this.globalAuthNft)
+      } catch (error) {
+        console.error('Error loading global auth NFT:', error)
+        this.globalAuthNft = { authorized: false }
+      }
+      console.log('Global Auth NFT loaded:', this.globalAuthNft)
     },
 
     async loadMerchantList(opts = {}) {
