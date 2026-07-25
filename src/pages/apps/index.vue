@@ -481,7 +481,7 @@ export default {
         {
           id: 'lift-token',
           name: `LIFT ${this.$t('Token')}`,
-          description: this.$t('Apps.LiftToken.Description', {}, 'View your LIFT token activity and manage related actions.'),
+          description: this.$t('Apps.LiftToken.Description', {}, 'Buy LIFT tokens and track vesting progress'),
           iconName: 'img:lift-token.png',
           path: '/apps/lift-token',
           iconStyle: 'width: 50%; height: 60%;',

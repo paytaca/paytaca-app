@@ -1666,7 +1666,7 @@ const phrases = {
       'Apps.Collectibles.Description': 'View and manage your Non-Fungible token collectibles.',
       'Apps.AddressBook.Description': 'Create and manage contacts and addresses.',
       'Apps.Gifts.Description': 'Create and redeem BCH gifts.',
-      'Apps.LiftToken.Description': 'View your LIFT token activity and manage related actions.',
+      'Apps.LiftToken.Description': 'Buy LIFT tokens and track vesting progress',
       'Apps.Rewards.Description': 'Keep track of points you earn as you interact with the Paytaca ecosystem.',
       'Apps.MultisigWallets.Description': 'Create and manage multi-signature wallets for extra security.',
       'Apps.CauldronDEX.Description': 'Swap or provide CashTokens liquidity on Cauldron DEX',
