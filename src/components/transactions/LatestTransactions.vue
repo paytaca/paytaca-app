@@ -5,14 +5,16 @@
         <span class="button button-text-primary">{{ $t('Transactions', {}, 'Transactions') }}</span>
         <q-btn
           flat
-          round
           dense
-          icon="filter_alt"
+          no-caps
           size="sm"
+          class="filter-btn q-ml-sm"
           :color="txAssetFilter !== 'all' ? (darkMode ? 'blue-4' : 'blue-6') : (darkMode ? 'grey-5' : 'grey-7')"
           :aria-label="$t('TransactionAssetFilter', {}, 'Transaction asset filter')"
           @click.stop
         >
+          <q-icon name="filter_alt" size="sm" class="q-mr-xs" />
+          <span class="filter-label text-caption">{{ getCurrentFilterLabel() }}</span>
           <q-menu anchor="bottom left" self="top left" :offset="[0, 8]">
             <q-list style="min-width: 220px">
               <q-item
@@ -241,6 +243,10 @@ export default {
     getDarkModeClass,
     tabButtonClass (tab) {
       return this.transactionsFilter === tab ? 'active-theme-btn' : ''
+    },
+    getCurrentFilterLabel () {
+      const opt = this.txAssetFilterOpts.find(o => o.value === this.txAssetFilter)
+      return opt ? opt.label : ''
     },
     getThemeColor () {
       const themeMap = {
@@ -708,6 +714,22 @@ export default {
 
 .see-more-btn {
   font-weight: 500;
+}
+
+.filter-btn {
+  border-radius: 16px;
+  padding: 2px 8px;
+  min-height: 0;
+  height: auto;
+  margin-top: 3px;
+}
+
+.filter-label {
+  font-weight: 500;
+  max-width: 100px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .empty-state {
