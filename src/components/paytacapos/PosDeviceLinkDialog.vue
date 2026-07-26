@@ -205,7 +205,6 @@ function onEncryptionPublicKeyScanned(result) {
     // Automatically generate link code after scanning the public key
     generateLinkCode({ checkExpiry: true })
   } catch (error) {
-    console.error('Error processing scanned encryption public key:', error)
     $q.notify({
       message: 'Invalid encryption public key',
       color: 'negative',
@@ -277,13 +276,11 @@ async function generateLinkCode(opts) {
         checkExpiry: opts?.checkExpiry,
       }
     }
-    console.log('Data to generate link code:', data)
 
     generatingLinkCode.value = true
     await $store.dispatch('paytacapos/generateLinkCode', data)
     
   } catch (error) {
-    console.error('Error generating link code:', error)
     $q.notify({
       message: `Failed to generate link code: ${error?.message}`,
       color: 'negative',
@@ -314,8 +311,8 @@ const qrCodeData = computed(() => {
     nonce: linkCode.value?.nonce,
   })
 })
-watch(qrCodeData, () => console.log(qrCodeData.value))
-onMounted(() => console.log(qrCodeData.value))
+watch(qrCodeData, () => {})
+onMounted(() => {})
 
 const expirationUpdateInterval = ref(null)
 const linkExpiresIn = ref(null)

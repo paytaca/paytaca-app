@@ -64,8 +64,7 @@ export default {
             return $store.getters['darkmode/getStatus']
         })
 
-        watch(requestCode, () => { 
-            console.log('Request code updated:', requestCode.value) 
+        watch(requestCode, () => {
         })
 
         onMounted(() => {
@@ -93,7 +92,6 @@ export default {
                 // Automatically generate request code after scanning the public key
                 generateRequestCode({ checkExpiry: true })
             } catch (error) {
-                console.error('Error processing scanned encryption public key:', error)
                 $q.notify({
                     message: 'Invalid encryption public key',
                     color: 'negative',
@@ -104,7 +102,6 @@ export default {
         }
 
         const submitEncryptionPublicKey = async (pubkey) => {
-            console.log('Submitting encryption public key:', pubkey)
             if (!pubkey?.trim()) {
                 $q.notify({
                 message: 'Please enter or scan the encryption public key',
@@ -128,7 +125,6 @@ export default {
         }
 
         const generateRequestCode = async (opts) => {
-            console.log('Generating request code with encryption public key:', encryptionPublicKey.value)
             const wallet = props.wallet.BCH
             const xpubkey = await wallet.getXPubKey()
 
@@ -170,16 +166,12 @@ export default {
                     }
                 }
 
-                console.log('Data to generate request code:', data)
-
                 generatingLinkCode.value = true
                 requestCode.value = await $store.dispatch('paytacapos/generateNfcSetupCode', data)
-                console.log('>>>>Generated request code:', requestCode.value)
                 showEncryptionPubkeyInput.value = false
                 showRequestCode.value = true
                 
             } catch (error) {
-                console.error('Error generating request code:', error)
                 $q.notify({
                     message: `Failed to generate request code: ${error?.message}`,
                     color: 'negative',

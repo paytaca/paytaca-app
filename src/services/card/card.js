@@ -753,7 +753,7 @@ export class Card {
    * @returns {Promise<Object>}
    */
   async mutateGlobalAuthToken({ authorized, spendLimitSats, broadcast = true }) {
-    console.log('Mutating global auth token with options:', { authorized, spendLimitSats, broadcast });
+    cardLogger.log('Mutating global auth token with options:', { authorized, spendLimitSats, broadcast });
     return this._mutateAuthToken({ authorized, spendLimitSats, broadcast });
   }
 

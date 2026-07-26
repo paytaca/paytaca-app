@@ -49,47 +49,7 @@
           </template>
         </q-input>
       </div>
-      <q-btn
-        v-if="merchants.some(m => m.isEnabled)"
-        :color="selectMultipleMode ? 'secondary' : 'primary'"
-        :icon="selectMultipleMode ? 'checklist' : 'checklist_rtl'"
-        dense
-        unelevated
-        round
-        @click="toggleSelectMultipleMode"
-      >
-        <q-tooltip>{{ selectMultipleMode ? 'Done selecting' : 'Select multiple' }}</q-tooltip>
-      </q-btn>
-    </div>
 
-    <!-- Batch Action Bar (shown when in select multiple mode and items selected) -->
-    <div 
-      v-if="selectMultipleMode && selectedMerchants.size > 0"
-      class="row items-center justify-between q-pa-md br-10 q-mb-md manage-auth-batch-bar"
-      :class="$q.dark.isActive ? 'glassmorphic-batch-bar-dark' : 'glassmorphic-batch-bar-light'"
-    >
-      <div class="row items-center q-gutter-x-sm">
-        <q-checkbox 
-          v-model="allSelected" 
-          :dark="$q.dark.isActive"
-          @update:model-value="toggleSelectAll"
-          color="primary"
-        />
-        <span class="text-subtitle2 text-weight-medium" :class="textColor">
-          {{ selectedMerchants.size }} selected
-        </span>
-      </div>
-      <q-btn
-        color="primary"
-        icon="token"
-        label="Mint Selected"
-        dense
-        no-caps
-        unelevated
-        :loading="batchMinting"
-        @click="mintSelectedMerchants"
-        class="manage-auth-btn"
-      />
     </div>
 
     <!-- Global Auth NFT -->
@@ -228,26 +188,11 @@
           <q-item 
             v-for="merchant in filteredMerchants" 
             :key="merchant.id" 
-            class="q-px-none manage-auth-merchant-item clickable-merchant q-px-md"
-            :class="{ 
-              'disabled-merchant': genericAuthEnabled,
-              'glassmorphic-selected-item-light': selectMultipleMode && selectedMerchants.has(merchant.id) && !$q.dark.isActive,
-              'glassmorphic-selected-item-dark': selectMultipleMode && selectedMerchants.has(merchant.id) && $q.dark.isActive
-            }"
-            @click="handleMerchantClick(merchant)">
-            <!-- Checkbox for select multiple mode -->
-            <q-item-section v-if="selectMultipleMode" side class="q-pr-sm">
-              <q-checkbox 
-                disabled
-                :model-value="selectedMerchants.has(merchant.id)"
-                :dark="$q.dark.isActive"
-                @update:model-value="(val) => toggleMerchantSelection(merchant, val)"
-              />
-            </q-item-section>
-            
+            class="q-px-none manage-auth-merchant-item q-px-md"
+            :class="{ 'disabled-merchant': genericAuthEnabled }">
             <q-item-section>
               <q-tooltip 
-                v-if="merchant.isEnabled && !genericAuthEnabled && merchant.spendLimit && !selectMultipleMode" 
+                v-if="merchant.isEnabled && !genericAuthEnabled && merchant.spendLimit" 
                 anchor="top middle" 
                 self="bottom middle">
                 Spend Limit: {{ formatSpendLimit(merchant.spendLimit) }} BCH
@@ -257,7 +202,7 @@
                 :class="merchant.isEnabled ? textColor : ($q.dark.isActive ? 'text-grey-6' : 'text-grey-7')">
                 {{ merchant.name }}
                 <span 
-                  v-if="merchant.isEnabled && !genericAuthEnabled && merchant.spendLimit && !selectMultipleMode" 
+                  v-if="merchant.isEnabled && !genericAuthEnabled && merchant.spendLimit" 
                   class="text-caption text-secondary q-ml-xs">
                   ({{ formatSpendLimit(merchant.spendLimit) }} BCH)
                 </span>
@@ -542,9 +487,6 @@ export default {
         hasMore: false
       },
 
-      selectMultipleMode: false, // Toggle for select multiple mode
-      selectedMerchants: new Set(), // Track selected merchants in batch mode
-      batchMinting: false, // Track batch minting state
       // Location map
       locationMap: null,
       locationMarker: null,
@@ -600,14 +542,6 @@ export default {
     },
     textColorGrey() {
       return this.$q.dark.isActive ? 'text-grey-4' : 'text-grey-7'
-    },
-    allSelected: {
-      get() {
-        return this.filteredMerchants.length > 0 && this.filteredMerchants.every(m => this.selectedMerchants.has(m.id))
-      },
-      set(val) {
-        this.toggleSelectAll(val)
-      }
     },
     mapUid() {
       return `leaflet-map-${this.$.uid}`
@@ -733,7 +667,7 @@ export default {
           })
         })
         .catch(err => {
-          console.error('Error toggling global auth NFT:', err)
+          cardLogger.error('Error toggling global auth NFT:', err)
           this.$q.dialog({
             title: 'Error',
             message: `Error: ${err.message || err}`,
@@ -767,14 +701,11 @@ export default {
         const spendLimitSats = bchToSatoshi(spendLimitBCH)
         this.mutateGlobalAuthNft(null, spendLimitSats)
       }).onCancel(() => {
-        console.log('Global spend limit edit canceled')
       })
     },
 
     onSelectLocation() {
       return
-      console.log('Opening location map dialog...')
-      this.openLocationMapDialog({ autoFocusSearch: true })
     },
 
     async getInitialSelectCoordinatePosition() {
@@ -920,7 +851,7 @@ export default {
           return this.loadGlobalAuthNft(interval * 2, retries - 1)
         }
       } catch (error) {
-        console.error('Error loading global auth NFT:', error)
+        cardLogger.error('Error loading global auth NFT:', error)
         this.globalAuthNft = { authorized: false }
         if (retries > 0) {
           await new Promise(resolve => setTimeout(resolve, interval))
@@ -929,7 +860,7 @@ export default {
       } finally {
         this.loadingGlobalAuthNft = false
       }
-      console.log('Global Auth NFT loaded:', this.globalAuthNft)
+      cardLogger.log('Global Auth NFT loaded:', this.globalAuthNft)
     },
 
     async loadMerchantList(opts = {}) {
@@ -1066,7 +997,17 @@ export default {
             pubkey: merchant.public_key,
           } 
         }).then(response => {
-          console.log('Mint response:', response)
+          cardLogger.log('Mint response:', response)
+
+          // Show success message
+          this.mintedMerchants.add(merchant.id);
+          this.mintedMerchants = new Set(this.mintedMerchants);
+
+          // Clear success message after 2 seconds
+          setTimeout(() => {
+            this.mintedMerchants.delete(merchant.id);
+            this.mintedMerchants = new Set(this.mintedMerchants);
+          }, 2000);
         }).catch(err => {
           this.$q.notify({
             message: `Failed to mint auth NFT for ${merchant.name}`,
@@ -1080,16 +1021,6 @@ export default {
           // Minting complete
           this.mintingMerchants.delete(merchant.id);
           this.mintingMerchants = new Set(this.mintingMerchants);
-          
-          // Show success message
-          this.mintedMerchants.add(merchant.id);
-          this.mintedMerchants = new Set(this.mintedMerchants);
-
-          // Clear success message after 2 seconds
-          setTimeout(() => {
-            this.mintedMerchants.delete(merchant.id);
-            this.mintedMerchants = new Set(this.mintedMerchants);
-          }, 2000);
         });
       }
       
@@ -1178,136 +1109,6 @@ export default {
       }
 
       this.closeSpendLimitDialog();
-    },
-
-    // Select Multiple Mode Methods
-    toggleSelectMultipleMode() {
-      this.selectMultipleMode = !this.selectMultipleMode;
-      if (!this.selectMultipleMode) {
-        // Clear selections when exiting select mode
-        this.selectedMerchants.clear();
-        this.selectedMerchants = new Set();
-      }
-    },
-
-    handleMerchantClick(merchant) {
-      this.selectedMerchant = merchant;
-      if (this.selectMultipleMode) {
-        // In select mode, toggle selection
-        this.toggleMerchantSelection(merchant, !this.selectedMerchants.has(merchant.id));
-      } else {
-        // Normal mode, open spend limit dialog
-        this.openSpendLimitDialog(merchant);
-      }
-    },
-
-    toggleMerchantSelection(merchant, selected) {
-      if (selected) {
-        this.selectedMerchants.add(merchant.id);
-      } else {
-        this.selectedMerchants.delete(merchant.id);
-      }
-      // Trigger reactivity
-      this.selectedMerchants = new Set(this.selectedMerchants);
-    },
-
-    toggleSelectAll(selectAll) {
-      if (selectAll) {
-        // Select all filtered merchants
-        this.filteredMerchants.forEach(merchant => {
-          this.selectedMerchants.add(merchant.id);
-        });
-      } else {
-        // Deselect all
-        this.selectedMerchants.clear();
-      }
-      // Trigger reactivity
-      this.selectedMerchants = new Set(this.selectedMerchants);
-    },
-
-    async mintSelectedMerchants() {
-      if (this.selectedMerchants.size === 0) return;
-
-      this.batchMinting = true;
-      
-      // Get selected merchant objects
-      const merchantsToMint = this.merchants.filter(m => this.selectedMerchants.has(m.id));
-      
-      // Show progress dialog
-      const progressDialog = this.$q.dialog({
-        title: 'Minting Merchants',
-        message: `Processing ${merchantsToMint.length} merchants...`,
-        progress: true,
-        ok: false,
-        cancel: false,
-        persistent: true,
-        color: 'primary'
-      });
-
-      let successCount = 0;
-      let failCount = 0;
-
-      // Process each merchant
-      for (const merchant of merchantsToMint) {
-        try {
-          // Add to minting set
-          this.mintingMerchants.add(merchant.id);
-          this.mintingMerchants = new Set(this.mintingMerchants);
-          
-          // Set default spend limit if not set
-          merchant.spendLimit = merchant.spendLimit || '1';
-          merchant.isEnabled = true;
-          
-          // Simulate minting delay
-          await new Promise(resolve => setTimeout(resolve, 1500));
-          
-          // Remove from minting, add to minted
-          this.mintingMerchants.delete(merchant.id);
-          this.mintingMerchants = new Set(this.mintingMerchants);
-          this.mintedMerchants.add(merchant.id);
-          this.mintedMerchants = new Set(this.mintedMerchants);
-          
-          successCount++;
-          
-          // Clear success message after delay
-          setTimeout(() => {
-            this.mintedMerchants.delete(merchant.id);
-            this.mintedMerchants = new Set(this.mintedMerchants);
-          }, 2000);
-          
-        } catch (error) {
-          this.mintingMerchants.delete(merchant.id);
-          this.mintingMerchants = new Set(this.mintingMerchants);
-          failCount++;
-        }
-      }
-
-      progressDialog.hide();
-      this.batchMinting = false;
-      
-      // Clear selections
-      this.selectedMerchants.clear();
-      this.selectedMerchants = new Set();
-      
-      // Show result notification
-      if (successCount > 0) {
-        this.$q.notify({
-          message: `Successfully minted ${successCount} merchant${successCount > 1 ? 's' : ''}${failCount > 0 ? `, ${failCount} failed` : ''}`,
-          color: failCount > 0 ? 'warning' : 'positive',
-          icon: failCount > 0 ? 'warning' : 'check_circle',
-          timeout: 3000
-        });
-      } else {
-        this.$q.notify({
-          message: 'Failed to mint merchants. Please try again.',
-          color: 'negative',
-          icon: 'error',
-          timeout: 3000
-        });
-      }
-      
-      // Exit select mode after batch minting
-      this.selectMultipleMode = false;
     },
 
     destroyLocationMap() {

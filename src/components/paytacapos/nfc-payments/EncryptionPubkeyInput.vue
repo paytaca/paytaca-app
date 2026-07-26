@@ -94,11 +94,9 @@ export default {
         onMounted(() => {
             // Automatically show the dialog when the component is mounted
             showDialog.value = true
-            console.log('props.posId:', props.posId)
         })
 
         const onEncryptionPublicKeyScanned = (result) => {
-            console.log('Scanned encryption public key:', result)
             // Handle the scanned encryption public key as needed
             encryptionPublicKey.value = result
             showQrScanner.value = false
