@@ -97,7 +97,6 @@ class TapToPay {
             tokenAddress = toTokenAddress(this.getContract().address)
         }
 
-        cardLogger.log("========> tokenAddress:", tokenAddress)
         let params = {
             is_cashtoken_nft: true
         }
@@ -1093,8 +1092,16 @@ export class TapToPayV2 extends TapToPay {
             console.log('decodedCommitment:', decodedCommitment)
 
             // Prepare the output rewriting the commitment
+            let authorized = decodedCommitment.authorized
+            console.log('mutation:', mutation)
+            console.log('mutation.authorized !== null:', mutation.authorized !== null)
+            if (mutation.authorized !== null) {
+                authorized = mutation.authorized
+            }
+
+            console.log('=========authorized:', authorized)
             const newCommitmentData = {
-                authorized: mutation.authorized,
+                authorized: authorized,
                 spendLimitSats: mutation.spendLimitSats || decodedCommitment.spendLimitSats,
                 merchant: mutation.merchant
             }
@@ -1146,6 +1153,10 @@ export class TapToPayV2 extends TapToPay {
         const changeAmount = cumulativeValue - BigInt(estimatedFee)
 
         console.log('[changeAmount]:', changeAmount)
+
+        if (changeAmount < 0n) {
+            throw new Error('Insufficient BCH balance to cover mutation fee. Required: ' + estimatedFee + ', Available: ' + cumulativeValue)
+        }
 
         // Add change output if there's leftover BCH after covering the fee
         if (changeAmount > DUST_LIMIT) {

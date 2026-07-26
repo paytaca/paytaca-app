@@ -41,6 +41,7 @@
           input-class="search-input-field"
           :dark="$q.dark.isActive"
           clearable
+          disable
           class="search-input-wrapper"
         >
           <template v-slot:prepend>
@@ -91,14 +92,12 @@
       />
     </div>
 
-    <!-- Generic Auth NFT Toggle -->
+    <!-- Global Auth NFT -->
     <div 
       class="q-pa-md br-10 q-mb-md manage-auth-generic-toggle"
-      :class="$q.dark.isActive ? 'glassmorphic-generic-toggle-dark' : 'glassmorphic-generic-toggle-light'"
-    >
-
+      :class="$q.dark.isActive ? 'glassmorphic-generic-toggle-dark' : 'glassmorphic-generic-toggle-light'">
       <div class="row items-center q-gutter-x-sm">
-        <div class="text-subtitle2 text-weight-bold text-primary">Global Authentication NFT</div>
+        <div class="text-weight-bold text-primary">Global Authentication NFT</div>
         <q-btn
           flat
           dense
@@ -106,8 +105,7 @@
           transition-show="scale"
           transition-hide="scale"
           anchor="bottom middle"
-          self="top middle"
-        >
+          self="top middle">
           <q-btn dense flat round icon="info" color="primary" />
           <q-menu class="bg-white text-black" :dark="$q.dark.isActive">
             <q-card class="q-pa-md" style="min-width: 250px; max-width: 300px;">
@@ -130,7 +128,7 @@
           :label="globalAuthNftAuthorizedLabel"
           :model-value="globalAuthNft.authorized"
           color="primary"
-          @update:model-value="toggleGlobalAuthNft"
+          @update:model-value="mutateGlobalAuthNft(!globalAuthNft.authorized, null)"
         />
       </div>
       <div class="row justify-between items-center q-gutter-x-sm q-mx-md">
@@ -138,7 +136,7 @@
         <div>
           <span v-if="globalAuthNft.spendLimitSats !== null">{{ `${satoshiToBch(globalAuthNft.spendLimitSats)} BCH (per transaction)` }}</span>
           <span v-else>...</span>
-          <q-btn flat dense label="Edit" color="primary" class="q-px-sm q-ml-sm"/>
+          <q-btn flat dense label="Edit" color="primary" class="q-px-sm q-ml-sm" @click="onEditGlobalSpendLimit"/>
         </div>
       </div>
        <!-- <div>
@@ -226,7 +224,7 @@
 
       <!-- Merchant List -->
       <div v-else-if="filteredMerchants.length > 0">
-        <q-list separator :dark="$q.dark.isActive">
+        <q-list disabled separator :dark="$q.dark.isActive">
           <q-item 
             v-for="merchant in filteredMerchants" 
             :key="merchant.id" 
@@ -236,11 +234,11 @@
               'glassmorphic-selected-item-light': selectMultipleMode && selectedMerchants.has(merchant.id) && !$q.dark.isActive,
               'glassmorphic-selected-item-dark': selectMultipleMode && selectedMerchants.has(merchant.id) && $q.dark.isActive
             }"
-            clickable
             @click="handleMerchantClick(merchant)">
             <!-- Checkbox for select multiple mode -->
             <q-item-section v-if="selectMultipleMode" side class="q-pr-sm">
               <q-checkbox 
+                disabled
                 :model-value="selectedMerchants.has(merchant.id)"
                 :dark="$q.dark.isActive"
                 @update:model-value="(val) => toggleMerchantSelection(merchant, val)"
@@ -286,15 +284,15 @@
                   Authorized ({{ merchant.auth_nfts.length }} NFT{{ merchant.auth_nfts.length > 1 ? 's' : '' }})
                 </span>
                 <!-- Merchant has no NFTs: show mint toggle -->
-                <div v-else class="row items-center q-gutter-x-xs" @click.stop>
+                <!-- <div v-else class="row items-center q-gutter-x-xs" @click.stop>
                   <span class="text-caption" :class="$q.dark.isActive ? 'text-grey-5' : 'text-grey-7'">Enable</span>
                   <q-toggle
+                    disabled
                     :model-value="false"
-                    :disable="genericAuthEnabled"
                     color="primary"
                     @update:model-value="(val) => onMerchantToggle(merchant, val)"
                   />
-                </div>
+                </div> -->
               </div>
             </q-item-section>
           </q-item>
@@ -326,7 +324,7 @@
     </div>
 
     <!-- Allow All Merchants Confirmation Dialog -->
-    <q-dialog v-model="showAllowAllMerchantsDialog" persistent>
+    <!-- <q-dialog v-model="showAllowAllMerchantsDialog" persistent>
       <q-card class="pt-card" :class="$q.dark.isActive ? 'dark' : 'light'" style="min-width: 320px; border-radius: 24px;">
         <q-card-section class="q-pa-lg">
           <div class="row items-center justify-between q-mb-sm">
@@ -345,10 +343,10 @@
 
         <q-card-actions align="right" class="q-px-lg q-pb-md">
           <q-btn flat label="Cancel" :color="$q.dark.isActive ? 'grey-4' : 'grey-7'" rounded @click="cancelAllowAllMerchants" />
-          <q-btn unelevated label="Enable" color="primary" class="bg-grad text-white" rounded @click="confirmAllowAllMerchants" />
+          <q-btn unelevated label="Enable" color="primary" class="bg-grad text-white" rounded @click="onConfirmEnableGlobalAuthNft" />
         </q-card-actions>
       </q-card>
-    </q-dialog>
+    </q-dialog> -->
 
     <!-- Spend Limit Dialog -->
     <q-dialog v-model="showMutateAuthDialog">
@@ -514,6 +512,11 @@ export default {
   props: {
     card: { type: Object, required: true }
   },
+  provides() {
+    return {
+      card: this.card,
+    }
+  },
   data() {
     return {
       search: '',
@@ -560,7 +563,8 @@ export default {
       },
       globalAuthNft: {
         authorized: null
-      }
+      },
+      loadingGlobalAuthNft: false
     }
   },
   computed: {
@@ -711,37 +715,60 @@ export default {
       this.loadGlobalAuthNft()
     },
 
-    toggleGlobalAuthNft() {
-      if (this.globalAuthNft.authorized) {
-        // If currently enabled, disable it
-        this.mutateGlobalAuthNft(false, null)
-      } else {
-        // If currently disabled, show confirmation dialog to enable
-        this.showAllowAllMerchantsDialog = true
-      }
-    },
-
     mutateGlobalAuthNft(authorized, spendLimitSats) {
+      this.$q.loading.show({
+        message: 'Updating Global Authentication NFT...',
+        spinnerColor: 'primary',
+        backgroundColor: 'rgba(0, 0, 0, 0.5)',
+        customClass: 'q-loading-custom'
+      })
       // mutate the globalAuthNft
       this.card.mutateGlobalAuthToken({ authorized, spendLimitSats })
-        .then(() => {
-          this.globalAuthNft.authorized = authorized
-          this.$q.notify({
-            message: `Global Authentication NFT ${authorized ? 'enabled' : 'disabled'}`,
-            color: 'positive',
-            icon: 'check_circle',
-            timeout: 3000,
+        .then(async () => {
+          await this.loadGlobalAuthNft()
+          this.$q.dialog({
+            title: 'Success',
+            message: `Global Authentication NFT has been mutated successfully.`,
+            ok: true
           })
         })
         .catch(err => {
           console.error('Error toggling global auth NFT:', err)
-          this.$q.notify({
-            message: `Failed to ${authorized ? 'enable' : 'disable'} Global Authentication NFT`,
-            color: 'negative',
-            icon: 'error',
-            timeout: 4000,
+          this.$q.dialog({
+            title: 'Error',
+            message: `Error: ${err.message || err}`,
+            ok: true
           })
         })
+        .finally(() => {
+          this.loadingGlobalAuthNft = false
+          this.$q.loading.hide()
+        })
+    },
+
+    onEditGlobalSpendLimit() {
+      this.$q.dialog({
+        title: 'Edit Global Spend Limit',
+        message: 'Enter the new spend limit for the Global Authentication NFT (in BCH):',
+        prompt: {
+          model: this.satoshiToBch(this.globalAuthNft.spendLimitSats || 0),
+          type: 'decimal',
+          isValid: val => {
+            const num = parseFloat(val)
+            if (isNaN(num) || num < 0.00001) {
+              return false
+            }
+            return true
+          },
+        },
+        cancel: true,
+        persistent: true
+      }).onOk(spendLimitBCH => {
+        const spendLimitSats = bchToSatoshi(spendLimitBCH)
+        this.mutateGlobalAuthNft(null, spendLimitSats)
+      }).onCancel(() => {
+        console.log('Global spend limit edit canceled')
+      })
     },
 
     onSelectLocation() {
@@ -879,13 +906,28 @@ export default {
       })
     },
 
-    async loadGlobalAuthNft() {
+    // Add exponential backoff retry for loading global auth NFT
+    async loadGlobalAuthNft(interval = 1000, retries = 5) {
+      this.loadingGlobalAuthNft = true
       try {
-        this.globalAuthNft = await this.card.getGlobalAuthNft()
-        console.log('Global Auth NFT fetched:', this.globalAuthNft)
+        const globalAuthNft = await this.card.getGlobalAuthNft()
+        if (Object.keys(globalAuthNft).length > 0) {
+          this.globalAuthNft = globalAuthNft
+          return globalAuthNft
+        }
+        if (retries > 0) {
+          await new Promise(resolve => setTimeout(resolve, interval))
+          return this.loadGlobalAuthNft(interval * 2, retries - 1)
+        }
       } catch (error) {
         console.error('Error loading global auth NFT:', error)
         this.globalAuthNft = { authorized: false }
+        if (retries > 0) {
+          await new Promise(resolve => setTimeout(resolve, interval))
+          return this.loadGlobalAuthNft(interval * 2, retries - 1)
+        }
+      } finally {
+        this.loadingGlobalAuthNft = false
       }
       console.log('Global Auth NFT loaded:', this.globalAuthNft)
     },
@@ -924,32 +966,12 @@ export default {
         const params = {
           limit: this.merchantsPagination.limit,
           offset: this.merchantsPagination.offset,
-          token_id: this.card?.category,
+          token_id: this.card?.authCategory,
           // location: locationCoords,
           // radius: this.radius
         }
 
-
         const response = await getMerchantsByCity(locationCoords.city, params)
-        
-        // // Map new merchants with UI state
-        // const newMerchants = response.results.map(merchant => ({
-        //   ...merchant,
-        //   isEnabled: false,
-        //   wasEnabledBeforeGeneric: false,
-        //   spendLimit: null
-        // }))
-
-        // // Merge with existing merchants
-        // if (isReset) {
-        //   this.merchants = newMerchants
-        // } else {
-        //   // Avoid duplicates
-        //   const existingIds = new Set(this.merchants.map(m => m.id))
-        //   const uniqueNewMerchants = newMerchants.filter(m => !existingIds.has(m.id))
-        //   this.merchants = [...this.merchants, ...uniqueNewMerchants]
-        // }
-
         this.merchants = response.results
 
         // Update pagination - use the filtered count
@@ -1010,19 +1032,13 @@ export default {
       }
     },
 
-    confirmAllowAllMerchants() {
-      this.showAllowAllMerchantsDialog = false;
-      this.genericAuthEnabled = true;
-      this.merchants.forEach(m => {
-        m.wasEnabledBeforeGeneric = m.isEnabled;
-        m.isEnabled = true;
-      });
-      this.notifySuccess('Generic Auth NFT enabled - all merchants are authorized', { icon: 'check_circle' });
-    },
-
     cancelAllowAllMerchants() {
       this.showAllowAllMerchantsDialog = false;
-      this.genericAuthEnabled = false;
+    },
+
+    onConfirmEnableGlobalAuthNft() {
+      this.showAllowAllMerchantsDialog = false;
+      this.mutateGlobalAuthNft(true, null)
     },
 
     async onMerchantToggle(merchant, enabled) {
@@ -1049,7 +1065,8 @@ export default {
             id: merchant.ref_id,
             pubkey: merchant.public_key,
           } 
-        }).then(() => {
+        }).then(response => {
+          console.log('Mint response:', response)
         }).catch(err => {
           this.$q.notify({
             message: `Failed to mint auth NFT for ${merchant.name}`,

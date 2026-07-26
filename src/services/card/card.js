@@ -136,7 +136,6 @@ export class Card {
    * @returns {void}
    */
   _assertContract() {
-    cardLogger.log('this.contract:', this.contract)
     if (!this.contract) {
       cardLogger.log('contract is null or undefined')
       throw new Error('TapToPay not initialized. Ensure card has contract_id and call initializeContract() first.');
@@ -212,10 +211,10 @@ export class Card {
    * Gets token UTXOs for card token address
    * @returns {Promise<Array>}
    */
-  async getAuthTokenUtxos({ commitment = null } = {}) {
+  async getAuthTokenUtxos() {
     this._assertContract();
     const tokenId = this.authCategory
-    return await this.contract.getTokenUtxos(tokenId, { commitment });
+    return await this.contract.getTokenUtxos(tokenId);
   }
 
   /**
@@ -498,15 +497,6 @@ export class Card {
       });
     return response.data?.results || [];
   }
-  
-  /**
-   * Gets auth NFTs associated with the card
-   * @returns {Promise<Object>}
-   */
-  async getAuthNfts() {
-    const response = await this.getTokenUtxos()
-    return response || null
-  }
 
   /**
    * Gets the card's global auth NFT
@@ -514,7 +504,6 @@ export class Card {
    */
   async getGlobalAuthNft() {
     const authTokenUtxos = await this.getAuthTokenUtxos();
-
     let decodedCommitment = null;
     const globalAuthNft = authTokenUtxos.find(utxo => {
       const mutableNft = utxo?.token?.nft?.capability === 'mutable'
@@ -529,7 +518,8 @@ export class Card {
       const isGlobalMerchantHash = decodedCommitment.hash === ""
       return mutableNft && isGlobalMerchantHash
     });
-    return { globalAuthNft, ...decodedCommitment}
+
+    return { ...globalAuthNft, ...decodedCommitment}
   }
 
   /**
@@ -638,94 +628,81 @@ export class Card {
     }
   }
 
-  // /**
-  //  * Mints and issues merchant auth token for specific merchant
-  //  * @param {Object} options
-  //  * @param {boolean} [options.authorized=true] - Whether to authorize the merchant
-  //  * @param {number} [options.spendLimitSats] - Spend limit in satoshis (Optional, defaults to 1 BCH)
-  //  * @param {Object} options.merchant - Merchant info
-  //  * @param {string} options.merchant.id - Merchant ID
-  //  * @param {string} options.merchant.pubkey - Merchant public key
-  //  * @returns {Promise<{mintResult: Object, issueResult: Object}>}
-  //  */
-  // async issueMerchantAuthToken({ authorized = true, spendLimitSats = defaultSpendLimitSats, merchant } = {}, retryOnFailure = true) {
-  //   cardLogger.log('Issuing merchant auth token...');
-  //   if (!merchant?.id || !merchant?.pubkey) {
-  //     throw new Error('Merchant id and pubkey are required to issue merchant auth token');
-  //   }
+  /**
+   * Mints and issues merchant auth token for specific merchant
+   * @param {Object} options
+   * @param {boolean} [options.authorized=true] - Whether to authorize the merchant
+   * @param {number} [options.spendLimitSats] - Spend limit in satoshis (Optional, defaults to 1 BCH)
+   * @param {Object} options.merchant - Merchant info
+   * @param {string} options.merchant.id - Merchant ID
+   * @param {string} options.merchant.pubkey - Merchant public key
+   * @returns {Promise<{mintResult: Object, issueResult: Object}>}
+   */
+  async issueMerchantAuthToken({ authorized = true, spendLimitSats = defaultSpendLimitSats, merchant } = {}, retryOnFailure = true) {
+    cardLogger.log('Issuing merchant auth token...');
 
-  //   // Guard against minting a duplicate auth token for the same merchant.
-  //   const { merchant_auth_nfts: merchantAuthNfts = [] } = await this.getAuthNfts();
-  //   const { hex: merchantHash } = encodeMerchantHash({ merchantId: merchant.id, merchantPk: merchant.pubkey });
-  //   const hasExistingToken = merchantAuthNfts.some(
-  //     token => token?.commitment?.decoded?.hash === merchantHash
-  //   );
+    console.log('merchant:', merchant)
+    if (!merchant?.id || !merchant?.pubkey) {
+      throw new Error('Merchant id and pubkey are required to issue merchant auth token');
+    }
+    console.log('authorized:', authorized, 'spendLimitSats:', spendLimitSats)
 
-  //   if (hasExistingToken) {
-  //     throw new Error('Merchant auth token with matching commitment already exists.');
-  //   }
+    // Guard against minting a duplicate auth token for the same merchant.
+    const { merchant_auth_nfts: merchantAuthNfts = [] } = await this.getAuthTokenUtxos();
+    console.log('merchantAuthNfts:', merchantAuthNfts)
+    const { hex: merchantHash } = encodeMerchantHash({ merchantId: merchant.id, merchantPk: merchant.pubkey });
+    console.log('merchantHash:', merchantHash)
+    const hasExistingToken = merchantAuthNfts.some(
+      token => token?.commitment?.decoded?.hash === merchantHash
+    );
+    console.log('hasExistingToken:', hasExistingToken)
 
-  //   try {
-  //     const mintResult = await this._mintMerchantAuthToken({ authorized, spendLimitSats, merchant }, retryOnFailure);
-  //     const issueResult = await this._issueAuthTokens();
-  //     return { mintResult, issueResult };
-  //   } catch (error) {
-  //     cardLogger.error('Error during merchant auth token issuance:', error.message || error);
-  //     throw error;
-  //   }
-  // }
+    if (hasExistingToken) {
+      throw new Error('Merchant auth token with matching commitment already exists.');
+    }
 
-  // /**
-  //  *  Mints merchant auth token for specific merchant
-  //  * @private
-  //  * @param {Object} options
-  //  * @param {boolean} [options.authorized=true] - Whether to authorize the merchant
-  //  * @param {number} [options.spendLimitSats] - Spend limit in satoshis (Optional, defaults to 1 BCH)
-  //  * @param {Object} options.merchant - Merchant info
-  //  * @param {string} options.merchant.id - Merchant ID
-  //  * @param {string} options.merchant.pubkey - Merchant public key
-  //  * @returns {Promise<Object>}
-  //  */
-  // async _mintMerchantAuthToken({ authorized = true, spendLimitSats, merchant } = {}, retryOnFailure = true) {
-  //   cardLogger.log('Minting merchant auth token...');
-  //   this._assertWallet();
-  //   this._assertAuthNftService();
+    try {
+      const mintResult = await this._mintMerchantAuthToken({ authorized, spendLimitSats, merchant }, retryOnFailure);
+      const issueResult = await this._issueAuthTokens(this.authCategory);
+      return { mintResult, issueResult };
+    } catch (error) {
+      cardLogger.error('Error during merchant auth token issuance:', error.message || error);
+      throw error;
+    }
+  }
 
-  //   if (!merchant || !merchant.id || !merchant.pubkey) {
-  //     throw new Error('Merchant id and pubkey are required to mint merchant auth token');
-  //   }
+  /**
+   *  Mints merchant auth token for specific merchant
+   * @private
+   * @param {Object} options
+   * @param {boolean} [options.authorized=true] - Whether to authorize the merchant
+   * @param {number} [options.spendLimitSats] - Spend limit in satoshis (Optional, defaults to 1 BCH)
+   * @param {Object} options.merchant - Merchant info
+   * @param {string} options.merchant.id - Merchant ID
+   * @param {string} options.merchant.pubkey - Merchant public key
+   * @returns {Promise<Object>}
+   */
+  async _mintMerchantAuthToken({ authorized = true, spendLimitSats, merchant } = {}, retryOnFailure = true) {
+    cardLogger.log('Minting merchant auth token...');
+    this._assertWallet();
+    this._assertAuthNftService();
 
-  //   // // TODO: Prevent minting a duplicate auth token for the same merchant.
-  //   // // Encode the merchant hash and check first if a token with 
-  //   // // matching commitment already exists in the contract
-  //   // const merchantHash = encodeMerchantHash({ merchantId: merchant.id, merchantPk: merchant.pubkey }).hex;
-  //   // cardLogger.log('Encoded merchant hash:', merchantHash);
-  //   // const cardTokenUtxos = await this.getTokenUtxos()
+    if (!merchant || !merchant.id || !merchant.pubkey) {
+      throw new Error('Merchant id and pubkey are required to mint merchant auth token');
+    }
 
-  //   const { cumulativeValue } = await this.wallet.getBchUtxos();
-  //   const availableSats = cumulativeValue;
-  //   const mintSatsRequired = this.estimateTokenOpSatsRequirement();
-
-  //   // If utxos are enough, use them to mint the auth token
-  //   if (availableSats < mintSatsRequired) {
-  //     // Otherwise, create a UTXO by sending the required satoshi to the current wallet's cashaddress
-  //     cardLogger.warn('Insufficient BCH UTXOs available in wallet for minting. Creating UTXO...');
-  //     // await this._createFundingUtxo(mintSatsRequired - availableSats + 10000n); // Adding buffer
-  //     await this._waitForTransaction();
-  //   }
-
-  //   const result = await this.authNftService.mint({ 
-  //       tokenId: this.raw?.category, 
-  //       merchants: [{
-  //         id: merchant.id,
-  //         pubkey: merchant.pubkey,
-  //         authorized: authorized,
-  //         spendLimitSats: spendLimitSats || defaultSpendLimitSats,
-  //       }]
-  //   });
-  //   cardLogger.log('Merchant auth token minted:', result);
-  //   return result;
-  // }
+    const result = await this.authNftService.mint({ 
+        tokenId: this.authCategory, 
+        merchants: [{
+          id: merchant.id,
+          pubkey: merchant.pubkey,
+          authorized: authorized,
+          spendLimitSats: spendLimitSats || defaultSpendLimitSats,
+        }]
+    });
+    cardLogger.log('Merchant auth token minted:', result);
+    return result;
+  }
 
   /**
    * Issues all auth tokens to card's token address
@@ -777,7 +754,7 @@ export class Card {
    * @param {boolean} [options.broadcast=true] - Whether to broadcast the transaction
    * @returns {Promise<Object>}
    */
-  async mutateGlobalAuthToken({ authorized = true, spendLimitSats, broadcast = true }) {
+  async mutateGlobalAuthToken({ authorized, spendLimitSats, broadcast = true }) {
     console.log('Mutating global auth token with options:', { authorized, spendLimitSats, broadcast });
     return this._mutateAuthToken({ authorized, spendLimitSats, broadcast });
   }
@@ -809,11 +786,9 @@ export class Card {
    * @param {boolean} [options.broadcast=true] - Whether to broadcast the transaction
    * @returns {Promise<Object>}
    */
-  async _mutateAuthToken({ authorized = true, spendLimitSats, merchant, broadcast = true } = {}) {
+  async _mutateAuthToken({ authorized, spendLimitSats, merchant, broadcast = true } = {}) {
     this._assertContract();
     this._assertWallet();
-
-    console.log('[_mutateAuthToken]Mutating auth token with options:', { authorized, spendLimitSats, merchant, broadcast });
 
     if (merchant && (!merchant.id || !merchant.pubkey)) {
       throw new Error('Merchant id and pubkey are required to mutate merchant auth token');
@@ -834,8 +809,6 @@ export class Card {
 
       const mutations = [mutation];
       const mutationTarget = merchant ? 'merchant' : 'global';
-
-      console.log(`Mutating ${mutationTarget} auth token commitment with mutations:`, mutations);
       cardLogger.log(`Mutating ${mutationTarget} auth token commitment:`, mutations);
 
       const privateKey = this.wallet.privkey();
@@ -845,7 +818,6 @@ export class Card {
         broadcast
       });
 
-      cardLogger.log('>>>>>>mutateResponse:', mutateResponse);
       return mutateResponse;
     } catch (error) {
       throw error;

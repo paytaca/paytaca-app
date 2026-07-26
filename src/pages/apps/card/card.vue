@@ -265,6 +265,11 @@ export default {
     JourneyStepper
   },
 
+  provides() {
+    return {
+      user: this.cardUser,
+    }
+  },
 
   data () {
     return {
