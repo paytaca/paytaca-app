@@ -641,21 +641,19 @@ export class Card {
   async issueMerchantAuthToken({ authorized = true, spendLimitSats = defaultSpendLimitSats, merchant } = {}, retryOnFailure = true) {
     cardLogger.log('Issuing merchant auth token...');
 
-    console.log('merchant:', merchant)
     if (!merchant?.id || !merchant?.pubkey) {
       throw new Error('Merchant id and pubkey are required to issue merchant auth token');
     }
-    console.log('authorized:', authorized, 'spendLimitSats:', spendLimitSats)
 
     // Guard against minting a duplicate auth token for the same merchant.
-    const { merchant_auth_nfts: merchantAuthNfts = [] } = await this.getAuthTokenUtxos();
-    console.log('merchantAuthNfts:', merchantAuthNfts)
+    const merchantAuthNfts = await this.getAuthTokenUtxos();
     const { hex: merchantHash } = encodeMerchantHash({ merchantId: merchant.id, merchantPk: merchant.pubkey });
-    console.log('merchantHash:', merchantHash)
-    const hasExistingToken = merchantAuthNfts.some(
-      token => token?.commitment?.decoded?.hash === merchantHash
-    );
-    console.log('hasExistingToken:', hasExistingToken)
+    const hasExistingToken = merchantAuthNfts.some(token => {
+      const commitment = token?.token?.nft?.commitment;
+      if (!commitment) return false;
+      const decoded = decodeCommitment(commitment);
+      return decoded?.hash === merchantHash;
+    });
 
     if (hasExistingToken) {
       throw new Error('Merchant auth token with matching commitment already exists.');

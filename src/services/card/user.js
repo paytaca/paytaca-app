@@ -289,69 +289,6 @@ export class CardUser {
     }
 
 
-    // /** Burns all auth tokens for the current wallet and token ID.
-    //  * @param {string} tokenId Token ID/category to burn.
-    //  * @returns {Promise<void>}
-    //  */
-    // async burnAllAuthTokens(tokenId) {
-    //     return await this._burnAuthTokens({ tokenId, opts: { all: true } });
-    // }
-
-    /**
-     * Burns global auth tokens for the current wallet and token ID.
-     * @param {string} tokenId Token ID/category to burn.
-     * @returns {Promise<void>}
-     */
-    async burnGlobalAuthToken(tokenId) {
-        return await this._burnAuthTokens({ tokenId });
-    }
-
-    /** Burns merchant-specific auth tokens for the current wallet and token ID.
-     * @param {string} tokenId Token ID/category to burn.
-     * @param {Array} merchants Array of merchant objects with id and pubkey.
-     * @returns {Promise<void>}
-     */
-    async burnMerchantAuthTokens(tokenId, merchants) {
-        if (!merchants || merchants.length === 0) {
-            throw new Error('Merchants array is required to burn merchant auth tokens.');
-        }
-        return await this._burnAuthTokens({ tokenId, merchants });
-    }
-
-    /** Burns a single merchant-specific auth token for the current wallet and token ID.
-     * @param {string} tokenId Token ID/category to burn.
-     * @param {string} merchantId Merchant ID.
-     * @param {string} merchantPk Merchant public key.
-     * @returns {Promise<void>}
-     */
-    async burnMerchantAuthToken(tokenId, merchantId, merchantPk) {
-        if (!merchantId || !merchantPk) {
-            throw new Error('Both merchantId and merchantPk are required to burn a merchant auth token.');
-        }
-        const merchant = { id: merchantId, pubkey: merchantPk };
-        return await this._burnAuthTokens({ tokenId, merchants: [merchant] });
-    }
-
-    // /**
-    //  * Burns auth tokens for the current wallet, token ID, and optional merchants.
-    //  * @private
-    //  * @param {string} tokenId Token ID/category to burn.
-    //  * @param {Array} merchants Optional array of merchant objects with id and pubkey.
-    //  * @returns {Promise<void>}
-    //  */
-    // async _burnAuthTokens({ tokenId, merchants = [], opts = {} }) {
-    //     this._assertWallet();
-    //     this._assertAuthNftService();
-
-    //     try {
-    //         const result = await this.authNftService.burn({ tokenId, merchants, opts });
-    //         return result;
-    //     } catch (error) {
-    //         cardLogger.error('Error burning auth tokens:', error);
-    //         throw error;
-    //     }
-    // }
-
     async _requestLinkingToken(category) {
         this._assertWallet()
 
