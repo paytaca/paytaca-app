@@ -726,6 +726,10 @@ export default {
   border: none;
   background: transparent;
   cursor: grab;
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-touch-callout: none;
+  touch-action: manipulation;
   
   &:hover {
     background: rgba(255, 255, 255, 0.05);
@@ -751,6 +755,11 @@ export default {
 }
 
 .wallet-list-draggable {
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-touch-callout: none;
+  touch-action: manipulation;
+
   .sortable-ghost {
     opacity: 0.3;
     transform: scale(0.95);
