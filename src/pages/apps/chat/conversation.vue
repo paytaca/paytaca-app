@@ -9,6 +9,7 @@
       class="apps-header"
       backnavpath="/apps/chat"
       :title="roomName"
+      :normal-case="true"
       :subtitle="isGroupRoom ? $t('MemberCount', { count: room?.members?.length || 0 }, `${room?.members?.length || 0} members`) : typingDisplayText || (otherMemberIsActive ? $t('ActiveNow', {}, 'Active now') : null)"
     >
       <template v-if="room" v-slot:top-right-menu>
@@ -2339,11 +2340,6 @@ export default {
   flex: 0 0 auto;
   width: auto;
   min-width: auto;
-}
-
-/* Preserve original casing for conversation subject in header */
-.apps-header :deep(.pt-header-title .text-uppercase) {
-  text-transform: none !important;
 }
 
 .messages-scroll-area {
