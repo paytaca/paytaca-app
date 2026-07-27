@@ -19,7 +19,7 @@
                     <q-icon name="info" size="1.5em"/>
                     </div>
                     <div class="row">
-                    Make sure the POS device is using the latest version of Paytaca POS. 
+                    {{ $t('PosDeviceLatestVersionWarning', {}, 'Make sure the POS device is using the latest version of Paytaca POS.') }}
                     </div>
                 </div>
                 </q-banner>
@@ -28,13 +28,13 @@
                         dense
                         outlined
                         class="full-width"
-                        label="Encryption Public Key"
-                        hint="Please enter the encryption public key of the POS device."
+                        :label="$t('EncryptionPublicKey', {}, 'Encryption Public Key')"
+                        :hint="$t('EnterPosEncryptionPublicKey', {}, 'Please enter the encryption public key of the POS device.')"
                         v-model="encryptionPublicKey"
                     >
                         <template v-slot:control>
                         <span class="ellipsis" style="direction: rtl;">
-                            {{ encryptionPublicKey || 'Loading...' }}
+                            {{ encryptionPublicKey || $t('Loading', {}, 'Loading...') }}
                         </span>
                         </template>
                         <template v-slot:append>
@@ -64,6 +64,7 @@ import QrScanner from 'src/components/qr-scanner.vue'
 import { computed, ref, onMounted } from 'vue'
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils';
 import { useStore } from 'vuex';
+import { useI18n } from 'vue-i18n';
 
 export default {
     name: 'EncryptionPubkeyScanner',
@@ -82,6 +83,7 @@ export default {
         const encryptionPublicKey = ref("")
         const showQrScanner = ref(false)
         const $store = useStore()
+        const { t: $t } = useI18n()
 
         const paddedPosId = computed(() => {
             return String(props.posId).padStart(6, '0')
