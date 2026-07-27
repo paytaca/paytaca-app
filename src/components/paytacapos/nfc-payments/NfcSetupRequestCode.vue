@@ -1,101 +1,71 @@
 <template>
-        <!-- <q-resize-observer @resize="resizeQrSize" /> -->
     <q-dialog v-model="showDialog" @hide="onDialogHide" seamless class="no-click-outside">
-        <q-card class="br-15 pt-card-2 text-bow" :class="getDarkModeClass(darkMode)">
-        <div class="row no-wrap items-center justify-center q-pl-md q-py-sm">
-            <div class="text-h5 q-space q-mt-sm"> {{ $t('POSID')}}#{{ paddedPosId }}</div>
-            <q-btn
-            flat
-            padding="sm"
-            icon="close"
-            v-close-popup
-            class="close-button"
-            />
-        </div>
-        <q-card-section class="q-gutter-y-sm">
-            <q-banner class="rounded-borders" :class="darkMode ? 'bg-grey text-white': ''">
-            <div class="row no-wrap">
-                <div class="row items-center q-mr-sm">
-                <q-icon name="info" size="1.5em"/>
-                </div>
-                <div class="row">
-                {{ $t('PosDeviceLatestVersionWarning', {}, 'Make sure the POS device is using the latest version of Paytaca POS.') }}
-                </div>
+        <q-card class="br-15 pt-card-2 text-bow" :class="getDarkModeClass(darkMode)" style="width:min(420px, 90vw)">
+            <div class="row no-wrap items-center q-pl-lg q-pr-sm q-py-sm">
+                <div class="text-h6 q-space">{{ $t('POSID') }}#{{ paddedPosId }}</div>
+                <q-btn flat round dense icon="close" v-close-popup />
             </div>
-            </q-banner>
-            <div class="qr-code-container">
-                <div class="row items-center justify-center">
-                <q-skeleton v-if="generatingLinkCode" height="250px" width="250px"/>
-                <qr-code
-                    v-else
-                    :key="qrCodePxSize"
-                    :text="qrCodeData"
-                    :size="qrCodePxSize"
-                />
+            <q-card-section class="q-pt-none q-px-lg q-pb-lg">
+                <div class="text-caption text-grey q-mb-md q-mt-sm">
+                    <q-icon name="info" size="1.2em" class="q-mr-xs" />
+                    {{ $t('ScanToConnect', {}, 'Scan with POS device to connect') }}
                 </div>
-                <div class="row items-center justify-end">
-                <q-btn-group rounded class="q-r-mb-md q-r-mr-md">
-                    <q-btn padding="xs md" text-color="black" icon="zoom_out" @click="() => qrCodePxSize -= 25"/>
-                    <q-btn padding="xs md" text-color="black" icon="zoom_in" @click="() => qrCodePxSize += 25"/>
-                </q-btn-group>
+                <div class="qr-code-container">
+                    <q-skeleton v-if="generatingLinkCode" height="250px" width="250px" />
+                    <qr-code v-else :text="qrCodeData" :size="qrCodePxSize" />
                 </div>
-            </div>
-            <div v-if="qrCodeData" class="row items-center justify-end q-gutter-sm">
-                <q-field
-                    dense
-                    outlined
-                    readonly
-                    :dark="darkMode"
-                    class="full-width">
-                    <template v-slot:control>
-                    <a :href="qrCodeDataLink" target="_blank" class="ellipsis" style="direction: rtl;">
-                        {{ qrCodeDataLink }}
-                    </a>
-                    </template>
-                    <template v-slot:append>
+                <div class="row items-center justify-between q-mt-sm q-mb-lg">
+                    <div class="text-caption text-grey">{{ $t('QrCodeSize', {}, 'QR code size') }}</div>
+                    <q-btn-group flat>
+                        <q-btn padding="xs sm" icon="zoom_out" @click="() => qrCodePxSize = Math.max(100, qrCodePxSize - 25)" />
+                        <q-btn padding="xs sm" icon="zoom_in" @click="() => qrCodePxSize = Math.min(350, qrCodePxSize + 25)" />
+                    </q-btn-group>
+                </div>
+                <div v-if="qrCodeData" class="q-mb-md">
+                    <q-input dense outlined readonly :dark="darkMode" :label="$t('LinkUrl', {}, 'Link URL')">
+                        <template v-slot:control>
+                            <a :href="qrCodeDataLink" target="_blank" class="ellipsis" style="direction: rtl;">
+                                {{ qrCodeDataLink }}
+                            </a>
+                        </template>
+                        <template v-slot:append>
+                            <q-btn padding="sm" flat icon="content_copy" :dark="darkMode" @click="copyToClipboard(qrCodeDataLink, $t('LinkCodeUrlCopied', {}, 'Link code URL copied'))" />
+                        </template>
+                    </q-input>
+                </div>
+                <div class="row items-center justify-between q-pt-xs">
+                    <div v-if="Number.isFinite(codeExpiresIn)" class="text-caption text-grey">
+                        <template v-if="codeExpiresIn > 1000">
+                            {{ $t('LinkExpiresIn') }} {{ formatTimestampToText(requestCode?.expiresAt * 1000) }}
+                        </template>
+                        <template v-else-if="codeExpiresIn < -1000">
+                            {{ $t('LinkExpired') }} {{ formatTimestampToText(requestCode?.expiresAt * 1000) }}
+                        </template>
+                        <template v-else-if="codeExpiresIn > 0">
+                            {{ $t('LinkExpiresIn') }}
+                            <span :class="darkMode ? 'text-white' : 'text-brandblue'">{{ codeExpiresIn }}</span>
+                            {{ codeExpiresIn > 1 ? $t('Seconds') : $t('Second') }}
+                        </template>
+                        <template v-else-if="codeExpiresIn < 0">
+                            {{ $t('LinkExpired') }}
+                            <span :class="darkMode ? 'text-white' : 'text-brandblue'">{{ codeExpiresIn * -1 }}</span>
+                            {{ codeExpiresIn < -1 ? $t('Seconds') : $t('Second') }} {{ $t('Ago') }}
+                        </template>
+                    </div>
                     <q-btn
-                        padding="sm"
+                        :disable="generatingLinkCode"
+                        :loading="generatingLinkCode"
+                        padding="none"
                         flat
-                        icon="content_copy"
-                        :dark="darkMode"
-                        @click="copyToClipboard(qrCodeDataLink, $t('LinkCodeUrlCopied', {}, 'Link code url copied'))"
+                        no-caps
+                        class="button button-text-primary"
+                        :class="getDarkModeClass(darkMode)"
+                        :label="$t('GenerateNewCode')"
+                        @click="generateRequestCode()"
+                        style="text-decoration:underline;"
                     />
-                    </template>
-                </q-field>
-            </div>
-            <div class="row items-center justify-center q-gutter-xs">
-                <span v-if="codeExpiresIn > 1000" class="text-grey">
-                {{ $t('LinkExpiresIn') }}
-                {{ formatTimestampToText(requestCode?.expiresAt * 1000) }}
-                </span>
-                <span v-else-if="codeExpiresIn < -1000" class="text-grey">
-                {{ $t('LinkExpired') }} {{ formatTimestampToText(requestCode?.expiresAt * 1000) }}
-                </span>
-                <span v-else-if="codeExpiresIn > 0" class="text-grey">
-                {{ $t('LinkExpiresIn') }}
-                <span :class="darkMode ? 'text-white' : 'text-brandblue'">{{ codeExpiresIn }}</span>
-                {{ codeExpiresIn > 1 ? $t('Seconds'): $t('Second') }}
-                </span>
-                <span v-else-if="codeExpiresIn < 0" class="text-grey">
-                {{ $t('LinkExpired') }}
-                <span :class="darkMode ? 'text-white' : 'text-brandblue'">{{ codeExpiresIn * -1 }}</span>
-                {{ codeExpiresIn < -1 ? $t('Seconds'): $t('Second') }} {{ $t('Ago') }}
-                </span>
-                <q-btn
-                    :disable="generatingLinkCode"
-                    :loading="generatingLinkCode"
-                    padding="none"
-                    flat
-                    no-caps
-                    class="button button-text-primary"
-                    :class="getDarkModeClass(darkMode)"
-                    :label="$t('GenerateNewCode')"
-                    @click="generateRequestCode()"
-                    style="text-decoration:underline;"
-                />
-                <!-- in case codeExpiresIn is not a number nothing will be shown -->
-            </div>
-        </q-card-section>
+                </div>
+            </q-card-section>
         </q-card>
     </q-dialog>
 </template>
@@ -203,20 +173,13 @@ export default {
 </script>
 <style scoped>
 .qr-code-container {
-  position:relative;
-  margin-left: -10px;
-  margin-right: -10px;
-
-  background-color: white;
-
   display: flex;
   flex-flow: column;
+  align-items: center;
   justify-content: center;
-  align-content: center;
-
   border-radius: 16px;
-  border: 2px solid var(--q-negative, #ed5f59);
-
-  padding: 1rem;
+  border: 1px solid rgba(128, 128, 128, 0.2);
+  padding: 1.5rem;
+  margin: 0;
 }
 </style>
