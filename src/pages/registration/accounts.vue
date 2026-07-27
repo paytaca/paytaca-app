@@ -72,6 +72,27 @@
                 </div>
               </div>
             </transition>
+            <transition appear @enter="onButtonEnter" :style="{ '--delay': '0.5s' }">
+              <div 
+                class="action-glass-card pt-card bg-grad text-bow"
+                :class="[
+                  getDarkModeClass(darkMode),
+                  canCreateOrImportWallet ? 'cursor-pointer' : 'cursor-not-allowed opacity-60'
+                ]"
+                @click="initImportXpub"
+              >
+                <div class="action-icon-wrapper">
+                  <div class="row justify-center">
+                    <q-icon name="mdi-key-variant" class="col-12" :color="darkMode ? 'primary' : 'black'" size="29px"></q-icon>
+                  </div>
+                </div>
+                
+                <div class="action-content">
+                  <div class="text-subtitle1 q-mb-xs">{{ $t('Import XPub') }}</div>
+                  <div class="text-body2 q-mt-xs">{{ $t('RestoreWalletDescriptionShort') || 'Restore from backup' }}</div>
+                </div>
+              </div>
+            </transition>
           </div>
 
           <!-- Back Button with Animation -->
@@ -585,6 +606,7 @@
 
 <script>
 import { Wallet, storeMnemonic, generateMnemonic, computeWalletHash } from '../../wallet'
+import { HDWallet } from 'mainnet-js'
 import { getMnemonic } from '../../wallet'
 import { utils } from 'ethers'
 import { wordlists } from 'bip39'
@@ -1412,6 +1434,25 @@ export default {
         })
       }
       this.$forceUpdate()
+    },
+    async initImportXpub () {
+      const allowed = await ensureCanPerformActionWithDeps(
+        { $q: this.$q, $store: this.$store },
+        'wallets',
+        { darkMode: this.darkMode, forceRefresh: true }
+      )
+      if (!allowed) return
+      console.log('@new', this.$q, HDWallet)
+      const prompt = {
+        model: '',
+        type: 'text'
+      }
+      this.$q.dialog({
+        title: 'Input XPub',
+        prompt
+      }).onOk((Xpub) => {
+        console.log('Not Yet Implemented')
+      })
     },
     async initRestoreWallet () {
       const allowed = await ensureCanPerformActionWithDeps(
