@@ -21,7 +21,7 @@
       <div class="pt-header-title col">
         <p
           ref="header-title"
-          class="text-h5 text-uppercase text-center q-my-none"
+          class="text-h5 text-center q-my-none"
           :class="{'text-grad': darkMode}"
           :style="{'margin-top': $q.platform.is.ios ? '-5px' : '0'}"
           v-on-long-press="onLongPressTitle"
