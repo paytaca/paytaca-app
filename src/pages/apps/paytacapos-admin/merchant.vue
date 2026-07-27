@@ -448,7 +448,7 @@ const $t = useI18n().t
 const confirm = ref(false)
 const wallet = ref(null)
 const walletType = 'bch'
-const darkMode = ref(null)
+const darkMode = computed(() => $store.getters['darkmode/getStatus'])
 
 function safeMerchantId () {
   const fromQuery = $route?.query?.merchantId
