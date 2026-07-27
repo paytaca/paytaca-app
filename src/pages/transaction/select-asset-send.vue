@@ -119,6 +119,14 @@ export default {
     backPath: {
       type: String,
       default: null
+    },
+    chatRoomId: {
+      type: String,
+      default: null
+    },
+    amount: {
+      type: Number,
+      default: null
     }
   },
   components: {
@@ -477,10 +485,13 @@ export default {
           assetId: asset.id,
           tokenType: 1,
           network: this.selectedNetwork,
-          address: this.address,
+          recipient: this.address,
           backPath: this.backPath,
-          // Pass asset data as JSON string to preserve structure
+          chatRoomId: this.chatRoomId,
           assetData: assetData ? JSON.stringify(assetData) : undefined
+        }
+        if (this.amount) {
+          query.amount = this.amount
         }
         // If paymentUrl is provided, pass it to preserve all BIP21 parameters
         if (this.paymentUrl) {

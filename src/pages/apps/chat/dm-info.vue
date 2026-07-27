@@ -189,7 +189,7 @@ export default {
       return this.contactDisplayName.charAt(0).toUpperCase() || '?'
     },
     avatarUrl () {
-      return this.otherMemberAvatar || (this.otherMemberPubKey ? getCachedAvatar(this.otherMemberPubKey) : null)
+      return this.otherMemberAvatar || null
     },
     shortNpub () {
       const npub = this.otherMemberNpub
@@ -209,11 +209,12 @@ export default {
   },
   watch: {
     otherMemberPubKey: {
-      handler (pubKey) {
+      async handler (pubKey) {
         if (!pubKey) return
         const walletHash = this.$store.getters['global/getWallet']('bch')?.walletHash
         const walletState = walletHash ? this.$store.state.nostrChat?.byWallet?.[walletHash] : null
-        this.otherMemberAvatar = getCachedAvatar(pubKey) || walletState?.avatarCache?.[pubKey]?.avatar || null
+        const cachedUrl = await getCachedAvatar(pubKey)
+        this.otherMemberAvatar = cachedUrl || walletState?.avatarCache?.[pubKey]?.avatar || null
         this.$store.dispatch('nostrChat/fetchPublishedAvatar', { pubKeyHex: pubKey })
           .then(avatar => {
             if (avatar) {
@@ -280,6 +281,7 @@ export default {
           subject,
         })
         this.$store.commit('nostrChat/ADD_MESSAGE', { roomId, message })
+        this.$store.commit('nostrChat/TOUCH_ROOM_LAST_MESSAGE_AT', roomId)
         await this.$store.dispatch('nostrChat/publishGiftWraps', { giftWraps })
         this.editingSubject = false
         this.$q.notify({

@@ -222,6 +222,7 @@ async function fetchAuthWallet() {
         walletHash: data?.wallet_hash,
         walletType: data?.wallet_type,
       }
+      console.log('Fetched auth wallet:', authWallet.value)
       return response
     })
 }

@@ -274,10 +274,6 @@
           </q-list>
         </div>
 
-        <template v-if="isMobile">
-          <AdvertisementsSettings />
-        </template>
-
         <div class="col-12 q-px-lg q-mt-md" style="padding-bottom: 30px;">
           <p class="q-px-sm q-my-sm section-title text-subtitle1" :class="getDarkModeClass(darkMode)">{{ $t('AppInfo') }}</p>
             <q-list class="pt-card settings-list" :class="getDarkModeClass(darkMode)">
@@ -340,7 +336,6 @@ import packageInfo from '../../../package.json'
 import LanguageSelector from '../../components/settings/LanguageSelector'
 import CountrySelector from '../../components/settings/CountrySelector'
 import CurrencySelector from '../../components/settings/CurrencySelector'
-import AdvertisementsSettings from 'src/components/settings/AdvertisementsSettings.vue'
 import DenominatorSelector from 'src/components/settings/DenominatorSelector.vue'
 import ThemeSelector from 'src/components/settings/ThemeSelector.vue'
 import RenameDialog from 'src/components/multi-wallet/renameDialog.vue'
@@ -366,7 +361,6 @@ export default {
       enableStablhedge: this.$store.getters['global/enableStablhedge'],
       currentCountry: this.$store.getters['global/country'].code,
       repoUrl: 'https://github.com/paytaca/paytaca-app',
-      enablePushNotifs: false,
       showSensitiveInfo: false,
       walletMasterFingerprint: ''
     }
@@ -380,15 +374,11 @@ export default {
     CurrencySelector,
     DenominatorSelector,
     ThemeSelector,
-    AdvertisementsSettings,
     RenameDialog,
     SubscriptionStatus,
     XPubQrCodeDialog
   },
   computed: {
-    isMobile () {
-      return this.$q.platform.is.mobile || this.$q.platform.is.android || this.$q.platform.is.ios
-    },
     toggleColor () {
       const theme = this.$store.getters['global/theme']
       if (theme === 'glassmorphic-red') return 'pink-6'

@@ -134,6 +134,12 @@ export default boot(async (obj) => {
         }
       }
 
+      // Ensure card module state is initialized — cards are never persisted,
+      // always fetched fresh, so replaceState must not wipe out the module
+      if (!parsedState.card || typeof parsedState.card !== 'object') {
+        parsedState.card = { cards: [] }
+      }
+
       store.replaceState(parsedState)
     }
 
@@ -141,7 +147,7 @@ export default boot(async (obj) => {
     store.subscribe((mutation, state) => {
       try {
         // Log any state changes that might be problematic
-        if (mutation.type.includes('update') || mutation.type.includes('set')) {
+        if (process.env.NODE_ENV === 'development' && (mutation.type.includes('update') || mutation.type.includes('set'))) {
           console.debug('Store mutation:', mutation.type, mutation.payload)
         }
       } catch (err) {

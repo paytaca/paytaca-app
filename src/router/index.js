@@ -176,8 +176,14 @@ export default function () {
         }
 
         if (_mnemonic && walletIndex !== currentWalletIndex) {
+          // If a wallet switch is already in progress from the UI, let it complete
+          if (store.state.global.walletSwitchInProgress) {
+            next()
+            return
+          }
           await store.dispatch(`global/switchWallet`, walletIndex).catch(console.error)
-          location.reload()
+          store.commit('global/setWalletSwitchInProgress', true)
+          next()
           return
         }
 

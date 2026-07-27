@@ -19,6 +19,7 @@ import multisig from './multisig'
 import subscription from './subscription'
 import wizardconnect from './wizardconnect'
 import nostrChat from './nostr-chat'
+import card from './card'
 
 // const vuexLocal = new VuexPersistence({
 //   key: 'vuex',
@@ -97,6 +98,11 @@ function serializeState(obj, seen = new Map()) {
             
             // Skip functions and symbols
             if (typeof value === 'function' || typeof value === 'symbol') {
+              continue
+            }
+
+            // Skip session-scoped blob URLs that don't survive page reloads
+            if (key === 'localVideoUrl') {
               continue
             }
             
@@ -228,6 +234,8 @@ function reducer(state) {
             delete serializedGlobal.isUnlocked
             delete serializedGlobal.appInitialLoadComplete
             delete serializedGlobal.backupDialogActive
+            delete serializedGlobal.walletSwitchInProgress
+            delete serializedGlobal.walletSwitchLoading
           }
           serialized[moduleName] = serializedGlobal
         } else if (moduleName === 'wizardconnect') {
@@ -275,6 +283,7 @@ export const Store = createStore({
           const value = window.localStorage.getItem(key)
           if (!value) return null
           const parsed = JSON.parse(value)
+          console.log('Parsed persisted state:', parsed)
           // Filter out undefined module states to prevent overwriting defaults
           if (parsed && typeof parsed === 'object') {
             for (const moduleName in parsed) {
@@ -315,7 +324,8 @@ export const Store = createStore({
     multisig,
     subscription,
     wizardconnect,
-    nostrChat
+    nostrChat,
+    card
   },
 
   // enable strict mode (adds overhead!)

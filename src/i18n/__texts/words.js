@@ -102,6 +102,7 @@ const words = [
     Open: "Open",
     Paid: "Paid",
     Pending: "Pending",
+    Personal: "Personal",
     Purchases: "Purchases",
     Purchase: "Purchase",
     Reservations: "Reservations",

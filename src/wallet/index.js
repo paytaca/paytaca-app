@@ -189,6 +189,23 @@ export async function deleteAllWalletData(walletHash, mnemonic = null, index = n
     }
   }
 
+  // Clean up any orphaned capacitor-secure-storage-plugin localStorage keys
+  // The plugin prefixes keys with cap_sec_ when using localStorage as backend
+  try {
+    const newLsKey = `cap_sec_mn_${walletHash}`
+    localStorage.removeItem(newLsKey)
+  } catch (err) {
+    // Non-critical cleanup
+  }
+  if (index !== null) {
+    try {
+      const oldLsKey = index === 0 ? 'cap_sec_mn' : `cap_sec_mn${index}`
+      localStorage.removeItem(oldLsKey)
+    } catch (err) {
+      // Non-critical cleanup
+    }
+  }
+
   // Delete PIN code (wallet-specific keys only)
   // SECURITY: We only delete wallet-specific PIN keys, NOT the legacy 'pin' key.
   // The legacy 'pin' key may be shared by other wallets that haven't migrated yet.

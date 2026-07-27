@@ -508,7 +508,8 @@ export default {
     from: String,
     assetID: String,
     new: String,
-    recipient: String
+    recipient: String,
+    roomId: String
   },
   data () {
     return {

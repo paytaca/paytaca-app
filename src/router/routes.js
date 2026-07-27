@@ -442,6 +442,32 @@ const routes = [
         ]
       },
       {
+        path: 'card',
+        component: () => import('src/pages/apps/card/index.vue'),
+        children: [
+          {
+            path: '',
+            name: 'app-card',
+            component: () => import('src/pages/apps/card/home.vue')
+          },
+          {
+            path: 'list',
+            name: 'card-list',
+            component: () => import('src/pages/apps/card/cards.vue')
+          },
+          {
+            path: 'auth-nfts',
+            name: 'card-auth-nfts',
+            component: () => import('src/pages/apps/card/auth-nfts.vue')
+          },
+          {
+            path: 'details/:id',
+            name: 'card-details',
+            component: () => import('src/pages/apps/card/card.vue')
+          },
+        ]
+      },
+      {
         path: 'address-book',
         children: [
           {
@@ -499,6 +525,33 @@ const routes = [
         name: 'group-chat-link',
         props: true,
         component: () => import('src/pages/apps/chat/conversation.vue')
+      },
+      {
+        path: 'payment-hub',
+        children: [
+          {
+            path: '',
+            name: 'payment-hub-index',
+            component: () => import('src/pages/apps/payment-hub/Index.vue')
+          },
+          {
+            path: 'store/:storeId',
+            name: 'payment-hub-store-detail',
+            component: () => import('src/pages/apps/payment-hub/StoreDetail.vue'),
+            props: true
+          }
+        ]
+      },
+      {
+        path: 'payment-hub-subscriptions',
+        children: [
+          {
+            path: '',
+            name: 'payment-hub-subscriptions-index',
+            component: () => import('src/pages/apps/payment-hub-subscriptions/Index.vue'),
+            props: route => Object.assign({}, route.params, route.query),
+          }
+        ]
       }
     ]
   },

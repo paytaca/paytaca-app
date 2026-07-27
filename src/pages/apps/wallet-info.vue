@@ -1,6 +1,6 @@
 <template>
   <div id="app-container" class="sticky-header-container" :class="getDarkModeClass(darkMode)">
-    <header-nav :title="$t('Support', {}, 'Support')" backnavpath="/apps" class="header-nav header-nav apps-header" />
+    <header-nav :title="$t('Support', {}, 'Support')" :backnavpath="supportBacknavPath" class="header-nav header-nav apps-header" />
     <div class="row" :style="{ 'margin-top': $q.platform.is.ios ? '-5px' : '-25px'}">
       <div class="col-12 q-px-lg q-mt-md">
         <p class="q-px-sm q-my-sm section-title text-subtitle1" :class="getDarkModeClass(darkMode)">
@@ -216,6 +216,9 @@ export default {
     }
   },
   computed: {
+    supportBacknavPath () {
+      return this.$route.query.from === 'home' ? '/' : '/apps'
+    },
     toggleColor () {
       const theme = this.$store.getters['global/theme']
       if (theme === 'glassmorphic-red') return 'pink-6'
@@ -252,8 +255,8 @@ export default {
         vm.$store.commit('assets/updatedCurrentAssets', index)
 
         vm.$store.dispatch('global/switchWallet', index).then(function () {
-          vm.$router.push('/')
-          setTimeout(() => { location.reload() }, 500)
+          vm.$store.commit('global/setWalletSwitchInProgress', true)
+          vm.$router.replace('/')
         })
       }
     },

@@ -201,6 +201,11 @@ export default {
       
       // Correct data payload array block unboxing matching vue-qrcode-reader v4 specs
       if (content && content.length > 0) {
+        let url 
+        try {
+          url = new URL(String(content[0].rawValue))
+        } catch {}
+
         const _value = String(content[0].rawValue || '').trim()
         
         if (!_value || _value === 'undefined') return
@@ -309,6 +314,13 @@ export default {
           }
         } else if (value.toLowerCase().startsWith('wiz://')) {
           vm.$router.push({ name: 'app-wizard-connect', query: { uri: value } })
+        } else if (
+          url &&
+          (url.host === 'paymenthub.paytaca.com' || url.host === 'chipnet.paymenthub.paytaca.com') &&
+          url.pathname.match('/plans')
+        ) {
+          const shortUuid = url.pathname.match('/plans/([A-Za-z0-9]+)/?')?.[1];
+          vm.$router.push({ name: 'payment-hub-subscriptions-index', query: { plan: shortUuid } })
         } else if (nostrMatch) {
           const npub = nostrMatch[2]
             const backPath = vm.$route.query.backnavpath || '/apps/chat'

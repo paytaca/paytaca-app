@@ -9,6 +9,7 @@ import { Buffer } from 'buffer'
 import axios from 'axios'
 import { isValidTokenAddress, getWatchtowerApiUrl } from 'src/wallet/chipnet'
 import { isTokenAddress } from 'src/utils/address-utils'
+import { toTokenAddress } from 'src/utils/crypto'
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 import { raiseNotifyError } from './notify-utils'
 import { decodeCashAddress, decodeCashAddressFormatWithoutPrefix } from '@bitauth/libauth'
@@ -284,8 +285,18 @@ export function validateAddress (address, walletType, isCashToken) {
 
         new Address(address).toCashAddress()
       } else {
-        addressIsValid = isTokenAddress(address.split('?c=')[0])
-        formattedAddress = address
+        addressIsValid = true
+
+        if (isTokenAddress(address.split('?c=')[0])) {
+          formattedAddress = address
+        } else if (
+          (addressObj.isLegacyAddress() || addressObj.isCashAddress()) &&
+          addressObj.isValidBCHAddress(isChipnet)
+        ) {
+          formattedAddress = toTokenAddress(addressObj.toCashAddress(address))
+        }
+
+        new Address(address).toCashAddress()
       }
     }
     if (walletType === 'slp') {

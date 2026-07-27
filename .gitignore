@@ -3,6 +3,8 @@
 node_modules
 .env
 paytaca.keystore
+.envrc
+/.direnv/
 
 # Quasar core related directories
 .quasar

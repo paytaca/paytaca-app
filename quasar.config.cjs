@@ -262,7 +262,8 @@ module.exports = defineConfig((ctx) => {
           warnings: false,
           runtimeErrors: false
         }
-      }
+      },
+      hot: true
     },
 
     // https://quasar.dev/quasar-cli/quasar-conf-js#Property%3A-framework

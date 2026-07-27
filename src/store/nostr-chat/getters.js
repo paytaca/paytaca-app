@@ -240,9 +240,9 @@ export function getMessageReactions (state) {
 const TYPING_TIMEOUT_MS = 5000
 
 export function getTypingUsers (state) {
-  const ws = getWalletState(state)
-  const myPubKey = ws.keys?.pubKeyHex
   return (roomId) => {
+    const ws = getWalletState(state)
+    const myPubKey = ws.keys?.pubKeyHex
     const room = ws.typing?.[roomId]
     if (!room) return []
     const now = Date.now()
