@@ -362,7 +362,7 @@ export default {
           message: this.$t('CardLockStatusUpdated', { status: isLocked ? this.$t('Locked', {}, 'locked') : this.$t('Unlocked', {}, 'unlocked') }, `Card has been ${isLocked ? 'locked' : 'unlocked'} successfully!`)
         });
       } catch (error) {
-        cardLogger.error('Failed to update card lock status:', error);
+        cardLogger.error('Failed to update card lock status:', error.message || error);
         this.isLocked = !isLocked; // Revert toggle state on error
         this.$q.notify({
           type: 'negative',
@@ -424,7 +424,7 @@ export default {
         })
         this.$emit('sweep-funds')
       }).catch((error) => {
-        cardLogger.error('[CardSettings] Sweep funds failed:', error)
+        cardLogger.error('[CardSettings] Sweep funds failed:', error.message || error)
         this.$q.notify({
           message: this.$t('FailedToSweepFunds', {}, 'Failed to sweep funds. Please try again.'),
           color: 'negative',

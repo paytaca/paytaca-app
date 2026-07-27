@@ -932,7 +932,7 @@ export class TapToPayV2 extends TapToPay {
             }
 
         } catch (error) {
-            cardLogger.error('[sweep] Error during sweep transaction build or broadcast:', error)
+            cardLogger.error('[sweep] Error during sweep transaction build or broadcast:', error.message || error)
             throw error
         }
 
@@ -1097,4 +1097,8 @@ export class TapToPayV2 extends TapToPay {
             return { success: true, txHex }
         }
     }  
+
+    async burn() {
+        throw new Error('Burn operation is not supported in TapToPayV2. Please use the sweep method to retrieve funds.')
+    }
 }

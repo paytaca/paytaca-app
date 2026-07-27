@@ -139,7 +139,7 @@ export default {
           selected: false
         })) || [];
       } catch (error) {
-        cardLogger.error('Error fetching terminals:', error);
+        cardLogger.error('Error fetching terminals:', error.message || error);
       }
     },
     async onAuthorize() {
@@ -165,7 +165,7 @@ export default {
 
         await this.fetchTerminals()
       } catch (error) {
-        cardLogger.error('Error issuing authorization NFTs:', error.response || error);
+        cardLogger.error('Error issuing authorization NFTs:', error.message || error);
       }
 
       this.hideLoading();

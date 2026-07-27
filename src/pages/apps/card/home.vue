@@ -224,7 +224,7 @@ export default {
         this.loadCardList()
         this.loadWizardStep()
       } catch (err) {
-        cardLogger.error('Error loading card home data:', err)
+        cardLogger.error('Error loading card home data:', err.message || err)
       } finally {
         this.hideLoading()
       }

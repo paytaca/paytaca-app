@@ -50,7 +50,7 @@ export default {
     try {
       await this.loadData()
     } catch (err) {
-      cardLogger.error('Error loading card layout data:', err)
+      cardLogger.error('Error loading card layout data:', err.message || err)
     } finally {
       this.isloaded = true
     }

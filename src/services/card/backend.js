@@ -3,6 +3,12 @@ import { getAuthToken, clearAuthToken, clearCardUserCache, saveAuthToken } from 
 import { loadWallet } from '../wallet';
 
 const API_BASE_URL = process.env.MAINNET_CARD_API_BASE_URL
+if (!API_BASE_URL) {
+  throw new Error(
+    '[card/backend.js] MAINNET_CARD_API_BASE_URL is not defined. ' +
+    'Card API calls will fail in production/Capacitor builds.'
+  )
+}
 
 export const backend = axios.create({
   baseURL: API_BASE_URL,

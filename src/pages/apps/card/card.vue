@@ -387,7 +387,7 @@ export default {
         this.getCardBchBalance()
         this.loadBalanceVisibility()
       } catch (err) {
-        cardLogger.error('Error loading card details:', err)
+        cardLogger.error('Error loading card details:', err.message || err)
       } finally {
         this.isLoaded = true
       }

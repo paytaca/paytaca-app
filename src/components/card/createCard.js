@@ -215,7 +215,7 @@ export const createCardLogic = {
         return data.results || []
       }
       catch (error) {
-        cardLogger.error("Error fetching merchants: ", error)
+        cardLogger.error("Error fetching merchants: ", error.message || error)
         return []
       }
     },

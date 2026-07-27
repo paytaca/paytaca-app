@@ -183,7 +183,7 @@ export async function fetchActiveDispatcherPublicKey() {
     const response = await backend.get('/dispatcher/active-public-key/', { authorize: false });
     return response.data.public_key;
   } catch (error) {
-    cardLogger.error('Error fetching active dispatcher public key:', error);
+    cardLogger.error('Error fetching active dispatcher public key:', error.message || error);
     throw error;
   }
 }

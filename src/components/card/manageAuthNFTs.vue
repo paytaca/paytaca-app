@@ -20,7 +20,7 @@
           v-else
           class="row items-center q-mb-md q-px-sm cursor-pointer location-info"
           :class="$q.dark.isActive ? 'text-grey-5' : 'text-grey'"
-          @click="() => attemptGeolocate().catch(err => cardLogger.error(err)).then(() => openLocationMapDialog())"
+          @click="() => attemptGeolocate().catch(err => cardLogger.error(err.message || err)).then(() => openLocationMapDialog())"
         >
           <q-icon name="location_off" size="1.2rem" class="q-mr-xs" />
           <span class="text-caption">{{ $t('DetectingYourLocation', {}, 'Detecting your location... (click to set manually)') }}</span>
@@ -591,7 +591,7 @@ export default {
           })
         })
         .catch(err => {
-          cardLogger.error('Error toggling global auth NFT:', err)
+          cardLogger.error('Error toggling global auth NFT:', err.message || err)
           this.$q.dialog({
             title: this.$t('Error', {}, 'Error'),
             message: `${this.$t('Error', {}, 'Error')}: ${err.message || err}`,
@@ -775,7 +775,7 @@ export default {
           return this.loadGlobalAuthNft(interval * 2, retries - 1)
         }
       } catch (error) {
-        cardLogger.error('Error loading global auth NFT:', error)
+        cardLogger.error('Error loading global auth NFT:', error.message || error)
         this.globalAuthNft = { authorized: false }
         if (retries > 0) {
           await new Promise(resolve => setTimeout(resolve, interval))

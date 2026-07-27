@@ -238,7 +238,7 @@ export default {
     try {
       await this.loadData()
     } catch (err) {
-      cardLogger.error('Error loading card list data:', err)
+      cardLogger.error('Error loading card list data:', err.message || err)
     } finally {
       this.isLoaded = true
     }
