@@ -1,8 +1,8 @@
 
 import { cardLogger } from 'src/utils/debug-logger.js'
 import { createHash } from 'crypto';
-import { NFTCapability, TokenMintRequest, TokenSendRequest, Wallet } from 'mainnet-js';
-import { defaultSpendLimitSats, minTokenValue, DUST_LIMIT } from './constants';
+import { NFTCapability, Wallet } from 'mainnet-js';
+import { defaultSpendLimitSats, DUST_LIMIT } from './constants';
 import { loadWallet } from 'src/services/wallet.js';
 import Watchtower from 'watchtower-cash-js'
 import { ElectrumNetworkProvider, SignatureTemplate, TransactionBuilder } from 'cashscript';
@@ -244,8 +244,6 @@ class AuthNftService {
         })
         tx.addOutputs(outputs)
 
-        cardLogger.log('-------->>>>>>outputs:', outputs)
-
         const txHex = tx.build()
         cardLogger.log('Built mint transaction hex:', txHex)
 
@@ -339,35 +337,6 @@ class AuthNftService {
         }
 
         return { success: true, txHex }
-    }
-
-    /**
-     * Rewrites commitments for mutable NFTs by re-issuing them to the wallet.
-     * @param {Object} params
-     * @param {string} params.tokenId
-     * @param {Array<Object>} params.mutations
-     * @returns {Promise<void>}
-     */
-    async mutate({ tokenId, mutations }) {
-        this._assertWallet();
-
-        const recipients = mutations.map(m => {
-            const newCommitment = encodeCommitment({
-                authorized: m.authorized,
-                expirationBlock: m.expirationBlock,
-                spendLimitSats: m.spendLimitSats,
-                terminal: {
-                    id: m.id,
-                    pk: m.pubkey
-                }
-            })
-            return {
-                address: this.ctWallet.cashaddr,
-                tokenId: tokenId,
-                capability: NFTCapability.mutable,
-                commitment: newCommitment
-            }
-        })
     }
 
 }

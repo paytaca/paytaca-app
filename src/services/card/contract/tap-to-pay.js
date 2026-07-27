@@ -191,8 +191,6 @@ class TapToPay {
         };
     }
 
-    async sweep () {}
-
     estimateFee({ numContractInputs = 0, numP2pkhInputs = 0, numOutputs = 2, feeRate = 2n } = {}) {
         cardLogger.log('[estimateFee] numContractInputs:', numContractInputs, 'numP2pkhInputs:', numP2pkhInputs, 'numOutputs:', numOutputs, 'feeRate:', feeRate)
         // CashScript contract inputs are larger due to unlocking script (redeem script + args)

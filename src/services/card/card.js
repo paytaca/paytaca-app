@@ -707,7 +707,6 @@ export class Card {
    * @private
    * @returns {Promise<Object>}
    */
-  // this function should poll a few retries
   async _issueAuthTokens(tokenId, interval = 1000, maxAttempts = 5) {
     this._assertAuthNftService();
     let lastError = null;
@@ -831,11 +830,7 @@ export class Card {
   async sweep(opts = { broadcast: true }) {
     cardLogger.log('[card.sweep] Sweeping card BCH balance to external address...');
     this._assertContract();
-    cardLogger.log('[card.sweep] Contract initialized:', this.contract);
     this._assertWallet();
-    
-
-    cardLogger.log('Sweeping card BCH balance to external address...');
 
     const privateKey = this.wallet.privkey();
     const sweepResponse = await this.contract.sweep({
