@@ -535,6 +535,7 @@ export default {
      * Switch the receive target: null device = Personal, otherwise a merchant POS device
      */
     async selectPosReceiveTarget (device, merchant) {
+      if (this.generating) return
       if (this.receiveTargetChosen &&
           this.selectedPosDevice?.posid === device?.posid &&
           this.selectedPosMerchant?.id === merchant?.id) return
@@ -608,6 +609,7 @@ export default {
           color: 'negative',
           icon: 'warning'
         })
+        throw error
       }
     },
 
