@@ -2342,8 +2342,8 @@ export default {
 }
 
 /* Preserve original casing for conversation subject in header */
-.apps-header :deep(.pt-header-title-text) {
-  text-transform: none;
+.apps-header :deep(.pt-header-title .text-uppercase) {
+  text-transform: none !important;
 }
 
 .messages-scroll-area {
