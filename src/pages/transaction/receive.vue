@@ -478,7 +478,7 @@ export default {
         this.asset && this.asset.id === 'bch' &&
         !this.isChipnet &&
         !this.receiveTargetChosen &&
-        this.merchantPosOptions.length > 0
+        (this.merchantPosOptions.length > 0 || this.fetchingPosOptions)
     },
     showPosSelector () {
       return this.walletType === 'bch' &&
@@ -1362,13 +1362,6 @@ export default {
 
   async mounted () {
     const vm = this
-    
-    // Determine wallet type (mirrors refreshDynamicAddress logic)
-    if (vm.assetId.indexOf('slp/') > -1) {
-      vm.walletType = 'slp'
-    } else {
-      vm.walletType = 'bch'
-    }
 
     // Fetch merchant POS devices first — if merchants with POS exist,
     // force the user to pick a receive target before anything else renders
@@ -1403,6 +1396,12 @@ export default {
 
   created () {
     const vm = this
+
+    if (vm.assetId.indexOf('slp/') > -1) {
+      vm.walletType = 'slp'
+    } else {
+      vm.walletType = 'bch'
+    }
     
     // Check if asset data was passed from select-asset page
     // This allows immediate rendering with correct logo and details
