@@ -317,40 +317,40 @@ export default {
     },
 
     adjustComponentsClasslist (isScanning) {
-      const appContainer = document.getElementById('app-container')
       const scannerUI = document.getElementById('qr-scanner-ui')
-      const registrationContainer = document.getElementById('registration-container')
-      const hide = 'hide-section'
+      const appContainer = document.getElementById('app-container')
       const transparent = 'transparent-body'
-      const visibilityHidden = 'visibility-hide'
-      const visibilityVisible = 'visibility-visible'
+      const hide = 'hide-section'
 
       if (isScanning) {
-        try {
-          appContainer.classList.add(hide)
-        } catch (error) {
-          try {
-            scannerUI.classList.add(visibilityVisible)
-            registrationContainer.classList.add(visibilityHidden)
-          } catch (error1) {}
+        // Teleport scannerUI to body so it's not constrained inside a dialog card
+        if (scannerUI) {
+          scannerUI._origParent = scannerUI.parentNode
+          scannerUI._origNextSibling = scannerUI.nextSibling
+          document.body.appendChild(scannerUI)
         }
+        if (appContainer) { try { appContainer.classList.add(hide) } catch (e) {} }
+        // Hide all dialogs so their backdrop/card don't show through the transparent scanner overlay
+        document.querySelectorAll('.q-dialog').forEach(d => d.classList.add(hide))
         document.body.classList.add(transparent)
-        try {
-          scannerUI.classList.remove(hide)
-        } catch (error1) {}
+        if (scannerUI) { try { scannerUI.classList.remove(hide) } catch (e) {} }
       } else {
-        try {
-          appContainer.classList.remove(hide)
-        } catch (error) {
+        // Restore scannerUI to its original position
+        if (scannerUI && scannerUI._origParent) {
           try {
-            scannerUI.classList.remove(visibilityVisible)
-            registrationContainer.classList.remove(visibilityHidden)
-          } catch (error1) {}
+            if (scannerUI._origNextSibling) {
+              scannerUI._origParent.insertBefore(scannerUI, scannerUI._origNextSibling)
+            } else {
+              scannerUI._origParent.appendChild(scannerUI)
+            }
+          } catch (e) {}
+          delete scannerUI._origParent
+          delete scannerUI._origNextSibling
         }
+        if (appContainer) { try { appContainer.classList.remove(hide) } catch (e) {} }
+        document.querySelectorAll('.q-dialog').forEach(d => d.classList.remove(hide))
         document.body.classList.remove(transparent)
-        try {
-          scannerUI.classList.add(hide)
-        } catch (error1) {}
+        if (scannerUI) { try { scannerUI.classList.add(hide) } catch (e) {} }
       }
     }
   },
