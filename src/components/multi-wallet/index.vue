@@ -57,8 +57,9 @@
             :list="vault"
             @end="onDragEnd"
             :item-key="getWalletItemKey"
-            :animation="200"
+            :animation="600"
             :delay="200"
+            :transition-duration="600"
             :delay-on-touch-only="true"
             class="wallet-list-draggable"
           >
@@ -751,13 +752,19 @@ export default {
 
 .wallet-list-draggable {
   .sortable-ghost {
-    opacity: 0.4;
-    background: rgba(255, 255, 255, 0.1);
+    opacity: 0.3;
+    transform: scale(0.95);
   }
   
   .sortable-drag {
-    opacity: 0.8;
-    transform: rotate(2deg);
+    opacity: 0.9;
+    transform: scale(1.05);
+    box-shadow: 0 8px 16px rgba(0, 0, 0, 0.2);
+    z-index: 1000;
+  }
+  
+  .sortable-chosen {
+    background-color: rgba(0, 0, 0, 0.05);
   }
 }
 
