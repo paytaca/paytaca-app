@@ -539,6 +539,8 @@ export default {
           this.selectedPosDevice?.posid === device?.posid &&
           this.selectedPosMerchant?.id === merchant?.id) return
 
+      const wasTargetChosen = this.receiveTargetChosen
+
       this.selectedPosDevice = device
       this.selectedPosMerchant = device ? merchant : null
       this.posPaymentIndex = null
@@ -546,8 +548,9 @@ export default {
       this.generating = true
       this.dynamicAddress = ''
       this.dynamicAddressRegular = ''
+      this.receiveTargetChosen = true
 
-      if (this.receiveTargetChosen) {
+      if (wasTargetChosen) {
         try { this.$disconnect() } catch (error) { console.error(error) }
         delete this?.$options?.sockets
       }
@@ -558,7 +561,6 @@ export default {
         } else {
           await this.refreshDynamicAddress()
         }
-        this.receiveTargetChosen = true
         try { await this.setupListener() } catch (error) { console.error(error) }
       } finally {
         this.generating = false
