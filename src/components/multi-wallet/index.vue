@@ -58,9 +58,8 @@
             @end="onDragEnd"
             :item-key="getWalletItemKey"
             :animation="600"
-            :delay="200"
             :transition-duration="600"
-            :delay-on-touch-only="true"
+            handle=".handle"
             class="wallet-list-draggable"
           >
             <template #item="{ element: wallet, index }">
@@ -78,10 +77,13 @@
                   @touchstart.stop="handleWalletTouchStart(index, $event)"
                   @touchend.stop="handleWalletTouchEnd(index, $event)"
                 >
+                  <q-item-section side class="handle drag-handle-wrapper">
+                    <q-icon name="drag_indicator" size="20px" :color="darkMode ? 'grey-5' : 'grey-7'" />
+                  </q-item-section>
                   <q-item-section>
                     <!-- Wallet name -->
-                    <div 
-                      class="wallet-name text-weight-medium" 
+                    <div
+                      class="wallet-name text-weight-medium"
                       :class="isActive(index) ? 'text-grad' : ''"
                       @click.stop="handleWalletNameClick(index, $event)"
                     >
@@ -725,11 +727,25 @@ export default {
   min-height: 48px;
   border: none;
   background: transparent;
-  cursor: grab;
+  cursor: pointer;
   user-select: none;
   -webkit-user-select: none;
   -webkit-touch-callout: none;
   touch-action: manipulation;
+  
+  .drag-handle-wrapper {
+    cursor: grab;
+    opacity: 0.5;
+    padding: 0 !important;
+  }
+  
+  &:hover .drag-handle-wrapper {
+    opacity: 0.8;
+  }
+  
+  &:active .drag-handle-wrapper {
+    cursor: grabbing;
+  }
   
   &:hover {
     background: rgba(255, 255, 255, 0.05);
