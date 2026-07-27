@@ -1322,7 +1322,6 @@ export default {
 
 <style lang="scss">
   @import "src/css/app-card.scss";
-  @import "~leaflet/dist/leaflet.css";
 </style>
 
 <style lang="scss" scoped>
