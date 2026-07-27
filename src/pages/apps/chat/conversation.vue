@@ -2341,6 +2341,11 @@ export default {
   min-width: auto;
 }
 
+/* Preserve original casing for conversation subject in header */
+.apps-header :deep(.pt-header-title-text) {
+  text-transform: none;
+}
+
 .messages-scroll-area {
   overflow-y: auto;
   overflow-x: hidden;
