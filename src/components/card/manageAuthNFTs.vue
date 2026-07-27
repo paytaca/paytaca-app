@@ -11,10 +11,10 @@
         >
           <q-icon name="location_on" size="1.2rem" class="q-mr-xs" color="primary" />
           <span class="text-caption ellipsis">
-            {{ fullUserLocation || 'Using current location' }}
+            {{ fullUserLocation || $t('UsingCurrentLocation', {}, 'Using current location') }}
           </span>
           <q-icon name="edit" size="0.9rem" class="q-ml-xs" color="primary" />
-          <q-tooltip>Click to update your location</q-tooltip>
+          <q-tooltip>{{ $t('ClickToUpdateLocation', {}, 'Click to update your location') }}</q-tooltip>
         </div>
         <div
           v-else
@@ -23,9 +23,9 @@
           @click="() => attemptGeolocate().catch(err => cardLogger.error(err)).then(() => openLocationMapDialog())"
         >
           <q-icon name="location_off" size="1.2rem" class="q-mr-xs" />
-          <span class="text-caption">Detecting your location... (click to set manually)</span>
+          <span class="text-caption">{{ $t('DetectingYourLocation', {}, 'Detecting your location... (click to set manually)') }}</span>
           <q-icon name="edit" size="0.9rem" class="q-ml-xs" />
-          <q-tooltip>Click to set your location</q-tooltip>
+          <q-tooltip>{{ $t('ClickToSetLocation', {}, 'Click to set your location') }}</q-tooltip>
         </div>
       </template>
     </GeolocateBtn>
@@ -33,9 +33,9 @@
     <!-- Search bar and Select Multiple Toggle -->
     <div class="row items-center q-mb-md q-gutter-x-sm">
       <div class="col">
-        <q-input 
-          v-model="search" 
-          placeholder="Search merchants..." 
+        <q-input
+          v-model="search"
+          :placeholder="$t('SearchMerchants', {}, 'Search merchants...')"
           dense
           borderless
           input-class="search-input-field"
@@ -57,7 +57,7 @@
       class="q-pa-md br-10 q-mb-md manage-auth-generic-toggle"
       :class="$q.dark.isActive ? 'glassmorphic-generic-toggle-dark' : 'glassmorphic-generic-toggle-light'">
       <div class="row items-center q-gutter-x-sm">
-        <div class="text-weight-bold text-primary">Global Authentication NFT</div>
+        <div class="text-weight-bold text-primary">{{ $t('GlobalAuthenticationNFT', {}, 'Global Authentication NFT') }}</div>
         <q-btn
           flat
           dense
@@ -69,12 +69,12 @@
           <q-btn dense flat round icon="info" color="primary" />
           <q-menu class="bg-white text-black" :dark="$q.dark.isActive">
             <q-card class="q-pa-md" style="min-width: 250px; max-width: 300px;">
-              <div class="text-subtitle2 text-weight-bold q-mb-sm">Global Authentication NFT</div>
+              <div class="text-subtitle2 text-weight-bold q-mb-sm">{{ $t('GlobalAuthenticationNFT', {}, 'Global Authentication NFT') }}</div>
               <div class="text-body2">
-                Enabling the Global Authentication NFT will authorize all merchants in your city to accept payments from your card. This is a convenient option if you want to quickly enable payments for all merchants without having to select them individually.
+                {{ $t('GlobalAuthenticationNFTDescription', {}, 'Enabling the Global Authentication NFT will authorize all merchants in your city to accept payments from your card. This is a convenient option if you want to quickly enable payments for all merchants without having to select them individually.') }}
               </div>
               <div class="text-caption q-mt-sm">
-                Note: This will override any individual merchant selections you have made.
+                {{ $t('GlobalAuthenticationNFTNote', {}, 'Note: This will override any individual merchant selections you have made.') }}
               </div>
             </q-card>
           </q-menu>
@@ -82,7 +82,7 @@
       </div>
       <q-separator horizontal :dark="$q.dark.isActive" class="row q-my-sm" />
       <div class="row justify-between items-center q-gutter-x-sm q-mx-md">
-        <span>Authorization</span> 
+        <span>{{ $t('Authorization', {}, 'Authorization') }}</span> 
         <q-toggle 
           left-label
           :label="globalAuthNftAuthorizedLabel"
@@ -92,20 +92,14 @@
         />
       </div>
       <div class="row justify-between items-center q-gutter-x-sm q-mx-md">
-        <span>Spend Limit</span> 
+        <span>{{ $t('SpendLimit', {}, 'Spend Limit') }}</span> 
         <div>
           <span v-if="globalAuthNft.spendLimitSats !== null">{{ `${satoshiToBch(globalAuthNft.spendLimitSats)} BCH (per transaction)` }}</span>
           <span v-else>...</span>
-          <q-btn flat dense label="Edit" color="primary" class="q-px-sm q-ml-sm" @click="onEditGlobalSpendLimit"/>
+          <q-btn flat dense :label="$t('Edit', {}, 'Edit')" color="primary" class="q-px-sm q-ml-sm" @click="onEditGlobalSpendLimit"/>
         </div>
       </div>
-       <!-- <div>
-        <q-toggle 
-          :model-value="genericAuthEnabled"
-          color="primary"
-          @update:model-value="onGenericAuthToggle"
-        />
-      </div> -->
+
     </div>
 
     <!-- Global Spend Limit Display (shown when Generic Auth NFT is enabled) -->
@@ -133,7 +127,7 @@
 
     <!-- Merchants List -->
     <div class="text-subtitle2 q-mb-sm" :class="textColor">
-      Nearby Merchants
+      {{ $t('NearbyMerchants', {}, 'Nearby Merchants') }}
       <span v-if="merchants.length > 0" class="text-caption text-grey">
         ({{ filteredMerchants.length }})
       </span>
@@ -163,9 +157,9 @@
         :class="$q.dark.isActive ? 'text-grey-5' : 'text-grey'"
       >
         <q-icon name="location_off" size="48px" class="q-mb-md" />
-        <div>Waiting for GPS location...</div>
+        <div>{{ $t('WaitingForGPSLocation', {}, 'Waiting for GPS location...') }}</div>
         <div class="text-caption q-mt-sm">
-          Please enable location services
+          {{ $t('PleaseEnableLocationServices', {}, 'Please enable location services') }}
         </div>
       </div>
 
@@ -176,9 +170,9 @@
         :class="$q.dark.isActive ? 'text-grey-5' : 'text-grey'"
       >
         <q-icon name="storefront" size="48px" class="q-mb-md" />
-        <div>No merchants found in your city</div>
+        <div>{{ $t('NoMerchantsFoundInCity', {}, 'No merchants found in your city') }}</div>
         <div class="text-caption q-mt-sm">
-          Try changing your location to find merchants in other areas
+          {{ $t('TryChangingLocation', {}, 'Try changing your location to find merchants in other areas') }}
         </div>
       </div>
 
@@ -195,7 +189,7 @@
                 v-if="merchant.isEnabled && !genericAuthEnabled && merchant.spendLimit" 
                 anchor="top middle" 
                 self="bottom middle">
-                Spend Limit: {{ formatSpendLimit(merchant.spendLimit) }} BCH
+                {{ $t('SpendLimitLabel', {}, 'Spend Limit:') }} {{ formatSpendLimit(merchant.spendLimit) }} BCH
               </q-tooltip>
               <div 
                 class="text-weight-bold"
@@ -220,24 +214,15 @@
                 <span
                   v-else-if="mintedMerchants.has(merchant.id)"
                   class="text-positive text-caption">
-                  minting done
+                  {{ $t('MintingDone', {}, 'minting done') }}
                 </span>
                 <!-- Merchant has NFTs: show authorized label -->
                 <span
                   v-if="merchant.auth_nfts?.length > 0"
                   class="text-caption text-positive">
-                  Authorized ({{ merchant.auth_nfts.length }} NFT{{ merchant.auth_nfts.length > 1 ? 's' : '' }})
+                  {{ $t('AuthorizedNftCount', { count: merchant.auth_nfts.length }, 'Authorized (' + merchant.auth_nfts.length + ' NFT' + (merchant.auth_nfts.length > 1 ? 's' : '') + ')') }}
                 </span>
                 <!-- Merchant has no NFTs: show mint toggle -->
-                <!-- <div v-else class="row items-center q-gutter-x-xs" @click.stop>
-                  <span class="text-caption" :class="$q.dark.isActive ? 'text-grey-5' : 'text-grey-7'">Enable</span>
-                  <q-toggle
-                    disabled
-                    :model-value="false"
-                    color="primary"
-                    @update:model-value="(val) => onMerchantToggle(merchant, val)"
-                  />
-                </div> -->
               </div>
             </q-item-section>
           </q-item>
@@ -246,7 +231,7 @@
         <!-- Loading More Indicator -->
         <div v-if="loadingMore" class="text-center q-pa-md">
           <q-spinner color="primary" size="2rem" />
-          <div class="text-caption q-mt-sm" :class="textColorGrey">Loading more merchants...</div>
+          <div class="text-caption q-mt-sm" :class="textColorGrey">{{ $t('LoadingMoreMerchants', {}, 'Loading more merchants...') }}</div>
         </div>
 
         <!-- No More Results -->
@@ -255,7 +240,7 @@
           class="text-center q-pa-md text-caption"
           :class="$q.dark.isActive ? 'text-grey-6' : 'text-grey'"
         >
-          No more merchants
+          {{ $t('NoMoreMerchants', {}, 'No more merchants') }}
         </div>
       </div>
     </div>
@@ -265,7 +250,7 @@
       class="text-caption q-mt-sm text-center"
       :class="$q.dark.isActive ? 'text-grey-5' : 'text-grey'"
     >
-      {{ genericAuthEnabled ? 'Generic Auth NFT is enabled - all merchants are authorized' : 'Select specific merchants to authorize' }}
+      {{ genericAuthEnabled ? $t('GenericAuthEnabledMessage', {}, 'Generic Auth NFT is enabled - all merchants are authorized') : $t('SelectSpecificMerchantsMessage', {}, 'Select specific merchants to authorize') }}
     </div>
 
     <!-- Allow All Merchants Confirmation Dialog -->
@@ -299,12 +284,12 @@
         <q-card-section class="q-pa-lg">
           <div class="row items-center justify-between q-mb-sm">
             <div class="text-h6 text-weight-bold" :class="textColor">
-              Edit Authorization NFT
+              {{ $t('EditAuthorizationNFT', {}, 'Edit Authorization NFT') }}
             </div>
             <q-btn flat round dense icon="close" :color="$q.dark.isActive ? 'grey-4' : 'grey-6'" @click="closeSpendLimitDialog" />
           </div>
           <div class="q-mb-md" :class="textColor">
-            <span class="text-weight-bold">Merchant: {{ selectedMerchant?.name }}</span>
+            <span class="text-weight-bold">{{ $t('MerchantLabel', {}, 'Merchant:') }} {{ selectedMerchant?.name }}</span>
           </div>
           <q-tabs v-model="selectedNFT.id" class="text-subtitle2 bg-transparent" :dark="$q.dark.isActive">
             <q-tab
@@ -314,20 +299,20 @@
               :label="`NFT ${nft.id}`"
               @click="() => { selectedNFT = nft }"
             />
-            <q-tab v-if="selectedMerchant.auth_nfts.length === 0" name="no-nft" label="No NFTs" :disable="true" />
+              <q-tab v-if="selectedMerchant.auth_nfts.length === 0" name="no-nft" :label="$t('NoNFTs', {}, 'No NFTs')" :disable="true" />
           </q-tabs>
           <q-tab-panels v-model="selectedNFT.id" animated class="bg-transparent">
             <q-tab-panel :name="selectedNFT.id">
-              <q-toggle 
+              <q-toggle
                 left-label
-                label="Authorize"
+                :label="$t('Authorize', {}, 'Authorize')"
                 v-model:model-value="selectedNFTAuthorized"/>
               <q-input
                 v-model="spendLimitInput"
                 type="number"
                 filled
                 :dark="$q.dark.isActive"
-                label="Spend Limit (BCH)"
+                :label="$t('SpendLimitBCH', {}, 'Spend Limit (BCH)')"
                 step="0.00000001"
                 min="0"
                 :error="!!spendLimitError"
@@ -335,27 +320,18 @@
                 lazy-rules
               />
               <div v-if="selectedAuthNFT" class="q-mt-md q-gutter-y-xs text-caption" :class="textColorGrey">
-                <div><span class="text-weight-medium">NFT ID:</span> {{ selectedAuthNFT.id }}</div>
-                <div><span class="text-weight-medium">Category:</span> {{ selectedAuthNFT.token?.category || 'N/A' }}</div>
-                <div><span class="text-weight-medium">Commitment:</span> {{ selectedAuthNFT.token?.commitment || 'N/A' }}</div>
-                <div><span class="text-weight-medium">Amount:</span> {{ selectedAuthNFT.token?.amount || '0' }}</div>
-                <div><span class="text-weight-medium">Global Auth:</span> {{ selectedAuthNFT.token?.is_global_auth ? 'Yes' : 'No' }}</div>
-                <div><span class="text-weight-medium">Spend Limit:</span> {{ formatSpendLimitFromSats(selectedAuthNFT.token?.spend_limit_sats) }} BCH</div>
+                <div><span class="text-weight-medium">{{ $t('NftId', {}, 'NFT ID:') }}</span> {{ selectedAuthNFT.id }}</div>
+                <div><span class="text-weight-medium">{{ $t('Category', {}, 'Category:') }}</span> {{ selectedAuthNFT.token?.category || $t('N/A', {}, 'N/A') }}</div>
+                <div><span class="text-weight-medium">{{ $t('Commitment', {}, 'Commitment:') }}</span> {{ selectedAuthNFT.token?.commitment || $t('N/A', {}, 'N/A') }}</div>
+                <div><span class="text-weight-medium">{{ $t('Amount', {}, 'Amount:') }}</span> {{ selectedAuthNFT.token?.amount || '0' }}</div>
+                <div><span class="text-weight-medium">{{ $t('GlobalAuth', {}, 'Global Auth:') }}</span> {{ selectedAuthNFT.token?.is_global_auth ? $t('Yes', {}, 'Yes') : $t('No', {}, 'No') }}</div>
+                <div><span class="text-weight-medium">{{ $t('SpendLimit', {}, 'Spend Limit:') }}</span> {{ formatSpendLimitFromSats(selectedAuthNFT.token?.spend_limit_sats) }} BCH</div>
               </div>
             </q-tab-panel>
           </q-tab-panels>
         </q-card-section>
 
         <q-card-actions align="between" class="q-px-lg q-pb-md">
-          <!-- <q-btn
-            flat
-            color="negative"
-            icon="local_fire_department"
-            label="Burn Token"
-            rounded
-            :disable="!selectedAuthNFT"
-            @click="burnSelectedToken"
-          /> -->
           <div class="row items-center q-gutter-sm">
             <q-btn flat label="Cancel" :color="$q.dark.isActive ? 'grey-4' : 'grey-7'" rounded @click="closeSpendLimitDialog" />
             <q-btn unelevated label="Save" color="primary" class="bg-grad text-white" rounded @click="submitMutation" />
@@ -364,24 +340,7 @@
       </q-card>
     </q-dialog>
 
-    <!-- Burn Token Confirmation Dialog -->
-    <!-- <q-dialog v-model="showBurnTokenDialog" persistent>
-      <q-card class="pt-card" :class="$q.dark.isActive ? 'dark' : 'light'" style="min-width: 320px; border-radius: 24px;">
-        <q-card-section class="q-pa-lg">
-          <div class="row items-center justify-between q-mb-sm">
-            <div class="text-h6 text-weight-bold" :class="textColor">Burn Authorization NFT</div>
-            <q-btn flat round dense icon="close" :color="$q.dark.isActive ? 'grey-4' : 'grey-6'" @click="showBurnTokenDialog = false" />
-          </div>
-          <div :class="textColor">
-            Are you sure you want to burn NFT {{ selectedAuthNFT?.id }} for {{ selectedMerchant?.name }}? This action is irreversible.
-          </div>
-        </q-card-section>
-        <q-card-actions align="right" class="q-px-lg q-pb-md">
-          <q-btn flat label="Cancel" :color="$q.dark.isActive ? 'grey-4' : 'grey-7'" rounded @click="showBurnTokenDialog = false" />
-          <q-btn unelevated label="Burn Token" color="negative" rounded @click="confirmBurnToken" />
-        </q-card-actions>
-      </q-card>
-    </q-dialog> -->
+
 
     <!-- Location Map Dialog -->
     <q-dialog v-model="showLocationMapDialog" persistent maximized>
@@ -389,7 +348,7 @@
         <q-card-section class="row items-center justify-between q-pa-sm">
           <div class="text-h6" :class="textColor">
             <q-icon name="location_on" color="primary" class="q-mr-sm" />
-            Update Your Location
+            {{ $t('UpdateYourLocation', {}, 'Update Your Location') }}
           </div>
           <q-btn icon="close" flat round dense v-close-popup :color="$q.dark.isActive ? 'grey-4' : 'grey-6'" />
         </q-card-section>
@@ -403,7 +362,7 @@
               v-model="locationSearchQuery"
               filled
               :dark="$q.dark.isActive"
-              placeholder="Search location..."
+              :placeholder="$t('SearchLocation', {}, 'Search location...')"
               class="location-search"
               @keyup.enter="searchLocation"
             >
@@ -418,12 +377,12 @@
           <div class="row items-center justify-between">
             <div :class="textColorGrey" class="text-caption">
               <q-icon name="info" size="1rem" class="q-mr-xs" />
-              Drag the marker or click on the map to set your location
+              {{ $t('DragMarkerOrClickMap', {}, 'Drag the marker or click on the map to set your location') }}
             </div>
-            <q-btn 
-              color="primary" 
-              icon="check" 
-              label="Confirm Location" 
+            <q-btn
+              color="primary"
+              icon="check"
+              :label="$t('ConfirmLocation', {}, 'Confirm Location')" 
               unelevated
               rounded
               class="bg-grad text-white"
@@ -512,9 +471,9 @@ export default {
   computed: {
     globalAuthNftAuthorizedLabel() {
       if (this.globalAuthNft.authorized === null) {
-        return 'Loading...'
+        return this.$t('Loading', {}, 'Loading...')
       }
-      return this.globalAuthNft.authorized ? 'Enabled' : 'Disabled'
+      return this.globalAuthNft.authorized ? this.$t('Enabled', {}, 'Enabled') : this.$t('Disabled', {}, 'Disabled')
     },
     userLocation() {
       return this.$store.getters['card/userLocation']
@@ -571,32 +530,6 @@ export default {
     }
   },
   async mounted() {
-    // this.loadSavedLocation()
-    // if (!this.userLocation) {
-    //   await geolocationManager.getOrUpdateGeoIp()
-    //   const geoip = geolocationManager.geoip.value
-    //   if (geoip?.latitude && geoip?.longitude) {
-    //     try {
-    //       const response = await fetch(
-    //         `https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${geoip.latitude}&lon=${geoip.longitude}`
-    //       )
-    //       const data = await response.json()
-    //       const address = data?.address || {}
-    //       this.$store.commit('card/setUserLocation', {
-    //         latitude: geoip.latitude,
-    //         longitude: geoip.longitude,
-    //         formatted: data.display_name || '',
-    //         location: address.suburb || address.city_district || address.town || '',
-    //         landmark: address.suburb || '',
-    //         street: address.road || address.street || '',
-    //         city: address.city || address.town || address.village || address.county || '',
-    //         country: address.country || ''
-    //       })
-    //     } catch (error) {
-    //     }
-    //   }
-    // }
-    // this.loadMerchantList()
     this.loadGlobalAuthNft()
   },
 
@@ -612,15 +545,6 @@ export default {
       this.displayLocation = null
       
       // Load saved data for this card
-      // this.loadSavedLocation()
-      
-      // // Initialize display location from store if no saved location
-      // if (!this.displayLocation) {
-      //   const storeLocation = this.$store.getters['marketplace/sessionLocation']
-      //   if (storeLocation) {
-      //     this.displayLocation = { ...storeLocation }
-      //   }
-      // }
       
       // Load saved merchants from card storage
       this.loadSavedMerchants()
@@ -651,7 +575,7 @@ export default {
 
     mutateGlobalAuthNft(authorized, spendLimitSats) {
       this.$q.loading.show({
-        message: 'Updating Global Authentication NFT...',
+        message: this.$t('UpdatingGlobalAuthenticationNFT', {}, 'Updating Global Authentication NFT...'),
         spinnerColor: 'primary',
         backgroundColor: 'rgba(0, 0, 0, 0.5)',
         customClass: 'q-loading-custom'
@@ -661,16 +585,16 @@ export default {
         .then(async () => {
           await this.loadGlobalAuthNft()
           this.$q.dialog({
-            title: 'Success',
-            message: `Global Authentication NFT has been mutated successfully.`,
+            title: this.$t('Success', {}, 'Success'),
+            message: this.$t('GlobalAuthenticationNFTMutatedSuccessfully', {}, 'Global Authentication NFT has been mutated successfully.'),
             ok: true
           })
         })
         .catch(err => {
           cardLogger.error('Error toggling global auth NFT:', err)
           this.$q.dialog({
-            title: 'Error',
-            message: `Error: ${err.message || err}`,
+            title: this.$t('Error', {}, 'Error'),
+            message: `${this.$t('Error', {}, 'Error')}: ${err.message || err}`,
             ok: true
           })
         })
@@ -682,8 +606,8 @@ export default {
 
     onEditGlobalSpendLimit() {
       this.$q.dialog({
-        title: 'Edit Global Spend Limit',
-        message: 'Enter the new spend limit for the Global Authentication NFT (in BCH):',
+        title: this.$t('EditGlobalSpendLimit', {}, 'Edit Global Spend Limit'),
+        message: this.$t('EnterNewGlobalSpendLimit', {}, 'Enter the new spend limit for the Global Authentication NFT (in BCH):'),
         prompt: {
           model: this.satoshiToBch(this.globalAuthNft.spendLimitSats || 0),
           type: 'decimal',
@@ -830,7 +754,7 @@ export default {
 
     showFailedToLoadMerchants() {
       this.$q.notify({
-        message: 'Failed to load merchants near your location',
+        message: this.$t('FailedToLoadMerchants', {}, 'Failed to load merchants near your location'),
         color: 'red',
         icon: 'error',
         timeout: 4000,
@@ -884,8 +808,6 @@ export default {
       }
 
       // Don't load more if already loading or no more results
-      // if (this.loading || this.loadingMore) return
-      // if (!isReset && !this.merchantsPagination.hasMore) return
 
       if (isReset) {
         this.loading = true
@@ -914,7 +836,7 @@ export default {
         }
 
       } catch (error) {
-        this.notifyError('Failed to load merchants near your location');
+        this.notifyError(this.$t('FailedToLoadMerchants', {}, 'Failed to load merchants near your location'));
       } finally {
         this.loading = false
         this.loadingMore = false
@@ -955,7 +877,7 @@ export default {
           m.isEnabled = m.wasEnabledBeforeGeneric || false;
         });
         this.$q.notify({
-          message: 'Generic Auth NFT disabled - select specific merchants to authorize',
+          message: this.$t('GenericAuthDisabledMessage', {}, 'Generic Auth NFT disabled - select specific merchants to authorize'),
           color: 'info',
           icon: 'info',
           timeout: 1500
@@ -974,16 +896,11 @@ export default {
 
     async onMerchantToggle(merchant, enabled) {
       if (enabled) {
-        // merchant.spendLimit = merchant.spendLimit || '1';
-        
         // Start minting process
         this.mintingMerchants.add(merchant.id);
         this.mintingMerchants = new Set(this.mintingMerchants); // Trigger reactivity
-        
-        // Simulate minting delay (2 seconds)
-        // await new Promise(resolve => setTimeout(resolve, 2000));
         this.$q.loading.show({
-          message: `Minting auth NFT for ${merchant.name}...`,
+          message: this.$t('MintingAuthNFTForMerchant', { merchantName: merchant.name }, `Minting auth NFT for ${merchant.name}...`),
           spinner: 'dots',
           backgroundColor: 'rgba(0, 0, 0, 0.5)',
           color: 'white',
@@ -1010,7 +927,7 @@ export default {
           }, 2000);
         }).catch(err => {
           this.$q.notify({
-            message: `Failed to mint auth NFT for ${merchant.name}`,
+            message: this.$t('FailedToMintAuthNFTForMerchant', { merchantName: merchant.name }, `Failed to mint auth NFT for ${merchant.name}`),
             color: 'red',
             icon: 'error',
             timeout: 4000,
@@ -1024,7 +941,7 @@ export default {
         });
       }
       
-      const action = enabled ? 'enabled' : 'disabled';
+      const action = enabled ? this.$t('Enabled', {}, 'enabled') : this.$t('Disabled', {}, 'disabled');
       this.$q.notify({
         message: `${merchant.name} ${action}`,
         color: enabled ? 'positive' : 'grey',
@@ -1034,7 +951,6 @@ export default {
     },
 
     openSpendLimitDialog(merchant) {
-      // if (!merchant.isEnabled || this.genericAuthEnabled) return;
       this.selectedMerchant = merchant;
       this.spendLimitError = '';
       this.selectedNFT = {
@@ -1059,7 +975,7 @@ export default {
       const spendLimit = parseFloat(this.spendLimitInput);
 
       if (isNaN(spendLimit) || spendLimit <= 0) {
-        this.spendLimitError = 'Please enter a valid amount greater than 0';
+        this.spendLimitError = this.$t('PleaseEnterValidAmountGreaterThanZero', {}, 'Please enter a valid amount greater than 0');
         return;
       }
 
@@ -1081,7 +997,7 @@ export default {
         }
         
         this.$q.loading.show({
-          message: `Updating auth NFT for ${this.selectedMerchant.name}...`,
+          message: this.$t('UpdatingAuthNFTForMerchant', { merchantName: this.selectedMerchant.name }, `Updating auth NFT for ${this.selectedMerchant.name}...`),
           spinner: 'dots',
           backgroundColor: 'rgba(0, 0, 0, 0.5)',
           color: 'white',
@@ -1091,14 +1007,14 @@ export default {
 
         await this.card.mutateMerchantAuthToken(mutation).then(() => {
           this.$q.notify({
-            message: `Spend limit set to ${this.selectedMerchant.spendLimit} BCH for ${this.selectedMerchant.name}`,
+            message: this.$t('SpendLimitSetForMerchant', { spendLimit: this.selectedMerchant.spendLimit, merchantName: this.selectedMerchant.name }, `Spend limit set to ${this.selectedMerchant.spendLimit} BCH for ${this.selectedMerchant.name}`),
             color: 'positive',
             icon: 'check_circle',
             timeout: 1500
           });
         }).catch(err => {
           this.$q.notify({
-            message: `Failed to update auth NFT for ${this.selectedMerchant.name}`,
+            message: this.$t('FailedToUpdateAuthNFTForMerchant', { merchantName: this.selectedMerchant.name }, `Failed to update auth NFT for ${this.selectedMerchant.name}`),
             color: 'red',
             icon: 'error',
             timeout: 4000,
@@ -1132,7 +1048,7 @@ export default {
             address: data.address
           };
           this.$q.notify({
-            message: `Location set: ${data.display_name.substring(0, 50)}...`,
+            message: `${this.$t('LocationSet', {}, 'Location set')}: ${data.display_name.substring(0, 50)}...`,
             color: 'positive',
             icon: 'check',
             timeout: 2000
@@ -1169,14 +1085,14 @@ export default {
           };
 
           this.$q.notify({
-            message: `Found: ${result.display_name.substring(0, 50)}...`,
+            message: `${this.$t('Found', {}, 'Found')}: ${result.display_name.substring(0, 50)}...`,
             color: 'positive',
             icon: 'check',
             timeout: 2000
           });
         } else {
           this.$q.notify({
-            message: 'Location not found. Try a different search term.',
+            message: this.$t('LocationNotFound', {}, 'Location not found. Try a different search term.'),
             color: 'warning',
             icon: 'warning',
             timeout: 3000
@@ -1184,7 +1100,7 @@ export default {
         }
       } catch (error) {
         this.$q.notify({
-          message: 'Search failed. Please try again.',
+          message: this.$t('SearchFailed', {}, 'Search failed. Please try again.'),
           color: 'negative',
           icon: 'error',
           timeout: 3000
@@ -1195,7 +1111,7 @@ export default {
     async confirmLocationUpdate() {
       if (!this.mapCoordinates || !this.mapCoordinates.latitude || !this.mapCoordinates.longitude) {
         this.$q.notify({
-          message: 'Please select a location first',
+          message: this.$t('PleaseSelectLocationFirst', {}, 'Please select a location first'),
           color: 'warning',
           icon: 'warning',
           timeout: 2000
@@ -1216,7 +1132,7 @@ export default {
 
       // Update display location immediately (for UI feedback)
       this.displayLocation = {
-        formatted: this.mapCoordinates.formatted || 'Custom location',
+        formatted: this.mapCoordinates.formatted || this.$t('CustomLocation', {}, 'Custom location'),
         latitude: this.mapCoordinates.latitude,
         longitude: this.mapCoordinates.longitude
       };
@@ -1226,7 +1142,7 @@ export default {
 
       // Update the store with new location
       this.$store.dispatch('marketplace/setSessionLocation', {
-        formatted: this.mapCoordinates.formatted || 'Custom location',
+        formatted: this.mapCoordinates.formatted || this.$t('CustomLocation', {}, 'Custom location'),
         latitude: this.mapCoordinates.latitude,
         longitude: this.mapCoordinates.longitude
       });
@@ -1249,7 +1165,7 @@ export default {
       this.saveMerchantsToCard();
 
       this.$q.notify({
-        message: 'Location updated successfully. Reloading nearby merchants...',
+        message: this.$t('LocationUpdatedSuccessfully', {}, 'Location updated successfully. Reloading nearby merchants...'),
         color: 'positive',
         icon: 'location_on',
         timeout: 3000

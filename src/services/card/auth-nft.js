@@ -82,7 +82,7 @@ class AuthNftService {
         cardLogger.log('genesisUtxo:', genesisUtxo)
         
         const changeAddress = this.wallet.address()
-        const estimatedFee = this.wallet.estimateFee({ numP2pkhInputs: 1, numOutputs: 1, feeRate: 2n })
+        const estimatedFee = this.wallet.estimateFee({ numP2pkhInputs: 1, numOutputs: 2, feeRate: 2n })
         const change = genesisUtxo.satoshis - estimatedFee - nftValue
         const tokenAddress = this.wallet.tokenAddress()
 
@@ -170,7 +170,7 @@ class AuthNftService {
             }
         }));
 
-        const txFee = this.wallet.estimateFee({ numP2pkhInputs: 2, numOutputs: merchants.length })
+        const txFee = this.wallet.estimateFee({ numP2pkhInputs: 5, numOutputs: merchants.length + 2 })
         const mintFee = (BigInt(merchants.length) * MINT_VALUE)
         const totalFee = txFee + mintFee
         const { cumulativeValue, groupedUtxos: groupedBchFundingInputs, changeAddress } = await this.wallet.getFundingUtxos(totalFee)
@@ -271,7 +271,7 @@ class AuthNftService {
 
         this._assertWallet();
 
-        const estimatedFee = this.wallet.estimateFee({ numP2pkhInputs: 1, numOutputs: 1 + tokenUtxos.length, feeRate: 2n })
+        const estimatedFee = this.wallet.estimateFee({ numP2pkhInputs: tokenUtxos.length + 3, numOutputs: 1 + tokenUtxos.length, feeRate: 2n })
         const { cumulativeValue, groupedUtxos: groupedBchFundingInputs, changeAddress } = await this.wallet.getFundingUtxos(estimatedFee)
 
         if (cumulativeValue < estimatedFee) {
@@ -368,69 +368,8 @@ class AuthNftService {
                 commitment: newCommitment
             }
         })
-        // await this.issue({ recipients })
     }
 
-    // /**
-    //  * Burns mutable authorization NFTs for global auth, specific merchants, or all.
-    //  *
-    //  * If `merchants` is empty or `options.all` is true, a blank merchant hash
-    //  * (`""`) is added to target the global auth token.
-    //  *
-    //  * @param {Object} params
-    //  * @param {string} params.tokenId
-    //  * @param {Array<Object>} params.merchants
-    //  * @param {{ all?: boolean }} [params.options]
-    //  * @returns {Promise<Array>}
-    //  *
-    //  * FIXME: This method is WIP and likely to be restructured or deleted.
-    //  * The caller passes `opts` but this method destructures `options`,
-    //  * and property paths (token.capability, token.commitment) do not match
-    //  * the actual UTXO shape returned by Wallet.getTokenUtxos (token.nft.capability,
-    //  * token.nft.commitment). Do not rely on this implementation as-is.
-    //  */
-    // async burn ({ tokenId, merchants, options = { all: false } }) {
-    //     this._assertWallet();
-
-    //     let merchantHashes = [];
-    //     if (merchants.length > 0) {
-    //         merchantHashes = merchants.map(merchant => {
-                
-    //             const { hex: merchantHash } = encodeMerchantHash({
-    //                 merchantId: merchant.id,
-    //                 merchantPk: merchant.pubkey
-    //             });
-    //             return merchantHash;
-    //         })
-    //     } 
-        
-    //     if (merchantHashes.length === 0 || options.all) {
-    //         merchantHashes.push(""); // Burns global auth tokens without merchant hash
-    //     }
-
-    //     const utxos = await this.wallet.getTokenUtxos(tokenId)
-    //     const mutableUtxos = utxos.filter(utxo => utxo.token.capability === NFTCapability.mutable);
-
-    //     const utxosToBurn = mutableUtxos.filter(utxo => {
-    //         const commitment = decodeCommitment(utxo.token.commitment)
-    //         return utxo.token.capability === NFTCapability.mutable &&
-    //                 merchantHashes.includes(commitment.hash)
-    //     })
-        
-    //     const burnResponses = [];
-    //     for(let i = 0; i < utxosToBurn.length; i++) {
-    //         const element = utxosToBurn[i]
-    //         const burnResponse = await this.ctWallet.tokenBurn({
-    //             tokenId: tokenId, 
-    //             amount: element.amount,
-    //             capability: element.token.capability,
-    //             commitment: element.token.commitment
-    //         }, "burn")
-    //         burnResponses.push(burnResponse);
-    //     }
-    //     return burnResponses;
-    // }
-    
 }
 
 /**

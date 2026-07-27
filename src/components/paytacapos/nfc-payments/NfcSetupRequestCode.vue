@@ -19,7 +19,7 @@
                 <q-icon name="info" size="1.5em"/>
                 </div>
                 <div class="row">
-                Make sure the POS device is using the latest version of Paytaca POS. 
+                {{ $t('PosDeviceLatestVersionWarning', {}, 'Make sure the POS device is using the latest version of Paytaca POS.') }}
                 </div>
             </div>
             </q-banner>
@@ -58,7 +58,7 @@
                         flat
                         icon="content_copy"
                         :dark="darkMode"
-                        @click="copyToClipboard(qrCodeDataLink, 'Link code url copied')"
+                        @click="copyToClipboard(qrCodeDataLink, $t('LinkCodeUrlCopied', {}, 'Link code url copied'))"
                     />
                     </template>
                 </q-field>
@@ -105,6 +105,8 @@ import { formatTimestampToText } from 'src/wallet/anyhedge/formatters';
 import { computed, onMounted, ref, onUnmounted, watch, inject } from 'vue';
 import { useStore } from 'vuex';
 import { useQuasar } from 'quasar';
+import { useI18n } from 'vue-i18n';
+import { cardLogger } from 'src/utils/debug-logger.js';
 
 export default {
     name: 'NfcSetupRequestCode',
@@ -124,6 +126,7 @@ export default {
         const $store = useStore()
         const $q = useQuasar()
         const $copyText = inject('$copyText')
+        const { t: $t } = useI18n()
 
         const showDialog = ref(true)
         const generatingLinkCode = ref(false)
@@ -168,7 +171,7 @@ export default {
         function copyToClipboard(value, message) {
             $copyText(value)
             $q.notify({
-                message: message || 'Copied to clipboard',
+                message: message || $t('CopiedToClipboard', {}, 'Copied to clipboard'),
                 timeout: 800,
                 color: 'blue-9',
                 icon: 'mdi-clipboard-check'
@@ -176,7 +179,7 @@ export default {
         }
 
         function generateRequestCode() {
-            console.log('Generating new request code...')
+            cardLogger.log('Generating new request code...')
             emit('regenerate')
         }
 
