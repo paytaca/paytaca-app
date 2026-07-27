@@ -1,6 +1,5 @@
 <template>
-  <q-layout view="lHh Lpr lFf" :class="$q.dark.isActive ? 'bg-dark' : 'card-page-bg-light'">
-    <q-page-container :class="$q.dark.isActive ? '' : 'card-page-bg-light'">
+  <div :class="$q.dark.isActive ? 'bg-dark' : 'card-page-bg-light'">
 
       <!-- Skeleton loading state -->
       <div v-if="!isLoaded" class="full-width">
@@ -162,8 +161,7 @@
        
       <!-- Activate Card Dialog -->
       <ActivateCardForm v-if="showActivateCardForm" @close="showActivateCardForm = false" @activate="onCardActivated" />
-    </q-page-container>
-  </q-layout>
+  </div>
 </template>
 
 <script>
