@@ -61,6 +61,10 @@ export const authToken = Object.freeze({
       public_key: pubkey
     }
     const loginResponse = await backend.post(`/auth/login/main`, body)
+      .catch(error => {
+        console.error('Login error:', error.response || error)
+        throw error
+      })
     // Use wallet hash from the wallet parameter for storage key
     const storageKey = getAuthTokenStorageKey(wallet.BCH.walletHash)
     await SecureStoragePlugin.set({ key: storageKey, value: loginResponse.data.token })
@@ -168,7 +172,10 @@ export function parsePosDeviceData(data) {
     },
     isLinked(){
       return Boolean(this.linkedDevice.linkCode)
-    }
+    },
+    isNFCPaymentsEnabled(){
+      return Boolean(data?.nfc_payments_enabled)
+    },
   }
 
   return response

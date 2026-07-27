@@ -245,5 +245,5 @@ export function bchToSatoshi (bch) {
 }
 
 export function satoshiToBch (satoshi) {
-  return satoshi / SATOSHI_PER_BCH
+  return Number(satoshi) / SATOSHI_PER_BCH
 }

@@ -305,8 +305,7 @@
                       clickable
                       v-close-popup
                       :disabled="posDevice?.linkedDevice?.unlinkRequest?.id"
-                      @click="confirmUnlinkPosDevice(posDevice)"
-                    >
+                      @click="confirmUnlinkPosDevice(posDevice)">
                       <q-item-section>
                         <q-item-label>{{ $t('Unlink', {}, 'Unlink') }}</q-item-label>
                       </q-item-section>
@@ -315,18 +314,27 @@
                       v-else
                       clickable
                       v-close-popup
-                      @click="openLinkDeviceDialog(posDevice)"
-                    >
+                      @click="openLinkDeviceDialog(posDevice)">
                       <q-item-section>
                         <q-item-label>{{ $t('Link', {}, 'Link') }}</q-item-label>
+                      </q-item-section>
+                    </q-item>
+                    <q-item
+                      v-if="!posDevice?.isNFCPaymentsEnabled?.() && posDevice?.isLinked?.()"
+                      clickable
+                      v-close-popup
+                      @click="enableNFCPayments(posDevice)">
+                      <q-item-section>
+                        <q-item-label>
+                            Enable NFC Payments
+                        </q-item-label>
                       </q-item-section>
                     </q-item>
                     <q-item
                       v-if="posDevice?.isLinked?.()"
                       clickable
                       v-close-popup
-                      @click="updateDeviceSuspension(posDevice, !posDevice?.linkedDevice?.isSuspended)"
-                    >
+                      @click="updateDeviceSuspension(posDevice, !posDevice?.linkedDevice?.isSuspended)">
                       <q-item-section>
                         <q-item-label>
                           <template v-if="posDevice?.linkedDevice?.isSuspended">
@@ -341,8 +349,7 @@
                     <q-item
                       clickable
                       v-close-popup
-                      @click="confirmRemovePosDevice(posDevice)"
-                    >
+                      @click="confirmRemovePosDevice(posDevice)">
                       <q-item-section>
                         <q-item-label>{{ $t('Remove') }}</q-item-label>
                       </q-item-section>
@@ -400,6 +407,7 @@
       :merchant-id="merchantId"
     />
   </q-pull-to-refresh>
+  <EnableNFCPaymentsForm v-if="showEnableNFCPaymentsForm" :wallet="wallet" :pos-device="posDeviceToEnableNFC" @close="showEnableNFCPaymentsForm = false" />
 </template>
 
 <script setup>
@@ -425,21 +433,22 @@ import Watchtower from 'watchtower-cash-js'
 import { RpcWebSocketClient } from 'rpc-websocket-client';
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 import { useRouter, useRoute } from 'vue-router'
+import { loadCardMerchantWallet } from 'src/services/wallet'; 
+import { backend as cardBackend } from 'src/services/card/backend';
+import EnableNFCPaymentsForm from 'src/components/paytacapos/nfc-payments/EnableNFCPaymentsForm.vue';
 
 const bchjs = new BCHJS()
-
-// const props = defineProps({
-//   merchantId: [String, Number],
-// })
 
 const $router = useRouter()
 const $route = useRoute()
 const $store = useStore()
 const $q = useQuasar()
 const $t = useI18n().t
-const darkMode = computed(() => $store.getters['darkmode/getStatus'])
+
 const confirm = ref(false)
+const wallet = ref(null)
 const walletType = 'bch'
+const darkMode = ref(null)
 
 function safeMerchantId () {
   const fromQuery = $route?.query?.merchantId
@@ -473,19 +482,79 @@ const walletData = computed(() => {
     walletHash: _walletData?.walletHash,
     xPubKey: _walletData?.xPubKey,
   }
-
   // Object.assign to pass all other data that might come in handy
   Object.assign(data, _walletData)
   return data
 })
 
-const wallet = ref(null)
+
+onMounted(()=> registerForCardPayments())
+
+/**
+ * Registers the merchant for card payments if not already enabled. 
+ * This is required to link a card wallet to the merchant and enable NFC payments.
+ */
+async function registerForCardPayments() {
+  console.log('Registering merchant for card payments if not already enabled...')
+
+  let nfcPaymentsEnabled = false
+  const watchtower = new Watchtower()
+  await watchtower.BCH._api.get(`paytacapos/merchants/${merchantId}/`).then(response => {
+    console.log('Merchant info from watchtower:', response?.data)
+    nfcPaymentsEnabled = response?.data?.nfc_enabled || false
+  }).catch(error => {
+    console.error('Error fetching merchant info from watchtower:', error.response || error)
+  })
+
+  // await watchtower.BCH._api.patch(`paytacapos/merchants/${merchantId}/`, { nfc_enabled: true }).then(response => {
+  //   console.log('Merchant info from watchtower:', response?.data)
+  //   nfcPaymentsEnabled = response?.data?.nfc_enabled || false
+  // }).catch(error => {
+  //   console.error('Error fetching merchant info from watchtower:', error.response || error)
+  // })
+  
+  console.log('NFC payments enabled:', nfcPaymentsEnabled)
+  if (nfcPaymentsEnabled) {
+    console.log('NFC payments already enabled. Skipping registration.')
+    return
+  }
+
+  const wallet = await loadCardMerchantWallet()
+  const payload = {
+    wallet_hash: wallet.walletHash,
+    public_key: wallet.pubkey(), 
+    address_path: wallet.addressPath(),
+    ref_id: merchantId
+  }
+
+  cardBackend.post('/merchants/', payload)
+    .then(response => {
+      console.log('Registered merchant:', response.data)
+    })
+    .catch(error => {
+      console.error('Error registering merchant for card payments:', error.response || error)
+      $q.notify({
+        type: 'negative',
+        message: 'Failed to register merchant for card payments',
+        icon: 'error',
+      })
+    })
+}
+
+const posDeviceToEnableNFC = ref(null)
+const showEnableNFCPaymentsForm = ref(false)
+async function enableNFCPayments(posDevice){
+  console.log('Enabling NFC payments for POS device', posDevice)
+  posDeviceToEnableNFC.value = posDevice
+  showEnableNFCPaymentsForm.value = true
+}
 
 async function initWallet() {
   const _wallet = await loadWallet('BCH', $store.getters['global/getWalletIndex'])
   wallet.value = _wallet
   await checkWalletLinkData()
 }
+
 async function checkWalletLinkData() {
   if (!walletData.value?.xPubKey || !walletData.value?.walletHash) {
     console.log('Incomplete wallet link data. Updating xPubKey and walletHash')
@@ -519,7 +588,7 @@ async function fetchAuthWallet() {
 }
 
 function openCashoutPage () {
-  $router.push({ name: 'app-pos-cashout', state: { merchantId: this.merchantInfo?.id } })
+  $router.push({ name: 'app-pos-cashout', state: { merchantId: merchantInfo.value?.id } })
 }
 
 const merchantsList = computed(() => $store.getters[`paytacapos/merchants`])
@@ -723,7 +792,6 @@ function openLinkDeviceDialog(posDevice) {
 }
 
 async function deviceUnlinkRequest(posDevice) {
-
   const dialog = $q.dialog({
     title: $t('UnlinkDevice', {}, 'Unlink device'),
     message: $t('CreatingUnlinkDeviceRequest', {}, 'Creating unlink device request'),

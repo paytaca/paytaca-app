@@ -20,6 +20,7 @@
 </template>
 <script setup>
 import { Geolocation } from '@capacitor/geolocation'
+import { Capacitor } from '@capacitor/core'
 import { useQuasar } from 'quasar'
 import { useStore } from 'vuex'
 import { ref, computed, onMounted } from 'vue'
@@ -29,9 +30,12 @@ import { useI18n } from 'vue-i18n'
 const $emit = defineEmits([
   'grant',
   'geolocate',
+  'denied',
 ])
 const props = defineProps({
   btnProps: Object,
+  silentOnError: { type: Boolean, default: false },
+  silentOnDeny: { type: Boolean, default: false },
 })
 
 const { t } = useI18n()
@@ -53,7 +57,24 @@ const hasPermission = computed(() => {
         geolocation.value?.permission?.coarseLocation === 'granted'
 })
 
-function attemptGeolocate() {
+async function attemptGeolocate() {
+  // On web, the browser handles permissions implicitly via getCurrentPosition
+  if (Capacitor.getPlatform() === 'web') {
+    if (navigator.permissions) {
+      const perm = await navigator.permissions.query({ name: 'geolocation' }).catch(() => null)
+      if (perm?.state === 'denied') {
+        $emit('denied')
+        if (!props.silentOnDeny) {
+          $q.dialog({
+            message: t('EnableLocationInBrowser', {}, 'Location access is blocked. To allow it, go to your browser\'s site settings and enable location access for this site.'),
+            class: `br-15 pt-card-2 text-bow ${getDarkModeClass(darkMode.value)}`
+          })
+        }
+        return
+      }
+    }
+    return geolocate()
+  }
   if (hasPermission.value) return geolocate()
   return updateGeolocationPermission({ request: true, geolocateOnGrant: true, promptOnDeny: true })
 }
@@ -122,6 +143,10 @@ function geolocate() {
     })
     .catch(error => {
       updateGeolocationPermission()
+      if (props.silentOnError) {
+        dialog.hide()
+        return
+      }
       let errorMsg = error?.message
       if (errorMsg === 'location disabled') errorMsg = t('PleaseEnableLocationService')
       dialog.update({

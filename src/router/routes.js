@@ -442,6 +442,32 @@ const routes = [
         ]
       },
       {
+        path: 'card',
+        component: () => import('src/pages/apps/card/index.vue'),
+        children: [
+          {
+            path: '',
+            name: 'app-card',
+            component: () => import('src/pages/apps/card/home.vue')
+          },
+          {
+            path: 'list',
+            name: 'card-list',
+            component: () => import('src/pages/apps/card/cards.vue')
+          },
+          {
+            path: 'auth-nfts',
+            name: 'card-auth-nfts',
+            component: () => import('src/pages/apps/card/auth-nfts.vue')
+          },
+          {
+            path: 'details/:id',
+            name: 'card-details',
+            component: () => import('src/pages/apps/card/card.vue')
+          },
+        ]
+      },
+      {
         path: 'address-book',
         children: [
           {

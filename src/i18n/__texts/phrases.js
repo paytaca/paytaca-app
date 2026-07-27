@@ -2331,6 +2331,18 @@ const phrases = {
       RewardsHelpRP81: 'Referral Status',
       RewardsHelpRP82: 'See the status of your latest referrals here.',
       RewardsHelpRP83: 'Tap on View All to see all of your referrals and keep tabs on your successful ones.',
+
+      // NFC / POS device link
+      PosDeviceLatestVersionWarning: 'Make sure the POS device is using the latest version of Paytaca POS.',
+      EncryptionPublicKey: 'Encryption Public Key',
+      EnterPosEncryptionPublicKey: 'Please enter the encryption public key of the POS device.',
+      EncryptionPublicKeyScanned: 'Encryption public key scanned successfully',
+      InvalidEncryptionPublicKey: 'Invalid encryption public key',
+      PleaseEnterOrScanEncryptionPublicKey: 'Please enter or scan the encryption public key',
+      EncryptionPublicKeySubmitted: 'Encryption public key submitted successfully',
+      EncryptionPublicKeyRequired: 'Encryption public key is required to generate link code',
+      FailedToGenerateLinkCode: 'Failed to generate link code',
+      LinkCodeUrlCopied: 'Link code url copied',
     }
   ],
   dynamic: [
@@ -2985,6 +2997,16 @@ const phrases = {
       PlanCreated: "Plan created successfully",
       Rotate: "Rotate",
       Subscribe: "Subscribe"
+    },
+    // ===== Card Management - Allow All Merchants =====
+    {
+      AllowAllMerchantsDialogTitle: 'Allow all merchants',
+      AllowAllMerchantsDialogMessage: 'If you allow all merchants, please note that you can only spend a maximum amount of {amount} BCH (~500 PHP) per transaction.',
+      AllowAllMerchantsDialogSubtext: 'This limit is fixed and cannot be changed.',
+      AllowAllMerchantsEnable: 'Enable',
+      AllowAllMerchantsCancel: 'Cancel',
+      GlobalSpendLimit: 'Global Spend Limit',
+      GlobalSpendLimitDescription: 'Maximum amount you can spend per transaction when allowing all merchants.',
     }
   ]
 }

@@ -1,0 +1,27 @@
+export function getUser (state) {
+  return state.cards?.find(c => c?.isOwner) ?? null
+}
+
+export function getCardById (state) {
+  return function (id) {
+    return state.cards.find(card => {
+      return card.id === parseInt(id)
+    })
+  }
+}
+
+export function cards (state) {
+  return state.cards || []
+}
+
+export function transactions (state) {
+  return function (id) {
+    const card = state.cards.find(card => card.id === id)
+    return card ? card.transactions : []
+  }
+}
+
+export function userLocation (state) {
+  if (!state.location || !state.location.latitude) return null
+  return state.location
+}
