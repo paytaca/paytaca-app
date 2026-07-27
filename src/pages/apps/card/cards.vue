@@ -1,5 +1,5 @@
 <template>
-  <div :class="$q.dark.isActive ? 'bg-dark' : 'card-page-bg-light'">
+  <div :class="$q.dark.isActive ? 'bg-dark' : 'card-page-bg-light'" :style="contentStyle">
 
       <!-- Skeleton loading state -->
       <div v-if="!isLoaded" class="full-width">
@@ -229,6 +229,11 @@ export default {
       if (!this.cardBalances || this.cardBalances.length === 0) return null
       const totalSats = this.cardBalances.reduce((sum, b) => sum + (Number(b.bch_balance) || 0), 0)
       return satoshiToBch(totalSats)
+    },
+
+    contentStyle () {
+      const safeTop = 'max(env(safe-area-inset-top, 0px), var(--q-safe-area-top, 0px), var(--safe-area-inset-top, 0px), var(--pt-android-statusbar, 0px))'
+      return { paddingTop: safeTop }
     }
   },
 
