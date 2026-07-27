@@ -318,20 +318,24 @@ export default {
 
     adjustComponentsClasslist (isScanning) {
       const scannerUI = document.getElementById('qr-scanner-ui')
-      const appContainer = document.getElementById('app-container')
       const transparent = 'transparent-body'
       const hide = 'hide-section'
 
+
       if (isScanning) {
-        // Teleport scannerUI to body so it's not constrained inside a dialog card
+        // Teleport scannerUI to body so it's not constrained inside any container
         if (scannerUI) {
           scannerUI._origParent = scannerUI.parentNode
           scannerUI._origNextSibling = scannerUI.nextSibling
           document.body.appendChild(scannerUI)
         }
-        if (appContainer) { try { appContainer.classList.add(hide) } catch (e) {} }
-        // Hide all dialogs so their backdrop/card don't show through the transparent scanner overlay
-        document.querySelectorAll('.q-dialog').forEach(d => d.classList.add(hide))
+        // Hide all direct children of body except the scannerUI
+        Array.from(document.body.children).forEach(child => {
+          if (child !== scannerUI && !child.classList.contains('q-dialog__backdrop')) {
+            child._scannerWasHidden = true
+            child.classList.add(hide)
+          }
+        })
         document.body.classList.add(transparent)
         if (scannerUI) { try { scannerUI.classList.remove(hide) } catch (e) {} }
       } else {
@@ -347,8 +351,13 @@ export default {
           delete scannerUI._origParent
           delete scannerUI._origNextSibling
         }
-        if (appContainer) { try { appContainer.classList.remove(hide) } catch (e) {} }
-        document.querySelectorAll('.q-dialog').forEach(d => d.classList.remove(hide))
+        // Restore all hidden body children
+        document.querySelectorAll('body > .hide-section').forEach(child => {
+          if (child._scannerWasHidden) {
+            child.classList.remove(hide)
+            delete child._scannerWasHidden
+          }
+        })
         document.body.classList.remove(transparent)
         if (scannerUI) { try { scannerUI.classList.add(hide) } catch (e) {} }
       }
