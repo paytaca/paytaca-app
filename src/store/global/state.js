@@ -104,6 +104,7 @@ export default function () {
     },
     online: null,
     walletIndex: 0,
+    walletSwitchId: 0,
     vault: [],
     denomination: 'BCH',
     appControl: null,

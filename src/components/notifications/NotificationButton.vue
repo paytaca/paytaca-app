@@ -24,7 +24,6 @@ export default {
   name: 'NotificationButton',
 
   emits: [
-    'hide-multi-wallet-dialog',
     'find-and-open-transaction'
   ],
 
@@ -65,7 +64,6 @@ export default {
     async openNotificationsDialog () {
       const vm = this
 
-      vm.$emit('hide-multi-wallet-dialog')
       vm.$q.dialog({
         component: Notifications,
         componentProps: { onOpenTransaction: this.findAndOpenTransaction }
