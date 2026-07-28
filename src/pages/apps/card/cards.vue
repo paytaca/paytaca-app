@@ -44,6 +44,9 @@
                 <div v-if="totalBchBalance && !balancesLoading" :style="{ fontSize: '11px', fontWeight: '400', color: $q.dark.isActive ? 'rgba(255,255,255,0.4)' : 'rgba(0,0,0,0.35)' }">
                   {{ totalBchBalance }} BCH total
                 </div>
+                <div v-if="totalFiatText && !balancesLoading" :style="{ fontSize: '11px', fontWeight: '400', color: $q.dark.isActive ? 'rgba(255,255,255,0.4)' : 'rgba(0,0,0,0.35)' }">
+                  {{ totalFiatText }}
+                </div>
               </div>
 
               <div class="cards-stack-area">
@@ -99,6 +102,9 @@
                       <div class="row items-center justify-center" style="width: 24px; height: 24px; border-radius: 8px; background: rgba(255,255,255,0.15);">
                         <q-img src="~assets/bch-logo.png" style="width: 14px; height: 14px;" fit="contain" />
                       </div>
+                    </div>
+                    <div v-if="!balancesLoading && getCardFiatText(card.id)" class="text-weight-medium" style="font-size: 11px; opacity: 0.7; line-height: 1.2; margin-top: 2px;">
+                      {{ getCardFiatText(card.id) }}
                     </div>
                   </div>
                 </div>
@@ -172,6 +178,7 @@ import CardActivateMixin from 'src/mixins/card/activate-card-mixin';
 import CardMixin from 'src/mixins/card/card-mixin.js';
 import { loadCardUser } from 'src/services/card/user.js';
 import { satoshiToBch } from 'src/exchange';
+import { parseFiatCurrency } from 'src/utils/denomination-utils';
 import { CardStorage } from 'src/components/card/createCard.js';
 import bus from 'src/services/event-bus';
 import { cardLogger } from 'src/utils/debug-logger.js'
@@ -229,6 +236,19 @@ export default {
       if (!this.cardBalances || this.cardBalances.length === 0) return null
       const totalSats = this.cardBalances.reduce((sum, b) => sum + (Number(b.bch_balance) || 0), 0)
       return satoshiToBch(totalSats)
+    },
+
+    selectedMarketCurrency () {
+      const currency = this.$store.getters['market/selectedCurrency']
+      return currency?.symbol || 'USD'
+    },
+
+    totalFiatText () {
+      if (!this.totalBchBalance) return ''
+      const bchPrice = this.$store.getters['market/getAssetPrice']('bch', this.selectedMarketCurrency)
+      if (!bchPrice) return ''
+      const fiatValue = this.totalBchBalance * Number(bchPrice)
+      return parseFiatCurrency(fiatValue.toFixed(2), this.selectedMarketCurrency)
     },
 
     contentStyle () {
@@ -329,6 +349,16 @@ export default {
     getDisplayedBalance (cardId) {
       if (this.isBalanceHidden(cardId)) return '••••••'
       return this.satoshiToBch(this.getCardBalance(cardId)?.bch)
+    },
+
+    getCardFiatText (cardId) {
+      if (this.isBalanceHidden(cardId)) return ''
+      const bchPrice = this.$store.getters['market/getAssetPrice']('bch', this.selectedMarketCurrency)
+      if (!bchPrice) return ''
+      const balanceSats = Number(this.getCardBalance(cardId)?.bch) || 0
+      const balanceBch = this.satoshiToBch(balanceSats)
+      const fiatValue = balanceBch * Number(bchPrice)
+      return parseFiatCurrency(fiatValue.toFixed(2), this.selectedMarketCurrency)
     },
 
     // ====== Utility functions ======
