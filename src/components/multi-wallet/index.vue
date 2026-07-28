@@ -60,7 +60,8 @@
             :animation="600"
             :transition-duration="600"
             handle=".handle"
-            :force-fallback="true"
+            :delay="100"
+            :delay-on-touch-only="true"
             class="wallet-list-draggable"
           >
             <template #item="{ element: wallet, index }">
@@ -686,7 +687,6 @@ export default {
   user-select: none;
   -webkit-user-select: none;
   -webkit-touch-callout: none;
-  touch-action: manipulation;
 
   &.dark {
     background: #1d1d1d;
@@ -710,11 +710,7 @@ export default {
     background: rgba(255, 255, 255, 0.05);
     transform: translateX(2px);
   }
-  
-  &:active {
-    cursor: grabbing;
-  }
-  
+   
   &.active-wallet {
     background: rgba(255, 255, 255, 0.08);
     backdrop-filter: blur(8px);
@@ -733,7 +729,6 @@ export default {
   user-select: none;
   -webkit-user-select: none;
   -webkit-touch-callout: none;
-  touch-action: manipulation;
 }
 
 :deep(.sortable-ghost) {
