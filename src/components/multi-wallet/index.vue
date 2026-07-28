@@ -62,12 +62,6 @@
             handle=".handle"
             :force-fallback="true"
             class="wallet-list-draggable"
-          >"
-            :item-key="getWalletItemKey"
-            :animation="600"
-            :transition-duration="600"
-            handle=".handle"
-            class="wallet-list-draggable"
           >
             <template #item="{ element: wallet, index }">
               <template v-if="wallet.deleted !== true">

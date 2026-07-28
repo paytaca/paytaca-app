@@ -12,7 +12,7 @@
                 </div>
                 <div class="qr-code-container">
                     <q-skeleton v-if="generatingLinkCode" height="250px" width="250px" />
-                    <qr-code v-else :text="qrCodeData" :size="qrCodePxSize" />
+                    <qr-code v-else :key="qrCodePxSize" :text="qrCodeData" :size="qrCodePxSize" />
                 </div>
                 <div class="row items-center justify-between q-mt-sm q-mb-lg">
                     <div class="text-caption text-grey">{{ $t('QrCodeSize', {}, 'QR code size') }}</div>
