@@ -1151,6 +1151,9 @@ export default {
       }
 
       vm.$connect(url)
+      if (!vm.$options.sockets) {
+        vm.$options.sockets = {}
+      }
       vm.$options.sockets.onmessage = async function (message) {
         const data = JSON.parse(message.data)
         const tokenType = vm.assetId.split('/')[0]
@@ -1371,6 +1374,7 @@ export default {
       await vm.fetchMerchantPosOptions()
       if (vm.merchantPosOptions.length > 0) {
         vm.isInitializing = false
+        vm.generating = false
         return // Gate is shown; user picks target in selectPosReceiveTarget
       }
     }
