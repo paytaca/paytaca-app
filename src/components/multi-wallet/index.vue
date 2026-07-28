@@ -58,9 +58,9 @@
             @end="onDragEnd"
             :item-key="getWalletItemKey"
             :animation="600"
-            :delay="200"
             :transition-duration="600"
-            :delay-on-touch-only="true"
+            handle=".handle"
+            :force-fallback="true"
             class="wallet-list-draggable"
           >
             <template #item="{ element: wallet, index }">
@@ -74,14 +74,14 @@
                     isActive(index) ? 'active-wallet' : ''
                   ]"
                   @click.stop="handleWalletClick(index, $event)"
-                  @click.native.stop="handleWalletClickNative(index, $event)"
-                  @touchstart.stop="handleWalletTouchStart(index, $event)"
-                  @touchend.stop="handleWalletTouchEnd(index, $event)"
                 >
+                  <q-item-section side class="handle drag-handle-wrapper">
+                    <q-icon name="drag_indicator" size="20px" :color="darkMode ? 'grey-5' : 'grey-7'" />
+                  </q-item-section>
                   <q-item-section>
                     <!-- Wallet name -->
-                    <div 
-                      class="wallet-name text-weight-medium" 
+                    <div
+                      class="wallet-name text-weight-medium"
                       :class="isActive(index) ? 'text-grad' : ''"
                       @click.stop="handleWalletNameClick(index, $event)"
                     >
@@ -134,7 +134,6 @@ export default {
       vaultIndexMap: new Map(), // Maps displayed index to actual vault index
       isloading: false,
       secondDialog: false,
-      touchData: {}, // Track touch events for tap detection
       isSwitching: false, // Prevent multiple simultaneous wallet switches
       hideSidebarInstantly: false // Instantly hides sidebar content during wallet switch
     }
@@ -235,48 +234,6 @@ export default {
           vm.$store.commit('global/updateWalletName', { index, name: newName })
         }
       })
-    },
-    handleWalletTouchStart (displayIndex, event) {
-      // Store touch start time and position to detect tap vs drag
-      if (!this.touchData) {
-        this.touchData = {}
-      }
-      const touch = event.touches?.[0] || event.changedTouches?.[0]
-      this.touchData[displayIndex] = {
-        startTime: Date.now(),
-        startX: touch?.clientX,
-        startY: touch?.clientY
-      }
-    },
-    handleWalletTouchEnd (displayIndex, event) {
-      if (!this.touchData || !this.touchData[displayIndex]) {
-        return
-      }
-      
-      const touch = event.changedTouches?.[0]
-      // Guard: if touch is undefined or missing coordinates, can't determine tap vs drag
-      if (!touch || touch.clientX === undefined || touch.clientY === undefined) {
-        delete this.touchData[displayIndex]
-        return
-      }
-      
-      const touchInfo = this.touchData[displayIndex]
-      const endTime = Date.now()
-      const duration = endTime - touchInfo.startTime
-      const deltaX = Math.abs(touch.clientX - touchInfo.startX)
-      const deltaY = Math.abs(touch.clientY - touchInfo.startY)
-      const distance = Math.sqrt(deltaX * deltaX + deltaY * deltaY)
-      
-      // Consider it a tap if duration < 300ms and distance < 10px
-      if (duration < 300 && distance < 10) {
-        delete this.touchData[displayIndex]
-        this.switchWallet(displayIndex)
-      } else {
-        delete this.touchData[displayIndex]
-      }
-    },
-    handleWalletClickNative (displayIndex, event) {
-      this.switchWallet(displayIndex)
     },
     handleWalletNameClick (displayIndex, event) {
       this.switchWallet(displayIndex)
@@ -724,8 +681,30 @@ export default {
   padding: 12px 16px;
   min-height: 48px;
   border: none;
-  background: transparent;
-  cursor: grab;
+  background: #ffffff;
+  cursor: pointer;
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-touch-callout: none;
+  touch-action: manipulation;
+
+  &.dark {
+    background: #1d1d1d;
+  }
+  
+  .drag-handle-wrapper {
+    cursor: grab;
+    opacity: 0.5;
+    padding: 0 !important;
+  }
+  
+  &:hover .drag-handle-wrapper {
+    opacity: 0.8;
+  }
+  
+  &:active .drag-handle-wrapper {
+    cursor: grabbing;
+  }
   
   &:hover {
     background: rgba(255, 255, 255, 0.05);
@@ -751,21 +730,19 @@ export default {
 }
 
 .wallet-list-draggable {
-  .sortable-ghost {
-    opacity: 0.3;
-    transform: scale(0.95);
-  }
-  
-  .sortable-drag {
-    opacity: 0.9;
-    transform: scale(1.05);
-    box-shadow: 0 8px 16px rgba(0, 0, 0, 0.2);
-    z-index: 1000;
-  }
-  
-  .sortable-chosen {
-    background-color: rgba(0, 0, 0, 0.05);
-  }
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-touch-callout: none;
+  touch-action: manipulation;
+}
+
+:deep(.sortable-ghost) {
+  opacity: 0.3;
+  transform: scale(0.95);
+}
+
+:deep(.sortable-chosen) {
+  background-color: rgba(0, 0, 0, 0.05);
 }
 
   .wallet-name {
@@ -815,5 +792,29 @@ export default {
     transform: translateY(0px);
     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
   }
+}
+</style>
+
+<style lang="scss">
+.wallet-item {
+  background: #ffffff;
+  border-radius: 10px;
+}
+body.body--dark .wallet-item {
+  background: #1d1d1d;
+}
+.sortable-drag.wallet-item {
+  opacity: 0.95;
+  transform: scale(1.05);
+  box-shadow: 0 8px 16px rgba(0, 0, 0, 0.2);
+  z-index: 1000;
+  background: #ffffff;
+}
+body.body--dark .sortable-drag.wallet-item {
+  background: #1d1d1d;
+}
+.sortable-ghost.wallet-item {
+  opacity: 0.3;
+  transform: scale(0.95);
 }
 </style>

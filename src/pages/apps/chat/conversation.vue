@@ -9,6 +9,7 @@
       class="apps-header"
       backnavpath="/apps/chat"
       :title="roomName"
+      :normal-case="true"
       :subtitle="isGroupRoom ? $t('MemberCount', { count: room?.members?.length || 0 }, `${room?.members?.length || 0} members`) : typingDisplayText || (otherMemberIsActive ? $t('ActiveNow', {}, 'Active now') : null)"
     >
       <template v-if="room" v-slot:top-right-menu>

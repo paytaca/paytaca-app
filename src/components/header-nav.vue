@@ -21,8 +21,8 @@
       <div class="pt-header-title col">
         <p
           ref="header-title"
-          class="text-h5 text-uppercase text-center q-my-none"
-          :class="{'text-grad': darkMode}"
+          class="text-h5 text-center q-my-none"
+          :class="[{ 'text-uppercase': !normalCase }, { 'text-grad': darkMode }]"
           :style="{'margin-top': $q.platform.is.ios ? '-5px' : '0'}"
           v-on-long-press="onLongPressTitle"
         >
@@ -103,6 +103,10 @@ export default {
     backnavpath: {
       type: [String, Object],
       default: ''
+    },
+    normalCase: {
+      type: Boolean,
+      default: false
     }
   },
   emits: ['click', 'long-press-title'],
