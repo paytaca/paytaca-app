@@ -411,12 +411,10 @@ import Watchtower from 'watchtower-cash-js'
 import walletAssetsMixin from '../../mixins/wallet-assets-mixin.js'
 import { markRaw } from '@vue/reactivity'
 import { bus } from 'src/wallet/event-bus'
-import { getMnemonic } from '../../wallet'
+import { getMnemonic, getPin } from '../../wallet'
 import { getWalletByNetwork } from 'src/wallet/chipnet'
 import { dragscroll } from 'vue-dragscroll'
 import { NativeBiometric } from 'capacitor-native-biometric'
-import { SecureStoragePlugin } from 'capacitor-secure-storage-plugin'
-import { sha256 } from 'js-sha256'
 import { getAssetDenomination, parseAssetDenomination, parseFiatCurrency } from 'src/utils/denomination-utils'
 import { getDarkModeClass, isHongKong } from 'src/utils/theme-darkmode-utils'
 import { getBackendWsUrl, backend } from 'src/exchange/backend'
@@ -2256,23 +2254,9 @@ export default {
         // If using PIN, check if it's 6 digits
         const walletIndex = vm.$store.getters['global/getWalletIndex']
         const mnemonic = await getMnemonic(walletIndex)
-        try {
-          let pin = null
-          try {
-            pin = await SecureStoragePlugin.get({ key: `pin-${sha256(mnemonic)}` })
-          } catch (error) {
-            try {
-              // fallback for retrieving pin using unhashed mnemonic
-              pin = await SecureStoragePlugin.get({ key: `pin ${mnemonic}` })
-            } catch (error1) {
-              // fallback for old process of pin retrieval
-              pin = await SecureStoragePlugin.get({ key: 'pin' })
-            }
-          }
-          if (pin?.value.length < 6) {
-            forceRecreate = true
-          }
-        } catch {
+        // getPin also migrates the legacy `pin ${mnemonic}` key to the hashed key
+        const pin = await getPin(mnemonic).catch(() => null)
+        if (!pin || pin.length < 6) {
           forceRecreate = true
         }
       }

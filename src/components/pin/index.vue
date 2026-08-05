@@ -93,7 +93,7 @@
 
 <script>
 import ProgressLoader from '../../components/ProgressLoader'
-import { getMnemonic } from '../../wallet'
+import { getMnemonic, getPin } from '../../wallet'
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 import { sha256 } from 'js-sha256'
 import { SecureStoragePlugin } from 'capacitor-secure-storage-plugin';
@@ -292,19 +292,9 @@ export default {
       const pinKey = `pin-${sha256(mnemonic)}`
 
       if (vm.pinDialogAction === 'VERIFY') {
-        let secretKey = null
-        try {
-          secretKey = await SecureStoragePlugin.get({ key: pinKey })
-        } catch {
-          try {
-            // fallback for retrieving pin using unhashed mnemonic
-            secretKey = await SecureStoragePlugin.get({ key: `pin ${mnemonic}` })
-          } catch {
-            // fallback for old process of pin retrieval
-            secretKey = await SecureStoragePlugin.get({ key: 'pin' })
-          }
-        }
-        if (secretKey?.value === vm.pin) {
+        // getPin also migrates the legacy `pin ${mnemonic}` key to the hashed key
+        const storedPin = await getPin(mnemonic).catch(() => null)
+        if (storedPin === vm.pin) {
           resetAll()
           vm.$emit('nextAction', 'proceed')
         } else {

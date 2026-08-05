@@ -522,6 +522,49 @@ export async function getMnemonic (walletHashOrIndex = 0) {
 }
 
 /**
+ * Retrieve the PIN for a wallet, migrating legacy storage keys.
+ *
+ * The legacy `pin ${mnemonic}` key embeds the raw mnemonic in the key name,
+ * exposing it via keychain/storage metadata. When encountered, its value is
+ * migrated to the hashed `pin-${sha256(mnemonic)}` key and the legacy key is
+ * deleted. The oldest global 'pin' key is read-only (shared with unmigrated
+ * wallets) and is never deleted here.
+ *
+ * @param {string} mnemonic - The wallet mnemonic
+ * @returns {Promise<string|null>} The PIN or null if not found
+ */
+export async function getPin (mnemonic) {
+  const pinKey = `pin-${sha256(mnemonic)}`
+
+  try {
+    const pin = await SecureStoragePlugin.get({ key: pinKey })
+    if (pin?.value) return pin.value
+  } catch (err) {
+    if (isSecureStorageDecryptError(err)) throw err
+  }
+
+  try {
+    const legacyPin = await SecureStoragePlugin.get({ key: `pin ${mnemonic}` })
+    if (legacyPin?.value) {
+      await SecureStoragePlugin.set({ key: pinKey, value: legacyPin.value }).catch(() => {})
+      await SecureStoragePlugin.remove({ key: `pin ${mnemonic}` }).catch(() => {})
+      return legacyPin.value
+    }
+  } catch (err) {
+    if (isSecureStorageDecryptError(err)) throw err
+  }
+
+  try {
+    const pin = await SecureStoragePlugin.get({ key: 'pin' })
+    if (pin?.value) return pin.value
+  } catch (err) {
+    if (isSecureStorageDecryptError(err)) throw err
+  }
+
+  return null
+}
+
+/**
  * Check if PIN exists for a wallet
  * @param {string|number} walletHashOrIndex - Wallet hash (string) or vault index (number)
  * @returns {Promise<boolean>} True if PIN exists, false otherwise
@@ -532,37 +575,9 @@ export async function pinExists (walletHashOrIndex = 0) {
     if (!mnemonic) {
       return false
     }
-    
-    const pinKey = `pin-${sha256(mnemonic)}`
-    
-    // Try to get PIN with all possible keys
-    try {
-      const pin = await SecureStoragePlugin.get({ key: pinKey })
-      if (pin?.value && pin.value.length >= 6) {
-        return true
-      }
-    } catch {
-      // Try fallback keys
-      try {
-        const pin = await SecureStoragePlugin.get({ key: `pin ${mnemonic}` })
-        if (pin?.value && pin.value.length >= 6) {
-          return true
-        }
-      } catch {
-        // Try old global PIN key
-        try {
-          const pin = await SecureStoragePlugin.get({ key: 'pin' })
-          if (pin?.value && pin.value.length >= 6) {
-            return true
-          }
-        } catch {
-          // PIN doesn't exist
-          return false
-        }
-      }
-    }
-    
-    return false
+
+    const pin = await getPin(mnemonic)
+    return typeof pin === 'string' && pin.length >= 6
   } catch (error) {
     console.error('[pinExists] Error checking PIN existence:', error)
     return false
