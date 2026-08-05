@@ -22,6 +22,15 @@ import { getWalletHashFromIndexAsync } from 'src/utils/wallet-storage'
 
 const { SecureStoragePlugin } = Plugins
 
+// Matches the error thrown by the patched capacitor-secure-storage-plugin web
+// implementation when an encrypted value cannot be decrypted (e.g. the
+// device encryption key in IndexedDB was lost).
+const SECURE_STORAGE_DECRYPT_ERROR = 'SECURE_STORAGE_DECRYPT_FAILED'
+
+export function isSecureStorageDecryptError (err) {
+  return err?.message === SECURE_STORAGE_DECRYPT_ERROR
+}
+
 const BCHJS = require('@psf/bch-js')
 const bchjs = new BCHJS()
 
@@ -135,6 +144,9 @@ export async function getMnemonicByHash(walletHash) {
     const mnemonic = await SecureStoragePlugin.get({ key })
     return mnemonic.value
   } catch (err) {
+    // Propagate decryption failures so callers can distinguish
+    // "key lost/corrupted" from "not found"
+    if (isSecureStorageDecryptError(err)) throw err
     return null
   }
 }
@@ -465,6 +477,7 @@ export async function getMnemonic (walletHashOrIndex = 0) {
         }
       }
     } catch (err) {
+      if (isSecureStorageDecryptError(err)) throw err
       // Non-critical, continue to old scheme fallback
     }
   }
@@ -483,10 +496,12 @@ export async function getMnemonic (walletHashOrIndex = 0) {
     const encryptedMnemonic = await SecureStoragePlugin.get({ key: oldKey })
     mnemonic = aes256.decrypt(secretKey.value, encryptedMnemonic.value)
   } catch (err) {
+    if (isSecureStorageDecryptError(err)) throw err
     try {
       mnemonic = await SecureStoragePlugin.get({ key: oldKey })
       mnemonic = mnemonic.value
     } catch (err) {
+      if (isSecureStorageDecryptError(err)) throw err
       // Not found
     }
   }
