@@ -214,8 +214,8 @@ export async function checkMigrationStatus() {
   }
 }
 
-// Make forceRemigration available globally for debugging
-if (typeof window !== 'undefined') {
+// Make forceRemigration available globally for debugging (dev builds only)
+if (typeof window !== 'undefined' && process.env.NODE_ENV !== 'production') {
   window.forceMnemonicMigration = forceRemigration
   window.checkMnemonicMigrationStatus = checkMigrationStatus
 }
