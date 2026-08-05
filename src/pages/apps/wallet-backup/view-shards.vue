@@ -1269,6 +1269,11 @@ export default {
   mounted () {
     this.executeSecurityChecking()
   },
+  beforeUnmount () {
+    // Drop the seed phrase and shard references so they can be garbage collected
+    this.mnemonic = ''
+    this.shards = []
+  },
   watch: {
     pinDialogAction () {
       // Watcher for pinDialogAction changes

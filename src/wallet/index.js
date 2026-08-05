@@ -95,6 +95,29 @@ export async function cachedLoadWallet(network='BCH', index = 0) {
   return _wallets[index]
 }
 
+/**
+ * Release all in-memory Wallet instances from the cache.
+ *
+ * Cached Wallet objects hold the mnemonic (and derived keys) in memory for
+ * the app lifetime. Dropping the references allows the GC to reclaim them
+ * once nothing else references them. JS strings cannot be zeroized, but
+ * this prevents indefinite retention. Wallets are re-created on demand by
+ * cachedLoadWallet() from secure storage after a reload.
+ */
+export function clearCachedWallets () {
+  _wallets.length = 0
+}
+
+/**
+ * Release the cached Wallet instance for a specific vault index.
+ * @param {number} index - The vault index
+ */
+export function clearCachedWallet (index) {
+  if (_wallets[index]) {
+    _wallets[index] = undefined
+  }
+}
+
 export async function loadLibauthHdWallet(index=0, chipnet=false) {
   const mnemonic = await getMnemonic(index)
   return new LibauthHDWallet(mnemonic, undefined, chipnet ? 'chipnet' : 'mainnet')

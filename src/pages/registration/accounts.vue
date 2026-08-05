@@ -2614,6 +2614,11 @@ export default {
         })
       })
     }
+  },
+  beforeUnmount () {
+    // Drop the seed phrase and backup phrase references so they can be garbage collected
+    this.mnemonic = ''
+    this.seedPhraseBackup = null
   }
 }
 </script>

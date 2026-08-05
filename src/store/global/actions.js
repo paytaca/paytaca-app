@@ -7,7 +7,7 @@ import { deleteAuthToken } from 'src/exchange/auth'
 import { decryptWalletName } from 'src/marketplace/chat/encryption'
 import { saveWalletName, getWalletName, removeWalletName } from 'src/utils/wallet-name-cache'
 import * as eloadServiceAPI from 'src/utils/eload-service'
-import { loadLibauthHdWallet, loadWallet, deleteMnemonic, getMnemonic, getMnemonicByHash, deleteMnemonicByHash, deleteAllWalletData, deleteDuplicateWalletData, computeWalletHash } from '../../wallet'
+import { loadLibauthHdWallet, loadWallet, deleteMnemonic, getMnemonic, getMnemonicByHash, deleteMnemonicByHash, deleteAllWalletData, deleteDuplicateWalletData, computeWalletHash, clearCachedWallet } from '../../wallet'
 import { getVaultIndexByWalletHashAsync } from 'src/utils/wallet-storage'
 import { Plugins } from '@capacitor/core'
 
@@ -618,6 +618,9 @@ export async function deleteWallet (context, walletHashOrIndex) {
   if (walletHash) {
     removeWalletName(walletHash)
   }
+
+  // Release the cached in-memory wallet for this index
+  clearCachedWallet(index)
   
   // Actually remove from vault (not just mark as deleted)
   context.commit('removeVaultEntry', index)
