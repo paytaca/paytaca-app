@@ -157,6 +157,9 @@ export async function migrateMnemonicsToWalletHash() {
           const verifyMnemonic = await SecureStoragePlugin.get({ key: newKey })
           if (verifyMnemonic && verifyMnemonic.value === mnemonic) {
             migratedCount++
+            // Verified under the new scheme; remove the legacy key so only one
+            // copy of the mnemonic remains (dedupe).
+            await SecureStoragePlugin.remove({ key: oldKey }).catch(() => {})
           } else {
             console.error(`[Mnemonic Migration] Verification failed: Stored mnemonic doesn't match for index ${index}`)
             errorCount++

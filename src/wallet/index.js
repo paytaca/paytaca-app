@@ -533,11 +533,15 @@ export async function getMnemonic (walletHashOrIndex = 0) {
   if (mnemonic) {
     try {
       const walletHash = computeWalletHash(mnemonic)
-      await storeMnemonicByHash(mnemonic, walletHash).catch(() => {
+      await storeMnemonicByHash(mnemonic, walletHash)
+      // Confirmed stored under the new scheme; remove the legacy key so only
+      // one copy of the mnemonic remains (dedupe) and the legacy aes256/plain
+      // value is dropped (its "sk" key offers no protection in the same store).
+      await SecureStoragePlugin.remove({ key: oldKey }).catch(() => {
         // Non-critical error, continue
       })
     } catch (err) {
-      // Non-critical error, continue
+      // Non-critical error, continue (legacy key kept as fallback if store fails)
     }
   }
   
