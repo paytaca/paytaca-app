@@ -59,7 +59,7 @@
           <div class="scanner-bottom-controls row items-center justify-center q-pa-sm q-mb-lg rounded-borders bg-blur-dark">
             <div class="scanner-zoom-controls row items-center">
               <q-btn icon="remove" round dense color="white" text-color="black" size="md" @click="zoomOut" />
-              <q-btn icon="add" round Storage dense color="white" text-color="black" size="md" class="q-ml-sm" @click="zoomIn" />
+              <q-btn icon="add" round dense color="white" text-color="black" size="md" class="q-ml-sm" @click="zoomIn" />
             </div>
             <div class="vertical-control-divider q-mx-md"></div>
             <div class="scanner-torch-control">
