@@ -222,6 +222,10 @@ export function updateWalletIndex (state, index) {
   // which should be called after updateCurrentWallet
 }
 
+export function incrementWalletSwitchId (state) {
+  state.walletSwitchId = (state.walletSwitchId || 0) + 1
+}
+
 export function updateWalletName (state, details) {
   state.vault[details.index].name = details.name
 }

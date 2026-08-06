@@ -500,6 +500,17 @@ export default {
           category: 'assets-rewards'
         },
         {
+          id: 'card',
+          name: this.$t('Cards'),
+          description: this.$t('Apps.Card.Description', {}, 'Manage your Paytaca Card and view your card activity.'),
+          iconName: 'mdi-card-bulleted',
+          path: '/apps/card',
+          iconStyle: 'font-size: 4em',
+          active: !this.$store.getters['global/isChipnet'],
+          beta: true,
+          category: 'beta'
+        },
+        {
           id: 'multisig',
           name: this.$t('MultisigWallets', {}, 'Multisig Wallets'),
           description: this.$t('Apps.MultisigWallets.Description', {}, 'Create and manage multi-signature wallets for extra security.'),
@@ -574,16 +585,6 @@ export default {
           active: true,
           smartBCHOnly: false,
           category: 'wallet-connections'
-        },
-        {
-          id: 'card',
-          name: this.$t('Card'),
-          description: this.$t('Apps.Card.Description', {}, 'Manage your Paytaca Card and view your card activity.'),
-          iconName: 'mdi-card-bulleted',
-          path: '/apps/card',
-          iconStyle: 'font-size: 4em',
-          active: !this.$store.getters['global/isChipnet'],
-          category: 'marketplace'
         },
         {
           id: 'merchant-admin',

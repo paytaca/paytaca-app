@@ -144,6 +144,10 @@ export function getWalletIndex (state) {
   return state.walletIndex
 }
 
+export function getWalletSwitchId (state) {
+  return state.walletSwitchId
+}
+
 /**
  * Get wallet hash for a specific vault index
  * @param {Object} state

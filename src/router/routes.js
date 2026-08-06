@@ -21,6 +21,11 @@ const routes = [
         component: () => import('pages/transaction/asset-list.vue')
       },
       {
+        path: 'wallet/list',
+        name: 'wallet-list',
+        component: () => import('pages/transaction/wallet-list.vue')
+      },
+      {
         path: 'receive/select-asset',
         name: 'transaction-receive-select-asset',
         component: () => import('pages/transaction/select-asset-receive.vue')

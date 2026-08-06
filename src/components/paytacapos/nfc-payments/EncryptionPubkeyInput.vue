@@ -1,62 +1,41 @@
 <template>
     <QrScanner v-model="showQrScanner" @decode="onEncryptionPublicKeyScanned" />
     <q-dialog v-model="showDialog" @hide="onDialogHide" seamless class="no-click-outside">
-        <q-card class="br-15 pt-card-2 text-bow" :class="getDarkModeClass(darkMode)">
-            <div class="row no-wrap items-center justify-center q-pl-md q-py-sm">
-                <div class="text-h5 q-space q-mt-sm"> {{ $t('POSID')}}#{{ paddedPosId }}</div>
-                <q-btn
-                flat
-                padding="sm"
-                icon="close"
-                v-close-popup
-                class="close-button"
-                />
+        <q-card class="br-15 pt-card-2 text-bow" :class="getDarkModeClass(darkMode)" style="width:min(400px, 90vw)">
+            <div class="row no-wrap items-center q-pl-lg q-pr-sm q-py-sm">
+                <div class="text-h6 q-space">{{ $t('POSID') }}#{{ paddedPosId }}</div>
+                <q-btn flat round dense icon="close" v-close-popup />
             </div>
-            <q-card-section class="q-gutter-y-sm">
-                <q-banner class="rounded-borders" :class="darkMode ? 'bg-grey text-white': ''">
-                <div class="row no-wrap">
-                    <div class="row items-center q-mr-sm">
-                    <q-icon name="info" size="1.5em"/>
+            <q-card-section class="q-pt-none q-px-lg q-pb-lg">
+                <q-form @submit="submitEncryptionPublicKey" class="q-gutter-y-md">
+                    <div class="text-caption text-grey q-mt-sm">
+                        <q-icon name="info" size="1.2em" class="q-mr-xs" />
+                        {{ $t('PosDeviceLatestVersionWarning', {}, 'Make sure the POS device is using the latest version of Paytaca POS.') }}
                     </div>
-                    <div class="row">
-                    {{ $t('PosDeviceLatestVersionWarning', {}, 'Make sure the POS device is using the latest version of Paytaca POS.') }}
-                    </div>
-                </div>
-                </q-banner>
-                <div :class="darkMode ? 'bg-grey text-white': ''">
                     <q-input
                         dense
                         outlined
-                        class="full-width"
+                        :dark="darkMode"
                         :label="$t('EncryptionPublicKey', {}, 'Encryption Public Key')"
-                        :hint="$t('EnterPosEncryptionPublicKey', {}, 'Please enter the encryption public key of the POS device.')"
                         v-model="encryptionPublicKey"
+                        hide-bottom-space
                     >
                         <template v-slot:control>
-                        <span class="ellipsis" style="direction: rtl;">
-                            {{ encryptionPublicKey || $t('Loading', {}, 'Loading...') }}
-                        </span>
+                            <span class="ellipsis" style="direction: rtl;">
+                                {{ encryptionPublicKey || $t('EnterPosEncryptionPublicKey', {}, 'Enter the encryption public key...') }}
+                            </span>
                         </template>
                         <template v-slot:append>
-                        <q-btn
-                            padding="sm"
-                            flat
-                            icon="qr_code_scanner"
-                            :dark="darkMode"
-                            @click="scanPosEncryptionPublicKey()"
-                        />
-                        <q-btn
-                            padding="sm"
-                            flat
-                            icon="send"
-                            :dark="darkMode"
-                            @click="submitEncryptionPublicKey()"
-                        />
+                            <q-btn padding="sm" flat icon="qr_code_scanner" :dark="darkMode" @click="scanPosEncryptionPublicKey()" />
                         </template>
                     </q-input>
-                </div>
-                </q-card-section>
-            </q-card>
+                    <div class="row q-gutter-sm">
+                        <q-btn outline no-caps color="grey" class="col" :label="$t('Cancel')" @click="onDialogHide" />
+                        <q-btn no-caps class="button col" :label="$t('Submit')" type="submit" />
+                    </div>
+                </q-form>
+            </q-card-section>
+        </q-card>
     </q-dialog>
 </template>
 <script>
@@ -94,12 +73,10 @@ export default {
         })
 
         onMounted(() => {
-            // Automatically show the dialog when the component is mounted
             showDialog.value = true
         })
 
         const onEncryptionPublicKeyScanned = (result) => {
-            // Handle the scanned encryption public key as needed
             encryptionPublicKey.value = result
             showQrScanner.value = false
         }

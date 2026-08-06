@@ -57,7 +57,7 @@
             @click="$router.push({ name: 'card-details', params: { id: createdCard.id } })"
           >
             <div class="text-h6 text-weight-bold q-mb-sm text-primary">
-              {{ createdCard?.alias || createdCard?.name || $t('Card') }}
+              {{ createdCard?.alias || createdCard?.name || $t('Cards') }}
             </div>
             <q-icon name="check_circle" size="48px" color="positive" class="q-mb-sm" />
             <div class="text-caption text-primary">

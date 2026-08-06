@@ -8,7 +8,7 @@
               class="row q-px-sm q-pt-sm"
             >
               <div data-tour="wallet-opener" class="col">
-                <MultiWalletDropdown ref="multi-wallet-component"/>
+                <MultiWalletDropdown/>
               </div>
               <div class="row items-center justify-end q-gutter-md">
                 <q-btn
@@ -21,7 +21,6 @@
                   @click="startHomeTour(false)"
                 />
                 <NotificationButton
-                  @hide-multi-wallet-dialog="hideMultiWalletDialog"
                   @find-and-open-transaction="findAndOpenTransaction"
                 />
               </div>
@@ -1641,7 +1640,6 @@ export default {
     },
     showTransactionDetails (transaction) {
       const vm = this
-      vm.hideMultiWalletDialog()
       vm.hideAssetInfo()
       // const txCheck = setInterval(function () {
       //   if (transaction) {
@@ -2285,9 +2283,6 @@ export default {
       }
 
       return !forceRecreate
-    },
-    hideMultiWalletDialog () {
-      this.$refs['multi-wallet-component'].$refs['multi-wallet-parent'].$refs['multi-wallet'].hide()
     },
     addNewAsset () {
       const vm = this

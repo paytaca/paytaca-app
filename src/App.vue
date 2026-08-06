@@ -2,7 +2,7 @@
     <div>
       <AppLoading v-if="showInitialLoad" />
       <WalletSwitchLoading v-if="showWalletSwitchLoading" />
-      <router-view :key="$store.getters['global/getWalletIndex']" />
+      <router-view :key="$store.getters['global/getWalletSwitchId']" />
       <v-offline @detected-condition="onConnectivityChange" />
 
       <div v-if="isChipnet" class="chipnet-banner" @click="confirmSwitchToMainnet">

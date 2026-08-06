@@ -535,6 +535,8 @@ export async function switchWallet (context, walletHashOrIndex) {
 
     // Sync settings to darkmode and market modules
     context.dispatch('syncSettingsToModules')
+
+    context.commit('incrementWalletSwitchId')
   } catch (error) {
     console.error('[switchWallet] Error during wallet switch:', error)
     console.error('[switchWallet] Error stack:', error.stack)

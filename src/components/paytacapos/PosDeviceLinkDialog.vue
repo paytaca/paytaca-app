@@ -3,36 +3,31 @@
   <q-dialog ref="dialogRef" @hide="onDialogHide" seamless class="no-click-outside">
     <!-- <q-resize-observer @resize="resizeQrSize" /> -->
      
-    <q-card class="br-15 pt-card-2 text-bow" :class="getDarkModeClass(darkMode)">
-      <div class="row no-wrap items-center justify-center q-pl-md q-py-sm">
-        <div class="text-h5 q-space q-mt-sm"> {{ $t('POSID')}}#{{ paddedPosId }}</div>
+    <q-card class="br-15 pt-card-2 text-bow" :class="getDarkModeClass(darkMode)" style="width:min(420px, 90vw)">
+      <div class="row no-wrap items-center q-pl-lg q-pr-sm q-py-sm">
+        <div class="text-h6 q-space"> {{ $t('POSID')}}#{{ paddedPosId }}</div>
         <q-btn
           flat
-          padding="sm"
+          round
+          dense
           icon="close"
           v-close-popup
-          class="close-button"
         />
       </div>
-      <q-card-section class="q-gutter-y-sm">
-        <q-banner class="rounded-borders" :class="darkMode ? 'bg-grey text-white': ''">
-          <div class="row no-wrap">
-            <div class="row items-center q-mr-sm">
-              <q-icon name="info" size="1.5em"/>
-            </div>
-            <div class="row">
-              {{ $t('PosDeviceLatestVersionWarning', {}, 'Make sure the POS device is using the latest version of Paytaca POS.') }} 
-            </div>
-          </div>
-        </q-banner>
-        <div v-if="!encryptionPublicKey" :class="darkMode ? 'bg-grey text-white': ''">
+      <q-card-section class="q-pt-none q-px-lg q-pb-lg">
+        <div class="text-caption text-grey q-mb-md q-mt-sm">
+          <q-icon name="info" size="1.2em" class="q-mr-xs" />
+          {{ $t('PosDeviceLatestVersionWarning', {}, 'Make sure the POS device is using the latest version of Paytaca POS.') }}
+        </div>
+        <div v-if="!encryptionPublicKey">
           <q-input
             dense
             outlined
+            :dark="darkMode"
             class="full-width"
             :label="$t('EncryptionPublicKey', {}, 'Encryption Public Key')"
-            :hint="$t('EnterPosEncryptionPublicKey', {}, 'Please enter the encryption public key of the POS device.')"
-            v-model="encryptionPublicKeyInput">
+            v-model="encryptionPublicKeyInput"
+            hide-bottom-space>
             <template v-slot:control>
               <span class="ellipsis" style="direction: rtl;">
                 {{ encryptionPublicKeyInput || $t('Loading', {}, 'Loading...') }}
@@ -345,7 +340,7 @@ function copyToClipboard(value, message) {
   align-content: center;
 
   border-radius: 16px;
-  border: 2px solid #ed5f59;
+  border: 1px solid rgba(128, 128, 128, 0.2);
 
   padding: 1rem;
 }

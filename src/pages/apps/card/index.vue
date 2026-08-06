@@ -3,7 +3,7 @@
     <q-header v-if="isloaded" class="bg-transparent text-bow">
       <CardPageHeader />
     </q-header>
-    <div v-else class="row items-center q-pa-md" style="min-height: 60px;">
+    <div v-else class="row items-center q-pa-md" style="min-height: 60px; padding-top: max(env(safe-area-inset-top, 0px), 16px);">
       <q-btn flat round dense icon="arrow_back" color="primary" style="opacity: 0.3" />
       <div class="col">
         <q-skeleton type="text" width="150px" height="30px" class="q-mx-auto" />

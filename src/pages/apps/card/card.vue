@@ -54,6 +54,9 @@
                     <q-img src="~assets/bch-logo.png" style="width: 14px; height: 14px;" fit="contain" />
                   </div>
                 </div>
+                <div v-if="bchFiatText" class="text-weight-medium" style="font-size: 12px; opacity: 0.7; line-height: 1.2;">
+                  {{ bchFiatText }}
+                </div>
               </div>
 
               <!-- Contract address - top right -->
@@ -249,6 +252,7 @@ import OrderCard from 'src/components/card/OrderCard.vue'
 import ActivateCardForm from 'src/components/card/ActivateCardForm.vue'
 import JourneyStepper from 'src/components/card/JourneyStepper.vue'
 import { satoshiToBch } from 'src/exchange'
+import { parseFiatCurrency } from 'src/utils/denomination-utils'
 import { loadCardUser } from 'src/services/card/user'
 import { Card } from 'src/services/card/card'
 import { cardLogger } from 'src/utils/debug-logger.js'
@@ -338,6 +342,20 @@ export default {
     hasCardBalance () {
       const balance = parseFloat(this.activeCard?.balance) || 0
       return balance > 0
+    },
+
+    bchFiatText () {
+      if (this.balanceHidden) return ''
+      const bchPrice = this.$store.getters['market/getAssetPrice']('bch', this.selectedMarketCurrency)
+      if (!bchPrice) return ''
+      const balance = Number(this.bchBalance) || 0
+      const fiatValue = balance * Number(bchPrice)
+      return parseFiatCurrency(fiatValue.toFixed(2), this.selectedMarketCurrency)
+    },
+
+    selectedMarketCurrency () {
+      const currency = this.$store.getters['market/selectedCurrency']
+      return currency?.symbol || 'USD'
     }
   },
 
