@@ -50,7 +50,7 @@ async function deriveOAuthCredentials() {
   const walletHash = getWalletHash()
   if (!walletHash) throw new Error('Wallet hash not available')
 
-  const mnemonic = await getMnemonicByHash(walletHash)
+  const mnemonic = await getMnemonicByHash(walletHash).catch(() => null)
   if (!mnemonic) throw new Error('Mnemonic not available for wallet')
 
   const mnemonicBin = new Uint8Array(mnemonicToSeedSync(mnemonic))

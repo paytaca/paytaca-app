@@ -287,7 +287,11 @@ export default {
         mnemonic = vm.newWalletMnemonic
       } else {
         const walletIndex = vm.$store.getters['global/getWalletIndex']
-        mnemonic = await getMnemonic(walletIndex)
+        mnemonic = await getMnemonic(walletIndex).catch(() => null)
+      }
+      if (!mnemonic) {
+        vm.validationMsg = vm.$t('IncorrectPin')
+        return
       }
       const pinKey = `pin-${sha256(mnemonic)}`
 

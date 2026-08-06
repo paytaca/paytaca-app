@@ -2253,7 +2253,7 @@ export default {
       } else if (preferredSecurity === 'pin') {
         // If using PIN, check if it's 6 digits
         const walletIndex = vm.$store.getters['global/getWalletIndex']
-        const mnemonic = await getMnemonic(walletIndex)
+        const mnemonic = await getMnemonic(walletIndex).catch(() => null)
         // getPin also migrates the legacy `pin ${mnemonic}` key to the hashed key
         const pin = await getPin(mnemonic).catch(() => null)
         if (!pin || pin.length < 6) {

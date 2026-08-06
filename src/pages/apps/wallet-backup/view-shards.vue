@@ -1224,7 +1224,7 @@ export default {
       vm.isLoading = true
       try {
         const walletIndex = vm.$store.getters['global/getWalletIndex']
-        vm.mnemonic = await getMnemonic(walletIndex)
+        vm.mnemonic = await getMnemonic(walletIndex).catch(() => null)
         if (typeof vm.mnemonic !== 'string' || vm.mnemonic.length === 0) {
           throw new Error('[view-shards] Missing mnemonic from secure storage')
         }

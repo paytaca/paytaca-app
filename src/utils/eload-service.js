@@ -65,7 +65,7 @@ async function deriveOAuthCredentials() {
 	}
 
 	// Get mnemonic for this wallet
-	const mnemonic = await getMnemonicByHash(walletHash)
+	const mnemonic = await getMnemonicByHash(walletHash).catch(() => null)
 	if (!mnemonic) {
 		throw new Error('Mnemonic not available for wallet')
 	}
@@ -214,7 +214,7 @@ async function getAuthHeaders() {
 	})
 
 	// Re-derive to get raw private key bytes
-	const mnemonic = await getMnemonicByHash(walletHash)
+	const mnemonic = await getMnemonicByHash(walletHash).catch(() => null)
 	const mnemonicBin = new Uint8Array(mnemonicToSeedSync(mnemonic))
 	const rootNode = deriveHdPrivateNodeFromSeed(mnemonicBin)
 	const fullPath = `${BCH_DERIVATION_PATH}/${OAUTH_ADDRESS_PATH}`
