@@ -749,7 +749,7 @@ export default {
       })
     },
     async loadWalletMasterFingerprint(type) {
-      const m = await getMnemonic(this.$store.getters['global/getWalletIndex'])
+      const m = await getMnemonic(this.$store.getters['global/getWalletIndex']).catch(() => null)
       if (!m) return ''
       this.walletMasterFingerprint = binToHex(
           hash160(

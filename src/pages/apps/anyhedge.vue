@@ -426,7 +426,7 @@ async function refreshPage(done=() => {}, opts={ allAccountType: false }) {
 
 const wallet = ref(null)
 async function initWallet() {
-  const mnemonic = await getMnemonic($store.getters['global/getWalletIndex'])
+  const mnemonic = await getMnemonic($store.getters['global/getWalletIndex']).catch(() => null)
   wallet.value = markRaw(new Wallet(mnemonic))
 }
 onMounted(async () => refreshPage(()=>{}, { allAccountType: true }))

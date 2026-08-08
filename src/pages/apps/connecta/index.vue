@@ -535,7 +535,7 @@ export default {
     },
 
     loadWallet () {
-      getMnemonic(this.$store.getters['global/getWalletIndex']).then((mnemonic) => {
+      getMnemonic(this.$store.getters['global/getWalletIndex']).catch(() => null).then((mnemonic) => {
         const wallet = new Wallet(mnemonic, 'BCH')
         // Legacy network-specific support removed
           .then(() => {

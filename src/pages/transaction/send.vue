@@ -1249,7 +1249,7 @@ export default {
     // on component mount
     async initWallet () {
       const walletIndex = this.$store.getters['global/getWalletIndex']
-      const mnemonic = await getMnemonic(walletIndex)
+      const mnemonic = await getMnemonic(walletIndex).catch(() => null)
       const wallet = new Wallet(mnemonic, this.network)
       this.wallet = markRaw(wallet)
       return { wallet }
