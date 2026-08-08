@@ -12,7 +12,7 @@ import {
  deriveHdPathRelative,
  sha256 as libauthSha256,
  secp256k1,
- ut8ToBin,
+ utf8ToBin,
  binToHex
 } from 'bitauth-libauth-v3'
 import sha256 from 'js-sha256' 
