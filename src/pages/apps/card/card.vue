@@ -552,7 +552,7 @@ export default {
           message: 'Card has been deleted',
           color: 'positive',
           icon: 'delete',
-          position: 'top',
+          position: 'bottom',
           timeout: 2000
         })
       }

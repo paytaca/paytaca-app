@@ -692,7 +692,7 @@ export default {
         caption: this.$t('UsingApproximateLocation', {}, 'Showing approximate location based on your IP address'),
         icon: 'location_disabled',
         color: 'warning',
-        position: 'top',
+        position: 'bottom',
         textColor: 'black',
         timeout: 6000,
       })

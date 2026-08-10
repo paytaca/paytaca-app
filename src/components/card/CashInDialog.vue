@@ -363,7 +363,7 @@ export default {
         this.$q.notify({
           message: `Cash in failed: ${result.error || 'Please try again.'}`,
           color: 'negative',
-          position: 'top',
+          position: 'bottom',
           timeout: 5000
         })
       }

@@ -350,7 +350,7 @@ export default {
           this.$q.notify({
             message: this.$t('FailedToFetchContractData', {}, 'Failed to fetch contract data. Please try again.'),
             color: 'negative',
-            position: 'top',
+            position: 'bottom',
             timeout: 2000
           });
           throw error;
@@ -362,7 +362,7 @@ export default {
         this.$q.notify({
           message: this.$t('NoContractFoundForCategory', {}, 'No contract found for the scanned category. Please check the QR code.'),
           color: 'negative',
-          position: 'top',
+          position: 'bottom',
           timeout: 2000
         });
         this.showQrScanner = false;
@@ -386,7 +386,7 @@ export default {
             this.$q.notify({
               message: this.$t('FailedToFetchCardDetails', {}, 'Failed to fetch card details. Please try again.'),
               color: 'negative',
-              position: 'top',
+              position: 'bottom',
               timeout: 2000
             });
             throw err;
@@ -403,7 +403,7 @@ export default {
         this.$q.notify({
           message: this.$t('CardIdMissingCannotNavigate', {}, 'Card ID is missing. Cannot navigate to card details.'),
           color: 'negative',
-          position: 'top',
+          position: 'bottom',
           timeout: 2000
         });
         return;

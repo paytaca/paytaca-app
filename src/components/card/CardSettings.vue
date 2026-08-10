@@ -407,7 +407,7 @@ export default {
         this.$q.notify({
           message: this.$t('NoFundsToSweep', {}, 'No funds to sweep'),
           color: 'warning',
-          position: 'top',
+          position: 'bottom',
           timeout: 1500
         })
         this.showSweepFundsDialog = false
@@ -420,7 +420,7 @@ export default {
           message: `Successfully sent ${this.satoshiToBch(this.cardBalance)} BCH to your wallet`,
           color: 'positive',
           icon: 'check_circle',
-          position: 'top'
+          position: 'bottom'
         })
         this.$emit('sweep-funds')
       }).catch((error) => {
@@ -428,7 +428,7 @@ export default {
         this.$q.notify({
           message: this.$t('FailedToSweepFunds', {}, 'Failed to sweep funds. Please try again.'),
           color: 'negative',
-          position: 'top',
+          position: 'bottom',
           timeout: 2000
         })
       })
@@ -446,7 +446,7 @@ export default {
           message: this.$t('CardHasBeenDeleted', {}, 'Card has been deleted'),
           color: 'positive',
           icon: 'delete',
-          position: 'top',
+          position: 'bottom',
           timeout: 2000
         })
       }

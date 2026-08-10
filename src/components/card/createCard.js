@@ -289,7 +289,7 @@ export const createCardLogic = {
         message,
         color: 'positive',
         icon: opts.icon || 'check',
-        position: opts.position || 'top',
+        position: opts.position || 'bottom',
         timeout: opts.timeout || 1500,
         ...opts
       })
@@ -300,7 +300,7 @@ export const createCardLogic = {
         message,
         color: 'negative',
         icon: opts.icon || 'error',
-        position: opts.position || 'top',
+        position: opts.position || 'bottom',
         timeout: opts.timeout || 2000,
         ...opts
       })
@@ -311,7 +311,7 @@ export const createCardLogic = {
         message,
         color: 'warning',
         icon: opts.icon || 'warning',
-        position: opts.position || 'top',
+        position: opts.position || 'bottom',
         timeout: opts.timeout || 2000,
         ...opts
       })
@@ -322,7 +322,7 @@ export const createCardLogic = {
         message,
         color: 'info',
         icon: opts.icon || 'info',
-        position: opts.position || 'top',
+        position: opts.position || 'bottom',
         timeout: opts.timeout || 1500,
         ...opts
       })
