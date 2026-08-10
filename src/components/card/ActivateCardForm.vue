@@ -22,15 +22,22 @@
         <div class="input-methods q-mb-lg">
           <div class="row q-col-gutter-sm q-mb-md">
             <div class="col">
-              <q-btn 
-                class="method-btn full-width" 
+              <q-btn
+                class="method-btn full-width"
                 :class="{ 'method-btn-active': selectedInputMethod === 'qr' }"
-                flat 
-                dense 
+                flat
+                dense
                 @click="selectInputMethod('qr')">
                 <div class="column items-center q-py-xs">
-                  <q-icon name="qr_code" size="24px" color="primary" class="q-mb-xs" />
-                  <div class="text-caption method-label">{{ $t('ScanQR', {}, 'Scan QR') }}</div>
+                  <div class="qr-scan-animation">
+                    <div class="scan-frame">
+                      <div class="scan-line"></div>
+                      <div class="scan-corner top-left"></div>
+                      <div class="scan-corner top-right"></div>
+                      <div class="scan-corner bottom-left"></div>
+                      <div class="scan-corner bottom-right"></div>
+                    </div>
+                  </div>
                 </div>
               </q-btn>
             </div>
@@ -43,8 +50,11 @@
                 dense 
                 @click="selectInputMethod('nfc')">
                 <div class="column items-center q-py-xs">
-                  <q-icon name="nfc" size="24px" color="primary" class="q-mb-xs" />
-                  <div class="text-caption method-label">{{ $t('NFC', {}, 'NFC') }}</div>
+                  <div class="nfc-ripple">
+                    <div class="ripple-circle"></div>
+                    <div class="ripple-circle delay-1"></div>
+                    <div class="ripple-circle delay-2"></div>
+                  </div>
                 </div>
                 <q-tooltip anchor="top middle" self="bottom middle" :offset="[0, 8]" transition-show="jump-down" transition-hide="jump-up">
                   <div class="text-caption text-primary">
@@ -94,19 +104,10 @@
               </div>
               <div class="col">
                 <div class="text-subtitle2 text-weight-bold q-mb-xs text-primary">
-                  {{ $t('ScanQRCode', {}, 'Scan QR Code') }}
+                  {{ $t('TapHereToScan', {}, 'Tap here to scan') }}
                 </div>
                 <div class="text-caption text-primary">
-                  {{ $t('TapToScanQRCode', {}, 'Tap to open camera and scan the QR code on your card') }}
-                </div>
-              </div>
-              <div class="qr-scan-animation q-ml-sm">
-                <div class="scan-frame">
-                  <div class="scan-line"></div>
-                  <div class="scan-corner top-left"></div>
-                  <div class="scan-corner top-right"></div>
-                  <div class="scan-corner bottom-left"></div>
-                  <div class="scan-corner bottom-right"></div>
+                  {{ $t('PointCameraAtQR', {}, 'Point camera at the QR code on your card') }}
                 </div>
               </div>
             </div>
@@ -226,12 +227,12 @@
           :disable="activatingCard"
           @click="closeDialog" />
         <q-space />
-        <q-btn 
-          :label="$t('ActivateCard', {}, 'Activate Card')" 
-          color="primary" 
+        <q-btn
+          :label="$t('Activate', {}, 'Activate')"
+          color="primary"
           rounded
           unelevated
-          class="q-px-xl"
+          style="padding: 10px 28px;"
           :disable="activatingCard || !isFormInputValid"
           :loading="activatingCard"
           @click="onActivateCard()">

@@ -90,28 +90,11 @@
 }
 
 .method-btn {
-  border-radius: 24px;
+  border-radius: 24px 24px 8px 8px;
   height: 70px;
   transition: all 0.3s ease;
-  border: 2px solid transparent;
-  background: rgba(0, 0, 0, 0.04);
-}
-
-.method-btn .q-icon {
-  color: color-mix(in srgb, var(--q-primary) 60%, grey);
-}
-
-.method-btn .method-label {
-  color: color-mix(in srgb, var(--q-primary) 70%, grey);
-  font-weight: 500;
-}
-
-/* Method button base styles */
-.method-btn {
-  border-radius: 24px;
-  height: 70px;
-  transition: all 0.3s ease;
-  border: 2px solid transparent;
+  border: none;
+  border-bottom: 2px solid transparent;
   background: rgba(0, 0, 0, 0.04);
 }
 
@@ -137,7 +120,6 @@
 }
 
 .method-btn:hover {
-  transform: translateY(-2px);
   background: color-mix(in srgb, var(--q-primary) 8%, transparent);
 }
 
@@ -145,11 +127,13 @@
   background: color-mix(in srgb, var(--q-primary) 15%, transparent);
 }
 
-/* Active state */
+/* Active state - tab-style bottom indicator instead of full button border */
 .method-btn-active {
   background: color-mix(in srgb, var(--q-primary) 12%, transparent) !important;
-  border-color: var(--q-primary);
-  box-shadow: 0 0 12px color-mix(in srgb, var(--q-primary) 20%, transparent);
+  border-color: transparent;
+  border-bottom: 3px solid var(--q-primary);
+  border-radius: 24px 24px 8px 8px;
+  box-shadow: none;
 }
 
 .method-btn-active .q-icon {
@@ -163,8 +147,9 @@
 
 .body--dark .method-btn-active {
   background: color-mix(in srgb, var(--q-primary) 20%, transparent) !important;
-  border-color: var(--q-primary);
-  box-shadow: 0 0 16px color-mix(in srgb, var(--q-primary) 25%, transparent);
+  border-color: transparent;
+  border-bottom: 3px solid var(--q-primary);
+  box-shadow: none;
 }
 
 .body--dark .method-btn-active .q-icon {
@@ -197,24 +182,33 @@
 
 .nfc-card-light, .qr-card-light, .qr-scanner-light {
   background: linear-gradient(135deg, color-mix(in srgb, var(--q-primary) 8%, transparent) 0%, color-mix(in srgb, var(--q-primary) 5%, transparent) 100%);
-  border-color: color-mix(in srgb, var(--q-primary) 20%, transparent);
+  border-color: var(--q-primary);
 }
 
 .nfc-card-dark, .qr-card-dark, .qr-scanner-dark {
   background: linear-gradient(135deg, color-mix(in srgb, var(--q-primary) 15%, transparent) 0%, color-mix(in srgb, var(--q-primary) 10%, transparent) 100%);
-  border-color: color-mix(in srgb, var(--q-primary) 30%, transparent);
+  border-color: var(--q-primary);
 }
 
 /* QR Scanner Card */
 .qr-scanner-card {
   border-radius: 16px;
-  border: 2px solid transparent;
-  transition: all 0.3s ease;
+  border: 3px dashed var(--q-primary);
+  transition: all 0.2s ease;
+  cursor: pointer;
+  box-shadow: 0 2px 8px color-mix(in srgb, var(--q-primary) 15%, transparent);
 }
 
 .qr-scanner-card:hover {
-  transform: translateY(-2px);
-  border-color: var(--q-primary);
+  border-style: solid;
+  transform: translateY(-1px);
+  box-shadow: 0 6px 18px color-mix(in srgb, var(--q-primary) 25%, transparent);
+}
+
+.qr-scanner-card:active {
+  border-style: solid;
+  transform: scale(0.985);
+  box-shadow: 0 1px 4px color-mix(in srgb, var(--q-primary) 20%, transparent);
 }
 
 .nfc-icon-container {
