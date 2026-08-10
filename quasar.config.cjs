@@ -162,6 +162,20 @@ module.exports = defineConfig((ctx) => {
               }
             }
           })
+
+          cfg.module.rules.push({
+            test: /\.(?:js|mjs|cjs|vue)$/,
+            enforce: 'post',
+            include: /node_modules\/mainnet-js/,
+            use: {
+              loader: 'babel-loader',
+              options: {
+                presets: [
+                  ['@babel/preset-env', { targets: { ios: '16.2' }, modules: false }]
+                ],
+              },
+            }
+          })
         }
 
         if (cfg.mode === 'production') {
