@@ -820,7 +820,7 @@ export default {
     },
     loadWallet () {
       const vm = this
-      getMnemonic(vm.$store.getters['global/getWalletIndex']).then(function (mnemonic) {
+      getMnemonic(vm.$store.getters['global/getWalletIndex']).catch(() => null).then(function (mnemonic) {
         // Deprecated network removed: always use BCH/selectedNetwork which will be BCH by default
         const wallet = new Wallet(mnemonic, vm.selectedNetwork)
         vm.wallet = markRaw(wallet)

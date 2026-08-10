@@ -164,7 +164,8 @@ export const authToken = {
       } catch (e) {}
     }
 
-    const mnemonic = await getMnemonicByHash(walletHash)
+    const mnemonic = await getMnemonicByHash(walletHash).catch(() => null)
+    if (!mnemonic) throw new Error('No mnemonic available')
     const mnemonicBin = new Uint8Array(mnemonicToSeedSync(mnemonic))
     const rootNode = deriveHdPrivateNodeFromSeed(mnemonicBin)
     const fullPath = `${BCH_DERIVATION_PATH}/${OAUTH_ADDRESS_PATH}`

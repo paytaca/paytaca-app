@@ -758,7 +758,7 @@ export default {
 
       delete this?.$options?.sockets
 
-      getMnemonic(vm.$store.getters['global/getWalletIndex']).then(function (mnemonic) {
+      getMnemonic(vm.$store.getters['global/getWalletIndex']).catch(() => null).then(function (mnemonic) {
         const wallet = new Wallet(mnemonic, vm.network)
         if (vm.walletType === 'bch') {
           getWalletByNetwork(wallet, vm.walletType).getNewAddressSet(newAddressIndex).then(async function (result) {
@@ -793,7 +793,7 @@ export default {
     },
     async showPrivateKey () {
       try {
-        const mnemonic = await getMnemonic(this.$store.getters['global/getWalletIndex'])
+        const mnemonic = await getMnemonic(this.$store.getters['global/getWalletIndex']).catch(() => null)
         const wallet = new Wallet(mnemonic, this.network)
         const lastAddressIndex = this.getDisplayedAddressIndex()
         const dynamicWallet = getWalletByNetwork(wallet, this.walletType)
@@ -1052,7 +1052,7 @@ export default {
         }
         
         // Update store with new address index
-        const mnemonic = await getMnemonic(this.$store.getters['global/getWalletIndex'])
+        const mnemonic = await getMnemonic(this.$store.getters['global/getWalletIndex']).catch(() => null)
         const wallet = new Wallet(mnemonic, this.network)
         const result = await getWalletByNetwork(wallet, this.walletType).getNewAddressSet(newAddressIndex)
         const addresses = result.addresses

@@ -946,7 +946,7 @@ export default {
     // Legacy feature flag removed; no-op (handled by removal in store)
 
     const index = vm.$store.getters['global/getWalletIndex']
-    const mnemonic = await getMnemonic(index)
+    const mnemonic = await getMnemonic(index).catch(() => null)
 
     // Check watchtower status (with wallet hash if available)
     const walletHash = vm.$store.getters['global/getWallet']('bch')?.walletHash

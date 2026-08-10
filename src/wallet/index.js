@@ -12,7 +12,7 @@ import {
  deriveHdPathRelative,
  sha256 as libauthSha256,
  secp256k1,
- ut8ToBin,
+ utf8ToBin,
  binToHex
 } from 'bitauth-libauth-v3'
 import sha256 from 'js-sha256' 
@@ -21,6 +21,15 @@ import { Plugins } from '@capacitor/core'
 import { getWalletHashFromIndexAsync } from 'src/utils/wallet-storage'
 
 const { SecureStoragePlugin } = Plugins
+
+// Matches the error thrown by the patched capacitor-secure-storage-plugin web
+// implementation when an encrypted value cannot be decrypted (e.g. the
+// device encryption key in IndexedDB was lost).
+const SECURE_STORAGE_DECRYPT_ERROR = 'SECURE_STORAGE_DECRYPT_FAILED'
+
+export function isSecureStorageDecryptError (err) {
+  return err?.message === SECURE_STORAGE_DECRYPT_ERROR
+}
 
 const BCHJS = require('@psf/bch-js')
 const bchjs = new BCHJS()
@@ -86,6 +95,29 @@ export async function cachedLoadWallet(network='BCH', index = 0) {
   return _wallets[index]
 }
 
+/**
+ * Release all in-memory Wallet instances from the cache.
+ *
+ * Cached Wallet objects hold the mnemonic (and derived keys) in memory for
+ * the app lifetime. Dropping the references allows the GC to reclaim them
+ * once nothing else references them. JS strings cannot be zeroized, but
+ * this prevents indefinite retention. Wallets are re-created on demand by
+ * cachedLoadWallet() from secure storage after a reload.
+ */
+export function clearCachedWallets () {
+  _wallets.length = 0
+}
+
+/**
+ * Release the cached Wallet instance for a specific vault index.
+ * @param {number} index - The vault index
+ */
+export function clearCachedWallet (index) {
+  if (_wallets[index]) {
+    _wallets[index] = undefined
+  }
+}
+
 export async function loadLibauthHdWallet(index=0, chipnet=false) {
   const mnemonic = await getMnemonic(index)
   return new LibauthHDWallet(mnemonic, undefined, chipnet ? 'chipnet' : 'mainnet')
@@ -135,6 +167,9 @@ export async function getMnemonicByHash(walletHash) {
     const mnemonic = await SecureStoragePlugin.get({ key })
     return mnemonic.value
   } catch (err) {
+    // Propagate decryption failures so callers can distinguish
+    // "key lost/corrupted" from "not found"
+    if (isSecureStorageDecryptError(err)) throw err
     return null
   }
 }
@@ -465,6 +500,7 @@ export async function getMnemonic (walletHashOrIndex = 0) {
         }
       }
     } catch (err) {
+      if (isSecureStorageDecryptError(err)) throw err
       // Non-critical, continue to old scheme fallback
     }
   }
@@ -483,10 +519,12 @@ export async function getMnemonic (walletHashOrIndex = 0) {
     const encryptedMnemonic = await SecureStoragePlugin.get({ key: oldKey })
     mnemonic = aes256.decrypt(secretKey.value, encryptedMnemonic.value)
   } catch (err) {
+    if (isSecureStorageDecryptError(err)) throw err
     try {
       mnemonic = await SecureStoragePlugin.get({ key: oldKey })
       mnemonic = mnemonic.value
     } catch (err) {
+      if (isSecureStorageDecryptError(err)) throw err
       // Not found
     }
   }
@@ -495,15 +533,62 @@ export async function getMnemonic (walletHashOrIndex = 0) {
   if (mnemonic) {
     try {
       const walletHash = computeWalletHash(mnemonic)
-      await storeMnemonicByHash(mnemonic, walletHash).catch(() => {
+      await storeMnemonicByHash(mnemonic, walletHash)
+      // Confirmed stored under the new scheme; remove the legacy key so only
+      // one copy of the mnemonic remains (dedupe) and the legacy aes256/plain
+      // value is dropped (its "sk" key offers no protection in the same store).
+      await SecureStoragePlugin.remove({ key: oldKey }).catch(() => {
         // Non-critical error, continue
       })
     } catch (err) {
-      // Non-critical error, continue
+      // Non-critical error, continue (legacy key kept as fallback if store fails)
     }
   }
   
   return mnemonic
+}
+
+/**
+ * Retrieve the PIN for a wallet, migrating legacy storage keys.
+ *
+ * The legacy `pin ${mnemonic}` key embeds the raw mnemonic in the key name,
+ * exposing it via keychain/storage metadata. When encountered, its value is
+ * migrated to the hashed `pin-${sha256(mnemonic)}` key and the legacy key is
+ * deleted. The oldest global 'pin' key is read-only (shared with unmigrated
+ * wallets) and is never deleted here.
+ *
+ * @param {string} mnemonic - The wallet mnemonic
+ * @returns {Promise<string|null>} The PIN or null if not found
+ */
+export async function getPin (mnemonic) {
+  const pinKey = `pin-${sha256(mnemonic)}`
+
+  try {
+    const pin = await SecureStoragePlugin.get({ key: pinKey })
+    if (pin?.value) return pin.value
+  } catch (err) {
+    if (isSecureStorageDecryptError(err)) throw err
+  }
+
+  try {
+    const legacyPin = await SecureStoragePlugin.get({ key: `pin ${mnemonic}` })
+    if (legacyPin?.value) {
+      await SecureStoragePlugin.set({ key: pinKey, value: legacyPin.value }).catch(() => {})
+      await SecureStoragePlugin.remove({ key: `pin ${mnemonic}` }).catch(() => {})
+      return legacyPin.value
+    }
+  } catch (err) {
+    if (isSecureStorageDecryptError(err)) throw err
+  }
+
+  try {
+    const pin = await SecureStoragePlugin.get({ key: 'pin' })
+    if (pin?.value) return pin.value
+  } catch (err) {
+    if (isSecureStorageDecryptError(err)) throw err
+  }
+
+  return null
 }
 
 /**
@@ -517,37 +602,9 @@ export async function pinExists (walletHashOrIndex = 0) {
     if (!mnemonic) {
       return false
     }
-    
-    const pinKey = `pin-${sha256(mnemonic)}`
-    
-    // Try to get PIN with all possible keys
-    try {
-      const pin = await SecureStoragePlugin.get({ key: pinKey })
-      if (pin?.value && pin.value.length >= 6) {
-        return true
-      }
-    } catch {
-      // Try fallback keys
-      try {
-        const pin = await SecureStoragePlugin.get({ key: `pin ${mnemonic}` })
-        if (pin?.value && pin.value.length >= 6) {
-          return true
-        }
-      } catch {
-        // Try old global PIN key
-        try {
-          const pin = await SecureStoragePlugin.get({ key: 'pin' })
-          if (pin?.value && pin.value.length >= 6) {
-            return true
-          }
-        } catch {
-          // PIN doesn't exist
-          return false
-        }
-      }
-    }
-    
-    return false
+
+    const pin = await getPin(mnemonic)
+    return typeof pin === 'string' && pin.length >= 6
   } catch (error) {
     console.error('[pinExists] Error checking PIN existence:', error)
     return false

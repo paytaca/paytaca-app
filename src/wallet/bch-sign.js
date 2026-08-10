@@ -83,15 +83,36 @@ export function signBchTransaction({ transaction, sourceOutputs, resolveKey, pre
       const sigPlaceholder = "41" + binToHex(Uint8Array.from(Array(65)))
       const pubkeyPlaceholder = "21" + binToHex(Uint8Array.from(Array(33)))
 
+      // Verify the redeem script matches the locking bytecode's script hash
+      // This prevents malicious dApps from substituting a different contract's redeem script
+      const coveredBytecode = sourceOutputs[index].contract?.redeemScript
+      if (!coveredBytecode) {
+        throw signBchTxError('Not enough information provided, please include contract redeemScript')
+      }
+      const lockBytecodeHex = binToHex(sourceOutput.lockingBytecode)
+      const p2sh20Match = lockBytecodeHex.match(/^a914([0-9a-f]{40})87$/)
+      const p2sh32Match = lockBytecodeHex.match(/^aa20([0-9a-f]{64})87$/)
+      if (p2sh20Match) {
+        const expectedHash = p2sh20Match[1]
+        const actualHash = binToHex(hash160(hexToBin(coveredBytecode)))
+        if (actualHash !== expectedHash) {
+          throw signBchTxError('Redeem script does not match P2SH locking bytecode')
+        }
+      } else if (p2sh32Match) {
+        const expectedHash = p2sh32Match[1]
+        const actualHash = binToHex(hash256(hexToBin(coveredBytecode)))
+        if (actualHash !== expectedHash) {
+          throw signBchTxError('Redeem script does not match P2SH32 locking bytecode')
+        }
+      } else {
+        throw signBchTxError('Contract input locking bytecode is not valid P2SH/P2SH32')
+      }
+
       if (unlockingBytecodeHex.indexOf(sigPlaceholder) !== -1) {
         const hashType = SigningSerializationFlag.allOutputs | SigningSerializationFlag.utxos | SigningSerializationFlag.forkId
         const context = { inputIndex: index, sourceOutputs, transaction }
         const signingSerializationType = new Uint8Array([hashType])
 
-        const coveredBytecode = sourceOutputs[index].contract?.redeemScript
-        if (!coveredBytecode) {
-          throw signBchTxError('Not enough information provided, please include contract redeemScript')
-        }
         const sighashPreimage = generateSigningSerializationBCH(context, { coveredBytecode, signingSerializationType })
         const sighash = hash256(sighashPreimage)
         const signature = secp256k1.signMessageHashSchnorr(privateKey, sighash)

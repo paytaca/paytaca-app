@@ -188,6 +188,10 @@ export default {
   mounted () {
     this.executeSecurityChecking()
   },
+  beforeUnmount () {
+    // Drop the seed phrase reference so it can be garbage collected
+    this.mnemonic = ''
+  },
   watch: {
     pinDialogAction () {
       // Watcher for pinDialogAction changes

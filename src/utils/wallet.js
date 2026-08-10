@@ -4,7 +4,7 @@ import store from "src/store"
 const Store = store()
 
 async function getDynamicWallet (walletType = 'bch', network = 'mainnet') {
-    const mnemonic = await getMnemonic(Store.getters['global/getWalletIndex'])
+    const mnemonic = await getMnemonic(Store.getters['global/getWalletIndex']).catch(() => null)
     const wallet = new Wallet(mnemonic, network)
     const dynamicWallet = getWalletByNetwork(wallet, walletType)
     return dynamicWallet;

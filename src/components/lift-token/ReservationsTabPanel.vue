@@ -297,7 +297,8 @@ export default {
     },
     async initWallet() {
       const walletIndex = this.$store.getters["global/getWalletIndex"];
-      const mnemonic = await getMnemonic(walletIndex);
+      const mnemonic = await getMnemonic(walletIndex).catch(() => null);
+      if (!mnemonic) return;
       const wallet = new Wallet(mnemonic, "BCH");
       this.wallet = markRaw(wallet);
     },

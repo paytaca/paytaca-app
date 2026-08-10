@@ -191,7 +191,7 @@ const DISCOVERY_RELAYS = [
 export async function reinitialize ({ commit, dispatch, state }) {
   const walletHash = getCurrentWalletHash()
   if (!walletHash) return
-  const mnemonic = await getMnemonicByHash(walletHash)
+  const mnemonic = await getMnemonicByHash(walletHash).catch(() => null)
   if (!mnemonic) return
 
   // Clear debounced timers from the previous wallet session to prevent
@@ -248,7 +248,7 @@ export async function reinitialize ({ commit, dispatch, state }) {
 export async function initialize ({ commit, dispatch, state }) {
   const walletHash = getCurrentWalletHash()
   if (!walletHash) throw new Error('No wallet hash available')
-  const mnemonic = await getMnemonicByHash(walletHash)
+  const mnemonic = await getMnemonicByHash(walletHash).catch(() => null)
   if (!mnemonic) throw new Error('No mnemonic available')
 
   const keys = deriveNostrKeys(mnemonic)
@@ -2839,7 +2839,7 @@ export async function resetAndRefetch ({ commit, dispatch, state }) {
     console.warn('[Nostr] Cannot reset: no wallet hash')
     return
   }
-  const mnemonic = await getMnemonicByHash(walletHash)
+  const mnemonic = await getMnemonicByHash(walletHash).catch(() => null)
   if (!mnemonic) {
     console.warn('[Nostr] Cannot reset: no mnemonic available')
     return
