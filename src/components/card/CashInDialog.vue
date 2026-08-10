@@ -20,6 +20,10 @@
                 <span class="text-h5 text-weight-bold text-white" style="line-height: 1.1;">{{ card?.balance || '0.00' }}</span>
                 <span class="text-subtitle2 q-ml-xs text-white" style="font-weight: 500;">BCH</span>
               </div>
+              <div class="row items-center justify-between wallet-balance">
+                <span class="text-caption text-weight-medium text-white" style="letter-spacing: 0.5px; opacity: 0.9;">WALLET BALANCE</span>
+                <span class="text-subtitle2 text-white" style="font-weight: 500;">{{ formattedWalletBalance }} BCH<template v-if="walletBalanceDisplayFiat"> · {{ walletBalanceDisplayFiat }}</template></span>
+              </div>
             </div>
             <q-img src="~assets/paytaca_logo.png" style="width: 24px;" fit="contain" />
           </div>
@@ -151,6 +155,10 @@
 import CardMixin from 'src/mixins/card/card-mixin.js'
 import DragSlide from '../drag-slide.vue';
 import { loadCardUser } from 'src/services/card/user';
+import { loadWallet } from 'src/services/wallet';
+import { updateAssetBalanceOnLoad } from 'src/utils/asset-utils';
+import { parseFiatCurrency } from 'src/utils/denomination-utils';
+import { convertToFiatAmount } from 'src/utils/send-page-utils';
 
 export default {
   name: "CashInDialog",
@@ -159,15 +167,19 @@ export default {
     DragSlide
   },
   props: {
+    modelValue: {
+      type: Boolean,
+      default: false
+    },
     card: {
       type: Object,
       required: true
     },
   },
-  emits: ['close'],
+  emits: ['update:modelValue', 'close'],
   data() {
     return {
-      showDialog: true,
+      showDialog: false,
       cryptoInputFocused: false,
       fiatInputFocused: false,
       cryptoCashInAmount: 0,
@@ -177,10 +189,37 @@ export default {
       inputErrorMessage: null
     };
   },
+  async mounted() {
+    try {
+      const wallet = await loadWallet()
+      await updateAssetBalanceOnLoad('bch', wallet, this.$store)
+    } catch (error) {
+      console.error('Failed to load wallet balance:', error)
+    }
+  },
   computed: {
     // Dark mode computed properties for UI classes
     textColor() {
       return this.$q.dark.isActive ? 'text-white' : 'text-black'
+    },
+    walletBalance() {
+      let wallet = this.$store.getters['assets/getAsset']('bch')[0]
+      if (!wallet) wallet = this.$store.getters['global/getWallet']('bch')
+      const spendable = Number(wallet?.spendable)
+      if (Number.isFinite(spendable) && spendable >= 0) return spendable
+      return Number(wallet?.balance) || 0
+    },
+    walletBalanceInFiat() {
+      return convertToFiatAmount(this.walletBalance, this.bchPriceInSelectedCurrency)
+    },
+    formattedWalletBalance() {
+      const balance = Number(this.walletBalance)
+      if (!balance) return '0'
+      return String(parseFloat(balance.toFixed(8)))
+    },
+    walletBalanceDisplayFiat() {
+      if (!this.walletBalanceInFiat) return ''
+      return parseFiatCurrency(this.walletBalanceInFiat, this.selectedFiatCurrency)
     },
     amountValidationRules() {
       return [
@@ -205,6 +244,9 @@ export default {
     },
   },
   watch: {
+    modelValue (val) {
+      this.showDialog = val
+    },
     cryptoCashInAmount() {
       if (!this.cryptoInputFocused) return
       this.syncFiatFromCrypto()
@@ -271,15 +313,30 @@ export default {
     },
     checkInputValidation() {
       if (!this.isAmountValid()) {
-        this.updateInputErrorMessage('Please enter a valid amount')
+        if (this.exceedsWalletBalance()) {
+          this.updateInputErrorMessage('Insufficient wallet balance')
+        } else {
+          this.updateInputErrorMessage('Please enter a valid amount')
+        }
       } else {
         this.updateInputErrorMessage(null)
       }
     },
+    getEnteredAmountInBch() {
+      const amount = parseFloat(this.cryptoCashInAmount)
+      if (isNaN(amount) || amount <= 0) return null
+      return this.selectedCryptoCurrency === 'BCH' ? amount : amount / 100000000
+    },
+    exceedsWalletBalance() {
+      const amountInBch = this.getEnteredAmountInBch()
+      if (amountInBch === null) return false
+      return amountInBch > (Number(this.walletBalance) || 0)
+    },
     isAmountValid() {
       const validFiatAmount = (this.fiatCashInAmount && parseFloat(this.fiatCashInAmount) > 0) && !isNaN(this.fiatCashInAmount)
       const validCryptoAmount = (this.cryptoCashInAmount && parseFloat(this.cryptoCashInAmount) > 0) && !isNaN(this.cryptoCashInAmount)
-      return validFiatAmount && validCryptoAmount
+      if (!validFiatAmount || !validCryptoAmount) return false
+      return !this.exceedsWalletBalance()
     },
 
     async handleCashIn () {
@@ -310,6 +367,8 @@ export default {
     },
 
     onHideCashInDialog () {
+      this.showDialog = false
+      this.$emit('update:modelValue', false)
       this.$emit('close')
     },
 
@@ -358,6 +417,12 @@ export default {
   border-radius: 16px;
   background: rgba(0, 0, 0, 0.25);
   z-index: -1;
+}
+
+.wallet-balance {
+  margin-top: 10px;
+  padding-top: 8px;
+  border-top: 1px dashed rgba(255, 255, 255, 0.35);
 }
 
 /* Deposit Card (QR + Address) */
