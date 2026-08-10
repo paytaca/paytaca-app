@@ -37,13 +37,13 @@
         <!-- The Center Square with Infinite Outer Translucent Shadow Mask -->
         <div class="scan-layout-design-mask relative-position">
           
-          <!-- The 4 Broken Rounded Corner Brackets mapped to your primary color -->
+          <!-- The 4 Broken Rounded Corner Brackets mapped to primary color -->
           <div class="rounded-corner-bracket corner-top-left"></div>
           <div class="rounded-corner-bracket corner-top-right"></div>
           <div class="rounded-corner-bracket corner-bottom-left"></div>
           <div class="rounded-corner-bracket corner-bottom-right"></div>
           
-          <!-- Animated laser bar matching your primary style language -->
+          <!-- Animated laser bar matching primary style language -->
           <div class="scanner-laser-line"></div>
         </div>
 
@@ -56,8 +56,8 @@
       <div class="bottom-controls-and-actions-panel full-width column items-center all-pointer-events bg-translucent-overlay q-pt-md">
         
         <template v-if="isMobile && !decode">
-          <div class="scanner-bottom-controls row items-center justify-center q-pa-sm q-mb-lg rounded-borders bg-blur-dark">
-            <div class="scanner-zoom-controls row items-center">
+          <div class="scanner-bottom-controls flex no-wrap row items-center justify-center q-py-sm q-mb-lg rounded-borders bg-blur-dark">
+            <div class="scanner-zoom-controls flex no-wrap row items-center">
               <q-btn icon="remove" round dense color="white" text-color="black" size="md" @click="zoomOut" />
               <q-btn icon="add" round dense color="white" text-color="black" size="md" class="q-ml-sm" @click="zoomIn" />
             </div>
@@ -111,7 +111,6 @@ import { parseAddressWithoutPrefix } from 'src/utils/send-page-utils'
 import base58 from 'bs58'
 import { binToBase64, base64ToBin } from 'bitauth-libauth-v3';
 import { extractMValue, getWalletHash, MultisigWallet, Pst } from 'src/lib/multisig';
-import { delay } from 'cashscript/dist/utils';
 
 export default {
   name: 'QRReader',
@@ -131,7 +130,6 @@ export default {
       paused: false,
       error: '',
       frontCamera: false,
-      clWidth: '100vw',
       urDecoder: null,
       progress: 0,
       hideFooter: false,
@@ -360,7 +358,7 @@ export default {
       if (this.trackCapabilities && this.trackCapabilities.zoom) {
         const zoom = this.trackCapabilities.zoom;
         this.zoomLevel = Math.min(zoom.max, this.zoomLevel + this.zoomStep);
-        const track = document.querySelector('video')?.srcObject?.getVideoTracks();
+        const track = document.querySelector('video')?.srcObject?.getVideoTracks()[0];
         track?.applyConstraints({ advanced: [{ zoom: this.zoomLevel }] });
       }
     },
@@ -369,7 +367,7 @@ export default {
       if (this.trackCapabilities && this.trackCapabilities.zoom) {
         const zoom = this.trackCapabilities.zoom;
         this.zoomLevel = Math.max(zoom.min, this.zoomLevel - this.zoomStep);
-        const track = document.querySelector('video')?.srcObject?.getVideoTracks();
+        const track = document.querySelector('video')?.srcObject?.getVideoTracks()[0];
         track?.applyConstraints({ advanced: [{ zoom: this.zoomLevel }] });
       }
     },
@@ -501,8 +499,20 @@ export default {
     }
   },
 
+  deactivated () {
+    this.stopScan()
+  },
+
+  beforeUnmount () {
+    this.stopScan()
+  },
+
   mounted () {
     this.prepareScanner();
+    this.urDecoder = new URDecoder() // Extra safety net
+    this.hideFooter = this.$route.query.hideFooter
+    this.hideGenerateQR = this.$route.query.hideGenerateQR
+    this.hideUploadQR = this.$route.query.hideUploadQR
   }
 }
 </script>
