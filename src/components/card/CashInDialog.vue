@@ -98,7 +98,8 @@
                 class="currency-selector">
                 <template v-slot:label>
                   <div class="currency-badge fiat-badge" :class="$q.dark.isActive ? 'badge-dark' : 'badge-light'">
-                    <q-icon name="attach_money" size="18px" class="q-mr-xs" />
+                    <q-icon v-if="fiatCurrencyIcon && fiatCurrencyIcon.startsWith('icon:')" :name="fiatCurrencyIcon.replace('icon:', '')" size="18px" class="q-mr-xs" />
+                    <span v-else-if="fiatCurrencyIcon" class="q-mr-xs" style="font-size: 16px; line-height: 1;">{{ fiatCurrencyIcon }}</span>
                     <span class="text-weight-bold">{{ selectedFiatCurrency }}</span>
                   </div>
                 </template>
@@ -155,6 +156,7 @@
 import CardMixin from 'src/mixins/card/card-mixin.js'
 import DragSlide from '../drag-slide.vue';
 import { loadCardUser } from 'src/services/card/user';
+import { getFiatCurrencyIcon } from 'src/services/card/utils';
 import { loadWallet } from 'src/services/wallet';
 import { updateAssetBalanceOnLoad } from 'src/utils/asset-utils';
 import { parseFiatCurrency } from 'src/utils/denomination-utils';
@@ -220,6 +222,9 @@ export default {
     walletBalanceDisplayFiat() {
       if (!this.walletBalanceInFiat) return ''
       return parseFiatCurrency(this.walletBalanceInFiat, this.selectedFiatCurrency)
+    },
+    fiatCurrencyIcon() {
+      return getFiatCurrencyIcon(this.selectedFiatCurrency)
     },
     amountValidationRules() {
       return [
