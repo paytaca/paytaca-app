@@ -1,8 +1,9 @@
-export type Type = 'string' | 'number' | 'integer' | 'boolean' | 'object';
+export type Type = 'string' | 'number' | 'integer' | 'boolean' | 'object' | 'array';
 
 export interface SchemaOpts {
   type?: Type | 'object'
   properties?: Record<string, SchemaOpts>
+  items?: SchemaOpts
   enum?: string[]
   required?: string[]
   title?: string
@@ -182,4 +183,50 @@ export function schemaToUISchema(schema: SchemaOpts, opts?: { basePath?: string 
   }
 
   return uischema
+}
+
+export function inferSchemaFromData(data: Record<string, any>): SchemaOpts {
+  if (!data || typeof data !== 'object') {
+    return { type: 'object', properties: {} }
+  }
+
+  const properties: Record<string, SchemaOpts> = {}
+  const required: string[] = []
+
+  for (const key in data) {
+    const value = data[key]
+    if (value === null || value === undefined) {
+      properties[key] = { type: 'string' }
+    } else if (typeof value === 'string') {
+      properties[key] = { type: 'string' }
+    } else if (typeof value === 'number') {
+      properties[key] = { type: Number.isInteger(value) ? 'integer' : 'number' }
+    } else if (typeof value === 'boolean') {
+      properties[key] = { type: 'boolean' }
+    } else if (Array.isArray(value)) {
+      if (value.length > 0) {
+        const first = value[0]
+        if (typeof first === 'object' && first !== null) {
+          properties[key] = {
+            type: 'array',
+            items: inferSchemaFromData(first),
+          }
+        } else {
+          properties[key] = {
+            type: 'array',
+            items: { type: typeof first === 'string' ? 'string' : typeof first === 'number' ? 'number' : 'string' },
+          }
+        }
+      } else {
+        properties[key] = { type: 'array', items: { type: 'string' } }
+      }
+    } else if (typeof value === 'object') {
+      properties[key] = inferSchemaFromData(value)
+    } else {
+      properties[key] = { type: 'string' }
+    }
+    required.push(key)
+  }
+
+  return { type: 'object', properties, required }
 }

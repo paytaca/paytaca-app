@@ -182,6 +182,7 @@
         >
           <q-tab name="details" :label="$t('Details') || 'Details'" />
           <q-tab name="invoices" :label="$t('Invoices') || 'Invoices'" />
+          <q-tab v-if="sub?.subscription_data?.length || Object.getOwnPropertyNames(sub?.subscription_data)?.length" name="form-data" :label="$t('Data', 'Data')" />
         </q-tabs>
 
         <q-tab-panels v-model="tab" animated style="background: none;">
@@ -296,12 +297,24 @@
               </q-list>
             </div>
           </q-tab-panel>
+
+          <q-tab-panel name="form-data" class="q-pa-none">
+            <div v-if="displayFormSchema">
+              <div class="text-subtitle1 text-weight-medium q-mb-sm">
+                {{ $t('SubscriberData', 'Subscriber Data') }}
+              </div>
+              <JSONFormPreview
+                :model-value="sub?.subscription_data || {}"
+                :schema-data="displayFormSchema"
+                :readonly="true"
+              />
+            </div>
+            <div v-else class="q-pa-md text-center text-grey">
+              {{ $t('NoDataAvailable', 'No data available') }}
+            </div>
+          </q-tab-panel>
         </q-tab-panels>
-
         <q-separator class="q-mb-md" :dark="darkMode" />
-
-
-
       </q-card-section>
     </q-card>
   </q-dialog>
@@ -320,6 +333,8 @@ import { PaymentHub } from 'src/wallet/payment-hub'
 import InvoiceDetailDialog from 'src/components/payment-hub/InvoiceDetailDialog.vue'
 import { loadWallet } from 'src/wallet'
 import { useI18n } from 'vue-i18n'
+import JSONFormPreview from 'src/components/jsonforms/JSONFormPreview.vue'
+import { inferSchemaFromData, serializeSchemaFields } from 'src/components/jsonforms/jsonform-utils'
 
 const { t } = useI18n()
 
@@ -343,6 +358,35 @@ const tab = ref('details')
 
 const invoices = ref([])
 const loadingInvoices = ref(false)
+
+const subscriptionFormData = ref({})
+const subscriptionFormSchema = computed(() => {
+  const formData = sub.value?.plan_details?.subscription_form_data
+  const unserialized = formData?.unserialized_schema_data
+  if (Array.isArray(unserialized)) {
+    return serializeSchemaFields(unserialized, { normalizeNames: true })
+  }
+  return formData?.schema_data || null
+})
+const hasSubscriptionForm = computed(() => {
+  const props = subscriptionFormSchema.value?.properties
+  return props && Object.keys(props).length > 0
+})
+
+// Fallback: infer schema from subscription_data if form schema doesn't match
+const subscriptionDataSchema = computed(() => {
+  const subData = sub.value?.subscription_data
+  if (!subData || typeof subData !== 'object') return null
+  return inferSchemaFromData(subData)
+})
+
+// Use form schema if available, otherwise fall back to inferred schema
+const displayFormSchema = computed(() => {
+  if (hasSubscriptionForm.value) {
+    return subscriptionFormSchema.value
+  }
+  return subscriptionDataSchema.value
+})
 
 let hub = null
 
