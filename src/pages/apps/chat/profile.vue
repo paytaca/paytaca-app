@@ -458,6 +458,13 @@ export default {
     this.checkCache()
     this.initDisplayNameHighlight()
   },
+  watch: {
+    profileDisplayName (val, oldVal) {
+      if (oldVal !== undefined && val !== oldVal && !this.editingDisplayName) {
+        this.$nextTick(() => this.initDisplayNameHighlight())
+      }
+    },
+  },
   beforeDestroy () {
     document.removeEventListener('pointerdown', this.onDocumentPointerDown, true)
   },
@@ -569,15 +576,12 @@ export default {
     },
     cancelEdit () {
       this.editingAddress = false
+      this.addressHighlight = false
       this.editAddressValue = ''
       this.addressError = false
       this.addressValid = false
       this.addressGeneratedFromWallet = false
       this.generatingAddress = false
-      if (!this.profileAddress) {
-        this.addressHighlight = true
-        this.startEditAddress()
-      }
     },
     validateInput () {
       if (!this.editAddressValue) {
@@ -639,13 +643,10 @@ export default {
     },
     cancelEditDisplayName () {
       this.editingDisplayName = false
+      this.displayNameHighlight = false
       this.editDisplayNameValue = ''
       this.displayNameError = false
       this.displayNameValid = false
-      if (!this.profileDisplayName) {
-        this.displayNameHighlight = true
-        this.startEditDisplayName()
-      }
     },
     validateDisplayName () {
       const val = this.editDisplayNameValue.trim()
@@ -1190,6 +1191,7 @@ export default {
 
 .display-name-check-icon {
   border-radius: 50%;
+  position: relative;
 }
 
 .bch-address-edit-icon {
