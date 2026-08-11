@@ -610,9 +610,9 @@ export default {
           id: 'payment-hub',
           name: this.$t('PaymentHub', {}, 'Payment Hub'),
           description: this.$t('Apps.PaymentHub.Description', {}, 'Manage Payment Hub Stores, API Keys, and Invoices.'),
-          iconName: 'hub',
+          iconName: 'img:paytaca_payment_hub_logo.svg',
           path: '/apps/payment-hub/',
-          iconStyle: 'width: 100%; height: 100%;',
+          iconStyle: 'width: 90%; height: 90%; object-fit: contain;',
           active: true,
           beta: false,
           category: 'marketplace'
