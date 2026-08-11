@@ -143,7 +143,7 @@
         </div>
       </q-tab-panel>
       <q-tab-panel name="preview">
-        <JSONFormPreview :schema-data="fields" />
+        <JSONFormPreview :schema-data="serializedFields" />
       </q-tab-panel>
     </q-tab-panels>
     <q-separator spaced />
@@ -185,20 +185,19 @@ import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 import {
   createUnserializedSchemaField,
   serializeSchemaFields,
-  unserializeSchemaFields,
   findDuplicateFields,
 } from './jsonform-utils'
-import JSONFormPreview from 'src/components/marketplace/JSONFormPreview.vue'
+import JSONFormPreview from 'src/components/jsonforms/JSONFormPreview.vue'
 
 
 const $emit = defineEmits([
-  'update:schemaData',
+  'update:unserializedSchemaData',
   'save',
   'cancel',
 ])
 
 const props = defineProps({
-  schemaData: Object,
+  unserializedSchemaData: Array,
 })
 
 const $q = useQuasar()
@@ -240,22 +239,24 @@ const fieldTypeOptions = [
 
 const fields = ref([])
 const serializedFields = computed(() => serializeSchemaFields(fields.value, { normalizeNames: true }))
-const serializedFieldsString = computed(() => JSON.stringify(serializedFields.value))
-watch(serializedFieldsString, () => {
-  $emit('update:schemaData', serializedFields.value)
+const fieldsString = computed(() => JSON.stringify(fields.value))
+watch(fieldsString, () => {
+  const propString = JSON.stringify(props.unserializedSchemaData || [])
+  if (propString !== fieldsString.value) {
+    $emit('update:unserializedSchemaData', fields.value)
+  }
 })
 
-watch(() => props.schemaData, () => {
-  if (props.schemaData) {
-    // We're reassigning the indices from the previous list to keep the transitions indexing the same
-    const newFields = unserializeSchemaFields(props.schemaData, { denormalizeName: false }).map((field, index) => {
-      field._index = fields.value?.[index]?._index ?? field._index;
-      return field;
-    });
-    fields.value = newFields;
-  } else {
-    fields.value = []
-  }
+watch(() => props.unserializedSchemaData, () => {
+  const newFields = Array.isArray(props.unserializedSchemaData) ? props.unserializedSchemaData : []
+  const propString = JSON.stringify(newFields)
+  if (propString === fieldsString.value) return
+
+  // Clone to avoid mutating the prop, while reusing old indices for transition stability
+  fields.value = structuredClone(newFields).map((field, index) => {
+    field._index = fields.value?.[index]?._index ?? field._index
+    return field
+  })
 }, { immediate: true })
 
 const selectedField = computed(() => {

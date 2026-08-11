@@ -362,6 +362,7 @@ function openSubscribeDialog(planId = null) {
 
       const payload = {
         plan: formData.plan,
+        subscription_data: formData?.subscription_data,
         wallet_hash: bchWallet.walletHash
       }
 
