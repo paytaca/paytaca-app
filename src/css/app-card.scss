@@ -1227,24 +1227,42 @@ animation: float 6s ease-in-out infinite;
   -webkit-backdrop-filter: blur(4px);
 }
 
-.glassmorphic-generic-toggle-light {
-  background: rgba(0, 0, 0, 0.06) !important;
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
-  border: 1px solid rgba(0, 0, 0, 0.1);
-  box-shadow: 
-    0 4px 16px color-mix(in srgb, var(--q-primary) 12%, transparent),
-    inset 0 1px 0 rgba(255, 255, 255, 0.8);
+.global-auth-icon {
+  width: 36px;
+  height: 36px;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  background: color-mix(in srgb, var(--q-primary) 12%, transparent);
+  border: 1px solid color-mix(in srgb, var(--q-primary) 25%, transparent);
 }
 
-.glassmorphic-generic-toggle-dark {
-  background: rgba(255, 255, 255, 0.08) !important;
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
-  border: 1px solid rgba(255, 255, 255, 0.12);
-  box-shadow: 
-    0 4px 16px rgba(0, 0, 0, 0.3),
-    inset 0 1px 0 rgba(255, 255, 255, 0.05);
+.global-auth-status-pill {
+  display: inline-flex;
+  align-items: center;
+  padding: 3px 10px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.3px;
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  transition: all 0.2s ease;
+
+  &.pill-enabled {
+    background: color-mix(in srgb, var(--q-positive, #21ba45) 15%, transparent);
+    color: var(--q-positive, #21ba45);
+    border: 1px solid color-mix(in srgb, var(--q-positive, #21ba45) 40%, transparent);
+  }
+
+  &.pill-disabled,
+  &.pill-loading {
+    background: rgba(128, 128, 128, 0.12);
+    color: #9e9e9e;
+    border: 1px solid rgba(128, 128, 128, 0.25);
+  }
 }
 
 // ====== Auth NFTs Page Styles ======
@@ -1628,6 +1646,13 @@ animation: float 6s ease-in-out infinite;
 
 .manage-auth-generic-toggle {
   transition: all 0.3s ease;
+
+  &.global-auth-active {
+    border-color: color-mix(in srgb, var(--q-positive, #21ba45) 45%, transparent) !important;
+    box-shadow: 
+      0 8px 32px color-mix(in srgb, var(--q-positive, #21ba45) 18%, transparent),
+      inset 0 1px 0 rgba(255, 255, 255, 0.6);
+  }
 }
 
 .manage-auth-batch-bar {

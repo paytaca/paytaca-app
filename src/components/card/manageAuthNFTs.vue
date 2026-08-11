@@ -55,9 +55,19 @@
     <!-- Global Auth NFT -->
     <div 
       class="q-pa-md br-10 q-mb-md manage-auth-generic-toggle"
-      :class="$q.dark.isActive ? 'glassmorphic-generic-toggle-dark' : 'glassmorphic-generic-toggle-light'">
+      :class="[
+        $q.dark.isActive ? 'glassmorphic-dark' : 'glassmorphic-light',
+        { 'global-auth-active': globalAuthNft.authorized }
+      ]"
+    >
+      <!-- Header -->
       <div class="row items-center q-gutter-x-sm">
-        <div class="text-weight-bold text-primary">{{ $t('GlobalAuthenticationNFT', {}, 'Global Authentication NFT') }}</div>
+        <div class="global-auth-icon">
+          <q-icon name="all_inclusive" color="primary" size="1.2rem" />
+        </div>
+        <div class="col text-subtitle2 text-weight-bold" :class="textColor">
+          {{ $t('GlobalAuthenticationNFT', {}, 'Global Authentication NFT') }}
+        </div>
         <q-btn
           flat
           dense
@@ -65,38 +75,81 @@
           transition-show="scale"
           transition-hide="scale"
           anchor="bottom middle"
-          self="top middle">
+          self="top middle"
+          class="q-pa-none"
+        >
           <q-btn dense flat round icon="info" color="primary" />
-          <q-menu class="bg-white text-black" :dark="$q.dark.isActive">
-            <q-card class="q-pa-md" style="min-width: 250px; max-width: 300px;">
-              <div class="text-subtitle2 text-weight-bold q-mb-sm">{{ $t('GlobalAuthenticationNFT', {}, 'Global Authentication NFT') }}</div>
+          <q-menu
+            class="pt-card-2 text-bow q-pa-md"
+            :class="$q.dark.isActive ? 'dark' : 'light'"
+            :offset="[0, 8]"
+            style="border-radius: 16px;"
+          >
+            <div style="min-width: 250px; max-width: 300px;">
+              <div class="text-subtitle2 text-weight-bold q-mb-sm">
+                <q-icon name="all_inclusive" color="primary" size="1.1rem" class="q-mr-xs" />
+                {{ $t('GlobalAuthenticationNFT', {}, 'Global Authentication NFT') }}
+              </div>
               <div class="text-body2">
                 {{ $t('GlobalAuthenticationNFTDescription', {}, 'Enabling the Global Authentication NFT will authorize all merchants in your city to accept payments from your card. This is a convenient option if you want to quickly enable payments for all merchants without having to select them individually.') }}
               </div>
-              <div class="text-caption q-mt-sm">
+              <div class="text-caption q-mt-sm text-bow-muted">
                 {{ $t('GlobalAuthenticationNFTNote', {}, 'Note: This will override any individual merchant selections you have made.') }}
               </div>
-            </q-card>
+            </div>
           </q-menu>
         </q-btn>
       </div>
-      <q-separator horizontal :dark="$q.dark.isActive" class="row q-my-sm" />
-      <div class="row justify-between items-center q-gutter-x-sm q-mx-md">
-        <span>{{ $t('Authorization', {}, 'Authorization') }}</span> 
-        <q-toggle 
-          left-label
-          :label="globalAuthNftAuthorizedLabel"
-          :model-value="globalAuthNft.authorized"
-          color="primary"
-          @update:model-value="mutateGlobalAuthNft(!globalAuthNft.authorized, null)"
-        />
+
+      <q-separator horizontal :dark="$q.dark.isActive" class="q-my-sm" />
+
+      <!-- Authorization -->
+      <div class="row justify-between items-center q-py-xs">
+        <div class="row items-center q-gutter-x-sm">
+          <q-icon name="shield" size="1.1rem" color="primary" />
+          <span class="text-body2" :class="textColor">{{ $t('Authorization', {}, 'Authorization') }}</span>
+        </div>
+        <div class="row items-center q-gutter-x-sm">
+          <span
+            class="global-auth-status-pill"
+            :class="{
+              'pill-enabled': globalAuthNft.authorized,
+              'pill-disabled': globalAuthNft.authorized === false,
+              'pill-loading': globalAuthNft.authorized === null
+            }"
+          >
+            {{ globalAuthNftAuthorizedLabel }}
+          </span>
+          <q-toggle
+            :model-value="globalAuthNft.authorized"
+            color="primary"
+            :disable="loadingGlobalAuthNft"
+            @update:model-value="mutateGlobalAuthNft(!globalAuthNft.authorized, null)"
+          />
+        </div>
       </div>
-      <div class="row justify-between items-center q-gutter-x-sm q-mx-md">
-        <span>{{ $t('SpendLimit', {}, 'Spend Limit') }}</span> 
-        <div>
-          <span v-if="globalAuthNft.spendLimitSats !== null">{{ `${satoshiToBch(globalAuthNft.spendLimitSats)} BCH (per transaction)` }}</span>
-          <span v-else>...</span>
-          <q-btn flat dense :label="$t('Edit', {}, 'Edit')" color="primary" class="q-px-sm q-ml-sm" @click="onEditGlobalSpendLimit"/>
+
+      <!-- Spend Limit -->
+      <div class="row justify-between items-center q-py-xs">
+        <div class="row items-center q-gutter-x-sm">
+          <q-icon name="savings" size="1.1rem" color="primary" />
+          <span class="text-body2" :class="textColor">{{ $t('SpendLimit', {}, 'Spend Limit') }}</span>
+        </div>
+        <div class="row items-center q-gutter-x-sm">
+          <span v-if="globalAuthNft.spendLimitSats !== null" class="text-body2 text-weight-medium" :class="textColor">
+            {{ `${satoshiToBch(globalAuthNft.spendLimitSats)} BCH` }}
+          </span>
+          <span v-else class="text-body2" :class="textColorGrey">...</span>
+          <span class="text-caption" :class="textColorGrey">{{ $t('PerTransaction', {}, '(per transaction)') }}</span>
+          <q-btn
+            flat
+            dense
+            no-caps
+            :label="$t('Edit', {}, 'Edit')"
+            color="primary"
+            class="q-px-sm"
+            @click="openEditGlobalSpendLimit"
+          />
         </div>
       </div>
 
@@ -246,11 +299,14 @@
     </div>
 
     <!-- Status message -->
-    <div 
-      class="text-caption q-mt-sm text-center"
-      :class="$q.dark.isActive ? 'text-grey-5' : 'text-grey'"
-    >
-      {{ genericAuthEnabled ? $t('GenericAuthEnabledMessage', {}, 'Generic Auth NFT is enabled - all merchants are authorized') : $t('SelectSpecificMerchantsMessage', {}, 'Select specific merchants to authorize') }}
+    <div class="row justify-center q-mt-sm">
+      <div 
+        class="auth-nfts-status-message text-caption q-px-md q-py-xs"
+        :class="$q.dark.isActive ? 'glassmorphic-dark text-grey-4' : 'glassmorphic-light text-grey-7'"
+      >
+        <q-icon name="shield" size="0.9rem" class="q-mr-xs" />
+        {{ genericAuthEnabled ? $t('GenericAuthEnabledMessage', {}, 'Generic Auth NFT is enabled - all merchants are authorized') : $t('SelectSpecificMerchantsMessage', {}, 'Select specific merchants to authorize') }}
+      </div>
     </div>
 
     <!-- Allow All Merchants Confirmation Dialog -->
@@ -336,6 +392,50 @@
             <q-btn flat label="Cancel" :color="$q.dark.isActive ? 'grey-4' : 'grey-7'" rounded @click="closeSpendLimitDialog" />
             <q-btn unelevated label="Save" color="primary" class="bg-grad text-white" rounded @click="submitMutation" />
           </div>
+        </q-card-actions>
+      </q-card>
+    </q-dialog>
+
+    <!-- Edit Global Spend Limit Dialog -->
+    <q-dialog v-model="showEditGlobalSpendLimitDialog" persistent>
+      <q-card class="pt-card" :class="$q.dark.isActive ? 'dark' : 'light'" style="min-width: 320px; border-radius: 24px;">
+        <q-card-section class="q-pa-lg">
+          <div class="row items-center justify-between q-mb-sm">
+            <div class="text-h6 text-weight-bold text-bow" :class="$q.dark.isActive ? 'dark' : 'light'">
+              <q-icon name="savings" color="primary" class="q-mr-sm" />
+              {{ $t('EditGlobalSpendLimit', {}, 'Edit Global Spend Limit') }}
+            </div>
+            <q-btn flat round dense icon="close" :color="$q.dark.isActive ? 'grey-4' : 'grey-6'" @click="showEditGlobalSpendLimitDialog = false" />
+          </div>
+          <div class="q-mb-md text-bow" :class="$q.dark.isActive ? 'dark' : 'light'">
+            {{ $t('EnterNewGlobalSpendLimit', {}, 'Enter the new spend limit for the Global Authentication NFT (in BCH):') }}
+          </div>
+          <div class="pt-card-2" :class="$q.dark.isActive ? 'dark' : 'light'" style="border-radius: 14px; overflow: hidden;">
+            <q-input
+              v-model="globalSpendLimitInput"
+              type="number"
+              filled
+              autofocus
+              hide-bottom-space
+              :dark="$q.dark.isActive"
+              :label="$t('SpendLimitBCH', {}, 'Spend Limit (BCH)')"
+              step="0.00000001"
+              min="0"
+              :error="!!globalSpendLimitError"
+              :error-message="globalSpendLimitError"
+              class="edit-name-input"
+              @keyup.enter="submitGlobalSpendLimit"
+            >
+              <template v-slot:prepend>
+                <q-icon name="savings" size="1.1rem" color="primary" />
+              </template>
+            </q-input>
+          </div>
+        </q-card-section>
+
+        <q-card-actions align="right" class="q-px-lg q-pb-md">
+          <q-btn flat :label="$t('Cancel', {}, 'Cancel')" :color="$q.dark.isActive ? 'grey-4' : 'grey-7'" rounded @click="showEditGlobalSpendLimitDialog = false" />
+          <q-btn unelevated :label="$t('Save', {}, 'Save')" color="primary" class="bg-grad text-white" rounded @click="submitGlobalSpendLimit" />
         </q-card-actions>
       </q-card>
     </q-dialog>
@@ -465,7 +565,10 @@ export default {
       globalAuthNft: {
         authorized: null
       },
-      loadingGlobalAuthNft: false
+      loadingGlobalAuthNft: false,
+      showEditGlobalSpendLimitDialog: false,
+      globalSpendLimitInput: '1',
+      globalSpendLimitError: ''
     }
   },
   computed: {
@@ -587,7 +690,8 @@ export default {
           this.$q.dialog({
             title: this.$t('Success', {}, 'Success'),
             message: this.$t('GlobalAuthenticationNFTMutatedSuccessfully', {}, 'Global Authentication NFT has been mutated successfully.'),
-            ok: true
+            ok: true,
+            class: `pt-card text-bow br-15 ${this.$q.dark.isActive ? 'dark' : 'light'}`
           })
         })
         .catch(err => {
@@ -595,7 +699,8 @@ export default {
           this.$q.dialog({
             title: this.$t('Error', {}, 'Error'),
             message: `${this.$t('Error', {}, 'Error')}: ${err.message || err}`,
-            ok: true
+            ok: true,
+            class: `pt-card text-bow br-15 ${this.$q.dark.isActive ? 'dark' : 'light'}`
           })
         })
         .finally(() => {
@@ -604,28 +709,21 @@ export default {
         })
     },
 
-    onEditGlobalSpendLimit() {
-      this.$q.dialog({
-        title: this.$t('EditGlobalSpendLimit', {}, 'Edit Global Spend Limit'),
-        message: this.$t('EnterNewGlobalSpendLimit', {}, 'Enter the new spend limit for the Global Authentication NFT (in BCH):'),
-        prompt: {
-          model: this.satoshiToBch(this.globalAuthNft.spendLimitSats || 0),
-          type: 'decimal',
-          isValid: val => {
-            const num = parseFloat(val)
-            if (isNaN(num) || num < 0.00001) {
-              return false
-            }
-            return true
-          },
-        },
-        cancel: true,
-        persistent: true
-      }).onOk(spendLimitBCH => {
-        const spendLimitSats = bchToSatoshi(spendLimitBCH)
-        this.mutateGlobalAuthNft(null, spendLimitSats)
-      }).onCancel(() => {
-      })
+    openEditGlobalSpendLimit() {
+      this.globalSpendLimitError = ''
+      this.globalSpendLimitInput = this.satoshiToBch(this.globalAuthNft.spendLimitSats || 0)
+      this.showEditGlobalSpendLimitDialog = true
+    },
+
+    submitGlobalSpendLimit() {
+      const spendLimit = parseFloat(this.globalSpendLimitInput)
+      if (isNaN(spendLimit) || spendLimit < 0.00001) {
+        this.globalSpendLimitError = this.$t('EnterValidSpendLimit', {}, 'Please enter a valid spend limit of at least 0.00001 BCH')
+        return
+      }
+      const spendLimitSats = bchToSatoshi(this.globalSpendLimitInput)
+      this.showEditGlobalSpendLimitDialog = false
+      this.mutateGlobalAuthNft(null, spendLimitSats)
     },
 
     onSelectLocation() {
