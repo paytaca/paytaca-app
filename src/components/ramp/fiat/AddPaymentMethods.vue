@@ -200,7 +200,7 @@
     :payment-method-id="selectedMethodIndex"
     :payment-type="info"
     :currency="currencyContext || currency"
-    @success="fetchPaymentMethods"
+    @success="onPaymentMethodSuccess"
     @back="onPaymentMethodBack"/>
   <div v-if="!isloaded" class="q-mx-md">
     <!-- Title skeleton -->
@@ -421,6 +421,14 @@ export default {
       this.showPaymentMethodForm = false
       this.showSelectPaymentMethods = false
       this.showMiscDialogs = false
+    },
+    async onPaymentMethodSuccess () {
+      const createdPaymentTypeId = this.info?.payment_type?.id || this.info?.id
+      await this.fetchPaymentMethods()
+      if (this.type === 'General' && createdPaymentTypeId) {
+        const newlyCreated = this.paymentMethods.filter(p => p.payment_type?.id === createdPaymentTypeId && !this.isPaymentSelected(p))
+        this.selectedMethods.push(...newlyCreated)
+      }
     },
     receiveDialogInfo (data) {
       const vm = this
