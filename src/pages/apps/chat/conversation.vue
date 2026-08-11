@@ -1295,7 +1295,10 @@ export default {
     observeMessages () {
       if (this._messageObserver && this.$refs.messagesContainer) {
         const els = this.$refs.messagesContainer.querySelectorAll('.message-group')
-        els.forEach(el => this._messageObserver.observe(el))
+        els.forEach(el => {
+          this._messageObserver.observe(el)
+          el.classList.add('observed')
+        })
       }
       this.markDisplayedMessagesAsRead()
     },
