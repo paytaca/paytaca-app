@@ -6,6 +6,7 @@
     :uischema="uischema"
     :renderers="renderers"
     :validation-mode="validationMode"
+    :readonly="readonly"
     @change="onChange"
   />
   <div v-else class="text-grey text-center text-subtitle1 q-py-lg">
@@ -39,6 +40,7 @@ export default defineComponent({
     modelValue: { type: Object, required: false },
     formDataErrors: { type: Array, required: false },
     schemaData: Object,
+    readonly: { type: Boolean, default: false },
   },
   provide() {
     return {
