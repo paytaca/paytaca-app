@@ -139,7 +139,10 @@
         <div class="settings-section q-mt-lg">
           
           <!-- Display Name Row -->
-          <div class="setting-row">
+          <div
+            class="setting-row"
+            :class="{ 'setting-row--highlight': displayNameHighlight && !editingDisplayName }"
+          >
             <div class="setting-content">
               <div class="setting-label">{{ $t('DisplayName', {}, 'Display Name') }}</div>
               <div v-if="!editingDisplayName" class="setting-value">
@@ -147,14 +150,16 @@
               </div>
               <q-input
                 v-else
+                ref="displayNameInput"
                 v-model="editDisplayNameValue"
                 outlined
                 dense
-                :placeholder="$t('DisplayNamePlaceholder', {}, 'e.g. Alice')"
                 :error="displayNameError"
                 :error-message="displayNameErrorMessage"
                 class="setting-input"
+                autofocus
                 @update:model-value="validateDisplayName"
+                @focus="displayNameHighlight = false"
               />
             </div>
             <div class="setting-actions">
@@ -174,6 +179,8 @@
                   round
                   icon="edit"
                   color="primary"
+                  class="display-name-edit-icon"
+                  :class="{ 'glow-pulse': displayNameHighlight && !editingDisplayName }"
                   @click="startEditDisplayName"
                 />
               </template>
@@ -192,6 +199,8 @@
                   round
                   icon="check"
                   color="positive"
+                  class="display-name-check-icon"
+                  :class="{ 'glow-pulse-check': editingDisplayName && editDisplayNameValue.trim().length > 0 }"
                   :disable="!displayNameValid"
                   @click="publishDisplayName"
                 />
@@ -202,7 +211,10 @@
           <q-separator :color="darkMode ? 'white-10' : 'black-5'" />
 
           <!-- BCH Address Row -->
-          <div class="setting-row">
+          <div
+            class="setting-row"
+            :class="{ 'setting-row--highlight-address': addressHighlight && !editingAddress }"
+          >
             <div class="setting-content">
               <div class="setting-label">{{ $t('BCHAddress', {}, 'BCH Address') }}</div>
               <div v-if="!editingAddress" class="setting-value">
@@ -213,11 +225,12 @@
                 v-model="editAddressValue"
                 outlined
                 dense
-                placeholder="bitcoincash:qz..."
                 :error="addressError"
                 :error-message="addressErrorMessage"
                 class="setting-input"
+                autofocus
                 @update:model-value="validateInput"
+                @focus="addressHighlight = false"
               >
                 <template #hint>
                   <div v-if="addressGeneratedFromWallet" class="address-hint">
@@ -244,6 +257,8 @@
                   round
                   icon="edit"
                   color="primary"
+                  class="bch-address-edit-icon"
+                  :class="{ 'glow-pulse': addressHighlight && !editingAddress }"
                   @click="startEditAddress"
                 />
               </template>
@@ -271,6 +286,8 @@
                   round
                   icon="check"
                   color="positive"
+                  class="bch-address-check-icon"
+                  :class="{ 'glow-pulse-check': editingAddress && editAddressValue.trim().length > 0 }"
                   :disable="!addressValid"
                   @click="publishAddress"
                 />
@@ -378,6 +395,8 @@ export default {
       publishingAvatar: false,
       removingAvatar: false,
       avatarError: '',
+      displayNameHighlight: false,
+      addressHighlight: false,
     }
   },
   computed: {
@@ -437,12 +456,29 @@ export default {
   mounted () {
     document.addEventListener('pointerdown', this.onDocumentPointerDown, true)
     this.checkCache()
+    this.initDisplayNameHighlight()
+  },
+  watch: {
+    profileDisplayName (val, oldVal) {
+      if (oldVal !== undefined && val !== oldVal && !this.editingDisplayName) {
+        this.$nextTick(() => this.initDisplayNameHighlight())
+      }
+    },
   },
   beforeDestroy () {
     document.removeEventListener('pointerdown', this.onDocumentPointerDown, true)
   },
   methods: {
     getDarkModeClass,
+    initDisplayNameHighlight () {
+      if (!this.profileDisplayName) {
+        this.displayNameHighlight = true
+        this.startEditDisplayName()
+      } else if (!this.profileAddress) {
+        this.addressHighlight = true
+        this.startEditAddress()
+      }
+    },
     onToggleActiveStatus (value) {
       this.$store.dispatch('nostrChat/setShowActiveStatus', value)
     },
@@ -540,6 +576,7 @@ export default {
     },
     cancelEdit () {
       this.editingAddress = false
+      this.addressHighlight = false
       this.editAddressValue = ''
       this.addressError = false
       this.addressValid = false
@@ -569,6 +606,7 @@ export default {
           message: this.$t('AddressPublished', {}, 'BCH address published successfully'),
         })
         this.editingAddress = false
+        this.addressHighlight = false
       } catch (err) {
         console.error('[Profile] Failed to publish BCH address:', err)
         this.$q.notify({
@@ -605,6 +643,7 @@ export default {
     },
     cancelEditDisplayName () {
       this.editingDisplayName = false
+      this.displayNameHighlight = false
       this.editDisplayNameValue = ''
       this.displayNameError = false
       this.displayNameValid = false
@@ -639,6 +678,12 @@ export default {
           message: this.$t('DisplayNamePublished', {}, 'Display name published successfully'),
         })
         this.editingDisplayName = false
+        this.displayNameHighlight = false
+        await this.$nextTick()
+        if (!this.profileAddress) {
+          this.addressHighlight = true
+          this.startEditAddress()
+        }
       } catch (err) {
         console.error('[Profile] Failed to publish display name:', err)
         this.$q.notify({
@@ -1092,6 +1137,108 @@ export default {
   display: flex;
   gap: 4px;
   flex-shrink: 0;
+}
+
+/* Display Name Highlight Animations */
+@keyframes glowPulse {
+  0%, 100% {
+    transform: scale(1);
+    filter: drop-shadow(0 0 2px rgba(59, 130, 246, 0.3));
+  }
+  50% {
+    transform: scale(1.15);
+    filter: drop-shadow(0 0 8px rgba(59, 130, 246, 0.7));
+  }
+}
+
+.glow-pulse {
+  animation: glowPulse 1.5s ease-in-out infinite;
+}
+
+.glow-pulse-check {
+  position: relative;
+}
+
+.glow-pulse-check::before {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  border: 2px solid rgba(76, 175, 80, 0.4);
+  transform: translate(-50%, -50%) scale(1);
+  animation: expandCircle 1.5s ease-out infinite;
+}
+
+@keyframes expandCircle {
+  0% {
+    transform: translate(-50%, -50%) scale(1);
+    opacity: 1;
+    border-color: rgba(76, 175, 80, 0.4);
+  }
+  100% {
+    transform: translate(-50%, -50%) scale(2);
+    opacity: 0;
+    border-color: rgba(76, 175, 80, 0);
+  }
+}
+
+.display-name-edit-icon {
+  transition: transform 0.2s ease;
+}
+
+.display-name-check-icon {
+  border-radius: 50%;
+  position: relative;
+}
+
+.bch-address-edit-icon {
+  transition: transform 0.2s ease;
+}
+
+.bch-address-check-icon {
+  border-radius: 50%;
+  position: relative;
+}
+
+.setting-row--highlight .setting-input :deep(.q-field__control) {
+  box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.3), 0 0 12px rgba(59, 130, 246, 0.15);
+  border-radius: 8px;
+  transition: box-shadow 0.3s ease;
+}
+
+.setting-row--highlight .setting-label {
+  color: #3b82f6;
+  transition: color 0.3s ease;
+}
+
+.dark .setting-row--highlight .setting-label {
+  color: #60a5fa;
+}
+
+.dark .setting-row--highlight .setting-input :deep(.q-field__control) {
+  box-shadow: 0 0 0 2px rgba(96, 165, 250, 0.3), 0 0 12px rgba(96, 165, 250, 0.15);
+}
+
+.setting-row--highlight-address .setting-input :deep(.q-field__control) {
+  box-shadow: 0 0 0 2px rgba(76, 175, 80, 0.3), 0 0 12px rgba(76, 175, 80, 0.15);
+  border-radius: 8px;
+  transition: box-shadow 0.3s ease;
+}
+
+.setting-row--highlight-address .setting-label {
+  color: #4caf50;
+  transition: color 0.3s ease;
+}
+
+.dark .setting-row--highlight-address .setting-label {
+  color: #81c784;
+}
+
+.dark .setting-row--highlight-address .setting-input :deep(.q-field__control) {
+  box-shadow: 0 0 0 2px rgba(129, 199, 132, 0.3), 0 0 12px rgba(129, 199, 132, 0.15);
 }
 
 /* Avatar Actions */
