@@ -22,6 +22,15 @@ export interface UnserializedSchemaField {
   options: UnserializedSchemaOpts
 }
 
+export type UISchemaType = 'VerticalLayout' | 'HorizontalLayout' | 'Group' | 'Control'
+
+export interface UISchemaElement {
+  type: UISchemaType
+  elements?: UISchemaElement[]
+  scope?: string
+  label?: string
+}
+
 let createFieldCounter = 0
 
 export function createUnserializedSchemaField(data: { name?: string, required?: boolean, options?: UnserializedSchemaOpts }): UnserializedSchemaField {
@@ -147,4 +156,30 @@ export function findDuplicateFields(fields: string[]) {
       field,
       indices,
     }));
+}
+
+export function schemaToUISchema(schema: SchemaOpts, opts?: { basePath?: string }): UISchemaElement {
+  const uischema: UISchemaElement = {
+    type: 'VerticalLayout',
+    elements: [],
+  }
+
+  const properties = schema?.properties
+  if (!properties) return uischema
+
+  const basePath = (opts?.basePath || '#') + '/properties'
+  for (const key in properties) {
+    const propertyPath = `${basePath}/${key}`
+    const obj = properties[key]
+    if (obj?.type === 'object') {
+      const nestedObjectSchema = schemaToUISchema(obj, { basePath: propertyPath })
+      nestedObjectSchema.type = 'Group'
+      nestedObjectSchema.label = fromSnakeCase(key)
+      uischema.elements?.push(nestedObjectSchema)
+    } else if (['string', 'number', 'integer', 'boolean'].includes(obj?.type as string)) {
+      uischema.elements?.push({ type: 'Control', scope: propertyPath })
+    }
+  }
+
+  return uischema
 }

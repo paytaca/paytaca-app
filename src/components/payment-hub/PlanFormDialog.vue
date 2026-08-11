@@ -159,7 +159,7 @@
           <q-tab-panel name="json-form-builder" style="max-height:80vh;overflow:auto;">
             <JSONFormBuilderDialog
               ref="jsonFormBuilderRef"
-              v-model:schema-data="form.subscription_form_data"
+              v-model:unserialized-schema-data="form.unserialized_schema_data"
             />
           </q-tab-panel>
         </q-tab-panels>
@@ -209,7 +209,7 @@ const form = reactive({
   min_period: 30,
   max_period: 30,
   max_reclaim: 0,
-  subscription_form_data: null,
+  unserialized_schema_data: null,
 })
 
 watch([() => form.period_value, () => form.period_type], ([newVal, newType]) => {
@@ -230,7 +230,9 @@ async function onOKClick() {
     min_period: form.period_type === 'days' ? form.min_period * 144 : form.min_period,
     max_period: form.period_type === 'days' ? form.max_period * 144 : form.max_period,
     max_reclaim: form.max_reclaim,
-    subscription_form_data: form.subscription_form_data ?? undefined,
+    subscription_form_data: form.unserialized_schema_data
+      ? { unserialized_schema_data: form.unserialized_schema_data }
+      : undefined,
   }
 
   if (form.period_type === 'days') {

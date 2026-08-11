@@ -42,6 +42,17 @@
               <div class="text-subtitle1 text-weight-bold">{{ planDetails.name }}</div>
               <div class="text-body2 text-grey">{{ planDetails.description || $t('NoDescription') }}</div>
               
+              <template v-if="hasSubscriptionForm">
+                <q-separator class="q-my-md" />
+                <div class="text-subtitle2 text-weight-medium">{{ $t('SubscriptionForm', 'Subscription Form') }}</div>
+                <JSONFormPreview
+                  ref="subscriptionFormRef"
+                  v-model="subscriptionFormData"
+                  v-model:formDataErrors="subscriptionFormErrors"
+                  :schema-data="subscriptionFormSchema"
+                />
+              </template>
+
               <q-separator class="q-my-md" />
               
               <div class="row justify-between q-mt-sm items-start">
@@ -94,7 +105,7 @@
 </template>
 
 <script setup>
-import { ref, computed, reactive, onMounted } from 'vue'
+import { ref, computed, reactive, onMounted, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useDialogPluginComponent, useQuasar } from 'quasar'
 import { useStore } from 'vuex'
@@ -103,6 +114,8 @@ import { PaymentHub, extractPlanId } from 'src/wallet/payment-hub'
 import QrScanner from 'src/components/qr-scanner.vue'
 import QRUploader from 'src/components/QRUploader.vue'
 import { loadWallet } from 'src/wallet'
+import JSONFormPreview from 'src/components/jsonforms/JSONFormPreview.vue'
+import { serializeSchemaFields } from 'src/components/jsonforms/jsonform-utils'
 
 defineEmits([
   ...useDialogPluginComponent.emits
@@ -121,6 +134,7 @@ const $store = useStore()
 const $q = useQuasar()
 const darkMode = computed(() => $store.getters['darkmode/getStatus'])
 const formRef = ref(null)
+const subscriptionFormRef = ref(null)
 
 const step = ref(1)
 const isLoading = ref(false)
@@ -128,6 +142,26 @@ const planDetails = ref(null)
 const showQrScanner = ref(false)
 const qrUploadRef = ref(null)
 const isChipnet = computed(() => $store.getters['global/isChipnet'])
+
+const subscriptionFormData = ref({})
+const subscriptionFormErrors = ref([])
+const subscriptionFormSchema = computed(() => {
+  const formData = planDetails.value?.subscription_form_data
+  const unserialized = formData?.unserialized_schema_data
+  if (Array.isArray(unserialized)) {
+    return serializeSchemaFields(unserialized, { normalizeNames: true })
+  }
+  return formData?.schema_data || null
+})
+const hasSubscriptionForm = computed(() => {
+  const properties = subscriptionFormSchema.value?.properties
+  return properties && Object.keys(properties).length > 0
+})
+
+watch(planDetails, () => {
+  subscriptionFormData.value = {}
+  subscriptionFormErrors.value = []
+}, { immediate: true })
 
 const form = reactive({
   plan: props.initialPlanId || '',
@@ -247,9 +281,22 @@ async function onFormSubmit() {
   if (step.value === 1) {
     await fetchPlanDetails()
   } else if (step.value === 2) {
-    onDialogOK({ plan: form.plan, plan_details: planDetails.value })
+    if (hasSubscriptionForm.value && !subscriptionFormRef.value?.validate()) {
+      $q.notify({
+        type: 'negative',
+        message: t('PleaseCompleteSubscriptionForm') || 'Please complete the subscription form'
+      })
+      return
+    }
+
+    onDialogOK({
+      plan: form.plan,
+      plan_details: planDetails.value,
+      subscription_data: hasSubscriptionForm.value ? subscriptionFormData.value : undefined,
+    })
   }
 }
+
 
 async function fetchPlanDetails() {
   isLoading.value = true
