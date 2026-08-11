@@ -1200,6 +1200,7 @@ export default {
 
 .bch-address-check-icon {
   border-radius: 50%;
+  position: relative;
 }
 
 .setting-row--highlight .setting-input :deep(.q-field__control) {
