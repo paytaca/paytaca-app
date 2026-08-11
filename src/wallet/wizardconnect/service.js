@@ -34,7 +34,7 @@ function getPrefix() {
 export async function ensureHdNodes() {
   if (_hdNodes) return _hdNodes
 
-  const mnemonic = await getMnemonic(_walletIndex)
+  const mnemonic = await getMnemonic(_walletIndex).catch(() => null)
   if (!mnemonic) throw new Error('No mnemonic available')
 
   const seedKey = mnemonic

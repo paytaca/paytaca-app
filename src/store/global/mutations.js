@@ -1,4 +1,4 @@
-import { deleteMnemonic, deleteMnemonicByHash } from './../../wallet'
+import { deleteMnemonic, deleteMnemonicByHash, clearCachedWallets } from './../../wallet'
 import { deleteAuthToken as deleteP2PExchangeAuthToken } from 'src/exchange/auth'
 import { removeWalletName } from 'src/utils/wallet-name-cache'
 import { clearLiftBalanceCache } from 'src/utils/subscription-utils'
@@ -708,6 +708,11 @@ export function setLockApp (state, value) {
  */
 export function setIsUnlocked (state, value) {
   state.isUnlocked = Boolean(value)
+  // Release the in-memory wallet cache (mnemonics/derived keys) when the app
+  // locks. Wallets are lazily re-created from secure storage after unlock.
+  if (!value) {
+    clearCachedWallets()
+  }
 }
 
 export function setPreviousRoute (state, path) {
