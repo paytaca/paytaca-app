@@ -1333,12 +1333,11 @@ const respondToSignTransactionRequest = async (sessionRequest) => {
         wallet.wif
       )
 
-      if (sessionRequest.params.request.params?.broadcast) {
-        const broadcastResponse = watchtower.value?.BCH.broadcastTransaction(response.result.signedTransaction)
-        if (!broadcastResponse.success) {
-          response.error = { code: -32603, message: broadcastResponse?.error }
-          response.result = undefined
-        }
+      const broadcastResponse = await watchtower.value?.BCH.broadcastTransaction(response.result.signedTransaction)
+      if (!broadcastResponse?.success) {
+        console.error('Broadcast failed:', broadcastResponse)
+        response.error = { code: -32603, message: broadcastResponse?.error || 'Broadcast failed' }
+        response.result = undefined
       }
 
       processingSession.value[sessionRequest.topic] = 'Confirming request'
@@ -1360,6 +1359,7 @@ const respondToSignTransactionRequest = async (sessionRequest) => {
       await loadSessionRequests()
 
     } catch (err) {
+      console.error(err)
       response.error = {
         code: -32603,
         reason: err?.name === 'SignBCHTransactionError' ? err?.message : 'Unknown error'
@@ -1393,6 +1393,7 @@ const respondToSignMessageRequest = async (sessionRequest) => {
     response.result = signMessage(message, connectedAddressForTopic.wif)
     processingSession.value[sessionRequest.topic] = 'Confirming request'
   } catch (err) {
+    console.error(err)
     response.error = {
       code: -32603,
       message: err?.message || 'Unknown error'
@@ -1473,6 +1474,7 @@ const respondToSessionRequest = async (sessionRequest) => {
       }
     }
   } catch (error) {
+    console.error(error)
   } finally {
     delete processingSession.value[sessionRequest.id]
   }
