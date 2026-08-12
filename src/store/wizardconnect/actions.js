@@ -216,9 +216,9 @@ export async function approveRequestWithData ({ commit, dispatch, rootGetters },
     const watchtower = new Watchtower(isChipnet)
 
     const broadcastResponse = await watchtower.BCH.broadcastTransaction(signedTxHex)
-    if (!broadcastResponse?.success) {
+    if (!broadcastResponse?.data?.success) {
       console.error('WizardConnect: broadcast failed:', broadcastResponse)
-      await wizardConnectService.sendSignError(connectionId, sequence, broadcastResponse?.error || 'Broadcast failed')
+      await wizardConnectService.sendSignError(connectionId, sequence, broadcastResponse?.data?.error || 'Broadcast failed')
       return
     }
 

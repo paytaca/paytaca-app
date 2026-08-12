@@ -1334,9 +1334,9 @@ const respondToSignTransactionRequest = async (sessionRequest) => {
       )
 
       const broadcastResponse = await watchtower.value?.BCH.broadcastTransaction(response.result.signedTransaction)
-      if (!broadcastResponse?.success) {
+      if (!broadcastResponse?.data?.success) {
         console.error('Broadcast failed:', broadcastResponse)
-        response.error = { code: -32603, message: broadcastResponse?.error || 'Broadcast failed' }
+        response.error = { code: -32603, message: broadcastResponse?.data?.error || 'Broadcast failed' }
         response.result = undefined
       }
 
