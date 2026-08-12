@@ -3,6 +3,8 @@ import {
   walletTemplateP2pkhNonHd,
   walletTemplateToCompilerBCH,
   binToHex,
+  decodeAuthenticationInstructions,
+  encodeAuthenticationInstructions,
   encodeLockingBytecodeP2pkh,
   encodeTransaction,
   generateSigningSerializationBCH,
@@ -52,6 +54,32 @@ export function signBchTxError(...args) {
 }
 
 /**
+ * Extract the contract (redeem) script from an unlocking bytecode by taking
+ * the last authentication instruction and stripping leading constructor
+ * parameter pushes until reaching the raw contract bytecode body.
+ * @param {Uint8Array} unlockingBytecode
+ * @returns {Uint8Array|undefined}
+ */
+export function extractContractBytecode(unlockingBytecode) {
+  const decoded = decodeAuthenticationInstructions(unlockingBytecode)
+  let script = (decoded.splice(-1)[0])?.data
+  if (script?.length) {
+    let prevHash
+    do {
+      prevHash = binToHex(script)
+      const decodedScript = decodeAuthenticationInstructions(script)
+      const first = decodedScript.splice(0, 1)[0]
+      if (first && first.opcode <= 96) {
+        script = encodeAuthenticationInstructions(decodedScript)
+      } else {
+        break
+      }
+    } while (prevHash !== binToHex(script))
+  }
+  return script
+}
+
+/**
  * Sign a BCH transaction, handling both P2PKH and CashScript contract inputs.
  *
  * @param {Object} params
@@ -85,7 +113,10 @@ export function signBchTransaction({ transaction, sourceOutputs, resolveKey, pre
 
       // Verify the redeem script matches the locking bytecode's script hash
       // This prevents malicious dApps from substituting a different contract's redeem script
-      const coveredBytecode = sourceOutputs[index].contract?.redeemScript
+      let coveredBytecode = sourceOutputs[index].contract?.redeemScript
+      if (!coveredBytecode) {
+        coveredBytecode = extractContractBytecode(sourceOutput.unlockingBytecode)
+      }
       if (!coveredBytecode) {
         throw signBchTxError('Not enough information provided, please include contract redeemScript')
       }
@@ -94,14 +125,20 @@ export function signBchTransaction({ transaction, sourceOutputs, resolveKey, pre
       const p2sh32Match = lockBytecodeHex.match(/^aa20([0-9a-f]{64})87$/)
       if (p2sh20Match) {
         const expectedHash = p2sh20Match[1]
-        const actualHash = binToHex(hash160(hexToBin(coveredBytecode)))
+        const actualHash = binToHex(hash160(coveredBytecode))
         if (actualHash !== expectedHash) {
           throw signBchTxError('Redeem script does not match P2SH locking bytecode')
         }
       } else if (p2sh32Match) {
         const expectedHash = p2sh32Match[1]
-        const actualHash = binToHex(hash256(hexToBin(coveredBytecode)))
+        const actualHash = binToHex(hash256(coveredBytecode))
         if (actualHash !== expectedHash) {
+          console.error('P2SH32 locking bytecode mismatch', {
+            lockingBytecode: lockBytecodeHex,
+            expectedHash,
+            actualHash,
+            coveredBytecode: binToHex(coveredBytecode)
+          })
           throw signBchTxError('Redeem script does not match P2SH32 locking bytecode')
         }
       } else {
