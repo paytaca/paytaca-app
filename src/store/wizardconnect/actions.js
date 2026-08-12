@@ -218,6 +218,11 @@ export async function approveRequestWithData ({ commit, dispatch, rootGetters },
     const broadcastResponse = await watchtower.BCH.broadcastTransaction(signedTxHex)
     if (!broadcastResponse?.data?.success) {
       console.error('WizardConnect: broadcast failed:', broadcastResponse)
+      Notify.create({
+        type: 'negative',
+        message: broadcastResponse?.data?.error || 'Broadcast failed',
+        timeout: 5000
+      })
       await wizardConnectService.sendSignError(connectionId, sequence, broadcastResponse?.data?.error || 'Broadcast failed')
       return
     }
@@ -230,6 +235,11 @@ export async function approveRequestWithData ({ commit, dispatch, rootGetters },
     }, 2000)
   } catch (err) {
     console.error('WizardConnect: sign error:', err)
+    Notify.create({
+      type: 'negative',
+      message: err.message || 'Failed to sign transaction',
+      timeout: 5000
+    })
     try {
       await wizardConnectService.sendSignError(connectionId, sequence, err.message || 'Signing failed')
     } catch {

@@ -1366,6 +1366,11 @@ const respondToSignTransactionRequest = async (sessionRequest) => {
       }
       sessionRequest.error = true
       processingSession.value[sessionRequest.topic] = 'Sending error response'
+      $q.notify({
+        type: 'error',
+        message: err?.message || 'Failed to sign transaction',
+        timeout: 5000
+      })
     } finally {
       $q.loading.hide(loadingKey)
     }
@@ -1400,6 +1405,11 @@ const respondToSignMessageRequest = async (sessionRequest) => {
     }
     sessionRequest.error = true
     processingSession.value[sessionRequest.topic] = 'Sending error response'
+    $q.notify({
+      type: 'error',
+      message: err?.message || 'Failed to sign message',
+      timeout: 5000
+    })
   } finally {
     if (!response.result) delete response.result
     if (!response.error) delete response.error
