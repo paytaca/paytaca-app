@@ -854,8 +854,6 @@ export default {
       return text.length > 80 ? text.slice(0, 80) + '...' : text
     },
     messageReadMap () {
-      // Compute read status for messages I sent.
-      // Uses Kind 7 "👀" reactions received via NIP-17 gift-wraps.
       const map = {}
       const myPubKey = this.myPubKey
       const room = this.room
@@ -863,31 +861,27 @@ export default {
 
       const readBy = this.$store.getters['nostrChat/getMessageReadBy'](this.roomId)
 
-      for (const msg of this.allMessages) {
-        // Only check read status for messages I sent
+      for (const msg of this.displayedMessages) {
         if (msg.sender !== myPubKey) continue
-        // Read if ANY other room member sent a 👀 reaction for this message
         map[msg.id] = Object.keys(readBy[msg.id] || {}).length > 0
       }
 
       return map
     },
     readByNamesMap () {
-      // For group chats: build a map of { [msgId]: [displayName, ...] } for reader avatars/tooltips
       const map = {}
       const myPubKey = this.myPubKey
       const room = this.room
       if (!room || !myPubKey || room.type !== 'group') return map
 
       const readBy = this.$store.getters['nostrChat/getMessageReadBy'](this.roomId)
-      const contactsByPubKey = this.contactsByPubKey
 
-      for (const msg of this.allMessages) {
+      for (const msg of this.displayedMessages) {
         if (msg.sender !== myPubKey) continue
         const readers = Object.keys(readBy[msg.id] || {})
         if (!readers.length) continue
         map[msg.id] = readers.map(pubKey => {
-          const contact = contactsByPubKey.get(pubKey)
+          const contact = this.contactsByPubKey.get(pubKey)
           if (contact?.name) return contact.name
           const displayName = this.memberDisplayNames[pubKey]
           if (displayName) return displayName
@@ -929,10 +923,6 @@ export default {
       immediate: true,
     },
     'allMessages.length' (newLen, oldLen) {
-      // Only auto-mark-as-read when this conversation is actually visible.
-      // When deactivated (keep-alive, user navigated to chat index), the
-      // watcher still fires on new messages — skip it so the unread counter
-      // on the chat index page stays accurate.
       if (!this._isActive) return
       this.markAsRead()
 
@@ -950,7 +940,6 @@ export default {
         if (sentByMe) {
           this.scrollToBottom()
         } else {
-          // Auto-scroll for incoming messages only if already near the bottom
           const container = this.$refs.messagesContainer
           const nearBottom = container &&
             container.scrollTop + container.clientHeight >= container.scrollHeight - 150
@@ -960,7 +949,16 @@ export default {
         }
       }
       this.previousMessageCount = newLen
-    this.$nextTick(() => this.observeMessages())
+
+      // Observe only newly added message groups instead of iterating all DOM elements
+      if (oldLen < newLen && this.$refs.messagesContainer) {
+        const els = this.$refs.messagesContainer.querySelectorAll(`[data-msg-id]:not(.observed)`)
+        for (let i = newLen - oldLen; i > 0 && els[i - 1]; i--) {
+          const el = els[i - 1]
+          this._messageObserver?.observe(el)
+          el.classList.add('observed')
+        }
+      }
     },
     room (val) {
       if (val) {
@@ -1297,7 +1295,10 @@ export default {
     observeMessages () {
       if (this._messageObserver && this.$refs.messagesContainer) {
         const els = this.$refs.messagesContainer.querySelectorAll('.message-group')
-        els.forEach(el => this._messageObserver.observe(el))
+        els.forEach(el => {
+          this._messageObserver.observe(el)
+          el.classList.add('observed')
+        })
       }
       this.markDisplayedMessagesAsRead()
     },

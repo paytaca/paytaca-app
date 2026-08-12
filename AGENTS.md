@@ -28,3 +28,20 @@
 - Error notifications use `this.$q.notify({ type: 'error', message: ..., timeout: 5000 })`.
 - Vue components use `.vue` SFC format.
 - Do NOT introduce new dependencies without asking.
+
+## Automated Code Review (Security)
+
+Every pull request undergoes an AI-assisted security review. Pay particular attention to changes that could affect:
+
+- Entropy and recovery-phrase generation
+- Private-key derivation and handling
+- Recovery-phrase storage
+- Encryption
+- Signing
+- Transaction construction
+- Smart contracts
+- Secret material in memory
+- Migration of sensitive data
+- External interfaces that could influence signing behavior
+
+For findings, reference the specific file and line, describe the risk and severity, and suggest a concrete fix.
