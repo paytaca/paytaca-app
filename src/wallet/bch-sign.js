@@ -4,7 +4,6 @@ import {
   walletTemplateToCompilerBCH,
   binToHex,
   decodeAuthenticationInstructions,
-  encodeAuthenticationInstructions,
   encodeLockingBytecodeP2pkh,
   encodeTransaction,
   generateSigningSerializationBCH,
@@ -55,28 +54,24 @@ export function signBchTxError(...args) {
 
 /**
  * Extract the contract (redeem) script from an unlocking bytecode by taking
- * the last authentication instruction and stripping leading constructor
- * parameter pushes until reaching the raw contract bytecode body.
+ * the last authentication instruction, which is a push of the full redeem
+ * script committed in the P2SH/P2SH32 locking bytecode.
  * @param {Uint8Array} unlockingBytecode
  * @returns {Uint8Array|undefined}
  */
 export function extractContractBytecode(unlockingBytecode) {
+  if (!unlockingBytecode) return undefined
   const decoded = decodeAuthenticationInstructions(unlockingBytecode)
+  if (typeof decoded === 'string') return undefined
   let script = (decoded.splice(-1)[0])?.data
-  if (script?.length) {
-    let prevHash
-    do {
-      prevHash = binToHex(script)
-      const decodedScript = decodeAuthenticationInstructions(script)
-      const first = decodedScript.splice(0, 1)[0]
-      if (first && first.opcode <= 96) {
-        script = encodeAuthenticationInstructions(decodedScript)
-      } else {
-        break
-      }
-    } while (prevHash !== binToHex(script))
+  if (typeof script === 'string') {
+    try {
+      script = hexToBin(script)
+    } catch (error) {
+      return undefined
+    }
   }
-  return script
+  return script?.length ? script : undefined
 }
 
 /**
@@ -113,9 +108,16 @@ export function signBchTransaction({ transaction, sourceOutputs, resolveKey, pre
 
       // Verify the redeem script matches the locking bytecode's script hash
       // This prevents malicious dApps from substituting a different contract's redeem script
-      let coveredBytecode = sourceOutputs[index].contract?.redeemScript
+      let coveredBytecode = extractContractBytecode(sourceOutput.unlockingBytecode)
       if (!coveredBytecode) {
-        coveredBytecode = extractContractBytecode(sourceOutput.unlockingBytecode)
+        coveredBytecode = sourceOutputs[index].contract?.redeemScript
+        if (typeof coveredBytecode === 'string') {
+          try {
+            coveredBytecode = hexToBin(coveredBytecode)
+          } catch (error) {
+            coveredBytecode = undefined
+          }
+        }
       }
       if (!coveredBytecode) {
         throw signBchTxError('Not enough information provided, please include contract redeemScript')
