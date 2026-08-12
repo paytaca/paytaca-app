@@ -339,7 +339,8 @@ export function parseSessionRequest(sessionRequest) {
     }
 
     parsedTx?.outputs?.forEach?.(populateOutputAddress)
-    parsedParams?.sourceOutputs?.forEach?.(populateOutputAddress)?.forEach(unpackSourceOutput)
+    parsedParams?.sourceOutputs?.forEach?.(populateOutputAddress)
+    parsedParams?.sourceOutputs?.forEach?.(unpackSourceOutput)
 
     parsedTx?.inputs?.forEach?.(input => {
       input.sourceOutput = parsedParams?.sourceOutputs?.find?.(output => {
