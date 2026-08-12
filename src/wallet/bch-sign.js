@@ -54,6 +54,32 @@ export function signBchTxError(...args) {
 }
 
 /**
+ * Extract the contract (redeem) script from an unlocking bytecode by taking
+ * the last authentication instruction and stripping leading constructor
+ * parameter pushes until reaching the raw contract bytecode body.
+ * @param {Uint8Array} unlockingBytecode
+ * @returns {Uint8Array|undefined}
+ */
+export function extractContractBytecode(unlockingBytecode) {
+  const decoded = decodeAuthenticationInstructions(unlockingBytecode)
+  let script = (decoded.splice(-1)[0])?.data
+  if (script?.length) {
+    let prevHash
+    do {
+      prevHash = binToHex(script)
+      const decodedScript = decodeAuthenticationInstructions(script)
+      const first = decodedScript.splice(0, 1)[0]
+      if (first && first.opcode <= 96) {
+        script = encodeAuthenticationInstructions(decodedScript)
+      } else {
+        break
+      }
+    } while (prevHash !== binToHex(script))
+  }
+  return script
+}
+
+/**
  * Sign a BCH transaction, handling both P2PKH and CashScript contract inputs.
  *
  * @param {Object} params
@@ -89,22 +115,7 @@ export function signBchTransaction({ transaction, sourceOutputs, resolveKey, pre
       // This prevents malicious dApps from substituting a different contract's redeem script
       let coveredBytecode = sourceOutputs[index].contract?.redeemScript
       if (!coveredBytecode) {
-        const decoded = decodeAuthenticationInstructions(sourceOutput.unlockingBytecode)
-        let script = (decoded.splice(-1)[0])?.data
-        if (script?.length) {
-          let prevHash
-          do {
-            prevHash = binToHex(script)
-            const decodedScript = decodeAuthenticationInstructions(script)
-            const first = decodedScript.splice(0, 1)[0]
-            if (first && first.opcode <= 96) {
-              script = encodeAuthenticationInstructions(decodedScript)
-            } else {
-              break
-            }
-          } while (prevHash !== binToHex(script))
-        }
-        coveredBytecode = script
+        coveredBytecode = extractContractBytecode(sourceOutput.unlockingBytecode)
       }
       if (!coveredBytecode) {
         throw signBchTxError('Not enough information provided, please include contract redeemScript')

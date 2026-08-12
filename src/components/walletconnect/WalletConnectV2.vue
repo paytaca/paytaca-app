@@ -1260,6 +1260,7 @@ const respondToSignTransactionRequest = async (sessionRequest) => {
   const response = { id: sessionRequest.id, jsonrpc: '2.0', result: undefined, error: undefined }
   if (sessionRequest?.params?.request?.method === 'bch_signTransaction' || sessionRequest?.params?.request?.method === 'bch_signTransactionP2SHMultisig') {
     const loadingKey = 'wc-sign-transaction'
+    let responseSent = false
     try {
       const wallet = sessionTopicWalletAddressMapping.value?.[sessionRequest.topic]
       if (wallet.signers) {
@@ -1297,6 +1298,7 @@ const respondToSignTransactionRequest = async (sessionRequest) => {
             }
           }
         })
+        responseSent = true
 
         $q.loading.show({ group: loadingKey, message: $t('ProcessingTransactionProposal') })
 
@@ -1338,31 +1340,16 @@ const respondToSignTransactionRequest = async (sessionRequest) => {
         console.error('Broadcast failed:', broadcastResponse)
         response.error = { code: -32603, message: broadcastResponse?.data?.error || 'Broadcast failed' }
         response.result = undefined
+        sessionRequest.error = true
       }
 
       processingSession.value[sessionRequest.topic] = 'Confirming request'
-
-      if (!response.result) delete response.result
-      if (!response.error) delete response.error
-      
-      await web3Wallet.value.respondSessionRequest({
-        topic: sessionRequest.topic, response
-      })
-
-      if (!sessionRequest.error) {
-        sessionRequest.confirmed = true
-      }
-
-      delete processingSession.value[sessionRequest.topic]
-      
-      await delay(2)
-      await loadSessionRequests()
 
     } catch (err) {
       console.error(err)
       response.error = {
         code: -32603,
-        reason: err?.name === 'SignBCHTransactionError' ? err?.message : 'Unknown error'
+        message: err?.name === 'SignBCHTransactionError' ? err?.message : 'Unknown error'
       }
       sessionRequest.error = true
       processingSession.value[sessionRequest.topic] = 'Sending error response'
@@ -1372,6 +1359,19 @@ const respondToSignTransactionRequest = async (sessionRequest) => {
         timeout: 5000
       })
     } finally {
+      if (!responseSent) {
+        if (!response.result) delete response.result
+        if (!response.error) delete response.error
+        await web3Wallet.value.respondSessionRequest({
+          topic: sessionRequest.topic, response
+        })
+        if (!sessionRequest.error) {
+          sessionRequest.confirmed = true
+        }
+        delete processingSession.value[sessionRequest.topic]
+        await delay(2)
+        await loadSessionRequests()
+      }
       $q.loading.hide(loadingKey)
     }
   }
