@@ -27,7 +27,7 @@
               class="text-weight-bold q-px-md q-py-xs br-5"
               style="font-size: 0.9rem;"
             >
-              {{ plan.is_active ? ($t('Active') || 'Active') : ($t('Inactive') || 'Inactive') }}
+              {{ plan.is_active ? ($t('Active', 'Active')) : ($t('Inactive', 'Inactive')) }}
             </q-badge>
             <div class="text-h6 q-mt-sm">{{ plan.name }}</div>
           </div>
@@ -51,8 +51,8 @@
           narrow-indicator
           :dark="darkMode"
         >
-          <q-tab name="details" :label="$t('Details') || 'Details'" />
-          <q-tab name="invoices" :label="$t('Invoices') || 'Invoices'" />
+          <q-tab name="details" :label="$t('Details', 'Details')" />
+          <q-tab name="invoices" :label="$t('Invoices', 'Invoices')" />
         </q-tabs>
 
         <q-separator :dark="darkMode" class="q-mb-md" />
@@ -62,7 +62,7 @@
           <q-tab-panel name="details" class="q-pa-none">
             <!-- Description -->
             <div class="q-mb-md">
-              <div class="text-subtitle2 text-grey">{{ $t('Description') || 'Description' }}</div>
+              <div class="text-subtitle2 text-grey">{{ $t('Description', 'Description') }}</div>
               <div class="text-body1">{{ plan.description || '-' }}</div>
             </div>
 
@@ -71,7 +71,7 @@
             <!-- Details -->
             <div class="row q-col-gutter-md q-mb-md">
               <div class="col-12">
-                <div class="text-caption text-grey">{{ $t('PlanID') || 'Plan ID' }}</div>
+                <div class="text-caption text-grey">{{ $t('PlanID', 'Plan ID') }}</div>
                 <div class="row no-wrap items-center">
                   <div class="text-body2 ellipsis q-mr-xs font-mono">{{ plan.id }}</div>
                   <q-btn flat round dense icon="content_copy" size="sm" @click="copyText(plan.id, 'Plan ID')" />
@@ -79,7 +79,7 @@
               </div>
               
               <div class="col-12" v-if="plan.short_id">
-                <div class="text-caption text-grey">{{ $t('ShortID') || 'Short ID' }}</div>
+                <div class="text-caption text-grey">{{ $t('ShortID', 'Short ID') }}</div>
                 <div class="row no-wrap items-center">
                   <div class="text-body2 ellipsis q-mr-xs font-mono">{{ plan.short_id }}</div>
                   <q-btn flat round dense icon="content_copy" size="sm" @click="copyText(plan.short_id, 'Short ID')" />
@@ -87,7 +87,7 @@
               </div>
 
               <div class="col-12" v-if="plan.plan_url">
-                <div class="text-caption text-grey">{{ $t('PlanURL') || 'Plan URL' }}</div>
+                <div class="text-caption text-grey">{{ $t('PlanURL', 'Plan URL') }}</div>
                 <div class="row no-wrap items-center">
                   <div class="text-body2 ellipsis q-mr-xs font-mono text-pt-primary1 cursor-pointer" @click="openUrl(plan.plan_url)">{{ plan.plan_url }}</div>
                   <q-btn flat round dense icon="content_copy" size="sm" @click="copyText(plan.plan_url, 'Plan URL')" />
@@ -100,7 +100,7 @@
               </div>
               
               <div class="col-6">
-                <div class="text-caption text-grey">{{ $t('Store') || 'Store' }}</div>
+                <div class="text-caption text-grey">{{ $t('Store', 'Store') }}</div>
                 <div class="row no-wrap items-center">
                   <div class="text-body2 ellipsis q-mr-xs font-mono" style="max-width: 150px;">{{ plan.store }}</div>
                   <q-btn flat round dense icon="content_copy" size="sm" @click="copyText(plan.store, 'Store ID')" />
@@ -115,7 +115,7 @@
               <q-spinner color="pt-primary1" size="2em" />
             </div>
             <div v-else-if="!invoices.length" class="text-center q-my-xl text-grey">
-              {{ $t('NoInvoices') || 'No invoices found' }}
+              {{ $t('NoInvoices', 'No invoices found') }}
             </div>
             <div v-else>
               <q-list separator class="br-10 border-grey-4">
@@ -138,7 +138,7 @@
                   </q-item-section>
                   <q-item-section>
                     <div class="text-body2 text-weight-medium ellipsis-2-lines" :class="getDarkModeClass(darkMode)" style="word-break: break-all;">
-                      {{ inv.memo || $t('NoMemo') || 'No Memo' }}
+                      {{ inv.memo || $t('NoMemo', 'No Memo') }}
                     </div>
                     <div class="text-caption text-grey q-mt-xs">{{ formatDate(inv.date_created) }}</div>
                   </q-item-section>
@@ -256,7 +256,7 @@ function formatAmount(amount) {
 
 function getPeriodText(p) {
   if (p.period_days) {
-    return `Every ${p.period_days} ${p.period_days === 1 ? (t('Day') || 'day') : (t('Days') || 'days')}`
+    return `Every ${p.period_days} ${p.period_days === 1 ? (t('Day', 'day')) : (t('Days', 'days'))}`
   }
   const blocks = p.period_blocks
   if (!blocks) return ''
@@ -264,26 +264,26 @@ function getPeriodText(p) {
   let timeStr = ''
   if (blocks % 4320 === 0) {
     const v = blocks / 4320
-    timeStr = `${v} ${v === 1 ? (t('Month') || 'month') : (t('Months') || 'months')}`
+    timeStr = `${v} ${v === 1 ? (t('Month', 'month')) : (t('Months', 'months'))}`
   } else if (blocks % 1008 === 0) {
     const v = blocks / 1008
-    timeStr = `${v} ${v === 1 ? (t('Week') || 'week') : (t('Weeks') || 'weeks')}`
+    timeStr = `${v} ${v === 1 ? (t('Week', 'week')) : (t('Weeks', 'weeks'))}`
   } else if (blocks % 144 === 0) {
     const v = blocks / 144
-    timeStr = `${v} ${v === 1 ? (t('Day') || 'day') : (t('Days') || 'days')}`
+    timeStr = `${v} ${v === 1 ? (t('Day', 'day')) : (t('Days', 'days'))}`
   } else if (blocks % 6 === 0) {
     const v = blocks / 6
-    timeStr = `${v} ${v === 1 ? (t('Hour') || 'hour') : (t('Hours') || 'hours')}`
+    timeStr = `${v} ${v === 1 ? (t('Hour', 'hour')) : (t('Hours', 'hours'))}`
   } else {
-    timeStr = `${blocks * 10} ${t('Minutes') || 'minutes'}`
+    timeStr = `${blocks * 10} ${t('Minutes', 'minutes')}`
   }
   return `Every ${timeStr}`
 }
 
 function showBlocksInfo(blocks) {
   $q.dialog({
-    title: t('BillingReceivingPeriod') || 'Billing/Receiving Period',
-    message: `${t('EstimatedTimeBasedOnBlocks') || 'The displayed time is an estimate based on the Bitcoin Cash network block target of 10 minutes per block. The exact interval is'} ${blocks} ${t('Blocks') || 'blocks'}.`,
+    title: t('BillingReceivingPeriod', 'Billing/Receiving Period'),
+    message: `${t('EstimatedTimeBasedOnBlocks', 'The displayed time is an estimate based on the Bitcoin Cash network block target of 10 minutes per block. The exact interval is')} ${blocks} ${t('Blocks', 'blocks')}.`,
     color: 'pt-primary1',
     ok: {
       flat: true,
