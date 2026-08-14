@@ -52,6 +52,7 @@
           :dark="darkMode"
         >
           <q-tab name="details" :label="$t('Details', 'Details')" />
+          <q-tab name="form" :label="$t('Form', 'Form')" />
           <q-tab name="invoices" :label="$t('Invoices', 'Invoices')" />
         </q-tabs>
 
@@ -109,6 +110,29 @@
             </div>
           </q-tab-panel>
 
+           <!-- Form Tab -->
+           <q-tab-panel name="form" class="q-pa-none">
+              <div v-if="hasSubscriptionForm">
+                <q-banner class="rounded-borders text-caption q-mb-sm">
+                  <template v-slot:avatar>
+                    <q-icon name="info" size="sm"/>
+                  </template>
+                  <div>{{ $t(
+                    'FormFilledOnSubscribe',
+                    'This form will be filled in by you when you subscribe to this plan.'
+                  ) }}</div>
+                </q-banner>
+                <JSONFormPreview
+                  :model-value="{}"
+                  :schema-data="subscriptionFormSchema"
+                  :readonly="true"
+                />
+             </div>
+             <div v-else class="q-pa-md text-center text-grey">
+               {{ $t('NoDataAvailable', 'No data available') }}
+             </div>
+            </q-tab-panel>
+
           <!-- Invoices Tab -->
           <q-tab-panel name="invoices" class="q-pa-none">
             <div v-if="loadingInvoices" class="text-center q-my-xl">
@@ -157,6 +181,7 @@
 </template>
 
 <script setup>
+import { serializeSchemaFields } from 'src/components/jsonforms/jsonform-utils'
 import { ref, computed, onMounted, watch } from 'vue'
 import { useDialogPluginComponent, copyToClipboard, useQuasar } from 'quasar'
 import { useStore } from 'vuex'
@@ -166,6 +191,7 @@ import { PaymentHub } from 'src/wallet/payment-hub/index.js'
 import { date, openURL } from 'quasar'
 import { useI18n } from 'vue-i18n'
 import InvoiceDetailDialog from './InvoiceDetailDialog.vue'
+import JSONFormPreview from '../jsonforms/JSONFormPreview.vue'
 
 const { t } = useI18n()
 
@@ -186,6 +212,21 @@ const loading = ref(true)
 const error = ref('')
 const plan = ref(null)
 const tab = ref('details')
+
+const subscriptionFormSchema = computed(() => {
+  console.log('PLan', plan.value);
+  const formData = plan.value?.subscription_form_data
+  console.log('FormData', formData);
+  const unserialized = formData?.unserialized_schema_data
+  if (Array.isArray(unserialized)) {
+    return serializeSchemaFields(unserialized, { normalizeNames: true })
+  }
+  return formData?.schema_data || null
+})
+const hasSubscriptionForm = computed(() => {
+  const props = subscriptionFormSchema.value?.properties
+  return props && Object.keys(props).length > 0
+})
 
 // Invoices state
 const invoices = ref([])
