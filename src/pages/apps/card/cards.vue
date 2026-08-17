@@ -56,6 +56,7 @@
                 :style="getCardStyle(index)"
                 @mousedown="onPointerDown($event, card)"
                 @touchstart="onPointerDown($event, card)"
+                @click="goToCardDetails(card)"
                 @keyup.right="goToCardDetails(card)"
                 tabindex="0"
               >
@@ -128,35 +129,7 @@
             </div>
           </div>
 
-          <div
-            v-if="showSwipeHint && displayedCards.length > 0"
-            class="swipe-overlay"
-            @click="dismissSwipeHint"
-          >
-            <div class="swipe-overlay-content">
-              <div class="swipe-hint-label">GESTURES</div>
-              <div class="swipe-hint-row">
-                <div class="swipe-arrow-circle carousel-arrows">
-                  <q-icon name="expand_less" size="20px" class="arrow-up" />
-                  <q-icon name="expand_more" size="20px" class="arrow-down" />
-                </div>
-                <div>
-                  <div class="swipe-hint-title">Browse cards</div>
-                  <div class="swipe-hint-sub">Swipe up or down</div>
-                </div>
-              </div>
-              <div class="swipe-hint-row">
-                <div class="swipe-arrow-circle swipe-right-circle">
-                  <q-icon name="chevron_right" size="24px" class="arrow-right" />
-                </div>
-                <div>
-                  <div class="swipe-hint-title">View details</div>
-                  <div class="swipe-hint-sub">Swipe right</div>
-                </div>
-              </div>
-              <div class="swipe-hint-dismiss">Tap anywhere to dismiss</div>
-            </div>
-          </div>
+
         </div>
       </div>
        
@@ -204,7 +177,6 @@ export default {
       // true while card balances are being fetched from backend
       balancesLoading: true,
       isLoaded: false,
-      showSwipeHint: true,
       showActivateCardForm: false,
       hiddenBalances: {}
     }
@@ -242,10 +214,7 @@ export default {
     } finally {
       this.isLoaded = true
     }
-    this.$nextTick(() => {
-      window.addEventListener('touchstart', this.dismissSwipeHint, { once: true })
-      window.addEventListener('mousedown', this.dismissSwipeHint, { once: true })
-    })
+
   },
 
   watch: {
@@ -329,12 +298,6 @@ export default {
     },
 
     // ====== Utility functions ======
-    dismissSwipeHint () {
-      this.showSwipeHint = false
-      window.removeEventListener('touchstart', this.dismissSwipeHint)
-      window.removeEventListener('mousedown', this.dismissSwipeHint)
-    },
-   
     capitalizeFirst (str) {
       if (!str) return ''
       return str.charAt(0).toUpperCase() + str.slice(1)
@@ -584,11 +547,7 @@ export default {
 </script>
 
 <style lang="scss" scoped>
-  .swipe-overlay {
-    position: fixed;
-    z-index: 9999;
-    border-radius: 0;
-  }
+
 </style>
 
 <style lang="scss">
