@@ -209,13 +209,14 @@
 import { ref, computed, onMounted, onBeforeUnmount } from 'vue'
 import { useStore } from 'vuex'
 import { useRouter } from 'vue-router'
-import { useQuasar } from 'quasar'
+import { debounce, useQuasar } from 'quasar'
 import { useI18n } from 'vue-i18n'
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 import HeaderNav from 'src/components/header-nav'
 import StoreInfoDialog from 'src/components/payment-hub/StoreInfoDialog.vue'
 import { PaymentHub } from 'src/wallet/payment-hub'
 import { loadWallet } from 'src/wallet'
+import { paymentHubWebsocketManager } from 'src/wallet/payment-hub/websocket'
 
 const $store = useStore()
 const $router = useRouter()
@@ -238,19 +239,14 @@ const searchQuery = ref('')
 const orderBy = ref(localStorage.getItem('paytaca_hub_stores_orderBy') || 'date_created')
 const orderDir = ref(localStorage.getItem('paytaca_hub_stores_orderDir') || 'desc')
 let searchTimeout = null
-let pollingInterval = null
+let webSocketInitialized = false
 
 onMounted(() => {
   refreshPage()
-  pollingInterval = setInterval(() => {
-    if (currentPage.value === 1) {
-      refreshPage(undefined, true)
-    }
-  }, 20000)
 })
 
 onBeforeUnmount(() => {
-  if (pollingInterval) clearInterval(pollingInterval)
+  closeWebSocket();
 })
 
 /**
@@ -311,10 +307,43 @@ async function initHub(isBackground = false) {
       
       hubWalletData.value = registration
     }
+
+    initWebSocket();
     return hub.value
   } finally {
     if (!isBackground) $q.loading.hide()
   }
+}
+
+const webSocketEventHandler = (data) => {
+  console.log('payment-hub-update', data);
+  if (!data || data.type !== 'store' || !data.store_id || !['create', 'update', 'delete'].includes(data.action)) {
+    return;
+  }
+
+  if (data.action === 'delete') return removeStore(data.store_id);
+  if (data.action === 'update') return refetchStore(data.store_id);
+
+  // fallback behavior, will do the same as previous to behavior to refetch only if currentPage is 1
+  if (currentPage.value === 1) {
+    debouncedRefreshPage(() => {}, true);
+  }
+}
+function initWebSocket() {
+  if (webSocketInitialized) return
+
+  paymentHubWebsocketManager.aquire(wallet.value).then((websocket) => {
+    console.log('PaymentHub WebSocket', websocket)
+  })
+  paymentHubWebsocketManager.addListener(webSocketEventHandler);
+
+  webSocketInitialized = true
+}
+
+function closeWebSocket() {
+  paymentHubWebsocketManager.release(); 
+  paymentHubWebsocketManager.removeListener(webSocketEventHandler);
+  webSocketInitialized = false
 }
 
 /**
@@ -353,6 +382,8 @@ async function refreshPage(done, isBackground = false) {
   }
 }
 
+const debouncedRefreshPage = debounce((...args) => refreshPage(...args), 1000);
+
 /**
  * Loads more stores for pagination.
  */
@@ -381,6 +412,20 @@ async function onLoadMore(index, done) {
   }
 }
 
+function removeStore(storeId) {
+  if (!storeId) return
+  storesList.value = storesList.value.filter(store => !_compareUUID(store?.id, storeId));
+}
+
+async function refetchStore(storeId) {
+  if (!storeId) return
+  if (!storesList.value.find(store => _compareUUID(store.id, storeId))) return
+
+  const store = await hub.value.getStore(storeId)
+  const index = storesList.value.findIndex(_store => _compareUUID(_store.id, store.id))
+  storesList.value[index] = store;
+}
+
 /**
  * Opens the dialog to add or edit a store.
  */
@@ -401,7 +446,7 @@ function openStoreInfoDialog(storeData) {
         data.wallet_id = hubWalletData.value.id
         await hub.value.createStore(data)
       }
-      await refreshPage()
+      debouncedRefreshPage(() => {}, false)
     } catch (error) {
       $q.notify({ type: 'negative', message: $t('ErrorSavingStore') })
     } finally {
@@ -467,6 +512,13 @@ function confirmDeleteStore(store) {
   })
 }
 
+
+function _compareUUID(uuid1, uuid2) {
+  if (typeof uuid1 == 'string' && typeof uuid2 === 'string')  {
+    return uuid1.replaceAll('-', '') === uuid2.replaceAll('-', '');
+  }
+  return uuid1 === uuid2
+}
 </script>
 
 <style lang="scss" scoped>
