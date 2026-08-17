@@ -10,14 +10,14 @@
     </div>
     <template v-else>
       <qrcode-stream
-        v-if="!paused && !decode && !error"
         :constraints="cameraConstraints"
+        :track="paintBoundingBox"
         :formats="['qr_code']"
         :paused="paused"
         @detect="onQRDecode"
         @camera-on="onScannerInit"
         @error="onCameraError"
-        class="fixed-full qr-stream"
+        class="qr-stream"
         style="margin: auto;"
       />
     </template>
@@ -174,8 +174,14 @@ export default {
     cameraConstraints () {
       return {
         facingMode: this.frontCamera ? 'user' : 'environment',
-        width: { min: 640, ideal: 1280, max: 1920 },
-        height: { min: 480, ideal: 720, max: 1080 }
+        // width: { min: 640, ideal: 1280, max: 1920 },
+        // height: { min: 480, ideal: 720, max: 1080 }
+        // width: { ideal: 2560 },
+        // height: { ideal: 1440 },
+        // frameRate: { ideal: 30 }
+        // width: { ideal: 1920 },
+        // height: { ideal: 1080 },
+        // frameRate: { ideal: 30 }
       }
     },
     progressLabel () {
@@ -184,6 +190,15 @@ export default {
   },
 
   methods: {
+    paintBoundingBox (detectedCodes, ctx) {
+      console.log('@track detectedCodes', detectedCodes, ctx)
+      for (const detectedCode of detectedCodes) {
+        const { x, y, width, height } = detectedCode.boundingBox
+        ctx.lineWidth = 4
+        ctx.strokeStyle = '#007bff' // Match your app color
+        ctx.strokeRect(x, y, width, height)
+      }
+    },
     getDarkModeClass,
 
     normalizeUrContent (value = '') {
@@ -191,7 +206,7 @@ export default {
     },
 
     onScannerInit (capabilities) {
-      console.log('web camera pipeline configured successfully')
+      console.log('@zoom onScannerInit', capabilities)
       this.trackCapabilities = capabilities;
     },
 
@@ -216,6 +231,11 @@ export default {
 
     // Consolidated Core Processing Framework with fixed array detection mapping
     async onQRDecode (content) {
+
+      const track = document.querySelector('video')?.srcObject?.getVideoTracks()[0];
+      console.log('@track', track)
+      console.log('@track', track.getSettings())
+      console.log('@track framerate', track.getCapabilities().frameRate)
       const vm = this
       
       // Correct data payload array block unboxing matching vue-qrcode-reader v4 specs
@@ -245,10 +265,20 @@ export default {
         const nostrMatch = String(value || '').match(/^(nostr:)?(npub1[a-z0-9]{58,})$/i)
 
         if (!isStreaming) {
-          vm.paused = true
-          await new Promise((resolve) => {
-            window.setTimeout(resolve, 250)
-          })
+          // vm.paused = true
+          // await new Promise((resolve) => {
+          //   window.setTimeout(resolve, 250)
+          // })
+
+          try {
+            vm.paused = true
+            await new Promise(resolve => setTimeout(resolve, 250))
+
+            // process QR here
+
+          } finally {
+            vm.paused = false
+          }
         }
 
         // Paytaca Explorer transaction URL mapping
@@ -374,37 +404,77 @@ export default {
       this.urDecoder = null;
       this.lastScannedContent = '';
     },
+    getCameraTrack () {
+  return document.querySelector('video')?.srcObject?.getVideoTracks?.()[0] || null
+},
 
     zoomIn () {
-      if (this.trackCapabilities && this.trackCapabilities.zoom) {
-        const zoom = this.trackCapabilities.zoom;
-        this.zoomLevel = Math.min(zoom.max, this.zoomLevel + this.zoomStep);
-        const track = document.querySelector('video')?.srcObject?.getVideoTracks()[0];
-        track?.applyConstraints({ advanced: [{ zoom: this.zoomLevel }] });
-      }
-    },
+  
+  const track = this.getCameraTrack()
+  const capabilities = track?.getCapabilities?.()
 
-    zoomOut () {
-      if (this.trackCapabilities && this.trackCapabilities.zoom) {
-        const zoom = this.trackCapabilities.zoom;
-        this.zoomLevel = Math.max(zoom.min, this.zoomLevel - this.zoomStep);
-        const track = document.querySelector('video')?.srcObject?.getVideoTracks()[0];
-        track?.applyConstraints({ advanced: [{ zoom: this.zoomLevel }] });
-      }
-    },
-    async toggleTorch () {
-      try {
-        this.torchOn = !this.torchOn
-        if (this.torchOn) {
-          await BarcodeScanner.enableTorch()
-        } else {
-          await BarcodeScanner.disableTorch()
-        }
-      } catch (err) {
-        console.error('Toggle torch failed:', err)
-        this.torchOn = false
-      }
-    },
+  console.log('@track', track)
+  console.log('@capabilities', capabilities)
+  console.log('@zoom', capabilities?.zoom)
+  console.log('@settings', track?.getSettings?.())
+  if (!track || !capabilities.zoom) return
+
+  this.zoomLevel = Math.min(
+    zoom.max,
+    this.zoomLevel + this.zoomStep
+  )
+
+  track.applyConstraints({
+    advanced: [{ zoom: this.zoomLevel }]
+  }).catch(err => {
+    console.log('@zoom err', err)
+    console.error('Zoom in failed:', err)
+  })
+},
+
+zoomOut () {
+  const track = this.getCameraTrack()
+  console.log('@zoom', track)
+  const capabilities = track?.getCapabilities?.()
+  console.log('@zoom', capabilities)
+  if (!track || !capabilities.zoom) return
+  this.zoomLevel = Math.max(
+    zoom.min,
+    this.zoomLevel - this.zoomStep
+  )
+
+  track.applyConstraints({
+    advanced: [{ zoom: this.zoomLevel }]
+  }).catch(err => {
+    console.log('@zoom err', err)
+    console.error('Zoom out failed:', err)
+  })
+},
+
+async toggleTorch () {
+  const track = this.getCameraTrack()
+  console.log('@zoom torch track', track)
+  if (!track) return
+
+  const capabilities = track.getCapabilities?.()
+
+  if (!capabilities?.torch) {
+    console.warn('Torch is not supported by this camera')
+    return
+  }
+
+  const newTorchState = !this.torchOn
+
+  try {
+    await track.applyConstraints({
+      advanced: [{ torch: newTorchState }]
+    })
+
+    this.torchOn = newTorchState
+  } catch (err) {
+    console.error('Toggle torch failed:', err)
+  }
+},
     async processSendPageRedirection (value) {
       // redirect to send page
       const vm = this
@@ -562,11 +632,11 @@ export default {
   z-index: -1 !important;
 }
 
-.qr-stream :deep(video) {
-  width: 100vw !important;
-  height: 100vh !important;
-  object-fit: cover !important;
-}
+// .qr-stream :deep(video) {
+//   width: 100vw !important;
+//   height: 100vh !important;
+//   object-fit: cover !important;
+// }
 
 .scanner-text {
   position: absolute;
