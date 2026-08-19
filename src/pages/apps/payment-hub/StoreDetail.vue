@@ -1126,7 +1126,7 @@ function createPlan() {
     try {
       $q.loading.show()
       await hub.value.createPlan(storeId.value, data)
-      queueRefresh('plans')
+      queueRefresh(false, 'plans')
       $q.notify({ type: 'positive', message: $t('PlanCreated') || 'Plan created successfully' })
     } catch (error) {
       $q.notify({ type: 'negative', message: $t('ErrorCreatingPlan') || 'Error creating plan' })
