@@ -608,7 +608,7 @@
 import { ref, computed, onMounted, onBeforeUnmount, watch } from 'vue'
 import { useRoute } from 'vue-router'
 import { useStore } from 'vuex'
-import { useQuasar, copyToClipboard, openURL } from 'quasar'
+import { useQuasar, copyToClipboard, openURL, debounce } from 'quasar'
 import { useI18n } from 'vue-i18n'
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 import HeaderNav from 'src/components/header-nav'
@@ -625,6 +625,7 @@ import { loadWallet } from 'src/wallet'
 import { SignatureTemplate, TransactionBuilder } from 'cashscript13'
 import { formatKitInput, formatKitOutput, getSubscriptionContractInstance } from 'src/wallet/payment-hub/cashscript-utils'
 import { createCancelSubscriptionTransaction } from 'src/wallet/payment-hub/services'
+import { paymentHubWebsocketManager } from 'src/wallet/payment-hub/websocket'
 
 const $route = useRoute()
 const $store = useStore()
@@ -655,6 +656,7 @@ const hasNextPlansPage = ref(false)
 const subscriptionsPage = ref(1)
 const hasNextSubscriptionsPage = ref(false)
 const invoiceListRef = ref(null)
+let webSocketInitialized = false
 
 // Invoice Filter & Search state
 const invoiceStatusFilter = ref([])
@@ -733,7 +735,7 @@ function setOrdering(field) {
   localStorage.setItem('paytaca_hub_keys_orderBy', orderBy.value)
   localStorage.setItem('paytaca_hub_keys_orderDir', orderDir.value)
 
-  refreshPage()
+  queueRefresh(false, 'api-keys')
 }
 
 /**
@@ -741,9 +743,7 @@ function setOrdering(field) {
  */
 function onSearch() {
   if (searchTimeout) clearTimeout(searchTimeout)
-  searchTimeout = setTimeout(() => {
-    refreshPage()
-  }, 500)
+  queueRefresh(false, 'api-keys')
 }
 
 const filteredApiKeys = computed(() => {
@@ -756,15 +756,10 @@ const filteredApiKeys = computed(() => {
 
 onMounted(() => {
   refreshPage()
-  pollingInterval = setInterval(() => {
-    if (keysPage.value === 1) {
-      refreshPage(undefined, true)
-    }
-  }, 20000)
 })
 
 onBeforeUnmount(() => {
-  if (pollingInterval) clearInterval(pollingInterval)
+  closeWebSocket();
 })
 
 /**
@@ -783,55 +778,100 @@ async function initHub(isBackground = false) {
     if (!hub.value) {
       hub.value = new PaymentHub(wallet.value)
     }
+
+    initWebSocket();
     return hub.value
   } finally {
     if (!isBackground) $q.loading.hide()
   }
 }
 
+const webSocketEventHandler = (data) => {
+  console.log('payment-hub-update', data);
+  if (!data || !data.store_id || !_compareUUID(data.store_id, storeId.value)) return
+
+  if (data?.type === 'store') queueRefresh(true, 'store');
+  if (data?.type === 'invoice') queueRefresh(true, 'invoices');
+  if (data?.type === 'subscription') queueRefresh(true, 'subscriptions');
+  if (data?.type === 'plan') queueRefresh(true, 'plans');
+  if (data?.type === 'api-key') queueRefresh(true, 'api-keys');
+  if (data?.type === 'webhook') queueRefresh(true, 'webhook');
+}
+function initWebSocket() {
+  if (webSocketInitialized) return
+
+  paymentHubWebsocketManager.aquire(wallet.value).then((websocket) => {
+    console.log('PaymentHub WebSocket', websocket)
+  })
+  paymentHubWebsocketManager.addListener(webSocketEventHandler);
+
+  webSocketInitialized = true
+}
+
+function closeWebSocket() {
+  paymentHubWebsocketManager.release(); 
+  paymentHubWebsocketManager.removeListener(webSocketEventHandler);
+  webSocketInitialized = false
+}
+
+
 /**
  * Main refresh function.
  */
-async function refreshPage(done, isBackground = false) {
+async function refreshPage(done, isBackground = false, scopes='all') {
+  console.log('Refreshing page', { isBackground, scopes });
   if (!isBackground) {
     fetchingData.value = true
     keysPage.value = 1
   }
   try {
     const paymentHub = await initHub(isBackground)
+    if (scopes !== 'all' && !Array.isArray(scopes)) scopes = [];
 
     // Fetch full store metadata
-    storeData.value = await paymentHub.getStore(storeId.value)
+    if (scopes === 'all' || scopes.includes('store')) {
+      storeData.value = await paymentHub.getStore(storeId.value)
+    }
 
-    // Construct ordering string
-    const ordering = (orderDir.value === 'desc' ? '-' : '') + orderBy.value
-
-    // Fetch API keys (Page 1)
-    const data = await paymentHub.listApiKeys(storeId.value, {
-      page: 1,
-      ordering: ordering,
-      search: searchQuery.value || undefined
-    })
-    apiKeys.value = data.results || []
-    hasNextKeysPage.value = !!data.next
+    if (scopes === 'all' || scopes.includes('api-keys')) {
+      // Construct ordering string
+      const ordering = (orderDir.value === 'desc' ? '-' : '') + orderBy.value
+  
+      // Fetch API keys (Page 1)
+      const data = await paymentHub.listApiKeys(storeId.value, {
+        page: 1,
+        ordering: ordering,
+        search: searchQuery.value || undefined
+      })
+      apiKeys.value = data.results || []
+      hasNextKeysPage.value = !!data.next
+    }
 
     // Fetch Plans (Page 1)
-    const plansData = await paymentHub.listPlans(storeId.value, { page: 1 })
-    plans.value = plansData.results || []
-    hasNextPlansPage.value = !!plansData.next
+    if (scopes === 'all' || scopes.includes('plans')) {
+      const plansData = await paymentHub.listPlans(storeId.value, { page: 1 })
+      plans.value = plansData.results || []
+      hasNextPlansPage.value = !!plansData.next
+    }
 
     // Fetch Subscriptions (Page 1)
-    const subsData = await paymentHub.listSubscriptions({ store_id: storeId.value, page: 1 })
-    subscriptions.value = subsData.results || []
-    hasNextSubscriptionsPage.value = !!subsData.next
-
-    // Fetch Webhook Public Key
-    const keyData = await paymentHub.getWebhookPublicKey(storeId.value).catch(() => null)
-    webhookPublicKey.value = keyData?.public_key || ''
+    if (scopes === 'all' || scopes.includes('subscriptions')) {
+      const subsData = await paymentHub.listSubscriptions({ store_id: storeId.value, page: 1 })
+      subscriptions.value = subsData.results || []
+      hasNextSubscriptionsPage.value = !!subsData.next
+    }
 
     // Refresh invoices list
-    if (invoiceListRef.value && !isBackground) {
-      invoiceListRef.value.refreshList()
+    if (scopes === 'all' || scopes.includes('invoices')) {
+      if (invoiceListRef.value && !isBackground) {
+        invoiceListRef.value.refreshList()
+      }
+    }
+
+    // Fetch Webhook Public Key
+    if (scopes === 'all' || scopes.includes('webhook')) {
+      const keyData = await paymentHub.getWebhookPublicKey(storeId.value).catch(() => null)
+      webhookPublicKey.value = keyData?.public_key || ''
     }
   } catch (error) {
     console.error('Error fetching store details:', error)
@@ -839,6 +879,28 @@ async function refreshPage(done, isBackground = false) {
     if (!isBackground) fetchingData.value = false
     if (typeof done === 'function') done()
   }
+}
+
+const debouncedRefreshPage = debounce((...args) => refreshPage(...args), 1000);
+const queuedRefresh = ref({ scopes: [], isBackground: true });
+function queueRefresh(isBackground, scope = '') {
+  console.log('Queueing refresh', scope);
+  if (scope === 'all') {
+    queuedRefresh.value.scopes = 'all';
+  } else if (queuedRefresh.value.scopes !== 'all') {
+    if (!Array.isArray(queuedRefresh.value.scopes)) queuedRefresh.value.scopes = [];
+    if (!queuedRefresh.value.scopes.includes(scope)) {
+      queuedRefresh.value.scopes.push(scope);
+    }
+  }
+  queuedRefresh.value.isBackground = queuedRefresh.value.isBackground && isBackground;
+
+  const onComplete = () => {
+    queuedRefresh.value.scopes = []
+    queuedRefresh.value.isBackground = true
+  }
+
+  debouncedRefreshPage(onComplete, queuedRefresh.value.isBackground, queuedRefresh.value.scopes);
 }
 
 /**
@@ -982,7 +1044,7 @@ function editStore() {
     try {
       $q.loading.show()
       await hub.value.updateStore(storeId.value, data)
-      await refreshPage()
+      queueRefresh(false, 'store')
       $q.notify({ type: 'positive', message: $t('StoreUpdated') })
     } catch (error) {
       $q.notify({ type: 'negative', message: $t('ErrorUpdatingStore') })
@@ -1039,7 +1101,7 @@ function createApiKey() {
         class: `br-15 pt-card-2 text-bow ${getDarkModeClass(darkMode.value)}`
       }).onOk(() => {
         copyToClipboard(secret)
-        refreshPage()
+        queueRefresh(false, 'api-keys')
       })
     } catch (error) {
       $q.notify({ type: 'negative', message: $t('ErrorGeneratingKey') })
@@ -1060,7 +1122,7 @@ function revokeKey(key) {
     try {
       $q.loading.show()
       await hub.value.revokeApiKey(key.id)
-      await refreshPage()
+      queueRefresh(false, 'api-keys')
     } catch (error) {
       $q.notify({ type: 'negative', message: $t('ErrorRevokingKey') })
     } finally {
@@ -1102,7 +1164,7 @@ function createPlan() {
     try {
       $q.loading.show()
       await hub.value.createPlan(storeId.value, data)
-      await refreshPage()
+      queueRefresh('plans')
       $q.notify({ type: 'positive', message: $t('PlanCreated') || 'Plan created successfully' })
     } catch (error) {
       $q.notify({ type: 'negative', message: $t('ErrorCreatingPlan') || 'Error creating plan' })
@@ -1123,7 +1185,7 @@ function deactivatePlan(plan) {
     try {
       $q.loading.show()
       await hub.value.deactivatePlan(plan.id)
-      await refreshPage()
+      queueRefresh(false, 'plans')
       $q.notify({ type: 'positive', message: 'Plan deactivated successfully' })
     } catch (error) {
       $q.notify({ type: 'negative', message: $t('ErrorDeactivatingPlan') || 'Error deactivating plan' })
@@ -1225,7 +1287,7 @@ async function updateSubscriptionNft(sub, data) {
     $q.loading.show({ message: 'Submitting update...' })
     await hub.value.submitSubscriptionUpdate(sub.id, rawTx, data)
 
-    await refreshPage()
+    queueRefresh(false, 'subscriptions')
     $q.notify({ type: 'positive', message: $t('SubscriptionUpdated') || 'Subscription updated successfully' })
 
   } catch (error) {
@@ -1261,7 +1323,7 @@ async function cancelSubscription(sub) {
       $q.loading.show({ message: 'Submitting cancellation...' })
       await hub.value.submitSubscriptionCancel(sub.id, rawTx, true)
 
-      await refreshPage()
+      queueRefresh(false, 'subscriptions')
       $q.notify({ type: 'positive', message: $t('SubscriptionCancelled') || 'Subscription cancelled successfully' })
     } catch (error) {
       console.error(error)
@@ -1271,6 +1333,13 @@ async function cancelSubscription(sub) {
       $q.loading.hide()
     }
   })
+}
+
+function _compareUUID(uuid1, uuid2) {
+  if (typeof uuid1 == 'string' && typeof uuid2 === 'string')  {
+    return uuid1.replaceAll('-', '') === uuid2.replaceAll('-', '');
+  }
+  return uuid1 === uuid2
 }
 </script>
 

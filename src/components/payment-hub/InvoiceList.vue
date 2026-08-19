@@ -125,24 +125,17 @@ const currentPage = ref(1)
 const hasNextPage = ref(false)
 const hub = ref(null)
 
-let pollingInterval = null
 let expirationCheckInterval = null
 
 onMounted(async () => {
   await initHub()
   refreshList()
-  pollingInterval = setInterval(() => {
-    if (currentPage.value === 1 && !props.searchQuery) {
-      refreshList(true)
-    }
-  }, 15000)
   
   // Local timer to automatically mark pending invoices as expired
   expirationCheckInterval = setInterval(checkExpirations, 5000)
 })
 
 onBeforeUnmount(() => {
-  if (pollingInterval) clearInterval(pollingInterval)
   if (expirationCheckInterval) clearInterval(expirationCheckInterval)
 })
 
