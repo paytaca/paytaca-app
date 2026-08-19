@@ -128,7 +128,6 @@ const props = defineProps({
 })
 
 const paddedPosId = computed(() => padPosId(props.posid))
-const walletData = computed(() => $store.getters['global/getWallet']('bch'))
 
 const generatingLinkCode = ref(false)
 const linkCode = computed(() => {
