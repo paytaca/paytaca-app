@@ -40,7 +40,7 @@
 </template>
 <script>
 import QrScanner from 'src/components/qr-scanner.vue'
-import { computed, ref, onMounted } from 'vue'
+import { computed, ref, onMounted, watch } from 'vue'
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils';
 import { useStore } from 'vuex';
 import { useI18n } from 'vue-i18n';
@@ -61,6 +61,7 @@ export default {
         const showDialog = ref(false)
         const encryptionPublicKey = ref("")
         const showQrScanner = ref(false)
+        const isScanning = ref(false)
         const $store = useStore()
         const { t: $t } = useI18n()
 
@@ -82,6 +83,8 @@ export default {
         }
 
         const scanPosEncryptionPublicKey = () => {
+            isScanning.value = true
+            showDialog.value = false
             showQrScanner.value = true
         }
 
@@ -89,7 +92,15 @@ export default {
             emit('submit', encryptionPublicKey.value)
         }
 
+        watch(showQrScanner, (val) => {
+            if (!val && isScanning.value) {
+                isScanning.value = false
+                showDialog.value = true
+            }
+        })
+
         const onDialogHide = () => {
+            if (isScanning.value) return
             emit('close')
         }
 
