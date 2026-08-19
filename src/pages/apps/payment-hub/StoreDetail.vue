@@ -618,14 +618,13 @@ import PlanFormDialog from 'src/components/payment-hub/PlanFormDialog.vue'
 import PlanDetailDialog from 'src/components/payment-hub/PlanDetailDialog.vue'
 import SubscriptionDetailDialog from 'src/components/payment-hub/SubscriptionDetailDialog.vue'
 import InvoiceList from 'src/components/payment-hub/InvoiceList.vue'
-import { DISPLAY_SUBS_APP, PaymentHub } from 'src/wallet/payment-hub'
-import { loadWallet } from 'src/wallet'
+import { DISPLAY_SUBS_APP } from 'src/wallet/payment-hub'
+import { usePaymentHubCore } from 'src/composables/payment-hub/usePaymentHub'
 
 
 import { SignatureTemplate, TransactionBuilder } from 'cashscript13'
 import { formatKitInput, formatKitOutput, getSubscriptionContractInstance } from 'src/wallet/payment-hub/cashscript-utils'
 import { createCancelSubscriptionTransaction } from 'src/wallet/payment-hub/services'
-import { paymentHubWebsocketManager } from 'src/wallet/payment-hub/websocket'
 
 const $route = useRoute()
 const $store = useStore()
@@ -638,9 +637,9 @@ const storeName = computed(() => $route.query.name)
 
 const displaySubs = ref(DISPLAY_SUBS_APP);
 
+const { wallet, hub, initHub, initWebSocket, closeWebSocket, _compareUUID } = usePaymentHubCore()
+
 // Core state
-const wallet = ref(null)
-const hub = ref(null)
 const storeData = ref(null)
 const apiKeys = ref([])
 const plans = ref([])
@@ -656,7 +655,6 @@ const hasNextPlansPage = ref(false)
 const subscriptionsPage = ref(1)
 const hasNextSubscriptionsPage = ref(false)
 const invoiceListRef = ref(null)
-let webSocketInitialized = false
 
 // Invoice Filter & Search state
 const invoiceStatusFilter = ref([])
@@ -759,32 +757,8 @@ onMounted(() => {
 })
 
 onBeforeUnmount(() => {
-  closeWebSocket();
+  closeWebSocket(webSocketEventHandler)
 })
-
-/**
- * Initializes the Hub interface for this specific store view.
- */
-async function initHub(isBackground = false) {
-  if (!isBackground) {
-    $q.loading.show({
-      message: $t('ConnectingToPaymentHub')
-    })
-  }
-  try {
-    if (!wallet.value) {
-      wallet.value = await loadWallet('BCH', $store.getters['global/getWalletIndex'])
-    }
-    if (!hub.value) {
-      hub.value = new PaymentHub(wallet.value)
-    }
-
-    initWebSocket();
-    return hub.value
-  } finally {
-    if (!isBackground) $q.loading.hide()
-  }
-}
 
 const webSocketEventHandler = (data) => {
   console.log('payment-hub-update', data);
@@ -797,23 +771,6 @@ const webSocketEventHandler = (data) => {
   if (data?.type === 'api-key') queueRefresh(true, 'api-keys');
   if (data?.type === 'webhook') queueRefresh(true, 'webhook');
 }
-function initWebSocket() {
-  if (webSocketInitialized) return
-
-  paymentHubWebsocketManager.aquire(wallet.value).then((websocket) => {
-    console.log('PaymentHub WebSocket', websocket)
-  })
-  paymentHubWebsocketManager.addListener(webSocketEventHandler);
-
-  webSocketInitialized = true
-}
-
-function closeWebSocket() {
-  paymentHubWebsocketManager.release(); 
-  paymentHubWebsocketManager.removeListener(webSocketEventHandler);
-  webSocketInitialized = false
-}
-
 
 /**
  * Main refresh function.
@@ -825,7 +782,12 @@ async function refreshPage(done, isBackground = false, scopes='all') {
     keysPage.value = 1
   }
   try {
-    const paymentHub = await initHub(isBackground)
+    const paymentHub = await initHub({
+      isBackground,
+      autoRegister: false,
+      loadingMessage: $t('ConnectingToPaymentHub')
+    })
+    initWebSocket(webSocketEventHandler)
     if (scopes !== 'all' && !Array.isArray(scopes)) scopes = [];
 
     // Fetch full store metadata
@@ -1335,12 +1297,6 @@ async function cancelSubscription(sub) {
   })
 }
 
-function _compareUUID(uuid1, uuid2) {
-  if (typeof uuid1 == 'string' && typeof uuid2 === 'string')  {
-    return uuid1.replaceAll('-', '') === uuid2.replaceAll('-', '');
-  }
-  return uuid1 === uuid2
-}
 </script>
 
 <style lang="scss" scoped>

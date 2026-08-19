@@ -214,9 +214,7 @@ import { useI18n } from 'vue-i18n'
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 import HeaderNav from 'src/components/header-nav'
 import StoreInfoDialog from 'src/components/payment-hub/StoreInfoDialog.vue'
-import { PaymentHub } from 'src/wallet/payment-hub'
-import { loadWallet } from 'src/wallet'
-import { paymentHubWebsocketManager } from 'src/wallet/payment-hub/websocket'
+import { usePaymentHubCore } from 'src/composables/payment-hub/usePaymentHub'
 
 const $store = useStore()
 const $router = useRouter()
@@ -225,9 +223,9 @@ const { t: $t } = useI18n()
 
 const darkMode = computed(() => $store.getters['darkmode/getStatus'])
 
+const { hub, initHub, initWebSocket, closeWebSocket, _compareUUID } = usePaymentHubCore()
+
 // Core state
-const wallet = ref(null)
-const hub = ref(null)
 const hubWalletData = ref(null)
 const storesList = ref([])
 const fetchingStores = ref(false)
@@ -239,14 +237,13 @@ const searchQuery = ref('')
 const orderBy = ref(localStorage.getItem('paytaca_hub_stores_orderBy') || 'date_created')
 const orderDir = ref(localStorage.getItem('paytaca_hub_stores_orderDir') || 'desc')
 let searchTimeout = null
-let webSocketInitialized = false
 
 onMounted(() => {
   refreshPage()
 })
 
 onBeforeUnmount(() => {
-  closeWebSocket();
+  closeWebSocket(webSocketEventHandler)
 })
 
 /**
@@ -259,11 +256,11 @@ function setOrdering(field) {
     orderBy.value = field
     orderDir.value = field === 'date_created' ? 'desc' : 'asc'
   }
-  
+
   // Persist sorting preferences
   localStorage.setItem('paytaca_hub_stores_orderBy', orderBy.value)
   localStorage.setItem('paytaca_hub_stores_orderDir', orderDir.value)
-  
+
   refreshPage()
 }
 
@@ -275,44 +272,6 @@ function onSearch() {
   searchTimeout = setTimeout(() => {
     refreshPage()
   }, 500)
-}
-
-/**
- * Initializes the wallet and Payment Hub interface.
- */
-async function initHub(isBackground = false) {
-  if (!isBackground) {
-    $q.loading.show({
-      message: $t('ConnectingToPaymentHub')
-    })
-  }
-  try {
-    if (!wallet.value) {
-      wallet.value = await loadWallet('BCH', $store.getters['global/getWalletIndex'])
-    }
-    
-    if (!hub.value) {
-      hub.value = new PaymentHub(wallet.value)
-    }
-
-    if (!hubWalletData.value) {
-      // Check if wallet is already registered on the hub
-      let registration = await hub.value.checkRegistration()
-      
-      // Auto-register if not found
-      if (!registration) {
-        console.log('Wallet not registered on Payment Hub. Registering now...')
-        registration = await hub.value.registerWallet()
-      }
-      
-      hubWalletData.value = registration
-    }
-
-    initWebSocket();
-    return hub.value
-  } finally {
-    if (!isBackground) $q.loading.hide()
-  }
 }
 
 const webSocketEventHandler = (data) => {
@@ -329,22 +288,6 @@ const webSocketEventHandler = (data) => {
     debouncedRefreshPage(() => {}, true);
   }
 }
-function initWebSocket() {
-  if (webSocketInitialized) return
-
-  paymentHubWebsocketManager.aquire(wallet.value).then((websocket) => {
-    console.log('PaymentHub WebSocket', websocket)
-  })
-  paymentHubWebsocketManager.addListener(webSocketEventHandler);
-
-  webSocketInitialized = true
-}
-
-function closeWebSocket() {
-  paymentHubWebsocketManager.release(); 
-  paymentHubWebsocketManager.removeListener(webSocketEventHandler);
-  webSocketInitialized = false
-}
 
 /**
  * Main refresh function.
@@ -355,8 +298,12 @@ async function refreshPage(done, isBackground = false) {
     currentPage.value = 1
   }
   try {
-    const paymentHub = await initHub(isBackground)
-    
+    const paymentHub = await initHub({ isBackground, loadingMessage: $t('ConnectingToPaymentHub') })
+    if (!hubWalletData.value && paymentHub.walletData) {
+      hubWalletData.value = paymentHub.walletData
+    }
+    initWebSocket(webSocketEventHandler)
+
     // Construct ordering string
     const ordering = (orderDir.value === 'desc' ? '-' : '') + orderBy.value
 
@@ -512,13 +459,6 @@ function confirmDeleteStore(store) {
   })
 }
 
-
-function _compareUUID(uuid1, uuid2) {
-  if (typeof uuid1 == 'string' && typeof uuid2 === 'string')  {
-    return uuid1.replaceAll('-', '') === uuid2.replaceAll('-', '');
-  }
-  return uuid1 === uuid2
-}
 </script>
 
 <style lang="scss" scoped>

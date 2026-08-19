@@ -181,13 +181,12 @@
 </template>
 
 <script setup>
+import { usePaymentHubCore } from 'src/composables/payment-hub/usePaymentHub.js'
 import { serializeSchemaFields } from 'src/components/jsonforms/jsonform-utils'
 import { ref, computed, onMounted, watch } from 'vue'
 import { useDialogPluginComponent, copyToClipboard, useQuasar } from 'quasar'
 import { useStore } from 'vuex'
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
-import { loadWallet } from 'src/wallet'
-import { PaymentHub } from 'src/wallet/payment-hub/index.js'
 import { date, openURL } from 'quasar'
 import { useI18n } from 'vue-i18n'
 import InvoiceDetailDialog from './InvoiceDetailDialog.vue'
@@ -232,20 +231,13 @@ const hasSubscriptionForm = computed(() => {
 const invoices = ref([])
 const loadingInvoices = ref(false)
 
-let hub = null
-
-async function initHub() {
-  const wallet = await loadWallet('BCH', $store.getters['global/getWalletIndex'])
-  if (!wallet) throw new Error('Wallet not found')
-  if (!hub) hub = new PaymentHub(wallet)
-  return hub
-}
+const { hub, initHub } = usePaymentHubCore();
 
 async function fetchPlan() {
   loading.value = true
   error.value = ''
   try {
-    const paymentHub = await initHub()
+    const paymentHub = await initHub({ isBackground: true, autoRegister: false })
     plan.value = await paymentHub.getPlan(props.planId)
   } catch (err) {
     console.error('Error fetching plan:', err)

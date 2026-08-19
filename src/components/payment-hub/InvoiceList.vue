@@ -87,9 +87,8 @@ import { ref, computed, onMounted, onBeforeUnmount, watch } from 'vue'
 import { useStore } from 'vuex'
 import { useQuasar } from 'quasar'
 import ago from 's-ago'
+import { usePaymentHubCore } from 'src/composables/payment-hub/usePaymentHub.js'
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
-import { PaymentHub } from 'src/wallet/payment-hub/index.js'
-import { loadWallet } from 'src/wallet'
 import InvoiceDetailDialog from './InvoiceDetailDialog.vue'
 
 const props = defineProps({
@@ -118,17 +117,18 @@ const $q = useQuasar()
 const darkMode = computed(() => $store.getters['darkmode/getStatus'])
 const isChipnet = computed(() => $store.getters['global/isChipnet'])
 
+const { hub, initHub } = usePaymentHubCore()
+
 // API State
 const invoices = ref([])
 const loading = ref(false)
 const currentPage = ref(1)
 const hasNextPage = ref(false)
-const hub = ref(null)
 
 let expirationCheckInterval = null
 
 onMounted(async () => {
-  await initHub()
+  await initHub({ isBackground: true, autoRegister: false })
   refreshList()
   
   // Local timer to automatically mark pending invoices as expired
@@ -173,12 +173,6 @@ function checkExpirations() {
       refreshList(true)
     }, 2000)
   }
-}
-
-async function initHub() {
-  const walletIndex = $store.getters['global/getWalletIndex']
-  const wallet = await loadWallet('BCH', walletIndex)
-  hub.value = new PaymentHub(wallet)
 }
 
 async function refreshList(isBackground = false) {

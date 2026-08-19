@@ -173,8 +173,7 @@ import HeaderNav from 'src/components/header-nav'
 import SubscribeDialog from 'src/components/payment-hub/SubscribeDialog.vue'
 import TopUpDialog from 'src/components/payment-hub/TopUpDialog.vue'
 import SubscriptionDetailDialog from 'src/components/payment-hub/SubscriptionDetailDialog.vue'
-import { PaymentHub } from 'src/wallet/payment-hub'
-import { loadWallet } from 'src/wallet'
+import { usePaymentHubCore } from 'src/composables/payment-hub/usePaymentHub'
 
 // Add imports for subscription cancelling signing logic
 import { createCancelSubscriptionTransaction } from 'src/wallet/payment-hub/services'
@@ -193,8 +192,8 @@ const { t: $t } = useI18n()
 
 const darkMode = computed(() => $store.getters['darkmode/getStatus'])
 
-const wallet = ref(null)
-const hub = ref(null)
+const { wallet, hub, initHub } = usePaymentHubCore()
+
 const subscriptions = ref([])
 const fetchingData = ref(false)
 const subscriptionsPage = ref(1)
@@ -229,33 +228,11 @@ function topUp(sub) {
   }
 }
 
-async function initHub() {
-  try {
-    if (!wallet.value) {
-      wallet.value = await loadWallet('BCH', $store.getters['global/getWalletIndex'])
-    }
-    if (!hub.value) {
-      hub.value = new PaymentHub(wallet.value)
-    }
-
-    let registration = await hub.value.checkRegistration()
-    if (!registration) {
-      console.log('Wallet not registered on Payment Hub. Registering now...')
-      registration = await hub.value.registerWallet()
-    }
-
-    return hub.value
-  } catch (error) {
-    console.error('Failed to init hub:', error)
-    throw error
-  }
-}
-
 async function refreshPage(done = null, showLoading = true) {
   if (showLoading) fetchingData.value = true
   subscriptionsPage.value = 1
   try {
-    const paymentHub = await initHub()
+    const paymentHub = await initHub({ isBackground: true })
     const subsData = await paymentHub.listSubscriptions({
       page: 1,
       customer: true,
