@@ -163,10 +163,10 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, onBeforeUnmount } from 'vue'
 import { useStore } from 'vuex'
 import { useRouter } from 'vue-router'
-import { useQuasar } from 'quasar'
+import { debounce, useQuasar } from 'quasar'
 import { useI18n } from 'vue-i18n'
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 import HeaderNav from 'src/components/header-nav'
@@ -192,7 +192,7 @@ const { t: $t } = useI18n()
 
 const darkMode = computed(() => $store.getters['darkmode/getStatus'])
 
-const { wallet, hub, initHub } = usePaymentHubCore()
+const { wallet, hub, initHub, initWebSocket, closeWebSocket, _compareUUID } = usePaymentHubCore()
 
 const subscriptions = ref([])
 const fetchingData = ref(false)
@@ -202,7 +202,6 @@ const hasNextSubscriptionsPage = ref(false)
 const searchQuery = ref('')
 const statusFilter = ref('ALL')
 const statusOptions = ['ALL', 'ACTIVE', 'PENDING', 'CANCELLED', 'TERMINATED']
-let searchTimeout = null
 
 onMounted(() => {
   if (props.plan) {
@@ -211,12 +210,12 @@ onMounted(() => {
 
   refreshPage()
 })
+onBeforeUnmount(() => {
+  closeWebSocket()
+})
 
 function onSearch() {
-  if (searchTimeout) clearTimeout(searchTimeout)
-  searchTimeout = setTimeout(() => {
-    refreshPage()
-  }, 500)
+  debouncedRefreshPage()
 }
 
 function topUp(sub) {
@@ -228,11 +227,23 @@ function topUp(sub) {
   }
 }
 
+const webSocketEventHandler = (data) => {
+  console.log('payment-hub-update', data);
+  if (data?.type !== 'subscription' || data?.context !== 'subscriber') return
+
+  let refetchSingle = false;
+  if (['paid', 'balance', 'update-nft', 'top-up'].includes(data?.action)) refetchSingle = true
+
+  if (refetchSingle) refetchSubscription(data?.subscription_id)
+  else debouncedRefreshPage(() => {}, false) 
+}
+
 async function refreshPage(done = null, showLoading = true) {
   if (showLoading) fetchingData.value = true
   subscriptionsPage.value = 1
   try {
     const paymentHub = await initHub({ isBackground: true })
+    initWebSocket(webSocketEventHandler);
     const subsData = await paymentHub.listSubscriptions({
       page: 1,
       customer: true,
@@ -249,6 +260,7 @@ async function refreshPage(done = null, showLoading = true) {
     if (typeof done === 'function') done()
   }
 }
+const debouncedRefreshPage = debounce(refreshPage, 1000);
 
 async function onLoadMoreSubscriptions(index, done) {
   if (!hasNextSubscriptionsPage.value || fetchingData.value) {
@@ -273,6 +285,16 @@ async function onLoadMoreSubscriptions(index, done) {
   } finally {
     done()
   }
+}
+
+async function refetchSubscription(subId) {
+  if (!subId) return
+
+  const sub = await hub.value.getSubscription(subId, { customer: true })
+  if (!sub?.id) return
+
+  const index = subscriptions.value.findIndex(_sub => _compareUUID(_sub?.id, sub?.id));
+  if (index >= 0) subscriptions.value[index] = sub
 }
 
 function openDetail(sub) {
