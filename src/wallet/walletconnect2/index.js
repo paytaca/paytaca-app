@@ -338,15 +338,20 @@ export function parseSessionRequest(sessionRequest) {
       return output
     }
 
-    parsedTx?.outputs?.forEach?.(populateOutputAddress)
-    parsedParams?.sourceOutputs?.forEach?.(populateOutputAddress)?.forEach(unpackSourceOutput)
+    try {
+      parsedTx?.outputs?.forEach?.(populateOutputAddress)
+      parsedParams?.sourceOutputs?.forEach?.(populateOutputAddress)
+      parsedParams?.sourceOutputs?.forEach?.(unpackSourceOutput)
 
-    parsedTx?.inputs?.forEach?.(input => {
-      input.sourceOutput = parsedParams?.sourceOutputs?.find?.(output => {
-        return binToHex(input?.outpointTransactionHash) == binToHex(output?.outpointTransactionHash) &&
-          input?.outpointIndex == output?.outpointIndex
+      parsedTx?.inputs?.forEach?.(input => {
+        input.sourceOutput = parsedParams?.sourceOutputs?.find?.(output => {
+          return binToHex(input?.outpointTransactionHash) == binToHex(output?.outpointTransactionHash) &&
+            input?.outpointIndex == output?.outpointIndex
+        })
       })
-    })
+    } catch (error) {
+      console.error('Failed to enrich session request:', error)
+    }
 
     parsedSessionRequest.params.request.params = parsedParams
   }
