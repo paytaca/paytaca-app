@@ -200,9 +200,9 @@ const currencyOptions = [
 ]
 
 const form = reactive({
-  name: 'Plan A',
+  name: '',
   description: '',
-  amount: 1,
+  amount: 0,
   currency: 'PHP',
   period_value: 30,
   period_type: 'days',
