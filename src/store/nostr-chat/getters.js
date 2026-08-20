@@ -113,6 +113,13 @@ export function getRoomByContact (state, getters) {
   }
 }
 
+export function getMlsPendingInvitations (state) {
+  const ws = getWalletState(state)
+  const invites = ws.mls?.pendingInvitations
+  if (!invites) return []
+  return Object.values(invites).sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0))
+}
+
 export function getRoomByMember (state) {
   const ws = getWalletState(state)
   return (memberPubKeyHex) => {

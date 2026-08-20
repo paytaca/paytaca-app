@@ -106,6 +106,19 @@ export function disconnect() {
   _subscriptionCallbacks = null
   _statusBackoff = 1
   _seenEventIds.clear()
+
+  for (const sub of _mlsSubs) {
+    try { sub.close() } catch (_) {}
+  }
+  _mlsSubs = []
+  if (_mlsResubInterval) {
+    clearInterval(_mlsResubInterval)
+    _mlsResubInterval = null
+  }
+  _mlsSubscribedRelays = []
+  _mlsSubscribedPubKey = null
+  _mlsSubscriptionCallbacks = null
+  _mlsSeenEventIds.clear()
 }
 
 /**
@@ -748,21 +761,51 @@ export async function fetchMlsHistory(relays, myPubKey, callbacks = {}) {
 export async function fetchMlsKeyPackage(relays, pubKey) {
   const pool = getPool()
   try {
-    console.log('[MLS] fetchMlsKeyPackage relays:', JSON.stringify(relays), 'pubKey:', pubKey?.slice(0, 16))
     const events = await pool.querySync(relays, {
       kinds: [30078],
       authors: [pubKey],
       '#d': ['paytaca:mls-kp'],
-      limit: 1,
     })
-    console.log('[MLS] fetchMlsKeyPackage events:', events?.length)
     if (events && events.length > 0) {
-      return events.reduce((newest, e) => e.created_at > newest.created_at ? e : newest)
+      return events.sort((a, b) => b.created_at - a.created_at)
     }
-    return null
+    return []
   } catch (err) {
     console.warn('[MLS] Failed to fetch KeyPackage for', pubKey?.slice(0, 16), 'error:', err.message)
-    return null
+    return []
+  }
+}
+
+/**
+ * Fetch MLS welcome events (MLS kind 30119, published as kind 30078) that the
+ * given author sent to a specific member. Used to clean up stale welcomes on
+ * re-invite.
+ * @param {string[]} relays
+ * @param {string} authorPubKey - Hex pubkey of the welcome sender
+ * @param {string} memberPubKey - Hex pubkey of the invited member
+ * @returns {Promise<import('nostr-tools').NostrEvent[]>}
+ */
+export async function fetchMlsWelcomeEvents(relays, authorPubKey, memberPubKey) {
+  const pool = getPool()
+  try {
+    const events = await pool.querySync(relays, {
+      kinds: [30078],
+      authors: [authorPubKey],
+      '#p': [memberPubKey],
+      limit: 100,
+    })
+    // Keep only welcome envelopes (data.mlsKind === 30119).
+    return (events || []).filter(event => {
+      try {
+        const parsed = JSON.parse(event.content)
+        return parsed?.data?.mlsKind === 30119
+      } catch {
+        return false
+      }
+    })
+  } catch (err) {
+    console.warn('[MLS] Failed to fetch welcome events:', err.message)
+    return []
   }
 }
 

@@ -4,6 +4,12 @@ import { deriveMlsKeys, deriveMlsHpkeIkms } from 'src/wallet/mls'
 import * as relayService from 'src/services/nostr-chat'
 import * as mls from 'src/services/mls'
 import { Store } from 'src/store'
+import {
+  syncRoomToServer,
+  updateRoomOnServer,
+  touchRoomOnServer,
+  deleteRoomOnServer,
+} from './actions.js'
 
 const MAX_MLS_MEMBERS = 50
 
@@ -89,6 +95,17 @@ export async function initMls({ commit, state, dispatch }) {
   const hpkeIkms = deriveMlsHpkeIkms(mnemonic)
   const nostrPubkeyHex = ws.keys.pubKeyHex
 
+  // Preserve the current relay KeyPackage in local history before publishing a
+  // new one. The relay only keeps the latest (replaceable d-tag), so when we
+  // overwrite it the old ref is lost. Storing it locally lets joinMlsGroup
+  // fall back to the exact KeyPackage the inviter committed to the tree.
+  try {
+    const currentKpEvents = await relayService.fetchMlsKeyPackage(state.relays, nostrPubkeyHex)
+    for (const e of currentKpEvents) {
+      commit('PUSH_MLS_KP_HISTORY', { content: e.content, publishedAt: e.created_at })
+    }
+  } catch {}
+
   const { publicPackage } = await mls.generateMlsKeyPackage(
     { publicKey: mlsKeys.publicKey, privateKey: mlsKeys.privateKey },
     nostrPubkeyHex,
@@ -98,6 +115,8 @@ export async function initMls({ commit, state, dispatch }) {
   const unsignedEvent = mls.buildMlsKeyPackageEvent(publicPackage, nostrPubkeyHex)
   const signedEvent = finalizeEvent(unsignedEvent, hexToBytes(ws.keys.privKeyHex))
   await relayService.publishEvent(state.relays, signedEvent)
+
+  commit('PUSH_MLS_KP_HISTORY', { content: signedEvent.content, publishedAt: signedEvent.created_at })
 
   commit('SET_MLS_KEY_PACKAGE', {
     credentialIdentity: nostrPubkeyHex,
@@ -168,6 +187,7 @@ export async function createMlsGroup({ commit, state }, { name, members = [] }) 
   }
 
   commit('ADD_ROOM', room)
+  await syncRoomToServer(room)
   return { roomId, room }
 }
 
@@ -194,22 +214,77 @@ export async function joinMlsGroup({ commit, state }, { roomId, welcomeEvent }) 
     signaturePrivateKey: hexToBytes(deriveMlsKeys(mnemonic).privateKeyHex),
   }
 
-  // Fetch our own published KeyPackage from the relay so we have the public
-  // part that matches the deterministic private keys.
-  const kpEvent = await relayService.fetchMlsKeyPackage(state.relays, nostrPubkeyHex)
-  if (!kpEvent) throw new Error('No published KeyPackage found — call initMls first')
-
-  const kpBytes = decodeKeyPackageContent(kpEvent.content)
-  const kpMlsMessage = mls.decodeMlsMsg(kpBytes)
-  if (kpMlsMessage.wireformat !== 'mls_key_package') throw new Error('Invalid KeyPackage')
-  const publicPackage = kpMlsMessage.keyPackage
+  // Fetch our own published KeyPackage from the relay FIRST — it has the
+  // same crypto keys (initKey, HPKE key, signature key are all deterministic)
+  // and is the KeyPackage the inviter encrypted the welcome to. Regenerating
+  // a fresh KeyPackage before trying would overwrite the relay one, changing
+  // the ref and making the welcome undecryptable.
+  const kpEvents = await relayService.fetchMlsKeyPackage(state.relays, nostrPubkeyHex)
 
   const { bytes: welcomeBytes } = decodeMlsEventContent(welcomeEvent.content)
   const welcome = mls.decodeWelcomeFromBytes(welcomeBytes)
 
-  const clientState = await mls.joinMlsGroup(welcome, publicPackage, privatePackage)
+  // Build candidate public packages:
+  // 1. Current relay KeyPackage (the one the inviter likely committed)
+  // 2. Locally-stored historical KPs (from before relay overwrites)
+  // 3. Freshly derived deterministic KP as fallback
+  const candidates = []
+  for (const kpEvent of kpEvents) {
+    const kpBytes = decodeKeyPackageContent(kpEvent.content)
+    const kpMlsMessage = mls.decodeMlsMsg(kpBytes)
+    if (kpMlsMessage && kpMlsMessage.wireformat === 'mls_key_package') {
+      candidates.push(kpMlsMessage.keyPackage)
+    }
+  }
+  const kpHistoryEntries = (ws.mls.kpHistory || []).filter(h => h.content)
+  for (const histEntry of kpHistoryEntries) {
+    const histKpBytes = decodeKeyPackageContent(histEntry.content)
+    const histKpMlsMessage = mls.decodeMlsMsg(histKpBytes)
+    if (histKpMlsMessage && histKpMlsMessage.wireformat === 'mls_key_package') {
+      candidates.push(histKpMlsMessage.keyPackage)
+    }
+  }
+  const mlsKeys = deriveMlsKeys(mnemonic)
+  const { publicPackage: fallbackKp } = await mls.generateMlsKeyPackage(
+    { publicKey: mlsKeys.publicKey, privateKey: mlsKeys.privateKey },
+    nostrPubkeyHex,
+    hpkeIkms,
+  )
+  candidates.push(fallbackKp)
 
-  const groupIdHex = Array.from(clientState.groupContext.group_id).map(b => b.toString(16).padStart(2, '0')).join('')
+  let clientState = null
+  let lastErr = null
+  for (const publicPackage of candidates) {
+    try {
+      clientState = await mls.joinMlsGroup(welcome, publicPackage, privatePackage)
+      break
+    } catch (err) {
+      lastErr = err
+      console.warn('[MLS] Skipping mismatched KeyPackage:', err.message)
+    }
+  }
+  if (!clientState) {
+    // Diagnose the failure: compare the welcome's expected KeyPackage refs
+    // against the refs of the KeyPackages we can decrypt with. If none match,
+    // the welcome was encrypted to an older KeyPackage we no longer control.
+    const bytesToHex = bytes => (bytes != null) ? Array.from(bytes).map(b => b.toString(16).padStart(2, '0')).join('') : ''
+    const welcomeRefs = (welcome.secrets || []).map(s => bytesToHex(s.newMember))
+    const ourRefs = []
+    for (const kp of candidates) {
+      try {
+        ourRefs.push(bytesToHex(await mls.makeKeyPackageRef(kp, impl.hash)))
+      } catch {
+        ourRefs.push('')
+      }
+    }
+    const anyMatch = welcomeRefs.some(wr => ourRefs.includes(wr))
+    if (!anyMatch) {
+      throw new Error('This invitation was encrypted to an outdated KeyPackage. Ask the inviter to send a new invitation.')
+    }
+    throw lastErr || new Error('Failed to join MLS group: no matching KeyPackage')
+  }
+
+  const groupIdHex = Array.from(clientState.groupContext.groupId).map(b => b.toString(16).padStart(2, '0')).join('')
 
   await mls.saveMlsState(groupIdHex, clientState)
 
@@ -229,8 +304,50 @@ export async function joinMlsGroup({ commit, state }, { roomId, welcomeEvent }) 
     updatedAt: Math.floor(Date.now() / 1000),
   }
   commit('ADD_ROOM', room)
+  await syncRoomToServer(room)
 
   return { clientState, groupIdHex }
+}
+
+export async function acceptMlsInvite({ commit, state, dispatch }, { roomId }) {
+  const ws = getWalletState(state)
+  const invite = ws.mls.pendingInvitations?.[roomId]
+  if (!invite) throw new Error('Invitation not found')
+  if (ws.mls.roomMlsMap?.[roomId]) {
+    commit('REMOVE_MLS_INVITE', roomId)
+    return { alreadyJoined: true }
+  }
+  await dispatch('joinMlsGroup', { roomId, welcomeEvent: invite.welcomeEvent })
+  commit('REMOVE_MLS_INVITE', roomId)
+  return { alreadyJoined: false }
+}
+
+export async function declineMlsInvite({ commit, state }, { roomId }) {
+  const ws = getWalletState(state)
+  const invite = ws.mls.pendingInvitations?.[roomId]
+
+  // Publish a kind-5 delete for the welcome event so the stale invitation
+  // doesn't re-sync to other devices. Best-effort: if the delete fails the
+  // local decline still proceeds.
+  if (invite?.welcomeEvent?.id) {
+    try {
+      const deleteEvent = finalizeEvent({
+        kind: 5,
+        pubkey: ws.keys.pubKeyHex,
+        created_at: Math.floor(Date.now() / 1000),
+        content: '',
+        tags: [
+          ['e', invite.welcomeEvent.id],
+          ['p', ws.keys.pubKeyHex],
+        ],
+      }, hexToBytes(ws.keys.privKeyHex))
+      await relayService.publishEvent(state.relays, deleteEvent)
+    } catch (err) {
+      console.warn('[MLS] Failed to publish delete for declined invite:', err.message)
+    }
+  }
+
+  commit('REMOVE_MLS_INVITE', roomId)
 }
 
 // ---- Sending messages ----
@@ -290,12 +407,23 @@ export async function receiveMlsMessage({ commit, state, dispatch }, event) {
   if (kind === 30119) {
     const rTag = event.tags?.find(t => t[0] === 'r')
     if (rTag) {
+      const roomId = rTag[1]
       // Skip if we're already a member of this room — e.g. the creator
       // processing the welcome event it published (relay echoes it back via
       // the authors subscription). Joining our own group would fail because
       // the welcome is encrypted to the invitee's KeyPackage, not ours.
-      if (ws.mls.roomMlsMap?.[rTag[1]]) return
-      await dispatch('joinMlsGroup', { roomId: rTag[1], welcomeEvent: event })
+      if (ws.mls.roomMlsMap?.[roomId]) return
+
+      // Queue an explicit invitation instead of auto-joining, so the user can
+      // accept or decline it from the Invitations tab.
+      const nTag = event.tags?.find(t => t[0] === 'n')
+      commit('ADD_MLS_INVITE', {
+        roomId,
+        inviterPubKey: event.pubkey,
+        name: nTag?.[1] || 'MLS Group',
+        createdAt: event.created_at,
+        welcomeEvent: event,
+      })
     }
     return
   }
@@ -333,6 +461,9 @@ export async function receiveMlsMessage({ commit, state, dispatch }, event) {
           },
         })
         commit('TOUCH_ROOM_LAST_MESSAGE_AT', roomId)
+        if (roomId) {
+          await touchRoomOnServer(roomId, new Date(event.created_at * 1000).toISOString())
+        }
       }
     } catch (err) {
       console.warn('[MLS] Failed to process message:', err.message)
@@ -366,15 +497,46 @@ export async function addMlsMember({ commit, state }, { roomId, memberPubKey }) 
     throw new Error(`MLS groups are limited to ${MAX_MLS_MEMBERS} members total`)
   }
 
-  const kpEvent = await relayService.fetchMlsKeyPackage(state.relays, memberPubKey)
-  if (!kpEvent) throw new Error('KeyPackage not found for member')
+  let kpEvents = await relayService.fetchMlsKeyPackage(state.relays, memberPubKey)
+  if (!kpEvents.length) {
+    // Replaceable events can briefly disappear during replacement — retry once
+    await new Promise(r => setTimeout(r, 1500))
+    kpEvents = await relayService.fetchMlsKeyPackage(state.relays, memberPubKey)
+  }
+  if (!kpEvents.length) throw new Error('KeyPackage not found for member')
 
-  const kpBytes = decodeKeyPackageContent(kpEvent.content)
+  // Encrypt the welcome to the newest published KeyPackage — the invitee
+  // tries its published packages newest-first, so this is the one it matches.
+  const kpBytes = decodeKeyPackageContent(kpEvents[0].content)
   const kpMlsMessage = mls.decodeMlsMsg(kpBytes)
   if (kpMlsMessage.wireformat !== 'mls_key_package') throw new Error('Invalid KeyPackage event')
   const inviteeKeyPackage = kpMlsMessage.keyPackage
 
   const { newState, commit: commitMsg, welcome } = await mls.addMlsMember(clientState, inviteeKeyPackage, impl)
+
+  // Guard against the stale-KeyPackage race: the invitee's device may have
+  // republished a newer KeyPackage after we fetched the one we just encrypted
+  // the welcome to. If the welcome's target ref doesn't match their current
+  // relay KeyPackage, the invitee would never be able to decrypt it — abort
+  // BEFORE publishing anything so the group epoch doesn't advance with a
+  // broken invite.
+  if (welcome) {
+    const freshKpEvents = await relayService.fetchMlsKeyPackage(state.relays, memberPubKey)
+    if (freshKpEvents.length) {
+      const freshKpBytes = decodeKeyPackageContent(freshKpEvents[0].content)
+      const freshKpMlsMessage = mls.decodeMlsMsg(freshKpBytes)
+      const freshRef = freshKpMlsMessage?.wireformat === 'mls_key_package'
+        ? Buffer.from(await mls.makeKeyPackageRef(freshKpMlsMessage.keyPackage, impl.hash)).toString('hex')
+        : null
+      const welcomeRefs = (welcome.secrets || []).map(s => Buffer.from(s.newMember).toString('hex'))
+      if (freshRef && !welcomeRefs.includes(freshRef)) {
+        throw new Error(
+          'The invitee\'s KeyPackage changed while creating the invitation. ' +
+          'Ask them to open Paytaca again (to publish their updated KeyPackage), then re-invite.'
+        )
+      }
+    }
+  }
 
   const commitEvent = mls.buildMlsNostrEvent(commitMsg, 30118, mlsGroupIdHex, roomId, ws.keys.pubKeyHex, mlsMemberPubkeys(clientState))
   const signedCommit = finalizeEvent(commitEvent, hexToBytes(ws.keys.privKeyHex))
@@ -397,8 +559,46 @@ export async function addMlsMember({ commit, state }, { roomId, memberPubKey }) 
 
   const room = ws.rooms.find(r => r.id === roomId)
   if (room && !room.members.includes(memberPubKey)) {
-    commit('UPDATE_ROOM', { id: roomId, members: [...room.members, memberPubKey] })
+    const updatedMembers = [...room.members, memberPubKey]
+    commit('UPDATE_ROOM', { id: roomId, members: updatedMembers })
+    await updateRoomOnServer(roomId, { members: updatedMembers })
   }
+}
+
+/**
+ * Re-invite a member who's already in the group (e.g. whose stale welcome
+ * couldn't be decrypted). Removes them (which advances the epoch) then
+ * re-adds them, re-fetching their current KeyPackage so the new welcome is
+ * encrypted to keys they actually hold. Stale welcomes for that member are
+ * also deleted from the relay. Best-effort: if the re-add fails, the member
+ * stays removed so the creator can retry or re-create.
+ */
+export async function reinviteMlsMember({ commit, state }, { roomId, memberPubkey }) {
+  const ws = getWalletState(state)
+
+  // Delete the stale welcomes we published for this member first, so the
+  // freshly-published welcome isn't caught up in the cleanup. Best-effort.
+  try {
+    const staleWelcomes = await relayService.fetchMlsWelcomeEvents(state.relays, ws.keys.pubKeyHex, memberPubkey)
+    for (const welcome of staleWelcomes) {
+      const deleteEvent = finalizeEvent({
+        kind: 5,
+        pubkey: ws.keys.pubKeyHex,
+        created_at: Math.floor(Date.now() / 1000),
+        content: '',
+        tags: [
+          ['e', welcome.id],
+          ['p', ws.keys.pubKeyHex],
+        ],
+      }, hexToBytes(ws.keys.privKeyHex))
+      await relayService.publishEvent(state.relays, deleteEvent)
+    }
+  } catch (err) {
+    console.warn('[MLS] Failed to delete stale welcomes on re-invite:', err.message)
+  }
+
+  await removeMlsMember({ commit, state }, { roomId, memberPubkey })
+  await addMlsMember({ commit, state }, { roomId, memberPubKey: memberPubkey })
 }
 
 export async function removeMlsMember({ commit, state }, { roomId, memberPubkey }) {
@@ -438,7 +638,9 @@ export async function removeMlsMember({ commit, state }, { roomId, memberPubkey 
 
   const room = ws.rooms.find(r => r.id === roomId)
   if (room) {
-    commit('UPDATE_ROOM', { id: roomId, members: room.members.filter(m => m !== memberPubkey) })
+    const updatedMembers = room.members.filter(m => m !== memberPubkey)
+    commit('UPDATE_ROOM', { id: roomId, members: updatedMembers })
+    await updateRoomOnServer(roomId, { members: updatedMembers })
   }
 }
 
@@ -478,6 +680,7 @@ export async function leaveMlsGroup({ commit, state, dispatch }, { roomId }) {
   if (room) {
     commit('REMOVE_ROOM', roomId)
   }
+  await deleteRoomOnServer(roomId)
 }
 
 // ---- Helpers ----

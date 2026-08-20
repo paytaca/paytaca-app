@@ -17,6 +17,7 @@ export {
   processMlsMessage,
   decodeWelcomeFromBytes,
 } from './message.js'
+export { makeKeyPackageRef } from 'ts-mls/keyPackage.js'
 export {
   MLS_EVENT_KINDS,
   MLS_KP_KIND,

@@ -57,6 +57,8 @@ export function getInitialWalletState () {
       keyPackage: null, // { serialized, credentialIdentity, publishedAt }
       groupStates: {}, // { [mlsGroupIdHex]: serialized ClientState }
       roomMlsMap: {}, // { [roomId]: mlsGroupIdHex }
+      pendingInvitations: {}, // { [roomId]: { roomId, inviterPubKey, name, welcomeEvent } }
+      kpHistory: [], // { ref: string, encoded: string (base64 raw KP bytes), publishedAt: number }
     },
   }
 }

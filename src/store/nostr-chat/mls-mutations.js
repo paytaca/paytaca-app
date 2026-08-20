@@ -17,7 +17,10 @@ function getOrInitWalletState(state, walletHash = null) {
   if (!state.byWallet[hash]) state.byWallet[hash] = getInitialWalletState()
   // Restored state may predate the MLS feature; ensure the mls sub-state exists.
   if (typeof state.byWallet[hash].mls !== 'object' || state.byWallet[hash].mls === null) {
-    state.byWallet[hash].mls = { ready: false, keyPackage: null, groupStates: {}, roomMlsMap: {} }
+    state.byWallet[hash].mls = { ready: false, keyPackage: null, groupStates: {}, roomMlsMap: {}, pendingInvitations: {}, kpHistory: [] }
+  }
+  if (!Array.isArray(state.byWallet[hash].mls.kpHistory)) {
+    state.byWallet[hash].mls.kpHistory = []
   }
   return state.byWallet[hash]
 }
@@ -44,14 +47,26 @@ export function CLEAR_MLS_GROUP_STATE(state, mlsGroupIdHex) {
 
 export function SET_MLS_ROOM_MAP(state, { roomId, mlsGroupIdHex }) {
   const ws = getOrInitWalletState(state)
-  console.log('[MLS] SET_MLS_ROOM_MAP roomId:', roomId, 'mlsGroupIdHex:', mlsGroupIdHex, 'ws exists:', !!ws, 'walletHash:', getCurrentWalletHash())
   if (ws) ws.mls.roomMlsMap[roomId] = mlsGroupIdHex
-  console.log('[MLS] after SET_MLS_ROOM_MAP roomMlsMap:', JSON.stringify(ws?.mls?.roomMlsMap))
 }
 
 export function REMOVE_MLS_ROOM_MAP(state, roomId) {
   const ws = getOrInitWalletState(state)
   if (ws) delete ws.mls.roomMlsMap[roomId]
+}
+
+export function PUSH_MLS_KP_HISTORY(state, { content, publishedAt }) {
+  const ws = getOrInitWalletState(state)
+  if (!ws) return
+  ws.mls.kpHistory.unshift({ content, publishedAt })
+  if (ws.mls.kpHistory.length > 3) ws.mls.kpHistory.length = 3
+  // Remove duplicates that share the same content (e.g. a re-published KP
+  // after an app restart that hasn't changed). Keep the most recent one.
+  for (let i = ws.mls.kpHistory.length - 1; i >= 1; i--) {
+    if (ws.mls.kpHistory[i].content === ws.mls.kpHistory[0].content) {
+      ws.mls.kpHistory.splice(i, 1)
+    }
+  }
 }
 
 export function RESET_MLS_WALLET_DATA(state) {
@@ -61,5 +76,22 @@ export function RESET_MLS_WALLET_DATA(state) {
     ws.mls.keyPackage = null
     ws.mls.groupStates = {}
     ws.mls.roomMlsMap = {}
+    ws.mls.pendingInvitations = {}
+    ws.mls.kpHistory = []
+  }
+}
+
+export function ADD_MLS_INVITE(state, invite) {
+  const ws = getOrInitWalletState(state)
+  if (ws) {
+    if (!ws.mls.pendingInvitations) ws.mls.pendingInvitations = {}
+    ws.mls.pendingInvitations[invite.roomId] = invite
+  }
+}
+
+export function REMOVE_MLS_INVITE(state, roomId) {
+  const ws = getOrInitWalletState(state)
+  if (ws?.mls?.pendingInvitations) {
+    delete ws.mls.pendingInvitations[roomId]
   }
 }

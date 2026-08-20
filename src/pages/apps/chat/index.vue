@@ -54,6 +54,17 @@
               </span>
             </div>
           </q-tab>
+          <q-tab v-if="pendingInviteCount > 0" name="invitations">
+            <div class="tab-label-wrapper">
+              <span>{{ $t('Invitations', {}, 'Invitations') }}</span>
+              <span
+                v-if="chatTab !== 'invitations' && pendingInviteCount > 0"
+                class="tab-unread-badge"
+              >
+                {{ pendingInviteCount }}
+              </span>
+            </div>
+          </q-tab>
         </q-tabs>
 
         <q-tab-panels v-model="chatTab" animated>
@@ -79,6 +90,42 @@
               @rejoin-room="confirmRejoinGroup"
               @delete-room="confirmDeleteRoom"
             />
+          </q-tab-panel>
+          <q-tab-panel v-if="pendingInviteCount > 0" name="invitations" class="q-pa-none">
+            <div class="invitations-list">
+              <div
+                v-for="invite in pendingInvitations"
+                :key="invite.roomId"
+                class="invite-item"
+              >
+                <q-avatar class="invite-avatar" color="teal" text-color="white" size="40px">
+                  <q-icon name="group" size="20px" />
+                </q-avatar>
+                <div class="invite-info">
+                  <div class="invite-name">{{ invite.name }}</div>
+                  <div class="invite-subtitle">
+                    {{ $t('InvitedBy', { name: inviteDisplayNames[invite.inviterPubKey] || shortNpub(invite.inviterPubKey) }, 'Invited by {name}') }}
+                  </div>
+                </div>
+                <div class="invite-actions">
+                  <q-btn
+                    flat
+                    dense
+                    color="primary"
+                    :label="$t('Accept', {}, 'Accept')"
+                    :loading="acceptingInvites[invite.roomId]"
+                    @click="acceptInvite(invite)"
+                  />
+                  <q-btn
+                    flat
+                    dense
+                    color="grey-7"
+                    :label="$t('Decline', {}, 'Decline')"
+                    @click="declineInvite(invite)"
+                  />
+                </div>
+              </div>
+            </div>
           </q-tab-panel>
         </q-tab-panels>
       </div>
@@ -438,6 +485,8 @@ export default {
       fetchedContactDisplayName: null,
       fetchedContactAvatar: null,
       contactAvatars: {},
+      inviteDisplayNames: {},
+      acceptingInvites: {},
       _profilePromptShown: false,
       _profilePromptTimer: null,
     }
@@ -492,6 +541,12 @@ export default {
     },
     archivedUnreadCount () {
       return this.totalUnreadFor(this.archivedRooms)
+    },
+    pendingInvitations () {
+      return this.$store.getters['nostrChat/getMlsPendingInvitations']
+    },
+    pendingInviteCount () {
+      return this.pendingInvitations.length
     },
     dialogTitle () {
       if (this.selectedChatType === 'dm') {
@@ -656,6 +711,8 @@ export default {
     this._activeStatusPollTimer = setInterval(() => {
       this.$store.dispatch('nostrChat/fetchActiveStatus').catch(() => {})
     }, 60000)
+
+    this.resolveInviteDisplayNames()
   },
   activated () {
     // Re-check subscription when returning to this page via keep-alive
@@ -743,6 +800,65 @@ export default {
     },
     openRoom (roomId) {
       this.$router.push(`/apps/chat/${roomId}`)
+    },
+    shortNpub (pubKeyHex) {
+      return pubKeyHex?.slice(0, 8) || 'Unknown'
+    },
+    async resolveInviteDisplayNames () {
+      for (const invite of this.pendingInvitations) {
+        const pubKeyHex = invite.inviterPubKey
+        if (!pubKeyHex || this.inviteDisplayNames[pubKeyHex]) continue
+        try {
+          const displayName = await this.$store.dispatch('nostrChat/fetchPublishedDisplayName', { pubKeyHex })
+          if (displayName) {
+            this.inviteDisplayNames = { ...this.inviteDisplayNames, [pubKeyHex]: displayName }
+          }
+        } catch (err) {
+          console.warn('[Chat] Failed to resolve inviter name:', err)
+        }
+      }
+    },
+    async acceptInvite (invite) {
+      this.acceptingInvites = { ...this.acceptingInvites, [invite.roomId]: true }
+      try {
+        await this.$store.dispatch('nostrChat/acceptMlsInvite', { roomId: invite.roomId })
+        this.$q.notify({
+          type: 'positive',
+          message: this.$t('InviteAccepted', {}, 'You joined the group'),
+        })
+        this.openRoom(invite.roomId)
+      } catch (err) {
+        console.error('[MLS] accept invite failed:', err)
+        this.$q.notify({
+          type: 'negative',
+          message: this.$t('InviteAcceptFailed', {}, 'Failed to join group') + ': ' + err.message,
+          timeout: 5000,
+        })
+      } finally {
+        const next = { ...this.acceptingInvites }
+        delete next[invite.roomId]
+        this.acceptingInvites = next
+      }
+    },
+    declineInvite (invite) {
+      this.$q.dialog({
+        title: this.$t('InviteDecline', {}, 'Decline Invitation'),
+        message: this.$t('InviteDeclineConfirm', { name: invite.name }, `Decline the invitation to join ${invite.name}?`),
+        class: `pt-card text-bow ${this.getDarkModeClass(this.darkMode)}`,
+        cancel: {
+          label: this.$t('Cancel', {}, 'Cancel'),
+          flat: true,
+          color: 'grey',
+        },
+        ok: {
+          label: this.$t('Decline', {}, 'Decline'),
+          color: 'negative',
+          flat: true,
+        },
+        persistent: true,
+      }).onOk(() => {
+        this.$store.dispatch('nostrChat/declineMlsInvite', { roomId: invite.roomId })
+      })
     },
     confirmArchiveRoom (roomId) {
       const room = this.rooms.find(r => r.id === roomId)
@@ -1065,7 +1181,6 @@ export default {
             name,
             members: memberPubKeys,
           })
-          console.log('[MLS] createGroup got roomId:', roomId, 'roomMlsMap:', JSON.stringify(this.$store.state.nostrChat?.byWallet?.[this.$store.getters?.['global/getWallet']?.('bch')?.walletHash]?.mls?.roomMlsMap))
 
           const failed = []
           for (const memberPubKey of memberPubKeys) {
@@ -1076,7 +1191,7 @@ export default {
               })
             } catch (err) {
               console.error('[MLS] addMlsMember failed for', memberPubKey, 'error:', err.message)
-              failed.push(memberPubKey)
+              failed.push({ pubKey: memberPubKey, error: err.message })
             }
           }
 
@@ -1084,13 +1199,14 @@ export default {
           this.$router.push(`/apps/chat/${roomId}`)
 
           if (failed.length) {
-            const failedNpubs = failed.map(pk => {
-              try { return npubEncode(pk) } catch { return pk }
+            const failedNpubs = failed.map(f => {
+              try { return npubEncode(f.pubKey) } catch { return f.pubKey }
             }).join(', ')
+            const reason = failed[0]?.error || ''
             this.$q.notify({
               type: 'warning',
-              message: this.$t('MlsMemberNotReady', { npubs: failedNpubs }, `No MLS KeyPackage found for: ${failedNpubs}. They need to open the Chat app first.`),
-              timeout: 5000,
+              message: this.$t('MlsMemberNotReady', { npubs: failedNpubs, reason }, `Couldn't add: ${failedNpubs}. ${reason}`),
+              timeout: 6000,
             })
           }
           return
@@ -1268,6 +1384,55 @@ export default {
   align-items: center;
   justify-content: center;
   box-shadow: 0 2px 6px rgba(59, 130, 246, 0.3);
+}
+
+.invitations-list {
+  padding: 4px 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.invite-item {
+  display: flex;
+  align-items: center;
+  padding: 12px 16px;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.04);
+}
+
+.invite-item:last-child {
+  border-bottom: none;
+}
+
+.invite-avatar {
+  background: linear-gradient(135deg, #14b8a6, #0d9488);
+}
+
+.invite-info {
+  flex: 1;
+  min-width: 0;
+  margin-left: 12px;
+}
+
+.invite-name {
+  font-weight: 600;
+  color: var(--q-primary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.invite-subtitle {
+  font-size: 12px;
+  color: var(--q-secondary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.invite-actions {
+  display: flex;
+  gap: 8px;
+  align-items: center;
 }
 
 /* New chat dialog — chat type picker */

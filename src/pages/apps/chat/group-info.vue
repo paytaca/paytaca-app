@@ -178,6 +178,16 @@
                 class="full-width q-mt-sm"
                 @click="copyMemberNpub"
               />
+              <q-btn
+                v-if="room?.type === 'mls-group' && !selectedMember.isMe"
+                flat
+                :label="$t('ReinviteMember', {}, 'Re-invite')"
+                color="warning"
+                icon="person_add"
+                class="full-width q-mt-sm"
+                :loading="reinviting"
+                @click="reinviteMember"
+              />
             </q-card-section>
 
           </q-card>
@@ -238,6 +248,7 @@ export default {
       memberAvatars: {},
       memberDisplayNames: {},
       addingMember: false,
+      reinviting: false,
     }
   },
   computed: {
@@ -416,6 +427,26 @@ export default {
         message: this.$t('Copied', {}, 'Copied to clipboard'),
         timeout: 1500,
       })
+    },
+    async reinviteMember () {
+      const member = this.selectedMember
+      if (!member?.pubKeyHex || this.reinviting) return
+      this.reinviting = true
+      try {
+        await this.$store.dispatch('nostrChat/reinviteMlsMember', {
+          roomId: this.roomId,
+          memberPubkey: member.pubKeyHex,
+        })
+        this.$q.notify({ type: 'positive', message: this.$t('Reinvited', {}, 'Invitation re-sent') })
+      } catch (err) {
+        this.$q.notify({
+          type: 'negative',
+          message: err.message || this.$t('ReinviteFailed', {}, 'Failed to re-send invitation'),
+          timeout: 5000,
+        })
+      } finally {
+        this.reinviting = false
+      }
     },
     useFetchedMemberDisplayName () {
       if (this.fetchedMemberDisplayName) {

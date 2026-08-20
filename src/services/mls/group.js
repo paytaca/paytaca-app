@@ -38,7 +38,7 @@ export async function addMlsMember(state, inviteeKeyPackage, impl) {
 
   return createCommit(
     { state, cipherSuite: impl, pskIndex: emptyPskIndex },
-    { extraProposals: [addProposal] },
+    { extraProposals: [addProposal], ratchetTreeExtension: true },
   )
 }
 

@@ -1494,7 +1494,7 @@ export async function fetchRooms ({ commit, dispatch, state }) {
   }
 }
 
-async function syncRoomToServer (room) {
+export async function syncRoomToServer (room) {
   try {
     const walletHash = getCurrentWalletHash()
     if (!walletHash) { debug('syncRoomToServer: no wallet hash'); return }
@@ -1520,7 +1520,7 @@ async function syncRoomToServer (room) {
   }
 }
 
-async function updateRoomOnServer (roomId, fields) {
+export async function updateRoomOnServer (roomId, fields) {
   try {
     const walletHash = getCurrentWalletHash()
     if (!walletHash) { debug('updateRoomOnServer: no wallet hash'); return }
@@ -1538,7 +1538,7 @@ async function updateRoomOnServer (roomId, fields) {
   }
 }
 
-async function touchRoomOnServer (roomId, timestamp) {
+export async function touchRoomOnServer (roomId, timestamp) {
   try {
     const walletHash = getCurrentWalletHash()
     if (!walletHash) { debug('touchRoomOnServer: no wallet hash'); return }
@@ -1552,7 +1552,7 @@ async function touchRoomOnServer (roomId, timestamp) {
   }
 }
 
-async function deleteRoomOnServer (roomId) {
+export async function deleteRoomOnServer (roomId) {
   try {
     const walletHash = getCurrentWalletHash()
     if (!walletHash) { debug('deleteRoomOnServer: no wallet hash'); return }
@@ -1941,11 +1941,6 @@ export async function updateRoomSubject ({ commit }, { roomId, subject }) {
 }
 
 export async function touchRoom ({ dispatch, state }, { roomId, timestamp } = {}) {
-  // MLS groups are local-only (never synced to the server), so there's no
-  // room record to touch — skip the request to avoid a 404.
-  const ws = getWalletState(state)
-  const room = ws?.rooms?.find(r => r.id === roomId)
-  if (room?.type === 'mls-group') return
   await touchRoomOnServer(roomId, timestamp)
 }
 
@@ -2793,7 +2788,9 @@ export function subscribeToRelays ({ state, dispatch, commit }) {
   // Kick off MLS group chat (fire-and-forget — if MLS crypto or key
   // derivation fails, MLS features will be unavailable but the existing
   // NIP-17 chat continues to work unaffected).
-  dispatch('initMls').catch(() => {})
+  dispatch('initMls').catch(err => {
+    console.error('[MLS] initMls failed:', err?.message || err)
+  })
 
   return sub
 }
