@@ -141,25 +141,22 @@
             </div>
 
             <div
-              class="chat-type-option chat-type-option--disabled"
+              class="chat-type-option"
               :class="getDarkModeClass(darkMode)"
+              @click="selectChatType('open_private_group')"
             >
               <q-avatar size="44px" class="chat-type-icon public-group-icon">
                 <q-icon name="groups" size="24px" color="white" />
               </q-avatar>
               <div class="chat-type-text">
-                <div class="chat-type-title-row">
-                  <span class="chat-type-title" :class="getDarkModeClass(darkMode)">
-                    {{ $t('OpenPrivateGroup', {}, 'Open Private Group') }}
-                  </span>
-                  <span class="coming-soon-badge">
-                    {{ $t('ComingSoon', {}, 'Coming soon') }}
-                  </span>
+                <div class="chat-type-title" :class="getDarkModeClass(darkMode)">
+                  {{ $t('OpenPrivateGroup', {}, 'Open Private Group') }}
                 </div>
                 <div class="chat-type-desc">
-                  {{ $t('OpenPrivateGroupDesc', {}, 'End-to-end encrypted group chat for up to 10,000 members. New members can join anytime.') }}
+                  {{ $t('OpenPrivateGroupDesc', {}, 'End-to-end encrypted group chat. New members can join anytime.') }}
                 </div>
               </div>
+              <q-icon name="chevron_right" size="20px" class="chat-type-chevron" />
             </div>
           </div>
 
@@ -268,8 +265,8 @@
             </q-tab-panels>
           </template>
 
-          <!-- Step 2 (Private Group): Create group form -->
-          <template v-else-if="selectedChatType === 'private_group'">
+          <!-- Step 2 (Group): Create group form -->
+          <template v-else-if="selectedChatType === 'private_group' || selectedChatType === 'open_private_group'">
             <q-tabs
               v-model="dialogTab"
               dense
@@ -287,7 +284,9 @@
                 <div class="group-hint q-mb-md">
                   <q-icon name="lock" size="14px" color="primary" />
                   <span>
-                    {{ $t('PrivateGroupHint', {}, 'End-to-end encrypted. Members are fixed once created.') }}
+                    {{ selectedChatType === 'open_private_group'
+                      ? $t('OpenPrivateGroupHint', {}, 'End-to-end encrypted. Members can join anytime. Groups are limited to 50 members.')
+                      : $t('PrivateGroupHint', {}, 'End-to-end encrypted. Members are fixed once created.') }}
                   </span>
                 </div>
                 <q-input
@@ -703,7 +702,7 @@ export default {
       this.selectedChatType = type
       if (type === 'dm') {
         this.dialogTab = this.contacts.length ? 'contacts' : 'add'
-      } else if (type === 'private_group') {
+      } else if (type === 'private_group' || type === 'open_private_group') {
         this.dialogTab = 'members'
       }
     },
@@ -840,9 +839,11 @@ export default {
     unarchiveOrRejoinRoom (roomId) {
       // A left (blocked) group is archived; unarchiving it should rejoin it.
       const room = this.archivedRooms.find(r => r.id === roomId)
-      if (room?.type === 'group' && this.$store.getters['nostrChat/isGroupBlocked'](roomId)) {
-        this.confirmRejoinGroup(roomId)
-        return
+      if (room?.type === 'group' || room?.type === 'mls-group') {
+        if (this.$store.getters['nostrChat/isGroupBlocked'](roomId)) {
+          this.confirmRejoinGroup(roomId)
+          return
+        }
       }
       this.$store.dispatch('nostrChat/unarchiveRoom', roomId)
       this.$q.notify({
@@ -863,7 +864,11 @@ export default {
         persistent: true,
       }).onOk(async () => {
         try {
-          await this.$store.dispatch('nostrChat/leaveGroup', { roomId })
+          if (room?.type === 'mls-group') {
+            await this.$store.dispatch('nostrChat/leaveMlsGroup', { roomId })
+          } else {
+            await this.$store.dispatch('nostrChat/leaveGroup', { roomId })
+          }
           this.$q.notify({ type: 'info', message: this.$t('LeftGroup', {}, 'You left the group') })
         } catch (err) {
           this.$q.notify({ type: 'negative', message: err.message || this.$t('LeaveGroupFailed', {}, 'Failed to leave group') })
@@ -898,7 +903,7 @@ export default {
 
       // Groups: leaving already handles "blocking" via BLOCK_GROUP, so delete
       // is a simple permanent removal. Also clear any group-block tracker.
-      if (room.type === 'group') {
+      if (room.type === 'group' || room.type === 'mls-group') {
         this.$q.dialog({
           title: this.$t('DeleteConversation', {}, 'Delete Conversation'),
           message: this.$t('DeleteConversationConfirm', { name: roomName }, `Permanently delete "${roomName}"?`) + '\n\n' + note,
@@ -1051,12 +1056,53 @@ export default {
           return decoded.data
         })
         const name = this.groupName.trim()
+
+        if (this.selectedChatType === 'open_private_group') {
+          // MLS groups: create the MLS group and add each selected member.
+          // Members whose MLS KeyPackage hasn't been published yet are skipped
+          // (a warning is shown) but the group is still created.
+          const { room, roomId } = await this.$store.dispatch('nostrChat/createMlsGroup', {
+            name,
+            members: memberPubKeys,
+          })
+          console.log('[MLS] createGroup got roomId:', roomId, 'roomMlsMap:', JSON.stringify(this.$store.state.nostrChat?.byWallet?.[this.$store.getters?.['global/getWallet']?.('bch')?.walletHash]?.mls?.roomMlsMap))
+
+          const failed = []
+          for (const memberPubKey of memberPubKeys) {
+            try {
+              await this.$store.dispatch('nostrChat/addMlsMember', {
+                roomId,
+                memberPubKey: memberPubKey,
+              })
+            } catch (err) {
+              console.error('[MLS] addMlsMember failed for', memberPubKey, 'error:', err.message)
+              failed.push(memberPubKey)
+            }
+          }
+
+          this.showNewChatDialog = false
+          this.$router.push(`/apps/chat/${roomId}`)
+
+          if (failed.length) {
+            const failedNpubs = failed.map(pk => {
+              try { return npubEncode(pk) } catch { return pk }
+            }).join(', ')
+            this.$q.notify({
+              type: 'warning',
+              message: this.$t('MlsMemberNotReady', { npubs: failedNpubs }, `No MLS KeyPackage found for: ${failedNpubs}. They need to open the Chat app first.`),
+              timeout: 5000,
+            })
+          }
+          return
+        }
+
+        // NIP-17 (Closed) group: create the room and send an initial message
+        // with the group name as subject so all members receive the room via
+        // the relay and can reconstruct it on any device.
         const room = await this.$store.dispatch('nostrChat/createGroupRoom', {
           name,
           members: memberPubKeys,
         })
-        // Send an initial message with the group name as subject so all members
-        // receive the room via the relay and can reconstruct it on any device
         const text = this.$t('GroupCreatedWith', { name }, `Created group "${name}"`)
         const { giftWraps, message, roomId } = await this.$store.dispatch('nostrChat/sendMessage', {
           roomId: room.id,
@@ -1064,7 +1110,6 @@ export default {
           subject: name,
         })
         this.$store.commit('nostrChat/ADD_MESSAGE', { roomId, message })
-        this.$store.commit('nostrChat/TOUCH_ROOM_LAST_MESSAGE_AT', roomId)
         await this.$store.dispatch('nostrChat/publishGiftWraps', { giftWraps })
         // Publish group metadata so new members who join later can
         // discover the group name from the relay.
@@ -1084,7 +1129,7 @@ export default {
     },
     getRoomDisplayName (room) {
       // Group rooms: always use room.name (kept in sync with subject by mutations)
-      if (room.type === 'group') {
+      if (room.type === 'group' || room.type === 'mls-group') {
         return room.name || room.subject || this.$t('Group', {}, 'Group')
       }
       // Private (DM) rooms: prefer subject, then contact name, then npub

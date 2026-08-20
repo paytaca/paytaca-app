@@ -1835,7 +1835,7 @@ export default {
   OpenOrderChat: "Bestellingchat openen",
   OpenPaymentUrl: "Open de betalings-URL",
   OpenPrivateGroup: "Privégroep openen",
-  OpenPrivateGroupDesc: "End-to-end gecodeerde groepschat voor maximaal 10.000 leden.Nieuwe leden kunnen op elk moment lid worden.",
+  OpenPrivateGroupDesc: "End-to-end gecodeerde groepschat voor maximaal 50 leden. Nieuwe leden kunnen op elk moment lid worden.",
   OpenSourceCode: "Open source-code",
   Options: "Opties",
   OraclePubkey: "Orakel pubkey",

@@ -50,6 +50,14 @@ export function getInitialWalletState () {
     isSubscribed: false,
     relayStatus: {},
     showActiveStatus: true,
+
+    // MLS group chat state (per-wallet)
+    mls: {
+      ready: false,
+      keyPackage: null, // { serialized, credentialIdentity, publishedAt }
+      groupStates: {}, // { [mlsGroupIdHex]: serialized ClientState }
+      roomMlsMap: {}, // { [roomId]: mlsGroupIdHex }
+    },
   }
 }
 

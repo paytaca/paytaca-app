@@ -195,7 +195,7 @@ const phrases = {
       LiftTokenNotListedInCauldronMessage: "LIFT token listing on Cauldron DEX is coming soon. Stay tuned for the official launch.",
       NoTransactionsToDisplay: "No transactions to display",
       OpenPrivateGroup: "Open Private Group",
-      OpenPrivateGroupDesc: "End-to-end encrypted group chat for up to 10,000 members. New members can join anytime.",
+      OpenPrivateGroupDesc: "End-to-end encrypted group chat for up to 50 members. New members can join anytime.",
       OpenSourceCode: "Open source code",
       OrderNo: "Order number",
       OrderNotFound: "Order not found",

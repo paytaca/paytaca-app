@@ -1835,7 +1835,7 @@ export default {
   OpenOrderChat: "Abra o bate-papo do pedido",
   OpenPaymentUrl: "Abrir URL de pagamento",
   OpenPrivateGroup: "Abrir grupo privado",
-  OpenPrivateGroupDesc: "Bate-papo em grupo criptografado de ponta a ponta para até 10.000 membros.Novos membros podem ingressar a qualquer momento.",
+  OpenPrivateGroupDesc: "Bate-papo em grupo criptografado de ponta a ponta para até 50 membros. Novos membros podem ingressar a qualquer momento.",
   OpenSourceCode: "Código-fonte aberto",
   Options: "Opções",
   OraclePubkey: "Chave pública Oracle",

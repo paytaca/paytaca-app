@@ -1835,7 +1835,7 @@ export default {
   OpenOrderChat: "오픈주문채팅",
   OpenPaymentUrl: "결제 URL 열기",
   OpenPrivateGroup: "공개 비공개 그룹",
-  OpenPrivateGroupDesc: "최대 10,000명의 회원을 위한 종단 간 암호화된 그룹 채팅입니다.신규회원은 언제든지 가입하실 수 있습니다.",
+  OpenPrivateGroupDesc: "최대 50명의 회원을 위한 종단 간 암호화된 그룹 채팅입니다.신규회원은 언제든지 가입하실 수 있습니다.",
   OpenSourceCode: "오픈 소스 코드",
   Options: "옵션",
   OraclePubkey: "오라클 공개키",

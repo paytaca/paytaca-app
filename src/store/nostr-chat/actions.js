@@ -1940,7 +1940,12 @@ export async function updateRoomSubject ({ commit }, { roomId, subject }) {
   await updateRoomOnServer( roomId, { subject })
 }
 
-export async function touchRoom ({ dispatch }, { roomId, timestamp } = {}) {
+export async function touchRoom ({ dispatch, state }, { roomId, timestamp } = {}) {
+  // MLS groups are local-only (never synced to the server), so there's no
+  // room record to touch — skip the request to avoid a 404.
+  const ws = getWalletState(state)
+  const room = ws?.rooms?.find(r => r.id === roomId)
+  if (room?.type === 'mls-group') return
   await touchRoomOnServer(roomId, timestamp)
 }
 
@@ -2784,6 +2789,11 @@ export function subscribeToRelays ({ state, dispatch, commit }) {
   dispatch('fetchBlocks').catch(() => {})
 
   dispatch('startActiveServices')
+
+  // Kick off MLS group chat (fire-and-forget — if MLS crypto or key
+  // derivation fails, MLS features will be unavailable but the existing
+  // NIP-17 chat continues to work unaffected).
+  dispatch('initMls').catch(() => {})
 
   return sub
 }

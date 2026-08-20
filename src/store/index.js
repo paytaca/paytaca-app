@@ -212,6 +212,18 @@ function reducer(state) {
                     if (moduleName === 'nostrChat' && key === 'typing') {
                       continue
                     }
+
+                    // MLS serialized group states contain the Ed25519 signing private
+                    // key; they are persisted to IndexedDB (state-store.js) instead.
+                    // Only the room→group mapping and key package metadata are persisted.
+                    if (moduleName === 'nostrChat' && key === 'mls' && value && typeof value === 'object') {
+                      cleanWalletState.mls = {
+                        ready: value.ready || false,
+                        keyPackage: value.keyPackage || null,
+                        roomMlsMap: value.roomMlsMap || {},
+                      }
+                      continue
+                    }
                     
                     // Skip functions
                     if (typeof value === 'function') {

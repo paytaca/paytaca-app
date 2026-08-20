@@ -37,7 +37,7 @@
                 :style="roomAvatarStyle(room)"
               >
                 <img v-if="getDmAvatar(room)" :src="getDmAvatar(room)" />
-                <q-icon v-else-if="room.type === 'group'" name="group" size="24px" />
+                <q-icon v-else-if="room.type === 'group' || room.type === 'mls-group'" name="group" size="24px" />
                 <span v-else class="avatar-initial">{{ roomInitial(room) }}</span>
               </q-avatar>
               <div
@@ -53,6 +53,9 @@
               <q-badge v-if="room.type === 'group'" outline color="primary" class="q-ml-xs" style="font-size: 10px; padding: 1px 5px; font-weight: 500;">
                 {{ $t('Group', {}, 'Group') }}
               </q-badge>
+              <q-badge v-if="room.type === 'mls-group'" outline color="teal" class="q-ml-xs" style="font-size: 10px; padding: 1px 5px; font-weight: 500;">
+                MLS
+              </q-badge>
             </div>
             <div v-if="room.lastMessageAt || lastMessageTime(room.id) || room.updatedAt" class="room-time">
               {{ formatTime(room.lastMessageAt || lastMessageTime(room.id) || room.updatedAt) }}
@@ -63,7 +66,7 @@
               {{ lastMessagePreview(room.id) }}
             </div>
             <div class="room-badges">
-              <div v-if="isRoomBlocked(room)" class="blocked-badge">{{ room.type === 'group' ? $t('Left', {}, 'LEFT') : $t('Blocked', {}, 'BLOCKED') }}</div>
+              <div v-if="isRoomBlocked(room)" class="blocked-badge">{{ room.type === 'group' || room.type === 'mls-group' ? $t('Left', {}, 'LEFT') : $t('Blocked', {}, 'BLOCKED') }}</div>
               <div v-if="unreadCount(room.id) > 0" class="unread-badge">
                 {{ unreadCount(room.id) }}
               </div>
@@ -139,7 +142,7 @@ export default {
       if (!this.showActiveStatus) return map
       const activeStatus = this.$store.getters['nostrChat/getActiveStatusMap']
       for (const room of this.rooms) {
-        if (room.type === 'group') continue
+        if (room.type === 'group' || room.type === 'mls-group') continue
         const otherPubKey = room.members?.find(m => m !== this.myPubKey)
         if (!otherPubKey) continue
         const entry = activeStatus[otherPubKey]
@@ -161,7 +164,7 @@ export default {
     const avatars = {}
     const names = {}
     for (const room of this.rooms) {
-      if (room.type === 'group') continue
+      if (room.type === 'group' || room.type === 'mls-group') continue
       const otherPubKey = room.members?.find(m => m !== this.myPubKey)
       if (!otherPubKey) continue
 
@@ -189,7 +192,7 @@ export default {
   methods: {
     getDarkModeClass,
     isRoomBlocked (room) {
-      if (room.type === 'group') {
+      if (room.type === 'group' || room.type === 'mls-group') {
         return this.$store.getters['nostrChat/isGroupBlocked'](room.id)
       }
       const otherPubKey = room.members?.find(m => m !== this.myPubKey)
@@ -199,7 +202,7 @@ export default {
     leftSwipeLabel (room) {
       if (this.archived) return this.$t('Unarchive', {}, 'Unarchive')
       const blocked = this.isRoomBlocked(room)
-      if (room.type === 'group') {
+      if (room.type === 'group' || room.type === 'mls-group') {
         return blocked ? this.$t('Rejoin', {}, 'Rejoin') : this.$t('Leave', {}, 'Leave')
       }
       return blocked ? this.$t('Unblock', {}, 'Unblock') : this.$t('Block', {}, 'Block')
@@ -207,7 +210,7 @@ export default {
     leftSwipeIcon (room) {
       if (this.archived) return 'unarchive'
       const blocked = this.isRoomBlocked(room)
-      if (room.type === 'group') {
+      if (room.type === 'group' || room.type === 'mls-group') {
         return blocked ? 'group_add' : 'exit_to_app'
       }
       return blocked ? 'lock_open' : 'block'
@@ -219,7 +222,7 @@ export default {
         return
       }
       const blocked = this.isRoomBlocked(room)
-      if (room.type === 'group') {
+      if (room.type === 'group' || room.type === 'mls-group') {
         if (blocked) {
           this.$emit('rejoin-room', room.id)
         } else {
@@ -242,7 +245,7 @@ export default {
       }
     },
     roomInitial (room) {
-      if (room.type === 'group') {
+      if (room.type === 'group' || room.type === 'mls-group') {
         return (room.name || 'G').charAt(0).toUpperCase()
       }
       const otherPubKey = room.members?.find(m => m !== this.myPubKey)
@@ -261,7 +264,7 @@ export default {
       return name.charAt(0).toUpperCase()
     },
     roomName (room) {
-      if (room.type === 'group') return room.name || 'Group'
+      if (room.type === 'group' || room.type === 'mls-group') return room.name || 'Group'
       // If a subject has been set, use it as the conversation name
       if (room.subject) return room.subject
       // Check if this room has a known contact

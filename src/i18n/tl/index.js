@@ -1835,7 +1835,7 @@ export default {
   OpenOrderChat: "Buksan ang order chat",
   OpenPaymentUrl: "Buksan ang URL ng Pagbabayad",
   OpenPrivateGroup: "Buksan ang Pribadong Grupo",
-  OpenPrivateGroupDesc: "End-to-end na naka-encrypt na panggrupong chat para sa hanggang 10,000 miyembro.Maaaring sumali ang mga bagong miyembro anumang oras.",
+  OpenPrivateGroupDesc: "End-to-end na naka-encrypt na panggrupong chat para sa hanggang 50 miyembro. Maaaring sumali ang mga bagong miyembro anumang oras.",
   OpenSourceCode: "Buksan ang source code",
   Options: "Mga pagpipilian",
   OraclePubkey: "Oracle pubkey",

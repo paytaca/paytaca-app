@@ -10,6 +10,24 @@ function getCurrentWalletHash () {
   }
 }
 
+function mergeWalletStateDefaults (ws) {
+  const defaults = getInitialWalletState()
+  for (const key of Object.keys(defaults)) {
+    if (ws[key] === undefined) {
+      ws[key] = defaults[key]
+    }
+  }
+  if (typeof ws.mls !== 'object' || ws.mls === null) {
+    ws.mls = defaults.mls
+  } else {
+    for (const mk of Object.keys(defaults.mls)) {
+      if (ws.mls[mk] === undefined) {
+        ws.mls[mk] = defaults.mls[mk]
+      }
+    }
+  }
+}
+
 function getOrInitWalletState (state, walletHash = null) {
   const hash = walletHash || getCurrentWalletHash()
   if (!hash) {
@@ -21,6 +39,10 @@ function getOrInitWalletState (state, walletHash = null) {
 
   if (!state.byWallet[hash]) {
     state.byWallet[hash] = getInitialWalletState()
+  } else {
+    // Restored state may predate newer fields (e.g. MLS); merge defaults so
+    // the missing keys (like `mls`) always exist.
+    mergeWalletStateDefaults(state.byWallet[hash])
   }
 
   return state.byWallet[hash]
@@ -36,6 +58,8 @@ export function initializeWalletState (state, walletHash) {
 
   if (!state.byWallet[walletHash]) {
     state.byWallet[walletHash] = getInitialWalletState()
+  } else {
+    mergeWalletStateDefaults(state.byWallet[walletHash])
   }
 }
 
@@ -252,6 +276,16 @@ export function SET_ROOMS (state, rooms) {
     }
     return sr
   })
+  // Preserve local-only rooms that the server doesn't know about (e.g. MLS
+  // groups, which are never synced to the server). Without this, a fetch
+  // from the server-authoritative room list would remove them from the
+  // store and redirect an open conversation to the chat index.
+  const serverIds = new Set(rooms.map(r => r.id))
+  for (const [id, room] of localMap) {
+    if (!serverIds.has(id)) {
+      ws.rooms = [...ws.rooms, room]
+    }
+  }
 }
 
 // ---- Per-wallet message mutations ----

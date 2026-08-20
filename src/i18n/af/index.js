@@ -1835,7 +1835,7 @@ export default {
   OpenOrderChat: "Maak bestellingklets oop",
   OpenPaymentUrl: "Maak betaling-URL oop",
   OpenPrivateGroup: "Maak Privaat Groep oop",
-  OpenPrivateGroupDesc: "Eind-tot-end geënkripteerde groepklets vir tot 10 000 lede.Nuwe lede kan enige tyd aansluit.",
+  OpenPrivateGroupDesc: "Eind-tot-end geënkripteerde groepklets vir tot 50 lede. Nuwe lede kan enige tyd aansluit.",
   OpenSourceCode: "Oop bronkode",
   Options: "Opsies",
   OraclePubkey: "Oracle pubkey",

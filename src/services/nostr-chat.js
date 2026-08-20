@@ -17,6 +17,15 @@ let _resubInterval = null
 let _seenEventIds = new Set()
 let _subscriptionCallbacks = null
 
+// MLS subscription state (separate from gift-wrap subscription)
+let _mlsSubs = []
+let _mlsSeenEventIds = new Set()
+let _mlsSubscribedRelays = []
+let _mlsSubscribedPubKey = null
+let _mlsSubscribing = false
+let _mlsSubscriptionCallbacks = null
+let _mlsResubInterval = null
+
 // Subscription state tracking
 let _isSubscribed = false
 let _lastSubscribeTime = 0
@@ -601,6 +610,159 @@ export async function fetchHistoricalGiftWraps(relays, myPubKey, callbacks = {})
     }
   } catch (err) {
     console.warn('[Nostr] Failed to fetch historical gift-wraps:', err)
+  }
+}
+
+/**
+ * Subscribe to MLS events (kind 30078 with the original MLS kind in data.mlsKind).
+ * Follows the same pattern as subscribeGiftWraps.
+ * @param {string[]} relays
+ * @param {string} myPubKey - Hex pubkey
+ * @param {{ onEvent(event): void }} callbacks
+ * @param {{ force?: boolean, since?: number }} [options]
+ * @returns {{ close(): void }}
+ */
+export function subscribeMlsEvents(relays, myPubKey, callbacks = {}, options = {}) {
+  const now = Date.now()
+
+  if (
+    !options.force &&
+    _mlsSubscribedPubKey === myPubKey &&
+    arraysEqual(_mlsSubscribedRelays, relays)
+  ) {
+    return { close() {} }
+  }
+
+  if (_mlsSubscribing && !options.force) {
+    return { close() {} }
+  }
+
+  for (const sub of _mlsSubs) {
+    try { sub.close() } catch (_) {}
+  }
+  _mlsSubs = []
+
+  _mlsSubscriptionCallbacks = callbacks
+
+  const pool = getPool()
+  const filterReceived = { kinds: [30078], '#p': [myPubKey] }
+  const filterSent = { kinds: [30078], authors: [myPubKey] }
+  if (options.since) {
+    filterReceived.since = options.since
+    filterSent.since = options.since
+  }
+  const filters = [filterReceived, filterSent]
+
+  try {
+    _mlsSubscribing = true
+
+    for (const relayUrl of relays) {
+      for (const filter of filters) {
+        try {
+          const sub = pool.subscribeMany([relayUrl], filter, {
+            onevent(event) {
+              if (_mlsSeenEventIds.has(event.id)) return
+              _mlsSeenEventIds.add(event.id)
+              if (_mlsSeenEventIds.size > 5000) {
+                const toDelete = Array.from(_mlsSeenEventIds).slice(0, _mlsSeenEventIds.size - 5000)
+                toDelete.forEach(id => _mlsSeenEventIds.delete(id))
+              }
+              if (callbacks.onEvent) callbacks.onEvent(event)
+            },
+            onclose(reasons) {
+              if (isDev) console.warn(`[MLS] Subscription closed for ${relayUrl}:`, reasons)
+              const idx = _mlsSubs.indexOf(sub)
+              if (idx !== -1) _mlsSubs.splice(idx, 1)
+            },
+          })
+          _mlsSubs.push(sub)
+        } catch (_) {}
+      }
+    }
+  } finally {
+    _mlsSubscribing = false
+  }
+
+  _mlsSubscribedRelays = [...relays]
+  _mlsSubscribedPubKey = myPubKey
+
+  if (!_mlsResubInterval) {
+    _mlsResubInterval = setInterval(() => {
+      if (_mlsSubscribedRelays.length > 0 && _mlsSubscribedPubKey && _mlsSubscriptionCallbacks) {
+        if (_mlsSubs.length === 0) {
+          const since = Math.floor(Date.now() / 1000) - 259200
+          subscribeMlsEvents(_mlsSubscribedRelays, _mlsSubscribedPubKey, _mlsSubscriptionCallbacks, {
+            force: true,
+            since,
+          })
+        }
+      }
+    }, RESUB_INTERVAL_MS)
+  }
+
+  return {
+    close() {
+      for (const sub of _mlsSubs) {
+        try { sub.close() } catch (_) {}
+      }
+      _mlsSubs = []
+      _mlsSubscriptionCallbacks = null
+    },
+  }
+}
+
+/**
+ * Fetch historical MLS events received/sent by our pubkey.
+ * @param {string[]} relays
+ * @param {string} myPubKey - Hex pubkey
+ * @param {{ onEvent(event): void }} callbacks
+ * @returns {Promise<void>}
+ */
+export async function fetchMlsHistory(relays, myPubKey, callbacks = {}) {
+  const pool = getPool()
+  try {
+    const [receivedResult, sentResult] = await Promise.allSettled([
+      pool.querySync(relays, { kinds: [30078], '#p': [myPubKey], limit: 200 }),
+      pool.querySync(relays, { kinds: [30078], authors: [myPubKey], limit: 200 }),
+    ])
+    const received = receivedResult.status === 'fulfilled' ? receivedResult.value : []
+    const sent = sentResult.status === 'fulfilled' ? sentResult.value : []
+    const events = [...(received || []), ...(sent || [])]
+    if (!events.length) return
+    for (const event of events) {
+      if (_mlsSeenEventIds.has(event.id)) continue
+      _mlsSeenEventIds.add(event.id)
+      if (callbacks.onEvent) callbacks.onEvent(event)
+    }
+  } catch (err) {
+    console.warn('[MLS] Failed to fetch historical events:', err)
+  }
+}
+
+/**
+ * Fetch a member's KeyPackage from relays (kind:30078, d-tag: paytaca:mls-kp).
+ * @param {string[]} relays
+ * @param {string} pubKey - Hex pubkey
+ * @returns {Promise<import('nostr-tools').NostrEvent|null>}
+ */
+export async function fetchMlsKeyPackage(relays, pubKey) {
+  const pool = getPool()
+  try {
+    console.log('[MLS] fetchMlsKeyPackage relays:', JSON.stringify(relays), 'pubKey:', pubKey?.slice(0, 16))
+    const events = await pool.querySync(relays, {
+      kinds: [30078],
+      authors: [pubKey],
+      '#d': ['paytaca:mls-kp'],
+      limit: 1,
+    })
+    console.log('[MLS] fetchMlsKeyPackage events:', events?.length)
+    if (events && events.length > 0) {
+      return events.reduce((newest, e) => e.created_at > newest.created_at ? e : newest)
+    }
+    return null
+  } catch (err) {
+    console.warn('[MLS] Failed to fetch KeyPackage for', pubKey?.slice(0, 16), 'error:', err.message)
+    return null
   }
 }
 

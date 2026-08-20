@@ -114,6 +114,19 @@
               </q-item-section>
             </q-item>
           </q-list>
+
+          <!-- MLS groups support adding members after creation -->
+          <q-btn
+            v-if="room?.type === 'mls-group'"
+            :label="$t('AddMember', {}, 'Add member')"
+            color="primary"
+            outline
+            rounded
+            unelevated
+            class="full-width q-mt-sm"
+            :disable="addingMember"
+            @click="openAddMemberDialog"
+          />
         </div>
 
         <!-- Member Details Dialog -->
@@ -224,6 +237,7 @@ export default {
       selectedMember: null,
       memberAvatars: {},
       memberDisplayNames: {},
+      addingMember: false,
     }
   },
   computed: {
@@ -326,15 +340,20 @@ export default {
       this.savingName = true
       try {
         await this.$store.dispatch('nostrChat/updateRoomName', { roomId: this.roomId, name })
-        const text = this.$t('GroupRenamedTo', { name }, `Changed group name to "${name}"`)
-        const { giftWraps, message, roomId } = await this.$store.dispatch('nostrChat/sendMessage', {
-          roomId: this.roomId,
-          text,
-          subject: name,
-        })
-        this.$store.commit('nostrChat/ADD_MESSAGE', { roomId, message })
-        this.$store.commit('nostrChat/TOUCH_ROOM_LAST_MESSAGE_AT', roomId)
-        await this.$store.dispatch('nostrChat/publishGiftWraps', { giftWraps })
+        // MLS groups don't use NIP-17 gift-wraps for group notifications, so
+        // the rename is persisted locally + via the relay's group metadata
+        // only.
+        if (this.room?.type !== 'mls-group') {
+          const text = this.$t('GroupRenamedTo', { name }, `Changed group name to "${name}"`)
+          const { giftWraps, message, roomId } = await this.$store.dispatch('nostrChat/sendMessage', {
+            roomId: this.roomId,
+            text,
+            subject: name,
+          })
+          this.$store.commit('nostrChat/ADD_MESSAGE', { roomId, message })
+          this.$store.commit('nostrChat/TOUCH_ROOM_LAST_MESSAGE_AT', roomId)
+          await this.$store.dispatch('nostrChat/publishGiftWraps', { giftWraps })
+        }
         // Persist the new name on the relay so all members see it
         this.$store.dispatch('nostrChat/publishGroupMetadata', {
           roomId: this.roomId,
@@ -359,7 +378,11 @@ export default {
         persistent: true,
       }).onOk(async () => {
         try {
-          await this.$store.dispatch('nostrChat/leaveGroup', { roomId: this.roomId })
+          if (this.room?.type === 'mls-group') {
+            await this.$store.dispatch('nostrChat/leaveMlsGroup', { roomId: this.roomId })
+          } else {
+            await this.$store.dispatch('nostrChat/leaveGroup', { roomId: this.roomId })
+          }
           this.$router.replace('/apps/chat')
           this.$q.notify({ type: 'info', message: this.$t('LeftGroup', {}, 'You left the group') })
         } catch (err) {
@@ -436,6 +459,51 @@ export default {
           console.warn('[GroupInfo] Failed to fetch display name:', err)
         }
       }
+    },
+    openAddMemberDialog () {
+      const currentCount = this.room?.members?.length || 0
+      if (currentCount >= 50) {
+        this.$q.notify({
+          type: 'warning',
+          message: this.$t('MlsMemberLimit', {}, 'This group has reached the 50-member limit'),
+          timeout: 5000,
+        })
+        return
+      }
+      this.$q.dialog({
+        title: this.$t('AddMember', {}, 'Add member'),
+        message: this.$t('AddMemberPrompt', {}, 'Enter the npub of the person to add:'),
+        class: `pt-card text-bow ${this.getDarkModeClass(this.darkMode)}`,
+        prompt: {
+          model: '',
+          type: 'text',
+          placeholder: 'npub1...',
+        },
+        cancel: { label: this.$t('Cancel', {}, 'Cancel'), flat: true, color: 'grey' },
+        ok: { label: this.$t('Add', {}, 'Add'), color: 'primary', flat: true },
+        persistent: true,
+      }).onOk(async (npub) => {
+        if (!npub) return
+        this.addingMember = true
+        try {
+          const { nip19Decode } = await import('nostr-tools/nip19')
+          const decoded = nip19Decode(npub.trim())
+          if (decoded.type !== 'npub') throw new Error('Invalid npub')
+          await this.$store.dispatch('nostrChat/addMlsMember', {
+            roomId: this.roomId,
+            memberPubKey: decoded.data,
+          })
+          this.$q.notify({ type: 'positive', message: this.$t('MemberAdded', {}, 'Member added') })
+        } catch (err) {
+          this.$q.notify({
+            type: 'negative',
+            message: err.message || this.$t('AddMemberFailed', {}, 'Failed to add member'),
+            timeout: 5000,
+          })
+        } finally {
+          this.addingMember = false
+        }
+      })
     },
   },
 }

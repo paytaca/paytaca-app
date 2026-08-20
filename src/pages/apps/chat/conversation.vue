@@ -358,7 +358,7 @@
             <message-bubble
               :message="msg"
               :my-pub-key="myPubKey"
-              :show-sender-name="room?.type === 'group'"
+              :show-sender-name="room?.type === 'group' || room?.type === 'mls-group'"
               :contacts="contacts"
               :display-names="memberDisplayNames"
               :is-read="messageReadMap[msg.id] || false"
@@ -711,7 +711,7 @@ export default {
       return this.$store.getters['nostrChat/isGroupBlocked'](this.roomId)
     },
     isGroupRoom () {
-      return this.room?.type === 'group'
+      return this.room?.type === 'group' || this.room?.type === 'mls-group'
     },
     otherMemberIsActive () {
       const pk = this.otherMemberPubKey
@@ -759,7 +759,7 @@ export default {
       const room = this.room
       if (!room) return this.$t('Chat', {}, 'Chat')
       // Group rooms: use room.name directly
-      if (room.type === 'group') {
+      if (room.type === 'group' || room.type === 'mls-group') {
         return room.name || room.subject || this.$t('Group', {}, 'Group')
       }
       // DM: if a subject has been set, prefer it over the contact name
@@ -872,7 +872,7 @@ export default {
       const map = {}
       const myPubKey = this.myPubKey
       const room = this.room
-      if (!room || !myPubKey || room.type !== 'group') return map
+      if (!room || !myPubKey || (room.type !== 'group' && room.type !== 'mls-group')) return map
 
       const readBy = this.$store.getters['nostrChat/getMessageReadBy'](this.roomId)
 
@@ -1891,7 +1891,7 @@ export default {
     async onSend (text) {
       if (!this.room) return
       try {
-        if (this.editingMessage) {
+        if (this.editingMessage && this.room?.type !== 'mls-group') {
           const { giftWraps, roomId } = await this.$store.dispatch('nostrChat/sendEditMessage', {
             roomId: this.roomId,
             text,
@@ -1913,22 +1913,45 @@ export default {
           }
         } else {
           const replyTo = this.replyToMessage?.id
-          const { giftWraps, message, roomId } = await this.$store.dispatch('nostrChat/sendMessage', {
-            roomId: this.roomId,
-            text,
-            replyTo,
-          })
-          this.$store.commit('nostrChat/ADD_MESSAGE', { roomId, message })
-          this.$store.commit('nostrChat/TOUCH_ROOM_LAST_MESSAGE_AT', roomId)
-          this.$store.dispatch('nostrChat/touchRoom', { roomId, timestamp: new Date().toISOString() })
-          this.replyToMessage = null
-          this.scrollToBottom()
-          await this.$store.dispatch('nostrChat/publishGiftWraps', { giftWraps })
-          if (this.$store.getters['nostrChat/getShowActiveStatus']) {
-            this.$store.dispatch('nostrChat/touchActive', {
-              pubkey: this.myPubKey,
-              recipients: this.room?.members?.filter(m => m !== this.myPubKey) || [],
+
+          // MLS groups use the MLS encryption layer instead of NIP-17 gift-wraps.
+          // The message is returned already added to the local store by the action.
+          if (this.room?.type === 'mls-group') {
+            const { message, roomId } = await this.$store.dispatch('nostrChat/sendMlsMessage', {
+              roomId: this.roomId,
+              text,
+              replyTo,
             })
+            this.$store.commit('nostrChat/ADD_MESSAGE', { roomId, message })
+            this.$store.commit('nostrChat/TOUCH_ROOM_LAST_MESSAGE_AT', roomId)
+            this.$store.dispatch('nostrChat/touchRoom', { roomId, timestamp: new Date().toISOString() })
+            this.replyToMessage = null
+            this.editingMessage = null
+            this.scrollToBottom()
+            if (this.$store.getters['nostrChat/getShowActiveStatus']) {
+              this.$store.dispatch('nostrChat/touchActive', {
+                pubkey: this.myPubKey,
+                recipients: this.room?.members?.filter(m => m !== this.myPubKey) || [],
+              })
+            }
+          } else {
+            const { giftWraps, message, roomId } = await this.$store.dispatch('nostrChat/sendMessage', {
+              roomId: this.roomId,
+              text,
+              replyTo,
+            })
+            this.$store.commit('nostrChat/ADD_MESSAGE', { roomId, message })
+            this.$store.commit('nostrChat/TOUCH_ROOM_LAST_MESSAGE_AT', roomId)
+            this.$store.dispatch('nostrChat/touchRoom', { roomId, timestamp: new Date().toISOString() })
+            this.replyToMessage = null
+            this.scrollToBottom()
+            await this.$store.dispatch('nostrChat/publishGiftWraps', { giftWraps })
+            if (this.$store.getters['nostrChat/getShowActiveStatus']) {
+              this.$store.dispatch('nostrChat/touchActive', {
+                pubkey: this.myPubKey,
+                recipients: this.room?.members?.filter(m => m !== this.myPubKey) || [],
+              })
+            }
           }
         }
       } catch (err) {

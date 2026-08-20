@@ -1835,7 +1835,7 @@ export default {
   OpenOrderChat: "Bestellchat öffnen",
   OpenPaymentUrl: "Öffnen Sie die Zahlungs-URL",
   OpenPrivateGroup: "Private Gruppe öffnen",
-  OpenPrivateGroupDesc: "Ende-zu-Ende-verschlüsselter Gruppenchat für bis zu 10.000 Mitglieder.Neue Mitglieder können jederzeit beitreten.",
+  OpenPrivateGroupDesc: "Ende-zu-Ende-verschlüsselter Gruppenchat für bis zu 50 Mitglieder. Neue Mitglieder können jederzeit beitreten.",
   OpenSourceCode: "Open-Source-Code",
   Options: "Optionen",
   OraclePubkey: "Oracle-Pubkey",

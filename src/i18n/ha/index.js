@@ -1835,7 +1835,7 @@ export default {
   OpenOrderChat: "Bude odar hira",
   OpenPaymentUrl: "Bude URL na Biya",
   OpenPrivateGroup: "Bude Rukunin Masu zaman kansu",
-  OpenPrivateGroupDesc: "Ƙarshe-zuwa-ƙarshen rufaffen taɗi na rukuni don mambobi 10,000.Sabbin mambobi na iya shiga kowane lokaci.",
+  OpenPrivateGroupDesc: "Ƙarshe-zuwa-ƙarshen rufaffen taɗi na rukuni don mambobi 50. Sabbin mambobi na iya shiga kowane lokaci.",
   OpenSourceCode: "Buɗe lambar tushe",
   Options: "Zabuka",
   OraclePubkey: "Oracle pubkey",

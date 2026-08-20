@@ -1835,7 +1835,7 @@ export default {
   OpenOrderChat: "Buka obrolan pesanan",
   OpenPaymentUrl: "Buka URL Pembayaran",
   OpenPrivateGroup: "Buka Grup Pribadi",
-  OpenPrivateGroupDesc: "Obrolan grup terenkripsi ujung ke ujung hingga 10.000 anggota.Anggota baru dapat bergabung kapan saja.",
+  OpenPrivateGroupDesc: "Obrolan grup terenkripsi ujung ke ujung hingga 50 anggota. Anggota baru dapat bergabung kapan saja.",
   OpenSourceCode: "Kode sumber terbuka",
   Options: "Pilihan",
   OraclePubkey: "Kunci pub Oracle",

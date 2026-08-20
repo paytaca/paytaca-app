@@ -1835,7 +1835,7 @@ export default {
   OpenOrderChat: "فتح دردشة النظام",
   OpenPaymentUrl: "افتح عنوان URL للدفع",
   OpenPrivateGroup: "افتح المجموعة الخاصة",
-  OpenPrivateGroupDesc: "دردشة جماعية مشفرة من النهاية إلى النهاية لما يصل إلى 10000 عضو.يمكن للأعضاء الجدد الانضمام في أي وقت.",
+  OpenPrivateGroupDesc: "دردشة جماعية مشفرة من النهاية إلى النهاية لما يصل إلى 50 عضوًا. يمكن للأعضاء الجدد الانضمام في أي وقت.",
   OpenSourceCode: "كود المصدر المفتوح",
   Options: "خيارات",
   OraclePubkey: "أوراكل بوبكي",

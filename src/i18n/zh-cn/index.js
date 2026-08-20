@@ -1836,7 +1836,7 @@ export default {
   OpenOrderChat: "打开订单聊天",
   OpenPaymentUrl: "打开支付网址",
   OpenPrivateGroup: "公开私人团体",
-  OpenPrivateGroupDesc: "最多可容纳 10,000 名成员的端到端加密群聊。新会员可以随时加入。",
+  OpenPrivateGroupDesc: "最多可容纳 50 名成员的端到端加密群聊。新会员可以随时加入。",
   OpenSourceCode: "开源代码",
   Options: "选项",
   OraclePubkey: "Oracle 公钥",

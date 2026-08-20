@@ -1835,7 +1835,7 @@ export default {
   OpenOrderChat: "オープンオーダーチャット",
   OpenPaymentUrl: "支払いURLを開く",
   OpenPrivateGroup: "プライベートグループを開く",
-  OpenPrivateGroupDesc: "最大 10,000 人のメンバーが参加できる、エンドツーエンドの暗号化されたグループ チャット。新しいメンバーはいつでも参加できます。",
+  OpenPrivateGroupDesc: "最大 50 人のメンバーが参加できる、エンドツーエンドの暗号化されたグループ チャット。新しいメンバーはいつでも参加できます。",
   OpenSourceCode: "オープンソースコード",
   Options: "オプション",
   OraclePubkey: "オラクルの公開鍵",

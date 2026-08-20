@@ -1835,7 +1835,7 @@ export default {
   OpenOrderChat: "Apri la chat degli ordini",
   OpenPaymentUrl: "Apri URL di pagamento",
   OpenPrivateGroup: "Apri gruppo privato",
-  OpenPrivateGroupDesc: "Chat di gruppo crittografata end-to-end per un massimo di 10.000 membri.I nuovi membri possono unirsi in qualsiasi momento.",
+  OpenPrivateGroupDesc: "Chat di gruppo crittografata end-to-end per un massimo di 50 membri. I nuovi membri possono unirsi in qualsiasi momento.",
   OpenSourceCode: "Codice open source",
   Options: "Opzioni",
   OraclePubkey: "Pubkey dell'Oracolo",
