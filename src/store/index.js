@@ -230,6 +230,8 @@ function reducer(state) {
                         ready: value.ready || false,
                         keyPackage: value.keyPackage || null,
                         roomMlsMap: value.roomMlsMap || {},
+                        declinedWelcomeIds: value.declinedWelcomeIds || {},
+                        failedEventAttempts: value.failedEventAttempts || {},
                       }
                       continue
                     }

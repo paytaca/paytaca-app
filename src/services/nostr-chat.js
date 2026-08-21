@@ -810,21 +810,31 @@ export async function fetchMlsWelcomeEvents(relays, authorPubKey, memberPubKey) 
 }
 
 /**
- * Diagnostic: return the current MLS subscription health (which relays we are
- * subscribed to, how many live subscriptions are active, and which pubkey).
- * Used by the per-group diagnose button to reveal whether incoming MLS events
- * could even reach us (a dead subscription is a silent delivery failure).
- * @returns {object}
+ * Fetch the ids of events we have deleted (NIP-09 kind-5 authored by us) so
+ * declined MLS invitations can be filtered out even though relays still serve
+ * the original welcome events.
+ * @param {string[]} relays
+ * @param {string} pubKey - Hex pubkey
+ * @returns {Promise<Set<string>>} deleted event ids
  */
-export function getMlsSubscriptionStatus() {
-  return {
-    subscribedPubKey: _mlsSubscribedPubKey,
-    relays: [..._mlsSubscribedRelays],
-    activeSubCount: _mlsSubs.length,
-    subscribing: _mlsSubscribing,
-    hasCallbacks: !!_mlsSubscriptionCallbacks,
-    resubIntervalActive: !!_mlsResubInterval,
-    seenEventCount: _mlsSeenEventIds.size,
+export async function fetchOwnDeletionEventIds(relays, pubKey) {
+  const pool = getPool()
+  try {
+    const events = await pool.querySync(relays, {
+      kinds: [5],
+      authors: [pubKey],
+      limit: 200,
+    })
+    const ids = new Set()
+    for (const e of events || []) {
+      for (const t of e.tags || []) {
+        if (t[0] === 'e' && t[1]) ids.add(t[1])
+      }
+    }
+    return ids
+  } catch (err) {
+    console.warn('[MLS] Failed to fetch deletion events:', err.message)
+    return new Set()
   }
 }
 

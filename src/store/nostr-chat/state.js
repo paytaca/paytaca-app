@@ -58,9 +58,9 @@ export function getInitialWalletState () {
       groupStates: {}, // { [mlsGroupIdHex]: serialized ClientState }
       roomMlsMap: {}, // { [roomId]: mlsGroupIdHex }
       pendingInvitations: {}, // { [roomId]: { roomId, inviterPubKey, name, welcomeEvent } }
+      declinedWelcomeIds: {}, // { [welcomeEventId]: timestamp } — never re-surface these invites
+      failedEventAttempts: {}, // { [eventId]: { count, lastError, lastAttemptAt } } — undecodable MLS events; dropped after MAX_EVENT_PROCESS_ATTEMPTS
       kpHistory: [], // { ref: string, encoded: string (base64 raw KP bytes), publishedAt: number }
-      rekeyEpochs: {}, // { [mlsGroupIdHex]: epoch } — epoch WE advanced to via our own re-key
-      splitGroups: {}, // { [mlsGroupIdHex]: true } — competing re-key detected; group unrecoverable
     },
   }
 }

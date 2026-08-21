@@ -14,6 +14,9 @@ import {
 } from './actions.js'
 
 const MAX_MLS_MEMBERS = 50
+// After this many failed process attempts across sessions, an undecodable MLS
+// event is dropped permanently instead of being retried on every history fetch.
+const MAX_EVENT_PROCESS_ATTEMPTS = 3
 
 const mlsProcessingQueues = new Map()
 
@@ -137,6 +140,19 @@ export async function initMls({ commit, state, dispatch }) {
     publishedAt: Math.floor(Date.now() / 1000),
   })
   commit('SET_MLS_READY', true)
+
+  // Honor our own NIP-09 deletions BEFORE subscribing/fetching history:
+  // welcomes we declined on this or another device were "deleted" on the
+  // relay, but relays still serve the original events. Loading the deleted
+  // ids first guarantees receiveMlsMessage can filter them out.
+  try {
+    const deletedIds = await relayService.fetchOwnDeletionEventIds(state.relays, nostrPubkeyHex)
+    if (deletedIds.size) {
+      commit('MERGE_DECLINED_WELCOMES', [...deletedIds])
+    }
+  } catch (err) {
+    console.warn('[MLS] Failed to load own deletion events:', err.message)
+  }
 
   relayService.subscribeMlsEvents(state.relays, nostrPubkeyHex, {
     onEvent(event) {
@@ -381,9 +397,10 @@ export async function declineMlsInvite({ commit, state }, { roomId }) {
   const ws = getWalletState(state)
   const invite = ws.mls.pendingInvitations?.[roomId]
 
-  // Publish a kind-5 delete for the welcome event so the stale invitation
-  // doesn't re-sync to other devices. Best-effort: if the delete fails the
-  // local decline still proceeds.
+  // Publish a kind-5 delete for the welcome event so other devices sharing
+  // our keys can filter it out (relays keep serving the original event; the
+  // delete is honored client-side at init). Best-effort: if the delete fails
+  // the local decline still proceeds.
   if (invite?.welcomeEvent?.id) {
     try {
       const deleteEvent = finalizeEvent({
@@ -400,6 +417,8 @@ export async function declineMlsInvite({ commit, state }, { roomId }) {
     } catch (err) {
       console.warn('[MLS] Failed to publish delete for declined invite:', err.message)
     }
+    // Tombstone locally so this device never re-surfaces it either.
+    commit('ADD_DECLINED_WELCOME', invite.welcomeEvent.id)
   }
 
   commit('REMOVE_MLS_INVITE', roomId)
@@ -530,6 +549,12 @@ export async function receiveMlsMessage({ commit, state, dispatch }, event) {
       // the welcome is encrypted to the invitee's KeyPackage, not ours.
       if (ws.mls.roomMlsMap?.[roomId]) return
 
+      // Skip invitations we (or another device with our keys) already
+      // declined — relays keep serving the original welcome event even after
+      // the NIP-09 delete, so without this check declined invites would
+      // re-appear on every history fetch.
+      if (ws.mls.declinedWelcomeIds?.[event.id]) return
+
       // Queue an explicit invitation instead of auto-joining, so the user can
       // accept or decline it from the Invitations tab.
       const nTag = event.tags?.find(t => t[0] === 'n')
@@ -547,6 +572,15 @@ export async function receiveMlsMessage({ commit, state, dispatch }, event) {
   const hTag = event.tags?.find(t => t[0] === 'h')
   if (!hTag) return
   const mlsGroupIdHex = hTag[1]
+
+  // Undecodable-event suppression: relays re-serve history forever, so an
+  // event we can never decrypt (e.g. "Desired gen in the past" after a state
+  // reset) would be retried on every session. Give up after a bounded number
+  // of attempts across sessions.
+  const failedAttempts = ws.mls.failedEventAttempts?.[event.id]
+  if (failedAttempts && failedAttempts.count >= MAX_EVENT_PROCESS_ATTEMPTS) {
+    return
+  }
 
   await withMlsProcessingLock(mlsGroupIdHex, async () => {
     let clientState = null
@@ -575,6 +609,7 @@ export async function receiveMlsMessage({ commit, state, dispatch }, event) {
 
       await mls.saveMlsState(mlsGroupIdHex, result.newState)
       commit('SET_MLS_GROUP_STATE', { mlsGroupIdHex, clientState: result.newState })
+      commit('CLEAR_EVENT_PROCESS_FAILURES', event.id)
 
       if (result.plaintext) {
         const rTag = event.tags?.find(t => t[0] === 'r')
@@ -650,25 +685,7 @@ export async function receiveMlsMessage({ commit, state, dispatch }, event) {
         '| own leafIndex:', clientState.privatePath?.leafIndex,
         ':', err.message,
       )
-
-      // Guard: a re-key commit we cannot process, on a group WE also re-keyed
-      // to the same epoch, is the signature of a competing re-key. Two members
-      // each built an empty commit on the same base epoch, so both reached the
-      // same epoch number but with divergent trees — neither can ever process
-      // the other's commit. The group is permanently split and no further
-      // re-keying can recover it.
-      if (
-        kind === 30118 &&
-        ws.mls.rekeyEpochs?.[mlsGroupIdHex] != null &&
-        clientState.groupContext?.epoch === ws.mls.rekeyEpochs[mlsGroupIdHex] &&
-        !ws.mls.splitGroups?.[mlsGroupIdHex]
-      ) {
-        commit('MARK_MLS_GROUP_SPLIT', mlsGroupIdHex)
-        console.error(
-          '[MLS] Competing re-key detected for group', mlsGroupIdHex.slice(0, 12),
-          '— another member also re-keyed to the same epoch. Group is split and cannot be recovered by re-keying. Re-create the group or re-invite members.',
-        )
-      }
+      commit('RECORD_EVENT_PROCESS_FAILURE', { eventId: event.id, error: err.message })
     }
   })
 }
@@ -790,281 +807,21 @@ export async function addMlsMember({ commit, state }, { roomId, memberPubKey }) 
 }
 
 /**
- * Re-key the group: commit an empty update path, advancing the epoch and
- * resetting all application ratchets. This recovers a group whose ratchets
- * have diverged between members (e.g. after a stale-state race left one
- * member's ratchet ahead, causing every message after the first to fail with
- * "Desired gen in the past"). All members that process the commit get fresh
- * ratchets and messaging resumes in both directions.
+ * Return the pubkeys of members who have completed the MLS join handshake
+ * (present in the group's tree), or null when the room has no MLS state.
+ * Used by Group Info to distinguish joined vs invited-pending members.
  */
-export async function rekeyMlsGroup({ commit, state }, { roomId }) {
+export async function getMlsGroupMemberPubkeys({ state }, { roomId }) {
   const ws = getWalletState(state)
-  if (!ws.keys.privKeyHex) throw new Error('Nostr keys not available')
-
-  const mlsGroupIdHex = ws.mls.roomMlsMap[roomId]
-  if (!mlsGroupIdHex) throw new Error('Unknown MLS room')
-
-  const { impl } = mls.getMlsCrypto()
-
-  await withMlsProcessingLock(mlsGroupIdHex, async () => {
-    let clientState = null
-    try {
-      clientState = await mls.loadMlsState(mlsGroupIdHex, impl, {})
-    } catch (err) {
-      console.warn('[MLS] loadMlsState threw for group', mlsGroupIdHex.slice(0, 12), ':', err.message)
-    }
-    if (!clientState && ws.mls.groupStates[mlsGroupIdHex]) {
-      clientState = ws.mls.groupStates[mlsGroupIdHex]
-    }
-    if (!clientState) throw new Error('MLS group state not found')
-
-    // Only one member may re-key a group. A re-key is an empty commit built on
-    // this member's current epoch; every OTHER member must be on that same
-    // epoch and apply it to converge. If a second member concurrently re-keys
-    // from the same epoch, both advance to the same epoch but with divergent
-    // trees, and neither can ever process the other's commit — the group is
-    // permanently split. Guard against re-keying a group we already marked split.
-    if (ws.mls.splitGroups?.[mlsGroupIdHex]) {
-      throw new Error('This group is split (a competing re-key was detected) and cannot be fixed by re-keying. Re-create the group or re-invite members instead.')
-    }
-
-    const { newState, commit: commitMsg } = await mls.rekeyMlsGroup(clientState, impl)
-
-    const commitEvent = mls.buildMlsNostrEvent(commitMsg, 30118, mlsGroupIdHex, roomId, ws.keys.pubKeyHex, mlsMemberPubkeys(clientState))
-    const signedCommit = finalizeEvent(commitEvent, hexToBytes(ws.keys.privKeyHex))
-    const publish = await relayService.publishEvent(state.relays, signedCommit)
-    if (!publish.accepted.length) {
-      const reason = publish.errors[0]?.reason || 'relay rejected the commit'
-      console.warn('[MLS] Re-key commit rejected:', JSON.stringify(publish.errors))
-      throw new Error(`MLS re-key commit was rejected by the relay: ${reason}`)
-    }
-
-    await mls.saveMlsState(mlsGroupIdHex, newState)
-    commit('SET_MLS_GROUP_STATE', { mlsGroupIdHex, clientState: newState })
-    commit('SET_MLS_REKEY_EPOCH', { mlsGroupIdHex, epoch: newState.groupContext.epoch })
-  })
-}
-
-// ---- Diagnostics ----
-
-/**
- * Gather a structured diagnostic report for an MLS group and log it to the
- * console. Pulls local state, IndexedDB group state, the MLS member tree
- * (with per-leaf ratchet generations), compares it against the room's member
- * list, checks live subscription health, and queries the relays for recent
- * events addressed to the group (#h) so we can tell whether a missing message
- * is a publish/transport failure vs a local decrypt/state failure.
- * @returns {Promise<object>} the report (also console.log'ed)
- */
-export async function diagnoseMlsGroup({ state, dispatch }, { roomId }) {
-  const ws = getWalletState(state)
-  const myPub = ws.keys?.pubKeyHex
-  const relays = state.relays || []
-
-  const report = {
-    at: new Date().toISOString(),
-    roomId,
-    myPubKey: myPub ? `${myPub.slice(0, 8)}…` : null,
-    roomType: null,
-    mlsGroupIdHex: null,
-    local: {},
-    ws: {},
-    tree: {},
-    members: {},
-    subscription: null,
-    relay: {},
-    findings: [],
-  }
-
-  const room = (ws.rooms || []).find(r => r.id === roomId)
-  report.roomType = room?.type || null
-  const roomMembers = room?.members || []
-
   const mlsGroupIdHex = ws.mls?.roomMlsMap?.[roomId]
-  report.mlsGroupIdHex = mlsGroupIdHex
-
-  report.local = {
-    roomExists: !!room,
-    roomMemberCount: roomMembers.length,
-    roomMembers: roomMembers.map(m => `${m.slice(0, 8)}…`),
-    inRoomMemberList: myPub ? roomMembers.includes(myPub) : false,
-    hasGroupState: mlsGroupIdHex ? !!ws.mls?.groupStates?.[mlsGroupIdHex] : false,
-    rekeyEpoch: mlsGroupIdHex ? (ws.mls?.rekeyEpochs?.[mlsGroupIdHex] ?? null) : null,
-    split: mlsGroupIdHex ? !!ws.mls?.splitGroups?.[mlsGroupIdHex] : false,
+  if (!mlsGroupIdHex) return null
+  const { impl } = mls.getMlsCrypto()
+  let clientState = await mls.loadMlsState(mlsGroupIdHex, impl, {})
+  if (!clientState && ws.mls.groupStates[mlsGroupIdHex]) {
+    clientState = ws.mls.groupStates[mlsGroupIdHex]
   }
-
-  if (report.local.split) {
-    report.findings.push('group is marked SPLIT by a competing re-key — unrecoverable, recreate or re-invite members')
-  }
-
-  let clientState = null
-  if (mlsGroupIdHex) {
-    try {
-      const { impl } = mls.getMlsCrypto()
-      clientState = await mls.loadMlsState(mlsGroupIdHex, impl, {})
-      report.ws = {
-        hasState: !!clientState,
-        epoch: clientState?.groupContext?.epoch?.toString() ?? null,
-        ownLeafIndex: clientState?.privatePath?.leafIndex ?? null,
-        loadError: null,
-      }
-    } catch (err) {
-      report.ws = { hasState: false, loadError: err.message }
-    }
-  } else {
-    report.ws = { hasState: false, loadError: 'no mlsGroupIdHex for room' }
-  }
-
-  if (clientState) {
-    const members = mls.getMlsGroupMembers(clientState)
-    const identities = members.map(m => new TextDecoder().decode(m.credential?.identity || new Uint8Array()))
-    report.tree = {
-      memberCount: members.length,
-      members: identities.map(i => `${i.slice(0, 8)}…`),
-    }
-
-    const ratchets = []
-    for (let i = 0; i < identities.length; i++) {
-      const gen = clientState.secretTree?.[leafToNodeIndex(i)]?.application?.generation ?? '?'
-      ratchets.push({ leafIndex: i, identity: `${identities[i].slice(0, 8)}…`, ratchetGen: gen })
-    }
-    report.tree.ratchets = ratchets
-
-    // Compare tree membership against room member list.
-    const treeSet = new Set(identities)
-    const roomSet = new Set(roomMembers)
-    const inTreeNotRoom = identities.filter(i => !roomSet.has(i))
-    const inRoomNotTree = roomMembers.filter(m => !treeSet.has(m))
-    report.members = {
-      inTreeNotRoom: inTreeNotRoom.map(m => `${m.slice(0, 8)}…`),
-      inRoomNotTree: inRoomNotTree.map(m => `${m.slice(0, 8)}…`),
-      selfInTree: myPub ? treeSet.has(myPub) : false,
-    }
-    if (inTreeNotRoom.length) report.findings.push(`MLS tree has ${inTreeNotRoom.length} member(s) absent from the room list`)
-    if (inRoomNotTree.length) report.findings.push(`room list has ${inRoomNotTree.length} member(s) absent from the MLS tree — they will not receive messages`)
-    if (myPub && !treeSet.has(myPub)) report.findings.push('your pubkey is NOT in the MLS tree — you are not an MLS member of this group')
-    if (myPub && treeSet.has(myPub)) {
-      const myIndexInTree = identities.findIndex(id => id === myPub)
-      const ownLeaf = clientState.privatePath?.leafIndex
-      if (ownLeaf != null && myIndexInTree !== -1 && ownLeaf !== myIndexInTree) {
-        report.findings.push(`leaf-index mismatch: privatePath leafIndex is ${ownLeaf} but your identity is at tree position ${myIndexInTree} — private keys are for the WRONG leaf (stale KeyPackage at join). Group must be recreated.`)
-      }
-    }
-  }
-
-  report.subscription = relayService.getMlsSubscriptionStatus()
-
-  // Query the relays for events addressed to this group.
-  if (mlsGroupIdHex) {
-    const events = await relayService.fetchMlsGroupEvents(relays, mlsGroupIdHex, 100)
-    const byAuthor = {}
-    const byKind = {}
-    const messagesFromOthers = []
-    const storedMessageIds = new Set((ws.messages?.[roomId] || []).map(m => m.id))
-    for (const e of events) {
-      const { kind } = decodeMlsEventContent(e.content)
-      byKind[kind] = (byKind[kind] || 0) + 1
-      const author = `${e.pubkey.slice(0, 8)}…`
-      byAuthor[author] = (byAuthor[author] || 0) + 1
-      if (kind === 30117 && e.pubkey !== myPub) {
-        const pTags = (e.tags || []).filter(t => t[0] === 'p').map(t => t[1])
-        const rTag = (e.tags || []).find(t => t[0] === 'r')?.[1] || null
-        messagesFromOthers.push({
-          id: e.id.slice(0, 8),
-          fullId: e.id,
-          author,
-          createdAt: new Date(e.created_at * 1000).toISOString(),
-          storedInRoom: storedMessageIds.has(e.id),
-          hasMyPtag: pTags.includes(myPub),
-          rTag: rTag ? `${rTag.slice(0, 8)}…` : null,
-          rTagMatchesRoom: rTag === roomId,
-        })
-      }
-    }
-    report.relay = {
-      relayCount: relays.length,
-      eventCount: events.length,
-      byAuthor,
-      byKind,
-      hasMyPubkeyAsPtag: events.some(e => (e.tags || []).some(t => t[0] === 'p' && t[1] === myPub)),
-      messagesFromOthers,
-    }
-    if (report.relay.eventCount === 0) {
-      report.findings.push('no kind-30078 events found on the relay for this group (#h) — the other member may not have published here, or is on different relays')
-    }
-    if (report.relay.hasMyPubkeyAsPtag === false && report.relay.eventCount > 0) {
-      report.findings.push('relay has group events but none include your pubkey as a #p — you will not be subscribed to them')
-    }
-    const undelivered = messagesFromOthers.filter(m => !m.storedInRoom)
-    if (undelivered.length) {
-      report.findings.push(`${undelivered.length} message(s) from other member(s) are ON the relay but NOT in your local room — they are being dropped between subscription and store (likely a decrypt/ratchet failure). Check the [MLS] Failed to process logs.`)
-    }
-    if (messagesFromOthers.length && !undelivered.length) {
-      report.findings.push('all relayed messages from other members are present in the local store — any missing messages were never published to the shared relay')
-    }
-
-    // Decisive test: attempt to actually process the oldest undelivered
-    // message from another member with our current group state. This is the
-    // exact path receiveMlsMessage runs, so it pinpoints whether the failure
-    // is decrypt/state divergence (throws) vs. the event never reaching us.
-    // Only test undelivered events — re-processing an already-stored message
-    // would fail with "gen in the past" even when healthy.
-    if (clientState) {
-      const { impl } = mls.getMlsCrypto()
-      const undeliveredEvents = events.filter(e => e.pubkey !== myPub && !storedMessageIds.has(e.id))
-      const otherMsgs = undeliveredEvents
-        .map(e => ({ e, kind: decodeMlsEventContent(e.content).kind }))
-        .filter(x => x.kind === 30117)
-        .sort((a, b) => a.e.created_at - b.e.created_at)
-      const latest = otherMsgs[0]
-      if (latest) {
-        let decryptTest = null
-        try {
-          const res = await mls.processMlsMessage(clientState, decodeMlsEventContent(latest.e.content).bytes, impl)
-          decryptTest = {
-            ok: true,
-            actionTaken: res.actionTaken ?? null,
-            plaintextPreview: res.plaintext ? JSON.stringify(res.plaintext.slice(0, 40)) : null,
-            usedStateEpoch: clientState.groupContext?.epoch?.toString() ?? null,
-          }
-        } catch (err) {
-          decryptTest = {
-            ok: false,
-            error: err.message,
-            epoch: clientState.groupContext?.epoch?.toString() ?? null,
-            ratchetGens: (() => {
-              try {
-                const members = mls.getMlsGroupMembers(clientState)
-                return members.map((m, i) => {
-                  const id = new TextDecoder().decode(m.credential?.identity || new Uint8Array()).slice(0, 8)
-                  return `${id}@${leafToNodeIndex(i)}=${clientState.secretTree?.[leafToNodeIndex(i)]?.application?.generation ?? '?'}`
-                })
-              } catch { return '?' }
-            })(),
-          }
-        }
-        report.relay.decryptTest = decryptTest
-        if (decryptTest.ok) {
-          report.findings.push('your current group state CAN decrypt the other member\'s undelivered message — it would appear in the room if processed. Missing display is likely a store/filter issue, not crypto.')
-        } else {
-          report.findings.push('your group state CANNOT decrypt the other member\'s latest undelivered message: ' + decryptTest.error + '. This is state divergence — recreate the group or re-invite members (re-keying will NOT fix an epoch/ratchet split).')
-        }
-        if (decryptTest?.ok && undelivered.length) {
-          let repaired = 0
-          for (const m of undelivered) {
-            const evt = events.find(e => e.id.slice(0, 8) === m.id)
-            if (evt) {
-              try { await dispatch('receiveMlsMessage', evt); repaired++ } catch {}
-            }
-          }
-          if (repaired) report.findings.push(`auto-repaired ${repaired} missed message(s) — re-ran receiveMlsMessage; check the conversation for "Testing 1".`)
-        }
-      }
-    }
-  }
-
-  console.log('[MLS-DIAG] diagnostic for room', roomId, JSON.stringify(report, null, 2))
-  return report
+  if (!clientState) return null
+  return mls.getMlsGroupMembers(clientState).map(m => new TextDecoder().decode(m.credential.identity))
 }
 
 export async function resetMlsForTesting({ commit }) {
@@ -1188,7 +945,6 @@ export async function leaveMlsGroup({ commit, state, dispatch }, { roomId }) {
   await mls.removeMlsState(mlsGroupIdHex)
   commit('CLEAR_MLS_GROUP_STATE', mlsGroupIdHex)
   commit('REMOVE_MLS_ROOM_MAP', roomId)
-  commit('CLEAR_MLS_REKEY_EPOCH', mlsGroupIdHex)
 
   const room = ws.rooms.find(r => r.id === roomId)
   if (room) {

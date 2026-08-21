@@ -77,9 +77,28 @@
         <!-- Members list -->
         <div class="members-section" :class="getDarkModeClass(darkMode)">
           <div class="section-title">{{ $t('Members', {}, 'Members') }}</div>
+          <template v-if="isMlsRoom">
+            <q-tabs
+              v-model="memberTab"
+              dense
+              no-caps
+              align="left"
+              active-color="primary"
+              indicator-color="primary"
+              class="member-tabs"
+            >
+              <q-tab name="joined" :label="$t('JoinedTab', { count: joinedMembers.length }, `Joined (${joinedMembers.length})`)" />
+              <q-tab name="invited">
+                {{ $t('InvitedTab', {}, 'Invited') }}
+                <q-badge v-if="invitedMembers.length" color="warning" class="q-ml-xs">{{ invitedMembers.length }}</q-badge>
+              </q-tab>
+            </q-tabs>
+            <q-separator />
+          </template>
+
           <q-list separator>
             <q-item
-              v-for="member in membersWithInfo"
+              v-for="member in displayedMembers"
               :key="member.pubKeyHex"
               clickable
               class="member-item"
@@ -107,13 +126,30 @@
                   >
                     {{ $t('You', {}, 'You') }}
                   </q-badge>
+                  <q-badge
+                    v-if="isMlsRoom && memberTab === 'invited'"
+                    color="warning"
+                    class="you-chip q-ml-xs"
+                    outline
+                  >
+                    {{ $t('InvitedBadge', {}, 'Invited') }}
+                  </q-badge>
                 </q-item-label>
                 <q-item-label caption class="npub-caption">
                   {{ member.displayNpub }}
                 </q-item-label>
               </q-item-section>
+              <q-item-section v-if="isMlsRoom && memberTab === 'invited'" side>
+                <q-icon name="hourglass_top" size="18px" color="warning" />
+              </q-item-section>
             </q-item>
           </q-list>
+          <div
+            v-if="isMlsRoom && memberTab === 'invited' && !invitedMembers.length"
+            class="no-invited-note"
+          >
+            {{ $t('NoPendingInvites', {}, 'No pending invitations') }}
+          </div>
 
           <!-- MLS groups support adding members after creation -->
           <q-btn
@@ -127,23 +163,9 @@
             :disable="addingMember"
             @click="openAddMemberDialog"
           />
-          <q-btn
-            v-if="room?.type === 'mls-group'"
-            :label="roomIsSplit
-              ? $t('RekeySplitDisabled', {}, 'Group split — re-create or re-invite')
-              : $t('RekeyMlsGroup', {}, 'Re-key group (fix stuck messages)')"
-            :color="roomIsSplit ? 'grey' : 'warning'"
-            outline
-            rounded
-            unelevated
-            class="full-width q-mt-sm"
-            :disable="rekeying || roomIsSplit"
-            @click="rekeyGroup"
-          />
         </div>
 
-        <!-- Member Details Dialog -->
-        <q-dialog v-model="showMemberDetails" persistent>
+        <!-- Member Details Dialog -->        <q-dialog v-model="showMemberDetails" persistent>
           <q-card class="member-details-card pt-card text-bow" :class="getDarkModeClass(darkMode)" style="min-width: 320px; border-radius: 16px;">
             <q-card-section class="row items-center q-pb-none">
               <div class="text-h6">{{ $t('MemberDetails', {}, 'Member Details') }}</div>
@@ -206,6 +228,101 @@
           </q-card>
         </q-dialog>
 
+        <!-- Add Member Dialog -->
+        <q-dialog v-model="showAddMemberDialog" persistent>
+          <q-card class="member-details-card pt-card text-bow" :class="getDarkModeClass(darkMode)" style="min-width: 320px; max-width: 420px; border-radius: 16px;">
+            <q-card-section class="row items-center q-pb-none">
+              <div class="text-h6">{{ $t('AddMember', {}, 'Add member') }}</div>
+              <q-space />
+              <q-btn icon="close" flat round dense v-close-popup />
+            </q-card-section>
+
+            <q-card-section>
+              <q-tabs
+                v-model="addMemberTab"
+                dense
+                no-caps
+                align="left"
+                active-color="primary"
+                indicator-color="primary"
+                class="q-mb-sm"
+              >
+                <q-tab name="contacts" :label="$t('Contacts', {}, 'Contacts')" />
+                <q-tab name="npub" :label="$t('InviteByNpub', {}, 'By npub')" />
+              </q-tabs>
+
+              <q-tab-panels v-model="addMemberTab" animated class="add-member-panels">
+                <q-tab-panel name="contacts" class="q-px-none">
+                  <q-list v-if="addableContacts.length" separator class="add-member-list">
+                    <q-item
+                      v-for="contact in addableContacts"
+                      :key="contact.npub"
+                      clickable
+                      @click="toggleAddMember(contact.npub)"
+                    >
+                      <q-item-section avatar>
+                        <q-checkbox
+                          :model-value="selectedAddNpubs.includes(contact.npub)"
+                          @click.stop
+                          @update:model-value="toggleAddMember(contact.npub)"
+                        />
+                      </q-item-section>
+                      <q-item-section avatar>
+                        <q-avatar color="primary" text-color="white" size="36px">
+                          {{ contact.name.charAt(0).toUpperCase() }}
+                        </q-avatar>
+                      </q-item-section>
+                      <q-item-section>
+                        <q-item-label class="text-weight-medium">{{ contact.name }}</q-item-label>
+                        <q-item-label caption class="npub-caption">{{ contact.npub.slice(0, 18) }}...</q-item-label>
+                      </q-item-section>
+                    </q-item>
+                  </q-list>
+                  <div v-else class="no-invited-note">
+                    {{ $t('NoContactsToAdd', {}, 'No contacts to add. Use the By npub tab.') }}
+                  </div>
+                </q-tab-panel>
+
+                <q-tab-panel name="npub" class="q-px-none">
+                  <q-input
+                    v-model="manualNpub"
+                    :label="$t('Npub', {}, 'npub...')"
+                    outlined
+                    dense
+                    rounded
+                    :error="!!manualNpubError"
+                    :error-message="manualNpubError"
+                  >
+                    <template #append>
+                      <q-btn
+                        flat
+                        round
+                        dense
+                        icon="qr_code_scanner"
+                        color="primary"
+                        @click="showQrScanner = true"
+                      />
+                    </template>
+                  </q-input>
+                </q-tab-panel>
+              </q-tab-panels>
+            </q-card-section>
+
+            <q-card-actions align="right">
+              <q-btn flat :label="$t('Cancel', {}, 'Cancel')" color="grey" v-close-popup />
+              <q-btn
+                unelevated
+                rounded
+                :label="$t('Add', {}, 'Add')"
+                color="primary"
+                :loading="addingMember"
+                :disable="!canAddMembers"
+                @click="confirmAddMembers"
+              />
+            </q-card-actions>
+          </q-card>
+        </q-dialog>
+
         <!-- Leave / Rejoin group -->
         <div class="leave-section q-mt-md">
           <q-btn
@@ -236,18 +353,21 @@
         </div>
       </div>
     </div>
+
+    <QrScanner v-model="showQrScanner" @decode="onScannerDecode" />
   </div>
 </template>
 
 <script>
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 import HeaderNav from 'src/components/header-nav.vue'
+import QrScanner from 'src/components/qr-scanner.vue'
 import { npubEncode } from 'nostr-tools/nip19'
 import { copyToClipboard } from 'quasar'
 
 export default {
   name: 'GroupInfo',
-  components: { HeaderNav },
+  components: { HeaderNav, QrScanner },
   props: {
     roomId: { type: String, required: true },
   },
@@ -262,7 +382,14 @@ export default {
       memberDisplayNames: {},
       addingMember: false,
       reinviting: false,
-      rekeying: false,
+      memberTab: 'joined',
+      mlsTreeMembers: [],
+      showAddMemberDialog: false,
+      addMemberTab: 'contacts',
+      selectedAddNpubs: [],
+      manualNpub: '',
+      manualNpubError: '',
+      showQrScanner: false,
     }
   },
   computed: {
@@ -272,9 +399,8 @@ export default {
     room () {
       return this.$store.getters['nostrChat/getRoom'](this.roomId)
     },
-    roomIsSplit () {
-      if (!this.roomId) return false
-      return this.$store.getters['nostrChat/isMlsGroupSplit'](this.roomId)
+    isMlsRoom () {
+      return this.room?.type === 'mls-group'
     },
     isGroupBlocked () {
       if (!this.roomId) return false
@@ -308,6 +434,38 @@ export default {
       // Sort current user to the top
       return list.sort((a, b) => (b.isMe ? 1 : 0) - (a.isMe ? 1 : 0))
     },
+    // Members present in the MLS tree have completed the join handshake.
+    joinedMembers () {
+      if (!this.isMlsRoom || !this.mlsTreeMembers.length) return this.membersWithInfo
+      const treeSet = new Set(this.mlsTreeMembers)
+      return this.membersWithInfo.filter(m => treeSet.has(m.pubKeyHex))
+    },
+    // In the room's member list but not yet in the MLS tree — invite sent,
+    // they haven't accepted (or their device hasn't processed the welcome).
+    invitedMembers () {
+      if (!this.isMlsRoom) return []
+      if (!this.mlsTreeMembers.length) return []
+      const treeSet = new Set(this.mlsTreeMembers)
+      return this.membersWithInfo.filter(m => !treeSet.has(m.pubKeyHex))
+    },
+    displayedMembers () {
+      if (!this.isMlsRoom) return this.membersWithInfo
+      return this.memberTab === 'invited' ? this.invitedMembers : this.joinedMembers
+    },
+    // Contacts not already in the group — the selectable list in the
+    // Add Member dialog.
+    addableContacts () {
+      const memberSet = new Set(this.room?.members || [])
+      return (this.contacts || []).filter(c => c.pubKeyHex && !memberSet.has(c.pubKeyHex))
+    },
+    manualNpubTrimmed () {
+      return this.manualNpub.trim()
+    },
+    canAddMembers () {
+      if (this.addingMember) return false
+      if (this.selectedAddNpubs.length) return true
+      return this.manualNpubTrimmed.startsWith('npub1')
+    },
     themeColor () {
       const theme = this.$store.getters['global/theme']
       if (theme === 'glassmorphic-red') return '#f54270'
@@ -320,6 +478,7 @@ export default {
   mounted () {
     this.fetchMemberAvatars()
     this.fetchMemberDisplayNames()
+    this.fetchMlsTreeMembers()
   },
   watch: {
     room (val) {
@@ -330,6 +489,7 @@ export default {
         this.memberDisplayNames = {}
         this.fetchMemberAvatars()
         this.fetchMemberDisplayNames()
+        this.fetchMlsTreeMembers()
       }
     },
     async showMemberDetails (val) {
@@ -466,43 +626,14 @@ export default {
         this.reinviting = false
       }
     },
-    async rekeyGroup () {
-      if (this.rekeying) return
-      if (this.roomIsSplit) {
-        this.$q.notify({
-          type: 'negative',
-          message: this.$t('RekeySplitUnrecoverable', {}, 'This group is split by a competing re-key and cannot be fixed by re-keying. Re-create the group or re-invite members instead.'),
-          timeout: 5000,
-        })
-        return
-      }
-      // A re-key must be performed by exactly ONE member. If two members re-key
-      // concurrently the group is permanently split (both advance to the same
-      // epoch with divergent trees and can never converge). Confirm so the user
-      // coordinates with the other members before proceeding.
-      const ok = await new Promise(resolve => {
-        this.$q.dialog({
-          title: this.$t('RekeyConfirmTitle', {}, 'Re-key this group?'),
-          message: this.$t('RekeyConfirmMessage', {}, 'Re-keying resets encryption so messages flow again. IMPORTANT: only ONE member may re-key. Other members must leave the app open to receive the re-key. If a second member also re-keys, the group becomes permanently split.'),
-          cancel: true,
-          persistent: true,
-          ok: { label: this.$t('RekeyMlsGroup', {}, 'Re-key group'), color: 'warning', flat: true },
-          cancel: { label: this.$t('Cancel', {}, 'Cancel'), color: 'grey', flat: true },
-        }).onOk(() => resolve(true)).onCancel(() => resolve(false)).onDismiss(() => resolve(false))
-      })
-      if (!ok) return
-      this.rekeying = true
+    async fetchMlsTreeMembers () {
+      if (!this.isMlsRoom) return
       try {
-        await this.$store.dispatch('nostrChat/rekeyMlsGroup', { roomId: this.roomId })
-        this.$q.notify({ type: 'positive', message: this.$t('Rekeyed', {}, 'Group re-keyed — other members should now receive your messages again') })
+        const members = await this.$store.dispatch('nostrChat/getMlsGroupMemberPubkeys', { roomId: this.roomId })
+        this.mlsTreeMembers = members || []
       } catch (err) {
-        this.$q.notify({
-          type: 'negative',
-          message: err.message || this.$t('RekeyFailed', {}, 'Failed to re-key group'),
-          timeout: 5000,
-        })
-      } finally {
-        this.rekeying = false
+        console.warn('[GroupInfo] Failed to load MLS tree members:', err)
+        this.mlsTreeMembers = []
       }
     },
     useFetchedMemberDisplayName () {
@@ -558,40 +689,97 @@ export default {
         })
         return
       }
-      this.$q.dialog({
-        title: this.$t('AddMember', {}, 'Add member'),
-        message: this.$t('AddMemberPrompt', {}, 'Enter the npub of the person to add:'),
-        class: `pt-card text-bow ${this.getDarkModeClass(this.darkMode)}`,
-        prompt: {
-          model: '',
-          type: 'text',
-          placeholder: 'npub1...',
-        },
-        cancel: { label: this.$t('Cancel', {}, 'Cancel'), flat: true, color: 'grey' },
-        ok: { label: this.$t('Add', {}, 'Add'), color: 'primary', flat: true },
-        persistent: true,
-      }).onOk(async (npub) => {
-        if (!npub) return
-        this.addingMember = true
+      this.addMemberTab = 'contacts'
+      this.selectedAddNpubs = []
+      this.manualNpub = ''
+      this.manualNpubError = ''
+      this.showAddMemberDialog = true
+    },
+    toggleAddMember (npub) {
+      const idx = this.selectedAddNpubs.indexOf(npub)
+      if (idx !== -1) {
+        this.selectedAddNpubs.splice(idx, 1)
+      } else {
+        this.selectedAddNpubs.push(npub)
+      }
+    },
+    onScannerDecode (value) {
+      this.showQrScanner = false
+      if (!value) return
+      let npub = String(value).trim()
+      // Accept BIP21-style payloads that embed an ?nostype=chat&npub= param
+      const match = npub.match(/[?&]npub=(npub1[A-Za-z0-9]+)/)
+      if (match) npub = match[1]
+      if (!npub.startsWith('npub1')) return
+      this.manualNpub = npub
+      this.manualNpubError = ''
+      this.addMemberTab = 'npub'
+    },
+    async confirmAddMembers () {
+      const { nip19Decode } = await import('nostr-tools/nip19')
+      const npubs = [...this.selectedAddNpubs]
+
+      // Manual npub entry — validate before dispatching anything.
+      if (this.manualNpubTrimmed) {
+        if (!this.manualNpubTrimmed.startsWith('npub1')) {
+          this.manualNpubError = this.$t('InvalidNpub', {}, 'Invalid npub')
+          return
+        }
         try {
-          const { nip19Decode } = await import('nostr-tools/nip19')
-          const decoded = nip19Decode(npub.trim())
+          const decoded = nip19Decode(this.manualNpubTrimmed)
           if (decoded.type !== 'npub') throw new Error('Invalid npub')
-          await this.$store.dispatch('nostrChat/addMlsMember', {
-            roomId: this.roomId,
-            memberPubKey: decoded.data,
-          })
+        } catch {
+          this.manualNpubError = this.$t('InvalidNpub', {}, 'Invalid npub')
+          return
+        }
+        npubs.push(this.manualNpubTrimmed)
+      }
+      if (!npubs.length) return
+
+      // Skip contacts already in the group (list is filtered, but the manual
+      // entry could duplicate an existing member).
+      const memberSet = new Set(this.room?.members || [])
+      const existingContacts = this.contacts.filter(c => npubs.includes(c.npub) && memberSet.has(c.pubKeyHex))
+      if (existingContacts.length === npubs.length) {
+        this.$q.notify({ type: 'warning', message: this.$t('AlreadyMember', {}, 'Already a member of this group') })
+        return
+      }
+
+      this.addingMember = true
+      let added = 0
+      let lastErr = null
+      try {
+        for (const npub of npubs) {
+          const contact = this.contacts.find(c => c.npub === npub)
+          if (contact && memberSet.has(contact.pubKeyHex)) continue
+          try {
+            const decoded = nip19Decode(npub.trim())
+            if (decoded.type !== 'npub') throw new Error('Invalid npub')
+            await this.$store.dispatch('nostrChat/addMlsMember', {
+              roomId: this.roomId,
+              memberPubKey: decoded.data,
+            })
+            added++
+          } catch (err) {
+            lastErr = err
+            console.warn('[GroupInfo] Failed to add member:', err.message)
+          }
+        }
+        await this.fetchMlsTreeMembers()
+        if (this.invitedMembers.length) this.memberTab = 'invited'
+        if (added > 0) {
+          this.showAddMemberDialog = false
           this.$q.notify({ type: 'positive', message: this.$t('MemberAdded', {}, 'Member added') })
-        } catch (err) {
+        } else {
           this.$q.notify({
             type: 'negative',
-            message: err.message || this.$t('AddMemberFailed', {}, 'Failed to add member'),
+            message: lastErr?.message || this.$t('AddMemberFailed', {}, 'Failed to add member'),
             timeout: 5000,
           })
-        } finally {
-          this.addingMember = false
         }
-      })
+      } finally {
+        this.addingMember = false
+      }
     },
   },
 }
@@ -678,6 +866,26 @@ export default {
   background: rgba(0, 0, 0, 0.02);
   border-radius: 16px;
   padding: 16px;
+}
+
+.member-tabs {
+  margin-bottom: 4px;
+}
+
+.add-member-panels {
+  background: transparent;
+}
+
+.add-member-list {
+  max-height: 320px;
+  overflow-y: auto;
+}
+
+.no-invited-note {
+  padding: 16px 4px;
+  font-size: 13px;
+  color: #9ca3af;
+  text-align: center;
 }
 
 .member-details-card {

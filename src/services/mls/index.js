@@ -6,7 +6,6 @@ export {
   addMlsMember,
   removeMlsMember,
   joinMlsGroup,
-  rekeyMlsGroup,
   encodeMlsMsg,
   decodeMlsMsg,
   getMlsGroupMembers,

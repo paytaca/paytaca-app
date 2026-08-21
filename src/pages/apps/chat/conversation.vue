@@ -15,16 +15,6 @@
       <template v-if="room" v-slot:top-right-menu>
         <div class="header-actions">
           <q-btn
-            v-if="isMlsRoom"
-            flat
-            round
-            dense
-            icon="bug_report"
-            class="header-info-btn"
-            :loading="diagnosing"
-            @click="diagnoseGroup"
-          />
-          <q-btn
             v-if="isGroupRoom"
             flat
             round
@@ -64,14 +54,6 @@
               </q-item-section>
               <q-item-section>
                 {{ $t('RenameGroup', {}, 'Rename Group') }}
-              </q-item-section>
-            </q-item>
-            <q-item v-if="isMlsRoom" clickable v-close-popup @click="diagnoseGroup">
-              <q-item-section side>
-                <q-icon name="bug_report" size="18px" />
-              </q-item-section>
-              <q-item-section>
-                {{ $t('DiagnoseGroup', {}, 'Diagnose MLS Group') }}
               </q-item-section>
             </q-item>
             <q-item v-if="isMlsRoom" clickable v-close-popup @click="resetMlsData">
@@ -669,7 +651,6 @@ export default {
       _pendingReadMsgIds: new Set(),
       _readMsgFlushTimer: null,
       _sentReadReceiptIds: new Set(),
-      diagnosing: false,
     }
   },
   computed: {
@@ -2093,32 +2074,10 @@ export default {
         }
       })
     },
-    async diagnoseGroup () {
-      if (this.diagnosing) return
-      this.diagnosing = true
-      try {
-        const report = await this.$store.dispatch('nostrChat/diagnoseMlsGroup', { roomId: this.roomId })
-        console.log('[MLS-DIAG] full report for', this.roomId, JSON.stringify(report, null, 2))
-        this.$q.dialog({
-          title: this.$t('DiagnoseGroup', {}, 'MLS Group Diagnostic'),
-          message: `${report.findings?.length
-            ? this.$t('DiagnoseFindings', {}, 'Findings:') + '\n\n• ' + report.findings.join('\n• ')
-            : this.$t('DiagnoseNoFindings', {}, 'No obvious problems found.')}\n\n${this.$t('DiagnoseLogged', {}, 'Full report logged to console (look for [MLS-DIAG]).')}`,
-          class: `pt-card text-bow ${this.getDarkModeClass(this.darkMode)}`,
-          ok: { label: this.$t('Close', {}, 'Close'), flat: true },
-          style: 'min-width: 360px; max-width: 520px;',
-          persistent: true,
-        }).onOk(() => {})
-      } catch (err) {
-        this.$q.notify({ type: 'negative', message: err.message || this.$t('DiagnoseFailed', {}, 'Diagnostics failed') })
-      } finally {
-        this.diagnosing = false
-      }
-    },
     async resetMlsData () {
       this.$q.dialog({
         title: this.$t('ResetMlsData', {}, 'Reset MLS data?'),
-        message: this.$t('ResetMlsDataConfirm', {}, 'This clears all MLS vuex state (ready, KeyPackage, groupStates, roomMlsMap, kpHistory, rekey/split flags) and IndexedDB groupStates for the current wallet so you can create a clean test group. Continue?'),
+        message: this.$t('ResetMlsDataConfirm', {}, 'This clears all MLS vuex state (ready, KeyPackage, groupStates, roomMlsMap, kpHistory) and IndexedDB groupStates for the current wallet so you can create a clean test group. Continue?'),
         class: `pt-card text-bow ${this.getDarkModeClass(this.darkMode)}`,
         cancel: { label: this.$t('Cancel', {}, 'Cancel'), flat: true, color: 'grey' },
         ok: { label: this.$t('Reset', {}, 'Reset'), color: 'negative', flat: true },

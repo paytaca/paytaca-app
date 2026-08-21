@@ -17,16 +17,16 @@ function getOrInitWalletState(state, walletHash = null) {
   if (!state.byWallet[hash]) state.byWallet[hash] = getInitialWalletState()
   // Restored state may predate the MLS feature; ensure the mls sub-state exists.
   if (typeof state.byWallet[hash].mls !== 'object' || state.byWallet[hash].mls === null) {
-    state.byWallet[hash].mls = { ready: false, keyPackage: null, groupStates: {}, roomMlsMap: {}, pendingInvitations: {}, kpHistory: [], rekeyEpochs: {}, splitGroups: {} }
+    state.byWallet[hash].mls = { ready: false, keyPackage: null, groupStates: {}, roomMlsMap: {}, pendingInvitations: {}, declinedWelcomeIds: {}, failedEventAttempts: {}, kpHistory: [] }
   }
   if (!Array.isArray(state.byWallet[hash].mls.kpHistory)) {
     state.byWallet[hash].mls.kpHistory = []
   }
-  if (typeof state.byWallet[hash].mls.rekeyEpochs !== 'object' || state.byWallet[hash].mls.rekeyEpochs === null) {
-    state.byWallet[hash].mls.rekeyEpochs = {}
+  if (typeof state.byWallet[hash].mls.declinedWelcomeIds !== 'object' || state.byWallet[hash].mls.declinedWelcomeIds === null) {
+    state.byWallet[hash].mls.declinedWelcomeIds = {}
   }
-  if (typeof state.byWallet[hash].mls.splitGroups !== 'object' || state.byWallet[hash].mls.splitGroups === null) {
-    state.byWallet[hash].mls.splitGroups = {}
+  if (typeof state.byWallet[hash].mls.failedEventAttempts !== 'object' || state.byWallet[hash].mls.failedEventAttempts === null) {
+    state.byWallet[hash].mls.failedEventAttempts = {}
   }
   return state.byWallet[hash]
 }
@@ -83,9 +83,9 @@ export function RESET_MLS_WALLET_DATA(state) {
     ws.mls.groupStates = {}
     ws.mls.roomMlsMap = {}
     ws.mls.pendingInvitations = {}
+    ws.mls.declinedWelcomeIds = {}
+    ws.mls.failedEventAttempts = {}
     ws.mls.kpHistory = []
-    ws.mls.rekeyEpochs = {}
-    ws.mls.splitGroups = {}
     // MLS rooms are persisted locally (see store/index.js serializer), so clear
     // them here too; otherwise orphaned MLS rooms would reappear after restart
     // with no matching group state.
@@ -93,21 +93,6 @@ export function RESET_MLS_WALLET_DATA(state) {
       ws.rooms = ws.rooms.filter(r => r.type !== 'mls-group')
     }
   }
-}
-
-export function SET_MLS_REKEY_EPOCH(state, { mlsGroupIdHex, epoch }) {
-  const ws = getOrInitWalletState(state)
-  if (ws) ws.mls.rekeyEpochs[mlsGroupIdHex] = epoch
-}
-
-export function CLEAR_MLS_REKEY_EPOCH(state, mlsGroupIdHex) {
-  const ws = getOrInitWalletState(state)
-  if (ws) delete ws.mls.rekeyEpochs[mlsGroupIdHex]
-}
-
-export function MARK_MLS_GROUP_SPLIT(state, mlsGroupIdHex) {
-  const ws = getOrInitWalletState(state)
-  if (ws) ws.mls.splitGroups[mlsGroupIdHex] = true
 }
 
 export function ADD_MLS_INVITE(state, invite) {
@@ -123,4 +108,34 @@ export function REMOVE_MLS_INVITE(state, roomId) {
   if (ws?.mls?.pendingInvitations) {
     delete ws.mls.pendingInvitations[roomId]
   }
+}
+
+export function ADD_DECLINED_WELCOME(state, eventId) {
+  const ws = getOrInitWalletState(state)
+  if (ws && eventId) ws.mls.declinedWelcomeIds[eventId] = Math.floor(Date.now() / 1000)
+}
+
+export function MERGE_DECLINED_WELCOMES(state, eventIds) {
+  const ws = getOrInitWalletState(state)
+  if (!ws || !Array.isArray(eventIds)) return
+  const now = Math.floor(Date.now() / 1000)
+  for (const id of eventIds) {
+    if (id && !ws.mls.declinedWelcomeIds[id]) ws.mls.declinedWelcomeIds[id] = now
+  }
+}
+
+export function RECORD_EVENT_PROCESS_FAILURE(state, { eventId, error }) {
+  const ws = getOrInitWalletState(state)
+  if (!ws || !eventId) return
+  const prev = ws.mls.failedEventAttempts[eventId]
+  ws.mls.failedEventAttempts[eventId] = {
+    count: (prev?.count || 0) + 1,
+    lastError: String(error || '').slice(0, 200),
+    lastAttemptAt: Math.floor(Date.now() / 1000),
+  }
+}
+
+export function CLEAR_EVENT_PROCESS_FAILURES(state, eventId) {
+  const ws = getOrInitWalletState(state)
+  if (ws && eventId) delete ws.mls.failedEventAttempts[eventId]
 }
