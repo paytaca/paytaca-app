@@ -35,6 +35,8 @@ const KEY_MAP = {
   s: 'symbol',
   l: 'logo',
   c: 'category',
+  f: 'fiatAmount',
+  fc: 'fiatCurrency',
 }
 
 /**

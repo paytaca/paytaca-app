@@ -133,6 +133,7 @@
             <q-icon v-else name="img:bitcoin-cash-circle.svg" size="22px" />
             <span class="payment-amount">{{ markup.amount }} {{ markup.symbol || 'BCH' }}</span>
           </div>
+          <div v-if="fiatDisplay" class="payment-fiat-row">{{ fiatDisplay }}</div>
           <div v-if="markup.txid" class="payment-txid">
             <span class="txid-label">{{ $t('TXID') }}</span>
             <span class="txid-value">{{ formatTxid(markup.txid) }}</span>
@@ -172,6 +173,20 @@
             </div>
           </q-menu>
         </span>
+      </div>
+      <div v-if="message.failed" class="failed-send-row" @click.stop>
+        <q-icon name="error_outline" size="14px" class="failed-send-icon" />
+        <span class="failed-send-label">{{ $t('FailedToSend', {}, 'Failed to send') }}</span>
+        <q-btn
+          flat
+          dense
+          size="sm"
+          no-caps
+          icon="refresh"
+          :label="$t('Retry', {}, 'Retry')"
+          class="failed-send-retry-btn"
+          @click.stop="$emit('retry-message', message)"
+        />
       </div>
       <div v-if="groupedReactions.length" class="message-reactions">
         <span
@@ -230,6 +245,7 @@
 <script>
 import { parseMessageMarkup } from 'src/utils/chat-markup'
 import { decryptFile, downloadFromBlossom } from 'src/wallet/nostr-media'
+import { parseFiatCurrency } from 'src/utils/denomination-utils'
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 import { getCachedVideoBlob } from 'src/utils/video-blob-cache'
 import { getCachedVideo, setCachedVideo, getCachedVideoThumb, setCachedVideoThumb } from 'src/utils/video-cache'
@@ -264,7 +280,7 @@ export default {
     isSelected: { type: Boolean, default: false },
     reactions: { type: Array, default: () => [] },
   },
-  emits: ['context-menu', 'remove-reaction', 'scroll-to-message'],
+  emits: ['context-menu', 'remove-reaction', 'scroll-to-message', 'retry-message'],
     data () {
       return {
         expandedReaction: null,
@@ -433,6 +449,11 @@ export default {
         return url + '?pinataGatewayToken=' + process.env.PINATA_GATEWAY_TOKEN
       }
       return url
+    },
+    fiatDisplay () {
+      const amount = Number(this.markup?.fiatAmount)
+      if (!isFinite(amount) || amount <= 0) return ''
+      return `≈ ${parseFiatCurrency(amount, this.markup.fiatCurrency)}`
     },
     groupedReactions () {
       const groups = {}
@@ -1331,6 +1352,29 @@ export default {
   margin-top: 4px;
 }
 
+.failed-send-row {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  margin-top: 4px;
+}
+
+.failed-send-icon {
+  color: #ff6b6b;
+}
+
+.failed-send-label {
+  font-size: 11px;
+  color: #ff6b6b;
+}
+
+.failed-send-retry-btn {
+  color: #ff6b6b;
+  font-size: 11px;
+  min-height: 22px;
+  padding: 0 6px;
+}
+
 .message-time {
   font-size: 10px;
   color: rgba(255, 255, 255, 0.55);
@@ -1724,10 +1768,22 @@ export default {
   color: #166534;
 }
 
+.payment-fiat-row {
+  margin-top: 0;
+  padding-left: 30px;
+  font-size: 14px;
+  font-weight: 600;
+  color: #374151;
+}
+
 .payment-txid {
   display: flex;
   align-items: center;
   gap: 6px;
+}
+
+.payment-fiat-row + .payment-txid {
+  margin-top: 6px;
 }
 
 .txid-label {
@@ -1773,6 +1829,10 @@ export default {
 
 .dark .payment-amount {
   color: #86efac;
+}
+
+.dark .payment-fiat-row {
+  color: #d1fae5;
 }
 
 .dark .txid-label {

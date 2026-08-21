@@ -86,6 +86,12 @@ export function RESET_MLS_WALLET_DATA(state) {
     ws.mls.kpHistory = []
     ws.mls.rekeyEpochs = {}
     ws.mls.splitGroups = {}
+    // MLS rooms are persisted locally (see store/index.js serializer), so clear
+    // them here too; otherwise orphaned MLS rooms would reappear after restart
+    // with no matching group state.
+    if (Array.isArray(ws.rooms)) {
+      ws.rooms = ws.rooms.filter(r => r.type !== 'mls-group')
+    }
   }
 }
 

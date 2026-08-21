@@ -398,6 +398,7 @@
               @remove-reaction="onRemoveReaction"
               @scroll-to-message="scrollToMessage"
               @open-transaction="onOpenTransaction"
+              @retry-message="onRetryFailedMessage"
             />
           </div>
         </div>
@@ -1923,12 +1924,7 @@ export default {
       })
     },
     onTipAction () {
-      const recipientPubKey = this.otherMemberPubKey
-      if (!recipientPubKey) {
-        this.$q.notify({ type: 'negative', message: this.$t('NoRecipientFound'), timeout: 5000, closeBtn: true })
-        return
-      }
-      this.sendTipNavigate(recipientPubKey, 0)
+      this.handleTipRequest(null, 0)
     },
     async onSend (text) {
       if (!this.room) return
@@ -2330,7 +2326,7 @@ export default {
       }
     },
     handleTipResult () {
-      const { tipTxid, tipAmount, tipSymbol, tipLogo, tipAssetId } = this.$route.query
+      const { tipTxid, tipAmount, tipSymbol, tipLogo, tipAssetId, tipRecipient } = this.$route.query
       if (!tipTxid || !tipAmount) return
       const query = { ...this.$route.query }
       delete query.tipTxid
@@ -2338,30 +2334,95 @@ export default {
       delete query.tipSymbol
       delete query.tipLogo
       delete query.tipAssetId
+      delete query.tipRecipient
       this.$router.replace({ query })
-      this.$nextTick(() => this.sendTipConfirmationMessage(tipTxid, parseFloat(tipAmount), tipSymbol || 'BCH', tipLogo || '', tipAssetId || ''))
+      this.$nextTick(() => this.sendTipConfirmationMessage(tipTxid, parseFloat(tipAmount), tipSymbol || 'BCH', tipLogo || '', tipAssetId || '', tipRecipient || null))
     },
-    async sendTipConfirmationMessage (txid, amount, symbol, logo, assetId) {
+    async sendTipConfirmationMessage (txid, amount, symbol, logo, assetId, recipientPubKey = null) {
       if (!this.room || !txid) return
+      let markup = `t:payment,a:${amount},s:${symbol},x:${txid}`
+      if (logo) markup += `,l:${logo}`
+      if (assetId) markup += `,c:${assetId}`
+      // Embed the send-time fiat conversion so every member sees the same
+      // value regardless of when they render the message.
+      const fiatCurrency = this.$store.getters['market/selectedCurrency']?.symbol
+      const bchPrice = symbol === 'BCH' && fiatCurrency
+        ? this.$store.getters['market/getAssetPrice']('bch', fiatCurrency)
+        : null
+      if (bchPrice > 0) {
+        markup += `,f:${(amount * bchPrice).toFixed(2)},fc:${fiatCurrency}`
+      }
+      const recipientName = recipientPubKey ? this.resolveMemberName(recipientPubKey) : null
+      const text = recipientName
+        ? `Sent ${amount} ${symbol} to @${recipientName} [/*${markup}*/]`
+        : `Sent ${amount} ${symbol} [/*${markup}*/]`
       try {
-        let markup = `t:payment,a:${amount},s:${symbol},x:${txid}`
-        if (logo) markup += `,l:${logo}`
-        if (assetId) markup += `,c:${assetId}`
-        const text = `Sent ${amount} ${symbol} [/*${markup}*/]`
-        const { giftWraps, message, roomId } = await this.$store.dispatch('nostrChat/sendMessage', {
-          roomId: this.roomId,
-          text,
-        })
+        let message
+        let roomId = this.roomId
+        if (this.isMlsRoom) {
+          // Tip confirmation must go to the whole group, not as a DM to the
+          // person being tipped. Tag the recipient so the group sees who got it.
+          const res = await this.$store.dispatch('nostrChat/sendMlsMessage', { roomId: this.roomId, text, recipientPubKey })
+          message = res.message
+          roomId = res.roomId
+        } else {
+          const res = await this.$store.dispatch('nostrChat/sendMessage', { roomId: this.roomId, text })
+          message = res.message
+          roomId = res.roomId
+          await this.$store.dispatch('nostrChat/publishGiftWraps', { giftWraps: res.giftWraps })
+        }
         this.$store.commit('nostrChat/ADD_MESSAGE', { roomId, message })
         this.$store.commit('nostrChat/TOUCH_ROOM_LAST_MESSAGE_AT', roomId)
         this.$store.dispatch('nostrChat/touchRoom', { roomId, timestamp: new Date().toISOString() })
-        await this.$store.dispatch('nostrChat/publishGiftWraps', { giftWraps })
         this.$q.notify({
           type: 'positive',
           message: this.$t('BchSentSuccess', { symbol }, `${symbol} sent successfully`),
         })
       } catch (err) {
         console.error('[Conversation] Failed to send tip confirmation:', err)
+        // Keep a local-only copy of the failed message so the sender sees it in
+        // the conversation with a retry button. It is never published, so no
+        // other member ever receives it.
+        this.$store.commit('nostrChat/ADD_MESSAGE', {
+          roomId: this.roomId,
+          message: {
+            id: `failed-${Date.now()}`,
+            sender: this.myPubKey,
+            content: text,
+            kind: this.isMlsRoom ? 30117 : undefined,
+            created_at: Math.floor(Date.now() / 1000),
+            failed: true,
+            mls: this.isMlsRoom,
+            recipientPubKey: recipientPubKey || null,
+          },
+        })
+      }
+    },
+    async onRetryFailedMessage (message) {
+      if (!message?.failed || !this.room) return
+      try {
+        let res
+        if (message.mls || this.isMlsRoom) {
+          res = await this.$store.dispatch('nostrChat/sendMlsMessage', {
+            roomId: this.roomId,
+            text: message.content,
+            recipientPubKey: message.recipientPubKey || undefined,
+          })
+        } else {
+          res = await this.$store.dispatch('nostrChat/sendMessage', { roomId: this.roomId, text: message.content })
+          await this.$store.dispatch('nostrChat/publishGiftWraps', { giftWraps: res.giftWraps })
+        }
+        this.$store.commit('nostrChat/REMOVE_MESSAGE', { roomId: this.roomId, messageId: message.id })
+        this.$store.commit('nostrChat/ADD_MESSAGE', { roomId: res.roomId, message: res.message })
+        this.$store.commit('nostrChat/TOUCH_ROOM_LAST_MESSAGE_AT', res.roomId)
+        this.$q.notify({ type: 'positive', message: this.$t('MessageSent', {}, 'Message sent') })
+      } catch (err) {
+        console.error('[Conversation] Retry failed:', err)
+        this.$q.notify({
+          type: 'negative',
+          message: this.$t('RetryFailed', {}, 'Still failing — check your connection and try again'),
+          timeout: 5000,
+        })
       }
     },
     async onCommand ({ type, amount, currency, originalText }) {
@@ -2375,7 +2436,7 @@ export default {
       const currencyUpper = (currency || 'BCH').toUpperCase()
 
       if (currencyUpper === 'BCH') {
-        await this.sendTipNavigate(this.otherMemberPubKey, amount, originalText)
+        await this.handleTipRequest(amount, originalText)
       } else {
         this.$q.notify({
           type: 'info',
@@ -2385,6 +2446,49 @@ export default {
         })
         this.$refs.chatInput?.setText(originalText)
       }
+    },
+    async handleTipRequest (amount, originalText = null) {
+      let recipientPubKey = this.otherMemberPubKey
+      if (this.isMlsRoom) {
+        recipientPubKey = await this.pickTipRecipient()
+        if (!recipientPubKey) {
+          if (originalText) this.$refs.chatInput?.setText(originalText)
+          return
+        }
+      }
+      await this.sendTipNavigate(recipientPubKey, amount, originalText)
+    },
+    // In an MLS group there is no single "other member", so ask which member is
+    // being tipped. The payment goes to that member's address, but the tip
+    // confirmation message is posted to the whole group via MLS (see
+    // sendTipConfirmationMessage), not as a DM to the recipient.
+    pickTipRecipient () {
+      const myPub = this.myPubKey
+      const members = (this.room?.members || []).filter(m => m && m !== myPub)
+      if (!members.length) return Promise.resolve(null)
+      const items = members.map(pk => {
+        const contact = this.contactsByPubKey.get(pk)
+        const displayName = this.memberDisplayNames[pk] || contact?.name || pk.slice(0, 12) + '...'
+        return { label: displayName, value: pk }
+      })
+      return new Promise(resolve => {
+        this.$q.dialog({
+          title: this.$t('TipRecipientTitle', {}, 'Who are you tipping?'),
+          message: this.$t('TipRecipientMessage', {}, 'Select the group member you want to send to.'),
+          options: { type: 'radio', model: items[0]?.value || null, items: items },
+          class: `pt-card text-bow ${this.getDarkModeClass(this.darkMode)}`,
+          ok: { label: this.$t('Next', {}, 'Next'), flat: true, color: 'primary' },
+          cancel: { label: this.$t('Cancel', {}, 'Cancel'), flat: true, color: 'grey' },
+          persistent: true,
+        }).onOk(pk => resolve(pk)).onCancel(() => resolve(null)).onDismiss(() => resolve(null))
+      })
+    },
+    resolveMemberName (pubKey) {
+      const contact = this.contactsByPubKey.get(pubKey)
+      if (contact?.name) return contact.name
+      const displayName = this.memberDisplayNames[pubKey]
+      if (displayName) return displayName
+      return pubKey.slice(0, 10)
     },
     async sendTipNavigate (recipientPubKey, amount, originalText = null) {
       if (!recipientPubKey) {
@@ -2407,6 +2511,7 @@ export default {
       const query = { chatRoomId: this.roomId, backPath: `/apps/chat/${this.roomId}` }
       if (address) query.address = address
       if (amount > 0) query.amount = amount
+      if (recipientPubKey) query.tipRecipient = recipientPubKey
 
       this.$router.push({ name: 'transaction-send-select-asset', query })
     },

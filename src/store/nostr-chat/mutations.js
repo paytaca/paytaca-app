@@ -305,6 +305,17 @@ export function ADD_MESSAGE (state, { roomId, message }) {
   }
 }
 
+export function REMOVE_MESSAGE (state, { roomId, messageId }) {
+  const ws = getOrInitWalletState(state)
+  if (!ws) return
+  const arr = ws.messages[roomId]
+  if (!arr) return
+  const index = arr.findIndex(m => m.id === messageId)
+  if (index !== -1) {
+    arr.splice(index, 1)
+  }
+}
+
 // Set room.lastMessageAt to wall-clock time for instant list re-sorting.
 // Called only when a genuinely new message is sent or received live —
 // never for historical messages or replayed duplicates.

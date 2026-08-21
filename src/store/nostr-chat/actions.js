@@ -1965,6 +1965,11 @@ export async function seedRoomsFromMessages ({ commit, dispatch, state }) {
 
   for (const roomId of Object.keys(ws.messages)) {
     if (existingRoomIds.has(roomId)) continue
+    // Never seed MLS group rooms as DMs: their messages live under the MLS
+    // room's UUID, and a 2-member group looks exactly like a DM here (one
+    // other sender). Seeding would create/overwrite the Watchtower room with
+    // type 'private', clobbering the correct 'mls-group' metadata.
+    if (ws.mls?.roomMlsMap?.[roomId]) continue
     const msgs = ws.messages[roomId]
     if (!msgs || !msgs.length) continue
 

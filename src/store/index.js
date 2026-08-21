@@ -201,9 +201,18 @@ function reducer(state) {
                       continue
                     }
 
-                    // Room lists, deleted rooms, and block lists are stored server-side.
-                    // Only keep an in-memory cache; don't persist to localStorage.
-                    if (moduleName === 'nostrChat' && ['rooms', 'deletedRooms', 'blockedContacts', 'blockedGroups'].includes(key)) {
+                    // DM/group room lists, deleted rooms, and block lists are stored
+                    // server-side; only keep an in-memory cache, don't persist them.
+                    // MLS rooms are the exception: they are local-only (never fully
+                    // represented on the server), so persist them so they survive an
+                    // app restart.
+                    if (moduleName === 'nostrChat' && key === 'rooms') {
+                      if (Array.isArray(value)) {
+                        cleanWalletState.rooms = value.filter(r => r && r.type === 'mls-group')
+                      }
+                      continue
+                    }
+                    if (moduleName === 'nostrChat' && ['deletedRooms', 'blockedContacts', 'blockedGroups'].includes(key)) {
                       continue
                     }
 

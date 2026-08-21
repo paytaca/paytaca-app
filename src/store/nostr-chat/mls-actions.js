@@ -148,6 +148,19 @@ export async function initMls({ commit, state, dispatch }) {
       dispatch('receiveMlsMessage', event)
     },
   })
+
+  // Repair pass: seedRoomsFromMessages used to mislabel MLS rooms as type
+  // 'private' on Watchtower (a 2-member group's messages look like a DM when
+  // the room is missing from the local list). Re-publish each active MLS room
+  // so the server row carries the correct 'mls-group' metadata again.
+  try {
+    const mlsRooms = Object.keys(ws.mls.roomMlsMap || {})
+      .map(roomId => getWalletState(state).rooms.find(r => r.id === roomId))
+      .filter(Boolean)
+    for (const room of mlsRooms) {
+      await syncRoomToServer(room)
+    }
+  } catch {}
 }
 
 // ---- Group management ----
@@ -393,7 +406,7 @@ export async function declineMlsInvite({ commit, state }, { roomId }) {
 
 // ---- Sending messages ----
 
-export async function sendMlsMessage({ commit, state }, { roomId, text, replyTo }) {
+export async function sendMlsMessage({ commit, state }, { roomId, text, replyTo, recipientPubKey }) {
   const ws = getWalletState(state)
   if (!ws.keys.privKeyHex) throw new Error('Nostr keys not available')
 
@@ -419,41 +432,65 @@ export async function sendMlsMessage({ commit, state }, { roomId, text, replyTo 
     }
     if (!clientState) throw new Error('MLS group state not found')
 
-    const genBefore = ownAppRatchetGen(clientState)
-    const { privateMessage, newState } = await mls.encryptMlsMessage(clientState, text, impl)
-    // Decrypt our own senderData to confirm the generation the message actually
-    // claims (the receiver's decrypt must agree with this).
-    let claimedGen = '?'
-    try {
-      const { decryptSenderData } = await import('ts-mls/privateMessage.js')
-      const sd = await decryptSenderData(privateMessage, newState.keySchedule.senderDataSecret, impl)
-      claimedGen = `${sd?.leafIndex ?? '?'}/${sd?.generation ?? '?'}`
-    } catch (err) {
-      claimedGen = 'err:' + err.message
-    }
-    console.log('[MLS] send', mlsGroupIdHex.slice(0, 8), 'ratchet gen', genBefore, '->', ownAppRatchetGen(newState), '| claimed senderData leaf/gen:', claimedGen)
+    // Retry the publish up to MAX_SEND_ATTEMPTS times. Each attempt encrypts
+    // fresh from the current state; on failure the advanced (ratchet-consumed)
+    // state is rolled back first so a retry never reuses a ratchet key the
+    // receiver has already seen.
+    const MAX_SEND_ATTEMPTS = 3
+    let signedEvent = null
+    let createdAt = null
+    let lastErrors = null
+    for (let attempt = 1; attempt <= MAX_SEND_ATTEMPTS; attempt++) {
+      const genBefore = ownAppRatchetGen(clientState)
+      const { privateMessage, newState } = await mls.encryptMlsMessage(clientState, text, impl)
+      // Decrypt our own senderData to confirm the generation the message actually
+      // claims (the receiver's decrypt must agree with this).
+      let claimedGen = '?'
+      try {
+        const { decryptSenderData } = await import('ts-mls/privateMessage.js')
+        const sd = await decryptSenderData(privateMessage, newState.keySchedule.senderDataSecret, impl)
+        claimedGen = `${sd?.leafIndex ?? '?'}/${sd?.generation ?? '?'}`
+      } catch (err) {
+        claimedGen = 'err:' + err.message
+      }
+      console.log('[MLS] send', mlsGroupIdHex.slice(0, 8), 'attempt', attempt, '| ratchet gen', genBefore, '->', ownAppRatchetGen(newState), '| claimed senderData leaf/gen:', claimedGen)
 
-    const wrapped = mls.wrapPrivateMessage(privateMessage)
-    const unsignedEvent = mls.buildMlsNostrEvent(wrapped, 30117, mlsGroupIdHex, roomId, ws.keys.pubKeyHex, mlsMemberPubkeys(clientState))
-    const signedEvent = finalizeEvent(unsignedEvent, hexToBytes(ws.keys.privKeyHex))
+      const wrapped = mls.wrapPrivateMessage(privateMessage)
+      const unsignedEvent = mls.buildMlsNostrEvent(wrapped, 30117, mlsGroupIdHex, roomId, ws.keys.pubKeyHex, mlsMemberPubkeys(clientState))
+      if (recipientPubKey) {
+        unsignedEvent.tags.push(['p', recipientPubKey])
+      }
+      signedEvent = finalizeEvent(unsignedEvent, hexToBytes(ws.keys.privKeyHex))
 
-    // Persist the advanced (ratchet-consumed) state BEFORE publishing. If the
-    // publish fails we roll the stored state back so a retry doesn't reuse a
-    // ratchet key the receiver has already seen (which would make every message
-    // after the first undecryptable on the other side).
-    await mls.saveMlsState(mlsGroupIdHex, newState)
-    commit('SET_MLS_GROUP_STATE', { mlsGroupIdHex, clientState: newState })
+      // Persist the advanced (ratchet-consumed) state BEFORE publishing. If the
+      // publish fails we roll the stored state back so a retry doesn't reuse a
+      // ratchet key the receiver has already seen (which would make every message
+      // after the first undecryptable on the other side).
+      await mls.saveMlsState(mlsGroupIdHex, newState)
+      commit('SET_MLS_GROUP_STATE', { mlsGroupIdHex, clientState: newState })
 
-    const { accepted, errors } = await relayService.publishEvent(state.relays, signedEvent)
-    if (!accepted.length) {
-      const reason = errors[0]?.reason || 'relay rejected the message'
-      console.warn('[MLS] Send rejected:', JSON.stringify(errors))
+      const { accepted, errors } = await relayService.publishEvent(state.relays, signedEvent)
+      if (accepted.length) {
+        createdAt = unsignedEvent.created_at
+        break
+      }
+
+      lastErrors = errors
       await mls.saveMlsState(mlsGroupIdHex, clientState)
       commit('SET_MLS_GROUP_STATE', { mlsGroupIdHex, clientState })
+      if (attempt < MAX_SEND_ATTEMPTS) {
+        console.warn(`[MLS] publish attempt ${attempt}/${MAX_SEND_ATTEMPTS} failed, retrying:`, JSON.stringify(errors))
+        await new Promise(resolve => setTimeout(resolve, 1000 * attempt))
+      }
+    }
+
+    if (!createdAt) {
+      const reason = lastErrors?.[0]?.reason || 'relay rejected the message'
+      console.warn('[MLS] Send rejected after', MAX_SEND_ATTEMPTS, 'attempts:', JSON.stringify(lastErrors))
       throw new Error(`MLS message was rejected by the relay: ${reason}`)
     }
 
-    return { event: signedEvent, created_at: unsignedEvent.created_at }
+    return { event: signedEvent, created_at: createdAt }
   })
 
   const message = {
