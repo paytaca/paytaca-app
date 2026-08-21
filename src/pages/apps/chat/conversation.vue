@@ -15,6 +15,16 @@
       <template v-if="room" v-slot:top-right-menu>
         <div class="header-actions">
           <q-btn
+            v-if="isMlsRoom"
+            flat
+            round
+            dense
+            icon="bug_report"
+            class="header-info-btn"
+            :loading="diagnosing"
+            @click="diagnoseGroup"
+          />
+          <q-btn
             v-if="isGroupRoom"
             flat
             round
@@ -54,6 +64,22 @@
               </q-item-section>
               <q-item-section>
                 {{ $t('RenameGroup', {}, 'Rename Group') }}
+              </q-item-section>
+            </q-item>
+            <q-item v-if="isMlsRoom" clickable v-close-popup @click="diagnoseGroup">
+              <q-item-section side>
+                <q-icon name="bug_report" size="18px" />
+              </q-item-section>
+              <q-item-section>
+                {{ $t('DiagnoseGroup', {}, 'Diagnose MLS Group') }}
+              </q-item-section>
+            </q-item>
+            <q-item v-if="isMlsRoom" clickable v-close-popup @click="resetMlsData">
+              <q-item-section side>
+                <q-icon name="delete_sweep" size="18px" color="negative" />
+              </q-item-section>
+              <q-item-section>
+                <span class="text-negative">{{ $t('ResetMlsData', {}, 'Reset MLS data (test)') }}</span>
               </q-item-section>
             </q-item>
             <q-item v-if="isGroupRoom" clickable v-close-popup @click="$router.push(`/apps/chat/${roomId}/info`)">
@@ -358,7 +384,7 @@
             <message-bubble
               :message="msg"
               :my-pub-key="myPubKey"
-              :show-sender-name="room?.type === 'group' || room?.type === 'mls-group'"
+              :show-sender-name="isGroupRoom"
               :contacts="contacts"
               :display-names="memberDisplayNames"
               :is-read="messageReadMap[msg.id] || false"
@@ -592,6 +618,10 @@ export default {
   components: { HeaderNav, MessageBubble, ChatInput },
   props: {
     roomId: { type: String, required: true },
+    // Room type hint from the URL (?type=mls-group|group|private). Used as a
+    // fallback so the conversation can be handled correctly (e.g. MLS send
+    // routing) before/without the full room object being in the store.
+    type: { type: String, default: null },
   },
   data () {
     return {
@@ -638,6 +668,7 @@ export default {
       _pendingReadMsgIds: new Set(),
       _readMsgFlushTimer: null,
       _sentReadReceiptIds: new Set(),
+      diagnosing: false,
     }
   },
   computed: {
@@ -655,7 +686,18 @@ export default {
           members: this._previewMembers,
         }
       }
+      if (this.type) {
+        return {
+          id: this.roomId,
+          type: this.type,
+          name: this._previewName || 'Group',
+          members: [],
+        }
+      }
       return null
+    },
+    isMlsRoom () {
+      return (this.room?.type || this.type) === 'mls-group'
     },
     isRoomMember () {
       if (!this.room || !this.myPubKey) return false
@@ -1891,7 +1933,7 @@ export default {
     async onSend (text) {
       if (!this.room) return
       try {
-        if (this.editingMessage && this.room?.type !== 'mls-group') {
+        if (this.editingMessage && !this.isMlsRoom) {
           const { giftWraps, roomId } = await this.$store.dispatch('nostrChat/sendEditMessage', {
             roomId: this.roomId,
             text,
@@ -1916,7 +1958,7 @@ export default {
 
           // MLS groups use the MLS encryption layer instead of NIP-17 gift-wraps.
           // The message is returned already added to the local store by the action.
-          if (this.room?.type === 'mls-group') {
+          if (this.isMlsRoom) {
             const { message, roomId } = await this.$store.dispatch('nostrChat/sendMlsMessage', {
               roomId: this.roomId,
               text,
@@ -2052,6 +2094,45 @@ export default {
           this.$q.notify({ type: 'info', message: this.$t('LeftGroup', {}, 'You left the group') })
         } catch (err) {
           this.$q.notify({ type: 'negative', message: err.message || this.$t('LeaveGroupFailed', {}, 'Failed to leave group') })
+        }
+      })
+    },
+    async diagnoseGroup () {
+      if (this.diagnosing) return
+      this.diagnosing = true
+      try {
+        const report = await this.$store.dispatch('nostrChat/diagnoseMlsGroup', { roomId: this.roomId })
+        console.log('[MLS-DIAG] full report for', this.roomId, JSON.stringify(report, null, 2))
+        this.$q.dialog({
+          title: this.$t('DiagnoseGroup', {}, 'MLS Group Diagnostic'),
+          message: `${report.findings?.length
+            ? this.$t('DiagnoseFindings', {}, 'Findings:') + '\n\n• ' + report.findings.join('\n• ')
+            : this.$t('DiagnoseNoFindings', {}, 'No obvious problems found.')}\n\n${this.$t('DiagnoseLogged', {}, 'Full report logged to console (look for [MLS-DIAG]).')}`,
+          class: `pt-card text-bow ${this.getDarkModeClass(this.darkMode)}`,
+          ok: { label: this.$t('Close', {}, 'Close'), flat: true },
+          style: 'min-width: 360px; max-width: 520px;',
+          persistent: true,
+        }).onOk(() => {})
+      } catch (err) {
+        this.$q.notify({ type: 'negative', message: err.message || this.$t('DiagnoseFailed', {}, 'Diagnostics failed') })
+      } finally {
+        this.diagnosing = false
+      }
+    },
+    async resetMlsData () {
+      this.$q.dialog({
+        title: this.$t('ResetMlsData', {}, 'Reset MLS data?'),
+        message: this.$t('ResetMlsDataConfirm', {}, 'This clears all MLS vuex state (ready, KeyPackage, groupStates, roomMlsMap, kpHistory, rekey/split flags) and IndexedDB groupStates for the current wallet so you can create a clean test group. Continue?'),
+        class: `pt-card text-bow ${this.getDarkModeClass(this.darkMode)}`,
+        cancel: { label: this.$t('Cancel', {}, 'Cancel'), flat: true, color: 'grey' },
+        ok: { label: this.$t('Reset', {}, 'Reset'), color: 'negative', flat: true },
+        persistent: true,
+      }).onOk(async () => {
+        try {
+          await this.$store.dispatch('nostrChat/resetMlsForTesting')
+          this.$q.notify({ type: 'positive', message: this.$t('MlsDataReset', {}, 'MLS data cleared — create a new group to test') })
+        } catch (err) {
+          this.$q.notify({ type: 'negative', message: err.message || 'Failed to reset MLS data' })
         }
       })
     },

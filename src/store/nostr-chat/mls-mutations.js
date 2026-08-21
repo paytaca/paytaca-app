@@ -17,10 +17,16 @@ function getOrInitWalletState(state, walletHash = null) {
   if (!state.byWallet[hash]) state.byWallet[hash] = getInitialWalletState()
   // Restored state may predate the MLS feature; ensure the mls sub-state exists.
   if (typeof state.byWallet[hash].mls !== 'object' || state.byWallet[hash].mls === null) {
-    state.byWallet[hash].mls = { ready: false, keyPackage: null, groupStates: {}, roomMlsMap: {}, pendingInvitations: {}, kpHistory: [] }
+    state.byWallet[hash].mls = { ready: false, keyPackage: null, groupStates: {}, roomMlsMap: {}, pendingInvitations: {}, kpHistory: [], rekeyEpochs: {}, splitGroups: {} }
   }
   if (!Array.isArray(state.byWallet[hash].mls.kpHistory)) {
     state.byWallet[hash].mls.kpHistory = []
+  }
+  if (typeof state.byWallet[hash].mls.rekeyEpochs !== 'object' || state.byWallet[hash].mls.rekeyEpochs === null) {
+    state.byWallet[hash].mls.rekeyEpochs = {}
+  }
+  if (typeof state.byWallet[hash].mls.splitGroups !== 'object' || state.byWallet[hash].mls.splitGroups === null) {
+    state.byWallet[hash].mls.splitGroups = {}
   }
   return state.byWallet[hash]
 }
@@ -78,7 +84,24 @@ export function RESET_MLS_WALLET_DATA(state) {
     ws.mls.roomMlsMap = {}
     ws.mls.pendingInvitations = {}
     ws.mls.kpHistory = []
+    ws.mls.rekeyEpochs = {}
+    ws.mls.splitGroups = {}
   }
+}
+
+export function SET_MLS_REKEY_EPOCH(state, { mlsGroupIdHex, epoch }) {
+  const ws = getOrInitWalletState(state)
+  if (ws) ws.mls.rekeyEpochs[mlsGroupIdHex] = epoch
+}
+
+export function CLEAR_MLS_REKEY_EPOCH(state, mlsGroupIdHex) {
+  const ws = getOrInitWalletState(state)
+  if (ws) delete ws.mls.rekeyEpochs[mlsGroupIdHex]
+}
+
+export function MARK_MLS_GROUP_SPLIT(state, mlsGroupIdHex) {
+  const ws = getOrInitWalletState(state)
+  if (ws) ws.mls.splitGroups[mlsGroupIdHex] = true
 }
 
 export function ADD_MLS_INVITE(state, invite) {

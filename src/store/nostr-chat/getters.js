@@ -190,6 +190,17 @@ export function isGroupBlocked (state) {
   return (roomId) => (ws.blockedGroups || []).includes(roomId) || false
 }
 
+// True when an MLS group was permanently split by a competing re-key (two
+// members each re-keyed from the same epoch) and can no longer be recovered.
+export function isMlsGroupSplit (state) {
+  const ws = getWalletState(state)
+  return (roomId) => {
+    const mlsGroupIdHex = ws.mls?.roomMlsMap?.[roomId]
+    if (!mlsGroupIdHex) return false
+    return !!ws.mls?.splitGroups?.[mlsGroupIdHex]
+  }
+}
+
 export function getBlockedGroups (state) {
   const ws = getWalletState(state)
   return ws.blockedGroups || []

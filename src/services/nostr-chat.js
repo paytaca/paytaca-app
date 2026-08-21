@@ -809,4 +809,48 @@ export async function fetchMlsWelcomeEvents(relays, authorPubKey, memberPubKey) 
   }
 }
 
+/**
+ * Diagnostic: return the current MLS subscription health (which relays we are
+ * subscribed to, how many live subscriptions are active, and which pubkey).
+ * Used by the per-group diagnose button to reveal whether incoming MLS events
+ * could even reach us (a dead subscription is a silent delivery failure).
+ * @returns {object}
+ */
+export function getMlsSubscriptionStatus() {
+  return {
+    subscribedPubKey: _mlsSubscribedPubKey,
+    relays: [..._mlsSubscribedRelays],
+    activeSubCount: _mlsSubs.length,
+    subscribing: _mlsSubscribing,
+    hasCallbacks: !!_mlsSubscriptionCallbacks,
+    resubIntervalActive: !!_mlsResubInterval,
+    seenEventCount: _mlsSeenEventIds.size,
+  }
+}
+
+/**
+ * Query the given relays for recent MLS group events addressed to a specific
+ * group (matched by the #h tag). Returns events for that group regardless of
+ * author, so a diagnostic can tell whether messages from other members are
+ * actually reaching the relay (transport/publish ok) versus failing locally.
+ * @param {string[]} relays
+ * @param {string} mlsGroupIdHex - Hex MLS group id
+ * @param {number} [limit]
+ * @returns {Promise<import('nostr-tools').NostrEvent[]>}
+ */
+export async function fetchMlsGroupEvents(relays, mlsGroupIdHex, limit = 100) {
+  const pool = getPool()
+  try {
+    const events = await pool.querySync(relays, {
+      kinds: [30078],
+      '#h': [mlsGroupIdHex],
+      limit,
+    })
+    return (events || []).sort((a, b) => a.created_at - b.created_at)
+  } catch (err) {
+    console.warn('[MLS] Failed to fetch group events:', err.message)
+    return []
+  }
+}
+
 export { SimplePool }

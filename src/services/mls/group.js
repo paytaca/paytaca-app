@@ -69,6 +69,24 @@ export async function joinMlsGroup(welcome, keyPackage, privatePackage) {
   return joinGroup(welcome, keyPackage, privatePackage, emptyPskIndex, impl, undefined, undefined, clientConfig)
 }
 
+/**
+ * Re-key the group by committing a new update path (empty commit). Advances the
+ * epoch, which resets all application ratchets — this recovers a group whose
+ * members' ratchets have diverged (e.g. after a send/receive race left a
+ * member's ratchet ahead, causing "Desired gen in the past" for every message).
+ * @param {import('ts-mls').ClientState} state
+ * @param {import('ts-mls').CiphersuiteImpl} [impl]
+ * @returns {Promise<{ newState, commit }>}
+ */
+export async function rekeyMlsGroup(state, impl) {
+  if (!impl) { const crypto = await ensureMlsCrypto(); impl = crypto.impl }
+
+  return createCommit(
+    { state, cipherSuite: impl, pskIndex: emptyPskIndex },
+    { ratchetTreeExtension: true },
+  )
+}
+
 /** Encode an MLSMessage for publishing. */
 export function encodeMlsMsg(msg) {
   return encodeMlsMessage(msg)

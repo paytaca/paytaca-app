@@ -127,6 +127,19 @@
             :disable="addingMember"
             @click="openAddMemberDialog"
           />
+          <q-btn
+            v-if="room?.type === 'mls-group'"
+            :label="roomIsSplit
+              ? $t('RekeySplitDisabled', {}, 'Group split — re-create or re-invite')
+              : $t('RekeyMlsGroup', {}, 'Re-key group (fix stuck messages)')"
+            :color="roomIsSplit ? 'grey' : 'warning'"
+            outline
+            rounded
+            unelevated
+            class="full-width q-mt-sm"
+            :disable="rekeying || roomIsSplit"
+            @click="rekeyGroup"
+          />
         </div>
 
         <!-- Member Details Dialog -->
@@ -249,6 +262,7 @@ export default {
       memberDisplayNames: {},
       addingMember: false,
       reinviting: false,
+      rekeying: false,
     }
   },
   computed: {
@@ -257,6 +271,10 @@ export default {
     },
     room () {
       return this.$store.getters['nostrChat/getRoom'](this.roomId)
+    },
+    roomIsSplit () {
+      if (!this.roomId) return false
+      return this.$store.getters['nostrChat/isMlsGroupSplit'](this.roomId)
     },
     isGroupBlocked () {
       if (!this.roomId) return false
@@ -446,6 +464,45 @@ export default {
         })
       } finally {
         this.reinviting = false
+      }
+    },
+    async rekeyGroup () {
+      if (this.rekeying) return
+      if (this.roomIsSplit) {
+        this.$q.notify({
+          type: 'negative',
+          message: this.$t('RekeySplitUnrecoverable', {}, 'This group is split by a competing re-key and cannot be fixed by re-keying. Re-create the group or re-invite members instead.'),
+          timeout: 5000,
+        })
+        return
+      }
+      // A re-key must be performed by exactly ONE member. If two members re-key
+      // concurrently the group is permanently split (both advance to the same
+      // epoch with divergent trees and can never converge). Confirm so the user
+      // coordinates with the other members before proceeding.
+      const ok = await new Promise(resolve => {
+        this.$q.dialog({
+          title: this.$t('RekeyConfirmTitle', {}, 'Re-key this group?'),
+          message: this.$t('RekeyConfirmMessage', {}, 'Re-keying resets encryption so messages flow again. IMPORTANT: only ONE member may re-key. Other members must leave the app open to receive the re-key. If a second member also re-keys, the group becomes permanently split.'),
+          cancel: true,
+          persistent: true,
+          ok: { label: this.$t('RekeyMlsGroup', {}, 'Re-key group'), color: 'warning', flat: true },
+          cancel: { label: this.$t('Cancel', {}, 'Cancel'), color: 'grey', flat: true },
+        }).onOk(() => resolve(true)).onCancel(() => resolve(false)).onDismiss(() => resolve(false))
+      })
+      if (!ok) return
+      this.rekeying = true
+      try {
+        await this.$store.dispatch('nostrChat/rekeyMlsGroup', { roomId: this.roomId })
+        this.$q.notify({ type: 'positive', message: this.$t('Rekeyed', {}, 'Group re-keyed — other members should now receive your messages again') })
+      } catch (err) {
+        this.$q.notify({
+          type: 'negative',
+          message: err.message || this.$t('RekeyFailed', {}, 'Failed to re-key group'),
+          timeout: 5000,
+        })
+      } finally {
+        this.rekeying = false
       }
     },
     useFetchedMemberDisplayName () {

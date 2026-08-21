@@ -510,7 +510,16 @@ export default {
       return this.$store.getters['nostrChat/getAllMessages']
     },
     contacts () {
-      return this.$store.getters['nostrChat/getContacts']
+      const all = this.$store.getters['nostrChat/getContacts']
+      const myPubKey = this.$store.getters['nostrChat/myPubKey']
+      if (!myPubKey) return all
+      return all.filter(c => {
+        if (c.pubKeyHex) return c.pubKeyHex !== myPubKey
+        try {
+          const decoded = nip19Decode(c.npub)
+          return decoded.data !== myPubKey
+        } catch { return true }
+      })
     },
     showActiveStatus () {
       return this.$store.getters['nostrChat/getShowActiveStatus']
@@ -799,7 +808,8 @@ export default {
       return total
     },
     openRoom (roomId) {
-      this.$router.push(`/apps/chat/${roomId}`)
+      const room = this.rooms.find(r => r.id === roomId) || this.archivedRooms.find(r => r.id === roomId)
+      this.$router.push({ path: `/apps/chat/${roomId}`, query: room?.type ? { type: room.type } : {} })
     },
     shortNpub (pubKeyHex) {
       return pubKeyHex?.slice(0, 8) || 'Unknown'
