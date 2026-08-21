@@ -568,7 +568,7 @@ export default {
       const msgId = msg.id || msg.content
       const blossomServer = 'https://blossom.paytaca.com'
       const self = this
-      downloadFromBlossom(msg.content, blossomServer)
+      downloadFromBlossom(msg.fileUrl || msg.content, blossomServer)
         .then(encryptedData => decryptFile(encryptedData, msg.aesKeyHex, msg.nonceHex))
         .then(decryptedData => {
           if (self._unmounted) return
@@ -725,7 +725,7 @@ export default {
 
       const aesKeyHex = this.message.aesKeyHex
       const nonceHex = this.message.nonceHex
-      const fileUrl = this.message.content
+      const fileUrl = this.message.fileUrl || this.message.content
 
       if (!aesKeyHex || !nonceHex || !fileUrl) return
 
@@ -799,7 +799,7 @@ export default {
 
       const aesKeyHex = this.message.aesKeyHex
       const nonceHex = this.message.nonceHex
-      const fileUrl = this.message.content
+      const fileUrl = this.message.fileUrl || this.message.content
 
       if (!aesKeyHex || !nonceHex || !fileUrl) return
 
@@ -867,7 +867,7 @@ export default {
 
       const aesKeyHex = this.message.aesKeyHex
       const nonceHex = this.message.nonceHex
-      const fileUrl = this.message.content
+      const fileUrl = this.message.fileUrl || this.message.content
       if (!aesKeyHex || !nonceHex || !fileUrl) {
         this.isVideoLoading = false
         return
@@ -953,7 +953,7 @@ export default {
     async downloadFile () {
       const aesKeyHex = this.message.aesKeyHex
       const nonceHex = this.message.nonceHex
-      const fileUrl = this.message.content
+      const fileUrl = this.message.fileUrl || this.message.content
 
       if (!aesKeyHex || !nonceHex || !fileUrl) {
         this.$q.notify({
@@ -1022,7 +1022,7 @@ export default {
       }
       const aesKeyHex = this.message.aesKeyHex
       const nonceHex = this.message.nonceHex
-      const fileUrl = this.message.content
+      const fileUrl = this.message.fileUrl || this.message.content
       if (!aesKeyHex || !nonceHex || !fileUrl) {
         this.$q.notify({
           type: 'negative',

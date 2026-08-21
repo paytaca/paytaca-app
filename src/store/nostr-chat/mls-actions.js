@@ -5,6 +5,7 @@ import * as relayService from 'src/services/nostr-chat'
 import * as mls from 'src/services/mls'
 import { leafToNodeIndex } from 'ts-mls/treemath.js'
 import { Store } from 'src/store'
+import { applyFileMarkupToMessage } from 'src/utils/chat-markup'
 import {
   syncRoomToServer,
   updateRoomOnServer,
@@ -589,14 +590,14 @@ export async function receiveMlsMessage({ commit, state, dispatch }, event) {
 
         commit('ADD_MESSAGE', {
           roomId,
-          message: {
+          message: applyFileMarkupToMessage({
             id: event.id,
             roomId,
             sender: event.pubkey,
             content: result.plaintext,
             kind,
             created_at: event.created_at,
-          },
+          }),
         })
         const roomCount = roomId ? (ws.messages?.[roomId]?.length ?? -1) : -1
         const roomInList = roomId ? (ws.rooms || []).some(r => r.id === roomId) : false

@@ -37,6 +37,44 @@ const KEY_MAP = {
   c: 'category',
   f: 'fiatAmount',
   fc: 'fiatCurrency',
+  u: 'url',
+  h: 'hash',
+  k: 'aesKeyHex',
+  n: 'nonceHex',
+  m: 'mimeType',
+  nm: 'fileName',
+  sz: 'size',
+  w: 'imageWidth',
+  ht: 'imageHeight',
+  tu: 'thumbUrl',
+  tk: 'thumbAesKeyHex',
+  tn: 'thumbNonceHex',
+}
+
+/**
+ * Map file-markup fields ([/*t:file,...*\/] block) onto a message object so
+ * MessageBubble can render and decrypt it like any other file message.
+ * Returns the message unchanged when the content has no file markup.
+ */
+export function applyFileMarkupToMessage (message) {
+  const { markup } = parseMessageMarkup(message?.content)
+  if (!markup || markup.type !== 'file') return message
+  return {
+    ...message,
+    isFile: true,
+    fileUrl: markup.url,
+    fileType: markup.mimeType || null,
+    fileName: markup.fileName ? decodeURIComponent(markup.fileName) : undefined,
+    fileSize: markup.size != null ? Number(markup.size) : undefined,
+    hash: markup.hash,
+    aesKeyHex: markup.aesKeyHex,
+    nonceHex: markup.nonceHex,
+    imageWidth: markup.imageWidth,
+    imageHeight: markup.imageHeight,
+    thumbUrl: markup.thumbUrl,
+    thumbAesKeyHex: markup.thumbAesKeyHex,
+    thumbNonceHex: markup.thumbNonceHex,
+  }
 }
 
 /**

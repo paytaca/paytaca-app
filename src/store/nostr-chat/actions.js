@@ -142,6 +142,7 @@ import {
   base64ToHex,
 } from 'src/wallet/nostr-media'
 import { clearChatCache } from 'src/utils/chat-cache'
+import { applyFileMarkupToMessage } from 'src/utils/chat-markup'
 import { Store } from 'src/store'
 
 const isDev = process.env.NODE_ENV !== 'production'
@@ -2046,7 +2047,7 @@ export async function sendDeleteMessage ({ state }, { roomId, messageId }) {
  * @param {string} [payload.replyTo] - Optional message ID being replied to
  * @returns {Promise<{ giftWraps: any[], message: any, roomId: string }>}
  */
-export async function sendFileMessage ({ state }, { roomId, file, replyTo, onProgress, signal }) {
+export async function sendFileMessage ({ state, dispatch }, { roomId, file, replyTo, onProgress, signal }) {
   const ws = getWalletState(state)
   const room = ws.rooms.find(r => r.id === roomId)
   if (!room) throw new Error('Room not found')
@@ -2115,6 +2116,33 @@ export async function sendFileMessage ({ state }, { roomId, file, replyTo, onPro
   })
 
   if (onProgress) onProgress(0.9)
+
+  // MLS groups: the file is already uploaded encrypted; deliver the decryption
+  // metadata as a single MLS group message instead of per-member NIP-17 gift
+  // wraps (which would arrive as DMs).
+  if (room.type === 'mls-group') {
+    const parts = [
+      't:file',
+      `u:${fileUrl}`,
+      `h:${hash}`,
+      `k:${aesKeyHex}`,
+      `n:${nonceHex}`,
+      `m:${mimeType}`,
+      `nm:${encodeURIComponent(file.name)}`,
+      `sz:${file.size}`,
+    ]
+    if (imageWidth) parts.push(`w:${imageWidth}`)
+    if (imageHeight) parts.push(`ht:${imageHeight}`)
+    if (thumbUrl && thumbAesKeyHex && thumbNonceHex) {
+      parts.push(`tu:${thumbUrl}`, `tk:${thumbAesKeyHex}`, `tn:${thumbNonceHex}`)
+    }
+    const text = `[/*${parts.join(',')}*/]`
+    const res = await dispatch('sendMlsMessage', { roomId, text })
+    const message = applyFileMarkupToMessage(res.message)
+    if (onProgress) onProgress(1)
+    return { giftWraps: [], message, roomId }
+  }
+
   const kind15Event = createKind15FileMessage({
     senderPubKey,
     members: memberHexes,
