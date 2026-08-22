@@ -37,9 +37,17 @@
                 :style="roomAvatarStyle(room)"
               >
                 <img v-if="getDmAvatar(room)" :src="getDmAvatar(room)" />
-                <q-icon v-else-if="room.type === 'group' || room.type === 'mls-group'" name="group" size="24px" />
+                <q-icon v-else-if="room.type === 'mls-group'" name="group_add" size="24px" />
+                <q-icon v-else-if="room.type === 'group'" name="group" size="24px" />
                 <span v-else class="avatar-initial">{{ roomInitial(room) }}</span>
               </q-avatar>
+              <div
+                v-if="room.type === 'group'"
+                class="avatar-lock-badge"
+                :class="{ 'avatar-lock-badge--dark': darkMode }"
+              >
+                <q-icon name="lock" size="10px" />
+              </div>
               <div
                 v-if="activeIndicatorMap[room.id]"
                 class="active-dot"
@@ -50,11 +58,8 @@
           <div class="room-header">
             <div class="room-name" :class="getDarkModeClass(darkMode)">
               {{ roomName(room) }}
-              <q-badge v-if="room.type === 'group'" outline color="primary" class="q-ml-xs" style="font-size: 10px; padding: 1px 5px; font-weight: 500;">
-                {{ $t('Group', {}, 'Group') }}
-              </q-badge>
-              <q-badge v-if="room.type === 'mls-group'" outline color="teal" class="q-ml-xs" style="font-size: 10px; padding: 1px 5px; font-weight: 500;">
-                MLS
+              <q-badge v-if="room.type === 'group' || room.type === 'mls-group'" outline color="primary" class="q-ml-xs" style="font-size: 10px; padding: 1px 5px; font-weight: 500;">
+                {{ $t('Group', {}, 'GROUP') }}
               </q-badge>
             </div>
             <div v-if="room.lastMessageAt || lastMessageTime(room.id) || room.updatedAt" class="room-time">
@@ -334,7 +339,8 @@ export default {
       return this.unreadCountMap[roomId] || 0
     },
     getDmAvatar (room) {
-      if (room.type === 'group') return null
+      // Group rooms (closed and open/MLS) always use their fixed icon.
+      if (room.type === 'group' || room.type === 'mls-group') return null
       const otherPubKey = room.members?.find(m => m !== this.myPubKey)
       return otherPubKey ? this.dmAvatars[otherPubKey] || null : null
     },
@@ -348,7 +354,7 @@ export default {
       const avatarsToFetch = new Set()
       const namesToFetch = new Set()
       for (const room of this.rooms) {
-        if (room.type === 'group') continue
+        if (room.type === 'group' || room.type === 'mls-group') continue
         const otherPubKey = room.members?.find(m => m !== this.myPubKey)
         if (!otherPubKey) continue
         if (!this.dmAvatars[otherPubKey]) {
@@ -434,6 +440,21 @@ export default {
 
 .avatar-initial {
   line-height: 1;
+}
+
+.avatar-lock-badge {
+  position: absolute;
+  bottom: -2px;
+  right: -2px;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: #64748b;
+  color: #ffffff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 2px solid #ffffff;
 }
 
 .room-content {
@@ -581,6 +602,11 @@ export default {
 }
 
 .active-dot--dark {
+  border-color: #1e293b;
+}
+
+.avatar-lock-badge--dark {
+  background: #94a3b8;
   border-color: #1e293b;
 }
 
