@@ -673,12 +673,25 @@ export default {
     // only member, they can leave without a successor (the group is deleted).
     confirmOwnerLeaveGroup () {
       const admins = this.room?.admins || []
-      const onlyMember = (this.room?.members?.length || 0) === 1
+      const onlyMember = (this.room?.members?.length || 0) <= 1
       if (!admins.length && !onlyMember) {
         this.$q.notify({
           type: 'warning',
           message: this.$t('OwnerLeaveNeedsAdmin', {}, 'Promote another member to admin first — the group needs a new owner before you can leave.'),
           timeout: 6000,
+        })
+        return
+      }
+      if (onlyMember) {
+        this.$q.dialog({
+          title: this.$t('LeaveGroup', {}, 'Leave Group'),
+          message: this.$t('LeaveGroupConfirm', { name: this.room?.name }, `Leave "${this.room?.name}"?`),
+          class: `pt-card text-bow ${this.getDarkModeClass(this.darkMode)}`,
+          cancel: { label: this.$t('Cancel', {}, 'Cancel'), flat: true, color: 'grey' },
+          ok: { label: this.$t('LeaveGroup', {}, 'Leave Group'), color: 'negative', flat: true },
+          persistent: true,
+        }).onOk(async () => {
+          await this.doOwnerLeave({})
         })
         return
       }
@@ -699,17 +712,20 @@ export default {
         ok: { label: this.$t('LeaveGroup', {}, 'Leave Group'), color: 'negative', flat: true },
         persistent: true,
       }).onOk(async () => {
-        try {
-          await this.$store.dispatch('nostrChat/leaveMlsGroup', {
-            roomId: this.roomId,
-            successorPubKey: this.leaveSuccessor,
-          })
-          this.$router.replace('/apps/chat')
-          this.$q.notify({ type: 'info', message: this.$t('LeftGroup', {}, 'You left the group') })
-        } catch (err) {
-          this.$q.notify({ type: 'negative', message: err.message || this.$t('LeaveGroupFailed', {}, 'Failed to leave group') })
-        }
+        await this.doOwnerLeave({ successorPubKey: this.leaveSuccessor })
       })
+    },
+    async doOwnerLeave ({ successorPubKey }) {
+      try {
+        await this.$store.dispatch('nostrChat/leaveMlsGroup', {
+          roomId: this.roomId,
+          successorPubKey,
+        })
+        this.$router.replace('/apps/chat')
+        this.$q.notify({ type: 'info', message: this.$t('LeftGroup', {}, 'You left the group') })
+      } catch (err) {
+        this.$q.notify({ type: 'negative', message: err.message || this.$t('LeaveGroupFailed', {}, 'Failed to leave group') })
+      }
     },
     confirmRejoinGroup () {
       this.$q.dialog({

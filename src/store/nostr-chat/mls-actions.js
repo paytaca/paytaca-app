@@ -6,7 +6,7 @@ import * as mls from 'src/services/mls'
 import { leafToNodeIndex } from 'ts-mls/treemath.js'
 import { Store } from 'src/store'
 import { applyFileMarkupToMessage } from 'src/utils/chat-markup'
-import { hexToBytes, bytesToHex } from 'src/utils/encoding'
+import { hexToBytes, bytesToHex, randomUUID } from 'src/utils/encoding'
 import {
   syncRoomToServer,
   updateRoomOnServer,
@@ -242,7 +242,7 @@ export async function createMlsGroup({ commit, state }, { name, members = [] }) 
     }
   }
 
-  const roomId = crypto.randomUUID()
+  const roomId = randomUUID()
 
   await mls.saveMlsState(groupIdHex, clientState)
 
@@ -963,7 +963,15 @@ export async function removeMlsMember({ commit, state }, { roomId, memberPubkey 
 
   const commitEvent = mls.buildMlsNostrEvent(commitMsg, 30118, mlsGroupIdHex, roomId, ws.keys.pubKeyHex, mlsMemberPubkeys(clientState))
   const signedCommit = finalizeEvent(commitEvent, hexToBytes(ws.keys.privKeyHex))
-  await relayService.publishEvent(state.relays, signedCommit)
+  const publish = await relayService.publishEvent(state.relays, signedCommit)
+  if (!publish.accepted.length) {
+    // Do NOT advance local state — if the commit isn't on the relay, other
+    // members still see the removed member in the tree and our epoch would
+    // run ahead of theirs, making future messages undecryptable.
+    const reason = publish.errors[0]?.reason || 'relay rejected the commit'
+    console.warn('[MLS] Remove-member commit rejected:', JSON.stringify(publish.errors))
+    throw new Error(`MLS removal was rejected by the relay: ${reason}`)
+  }
 
   await mls.saveMlsState(mlsGroupIdHex, newState)
   commit('SET_MLS_GROUP_STATE', { mlsGroupIdHex, clientState: newState })
@@ -1124,21 +1132,26 @@ export async function leaveMlsGroup({ commit, state, dispatch }, { roomId, succe
 
   // If the owner leaves, ownership must transfer to a designated successor
   // (the UI only offers admins). Broadcast the role change before departing so
-  // the remaining members know who manages the group.
+  // the remaining members know who manages the group. A sole-member owner may
+  // leave without a successor — there is nobody to hand off to, and no MLS
+  // commit is needed since no other member is affected.
+  const isSoleMember = !room?.members || room.members.length <= 1
   if (room?.type === 'mls-group' && room.owner === ws.keys.pubKeyHex) {
-    if (!successorPubKey) {
+    if (!successorPubKey && !isSoleMember) {
       throw new Error('The group owner must choose a successor before leaving')
     }
-    if (!room.members?.includes(successorPubKey)) {
-      throw new Error('The new owner must be a group member')
+    if (!isSoleMember) {
+      if (!room.members?.includes(successorPubKey)) {
+        throw new Error('The new owner must be a group member')
+      }
+      const admins = (room.admins || [])
+        .filter(a => a !== successorPubKey)
+        .concat((room.admins || []).includes(ws.keys.pubKeyHex) ? [ws.keys.pubKeyHex] : [])
+      const meta = { owner: successorPubKey, admins }
+      applyRoomRoles(commit, ws, roomId, meta)
+      await updateRoomOnServer(roomId, meta)
+      await broadcastMlsRoomRoles({ commit, state }, { roomId })
     }
-    const admins = (room.admins || [])
-      .filter(a => a !== successorPubKey)
-      .concat((room.admins || []).includes(ws.keys.pubKeyHex) ? [ws.keys.pubKeyHex] : [])
-    const meta = { owner: successorPubKey, admins }
-    applyRoomRoles(commit, ws, roomId, meta)
-    await updateRoomOnServer(roomId, meta)
-    await broadcastMlsRoomRoles({ commit, state }, { roomId })
   }
 
   let clientState = await mls.loadMlsState(mlsGroupIdHex, impl, {})
@@ -1146,7 +1159,7 @@ export async function leaveMlsGroup({ commit, state, dispatch }, { roomId, succe
     clientState = ws.mls.groupStates[mlsGroupIdHex]
   }
 
-  if (clientState) {
+  if (clientState && !isSoleMember) {
     const ownLeaf = mls.getOwnLeafIndex(clientState)
     if (ownLeaf !== -1) {
       // Publish the self-remove commit with retries. Local state must only be
