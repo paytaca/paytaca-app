@@ -1,8 +1,5 @@
 <template>
-  <QrScanner v-model="showQrScanner" @decode="onEncryptionPublicKeyScanned" />
   <q-dialog ref="dialogRef" @hide="onDialogHide" seamless class="no-click-outside">
-    <!-- <q-resize-observer @resize="resizeQrSize" /> -->
-     
     <q-card class="br-15 pt-card-2 text-bow" :class="getDarkModeClass(darkMode)" style="width:min(420px, 90vw)">
       <div class="row no-wrap items-center q-pl-lg q-pr-sm q-py-sm">
         <div class="text-h6 q-space"> {{ $t('POSID')}}#{{ paddedPosId }}</div>
@@ -19,115 +16,78 @@
           <q-icon name="info" size="1.2em" class="q-mr-xs" />
           {{ $t('PosDeviceLatestVersionWarning', {}, 'Make sure the POS device is using the latest version of Paytaca POS.') }}
         </div>
-        <div v-if="!encryptionPublicKey">
-          <q-input
+        <div class="qr-code-container">
+          <div class="row items-center justify-center">
+            <q-skeleton v-if="generatingLinkCode" height="250px" width="250px"/>
+            <qr-code
+              v-else
+              :key="qrCodePxSize"
+              :text="qrCodeData"
+              :size="qrCodePxSize"
+            />
+          </div>
+          <div class="row items-center justify-end">
+            <q-btn-group rounded class="q-r-mb-md q-r-mr-md">
+              <q-btn padding="xs md" text-color="black" icon="zoom_out" @click="() => qrCodePxSize -= 25"/>
+              <q-btn padding="xs md" text-color="black" icon="zoom_in" @click="() => qrCodePxSize += 25"/>
+            </q-btn-group>
+          </div>
+        </div>
+        <div v-if="qrCodeData" class="row items-center justify-end q-gutter-sm">
+          <q-field
             dense
             outlined
+            readonly
             :dark="darkMode"
             class="full-width"
-            :label="$t('EncryptionPublicKey', {}, 'Encryption Public Key')"
-            v-model="encryptionPublicKeyInput"
-            hide-bottom-space>
+          >
             <template v-slot:control>
-              <span class="ellipsis" style="direction: rtl;">
-                {{ encryptionPublicKeyInput || $t('Loading', {}, 'Loading...') }}
-              </span>
+              <a :href="qrCodeDataLink" target="_blank" class="ellipsis" style="direction: rtl;">
+                {{ qrCodeDataLink }}
+              </a>
             </template>
             <template v-slot:append>
               <q-btn
                 padding="sm"
                 flat
-                icon="qr_code_scanner"
+                icon="content_copy"
                 :dark="darkMode"
-                @click="scanPosEncryptionPublicKey()"
-              />
-              <q-btn
-                padding="sm"
-                flat
-                icon="send"
-                :dark="darkMode"
-                @click="submitEncryptionPublicKey()"
+                @click="copyToClipboard(qrCodeDataLink, $t('LinkCodeUrlCopied', {}, 'Link code url copied'))"
               />
             </template>
-          </q-input>
-          <!-- <div class="row justify-end">
-            <q-btn flat dense no-caps label="Skip"/>
-          </div> -->
+          </q-field>
         </div>
-        <div v-else>
-          <div class="qr-code-container">
-            <div class="row items-center justify-center">
-              <q-skeleton v-if="generatingLinkCode" height="250px" width="250px"/>
-              <qr-code
-                v-else
-                :key="qrCodePxSize"
-                :text="qrCodeData"
-                :size="qrCodePxSize"
-              />
-            </div>
-            <div class="row items-center justify-end">
-              <q-btn-group rounded class="q-r-mb-md q-r-mr-md">
-                <q-btn padding="xs md" text-color="black" icon="zoom_out" @click="() => qrCodePxSize -= 25"/>
-                <q-btn padding="xs md" text-color="black" icon="zoom_in" @click="() => qrCodePxSize += 25"/>
-              </q-btn-group>
-            </div>
-          </div>
-          <div v-if="qrCodeData" class="row items-center justify-end q-gutter-sm">
-            <q-field
-              dense
-              outlined
-              readonly
-              :dark="darkMode"
-              class="full-width"
-            >
-              <template v-slot:control>
-                <a :href="qrCodeDataLink" target="_blank" class="ellipsis" style="direction: rtl;">
-                  {{ qrCodeDataLink }}
-                </a>
-              </template>
-              <template v-slot:append>
-                <q-btn
-                  padding="sm"
-                  flat
-                  icon="content_copy"
-                  :dark="darkMode"
-                  @click="copyToClipboard(qrCodeDataLink, $t('LinkCodeUrlCopied', {}, 'Link code url copied'))"
-                />
-              </template>
-            </q-field>
-          </div>
-          <div class="row items-center justify-center q-gutter-xs">
-            <span v-if="linkExpiresIn > 1000" class="text-grey">
-              {{ $t('LinkExpiresIn') }}
-              {{ formatTimestampToText(linkCode?.expiresAt * 1000) }}
-            </span>
-            <span v-else-if="linkExpiresIn < -1000" class="text-grey">
-              {{ $t('LinkExpired') }} {{ formatTimestampToText(linkCode?.expiresAt * 1000) }}
-            </span>
-            <span v-else-if="linkExpiresIn > 0" class="text-grey">
-              {{ $t('LinkExpiresIn') }}
-              <span :class="darkMode ? 'text-white' : 'text-brandblue'">{{ linkExpiresIn }}</span>
-              {{ linkExpiresIn > 1 ? $t('Seconds'): $t('Second') }}
-            </span>
-            <span v-else-if="linkExpiresIn < 0" class="text-grey">
-              {{ $t('LinkExpired') }}
-              <span :class="darkMode ? 'text-white' : 'text-brandblue'">{{ linkExpiresIn * -1 }}</span>
-              {{ linkExpiresIn < -1 ? $t('Seconds'): $t('Second') }} {{ $t('Ago') }}
-            </span>
-            <q-btn
-              :disable="generatingLinkCode"
-              :loading="generatingLinkCode"
-              padding="none"
-              flat
-              no-caps
-              class="button button-text-primary"
-              :class="getDarkModeClass(darkMode)"
-              :label="$t('GenerateNewCode')"
-              @click="generateLinkCode()"
-              style="text-decoration:underline;"
-            />
-            <!-- in case linkExpiresIn is not a number nothing will be shown -->
-          </div>
+        <div class="row items-center justify-center q-gutter-xs">
+          <span v-if="linkExpiresIn > 1000" class="text-grey">
+            {{ $t('LinkExpiresIn') }}
+            {{ formatTimestampToText(linkCode?.expiresAt * 1000) }}
+          </span>
+          <span v-else-if="linkExpiresIn < -1000" class="text-grey">
+            {{ $t('LinkExpired') }} {{ formatTimestampToText(linkCode?.expiresAt * 1000) }}
+          </span>
+          <span v-else-if="linkExpiresIn > 0" class="text-grey">
+            {{ $t('LinkExpiresIn') }}
+            <span :class="darkMode ? 'text-white' : 'text-brandblue'">{{ linkExpiresIn }}</span>
+            {{ linkExpiresIn > 1 ? $t('Seconds'): $t('Second') }}
+          </span>
+          <span v-else-if="linkExpiresIn < 0" class="text-grey">
+            {{ $t('LinkExpired') }}
+            <span :class="darkMode ? 'text-white' : 'text-brandblue'">{{ linkExpiresIn * -1 }}</span>
+            {{ linkExpiresIn < -1 ? $t('Seconds'): $t('Second') }} {{ $t('Ago') }}
+          </span>
+          <q-btn
+            :disable="generatingLinkCode"
+            :loading="generatingLinkCode"
+            padding="none"
+            flat
+            no-caps
+            class="button button-text-primary"
+            :class="getDarkModeClass(darkMode)"
+            :label="$t('GenerateNewCode')"
+            @click="generateLinkCode()"
+            style="text-decoration:underline;"
+          />
+          <!-- in case linkExpiresIn is not a number nothing will be shown -->
         </div>
       </q-card-section>
     </q-card>
@@ -142,9 +102,6 @@ import { useDialogPluginComponent, useQuasar } from 'quasar'
 import { ref, computed, onMounted, onUnmounted, watch, inject } from 'vue';
 import { useStore } from 'vuex';
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
-import QrScanner from 'src/components/qr-scanner'
-import { encryptWithPublicKey } from 'src/utils/ecies'
-import { loadCardMerchantWallet } from 'src/services/wallet';
 import { useI18n } from 'vue-i18n'
 
 const bchjs = new BCHJS()
@@ -171,7 +128,6 @@ const props = defineProps({
 })
 
 const paddedPosId = computed(() => padPosId(props.posid))
-const walletData = computed(() => $store.getters['global/getWallet']('bch'))
 
 const generatingLinkCode = ref(false)
 const linkCode = computed(() => {
@@ -180,93 +136,27 @@ const linkCode = computed(() => {
     .find(linkCode => linkCode.walletHash === props.wallet.BCH?.walletHash && linkCode.posid === props.posid)
 })
 
-let showQrScanner = ref(false)
-const encryptionPublicKey = ref(null)
-const encryptionPublicKeyInput = ref('')
-
-function scanPosEncryptionPublicKey() {
-  showQrScanner.value = true
-}
-
-function onEncryptionPublicKeyScanned(result) {
-  showQrScanner.value = false
-  try {
-    encryptionPublicKeyInput.value = result
-    encryptionPublicKey.value = result
-    $q.notify({
-      message: $t('EncryptionPublicKeyScanned', {}, 'Encryption public key scanned successfully'),
-      color: 'positive',
-      icon: 'check_circle',
-      timeout: 2000
-    })
-    // Automatically generate link code after scanning the public key
-    generateLinkCode({ checkExpiry: true })
-  } catch (error) {
-    $q.notify({
-      message: $t('InvalidEncryptionPublicKey', {}, 'Invalid encryption public key'),
-      color: 'negative',
-      icon: 'error',
-      timeout: 2000
-    })
-  }
-}
-
-async function submitEncryptionPublicKey() {
-  if (!encryptionPublicKeyInput.value?.trim()) {
-    $q.notify({
-      message: $t('PleaseEnterOrScanEncryptionPublicKey', {}, 'Please enter or scan the encryption public key'),
-      color: 'warning',
-      icon: 'warning',
-      timeout: 2000
-    })
-    return
-  }
-  // Set the encryption public key only when submitted
-  encryptionPublicKey.value = encryptionPublicKeyInput.value.trim()
-  
-  $q.notify({
-    message: $t('EncryptionPublicKeySubmitted', {}, 'Encryption public key submitted successfully'),
-    color: 'positive',
-    icon: 'check_circle',
-    timeout: 2000
-  })
-  // Generate link code with the entered encryption public key
-  await generateLinkCode({ checkExpiry: true })
-}
-
 async function generateLinkCode(opts) {
-  if (!encryptionPublicKey.value) {
-    $q.notify({
-      message: $t('EncryptionPublicKeyRequired', {}, 'Encryption public key is required to generate link code'),
-      color: 'warning',
-      icon: 'warning',
-      timeout: 2000
-    })
-    return
-  }
-
   try {
     const wallet = props.wallet.BCH
     const xpubkey = await wallet.getXPubKey()
 
-    // Encrypt xpubkey with POS device's public key using ECIES
-    const merchantWallet = await loadCardMerchantWallet()
-    const _data = {
-      xpubkey: xpubkey,
-      privateKey: merchantWallet.privkey()
-    }
-    const encrypted = encryptWithPublicKey(_data, encryptionPublicKey.value)
+    // Encrypt xpubkey using AES with a symmetric key
+    const key = aes.generateKey()
+    const encryptedData = aes.encrypt(xpubkey, key.password, key.iv)
+    const password = key.password + '.' + key.iv
+
     const nonce = Math.floor(Math.random() * (2 ** 31 - 1))
     const privkey = await wallet.getPrivateKey(nonce)
 
     // Sign the encrypted data for verification
-    const signature = bchjs.BitcoinCash.signMessageWithPrivKey(privkey, encrypted.encryptedData)
+    const signature = bchjs.BitcoinCash.signMessageWithPrivKey(privkey, encryptedData)
 
     const data = {
       walletHash: wallet.walletHash,
       posid: props.posid,
-      encryptedData: encrypted.encryptedData,
-      encryptKey: encrypted.encryptKey,
+      encryptedData: encryptedData,
+      decryptKey: password,
       nonce: nonce,
       signature: signature,
       opts: {
@@ -276,7 +166,7 @@ async function generateLinkCode(opts) {
 
     generatingLinkCode.value = true
     await $store.dispatch('paytacapos/generateLinkCode', data)
-    
+
   } catch (error) {
     $q.notify({
       message: `${$t('FailedToGenerateLinkCode', {}, 'Failed to generate link code')}: ${error?.message}`,
@@ -296,16 +186,15 @@ const qrCodeDataB64 = computed(() => btoa(qrCodeData.value))
 const qrCodeData = computed(() => {
   return JSON.stringify({
     code: linkCode.value?.code,
-    encryptKey: linkCode.value?.encryptKey,
+    decryptKey: linkCode.value?.decryptKey,
     nonce: linkCode.value?.nonce,
   })
 })
-watch(qrCodeData, () => {})
-onMounted(() => {})
 
 const expirationUpdateInterval = ref(null)
 const linkExpiresIn = ref(null)
 onMounted(() => {
+  generateLinkCode({ checkExpiry: true })
   expirationUpdateInterval.value = setInterval(() => updateLinkExpiration(), 1000)
   updateLinkExpiration()
 })
