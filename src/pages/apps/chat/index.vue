@@ -394,14 +394,6 @@
               <q-tab-panel name="members" class="q-px-none">
                 <!-- Step 1: pick members -->
                 <template v-if="groupStep === 1">
-                  <div class="group-hint q-mb-md">
-                    <q-icon name="lock" size="14px" color="primary" />
-                    <span>
-                      {{ selectedChatType === 'open_private_group'
-                        ? $t('OpenPrivateGroupHint', { max: groupMaxMembers }, 'End-to-end encrypted. Members can join anytime. Groups can have up to {max} members.')
-                        : $t('PrivateGroupHint', { max: groupMaxMembers }, 'End-to-end encrypted. Members are fixed once created (up to {max} members).') }}
-                    </span>
-                  </div>
                   <div class="group-members-label q-mb-xs">
                     {{ $t('SelectMembersWithLimit', { count: selectedMemberNpubs.length }, `Selected ${selectedMemberNpubs.length} members`) }}
                   </div>
