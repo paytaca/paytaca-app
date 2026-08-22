@@ -204,7 +204,7 @@
                   class="group-type-radio"
                 />
                 <q-avatar size="36px" class="chat-type-icon public-group-icon">
-                  <q-icon name="public" size="20px" color="white" />
+                  <q-icon name="group_add" size="20px" color="white" />
                 </q-avatar>
                 <div class="chat-type-text">
                   <div class="chat-type-title group-type-title" :class="getDarkModeClass(darkMode)">
@@ -226,8 +226,11 @@
                   dense
                   class="group-type-radio"
                 />
-                <q-avatar size="36px" class="chat-type-icon group-icon">
-                  <q-icon name="lock" size="20px" color="white" />
+                <q-avatar size="36px" class="chat-type-icon group-icon group-avatar-wrap">
+                  <q-icon name="group" size="20px" color="white" />
+                  <div class="group-lock-badge">
+                    <q-icon name="lock" size="8px" />
+                  </div>
                 </q-avatar>
                 <div class="chat-type-text">
                   <div class="chat-type-title group-type-title" :class="getDarkModeClass(darkMode)">
@@ -1610,6 +1613,26 @@ export default {
 
 .chat-type-icon.public-group-icon {
   background: linear-gradient(135deg, #a78bfa, #7c3aed);
+}
+
+.group-avatar-wrap {
+  position: relative;
+  overflow: visible;
+}
+
+.group-lock-badge {
+  position: absolute;
+  bottom: -3px;
+  right: -3px;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: #64748b;
+  color: #ffffff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 2px solid #ffffff;
 }
 
 .chat-type-text {
