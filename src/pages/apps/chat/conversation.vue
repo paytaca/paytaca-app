@@ -3,7 +3,7 @@
     id="app-container"
     class="sticky-header-container text-bow column"
     :class="getDarkModeClass(darkMode)"
-    @click="hideContextMenu"
+    @click="onRootClick"
   >
     <header-nav
       class="apps-header"
@@ -328,7 +328,7 @@
 
     <!-- Member: messages scroll area -->
     <template v-if="isRoomMember">
-      <div ref="messagesContainer" class="messages-scroll-area col scroll" @click="hideContextMenu" @scroll="onMessagesScroll">
+      <div ref="messagesContainer" class="messages-scroll-area col scroll" @click="onMessagesClick" @scroll="onMessagesScroll">
         <div v-if="displayedMessages.length === 0" class="empty-conversation">
           <div class="empty-illustration">
             <q-icon name="chat_bubble_outline" size="64px" />
@@ -376,6 +376,7 @@
               :is-replying="replyToMessage?.id === msg.id"
               :reactions="getMessageReactions(msg.id)"
               :is-selected="selectedMessageId === msg.id"
+              :text-selectable="isContextMenuOpen && selectedMessageId === msg.id"
               @context-menu="openMessageMenu"
               @remove-reaction="onRemoveReaction"
               @scroll-to-message="scrollToMessage"
@@ -1112,7 +1113,6 @@ export default {
     }
     document.addEventListener('visibilitychange', this.onVisibilityChange)
     document.addEventListener('pointerdown', this.onDocumentPointerDown)
-    document.addEventListener('pointerup', this.onDocumentPointerUp)
     if (window.visualViewport) {
       window.visualViewport.addEventListener('resize', this.onViewportResize)
       window.visualViewport.addEventListener('scroll', this.onViewportResize)
@@ -1225,7 +1225,6 @@ export default {
     if (this._vpRaf) { cancelAnimationFrame(this._vpRaf); this._vpRaf = null }
     document.removeEventListener('visibilitychange', this.onVisibilityChange)
     document.removeEventListener('pointerdown', this.onDocumentPointerDown)
-    document.removeEventListener('pointerup', this.onDocumentPointerUp)
     if (window.visualViewport) {
       window.visualViewport.removeEventListener('resize', this.onViewportResize)
       window.visualViewport.removeEventListener('scroll', this.onViewportResize)
@@ -1499,17 +1498,13 @@ export default {
       this.contextMessage = message
       this.selectedMessageId = message.id
 
-      const sel = window.getSelection()
-      const hasSelection = sel && !sel.isCollapsed
-      if (hasSelection) {
-        const msgEl = sel.anchorNode?.parentElement?.closest?.('[data-msg-id]')
-        if (!msgEl || msgEl.dataset.msgId !== message.id) {
-          sel.removeAllRanges()
-        }
-      }
-      const finalSel = window.getSelection()
-      this.hasTextSelection = finalSel && !finalSel.isCollapsed
-      this.selectedText = this.hasTextSelection ? finalSel.toString().trim() : ''
+      // The initial long-press / right-click must not highlight any text —
+      // it only opens the context menu. Clear any leftover selection so the
+      // menu always starts in its full state; a new selection made while the
+      // menu is open swaps it to copy/quote.
+      window.getSelection()?.removeAllRanges()
+      this.hasTextSelection = false
+      this.selectedText = ''
 
       this.$nextTick(async () => {
         const msgElement = document.getElementById('msg-' + message.id)
@@ -1518,27 +1513,35 @@ export default {
           return
         }
 
-        const msgRect = msgElement.getBoundingClientRect()
         const menuMargin = 12
-        const padding = 16
         const estimatedMenuHeight = this.hasTextSelection ? 140 : 340
-        const spaceBelow = window.innerHeight - msgRect.bottom
+        let msgRect = msgElement.getBoundingClientRect()
 
-        let scrollNeeded = 0
-        if (spaceBelow < estimatedMenuHeight + menuMargin) {
-          scrollNeeded = estimatedMenuHeight + menuMargin - spaceBelow + padding
+        // If the menu doesn't fit below the bubble (bubble near the message
+        // input), raise the bubble by scrolling the list so the menu can sit
+        // below it without overlapping the bubble.
+        const container = this.$refs.messagesContainer
+        const spaceBelow = this._spaceBelowBubble(msgRect)
+        if (spaceBelow < estimatedMenuHeight + menuMargin && container) {
+          const scrollNeeded = estimatedMenuHeight + menuMargin - spaceBelow + 16
+          const startTop = container.scrollTop
+          const targetTop = Math.min(startTop + scrollNeeded, container.scrollHeight - container.clientHeight)
+          if (targetTop > startTop) {
+            // Smooth scrolling of a plain div is not reliably supported in
+            // mobile WebViews, so if the scroll never starts we jump straight
+            // to the target. Either way the bubble ends up raised and the
+            // menu can sit below it.
+            try {
+              container.scrollTo({ top: targetTop, behavior: 'smooth' })
+            } catch (e) {
+              container.scrollTop = targetTop
+            }
+            await this._awaitScrollSettled(container, targetTop, startTop)
+            msgRect = msgElement.getBoundingClientRect()
+          }
         }
 
-        const isMine = message.sender === this.myPubKey
-
-        if (scrollNeeded > 0 && this.$refs.messagesContainer) {
-          this.$refs.messagesContainer.scrollBy({ top: scrollNeeded, behavior: 'smooth' })
-          await new Promise(r => setTimeout(r, 250))
-          const newRect = msgElement.getBoundingClientRect()
-          this.positionContextMenu(newRect, isMine, menuMargin, estimatedMenuHeight)
-        } else {
-          this.positionContextMenu(msgRect, isMine, menuMargin, estimatedMenuHeight)
-        }
+        this.positionContextMenu(msgRect, message.sender === this.myPubKey, menuMargin, estimatedMenuHeight)
 
         this.showContextMenuDialog = true
         this.isContextMenuOpen = true
@@ -1546,24 +1549,76 @@ export default {
         setTimeout(() => { this._ignoreNextPointerDown = false }, 350)
 
         this._startWatchingSelection(message.id)
+
+        // Re-anchor the menu to the bubble using its real rendered height —
+        // the estimate used for the initial position may differ, which would
+        // otherwise leave the menu floating too high above the bubble.
+        this.$nextTick(() => {
+          this._repositionContextMenu()
+        })
+      })
+    },
+    // Usable space below the bubble, reserving room for the chat input so the
+    // menu never sits on top of it.
+    _spaceBelowBubble (msgRect) {
+      const inputEl = this.$refs.chatInput?.$el
+      const inputH = inputEl ? inputEl.offsetHeight : 64
+      return window.innerHeight - msgRect.bottom - inputH - 16
+    },
+    _awaitScrollSettled (el, targetTop, startTop) {
+      return new Promise(resolve => {
+        const begin = Date.now()
+        const tick = () => {
+          if (Math.abs(el.scrollTop - targetTop) <= 1) {
+            resolve()
+            return
+          }
+          // Smooth scroll never started (unsupported on this WebView) —
+          // jump straight to the target so the menu position is correct.
+          if (Date.now() - begin > 60 && Math.abs(el.scrollTop - startTop) <= 1) {
+            el.scrollTop = targetTop
+            resolve()
+            return
+          }
+          if (Date.now() - begin > 1200) {
+            resolve()
+            return
+          }
+          requestAnimationFrame(tick)
+        }
+        tick()
       })
     },
     positionContextMenu (msgRect, isMine, margin, menuHeight = 340) {
       const menuWidth = 200
       const padding = 16
-      let top = msgRect.bottom + margin
       let left = Math.max(padding, msgRect.left)
 
       if (isMine) {
         left = Math.max(padding, msgRect.right - menuWidth)
       }
 
-      if (top + menuHeight > window.innerHeight - padding) {
-        top = window.innerHeight - menuHeight - padding
+      // Prefer placing the menu below the bubble. When there is not enough
+      // room (bubble near the message input), flip it above so the context
+      // menu never overlays the message bubble itself.
+      const spaceBelow = this._spaceBelowBubble(msgRect)
+      const spaceAbove = msgRect.top - padding
+      let top
+      if (menuHeight <= spaceBelow) {
+        top = msgRect.bottom + margin
+      } else if (menuHeight <= spaceAbove) {
+        top = msgRect.top - menuHeight - margin
+      } else {
+        // Neither side fully fits — use the side with the most room.
+        top = spaceAbove >= spaceBelow
+          ? Math.max(padding, msgRect.top - menuHeight - margin)
+          : msgRect.bottom + margin
       }
-      if (left + menuWidth + padding > window.innerWidth) {
-        left = window.innerWidth - menuWidth - padding
-      }
+
+      const inputEl = this.$refs.chatInput?.$el
+      const inputH = inputEl ? inputEl.offsetHeight : 64
+      top = Math.min(Math.max(top, padding), window.innerHeight - inputH - menuHeight - padding)
+      left = Math.min(Math.max(left, padding), window.innerWidth - menuWidth - padding)
 
       this.contextMenuStyle = {
         position: 'fixed',
@@ -1594,6 +1649,7 @@ export default {
           if (this.hasTextSelection) {
             this.hasTextSelection = false
             this.selectedText = ''
+            this._repositionContextMenu()
           }
           return
         }
@@ -1604,10 +1660,23 @@ export default {
           if (text && text !== this.selectedText) {
             this.hasTextSelection = true
             this.selectedText = text
+            this._repositionContextMenu()
           }
         }
       }
       document.addEventListener('selectionchange', this._selectionChangeHandler)
+    },
+    // Recompute the menu position when its content changes height (full menu
+    // <-> copy/quote) so it stays anchored to the message bubble. Uses the
+    // real rendered menu height so it never floats far from the bubble.
+    _repositionContextMenu () {
+      if (!this.contextMessage) return
+      const msgElement = document.getElementById('msg-' + this.contextMessage.id)
+      const menuEl = this.$refs.contextMenuEl
+      if (!msgElement || !menuEl) return
+      const msgRect = msgElement.getBoundingClientRect()
+      const menuHeight = menuEl.offsetHeight || (this.hasTextSelection ? 140 : 340)
+      this.positionContextMenu(msgRect, this.contextMessage.sender === this.myPubKey, 12, menuHeight)
     },
     _stopWatchingSelection () {
       if (this._selectionChangeHandler) {
@@ -1620,8 +1689,24 @@ export default {
       this._stopWatchingSelection()
       this.showContextMenuDialog = false
       this.isContextMenuOpen = false
+      this.hasTextSelection = false
       this.selectedText = ''
       this.selectedMessageId = null
+      window.getSelection()?.removeAllRanges()
+    },
+    onMessagesClick (e) {
+      this.onRootClick(e)
+    },
+    onRootClick (e) {
+      // Clicks inside the message whose context menu is open must not dismiss
+      // the menu — the user may be clicking to position or complete a text
+      // selection. This guards both the messages container and the root
+      // app-container, since the click bubbles up through both.
+      if (this.selectedMessageId && this.isContextMenuOpen) {
+        const msgEl = document.getElementById('msg-' + this.selectedMessageId)
+        if (msgEl && msgEl.contains(e.target)) return
+      }
+      this.hideContextMenu()
     },
     onDocumentPointerDown (e) {
       if (this._ignoreNextPointerDown) {
@@ -1654,69 +1739,6 @@ export default {
         return
       }
     },
-    onDocumentPointerUp (e) {
-      if (e.button !== 0) return
-      if (this.isContextMenuOpen) return
-      if (this.isMobileDevice()) return
-      const sel = window.getSelection()
-      if (!sel || sel.isCollapsed) return
-      const msgEl = sel.anchorNode?.parentElement?.closest?.('[data-msg-id]')
-      if (!msgEl) return
-      const msgId = msgEl.dataset.msgId
-      const message = this.getMessageById(msgId)
-      if (!message) return
-      const selectedText = sel.toString().trim()
-      if (!selectedText) return
-      this.contextMessage = message
-      this.selectedMessageId = message.id
-      this.hasTextSelection = true
-      this.selectedText = selectedText
-      const range = sel.getRangeAt(0)
-      const rect = range.getBoundingClientRect()
-
-      this.$nextTick(async () => {
-        const msgElement = document.getElementById('msg-' + message.id)
-        if (!msgElement) {
-          this.contextMenuStyle = {
-            position: 'fixed',
-            top: (rect.bottom + 4) + 'px',
-            left: Math.max(16, rect.left + rect.width / 2 - 100) + 'px',
-          }
-          this.showContextMenuDialog = true
-          this.isContextMenuOpen = true
-          this._ignoreNextPointerDown = true
-          setTimeout(() => { this._ignoreNextPointerDown = false }, 350)
-          this._startWatchingSelection(message.id)
-          return
-        }
-
-        const msgRect = msgElement.getBoundingClientRect()
-        const menuMargin = 12
-        const estimatedMenuHeight = 140
-        const spaceBelow = window.innerHeight - msgRect.bottom
-        const padding = 16
-
-        let scrollNeeded = 0
-        if (spaceBelow < estimatedMenuHeight + menuMargin) {
-          scrollNeeded = estimatedMenuHeight + menuMargin - spaceBelow + padding
-        }
-
-        if (scrollNeeded > 0 && this.$refs.messagesContainer) {
-          this.$refs.messagesContainer.scrollBy({ top: scrollNeeded, behavior: 'smooth' })
-          await new Promise(r => setTimeout(r, 250))
-          const newRect = msgElement.getBoundingClientRect()
-          this.positionContextMenu(newRect, message.sender === this.myPubKey, menuMargin, estimatedMenuHeight)
-        } else {
-          this.positionContextMenu(msgRect, message.sender === this.myPubKey, menuMargin, estimatedMenuHeight)
-        }
-
-        this.showContextMenuDialog = true
-        this.isContextMenuOpen = true
-        this._ignoreNextPointerDown = true
-        setTimeout(() => { this._ignoreNextPointerDown = false }, 350)
-        this._startWatchingSelection(message.id)
-      })
-    },
     onReact (message, emoji) {
       this.hideContextMenu()
       if (!message || !emoji) return
@@ -1727,10 +1749,6 @@ export default {
       }).catch(err => {
         console.error('[Conversation] Failed to send reaction:', err)
       })
-    },
-    isMobileDevice () {
-      if (typeof navigator === 'undefined') return false
-      return /Android|iPhone|iPad|iPod|webOS|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent)
     },
     onRemoveReaction ({ messageId, emoji }) {
       if (!messageId || !emoji) return

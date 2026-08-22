@@ -6,7 +6,7 @@
   >
     <div
       class="message-bubble"
-      :class="{ 'new-message': isNew, 'is-deleted': message.deleted, 'is-image-bubble': isImageFile, 'is-video-bubble': isVideoFile, 'is-selected': isSelected }"
+      :class="{ 'new-message': isNew, 'is-deleted': message.deleted, 'is-image-bubble': isImageFile, 'is-video-bubble': isVideoFile, 'is-selected': isSelected, 'is-text-selectable': textSelectable }"
       :style="isMine && !isImageFile && !isVideoFile ? { background: `linear-gradient(135deg, ${themeColor}, ${themeColor}dd)` } : {}"
       @pointerdown="onPointerDown"
       @pointerup="onPointerUp"
@@ -279,6 +279,10 @@ export default {
     isReplying: { type: Boolean, default: false },
     isSelected: { type: Boolean, default: false },
     reactions: { type: Array, default: () => [] },
+    // When true the message text becomes user-selectable. The conversation
+    // enables it only while this message's context menu is open, so text
+    // can't be selected/copied otherwise.
+    textSelectable: { type: Boolean, default: false },
   },
   emits: ['context-menu', 'remove-reaction', 'scroll-to-message', 'retry-message'],
     data () {
@@ -615,6 +619,11 @@ export default {
     },
     onContextMenu ($event) {
       if (this.message.deleted) return
+      // While the context menu is open for this message the text is
+      // selectable; a native contextmenu (e.g. Android's post-selection
+      // contextmenu) must not re-trigger openMessageMenu, which would close
+      // the menu and clear the fresh selection.
+      if (this.textSelectable) return
       this.$emit('context-menu', this.message, $event)
     },
     // Pointer-based long-press detection. Uses pointer events to unify mouse/touch input
@@ -622,6 +631,9 @@ export default {
       if (this.message.deleted) return
       // Only start long-press for primary button/touch
       if (e.button && e.button !== 0) return
+      // While the context menu is open the text is selectable — let the native
+      // long-press start a text selection instead of re-opening the menu.
+      if (this.textSelectable) return
       // Remember pointer id to ignore unrelated pointers
       this._pressPointerId = e.pointerId
       this._pressStartX = e.clientX
@@ -1220,6 +1232,10 @@ export default {
   font-size: 15px;
   white-space: pre-wrap;
   word-break: break-word;
+}
+
+/* Text becomes selectable only while the context menu is open */
+.message-bubble.is-text-selectable .message-text {
   -webkit-user-select: text;
   user-select: text;
 }
