@@ -2408,7 +2408,11 @@ export default {
     },
     async handleTipRequest (amount, originalText = null) {
       let recipientPubKey = this.otherMemberPubKey
-      if (this.isMlsRoom) {
+      if (this.isGroupRoom) {
+        // Groups (both MLS open groups and NIP-17 closed groups) have no single
+        // "other member" — ask who is being tipped, then tip that member while
+        // posting the confirmation to the whole group (see
+        // sendTipConfirmationMessage).
         recipientPubKey = await this.pickTipRecipient()
         if (!recipientPubKey) {
           if (originalText) this.$refs.chatInput?.setText(originalText)
@@ -2417,10 +2421,11 @@ export default {
       }
       await this.sendTipNavigate(recipientPubKey, amount, originalText)
     },
-    // In an MLS group there is no single "other member", so ask which member is
+    // In a group room there is no single "other member", so ask which member is
     // being tipped. The payment goes to that member's address, but the tip
-    // confirmation message is posted to the whole group via MLS (see
-    // sendTipConfirmationMessage), not as a DM to the recipient.
+    // confirmation message is posted to the whole group (via MLS for open
+    // groups, via NIP-17 gift-wraps for closed groups), not as a DM to the
+    // recipient.
     pickTipRecipient () {
       const myPub = this.myPubKey
       const members = (this.room?.members || []).filter(m => m && m !== myPub)
