@@ -392,6 +392,14 @@
                 <div class="group-members-label q-mb-xs">
                   {{ $t('SelectMembersWithLimit', { count: selectedMemberNpubs.length, max: 9 }, `Select members (${selectedMemberNpubs.length}/9)`) }}
                 </div>
+                <div class="group-min-hint" :class="{ 'group-min-hint--unmet': !hasMinGroupMembers }">
+                  <q-icon :name="hasMinGroupMembers ? 'check_circle' : 'error_outline'" size="14px" />
+                  <span>
+                    {{ hasMinGroupMembers
+                      ? $t('MinMembersMet', {}, 'Minimum group size met')
+                      : $t('MinMembersRequired', {}, 'A group needs at least 3 members including you — select 2 or more contacts.') }}
+                  </span>
+                </div>
                 <q-list v-if="contacts.length" separator class="group-members-list">
                   <q-item
                     v-for="contact in contacts"
@@ -587,8 +595,12 @@ export default {
     canAddContact () {
       return this.newContactName.trim() && this.newContactNpub.trim().startsWith('npub')
     },
+    // Groups need at least 3 members total — the creator plus 2 contacts.
+    hasMinGroupMembers () {
+      return this.selectedMemberNpubs.length >= 2
+    },
     canCreateGroup () {
-      return this.groupName.trim() && this.selectedMemberNpubs.length > 0 && this.selectedMemberNpubs.length <= 9
+      return this.groupName.trim() && this.hasMinGroupMembers && this.selectedMemberNpubs.length <= 9
     },
     activeUnreadCount () {
       return this.totalUnreadFor(this.rooms)
@@ -1226,7 +1238,16 @@ export default {
       }
     },
     async createGroup () {
-      if (!this.canCreateGroup) return
+      if (!this.canCreateGroup) {
+        if (this.groupName.trim() && !this.hasMinGroupMembers) {
+          this.$q.notify({
+            type: 'warning',
+            message: this.$t('MinMembersRequired', {}, 'A group needs at least 3 members including you — select 2 or more contacts.'),
+            timeout: 5000,
+          })
+        }
+        return
+      }
       try {
         // Convert npubs to hex pubkeys
         const memberPubKeys = this.selectedMemberNpubs.map(npub => {
@@ -1655,6 +1676,19 @@ export default {
   font-size: 13px;
   font-weight: 500;
   color: #6b7280;
+}
+
+.group-min-hint {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  color: #16a34a;
+  margin-bottom: 8px;
+}
+
+.group-min-hint--unmet {
+  color: #d97706;
 }
 
 .tabs-header :deep(.q-tab-panels) {
