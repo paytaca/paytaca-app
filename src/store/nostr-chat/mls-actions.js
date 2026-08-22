@@ -559,12 +559,27 @@ export async function receiveMlsMessage({ commit, state, dispatch }, event) {
   const ws = getWalletState(state)
   if (!ws.keys.privKeyHex) return
 
-  if (event.pubkey === ws.keys.pubKeyHex) return
-
   const { impl } = mls.getMlsCrypto()
 
   const { kind, bytes: contentBytes } = decodeMlsEventContent(event.content)
   if (!kind) return // No non-MLS 30078 events (e.g. KeyPackage events)
+
+  // Don't skip our own application messages — MLS events are encrypted to the
+  // group, so another device sharing this wallet/keys needs them to keep its
+  // chat history and epoch in sync. Commits and welcomes we authored are
+  // already reflected in local state, so those are still skipped.
+  if (event.pubkey === ws.keys.pubKeyHex && kind !== 30117) return
+
+  // Same-device echo: sendMlsMessage already added this event to the timeline
+  // (message id === event id) and advanced the ratchet, so re-processing it
+  // here would only risk a decrypt error. Other devices don't have it and do
+  // need to process it.
+  if (event.pubkey === ws.keys.pubKeyHex) {
+    const rTag = event.tags?.find(t => t[0] === 'r')
+    const ownRoomId = rTag?.[1]
+    const alreadyAdded = ownRoomId && (ws.messages[ownRoomId] || []).some(m => m.id === event.id)
+    if (alreadyAdded) return
+  }
 
   if (kind === 30119) {
     const rTag = event.tags?.find(t => t[0] === 'r')
@@ -923,64 +938,66 @@ export async function removeMlsMember({ commit, state }, { roomId, memberPubkey 
 
   const { impl } = mls.getMlsCrypto()
 
-  let clientState = await mls.loadMlsState(mlsGroupIdHex, impl, {})
-  if (!clientState && ws.mls.groupStates[mlsGroupIdHex]) {
-    clientState = ws.mls.groupStates[mlsGroupIdHex]
-  }
-  if (!clientState) throw new Error('MLS group state not found')
-
-  backfillMlsOwner(commit, ws, roomId, clientState)
-
-  // Only the owner or an admin may remove members.
-  const myRole = requireMlsManager(ws, roomId)
-
-  const room = ws.rooms.find(r => r.id === roomId)
-  const owner = room?.owner
-  const admins = room?.admins || []
-
-  // The owner cannot be removed by an admin; only the owner themselves may
-  // (and they leave via leaveMlsGroup, not this action).
-  if (owner && memberPubkey === owner) {
-    throw new Error('The group owner cannot be removed')
-  }
-  // Only the owner may remove an admin.
-  if (myRole === 'admin' && admins.includes(memberPubkey)) {
-    throw new Error('Only the group owner can remove an admin')
-  }
-
-  const members = mls.getMlsGroupMembers(clientState)
-  let leafIndex = -1
-  for (let i = 0; i < members.length; i++) {
-    const identity = new TextDecoder().decode(members[i].credential.identity)
-    if (identity === memberPubkey) {
-      leafIndex = i
-      break
+  await withMlsProcessingLock(mlsGroupIdHex, async () => {
+    let clientState = await mls.loadMlsState(mlsGroupIdHex, impl, {})
+    if (!clientState && ws.mls.groupStates[mlsGroupIdHex]) {
+      clientState = ws.mls.groupStates[mlsGroupIdHex]
     }
-  }
-  if (leafIndex === -1) throw new Error('Member not found in MLS group')
+    if (!clientState) throw new Error('MLS group state not found')
 
-  const { newState, commit: commitMsg } = await mls.removeMlsMember(clientState, leafIndex, impl)
+    backfillMlsOwner(commit, ws, roomId, clientState)
 
-  const commitEvent = mls.buildMlsNostrEvent(commitMsg, 30118, mlsGroupIdHex, roomId, ws.keys.pubKeyHex, mlsMemberPubkeys(clientState))
-  const signedCommit = finalizeEvent(commitEvent, hexToBytes(ws.keys.privKeyHex))
-  const publish = await relayService.publishEvent(state.relays, signedCommit)
-  if (!publish.accepted.length) {
-    // Do NOT advance local state — if the commit isn't on the relay, other
-    // members still see the removed member in the tree and our epoch would
-    // run ahead of theirs, making future messages undecryptable.
-    const reason = publish.errors[0]?.reason || 'relay rejected the commit'
-    console.warn('[MLS] Remove-member commit rejected:', JSON.stringify(publish.errors))
-    throw new Error(`MLS removal was rejected by the relay: ${reason}`)
-  }
+    // Only the owner or an admin may remove members.
+    const myRole = requireMlsManager(ws, roomId)
 
-  await mls.saveMlsState(mlsGroupIdHex, newState)
-  commit('SET_MLS_GROUP_STATE', { mlsGroupIdHex, clientState: newState })
+    const room = ws.rooms.find(r => r.id === roomId)
+    const owner = room?.owner
+    const admins = room?.admins || []
 
-  if (room) {
-    const updatedMembers = room.members.filter(m => m !== memberPubkey)
-    commit('UPDATE_ROOM', { id: roomId, members: updatedMembers, admins: (room.admins || []).filter(a => a !== memberPubkey) })
-    await updateRoomOnServer(roomId, { members: updatedMembers, admins: (room.admins || []).filter(a => a !== memberPubkey) })
-  }
+    // The owner cannot be removed by an admin; only the owner themselves may
+    // (and they leave via leaveMlsGroup, not this action).
+    if (owner && memberPubkey === owner) {
+      throw new Error('The group owner cannot be removed')
+    }
+    // Only the owner may remove an admin.
+    if (myRole === 'admin' && admins.includes(memberPubkey)) {
+      throw new Error('Only the group owner can remove an admin')
+    }
+
+    const members = mls.getMlsGroupMembers(clientState)
+    let leafIndex = -1
+    for (let i = 0; i < members.length; i++) {
+      const identity = new TextDecoder().decode(members[i].credential.identity)
+      if (identity === memberPubkey) {
+        leafIndex = i
+        break
+      }
+    }
+    if (leafIndex === -1) throw new Error('Member not found in MLS group')
+
+    const { newState, commit: commitMsg } = await mls.removeMlsMember(clientState, leafIndex, impl)
+
+    const commitEvent = mls.buildMlsNostrEvent(commitMsg, 30118, mlsGroupIdHex, roomId, ws.keys.pubKeyHex, mlsMemberPubkeys(clientState))
+    const signedCommit = finalizeEvent(commitEvent, hexToBytes(ws.keys.privKeyHex))
+    const publish = await relayService.publishEvent(state.relays, signedCommit)
+    if (!publish.accepted.length) {
+      // Do NOT advance local state — if the commit isn't on the relay, other
+      // members still see the removed member in the tree and our epoch would
+      // run ahead of theirs, making future messages undecryptable.
+      const reason = publish.errors[0]?.reason || 'relay rejected the commit'
+      console.warn('[MLS] Remove-member commit rejected:', JSON.stringify(publish.errors))
+      throw new Error(`MLS removal was rejected by the relay: ${reason}`)
+    }
+
+    await mls.saveMlsState(mlsGroupIdHex, newState)
+    commit('SET_MLS_GROUP_STATE', { mlsGroupIdHex, clientState: newState })
+
+    if (room) {
+      const updatedMembers = room.members.filter(m => m !== memberPubkey)
+      commit('UPDATE_ROOM', { id: roomId, members: updatedMembers, admins: (room.admins || []).filter(a => a !== memberPubkey) })
+      await updateRoomOnServer(roomId, { members: updatedMembers, admins: (room.admins || []).filter(a => a !== memberPubkey) })
+    }
+  })
 }
 
 // ---- Encrypted group-role control messages ----
@@ -1165,8 +1182,23 @@ export async function leaveMlsGroup({ commit, state, dispatch }, { roomId, succe
   }
 
   if (clientState && !isSoleMember) {
-    const ownLeaf = mls.getOwnLeafIndex(clientState)
-    if (ownLeaf !== -1) {
+    await withMlsProcessingLock(mlsGroupIdHex, async () => {
+      // Reload inside the lock to get the freshest copy; a concurrent send or
+      // receive may have advanced the epoch since the load above.
+      let lockedState = null
+      try {
+        lockedState = await mls.loadMlsState(mlsGroupIdHex, impl, {})
+      } catch (err) {
+        console.warn('[MLS] leaveMlsGroup: failed to load state from IndexedDB:', err.message)
+      }
+      if (!lockedState && ws.mls.groupStates[mlsGroupIdHex]) {
+        lockedState = ws.mls.groupStates[mlsGroupIdHex]
+      }
+      if (!lockedState) return
+
+      const ownLeaf = mls.getOwnLeafIndex(lockedState)
+      if (ownLeaf === -1) return
+
       // Publish the self-remove commit with retries. Local state must only be
       // torn down once the commit is on the relay — otherwise other members
       // still see us in the tree while we have no state to process future
@@ -1175,8 +1207,8 @@ export async function leaveMlsGroup({ commit, state, dispatch }, { roomId, succe
       let lastErr = null
       for (let attempt = 1; attempt <= 3 && !published; attempt++) {
         try {
-          const { newState, commit: commitMsg } = await mls.removeMlsMember(clientState, ownLeaf, impl)
-          const commitEvent = mls.buildMlsNostrEvent(commitMsg, 30118, mlsGroupIdHex, roomId, ws.keys.pubKeyHex, mlsMemberPubkeys(clientState))
+          const { newState, commit: commitMsg } = await mls.removeMlsMember(lockedState, ownLeaf, impl)
+          const commitEvent = mls.buildMlsNostrEvent(commitMsg, 30118, mlsGroupIdHex, roomId, ws.keys.pubKeyHex, mlsMemberPubkeys(lockedState))
           const signedCommit = finalizeEvent(commitEvent, hexToBytes(ws.keys.privKeyHex))
           const result = await relayService.publishEvent(state.relays, signedCommit)
           if (!result.accepted.length) throw new Error(result.errors[0]?.reason || 'relay rejected the commit')
@@ -1193,7 +1225,7 @@ export async function leaveMlsGroup({ commit, state, dispatch }, { roomId, succe
           'You are still a member — try leaving again.'
         )
       }
-    }
+    })
   }
 
   await mls.removeMlsState(mlsGroupIdHex)
