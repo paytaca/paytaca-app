@@ -1154,8 +1154,13 @@ export async function leaveMlsGroup({ commit, state, dispatch }, { roomId, succe
     }
   }
 
-  let clientState = await mls.loadMlsState(mlsGroupIdHex, impl, {})
-  if (clientState && ws.mls.groupStates[mlsGroupIdHex]) {
+  let clientState = null
+  try {
+    clientState = await mls.loadMlsState(mlsGroupIdHex, impl, {})
+  } catch (err) {
+    console.warn('[MLS] leaveMlsGroup: failed to load state from IndexedDB:', err.message)
+  }
+  if (!clientState && ws.mls.groupStates[mlsGroupIdHex]) {
     clientState = ws.mls.groupStates[mlsGroupIdHex]
   }
 

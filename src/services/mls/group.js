@@ -86,13 +86,23 @@ export function getMlsGroupMembers(state) {
   return getGroupMembers(state)
 }
 
-/** Get own leaf index from a ClientState. */
+/** Get own leaf index from a ClientState.
+ * Compares members by credential identity (the Nostr pubkey) — reference
+ * equality is not reliable after a state round-trip through IndexedDB, where
+ * decodeGroupState may produce distinct objects for the same leaf.
+ */
 export function getOwnLeafIndex(state) {
   const leaf = getOwnLeafNode(state)
-  // leaf has a leafIndex or we need to find it
+  const leafIdentity = leaf?.credential?.identity
+    ? new TextDecoder().decode(leaf.credential.identity)
+    : null
+  if (!leafIdentity) return -1
   const members = getGroupMembers(state)
   for (let i = 0; i < members.length; i++) {
-    if (members[i] === leaf) return i
+    const identity = members[i]?.credential?.identity
+      ? new TextDecoder().decode(members[i].credential.identity)
+      : null
+    if (identity && identity === leafIdentity) return i
   }
   return -1
 }
