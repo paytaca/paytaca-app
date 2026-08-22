@@ -56,14 +56,6 @@
                 {{ $t('RenameGroup', {}, 'Rename Group') }}
               </q-item-section>
             </q-item>
-            <q-item v-if="isMlsRoom" clickable v-close-popup @click="resetMlsData">
-              <q-item-section side>
-                <q-icon name="delete_sweep" size="18px" color="negative" />
-              </q-item-section>
-              <q-item-section>
-                <span class="text-negative">{{ $t('ResetMlsData', {}, 'Reset MLS data (test)') }}</span>
-              </q-item-section>
-            </q-item>
             <q-item v-if="isGroupRoom" clickable v-close-popup @click="$router.push(`/apps/chat/${roomId}/info`)">
               <q-item-section side>
                 <q-icon name="info" size="18px" />
@@ -2089,23 +2081,6 @@ export default {
           this.$q.notify({ type: 'info', message: this.$t('LeftGroup', {}, 'You left the group') })
         } catch (err) {
           this.$q.notify({ type: 'negative', message: err.message || this.$t('LeaveGroupFailed', {}, 'Failed to leave group') })
-        }
-      })
-    },
-    async resetMlsData () {
-      this.$q.dialog({
-        title: this.$t('ResetMlsData', {}, 'Reset MLS data?'),
-        message: this.$t('ResetMlsDataConfirm', {}, 'This clears all MLS vuex state (ready, KeyPackage, groupStates, roomMlsMap, kpHistory) and IndexedDB groupStates for the current wallet so you can create a clean test group. Continue?'),
-        class: `pt-card text-bow ${this.getDarkModeClass(this.darkMode)}`,
-        cancel: { label: this.$t('Cancel', {}, 'Cancel'), flat: true, color: 'grey' },
-        ok: { label: this.$t('Reset', {}, 'Reset'), color: 'negative', flat: true },
-        persistent: true,
-      }).onOk(async () => {
-        try {
-          await this.$store.dispatch('nostrChat/resetMlsForTesting')
-          this.$q.notify({ type: 'positive', message: this.$t('MlsDataReset', {}, 'MLS data cleared — create a new group to test') })
-        } catch (err) {
-          this.$q.notify({ type: 'negative', message: err.message || 'Failed to reset MLS data' })
         }
       })
     },

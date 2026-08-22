@@ -922,17 +922,6 @@ export async function getMlsGroupMemberPubkeys({ commit, state }, { roomId }) {
   return mls.getMlsGroupMembers(clientState).map(m => new TextDecoder().decode(m.credential.identity))
 }
 
-export async function resetMlsForTesting({ commit }) {
-  commit('RESET_MLS_WALLET_DATA')
-  try {
-    await mls.clearAllMlsStates()
-    console.log('[MLS] Cleared all MLS data: vuex + IndexedDB')
-  } catch (err) {
-    console.warn('[MLS] clearAllMlsStates failed:', err.message)
-  }
-  return { ok: true }
-}
-
 export async function removeMlsMember({ commit, state }, { roomId, memberPubkey }) {
   const ws = getWalletState(state)
   if (!ws.keys.privKeyHex) throw new Error('Nostr keys not available')

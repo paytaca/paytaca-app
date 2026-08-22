@@ -75,26 +75,6 @@ export function PUSH_MLS_KP_HISTORY(state, { content, publishedAt }) {
   }
 }
 
-export function RESET_MLS_WALLET_DATA(state) {
-  const ws = getOrInitWalletState(state)
-  if (ws) {
-    ws.mls.ready = false
-    ws.mls.keyPackage = null
-    ws.mls.groupStates = {}
-    ws.mls.roomMlsMap = {}
-    ws.mls.pendingInvitations = {}
-    ws.mls.declinedWelcomeIds = {}
-    ws.mls.failedEventAttempts = {}
-    ws.mls.kpHistory = []
-    // MLS rooms are persisted locally (see store/index.js serializer), so clear
-    // them here too; otherwise orphaned MLS rooms would reappear after restart
-    // with no matching group state.
-    if (Array.isArray(ws.rooms)) {
-      ws.rooms = ws.rooms.filter(r => r.type !== 'mls-group')
-    }
-  }
-}
-
 export function ADD_MLS_INVITE(state, invite) {
   const ws = getOrInitWalletState(state)
   if (ws) {

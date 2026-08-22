@@ -1,5 +1,5 @@
 export { ensureMlsCrypto, getMlsCrypto } from './context.js'
-export { saveMlsState, loadMlsState, removeMlsState, clearAllMlsStates } from './state-store.js'
+export { saveMlsState, loadMlsState, removeMlsState } from './state-store.js'
 export { generateMlsKeyPackage, encodeKeyPackageForPublish } from './key-package.js'
 export {
   createMlsGroup,

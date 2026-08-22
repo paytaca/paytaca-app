@@ -82,12 +82,3 @@ export async function removeMlsState(mlsGroupId) {
   })
 }
 
-export async function clearAllMlsStates() {
-  const db = await openDb()
-  return new Promise((resolve, reject) => {
-    const tx = db.transaction(STORE_NAME, 'readwrite')
-    tx.objectStore(STORE_NAME).clear()
-    tx.oncomplete = () => { db.close(); resolve() }
-    tx.onerror = () => { db.close(); reject(tx.error) }
-  })
-}
