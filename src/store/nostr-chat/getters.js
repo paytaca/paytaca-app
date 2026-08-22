@@ -76,13 +76,22 @@ export function getActiveStatusMap (state) {
 
 // ---- Per-wallet room getters ----
 
+// Last activity time used for chat-list ordering. Falls back through
+// updatedAt/createdAt because lastMessageAt is often missing entirely (server
+// touch failures, rooms whose messages were never received while open) — those
+// rooms would otherwise all sort as 0 below every other chat in arbitrary
+// insertion order.
+function roomLastActivity (room) {
+  return room?.lastMessageAt || room?.updatedAt || room?.createdAt || 0
+}
+
 export function getRooms (state) {
   const ws = getWalletState(state)
   const myPubKey = ws.keys?.pubKeyHex
   if (!myPubKey) return []
   return (ws.rooms || [])
     .filter(r => r.members?.includes(myPubKey) && !r.archived)
-    .sort((a, b) => (b.lastMessageAt || 0) - (a.lastMessageAt || 0))
+    .sort((a, b) => roomLastActivity(b) - roomLastActivity(a))
 }
 
 export function getArchivedRooms (state) {
@@ -91,7 +100,7 @@ export function getArchivedRooms (state) {
   if (!myPubKey) return []
   return (ws.rooms || [])
     .filter(r => r.members?.includes(myPubKey) && r.archived)
-    .sort((a, b) => (b.lastMessageAt || 0) - (a.lastMessageAt || 0))
+    .sort((a, b) => roomLastActivity(b) - roomLastActivity(a))
 }
 
 export function getRoom (state) {
