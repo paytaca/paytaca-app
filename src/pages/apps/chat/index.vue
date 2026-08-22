@@ -1195,6 +1195,12 @@ export default {
       }).onOk(async () => {
         try {
           if (room?.type === 'mls-group') {
+            // The owner must choose a successor from the group info page.
+            const myPubKey = this.$store.getters['nostrChat/myPubKey']
+            if (room.owner === myPubKey) {
+              this.$router.push(`/apps/chat/${roomId}/info`)
+              return
+            }
             await this.$store.dispatch('nostrChat/leaveMlsGroup', { roomId })
           } else {
             await this.$store.dispatch('nostrChat/leaveGroup', { roomId })

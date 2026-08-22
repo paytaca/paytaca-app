@@ -127,6 +127,20 @@
                     {{ $t('You', {}, 'You') }}
                   </q-badge>
                   <q-badge
+                    v-if="isMlsRoom && member.pubKeyHex === room?.owner"
+                    color="amber-7"
+                    class="role-chip q-ml-xs"
+                  >
+                    {{ $t('Owner', {}, 'Owner') }}
+                  </q-badge>
+                  <q-badge
+                    v-else-if="isMlsRoom && member.isAdmin"
+                    color="teal-6"
+                    class="role-chip q-ml-xs"
+                  >
+                    {{ $t('Admin', {}, 'Admin') }}
+                  </q-badge>
+                  <q-badge
                     v-if="isMlsRoom && memberTab === 'invited'"
                     color="warning"
                     class="you-chip q-ml-xs"
@@ -160,7 +174,7 @@
             rounded
             unelevated
             class="full-width q-mt-sm"
-            :disable="addingMember"
+            :disable="addingMember || !isGroupManager"
             @click="openAddMemberDialog"
           />
         </div>
@@ -213,16 +227,53 @@
                 class="full-width q-mt-sm"
                 @click="copyMemberNpub"
               />
-              <q-btn
-                v-if="room?.type === 'mls-group' && !selectedMember.isMe"
-                flat
-                :label="$t('ReinviteMember', {}, 'Re-invite')"
-                color="warning"
-                icon="person_add"
-                class="full-width q-mt-sm"
-                :loading="reinviting"
-                @click="reinviteMember"
-              />
+
+              <template v-if="room?.type === 'mls-group' && !selectedMember.isMe">
+                <!-- Owner controls -->
+                <template v-if="isGroupOwner">
+                  <q-btn
+                    v-if="!selectedMember.isAdmin && selectedMember.pubKeyHex !== room?.owner"
+                    flat
+                    :label="$t('MakeAdmin', {}, 'Make admin')"
+                    color="primary"
+                    icon="shield"
+                    class="full-width q-mt-sm"
+                    :loading="roleChanging"
+                    @click="confirmToggleAdmin(true)"
+                  />
+                  <q-btn
+                    v-if="selectedMember.isAdmin"
+                    flat
+                    :label="$t('RevokeAdmin', {}, 'Remove admin')"
+                    color="orange"
+                    icon="shield"
+                    class="full-width q-mt-sm"
+                    :loading="roleChanging"
+                    @click="confirmToggleAdmin(false)"
+                  />
+                  <q-btn
+                    v-if="selectedMember.isAdmin"
+                    flat
+                    :label="$t('TransferOwnership', {}, 'Transfer ownership')"
+                    color="primary"
+                    icon="swap_horiz"
+                    class="full-width q-mt-sm"
+                    :loading="roleChanging"
+                    @click="confirmTransferOwnership"
+                  />
+                </template>
+                <!-- Manager controls (owner or admin) -->
+                <q-btn
+                  v-if="canRemoveManager && !selectedMember.isAdmin"
+                  flat
+                  :label="$t('RemoveMember', {}, 'Remove from group')"
+                  color="negative"
+                  icon="person_remove"
+                  class="full-width q-mt-sm"
+                  :loading="removingMember"
+                  @click="confirmRemoveMember"
+                />
+              </template>
             </q-card-section>
 
           </q-card>
@@ -381,7 +432,8 @@ export default {
       memberAvatars: {},
       memberDisplayNames: {},
       addingMember: false,
-      reinviting: false,
+      roleChanging: false,
+      removingMember: false,
       memberTab: 'joined',
       mlsTreeMembers: [],
       showAddMemberDialog: false,
@@ -390,6 +442,7 @@ export default {
       manualNpub: '',
       manualNpubError: '',
       showQrScanner: false,
+      leaveSuccessor: '',
     }
   },
   computed: {
@@ -412,8 +465,34 @@ export default {
     contacts () {
       return this.$store.getters['nostrChat/getContacts']
     },
+    // Current wallet's role in an MLS group: 'owner', 'admin', or null.
+    myRole () {
+      if (!this.isMlsRoom || !this.room) return null
+      if (this.room.owner === this.myPubKey) return 'owner'
+      if (Array.isArray(this.room.admins) && this.room.admins.includes(this.myPubKey)) return 'admin'
+      return null
+    },
+    isGroupOwner () {
+      return this.myRole === 'owner'
+    },
+    isGroupAdmin () {
+      return this.myRole === 'admin'
+    },
+    isGroupManager () {
+      return this.isGroupOwner || this.isGroupAdmin
+    },
+    // Remove is allowed for the owner (any non-owner member) and for admins
+    // (regular members only — they may not remove the owner or another admin).
+    canRemoveManager () {
+      if (!this.isGroupManager || !this.selectedMember) return false
+      if (this.selectedMember.isMe) return false
+      if (this.selectedMember.pubKeyHex === this.room?.owner) return false
+      if (this.isGroupAdmin && this.selectedMember.isAdmin) return false
+      return true
+    },
     membersWithInfo () {
       const members = this.room?.members || []
+      const adminSet = new Set(this.room?.admins || [])
       const list = members.map(pubKeyHex => {
         const contact = this.contacts.find(c => c.pubKeyHex === pubKeyHex)
         let displayNpub = ''
@@ -423,6 +502,7 @@ export default {
         return {
           pubKeyHex,
           isMe: pubKeyHex === this.myPubKey,
+          isAdmin: adminSet.has(pubKeyHex),
           displayName: contact ? contact.name : (publishedName || displayNpub.slice(0, 12) + '...' + displayNpub.slice(-8)),
           displayNpub: displayNpub.slice(0, 18) + '...',
           initial,
@@ -431,8 +511,13 @@ export default {
           avatar: this.memberAvatars[pubKeyHex] || null,
         }
       })
-      // Sort current user to the top
-      return list.sort((a, b) => (b.isMe ? 1 : 0) - (a.isMe ? 1 : 0))
+      // Sort current user to the top, then owner, then admins.
+      return list.sort((a, b) => {
+        if (a.isMe !== b.isMe) return a.isMe ? -1 : 1
+        const rankA = a.pubKeyHex === this.room?.owner ? 2 : a.isAdmin ? 1 : 0
+        const rankB = b.pubKeyHex === this.room?.owner ? 2 : b.isAdmin ? 1 : 0
+        return rankB - rankA
+      })
     },
     // Members present in the MLS tree have completed the join handshake.
     joinedMembers () {
@@ -558,6 +643,10 @@ export default {
       }
     },
     confirmLeaveGroup () {
+      if (this.room?.type === 'mls-group' && this.isGroupOwner) {
+        this.confirmOwnerLeaveGroup()
+        return
+      }
       this.$q.dialog({
         title: this.$t('LeaveGroup', {}, 'Leave Group'),
         message: this.$t('LeaveGroupConfirm', { name: this.room?.name }, `Leave group "${this.room?.name}"?`),
@@ -572,6 +661,49 @@ export default {
           } else {
             await this.$store.dispatch('nostrChat/leaveGroup', { roomId: this.roomId })
           }
+          this.$router.replace('/apps/chat')
+          this.$q.notify({ type: 'info', message: this.$t('LeftGroup', {}, 'You left the group') })
+        } catch (err) {
+          this.$q.notify({ type: 'negative', message: err.message || this.$t('LeaveGroupFailed', {}, 'Failed to leave group') })
+        }
+      })
+    },
+    // Owner leaving an MLS group must designate a successor from the admins
+    // (ownership is transferred to them before departure). If the owner is the
+    // only member, they can leave without a successor (the group is deleted).
+    confirmOwnerLeaveGroup () {
+      const admins = this.room?.admins || []
+      const onlyMember = (this.room?.members?.length || 0) === 1
+      if (!admins.length && !onlyMember) {
+        this.$q.notify({
+          type: 'warning',
+          message: this.$t('OwnerLeaveNeedsAdmin', {}, 'Promote another member to admin first — the group needs a new owner before you can leave.'),
+          timeout: 6000,
+        })
+        return
+      }
+      const successorOptions = admins.map(pubKeyHex => {
+        const info = this.membersWithInfo.find(m => m.pubKeyHex === pubKeyHex)
+        return { value: pubKeyHex, label: info?.displayName || pubKeyHex.slice(0, 12) }
+      })
+      this.$q.dialog({
+        title: this.$t('ChooseNewOwner', {}, 'Choose a new owner'),
+        message: this.$t('OwnerLeaveSuccessor', {}, 'You are the group owner. Choose which admin will become the new owner after you leave.'),
+        class: `pt-card text-bow ${this.getDarkModeClass(this.darkMode)}`,
+        options: {
+          type: 'radio',
+          model: this.leaveSuccessor,
+          items: successorOptions,
+        },
+        cancel: { label: this.$t('Cancel', {}, 'Cancel'), flat: true, color: 'grey' },
+        ok: { label: this.$t('LeaveGroup', {}, 'Leave Group'), color: 'negative', flat: true },
+        persistent: true,
+      }).onOk(async () => {
+        try {
+          await this.$store.dispatch('nostrChat/leaveMlsGroup', {
+            roomId: this.roomId,
+            successorPubKey: this.leaveSuccessor,
+          })
           this.$router.replace('/apps/chat')
           this.$q.notify({ type: 'info', message: this.$t('LeftGroup', {}, 'You left the group') })
         } catch (err) {
@@ -606,25 +738,100 @@ export default {
         timeout: 1500,
       })
     },
-    async reinviteMember () {
+    confirmToggleAdmin (isAdmin) {
       const member = this.selectedMember
-      if (!member?.pubKeyHex || this.reinviting) return
-      this.reinviting = true
+      if (!member?.pubKeyHex) return
+      this.$q.dialog({
+        title: this.$t(isAdmin ? 'MakeAdmin' : 'RevokeAdmin', {}, isAdmin ? 'Make admin' : 'Remove admin'),
+        message: this.$t(
+          isAdmin ? 'MakeAdminConfirm' : 'RevokeAdminConfirm',
+          { name: member.displayName },
+          isAdmin
+            ? `Make ${member.displayName} an admin? They will be able to manage members.`
+            : `Remove admin from ${member.displayName}? They will no longer be able to manage members.`
+        ),
+        class: `pt-card text-bow ${this.getDarkModeClass(this.darkMode)}`,
+        cancel: { label: this.$t('Cancel', {}, 'Cancel'), flat: true, color: 'grey' },
+        ok: { label: this.$t(isAdmin ? 'Make' : 'Revoke', {}, isAdmin ? 'Make admin' : 'Revoke'), color: isAdmin ? 'primary' : 'orange', flat: true },
+        persistent: true,
+      }).onOk(() => {
+        this.toggleAdmin(isAdmin)
+      })
+    },
+    async toggleAdmin (isAdmin) {
+      const member = this.selectedMember
+      if (!member?.pubKeyHex || this.roleChanging) return
+      if (!this.isGroupOwner) return
+      this.roleChanging = true
       try {
-        await this.$store.dispatch('nostrChat/reinviteMlsMember', {
+        await this.$store.dispatch('nostrChat/setMlsAdmin', {
           roomId: this.roomId,
-          memberPubkey: member.pubKeyHex,
+          memberPubKey: member.pubKeyHex,
+          isAdmin,
         })
-        this.$q.notify({ type: 'positive', message: this.$t('Reinvited', {}, 'Invitation re-sent') })
+        // Keep the open dialog in sync with the refreshed role state.
+        const fresh = this.membersWithInfo.find(m => m.pubKeyHex === member.pubKeyHex)
+        if (fresh) this.selectedMember = { ...member, isAdmin: fresh.isAdmin }
+        this.$q.notify({ type: 'positive', message: isAdmin
+          ? this.$t('MemberMadeAdmin', {}, 'Member is now an admin')
+          : this.$t('AdminRevoked', {}, 'Admin role removed') })
       } catch (err) {
-        this.$q.notify({
-          type: 'negative',
-          message: err.message || this.$t('ReinviteFailed', {}, 'Failed to re-send invitation'),
-          timeout: 5000,
-        })
+        this.$q.notify({ type: 'negative', message: err.message || this.$t('RoleChangeFailed', {}, 'Failed to update role'), timeout: 5000 })
       } finally {
-        this.reinviting = false
+        this.roleChanging = false
       }
+    },
+    confirmTransferOwnership () {
+      const member = this.selectedMember
+      if (!member?.pubKeyHex) return
+      this.$q.dialog({
+        title: this.$t('TransferOwnership', {}, 'Transfer ownership'),
+        message: this.$t('TransferOwnershipConfirm', { name: member.displayName }, `Transfer group ownership to ${member.displayName}? You will become a regular member.`),
+        class: `pt-card text-bow ${this.getDarkModeClass(this.darkMode)}`,
+        cancel: { label: this.$t('Cancel', {}, 'Cancel'), flat: true, color: 'grey' },
+        ok: { label: this.$t('Transfer', {}, 'Transfer'), color: 'primary', flat: true },
+        persistent: true,
+      }).onOk(async () => {
+        this.roleChanging = true
+        try {
+          await this.$store.dispatch('nostrChat/transferMlsOwnership', {
+            roomId: this.roomId,
+            newOwnerPubKey: member.pubKeyHex,
+          })
+          this.showMemberDetails = false
+          this.$q.notify({ type: 'positive', message: this.$t('OwnershipTransferred', { name: member.displayName }, `Ownership transferred to ${member.displayName}`) })
+        } catch (err) {
+          this.$q.notify({ type: 'negative', message: err.message || this.$t('OwnershipTransferFailed', {}, 'Failed to transfer ownership'), timeout: 5000 })
+        } finally {
+          this.roleChanging = false
+        }
+      })
+    },
+    confirmRemoveMember () {
+      const member = this.selectedMember
+      if (!member?.pubKeyHex) return
+      this.$q.dialog({
+        title: this.$t('RemoveMember', {}, 'Remove from group'),
+        message: this.$t('RemoveMemberConfirm', { name: member.displayName }, `Remove ${member.displayName} from this group? They will no longer be able to read or send messages.`),
+        class: `pt-card text-bow ${this.getDarkModeClass(this.darkMode)}`,
+        cancel: { label: this.$t('Cancel', {}, 'Cancel'), flat: true, color: 'grey' },
+        ok: { label: this.$t('Remove', {}, 'Remove'), color: 'negative', flat: true },
+        persistent: true,
+      }).onOk(async () => {
+        this.removingMember = true
+        try {
+          await this.$store.dispatch('nostrChat/removeMlsMember', {
+            roomId: this.roomId,
+            memberPubkey: member.pubKeyHex,
+          })
+          this.showMemberDetails = false
+          this.$q.notify({ type: 'positive', message: this.$t('MemberRemoved', {}, 'Member removed') })
+        } catch (err) {
+          this.$q.notify({ type: 'negative', message: err.message || this.$t('RemoveMemberFailed', {}, 'Failed to remove member'), timeout: 5000 })
+        } finally {
+          this.removingMember = false
+        }
+      })
     },
     async fetchMlsTreeMembers () {
       if (!this.isMlsRoom) return
@@ -680,6 +887,14 @@ export default {
       }
     },
     openAddMemberDialog () {
+      if (!this.isGroupManager) {
+        this.$q.notify({
+          type: 'warning',
+          message: this.$t('ManagersOnly', {}, 'Only the group owner or an admin can add members'),
+          timeout: 4000,
+        })
+        return
+      }
       const currentCount = this.room?.members?.length || 0
       if (currentCount >= 50) {
         this.$q.notify({

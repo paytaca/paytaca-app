@@ -18,6 +18,33 @@ const MAX_MLS_MEMBERS = 50
 // event is dropped permanently instead of being retried on every history fetch.
 const MAX_EVENT_PROCESS_ATTEMPTS = 3
 
+// Prefix for encrypted MLS control messages that carry group-role metadata
+// (owner / admins). Members decode these (they're E2E encrypted like any other
+// MLS message) and update their local room instead of showing them as a chat
+// message. The leading zero-width space makes an accidental collision with
+// ordinary chat text practically impossible.
+const MLS_META_PREFIX = '\u200bpaytaca:mls-meta:'
+
+// Return 'owner', 'admin', or null for the current wallet's role in a room.
+function myMlsRole(ws, roomId) {
+  const room = ws.rooms?.find(r => r.id === roomId)
+  if (!room || room.type !== 'mls-group') return null
+  const me = ws.keys?.pubKeyHex
+  if (!me) return null
+  if (room.owner === me) return 'owner'
+  if (Array.isArray(room.admins) && room.admins.includes(me)) return 'admin'
+  return null
+}
+
+// Throw unless the current wallet is the owner or an admin of the room.
+function requireMlsManager(ws, roomId) {
+  const role = myMlsRole(ws, roomId)
+  if (role !== 'owner' && role !== 'admin') {
+    throw new Error('Only the group owner or an admin can do that')
+  }
+  return role
+}
+
 const mlsProcessingQueues = new Map()
 
 // Diagnostic helper: own-leaf application ratchet generation (the generation
@@ -234,6 +261,8 @@ export async function createMlsGroup({ commit, state }, { name, members = [] }) 
     type: 'mls-group',
     name: name || 'MLS Group',
     members: [nostrPubkeyHex],
+    owner: nostrPubkeyHex,
+    admins: [],
     createdAt: Math.floor(Date.now() / 1000),
     updatedAt: Math.floor(Date.now() / 1000),
   }
@@ -351,13 +380,19 @@ export async function joinMlsGroup({ commit, state }, { roomId, welcomeEvent }) 
 
   // Add the room to the local list so it shows up on the chat index for the
   // invitee. Members are derived from the joined MLS state; the group name
-  // is carried in the welcome event's "n" tag (set by the creator).
+  // is carried in the welcome event's "n" tag (set by the creator). Owner and
+  // admins are carried in "owner"/"admin" tags so the invitee knows who
+  // manages the group from the moment they join.
   const nTag = welcomeEvent.tags?.find(t => t[0] === 'n')
+  const ownerTag = welcomeEvent.tags?.find(t => t[0] === 'owner')
+  const adminTags = (welcomeEvent.tags || []).filter(t => t[0] === 'admin')
   const room = {
     id: roomId,
     type: 'mls-group',
     name: nTag?.[1] || 'MLS Group',
     members: mls.getMlsGroupMembers(clientState).map(m => new TextDecoder().decode(m.credential.identity)),
+    owner: ownerTag?.[1] || null,
+    admins: adminTags.map(t => t[1]).filter(Boolean),
     createdAt: Math.floor(Date.now() / 1000),
     updatedAt: Math.floor(Date.now() / 1000),
   }
@@ -615,37 +650,54 @@ export async function receiveMlsMessage({ commit, state, dispatch }, event) {
         const rTag = event.tags?.find(t => t[0] === 'r')
         const roomId = rTag ? rTag[1] : null
 
-        console.log(
-          '[MLS] Received', kind, 'event', event.id.slice(0, 8),
-          'from', event.pubkey.slice(0, 8),
-          'for group', mlsGroupIdHex.slice(0, 12),
-          'room', roomId?.slice(0, 8) || '(none)',
-          'text:', JSON.stringify(result.plaintext.slice(0, 40)),
-        )
+        // Encrypted group-role control message (owner/admins metadata). Apply
+        // it to the room locally and don't surface it as a chat message.
+        if (typeof result.plaintext === 'string' && result.plaintext.startsWith(MLS_META_PREFIX)) {
+          try {
+            const meta = JSON.parse(result.plaintext.slice(MLS_META_PREFIX.length))
+            if (roomId && meta && (meta.owner !== undefined || meta.admins !== undefined)) {
+              applyRoomRoles(commit, ws, roomId, meta)
+              await updateRoomOnServer(roomId, {
+                owner: meta.owner !== undefined ? meta.owner : null,
+                admins: meta.admins !== undefined ? meta.admins : [],
+              })
+            }
+          } catch {
+            // Not valid JSON — fall through and show as a message.
+          }
+        } else if (roomId) {
+          console.log(
+            '[MLS] Received', kind, 'event', event.id.slice(0, 8),
+            'from', event.pubkey.slice(0, 8),
+            'for group', mlsGroupIdHex.slice(0, 12),
+            'room', roomId?.slice(0, 8) || '(none)',
+            'text:', JSON.stringify(result.plaintext.slice(0, 40)),
+          )
 
-        commit('ADD_MESSAGE', {
-          roomId,
-          message: applyFileMarkupToMessage({
-            id: event.id,
+          commit('ADD_MESSAGE', {
             roomId,
-            sender: event.pubkey,
-            content: result.plaintext,
-            kind,
-            created_at: event.created_at,
-          }),
-        })
-        const roomCount = roomId ? (ws.messages?.[roomId]?.length ?? -1) : -1
-        const roomInList = roomId ? (ws.rooms || []).some(r => r.id === roomId) : false
-        const amMember = roomId ? (ws.rooms || []).some(r => r.id === roomId && r.members?.includes(ws.keys?.pubKeyHex)) : false
-        console.log(
-          '[MLS] Added to store — room', roomId?.slice(0, 8) || '(none)',
-          'messages in store for this room:', roomCount,
-          'room exists in ws.rooms:', roomInList,
-          'i am a member of it:', amMember,
-        )
-        commit('TOUCH_ROOM_LAST_MESSAGE_AT', roomId)
-        if (roomId) {
-          await touchRoomOnServer(roomId, new Date(event.created_at * 1000).toISOString())
+            message: applyFileMarkupToMessage({
+              id: event.id,
+              roomId,
+              sender: event.pubkey,
+              content: result.plaintext,
+              kind,
+              created_at: event.created_at,
+            }),
+          })
+          const roomCount = roomId ? (ws.messages?.[roomId]?.length ?? -1) : -1
+          const roomInList = roomId ? (ws.rooms || []).some(r => r.id === roomId) : false
+          const amMember = roomId ? (ws.rooms || []).some(r => r.id === roomId && r.members?.includes(ws.keys?.pubKeyHex)) : false
+          console.log(
+            '[MLS] Added to store — room', roomId?.slice(0, 8) || '(none)',
+            'messages in store for this room:', roomCount,
+            'room exists in ws.rooms:', roomInList,
+            'i am a member of it:', amMember,
+          )
+          commit('TOUCH_ROOM_LAST_MESSAGE_AT', roomId)
+          if (roomId) {
+            await touchRoomOnServer(roomId, new Date(event.created_at * 1000).toISOString())
+          }
         }
       }
     } catch (err) {
@@ -692,6 +744,40 @@ export async function receiveMlsMessage({ commit, state, dispatch }, event) {
 
 // ---- Member management ----
 
+// Groups created before owner/admins fields existed have no owner stored. The
+// deterministic owner is leaf 0 of the MLS tree, so backfill it from the tree
+// when missing so role enforcement keeps working on legacy groups.
+function backfillMlsOwner(commit, ws, roomId, clientState) {
+  const room = ws.rooms?.find(r => r.id === roomId)
+  if (!room || room.owner || !clientState) return
+  try {
+    const members = mls.getMlsGroupMembers(clientState)
+    const leaf0 = members[0]
+    if (!leaf0) return
+    const owner = new TextDecoder().decode(leaf0.credential.identity)
+    commit('UPDATE_ROOM', { id: roomId, owner })
+  } catch {}
+}
+
+// Load an MLS group's state (falling back to the in-memory copy) and ensure the
+// room's owner field is backfilled from the tree for legacy groups. Returns the
+// client state (or null when none is available).
+async function ensureMlsOwnerBackfilled(commit, ws, roomId, impl) {
+  const mlsGroupIdHex = ws.mls.roomMlsMap?.[roomId]
+  if (!mlsGroupIdHex) return null
+  let clientState = null
+  try {
+    clientState = await mls.loadMlsState(mlsGroupIdHex, impl, {})
+  } catch {
+    clientState = null
+  }
+  if (!clientState && ws.mls.groupStates?.[mlsGroupIdHex]) {
+    clientState = ws.mls.groupStates[mlsGroupIdHex]
+  }
+  backfillMlsOwner(commit, ws, roomId, clientState)
+  return clientState
+}
+
 export async function addMlsMember({ commit, state }, { roomId, memberPubKey }) {
   const ws = getWalletState(state)
   if (!ws.keys.privKeyHex) throw new Error('Nostr keys not available')
@@ -707,6 +793,11 @@ export async function addMlsMember({ commit, state }, { roomId, memberPubKey }) 
     clientState = ws.mls.groupStates[mlsGroupIdHex]
   }
   if (!clientState) throw new Error('MLS group state not found')
+
+  backfillMlsOwner(commit, ws, roomId, clientState)
+
+  // Only the owner or an admin may add members.
+  requireMlsManager(ws, roomId)
 
   const currentMembers = mls.getMlsGroupMembers(clientState)
   const memberIdentities = currentMembers.map(m => new TextDecoder().decode(m.credential.identity))
@@ -785,6 +876,12 @@ export async function addMlsMember({ commit, state }, { roomId, memberPubKey }) 
     if (room?.name) {
       welcomeUnsigned.tags.push(['n', room.name])
     }
+    if (room?.owner) {
+      welcomeUnsigned.tags.push(['owner', room.owner])
+    }
+    for (const admin of (room?.admins || [])) {
+      welcomeUnsigned.tags.push(['admin', admin])
+    }
     const signedWelcome = finalizeEvent(welcomeUnsigned, hexToBytes(ws.keys.privKeyHex))
     const welcomePublish = await relayService.publishEvent(state.relays, signedWelcome)
     if (!welcomePublish.accepted.length) {
@@ -811,7 +908,7 @@ export async function addMlsMember({ commit, state }, { roomId, memberPubKey }) 
  * (present in the group's tree), or null when the room has no MLS state.
  * Used by Group Info to distinguish joined vs invited-pending members.
  */
-export async function getMlsGroupMemberPubkeys({ state }, { roomId }) {
+export async function getMlsGroupMemberPubkeys({ commit, state }, { roomId }) {
   const ws = getWalletState(state)
   const mlsGroupIdHex = ws.mls?.roomMlsMap?.[roomId]
   if (!mlsGroupIdHex) return null
@@ -821,6 +918,7 @@ export async function getMlsGroupMemberPubkeys({ state }, { roomId }) {
     clientState = ws.mls.groupStates[mlsGroupIdHex]
   }
   if (!clientState) return null
+  backfillMlsOwner(commit, ws, roomId, clientState)
   return mls.getMlsGroupMembers(clientState).map(m => new TextDecoder().decode(m.credential.identity))
 }
 
@@ -833,42 +931,6 @@ export async function resetMlsForTesting({ commit }) {
     console.warn('[MLS] clearAllMlsStates failed:', err.message)
   }
   return { ok: true }
-}
-
-/**
- * Re-invite a member who's already in the group (e.g. whose stale welcome
- * couldn't be decrypted). Removes them (which advances the epoch) then
- * re-adds them, re-fetching their current KeyPackage so the new welcome is
- * encrypted to keys they actually hold. Stale welcomes for that member are
- * also deleted from the relay. Best-effort: if the re-add fails, the member
- * stays removed so the creator can retry or re-create.
- */
-export async function reinviteMlsMember({ commit, state }, { roomId, memberPubkey }) {
-  const ws = getWalletState(state)
-
-  // Delete the stale welcomes we published for this member first, so the
-  // freshly-published welcome isn't caught up in the cleanup. Best-effort.
-  try {
-    const staleWelcomes = await relayService.fetchMlsWelcomeEvents(state.relays, ws.keys.pubKeyHex, memberPubkey)
-    for (const welcome of staleWelcomes) {
-      const deleteEvent = finalizeEvent({
-        kind: 5,
-        pubkey: ws.keys.pubKeyHex,
-        created_at: Math.floor(Date.now() / 1000),
-        content: '',
-        tags: [
-          ['e', welcome.id],
-          ['p', ws.keys.pubKeyHex],
-        ],
-      }, hexToBytes(ws.keys.privKeyHex))
-      await relayService.publishEvent(state.relays, deleteEvent)
-    }
-  } catch (err) {
-    console.warn('[MLS] Failed to delete stale welcomes on re-invite:', err.message)
-  }
-
-  await removeMlsMember({ commit, state }, { roomId, memberPubkey })
-  await addMlsMember({ commit, state }, { roomId, memberPubKey: memberPubkey })
 }
 
 export async function removeMlsMember({ commit, state }, { roomId, memberPubkey }) {
@@ -885,6 +947,25 @@ export async function removeMlsMember({ commit, state }, { roomId, memberPubkey 
     clientState = ws.mls.groupStates[mlsGroupIdHex]
   }
   if (!clientState) throw new Error('MLS group state not found')
+
+  backfillMlsOwner(commit, ws, roomId, clientState)
+
+  // Only the owner or an admin may remove members.
+  const myRole = requireMlsManager(ws, roomId)
+
+  const room = ws.rooms.find(r => r.id === roomId)
+  const owner = room?.owner
+  const admins = room?.admins || []
+
+  // The owner cannot be removed by an admin; only the owner themselves may
+  // (and they leave via leaveMlsGroup, not this action).
+  if (owner && memberPubkey === owner) {
+    throw new Error('The group owner cannot be removed')
+  }
+  // Only the owner may remove an admin.
+  if (myRole === 'admin' && admins.includes(memberPubkey)) {
+    throw new Error('Only the group owner can remove an admin')
+  }
 
   const members = mls.getMlsGroupMembers(clientState)
   let leafIndex = -1
@@ -906,22 +987,179 @@ export async function removeMlsMember({ commit, state }, { roomId, memberPubkey 
   await mls.saveMlsState(mlsGroupIdHex, newState)
   commit('SET_MLS_GROUP_STATE', { mlsGroupIdHex, clientState: newState })
 
-  const room = ws.rooms.find(r => r.id === roomId)
   if (room) {
     const updatedMembers = room.members.filter(m => m !== memberPubkey)
-    commit('UPDATE_ROOM', { id: roomId, members: updatedMembers })
-    await updateRoomOnServer(roomId, { members: updatedMembers })
+    commit('UPDATE_ROOM', { id: roomId, members: updatedMembers, admins: (room.admins || []).filter(a => a !== memberPubkey) })
+    await updateRoomOnServer(roomId, { members: updatedMembers, admins: (room.admins || []).filter(a => a !== memberPubkey) })
   }
 }
 
-export async function leaveMlsGroup({ commit, state, dispatch }, { roomId }) {
+// ---- Encrypted group-role control messages ----
+
+/**
+ * Broadcast the current owner/admins of an MLS group to all members as an
+ * encrypted MLS application message (kind 30117). Members decrypt it and apply
+ * it to their local room; it is never shown as a chat message. Called after any
+ * role change (make/remove admin, transfer owner, owner leaves to a successor).
+ */
+export async function broadcastMlsRoomRoles({ commit, state }, { roomId }) {
+  const ws = getWalletState(state)
+  if (!ws.keys.privKeyHex) throw new Error('Nostr keys not available')
+
+  const mlsGroupIdHex = ws.mls.roomMlsMap[roomId]
+  if (!mlsGroupIdHex) throw new Error('Unknown MLS room')
+
+  const { impl } = mls.getMlsCrypto()
+  await ensureMlsOwnerBackfilled(commit, ws, roomId, impl)
+
+  const room = ws.rooms.find(r => r.id === roomId)
+  if (!room) throw new Error('Room not found')
+
+  const meta = {
+    owner: room.owner || null,
+    admins: room.admins || [],
+  }
+  const text = MLS_META_PREFIX + JSON.stringify(meta)
+
+  // Reuse sendMlsMessage so ratchet/persist/retry semantics stay identical.
+  // replyTo defaults undefined; recipientPubKey omitted (broadcast to all).
+  const { message } = await sendMlsMessage({ commit, state }, { roomId, text })
+  // sendMlsMessage surfaces the control message through receiveMlsMessage on
+  // our own relay subscription too; don't add it to the visible timeline here.
+  void message
+}
+
+/**
+ * Apply a role control payload to a room. Shared by receiveMlsMessage (from
+ * the wire) and local role mutations (optimistic apply before broadcasting).
+ */
+function applyRoomRoles(commit, ws, roomId, meta) {
+  if (!roomId || !meta) return
+  if (meta.owner === undefined && meta.admins === undefined) return
+  const room = ws.rooms?.find(r => r.id === roomId)
+  if (!room) return
+  commit('UPDATE_ROOM', {
+    id: roomId,
+    owner: meta.owner !== undefined ? (meta.owner || null) : room.owner,
+    admins: meta.admins !== undefined ? (Array.isArray(meta.admins) ? meta.admins : []) : room.admins,
+  })
+}
+
+/**
+ * Grant or revoke admin rights for a member. Only the owner may change admin
+ * status. After applying locally, the new role set is broadcast to all members
+ * as an encrypted control message.
+ */
+export async function setMlsAdmin({ commit, state }, { roomId, memberPubKey, isAdmin }) {
+  const ws = getWalletState(state)
+  if (!ws.keys.privKeyHex) throw new Error('Nostr keys not available')
+
+  const mlsGroupIdHex = ws.mls.roomMlsMap[roomId]
+  if (!mlsGroupIdHex) throw new Error('Unknown MLS room')
+
+  const { impl } = mls.getMlsCrypto()
+
+  // Backfill owner from the tree for legacy groups created before the field
+  // existed, so the role gate below still resolves the real owner.
+  await ensureMlsOwnerBackfilled(commit, ws, roomId, impl)
+
+  // Only the owner may change admin status.
+  if (myMlsRole(ws, roomId) !== 'owner') {
+    throw new Error('Only the group owner can change admin roles')
+  }
+
+  const room = ws.rooms.find(r => r.id === roomId)
+  if (!room) throw new Error('Room not found')
+  if (!room.members?.includes(memberPubKey)) throw new Error('Member not in group')
+
+  // An admin who is removed is just reverted to a regular member; the owner
+  // can never be listed as an admin.
+  let admins = room.admins || []
+  if (isAdmin) {
+    if (memberPubKey === room.owner) throw new Error('The group owner is already the owner')
+    if (!admins.includes(memberPubKey)) admins = [...admins, memberPubKey]
+  } else {
+    admins = admins.filter(a => a !== memberPubKey)
+  }
+
+  const meta = { owner: room.owner, admins }
+  applyRoomRoles(commit, ws, roomId, meta)
+  await updateRoomOnServer(roomId, meta)
+  await broadcastMlsRoomRoles({ commit, state }, { roomId })
+}
+
+/**
+ * Transfer ownership to another member. Only the current owner may do this;
+ * the recipient must be a current member (any role). The previous owner becomes
+ * a regular member unless they are also an admin. The new role set is broadcast
+ * to all members.
+ */
+export async function transferMlsOwnership({ commit, state }, { roomId, newOwnerPubKey }) {
+  const ws = getWalletState(state)
+  if (!ws.keys.privKeyHex) throw new Error('Nostr keys not available')
+
+  const mlsGroupIdHex = ws.mls.roomMlsMap[roomId]
+  if (!mlsGroupIdHex) throw new Error('Unknown MLS room')
+
+  const { impl } = mls.getMlsCrypto()
+  await ensureMlsOwnerBackfilled(commit, ws, roomId, impl)
+
+  if (myMlsRole(ws, roomId) !== 'owner') {
+    throw new Error('Only the group owner can transfer ownership')
+  }
+
+  const room = ws.rooms.find(r => r.id === roomId)
+  if (!room) throw new Error('Room not found')
+  if (!room.members?.includes(newOwnerPubKey)) throw new Error('New owner must be a group member')
+
+  const oldOwner = room.owner
+  if (oldOwner === newOwnerPubKey) return
+
+  // Previous owner drops to a regular member (unless also an admin); the new
+  // owner is removed from the admin list (they now hold the owner role).
+  const admins = (room.admins || [])
+    .filter(a => a !== newOwnerPubKey)
+    .concat(oldOwner && (room.admins || []).includes(oldOwner) ? [oldOwner] : [])
+
+  const meta = { owner: newOwnerPubKey, admins }
+  applyRoomRoles(commit, ws, roomId, meta)
+  await updateRoomOnServer(roomId, meta)
+  await broadcastMlsRoomRoles({ commit, state }, { roomId })
+}
+
+export async function leaveMlsGroup({ commit, state, dispatch }, { roomId, successorPubKey }) {
   const ws = getWalletState(state)
   if (!ws.keys.privKeyHex) return
 
   const mlsGroupIdHex = ws.mls.roomMlsMap[roomId]
   if (!mlsGroupIdHex) return
 
+  // Backfill the owner for legacy groups so the successor handoff below fires
+  // even when the owner field predates the roles feature.
   const { impl } = mls.getMlsCrypto()
+  await ensureMlsOwnerBackfilled(commit, ws, roomId, impl)
+
+  const room = ws.rooms.find(r => r.id === roomId)
+
+  // If the owner leaves, ownership must transfer to a designated successor
+  // (the UI only offers admins). Broadcast the role change before departing so
+  // the remaining members know who manages the group.
+  if (room?.type === 'mls-group' && room.owner === ws.keys.pubKeyHex) {
+    if (!successorPubKey) {
+      throw new Error('The group owner must choose a successor before leaving')
+    }
+    if (!room.members?.includes(successorPubKey)) {
+      throw new Error('The new owner must be a group member')
+    }
+    const admins = (room.admins || [])
+      .filter(a => a !== successorPubKey)
+      .concat((room.admins || []).includes(ws.keys.pubKeyHex) ? [ws.keys.pubKeyHex] : [])
+    const meta = { owner: successorPubKey, admins }
+    applyRoomRoles(commit, ws, roomId, meta)
+    await updateRoomOnServer(roomId, meta)
+    await broadcastMlsRoomRoles({ commit, state }, { roomId })
+  }
+
   let clientState = await mls.loadMlsState(mlsGroupIdHex, impl, {})
   if (clientState && ws.mls.groupStates[mlsGroupIdHex]) {
     clientState = ws.mls.groupStates[mlsGroupIdHex]
@@ -946,7 +1184,6 @@ export async function leaveMlsGroup({ commit, state, dispatch }, { roomId }) {
   commit('CLEAR_MLS_GROUP_STATE', mlsGroupIdHex)
   commit('REMOVE_MLS_ROOM_MAP', roomId)
 
-  const room = ws.rooms.find(r => r.id === roomId)
   if (room) {
     commit('REMOVE_ROOM', roomId)
   }
