@@ -211,7 +211,7 @@
                     {{ $t('OpenGroup', {}, 'Open Group') }}
                   </div>
                   <div class="chat-type-desc">
-                    {{ $t('OpenGroupDesc', {}, 'New members can join anytime.') }}
+                    {{ $t('OpenGroupDesc', {}, 'New members can be added anytime.') }}
                   </div>
                 </div>
               </div>
@@ -666,7 +666,10 @@ export default {
     showNewChatDialog (val) {
       if (val) {
         this.fetchContactAvatars()
-      } else {
+      } else if (!this.reopenDialogAfterScan) {
+        // Dialog closed for a scan (or a mid-scan reopen pending): keep the
+        // chat-type context and form state so onScannerDecode can restore the
+        // exact dialog it was opened from.
         this.groupName = ''
         this.selectedMemberNpubs = []
         this.newContactName = ''
@@ -1185,10 +1188,11 @@ export default {
     },
     openScannerFromDialog () {
       // Remember the exact dialog context so the scan restores it verbatim
-      // ('dm' | 'private_group' | 'open_private_group').
+      // ('dm' | 'private_group' | 'open_private_group'). Flag the handover
+      // BEFORE closing so the showNewChatDialog watcher doesn't wipe it.
       this.scannerOrigin = this.selectedChatType
-      this.showNewChatDialog = false
       this.reopenDialogAfterScan = true
+      this.showNewChatDialog = false
       this.showQrScanner = true
     },
     onScannerDecode (value) {
