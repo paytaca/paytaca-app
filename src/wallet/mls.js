@@ -20,16 +20,9 @@ import {
 import { ed25519 } from '@noble/curves/ed25519.js'
 import { sha256 } from '@noble/hashes/sha2.js'
 import { hkdf } from '@noble/hashes/hkdf.js'
+import { hexToBytes } from 'src/utils/encoding'
 
 const MLS_DERIVATION_PATH = "m/44'/1237'/0'/0/1"
-
-function hexToBytes(hex) {
-  const bytes = new Uint8Array(hex.length / 2)
-  for (let i = 0; i < hex.length; i += 2) {
-    bytes[i / 2] = parseInt(hex.substring(i, i + 2), 16)
-  }
-  return bytes
-}
 
 /**
  * Derive the deterministic Ed25519 MLS signing keypair from a BIP39 mnemonic.

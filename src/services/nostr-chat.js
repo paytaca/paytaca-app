@@ -6,6 +6,7 @@
 
 import { SimplePool } from 'nostr-tools/pool'
 import { finalizeEvent } from 'nostr-tools'
+import { hexToBytes } from 'src/utils/encoding'
 
 const isDev = process.env.NODE_ENV !== 'production'
 
@@ -43,14 +44,6 @@ const STATUS_MAX_INTERVAL = 60000
 // fires. Without this, the subscription dies and new messages are never
 // detected until the user navigates to a different page and back.
 const RESUB_INTERVAL_MS = 30000
-
-function hexToBytes(hex) {
-  const bytes = new Uint8Array(hex.length / 2)
-  for (let i = 0; i < hex.length; i += 2) {
-    bytes[i / 2] = parseInt(hex.substring(i, i + 2), 16)
-  }
-  return bytes
-}
 
 function getPool() {
   if (!_pool) {

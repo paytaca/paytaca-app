@@ -6,6 +6,7 @@ import * as mls from 'src/services/mls'
 import { leafToNodeIndex } from 'ts-mls/treemath.js'
 import { Store } from 'src/store'
 import { applyFileMarkupToMessage } from 'src/utils/chat-markup'
+import { hexToBytes, bytesToHex } from 'src/utils/encoding'
 import {
   syncRoomToServer,
   updateRoomOnServer,
@@ -64,14 +65,6 @@ async function withMlsProcessingLock(mlsGroupIdHex, fn) {
   const next = prev.then(fn, fn)
   mlsProcessingQueues.set(mlsGroupIdHex, next.catch(() => {}))
   return next
-}
-
-function hexToBytes(hex) {
-  const bytes = new Uint8Array(hex.length / 2)
-  for (let i = 0; i < hex.length; i += 2) {
-    bytes[i / 2] = parseInt(hex.substring(i, i + 2), 16)
-  }
-  return bytes
 }
 
 function getCurrentWalletHash() {
@@ -354,7 +347,6 @@ export async function joinMlsGroup({ commit, state }, { roomId, welcomeEvent }) 
     // Diagnose the failure: compare the welcome's expected KeyPackage refs
     // against the refs of the KeyPackages we can decrypt with. If none match,
     // the welcome was encrypted to an older KeyPackage we no longer control.
-    const bytesToHex = bytes => (bytes != null) ? Array.from(bytes).map(b => b.toString(16).padStart(2, '0')).join('') : ''
     const welcomeRefs = (welcome.secrets || []).map(s => bytesToHex(s.newMember))
     const ourRefs = []
     for (const kp of candidates) {
@@ -847,9 +839,9 @@ export async function addMlsMember({ commit, state }, { roomId, memberPubKey }) 
       const freshKpBytes = decodeKeyPackageContent(freshKpEvents[0].content)
       const freshKpMlsMessage = mls.decodeMlsMsg(freshKpBytes)
       const freshRef = freshKpMlsMessage?.wireformat === 'mls_key_package'
-        ? Buffer.from(await mls.makeKeyPackageRef(freshKpMlsMessage.keyPackage, impl.hash)).toString('hex')
+        ? bytesToHex(await mls.makeKeyPackageRef(freshKpMlsMessage.keyPackage, impl.hash))
         : null
-      const welcomeRefs = (welcome.secrets || []).map(s => Buffer.from(s.newMember).toString('hex'))
+      const welcomeRefs = (welcome.secrets || []).map(s => bytesToHex(s.newMember))
       if (freshRef && !welcomeRefs.includes(freshRef)) {
         throw new Error(
           'The invitee\'s KeyPackage changed while creating the invitation. ' +
@@ -1157,14 +1149,31 @@ export async function leaveMlsGroup({ commit, state, dispatch }, { roomId, succe
   if (clientState) {
     const ownLeaf = mls.getOwnLeafIndex(clientState)
     if (ownLeaf !== -1) {
-      try {
-        const { newState, commit: commitMsg } = await mls.removeMlsMember(clientState, ownLeaf, impl)
-        const commitEvent = mls.buildMlsNostrEvent(commitMsg, 30118, mlsGroupIdHex, roomId, ws.keys.pubKeyHex, mlsMemberPubkeys(clientState))
-        const signedCommit = finalizeEvent(commitEvent, hexToBytes(ws.keys.privKeyHex))
-        await relayService.publishEvent(state.relays, signedCommit)
-        await mls.saveMlsState(mlsGroupIdHex, newState)
-      } catch (err) {
-        console.warn('[MLS] Failed to self-remove:', err.message)
+      // Publish the self-remove commit with retries. Local state must only be
+      // torn down once the commit is on the relay — otherwise other members
+      // still see us in the tree while we have no state to process future
+      // messages, which desyncs permanently.
+      let published = false
+      let lastErr = null
+      for (let attempt = 1; attempt <= 3 && !published; attempt++) {
+        try {
+          const { newState, commit: commitMsg } = await mls.removeMlsMember(clientState, ownLeaf, impl)
+          const commitEvent = mls.buildMlsNostrEvent(commitMsg, 30118, mlsGroupIdHex, roomId, ws.keys.pubKeyHex, mlsMemberPubkeys(clientState))
+          const signedCommit = finalizeEvent(commitEvent, hexToBytes(ws.keys.privKeyHex))
+          const result = await relayService.publishEvent(state.relays, signedCommit)
+          if (!result.accepted.length) throw new Error(result.errors[0]?.reason || 'relay rejected the commit')
+          await mls.saveMlsState(mlsGroupIdHex, newState)
+          published = true
+        } catch (err) {
+          lastErr = err
+          console.warn(`[MLS] Self-remove publish attempt ${attempt}/3 failed:`, err.message)
+        }
+      }
+      if (!published) {
+        throw new Error(
+          `Failed to notify the group that you left (${lastErr?.message || 'publish failed'}). ` +
+          'You are still a member — try leaving again.'
+        )
       }
     }
   }
