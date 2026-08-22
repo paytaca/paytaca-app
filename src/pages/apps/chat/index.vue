@@ -654,12 +654,10 @@ export default {
   watch: {
     showQrScanner (val) {
       if (!val && this.reopenDialogAfterScan) {
+        // Scanner closed without a decode (cancel/back) — restore the dialog
+        // in the exact context it was opened from.
         this.reopenDialogAfterScan = false
-        if (this.scannerOrigin === 'group') {
-          this.selectedChatType = 'private_group'
-        } else {
-          this.selectedChatType = 'dm'
-        }
+        this.selectedChatType = this.scannerOrigin || 'dm'
         this.dialogTab = 'add'
         this.scannerOrigin = null
         this.showNewChatDialog = true
@@ -1186,7 +1184,9 @@ export default {
       })
     },
     openScannerFromDialog () {
-      this.scannerOrigin = this.selectedChatType === 'private_group' ? 'group' : 'dm'
+      // Remember the exact dialog context so the scan restores it verbatim
+      // ('dm' | 'private_group' | 'open_private_group').
+      this.scannerOrigin = this.selectedChatType
       this.showNewChatDialog = false
       this.reopenDialogAfterScan = true
       this.showQrScanner = true
@@ -1201,11 +1201,7 @@ export default {
       }
       this.showQrScanner = false
       this.reopenDialogAfterScan = false
-      if (this.scannerOrigin === 'group') {
-        this.selectedChatType = 'private_group'
-      } else {
-        this.selectedChatType = 'dm'
-      }
+      this.selectedChatType = this.scannerOrigin || 'dm'
       this.dialogTab = 'add'
       this.scannerOrigin = null
       this.showNewChatDialog = true
