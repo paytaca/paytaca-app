@@ -269,9 +269,23 @@
 
             <q-tab-panels v-model="dialogTab" animated>
               <q-tab-panel name="contacts" class="q-px-none">
-                <q-list v-if="contacts.length" separator>
+                <q-input
+                  v-if="contacts.length"
+                  v-model="contactSearch"
+                  :label="$t('SearchContacts', {}, 'Search contacts')"
+                  outlined
+                  dense
+                  rounded
+                  clearable
+                  class="contact-search q-mb-sm"
+                >
+                  <template #prepend>
+                    <q-icon name="search" size="18px" />
+                  </template>
+                </q-input>
+                <q-list v-if="filteredContacts.length" separator class="contact-list">
                   <q-item
-                    v-for="contact in contacts"
+                    v-for="contact in filteredContacts"
                     :key="contact.npub"
                     clickable
                     class="contact-item"
@@ -296,6 +310,10 @@
                     </q-item-section>
                   </q-item>
                 </q-list>
+                <div v-else-if="contactSearch.trim()" class="text-grey text-center q-pa-lg">
+                  <q-icon name="search_off" size="40px" class="q-mb-sm" style="opacity: 0.4;" />
+                  <div>{{ $t('NoMatchingContacts', {}, 'No matching contacts.') }}</div>
+                </div>
                 <div v-else class="text-grey text-center q-pa-lg">
                   <q-icon name="person_off" size="40px" class="q-mb-sm" style="opacity: 0.4;" />
                   <div>{{ $t('NoContactsYet', {}, 'No contacts yet. Add one below.') }}</div>
@@ -374,75 +392,135 @@
 
             <q-tab-panels v-model="dialogTab" animated>
               <q-tab-panel name="members" class="q-px-none">
-                <div class="group-hint q-mb-md">
-                  <q-icon name="lock" size="14px" color="primary" />
-                  <span>
-                    {{ selectedChatType === 'open_private_group'
-                      ? $t('OpenPrivateGroupHint', {}, 'End-to-end encrypted. Members can join anytime. Groups are limited to 50 members.')
-                      : $t('PrivateGroupHint', {}, 'End-to-end encrypted. Members are fixed once created.') }}
-                  </span>
-                </div>
-                <q-input
-                  v-model="groupName"
-                  :label="$t('GroupName', {}, 'Group name')"
-                  outlined
-                  dense
-                  rounded
-                  maxlength="100"
-                  class="q-mb-sm"
-                  autofocus
-                />
-                <div class="group-members-label q-mb-xs">
-                  {{ $t('SelectMembersWithLimit', { count: selectedMemberNpubs.length, max: 9 }, `Select members (${selectedMemberNpubs.length}/9)`) }}
-                </div>
-                <div class="group-min-hint" :class="{ 'group-min-hint--unmet': !hasMinGroupMembers }">
-                  <q-icon :name="hasMinGroupMembers ? 'check_circle' : 'error_outline'" size="14px" />
-                  <span>
-                    {{ hasMinGroupMembers
-                      ? $t('MinMembersMet', {}, 'Minimum group size met')
-                      : $t('MinMembersRequired', {}, 'A group needs at least 3 members including you — select 2 or more contacts.') }}
-                  </span>
-                </div>
-                <q-list v-if="contacts.length" separator class="group-members-list">
-                  <q-item
-                    v-for="contact in contacts"
-                    :key="contact.npub"
-                    clickable
-                    class="group-member-item"
-                    @click="toggleMember(contact.npub)"
+                <!-- Step 1: pick members -->
+                <template v-if="groupStep === 1">
+                  <div class="group-hint q-mb-md">
+                    <q-icon name="lock" size="14px" color="primary" />
+                    <span>
+                      {{ selectedChatType === 'open_private_group'
+                        ? $t('OpenPrivateGroupHint', { max: groupMaxMembers }, 'End-to-end encrypted. Members can join anytime. Groups can have up to {max} members.')
+                        : $t('PrivateGroupHint', { max: groupMaxMembers }, 'End-to-end encrypted. Members are fixed once created (up to {max} members).') }}
+                    </span>
+                  </div>
+                  <div class="group-members-label q-mb-xs">
+                    {{ $t('SelectMembersWithLimit', { count: selectedMemberNpubs.length }, `Selected ${selectedMemberNpubs.length} members`) }}
+                  </div>
+                  <div class="group-min-hint" :class="{ 'group-min-hint--unmet': !hasMinGroupMembers }">
+                    <q-icon :name="hasMinGroupMembers ? 'check_circle' : 'error_outline'" size="14px" />
+                    <span>
+                      {{ hasMinGroupMembers
+                        ? $t('MinMembersMet', {}, 'Minimum group size met')
+                        : $t('MinMembersRequired', {}, 'A group needs at least 3 members including you — select 2 or more contacts.') }}
+                    </span>
+                  </div>
+                  <q-input
+                    v-if="contacts.length"
+                    v-model="contactSearch"
+                    :label="$t('SearchContacts', {}, 'Search contacts')"
+                    outlined
+                    dense
+                    rounded
+                    clearable
+                    class="contact-search q-mb-sm"
                   >
-                    <q-item-section avatar>
-                      <q-checkbox
-                        :model-value="selectedMemberNpubs.includes(contact.npub)"
-                        @click.stop
-                        @update:model-value="toggleMember(contact.npub)"
-                      />
-                    </q-item-section>
-                    <q-item-section avatar>
-                      <q-avatar color="primary" text-color="white" size="36px">
-                        <img v-if="contactAvatars[contact.npub]" :src="contactAvatars[contact.npub]" />
-                        <template v-else>{{ contactInitial(contact) }}</template>
-                      </q-avatar>
-                    </q-item-section>
-                    <q-item-section>
-                      <q-item-label class="text-weight-medium">{{ contact.name }}</q-item-label>
-                      <q-item-label caption class="npub-caption">{{ contact.npub.slice(0, 18) }}...</q-item-label>
-                    </q-item-section>
-                  </q-item>
-                </q-list>
-                <div v-else class="text-grey text-center q-pa-md">
-                  <q-icon name="person_off" size="32px" class="q-mb-sm" style="opacity: 0.4;" />
-                  <div>{{ $t('NoContactsToAdd', {}, 'No contacts to add. Use the Add Contact tab.') }}</div>
-                </div>
-                <q-btn
-                  :label="$t('CreateGroup', {}, 'Create Group')"
-                  color="primary"
-                  rounded
-                  unelevated
-                  class="full-width q-mt-sm"
-                  :disable="!canCreateGroup"
-                  @click="createGroup"
-                />
+                    <template #prepend>
+                      <q-icon name="search" size="18px" />
+                    </template>
+                  </q-input>
+                  <q-list v-if="filteredContacts.length" separator class="group-members-list">
+                    <q-item
+                      v-for="contact in filteredContacts"
+                      :key="contact.npub"
+                      clickable
+                      class="group-member-item"
+                      @click="toggleMember(contact.npub)"
+                    >
+                      <q-item-section avatar>
+                        <q-checkbox
+                          :model-value="selectedMemberNpubs.includes(contact.npub)"
+                          @click.stop
+                          @update:model-value="toggleMember(contact.npub)"
+                        />
+                      </q-item-section>
+                      <q-item-section avatar>
+                        <q-avatar color="primary" text-color="white" size="36px">
+                          <img v-if="contactAvatars[contact.npub]" :src="contactAvatars[contact.npub]" />
+                          <template v-else>{{ contactInitial(contact) }}</template>
+                        </q-avatar>
+                      </q-item-section>
+                      <q-item-section>
+                        <q-item-label class="text-weight-medium">{{ contact.name }}</q-item-label>
+                        <q-item-label caption class="npub-caption">{{ contact.npub.slice(0, 18) }}...</q-item-label>
+                      </q-item-section>
+                    </q-item>
+                  </q-list>
+                  <div v-else-if="contacts.length && contactSearch.trim()" class="text-grey text-center q-pa-md">
+                    <q-icon name="search_off" size="32px" class="q-mb-sm" style="opacity: 0.4;" />
+                    <div>{{ $t('NoMatchingContacts', {}, 'No matching contacts.') }}</div>
+                  </div>
+                  <div v-else class="text-grey text-center q-pa-md">
+                    <q-icon name="person_off" size="32px" class="q-mb-sm" style="opacity: 0.4;" />
+                    <div>{{ $t('NoContactsToAdd', {}, 'No contacts to add. Use the Add Contact tab.') }}</div>
+                  </div>
+                  <q-btn
+                    :label="$t('Proceed', {}, 'Proceed')"
+                    color="primary"
+                    rounded
+                    unelevated
+                    class="full-width q-mt-sm"
+                    :disable="!hasMinGroupMembers"
+                    @click="proceedWithMembers"
+                  />
+                </template>
+
+                <!-- Step 2: name the group and review members -->
+                <template v-else>
+                  <q-input
+                    ref="groupNameInput"
+                    v-model="groupName"
+                    :label="$t('GroupName', {}, 'Group name')"
+                    outlined
+                    dense
+                    rounded
+                    maxlength="100"
+                    class="q-mb-sm"
+                    autofocus
+                    :error="!!groupName && groupName.trim().length > 0 && groupName.trim().length < 4"
+                    :error-message="$t('GroupNameMinChars', {}, 'Group name must be at least 4 characters.')"
+                  />
+                  <div class="group-members-label q-mb-xs">
+                    {{ $t('GroupMembersCount', { count: groupSelectedMembers.length }, `Members (${groupSelectedMembers.length})`) }}
+                  </div>
+                  <q-list separator class="group-members-list group-review-list">
+                    <q-item v-for="member in groupSelectedMembers" :key="member.isMe ? 'me' : member.npub" class="group-member-item">
+                      <q-item-section avatar>
+                        <q-avatar color="primary" text-color="white" size="36px">
+                          <img v-if="!member.isMe && contactAvatars[member.npub]" :src="contactAvatars[member.npub]" />
+                          <template v-else>
+                            <q-icon v-if="member.isMe" name="person" size="20px" />
+                            <template v-else>{{ member.name.charAt(0).toUpperCase() }}</template>
+                          </template>
+                        </q-avatar>
+                      </q-item-section>
+                      <q-item-section>
+                        <q-item-label class="text-weight-medium">
+                          {{ member.name }}
+                          <span v-if="member.isMe" class="group-me-tag">{{ $t('You', {}, 'You') }}</span>
+                        </q-item-label>
+                        <q-item-label caption class="npub-caption">{{ member.npub.slice(0, 18) }}...</q-item-label>
+                      </q-item-section>
+                    </q-item>
+                  </q-list>
+                  <q-btn
+                    :label="$t('CreateGroup', {}, 'Create Group')"
+                    color="primary"
+                    rounded
+                    unelevated
+                    class="full-width q-mt-sm"
+                    :disable="!canCreateGroup"
+                    @click="createGroup"
+                  />
+                </template>
               </q-tab-panel>
 
               <q-tab-panel name="add" class="q-px-none">
@@ -538,6 +616,8 @@ export default {
       npubError: '',
       groupName: '',
       selectedMemberNpubs: [],
+      groupStep: 1,
+      contactSearch: '',
       fetchedContactDisplayName: null,
       fetchedContactAvatar: null,
       contactAvatars: {},
@@ -577,6 +657,14 @@ export default {
         } catch { return true }
       })
     },
+    filteredContacts () {
+      const q = this.contactSearch.trim().toLowerCase()
+      if (!q) return this.contacts
+      return this.contacts.filter(c => {
+        return (c.name || '').toLowerCase().includes(q) ||
+          c.npub.toLowerCase().includes(q)
+      })
+    },
     showActiveStatus () {
       return this.$store.getters['nostrChat/getShowActiveStatus']
     },
@@ -602,8 +690,44 @@ export default {
     hasMinGroupMembers () {
       return this.selectedMemberNpubs.length >= 2
     },
+    // Max group size including the creator: closed groups cap at 10,
+    // open groups at 100.
+    groupMaxMembers () {
+      return this.selectedChatType === 'private_group' ? 10 : 100
+    },
+    // Max selectable contacts (creator is the extra member).
+    groupMaxContacts () {
+      return this.groupMaxMembers - 1
+    },
     canCreateGroup () {
-      return this.groupName.trim() && this.hasMinGroupMembers && this.selectedMemberNpubs.length <= 9
+      return this.groupName.trim().length >= 4 && this.hasMinGroupMembers && this.selectedMemberNpubs.length <= this.groupMaxContacts
+    },
+    // Step-2 review list: the creator plus the selected contacts.
+    groupSelectedMembers () {
+      const list = []
+      const myPubKey = this.$store.getters['nostrChat/myPubKey']
+      const profile = this.$store.getters['nostrChat/getProfile']
+      if (myPubKey) {
+        let myNpub = ''
+        try { myNpub = npubEncode(myPubKey) } catch { myNpub = myPubKey }
+        list.push({
+          isMe: true,
+          pubKeyHex: myPubKey,
+          name: profile?.displayName?.trim() || myNpub.slice(0, 12) + '...' + myNpub.slice(-8),
+          npub: myNpub,
+        })
+      }
+      for (const npub of this.selectedMemberNpubs) {
+        const contact = this.$store.getters['nostrChat/getContactByNpub'](npub)
+        if (!contact) continue
+        list.push({
+          isMe: false,
+          pubKeyHex: contact.pubKeyHex || null,
+          name: contact.name || npub.slice(0, 12) + '...' + npub.slice(-8),
+          npub,
+        })
+      }
+      return list
     },
     activeUnreadCount () {
       return this.totalUnreadFor(this.rooms)
@@ -672,6 +796,8 @@ export default {
         // exact dialog it was opened from.
         this.groupName = ''
         this.selectedMemberNpubs = []
+        this.groupStep = 1
+        this.contactSearch = ''
         this.newContactName = ''
         this.newContactNpub = ''
         this.npubError = ''
@@ -832,6 +958,7 @@ export default {
       if (type === 'dm') {
         this.dialogTab = this.contacts.length ? 'contacts' : 'add'
       } else if (type === 'private_group' || type === 'open_private_group') {
+        this.groupStep = 1
         this.dialogTab = 'members'
       }
     },
@@ -841,7 +968,23 @@ export default {
       this.selectChatType(this.selectedGroupType)
     },
     handleDialogBack () {
+      if (this.groupStep === 2) {
+        this.groupStep = 1
+        return
+      }
       this.selectedChatType = null
+    },
+    proceedWithMembers () {
+      if (!this.hasMinGroupMembers) return
+      this.groupStep = 2
+      // Focus the group name input so the keyboard comes up on mobile.
+      // autofocus is unreliable inside animated tab panels, so focus explicitly.
+      this.$nextTick(() => {
+        const input = this.$refs.groupNameInput
+        if (input) {
+          input.focus()
+        }
+      })
     },
     async addContactForGroup () {
       try {
@@ -850,7 +993,7 @@ export default {
           name: this.newContactName.trim(),
           npub,
         })
-        if (!this.selectedMemberNpubs.includes(npub) && this.selectedMemberNpubs.length < 9) {
+        if (!this.selectedMemberNpubs.includes(npub) && this.selectedMemberNpubs.length < this.groupMaxContacts) {
           this.selectedMemberNpubs.push(npub)
         }
         this.newContactName = ''
@@ -858,6 +1001,7 @@ export default {
         this.npubError = ''
         this.fetchedContactDisplayName = null
         this.fetchedContactAvatar = null
+        this.groupStep = 1
         this.dialogTab = 'members'
       } catch (err) {
         this.npubError = err.message
@@ -1236,7 +1380,7 @@ export default {
       const idx = this.selectedMemberNpubs.indexOf(npub)
       if (idx >= 0) {
         this.selectedMemberNpubs.splice(idx, 1)
-      } else {
+      } else if (this.selectedMemberNpubs.length < this.groupMaxContacts) {
         this.selectedMemberNpubs.push(npub)
       }
     },
@@ -1738,6 +1882,27 @@ export default {
 .npub-caption {
   font-family: 'Courier New', monospace;
   font-size: 12px;
+}
+
+/* Scrollable contact lists in the New Chat dialog */
+.contact-list,
+.group-members-list {
+  max-height: min(50vh, 420px);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+
+.group-review-list {
+  max-height: min(40vh, 320px);
+}
+
+.group-me-tag {
+  font-size: 10px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+  color: var(--q-primary);
+  margin-left: 4px;
 }
 
 /* Header right slot - remove fixed width so action icons display in a row */

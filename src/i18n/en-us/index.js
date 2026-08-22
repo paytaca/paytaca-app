@@ -2568,7 +2568,7 @@ export default {
   SelectLiquidityPool: "Select liquidity pool",
   SelectLocation: "Select Location",
   SelectMembers: "Select members",
-  SelectMembersWithLimit: "Select up to {count} members",
+  SelectMembersWithLimit: "Selected {count} members",
   SelectMethods: "Select methods",
   SelectNft: "Select NFT",
   SelectOnlyUpTo5methods: "Select only up to 5 methods",
