@@ -208,6 +208,14 @@ module.exports = defineConfig((ctx) => {
         cfg.experiments = {
           topLevelAwait: true
         }
+
+        cfg.plugins = cfg.plugins || []
+        cfg.plugins.push(new (require('webpack').IgnorePlugin)({
+          resourceRegExp: /^@hpke\/(chacha20poly1305|dhkem-x448|ml-kem|hybridkem-x-wing)$/,
+        }))
+        cfg.plugins.push(new (require('webpack').IgnorePlugin)({
+          resourceRegExp: /^@noble\/post-quantum/,
+        }))
         // throw new Error(`MODE: ${cfg.mode}`)
 
         if (ctx?.mode?.bex) {

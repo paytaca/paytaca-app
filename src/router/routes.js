@@ -520,7 +520,7 @@ const routes = [
           {
             path: ':roomId',
             name: 'app-chat-conversation',
-            props: true,
+            props: route => ({ roomId: route.params.roomId, ...route.query }),
             component: () => import('src/pages/apps/chat/conversation.vue')
           }
         ]
