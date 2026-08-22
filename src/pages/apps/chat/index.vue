@@ -171,39 +171,82 @@
             <div
               class="chat-type-option"
               :class="getDarkModeClass(darkMode)"
-              @click="selectChatType('private_group')"
+              @click="groupTypeExpanded = !groupTypeExpanded"
             >
               <q-avatar size="44px" class="chat-type-icon group-icon">
                 <q-icon name="groups" size="24px" color="white" />
               </q-avatar>
               <div class="chat-type-text">
                 <div class="chat-type-title" :class="getDarkModeClass(darkMode)">
-                  {{ $t('ClosedPrivateGroup', {}, 'Closed Private Group') }}
+                  {{ $t('GroupChat', {}, 'Group Chat') }}
                 </div>
                 <div class="chat-type-desc">
-                  {{ $t('ClosedPrivateGroupDesc', {}, 'End-to-end encrypted group chat for up to 10 members. Members are fixed once created.') }}
+                  {{ $t('GroupChatDesc', {}, 'Create an end-to-end encrypted group chat.') }}
                 </div>
               </div>
-              <q-icon name="chevron_right" size="20px" class="chat-type-chevron" />
+              <q-icon
+                :name="groupTypeExpanded ? 'expand_less' : 'expand_more'"
+                size="20px"
+                class="chat-type-chevron"
+              />
             </div>
 
-            <div
-              class="chat-type-option"
-              :class="getDarkModeClass(darkMode)"
-              @click="selectChatType('open_private_group')"
-            >
-              <q-avatar size="44px" class="chat-type-icon public-group-icon">
-                <q-icon name="groups" size="24px" color="white" />
-              </q-avatar>
-              <div class="chat-type-text">
-                <div class="chat-type-title" :class="getDarkModeClass(darkMode)">
-                  {{ $t('OpenPrivateGroup', {}, 'Open Private Group') }}
-                </div>
-                <div class="chat-type-desc">
-                  {{ $t('OpenPrivateGroupDesc', {}, 'End-to-end encrypted group chat. New members can join anytime.') }}
+            <!-- Group type picker: revealed when Group Chat is clicked -->
+            <div v-if="groupTypeExpanded" class="group-type-sublist" :class="getDarkModeClass(darkMode)">
+              <div
+                class="group-type-row"
+                @click="selectedGroupType = 'open_private_group'"
+              >
+                <q-radio
+                  v-model="selectedGroupType"
+                  val="open_private_group"
+                  dense
+                  class="group-type-radio"
+                />
+                <q-avatar size="36px" class="chat-type-icon public-group-icon">
+                  <q-icon name="public" size="20px" color="white" />
+                </q-avatar>
+                <div class="chat-type-text">
+                  <div class="chat-type-title group-type-title" :class="getDarkModeClass(darkMode)">
+                    {{ $t('OpenGroup', {}, 'Open Group') }}
+                  </div>
+                  <div class="chat-type-desc">
+                    {{ $t('OpenGroupDesc', {}, 'New members can join anytime.') }}
+                  </div>
                 </div>
               </div>
-              <q-icon name="chevron_right" size="20px" class="chat-type-chevron" />
+
+              <div
+                class="group-type-row"
+                @click="selectedGroupType = 'private_group'"
+              >
+                <q-radio
+                  v-model="selectedGroupType"
+                  val="private_group"
+                  dense
+                  class="group-type-radio"
+                />
+                <q-avatar size="36px" class="chat-type-icon group-icon">
+                  <q-icon name="lock" size="20px" color="white" />
+                </q-avatar>
+                <div class="chat-type-text">
+                  <div class="chat-type-title group-type-title" :class="getDarkModeClass(darkMode)">
+                    {{ $t('ClosedGroup', {}, 'Closed Group') }}
+                  </div>
+                  <div class="chat-type-desc">
+                    {{ $t('ClosedGroupDesc', {}, 'Members are fixed once created (up to 10).') }}
+                  </div>
+                </div>
+              </div>
+
+              <q-btn
+                :label="$t('Proceed', {}, 'Proceed')"
+                color="primary"
+                rounded
+                unelevated
+                class="full-width q-mt-sm"
+                @click="proceedWithGroupType"
+              />
             </div>
           </div>
 
@@ -476,6 +519,8 @@ export default {
       reopenDialogAfterScan: false,
       scannerOrigin: null,
       selectedChatType: null,
+      groupTypeExpanded: false,
+      selectedGroupType: 'open_private_group',
       dialogTab: 'contacts',
       newContactName: '',
       newContactNpub: '',
@@ -617,6 +662,8 @@ export default {
         this.fetchedContactDisplayName = null
         this.fetchedContactAvatar = null
         this.selectedChatType = null
+        this.groupTypeExpanded = false
+        this.selectedGroupType = 'open_private_group'
         this.dialogTab = 'contacts'
         this.scannerOrigin = null
       }
@@ -771,6 +818,11 @@ export default {
       } else if (type === 'private_group' || type === 'open_private_group') {
         this.dialogTab = 'members'
       }
+    },
+    proceedWithGroupType () {
+      if (!this.selectedGroupType) return
+      this.groupTypeExpanded = false
+      this.selectChatType(this.selectedGroupType)
     },
     handleDialogBack () {
       this.selectedChatType = null
@@ -1453,6 +1505,41 @@ export default {
   padding: 4px 0 8px;
 }
 
+.group-type-sublist {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: -4px;
+  margin-left: 12px;
+  padding: 10px;
+  border-radius: 12px;
+  border-left: 3px solid rgba(59, 130, 246, 0.4);
+  background: rgba(0, 0, 0, 0.02);
+}
+
+.group-type-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px;
+  border-radius: 10px;
+  cursor: pointer;
+  transition: background-color 0.15s ease;
+}
+
+.group-type-row:hover {
+  background: rgba(59, 130, 246, 0.06);
+}
+
+.group-type-radio {
+  flex-shrink: 0;
+  align-self: center;
+}
+
+.group-type-title {
+  font-size: 14px;
+}
+
 .chat-type-option {
   display: flex;
   align-items: center;
@@ -1709,6 +1796,14 @@ export default {
 
 .dark .chat-type-chevron {
   color: #64748b;
+}
+
+.dark .group-type-sublist {
+  background: rgba(255, 255, 255, 0.04);
+}
+
+.dark .group-type-row:hover {
+  background: rgba(59, 130, 246, 0.12);
 }
 
 .dark .coming-soon-badge {
