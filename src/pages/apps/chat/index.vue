@@ -683,9 +683,11 @@ export default {
       return this.selectedMemberNpubs.length >= 2
     },
     // Max group size including the creator: closed groups cap at 10,
-    // open groups at 100.
+    // MLS open-private groups at 50, everything else at 100.
     groupMaxMembers () {
-      return this.selectedChatType === 'private_group' ? 10 : 100
+      if (this.selectedChatType === 'private_group') return 10
+      if (this.selectedChatType === 'open_private_group') return 50
+      return 100
     },
     // Max selectable contacts (creator is the extra member).
     groupMaxContacts () {
