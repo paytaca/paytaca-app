@@ -1684,7 +1684,8 @@ export default {
       this.hasTextSelection = false
       this.selectedText = ''
       this.selectedMessageId = null
-      window.getSelection()?.removeAllRanges()
+      const sel = window.getSelection()
+      if (sel && !sel.isCollapsed && sel.rangeCount > 0) sel.removeAllRanges()
     },
     onMessagesClick (e) {
       this.onRootClick(e)
