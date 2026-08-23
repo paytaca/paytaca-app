@@ -48,6 +48,32 @@ function requireMlsManager(ws, roomId) {
 
 const mlsProcessingQueues = new Map()
 
+// Event ids we recently sent ourselves, mapped to the timestamp they were
+// published at. Used to ignore our own relay echo even when the caller hasn't
+// committed the message to the timeline yet (see receiveMlsMessage).
+const recentlySentEventIds = new Map()
+const RECENTLY_SENT_MAX_AGE_MS = 30000
+
+function markRecentlySent(eventId) {
+  recentlySentEventIds.set(eventId, Date.now())
+  if (recentlySentEventIds.size > 200) {
+    const now = Date.now()
+    for (const [id, ts] of recentlySentEventIds) {
+      if (now - ts > RECENTLY_SENT_MAX_AGE_MS) recentlySentEventIds.delete(id)
+    }
+  }
+}
+
+function isRecentlySent(eventId) {
+  const ts = recentlySentEventIds.get(eventId)
+  if (ts == null) return false
+  if (Date.now() - ts > RECENTLY_SENT_MAX_AGE_MS) {
+    recentlySentEventIds.delete(eventId)
+    return false
+  }
+  return true
+}
+
 // Diagnostic helper: own-leaf application ratchet generation (the generation
 // the next message we send for this group will use). If this does not advance
 // across sends, the stored group state is not being persisted/reloaded.
@@ -151,7 +177,14 @@ export async function initMls({ commit, state, dispatch }) {
 
   const unsignedEvent = mls.buildMlsKeyPackageEvent(publicPackage, nostrPubkeyHex)
   const signedEvent = finalizeEvent(unsignedEvent, hexToBytes(ws.keys.privKeyHex))
-  await relayService.publishEvent(state.relays, signedEvent)
+  const kpPublish = await relayService.publishEvent(state.relays, signedEvent)
+  if (!kpPublish.accepted.length) {
+    // Without a KeyPackage on the relay nobody can invite us; don't mark MLS
+    // as ready or the invite flow will fail with a confusing "no KeyPackage".
+    const reason = kpPublish.errors[0]?.reason || 'relay rejected the KeyPackage'
+    console.warn('[MLS] KeyPackage publish rejected:', JSON.stringify(kpPublish.errors))
+    throw new Error(`Failed to publish MLS KeyPackage: ${reason}`)
+  }
 
   commit('PUSH_MLS_KP_HISTORY', { content: signedEvent.content, publishedAt: signedEvent.created_at })
 
@@ -295,7 +328,8 @@ export async function joinMlsGroup({ commit, state }, { roomId, welcomeEvent }) 
   // the ref and making the welcome undecryptable.
   const kpEvents = await relayService.fetchMlsKeyPackage(state.relays, nostrPubkeyHex)
 
-  const { bytes: welcomeBytes } = decodeMlsEventContent(welcomeEvent.content)
+  const { kind: welcomeKind, bytes: welcomeBytes } = decodeMlsEventContent(welcomeEvent.content)
+  if (welcomeKind !== 30119 || !welcomeBytes) throw new Error('Invalid welcome event')
   const welcome = mls.decodeWelcomeFromBytes(welcomeBytes)
 
   // Build candidate public packages:
@@ -519,6 +553,7 @@ export async function sendMlsMessage({ commit, state }, { roomId, text, replyTo,
       const { accepted, errors } = await relayService.publishEvent(state.relays, signedEvent)
       if (accepted.length) {
         createdAt = unsignedEvent.created_at
+        markRecentlySent(signedEvent.id)
         break
       }
 
@@ -564,17 +599,17 @@ export async function receiveMlsMessage({ commit, state, dispatch }, event) {
   const { kind, bytes: contentBytes } = decodeMlsEventContent(event.content)
   if (!kind) return // No non-MLS 30078 events (e.g. KeyPackage events)
 
-  // Don't skip our own application messages — MLS events are encrypted to the
-  // group, so another device sharing this wallet/keys needs them to keep its
-  // chat history and epoch in sync. Commits and welcomes we authored are
-  // already reflected in local state, so those are still skipped.
-  if (event.pubkey === ws.keys.pubKeyHex && kind !== 30117) return
-
-  // Same-device echo: sendMlsMessage already added this event to the timeline
-  // (message id === event id) and advanced the ratchet, so re-processing it
-  // here would only risk a decrypt error. Other devices don't have it and do
-  // need to process it.
-  if (event.pubkey === ws.keys.pubKeyHex) {
+  // MLS events are encrypted to the whole group, so events authored by this
+  // wallet (this device or a sibling device sharing its keys) still need to be
+  // processed here to keep every device's chat history and epoch in sync.
+  // The only exceptions:
+  //  - events this device itself published this session (message or commit)
+  //    are already reflected in its local state, and
+  //  - application messages already added to the timeline by the send path.
+  if (event.pubkey === ws.keys.pubKeyHex && isRecentlySent(event.id)) return
+  // Own application message already added to the timeline by the send path
+  // (message id === event id); dedupe here in case the echo arrived first.
+  if (event.pubkey === ws.keys.pubKeyHex && kind === 30117) {
     const rTag = event.tags?.find(t => t[0] === 'r')
     const ownRoomId = rTag?.[1]
     const alreadyAdded = ownRoomId && (ws.messages[ownRoomId] || []).some(m => m.id === event.id)
@@ -795,11 +830,11 @@ export async function addMlsMember({ commit, state }, { roomId, memberPubKey }) 
   const { impl } = mls.getMlsCrypto()
 
   return withMlsProcessingLock(mlsGroupIdHex, async () => {
-  let clientState = await mls.loadMlsState(mlsGroupIdHex, impl, {})
-  if (!clientState && ws.mls.groupStates[mlsGroupIdHex]) {
-    clientState = ws.mls.groupStates[mlsGroupIdHex]
-  }
-  if (!clientState) throw new Error('MLS group state not found')
+    let clientState = await mls.loadMlsState(mlsGroupIdHex, impl, {})
+    if (!clientState && ws.mls.groupStates[mlsGroupIdHex]) {
+      clientState = ws.mls.groupStates[mlsGroupIdHex]
+    }
+    if (!clientState) throw new Error('MLS group state not found')
 
   backfillMlsOwner(commit, ws, roomId, clientState)
 
@@ -874,6 +909,7 @@ export async function addMlsMember({ commit, state }, { roomId, memberPubKey }) 
     console.warn('[MLS] Commit publish rejected:', JSON.stringify(commitPublish.errors))
     throw new Error(`MLS commit was rejected by the relay: ${reason}`)
   }
+  markRecentlySent(signedCommit.id)
 
   if (welcome) {
     const welcomeMlsMsg = { version: 'mls10', wireformat: 'mls_welcome', welcome }
@@ -889,12 +925,43 @@ export async function addMlsMember({ commit, state }, { roomId, memberPubKey }) 
     for (const admin of (room?.admins || [])) {
       welcomeUnsigned.tags.push(['admin', admin])
     }
+
+    // The commit is already on the relay at this point, so the group epoch
+    // has advanced for everyone. The welcome MUST reach the invitee — retry
+    // the publish before giving up. On total failure we still save the new
+    // state below so this device's epoch matches the relay (own commits are
+    // not re-processed on receive); otherwise every later message would fail
+    // with an epoch mismatch.
     const signedWelcome = finalizeEvent(welcomeUnsigned, hexToBytes(ws.keys.privKeyHex))
-    const welcomePublish = await relayService.publishEvent(state.relays, signedWelcome)
-    if (!welcomePublish.accepted.length) {
-      const reason = welcomePublish.errors[0]?.reason || 'relay rejected the welcome'
-      console.warn('[MLS] Welcome publish rejected:', JSON.stringify(welcomePublish.errors))
-      throw new Error(`MLS welcome was rejected by the relay: ${reason}`)
+    let welcomePublished = false
+    let welcomeLastErr = null
+    for (let attempt = 1; attempt <= 3 && !welcomePublished; attempt++) {
+      try {
+        const welcomePublish = await relayService.publishEvent(state.relays, signedWelcome)
+        if (!welcomePublish.accepted.length) {
+          throw new Error(welcomePublish.errors[0]?.reason || 'relay rejected the welcome')
+        }
+        welcomePublished = true
+      } catch (err) {
+        welcomeLastErr = err
+        console.warn(`[MLS] Welcome publish attempt ${attempt}/3 failed:`, err.message)
+        if (attempt < 3) await new Promise(resolve => setTimeout(resolve, 1000 * attempt))
+      }
+    }
+    if (!welcomePublished) {
+      console.warn('[MLS] Welcome rejected after 3 attempts:', JSON.stringify(welcomeLastErr?.message))
+      await mls.saveMlsState(mlsGroupIdHex, newState)
+      commit('SET_MLS_GROUP_STATE', { mlsGroupIdHex, clientState: newState })
+      const failureRoom = ws.rooms.find(r => r.id === roomId)
+      if (failureRoom && !failureRoom.members.includes(memberPubKey)) {
+        const updatedMembers = [...failureRoom.members, memberPubKey]
+        commit('UPDATE_ROOM', { id: roomId, members: updatedMembers })
+        await updateRoomOnServer(roomId, { members: updatedMembers })
+      }
+      throw new Error(
+        `The member was added but their invitation could not be published (${welcomeLastErr?.message || 'relay rejected the welcome'}). ` +
+        'Try removing and re-adding them.'
+      )
     }
   }
 
@@ -988,6 +1055,7 @@ export async function removeMlsMember({ commit, state }, { roomId, memberPubkey 
       console.warn('[MLS] Remove-member commit rejected:', JSON.stringify(publish.errors))
       throw new Error(`MLS removal was rejected by the relay: ${reason}`)
     }
+    markRecentlySent(signedCommit.id)
 
     await mls.saveMlsState(mlsGroupIdHex, newState)
     commit('SET_MLS_GROUP_STATE', { mlsGroupIdHex, clientState: newState })
@@ -1161,6 +1229,12 @@ export async function leaveMlsGroup({ commit, state, dispatch }, { roomId, succe
       if (!room.members?.includes(successorPubKey)) {
         throw new Error('The new owner must be a group member')
       }
+      // Only admins are eligible successors (the UI only offers admins; keep
+      // the store action consistent so a crafted call can't promote a regular
+      // member to owner).
+      if (!(room.admins || []).includes(successorPubKey)) {
+        throw new Error('The new owner must be an admin')
+      }
       const admins = (room.admins || [])
         .filter(a => a !== successorPubKey)
         .concat((room.admins || []).includes(ws.keys.pubKeyHex) ? [ws.keys.pubKeyHex] : [])
@@ -1212,6 +1286,7 @@ export async function leaveMlsGroup({ commit, state, dispatch }, { roomId, succe
           const signedCommit = finalizeEvent(commitEvent, hexToBytes(ws.keys.privKeyHex))
           const result = await relayService.publishEvent(state.relays, signedCommit)
           if (!result.accepted.length) throw new Error(result.errors[0]?.reason || 'relay rejected the commit')
+          markRecentlySent(signedCommit.id)
           await mls.saveMlsState(mlsGroupIdHex, newState)
           published = true
         } catch (err) {
