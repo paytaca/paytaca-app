@@ -693,11 +693,27 @@ export async function receiveMlsMessage({ commit, state, dispatch }, event) {
         const roomId = rTag ? rTag[1] : null
 
         // Encrypted group-role control message (owner/admins metadata). Apply
-        // it to the room locally and don't surface it as a chat message.
+        // it to the room locally and don't surface it as a chat message. Only
+        // the CURRENT owner may change roles — any member can encrypt to the
+        // group, so without this check a member could craft a control message
+        // promoting themselves to admin or transferring ownership to themselves.
         if (typeof result.plaintext === 'string' && result.plaintext.startsWith(MLS_META_PREFIX)) {
           try {
             const meta = JSON.parse(result.plaintext.slice(MLS_META_PREFIX.length))
             if (roomId && meta && (meta.owner !== undefined || meta.admins !== undefined)) {
+              // Backfill the owner from the tree for legacy groups that predate
+              // the field, so the authorization check still resolves.
+              backfillMlsOwner(commit, ws, roomId, clientState)
+              const currentRoom = ws.rooms?.find(r => r.id === roomId)
+              const currentOwner = currentRoom?.owner
+              if (!currentOwner || event.pubkey !== currentOwner) {
+                console.warn(
+                  '[MLS] Ignoring role control message from non-owner', event.pubkey.slice(0, 8),
+                  'for room', roomId.slice(0, 8),
+                  '(owner:', currentOwner ? currentOwner.slice(0, 8) : 'unknown', ')',
+                )
+                return
+              }
               applyRoomRoles(commit, ws, roomId, meta)
               await updateRoomOnServer(roomId, {
                 owner: meta.owner !== undefined ? meta.owner : null,
