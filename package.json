@@ -20,8 +20,8 @@
   "dependencies": {
     "@asoltys/bip38": "^4.0.3",
     "@bitauth/libauth": "2.0.0-alpha.8",
-    "@capacitor-community/barcode-scanner": "^4.0.1",
     "@capacitor-community/native-audio": "^5.0.1",
+    "@capacitor-mlkit/barcode-scanning": "^5.3.0",
     "@capacitor/app": "^5.0.0",
     "@capacitor/browser": "^5.0.0",
     "@capacitor/camera": "^5.0.0",
@@ -63,6 +63,7 @@
     "autoprefixer": "^10.4.20",
     "axios": "^0.21.4",
     "axios-cache-interceptor": "^0.10.2",
+    "barcode-detector": "^3.2.1",
     "big.js": "^7.0.1",
     "bip39": "^3.0.4",
     "bitauth-libauth-v3": "npm:@bitauth/libauth@^3.1.0-next.4",
