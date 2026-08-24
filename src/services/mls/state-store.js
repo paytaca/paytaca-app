@@ -33,52 +33,72 @@ export async function saveMlsState(mlsGroupId, clientState) {
   const bytes = encodeGroupState(clientState)
   const db = await openDb()
   const key = walletKey(mlsGroupId)
-  return new Promise((resolve, reject) => {
-    const tx = db.transaction(STORE_NAME, 'readwrite')
-    tx.objectStore(STORE_NAME).put(bytes, key)
-    if (key !== mlsGroupId) {
-      tx.objectStore(STORE_NAME).delete(mlsGroupId)
-    }
-    tx.oncomplete = () => { db.close(); resolve() }
-    tx.onerror = () => { db.close(); reject(tx.error) }
-  })
+  try {
+    await new Promise((resolve, reject) => {
+      const tx = db.transaction(STORE_NAME, 'readwrite')
+      tx.objectStore(STORE_NAME).put(bytes, key)
+      if (key !== mlsGroupId) {
+        tx.objectStore(STORE_NAME).delete(mlsGroupId)
+      }
+      tx.oncomplete = () => resolve()
+      tx.onerror = () => reject(tx.error)
+    })
+  } finally {
+    db.close()
+  }
 }
 
 export async function loadMlsState(mlsGroupId, impl, clientConfig) {
   const db = await openDb()
-  const key = walletKey(mlsGroupId)
-  let bytes = await new Promise((resolve, reject) => {
-    const tx = db.transaction(STORE_NAME, 'readonly')
-    const req = tx.objectStore(STORE_NAME).get(key)
-    req.onsuccess = () => resolve(req.result)
-    req.onerror = () => reject(req.error)
-  })
-  if (!bytes && key !== mlsGroupId) {
-    bytes = await new Promise((resolve, reject) => {
-      const tx = db.transaction(STORE_NAME, 'readonly')
-      const req = tx.objectStore(STORE_NAME).get(mlsGroupId)
-      req.onsuccess = () => resolve(req.result)
-      req.onerror = () => reject(req.error)
-    })
+  try {
+    const key = walletKey(mlsGroupId)
+    let bytes = null
+    try {
+      bytes = await new Promise((resolve, reject) => {
+        const tx = db.transaction(STORE_NAME, 'readonly')
+        const req = tx.objectStore(STORE_NAME).get(key)
+        req.onsuccess = () => resolve(req.result)
+        req.onerror = () => reject(req.error)
+      })
+    } catch (err) {
+      console.warn('[MLS] loadMlsState read failed:', err?.message || err)
+    }
+    if (!bytes && key !== mlsGroupId) {
+      try {
+        bytes = await new Promise((resolve, reject) => {
+          const tx = db.transaction(STORE_NAME, 'readonly')
+          const req = tx.objectStore(STORE_NAME).get(mlsGroupId)
+          req.onsuccess = () => resolve(req.result)
+          req.onerror = () => reject(req.error)
+        })
+      } catch (err) {
+        console.warn('[MLS] loadMlsState legacy-key read failed:', err?.message || err)
+      }
+    }
+    if (!bytes) return null
+    const result = decodeGroupState(bytes, 0)
+    if (!result) return null
+    return { ...result[0], clientConfig: defaultClientConfig }
+  } finally {
+    db.close()
   }
-  db.close()
-  if (!bytes) return null
-  const result = decodeGroupState(bytes, 0)
-  if (!result) return null
-  return { ...result[0], clientConfig: defaultClientConfig }
 }
 
 export async function removeMlsState(mlsGroupId) {
   const db = await openDb()
   const key = walletKey(mlsGroupId)
-  return new Promise((resolve, reject) => {
-    const tx = db.transaction(STORE_NAME, 'readwrite')
-    tx.objectStore(STORE_NAME).delete(key)
-    if (key !== mlsGroupId) {
-      tx.objectStore(STORE_NAME).delete(mlsGroupId)
-    }
-    tx.oncomplete = () => { db.close(); resolve() }
-    tx.onerror = () => { db.close(); reject(tx.error) }
-  })
+  try {
+    await new Promise((resolve, reject) => {
+      const tx = db.transaction(STORE_NAME, 'readwrite')
+      tx.objectStore(STORE_NAME).delete(key)
+      if (key !== mlsGroupId) {
+        tx.objectStore(STORE_NAME).delete(mlsGroupId)
+      }
+      tx.oncomplete = () => resolve()
+      tx.onerror = () => reject(tx.error)
+    })
+  } finally {
+    db.close()
+  }
 }
 
