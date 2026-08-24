@@ -10,6 +10,24 @@ function getCurrentWalletHash () {
   }
 }
 
+function mergeWalletStateDefaults (ws) {
+  const defaults = getInitialWalletState()
+  for (const key of Object.keys(defaults)) {
+    if (ws[key] === undefined) {
+      ws[key] = defaults[key]
+    }
+  }
+  if (typeof ws.mls !== 'object' || ws.mls === null) {
+    ws.mls = defaults.mls
+  } else {
+    for (const mk of Object.keys(defaults.mls)) {
+      if (ws.mls[mk] === undefined) {
+        ws.mls[mk] = defaults.mls[mk]
+      }
+    }
+  }
+}
+
 function getOrInitWalletState (state, walletHash = null) {
   const hash = walletHash || getCurrentWalletHash()
   if (!hash) {
@@ -21,6 +39,10 @@ function getOrInitWalletState (state, walletHash = null) {
 
   if (!state.byWallet[hash]) {
     state.byWallet[hash] = getInitialWalletState()
+  } else {
+    // Restored state may predate newer fields (e.g. MLS); merge defaults so
+    // the missing keys (like `mls`) always exist.
+    mergeWalletStateDefaults(state.byWallet[hash])
   }
 
   return state.byWallet[hash]
@@ -36,6 +58,8 @@ export function initializeWalletState (state, walletHash) {
 
   if (!state.byWallet[walletHash]) {
     state.byWallet[walletHash] = getInitialWalletState()
+  } else {
+    mergeWalletStateDefaults(state.byWallet[walletHash])
   }
 }
 
@@ -247,11 +271,31 @@ export function SET_ROOMS (state, rooms) {
   const localMap = new Map((ws.rooms || []).map(r => [r.id, r]))
   ws.rooms = rooms.map(sr => {
     const lr = localMap.get(sr.id)
-    if (lr?.lastMessageAt) {
-      return { ...sr, lastMessageAt: lr.lastMessageAt }
+    if (!lr) return sr
+    // Preserve local lastMessageAt — once set by TOUCH_ROOM_LAST_MESSAGE_AT
+    // (wall-clock time) or a previous server fetch, never overwrite it with
+    // a server value.
+    const merged = { ...sr }
+    if (lr.lastMessageAt) merged.lastMessageAt = lr.lastMessageAt
+    // Server rows never carry MLS role fields (owner/admins are relay-broadcast
+    // and only present on the creating/owning device). Merge them from the
+    // local copy so a role change made locally isn't wiped by a refetch.
+    if (lr.type === 'mls-group') {
+      merged.owner = lr.owner
+      merged.admins = lr.admins || []
     }
-    return sr
+    return merged
   })
+  // Preserve local-only rooms that the server doesn't know about (e.g. MLS
+  // groups, which are never synced to the server). Without this, a fetch
+  // from the server-authoritative room list would remove them from the
+  // store and redirect an open conversation to the chat index.
+  const serverIds = new Set(rooms.map(r => r.id))
+  for (const [id, room] of localMap) {
+    if (!serverIds.has(id)) {
+      ws.rooms = [...ws.rooms, room]
+    }
+  }
 }
 
 // ---- Per-wallet message mutations ----
@@ -268,6 +312,17 @@ export function ADD_MESSAGE (state, { roomId, message }) {
     let i = arr.length
     while (i > 0 && arr[i - 1].created_at > message.created_at) i--
     arr.splice(i, 0, message)
+  }
+}
+
+export function REMOVE_MESSAGE (state, { roomId, messageId }) {
+  const ws = getOrInitWalletState(state)
+  if (!ws) return
+  const arr = ws.messages[roomId]
+  if (!arr) return
+  const index = arr.findIndex(m => m.id === messageId)
+  if (index !== -1) {
+    arr.splice(index, 1)
   }
 }
 

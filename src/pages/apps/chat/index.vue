@@ -54,6 +54,17 @@
               </span>
             </div>
           </q-tab>
+          <q-tab v-if="pendingInviteCount > 0" name="invitations">
+            <div class="tab-label-wrapper">
+              <span>{{ $t('Invitations', {}, 'Invitations') }}</span>
+              <span
+                v-if="chatTab !== 'invitations' && pendingInviteCount > 0"
+                class="tab-unread-badge"
+              >
+                {{ pendingInviteCount }}
+              </span>
+            </div>
+          </q-tab>
         </q-tabs>
 
         <q-tab-panels v-model="chatTab" animated>
@@ -79,6 +90,42 @@
               @rejoin-room="confirmRejoinGroup"
               @delete-room="confirmDeleteRoom"
             />
+          </q-tab-panel>
+          <q-tab-panel v-if="pendingInviteCount > 0" name="invitations" class="q-pa-none">
+            <div class="invitations-list">
+              <div
+                v-for="invite in pendingInvitations"
+                :key="invite.roomId"
+                class="invite-item"
+              >
+                <q-avatar class="invite-avatar" color="teal" text-color="white" size="40px">
+                  <q-icon name="group" size="20px" />
+                </q-avatar>
+                <div class="invite-info">
+                  <div class="invite-name">{{ invite.name }}</div>
+                  <div class="invite-subtitle">
+                    {{ $t('InvitedBy', { name: inviteDisplayNames[invite.inviterPubKey] || shortNpub(invite.inviterPubKey) }, 'Invited by {name}') }}
+                  </div>
+                </div>
+                <div class="invite-actions">
+                  <q-btn
+                    flat
+                    dense
+                    color="primary"
+                    :label="$t('Accept', {}, 'Accept')"
+                    :loading="acceptingInvites[invite.roomId]"
+                    @click="acceptInvite(invite)"
+                  />
+                  <q-btn
+                    flat
+                    dense
+                    color="grey-7"
+                    :label="$t('Decline', {}, 'Decline')"
+                    @click="declineInvite(invite)"
+                  />
+                </div>
+              </div>
+            </div>
           </q-tab-panel>
         </q-tab-panels>
       </div>
@@ -124,42 +171,85 @@
             <div
               class="chat-type-option"
               :class="getDarkModeClass(darkMode)"
-              @click="selectChatType('private_group')"
+              @click="groupTypeExpanded = !groupTypeExpanded"
             >
               <q-avatar size="44px" class="chat-type-icon group-icon">
                 <q-icon name="groups" size="24px" color="white" />
               </q-avatar>
               <div class="chat-type-text">
                 <div class="chat-type-title" :class="getDarkModeClass(darkMode)">
-                  {{ $t('ClosedPrivateGroup', {}, 'Closed Private Group') }}
+                  {{ $t('GroupChat', {}, 'Group Chat') }}
                 </div>
                 <div class="chat-type-desc">
-                  {{ $t('ClosedPrivateGroupDesc', {}, 'End-to-end encrypted group chat for up to 10 members. Members are fixed once created.') }}
+                  {{ $t('GroupChatDesc', {}, 'Create an end-to-end encrypted group chat.') }}
                 </div>
               </div>
-              <q-icon name="chevron_right" size="20px" class="chat-type-chevron" />
+              <q-icon
+                :name="groupTypeExpanded ? 'expand_less' : 'expand_more'"
+                size="20px"
+                class="chat-type-chevron"
+              />
             </div>
 
-            <div
-              class="chat-type-option chat-type-option--disabled"
-              :class="getDarkModeClass(darkMode)"
-            >
-              <q-avatar size="44px" class="chat-type-icon public-group-icon">
-                <q-icon name="groups" size="24px" color="white" />
-              </q-avatar>
-              <div class="chat-type-text">
-                <div class="chat-type-title-row">
-                  <span class="chat-type-title" :class="getDarkModeClass(darkMode)">
-                    {{ $t('OpenPrivateGroup', {}, 'Open Private Group') }}
-                  </span>
-                  <span class="coming-soon-badge">
-                    {{ $t('ComingSoon', {}, 'Coming soon') }}
-                  </span>
-                </div>
-                <div class="chat-type-desc">
-                  {{ $t('OpenPrivateGroupDesc', {}, 'End-to-end encrypted group chat for up to 10,000 members. New members can join anytime.') }}
+            <!-- Group type picker: revealed when Group Chat is clicked -->
+            <div v-if="groupTypeExpanded" class="group-type-sublist" :class="getDarkModeClass(darkMode)">
+              <div
+                class="group-type-row"
+                @click="selectedGroupType = 'open_private_group'"
+              >
+                <q-radio
+                  v-model="selectedGroupType"
+                  val="open_private_group"
+                  dense
+                  class="group-type-radio"
+                />
+                <q-avatar size="36px" class="chat-type-icon public-group-icon">
+                  <q-icon name="group_add" size="20px" color="white" />
+                </q-avatar>
+                <div class="chat-type-text">
+                  <div class="chat-type-title group-type-title" :class="getDarkModeClass(darkMode)">
+                    {{ $t('OpenGroup', {}, 'Open Group') }}
+                  </div>
+                  <div class="chat-type-desc">
+                    {{ $t('OpenGroupDesc', {}, 'New members can be added anytime.') }}
+                  </div>
                 </div>
               </div>
+
+              <div
+                class="group-type-row"
+                @click="selectedGroupType = 'private_group'"
+              >
+                <q-radio
+                  v-model="selectedGroupType"
+                  val="private_group"
+                  dense
+                  class="group-type-radio"
+                />
+                <q-avatar size="36px" class="chat-type-icon group-icon group-avatar-wrap">
+                  <q-icon name="group" size="20px" color="white" />
+                  <div class="group-lock-badge">
+                    <q-icon name="lock" size="8px" />
+                  </div>
+                </q-avatar>
+                <div class="chat-type-text">
+                  <div class="chat-type-title group-type-title" :class="getDarkModeClass(darkMode)">
+                    {{ $t('ClosedGroup', {}, 'Closed Group') }}
+                  </div>
+                  <div class="chat-type-desc">
+                    {{ $t('ClosedGroupDesc', {}, 'Members are fixed once created (up to 10).') }}
+                  </div>
+                </div>
+              </div>
+
+              <q-btn
+                :label="$t('Proceed', {}, 'Proceed')"
+                color="primary"
+                rounded
+                unelevated
+                class="full-width q-mt-sm"
+                @click="proceedWithGroupType"
+              />
             </div>
           </div>
 
@@ -179,9 +269,23 @@
 
             <q-tab-panels v-model="dialogTab" animated>
               <q-tab-panel name="contacts" class="q-px-none">
-                <q-list v-if="contacts.length" separator>
+                <q-input
+                  v-if="contacts.length"
+                  v-model="contactSearch"
+                  :label="$t('SearchContacts', {}, 'Search contacts')"
+                  outlined
+                  dense
+                  rounded
+                  clearable
+                  class="contact-search q-mb-sm"
+                >
+                  <template #prepend>
+                    <q-icon name="search" size="18px" />
+                  </template>
+                </q-input>
+                <q-list v-if="filteredContacts.length" separator class="contact-list">
                   <q-item
-                    v-for="contact in contacts"
+                    v-for="contact in filteredContacts"
                     :key="contact.npub"
                     clickable
                     class="contact-item"
@@ -206,6 +310,10 @@
                     </q-item-section>
                   </q-item>
                 </q-list>
+                <div v-else-if="contactSearch.trim()" class="text-grey text-center q-pa-lg">
+                  <q-icon name="search_off" size="40px" class="q-mb-sm" style="opacity: 0.4;" />
+                  <div>{{ $t('NoMatchingContacts', {}, 'No matching contacts.') }}</div>
+                </div>
                 <div v-else class="text-grey text-center q-pa-lg">
                   <q-icon name="person_off" size="40px" class="q-mb-sm" style="opacity: 0.4;" />
                   <div>{{ $t('NoContactsYet', {}, 'No contacts yet. Add one below.') }}</div>
@@ -268,8 +376,8 @@
             </q-tab-panels>
           </template>
 
-          <!-- Step 2 (Private Group): Create group form -->
-          <template v-else-if="selectedChatType === 'private_group'">
+          <!-- Step 2 (Group): Create group form -->
+          <template v-else-if="selectedChatType === 'private_group' || selectedChatType === 'open_private_group'">
             <q-tabs
               v-model="dialogTab"
               dense
@@ -284,65 +392,127 @@
 
             <q-tab-panels v-model="dialogTab" animated>
               <q-tab-panel name="members" class="q-px-none">
-                <div class="group-hint q-mb-md">
-                  <q-icon name="lock" size="14px" color="primary" />
-                  <span>
-                    {{ $t('PrivateGroupHint', {}, 'End-to-end encrypted. Members are fixed once created.') }}
-                  </span>
-                </div>
-                <q-input
-                  v-model="groupName"
-                  :label="$t('GroupName', {}, 'Group name')"
-                  outlined
-                  dense
-                  rounded
-                  maxlength="100"
-                  class="q-mb-sm"
-                  autofocus
-                />
-                <div class="group-members-label q-mb-xs">
-                  {{ $t('SelectMembersWithLimit', { count: selectedMemberNpubs.length, max: 9 }, `Select members (${selectedMemberNpubs.length}/9)`) }}
-                </div>
-                <q-list v-if="contacts.length" separator class="group-members-list">
-                  <q-item
-                    v-for="contact in contacts"
-                    :key="contact.npub"
-                    clickable
-                    class="group-member-item"
-                    @click="toggleMember(contact.npub)"
+                <!-- Step 1: pick members -->
+                <template v-if="groupStep === 1">
+                  <div class="group-members-label q-mb-xs">
+                    {{ $t('SelectMembersWithLimit', { count: selectedMemberNpubs.length }, `Selected ${selectedMemberNpubs.length} members`) }}
+                  </div>
+                  <div class="group-min-hint" :class="{ 'group-min-hint--unmet': !hasMinGroupMembers }">
+                    <q-icon :name="hasMinGroupMembers ? 'check_circle' : 'error_outline'" size="14px" />
+                    <span>
+                      {{ hasMinGroupMembers
+                        ? $t('MinMembersMet', {}, 'Minimum group size met')
+                        : $t('MinMembersRequired', {}, 'A group needs at least 3 members including you — select 2 or more contacts.') }}
+                    </span>
+                  </div>
+                  <q-input
+                    v-if="contacts.length"
+                    v-model="contactSearch"
+                    :label="$t('SearchContacts', {}, 'Search contacts')"
+                    outlined
+                    dense
+                    rounded
+                    clearable
+                    class="contact-search q-mb-sm"
                   >
-                    <q-item-section avatar>
-                      <q-checkbox
-                        :model-value="selectedMemberNpubs.includes(contact.npub)"
-                        @click.stop
-                        @update:model-value="toggleMember(contact.npub)"
-                      />
-                    </q-item-section>
-                    <q-item-section avatar>
-                      <q-avatar color="primary" text-color="white" size="36px">
-                        <img v-if="contactAvatars[contact.npub]" :src="contactAvatars[contact.npub]" />
-                        <template v-else>{{ contactInitial(contact) }}</template>
-                      </q-avatar>
-                    </q-item-section>
-                    <q-item-section>
-                      <q-item-label class="text-weight-medium">{{ contact.name }}</q-item-label>
-                      <q-item-label caption class="npub-caption">{{ contact.npub.slice(0, 18) }}...</q-item-label>
-                    </q-item-section>
-                  </q-item>
-                </q-list>
-                <div v-else class="text-grey text-center q-pa-md">
-                  <q-icon name="person_off" size="32px" class="q-mb-sm" style="opacity: 0.4;" />
-                  <div>{{ $t('NoContactsToAdd', {}, 'No contacts to add. Use the Add Contact tab.') }}</div>
-                </div>
-                <q-btn
-                  :label="$t('CreateGroup', {}, 'Create Group')"
-                  color="primary"
-                  rounded
-                  unelevated
-                  class="full-width q-mt-sm"
-                  :disable="!canCreateGroup"
-                  @click="createGroup"
-                />
+                    <template #prepend>
+                      <q-icon name="search" size="18px" />
+                    </template>
+                  </q-input>
+                  <q-list v-if="filteredContacts.length" separator class="group-members-list">
+                    <q-item
+                      v-for="contact in filteredContacts"
+                      :key="contact.npub"
+                      clickable
+                      class="group-member-item"
+                      @click="toggleMember(contact.npub)"
+                    >
+                      <q-item-section avatar>
+                        <q-checkbox
+                          :model-value="selectedMemberNpubs.includes(contact.npub)"
+                          @click.stop
+                          @update:model-value="toggleMember(contact.npub)"
+                        />
+                      </q-item-section>
+                      <q-item-section avatar>
+                        <q-avatar color="primary" text-color="white" size="36px">
+                          <img v-if="contactAvatars[contact.npub]" :src="contactAvatars[contact.npub]" />
+                          <template v-else>{{ contactInitial(contact) }}</template>
+                        </q-avatar>
+                      </q-item-section>
+                      <q-item-section>
+                        <q-item-label class="text-weight-medium">{{ contact.name }}</q-item-label>
+                        <q-item-label caption class="npub-caption">{{ contact.npub.slice(0, 18) }}...</q-item-label>
+                      </q-item-section>
+                    </q-item>
+                  </q-list>
+                  <div v-else-if="contacts.length && contactSearch.trim()" class="text-grey text-center q-pa-md">
+                    <q-icon name="search_off" size="32px" class="q-mb-sm" style="opacity: 0.4;" />
+                    <div>{{ $t('NoMatchingContacts', {}, 'No matching contacts.') }}</div>
+                  </div>
+                  <div v-else class="text-grey text-center q-pa-md">
+                    <q-icon name="person_off" size="32px" class="q-mb-sm" style="opacity: 0.4;" />
+                    <div>{{ $t('NoContactsToAdd', {}, 'No contacts to add. Use the Add Contact tab.') }}</div>
+                  </div>
+                  <q-btn
+                    :label="$t('Proceed', {}, 'Proceed')"
+                    color="primary"
+                    rounded
+                    unelevated
+                    class="full-width q-mt-sm"
+                    :disable="!hasMinGroupMembers"
+                    @click="proceedWithMembers"
+                  />
+                </template>
+
+                <!-- Step 2: name the group and review members -->
+                <template v-else>
+                  <q-input
+                    ref="groupNameInput"
+                    v-model="groupName"
+                    :label="$t('GroupName', {}, 'Group name')"
+                    outlined
+                    dense
+                    rounded
+                    maxlength="100"
+                    class="q-mb-sm"
+                    autofocus
+                    :error="!!groupName && groupName.trim().length > 0 && groupName.trim().length < 4"
+                    :error-message="$t('GroupNameMinChars', {}, 'Group name must be at least 4 characters.')"
+                  />
+                  <div class="group-members-label q-mb-xs">
+                    {{ $t('GroupMembersCount', { count: groupSelectedMembers.length }, `Members (${groupSelectedMembers.length})`) }}
+                  </div>
+                  <q-list separator class="group-members-list group-review-list">
+                    <q-item v-for="member in groupSelectedMembers" :key="member.isMe ? 'me' : member.npub" class="group-member-item">
+                      <q-item-section avatar>
+                        <q-avatar color="primary" text-color="white" size="36px">
+                          <img v-if="!member.isMe && contactAvatars[member.npub]" :src="contactAvatars[member.npub]" />
+                          <template v-else>
+                            <q-icon v-if="member.isMe" name="person" size="20px" />
+                            <template v-else>{{ member.name.charAt(0).toUpperCase() }}</template>
+                          </template>
+                        </q-avatar>
+                      </q-item-section>
+                      <q-item-section>
+                        <q-item-label class="text-weight-medium">
+                          {{ member.name }}
+                          <span v-if="member.isMe" class="group-me-tag">{{ $t('You', {}, 'You') }}</span>
+                        </q-item-label>
+                        <q-item-label caption class="npub-caption">{{ member.npub.slice(0, 18) }}...</q-item-label>
+                      </q-item-section>
+                    </q-item>
+                  </q-list>
+                  <q-btn
+                    :label="$t('CreateGroup', {}, 'Create Group')"
+                    color="primary"
+                    rounded
+                    unelevated
+                    class="full-width q-mt-sm"
+                    :disable="!canCreateGroup"
+                    @click="createGroup"
+                  />
+                </template>
               </q-tab-panel>
 
               <q-tab-panel name="add" class="q-px-none">
@@ -430,15 +600,21 @@ export default {
       reopenDialogAfterScan: false,
       scannerOrigin: null,
       selectedChatType: null,
+      groupTypeExpanded: false,
+      selectedGroupType: 'open_private_group',
       dialogTab: 'contacts',
       newContactName: '',
       newContactNpub: '',
       npubError: '',
       groupName: '',
       selectedMemberNpubs: [],
+      groupStep: 1,
+      contactSearch: '',
       fetchedContactDisplayName: null,
       fetchedContactAvatar: null,
       contactAvatars: {},
+      inviteDisplayNames: {},
+      acceptingInvites: {},
       _profilePromptShown: false,
       _profilePromptTimer: null,
     }
@@ -462,7 +638,24 @@ export default {
       return this.$store.getters['nostrChat/getAllMessages']
     },
     contacts () {
-      return this.$store.getters['nostrChat/getContacts']
+      const all = this.$store.getters['nostrChat/getContacts']
+      const myPubKey = this.$store.getters['nostrChat/myPubKey']
+      if (!myPubKey) return all
+      return all.filter(c => {
+        if (c.pubKeyHex) return c.pubKeyHex !== myPubKey
+        try {
+          const decoded = nip19Decode(c.npub)
+          return decoded.data !== myPubKey
+        } catch { return true }
+      })
+    },
+    filteredContacts () {
+      const q = this.contactSearch.trim().toLowerCase()
+      if (!q) return this.contacts
+      return this.contacts.filter(c => {
+        return (c.name || '').toLowerCase().includes(q) ||
+          c.npub.toLowerCase().includes(q)
+      })
     },
     showActiveStatus () {
       return this.$store.getters['nostrChat/getShowActiveStatus']
@@ -485,14 +678,62 @@ export default {
     canAddContact () {
       return this.newContactName.trim() && this.newContactNpub.trim().startsWith('npub')
     },
+    // Groups need at least 3 members total — the creator plus 2 contacts.
+    hasMinGroupMembers () {
+      return this.selectedMemberNpubs.length >= 2
+    },
+    // Max group size including the creator: closed groups cap at 10,
+    // MLS open-private groups at 50, everything else at 100.
+    groupMaxMembers () {
+      if (this.selectedChatType === 'private_group') return 10
+      if (this.selectedChatType === 'open_private_group') return 50
+      return 100
+    },
+    // Max selectable contacts (creator is the extra member).
+    groupMaxContacts () {
+      return this.groupMaxMembers - 1
+    },
     canCreateGroup () {
-      return this.groupName.trim() && this.selectedMemberNpubs.length > 0 && this.selectedMemberNpubs.length <= 9
+      return this.groupName.trim().length >= 4 && this.hasMinGroupMembers && this.selectedMemberNpubs.length <= this.groupMaxContacts
+    },
+    // Step-2 review list: the creator plus the selected contacts.
+    groupSelectedMembers () {
+      const list = []
+      const myPubKey = this.$store.getters['nostrChat/myPubKey']
+      const profile = this.$store.getters['nostrChat/getProfile']
+      if (myPubKey) {
+        let myNpub = ''
+        try { myNpub = npubEncode(myPubKey) } catch { myNpub = myPubKey }
+        list.push({
+          isMe: true,
+          pubKeyHex: myPubKey,
+          name: profile?.displayName?.trim() || myNpub.slice(0, 12) + '...' + myNpub.slice(-8),
+          npub: myNpub,
+        })
+      }
+      for (const npub of this.selectedMemberNpubs) {
+        const contact = this.$store.getters['nostrChat/getContactByNpub'](npub)
+        if (!contact) continue
+        list.push({
+          isMe: false,
+          pubKeyHex: contact.pubKeyHex || null,
+          name: contact.name || npub.slice(0, 12) + '...' + npub.slice(-8),
+          npub,
+        })
+      }
+      return list
     },
     activeUnreadCount () {
       return this.totalUnreadFor(this.rooms)
     },
     archivedUnreadCount () {
       return this.totalUnreadFor(this.archivedRooms)
+    },
+    pendingInvitations () {
+      return this.$store.getters['nostrChat/getMlsPendingInvitations']
+    },
+    pendingInviteCount () {
+      return this.pendingInvitations.length
     },
     dialogTitle () {
       if (this.selectedChatType === 'dm') {
@@ -531,12 +772,10 @@ export default {
   watch: {
     showQrScanner (val) {
       if (!val && this.reopenDialogAfterScan) {
+        // Scanner closed without a decode (cancel/back) — restore the dialog
+        // in the exact context it was opened from.
         this.reopenDialogAfterScan = false
-        if (this.scannerOrigin === 'group') {
-          this.selectedChatType = 'private_group'
-        } else {
-          this.selectedChatType = 'dm'
-        }
+        this.selectedChatType = this.scannerOrigin || 'dm'
         this.dialogTab = 'add'
         this.scannerOrigin = null
         this.showNewChatDialog = true
@@ -545,15 +784,22 @@ export default {
     showNewChatDialog (val) {
       if (val) {
         this.fetchContactAvatars()
-      } else {
+      } else if (!this.reopenDialogAfterScan) {
+        // Dialog closed for a scan (or a mid-scan reopen pending): keep the
+        // chat-type context and form state so onScannerDecode can restore the
+        // exact dialog it was opened from.
         this.groupName = ''
         this.selectedMemberNpubs = []
+        this.groupStep = 1
+        this.contactSearch = ''
         this.newContactName = ''
         this.newContactNpub = ''
         this.npubError = ''
         this.fetchedContactDisplayName = null
         this.fetchedContactAvatar = null
         this.selectedChatType = null
+        this.groupTypeExpanded = false
+        this.selectedGroupType = 'open_private_group'
         this.dialogTab = 'contacts'
         this.scannerOrigin = null
       }
@@ -657,6 +903,8 @@ export default {
     this._activeStatusPollTimer = setInterval(() => {
       this.$store.dispatch('nostrChat/fetchActiveStatus').catch(() => {})
     }, 60000)
+
+    this.resolveInviteDisplayNames()
   },
   activated () {
     // Re-check subscription when returning to this page via keep-alive
@@ -703,12 +951,34 @@ export default {
       this.selectedChatType = type
       if (type === 'dm') {
         this.dialogTab = this.contacts.length ? 'contacts' : 'add'
-      } else if (type === 'private_group') {
+      } else if (type === 'private_group' || type === 'open_private_group') {
+        this.groupStep = 1
         this.dialogTab = 'members'
       }
     },
+    proceedWithGroupType () {
+      if (!this.selectedGroupType) return
+      this.groupTypeExpanded = false
+      this.selectChatType(this.selectedGroupType)
+    },
     handleDialogBack () {
+      if (this.groupStep === 2) {
+        this.groupStep = 1
+        return
+      }
       this.selectedChatType = null
+    },
+    proceedWithMembers () {
+      if (!this.hasMinGroupMembers) return
+      this.groupStep = 2
+      // Focus the group name input so the keyboard comes up on mobile.
+      // autofocus is unreliable inside animated tab panels, so focus explicitly.
+      this.$nextTick(() => {
+        const input = this.$refs.groupNameInput
+        if (input) {
+          input.focus()
+        }
+      })
     },
     async addContactForGroup () {
       try {
@@ -717,7 +987,7 @@ export default {
           name: this.newContactName.trim(),
           npub,
         })
-        if (!this.selectedMemberNpubs.includes(npub) && this.selectedMemberNpubs.length < 9) {
+        if (!this.selectedMemberNpubs.includes(npub) && this.selectedMemberNpubs.length < this.groupMaxContacts) {
           this.selectedMemberNpubs.push(npub)
         }
         this.newContactName = ''
@@ -725,6 +995,7 @@ export default {
         this.npubError = ''
         this.fetchedContactDisplayName = null
         this.fetchedContactAvatar = null
+        this.groupStep = 1
         this.dialogTab = 'members'
       } catch (err) {
         this.npubError = err.message
@@ -743,7 +1014,67 @@ export default {
       return total
     },
     openRoom (roomId) {
-      this.$router.push(`/apps/chat/${roomId}`)
+      const room = this.rooms.find(r => r.id === roomId) || this.archivedRooms.find(r => r.id === roomId)
+      this.$router.push({ path: `/apps/chat/${roomId}`, query: room?.type ? { type: room.type } : {} })
+    },
+    shortNpub (pubKeyHex) {
+      return pubKeyHex?.slice(0, 8) || 'Unknown'
+    },
+    async resolveInviteDisplayNames () {
+      for (const invite of this.pendingInvitations) {
+        const pubKeyHex = invite.inviterPubKey
+        if (!pubKeyHex || this.inviteDisplayNames[pubKeyHex]) continue
+        try {
+          const displayName = await this.$store.dispatch('nostrChat/fetchPublishedDisplayName', { pubKeyHex })
+          if (displayName) {
+            this.inviteDisplayNames = { ...this.inviteDisplayNames, [pubKeyHex]: displayName }
+          }
+        } catch (err) {
+          console.warn('[Chat] Failed to resolve inviter name:', err)
+        }
+      }
+    },
+    async acceptInvite (invite) {
+      this.acceptingInvites = { ...this.acceptingInvites, [invite.roomId]: true }
+      try {
+        await this.$store.dispatch('nostrChat/acceptMlsInvite', { roomId: invite.roomId })
+        this.$q.notify({
+          type: 'positive',
+          message: this.$t('InviteAccepted', {}, 'You joined the group'),
+        })
+        this.openRoom(invite.roomId)
+      } catch (err) {
+        console.error('[MLS] accept invite failed:', err)
+        this.$q.notify({
+          type: 'negative',
+          message: this.$t('InviteAcceptFailed', {}, 'Failed to join group') + ': ' + err.message,
+          timeout: 5000,
+        })
+      } finally {
+        const next = { ...this.acceptingInvites }
+        delete next[invite.roomId]
+        this.acceptingInvites = next
+      }
+    },
+    declineInvite (invite) {
+      this.$q.dialog({
+        title: this.$t('InviteDecline', {}, 'Decline Invitation'),
+        message: this.$t('InviteDeclineConfirm', { name: invite.name }, `Decline the invitation to join ${invite.name}?`),
+        class: `pt-card text-bow ${this.getDarkModeClass(this.darkMode)}`,
+        cancel: {
+          label: this.$t('Cancel', {}, 'Cancel'),
+          flat: true,
+          color: 'grey',
+        },
+        ok: {
+          label: this.$t('Decline', {}, 'Decline'),
+          color: 'negative',
+          flat: true,
+        },
+        persistent: true,
+      }).onOk(() => {
+        this.$store.dispatch('nostrChat/declineMlsInvite', { roomId: invite.roomId })
+      })
     },
     confirmArchiveRoom (roomId) {
       const room = this.rooms.find(r => r.id === roomId)
@@ -840,9 +1171,11 @@ export default {
     unarchiveOrRejoinRoom (roomId) {
       // A left (blocked) group is archived; unarchiving it should rejoin it.
       const room = this.archivedRooms.find(r => r.id === roomId)
-      if (room?.type === 'group' && this.$store.getters['nostrChat/isGroupBlocked'](roomId)) {
-        this.confirmRejoinGroup(roomId)
-        return
+      if (room?.type === 'group' || room?.type === 'mls-group') {
+        if (this.$store.getters['nostrChat/isGroupBlocked'](roomId)) {
+          this.confirmRejoinGroup(roomId)
+          return
+        }
       }
       this.$store.dispatch('nostrChat/unarchiveRoom', roomId)
       this.$q.notify({
@@ -863,7 +1196,17 @@ export default {
         persistent: true,
       }).onOk(async () => {
         try {
-          await this.$store.dispatch('nostrChat/leaveGroup', { roomId })
+          if (room?.type === 'mls-group') {
+            // The owner must choose a successor from the group info page.
+            const myPubKey = this.$store.getters['nostrChat/myPubKey']
+            if (room.owner === myPubKey) {
+              this.$router.push(`/apps/chat/${roomId}/info`)
+              return
+            }
+            await this.$store.dispatch('nostrChat/leaveMlsGroup', { roomId })
+          } else {
+            await this.$store.dispatch('nostrChat/leaveGroup', { roomId })
+          }
           this.$q.notify({ type: 'info', message: this.$t('LeftGroup', {}, 'You left the group') })
         } catch (err) {
           this.$q.notify({ type: 'negative', message: err.message || this.$t('LeaveGroupFailed', {}, 'Failed to leave group') })
@@ -898,7 +1241,7 @@ export default {
 
       // Groups: leaving already handles "blocking" via BLOCK_GROUP, so delete
       // is a simple permanent removal. Also clear any group-block tracker.
-      if (room.type === 'group') {
+      if (room.type === 'group' || room.type === 'mls-group') {
         this.$q.dialog({
           title: this.$t('DeleteConversation', {}, 'Delete Conversation'),
           message: this.$t('DeleteConversationConfirm', { name: roomName }, `Permanently delete "${roomName}"?`) + '\n\n' + note,
@@ -988,9 +1331,12 @@ export default {
       })
     },
     openScannerFromDialog () {
-      this.scannerOrigin = this.selectedChatType === 'private_group' ? 'group' : 'dm'
-      this.showNewChatDialog = false
+      // Remember the exact dialog context so the scan restores it verbatim
+      // ('dm' | 'private_group' | 'open_private_group'). Flag the handover
+      // BEFORE closing so the showNewChatDialog watcher doesn't wipe it.
+      this.scannerOrigin = this.selectedChatType
       this.reopenDialogAfterScan = true
+      this.showNewChatDialog = false
       this.showQrScanner = true
     },
     onScannerDecode (value) {
@@ -1003,11 +1349,7 @@ export default {
       }
       this.showQrScanner = false
       this.reopenDialogAfterScan = false
-      if (this.scannerOrigin === 'group') {
-        this.selectedChatType = 'private_group'
-      } else {
-        this.selectedChatType = 'dm'
-      }
+      this.selectedChatType = this.scannerOrigin || 'dm'
       this.dialogTab = 'add'
       this.scannerOrigin = null
       this.showNewChatDialog = true
@@ -1038,12 +1380,21 @@ export default {
       const idx = this.selectedMemberNpubs.indexOf(npub)
       if (idx >= 0) {
         this.selectedMemberNpubs.splice(idx, 1)
-      } else {
+      } else if (this.selectedMemberNpubs.length < this.groupMaxContacts) {
         this.selectedMemberNpubs.push(npub)
       }
     },
     async createGroup () {
-      if (!this.canCreateGroup) return
+      if (!this.canCreateGroup) {
+        if (this.groupName.trim() && !this.hasMinGroupMembers) {
+          this.$q.notify({
+            type: 'warning',
+            message: this.$t('MinMembersRequired', {}, 'A group needs at least 3 members including you — select 2 or more contacts.'),
+            timeout: 5000,
+          })
+        }
+        return
+      }
       try {
         // Convert npubs to hex pubkeys
         const memberPubKeys = this.selectedMemberNpubs.map(npub => {
@@ -1051,12 +1402,53 @@ export default {
           return decoded.data
         })
         const name = this.groupName.trim()
+
+        if (this.selectedChatType === 'open_private_group') {
+          // MLS groups: create the MLS group and add each selected member.
+          // Members whose MLS KeyPackage hasn't been published yet are skipped
+          // (a warning is shown) but the group is still created.
+          const { room, roomId } = await this.$store.dispatch('nostrChat/createMlsGroup', {
+            name,
+            members: memberPubKeys,
+          })
+
+          const failed = []
+          for (const memberPubKey of memberPubKeys) {
+            try {
+              await this.$store.dispatch('nostrChat/addMlsMember', {
+                roomId,
+                memberPubKey: memberPubKey,
+              })
+            } catch (err) {
+              console.error('[MLS] addMlsMember failed for', memberPubKey, 'error:', err.message)
+              failed.push({ pubKey: memberPubKey, error: err.message })
+            }
+          }
+
+          this.showNewChatDialog = false
+          this.$router.push(`/apps/chat/${roomId}`)
+
+          if (failed.length) {
+            const failedNpubs = failed.map(f => {
+              try { return npubEncode(f.pubKey) } catch { return f.pubKey }
+            }).join(', ')
+            const reason = failed[0]?.error || ''
+            this.$q.notify({
+              type: 'warning',
+              message: this.$t('MlsMemberNotReady', { npubs: failedNpubs, reason }, `Couldn't add: ${failedNpubs}. ${reason}`),
+              timeout: 6000,
+            })
+          }
+          return
+        }
+
+        // NIP-17 (Closed) group: create the room and send an initial message
+        // with the group name as subject so all members receive the room via
+        // the relay and can reconstruct it on any device.
         const room = await this.$store.dispatch('nostrChat/createGroupRoom', {
           name,
           members: memberPubKeys,
         })
-        // Send an initial message with the group name as subject so all members
-        // receive the room via the relay and can reconstruct it on any device
         const text = this.$t('GroupCreatedWith', { name }, `Created group "${name}"`)
         const { giftWraps, message, roomId } = await this.$store.dispatch('nostrChat/sendMessage', {
           roomId: room.id,
@@ -1064,7 +1456,6 @@ export default {
           subject: name,
         })
         this.$store.commit('nostrChat/ADD_MESSAGE', { roomId, message })
-        this.$store.commit('nostrChat/TOUCH_ROOM_LAST_MESSAGE_AT', roomId)
         await this.$store.dispatch('nostrChat/publishGiftWraps', { giftWraps })
         // Publish group metadata so new members who join later can
         // discover the group name from the relay.
@@ -1084,7 +1475,7 @@ export default {
     },
     getRoomDisplayName (room) {
       // Group rooms: always use room.name (kept in sync with subject by mutations)
-      if (room.type === 'group') {
+      if (room.type === 'group' || room.type === 'mls-group') {
         return room.name || room.subject || this.$t('Group', {}, 'Group')
       }
       // Private (DM) rooms: prefer subject, then contact name, then npub
@@ -1225,12 +1616,96 @@ export default {
   box-shadow: 0 2px 6px rgba(59, 130, 246, 0.3);
 }
 
+.invitations-list {
+  padding: 4px 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.invite-item {
+  display: flex;
+  align-items: center;
+  padding: 12px 16px;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.04);
+}
+
+.invite-item:last-child {
+  border-bottom: none;
+}
+
+.invite-avatar {
+  background: linear-gradient(135deg, #14b8a6, #0d9488);
+}
+
+.invite-info {
+  flex: 1;
+  min-width: 0;
+  margin-left: 12px;
+}
+
+.invite-name {
+  font-weight: 600;
+  color: var(--q-primary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.invite-subtitle {
+  font-size: 12px;
+  color: var(--q-secondary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.invite-actions {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
 /* New chat dialog — chat type picker */
 .chat-type-list {
   display: flex;
   flex-direction: column;
   gap: 10px;
   padding: 4px 0 8px;
+}
+
+.group-type-sublist {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: -4px;
+  margin-left: 12px;
+  padding: 10px;
+  border-radius: 12px;
+  border-left: 3px solid rgba(59, 130, 246, 0.4);
+  background: rgba(0, 0, 0, 0.02);
+}
+
+.group-type-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px;
+  border-radius: 10px;
+  cursor: pointer;
+  transition: background-color 0.15s ease;
+}
+
+.group-type-row:hover {
+  background: rgba(59, 130, 246, 0.06);
+}
+
+.group-type-radio {
+  flex-shrink: 0;
+  align-self: center;
+}
+
+.group-type-title {
+  font-size: 14px;
 }
 
 .chat-type-option {
@@ -1282,6 +1757,26 @@ export default {
 
 .chat-type-icon.public-group-icon {
   background: linear-gradient(135deg, #a78bfa, #7c3aed);
+}
+
+.group-avatar-wrap {
+  position: relative;
+  overflow: visible;
+}
+
+.group-lock-badge {
+  position: absolute;
+  bottom: -3px;
+  right: -3px;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: #64748b;
+  color: #ffffff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 2px solid #ffffff;
 }
 
 .chat-type-text {
@@ -1350,6 +1845,19 @@ export default {
   color: #6b7280;
 }
 
+.group-min-hint {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  color: #16a34a;
+  margin-bottom: 8px;
+}
+
+.group-min-hint--unmet {
+  color: #d97706;
+}
+
 .tabs-header :deep(.q-tab-panels) {
   background: transparent;
   flex: 1;
@@ -1374,6 +1882,27 @@ export default {
 .npub-caption {
   font-family: 'Courier New', monospace;
   font-size: 12px;
+}
+
+/* Scrollable contact lists in the New Chat dialog */
+.contact-list,
+.group-members-list {
+  max-height: min(50vh, 420px);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+
+.group-review-list {
+  max-height: min(40vh, 320px);
+}
+
+.group-me-tag {
+  font-size: 10px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+  color: var(--q-primary);
+  margin-left: 4px;
 }
 
 /* Header right slot - remove fixed width so action icons display in a row */
@@ -1489,6 +2018,14 @@ export default {
 
 .dark .chat-type-chevron {
   color: #64748b;
+}
+
+.dark .group-type-sublist {
+  background: rgba(255, 255, 255, 0.04);
+}
+
+.dark .group-type-row:hover {
+  background: rgba(59, 130, 246, 0.12);
 }
 
 .dark .coming-soon-badge {

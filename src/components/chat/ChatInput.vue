@@ -111,7 +111,7 @@
       />
     </div>
     
-    <div v-if="focused" class="char-counter" :class="{ 'counter-warning': remainingChars <= 50, 'counter-danger': remainingChars <= 10 }">
+    <div class="char-counter" :class="{ 'counter-warning': remainingChars <= 50, 'counter-danger': remainingChars <= 10 }" :style="{ visibility: focused ? 'visible' : 'hidden' }">
       {{ remainingChars }}
     </div>
     </template>
