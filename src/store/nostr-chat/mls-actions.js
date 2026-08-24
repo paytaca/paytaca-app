@@ -177,22 +177,28 @@ export async function initMls({ commit, state, dispatch }) {
 
   const unsignedEvent = mls.buildMlsKeyPackageEvent(publicPackage, nostrPubkeyHex)
   const signedEvent = finalizeEvent(unsignedEvent, hexToBytes(ws.keys.privKeyHex))
-  const kpPublish = await relayService.publishEvent(state.relays, signedEvent)
-  if (!kpPublish.accepted.length) {
-    // Without a KeyPackage on the relay nobody can invite us; don't mark MLS
-    // as ready or the invite flow will fail with a confusing "no KeyPackage".
-    const reason = kpPublish.errors[0]?.reason || 'relay rejected the KeyPackage'
-    console.warn('[MLS] KeyPackage publish rejected:', JSON.stringify(kpPublish.errors))
-    throw new Error(`Failed to publish MLS KeyPackage: ${reason}`)
+  let kpPublish = { accepted: [], errors: [] }
+  for (let attempt = 1; attempt <= 3; attempt++) {
+    kpPublish = await relayService.publishEvent(state.relays, signedEvent)
+    if (kpPublish.accepted.length) break
+    console.warn(`[MLS] KeyPackage publish attempt ${attempt}/3 failed:`, JSON.stringify(kpPublish.errors))
+    if (attempt < 3) await new Promise(r => setTimeout(r, attempt * 2000))
   }
+  if (!kpPublish.accepted.length) {
+    // Without a KeyPackage on the relay nobody can invite us, so don't mark
+    // MLS as ready — but don't abort init: existing groups can still be
+    // received and joined via the KeyPackage history preserved above, and the
+    // publish is retried on the next session.
+    console.warn('[MLS] KeyPackage publish rejected after retries:', JSON.stringify(kpPublish.errors))
+  } else {
+    commit('PUSH_MLS_KP_HISTORY', { content: signedEvent.content, publishedAt: signedEvent.created_at })
 
-  commit('PUSH_MLS_KP_HISTORY', { content: signedEvent.content, publishedAt: signedEvent.created_at })
-
-  commit('SET_MLS_KEY_PACKAGE', {
-    credentialIdentity: nostrPubkeyHex,
-    publishedAt: Math.floor(Date.now() / 1000),
-  })
-  commit('SET_MLS_READY', true)
+    commit('SET_MLS_KEY_PACKAGE', {
+      credentialIdentity: nostrPubkeyHex,
+      publishedAt: Math.floor(Date.now() / 1000),
+    })
+    commit('SET_MLS_READY', true)
+  }
 
   // Honor our own NIP-09 deletions BEFORE subscribing/fetching history:
   // welcomes we declined on this or another device were "deleted" on the
@@ -300,7 +306,12 @@ export async function createMlsGroup({ commit, state }, { name, members = [] }) 
 
 export async function joinMlsGroup({ commit, state }, { roomId, welcomeEvent }) {
   const ws = getWalletState(state)
-  if (!ws.mls.keyPackage) throw new Error('No KeyPackage — call initMls first')
+  // The KeyPackage state is only set when initMls's fresh publish succeeded;
+  // a join can still work via the preserved KeyPackage history (deterministic
+  // keys, e.g. after a relay publish timeout), so allow that path too.
+  if (!ws.mls.keyPackage && !(ws.mls.kpHistory || []).some(h => h.content)) {
+    throw new Error('No KeyPackage — call initMls first')
+  }
 
   const { impl, clientConfig } = mls.getMlsCrypto()
   const walletHash = getCurrentWalletHash()
@@ -607,12 +618,13 @@ export async function receiveMlsMessage({ commit, state, dispatch }, event) {
   //    are already reflected in its local state, and
   //  - application messages already added to the timeline by the send path.
   if (event.pubkey === ws.keys.pubKeyHex && isRecentlySent(event.id)) return
-  // Own application message already added to the timeline by the send path
-  // (message id === event id); dedupe here in case the echo arrived first.
-  if (event.pubkey === ws.keys.pubKeyHex && kind === 30117) {
+  // Application message already added to the timeline (own sends, the group
+  // history replay after a fresh-device rebuild, or an echo arriving before
+  // the live subscription); dedupe here so it is not decrypted twice.
+  if (kind === 30117) {
     const rTag = event.tags?.find(t => t[0] === 'r')
-    const ownRoomId = rTag?.[1]
-    const alreadyAdded = ownRoomId && (ws.messages[ownRoomId] || []).some(m => m.id === event.id)
+    const roomId = rTag?.[1]
+    const alreadyAdded = roomId && (ws.messages[roomId] || []).some(m => m.id === event.id)
     if (alreadyAdded) return
   }
 
@@ -631,6 +643,39 @@ export async function receiveMlsMessage({ commit, state, dispatch }, event) {
       // the NIP-09 delete, so without this check declined invites would
       // re-appear on every history fetch.
       if (ws.mls.declinedWelcomeIds?.[event.id]) return
+
+      // Wallet imported on a new device: the room is already in the list
+      // (synced from the server) but the local MLS group state was never
+      // rebuilt. Rebuild it from the welcome instead of re-inviting the user
+      // to a group they already belong to, then replay the group's history.
+      const existingRoom = ws.rooms?.find(r => r.id === roomId)
+      const amMember = existingRoom?.type === 'mls-group' &&
+        Array.isArray(existingRoom.members) &&
+        existingRoom.members.includes(ws.keys.pubKeyHex)
+      if (amMember) {
+        try {
+          await dispatch('joinMlsGroup', { roomId, welcomeEvent: event })
+          console.log('[MLS] Rebuilt group state from welcome for existing room', roomId.slice(0, 8))
+          const mlsGroupIdHex = getWalletState(state).mls?.roomMlsMap?.[roomId]
+          if (mlsGroupIdHex) {
+            const events = await relayService.fetchMlsGroupEvents(state.relays, mlsGroupIdHex, 200)
+            for (const ev of events) {
+              await dispatch('receiveMlsMessage', ev)
+            }
+          }
+        } catch (err) {
+          console.warn('[MLS] Auto-rebuild from welcome failed for room', roomId.slice(0, 8), '— queueing invitation:', err.message)
+          const nTag = event.tags?.find(t => t[0] === 'n')
+          commit('ADD_MLS_INVITE', {
+            roomId,
+            inviterPubKey: event.pubkey,
+            name: nTag?.[1] || 'MLS Group',
+            createdAt: event.created_at,
+            welcomeEvent: event,
+          })
+        }
+        return
+      }
 
       // Queue an explicit invitation instead of auto-joining, so the user can
       // accept or decline it from the Invitations tab.

@@ -1357,7 +1357,9 @@ export default {
     ensureSubscribed () {
       // Always ensure we have an active subscription,
       // especially after the tab has been backgrounded.
-      if (!this.$store.getters['nostrChat/isInitialized']) {
+      // isInitialized is persisted, but privKeyHex is stripped from persisted
+      // state for security — it must be restored by initialize first.
+      if (!this.$store.getters['nostrChat/isInitialized'] || !this.$store.getters['nostrChat/myPrivKey']) {
         return this.$store.dispatch('nostrChat/initialize').then(() => {
           return this.$store.dispatch('nostrChat/subscribeToRelays')
         })
