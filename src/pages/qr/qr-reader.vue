@@ -1,27 +1,7 @@
 <template>
   <div id="qr-reader-body" :class="getDarkModeClass(darkMode)">
     <header-nav :title="$t('QRReader')" :backnavpath="`${ $route.query.backnavpath || '/' }`" />
-
     <QRUploader ref="qr-upload" @detect-upload="onQRDecode" />
-
-    <div v-if="error" class="scanner-error-dialog text-center bg-red-1 text-red q-pa-lg">
-      <q-icon name="error" left/>
-      {{ error }}
-    </div>
-    <template v-else>
-      <qrcode-stream
-        :constraints="cameraConstraints"
-        :track="paintBoundingBox"
-        :formats="['qr_code']"
-        :paused="paused"
-        @detect="onQRDecode"
-        @camera-on="onScannerInit"
-        @error="onCameraError"
-        class="qr-stream"
-        style="margin: auto;"
-      />
-    </template>
-
     <div v-if="!error" class="q-mb-lg scanner-box" ref="box">
       <div class="scan-layout-design">
         <div class="scan-design1">
@@ -91,7 +71,7 @@
         <q-btn
           round
           size="lg"
-          class="btn-scan button text-white bg-grad"
+          class="button text-white bg-grad"
           icon="add"
           :disabled="progress"
           @click="$router.push({ name: 'generate-qr' })"
@@ -103,7 +83,7 @@
         <q-btn
           round
           size="lg"
-          class="btn-scan button text-white bg-grad"
+          class="button text-white bg-grad"
           icon="upload"
           :disabled="progress"
           @click="$refs['qr-upload'].$refs['q-file'].pickFiles()"
@@ -116,8 +96,7 @@
 </template>
 
 <script>
-// ALL ORIGINAL SYSTEM AND WALLET UTILS IMPORTS FULLY RESTORED
-import { BarcodeScanner, SupportedFormat } from '@capacitor-community/barcode-scanner'
+import { BarcodeScanner, BarcodeFormat } from '@capacitor-mlkit/barcode-scanning'
 import { URDecoder } from "@ngraveio/bc-ur";
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 import { extractWifFromUrl } from 'src/wallet/sweep'
@@ -132,6 +111,12 @@ import { parseAddressWithoutPrefix } from 'src/utils/send-page-utils'
 import base58 from 'bs58'
 import { binToBase64, base64ToBin } from 'bitauth-libauth-v3';
 import { extractMValue, getWalletHash, MultisigWallet, Pst } from 'src/lib/multisig';
+
+import 'barcode-detector/polyfill'
+
+const MAX_ZOOM = 4.0
+const MIN_ZOOM = 1.0
+const ZOOM_STEP = 0.5
 
 export default {
   name: 'QRReader',
@@ -156,10 +141,8 @@ export default {
       hideFooter: false,
       hideGenerateQR: false,
       hideUploadQR: false,
-      zoomLevel: 0,
-      zoomStep: 5,
+      zoomLevel: 1.0,
       torchOn: false,
-      trackCapabilities: null,
       lastScannedContent: ''
     }
   },
@@ -174,14 +157,8 @@ export default {
     cameraConstraints () {
       return {
         facingMode: this.frontCamera ? 'user' : 'environment',
-        // width: { min: 640, ideal: 1280, max: 1920 },
-        // height: { min: 480, ideal: 720, max: 1080 }
-        // width: { ideal: 2560 },
-        // height: { ideal: 1440 },
-        // frameRate: { ideal: 30 }
-        // width: { ideal: 1920 },
-        // height: { ideal: 1080 },
-        // frameRate: { ideal: 30 }
+        width: { min: 640, ideal: 1920, max: 3840 },
+        height: { min: 720, ideal: 1080, max: 2160 }
       }
     },
     progressLabel () {
@@ -190,291 +167,347 @@ export default {
   },
 
   methods: {
-    paintBoundingBox (detectedCodes, ctx) {
-      console.log('@track detectedCodes', detectedCodes, ctx)
-      for (const detectedCode of detectedCodes) {
-        const { x, y, width, height } = detectedCode.boundingBox
-        ctx.lineWidth = 4
-        ctx.strokeStyle = '#007bff' // Match your app color
-        ctx.strokeRect(x, y, width, height)
-      }
-    },
+  debugScannerLayers () {
+  const selectors = [
+    '#qr-reader-body',
+    '#q-app',
+    '.q-layout',
+    '.q-page-container',
+    '.q-page',
+    '.q-drawer',
+    'body',
+    'html'
+  ]
+
+  console.group('📷 SCANNER LAYER DEBUG')
+
+  selectors.forEach(selector => {
+    const el = document.querySelector(selector)
+
+    if (!el) {
+      console.log(`❌ ${selector}: NOT FOUND`)
+      return
+    }
+
+    const style = window.getComputedStyle(el)
+    const rect = el.getBoundingClientRect()
+
+    console.log(`🔍 ${selector}`, {
+      element: el,
+
+      // Background
+      backgroundColor: style.backgroundColor,
+      backgroundImage: style.backgroundImage,
+
+      // Visibility
+      opacity: style.opacity,
+      visibility: style.visibility,
+      display: style.display,
+
+      // Layering
+      zIndex: style.zIndex,
+      position: style.position,
+
+      // Size / position
+      rect: {
+        left: rect.left,
+        top: rect.top,
+        width: rect.width,
+        height: rect.height,
+        right: rect.right,
+        bottom: rect.bottom
+      },
+
+      // Other potentially relevant properties
+      overflow: style.overflow,
+      transform: style.transform,
+      isolation: style.isolation,
+      pointerEvents: style.pointerEvents
+    })
+  })
+
+  console.groupEnd()
+},
+debugScannerOverlay () {
+  const x = window.innerWidth / 2
+  const y = window.innerHeight / 2
+
+  const elements = document.elementsFromPoint(x, y)
+
+  console.group('📷 SCANNER OVERLAY')
+
+  elements.forEach((el, index) => {
+    const style = window.getComputedStyle(el)
+
+    console.log(index, {
+      element: el,
+      background: style.backgroundColor,
+      opacity: style.opacity,
+      zIndex: style.zIndex,
+      position: style.position
+    })
+
+    // Give each layer a temporary outline
+    el.style.outline = `3px solid ${
+      index === 0 ? 'red' : 'yellow'
+    }`
+  })
+
+  console.groupEnd()
+},
     getDarkModeClass,
 
     normalizeUrContent (value = '') {
       return String(value || '').trim().toLowerCase()
     },
 
-    onScannerInit (capabilities) {
-      console.log('@zoom onScannerInit', capabilities)
-      this.trackCapabilities = capabilities;
+    // DESKTOP
+    onScannerInit (promise) {
+      console.log('camera set up successfully')
     },
-
     onCameraError (error) {
       const vm = this
       console.log('error', error)
       if (error.name === 'NotAllowedError') {
+        // user denied camera access permission
         vm.error = vm.$t('CameraPermissionErrMsg1')
       } else if (error.name === 'NotFoundError') {
+        // no suitable camera device installed
         vm.error = vm.$t('CameraPermissionErrMsg2')
       } else if (error.name === 'NotSupportedError') {
+        // page is not served over HTTPS (or localhost)
         vm.error = vm.$t('CameraPermissionErrMsg3')
       } else if (error.name === 'NotReadableError') {
+        // maybe camera is already in use
         vm.error = vm.$t('CameraPermissionErrMsg4')
       } else if (error.name === 'OverconstrainedError') {
         vm.frontCamera = false
+        // did you request the front camera although there is none?
         vm.error = vm.$t('CameraPermissionErrMsg5')
+      } else if (error.name === 'StreamApiNotSupportedError') {
+        // browser seems to be lacking features
+        console.log(error)
       } else {
         vm.error = vm.$t('UnknownErrorOccurred') + ': ' + error.message
       }
     },
 
-    // Consolidated Core Processing Framework with fixed array detection mapping
     async onQRDecode (content) {
-
-      const track = document.querySelector('video')?.srcObject?.getVideoTracks()[0];
-      console.log('@track', track)
-      console.log('@track', track.getSettings())
-      console.log('@track framerate', track.getCapabilities().frameRate)
       const vm = this
-      
-      // Correct data payload array block unboxing matching vue-qrcode-reader v4 specs
-      if (content && content.length > 0) {
-        let url 
-        try {
-          url = new URL(String(content[0].rawValue))
-        } catch {}
 
-        const _value = String(content[0].rawValue || '').trim()
-        
-        if (!_value || _value === 'undefined') return
+      if (!content || !content.length) {
+        vm.$q.notify({
+          message: vm.$t('UnidentifiedQRCode'),
+          timeout: 800,
+          color: 'red-9',
+          icon: 'mdi-qrcode-remove'
+        })
+        return
+      }
 
-        // Deduplicate consecutive identical frames to safeguard processing space
-        if (_value === vm.lastScannedContent) {
-          return
+      const rawValue = String(content[0]?.rawValue || '').trim()
+      if (!rawValue || rawValue === 'undefined') return
+
+      const normalizedValue = vm.normalizeUrContent(rawValue)
+      const isStreaming = normalizedValue.startsWith('ur:crypto-mofnwallet') || normalizedValue.startsWith('ur:crypto-psbt')
+
+      if (rawValue === vm.lastScannedContent && isStreaming) {
+        return
+      }
+      vm.lastScannedContent = rawValue
+
+      if (!isStreaming) {
+        vm.paused = true
+        await new Promise((resolve) => { window.setTimeout(resolve, 250) })
+      }
+
+      let url
+      try {
+        url = new URL(rawValue)
+      } catch {}
+
+      // Only parse as prefixless address if content doesn't have query params
+      // Query params indicate BIP21 URI that needs full parsing
+      const addressValidation = !rawValue.includes('?') ? parseAddressWithoutPrefix(rawValue) : { valid: false }
+      const value = addressValidation?.valid ? addressValidation.address : rawValue
+
+      // Paytaca Explorer transaction URL (extract txid)
+      // Example: https://explorer.paytaca.com/tx/<txid>
+      const explorerTxMatch = String(value || '').match(/^(https?:\/\/)?explorer\.paytaca\.com\/tx\/([0-9a-fA-F]{64})/i)
+      if (explorerTxMatch) {
+        const txid = explorerTxMatch[2]
+        vm.$router.push({
+          name: 'transaction-list',
+          query: { txid }
+        })
+        vm.paused = false
+        return
+      }
+
+      if (value.includes('gifts.paytaca.com')) {
+        // redirect to gifts page
+        vm.$router.push({
+          name: 'claim-gift',
+          query: { code: value }
+        })
+        return
+      }
+
+      if (extractWifFromUrl(value)) {
+        vm.$router.push({
+          name: 'app-sweep',
+          query: { w: extractWifFromUrl(value) }
+        })
+        return
+      }
+
+      if (value.includes('bitcoincash:') || value.includes('bchtest:')) {
+        vm.processSendPageRedirection(value)
+        return
+      }
+
+      if (parseWalletConnectUri(value)) {
+        vm.$router.push({
+          name: 'app-wallet-connect',
+          query: { uri: value }
+        })
+        return
+      }
+
+      if (vm.checkifBIP38(value)) {
+        // redirect to sweep page for passphrase input
+        vm.$router.push({
+          name: 'app-sweep',
+          query: { w: '', bip38String: value }
+        })
+        return
+      }
+
+      if (normalizedValue.startsWith('ur:crypto-mofnwallet')) {
+        if (!vm.urDecoder) {
+          vm.urDecoder = new URDecoder()
         }
-        vm.lastScannedContent = _value
-
-        const normalizedValue = vm.normalizeUrContent(_value)
-        
-        // Only parse as prefixless address if content doesn't have query params
-        const addressValidation = !_value.includes('?') ? parseAddressWithoutPrefix(_value) : { valid: false }
-        const value = addressValidation?.valid ? addressValidation.address : _value
-        
-        const isStreaming = normalizedValue.startsWith('ur:crypto-mofnwallet') || normalizedValue.startsWith('ur:crypto-psbt')
-        const nostrMatch = String(value || '').match(/^(nostr:)?(npub1[a-z0-9]{58,})$/i)
-
-        if (!isStreaming) {
-          // vm.paused = true
-          // await new Promise((resolve) => {
-          //   window.setTimeout(resolve, 250)
-          // })
-
-          try {
-            vm.paused = true
-            await new Promise(resolve => setTimeout(resolve, 250))
-
-            // process QR here
-
-          } finally {
-            vm.paused = false
-          }
+        if (!vm.urDecoder.isComplete()) {
+          vm.urDecoder.receivePart(normalizedValue)
         }
-
-        // Paytaca Explorer transaction URL mapping
-        const explorerTxMatch = String(value || '').match(/^(https?:\/\/)?explorer\.paytaca\.com\/tx\/([0-9a-fA-F]{64})/i)
-        if (explorerTxMatch) {
-          const txid = explorerTxMatch[2]
-          vm.$router.push({ name: 'transaction-list', query: { txid } })
-          vm.paused = false
-          return
+        vm.progress = vm.urDecoder.estimatedPercentComplete()
+        if (vm.urDecoder.isComplete()) {
+          vm.paused = true
+          const ur = vm.urDecoder.resultUR()
+          const base64 = binToBase64(Buffer.from(ur.cbor, 'base64'))
+          const decoded = cborDecode(base64ToBin(base64))
+          const wallet = MultisigWallet.import(decoded)
+          wallet.setStore(vm.$store)
+          wallet.save()
+          vm.$router.push({
+            name: 'app-multisig-wallet-view',
+            params: { wallethash: wallet.getWalletHash() }
+          })
         }
+        return
+      }
 
-        if (value.includes('gifts.paytaca.com')) {
-          vm.$router.push({ name: 'claim-gift', query: { code: value } })
-        } else if (extractWifFromUrl(value)) {
-          vm.$router.push({ name: 'app-sweep', query: { w: extractWifFromUrl(value) } })
-        } else if (value.includes('bitcoincash:') || value.includes('bchtest:')) {
-          vm.processSendPageRedirection(value)
-        } else if (parseWalletConnectUri(value)) {
-          vm.$router.push({ name: 'app-wallet-connect', query: { uri: value } })
-        } else if (vm.checkifBIP38(value)) {
-          vm.$router.push({ name: 'app-sweep', query: { w: '', bip38String: value } })
-        } else if (normalizedValue.startsWith('ur:crypto-mofnwallet')) {
-          if (!vm.urDecoder) {
-            vm.urDecoder = new URDecoder();
-          }
+      if (normalizedValue.startsWith('ur:crypto-psbt')) {
+        if (!vm.urDecoder) {
+          vm.urDecoder = new URDecoder()
+        }
+        if (!vm.urDecoder.isComplete()) {
+          vm.urDecoder.receivePart(normalizedValue)
+        }
+        vm.progress = vm.urDecoder.estimatedPercentComplete()
+        if (vm.urDecoder.isComplete()) {
+          vm.paused = true
+          const ur = vm.urDecoder.resultUR()
+          const decodedData = Buffer.from(ur.cbor, 'base64')
+          const pst = Pst.import(binToBase64(decodedData))
+          const mValues = [...new Set(pst.inputs?.map(i => {
+            if (!i.redeemScript) return null;
+            return extractMValue(i.redeemScript)
+          }).filter(m => m))]
 
-          const part = normalizedValue;
-          vm.urDecoder.receivePart(part);
-          vm.progress = vm.urDecoder.estimatedPercentComplete()
-          
-          if (vm.urDecoder.isComplete()) {
-            vm.paused = true 
-            const ur = vm.urDecoder.resultUR()
-            const base64 = binToBase64(Buffer.from(ur.cbor, 'base64'))
-            const decoded = cborDecode(base64ToBin(base64))
-            const wallet = MultisigWallet.import(decoded)
-            wallet.setStore(vm.$store)
-            wallet.save()
-            vm.$router.push({ name: 'app-multisig-wallet-view', params: { wallethash: wallet.getWalletHash() } })
-            return
-          }
-        } else if (normalizedValue.startsWith('ur:crypto-psbt')) {
-          if (!vm.urDecoder) {
-            vm.urDecoder = new URDecoder();
-          }
-
-          const part = normalizedValue;
-          vm.urDecoder.receivePart(part);
-          vm.progress = vm.urDecoder.estimatedPercentComplete()
-          
-          if (vm.urDecoder.isComplete()) {
-            vm.paused = true 
-            const ur = vm.urDecoder.resultUR()
-            const decodedData = Buffer.from(ur.cbor, 'base64')
-            const pst = Pst.import(binToBase64(decodedData))
-            const mValues = [...new Set(pst.inputs?.map(i => { 
-              if (!i.redeemScript) return null; 
-              return extractMValue(i.redeemScript) 
-            }).filter(m => m))]
-            
-            for (const m of mValues) {
-              const wallet = { m, signers: pst.wallet.signers }
-              const walletHash = getWalletHash(wallet)
-              const foundWallet = vm.$store.getters['multisig/getWalletByHash'](walletHash)
-              
-              if (foundWallet) {
-                const canonicalPsbt = vm.$store.getters['multisig/getPsbtByUnsignedTransactionHash'](pst.unsignedTransactionHash)
-                if (canonicalPsbt) {
-                  const canonicalPst = Pst.import(canonicalPsbt)
-                  canonicalPst.combine([pst])
-                  canonicalPst.setStore(vm.$store)
-                  canonicalPst.save()
-                } else {
-                  pst.setStore(vm.$store)
-                  pst.save()
-                }
-                vm.$router.push({ name: 'app-multisig-wallet-pst-view', params: { wallethash: walletHash, unsignedtransactionhash: pst.unsignedTransactionHash } })
-                return
-              }
-              vm.$q.notify({ message: vm.$t('WalletNotFound'), timeout: 800, color: 'red-9', icon: 'mdi-qrcode-remove' })
+          for (const m of mValues) {
+            const wallet = {
+              m,
+              signers: pst.wallet.signers
             }
-          }
-        } else if (value.toLowerCase().startsWith('wiz://')) {
-          vm.$router.push({ name: 'app-wizard-connect', query: { uri: value } })
-        } else if (
-          url &&
-          (url.host === 'paymenthub.paytaca.com' || url.host === 'chipnet.paymenthub.paytaca.com') &&
-          url.pathname.match('/plans')
-        ) {
-          const shortUuid = url.pathname.match('/plans/([A-Za-z0-9]+)/?')?.[1];
-          vm.$router.push({ name: 'payment-hub-subscriptions-index', query: { plan: shortUuid } })
-        } else if (nostrMatch) {
-          const npub = nostrMatch[2]
-            const backPath = vm.$route.query.backnavpath || '/apps/chat'
-            vm.$router.push({
-              path: backPath,
-              query: { npub }
+            const walletHash = getWalletHash(wallet)
+            const foundWallet = vm.$store.getters['multisig/getWalletByHash'](walletHash)
+            if (foundWallet) {
+              const canonicalPsbt = vm.$store.getters['multisig/getPsbtByUnsignedTransactionHash'](pst.unsignedTransactionHash)
+              if (canonicalPsbt) {
+                const canonicalPst = Pst.import(canonicalPsbt)
+                canonicalPst.combine([pst])
+                canonicalPst.setStore(vm.$store)
+                canonicalPst.save()
+              } else {
+                pst.setStore(vm.$store)
+                pst.save()
+              }                
+              vm.$router.push({
+                name: 'app-multisig-wallet-pst-view',
+                params: { 
+                  wallethash: walletHash,
+                  unsignedtransactionhash: pst.unsignedTransactionHash 
+                }
+              })
+              return
+            }
+
+            vm.$q.notify({
+              message: vm.$t('WalletNotFound'),
+              timeout: 800,
+              color: 'red-9',
+              icon: 'mdi-qrcode-remove'
             })
-        } else {
-          if (!vm.progress) {
-            vm.$q.notify({ message: vm.$t('UnidentifiedQRCode'), timeout: 800, color: 'red-9', icon: 'mdi-qrcode-remove' })
           }
         }
-        
-        if (!isStreaming) {
-          vm.paused = false
-        }
-      } else {
-        if (!this.progress) {
-          vm.$q.notify({ message: vm.$t('UnidentifiedQRCode'), timeout: 800, color: 'red-9', icon: 'mdi-qrcode-remove' })
-        }
+        return
+      }
+
+      if (value.toLowerCase().startsWith('wiz://')) {
+        vm.$router.push({
+          name: 'app-wizard-connect',
+          query: { uri: value }
+        })
+        return
+      }
+
+      if (
+        url &&
+        (url.host === 'paymenthub.paytaca.com' || url.host === 'chipnet.paymenthub.paytaca.com') &&
+        url.pathname.match('/plans')
+      ) {
+        const shortUuid = url.pathname.match('/plans/([A-Za-z0-9]+)/?')?.[1];
+        vm.$router.push({ name: 'payment-hub-subscriptions-index', query: { plan: shortUuid } })
+        return
+      }
+
+      // Check for Nostr / npub QR codes
+      const nostrMatch = String(value || '').match(/^(nostr:)?(npub1[a-z0-9]{58,})$/i)
+      if (nostrMatch) {
+        const npub = nostrMatch[2]
+        const backPath = vm.$route.query.backnavpath || '/apps/chat'
+        vm.$router.push({
+          path: backPath,
+          query: { npub }
+        })
+        return
+      }
+
+      if (!isStreaming && !vm.progress) {
+        vm.$q.notify({
+          message: vm.$t('UnidentifiedQRCode'),
+          timeout: 800,
+          color: 'red-9',
+          icon: 'mdi-qrcode-remove'
+        })
+      }
+
+      if (!isStreaming) {
+        vm.paused = false
       }
     },
 
-    stopScan () {
-      this.paused = true;
-      this.lastScannedContent = '';
-    },
-
-    prepareScanner () {
-      this.paused = false;
-      this.progress = 0;
-      this.urDecoder = null;
-      this.lastScannedContent = '';
-    },
-    getCameraTrack () {
-  return document.querySelector('video')?.srcObject?.getVideoTracks?.()[0] || null
-},
-
-    zoomIn () {
-  
-  const track = this.getCameraTrack()
-  const capabilities = track?.getCapabilities?.()
-
-  console.log('@track', track)
-  console.log('@capabilities', capabilities)
-  console.log('@zoom', capabilities?.zoom)
-  console.log('@settings', track?.getSettings?.())
-  if (!track || !capabilities.zoom) return
-
-  this.zoomLevel = Math.min(
-    zoom.max,
-    this.zoomLevel + this.zoomStep
-  )
-
-  track.applyConstraints({
-    advanced: [{ zoom: this.zoomLevel }]
-  }).catch(err => {
-    console.log('@zoom err', err)
-    console.error('Zoom in failed:', err)
-  })
-},
-
-zoomOut () {
-  const track = this.getCameraTrack()
-  console.log('@zoom', track)
-  const capabilities = track?.getCapabilities?.()
-  console.log('@zoom', capabilities)
-  if (!track || !capabilities.zoom) return
-  this.zoomLevel = Math.max(
-    zoom.min,
-    this.zoomLevel - this.zoomStep
-  )
-
-  track.applyConstraints({
-    advanced: [{ zoom: this.zoomLevel }]
-  }).catch(err => {
-    console.log('@zoom err', err)
-    console.error('Zoom out failed:', err)
-  })
-},
-
-async toggleTorch () {
-  const track = this.getCameraTrack()
-  console.log('@zoom torch track', track)
-  if (!track) return
-
-  const capabilities = track.getCapabilities?.()
-
-  if (!capabilities?.torch) {
-    console.warn('Torch is not supported by this camera')
-    return
-  }
-
-  const newTorchState = !this.torchOn
-
-  try {
-    await track.applyConstraints({
-      advanced: [{ torch: newTorchState }]
-    })
-
-    this.torchOn = newTorchState
-  } catch (err) {
-    console.error('Toggle torch failed:', err)
-  }
-},
     async processSendPageRedirection (value) {
       // redirect to send page
       const vm = this
@@ -561,13 +594,13 @@ async toggleTorch () {
           if (payProData.paypro.fungible) {
             query.fungible = payProData.paypro.fungible
           }
-          
+
           // If originalValue has query params, pass as paymentUrl to preserve all parameters
           const queryParams = originalValue?.includes('?')
           if (queryParams) {
             query.paymentUrl = originalValue
           }
-          
+
           this.$router.push({
             name: 'transaction-send',
             query
@@ -587,183 +620,505 @@ async toggleTorch () {
       return value.length === 58
         && value.substring(0, 2) === '6P'
         && isBase58
-    }
+    },
+
+    // mlkit methods
+    async checkCameraPermission(){
+      const { camera } = await BarcodeScanner.checkPermissions()
+      return camera
+    },
+
+    async requestCameraPermission(){
+      const { camera } = await BarcodeScanner.requestPermissions()
+      return camera
+    },
+
+    setBarcodeScannerActiveClass(){
+      document.documentElement.classList.add('barcode-scanner-active')
+      document.querySelector('body')?.classList.add('barcode-scanner-active');
+    },
+
+    removeBarcodeScannerActiveClass() {
+      document.querySelector('body')?.classList.remove('barcode-scanner-active');
+      document.documentElement.classList.remove('barcode-scanner-active');
+    },
+
+
+    async startScanner () {
+      
+      this.setBarcodeScannerActiveClass()
+      const cameraPermitted = await this.checkCameraPermission()
+      console.log('@init cameraPermitted', cameraPermitted)
+      if (cameraPermitted) {
+        
+        await BarcodeScanner.addListener(
+          'barcodeScanned',
+          async result => {
+            console.log('@barcodeScanned', result);
+            this.decodeQrCode([{ rawValue: result?.barcode?.rawValue }])
+          },
+        );
+
+        this.debugScannerLayers()
+        this.debugScannerOverlay()
+        
+        // Start the barcode scanner
+        await BarcodeScanner.startScan({ formats: [BarcodeFormat.QrCode]});
+
+      } else {
+        this.$q.notify({
+          message: vm.$t('CameraPermissionDenied'),
+          timeout: 800,
+          color: 'red-9',
+          icon: 'settings_alert'
+        })
+      }
+    },
+
+    async stopScanner() {
+      // Make all elements in the WebView visible again
+        document.querySelector('body')?.classList.remove('barcode-scanner-active');
+
+      // Remove all listeners
+      await BarcodeScanner.removeAllListeners();
+
+      // Stop the barcode scanner
+      await BarcodeScanner.stopScan();
+    },
+
+    async decodeQrCode(content) {
+      const normalizedValue = String(content[0]?.rawValue || '').trim().toLowerCase()
+      const isStreamingContent = normalizedValue.startsWith('ur:crypto-mofnwallet') || normalizedValue.startsWith('ur:crypto-psbt')
+      
+      if (!isStreamingContent) {
+        
+        await BarcodeScanner.removeAllListeners()
+        await BarcodeScanner.stopScan()
+        this.removeBarcodeScannerActiveClass()
+        this.decodeStaticQrCode(content) // Using Original Arg signature
+        
+      } else {
+        this.decodeAnimatedQrCode(content)
+      }
+    },
+
+    async decodeStaticQrCode (content) {
+      const vm = this
+      console.log('@barcode content', content)
+      if (!content || !content.length) {
+        vm.$q.notify({
+          message: vm.$t('UnidentifiedQRCode'),
+          timeout: 800,
+          color: 'red-9',
+          icon: 'mdi-qrcode-remove'
+        })
+        return
+      }
+
+      const rawValue = String(content[0]?.rawValue || '').trim()
+
+      let url
+      try {
+        url = new URL(rawValue)
+      } catch {}
+
+      // Only parse as prefixless address if content doesn't have query params
+      // Query params indicate BIP21 URI that needs full parsing
+      const addressValidation = !rawValue.includes('?') ? parseAddressWithoutPrefix(rawValue) : { valid: false }
+      const value = addressValidation?.valid ? addressValidation.address : rawValue
+
+      // Paytaca Explorer transaction URL (extract txid)
+      // Example: https://explorer.paytaca.com/tx/<txid>
+      const explorerTxMatch = String(value || '').match(/^(https?:\/\/)?explorer\.paytaca\.com\/tx\/([0-9a-fA-F]{64})/i)
+      if (explorerTxMatch) {
+        const txid = explorerTxMatch[2]
+        vm.$router.push({
+          name: 'transaction-list',
+          query: { txid }
+        })
+        vm.paused = false
+        return
+      }
+
+      if (value.includes('gifts.paytaca.com')) {
+        // redirect to gifts page
+        vm.$router.push({
+          name: 'claim-gift',
+          query: { code: value }
+        })
+        return
+      }
+
+      if (extractWifFromUrl(value)) {
+        vm.$router.push({
+          name: 'app-sweep',
+          query: { w: extractWifFromUrl(value) }
+        })
+        return
+      }
+
+      if (value.includes('bitcoincash:') || value.includes('bchtest:')) {
+        vm.processSendPageRedirection(value)
+        return
+      }
+
+      if (parseWalletConnectUri(value)) {
+        vm.$router.push({
+          name: 'app-wallet-connect',
+          query: { uri: value }
+        })
+        return
+      }
+
+      if (vm.checkifBIP38(value)) {
+        // redirect to sweep page for passphrase input
+        vm.$router.push({
+          name: 'app-sweep',
+          query: { w: '', bip38String: value }
+        })
+        return
+      }
+
+      if (value.toLowerCase().startsWith('wiz://')) {
+        vm.$router.push({
+          name: 'app-wizard-connect',
+          query: { uri: value }
+        })
+        return
+      }
+
+      if (
+        url &&
+        (url.host === 'paymenthub.paytaca.com' || url.host === 'chipnet.paymenthub.paytaca.com') &&
+        url.pathname.match('/plans')
+      ) {
+        const shortUuid = url.pathname.match('/plans/([A-Za-z0-9]+)/?')?.[1];
+        vm.$router.push({ name: 'payment-hub-subscriptions-index', query: { plan: shortUuid } })
+        return
+      }
+
+      // Check for Nostr / npub QR codes
+      const nostrMatch = String(value || '').match(/^(nostr:)?(npub1[a-z0-9]{58,})$/i)
+      if (nostrMatch) {
+        const npub = nostrMatch[2]
+        const backPath = vm.$route.query.backnavpath || '/apps/chat'
+        vm.$router.push({
+          path: backPath,
+          query: { npub }
+        })
+        return
+      }
+
+      if (!isStreaming && !vm.progress) {
+        vm.$q.notify({
+          message: vm.$t('UnidentifiedQRCode'),
+          timeout: 800,
+          color: 'red-9',
+          icon: 'mdi-qrcode-remove'
+        })
+      }
+
+      if (!isStreaming) {
+        vm.paused = false
+      }
+    },
+
+    async decodeAnimatedQrCode(content) {
+      if (!this.urDecoder) {
+        this.urDecoder = new URDecoder()
+      }
+      const normalizedValue = String(content[0]?.rawValue || '').trim().toLowerCase()
+
+      this.progress = this.urDecoder.estimatedPercentComplete()
+
+      let resultUR = null
+
+      if (!this.urDecoder.isComplete()) {
+        if (normalizedValue && normalizedValue === this.lastScannedContent) return 
+        this.urDecoder.receivePart(normalizedValue)
+        this.lastScannedContent = normalizedValue
+      } else {
+        this.paused = true 
+        resultUR = this.urDecoder.resultUR()
+        await BarcodeScanner.removeAllListeners()
+        this.removeBarcodeScannerActiveClass()
+      }
+
+      console.log('@barcode resultUR', resultUR)
+      console.log('@barcode this.urDecoder.isComplete()', this.urDecoder.isComplete())
+
+      if (normalizedValue.startsWith('ur:crypto-mofnwallet') && resultUR) {
+        const base64 = binToBase64(Buffer.from(resultUR.cbor, 'base64'))
+        const decoded = cborDecode(base64ToBin(base64))
+        const wallet = MultisigWallet.import(decoded)
+        
+        wallet.setStore(this.$store)
+        wallet.save()
+        
+        this.$router.push({
+          name: 'app-multisig-wallet-view',
+          params: { wallethash: wallet.getWalletHash() }
+        })
+      }
+
+      if (normalizedValue.startsWith('ur:crypto-psbt') && resultUR) {
+        const decodedData = Buffer.from(resultUR.cbor, 'base64')
+          const pst = Pst.import(binToBase64(decodedData))
+          const mValues = [...new Set(pst.inputs?.map(i => {
+            if (!i.redeemScript) return null;
+            return extractMValue(i.redeemScript)
+          }).filter(m => m))]
+
+          for (const m of mValues) {
+            const wallet = {
+              m,
+              signers: pst.wallet.signers
+            }
+            const walletHash = getWalletHash(wallet)
+            const foundWallet = this.$store.getters['multisig/getWalletByHash'](walletHash)
+            if (foundWallet) {
+              const canonicalPsbt = this.$store.getters['multisig/getPsbtByUnsignedTransactionHash'](pst.unsignedTransactionHash)
+              if (canonicalPsbt) {
+                const canonicalPst = Pst.import(canonicalPsbt)
+                canonicalPst.combine([pst])
+                canonicalPst.setStore(this.$store)
+                canonicalPst.save()
+              } else {
+                pst.setStore(this.$store)
+                pst.save()
+              }                
+              this.$router.push({
+                name: 'app-multisig-wallet-pst-view',
+                params: { 
+                  wallethash: walletHash,
+                  unsignedtransactionhash: pst.unsignedTransactionHash 
+                }
+              })
+              return
+            }
+
+            this.$q.notify({
+              message: this.$t('WalletNotFound'),
+              timeout: 800,
+              color: 'red-9',
+              icon: 'mdi-qrcode-remove'
+            })
+          }
+      }
+    },
+
+    async applyZoom(value){
+      try {
+       // Pass the calculated float scale straight to native Capawesome engine
+        await BarcodeScanner.setZoomRatio({ zoomRatio: value })
+      } catch (error) {
+        console.error('Failed to change native hardware zoom level:', error)
+      }
+    },
+
+    zoomIn() {
+      if (this.zoomLevel < MAX_ZOOM) {
+        this.zoomLevel = Math.min(this.zoomLevel + ZOOM_STEP, MAX_ZOOM)
+        this.applyZoom(this.zoomLevel)
+      }
+    },
+
+    zoomOut() {
+      if (this.zoomLevel > MIN_ZOOM) {
+        this.zoomLevel = Math.max(this.zoomLevel - ZOOM_STEP, MIN_ZOOM)
+        this.applyZoom(this.zoomLevel)
+      }
+    },
+
+    async toggleTorch(){
+      if (await BarcodeScanner.isTorchAvailable()) {
+        await BarcodeScanner.toggleTorch()
+        this.torchOn = await BarcodeScanner.isTorchEnabled()
+      }
+    } 
   },
 
-  deactivated () {
-    this.stopScan()
+  async mounted () {
+    const vm = this
+    // vm.urDecoder = new URDecoder()
+    // if (vm.decode) {
+    //   vm.onQRDecode([{ rawValue: vm.decode }])
+    // } else if (vm.isMobile) {
+    //   vm.prepareScanner()
+    // }
+
+    vm.hideFooter = vm.$route.query.hideFooter
+    vm.hideGenerateQR = vm.$route.query.hideGenerateQR
+    vm.hideUploadQR = vm.$route.query.hideUploadQR
+
+    // mlkit
+    // const { available } =
+    //   await BarcodeScanner.isGoogleBarcodeScannerModuleAvailable()
+    // if (!available) {
+    //   await BarcodeScanner.installGoogleBarcodeScannerModule()
+    // }
+
+    
+    this.setBarcodeScannerActiveClass()
+
+    if (this.decode) {
+      return await this.decodeQrCode(decode)
+    }
+
+    await this.startScanner()
+    
+    
   },
+
+  // deactivated () {
+  //   this.stopScan()
+  // },
 
   beforeUnmount () {
-    this.stopScan()
-  },
-
-  mounted () {
-    this.prepareScanner();
-    this.urDecoder = new URDecoder() // Extra safety net
-    this.hideFooter = this.$route.query.hideFooter
-    this.hideGenerateQR = this.$route.query.hideGenerateQR
-    this.hideUploadQR = this.$route.query.hideUploadQR
+    // this.stopScan()
+    this.stopScanner()
   }
 }
 </script>
 
 <style lang="scss" scoped>
-#qr-reader-body {
-  background: transparent;
-  position: relative !important;
-  display: flex;
-  flex-direction: column;
-  min-height: 100vh;
-}
+  #qr-reader-body {
+    background: transparent;
+    position: relative !important;
+    display: flex;
+    flex-direction: column;
+    min-height: 100vh;
+  }
+  .scanner-error-dialog {
+    border-radius: 15px;
+    margin-top: 20%;
+    margin-bottom: 20%;
+    margin-left: auto;
+    margin-right: auto;
+    width: 220px;
+    max-width: 90vw;
+  }
+  
+  .scanner-text {
+    position: absolute;
+    bottom: -30px;
+    color: white;
+    z-index: 1000;
+  }
 
-.scanner-error-dialog {
-  border-radius: 15px;
-  margin-top: 20%;
-  margin-bottom: 20%;
-  margin-left: auto;
-  margin-right: auto;
-  width: 220px;
-  max-width: 90vw;
-}
+  .scanner-box {
+    position: relative !important;
+    display: flex !important;
+    height: 220px !important;
+    width: 220px !important;
+    border-radius: 16% !important;
+    box-shadow: 0px 0px 0px 1000px rgba(0, 0, 0, 0.6);
+    vertical-align: middle;
+    z-index: 1000 !important; // ABOVE the camera
+    align-self: center;
+    margin-left: auto;
+    margin-right: auto;
+    margin-top: 15vh;
+  }
 
-.qr-stream {
-  position: fixed !important;
-  z-index: -1 !important;
-}
-
-// .qr-stream :deep(video) {
-//   width: 100vw !important;
-//   height: 100vh !important;
-//   object-fit: cover !important;
-// }
-
-.scanner-text {
-  position: absolute;
-  bottom: -30px;
-  color: white;
-  z-index: 1000;
-}
-
-.scanner-box {
-  position: relative !important;
-  display: flex !important;
-  height: 220px !important;
-  width: 220px !important;
-  border-radius: 16% !important;
-  box-shadow: 0px 0px 0px 1000px rgba(0, 0, 0, 0.6);
-  vertical-align: middle;
-  z-index: -1 !important;
-  align-self: center;
-  margin-left: auto;
-  margin-right: auto;
-  margin-top: 15vh;
-}
-
-.scan-design1 {
-  position: absolute;
-  height: 24px;
-  width: 24px;
-  left: 10px;
-  top: 10px;
-  overflow: hidden;
-}
-
-.line-design1 {
-  height: 150px;
-  width: 150px;
-  border: 3px solid var(--scanner-border, #3b7bf6);
-  border-radius: 15%;
-}
-
-.scan-design2 {
-  position: absolute;
-  height: 24px;
-  width: 24px;
-  right: 10px;
-  top: 10px;
-  overflow: hidden;
-}
-
-.line-design2 {
-  position: absolute;
-  height: 150px;
-  width: 150px;
-  right: 0px;
-  top: 0px;
-  border: 3px solid var(--scanner-border, #3b7bf6);
-  border-radius: 15%;
-}
-
-.scan-design3 {
-  position: absolute;
-  height: 24px;
-  width: 24px;
-  right: 10px;
-  bottom: 10px;
-  overflow: hidden;
-}
-
-.line-design3 {
-  position: absolute;
-  height: 150px;
-  width: 150px;
-  right: 0px;
-  bottom: 0px;
-  border: 3px solid var(--scanner-border, #3b7bf6);
-  border-radius: 15%;
-}
-
-.scan-design4 {
-  position: absolute;
-  height: 24px;
-  width: 24px;
-  left: 10px;
-  bottom: 10px;
-  overflow: hidden;
-}
-
-.line-design4 {
-  position: absolute;
-  height: 150px;
-  width: 150px;
-  left: 0px;
-  bottom: 0px;
-  border: 3px solid var(--scanner-border, #3b7bf6);
-  border-radius: 15%;
-}
-
-.scanner-bottom-controls {
-  position: fixed;
-  bottom: max(24px, env(safe-area-inset-bottom, 24px));
-  left: 50%;
-  transform: translateX(-50%);
-  display: flex;
-  align-items: center;
-  z-index: 2022;
-}
-
-.scanner-zoom-controls {
-  display: flex;
-  flex-direction: row;
-  align-items: center;
-  background: rgba(0, 0, 0, 0.5);
-  border-radius: 24px;
-  padding: 6px 10px;
-}
-
-.scanner-torch-control {
-  display: flex;
-  flex-direction: row;
-  align-items: center;
-  background: rgba(0, 0, 0, 0.5);
-  border-radius: 24px;
-  padding: 6px 10px;
-}
+  .scan-design1 {
+    position: absolute;
+    height: 24px;
+    width: 24px;
+    left: 10px;
+    top: 10px;
+    overflow: hidden;
+  }
+  .line-design1 {
+    height: 150px;
+    width: 150px;
+    border: 3px solid var(--scanner-border, #3b7bf6);
+    border-radius: 15%;
+  }
+  .scan-design2 {
+    position: absolute;
+    height: 24px;
+    width: 24px;
+    right: 10px;
+    top: 10px;
+    overflow: hidden;
+  }
+  .line-design2 {
+    position: absolute;
+    height: 150px;
+    width: 150px;
+    right: 0px;
+    top: 0px;
+    border: 3px solid var(--scanner-border, #3b7bf6);
+    border-radius: 15%;
+  }
+  .scan-design3 {
+    position: absolute;
+    height: 24px;
+    width: 24px;
+    right: 10px;
+    bottom: 10px;
+    overflow: hidden;
+  }
+  .line-design3 {
+    position: absolute;
+    height: 150px;
+    width: 150px;
+    right: 0px;
+    bottom: 0px;
+    border: 3px solid var(--scanner-border, #3b7bf6);
+    border-radius: 15%;
+  }
+  .scan-design4 {
+    position: absolute;
+    height: 24px;
+    width: 24px;
+    left: 10px;
+    bottom: 10px;
+    overflow: hidden;
+  }
+  .line-design4 {
+    position: absolute;
+    height: 150px;
+    width: 150px;
+    left: 0px;
+    bottom: 0px;
+    border: 3px solid var(--scanner-border, #3b7bf6);
+    border-radius: 15%;
+  }
+  .scanner-bottom-controls {
+    position: fixed;
+    bottom: max(24px, env(safe-area-inset-bottom, 24px));
+    left: 50%;
+    transform: translateX(-50%);
+    display: flex;
+    align-items: center;
+    z-index: 2022;
+  }
+  .scanner-zoom-controls {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    background: rgba(0, 0, 0, 0.5);
+    border-radius: 24px;
+    padding: 6px 10px;
+  }
+  .scanner-torch-control {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    background: rgba(0, 0, 0, 0.5);
+    border-radius: 24px;
+    padding: 6px 10px;
+  }
 </style>
 
 <style lang='scss'>
-.transparent-body {
-  background: transparent !important;
-}
+  html.barcode-scanner-active,
+  body.barcode-scanner-active,
+  body.barcode-scanner-active #q-app,
+  body.barcode-scanner-active .q-layout,
+  body.barcode-scanner-active .q-page {
+    background: transparent !important;
+  }
 </style>
