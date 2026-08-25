@@ -1,6 +1,6 @@
 <template>
   <div id="qr-reader-body" :class="getDarkModeClass(darkMode)">
-    <header-nav :title="$t('QRReader')" :backnavpath="`${ $route.query.backnavpath || '/' }`" />
+    <header-nav :title="$t('QRReader')" :backnavpath="`${ $route.query.backnavpath || '/' }`" style="z-index: 1000;"/>
     <QRUploader ref="qr-upload" @detect-upload="decodeQrCode" />
     <div v-if="error" class="scanner-error-dialog text-center bg-red-1 text-red q-pa-lg">
       <q-icon name="error" left/>
@@ -79,7 +79,7 @@
         </q-linear-progress>
       </div>
 
-      <div class="q-mt-xl row items-center justify-around">
+      <div class="q-mt-xl row items-center justify-around" style="z-index: 1000;">
         <div v-if="!hideGenerateQR" class="column flex flex-center">
           <q-btn
             round
@@ -183,94 +183,7 @@ export default {
   },
 
   methods: {
-  debugScannerLayers () {
-  const selectors = [
-    '#qr-reader-body',
-    '#q-app',
-    '.q-layout',
-    '.q-page-container',
-    '.q-page',
-    '.q-drawer',
-    'body',
-    'html'
-  ]
 
-  console.group('📷 SCANNER LAYER DEBUG')
-
-  selectors.forEach(selector => {
-    const el = document.querySelector(selector)
-
-    if (!el) {
-      console.log(`❌ ${selector}: NOT FOUND`)
-      return
-    }
-
-    const style = window.getComputedStyle(el)
-    const rect = el.getBoundingClientRect()
-
-    console.log(`🔍 ${selector}`, {
-      element: el,
-
-      // Background
-      backgroundColor: style.backgroundColor,
-      backgroundImage: style.backgroundImage,
-
-      // Visibility
-      opacity: style.opacity,
-      visibility: style.visibility,
-      display: style.display,
-
-      // Layering
-      zIndex: style.zIndex,
-      position: style.position,
-
-      // Size / position
-      rect: {
-        left: rect.left,
-        top: rect.top,
-        width: rect.width,
-        height: rect.height,
-        right: rect.right,
-        bottom: rect.bottom
-      },
-
-      // Other potentially relevant properties
-      overflow: style.overflow,
-      transform: style.transform,
-      isolation: style.isolation,
-      pointerEvents: style.pointerEvents
-    })
-  })
-
-  console.groupEnd()
-},
-debugScannerOverlay () {
-  const x = window.innerWidth / 2
-  const y = window.innerHeight / 2
-
-  const elements = document.elementsFromPoint(x, y)
-
-  console.group('📷 SCANNER OVERLAY')
-
-  elements.forEach((el, index) => {
-    const style = window.getComputedStyle(el)
-
-    console.log(index, {
-      element: el,
-      background: style.backgroundColor,
-      opacity: style.opacity,
-      zIndex: style.zIndex,
-      position: style.position
-    })
-
-    // Give each layer a temporary outline
-    el.style.outline = `3px solid ${
-      index === 0 ? 'red' : 'yellow'
-    }`
-  })
-
-  console.groupEnd()
-},
     getDarkModeClass,
 
     normalizeUrContent (value = '') {
@@ -446,25 +359,17 @@ debugScannerOverlay () {
 
 
     async startScanner () {
-      const vm = this
-      
       this.setBarcodeScannerActiveClass()
       const cameraPermitted = await this.checkCameraPermission()
-      console.log('@init cameraPermitted', cameraPermitted)
       if (cameraPermitted) {
         
         await BarcodeScanner.addListener(
           'barcodeScanned',
           async result => {
-            console.log('@barcodeScanned', result);
             this.decodeQrCode([{ rawValue: result?.barcode?.rawValue }])
           },
         );
 
-        this.debugScannerLayers()
-        this.debugScannerOverlay()
-        
-        // Start the barcode scanner
         await BarcodeScanner.startScan({ formats: [BarcodeFormat.QrCode]});
 
       } else {
@@ -509,7 +414,6 @@ debugScannerOverlay () {
 
     async decodeStaticQrCode (content) {
       const vm = this
-      console.log('@barcode content', content)
       if (!content || !content.length) {
         vm.$q.notify({
           message: vm.$t('UnidentifiedQRCode'),
@@ -644,9 +548,6 @@ debugScannerOverlay () {
         await BarcodeScanner.removeAllListeners()
         this.removeBarcodeScannerActiveClass()
       }
-
-      console.log('@barcode resultUR', resultUR)
-      console.log('@barcode this.urDecoder.isComplete()', this.urDecoder.isComplete())
 
       if (normalizedValue.startsWith('ur:crypto-mofnwallet') && resultUR) {
         const base64 = binToBase64(Buffer.from(resultUR.cbor, 'base64'))
