@@ -142,6 +142,7 @@ import {
   base64ToHex,
 } from 'src/wallet/nostr-media'
 import { clearChatCache } from 'src/utils/chat-cache'
+import { applyFileMarkupToMessage } from 'src/utils/chat-markup'
 import { Store } from 'src/store'
 
 const isDev = process.env.NODE_ENV !== 'production'
@@ -1494,7 +1495,7 @@ export async function fetchRooms ({ commit, dispatch, state }) {
   }
 }
 
-async function syncRoomToServer (room) {
+export async function syncRoomToServer (room) {
   try {
     const walletHash = getCurrentWalletHash()
     if (!walletHash) { debug('syncRoomToServer: no wallet hash'); return }
@@ -1520,7 +1521,7 @@ async function syncRoomToServer (room) {
   }
 }
 
-async function updateRoomOnServer (roomId, fields) {
+export async function updateRoomOnServer (roomId, fields) {
   try {
     const walletHash = getCurrentWalletHash()
     if (!walletHash) { debug('updateRoomOnServer: no wallet hash'); return }
@@ -1538,7 +1539,7 @@ async function updateRoomOnServer (roomId, fields) {
   }
 }
 
-async function touchRoomOnServer (roomId, timestamp) {
+export async function touchRoomOnServer (roomId, timestamp) {
   try {
     const walletHash = getCurrentWalletHash()
     if (!walletHash) { debug('touchRoomOnServer: no wallet hash'); return }
@@ -1552,7 +1553,7 @@ async function touchRoomOnServer (roomId, timestamp) {
   }
 }
 
-async function deleteRoomOnServer (roomId) {
+export async function deleteRoomOnServer (roomId) {
   try {
     const walletHash = getCurrentWalletHash()
     if (!walletHash) { debug('deleteRoomOnServer: no wallet hash'); return }
@@ -1940,7 +1941,7 @@ export async function updateRoomSubject ({ commit }, { roomId, subject }) {
   await updateRoomOnServer( roomId, { subject })
 }
 
-export async function touchRoom ({ dispatch }, { roomId, timestamp } = {}) {
+export async function touchRoom ({ dispatch, state }, { roomId, timestamp } = {}) {
   await touchRoomOnServer(roomId, timestamp)
 }
 
@@ -1965,6 +1966,11 @@ export async function seedRoomsFromMessages ({ commit, dispatch, state }) {
 
   for (const roomId of Object.keys(ws.messages)) {
     if (existingRoomIds.has(roomId)) continue
+    // Never seed MLS group rooms as DMs: their messages live under the MLS
+    // room's UUID, and a 2-member group looks exactly like a DM here (one
+    // other sender). Seeding would create/overwrite the Watchtower room with
+    // type 'private', clobbering the correct 'mls-group' metadata.
+    if (ws.mls?.roomMlsMap?.[roomId]) continue
     const msgs = ws.messages[roomId]
     if (!msgs || !msgs.length) continue
 
@@ -2041,7 +2047,7 @@ export async function sendDeleteMessage ({ state }, { roomId, messageId }) {
  * @param {string} [payload.replyTo] - Optional message ID being replied to
  * @returns {Promise<{ giftWraps: any[], message: any, roomId: string }>}
  */
-export async function sendFileMessage ({ state }, { roomId, file, replyTo, onProgress, signal }) {
+export async function sendFileMessage ({ state, dispatch }, { roomId, file, replyTo, onProgress, signal }) {
   const ws = getWalletState(state)
   const room = ws.rooms.find(r => r.id === roomId)
   if (!room) throw new Error('Room not found')
@@ -2110,6 +2116,33 @@ export async function sendFileMessage ({ state }, { roomId, file, replyTo, onPro
   })
 
   if (onProgress) onProgress(0.9)
+
+  // MLS groups: the file is already uploaded encrypted; deliver the decryption
+  // metadata as a single MLS group message instead of per-member NIP-17 gift
+  // wraps (which would arrive as DMs).
+  if (room.type === 'mls-group') {
+    const parts = [
+      't:file',
+      `u:${fileUrl}`,
+      `h:${hash}`,
+      `k:${aesKeyHex}`,
+      `n:${nonceHex}`,
+      `m:${mimeType}`,
+      `nm:${encodeURIComponent(file.name)}`,
+      `sz:${file.size}`,
+    ]
+    if (imageWidth) parts.push(`w:${imageWidth}`)
+    if (imageHeight) parts.push(`ht:${imageHeight}`)
+    if (thumbUrl && thumbAesKeyHex && thumbNonceHex) {
+      parts.push(`tu:${thumbUrl}`, `tk:${thumbAesKeyHex}`, `tn:${thumbNonceHex}`)
+    }
+    const text = `[/*${parts.join(',')}*/]`
+    const res = await dispatch('sendMlsMessage', { roomId, text })
+    const message = applyFileMarkupToMessage(res.message)
+    if (onProgress) onProgress(1)
+    return { giftWraps: [], message, roomId }
+  }
+
   const kind15Event = createKind15FileMessage({
     senderPubKey,
     members: memberHexes,
@@ -2784,6 +2817,13 @@ export function subscribeToRelays ({ state, dispatch, commit }) {
   dispatch('fetchBlocks').catch(() => {})
 
   dispatch('startActiveServices')
+
+  // Kick off MLS group chat (fire-and-forget — if MLS crypto or key
+  // derivation fails, MLS features will be unavailable but the existing
+  // NIP-17 chat continues to work unaffected).
+  dispatch('initMls').catch(err => {
+    console.error('[MLS] initMls failed:', err?.message || err)
+  })
 
   return sub
 }

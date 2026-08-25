@@ -2557,6 +2557,8 @@ export default {
       let url = `/apps/chat/${this.chatRoomId}?tipTxid=${txid}&tipAmount=${amount}&tipSymbol=${symbol}`
       if (logo) url += `&tipLogo=${encodeURIComponent(logo)}`
       if (assetId && assetId.startsWith('ct/')) url += `&tipAssetId=${assetId.replace('ct/', '')}`
+      const tipRecipient = this.$route.query?.tipRecipient
+      if (tipRecipient) url += `&tipRecipient=${encodeURIComponent(tipRecipient)}`
       this.$router.replace(url)
     },
     /**

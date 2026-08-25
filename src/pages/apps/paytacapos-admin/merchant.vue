@@ -824,8 +824,7 @@ async function deviceUnlinkRequest(posDevice) {
       if (skip) return { skip }
       dialog.update({ message: $t('CreatingUnlinkDeviceRequest', {}, 'Creating unlink device request') })
       const data = { nonce, signature }
-      const watchtower = new Watchtower()
-      const response = await watchtower.BCH._api.post(`paytacapos/devices/${posDevice.walletHash}:${posDevice.posid}/unlink_device/request/`, data)
+      const response = await posBackend.post(`paytacapos/devices/${posDevice.walletHash}:${posDevice.posid}/unlink_device/request/`, data, { authorize: true })
       syncPosDevice(parsePosDeviceData(response?.data))
       dialog.update({
         title: $t('UnlinkDeviceRequestCreated', {}, 'Unlink device request created'),
@@ -862,8 +861,7 @@ function confirmCancelUnlinkPosDevice(posDevice) {
     })
 
   const handle = `${posDevice?.walletHash}:${posDevice?.posid}`
-  const watchtower = new Watchtower()
-  watchtower.BCH._api.post(`paytacapos/devices/${handle}/unlink_device/cancel/`)
+  posBackend.post(`paytacapos/devices/${handle}/unlink_device/cancel/`, null, { authorize: true })
     .then(response => {
       syncPosDevice(parsePosDeviceData(response?.data))
       dialog.update({ message: $t('UnlinkRequestCancelled', {}, 'Unlink request cancelled') })

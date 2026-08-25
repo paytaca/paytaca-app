@@ -3,7 +3,7 @@
     id="app-container"
     class="sticky-header-container text-bow column"
     :class="getDarkModeClass(darkMode)"
-    @click="hideContextMenu"
+    @click="onRootClick"
   >
     <header-nav
       class="apps-header"
@@ -320,7 +320,7 @@
 
     <!-- Member: messages scroll area -->
     <template v-if="isRoomMember">
-      <div ref="messagesContainer" class="messages-scroll-area col scroll" @click="hideContextMenu" @scroll="onMessagesScroll">
+      <div ref="messagesContainer" class="messages-scroll-area col scroll" @click="onMessagesClick" @scroll="onMessagesScroll">
         <div v-if="displayedMessages.length === 0" class="empty-conversation">
           <div class="empty-illustration">
             <q-icon name="chat_bubble_outline" size="64px" />
@@ -358,7 +358,7 @@
             <message-bubble
               :message="msg"
               :my-pub-key="myPubKey"
-              :show-sender-name="room?.type === 'group'"
+              :show-sender-name="isGroupRoom"
               :contacts="contacts"
               :display-names="memberDisplayNames"
               :is-read="messageReadMap[msg.id] || false"
@@ -368,10 +368,12 @@
               :is-replying="replyToMessage?.id === msg.id"
               :reactions="getMessageReactions(msg.id)"
               :is-selected="selectedMessageId === msg.id"
+              :text-selectable="isContextMenuOpen && selectedMessageId === msg.id"
               @context-menu="openMessageMenu"
               @remove-reaction="onRemoveReaction"
               @scroll-to-message="scrollToMessage"
               @open-transaction="onOpenTransaction"
+              @retry-message="onRetryFailedMessage"
             />
           </div>
         </div>
@@ -592,6 +594,10 @@ export default {
   components: { HeaderNav, MessageBubble, ChatInput },
   props: {
     roomId: { type: String, required: true },
+    // Room type hint from the URL (?type=mls-group|group|private). Used as a
+    // fallback so the conversation can be handled correctly (e.g. MLS send
+    // routing) before/without the full room object being in the store.
+    type: { type: String, default: null },
   },
   data () {
     return {
@@ -655,7 +661,18 @@ export default {
           members: this._previewMembers,
         }
       }
+      if (this.type) {
+        return {
+          id: this.roomId,
+          type: this.type,
+          name: this._previewName || 'Group',
+          members: [],
+        }
+      }
       return null
+    },
+    isMlsRoom () {
+      return (this.room?.type || this.type) === 'mls-group'
     },
     isRoomMember () {
       if (!this.room || !this.myPubKey) return false
@@ -711,7 +728,7 @@ export default {
       return this.$store.getters['nostrChat/isGroupBlocked'](this.roomId)
     },
     isGroupRoom () {
-      return this.room?.type === 'group'
+      return this.room?.type === 'group' || this.room?.type === 'mls-group'
     },
     otherMemberIsActive () {
       const pk = this.otherMemberPubKey
@@ -759,7 +776,7 @@ export default {
       const room = this.room
       if (!room) return this.$t('Chat', {}, 'Chat')
       // Group rooms: use room.name directly
-      if (room.type === 'group') {
+      if (room.type === 'group' || room.type === 'mls-group') {
         return room.name || room.subject || this.$t('Group', {}, 'Group')
       }
       // DM: if a subject has been set, prefer it over the contact name
@@ -872,7 +889,7 @@ export default {
       const map = {}
       const myPubKey = this.myPubKey
       const room = this.room
-      if (!room || !myPubKey || room.type !== 'group') return map
+      if (!room || !myPubKey || (room.type !== 'group' && room.type !== 'mls-group')) return map
 
       const readBy = this.$store.getters['nostrChat/getMessageReadBy'](this.roomId)
 
@@ -1088,7 +1105,6 @@ export default {
     }
     document.addEventListener('visibilitychange', this.onVisibilityChange)
     document.addEventListener('pointerdown', this.onDocumentPointerDown)
-    document.addEventListener('pointerup', this.onDocumentPointerUp)
     if (window.visualViewport) {
       window.visualViewport.addEventListener('resize', this.onViewportResize)
       window.visualViewport.addEventListener('scroll', this.onViewportResize)
@@ -1201,7 +1217,6 @@ export default {
     if (this._vpRaf) { cancelAnimationFrame(this._vpRaf); this._vpRaf = null }
     document.removeEventListener('visibilitychange', this.onVisibilityChange)
     document.removeEventListener('pointerdown', this.onDocumentPointerDown)
-    document.removeEventListener('pointerup', this.onDocumentPointerUp)
     if (window.visualViewport) {
       window.visualViewport.removeEventListener('resize', this.onViewportResize)
       window.visualViewport.removeEventListener('scroll', this.onViewportResize)
@@ -1342,7 +1357,9 @@ export default {
     ensureSubscribed () {
       // Always ensure we have an active subscription,
       // especially after the tab has been backgrounded.
-      if (!this.$store.getters['nostrChat/isInitialized']) {
+      // isInitialized is persisted, but privKeyHex is stripped from persisted
+      // state for security — it must be restored by initialize first.
+      if (!this.$store.getters['nostrChat/isInitialized'] || !this.$store.getters['nostrChat/myPrivKey']) {
         return this.$store.dispatch('nostrChat/initialize').then(() => {
           return this.$store.dispatch('nostrChat/subscribeToRelays')
         })
@@ -1475,17 +1492,13 @@ export default {
       this.contextMessage = message
       this.selectedMessageId = message.id
 
-      const sel = window.getSelection()
-      const hasSelection = sel && !sel.isCollapsed
-      if (hasSelection) {
-        const msgEl = sel.anchorNode?.parentElement?.closest?.('[data-msg-id]')
-        if (!msgEl || msgEl.dataset.msgId !== message.id) {
-          sel.removeAllRanges()
-        }
-      }
-      const finalSel = window.getSelection()
-      this.hasTextSelection = finalSel && !finalSel.isCollapsed
-      this.selectedText = this.hasTextSelection ? finalSel.toString().trim() : ''
+      // The initial long-press / right-click must not highlight any text —
+      // it only opens the context menu. Clear any leftover selection so the
+      // menu always starts in its full state; a new selection made while the
+      // menu is open swaps it to copy/quote.
+      window.getSelection()?.removeAllRanges()
+      this.hasTextSelection = false
+      this.selectedText = ''
 
       this.$nextTick(async () => {
         const msgElement = document.getElementById('msg-' + message.id)
@@ -1494,27 +1507,35 @@ export default {
           return
         }
 
-        const msgRect = msgElement.getBoundingClientRect()
         const menuMargin = 12
-        const padding = 16
         const estimatedMenuHeight = this.hasTextSelection ? 140 : 340
-        const spaceBelow = window.innerHeight - msgRect.bottom
+        let msgRect = msgElement.getBoundingClientRect()
 
-        let scrollNeeded = 0
-        if (spaceBelow < estimatedMenuHeight + menuMargin) {
-          scrollNeeded = estimatedMenuHeight + menuMargin - spaceBelow + padding
+        // If the menu doesn't fit below the bubble (bubble near the message
+        // input), raise the bubble by scrolling the list so the menu can sit
+        // below it without overlapping the bubble.
+        const container = this.$refs.messagesContainer
+        const spaceBelow = this._spaceBelowBubble(msgRect)
+        if (spaceBelow < estimatedMenuHeight + menuMargin && container) {
+          const scrollNeeded = estimatedMenuHeight + menuMargin - spaceBelow + 16
+          const startTop = container.scrollTop
+          const targetTop = Math.min(startTop + scrollNeeded, container.scrollHeight - container.clientHeight)
+          if (targetTop > startTop) {
+            // Smooth scrolling of a plain div is not reliably supported in
+            // mobile WebViews, so if the scroll never starts we jump straight
+            // to the target. Either way the bubble ends up raised and the
+            // menu can sit below it.
+            try {
+              container.scrollTo({ top: targetTop, behavior: 'smooth' })
+            } catch (e) {
+              container.scrollTop = targetTop
+            }
+            await this._awaitScrollSettled(container, targetTop, startTop)
+            msgRect = msgElement.getBoundingClientRect()
+          }
         }
 
-        const isMine = message.sender === this.myPubKey
-
-        if (scrollNeeded > 0 && this.$refs.messagesContainer) {
-          this.$refs.messagesContainer.scrollBy({ top: scrollNeeded, behavior: 'smooth' })
-          await new Promise(r => setTimeout(r, 250))
-          const newRect = msgElement.getBoundingClientRect()
-          this.positionContextMenu(newRect, isMine, menuMargin, estimatedMenuHeight)
-        } else {
-          this.positionContextMenu(msgRect, isMine, menuMargin, estimatedMenuHeight)
-        }
+        this.positionContextMenu(msgRect, message.sender === this.myPubKey, menuMargin, estimatedMenuHeight)
 
         this.showContextMenuDialog = true
         this.isContextMenuOpen = true
@@ -1522,24 +1543,76 @@ export default {
         setTimeout(() => { this._ignoreNextPointerDown = false }, 350)
 
         this._startWatchingSelection(message.id)
+
+        // Re-anchor the menu to the bubble using its real rendered height —
+        // the estimate used for the initial position may differ, which would
+        // otherwise leave the menu floating too high above the bubble.
+        this.$nextTick(() => {
+          this._repositionContextMenu()
+        })
+      })
+    },
+    // Usable space below the bubble, reserving room for the chat input so the
+    // menu never sits on top of it.
+    _spaceBelowBubble (msgRect) {
+      const inputEl = this.$refs.chatInput?.$el
+      const inputH = inputEl ? inputEl.offsetHeight : 64
+      return window.innerHeight - msgRect.bottom - inputH - 16
+    },
+    _awaitScrollSettled (el, targetTop, startTop) {
+      return new Promise(resolve => {
+        const begin = Date.now()
+        const tick = () => {
+          if (Math.abs(el.scrollTop - targetTop) <= 1) {
+            resolve()
+            return
+          }
+          // Smooth scroll never started (unsupported on this WebView) —
+          // jump straight to the target so the menu position is correct.
+          if (Date.now() - begin > 60 && Math.abs(el.scrollTop - startTop) <= 1) {
+            el.scrollTop = targetTop
+            resolve()
+            return
+          }
+          if (Date.now() - begin > 1200) {
+            resolve()
+            return
+          }
+          requestAnimationFrame(tick)
+        }
+        tick()
       })
     },
     positionContextMenu (msgRect, isMine, margin, menuHeight = 340) {
       const menuWidth = 200
       const padding = 16
-      let top = msgRect.bottom + margin
       let left = Math.max(padding, msgRect.left)
 
       if (isMine) {
         left = Math.max(padding, msgRect.right - menuWidth)
       }
 
-      if (top + menuHeight > window.innerHeight - padding) {
-        top = window.innerHeight - menuHeight - padding
+      // Prefer placing the menu below the bubble. When there is not enough
+      // room (bubble near the message input), flip it above so the context
+      // menu never overlays the message bubble itself.
+      const spaceBelow = this._spaceBelowBubble(msgRect)
+      const spaceAbove = msgRect.top - padding
+      let top
+      if (menuHeight <= spaceBelow) {
+        top = msgRect.bottom + margin
+      } else if (menuHeight <= spaceAbove) {
+        top = msgRect.top - menuHeight - margin
+      } else {
+        // Neither side fully fits — use the side with the most room.
+        top = spaceAbove >= spaceBelow
+          ? Math.max(padding, msgRect.top - menuHeight - margin)
+          : msgRect.bottom + margin
       }
-      if (left + menuWidth + padding > window.innerWidth) {
-        left = window.innerWidth - menuWidth - padding
-      }
+
+      const inputEl = this.$refs.chatInput?.$el
+      const inputH = inputEl ? inputEl.offsetHeight : 64
+      top = Math.min(Math.max(top, padding), window.innerHeight - inputH - menuHeight - padding)
+      left = Math.min(Math.max(left, padding), window.innerWidth - menuWidth - padding)
 
       this.contextMenuStyle = {
         position: 'fixed',
@@ -1570,6 +1643,7 @@ export default {
           if (this.hasTextSelection) {
             this.hasTextSelection = false
             this.selectedText = ''
+            this._repositionContextMenu()
           }
           return
         }
@@ -1580,10 +1654,23 @@ export default {
           if (text && text !== this.selectedText) {
             this.hasTextSelection = true
             this.selectedText = text
+            this._repositionContextMenu()
           }
         }
       }
       document.addEventListener('selectionchange', this._selectionChangeHandler)
+    },
+    // Recompute the menu position when its content changes height (full menu
+    // <-> copy/quote) so it stays anchored to the message bubble. Uses the
+    // real rendered menu height so it never floats far from the bubble.
+    _repositionContextMenu () {
+      if (!this.contextMessage) return
+      const msgElement = document.getElementById('msg-' + this.contextMessage.id)
+      const menuEl = this.$refs.contextMenuEl
+      if (!msgElement || !menuEl) return
+      const msgRect = msgElement.getBoundingClientRect()
+      const menuHeight = menuEl.offsetHeight || (this.hasTextSelection ? 140 : 340)
+      this.positionContextMenu(msgRect, this.contextMessage.sender === this.myPubKey, 12, menuHeight)
     },
     _stopWatchingSelection () {
       if (this._selectionChangeHandler) {
@@ -1596,8 +1683,25 @@ export default {
       this._stopWatchingSelection()
       this.showContextMenuDialog = false
       this.isContextMenuOpen = false
+      this.hasTextSelection = false
       this.selectedText = ''
       this.selectedMessageId = null
+      const sel = window.getSelection()
+      if (sel && !sel.isCollapsed && sel.rangeCount > 0) sel.removeAllRanges()
+    },
+    onMessagesClick (e) {
+      this.onRootClick(e)
+    },
+    onRootClick (e) {
+      // Clicks inside the message whose context menu is open must not dismiss
+      // the menu — the user may be clicking to position or complete a text
+      // selection. This guards both the messages container and the root
+      // app-container, since the click bubbles up through both.
+      if (this.selectedMessageId && this.isContextMenuOpen) {
+        const msgEl = document.getElementById('msg-' + this.selectedMessageId)
+        if (msgEl && msgEl.contains(e.target)) return
+      }
+      this.hideContextMenu()
     },
     onDocumentPointerDown (e) {
       if (this._ignoreNextPointerDown) {
@@ -1630,69 +1734,6 @@ export default {
         return
       }
     },
-    onDocumentPointerUp (e) {
-      if (e.button !== 0) return
-      if (this.isContextMenuOpen) return
-      if (this.isMobileDevice()) return
-      const sel = window.getSelection()
-      if (!sel || sel.isCollapsed) return
-      const msgEl = sel.anchorNode?.parentElement?.closest?.('[data-msg-id]')
-      if (!msgEl) return
-      const msgId = msgEl.dataset.msgId
-      const message = this.getMessageById(msgId)
-      if (!message) return
-      const selectedText = sel.toString().trim()
-      if (!selectedText) return
-      this.contextMessage = message
-      this.selectedMessageId = message.id
-      this.hasTextSelection = true
-      this.selectedText = selectedText
-      const range = sel.getRangeAt(0)
-      const rect = range.getBoundingClientRect()
-
-      this.$nextTick(async () => {
-        const msgElement = document.getElementById('msg-' + message.id)
-        if (!msgElement) {
-          this.contextMenuStyle = {
-            position: 'fixed',
-            top: (rect.bottom + 4) + 'px',
-            left: Math.max(16, rect.left + rect.width / 2 - 100) + 'px',
-          }
-          this.showContextMenuDialog = true
-          this.isContextMenuOpen = true
-          this._ignoreNextPointerDown = true
-          setTimeout(() => { this._ignoreNextPointerDown = false }, 350)
-          this._startWatchingSelection(message.id)
-          return
-        }
-
-        const msgRect = msgElement.getBoundingClientRect()
-        const menuMargin = 12
-        const estimatedMenuHeight = 140
-        const spaceBelow = window.innerHeight - msgRect.bottom
-        const padding = 16
-
-        let scrollNeeded = 0
-        if (spaceBelow < estimatedMenuHeight + menuMargin) {
-          scrollNeeded = estimatedMenuHeight + menuMargin - spaceBelow + padding
-        }
-
-        if (scrollNeeded > 0 && this.$refs.messagesContainer) {
-          this.$refs.messagesContainer.scrollBy({ top: scrollNeeded, behavior: 'smooth' })
-          await new Promise(r => setTimeout(r, 250))
-          const newRect = msgElement.getBoundingClientRect()
-          this.positionContextMenu(newRect, message.sender === this.myPubKey, menuMargin, estimatedMenuHeight)
-        } else {
-          this.positionContextMenu(msgRect, message.sender === this.myPubKey, menuMargin, estimatedMenuHeight)
-        }
-
-        this.showContextMenuDialog = true
-        this.isContextMenuOpen = true
-        this._ignoreNextPointerDown = true
-        setTimeout(() => { this._ignoreNextPointerDown = false }, 350)
-        this._startWatchingSelection(message.id)
-      })
-    },
     onReact (message, emoji) {
       this.hideContextMenu()
       if (!message || !emoji) return
@@ -1703,10 +1744,6 @@ export default {
       }).catch(err => {
         console.error('[Conversation] Failed to send reaction:', err)
       })
-    },
-    isMobileDevice () {
-      if (typeof navigator === 'undefined') return false
-      return /Android|iPhone|iPad|iPod|webOS|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent)
     },
     onRemoveReaction ({ messageId, emoji }) {
       if (!messageId || !emoji) return
@@ -1881,17 +1918,12 @@ export default {
       })
     },
     onTipAction () {
-      const recipientPubKey = this.otherMemberPubKey
-      if (!recipientPubKey) {
-        this.$q.notify({ type: 'negative', message: this.$t('NoRecipientFound'), timeout: 5000, closeBtn: true })
-        return
-      }
-      this.sendTipNavigate(recipientPubKey, 0)
+      this.handleTipRequest(null, 0)
     },
     async onSend (text) {
       if (!this.room) return
       try {
-        if (this.editingMessage) {
+        if (this.editingMessage && !this.isMlsRoom) {
           const { giftWraps, roomId } = await this.$store.dispatch('nostrChat/sendEditMessage', {
             roomId: this.roomId,
             text,
@@ -1913,22 +1945,45 @@ export default {
           }
         } else {
           const replyTo = this.replyToMessage?.id
-          const { giftWraps, message, roomId } = await this.$store.dispatch('nostrChat/sendMessage', {
-            roomId: this.roomId,
-            text,
-            replyTo,
-          })
-          this.$store.commit('nostrChat/ADD_MESSAGE', { roomId, message })
-          this.$store.commit('nostrChat/TOUCH_ROOM_LAST_MESSAGE_AT', roomId)
-          this.$store.dispatch('nostrChat/touchRoom', { roomId, timestamp: new Date().toISOString() })
-          this.replyToMessage = null
-          this.scrollToBottom()
-          await this.$store.dispatch('nostrChat/publishGiftWraps', { giftWraps })
-          if (this.$store.getters['nostrChat/getShowActiveStatus']) {
-            this.$store.dispatch('nostrChat/touchActive', {
-              pubkey: this.myPubKey,
-              recipients: this.room?.members?.filter(m => m !== this.myPubKey) || [],
+
+          // MLS groups use the MLS encryption layer instead of NIP-17 gift-wraps.
+          // The message is returned already added to the local store by the action.
+          if (this.isMlsRoom) {
+            const { message, roomId } = await this.$store.dispatch('nostrChat/sendMlsMessage', {
+              roomId: this.roomId,
+              text,
+              replyTo,
             })
+            this.$store.commit('nostrChat/ADD_MESSAGE', { roomId, message })
+            this.$store.commit('nostrChat/TOUCH_ROOM_LAST_MESSAGE_AT', roomId)
+            this.$store.dispatch('nostrChat/touchRoom', { roomId, timestamp: new Date().toISOString() })
+            this.replyToMessage = null
+            this.editingMessage = null
+            this.scrollToBottom()
+            if (this.$store.getters['nostrChat/getShowActiveStatus']) {
+              this.$store.dispatch('nostrChat/touchActive', {
+                pubkey: this.myPubKey,
+                recipients: this.room?.members?.filter(m => m !== this.myPubKey) || [],
+              })
+            }
+          } else {
+            const { giftWraps, message, roomId } = await this.$store.dispatch('nostrChat/sendMessage', {
+              roomId: this.roomId,
+              text,
+              replyTo,
+            })
+            this.$store.commit('nostrChat/ADD_MESSAGE', { roomId, message })
+            this.$store.commit('nostrChat/TOUCH_ROOM_LAST_MESSAGE_AT', roomId)
+            this.$store.dispatch('nostrChat/touchRoom', { roomId, timestamp: new Date().toISOString() })
+            this.replyToMessage = null
+            this.scrollToBottom()
+            await this.$store.dispatch('nostrChat/publishGiftWraps', { giftWraps })
+            if (this.$store.getters['nostrChat/getShowActiveStatus']) {
+              this.$store.dispatch('nostrChat/touchActive', {
+                pubkey: this.myPubKey,
+                recipients: this.room?.members?.filter(m => m !== this.myPubKey) || [],
+              })
+            }
           }
         }
       } catch (err) {
@@ -2226,7 +2281,7 @@ export default {
       }
     },
     handleTipResult () {
-      const { tipTxid, tipAmount, tipSymbol, tipLogo, tipAssetId } = this.$route.query
+      const { tipTxid, tipAmount, tipSymbol, tipLogo, tipAssetId, tipRecipient } = this.$route.query
       if (!tipTxid || !tipAmount) return
       const query = { ...this.$route.query }
       delete query.tipTxid
@@ -2234,30 +2289,95 @@ export default {
       delete query.tipSymbol
       delete query.tipLogo
       delete query.tipAssetId
+      delete query.tipRecipient
       this.$router.replace({ query })
-      this.$nextTick(() => this.sendTipConfirmationMessage(tipTxid, parseFloat(tipAmount), tipSymbol || 'BCH', tipLogo || '', tipAssetId || ''))
+      this.$nextTick(() => this.sendTipConfirmationMessage(tipTxid, parseFloat(tipAmount), tipSymbol || 'BCH', tipLogo || '', tipAssetId || '', tipRecipient || null))
     },
-    async sendTipConfirmationMessage (txid, amount, symbol, logo, assetId) {
+    async sendTipConfirmationMessage (txid, amount, symbol, logo, assetId, recipientPubKey = null) {
       if (!this.room || !txid) return
+      let markup = `t:payment,a:${amount},s:${symbol},x:${txid}`
+      if (logo) markup += `,l:${logo}`
+      if (assetId) markup += `,c:${assetId}`
+      // Embed the send-time fiat conversion so every member sees the same
+      // value regardless of when they render the message.
+      const fiatCurrency = this.$store.getters['market/selectedCurrency']?.symbol
+      const bchPrice = symbol === 'BCH' && fiatCurrency
+        ? this.$store.getters['market/getAssetPrice']('bch', fiatCurrency)
+        : null
+      if (bchPrice > 0) {
+        markup += `,f:${(amount * bchPrice).toFixed(2)},fc:${fiatCurrency}`
+      }
+      const recipientName = recipientPubKey ? this.resolveMemberName(recipientPubKey) : null
+      const text = recipientName
+        ? `Sent ${amount} ${symbol} to @${recipientName} [/*${markup}*/]`
+        : `Sent ${amount} ${symbol} [/*${markup}*/]`
       try {
-        let markup = `t:payment,a:${amount},s:${symbol},x:${txid}`
-        if (logo) markup += `,l:${logo}`
-        if (assetId) markup += `,c:${assetId}`
-        const text = `Sent ${amount} ${symbol} [/*${markup}*/]`
-        const { giftWraps, message, roomId } = await this.$store.dispatch('nostrChat/sendMessage', {
-          roomId: this.roomId,
-          text,
-        })
+        let message
+        let roomId = this.roomId
+        if (this.isMlsRoom) {
+          // Tip confirmation must go to the whole group, not as a DM to the
+          // person being tipped. Tag the recipient so the group sees who got it.
+          const res = await this.$store.dispatch('nostrChat/sendMlsMessage', { roomId: this.roomId, text, recipientPubKey })
+          message = res.message
+          roomId = res.roomId
+        } else {
+          const res = await this.$store.dispatch('nostrChat/sendMessage', { roomId: this.roomId, text })
+          message = res.message
+          roomId = res.roomId
+          await this.$store.dispatch('nostrChat/publishGiftWraps', { giftWraps: res.giftWraps })
+        }
         this.$store.commit('nostrChat/ADD_MESSAGE', { roomId, message })
         this.$store.commit('nostrChat/TOUCH_ROOM_LAST_MESSAGE_AT', roomId)
         this.$store.dispatch('nostrChat/touchRoom', { roomId, timestamp: new Date().toISOString() })
-        await this.$store.dispatch('nostrChat/publishGiftWraps', { giftWraps })
         this.$q.notify({
           type: 'positive',
           message: this.$t('BchSentSuccess', { symbol }, `${symbol} sent successfully`),
         })
       } catch (err) {
         console.error('[Conversation] Failed to send tip confirmation:', err)
+        // Keep a local-only copy of the failed message so the sender sees it in
+        // the conversation with a retry button. It is never published, so no
+        // other member ever receives it.
+        this.$store.commit('nostrChat/ADD_MESSAGE', {
+          roomId: this.roomId,
+          message: {
+            id: `failed-${Date.now()}`,
+            sender: this.myPubKey,
+            content: text,
+            kind: this.isMlsRoom ? 30117 : undefined,
+            created_at: Math.floor(Date.now() / 1000),
+            failed: true,
+            mls: this.isMlsRoom,
+            recipientPubKey: recipientPubKey || null,
+          },
+        })
+      }
+    },
+    async onRetryFailedMessage (message) {
+      if (!message?.failed || !this.room) return
+      try {
+        let res
+        if (message.mls || this.isMlsRoom) {
+          res = await this.$store.dispatch('nostrChat/sendMlsMessage', {
+            roomId: this.roomId,
+            text: message.content,
+            recipientPubKey: message.recipientPubKey || undefined,
+          })
+        } else {
+          res = await this.$store.dispatch('nostrChat/sendMessage', { roomId: this.roomId, text: message.content })
+          await this.$store.dispatch('nostrChat/publishGiftWraps', { giftWraps: res.giftWraps })
+        }
+        this.$store.commit('nostrChat/REMOVE_MESSAGE', { roomId: this.roomId, messageId: message.id })
+        this.$store.commit('nostrChat/ADD_MESSAGE', { roomId: res.roomId, message: res.message })
+        this.$store.commit('nostrChat/TOUCH_ROOM_LAST_MESSAGE_AT', res.roomId)
+        this.$q.notify({ type: 'positive', message: this.$t('MessageSent', {}, 'Message sent') })
+      } catch (err) {
+        console.error('[Conversation] Retry failed:', err)
+        this.$q.notify({
+          type: 'negative',
+          message: this.$t('RetryFailed', {}, 'Still failing — check your connection and try again'),
+          timeout: 5000,
+        })
       }
     },
     async onCommand ({ type, amount, currency, originalText }) {
@@ -2271,7 +2391,7 @@ export default {
       const currencyUpper = (currency || 'BCH').toUpperCase()
 
       if (currencyUpper === 'BCH') {
-        await this.sendTipNavigate(this.otherMemberPubKey, amount, originalText)
+        await this.handleTipRequest(amount, originalText)
       } else {
         this.$q.notify({
           type: 'info',
@@ -2281,6 +2401,54 @@ export default {
         })
         this.$refs.chatInput?.setText(originalText)
       }
+    },
+    async handleTipRequest (amount, originalText = null) {
+      let recipientPubKey = this.otherMemberPubKey
+      if (this.isGroupRoom) {
+        // Groups (both MLS open groups and NIP-17 closed groups) have no single
+        // "other member" — ask who is being tipped, then tip that member while
+        // posting the confirmation to the whole group (see
+        // sendTipConfirmationMessage).
+        recipientPubKey = await this.pickTipRecipient()
+        if (!recipientPubKey) {
+          if (originalText) this.$refs.chatInput?.setText(originalText)
+          return
+        }
+      }
+      await this.sendTipNavigate(recipientPubKey, amount, originalText)
+    },
+    // In a group room there is no single "other member", so ask which member is
+    // being tipped. The payment goes to that member's address, but the tip
+    // confirmation message is posted to the whole group (via MLS for open
+    // groups, via NIP-17 gift-wraps for closed groups), not as a DM to the
+    // recipient.
+    pickTipRecipient () {
+      const myPub = this.myPubKey
+      const members = (this.room?.members || []).filter(m => m && m !== myPub)
+      if (!members.length) return Promise.resolve(null)
+      const items = members.map(pk => {
+        const contact = this.contactsByPubKey.get(pk)
+        const displayName = this.memberDisplayNames[pk] || contact?.name || pk.slice(0, 12) + '...'
+        return { label: displayName, value: pk }
+      })
+      return new Promise(resolve => {
+        this.$q.dialog({
+          title: this.$t('TipRecipientTitle', {}, 'Who are you tipping?'),
+          message: this.$t('TipRecipientMessage', {}, 'Select the group member you want to send to.'),
+          options: { type: 'radio', model: items[0]?.value || null, items: items },
+          class: `pt-card text-bow ${this.getDarkModeClass(this.darkMode)}`,
+          ok: { label: this.$t('Next', {}, 'Next'), flat: true, color: 'primary' },
+          cancel: { label: this.$t('Cancel', {}, 'Cancel'), flat: true, color: 'grey' },
+          persistent: true,
+        }).onOk(pk => resolve(pk)).onCancel(() => resolve(null)).onDismiss(() => resolve(null))
+      })
+    },
+    resolveMemberName (pubKey) {
+      const contact = this.contactsByPubKey.get(pubKey)
+      if (contact?.name) return contact.name
+      const displayName = this.memberDisplayNames[pubKey]
+      if (displayName) return displayName
+      return pubKey.slice(0, 10)
     },
     async sendTipNavigate (recipientPubKey, amount, originalText = null) {
       if (!recipientPubKey) {
@@ -2303,6 +2471,7 @@ export default {
       const query = { chatRoomId: this.roomId, backPath: `/apps/chat/${this.roomId}` }
       if (address) query.address = address
       if (amount > 0) query.amount = amount
+      if (recipientPubKey) query.tipRecipient = recipientPubKey
 
       this.$router.push({ name: 'transaction-send-select-asset', query })
     },
