@@ -1,96 +1,111 @@
 <template>
   <div id="qr-reader-body" :class="getDarkModeClass(darkMode)">
     <header-nav :title="$t('QRReader')" :backnavpath="`${ $route.query.backnavpath || '/' }`" />
-    <QRUploader ref="qr-upload" @detect-upload="onQRDecode" />
-    <div v-if="!error" class="q-mb-lg scanner-box" ref="box">
-      <div class="scan-layout-design">
-        <div class="scan-design1">
-          <div class="line-design1"></div>
-        </div>
-        <div class="scan-design2">
-          <div class="line-design2"></div>
-        </div>
-        <div class="scan-design3">
-          <div class="line-design3"></div>
-        </div>
-        <div class="scan-design4">
-          <div class="line-design4"></div>
-        </div>
-      </div>
-      <span class="scanner-text text-center full-width">{{ $t('ScanQrCode') }}</span>
+    <QRUploader ref="qr-upload" @detect-upload="decodeQrCode" />
+    <div v-if="error" class="scanner-error-dialog text-center bg-red-1 text-red q-pa-lg">
+      <q-icon name="error" left/>
+      {{ error }} 
     </div>
+    <template v-else>
+      <div class="q-mb-lg scanner-box" ref="box">
+        <div class="scan-layout-design">
+          <div class="scan-design1">
+            <div class="line-design1"></div>
+          </div>
+          <div class="scan-design2">
+            <div class="line-design2"></div>
+          </div>
+          <div class="scan-design3">
+            <div class="line-design3"></div>
+          </div>
+          <div class="scan-design4">
+            <div class="line-design4"></div>
+          </div>
+        </div>
+        <span class="scanner-text text-center full-width">{{ $t('ScanQrCode') }}</span>
+      </div>
+      <template v-if="!decode">
+        <qrcode-stream
+          v-if="!isMobile"
+          :constraints="cameraConstraints"
+          :formats="['qr_code']"
+          :paused="paused"
+          @detect="decodeQrCode"
+          @camera-on="onScannerInit"
+          @error="onCameraError"
+          class="fixed-full qr-stream"
+          style="margin: auto;"
+        />
+        <div v-else class="scanner-bottom-controls">
+          <!-- Zoom controls — horizontal -->
+          <div class="scanner-zoom-controls">
+            <q-btn
+              icon="remove"
+              round
+              dense
+              color="white"
+              text-color="black"
+              @click="zoomOut"
+            />
+            <q-btn
+              icon="add"
+              round
+              dense
+              color="white"
+              text-color="black"
+              class="q-ml-sm"
+              @click="zoomIn"
+            />
+          </div>
 
-    <!-- Mobile scanner overlay controls -->
-    <template v-if="isMobile && !decode && !error">
-      <div class="scanner-bottom-controls">
-        <!-- Zoom controls — horizontal -->
-        <div class="scanner-zoom-controls">
+          <!-- Torch control -->
+          <div class="scanner-torch-control q-ml-md">
+            <q-btn
+              :icon="torchOn ? 'flash_on' : 'flash_off'"
+              round
+              dense
+              :color="torchOn ? 'yellow' : 'white'"
+              text-color="black"
+              @click="toggleTorch"
+            />
+          </div>
+        </div>
+      </template>
+      <div v-if="progress" class="q-mt-xl row items-center justify-center q-px-lg">
+        <q-linear-progress rounded size="30px" :value="progress" color="primary" class="q-mt-sm q-mx-xl" >
+          <div class="absolute-full flex flex-center items-center">
+            <span class="text-caption text-bold text-white">{{ progressLabel }}</span>
+          </div>
+        </q-linear-progress>
+      </div>
+
+      <div class="q-mt-xl row items-center justify-around">
+        <div v-if="!hideGenerateQR" class="column flex flex-center">
           <q-btn
-            icon="remove"
             round
-            dense
-            color="white"
-            text-color="black"
-            @click="zoomOut"
-          />
-          <q-btn
+            size="lg"
+            class="button text-white bg-grad"
             icon="add"
-            round
-            dense
-            color="white"
-            text-color="black"
-            class="q-ml-sm"
-            @click="zoomIn"
+            :disabled="progress"
+            @click="$router.push({ name: 'generate-qr' })"
           />
+          <span class="q-mt-sm">{{ $t('GenerateQR') }}</span>
         </div>
 
-        <!-- Torch control -->
-        <div class="scanner-torch-control q-ml-md">
+        <div v-if="!hideUploadQR" class="column flex flex-center">
           <q-btn
-            :icon="torchOn ? 'flash_on' : 'flash_off'"
             round
-            dense
-            :color="torchOn ? 'yellow' : 'white'"
-            text-color="black"
-            @click="toggleTorch"
+            size="lg"
+            class="button text-white bg-grad"
+            icon="upload"
+            :disabled="progress"
+            @click="$refs['qr-upload'].$refs['q-file'].pickFiles()"
           />
+          <span class="q-mt-sm">{{ $t('UploadQR') }}</span>
         </div>
       </div>
     </template>
-
-    <div v-if="progress" class="q-mt-xl row items-center justify-center q-px-lg">
-      <q-linear-progress rounded size="30px" :value="progress" color="primary" class="q-mt-sm q-mx-xl" >
-        <div class="absolute-full flex flex-center items-center">
-          <span class="text-caption text-bold text-white">{{ progressLabel }}</span>
-        </div>
-      </q-linear-progress>
-    </div>
-
-    <div class="q-mt-xl row items-center justify-around">
-      <div v-if="!hideGenerateQR" class="column flex flex-center">
-        <q-btn
-          round
-          size="lg"
-          class="button text-white bg-grad"
-          icon="add"
-          :disabled="progress"
-          @click="$router.push({ name: 'generate-qr' })"
-        />
-        <span class="q-mt-sm">{{ $t('GenerateQR') }}</span>
-      </div>
-
-      <div v-if="!hideUploadQR" class="column flex flex-center">
-        <q-btn
-          round
-          size="lg"
-          class="button text-white bg-grad"
-          icon="upload"
-          :disabled="progress"
-          @click="$refs['qr-upload'].$refs['q-file'].pickFiles()"
-        />
-        <span class="q-mt-sm">{{ $t('UploadQR') }}</span>
-      </div>
-    </div>
+    
     <footer-menu v-if="!hideFooter && !(isMobile && !decode && !error)" />
   </div>
 </template>
@@ -162,7 +177,8 @@ export default {
       }
     },
     progressLabel () {
-      return (Math.floor(this.progress * 100)) + '% of Data Fragments Received'
+      const percent = Math.floor(this.progress * 100)
+      return this.$t('PercentDataFragmentsReceived', { percent }, `${percent}% of Data Fragments Received`)
     }
   },
 
@@ -292,221 +308,6 @@ debugScannerOverlay () {
       }
     },
 
-    async onQRDecode (content) {
-      const vm = this
-
-      if (!content || !content.length) {
-        vm.$q.notify({
-          message: vm.$t('UnidentifiedQRCode'),
-          timeout: 800,
-          color: 'red-9',
-          icon: 'mdi-qrcode-remove'
-        })
-        return
-      }
-
-      const rawValue = String(content[0]?.rawValue || '').trim()
-      if (!rawValue || rawValue === 'undefined') return
-
-      const normalizedValue = vm.normalizeUrContent(rawValue)
-      const isStreaming = normalizedValue.startsWith('ur:crypto-mofnwallet') || normalizedValue.startsWith('ur:crypto-psbt')
-
-      if (rawValue === vm.lastScannedContent && isStreaming) {
-        return
-      }
-      vm.lastScannedContent = rawValue
-
-      if (!isStreaming) {
-        vm.paused = true
-        await new Promise((resolve) => { window.setTimeout(resolve, 250) })
-      }
-
-      let url
-      try {
-        url = new URL(rawValue)
-      } catch {}
-
-      // Only parse as prefixless address if content doesn't have query params
-      // Query params indicate BIP21 URI that needs full parsing
-      const addressValidation = !rawValue.includes('?') ? parseAddressWithoutPrefix(rawValue) : { valid: false }
-      const value = addressValidation?.valid ? addressValidation.address : rawValue
-
-      // Paytaca Explorer transaction URL (extract txid)
-      // Example: https://explorer.paytaca.com/tx/<txid>
-      const explorerTxMatch = String(value || '').match(/^(https?:\/\/)?explorer\.paytaca\.com\/tx\/([0-9a-fA-F]{64})/i)
-      if (explorerTxMatch) {
-        const txid = explorerTxMatch[2]
-        vm.$router.push({
-          name: 'transaction-list',
-          query: { txid }
-        })
-        vm.paused = false
-        return
-      }
-
-      if (value.includes('gifts.paytaca.com')) {
-        // redirect to gifts page
-        vm.$router.push({
-          name: 'claim-gift',
-          query: { code: value }
-        })
-        return
-      }
-
-      if (extractWifFromUrl(value)) {
-        vm.$router.push({
-          name: 'app-sweep',
-          query: { w: extractWifFromUrl(value) }
-        })
-        return
-      }
-
-      if (value.includes('bitcoincash:') || value.includes('bchtest:')) {
-        vm.processSendPageRedirection(value)
-        return
-      }
-
-      if (parseWalletConnectUri(value)) {
-        vm.$router.push({
-          name: 'app-wallet-connect',
-          query: { uri: value }
-        })
-        return
-      }
-
-      if (vm.checkifBIP38(value)) {
-        // redirect to sweep page for passphrase input
-        vm.$router.push({
-          name: 'app-sweep',
-          query: { w: '', bip38String: value }
-        })
-        return
-      }
-
-      if (normalizedValue.startsWith('ur:crypto-mofnwallet')) {
-        if (!vm.urDecoder) {
-          vm.urDecoder = new URDecoder()
-        }
-        if (!vm.urDecoder.isComplete()) {
-          vm.urDecoder.receivePart(normalizedValue)
-        }
-        vm.progress = vm.urDecoder.estimatedPercentComplete()
-        if (vm.urDecoder.isComplete()) {
-          vm.paused = true
-          const ur = vm.urDecoder.resultUR()
-          const base64 = binToBase64(Buffer.from(ur.cbor, 'base64'))
-          const decoded = cborDecode(base64ToBin(base64))
-          const wallet = MultisigWallet.import(decoded)
-          wallet.setStore(vm.$store)
-          wallet.save()
-          vm.$router.push({
-            name: 'app-multisig-wallet-view',
-            params: { wallethash: wallet.getWalletHash() }
-          })
-        }
-        return
-      }
-
-      if (normalizedValue.startsWith('ur:crypto-psbt')) {
-        if (!vm.urDecoder) {
-          vm.urDecoder = new URDecoder()
-        }
-        if (!vm.urDecoder.isComplete()) {
-          vm.urDecoder.receivePart(normalizedValue)
-        }
-        vm.progress = vm.urDecoder.estimatedPercentComplete()
-        if (vm.urDecoder.isComplete()) {
-          vm.paused = true
-          const ur = vm.urDecoder.resultUR()
-          const decodedData = Buffer.from(ur.cbor, 'base64')
-          const pst = Pst.import(binToBase64(decodedData))
-          const mValues = [...new Set(pst.inputs?.map(i => {
-            if (!i.redeemScript) return null;
-            return extractMValue(i.redeemScript)
-          }).filter(m => m))]
-
-          for (const m of mValues) {
-            const wallet = {
-              m,
-              signers: pst.wallet.signers
-            }
-            const walletHash = getWalletHash(wallet)
-            const foundWallet = vm.$store.getters['multisig/getWalletByHash'](walletHash)
-            if (foundWallet) {
-              const canonicalPsbt = vm.$store.getters['multisig/getPsbtByUnsignedTransactionHash'](pst.unsignedTransactionHash)
-              if (canonicalPsbt) {
-                const canonicalPst = Pst.import(canonicalPsbt)
-                canonicalPst.combine([pst])
-                canonicalPst.setStore(vm.$store)
-                canonicalPst.save()
-              } else {
-                pst.setStore(vm.$store)
-                pst.save()
-              }                
-              vm.$router.push({
-                name: 'app-multisig-wallet-pst-view',
-                params: { 
-                  wallethash: walletHash,
-                  unsignedtransactionhash: pst.unsignedTransactionHash 
-                }
-              })
-              return
-            }
-
-            vm.$q.notify({
-              message: vm.$t('WalletNotFound'),
-              timeout: 800,
-              color: 'red-9',
-              icon: 'mdi-qrcode-remove'
-            })
-          }
-        }
-        return
-      }
-
-      if (value.toLowerCase().startsWith('wiz://')) {
-        vm.$router.push({
-          name: 'app-wizard-connect',
-          query: { uri: value }
-        })
-        return
-      }
-
-      if (
-        url &&
-        (url.host === 'paymenthub.paytaca.com' || url.host === 'chipnet.paymenthub.paytaca.com') &&
-        url.pathname.match('/plans')
-      ) {
-        const shortUuid = url.pathname.match('/plans/([A-Za-z0-9]+)/?')?.[1];
-        vm.$router.push({ name: 'payment-hub-subscriptions-index', query: { plan: shortUuid } })
-        return
-      }
-
-      // Check for Nostr / npub QR codes
-      const nostrMatch = String(value || '').match(/^(nostr:)?(npub1[a-z0-9]{58,})$/i)
-      if (nostrMatch) {
-        const npub = nostrMatch[2]
-        const backPath = vm.$route.query.backnavpath || '/apps/chat'
-        vm.$router.push({
-          path: backPath,
-          query: { npub }
-        })
-        return
-      }
-
-      if (!isStreaming && !vm.progress) {
-        vm.$q.notify({
-          message: vm.$t('UnidentifiedQRCode'),
-          timeout: 800,
-          color: 'red-9',
-          icon: 'mdi-qrcode-remove'
-        })
-      }
-
-      if (!isStreaming) {
-        vm.paused = false
-      }
-    },
 
     async processSendPageRedirection (value) {
       // redirect to send page
@@ -645,6 +446,7 @@ debugScannerOverlay () {
 
 
     async startScanner () {
+      const vm = this
       
       this.setBarcodeScannerActiveClass()
       const cameraPermitted = await this.checkCameraPermission()
@@ -667,7 +469,7 @@ debugScannerOverlay () {
 
       } else {
         this.$q.notify({
-          message: vm.$t('CameraPermissionDenied'),
+          message: this.$t('CameraPermissionDenied'),
           timeout: 800,
           color: 'red-9',
           icon: 'settings_alert'
@@ -687,18 +489,21 @@ debugScannerOverlay () {
     },
 
     async decodeQrCode(content) {
-      const normalizedValue = String(content[0]?.rawValue || '').trim().toLowerCase()
-      const isStreamingContent = normalizedValue.startsWith('ur:crypto-mofnwallet') || normalizedValue.startsWith('ur:crypto-psbt')
-      
-      if (!isStreamingContent) {
-        
-        await BarcodeScanner.removeAllListeners()
-        await BarcodeScanner.stopScan()
-        this.removeBarcodeScannerActiveClass()
-        this.decodeStaticQrCode(content) // Using Original Arg signature
-        
-      } else {
+      const rawValue = String(content?.[0]?.rawValue || '').trim()
+      if (!rawValue || rawValue === 'undefined') return
+
+      const normalizedValue = this.normalizeUrContent(rawValue)
+      const isStreaming = normalizedValue.startsWith('ur:crypto-mofnwallet') || normalizedValue.startsWith('ur:crypto-psbt')
+
+      if (isStreaming) {
         this.decodeAnimatedQrCode(content)
+      } else {
+        if (this.isMobile) {
+          await BarcodeScanner.removeAllListeners()
+          await BarcodeScanner.stopScan()
+          this.removeBarcodeScannerActiveClass()
+        }
+        this.decodeStaticQrCode(content)
       }
     },
 
@@ -809,17 +614,13 @@ debugScannerOverlay () {
         return
       }
 
-      if (!isStreaming && !vm.progress) {
+      if (!vm.progress) {
         vm.$q.notify({
           message: vm.$t('UnidentifiedQRCode'),
           timeout: 800,
           color: 'red-9',
           icon: 'mdi-qrcode-remove'
         })
-      }
-
-      if (!isStreaming) {
-        vm.paused = false
       }
     },
 
@@ -962,10 +763,12 @@ debugScannerOverlay () {
     this.setBarcodeScannerActiveClass()
 
     if (this.decode) {
-      return await this.decodeQrCode(decode)
+      return await this.decodeQrCode([{ rawValue: this.decode }])
     }
 
-    await this.startScanner()
+    if (this.isMobile) {
+      await this.startScanner()
+    }
     
     
   },
@@ -975,8 +778,9 @@ debugScannerOverlay () {
   // },
 
   beforeUnmount () {
-    // this.stopScan()
-    this.stopScanner()
+    if (this.isMobile) {
+      this.stopScanner()
+    }
   }
 }
 </script>
@@ -999,6 +803,17 @@ debugScannerOverlay () {
     max-width: 90vw;
   }
   
+  .qr-stream {
+    position: fixed !important;
+    z-index: -1 !important;
+  }
+
+  .qr-stream :deep(video) {
+    object-fit: cover;
+    height: 100%;
+    width: 100%;
+  }
+
   .scanner-text {
     position: absolute;
     bottom: -30px;
