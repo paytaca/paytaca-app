@@ -734,32 +734,16 @@ debugScannerOverlay () {
     async toggleTorch(){
       if (await BarcodeScanner.isTorchAvailable()) {
         await BarcodeScanner.toggleTorch()
-        this.torchOn = await BarcodeScanner.isTorchEnabled()
+        const { enabled } = await BarcodeScanner.isTorchEnabled()
+        this.torchOn = enabled
       }
     } 
   },
 
   async mounted () {
-    const vm = this
-    // vm.urDecoder = new URDecoder()
-    // if (vm.decode) {
-    //   vm.onQRDecode([{ rawValue: vm.decode }])
-    // } else if (vm.isMobile) {
-    //   vm.prepareScanner()
-    // }
-
-    vm.hideFooter = vm.$route.query.hideFooter
-    vm.hideGenerateQR = vm.$route.query.hideGenerateQR
-    vm.hideUploadQR = vm.$route.query.hideUploadQR
-
-    // mlkit
-    // const { available } =
-    //   await BarcodeScanner.isGoogleBarcodeScannerModuleAvailable()
-    // if (!available) {
-    //   await BarcodeScanner.installGoogleBarcodeScannerModule()
-    // }
-
-    
+    this.hideFooter = this.$route.query.hideFooter
+    this.hideGenerateQR = this.$route.query.hideGenerateQR
+    this.hideUploadQR = this.$route.query.hideUploadQR
     this.setBarcodeScannerActiveClass()
 
     if (this.decode) {
@@ -770,12 +754,13 @@ debugScannerOverlay () {
       await this.startScanner()
     }
     
-    
   },
 
-  // deactivated () {
-  //   this.stopScan()
-  // },
+  deactivated () {
+    if (this.isMobile) {
+      this.stopScanner()
+    }
+  },
 
   beforeUnmount () {
     if (this.isMobile) {
