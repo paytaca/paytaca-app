@@ -4,6 +4,7 @@
 export default {
   "(disabled)": "（dinonaktifkan）",
   ADS: "IKLAN",
+  AIAdmin: "Admin AI",
   AMOUNT: "JUMLAH",
   APIKeys: "Kunci API",
   APIUsage: "Penggunaan API",
@@ -169,6 +170,7 @@ export default {
   ApproxHedgeAmount: "Perkiraan jumlah lindung nilai",
   ApproxHedgeAmountDescription: "Jumlah lindung nilai dihitung dari jumlah panjang di bawah dan persentase likuidasi rendah di bawah",
   Apps: "Aplikasi",
+  "Apps.AIAdmin.Description": "Mengelola kunci API AI Paytaca dan memungkinkan Anda berlangganan model AI yang tersedia.",
   "Apps.AddressBook.Description": "Membuat dan mengelola kontak dan alamat.",
   "Apps.AnyHedge.Description": "Buat lindung nilai/pembelian untuk mengelola eksposur volatilitas harga BCH.",
   "Apps.CauldronDEX.Description": "Tukar atau sediakan likuiditas CashTokens di Cauldron DEX",

@@ -4,6 +4,7 @@
 export default {
   "(disabled)": "（معطّل）",
   ADS: "إعلانات",
+  AIAdmin: "مسؤول الذكاء الاصطناعي",
   AMOUNT: "المبلغ",
   APIKeys: "مفاتيح واجهة برمجة التطبيقات",
   APIUsage: "استخدام واجهة برمجة التطبيقات",
@@ -169,6 +170,7 @@ export default {
   ApproxHedgeAmount: "مبلغ التحوط التقريبي",
   ApproxHedgeAmountDescription: "يتم احتساب مبلغ التحوط من المبلغ الطويل أدناه ونسبة التصفية المنخفضة أدناه",
   Apps: "تطبيقات",
+  "Apps.AIAdmin.Description": "يدير مفاتيح Paytaca AI API ويتيح لك الاشتراك في نماذج الذكاء الاصطناعي المتاحة.",
   "Apps.AddressBook.Description": "إنشاء وإدارة جهات الاتصال والعناوين.",
   "Apps.AnyHedge.Description": "قم بإنشاء عمليات تحوط/صفقات لإدارة التعرض لتقلبات أسعار BCH.",
   "Apps.CauldronDEX.Description": "قم باستبدال أو توفير سيولة CashTokens على Cauldron DEX",

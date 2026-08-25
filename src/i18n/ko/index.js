@@ -4,6 +4,7 @@
 export default {
   "(disabled)": "（비활성화됨）",
   ADS: "광고",
+  AIAdmin: "AI 관리자",
   AMOUNT: "금액",
   APIKeys: "API 키",
   APIUsage: "API 사용",
@@ -169,6 +170,7 @@ export default {
   ApproxHedgeAmount: "대략적인 헤지 금액",
   ApproxHedgeAmountDescription: "헤지 금액은 아래의 롱 금액과 아래의 낮은 청산 비율로 계산됩니다.",
   Apps: "앱",
+  "Apps.AIAdmin.Description": "Paytaca AI API 키를 관리하고 사용 가능한 AI 모델을 구독할 수 있습니다.",
   "Apps.AddressBook.Description": "연락처와 주소를 생성하고 관리합니다.",
   "Apps.AnyHedge.Description": "BCH 가격 변동성 노출을 관리하기 위해 헤지/롱을 생성합니다.",
   "Apps.CauldronDEX.Description": "Cauldron DEX에서 CashTokens 유동성을 교환하거나 제공하세요",

@@ -4,6 +4,7 @@
 export default {
   "(disabled)": "（desativado）",
   ADS: "ANÚNCIOS",
+  AIAdmin: "Administrador de IA",
   AMOUNT: "VALOR",
   APIKeys: "Chaves de API",
   APIUsage: "Uso de API",
@@ -169,6 +170,7 @@ export default {
   ApproxHedgeAmount: "Valor aproximado de hedge",
   ApproxHedgeAmountDescription: "O valor do hedge é calculado a partir do valor comprado abaixo e do percentual de liquidação baixo abaixo",
   Apps: "Aplicativos",
+  "Apps.AIAdmin.Description": "Gerencia chaves de API Paytaca AI e permite assinar modelos de IA disponíveis.",
   "Apps.AddressBook.Description": "Crie e gerencie contatos e endereços.",
   "Apps.AnyHedge.Description": "Crie hedges/longs para gerenciar a exposição à volatilidade dos preços do BCH.",
   "Apps.CauldronDEX.Description": "Troque ou forneça liquidez de CashTokens no Cauldron DEX",

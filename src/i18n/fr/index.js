@@ -4,6 +4,7 @@
 export default {
   "(disabled)": "(désactivé)",
   ADS: "Annonces",
+  AIAdmin: "Administrateur IA",
   AMOUNT: "MONTANT",
   APIKeys: "Clés API",
   APIUsage: "Utilisation de l'API",
@@ -169,6 +170,7 @@ export default {
   ApproxHedgeAmount: "Montant approximatif de la couverture",
   ApproxHedgeAmountDescription: "Le montant de la couverture est calculé à partir du montant long ci-dessous et du faible pourcentage de liquidation ci-dessous.",
   Apps: "Applications",
+  "Apps.AIAdmin.Description": "Gère les clés API Paytaca AI et vous permet de vous abonner aux modèles d'IA disponibles.",
   "Apps.AddressBook.Description": "Créez et gérez des contacts et des adresses.",
   "Apps.AnyHedge.Description": "Créez des couvertures/longs pour gérer l’exposition à la volatilité des prix du BCH.",
   "Apps.CauldronDEX.Description": "Échangez ou fournissez des liquidités CashTokens sur Cauldron DEX",

@@ -4,6 +4,7 @@
 export default {
   "(disabled)": "(disabled)",
   ADS: "ADS",
+  AIAdmin: "AI Admin",
   AMOUNT: "AMOUNT",
   APIKeys: "API Keys",
   APIUsage: "API Usage",
@@ -173,6 +174,7 @@ export default {
   ApproxHedgeAmount: "Approx hedge amount",
   ApproxHedgeAmountDescription: "Hedge amount is calculated from long amount below and low liquidation percentage below",
   Apps: "Apps",
+  "Apps.AIAdmin.Description": "Manages Paytaca AI API keys and lets you subscribe to available AI models.",
   "Apps.AddressBook.Description": "Create and manage contacts and addresses.",
   "Apps.AnyHedge.Description": "Create hedges/longs to manage BCH price volatility exposure.",
   "Apps.CauldronDEX.Description": "Swap or provide CashTokens liquidity on Cauldron DEX",

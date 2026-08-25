@@ -4,6 +4,7 @@
 export default {
   "(disabled)": "（uitgeschakeld）",
   ADS: "ADVERTENTIES",
+  AIAdmin: "AI-beheerder",
   AMOUNT: "BEDRAG",
   APIKeys: "API-sleutels",
   APIUsage: "API-gebruik",
@@ -169,6 +170,7 @@ export default {
   ApproxHedgeAmount: "Approx hedge amount",
   ApproxHedgeAmountDescription: "Het hedgebedrag wordt berekend op basis van het lange bedrag hieronder en het lage liquidatiepercentage hieronder",
   Apps: "Apps",
+  "Apps.AIAdmin.Description": "Beheert Paytaca AI API-sleutels en laat u zich abonneren op beschikbare AI-modellen.",
   "Apps.AddressBook.Description": "Contacten en adressen aanmaken en beheren.",
   "Apps.AnyHedge.Description": "Creëer hedges/longs om de blootstelling aan de prijsvolatiliteit van BCH te beheren.",
   "Apps.CauldronDEX.Description": "Wissel of verstrek CashTokens-liquiditeit op Cauldron DEX",

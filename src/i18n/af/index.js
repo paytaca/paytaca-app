@@ -4,6 +4,7 @@
 export default {
   "(disabled)": "（gedeaktiveer）",
   ADS: "advertensies",
+  AIAdmin: "KI Admin",
   AMOUNT: "BEDRAG",
   APIKeys: "API-sleutels",
   APIUsage: "API-gebruik",
@@ -169,6 +170,7 @@ export default {
   ApproxHedgeAmount: "Ongeveer verskansingsbedrag",
   ApproxHedgeAmountDescription: "Verskansingsbedrag word bereken uit lang bedrag hieronder en lae likwidasiepersentasie hieronder",
   Apps: "Toepassings",
+  "Apps.AIAdmin.Description": "Bestuur Paytaca AI API-sleutels en laat jou inteken op beskikbare AI-modelle.",
   "Apps.AddressBook.Description": "Skep en bestuur kontakte en adresse.",
   "Apps.AnyHedge.Description": "Skep verskansings/verlange om BCH-prysvolatiliteitsblootstelling te bestuur.",
   "Apps.CauldronDEX.Description": "Ruil of verskaf CashTokens-likiditeit op Cauldron DEX",

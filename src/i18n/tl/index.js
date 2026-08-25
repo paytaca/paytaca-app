@@ -4,6 +4,7 @@
 export default {
   "(disabled)": "（naka-disable）",
   ADS: "ADS",
+  AIAdmin: "AI Admin",
   AMOUNT: "AMOUNT",
   APIKeys: "Mga API Key",
   APIUsage: "Paggamit ng API",
@@ -169,6 +170,7 @@ export default {
   ApproxHedgeAmount: "Tinatayang halaga ng hedge",
   ApproxHedgeAmountDescription: "Ang halaga ng hedge ay kinakalkula mula sa mahabang halaga sa ibaba at mababang porsyento ng pagpuksa sa ibaba",
   Apps: "Mga app",
+  "Apps.AIAdmin.Description": "Pinamamahalaan ang mga key ng Paytaca AI API at hinahayaan kang mag-subscribe sa mga available na modelo ng AI.",
   "Apps.AddressBook.Description": "Gumawa at mamahala ng mga contact at address.",
   "Apps.AnyHedge.Description": "Gumawa ng mga hedge/longs para pamahalaan ang pagkakalantad sa pagkasumpungin ng presyo ng BCH.",
   "Apps.CauldronDEX.Description": "Magpalit o magbigay ng CashTokens liquidity sa Cauldron DEX",

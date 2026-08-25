@@ -511,6 +511,17 @@ export default {
           category: 'beta'
         },
         {
+          id: 'ai-admin',
+          name: this.$t('AIAdmin'),
+          description: this.$t('Apps.AIAdmin.Description', {}, 'Manages Paytaca AI API keys and lets you subscribe to available AI models.'),
+          iconName: 'mdi-console',
+          path: '/apps/multisig',
+          active: true,
+          iconStyle: 'font-size: 4em',
+          beta: true,
+          category: 'beta'
+        },
+        {
           id: 'multisig',
           name: this.$t('MultisigWallets', {}, 'Multisig Wallets'),
           description: this.$t('Apps.MultisigWallets.Description', {}, 'Create and manage multi-signature wallets for extra security.'),

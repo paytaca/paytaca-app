@@ -4,6 +4,7 @@
 export default {
   "(disabled)": "（已停用）",
   ADS: "ADS",
+  AIAdmin: "人工智慧管理員",
   AMOUNT: "金額",
   APIKeys: "API 金鑰",
   APIUsage: "API使用",
@@ -170,6 +171,7 @@ export default {
   ApproxHedgeAmount: "大約對沖金額",
   ApproxHedgeAmountDescription: "對沖金額根據下方多頭金額和下方低平倉比例計算",
   Apps: "應用程式",
+  "Apps.AIAdmin.Description": "管理 Paytaca AI API 金鑰並讓您訂閱可用的 AI 模型。",
   "Apps.AddressBook.Description": "建立和管理聯絡人和地址。",
   "Apps.AnyHedge.Description": "創建對沖/多頭來管理 BCH 價格波動風險。",
   "Apps.CauldronDEX.Description": "在 Cauldron DEX 上交換或提供 CashTokens 流動性",

@@ -4,6 +4,7 @@
 export default {
   "(disabled)": "（отключено）",
   ADS: "ОБЪЯВЛЕНИЯ",
+  AIAdmin: "ИИ-администратор",
   AMOUNT: "СУММА",
   APIKeys: "API-ключи",
   APIUsage: "Использование API",
@@ -169,6 +170,7 @@ export default {
   ApproxHedgeAmount: "Приблизительная сумма хеджирования",
   ApproxHedgeAmountDescription: "Сумма хеджирования рассчитывается на основе длинной суммы ниже и низкого процента ликвидации ниже.",
   Apps: "Приложения",
+  "Apps.AIAdmin.Description": "Управляет ключами Paytaca AI API и позволяет подписаться на доступные модели AI.",
   "Apps.AddressBook.Description": "Создавайте контакты и адреса и управляйте ими.",
   "Apps.AnyHedge.Description": "Создавайте хеджирование/длинные позиции для управления риском волатильности цен BCH.",
   "Apps.CauldronDEX.Description": "Обмен или предоставление ликвидности CashTokens на Cauldron DEX",

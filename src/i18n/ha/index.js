@@ -4,6 +4,7 @@
 export default {
   "(disabled)": "（an kashe）",
   ADS: "ADS",
+  AIAdmin: "AI Admin",
   AMOUNT: "ADADI",
   APIKeys: "Maɓallan API",
   APIUsage: "API Amfani",
@@ -169,6 +170,7 @@ export default {
   ApproxHedgeAmount: "Kimanin adadin shinge",
   ApproxHedgeAmountDescription: "Ana ƙididdige adadin shinge daga dogon adadin da ke ƙasa da ƙarancin ƙarancin kashi a ƙasa",
   Apps: "Aikace-aikace",
+  "Apps.AIAdmin.Description": "Yana sarrafa maɓallan Paytaca AI API kuma yana ba ku damar biyan kuɗi zuwa samfuran AI da ake da su.",
   "Apps.AddressBook.Description": "Ƙirƙiri ku sarrafa lambobin sadarwa da adireshi.",
   "Apps.AnyHedge.Description": "Ƙirƙirar shinge/dogayen dogon lokaci don sarrafa faɗuwar farashin BCH.",
   "Apps.CauldronDEX.Description": "Musanya ko samar da tsabar kudi na CashTokens akan Cauldron DEX",

@@ -4,6 +4,7 @@
 export default {
   "(disabled)": "(deaktiviert)",
   ADS: "ANZEIGEN",
+  AIAdmin: "KI-Administrator",
   AMOUNT: "BETRAG",
   APIKeys: "API-Schlüssel",
   APIUsage: "API-Nutzung",
@@ -169,6 +170,7 @@ export default {
   ApproxHedgeAmount: "Ungefährer Sicherungsbetrag",
   ApproxHedgeAmountDescription: "Der Absicherungsbetrag wird aus dem unten aufgeführten Long-Betrag und dem unten aufgeführten niedrigen Liquidationsprozentsatz berechnet",
   Apps: "Apps",
+  "Apps.AIAdmin.Description": "Verwaltet Paytaca AI API-Schlüssel und ermöglicht Ihnen das Abonnieren verfügbarer AI-Modelle.",
   "Apps.AddressBook.Description": "Kontakte und Adressen erstellen und verwalten.",
   "Apps.AnyHedge.Description": "Erstellen Sie Absicherungen/Long-Positionen, um das Risiko der BCH-Preisvolatilität zu steuern.",
   "Apps.CauldronDEX.Description": "Tauschen Sie CashTokens-Liquidität auf Cauldron DEX oder stellen Sie diese bereit",
