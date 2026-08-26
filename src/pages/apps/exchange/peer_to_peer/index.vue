@@ -31,7 +31,7 @@ export default {
       showFooterMenu: true,
       currentPage: 'FiatStore',
       footerData: {
-        unreadOrdersCount: 0
+        ongoingOrdersCount: 0
       },
       showLogin: false,
       previousRoute: null,
@@ -80,7 +80,7 @@ export default {
   created () {
     bus.on('hide-menu', this.hideMenu)
     bus.on('show-menu', this.showMenu)
-    bus.on('update-unread-count', this.updateUnreadCount)
+    bus.on('update-unread-count', this.updateOngoingOrdersCount)
     bus.on('session-expired', this.handleSessionEvent)
     bus.on('post-notice', this.postNotice)
     bus.on('handle-request-error', this.handleRequestError)
@@ -138,14 +138,14 @@ export default {
       // Check Vuex store first for existing user to avoid duplicate fetch
       const storedUser = this.$store.getters['ramp/getUser']
       if (storedUser) {
-        // User already loaded, just fetch unread count non-blocking
-        this.fetchUnreadCount()
+        // User already loaded, just fetch ongoing count non-blocking
+        this.fetchOngoingOrdersCount()
         return
       }
       // If user not in store, fetch it (non-blocking)
       // Note: This endpoint doesn't require authorization - it's a public endpoint
       backend.get('/ramp-p2p/user').then(response => {
-        this.updateUnreadCount(response?.data?.user?.unread_orders_count)
+        this.updateOngoingOrdersCount(response?.data?.user?.ongoing_orders_count)
         // Store user in Vuex if not already stored
         if (response?.data?.user) {
           this.$store.commit('ramp/updateUser', response.data.user)
@@ -172,11 +172,11 @@ export default {
           }
         })
     },
-    fetchUnreadCount () {
-      // Non-blocking fetch of unread count only
+    fetchOngoingOrdersCount () {
+      // Non-blocking fetch of ongoing orders count only
       // Note: This endpoint doesn't require authorization - it's a public endpoint
       backend.get('/ramp-p2p/user').then(response => {
-        this.updateUnreadCount(response?.data?.user?.unread_orders_count)
+        this.updateOngoingOrdersCount(response?.data?.user?.ongoing_orders_count)
       })
         .catch(error => {
           // Silently fail - unread count is not critical for initial load
@@ -205,9 +205,9 @@ export default {
         this.$router.go(-2)
       }
     },
-    updateUnreadCount (count) {
+    updateOngoingOrdersCount (count) {
       if (this.footerData) {
-        this.footerData.unreadOrdersCount = count
+        this.footerData.ongoingOrdersCount = count
       }
     },
     handleNewOrder (order) {
@@ -263,7 +263,7 @@ export default {
       const wsUrl = `${getBackendWsUrl()}general/${walletHash}/`
       webSocketManager.setWebSocketUrl(wsUrl)
       webSocketManager?.subscribeToMessages((message) => {
-        bus.emit('update-unread-count', message?.extra?.unread_count)
+        bus.emit('update-unread-count', message?.extra?.ongoing_count)
         if (message.type === 'NEW_ORDER') {
           this.handleNewOrder(message?.extra?.order)
         }

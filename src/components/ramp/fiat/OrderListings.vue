@@ -458,7 +458,7 @@ export default {
           this.handleRequestError(error)
           return Promise.reject(error)
         })
-      bus.emit('update-unread-count', response.unread_count)
+      bus.emit('update-unread-count', response.ongoing_count)
     },
     receiveDialog (data, type = 'filter') {
       const vm = this

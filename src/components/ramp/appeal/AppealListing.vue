@@ -139,7 +139,7 @@ export default {
       notifType: null,
       currentPage: 'Appeal',
       footerData: {
-        unreadOrdersCount: 0
+        ongoingOrdersCount: 0
       },
       loadingMoreData: false,
       displayEmptyList: false,
@@ -208,7 +208,7 @@ export default {
   },
   created () {
     bus.emit('show-footer-menu', true)
-    bus.on('update-unread-count', this.updateUnreadCount)
+    bus.on('update-unread-count', this.updateOngoingOrdersCount)
   },
   async mounted () {
     this.loading = true
@@ -225,7 +225,7 @@ export default {
       clearTimeout(this.tabSwitchTimeout)
     }
     
-    bus.off('update-unread-count', this.updateUnreadCount)
+    bus.off('update-unread-count', this.updateOngoingOrdersCount)
   },
   methods: {
     getDarkModeClass,
@@ -242,8 +242,8 @@ export default {
       // }
       this.resetAndRefetchListings()
     },
-    updateUnreadCount (count) {
-      this.footerData.unreadOrdersCount = count
+    updateOngoingOrdersCount (count) {
+      this.footerData.ongoingOrdersCount = count
     },
     async fetchAppeals (overwrite = false) {
       const vm = this
@@ -274,7 +274,7 @@ export default {
         })
         
         if (data) {
-          vm.footerData.unreadOrdersCount = data.unread_count
+          vm.footerData.ongoingOrdersCount = data.ongoing_count
         }
       } catch (error) {
         if (error.name !== 'AbortError') {
