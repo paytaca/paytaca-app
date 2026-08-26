@@ -681,7 +681,6 @@ export default {
             if (promoId) {
               const targetPromo = PromosBytes[type.toUpperCase()]
               const contract = new PromoContract(userPubkey, targetPromo)
-              console.log('Rewards contract: ', contract)
               const promoBalance = await contract.getTokenBalance()
               this.totalPoints += promoBalance
               this.promos[type].points = promoBalance
