@@ -706,7 +706,6 @@ export default {
   
   .qr-stream {
     position: fixed !important;
-    // z-index: -1 !important;
   }
 
   .qr-stream :deep(video) {
@@ -719,7 +718,6 @@ export default {
     position: absolute;
     bottom: -30px;
     color: white;
-    // z-index: 1000;
   }
 
   .scanner-box {
@@ -730,7 +728,7 @@ export default {
     border-radius: 16% !important;
     box-shadow: 0px 0px 0px 1000px rgba(0, 0, 0, 0.6);
     vertical-align: middle;
-    // z-index: -1 !important; // ABOVE the camera
+    z-index: -1 !important; 
     align-self: center;
     margin-left: auto;
     margin-right: auto;
@@ -809,7 +807,6 @@ export default {
     transform: translateX(-50%);
     display: flex;
     align-items: center;
-    // z-index: 2022;
   }
   .scanner-zoom-controls {
     display: flex;
