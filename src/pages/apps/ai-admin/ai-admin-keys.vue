@@ -15,21 +15,38 @@
                     Create an API key to use Paytaca AI <br>in any coding agent. 
                 </div>
 
-                <q-btn rounded outline no-caps label="New API Key" :color="themeColor" icon="key"/>
+                <q-btn 
+                    rounded 
+                    outline 
+                    no-caps 
+                    label="New API Key" 
+                    :color="themeColor" 
+                    icon="key"
+                    @click="createAPIKey()"
+                />
+            </div>
+
+            <div v-else>
+                <!-- List Here -->
             </div>
         </div>
     </div>
+
+    <CreateKeyDialog v-if="openCreateKeyDialog"/>
 </template>
 
 <script>
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 import * as AIAdminUtils from 'src/utils/ai-admin-utils.js'
 
+import CreateKeyDialog from 'src/components/ai-admin/create-key-dialog.vue'
+
 export default {
     data () {
         return {
             darkMode: this.$store.getters['darkmode/getStatus'],
-            APIKeys: []
+            APIKeys: [],
+            openCreateKeyDialog: false
         }
     },
     computed: {
@@ -46,8 +63,12 @@ export default {
             return themeMap[this.theme] || 'blue-6'
         },
         hasAPIKeys () {
-            return this.APIKeys.length > 0
+            // return this.APIKeys.length > 0
+            return true
         }
+    },
+    components: {
+        CreateKeyDialog
     },
     async mounted () {
         const vm = this
@@ -62,6 +83,11 @@ export default {
     },
     methods: {
         getDarkModeClass,
+        createAPIKey() {
+            const vm = this
+
+            vm.openCreateKeyDialog = true
+        }
     }
 }
 </script>
