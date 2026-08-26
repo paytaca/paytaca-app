@@ -1,6 +1,6 @@
 <template>
   <div id="qr-reader-body" :class="getDarkModeClass(darkMode)">
-    <header-nav :title="$t('QRReader')" :backnavpath="`${ $route.query.backnavpath || '/' }`" style="z-index: 1000;"/>
+    <header-nav :title="$t('QRReader')" :backnavpath="`${ $route.query.backnavpath || '/' }`" />
     <QRUploader ref="qr-upload" @detect-upload="decodeQrCode" />
     <div v-if="error" class="scanner-error-dialog text-center bg-red-1 text-red q-pa-lg">
       <q-icon name="error" left/>
@@ -22,7 +22,10 @@
             <div class="line-design4"></div>
           </div>
         </div>
-        <span class="scanner-text text-center full-width">{{ $t('ScanQrCode') }}</span>
+        <span class="scanner-text text-center full-width">
+          <q-spinner-ios v-if="scannerInitializing && isMobile && !error" color="primary" size="xs" class="q-mt-sm" style="opacity: .7;"/>
+          <template v-else>{{ $t('ScanQrCode') }}</template>
+        </span>
       </div>
       <template v-if="!decode">
         <qrcode-stream
@@ -79,7 +82,7 @@
         </q-linear-progress>
       </div>
 
-      <div class="q-mt-xl row items-center justify-around" style="z-index: 1000;">
+      <div class="q-mt-xl row items-center justify-around" >
         <div v-if="!hideGenerateQR" class="column flex flex-center">
           <q-btn
             round
@@ -156,6 +159,7 @@ export default {
       hideFooter: false,
       hideGenerateQR: false,
       hideUploadQR: false,
+      scannerInitializing: false,
       zoomLevel: 1.0,
       torchOn: false,
       lastScannedContent: ''
@@ -348,8 +352,8 @@ export default {
     },
 
     setBarcodeScannerActiveClass(){
-      document.documentElement.classList.add('barcode-scanner-active')
       document.querySelector('body')?.classList.add('barcode-scanner-active');
+      document.documentElement.classList.add('barcode-scanner-active')
     },
 
     removeBarcodeScannerActiveClass() {
@@ -359,7 +363,7 @@ export default {
 
 
     async startScanner () {
-      this.setBarcodeScannerActiveClass()
+      this.scannerInitializing = true
       const cameraPermitted = await this.checkCameraPermission()
       if (cameraPermitted) {
         
@@ -372,7 +376,11 @@ export default {
 
         await BarcodeScanner.startScan({ formats: [BarcodeFormat.QrCode]});
 
+        this.setBarcodeScannerActiveClass()
+        this.scannerInitializing = false
+
       } else {
+        this.scannerInitializing = false
         this.$q.notify({
           message: this.$t('CameraPermissionDenied'),
           timeout: 800,
@@ -384,8 +392,7 @@ export default {
 
     async stopScanner() {
       // Make all elements in the WebView visible again
-        document.querySelector('body')?.classList.remove('barcode-scanner-active');
-
+      this.removeBarcodeScannerActiveClass()
       // Remove all listeners
       await BarcodeScanner.removeAllListeners();
 
@@ -641,11 +648,17 @@ export default {
     } 
   },
 
+  created() {
+    if (!this.isMobile) {
+      this.setBarcodeScannerActiveClass()
+    }
+  },
+
   async mounted () {
     this.hideFooter = this.$route.query.hideFooter
     this.hideGenerateQR = this.$route.query.hideGenerateQR
     this.hideUploadQR = this.$route.query.hideUploadQR
-    this.setBarcodeScannerActiveClass()
+    // this.setBarcodeScannerActiveClass()
 
     if (this.decode) {
       return await this.decodeQrCode([{ rawValue: this.decode }])
@@ -659,12 +672,14 @@ export default {
 
   deactivated () {
     if (this.isMobile) {
+      this.scannerInitializing = true
       this.stopScanner()
     }
   },
 
   beforeUnmount () {
     if (this.isMobile) {
+      this.scannerInitializing = true
       this.stopScanner()
     }
   }
@@ -691,7 +706,7 @@ export default {
   
   .qr-stream {
     position: fixed !important;
-    z-index: -1 !important;
+    // z-index: -1 !important;
   }
 
   .qr-stream :deep(video) {
@@ -704,7 +719,7 @@ export default {
     position: absolute;
     bottom: -30px;
     color: white;
-    z-index: 1000;
+    // z-index: 1000;
   }
 
   .scanner-box {
@@ -715,7 +730,7 @@ export default {
     border-radius: 16% !important;
     box-shadow: 0px 0px 0px 1000px rgba(0, 0, 0, 0.6);
     vertical-align: middle;
-    z-index: 1000 !important; // ABOVE the camera
+    // z-index: -1 !important; // ABOVE the camera
     align-self: center;
     margin-left: auto;
     margin-right: auto;
@@ -794,7 +809,7 @@ export default {
     transform: translateX(-50%);
     display: flex;
     align-items: center;
-    z-index: 2022;
+    // z-index: 2022;
   }
   .scanner-zoom-controls {
     display: flex;
