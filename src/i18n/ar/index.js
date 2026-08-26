@@ -1724,6 +1724,7 @@ export default {
   "No Transactions To Display": "لا توجد معاملات للعرض",
   "No transactions selected": "لم يتم تحديد معاملات",
   NoAPIKeys: "لا توجد مفاتيح API",
+  NoAPIKeysToDisplay: "لا توجد مفاتيح API لعرضها",
   NoActiveRoom: "لا توجد غرفة نشطة",
   NoActiveSessions: "لا توجد جلسات نشطة",
   NoAddressesAddedYet: "لم تتم إضافة أي عناوين حتى الآن",

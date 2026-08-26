@@ -1773,6 +1773,7 @@ export default {
   "No Transactions To Display": "No Transactions To Display",
   "No transactions selected": "No transactions selected",
   NoAPIKeys: "No API Keys",
+  NoAPIKeysToDisplay: "No API Keys to display",
   NoActiveRoom: "Select a conversation to start chatting",
   NoActiveSessions: "No active sessions",
   NoAddressesAddedYet: "No addresses added yet",

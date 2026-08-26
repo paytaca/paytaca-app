@@ -178,6 +178,15 @@ const routes = [
           { path: 'order/:orderId', component: () => import('src/pages/apps/eload/eload-history-details.vue'), name: 'eload-service-order-details', props: route => ({ ...route.params, ...route.query}), },
         ]
       },
+      {
+        path: 'ai-admin',
+        component: () => import('src/pages/apps/ai-admin/index.vue'), 
+        name: 'app-ai-admin',
+        children: [
+          { path: 'keys', component: () => import('src/pages/apps/ai-admin/ai-admin-keys.vue'), name: 'ai-admin-keys' },
+          { path: 'sessions', component: () => import('src/pages/apps/ai-admin/ai-admin-sessions.vue'), name: 'ai-admin-sessions' }
+        ]
+      },
 
       {
         path: 'marketplace',

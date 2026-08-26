@@ -1725,6 +1725,7 @@ export default {
   "No Transactions To Display": "No hay transacciones para mostrar",
   "No transactions selected": "No hay transacciones seleccionadas",
   NoAPIKeys: "Sin claves API",
+  NoAPIKeysToDisplay: "No hay claves API para mostrar",
   NoActiveRoom: "Ninguna sala activa",
   NoActiveSessions: "No hay sesiones activas",
   NoAddressesAddedYet: "Aún no se han agregado direcciones",

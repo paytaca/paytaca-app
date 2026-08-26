@@ -1724,6 +1724,7 @@ export default {
   "No Transactions To Display": "Tidak ada transaksi untuk ditampilkan",
   "No transactions selected": "Tidak ada transaksi yang dipilih",
   NoAPIKeys: "Tidak Ada Kunci API",
+  NoAPIKeysToDisplay: "Tidak ada Kunci API untuk ditampilkan",
   NoActiveRoom: "Tidak ada ruang aktif",
   NoActiveSessions: "Tidak ada sesi aktif",
   NoAddressesAddedYet: "Belum ada alamat yang ditambahkan",

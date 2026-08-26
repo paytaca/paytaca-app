@@ -515,7 +515,7 @@ export default {
           name: this.$t('AIAdmin'),
           description: this.$t('Apps.AIAdmin.Description', {}, 'Manages Paytaca AI API keys and lets you subscribe to available AI models.'),
           iconName: 'mdi-console',
-          path: '/apps/multisig',
+          path: '/apps/ai-admin',
           active: true,
           iconStyle: 'font-size: 4em',
           beta: true,

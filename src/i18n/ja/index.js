@@ -1724,6 +1724,7 @@ export default {
   "No Transactions To Display": "表示するトランザクションがありません",
   "No transactions selected": "トランザクションが選択されていません",
   NoAPIKeys: "APIキーがありません",
+  NoAPIKeysToDisplay: "表示する API キーがありません",
   NoActiveRoom: "アクティブな部屋がありません",
   NoActiveSessions: "アクティブなセッションはありません",
   NoAddressesAddedYet: "まだアドレスは追加されていません",

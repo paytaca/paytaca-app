@@ -1725,6 +1725,7 @@ export default {
   "No Transactions To Display": "无交易可显示",
   "No transactions selected": "未选择交易",
   NoAPIKeys: "没有 API 密钥",
+  NoAPIKeysToDisplay: "没有可显示的 API 密钥",
   NoActiveRoom: "没有活动房间",
   NoActiveSessions: "没有活动会话",
   NoAddressesAddedYet: "尚未添加地址",

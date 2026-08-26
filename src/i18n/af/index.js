@@ -1724,6 +1724,7 @@ export default {
   "No Transactions To Display": "Geen transaksies om te vertoon",
   "No transactions selected": "Geen transaksies gekies",
   NoAPIKeys: "Geen API-sleutels nie",
+  NoAPIKeysToDisplay: "Geen API-sleutels om te vertoon nie",
   NoActiveRoom: "Geen aktiewe kamer nie",
   NoActiveSessions: "Geen aktiewe sessies nie",
   NoAddressesAddedYet: "Nog geen adresse bygevoeg nie",

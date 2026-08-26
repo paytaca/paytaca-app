@@ -1724,6 +1724,7 @@ export default {
   "No Transactions To Display": "표시할 거래가 없습니다",
   "No transactions selected": "거래가 선택되지 않았습니다",
   NoAPIKeys: "API 키 없음",
+  NoAPIKeysToDisplay: "표시할 API 키가 없습니다.",
   NoActiveRoom: "활성 회의실 없음",
   NoActiveSessions: "활성 세션 없음",
   NoAddressesAddedYet: "아직 추가된 주소가 없습니다.",

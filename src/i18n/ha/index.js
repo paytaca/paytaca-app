@@ -1724,6 +1724,7 @@ export default {
   "No Transactions To Display": "Babu ma'amaloli da za a nuna",
   "No transactions selected": "Ba a zaɓi ma'amaloli ba",
   NoAPIKeys: "Babu Maɓallan API",
+  NoAPIKeysToDisplay: "Babu Maɓallan API da za a nuna",
   NoActiveRoom: "Babu daki mai aiki",
   NoActiveSessions: "Babu zaman aiki",
   NoAddressesAddedYet: "Ba a ƙara adireshi ba tukuna",

@@ -1724,6 +1724,7 @@ export default {
   "No Transactions To Display": "Walang transactions na ipapakita",
   "No transactions selected": "Walang napiling transactions",
   NoAPIKeys: "Walang API Keys",
+  NoAPIKeysToDisplay: "Walang mga API Key na ipapakita",
   NoActiveRoom: "Walang aktibong kwarto",
   NoActiveSessions: "Walang aktibong session",
   NoAddressesAddedYet: "Wala pang naidagdag na mga address",
