@@ -138,14 +138,11 @@ export default {
       // Check Vuex store first for existing user to avoid duplicate fetch
       const storedUser = this.$store.getters['ramp/getUser']
       if (storedUser) {
-        // User already loaded, just fetch ongoing count non-blocking
-        this.fetchOngoingOrdersCount()
         return
       }
       // If user not in store, fetch it (non-blocking)
       // Note: This endpoint doesn't require authorization - it's a public endpoint
       backend.get('/ramp-p2p/user').then(response => {
-        this.updateOngoingOrdersCount(response?.data?.user?.ongoing_orders_count)
         // Store user in Vuex if not already stored
         if (response?.data?.user) {
           this.$store.commit('ramp/updateUser', response.data.user)
@@ -170,27 +167,6 @@ export default {
               bus.emit('network-error')
             }
           }
-        })
-    },
-    fetchOngoingOrdersCount () {
-      // Non-blocking fetch of ongoing orders count only
-      // Note: This endpoint doesn't require authorization - it's a public endpoint
-      backend.get('/ramp-p2p/user').then(response => {
-        this.updateOngoingOrdersCount(response?.data?.user?.ongoing_orders_count)
-      })
-        .catch(error => {
-          // Silently fail - unread count is not critical for initial load
-          if (error.response) {
-            if (error.response.status === 403) {
-              this.handleSessionEvent()
-            } else if (error.response.status === 401) {
-              // 401 means not authenticated - silently ignore
-            } else if (error.response.status === 404) {
-              // 404 means user doesn't exist yet, which is fine - silently ignore
-            }
-            // Don't log or show other errors for unread count - it's non-critical
-          }
-          // Silently ignore network errors for unread count
         })
     },
     hideMenu () {
