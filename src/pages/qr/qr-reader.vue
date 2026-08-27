@@ -24,7 +24,7 @@
         </div>
         <span class="scanner-text text-center full-width">
           <q-spinner-ios v-if="scannerInitializing && isMobile && !error" color="primary" size="xs" class="q-mt-sm" style="opacity: .7;"/>
-          <template v-else>{{ $t('ScanQrCode') }}</template>
+          <template v-else>{{ $t('ScanQrCode') }}test perm 1</template>
         </span>
       </div>
       <template v-if="!decode">
@@ -344,12 +344,12 @@ export default {
     // mlkit methods
     async checkCameraPermission(){
       const { camera } = await BarcodeScanner.checkPermissions()
-      return camera
+      return camera === 'granted'
     },
 
     async requestCameraPermission(){
       const { camera } = await BarcodeScanner.requestPermissions()
-      return camera
+      return camera === 'granted'
     },
 
     setBarcodeScannerActiveClass(){
@@ -365,7 +365,10 @@ export default {
 
     async startScanner () {
       this.scannerInitializing = true
-      const cameraPermitted = await this.checkCameraPermission()
+      let cameraPermitted = await this.checkCameraPermission()
+      if (!cameraPermitted) {
+        cameraPermitted = await this.requestCameraPermission()
+      }
       if (cameraPermitted) {
         
         await BarcodeScanner.addListener(
