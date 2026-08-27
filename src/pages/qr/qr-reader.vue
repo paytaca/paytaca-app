@@ -394,28 +394,26 @@ export default {
     async stopScanner() {
       // Make all elements in the WebView visible again
       this.removeBarcodeScannerActiveClass()
-      // Remove all listeners
-      await BarcodeScanner.removeAllListeners();
 
-      // Stop the barcode scanner
-      await BarcodeScanner.stopScan();
+      if (this.isMobile) {
+        // Remove all listeners
+        await BarcodeScanner.removeAllListeners();
+        // Stop the barcode scanner
+        await BarcodeScanner.stopScan();
+      }
+      
     },
 
     async decodeQrCode(content) {
       const rawValue = String(content?.[0]?.rawValue || '').trim()
       if (!rawValue || rawValue === 'undefined') return
-
       const normalizedValue = this.normalizeUrContent(rawValue)
       const isStreaming = normalizedValue.startsWith('ur:crypto-mofnwallet') || normalizedValue.startsWith('ur:crypto-psbt')
 
       if (isStreaming) {
         this.decodeAnimatedQrCode(content)
       } else {
-        if (this.isMobile) {
-          await BarcodeScanner.removeAllListeners()
-          await BarcodeScanner.stopScan()
-          this.removeBarcodeScannerActiveClass()
-        }
+        this.removeBarcodeScannerActiveClass()
         this.decodeStaticQrCode(content)
       }
     },
@@ -553,8 +551,7 @@ export default {
       } else {
         this.paused = true 
         resultUR = this.urDecoder.resultUR()
-        await BarcodeScanner.removeAllListeners()
-        this.removeBarcodeScannerActiveClass()
+        await this.stopScanner()
       }
 
       if (normalizedValue.startsWith('ur:crypto-mofnwallet') && resultUR) {
@@ -673,15 +670,15 @@ export default {
   deactivated () {
     if (this.isMobile) {
       this.scannerInitializing = true
-      this.stopScanner()
     }
+    this.stopScanner()
   },
 
   beforeUnmount () {
     if (this.isMobile) {
       this.scannerInitializing = true
-      this.stopScanner()
     }
+    this.stopScanner()
   }
 }
 </script>
@@ -706,7 +703,7 @@ export default {
   
   .qr-stream {
     position: fixed !important;
-    z-index: -1 !important
+    z-index: -2 !important
   }
 
   .qr-stream :deep(video) {
@@ -733,6 +730,7 @@ export default {
     margin-left: auto;
     margin-right: auto;
     margin-top: 15vh;
+    z-index: -1 !important;
   }
 
   .scan-design1 {
