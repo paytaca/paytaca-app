@@ -450,6 +450,8 @@ export default {
   ChooseBackupPhase: "اختر طريقة النسخ الاحتياطي",
   ChooseBackupPhaseDescription: "اختر طريقة النسخ الاحتياطي للمحفظة التي تريد استخدامها للانتقال إلى المرحلة التالية.",
   ChooseBalanceAssetsCaption: "اختر الأصول التي سيتم تضمينها في حساب رصيد BCH في محفظتك",
+  ChooseBchBuyerFromListing: "اختر مشتري غرفة تبادل معلومات السلامة الأحيائية (BCH) من القائمة أدناه",
+  ChooseBchSellerFromListing: "اختر بائع غرفة تبادل معلومات السلامة الأحيائية (BCH) من القائمة أدناه",
   ChooseMethod: "اختر طريقة لإرسال {symbol} الخاص بك",
   ChooseNewOwner: "اختر مالكًا جديدًا",
   ChooseOneOrBothMethods: "اختر إحدى الطريقتين أو كلتيهما أدناه لتأمين النسخة الاحتياطية الخاصة بك.",

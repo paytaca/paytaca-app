@@ -450,6 +450,8 @@ export default {
   ChooseBackupPhase: "バックアップ方法の選択",
   ChooseBackupPhaseDescription: "次のフェーズに進むために使用するウォレットのバックアップ方法を選択します。",
   ChooseBalanceAssetsCaption: "ウォレットの BCH 残高の計算にどの資産が含まれるかを選択してください",
+  ChooseBchBuyerFromListing: "以下のリストから BCH 購入者を選択してください",
+  ChooseBchSellerFromListing: "以下のリストから BCH 販売者を選択してください",
   ChooseMethod: "{symbol} を送信する方法を選択してください",
   ChooseNewOwner: "新しい所有者を選択してください",
   ChooseOneOrBothMethods: "バックアップを保護するには、以下のいずれかまたは両方の方法を選択してください。",

@@ -450,6 +450,8 @@ export default {
   ChooseBackupPhase: "Выберите метод резервного копирования",
   ChooseBackupPhaseDescription: "Выберите метод резервного копирования кошелька, который вы хотите использовать, чтобы перейти к следующему этапу.",
   ChooseBalanceAssetsCaption: "Выберите, какие активы включены в расчет баланса BCH вашего кошелька.",
+  ChooseBchBuyerFromListing: "Выберите покупателя BCH из списка ниже",
+  ChooseBchSellerFromListing: "Выберите продавца BCH из списка ниже",
   ChooseMethod: "Выберите способ отправки {symbol}",
   ChooseNewOwner: "Выбрать нового владельца",
   ChooseOneOrBothMethods: "Выберите один или оба метода ниже, чтобы защитить резервную копию.",

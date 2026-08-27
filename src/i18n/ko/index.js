@@ -450,6 +450,8 @@ export default {
   ChooseBackupPhase: "백업 방법 선택",
   ChooseBackupPhaseDescription: "다음 단계로 진행하려면 사용하려는 지갑 백업 방법을 선택하세요.",
   ChooseBalanceAssetsCaption: "지갑의 BCH 잔액 계산에 포함할 자산을 선택하세요.",
+  ChooseBchBuyerFromListing: "아래 목록에서 BCH 구매자를 선택하세요",
+  ChooseBchSellerFromListing: "아래 목록에서 BCH 판매자를 선택하세요",
   ChooseMethod: "{symbol}을(를) 보내는 방법을 선택하세요",
   ChooseNewOwner: "새 소유자 선택",
   ChooseOneOrBothMethods: "백업을 보호하려면 아래 방법 중 하나 또는 둘 다를 선택하세요.",

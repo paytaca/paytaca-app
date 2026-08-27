@@ -450,6 +450,8 @@ export default {
   ChooseBackupPhase: "Choisissez la méthode de sauvegarde",
   ChooseBackupPhaseDescription: "Choisissez la méthode de sauvegarde du portefeuille que vous souhaitez utiliser pour passer à la phase suivante.",
   ChooseBalanceAssetsCaption: "Choisissez quels actifs sont inclus dans le calcul du solde BCH de votre portefeuille",
+  ChooseBchBuyerFromListing: "Choisissez un acheteur BCH dans la liste ci-dessous",
+  ChooseBchSellerFromListing: "Choisissez un vendeur BCH dans la liste ci-dessous",
   ChooseMethod: "Choisissez une méthode pour envoyer votre {symbol}",
   ChooseNewOwner: "Choisissez un nouveau propriétaire",
   ChooseOneOrBothMethods: "Choisissez une ou les deux méthodes ci-dessous pour sécuriser votre sauvegarde.",

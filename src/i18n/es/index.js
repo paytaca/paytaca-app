@@ -451,6 +451,8 @@ export default {
   ChooseBackupPhase: "Elija el método de respaldo",
   ChooseBackupPhaseDescription: "Elija el método de copia de seguridad de la billetera que desea utilizar para pasar a la siguiente fase.",
   ChooseBalanceAssetsCaption: "Elija qué activos se incluyen al calcular el saldo BCH de su billetera",
+  ChooseBchBuyerFromListing: "Elija un comprador de BCH del siguiente listado",
+  ChooseBchSellerFromListing: "Elija un vendedor de BCH del siguiente listado",
   ChooseMethod: "Elija un método para enviar su {symbol}",
   ChooseNewOwner: "Elige un nuevo propietario",
   ChooseOneOrBothMethods: "Elija uno o ambos métodos a continuación para proteger su copia de seguridad.",

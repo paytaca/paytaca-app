@@ -450,6 +450,8 @@ export default {
   ChooseBackupPhase: "Pilih Metode Pencadangan",
   ChooseBackupPhaseDescription: "Pilih metode pencadangan dompet yang ingin Anda gunakan untuk melanjutkan ke tahap berikutnya.",
   ChooseBalanceAssetsCaption: "Pilih aset mana yang termasuk dalam penghitungan saldo BCH dompet Anda",
+  ChooseBchBuyerFromListing: "Pilih pembeli BCH dari daftar di bawah",
+  ChooseBchSellerFromListing: "Pilih penjual BCH dari daftar di bawah",
   ChooseMethod: "Pilih metode untuk mengirim {symbol} Anda",
   ChooseNewOwner: "Pilih pemilik baru",
   ChooseOneOrBothMethods: "Pilih salah satu atau kedua metode di bawah ini untuk mengamankan cadangan Anda.",

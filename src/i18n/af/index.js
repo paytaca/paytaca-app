@@ -450,6 +450,8 @@ export default {
   ChooseBackupPhase: "Kies Rugsteunmetode",
   ChooseBackupPhaseDescription: "Kies die beursie-rugsteunmetode wat jy wil gebruik om na die volgende fase voort te gaan.",
   ChooseBalanceAssetsCaption: "Kies watter bates ingesluit word by die berekening van BCH-saldo van jou beursie",
+  ChooseBchBuyerFromListing: "Kies 'n BCH-koper uit die lys hieronder",
+  ChooseBchSellerFromListing: "Kies 'n BCH-verkoper uit die lys hieronder",
   ChooseMethod: "Kies 'n metode om jou {symbol} te stuur",
   ChooseNewOwner: "Kies 'n nuwe eienaar",
   ChooseOneOrBothMethods: "Kies een of albei metodes hieronder om jou rugsteun te beveilig.",

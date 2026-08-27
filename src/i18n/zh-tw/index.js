@@ -451,6 +451,8 @@ export default {
   ChooseBackupPhase: "選擇備份方式",
   ChooseBackupPhaseDescription: "選擇您想要使用的錢包備份方法以繼續下一階段。",
   ChooseBalanceAssetsCaption: "選擇計算您錢包的 BCH 餘額時包含哪些資產",
+  ChooseBchBuyerFromListing: "從下面的清單中選擇 BCH 買家",
+  ChooseBchSellerFromListing: "從下面的清單中選擇一個 BCH 賣家",
   ChooseMethod: "選擇發送您的 {symbol} 的方法",
   ChooseNewOwner: "選擇新主人",
   ChooseOneOrBothMethods: "選擇以下一種或兩種方法來保護您的備份。",

@@ -450,6 +450,8 @@ export default {
   ChooseBackupPhase: "Zaɓi Hanyar Ajiyayyen",
   ChooseBackupPhaseDescription: "Zaɓi hanyar ajiyar walat ɗin da kake son amfani da ita don ci gaba zuwa mataki na gaba.",
   ChooseBalanceAssetsCaption: "Zaɓi waɗanne kadarori ne aka haɗa cikin lissafin ma'auni na BCH na walat ɗin ku",
+  ChooseBchBuyerFromListing: "Zaɓi mai siyan BCH daga lissafin da ke ƙasa",
+  ChooseBchSellerFromListing: "Zaɓi mai siyar da BCH daga lissafin da ke ƙasa",
   ChooseMethod: "Zaɓi hanyar da za a aika {symbol}",
   ChooseNewOwner: "Zaɓi sabon mai shi",
   ChooseOneOrBothMethods: "Zaɓi hanyoyi ɗaya ko biyu a ƙasa don amintar wariyar ku.",

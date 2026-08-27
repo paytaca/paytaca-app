@@ -83,8 +83,8 @@
             class="info-banner rounded-borders q-py-sm q-px-md"
             :class="getDarkModeClass(darkMode)">
             {{ transactionType === 'SELL'
-              ? $t('Choose a BCH seller from the listing below')
-              : $t('Choose a BCH buyer from the listing below') }}
+              ? $t('ChooseBchSellerFromListing')
+              : $t('ChooseBchBuyerFromListing') }}
           </q-banner>
         </div>
       </q-pull-to-refresh>

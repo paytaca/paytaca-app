@@ -450,6 +450,8 @@ export default {
   ChooseBackupPhase: "Kies Back-upmethode",
   ChooseBackupPhaseDescription: "Kies de portemonnee-back-upmethode die u wilt gebruiken om door te gaan naar de volgende fase.",
   ChooseBalanceAssetsCaption: "Kies welke activa zijn inbegrepen bij het berekenen van het BCH-saldo van uw portemonnee",
+  ChooseBchBuyerFromListing: "Kies een BCH-koper uit de onderstaande lijst",
+  ChooseBchSellerFromListing: "Kies een BCH-verkoper uit de onderstaande lijst",
   ChooseMethod: "Kies een methode om uw {symbol} te verzenden",
   ChooseNewOwner: "Kies een nieuwe eigenaar",
   ChooseOneOrBothMethods: "Kies hieronder een of beide methoden om uw back-up te beveiligen.",

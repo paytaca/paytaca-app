@@ -450,6 +450,8 @@ export default {
   ChooseBackupPhase: "Wählen Sie eine Backup-Methode",
   ChooseBackupPhaseDescription: "Wählen Sie die Wallet-Backup-Methode aus, die Sie verwenden möchten, um mit der nächsten Phase fortzufahren.",
   ChooseBalanceAssetsCaption: "Wählen Sie aus, welche Vermögenswerte in die Berechnung des BCH-Guthabens Ihres Wallets einbezogen werden",
+  ChooseBchBuyerFromListing: "Wählen Sie aus der Liste unten einen BCH-Käufer aus",
+  ChooseBchSellerFromListing: "Wählen Sie aus der Liste unten einen BCH-Verkäufer aus",
   ChooseMethod: "Wählen Sie eine Methode zum Senden Ihres {symbol}",
   ChooseNewOwner: "Wählen Sie einen neuen Eigentümer",
   ChooseOneOrBothMethods: "Wählen Sie unten eine oder beide Methoden aus, um Ihr Backup zu sichern.",

@@ -857,6 +857,8 @@ const phrases = {
       SearchUser: 'Search User...',
       BuyBCH: 'Buy BCH',
       SellBCH: 'Sell BCH',
+      ChooseBchSellerFromListing: 'Choose a BCH seller from the listing below',
+      ChooseBchBuyerFromListing: 'Choose a BCH buyer from the listing below',
       NoAdsToDisplay: 'No Ads to display',
       P2PExchange: 'P2P Ramp',
       EditPaymentMethods: 'Edit Payment Methods',

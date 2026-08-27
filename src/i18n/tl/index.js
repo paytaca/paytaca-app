@@ -450,6 +450,8 @@ export default {
   ChooseBackupPhase: "Piliin ang Backup Method",
   ChooseBackupPhaseDescription: "Piliin ang paraan ng pag-backup ng wallet na gusto mong gamitin upang magpatuloy sa susunod na yugto.",
   ChooseBalanceAssetsCaption: "Piliin kung aling mga asset ang kasama sa pag-compute ng balanse ng BCH ng iyong wallet",
+  ChooseBchBuyerFromListing: "Pumili ng bumibili ng BCH mula sa listahan sa ibaba",
+  ChooseBchSellerFromListing: "Pumili ng nagbebenta ng BCH mula sa listahan sa ibaba",
   ChooseMethod: "Pumili ng paraan para ipadala ang iyong {symbol}",
   ChooseNewOwner: "Pumili ng bagong may-ari",
   ChooseOneOrBothMethods: "Pumili ng isa o parehong paraan sa ibaba para ma-secure ang iyong backup.",
