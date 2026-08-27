@@ -80,7 +80,7 @@ export default {
   created () {
     bus.on('hide-menu', this.hideMenu)
     bus.on('show-menu', this.showMenu)
-    bus.on('update-unread-count', this.updateOngoingOrdersCount)
+    bus.on('update-ongoing-count', this.updateOngoingOrdersCount)
     bus.on('session-expired', this.handleSessionEvent)
     bus.on('post-notice', this.postNotice)
     bus.on('handle-request-error', this.handleRequestError)
@@ -263,7 +263,7 @@ export default {
       const wsUrl = `${getBackendWsUrl()}general/${walletHash}/`
       webSocketManager.setWebSocketUrl(wsUrl)
       webSocketManager?.subscribeToMessages((message) => {
-        bus.emit('update-unread-count', message?.extra?.ongoing_count)
+        bus.emit('update-ongoing-count', message?.extra?.ongoing_count)
         if (message.type === 'NEW_ORDER') {
           this.handleNewOrder(message?.extra?.order)
         }

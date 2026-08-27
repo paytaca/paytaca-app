@@ -208,7 +208,7 @@ export default {
   },
   created () {
     bus.emit('show-footer-menu', true)
-    bus.on('update-unread-count', this.updateOngoingOrdersCount)
+    bus.on('update-ongoing-count', this.updateOngoingOrdersCount)
   },
   async mounted () {
     this.loading = true
@@ -225,7 +225,7 @@ export default {
       clearTimeout(this.tabSwitchTimeout)
     }
     
-    bus.off('update-unread-count', this.updateOngoingOrdersCount)
+    bus.off('update-ongoing-count', this.updateOngoingOrdersCount)
   },
   methods: {
     getDarkModeClass,
