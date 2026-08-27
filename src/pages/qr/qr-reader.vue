@@ -82,7 +82,7 @@
         </q-linear-progress>
       </div>
 
-      <div class="q-mt-xl row items-center justify-around" >
+      <div class="q-mt-xl row items-center justify-around" style="z-index: 10">
         <div v-if="!hideGenerateQR" class="column flex flex-center">
           <q-btn
             round
