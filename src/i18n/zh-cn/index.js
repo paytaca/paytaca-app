@@ -626,6 +626,7 @@ export default {
   Country: "国家",
   Create: "创建",
   CreateAGiftNow: "立即制作礼物",
+  CreateAPIKeyDescription: "创建 API 密钥以在任何编码代理中使用 Paytaca AI <br>。",
   CreateAQuest: "创建任务",
   CreateAQuestDescription: "用于定制任务的地图和简短表格，包括可选的备忘录。任务是一个包含多个现金滴的活动，每个现金滴中都包含 BCH。",
   CreateAnother: "创造另一份礼物",

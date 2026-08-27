@@ -625,6 +625,7 @@ export default {
   Country: "국가",
   Create: "만들기",
   CreateAGiftNow: "지금 선물을 만들어보세요",
+  CreateAPIKeyDescription: "모든 코딩 에이전트에서 <br> Paytaca AI를 사용하려면 API 키를 만드세요.",
   CreateAQuest: "퀘스트 만들기",
   CreateAQuestDescription: "선택적 메모를 포함하여 퀘스트를 사용자 정의하기 위한 지도와 짧은 형식입니다.퀘스트는 각각 BCH가 포함된 여러 개의 현금을 포함하는 캠페인입니다.",
   CreateAnother: "또 다른 선물 만들기",

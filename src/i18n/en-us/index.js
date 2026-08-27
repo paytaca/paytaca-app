@@ -646,6 +646,7 @@ export default {
   Country: "Country",
   Create: "Create",
   CreateAGiftNow: "Create a gift now",
+  CreateAPIKeyDescription: "Create an API key to use Paytaca AI <br> in any coding agent.",
   CreateAQuest: "Create A Quest",
   CreateAQuestDescription: "A map and a short form to customize a quest, including an optional memo. A quest is a campaign that includes multiple cashdrops with BCH in each of them.",
   CreateAnother: "Create Another Gift",

@@ -625,6 +625,7 @@ export default {
   Country: "Bansa",
   Create: "Lumikha",
   CreateAGiftNow: "Gumawa ng regalo ngayon",
+  CreateAPIKeyDescription: "Gumawa ng API key para magamit ang Paytaca AI <br> sa anumang coding agent.",
   CreateAQuest: "Lumikha ng Isang Paghahanap",
   CreateAQuestDescription: "Isang mapa at isang maikling form upang i-customize ang isang quest, kabilang ang isang opsyonal na memo.Ang quest ay isang campaign na may kasamang maraming cashdrop na may BCH sa bawat isa sa kanila.",
   CreateAnother: "Gumawa ng Isa pang Regalo",

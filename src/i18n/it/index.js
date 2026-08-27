@@ -625,6 +625,7 @@ export default {
   Country: "Paese",
   Create: "Crea",
   CreateAGiftNow: "Crea un regalo adesso",
+  CreateAPIKeyDescription: "Crea una chiave API per utilizzare Paytaca AI <br> in qualsiasi agente di codifica.",
   CreateAQuest: "Crea una missione",
   CreateAQuestDescription: "Una mappa e un breve modulo per personalizzare una missione, incluso un promemoria opzionale.Una missione è una campagna che include più contanti con BCH in ciascuno di essi.",
   CreateAnother: "Crea un altro regalo",

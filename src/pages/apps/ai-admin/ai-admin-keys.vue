@@ -11,9 +11,7 @@
                 <!-- <q-im  g class="vertical-top q-my-md" src="empty-wallet.svg" style="width: 75px; fill: gray;" /> -->
                 <p :class="{ 'text-black': !darkMode }">{{ $t('NoAPIKeysToDisplay') }}</p>
 
-                <div class="text-italic text-grey q-pb-md">
-                    Create an API key to use Paytaca AI <br>in any coding agent. 
-                </div>
+                <div class="text-italic text-grey q-pb-md" v-html="$t('CreateAPIKeyDescription')"></div>
 
                 <q-btn 
                     rounded 
@@ -42,17 +40,19 @@
 
                     <div class="app-row-end">
                         <!-- <span v-if="app.beta" class="app-beta-pill">BETA</span> -->
-                        <q-btn outline rounded padding="sm" class="q-mr-sm" icon="edit" size="sm" color="button" @click.stop="" />
-                        <q-btn outline rounded padding="sm" icon="mdi-lock-off" size="sm" color="button" @click.stop="" />
+                        <q-btn outline rounded padding="sm" class="q-mr-xs" icon="edit" size="sm" :color="darkMode ? 'white' : 'blue-grey-8'" @click.stop="" />
+                        <q-btn outline rounded padding="sm" icon="mdi-lock-off" size="sm" :color="darkMode ? 'white' : 'blue-grey-8'" @click.stop="" />
                     </div>
 
                 </div>
 
                 <!-- add button if there are more items to load -->
-                <div class="text-center q-py-md">
+                <div class="text-center q-py-sm">
                     <q-btn
                         flat
                         no-caps
+                        size="18px"
+                        class="text-bold"
                         label="See more"
                         :color="themeColor"
                         :loading="loadingMore"

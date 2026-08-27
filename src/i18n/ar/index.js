@@ -625,6 +625,7 @@ export default {
   Country: "البلد",
   Create: "إنشاء",
   CreateAGiftNow: "قم بإنشاء هدية الآن",
+  CreateAPIKeyDescription: "قم بإنشاء مفتاح API لاستخدام Paytaca AI <br> في أي وكيل ترميز.",
   CreateAQuest: "إنشاء مهمة",
   CreateAQuestDescription: "خريطة ونموذج قصير لتخصيص المهمة، بما في ذلك مذكرة اختيارية.المهمة عبارة عن حملة تتضمن العديد من عمليات السحب النقدي مع BCH في كل منها.",
   CreateAnother: "إنشاء هدية أخرى",

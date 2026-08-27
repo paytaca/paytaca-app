@@ -625,6 +625,7 @@ export default {
   Country: "Land",
   Create: "Skep",
   CreateAGiftNow: "Skep nou 'n geskenk",
+  CreateAPIKeyDescription: "Skep 'n API-sleutel om Paytaca AI <br> in enige koderingsagent te gebruik.",
   CreateAQuest: "Skep 'n soeke",
   CreateAQuestDescription: "'n Kaart en 'n kort vorm om 'n taak aan te pas, insluitend 'n opsionele memo.'n Opdrag is 'n veldtog wat verskeie kontantdruppels met BCH in elk van hulle insluit.",
   CreateAnother: "Skep nog 'n geskenk",

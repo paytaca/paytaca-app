@@ -625,6 +625,7 @@ export default {
   Country: "Ƙasa",
   Create: "Ƙirƙiri",
   CreateAGiftNow: "Ƙirƙiri kyauta yanzu",
+  CreateAPIKeyDescription: "Ƙirƙiri maɓallin API don amfani da Paytaca AI <br> a kowane wakili na coding.",
   CreateAQuest: "Ƙirƙiri A nema",
   CreateAQuestDescription: "Taswira da ɗan gajeren tsari don keɓance nema, gami da memo na zaɓi.Neman yaƙin neman zaɓe wanda ya haɗa da tsabar kudi da yawa tare da BCH a kowanne ɗayan su.",
   CreateAnother: "Ƙirƙiri Wata Kyauta",

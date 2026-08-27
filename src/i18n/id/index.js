@@ -625,6 +625,7 @@ export default {
   Country: "Negara",
   Create: "Buat",
   CreateAGiftNow: "Buat hadiah sekarang",
+  CreateAPIKeyDescription: "Buat kunci API untuk menggunakan Paytaca AI <br> di agen pengkodean mana pun.",
   CreateAQuest: "Buat Sebuah Pencarian",
   CreateAQuestDescription: "Peta dan formulir singkat untuk menyesuaikan misi, termasuk memo opsional.Quest adalah kampanye yang mencakup beberapa cashdrop dengan BCH di masing-masingnya.",
   CreateAnother: "Buat Hadiah Lain",

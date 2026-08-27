@@ -625,6 +625,7 @@ export default {
   Country: "Land",
   Create: "Creëer",
   CreateAGiftNow: "Create a gift now",
+  CreateAPIKeyDescription: "Maak een API-sleutel om Paytaca AI <br> in elke codeeragent te gebruiken.",
   CreateAQuest: "Creëer een zoektocht",
   CreateAQuestDescription: "Een kaart en een kort formulier om een zoektocht aan te passen, inclusief een optionele memo.Een zoektocht is een campagne die meerdere cashdrops bevat met in elk daarvan BCH.",
   CreateAnother: "Create Another Gift",
