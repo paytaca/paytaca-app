@@ -171,7 +171,8 @@ export default {
       return this.$store.getters['darkmode/getStatus']
     },
     isMobile () {
-      return this.$q.platform.is.mobile || this.$q.platform.is.android || this.$q.platform.is.ios
+      // return this.$q.platform.is.mobile || this.$q.platform.is.android || this.$q.platform.is.ios
+      return this.$q.platform.is.nativeMobile
     },
     cameraConstraints () {
       return {
@@ -658,7 +659,6 @@ export default {
     this.hideFooter = this.$route.query.hideFooter
     this.hideGenerateQR = this.$route.query.hideGenerateQR
     this.hideUploadQR = this.$route.query.hideUploadQR
-    // this.setBarcodeScannerActiveClass()
 
     if (this.decode) {
       return await this.decodeQrCode([{ rawValue: this.decode }])
@@ -706,6 +706,7 @@ export default {
   
   .qr-stream {
     position: fixed !important;
+    z-index: -1 !important
   }
 
   .qr-stream :deep(video) {
@@ -728,7 +729,6 @@ export default {
     border-radius: 16% !important;
     box-shadow: 0px 0px 0px 1000px rgba(0, 0, 0, 0.6);
     vertical-align: middle;
-    z-index: -1 !important; 
     align-self: center;
     margin-left: auto;
     margin-right: auto;
