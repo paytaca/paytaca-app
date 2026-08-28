@@ -124,7 +124,7 @@ async function handleOpenedNotification() {
     const normalizedNotificationHash = notificationWalletHash.trim()
     const normalizedCurrentHash = currentWalletHash ? currentWalletHash.trim() : null
 
-    if (normalizedCurrentHash && normalizedNotificationHash !== normalizedCurrentHash) {
+    if (!normalizedCurrentHash || normalizedNotificationHash !== normalizedCurrentHash) {
       loadingMsg.value = t('SwitchingWallet') + '...'
       // Pass destination route to switchWallet so it navigates directly after switch
       // This prevents push-notification-router from remaining in navigation history
