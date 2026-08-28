@@ -118,7 +118,7 @@ export default {
         vm.APIKeys = await AIAdminUtils.getApiKeys()
 
         if (vm.APIKeys.length > 0) {
-            console.log('has api keys:' + hasAPIKeys)
+            console.log('has api keys:' + vm.hasAPIKeys)
         } else {
             console.log('empty')
         }

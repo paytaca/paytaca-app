@@ -1,11 +1,20 @@
+import axios from 'axios'
 import { SecureStoragePlugin } from 'capacitor-secure-storage-plugin'
+import { requestManager } from 'src/utils/request-manager'
 import { Store } from 'src/store'
 
+export const backend = axios.create()
+requestManager.attachTo(backend)
+
 const STORAGE_KEY = 'paytaca-ai-api-keys'
+const baseURL = process.env.PAYTACA_AI_API || ''
+const MAX_AUTH_RETRIES = 1
 
 function getWalletHash () {
     return Store.getters['global/getWallet']('bch')?.walletHash
 }
+
+// ===== Secure Storage =======
 
 /**
  * Get all API keys for a wallet hash.
@@ -69,5 +78,244 @@ async function _getAllKeys() {
     return JSON.parse(result?.value || '{}')
   } catch {
     return {}
+  }
+}
+
+
+// ===== Paytaca AI API =======
+
+
+// Create API Keys
+export async function createAPIKey (name) {
+  const walletHash = getWalletHash()
+
+  if (!walletHash) {
+    return { success: false, data: null, error: 'Wallet hash not available' }
+  }
+
+  for (let attempt = 0; attempt <= MAX_AUTH_RETRIES; attempt++) {
+    try {
+      const keyName = name || ''
+      let headers = {
+        "X-Wallet-Hash": walletHash
+      }
+
+      const payload = {
+        name: keyName
+      }
+
+      const response = await backend.post(baseURL + '/api-keys', payload, { headers: headers})
+
+      // Save api key to secure storage
+      if (response?.data) {
+        await saveApiKey(response.data)
+      }
+
+      return {
+				success: true,
+				data: response.data,
+				error: null
+			}
+    } catch(error) {
+      const errorMessage = error.response?.data?.message || error.message || 'Failed to create API key'
+			console.error('[createAPIKey] Error:', errorMessage)
+
+      if (attempt === MAX_AUTH_RETRIES) {
+        return {
+          success: false,
+          data: null,
+          error: `Network error: ${errorMessage}`
+        }
+      }
+    }
+  }
+}
+
+// API Key List
+export async function fetchAPIKeys(data) {
+  const walletHash = getWalletHash()
+
+  if (!walletHash) {
+    return { success: false, data: null, error: 'Wallet hash not available' }
+  }
+
+  for (let attempt = 0; attempt <= MAX_AUTH_RETRIES; attempt++) {
+    try {
+      let headers = {
+        "X-Wallet-Hash": walletHash
+      }
+
+      let params = {
+        page: data.page || 1,
+        page_size: data.pageSize || 10
+      }
+
+      const response = await backend.get(baseURL + '/ai-admin/api-keys', { params: params, headers: headers})
+
+      return {
+				success: true,
+				data: response.data,
+				error: null
+			}      
+    } catch(error) {
+      const errorMessage = error.response?.data?.message || error.message || 'Failed to fetch API keys'
+			console.error('[fetchAPIKeys] Error:', errorMessage)
+
+      if (attempt === MAX_AUTH_RETRIES) {
+        return {
+          success: false,
+          data: null,
+          error: `Network error: ${errorMessage}`
+        }
+      }
+    }
+  }
+}
+
+// API Key Details
+export async function fetchAPIKeyDetails(uuid) {
+  const walletHash = getWalletHash()
+
+  if (!walletHash) {
+    return { success: false, data: null, error: 'Wallet hash not available' }
+  }
+
+  for (let attempt = 0; attempt <= MAX_AUTH_RETRIES; attempt++) {
+    try {
+      let headers = {
+        "X-Wallet-Hash": walletHash
+      }
+
+      const response = await backend.get(baseURL + '/ai-admin/api-keys/' + uuid, { headers: headers})
+      
+      return {
+				success: true,
+				data: response.data,
+				error: null
+			}      
+    } catch (error) {
+      const errorMessage = error.response?.data?.message || error.message || 'Failed to fetch API key details'
+			console.error('[fetchAPIKeyDetails] Error:', errorMessage)
+
+      if (attempt === MAX_AUTH_RETRIES) {
+        return {
+          success: false,
+          data: null,
+          error: `Network error: ${errorMessage}`
+        }
+      }
+    }
+  }
+}
+
+// revoke apu key
+export async function revokeAPIKey(uuid) {
+  const walletHash = getWalletHash()
+
+  if (!walletHash) {
+    return { success: false, data: null, error: 'Wallet hash not available' }
+  }
+
+  for (let attempt = 0; attempt <= MAX_AUTH_RETRIES; attempt++) {
+    try {
+      let headers = {
+        "X-Wallet-Hash": walletHash
+      }
+
+      const response = await backend.delete(baseURL + '/api-keys/' + uuid, { headers: headers})
+
+      if (response?.data) {
+        await removeApiKey(uuid)
+      }
+
+      return {
+        success: true,
+        data: response.data,
+        error: null
+      }
+    } catch(error) {
+      const errorMessage = error.response?.data?.message || error.message || 'Failed to revoke API key'
+			console.error('[revokeAPIKey] Error:', errorMessage)
+
+      if (attempt === MAX_AUTH_RETRIES) {
+        return {
+          success: false,
+          data: null,
+          error: `Network error: ${errorMessage}`
+        }
+      }
+    }      
+  }
+}
+
+// Models List
+export async function fetchModels(data) {
+  for (let attempt = 0; attempt <= MAX_AUTH_RETRIES; attempt++) {
+    try {
+      const params = {}
+
+      if ('tier' in data) {
+        params['tier'] = data.tier
+      }
+
+      if ('provider' in data) {
+        params['provider'] = data.provider
+      }
+
+      if ('isActive' in data) {
+        params['is_active'] = data.isActive
+      }
+
+      if ('ordering' in data) {
+        params['ordering'] = data.ordering
+      }
+
+      const response = await backend.get(baseURL + '/ai-admin/models', { params: params})
+
+      return {
+        success: true,
+        data: response.data,
+        error: null
+      }
+
+    } catch (error) {
+      const errorMessage = error.response?.data?.message || error.message || 'Failed to fetch models'
+			console.error('[fetchModels] Error:', errorMessage)
+
+      if (attempt === MAX_AUTH_RETRIES) {
+        return {
+          success: false,
+          data: null,
+          error: `Network error: ${errorMessage}`
+        }
+      }
+    }
+  }
+
+} 
+
+// Model Details
+export async function fetchModelDetails(modelID) {
+  for (let attempt = 0; attempt <= MAX_AUTH_RETRIES; attempt++) {
+    try {
+      const response = await backend.get(baseURL + '/ai-admin/models/' + modelID)
+
+      return {
+        success: true,
+        data: response.data,
+        error: null
+      }
+    } catch (error) {
+      const errorMessage = error.response?.data?.message || error.message || 'Failed to fetch model details'
+			console.error('[fetchModelDetails] Error:', errorMessage)
+
+      if (attempt === MAX_AUTH_RETRIES) {
+        return {
+          success: false,
+          data: null,
+          error: `Network error: ${errorMessage}`
+        }
+      }
+    }
   }
 }

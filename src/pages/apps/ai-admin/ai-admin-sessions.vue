@@ -81,6 +81,7 @@
 
 <script>
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
+import * as AIAdminUtils from 'src/utils/ai-admin-utils.js'
 
 export default {
     data () {
@@ -106,6 +107,11 @@ export default {
             // return this.sessions.length > 0
             return true
         }
+    },
+    async mounted () {
+        const data = await AIAdminUtils.fetchModels({})
+
+        console.log(data)
     },
     methods: {
         getDarkModeClass,
