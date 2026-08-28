@@ -1876,6 +1876,8 @@ export default {
   OpenPaymentUrl: "Apri URL di pagamento",
   OpenPrivateGroup: "Apri gruppo privato",
   OpenPrivateGroupDesc: "Chat di gruppo crittografata end-to-end per un massimo di 50 membri. I nuovi membri possono unirsi in qualsiasi momento.",
+  OpenSettingsForCameraPermissionDialogTitle: "È richiesta l'autorizzazione della fotocamera",
+  OpenSettingsForCameraPermissionPrompt: "Per scansionare i codici QR è necessario l'accesso alla fotocamera.Per favore consentilo nelle impostazioni del tuo dispositivo.",
   OpenSourceCode: "Codice open source",
   Options: "Opzioni",
   OraclePubkey: "Pubkey dell'Oracolo",

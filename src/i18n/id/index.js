@@ -1876,6 +1876,8 @@ export default {
   OpenPaymentUrl: "Buka URL Pembayaran",
   OpenPrivateGroup: "Buka Grup Pribadi",
   OpenPrivateGroupDesc: "Obrolan grup terenkripsi ujung ke ujung hingga 50 anggota. Anggota baru dapat bergabung kapan saja.",
+  OpenSettingsForCameraPermissionDialogTitle: "Izin Kamera Diperlukan",
+  OpenSettingsForCameraPermissionPrompt: "Akses kamera diperlukan untuk memindai kode QR.Harap izinkan di pengaturan perangkat Anda.",
   OpenSourceCode: "Kode sumber terbuka",
   Options: "Pilihan",
   OraclePubkey: "Kunci pub Oracle",

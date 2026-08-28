@@ -1877,6 +1877,8 @@ export default {
   OpenPaymentUrl: "打开支付网址",
   OpenPrivateGroup: "公开私人团体",
   OpenPrivateGroupDesc: "最多可容纳 50 名成员的端到端加密群聊。新会员可以随时加入。",
+  OpenSettingsForCameraPermissionDialogTitle: "需要相机许可",
+  OpenSettingsForCameraPermissionPrompt: "扫描二维码需要使用相机。请在您的设备设置中允许它。",
   OpenSourceCode: "开源代码",
   Options: "选项",
   OraclePubkey: "Oracle 公钥",

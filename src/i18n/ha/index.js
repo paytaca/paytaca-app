@@ -1876,6 +1876,8 @@ export default {
   OpenPaymentUrl: "Bude URL na Biya",
   OpenPrivateGroup: "Bude Rukunin Masu zaman kansu",
   OpenPrivateGroupDesc: "Ƙarshe-zuwa-ƙarshen rufaffen taɗi na rukuni don mambobi 50. Sabbin mambobi na iya shiga kowane lokaci.",
+  OpenSettingsForCameraPermissionDialogTitle: "Ana Bukatar Izinin Kamara",
+  OpenSettingsForCameraPermissionPrompt: "Ana buƙatar samun damar kyamara don bincika lambobin QR.Da fatan za a ba da izini a cikin saitunan na'urar ku.",
   OpenSourceCode: "Buɗe lambar tushe",
   Options: "Zabuka",
   OraclePubkey: "Oracle pubkey",

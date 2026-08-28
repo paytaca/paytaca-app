@@ -24,7 +24,7 @@
         </div>
         <span class="scanner-text text-center full-width">
           <q-spinner-ios v-if="scannerInitializing && isMobile && !error" color="primary" size="xs" class="q-mt-sm" style="opacity: .7;"/>
-          <template v-else>{{ $t('ScanQrCode') }}test perm 1</template>
+          <template v-else>{{ $t('ScanQrCode') }}</template>
         </span>
       </div>
       <template v-if="!decode">
@@ -171,7 +171,6 @@ export default {
       return this.$store.getters['darkmode/getStatus']
     },
     isMobile () {
-      // return this.$q.platform.is.mobile || this.$q.platform.is.android || this.$q.platform.is.ios
       return this.$q.platform.is.nativeMobile
     },
     cameraConstraints () {
@@ -187,7 +186,11 @@ export default {
     }
   },
 
-  methods: {
+  methods: {  
+
+    async openMobileSettings() {
+      await BarcodeScanner.openSettings()
+    },
 
     getDarkModeClass,
 
@@ -344,12 +347,12 @@ export default {
     // mlkit methods
     async checkCameraPermission(){
       const { camera } = await BarcodeScanner.checkPermissions()
-      return camera === 'granted'
+      return camera
     },
 
     async requestCameraPermission(){
       const { camera } = await BarcodeScanner.requestPermissions()
-      return camera === 'granted'
+      return camera
     },
 
     setBarcodeScannerActiveClass(){
@@ -365,12 +368,45 @@ export default {
 
     async startScanner () {
       this.scannerInitializing = true
-      let cameraPermitted = await this.checkCameraPermission()
-      if (!cameraPermitted) {
-        cameraPermitted = await this.requestCameraPermission()
+      let cameraPermission = await this.checkCameraPermission()
+      let hasPermission = cameraPermission === 'granted' || cameraPermission === 'limited'
+      let cameraPermissionPersistentlyDenied = cameraPermission === 'denied'
+      if (!hasPermission) {
+        const requestCameraPermission = await this.requestCameraPermission()  
+        hasPermission = requestCameraPermission === 'granted' || requestCameraPermission === 'limited'
+        // persistently denied on android if both checkPermissions and requestPermissions are both 'denied'
+        // this works on ios also, except both are immediately persistently denied if not allowed on camera settings
+        cameraPermissionPersistentlyDenied = cameraPermissionPersistentlyDenied && requestCameraPermission === 'denied'
       }
-      if (cameraPermitted) {
+      // prompt use to open settings only if persistently denied
+      if (cameraPermissionPersistentlyDenied) {
+        this.$q.notify({
+          message: this.$t('CameraPermissionDenied'),
+          timeout: 800,
+          color: 'red-9',
+          icon: 'settings_alert'
+        }) 
+        await new Promise((resolve) => {
+          this.$q.dialog({
+            title: this.$t('OpenSettingsForCameraPermissionDialogTitle'),
+            message: this.$t('OpenSettingsForCameraPermissionPrompt'),
+            ok: { label: this.$t('OpenSettings', {}, 'Open Settings'), color: 'primary', rounded: true },
+            cancel: { label: this.$t('Cancel'), flat: true },
+            class: `br-15 pt-card-2 text-bow ${getDarkModeClass(this.darkMode)}`,
+          }).onOk(async () => {
+            await BarcodeScanner.openSettings()
+            resolve()
+          }).onCancel(() => {
+            resolve()
+          })
+        })
         
+        const backPath = this.$route.query.backnavpath || '/'
+        this.$router.push({ path: backPath })
+        return 
+      }
+
+      if (hasPermission) {
         await BarcodeScanner.addListener(
           'barcodeScanned',
           async result => {
@@ -379,19 +415,21 @@ export default {
         );
 
         await BarcodeScanner.startScan({ formats: [BarcodeFormat.QrCode]});
-
         this.setBarcodeScannerActiveClass()
         this.scannerInitializing = false
-
-      } else {
-        this.scannerInitializing = false
-        this.$q.notify({
-          message: this.$t('CameraPermissionDenied'),
-          timeout: 800,
-          color: 'red-9',
-          icon: 'settings_alert'
-        })
-      }
+        return   
+      } 
+      
+      this.scannerInitializing = false
+      await this.stopScanner()
+      const backPath = this.$route.query.backnavpath || '/'
+      this.$router.push({ path: backPath })
+      return this.$q.notify({
+        message: this.$t('CameraPermissionDenied'),
+        timeout: 800,
+        color: 'red-9',
+        icon: 'settings_alert'
+      }) 
     },
 
     async stopScanner() {
