@@ -1,6 +1,6 @@
 <template>
     <div class="text-bow q-pb-md" :class="getDarkModeClass(darkMode)">   
-        <div class="row justify-end q-px-lg q-pt-md" v-if="hasAPIKeys">
+        <div class="row q-px-lg q-pt-md" v-if="hasAPIKeys">
             <q-btn rounded outline no-caps label="New API Key" :color="themeColor" icon="key" @click="createAPIKey()"/>
         </div>
 

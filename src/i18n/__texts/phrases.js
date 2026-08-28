@@ -2391,7 +2391,8 @@ const phrases = {
       AIAdmin: 'AI Admin',
       NoAPIKeysToDisplay: 'No API Keys to display',
       NoSessionsToDisplay: 'No Sessions to display',
-      CreateAPIKeyDescription: 'Create an API key to use Paytaca AI <br> in any coding agent.'
+      CreateAPIKeyDescription: 'Create an API key to use Paytaca AI <br> in any coding agent.',
+      CreateSessionDescription: 'Purchase a session to use Paytaca AI <br> models in any coding agent.'
     }
   ],
   dynamic: [
