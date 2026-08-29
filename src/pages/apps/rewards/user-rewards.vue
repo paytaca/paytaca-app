@@ -676,6 +676,7 @@ export default {
       this.dataError = ''
 
       this.urId = Number(this.$route.params.id || -1)
+      const isNewUrUser = this.urId === -1
       
       // fetch and load data
       let urData = null
@@ -696,7 +697,7 @@ export default {
         const contractVersion = urData?.contract_version ?? PROMO_CONTRACT_VERSION
         this.urContractVersion = contractVersion
         this.urContract = new PromoContract(userPubkey, PromosBytes.UR, contractVersion)
-        if (this.urId === -1) await this.urContract.subscribeAddress()
+        if (isNewUrUser) await this.urContract.subscribeAddress()
         this.points = await this.urContract.getTokenBalance()
         this.animatePointsCounter()
       } catch (error) {

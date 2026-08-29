@@ -405,6 +405,7 @@ export default {
       this.isLoading = true
 
       this.rpId = Number(this.$route.params.id || -1)
+      const isNewRpUser = this.rpId === -1
 
       // fetch and load data
       let rpData = null
@@ -447,7 +448,7 @@ export default {
         const contractVersion = rpData?.contract_version ?? PROMO_CONTRACT_VERSION
         this.rpContractVersion = contractVersion
         this.rpContract = new PromoContract(userPubkey, PromosBytes.RP, contractVersion)
-        if (this.rpId === -1) {
+        if (isNewRpUser) {
           await this.rpContract.subscribeAddress()
           await updateRfPromoData(this.rpId, {
             contract_ct_address: this.rpContract.contract.tokenAddress
