@@ -16,12 +16,18 @@ import {
 
 import axios from "axios"
 
-import PromoContractArtifact from 'src/cashscripts/rewards/PromoContractv1.json'
+import PromoContractArtifactv1 from 'src/cashscripts/rewards/PromoContractv1.json'
+import PromoContractArtifactv2 from 'src/cashscripts/rewards/PromoContractv2.json'
 
 
 const ADMIN_PUBKEY = process.env.ADMIN_PUBKEY
 const WATCHTOWER_CASH_URL = process.env.MAINNET_WATCHTOWER_BASE_URL || 'https://watchtower.cash/api'
 const UTXO_URL = `${WATCHTOWER_CASH_URL}/utxo`
+
+const promoContractArtifacts = {
+  v1: PromoContractArtifactv1,
+  v2: PromoContractArtifactv2
+}
 
 /**
  * Represents an instance of a promo contract. May vary
@@ -32,28 +38,30 @@ export default class PromoContract {
    * Constructor of the PromoContract class
    * @param {String} userPubKey the public key derived from the user's wallet mnemonic
    * @param {String} promo 1-byte hex string representing the target promo
+   * @param {String} contractVersion the PromoContract artifact version to use
    */
-  constructor (userPubKey, promo) {
+  constructor (userPubKey, promo, contractVersion='v1') {
     this.promo = promo
     this.provider = null
 
-    this.initializeContract(userPubKey)
+    this.initializeContract(userPubKey, contractVersion)
   }
 
   /**
    * Initializes the contract by compiling its source code, generating
    * the contract parameters, and creating a new Contract instance.
    * @param {String} userPubKey the public key derived from the user's wallet mnemonic
+   * @param {String} contractVersion the PromoContract artifact version to use
    */
-  initializeContract (userPubKey) {
+  initializeContract (userPubKey, contractVersion='v1') {
     this.provider = new ElectrumNetworkProvider(Network.MAINNET)
     const contractParams = [
       ADMIN_PUBKEY,
       userPubKey,
       changeEndianness(PROMO_TOKEN_CATEGORY),
       this.promo
-  ]
-    this.contract = new Contract(PromoContractArtifact, contractParams, { provider: this.provider })
+    ]
+    this.contract = new Contract(promoContractArtifacts[contractVersion], contractParams, { provider: this.provider })
   }
 
   async redeemPoints (
