@@ -419,9 +419,6 @@ export default {
 
           this.rpId = rpData.id
           await this.$router.replace({ params: { id: String(rpData.id) } })
-          rpData = await updateRfPromoData(this.rpId, {
-            contract_ct_address: this.rpContract.contract.tokenAddress
-          })
           updateUserPromoData({ rp: this.rpId })
         } else {
           rpData = await getRfPromoData(this.rpId)
@@ -450,7 +447,12 @@ export default {
         const contractVersion = rpData?.contract_version ?? PROMO_CONTRACT_VERSION
         this.rpContractVersion = contractVersion
         this.rpContract = new PromoContract(userPubkey, PromosBytes.RP, contractVersion)
-        if (this.rpId === -1) await this.rpContract.subscribeAddress()
+        if (this.rpId === -1) {
+          await this.rpContract.subscribeAddress()
+          await updateRfPromoData(this.rpId, {
+            contract_ct_address: this.rpContract.contract.tokenAddress
+          })
+        }
         this.points = await this.rpContract.getTokenBalance()
         this.animatePointsCounter()
       } catch (error) {
