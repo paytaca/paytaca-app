@@ -31,7 +31,7 @@ export async function handleOpenedNotification(context) {
     const normalizedNotificationHash = notificationWalletHash.trim()
     const normalizedCurrentHash = currentWalletHash ? currentWalletHash.trim() : null
 
-    if (normalizedCurrentHash && normalizedNotificationHash !== normalizedCurrentHash) {
+    if (!normalizedCurrentHash || normalizedNotificationHash !== normalizedCurrentHash) {
       $router.push($router.resolve({ name: 'push-notification-router' }))
       return
     }
