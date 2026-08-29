@@ -342,6 +342,7 @@ import {
   updateUserRewardsData,
   updateRfPromoData,
   createUserRewardsData,
+  PROMO_CONTRACT_VERSION,
 } from 'src/utils/engagementhub-utils/rewards'
 
 import HeaderNav from 'src/components/header-nav.vue'
@@ -576,7 +577,7 @@ export default {
         const urData = await createUserRewardsData()
         updateUserPromoData({ ur: urData.id })
         // generate user rewards promo contract
-        const contract = new PromoContract(this.user0thPubkey, PromosBytes.UR)
+        const contract = new PromoContract(this.user0thPubkey, PromosBytes.UR, PROMO_CONTRACT_VERSION)
         await contract.subscribeAddress()
         updateUserRewardsData(urData.id, {
           contract_ct_address: contract.contract.tokenAddress
@@ -682,7 +683,8 @@ export default {
             const promoId = upData[type]?.pk ?? null
             if (promoId) {
               const targetPromo = PromosBytes[type.toUpperCase()]
-              const contract = new PromoContract(this.user0thPubkey, targetPromo)
+              const contractVersion = upData[type]?.contract_version ?? PROMO_CONTRACT_VERSION
+              const contract = new PromoContract(this.user0thPubkey, targetPromo, contractVersion)
               const promoBalance = await contract.getTokenBalance()
               this.totalPoints += promoBalance
               this.promos[type].points = promoBalance
