@@ -61,7 +61,11 @@ export default class PromoContract {
       changeEndianness(PROMO_TOKEN_CATEGORY),
       this.promo
     ]
-    this.contract = new Contract(promoContractArtifacts[contractVersion], contractParams, { provider: this.provider })
+    const artifact = promoContractArtifacts[contractVersion]
+    if (!artifact) {
+      throw new Error(`Unsupported PromoContract version: ${contractVersion}`)
+    }
+    this.contract = new Contract(artifact, contractParams, { provider: this.provider })
   }
 
   async redeemPoints (
