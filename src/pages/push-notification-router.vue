@@ -51,6 +51,7 @@ async function hasValidMnemonic(walletHashOrIndex) {
 }
 
 async function switchWallet(walletHashOrIndex, destinationRoute = null) {
+  console.log('[push-lock] page switchWallet start', { walletHashOrIndex, destinationRoute })
   if (!walletHashOrIndex) return
 
   // Check if we're already on the target wallet
@@ -64,6 +65,7 @@ async function switchWallet(walletHashOrIndex, destinationRoute = null) {
   }
 
   const canSwitchToWallet = await hasValidMnemonic(walletHashOrIndex)
+  console.log('[push-lock] page hasValidMnemonic:', canSwitchToWallet)
   if (!canSwitchToWallet) {
     const msg1 = t('UnableToSwitchWallet', {}, 'Unable to switch wallet.')
     const msg2 = t('WalletIsNotInDevice', {}, 'Wallet is not in device')
@@ -80,8 +82,9 @@ async function switchWallet(walletHashOrIndex, destinationRoute = null) {
   // global/switchWallet already supports both wallet hash and index
   try {
     await $store.dispatch('global/switchWallet', walletHashOrIndex)
+    console.log('[push-lock] page switchWallet resolved, walletIndex:', $store.getters['global/getWalletIndex'], 'unlocked:', $store.getters['global/isUnlocked'])
   } catch (err) {
-    console.error(err)
+    console.error('[push-lock] page switchWallet FAILED:', err)
     errorMsg.value = String(err?.message || err)
     return
   }
@@ -95,8 +98,16 @@ async function switchWallet(walletHashOrIndex, destinationRoute = null) {
     // mirror the wallet-list flow so unlocking lands on the destination
     const lockAppEnabled = $store.getters['global/lockApp']
     const isUnlocked = $store.getters['global/isUnlocked']
-    if (lockAppEnabled && !isUnlocked) {
+  console.log('[push-lock] page entry:', JSON.stringify({
+    name: openedNotification.value?.data?.type,
+    locked: lockAppEnabled && !isUnlocked,
+    currentRoute: $router.currentRoute.value.fullPath,
+    hasNotification: Boolean(openedNotification.value)
+  }))
+
+  if (lockAppEnabled && !isUnlocked) {
       const redirect = destinationRoute?.fullPath || destinationRoute?.path || '/'
+      console.log('[push-lock] page: re-locked after switch, routing to /lock with redirect:', redirect)
       await $router.replace({ path: '/lock', query: { redirect } })
       return
     }

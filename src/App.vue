@@ -911,17 +911,19 @@ export default {
     // was hydrated). See boot/push-notifications.js for why it gets stashed.
     try {
       const stashedNotification = localStorage.getItem('push_opened_notification')
+      console.log('[push-lock] stash present:', Boolean(stashedNotification))
       if (stashedNotification) {
         localStorage.removeItem('push_opened_notification')
         const notification = JSON.parse(stashedNotification)
         if (notification) {
-          console.log('Processing stashed push notification opened during boot')
+          console.log('[push-lock] processing stashed notification, locked:', vm.$store.getters['global/lockApp'] && !vm.$store.getters['global/isUnlocked'])
           vm.$store.commit('notification/setOpenedNotification', notification)
           await vm.$store.dispatch('notification/handleOpenedNotification')
+          console.log('[push-lock] stash processing done, route:', vm.$router.currentRoute.value.fullPath)
         }
       }
     } catch (err) {
-      console.error('Error processing stashed push notification:', err)
+      console.error('[push-lock] stash processing error:', err)
     }
 
     // Fetch wallet creation date from backend (fire-and-forget, non-blocking)

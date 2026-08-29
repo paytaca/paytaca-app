@@ -364,6 +364,7 @@ export default {
       
       // Get redirect path
       const redirectPath = vm.$route.query.redirect || '/'
+      console.log('[push-lock] unlock success, redirecting to:', redirectPath)
       
       // Use nextTick to ensure store mutation is processed
       // Then add a small delay to ensure state propagation before navigation

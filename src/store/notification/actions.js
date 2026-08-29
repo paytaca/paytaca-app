@@ -14,6 +14,7 @@ export async function handleOpenedNotification(context) {
   const isUnlocked = context.rootGetters['global/isUnlocked']
 
   if (lockAppEnabled && !isUnlocked) {
+    console.log('[push-lock] locked at entry, routing to push-notification-router')
     // Store the notification for later processing after unlock
     // The notification will be processed after unlock via push-notification-router
     $router.push($router.resolve({ name: 'push-notification-router' }))
@@ -25,6 +26,7 @@ export async function handleOpenedNotification(context) {
   // Check for wallet_hash first (newer wallets)
   const notificationWalletHash = openedNotification?.data?.wallet_hash
   const currentWalletHash = getCurrentWalletHash()
+  console.log('[push-lock] hash compare', { notificationWalletHash, currentWalletHash, route: route?.fullPath || route?.path || null })
 
   if (notificationWalletHash && typeof notificationWalletHash === 'string') {
     // Compare wallet hashes (normalize by trimming)
