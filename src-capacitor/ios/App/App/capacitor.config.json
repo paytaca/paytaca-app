@@ -31,7 +31,7 @@
 	},
 	"ios": {
 		"scheme": "Paytaca",
-		"webContentsDebuggingEnabled": true
+		"webContentsDebuggingEnabled": false
 	},
 	"server": {
 		"androidScheme": "https"

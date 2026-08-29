@@ -14,7 +14,6 @@ export async function handleOpenedNotification(context) {
   const isUnlocked = context.rootGetters['global/isUnlocked']
 
   if (lockAppEnabled && !isUnlocked) {
-    console.log('[push-lock] locked at entry, routing to push-notification-router')
     // Store the notification for later processing after unlock
     // The notification will be processed after unlock via push-notification-router
     $router.push($router.resolve({ name: 'push-notification-router' }))
@@ -26,7 +25,6 @@ export async function handleOpenedNotification(context) {
   // Check for wallet_hash first (newer wallets)
   const notificationWalletHash = openedNotification?.data?.wallet_hash
   const currentWalletHash = getCurrentWalletHash()
-  console.log('[push-lock] hash compare', { notificationWalletHash, currentWalletHash, route: route?.fullPath || route?.path || null })
 
   if (notificationWalletHash && typeof notificationWalletHash === 'string') {
     // Compare wallet hashes (normalize by trimming)
@@ -40,7 +38,7 @@ export async function handleOpenedNotification(context) {
     // If wallet hashes match, continue with routing
   } else {
     // Fall back to multi_wallet_index for backward compatibility (old wallets)
-    const multiWalletIndex = parseInt(openedNotification?.data?.multi_wallet_index)
+    const multiWalletIndex = parseInt(openedNotification?.data?.multi_wallet_index, 10)
     const currentWalletIndex = context.rootGetters['global/getWalletIndex']
 
     if (Number.isSafeInteger(multiWalletIndex) && multiWalletIndex !== currentWalletIndex) {
@@ -144,7 +142,7 @@ export function getOpenedNotificationRoute(context) {
       break
     default:
       // P2P exchange (Ramp) pushes carry no type, only an order_id
-      if (Number.isSafeInteger(parseInt(openedNotification?.data?.order_id))) {
+      if (Number.isSafeInteger(parseInt(openedNotification?.data?.order_id, 10))) {
         route = {
           name: 'p2p-order',
           params: { order: openedNotification.data.order_id },

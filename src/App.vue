@@ -914,24 +914,21 @@ export default {
     // app locks and in-memory state clears.
     try {
       const stashedNotification = localStorage.getItem('push_opened_notification')
-      console.log('[push-lock] stash present:', Boolean(stashedNotification))
       if (stashedNotification) {
         let notification = null
         try {
           notification = JSON.parse(stashedNotification)
         } catch (parseErr) {
-          console.error('[push-lock] failed to parse stashed notification:', parseErr)
+          console.error('Failed to parse stashed notification:', parseErr)
           localStorage.removeItem('push_opened_notification')
         }
         if (notification) {
-          console.log('[push-lock] processing stashed notification, locked:', vm.$store.getters['global/lockApp'] && !vm.$store.getters['global/isUnlocked'])
           vm.$store.commit('notification/setOpenedNotification', notification)
           await vm.$store.dispatch('notification/handleOpenedNotification')
-          console.log('[push-lock] stash processing done, route:', vm.$router.currentRoute.value.fullPath)
         }
       }
     } catch (err) {
-      console.error('[push-lock] stash processing error:', err)
+      console.error('Stash processing error:', err)
     }
 
     // Fetch wallet creation date from backend (fire-and-forget, non-blocking)

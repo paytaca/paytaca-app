@@ -51,7 +51,6 @@ async function hasValidMnemonic(walletHashOrIndex) {
 }
 
 async function switchWallet(walletHashOrIndex, destinationRoute = null) {
-  console.log('[push-lock] page switchWallet start', { walletHashOrIndex, destinationRoute })
   if (!walletHashOrIndex) return
 
   // Check if we're already on the target wallet
@@ -65,7 +64,6 @@ async function switchWallet(walletHashOrIndex, destinationRoute = null) {
   }
 
   const canSwitchToWallet = await hasValidMnemonic(walletHashOrIndex)
-  console.log('[push-lock] page hasValidMnemonic:', canSwitchToWallet)
   if (!canSwitchToWallet) {
     const msg1 = t('UnableToSwitchWallet', {}, 'Unable to switch wallet.')
     const msg2 = t('WalletIsNotInDevice', {}, 'Wallet is not in device')
@@ -82,9 +80,8 @@ async function switchWallet(walletHashOrIndex, destinationRoute = null) {
   // global/switchWallet already supports both wallet hash and index
   try {
     await $store.dispatch('global/switchWallet', walletHashOrIndex)
-    console.log('[push-lock] page switchWallet resolved, walletIndex:', $store.getters['global/getWalletIndex'], 'unlocked:', $store.getters['global/isUnlocked'])
   } catch (err) {
-    console.error('[push-lock] page switchWallet FAILED:', err)
+    console.error('Switch wallet failed:', err)
     errorMsg.value = String(err?.message || err)
     return
   }
@@ -98,16 +95,8 @@ async function switchWallet(walletHashOrIndex, destinationRoute = null) {
     // mirror the wallet-list flow so unlocking lands on the destination
     const lockAppEnabled = $store.getters['global/lockApp']
     const isUnlocked = $store.getters['global/isUnlocked']
-  console.log('[push-lock] page entry:', JSON.stringify({
-    name: openedNotification.value?.data?.type,
-    locked: lockAppEnabled && !isUnlocked,
-    currentRoute: $router.currentRoute.value.fullPath,
-    hasNotification: Boolean(openedNotification.value)
-  }))
-
     if (lockAppEnabled && !isUnlocked) {
       const redirect = destinationRoute?.fullPath || destinationRoute?.path || '/'
-      console.log('[push-lock] page: re-locked after switch, routing to /lock with redirect:', redirect)
       // The destination is encoded in the redirect; discard the pending
       // notification so it is not re-processed after the unlock
       localStorage.removeItem('push_opened_notification')
@@ -155,12 +144,11 @@ async function handleOpenedNotification() {
       if (stashedNotification) {
         const notification = JSON.parse(stashedNotification)
         if (notification) {
-          console.log('[push-lock] page: store notification missing, restoring from stash')
           $store.commit('notification/setOpenedNotification', notification)
         }
       }
     } catch (err) {
-      console.error('[push-lock] page: stash restore failed:', err)
+      console.error('Stash restore failed:', err)
     }
   }
 
