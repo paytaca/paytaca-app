@@ -78,11 +78,28 @@ async function switchWallet(walletHashOrIndex, destinationRoute = null) {
   }
 
   // global/switchWallet already supports both wallet hash and index
-  await $store.dispatch('global/switchWallet', walletHashOrIndex)
-  
+  try {
+    await $store.dispatch('global/switchWallet', walletHashOrIndex)
+  } catch (err) {
+    console.error(err)
+    errorMsg.value = String(err?.message || err)
+    return
+  }
+
+  $store.commit('global/setWalletSwitchInProgress', true)
+
   // If destination route is provided, navigate directly to it after wallet switch
   // This prevents push-notification-router from remaining in navigation history
   if (destinationRoute) {
+    // global/switchWallet re-locks the app when lockApp is enabled
+    // mirror the wallet-list flow so unlocking lands on the destination
+    const lockAppEnabled = $store.getters['global/lockApp']
+    const isUnlocked = $store.getters['global/isUnlocked']
+    if (lockAppEnabled && !isUnlocked) {
+      const redirect = destinationRoute?.fullPath || destinationRoute?.path || '/'
+      await $router.replace({ path: '/lock', query: { redirect } })
+      return
+    }
     // Wait a brief moment to ensure wallet state is fully synced
     // The switchWallet action has internal delays, so we wait a bit more
     await new Promise(resolve => setTimeout(resolve, 100))
@@ -101,7 +118,7 @@ async function handleOpenedNotification() {
   // Check if app is locked
   const lockAppEnabled = $store.getters['global/lockApp']
   const isUnlocked = $store.getters['global/isUnlocked']
-  
+
   if (lockAppEnabled && !isUnlocked) {
     loadingMsg.value = t('Unlocking') + '...'
     // Redirect to lock screen with the current path as redirect target
@@ -159,6 +176,8 @@ onMounted(async () => {
     loading.value = true
     errorMsg.value = ''
     await handleOpenedNotification()
+  } catch (err) {
+    console.error(err)
   } finally {
     loading.value = false
   }

@@ -8,18 +8,18 @@ const NotificationTypes = types()
 export async function handleOpenedNotification(context) {
   const $router = Router()
   const openedNotification = context.getters['openedNotification']
-  
+
   // Check if app is locked
   const lockAppEnabled = context.rootGetters['global/lockApp']
   const isUnlocked = context.rootGetters['global/isUnlocked']
-  
+
   if (lockAppEnabled && !isUnlocked) {
     // Store the notification for later processing after unlock
     // The notification will be processed after unlock via push-notification-router
     $router.push($router.resolve({ name: 'push-notification-router' }))
     return
   }
-  
+
   const route = await context.dispatch('getOpenedNotificationRoute')
 
   // Check for wallet_hash first (newer wallets)
@@ -62,7 +62,20 @@ export function getOpenedNotificationRoute(context) {
   let route = null
   switch(openedNotification?.data?.type) {
     case(NotificationTypes.MAIN_TRANSACTION):
-      route = { name: 'transaction-index' }
+      if (openedNotification?.data?.txid) {
+        route = {
+          name: 'transaction-detail',
+          params: { txid: openedNotification.data.txid },
+          query: Object.assign(
+            {},
+            openedNotification?.data?.token_id
+              ? { category: openedNotification.data.token_id }
+              : {}
+          ),
+        }
+      } else {
+        route = { name: 'transaction-index' }
+      }
       break
     case(NotificationTypes.ANYHEDGE_MATURED):
     case(NotificationTypes.ANYHEDGE_CONTRACT_CANCELLED):
@@ -72,7 +85,12 @@ export function getOpenedNotificationRoute(context) {
     case(NotificationTypes.ANYHEDGE_MUTUAL_REDEMPTION_COMPLETE):
       route = { name: 'app-any-hedge' }
       break
+    case(NotificationTypes.SBCH_TRANSACTION):
+      route = { name: 'transaction-index' }
+      break
+    case (NotificationTypes.MARKETPLACE_ORDER_CREATED):
     case (NotificationTypes.MARKETPLACE_ORDER_STATUS_UPDATE):
+    case (NotificationTypes.MARKETPLACE_ORDER_AUTOCOMPLETE_NOTICE):
     case (NotificationTypes.MARKETPLACE_ORDER_INCOMING_CALL):
       route = {
         name: 'app-marketplace-order',
@@ -117,6 +135,15 @@ export function getOpenedNotificationRoute(context) {
           paymentUrl: String(openedNotification?.data?.payment_url),
           useAddressPath: openedNotification?.data?.use_address_path,
         }),
+      }
+      break
+    default:
+      // P2P exchange (Ramp) pushes carry no type, only an order_id
+      if (Number.isSafeInteger(parseInt(openedNotification?.data?.order_id))) {
+        route = {
+          name: 'p2p-order',
+          params: { order: openedNotification.data.order_id },
+        }
       }
       break
   }

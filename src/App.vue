@@ -907,6 +907,23 @@ export default {
     // Clear stale flag from router guard (watcher won't fire if index unchanged)
     vm.$store.commit('global/setWalletSwitchInProgress', false)
 
+    // Process a push notification tap that arrived during boot (before the store
+    // was hydrated). See boot/push-notifications.js for why it gets stashed.
+    try {
+      const stashedNotification = localStorage.getItem('push_opened_notification')
+      if (stashedNotification) {
+        localStorage.removeItem('push_opened_notification')
+        const notification = JSON.parse(stashedNotification)
+        if (notification) {
+          console.log('Processing stashed push notification opened during boot')
+          vm.$store.commit('notification/setOpenedNotification', notification)
+          await vm.$store.dispatch('notification/handleOpenedNotification')
+        }
+      }
+    } catch (err) {
+      console.error('Error processing stashed push notification:', err)
+    }
+
     // Fetch wallet creation date from backend (fire-and-forget, non-blocking)
     vm.$store.dispatch('global/fetchWalletCreationDate').catch(() => {})
 
