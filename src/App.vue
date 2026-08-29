@@ -909,12 +909,20 @@ export default {
 
     // Process a push notification tap that arrived during boot (before the store
     // was hydrated). See boot/push-notifications.js for why it gets stashed.
+    // NOTE: the stash is intentionally NOT removed here — it is kept alive until
+    // the flow completes (emitOpenedNotification) so the tap intent survives
+    // app locks and in-memory state clears.
     try {
       const stashedNotification = localStorage.getItem('push_opened_notification')
       console.log('[push-lock] stash present:', Boolean(stashedNotification))
       if (stashedNotification) {
-        localStorage.removeItem('push_opened_notification')
-        const notification = JSON.parse(stashedNotification)
+        let notification = null
+        try {
+          notification = JSON.parse(stashedNotification)
+        } catch (parseErr) {
+          console.error('[push-lock] failed to parse stashed notification:', parseErr)
+          localStorage.removeItem('push_opened_notification')
+        }
         if (notification) {
           console.log('[push-lock] processing stashed notification, locked:', vm.$store.getters['global/lockApp'] && !vm.$store.getters['global/isUnlocked'])
           vm.$store.commit('notification/setOpenedNotification', notification)

@@ -55,6 +55,9 @@ export async function handleOpenedNotification(context) {
 
 export function emitOpenedNotification(context) {
   bus.emit('handle-push-notification', context.getters['openedNotification'])
+  // The flow is complete — the stash (kept alive until here so the intent
+  // survives app locks/backgrounding) can finally be discarded
+  localStorage.removeItem('push_opened_notification')
   context.commit('clearOpenedNotification')
 }
 export function getOpenedNotificationRoute(context) {
@@ -151,6 +154,7 @@ export function getOpenedNotificationRoute(context) {
   }
 
   try {
+    if (!route) return null
     return $router.resolve(route)
   } catch (error) { console.error(error) }
   return null

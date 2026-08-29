@@ -105,9 +105,13 @@ async function switchWallet(walletHashOrIndex, destinationRoute = null) {
     hasNotification: Boolean(openedNotification.value)
   }))
 
-  if (lockAppEnabled && !isUnlocked) {
+    if (lockAppEnabled && !isUnlocked) {
       const redirect = destinationRoute?.fullPath || destinationRoute?.path || '/'
       console.log('[push-lock] page: re-locked after switch, routing to /lock with redirect:', redirect)
+      // The destination is encoded in the redirect; discard the pending
+      // notification so it is not re-processed after the unlock
+      localStorage.removeItem('push_opened_notification')
+      $store.commit('notification/clearOpenedNotification')
       await $router.replace({ path: '/lock', query: { redirect } })
       return
     }
@@ -141,6 +145,25 @@ async function handleOpenedNotification() {
   }
   
   loadingMsg.value = t('ResolvingRoute') + '...'
+
+  // The in-memory notification can be gone by the time we get here (e.g. it
+  // was cleared while the app was locked on the lock screen) — recover from
+  // the boot stash, which is kept until the flow completes
+  if (!openedNotification.value) {
+    try {
+      const stashedNotification = localStorage.getItem('push_opened_notification')
+      if (stashedNotification) {
+        const notification = JSON.parse(stashedNotification)
+        if (notification) {
+          console.log('[push-lock] page: store notification missing, restoring from stash')
+          $store.commit('notification/setOpenedNotification', notification)
+        }
+      }
+    } catch (err) {
+      console.error('[push-lock] page: stash restore failed:', err)
+    }
+  }
+
   const route = await $store.dispatch('notification/getOpenedNotificationRoute')
 
   // Check for wallet_hash first (newer wallets)
