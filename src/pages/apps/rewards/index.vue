@@ -374,6 +374,7 @@ export default {
       swapContractAddress: '',
       totalPoints: 0,
       liftConversionRatio: 1,
+      user0thPubkey: '',
 
       // LIFT token price tracking
       liftAssetId: `ct/${LIFT_TOKEN_CATEGORY}`,
@@ -560,6 +561,9 @@ export default {
   },
 
   async mounted () {
+    const walletIndex = this.$store.getters['global/getWalletIndex']
+    this.user0thPubkey = await getAddress0_0PublicKey(walletIndex)
+
     await this.loadRewards()
 
     if (this.code) {
@@ -572,9 +576,7 @@ export default {
         const urData = await createUserRewardsData()
         updateUserPromoData({ ur: urData.id })
         // generate user rewards promo contract
-        const walletIndex = this.$store.getters['global/getWalletIndex']
-        const userPubkey = await getAddress0_0PublicKey(walletIndex)
-        const contract = new PromoContract(userPubkey, PromosBytes.UR)
+        const contract = new PromoContract(this.user0thPubkey, PromosBytes.UR)
         await contract.subscribeAddress()
         updateUserRewardsData(urData.id, {
           contract_ct_address: contract.contract.tokenAddress
@@ -584,6 +586,8 @@ export default {
         console.error('Unable to create user rewards promo contract and data: ', error)
       }
     }
+
+    // update public key in server if it is empty
 
     this.isLoading = false
   },
@@ -674,13 +678,11 @@ export default {
       if (upData && Object.keys(upData).length > 0) {
         try {
           this.totalPoints = 0
-          const walletIndex = this.$store.getters['global/getWalletIndex']
-          const userPubkey = await getAddress0_0PublicKey(walletIndex)
           for (const type of this.pointsType) {
             const promoId = upData[type]?.pk ?? null
             if (promoId) {
               const targetPromo = PromosBytes[type.toUpperCase()]
-              const contract = new PromoContract(userPubkey, targetPromo)
+              const contract = new PromoContract(this.user0thPubkey, targetPromo)
               const promoBalance = await contract.getTokenBalance()
               this.totalPoints += promoBalance
               this.promos[type].points = promoBalance
@@ -724,7 +726,11 @@ export default {
       setTimeout(() => {
         this.$nextTick(() => {
           if (upData && !upData?.last_viewed) this.isHelpActive = true
-          updateUserPromoData({ last_viewed: new Date() })
+          const updateData = { last_viewed: new Date() }
+          if (upData?.address_0_public_key === "") {
+            updateData.address_0_public_key = this.user0thPubkey
+          }
+          updateUserPromoData(updateData)
         })
       }, 250)
     },
