@@ -135,10 +135,12 @@ async function handleOpenedNotification() {
   
   loadingMsg.value = t('ResolvingRoute') + '...'
 
-  // The in-memory notification can be gone by the time we get here (e.g. it
-  // was cleared while the app was locked on the lock screen) — recover from
-  // the boot stash, which is kept until the flow completes
-  if (!openedNotification.value) {
+  // The in-memory notification can be wiped while the app is locked (e.g. the
+  // appStateChange listener clears it on the lock screen). A cleared
+  // notification is the default truthy object with an empty id — NOT null — so
+  // emptiness must be checked via id. Recover from the boot stash, which is
+  // kept until the flow completes.
+  if (!openedNotification.value?.id) {
     try {
       const stashedNotification = localStorage.getItem('push_opened_notification')
       if (stashedNotification) {
