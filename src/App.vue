@@ -1,7 +1,14 @@
 <template>
     <div>
-      <router-view />
+      <AppLoading v-if="showInitialLoad" />
+      <WalletSwitchLoading v-if="showWalletSwitchLoading" />
+      <router-view :key="$store.getters['global/getWalletSwitchId']" />
       <v-offline @detected-condition="onConnectivityChange" />
+
+      <div v-if="isChipnet" class="chipnet-banner" @click="confirmSwitchToMainnet">
+        <span class="chipnet-banner-label">chipnet</span>
+        <q-btn flat dense no-caps class="chipnet-banner-btn" label="Switch to Mainnet" />
+      </div>
       
       <!-- Privacy overlay for app switcher/background preview -->
       <!-- Always present in DOM, controlled by CSS class for instant visibility -->
@@ -21,6 +28,7 @@
 
 <script>
 import { updateCssThemeColors } from './utils/theme-utils'
+import { getDarkModeClass } from './utils/theme-darkmode-utils'
 import { getMnemonic, Wallet, loadWallet } from './wallet'
 import { getWalletByNetwork } from 'src/wallet/chipnet'
 import { useStore } from "vuex"
@@ -30,9 +38,12 @@ import Watchtower from 'watchtower-cash-js'
 import { VOffline } from 'v-offline'
 import { checkWatchtowerStatus } from './utils/watchtower-status'
 import AppVersionUpdate from './components/dialogs/AppVersionUpdate.vue'
+import AppLoading from 'src/components/AppLoading.vue'
+import WalletSwitchLoading from 'src/components/WalletSwitchLoading.vue'
 import { App as CapacitorApp } from '@capacitor/app'
 import { Capacitor } from '@capacitor/core'
 import ScreenshotSecurity from './utils/screenshot-security'
+import JoinRewardsDialog from './components/rewards/dialogs/JoinRewardsDialog.vue'
 
 // Module-level variable to track version update dialog instance
 // This persists across component remounts (important for iOS/Capacitor)
@@ -46,7 +57,7 @@ BigInt.prototype["toJSON"] = function () {
 
 export default {
   name: 'App',
-  components: { VOffline },
+  components: { VOffline, AppLoading, WalletSwitchLoading },
   setup () {
     const store = useStore()
     const $q = useQuasar()
@@ -68,7 +79,11 @@ export default {
         }
       })
       document.body.classList.add(`theme-${theme.value}`)
-      
+
+      // Update Quasar CSS variables (--q-primary, --q-secondary, ...) to match the
+      // active theme so components like QBtn outline buttons render with the correct colors.
+      updateCssThemeColors(theme.value)
+
       // Set quasar dark mode true/false
       $q.dark.set(darkMode.value)
     })
@@ -84,6 +99,7 @@ export default {
       lastPauseTime: 0, // Timestamp of last pause event (to detect genuine background/foreground transitions)
       showPrivacyOverlay: false, // Controls privacy overlay visibility for app preview protection
       androidInsetResizeHandler: null, // Window resize handler for android status bar inset
+      joinRewardsDialogPending: false, // Tracks whether join rewards dialog was deferred waiting for backup dialog
     }
   },
   computed: {
@@ -95,21 +111,54 @@ export default {
       const darkMode = this.$store?.state?.darkmode?.darkmode
       return darkMode ? 'dark' : 'light'
     },
+    isChipnet() {
+      return this.$store.getters['global/isChipnet']
+    },
+    darkMode() {
+      return this.$store.getters['darkmode/getStatus']
+    },
     walletIndex() {
       return this.$store.getters['global/getWalletIndex']
     },
     lockAppEnabled() {
       return this.$store.getters['global/lockApp']
+    },
+    showInitialLoad() {
+      return !this.$store.state.global.appInitialLoadComplete
+    },
+    showWalletSwitchLoading() {
+      return this.$store.state.global.walletSwitchLoading
+    },
+    backupDialogActive() {
+      return this.$store?.state?.global?.backupDialogActive
     }
   },
   watch: {
-    // Watch for wallet switches to update screenshot security
-    walletIndex() {
+    isChipnet (val) {
+      document.body.style.setProperty('--chipnet-banner-height', val ? '56px' : '0px')
+    },
+    // Watch for wallet switches to update screenshot security and re-initialize
+    async walletIndex(newIndex, oldIndex) {
+      if (newIndex === oldIndex || oldIndex === undefined) return
       this.updateScreenshotSecurity()
+      await this.handleWalletSwitch()
     },
     // Watch for changes to lock app setting
     lockAppEnabled() {
       this.updateScreenshotSecurity()
+    },
+    // Show join rewards dialog after initial loading screen completes
+    showInitialLoad (val, oldVal) {
+      if (oldVal === true && val === false) {
+        this.maybeShowJoinRewardsDialog()
+      }
+    },
+    // Re-trigger join rewards dialog once backup dialog is dismissed
+    backupDialogActive (val, oldVal) {
+      if (oldVal === true && val === false && this.joinRewardsDialogPending) {
+        this.joinRewardsDialogPending = false
+        this.maybeShowJoinRewardsDialog()
+      }
     }
   },
   methods: {
@@ -387,6 +436,23 @@ export default {
         vm.lastPauseTime = 0
       })
     },
+    getDarkModeClass (darkMode) {
+      return darkMode ? 'dark' : 'light'
+    },
+    confirmSwitchToMainnet () {
+      this.$q.dialog({
+        title: this.$t('SwitchToMainnet', {}, 'Switch to Mainnet'),
+        message: this.$t('SwitchToMainnetConfirm', {}, 'Are you sure you want to switch to Mainnet?'),
+        ok: { label: this.$t('Switch', {}, 'Switch'), color: 'primary' },
+        cancel: { label: this.$t('Cancel'), flat: true },
+        persistent: true
+      }).onOk(() => {
+        this.$store.commit('global/toggleIsChipnet')
+        this.$nextTick(() => {
+          window.location.reload()
+        })
+      })
+    },
     async onConnectivityChange (online) {
       const vm = this
       vm.$store.dispatch('global/updateConnectivityStatus', online)
@@ -491,6 +557,26 @@ export default {
         localStorage.setItem('slpResubscribe', JSON.stringify(resubscriptionInfo))
       }
     },
+    async handleWalletSwitch() {
+      const vm = this
+      const index = vm.$store.getters['global/getWalletIndex']
+      const mnemonic = await getMnemonic(index).catch(() => null)
+      if (!mnemonic) {
+        if (vm.$store.getters['global/getWalletIndex'] === index) {
+          vm.$store.commit('global/setWalletSwitchInProgress', false)
+        }
+        return
+      }
+
+      vm.subscribedPushNotifications = false
+      vm.subscribePushNotifications()
+      vm.resubscribeAddresses(mnemonic)
+      vm.$store.dispatch('nostrChat/ensureSubscribed')
+
+      if (vm.$store.getters['global/getWalletIndex'] === index) {
+        vm.$store.commit('global/setWalletSwitchInProgress', false)
+      }
+    },
     async resubscribeAddresses(mnemonic) {
       this.resubscribeBCHAddresses(mnemonic)
       this.resubscribeSLPAddresses(mnemonic)
@@ -554,6 +640,46 @@ export default {
           })
         })
       }
+    },
+    maybeShowJoinRewardsDialog () {
+      const vm = this
+
+      // Don't show if backup dialog is still active; defer until it's dismissed
+      if (vm.backupDialogActive) {
+        vm.joinRewardsDialogPending = true
+        return
+      }
+
+      // Fetch from vault directly
+      const vault = vm.$store.getters['global/getVault']
+      const wallet = vault?.[vm.walletIndex]
+
+      // Only show if wallet is loaded
+      const walletHash = wallet?.wallet?.bch?.walletHash || wallet?.bch?.walletHash
+      if (!walletHash) return
+
+      // Don't show if on lock screen
+      const currentRoute = vm.$router.currentRoute.value.path
+      if (currentRoute === '/lock') return
+
+      // Don't show if app is backgrounded (privacy overlay active)
+      if (vm.showPrivacyOverlay) return
+
+      // Don't show if already dismissed for this wallet
+      const alreadyShown = wallet?.settings?.joinRewardsPromptShown
+      if (alreadyShown) return
+
+      // Show dialog and mark as shown on dismiss
+      const dialog = vm.$q.dialog({
+        component: JoinRewardsDialog
+      })
+
+      dialog.onDismiss(() => {
+        vm.$store.commit('global/saveWalletSetting', {
+          key: 'joinRewardsPromptShown',
+          value: true
+        })
+      })
     },
     setupImageContextMenuPrevention() {
       const vm = this
@@ -762,6 +888,12 @@ export default {
   async mounted () {
     const vm = this
 
+    // Cold start: reset so the loading overlay shows until the home page is ready
+    vm.$store.commit('global/setAppInitialLoadComplete', false)
+    vm._loadingStartTime = Date.now()
+    vm.$store.commit('global/setBackupDialogActive', false)
+    vm.joinRewardsDialogPending = false
+
     // Clear session-based backup reminder dismissal on fresh app start
     // App.vue only mounts on fresh app start (not during navigation), so always clear
     sessionStorage.removeItem('backupReminderDismissedTimestamp')
@@ -771,8 +903,36 @@ export default {
 
     // Ensure current wallet index is valid (points to undeleted wallet)
     // This should run before any wallet operations
-    // Skip if we just switched wallets (check for a flag or recent switch)
     await vm.$store.dispatch('global/ensureValidWalletIndex')
+    // Clear stale flag from router guard (watcher won't fire if index unchanged)
+    vm.$store.commit('global/setWalletSwitchInProgress', false)
+
+    // Process a push notification tap that arrived during boot (before the store
+    // was hydrated). See boot/push-notifications.js for why it gets stashed.
+    // NOTE: the stash is intentionally NOT removed here — it is kept alive until
+    // the flow completes (emitOpenedNotification) so the tap intent survives
+    // app locks and in-memory state clears.
+    try {
+      const stashedNotification = localStorage.getItem('push_opened_notification')
+      if (stashedNotification) {
+        let notification = null
+        try {
+          notification = JSON.parse(stashedNotification)
+        } catch (parseErr) {
+          console.error('Failed to parse stashed notification:', parseErr)
+          localStorage.removeItem('push_opened_notification')
+        }
+        if (notification) {
+          vm.$store.commit('notification/setOpenedNotification', notification)
+          await vm.$store.dispatch('notification/handleOpenedNotification')
+        }
+      }
+    } catch (err) {
+      console.error('Stash processing error:', err)
+    }
+
+    // Fetch wallet creation date from backend (fire-and-forget, non-blocking)
+    vm.$store.dispatch('global/fetchWalletCreationDate').catch(() => {})
 
     // Set up app lifecycle listener for lock screen
     if (Capacitor.isNativePlatform()) {
@@ -810,7 +970,7 @@ export default {
     // Legacy feature flag removed; no-op (handled by removal in store)
 
     const index = vm.$store.getters['global/getWalletIndex']
-    const mnemonic = await getMnemonic(index)
+    const mnemonic = await getMnemonic(index).catch(() => null)
 
     // Check watchtower status (with wallet hash if available)
     const walletHash = vm.$store.getters['global/getWallet']('bch')?.walletHash
@@ -912,6 +1072,20 @@ export default {
       this.$store.dispatch('nostrChat/ensureSubscribed')
     }
 
+    // Dismiss the initial app loading overlay regardless of which route
+    // was loaded on cold start. Previously this was only done in the home
+    // page (transaction/index.vue mounted), causing hard-reloaded deep
+    // links (e.g. /apps/chat/...) to hang on the loading screen forever.
+
+    // Ensure the loading screen is visible briefly so the user perceives it
+    const elapsed = Date.now() - vm._loadingStartTime
+    const briefVisibleTime = 800
+    if (elapsed < briefVisibleTime) {
+      await new Promise(resolve => setTimeout(resolve, briefVisibleTime - elapsed))
+    }
+
+    vm.$store.commit('global/setAppInitialLoadComplete', true)
+
     if (vm.$q.platform.is.bex) {
       if (vm.$refs?.container?.style?.display) vm.$refs.container.style.display = 'none'
       document.body.style.width = '390px'
@@ -998,9 +1172,6 @@ export default {
   },
   created () {
     const vm = this
-    setTimeout(() => {
-      updateCssThemeColors(this.$store.getters['global/theme']);
-    }, 100)
     setTimeout(function () {
       if (vm.$refs?.container?.style?.display) vm.$refs.container.style.display = 'block'
 
@@ -1260,6 +1431,44 @@ html {
   50% {
     transform: scale(1.05);
     opacity: 1;
+  }
+}
+
+.chipnet-banner {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  z-index: 5;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 20px;
+  padding-bottom: calc(12px + env(safe-area-inset-bottom, 0px));
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 600;
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  background: rgba(28, 40, 51, 0.85);
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+  color: rgba(255, 255, 255, 0.9);
+
+  .chipnet-banner-label {
+    text-transform: uppercase;
+    letter-spacing: 1.5px;
+    font-size: 11px;
+    font-weight: 700;
+  }
+
+  .chipnet-banner-btn {
+    border-radius: 6px !important;
+    padding: 4px 14px !important;
+    font-size: 11px !important;
+    font-weight: 600 !important;
+    color: rgba(255, 255, 255, 0.9) !important;
+    border: 1px solid rgba(255, 255, 255, 0.2) !important;
+    background: rgba(255, 255, 255, 0.08) !important;
   }
 }
 </style>

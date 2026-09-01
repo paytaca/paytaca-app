@@ -162,7 +162,7 @@
 </template>
 
 <script setup>
-import { computed, ref, watch, onMounted } from 'vue'
+import { computed, ref, watch, onMounted, onBeforeUnmount } from 'vue'
 import { useStore } from 'vuex'
 import { useI18n } from 'vue-i18n'
 import { useQuasar } from 'quasar'
@@ -306,10 +306,27 @@ async function onReject({ connectionId, sequence }) {
 }
 
 onMounted(() => {
+  // Lazy-init WizardConnect when the user opens the feature page. This
+  // derives HD keys, restores saved connection URIs, registers the
+  // manager event listeners and starts the 30s buffer-check interval.
+  // Previously this ran for every user at app boot (src/boot/walletconnect.js).
+  $store.dispatch('wizardconnect/init').catch((err) => {
+    console.error('WizardConnect init failed on page mount:', err)
+  })
+
   if (props.uri) {
     uriInput.value = props.uri
     onPairUri()
   }
+})
+
+onBeforeUnmount(() => {
+  // Stop the 30s buffer-check interval when leaving the page. The singleton
+  // manager, its relay connections and the pendingSignRequest listener stay
+  // alive so pending sign requests still flow into the store (and surface on
+  // the home page Pending section); only the periodic Watchtower polling is
+  // stopped. A full teardown happens on wallet switch via `wizardconnect/reset`.
+  $store.dispatch('wizardconnect/stopPeriodicBufferCheck')
 })
 </script>
 

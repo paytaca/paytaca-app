@@ -73,7 +73,7 @@ const props = defineProps({
 })
 
 const walletConnectV2 = ref()
-window.wc2 = walletConnectV2
+if (process.env.NODE_ENV !== 'production') window.wc2 = walletConnectV2
 
 const showScanner = ref(false)
 function openScanner() {

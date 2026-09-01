@@ -326,7 +326,7 @@ async function recoverWallet(index, save=false) {
     
     // Fallback to index-based lookup if wallet hash not available
     if (!mnemonic) {
-        mnemonic = await getMnemonic(index)
+        mnemonic = await getMnemonic(index).catch(() => null)
     }
 
     if (!mnemonic) {

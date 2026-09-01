@@ -77,9 +77,28 @@
         <!-- Members list -->
         <div class="members-section" :class="getDarkModeClass(darkMode)">
           <div class="section-title">{{ $t('Members', {}, 'Members') }}</div>
+          <template v-if="isMlsRoom">
+            <q-tabs
+              v-model="memberTab"
+              dense
+              no-caps
+              align="left"
+              active-color="primary"
+              indicator-color="primary"
+              class="member-tabs"
+            >
+              <q-tab name="joined" :label="$t('JoinedTab', { count: joinedMembers.length }, `Joined (${joinedMembers.length})`)" />
+              <q-tab name="invited">
+                {{ $t('InvitedTab', {}, 'Invited') }}
+                <q-badge v-if="invitedMembers.length" color="warning" class="q-ml-xs">{{ invitedMembers.length }}</q-badge>
+              </q-tab>
+            </q-tabs>
+            <q-separator />
+          </template>
+
           <q-list separator>
             <q-item
-              v-for="member in membersWithInfo"
+              v-for="member in displayedMembers"
               :key="member.pubKeyHex"
               clickable
               class="member-item"
@@ -107,17 +126,60 @@
                   >
                     {{ $t('You', {}, 'You') }}
                   </q-badge>
+                  <q-badge
+                    v-if="isMlsRoom && member.pubKeyHex === room?.owner"
+                    color="amber-7"
+                    class="role-chip q-ml-xs"
+                  >
+                    {{ $t('Owner', {}, 'Owner') }}
+                  </q-badge>
+                  <q-badge
+                    v-else-if="isMlsRoom && member.isAdmin"
+                    color="teal-6"
+                    class="role-chip q-ml-xs"
+                  >
+                    {{ $t('Admin', {}, 'Admin') }}
+                  </q-badge>
+                  <q-badge
+                    v-if="isMlsRoom && memberTab === 'invited'"
+                    color="warning"
+                    class="you-chip q-ml-xs"
+                    outline
+                  >
+                    {{ $t('InvitedBadge', {}, 'Invited') }}
+                  </q-badge>
                 </q-item-label>
                 <q-item-label caption class="npub-caption">
                   {{ member.displayNpub }}
                 </q-item-label>
               </q-item-section>
+              <q-item-section v-if="isMlsRoom && memberTab === 'invited'" side>
+                <q-icon name="hourglass_top" size="18px" color="warning" />
+              </q-item-section>
             </q-item>
           </q-list>
+          <div
+            v-if="isMlsRoom && memberTab === 'invited' && !invitedMembers.length"
+            class="no-invited-note"
+          >
+            {{ $t('NoPendingInvites', {}, 'No pending invitations') }}
+          </div>
+
+          <!-- MLS groups support adding members after creation -->
+          <q-btn
+            v-if="room?.type === 'mls-group'"
+            :label="$t('AddMember', {}, 'Add member')"
+            color="primary"
+            outline
+            rounded
+            unelevated
+            class="full-width q-mt-sm"
+            :disable="addingMember || !isGroupManager"
+            @click="openAddMemberDialog"
+          />
         </div>
 
-        <!-- Member Details Dialog -->
-        <q-dialog v-model="showMemberDetails" persistent>
+        <!-- Member Details Dialog -->        <q-dialog v-model="showMemberDetails" persistent>
           <q-card class="member-details-card pt-card text-bow" :class="getDarkModeClass(darkMode)" style="min-width: 320px; border-radius: 16px;">
             <q-card-section class="row items-center q-pb-none">
               <div class="text-h6">{{ $t('MemberDetails', {}, 'Member Details') }}</div>
@@ -131,15 +193,15 @@
                 <q-avatar
                   :color="selectedMember.isMe ? 'primary' : 'grey-5'"
                   text-color="white"
-                  size="64px"
-                  style="font-size: 28px;"
+                  size="128px"
+                  style="font-size: 56px;"
                 >
                   <img v-if="selectedMember.avatar" :src="selectedMember.avatar" />
                   <template v-else>{{ selectedMember.initial }}</template>
                 </q-avatar>
                 <div class="member-header-info">
-                  <div v-if="!editingMemberName" class="member-display-name">
-                    {{ selectedMember.displayName }}
+                  <div class="member-display-name">
+                    {{ memberDisplayNames[selectedMember.pubKeyHex] || selectedMember.displayName }}
                     <q-badge
                       v-if="selectedMember.isMe"
                       color="primary"
@@ -149,64 +211,11 @@
                       {{ $t('You', {}, 'You') }}
                     </q-badge>
                   </div>
-                  <q-input
-                    v-else
-                    v-model="editMemberNameValue"
-                    outlined
-                    dense
-                    rounded
-                    class="member-name-input"
-                    autofocus
-                    @keyup.enter="saveMemberName"
-                  />
+                  <div v-if="selectedMember.contact?.name && memberDisplayNames[selectedMember.pubKeyHex] && memberDisplayNames[selectedMember.pubKeyHex] !== selectedMember.contact.name" class="member-contact-name">
+                    {{ selectedMember.contact.name }}
+                  </div>
                   <div class="member-npub-display">{{ selectedMember.displayNpub }}</div>
                 </div>
-              </div>
-
-              <!-- Edit name button / actions -->
-              <div v-if="!editingMemberName && !selectedMember.isMe && selectedMember.contact" class="edit-name-section">
-                <q-btn
-                  flat
-                  :label="$t('EditName', {}, 'Edit Name')"
-                  color="primary"
-                  icon="edit"
-                  class="full-width"
-                  @click="startEditMemberName"
-                />
-              </div>
-              <div v-else-if="editingMemberName" class="edit-actions-row">
-                <q-btn
-                  flat
-                  :label="$t('Cancel', {}, 'Cancel')"
-                  color="grey"
-                  rounded
-                  @click="cancelEditMemberName"
-                />
-                <q-btn
-                  unelevated
-                  :label="$t('Save', {}, 'Save')"
-                  color="primary"
-                  rounded
-                  :disable="!editMemberNameValue.trim()"
-                  @click="saveMemberName"
-                />
-              </div>
-
-              <!-- Use published name option -->
-              <div v-if="editingMemberName && fetchedMemberDisplayName" class="use-published-name-row q-mt-md">
-                <q-icon name="badge" size="16px" color="primary" />
-                <span class="use-published-name-text">
-                  {{ $t('UsePublishedDisplayName', {}, 'Use published display name:') }}
-                  <strong>{{ fetchedMemberDisplayName }}</strong>
-                </span>
-                <q-btn
-                  flat
-                  dense
-                  :label="$t('Use', {}, 'Use')"
-                  color="primary"
-                  size="sm"
-                  @click="useFetchedMemberDisplayName"
-                />
               </div>
 
               <!-- Copy npub -->
@@ -218,17 +227,157 @@
                 class="full-width q-mt-sm"
                 @click="copyMemberNpub"
               />
+
+              <template v-if="room?.type === 'mls-group' && !selectedMember.isMe">
+                <!-- Owner controls -->
+                <template v-if="isGroupOwner">
+                  <q-btn
+                    v-if="!selectedMember.isAdmin && selectedMember.pubKeyHex !== room?.owner"
+                    flat
+                    :label="$t('MakeAdmin', {}, 'Make admin')"
+                    color="primary"
+                    icon="shield"
+                    class="full-width q-mt-sm"
+                    :loading="roleChanging"
+                    @click="confirmToggleAdmin(true)"
+                  />
+                  <q-btn
+                    v-if="selectedMember.isAdmin"
+                    flat
+                    :label="$t('RevokeAdmin', {}, 'Remove admin')"
+                    color="orange"
+                    icon="shield"
+                    class="full-width q-mt-sm"
+                    :loading="roleChanging"
+                    @click="confirmToggleAdmin(false)"
+                  />
+                  <q-btn
+                    v-if="selectedMember.isAdmin"
+                    flat
+                    :label="$t('TransferOwnership', {}, 'Transfer ownership')"
+                    color="primary"
+                    icon="swap_horiz"
+                    class="full-width q-mt-sm"
+                    :loading="roleChanging"
+                    @click="confirmTransferOwnership"
+                  />
+                </template>
+                <!-- Manager controls (owner or admin) -->
+                <q-btn
+                  v-if="canRemoveManager && !selectedMember.isAdmin"
+                  flat
+                  :label="$t('RemoveMember', {}, 'Remove from group')"
+                  color="negative"
+                  icon="person_remove"
+                  class="full-width q-mt-sm"
+                  :loading="removingMember"
+                  @click="confirmRemoveMember"
+                />
+              </template>
+            </q-card-section>
+
+          </q-card>
+        </q-dialog>
+
+        <!-- Add Member Dialog -->
+        <q-dialog v-model="showAddMemberDialog" persistent>
+          <q-card class="member-details-card pt-card text-bow" :class="getDarkModeClass(darkMode)" style="min-width: 320px; max-width: 420px; border-radius: 16px;">
+            <q-card-section class="row items-center q-pb-none">
+              <div class="text-h6">{{ $t('AddMember', {}, 'Add member') }}</div>
+              <q-space />
+              <q-btn icon="close" flat round dense v-close-popup />
+            </q-card-section>
+
+            <q-card-section>
+              <q-tabs
+                v-model="addMemberTab"
+                dense
+                no-caps
+                align="left"
+                active-color="primary"
+                indicator-color="primary"
+                class="q-mb-sm"
+              >
+                <q-tab name="contacts" :label="$t('Contacts', {}, 'Contacts')" />
+                <q-tab name="npub" :label="$t('InviteByNpub', {}, 'By npub')" />
+              </q-tabs>
+
+              <q-tab-panels v-model="addMemberTab" animated class="add-member-panels">
+                <q-tab-panel name="contacts" class="q-px-none">
+                  <q-list v-if="addableContacts.length" separator class="add-member-list">
+                    <q-item
+                      v-for="contact in addableContacts"
+                      :key="contact.npub"
+                      clickable
+                      @click="toggleAddMember(contact.npub)"
+                    >
+                      <q-item-section avatar>
+                        <q-checkbox
+                          :model-value="selectedAddNpubs.includes(contact.npub)"
+                          @click.stop
+                          @update:model-value="toggleAddMember(contact.npub)"
+                        />
+                      </q-item-section>
+                      <q-item-section avatar>
+                        <q-avatar color="primary" text-color="white" size="36px">
+                          {{ contact.name.charAt(0).toUpperCase() }}
+                        </q-avatar>
+                      </q-item-section>
+                      <q-item-section>
+                        <q-item-label class="text-weight-medium">{{ contact.name }}</q-item-label>
+                        <q-item-label caption class="npub-caption">{{ contact.npub.slice(0, 18) }}...</q-item-label>
+                      </q-item-section>
+                    </q-item>
+                  </q-list>
+                  <div v-else class="no-invited-note">
+                    {{ $t('NoContactsToAdd', {}, 'No contacts to add. Use the By npub tab.') }}
+                  </div>
+                </q-tab-panel>
+
+                <q-tab-panel name="npub" class="q-px-none">
+                  <q-input
+                    v-model="manualNpub"
+                    :label="$t('Npub', {}, 'npub...')"
+                    outlined
+                    dense
+                    rounded
+                    :error="!!manualNpubError"
+                    :error-message="manualNpubError"
+                  >
+                    <template #append>
+                      <q-btn
+                        flat
+                        round
+                        dense
+                        icon="qr_code_scanner"
+                        color="primary"
+                        @click="showQrScanner = true"
+                      />
+                    </template>
+                  </q-input>
+                </q-tab-panel>
+              </q-tab-panels>
             </q-card-section>
 
             <q-card-actions align="right">
-              <q-btn flat :label="$t('Close', {}, 'Close')" color="primary" v-close-popup />
+              <q-btn flat :label="$t('Cancel', {}, 'Cancel')" color="grey" v-close-popup />
+              <q-btn
+                unelevated
+                rounded
+                :label="$t('Add', {}, 'Add')"
+                color="primary"
+                :loading="addingMember"
+                :disable="!canAddMembers"
+                @click="confirmAddMembers"
+              />
             </q-card-actions>
           </q-card>
         </q-dialog>
 
-        <!-- Leave group -->
+        <!-- Leave / Rejoin group -->
         <div class="leave-section q-mt-md">
           <q-btn
+            v-if="!isGroupBlocked"
             :label="$t('LeaveGroup', {}, 'Leave Group')"
             color="negative"
             outline
@@ -236,27 +385,40 @@
             class="full-width"
             @click="confirmLeaveGroup"
           />
+          <q-btn
+            v-else
+            :label="$t('RejoinGroup', {}, 'Rejoin Group')"
+            color="primary"
+            outline
+            rounded
+            class="full-width"
+            @click="confirmRejoinGroup"
+          />
         </div>
 
         <!-- Info note -->
         <div class="info-note q-mt-md">
           <q-icon name="info" size="16px" color="grey-5" />
-          <span>{{ $t('LeaveGroupNote', {}, 'Leaving a group removes it from your view. A message will be sent to the group notifying them you left.') }}</span>
+          <span v-if="!isGroupBlocked">{{ $t('LeaveGroupNote', {}, 'Leaving a group archives it and stops new messages from arriving. A message will be sent to the group notifying them you left. You can rejoin later.') }}</span>
+          <span v-else>{{ $t('LeftGroupNote', {}, 'You left this group. Rejoin to send and receive messages again.') }}</span>
         </div>
       </div>
     </div>
+
+    <QrScanner v-model="showQrScanner" @decode="onScannerDecode" />
   </div>
 </template>
 
 <script>
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 import HeaderNav from 'src/components/header-nav.vue'
+import QrScanner from 'src/components/qr-scanner.vue'
 import { npubEncode } from 'nostr-tools/nip19'
 import { copyToClipboard } from 'quasar'
 
 export default {
   name: 'GroupInfo',
-  components: { HeaderNav },
+  components: { HeaderNav, QrScanner },
   props: {
     roomId: { type: String, required: true },
   },
@@ -267,10 +429,20 @@ export default {
       savingName: false,
       showMemberDetails: false,
       selectedMember: null,
-      editingMemberName: false,
-      editMemberNameValue: '',
-      fetchedMemberDisplayName: null,
       memberAvatars: {},
+      memberDisplayNames: {},
+      addingMember: false,
+      roleChanging: false,
+      removingMember: false,
+      memberTab: 'joined',
+      mlsTreeMembers: [],
+      showAddMemberDialog: false,
+      addMemberTab: 'contacts',
+      selectedAddNpubs: [],
+      manualNpub: '',
+      manualNpubError: '',
+      showQrScanner: false,
+      leaveSuccessor: '',
     }
   },
   computed: {
@@ -280,23 +452,58 @@ export default {
     room () {
       return this.$store.getters['nostrChat/getRoom'](this.roomId)
     },
+    isMlsRoom () {
+      return this.room?.type === 'mls-group'
+    },
+    isGroupBlocked () {
+      if (!this.roomId) return false
+      return this.$store.getters['nostrChat/isGroupBlocked'](this.roomId)
+    },
     myPubKey () {
       return this.$store.getters['nostrChat/myPubKey']
     },
     contacts () {
       return this.$store.getters['nostrChat/getContacts']
     },
+    // Current wallet's role in an MLS group: 'owner', 'admin', or null.
+    myRole () {
+      if (!this.isMlsRoom || !this.room) return null
+      if (this.room.owner === this.myPubKey) return 'owner'
+      if (Array.isArray(this.room.admins) && this.room.admins.includes(this.myPubKey)) return 'admin'
+      return null
+    },
+    isGroupOwner () {
+      return this.myRole === 'owner'
+    },
+    isGroupAdmin () {
+      return this.myRole === 'admin'
+    },
+    isGroupManager () {
+      return this.isGroupOwner || this.isGroupAdmin
+    },
+    // Remove is allowed for the owner (any non-owner member) and for admins
+    // (regular members only — they may not remove the owner or another admin).
+    canRemoveManager () {
+      if (!this.isGroupManager || !this.selectedMember) return false
+      if (this.selectedMember.isMe) return false
+      if (this.selectedMember.pubKeyHex === this.room?.owner) return false
+      if (this.isGroupAdmin && this.selectedMember.isAdmin) return false
+      return true
+    },
     membersWithInfo () {
       const members = this.room?.members || []
+      const adminSet = new Set(this.room?.admins || [])
       const list = members.map(pubKeyHex => {
         const contact = this.contacts.find(c => c.pubKeyHex === pubKeyHex)
         let displayNpub = ''
         try { displayNpub = npubEncode(pubKeyHex) } catch { displayNpub = pubKeyHex }
         const initial = contact ? contact.name.charAt(0).toUpperCase() : (displayNpub.charAt(0) || '?').toUpperCase()
+        const publishedName = this.memberDisplayNames[pubKeyHex]
         return {
           pubKeyHex,
           isMe: pubKeyHex === this.myPubKey,
-          displayName: contact ? contact.name : displayNpub.slice(0, 12) + '...' + displayNpub.slice(-8),
+          isAdmin: adminSet.has(pubKeyHex),
+          displayName: contact ? contact.name : (publishedName || displayNpub.slice(0, 12) + '...' + displayNpub.slice(-8)),
           displayNpub: displayNpub.slice(0, 18) + '...',
           initial,
           contact,
@@ -304,8 +511,45 @@ export default {
           avatar: this.memberAvatars[pubKeyHex] || null,
         }
       })
-      // Sort current user to the top
-      return list.sort((a, b) => (b.isMe ? 1 : 0) - (a.isMe ? 1 : 0))
+      // Sort current user to the top, then owner, then admins.
+      return list.sort((a, b) => {
+        if (a.isMe !== b.isMe) return a.isMe ? -1 : 1
+        const rankA = a.pubKeyHex === this.room?.owner ? 2 : a.isAdmin ? 1 : 0
+        const rankB = b.pubKeyHex === this.room?.owner ? 2 : b.isAdmin ? 1 : 0
+        return rankB - rankA
+      })
+    },
+    // Members present in the MLS tree have completed the join handshake.
+    joinedMembers () {
+      if (!this.isMlsRoom || !this.mlsTreeMembers.length) return this.membersWithInfo
+      const treeSet = new Set(this.mlsTreeMembers)
+      return this.membersWithInfo.filter(m => treeSet.has(m.pubKeyHex))
+    },
+    // In the room's member list but not yet in the MLS tree — invite sent,
+    // they haven't accepted (or their device hasn't processed the welcome).
+    invitedMembers () {
+      if (!this.isMlsRoom) return []
+      if (!this.mlsTreeMembers.length) return []
+      const treeSet = new Set(this.mlsTreeMembers)
+      return this.membersWithInfo.filter(m => !treeSet.has(m.pubKeyHex))
+    },
+    displayedMembers () {
+      if (!this.isMlsRoom) return this.membersWithInfo
+      return this.memberTab === 'invited' ? this.invitedMembers : this.joinedMembers
+    },
+    // Contacts not already in the group — the selectable list in the
+    // Add Member dialog.
+    addableContacts () {
+      const memberSet = new Set(this.room?.members || [])
+      return (this.contacts || []).filter(c => c.pubKeyHex && !memberSet.has(c.pubKeyHex))
+    },
+    manualNpubTrimmed () {
+      return this.manualNpub.trim()
+    },
+    canAddMembers () {
+      if (this.addingMember) return false
+      if (this.selectedAddNpubs.length) return true
+      return this.manualNpubTrimmed.startsWith('npub1')
     },
     themeColor () {
       const theme = this.$store.getters['global/theme']
@@ -318,6 +562,8 @@ export default {
   },
   mounted () {
     this.fetchMemberAvatars()
+    this.fetchMemberDisplayNames()
+    this.fetchMlsTreeMembers()
   },
   watch: {
     room (val) {
@@ -325,7 +571,10 @@ export default {
         this.$router.replace('/apps/chat')
       } else {
         this.memberAvatars = {}
+        this.memberDisplayNames = {}
         this.fetchMemberAvatars()
+        this.fetchMemberDisplayNames()
+        this.fetchMlsTreeMembers()
       }
     },
     async showMemberDetails (val) {
@@ -364,15 +613,27 @@ export default {
       if (!name || !this.room) return
       this.savingName = true
       try {
-        this.$store.commit('nostrChat/UPDATE_ROOM_NAME', { roomId: this.roomId, name })
-        const text = this.$t('GroupRenamedTo', { name }, `Changed group name to "${name}"`)
-        const { giftWraps, message, roomId } = await this.$store.dispatch('nostrChat/sendMessage', {
+        await this.$store.dispatch('nostrChat/updateRoomName', { roomId: this.roomId, name })
+        // MLS groups don't use NIP-17 gift-wraps for group notifications, so
+        // the rename is persisted locally + via the relay's group metadata
+        // only.
+        if (this.room?.type !== 'mls-group') {
+          const text = this.$t('GroupRenamedTo', { name }, `Changed group name to "${name}"`)
+          const { giftWraps, message, roomId } = await this.$store.dispatch('nostrChat/sendMessage', {
+            roomId: this.roomId,
+            text,
+            subject: name,
+          })
+          this.$store.commit('nostrChat/ADD_MESSAGE', { roomId, message })
+          this.$store.commit('nostrChat/TOUCH_ROOM_LAST_MESSAGE_AT', roomId)
+          await this.$store.dispatch('nostrChat/publishGiftWraps', { giftWraps })
+        }
+        // Persist the new name on the relay so all members see it
+        this.$store.dispatch('nostrChat/publishGroupMetadata', {
           roomId: this.roomId,
-          text,
-          subject: name,
-        })
-        this.$store.commit('nostrChat/ADD_MESSAGE', { roomId, message })
-        await this.$store.dispatch('nostrChat/publishGiftWraps', { giftWraps })
+          memberPubKeys: this.room?.members || [],
+          name,
+        }).catch(() => {})
         this.editingName = false
         this.$q.notify({ type: 'positive', message: this.$t('GroupRenamed', {}, 'Group renamed') })
       } catch (err) {
@@ -382,6 +643,10 @@ export default {
       }
     },
     confirmLeaveGroup () {
+      if (this.room?.type === 'mls-group' && this.isGroupOwner) {
+        this.confirmOwnerLeaveGroup()
+        return
+      }
       this.$q.dialog({
         title: this.$t('LeaveGroup', {}, 'Leave Group'),
         message: this.$t('LeaveGroupConfirm', { name: this.room?.name }, `Leave group "${this.room?.name}"?`),
@@ -391,15 +656,11 @@ export default {
         persistent: true,
       }).onOk(async () => {
         try {
-          const myDisplayName = this.myDisplayName
-          const text = this.$t('LeftGroup', {}, `${myDisplayName} left the group`)
-          const { giftWraps, message, roomId } = await this.$store.dispatch('nostrChat/sendMessage', {
-            roomId: this.roomId,
-            text,
-          })
-          this.$store.commit('nostrChat/ADD_MESSAGE', { roomId, message })
-          await this.$store.dispatch('nostrChat/publishGiftWraps', { giftWraps })
-          this.$store.commit('nostrChat/REMOVE_ROOM', this.roomId)
+          if (this.room?.type === 'mls-group') {
+            await this.$store.dispatch('nostrChat/leaveMlsGroup', { roomId: this.roomId })
+          } else {
+            await this.$store.dispatch('nostrChat/leaveGroup', { roomId: this.roomId })
+          }
           this.$router.replace('/apps/chat')
           this.$q.notify({ type: 'info', message: this.$t('LeftGroup', {}, 'You left the group') })
         } catch (err) {
@@ -407,42 +668,82 @@ export default {
         }
       })
     },
+    // Owner leaving an MLS group must designate a successor from the admins
+    // (ownership is transferred to them before departure). If the owner is the
+    // only member, they can leave without a successor (the group is deleted).
+    confirmOwnerLeaveGroup () {
+      const admins = this.room?.admins || []
+      const onlyMember = (this.room?.members?.length || 0) <= 1
+      if (!admins.length && !onlyMember) {
+        this.$q.notify({
+          type: 'warning',
+          message: this.$t('OwnerLeaveNeedsAdmin', {}, 'Promote another member to admin first — the group needs a new owner before you can leave.'),
+          timeout: 6000,
+        })
+        return
+      }
+      if (onlyMember) {
+        this.$q.dialog({
+          title: this.$t('LeaveGroup', {}, 'Leave Group'),
+          message: this.$t('LeaveGroupConfirm', { name: this.room?.name }, `Leave "${this.room?.name}"?`),
+          class: `pt-card text-bow ${this.getDarkModeClass(this.darkMode)}`,
+          cancel: { label: this.$t('Cancel', {}, 'Cancel'), flat: true, color: 'grey' },
+          ok: { label: this.$t('LeaveGroup', {}, 'Leave Group'), color: 'negative', flat: true },
+          persistent: true,
+        }).onOk(async () => {
+          await this.doOwnerLeave({})
+        })
+        return
+      }
+      const successorOptions = admins.map(pubKeyHex => {
+        const info = this.membersWithInfo.find(m => m.pubKeyHex === pubKeyHex)
+        return { value: pubKeyHex, label: info?.displayName || pubKeyHex.slice(0, 12) }
+      })
+      this.$q.dialog({
+        title: this.$t('ChooseNewOwner', {}, 'Choose a new owner'),
+        message: this.$t('OwnerLeaveSuccessor', {}, 'You are the group owner. Choose which admin will become the new owner after you leave.'),
+        class: `pt-card text-bow ${this.getDarkModeClass(this.darkMode)}`,
+        options: {
+          type: 'radio',
+          model: this.leaveSuccessor,
+          items: successorOptions,
+        },
+        cancel: { label: this.$t('Cancel', {}, 'Cancel'), flat: true, color: 'grey' },
+        ok: { label: this.$t('LeaveGroup', {}, 'Leave Group'), color: 'negative', flat: true },
+        persistent: true,
+      }).onOk(async () => {
+        await this.doOwnerLeave({ successorPubKey: this.leaveSuccessor })
+      })
+    },
+    async doOwnerLeave ({ successorPubKey }) {
+      try {
+        await this.$store.dispatch('nostrChat/leaveMlsGroup', {
+          roomId: this.roomId,
+          successorPubKey,
+        })
+        this.$router.replace('/apps/chat')
+        this.$q.notify({ type: 'info', message: this.$t('LeftGroup', {}, 'You left the group') })
+      } catch (err) {
+        this.$q.notify({ type: 'negative', message: err.message || this.$t('LeaveGroupFailed', {}, 'Failed to leave group') })
+      }
+    },
+    confirmRejoinGroup () {
+      this.$q.dialog({
+        title: this.$t('RejoinGroup', {}, 'Rejoin Group'),
+        message: this.$t('RejoinGroupConfirm', { name: this.room?.name }, `Rejoin "${this.room?.name}"? You will be able to send and receive messages again.`),
+        class: `pt-card text-bow ${this.getDarkModeClass(this.darkMode)}`,
+        cancel: { label: this.$t('Cancel', {}, 'Cancel'), flat: true, color: 'grey' },
+        ok: { label: this.$t('RejoinGroup', {}, 'Rejoin Group'), color: 'primary', flat: true },
+        persistent: true,
+      }).onOk(async () => {
+        await this.$store.dispatch('nostrChat/rejoinGroup', { roomId: this.roomId })
+        this.$q.notify({ type: 'positive', message: this.$t('GroupRejoined', {}, 'Group rejoined') })
+      })
+    },
 
     openMemberDetails (member) {
       this.selectedMember = member
       this.showMemberDetails = true
-    },
-    startEditMemberName () {
-      this.editMemberNameValue = this.selectedMember.contact?.name || this.selectedMember.displayName
-      this.editingMemberName = true
-    },
-    cancelEditMemberName () {
-      this.editingMemberName = false
-      this.editMemberNameValue = ''
-    },
-    async saveMemberName () {
-      const name = this.editMemberNameValue.trim()
-      const contact = this.selectedMember?.contact
-      if (!name || !contact) return
-      try {
-        await this.$store.dispatch('nostrChat/updateContact', {
-          npub: contact.npub,
-          name,
-        })
-        // Update room name if it's a DM room matching this contact
-        const room = this.$store.getters['nostrChat/getRoomByMember'](contact.pubKeyHex)
-        if (room && room.members.length === 2) {
-          this.$store.commit('nostrChat/UPDATE_ROOM_NAME', {
-            roomId: room.id,
-            name,
-          })
-        }
-        this.editingMemberName = false
-        this.selectedMember.displayName = name
-        this.$q.notify({ type: 'positive', message: this.$t('ContactRenamed', {}, 'Contact renamed') })
-      } catch (err) {
-        this.$q.notify({ type: 'negative', message: err.message || this.$t('ContactRenameFailed', {}, 'Failed to rename contact') })
-      }
     },
     copyMemberNpub () {
       if (!this.selectedMember?.npub) return
@@ -452,6 +753,111 @@ export default {
         message: this.$t('Copied', {}, 'Copied to clipboard'),
         timeout: 1500,
       })
+    },
+    confirmToggleAdmin (isAdmin) {
+      const member = this.selectedMember
+      if (!member?.pubKeyHex) return
+      this.$q.dialog({
+        title: this.$t(isAdmin ? 'MakeAdmin' : 'RevokeAdmin', {}, isAdmin ? 'Make admin' : 'Remove admin'),
+        message: this.$t(
+          isAdmin ? 'MakeAdminConfirm' : 'RevokeAdminConfirm',
+          { name: member.displayName },
+          isAdmin
+            ? `Make ${member.displayName} an admin? They will be able to manage members.`
+            : `Remove admin from ${member.displayName}? They will no longer be able to manage members.`
+        ),
+        class: `pt-card text-bow ${this.getDarkModeClass(this.darkMode)}`,
+        cancel: { label: this.$t('Cancel', {}, 'Cancel'), flat: true, color: 'grey' },
+        ok: { label: this.$t(isAdmin ? 'Make' : 'Revoke', {}, isAdmin ? 'Make admin' : 'Revoke'), color: isAdmin ? 'primary' : 'orange', flat: true },
+        persistent: true,
+      }).onOk(() => {
+        this.toggleAdmin(isAdmin)
+      })
+    },
+    async toggleAdmin (isAdmin) {
+      const member = this.selectedMember
+      if (!member?.pubKeyHex || this.roleChanging) return
+      if (!this.isGroupOwner) return
+      this.roleChanging = true
+      try {
+        await this.$store.dispatch('nostrChat/setMlsAdmin', {
+          roomId: this.roomId,
+          memberPubKey: member.pubKeyHex,
+          isAdmin,
+        })
+        // Keep the open dialog in sync with the refreshed role state.
+        const fresh = this.membersWithInfo.find(m => m.pubKeyHex === member.pubKeyHex)
+        if (fresh) this.selectedMember = { ...member, isAdmin: fresh.isAdmin }
+        this.$q.notify({ type: 'positive', message: isAdmin
+          ? this.$t('MemberMadeAdmin', {}, 'Member is now an admin')
+          : this.$t('AdminRevoked', {}, 'Admin role removed') })
+      } catch (err) {
+        this.$q.notify({ type: 'negative', message: err.message || this.$t('RoleChangeFailed', {}, 'Failed to update role'), timeout: 5000 })
+      } finally {
+        this.roleChanging = false
+      }
+    },
+    confirmTransferOwnership () {
+      const member = this.selectedMember
+      if (!member?.pubKeyHex) return
+      this.$q.dialog({
+        title: this.$t('TransferOwnership', {}, 'Transfer ownership'),
+        message: this.$t('TransferOwnershipConfirm', { name: member.displayName }, `Transfer group ownership to ${member.displayName}? You will become a regular member.`),
+        class: `pt-card text-bow ${this.getDarkModeClass(this.darkMode)}`,
+        cancel: { label: this.$t('Cancel', {}, 'Cancel'), flat: true, color: 'grey' },
+        ok: { label: this.$t('Transfer', {}, 'Transfer'), color: 'primary', flat: true },
+        persistent: true,
+      }).onOk(async () => {
+        this.roleChanging = true
+        try {
+          await this.$store.dispatch('nostrChat/transferMlsOwnership', {
+            roomId: this.roomId,
+            newOwnerPubKey: member.pubKeyHex,
+          })
+          this.showMemberDetails = false
+          this.$q.notify({ type: 'positive', message: this.$t('OwnershipTransferred', { name: member.displayName }, `Ownership transferred to ${member.displayName}`) })
+        } catch (err) {
+          this.$q.notify({ type: 'negative', message: err.message || this.$t('OwnershipTransferFailed', {}, 'Failed to transfer ownership'), timeout: 5000 })
+        } finally {
+          this.roleChanging = false
+        }
+      })
+    },
+    confirmRemoveMember () {
+      const member = this.selectedMember
+      if (!member?.pubKeyHex) return
+      this.$q.dialog({
+        title: this.$t('RemoveMember', {}, 'Remove from group'),
+        message: this.$t('RemoveMemberConfirm', { name: member.displayName }, `Remove ${member.displayName} from this group? They will no longer be able to read or send messages.`),
+        class: `pt-card text-bow ${this.getDarkModeClass(this.darkMode)}`,
+        cancel: { label: this.$t('Cancel', {}, 'Cancel'), flat: true, color: 'grey' },
+        ok: { label: this.$t('Remove', {}, 'Remove'), color: 'negative', flat: true },
+        persistent: true,
+      }).onOk(async () => {
+        this.removingMember = true
+        try {
+          await this.$store.dispatch('nostrChat/removeMlsMember', {
+            roomId: this.roomId,
+            memberPubkey: member.pubKeyHex,
+          })
+          this.showMemberDetails = false
+          this.$q.notify({ type: 'positive', message: this.$t('MemberRemoved', {}, 'Member removed') })
+        } catch (err) {
+          this.$q.notify({ type: 'negative', message: err.message || this.$t('RemoveMemberFailed', {}, 'Failed to remove member'), timeout: 5000 })
+        } finally {
+          this.removingMember = false
+        }
+      })
+    },
+    async fetchMlsTreeMembers () {
+      if (!this.isMlsRoom) return
+      try {
+        const members = await this.$store.dispatch('nostrChat/getMlsGroupMemberPubkeys', { roomId: this.roomId })
+        this.mlsTreeMembers = members || []
+      } catch (err) {
+        console.warn('[GroupInfo] Failed to load MLS tree members:', err)
+        this.mlsTreeMembers = []
+      }
     },
     useFetchedMemberDisplayName () {
       if (this.fetchedMemberDisplayName) {
@@ -478,6 +884,132 @@ export default {
         } catch (err) {
           console.warn('[GroupInfo] Failed to fetch avatar:', err)
         }
+      }
+    },
+    async fetchMemberDisplayNames () {
+      const members = this.room?.members || []
+      for (const pubKeyHex of members) {
+        if (this.memberDisplayNames[pubKeyHex]) continue
+        try {
+          const name = await this.$store.dispatch('nostrChat/fetchPublishedDisplayName', {
+            pubKeyHex,
+          })
+          if (name) {
+            this.memberDisplayNames = { ...this.memberDisplayNames, [pubKeyHex]: name }
+          }
+        } catch (err) {
+          console.warn('[GroupInfo] Failed to fetch display name:', err)
+        }
+      }
+    },
+    openAddMemberDialog () {
+      if (!this.isGroupManager) {
+        this.$q.notify({
+          type: 'warning',
+          message: this.$t('ManagersOnly', {}, 'Only the group owner or an admin can add members'),
+          timeout: 4000,
+        })
+        return
+      }
+      const currentCount = this.room?.members?.length || 0
+      if (currentCount >= 50) {
+        this.$q.notify({
+          type: 'warning',
+          message: this.$t('MlsMemberLimit', {}, 'This group has reached the 50-member limit'),
+          timeout: 5000,
+        })
+        return
+      }
+      this.addMemberTab = 'contacts'
+      this.selectedAddNpubs = []
+      this.manualNpub = ''
+      this.manualNpubError = ''
+      this.showAddMemberDialog = true
+    },
+    toggleAddMember (npub) {
+      const idx = this.selectedAddNpubs.indexOf(npub)
+      if (idx !== -1) {
+        this.selectedAddNpubs.splice(idx, 1)
+      } else {
+        this.selectedAddNpubs.push(npub)
+      }
+    },
+    onScannerDecode (value) {
+      this.showQrScanner = false
+      if (!value) return
+      let npub = String(value).trim()
+      // Accept BIP21-style payloads that embed an ?nostype=chat&npub= param
+      const match = npub.match(/[?&]npub=(npub1[A-Za-z0-9]+)/)
+      if (match) npub = match[1]
+      if (!npub.startsWith('npub1')) return
+      this.manualNpub = npub
+      this.manualNpubError = ''
+      this.addMemberTab = 'npub'
+    },
+    async confirmAddMembers () {
+      const { nip19Decode } = await import('nostr-tools/nip19')
+      const npubs = [...this.selectedAddNpubs]
+
+      // Manual npub entry — validate before dispatching anything.
+      if (this.manualNpubTrimmed) {
+        if (!this.manualNpubTrimmed.startsWith('npub1')) {
+          this.manualNpubError = this.$t('InvalidNpub', {}, 'Invalid npub')
+          return
+        }
+        try {
+          const decoded = nip19Decode(this.manualNpubTrimmed)
+          if (decoded.type !== 'npub') throw new Error('Invalid npub')
+        } catch {
+          this.manualNpubError = this.$t('InvalidNpub', {}, 'Invalid npub')
+          return
+        }
+        npubs.push(this.manualNpubTrimmed)
+      }
+      if (!npubs.length) return
+
+      // Skip contacts already in the group (list is filtered, but the manual
+      // entry could duplicate an existing member).
+      const memberSet = new Set(this.room?.members || [])
+      const existingContacts = this.contacts.filter(c => npubs.includes(c.npub) && memberSet.has(c.pubKeyHex))
+      if (existingContacts.length === npubs.length) {
+        this.$q.notify({ type: 'warning', message: this.$t('AlreadyMember', {}, 'Already a member of this group') })
+        return
+      }
+
+      this.addingMember = true
+      let added = 0
+      let lastErr = null
+      try {
+        for (const npub of npubs) {
+          const contact = this.contacts.find(c => c.npub === npub)
+          if (contact && memberSet.has(contact.pubKeyHex)) continue
+          try {
+            const decoded = nip19Decode(npub.trim())
+            if (decoded.type !== 'npub') throw new Error('Invalid npub')
+            await this.$store.dispatch('nostrChat/addMlsMember', {
+              roomId: this.roomId,
+              memberPubKey: decoded.data,
+            })
+            added++
+          } catch (err) {
+            lastErr = err
+            console.warn('[GroupInfo] Failed to add member:', err.message)
+          }
+        }
+        await this.fetchMlsTreeMembers()
+        if (this.invitedMembers.length) this.memberTab = 'invited'
+        if (added > 0) {
+          this.showAddMemberDialog = false
+          this.$q.notify({ type: 'positive', message: this.$t('MemberAdded', {}, 'Member added') })
+        } else {
+          this.$q.notify({
+            type: 'negative',
+            message: lastErr?.message || this.$t('AddMemberFailed', {}, 'Failed to add member'),
+            timeout: 5000,
+          })
+        }
+      } finally {
+        this.addingMember = false
       }
     },
   },
@@ -567,6 +1099,26 @@ export default {
   padding: 16px;
 }
 
+.member-tabs {
+  margin-bottom: 4px;
+}
+
+.add-member-panels {
+  background: transparent;
+}
+
+.add-member-list {
+  max-height: 320px;
+  overflow-y: auto;
+}
+
+.no-invited-note {
+  padding: 16px 4px;
+  font-size: 13px;
+  color: #9ca3af;
+  text-align: center;
+}
+
 .member-details-card {
   width: 100%;
   max-width: 400px;
@@ -596,6 +1148,13 @@ export default {
   flex-wrap: wrap;
   gap: 6px;
   margin-bottom: 4px;
+}
+
+.member-contact-name {
+  font-size: 13px;
+  color: #9ca3af;
+  font-weight: 400;
+  margin-bottom: 2px;
 }
 
 .member-name-input {
@@ -719,6 +1278,10 @@ export default {
 
 .dark .member-display-name {
   color: #f1f5f9;
+}
+
+.dark .member-contact-name {
+  color: #6b7280;
 }
 
 .dark .member-npub-display {

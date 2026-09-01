@@ -1,5 +1,4 @@
 import { boot } from 'quasar/wrappers'
-import { WalletConnectManager } from '../wallet/walletconnect'
 import { initWeb3Wallet, isWalletConnectInitialized } from '../wallet/walletconnect2'
 import { Store } from 'src/store'
 
@@ -7,11 +6,12 @@ export default boot(async (obj) => {
   const { app } = obj
   const store = Store
 
-  // Initialize legacy WalletConnect v1 manager
-  app.config.globalProperties.$walletConnect = new WalletConnectManager(store)
-  app.provide('$walletConnect', app.config.globalProperties.$walletConnect)
-
-  // Initialize WalletConnect v2 at app startup with proper error handling
+  // Initialize WalletConnect v2 at app startup. The relay connection is
+  // intentionally global so the socket stays warm, but the `session_request`
+  // handler that refreshes the Pending section is scoped to the home page
+  // and the WalletConnect page (not every page). See:
+  //   - src/pages/transaction/index.vue (home page listener)
+  //   - src/components/walletconnect/WalletConnectV2.vue (WC page listener)
   try {
     if (!isWalletConnectInitialized()) {
       await initWeb3Wallet()
@@ -22,11 +22,10 @@ export default boot(async (obj) => {
     // Don't throw - app should still work without WalletConnect
   }
 
-  // Initialize WizardConnect at app startup
-  try {
-    await store.dispatch('wizardconnect/init')
-    console.log('WizardConnect initialized successfully')
-  } catch (error) {
-    console.error('Failed to initialize WizardConnect:', error)
-  }
+  // Note: WizardConnect is now lazily initialized when the user opens the
+  // WizardConnect feature (apps hub tile / wizard-connect page) or when the
+  // home page mounts (for the Pending section). See:
+  //   - src/pages/apps/wizard-connect.vue
+  //   - src/pages/apps/index.vue
+  //   - src/pages/transaction/index.vue (home page)
 })

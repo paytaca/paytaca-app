@@ -1,26 +1,21 @@
 <template>
   <q-dialog ref="dialogRef" @hide="onDialogHide" seamless class="no-click-outside">
-    <q-resize-observer @resize="resizeQrSize" />
-    <q-card class="br-15 pt-card-2 text-bow" :class="getDarkModeClass(darkMode)">
-      <div class="row no-wrap items-center justify-center q-pl-md q-py-sm">
-        <div class="text-h5 q-space q-mt-sm"> {{ $t('POSID')}}#{{ paddedPosId }}</div>
+    <q-card class="br-15 pt-card-2 text-bow" :class="getDarkModeClass(darkMode)" style="width:min(420px, 90vw)">
+      <div class="row no-wrap items-center q-pl-lg q-pr-sm q-py-sm">
+        <div class="text-h6 q-space"> {{ $t('POSID')}}#{{ paddedPosId }}</div>
         <q-btn
           flat
-          padding="sm"
+          round
+          dense
           icon="close"
           v-close-popup
-          class="close-button"
         />
       </div>
-      <q-card-section class="q-gutter-y-sm">
-        <q-banner class="rounded-borders" :class="darkMode ? 'bg-grey text-white': ''">
-          <div class="row no-wrap">
-            <div class="row items-center q-mr-sm">
-              <q-icon name="info" size="1.5em"/>
-            </div>
-            <div>{{ $t('DeviceMustBeOnline') }}</div>
-          </div>
-        </q-banner>
+      <q-card-section class="q-pt-none q-px-lg q-pb-lg">
+        <div class="text-caption text-grey q-mb-md q-mt-sm">
+          <q-icon name="info" size="1.2em" class="q-mr-xs" />
+          {{ $t('PosDeviceLatestVersionWarning', {}, 'Make sure the POS device is using the latest version of Paytaca POS.') }}
+        </div>
         <div class="qr-code-container">
           <div class="row items-center justify-center">
             <q-skeleton v-if="generatingLinkCode" height="250px" width="250px"/>
@@ -57,7 +52,7 @@
                 flat
                 icon="content_copy"
                 :dark="darkMode"
-                @click="copyToClipboard(qrCodeDataLink, 'Link code url copied')"
+                @click="copyToClipboard(qrCodeDataLink, $t('LinkCodeUrlCopied', {}, 'Link code url copied'))"
               />
             </template>
           </q-field>
@@ -107,11 +102,13 @@ import { useDialogPluginComponent, useQuasar } from 'quasar'
 import { ref, computed, onMounted, onUnmounted, watch, inject } from 'vue';
 import { useStore } from 'vuex';
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
+import { useI18n } from 'vue-i18n'
 
 const bchjs = new BCHJS()
 
 const $copyText = inject('$copyText')
 const $q = useQuasar()
+const { t: $t } = useI18n()
 
 // dialog plugins requirement
 defineEmits([
@@ -131,7 +128,6 @@ const props = defineProps({
 })
 
 const paddedPosId = computed(() => padPosId(props.posid))
-const walletData = computed(() => $store.getters['global/getWallet']('bch'))
 
 const generatingLinkCode = ref(false)
 const linkCode = computed(() => {
@@ -140,49 +136,50 @@ const linkCode = computed(() => {
     .find(linkCode => linkCode.walletHash === props.wallet.BCH?.walletHash && linkCode.posid === props.posid)
 })
 
-onMounted(() => generateLinkCode({ checkExpiry: true }))
-
 async function generateLinkCode(opts) {
-  const wallet = props.wallet.BCH
-  const xpubkey = await wallet.getXPubKey()
+  try {
+    const wallet = props.wallet.BCH
+    const xpubkey = await wallet.getXPubKey()
 
-  const key = aes.generateKey()
-  const encryptedData = aes.encrypt(xpubkey, key.password, key.iv)
-  const password = key.password + '.' + key.iv
+    // Encrypt xpubkey using AES with a symmetric key
+    const key = aes.generateKey()
+    const encryptedData = aes.encrypt(xpubkey, key.password, key.iv)
+    const password = key.password + '.' + key.iv
 
-  const nonce = Math.floor(Math.random() * 2 ** 31-1)
-  const privkey = await wallet.getPrivateKey(nonce)
+    const nonce = Math.floor(Math.random() * (2 ** 31 - 1))
+    const privkey = await wallet.getPrivateKey(nonce)
 
-  const signature = bchjs.BitcoinCash.signMessageWithPrivKey(privkey, encryptedData)
+    // Sign the encrypted data for verification
+    const signature = bchjs.BitcoinCash.signMessageWithPrivKey(privkey, encryptedData)
 
-  const data = {
-    walletHash: wallet.walletHash,
-    posid: props.posid,
-    encryptedData: encryptedData,
-    decryptKey: password,
-    nonce: nonce,
-    signature: signature,
-    opts: {
-      checkExpiry: opts?.checkExpiry,
+    const data = {
+      walletHash: wallet.walletHash,
+      posid: props.posid,
+      encryptedData: encryptedData,
+      decryptKey: password,
+      nonce: nonce,
+      signature: signature,
+      opts: {
+        checkExpiry: opts?.checkExpiry,
+      }
     }
-  }
 
-  generatingLinkCode.value = true
-  $store.dispatch('paytacapos/generateLinkCode', data)
-    .finally(() => {
-      generatingLinkCode.value = false
+    generatingLinkCode.value = true
+    await $store.dispatch('paytacapos/generateLinkCode', data)
+
+  } catch (error) {
+    $q.notify({
+      message: `${$t('FailedToGenerateLinkCode', {}, 'Failed to generate link code')}: ${error?.message}`,
+      color: 'negative',
+      icon: 'error',
+      timeout: 3000
     })
+  } finally {
+    generatingLinkCode.value = false
+  }
 }
 
 const qrCodePxSize = ref(200)
-// onMounted(() => resizeQrSize())
-// function resizeQrSize() {
-//   // let minViewport = Math.min(window.innerWidth - 70, window.innerHeight - 55, 400)
-//   // let size = Math.max(window.innerWidth - 70, 250)
-//   // console.log({ minViewport, size })
-//   // size = Math.min(size, minViewport)
-//   // qrCodePxSize.value = size
-// }
 
 const qrCodeDataLink = computed(() => `app://com.paytaca.pos/link?code=${qrCodeDataB64.value}`)
 const qrCodeDataB64 = computed(() => btoa(qrCodeData.value))
@@ -193,12 +190,11 @@ const qrCodeData = computed(() => {
     nonce: linkCode.value?.nonce,
   })
 })
-watch(qrCodeData, () => console.log(qrCodeData.value))
-onMounted(() => console.log(qrCodeData.value))
 
 const expirationUpdateInterval = ref(null)
 const linkExpiresIn = ref(null)
 onMounted(() => {
+  generateLinkCode({ checkExpiry: true })
   expirationUpdateInterval.value = setInterval(() => updateLinkExpiration(), 1000)
   updateLinkExpiration()
 })
@@ -212,7 +208,7 @@ function updateLinkExpiration() {
 function copyToClipboard(value, message) {
   $copyText(value)
   $q.notify({
-    message: message || 'Copied to clipboard',
+    message: message || $t('CopiedToClipboard', {}, 'Copied to clipboard'),
     timeout: 800,
     color: 'blue-9',
     icon: 'mdi-clipboard-check'
@@ -233,7 +229,7 @@ function copyToClipboard(value, message) {
   align-content: center;
 
   border-radius: 16px;
-  border: 2px solid #ed5f59;
+  border: 1px solid rgba(128, 128, 128, 0.2);
 
   padding: 1rem;
 }

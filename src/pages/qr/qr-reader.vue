@@ -392,6 +392,10 @@ export default {
       const vm = this
 
       if (content) {
+        let url
+        try {
+          url = new URL(String(content[0].rawValue))
+        } catch {}
         const _value = String(content[0].rawValue || '').trim()
         const normalizedValue = vm.normalizeUrContent(_value)
         // Only parse as prefixless address if content doesn't have query params
@@ -510,6 +514,13 @@ export default {
             name: 'app-wizard-connect',
             query: { uri: value }
           })
+        } else if (
+          url &&
+          (url.host === 'paymenthub.paytaca.com' || url.host === 'chipnet.paymenthub.paytaca.com') &&
+          url.pathname.match('/plans')
+        ) {
+          const shortUuid = url.pathname.match('/plans/([A-Za-z0-9]+)/?')?.[1];
+          vm.$router.push({ name: 'payment-hub-subscriptions-index', query: { plan: shortUuid } })
         } else {
           // Check for Nostr / npub QR codes
           const nostrMatch = String(value || '').match(/^(nostr:)?(npub1[a-z0-9]{58,})$/i)

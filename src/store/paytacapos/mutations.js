@@ -228,7 +228,7 @@ export function clearBranchInfo(state, walletHash = null) {
  * @param {Number} data.posid
  * @param {String} data.code
  * @param {Number} data.expiresAt
- * @param {Number} data.decryptKey
+ * @param {String} data.decryptKey = password.iv used to decrypt the xpubkey
  * @param {Number} data.nonce
  */
 export function saveLinkCode(state, data) {
@@ -354,4 +354,13 @@ export function updateCashoutMerchant (state, data) {
   if (walletState) {
     walletState.cashoutMerchant = data
   }
+}
+
+/**
+ * Set NFC payments enabled/disabled
+ * @param {*} state 
+ * @param {*} enabled 
+ */
+export function setNfcPaymentsEnabled (state, enabled) {
+  state.nfcPaymentsEnabled = enabled
 }

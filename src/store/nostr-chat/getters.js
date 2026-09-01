@@ -1,3 +1,4 @@
+import { ACTIVE_THRESHOLD_MS } from './state'
 import sha256 from 'js-sha256'
 import { Store } from 'src/store'
 
@@ -59,7 +60,30 @@ export function getRelays (state) {
   return state.relays || []
 }
 
+export function getActiveStatus (state) {
+  return (pubKeyHex) => {
+    const activeStatus = state.activeStatus || {}
+    const entry = activeStatus[pubKeyHex]
+    if (!entry || !entry.lastActiveAt) return { isActive: false, lastActiveAt: null }
+    const elapsed = Date.now() - new Date(entry.lastActiveAt).getTime()
+    return { isActive: elapsed <= ACTIVE_THRESHOLD_MS, lastActiveAt: entry.lastActiveAt }
+  }
+}
+
+export function getActiveStatusMap (state) {
+  return state.activeStatus || {}
+}
+
 // ---- Per-wallet room getters ----
+
+// Last activity time used for chat-list ordering. Falls back through
+// updatedAt/createdAt because lastMessageAt is often missing entirely (server
+// touch failures, rooms whose messages were never received while open) — those
+// rooms would otherwise all sort as 0 below every other chat in arbitrary
+// insertion order.
+function roomLastActivity (room) {
+  return room?.lastMessageAt || room?.updatedAt || room?.createdAt || 0
+}
 
 export function getRooms (state) {
   const ws = getWalletState(state)
@@ -67,7 +91,7 @@ export function getRooms (state) {
   if (!myPubKey) return []
   return (ws.rooms || [])
     .filter(r => r.members?.includes(myPubKey) && !r.archived)
-    .sort((a, b) => (b.updatedAt || 0) - (a.updatedAt || 0))
+    .sort((a, b) => roomLastActivity(b) - roomLastActivity(a))
 }
 
 export function getArchivedRooms (state) {
@@ -76,7 +100,7 @@ export function getArchivedRooms (state) {
   if (!myPubKey) return []
   return (ws.rooms || [])
     .filter(r => r.members?.includes(myPubKey) && r.archived)
-    .sort((a, b) => (b.updatedAt || 0) - (a.updatedAt || 0))
+    .sort((a, b) => roomLastActivity(b) - roomLastActivity(a))
 }
 
 export function getRoom (state) {
@@ -96,6 +120,13 @@ export function getRoomByContact (state, getters) {
     const roomId = getters.computeRoomId([myPubKey, contact.pubKeyHex])
     return (ws.rooms || []).find(r => r.id === roomId && r.members?.includes(myPubKey))
   }
+}
+
+export function getMlsPendingInvitations (state) {
+  const ws = getWalletState(state)
+  const invites = ws.mls?.pendingInvitations
+  if (!invites) return []
+  return Object.values(invites).sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0))
 }
 
 export function getRoomByMember (state) {
@@ -161,6 +192,18 @@ export function getBlockedContacts (state) {
   return ws.blockedContacts || []
 }
 
+// ---- Per-wallet blocked groups ("left" groups) ----
+
+export function isGroupBlocked (state) {
+  const ws = getWalletState(state)
+  return (roomId) => (ws.blockedGroups || []).includes(roomId) || false
+}
+
+export function getBlockedGroups (state) {
+  const ws = getWalletState(state)
+  return ws.blockedGroups || []
+}
+
 // ---- Per-wallet read receipts ----
 
 export function getMessageReadBy (state) {
@@ -206,6 +249,26 @@ export function getMessageReactions (state) {
   }
 }
 
+// ---- Per-wallet typing indicators ----
+
+// Returns an array of pubKeyHexes currently typing in a room (excluding self).
+// Entries older than TYPING_TIMEOUT_MS are treated as expired and excluded.
+const TYPING_TIMEOUT_MS = 5000
+
+export function getTypingUsers (state) {
+  return (roomId) => {
+    const ws = getWalletState(state)
+    const myPubKey = ws.keys?.pubKeyHex
+    const room = ws.typing?.[roomId]
+    if (!room) return []
+    const now = Date.now()
+    return Object.keys(room).filter(pk => {
+      if (pk === myPubKey) return false
+      return now - room[pk] < TYPING_TIMEOUT_MS
+    })
+  }
+}
+
 // ---- Per-wallet unread counts ----
 
 export function getUnreadCount (state) {
@@ -239,6 +302,10 @@ export function getTotalUnreadCount (state) {
 
 export function getProfile (state) {
   return getWalletState(state).profile || {}
+}
+
+export function getShowActiveStatus (state) {
+  return getWalletState(state).showActiveStatus !== false
 }
 
 // ---- Per-wallet runtime flags ----

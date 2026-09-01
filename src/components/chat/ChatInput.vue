@@ -77,7 +77,6 @@
         ref="qFile"
         style="display: none;"
         accept="image/*,video/*,audio/*,application/pdf"
-        :max-file-size="MAX_FILE_SIZE"
         @update:model-value="onFileSelected"
       />
       
@@ -91,7 +90,7 @@
           borderless
           :dark="darkMode"
           class="chat-text-field"
-          :placeholder="blocked ? $t('ContactBlockedInputDisabled', {}, 'Contact blocked') : (disabled ? $t('ConversationArchivedInputDisabled', {}, 'Conversation archived') : $t('TypeAMessage', {}, 'Type a message...'))"
+          :placeholder="blocked ? (blockedPlaceholder || $t('ContactBlockedInputDisabled', {}, 'Contact blocked')) : (disabled ? $t('ConversationArchivedInputDisabled', {}, 'Conversation archived') : $t('TypeAMessage', {}, 'Type a message...'))"
           :maxlength="MAX_CHARS"
           :disable="disabled"
           @keydown.enter="onEnterKey"
@@ -112,7 +111,7 @@
       />
     </div>
     
-    <div v-if="focused" class="char-counter" :class="{ 'counter-warning': remainingChars <= 50, 'counter-danger': remainingChars <= 10 }">
+    <div class="char-counter" :class="{ 'counter-warning': remainingChars <= 50, 'counter-danger': remainingChars <= 10 }" :style="{ visibility: focused ? 'visible' : 'hidden' }">
       {{ remainingChars }}
     </div>
     </template>
@@ -144,11 +143,25 @@
 <script>
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 import { resizeImage } from 'src/wallet/nostr-media'
+import { cacheVideoBlob } from 'src/utils/video-blob-cache'
 
 const SEND_COMMAND_PATTERN = /^\/(send|tip)\s+([\d.]+)\s*([A-Za-z0-9]+)?\s*$/i
 const SEND_BARE_PATTERN = /^\/(send|tip)\s*$/i
 const MAX_CHARS = 3000
-const MAX_FILE_SIZE = 50 * 1024 * 1024 // 50MB
+const FILE_SIZE_LIMITS = {
+  'image/': 10 * 1024 * 1024,
+  'video/': 50 * 1024 * 1024,
+  'audio/': 25 * 1024 * 1024,
+  'application/': 25 * 1024 * 1024,
+}
+const MAX_FILE_SIZE = Math.max(...Object.values(FILE_SIZE_LIMITS))
+
+function getFileSizeLimit (fileType) {
+  if (!fileType) return FILE_SIZE_LIMITS['application/']
+  const prefix = Object.keys(FILE_SIZE_LIMITS).find(p => fileType.startsWith(p))
+  return FILE_SIZE_LIMITS[prefix] || FILE_SIZE_LIMITS['application/']
+}
+
 const RESIZE_THRESHOLD = 1 * 1024 * 1024 // 1MB
 
 const RESIZE_OPTIONS = [
@@ -164,6 +177,7 @@ export default {
     roomId: { type: String, default: '' },
     disabled: { type: Boolean, default: false },
     blocked: { type: Boolean, default: false },
+    blockedPlaceholder: { type: String, default: '' },
   },
   data () {
     return {
@@ -196,6 +210,21 @@ export default {
       return MAX_CHARS - this.text.length
     },
   },
+  watch: {
+    text (newVal) {
+      if (!this.roomId || this.disabled || this.blocked) return
+      const myPubKey = this.$store.getters['nostrChat/myPubKey']
+      const room = this.$store.getters['nostrChat/getRoom'](this.roomId)
+      if (!myPubKey || !room?.members) return
+      const recipients = room.members.filter(m => m !== myPubKey)
+      if (!recipients.length) return
+      if (!newVal) {
+        this.$store.dispatch('nostrChat/sendStopTyping', { roomId: this.roomId, recipients })
+        return
+      }
+      this.$store.dispatch('nostrChat/sendTyping', { roomId: this.roomId, recipients })
+    },
+  },
   methods: {
     getDarkModeClass,
     onFocus () {
@@ -208,6 +237,11 @@ export default {
     },
     setText (val) {
       this.text = val
+    },
+    focus () {
+      this.$refs.inputField?.focus()
+      const nativeEl = this.$refs.inputField?.$el?.querySelector('textarea')
+      if (nativeEl) nativeEl.focus()
     },
     onEnterKey (event) {
       if (!event.shiftKey) {
@@ -232,10 +266,12 @@ export default {
       const selectedFile = Array.isArray(file) ? file[0] : file
       if (!selectedFile) return
       
-      if (selectedFile.size > MAX_FILE_SIZE) {
+      const sizeLimit = getFileSizeLimit(selectedFile.type)
+      if (selectedFile.size > sizeLimit) {
+        const sizeMB = Math.round(sizeLimit / (1024 * 1024))
         this.$q.notify({
           type: 'error',
-          message: this.$t('FileTooLarge', {}, 'File is too large. Maximum size is 50MB.'),
+          message: this.$t('FileTooLarge', {}, `File is too large. Maximum size is ${sizeMB}MB.`),
           timeout: 5000,
         })
         this.clearFileSelection()
@@ -306,6 +342,7 @@ export default {
       if (file.type.startsWith('image/')) return 'image'
       if (file.type.startsWith('video/')) return 'videocam'
       if (file.type.startsWith('audio/')) return 'audiotrack'
+      if (file.type === 'application/pdf') return 'picture_as_pdf'
       return 'description'
     },
     formatFileSize (bytes) {
@@ -327,9 +364,23 @@ export default {
           onProgress: (p) => { this.uploadProgress = p },
           signal: this.uploadAbortController.signal,
         })
-        
+
+        if (this.selectedFile.type?.startsWith('video/')) {
+          const localUrl = URL.createObjectURL(this.selectedFile)
+          cacheVideoBlob(message.id, localUrl)
+        }
         this.$store.commit('nostrChat/ADD_MESSAGE', { roomId: this.roomId, message })
+        this.$store.commit('nostrChat/TOUCH_ROOM_LAST_MESSAGE_AT', this.roomId)
+        this.$store.dispatch('nostrChat/touchRoom', { roomId: this.roomId, timestamp: new Date().toISOString() })
         await this.$store.dispatch('nostrChat/publishGiftWraps', { giftWraps })
+        const myPubKey = this.$store.getters['nostrChat/myPubKey']
+        const room = this.$store.getters['nostrChat/getRoom'](this.roomId)
+        if (this.$store.getters['nostrChat/getShowActiveStatus'] && myPubKey && room?.members) {
+          this.$store.dispatch('nostrChat/touchActive', {
+            pubkey: myPubKey,
+            recipients: room.members.filter(m => m !== myPubKey),
+          })
+        }
       } catch (error) {
         if (error.name === 'AbortError') return
         console.error('File upload error:', error)

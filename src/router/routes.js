@@ -21,6 +21,11 @@ const routes = [
         component: () => import('pages/transaction/asset-list.vue')
       },
       {
+        path: 'wallet/list',
+        name: 'wallet-list',
+        component: () => import('pages/transaction/wallet-list.vue')
+      },
+      {
         path: 'receive/select-asset',
         name: 'transaction-receive-select-asset',
         component: () => import('pages/transaction/select-asset-receive.vue')
@@ -144,7 +149,7 @@ const routes = [
       { path: 'merchant-admin/merchant/cashout/order', component: () => import('src/pages/apps/paytacapos-admin/merchant-cashout/order-form.vue'), name: 'app-pos-cashout-form', props: route => route.query },
       { path: 'wallet-connect', component: () => import('src/pages/apps/wallet-connect2.vue'), name: 'app-wallet-connect', props: route => route.query },
       { path: 'wizard-connect', component: () => import('src/pages/apps/wizard-connect.vue'), name: 'app-wizard-connect', props: route => route.query },
-      { path: 'wallet-info', component: () => import('src/pages/apps/wallet-info.vue'), name: 'app-support' },
+      { path: 'support', component: () => import('src/pages/apps/wallet-info.vue'), name: 'app-support' },
       { path: 'asset-swap', component: () => import('src/pages/apps/asset-swap.vue'), name: 'app-asset-swap' },
       { path: 'sweep', component: () => import('src/pages/apps/sweep.vue'), name: 'app-sweep', props: route => Object.assign({}, route.params, route.query) },
       { path: 'collectibles', component: () => import('src/pages/apps/collectibles.vue'), name: 'app-collectibles' },
@@ -326,6 +331,7 @@ const routes = [
           {
             path: '',
             name: 'app-rewards',
+            props: route => route.query,
             component: () => import('src/pages/apps/rewards/index.vue'),
           },
           {
@@ -457,6 +463,32 @@ const routes = [
         ]
       },
       {
+        path: 'card',
+        component: () => import('src/pages/apps/card/index.vue'),
+        children: [
+          {
+            path: '',
+            name: 'app-card',
+            component: () => import('src/pages/apps/card/home.vue')
+          },
+          {
+            path: 'list',
+            name: 'card-list',
+            component: () => import('src/pages/apps/card/cards.vue')
+          },
+          {
+            path: 'auth-nfts',
+            name: 'card-auth-nfts',
+            component: () => import('src/pages/apps/card/auth-nfts.vue')
+          },
+          {
+            path: 'details/:id',
+            name: 'card-details',
+            component: () => import('src/pages/apps/card/card.vue')
+          },
+        ]
+      },
+      {
         path: 'address-book',
         children: [
           {
@@ -504,7 +536,7 @@ const routes = [
           {
             path: ':roomId',
             name: 'app-chat-conversation',
-            props: true,
+            props: route => ({ roomId: route.params.roomId, ...route.query }),
             component: () => import('src/pages/apps/chat/conversation.vue')
           }
         ]
@@ -514,6 +546,33 @@ const routes = [
         name: 'group-chat-link',
         props: true,
         component: () => import('src/pages/apps/chat/conversation.vue')
+      },
+      {
+        path: 'payment-hub',
+        children: [
+          {
+            path: '',
+            name: 'payment-hub-index',
+            component: () => import('src/pages/apps/payment-hub/Index.vue')
+          },
+          {
+            path: 'store/:storeId',
+            name: 'payment-hub-store-detail',
+            component: () => import('src/pages/apps/payment-hub/StoreDetail.vue'),
+            props: true
+          }
+        ]
+      },
+      {
+        path: 'payment-hub-subscriptions',
+        children: [
+          {
+            path: '',
+            name: 'payment-hub-subscriptions-index',
+            component: () => import('src/pages/apps/payment-hub-subscriptions/Index.vue'),
+            props: route => Object.assign({}, route.params, route.query),
+          }
+        ]
       }
     ]
   },

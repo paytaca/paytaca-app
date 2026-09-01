@@ -238,8 +238,21 @@ export default {
         // Success - emit success event
         vm.$emit('success')
       } catch (error) {
+        const errorMsg = error.response?.data?.error || ''
+        // If the order has already been released (server detected it on-chain),
+        // verify-release is unnecessary — treat it as success.
+        if (errorMsg.includes('Action requires status')) {
+          try {
+            const { data: order } = await backend.get(`/ramp-p2p/order/${vm.data?.orderId}/`, { authorize: true })
+            if (order?.status?.value === 'RLS') {
+              vm.verifyingTx = false
+              vm.$emit('success')
+              return
+            }
+          } catch { /* fall through to retry */ }
+        }
         vm.verifyingTx = false
-        vm.errorMessage = error.response?.data?.error || 'Verification failed'
+        vm.errorMessage = errorMsg || 'Verification failed'
 
         // Attempt auto-retry
         await vm.attemptAutoRetry(vm.verifyRelease)

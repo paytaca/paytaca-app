@@ -60,6 +60,7 @@
     </div>
     <div class="apps-hint-text q-px-md q-mt-xs" :class="getDarkModeClass(darkMode)">
       {{ $t('LongPressToPin', {}, 'Long press on the app to pin or unpin.') }}
+      {{ $t('DragToReorder', {}, 'Drag pinned apps to reorder.') }}
     </div>
 
     <div id="apps" ref="apps" class="apps-list-container" :class="[getDarkModeClass(darkMode), `view-${viewMode}`]">
@@ -78,76 +79,193 @@
 
         <div class="section-divider" :class="getDarkModeClass(darkMode)"></div>
 
-        <!-- List view -->
-        <div v-if="viewMode === 'list'" class="app-rows">
-          <div
-            v-for="(app, index) in cat.apps"
-            :key="app.id || index"
-            class="app-row"
-            :class="[
-              getDarkModeClass(darkMode),
-              { 'app-inactive': !app.active, 'app-beta-row': cat.isBeta, 'app-pinned-row': cat.isPinned }
-            ]"
-            v-on-long-press="[(event) => showAppContextMenu(app, event)]"
-            @click="openApp(app)"
+        <!-- Pinned section: draggable for smooth cross-platform reorder -->
+        <template v-if="cat.isPinned">
+          <draggable
+            v-if="viewMode === 'list'"
+            :list="cat.apps"
+            item-key="id"
+            handle=".app-drag-handle"
+            :animation="600"
+            :group="{ name: 'pinned-apps', pull: true, put: true }"
+            class="app-rows"
+            @start="onDragState(true, $event, cat)"
+            @end="onPinnedReorder($event, cat)"
           >
-            <div class="app-icon-tile bg-grad" :class="{ 'tile-inactive': !app.active }">
-              <q-icon size="26px" color="white" :name="app.iconName" />
-            </div>
-
-            <div class="app-info">
-              <div class="app-name" :class="getDarkModeClass(darkMode)">{{ app.name }}</div>
-              <div class="app-desc" :class="getDarkModeClass(darkMode)">{{ app.description }}</div>
-            </div>
-
-            <div class="app-row-end">
-              <span v-if="app.beta" class="app-beta-pill">BETA</span>
-              <div v-if="app.id === 'chat' && chatUnreadCount > 0" class="app-unread-badge">
-                {{ chatUnreadCountLabel }}
-              </div>
-              <q-icon
-                v-if="app.active"
-                name="chevron_right"
-                size="22px"
-                class="app-chevron"
-                :class="getDarkModeClass(darkMode)"
-              />
-            </div>
-          </div>
-        </div>
-
-        <!-- Grid view -->
-        <div v-else class="app-grid">
-          <div
-            v-for="(app, index) in cat.apps"
-            :key="app.id || index"
-            class="app-grid-item"
-            :class="[
-              getDarkModeClass(darkMode),
-              { 'app-inactive': !app.active }
-            ]"
-            v-on-long-press="[(event) => showAppContextMenu(app, event)]"
-            @click="openApp(app)"
-          >
-            <div class="relative-position" style="display: inline-block;">
-              <div class="app-grid-tile bg-grad" :class="{ 'tile-inactive': !app.active }">
-                <q-icon size="30px" color="white" :name="app.iconName" />
-              </div>
-              <span v-if="app.beta" class="app-beta-pill-grid">BETA</span>
+            <template #item="{ element: app }">
               <div
-                v-if="app.id === 'chat' && chatUnreadCount > 0"
-                class="app-unread-badge"
+                :data-app-id="app.id"
+                class="app-row"
+                :class="[
+                  getDarkModeClass(darkMode),
+                  { 'app-inactive': !app.active, 'app-pinned-row': true }
+                ]"
+                @click="openApp(app)"
+                v-on-long-press="(event) => showAppContextMenu(app, event)"
               >
-                {{ chatUnreadCountLabel }}
+                <div class="app-drag-handle" :class="getDarkModeClass(darkMode)">
+                  <q-icon name="drag_indicator" size="20px" />
+                </div>
+                <div class="app-icon-tile bg-grad" :class="{ 'tile-inactive': !app.active }">
+                  <q-icon size="26px" color="white" :name="app.iconName" @contextmenu.prevent @selectstart.prevent />
+                </div>
+                <div class="app-info">
+                  <div class="app-name" :class="getDarkModeClass(darkMode)">{{ app.name }}</div>
+                  <div class="app-desc" :class="getDarkModeClass(darkMode)">{{ app.description }}</div>
+                </div>
+                <div class="app-row-end">
+                  <span v-if="app.beta" class="app-beta-pill">BETA</span>
+                  <div v-if="app.id === 'chat' && chatUnreadCount > 0" class="app-unread-badge">
+                    {{ chatUnreadCountLabel }}
+                  </div>
+                  <q-icon
+                    name="mdi-pin-off"
+                    size="18px"
+                    class="app-unpin-icon"
+                    :class="getDarkModeClass(darkMode)"
+                    @click.stop="togglePin(app.id)"
+                  />
+                  <q-icon
+                    v-if="app.active"
+                    name="chevron_right"
+                    size="22px"
+                    class="app-chevron"
+                    :class="getDarkModeClass(darkMode)"
+                  />
+                </div>
+              </div>
+            </template>
+          </draggable>
+          <draggable
+            v-else
+            :list="cat.apps"
+            item-key="id"
+            :animation="600"
+            :delay="100"
+            :delay-on-touch-only="true"
+            :group="{ name: 'pinned-apps', pull: true, put: true }"
+            class="app-grid"
+            @start="onDragState(true, $event, cat)"
+            @end="onPinnedReorder($event, cat)"
+          >
+            <template #item="{ element: app }">
+              <div
+                :data-app-id="app.id"
+                class="app-grid-item"
+                :class="[
+                  getDarkModeClass(darkMode),
+                  { 'app-inactive': !app.active }
+                ]"
+                @click="openApp(app)"
+                v-on-long-press="(event) => showAppContextMenu(app, event)"
+              >
+                <div class="relative-position" style="display: inline-block;">
+                  <div class="app-grid-tile bg-grad" :class="{ 'tile-inactive': !app.active }">
+                    <q-icon size="30px" color="white" :name="app.iconName" @contextmenu.prevent @selectstart.prevent />
+                  </div>
+                  <span v-if="app.beta" class="app-beta-pill-grid">BETA</span>
+                  <div
+                    v-if="app.id === 'chat' && chatUnreadCount > 0"
+                    class="app-unread-badge"
+                  >
+                    {{ chatUnreadCountLabel }}
+                  </div>
+                </div>
+                <p
+                  class="app-grid-name pt-label"
+                  :class="[getDarkModeClass(darkMode), !app.active ? 'text-grey' : '']"
+                >
+                  {{ app.name }}
+                </p>
+              </div>
+            </template>
+          </draggable>
+        </template>
+
+        <!-- Non-pinned section: static display -->
+        <template v-else>
+          <div v-if="viewMode === 'list'" class="app-rows">
+            <div
+              v-for="(app, index) in cat.apps"
+              :key="app.id || index"
+              class="app-row"
+              :class="[
+                getDarkModeClass(darkMode),
+                { 'app-inactive': !app.active, 'app-beta-row': cat.isBeta }
+              ]"
+              @click="openApp(app)"
+              v-on-long-press="(event) => showAppContextMenu(app, event)"
+            >
+              <div class="app-icon-tile bg-grad" :class="{ 'tile-inactive': !app.active }">
+                <q-icon size="26px" color="white" :name="app.iconName" @contextmenu.prevent @selectstart.prevent />
+              </div>
+              <div class="app-info">
+                <div class="app-name" :class="getDarkModeClass(darkMode)">{{ app.name }}</div>
+                <div class="app-desc" :class="getDarkModeClass(darkMode)">{{ app.description }}</div>
+              </div>
+              <div class="app-row-end">
+                <span v-if="app.beta" class="app-beta-pill">BETA</span>
+                <div v-if="app.id === 'chat' && chatUnreadCount > 0" class="app-unread-badge">
+                  {{ chatUnreadCountLabel }}
+                </div>
+                <q-icon
+                  v-if="app.active"
+                  name="chevron_right"
+                  size="22px"
+                  class="app-chevron"
+                  :class="getDarkModeClass(darkMode)"
+                />
               </div>
             </div>
-            <p
-              class="app-grid-name pt-label"
-              :class="[getDarkModeClass(darkMode), !app.active ? 'text-grey' : '']"
-            >
-              {{ app.name }}
-            </p>
           </div>
+          <div v-else class="app-grid">
+            <div
+              v-for="(app, index) in cat.apps"
+              :key="app.id || index"
+              class="app-grid-item"
+              :class="[
+                getDarkModeClass(darkMode),
+                { 'app-inactive': !app.active }
+              ]"
+              @click="openApp(app)"
+              v-on-long-press="(event) => showAppContextMenu(app, event)"
+            >
+              <div class="relative-position" style="display: inline-block;">
+                <div class="app-grid-tile bg-grad" :class="{ 'tile-inactive': !app.active }">
+                  <q-icon size="30px" color="white" :name="app.iconName" @contextmenu.prevent @selectstart.prevent />
+                </div>
+                <span v-if="app.beta" class="app-beta-pill-grid">BETA</span>
+                <div v-if="app.id === 'chat' && chatUnreadCount > 0" class="app-unread-badge">
+                  {{ chatUnreadCountLabel }}
+                </div>
+              </div>
+              <p class="app-grid-name pt-label" :class="[getDarkModeClass(darkMode), !app.active ? 'text-grey' : '']">
+                {{ app.name }}
+              </p>
+            </div>
+          </div>
+        </template>
+
+        <div
+          v-if="viewMode !== 'list'"
+          class="unpin-bin"
+          :class="[getDarkModeClass(darkMode), { 'unpin-bin-visible': cat.isPinned && dragging }]"
+        >
+          <draggable
+            :key="'unpin-bin-' + cat.id + '-' + unpinBinKey"
+            :list="unpinBinList"
+            item-key="id"
+            :group="{ name: 'pinned-apps', pull: false, put: true }"
+            :animation="150"
+            class="unpin-bin-drop"
+            @add="onUnpinDrop"
+          >
+            <template #item="{ element }">
+              <div :key="element.id" class="unpin-bin-item"></div>
+            </template>
+          </draggable>
+          <q-icon name="mdi-pin-off" size="20px" />
+          <span>{{ $t('DropToUnpin', {}, 'Drop here to unpin') }}</span>
         </div>
       </section>
 
@@ -161,22 +279,125 @@
 
 <script>
 import { Platform } from 'quasar';
-import { vOnLongPress } from '@vueuse/components'
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
-import MarketplaceAppSelectionDialog from 'src/components/marketplace/MarketplaceAppSelectionDialog.vue'
+import draggable from 'vuedraggable'
+import { isNativeIOS } from 'src/utils/native-platform'
+
 import BetaAppDialog from 'src/components/apps/BetaAppDialog.vue'
 import HeaderNav from '../../components/header-nav'
 import { webSocketManager } from 'src/exchange/websocket/manager'
-import { isNativeIOS } from 'src/utils/native-platform'
+import { DISPLAY_SUBS_APP } from 'src/wallet/payment-hub';
 
 export default {
   name: 'apps',
   components: {
     HeaderNav,
-    BetaAppDialog
+    BetaAppDialog,
+    draggable
   },
   directives: {
-    'on-long-press': vOnLongPress,
+    'on-long-press': {
+      mounted (el, binding) {
+        const handler = typeof binding.value === 'function'
+          ? binding.value
+          : Array.isArray(binding.value) ? binding.value[0] : null
+        if (!handler) return
+
+        let timer = null
+        let startX = 0
+        let startY = 0
+        let isPending = false
+        let longPressTriggered = false
+        let activeSource = null
+        let lastLongPressTime = 0
+
+        function start (x, y, e, source) {
+          if (activeSource && activeSource !== source) return
+          if (Date.now() - lastLongPressTime < 100) return
+          startX = x
+          startY = y
+          isPending = true
+          longPressTriggered = false
+          activeSource = source
+          timer = setTimeout(() => {
+            timer = null
+            isPending = false
+            longPressTriggered = true
+            lastLongPressTime = Date.now()
+            handler(e)
+          }, 500)
+        }
+
+        function cancel () {
+          if (timer) {
+            clearTimeout(timer)
+            timer = null
+          }
+          isPending = false
+          activeSource = null
+        }
+
+        function move (x, y) {
+          if (!isPending) return
+          const dx = Math.abs(x - startX)
+          const dy = Math.abs(y - startY)
+          if (dx > 10 || dy > 10) cancel()
+        }
+
+        function suppressClick (e) {
+          if (longPressTriggered) {
+            e.preventDefault()
+            e.stopPropagation()
+            longPressTriggered = false
+            lastLongPressTime = 0
+          }
+        }
+
+        function onTouchStart (e) {
+          const t = e.touches[0]
+          start(t.clientX, t.clientY, e, 'touch')
+        }
+
+        function onTouchMove (e) {
+          const t = e.touches[0]
+          move(t.clientX, t.clientY)
+        }
+
+        function onMouseDown (e) {
+          start(e.clientX, e.clientY, e, 'mouse')
+        }
+
+        function onMouseMove (e) {
+          move(e.clientX, e.clientY)
+        }
+
+        el.addEventListener('touchstart', onTouchStart, { passive: true })
+        el.addEventListener('touchmove', onTouchMove, { passive: true })
+        el.addEventListener('touchend', cancel)
+        el.addEventListener('touchcancel', cancel)
+        el.addEventListener('mousedown', onMouseDown)
+        el.addEventListener('mousemove', onMouseMove)
+        el.addEventListener('mouseup', cancel)
+        el.addEventListener('mouseleave', cancel)
+        el.addEventListener('click', suppressClick, true)
+
+        el._longPressCleanup = () => {
+          cancel()
+          el.removeEventListener('touchstart', onTouchStart)
+          el.removeEventListener('touchmove', onTouchMove)
+          el.removeEventListener('touchend', cancel)
+          el.removeEventListener('touchcancel', cancel)
+          el.removeEventListener('mousedown', onMouseDown)
+          el.removeEventListener('mousemove', onMouseMove)
+          el.removeEventListener('mouseup', cancel)
+          el.removeEventListener('mouseleave', cancel)
+          el.removeEventListener('click', suppressClick, true)
+        }
+      },
+      unmounted (el) {
+        el._longPressCleanup?.()
+      }
+    },
   },
   data () {
     return {
@@ -204,12 +425,6 @@ export default {
           active: !this.$store.getters['global/isChipnet'],
           iconStyle: 'width:45%; height: 45%;',
           category: 'marketplace',
-          onLongPress: (event) => {
-            event?.preventDefault?.()
-            this.$q.dialog({
-              component: MarketplaceAppSelectionDialog,
-            })
-          }
         },
         {
           id: 'auction',
@@ -262,8 +477,7 @@ export default {
           path: '/apps/chat',
           iconStyle: 'font-size: 4em',
           active: !this.$store.getters['global/isChipnet'],
-          beta: true,
-          category: 'beta'
+          category: 'wallet-connections'
         },
         {
           id: 'gifts',
@@ -278,7 +492,7 @@ export default {
         {
           id: 'lift-token',
           name: `LIFT ${this.$t('Token')}`,
-          description: this.$t('Apps.LiftToken.Description', {}, 'View your LIFT token activity and manage related actions.'),
+          description: this.$t('Apps.LiftToken.Description', {}, 'Buy LIFT tokens and track vesting progress'),
           iconName: 'img:lift-token.png',
           path: '/apps/lift-token',
           iconStyle: 'width: 50%; height: 60%;',
@@ -295,6 +509,17 @@ export default {
           active: !this.$store.getters['global/isChipnet'],
           smartBCHOnly: false,
           category: 'assets-rewards'
+        },
+        {
+          id: 'card',
+          name: this.$t('Cards'),
+          description: this.$t('Apps.Card.Description', {}, 'Manage your Paytaca Card and view your card activity.'),
+          iconName: 'mdi-card-bulleted',
+          path: '/apps/card',
+          iconStyle: 'font-size: 4em',
+          active: !this.$store.getters['global/isChipnet'],
+          beta: true,
+          category: 'beta'
         },
         {
           id: 'multisig',
@@ -393,14 +618,44 @@ export default {
           category: 'marketplace'
         },
         {
+          id: 'payment-hub',
+          name: this.$t('PaymentHub', {}, 'Payment Hub'),
+          description: this.$t('Apps.PaymentHub.Description', {}, 'Manage Payment Hub Stores, API Keys, and Invoices.'),
+          iconName: 'img:paytaca_payment_hub_logo.svg',
+          path: '/apps/payment-hub/',
+          iconStyle: 'width: 90%; height: 90%; object-fit: contain;',
+          active: true,
+          beta: false,
+          category: 'marketplace'
+        },
+        ...(DISPLAY_SUBS_APP ? [{
+          id: 'payment-hub-subscriptions',
+          name: this.$t('RecurringPayments', {}, 'Recurring Payments'),
+          description: this.$t('Apps.RecurringPayments.Description', {}, 'Manage your recurring payments.'),
+          iconName: 'autorenew',
+          path: '/apps/payment-hub-subscriptions/',
+          iconStyle: 'font-size: 4.2em',
+          active: true,
+          beta: true,
+          category: 'payment-hub'
+        }]: []),
+        {
           id: 'support',
           name: this.$t('Support', {}, 'Support'),
           description: this.$t('Apps.Support.Description', {}, 'Get help, guides, and wallet information.'),
           iconName: 'support',
-          path: '/apps/wallet-info',
+          path: '/apps/support',
           active: true,
           iconStyle: 'font-size: 4em',
           category: 'utilities'
+        },
+        {
+          name: this.$t('WalletBackup'),
+          iconName: 'img:wallet-backup.png',
+          path: '/apps/wallet-backup',
+          active: true,
+          iconStyle: 'width:45%; height: 45%;',
+          smartBCHOnly: false
         },
         {
           id: 'settings',
@@ -430,7 +685,12 @@ export default {
       rampAppSelection: false,
       disableRampSelection: false,
       activeCategory: null,
-      categoryObserver: null
+      categoryObserver: null,
+      dragging: false,
+      dragItemId: null,
+      unpinBinList: [],
+      unpinBinKey: 0,
+      justDragged: false
     }
   },
   computed: {
@@ -439,6 +699,9 @@ export default {
     },
     isNativeIOS () {
       return isNativeIOS()
+    },
+    dragSupported () {
+      return true
     },
     theme () {
       return this.$store.getters['global/theme']
@@ -472,6 +735,7 @@ export default {
         { id: 'assets-rewards', label: this.$t('AssetsAndRewards', {}, 'Assets & Rewards') },
         { id: 'wallet-connections', label: this.$t('WalletAndConnections', {}, 'Wallet & Connections') },
         { id: 'marketplace', label: this.$t('MarketplaceAndMerchant', {}, 'Marketplace & Merchant') },
+        { id: 'payment-hub', label: this.$t('PaymentHub', {}, 'Payment Hub') },
         { id: 'utilities', label: this.$t('Utilities', {}, 'Utilities') },
         { id: 'beta', label: this.$t('Experimental', {}, 'Experimental'), isBeta: true },
       ]
@@ -482,7 +746,9 @@ export default {
       for (const cat of this.categoryDefinitions) {
         let apps
         if (cat.isPinned) {
-          apps = this.filteredApps.filter(app => this.pinnedAppIds.includes(app.id))
+          apps = this.filteredApps
+            .filter(app => this.pinnedAppIds.includes(app.id))
+            .sort((a, b) => this.pinnedAppIds.indexOf(a.id) - this.pinnedAppIds.indexOf(b.id))
         } else {
           apps = this.filteredApps.filter(app => app.category === cat.id)
         }
@@ -518,7 +784,7 @@ export default {
       return active ? '' : 'disabled'
     },
     openApp (app) {
-      if (!app.active) return
+      if (!app.active || this.justDragged) return
       
       if (app.id === 'wizardconnect') {
         const loadingGroupName = 'wizardconnect-init';
@@ -571,10 +837,6 @@ export default {
         this.$router.push(app.path)
       }
     },
-    onLongPressApp(event, app) {
-      event.preventDefault()
-      app?.onLongPress?.(event)
-    },
     isPinned (appId) {
       return this.pinnedAppIds.includes(appId)
     },
@@ -586,29 +848,77 @@ export default {
       }
       localStorage.setItem('pinnedAppIds', JSON.stringify(this.pinnedAppIds))
     },
+    onDragState (active, event, cat) {
+      this.dragging = active
+      this.dragItemId = active && cat && event?.oldIndex !== undefined
+        ? cat.apps[event.oldIndex]?.id
+        : null
+      if (active) {
+        this.justDragged = true
+      }
+    },
+    onUnpinDrop (event) {
+      const item = this.unpinBinList[event.newIndex]
+      const appId = item?.id
+      this.unpinBinList.splice(event.newIndex, 1)
+      this.unpinBinKey++
+      if (appId) {
+        this.togglePin(appId)
+      }
+      this.dragItemId = null
+      this.dragging = false
+      setTimeout(() => { this.justDragged = false }, 300)
+    },
+    onPinnedReorder (event, cat) {
+      const newOrder = []
+      for (const c of this.categorizedApps) {
+        if (c.isPinned) {
+          for (const app of c.apps) {
+            newOrder.push(app.id)
+          }
+        }
+      }
+      if (newOrder.length > 0) {
+        this.pinnedAppIds = newOrder
+        localStorage.setItem('pinnedAppIds', JSON.stringify(newOrder))
+      }
+      this.dragging = false
+      setTimeout(() => { this.justDragged = false }, 300)
+    },
     showAppContextMenu (app, event) {
-      if (!app.active) return
+      if (!app.active || this.justDragged) return
       const pinned = this.isPinned(app.id)
+      const actions = [
+        {
+          label: pinned ? this.$t('Unpin', {}, 'Unpin') : this.$t('Pin', {}, 'Pin'),
+          icon: pinned ? 'mdi-pin-off' : 'mdi-pin',
+          id: 'pin',
+          color: this.themeColor,
+        },
+        {
+          label: this.$t('Open', {}, 'Open'),
+          icon: 'open_in_new',
+          id: 'open',
+        },
+      ]
+      if (app.id === 'marketplace') {
+        actions.splice(1, 0, {
+          label: this.$t('OpenArbiterInterface', {}, 'Open Arbiter Interface'),
+          icon: 'gavel',
+          id: 'arbiter',
+          color: this.themeColor,
+        })
+      }
       this.$q.bottomSheet({
         class: `text-bow ${this.getDarkModeClass(this.darkMode)}`,
-        actions: [
-          {
-            label: pinned ? this.$t('Unpin', {}, 'Unpin') : this.$t('Pin', {}, 'Pin'),
-            icon: pinned ? ' mdi-pin-off' : 'mdi-pin',
-            id: 'pin',
-            color: this.themeColor,
-          },
-          {
-            label: this.$t('Open', {}, 'Open'),
-            icon: 'open_in_new',
-            id: 'open',
-          },
-        ],
+        actions,
       }).onOk(action => {
         if (action.id === 'pin') {
           this.togglePin(app.id)
         } else if (action.id === 'open') {
           this.openApp(app)
+        } else if (action.id === 'arbiter') {
+          this.$router.push('/apps/marketplace/arbiter')
         }
       })
     },
@@ -948,6 +1258,43 @@ export default {
     &.dark { color: rgba(59, 123, 246, 0.7); }
     &.light { color: rgba(59, 123, 246, 0.6); }
   }
+  .unpin-bin {
+    display: none;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    margin: 0 14px 8px;
+    padding: 12px;
+    border-radius: 10px;
+    font-size: 13px;
+    font-weight: 500;
+    position: relative;
+    transition: background 0.15s ease, border-color 0.15s ease;
+    &.unpin-bin-visible { display: flex; }
+    &.dark {
+      background: rgba(239, 83, 80, 0.08);
+      border: 2px dashed rgba(239, 83, 80, 0.4);
+      color: rgba(239, 83, 80, 0.7);
+      &:hover { background: rgba(239, 83, 80, 0.15); border-color: rgba(239, 83, 80, 0.6); }
+    }
+    &.light {
+      background: rgba(239, 83, 80, 0.06);
+      border: 2px dashed rgba(239, 83, 80, 0.3);
+      color: rgba(239, 83, 80, 0.65);
+      &:hover { background: rgba(239, 83, 80, 0.12); border-color: rgba(239, 83, 80, 0.5); }
+    }
+  }
+  .unpin-bin-drop {
+    position: absolute;
+    inset: 0;
+    z-index: 1;
+    min-height: 100%;
+  }
+  .unpin-bin-item {
+    width: 100%;
+    height: 0;
+    visibility: hidden;
+  }
   .pin-indicator {
     &.dark { color: rgba(59, 123, 246, 0.6); }
     &.light { color: rgba(59, 123, 246, 0.5); }
@@ -1019,6 +1366,35 @@ export default {
     }
   }
 
+  .app-drag-handle {
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 28px;
+    height: 48px;
+    cursor: grab;
+    transition: color 0.15s ease;
+    -webkit-user-select: none;
+    user-select: none;
+    &:active { cursor: grabbing; }
+    &.dark {
+      color: rgba(255,255,255,0.4);
+      &:hover { color: rgba(255,255,255,0.8); }
+    }
+    &.light {
+      color: rgba(0,0,0,0.25);
+      &:hover { color: rgba(0,0,0,0.6); }
+    }
+  }
+
+  .app-unpin-icon {
+    cursor: pointer;
+    opacity: 0.5;
+    transition: opacity 0.15s ease;
+    &:hover { opacity: 1; }
+  }
+
   .app-icon-tile {
     flex-shrink: 0;
     width: 48px;
@@ -1028,6 +1404,7 @@ export default {
     align-items: center;
     justify-content: center;
     position: relative;
+    -webkit-touch-callout: none;
     &.tile-inactive { filter: grayscale(1) opacity(0.4); }
   }
 
@@ -1117,6 +1494,7 @@ export default {
     display: inline-flex;
     align-items: center;
     justify-content: center;
+    -webkit-touch-callout: none;
     &.tile-inactive { filter: grayscale(1) opacity(0.4); }
   }
   .app-grid-name {
@@ -1137,5 +1515,23 @@ export default {
   .view-grid .relative-position {
     position: relative;
     display: inline-block;
+  }
+
+  // Smooth drag reorder animation
+  :deep(.sortable-ghost) {
+    opacity: 0.3;
+    transform: scale(0.95);
+  }
+  :deep(.sortable-drag) {
+    opacity: 0.9;
+    transform: scale(1.05);
+    box-shadow: 0 8px 16px rgba(0, 0, 0, 0.2);
+    z-index: 1000;
+    .app-drag-handle {
+      cursor: grabbing !important;
+    }
+  }
+  :deep(.sortable-chosen) {
+    background-color: rgba(0, 0, 0, 0.05);
   }
 </style>

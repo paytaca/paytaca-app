@@ -12,7 +12,7 @@ import axios from 'axios';
 import { Store } from 'src/store';
 
 
-const PushNotificationSettings = registerPlugin('PushNotificationSettings'); 
+const PushNotificationSettings = registerPlugin('PushNotificationSettings');
 const PluginAvailability = {
   PushNotifications: Capacitor.isPluginAvailable('PushNotifications'),
   PushNotificationSettings: Capacitor.isPluginAvailable('PushNotificationSettings'),
@@ -47,6 +47,8 @@ class PushNotificationsEventEmitter {
     PushNotificationsEventEmitter.instance = this
 
     this.listeners = {}
+    this.pendingEvents = {}
+    this.replaying = false
 
     this.eventHandlers = {}
     PushNotificationsEventEmitter.events.forEach(eventName => {
@@ -71,6 +73,22 @@ class PushNotificationsEventEmitter {
     if (!Array.isArray(this.listeners[eventName])) this.listeners[eventName] = []
     if (this.listeners[eventName].indexOf(callback) >= 0) return
     this.listeners[eventName].push(callback)
+
+    // Replay events delivered before any subscriber attached (e.g. the retained
+    // cold-start tap, which Capacitor delivers during boot module evaluation)
+    const pending = this.pendingEvents[eventName]
+    if (Array.isArray(pending) && pending.length > 0) {
+      this.pendingEvents[eventName] = []
+      this.replaying = true
+      pending.forEach(data => {
+        try {
+          callback(data)
+        } catch (error) {
+          console.error(error)
+        }
+      })
+      this.replaying = false
+    }
   }
 
   removeEventListener(eventName='', callback) {
@@ -83,8 +101,15 @@ class PushNotificationsEventEmitter {
   }
 
   emitEvent(eventName, data) {
-    if (!Array.isArray(this.listeners[eventName])) return
-    this.listeners[eventName]
+    const listeners = this.listeners[eventName]
+    if (!Array.isArray(listeners) || listeners.length === 0) {
+      // Buffer events arriving before subscribers attach, otherwise the
+      // retained cold-start tap is dropped silently
+      if (!Array.isArray(this.pendingEvents[eventName])) this.pendingEvents[eventName] = []
+      this.pendingEvents[eventName].push(data)
+      return
+    }
+    listeners
       .forEach(callback => {
         try {
           callback(data)
@@ -365,8 +390,23 @@ export default boot(({ app }) => {
     manager.events.addEventListener(
       'pushNotificationActionPerformed',
       notificationAction => {
-        console.log('Notification action:', JSON.stringify(notificationAction, null, 2))
-        store.commit('notification/setOpenedNotification', notificationAction?.notification)
+        const notification = notificationAction?.notification
+        // Two cold-start cases route through the stash:
+        // 1. Event delivered during boot module evaluation, before this listener
+        //    attaches — the store is not hydrated yet (a commit would be wiped
+        //    by the vuex boot's replaceState)
+        // 2. Event replayed by the emitter when this listener attaches — the
+        //    store is hydrated but the router is not installed yet
+        // App.vue processes the stash after boot completes
+        if (!store.state.global.bootHydrated || manager.events.replaying) {
+          try {
+            localStorage.setItem('push_opened_notification', JSON.stringify(notification))
+          } catch (err) {
+            console.error('Failed to stash opened push notification:', err)
+          }
+          return
+        }
+        store.commit('notification/setOpenedNotification', notification)
         store.dispatch('notification/handleOpenedNotification')
       },
     )

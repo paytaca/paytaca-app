@@ -20,6 +20,7 @@ import multisig from './multisig'
 import subscription from './subscription'
 import wizardconnect from './wizardconnect'
 import nostrChat from './nostr-chat'
+import card from './card'
 
 // const vuexLocal = new VuexPersistence({
 //   key: 'vuex',
@@ -98,6 +99,11 @@ function serializeState(obj, seen = new Map()) {
             
             // Skip functions and symbols
             if (typeof value === 'function' || typeof value === 'symbol') {
+              continue
+            }
+
+            // Skip session-scoped blob URLs that don't survive page reloads
+            if (key === 'localVideoUrl') {
               continue
             }
             
@@ -195,6 +201,41 @@ function reducer(state) {
                       }
                       continue
                     }
+
+                    // DM/group room lists, deleted rooms, and block lists are stored
+                    // server-side; only keep an in-memory cache, don't persist them.
+                    // MLS rooms are the exception: they are local-only (never fully
+                    // represented on the server), so persist them so they survive an
+                    // app restart.
+                    if (moduleName === 'nostrChat' && key === 'rooms') {
+                      if (Array.isArray(value)) {
+                        cleanWalletState.rooms = value.filter(r => r && r.type === 'mls-group')
+                      }
+                      continue
+                    }
+                    if (moduleName === 'nostrChat' && ['deletedRooms', 'blockedContacts', 'blockedGroups'].includes(key)) {
+                      continue
+                    }
+
+                    // Typing indicators are ephemeral (auto-expire after 5s);
+                    // never persist to localStorage.
+                    if (moduleName === 'nostrChat' && key === 'typing') {
+                      continue
+                    }
+
+                    // MLS serialized group states contain the Ed25519 signing private
+                    // key; they are persisted to IndexedDB (state-store.js) instead.
+                    // Only the room→group mapping and key package metadata are persisted.
+                    if (moduleName === 'nostrChat' && key === 'mls' && value && typeof value === 'object') {
+                      cleanWalletState.mls = {
+                        ready: value.ready || false,
+                        keyPackage: value.keyPackage || null,
+                        roomMlsMap: value.roomMlsMap || {},
+                        declinedWelcomeIds: value.declinedWelcomeIds || {},
+                        failedEventAttempts: value.failedEventAttempts || {},
+                      }
+                      continue
+                    }
                     
                     // Skip functions
                     if (typeof value === 'function') {
@@ -212,9 +253,14 @@ function reducer(state) {
           // For global module, exclude session-only state like isUnlocked
           const globalState = state[moduleName]
           const serializedGlobal = serializeState(globalState)
-          // Remove isUnlocked from persisted state (it's session-only)
+          // Remove session-only state that should never be persisted
           if (serializedGlobal && typeof serializedGlobal === 'object') {
             delete serializedGlobal.isUnlocked
+            delete serializedGlobal.appInitialLoadComplete
+            delete serializedGlobal.backupDialogActive
+            delete serializedGlobal.walletSwitchInProgress
+            delete serializedGlobal.walletSwitchLoading
+            delete serializedGlobal.bootHydrated
           }
           serialized[moduleName] = serializedGlobal
         } else if (moduleName === 'wizardconnect') {
@@ -262,6 +308,7 @@ export const Store = createStore({
           const value = window.localStorage.getItem(key)
           if (!value) return null
           const parsed = JSON.parse(value)
+          console.log('Parsed persisted state:', parsed)
           // Filter out undefined module states to prevent overwriting defaults
           if (parsed && typeof parsed === 'object') {
             for (const moduleName in parsed) {
@@ -303,7 +350,8 @@ export const Store = createStore({
     multisig,
     subscription,
     wizardconnect,
-    nostrChat
+    nostrChat,
+    card
   },
 
   // enable strict mode (adds overhead!)

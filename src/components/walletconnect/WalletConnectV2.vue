@@ -1260,6 +1260,7 @@ const respondToSignTransactionRequest = async (sessionRequest) => {
   const response = { id: sessionRequest.id, jsonrpc: '2.0', result: undefined, error: undefined }
   if (sessionRequest?.params?.request?.method === 'bch_signTransaction' || sessionRequest?.params?.request?.method === 'bch_signTransactionP2SHMultisig') {
     const loadingKey = 'wc-sign-transaction'
+    let responseSent = false
     try {
       const wallet = sessionTopicWalletAddressMapping.value?.[sessionRequest.topic]
       if (wallet.signers) {
@@ -1297,6 +1298,7 @@ const respondToSignTransactionRequest = async (sessionRequest) => {
             }
           }
         })
+        responseSent = true
 
         $q.loading.show({ group: loadingKey, message: $t('ProcessingTransactionProposal') })
 
@@ -1333,40 +1335,43 @@ const respondToSignTransactionRequest = async (sessionRequest) => {
         wallet.wif
       )
 
-      if (sessionRequest.params.request.params?.broadcast) {
-        const broadcastResponse = watchtower.value?.BCH.broadcastTransaction(response.result.signedTransaction)
-        if (!broadcastResponse.success) {
-          response.error = { code: -32603, message: broadcastResponse?.error }
-          response.result = undefined
-        }
+      const broadcastResponse = await watchtower.value?.BCH.broadcastTransaction(response.result.signedTransaction)
+      if (!broadcastResponse?.data?.success) {
+        console.error('Broadcast failed:', broadcastResponse)
+        response.error = { code: -32603, message: broadcastResponse?.data?.error || 'Broadcast failed' }
+        response.result = undefined
+        sessionRequest.error = true
       }
 
       processingSession.value[sessionRequest.topic] = 'Confirming request'
 
-      if (!response.result) delete response.result
-      if (!response.error) delete response.error
-      
-      await web3Wallet.value.respondSessionRequest({
-        topic: sessionRequest.topic, response
-      })
-
-      if (!sessionRequest.error) {
-        sessionRequest.confirmed = true
-      }
-
-      delete processingSession.value[sessionRequest.topic]
-      
-      await delay(2)
-      await loadSessionRequests()
-
     } catch (err) {
+      console.error(err)
       response.error = {
         code: -32603,
-        reason: err?.name === 'SignBCHTransactionError' ? err?.message : 'Unknown error'
+        message: err?.name === 'SignBCHTransactionError' ? err?.message : 'Unknown error'
       }
       sessionRequest.error = true
       processingSession.value[sessionRequest.topic] = 'Sending error response'
+      $q.notify({
+        type: 'error',
+        message: err?.message || 'Failed to sign transaction',
+        timeout: 5000
+      })
     } finally {
+      if (!responseSent) {
+        if (!response.result) delete response.result
+        if (!response.error) delete response.error
+        await web3Wallet.value.respondSessionRequest({
+          topic: sessionRequest.topic, response
+        })
+        if (!sessionRequest.error) {
+          sessionRequest.confirmed = true
+        }
+        delete processingSession.value[sessionRequest.topic]
+        await delay(2)
+        await loadSessionRequests()
+      }
       $q.loading.hide(loadingKey)
     }
   }
@@ -1393,12 +1398,18 @@ const respondToSignMessageRequest = async (sessionRequest) => {
     response.result = signMessage(message, connectedAddressForTopic.wif)
     processingSession.value[sessionRequest.topic] = 'Confirming request'
   } catch (err) {
+    console.error(err)
     response.error = {
       code: -32603,
       message: err?.message || 'Unknown error'
     }
     sessionRequest.error = true
     processingSession.value[sessionRequest.topic] = 'Sending error response'
+    $q.notify({
+      type: 'error',
+      message: err?.message || 'Failed to sign message',
+      timeout: 5000
+    })
   } finally {
     if (!response.result) delete response.result
     if (!response.error) delete response.error
@@ -1473,6 +1484,7 @@ const respondToSessionRequest = async (sessionRequest) => {
       }
     }
   } catch (error) {
+    console.error(error)
   } finally {
     delete processingSession.value[sessionRequest.id]
   }
@@ -1533,7 +1545,7 @@ const resetWallectConnect = async (opts = { silent: false }) => {
   }
 }
 
-window.test = compareAppVersions
+if (process.env.NODE_ENV !== 'production') window.test = compareAppVersions
 // NOTE: Can be removed if enough time has passed since writing
 async function wcVersionUpgradeMigration() {
   try {
@@ -1558,7 +1570,7 @@ const loadWeb3Wallet = async () => {
     // Fallback: initialize if not already done (e.g., if boot failed)
     web3Wallet.value = await initWeb3Wallet()
   }
-  window.w3w = web3Wallet.value
+  if (process.env.NODE_ENV !== 'production') window.w3w = web3Wallet.value
 }
 
 const onAuthRequest = async (...args) => {
@@ -1690,6 +1702,7 @@ const refreshComponent = async (showLoading = true) => {
 // Use watch with explicit dependencies to avoid unnecessary rebuilds
 // Defer execution to avoid blocking UI on initial load with many addresses
 // Note: mapSessionTopicWithAddress is now async and uses Watchtower API for on-demand lookups
+let _mappingIdleHandle = null
 watch(
   [() => activeSessions.value, () => walletAddresses.value, () => multisigWallets.value],
   ([newActiveSessions, newWalletAddresses, newMultisigWallets]) => {
@@ -1700,16 +1713,29 @@ watch(
     const executeMapping = async () => {
       await mapSessionTopicWithAddress(newActiveSessions, newWalletAddresses, newMultisigWallets)
     }
-    
+
+    // Cancel any previously scheduled but not-yet-run mapping to avoid
+    // stacking work across rapid watcher fires (especially on wallet switch).
+    if (_mappingIdleHandle != null) {
+      if (typeof cancelIdleCallback !== 'undefined' && typeof requestIdleCallback !== 'undefined') {
+        try { cancelIdleCallback(_mappingIdleHandle) } catch (_) {}
+      } else {
+        clearTimeout(_mappingIdleHandle)
+      }
+      _mappingIdleHandle = null
+    }
+
     if (typeof requestIdleCallback !== 'undefined') {
-      requestIdleCallback(() => {
+      _mappingIdleHandle = requestIdleCallback(() => {
+        _mappingIdleHandle = null
         executeMapping().catch(err => {
           console.error('Error in mapSessionTopicWithAddress:', err)
         })
       }, { timeout: 500 })
     } else {
       // Fallback: use setTimeout with minimal delay to yield to event loop
-      setTimeout(() => {
+      _mappingIdleHandle = setTimeout(() => {
+        _mappingIdleHandle = null
         executeMapping().catch(err => {
           console.error('Error in mapSessionTopicWithAddress:', err)
         })
@@ -1860,6 +1886,16 @@ onUnmounted(() => {
   stopPollingForCancellationRequest()
   // Clear pending dialog reference
   clearPendingDialog()
+  // Cancel any deferred session-topic mapping work so it doesn't run and
+  // call into the store/Watchtower after the component has torn down.
+  if (_mappingIdleHandle != null) {
+    if (typeof cancelIdleCallback !== 'undefined' && typeof requestIdleCallback !== 'undefined') {
+      try { cancelIdleCallback(_mappingIdleHandle) } catch (_) {}
+    } else {
+      clearTimeout(_mappingIdleHandle)
+    }
+    _mappingIdleHandle = null
+  }
 })
 
 defineExpose({

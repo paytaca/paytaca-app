@@ -52,27 +52,6 @@ export default {
 </script>
 
 <style lang="scss" scoped>
-// Ensure Quasar dialog wrapper is full height when this component is used
-:deep(.q-dialog) {
-  height: 100vh !important;
-  height: -webkit-fill-available !important;
-  max-height: none !important;
-}
-
-:deep(.q-dialog__inner) {
-  padding: 0 !important;
-  margin: 0 !important;
-  height: 100vh !important;
-  height: -webkit-fill-available !important;
-  max-height: none !important;
-  display: block !important;
-}
-
-:deep(.q-dialog__backdrop) {
-  height: 100vh !important;
-  height: -webkit-fill-available !important;
-}
-
 @keyframes gradientShift {
   0%, 100% {
     background-position: 0% 50%;

@@ -221,7 +221,7 @@ export class WatchtowerNetworkProvider {
           url += `/${tokenCategory}`
         }
       
-        url += `?type=${type}&all=${all}&page=${page}`
+        url += `?type=${type}&all=${all}&page=${page}&exclude=senders,recipients`
         
         return await axios.get(url, { timeout: DEFAULT_TIMEOUT })
       }

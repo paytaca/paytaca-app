@@ -270,7 +270,7 @@
                       <points-badge
                         :complete="item.has_transacted"
                         :dark-mode-class="getDarkModeClass(darkMode)"
-                        :points="10"
+                        :points="item.points_earned"
                       />
                     </div>
                   </q-card-section>
@@ -314,6 +314,7 @@ import {
   updateRfPromoData,
   getRpMaxRedeemable,
   updateUserPromoData,
+  PROMO_CONTRACT_VERSION,
 } from 'src/utils/engagementhub-utils/rewards'
 
 import HeaderNav from 'src/components/header-nav.vue'
@@ -361,6 +362,7 @@ export default {
       pointsError: '',
       dataError: '',
       rpMax: 0,
+      rpContractVersion: '',
 
       referralsList: [],
       referralsOverallStats: {}
@@ -403,50 +405,60 @@ export default {
       this.isLoading = true
 
       this.rpId = Number(this.$route.params.id || -1)
+      const isNewRpUser = this.rpId === -1
+
+      // fetch and load data
+      let rpData = null
+      try {
+        if (this.rpId === -1) {
+          // open help dialog
+          this.isHelpActive = true
+
+          // new user; create and update necessary data
+          rpData = await createRfPromoData()
+          if (!rpData) throw new Error('Failed to create RFP promo data')
+
+          this.rpId = rpData.id
+          await this.$router.replace({ params: { id: String(rpData.id) } })
+          updateUserPromoData({ rp: this.rpId })
+        } else {
+          rpData = await getRfPromoData(this.rpId)
+        }
+
+        if (rpData && Object.keys(rpData).length > 0) {
+          this.rpMax = await getRpMaxRedeemable()
+          this.redeemedPoints = rpData.redeemed_points
+          this.referralCode = rpData.referral_code
+          this.referralsList = (rpData.rp_referrals || []).sort((a, b) => {
+            return new Date(b.date_created) - new Date(a.date_created)
+          })
+          this.referralsOverallStats = rpData.rp_referrals_overall_stats
+        } else {
+          this.dataError = this.$t('DataLoadError')
+        }
+      } catch (error) {
+        console.error(error)
+        this.dataError = this.$t('DataLoadError')
+      }
 
       // initialize RP Promo Contract and retrieve points
       try {
         const walletIndex = this.$store.getters['global/getWalletIndex']
         const userPubkey = await getAddress0_0PublicKey(walletIndex)
-        this.rpContract = new PromoContract(userPubkey, PromosBytes.RP)
-        if (this.rpId === -1) await this.rpContract.subscribeAddress()
+        const contractVersion = rpData?.contract_version ?? PROMO_CONTRACT_VERSION
+        this.rpContractVersion = contractVersion
+        this.rpContract = new PromoContract(userPubkey, PromosBytes.RP, contractVersion)
+        if (isNewRpUser) {
+          await this.rpContract.subscribeAddress()
+          await updateRfPromoData(this.rpId, {
+            contract_ct_address: this.rpContract.contract.tokenAddress
+          })
+        }
         this.points = await this.rpContract.getTokenBalance()
         this.animatePointsCounter()
       } catch (error) {
         console.error(error)
         this.pointsError = this.$t('PointsLoadError')
-      }
-
-      // fetch and load data
-      let rpData = null
-      if (this.rpId === -1) {
-        // open help dialog
-        this.isHelpActive = true
-
-        // new user; create and update necessary data
-        rpData = await createRfPromoData()
-        this.rpId = rpData.id
-        this.$router.replace({ params: { id: String(rpData.id) } })
-        Promise.allSettled([
-          updateUserPromoData({ rp: rpData.id }),
-          updateRfPromoData(rpData.id, {
-            contract_ct_address: this.rpContract.contract.tokenAddress
-          })
-        ])
-      } else {
-        rpData = await getRfPromoData(this.rpId)
-      }
-
-      if (rpData && Object.keys(rpData).length > 0) {
-        this.rpMax = await getRpMaxRedeemable()
-        this.redeemedPoints = rpData.redeemed_points
-        this.referralCode = rpData.referral_code
-        this.referralsList = (rpData.rp_referrals || []).sort((a, b) => {
-          return new Date(b.date_created) - new Date(a.date_created)
-        })
-        this.referralsOverallStats = rpData.rp_referrals_overall_stats
-      } else {
-        this.dataError = this.$t('DataLoadError')
       }
 
       this.isLoading = false
@@ -499,6 +511,8 @@ export default {
           promoType: Promos.RFPROMO,
           referralType: 'Friend'
         }
+      }).onDismiss(() => {
+        this.loadData()
       })
     },
     openRedeemPointsDialog () {
@@ -509,7 +523,8 @@ export default {
           promoType: Promos.RFPROMO,
           promoBytes: PromosBytes.RP,
           redeemedPoints: this.redeemedPoints,
-          maxRedeemable: this.rpMax
+          maxRedeemable: this.rpMax,
+          contractVersion: this.rpContractVersion
         }
       }).onDismiss(async () => {
         this.isLoading = true

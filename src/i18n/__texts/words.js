@@ -102,6 +102,7 @@ const words = [
     Open: "Open",
     Paid: "Paid",
     Pending: "Pending",
+    Personal: "Personal",
     Purchases: "Purchases",
     Purchase: "Purchase",
     Reservations: "Reservations",
@@ -126,6 +127,7 @@ const words = [
     Version: "Version",
     Wallet: "Wallet",
     Wallets: "Wallets",
+    Cards: "Cards",
     PersonalWallet: "Personal Wallet",
     Details: "Details",
     Transaction: "Transaction",
@@ -248,6 +250,13 @@ const words = [
       Subtotal: 'Subtotal',
       Markup: 'Markup',
       Okay: 'Okay',
+      Group: 'Group',
+      Leave: 'Leave',
+      Left: 'Left',
+      Rejoin: 'Rejoin',
+      DirectMessage: 'Direct Message',
+      ClosedPrivateGroup: 'Closed Private Group',
+      OpenPrivateGroup: 'Open Private Group',
       Unavailable: 'Unavailable',
       Available: 'Available',
       Marketplace: 'Marketplace',
@@ -618,6 +627,12 @@ const words = [
     Later: 'Later',
     Pinned: 'Pinned',
     Utilities: 'Utilities'
+  },
+  {
+    Admin: 'Admin',
+    Blocked: 'BLOCKED',
+    Owner: 'Owner',
+    Transfer: 'Transfer'
   }
 ]
 

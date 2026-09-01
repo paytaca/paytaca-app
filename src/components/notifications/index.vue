@@ -218,7 +218,6 @@ import {
 import ProgressLoader from 'src/components/ProgressLoader.vue'
 import NotificationsFilterDialog from 'src/components/notifications/NotificationsFilterDialog.vue'
 import NotificationBody from 'src/components/notifications/NotificationBody.vue'
-import NotificationMoreInfoDialog from 'src/components/notifications/NotificationMoreInfoDialog.vue'
 
 export default {
   name: 'Notifications',
@@ -398,17 +397,6 @@ export default {
           break
         } case 'NF': {
           vm.$router.push({ name: 'app-collectibles' })
-          break
-        } case 'EP': {
-          const urlArray = notif.extra_data.split(' ')
-          vm.$q.dialog({
-            component: NotificationMoreInfoDialog,
-            componentProps: {
-              title: notif.title,
-              message: notif.message,
-              url: urlArray
-            }
-          })
           break
         } case 'RW': {
           vm.$router.push({ name: 'app-rewards' })

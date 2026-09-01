@@ -49,6 +49,7 @@ module.exports = defineConfig((ctx) => {
       'walletconnect',
       'keyboard',
       'deep-link',
+      'nostr-chat',
       'directives',
     ],
 
@@ -161,6 +162,20 @@ module.exports = defineConfig((ctx) => {
               }
             }
           })
+
+          cfg.module.rules.push({
+            test: /\.(?:js|mjs|cjs|vue)$/,
+            enforce: 'post',
+            include: /node_modules\/mainnet-js/,
+            use: {
+              loader: 'babel-loader',
+              options: {
+                presets: [
+                  ['@babel/preset-env', { targets: { ios: '16.2' }, modules: false }]
+                ],
+              },
+            }
+          })
         }
 
         if (cfg.mode === 'production') {
@@ -193,6 +208,14 @@ module.exports = defineConfig((ctx) => {
         cfg.experiments = {
           topLevelAwait: true
         }
+
+        cfg.plugins = cfg.plugins || []
+        cfg.plugins.push(new (require('webpack').IgnorePlugin)({
+          resourceRegExp: /^@hpke\/(chacha20poly1305|dhkem-x448|ml-kem|hybridkem-x-wing)$/,
+        }))
+        cfg.plugins.push(new (require('webpack').IgnorePlugin)({
+          resourceRegExp: /^@noble\/post-quantum/,
+        }))
         // throw new Error(`MODE: ${cfg.mode}`)
 
         if (ctx?.mode?.bex) {
@@ -261,7 +284,8 @@ module.exports = defineConfig((ctx) => {
           warnings: false,
           runtimeErrors: false
         }
-      }
+      },
+      hot: true
     },
 
     // https://quasar.dev/quasar-cli/quasar-conf-js#Property%3A-framework

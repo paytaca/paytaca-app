@@ -93,6 +93,7 @@
         :label="$t('RewardsStepSkipButton')"
         class="text-bow skip-button button button-text-primary"
         :class="getDarkModeClass(darkMode)"
+        :loading="isSkipButtonLoading"
         @click="onSkipButtonPressed"
       />
     </div>
@@ -142,7 +143,14 @@ export default {
   props: {
     walletHash: { type: String, default: '' },
     darkMode: { type: Boolean, default: false },
-    fromCreateWallet: { type: Boolean, default: true }
+    fromCreateWallet: { type: Boolean, default: true },
+    referralCode: { type: String, default: '' }
+  },
+
+  mounted () {
+    if (this.referralCode) {
+      this.manualReferralCode = this.referralCode
+    }
   },
 
   emits: ['on-proceed-to-next-step'],
@@ -151,6 +159,7 @@ export default {
     return {
       showQrScanner: false,
       isLoading: false,
+      isSkipButtonLoading: false,
       isCodeProcessed: false,
       isProcessingError: false,
       manualReferralCode: '',
@@ -232,38 +241,40 @@ export default {
         referralCode = null
       }
 
+      // if rewards url is found, parse code
+      try {
+        const url = new URL(referralCode)
+        referralCode = url.searchParams.get('code')
+      } catch { /* not a URL, use raw value */ }
+
       if (referralCode) {
-        const resp = await this.submitReferralCode(referralCode)
-        if (Object.keys(resp).length === 0) {
-          this.isProcessingError = false
-        } else {
-          this.isProcessingError = true
-          this.processErrorMessage(resp)
-        }
+        await this.executeReferralSubmission(referralCode)
       } else {
         this.isProcessingError = true
         this.errorMessage = this.$t('ProcessingReferralCodeError')
+        this.isCodeProcessed = false
+        this.isLoading = false
       }
-
-      this.isCodeProcessed = !this.isProcessingError
-      this.isLoading = false
     },
 
     async processManualCode () {
       if (!this.isValidManualCode) return
-      
+      await this.executeReferralSubmission(this.manualReferralCode.trim())
+    },
+
+    async executeReferralSubmission (code) {
       this.isLoading = true
       this.isProcessingError = false
       this.errorMessage = ''
-      
-      const resp = await this.submitReferralCode(this.manualReferralCode.trim())
+
+      const resp = await this.submitReferralCode(code)
       if (Object.keys(resp).length === 0) {
         this.isProcessingError = false
       } else {
         this.isProcessingError = true
         this.processErrorMessage(resp)
       }
-      
+
       this.isCodeProcessed = !this.isProcessingError
       this.isLoading = false
     },
@@ -289,6 +300,7 @@ export default {
     },
 
     async onSkipButtonPressed () {
+      this.isSkipButtonLoading = true
       if (this.fromCreateWallet) {
         await processReferralCode({
           wallet_hash: this.walletHash,
@@ -297,6 +309,7 @@ export default {
           from_wallet_creation: this.fromCreateWallet
         })
       }
+      this.isSkipButtonLoading = false
       this.$emit('on-proceed-to-next-step')
     },
 

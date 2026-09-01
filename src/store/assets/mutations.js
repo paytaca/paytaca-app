@@ -10,7 +10,9 @@ export function updateAssetBalance (state, data) {
   for (let i = 0; i < assets.length; i++) {
     const asset = assets[i]
     if (asset && asset.id === data.id) {
-      assets[i].balance = data.balance
+      if (asset.balance !== data.balance) {
+        assets[i].balance = data.balance
+      }
       if (asset.id.indexOf('bch') > -1) {
         assets[i].spendable = data.spendable
         assets[i].yield = data.yield
@@ -144,7 +146,9 @@ export function updateAssetImageUrl (state, data) {
 
   for (var i = 0; i < assets.length; i++) {
     if (assets[i] && assets[i].id === data.assetId) {
-      assets[i].logo = data.imageUrl
+      if (assets[i].logo !== data.imageUrl) {
+        assets[i].logo = data.imageUrl
+      }
       break
     }
   }
@@ -245,6 +249,13 @@ export function updateAssetMetadata (state, data) {
   
   // Only update if asset exists, otherwise do nothing
   if (!a) return
+
+  if (
+    a.name === data.name &&
+    a.symbol === data.symbol &&
+    a.decimals === data.decimals &&
+    a.logo === (data.logo || '')
+  ) return
 
   a.name = data.name
   a.symbol = data.symbol

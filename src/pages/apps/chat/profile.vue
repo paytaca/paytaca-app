@@ -139,7 +139,10 @@
         <div class="settings-section q-mt-lg">
           
           <!-- Display Name Row -->
-          <div class="setting-row">
+          <div
+            class="setting-row"
+            :class="{ 'setting-row--highlight': displayNameHighlight && !editingDisplayName }"
+          >
             <div class="setting-content">
               <div class="setting-label">{{ $t('DisplayName', {}, 'Display Name') }}</div>
               <div v-if="!editingDisplayName" class="setting-value">
@@ -147,14 +150,16 @@
               </div>
               <q-input
                 v-else
+                ref="displayNameInput"
                 v-model="editDisplayNameValue"
                 outlined
                 dense
-                :placeholder="$t('DisplayNamePlaceholder', {}, 'e.g. Alice')"
                 :error="displayNameError"
                 :error-message="displayNameErrorMessage"
                 class="setting-input"
+                autofocus
                 @update:model-value="validateDisplayName"
+                @focus="displayNameHighlight = false"
               />
             </div>
             <div class="setting-actions">
@@ -174,6 +179,8 @@
                   round
                   icon="edit"
                   color="primary"
+                  class="display-name-edit-icon"
+                  :class="{ 'glow-pulse': displayNameHighlight && !editingDisplayName }"
                   @click="startEditDisplayName"
                 />
               </template>
@@ -192,6 +199,8 @@
                   round
                   icon="check"
                   color="positive"
+                  class="display-name-check-icon"
+                  :class="{ 'glow-pulse-check': editingDisplayName && editDisplayNameValue.trim().length > 0 }"
                   :disable="!displayNameValid"
                   @click="publishDisplayName"
                 />
@@ -202,7 +211,10 @@
           <q-separator :color="darkMode ? 'white-10' : 'black-5'" />
 
           <!-- BCH Address Row -->
-          <div class="setting-row">
+          <div
+            class="setting-row"
+            :class="{ 'setting-row--highlight-address': addressHighlight && !editingAddress }"
+          >
             <div class="setting-content">
               <div class="setting-label">{{ $t('BCHAddress', {}, 'BCH Address') }}</div>
               <div v-if="!editingAddress" class="setting-value">
@@ -213,11 +225,12 @@
                 v-model="editAddressValue"
                 outlined
                 dense
-                placeholder="bitcoincash:qz..."
                 :error="addressError"
                 :error-message="addressErrorMessage"
                 class="setting-input"
+                autofocus
                 @update:model-value="validateInput"
+                @focus="addressHighlight = false"
               >
                 <template #hint>
                   <div v-if="addressGeneratedFromWallet" class="address-hint">
@@ -244,6 +257,8 @@
                   round
                   icon="edit"
                   color="primary"
+                  class="bch-address-edit-icon"
+                  :class="{ 'glow-pulse': addressHighlight && !editingAddress }"
                   @click="startEditAddress"
                 />
               </template>
@@ -271,10 +286,31 @@
                   round
                   icon="check"
                   color="positive"
+                  class="bch-address-check-icon"
+                  :class="{ 'glow-pulse-check': editingAddress && editAddressValue.trim().length > 0 }"
                   :disable="!addressValid"
                   @click="publishAddress"
                 />
               </template>
+            </div>
+          </div>
+
+          <q-separator :color="darkMode ? 'white-10' : 'black-5'" />
+
+          <!-- Show Active Status -->
+          <div class="setting-row">
+            <div class="setting-content">
+              <div class="setting-label">{{ $t('ShowActiveStatus', {}, 'Show Active Status') }}</div>
+              <div class="setting-description">
+                {{ $t('ActiveStatusDescription', {}, 'Let others see when you are active. When this is off, you will also not see their active status.') }}
+              </div>
+            </div>
+            <div class="setting-actions">
+              <q-toggle
+                :model-value="showActiveStatus"
+                color="primary"
+                @update:model-value="onToggleActiveStatus"
+              />
             </div>
           </div>
 
@@ -301,19 +337,12 @@
         </div>
 
         <!-- Reset Chat Data -->
-        <div class="danger-section q-mt-lg">
-          <div class="section-label">
-            {{ $t('ResetChat', {}, 'Reset Chat') }}
-          </div>
-          <div class="section-description">
-            {{ $t('ResetChatDescription', {}, 'Clear all conversations and re-fetch them from the relay. Your contacts and profile are preserved.') }}
-          </div>
+        <div class="reset-chat-section q-mt-lg">
           <q-btn
             :label="$t('ResetChat', {}, 'Reset Chat')"
-            color="negative"
-            outline
-            rounded
-            class="full-width"
+            flat
+            no-caps
+            color="grey"
             :loading="resettingChat"
             @click="confirmResetChat"
           />
@@ -330,13 +359,14 @@ import { validateAddress } from 'src/utils/send-page-utils'
 import { getWalletByNetwork } from 'src/wallet/chipnet'
 import { cachedLoadWallet } from 'src/wallet'
 import { npubEncode } from 'nostr-tools/nip19'
-import { clearChatCache, hasChatCache, getChatCacheSize } from 'src/components/chat/MessageBubble.vue'
+import { clearChatCache, hasChatCache, getChatCacheSize } from 'src/utils/chat-cache'
 import { copyToClipboard } from 'quasar'
 import { uploadPublicToBlossom } from 'src/wallet/nostr-media'
+import ResetChatDialog from './ResetChatDialog.vue'
 
 export default {
   name: 'ChatProfile',
-  components: { HeaderNav },
+  components: { HeaderNav, ResetChatDialog },
   data () {
     return {
       showQrDialog: false,
@@ -365,6 +395,8 @@ export default {
       publishingAvatar: false,
       removingAvatar: false,
       avatarError: '',
+      displayNameHighlight: false,
+      addressHighlight: false,
     }
   },
   computed: {
@@ -417,16 +449,39 @@ export default {
       if (bytes < 1024 * 1024 * 1024) return `${(bytes / (1024 * 1024)).toFixed(1)} MB`
       return `${(bytes / (1024 * 1024 * 1024)).toFixed(2)} GB`
     },
+    showActiveStatus () {
+      return this.$store.getters['nostrChat/getShowActiveStatus']
+    },
   },
   mounted () {
     document.addEventListener('pointerdown', this.onDocumentPointerDown, true)
     this.checkCache()
+    this.initDisplayNameHighlight()
+  },
+  watch: {
+    profileDisplayName (val, oldVal) {
+      if (oldVal !== undefined && val !== oldVal && !this.editingDisplayName) {
+        this.$nextTick(() => this.initDisplayNameHighlight())
+      }
+    },
   },
   beforeDestroy () {
     document.removeEventListener('pointerdown', this.onDocumentPointerDown, true)
   },
   methods: {
     getDarkModeClass,
+    initDisplayNameHighlight () {
+      if (!this.profileDisplayName) {
+        this.displayNameHighlight = true
+        this.startEditDisplayName()
+      } else if (!this.profileAddress) {
+        this.addressHighlight = true
+        this.startEditAddress()
+      }
+    },
+    onToggleActiveStatus (value) {
+      this.$store.dispatch('nostrChat/setShowActiveStatus', value)
+    },
     copyNpub () {
       if (!this.myNpub) return
       copyToClipboard(this.myNpub)
@@ -521,6 +576,7 @@ export default {
     },
     cancelEdit () {
       this.editingAddress = false
+      this.addressHighlight = false
       this.editAddressValue = ''
       this.addressError = false
       this.addressValid = false
@@ -550,6 +606,7 @@ export default {
           message: this.$t('AddressPublished', {}, 'BCH address published successfully'),
         })
         this.editingAddress = false
+        this.addressHighlight = false
       } catch (err) {
         console.error('[Profile] Failed to publish BCH address:', err)
         this.$q.notify({
@@ -586,6 +643,7 @@ export default {
     },
     cancelEditDisplayName () {
       this.editingDisplayName = false
+      this.displayNameHighlight = false
       this.editDisplayNameValue = ''
       this.displayNameError = false
       this.displayNameValid = false
@@ -620,6 +678,12 @@ export default {
           message: this.$t('DisplayNamePublished', {}, 'Display name published successfully'),
         })
         this.editingDisplayName = false
+        this.displayNameHighlight = false
+        await this.$nextTick()
+        if (!this.profileAddress) {
+          this.addressHighlight = true
+          this.startEditAddress()
+        }
       } catch (err) {
         console.error('[Profile] Failed to publish display name:', err)
         this.$q.notify({
@@ -841,14 +905,10 @@ export default {
         }
       })
     },
-    async confirmResetChat () {
+    confirmResetChat () {
+      if (this.resettingChat) return
       this.$q.dialog({
-        title: this.$t('ResetChat', {}, 'Reset Chat'),
-        message: this.$t('ResetChatConfirm', {}, 'Clear all conversations and re-fetch them from the relay? Your contacts and profile will be preserved.'),
-        class: `pt-card text-bow ${this.getDarkModeClass(this.darkMode)}`,
-        cancel: { label: this.$t('Cancel', {}, 'Cancel'), flat: true, color: 'grey' },
-        ok: { label: this.$t('Reset', {}, 'Reset'), color: 'negative', flat: true },
-        persistent: true,
+        component: ResetChatDialog,
       }).onOk(async () => {
         this.resettingChat = true
         try {
@@ -856,7 +916,7 @@ export default {
           await this.checkCache()
           this.$q.notify({
             type: 'positive',
-            message: this.$t('ChatResetSuccess', {}, 'Chat reset successfully. Conversations are being re-fetched.'),
+            message: this.$t('ChatResetSuccess', {}, 'Chat reset successfully. Conversations are being re-fetched. Contacts and profile have been cleared.'),
           })
         } catch (err) {
           this.$q.notify({
@@ -873,10 +933,19 @@ export default {
 </script>
 
 <style scoped>
+#app-container {
+  display: flex;
+  flex-direction: column;
+  overflow-x: hidden;
+}
+
 .profile-body {
   padding: 16px;
   max-width: 600px;
   margin: 0 auto;
+  width: 100%;
+  box-sizing: border-box;
+  overflow-x: hidden;
 }
 
 /* Identity card */
@@ -943,6 +1012,8 @@ export default {
   margin: -4px -8px;
   border-radius: 6px;
   transition: background 0.15s ease;
+  max-width: 100%;
+  overflow: hidden;
 }
 
 .identity-npub:hover {
@@ -953,6 +1024,10 @@ export default {
   font-family: 'Courier New', monospace;
   font-size: 13px;
   color: #6b7280;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  min-width: 0;
 }
 
 .copy-icon {
@@ -1002,6 +1077,12 @@ export default {
   gap: 12px;
 }
 
+@media (max-width: 480px) {
+  .setting-row {
+    flex-wrap: wrap;
+  }
+}
+
 .setting-content {
   flex: 1;
   min-width: 0;
@@ -1020,9 +1101,22 @@ export default {
   word-break: break-all;
 }
 
+.setting-description {
+  font-size: 12px;
+  color: #9ca3af;
+  margin-top: 2px;
+  line-height: 1.4;
+}
+
 .setting-input {
   width: 100%;
   max-width: 280px;
+}
+
+@media (max-width: 480px) {
+  .setting-input {
+    max-width: 100%;
+  }
 }
 
 .setting-input :deep(.q-field__control) {
@@ -1043,6 +1137,108 @@ export default {
   display: flex;
   gap: 4px;
   flex-shrink: 0;
+}
+
+/* Display Name Highlight Animations */
+@keyframes glowPulse {
+  0%, 100% {
+    transform: scale(1);
+    filter: drop-shadow(0 0 2px rgba(59, 130, 246, 0.3));
+  }
+  50% {
+    transform: scale(1.15);
+    filter: drop-shadow(0 0 8px rgba(59, 130, 246, 0.7));
+  }
+}
+
+.glow-pulse {
+  animation: glowPulse 1.5s ease-in-out infinite;
+}
+
+.glow-pulse-check {
+  position: relative;
+}
+
+.glow-pulse-check::before {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  border: 2px solid rgba(76, 175, 80, 0.4);
+  transform: translate(-50%, -50%) scale(1);
+  animation: expandCircle 1.5s ease-out infinite;
+}
+
+@keyframes expandCircle {
+  0% {
+    transform: translate(-50%, -50%) scale(1);
+    opacity: 1;
+    border-color: rgba(76, 175, 80, 0.4);
+  }
+  100% {
+    transform: translate(-50%, -50%) scale(2);
+    opacity: 0;
+    border-color: rgba(76, 175, 80, 0);
+  }
+}
+
+.display-name-edit-icon {
+  transition: transform 0.2s ease;
+}
+
+.display-name-check-icon {
+  border-radius: 50%;
+  position: relative;
+}
+
+.bch-address-edit-icon {
+  transition: transform 0.2s ease;
+}
+
+.bch-address-check-icon {
+  border-radius: 50%;
+  position: relative;
+}
+
+.setting-row--highlight .setting-input :deep(.q-field__control) {
+  box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.3), 0 0 12px rgba(59, 130, 246, 0.15);
+  border-radius: 8px;
+  transition: box-shadow 0.3s ease;
+}
+
+.setting-row--highlight .setting-label {
+  color: #3b82f6;
+  transition: color 0.3s ease;
+}
+
+.dark .setting-row--highlight .setting-label {
+  color: #60a5fa;
+}
+
+.dark .setting-row--highlight .setting-input :deep(.q-field__control) {
+  box-shadow: 0 0 0 2px rgba(96, 165, 250, 0.3), 0 0 12px rgba(96, 165, 250, 0.15);
+}
+
+.setting-row--highlight-address .setting-input :deep(.q-field__control) {
+  box-shadow: 0 0 0 2px rgba(76, 175, 80, 0.3), 0 0 12px rgba(76, 175, 80, 0.15);
+  border-radius: 8px;
+  transition: box-shadow 0.3s ease;
+}
+
+.setting-row--highlight-address .setting-label {
+  color: #4caf50;
+  transition: color 0.3s ease;
+}
+
+.dark .setting-row--highlight-address .setting-label {
+  color: #81c784;
+}
+
+.dark .setting-row--highlight-address .setting-input :deep(.q-field__control) {
+  box-shadow: 0 0 0 2px rgba(129, 199, 132, 0.3), 0 0 12px rgba(129, 199, 132, 0.15);
 }
 
 /* Avatar Actions */
@@ -1097,6 +1293,13 @@ export default {
   color: #9ca3af;
   line-height: 1.5;
   margin-bottom: 12px;
+}
+
+.reset-chat-section {
+  display: flex;
+  justify-content: center;
+  border-top: 1px solid rgba(156, 163, 175, 0.15);
+  padding-top: 12px;
 }
 
 /* Dark mode */

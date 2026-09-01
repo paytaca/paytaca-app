@@ -104,7 +104,9 @@ export default function () {
     },
     online: null,
     walletIndex: 0,
+    walletSwitchId: 0,
     vault: [],
+    bootHydrated: false,
     denomination: 'BCH',
     appControl: null,
     merchantActivity: {
@@ -143,6 +145,10 @@ export default function () {
      * Not persisted to localStorage
      */
     isUnlocked: false,
-    previousRoute: null
+    previousRoute: null,
+    appInitialLoadComplete: false,
+    backupDialogActive: false,
+    walletSwitchInProgress: false,
+    walletSwitchLoading: false
   }
 }

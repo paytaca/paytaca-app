@@ -367,6 +367,7 @@ import {
   getRewardsSwapContractDetails,
   getWalletTokenAddress,
   processPromoTokensSwap,
+  PROMO_CONTRACT_VERSION,
   recordPointsRedemption
 } from 'src/utils/engagementhub-utils/rewards'
 
@@ -388,7 +389,8 @@ export default {
     promoType: { type: String, default: '' },
     promoBytes: { type: String, default: '' },
     redeemedPoints: { type: Number, default: null },
-    maxRedeemable: { type: Number, default: null }
+    maxRedeemable: { type: Number, default: null },
+    contractVersion: { type: String, default: PROMO_CONTRACT_VERSION }
   },
 
   components: {
@@ -669,7 +671,8 @@ export default {
       await this.fetchContractPoints()
 
       // fetch LIFT conversion ratio
-      this.liftConversionRate = await getLiftConversionRatio()
+      const resp = await getLiftConversionRatio()
+      this.liftConversionRate = resp.conversionRatio
       
       // Store original total for display
       this.originalPoints = this.contractPoints
@@ -684,7 +687,7 @@ export default {
       try {
         const walletIndex = this.$store.getters['global/getWalletIndex']
         const userPubkey = await getAddress0_0PublicKey(walletIndex)
-        this.contract = new PromoContract(userPubkey, this.promoBytes)
+        this.contract = new PromoContract(userPubkey, this.promoBytes, this.contractVersion)
         this.contractPoints = await this.contract.getTokenBalance()
       } catch (error) {
         console.error('Error initializing redeem dialog:', error)
@@ -773,8 +776,8 @@ export default {
     },
     
     copyTokenAddress () {
-      if (navigator.clipboard && this.tokenAddress) {
-        navigator.clipboard.writeText(this.tokenAddress)
+      if (this.tokenAddress) {
+        this.$copyText(this.tokenAddress)
         this.$q.notify({
           type: 'positive',
           message: this.$t('AddressCopied'),

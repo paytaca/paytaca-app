@@ -23,3 +23,7 @@
   
   .q-r-mb-#{$name}, .q-r-my-#{$name}, .q-r-ma-#{$name} 
     margin-bottom: (map-get($spacing, 'y')) * -0.5
+
+// Fullscreen dialogs must cover safe areas on notched phones
+.q-dialog__inner--maximized > div
+  max-height: 100dvh !important

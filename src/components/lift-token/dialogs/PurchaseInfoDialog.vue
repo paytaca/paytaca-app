@@ -35,17 +35,22 @@
           <div class="amount-display q-mb-xs">
             {{ parseLiftToken(purchase.purchase_partial_details.tkn_paid) }}
           </div>
-          <div class="price-per-token text-caption q-mb-xs" :class="darkMode ? 'text-grey-4' : 'text-grey-7'">
+          <template v-if="getPurchaseDiscount() > 0">
+            <div class="price-per-token text-caption q-mb-xs items-baseline" :class="darkMode ? 'text-grey-4' : 'text-grey-7'">
+              <span>@ ${{ getDiscountedPricePerToken() }}/LIFT</span>
+              <span class="original-price text-strike q-ml-xs" :class="darkMode ? 'text-grey-6' : 'text-grey-5'">
+                @ ${{ formatWithLocale(getBasePricePerToken(), { min: 2, max: 6 }) }}/LIFT
+              </span>
+            </div>
+            <div class="discount-info q-mb-xs">
+              <q-icon name="mdi-sale" size="14px" class="q-mr-xs text-positive" />
+              <span class="text-caption text-weight-bold text-positive">
+                {{ formatWithLocale(getPurchaseDiscount(), { max: 2 }) }}% {{ $t("DiscountApplied") }}
+              </span>
+            </div>
+          </template>
+          <div v-else class="price-per-token text-caption q-mb-xs" :class="darkMode ? 'text-grey-4' : 'text-grey-7'">
             @ ${{ getPricePerToken() }}/LIFT
-          </div>
-          <div v-if="getPurchaseDiscount() > 0" class="discount-info q-mb-xs">
-            <q-icon name="mdi-sale" size="14px" class="q-mr-xs text-positive" />
-            <span class="text-caption text-weight-bold text-positive">
-              {{ formatWithLocale(getPurchaseDiscount(), { max: 2 }) }}% {{ $t("DiscountApplied") }}
-            </span>
-            <span class="original-price text-caption text-strike q-ml-xs" :class="darkMode ? 'text-grey-6' : 'text-grey-5'">
-              ({{ $t('OriginalPrice', 'Original') }}: {{ parseFiatCurrency(getOriginalPriceUsd(), "USD") }})
-            </span>
           </div>
           <div class="row q-gutter-sm text-caption" :class="darkMode ? 'text-grey-4' : ' text-grey-7'">
             <span>
@@ -53,13 +58,8 @@
             </span>
             <template v-if="purchase.purchase_more_details.payment_method === 'bch'">
               <span>•</span>
-              <span>
-                {{
-                  getAssetDenomination(
-                    denomination,
-                    purchase.purchased_amount_sats / 10 ** 8
-                  )
-                }}
+              <span class="bch-amount-display">
+                {{ getBchAmountParts().main }}<span class="trailing-zeroes">{{ getBchAmountParts().trailing }}</span> {{ denomination }}
               </span>
             </template>
           </div>
@@ -296,7 +296,6 @@ import {
 } from "src/utils/engagementhub-utils/shared";
 import {
   parseFiatCurrency,
-  getAssetDenomination,
   formatWithLocale,
 } from "src/utils/denomination-utils";
 import { SaleGroup, SaleGroupPrice, getDiscountedPriceUsd, getOriginalPriceUsd } from "src/utils/engagementhub-utils/lift-token";
@@ -342,7 +341,6 @@ export default {
     parseLiftToken,
     parseLocaleDate,
     parseFiatCurrency,
-    getAssetDenomination,
     formatWithLocale,
     getExplorerLink,
     getExplorerAddressLink,
@@ -368,6 +366,29 @@ export default {
       return SaleGroupPrice[saleGroup] || 0
     },
 
+    getDiscountedPricePerToken() {
+      const tknPaid = this.purchase?.purchase_partial_details?.tkn_paid || 0
+      const usdPaid = this.getDiscountedPriceUsd()
+      if (tknPaid === 0) return '0'
+      const ppt = (usdPaid * 100) / tknPaid
+      return this.formatWithLocale(ppt, { min: 2, max: 6 })
+    },
+    getBchAmountParts() {
+      const sats = this.purchase?.purchase_partial_details?.sats_paid || this.purchase?.purchased_amount_sats || 0
+      const bch = sats / 10 ** 8
+      const formatted = bch.toFixed(8)
+      const decimals = formatted.split('.')[1] || ''
+      let lastNonZero = -1
+      for (let i = 0; i < decimals.length; i++) {
+        if (decimals[i] !== '0') lastNonZero = i
+      }
+      if (lastNonZero === -1) return { main: formatted.split('.')[0] + '.', trailing: decimals }
+      const cutIndex = formatted.indexOf('.') + lastNonZero + 2
+      return {
+        main: formatted.slice(0, cutIndex),
+        trailing: formatted.slice(cutIndex)
+      }
+    },
     getThemeColor() {
       const themeColors = {
         'glassmorphic-blue': '#42a5f5',
@@ -483,6 +504,19 @@ export default {
 
 .original-price {
   text-decoration: line-through;
+}
+
+.trailing-zeroes {
+  opacity: 0.4;
+  font-weight: 400;
+}
+
+.bch-amount-display {
+  color: #10b981;
+  
+  .dark & {
+    color: #6ee7b7;
+  }
 }
 
 .detail-row {
