@@ -1,22 +1,22 @@
 import axios from 'axios'
 import * as bchOauth from './bch-oauth.js'
 
-// create backend using axios
+// Create backend using axios
 export const backend = axios.create({
   baseURL: process.env.AUCTION_HUB_API
 })
 
 /***
- * NOTES:
+  NOTES:
   - Check repository auction-hub README for api urls
   - date formats: new Date().toISOString(),
-  - images: need to be saved in a FormData object  (use this for reference: https://www.javascripttutorial.net/web-apis/javascript-formdata/)
   * @param pathname = pathname in url for api 
   * @param id = could be pk, lot, etc. (specifically if we're referring to getting one item, so don't put anything if fetching multiple items)
   * @param method = ['get', 'post', 'put', 'delete']; default is get 
   * @param payload = object containing the data for post/put (not needed for get/delete)
 */
 export async function callAPI(pathname, id=null, method="get", payload=null, args) {
+  // Add base api url
   let apiURL = `${bchOauth.baseURL}/`
 
   if (Array.isArray(pathname)) { 
@@ -42,7 +42,13 @@ export async function callAPI(pathname, id=null, method="get", payload=null, arg
       }
     }
   } 
+  // Print entire url
   console.log(apiURL)
+
+  // Init return data
+  let success = false;
+  let data = null;
+  let errorMessage = null;
 
   try {
     const headers = await bchOauth.getAuthHeaders()
@@ -52,13 +58,12 @@ export async function callAPI(pathname, id=null, method="get", payload=null, arg
       (method === "put") ? await backend.put(apiURL, payload, { headers }) :
       (method === "patch") ? await backend.patch(apiURL, payload, { headers }) :
     await backend.delete(apiURL, { headers }) 
-
     console.log("[callAPI] Response generated.")
-    return {
-      success: true,
-      data: response.data,
-      error: null
-    }
+
+    // Update apiCall return data
+    data = response.data
+    success = true
+
   } catch (error) {
     let errorMessage = "";
     if (error.response) {
@@ -82,21 +87,16 @@ export async function callAPI(pathname, id=null, method="get", payload=null, arg
       errorMessage = 'Unable to connect to the server.'
     }
     console.error("[callAPI] " + errorMessage)
-  
-    return {
-      success: false,
-      data: null,
-      error:  errorMessage
-    }
-    
+
+    // Update apiCall return data
+    success = false
   }
 
-  console.error("[callAPI] Maxed out retry attempts. Failed to fetch.")
-	return { 
-    success: false, 
-    data: null, 
-    error: 'Failed to fetch' 
-  }
+  return {
+    success,
+    data,
+    error: errorMessage
+  } 
 }
 
 
