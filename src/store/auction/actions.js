@@ -2,14 +2,23 @@ import { callAPI } from 'src/auction/api'
 import { AuctionList, LotsList } from 'src/auction/object'
 import { getWallet } from '../../auction/payment'
 
+/* 
+===================
+PAGE UPDATE ACTIONS
+===================
+*/
+
+// Filtering auction items by type (English, Dutch, or All)
 export async function filterAuctionItems({ commit }, type) {
   commit('updateAuctionType', type)
 }
 
+// Filtering user activities
 export async function filterActivities({ commit }, type) {
   commit('updateActivityType', type)
 }
 
+// Refreshing list of auctions 
 export async function refreshCatalog({ commit }) {
   try {
     const response = await callAPI('auctions')
@@ -19,10 +28,17 @@ export async function refreshCatalog({ commit }) {
       commit('setListings', allAuctions)
     }
   } catch (error) {
-    console.error('API Sync Error inside refreshCatalog:', error)
+    apiErrorHandler('filterAuctionItems', error, commit)
   }
 }
 
+/* 
+====================
+CURRENT USER ACTIONS
+====================
+*/
+
+// Fetching CURRENT USER'S bids
 export async function fetchMyBiddings({ commit }) {
   let lots = []
 
@@ -59,58 +75,92 @@ export async function fetchMyBiddings({ commit }) {
       lots = (await Promise.all(lotPromises)).filter(Boolean)
     }
   } catch (error) {
-    console.error('API Sync Error inside fetchLots:', error)
+    apiErrorHandler('fetchMyBiddings', error, commit)
     lots = []
   }
 
   commit('setMyBiddings', lots)
 }
 
+// Fetching CURRENT USER username
+export async function fetchUsername({ commit }) {
+  try {
+    console.log('[actions:fetchUsername] Fetching username from server...')
+    // Clear current user information
+    commit('setUsername', '')
+    commit('setIsArbiter', false)
+    
+    // Using PK to fetch user details from server
+    const wallet = await getWallet()
+    const publicKey = await wallet.BCH.getPublicKey(`0/0`)
+    const response = await callAPI('user-details-by-public-key', publicKey)
+
+    if (response && response.success) {
+      console.log('[actions:fetchUsername] Response generated: ', response.data)
+
+      // Set the user info like username and if they're an arbiter
+      commit('setUsername', response.data.username)
+      commit('setIsArbiter', response.data.is_arbiter)
+      commit('hasNetworkError', false) // no network error
+    }
+  } catch (error) {
+    apiErrorHandler('fetchUsername', error, commit)
+  } 
+}
+
+/* 
+================================================================
+FETCHING AUCTION INFORMATION FOR CONTRACT CREATION/INSTANTIATION
+================================================================
+*/
+
+// Fetching ArbiterPK for contract instantiation/creation
 export async function fetchArbiterPublicKey({ commit }) {
   try {
     const response = await callAPI('arbiter-pk')
-
     if (response && response.success) {
       const arbiterPk = response.data.arbiter_pk
       commit('setArbiterPublicKey', arbiterPk)
     }
   } catch (error) {
-    console.error('API Sync Error inside fetchArbiterPublicKey:', error)
+    apiErrorHandler('fetchArbiterPublicKey', error, commit)
   } 
 }
 
-// Fetching ServicerPk for contract creation
+// Fetching ServicerPK for contract instantiation/creation
 export async function fetchServicerPublicKey({ commit }) {
   try {
     const response = await callAPI('servicer-pk')
-
     if (response && response.success) {
       const servicerPk = response.data.servicer_pk
       commit('setServicerPublicKey', servicerPk)
     }
   } catch (error) {
-    console.error('API Sync Error inside fetchServicerPublicKey:', error)
+    apiErrorHandler('fetchServicerPublicKey', error, commit)
   } 
 }
 
-// Fetching username
-export async function fetchUsername({ commit }) {
-  try {
-    commit('setUsername', '')
-    commit('setIsArbiter', false)
-    
-    const wallet = await getWallet()
-    const publicKey = await wallet.BCH.getPublicKey(`0/0`)
-    const response = await callAPI('user-details-by-public-key', publicKey)
+/* 
+================
+HELPER FUNCTIONS
+================
+*/
 
-    console.log(response)
-
-    if (response && response.success) {
-      console.log(response.data)
-      commit('setUsername', response.data.username)
-      commit('setIsArbiter', response.data.is_arbiter)
-    }
-  } catch (error) {
-    console.error('API Sync Error inside fetchUsername:', error)
+// Handles api-related errors (different actions per type of error)
+function apiErrorHandler(functionName, error, commit) {
+  if(error.response) {
+    // API WORKING (no match found)
+    console.error(`[actions:${functionName}] API Sync Error inside ${functionName}: `, error)
+    commit('hasNetworkError', false)
+    return
+  } else if(error.request) {
+    // API NOT WORKING (network error)
+    console.error(`[actions:${functionName}] Network error encountered. Possibly not connected to API: `, error)
+    commit('hasNetworkError', true) // network error occurred
+    return
   } 
+
+  // Something happened b4 the request was sent
+  console.error(`[actions:${functionName}] An error occurred before executing fetchServicerPublicKey:`, error)
+  commit('hasNetworkError', false)
 }

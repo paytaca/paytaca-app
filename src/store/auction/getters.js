@@ -2,9 +2,7 @@ export function processedItems(state) {
   const currentListings = state.listings || []
   const activeTypeFilter = (state.auctionType || 'All').toLowerCase()
 
-  if (activeTypeFilter === 'all') {
-    return currentListings
-  }
+  if (activeTypeFilter === 'all') return currentListings
   
   return currentListings.filter(item => {
     let typeLabel = ''
@@ -45,4 +43,9 @@ export function username(state) {
 // Getter for stored isArbiter
 export function isArbiter(state) {
   return state.isArbiter
+}
+
+// Getter for stored hasNetworkError (related to network errors during API calls)
+export function hasNetworkError(state) {
+  return state.hasNetworkError
 }

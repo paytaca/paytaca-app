@@ -29,3 +29,7 @@ export function setUsername(state, username) {
 export function setIsArbiter(state, isArbiter) {
   state.isArbiter = isArbiter
 }
+
+export function setHasNetworkError(state, hasNetworkError) {
+  state.hasNetworkError = hasNetworkError
+}

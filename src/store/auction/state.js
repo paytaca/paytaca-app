@@ -7,6 +7,7 @@ export default function () {
     arbiterPublicKey: '',
     servicerPublicKey: '',
     username: '',
-    isArbiter: false
+    isArbiter: false,
+    hasNetworkError: false,
   }
 }
