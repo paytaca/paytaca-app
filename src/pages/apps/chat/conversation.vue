@@ -2344,7 +2344,7 @@ export default {
             id: `failed-${Date.now()}`,
             sender: this.myPubKey,
             content: text,
-            kind: this.isMlsRoom ? 30117 : undefined,
+            kind: this.isMlsRoom ? 445 : undefined,
             created_at: Math.floor(Date.now() / 1000),
             failed: true,
             mls: this.isMlsRoom,

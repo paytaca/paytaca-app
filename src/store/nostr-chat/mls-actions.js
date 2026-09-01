@@ -1,6 +1,7 @@
-import { finalizeEvent } from 'nostr-tools'
+import { finalizeEvent, nip59, getEventHash } from 'nostr-tools'
 import { getMnemonicByHash } from 'src/wallet'
 import { deriveMlsKeys, deriveMlsHpkeIkms } from 'src/wallet/mls'
+import { unwrapGiftWrap } from 'src/wallet/nostr'
 import * as relayService from 'src/services/nostr-chat'
 import * as mls from 'src/services/mls'
 import { leafToNodeIndex } from 'ts-mls/treemath.js'
@@ -28,69 +29,48 @@ const MLS_META_PREFIX = '\u200bpaytaca:mls-meta:'
 
 // Return 'owner', 'admin', or null for the current wallet's role in a room.
 function myMlsRole(ws, roomId) {
-  const room = ws.rooms?.find(r => r.id === roomId)
-  if (!room || room.type !== 'mls-group') return null
-  const me = ws.keys?.pubKeyHex
-  if (!me) return null
-  if (room.owner === me) return 'owner'
-  if (Array.isArray(room.admins) && room.admins.includes(me)) return 'admin'
-  return null
+  const room = ws.rooms?.find((r) => r.id === roomId)
+  if (!room) return null
+  if (room.owner === ws.keys.pubKeyHex) return 'owner'
+  if (room.admins?.includes(ws.keys.pubKeyHex)) return 'admin'
+  return 'regular'
 }
 
-// Throw unless the current wallet is the owner or an admin of the room.
 function requireMlsManager(ws, roomId) {
   const role = myMlsRole(ws, roomId)
   if (role !== 'owner' && role !== 'admin') {
-    throw new Error('Only the group owner or an admin can do that')
+    throw new Error('Only the group owner or an admin can perform this action.')
   }
   return role
 }
 
-const mlsProcessingQueues = new Map()
-
-// Event ids we recently sent ourselves, mapped to the timestamp they were
-// published at. Used to ignore our own relay echo even when the caller hasn't
-// committed the message to the timeline yet (see receiveMlsMessage).
-const recentlySentEventIds = new Map()
-const RECENTLY_SENT_MAX_AGE_MS = 30000
+const RECENTLY_SENT_TTL_MS = 5 * 60 * 1000
+const recentlySentEvents = new Map() // eventId → timestamp (own published events)
 
 function markRecentlySent(eventId) {
-  recentlySentEventIds.set(eventId, Date.now())
-  if (recentlySentEventIds.size > 200) {
-    const now = Date.now()
-    for (const [id, ts] of recentlySentEventIds) {
-      if (now - ts > RECENTLY_SENT_MAX_AGE_MS) recentlySentEventIds.delete(id)
-    }
-  }
+  if (eventId) recentlySentEvents.set(eventId, Date.now())
 }
 
 function isRecentlySent(eventId) {
-  const ts = recentlySentEventIds.get(eventId)
-  if (ts == null) return false
-  if (Date.now() - ts > RECENTLY_SENT_MAX_AGE_MS) {
-    recentlySentEventIds.delete(eventId)
+  const t = recentlySentEvents.get(eventId)
+  if (!t) return false
+  if (Date.now() - t > RECENTLY_SENT_TTL_MS) {
+    recentlySentEvents.delete(eventId)
     return false
   }
   return true
 }
 
-// Diagnostic helper: own-leaf application ratchet generation (the generation
-// the next message we send for this group will use). If this does not advance
-// across sends, the stored group state is not being persisted/reloaded.
+// Own app ratchet generation helper via the ClientState secret tree. Used for
+// send/receive divergence diagnostics.
 function ownAppRatchetGen(clientState) {
   try {
+    if (!clientState?.privatePath?.leafIndex || !clientState.secretTree) return '?'
     const nodeIndex = leafToNodeIndex(clientState.privatePath.leafIndex)
     return clientState.secretTree[nodeIndex]?.application?.generation ?? '?'
   } catch {
     return '?'
   }
-}
-
-async function withMlsProcessingLock(mlsGroupIdHex, fn) {
-  const prev = mlsProcessingQueues.get(mlsGroupIdHex) || Promise.resolve()
-  const next = prev.then(fn, fn)
-  mlsProcessingQueues.set(mlsGroupIdHex, next.catch(() => {}))
-  return next
 }
 
 function getCurrentWalletHash() {
@@ -104,146 +84,231 @@ function getCurrentWalletHash() {
 
 function getWalletState(state) {
   const hash = getCurrentWalletHash()
-  if (!hash) return {}
-  if (!state.byWallet) return {}
-  if (!state.byWallet[hash]) return {}
-  return state.byWallet[hash]
+  if (!hash) return null
+  return state.byWallet?.[hash] || null
 }
 
 function mlsMemberPubkeys(clientState) {
-  return mls.getMlsGroupMembers(clientState).map(m => new TextDecoder().decode(m.credential.identity))
+  return mls.getMlsGroupMembers(clientState).map((m) => {
+    const identity = m.credential?.identity || m.identityBytes
+    return identity instanceof Uint8Array ? new TextDecoder().decode(identity) : identity
+  })
 }
 
-function decodeKeyPackageContent(content) {
+// Resolve the identity at a given MLS leaf index. NIP-EE envelopes are signed
+// with an ephemeral key, so the leaf credential is the only trustworthy sender
+// identity.
+function memberIdentityAt(clientState, leafIndex) {
+  if (leafIndex == null || leafIndex < 0 || !clientState) return null
   try {
-    const parsed = JSON.parse(content)
-    if (parsed && parsed.data && typeof parsed.data.mlsKeyPackage === 'string') {
-      return base64ToBytes(parsed.data.mlsKeyPackage)
-    }
+    const members = mls.getMlsGroupMembers(clientState)
+    const member = members[leafIndex]
+    if (!member) return null
+    const identity = member.credential?.identity || member.identityBytes
+    if (!(identity instanceof Uint8Array)) return null
+    return new TextDecoder().decode(identity)
   } catch {
-    // Raw base64 (pre-JSON-wrapping) — keep as-is
+    return null
   }
-  return base64ToBytes(content)
 }
 
-// Decode an MLS event's content (NIP-78 JSON envelope) back to its original
-// MLS kind and base64 MLS payload. Returns { kind, bytes } where kind is the
-// original 30117/30118/30119, or { kind: null } for non-MLS 30078 events
-// (e.g. KeyPackage events that arrive in the same subscription stream).
-function decodeMlsEventContent(content) {
+// Decode a kind-443 content hex payload into an MLS KeyPackage object.
+function decodeNipEeKeyPackage(content) {
   try {
-    const parsed = JSON.parse(content)
-    if (parsed && parsed.data && typeof parsed.data.mlsMessage === 'string') {
-      return { kind: parsed.data.mlsKind, bytes: base64ToBytes(parsed.data.mlsMessage) }
+    if (
+      typeof content !== 'string' ||
+      !content.length ||
+      content.length % 2 !== 0 ||
+      /[^0-9a-f]/i.test(content)
+    ) {
+      return null
     }
+    const mlsMsg = mls.decodeMlsMsg(hexToBytes(content))
+    return mlsMsg?.wireformat === 'mls_key_package' ? mlsMsg.keyPackage : null
   } catch {
-    // Not a JSON envelope — not an MLS message
+    return null
   }
-  return { kind: null, bytes: null }
 }
 
-// ---- Initialization ----
+// The nostr_group_id of a group, read from the 0xF2EE group extension.
+function nostrGroupIdHexFromState(clientState) {
+  try {
+    const ext = clientState?.groupContext?.extensions?.find(
+      (e) => e.extensionType === mls.NOSTR_GROUP_DATA_EXTENSION_TYPE
+    )
+    if (!ext) return null
+    return mls.parseNipEeGroupData(ext.extensionData)?.nostrGroupIdHex || null
+  } catch {
+    return null
+  }
+}
+
+// Given a NIP-EE nostr_group_id (h tag), resolve the local MLS group id.
+function resolveMlsGroupIdHex(ws, nostrGroupIdHex) {
+  if (!nostrGroupIdHex) return null
+  for (const [roomId, nHex] of Object.entries(ws.mls.roomMlsNostrMap || {})) {
+    if (nHex === nostrGroupIdHex) return ws.mls.roomMlsMap?.[roomId] || null
+  }
+  for (const [gHex, st] of Object.entries(ws.mls.groupStates || {})) {
+    if (st && nostrGroupIdHexFromState(st) === nostrGroupIdHex) return gHex
+  }
+  return null
+}
+
+function resolveRoomIdByMlsGroupId(ws, mlsGroupIdHex) {
+  for (const [roomId, gHex] of Object.entries(ws.mls.roomMlsMap || {})) {
+    if (gHex === mlsGroupIdHex) return roomId
+  }
+  return null
+}
+
+// Build (and optionally finalize) a signed NIP-EE group event (kind 445) for
+// an MLSMessage. The event is encrypted+sealed with the exporter secret derived
+// from the CURRENT epoch so receivers at the same epoch can decrypt it.
+async function buildSignedNipEeGroupEvent(clientState, mlsMessageObj) {
+  const nostrGroupIdHex = nostrGroupIdHexFromState(clientState)
+  if (!nostrGroupIdHex) {
+    throw new Error('Group state is missing the nostr_group_data extension')
+  }
+  const exporterSecretBytes = await mls.getNostrExporterSecret(clientState)
+  const mlsMessageBytes = mls.encodeMlsMsg(mlsMessageObj)
+  return mls.buildNipEeGroupEvent({
+    nostrGroupIdHex,
+    mlsMessageBytes,
+    exporterSecretBytes,
+  })
+}
+
+const mlsProcessingQueues = new Map()
+
+function withMlsProcessingLock(mlsGroupIdHex, fn) {
+  const prev = mlsProcessingQueues.get(mlsGroupIdHex) || Promise.resolve()
+  const next = prev.then(fn, fn)
+  mlsProcessingQueues.set(mlsGroupIdHex, next)
+  return next
+}
+
+// ── Init / lifecycle ────────────────────────────────────────────────────
 
 export async function initMls({ commit, state, dispatch }) {
   const ws = getWalletState(state)
-  if (!ws.keys.privKeyHex) throw new Error('Nostr keys not available')
-
-  const walletHash = getCurrentWalletHash()
-  const mnemonic = await getMnemonicByHash(walletHash).catch(() => null)
-  if (!mnemonic) throw new Error('No mnemonic available')
-
-  const { impl, clientConfig } = await mls.ensureMlsCrypto()
-
-  const mlsKeys = deriveMlsKeys(mnemonic)
-  const hpkeIkms = deriveMlsHpkeIkms(mnemonic)
+  if (!ws?.keys?.privKeyHex || !ws.mls) return false
   const nostrPubkeyHex = ws.keys.pubKeyHex
 
-  // Preserve the current relay KeyPackage in local history before publishing a
-  // new one. The relay only keeps the latest (replaceable d-tag), so when we
-  // overwrite it the old ref is lost. Storing it locally lets joinMlsGroup
-  // fall back to the exact KeyPackage the inviter committed to the tree.
+  // Load previously-published key packages first so the history reflects what
+  // other clients/receivers know about, in case the current publish fails.
   try {
-    const currentKpEvents = await relayService.fetchMlsKeyPackage(state.relays, nostrPubkeyHex)
-    for (const e of currentKpEvents) {
-      commit('PUSH_MLS_KP_HISTORY', { content: e.content, publishedAt: e.created_at })
+    const currentKpEvents = await relayService.fetchNipEeKeyPackage(state.relays, nostrPubkeyHex)
+    for (const event of currentKpEvents) {
+      if (decodeNipEeKeyPackage(event.content)) {
+        commit('PUSH_MLS_KP_HISTORY', { content: event.content, publishedAt: event.created_at })
+      }
     }
-  } catch {}
+  } catch (err) {
+    console.warn('[MLS] Failed to fetch existing key packages:', err.message)
+  }
+
+  const walletHash = getCurrentWalletHash()
+  const mnemonic = walletHash ? await getMnemonicByHash(walletHash).catch(() => null) : null
+  if (!mnemonic) {
+    throw new Error('No mnemonic available to initialize MLS')
+  }
+  const mlsKeys = deriveMlsKeys(mnemonic)
+  const hpkeIkms = deriveMlsHpkeIkms(mnemonic)
 
   const { publicPackage } = await mls.generateMlsKeyPackage(
     { publicKey: mlsKeys.publicKey, privateKey: mlsKeys.privateKey },
     nostrPubkeyHex,
-    hpkeIkms,
+    hpkeIkms
   )
 
-  const unsignedEvent = mls.buildMlsKeyPackageEvent(publicPackage, nostrPubkeyHex)
-  const signedEvent = finalizeEvent(unsignedEvent, hexToBytes(ws.keys.privKeyHex))
-  let kpPublish = { accepted: [], errors: [] }
-  for (let attempt = 1; attempt <= 3; attempt++) {
-    kpPublish = await relayService.publishEvent(state.relays, signedEvent)
-    if (kpPublish.accepted.length) break
-    console.warn(`[MLS] KeyPackage publish attempt ${attempt}/3 failed:`, JSON.stringify(kpPublish.errors))
-    if (attempt < 3) await new Promise(r => setTimeout(r, attempt * 2000))
-  }
-  if (!kpPublish.accepted.length) {
-    // Without a KeyPackage on the relay nobody can invite us, so don't mark
-    // MLS as ready — but don't abort init: existing groups can still be
-    // received and joined via the KeyPackage history preserved above, and the
-    // publish is retried on the next session.
-    console.warn('[MLS] KeyPackage publish rejected after retries:', JSON.stringify(kpPublish.errors))
-  } else {
-    commit('PUSH_MLS_KP_HISTORY', { content: signedEvent.content, publishedAt: signedEvent.created_at })
+  let published = false
+  const serialized = bytesToHex(mls.encodeKeyPackageForPublish(publicPackage))
 
-    commit('SET_MLS_KEY_PACKAGE', {
-      credentialIdentity: nostrPubkeyHex,
-      publishedAt: Math.floor(Date.now() / 1000),
-    })
-    commit('SET_MLS_READY', true)
+  // Publish to each relay until one accepts the write.
+  for (const relay of state.relays) {
+    try {
+      const unsignedEvent = mls.buildNipEeKeyPackageEvent({
+        keyPackageHex: serialized,
+        nostrPubkeyHex,
+        relays: state.relays,
+      })
+      const signedEvent = finalizeEvent(unsignedEvent, hexToBytes(ws.keys.privKeyHex))
+      await relayService.publishEvent([relay], signedEvent)
+      commit('PUSH_MLS_KP_HISTORY', { content: serialized, publishedAt: signedEvent.created_at })
+      published = true
+      break
+    } catch (err) {
+      console.warn('[MLS] Failed to publish key package to', relay, ':', err.message)
+    }
   }
 
-  // Honor our own NIP-09 deletions BEFORE subscribing/fetching history:
-  // welcomes we declined on this or another device were "deleted" on the
-  // relay, but relays still serve the original events. Loading the deleted
-  // ids first guarantees receiveMlsMessage can filter them out.
+  if (!published) {
+    console.warn('[MLS] Could not publish key package; continuing with local state')
+  }
+
+  // Publish the NIP-EE relay list (kind 10051) so other devices/clients can
+  // look up the relays this identity routes its groups on.
   try {
-    const deletedIds = await relayService.fetchOwnDeletionEventIds(state.relays, nostrPubkeyHex)
-    if (deletedIds.size) {
-      commit('MERGE_DECLINED_WELCOMES', [...deletedIds])
+    const unsignedRelayList = mls.buildNipEeRelayListEvent(state.relays, nostrPubkeyHex)
+    const signedRelayList = finalizeEvent(unsignedRelayList, hexToBytes(ws.keys.privKeyHex))
+    await relayService.publishEvent(state.relays, signedRelayList)
+  } catch (err) {
+    console.warn('[MLS] Failed to publish NIP-EE relay list:', err.message)
+  }
+
+  commit('SET_MLS_KEY_PACKAGE', { serialized, credentialIdentity: nostrPubkeyHex })
+  commit('SET_MLS_READY', true)
+
+  // Tombstone declined invites on this identity so they never resurface.
+  try {
+    const deletedEventIds = await relayService.fetchOwnDeletionEventIds(state.relays, nostrPubkeyHex)
+    if (deletedEventIds.length > 0) {
+      commit('MERGE_DECLINED_WELCOMES', deletedEventIds)
     }
   } catch (err) {
-    console.warn('[MLS] Failed to load own deletion events:', err.message)
+    console.warn('[MLS] Failed to fetch own deletion events:', err.message)
   }
 
-  relayService.subscribeMlsEvents(state.relays, nostrPubkeyHex, {
-    onEvent(event) {
-      dispatch('receiveMlsMessage', event)
-    },
-  })
+  // Subscribe to NIP-EE group events (kind 445) scoped to our groups' h tags,
+  // plus historic catch-up. Welcomes arrive as gift-wrapped kind-444 rumors
+  // through the NIP-17 pipeline and are surfaced as invitations.
+  const nostrGroupHexes = [...new Set(Object.values(ws.mls.roomMlsNostrMap || {}).filter(Boolean))]
+  try {
+    relayService.subscribeMlsEvents(state.relays, nostrPubkeyHex, nostrGroupHexes, {
+      async onEvent(event) {
+        await dispatch('receiveMlsMessage', event)
+      },
+    })
+    relayService.fetchMlsHistory(state.relays, nostrPubkeyHex, nostrGroupHexes, {
+      async onEvent(event) {
+        await dispatch('receiveMlsMessage', event)
+      },
+    })
+  } catch (err) {
+    console.warn('[MLS] Failed to subscribe to NIP-EE group events:', err.message)
+  }
 
-  relayService.fetchMlsHistory(state.relays, nostrPubkeyHex, {
-    onEvent(event) {
-      dispatch('receiveMlsMessage', event)
-    },
-  })
-
-  // Repair pass: seedRoomsFromMessages used to mislabel MLS rooms as type
-  // 'private' on Watchtower (a 2-member group's messages look like a DM when
-  // the room is missing from the local list). Re-publish each active MLS room
-  // so the server row carries the correct 'mls-group' metadata again.
+  // Repair server-side room rows so MLS rooms that were removed/deleted on the
+  // server but still exist locally get re-uploaded (used by multi-device).
   try {
     const mlsRooms = Object.keys(ws.mls.roomMlsMap || {})
-      .map(roomId => getWalletState(state).rooms.find(r => r.id === roomId))
-      .filter(Boolean)
-    for (const room of mlsRooms) {
-      await syncRoomToServer(room)
+    for (const roomId of mlsRooms) {
+      const room = ws.rooms?.find((r) => r.id === roomId)
+      if (room && room.type === 'mls-group' && room.deletedAt) {
+        await updateRoomOnServer(room.id, { ...room, deletedAt: undefined })
+      }
     }
-  } catch {}
-}
+  } catch (err) {
+    console.warn('[MLS] Failed to repair server room rows:', err.message)
+  }
 
-// ---- Group management ----
+  return true
+}
 
 export async function createMlsGroup({ commit, state }, { name, members = [] }) {
   const ws = getWalletState(state)
-  if (!ws.keys.privKeyHex) throw new Error('Nostr keys not available')
+  if (!ws?.keys?.privKeyHex) throw new Error('Nostr keys not available')
   if (!ws.mls.ready) throw new Error('MLS not initialized')
 
   // The creator occupies one slot; invited members fill the rest.
@@ -252,10 +317,9 @@ export async function createMlsGroup({ commit, state }, { name, members = [] }) 
   }
 
   const walletHash = getCurrentWalletHash()
-  const mnemonic = await getMnemonicByHash(walletHash).catch(() => null)
+  const mnemonic = walletHash ? await getMnemonicByHash(walletHash).catch(() => null) : null
   if (!mnemonic) throw new Error('No mnemonic available')
 
-  const { impl, clientConfig } = mls.getMlsCrypto()
   const mlsKeys = deriveMlsKeys(mnemonic)
   const hpkeIkms = deriveMlsHpkeIkms(mnemonic)
   const nostrPubkeyHex = ws.keys.pubKeyHex
@@ -263,30 +327,51 @@ export async function createMlsGroup({ commit, state }, { name, members = [] }) 
   const { publicPackage, privatePackage } = await mls.generateMlsKeyPackage(
     { publicKey: mlsKeys.publicKey, privateKey: mlsKeys.privateKey },
     nostrPubkeyHex,
-    hpkeIkms,
+    hpkeIkms
   )
 
   const groupId = new Uint8Array(32)
   crypto.getRandomValues(groupId)
-  const groupIdHex = Array.from(groupId).map(b => b.toString(16).padStart(2, '0')).join('')
+  const groupIdHex = bytesToHex(groupId)
 
-  const clientState = await mls.createMlsGroup(groupId, publicPackage, privatePackage)
+  // Public (NIP-EE) group id — random 32 bytes used in kind-445 h tags and as
+  // the nostr_group_id in the 0xF2EE extension. Unlike the MLS groupId this is
+  // published on the relay.
+  const nostrGroupId = new Uint8Array(32)
+  crypto.getRandomValues(nostrGroupId)
+  const nostrGroupIdHex = bytesToHex(nostrGroupId)
 
+  const clientState = await mls.createMlsGroup(
+    groupId,
+    publicPackage,
+    privatePackage,
+    nostrGroupIdHex,
+    {
+      name: name || 'MLS Group',
+      adminPubkeys: [nostrPubkeyHex],
+      relays: state.relays,
+    }
+  )
+
+  // Post-create identity guard: we must sit at the leaf matching our identity.
   {
     const members = mls.getMlsGroupMembers(clientState)
-    const identities = members.map(m => new TextDecoder().decode(m.credential.identity))
-    const myIdx = identities.findIndex(id => id === nostrPubkeyHex)
+    const identities = members.map((m) =>
+      new TextDecoder().decode(m.credential?.identity || m.identityBytes)
+    )
+    const myIdx = identities.findIndex((id) => id === nostrPubkeyHex)
     if (myIdx !== -1 && clientState.privatePath.leafIndex !== myIdx) {
-      throw new Error(`MLS create leafIndex mismatch: privatePath ${clientState.privatePath.leafIndex} vs tree position ${myIdx}`)
+      throw new Error(
+        `MLS create leafIndex mismatch: privatePath ${clientState.privatePath.leafIndex} vs tree position ${myIdx}`
+      )
     }
   }
 
   const roomId = randomUUID()
 
   await mls.saveMlsState(groupIdHex, clientState)
-
   commit('SET_MLS_GROUP_STATE', { mlsGroupIdHex: groupIdHex, clientState })
-  commit('SET_MLS_ROOM_MAP', { roomId, mlsGroupIdHex: groupIdHex })
+  commit('SET_MLS_ROOM_MAP', { roomId, mlsGroupIdHex: groupIdHex, nostrGroupIdHex })
 
   const room = {
     id: roomId,
@@ -304,205 +389,256 @@ export async function createMlsGroup({ commit, state }, { name, members = [] }) 
   return { roomId, room }
 }
 
-export async function joinMlsGroup({ commit, state }, { roomId, welcomeEvent }) {
-  const ws = getWalletState(state)
-  // The KeyPackage state is only set when initMls's fresh publish succeeded;
-  // a join can still work via the preserved KeyPackage history (deterministic
-  // keys, e.g. after a relay publish timeout), so allow that path too.
-  if (!ws.mls.keyPackage && !(ws.mls.kpHistory || []).some(h => h.content)) {
-    throw new Error('No KeyPackage — call initMls first')
-  }
+export async function joinMlsGroup({ commit, state }, { roomId, welcomeRumor }) {
+  if (!welcomeRumor) throw new Error('Missing MLS welcome rumor')
+  const welcome = mls.decodeWelcomeFromBytes(hexToBytes(welcomeRumor.content))
 
-  const { impl, clientConfig } = mls.getMlsCrypto()
+  const ws = getWalletState(state)
+  if (!ws?.keys?.privKeyHex) throw new Error('Nostr keys not available')
+
   const walletHash = getCurrentWalletHash()
-  const mnemonic = await getMnemonicByHash(walletHash).catch(() => null)
+  const mnemonic = walletHash ? await getMnemonicByHash(walletHash).catch(() => null) : null
   if (!mnemonic) throw new Error('No mnemonic available')
 
+  const mlsKeys = deriveMlsKeys(mnemonic)
   const hpkeIkms = deriveMlsHpkeIkms(mnemonic)
   const nostrPubkeyHex = ws.keys.pubKeyHex
 
-  // Derive the deterministic HPKE keypairs to reconstruct the private package
-  // that matches the KeyPackage published on the relay.
-  const initKeys = await impl.hpke.deriveKeyPair(hpkeIkms.initIkm)
-  const hpkeKeys = await impl.hpke.deriveKeyPair(hpkeIkms.hpkeIkm)
-
-  const privatePackage = {
-    initPrivateKey: await impl.hpke.exportPrivateKey(initKeys.privateKey),
-    hpkePrivateKey: await impl.hpke.exportPrivateKey(hpkeKeys.privateKey),
-    signaturePrivateKey: hexToBytes(deriveMlsKeys(mnemonic).privateKeyHex),
-  }
-
-  // Fetch our own published KeyPackage from the relay FIRST — it has the
-  // same crypto keys (initKey, HPKE key, signature key are all deterministic)
-  // and is the KeyPackage the inviter encrypted the welcome to. Regenerating
-  // a fresh KeyPackage before trying would overwrite the relay one, changing
-  // the ref and making the welcome undecryptable.
-  const kpEvents = await relayService.fetchMlsKeyPackage(state.relays, nostrPubkeyHex)
-
-  const { kind: welcomeKind, bytes: welcomeBytes } = decodeMlsEventContent(welcomeEvent.content)
-  if (welcomeKind !== 30119 || !welcomeBytes) throw new Error('Invalid welcome event')
-  const welcome = mls.decodeWelcomeFromBytes(welcomeBytes)
-
-  // Build candidate public packages:
-  // 1. Current relay KeyPackage (the one the inviter likely committed)
-  // 2. Locally-stored historical KPs (from before relay overwrites)
-  // 3. Freshly derived deterministic KP as fallback
-  const candidates = []
-  for (const kpEvent of kpEvents) {
-    const kpBytes = decodeKeyPackageContent(kpEvent.content)
-    const kpMlsMessage = mls.decodeMlsMsg(kpBytes)
-    if (kpMlsMessage && kpMlsMessage.wireformat === 'mls_key_package') {
-      candidates.push(kpMlsMessage.keyPackage)
-    }
-  }
-  const kpHistoryEntries = (ws.mls.kpHistory || []).filter(h => h.content)
-  for (const histEntry of kpHistoryEntries) {
-    const histKpBytes = decodeKeyPackageContent(histEntry.content)
-    const histKpMlsMessage = mls.decodeMlsMsg(histKpBytes)
-    if (histKpMlsMessage && histKpMlsMessage.wireformat === 'mls_key_package') {
-      candidates.push(histKpMlsMessage.keyPackage)
-    }
-  }
-  const mlsKeys = deriveMlsKeys(mnemonic)
-  const { publicPackage: fallbackKp } = await mls.generateMlsKeyPackage(
+  const { publicPackage, privatePackage } = await mls.generateMlsKeyPackage(
     { publicKey: mlsKeys.publicKey, privateKey: mlsKeys.privateKey },
     nostrPubkeyHex,
-    hpkeIkms,
+    hpkeIkms
   )
-  candidates.push(fallbackKp)
 
-  let clientState = null
-  let lastErr = null
-  for (const publicPackage of candidates) {
-    try {
-      clientState = await mls.joinMlsGroup(welcome, publicPackage, privatePackage)
-      const members = mls.getMlsGroupMembers(clientState)
-      const identities = members.map(m => new TextDecoder().decode(m.credential.identity))
-      const myIdx = identities.findIndex(id => id === nostrPubkeyHex)
-      if (myIdx !== -1 && clientState.privatePath.leafIndex !== myIdx) {
-        throw new Error(`Joined but leafIndex mismatch: privatePath ${clientState.privatePath.leafIndex} vs tree position ${myIdx}`)
+  // Key package candidates in precedence order:
+  // 1. Freshly fetched NIP-EE key packages (kind 443) for this identity.
+  // 2. Locally cached key package history.
+  // 3. The currently-generated (deterministic) key package.
+  // Because all generations derive from the same seed, the same privatePackage
+  // unlocks every candidate.
+  const candidates = []
+  const seen = new Set()
+
+  try {
+    const kpEvents = await relayService.fetchNipEeKeyPackage(state.relays, nostrPubkeyHex)
+    for (const event of kpEvents) {
+      const kp = decodeNipEeKeyPackage(event.content)
+      if (!kp) continue
+      const ref = bytesToHex(await mls.makeKeyPackageRef(kp))
+      if (!seen.has(ref)) {
+        seen.add(ref)
+        candidates.push({ kp, ref })
       }
+    }
+  } catch (err) {
+    console.warn('[MLS] Failed to fetch key packages for join:', err.message)
+  }
+
+  for (const historyEntry of ws.mls.kpHistory || []) {
+    const kp = decodeNipEeKeyPackage(historyEntry.content)
+    if (!kp) continue
+    const ref = bytesToHex(await mls.makeKeyPackageRef(kp))
+    if (!seen.has(ref)) {
+      seen.add(ref)
+      const kpIsCurrent = historyEntry.content === (ws.mls.keyPackage?.serialized || '')
+      if (!kpIsCurrent) {
+        candidates.push({ kp, ref, isHistory: true })
+      }
+    }
+  }
+
+  const fallbackRef = bytesToHex(await mls.makeKeyPackageRef(publicPackage))
+  if (!seen.has(fallbackRef)) {
+    seen.add(fallbackRef)
+    candidates.push({ kp: publicPackage, ref: fallbackRef, isFallback: true })
+  }
+
+  let joinedClientState = null
+  let lastJoinError = null
+  for (const candidate of candidates) {
+    try {
+      joinedClientState = await mls.joinMlsGroup(welcome, candidate.kp, privatePackage)
       break
     } catch (err) {
-      lastErr = err
-      console.warn('[MLS] Skipping mismatched KeyPackage:', err.message)
+      lastJoinError = err
+      console.warn('[MLS] join with candidate', candidate.ref.slice(0, 12) + '…', 'failed:', err.message)
     }
   }
-  if (!clientState) {
-    // Diagnose the failure: compare the welcome's expected KeyPackage refs
-    // against the refs of the KeyPackages we can decrypt with. If none match,
-    // the welcome was encrypted to an older KeyPackage we no longer control.
-    const welcomeRefs = (welcome.secrets || []).map(s => bytesToHex(s.newMember))
-    const ourRefs = []
-    for (const kp of candidates) {
-      try {
-        ourRefs.push(bytesToHex(await mls.makeKeyPackageRef(kp, impl.hash)))
-      } catch {
-        ourRefs.push('')
-      }
-    }
-    const anyMatch = welcomeRefs.some(wr => ourRefs.includes(wr))
-    if (!anyMatch) {
-      throw new Error('This invitation was encrypted to an outdated KeyPackage. Ask the inviter to send a new invitation.')
-    }
-    throw lastErr || new Error('Failed to join MLS group: no matching KeyPackage')
+  if (!joinedClientState) {
+    throw new Error(
+      'Failed to join MLS group: ' + (lastJoinError?.message || 'no key package matched the welcome')
+    )
   }
 
-  const groupIdHex = Array.from(clientState.groupContext.groupId).map(b => b.toString(16).padStart(2, '0')).join('')
+  // Post-commit identity guard: we must sit at a leaf whose credential matches
+  // our Nostr pubkey, at the right tree position.
+  {
+    const members = mls.getMlsGroupMembers(joinedClientState)
+    const identities = members.map((m) =>
+      new TextDecoder().decode(m.credential?.identity || m.identityBytes)
+    )
+    const myIdx = identities.findIndex((id) => id === nostrPubkeyHex)
+    if (myIdx === -1) {
+      throw new Error(
+        'Your identity was not found in the joined group — the inviter may have used a stale key package. Ask them to re-invite you.'
+      )
+    }
+    if (joinedClientState.privatePath?.leafIndex !== undefined && joinedClientState.privatePath.leafIndex !== myIdx) {
+      throw new Error(
+        `MLS join leafIndex mismatch: privatePath ${joinedClientState.privatePath.leafIndex} vs tree position ${myIdx}`
+      )
+    }
+  }
 
-  await mls.saveMlsState(groupIdHex, clientState)
+  const groupIdHex = bytesToHex(joinedClientState.groupContext.groupId)
+  const nostrGroupIdHex = nostrGroupIdHexFromState(joinedClientState)
 
-  commit('SET_MLS_GROUP_STATE', { mlsGroupIdHex: groupIdHex, clientState })
-  commit('SET_MLS_ROOM_MAP', { roomId, mlsGroupIdHex: groupIdHex })
+  const groupData = (() => {
+    try {
+      const ext = joinedClientState.groupContext.extensions?.find(
+        (e) => e.extensionType === mls.NOSTR_GROUP_DATA_EXTENSION_TYPE
+      )
+      return ext ? mls.parseNipEeGroupData(ext.extensionData) : null
+    } catch {
+      return null
+    }
+  })()
 
-  // Add the room to the local list so it shows up on the chat index for the
-  // invitee. Members are derived from the joined MLS state; the group name
-  // is carried in the welcome event's "n" tag (set by the creator). Owner and
-  // admins are carried in "owner"/"admin" tags so the invitee knows who
-  // manages the group from the moment they join.
-  const nTag = welcomeEvent.tags?.find(t => t[0] === 'n')
-  const ownerTag = welcomeEvent.tags?.find(t => t[0] === 'owner')
-  const adminTags = (welcomeEvent.tags || []).filter(t => t[0] === 'admin')
+  const existingRoomId = resolveRoomIdByMlsGroupId(ws, groupIdHex)
+  const finalRoomId = existingRoomId || roomId
+
+  await mls.saveMlsState(groupIdHex, joinedClientState)
+  commit('SET_MLS_GROUP_STATE', { mlsGroupIdHex: groupIdHex, clientState: joinedClientState })
+  commit('SET_MLS_ROOM_MAP', { roomId: finalRoomId, mlsGroupIdHex: groupIdHex, nostrGroupIdHex })
+
+  const members = mlsMemberPubkeys(joinedClientState)
   const room = {
-    id: roomId,
+    id: finalRoomId,
     type: 'mls-group',
-    name: nTag?.[1] || 'MLS Group',
-    members: mls.getMlsGroupMembers(clientState).map(m => new TextDecoder().decode(m.credential.identity)),
-    owner: ownerTag?.[1] || null,
-    admins: adminTags.map(t => t[1]).filter(Boolean),
+    name: groupData?.name || 'MLS Group',
+    members,
+    owner: groupData?.adminPubkeys?.[0] || members[0] || nostrPubkeyHex,
+    admins: [],
     createdAt: Math.floor(Date.now() / 1000),
     updatedAt: Math.floor(Date.now() / 1000),
   }
-  commit('ADD_ROOM', room)
-  await syncRoomToServer(room)
 
-  return { clientState, groupIdHex }
+  const roomExists = (ws.rooms || []).some((r) => r.id === finalRoomId)
+  if (roomExists) {
+    commit('UPDATE_ROOM', room)
+    await updateRoomOnServer(finalRoomId, room)
+  } else {
+    commit('ADD_ROOM', room)
+    await syncRoomToServer(room)
+  }
+
+  return { roomId: finalRoomId, groupIdHex, nostrGroupIdHex, clientState: joinedClientState }
 }
 
 export async function acceptMlsInvite({ commit, state, dispatch }, { roomId }) {
   const ws = getWalletState(state)
+  if (!ws?.keys?.privKeyHex || !ws.mls) return
+  if (ws.mls.roomMlsMap?.[roomId]) return
+
   const invite = ws.mls.pendingInvitations?.[roomId]
-  if (!invite) throw new Error('Invitation not found')
-  if (ws.mls.roomMlsMap?.[roomId]) {
-    commit('REMOVE_MLS_INVITE', roomId)
-    return { alreadyJoined: true }
+  if (!invite) {
+    throw new Error('Invite not found')
   }
-  await dispatch('joinMlsGroup', { roomId, welcomeEvent: invite.welcomeEvent })
-  commit('REMOVE_MLS_INVITE', roomId)
-  // Catch up on any messages sent to the group between our KeyPackage
-  // publish and the moment we joined (live #p subscription may have missed
-  // them, and the initial fetchMlsHistory at MLS init ran before this group
-  // existed). A direct #h query for the group finds them regardless of #p.
+
+  const joined = await dispatch('joinMlsGroup', { roomId, welcomeRumor: invite.welcomeRumor })
+
+  // Catch up on group events published before we joined (the live subscription
+  // may have missed pre-join messages).
   try {
-    const mlsGroupIdHex = getWalletState(state).mls?.roomMlsMap?.[roomId]
-    if (mlsGroupIdHex) {
-      const events = await relayService.fetchMlsGroupEvents(state.relays, mlsGroupIdHex, 100)
-      for (const event of events) {
-        await dispatch('receiveMlsMessage', event)
-      }
+    const preJoinEvents = (await relayService.fetchMlsGroupEvents(state.relays, joined.nostrGroupIdHex, 100))
+      .sort((a, b) => a.created_at - b.created_at)
+    for (const event of preJoinEvents) {
+      await dispatch('receiveMlsMessage', event)
     }
-  } catch {}
-  return { alreadyJoined: false }
+  } catch (err) {
+    console.warn('[MLS] Failed to fetch pre-join group events:', err.message)
+  }
+
+  commit('REMOVE_MLS_INVITE', roomId)
+  return joined.mlsGroupIdHex || joined.groupIdHex
 }
 
 export async function declineMlsInvite({ commit, state }, { roomId }) {
   const ws = getWalletState(state)
-  const invite = ws.mls.pendingInvitations?.[roomId]
+  if (!ws?.keys?.privKeyHex || !ws.mls) return false
 
-  // Publish a kind-5 delete for the welcome event so other devices sharing
-  // our keys can filter it out (relays keep serving the original event; the
-  // delete is honored client-side at init). Best-effort: if the delete fails
-  // the local decline still proceeds.
+  const invite = ws.mls.pendingInvitations?.[roomId]
+  commit('REMOVE_MLS_INVITE', roomId)
   if (invite?.welcomeEvent?.id) {
-    try {
-      const deleteEvent = finalizeEvent({
+    // The welcome reached us gift-wrapped. Delete the gift-wrap EVENT (the
+    // relay event id), not the rumor id. Other devices sharing this identity
+    // honor the kind-5 tombstone via fetchOwnDeletionEventIds.
+    const signedEvent = finalizeEvent(
+      {
         kind: 5,
         pubkey: ws.keys.pubKeyHex,
         created_at: Math.floor(Date.now() / 1000),
+        tags: [['e', invite.welcomeEvent.id]],
         content: '',
-        tags: [
-          ['e', invite.welcomeEvent.id],
-          ['p', ws.keys.pubKeyHex],
-        ],
-      }, hexToBytes(ws.keys.privKeyHex))
-      await relayService.publishEvent(state.relays, deleteEvent)
-    } catch (err) {
-      console.warn('[MLS] Failed to publish delete for declined invite:', err.message)
-    }
-    // Tombstone locally so this device never re-surfaces it either.
+      },
+      hexToBytes(ws.keys.privKeyHex)
+    )
     commit('ADD_DECLINED_WELCOME', invite.welcomeEvent.id)
+    try {
+      await relayService.publishEvent(state.relays, signedEvent)
+      return true
+    } catch (err) {
+      console.warn('[MLS] Failed to publish decline:', err.message)
+    }
+  }
+  return false
+}
+
+/**
+ * Surface a NIP-EE welcome (kind 444) that arrived as a gift-wrapped rumor
+ * through the NIP-17 pipeline. Validates the payload is a real MLS Welcome
+ * before queueing an invitation for the user to accept or decline.
+ */
+export function receiveMlsWelcomeRumor({ commit, state }, { giftWrap, welcomeRumor }) {
+  const ws = getWalletState(state)
+  if (!ws?.keys?.privKeyHex || !ws.mls) return
+
+  const wrapId = giftWrap?.id
+  if (wrapId && ws.mls.declinedWelcomeIds?.[wrapId]) return
+  if (welcomeRumor?.kind !== mls.NIP_EE_WELCOME_KIND) return
+
+  // Dedupe against invitations already queued for the same gift-wrap or rumor.
+  const pending = ws.mls.pendingInvitations || {}
+  for (const invite of Object.values(pending)) {
+    if (invite.welcomeEvent?.id && invite.welcomeEvent.id === wrapId) return
+    if (invite.welcomeRumor?.id && welcomeRumor.id && invite.welcomeRumor.id === welcomeRumor.id) return
   }
 
-  commit('REMOVE_MLS_INVITE', roomId)
+  // Validate the payload is a real MLS Welcome before surfacing it.
+  try {
+    mls.decodeWelcomeFromBytes(hexToBytes(welcomeRumor.content))
+  } catch (err) {
+    console.warn('[MLS] Ignoring invalid welcome rumor:', err.message)
+    return
+  }
+
+  commit('ADD_MLS_INVITE', {
+    roomId: randomUUID(),
+    inviterPubKey: welcomeRumor.pubkey,
+    name: 'MLS Group',
+    createdAt: welcomeRumor.created_at || Math.floor(Date.now() / 1000),
+    welcomeEvent: giftWrap,
+    welcomeRumor,
+  })
 }
 
 // ---- Sending messages ----
 
-export async function sendMlsMessage({ commit, state }, { roomId, text, replyTo, recipientPubKey }) {
+export async function sendMlsMessage({ commit, state }, { roomId, text, replyTo }) {
   const ws = getWalletState(state)
-  if (!ws.keys.privKeyHex) throw new Error('Nostr keys not available')
+  if (!ws?.keys?.privKeyHex) throw new Error('Nostr keys not available')
 
-  const mlsGroupIdHex = ws.mls.roomMlsMap[roomId]
+  const mlsGroupIdHex = ws.mls.roomMlsMap?.[roomId]
   if (!mlsGroupIdHex) throw new Error('Unknown MLS room')
 
   const { impl } = mls.getMlsCrypto()
@@ -519,7 +655,7 @@ export async function sendMlsMessage({ commit, state }, { roomId, text, replyTo,
     } catch (err) {
       console.warn('[MLS] loadMlsState threw for group', mlsGroupIdHex.slice(0, 12), ':', err.message)
     }
-    if (!clientState && ws.mls.groupStates[mlsGroupIdHex]) {
+    if (!clientState && ws.mls.groupStates?.[mlsGroupIdHex]) {
       clientState = ws.mls.groupStates[mlsGroupIdHex]
     }
     if (!clientState) throw new Error('MLS group state not found')
@@ -535,35 +671,24 @@ export async function sendMlsMessage({ commit, state }, { roomId, text, replyTo,
     for (let attempt = 1; attempt <= MAX_SEND_ATTEMPTS; attempt++) {
       const genBefore = ownAppRatchetGen(clientState)
       const { privateMessage, newState } = await mls.encryptMlsMessage(clientState, text, impl)
-      // Decrypt our own senderData to confirm the generation the message actually
-      // claims (the receiver's decrypt must agree with this).
-      let claimedGen = '?'
-      try {
-        const { decryptSenderData } = await import('ts-mls/privateMessage.js')
-        const sd = await decryptSenderData(privateMessage, newState.keySchedule.senderDataSecret, impl)
-        claimedGen = `${sd?.leafIndex ?? '?'}/${sd?.generation ?? '?'}`
-      } catch (err) {
-        claimedGen = 'err:' + err.message
-      }
-      console.log('[MLS] send', mlsGroupIdHex.slice(0, 8), 'attempt', attempt, '| ratchet gen', genBefore, '->', ownAppRatchetGen(newState), '| claimed senderData leaf/gen:', claimedGen)
-
       const wrapped = mls.wrapPrivateMessage(privateMessage)
-      const unsignedEvent = mls.buildMlsNostrEvent(wrapped, 30117, mlsGroupIdHex, roomId, ws.keys.pubKeyHex, mlsMemberPubkeys(clientState))
-      if (recipientPubKey) {
-        unsignedEvent.tags.push(['p', recipientPubKey])
-      }
-      signedEvent = finalizeEvent(unsignedEvent, hexToBytes(ws.keys.privKeyHex))
+      const event = await buildSignedNipEeGroupEvent(clientState, wrapped)
+
+      console.log(
+        '[MLS] send', mlsGroupIdHex.slice(0, 8), 'attempt', attempt,
+        '| ratchet gen', genBefore, '->', ownAppRatchetGen(newState),
+      )
+      signedEvent = event
 
       // Persist the advanced (ratchet-consumed) state BEFORE publishing. If the
       // publish fails we roll the stored state back so a retry doesn't reuse a
-      // ratchet key the receiver has already seen (which would make every message
-      // after the first undecryptable on the other side).
+      // ratchet key the receiver has already seen.
       await mls.saveMlsState(mlsGroupIdHex, newState)
       commit('SET_MLS_GROUP_STATE', { mlsGroupIdHex, clientState: newState })
 
       const { accepted, errors } = await relayService.publishEvent(state.relays, signedEvent)
       if (accepted.length) {
-        createdAt = unsignedEvent.created_at
+        createdAt = event.created_at
         markRecentlySent(signedEvent.id)
         break
       }
@@ -573,7 +698,7 @@ export async function sendMlsMessage({ commit, state }, { roomId, text, replyTo,
       commit('SET_MLS_GROUP_STATE', { mlsGroupIdHex, clientState })
       if (attempt < MAX_SEND_ATTEMPTS) {
         console.warn(`[MLS] publish attempt ${attempt}/${MAX_SEND_ATTEMPTS} failed, retrying:`, JSON.stringify(errors))
-        await new Promise(resolve => setTimeout(resolve, 1000 * attempt))
+        await new Promise((resolve) => setTimeout(resolve, 1000 * attempt))
       }
     }
 
@@ -591,7 +716,7 @@ export async function sendMlsMessage({ commit, state }, { roomId, text, replyTo,
     roomId,
     sender: ws.keys.pubKeyHex,
     content: text,
-    kind: 30117,
+    kind: mls.NIP_EE_GROUP_EVENT_KIND,
     created_at,
     replyTo,
   }
@@ -601,108 +726,60 @@ export async function sendMlsMessage({ commit, state }, { roomId, text, replyTo,
 
 // ---- Receiving messages ----
 
-export async function receiveMlsMessage({ commit, state, dispatch }, event) {
+export async function receiveMlsMessage({ commit, state }, event) {
   const ws = getWalletState(state)
-  if (!ws.keys.privKeyHex) return
+  if (!ws?.keys?.privKeyHex) return
 
-  const { impl } = mls.getMlsCrypto()
-
-  const { kind, bytes: contentBytes } = decodeMlsEventContent(event.content)
-  if (!kind) return // No non-MLS 30078 events (e.g. KeyPackage events)
-
-  // MLS events are encrypted to the whole group, so events authored by this
-  // wallet (this device or a sibling device sharing its keys) still need to be
-  // processed here to keep every device's chat history and epoch in sync.
-  // The only exceptions:
-  //  - events this device itself published this session (message or commit)
-  //    are already reflected in its local state, and
-  //  - application messages already added to the timeline by the send path.
-  if (event.pubkey === ws.keys.pubKeyHex && isRecentlySent(event.id)) return
-  // Application message already added to the timeline (own sends, the group
-  // history replay after a fresh-device rebuild, or an echo arriving before
-  // the live subscription); dedupe here so it is not decrypted twice.
-  if (kind === 30117) {
-    const rTag = event.tags?.find(t => t[0] === 'r')
-    const roomId = rTag?.[1]
-    const alreadyAdded = roomId && (ws.messages[roomId] || []).some(m => m.id === event.id)
-    if (alreadyAdded) return
-  }
-
-  if (kind === 30119) {
-    const rTag = event.tags?.find(t => t[0] === 'r')
-    if (rTag) {
-      const roomId = rTag[1]
-      // Skip if we're already a member of this room — e.g. the creator
-      // processing the welcome event it published (relay echoes it back via
-      // the authors subscription). Joining our own group would fail because
-      // the welcome is encrypted to the invitee's KeyPackage, not ours.
-      if (ws.mls.roomMlsMap?.[roomId]) return
-
-      // Skip invitations we (or another device with our keys) already
-      // declined — relays keep serving the original welcome event even after
-      // the NIP-09 delete, so without this check declined invites would
-      // re-appear on every history fetch.
-      if (ws.mls.declinedWelcomeIds?.[event.id]) return
-
-      // Wallet imported on a new device: the room is already in the list
-      // (synced from the server) but the local MLS group state was never
-      // rebuilt. Rebuild it from the welcome instead of re-inviting the user
-      // to a group they already belong to, then replay the group's history.
-      const existingRoom = ws.rooms?.find(r => r.id === roomId)
-      const amMember = existingRoom?.type === 'mls-group' &&
-        Array.isArray(existingRoom.members) &&
-        existingRoom.members.includes(ws.keys.pubKeyHex)
-      if (amMember) {
-        try {
-          await dispatch('joinMlsGroup', { roomId, welcomeEvent: event })
-          console.log('[MLS] Rebuilt group state from welcome for existing room', roomId.slice(0, 8))
-          const mlsGroupIdHex = getWalletState(state).mls?.roomMlsMap?.[roomId]
-          if (mlsGroupIdHex) {
-            const events = await relayService.fetchMlsGroupEvents(state.relays, mlsGroupIdHex, 200)
-            for (const ev of events) {
-              await dispatch('receiveMlsMessage', ev)
-            }
-          }
-        } catch (err) {
-          console.warn('[MLS] Auto-rebuild from welcome failed for room', roomId.slice(0, 8), '— queueing invitation:', err.message)
-          const nTag = event.tags?.find(t => t[0] === 'n')
-          commit('ADD_MLS_INVITE', {
-            roomId,
-            inviterPubKey: event.pubkey,
-            name: nTag?.[1] || 'MLS Group',
-            createdAt: event.created_at,
-            welcomeEvent: event,
-          })
-        }
-        return
-      }
-
-      // Queue an explicit invitation instead of auto-joining, so the user can
-      // accept or decline it from the Invitations tab.
-      const nTag = event.tags?.find(t => t[0] === 'n')
-      commit('ADD_MLS_INVITE', {
-        roomId,
-        inviterPubKey: event.pubkey,
-        name: nTag?.[1] || 'MLS Group',
-        createdAt: event.created_at,
-        welcomeEvent: event,
-      })
+  // Gift-wrapped NIP-EE welcome (kind 1059) delivered directly through an MLS
+  // subscription (e.g. when the wrapper filters on group relay lists). Unwrap
+  // and route to the welcome handler.
+  if (event?.kind === 1059 || (event?.kind === mls.NIP_EE_WELCOME_KIND && event.tags?.some((t) => t[0] === 'p'))) {
+    try {
+      const { rumor } = unwrapGiftWrap(event, ws.keys.privKeyHex)
+      if (!rumor.id) rumor.id = getEventHash(rumor)
+      receiveMlsWelcomeRumor({ commit, state }, { giftWrap: event, welcomeRumor: rumor })
+    } catch (err) {
+      console.warn('[MLS] Failed to unwrap MLS welcome gift-wrap:', err.message)
     }
     return
   }
 
-  const hTag = event.tags?.find(t => t[0] === 'h')
+  if (event?.kind !== mls.NIP_EE_GROUP_EVENT_KIND) return
+
+  // NIP-EE group events are signed with an ephemeral key, so the event's pubkey
+  // is meaningless. Events authored by this wallet (this device or a sibling
+  // device sharing its keys) are identified purely by event id, which we
+  // temporarily track for our own sends this session.
+  if (isRecentlySent(event.id)) return
+  // Application message already added to the timeline (own sends, the group
+  // history replay after a fresh-device rebuild, or an echo arriving before
+  // the live subscription); dedupe here so it is not decrypted twice.
+  const hTag = event.tags?.find((t) => t[0] === 'h')
   if (!hTag) return
-  const mlsGroupIdHex = hTag[1]
+  const nostrGroupIdHex = hTag[1]
+  const mlsGroupIdHex = resolveMlsGroupIdHex(ws, nostrGroupIdHex)
+  if (!mlsGroupIdHex) {
+    console.warn(
+      '[MLS] Dropping 445 event', event.id.slice(0, 8),
+      'for unknown nostr_group_id', nostrGroupIdHex?.slice(0, 16),
+      '(roomMlsNostrMap has', Object.keys(ws.mls.roomMlsNostrMap || {}).length, 'entries)',
+    )
+    return
+  }
+
+  // Add this room's already-added message ids to avoid duplicate processing.
+  const roomId = resolveRoomIdByMlsGroupId(ws, mlsGroupIdHex)
+  const alreadyAdded = roomId && (ws.messages?.[roomId] || []).some((m) => m.id === event.id)
+  if (alreadyAdded) return
 
   // Undecodable-event suppression: relays re-serve history forever, so an
-  // event we can never decrypt (e.g. "Desired gen in the past" after a state
-  // reset) would be retried on every session. Give up after a bounded number
-  // of attempts across sessions.
+  // event we can never decrypt would be retried on every history fetch.
   const failedAttempts = ws.mls.failedEventAttempts?.[event.id]
   if (failedAttempts && failedAttempts.count >= MAX_EVENT_PROCESS_ATTEMPTS) {
     return
   }
+
+  const { impl } = mls.getMlsCrypto()
 
   await withMlsProcessingLock(mlsGroupIdHex, async () => {
     let clientState = null
@@ -711,56 +788,65 @@ export async function receiveMlsMessage({ commit, state, dispatch }, event) {
     } catch (err) {
       console.warn('[MLS] loadMlsState threw for group', mlsGroupIdHex.slice(0, 12), ':', err.message)
     }
-    if (!clientState && ws.mls.groupStates[mlsGroupIdHex]) {
+    if (!clientState && ws.mls.groupStates?.[mlsGroupIdHex]) {
       clientState = ws.mls.groupStates[mlsGroupIdHex]
     }
     if (!clientState) {
-      // This is the classic silent failure: an MLS message arrived for a group
-      // we have no local state for. No index group state / stale IndexedDB.
       console.warn(
-        '[MLS] Dropping', kind, 'event', event.id.slice(0, 8),
-        'from', event.pubkey.slice(0, 8),
-        'for unknown group', mlsGroupIdHex.slice(0, 12),
+        '[MLS] Dropping 445 event', event.id.slice(0, 8),
+        'for group', mlsGroupIdHex.slice(0, 12),
         '— no local group state (roomMlsMap has', Object.keys(ws.mls.roomMlsMap || {}).length, 'rooms)',
       )
       return
     }
 
+    let processedResult = null
     try {
-      const result = await mls.processMlsMessage(clientState, contentBytes, impl)
+      // NIP-EE content is sealed with the group exporter secret of the epoch
+      // the sender was on. Decrypt with OUR current exporter secret — sender
+      // and receiver share the epoch's key schedule, so this succeeds when we
+      // are in sync.
+      const exporterSecret = await mls.getNostrExporterSecret(clientState)
+      let contentBytes
+      try {
+        contentBytes = mls.decryptMlsMessageWithExporter(event.content, exporterSecret)
+      } catch (err) {
+        throw new Error(`Exporter decrypt failed: ${err.message}`)
+      }
+
+      processedResult = await mls.processMlsMessage(clientState, contentBytes, impl)
+      const result = processedResult
 
       await mls.saveMlsState(mlsGroupIdHex, result.newState)
       commit('SET_MLS_GROUP_STATE', { mlsGroupIdHex, clientState: result.newState })
       commit('CLEAR_EVENT_PROCESS_FAILURES', event.id)
 
       if (result.plaintext) {
-        const rTag = event.tags?.find(t => t[0] === 'r')
-        const roomId = rTag ? rTag[1] : null
-
         // Encrypted group-role control message (owner/admins metadata). Apply
         // it to the room locally and don't surface it as a chat message. Only
         // the CURRENT owner may change roles — any member can encrypt to the
-        // group, so without this check a member could craft a control message
-        // promoting themselves to admin or transferring ownership to themselves.
+        // group, so without this check a member could promote themselves.
         if (typeof result.plaintext === 'string' && result.plaintext.startsWith(MLS_META_PREFIX)) {
           try {
             const meta = JSON.parse(result.plaintext.slice(MLS_META_PREFIX.length))
-            if (roomId && meta && (meta.owner !== undefined || meta.admins !== undefined)) {
-              // Backfill the owner from the tree for legacy groups that predate
-              // the field, so the authorization check still resolves.
-              backfillMlsOwner(commit, ws, roomId, clientState)
-              const currentRoom = ws.rooms?.find(r => r.id === roomId)
+            const resolvedRoomId = roomId || resolveRoomIdByMlsGroupId(ws, mlsGroupIdHex)
+            if (resolvedRoomId && meta && (meta.owner !== undefined || meta.admins !== undefined)) {
+              backfillMlsOwner(commit, ws, resolvedRoomId, clientState)
+              const currentRoom = ws.rooms?.find((r) => r.id === resolvedRoomId)
               const currentOwner = currentRoom?.owner
-              if (!currentOwner || event.pubkey !== currentOwner) {
+              // Authorize the control message via the MLS leaf index of the
+              // sender — the NIP-EE envelope carries no trustworthy pubkey.
+              const senderIdentity = memberIdentityAt(result.newState, result.senderLeafIndex)
+              if (!currentOwner || !senderIdentity || senderIdentity !== currentOwner) {
                 console.warn(
-                  '[MLS] Ignoring role control message from non-owner', event.pubkey.slice(0, 8),
-                  'for room', roomId.slice(0, 8),
+                  '[MLS] Ignoring role control message from non-owner', senderIdentity?.slice(0, 8),
+                  'for room', resolvedRoomId.slice(0, 8),
                   '(owner:', currentOwner ? currentOwner.slice(0, 8) : 'unknown', ')',
                 )
                 return
               }
-              applyRoomRoles(commit, ws, roomId, meta)
-              await updateRoomOnServer(roomId, {
+              applyRoomRoles(commit, ws, resolvedRoomId, meta)
+              await updateRoomOnServer(resolvedRoomId, {
                 owner: meta.owner !== undefined ? meta.owner : null,
                 admins: meta.admins !== undefined ? meta.admins : [],
               })
@@ -769,9 +855,10 @@ export async function receiveMlsMessage({ commit, state, dispatch }, event) {
             // Not valid JSON — fall through and show as a message.
           }
         } else if (roomId) {
+          const senderIdentity = memberIdentityAt(result.newState, result.senderLeafIndex)
           console.log(
-            '[MLS] Received', kind, 'event', event.id.slice(0, 8),
-            'from', event.pubkey.slice(0, 8),
+            '[MLS] Received 445 event', event.id.slice(0, 8),
+            'from leaf', result.senderLeafIndex, senderIdentity?.slice(0, 8) || '(unknown)',
             'for group', mlsGroupIdHex.slice(0, 12),
             'room', roomId?.slice(0, 8) || '(none)',
             'text:', JSON.stringify(result.plaintext.slice(0, 40)),
@@ -782,21 +869,12 @@ export async function receiveMlsMessage({ commit, state, dispatch }, event) {
             message: applyFileMarkupToMessage({
               id: event.id,
               roomId,
-              sender: event.pubkey,
+              sender: senderIdentity || event.pubkey, // ephemeral pubkey fallback
               content: result.plaintext,
-              kind,
+              kind: mls.NIP_EE_GROUP_EVENT_KIND,
               created_at: event.created_at,
             }),
           })
-          const roomCount = roomId ? (ws.messages?.[roomId]?.length ?? -1) : -1
-          const roomInList = roomId ? (ws.rooms || []).some(r => r.id === roomId) : false
-          const amMember = roomId ? (ws.rooms || []).some(r => r.id === roomId && r.members?.includes(ws.keys?.pubKeyHex)) : false
-          console.log(
-            '[MLS] Added to store — room', roomId?.slice(0, 8) || '(none)',
-            'messages in store for this room:', roomCount,
-            'room exists in ws.rooms:', roomInList,
-            'i am a member of it:', amMember,
-          )
           commit('TOUCH_ROOM_LAST_MESSAGE_AT', roomId)
           if (roomId) {
             await touchRoomOnServer(roomId, new Date(event.created_at * 1000).toISOString())
@@ -804,41 +882,28 @@ export async function receiveMlsMessage({ commit, state, dispatch }, event) {
         }
       }
     } catch (err) {
-      // Decrypt failures here are the other classic symptom: the sender's group
-      // state has diverged from ours (different epoch / ratchet), so their
-      // message cannot be unwrapped even though it arrived. Log our current
-      // ratchet generation for the sender's leaf so a desync is visible.
-      const senderRatchetGen = (() => {
-        try {
-          const members = mls.getMlsGroupMembers(clientState)
-          const idx = members.findIndex(m => new TextDecoder().decode(m.credential.identity) === event.pubkey)
-          if (idx === -1) return '?'
-          return clientState.secretTree[leafToNodeIndex(idx)]?.application?.generation ?? '?'
-        } catch {
-          return '?'
-        }
-      })()
-      const allRatchets = (() => {
+      // Decrypt/process failures here are the other classic symptom: the
+      // sender's group state has diverged from ours (different epoch / ratchet),
+      // so their message cannot be unwrapped. Log every leaf's current ratchet
+      // generation so a desync is visible on both sides.
+      const allRatchetGen = (() => {
         try {
           const members = mls.getMlsGroupMembers(clientState)
           return members.map((m, i) => {
-            const id = new TextDecoder().decode(m.credential.identity).slice(0, 8)
-            const leafIdx = m.leafIndex ?? i
-            const gen = clientState.secretTree[leafToNodeIndex(i)]?.application?.generation ?? '?'
-            return `${id}#${leafIdx}=${gen}`
+            const identity = m.credential?.identity || m.identityBytes
+            const idStr = identity instanceof Uint8Array ? new TextDecoder().decode(identity).slice(0, 8) : '?'
+            return `${idStr}#${i}=${clientState.secretTree[leafToNodeIndex(i)]?.application?.generation ?? '?'}`
           }).join(', ')
         } catch {
           return '?'
         }
       })()
       console.warn(
-        '[MLS] Failed to process', kind, 'event', event.id.slice(0, 8),
-        'from', event.pubkey.slice(0, 8),
+        '[MLS] Failed to process 445 event', event.id.slice(0, 8),
         'for group', mlsGroupIdHex.slice(0, 12),
-        '— our ratchet gen for that sender is', senderRatchetGen,
-        '| all leaves:', allRatchets,
-        '| own leafIndex:', clientState.privatePath?.leafIndex,
-        ':', err.message,
+        '— sender leaf', processedResult?.senderLeafIndex, '| own leafIndex:', clientState?.privatePath?.leafIndex,
+        '| all leaves:', allRatchetGen,
+        '|', err.message,
       )
       commit('RECORD_EVENT_PROCESS_FAILURE', { eventId: event.id, error: err.message })
     }
@@ -851,13 +916,15 @@ export async function receiveMlsMessage({ commit, state, dispatch }, event) {
 // deterministic owner is leaf 0 of the MLS tree, so backfill it from the tree
 // when missing so role enforcement keeps working on legacy groups.
 function backfillMlsOwner(commit, ws, roomId, clientState) {
-  const room = ws.rooms?.find(r => r.id === roomId)
+  const room = ws.rooms?.find((r) => r.id === roomId)
   if (!room || room.owner || !clientState) return
   try {
     const members = mls.getMlsGroupMembers(clientState)
     const leaf0 = members[0]
     if (!leaf0) return
-    const owner = new TextDecoder().decode(leaf0.credential.identity)
+    const identity = leaf0.credential?.identity || leaf0.identityBytes
+    if (!(identity instanceof Uint8Array)) return
+    const owner = new TextDecoder().decode(identity)
     commit('UPDATE_ROOM', { id: roomId, owner })
   } catch {}
 }
@@ -883,158 +950,160 @@ async function ensureMlsOwnerBackfilled(commit, ws, roomId, impl) {
 
 export async function addMlsMember({ commit, state }, { roomId, memberPubKey }) {
   const ws = getWalletState(state)
-  if (!ws.keys.privKeyHex) throw new Error('Nostr keys not available')
+  if (!ws?.keys?.privKeyHex) throw new Error('Nostr keys not available')
 
-  const mlsGroupIdHex = ws.mls.roomMlsMap[roomId]
+  const mlsGroupIdHex = ws.mls.roomMlsMap?.[roomId]
   if (!mlsGroupIdHex) throw new Error('Unknown MLS room')
 
   const { impl } = mls.getMlsCrypto()
 
   return withMlsProcessingLock(mlsGroupIdHex, async () => {
-    let clientState = await mls.loadMlsState(mlsGroupIdHex, impl, {})
-    if (!clientState && ws.mls.groupStates[mlsGroupIdHex]) {
+    let clientState = await mls.loadMlsState(mlsGroupIdHex, impl, {}).catch(() => null)
+    if (!clientState && ws.mls.groupStates?.[mlsGroupIdHex]) {
       clientState = ws.mls.groupStates[mlsGroupIdHex]
     }
     if (!clientState) throw new Error('MLS group state not found')
 
-  backfillMlsOwner(commit, ws, roomId, clientState)
+    backfillMlsOwner(commit, ws, roomId, clientState)
 
-  // Only the owner or an admin may add members.
-  requireMlsManager(ws, roomId)
+    // Only the owner or an admin may add members.
+    requireMlsManager(ws, roomId)
 
-  const currentMembers = mls.getMlsGroupMembers(clientState)
-  const memberIdentities = currentMembers.map(m => new TextDecoder().decode(m.credential.identity))
-  if (memberIdentities.includes(memberPubKey)) {
-    return
-  }
-  if (currentMembers.length >= MAX_MLS_MEMBERS) {
-    throw new Error(`MLS groups are limited to ${MAX_MLS_MEMBERS} members total`)
-  }
-
-  let kpEvents = await relayService.fetchMlsKeyPackage(state.relays, memberPubKey)
-  if (!kpEvents.length) {
-    // Replaceable events can briefly disappear during replacement — retry once
-    await new Promise(r => setTimeout(r, 1500))
-    kpEvents = await relayService.fetchMlsKeyPackage(state.relays, memberPubKey)
-  }
-  if (!kpEvents.length) throw new Error('KeyPackage not found for member')
-
-  // Encrypt the welcome to the newest published KeyPackage — the invitee
-  // tries its published packages newest-first, so this is the one it matches.
-  const kpBytes = decodeKeyPackageContent(kpEvents[0].content)
-  const kpMlsMessage = mls.decodeMlsMsg(kpBytes)
-  if (kpMlsMessage.wireformat !== 'mls_key_package') throw new Error('Invalid KeyPackage event')
-  const inviteeKeyPackage = kpMlsMessage.keyPackage
-
-  const { newState, commit: commitMsg, welcome } = await mls.addMlsMember(clientState, inviteeKeyPackage, impl)
-
-  {
-    const members = mls.getMlsGroupMembers(newState)
-    const identities = members.map(m => new TextDecoder().decode(m.credential.identity))
-    const myIdx = identities.findIndex(id => id === ws.keys.pubKeyHex)
-    if (myIdx !== -1 && newState.privatePath.leafIndex !== myIdx) {
-      console.error('[MLS] addMlsMember produced leafIndex mismatch', { privatePath: newState.privatePath.leafIndex, myIdx, identities: identities.map(i => i.slice(0, 8)) })
-      throw new Error(`MLS addMember leafIndex mismatch: privatePath ${newState.privatePath.leafIndex} vs tree position ${myIdx}`)
+    const currentMembers = mls.getMlsGroupMembers(clientState)
+    const memberIdentities = mlsMemberPubkeys(clientState)
+    if (memberIdentities.includes(memberPubKey)) {
+      return
     }
-  }
+    if (currentMembers.length >= MAX_MLS_MEMBERS) {
+      throw new Error(`MLS groups are limited to ${MAX_MLS_MEMBERS} members total`)
+    }
 
-  // Guard against the stale-KeyPackage race: the invitee's device may have
-  // republished a newer KeyPackage after we fetched the one we just encrypted
-  // the welcome to. If the welcome's target ref doesn't match their current
-  // relay KeyPackage, the invitee would never be able to decrypt it — abort
-  // BEFORE publishing anything so the group epoch doesn't advance with a
-  // broken invite.
-  if (welcome) {
-    const freshKpEvents = await relayService.fetchMlsKeyPackage(state.relays, memberPubKey)
-    if (freshKpEvents.length) {
-      const freshKpBytes = decodeKeyPackageContent(freshKpEvents[0].content)
-      const freshKpMlsMessage = mls.decodeMlsMsg(freshKpBytes)
-      const freshRef = freshKpMlsMessage?.wireformat === 'mls_key_package'
-        ? bytesToHex(await mls.makeKeyPackageRef(freshKpMlsMessage.keyPackage, impl.hash))
-        : null
-      const welcomeRefs = (welcome.secrets || []).map(s => bytesToHex(s.newMember))
-      if (freshRef && !welcomeRefs.includes(freshRef)) {
+    let kpEvents = await relayService.fetchNipEeKeyPackage(state.relays, memberPubKey)
+    if (!kpEvents.length) {
+      // Key packages may briefly be absent during relay sync — retry once.
+      await new Promise((r) => setTimeout(r, 1500))
+      kpEvents = await relayService.fetchNipEeKeyPackage(state.relays, memberPubKey)
+    }
+    if (!kpEvents.length) throw new Error('KeyPackage not found for member')
+
+    // Encrypt the welcome to the newest published KeyPackage — the invitee
+    // tries its published packages newest-first, so this is the one it matches.
+    const inviteeKeyPackage = decodeNipEeKeyPackage(kpEvents[0].content)
+    if (!inviteeKeyPackage) throw new Error('Invalid KeyPackage event')
+
+    const { newState, commit: commitMsg, welcome } = await mls.addMlsMember(clientState, inviteeKeyPackage, impl)
+
+    {
+      const identities = mlsMemberPubkeys(newState)
+      const myIdx = identities.findIndex((id) => id === ws.keys.pubKeyHex)
+      if (myIdx !== -1 && newState.privatePath.leafIndex !== myIdx) {
+        console.error('[MLS] addMlsMember produced leafIndex mismatch', { privatePath: newState.privatePath.leafIndex, myIdx, identities: identities.map((i) => i?.slice(0, 8)) })
+        throw new Error(`MLS addMember leafIndex mismatch: privatePath ${newState.privatePath.leafIndex} vs tree position ${myIdx}`)
+      }
+    }
+
+    // Guard against the stale-KeyPackage race: the invitee's device may have
+    // republished a newer KeyPackage after we fetched the one we just encrypted
+    // the welcome to. If the welcome's target ref doesn't match their current
+    // relay KeyPackage, the invitee would never be able to decrypt it — abort
+    // BEFORE publishing anything so the group epoch doesn't advance with a
+    // broken invite.
+    if (welcome) {
+      const freshKpEvents = await relayService.fetchNipEeKeyPackage(state.relays, memberPubKey)
+      if (freshKpEvents.length) {
+        const freshKp = decodeNipEeKeyPackage(freshKpEvents[0].content)
+        const freshRef = freshKp ? bytesToHex(await mls.makeKeyPackageRef(freshKp)) : null
+        const welcomeRefs = (welcome.secrets || []).map((s) => bytesToHex(s.newMember))
+        if (freshRef && !welcomeRefs.includes(freshRef)) {
+          throw new Error(
+            "The invitee's KeyPackage changed while creating the invitation. " +
+            'Ask them to open Paytaca again (to publish their updated KeyPackage), then re-invite.'
+          )
+        }
+      }
+    }
+
+    // Build a signed NIP-EE group event (kind 445) for the Add commit. The
+    // exporter secret is derived from the PRE-commit epoch state, which our
+    // peers are also on until they process the commit.
+    const signedCommit = await buildSignedNipEeGroupEvent(clientState, commitMsg)
+    const commitPublish = await relayService.publishEvent(state.relays, signedCommit)
+    if (!commitPublish.accepted.length) {
+      const reason = commitPublish.errors[0]?.reason || 'relay rejected the commit'
+      console.warn('[MLS] Commit publish rejected:', JSON.stringify(commitPublish.errors))
+      throw new Error(`MLS commit was rejected by the relay: ${reason}`)
+    }
+    markRecentlySent(signedCommit.id)
+
+    if (welcome) {
+      const welcomeMlsMsg = { version: 'mls10', wireformat: 'mls_welcome', welcome }
+      const welcomeHex = bytesToHex(mls.encodeMlsMsg(welcomeMlsMsg))
+
+      const welcomeUnsigned = mls.buildNipEeWelcomeEvent({
+        welcomeHex,
+        keyPackageEventId: kpEvents[0].id,
+        relays: state.relays,
+        nostrPubkeyHex: ws.keys.pubKeyHex,
+      })
+
+      // NIP-EE welcoms are gift-wrapped (NIP-59) to the invitee; the relay
+      // never sees the inner kind-444 event directly.
+      const giftWrappedWelcome = nip59.wrapEvent(welcomeUnsigned, hexToBytes(ws.keys.privKeyHex), memberPubKey)
+
+      // The commit is already on the relay at this point, so the group epoch
+      // has advanced for everyone. The welcome MUST reach the invitee — retry
+      // the publish before giving up.
+      let welcomePublished = false
+      let welcomeLastErr = null
+      for (let attempt = 1; attempt <= 3 && !welcomePublished; attempt++) {
+        try {
+          const welcomePublish = await relayService.publishEvent(state.relays, giftWrappedWelcome)
+          if (!welcomePublish.accepted.length) {
+            throw new Error(welcomePublish.errors[0]?.reason || 'relay rejected the welcome')
+          }
+          welcomePublished = true
+        } catch (err) {
+          welcomeLastErr = err
+          console.warn(`[MLS] Welcome publish attempt ${attempt}/3 failed:`, err.message)
+          if (attempt < 3) await new Promise((resolve) => setTimeout(resolve, 1000 * attempt))
+        }
+      }
+      if (!welcomePublished) {
+        console.warn('[MLS] Welcome rejected after 3 attempts:', JSON.stringify(welcomeLastErr?.message))
+        await mls.saveMlsState(mlsGroupIdHex, newState)
+        commit('SET_MLS_GROUP_STATE', { mlsGroupIdHex, clientState: newState })
+        const failureRoom = ws.rooms.find((r) => r.id === roomId)
+        if (failureRoom && !failureRoom.members.includes(memberPubKey)) {
+          const updatedMembers = [...failureRoom.members, memberPubKey]
+          commit('UPDATE_ROOM', { id: roomId, members: updatedMembers })
+          await updateRoomOnServer(roomId, { members: updatedMembers })
+        }
         throw new Error(
-          'The invitee\'s KeyPackage changed while creating the invitation. ' +
-          'Ask them to open Paytaca again (to publish their updated KeyPackage), then re-invite.'
+          `The member was added but their invitation could not be published (${welcomeLastErr?.message || 'relay rejected the welcome'}). ` +
+          'Try removing and re-adding them.'
         )
       }
     }
-  }
 
-  const commitEvent = mls.buildMlsNostrEvent(commitMsg, 30118, mlsGroupIdHex, roomId, ws.keys.pubKeyHex, mlsMemberPubkeys(clientState))
-  const signedCommit = finalizeEvent(commitEvent, hexToBytes(ws.keys.privKeyHex))
-  const commitPublish = await relayService.publishEvent(state.relays, signedCommit)
-  if (!commitPublish.accepted.length) {
-    const reason = commitPublish.errors[0]?.reason || 'relay rejected the commit'
-    console.warn('[MLS] Commit publish rejected:', JSON.stringify(commitPublish.errors))
-    throw new Error(`MLS commit was rejected by the relay: ${reason}`)
-  }
-  markRecentlySent(signedCommit.id)
+    await mls.saveMlsState(mlsGroupIdHex, newState)
+    commit('SET_MLS_GROUP_STATE', { mlsGroupIdHex, clientState: newState })
 
-  if (welcome) {
-    const welcomeMlsMsg = { version: 'mls10', wireformat: 'mls_welcome', welcome }
-    const welcomeUnsigned = mls.buildMlsNostrEvent(welcomeMlsMsg, 30119, mlsGroupIdHex, roomId, ws.keys.pubKeyHex)
-    welcomeUnsigned.tags.push(['p', memberPubKey])
-    const room = ws.rooms.find(r => r.id === roomId)
-    if (room?.name) {
-      welcomeUnsigned.tags.push(['n', room.name])
+    const room = ws.rooms.find((r) => r.id === roomId)
+    if (room && !room.members.includes(memberPubKey)) {
+      const updatedMembers = [...room.members, memberPubKey]
+      commit('UPDATE_ROOM', { id: roomId, members: updatedMembers })
+      await updateRoomOnServer(roomId, { members: updatedMembers })
     }
-    if (room?.owner) {
-      welcomeUnsigned.tags.push(['owner', room.owner])
+  }).finally(async () => {
+    // Broadcast the current roles to the (now larger) group so the invitee
+    // learns the owner/admins once they join and catch up. NIP-EE welcoms do
+    // not carry room metadata tags, so this replaces the old n/owner/admin
+    // tags on the welcome event.
+    try {
+      await broadcastMlsRoomRoles({ commit, state }, { roomId })
+    } catch (err) {
+      console.warn('[MLS] Failed to broadcast roles after adding member:', err.message)
     }
-    for (const admin of (room?.admins || [])) {
-      welcomeUnsigned.tags.push(['admin', admin])
-    }
-
-    // The commit is already on the relay at this point, so the group epoch
-    // has advanced for everyone. The welcome MUST reach the invitee — retry
-    // the publish before giving up. On total failure we still save the new
-    // state below so this device's epoch matches the relay (own commits are
-    // not re-processed on receive); otherwise every later message would fail
-    // with an epoch mismatch.
-    const signedWelcome = finalizeEvent(welcomeUnsigned, hexToBytes(ws.keys.privKeyHex))
-    let welcomePublished = false
-    let welcomeLastErr = null
-    for (let attempt = 1; attempt <= 3 && !welcomePublished; attempt++) {
-      try {
-        const welcomePublish = await relayService.publishEvent(state.relays, signedWelcome)
-        if (!welcomePublish.accepted.length) {
-          throw new Error(welcomePublish.errors[0]?.reason || 'relay rejected the welcome')
-        }
-        welcomePublished = true
-      } catch (err) {
-        welcomeLastErr = err
-        console.warn(`[MLS] Welcome publish attempt ${attempt}/3 failed:`, err.message)
-        if (attempt < 3) await new Promise(resolve => setTimeout(resolve, 1000 * attempt))
-      }
-    }
-    if (!welcomePublished) {
-      console.warn('[MLS] Welcome rejected after 3 attempts:', JSON.stringify(welcomeLastErr?.message))
-      await mls.saveMlsState(mlsGroupIdHex, newState)
-      commit('SET_MLS_GROUP_STATE', { mlsGroupIdHex, clientState: newState })
-      const failureRoom = ws.rooms.find(r => r.id === roomId)
-      if (failureRoom && !failureRoom.members.includes(memberPubKey)) {
-        const updatedMembers = [...failureRoom.members, memberPubKey]
-        commit('UPDATE_ROOM', { id: roomId, members: updatedMembers })
-        await updateRoomOnServer(roomId, { members: updatedMembers })
-      }
-      throw new Error(
-        `The member was added but their invitation could not be published (${welcomeLastErr?.message || 'relay rejected the welcome'}). ` +
-        'Try removing and re-adding them.'
-      )
-    }
-  }
-
-  await mls.saveMlsState(mlsGroupIdHex, newState)
-  commit('SET_MLS_GROUP_STATE', { mlsGroupIdHex, clientState: newState })
-
-  const room = ws.rooms.find(r => r.id === roomId)
-  if (room && !room.members.includes(memberPubKey)) {
-    const updatedMembers = [...room.members, memberPubKey]
-    commit('UPDATE_ROOM', { id: roomId, members: updatedMembers })
-    await updateRoomOnServer(roomId, { members: updatedMembers })
-  }
   })
 }
 
@@ -1048,27 +1117,27 @@ export async function getMlsGroupMemberPubkeys({ commit, state }, { roomId }) {
   const mlsGroupIdHex = ws.mls?.roomMlsMap?.[roomId]
   if (!mlsGroupIdHex) return null
   const { impl } = mls.getMlsCrypto()
-  let clientState = await mls.loadMlsState(mlsGroupIdHex, impl, {})
-  if (!clientState && ws.mls.groupStates[mlsGroupIdHex]) {
+  let clientState = await mls.loadMlsState(mlsGroupIdHex, impl, {}).catch(() => null)
+  if (!clientState && ws.mls.groupStates?.[mlsGroupIdHex]) {
     clientState = ws.mls.groupStates[mlsGroupIdHex]
   }
   if (!clientState) return null
   backfillMlsOwner(commit, ws, roomId, clientState)
-  return mls.getMlsGroupMembers(clientState).map(m => new TextDecoder().decode(m.credential.identity))
+  return mlsMemberPubkeys(clientState)
 }
 
 export async function removeMlsMember({ commit, state }, { roomId, memberPubkey }) {
   const ws = getWalletState(state)
-  if (!ws.keys.privKeyHex) throw new Error('Nostr keys not available')
+  if (!ws?.keys?.privKeyHex) throw new Error('Nostr keys not available')
 
-  const mlsGroupIdHex = ws.mls.roomMlsMap[roomId]
+  const mlsGroupIdHex = ws.mls.roomMlsMap?.[roomId]
   if (!mlsGroupIdHex) throw new Error('Unknown MLS room')
 
   const { impl } = mls.getMlsCrypto()
 
   await withMlsProcessingLock(mlsGroupIdHex, async () => {
-    let clientState = await mls.loadMlsState(mlsGroupIdHex, impl, {})
-    if (!clientState && ws.mls.groupStates[mlsGroupIdHex]) {
+    let clientState = await mls.loadMlsState(mlsGroupIdHex, impl, {}).catch(() => null)
+    if (!clientState && ws.mls.groupStates?.[mlsGroupIdHex]) {
       clientState = ws.mls.groupStates[mlsGroupIdHex]
     }
     if (!clientState) throw new Error('MLS group state not found')
@@ -1078,7 +1147,7 @@ export async function removeMlsMember({ commit, state }, { roomId, memberPubkey 
     // Only the owner or an admin may remove members.
     const myRole = requireMlsManager(ws, roomId)
 
-    const room = ws.rooms.find(r => r.id === roomId)
+    const room = ws.rooms.find((r) => r.id === roomId)
     const owner = room?.owner
     const admins = room?.admins || []
 
@@ -1095,8 +1164,9 @@ export async function removeMlsMember({ commit, state }, { roomId, memberPubkey 
     const members = mls.getMlsGroupMembers(clientState)
     let leafIndex = -1
     for (let i = 0; i < members.length; i++) {
-      const identity = new TextDecoder().decode(members[i].credential.identity)
-      if (identity === memberPubkey) {
+      const identity = members[i].credential?.identity || members[i].identityBytes
+      const idStr = identity instanceof Uint8Array ? new TextDecoder().decode(identity) : ''
+      if (idStr === memberPubkey) {
         leafIndex = i
         break
       }
@@ -1105,8 +1175,7 @@ export async function removeMlsMember({ commit, state }, { roomId, memberPubkey 
 
     const { newState, commit: commitMsg } = await mls.removeMlsMember(clientState, leafIndex, impl)
 
-    const commitEvent = mls.buildMlsNostrEvent(commitMsg, 30118, mlsGroupIdHex, roomId, ws.keys.pubKeyHex, mlsMemberPubkeys(clientState))
-    const signedCommit = finalizeEvent(commitEvent, hexToBytes(ws.keys.privKeyHex))
+    const signedCommit = await buildSignedNipEeGroupEvent(clientState, commitMsg)
     const publish = await relayService.publishEvent(state.relays, signedCommit)
     if (!publish.accepted.length) {
       // Do NOT advance local state — if the commit isn't on the relay, other
@@ -1122,9 +1191,9 @@ export async function removeMlsMember({ commit, state }, { roomId, memberPubkey 
     commit('SET_MLS_GROUP_STATE', { mlsGroupIdHex, clientState: newState })
 
     if (room) {
-      const updatedMembers = room.members.filter(m => m !== memberPubkey)
-      commit('UPDATE_ROOM', { id: roomId, members: updatedMembers, admins: (room.admins || []).filter(a => a !== memberPubkey) })
-      await updateRoomOnServer(roomId, { members: updatedMembers, admins: (room.admins || []).filter(a => a !== memberPubkey) })
+      const updatedMembers = room.members.filter((m) => m !== memberPubkey)
+      commit('UPDATE_ROOM', { id: roomId, members: updatedMembers, admins: (room.admins || []).filter((a) => a !== memberPubkey) })
+      await updateRoomOnServer(roomId, { members: updatedMembers, admins: (room.admins || []).filter((a) => a !== memberPubkey) })
     }
   })
 }
@@ -1133,21 +1202,21 @@ export async function removeMlsMember({ commit, state }, { roomId, memberPubkey 
 
 /**
  * Broadcast the current owner/admins of an MLS group to all members as an
- * encrypted MLS application message (kind 30117). Members decrypt it and apply
- * it to their local room; it is never shown as a chat message. Called after any
- * role change (make/remove admin, transfer owner, owner leaves to a successor).
+ * encrypted MLS application message. Members decrypt it and apply it to their
+ * local room; it is never shown as a chat message. Called after any role change
+ * (make/remove admin, transfer owner, owner leaves to a successor).
  */
 export async function broadcastMlsRoomRoles({ commit, state }, { roomId }) {
   const ws = getWalletState(state)
-  if (!ws.keys.privKeyHex) throw new Error('Nostr keys not available')
+  if (!ws?.keys?.privKeyHex) throw new Error('Nostr keys not available')
 
-  const mlsGroupIdHex = ws.mls.roomMlsMap[roomId]
+  const mlsGroupIdHex = ws.mls.roomMlsMap?.[roomId]
   if (!mlsGroupIdHex) throw new Error('Unknown MLS room')
 
   const { impl } = mls.getMlsCrypto()
   await ensureMlsOwnerBackfilled(commit, ws, roomId, impl)
 
-  const room = ws.rooms.find(r => r.id === roomId)
+  const room = ws.rooms.find((r) => r.id === roomId)
   if (!room) throw new Error('Room not found')
 
   const meta = {
@@ -1157,11 +1226,7 @@ export async function broadcastMlsRoomRoles({ commit, state }, { roomId }) {
   const text = MLS_META_PREFIX + JSON.stringify(meta)
 
   // Reuse sendMlsMessage so ratchet/persist/retry semantics stay identical.
-  // replyTo defaults undefined; recipientPubKey omitted (broadcast to all).
-  const { message } = await sendMlsMessage({ commit, state }, { roomId, text })
-  // sendMlsMessage surfaces the control message through receiveMlsMessage on
-  // our own relay subscription too; don't add it to the visible timeline here.
-  void message
+  await sendMlsMessage({ commit, state }, { roomId, text })
 }
 
 /**
@@ -1171,7 +1236,7 @@ export async function broadcastMlsRoomRoles({ commit, state }, { roomId }) {
 function applyRoomRoles(commit, ws, roomId, meta) {
   if (!roomId || !meta) return
   if (meta.owner === undefined && meta.admins === undefined) return
-  const room = ws.rooms?.find(r => r.id === roomId)
+  const room = ws.rooms?.find((r) => r.id === roomId)
   if (!room) return
   commit('UPDATE_ROOM', {
     id: roomId,
@@ -1187,15 +1252,12 @@ function applyRoomRoles(commit, ws, roomId, meta) {
  */
 export async function setMlsAdmin({ commit, state }, { roomId, memberPubKey, isAdmin }) {
   const ws = getWalletState(state)
-  if (!ws.keys.privKeyHex) throw new Error('Nostr keys not available')
+  if (!ws?.keys?.privKeyHex) throw new Error('Nostr keys not available')
 
-  const mlsGroupIdHex = ws.mls.roomMlsMap[roomId]
+  const mlsGroupIdHex = ws.mls.roomMlsMap?.[roomId]
   if (!mlsGroupIdHex) throw new Error('Unknown MLS room')
 
   const { impl } = mls.getMlsCrypto()
-
-  // Backfill owner from the tree for legacy groups created before the field
-  // existed, so the role gate below still resolves the real owner.
   await ensureMlsOwnerBackfilled(commit, ws, roomId, impl)
 
   // Only the owner may change admin status.
@@ -1203,7 +1265,7 @@ export async function setMlsAdmin({ commit, state }, { roomId, memberPubKey, isA
     throw new Error('Only the group owner can change admin roles')
   }
 
-  const room = ws.rooms.find(r => r.id === roomId)
+  const room = ws.rooms.find((r) => r.id === roomId)
   if (!room) throw new Error('Room not found')
   if (!room.members?.includes(memberPubKey)) throw new Error('Member not in group')
 
@@ -1214,7 +1276,7 @@ export async function setMlsAdmin({ commit, state }, { roomId, memberPubKey, isA
     if (memberPubKey === room.owner) throw new Error('The group owner is already the owner')
     if (!admins.includes(memberPubKey)) admins = [...admins, memberPubKey]
   } else {
-    admins = admins.filter(a => a !== memberPubKey)
+    admins = admins.filter((a) => a !== memberPubKey)
   }
 
   const meta = { owner: room.owner, admins }
@@ -1231,9 +1293,9 @@ export async function setMlsAdmin({ commit, state }, { roomId, memberPubKey, isA
  */
 export async function transferMlsOwnership({ commit, state }, { roomId, newOwnerPubKey }) {
   const ws = getWalletState(state)
-  if (!ws.keys.privKeyHex) throw new Error('Nostr keys not available')
+  if (!ws?.keys?.privKeyHex) throw new Error('Nostr keys not available')
 
-  const mlsGroupIdHex = ws.mls.roomMlsMap[roomId]
+  const mlsGroupIdHex = ws.mls.roomMlsMap?.[roomId]
   if (!mlsGroupIdHex) throw new Error('Unknown MLS room')
 
   const { impl } = mls.getMlsCrypto()
@@ -1243,7 +1305,7 @@ export async function transferMlsOwnership({ commit, state }, { roomId, newOwner
     throw new Error('Only the group owner can transfer ownership')
   }
 
-  const room = ws.rooms.find(r => r.id === roomId)
+  const room = ws.rooms.find((r) => r.id === roomId)
   if (!room) throw new Error('Room not found')
   if (!room.members?.includes(newOwnerPubKey)) throw new Error('New owner must be a group member')
 
@@ -1253,7 +1315,7 @@ export async function transferMlsOwnership({ commit, state }, { roomId, newOwner
   // Previous owner drops to a regular member (unless also an admin); the new
   // owner is removed from the admin list (they now hold the owner role).
   const admins = (room.admins || [])
-    .filter(a => a !== newOwnerPubKey)
+    .filter((a) => a !== newOwnerPubKey)
     .concat(oldOwner && (room.admins || []).includes(oldOwner) ? [oldOwner] : [])
 
   const meta = { owner: newOwnerPubKey, admins }
@@ -1262,11 +1324,11 @@ export async function transferMlsOwnership({ commit, state }, { roomId, newOwner
   await broadcastMlsRoomRoles({ commit, state }, { roomId })
 }
 
-export async function leaveMlsGroup({ commit, state, dispatch }, { roomId, successorPubKey }) {
+export async function leaveMlsGroup({ commit, state }, { roomId, successorPubKey }) {
   const ws = getWalletState(state)
-  if (!ws.keys.privKeyHex) return
+  if (!ws?.keys?.privKeyHex) return
 
-  const mlsGroupIdHex = ws.mls.roomMlsMap[roomId]
+  const mlsGroupIdHex = ws.mls.roomMlsMap?.[roomId]
   if (!mlsGroupIdHex) return
 
   // Backfill the owner for legacy groups so the successor handoff below fires
@@ -1274,7 +1336,7 @@ export async function leaveMlsGroup({ commit, state, dispatch }, { roomId, succe
   const { impl } = mls.getMlsCrypto()
   await ensureMlsOwnerBackfilled(commit, ws, roomId, impl)
 
-  const room = ws.rooms.find(r => r.id === roomId)
+  const room = ws.rooms.find((r) => r.id === roomId)
 
   // If the owner leaves, ownership must transfer to a designated successor
   // (the UI only offers admins). Broadcast the role change before departing so
@@ -1297,7 +1359,7 @@ export async function leaveMlsGroup({ commit, state, dispatch }, { roomId, succe
         throw new Error('The new owner must be an admin')
       }
       const admins = (room.admins || [])
-        .filter(a => a !== successorPubKey)
+        .filter((a) => a !== successorPubKey)
         .concat((room.admins || []).includes(ws.keys.pubKeyHex) ? [ws.keys.pubKeyHex] : [])
       const meta = { owner: successorPubKey, admins }
       applyRoomRoles(commit, ws, roomId, meta)
@@ -1312,7 +1374,7 @@ export async function leaveMlsGroup({ commit, state, dispatch }, { roomId, succe
   } catch (err) {
     console.warn('[MLS] leaveMlsGroup: failed to load state from IndexedDB:', err.message)
   }
-  if (!clientState && ws.mls.groupStates[mlsGroupIdHex]) {
+  if (!clientState && ws.mls.groupStates?.[mlsGroupIdHex]) {
     clientState = ws.mls.groupStates[mlsGroupIdHex]
   }
 
@@ -1326,7 +1388,7 @@ export async function leaveMlsGroup({ commit, state, dispatch }, { roomId, succe
       } catch (err) {
         console.warn('[MLS] leaveMlsGroup: failed to load state from IndexedDB:', err.message)
       }
-      if (!lockedState && ws.mls.groupStates[mlsGroupIdHex]) {
+      if (!lockedState && ws.mls.groupStates?.[mlsGroupIdHex]) {
         lockedState = ws.mls.groupStates[mlsGroupIdHex]
       }
       if (!lockedState) return
@@ -1335,16 +1397,13 @@ export async function leaveMlsGroup({ commit, state, dispatch }, { roomId, succe
       if (ownLeaf === -1) return
 
       // Publish the self-remove commit with retries. Local state must only be
-      // torn down once the commit is on the relay — otherwise other members
-      // still see us in the tree while we have no state to process future
-      // messages, which desyncs permanently.
+      // torn down once the commit is on the relay.
       let published = false
       let lastErr = null
       for (let attempt = 1; attempt <= 3 && !published; attempt++) {
         try {
           const { newState, commit: commitMsg } = await mls.removeMlsMember(lockedState, ownLeaf, impl)
-          const commitEvent = mls.buildMlsNostrEvent(commitMsg, 30118, mlsGroupIdHex, roomId, ws.keys.pubKeyHex, mlsMemberPubkeys(lockedState))
-          const signedCommit = finalizeEvent(commitEvent, hexToBytes(ws.keys.privKeyHex))
+          const signedCommit = await buildSignedNipEeGroupEvent(lockedState, commitMsg)
           const result = await relayService.publishEvent(state.relays, signedCommit)
           if (!result.accepted.length) throw new Error(result.errors[0]?.reason || 'relay rejected the commit')
           markRecentlySent(signedCommit.id)
@@ -1372,15 +1431,4 @@ export async function leaveMlsGroup({ commit, state, dispatch }, { roomId, succe
     commit('REMOVE_ROOM', roomId)
   }
   await deleteRoomOnServer(roomId)
-}
-
-// ---- Helpers ----
-
-function base64ToBytes(str) {
-  const bin = atob(str)
-  const bytes = new Uint8Array(bin.length)
-  for (let i = 0; i < bin.length; i++) {
-    bytes[i] = bin.charCodeAt(i)
-  }
-  return bytes
 }

@@ -785,7 +785,7 @@ export async function fetchHistoricalMessages ({ state, dispatch, commit }) {
         try {
           const { unwrapGiftWrap } = await import('src/wallet/nostr')
           const { rumor, sealPubkey } = unwrapGiftWrap(event, ws.keys.privKeyHex)
-          dispatch('receiveMessage', { rumor, sealPubkey, isHistorical: true })
+          dispatch('receiveMessage', { rumor, sealPubkey, isHistorical: true, giftWrap: event })
         } catch (err) {
           console.warn('[Nostr] Failed to unwrap historical gift-wrap:', err)
         }
@@ -1896,7 +1896,7 @@ export async function rejoinGroup ({ commit, dispatch, state }, { roomId }) {
       try {
         const { unwrapGiftWrap } = await import('src/wallet/nostr')
         const { rumor, sealPubkey } = unwrapGiftWrap(event, ws.keys.privKeyHex)
-        dispatch('receiveMessage', { rumor, sealPubkey })
+        dispatch('receiveMessage', { rumor, sealPubkey, giftWrap: event })
       } catch (err) {
         console.warn('[Nostr] Failed to unwrap gift-wrap:', err)
       }
@@ -2305,7 +2305,7 @@ export async function publishGiftWraps ({ state }, { giftWraps }) {
   await relayService.publish(Array.from(targetRelays), giftWraps)
 }
 
-export function receiveMessage ({ commit, dispatch, state }, { rumor, sealPubkey, isHistorical = false }) {
+export function receiveMessage ({ commit, dispatch, state }, { rumor, sealPubkey, isHistorical = false, giftWrap = null }) {
   const ws = getWalletState(state)
   if (!ws.keys?.pubKeyHex) return
 
@@ -2319,6 +2319,13 @@ export function receiveMessage ({ commit, dispatch, state }, { rumor, sealPubkey
   }
 
   const myPubKey = ws.keys.pubKeyHex
+
+  // NIP-EE MLS welcomes arrive as unsigned kind-444 rumors inside gift wraps;
+  // route them to the MLS pipeline instead of NIP-17 DM handling.
+  if (rumor.kind === 444) {
+    dispatch('receiveMlsWelcomeRumor', { giftWrap, welcomeRumor: rumor })
+    return
+  }
 
   // Handle Kind 7 read receipts (👀 reactions)
   if (rumor.kind === 7 && rumor.content === '👀') {
@@ -2790,7 +2797,7 @@ export function subscribeToRelays ({ state, dispatch, commit }) {
       try {
         const { unwrapGiftWrap } = await import('src/wallet/nostr')
         const { rumor, sealPubkey } = unwrapGiftWrap(event, ws.keys.privKeyHex)
-        dispatch('receiveMessage', { rumor, sealPubkey })
+        dispatch('receiveMessage', { rumor, sealPubkey, giftWrap: event })
       } catch (err) {
         console.warn('[Nostr] Failed to unwrap gift-wrap:', err)
       }

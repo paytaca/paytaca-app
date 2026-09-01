@@ -57,6 +57,7 @@ export function getInitialWalletState () {
       keyPackage: null, // { serialized, credentialIdentity, publishedAt }
       groupStates: {}, // { [mlsGroupIdHex]: serialized ClientState }
       roomMlsMap: {}, // { [roomId]: mlsGroupIdHex }
+      roomMlsNostrMap: {}, // { [roomId]: nostrGroupIdHex } — NIP-EE public group id used in kind-445 h tags
       pendingInvitations: {}, // { [roomId]: { roomId, inviterPubKey, name, welcomeEvent } }
       declinedWelcomeIds: {}, // { [welcomeEventId]: timestamp } — never re-surface these invites
       failedEventAttempts: {}, // { [eventId]: { count, lastError, lastAttemptAt } } — undecodable MLS events; dropped after MAX_EVENT_PROCESS_ATTEMPTS
