@@ -33,11 +33,18 @@ const NOBLE_ED25519 = {
 // Math.random(), which makes the KeyPackage bytes non-deterministic across
 // app runs. That breaks key-package ref matching (the welcome can never be
 // decrypted). Using a fixed set keeps every generated KeyPackage byte-stable.
+//
+// extensions: [0xf2ee] and proposals: [2 (update)] advertise NIP-EE/Marmot
+// compatibility: nostr_group_data must be advertised so we can join OPTN
+// groups that require it, and our own groups require it via
+// required_capabilities. Numeric extension/proposal types are used because
+// 0xf2ee has no named constant in stock ts-mls.
+export const NOSTR_GROUP_DATA_EXT_TYPE = 0xf2ee
 const FIXED_CAPABILITIES = {
   versions: ['mls10'],
   ciphersuites: Object.keys(ciphersuites),
-  extensions: [],
-  proposals: [],
+  extensions: [NOSTR_GROUP_DATA_EXT_TYPE],
+  proposals: [2],
   credentials: ['basic', 'x509'],
 }
 
