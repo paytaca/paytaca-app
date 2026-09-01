@@ -65,10 +65,28 @@ export async function removeApiKey(keyId) {
  * @param {string} keyId
  * @returns {Promise<string|null>} Full key string
  */
-export async function getApiKeyById(walletHash, keyId) {
+export async function getApiKeyById(keyId) {
+  const walletHash = getWalletHash()
   const keys = await getApiKeys(walletHash)
   const found = keys.find(k => k.id === keyId)
   return found?.key || null
+}
+
+/**
+ * Update API key with the new name
+ * @param {string} keyId
+ * @param {string} newName
+ */
+export async function updateKeyName(keyId, newName) {
+    const walletHash = getWalletHash()
+    const allKeys = await _getAllKeys()
+    const walletKeys = allKeys[walletHash] || []
+    const found = walletKeys.find(k => k.id === keyId)
+    if (found) {
+        found.name = newName
+        allKeys[walletHash] = walletKeys
+        await SecureStoragePlugin.set({ key: STORAGE_KEY, value: JSON.stringify(allKeys) })
+    }
 }
 
 // Private helper
@@ -147,7 +165,8 @@ export async function fetchAPIKeys(data) {
 
       let params = {
         page: data.page || 1,
-        page_size: data.pageSize || 10
+        page_size: data.pageSize || 10,
+        is_active: data.isActive || true // unrevoked keys
       }
 
       const response = await backend.get(baseURL + '/ai-admin/api-keys', { params: params, headers: headers})
@@ -308,6 +327,46 @@ export async function fetchModelDetails(modelID) {
     } catch (error) {
       const errorMessage = error.response?.data?.message || error.message || 'Failed to fetch model details'
 			console.error('[fetchModelDetails] Error:', errorMessage)
+
+      if (attempt === MAX_AUTH_RETRIES) {
+        return {
+          success: false,
+          data: null,
+          error: `Network error: ${errorMessage}`
+        }
+      }
+    }
+  }
+}
+
+// Update Keyname
+export async function updateAPIKey(uuid, name) {
+  const walletHash = getWalletHash()
+
+  if (!walletHash) {
+    return { success: false, data: null, error: 'Wallet hash not available' }
+  }
+
+  for (let attempt = 0; attempt <= MAX_AUTH_RETRIES; attempt++) {
+    try {
+      let headers = {
+        "X-Wallet-Hash": walletHash
+      }
+
+      const payload = { 
+        name: name
+      }
+
+      const response = await backend.patch(baseURL + '/api-keys/' + uuid, payload, { headers: headers })
+
+      return {
+        success: true,
+        data: response.data,
+        error: null
+      }
+    } catch (error) {
+      const errorMessage = error.response?.data?.message || error.message || 'Failed to update API key name'
+      console.error('[updateAPIKey] Error:', errorMessage)
 
       if (attempt === MAX_AUTH_RETRIES) {
         return {

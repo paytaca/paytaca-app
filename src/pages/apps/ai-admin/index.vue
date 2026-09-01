@@ -14,7 +14,7 @@
                     darkMode ? 'dark' : '',
                     tabButtonClass('api-keys'),
                     `theme-${theme}`,
-                    { 'disabled': !isloaded }
+                    { 'disabled': !isloaded || contentLoading }
                     ]"
                     :style="activeTab === 'api-keys' ? `background-color: ${getThemeColor()} !important; color: #fff !important;` : ''"
                     :disabled="!isloaded"
@@ -29,7 +29,7 @@
                     darkMode ? 'dark' : '',
                     tabButtonClass('sessions'),
                     `theme-${theme}`,
-                    { 'disabled': !isloaded }
+                    { 'disabled': !isloaded || contentLoading }
                     ]"
                     :style="activeTab === 'sessions' ? `background-color: ${getThemeColor()} !important; color: #fff !important;` : ''"
                     :disabled="!isloaded"
@@ -50,6 +50,7 @@
 
 <script>
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
+import { bus } from 'src/wallet/event-bus.js'
 import HeaderNav from 'src/components/header-nav.vue'
 
 export default {
@@ -57,7 +58,8 @@ export default {
         return {
             darkMode: this.$store.getters['darkmode/getStatus'],
             activeTab: 'api-keys',
-            isloaded: true
+            isloaded: false,
+            contentLoading: false 
         }
     },
     computed: {
@@ -68,10 +70,14 @@ export default {
     components: {
         HeaderNav
     },
+    async created () {
+      bus.on('ai-admin:loading', this.onContentLoading)
+    },
+    beforeUnmount () {
+        bus.off('ai-admin:loading', this.onContentLoading)
+    },
     mounted () {
         const vm = this
-        const minSkeletonMs = 400
-        const startTs = Date.now()
 
         console.log('route name: ' + vm.$route.name)
 
@@ -79,6 +85,8 @@ export default {
         if (vm.$route.name === 'app-ai-admin') {
             vm.$router.replace({ name: 'ai-admin-keys' })
         }
+
+        vm.isloaded = true
     },
     methods: {
         getDarkModeClass,
@@ -102,6 +110,9 @@ export default {
                 this.$router.replace({ name: 'ai-admin-sessions' })
             }
         },
+        onContentLoading (isLoading) {
+            this.contentLoading = isLoading
+        }
     }
 }
 </script>
@@ -167,6 +178,12 @@ export default {
       background-color: rgba(255, 255, 255, 0.08);
     }
   }
+}
+
+.ai-admin-tab.disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+    pointer-events: none;
 }
 
 // Theme-based active tab styles
