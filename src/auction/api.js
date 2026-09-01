@@ -44,8 +44,8 @@ export async function callAPI(pathname, id=null, method="get", payload=null, arg
       }
     }
   } 
-  // Print entire url
-  console.log(apiURL)
+  // Print entire url (for testing/debugging)
+  console.log(apiURL) 
 
   // Init return data
   let success = false;
@@ -60,7 +60,6 @@ export async function callAPI(pathname, id=null, method="get", payload=null, arg
       (method === "put") ? await backend.put(apiURL, payload, { headers }) :
       (method === "patch") ? await backend.patch(apiURL, payload, { headers }) :
     await backend.delete(apiURL, { headers }) 
-    console.log("[callAPI] Response generated.")
 
     // Update apiCall return data
     data = response.data
@@ -95,7 +94,6 @@ export async function callAPI(pathname, id=null, method="get", payload=null, arg
       errorMessage = 'Unexpected error occurred.'
       Store.commit('setHasNetworkError', false)
     }
-    console.error("[callAPI] " + errorMessage)
 
     // Update apiCall return data
     success = false
