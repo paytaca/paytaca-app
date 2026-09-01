@@ -28,7 +28,7 @@ export async function refreshCatalog({ commit }) {
       commit('setListings', allAuctions)
     }
   } catch (error) {
-    apiErrorHandler('filterAuctionItems', error, commit)
+    console.error(`[actions:refreshCatalog] Error encountered: `, error)
   }
 }
 
@@ -75,7 +75,7 @@ export async function fetchMyBiddings({ commit }) {
       lots = (await Promise.all(lotPromises)).filter(Boolean)
     }
   } catch (error) {
-    apiErrorHandler('fetchMyBiddings', error, commit)
+    console.error(`[actions:fetchMyBiddings] Error encountered: `, error)
     lots = []
   }
 
@@ -104,7 +104,7 @@ export async function fetchUsername({ commit }) {
       commit('hasNetworkError', false) // no network error
     }
   } catch (error) {
-    apiErrorHandler('fetchUsername', error, commit)
+    console.error(`[actions:fetchUsername] Error encountered: `, error)
   } 
 }
 
@@ -123,12 +123,12 @@ export async function fetchArbiterPublicKey({ commit }) {
       commit('setArbiterPublicKey', arbiterPk)
     }
   } catch (error) {
-    apiErrorHandler('fetchArbiterPublicKey', error, commit)
+    console.error(`[actions:fetchArbiterPublicKey] Error encountered: `, error)
   } 
 }
 
 // Fetching ServicerPK for contract instantiation/creation
-export async function fetchServicerPublicKey({ commit }) {
+export async function fetchServicerPublicKey({ commit, getters }) {
   try {
     const response = await callAPI('servicer-pk')
     if (response && response.success) {
@@ -136,31 +136,6 @@ export async function fetchServicerPublicKey({ commit }) {
       commit('setServicerPublicKey', servicerPk)
     }
   } catch (error) {
-    apiErrorHandler('fetchServicerPublicKey', error, commit)
+    console.error(`[actions:fetchServicerPublicKey] Error encountered: `, error)
   } 
-}
-
-/* 
-================
-HELPER FUNCTIONS
-================
-*/
-
-// Handles api-related errors (different actions per type of error)
-function apiErrorHandler(functionName, error, commit) {
-  if(error.response) {
-    // API WORKING (no match found)
-    console.error(`[actions:${functionName}] API Sync Error inside ${functionName}: `, error)
-    commit('hasNetworkError', false)
-    return
-  } else if(error.request) {
-    // API NOT WORKING (network error)
-    console.error(`[actions:${functionName}] Network error encountered. Possibly not connected to API: `, error)
-    commit('hasNetworkError', true) // network error occurred
-    return
-  } 
-
-  // Something happened b4 the request was sent
-  console.error(`[actions:${functionName}] An error occurred before executing fetchServicerPublicKey:`, error)
-  commit('hasNetworkError', false)
 }
