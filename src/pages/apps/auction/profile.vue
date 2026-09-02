@@ -94,10 +94,12 @@ const darkMode = computed(() => $store.getters['darkmode/getStatus'])
 const isLoading = ref(true)
 
 // Username
+const storedUsername = computed(() => $store.getters['auction/username'])
 const username = ref('')
 
 // Mounts the username (if it exists)
 onMounted(async () => {
+  console.log('bruh')
   username.value = $store.getters['auction/username']
   if (!username.value) console.error('No existing profile username saved.')
   isLoading.value = false
@@ -113,7 +115,7 @@ const handleEditUserProfile = async () => {
     const credentials = await deriveOAuthCredentials()
 
     // api data
-    const method = username.value ? 'patch' : 'post'
+    const method = storedUsername.value ? 'patch' : 'post'
     const data = {
         username: username.value,
         ...(method === 'post' && { user: walletHash } ),
@@ -121,7 +123,7 @@ const handleEditUserProfile = async () => {
       } 
 
     const response = await callAPI(
-      `user-details ${method === 'post' ? `/${walletHash}/update` : '' }`, 
+      `user-details${method === 'post' ? '' : `/${walletHash}/update`}`, 
       null, 
       method, 
       data
