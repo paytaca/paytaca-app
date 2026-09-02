@@ -101,7 +101,7 @@ export async function fetchUsername({ commit }) {
       // Set the user info like username and if they're an arbiter
       commit('setUsername', response.data.username)
       commit('setIsArbiter', response.data.is_arbiter)
-      commit('hasNetworkError', false) // no network error
+      commit('setHasNetworkError', false) // no network error
     }
   } catch (error) {
     console.error(`[actions:fetchUsername] Error encountered: `, error)
