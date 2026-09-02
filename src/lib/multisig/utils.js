@@ -433,18 +433,30 @@ export const deriveHdKeysFromMnemonic = ({ mnemonic, network, hdPath }) => {
  * @returns {boolean} True if signature is valid, otherwise false.
  */
 export const verifyTransactionInputSignature = ({ signature, publicKey, redeemScript, context }) => {
-  const sigHashFlag = signature.slice(-1)[0]
+  let normalizedSig = signature
+  if (typeof(normalizedSig) === 'string') {
+    if (!/^[0-9a-fA-F]+$/.test(normalizedSig) || normalizedSig.length % 2 !== 0) {
+      return false
+    }
+    normalizedSig = hexToBin(normalizedSig)
+  }
+
+  if (!(normalizedSig instanceof Uint8Array) || normalizedSig.byteLength === 0) {
+    return false
+  }
+
+  const sigHashFlag = normalizedSig.slice(-1)[0]
   const signingSerialization = generateSigningSerializationBch(context, { 
     coveredBytecode: redeemScript, 
     signingSerializationType: new Uint8Array([sigHashFlag]) // Uint8Array([65]) for allOutputs
   })
   const sigHash = hash256(signingSerialization)
-  let signatureFormat = signature.length > 65 ? 'ecdsa' : 'schnorr'
+  let signatureFormat = normalizedSig?.length > 65 ? 'ecdsa' : 'schnorr'
   if (signatureFormat === 'schnorr') {
-    const signatureVerificationResult = secp256k1.verifySignatureSchnorr(signature.slice(0, 64), publicKey, sigHash)
+    const signatureVerificationResult = secp256k1.verifySignatureSchnorr(normalizedSig.slice(0, 64), publicKey, sigHash)
     return signatureVerificationResult
   }
-  return secp256k1.verifySignatureDERLowS(signature.slice(0, signature.length - 1), publicKey, sigHash)
+  return secp256k1.verifySignatureDERLowS(normalizedSig.slice(0, normalizedSig.length - 1), publicKey, sigHash)
 }
 
 /**
@@ -454,7 +466,7 @@ export const verifyTransactionInputSignature = ({ signature, publicKey, redeemSc
  * @param {Object} params - The verification parameters.
  * @param {string} params.transaction - Unsigned transaction hex string.
  * @param {Array<Object>} params.inputs - Array of input objects, each optionally containing:
- *   @param {Object.<string, Uint8Array>} [params.inputs.signatures] - Object mapping public key hex strings to their corresponding signatures.
+ *   @param {Object.<string, Uint8Array|string>} [params.inputs.signatures] - Object mapping public key hex strings to their corresponding signatures.
  *   @param {Uint8Array} [params.inputs.redeemScript] - The redeem script associated with each input.
  *   @param {SourceOutput} params.inputs.sourceOutput
  *
@@ -475,7 +487,7 @@ export const verifyTransactionInputsSignature = ({ transaction, inputs }) => {
         return
       }
       const sigVerifyResult = verifyTransactionInputSignature({ 
-        signature, 
+        signature,
         publicKey: hexToBin(publicKey),
         redeemScript,
         context: {
