@@ -433,7 +433,7 @@ export default {
           iconName: 'img:auction.png',
           path: '/apps/auction',
           iconStyle: 'width:100%; height: 100%;',
-          active: !this.$store.getters['global/isChipnet'],
+          active: true, //!this.$store.getters['global/isChipnet'],
           beta: true,
           category: 'beta'
         },
