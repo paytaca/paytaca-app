@@ -1,7 +1,6 @@
 <template>
   <!--
-    This page only contains setting up the username. The BCH address for this Auction app
-    is derived from the 'deriveOAuthCredentials' function from 'src/auction/bch-oauth'.
+    This page contains setting up the username. 
   -->
   <div
     id="app-container"
@@ -97,18 +96,23 @@ const isLoading = ref(true)
 // Username
 const username = ref('')
 
+// Mounts the username (if it exists)
 onMounted(async () => {
   username.value = $store.getters['auction/username']
   if (!username.value) console.error('No existing profile username saved.')
   isLoading.value = false
 })
 
+// Handles any username updates
 const handleEditUserProfile = async () => {
+  // Show loading screen while it processes
   isLoading.value = true
+
   try {
     const walletHash = Store.getters['global/getWallet']('bch')?.walletHash
     const credentials = await deriveOAuthCredentials()
 
+    // api data
     const method = username.value ? 'patch' : 'post'
     const data = {
         username: username.value,
@@ -125,6 +129,7 @@ const handleEditUserProfile = async () => {
 
     const timeout = 3000
     if (response.success) {
+      // Nice!
       $q.notify({
         type: 'positive',
         message: `User profile ${method === 'post' ?  'created' : 'updated'}!` ,
@@ -133,6 +138,8 @@ const handleEditUserProfile = async () => {
 
       $router.push('/apps/auction')
     } else {
+      // Couldn't save the username to database
+      // Notify based if it was a network error or something else
       const hasNetworkError = $store.getters['auction/hasNetworkError']
       $q.notify({
         type: 'negative',
@@ -141,11 +148,14 @@ const handleEditUserProfile = async () => {
       })
     }
   } catch (err) {
+    // Something unexpected occurred
     $q.notify({ 
       type: 'negative', 
       message: err.message || 'Something went wrong.' 
     })
   }
+
+  // End loading screen
   isLoading.value = false
 }
 </script>
