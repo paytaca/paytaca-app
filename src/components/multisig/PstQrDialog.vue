@@ -20,7 +20,7 @@
           Scan the Animated QR from your device
         </div>
         <div class="flex flex-center q-mt-md">
-          <img v-if="currentQr" :src="currentQr" style="width: 330px; height: 330px" class="br-15"/>
+          <img v-if="currentQr" :src="currentQr" style="width: 100%; max-width: 340px; height: auto" class="br-15"/>
         </div>
         <div class="q-pa-md">
           <q-linear-progress rounded size="1.5em" :value="progress" color="secondary" class="q-mt-sm" >
@@ -43,10 +43,11 @@
 
 <script setup>
 import { ref, onMounted, onBeforeUnmount, computed } from "vue";
-import { useDialogPluginComponent } from "quasar";
+import { useDialogPluginComponent, useQuasar } from "quasar";
 import { useI18n } from 'vue-i18n'
 import { getDarkModeClass } from "src/utils/theme-darkmode-utils";
 const { t: $t } = useI18n()
+const $q = useQuasar()
 import { base64ToBin } from "bitauth-libauth-v3";
 import { UR, UREncoder } from "@ngraveio/bc-ur";
 import { Pst } from 'src/lib/multisig'
@@ -77,7 +78,7 @@ async function prepareBase64Chunks() {
     const buffer = Buffer.from(base64ToBin(base64Psbt), 'base64');
     const ur = new UR(buffer, "crypto-psbt");
     
-    const chunkSize = 150; 
+    const chunkSize = 100; 
     encoder.value = new UREncoder(ur, chunkSize);
     return encoder.value?.fragments?.length;
   } catch (error) {
@@ -130,7 +131,7 @@ function qrToString(text) {
     const qrcode = new QRCode({
       content: text,
       ecl: "Q",   
-      padding: 4, 
+      padding: 6, 
       join: true,
       swap: true
     });
