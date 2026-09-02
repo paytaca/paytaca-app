@@ -8,7 +8,7 @@
     class="auction-container"
     :class="getDarkModeClass(darkMode)"
   >
-    <HeaderNav :title="$t('Profile')" backnavpath="/apps/auction" class="header-nav">
+    <HeaderNav :title="$t('Auction Profile')" :backnavpath="username ? '/apps/auction' : '/apps'" class="header-nav">
       <template v-slot:top-right-menu>
         <AuctionHeaderMenu />
       </template>
@@ -85,62 +85,67 @@ import { deriveOAuthCredentials } from 'src/auction/bch-oauth'
 import HeaderNav from 'src/components/header-nav.vue'
 import AuctionHeaderMenu from 'src/components/auction/AuctionHeaderMenu.vue'
 
+// Quasar-related variables
 const $q = useQuasar()
 const $store = useStore()
 const $router = useRouter()
-const darkMode = computed(() => $store.getters['darkmode/getStatus'])
 
-const username = ref('')
+// System variables
+const darkMode = computed(() => $store.getters['darkmode/getStatus'])
 const isLoading = ref(true)
 
+// Username
+const username = ref('')
+
 onMounted(async () => {
-  try {
-    if ($store.getters['auction/username']) {
-      username.value = $store.getters['auction/username']
-    }
-  } catch (err) {
-    console.error('Failed to fetch existing profile username:', err)
-  } finally {
-    isLoading.value = false
-  }
+  username.value = $store.getters['auction/username']
+  if (!username.value) console.error('No existing profile username saved.')
+  isLoading.value = false
 })
 
 const handleEditUserProfile = async () => {
+  isLoading.value = true
   try {
     const walletHash = Store.getters['global/getWallet']('bch')?.walletHash
     const credentials = await deriveOAuthCredentials()
-    const method = $store.getters['auction/username'] ? 'patch' : 'post'
 
-    let response
-
-    if (method === 'post') {
-      response = await callAPI('user-details', null, method, {
+    const method = username.value ? 'patch' : 'post'
+    const data = {
         username: username.value,
-        user: walletHash,
-        address: credentials.address
-      })
-    } else {
-      response = await callAPI(`user-details/${walletHash}/update`, null, method, { username: username.value })
-    }
+        ...(method === 'post' && { user: walletHash } ),
+        ...(method === 'post' && { address: credentials.address } )
+      } 
 
+    const response = await callAPI(
+      `user-details ${method === 'post' ? `/${walletHash}/update` : '' }`, 
+      null, 
+      method, 
+      data
+    )
+
+    const timeout = 3000
     if (response.success) {
       $q.notify({
         type: 'positive',
-        message: $store.getters['auction/username'] ? 'User profile updated!' : 'User profile created!',
-        timeout: 3000
+        message: `User profile ${method === 'post' ?  'created' : 'updated'}!` ,
+        timeout
       })
 
       $router.push('/apps/auction')
     } else {
+      const hasNetworkError = $store.getters['auction/hasNetworkError']
       $q.notify({
         type: 'negative',
-        message: 'Username already exists!',
-        timeout: 3000
+        message: hasNetworkError ? 'Network error occurred. Please try again.' : 'Username already exists!',
+        timeout
       })
     }
   } catch (err) {
-    console.error(err)
-    $q.notify({ type: 'negative', message: err.message || 'Something went wrong.' })
+    $q.notify({ 
+      type: 'negative', 
+      message: err.message || 'Something went wrong.' 
+    })
   }
+  isLoading.value = false
 }
 </script>

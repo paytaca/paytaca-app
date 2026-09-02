@@ -109,8 +109,7 @@
                   {{ getAuctionStatusInfo(auction).label }}
                 </q-chip>
               </div>
-              
-
+            
               <q-card-section class="q-py-sm">
                 <q-chip
                   dense
@@ -168,122 +167,94 @@ import AuctionSearch from 'src/components/auction/AuctionSearch.vue'
 import noImage from 'src/assets/no-image.svg'
 import { callIndexAuctionWebsocket } from 'src/auction/websocket'
 
-const $q = useQuasar()
+// Quasar-related variables
 const $store = useStore()
 const $router = useRouter()
 
-const auctionType = ref($store.state.auction?.auctionType || 'All');
-const auctionTypeOptions = ['English', 'Dutch', 'All']
-
+// System variables
 const darkMode = computed(() => $store.getters['darkmode/getStatus'])
 const isLoading = ref(false)
 const isCheckingAccess = ref(true)
+
+// Websocket-related
+let socket = null
+
 
 let isMounted = true
 onUnmounted(() => {
   isMounted = false
 })
 
-let socket = null
 
 onMounted(async () => {
-  let usernameFetchWasCancelled = false
-  try {
-    await $store.dispatch('auction/fetchUsername')
-  } catch (err) {
-    console.log(err)
-    const isCancelled =
-      err?.name === 'AbortError' ||
-      err?.name === 'CanceledError' ||
-      err?.code === 'ERR_CANCELED' ||
-      err?.message === 'canceled' ||
-      err?.message === 'Request aborted'
+  isLoading.value = true // try here muna
 
-    if (isCancelled) {
-      console.warn('fetchUsername was cancelled, likely due to navigation:', err)
-      usernameFetchWasCancelled = true
-    } else {
-      console.error('fetchUsername failed:', err)
-    }
+  // Fetch username and if it doesn't exist, print the error
+  await $store.dispatch('auction/fetchUsername')
+  const username = $store.getters['auction/username']
+  if (!username) {
+    // Route to username/profile page
+    console.warn('User details missing, redirecting...')
+    $router.push({ name: 'app-auction-profile' })
+    return
   }
 
+  // REVIEW
   if (!isMounted) return
 
-  if ($store.getters['auction/isArbiter']) {
+  // Reroute user to arbiter page if they're an assigned arbiter
+  const isUserArbiter = $store.getters['auction/isArbiter']
+  if (isUserArbiter) {
     $router.push({ name: 'app-auction-appeals' })
     return
   }
 
-  isCheckingAccess.value = false
-  isLoading.value = true
+  //isLoading.value = true 
 
-  await Promise.all([
-    $store.dispatch('auction/refreshCatalog'),
-    $store.dispatch('auction/fetchArbiterPublicKey'),
-    $store.dispatch('auction/fetchServicerPublicKey'),
-  ])
+  // Check if the arbiterPK and servicerPK are not null (prevents dispatching it every time)
+  const arbiterPK = $store.getters['auction/arbiterPublicKey']
+  const servicerPK = $store.getters['auction/servicerPublicKey']
 
-  if (!isMounted) return
-
-  if (!usernameFetchWasCancelled && !$store.getters['auction/username']) {
-    console.warn('User details missing, redirecting...')
-    $router.push({ name: 'app-auction-profile' })
-  } else {
-    let reconnectAttempts = 0
-    let maxReconnectAttempts = 10
-    const connectWebsocket = () => {
-      const ws = callIndexAuctionWebsocket()
-      ws.onopen = () => {
-        console.log("Connected to the index websocket!")
-      };
-
-      ws.onmessage = (event) => {
-        const { type, data } = JSON.parse(event.data)
-
-        switch (type) {
-          // update a specific auction's status
-          case "auction.refresh_page":
-            refresh()
-            break
-
-          default:
-            console.warn("Unknown websocket message:", type, data)
-        }
-        console.log(data)
-      }
-
-      ws.onclose = (event) => {
-        console.log("Disconnected from the index auction websocket!")
-        if (!event.wasClean && reconnectAttempts < maxReconnectAttempts) {
-          const delay = Math.min(1000 * 2 ** reconnectAttempts, 30000)
-          reconnectAttempts++
-          setTimeout(connectWebsocket, delay)
-        }
-      };
-
-    ws.onerror = (event) => {
-      console.error("Index websocket error:", event)
-    }
-      return ws
-    }
-    socket = connectWebsocket()
-  }
+  // Only dispatch if arbiterPK/servicerPK are null
+  if (!arbiterPK) await $store.dispatch('auction/fetchArbiterPublicKey')
+  if (!servicerPK) await $store.dispatch('auction/fetchServicerPublicKey')
   
+  // Refresh the list of auctions
+  await $store.dispatch('auction/refreshCatalog')
+ 
+  
+  // REVIEW
+  //if (!isMounted) return
+
+   //else {
+    // Yay! Username was saved. Time to set up the websockets.
+    
+    // Connect to the websocket
+    socket = connectWebsocket()
+  //}
+  
+  // Done loading the page
   isLoading.value = false
 })
 
 onBeforeUnmount(() => {
-  if (socket) {
-    console.log('unmounting')
-    socket.close()
-    socket.onmessage = null
-    socket.onopen = null
-    socket.onerror = null
-    socket.onclose = null
-  }
+  clearSocket()
 })
 
+/*
+===============
+AUCTION-RELATED
+=============== 
+*/
+
+// Auction filter options
+const auctionTypeOptions = ['English', 'Dutch', 'All']
+
+// Auction ref variables
+const auctionType = ref($store.getters['auction/auctionType']);
 const auctionSearchQuery = ref('')
+
+// Filters the auction items
 const filteredItems = computed(() => {
   let items = $store.getters['auction/processedItems'] || []
   
@@ -297,6 +268,7 @@ const filteredItems = computed(() => {
   return items
 })
 
+// Counts if
 const isAuctionEmpty = computed(() => {
   return !isLoading.value && filteredItems.value.length === 0
 })
@@ -308,18 +280,91 @@ const getAuctionStatusInfo = (auction) => {
   return { label: 'NaN', color: 'purple' };
 }
 
-const formatAuctionDate = (dateString) => { 
-  if (!dateString) return 'N/A'
-  return date.formatDate(dateString, 'MMM DD, YYYY hh:mm A') 
+const refresh = async (done) => {
+  await $store.dispatch('auction/refreshCatalog')
+  if (typeof done === 'function') done()
 }
 
+// Keep tabs on the auction type so it would filter the items
 watch(auctionType, (newType) => {
   $store.dispatch('auction/filterAuctionItems', newType)
 })
 
-const refresh = async (done) => {
-  await $store.dispatch('auction/refreshCatalog')
-  if (typeof done === 'function') done()
+
+/*
+===================
+WEBSOCKET FUNCTIONS
+===================
+*/
+
+// Websocket (WS)
+const connectWebsocket = () => {
+  let reconnectAttempts = 0
+  let maxReconnectAttempts = 10
+  const ws = callIndexAuctionWebsocket()
+
+  // Upon connection
+  ws.onopen = () => { console.log("Connected to the index websocket!") };
+
+  // Receiving WS messages/data from the server:
+  ws.onmessage = (event) => {
+    const { type, data } = JSON.parse(event.data)
+    switch (type) {
+      // Update a specific auction's status
+      // !!! FIX THIS/REVIEW
+      case "auction.refresh_page":
+        refresh()
+        break
+      
+      // For unexpected WS messages
+      default:
+        console.warn("Unknown websocket message:", type, data)
+    }
+  }
+
+  // Upon disconnection 
+  ws.onclose = (event) => {
+    console.log("Disconnected from the index auction websocket!")
+    
+    // In case it was accidental, make reconnection attempts 
+    if (!event.wasClean && reconnectAttempts < maxReconnectAttempts) {
+      const delay = Math.min(1000 * 2 ** reconnectAttempts, 30000)
+      reconnectAttempts++
+      setTimeout(connectWebsocket, delay)
+    }
+  };
+
+  // If an error occurs with the WS
+  ws.onerror = (event) => {
+    console.error("Index websocket error:", event)
+  }
+
+  return ws
+}
+
+// Close or clear up the socket
+const clearSocket = () => {
+  if (socket) {
+    console.log('Unmounting socket.')
+    socket.close()
+    socket.onmessage = null
+    socket.onopen = null
+    socket.onerror = null
+    socket.onclose = null
+  }
+}
+
+
+/*
+================
+HELPER FUNCTIONS
+================
+*/
+
+// Auction date format
+const formatAuctionDate = (dateString) => { 
+  if (!dateString) return 'N/A'
+  return date.formatDate(dateString, 'MMM DD, YYYY hh:mm A') 
 }
 </script>
 
