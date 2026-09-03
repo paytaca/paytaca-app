@@ -207,10 +207,14 @@ function onConfirm() {
     ? `${contractAddress}?amount=${bchAmount}`
     : contractAddress
 
+  const route = $router.resolve({
+    path: '/apps/payment-hub-subscriptions/',
+    query: { subId: props.subscription?.id }
+  })
   const query = {
     address: addressWithAmount,
     assetId: 'bch',
-    backPath: '/apps/payment-hub-subscriptions/'
+    backPath: route.fullPath,
   }
 
   onDialogOK()
