@@ -17,7 +17,10 @@ function getOrInitWalletState(state, walletHash = null) {
   if (!state.byWallet[hash]) state.byWallet[hash] = getInitialWalletState()
   // Restored state may predate the MLS feature; ensure the mls sub-state exists.
   if (typeof state.byWallet[hash].mls !== 'object' || state.byWallet[hash].mls === null) {
-    state.byWallet[hash].mls = { ready: false, keyPackage: null, groupStates: {}, roomMlsMap: {}, pendingInvitations: {}, declinedWelcomeIds: {}, failedEventAttempts: {}, kpHistory: [] }
+    state.byWallet[hash].mls = { ready: false, keyPackage: null, groupStates: {}, roomMlsMap: {}, roomMlsNostrMap: {}, pendingInvitations: {}, declinedWelcomeIds: {}, failedEventAttempts: {}, kpHistory: [] }
+  }
+  if (typeof state.byWallet[hash].mls.roomMlsNostrMap !== 'object' || state.byWallet[hash].mls.roomMlsNostrMap === null) {
+    state.byWallet[hash].mls.roomMlsNostrMap = {}
   }
   if (!Array.isArray(state.byWallet[hash].mls.kpHistory)) {
     state.byWallet[hash].mls.kpHistory = []
@@ -51,14 +54,21 @@ export function CLEAR_MLS_GROUP_STATE(state, mlsGroupIdHex) {
   if (ws) delete ws.mls.groupStates[mlsGroupIdHex]
 }
 
-export function SET_MLS_ROOM_MAP(state, { roomId, mlsGroupIdHex }) {
+export function SET_MLS_ROOM_MAP(state, { roomId, mlsGroupIdHex, nostrGroupIdHex }) {
   const ws = getOrInitWalletState(state)
-  if (ws) ws.mls.roomMlsMap[roomId] = mlsGroupIdHex
+  if (!ws) return
+  ws.mls.roomMlsMap[roomId] = mlsGroupIdHex
+  if (nostrGroupIdHex) {
+    if (!ws.mls.roomMlsNostrMap) ws.mls.roomMlsNostrMap = {}
+    ws.mls.roomMlsNostrMap[roomId] = nostrGroupIdHex
+  }
 }
 
 export function REMOVE_MLS_ROOM_MAP(state, roomId) {
   const ws = getOrInitWalletState(state)
-  if (ws) delete ws.mls.roomMlsMap[roomId]
+  if (!ws) return
+  delete ws.mls.roomMlsMap[roomId]
+  if (ws.mls.roomMlsNostrMap) delete ws.mls.roomMlsNostrMap[roomId]
 }
 
 export function PUSH_MLS_KP_HISTORY(state, { content, publishedAt }) {

@@ -212,7 +212,7 @@ function reducer(state) {
                       }
                       continue
                     }
-                    if (moduleName === 'nostrChat' && ['deletedRooms', 'blockedContacts', 'blockedGroups'].includes(key)) {
+                    if (moduleName === 'nostrChat' && ['deletedRooms', 'blockedContacts'].includes(key)) {
                       continue
                     }
 
@@ -230,6 +230,7 @@ function reducer(state) {
                         ready: value.ready || false,
                         keyPackage: value.keyPackage || null,
                         roomMlsMap: value.roomMlsMap || {},
+                        roomMlsNostrMap: value.roomMlsNostrMap || {},
                         declinedWelcomeIds: value.declinedWelcomeIds || {},
                         failedEventAttempts: value.failedEventAttempts || {},
                       }
