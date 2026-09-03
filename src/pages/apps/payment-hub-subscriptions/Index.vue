@@ -165,7 +165,7 @@
 <script setup>
 import { ref, computed, onMounted, onBeforeUnmount } from 'vue'
 import { useStore } from 'vuex'
-import { useRouter } from 'vue-router'
+import { useRoute, useRouter } from 'vue-router'
 import { debounce, useQuasar } from 'quasar'
 import { useI18n } from 'vue-i18n'
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
@@ -182,10 +182,15 @@ const props = defineProps({
   plan: {
     type: String,
     required: false,
+  },
+  subId: {
+    type: String,
+    required: false,
   }
 })
 
 const $store = useStore()
+const route = useRoute()
 const $router = useRouter()
 const $q = useQuasar()
 const { t: $t } = useI18n()
@@ -203,9 +208,13 @@ const searchQuery = ref('')
 const statusFilter = ref('ALL')
 const statusOptions = ['ALL', 'ACTIVE', 'PENDING', 'CANCELLED', 'TERMINATED']
 
-onMounted(() => {
+onMounted(async () => {
   if (props.plan) {
+    if (!hub.value) await initHub({ isBackground: true });
     openSubscribeDialog(props.plan)
+  } else if (props.subId) {
+    if (!hub.value) await initHub({ isBackground: true });
+    openDetail({ id: props.subId });
   }
 
   refreshPage()
@@ -242,9 +251,9 @@ async function refreshPage(done = null, showLoading = true) {
   if (showLoading) fetchingData.value = true
   subscriptionsPage.value = 1
   try {
-    const paymentHub = await initHub({ isBackground: true })
+    if (!hub.value) await initHub({ isBackground: true })
     initWebSocket(webSocketEventHandler);
-    const subsData = await paymentHub.listSubscriptions({
+    const subsData = await hub.value.listSubscriptions({
       page: 1,
       customer: true,
       status: statusFilter.value === 'ALL' ? undefined : statusFilter.value,
@@ -297,15 +306,25 @@ async function refetchSubscription(subId) {
   if (index >= 0) subscriptions.value[index] = sub
 }
 
-function openDetail(sub) {
-  $q.dialog({
-    component: SubscriptionDetailDialog,
-    componentProps: { subscriptionId: sub.id, isCustomer: true }
-  }).onOk((payload) => {
-    if (payload?.action === 'cancel_subscription') {
-      cancelSubscription(payload.subscription)
-    }
+function setSubIdParam(subId) {
+  $router.replace({
+    query: { ...route.query, subId: subId }
   })
+}
+function openDetail(sub) {
+  setSubIdParam(sub.id) // this has to be changed before the dialog is opened
+  setTimeout(() => {
+    $q.dialog({
+      component: SubscriptionDetailDialog,
+      componentProps: { subscriptionId: sub.id, isCustomer: true }
+    }).onOk((payload) => {
+      if (payload?.action === 'cancel_subscription') {
+        cancelSubscription(payload.subscription)
+      }
+    }).onDismiss(() => {
+      setSubIdParam(undefined)
+    })
+  }, 300)
 }
 
 async function cancelSubscription(sub) {
