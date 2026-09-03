@@ -16,7 +16,6 @@ export function getInitialWalletState () {
     rooms: [],
     // Server-backed block list caches (re-fetched on init)
     blockedContacts: [],
-    blockedGroups: [],
     // Server-backed deleted room IDs cache (re-fetched on init)
     deletedRooms: [],
     messages: {},

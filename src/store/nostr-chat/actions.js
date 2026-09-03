@@ -56,17 +56,6 @@ function debouncedRefetchRooms (dispatch) {
   }, 2000)
 }
 
-// Fetch group metadata from relay and update the server if a real name is found.
-// Shared by fetchRooms (placeholder recovery) and receiveMessage (new room sync).
-function fetchAndSyncGroupMetadata (dispatch, roomId) {
-  dispatch('fetchGroupMetadata', { roomId }).then(async meta => {
-    if (meta?.name) {
-      await updateRoomOnServer(roomId, { name: meta.name })
-      debouncedRefetchRooms(dispatch)
-    }
-  }).catch(() => {})
-}
-
 function queueRoomTouch (dispatch, roomId, timestamp) {
   _roomTouchPending[roomId] = timestamp
   if (_roomTouchTimers[roomId]) clearTimeout(_roomTouchTimers[roomId])
@@ -1451,7 +1440,7 @@ async function decryptRoomsList (rooms) {
 
 // ── Server-backed room actions ──────────────────────────────────────
 
-export async function fetchRooms ({ commit, dispatch, state }) {
+export async function fetchRooms ({ commit }) {
   try {
     const walletHash = getCurrentWalletHash()
     if (!walletHash) return
@@ -1465,30 +1454,6 @@ export async function fetchRooms ({ commit, dispatch, state }) {
     if (Array.isArray(data.rooms)) {
       const decrypted = await decryptRoomsList(data.rooms)
       commit('SET_ROOMS', decrypted)
-
-      const ws = getWalletState(state)
-
-      // For groups with placeholder names, try to find the real name from
-      // message subject tags, message content, or relay metadata, then
-      // update the server.
-      for (const room of decrypted) {
-        if (room.type === 'group' && (!room.name || room.name === 'Group')) {
-          const msgs = ws.messages[room.id] || []
-          let foundName = null
-
-          // Check for subject field in stored messages (newer messages first)
-          for (let i = msgs.length - 1; i >= 0; i--) {
-            if (msgs[i].subject) { foundName = msgs[i].subject; break }
-          }
-
-          if (foundName) {
-            await updateRoomOnServer(room.id, { name: foundName })
-            debouncedRefetchRooms(dispatch)
-          } else {
-            fetchAndSyncGroupMetadata(dispatch, room.id)
-          }
-        }
-      }
     }
   } catch (err) {
     debug('fetchRooms error:', err)
@@ -1568,20 +1533,19 @@ export async function deleteRoomOnServer (roomId) {
 export async function fetchBlocks ({ commit }) {
   try {
     const walletHash = getCurrentWalletHash()
-    if (!walletHash) return { blockedContacts: [], blockedGroups: [] }
+    if (!walletHash) return { blockedContacts: [] }
     const baseUrl = getWatchtowerBaseUrl()
     const response = await apiGet(baseUrl, `/api/nostr/blocks/?wallet_hash=${walletHash}`)
     if (!response.ok) {
       debug('fetchBlocks failed:', response.status)
-      return { blockedContacts: [], blockedGroups: [] }
+      return { blockedContacts: [] }
     }
     const data = await response.json()
     commit('SET_BLOCKED_CONTACTS', data.blocked_contacts || [])
-    commit('SET_BLOCKED_GROUPS', data.blocked_groups || [])
     return data
   } catch (err) {
     debug('fetchBlocks error:', err)
-    return { blockedContacts: [], blockedGroups: [] }
+    return { blockedContacts: [] }
   }
 }
 
@@ -1614,35 +1578,6 @@ export async function unblockContact ({ commit }, pubKeyHex) {
   }
 }
 
-export async function blockGroup ({ commit }, roomId) {
-  commit('BLOCK_GROUP', roomId)
-  try {
-    const walletHash = getCurrentWalletHash()
-    if (!walletHash) return
-    const baseUrl = getWatchtowerBaseUrl()
-    const response = await apiPost(baseUrl, '/api/nostr/blocks/groups/', {
-      wallet_hash: walletHash,
-      room_id: roomId,
-    })
-    if (!response.ok) debug('blockGroup failed:', response.status)
-  } catch (err) {
-    debug('blockGroup error:', err)
-  }
-}
-
-export async function unblockGroup ({ commit }, roomId) {
-  commit('UNBLOCK_GROUP', roomId)
-  try {
-    const walletHash = getCurrentWalletHash()
-    if (!walletHash) return
-    const baseUrl = getWatchtowerBaseUrl()
-    const response = await apiDelete(baseUrl, `/api/nostr/blocks/groups/${roomId}/`, { wallet_hash: walletHash })
-    if (!response.ok) debug('unblockGroup failed:', response.status)
-  } catch (err) {
-    debug('unblockGroup error:', err)
-  }
-}
-
 export async function createPrivateRoom ({ commit, getters, state }, contactNpub) {
   const ws = getWalletState(state)
   const contact = getters.getContactByNpub(contactNpub)
@@ -1664,104 +1599,6 @@ export async function createPrivateRoom ({ commit, getters, state }, contactNpub
   commit('ADD_ROOM', room)
   await syncRoomToServer(room)
   return room
-}
-
-const MAX_GROUP_MEMBERS = 10
-
-export async function createGroupRoom ({ commit, state }, { name, members, subject }) {
-  const ws = getWalletState(state)
-  const myPubKey = ws.keys.pubKeyHex
-  // Convert any npubs to hex pubkeys
-  const memberHexes = members.map(m => {
-    if (m.startsWith('npub1')) {
-      const decoded = nip19Decode(m)
-      return decoded.data
-    }
-    return m
-  })
-  const allMembers = [...new Set([myPubKey, ...memberHexes])]
-  if (allMembers.length > MAX_GROUP_MEMBERS) {
-    throw new Error(`Group limited to ${MAX_GROUP_MEMBERS} members total`)
-  }
-  const roomId = computeRoomId(allMembers)
-
-  const room = {
-    id: roomId,
-    type: 'group',
-    name: (name || subject || 'Group').slice(0, MAX_ROOM_NAME_LENGTH),
-    members: allMembers,
-    subject: subject || null,
-    createdAt: Math.floor(Date.now() / 1000),
-    updatedAt: Math.floor(Date.now() / 1000),
-  }
-
-  commit('ADD_ROOM', room)
-  await syncRoomToServer(room)
-  return room
-}
-
-export async function publishGroupMetadata ({ state }, { roomId, memberPubKeys, name }) {
-  const ws = getWalletState(state)
-  const myPubKey = ws.keys.pubKeyHex
-  const myPrivKey = ws.keys.privKeyHex
-  if (!myPubKey || !myPrivKey) throw new Error('Not authenticated')
-
-  const privKeyBytes = hexToBytes(myPrivKey)
-  const event = finalizeEvent({
-    kind: 30078,
-    created_at: Math.floor(Date.now() / 1000),
-    tags: [
-      ['d', `paytaca:group:${roomId}`],
-    ],
-    content: JSON.stringify({
-      name: name || null,
-      data: {
-        roomId,
-        members: memberPubKeys,
-        name: name || null,
-      },
-    }),
-  }, privKeyBytes)
-
-  const { accepted } = await relayService.publishEvent(state.relays, event)
-  if (accepted.length === 0) {
-    console.warn('[Nostr] Group metadata was not accepted by any relay')
-  }
-}
-
-export async function fetchGroupMetadata ({ state }, { roomId }) {
-  const event = await relayService.fetchGroupMetadata(state.relays, roomId)
-  if (!event) return null
-  try {
-    const parsed = JSON.parse(event.content || '{}')
-    return parsed?.data || null
-  } catch {
-    return null
-  }
-}
-
-export async function requestToJoinGroup ({ state }, { roomId, memberPubKeys, name }) {
-  const ws = getWalletState(state)
-  const myPubKey = ws.keys.pubKeyHex
-  const myPrivKey = ws.keys.privKeyHex
-  if (!myPubKey || !myPrivKey) throw new Error('Not authenticated')
-
-  const existingMembers = memberPubKeys.filter(pk => pk !== myPubKey)
-  if (!existingMembers.length) throw new Error('No members to send request to')
-
-  const text = `${myPubKey.slice(0, 12)}... wants to join the group`
-  const unsignedKind14 = createUnsignedKind14({
-    content: text,
-    senderPubKey: myPubKey,
-    members: existingMembers,
-    subject: name,
-  })
-
-  const giftWraps = await createNip17GiftWraps(unsignedKind14, myPrivKey, existingMembers)
-
-  await Promise.allSettled(
-    giftWraps.map(gw => relayService.publishEvent(state.relays, gw))
-  )
 }
 
 export async function sendMessage ({ state }, { roomId, text, replyTo, subject }) {
@@ -1841,81 +1678,6 @@ export async function sendEditMessage ({ state }, { roomId, text, editOf }) {
   }
 
   return { giftWraps, message, roomId }
-}
-
-// Leaving a group sends a "left the group" notification to the other members,
-// then marks the group blocked + archived. While blocked, incoming messages
-// targeting the group are dropped in receiveMessage. Rejoining (unblocking)
-// reverses both flags — see components for the unblock flow.
-export async function leaveGroup ({ commit, dispatch, state }, { roomId }) {
-  const ws = getWalletState(state)
-  const room = ws.rooms.find(r => r.id === roomId)
-  if (!room) throw new Error('Room not found')
-
-  const myPub = ws.keys?.pubKeyHex
-  const contact = state.contacts.find(c => c.pubKeyHex === myPub)
-  const myDisplayName = contact?.name || ws.profile?.displayName || 'You'
-
-  const text = `${myDisplayName} left the group`
-  const { giftWraps, message, roomId: msgRoomId } = await dispatch('sendMessage', { roomId, text })
-  commit('ADD_MESSAGE', { roomId: msgRoomId, message })
-  commit('TOUCH_ROOM_LAST_MESSAGE_AT', msgRoomId)
-  await dispatch('publishGiftWraps', { giftWraps })
-
-  await dispatch('blockGroup', roomId)
-  await updateRoomOnServer( roomId, { archived: true })
-  commit('ARCHIVE_ROOM', roomId)
-}
-
-export async function rejoinGroup ({ commit, dispatch, state }, { roomId }) {
-  const ws = getWalletState(state)
-  const room = ws.rooms.find(r => r.id === roomId)
-  if (!room) throw new Error('Room not found')
-
-  await dispatch('unblockGroup', roomId)
-  await updateRoomOnServer( roomId, { archived: false })
-  commit('UNARCHIVE_ROOM', roomId)
-
-  try {
-    const meta = await dispatch('fetchGroupMetadata', { roomId })
-    if (meta?.name) {
-      commit('UPDATE_ROOM_NAME', { roomId, name: meta.name })
-    }
-  } catch {
-    // Non-critical — name stays as-is if fetch fails
-  }
-
-  // Re-fetch messages that arrived while the group was blocked.
-  // The subscription's _seenEventIds already recorded these events
-  // (before receiveMessage dropped them), so clear the cache and
-  // re-subscribe without `since` to re-fetch everything.
-  // ADD_MESSAGE's id-based dedup prevents duplicates.
-  relayService.clearSeenEventIds()
-  relayService.subscribeGiftWraps(state.relays, ws.keys.pubKeyHex, {
-    async onEvent(event) {
-      try {
-        const { unwrapGiftWrap } = await import('src/wallet/nostr')
-        const { rumor, sealPubkey } = unwrapGiftWrap(event, ws.keys.privKeyHex)
-        dispatch('receiveMessage', { rumor, sealPubkey, giftWrap: event })
-      } catch (err) {
-        console.warn('[Nostr] Failed to unwrap gift-wrap:', err)
-      }
-    },
-  }, { force: true })
-
-  try {
-    const myPub = ws.keys?.pubKeyHex
-    const contact = state.contacts.find(c => c.pubKeyHex === myPub)
-    const myDisplayName = contact?.name || ws.profile?.displayName || 'You'
-
-    const text = `${myDisplayName} rejoined the group`
-    const { giftWraps, message, roomId: msgRoomId } = await dispatch('sendMessage', { roomId, text })
-    commit('ADD_MESSAGE', { roomId: msgRoomId, message })
-    commit('TOUCH_ROOM_LAST_MESSAGE_AT', msgRoomId)
-    await dispatch('publishGiftWraps', { giftWraps })
-  } catch (err) {
-    console.warn('[Nostr] Failed to send rejoin notification:', err)
-  }
 }
 
 // ── Room lifecycle actions (sync to server) ──────────────────────────
@@ -2430,19 +2192,15 @@ export function receiveMessage ({ commit, dispatch, state }, { rumor, sealPubkey
     const roomMembers = [...new Set([myPubKey, rumor.pubkey, ...pTags])]
     const roomId = computeRoomId(roomMembers)
 
-    // Drop messages for a group we've left (blocked)
-    if (ws.blockedGroups?.includes(roomId)) return
-
     let room = ws.rooms.find(r => r.id === roomId)
     if (!room) {
       if (ws.blockedContacts?.includes(rumor.pubkey)) return
       if (ws.deletedRooms?.includes(roomId)) return
-      const isGroup = roomMembers.length > 2
       const contact = state.contacts.find(c => c.pubKeyHex === rumor.pubkey)
       room = {
         id: roomId,
-        type: isGroup ? 'group' : 'private',
-        name: isGroup ? '' : (contact?.name || rumor.pubkey.slice(0, 12) + '...'),
+        type: 'private',
+        name: contact?.name || rumor.pubkey.slice(0, 12) + '...',
         members: roomMembers,
         subject: null,
         createdAt: rumor.created_at,
@@ -2453,12 +2211,6 @@ export function receiveMessage ({ commit, dispatch, state }, { rumor, sealPubkey
       // rooms are stored so they appear once the room list is refreshed.
       syncRoomToServer(room)
       debouncedRefetchRooms(dispatch)
-
-      // For groups, fetch metadata from relay and update the server with
-      // the real name (without mutating local room state).
-      if (isGroup) {
-        fetchAndSyncGroupMetadata(dispatch, roomId)
-      }
     }
 
     const replyTo = rumor.tags.find(t => t[0] === 'e')?.[1] || null
@@ -2505,9 +2257,6 @@ export function receiveMessage ({ commit, dispatch, state }, { rumor, sealPubkey
   const replyTo = rumor.tags.find(t => t[0] === 'e')?.[1] || null
   const editOf = rumor.tags.find(t => t[0] === 'edit')?.[1] || null
 
-  // Drop messages for a group we've left (blocked)
-  if (ws.blockedGroups?.includes(roomId)) return
-
   let room = ws.rooms.find(r => r.id === roomId)
   if (!room) {
     // Before creating a new room, check if an existing room has the same member set
@@ -2522,9 +2271,6 @@ export function receiveMessage ({ commit, dispatch, state }, { rumor, sealPubkey
       if (ws.blockedContacts?.includes(rumor.pubkey)) return
       // Reuse the existing room — store the message under its ID
       room = existingByMembers
-      // Drop messages for a group we've left (blocked) — the stored room id
-      // may differ from the computed roomId when legacy rooms exist.
-      if (ws.blockedGroups?.includes(room.id)) return
       const hasSubjectTag = rumor.tags.some(t => t[0] === 'subject')
       const subjectRaw = rumor.tags.find(t => t[0] === 'subject')?.[1]
       const subject = hasSubjectTag ? (subjectRaw ?? '') : null
@@ -2563,10 +2309,9 @@ export function receiveMessage ({ commit, dispatch, state }, { rumor, sealPubkey
     // the room list rather than creating it here. Store the message so
     // it appears once the room list is refreshed, then return early
     // (skip subject/edit processing that depends on a local room).
-    const isGroupRoom = roomMembers.length > 2
     const roomForSync = {
       id: roomId,
-      type: isGroupRoom ? 'group' : 'private',
+      type: 'private',
       name: '',
       members: roomMembers,
       subject: null,
@@ -2575,12 +2320,6 @@ export function receiveMessage ({ commit, dispatch, state }, { rumor, sealPubkey
     }
     syncRoomToServer(roomForSync)
     debouncedRefetchRooms(dispatch)
-
-    // For groups, fetch metadata from relay and update the server with
-    // the real name (without mutating local room state).
-    if (isGroupRoom) {
-      fetchAndSyncGroupMetadata(dispatch, roomId)
-    }
 
     const earlyMsg = {
       id: rumor.id,
@@ -2631,7 +2370,7 @@ export function receiveMessage ({ commit, dispatch, state }, { rumor, sealPubkey
     localReceivedAt: Date.now(),
   }
 
-  // Store subject tag if present — used for group name recovery
+  // Store subject tag if present
   const subjectRaw = rumor.tags.find(t => t[0] === 'subject')?.[1]
   if (subjectRaw !== undefined) message.subject = subjectRaw
 
