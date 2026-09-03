@@ -306,7 +306,34 @@ export async function initMls({ commit, state, dispatch }) {
   return true
 }
 
-export async function createMlsGroup({ commit, state }, { name, members = [] }) {
+/**
+ * Re-run the live NIP-EE group-event subscription with the latest set of
+ * nostr_group_ids. Lighter than initMls (which also re-publishes the key
+ * package and relay list) — used after creating/joining a group so the new
+ * group is added to the live kind-445 subscription. subscribeMlsEvents'
+ * subKey guard makes this a no-op when nothing changed.
+ */
+export async function refreshMlsSubscriptions({ state, dispatch }) {
+  const ws = getWalletState(state)
+  if (!ws?.keys?.privKeyHex || !ws.mls) return
+  const nostrGroupHexes = [...new Set(Object.values(ws.mls.roomMlsNostrMap || {}).filter(Boolean))]
+  try {
+    relayService.subscribeMlsEvents(state.relays, ws.keys.pubKeyHex, nostrGroupHexes, {
+      async onEvent(event) {
+        await dispatch('receiveMlsMessage', event)
+      },
+    })
+    relayService.fetchMlsHistory(state.relays, nostrGroupHexes, {
+      async onEvent(event) {
+        await dispatch('receiveMlsMessage', event)
+      },
+    })
+  } catch (err) {
+    console.warn('[MLS] Failed to refresh NIP-EE group event subscriptions:', err.message)
+  }
+}
+
+export async function createMlsGroup({ commit, state, dispatch }, { name, members = [] }) {
   const ws = getWalletState(state)
   if (!ws?.keys?.privKeyHex) throw new Error('Nostr keys not available')
   if (!ws.mls.ready) throw new Error('MLS not initialized')
@@ -386,10 +413,11 @@ export async function createMlsGroup({ commit, state }, { name, members = [] }) 
 
   commit('ADD_ROOM', room)
   await syncRoomToServer(room)
+  await dispatch('refreshMlsSubscriptions')
   return { roomId, room }
 }
 
-export async function joinMlsGroup({ commit, state }, { roomId, welcomeRumor }) {
+export async function joinMlsGroup({ commit, state, dispatch }, { roomId, welcomeRumor }) {
   if (!welcomeRumor) throw new Error('Missing MLS welcome rumor')
   const welcome = mls.decodeWelcomeFromBytes(hexToBytes(welcomeRumor.content))
 
@@ -532,6 +560,7 @@ export async function joinMlsGroup({ commit, state }, { roomId, welcomeRumor }) 
     await syncRoomToServer(room)
   }
 
+  await dispatch('refreshMlsSubscriptions')
   return { roomId: finalRoomId, groupIdHex, nostrGroupIdHex, clientState: joinedClientState }
 }
 
