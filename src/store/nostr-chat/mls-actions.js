@@ -172,11 +172,21 @@ async function buildSignedNipEeGroupEvent(clientState, mlsMessageObj) {
   }
   const exporterSecretBytes = await mls.getNostrExporterSecret(clientState)
   const mlsMessageBytes = mls.encodeMlsMsg(mlsMessageObj)
-  return mls.buildNipEeGroupEvent({
-    nostrGroupIdHex,
-    mlsMessageBytes,
-    exporterSecretBytes,
-  })
+  try {
+    return mls.buildNipEeGroupEvent({
+      nostrGroupIdHex,
+      mlsMessageBytes,
+      exporterSecretBytes,
+    })
+  } finally {
+    // The exporter secret is a fresh 32-byte derivation (not a reference into
+    // the persisted key schedule); scrub it after the event is sealed so it
+    // doesn't linger in memory until GC. The derived NIP-44 conversation key
+    // is already zeroed inside encryptMlsMessageWithExporter.
+
+    exporterSecretBytes.fill(0)
+    mlsMessageBytes.fill(0)
+  }
 }
 
 const mlsProcessingQueues = new Map()
