@@ -28,7 +28,7 @@
           :asset-symbol="asset?.symbol || symbol || 'BCH'"
           :fiat-amount="formattedFiatAmountSent"
           :is-cash-token="isCashToken"
-          :back-path="backPath"
+          :back-path="backPath || validRedirect"
         />
         <div v-else-if="jpp" class="jpp-panel-container">
           <JppPaymentPanel
@@ -481,6 +481,7 @@ import {
   formatWithLocaleSelective
 } from 'src/utils/custom-keyboard-utils'
 import * as sendPageUtils from 'src/utils/send-page-utils'
+import { parseRouteString, stringifyRoute } from 'src/router/utils'
 import { processMerchantOtcPoints } from 'src/utils/engagementhub-utils/rewards'
 import { updateAssetBalanceOnLoad } from 'src/utils/asset-utils'
 import { raiseNotifyError } from 'src/utils/notify-utils'
@@ -710,12 +711,8 @@ export default {
     },
     backNavigationPath () {
       if (this.backPath) {
-        const [path, queryString] = this.backPath.split('?')
-        if (queryString) {
-          const query = Object.fromEntries(new URLSearchParams(queryString))
-          return { path, query }
-        }
-        return this.backPath
+        const parsed = parseRouteString(this.backPath)
+        if (parsed) return parsed
       }
       return '/'
     },
@@ -1143,6 +1140,8 @@ export default {
           assetIds: assetIds.join(','),
           new: 'true'
         }
+        const redirectFrom = stringifyRoute(this.backPath)
+        if (redirectFrom) query.from = this.backNavigationPath
         // Add recipient address for "Add to Address Book" feature
         if (this.recipients?.length === 1 && this.recipients[0]?.recipientAddress) {
           query.recipient = this.recipients[0].recipientAddress
@@ -1179,6 +1178,8 @@ export default {
         assetID: effectiveAssetId,
         new: 'true'
       }
+      const redirectFrom = stringifyRoute(this.backPath)
+      if (redirectFrom) query.from = redirectFrom
       // Add recipient address for "Add to Address Book" feature
       if (this.recipients?.length === 1 && this.recipients[0]?.recipientAddress) {
         query.recipient = this.recipients[0].recipientAddress
