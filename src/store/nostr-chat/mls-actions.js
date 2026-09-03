@@ -280,7 +280,7 @@ export async function initMls({ commit, state, dispatch }) {
         await dispatch('receiveMlsMessage', event)
       },
     })
-    relayService.fetchMlsHistory(state.relays, nostrPubkeyHex, nostrGroupHexes, {
+    relayService.fetchMlsHistory(state.relays, nostrGroupHexes, {
       async onEvent(event) {
         await dispatch('receiveMlsMessage', event)
       },

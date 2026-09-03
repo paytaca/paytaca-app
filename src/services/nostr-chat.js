@@ -641,12 +641,13 @@ export function subscribeMlsEvents(relays, myPubKey, nostrGroupHexes = [], callb
   const pool = getPool()
 
   const filters = []
-  // Group events for our groups, plus our own published group events (a
-  // sibling device that shares our keys but not yet our group list).
+  // Group events for our groups, scoped by h tag. We deliberately don't
+  // filter on authors: NIP-EE kind-445 events are signed with an ephemeral
+  // key (event.pubkey != identity), so an `authors: [myPubKey]` filter would
+  // never match and would only waste a subscription.
   if (nostrGroupHexes.length > 0) {
     filters.push({ kinds: [445], '#h': nostrGroupHexes })
   }
-  filters.push({ kinds: [445], authors: [myPubKey] })
   if (options.since) {
     for (const filter of filters) {
       filter.since = options.since
@@ -713,22 +714,19 @@ export function subscribeMlsEvents(relays, myPubKey, nostrGroupHexes = [], callb
 }
 
 /**
- * Fetch historical NIP-EE MLS group events for our groups (by nostr_group_id)
- * and any group events published via our identity's group list.
+ * Fetch historical NIP-EE MLS group events for our groups (by nostr_group_id).
  * @param {string[]} relays
- * @param {string} myPubKey - Hex pubkey
  * @param {string[]} nostrGroupHexes - nostr_group_ids (hex)
  * @param {{ onEvent(event): void }} callbacks
  * @returns {Promise<void>}
  */
-export async function fetchMlsHistory(relays, myPubKey, nostrGroupHexes = [], callbacks = {}) {
+export async function fetchMlsHistory(relays, nostrGroupHexes = [], callbacks = {}) {
   const pool = getPool()
   try {
     const queries = []
     if (nostrGroupHexes.length > 0) {
       queries.push({ kinds: [445], '#h': nostrGroupHexes, limit: 500 })
     }
-    queries.push({ kinds: [445], authors: [myPubKey], limit: 200 })
 
     const results = await Promise.allSettled(queries.map((q) => pool.querySync(relays, q)))
     const events = []

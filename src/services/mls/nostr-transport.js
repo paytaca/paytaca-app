@@ -170,6 +170,9 @@ export function buildNipEeKeyPackageEvent({ keyPackageHex, nostrPubkeyHex, relay
   if (relays.length > 0) {
     tags.push(['relays', ...relays])
   }
+  // NIP-EE sentinel: an empty-value '-' tag marks this as KeyPackage
+  // metadata rather than a group/membership event, so clients don't treat it
+  // as an announcement or membership change.
   tags.push(['-', ''])
 
   return {
@@ -193,6 +196,8 @@ export function buildNipEeRelayListEvent(relays, nostrPubkeyHex) {
     pubkey: nostrPubkeyHex,
     created_at: Math.floor(Date.now() / 1000),
     content: '',
+    // Same NIP-EE sentinel as the KeyPackage event: empty '-' tag keeps the
+    // relay list distinct from group/membership events.
     tags: [...relays.map((relay) => ['relays', relay]), ['-', '']],
   }
 }
@@ -288,6 +293,9 @@ export function parseNipEeGroupData(extensionData) {
     let offset = 0
     const version = decodeU16(extensionData, offset)
     offset += 2
+    // The Marmot wire format has only ever defined versions 1-3 (we serialize
+    // version 2). Version 0 was never specified, and any version > 3 implies a
+    // payload layout we can't parse, so reject them rather than misread bytes.
     if (version < 1 || version > 3) return null
 
     const nostrGroupId = extensionData.slice(offset, offset + NOSTR_GROUP_ID_LENGTH)
