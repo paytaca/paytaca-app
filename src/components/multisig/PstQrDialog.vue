@@ -23,14 +23,33 @@
           <img v-if="currentQr" :src="currentQr" style="width: 100%; max-width: 340px; height: auto" class="br-15"/>
         </div>
         <div class="q-pa-md">
-          <q-linear-progress rounded size="1.5em" :value="progress" color="secondary" class="q-mt-sm" >
-            <div class="absolute-full flex flex-center items-center justify-center">
-              <span class="text-caption text-bold text-white text-center">{{ progressLabel }}</span>
-            </div>
-          </q-linear-progress>
-          <div class="text-subtitle-2 text-center text-bow-muted q-mt-md text-italic q-gutter-y-xs">
-            <div>{{ $t('ScanPsbtTip', {}, `The sequence auto-recycles; keep scanning until all fragments are picked up by your scanner...`) }}</div>
-            <div class="q-mt-sm">{{ $t('ScanProblemTip', {}, `Having trouble? Try adjusting the camera angle or try aiming it slightly above the bottom-left square marker.`) }}</div>
+          <div class="row items-center q-mt-sm">
+            <q-linear-progress rounded size="1.5em" :value="progress" color="secondary" class="col" >
+              <div class="absolute-full flex flex-center items-center justify-center">
+                <span class="text-caption text-bold text-white text-center">{{ progressLabel }}</span>
+              </div>
+            </q-linear-progress>
+            <q-btn flat round dense icon="help_outline" color="grey" class="q-ml-xs" @click="showScanHelp" />
+          </div>
+          <div class="column items-center q-mt-md q-gutter-y-xs">
+            <div class="text-subtitle-2 text-bow-muted">{{ $t('QrDensity', {}, 'Density') }}</div>
+            <q-btn-toggle
+              v-model="selectedDensity"
+              :options="densityOptions"
+              toggle-color="secondary"
+              rounded
+              dense
+            />
+          </div>
+          <div class="column items-center q-mt-md q-gutter-y-xs">
+            <div class="text-subtitle-2 text-bow-muted">{{ $t('QrAnimationSpeed', {}, 'Animation') }}</div>
+            <q-btn-toggle
+              v-model="selectedAnimation"
+              :options="animationOptions"
+              toggle-color="secondary"
+              rounded
+              dense
+/>
           </div>
         </div>
       </q-card-section>
@@ -42,7 +61,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted, onBeforeUnmount, computed } from "vue";
+import { ref, onMounted, onBeforeUnmount, computed, watch } from "vue";
 import { useDialogPluginComponent, useQuasar } from "quasar";
 import { useI18n } from 'vue-i18n'
 import { getDarkModeClass } from "src/utils/theme-darkmode-utils";
@@ -58,17 +77,57 @@ const props = defineProps({
   cashAddressNetworkPrefix: String,
 });
 
+const densityOptions = [
+  { label: 'Low', value: 50 },
+  { label: 'Medium', value: 150 },
+  { label: 'High', value: 250 },
+]
+
+const animationOptions = [
+  { label: 'slow', value: 450 },
+  { label: 'normal', value: 300 },
+  { label: 'fast', value: 100 }
+]
+
+
 const { dialogRef, onDialogOK } = useDialogPluginComponent();
 
 const currentQr = ref("");
 const animationTimer = ref();
 const encoder = ref(null);
 const progress = ref(0)
+const selectedDensity = ref(150)
+const selectedAnimation = ref(300)
 const progressLabel = computed(() => {
   return (Math.floor(progress.value * 100)) + '% of QR Code Fragments Shown.'  
 })
 
-async function prepareBase64Chunks() {
+function showScanHelp() {
+  $q.dialog({
+    title: $t('ScanHelpTitle', {}, 'Scanning Tips'),
+    message: `${$t('ScanPsbtTip', {}, `The sequence auto-recycles; keep scanning until all fragments are picked up by your scanner...`)}<br/><br/>${$t('ScanProblemTip', {}, `Having trouble? Try adjusting the camera angle or try aiming it slightly above the bottom-left square marker.`)}`,
+    html: true,
+    ok: {
+      flat: true,
+      color: 'primary',
+      label: 'OK'
+    },
+    class: `br-15 pt-card-2 text-bow ${getDarkModeClass(props.darkMode)}`,
+  })
+}
+
+watch(selectedDensity, async (density, oldDensity) => {
+  if (density !== oldDensity) {
+    await prepareBase64Chunks(density)
+  }
+  restartAnimation()
+})
+
+watch(selectedAnimation, () => {
+  restartAnimation()
+})
+
+async function prepareBase64Chunks(chunkSize = 100) {
   
   try {
     if (!props.pst) {
@@ -78,7 +137,6 @@ async function prepareBase64Chunks() {
     const buffer = Buffer.from(base64ToBin(base64Psbt), 'base64');
     const ur = new UR(buffer, "crypto-psbt");
     
-    const chunkSize = 100; 
     encoder.value = new UREncoder(ur, chunkSize);
     return encoder.value?.fragments?.length;
   } catch (error) {
@@ -162,7 +220,12 @@ function startAnimation() {
 
   animationTimer.value = setInterval(() => {
     updateQrFrame();
-  }, 300); // 300ms per frame (industry standard)
+  }, selectedAnimation.value);
+}
+
+function restartAnimation() {
+  if (animationTimer.value) clearInterval(animationTimer.value);
+  startAnimation();
 }
 
 onMounted(async () => {
