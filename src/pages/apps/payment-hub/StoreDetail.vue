@@ -74,142 +74,39 @@
         </q-tabs>
         <q-separator :dark="darkMode" />
 
-        <!-- Sticky Section Header for Invoices -->
-        <div v-if="activeTab === 'invoices'" class="row items-center q-px-md q-py-sm q-gutter-x-sm">
-          <div class="col">
-            <q-select
-              v-model="invoiceStatusFilter"
-              :options="invoiceStatuses"
-              multiple
-              dense
-              outlined
-              rounded
-              :label="$t('Status') || 'Status'"
-              :bg-color="darkMode ? 'pt-dark' : 'white'"
-              :dark="darkMode"
-              clearable
-              emit-value
-              map-options
-              style="min-width: 150px;"
-            >
-              <template v-slot:selected-item="scope">
-                <q-badge
-                  color="pt-primary1"
-                  class="q-mr-xs"
-                >
-                  {{ scope.opt }}
-                </q-badge>
-              </template>
-            </q-select>
-          </div>
-          <div v-if="displaySubs" class="col-auto">
-            <q-checkbox
-              v-model="includeSubscriptions"
-              :label="$t('Subs') || 'Subs'"
-              dense
-              :dark="darkMode"
-            />
-          </div>
-          <div class="col-auto">
-            <q-btn
-              flat
-              round
-              dense
-              icon="search"
-              :color="invoiceSearchQuery ? 'pt-primary1' : 'grey'"
-              @click="showInvoiceSearchDialog = true"
-            >
-              <q-badge v-if="invoiceSearchQuery" color="red" floating circular />
-            </q-btn>
-          </div>
-        </div>
-        <q-separator v-if="activeTab === 'invoices'" :dark="darkMode" />
+        <div class="q-px-md q-py-sm">
+          <InvoicesToolbar
+            v-if="activeTab === 'invoices'"
+            v-model:search="invoiceSearchQuery"
+            v-model:includeSubscriptions="includeSubscriptions"
+            v-model:statuses="invoiceStatusFilter"
+            :status-opts="invoiceStatuses"
+          />
 
-        <!-- Sticky Section Header (only for API Keys) -->
-        <div v-if="activeTab === 'api_keys'" class="q-px-md q-pt-sm q-pb-md">
-          <div class="row items-center q-mb-md">
-            <div class="text-h6 q-mr-sm text-bow" :class="getDarkModeClass(darkMode)">{{ $t('APIKeys') }}</div>
-            <q-btn flat round dense icon="help" color="grey" size="sm" @click="showHelpDialog">
-              <q-tooltip>{{ $t('Help') }}</q-tooltip>
-            </q-btn>
-            <q-space/>
-            <q-btn
-              flat
-              round
-              dense
-              :icon="hideInactive ? 'visibility_off' : 'visibility'"
-              :color="hideInactive ? 'grey' : 'pt-primary1'"
-              class="q-mr-sm"
-              @click="hideInactive = !hideInactive"
-            >
-              <q-tooltip>{{ hideInactive ? $t('ShowInactive') : $t('HideInactive') }}</q-tooltip>
-            </q-btn>
-            <q-btn
-              unelevated
-              rounded
-              dense
-              no-caps
-              icon="add"
-              color="pt-primary1"
-              class="q-px-sm"
-              :label="$t('CreateKey')"
-              @click="createApiKey()"
-            >
-              <q-tooltip>{{ $t('CreateKey') }}</q-tooltip>
-            </q-btn>
-          </div>
+          <ApiKeysToolbar
+            v-if="activeTab === 'api_keys'"
+            v-model:search="searchQuery"
+            v-model:hideInactive="hideInactive"
+            v-model:orderBy="orderBy"
+            v-model:orderDir="orderDir"
+            @showHelp="showHelpDialog"
+            @update:search="onSearch"
+            @setOrdering="setOrdering"
+            @create="() => createApiKey()"
+          />
 
-          <!-- Controls: Search and Sort for Keys -->
-          <div class="row items-center q-col-gutter-sm">
-            <div class="col">
-              <q-input
-                v-model="searchQuery"
-                dense
-                rounded
-                outlined
-                :placeholder="$t('SearchKeys')"
-                :bg-color="darkMode ? 'pt-dark' : 'white'"
-                :dark="darkMode"
-                @update:model-value="onSearch"
-                clearable
-              >
-                <template v-slot:prepend>
-                  <q-icon name="search" />
-                </template>
-              </q-input>
-            </div>
-            <div class="col-auto">
-              <q-btn
-                flat
-                round
-                dense
-                icon="sort"
-                :color="orderBy !== 'created' || orderDir !== 'desc' ? 'pt-primary1' : 'grey'"
-              >
-                <q-menu class="pt-card-2 text-bow" :class="getDarkModeClass(darkMode)">
-                  <q-list style="min-width: 150px;">
-                    <q-item-label header>{{ $t('SortBy') }}</q-item-label>
-                    <q-item clickable v-close-popup @click="setOrdering('name')">
-                      <q-item-section avatar><q-icon name="title" /></q-item-section>
-                      <q-item-section>{{ $t('Name') }}</q-item-section>
-                      <q-item-section side v-if="orderBy === 'name'">
-                        <q-icon :name="orderDir === 'asc' ? 'arrow_upward' : 'arrow_downward'" color="pt-primary1" />
-                      </q-item-section>
-                    </q-item>
-                    <q-item clickable v-close-popup @click="setOrdering('created')">
-                      <q-item-section avatar><q-icon name="event" /></q-item-section>
-                      <q-item-section>{{ $t('DateCreated') }}</q-item-section>
-                      <q-item-section side v-if="orderBy === 'created'">
-                        <q-icon :name="orderDir === 'asc' ? 'arrow_upward' : 'arrow_downward'" color="pt-primary1" />
-                      </q-item-section>
-                    </q-item>
-                  </q-list>
-                </q-menu>
-              </q-btn>
-            </div>
-          </div>
+          <SubscriptionPlansToolbar
+            v-if="activeTab === 'plans'"
+            @create="() => createPlan()"
+          />
+
+          <SubscriptionsToolbar
+            v-if="activeTab === 'subscriptions'"
+            v-model:statuses="subscriptionsStatusFilter"
+            :status-opts="['ACTIVE', 'PENDING', 'CANCELLED', 'TERMINATED']"
+            v-model:search="subscriptionsSearchQuery"
+          />          
         </div>
-        <q-separator v-if="activeTab === 'api_keys'" :dark="darkMode" />
       </div>
     </q-header>
 
@@ -323,26 +220,8 @@
               <q-tab-panel name="plans" class="q-pa-none">
                 <q-linear-progress v-if="fetchingData" query reverse rounded color="pt-primary1" class="q-mt-none" />
                 <div v-else style="height: 4px;"></div>
-                <div style="height:8px;"></div>
 
                 <div class="q-px-md q-pb-md" :class="darkMode ? 'text-grey-2' : 'text-grey-10'">
-                  <div class="row items-center q-mb-md">
-                    <div class="text-h6 q-mr-sm text-bow" :class="getDarkModeClass(darkMode)">{{ $t('Plans') || 'Plans' }}</div>
-                    <q-space/>
-                    <q-btn
-                      unelevated
-                      rounded
-                      dense
-                      no-caps
-                      icon="add"
-                      color="pt-primary1"
-                      class="q-px-sm"
-                      :label="$t('CreatePlan') || 'Create Plan'"
-                      @click="createPlan()"
-                    >
-                    </q-btn>
-                  </div>
-
                   <div v-if="!fetchingData && plans.length === 0" class="text-center q-mt-xl">
                     <q-icon name="list_alt" size="4em" class="text-grey q-mb-md" />
                     <div class="text-h6 text-grey q-mb-xs">{{ $t('NoPlans') || 'No Plans' }}</div>
@@ -413,11 +292,6 @@
                 <div v-else style="height: 4px;"></div>
 
                 <div class="q-px-md q-pb-md" :class="darkMode ? 'text-grey-2' : 'text-grey-10'">
-                  <div class="row items-center q-mb-md">
-                    <div class="text-h6 q-mr-sm text-bow" :class="getDarkModeClass(darkMode)">{{ $t('Subscriptions') || 'Subscriptions' }}</div>
-                    <q-space/>
-                  </div>
-
                   <div v-if="!fetchingData && subscriptions.length === 0" class="text-center q-mt-xl">
                     <q-icon name="group" size="4em" class="text-grey q-mb-md" />
                     <div class="text-h6 text-grey q-mb-xs">{{ $t('NoSubscriptions') || 'No Subscriptions' }}</div>
@@ -569,38 +443,6 @@
       </q-page>
     </q-page-container>
 
-    <!-- Invoice Search Dialog -->
-    <q-dialog v-model="showInvoiceSearchDialog" position="top">
-      <q-card class="br-15 pt-card-2" :class="getDarkModeClass(darkMode)" style="width: 400px; max-width: 90vw;">
-        <q-card-section class="row items-center q-pb-none">
-          <div class="text-h6">{{ $t('SearchInvoices') }}</div>
-          <q-space />
-          <q-btn icon="close" flat round dense v-close-popup />
-        </q-card-section>
-
-        <q-card-section>
-          <q-input
-            v-model="tempInvoiceSearchQuery"
-            outlined
-            rounded
-            dense
-            :placeholder="$t('SearchByMemoTxidId')"
-            autofocus
-            @keyup.enter="applyInvoiceSearch"
-          >
-            <template v-slot:append>
-              <q-icon name="search" />
-            </template>
-          </q-input>
-        </q-card-section>
-
-        <q-card-actions align="right" class="q-pt-none">
-          <q-btn flat :label="$t('Clear')" color="grey" @click="clearInvoiceSearch" v-close-popup />
-          <q-btn unelevated rounded :label="$t('Search')" color="pt-primary1" @click="applyInvoiceSearch" v-close-popup />
-        </q-card-actions>
-      </q-card>
-    </q-dialog>
-
   </q-layout>
 </template>
 
@@ -612,6 +454,10 @@ import { useQuasar, copyToClipboard, openURL, debounce } from 'quasar'
 import { useI18n } from 'vue-i18n'
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 import HeaderNav from 'src/components/header-nav'
+import InvoicesToolbar from 'src/components/payment-hub/toolbars/InvoicesToolbar.vue'
+import ApiKeysToolbar from 'src/components/payment-hub/toolbars/ApiKeysToolbar.vue'
+import SubscriptionPlansToolbar from 'src/components/payment-hub/toolbars/SubscriptionPlansToolbar.vue'
+import SubscriptionsToolbar from 'src/components/payment-hub/toolbars/SubscriptionsToolbar.vue'
 import StoreInfoDialog from 'src/components/payment-hub/StoreInfoDialog.vue'
 import ApiKeyFormDialog from 'src/components/payment-hub/ApiKeyFormDialog.vue'
 import PlanFormDialog from 'src/components/payment-hub/PlanFormDialog.vue'
@@ -672,16 +518,9 @@ watch(includeSubscriptions, (val) => {
 })
 
 const invoiceSearchQuery = ref('')
-const tempInvoiceSearchQuery = ref('')
-const showInvoiceSearchDialog = ref(false)
-
-function applyInvoiceSearch() {
-  invoiceSearchQuery.value = tempInvoiceSearchQuery.value
-}
 
 function clearInvoiceSearch() {
   invoiceSearchQuery.value = ''
-  tempInvoiceSearchQuery.value = ''
 }
 
 const invoiceStatuses = computed(() => {
@@ -715,8 +554,6 @@ function handleGlobalSwipe(details) {
 const searchQuery = ref('')
 const orderBy = ref(localStorage.getItem('paytaca_hub_keys_orderBy') || 'created')
 const orderDir = ref(localStorage.getItem('paytaca_hub_keys_orderDir') || 'desc')
-let searchTimeout = null
-let pollingInterval = null
 
 /**
  * Handles ordering toggles.
@@ -740,7 +577,6 @@ function setOrdering(field) {
  * Debounced search handler.
  */
 function onSearch() {
-  if (searchTimeout) clearTimeout(searchTimeout)
   queueRefresh(false, 'api-keys')
 }
 
@@ -751,6 +587,12 @@ const filteredApiKeys = computed(() => {
   }
   return apiKeys.value
 })
+
+// Subscriptions Filter & Search
+const subscriptionsSearchQuery = ref('');
+const subscriptionsStatusFilter = ref([]);
+watch(subscriptionsSearchQuery, () => queueRefresh(false, 'subscriptions'))
+watch(subscriptionsStatusFilter, () => queueRefresh(false, 'subscriptions'))
 
 onMounted(() => {
   refreshPage()
@@ -818,7 +660,12 @@ async function refreshPage(done, isBackground = false, scopes='all') {
 
     // Fetch Subscriptions (Page 1)
     if (scopes === 'all' || scopes.includes('subscriptions')) {
-      const subsData = await paymentHub.listSubscriptions({ store_id: storeId.value, page: 1 })
+      const subsData = await paymentHub.listSubscriptions({
+        store_id: storeId.value,
+        page: 1,
+        search: subscriptionsSearchQuery.value,
+        status: subscriptionsStatusFilter.value?.join?.(','),
+      })
       subscriptions.value = subsData.results || []
       hasNextSubscriptionsPage.value = !!subsData.next
     }
@@ -927,7 +774,12 @@ async function onLoadMoreSubscriptions(index, done) {
 
   try {
     subscriptionsPage.value++
-    const data = await hub.value.listSubscriptions({ store_id: storeId.value, page: subscriptionsPage.value })
+    const data = await hub.value.listSubscriptions({
+      store_id: storeId.value,
+      page: subscriptionsPage.value,
+      search: subscriptionsSearchQuery.value,
+      status: subscriptionsStatusFilter.value?.join?.(','),
+    })
     if (data.results?.length) {
       subscriptions.value.push(...data.results)
     }
@@ -1016,20 +868,7 @@ function editStore() {
   })
 }
 
-function copyText(text, label = 'Text') {
-  if (!text) return
-  copyToClipboard(text)
-  $q.notify({
-    message: `${label} copied to clipboard`,
-    color: 'positive',
-    icon: 'check',
-    position: 'bottom',
-    timeout: 2000
-  })
-}
-
 // --- API Keys logic ---
-
 function copyApiKey(key) {
   copyToClipboard(key)
   $q.notify({
