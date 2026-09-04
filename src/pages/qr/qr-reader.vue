@@ -356,11 +356,13 @@ export default {
     },
 
     setBarcodeScannerActiveClass(){
+      document.querySelector('#qr-reader-body')?.classList.add('barcode-scanner-active')
       document.querySelector('body')?.classList.add('barcode-scanner-active')
       document.documentElement.classList.add('barcode-scanner-active')
     },
 
     removeBarcodeScannerActiveClass() {
+      document.querySelector('#qr-reader-body')?.classList.remove('barcode-scanner-active')
       document.querySelector('body')?.classList.remove('barcode-scanner-active')
       document.documentElement.classList.remove('barcode-scanner-active')
     },
@@ -434,15 +436,22 @@ export default {
 
     async stopScanner() {
       try {
+        
+        this.removeBarcodeScannerActiveClass()
+
         if (this.isMobile) {
           await BarcodeScanner.removeAllListeners();
           await BarcodeScanner.stopScan();
         }  
-        this.removeBarcodeScannerActiveClass()
+        
       } catch (error) {
         console.error('Error stopping scanner:', error)
+      } finally {
+        // Aesthetic fix only: The 100ms delay prevents an intermittent, 
+        // subtle opaque white flash during teardown by allowing the native 
+        // camera thread and Webview background layers to sync up cleanly.
+        await new Promise((resolve) => setTimeout(resolve, 100))
       }
-      
     },
 
     async decodeQrCode(content) {
@@ -745,7 +754,6 @@ export default {
 
 <style lang="scss" scoped>
   #qr-reader-body {
-    background: transparent;
     position: relative !important;
     display: flex;
     flex-direction: column;
@@ -888,6 +896,7 @@ export default {
   html.barcode-scanner-active,
   body.barcode-scanner-active,
   body.barcode-scanner-active #q-app,
+  body.barcode-scanner-active #qr-reader-body,
   body.barcode-scanner-active .q-layout,
   body.barcode-scanner-active .q-page {
     background: transparent !important;
