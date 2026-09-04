@@ -1,12 +1,12 @@
 <template>
-  <div>
+  <div class="q-px-md q-py-sm">
     <div class="row q-gutter-x-sm no-wrap">
       <div class="text-h6">{{ $t('Invoices') }}</div>
       <q-space/>
-      <q-btn flat padding="xs" icon="search" :outline="showSearchbar" @click="showSearchbar = !showSearchbar">
+      <q-btn flat padding="xs" icon="search" @click="showSearchbar = !showSearchbar">
         <q-badge v-if="search" color="red" floating rounded />
       </q-btn>
-      <q-btn flat padding="xs" icon="filter_alt" :outline="showFilterDialog" @click="showFilterDialog = !showFilterDialog">
+      <q-btn flat padding="xs" icon="filter_alt" @click="showFilterDialog = !showFilterDialog">
         <q-badge v-if="hasFilter" color="red" floating rounded />
       </q-btn>
       <!-- <q-btn flat padding="xs" icon="sort" @click="showSortOptions = !showSortOptions">
@@ -23,6 +23,7 @@
           rounded
           outlined
           :placeholder="$t('SearchInvoices', 'Search Invoices')"
+          :debounce="debounceSearch"
           :bg-color="darkMode ? 'pt-dark' : 'white'"
           :dark="darkMode"
           clearable
@@ -69,6 +70,7 @@ import { useStore } from 'vuex';
 import { ref, computed } from 'vue';
 
 const props = defineProps({
+  debounceSearch: { type: Number, required: false },
   statusOpts: { type: Array, default: () => [] },
 })
 

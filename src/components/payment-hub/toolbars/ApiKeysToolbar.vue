@@ -1,5 +1,5 @@
 <template>
-  <div>
+  <div class="q-px-md q-py-sm">
     <div class="row items-center q-gutter-x-sm no-wrap">
       <div class="row no-wrap">
         <div class="text-h6">{{ $t('APIKeys') }}</div>
@@ -8,7 +8,7 @@
         </q-btn>
       </div>
       <q-space/>
-      <q-btn flat padding="xs" icon="search" :outline="showSearchbar" @click="showSearchbar = !showSearchbar">
+      <q-btn flat padding="xs" icon="search" @click="showSearchbar = !showSearchbar">
         <q-badge v-if="search" color="red" floating rounded />
       </q-btn>
       <q-btn
@@ -34,6 +34,7 @@
           rounded
           outlined
           :placeholder="$t('SearchKeys')"
+          :debounce="debounceSearch"
           :bg-color="darkMode ? 'pt-dark' : 'white'"
           :dark="darkMode"
           clearable
@@ -81,6 +82,9 @@ const $emit = defineEmits([
   'create',
   'set-ordering'
 ])
+const props = defineProps({
+  debounceSearch: { type: Number, required: false },
+})
 
 const $store = useStore();
 const darkMode = computed(() => $store.getters['darkmode/getStatus'])

@@ -74,13 +74,14 @@
         </q-tabs>
         <q-separator :dark="darkMode" />
 
-        <div class="q-px-md q-py-sm">
+        <div>
           <InvoicesToolbar
             v-if="activeTab === 'invoices'"
             v-model:search="invoiceSearchQuery"
             v-model:includeSubscriptions="includeSubscriptions"
             v-model:statuses="invoiceStatusFilter"
             :status-opts="invoiceStatuses"
+            :debounce-search="500"
           />
 
           <ApiKeysToolbar
@@ -97,6 +98,8 @@
 
           <SubscriptionPlansToolbar
             v-if="activeTab === 'plans'"
+            v-model:search="plansSearchQuery"
+            v-model:isActive="isActiveFilter"
             @create="() => createPlan()"
           />
 
@@ -588,6 +591,13 @@ const filteredApiKeys = computed(() => {
   return apiKeys.value
 })
 
+
+// SubscriptionPlans Filter & Search
+const plansSearchQuery = ref('');
+const isActiveFilter = ref(null);
+watch(plansSearchQuery, () => queueRefresh(false, 'plans'))
+watch(isActiveFilter, () => queueRefresh(false, 'plans'))
+
 // Subscriptions Filter & Search
 const subscriptionsSearchQuery = ref('');
 const subscriptionsStatusFilter = ref([]);
@@ -653,7 +663,11 @@ async function refreshPage(done, isBackground = false, scopes='all') {
 
     // Fetch Plans (Page 1)
     if (scopes === 'all' || scopes.includes('plans')) {
-      const plansData = await paymentHub.listPlans(storeId.value, { page: 1 })
+      const plansData = await paymentHub.listPlans(storeId.value, {
+        search: plansSearchQuery.value,
+        is_active: typeof isActiveFilter.value === 'boolean' ? isActiveFilter.value : undefined,
+        page: 1,
+      })
       plans.value = plansData.results || []
       hasNextPlansPage.value = !!plansData.next
     }
