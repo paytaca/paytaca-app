@@ -356,13 +356,13 @@ export default {
     },
 
     setBarcodeScannerActiveClass(){
-      document.querySelector('body')?.classList.add('barcode-scanner-active');
+      document.querySelector('body')?.classList.add('barcode-scanner-active')
       document.documentElement.classList.add('barcode-scanner-active')
     },
 
     removeBarcodeScannerActiveClass() {
-      document.querySelector('body')?.classList.remove('barcode-scanner-active');
-      document.documentElement.classList.remove('barcode-scanner-active');
+      document.querySelector('body')?.classList.remove('barcode-scanner-active')
+      document.documentElement.classList.remove('barcode-scanner-active')
     },
 
 
@@ -433,14 +433,14 @@ export default {
     },
 
     async stopScanner() {
-      // Make all elements in the WebView visible again
-      this.removeBarcodeScannerActiveClass()
-
-      if (this.isMobile) {
-        // Remove all listeners
-        await BarcodeScanner.removeAllListeners();
-        // Stop the barcode scanner
-        await BarcodeScanner.stopScan();
+      try {
+        if (this.isMobile) {
+          await BarcodeScanner.removeAllListeners();
+          await BarcodeScanner.stopScan();
+        }  
+        this.removeBarcodeScannerActiveClass()
+      } catch (error) {
+        console.error('Error stopping scanner:', error)
       }
       
     },
@@ -454,7 +454,8 @@ export default {
       if (isStreaming) {
         this.decodeAnimatedQrCode(content)
       } else {
-        this.removeBarcodeScannerActiveClass()
+        await this.stopScanner()
+        await this.$nextTick()
         this.decodeStaticQrCode(content)
       }
     },
