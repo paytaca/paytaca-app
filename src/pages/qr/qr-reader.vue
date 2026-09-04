@@ -199,7 +199,7 @@ export default {
     },
 
     // DESKTOP
-    onScannerInit (promise) {
+    onScannerInit () {
       console.log('camera set up successfully')
     },
     onCameraError (error) {
@@ -337,7 +337,7 @@ export default {
       try {
         base58.decode(value)
         isBase58 = true
-      } catch (_e) { return false }
+      } catch { return false }
 
       return value.length === 58
         && value.substring(0, 2) === '6P'
@@ -477,7 +477,7 @@ export default {
       let url
       try {
         url = new URL(rawValue)
-      } catch {}
+      } catch(_e) { console.log('Error URL', _e)}
 
       // Only parse as prefixless address if content doesn't have query params
       // Query params indicate BIP21 URI that needs full parsing
@@ -577,83 +577,101 @@ export default {
     },
 
     async decodeAnimatedQrCode(content) {
-      if (!this.urDecoder) {
-        this.urDecoder = new URDecoder()
-      }
-      const normalizedValue = String(content[0]?.rawValue || '').trim().toLowerCase()
+      let isComplete = false
+      try {
 
-      this.progress = this.urDecoder.estimatedPercentComplete()
+        if (!this.urDecoder) {
+          this.urDecoder = new URDecoder()
+        }
 
-      let resultUR = null
+        const normalizedValue = String(content[0]?.rawValue || '').trim().toLowerCase()
 
-      if (!this.urDecoder.isComplete()) {
-        if (normalizedValue && normalizedValue === this.lastScannedContent) return 
-        this.urDecoder.receivePart(normalizedValue)
-        this.lastScannedContent = normalizedValue
-      } else {
-        this.paused = true 
-        resultUR = this.urDecoder.resultUR()
-        await this.stopScanner()
-      }
+        this.progress = this.urDecoder.estimatedPercentComplete()
 
-      if (normalizedValue.startsWith('ur:crypto-mofnwallet') && resultUR) {
-        const base64 = binToBase64(Buffer.from(resultUR.cbor, 'base64'))
-        const decoded = cborDecode(base64ToBin(base64))
-        const wallet = MultisigWallet.import(decoded)
-        
-        wallet.setStore(this.$store)
-        wallet.save()
-        
-        this.$router.push({
-          name: 'app-multisig-wallet-view',
-          params: { wallethash: wallet.getWalletHash() }
-        })
-      }
+        let resultUR = null
 
-      if (normalizedValue.startsWith('ur:crypto-psbt') && resultUR) {
-        const decodedData = Buffer.from(resultUR.cbor, 'base64')
-          const pst = Pst.import(binToBase64(decodedData))
-          const mValues = [...new Set(pst.inputs?.map(i => {
-            if (!i.redeemScript) return null;
-            return extractMValue(i.redeemScript)
-          }).filter(m => m))]
+        isComplete = this.urDecoder.isComplete()
+        if (!isComplete) {
+          if (normalizedValue && normalizedValue === this.lastScannedContent) return 
+          this.urDecoder.receivePart(normalizedValue)
+          this.lastScannedContent = normalizedValue
+        } else {
+          this.paused = true 
+          resultUR = this.urDecoder.resultUR()
+        }
 
-          for (const m of mValues) {
-            const wallet = {
-              m,
-              signers: pst.wallet.signers
-            }
-            const walletHash = getWalletHash(wallet)
-            const foundWallet = this.$store.getters['multisig/getWalletByHash'](walletHash)
-            if (foundWallet) {
-              const canonicalPsbt = this.$store.getters['multisig/getPsbtByUnsignedTransactionHash'](pst.unsignedTransactionHash)
-              if (canonicalPsbt) {
-                const canonicalPst = Pst.import(canonicalPsbt)
-                canonicalPst.combine([pst])
-                canonicalPst.setStore(this.$store)
-                canonicalPst.save()
-              } else {
-                pst.setStore(this.$store)
-                pst.save()
-              }                
-              this.$router.push({
-                name: 'app-multisig-wallet-pst-view',
-                params: { 
-                  wallethash: walletHash,
-                  unsignedtransactionhash: pst.unsignedTransactionHash 
-                }
+        if (normalizedValue.startsWith('ur:crypto-mofnwallet') && resultUR) {
+          const base64 = binToBase64(Buffer.from(resultUR.cbor, 'base64'))
+          const decoded = cborDecode(base64ToBin(base64))
+          const wallet = MultisigWallet.import(decoded)
+          
+          wallet.setStore(this.$store)
+          wallet.save()
+          
+          this.$router.push({
+            name: 'app-multisig-wallet-view',
+            params: { wallethash: wallet.getWalletHash() }
+          })
+        }
+
+        if (normalizedValue.startsWith('ur:crypto-psbt') && resultUR) {
+          const decodedData = Buffer.from(resultUR.cbor, 'base64')
+            const pst = Pst.import(binToBase64(decodedData))
+            const mValues = [...new Set(pst.inputs?.map(i => {
+              if (!i.redeemScript) return null;
+              return extractMValue(i.redeemScript)
+            }).filter(m => m))]
+
+            for (const m of mValues) {
+              const wallet = {
+                m,
+                signers: pst.wallet.signers
+              }
+              const walletHash = getWalletHash(wallet)
+              const foundWallet = this.$store.getters['multisig/getWalletByHash'](walletHash)
+              if (foundWallet) {
+                const canonicalPsbt = this.$store.getters['multisig/getPsbtByUnsignedTransactionHash'](pst.unsignedTransactionHash)
+                if (canonicalPsbt) {
+                  const canonicalPst = Pst.import(canonicalPsbt)
+                  canonicalPst.combine([pst])
+                  canonicalPst.setStore(this.$store)
+                  canonicalPst.save()
+                } else {
+                  pst.setStore(this.$store)
+                  pst.save()
+                }                
+                this.$router.push({
+                  name: 'app-multisig-wallet-pst-view',
+                  params: { 
+                    wallethash: walletHash,
+                    unsignedtransactionhash: pst.unsignedTransactionHash 
+                  }
+                })
+                return
+              }
+
+              this.$q.notify({
+                message: this.$t('WalletNotFound'),
+                timeout: 800,
+                color: 'red-9',
+                icon: 'mdi-qrcode-remove'
               })
-              return
             }
-
-            this.$q.notify({
-              message: this.$t('WalletNotFound'),
-              timeout: 800,
-              color: 'red-9',
-              icon: 'mdi-qrcode-remove'
-            })
-          }
+        }
+      } catch {
+        this.$q.notify({
+          message: this.$t('ErrorDecodingAnimatedQrCode', {} , 'Error decoding animated Qr Code'),
+          timeout: 800,
+          color: 'red-9',
+          icon: 'priority_high'
+        })
+        await this.stopScanner()
+      } finally {
+        if (isComplete) {
+          await this.stopScanner()  
+        }
       }
+      
     },
 
     async applyZoom(value){
