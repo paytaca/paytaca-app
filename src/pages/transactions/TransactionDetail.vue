@@ -188,7 +188,7 @@
             color="pt-primary1"
             :label="$t('AddToFavorites', {}, 'Add this token to Favorites')"
             icon="star_border"
-            @click="addTokenToFavorites"
+            @click.stop="addTokenToFavorites"
             :loading="addingToFavorites"
             class="add-to-favorites-btn"
           />
@@ -1057,6 +1057,14 @@ export default {
     
     const preloaded = (window && window.history && window.history.state && window.history.state.tx) || null
     if (preloaded) {
+      // Verify preloaded transaction matches the route param txid
+      const routeTxid = this.$route?.params?.txid
+      const preloadedTxid = preloaded.txid || preloaded.tx_hash || preloaded.hash
+      if (routeTxid && preloadedTxid && String(preloadedTxid) !== String(routeTxid)) {
+        await this.fetchAndShow()
+        return
+      }
+
       // Check if preloaded is already corrupted (has numeric string keys like "0", "1", etc.)
       const preloadedKeys = Object.keys(preloaded)
       if (preloadedKeys.length > 0 && preloadedKeys.every(k => /^\d+$/.test(k))) {
@@ -3009,6 +3017,10 @@ export default {
 
 .view-in-collectibles-btn {
   margin-top: 8px;
+}
+
+.add-to-favorites-btn {
+  touch-action: manipulation;
 }
 
 /* Transaction Metadata Badges */

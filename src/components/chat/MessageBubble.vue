@@ -6,7 +6,7 @@
   >
     <div
       class="message-bubble"
-      :class="{ 'new-message': isNew, 'is-deleted': message.deleted, 'is-image-bubble': isImageFile, 'is-video-bubble': isVideoFile, 'is-selected': isSelected }"
+      :class="{ 'new-message': isNew, 'is-deleted': message.deleted, 'is-image-bubble': isImageFile, 'is-video-bubble': isVideoFile, 'is-selected': isSelected, 'is-text-selectable': textSelectable }"
       :style="isMine && !isImageFile && !isVideoFile ? { background: `linear-gradient(135deg, ${themeColor}, ${themeColor}dd)` } : {}"
       @pointerdown="onPointerDown"
       @pointerup="onPointerUp"
@@ -133,6 +133,7 @@
             <q-icon v-else name="img:bitcoin-cash-circle.svg" size="22px" />
             <span class="payment-amount">{{ markup.amount }} {{ markup.symbol || 'BCH' }}</span>
           </div>
+          <div v-if="fiatDisplay" class="payment-fiat-row">{{ fiatDisplay }}</div>
           <div v-if="markup.txid" class="payment-txid">
             <span class="txid-label">{{ $t('TXID') }}</span>
             <span class="txid-value">{{ formatTxid(markup.txid) }}</span>
@@ -172,6 +173,20 @@
             </div>
           </q-menu>
         </span>
+      </div>
+      <div v-if="message.failed" class="failed-send-row" @click.stop>
+        <q-icon name="error_outline" size="14px" class="failed-send-icon" />
+        <span class="failed-send-label">{{ $t('FailedToSend', {}, 'Failed to send') }}</span>
+        <q-btn
+          flat
+          dense
+          size="sm"
+          no-caps
+          icon="refresh"
+          :label="$t('Retry', {}, 'Retry')"
+          class="failed-send-retry-btn"
+          @click.stop="$emit('retry-message', message)"
+        />
       </div>
       <div v-if="groupedReactions.length" class="message-reactions">
         <span
@@ -230,6 +245,7 @@
 <script>
 import { parseMessageMarkup } from 'src/utils/chat-markup'
 import { decryptFile, downloadFromBlossom } from 'src/wallet/nostr-media'
+import { parseFiatCurrency } from 'src/utils/denomination-utils'
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 import { getCachedVideoBlob } from 'src/utils/video-blob-cache'
 import { getCachedVideo, setCachedVideo, getCachedVideoThumb, setCachedVideoThumb } from 'src/utils/video-cache'
@@ -263,8 +279,12 @@ export default {
     isReplying: { type: Boolean, default: false },
     isSelected: { type: Boolean, default: false },
     reactions: { type: Array, default: () => [] },
+    // When true the message text becomes user-selectable. The conversation
+    // enables it only while this message's context menu is open, so text
+    // can't be selected/copied otherwise.
+    textSelectable: { type: Boolean, default: false },
   },
-  emits: ['context-menu', 'remove-reaction', 'scroll-to-message'],
+  emits: ['context-menu', 'remove-reaction', 'scroll-to-message', 'retry-message'],
     data () {
       return {
         expandedReaction: null,
@@ -434,6 +454,11 @@ export default {
       }
       return url
     },
+    fiatDisplay () {
+      const amount = Number(this.markup?.fiatAmount)
+      if (!isFinite(amount) || amount <= 0) return ''
+      return `≈ ${parseFiatCurrency(amount, this.markup.fiatCurrency)}`
+    },
     groupedReactions () {
       const groups = {}
       for (const r of this.reactions) {
@@ -547,7 +572,7 @@ export default {
       const msgId = msg.id || msg.content
       const blossomServer = 'https://blossom.paytaca.com'
       const self = this
-      downloadFromBlossom(msg.content, blossomServer)
+      downloadFromBlossom(msg.fileUrl || msg.content, blossomServer)
         .then(encryptedData => decryptFile(encryptedData, msg.aesKeyHex, msg.nonceHex))
         .then(decryptedData => {
           if (self._unmounted) return
@@ -594,6 +619,11 @@ export default {
     },
     onContextMenu ($event) {
       if (this.message.deleted) return
+      // While the context menu is open for this message the text is
+      // selectable; a native contextmenu (e.g. Android's post-selection
+      // contextmenu) must not re-trigger openMessageMenu, which would close
+      // the menu and clear the fresh selection.
+      if (this.textSelectable) return
       this.$emit('context-menu', this.message, $event)
     },
     // Pointer-based long-press detection. Uses pointer events to unify mouse/touch input
@@ -601,6 +631,9 @@ export default {
       if (this.message.deleted) return
       // Only start long-press for primary button/touch
       if (e.button && e.button !== 0) return
+      // While the context menu is open the text is selectable — let the native
+      // long-press start a text selection instead of re-opening the menu.
+      if (this.textSelectable) return
       // Remember pointer id to ignore unrelated pointers
       this._pressPointerId = e.pointerId
       this._pressStartX = e.clientX
@@ -704,7 +737,7 @@ export default {
 
       const aesKeyHex = this.message.aesKeyHex
       const nonceHex = this.message.nonceHex
-      const fileUrl = this.message.content
+      const fileUrl = this.message.fileUrl || this.message.content
 
       if (!aesKeyHex || !nonceHex || !fileUrl) return
 
@@ -778,7 +811,7 @@ export default {
 
       const aesKeyHex = this.message.aesKeyHex
       const nonceHex = this.message.nonceHex
-      const fileUrl = this.message.content
+      const fileUrl = this.message.fileUrl || this.message.content
 
       if (!aesKeyHex || !nonceHex || !fileUrl) return
 
@@ -846,7 +879,7 @@ export default {
 
       const aesKeyHex = this.message.aesKeyHex
       const nonceHex = this.message.nonceHex
-      const fileUrl = this.message.content
+      const fileUrl = this.message.fileUrl || this.message.content
       if (!aesKeyHex || !nonceHex || !fileUrl) {
         this.isVideoLoading = false
         return
@@ -932,7 +965,7 @@ export default {
     async downloadFile () {
       const aesKeyHex = this.message.aesKeyHex
       const nonceHex = this.message.nonceHex
-      const fileUrl = this.message.content
+      const fileUrl = this.message.fileUrl || this.message.content
 
       if (!aesKeyHex || !nonceHex || !fileUrl) {
         this.$q.notify({
@@ -1001,7 +1034,7 @@ export default {
       }
       const aesKeyHex = this.message.aesKeyHex
       const nonceHex = this.message.nonceHex
-      const fileUrl = this.message.content
+      const fileUrl = this.message.fileUrl || this.message.content
       if (!aesKeyHex || !nonceHex || !fileUrl) {
         this.$q.notify({
           type: 'negative',
@@ -1199,6 +1232,10 @@ export default {
   font-size: 15px;
   white-space: pre-wrap;
   word-break: break-word;
+}
+
+/* Text becomes selectable only while the context menu is open */
+.message-bubble.is-text-selectable .message-text {
   -webkit-user-select: text;
   user-select: text;
 }
@@ -1329,6 +1366,29 @@ export default {
   align-items: center;
   gap: 4px;
   margin-top: 4px;
+}
+
+.failed-send-row {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  margin-top: 4px;
+}
+
+.failed-send-icon {
+  color: #ff6b6b;
+}
+
+.failed-send-label {
+  font-size: 11px;
+  color: #ff6b6b;
+}
+
+.failed-send-retry-btn {
+  color: #ff6b6b;
+  font-size: 11px;
+  min-height: 22px;
+  padding: 0 6px;
 }
 
 .message-time {
@@ -1724,10 +1784,22 @@ export default {
   color: #166534;
 }
 
+.payment-fiat-row {
+  margin-top: 0;
+  padding-left: 30px;
+  font-size: 14px;
+  font-weight: 600;
+  color: #374151;
+}
+
 .payment-txid {
   display: flex;
   align-items: center;
   gap: 6px;
+}
+
+.payment-fiat-row + .payment-txid {
+  margin-top: 6px;
 }
 
 .txid-label {
@@ -1773,6 +1845,10 @@ export default {
 
 .dark .payment-amount {
   color: #86efac;
+}
+
+.dark .payment-fiat-row {
+  color: #d1fae5;
 }
 
 .dark .txid-label {

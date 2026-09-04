@@ -627,6 +627,12 @@ const words = [
     Later: 'Later',
     Pinned: 'Pinned',
     Utilities: 'Utilities'
+  },
+  {
+    Admin: 'Admin',
+    Blocked: 'BLOCKED',
+    Owner: 'Owner',
+    Transfer: 'Transfer'
   }
 ]
 

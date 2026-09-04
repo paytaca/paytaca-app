@@ -633,7 +633,7 @@ export default {
           name: this.$t('Support', {}, 'Support'),
           description: this.$t('Apps.Support.Description', {}, 'Get help, guides, and wallet information.'),
           iconName: 'support',
-          path: '/apps/wallet-info',
+          path: '/apps/support',
           active: true,
           iconStyle: 'font-size: 4em',
           category: 'utilities'

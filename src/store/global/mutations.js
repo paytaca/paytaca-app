@@ -727,6 +727,10 @@ export function setWalletSwitchLoading (state, value) {
   state.walletSwitchLoading = Boolean(value)
 }
 
+export function setBootHydrated (state, value) {
+  state.bootHydrated = Boolean(value)
+}
+
 export function setAppInitialLoadComplete (state, value) {
   state.appInitialLoadComplete = Boolean(value)
 }

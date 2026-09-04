@@ -44,10 +44,14 @@ jobs:
           git remote set-url origin https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}.git
 
       - name: Run opencode
-        uses: anomalyco/opencode/github@latest
+        uses: anomalyco/opencode/github@v1.18.21
         env:
           OPENCODE_API_KEY: ${{ secrets.OPENCODE_API_KEY }}
+          # The action reads TOKEN (not GITHUB_TOKEN) for API calls and to
+          # skip the collaborator-permission assertion — without it the check
+          # fails for github-actions[bot], which is never a collaborator.
+          TOKEN: ${{ secrets.GITHUB_TOKEN }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
-          model: opencode/kimi-k2.5
+          model: opencode/kimi-k2.6
           use_github_token: true

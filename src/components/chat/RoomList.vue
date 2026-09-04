@@ -37,9 +37,17 @@
                 :style="roomAvatarStyle(room)"
               >
                 <img v-if="getDmAvatar(room)" :src="getDmAvatar(room)" />
+                <q-icon v-else-if="room.type === 'mls-group'" name="group_add" size="24px" />
                 <q-icon v-else-if="room.type === 'group'" name="group" size="24px" />
                 <span v-else class="avatar-initial">{{ roomInitial(room) }}</span>
               </q-avatar>
+              <div
+                v-if="room.type === 'group'"
+                class="avatar-lock-badge"
+                :class="{ 'avatar-lock-badge--dark': darkMode }"
+              >
+                <q-icon name="lock" size="10px" />
+              </div>
               <div
                 v-if="activeIndicatorMap[room.id]"
                 class="active-dot"
@@ -50,8 +58,8 @@
           <div class="room-header">
             <div class="room-name" :class="getDarkModeClass(darkMode)">
               {{ roomName(room) }}
-              <q-badge v-if="room.type === 'group'" outline color="primary" class="q-ml-xs" style="font-size: 10px; padding: 1px 5px; font-weight: 500;">
-                {{ $t('Group', {}, 'Group') }}
+              <q-badge v-if="room.type === 'group' || room.type === 'mls-group'" outline color="primary" class="q-ml-xs" style="font-size: 10px; padding: 1px 5px; font-weight: 500;">
+                {{ $t('Group', {}, 'GROUP') }}
               </q-badge>
             </div>
             <div v-if="room.lastMessageAt || lastMessageTime(room.id) || room.updatedAt" class="room-time">
@@ -63,7 +71,7 @@
               {{ lastMessagePreview(room.id) }}
             </div>
             <div class="room-badges">
-              <div v-if="isRoomBlocked(room)" class="blocked-badge">{{ room.type === 'group' ? $t('Left', {}, 'LEFT') : $t('Blocked', {}, 'BLOCKED') }}</div>
+              <div v-if="isRoomBlocked(room)" class="blocked-badge">{{ room.type === 'group' || room.type === 'mls-group' ? $t('Left', {}, 'LEFT') : $t('Blocked', {}, 'BLOCKED') }}</div>
               <div v-if="unreadCount(room.id) > 0" class="unread-badge">
                 {{ unreadCount(room.id) }}
               </div>
@@ -96,7 +104,7 @@ export default {
     messages: { type: Object, default: () => ({}) },
     archived: { type: Boolean, default: false },
   },
-  emits: ['select-room', 'archive-room', 'unarchive-room', 'delete-room', 'block-room', 'unblock-room', 'leave-room', 'rejoin-room'],
+  emits: ['select-room', 'archive-room', 'unarchive-room', 'delete-room', 'block-room', 'unblock-room', 'leave-room'],
   data () {
     return {
       dmAvatars: {},
@@ -139,7 +147,7 @@ export default {
       if (!this.showActiveStatus) return map
       const activeStatus = this.$store.getters['nostrChat/getActiveStatusMap']
       for (const room of this.rooms) {
-        if (room.type === 'group') continue
+        if (room.type === 'group' || room.type === 'mls-group') continue
         const otherPubKey = room.members?.find(m => m !== this.myPubKey)
         if (!otherPubKey) continue
         const entry = activeStatus[otherPubKey]
@@ -161,7 +169,7 @@ export default {
     const avatars = {}
     const names = {}
     for (const room of this.rooms) {
-      if (room.type === 'group') continue
+      if (room.type === 'group' || room.type === 'mls-group') continue
       const otherPubKey = room.members?.find(m => m !== this.myPubKey)
       if (!otherPubKey) continue
 
@@ -189,27 +197,25 @@ export default {
   methods: {
     getDarkModeClass,
     isRoomBlocked (room) {
-      if (room.type === 'group') {
-        return this.$store.getters['nostrChat/isGroupBlocked'](room.id)
-      }
+      if (room.type === 'group' || room.type === 'mls-group') return false
       const otherPubKey = room.members?.find(m => m !== this.myPubKey)
       if (!otherPubKey) return false
       return this.$store.getters['nostrChat/isContactBlocked'](otherPubKey)
     },
     leftSwipeLabel (room) {
       if (this.archived) return this.$t('Unarchive', {}, 'Unarchive')
-      const blocked = this.isRoomBlocked(room)
-      if (room.type === 'group') {
-        return blocked ? this.$t('Rejoin', {}, 'Rejoin') : this.$t('Leave', {}, 'Leave')
+      if (room.type === 'group' || room.type === 'mls-group') {
+        return this.$t('Leave', {}, 'Leave')
       }
+      const blocked = this.isRoomBlocked(room)
       return blocked ? this.$t('Unblock', {}, 'Unblock') : this.$t('Block', {}, 'Block')
     },
     leftSwipeIcon (room) {
       if (this.archived) return 'unarchive'
-      const blocked = this.isRoomBlocked(room)
-      if (room.type === 'group') {
-        return blocked ? 'group_add' : 'exit_to_app'
+      if (room.type === 'group' || room.type === 'mls-group') {
+        return 'exit_to_app'
       }
+      const blocked = this.isRoomBlocked(room)
       return blocked ? 'lock_open' : 'block'
     },
     onSwipeLeft (room, { reset }) {
@@ -218,19 +224,15 @@ export default {
         this.$emit('unarchive-room', room.id)
         return
       }
+      if (room.type === 'group' || room.type === 'mls-group') {
+        this.$emit('leave-room', room.id)
+        return
+      }
       const blocked = this.isRoomBlocked(room)
-      if (room.type === 'group') {
-        if (blocked) {
-          this.$emit('rejoin-room', room.id)
-        } else {
-          this.$emit('leave-room', room.id)
-        }
+      if (blocked) {
+        this.$emit('unblock-room', room.id)
       } else {
-        if (blocked) {
-          this.$emit('unblock-room', room.id)
-        } else {
-          this.$emit('block-room', room.id)
-        }
+        this.$emit('block-room', room.id)
       }
     },
     onSwipeRight (room, { reset }) {
@@ -242,7 +244,7 @@ export default {
       }
     },
     roomInitial (room) {
-      if (room.type === 'group') {
+      if (room.type === 'group' || room.type === 'mls-group') {
         return (room.name || 'G').charAt(0).toUpperCase()
       }
       const otherPubKey = room.members?.find(m => m !== this.myPubKey)
@@ -261,7 +263,7 @@ export default {
       return name.charAt(0).toUpperCase()
     },
     roomName (room) {
-      if (room.type === 'group') return room.name || 'Group'
+      if (room.type === 'group' || room.type === 'mls-group') return room.name || 'Group'
       // If a subject has been set, use it as the conversation name
       if (room.subject) return room.subject
       // Check if this room has a known contact
@@ -331,7 +333,8 @@ export default {
       return this.unreadCountMap[roomId] || 0
     },
     getDmAvatar (room) {
-      if (room.type === 'group') return null
+      // Group rooms (closed and open/MLS) always use their fixed icon.
+      if (room.type === 'group' || room.type === 'mls-group') return null
       const otherPubKey = room.members?.find(m => m !== this.myPubKey)
       return otherPubKey ? this.dmAvatars[otherPubKey] || null : null
     },
@@ -345,7 +348,7 @@ export default {
       const avatarsToFetch = new Set()
       const namesToFetch = new Set()
       for (const room of this.rooms) {
-        if (room.type === 'group') continue
+        if (room.type === 'group' || room.type === 'mls-group') continue
         const otherPubKey = room.members?.find(m => m !== this.myPubKey)
         if (!otherPubKey) continue
         if (!this.dmAvatars[otherPubKey]) {
@@ -431,6 +434,21 @@ export default {
 
 .avatar-initial {
   line-height: 1;
+}
+
+.avatar-lock-badge {
+  position: absolute;
+  bottom: -2px;
+  right: -2px;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: #64748b;
+  color: #ffffff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 2px solid #ffffff;
 }
 
 .room-content {
@@ -578,6 +596,11 @@ export default {
 }
 
 .active-dot--dark {
+  border-color: #1e293b;
+}
+
+.avatar-lock-badge--dark {
+  background: #94a3b8;
   border-color: #1e293b;
 }
 

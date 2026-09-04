@@ -276,8 +276,8 @@ export function deleteBranch(context, data) {
  * @param {Object} data
  * @param {String} data.walletHash
  * @param {String} data.posid
- * @param {String} data.encryptedData = xpubkey + @ + ppvsPrivKey
- * @param {String} data.encryptKey = ephemeral public key used for encryption (hex string)
+ * @param {String} data.encryptedData = AES-256-CBC encrypted xpubkey
+ * @param {String} data.decryptKey = password.iv used to decrypt the xpubkey
  * @param {Number} data.nonce
  * @param {String} data.signature
  * 
@@ -286,8 +286,8 @@ export function deleteBranch(context, data) {
  */
 export function generateLinkCode(context, data) {
   if (!data?.walletHash || !Number.isSafeInteger(data?.posid) ||
-      !data?.encryptedData || !Number.isSafeInteger(data?.nonce) || 
-      !data?.signature
+      !data?.encryptedData || !data?.decryptKey ||
+      !Number.isSafeInteger(data?.nonce) || !data?.signature
   ) return Promise.reject()
 
   if (data?.opts?.checkExpiry) {
@@ -302,11 +302,11 @@ export function generateLinkCode(context, data) {
   const link_data = {
     wallet_hash: data?.walletHash,
     posid: data?.posid,
-    encrypted_data: data?.encryptedData,
+    encrypted_xpubkey: data?.encryptedData,
     signature: data?.signature,
   }
 
-  return posBackend.post('paytacapos/devices/generate_link_device_code_v2/', link_data, { authorize: true })
+  return posBackend.post('paytacapos/devices/generate_link_device_code/', link_data, { authorize: true })
     .then(response => {
       if (!response?.data?.code) return Promise.reject({ response })
 
@@ -315,7 +315,7 @@ export function generateLinkCode(context, data) {
         posid: data.posid,
         code: response.data.code,
         expiresAt: response.data.expires,
-        encryptKey: data?.encryptKey,
+        decryptKey: data?.decryptKey,
         nonce: data?.nonce,
       })
       return Promise.resolve(response)

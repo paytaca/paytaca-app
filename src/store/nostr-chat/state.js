@@ -16,7 +16,6 @@ export function getInitialWalletState () {
     rooms: [],
     // Server-backed block list caches (re-fetched on init)
     blockedContacts: [],
-    blockedGroups: [],
     // Server-backed deleted room IDs cache (re-fetched on init)
     deletedRooms: [],
     messages: {},
@@ -50,6 +49,19 @@ export function getInitialWalletState () {
     isSubscribed: false,
     relayStatus: {},
     showActiveStatus: true,
+
+    // MLS group chat state (per-wallet)
+    mls: {
+      ready: false,
+      keyPackage: null, // { serialized, credentialIdentity, publishedAt }
+      groupStates: {}, // { [mlsGroupIdHex]: serialized ClientState }
+      roomMlsMap: {}, // { [roomId]: mlsGroupIdHex }
+      roomMlsNostrMap: {}, // { [roomId]: nostrGroupIdHex } — NIP-EE public group id used in kind-445 h tags
+      pendingInvitations: {}, // { [roomId]: { roomId, inviterPubKey, name, welcomeEvent } }
+      declinedWelcomeIds: {}, // { [welcomeEventId]: timestamp } — never re-surface these invites
+      failedEventAttempts: {}, // { [eventId]: { count, lastError, lastAttemptAt } } — undecodable MLS events; dropped after MAX_EVENT_PROCESS_ATTEMPTS
+      kpHistory: [], // { ref: string, encoded: string (base64 raw KP bytes), publishedAt: number }
+    },
   }
 }
 
