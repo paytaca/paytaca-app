@@ -71,7 +71,7 @@
                 {{ $t('ShowPublicKey') }}
               </q-item-section>
             </q-item>
-            <q-item clickable v-close-popup>
+            <q-item clickable v-close-popup v-if="!isReadOnlyWallet">
               <q-item-section class="pt-label" :class="getDarkModeClass(darkMode)" @click="showPrivateKey">
                 {{ $t('ShowPrivateKey') }}
               </q-item-section>
@@ -317,7 +317,8 @@
 </template>
 
 <script>
-import { getMnemonic, Wallet, Address } from '../../wallet'
+import { getMnemonic, Wallet, Address, cachedLoadWallet } from '../../wallet'
+import { isReadOnlyVaultEntry } from 'src/lib/readonly-wallet'
 import {
   getWalletByNetwork,
   getWatchtowerWebsocketUrl,
@@ -402,6 +403,10 @@ export default {
   computed: {
     darkMode () {
       return this.$store.getters['darkmode/getStatus']
+    },
+    isReadOnlyWallet () {
+      const index = this.$store.getters['global/getWalletIndex']
+      return isReadOnlyVaultEntry(this.$store.getters['global/getVault']?.[index])
     },
     backNavPath () {
       if (this.backPath) {
@@ -758,8 +763,7 @@ export default {
 
       delete this?.$options?.sockets
 
-      getMnemonic(vm.$store.getters['global/getWalletIndex']).catch(() => null).then(function (mnemonic) {
-        const wallet = new Wallet(mnemonic, vm.network)
+      cachedLoadWallet('BCH', vm.$store.getters['global/getWalletIndex']).then(function (wallet) {
         if (vm.walletType === 'bch') {
           getWalletByNetwork(wallet, vm.walletType).getNewAddressSet(newAddressIndex).then(async function (result) {
             const addresses = result.addresses
@@ -772,6 +776,8 @@ export default {
             // Refresh the dynamic address after generating new address
             await vm.refreshDynamicAddress()
             try { await vm.setupListener() } catch {}
+          }).catch(error => {
+            console.error('Error generating new address:', error)
           }).finally(() => {
             vm.generating = false
           })
@@ -787,11 +793,22 @@ export default {
             // Refresh the dynamic address after generating new address
             await vm.refreshDynamicAddress()
             try { await vm.setupListener() } catch {}
+          }).catch(error => {
+            console.error('Error generating new address:', error)
           })
         }
       })
     },
     async showPrivateKey () {
+      // Read-only (xpub) wallets have no private key material
+      if (this.isReadOnlyWallet) {
+        this.$q.notify({
+          type: 'info',
+          message: this.$t('ReadOnlyWalletNotice', {}, 'This is a read-only wallet'),
+          timeout: 3000
+        })
+        return
+      }
       try {
         const mnemonic = await getMnemonic(this.$store.getters['global/getWalletIndex']).catch(() => null)
         const wallet = new Wallet(mnemonic, this.network)
@@ -817,8 +834,7 @@ export default {
     },
     async showPublicKey () {
       try {
-        const mnemonic = await getMnemonic(this.$store.getters['global/getWalletIndex'])
-        const wallet = new Wallet(mnemonic, this.network)
+        const wallet = await cachedLoadWallet('BCH', this.$store.getters['global/getWalletIndex'])
         const lastAddressIndex = this.getDisplayedAddressIndex()
         const dynamicWallet = getWalletByNetwork(wallet, this.walletType)
         const publicKey = await dynamicWallet.getPublicKey('0/' + String(lastAddressIndex))
@@ -1052,8 +1068,7 @@ export default {
         }
         
         // Update store with new address index
-        const mnemonic = await getMnemonic(this.$store.getters['global/getWalletIndex']).catch(() => null)
-        const wallet = new Wallet(mnemonic, this.network)
+        const wallet = await cachedLoadWallet('BCH', this.$store.getters['global/getWalletIndex'])
         const result = await getWalletByNetwork(wallet, this.walletType).getNewAddressSet(newAddressIndex)
         const addresses = result.addresses
         

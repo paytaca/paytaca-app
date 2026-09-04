@@ -100,6 +100,18 @@ export default function () {
       return
     }
 
+    // Read-only (xpub) wallets build unsigned transactions instead of sending.
+    // Redirect their send entry points to the build page so the existing send
+    // flow (which requires private keys) is never reached.
+    if (to.name === 'transaction-send' || to.name === 'transaction-send-select-asset') {
+      const { isReadOnlyVaultEntry } = await import('../lib/readonly-wallet')
+      const currentEntry = store.getters['global/getVault']?.[store.getters['global/getWalletIndex']]
+      if (isReadOnlyVaultEntry(currentEntry)) {
+        next({ name: 'transaction-build', query: to.query, replace: true })
+        return
+      }
+    }
+
     if (to.path === '/') {
       try {
         // Ensure current wallet index is valid (points to undeleted wallet)
@@ -119,10 +131,18 @@ export default function () {
            currentWallet.BCH?.walletHash ||
            currentWallet.bch?.walletHash ||
            currentWallet.walletHash)
-        
+
         if (!hasValidWallet) {
           // No valid wallets - go to account creation
           next('/accounts')
+          return
+        }
+
+        // Read-only (xpub) wallets have no mnemonic yet are valid wallets.
+        // Allow them through without the mnemonic checks below.
+        const { isReadOnlyVaultEntry } = await import('../lib/readonly-wallet')
+        if (isReadOnlyVaultEntry(currentWallet)) {
+          next()
           return
         }
         

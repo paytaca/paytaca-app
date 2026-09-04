@@ -33,6 +33,27 @@ function computeWalletHash(mnemonic, derivationPath) {
 }
 
 /**
+ * For read-only (xpub) wallets there is no mnemonic, so addresses are derived
+ * from the stored xpub via the libauth-based ReadOnlyWallet instead.
+ * @param {Object} opts
+ * @returns {Promise<{addressSet: {receiving: string, change: string}, walletHash: string}|null>}
+ */
+async function resolveReadOnlyAddressSet({ walletIndex, addressIndex, isChipnet }) {
+  const { isReadOnlyVaultEntry, loadReadOnlyWallet } = await import('src/lib/readonly-wallet')
+  const store = (await import('src/store')).default
+  const entry = store.getters['global/getVault']?.[walletIndex]
+  if (!isReadOnlyVaultEntry(entry)) return null
+
+  const wallet = await loadReadOnlyWallet(walletIndex)
+  if (!wallet) return null
+
+  const network = isChipnet ? 'chipnet' : 'mainnet'
+  wallet.network = network
+  const addressSet = wallet.getAddressSet(addressIndex, network)
+  return { addressSet, walletHash: wallet.walletHashFor(network) }
+}
+
+/**
  * Dynamically generates an address set (receiving + change) from mnemonic
  * and subscribes them to watchtower before returning
  * 
@@ -58,6 +79,50 @@ export async function generateAddressSetFromMnemonic(opts) {
   }
 
   try {
+    // Read-only (xpub) wallet: derive + subscribe from the xpub instead of mnemonic
+    const readOnly = await resolveReadOnlyAddressSet({
+      walletIndex,
+      addressIndex: validAddressIndex,
+      isChipnet
+    })
+    if (readOnly) {
+      const addressSet = readOnly.addressSet
+      const walletHash = readOnly.walletHash
+      const projId = isChipnet ? projectId.chipnet : projectId.mainnet
+
+      const watchtower = new Watchtower(isChipnet)
+      const subscriptionData = {
+        addresses: addressSet,
+        projectId: projId,
+        walletHash: walletHash,
+        addressIndex: validAddressIndex
+      }
+
+      let subscriptionResult
+      try {
+        subscriptionResult = await watchtower.subscribe(subscriptionData)
+      } catch (error) {
+        console.error('[generateAddressSetFromMnemonic] Watchtower subscribe threw an error:', error)
+        return {
+          success: false,
+          error: `Watchtower subscription error: ${error.message || 'Unknown error'}`
+        }
+      }
+
+      if (!subscriptionResult || !subscriptionResult.success) {
+        console.error('[generateAddressSetFromMnemonic] Failed to subscribe addresses to watchtower:', subscriptionResult)
+        return {
+          success: false,
+          error: subscriptionResult?.error || subscriptionResult?.message || 'Failed to subscribe addresses to watchtower. Addresses not returned for safety.'
+        }
+      }
+
+      return {
+        success: true,
+        addresses: addressSet
+      }
+    }
+
     // Get mnemonic from secure storage
     const mnemonic = await getMnemonic(walletIndex)
     if (!mnemonic) {
@@ -92,7 +157,7 @@ export async function generateAddressSetFromMnemonic(opts) {
 
     const walletHash = computeWalletHash(mnemonic, derivationPath)
     const projId = isChipnet ? projectId.chipnet : projectId.mainnet
-    
+
     const watchtower = new Watchtower(isChipnet)
     const subscriptionData = {
       addresses: addressSet,
@@ -111,12 +176,12 @@ export async function generateAddressSetFromMnemonic(opts) {
         error: `Watchtower subscription error: ${error.message || 'Unknown error'}`
       }
     }
-    
+
     if (!subscriptionResult || !subscriptionResult.success) {
       console.error('[generateAddressSetFromMnemonic] Failed to subscribe addresses to watchtower:', subscriptionResult)
-      return { 
-        success: false, 
-        error: subscriptionResult?.error || subscriptionResult?.message || 'Failed to subscribe addresses to watchtower. Addresses not returned for safety.' 
+      return {
+        success: false,
+        error: subscriptionResult?.error || subscriptionResult?.message || 'Failed to subscribe addresses to watchtower. Addresses not returned for safety.'
       }
     }
 
@@ -126,9 +191,9 @@ export async function generateAddressSetFromMnemonic(opts) {
     }
   } catch (error) {
     console.error('Error generating and subscribing address set:', error)
-    return { 
-      success: false, 
-      error: error.message || 'Failed to generate address set' 
+    return {
+      success: false,
+      error: error.message || 'Failed to generate address set'
     }
   }
 }
@@ -152,6 +217,19 @@ export async function generateAddressSetWithoutSubscription(opts) {
   }
 
   try {
+    // Read-only (xpub) wallet: derive from the xpub instead of mnemonic
+    const readOnly = await resolveReadOnlyAddressSet({
+      walletIndex,
+      addressIndex: validAddressIndex,
+      isChipnet
+    })
+    if (readOnly) {
+      return {
+        success: true,
+        addresses: readOnly.addressSet
+      }
+    }
+
     // Get mnemonic from secure storage
     const mnemonic = await getMnemonic(walletIndex)
     if (!mnemonic) {

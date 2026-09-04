@@ -81,6 +81,13 @@ export class Wallet {
 }
 
 export async function loadWallet(network = 'BCH', index = 0) {
+  // Read-only (xpub) wallets have no mnemonic; load them through the
+  // read-only wallet adapter backed by a libauth-based ReadOnlyWallet.
+  const { getVaultReadOnlyConfig, buildReadOnlyWallet, ReadOnlyWallet } = await import('src/lib/readonly-wallet')
+  const readOnlyConfig = getVaultReadOnlyConfig(index)
+  if (readOnlyConfig) {
+    return buildReadOnlyWallet(ReadOnlyWallet.fromObject(readOnlyConfig))
+  }
   const mnemonic = await getMnemonic(index)
   return new Wallet(mnemonic, network)
 }
