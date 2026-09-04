@@ -76,7 +76,7 @@ import { useRouter } from 'vue-router'
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 import { ref, computed, onMounted } from 'vue'
 import { Store } from 'src/store'
-import { getBidderPublicKey } from 'src/auction/payment'
+//import { getBidderPublicKey } from 'src/auction/payment'
 import { callAPI } from 'src/auction/api'
 import { deriveOAuthCredentials } from 'src/auction/bch-oauth'
 
@@ -114,13 +114,14 @@ const handleEditUserProfile = async () => {
     const walletHash = Store.getters['global/getWallet']('bch')?.walletHash
     const credentials = await deriveOAuthCredentials()
 
-    // api data
     const method = storedUsername.value ? 'patch' : 'post'
+    // api data
     const data = {
-        username: username.value,
-        ...(method === 'post' && { user: walletHash } ),
-        ...(method === 'post' && { address: credentials.address } )
-      } 
+      username: username.value,
+      ...(method === 'post' && { user: walletHash } ),
+      ...(method === 'post' && { address: credentials.address } ),
+      ...(method === 'post' && { pub_key: credentials.publicKey } )
+    } 
 
     const response = await callAPI(
       `user-details${method === 'post' ? '' : `/${walletHash}/update`}`, 
@@ -131,7 +132,6 @@ const handleEditUserProfile = async () => {
 
     const timeout = 3000
     if (response.success) {
-      // Nice!
       $q.notify({
         type: 'positive',
         message: `User profile ${method === 'post' ?  'created' : 'updated'}!` ,
@@ -148,7 +148,8 @@ const handleEditUserProfile = async () => {
         message: hasNetworkError ? 'Network error occurred. Please try again.' : 'Username already exists!',
         timeout
       })
-    }
+    }   
+    
   } catch (err) {
     // Something unexpected occurred
     $q.notify({ 
@@ -160,4 +161,7 @@ const handleEditUserProfile = async () => {
   // End loading screen
   isLoading.value = false
 }
+
+
+
 </script>
