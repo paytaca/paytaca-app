@@ -21,6 +21,12 @@ export function processedItems(state) {
   })
 }
 
+// Getter for auctionType
+export function auctionType(state) {
+  return state.auctionType
+}
+
+// Getter for stored biddings
 export function myBiddings(state) {
   return state.myBiddings || []
 }
