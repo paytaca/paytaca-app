@@ -514,6 +514,7 @@ import {
   updateUserPromoData,
   updateUserRewardsData,
   createUserRewardsData,
+  PROMO_CONTRACT_VERSION,
 } from 'src/utils/engagementhub-utils/rewards'
 
 import HeaderNav from 'src/components/header-nav.vue'
@@ -569,6 +570,7 @@ export default {
       hasReceivedFirstVisitBonus: false,
       dateJoined: '',
       urContract: null,
+      urContractVersion: '',
 
       // continuous points data grouped by type
       continuousPoints: {
@@ -674,19 +676,7 @@ export default {
       this.dataError = ''
 
       this.urId = Number(this.$route.params.id || -1)
-
-      // initialize UR Promo Contract and retrieve points
-      try {
-        const walletIndex = this.$store.getters['global/getWalletIndex']
-        const userPubkey = await getAddress0_0PublicKey(walletIndex)
-        this.urContract = new PromoContract(userPubkey, PromosBytes.UR)
-        if (this.urId === -1) await this.urContract.subscribeAddress()
-        this.points = await this.urContract.getTokenBalance()
-        this.animatePointsCounter()
-      } catch (error) {
-        console.error(error)
-        this.pointsError = this.$t('PointsLoadError')
-      }
+      const isNewUrUser = this.urId === -1
       
       // fetch and load data
       let urData = null
@@ -698,6 +688,21 @@ export default {
         updateUserPromoData({ ur: urData.id })
       } else {
         urData = await getUserRewardsData(this.urId)
+      }
+
+      // initialize UR Promo Contract and retrieve points
+      try {
+        const walletIndex = this.$store.getters['global/getWalletIndex']
+        const userPubkey = await getAddress0_0PublicKey(walletIndex)
+        const contractVersion = urData?.contract_version ?? PROMO_CONTRACT_VERSION
+        this.urContractVersion = contractVersion
+        this.urContract = new PromoContract(userPubkey, PromosBytes.UR, contractVersion)
+        if (isNewUrUser) await this.urContract.subscribeAddress()
+        this.points = await this.urContract.getTokenBalance()
+        this.animatePointsCounter()
+      } catch (error) {
+        console.error(error)
+        this.pointsError = this.$t('PointsLoadError')
       }
       
       if (urData && Object.keys(urData).length > 0) {
@@ -828,7 +833,8 @@ export default {
         componentProps: {
           promoId: this.urId,
           promoType: Promos.USERREWARDS,
-          promoBytes: PromosBytes.UR
+          promoBytes: PromosBytes.UR,
+          contractVersion: this.urContractVersion
         }
       }).onDismiss(async () => {
         this.isLoading = true

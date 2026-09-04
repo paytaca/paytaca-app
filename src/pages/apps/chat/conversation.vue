@@ -64,14 +64,6 @@
                 {{ $t('GroupInfo', {}, 'Group Info') }}
               </q-item-section>
             </q-item>
-            <q-item v-if="isGroupRoom && isRoomMember" clickable v-close-popup @click="shareGroupLink">
-              <q-item-section side>
-                <q-icon name="share" size="18px" />
-              </q-item-section>
-              <q-item-section>
-                {{ $t('ShareGroupLink', {}, 'Share Group Link') }}
-              </q-item-section>
-            </q-item>
             <q-item v-if="!isGroupRoom" clickable v-close-popup @click="$router.push(`/apps/chat/${roomId}/dm-info`)">
               <q-item-section side>
                 <q-icon name="info" size="18px" />
@@ -133,7 +125,7 @@
               </q-item-section>
             </q-item>
             <q-item
-              v-if="isGroupRoom && !isGroupBlocked"
+              v-if="isGroupRoom && isRoomMember"
               clickable
               v-close-popup
               @click="confirmLeaveGroup"
@@ -143,19 +135,6 @@
               </q-item-section>
               <q-item-section>
                 <span class="text-negative">{{ $t('LeaveGroup', {}, 'Leave Group') }}</span>
-              </q-item-section>
-            </q-item>
-            <q-item
-              v-if="isGroupRoom && isGroupBlocked"
-              clickable
-              v-close-popup
-              @click="confirmRejoinGroup"
-            >
-              <q-item-section side>
-                <q-icon name="group_add" size="18px" color="primary" />
-              </q-item-section>
-              <q-item-section>
-                {{ $t('RejoinGroup', {}, 'Rejoin Group') }}
               </q-item-section>
             </q-item>
           </q-menu>
@@ -394,43 +373,10 @@
         <q-icon name="block" size="16px" />
         <span>{{ $t('ContactBlockedNotice', {}, 'Contact blocked') }}</span>
       </div>
-      <div v-if="isGroupRoom && isGroupBlocked" class="blocked-notice">
-        <q-icon name="exit_to_app" size="16px" />
-        <span>{{ $t('LeftGroupNotice', {}, 'You left this group') }}</span>
-      </div>
     </template>
 
-    <!-- Non-member group: request to join card -->
-    <template v-else-if="isGroupRoom && room?.members?.length">
-      <div class="request-to-join-container">
-        <div class="request-to-join-card" :class="getDarkModeClass(darkMode)">
-          <div class="request-card-icon">
-            <q-icon name="group" size="48px" />
-          </div>
-          <div class="request-card-title">{{ room?.name || $t('Group', {}, 'Group') }}</div>
-          <div class="request-card-meta">
-            {{ $t('MemberCount', { count: room?.members?.length || 0 }, `${room?.members?.length || 0} members`) }}
-          </div>
-          <div class="request-card-desc">
-            {{ $t('RequestToJoinDesc', {}, 'Request to join this group') }}
-          </div>
-          <q-btn
-            unelevated
-            rounded
-            color="primary"
-            size="lg"
-            no-caps
-            :label="$t('RequestToJoin', {}, 'Request to Join')"
-            class="request-join-btn q-mt-md"
-            :loading="requestingToJoin"
-            @click="requestToJoin"
-          />
-        </div>
-      </div>
-    </template>
-
-    <!-- Loading group metadata -->
-    <template v-else-if="_fetchingMeta || _loadingRoom">
+    <!-- Loading group info -->
+    <template v-else-if="_loadingRoom">
       <div class="request-to-join-container">
         <div class="request-to-join-card" :class="getDarkModeClass(darkMode)">
           <q-spinner color="primary" size="36px" />
@@ -491,7 +437,7 @@
       <span class="typing-text">{{ typingDisplayText }}</span>
     </div>
 
-    <chat-input ref="chatInput" :room-id="roomId" :disabled="isRoomArchived || isContactBlocked || isGroupBlocked" :blocked="isContactBlocked || isGroupBlocked" :blocked-placeholder="isGroupBlocked ? $t('LeftGroupInputDisabled', {}, 'You left this group') : null" @send="onSend" @command="onCommand" @tip="onTipAction" @focus="onInputFocus" @blur="onInputBlur" />
+    <chat-input ref="chatInput" :room-id="roomId" :disabled="isRoomArchived || isContactBlocked" :blocked="isContactBlocked" @send="onSend" @command="onCommand" @tip="onTipAction" @focus="onInputFocus" @blur="onInputBlur" />
 
     <!-- Message context menu -->
     <transition name="context-menu-scale">
@@ -633,9 +579,6 @@ export default {
       _selectionChangeHandler: null,
       ready: false,
       _savedScrollTop: null,
-      requestingToJoin: false,
-      _fetchedGroupMeta: null,
-      _fetchingMeta: false,
       _loadingRoom: true,
       otherMemberAvatar: null,
       memberDisplayNames: {},
@@ -653,19 +596,11 @@ export default {
     room () {
       const room = this.$store.getters['nostrChat/getRoomById'](this.roomId)
       if (room) return room
-      if (this._previewMembers?.length) {
-        return {
-          id: this.roomId,
-          type: 'group',
-          name: this._previewName || 'Group',
-          members: this._previewMembers,
-        }
-      }
       if (this.type) {
         return {
           id: this.roomId,
           type: this.type,
-          name: this._previewName || 'Group',
+          name: 'Group',
           members: [],
         }
       }
@@ -677,17 +612,6 @@ export default {
     isRoomMember () {
       if (!this.room || !this.myPubKey) return false
       return this.room.members?.includes(this.myPubKey)
-    },
-    _isGroupLink () {
-      return this.$route?.name === 'group-chat-link'
-    },
-    _previewMembers () {
-      if (this._fetchedGroupMeta?.members?.length) return this._fetchedGroupMeta.members
-      return this.$route.query?.members?.split(',') || null
-    },
-    _previewName () {
-      if (this._fetchedGroupMeta?.name) return this._fetchedGroupMeta.name
-      return this.$route.query?.name || null
     },
     otherMemberPubKey () {
       const room = this.room
@@ -722,10 +646,6 @@ export default {
     },
     isRoomArchived () {
       return this.room?.archived === true
-    },
-    isGroupBlocked () {
-      if (!this.roomId) return false
-      return this.$store.getters['nostrChat/isGroupBlocked'](this.roomId)
     },
     isGroupRoom () {
       return this.room?.type === 'group' || this.room?.type === 'mls-group'
@@ -980,10 +900,6 @@ export default {
     room (val) {
       if (val) {
         this._loadingRoom = false
-        return
-      }
-      if (!this._isGroupLink) {
-        this.$router.replace('/apps/chat')
       }
     },
     otherMemberIsActive (isActive, wasActive) {
@@ -1061,17 +977,6 @@ export default {
     this.handleTipResult()
     if (this.room) {
       this._loadingRoom = false
-    }
-    if (!this.room && this._isGroupLink) {
-      this._fetchingMeta = true
-      this.$store.dispatch('nostrChat/fetchGroupMetadata', { roomId: this.roomId }).then(meta => {
-        this._fetchedGroupMeta = meta
-        this._fetchingMeta = false
-        this._loadingRoom = false
-      }).catch(() => {
-        this._fetchingMeta = false
-        this._loadingRoom = false
-      })
     }
     const savedRoomId = sessionStorage.getItem('chat_scroll_room_id')
     const savedMessageId = sessionStorage.getItem('chat_scroll_message_id')
@@ -1365,73 +1270,6 @@ export default {
         })
       } else {
         return this.$store.dispatch('nostrChat/subscribeToRelays')
-      }
-    },
-    async requestToJoin () {
-      this.requestingToJoin = true
-      try {
-        const members = this._previewMembers || this.room?.members || []
-        await this.$store.dispatch('nostrChat/requestToJoinGroup', {
-          roomId: this.roomId,
-          memberPubKeys: members,
-          name: this._previewName || this.room?.name,
-        })
-        this.$q.notify({
-          type: 'positive',
-          message: this.$t('JoinRequestSent', {}, 'Join request sent to group members'),
-        })
-      } catch (err) {
-        console.error('[Conversation] Failed to send join request:', err)
-        this.$q.notify({
-          type: 'negative',
-          message: err.message || this.$t('JoinRequestFailed', {}, 'Failed to send join request'),
-        })
-      } finally {
-        this.requestingToJoin = false
-      }
-    },
-    async shareGroupLink () {
-      try {
-        if (!this.room?.name) {
-          this.$q.notify({
-            type: 'warning',
-            message: this.$t('GroupHasNoName', {}, 'Set a group name first before sharing'),
-          })
-          return
-        }
-        await this.$store.dispatch('nostrChat/publishGroupMetadata', {
-          roomId: this.roomId,
-          memberPubKeys: this.room?.members || [],
-          name: this.room?.name,
-        })
-      } catch (err) {
-        console.warn('[Conversation] Failed to publish group metadata:', err)
-      }
-      const url = `https://chat.paytaca.com/group/${this.roomId}`
-      if (navigator?.clipboard?.writeText) {
-        navigator.clipboard.writeText(url)
-        this.$q.notify({
-          type: 'positive',
-          message: this.$t('GroupLinkCopied', {}, 'Group link copied to clipboard'),
-        })
-      } else {
-        this.$q.dialog({
-          title: this.$t('ShareGroupLink', {}, 'Share Group Link'),
-          message: url,
-          class: `pt-card text-bow ${this.getDarkModeClass(this.darkMode)}`,
-          ok: { label: this.$t('Copy', {}, 'Copy'), flat: true, color: 'primary' },
-        }).onOk(() => {
-          const textArea = document.createElement('textarea')
-          textArea.value = url
-          document.body.appendChild(textArea)
-          textArea.select()
-          document.execCommand('copy')
-          document.body.removeChild(textArea)
-          this.$q.notify({
-            type: 'positive',
-            message: this.$t('GroupLinkCopied', {}, 'Group link copied to clipboard'),
-          })
-        })
       }
     },
     onVisibilityChange () {
@@ -2047,21 +1885,6 @@ export default {
         const name = this.renameGroupName.trim()
         if (!name || !this.room) return
         await this.$store.dispatch('nostrChat/updateRoomName', { roomId: this.roomId, name })
-        const text = this.$t('GroupRenamedTo', { name }, `Changed group name to "${name}"`)
-        const { giftWraps, message, roomId } = await this.$store.dispatch('nostrChat/sendMessage', {
-          roomId: this.roomId,
-          text,
-          subject: name,
-        })
-        this.$store.commit('nostrChat/ADD_MESSAGE', { roomId, message })
-        this.$store.commit('nostrChat/TOUCH_ROOM_LAST_MESSAGE_AT', roomId)
-        this.$store.dispatch('nostrChat/publishGiftWraps', { giftWraps })
-        // Persist the new name on the relay so all members see it
-        this.$store.dispatch('nostrChat/publishGroupMetadata', {
-          roomId: this.roomId,
-          memberPubKeys: this.room?.members || [],
-          name,
-        }).catch(() => {})
         this.renameGroupName = ''
         this.showRenameGroupDialog = false
         this.$q.notify({ type: 'positive', message: this.$t('GroupRenamed', {}, 'Group renamed') })
@@ -2070,6 +1893,15 @@ export default {
       }
     },
     confirmLeaveGroup () {
+      const isOwner = this.room?.admins?.length && this.myPubKey === this.room.members?.[0]
+      if (isOwner && this.room.members?.length > 1) {
+        this.$q.notify({
+          type: 'warning',
+          message: this.$t('OwnerLeaveNeedsAdmin', {}, 'Promote another member to admin first — the group needs a new owner before you can leave.'),
+          timeout: 6000,
+        })
+        return
+      }
       this.$q.dialog({
         title: this.$t('LeaveGroup', {}, 'Leave Group'),
         message: this.$t('LeaveGroupConfirm', { name: this.room?.name }, `Leave group "${this.room?.name}"?`),
@@ -2079,26 +1911,12 @@ export default {
         persistent: true,
       }).onOk(async () => {
         try {
-          await this.$store.dispatch('nostrChat/leaveGroup', { roomId: this.roomId })
+          await this.$store.dispatch('nostrChat/leaveMlsGroup', { roomId: this.roomId })
           this.$router.replace('/apps/chat')
           this.$q.notify({ type: 'info', message: this.$t('LeftGroup', {}, 'You left the group') })
         } catch (err) {
           this.$q.notify({ type: 'negative', message: err.message || this.$t('LeaveGroupFailed', {}, 'Failed to leave group') })
         }
-      })
-    },
-    confirmRejoinGroup () {
-      const roomName = this.roomName
-      this.$q.dialog({
-        title: this.$t('RejoinGroup', {}, 'Rejoin Group'),
-        message: this.$t('RejoinGroupConfirm', { name: roomName }, `Rejoin "${roomName}"? You will be able to send and receive messages again.`),
-        class: `pt-card text-bow ${this.getDarkModeClass(this.darkMode)}`,
-        cancel: { label: this.$t('Cancel', {}, 'Cancel'), flat: true, color: 'grey' },
-        ok: { label: this.$t('RejoinGroup', {}, 'Rejoin Group'), color: 'primary', flat: true },
-        persistent: true,
-      }).onOk(async () => {
-        await this.$store.dispatch('nostrChat/rejoinGroup', { roomId: this.roomId })
-        this.$q.notify({ type: 'positive', message: this.$t('GroupRejoined', {}, 'Group rejoined') })
       })
     },
     async renameContact () {
@@ -2208,8 +2026,7 @@ export default {
       const isBlocked = this.isContactBlocked
       const note = this.$t('DeleteConversationNote', {}, 'This only removes it from this device. It stays on the relay and will be restored if you Reset Chat.')
 
-      // Groups: leaving already handles "blocking" via BLOCK_GROUP, so delete
-      // is a simple permanent removal. Also clear any group-block tracker.
+      // Groups: delete is a simple permanent removal.
       if (this.isGroupRoom) {
         this.$q.dialog({
           title: this.$t('DeleteConversation', {}, 'Delete Conversation'),
@@ -2219,7 +2036,6 @@ export default {
           ok: { label: this.$t('Delete', {}, 'Delete'), color: 'negative', flat: true },
           persistent: true,
         }).onOk(() => {
-          this.$store.dispatch('nostrChat/unblockGroup', this.roomId)
           this.$store.dispatch('nostrChat/deleteRoom', this.roomId)
           this.$router.replace('/apps/chat')
           this.$q.notify({ type: 'info', message: this.$t('ConversationDeleted', {}, 'Conversation deleted') })
@@ -2344,7 +2160,7 @@ export default {
             id: `failed-${Date.now()}`,
             sender: this.myPubKey,
             content: text,
-            kind: this.isMlsRoom ? 30117 : undefined,
+            kind: this.isMlsRoom ? 445 : undefined,
             created_at: Math.floor(Date.now() / 1000),
             failed: true,
             mls: this.isMlsRoom,

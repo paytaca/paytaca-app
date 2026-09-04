@@ -106,6 +106,7 @@ export default function () {
     walletIndex: 0,
     walletSwitchId: 0,
     vault: [],
+    bootHydrated: false,
     denomination: 'BCH',
     appControl: null,
     merchantActivity: {

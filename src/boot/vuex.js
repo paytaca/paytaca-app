@@ -142,6 +142,7 @@ export default boot(async (obj) => {
 
       store.replaceState(parsedState)
     }
+    store.commit('global/setBootHydrated', true)
 
     // Add error handler for store mutations
     store.subscribe((mutation, state) => {
