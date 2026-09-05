@@ -1,9 +1,14 @@
 pragma cashscript ^0.13.0;
 
-contract Escrow(bytes20 arbiter, bytes20 bidder, bytes20 auctioneer, bytes20 servicer, int platformFee, int arbitrationFee, bytes32 paramHash) {
-    
-    function release(pubkey pk, bytes32 hash) {
+contract AuctionEscrow(bytes20 arbiter, bytes20 auctioneer, bytes20 servicer, int lotId, int platformFee, int arbitrationFee, bytes32 paramHash) {
+    // NOTE: NFT Commitments need 2 information (biddingPrice and bidder pubkey hash)
+
+    function release(int lot, pubkey pk, bytes32 hash) {
         require(hash == paramHash);
+        require(lot == lotId);
+
+        bytes20 bidder, bytes bidPrice = tx.inputs[this.activeInputIndex].nftCommitment.split(20);
+        
         require(hash160(pk) == arbiter || hash160(pk) == bidder);
 
         require(tx.inputs.length == 1);
@@ -13,15 +18,16 @@ contract Escrow(bytes20 arbiter, bytes20 bidder, bytes20 auctioneer, bytes20 ser
         int fees = minerFee + platformFee + arbitrationFee;
         int amount = tx.inputs[this.activeInputIndex].value - fees;        
         
+        bool correctBidPrice = int(bidPrice) == amount;
         bool correctAmount = tx.outputs[0].value == amount;
         bool correctPlatformFee = tx.outputs[1].value == platformFee;
         bool correctArbitrationFee = tx.outputs[2].value == arbitrationFee;
 
-        require(correctAmount && correctPlatformFee && correctArbitrationFee);
+        require(correctBidPrice && correctAmount && correctPlatformFee && correctArbitrationFee);
 
         bytes25 auctioneerLock = new LockingBytecodeP2PKH(auctioneer);
         bytes25 servicerLock = new LockingBytecodeP2PKH(servicer);
-        bytes25 arbiterLock = new LockingBytecodeP2PKH(arbiter);
+        bytes25 arbiterLock = new LockingBytecodeP2PKH(arbiter); 
         
         bool sendsToAuctioneer = tx.outputs[0].lockingBytecode == auctioneerLock;
         bool sendsToServicer = tx.outputs[1].lockingBytecode == servicerLock;
@@ -30,8 +36,11 @@ contract Escrow(bytes20 arbiter, bytes20 bidder, bytes20 auctioneer, bytes20 ser
         require(sendsToAuctioneer && sendsToServicer && sendsToArbiter);
     }
 
-    function return(pubkey pk, bytes32 hash) {
+    function return(int lot, pubkey pk, bytes32 hash) {
         require(hash == paramHash);
+        require(lot == lotId);
+
+        bytes20 bidder, bytes bidPrice = tx.inputs[this.activeInputIndex].nftCommitment.split(20);
         require(hash160(pk) != bidder);
 
         require(tx.inputs.length == 1);
@@ -39,32 +48,36 @@ contract Escrow(bytes20 arbiter, bytes20 bidder, bytes20 auctioneer, bytes20 ser
 
         int minerFee = 1000;
         int amount = tx.inputs[this.activeInputIndex].value - minerFee;
+        bool correctBidPrice = int(bidPrice) == amount;
         bool correctAmount = tx.outputs[0].value == amount;
 
-        require(correctAmount);
+        require(correctBidPrice && correctAmount);
 
         bytes25 bidderLock = new LockingBytecodeP2PKH(bidder);
         bool sendsToBidder = tx.outputs[0].lockingBytecode == bidderLock;
-        
+    
         require(sendsToBidder);
     }
 
-    function refund(pubkey pk, bytes32 hash) {
+    function refund(int lot, pubkey pk, bytes32 hash) {
         require(hash == paramHash);
+        require(lot == lotId);
         require(hash160(pk) == arbiter || hash160(pk) == auctioneer);
 
         require(tx.inputs.length == 1);
         require(tx.outputs.length == 3);
 
+        bytes20 bidder, bytes bidPrice = tx.inputs[this.activeInputIndex].nftCommitment.split(20);
         int minerFee = 1000;
         int fees = minerFee + platformFee + arbitrationFee;
         int amount = tx.inputs[this.activeInputIndex].value - fees;     
 
+        bool correctBidPrice = int(bidPrice) == amount;
         bool correctAmount = tx.outputs[0].value == amount;
         bool correctPlatformFee = tx.outputs[1].value == platformFee;
         bool correctArbitrationFee = tx.outputs[2].value == arbitrationFee;
         
-        require(correctAmount && correctPlatformFee && correctArbitrationFee);
+        require(correctBidPrice && correctAmount && correctPlatformFee && correctArbitrationFee);
 
         bytes25 bidderLock = new LockingBytecodeP2PKH(bidder);
         bytes25 servicerLock = new LockingBytecodeP2PKH(servicer);
