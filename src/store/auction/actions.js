@@ -9,8 +9,8 @@ PAGE UPDATE ACTIONS
 */
 
 // Filtering auction items by type (English, Dutch, or All)
-export async function filterAuctionItems({ commit }, type) {
-  commit('updateAuctionType', type)
+export async function filterAuctionItems({ commit }, type, isIndex) {
+  commit(`updateAuctionType${isIndex ? 'Index' : 'Activity'}`, type)
 }
 
 // Filtering user activities
@@ -80,6 +80,22 @@ export async function fetchMyBiddings({ commit }) {
   }
 
   commit('setMyBiddings', lots)
+}
+
+export async function fetchMyAuctions({ commit }) {
+  let auctions = []
+  const result = await callAPI('my-auctions')
+
+  // successfully fetched data
+  if (result.data && result.success && result.data) {
+    auctions = Array.isArray(result.data) ?
+      result.data.map(item => (!item) ? null : item instanceof AuctionList ? item : AuctionList.parse(item)) :
+      AuctionList.parse(item)
+  } else { // error occurred
+    console.error('Failed to update auction details:', err)
+  }
+
+  commit('setMyAuctions', auctions)
 }
 
 // Fetching CURRENT USER username

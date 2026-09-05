@@ -21,22 +21,54 @@ export function processedItems(state) {
   })
 }
 
-// Getter for auctionType
-export function auctionType(state) {
-  return state.auctionType
+export function auctionTypeIndex(state) {
+  return state.auctionTypeIndex
 }
 
-// Getter for stored biddings
+export function auctionQueryIndex(state) {
+  return state.auctionTypeIndex
+}
+
+export function auctionTypeActivity(state) {
+  return state.auctionTypeActivity
+}
+
+export function auctionQueryActivity(state) {
+  return state.auctionQueryActivity
+}
+
+export function auctionTypeOptions(state) {
+  return state.auctionTypeOptions
+}
+
+export function lotTypeOptions(state) {
+  return state.lotTypeOptions
+}
+
+export function lotTypeActivity(state) {
+  return state.lotTypeActivity
+}
+
+export function lotQueryActivity(state) {
+  return state.lotQueryActivity
+}
+
+export function activityType(state) {
+  return state.activityType
+}
+
 export function myBiddings(state) {
   return state.myBiddings || []
 }
 
-// Getter for stored arbiter PK
+export function myAuctions(state) {
+  return state.myAuctions || []
+}
+
 export function arbiterPublicKey(state) {
   return state.arbiterPublicKey
 }
 
-// Getter for stored servicer PK
 export function servicerPublicKey(state) {
   return state.servicerPublicKey
 }
