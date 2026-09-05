@@ -173,22 +173,13 @@ const $router = useRouter()
 
 // System variables
 const darkMode = computed(() => $store.getters['darkmode/getStatus'])
-const isLoading = ref(false)
-const isCheckingAccess = ref(true)
+const isLoading = ref(true)         // Controls auction listing loading
+const isCheckingAccess = ref(true)  // Controls loading screen during profile checking
 
 // Websocket-related
 let socket = null
 
-
-let isMounted = true
-onUnmounted(() => {
-  isMounted = false
-})
-
-
 onMounted(async () => {
-  isLoading.value = true // try here muna
-
   // Fetch username and if it doesn't exist, print the error
   await $store.dispatch('auction/fetchUsername')
   const username = $store.getters['auction/username']
@@ -199,17 +190,15 @@ onMounted(async () => {
     return
   }
 
-  // REVIEW
-  if (!isMounted) return
-
   // Reroute user to arbiter page if they're an assigned arbiter
   const isUserArbiter = $store.getters['auction/isArbiter']
   if (isUserArbiter) {
     $router.push({ name: 'app-auction-appeals' })
     return
   }
-
-  //isLoading.value = true 
+  
+  // close profile checking loading screen 
+  isCheckingAccess.value = false
 
   // Check if the arbiterPK and servicerPK are not null (prevents dispatching it every time)
   const arbiterPK = $store.getters['auction/arbiterPublicKey']
@@ -221,20 +210,10 @@ onMounted(async () => {
   
   // Refresh the list of auctions
   await $store.dispatch('auction/refreshCatalog')
- 
-  
-  // REVIEW
-  //if (!isMounted) return
-
-   //else {
-    // Yay! Username was saved. Time to set up the websockets.
-    
-    // Connect to the websocket
-    socket = connectWebsocket()
-  //}
-  
-  // Done loading the page
   isLoading.value = false
+
+  // Connect to the WS (Review)
+  //socket = connectWebsocket()
 })
 
 onBeforeUnmount(() => {
@@ -249,9 +228,9 @@ AUCTION-RELATED
 
 // Auction filter options
 const auctionTypeOptions = ['English', 'Dutch', 'All']
+const auctionType = ref($store.getters['auction/auctionType']);
 
 // Auction ref variables
-const auctionType = ref($store.getters['auction/auctionType']);
 const auctionSearchQuery = ref('')
 
 // Filters the auction items
@@ -264,6 +243,7 @@ const filteredItems = computed(() => {
     const query = auctionSearchQuery.value.toLowerCase().trim()
     items = items.filter(item => item.title?.toLowerCase().includes(query))
   }
+
 
   return items
 })
