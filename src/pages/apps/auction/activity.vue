@@ -29,7 +29,10 @@
     </div>
 
     <div class="q-px-md q-pt-xs q-pb-md sticky-below-header">
-      <ActivitySearch v-model="searchQuery" :placeholder="`Search my ${activityType}`" />
+      <ActivitySearch 
+      :v-model="activityType === 'My Auctions' ? auctionSearchQuery : lotSearchQuery" 
+      :placeholder="`Search my ${activityType}`" 
+      />
     </div>
 
     <div class="row justify-end q-px-md q-mb-md">
@@ -374,36 +377,74 @@
 </template>
 
 <script setup>
-import { useQuasar, date } from 'quasar'
+import { date } from 'quasar'
 import { useStore } from 'vuex'
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
-import { computed, ref, onMounted, watch, nextTick, onActivated, onUnmounted, onBeforeUnmount } from 'vue'
+import { computed, ref, onMounted, watch, onBeforeUnmount } from 'vue'
 import { useRouter } from 'vue-router'
 import { callAPI } from 'src/auction/api'
-import { AuctionList } from 'src/auction/object.js'
 
 // Components
 import HeaderNav from 'src/components/header-nav.vue'
 import AuctionHeaderMenu from 'src/components/auction/AuctionHeaderMenu.vue'
 import ActivitySearch from 'src/components/auction/ActivitySearch.vue'
+
+// Assets
 import noImage from 'src/assets/no-image.svg'
+
+// Websocket-related imports
 import { callActivityWebsocket } from 'src/auction/websocket'
 
-const $q = useQuasar()
+// Quasar-related variales
 const $store = useStore()
-const darkMode = computed(() => $store.getters['darkmode/getStatus'])
 const $router = useRouter()
 
+// System variables
+const darkMode = computed(() => $store.getters['darkmode/getStatus'])
+const isLoading = ref(false)
+
+// Activity variables
+const activityTypeOptions = ['My Bids', 'My Auctions']
+const activityType = ref($store.getters['auction/activityType'])
+const data = computed(() => activityType.value === 'My Auctions' ? 'Auctions' : 'Biddings')
+
+// Auction-related variables
+const auctionTypeOptions = $store.getters['auction/auctionTypeOptions']
+const auctionType = ref($store.getters['auction/auctionTypeActivity'])
+const auctionDetails = computed(() => $store.getters['auction/myAuctions'])
+
+// MAYBE BRING BACK SEARCHQUERY AND JUST UPDATE THE AUCTIONQUERY AND LOTQUERY THRU COMMITS
+const auctionSearchQuery = ref($store.getters['auction/auctionQueryActivity'] || '')
+
+// Lot-related variables
+const lotTypeOptions = $store.getters['auction/lotTypeOptions']
+const lotType = ref($store.getters['auction/lotTypeActivity'])
+const lotDetails = computed(() => $store.getters['auction/myBiddings'])
+const lotHasBid = ref({})
+const lotSearchQuery = ref($store.getters['auction/lotQueryActivity'] || '')
+
+// Websocket variables
+let socket = null 
+
+/*
+====================
+FORMATTING FUNCTIONS
+====================
+*/
 const formatFiat = (value) => {
   const numValue = Number(value) || 0
-  return `₱${numValue.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
+  return `
+  ₱${numValue.toLocaleString('en-US', 
+    { 
+      minimumFractionDigits: 2, 
+      maximumFractionDigits: 2 
+    }
+  )}`
 }
 
 const formatBCH = (value) => {
-  return getFormattedBCH(Number(value) || 0)
-}
+  const bch = Number(value) || 0
 
-const getFormattedBCH = (bch) => {
   const numStr = Number(bch).toFixed(8);
   const match = numStr.match(/^(.*?)0*$/);
   const main = match ? match[1] : numStr;
@@ -411,27 +452,13 @@ const getFormattedBCH = (bch) => {
   return { main, zeros, full: numStr };
 }
 
-
-
-const activityType = ref($store.state.auction?.activityType || 'My Bids')
-if (activityType.value === 'Arbiter') {
-  activityType.value = 'My Bids'
+const getEnglishPriceInfo = (lot) => {
+  return {
+    label: lotHasBid.value[lot.id] ? 'HIGHEST BID:' : 'STARTING PRICE:',
+    fiat: lot.threshold_bid_fiat,
+    bch: lot.threshold_bid_bch
+  }
 }
-
-const activityTypeOptions = ['My Bids', 'My Auctions']
-
-const auctionType = ref('All');
-const auctionTypeOptions = ['English', 'Dutch', 'All']
-const searchQuery = ref('')
-const lotType = ref('All')
-const lotTypeOptions = ['Physical', 'Digital', 'All']
-
-const isLoading = ref(false)
-
-const auctionDetails = ref([])
-const lotDetails = computed(() => $store.state.auction.myBiddings || [])
-
-const lotHasBid = ref({})
 
 const fetchHasBidForLots = async (lotsArr) => {
   const englishLots = (lotsArr || []).filter((lot) => lot.auction_type === 'English')
@@ -447,96 +474,58 @@ const fetchHasBidForLots = async (lotsArr) => {
   }))
 }
 
-watch(lotDetails, (newLots) => {
-  fetchHasBidForLots(newLots)
-}, { immediate: true })
+const formatAuctionDate = (dateString) => date.formatDate(dateString, 'MMM DD, YYYY hh:mm A')
 
-const getEnglishPriceInfo = (lot) => {
-  return {
-    label: lotHasBid.value[lot.id] ? 'HIGHEST BID:' : 'STARTING PRICE:',
-    fiat: lot.threshold_bid_fiat,
-    bch: lot.threshold_bid_bch
-  }
-}
-
-const fetchAuctionData = async () => {
-  auctionDetails.value = []
-  const result = await callAPI('my-auctions')
-
-  try {
-    if (result.data && result.success && Array.isArray(result.data)) {
-      auctionDetails.value = result.data.map(item => parseAuctionData(item))
-    } else {
-      auctionDetails.value = parseAuctionData(result.data)
-    }
-    
-  } catch (err) {
-    console.error('Failed to update auction details:', err)
-    auctionDetails.value = []
-  }
-}
-
-const parseAuctionData = (data) => {
-  if (!data) return null
-  return data instanceof AuctionList ? data : AuctionList.parse(data)
-}
-
-let socket = null
-onMounted(async () => {
-  isLoading.value = true
-
-  if(activityType.value === 'My Auctions') await fetchAuctionData()
-  else await $store.dispatch('auction/fetchMyBiddings')
-
-  isLoading.value = false
-
+/*
+================
+WEBSOCKET FUNCTIONS
+================
+*/
+const connectWebsocket = () => {
   let reconnectAttempts = 0
   let maxReconnectAttempts = 10
-  const connectWebsocket = () => {
-    const username = $store.getters['auction/username']
-    const ws = callActivityWebsocket(username)
-    ws.onopen = () => {
-      console.log("Connected to the activity websocket!")
-    };
 
-    ws.onmessage = (event) => {
-      const { type, data } = JSON.parse(event.data)
+  const username = $store.getters['auction/username']
+  const ws = callActivityWebsocket(username)
 
-      switch (type) {
-        // update a specific auction's status
-        case "my.auctions_refresh_page":
-        case "my.bids_refresh_page":
-          if (activityType.value === 'My Auctions') refresh()
-          else if (activityType.value === 'My Biddings') refresh()
-          break
-        default:
-          console.warn("Unknown websocket message:", type, data)
-      }
-      console.log(data)
+  ws.onopen = () => {
+    console.log("Connected to the activity websocket!")
+  };
+
+  ws.onmessage = (event) => {
+    const { type, data } = JSON.parse(event.data)
+
+    switch (type) {
+      // update a specific auction's status
+      case "my.auctions_refresh_page":
+      case "my.bids_refresh_page":
+        if (activityType.value === 'My Auctions') refresh()
+        else if (activityType.value === 'My Biddings') refresh()
+        break
+      default:
+        console.warn("Unknown websocket message:", type, data)
     }
-
-    ws.onclose = (event) => {
-      console.log("Disconnected from the index auction websocket!")
-
-      if (!event.wasClean && reconnectAttempts < maxReconnectAttempts) {
-        const delay = Math.min(1000 * 2 ** reconnectAttempts, 30000)
-        reconnectAttempts++
-        setTimeout(connectWebsocket, delay)
-      }
-    };
-
-    ws.onerror = (event) => {
-      console.error("Activity websocket error:", event)
-    }
-
-    return ws
+    console.log(data)
   }
 
-  socket = connectWebsocket()
-})
+  ws.onclose = (event) => {
+    console.log("Disconnected from the index auction websocket!")
 
-onBeforeUnmount(() => {
-  console.log('unmounting')
+    if (!event.wasClean && reconnectAttempts < maxReconnectAttempts) {
+      const delay = Math.min(1000 * 2 ** reconnectAttempts, 30000)
+      reconnectAttempts++
+      setTimeout(connectWebsocket, delay)
+    }
+  };
+
+  ws.onerror = (event) => {
+    console.error("Activity websocket error:", event)
+  }
+
+  return ws
+}
+
+const clearWebsocket = () => {
   if (socket) {
     socket.close()
     socket.onmessage = null
@@ -544,17 +533,59 @@ onBeforeUnmount(() => {
     socket.onerror = null
     socket.onclose = null
   }
+}
+
+onMounted(async () => {
+  console.log('PENI ', $store.state.auction)
+  fetchMyData()
+  //socket = connectWebsocket()
 })
 
+onBeforeUnmount(() => {
+  clearWebsocket()
+})
+
+watch(activityType, async (newType) => {
+  await fetchMyData()
+  $store.dispatch('auction/filterActivities', newType)
+  console.log(auctionSearchQuery.value)
+})
+
+watch(auctionType, (newType) => {
+  $store.dispatch('auction/filterAuctionItems', newType)
+})
+
+// FIX THIS NEXT TIME
+watch(auctionSearchQuery, (newQuery) => {
+  $store.commit('auction/updateAuctionQueryActivity', newQuery)
+  $store.dispatch('auction/filterAuctionItems', newQuery)
+})
+
+// FIX THIS TOO
+watch(lotSearchQuery, (newQuery) => {
+  $store.commit('auction/updateLotQueryActivity', newQuery)
+  $store.dispatch('auction/filterLotItems', newQuery)
+})
+
+watch(lotDetails, (newLots) => {
+  fetchHasBidForLots(newLots)
+}, { immediate: true })
+
+
+/*
+==============
+FILTERING DATA
+==============
+*/
 const filteredAuctions = computed(() => {
   let items = auctionDetails.value
 
-  if (auctionType.value !== 'All') {
+  if (auctionType.value !== 'All') 
     items = items.filter(auction => auction.type === auctionType.value)
-  }
-
-  const query = searchQuery.value.toLowerCase().trim()
+  
+  const query = auctionSearchQuery.value.toLowerCase().trim()
   if (query) {
+    $store.commit('auction/updateAuctionQueryActivity', auctionSearchQuery.value)
     items = items.filter(auction => auction.title?.toLowerCase().includes(query))
   }
 
@@ -564,56 +595,17 @@ const filteredAuctions = computed(() => {
 const filteredLots = computed(() => {
   let items = lotDetails.value
 
-  if (lotType.value !== 'All') {
+  if (lotType.value !== 'All') 
     items = items.filter(lot => lot.category_name === lotType.value)
-  }
 
-  const query = searchQuery.value.toLowerCase().trim()
+  const query = lotSearchQuery.value.toLowerCase().trim()
   if (query) {
+    $store.commit('auction/updateLotQueryActivity', lotSearchQuery.value)
     items = items.filter(lot => lot.title?.toLowerCase().includes(query))
   }
 
   return items
 })
-
-watch(activityType, async (newType) => {
-  if (newType === 'My Bids') {
-    auctionDetails.value = []
-  }
-
-  isLoading.value = true
-
-  if(newType === 'My Auctions') await fetchAuctionData()
-  else if(newType === 'My Bids') await $store.dispatch('auction/fetchMyBiddings')
-
-  isLoading.value = false
-
-  $store.dispatch('auction/filterActivities', newType)
-})
-
-
-
-
-const getAuctionStatusInfo = (auction) => {
-  if (auction && typeof auction.getStatus === 'function') {
-    return auction.getStatus();
-  }
-  return { label: 'NaN', color: 'purple' };
-}
-
-const getLotStatusInfo = (lot) => {
-  if (lot && typeof lot.getStatus === 'function') {
-    return lot.getStatus();
-  }
-  return { label: 'NaN', color: 'purple' };
-}
-
-const getIntervalMinutesInfo = (lot) => {
-  if (lot && typeof lot.getIntervalMinutes === 'function') {
-    return lot.getIntervalMinutes();
-  }
-  return 10;
-}
 
 const isMyAuctionEmpty = computed(() => {
   return !isLoading.value && filteredAuctions.value.length === 0
@@ -623,21 +615,41 @@ const isMyBiddingEmpty = computed(() => {
   return !isLoading.value && filteredLots.value.length === 0
 })
 
-const refresh = async (done) => {
-  if (activityType.value === 'My Auctions') {
-    auctionDetails.value = []
-  }
 
-  isLoading.value = true
-
-  if(activityType.value === 'My Auctions') await fetchAuctionData()
-  else if(activityType.value === 'My Bids') await $store.dispatch('auction/fetchMyBiddings')
-
-  isLoading.value = false
-  if (typeof done === 'function') done()
+/*
+=============================
+GETTING INFORMATION FUNCTIONS
+=============================
+*/
+const getAuctionStatusInfo = (auction) => {
+  if (auction && typeof auction.getStatus === 'function') 
+    return auction.getStatus();
+  return { label: 'NaN', color: 'purple' };
 }
 
-const formatAuctionDate = (dateString) => { return date.formatDate(dateString, 'MMM DD, YYYY hh:mm A') }
+const getLotStatusInfo = (lot) => {
+  if (lot && typeof lot.getStatus === 'function') 
+    return lot.getStatus();
+  return { label: 'NaN', color: 'purple' };
+}
+
+const getIntervalMinutesInfo = (lot) => {
+  if (lot && typeof lot.getIntervalMinutes === 'function') 
+    return lot.getIntervalMinutes();
+  return 10;
+}
+
+const fetchMyData = async () => {
+  auctionDetails.value = []
+  isLoading.value = true
+  await $store.dispatch(`auction/fetchMy${data.value}`)
+  isLoading.value = false
+}
+
+const refresh = async (done) => {
+  await fetchMyData()
+  if (typeof done === 'function') done()
+}
 </script>
 
 <style scoped lang="scss">
