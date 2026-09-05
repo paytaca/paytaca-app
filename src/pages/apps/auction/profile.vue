@@ -7,7 +7,7 @@
     class="auction-container"
     :class="getDarkModeClass(darkMode)"
   >
-    <HeaderNav :title="$t('Auction Profile')" :backnavpath="username ? '/apps/auction' : '/apps'" class="header-nav">
+    <HeaderNav :title="$t('Auction - Profile')" :backnavpath="username ? '/apps/auction' : '/apps'" class="header-nav">
       <template v-slot:top-right-menu>
         <AuctionHeaderMenu />
       </template>

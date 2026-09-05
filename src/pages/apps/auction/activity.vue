@@ -9,7 +9,7 @@
     :class="getDarkModeClass(darkMode)"
     @refresh="refresh"
   >
-    <HeaderNav :title="$t('Auction')" backnavpath="/apps/auction" class="header-nav">
+    <HeaderNav :title="$t('Auction - My Activity')" backnavpath="/apps/auction" class="header-nav">
       <template v-slot:top-right-menu>
         <AuctionHeaderMenu />
       </template>

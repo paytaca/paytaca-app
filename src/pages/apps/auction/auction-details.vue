@@ -8,7 +8,7 @@
     :class="getDarkModeClass(darkMode)"
     @refresh="refresh"
   >
-    <HeaderNav :title="$t('Auction')" :backnavpath="smartBackPath" class="header-nav" />
+    <HeaderNav :title="$t('Auction - Details')" :backnavpath="smartBackPath" class="header-nav" />
 
     <div class="q-pa-md text-bow" :class="getDarkModeClass(darkMode)">
       <div class="row q-col-gutter-md justify-start items-start">
