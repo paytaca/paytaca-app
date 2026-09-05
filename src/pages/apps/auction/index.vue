@@ -153,11 +153,10 @@
 </template>
 
 <script setup>
-import { useQuasar, date } from 'quasar'
 import { useStore } from 'vuex'
 import { useRouter } from 'vue-router'
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
-import { ref, computed, watch, onMounted, onUnmounted, onBeforeUnmount } from 'vue'
+import { ref, computed, watch, onMounted, onBeforeUnmount } from 'vue'
 import { AuctionList } from 'src/auction/object.js'
 
 // Components
@@ -227,24 +226,22 @@ AUCTION-RELATED
 */
 
 // Auction filter options
-const auctionTypeOptions = ['English', 'Dutch', 'All']
-const auctionType = ref($store.getters['auction/auctionType']);
+const auctionTypeOptions = $store.getters['auction/auctionTypeOptions']
+const auctionType = ref($store.getters['auction/auctionTypeIndex']);
 
 // Auction ref variables
-const auctionSearchQuery = ref('')
+const auctionSearchQuery = ref($store.getters['auction/auctionQueryIndex'])
 
 // Filters the auction items
 const filteredItems = computed(() => {
   let items = $store.getters['auction/processedItems'] || []
-  
   items = items.map(item => (item instanceof AuctionList ? item : AuctionList.parse(item)))
 
   if (auctionSearchQuery.value && auctionSearchQuery.value.trim() !== '') {
+    $store.commit('updateAuctionQueryIndex', auctionSearchQuery.value)
     const query = auctionSearchQuery.value.toLowerCase().trim()
     items = items.filter(item => item.title?.toLowerCase().includes(query))
   }
-
-
   return items
 })
 
@@ -254,9 +251,8 @@ const isAuctionEmpty = computed(() => {
 })
 
 const getAuctionStatusInfo = (auction) => {
-  if (auction && typeof auction.getStatus === 'function') {
+  if (auction && typeof auction.getStatus === 'function') 
     return auction.getStatus();
-  }
   return { label: 'NaN', color: 'purple' };
 }
 
