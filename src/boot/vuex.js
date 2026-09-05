@@ -8,7 +8,7 @@ import { migrateMnemonicsToWalletHash } from 'src/wallet/mnemonic-migration'
 import useStore from 'src/store'
 import limitsConfig from 'src/store/subscription/limits.json'
 import wizardconnectDefaultState from 'src/store/wizardconnect/state'
-import auctionDefaultState from 'src/store/auction/state'
+import defaultAuctionState from 'src/store/auction/state'
 import nostrChatDefaultState from 'src/store/nostr-chat/state'
 
 /**
@@ -126,7 +126,12 @@ export default boot(async (obj) => {
 
       // Ensure auction module state is initialized
       if (!parsedState.auction || typeof parsedState.auction !== 'object') {
-        parsedState.auction = auctionDefaultState()
+        parsedState.auction = defaultAuctionState()
+      } else {
+        parsedState.auction = {
+          ...defaultAuctionState,
+          ...parsedState.auction
+        }
       }
 
       // Ensure merchantActivity state is initialized (added after v0.24.0)
