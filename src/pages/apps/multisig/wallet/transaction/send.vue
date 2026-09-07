@@ -105,7 +105,7 @@
                       </q-item-label>
                     </q-item-section>
                     <q-item-section side>
-                      <q-item-label side :class="totalAmount && totalAmount > balance  ? 'text-red' : ''">
+                      <q-item-label side :class="totalAmount && Big(totalAmount).gt(Big(balance || 0)) ? 'text-red' : ''">
                         {{ $t('TotalAmount') }}: {{ totalAmount }}
                       </q-item-label>
                     </q-item-section>
@@ -199,7 +199,7 @@
 
 import { useStore } from 'vuex'
 import { useI18n } from 'vue-i18n'
-import { computed, onMounted, onUnmounted, ref, nextTick, onBeforeMount, watch } from 'vue'
+import { computed, onMounted, onUnmounted, ref, nextTick, onBeforeMount, watch, defineComponent } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useQuasar } from 'quasar'
 import Big from 'big.js'
@@ -216,6 +216,8 @@ import KeyboardTooltip from 'src/components/KeyboardTooltip.vue'
 import { useMultisigHelpers } from 'src/composables/multisig/helpers'
 import { decodeCashAddress } from 'bitauth-libauth-v3'
 import { generateCosignerAuthPublicKeyFromXpub } from 'src/lib/multisig/coordination'
+
+defineComponent({ name: 'MultisigWalletSend' })
 
 const $q = useQuasar()
 const $store = useStore()
@@ -356,14 +358,16 @@ const amountRules = computed(() => {
 })
 
 const totalAmount = computed(() => {
-  try {
-    return recipients.value.reduce((total, nextR) => {
-      total = Big(total).add(nextR.amount || 0)
-      return total
-    }, '0')  
-  } catch (error) {
-    return '!'
+  let total = Big(0)
+  for (const recipient of recipients.value) {
+    if (recipient.amount === '' || recipient.amount === undefined) continue
+    try {
+      total = total.add(Big(recipient.amount))
+    } catch {
+      return null
+    }
   }
+  return total
 })
 
 const assetPrice = computed(() => {
@@ -374,6 +378,7 @@ const assetPrice = computed(() => {
     if (!b) return ''
     return b[`assetPriceIn${b.currency}Text`]
   }
+  return ''
 })
 
 const sendable = computed(() => {
@@ -384,9 +389,9 @@ const sendable = computed(() => {
     recipients.value?.every(r => Boolean(r.address)) && 
     recipients.value?.every(r => Boolean(r.amount)) &&
     recipients.value?.length > 0 &&
-    totalAmount.value !== '!' &&
+    totalAmount.value !== null &&
     totalAmount.value > 0 &&  
-    balance.value > totalAmount.value &&
+    Big(balance.value || 0).gt(Big(totalAmount.value)) &&
     !hasAmountErrors &&
     !hasAddressErrors
   )
@@ -458,16 +463,16 @@ const onAddressFocus = () => {
   customKeyboardState.value = 'dismiss'
 }
 
-const asset = computed(() => {
-  if (route.query.asset === 'bch') {
-    return { id: 'bch', symbol: 'BCH', decimals: 8 }
-  }
-  return {
-    id: route.query.asset,
-    symbol: assetHeaderName.value,
-    decimals: assetTokenIdentity.value?.token?.decimals ?? 8
-  }
-})
+// const asset = computed(() => {
+//   if (route.query.asset === 'bch') {
+//     return { id: 'bch', symbol: 'BCH', decimals: 8 }
+//   }
+//   return {
+//     id: route.query.asset,
+//     symbol: assetHeaderName.value,
+//     decimals: assetTokenIdentity.value?.token?.decimals ?? 8
+//   }
+// })
 
 const onKeydown = (e) => {
   e.preventDefault()
