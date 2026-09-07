@@ -10,6 +10,8 @@ export function setMyAuctions(state, myAuctions) {
   state.myAuctions = myAuctions
 }
 
+
+// Query mutations
 export function updateAuctionQueryIndex(state, auctionQueryIndex) {
   state.auctionQueryIndex = auctionQueryIndex
 }
@@ -18,6 +20,11 @@ export function updateAuctionQueryActivity(state, auctionQueryActivity) {
   state.auctionQueryActivity = auctionQueryActivity
 }
 
+export function updateLotQueryActivity(state, lotQueryActivity) {
+  state.lotQueryActivity = lotQueryActivity
+}
+
+// Type mutation
 export function updateAuctionTypeIndex(state, auctionTypeIndex) {
   state.auctionTypeIndex = auctionTypeIndex
 }
@@ -30,10 +37,7 @@ export function updateLotTypeActivity(state, lotTypeActivity) {
   state.lotTypeActivity = lotTypeActivity
 }
 
-export function updateLotQueryActivity(state, lotQueryActivity) {
-  state.lotQueryActivity = lotQueryActivity
-}
-
+// Activity types (My Bids or My Auctions)
 export function updateActivityType(state, activityType) {
   state.activityType = activityType
 }
