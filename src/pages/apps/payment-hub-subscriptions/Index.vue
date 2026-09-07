@@ -168,12 +168,13 @@ import { useStore } from 'vuex'
 import { useRoute, useRouter } from 'vue-router'
 import { debounce, useQuasar } from 'quasar'
 import { useI18n } from 'vue-i18n'
+import { bus } from 'src/wallet/event-bus'
+import { usePaymentHubCore } from 'src/composables/payment-hub/usePaymentHub'
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 import HeaderNav from 'src/components/header-nav'
 import SubscribeDialog from 'src/components/payment-hub/SubscribeDialog.vue'
 import TopUpDialog from 'src/components/payment-hub/TopUpDialog.vue'
 import SubscriptionDetailDialog from 'src/components/payment-hub/SubscriptionDetailDialog.vue'
-import { usePaymentHubCore } from 'src/composables/payment-hub/usePaymentHub'
 
 // Add imports for subscription cancelling signing logic
 import { createCancelSubscriptionTransaction } from 'src/wallet/payment-hub/services'
@@ -209,6 +210,7 @@ const statusFilter = ref('ALL')
 const statusOptions = ['ALL', 'ACTIVE', 'PENDING', 'CANCELLED', 'TERMINATED']
 
 onMounted(async () => {
+  bus.on('handle-push-notification', openedNotificationHandler)
   if (props.plan) {
     if (!hub.value) await initHub({ isBackground: true });
     openSubscribeDialog(props.plan)
@@ -221,6 +223,7 @@ onMounted(async () => {
 })
 onBeforeUnmount(() => {
   closeWebSocket()
+  bus.off('handle-push-notification', openedNotificationHandler);
 })
 
 function onSearch() {
@@ -233,6 +236,16 @@ function topUp(sub) {
       component: TopUpDialog,
       componentProps: { subscription: sub }
     })
+  }
+}
+
+const openedNotificationHandler = (openedNotification) => {
+  const notificationTypes = $store.getters['notification/types']
+  const type = openedNotification?.data?.type
+  if (type === notificationTypes.PAYMENTHUB_INSUFFICIENT_BALANCE) {
+    if (openedNotification?.data?.subId != props.subId) {
+      openDetail({ id: openedNotification?.data?.subId });
+    }
   }
 }
 
@@ -322,7 +335,7 @@ function openDetail(sub) {
         cancelSubscription(payload.subscription)
       }
     }).onDismiss(() => {
-      setSubIdParam(undefined)
+      if (props.subId == sub.id) setSubIdParam(undefined)
     })
   }, 300)
 }
