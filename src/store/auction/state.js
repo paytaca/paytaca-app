@@ -8,7 +8,7 @@ export default function () {
     auctionTypeIndex: 'All',
     auctionQueryIndex: '',
     listings: [],
-    listingsLastFetched: null,
+    listingsLastFetched: 0,
     
     // Activity Page States
     activityType: 'My Bids',
@@ -21,11 +21,11 @@ export default function () {
 
     // Auction Details Page States
     auctionLots: [],
-    auctionLotsLastFetched: null,
+    auctionLotsLastFetched: 0,
 
     // Lot Details Page States
     lotData: {},
-    lotDataLastFetched: null,
+    lotDataLastFetched: 0,
 
     // Arbiter and Servicer Public Key States
     arbiterPublicKey: '',
