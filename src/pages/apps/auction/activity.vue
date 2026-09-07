@@ -500,7 +500,7 @@ const connectWebsocket = () => {
       case "my.auctions_refresh_page":
       case "my.bids_refresh_page":
         if (activityType.value === 'My Auctions') refresh()
-        else if (activityType.value === 'My Biddings') refresh()
+        else if (activityType.value === 'My Bids') refresh()
         break
       default:
         console.warn("Unknown websocket message:", type, data)
@@ -537,6 +537,7 @@ const clearWebsocket = () => {
 
 onMounted(async () => {
   console.log('PENI ', $store.state.auction)
+  console.log(activityType.value)
   fetchMyData()
   //socket = connectWebsocket()
 })
