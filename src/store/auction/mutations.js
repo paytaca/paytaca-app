@@ -1,47 +1,58 @@
-export function setListings(state, allAuctions) {
-  state.listings = allAuctions
+
+// Index page mutations
+export function setListings(state, listings) {
+  state.listings = listings
+  state.listingsLastFetched = Date.now()
 }
 
-export function setMyBiddings(state, myBiddings) {
-  state.myBiddings = myBiddings
+export function updateAuctionTypeIndex(state, auctionTypeIndex) {
+  state.auctionTypeIndex = auctionTypeIndex
 }
 
-export function setMyAuctions(state, myAuctions) {
-  state.myAuctions = myAuctions
-}
-
-
-// Query mutations
 export function updateAuctionQueryIndex(state, auctionQueryIndex) {
   state.auctionQueryIndex = auctionQueryIndex
 }
 
-export function updateAuctionQueryActivity(state, auctionQueryActivity) {
-  state.auctionQueryActivity = auctionQueryActivity
-}
 
-export function updateLotQueryActivity(state, lotQueryActivity) {
-  state.lotQueryActivity = lotQueryActivity
-}
-
-// Type mutation
-export function updateAuctionTypeIndex(state, auctionTypeIndex) {
-  state.auctionTypeIndex = auctionTypeIndex
+// Activity page mutations
+export function updateActivityType(state, activityType) {
+  state.activityType = activityType
 }
 
 export function updateAuctionTypeActivity(state, auctionTypeActivity) {
   state.auctionTypeActivity = auctionTypeActivity
 }
 
+export function updateAuctionQueryActivity(state, auctionQueryActivity) {
+  state.auctionQueryActivity = auctionQueryActivity
+}
+
 export function updateLotTypeActivity(state, lotTypeActivity) {
   state.lotTypeActivity = lotTypeActivity
 }
 
-// Activity types (My Bids or My Auctions)
-export function updateActivityType(state, activityType) {
-  state.activityType = activityType
+export function updateLotQueryActivity(state, lotQueryActivity) {
+  state.lotQueryActivity = lotQueryActivity
 }
 
+export function setMyBiddings(state, myBiddings) {
+  state.myBiddings = myBiddings
+  state.myBiddingsLastFetched = Date.now()
+}
+
+export function setMyAuctions(state, myAuctions) {
+  state.myAuctions = myAuctions
+  state.myAuctionsLastFetched = Date.now()
+}
+
+// Auction Details Page mutations
+export function updateAuctionLots(state, auctionLots) {
+  state.auctionLots = auctionLots
+  state.auctionLotsLastFetched = Date.now()
+}
+
+
+// Arbiter and Servicer Public Key mutations
 export function setArbiterPublicKey(state, arbiterPk) {
   state.arbiterPublicKey = arbiterPk
 }

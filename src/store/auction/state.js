@@ -17,7 +17,9 @@ export default function () {
     lotTypeActivity: 'All',
     lotQueryActivity: '',
     myBiddings: [],
+    myBiddingsLastFetched: 0,
     myAuctions: [],
+    myAuctonsLastFetched: 0,
 
     // Auction Details Page States
     auctionLots: [],

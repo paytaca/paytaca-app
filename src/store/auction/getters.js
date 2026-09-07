@@ -21,6 +21,10 @@ export function processedItems(state) {
   })
 }
 
+export function listingsLastFetched(state) {
+  return state.listingsLastFetched
+}
+
 export function auctionTypeIndex(state) {
   return state.auctionTypeIndex
 }
@@ -61,10 +65,19 @@ export function myBiddings(state) {
   return state.myBiddings || []
 }
 
+export function myBiddingsLastFetched(state) {
+  return state.myBiddingsLastFetched
+}
+
 export function myAuctions(state) {
   return state.myAuctions || []
 }
 
+export function myAuctionsLastFetched(state) {
+  return state.myAuctionsLastFetched
+}
+
+// Arbiter and Servicer Public Key Getters
 export function arbiterPublicKey(state) {
   return state.arbiterPublicKey
 }
@@ -73,6 +86,8 @@ export function servicerPublicKey(state) {
   return state.servicerPublicKey
 }
 
+
+// User Details Getters
 // Getter for stored username
 export function username(state) {
   return state.username
