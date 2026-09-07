@@ -199,6 +199,30 @@ export class Card {
   }
 
   /**
+   * Gets fungible CashToken balances for the card via the server's
+   * Watchtower proxy. Defaults to Watchtower truth.
+   * @param {Object} [opts]
+   * @param {Array<string>} [opts.tokenIds] - only return these categories
+   * @param {boolean} [opts.includeUtxos] - include UTXOs per token
+   * @param {boolean} [opts.useLocal] - opt in to experimental server DB instead of Watchtower
+   * @returns {Promise<Array<{category: string, balance: string, decimals: number, utxoCount: number}>>}
+   */
+  async getFungibleTokenBalances({ tokenIds = [], includeUtxos = false, useLocal = false } = {}) {
+    const address = this.tokenAddress || this.cashAddress
+    if (!address) throw new Error('Card has no token or cash address')
+    const params = {}
+    if (tokenIds?.length) params.tokenIds = tokenIds.join(',')
+    if (includeUtxos) params.include_utxos = true
+    if (useLocal) params.use_local = true
+    const response = await backend.get(`/admin/utils/contracts/${address}/ft/balances`, { params })
+      .catch(error => {
+        cardLogger.error('Error fetching fungible token balances:', error.response || error.message);
+        throw error;
+      });
+    return response.data?.balances || [];
+  }
+
+  /**
    * Gets BCH UTXOs for card address
    * @returns {Promise<Object>}
    */

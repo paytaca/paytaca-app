@@ -54,6 +54,19 @@
                     <q-img src="~assets/bch-logo.png" style="width: 14px; height: 14px;" fit="contain" />
                   </div>
                 </div>
+                <div v-if="cardTokenHoldings.length" class="row items-center q-mt-xs" style="gap: 6px;">
+                  <q-chip
+                    dense
+                    clickable
+                    text-color="white"
+                    style="background: rgba(255,255,255,0.15); font-size: 11px;"
+                    icon="paid"
+                    :label="`${cardTokenHoldings.length} token${cardTokenHoldings.length > 1 ? 's' : ''}`"
+                    @click="activeTab = 'Tokens'"
+                  >
+                    <q-tooltip>View CashTokens on this card</q-tooltip>
+                  </q-chip>
+                </div>
               </div>
 
               <!-- Contract address - top right -->
@@ -104,6 +117,12 @@
             v-else-if="activeTab === 'Manage Merchants' && activeCard" 
             :card="activeCard"
             :key="activeCard.id"
+          />
+          <CardTokens
+            v-else-if="activeTab === 'Tokens'"
+            :holdings="cardTokenHoldings"
+            :loading="tokensLoading"
+            @fund-tokens="openTokenFundDialog"
           />
           <CardSettings v-if="activeTab === 'Card Security'" 
             :key="cardSettingsKey"
@@ -228,7 +247,7 @@
         </q-card>
       </q-dialog>
 
-      <CashInDialog v-model="showCashInDialog" :card="activeCard" @close="onCloseCashInDialog"/>
+      <CashInDialog v-model="showCashInDialog" :card="activeCard" :default-fund-type="cashInFundType" @close="onCloseCashInDialog"/>
       <ActivateCardForm
         v-if="showActivateCardForm"
         @close="showActivateCardForm = false"
@@ -242,6 +261,7 @@
 import {createCardLogic} from 'src/components/card/createCard.js'
 import CardMixin from 'src/mixins/card/card-mixin.js'
 import TransactionHistory from 'src/components/card/TransactionHistory.vue'
+import CardTokens from 'src/components/card/CardTokens.vue'
 import ManageAuthNFTs from 'src/components/card/ManageAuthNFTs.vue'
 import CashInDialog from 'src/components/card/CashInDialog.vue'
 import CardSettings from 'src/components/card/CardSettings.vue'
@@ -257,6 +277,7 @@ export default {
   mixins: [createCardLogic, CardMixin],
   components: {
     TransactionHistory,
+    CardTokens,
     ManageAuthNFTs,
     CashInDialog,
     CardSettings,
@@ -281,6 +302,9 @@ export default {
       showCashInDialog: false,
       cashInAmount: '',
       cashInCurrency: 'USD',
+      cashInFundType: 'BCH',
+      cardTokenHoldings: [],
+      tokensLoading: false,
       showDeleteCardDialog: false,
       showActivateCardForm: false,
       bchBalance: 0,
@@ -306,6 +330,7 @@ export default {
       if (newTab !== this.$route.query.tab) {
         const tabMap = {
           'Transactions': 'transactions',
+          'Tokens': 'tokens',
           'Manage Merchants': 'manage-merchants',
           'Card Security': 'other-settings',
           'Order Card': 'order-card'
@@ -325,11 +350,14 @@ export default {
     tabs () {
       return [
         { label: 'Transactions', icon: 'receipt_long', disabled: false },
+        { label: 'Tokens', icon: 'paid', disabled: false },
         { label: 'Manage Merchants', icon: 'storefront', disabled: false },
         { label: 'Card Security', icon: 'shield', disabled: false },
         { label: 'Order Card', icon: 'local_mall', disabled: true }
       ]
     },
+
+
 
     selectedCurrency () {
       return this.$store.getters['market/selectedCurrency']
@@ -368,6 +396,7 @@ export default {
       // Map query param to tab names
       const tabMap = {
         'transactions': 'Transactions',
+        'tokens': 'Tokens',
         'manage-merchants': 'Manage Merchants',
         'other-settings': 'Card Security',
         'order-card': 'Order Card'
@@ -385,6 +414,7 @@ export default {
         await this.loadUser()
         await this.loadActiveCard()
         this.getCardBchBalance()
+        this.fetchCardTokenHoldings()
         this.loadBalanceVisibility()
       } catch (err) {
         cardLogger.error('Error loading card details:', err)
@@ -459,12 +489,50 @@ export default {
     onCloseCashInDialog () {
       this.showCashInDialog = false
       this.getCardBchBalance() // Refresh balance after cash-in
+      this.fetchCardTokenHoldings()
       this.cardSettingsKey++ // Force re-render of CardSettings component to reflect updated balance
     },
 
     onSweepFunds () {
       this.getCardBchBalance()
+      this.fetchCardTokenHoldings()
     },
+
+    async fetchCardTokenHoldings () {
+      if (!this.activeCard?.id) return
+      this.tokensLoading = true
+      try {
+        const holdings = await this.activeCard.getFungibleTokenBalances()
+        cardLogger.log('Card fungible token balances:', holdings)
+        this.cardTokenHoldings = this.normalizeTokenHoldings(holdings)
+      } catch (error) {
+        cardLogger.error('Fungible balances failed, falling back to /cards/balance/:', error)
+        try {
+          if (!this.user) return
+          const response = await this.user.fetchCardsBalance()
+          const entry = response?.results?.find(card => card?.id == this.activeCard.id)
+          const holdings = entry?.ct_balance ?? this.activeCard?.raw?.ct_balance ?? this.activeCard?.ct_balance ?? []
+          this.cardTokenHoldings = this.normalizeTokenHoldings(holdings)
+        } catch (fallbackError) {
+          this.cardTokenHoldings = []
+        }
+      } finally {
+        this.tokensLoading = false
+      }
+    },
+
+    normalizeTokenHoldings (holdings) {
+      if (Array.isArray(holdings)) return holdings
+      if (holdings && typeof holdings === 'object') {
+        return Object.entries(holdings).map(([category, value]) => {
+          if (value && typeof value === 'object') return { category, ...value }
+          return { category, balance: value }
+        })
+      }
+      return []
+    },
+
+
 
     async getCardBchBalance() {
       await this.$store.dispatch('card/fetchCardBalance', this.activeCard.id)
@@ -539,6 +607,12 @@ export default {
       // Set default currency to the currently selected currency
       this.cashInCurrency = this.selectedCurrency?.symbol || 'USD'
       this.cashInAmount = ''
+      this.cashInFundType = 'BCH'
+      this.showCashInDialog = true
+    },
+
+    openTokenFundDialog () {
+      this.cashInFundType = 'TOKEN'
       this.showCashInDialog = true
     },
 
