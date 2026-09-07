@@ -419,22 +419,25 @@ function showBillingInfo() {
   if (p.period_days) {
     msg = $t(
       'TotalBilledEveryPeriodMsg',
-      `This is the total amount billed every {periodText}.`
-    ).replace('{periodText}', periodText)
+      { periodText },
+      `This is the total amount billed every ${periodText}.`
+    )
   } else if (p.period_blocks) {
     msg = $t(
       'TotalBilledEveryPeriodBlocksMsg',
-      `This is the total amount billed every {periodText}.`
-    ).replace('{periodText}', periodText).replace('{blocks}', p.period_blocks)
+      { periodText, blocks: p.period_blocks },
+      `This is the total amount billed every ${periodText} or every ${p.period_blocks} blocks.`
+    )
   }
 
   const mFee = minerFee.value
   const pFee = paytacaFee.value
 
-  msg += $t(
+  msg += ' ' + $t(
     'TotalSubscriptionCostMsg',
-    ` This total cost includes the base plan pledge, a small miner fee ({mFee} sats), and the Paytaca platform fee ({pFee} sats).`
-  ).replace('{mFee}', mFee).replace('{pFee}', pFee);
+    { mFee, pFee },
+    `This total cost includes the base plan pledge, a small miner fee (${mFee} sats), and the Paytaca platform fee (${pFee} sats).`
+  )
 
   $q.dialog({
     title: $t('BillingAmount', 'Billing Amount'),

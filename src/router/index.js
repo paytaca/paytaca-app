@@ -19,7 +19,6 @@ const createHistory = process.env.SERVER
   : process.env.VUE_ROUTER_MODE === 'history' ? createWebHistory : createWebHashHistory
 export const Router = createRouter({
   scrollBehavior: (to, from, savedPosition) => {
-    console.log({ to, from, savedPosition })
     if (savedPosition) return savedPosition
 
     // Same path, only query changed → preserve scroll

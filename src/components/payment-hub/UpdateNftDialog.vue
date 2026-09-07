@@ -65,7 +65,7 @@
             <template v-slot:avatar>
               <q-icon name="info" color="grey" />
             </template>
-            A network miner fee of approx. 1,500 satoshis (BCH) will be deducted from your merchant wallet to process this update.
+            {{ $t('UpdateNftFeeMsg', 'A network miner fee of approx. 1,500 satoshis (BCH) will be deducted from your merchant wallet to process this update.') }}
           </q-banner>
 
           <div class="row justify-end q-gutter-sm">
@@ -160,10 +160,19 @@ function submitUpdate() {
 }
 
 const errorMsgs = computed(() => {
+  const subscription = props.subscription;
   return {
-    maxPledge: $t('CannotExceedMaxPledgeMsg', 'Cannot exceed max pledge of {maxPledge}').replace('{maxPledge}', subscription.max_pledge),
-    minPeriod: $t('MinPeriodMsg', `Cannot be less than min period of {blocks} blocks`).replace('{blocks}', subscription.min_period),
-    maxPeriod: $t('MaxPeriodMsg', `Cannot exceed max period of {blocks} blocks`).replace('{blocks}', subscription.max_period),
+    maxPledge: $t(
+      'CannotExceedMaxPledgeMsg', { maxPledge: subscription.max_pledge },
+      `Cannot exceed max pledge of ${subscription.max_pledge}`
+    ),
+    minPeriod: $t(
+      'MinPeriodMsg', { blocks: subscription.min_period },
+      `Cannot be less than min period of ${subscription.min_period} blocks`
+    ),
+    maxPeriod: $t(
+      'MaxPeriodMsg', { blocks: subscription.max_period },
+      `Cannot exceed max period of ${subscription.max_period} blocks`),
   }
 })
 </script>

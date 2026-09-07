@@ -657,6 +657,7 @@ const words = [
     Form: 'Form',
     Store: "Store",
     Blocks: "Blocks",
+    Unit: 'Unit',
     // Duplicates
     // Amount: "Amount",
     // Cancel: "Cancel",

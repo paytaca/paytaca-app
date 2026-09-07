@@ -263,7 +263,7 @@ function getPeriodText(plan) {
 
 function showBlocksInfo() {
   const msg1 = $t('EstimatedTimeBasedOnBlocks')
-  const msg2 = $t('ExactIntervalBlocksMsg').replace('{blocks}', planDetails.value.period_blocks)
+  const msg2 = $t('ExactIntervalBlocksMsg', { blocks: planDetails.value.period_blocks })
   $q.dialog({
     title: t('BillingReceivingPeriod', 'Billing/Receiving Period'),
     message: msg1 + ' ' + msg2,

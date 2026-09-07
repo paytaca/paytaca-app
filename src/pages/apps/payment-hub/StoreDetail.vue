@@ -992,8 +992,12 @@ function createPlan() {
 function deactivatePlan(plan) {
   $q.dialog({
     title: $t('DeactivatePlan') || 'Deactivate Plan',
-    message: ($t('DeactivatePlanConfirm') || 'Are you sure you want to deactivate {name}?').replace('{name}', plan.name),
-    ok: { label: $t('Deactivate') || 'Deactivate', color: 'red', unelevated: true, rounded: true },
+    message: $t(
+      'DeactivatePlanConfirm',
+      { name: plan.name },
+      `Are you sure you want to deactivate ${plan.name}?`,
+    ),
+    ok: { label: $t('Deactivate'), color: 'red', unelevated: true, rounded: true },
     cancel: { label: $t('Cancel'), flat: true, color: 'grey' },
     class: `br-15 pt-card-2 text-bow ${getDarkModeClass(darkMode.value)}`
   }).onOk(async () => {
@@ -1001,7 +1005,7 @@ function deactivatePlan(plan) {
       $q.loading.show()
       await hub.value.deactivatePlan(plan.id)
       queueRefresh(false, 'plans')
-      $q.notify({ type: 'positive', message: 'Plan deactivated successfully' })
+      $q.notify({ type: 'positive', message: $t('PlanDeactivatedSuccessfully') })
     } catch (error) {
       $q.notify({ type: 'negative', message: $t('ErrorDeactivatingPlan', 'Error deactivating plan') })
     } finally {
@@ -1115,10 +1119,14 @@ async function updateSubscriptionNft(sub, data) {
 }
 
 async function cancelSubscription(sub) {
-  const msgTemplate = $t('CancelSubscriptionConfirm', 'Are you sure you want to cancel the subscription for {address}') 
+  const address = sub.funder_address || sub.subscriber_address;
+  const msg = $t(
+    'CancelSubscriptionConfirm', { address },
+    `Are you sure you want to cancel the subscription for ${address}`,
+  ) 
   $q.dialog({
     title: $t('CancelSubscription', 'Cancel Subscription'),
-    message: msgTemplate.replace('{address}', sub.funder_address || sub.subscriber_address),
+    message: msg,
     ok: { label: $t('CancelSubscription', 'Cancel Subscription'), color: 'red', unelevated: true, rounded: true },
     cancel: { label: $t('Cancel'), flat: true, color: 'grey' },
     class: `br-15 pt-card-2 text-bow ${getDarkModeClass(darkMode.value)}`

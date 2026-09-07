@@ -341,10 +341,14 @@ function openDetail(sub) {
 }
 
 async function cancelSubscription(sub) {
-  const msgTemplate = $t('CancelSubscriptionConfirm', 'Are you sure you want to cancel the subscription for {address}') 
+  const address = sub.plan_name;
+  const msg = $t(
+    'CancelSubscriptionConfirm', { address },
+    `Are you sure you want to cancel the subscription for ${address}`,
+  ) 
   $q.dialog({
     title: $t('CancelSubscription', 'Cancel Subscription'),
-    message: msgTemplate.replace('{address}', sub.plan_name || 'this plan'),
+    message: msg,
     ok: { label: $t('CancelSubscription', 'Cancel Subscription'), color: 'red', unelevated: true, rounded: true },
     cancel: { label: $t('Cancel'), flat: true, color: 'grey' },
     class: `br-15 pt-card-2 text-bow ${getDarkModeClass(darkMode.value)}`

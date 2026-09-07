@@ -3098,6 +3098,10 @@ const phrases = {
       MinInterval: 'Min Interval',
       MaxReclaimHintMsg: 'Set to 0 for unlimited',
     },
+    {
+      UpdateNftFeeMsg: 'A network miner fee of approx. 1,500 satoshis (BCH) will be deducted from your merchant wallet to process this update.',
+      PlanDeactivatedSuccessfully: 'Plan deactivated successfully',
+    },
     // ===== Card Management - Allow All Merchants =====
     {
       AllowAllMerchantsDialogTitle: 'Allow all merchants',
