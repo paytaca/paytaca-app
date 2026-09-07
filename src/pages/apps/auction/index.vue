@@ -179,6 +179,10 @@ const isCheckingAccess = ref(true)  // Controls loading screen during profile ch
 // Websocket-related
 let socket = null
 
+// Auciton-related 
+const listingsLastFetched = ref($store.getters['auction/listingsLastFetched'])
+const listingTotalTime = computed(() => Date.now() - listingsLastFetched.value)
+
 onMounted(async () => {
   // Fetch username and if it doesn't exist, print the error
 
@@ -204,13 +208,16 @@ onMounted(async () => {
   // Check if the arbiterPK and servicerPK are not null (prevents dispatching it every time)
   const arbiterPK = $store.getters['auction/arbiterPublicKey']
   const servicerPK = $store.getters['auction/servicerPublicKey']
-
+  
   // Only dispatch if arbiterPK/servicerPK are null
   if (!arbiterPK) await $store.dispatch('auction/fetchArbiterPublicKey')
   if (!servicerPK) await $store.dispatch('auction/fetchServicerPublicKey')
   
   // Refresh the list of auctions
-  await $store.dispatch('auction/refreshCatalog')
+  console.log('listingTotalTime.value: ', listingTotalTime.value)
+  if (listingTotalTime.value > 300000) 
+    await $store.dispatch('auction/refreshCatalog')
+    
   isLoading.value = false
 
   // Connect to the WS (Review)
@@ -258,11 +265,6 @@ const getAuctionStatusInfo = (auction) => {
   return { label: 'NaN', color: 'purple' };
 }
 
-const refresh = async (done) => {
-  await $store.dispatch('auction/refreshCatalog')
-  if (typeof done === 'function') done()
-}
-
 // Keep tabs on the auction type so it would filter the items
 watch(auctionType, (newType) => {
   $store.dispatch('auction/filterAuctionItems', newType)
@@ -306,7 +308,7 @@ const connectWebsocket = () => {
     
     // In case it was accidental, make reconnection attempts 
     if (!event.wasClean && reconnectAttempts < maxReconnectAttempts) {
-      const delay = Math.min(1000 * 2 ** reconnectAttempts, 30000)
+      const delay = Math.min(1000 * 2 ** reconnectAttempts, 300000)
       reconnectAttempts++
       setTimeout(connectWebsocket, delay)
     }
@@ -341,6 +343,27 @@ const formatAuctionDate = (dateString) => {
   if (!dateString) return 'N/A'
   return date.formatDate(dateString, 'MMM DD, YYYY hh:mm A') 
 }
+
+/*
+======================
+PAGE-RELATED FUNCTIONS
+======================
+*/
+
+const refresh = async (done) => {
+  if (listingTotalTime.value > 300000) {
+    await $store.dispatch('auction/refreshCatalog')
+
+    // Check if the arbiterPK and servicerPK are not null (prevents dispatching it every time)
+    const arbiterPK = $store.getters['auction/arbiterPublicKey']
+    if (!arbiterPK) await $store.dispatch('auction/fetchArbiterPublicKey')
+    
+    const servicerPK = $store.getters['auction/servicerPublicKey']
+    if (!servicerPK) await $store.dispatch('auction/fetchServicerPublicKey')
+  }
+  if (typeof done === 'function') done()
+}
+
 </script>
 
 <style scoped lang="scss">
