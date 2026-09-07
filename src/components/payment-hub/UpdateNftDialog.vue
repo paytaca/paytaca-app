@@ -2,9 +2,9 @@
   <q-dialog ref="dialogRef" @hide="onDialogHide">
     <q-card class="q-dialog-plugin br-20" :class="getDarkModeClass(darkMode)">
       <q-card-section>
-        <div class="text-h6 text-weight-bold">Update Subscription</div>
+        <div class="text-h6 text-weight-bold">{{ $t('UpdateSubscription') }}</div>
         <div class="text-caption text-grey q-mb-md">
-          Modify the pledge amount or billing period for this subscription.
+          {{ $t('UpdateSubscriptionMsg', 'Modify the pledge amount or billing period for this subscription.') }}
         </div>
 
         <q-form @submit.prevent="submitUpdate">
@@ -13,12 +13,12 @@
               <q-input
                 v-model.number="form.pledge"
                 type="number"
-                label="New Pledge"
+                :label="$t('NewPledge')"
                 outlined
                 dense
                 :rules="[
-                  val => !!val || 'Pledge is required',
-                  () => !subscription.max_pledge || finalPledgeSats <= subscription.max_pledge || `Cannot exceed max pledge of ${subscription.max_pledge} sats`
+                  val => !!val || $t('Required'),
+                  () => !subscription.max_pledge || finalPledgeSats <= subscription.max_pledge || errorMsgs.maxPledge
                 ]"
               />
             </div>
@@ -44,8 +44,8 @@
                 dense
                 :rules="[
                   val => !!val || 'Period is required',
-                  () => !subscription.min_period || finalPeriodBlocks >= subscription.min_period || `Cannot be less than min period of ${subscription.min_period} blocks`,
-                  () => !subscription.max_period || finalPeriodBlocks <= subscription.max_period || `Cannot exceed max period of ${subscription.max_period} blocks`
+                  () => !subscription.min_period || finalPeriodBlocks >= subscription.min_period || errorMsgs.minPeriod,
+                  () => !subscription.max_period || finalPeriodBlocks <= subscription.max_period || errorMsgs.maxPeriod,
                 ]"
               />
             </div>
@@ -53,7 +53,7 @@
               <q-select
                 v-model="form.periodUnit"
                 :options="['Blocks', 'Days', 'Months']"
-                label="Unit"
+                :label="$t('Unit')"
                 outlined
                 dense
                 options-dense
@@ -79,6 +79,7 @@
 </template>
 
 <script setup>
+import { useI18n } from 'vue-i18n'
 import { ref, computed } from 'vue'
 import { useStore } from 'vuex'
 import { useDialogPluginComponent } from 'quasar'
@@ -93,6 +94,7 @@ const props = defineProps({
 
 const { dialogRef, onDialogHide, onDialogOK } = useDialogPluginComponent()
 
+const { t: $t } = useI18n();
 const $store = useStore()
 const darkMode = computed(() => $store.getters['darkmode/getStatus'])
 
@@ -156,4 +158,12 @@ function submitUpdate() {
     new_period: finalPeriodBlocks.value
   })
 }
+
+const errorMsgs = computed(() => {
+  return {
+    maxPledge: $t('CannotExceedMaxPledgeMsg', 'Cannot exceed max pledge of {maxPledge}').replace('{maxPledge}', subscription.max_pledge),
+    minPeriod: $t('MinPeriodMsg', `Cannot be less than min period of {blocks} blocks`).replace('{blocks}', subscription.min_period),
+    maxPeriod: $t('MaxPeriodMsg', `Cannot exceed max period of {blocks} blocks`).replace('{blocks}', subscription.max_period),
+  }
+})
 </script>

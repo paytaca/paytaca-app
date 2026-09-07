@@ -67,8 +67,8 @@
           <q-tab name="invoices" :label="$t('Invoices')" />
           <q-tab name="api_keys" :label="$t('APIKeys')" />
           <template v-if="displaySubs">
-            <q-tab name="plans" :label="$t('Plans') || 'Plans'" />
-            <q-tab name="subscriptions" :label="$t('Subscriptions') || 'Subscriptions'" />
+            <q-tab name="plans" :label="$t('Plans')" />
+            <q-tab name="subscriptions" :label="$t('Subscriptions')" />
           </template>
           <q-tab name="settings" :label="$t('Settings')" />
         </q-tabs>
@@ -227,9 +227,9 @@
                 <div class="q-px-md q-pb-md" :class="darkMode ? 'text-grey-2' : 'text-grey-10'">
                   <div v-if="!fetchingData && plans.length === 0" class="text-center q-mt-xl">
                     <q-icon name="list_alt" size="4em" class="text-grey q-mb-md" />
-                    <div class="text-h6 text-grey q-mb-xs">{{ $t('NoPlans') || 'No Plans' }}</div>
-                    <div class="text-body2 text-grey q-mb-lg">{{ $t('NoPlansFound') || 'Create a plan to offer subscriptions.' }}</div>
-                    <q-btn unelevated rounded color="pt-primary1" :label="$t('CreatePlan') || 'Create Plan'" icon="add" @click="createPlan()" />
+                    <div class="text-h6 text-grey q-mb-xs">{{ $t('NoPlans', 'No Plans') }}</div>
+                    <div class="text-body2 text-grey q-mb-lg">{{ $t('NoPlansFound', 'Create a plan to offer subscriptions.') }}</div>
+                    <q-btn unelevated rounded color="pt-primary1" :label="$t('CreatePlan', 'Create Plan')" icon="add" @click="createPlan()" />
                   </div>
 
                   <div v-else class="q-mt-md">
@@ -258,7 +258,7 @@
                                   class="q-px-sm text-weight-medium"
                                   style="min-width: 80px;"
                                 >
-                                  {{ plan.is_active ? ($t('Active') || 'Active') : ($t('Inactive') || 'Inactive') }}
+                                  {{ plan.is_active ? $t('Active') : $t('Inactive') }}
                                 </q-badge>
                               </div>
                               <div class="col-auto text-right" style="width: 40px;">
@@ -272,7 +272,7 @@
                                   size="sm"
                                   @click.stop="deactivatePlan(plan)"
                                 >
-                                  <q-tooltip>{{ $t('Deactivate') || 'Deactivate' }}</q-tooltip>
+                                  <q-tooltip>{{ $t('Deactivate') }}</q-tooltip>
                                 </q-btn>
                               </div>
                             </div>
@@ -297,8 +297,8 @@
                 <div class="q-px-md q-pb-md" :class="darkMode ? 'text-grey-2' : 'text-grey-10'">
                   <div v-if="!fetchingData && subscriptions.length === 0" class="text-center q-mt-xl">
                     <q-icon name="group" size="4em" class="text-grey q-mb-md" />
-                    <div class="text-h6 text-grey q-mb-xs">{{ $t('NoSubscriptions') || 'No Subscriptions' }}</div>
-                    <div class="text-body2 text-grey q-mb-lg">{{ $t('NoSubscriptionsFound') || "Users haven't subscribed yet." }}</div>
+                    <div class="text-h6 text-grey q-mb-xs">{{ $t('NoSubscriptions', 'No Subscriptions') }}</div>
+                    <div class="text-body2 text-grey q-mb-lg">{{ $t('NoSubscriptionsFound', "Users haven't subscribed yet.") }}</div>
                   </div>
 
                   <div v-else class="q-mt-md">
@@ -308,13 +308,13 @@
                           <q-item-section>
                             <div class="row items-center no-wrap full-width">
                               <div class="col ellipsis q-pr-sm">
-                                <div class="text-weight-bold">{{ sub.plan_details?.name || 'Subscription' }}</div>
+                                <div class="text-weight-bold">{{ sub.plan_details?.name || $t('Subscription') }}</div>
                                 <div class="text-caption text-grey text-weight-regular">
                                   {{ sub.pledge_satoshis ? (sub.pledge_satoshis / 1e8).toFixed(8).replace(/\.?0+$/, '') + ' BCH' : (sub.plan_details?.amount + ' ' + sub.plan_details?.currency) }}
                                   &bull;
-                                  <span v-if="sub.period_blocks">{{ sub.period_blocks }} {{ $t('Blocks') || 'blocks' }}</span>
-                                  <span v-else-if="sub.plan_details?.period_days">{{ sub.plan_details.period_days }} {{ $t('Days') || 'days' }}</span>
-                                  <span v-else-if="sub.plan_details?.period_blocks">{{ sub.plan_details.period_blocks }} {{ $t('Blocks') || 'blocks' }}</span>
+                                  <span v-if="sub.period_blocks">{{ sub.period_blocks }} {{ $t('Blocks') }}</span>
+                                  <span v-else-if="sub.plan_details?.period_days">{{ sub.plan_details.period_days }} {{ $t('Days') }}</span>
+                                  <span v-else-if="sub.plan_details?.period_blocks">{{ sub.plan_details.period_blocks }} {{ $t('Blocks') }}</span>
                                 </div>
                                 <div class="text-caption text-grey-6 font-mono q-mt-xs" style="font-size: 0.7rem;">{{ sub.funder_address || sub.subscriber_address }}</div>
                               </div>
@@ -340,7 +340,7 @@
                                   size="sm"
                                   @click.stop="cancelSubscription(sub)"
                                 >
-                                  <q-tooltip>{{ $t('Cancel') || 'Cancel' }}</q-tooltip>
+                                  <q-tooltip>{{ $t('Cancel') }}</q-tooltip>
                                 </q-btn>
                                   <!-- Reactivation is not supported -->
                               </div>
@@ -372,7 +372,7 @@
 
                       <div class="q-gutter-y-sm">
                         <div class="row justify-between items-start">
-                          <div class="text-caption text-grey q-mr-md">{{ $t('WebhookURL') }}</div>
+                          <div class="text-caption text-grey q-mr-md">{{ $t('WebhookURL', 'Webhook URL') }}</div>
                           <div class="col text-body2 text-right" style="word-break: break-all;">{{ storeData?.webhook_url || $t('NotConfigured') }}</div>
                         </div>
                         <template v-if="storeData?.webhook_url">
@@ -1003,7 +1003,7 @@ function deactivatePlan(plan) {
       queueRefresh(false, 'plans')
       $q.notify({ type: 'positive', message: 'Plan deactivated successfully' })
     } catch (error) {
-      $q.notify({ type: 'negative', message: $t('ErrorDeactivatingPlan') || 'Error deactivating plan' })
+      $q.notify({ type: 'negative', message: $t('ErrorDeactivatingPlan', 'Error deactivating plan') })
     } finally {
       $q.loading.hide()
     }
@@ -1115,11 +1115,11 @@ async function updateSubscriptionNft(sub, data) {
 }
 
 async function cancelSubscription(sub) {
-
+  const msgTemplate = $t('CancelSubscriptionConfirm', 'Are you sure you want to cancel the subscription for {address}') 
   $q.dialog({
-    title: $t('CancelSubscription') || 'Cancel Subscription',
-    message: ($t('CancelSubscriptionConfirm') || 'Are you sure you want to cancel the subscription for {address}?').replace('{address}', sub.funder_address || sub.subscriber_address),
-    ok: { label: $t('CancelSubscription') || 'Cancel Subscription', color: 'red', unelevated: true, rounded: true },
+    title: $t('CancelSubscription', 'Cancel Subscription'),
+    message: msgTemplate.replace('{address}', sub.funder_address || sub.subscriber_address),
+    ok: { label: $t('CancelSubscription', 'Cancel Subscription'), color: 'red', unelevated: true, rounded: true },
     cancel: { label: $t('Cancel'), flat: true, color: 'grey' },
     class: `br-15 pt-card-2 text-bow ${getDarkModeClass(darkMode.value)}`
   }).onOk(async () => {
@@ -1139,11 +1139,11 @@ async function cancelSubscription(sub) {
       await hub.value.submitSubscriptionCancel(sub.id, rawTx, true)
 
       queueRefresh(false, 'subscriptions')
-      $q.notify({ type: 'positive', message: $t('SubscriptionCancelled') || 'Subscription cancelled successfully' })
+      $q.notify({ type: 'positive', message: $t('SubscriptionCancelled', 'Subscription cancelled successfully') })
     } catch (error) {
       console.error(error)
       const errorMsg = error.response?.data?.error || error.message
-      $q.notify({ type: 'negative', message: ($t('ErrorCancellingSubscription') || 'Error cancelling subscription: ') + errorMsg })
+      $q.notify({ type: 'negative', message: ($t('ErrorCancellingSubscription', 'Error cancelling subscription: ')) + errorMsg })
     } finally {
       $q.loading.hide()
     }

@@ -56,7 +56,7 @@
               <q-separator class="q-my-md" />
               
               <div class="row justify-between q-mt-sm items-start">
-                <div class="text-caption text-grey">{{ $t('BillingAmount') || 'Billing Amount' }}</div>
+                <div class="text-caption text-grey">{{ $t('BillingAmount', 'Billing Amount') }}</div>
                 <div class="text-right">
                   <div class="text-body2 text-weight-medium">{{ totalFiatStr }} {{ planDetails.currency }}</div>
                   <div class="text-caption text-grey" v-if="planDetails.currency !== 'BCH' && (planDetails.amount_satoshis > 0 || bchPrice > 0)">
@@ -66,7 +66,7 @@
               </div>
               
               <div class="row justify-between items-center">
-                <div class="text-caption text-grey">{{ $t('BillingReceivingPeriod') || 'Billing/Receiving Period' }}</div>
+                <div class="text-caption text-grey">{{ $t('BillingReceivingPeriod', 'Billing/Receiving Period') }}</div>
                 <div class="row items-center">
                   <div class="text-body2 text-weight-medium">
                     {{ getPeriodText(planDetails) }}
@@ -79,12 +79,12 @@
         </q-card-section>
 
         <q-card-actions align="right">
-          <q-btn v-if="step === 2" flat :label="$t('Back') || 'Back'" color="grey" @click="step = 1" />
+          <q-btn v-if="step === 2" flat :label="$t('Back')" color="grey" @click="step = 1" />
           <q-btn v-if="step === 1" flat :label="$t('Cancel')" color="grey" @click="onCancelClick" />
           <q-btn 
             unelevated 
             rounded 
-            :label="step === 1 ? ($t('Next') || 'Next') : ($t('Subscribe') || 'Subscribe')" 
+            :label="step === 1 ? $t('Next') : $t('Subscribe')" 
             color="pt-primary1" 
             type="submit" 
             :loading="isLoading"
@@ -129,7 +129,7 @@ const props = defineProps({
 })
 
 const { dialogRef, onDialogHide, onDialogOK, onDialogCancel } = useDialogPluginComponent()
-const { t } = useI18n()
+const { t: $t } = useI18n()
 const $store = useStore()
 const $q = useQuasar()
 const darkMode = computed(() => $store.getters['darkmode/getStatus'])
@@ -237,7 +237,7 @@ const totalFiatStr = computed(() => {
 
 function getPeriodText(plan) {
   if (plan.period_days) {
-    return `Every ${plan.period_days} ${plan.period_days === 1 ? (t('Day') || 'day') : (t('Days') || 'days')}`
+    return `Every ${plan.period_days} ${plan.period_days === 1 ? $t('Day') : $t('Days')}`
   }
   const blocks = plan.period_blocks
   if (!blocks) return ''
@@ -245,26 +245,28 @@ function getPeriodText(plan) {
   let timeStr = ''
   if (blocks % 4320 === 0) {
     const v = blocks / 4320
-    timeStr = `${v} ${v === 1 ? (t('Month') || 'month') : (t('Months') || 'months')}`
+    timeStr = `${v} ${v === 1 ? $t('Month') : $t('Months')}`
   } else if (blocks % 1008 === 0) {
     const v = blocks / 1008
-    timeStr = `${v} ${v === 1 ? (t('Week') || 'week') : (t('Weeks') || 'weeks')}`
+    timeStr = `${v} ${v === 1 ? $t('Week') : $t('Weeks')}`
   } else if (blocks % 144 === 0) {
     const v = blocks / 144
-    timeStr = `${v} ${v === 1 ? (t('Day') || 'day') : (t('Days') || 'days')}`
+    timeStr = `${v} ${v === 1 ? $t('Day') : $t('Days')}`
   } else if (blocks % 6 === 0) {
     const v = blocks / 6
-    timeStr = `${v} ${v === 1 ? (t('Hour') || 'hour') : (t('Hours') || 'hours')}`
+    timeStr = `${v} ${v === 1 ? $t('Hour') : $t('Hours')}`
   } else {
-    timeStr = `${blocks * 10} ${t('Minutes') || 'minutes'}`
+    timeStr = `${blocks * 10} ${$t('Minutes')}`
   }
   return `Every ${timeStr}`
 }
 
 function showBlocksInfo() {
+  const msg1 = $t('EstimatedTimeBasedOnBlocks')
+  const msg2 = $t('ExactIntervalBlocksMsg').replace('{blocks}', planDetails.value.period_blocks)
   $q.dialog({
-    title: t('BillingReceivingPeriod') || 'Billing/Receiving Period',
-    message: `${t('EstimatedTimeBasedOnBlocks') || 'The displayed time is an estimate based on the Bitcoin Cash network block target of 10 minutes per block. The exact interval is'} ${planDetails.value.period_blocks} ${t('Blocks') || 'blocks'}.`,
+    title: t('BillingReceivingPeriod', 'Billing/Receiving Period'),
+    message: msg1 + ' ' + msg2,
     color: 'pt-primary1',
     ok: {
       flat: true,
@@ -284,7 +286,7 @@ async function onFormSubmit() {
     if (hasSubscriptionForm.value && !subscriptionFormRef.value?.validate()) {
       $q.notify({
         type: 'negative',
-        message: t('PleaseCompleteSubscriptionForm') || 'Please complete the subscription form'
+        message: t('PleaseCompleteSubscriptionForm', 'Please complete the subscription form'),
       })
       return
     }
@@ -313,7 +315,7 @@ async function fetchPlanDetails() {
     console.error('Error fetching plan:', err)
     $q.notify({
       type: 'negative',
-      message: err?.response?.data?.message || err.message || 'Invalid Plan ID or plan not found'
+      message: err?.response?.data?.message || err.message || $t('InvalidPlanIdOrNotFound', 'Invalid Plan ID or plan not found')
     })
   } finally {
     isLoading.value = false

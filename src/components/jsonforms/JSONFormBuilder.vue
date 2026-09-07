@@ -10,7 +10,7 @@
         <div class="row no-wrap items-center justify-between q-px-md q-py-sm builder-header">
           <div class="text-h6">
             <q-icon name="build" class="q-mr-sm" />
-            {{ $t('FormBuilder', {}, 'Form Builder') }}
+            {{ $t('FormBuilder', 'Form Builder') }}
           </div>
           <div class="row q-gutter-x-sm">
             <!-- <q-btn
@@ -33,9 +33,9 @@
         </div>
 
         <div class="text-subtitle2 text-grey q-mb-sm row items-center">
-          <span>{{ $t('Fields', {}, 'Fields') }}</span>
+          <span>{{ $t('Fields') }}</span>
           <q-space />
-          <span class="text-caption">{{ fields.length }} {{ $t('Fields', {}, 'fields') }}</span>
+          <span class="text-caption">{{ fields.length }} {{ $t('Fields') }}</span>
         </div>
         <div class="q-gutter-y-sm">
 

@@ -29,9 +29,9 @@
         <!-- Field List -->
         <div class="col-12 col-sm-7 col-md-8 canvas q-pa-md">
           <div class="text-subtitle2 text-grey q-mb-sm row items-center">
-            <span>{{ $t('Fields', {}, 'Fields') }}</span>
+            <span>{{ $t('Fields', 'Fields') }}</span>
             <q-space />
-            <span class="text-caption">{{ fields.length }} {{ $t('fields', {}, 'fields') }}</span>
+            <span class="text-caption">{{ fields.length }} {{ $t('fields', 'fields') }}</span>
           </div>
 
           <transition-group tag="div" class="q-gutter-y-sm" name="field-list">
@@ -50,8 +50,8 @@
                 <div class="q-space cursor-pointer" @click="selectField(index)">
                   <div class="row items-center">
                     <q-icon :name="getFieldIcon(field)" class="q-mr-xs" size="xs" />
-                    <span class="text-weight-medium">{{ field.name || $t('UnnamedField', {}, 'Unnamed field') }}</span>
-                    <q-badge v-if="field.required" color="negative" class="q-ml-sm">{{ $t('Required', {}, 'Required') }}</q-badge>
+                    <span class="text-weight-medium">{{ field.name || $t('UnnamedField', 'Unnamed field') }}</span>
+                    <q-badge v-if="field.required" color="negative" class="q-ml-sm">{{ $t('Required') }}</q-badge>
                   </div>
                   <div class="text-caption text-grey">{{ getFieldTypeLabel(field) }}</div>
                 </div>
@@ -63,11 +63,11 @@
 
           <div v-if="!fields.length" class="row column items-center text-grey q-py-xl">
             <q-icon name="add_box" size="48px" class="q-mb-sm block" />
-            <div>{{ $t('NoFieldsYet', {}, 'No fields yet. Click Add field.') }}</div>
+            <div>{{ $t('NoFieldsYet', 'No fields yet. Click Add field.') }}</div>
           </div>
 
           <div class="q-mt-md">
-            <q-btn no-caps outline icon="add" :label="$t('AddField', {}, 'Add field')" class="full-width">
+            <q-btn no-caps outline icon="add" :label="$t('AddField', 'Add field')" class="full-width">
               <q-menu auto-close fit class="pt-card-2 text-bow" :class="getDarkModeClass(darkMode)">
                 <q-list>
                   <q-item v-for="ft in fieldTypes" :key="ft.value" clickable @click="addField(ft.value)">
@@ -93,16 +93,16 @@
               outlined
               dense
               :dark="darkMode"
-              :label="$t('FieldName', {}, 'Field name') + ' *'"
+              :label="$t('FieldName', 'Field name') + ' *'"
               v-model="selectedField.name"
               class="q-mb-sm"
-              :rules="[val => !!val || $t('Required', {}, 'Required')]"
+              :rules="[val => !!val || $t('Required')]"
             />
             <q-select
               outlined
               dense
               :dark="darkMode"
-              :label="$t('FieldType', {}, 'Field type')"
+              :label="$t('FieldType', 'Field type')"
               v-model="selectedField.options.type"
               :options="fieldTypeOptions"
               option-value="value"
@@ -114,31 +114,31 @@
             />
             <q-toggle
               :dark="darkMode"
-              :label="$t('Required', {}, 'Required')"
+              :label="$t('Required')"
               v-model="selectedField.required"
               class="q-mb-sm"
             />
             <q-toggle
               v-if="selectedField.options.type === 'string'"
               :dark="darkMode"
-              :label="$t('AddChoices', {}, 'Add Choices')"
+              :label="$t('AddChoices', 'Add Choices')"
               :model-value="Array.isArray(selectedField.options.enum)"
               @update:model-value="val => selectedField.options.enum = val ? [] : null"
               class="q-mb-sm"
             />
 
             <template v-if="selectedField.options.type === 'string' && selectedField.options.enum">
-              <div class="text-caption text-grey q-mt-sm">{{ $t('Options', {}, 'Options') }}</div>
+              <div class="text-caption text-grey q-mt-sm">{{ $t('Options') }}</div>
               <div v-for="(opt, i) in selectedField.options.enum" :key="i" class="row items-center q-gutter-x-sm q-mb-xs">
                 <q-input outlined dense :dark="darkMode" v-model="selectedField.options.enum[i]" class="q-space" />
                 <q-btn flat dense icon="close" color="negative" @click="removeEnumOption(i)" />
               </div>
-              <q-btn flat dense icon="add" no-caps :label="$t('AddOption', {}, 'Add option')" @click="addEnumOption" class="q-mt-xs" />
+              <q-btn flat dense icon="add" no-caps :label="$t('AddOption', 'Add option')" @click="addEnumOption" class="q-mt-xs" />
             </template>
           </template>
           <div v-else class="row column items-center text-grey q-py-xl">
             <q-icon name="tune" size="48px" class="q-mb-sm block" />
-            <div>{{ $t('SelectFieldToConfigure', {}, 'Select a field to configure') }}</div>
+            <div>{{ $t('SelectFieldToConfigure', 'Select a field to configure') }}</div>
           </div>
         </div>
       </q-tab-panel>
@@ -219,22 +219,22 @@ const currentTab = computed(() => {
 })
 
 const fieldTypes = [
-  { value: 'string', label: $t('Text', {}, 'Text'), icon: 'text_fields' },
-  { value: 'string:enum', label: $t('Select', {}, 'Select'), icon: 'list' },
-  // { value: 'integer', label: $t('Integer', {}, 'Integer'), icon: 'numbers' },
-  { value: 'number', label: $t('Number', {}, 'Number'), icon: 'exposure' },
-  { value: 'boolean', label: $t('Boolean', {}, 'Boolean / Toggle'), icon: 'toggle_on' },
-  // { value: 'object', label: $t('Group', {}, 'Group / Object'), icon: 'folder' },
-  // { value: 'array', label: $t('Array', {}, 'Array / List'), icon: 'data_array' },
+  { value: 'string', label: $t('Text', 'Text'), icon: 'text_fields' },
+  { value: 'string:enum', label: $t('Select', 'Select'), icon: 'list' },
+  // { value: 'integer', label: $t('Integer', 'Integer'), icon: 'numbers' },
+  { value: 'number', label: $t('Number', 'Number'), icon: 'exposure' },
+  { value: 'boolean', label: $t('Boolean', 'Boolean / Toggle'), icon: 'toggle_on' },
+  // { value: 'object', label: $t('Group', 'Group / Object'), icon: 'folder' },
+  // { value: 'array', label: $t('Array', 'Array / List'), icon: 'data_array' },
 ]
 
 const fieldTypeOptions = [
-  { value: 'string', label: $t('Text', {}, 'Text') },
-  // { value: 'integer', label: $t('Integer', {}, 'Integer') },
-  { value: 'number', label: $t('Number', {}, 'Number') },
-  { value: 'boolean', label: $t('Boolean', {}, 'Boolean') },
-  // { value: 'object', label: $t('Group', {}, 'Group') },
-  // { value: 'array', label: $t('Array', {}, 'Array') },
+  { value: 'string', label: $t('Text', 'Text') },
+  // { value: 'integer', label: $t('Integer', 'Integer') },
+  { value: 'number', label: $t('Number', 'Number') },
+  { value: 'boolean', label: $t('Boolean', 'Boolean') },
+  // { value: 'object', label: $t('Group', 'Group') },
+  // { value: 'array', label: $t('Array', 'Array') },
 ]
 
 const fields = ref([])
@@ -345,7 +345,7 @@ function getFieldIcon(field) {
 }
 
 function getFieldTypeLabel(field) {
-  if (field.options.enum?.length) return $t('Select', {}, 'Select')
+  if (field.options.enum?.length) return $t('Select', 'Select')
   const ft = fieldTypeOptions.find(f => f.value === field.options.type)
   return ft?.label || field.options.type
 }
@@ -358,7 +358,7 @@ function validate() {
   const duplicateFields = findDuplicateFields(fields.value.map(field => field.name))
   console.log({ duplicateFields, emptyFields });
   if (emptyFields) {
-    errorMessage.value = $t('AllFieldsNeedName', {}, 'All fields must have a name');
+    errorMessage.value = $t('AllFieldsNeedName', 'All fields must have a name');
   } else if (duplicateFields.length) {
     errorMessage.value = $t('DuplicateFieldsFound', 'Duplicate fields found') + ': ' + duplicateFields.map(field => field.field).join(', ')
   } else {

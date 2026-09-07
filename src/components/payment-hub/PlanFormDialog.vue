@@ -3,19 +3,19 @@
     <q-card class="br-15 pt-card-2 text-bow plan-form-card" :class="getDarkModeClass(darkMode)" style="width: 400px; max-width: 90vw;">
       <q-form ref="formRef" @submit="onOKClick" @validation-error="onFormError">
         <q-card-section>
-          <div class="text-h6">{{ $t('CreatePlan') || 'Create Plan' }}</div>
+          <div class="text-h6">{{ $t('CreatePlan', 'Create Plan') }}</div>
         </q-card-section>
 
         <q-tabs v-model="currentTab">
-          <q-tab no-caps label="Details" name="main"/>
-          <q-tab no-caps label="Form" name="json-form-builder"/>
+          <q-tab no-caps :label="$t('Details')" name="main"/>
+          <q-tab no-caps :label="$t('Form')" name="json-form-builder"/>
         </q-tabs>
 
         <q-tab-panels v-model="currentTab" animated keep-alive style="background:none;">
           <q-tab-panel name="main" class="q-gutter-y-md">
             <q-input
               v-model="form.name"
-              :label="($t('PlanName') || 'Plan Name') + ' *'"
+              :label="($t('PlanName', 'Plan Name')) + ' *'"
               outlined
               dense
               autofocus
@@ -26,7 +26,7 @@
             
             <q-input
               v-model="form.description"
-              :label="$t('DescriptionOptional') || 'Description (Optional)'"
+              :label="$t('DescriptionOptional', 'Description (Optional)')"
               outlined
               dense
               type="textarea"
@@ -38,7 +38,7 @@
               <div class="col">
                 <q-input
                   v-model.number="form.amount"
-                  :label="($t('Amount') || 'Amount') + ' *'"
+                  :label="($t('Amount')) + ' *'"
                   outlined
                   dense
                   type="number"
@@ -48,7 +48,7 @@
                   lazy-rules
                   :rules="[
                     val => !!val || $t('Required'),
-                    val => val > 0 || 'Amount must be positive'
+                    val => val > 0 || $t('AmountMustBePositive', 'Amount must be positive'),
                   ]"
                   hide-bottom-space
                 />
@@ -57,7 +57,7 @@
                 <q-select
                   v-model="form.currency"
                   :options="currencyOptions"
-                  :label="$t('Currency') || 'Currency'"
+                  :label="$t('Currency')"
                   outlined
                   dense
                   emit-value
@@ -71,7 +71,7 @@
               <div class="col">
                 <q-input
                   v-model.number="form.period_value"
-                  :label="($t('IntervalValue') || 'Interval Value') + ' *'"
+                  :label="($t('IntervalValue', 'Interval Value')) + ' *'"
                   outlined
                   dense
                   type="number"
@@ -81,7 +81,7 @@
                   lazy-rules
                   :rules="[
                     val => !!val || $t('Required'),
-                    val => Number.isInteger(val) && val > 0 || 'Must be a positive integer'
+                    val => Number.isInteger(val) && val > 0 || $t('MustBePositiveInteger', 'Must be a positive integer'),
                   ]"
                   hide-bottom-space
                 />
@@ -90,7 +90,7 @@
                 <q-select
                   v-model="form.period_type"
                   :options="periodTypeOptions"
-                  :label="($t('IntervalUnit') || 'Unit') + ' *'"
+                  :label="($t('IntervalUnit', 'Unit')) + ' *'"
                   outlined
                   dense
                   emit-value
@@ -103,7 +103,7 @@
               <div class="col">
                 <q-input
                   v-model.number="form.min_period"
-                  :label="'Min Interval (' + (form.period_type === 'days' ? 'Days' : 'Blocks') + ')'"
+                  :label="$t('MinInterval') + '(' + (form.period_type === 'days' ? $t('Days') : $t('Blocks')) + ')'"
                   outlined
                   dense
                   type="number"
@@ -111,14 +111,14 @@
                   step="1"
                   min="0"
                   lazy-rules
-                  :rules="[val => val >= 0 || 'Must be non-negative']"
+                  :rules="[val => val >= 0 || $t('MustBeNonNegative', 'Must be non-negative')]"
                   hide-bottom-space
                 />
               </div>
               <div class="col">
                 <q-input
                   v-model.number="form.max_period"
-                  :label="'Max Interval (' + (form.period_type === 'days' ? 'Days' : 'Blocks') + ')'"
+                  :label="$t('MaxInterval') + ' (' + (form.period_type === 'days' ? $t('Days') : $t('Blocks')) + ')'"
                   outlined
                   dense
                   type="number"
@@ -126,7 +126,7 @@
                   step="1"
                   min="0"
                   lazy-rules
-                  :rules="[val => val >= 0 || 'Must be non-negative']"
+                  :rules="[val => val >= 0 || $t('MustBeNonNegative', 'Must be non-negative')]"
                   hide-bottom-space
                 />
               </div>
@@ -136,7 +136,7 @@
               <div class="col">
                 <q-input
                   v-model.number="form.max_reclaim"
-                  :label="$t('MaxReclaim') || 'Max Reclaims'"
+                  :label="$t('MaxReclaim', 'Max Reclaims')"
                   outlined
                   dense
                   type="number"
@@ -144,9 +144,9 @@
                   step="1"
                   min="0"
                   lazy-rules
-                  :rules="[val => val >= 0 || 'Must be non-negative']"
+                  :rules="[val => val >= 0 || $t('MustBeNonNegative', 'Must be non-negative')]"
                   hide-bottom-space
-                  hint="Set to 0 for unlimited"
+                  :hint="$t('MaxReclaimHintMsg', 'Set to 0 for unlimited')"
                 />
               </div>
             </div>
@@ -169,6 +169,7 @@
 </template>
 
 <script setup>
+import { useI18n } from 'vue-i18n'
 import { ref, computed, reactive, watch } from 'vue'
 import { useDialogPluginComponent } from 'quasar'
 import { useStore } from 'vuex'
@@ -178,7 +179,7 @@ import JSONFormBuilderDialog from '../jsonforms/JSONFormBuilderDialog.vue'
 defineEmits([
   ...useDialogPluginComponent.emits
 ])
-
+const { t: $t } = useI18n();
 const { dialogRef, onDialogHide, onDialogOK, onDialogCancel } = useDialogPluginComponent()
 const $store = useStore()
 const darkMode = computed(() => $store.getters['darkmode/getStatus'])
@@ -188,8 +189,8 @@ const jsonFormBuilderRef = ref(null);
 const currentTab = ref('main');
 
 const periodTypeOptions = [
-  { label: 'Days', value: 'days' },
-  { label: 'Blocks', value: 'blocks' }
+  { label: $t('Days'), value: 'days' },
+  { label: $t('Blocks'), value: 'blocks' }
 ]
 
 const currencyOptions = [

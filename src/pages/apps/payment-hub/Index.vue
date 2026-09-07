@@ -417,17 +417,22 @@ function goToStorePage(store) {
  * Shows a help dialog explaining the Payment Hub stores.
  */
 function showHelpDialog() {
+  const msg1 = $t('PaymentHubStoreDesc1', 'A <strong>Store</strong> in the Payment Hub represents a single business unit or application that accepts Bitcoin Cash payments.')
+  const msg2 = $t('PaymentHubStoreDesc2', '<strong>Consolidated Dashboard</strong>: Manage multiple stores from a single wallet identity.')
+  const msg3 = $t('PaymentHubStoreDesc3', '<strong>API Integration</strong>: Each store can have its own API keys for secure backend-to-backend communication.')
+  const msg4 = $t('PaymentHubStoreDesc4', '<strong>Webhooks</strong>: Configure webhook URLs to receive real-time notifications for successful payments.')
+  const msg5 = $t('PaymentHubStoreDesc5', 'To get started, click the <strong>+</strong> button to create your first store.')
   $q.dialog({
     title: $t('PaymentHubStores'),
     message: `
       <div class="text-body2">
-        <p>A <strong>Store</strong> in the Payment Hub represents a single business unit or application that accepts Bitcoin Cash payments.</p>
+        <p>${msg1}</p>
         <ul class="q-pl-md">
-          <li><strong>Consolidated Dashboard</strong>: Manage multiple stores from a single wallet identity.</li>
-          <li><strong>API Integration</strong>: Each store can have its own API keys for secure backend-to-backend communication.</li>
-          <li><strong>Webhooks</strong>: Configure webhook URLs to receive real-time notifications for successful payments.</li>
+          <li>${msg2}</li>
+          <li>${msg3}</li>
+          <li>${msg4}</li>
         </ul>
-        <p class="q-mt-sm">To get started, click the <strong>+</strong> button to create your first store.</p>
+        <p class="q-mt-sm">${msg5}</p>
       </div>
     `,
     html: true,

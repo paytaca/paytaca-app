@@ -37,7 +37,7 @@
 
     <q-dialog v-model="showFilterDialog" position="bottom">
       <q-card class="q-pa-md br-15 pt-card-2 text-bow" :class="getDarkModeClass(darkMode)">
-        <div class="text-subtitle1">{{ $t('Subs') }}</div>
+        <div class="text-subtitle1">{{ $t('IncludeSubscriptions') }}</div>
         <q-btn-toggle
           v-model="includeSubscriptions"
           :options="[

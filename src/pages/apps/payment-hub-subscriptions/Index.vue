@@ -2,7 +2,7 @@
   <q-layout view="lHh Lpr lFf" :class="[getDarkModeClass(darkMode), darkMode ? 'bg-pt-dark-page' : 'bg-pt-light-page']">
     <q-header class="shadow-2" :class="darkMode ? 'bg-pt-dark-page' : 'bg-pt-light-page'">
       <HeaderNav
-        :title="$t('RecurringPayments') || 'Recurring Payments'"
+        :title="$t('RecurringPayments', 'Recurring Payments')"
         :backnavpath="{ name: 'apps-dashboard' }"
         class="apps-header"
       />
@@ -13,7 +13,7 @@
         <q-pull-to-refresh @refresh="refreshPage" class="col column no-wrap q-pa-md">
         <div class="row items-center q-mb-md">
           <div class="text-h6 text-bow" :class="getDarkModeClass(darkMode)">
-            {{ $t('MySubscriptions') || 'My Subscriptions' }}
+            {{ $t('MySubscriptions', 'My Subscriptions') }}
           </div>
           <q-space />
           <q-btn flat round dense icon="refresh" color="pt-primary1" @click="refreshPage(null, false)" />
@@ -26,7 +26,7 @@
               dense
               rounded
               outlined
-              :placeholder="$t('Search') || 'Search'"
+              :placeholder="$t('Search')"
               :bg-color="darkMode ? 'pt-dark' : 'white'"
               :dark="darkMode"
               @update:model-value="onSearch"
@@ -59,18 +59,18 @@
         <div v-if="!fetchingData && subscriptions.length === 0" class="text-center q-mt-xl">
           <div v-if="!searchQuery && statusFilter === 'ALL'">
             <q-icon name="autorenew" size="4em" class="text-grey q-mb-md" />
-            <div class="text-h6 text-grey q-mb-xs">{{ $t('NoSubscriptions') || 'No Subscriptions' }}</div>
-            <div class="text-body2 text-grey q-mb-lg">{{ $t('YouHaveNoSubscriptions') || "You don't have any active subscriptions." }}</div>
+            <div class="text-h6 text-grey q-mb-xs">{{ $t('NoSubscriptions', 'No Subscriptions') }}</div>
+            <div class="text-body2 text-grey q-mb-lg">{{ $t('YouHaveNoSubscriptions', "You don't have any active subscriptions.") }}</div>
           </div>
           <div v-else>
             <q-icon name="search_off" size="4em" class="text-grey q-mb-md" />
-            <div class="text-h6 text-grey q-mb-xs">{{ $t('NoResults') || 'No Results' }}</div>
-            <div class="text-body2 text-grey q-mb-lg">{{ $t('NoSearchMatches') || 'No subscriptions match your criteria.' }}</div>
+            <div class="text-h6 text-grey q-mb-xs">{{ $t('NoResults', 'No Results') }}</div>
+            <div class="text-body2 text-grey q-mb-lg">{{ $t('NoSearchMatches', 'No subscriptions match your criteria.') }}</div>
             <q-btn
               flat
               rounded
               color="pt-primary1"
-              :label="$t('ClearFilter') || 'Clear filter'"
+              :label="$t('ClearFilter', 'Clear Filter')"
               @click="searchQuery = ''; statusFilter = 'ALL'; refreshPage()"
             />
           </div>
@@ -121,7 +121,7 @@
                         class="q-mr-xs q-px-sm"
                         @click.stop="topUp(sub)"
                       >
-                        {{ $t('TopUp') || 'Top Up' }}
+                        {{ $t('TopUp', 'Top Up') }}
                       </q-btn>
                       <q-btn
                         v-if="sub.status === 'ACTIVE'"
@@ -133,7 +133,7 @@
                         size="sm"
                         @click.stop="cancelSubscription(sub)"
                       >
-                        <q-tooltip>{{ $t('Cancel') || 'Cancel' }}</q-tooltip>
+                        <q-tooltip>{{ $t('Cancel') }}</q-tooltip>
                       </q-btn>
                     </div>
                     <div class="col-auto">
@@ -153,7 +153,7 @@
 
         <q-page-sticky position="bottom-right" :offset="[18, 18]">
           <q-btn fab icon="add" color="pt-primary1" @click="openSubscribeDialog">
-            <q-tooltip>{{ $t('SubscribeToPlan') || 'Subscribe to Plan' }}</q-tooltip>
+            <q-tooltip>{{ $t('SubscribeToPlan', 'Subscribe to Plan') }}</q-tooltip>
           </q-btn>
         </q-page-sticky>
         </q-pull-to-refresh>
@@ -328,11 +328,11 @@ function openDetail(sub) {
 }
 
 async function cancelSubscription(sub) {
-
+  const msgTemplate = $t('CancelSubscriptionConfirm', 'Are you sure you want to cancel the subscription for {address}') 
   $q.dialog({
-    title: $t('CancelSubscription') || 'Cancel Subscription',
-    message: ($t('CancelSubscriptionConfirm') || 'Are you sure you want to cancel the subscription to {plan}?').replace('{plan}', sub.plan_name || 'this plan'),
-    ok: { label: $t('CancelSubscription') || 'Cancel Subscription', color: 'red', unelevated: true, rounded: true },
+    title: $t('CancelSubscription', 'Cancel Subscription'),
+    message: msgTemplate.replace('{address}', sub.plan_name || 'this plan'),
+    ok: { label: $t('CancelSubscription', 'Cancel Subscription'), color: 'red', unelevated: true, rounded: true },
     cancel: { label: $t('Cancel'), flat: true, color: 'grey' },
     class: `br-15 pt-card-2 text-bow ${getDarkModeClass(darkMode.value)}`
   }).onOk(async () => {
@@ -355,7 +355,7 @@ async function cancelSubscription(sub) {
     } catch (error) {
       console.error(error)
       const errorMsg = error.response?.data?.error || error.message
-      $q.notify({ type: 'negative', message: ($t('ErrorCancellingSubscription') || 'Error cancelling subscription: ') + errorMsg })
+      $q.notify({ type: 'negative', message: ($t('ErrorCancellingSubscription', 'Error cancelling subscription: ')) + errorMsg })
     } finally {
       $q.loading.hide()
     }

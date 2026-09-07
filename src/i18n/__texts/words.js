@@ -632,7 +632,36 @@ const words = [
     Admin: 'Admin',
     Blocked: 'BLOCKED',
     Owner: 'Owner',
-    Transfer: 'Transfer'
+    Transfer: 'Transfer',
+  },
+  // ======== JSON Forms =========
+  {
+    Fields: 'Fields',
+    fields: 'fields',
+    Options: 'Options',
+    Text: 'Text',
+    Number: 'Number',
+    Boolean: 'Boolean',
+    Array: 'Array',
+    Preview: 'Preview',
+  },
+  // ======== PaymentHub =========
+  {
+    Reactivate: "Reactivate",
+    Deactivate: "Deactivate",
+    Plans: "Plans",
+    Rotate: "Rotate",
+    Subscribe: "Subscribe",
+    Include: 'Include',
+    Exclude: 'Exclude',
+    Form: 'Form',
+    Store: "Store",
+    Blocks: "Blocks",
+    // Duplicates
+    // Amount: "Amount",
+    // Cancel: "Cancel",
+    // Update: "Update",
+    // Set: "Set",
   }
 ]
 

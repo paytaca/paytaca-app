@@ -13,7 +13,7 @@
             <div class="text-h5 text-weight-bold">{{ sub.plan_details.store_info.name }}</div>
           </div>
         </template>
-        <div v-else class="text-h6">{{ $t('SubscriptionDetails') || 'Subscription Details' }}</div>
+        <div v-else class="text-h6">{{ $t('SubscriptionDetails') }}</div>
         <q-space />
         <q-btn icon="close" flat round dense v-close-popup />
       </q-card-section>
@@ -27,7 +27,7 @@
       <q-card-section v-else-if="error" class="text-center q-pa-xl">
         <q-icon name="error" color="red" size="3em" />
         <p class="text-grey q-mt-md">{{ error }}</p>
-        <q-btn unelevated rounded color="pt-primary1" :label="$t('Retry') || 'Retry'" @click="fetchSubscription" />
+        <q-btn unelevated rounded color="pt-primary1" :label="$t('Retry')" @click="fetchSubscription" />
       </q-card-section>
 
       <!-- Content -->
@@ -38,7 +38,7 @@
           <div class="col">
             <!-- Plan Name & Status -->
             <div class="row items-center q-mb-sm">
-              <div class="text-h6 q-mr-sm">{{ sub.plan_details?.name || 'Subscription' }}</div>
+              <div class="text-h6 q-mr-sm">{{ sub.plan_details?.name || $t('Subscription') }}</div>
               <q-badge
                 :color="statusColor"
                 :text-color="darkMode ? 'black' : 'white'"
@@ -51,7 +51,7 @@
 
             <!-- Contract Balance -->
             <div class="q-mb-sm" v-if="sub.plan_details">
-              <div class="text-caption text-grey">{{ $t('ContractBalance') || 'Contract Balance' }}</div>
+              <div class="text-caption text-grey">{{ $t('ContractBalance') }}</div>
               <div class="row items-baseline q-gutter-x-sm">
                 <div class="text-subtitle1 text-weight-bold">
                   <span v-if="sub.plan_details.currency !== 'BCH' && bchPrice > 0">{{ contractBalanceFiat }} {{ sub.plan_details.currency }}</span>
@@ -69,7 +69,7 @@
             <!-- Billing Amount (Total Cost) -->
             <div class="q-mb-sm" v-if="sub.plan_details">
               <div class="row items-center q-gutter-x-xs text-caption text-grey">
-                <span>{{ $t('BillingAmount') || 'Billing Amount' }}</span>
+                <span>{{ $t('BillingAmount', 'Billing Amount') }}</span>
                 <q-btn flat round dense icon="help_outline" size="xs" color="grey" @click="showBillingInfo" />
               </div>
               <div class="row items-baseline q-gutter-x-sm">
@@ -87,7 +87,7 @@
 
             <!-- Billing Period -->
             <div class="q-mb-sm" v-if="sub.plan_details || sub.period_blocks">
-              <div class="text-caption text-grey">{{ $t('BillingReceivingPeriod') || 'Billing/Receiving Period' }}</div>
+              <div class="text-caption text-grey">{{ $t('BillingReceivingPeriod', 'Billing/Receiving Period') }}</div>
               <div class="row items-center">
                 <div class="text-body2 text-weight-medium">
                   {{ getPeriodText(sub) }}
@@ -134,7 +134,7 @@
                 flat
                 rounded
                 color="red"
-                :label="sub.status === 'ACTIVE' || sub.status === 'PENDING' ? ($t('Cancel') || 'Cancel') : ($t('Reclaim') || 'Reclaim')"
+                :label="sub.status === 'ACTIVE' || sub.status === 'PENDING' ? $t('Cancel') : $t('Reclaim')"
                 class="q-px-sm"
                 @click="onCancelSubscriptionClick"
               />
@@ -161,7 +161,7 @@
                 unelevated
                 rounded
                 color="pt-primary1"
-                :label="$t('TopUp') || 'Top Up'"
+                :label="$t('TopUp', 'Top Up')"
                 class="q-px-md"
                 @click="topUp"
               />
@@ -180,8 +180,8 @@
           align="justify"
           narrow-indicator
         >
-          <q-tab name="details" :label="$t('Details') || 'Details'" />
-          <q-tab name="invoices" :label="$t('Invoices') || 'Invoices'" />
+          <q-tab name="details" :label="$t('Details')" />
+          <q-tab name="invoices" :label="$t('Invoices')" />
           <q-tab v-if="sub?.subscription_data?.length || Object.getOwnPropertyNames(sub?.subscription_data)?.length" name="form-data" :label="$t('Data', 'Data')" />
         </q-tabs>
 
@@ -190,16 +190,16 @@
           <q-tab-panel name="details" class="q-pa-none q-pt-md">
             <!-- Plan Details -->
             <div v-if="sub.plan_details?.description" class="q-mb-md">
-              <div class="text-caption text-grey">{{ $t('Description') || 'Description' }}</div>
+              <div class="text-caption text-grey">{{ $t('Description') }}</div>
               <div class="text-body2">{{ sub.plan_details.description }}</div>
             </div>
 
             <!-- Vault Address Prominent -->
             <div class="q-mb-md">
-              <div class="text-caption text-grey">{{ $t('ContractAddress') || 'Contract Address' }}</div>
+              <div class="text-caption text-grey">{{ $t('ContractAddress', 'Contract Address') }}</div>
               <div class="row no-wrap items-center">
                 <div class="text-body2 font-mono ellipsis" style="max-width: 320px;">{{ sub.contract_address }}</div>
-                <q-btn flat round dense icon="content_copy" size="sm" class="q-ml-xs" @click="copyText(sub.contract_address, 'Contract Address')" />
+                <q-btn flat round dense icon="content_copy" size="sm" class="q-ml-xs" @click="copyText(sub.contract_address, $t('ContractAddress'))" />
               </div>
             </div>
 
@@ -208,7 +208,7 @@
               dense-toggle
               expand-separator
               icon="info"
-              :label="$t('MoreDetails') || 'More Details'"
+              :label="$t('MoreDetails', 'More Details')"
               class="q-mb-md br-10 pt-card border-grey-4"
               :class="getDarkModeClass(darkMode)"
             >
@@ -216,17 +216,17 @@
                 <!-- ID fields -->
                 <div class="q-gutter-y-sm q-mb-md">
                   <div>
-                    <div class="text-caption text-grey">{{ $t('SubscriptionID') || 'Subscription ID' }}</div>
+                    <div class="text-caption text-grey">{{ $t('SubscriptionID', 'Subscription ID') }}</div>
                     <div class="row no-wrap items-center">
                       <div class="text-body2 ellipsis q-mr-xs font-mono" style="max-width: 340px;">{{ sub.id }}</div>
                       <q-btn flat round dense icon="content_copy" size="sm" @click="copyText(sub.id, 'Subscription ID')" />
                     </div>
                   </div>
                   <div v-if="sub.short_id">
-                    <div class="text-caption text-grey">{{ $t('ShortID') || 'Short ID' }}</div>
+                    <div class="text-caption text-grey">{{ $t('ShortID', 'Short ID') }}</div>
                     <div class="row no-wrap items-center">
                       <div class="text-body2 font-mono">{{ sub.short_id }}</div>
-                      <q-btn flat round dense icon="content_copy" size="sm" @click="copyText(sub.short_id, 'Short ID')" />
+                      <q-btn flat round dense icon="content_copy" size="sm" @click="copyText(sub.short_id, $t('ShortID'))" />
                     </div>
                   </div>
                 </div>
@@ -234,17 +234,17 @@
                 <!-- Funder & Merchant -->
                 <div class="row q-col-gutter-sm q-mb-md">
                   <div class="col-12">
-                    <div class="text-caption text-grey">{{ $t('FunderAddress') || 'Funder Address' }}</div>
+                    <div class="text-caption text-grey">{{ $t('FunderAddress', 'Funder Address') }}</div>
                     <div class="row no-wrap items-center">
                       <div class="text-body2 ellipsis q-mr-xs font-mono" style="max-width: 340px;">{{ sub.funder_address }}</div>
-                      <q-btn flat round dense icon="content_copy" size="sm" @click="copyText(sub.funder_address, 'Funder Address')" />
+                      <q-btn flat round dense icon="content_copy" size="sm" @click="copyText(sub.funder_address, $t('FunderAddress'))" />
                     </div>
                   </div>
                   <div class="col-12">
-                    <div class="text-caption text-grey">{{ $t('MerchantAddress') || 'Merchant Address' }}</div>
+                    <div class="text-caption text-grey">{{ $t('MerchantAddress', 'Merchant Address') }}</div>
                     <div class="row no-wrap items-center">
                       <div class="text-body2 ellipsis q-mr-xs font-mono" style="max-width: 340px;">{{ sub.merchant_address }}</div>
-                      <q-btn flat round dense icon="content_copy" size="sm" @click="copyText(sub.merchant_address, 'Merchant Address')" />
+                      <q-btn flat round dense icon="content_copy" size="sm" @click="copyText(sub.merchant_address, $t('MerchantAddress'))" />
                     </div>
                   </div>
                 </div>
@@ -252,11 +252,11 @@
                 <!-- Dates -->
                 <div class="row q-col-gutter-sm">
                   <div class="col-6">
-                    <div class="text-caption text-grey">{{ $t('DateCreated') || 'Date Created' }}</div>
+                    <div class="text-caption text-grey">{{ $t('DateCreated', 'Date Created') }}</div>
                     <div class="text-body2">{{ formatDate(sub.date_created) }}</div>
                   </div>
                   <div class="col-6">
-                    <div class="text-caption text-grey">{{ $t('LastPayment') || 'Last Payment' }}</div>
+                    <div class="text-caption text-grey">{{ $t('LastPayment', 'Last Payment') }}</div>
                     <div class="text-body2">{{ sub.last_payment_date ? formatDate(sub.last_payment_date) : '-' }}</div>
                   </div>
                 </div>
@@ -269,7 +269,7 @@
               <q-spinner color="pt-primary1" size="2em" />
             </div>
             <div v-else-if="!invoices.length" class="text-center q-my-xl text-grey">
-              {{ $t('NoInvoices') || 'No invoices found' }}
+              {{ $t('NoInvoices', 'No invoices found') }}
             </div>
             <div v-else>
               <q-list separator class="br-10 border-grey-4">
@@ -285,7 +285,7 @@
                   </q-item-section>
                   <q-item-section>
                     <div class="text-body2 text-weight-medium ellipsis-2-lines" :class="getDarkModeClass(darkMode)" style="word-break: break-all;">
-                      {{ inv.memo || $t('NoMemo') || 'No Memo' }}
+                      {{ inv.memo || $t('NoMemo', 'No Memo') }}
                     </div>
                     <div class="text-caption text-grey q-mt-xs">{{ formatDate(inv.date_created) }}</div>
                   </q-item-section>
@@ -336,7 +336,7 @@ import { useI18n } from 'vue-i18n'
 import JSONFormPreview from 'src/components/jsonforms/JSONFormPreview.vue'
 import { inferSchemaFromData, serializeSchemaFields } from 'src/components/jsonforms/jsonform-utils'
 
-const { t } = useI18n()
+const { t: $t } = useI18n()
 
 const props = defineProps({
   subscriptionId: { type: String, required: true },
@@ -359,7 +359,6 @@ const tab = ref('details')
 const invoices = ref([])
 const loadingInvoices = ref(false)
 
-const subscriptionFormData = ref({})
 const subscriptionFormSchema = computed(() => {
   const formData = sub.value?.plan_details?.subscription_form_data
   const unserialized = formData?.unserialized_schema_data
@@ -418,18 +417,27 @@ function showBillingInfo() {
 
   let msg = ''
   if (p.period_days) {
-    msg = `This is the total amount billed every ${periodText}.`
+    msg = $t(
+      'TotalBilledEveryPeriodMsg',
+      `This is the total amount billed every {periodText}.`
+    ).replace('{periodText}', periodText)
   } else if (p.period_blocks) {
-    msg = `This is the total amount billed every ${periodText} or every ${p.period_blocks} blocks.`
+    msg = $t(
+      'TotalBilledEveryPeriodBlocksMsg',
+      `This is the total amount billed every {periodText}.`
+    ).replace('{periodText}', periodText).replace('{blocks}', p.period_blocks)
   }
 
   const mFee = minerFee.value
   const pFee = paytacaFee.value
 
-  msg += ` This total cost includes the base plan pledge, a small miner fee (${mFee} sats), and the Paytaca platform fee (${pFee} sats).`
+  msg += $t(
+    'TotalSubscriptionCostMsg',
+    ` This total cost includes the base plan pledge, a small miner fee ({mFee} sats), and the Paytaca platform fee ({pFee} sats).`
+  ).replace('{mFee}', mFee).replace('{pFee}', pFee);
 
   $q.dialog({
-    title: 'Billing Amount',
+    title: $t('BillingAmount', 'Billing Amount'),
     message: msg,
     color: 'pt-primary1',
     ok: { flat: true, color: 'pt-primary1', label: 'OK' }
@@ -553,7 +561,7 @@ async function fetchSubscription() {
     await fetchInvoices()
   } catch (err) {
     console.error('Error fetching subscription:', err)
-    error.value = err.response?.data?.error || err.message || 'Failed to load subscription details'
+    error.value = err.response?.data?.error || err.message || $t('FailedToLoadSubscriptions', 'Failed to load subscription details')
   } finally {
     loading.value = false
   }
@@ -613,7 +621,7 @@ function formatAmount(amount) {
 function getPeriodText(p) {
   const periodDays = p.period_days || p.plan_details?.period_days
   if (periodDays) {
-    return `${periodDays} ${periodDays === 1 ? (t('Day') || 'day') : (t('Days') || 'days')}`
+    return `${periodDays} ${periodDays === 1 ? ($t('Day') || 'day') : ($t('Days') || 'days')}`
   }
   const blocks = p.period_blocks || p.plan_details?.period_blocks
   if (!blocks) return ''
@@ -621,26 +629,27 @@ function getPeriodText(p) {
   let timeStr = ''
   if (blocks % 4320 === 0) {
     const v = blocks / 4320
-    timeStr = `${v} ${v === 1 ? (t('Month') || 'month') : (t('Months') || 'months')}`
+    timeStr = `${v} ${v === 1 ? ($t('Month')) : ($t('Months'))}`
   } else if (blocks % 1008 === 0) {
     const v = blocks / 1008
-    timeStr = `${v} ${v === 1 ? (t('Week') || 'week') : (t('Weeks') || 'weeks')}`
+    timeStr = `${v} ${v === 1 ? ($t('Week')) : ($t('Weeks'))}`
   } else if (blocks % 144 === 0) {
     const v = blocks / 144
-    timeStr = `${v} ${v === 1 ? (t('Day') || 'day') : (t('Days') || 'days')}`
+    timeStr = `${v} ${v === 1 ? ($t('Day')) : ($t('Days'))}`
   } else if (blocks % 6 === 0) {
     const v = blocks / 6
-    timeStr = `${v} ${v === 1 ? (t('Hour') || 'hour') : (t('Hours') || 'hours')}`
+    timeStr = `${v} ${v === 1 ? ($t('Hour')) : ($t('Hours'))}`
   } else {
-    timeStr = `${blocks * 10} ${t('Minutes') || 'minutes'}`
+    timeStr = `${blocks * 10} ${$t('Minutes')}`
   }
   return timeStr
 }
 
 function showBlocksInfo(blocks) {
+  const fallbackMessage = 'The displayed time is an estimate based on the Bitcoin Cash network block target of 10 minutes per block. The exact interval is'
   $q.dialog({
-    title: t('BillingReceivingPeriod') || 'Billing/Receiving Period',
-    message: `${t('EstimatedTimeBasedOnBlocks') || 'The displayed time is an estimate based on the Bitcoin Cash network block target of 10 minutes per block. The exact interval is'} ${blocks} ${t('Blocks') || 'blocks'}.`,
+    title: $t('BillingReceivingPeriod', 'Billing/Receiving Period'),
+    message: `${$t('EstimatedTimeBasedOnBlocks', fallbackMessage)} ${blocks} ${$t('Blocks')}.`,
     color: 'pt-primary1',
     ok: {
       flat: true,
@@ -655,7 +664,7 @@ function formatDate(dateStr) {
   return date.formatDate(dateStr, 'MMM D, YYYY HH:mm')
 }
 
-function copyText(text, label = 'Text') {
+function copyText(text, label = $t('Text')) {
   if (!text) return
   copyToClipboard(text)
   $q.notify({
