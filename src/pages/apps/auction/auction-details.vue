@@ -357,6 +357,22 @@ import HeaderNav from 'src/components/header-nav.vue'
 import LotSearch from 'src/components/auction/LotSearch.vue'
 import { callAuctionWebsocket } from 'src/auction/websocket'
 
+// Quasar variables
+const $q = useQuasar()
+const $store = useStore()
+const $route = useRoute()
+const $router = useRouter()
+
+// System-related variables
+const darkMode = computed(() => $store.getters['darkmode/getStatus'])
+const isLoading = ref(false)
+defineOptions({
+  directives: {
+    'element-visibility': vElementVisibility
+  }
+})
+
+// Props
 const props = defineProps({
   auctionId: {
     type: [String, Number],
@@ -364,62 +380,192 @@ const props = defineProps({
   }
 })
 
-const viewCount = ref(0)
+// Auction-related variables
 const auction = ref(null)
 const auctionCountdown = ref('Loading...')
 const auctionStartCountdown = ref('Loading...')
 
-defineOptions({
-  directives: {
-    'element-visibility': vElementVisibility
-  }
-})
-
-const $q = useQuasar()
-const $store = useStore()
-const darkMode = computed(() => $store.getters['darkmode/getStatus'])
-const $route = useRoute()
-const $router = useRouter()
-
-const formatFiat = (value) => {
-  const numValue = Number(value) || 0
-  return `₱${numValue.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
-}
-
-const formatBCH = (value) => {
-  return getFormattedBCH(Number(value) || 0)
-}
-
-const isLoading = ref(false)
-
-const lotType = ref('All')
-const lotTypeOptions = ['Physical', 'Digital', 'All']
-
+// Lot-related variables
+const lotType = ref($store.getters['auction/lotTypeActivity'])
+const lotTypeOptions = $store.getters['auction/lotTypeOptions']
+const lotSearchQuery = ref('') // REVIEW
 const lots = ref([])
 
-const parseAuctionData = (data) => {
-  if (!data) return null
-  return data instanceof AuctionList ? data : AuctionList.parse(data)
-}
+const isLotEmpty = computed(() => {
+  return !isLoading.value && filteredLots.value.length === 0
+})
+
+const filteredLots = computed(() => {
+  let targetLots = lots.value 
+  
+  if (lotType.value !== 'All') {
+    targetLots = targetLots.filter(lot => lot.category_name === lotType.value)
+  }
+  
+  if (lotSearchQuery.value && lotSearchQuery.value.trim() !== '') {
+    const query = lotSearchQuery.value.toLowerCase().trim()
+    targetLots = targetLots.filter(lot => 
+      lot.title?.toLowerCase().includes(query) || 
+      lot.id?.toString().includes(query)
+    )
+  }
+  return targetLots
+})
 
 const fetchAllData = async () => {
-  try {
-    const result = await callAPI('auctions', Number(props.auctionId))
-    if (result.success && result.data) {
-      auction.value = parseAuctionData(result.data)
-
-      const userId = auction.value.user?.id
-      if (userId) {
-        const userRes = await callAPI('user-details', userId)
-        if (userRes.success && userRes.data) auction.value.setUserDetails(userRes.data)
-      }
-    }
-  } catch (err) {
-    console.error('Failed to update auction details:', err)
+  const listingsLastFetched = $store.getters['auction/listingsLastFetched']
+  if(!listingsLastFetched || listingsLastFetched > 300000) {
+    await fetchAuctionDetails()
   }
 
+  const auctionLotsLastFetched = $store.getters['auction/auctionLotsLastFetched']
+  if(!auctionLotsLastFetched || auctionLotsLastFetched > 300000) {
+    await fetchAuctionLots()
+  }
+
+  if (auction.value?.type === 'Dutch' && lots.value.length) {
+    const allSold = lots.value.every(l => l.is_sold)
+    const notYetClosed = new Date(auction.value.end_date) > new Date()
+    
+    if (allSold && notYetClosed) {
+      await callAPI('auctions', props.auctionId, 'patch', {
+        end_date: new Date().toISOString()
+      })
+      auction.value.end_date = new Date().toISOString()
+    }
+  }
+}
+
+onMounted(async () => {
+  isLoading.value = true
+  
+  const auctionData = $store.getters['auction/processedItems'] || []
+  const specificAuctionData = auctionData.find(item => item.id === Number(props.auctionId))
+  auction.value = parseAuctionData(specificAuctionData)
+
+  // fetch auction details
+  await fetchAllData()
+
+  // call the connectWebsocket function
+  isLoading.value = false
+  socket = connectWebsocket()
+})
+
+onBeforeUnmount(() => {
+  if (socket) clearSocket()
+})
+
+/*
+===========================
+WEBSOCKET-RELATED FUNCTIONS
+===========================
+*/
+const viewCount = ref(0)
+let socket = null
+
+const connectWebsocket = () => {
+  let reconnectAttempts = 0
+  let maxReconnectAttempts = 10
+  const ws = callAuctionWebsocket(Number(props.auctionId))
+
+  ws.onopen = (event) => {
+    console.log("Connected to the auction websocket!")
+  }
+
+  ws.onmessage = (event) => {
+    const { type, data } = JSON.parse(event.data)
+    switch(type) {
+      case "live.viewing":
+        viewCount.value = data.viewer_count
+        break
+      case "auction.start_countdown":
+        auctionStartCountdown.value = formatCountdown(data.time_left)
+        break
+      case "auction.countdown":
+        auctionCountdown.value = formatCountdown(data.time_left)
+        break
+      case "auction.start":
+        auctionCountdown.value = 'Starting Auction...'
+        auction.value.status = 2
+
+        lots.value.forEach(lot => {
+          lot.start_date = auction.value.start_date
+          lot.end_date = auction.value.end_date
+        })
+
+        refreshLotStatuses()
+        break
+      case "auction.closed": {
+        auctionStartCountdown.value = "Time's Up!"
+        auction.value.status = 3
+
+        const endDate = data?.end_date || new Date().toISOString()
+        auction.value.end_date = endDate
+
+        lots.value.forEach(lot => {
+          lot.end_date = endDate
+        })
+
+        refreshLotStatuses()
+        break
+      }
+      default:
+        console.log("Unrecognized websocket event: " + type)
+        break
+    }
+    console.log(data)
+  }
+
+  ws.onclose = (event) => {
+    console.log("Disconnected from the auction websocket!")
+    if (!event.wasClean && reconnectAttempts < maxReconnectAttempts) {
+      const delay = Math.min(1000 * 2 ** reconnectAttempts, 30000)
+      reconnectAttempts++
+      setTimeout(connectWebsocket, delay)
+    }
+  }
+
+  ws.onerror = (event) => {
+    console.error("Auction websocket error:", event)
+  }
+
+  return ws
+}
+
+const clearSocket = () => {
+  socket.close()
+  socket.onmessage = null
+  socket.onopen = null
+  socket.onerror = null
+  socket.onclose = null
+}
+
+/*
+========================================
+FETCHING AUCTION AND AUCTION LOT DETAILS
+========================================
+*/
+const fetchAuctionDetails = async () => {
+    try {
+      const result = await callAPI('auctions', Number(props.auctionId))
+      if (result.success && result.data) {
+        auction.value = parseAuctionData(result.data)
+
+        const userId = auction.value.user?.id
+        if (userId) {
+          const userRes = await callAPI('user-details', userId)
+          if (userRes.success && userRes.data) auction.value.setUserDetails(userRes.data)
+        }
+      }
+    } catch (err) {
+      console.error('Failed to update auction details:', err)
+    }
+}
+
+const fetchAuctionLots = async () => {
   try {
     const result = await callAPI('lots-by-auction', Number(props.auctionId))
+    
     if (result.success && result.data) {
       lots.value = await Promise.all(
         result.data.map(async (item) => {
@@ -460,157 +606,7 @@ const fetchAllData = async () => {
   } catch (err) {
     console.error('Failed to update lots:', err)
   }
-
-  if (auction.value?.type === 'Dutch' && lots.value.length) {
-    const allSold = lots.value.every(l => l.is_sold)
-    const notYetClosed = new Date(auction.value.end_date) > new Date()
-    if (allSold && notYetClosed) {
-      await callAPI('auctions', props.auctionId, 'patch', {
-        end_date: new Date().toISOString()
-      })
-      auction.value.end_date = new Date().toISOString()
-    }
-  }
 }
-
-const lotStatusVersion = ref(0)
-
-const refreshLotStatuses = () => {
-  lotStatusVersion.value++
-}
-
-const getReactiveLotStatus = (lot) => {
-  lotStatusVersion.value
-  return lot.getStatus()
-}
-
-let socket = null
-
-onMounted(async () => {
-  isLoading.value = true
-  
-  const auctionData = $store.getters['auction/processedItems'] || []
-  const specificAuctionData = auctionData.find(item => item.id === Number(props.auctionId))
-  auction.value = parseAuctionData(specificAuctionData)
-
-  await fetchAllData()
-
-  // get the live auction websocket 
-  let reconnectAttempts = 0
-  let maxReconnectAttempts = 10
-  const connectWebsocket = () => {
-    const ws = callAuctionWebsocket(Number(props.auctionId))
-
-    ws.onopen = (event) => {
-      console.log("Connected to the auction websocket!")
-    }
-
-    ws.onmessage = (event) => {
-      const { type, data } = JSON.parse(event.data)
-      switch(type) {
-        case "live.viewing":
-          viewCount.value = data.viewer_count
-          break
-        case "auction.start_countdown":
-          auctionStartCountdown.value = formatCountdown(data.time_left)
-          break
-        case "auction.countdown":
-          auctionCountdown.value = formatCountdown(data.time_left)
-          break
-        case "auction.start":
-          auctionCountdown.value = 'Starting Auction...'
-          auction.value.status = 2
-
-          lots.value.forEach(lot => {
-            lot.start_date = auction.value.start_date
-            lot.end_date = auction.value.end_date
-          })
-
-          refreshLotStatuses()
-          break
-        case "auction.closed": {
-          auctionStartCountdown.value = "Time's Up!"
-          auction.value.status = 3
-
-          const endDate = data?.end_date || new Date().toISOString()
-          auction.value.end_date = endDate
-
-          lots.value.forEach(lot => {
-            lot.end_date = endDate
-          })
-
-          refreshLotStatuses()
-          break
-        }
-        default:
-          console.log("Unrecognized websocket event: " + type)
-          break
-      }
-      console.log(data)
-    }
-
-    ws.onclose = (event) => {
-      console.log("Disconnected from the auction websocket!")
-      if (!event.wasClean && reconnectAttempts < maxReconnectAttempts) {
-        const delay = Math.min(1000 * 2 ** reconnectAttempts, 30000)
-        reconnectAttempts++
-        setTimeout(connectWebsocket, delay)
-      }
-    }
-
-    ws.onerror = (event) => {
-      console.error("Auction websocket error:", event)
-    }
-
-    return ws
-  }
-  
-  // call the connectWebsocket function
-  socket = connectWebsocket()
-  isLoading.value = false
-})
-
-const formatCountdown = (timeLeft) => {
-  const splitTime = (timeLeft).split(":")
-  const timeToIndex = ['day', 'hour', 'minute', 'second']
-  for (let [index, time] of splitTime.entries()){
-    const numTime = Number(time)
-    console.log(numTime)
-    if (numTime > 0) {
-      return `${numTime} ${timeToIndex[index]}${(numTime) > 1 ? 's':''} left.`
-    }
-  }
-  return "Time's Up!"
-}
-
-onBeforeUnmount(() => {
-  if (socket) {
-    socket.close()
-    socket.onmessage = null
-    socket.onopen = null
-    socket.onerror = null
-    socket.onclose = null
-  }
-})
-
-const lotSearchQuery = ref('')
-
-const filteredLots = computed(() => {
-  let targetLots = lots.value 
-  
-  if (lotType.value !== 'All') {
-    targetLots = targetLots.filter(lot => lot.category_name === lotType.value)
-  }
-  
-  if (lotSearchQuery.value && lotSearchQuery.value.trim() !== '') {
-    const query = lotSearchQuery.value.toLowerCase().trim()
-    targetLots = targetLots.filter(lot => 
-      lot.title?.toLowerCase().includes(query) || 
-      lot.id?.toString().includes(query)
-    )
-  }
-  return targetLots
-})
 
 const toggleEditAuction = async () => {
   const now = new Date()
@@ -632,14 +628,32 @@ const toggleEditAuction = async () => {
   }
 }
 
-const getFormattedBCH = (bch) => {
-  const numStr = Number(bch).toFixed(8)
-  const match = numStr.match(/^(.*?)0*$/)
-  const main = match ? match[1] : numStr
-  const zeros = numStr.substring(main.length)
-  return { main, zeros, full: numStr }
-}
+/* 
+============================
+IS USER AUCTIONEER OR BIDDER
+============================
+*/
+const isAuthor = computed(() => {
+  const walletHash = Store.getters['global/getWallet']('bch')?.walletHash
+  return walletHash === auction.value?.user?.id
+})
 
+// REVIEW THIS KAY WHY 30 MINS
+const canEdit = computed(() => { 
+  if (!isAuthor.value || !auction.value?.start_date) return false
+
+  const now = new Date()
+  const startDate = new Date(auction.value.start_date)
+  const minutesToStart = date.getDateDiff(startDate, now, 'minutes')
+  
+  return minutesToStart > 30
+})
+
+/*
+=======================
+AUCTION STATUS UPDATING
+=======================
+*/
 const getEnglishPriceInfo = (lot) => {
   return {
     label: lot.hasBid ? 'HIGHEST BID:' : 'STARTING PRICE:',
@@ -649,40 +663,79 @@ const getEnglishPriceInfo = (lot) => {
 }
 
 const getAuctionStatusInfo = (auction) => {
-  if (auction && typeof auction.getStatus === 'function') {
-    return auction.getStatus()
-  }
-  return { label: 'NaN', color: 'purple' }
+  return (auction && typeof auction.getStatus === 'function') 
+    ? auction.getStatus() 
+    : { label: 'NaN', color: 'purple' }
 }
 
-const formatAuctionDate = (dateString) => { return date.formatDate(dateString, 'MMM DD, YYYY hh:mm A') }
+/*
+===================
+LOT STATUS UPDATING
+===================
+*/
+const lotStatusVersion = ref(0)
+const refreshLotStatuses = () => {
+  lotStatusVersion.value++
+}
 
-const isLotEmpty = computed(() => {
-  return !isLoading.value && filteredLots.value.length === 0
-})
+const getReactiveLotStatus = (lot) => {
+  lotStatusVersion.value
+  return lot.getStatus()
+}
 
+/*
+================
+HELPER FUNCTIONS
+================
+*/
+const parseAuctionData = (data) => {
+  if (!data) return null
+  return data instanceof AuctionList ? data : AuctionList.parse(data)
+}
+
+// FORMATTING
+const formatAuctionDate = (dateString) => date.formatDate(dateString, 'MMM DD, YYYY hh:mm A') 
+
+const formatCountdown = (timeLeft) => {
+  const splitTime = (timeLeft).split(":")
+  const timeToIndex = ['day', 'hour', 'minute', 'second']
+  for (let [index, time] of splitTime.entries()){
+    const numTime = Number(time)
+    if (numTime > 0) {
+      return `${numTime} ${timeToIndex[index]}${(numTime) > 1 ? 's':''} left.`
+    }
+  }
+  return "Time's Up!"
+}
+
+const formatFiat = (value) => {
+  const numValue = Number(value) || 0
+  return `₱${numValue.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
+}
+
+const formatBCH = (value) => {
+  return getFormattedBCH(Number(value) || 0)
+}
+
+const getFormattedBCH = (bch) => {
+  const numStr = Number(bch).toFixed(8)
+  const match = numStr.match(/^(.*?)0*$/)
+  const main = match ? match[1] : numStr
+  const zeros = numStr.substring(main.length)
+  return { main, zeros, full: numStr }
+}
+
+/*
+============
+PAGE-RELATED
+============
+*/
 const copyToClipboard = (text) => {
   if (!text) return
   navigator.clipboard.writeText(text).then(() => {
     $q.notify({ type: 'positive', message: 'Copied to clipboard!', timeout: 1500 })
   })
 }
-
-const isAuthor = computed(() => {
-  const walletHash = Store.getters['global/getWallet']('bch')?.walletHash
-  return walletHash === auction.value?.user?.id
-})
-
-const canEdit = computed(() => {
-  if (!isAuthor.value || !auction.value?.start_date) return false
-
-  const now = new Date()
-  const startDate = new Date(auction.value.start_date)
-  
-  const minutesToStart = date.getDateDiff(startDate, now, 'minutes')
-  
-  return minutesToStart > 30
-})
 
 const smartBackPath = computed(() => {
   const sourceContext = $route.query.from
