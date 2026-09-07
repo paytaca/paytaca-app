@@ -343,6 +343,55 @@ export async function fetchModelDetails(modelID) {
   }
 }
 
+// Session List
+export async function fetchSessions(data) {
+  const walletHash = getWalletHash()
+
+  if (!walletHash) {
+    return { success: false, data: null, error: 'Wallet hash not available' }
+  }
+
+  for (let attempt = 0; attempt <= MAX_AUTH_RETRIES; attempt++) {
+    try {
+      let headers = {
+        "X-Wallet-Hash": walletHash
+      }
+
+      let params = {
+        page: data.page || 1,
+        page_size: data.pageSize || 10
+      }
+
+      if ('modelId' in data) {
+        params['model_id'] = data.modelId
+      }
+
+      const response = await backend.get(baseURL + '/ai-admin/sessions', { params: params, headers: headers})
+
+      return {
+        success: true,
+        data: response.data,
+        error: null
+      }
+    } catch (error) {
+      const errorMessage = error.response?.data?.message || error.message || 'Failed to fetch sessions'
+      console.error('[fetchSessions] Error:', errorMessage)
+
+      if (attempt === MAX_AUTH_RETRIES) {
+        return {
+          success: false,
+          data: null,
+          error: `Network error: ${errorMessage}`
+        }
+      }
+
+    }
+  }  
+}
+
+// Session Detail
+
+
 // Update Keyname
 export async function updateAPIKey(uuid, name) {
   const walletHash = getWalletHash()

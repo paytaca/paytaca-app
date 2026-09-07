@@ -93,6 +93,11 @@ export default {
             vm.$router.replace({ name: 'ai-admin-keys' })
         }
 
+        // Selecting proper tab
+        if (vm.$route.name === 'ai-admin-sessions') {
+            vm.activeTab = 'sessions'
+        }
+
         vm.isloaded = true
     },
     methods: {

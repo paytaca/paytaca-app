@@ -1,82 +1,70 @@
 <template>
     <div class="text-bow q-pb-md" :class="getDarkModeClass(darkMode)">
-        <!-- <div class="row justify-end q-px-lg q-pt-md" v-if="hasSession">
-            <q-btn rounded outline no-caps label="Buy Session" :color="themeColor" icon="mdi-timer"/>
-        </div> -->
-
-        <!-- Session List -->
-        <div class="q-px-lg">
-             <div class="text-center q-mt-lg q-pt-lg" v-if="!hasSession">
-                <q-icon name="mdi-timer-off" size="75px" class="q-my-md" color="grey"/> 
-                <!-- <q-im  g class="vertical-top q-my-md" src="empty-wallet.svg" style="width: 75px; fill: gray;" /> -->
-                <p :class="{ 'text-black': !darkMode }">{{ $t('NoSessionsToDisplay') }}</p>
-
-                <div class="text-italic text-grey q-pb-md" v-html="$t('CreateSessionDescription')"></div>
-
-                <q-btn 
-                    rounded 
-                    outline 
-                    no-caps 
-                    label="Buy Session" 
-                    :color="themeColor" 
-                    icon="mdi-timer"
-                    @click="$router.replace({ name: 'ai-admin-buy-form' })"
-                />
-            </div>
-
-            <div v-else>
-                 <div class="row justify-between items-center q-pt-md q-pb-lg">
-                    <q-btn
-                        rounded
-                        outline
-                        no-caps
-                        label="Buy Session"
-                        :color="themeColor"
-                        icon="mdi-timer"
-                        size="md"
-                        @click="$router.replace({ name: 'ai-admin-buy-form' })"
-                    />
-                    <q-btn
-                        flat
-                        round
-                        unelevated
-                        ripple
-                        dense
-                        size="md"
-                        icon="filter_list"
-                        class="button button-text-primary"
-                        padding="none"
-                    />
-
+        <!-- Skeleton loader -->
+        <div v-if="isLoading" class="q-px-lg q-pt-md">
+            <q-skeleton type="rect" width="160px" height="36px" style="border-radius: 18px;" class="q-mb-md" />
+            <div v-for="n in 4" :key="'skel-'+n" class="app-row q-mb-sm" :class="getDarkModeClass(darkMode)">
+                <div class="app-info">
+                    <q-skeleton type="text" width="50%" height="16px" class="q-mb-xs" />
+                    <q-skeleton type="text" width="70%" height="12px" class="q-mb-xs" />
+                    <q-skeleton type="rect" width="140px" height="4px" style="border-radius: 2px;" />
                 </div>
+                <div class="app-row-end">
+                    <q-skeleton type="rect" width="60px" height="22px" style="border-radius: 10px;" />
+                </div>
+            </div>
+        </div>
 
-                <!-- <q-separator class="q-mb-md"/> -->
+        <!-- Content -->
+        <div v-else>
+            <q-pull-to-refresh @refresh="refresh">
+                <div class="q-px-lg">
+                    <!-- Empty state (existing, unchanged) -->
+                    <div v-if="!hasSession" class="text-center q-mt-lg q-pt-lg">
+                        <q-icon name="mdi-timer-off" size="75px" class="q-my-md" color="grey"/>
+                        <p :class="{ 'text-black': !darkMode }">{{ $t('NoSessionsToDisplay') }}</p>
+                        <div class="text-italic text-grey q-pb-md" v-html="$t('CreateSessionDescription')"></div>
+                        <q-btn rounded outline no-caps label="Buy Session" :color="themeColor" icon="mdi-timer"
+                            @click="$router.replace({ name: 'ai-admin-buy-form' })" />
+                    </div>
 
-                <div v-for="i in 5" :key="i" class="app-row q-mb-sm " :class="getDarkModeClass(darkMode)">
-                    <!-- Name + time progress -->
-                    <div class="app-info">
-                        <div class="app-name" :class="getDarkModeClass(darkMode)">DeepSeek V4 Flash (Budget)</div>
-                        <div class="app-desc q-pt-xs" :class="getDarkModeClass(darkMode)">
-                            6:15 remaining of 10:00
+                    <!-- Session list -->
+                    <div v-else>
+                        <div class="row justify-between items-center q-pt-md q-pb-lg">
+                            <q-btn rounded outline no-caps label="Buy Session" :color="themeColor" icon="mdi-timer" size="md"
+                                @click="$router.replace({ name: 'ai-admin-buy-form' })" />
                         </div>
-                        <!-- Progress bar for time usage -->
-                        <q-linear-progress
-                            :value="0.375"
-                            :color="themeColor"
-                            size="4px"
-                            class="q-mt-xs rounded-borders"
-                            style="max-width: 200px;"
-                        />
-                    </div>
 
-                    
-                    <div class="app-row-end">
-                        <q-badge rounded outline
-                            :color="themeColor"
-                            label="active" />
+                        <div v-for="session in sessions" :key="session.id" class="app-row q-mb-sm" :class="getDarkModeClass(darkMode)">
+                            <div class="app-info">
+                                <div class="app-name" :class="getDarkModeClass(darkMode)">{{ session.display_name }}</div>
+                                <div class="app-desc q-pt-xs" :class="getDarkModeClass(darkMode)">
+                                    {{ formatTimeUsed(session.time_used_seconds) }} / {{ formatTimeUsed(session.time_credits_seconds) }} used
+                                </div>
+                                <q-linear-progress
+                                    :value="getProgress(session)"
+                                    :color="session.status === 'active' ? themeColor : 'grey'"
+                                    size="4px"
+                                    class="q-mt-xs rounded-borders"
+                                    style="max-width: 200px;"
+                                />
+                                <div class="app-desc q-mt-xs" :class="getDarkModeClass(darkMode)">
+                                    {{ formatDate(session.created_at) }}
+                                </div>
+                            </div>
+                            <div class="app-row-end">
+                                <q-badge rounded outline :color="statusColor(session.status)" :label="session.status" />
+                            </div>
+                        </div>
+
+                        <!-- See more -->
+                        <div v-if="hasMorePages" class="text-center q-py-sm">
+                            <q-btn flat no-caps size="18px" class="text-bold" label="See more" :color="themeColor"
+                                :loading="loadingMore" :disable="loadingMore" @click="loadMore" />
+                        </div>
                     </div>
                 </div>
-            </div>
+            </q-pull-to-refresh>
         </div>
     </div>
 </template>
@@ -84,12 +72,20 @@
 <script>
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 import * as AIAdminUtils from 'src/utils/ai-admin-utils.js'
+import { formatDistanceToNow } from 'date-fns'
+import { bus } from 'src/wallet/event-bus.js'
+
 
 export default {
     data () {
         return {
             darkMode: this.$store.getters['darkmode/getStatus'],
-            sessions: []
+            sessions: [],
+            isLoading: true,
+            currentPage: 1,
+            pageSize: 20,
+            totalCount: 0,
+            loadingMore: false
         }
     },
     computed: {
@@ -106,17 +102,79 @@ export default {
             return themeMap[this.theme] || 'blue-6'
         },
         hasSession () {
-            // return this.sessions.length > 0
-            return true
+            return this.sessions.length > 0
+        },
+        hasMorePages () {
+            return this.sessions.length < this.totalCount
         }
     },
     async mounted () {
-        // const data = await AIAdminUtils.fetchModels({})
-
-        // console.log(data)
+        bus.emit('ai-admin:loading', true)
+        await this.fetchSessions(true)
+        bus.emit('ai-admin:loading', false)
     },
     methods: {
         getDarkModeClass,
+        async refresh (done) {
+            bus.emit('ai-admin:loading', true)
+            await this.fetchSessions(true)
+            bus.emit('ai-admin:loading', false)
+            if (typeof done === 'function') done()
+        },
+        async fetchSessions (overwrite = false) {
+            const vm = this
+            if (overwrite) {
+                vm.currentPage = 1
+                vm.isLoading = true
+            } else {
+                vm.loadingMore = true
+            }
+
+            const result = await AIAdminUtils.fetchSessions({
+                page: vm.currentPage,
+                pageSize: vm.pageSize
+            })
+
+            if (result.success && result.data) {
+                if (overwrite) {
+                    vm.sessions = result.data.data || []
+                } else {
+                    vm.sessions = [...vm.sessions, ...(result.data.data || [])]
+                }
+                vm.totalCount = result.data.count || 0
+            } else if (result.error) {
+                vm.$q.notify({ type: 'negative', message: result.error, timeout: 5000 })
+            }
+
+            vm.isLoading = false
+            vm.loadingMore = false
+        },
+        async loadMore () {
+            if (!this.hasMorePages || this.loadingMore) return
+            this.currentPage++
+            await this.fetchSessions(false)
+        },
+        formatTimeUsed (seconds) {
+            const mins = Math.floor(seconds / 60)
+            const secs = seconds % 60
+            return `${mins}:${String(secs).padStart(2, '0')}`
+        },
+        getProgress (session) {
+            if (!session.time_credits_seconds) return 0
+            return session.time_used_seconds / session.time_credits_seconds
+        },
+        statusColor (status) {
+            const map = { active: 'green', exhausted: 'orange', expired: 'grey' }
+            return map[status] || 'grey'
+        },
+        formatDate (dateStr) {
+            try {
+                return formatDistanceToNow(new Date(dateStr), { addSuffix: true })
+            } catch (e) {
+                return dateStr
+            }
+        }
+
     }
 }
 </script>
