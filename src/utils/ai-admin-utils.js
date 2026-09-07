@@ -227,7 +227,7 @@ export async function fetchAPIKeyDetails(uuid) {
   }
 }
 
-// revoke apu key
+// revoke api key
 export async function revokeAPIKey(uuid) {
   const walletHash = getWalletHash()
 
@@ -287,6 +287,10 @@ export async function fetchModels(data) {
 
       if ('ordering' in data) {
         params['ordering'] = data.ordering
+      }
+
+      if ('search' in data) {
+        params['search'] = data.search
       }
 
       const response = await backend.get(baseURL + '/ai-admin/models', { params: params})
@@ -367,6 +371,88 @@ export async function updateAPIKey(uuid, name) {
     } catch (error) {
       const errorMessage = error.response?.data?.message || error.message || 'Failed to update API key name'
       console.error('[updateAPIKey] Error:', errorMessage)
+
+      if (attempt === MAX_AUTH_RETRIES) {
+        return {
+          success: false,
+          data: null,
+          error: `Network error: ${errorMessage}`
+        }
+      }
+    }
+  }
+}
+
+// Create Pending Session
+export async function createSession(modelID, duration) {
+  const walletHash = getWalletHash()
+
+  if (!walletHash) {
+    return { success: false, data: null, error: 'Wallet hash not available' }
+  }
+
+  for (let attempt = 0; attempt <= MAX_AUTH_RETRIES; attempt++) {
+    try {
+      let headers = {
+        "X-Wallet-Hash": walletHash
+      }
+
+      const payload = {
+        model_id: modelID,
+        duration_minutes: duration
+      }
+
+      const response = await backend.post(baseURL + '/sessions', payload, { headers: headers })
+
+      return {
+        success: true,
+        data: response.data,
+        error: null
+      } 
+    } catch (error) {
+      const errorMessage = error.response?.data?.message || error.message || 'Failed to create session'
+      console.error('[createSession] Error:', errorMessage)
+
+      if (attempt === MAX_AUTH_RETRIES) {
+        return {
+          success: false,
+          data: null,
+          error: `Network error: ${errorMessage}`
+        }
+      }
+    }
+  }
+} 
+
+// Confirm Session (After payment)
+export async function confirmSession(address, txid) {
+  const walletHash = getWalletHash()
+
+  if (!walletHash) {
+    return { success: false, data: null, error: 'Wallet hash not available' }
+  }
+
+  for (let attempt = 0; attempt <= MAX_AUTH_RETRIES; attempt++) {
+    try {
+      let headers = {
+        "X-Wallet-Hash": walletHash
+      }
+
+      const payload = {
+        address: address,
+        txid: txid
+      }
+
+      const response = await backend.post(baseURL + '/sessions/confirm', payload, { headers: headers})
+
+      return {
+        success: true,
+        data: response.data,
+        error: null
+      }
+    } catch (error) { 
+      const errorMessage = error.response?.data?.message || error.message || 'Failed to confirm session'
+      console.error('[confirmSession] Error:', errorMessage)
 
       if (attempt === MAX_AUTH_RETRIES) {
         return {

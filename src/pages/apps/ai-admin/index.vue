@@ -1,9 +1,13 @@
 <template>
     <div id="app-container" class="ai-admin-page" :class="getDarkModeClass(darkMode)">
-        <HeaderNav title="AI Admin" backnavpath="/apps" class="header-nav" />
+        <HeaderNav 
+          title="AI Admin" 
+          :backnavpath="isBuyFormPage ? { name: 'ai-admin-sessions' } : '/apps'" 
+          class="header-nav" 
+        />
 
         <!-- Tabs Section -->
-        <div class="tabs-wrapper q-mt-sm q-mb-sm pt-header">
+        <div v-if="!isBuyFormPage" class="tabs-wrapper q-mt-sm q-mb-sm pt-header">
             <div 
             class="ai-admin-tabs" 
             :class="[getDarkModeClass(darkMode), { 'disabled': !isloaded }]"
@@ -66,6 +70,9 @@ export default {
         theme () {
             return this.$store.getters['global/theme']
         },
+        isBuyFormPage () {
+          return this.$route.name === 'ai-admin-buy-form'
+      }
     },
     components: {
         HeaderNav

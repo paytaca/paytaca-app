@@ -20,6 +20,7 @@
                     label="Buy Session" 
                     :color="themeColor" 
                     icon="mdi-timer"
+                    @click="$router.replace({ name: 'ai-admin-buy-form' })"
                 />
             </div>
 
@@ -33,6 +34,7 @@
                         :color="themeColor"
                         icon="mdi-timer"
                         size="md"
+                        @click="$router.replace({ name: 'ai-admin-buy-form' })"
                     />
                     <q-btn
                         flat
@@ -109,9 +111,9 @@ export default {
         }
     },
     async mounted () {
-        const data = await AIAdminUtils.fetchModels({})
+        // const data = await AIAdminUtils.fetchModels({})
 
-        console.log(data)
+        // console.log(data)
     },
     methods: {
         getDarkModeClass,

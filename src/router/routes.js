@@ -184,7 +184,8 @@ const routes = [
         name: 'app-ai-admin',
         children: [
           { path: 'keys', component: () => import('src/pages/apps/ai-admin/ai-admin-keys.vue'), name: 'ai-admin-keys' },
-          { path: 'sessions', component: () => import('src/pages/apps/ai-admin/ai-admin-sessions.vue'), name: 'ai-admin-sessions' }
+          { path: 'sessions', component: () => import('src/pages/apps/ai-admin/ai-admin-sessions.vue'), name: 'ai-admin-sessions' },
+          { path: 'buy-model', component: () => import('src/pages/apps/ai-admin/ai-admin-buy-form.vue'), name: 'ai-admin-buy-form' }
         ]
       },
 
