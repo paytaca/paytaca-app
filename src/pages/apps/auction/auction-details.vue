@@ -385,11 +385,17 @@ const auction = ref(null)
 const auctionCountdown = ref('Loading...')
 const auctionStartCountdown = ref('Loading...')
 
+const listingsLastFetched = ref($store.getters['auction/listingsLastFetched'])
+const listingsTotalTime = computed(() => Date.now - listingsLastFetched.value)
+
 // Lot-related variables
 const lotType = ref($store.getters['auction/lotTypeActivity'])
 const lotTypeOptions = $store.getters['auction/lotTypeOptions']
 const lotSearchQuery = ref('') // REVIEW
 const lots = ref([])
+
+const auctionLotsLastFetched = ref($store.getters['auction/auctionLotsLastFetched'])
+const auctionLotsTotalTime = computed(() => Date.now - auctionLotsLastFetched.value)
 
 const isLotEmpty = computed(() => {
   return !isLoading.value && filteredLots.value.length === 0
@@ -413,15 +419,8 @@ const filteredLots = computed(() => {
 })
 
 const fetchAllData = async () => {
-  const listingsLastFetched = $store.getters['auction/listingsLastFetched']
-  if(!listingsLastFetched || listingsLastFetched > 300000) {
-    await fetchAuctionDetails()
-  }
-
-  const auctionLotsLastFetched = $store.getters['auction/auctionLotsLastFetched']
-  if(!auctionLotsLastFetched || auctionLotsLastFetched > 300000) {
-    await fetchAuctionLots()
-  }
+  if(listingsTotalTime > 300000) await fetchAuctionDetails()
+  if(auctionLotsTotalTime > 300000) await fetchAuctionLots()
 
   if (auction.value?.type === 'Dutch' && lots.value.length) {
     const allSold = lots.value.every(l => l.is_sold)
@@ -611,7 +610,6 @@ const fetchAuctionLots = async () => {
 const toggleEditAuction = async () => {
   const now = new Date()
   const startDate = new Date(auction.value.start_date)
-  
   const minutesToStart = date.getDateDiff(startDate, now, 'minutes')
 
   if (minutesToStart > 30) {
@@ -679,7 +677,6 @@ const refreshLotStatuses = () => {
 }
 
 const getReactiveLotStatus = (lot) => {
-  lotStatusVersion.value
   return lot.getStatus()
 }
 
@@ -744,14 +741,10 @@ const smartBackPath = computed(() => {
 })
 
 const refresh = async (done) => {
-  try {
-    isLoading.value = true
-    await fetchAllData()
-  } catch (error) {
-    console.error('Failed to refresh lot details:', error)
-  } finally {
-    isLoading.value = false
-    done()
-  }
+  isLoading.value = true
+  await fetchAllData()
+  
+  isLoading.value = false
+  done()
 }
 </script>
