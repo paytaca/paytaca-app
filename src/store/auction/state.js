@@ -1,21 +1,41 @@
 export default function () {
-  return {
-    listings: [],
-    myBiddings: [],
-    myAuctions: [],
+  return {    
+    // Option Types
     auctionTypeOptions: ['English', 'Dutch', 'All'],
-    auctionTypeIndex: 'All',
-    auctionTypeActivity: 'All',
-    auctionQueryIndex: '',
-    auctionQueryActivity: '',
     lotTypeOptions: ['Physical', 'Digital', 'All'],
+
+    // Index Page States
+    auctionTypeIndex: 'All',
+    auctionQueryIndex: '',
+    listings: [],
+    listingsLastFetched: null,
+    
+    // Activity Page States
+    activityType: 'My Bids',
+    auctionTypeActivity: 'All',
+    auctionQueryActivity: '',
     lotTypeActivity: 'All',
     lotQueryActivity: '',
-    activityType: 'My Biddings',
+    myBiddings: [],
+    myAuctions: [],
+
+    // Auction Details Page States
+    auctionLots: [],
+    auctionLotsLastFetched: null,
+
+    // Lot Details Page States
+    lotData: {},
+    lotDataLastFetched: null,
+
+    // Arbiter and Servicer Public Key States
     arbiterPublicKey: '',
     servicerPublicKey: '',
+
+    // User Details States
     username: '',
     isArbiter: false,
+
+    // Error-related States
     hasNetworkError: false,
   }
 }
