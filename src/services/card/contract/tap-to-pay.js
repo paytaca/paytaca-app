@@ -191,7 +191,7 @@ class TapToPay {
         };
     }
 
-    estimateFee({ numContractInputs = 0, numP2pkhInputs = 0, numOutputs = 2, feeRate = 2n } = {}) {
+    estimateFee({ numContractInputs = 0, numP2pkhInputs = 0, numOutputs = 2, feeRate = 5n } = {}) {
         cardLogger.log('[estimateFee] numContractInputs:', numContractInputs, 'numP2pkhInputs:', numP2pkhInputs, 'numOutputs:', numOutputs, 'feeRate:', feeRate)
         // CashScript contract inputs are larger due to unlocking script (redeem script + args)
         // Approximate: ~300 bytes per contract input, ~148 bytes per P2PKH input
@@ -887,7 +887,7 @@ export class TapToPayV2 extends TapToPay {
         cardLogger.log('[sweep] Prepared outputs:', outputs)
 
         // Estimate fee
-        const estimatedFee = this.estimateFee({ numContractInputs: inputs.length, numP2pkhInputs: 1, numOutputs: 3 })
+        const estimatedFee = this.estimateFee({ numContractInputs: inputs.length, numP2pkhInputs: 1, numOutputs: outputs.length + 1 })
         const { 
             cumulativeValue: fundingAmount, 
             groupedUtxos: groupedBchFundingInputs, 

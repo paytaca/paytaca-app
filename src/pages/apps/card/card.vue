@@ -324,7 +324,7 @@ export default {
   computed: {
     tabs () {
       return [
-        { label: 'Transactions', icon: 'receipt_long', disabled: true },
+        { label: 'Transactions', icon: 'receipt_long', disabled: false },
         { label: 'Manage Merchants', icon: 'storefront', disabled: false },
         { label: 'Card Security', icon: 'shield', disabled: false },
         { label: 'Order Card', icon: 'local_mall', disabled: true }
