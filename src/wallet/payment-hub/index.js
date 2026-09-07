@@ -587,7 +587,7 @@ export class PaymentHub {
    * @param {String} planId - The UUID or Short ID of the plan.
    */
   async getPlan(planId) {
-    const response = await backend.get(`/plans/${planId}`)
+    const response = await backend.get(`/plans/${planId}/`)
     return response.data
   }
 

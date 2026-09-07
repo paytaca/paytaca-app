@@ -18,7 +18,15 @@ const createHistory = process.env.SERVER
   ? createMemoryHistory
   : process.env.VUE_ROUTER_MODE === 'history' ? createWebHistory : createWebHashHistory
 export const Router = createRouter({
-  scrollBehavior: () => ({ left: 0, top: 0 }),
+  scrollBehavior: (to, from, savedPosition) => {
+    console.log({ to, from, savedPosition })
+    if (savedPosition) return savedPosition
+
+    // Same path, only query changed → preserve scroll
+    if (to.path === from.path) return false
+
+    return { top: 0, left: 0 }
+  },
   routes,
 
   // Leave this as is and make changes in quasar.config.js instead!
