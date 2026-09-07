@@ -157,6 +157,7 @@ import { useStore } from 'vuex'
 import { useRouter } from 'vue-router'
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 import { ref, computed, watch, onMounted, onBeforeUnmount } from 'vue'
+import { date } from 'quasar'
 import { AuctionList } from 'src/auction/object.js'
 
 // Components
@@ -180,6 +181,7 @@ let socket = null
 
 onMounted(async () => {
   // Fetch username and if it doesn't exist, print the error
+
   await $store.dispatch('auction/fetchUsername')
   const username = $store.getters['auction/username']
   if (!username) {
@@ -212,11 +214,11 @@ onMounted(async () => {
   isLoading.value = false
 
   // Connect to the WS (Review)
-  //socket = connectWebsocket()
+  socket = connectWebsocket()
 })
 
 onBeforeUnmount(() => {
-  clearSocket()
+  if (socket) clearSocket()
 })
 
 /*
@@ -230,7 +232,7 @@ const auctionTypeOptions = $store.getters['auction/auctionTypeOptions']
 const auctionType = ref($store.getters['auction/auctionTypeIndex']);
 
 // Auction ref variables
-const auctionSearchQuery = ref($store.getters['auction/auctionQueryIndex'])
+const auctionSearchQuery = ref('') // fix this later nalang
 
 // Filters the auction items
 const filteredItems = computed(() => {
@@ -238,7 +240,7 @@ const filteredItems = computed(() => {
   items = items.map(item => (item instanceof AuctionList ? item : AuctionList.parse(item)))
 
   if (auctionSearchQuery.value && auctionSearchQuery.value.trim() !== '') {
-    $store.commit('updateAuctionQueryIndex', auctionSearchQuery.value)
+    $store.commit('auction/updateAuctionQueryIndex', auctionSearchQuery.value)
     const query = auctionSearchQuery.value.toLowerCase().trim()
     items = items.filter(item => item.title?.toLowerCase().includes(query))
   }
@@ -320,14 +322,11 @@ const connectWebsocket = () => {
 
 // Close or clear up the socket
 const clearSocket = () => {
-  if (socket) {
-    console.log('Unmounting socket.')
-    socket.close()
-    socket.onmessage = null
-    socket.onopen = null
-    socket.onerror = null
-    socket.onclose = null
-  }
+  socket.close()
+  socket.onmessage = null
+  socket.onopen = null
+  socket.onerror = null
+  socket.onclose = null
 }
 
 
