@@ -11,18 +11,46 @@
           <q-btn flat round dense icon="close" :color="$q.dark.isActive ? 'grey-4' : 'grey-6'" @click="onHideCashInDialog" />
         </div>
 
+        <!-- Fund Type Toggle -->
+        <q-btn-toggle
+          v-model="fundType"
+          spread
+          no-caps
+          rounded
+          unelevated
+          toggle-color="primary"
+          :color="$q.dark.isActive ? 'grey-8' : 'grey-3'"
+          :text-color="$q.dark.isActive ? 'grey-4' : 'grey-7'"
+          :options="[
+            { label: 'BCH', value: 'BCH' },
+            { label: 'CashToken', value: 'TOKEN' }
+          ]"
+          class="q-mb-md"
+        />
+
         <!-- Balance Strip -->
         <div class="balance-strip bg-grad q-mb-md">
           <div class="row items-center justify-between">
-            <div class="col">
+            <div v-if="isBchMode" class="col">
               <div class="text-caption text-weight-medium text-white" style="letter-spacing: 0.5px;">CURRENT BALANCE</div>
               <div class="row items-baseline q-mt-xs">
-                <span class="text-h5 text-weight-bold text-white" style="line-height: 1.1;">{{ card?.balance || '0.00' }}</span>
+                <span class="text-h5 text-weight-bold text-white" style="line-height: 1.1;">{{ formattedCardBalance }}</span>
                 <span class="text-subtitle2 q-ml-xs text-white" style="font-weight: 500;">BCH</span>
               </div>
               <div class="row items-center justify-between wallet-balance">
                 <span class="text-caption text-weight-medium text-white" style="letter-spacing: 0.5px; opacity: 0.9;">WALLET BALANCE</span>
                 <span class="text-subtitle2 text-white" style="font-weight: 500;">{{ formattedWalletBalance }} BCH<template v-if="walletBalanceDisplayFiat"> · {{ walletBalanceDisplayFiat }}</template></span>
+              </div>
+            </div>
+            <div v-else class="col">
+              <div class="text-caption text-weight-medium text-white" style="letter-spacing: 0.5px;">{{ selectedToken ? 'SELECTED TOKEN' : 'TOKENS ON CARD' }}</div>
+              <div class="row items-baseline q-mt-xs">
+                <span class="text-h5 text-weight-bold text-white" style="line-height: 1.1;">{{ selectedToken?.symbol || cardTokenHoldings.length }}</span>
+                <span class="text-subtitle2 q-ml-xs text-white" style="font-weight: 500;">{{ selectedToken?.name || 'token types' }}</span>
+              </div>
+              <div class="row items-center justify-between wallet-balance">
+                <span class="text-caption text-weight-medium text-white" style="letter-spacing: 0.5px; opacity: 0.9;">WALLET BALANCE</span>
+                <span class="text-subtitle2 text-white" style="font-weight: 500;">{{ formattedSelectedTokenBalance }} {{ selectedToken?.symbol || '' }}</span>
               </div>
             </div>
             <q-img src="~assets/paytaca_logo.png" style="width: 24px;" fit="contain" />
@@ -33,7 +61,7 @@
         <div class="deposit-card q-mb-lg pt-card-2" :class="$q.dark.isActive ? 'dark' : 'light'">
           <div class="flex flex-center q-py-md">
             <qr-code
-              :text="card?.cashAddress || ''"
+              :text="depositAddress || ''"
               :size="160"
               :padding="16"
               border-width="0px"
@@ -41,7 +69,7 @@
           </div>
           <div class="flex flex-center q-px-md q-pb-md">
             <div class="address-badge" :class="$q.dark.isActive ? 'address-badge-dark' : 'address-badge-light'">
-              <span class="address-text" :class="textColor">{{ formatContractAddress(card?.cashAddress) }}</span>
+              <span class="address-text" :class="textColor">{{ formatContractAddress(depositAddress) }}</span>
               <q-icon name="content_copy" size="14px" class="cursor-pointer" color="primary" @click="copyContractAddress" />
             </div>
           </div>
@@ -53,6 +81,7 @@
             Enter Amount
           </div>
 
+          <template v-if="isBchMode">
           <!-- Crypto Amount -->
           <div class="q-mb-sm pt-card-2" :class="$q.dark.isActive ? 'dark' : 'light'" style="border-radius: 14px; overflow: hidden;">
             <div class="row items-center no-wrap" >
@@ -123,9 +152,62 @@
               </q-input>
             </div>
           </div>
+          </template>
+
+          <template v-else>
+          <!-- Token Selector + Amount -->
+          <div class="q-mb-sm pt-card-2" :class="$q.dark.isActive ? 'dark' : 'light'" style="border-radius: 14px; overflow: hidden;">
+            <div class="row items-center no-wrap">
+              <q-btn-dropdown
+                flat
+                dense
+                dropdown-icon="expand_more"
+                class="currency-selector"
+                :disable="!fungibleTokens.length">
+                <template v-slot:label>
+                  <div class="currency-badge" :class="$q.dark.isActive ? 'badge-dark' : 'badge-light'">
+                    <q-avatar v-if="selectedToken?.logo" size="18px" class="q-mr-xs">
+                      <q-img :src="selectedToken.logo" />
+                    </q-avatar>
+                    <span class="text-weight-bold">{{ selectedToken?.symbol || 'Select' }}</span>
+                  </div>
+                </template>
+                <q-list :style="{color: $q.dark.isActive ? 'white' : 'black'}">
+                  <q-item v-for="token in fungibleTokens" :key="token.id" clickable v-close-popup @click="selectedTokenId = token.id">
+                    <q-item-section avatar v-if="token.logo">
+                      <q-avatar size="24px"><q-img :src="token.logo" /></q-avatar>
+                    </q-item-section>
+                    <q-item-section>
+                      <q-item-label>{{ token.symbol }} - {{ token.name }}</q-item-label>
+                      <q-item-label caption>{{ formatTokenBalance(token) }} available</q-item-label>
+                    </q-item-section>
+                  </q-item>
+                </q-list>
+              </q-btn-dropdown>
+              <q-input
+                class="amount-input"
+                v-model="tokenCashInAmount"
+                filled
+                hide-bottom-space
+                input-class="text-h6 text-weight-bold"
+                :dark="$q.dark.isActive"
+                :placeholder="fungibleTokens.length ? '0.0' : 'No tokens in wallet'"
+                :disable="!fungibleTokens.length"
+                @update:model-value="checkInputValidation">
+              </q-input>
+              <q-btn v-if="fungibleTokens.length" flat dense no-caps color="primary" label="MAX" class="q-mr-sm" @click="setMaxTokenAmount" />
+            </div>
+          </div>
+          <div v-if="!fungibleTokens.length" class="text-caption q-mb-sm" :class="$q.dark.isActive ? 'text-grey-5' : 'text-grey-6'">
+            No fungible CashTokens in this wallet to send from. You can still receive tokens from another wallet by sharing the QR code or address above.
+          </div>
+          <div v-else-if="cardTokenHoldings.length" class="text-caption q-mb-sm" :class="$q.dark.isActive ? 'text-grey-5' : 'text-grey-6'">
+            This card already holds {{ cardTokenHoldings.length }} token{{ cardTokenHoldings.length > 1 ? 's' : '' }}.
+          </div>
+          </template>
 
           <!-- Exchange Rate -->
-          <div class="row justify-between items-center">
+          <div v-if="isBchMode" class="row justify-between items-center">
             <div class="exchange-rate q-mb-md">
               <div class="row items-center no-wrap text-caption" :class="$q.dark.isActive ? 'text-grey-5' : 'text-grey-6'" style="gap: 6px;">
                 <span>Exchange Rate</span>
@@ -144,7 +226,7 @@
         <drag-slide
           style="width: 100%;"
           disable-absolute-bottom
-          text="Slide to Cash In"
+          :text="slideText"
           :disable="!isAmountValid()"
           @swiped="handleCashIn"
         />
@@ -160,7 +242,7 @@ import { getFiatCurrencyIcon } from 'src/services/card/utils';
 import { loadWallet } from 'src/services/wallet';
 import { updateAssetBalanceOnLoad } from 'src/utils/asset-utils';
 import { parseFiatCurrency } from 'src/utils/denomination-utils';
-import { convertToFiatAmount } from 'src/utils/send-page-utils';
+import { convertToFiatAmount, getChangeAddress } from 'src/utils/send-page-utils';
 
 export default {
   name: "CashInDialog",
@@ -188,7 +270,10 @@ export default {
       fiatCashInAmount: 0,
       selectedFiatCurrency: 'USD',
       selectedCryptoCurrency: 'BCH',
-      inputErrorMessage: null
+      inputErrorMessage: null,
+      fundType: 'BCH',
+      selectedTokenId: null,
+      tokenCashInAmount: null
     };
   },
   async mounted() {
@@ -247,10 +332,57 @@ export default {
     cryptoCurrencyOptions () {
       return ['BCH', 'sats']
     },
+    isBchMode () {
+      return this.fundType === 'BCH'
+    },
+    cardBalanceBch () {
+      const storeCard = this.card?.id ? this.$store.getters['card/getCardById']?.(this.card.id) : null
+      if (storeCard?.balance !== undefined && storeCard?.balance !== null) return Number(storeCard.balance) || 0
+      if (this.card?.balance !== undefined && this.card?.balance !== null) return Number(this.card.balance) || 0
+      const sats = Number(this.card?.bchBalance ?? this.card?.raw?.bch_balance ?? 0)
+      return sats / 100000000
+    },
+    formattedCardBalance () {
+      return String(parseFloat(this.cardBalanceBch.toFixed(8)))
+    },
+    slideText () {
+      return this.isBchMode ? 'Slide to Cash In' : 'Slide to Fund Token'
+    },
+    depositAddress () {
+      if (!this.isBchMode) return this.card?.tokenAddress || this.card?.cashAddress
+      return this.card?.cashAddress
+    },
+    fungibleTokens () {
+      const assets = this.$store.getters['assets/getAssets'] || []
+      return assets.filter(asset => {
+        if (!asset?.id?.startsWith?.('ct/')) return false
+        if (asset.is_nft) return false
+        return Number(asset.balance) > 0
+      })
+    },
+    selectedToken () {
+      return this.fungibleTokens.find(token => token.id === this.selectedTokenId) || this.fungibleTokens[0] || null
+    },
+    selectedTokenDecimals () {
+      return parseInt(this.selectedToken?.decimals) || 0
+    },
+    selectedTokenWalletBalance () {
+      if (!this.selectedToken) return 0
+      return Number(this.selectedToken.balance || 0) / (10 ** this.selectedTokenDecimals)
+    },
+    formattedSelectedTokenBalance () {
+      if (!this.selectedToken) return '0'
+      return String(parseFloat(this.selectedTokenWalletBalance.toFixed(this.selectedTokenDecimals)))
+    },
+    cardTokenHoldings () {
+      const holdings = this.card?.raw?.ct_balance ?? this.card?.ct_balance ?? []
+      return Array.isArray(holdings) ? holdings : []
+    },
   },
   watch: {
     modelValue (val) {
       this.showDialog = val
+      if (val) this.refreshCardBalance()
     },
     cryptoCashInAmount() {
       if (!this.cryptoInputFocused) return
@@ -278,8 +410,28 @@ export default {
         this.syncCryptoFromFiat()
       }
     },
+    fungibleTokens: {
+      handler(tokens) {
+        if (!this.selectedTokenId && tokens?.length) {
+          this.selectedTokenId = tokens[0].id
+        }
+      },
+      immediate: true
+    },
+    fundType() {
+      this.updateInputErrorMessage(null)
+      this.checkInputValidation()
+    },
+    selectedTokenId() {
+      this.updateInputErrorMessage(null)
+      this.checkInputValidation()
+    },
   },
   methods: {
+    refreshCardBalance() {
+      if (!this.card?.id) return
+      this.$store.dispatch('card/fetchCardBalance', this.card.id).catch(() => {})
+    },
     updateInputErrorMessage(message) {
       this.inputErrorMessage = message  
     },
@@ -318,14 +470,36 @@ export default {
     },
     checkInputValidation() {
       if (!this.isAmountValid()) {
-        if (this.exceedsWalletBalance()) {
+        if (this.isBchMode && this.exceedsWalletBalance()) {
           this.updateInputErrorMessage('Insufficient wallet balance')
+        } else if (!this.isBchMode && this.tokenExceedsBalance()) {
+          this.updateInputErrorMessage('Insufficient token balance')
         } else {
           this.updateInputErrorMessage('Please enter a valid amount')
         }
       } else {
         this.updateInputErrorMessage(null)
       }
+    },
+    formatTokenBalance(token) {
+      const decimals = parseInt(token?.decimals) || 0
+      const balance = Number(token?.balance || 0) / (10 ** decimals)
+      return String(parseFloat(balance.toFixed(decimals)))
+    },
+    setMaxTokenAmount() {
+      if (!this.selectedToken) return
+      this.tokenCashInAmount = String(parseFloat(this.selectedTokenWalletBalance.toFixed(this.selectedTokenDecimals)))
+      this.checkInputValidation()
+    },
+    getTokenBaseUnits() {
+      const amount = parseFloat(this.tokenCashInAmount)
+      if (isNaN(amount) || amount <= 0) return null
+      return Math.round(amount * (10 ** this.selectedTokenDecimals))
+    },
+    tokenExceedsBalance() {
+      const baseUnits = this.getTokenBaseUnits()
+      if (baseUnits === null || !this.selectedToken) return false
+      return baseUnits > Number(this.selectedToken.balance || 0)
     },
     getEnteredAmountInBch() {
       const amount = parseFloat(this.cryptoCashInAmount)
@@ -338,6 +512,12 @@ export default {
       return amountInBch > (Number(this.walletBalance) || 0)
     },
     isAmountValid() {
+      if (!this.isBchMode) {
+        if (!this.selectedToken) return false
+        const amount = parseFloat(this.tokenCashInAmount)
+        if (isNaN(amount) || amount <= 0) return false
+        return !this.tokenExceedsBalance()
+      }
       const validFiatAmount = (this.fiatCashInAmount && parseFloat(this.fiatCashInAmount) > 0) && !isNaN(this.fiatCashInAmount)
       const validCryptoAmount = (this.cryptoCashInAmount && parseFloat(this.cryptoCashInAmount) > 0) && !isNaN(this.cryptoCashInAmount)
       if (!validFiatAmount || !validCryptoAmount) return false
@@ -348,26 +528,41 @@ export default {
       this.$q.loading.show({
         message: this.$t('ProcessingCashIn', {}, 'Processing cash in...')
       })
-      const sendAmount = this.cryptoCashInAmount
-      const user = await loadCardUser()
-      const wallet = await user.wallet.getRawWallet()
-      const result = await wallet.sendBch(sendAmount, this.card?.cashAddress)
+      let result = null
+      let successMessage = ''
+      try {
+        const user = await loadCardUser()
+        const wallet = await user.wallet.getRawWallet()
+        if (this.isBchMode) {
+          const sendAmount = this.cryptoCashInAmount
+          result = await wallet.sendBch(sendAmount, this.card?.cashAddress)
+          successMessage = `Successfully added ${this.fiatCashInAmount} ${this.selectedFiatCurrency} (${sendAmount} BCH) to your card!`
+        } else {
+          const tokenId = this.selectedTokenId?.split('ct/')[1] || this.selectedToken?.id?.split('ct/')[1]
+          const tokenAmount = this.getTokenBaseUnits()
+          const changeAddress = await getChangeAddress('bch')
+          result = await wallet.sendBch(
+            0, '', changeAddress, { tokenId }, undefined,
+            [{ address: this.depositAddress, amount: 0, tokenAmount }]
+          )
+          successMessage = `Successfully added ${this.tokenCashInAmount} ${this.selectedToken?.symbol} to your card!`
+        }
+      } catch (error) {
+        result = { success: false, error: error?.message }
+      }
       this.$q.loading.hide()
 
-      if (result.success) {
-        this.notifySuccess(
-          `Successfully added ${this.fiatCashInAmount} ${this.selectedFiatCurrency} (${sendAmount} BCH) to your card!`,
-          { timeout: 3000 }
-        )
+      if (result?.success) {
+        this.notifySuccess(successMessage, { timeout: 3000 })
       } else {
         this.$q.notify({
-          message: `Cash in failed: ${result.error || 'Please try again.'}`,
+          message: `Cash in failed: ${result?.error || 'Please try again.'}`,
           color: 'negative',
           position: 'bottom',
           timeout: 5000
         })
       }
-      
+
       this.onHideCashInDialog()
     },
 
@@ -378,7 +573,7 @@ export default {
     },
 
     copyContractAddress () {
-      const address = this.getContractAddress(this.card)
+      const address = this.depositAddress || this.getContractAddress(this.card)
       if (address) {
         navigator.clipboard.writeText(address)
         this.notifySuccess('Contract address copied!')
