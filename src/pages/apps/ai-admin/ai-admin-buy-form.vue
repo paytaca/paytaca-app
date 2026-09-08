@@ -8,7 +8,7 @@
                 {{ selectedModel.display_name }} · {{ selectedDuration.minutes }} min
             </div>
 
-            <div class="summary-card q-pa-md rounded-borders text-left" :class="getDarkModeClass(darkMode)">
+            <q-card class="q-pa-md br-15 text-left pt-card text-bow" :class="getDarkModeClass(darkMode)">
                 <div class="row justify-between q-mb-xs">
                 <span class="text-grey-7">Time Credits</span>
                 <span class="text-bold">{{ formatSeconds(timeCreditsSeconds) }}</span>
@@ -17,7 +17,7 @@
                 <span class="text-grey-7">Session ID</span>
                 <span class="text-caption">{{ sessionId }}</span>
                 </div>
-            </div>
+            </q-card>
 
             <q-btn rounded outline no-caps label="Back to Sessions" :color="themeColor" class="q-mt-lg"
                 @click="$router.replace({ name: 'ai-admin-sessions' })" />
@@ -156,7 +156,7 @@ import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 import * as AIAdminUtils from 'src/utils/ai-admin-utils.js'
 import DragSlide from 'src/components/drag-slide.vue'
 import { cachedLoadWallet, Address } from 'src/wallet'
-import { sendPageUtils } from 'src/utils/send-page-utils'
+import * as sendPageUtils from 'src/utils/send-page-utils'
 import { getWalletByNetwork } from 'src/wallet/chipnet'
 import Pin from 'src/components/pin/index.vue'
 import BiometricWarningAttempt from 'src/components/authOption/biometric-warning-attempt.vue'
@@ -352,6 +352,10 @@ export default {
                 )
                 if (!sessionResult.success) {
                     vm.$q.notify({ type: 'negative', message: sessionResult.error, timeout: 5000 })
+                    return
+                }
+                if (!sessionResult.data?.payment_address || !sessionResult.data?.amount_sats) {
+                    vm.$q.notify({ type: 'negative', message: 'Invalid session response', timeout: 5000 })
                     return
                 }
 

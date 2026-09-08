@@ -35,7 +35,7 @@
                                 @click="$router.replace({ name: 'ai-admin-buy-form' })" />
                         </div>
 
-                        <div v-for="session in sessions" :key="session.id" class="app-row q-mb-sm" :class="getDarkModeClass(darkMode)">
+                        <div v-for="session in sessions" :key="session.id" class="app-row q-mb-sm" :class="getDarkModeClass(darkMode)" @click="openSessionDetail(session)">
                             <div class="app-info">
                                 <div class="app-name" :class="getDarkModeClass(darkMode)">{{ session.display_name }}</div>
                                 <div class="app-desc q-pt-xs" :class="getDarkModeClass(darkMode)">
@@ -65,6 +65,12 @@
                     </div>
                 </div>
             </q-pull-to-refresh>
+
+            <SessionDetailsDialog
+                v-if="showSessionDetailDialog"
+                :session-id="selectedSessionId"
+                @hide="showSessionDetailDialog = false"
+            />
         </div>
     </div>
 </template>
@@ -74,6 +80,7 @@ import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 import * as AIAdminUtils from 'src/utils/ai-admin-utils.js'
 import { formatDistanceToNow } from 'date-fns'
 import { bus } from 'src/wallet/event-bus.js'
+import SessionDetailsDialog from 'src/components/ai-admin/session-details-dialog.vue'
 
 
 export default {
@@ -85,7 +92,9 @@ export default {
             currentPage: 1,
             pageSize: 20,
             totalCount: 0,
-            loadingMore: false
+            loadingMore: false,
+            showSessionDetailDialog: false,
+            selectedSessionId: null
         }
     },
     computed: {
@@ -107,6 +116,9 @@ export default {
         hasMorePages () {
             return this.sessions.length < this.totalCount
         }
+    },
+    components: {
+        SessionDetailsDialog
     },
     async mounted () {
         bus.emit('ai-admin:loading', true)
@@ -173,8 +185,11 @@ export default {
             } catch (e) {
                 return dateStr
             }
-        }
-
+        },
+        openSessionDetail (session) {
+            this.selectedSessionId = session.id
+            this.showSessionDetailDialog = true
+        },
     }
 }
 </script>

@@ -390,7 +390,40 @@ export async function fetchSessions(data) {
 }
 
 // Session Detail
+export async function fetchSessionDetails (uuid) {
+  const walletHash = getWalletHash()
 
+  if (!walletHash) {
+    return { success: false, data: null, error: 'Wallet hash not available' }
+  }
+
+  for (let attempt = 0; attempt <= MAX_AUTH_RETRIES; attempt++) {
+    try {
+      let headers = {
+        "X-Wallet-Hash": walletHash
+      }
+
+      const response = await backend.get(baseURL + '/ai-admin/sessions/' + uuid, { headers: headers})
+
+      return {
+        success: true,
+        data: response.data,
+        error: null
+      }
+    } catch (error) {
+      const errorMessage = error.response?.data?.message || error.message || 'Failed to fetch session details'
+      console.error('[fetchSessionDetails] Error:', errorMessage)
+
+      if (attempt === MAX_AUTH_RETRIES) {
+        return {
+          success: false,
+          data: null,
+          error: `Network error: ${errorMessage}`
+        }
+      }
+    }
+  }
+}
 
 // Update Keyname
 export async function updateAPIKey(uuid, name) {
