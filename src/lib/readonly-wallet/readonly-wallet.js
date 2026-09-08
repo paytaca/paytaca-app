@@ -459,7 +459,7 @@ export default class ReadOnlyWallet {
    */
   async selectUtxos (targetSatoshis, opts = {}) {
     const utxos = await this.getWalletHashUtxos(opts.network || this.network)
-    const sorted = [...utxos].sort((a, b) => BigInt(b.satoshis) - BigInt(a.satoshis))
+    const sorted = [...utxos].sort((a, b) => Number(BigInt(b.satoshis) - BigInt(a.satoshis)))
 
     const selectedUtxos = []
     let inputSum = 0n
@@ -509,7 +509,6 @@ export default class ReadOnlyWallet {
     if (!outputs.length) throw new Error('Must have at least one output')
 
     const totalSatoshis = outputs.reduce((t, o) => t + o.valueSatoshis, 0n)
-
     const { selectedUtxos, changeAmount, satoshisSatisfied } =
       await this.selectUtxos(totalSatoshis, { network })
 

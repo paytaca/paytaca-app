@@ -46,7 +46,7 @@ export function isReadOnlyVaultEntry (entry) {
  * @returns {Object|null} ReadOnlyWallet config (toJSON shape)
  */
 export function getVaultReadOnlyConfig (index) {
-  const entry = store.getters['global/getVault']?.[index]
+  const entry = store().getters['global/getVault']?.[index]
   if (!isReadOnlyVaultEntry(entry)) return null
 
   if (entry.readOnly?.xpub) {
@@ -86,6 +86,6 @@ export async function loadReadOnlyWallet (index, options = {}) {
  * @returns {boolean}
  */
 export function isCurrentWalletReadOnly () {
-  const index = store.getters['global/getWalletIndex']
-  return isReadOnlyVaultEntry(store.getters['global/getVault']?.[index])
+  const index = store().getters['global/getWalletIndex']
+  return isReadOnlyVaultEntry(store().getters['global/getVault']?.[index])
 }
