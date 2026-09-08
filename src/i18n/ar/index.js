@@ -1876,6 +1876,8 @@ export default {
   OpenPaymentUrl: "افتح عنوان URL للدفع",
   OpenPrivateGroup: "افتح المجموعة الخاصة",
   OpenPrivateGroupDesc: "دردشة جماعية مشفرة من النهاية إلى النهاية لما يصل إلى 50 عضوًا. يمكن للأعضاء الجدد الانضمام في أي وقت.",
+  OpenSettingsForCameraPermissionDialogTitle: "مطلوب إذن الكاميرا",
+  OpenSettingsForCameraPermissionPrompt: "مطلوب الوصول إلى الكاميرا لمسح رموز QR.يرجى السماح بذلك في إعدادات جهازك.",
   OpenSourceCode: "كود المصدر المفتوح",
   Options: "خيارات",
   OraclePubkey: "أوراكل بوبكي",

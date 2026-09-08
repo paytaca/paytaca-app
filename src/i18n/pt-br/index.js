@@ -1876,6 +1876,8 @@ export default {
   OpenPaymentUrl: "Abrir URL de pagamento",
   OpenPrivateGroup: "Abrir grupo privado",
   OpenPrivateGroupDesc: "Bate-papo em grupo criptografado de ponta a ponta para até 50 membros. Novos membros podem ingressar a qualquer momento.",
+  OpenSettingsForCameraPermissionDialogTitle: "Permissão de câmera necessária",
+  OpenSettingsForCameraPermissionPrompt: "O acesso à câmera é necessário para digitalizar códigos QR.Por favor, permita isso nas configurações do seu dispositivo.",
   OpenSourceCode: "Código-fonte aberto",
   Options: "Opções",
   OraclePubkey: "Chave pública Oracle",

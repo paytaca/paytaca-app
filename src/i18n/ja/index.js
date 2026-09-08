@@ -1876,6 +1876,8 @@ export default {
   OpenPaymentUrl: "支払いURLを開く",
   OpenPrivateGroup: "プライベートグループを開く",
   OpenPrivateGroupDesc: "最大 50 人のメンバーが参加できる、エンドツーエンドの暗号化されたグループ チャット。新しいメンバーはいつでも参加できます。",
+  OpenSettingsForCameraPermissionDialogTitle: "カメラの許可が必要です",
+  OpenSettingsForCameraPermissionPrompt: "QR コードをスキャンするにはカメラへのアクセスが必要です。端末の設定で許可してください。",
   OpenSourceCode: "オープンソースコード",
   Options: "オプション",
   OraclePubkey: "オラクルの公開鍵",

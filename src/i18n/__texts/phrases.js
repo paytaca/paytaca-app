@@ -1147,6 +1147,8 @@ const phrases = {
       QRReader: 'QR Reader',
       UploadQR: 'Upload QR',
       CameraPermissionDenied: 'Permission to use camera is denied.',
+      OpenSettingsForCameraPermissionDialogTitle: 'Camera Permission Required',
+      OpenSettingsForCameraPermissionPrompt: 'Camera access is required to scan QR codes. Please allow it in your device settings.',
       UnidentifiedQRCode: 'Unable to identify QR code.',
       Redirecting: 'Redirecting',
       ChooseBackupPhase: "Choose Backup Method",

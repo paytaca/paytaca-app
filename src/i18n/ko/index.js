@@ -1876,6 +1876,8 @@ export default {
   OpenPaymentUrl: "결제 URL 열기",
   OpenPrivateGroup: "공개 비공개 그룹",
   OpenPrivateGroupDesc: "최대 50명의 회원을 위한 종단 간 암호화된 그룹 채팅입니다.신규회원은 언제든지 가입하실 수 있습니다.",
+  OpenSettingsForCameraPermissionDialogTitle: "카메라 권한이 필요합니다",
+  OpenSettingsForCameraPermissionPrompt: "QR 코드를 스캔하려면 카메라 접근 권한이 필요합니다.기기 설정에서 허용해주세요.",
   OpenSourceCode: "오픈 소스 코드",
   Options: "옵션",
   OraclePubkey: "오라클 공개키",

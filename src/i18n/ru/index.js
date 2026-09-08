@@ -1876,6 +1876,8 @@ export default {
   OpenPaymentUrl: "Открыть URL-адрес платежа",
   OpenPrivateGroup: "Открытая частная группа",
   OpenPrivateGroupDesc: "Групповой чат со сквозным шифрованием для до 50 участников. Новые участники могут присоединиться в любое время.",
+  OpenSettingsForCameraPermissionDialogTitle: "Требуется разрешение камеры",
+  OpenSettingsForCameraPermissionPrompt: "Для сканирования QR-кодов требуется доступ к камере.Пожалуйста, разрешите это в настройках вашего устройства.",
   OpenSourceCode: "Открытый исходный код",
   Options: "Опции",
   OraclePubkey: "Публичный ключ Oracle",

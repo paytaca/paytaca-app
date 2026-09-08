@@ -1876,6 +1876,8 @@ export default {
   OpenPaymentUrl: "Open de betalings-URL",
   OpenPrivateGroup: "Privégroep openen",
   OpenPrivateGroupDesc: "End-to-end gecodeerde groepschat voor maximaal 50 leden. Nieuwe leden kunnen op elk moment lid worden.",
+  OpenSettingsForCameraPermissionDialogTitle: "Cameratoestemming vereist",
+  OpenSettingsForCameraPermissionPrompt: "Cameratoegang is vereist om QR-codes te scannen.Sta dit toe in uw apparaatinstellingen.",
   OpenSourceCode: "Open source-code",
   Options: "Opties",
   OraclePubkey: "Orakel pubkey",

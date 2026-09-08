@@ -1876,6 +1876,8 @@ export default {
   OpenPaymentUrl: "Buksan ang URL ng Pagbabayad",
   OpenPrivateGroup: "Buksan ang Pribadong Grupo",
   OpenPrivateGroupDesc: "End-to-end na naka-encrypt na panggrupong chat para sa hanggang 50 miyembro. Maaaring sumali ang mga bagong miyembro anumang oras.",
+  OpenSettingsForCameraPermissionDialogTitle: "Kinakailangan ang Pahintulot sa Camera",
+  OpenSettingsForCameraPermissionPrompt: "Kinakailangan ang access sa camera upang ma-scan ang mga QR code.Mangyaring payagan ito sa mga setting ng iyong device.",
   OpenSourceCode: "Buksan ang source code",
   Options: "Mga pagpipilian",
   OraclePubkey: "Oracle pubkey",

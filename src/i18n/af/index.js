@@ -1876,6 +1876,8 @@ export default {
   OpenPaymentUrl: "Maak betaling-URL oop",
   OpenPrivateGroup: "Maak Privaat Groep oop",
   OpenPrivateGroupDesc: "Eind-tot-end geënkripteerde groepklets vir tot 50 lede. Nuwe lede kan enige tyd aansluit.",
+  OpenSettingsForCameraPermissionDialogTitle: "Kameratoestemming vereis",
+  OpenSettingsForCameraPermissionPrompt: "Kameratoegang word vereis om QR-kodes te skandeer.Laat dit asseblief toe in jou toestelinstellings.",
   OpenSourceCode: "Oop bronkode",
   Options: "Opsies",
   OraclePubkey: "Oracle pubkey",
