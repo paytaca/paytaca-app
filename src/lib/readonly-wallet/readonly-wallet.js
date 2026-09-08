@@ -37,6 +37,7 @@ import Watchtower from 'watchtower-cash-js'
 import { ElectrumNetworkProvider } from 'cashscript'
 import { pubkeyToAddress } from 'src/utils/crypto'
 import { Psbt, PsbtInput, PsbtOutput } from 'src/lib/multisig/psbt'
+import { ProprietaryFields } from '../multisig/psbt'
 
 export const BCH_DERIVATION_PATH = "m/44'/145'/0'"
 
@@ -500,6 +501,7 @@ export default class ReadOnlyWallet {
    * @returns {Promise<string>} base64 encoded PSBT
    */
   async createProposal (opts) {
+
     const network = this.network
     const outputs = (opts?.outputs || []).map(o => ({
       address: o.address,
@@ -562,34 +564,31 @@ export default class ReadOnlyWallet {
     psbt.globalMap.setInputCount(inputObjects.length)
     psbt.globalMap.setOutputCount(outputObjects.length)
     psbt.globalMap.setPsbtVersion(145)
+    console.log('@ProprietaryFields', ProprietaryFields)
 
-    if (opts?.origin) {
-      psbt.globalMap.addProprietaryField(
-        utf8ToBin('paytaca'),
-        utf8ToBin(opts.origin),
-        new Uint8Array([]),
-        utf8ToBin('origin')
+    opts.origin && psbt.globalMap.addProprietaryField(
+        ProprietaryFields.paytaca.identifier, 
+        utf8ToBin(opts.origin), 
+        ProprietaryFields.paytaca.subKey.origin.subType, 
+        ProprietaryFields.paytaca.subKey.origin.subKeyData
       )
-    }
 
-    if (opts?.purpose) {
-      psbt.globalMap.addProprietaryField(
-        utf8ToBin('paytaca'),
-        utf8ToBin(opts.purpose),
-        new Uint8Array([]),
-        utf8ToBin('purpose')
-      )
-    }
-
+    opts.purpose && psbt.globalMap.addProprietaryField(
+      ProprietaryFields.paytaca.identifier, 
+      utf8ToBin(opts.purpose), 
+      ProprietaryFields.paytaca.subKey.purpose.subType, 
+      ProprietaryFields.paytaca.subKey.purpose.subKeyData
+    )
+    
     inputObjects.forEach((input) => {
-      const pubkey = this.getPubkeyAt(input._addressPath)
-      const path = toFullDerivationPath(input._addressPath, this.derivationPath)
+      // const pubkey = this.getPubkeyAt(input._addressPath)
+      // const path = toFullDerivationPath(input._addressPath, this.derivationPath)
       const psbtInput = new PsbtInput()
       psbtInput.setOutpointTransaction(input._prevTxHex)
       psbtInput.setOutpointTransactionHash(input.outpointTransactionHash)
       psbtInput.setOutpointIndex(input.outpointIndex)
       psbtInput.setSequenceNumber(input.sequenceNumber)
-      psbtInput.addBip32Derivation(pubkey, getXpubFingerprint(this.xpub), path)
+      // psbtInput.addBip32Derivation(pubkey, getXpubFingerprint(this.xpub), path)
       psbt.inputMap.add(psbtInput)
     })
 
@@ -597,16 +596,33 @@ export default class ReadOnlyWallet {
       const psbtOutput = new PsbtOutput()
       psbtOutput.setAmount(output.valueSatoshis)
       psbtOutput.setOutScript(binToHex(output.lockingBytecode))
-      if (output._isChange && output._addressPath) {
-        const pubkey = this.getPubkeyAt(output._addressPath)
-        const path = toFullDerivationPath(output._addressPath, this.derivationPath)
-        psbtOutput.addBip32Derivation(pubkey, getXpubFingerprint(this.xpub), path)
-      }
+      // if (output._isChange && output._addressPath) {
+      //   const pubkey = this.getPubkeyAt(output._addressPath)
+      //   const path = toFullDerivationPath(output._addressPath, this.derivationPath)
+      //   psbtOutput.addBip32Derivation(pubkey, getXpubFingerprint(this.xpub), path)
+      // }
       psbt.outputMap.add(psbtOutput)
     })
 
+    const objz = {}
+    const serialized = psbt.serialize()
+    console.log('@serialized', serialized)
+    console.log('@decodez', new Psbt().decode(binToBase64(serialized), objz))
+    console.log('@objz', objz)
+
+    const rebuilt = binToHex(
+      encodeTransactionCommon({
+        version: 2,
+        locktime: 0,
+        inputs: objz.inputs,
+        outputs: objz.outputs
+      })
+    )
+
+    console.log('@rebuilt tx from decoded psbt', rebuilt)
     return binToBase64(psbt.serialize())
   }
+
 
   /**
    * Signing/sending methods are intentionally NOT available on a read-only
