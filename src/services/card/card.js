@@ -539,11 +539,20 @@ export class Card {
   }
 
   /**
-   * Gets transactions associated with the card
+   * Gets ContractHistory rows for the card.
+   * GET /api/cards/{cardIdOrUid}/transactions/ (paginated, ordered -created_at).
+   * @param {Object} [opts]
+   * @param {number} [opts.page]
+   * @param {number} [opts.page_size]
    * @returns {Promise<Array>}
    */
-  async getTransactions() {
-    const response = await backend.get(`/cards/${this.id}/transactions/`)
+  async getTransactions({ page, page_size } = {}) {
+    const cardIdOrUid = this.id || this.uid
+    if (!cardIdOrUid) throw new Error('Card id or uid is required')
+    const params = {}
+    if (page) params.page = page
+    if (page_size) params.page_size = page_size
+    const response = await backend.get(`/cards/${cardIdOrUid}/transactions/`, { params })
       .catch(error => {
         cardLogger.error('Error fetching transactions:', error.response || error.message);
         throw error;
@@ -998,6 +1007,59 @@ export function signSweepMessage(privateKeyWif, message) {
   const signatureBin = secp256k1.signMessageHashDER(privateKeyBin, messageHash)
   if (typeof signatureBin === 'string') throw new Error(signatureBin)
   return binToHex(signatureBin)
+}
+
+export function isContractHistoryMutation(item) {
+  return item?.tx_type === 'mutation'
+}
+
+export function getContractHistoryKind(item) {
+  if (!item || isContractHistoryMutation(item)) return null
+  if (item.direction === 'incoming' && (item.tx_type == null || item.tx_type === '')) return 'cash-in'
+  if (item.direction === 'outgoing' && item.tx_type === 'payment') return 'payment'
+  if (item.direction === 'outgoing' && item.tx_type === 'sweep') return 'sweep'
+  return null
+}
+
+export function normalizeContractHistoryItem(item) {
+  if (!item) return null
+  const kind = getContractHistoryKind(item)
+  if (!kind) return null
+  const isToken = !!item.is_token
+  const tokenAmount = item?.token?.amount ?? null
+  const category = item?.token?.category || null
+  return {
+    id: item.id,
+    txid: item.txid,
+    direction: item.direction,
+    tx_type: item.tx_type,
+    kind,
+    is_token: isToken,
+    value: Number(item?.value ?? 0),
+    amount: isToken ? tokenAmount : Number(item?.value ?? 0),
+    category,
+    token: item?.token || null,
+    merchant: item?.merchant || null,
+    merchantRefId: item?.merchant?.ref_id ?? null,
+    address: item?.address || null,
+    card: item?.card || null,
+    created_at: item?.created_at || null,
+    raw: item,
+  }
+}
+
+export function normalizeContractHistoryList(items) {
+  return (Array.isArray(items) ? items : []).map(normalizeContractHistoryItem).filter(Boolean)
+}
+
+export async function broadcastCardTransaction(txHex, txType) {
+  if (!txHex) throw new Error('tx_hex is required')
+  const response = await backend.post('/transactions/broadcast/', { tx_hex: txHex, tx_type: txType })
+    .catch(error => {
+      cardLogger.error('Error broadcasting transaction:', error.response || error.message);
+      throw error;
+    });
+  return response.data
 }
 
 export async function sweepFungibleTokens(cardIdOrUid, tokenId, tokenAddress, signature) {

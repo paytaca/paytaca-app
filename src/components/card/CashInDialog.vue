@@ -638,6 +638,8 @@ export default {
 
       if (result?.success) {
         this.notifySuccess(successMessage, { timeout: 3000 })
+        this.refreshCardHistory()
+        this.pollForFundingAndRefresh()
       } else {
         this.$q.notify({
           message: `Cash in failed: ${result?.error || 'Please try again.'}`,
@@ -650,6 +652,28 @@ export default {
       this.onHideCashInDialog()
     },
 
+    refreshCardHistory () {
+      if (!this.card?.id) return
+      this.$store.dispatch('card/fetchCardTransactions', { cardId: this.card.id }).catch(() => {})
+    },
+    async pollForFundingAndRefresh (interval = 2000, maxAttempts = 10) {
+      let baseline = 0
+      try {
+        const utxos = await this.card?.getBchUtxos?.()
+        baseline = Array.isArray(utxos) ? utxos.length : 0
+      } catch {}
+      for (let attempt = 0; attempt < maxAttempts; attempt++) {
+        await new Promise(resolve => setTimeout(resolve, interval))
+        try {
+          const utxos = await this.card?.getBchUtxos?.()
+          if (Array.isArray(utxos) && utxos.length > baseline) {
+            this.refreshCardHistory()
+            return
+          }
+        } catch {}
+      }
+      this.refreshCardHistory()
+    },
     onHideCashInDialog () {
       this.showDialog = false
       this.$emit('update:modelValue', false)

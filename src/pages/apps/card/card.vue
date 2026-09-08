@@ -110,8 +110,9 @@
           class="content-box flex flex-center"
           :class="$q.dark.isActive ? 'content-box-dark' : 'content-box-light'"
         >
-          <TransactionHistory 
-            v-if="activeTab === 'Transactions' && activeCard" 
+          <TransactionHistory
+            v-if="activeTab === 'Transactions' && activeCard"
+            ref="historyRef"
             :card="activeCard"
           />
           <ManageAuthNFTs 
@@ -488,22 +489,30 @@ export default {
       ];
     },
 
+    refreshCardHistory () {
+      if (!this.activeCard?.id) return
+      const ref = this.$refs.historyRef
+      if (ref?.refresh) return ref.refresh()
+      return this.$store.dispatch('card/fetchCardTransactions', { cardId: this.activeCard.id }).catch(() => {})
+    },
     onCloseCashInDialog () {
       this.showCashInDialog = false
       this.getCardBchBalance() // Refresh balance after cash-in
       this.fetchCardTokenHoldings()
+      this.refreshCardHistory()
       this.cardSettingsKey++ // Force re-render of CardSettings component to reflect updated balance
     },
 
     onSweepFunds () {
       this.getCardBchBalance()
       this.fetchCardTokenHoldings()
+      this.refreshCardHistory()
     },
 
     async onPullRefresh (done) {
       try {
         await this.loadActiveCard()
-        await Promise.allSettled([this.getCardBchBalance(), this.fetchCardTokenHoldings()])
+        await Promise.allSettled([this.getCardBchBalance(), this.fetchCardTokenHoldings(), this.refreshCardHistory()])
         this.cardSettingsKey++
       } catch (err) {
         cardLogger.error('Error refreshing card details:', err)

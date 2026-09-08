@@ -537,6 +537,10 @@ export default {
         this.ftSweeping = false
       }
     },
+    refreshCardHistory () {
+      if (!this.activeCard?.id) return
+      this.$store.dispatch('card/fetchCardTransactions', { cardId: this.activeCard.id }).catch(() => {})
+    },
     async sweepSelectedFt() {
       if (!this.normalizeFtDestination(this.ftDestination)) return
       if (!this.ftSelected.length) return
@@ -545,6 +549,7 @@ export default {
         await this.sweepSingleFt(tokenId)
       }
       this.ftSweeping = false
+      this.refreshCardHistory()
       try {
         this.ftBalances = await this.activeCard.fetchFtBalances() || []
         const remaining = new Set(this.ftBalances.map(token => token.tokenId))
@@ -633,6 +638,7 @@ export default {
           icon: 'check_circle',
           position: 'bottom'
         })
+        this.refreshCardHistory()
         this.$emit('sweep-funds')
       }).catch((error) => {
         cardLogger.error('[CardSettings] Sweep funds failed:', error)

@@ -2,7 +2,7 @@
 import { satoshiToBch } from 'src/exchange';
 import { loadCardUser } from 'src/services/card/user';
 import { backend as posBackend } from "src/wallet/pos";
-import { Card } from 'src/services/card/card';
+import { Card, normalizeContractHistoryList } from 'src/services/card/card';
 import { getMerchantList } from 'src/services/card/merchants';
 
 function toPlainCard(card) {
@@ -54,7 +54,7 @@ export async function fetchCards (context, { page = 1, page_size = 10, filters =
     }
 }
 
-export async function fetchCardTransactions (context, { cardId, page = 1, page_size = 10 } = {}) {
+export async function fetchCardTransactions (context, { cardId, page = 1, page_size = 25 } = {}) {
     try {
         let cardData = context.state.cards.find(c => c.id === cardId);
         if (!cardData) {
@@ -69,39 +69,40 @@ export async function fetchCardTransactions (context, { cardId, page = 1, page_s
             }
         }
         const card = await hydrateCard(cardData);
-        let transactions = await card.getTransactions({ page, page_size });
-        if (!Array.isArray(transactions)) {
-            console.error('fetchCardTransactions returned non-array:', transactions);
+        const rawTransactions = await card.getTransactions({ page, page_size });
+        if (!Array.isArray(rawTransactions)) {
             throw new Error('fetchCardTransactions did not return an array');
         }
-        console.log('Fetched transactions:', transactions);
-        const merchantRefIds = [...new Set(transactions.map(tx => tx.merchant?.ref_id).filter(id => id != null))];
-        console.log('Merchant reference IDs to fetch:', merchantRefIds);
-
-        const merchants = await posBackend.get(`paytacapos/merchants/`, { params: { ids: merchantRefIds.join(',') } }).then(res => res.data?.results);
-        console.log('Fetched merchants:', merchants);
-
-        transactions = transactions.map(tx => ({
-            id: tx.id,
-            type: tx.type,
-            txid: tx.txid,
-            merchant: tx.merchant ? {
-                id: tx.merchant?.ref_id,
-                name: merchants.find(merchant => merchant.id === tx.merchant?.ref_id)?.name || 'Unknown Merchant',
-            } : null,
-            amount: satoshiToBch(tx.value),
-            is_token: tx.is_token,
-            token_action: tx.token_action,
-            token: tx.token,
-            created_at: (new Date(tx.created_at)).toLocaleString(), // Format timestamp for display
-        }));
-        console.log('Formatted transactions:', transactions);
+        const rows = normalizeContractHistoryList(rawTransactions);
+        const merchantRefIds = [...new Set(rows.map(tx => tx.merchantRefId).filter(id => id != null))];
+        let merchantsById = {};
+        if (merchantRefIds.length) {
+            try {
+                const merchants = await posBackend.get(`paytacapos/merchants/`, { params: { ids: merchantRefIds.join(',') } }).then(res => res.data?.results || []);
+                merchantsById = Object.fromEntries((merchants || []).map(m => [m.id, m]));
+            } catch {}
+        }
+        const transactions = rows.map(tx => {
+            const merchantName = tx.merchantRefId != null
+                ? (merchantsById[tx.merchantRefId]?.name || `Merchant #${tx.merchantRefId}`)
+                : null;
+            return {
+                ...tx,
+                displayAmount: tx.is_token ? tx.amount : satoshiToBch(tx.value),
+                merchant: tx.merchant ? { ...tx.merchant, name: merchantName } : null,
+                created_at_display: tx.created_at ? (new Date(tx.created_at)).toLocaleString() : '',
+            };
+        });
         context.commit('setCardTransactions', { cardId, transactions });
         return transactions;
     } catch (error) {
         console.error('Error in fetchCardTransactions action:', error);
         throw error;
     }
+}
+
+export async function refreshCardTransactions (context, { cardId } = {}) {
+    return fetchCardTransactions(context, { cardId, page: 1, page_size: 25 });
 }
 
 export async function fetchCardBalance (context, cardId) {
