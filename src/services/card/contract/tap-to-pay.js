@@ -161,10 +161,15 @@ class TapToPay {
                 const path = utxo.address_path || 'unknown'
                 if (!acc[path]) {
                     let privkey = wallet.privkey()
-                    if (path !== 'unknown') privkey = wallet.privkey(path)
-                    acc[path] = { 
+                    let sourceAddress = changeAddress
+                    if (path !== 'unknown') {
+                        privkey = wallet.privkey(path)
+                        sourceAddress = wallet.address(path)
+                    }
+                    acc[path] = {
                         privkey: privkey,
-                        utxos: [] 
+                        sourceAddress: sourceAddress,
+                        utxos: []
                     }
                 }
                 acc[path].utxos.push(utxo)
@@ -177,6 +182,7 @@ class TapToPay {
             .filter(group => group?.privkey && Array.isArray(group?.utxos) && group.utxos.length > 0)
             .map(group => ({
                 signatureTemplate: new SignatureTemplate(group.privkey),
+                sourceAddress: group.sourceAddress || changeAddress,
                 inputs: group.utxos.map((input) => ({
                     satoshis: toBigInt(input.satoshis),
                     txid: input.txid,
@@ -206,6 +212,44 @@ class TapToPay {
             + (numOutputs * OUTPUT_SIZE)
 
         return BigInt(estimatedSize) * feeRate
+    }
+
+    selectMinimalFundingInputs (groupedUtxos = [], feeAmount = 0n) {
+        const fee = toBigInt(feeAmount)
+        const candidates = []
+        for (const group of groupedUtxos) {
+            if (!group?.signatureTemplate || !Array.isArray(group?.inputs)) continue
+            for (const input of group.inputs) {
+                candidates.push({
+                    signatureTemplate: group.signatureTemplate,
+                    sourceAddress: group.sourceAddress,
+                    input
+                })
+            }
+        }
+        candidates.sort((a, b) => {
+            const diff = toBigInt(a.input.satoshis) - toBigInt(b.input.satoshis)
+            return diff < 0n ? -1 : diff > 0n ? 1 : 0
+        })
+
+        let total = 0n
+        const picked = []
+        for (const candidate of candidates) {
+            picked.push(candidate)
+            total += toBigInt(candidate.input.satoshis)
+            if (total >= fee) break
+        }
+        if (total < fee || picked.length === 0) return null
+
+        const byTemplate = new Map()
+        for (const { signatureTemplate, sourceAddress, input } of picked) {
+            if (!byTemplate.has(signatureTemplate)) {
+                byTemplate.set(signatureTemplate, { signatureTemplate, sourceAddress, inputs: [] })
+            }
+            byTemplate.get(signatureTemplate).inputs.push(input)
+        }
+        const inputs = [...byTemplate.values()]
+        return { inputs, total, changeAddress: inputs[0]?.sourceAddress }
     }
 
     /**
@@ -489,15 +533,18 @@ export class TapToPayV1 extends TapToPay {
         }
 
         let sweepResult = {}
-        const { 
-            cumulativeValue: sweepAmount, 
+        const {
+            cumulativeValue: sweepAmount,
             utxos: bchUtxos
         } = await this.getBchUtxos()
 
-        
+        if (!bchUtxos?.length || sweepAmount <= 0n) {
+            return { success: false, message: 'No BCH balance to sweep.' }
+        }
+
         // Prepare inputs
         const bchInputs = bchUtxos.map(utxo => {
-            const normalized = { 
+            const normalized = {
                 satoshis: toBigInt(utxo.satoshis),
                 txid: utxo.txid,
                 vout: utxo.vout
@@ -505,32 +552,51 @@ export class TapToPayV1 extends TapToPay {
             return normalized
         })
 
-        // Prepare outputs
-        const outputs = [
-            { to: toAddress, amount: sweepAmount }
-        ]
-
-        // Estimate fee
-        const estimatedFee = this.estimateFee({ 
-            numContractInputs: bchInputs.length, 
-            numP2pkhInputs: 1, 
-            numOutputs: 2 
+        // Estimate fee for a card-funded sweep: contract BCH inputs only,
+        // single owner-dest output, no wallet inputs.
+        const estimatedFee = this.estimateFee({
+            numContractInputs: bchInputs.length,
+            numP2pkhInputs: 0,
+            numOutputs: 1
         })
 
-        const { 
-            cumulativeValue: fundingAmount, 
-            groupedUtxos: groupedBchFundingInputs, 
-            changeAddress 
-        } = await this.getFundingInputs(estimatedFee)
-        
-        const changeAmount = fundingAmount - BigInt(estimatedFee)
-        
-        if (fundingAmount < BigInt(estimatedFee)) {
-            return { success: false, message: 'Insufficient BCH balance to cover sweep fee.' }
-        }
+        let outputs = []
+        let groupedBchFundingInputs = []
 
-        if (changeAmount > P2PKH_DUST) {
-            outputs.push({ to: changeAddress, amount: changeAmount })
+        if (sweepAmount > estimatedFee + P2PKH_DUST) {
+            outputs = [
+                { to: toAddress, amount: sweepAmount - estimatedFee }
+            ]
+        } else {
+            const feeWithWallet = this.estimateFee({
+                numContractInputs: bchInputs.length,
+                numP2pkhInputs: 1,
+                numOutputs: 2
+            })
+
+            const {
+                cumulativeValue: fundingAmount,
+                groupedUtxos: fetchedFundingInputs,
+                changeAddress
+            } = await this.getFundingInputs(feeWithWallet)
+
+            if (fundingAmount < BigInt(feeWithWallet)) {
+                return { success: false, message: 'Insufficient BCH balance to cover sweep fee.' }
+            }
+
+            const selected = this.selectMinimalFundingInputs(fetchedFundingInputs, feeWithWallet)
+            if (!selected) {
+                return { success: false, message: 'Insufficient BCH balance to cover sweep fee.' }
+            }
+            groupedBchFundingInputs = selected.inputs
+            const changeAmount = selected.total - BigInt(feeWithWallet)
+
+            outputs = [
+                { to: toAddress, amount: sweepAmount }
+            ]
+            if (changeAmount > P2PKH_DUST) {
+                outputs.push({ to: selected.changeAddress || changeAddress, amount: changeAmount })
+            }
         }
 
         const provider = new ElectrumNetworkProvider(Network.MAINNET)
@@ -849,16 +915,20 @@ export class TapToPayV2 extends TapToPay {
         cardLogger.log('[sweep] Owner public key hash:', ownerPkh)
 
         const ownerUtxo = await this.getOwnershipPkhUtxo()
-        const decodedCommitment = ownerUtxo.token?.nft?.commitment ? decodeOwnershipCommitment(ownerUtxo.token.nft.commitment) : undefined
-        if (!decodedCommitment || decodedCommitment.value !== ownerPkh) {
+        const decodedCommitment = ownerUtxo?.token?.nft?.commitment ? decodeOwnershipCommitment(ownerUtxo.token.nft.commitment) : undefined
+        if (!ownerUtxo || !decodedCommitment || decodedCommitment.value !== ownerPkh) {
             throw new Error('Invalid owner token UTXO or ownership not set correctly. Cannot proceed with sweep.')
         }
 
         cardLogger.log('[sweep] Owner UTXO:', ownerUtxo)
         const { cumulativeValue: sweepAmount, utxos: bchUtxos } = await this.getBchUtxos()
         cardLogger.log('[sweep] BCH UTXOs:', bchUtxos)
-        
-        // Prepare inputs
+
+        if (!bchUtxos?.length || sweepAmount <= 0n) {
+            return { success: false, message: 'No BCH balance to sweep.' }
+        }
+
+        // Prepare inputs: ownership NFT + all contract BCH UTXOs being swept
         const inputs = [{
             satoshis: toBigInt(ownerUtxo.satoshis),
             txid: ownerUtxo.txid,
@@ -867,7 +937,7 @@ export class TapToPayV2 extends TapToPay {
         }]
 
         const bchInputs = bchUtxos.map(utxo => {
-            return { 
+            return {
                 satoshis: toBigInt(utxo.satoshis),
                 txid: utxo.txid,
                 vout: utxo.vout
@@ -878,33 +948,50 @@ export class TapToPayV2 extends TapToPay {
 
         cardLogger.log('[sweep] Prepared inputs:', inputs)
 
-        // Prepare outputs
-        const outputs = [
-            { to: contract.tokenAddress, amount: toBigInt(ownerUtxo.satoshis), token: ownerUtxo.token },
-            { to: toAddress, amount: sweepAmount }
-        ]
+        // Estimate fee first for a card-funded sweep:
+        // inputs = ownership NFT + all contract BCH UTXOs,
+        // outputs = NFT back to contract + 1 owner dest. No wallet inputs.
+        const estimatedFee = this.estimateFee({ numContractInputs: inputs.length, numP2pkhInputs: 0, numOutputs: 2 })
+        cardLogger.log('[sweep] Estimated fee:', estimatedFee)
+
+        const nftOutput = { to: contract.tokenAddress, amount: toBigInt(ownerUtxo.satoshis), token: ownerUtxo.token }
+        let outputs = []
+        let groupedBchFundingInputs = []
+
+        if (sweepAmount > estimatedFee + DUST_LIMIT) {
+            outputs = [
+                nftOutput,
+                { to: toAddress, amount: sweepAmount - estimatedFee }
+            ]
+        } else {
+            const feeWithWallet = this.estimateFee({ numContractInputs: inputs.length, numP2pkhInputs: 1, numOutputs: 3 })
+            const {
+                cumulativeValue: fundingAmount,
+                groupedUtxos: fetchedFundingInputs,
+                changeAddress
+            } = await this.getFundingInputs(feeWithWallet)
+
+            if (fundingAmount < BigInt(feeWithWallet)) {
+                return { success: false, message: 'Insufficient BCH balance to cover sweep fee.' }
+            }
+
+            const selected = this.selectMinimalFundingInputs(fetchedFundingInputs, feeWithWallet)
+            if (!selected) {
+                return { success: false, message: 'Insufficient BCH balance to cover sweep fee.' }
+            }
+            groupedBchFundingInputs = selected.inputs
+            const changeAmount = selected.total - BigInt(feeWithWallet)
+
+            outputs = [
+                nftOutput,
+                { to: toAddress, amount: sweepAmount }
+            ]
+            if (changeAmount > DUST_LIMIT) {
+                outputs.push({ to: selected.changeAddress || changeAddress, amount: changeAmount })
+            }
+        }
 
         cardLogger.log('[sweep] Prepared outputs:', outputs)
-
-        // Estimate fee
-        const estimatedFee = this.estimateFee({ numContractInputs: inputs.length, numP2pkhInputs: 1, numOutputs: outputs.length + 1 })
-        const { 
-            cumulativeValue: fundingAmount, 
-            groupedUtxos: groupedBchFundingInputs, 
-            changeAddress 
-        } = await this.getFundingInputs(estimatedFee)
-
-        cardLogger.log('[sweep] Estimated fee:', estimatedFee)
-        
-        const changeAmount = fundingAmount - BigInt(estimatedFee)
-        
-        if (fundingAmount < BigInt(estimatedFee)) {
-            return { success: false, message: 'Insufficient BCH balance to cover sweep fee.' }
-        }
-
-        if (changeAmount > DUST_LIMIT) {
-            outputs.push({ to: changeAddress, amount: changeAmount })
-        }
 
         const provider = new ElectrumNetworkProvider(Network.MAINNET)
         const tx = new TransactionBuilder({provider})

@@ -559,10 +559,15 @@ export default {
           return state !== 'success'
         })
       } catch {}
-      this.$emit('sweep-funds')
+      this.$emit('sweep-funds', { swept: 'tokens' })
     },
     async loadCardBalance() {
-      this.cardBalance = await this.activeCard?.getBchBalance() || 0
+      try {
+        const balance = await this.activeCard?.getBchBalance()
+        if (balance != null) this.cardBalance = balance
+      } catch (error) {
+        cardLogger.error('Error refreshing card BCH balance, keeping last known value:', error)
+      }
     },
     async onCardLockToggle(isLocked) {
       this.isLocking = true;

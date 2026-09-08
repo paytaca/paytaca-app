@@ -895,14 +895,15 @@ export class Card {
     this._assertWallet();
 
     const privateKey = this.wallet.privkey();
-    const sweepResponse = await this.contract.sweep({
-      ownerWif: privateKey,
-      toAddress: this.wallet.address(),
-      broadcast: opts.broadcast
-    });
+    const toAddress = this.wallet.address();
+    const built = await this.contract.sweep({ ownerWif: privateKey, toAddress, broadcast: false });
+    const txHex = built?.txHex;
+    if (!opts.broadcast) return { success: true, txHex, toAddress };
+    if (!txHex) throw new Error('Failed to build sweep transaction');
+    const result = await broadcastCardTransaction(txHex, 'sweep', { cardIdOrUid: this.id || this.uid });
 
-    cardLogger.log('Sweep response:', sweepResponse);
-    return sweepResponse;
+    cardLogger.log('Sweep response:', result);
+    return { ...result, txHex, toAddress };
   }
 
   // ==================== HELPERS ====================
@@ -1052,9 +1053,11 @@ export function normalizeContractHistoryList(items) {
   return (Array.isArray(items) ? items : []).map(normalizeContractHistoryItem).filter(Boolean)
 }
 
-export async function broadcastCardTransaction(txHex, txType) {
+export async function broadcastCardTransaction(txHex, txType, { cardIdOrUid } = {}) {
   if (!txHex) throw new Error('tx_hex is required')
-  const response = await backend.post('/transactions/broadcast/', { tx_hex: txHex, tx_type: txType })
+  const payload = { tx_hex: txHex, tx_type: txType }
+  if (cardIdOrUid) payload.card_id = cardIdOrUid
+  const response = await backend.post('/transactions/broadcast/', payload)
     .catch(error => {
       cardLogger.error('Error broadcasting transaction:', error.response || error.message);
       throw error;

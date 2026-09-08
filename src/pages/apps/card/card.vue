@@ -503,8 +503,8 @@ export default {
       this.cardSettingsKey++ // Force re-render of CardSettings component to reflect updated balance
     },
 
-    onSweepFunds () {
-      this.getCardBchBalance()
+    onSweepFunds (info) {
+      this.getCardBchBalance({ guardZero: info?.swept === 'tokens' })
       this.fetchCardTokenHoldings()
       this.refreshCardHistory()
     },
@@ -557,14 +557,22 @@ export default {
 
 
 
-    async getCardBchBalance() {
-      await this.$store.dispatch('card/fetchCardBalance', this.activeCard.id)
-        .then(balance => {
-          this.bchBalance = balance
-        })
-        .catch(error => {
-          this.bchBalance = 0
-        })
+    async getCardBchBalance({ guardZero = false } = {}) {
+      try {
+        let balance = await this.$store.dispatch('card/fetchCardBalance', this.activeCard.id)
+        if (guardZero && Number(balance) <= 0 && Number(this.bchBalance) > 0) {
+          for (let attempt = 0; attempt < 5; attempt++) {
+            await new Promise(resolve => setTimeout(resolve, 2000))
+            const retry = await this.$store.dispatch('card/fetchCardBalance', this.activeCard.id).catch(() => null)
+            if (retry == null) continue
+            balance = retry
+            if (Number(balance) > 0) break
+          }
+        }
+        this.bchBalance = balance
+      } catch {
+        cardLogger.error('Error refreshing card BCH balance, keeping last known value')
+      }
     },
 
     loadBalanceVisibility () {
