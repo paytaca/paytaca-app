@@ -15,6 +15,7 @@ import {
 } from './storage';
 
 import { encodeCommitment } from 'src/services/card/auth-nft';
+import { sha256, utf8ToBin, secp256k1, decodePrivateKeyWif, binToHex } from '@bitauth/libauth';
 
 export class Card {
   constructor(data) {
@@ -220,6 +221,34 @@ export class Card {
         throw error;
       });
     return response.data?.balances || [];
+  }
+
+  /**
+   * Lists sweepable FT balances via `GET /contracts/{address}/ft/balances/` (no auth).
+   * @param {Object} [opts]
+   * @param {Array<string>} [opts.tokenIds]
+   * @param {boolean} [opts.includeUtxos]
+   * @returns {Promise<Array<{tokenId: string, category: string, amount: number}>>}
+   */
+  async fetchFtBalances({ tokenIds = [], includeUtxos = false } = {}) {
+    const address = this.tokenAddress || this.cashAddress
+    return fetchFtBalances(address, { tokenIds, includeUtxos })
+  }
+
+  /**
+   * Sweeps one FT category via `POST /cards/{id}/sweep_fungible_tokens/` (auth required).
+   * Backend consolidates all UTXOs for the tokenId in one tx.
+   * Signs the canonical message with the owner's key; backend verifies
+   * the signature against `card.owner.public_key` before broadcasting.
+   * @param {string} tokenId - FT category hex
+   * @param {string} tokenAddress - destination token-aware address
+   * @returns {Promise<{success: boolean|'unknown', txid: string|null}>}
+   */
+  async sweepFungibleTokens(tokenId, tokenAddress) {
+    this._assertWallet();
+    const message = buildSweepMessage(this.raw, tokenId, tokenAddress)
+    const signature = signSweepMessage(this.wallet.privkey(), message)
+    return sweepFungibleTokens(this.id || this.uid, tokenId, tokenAddress, signature)
   }
 
   /**
@@ -879,6 +908,120 @@ export class Card {
     if (callback && typeof callback === 'function') {
       callback(message);
     }
+  }
+}
+
+export function normalizeFtBalances(data) {
+  const raw = data?.balances || data?.results || data || []
+  const list = Array.isArray(raw) ? raw : Object.entries(raw).map(([tokenId, value]) => {
+    if (value && typeof value === 'object') return { tokenId, ...value }
+    return { tokenId, amount: value }
+  })
+  return list.map(item => {
+    const tokenId = item?.tokenId || item?.token_id || item?.category || item?.id || ''
+    const amount = item?.amount ?? item?.balance ?? 0
+    return { ...item, tokenId, category: item?.category || tokenId, amount, balance: amount }
+  }).filter(item => item.tokenId)
+}
+
+export async function fetchFtBalances(contractAddress, { tokenIds = [], includeUtxos = false } = {}) {
+  if (!contractAddress) throw new Error('Contract address is required')
+  const params = {}
+  if (tokenIds?.length) params.tokenIds = tokenIds.join(',')
+  if (includeUtxos) params.include_utxos = true
+  const response = await backend.get(`/contracts/${contractAddress}/ft/balances/`, { params, authorize: false })
+    .catch(error => {
+      cardLogger.error('Error fetching FT balances:', error.response || error.message);
+      throw error;
+    });
+  return normalizeFtBalances(response.data)
+}
+
+function findTxid(obj, depth = 0) {
+  if (!obj || depth > 3) return null
+  if (typeof obj === 'string' && /^[0-9a-f]{64}$/i.test(obj)) return obj
+  if (typeof obj !== 'object') return null
+  for (const key of ['txid', 'tx_id', 'txId', 'transaction_id', 'transactionId', 'hash']) {
+    if (typeof obj[key] === 'string' && obj[key]) return obj[key]
+  }
+  for (const value of Object.values(obj)) {
+    const found = findTxid(value, depth + 1)
+    if (found) return found
+  }
+  return null
+}
+
+export function normalizeFtSweepResult(data) {
+  if (data == null || data === '') return { success: 'unknown', txid: null }
+  if (typeof data === 'string') {
+    const txid = findTxid(data)
+    return { success: txid ? true : 'unknown', txid }
+  }
+  if (data.success === true || data.ok === true) return { success: true, txid: findTxid(data) }
+  if (data.success === false || data.ok === false) return { success: false, txid: findTxid(data) }
+  const txid = findTxid(data)
+  if (txid) return { success: true, txid }
+  if (typeof data === 'object' && Object.keys(data).length === 0) return { success: 'unknown', txid: null }
+  return { success: 'unknown', txid: null, raw: data }
+}
+
+export function parseFtSweepError(error) {
+  const status = error?.response?.status
+  const detail = error?.response?.data?.detail || error?.response?.data?.error
+    || error?.response?.data?.message || error?.message || 'Sweep failed'
+  switch (status) {
+    case 400: return { status, message: detail || 'Invalid token or destination address' }
+    case 401: return { status, message: 'Session expired. Please re-login and try again.' }
+    case 403: {
+      const detailStr = Array.isArray(detail) ? detail.join(' ') : String(detail || '')
+      if (/sign/i.test(detailStr)) {
+        return { status, message: 'Signature rejected — check the signing key matches the card owner' }
+      }
+      return { status, message: 'You do not own this card' }
+    }
+    case 404: return { status, message: 'Card or token not found' }
+    case 502: return { status, message: 'Sweep service unavailable. Please try again later.' }
+    case 500: return { status, message: 'No confirmation received. Check balances again; tokens may have swept.' }
+    default: return { status, message: Array.isArray(detail) ? detail.join(' ') : String(detail) }
+  }
+}
+
+export function buildSweepMessage(card, tokenId, tokenAddress) {
+  const cardRef = card?.uid || String(card?.id)
+  return `sweep_ft:${cardRef}:${tokenId}:${tokenAddress}`
+}
+
+export function signSweepMessage(privateKeyWif, message) {
+  const messageHash = sha256.hash(utf8ToBin(message))
+  const privateKeyBin = decodePrivateKeyWif(privateKeyWif).privateKey
+  if (typeof privateKeyBin === 'string') throw new Error(privateKeyBin)
+  const signatureBin = secp256k1.signMessageHashDER(privateKeyBin, messageHash)
+  if (typeof signatureBin === 'string') throw new Error(signatureBin)
+  return binToHex(signatureBin)
+}
+
+export async function sweepFungibleTokens(cardIdOrUid, tokenId, tokenAddress, signature) {
+  if (!cardIdOrUid) throw new Error('Card id or uid is required')
+  if (!tokenId) throw new Error('token_id is required')
+  if (!tokenAddress) throw new Error('token_address is required')
+  if (!signature) throw new Error('signature is required')
+  try {
+    const response = await backend.post(`/cards/${cardIdOrUid}/sweep_fungible_tokens/`, {
+      token_id: tokenId,
+      token_address: tokenAddress,
+      signature,
+    })
+    return normalizeFtSweepResult(response?.data)
+  } catch (error) {
+    if (!error?.response) throw error
+    if (error.response.status === 500 && (error.response.data == null || error.response.data === '')) {
+      return { success: 'unknown', txid: null }
+    }
+    const { message } = parseFtSweepError(error)
+    const normalized = new Error(message)
+    normalized.status = error?.response?.status
+    normalized.cause = error
+    throw normalized
   }
 }
 
