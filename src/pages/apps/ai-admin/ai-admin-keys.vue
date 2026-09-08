@@ -31,8 +31,17 @@
 
         <div v-else>
             <q-pull-to-refresh @refresh="refresh">
-                <div class="row q-px-lg q-pt-md" v-if="hasAPIKeys">
+                <div class="row justify-between items-center q-px-lg q-pt-md" v-if="hasAPIKeys">
                     <q-btn rounded outline no-caps label="New API Key" :color="themeColor" icon="key" @click="createAPIKey()"/>
+                    
+                    <q-btn 
+                        rounded
+                        outline
+                        no-caps 
+                        label="Paytaca AI URL" 
+                        icon="content_copy" 
+                        :color="themeColor" 
+                        @click="copyBaseUrl()" />
                 </div>
 
                 <!-- Key List -->
@@ -53,6 +62,17 @@
                             icon="key"
                             @click="createAPIKey()"
                         />
+
+                        <div class="q-pt-sm">
+                            <q-btn 
+                            rounded
+                            outline
+                            no-caps 
+                            label="Paytaca AI URL" 
+                            icon="content_copy" 
+                            :color="themeColor"
+                            @click="copyBaseUrl()" />
+                        </div>
                     </div>
 
                     <div v-else class="q-mx-lg">
@@ -309,7 +329,21 @@ export default {
             }
             this.editKeyId = null
             this.editName = ''
-        }
+        },
+        copyBaseUrl () {
+            const baseUrl = process.env.PAYTACA_AI_API || ''
+            if (!baseUrl) {
+                this.$q.notify({ type: 'warning', message: 'Base URL not configured', timeout: 3000 })
+                return
+            }
+            copyToClipboard(baseUrl)
+            this.$q.notify({
+                color: 'green',
+                message: this.$t('CopiedToClipboard'),
+                icon: 'mdi-clipboard-check',
+                timeout: 2000
+            })
+        },
     }
 }
 </script>

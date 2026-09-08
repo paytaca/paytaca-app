@@ -26,6 +26,17 @@
                         <div class="text-italic text-grey q-pb-md" v-html="$t('CreateSessionDescription')"></div>
                         <q-btn rounded outline no-caps label="Buy Session" :color="themeColor" icon="mdi-timer"
                             @click="$router.replace({ name: 'ai-admin-buy-form' })" />
+
+                        <div class="q-pt-sm">
+                            <q-btn 
+                            rounded
+                            outline
+                            no-caps 
+                            label="Paytaca AI URL" 
+                            icon="content_copy" 
+                            :color="themeColor"
+                            @click="copyBaseUrl()" />
+                        </div>
                     </div>
 
                     <!-- Session list -->
@@ -33,11 +44,24 @@
                         <div class="row justify-between items-center q-pt-md q-pb-lg">
                             <q-btn rounded outline no-caps label="Buy Session" :color="themeColor" icon="mdi-timer" size="md"
                                 @click="$router.replace({ name: 'ai-admin-buy-form' })" />
+                            <q-btn 
+                                rounded
+                                outline
+                                no-caps 
+                                label="Paytaca AI URL" 
+                                icon="content_copy" 
+                                :color="themeColor"
+                                @click="copyBaseUrl()" 
+                            />
                         </div>
 
                         <div v-for="session in sessions" :key="session.id" class="app-row q-mb-sm" :class="getDarkModeClass(darkMode)" @click="openSessionDetail(session)">
                             <div class="app-info">
-                                <div class="app-name" :class="getDarkModeClass(darkMode)">{{ session.display_name }}</div>
+                                <div class="app-name row items-center cursor-pointer" :class="getDarkModeClass(darkMode)"
+                                    @click.stop="copyText(session.display_name, 'Model Name')">
+                                    {{ session.display_name }}
+                                    <q-icon name="content_copy" size="14px" class="q-ml-xs" :color="darkMode ? 'grey-5' : 'grey-7'" />
+                                </div>
                                 <div class="app-desc q-pt-xs" :class="getDarkModeClass(darkMode)">
                                     {{ formatTimeUsed(session.time_used_seconds) }} / {{ formatTimeUsed(session.time_credits_seconds) }} used
                                 </div>
@@ -50,6 +74,12 @@
                                 />
                                 <div class="app-desc q-mt-xs" :class="getDarkModeClass(darkMode)">
                                     {{ formatDate(session.created_at) }}
+                                </div>
+                                <div class="row items-center q-gutter-xs q-mt-xs">
+                                    <q-icon name="content_copy" size="14px" class="cursor-pointer" :color="darkMode ? 'grey-5' : 'grey-7'"
+                                        @click.stop="copyText(session.model_id, 'Model ID')" />
+                                    <span class="app-desc text-monospace cursor-pointer" :class="getDarkModeClass(darkMode)"
+                                        @click.stop="copyText(session.model_id, 'Model ID')">{{ session.model_id }}</span>
                                 </div>
                             </div>
                             <div class="app-row-end">
@@ -80,6 +110,7 @@ import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 import * as AIAdminUtils from 'src/utils/ai-admin-utils.js'
 import { formatDistanceToNow } from 'date-fns'
 import { bus } from 'src/wallet/event-bus.js'
+import { copyToClipboard } from 'quasar'
 import SessionDetailsDialog from 'src/components/ai-admin/session-details-dialog.vue'
 
 
@@ -190,6 +221,30 @@ export default {
             this.selectedSessionId = session.id
             this.showSessionDetailDialog = true
         },
+        copyBaseUrl () {
+    const baseUrl = process.env.PAYTACA_AI_API || ''
+    if (!baseUrl) {
+        this.$q.notify({ type: 'warning', message: 'Base URL not configured', timeout: 3000 })
+        return
+    }
+    copyToClipboard(baseUrl)
+        this.$q.notify({
+            color: 'green',
+            message: this.$t('CopiedToClipboard'),
+            icon: 'mdi-clipboard-check',
+            timeout: 2000
+        })
+    },
+    copyText (text, label) {
+        if (!text) return
+        copyToClipboard(text)
+        this.$q.notify({
+            color: 'green',
+            message: `${label} copied`,
+            icon: 'mdi-clipboard-check',
+            timeout: 2000
+        })
+    },
     }
 }
 </script>
