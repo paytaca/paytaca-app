@@ -8,6 +8,7 @@
 
     <div v-else>
       <q-page v-if="activeCard" class="q-px-md">
+        <q-pull-to-refresh @refresh="onPullRefresh">
         <div style="max-height: calc(100vh - 60px); overflow-y: auto; padding-bottom: 20px;">
           <div class="column items-center">
             <div class="flex flex-center full-width q-mb-md">
@@ -169,6 +170,7 @@
           <div style="height: 120px;"></div>
           </div>
         </div>
+        </q-pull-to-refresh>
       </q-page>
 
       <q-dialog v-model="showEditNameDialog">
@@ -496,6 +498,18 @@ export default {
     onSweepFunds () {
       this.getCardBchBalance()
       this.fetchCardTokenHoldings()
+    },
+
+    async onPullRefresh (done) {
+      try {
+        await this.loadActiveCard()
+        await Promise.allSettled([this.getCardBchBalance(), this.fetchCardTokenHoldings()])
+        this.cardSettingsKey++
+      } catch (err) {
+        cardLogger.error('Error refreshing card details:', err)
+      } finally {
+        done()
+      }
     },
 
     async fetchCardTokenHoldings () {
