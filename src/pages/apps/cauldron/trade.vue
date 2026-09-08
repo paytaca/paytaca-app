@@ -257,7 +257,15 @@
                     <q-skeleton type="text" width="80px" style="height: 1.5em;" />
                   </div>
                   <div class="row items-center justify-between text-caption text-grey">
-                    <div>{{ $t('PlatformFee') }} (0.3%)</div>
+                    <div class="row items-center">
+                      <span>{{ $t('PlatformFee') }}</span>
+                      <q-icon
+                        name="info"
+                        size="16px"
+                        class="q-ml-xs cursor-pointer"
+                        @click="showPlatformFeeInfo"
+                      />
+                    </div>
                     <q-skeleton type="text" width="80px" style="height: 1.5em;" />
                   </div>
                   <div class="row items-center justify-between text-caption text-grey">
@@ -279,7 +287,15 @@
                     <div>{{ tradeFee }} BCH</div>
                   </div>
                   <div class="row items-center justify-between text-caption text-grey">
-                    <div>{{ $t('PlatformFee') }} (0.3%)</div>
+                    <div class="row items-center">
+                      <span>{{ $t('PlatformFee') }}</span>
+                      <q-icon
+                        name="info"
+                        size="16px"
+                        class="q-ml-xs cursor-pointer"
+                        @click="showPlatformFeeInfo"
+                      />
+                    </div>
                     <div>{{ platformFeeBch }} BCH</div>
                   </div>
                   <div class="row items-center justify-between text-caption text-grey">
@@ -743,14 +759,25 @@ export default defineComponent({
       return tradeFeeBch.toFixed(8);
     });
 
+    const PLATFORM_FEE_MAX_USD = 1;
+    const maxPlatformFeeSats = computed(() => {
+      const bchUsdPrice = Number($store.getters['market/getAssetPrice']('bch', 'usd'));
+      if (!bchUsdPrice || !isFinite(bchUsdPrice) || bchUsdPrice <= 0) return null;
+      return BigInt(Math.round((PLATFORM_FEE_MAX_USD / bchUsdPrice) * 10 ** 8));
+    });
+
     const platformFee = computed(() => {
       if (!tradeResult.value) return;
       const recipient = process.env.CAULDRON_PLATFORM_FEE_ADDRESS;
       if (!recipient) return;
 
+      const platformFeeCapSats = maxPlatformFeeSats.value;
+      if (platformFeeCapSats == null) return;
+
       const summary = tradeResult.value.summary
       const tradeSizeSats = (isBuyingToken.value ? summary.supply : summary.demand) - summary.trade_fee;
-      const platformFeeSats = tradeSizeSats * 3n / 1000n;
+      let platformFeeSats = tradeSizeSats * 3n / 1000n;
+      if (platformFeeSats > platformFeeCapSats) platformFeeSats = platformFeeCapSats;
       if (platformFeeSats < 546n) return;
       return { amount: platformFeeSats, to: recipient };
     })
@@ -758,6 +785,15 @@ export default defineComponent({
       if (!platformFee.value) return 0;
       return Number(platformFee.value.amount) / 10 ** 8;
     });
+
+    function showPlatformFeeInfo() {
+      $q.dialog({
+        title: $t('PlatformFee'),
+        message: $t('PlatformFeeInfo', {}, 'A 0.3% fee charged by the platform, capped at a maximum of 1 USD worth of BCH.'),
+        color: 'primary',
+        class: `text-bow ${getDarkModeClass(darkMode.value)}`,
+      })
+    }
     
     const estimateTransactionFee = computed(() => {
       if (!tradeResult.value || !selectedToken.value || !tradeResult.value.summary) return '0';
@@ -1227,6 +1263,9 @@ export default defineComponent({
 
     // Initialize on mount
     onMounted(async () => {
+      if ($store.getters['market/getAssetPrice']('bch', 'usd') == null) {
+        $store.dispatch('market/updateAssetPrices', { assetId: 'bch' })
+      }
       if (props.selectTokenId) {
         try {
           const tokens = await fetchTokensList({ token_id: props.selectTokenId });
@@ -1318,6 +1357,7 @@ export default defineComponent({
       formattedOutputAmount,
       tradeFee,
       platformFeeBch,
+      showPlatformFeeInfo,
       estimateTransactionFee,
       hasSufficientBalance,
       showInsufficientBalance,

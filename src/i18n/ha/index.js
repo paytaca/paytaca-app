@@ -2026,6 +2026,7 @@ export default {
   PlanName: "Sunan Tsari",
   Plans: "Shirye-shirye",
   PlatformFee: "Kuɗin Platform",
+  PlatformFeeInfo: "Kuɗin 0.3% da dandamali ke cajin, wanda aka ƙididdige shi a iyakar ƙimar 1 USD na BCH.",
   PleaseEnableLocationService: "Da fatan za a kunna sabis na wurin na'urar.",
   PleaseEnterNickname: "Da fatan za a shigar da sunan barkwanci",
   PleaseEnterOrScanEncryptionPublicKey: "Da fatan za a shigar da ko duba maɓallin ɓoyayyen jama'a",

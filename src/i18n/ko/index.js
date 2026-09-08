@@ -2026,6 +2026,7 @@ export default {
   PlanName: "계획 이름",
   Plans: "계획",
   PlatformFee: "플랫폼 수수료",
+  PlatformFeeInfo: "플랫폼에서 부과하는 0.3% 수수료는 최대 1 USD 상당의 BCH로 제한됩니다.",
   PleaseEnableLocationService: "기기의 위치 서비스를 활성화하세요.",
   PleaseEnterNickname: "닉네임을 입력해주세요",
   PleaseEnterOrScanEncryptionPublicKey: "암호화 공개 키를 입력하거나 스캔하세요.",

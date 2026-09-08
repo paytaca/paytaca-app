@@ -2026,6 +2026,7 @@ export default {
   PlanName: "اسم الخطة",
   Plans: "الخطط",
   PlatformFee: "رسوم المنصة",
+  PlatformFeeInfo: "رسوم بنسبة 0.3% تفرضها المنصة، بحد أقصى 1 دولار أمريكي من عملة البيتكوين كاش.",
   PleaseEnableLocationService: "الرجاء تمكين خدمة موقع الجهاز.",
   PleaseEnterNickname: "الرجاء إدخال اللقب",
   PleaseEnterOrScanEncryptionPublicKey: "الرجاء إدخال أو مسح المفتاح العام للتشفير",

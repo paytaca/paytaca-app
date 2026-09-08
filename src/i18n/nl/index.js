@@ -2026,6 +2026,7 @@ export default {
   PlanName: "Plannaam",
   Plans: "Plannen",
   PlatformFee: "Platformkosten",
+  PlatformFeeInfo: "Er wordt een vergoeding van 0,3% in rekening gebracht door het platform, met een maximum van 1 USD aan BCH.",
   PleaseEnableLocationService: "Schakel de locatieservice van het apparaat in.",
   PleaseEnterNickname: "Voer een bijnaam in",
   PleaseEnterOrScanEncryptionPublicKey: "Voer de openbare coderingssleutel in of scan deze",
