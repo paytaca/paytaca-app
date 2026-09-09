@@ -71,7 +71,11 @@
                   <div class="text-body2 text-weight-medium">
                     {{ getPeriodText(planDetails) }}
                   </div>
-                  <q-btn flat round dense icon="info" size="xs" color="grey" class="q-ml-xs" @click="showBlocksInfo" v-if="planDetails.period_blocks" />
+                  <q-btn
+                    v-if="planDetails.period_blocks"
+                    flat round dense icon="info" size="xs" color="grey" class="q-ml-xs"
+                    @click="() => showBlocksInfo(planDetails.period_blocks)"
+                  />
                 </div>
               </div>
             </div>
@@ -111,11 +115,11 @@ import { useDialogPluginComponent, useQuasar } from 'quasar'
 import { useStore } from 'vuex'
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 import { PaymentHub, extractPlanId } from 'src/wallet/payment-hub'
+import { loadWallet } from 'src/wallet'
+import { usePaymentHubUtils, useSubscriptionFormSchema, useSubscriptionUtils } from 'src/composables/payment-hub/usePaymentHub'
 import QrScanner from 'src/components/qr-scanner.vue'
 import QRUploader from 'src/components/QRUploader.vue'
-import { loadWallet } from 'src/wallet'
 import JSONFormPreview from 'src/components/jsonforms/JSONFormPreview.vue'
-import { serializeSchemaFields } from 'src/components/jsonforms/jsonform-utils'
 
 defineEmits([
   ...useDialogPluginComponent.emits
@@ -133,6 +137,8 @@ const { t: $t } = useI18n()
 const $store = useStore()
 const $q = useQuasar()
 const darkMode = computed(() => $store.getters['darkmode/getStatus'])
+
+const { getPeriodText, satsToBchDisplay, getTotalCostPerCycle } = useSubscriptionUtils();
 const formRef = ref(null)
 const subscriptionFormRef = ref(null)
 
@@ -145,18 +151,9 @@ const isChipnet = computed(() => $store.getters['global/isChipnet'])
 
 const subscriptionFormData = ref({})
 const subscriptionFormErrors = ref([])
-const subscriptionFormSchema = computed(() => {
-  const formData = planDetails.value?.subscription_form_data
-  const unserialized = formData?.unserialized_schema_data
-  if (Array.isArray(unserialized)) {
-    return serializeSchemaFields(unserialized, { normalizeNames: true })
-  }
-  return formData?.schema_data || null
-})
-const hasSubscriptionForm = computed(() => {
-  const properties = subscriptionFormSchema.value?.properties
-  return properties && Object.keys(properties).length > 0
-})
+const { subscriptionFormSchema, hasSubscriptionForm } = useSubscriptionFormSchema(planDetails);
+const { formatAmount } = usePaymentHubUtils();
+const { showBlocksInfo } = useSubscriptionUtils();
 
 watch(planDetails, () => {
   subscriptionFormData.value = {}
@@ -181,33 +178,8 @@ const bchPrice = computed(() => {
   return $store.getters['market/getAssetPrice']('bch', planDetails.value.currency) || 0
 })
 
-function formatAmount(amount) {
-  const num = parseFloat(amount)
-  if (isNaN(num)) return amount
-  return parseFloat(num.toFixed(8)).toString()
-}
-
 const bchUsdPrice = computed(() => $store.getters['market/getAssetPrice']('bch', 'usd') || 0)
 
-const paytacaFeeSats = computed(() => {
-  if (!planDetails.value) return 0
-  
-  let pledgeSats = planDetails.value.amount_satoshis
-  if (!pledgeSats) {
-    if (!bchPrice.value) return 546
-    const bchAmount = parseFloat(planDetails.value.amount) / bchPrice.value
-    pledgeSats = Math.round(bchAmount * 100000000)
-  }
-  
-  let maxFee = 50000 // default if no USD price
-  if (bchUsdPrice.value > 0) {
-    maxFee = Math.round((1 / bchUsdPrice.value) * 100000000)
-  }
-  
-  return Math.max(Math.min(maxFee, Math.floor(pledgeSats / 100)), Math.floor(maxFee / 100))
-})
-
-const WITHDRAW_MINER_FEE_SATS = 1000
 const totalCostSats = computed(() => {
   if (!planDetails.value) return 0
   let pledgeSats = planDetails.value.amount_satoshis
@@ -216,12 +188,17 @@ const totalCostSats = computed(() => {
     const bchAmount = parseFloat(planDetails.value.amount) / bchPrice.value
     pledgeSats = Math.round(bchAmount * 100000000)
   }
-  return pledgeSats + paytacaFeeSats.value + WITHDRAW_MINER_FEE_SATS // miner fee
+
+  let maxFee = 50000 // default if no USD price
+  if (bchUsdPrice.value > 0) {
+    maxFee = Math.round((1 / bchUsdPrice.value) * 100000000)
+  }
+  return getTotalCostPerCycle({ pledge_satoshis: pledgeSats, max_fee: maxFee })
 })
 
 const totalBchStr = computed(() => {
   if (totalCostSats.value === 0) return '0'
-  return (totalCostSats.value / 100000000).toFixed(8).replace(/\.?0+$/, '') || '0'
+  return satsToBchDisplay(totalCostSats.value) || '0'
 })
 
 const totalFiatStr = computed(() => {
@@ -232,49 +209,8 @@ const totalFiatStr = computed(() => {
     const totalBch = totalCostSats.value / 100000000
     return parseFloat((totalBch * bchPrice.value).toFixed(2)).toString()
   }
-  return formatAmount(planDetails.value.amount)
+  return formatAmount(planDetails.value.amount, 8)
 })
-
-function getPeriodText(plan) {
-  if (plan.period_days) {
-    return `Every ${plan.period_days} ${plan.period_days === 1 ? $t('Day') : $t('Days')}`
-  }
-  const blocks = plan.period_blocks
-  if (!blocks) return ''
-  
-  let timeStr = ''
-  if (blocks % 4320 === 0) {
-    const v = blocks / 4320
-    timeStr = `${v} ${v === 1 ? $t('Month') : $t('Months')}`
-  } else if (blocks % 1008 === 0) {
-    const v = blocks / 1008
-    timeStr = `${v} ${v === 1 ? $t('Week') : $t('Weeks')}`
-  } else if (blocks % 144 === 0) {
-    const v = blocks / 144
-    timeStr = `${v} ${v === 1 ? $t('Day') : $t('Days')}`
-  } else if (blocks % 6 === 0) {
-    const v = blocks / 6
-    timeStr = `${v} ${v === 1 ? $t('Hour') : $t('Hours')}`
-  } else {
-    timeStr = `${blocks * 10} ${$t('Minutes')}`
-  }
-  return `Every ${timeStr}`
-}
-
-function showBlocksInfo() {
-  const msg1 = $t('EstimatedTimeBasedOnBlocks')
-  const msg2 = $t('ExactIntervalBlocksMsg', { blocks: planDetails.value.period_blocks })
-  $q.dialog({
-    title: t('BillingReceivingPeriod', 'Billing/Receiving Period'),
-    message: msg1 + ' ' + msg2,
-    color: 'pt-primary1',
-    ok: {
-      flat: true,
-      color: 'pt-primary1',
-      label: 'OK'
-    }
-  })
-}
 
 async function onFormSubmit() {
   const isValid = await formRef.value.validate()

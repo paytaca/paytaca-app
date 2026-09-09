@@ -153,7 +153,7 @@
                 >
                   <q-item-section side top>
                     <q-badge
-                      :color="getBadgeColor(inv.status)"
+                      :color="getInvoiceBadgeColor(inv.status)"
                       :text-color="darkMode ? 'black' : 'white'"
                       class="text-weight-bold br-5"
                     >
@@ -181,8 +181,7 @@
 </template>
 
 <script setup>
-import { usePaymentHubCore } from 'src/composables/payment-hub/usePaymentHub.js'
-import { serializeSchemaFields } from 'src/components/jsonforms/jsonform-utils'
+import { usePaymentHubCore, usePaymentHubUtils, useSubscriptionFormSchema, useSubscriptionUtils } from 'src/composables/payment-hub/usePaymentHub.js'
 import { ref, computed, onMounted, watch } from 'vue'
 import { useDialogPluginComponent, copyToClipboard, useQuasar } from 'quasar'
 import { useStore } from 'vuex'
@@ -212,26 +211,15 @@ const error = ref('')
 const plan = ref(null)
 const tab = ref('details')
 
-const subscriptionFormSchema = computed(() => {
-  console.log('PLan', plan.value);
-  const formData = plan.value?.subscription_form_data
-  console.log('FormData', formData);
-  const unserialized = formData?.unserialized_schema_data
-  if (Array.isArray(unserialized)) {
-    return serializeSchemaFields(unserialized, { normalizeNames: true })
-  }
-  return formData?.schema_data || null
-})
-const hasSubscriptionForm = computed(() => {
-  const props = subscriptionFormSchema.value?.properties
-  return props && Object.keys(props).length > 0
-})
+const { subscriptionFormSchema, hasSubscriptionForm } = useSubscriptionFormSchema(plan)
 
 // Invoices state
 const invoices = ref([])
 const loadingInvoices = ref(false)
 
 const { hub, initHub } = usePaymentHubCore();
+const { formatDate, getInvoiceBadgeColor } = usePaymentHubUtils();
+const { getPeriodText, showBlocksInfo } = useSubscriptionUtils();
 
 async function fetchPlan() {
   loading.value = true
@@ -276,54 +264,10 @@ watch(tab, (newTab) => {
   }
 })
 
-function formatDate(dateStr) {
-  if (!dateStr) return '-'
-  return date.formatDate(dateStr, 'MMM D, YYYY HH:mm')
-}
-
 function formatAmount(amount) {
   const num = parseFloat(amount)
   if (isNaN(num)) return amount
   return parseFloat(num.toFixed(2)).toString()
-}
-
-function getPeriodText(p) {
-  if (p.period_days) {
-    return `Every ${p.period_days} ${p.period_days === 1 ? (t('Day', 'day')) : (t('Days', 'days'))}`
-  }
-  const blocks = p.period_blocks
-  if (!blocks) return ''
-  
-  let timeStr = ''
-  if (blocks % 4320 === 0) {
-    const v = blocks / 4320
-    timeStr = `${v} ${v === 1 ? (t('Month', 'month')) : (t('Months', 'months'))}`
-  } else if (blocks % 1008 === 0) {
-    const v = blocks / 1008
-    timeStr = `${v} ${v === 1 ? (t('Week', 'week')) : (t('Weeks', 'weeks'))}`
-  } else if (blocks % 144 === 0) {
-    const v = blocks / 144
-    timeStr = `${v} ${v === 1 ? (t('Day', 'day')) : (t('Days', 'days'))}`
-  } else if (blocks % 6 === 0) {
-    const v = blocks / 6
-    timeStr = `${v} ${v === 1 ? (t('Hour', 'hour')) : (t('Hours', 'hours'))}`
-  } else {
-    timeStr = `${blocks * 10} ${t('Minutes', 'minutes')}`
-  }
-  return `Every ${timeStr}`
-}
-
-function showBlocksInfo(blocks) {
-  $q.dialog({
-    title: t('BillingReceivingPeriod', 'Billing/Receiving Period'),
-    message: `${t('EstimatedTimeBasedOnBlocks', 'The displayed time is an estimate based on the Bitcoin Cash network block target of 10 minutes per block. The exact interval is')} ${blocks} ${t('Blocks', 'blocks')}.`,
-    color: 'pt-primary1',
-    ok: {
-      flat: true,
-      color: 'pt-primary1',
-      label: 'OK'
-    }
-  })
 }
 
 function copyText(text, label = 'Text') {
@@ -350,15 +294,4 @@ onMounted(async () => {
   }
 })
 
-function getBadgeColor(status) {
-  switch(status) {
-    case 'PAID': return 'green-4'
-    case 'PENDING': return 'orange-4'
-    case 'TOP UP': return 'blue-4'
-    case 'RECLAIMED': return 'purple-4'
-    case 'CANCELLED': return 'red-4'
-    case 'EXPIRED': return 'grey-5'
-    default: return 'grey-5'
-  }
-}
 </script>

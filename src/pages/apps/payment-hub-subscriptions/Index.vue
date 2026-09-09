@@ -101,7 +101,7 @@
                     </div>
                     <div class="col-auto text-center q-px-sm" style="width: 100px;">
                       <q-badge
-                        :color="sub.status === 'ACTIVE' ? 'green-4' : (sub.status === 'CANCELLED' ? 'red-4' : (sub.status === 'PENDING' ? 'orange-4' : 'grey-5'))"
+                        :color="getSubscriptionStatusColor(sub)"
                         :text-color="darkMode ? 'black' : 'white'"
                         rounded
                         class="q-px-sm text-weight-medium"
@@ -169,7 +169,7 @@ import { useRoute, useRouter } from 'vue-router'
 import { debounce, useQuasar } from 'quasar'
 import { useI18n } from 'vue-i18n'
 import { bus } from 'src/wallet/event-bus'
-import { usePaymentHubCore } from 'src/composables/payment-hub/usePaymentHub'
+import { usePaymentHubCore, useSubscriptionUtils } from 'src/composables/payment-hub/usePaymentHub'
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 import HeaderNav from 'src/components/header-nav'
 import SubscribeDialog from 'src/components/payment-hub/SubscribeDialog.vue'
@@ -199,6 +199,7 @@ const { t: $t } = useI18n()
 const darkMode = computed(() => $store.getters['darkmode/getStatus'])
 
 const { wallet, hub, initHub, initWebSocket, closeWebSocket, _compareUUID } = usePaymentHubCore()
+const { getSubscriptionStatusColor } = useSubscriptionUtils();
 
 const subscriptions = ref([])
 const fetchingData = ref(false)

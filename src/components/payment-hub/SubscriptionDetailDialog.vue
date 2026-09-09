@@ -39,7 +39,7 @@
           <div class="row items-start q-gutter-x-sm q-mb-sm">
             <div class="text-h6 q-mr-sm">{{ sub.plan_details?.name || $t('Subscription') }}</div>
             <q-badge
-              :color="statusColor"
+              :color="getSubscriptionStatusColor(sub)"
               :text-color="darkMode ? 'black' : 'white'"
               class="text-weight-bold q-px-sm q-py-xs br-5"
               style="font-size: 0.75rem;"
@@ -128,7 +128,7 @@
               <div class="text-caption text-grey">{{ $t('BillingReceivingPeriod', 'Billing/Receiving Period') }}</div>
               <div class="row items-center">
                 <div class="text-body2 text-weight-medium">
-                  {{ getPeriodText(sub) }}
+                  {{ getPeriodTextBase(sub.plan_details || sub) }}
                 </div>
                 <q-btn flat round dense icon="info" size="xs" color="grey" class="q-ml-xs" @click="showBlocksInfo(sub.period_blocks || sub.plan_details?.period_blocks)" v-if="sub.period_blocks || sub.plan_details?.period_blocks" />
               </div>
@@ -276,7 +276,7 @@
                 <q-item v-for="inv in invoices" :key="inv.invoice_id" clickable v-ripple class="q-py-md" @click="showInvoiceDetail(inv)">
                   <q-item-section side top>
                     <q-badge
-                      :color="getBadgeColor(inv.status)"
+                      :color="getInvoiceBadgeColor(inv.status)"
                       :text-color="darkMode ? 'black' : 'white'"
                       class="text-weight-bold br-5"
                     >
@@ -328,7 +328,7 @@ import { useI18n } from 'vue-i18n'
 import { date } from 'quasar'
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 import { inferSchemaFromData, serializeSchemaFields } from 'src/components/jsonforms/jsonform-utils'
-import { usePaymentHubCore } from 'src/composables/payment-hub/usePaymentHub'
+import { usePaymentHubCore, usePaymentHubUtils, useSubscriptionFormSchema, useSubscriptionUtils } from 'src/composables/payment-hub/usePaymentHub'
 import { bus } from 'src/wallet/event-bus'
 import TopUpDialog from 'src/components/payment-hub/TopUpDialog.vue'
 import UpdateNftDialog from 'src/components/payment-hub/UpdateNftDialog.vue'
@@ -350,6 +350,8 @@ const $q = useQuasar()
 const darkMode = computed(() => $store.getters['darkmode/getStatus'])
 
 const { hub, initHub } = usePaymentHubCore()
+const { formatDate, formatAmount, getInvoiceBadgeColor } = usePaymentHubUtils()
+const { PAYOUT_TX_FEE, getPeriodTextBase, satsToBchDisplay, getPaytacaFee, getTotalCostPerCycle, showBlocksInfo, getSubscriptionStatusColor } = useSubscriptionUtils();
 
 const loading = ref(true)
 const error = ref('')
@@ -359,18 +361,7 @@ const tab = ref('details')
 const invoices = ref([])
 const loadingInvoices = ref(false)
 
-const subscriptionFormSchema = computed(() => {
-  const formData = sub.value?.plan_details?.subscription_form_data
-  const unserialized = formData?.unserialized_schema_data
-  if (Array.isArray(unserialized)) {
-    return serializeSchemaFields(unserialized, { normalizeNames: true })
-  }
-  return formData?.schema_data || null
-})
-const hasSubscriptionForm = computed(() => {
-  const props = subscriptionFormSchema.value?.properties
-  return props && Object.keys(props).length > 0
-})
+const { subscriptionFormSchema, hasSubscriptionForm } = useSubscriptionFormSchema(sub);
 
 // Fallback: infer schema from subscription_data if form schema doesn't match
 const subscriptionDataSchema = computed(() => {
@@ -387,31 +378,15 @@ const displayFormSchema = computed(() => {
   return subscriptionDataSchema.value
 })
 
-const statusColor = computed(() => {
-  if (!sub.value) return 'grey-5'
-  const s = sub.value.status
-  if (s === 'ACTIVE') return 'green-4'
-  if (s === 'CANCELLED') return 'red-4'
-  if (s === 'PENDING') return 'orange-4'
-  return 'grey-5'
-})
-
 const bchPrice = computed(() => {
   if (!sub.value?.plan_details || sub.value.plan_details.currency === 'BCH') return 0
   return $store.getters['market/getAssetPrice']('bch', sub.value.plan_details.currency) || 0
 })
 
-function getEquivalentBch(amount) {
-  if (!bchPrice.value) return 0
-  const bchAmount = parseFloat(amount) / bchPrice.value
-  const sats = Math.round(bchAmount * 100000000)
-  return (sats / 100000000).toFixed(8).replace(/\.?0+$/, '') || '0'
-}
-
 function showBillingInfo() {
   if (!sub.value?.plan_details) return
   const p = sub.value.plan_details
-  const periodText = getPeriodText(p)
+  const periodText = getPeriodTextBase(p)
 
   let msg = ''
   if (p.period_days) {
@@ -428,8 +403,8 @@ function showBillingInfo() {
     )
   }
 
-  const mFee = minerFee.value
-  const pFee = paytacaFee.value
+  const mFee = PAYOUT_TX_FEE
+  const pFee = getPaytacaFee(sub.value)
 
   msg += ' ' + $t(
     'TotalSubscriptionCostMsg',
@@ -452,7 +427,7 @@ const contractBalanceSats = computed(() => {
 
 const contractBalanceBch = computed(() => {
   if (!sub.value?.balance) return '0'
-  return (sub.value.balance / 1e8).toFixed(8).replace(/\.?0+$/, '')
+  return satsToBchDisplay(sub.value.balance)
 })
 
 const contractBalanceFiat = computed(() => {
@@ -463,38 +438,24 @@ const contractBalanceFiat = computed(() => {
   if (isNaN(bchVal)) return '0.00'
 
   const fiatVal = bchVal * bchPrice.value
-  return formatAmount(fiatVal)
+  return formatAmount(fiatVal, 2)
 })
 
-const minerFee = computed(() => 1000)
-const cashtokenDustAmount = computed(() => 1000)
-
-const paytacaFee = computed(() => {
-  if (!sub.value) return 546
-  if (typeof sub.value.paytaca_fee === 'number') return sub.value.paytaca_fee
-  if (!sub.value.pledge_satoshis) return 546
-  const pledge = sub.value.pledge_satoshis
-  const maxFee = sub.value.max_fee || 546
-  return Math.max(Math.min(maxFee, Math.floor(pledge / 100)), Math.floor(maxFee / 100))
-})
-
-const totalCostSats = computed(() => {
-  if (!sub.value?.pledge_satoshis) return 0
-  return sub.value.pledge_satoshis + paytacaFee.value + minerFee.value
-})
+const totalCostSats = computed(() => getTotalCostPerCycle(sub.value))
 
 const totalCostBch = computed(() => {
   if (!totalCostSats.value) return '0'
-  return (totalCostSats.value / 1e8).toFixed(8).replace(/\.?0+$/, '')
+  return satsToBchDisplay(totalCostSats.value)
 })
 
 const totalCostFiat = computed(() => {
   if (!totalCostSats.value || !bchPrice.value) return '0.00'
   const bchVal = parseFloat(totalCostBch.value)
   const fiatVal = bchVal * bchPrice.value
-  return formatAmount(fiatVal)
+  return formatAmount(fiatVal, 2)
 })
 
+const cashtokenDustAmount = computed(() => 1000)
 const remainingPayouts = computed(() => {
   if (!sub.value?.balance || !totalCostSats.value) return 0
   const available = sub.value.balance - cashtokenDustAmount.value
@@ -613,58 +574,6 @@ function onCancelSubscriptionClick() {
   onDialogOK({ action: 'cancel_subscription', subscription: sub.value })
 }
 
-function formatAmount(amount) {
-  const num = parseFloat(amount)
-  if (isNaN(num)) return amount
-  return parseFloat(num.toFixed(2)).toString()
-}
-
-function getPeriodText(p) {
-  const periodDays = p.period_days || p.plan_details?.period_days
-  if (periodDays) {
-    return `${periodDays} ${periodDays === 1 ? ($t('Day') || 'day') : ($t('Days') || 'days')}`
-  }
-  const blocks = p.period_blocks || p.plan_details?.period_blocks
-  if (!blocks) return ''
-
-  let timeStr = ''
-  if (blocks % 4320 === 0) {
-    const v = blocks / 4320
-    timeStr = `${v} ${v === 1 ? ($t('Month')) : ($t('Months'))}`
-  } else if (blocks % 1008 === 0) {
-    const v = blocks / 1008
-    timeStr = `${v} ${v === 1 ? ($t('Week')) : ($t('Weeks'))}`
-  } else if (blocks % 144 === 0) {
-    const v = blocks / 144
-    timeStr = `${v} ${v === 1 ? ($t('Day')) : ($t('Days'))}`
-  } else if (blocks % 6 === 0) {
-    const v = blocks / 6
-    timeStr = `${v} ${v === 1 ? ($t('Hour')) : ($t('Hours'))}`
-  } else {
-    timeStr = `${blocks * 10} ${$t('Minutes')}`
-  }
-  return timeStr
-}
-
-function showBlocksInfo(blocks) {
-  const fallbackMessage = 'The displayed time is an estimate based on the Bitcoin Cash network block target of 10 minutes per block. The exact interval is'
-  $q.dialog({
-    title: $t('BillingReceivingPeriod', 'Billing/Receiving Period'),
-    message: `${$t('EstimatedTimeBasedOnBlocks', fallbackMessage)} ${blocks} ${$t('Blocks')}.`,
-    color: 'pt-primary1',
-    ok: {
-      flat: true,
-      color: 'pt-primary1',
-      label: 'OK'
-    }
-  })
-}
-
-function formatDate(dateStr) {
-  if (!dateStr) return '-'
-  return date.formatDate(dateStr, 'MMM D, YYYY HH:mm')
-}
-
 function copyText(text, label = $t('Text')) {
   if (!text) return
   copyToClipboard(text)
@@ -691,18 +600,6 @@ onMounted(() => {
   bus.on('payment-hub-subscription-update', onPaymentHubSubscriptionUpdate)
   fetchSubscription()
 })
-
-function getBadgeColor(status) {
-  switch(status) {
-    case 'PAID': return 'green-4'
-    case 'PENDING': return 'orange-4'
-    case 'TOP UP': return 'blue-4'
-    case 'RECLAIMED': return 'purple-4'
-    case 'CANCELLED': return 'red-4'
-    case 'EXPIRED': return 'grey-5'
-    default: return 'grey-5'
-  }
-}
 
 </script>
 

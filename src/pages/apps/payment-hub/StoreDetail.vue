@@ -310,7 +310,7 @@
                               <div class="col ellipsis q-pr-sm">
                                 <div class="text-weight-bold">{{ sub.plan_details?.name || $t('Subscription') }}</div>
                                 <div class="text-caption text-grey text-weight-regular">
-                                  {{ sub.pledge_satoshis ? (sub.pledge_satoshis / 1e8).toFixed(8).replace(/\.?0+$/, '') + ' BCH' : (sub.plan_details?.amount + ' ' + sub.plan_details?.currency) }}
+                                  {{ sub.pledge_satoshis ? satsToBchDisplay(sub.pledge_satoshis) + ' BCH' : (sub.plan_details?.amount + ' ' + sub.plan_details?.currency) }}
                                   &bull;
                                   <span v-if="sub.period_blocks">{{ sub.period_blocks }} {{ $t('Blocks') }}</span>
                                   <span v-else-if="sub.plan_details?.period_days">{{ sub.plan_details.period_days }} {{ $t('Days') }}</span>
@@ -320,7 +320,7 @@
                               </div>
                               <div class="col-auto text-center q-px-sm" style="width: 100px;">
                                 <q-badge
-                                  :color="sub.status === 'ACTIVE' ? 'green-4' : (sub.status === 'CANCELLED' ? 'red-4' : (sub.status === 'PENDING' ? 'orange-4' : 'grey-5'))"
+                                  :color="getSubscriptionStatusColor(sub)"
                                   :text-color="darkMode ? 'black' : 'white'"
                                   rounded
                                   class="q-px-sm text-weight-medium"
@@ -468,8 +468,8 @@ import PlanDetailDialog from 'src/components/payment-hub/PlanDetailDialog.vue'
 import SubscriptionDetailDialog from 'src/components/payment-hub/SubscriptionDetailDialog.vue'
 import InvoiceList from 'src/components/payment-hub/InvoiceList.vue'
 import { DISPLAY_SUBS_APP } from 'src/wallet/payment-hub'
-import { usePaymentHubCore } from 'src/composables/payment-hub/usePaymentHub'
-
+import { bus } from 'src/wallet/event-bus'
+import { usePaymentHubCore, useSubscriptionUtils } from 'src/composables/payment-hub/usePaymentHub'
 
 import { SignatureTemplate, TransactionBuilder } from 'cashscript13'
 import { formatKitInput, formatKitOutput, getSubscriptionContractInstance } from 'src/wallet/payment-hub/cashscript-utils'
@@ -487,6 +487,7 @@ const storeName = computed(() => $route.query.name)
 const displaySubs = ref(DISPLAY_SUBS_APP);
 
 const { wallet, hub, initHub, initWebSocket, closeWebSocket, _compareUUID } = usePaymentHubCore()
+const { satsToBchDisplay, getSubscriptionStatusColor } = useSubscriptionUtils()
 
 // Core state
 const storeData = ref(null)
