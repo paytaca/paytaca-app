@@ -2160,16 +2160,12 @@ export default {
       if (this.$route.query?.assetData) {
         try {
           const parsed = JSON.parse(this.$route.query.assetData)
-          console.log('@parsed', parsed)
           this.asset = { ...this.asset, ...parsed, id: this.assetId, spendable: parsed.balance }
-          console.log('@this.asset', this.asset)
         } catch {
           this.asset.name = this.assetId
         }
       }
     }
-    console.log('@this asset', this.asset)
-    
   }
 }
 </script>
