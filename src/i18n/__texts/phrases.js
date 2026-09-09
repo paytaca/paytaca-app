@@ -335,6 +335,7 @@ const phrases = {
       TransactionIdCopied: 'Transaction ID copied',
       InvalidTradeResult: 'Invalid trade result. Please try again.',
       PlatformFee: 'Platform Fee',
+      PlatformFeeInfo: 'A 0.3% fee charged by the platform, capped at a maximum of 1 USD worth of BCH.',
       TradeSummary: 'Trade Summary',
       ExchangeRate: 'Exchange rate',
       TotalPlatformFee: 'Total Platform Fee',

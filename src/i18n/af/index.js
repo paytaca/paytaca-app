@@ -2026,6 +2026,7 @@ export default {
   PlanName: "Plan Naam",
   Plans: "Planne",
   PlatformFee: "Platformfooi",
+  PlatformFeeInfo: "'n 0.3% fooi wat deur die platform gehef word, beperk tot 'n maksimum van 1 USD ter waarde van BCH.",
   PleaseEnableLocationService: "Aktiveer asseblief toestel se liggingdiens.",
   PleaseEnterNickname: "Voer asseblief bynaam in",
   PleaseEnterOrScanEncryptionPublicKey: "Voer asseblief die enkripsie publieke sleutel in of skandeer dit",

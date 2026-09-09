@@ -2084,6 +2084,7 @@ export default {
   PlanURL: "Plan URL",
   Plans: "Plans",
   PlatformFee: "Platform Fee",
+  PlatformFeeInfo: "A 0.3% fee charged by the platform, capped at a maximum of 1 USD worth of BCH.",
   PleaseEnableLocationService: "Please enable device's location service.",
   PleaseEnterNickname: "Please enter nickname",
   PleaseEnterOrScanEncryptionPublicKey: "Please enter or scan the encryption public key",

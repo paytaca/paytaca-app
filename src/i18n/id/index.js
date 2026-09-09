@@ -2026,6 +2026,7 @@ export default {
   PlanName: "Nama Rencana",
   Plans: "Rencana",
   PlatformFee: "Biaya Peron",
+  PlatformFeeInfo: "Biaya 0,3% dibebankan oleh platform, dibatasi maksimal BCH senilai 1 USD.",
   PleaseEnableLocationService: "Harap aktifkan layanan lokasi perangkat.",
   PleaseEnterNickname: "Silakan masukkan nama panggilan",
   PleaseEnterOrScanEncryptionPublicKey: "Silakan masukkan atau pindai kunci publik enkripsi",

@@ -2026,6 +2026,7 @@ export default {
   PlanName: "プラン名",
   Plans: "計画",
   PlatformFee: "プラットフォーム料金",
+  PlatformFeeInfo: "プラットフォームによって請求される 0.3% の手数料は、BCH の最大 1 米ドル相当に制限されます。",
   PleaseEnableLocationService: "デバイスの位置情報サービスを有効にしてください。",
   PleaseEnterNickname: "ニックネームを入力してください",
   PleaseEnterOrScanEncryptionPublicKey: "暗号化公開キーを入力するかスキャンしてください",

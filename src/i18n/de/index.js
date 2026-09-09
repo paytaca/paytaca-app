@@ -2026,6 +2026,7 @@ export default {
   PlanName: "Planname",
   Plans: "Pläne",
   PlatformFee: "Plattformgebühr",
+  PlatformFeeInfo: "Die Plattform erhebt eine Gebühr von 0,3 %, die auf einen BCH-Wert von maximal 1 USD begrenzt ist.",
   PleaseEnableLocationService: "Bitte aktivieren Sie den Standortdienst des Geräts.",
   PleaseEnterNickname: "Bitte geben Sie einen Spitznamen ein",
   PleaseEnterOrScanEncryptionPublicKey: "Bitte geben Sie den öffentlichen Verschlüsselungsschlüssel ein oder scannen Sie ihn",
