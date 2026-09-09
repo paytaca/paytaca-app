@@ -41,7 +41,7 @@ function computeWalletHash(mnemonic, derivationPath) {
 async function resolveReadOnlyAddressSet({ walletIndex, addressIndex, isChipnet }) {
   const { isReadOnlyVaultEntry, loadReadOnlyWallet } = await import('src/lib/readonly-wallet')
   const store = (await import('src/store')).default
-  const entry = store.getters['global/getVault']?.[walletIndex]
+  const entry = store().getters['global/getVault']?.[walletIndex]
   if (!isReadOnlyVaultEntry(entry)) return null
 
   const wallet = await loadReadOnlyWallet(walletIndex)

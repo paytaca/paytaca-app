@@ -1068,16 +1068,30 @@ export default {
         }
         
         // Update store with new address index
-        const wallet = await cachedLoadWallet('BCH', this.$store.getters['global/getWalletIndex'])
-        const result = await getWalletByNetwork(wallet, this.walletType).getNewAddressSet(newAddressIndex)
-        const addresses = result.addresses
-        
-        this.$store.commit('global/generateNewAddressSet', {
-          type: this.walletType,
-          lastAddress: addresses.receiving,
-          lastChangeAddress: addresses.change,
-          lastAddressIndex: newAddressIndex
-        })
+        if (isReadOnlyVaultEntry(this.$store.getters['global/getVault']?.[this.$store.getters['global/getWalletIndex']])) {
+          // Read-only wallets have no mnemonic; derive the address pair from the xpub
+          const { loadReadOnlyWallet, buildReadOnlyWallet } = await import('src/lib/readonly-wallet')
+          const readonlyWallet = await loadReadOnlyWallet(this.$store.getters['global/getWalletIndex'])
+          const bchWallet = buildReadOnlyWallet(readonlyWallet)[this.isChipnet ? 'BCH_CHIP' : 'BCH']
+          const addressSet = bchWallet.getAddressSetAt(newAddressIndex)
+          this.$store.commit('global/generateNewAddressSet', {
+            type: this.walletType,
+            lastAddress: addressSet.receiving,
+            lastChangeAddress: addressSet.change,
+            lastAddressIndex: newAddressIndex
+          })
+        } else {
+          const wallet = await cachedLoadWallet('BCH', this.$store.getters['global/getWalletIndex'])
+          const result = await getWalletByNetwork(wallet, this.walletType).getNewAddressSet(newAddressIndex)
+          const addresses = result.addresses
+
+          this.$store.commit('global/generateNewAddressSet', {
+            type: this.walletType,
+            lastAddress: addresses.receiving,
+            lastChangeAddress: addresses.change,
+            lastAddressIndex: newAddressIndex
+          })
+        }
         
         // Step 6: Render that new address in the page
         // Store regular format for API calls and listeners
