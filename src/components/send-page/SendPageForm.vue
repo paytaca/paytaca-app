@@ -169,7 +169,7 @@
         :key="inputExtras.fiatFormatted"
       >
         <template v-slot:append>
-          {{ String(currentSendPageCurrency()).toUpperCase() }}
+          {{ String(currentSendPageCurrency() || '').toUpperCase() }}
         </template>
       </q-input>
       <KeyboardTooltip v-if="activeKeyboardTip === 'fiat'" :dark-mode="darkMode" :key="'fiat-' + keyboardTipCounter" />
