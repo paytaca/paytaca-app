@@ -17,7 +17,6 @@
         {{ $t('ReadOnlyWalletNotice', {}, 'This is a read-only wallet. Instead of sending, an unsigned transaction (PSBT) is built which you can share with the wallet owner to sign and broadcast.') }}
       </q-banner>
       
-
       <div class="glass-panel q-mt-md" :class="getDarkModeClass(darkMode)">
           <!-- <q-list v-for="(recipient, index) in recipients" v-bind:key="index">
             <q-item>
@@ -385,6 +384,7 @@ export default {
   methods: {
     getDarkModeClass,
     async fetchBalances () {
+      console.log('Fetching....')
       if (!this.wallet?.getWalletBalances) return
       try {
         const balances = await this.wallet.getWalletBalances()
@@ -2125,14 +2125,6 @@ export default {
   },
   async mounted () {
     const index = this.$store.getters['global/getWalletIndex']
-    console.log('@wallet indezzx', index)
-    try {
-      const mnemonic = await getMnemonic(index)
-      console.log('@mnemonic', mnemonic)
-    } catch (error) {
-      console.log('error', error) 
-    }
-    
     this.wallet = await loadReadOnlyWallet(index)
     console.log('@this.wallet', this.wallet)
     if (!this.wallet) {
@@ -2162,18 +2154,22 @@ export default {
       this.asset.name = 'Bitcoin Cash'
       this.asset.symbol = 'BCH'
       this.asset.decimals = 8
+      await this.fetchBalances()
     } else {
       this.asset.id = this.assetId
       if (this.$route.query?.assetData) {
         try {
           const parsed = JSON.parse(this.$route.query.assetData)
-          this.asset = { ...this.asset, ...parsed, id: this.assetId }
+          console.log('@parsed', parsed)
+          this.asset = { ...this.asset, ...parsed, id: this.assetId, spendable: parsed.balance }
+          console.log('@this.asset', this.asset)
         } catch {
           this.asset.name = this.assetId
         }
       }
     }
-    await this.fetchBalances()
+    console.log('@this asset', this.asset)
+    
   }
 }
 </script>
