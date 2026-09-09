@@ -143,34 +143,13 @@
             </div>
             <div v-else>
               <q-list separator class="br-10 border-grey-4">
-                <q-item
-                  v-for="inv in invoices"
-                  :key="inv.invoice_id"
-                  clickable
-                  v-ripple
-                  class="q-py-md"
+                <InvoiceListItem
+                  v-for="inv in invoices" :key="inv.invoice_id"
+                  :invoice="inv"
+                  status-style="badge"
+                  date-format="absolute"
                   @click="showInvoiceDetail(inv)"
-                >
-                  <q-item-section side top>
-                    <q-badge
-                      :color="getInvoiceBadgeColor(inv.status)"
-                      :text-color="darkMode ? 'black' : 'white'"
-                      class="text-weight-bold br-5"
-                    >
-                      {{ inv.status }}
-                    </q-badge>
-                  </q-item-section>
-                  <q-item-section>
-                    <div class="text-body2 text-weight-medium ellipsis-2-lines" :class="getDarkModeClass(darkMode)" style="word-break: break-all;">
-                      {{ inv.memo || $t('NoMemo', 'No Memo') }}
-                    </div>
-                    <div class="text-caption text-grey q-mt-xs">{{ formatDate(inv.date_created) }}</div>
-                  </q-item-section>
-                  <q-item-section side top class="text-right">
-                    <div class="text-weight-bold">{{ inv.total_bch }} BCH</div>
-                    <div class="text-caption text-grey">{{ inv.total_fiat }}</div>
-                  </q-item-section>
-                </q-item>
+                />
               </q-list>
             </div>
           </q-tab-panel>
@@ -186,10 +165,11 @@ import { ref, computed, onMounted, watch } from 'vue'
 import { useDialogPluginComponent, copyToClipboard, useQuasar } from 'quasar'
 import { useStore } from 'vuex'
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
-import { date, openURL } from 'quasar'
+import { openURL } from 'quasar'
 import { useI18n } from 'vue-i18n'
 import InvoiceDetailDialog from './InvoiceDetailDialog.vue'
 import JSONFormPreview from '../jsonforms/JSONFormPreview.vue'
+import InvoiceListItem from 'src/components/payment-hub/InvoiceListItem.vue'
 
 const { t } = useI18n()
 
@@ -218,7 +198,7 @@ const invoices = ref([])
 const loadingInvoices = ref(false)
 
 const { hub, initHub } = usePaymentHubCore();
-const { formatDate, getInvoiceBadgeColor } = usePaymentHubUtils();
+const { formatDate } = usePaymentHubUtils();
 const { getPeriodText, showBlocksInfo } = useSubscriptionUtils();
 
 async function fetchPlan() {
@@ -236,10 +216,10 @@ async function fetchPlan() {
 }
 
 async function fetchInvoices() {
-  if (!hub) return
+  if (!hub.value) return
   loadingInvoices.value = true
   try {
-    const data = await hub.listPlanInvoices(props.planId, { page: 1 })
+    const data = await hub.value.listPlanInvoices(props.planId, { page: 1 })
     invoices.value = data.results || []
   } catch (err) {
     console.error('Error fetching plan invoices:', err)

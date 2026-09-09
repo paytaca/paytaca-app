@@ -273,27 +273,13 @@
             </div>
             <div v-else>
               <q-list separator class="br-10 border-grey-4">
-                <q-item v-for="inv in invoices" :key="inv.invoice_id" clickable v-ripple class="q-py-md" @click="showInvoiceDetail(inv)">
-                  <q-item-section side top>
-                    <q-badge
-                      :color="getInvoiceBadgeColor(inv.status)"
-                      :text-color="darkMode ? 'black' : 'white'"
-                      class="text-weight-bold br-5"
-                    >
-                      {{ inv.status }}
-                    </q-badge>
-                  </q-item-section>
-                  <q-item-section>
-                    <div class="text-body2 text-weight-medium ellipsis-2-lines" :class="getDarkModeClass(darkMode)" style="word-break: break-all;">
-                      {{ inv.memo || $t('NoMemo', 'No Memo') }}
-                    </div>
-                    <div class="text-caption text-grey q-mt-xs">{{ formatDate(inv.date_created) }}</div>
-                  </q-item-section>
-                  <q-item-section side top class="text-right">
-                    <div class="text-weight-bold">{{ inv.total_bch }} BCH</div>
-                    <div class="text-caption text-grey">{{ inv.total_fiat }}</div>
-                  </q-item-section>
-                </q-item>
+                <InvoiceListItem
+                  v-for="inv in invoices" :key="inv.invoice_id"
+                  :invoice="inv"
+                  status-style="badge"
+                  date-format="absolute"
+                  @click="showInvoiceDetail(inv)"
+                />
               </q-list>
             </div>
           </q-tab-panel>
@@ -325,15 +311,15 @@ import { ref, computed, onMounted, onBeforeUnmount } from 'vue'
 import { useDialogPluginComponent, copyToClipboard, useQuasar } from 'quasar'
 import { useStore } from 'vuex'
 import { useI18n } from 'vue-i18n'
-import { date } from 'quasar'
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
-import { inferSchemaFromData, serializeSchemaFields } from 'src/components/jsonforms/jsonform-utils'
+import { inferSchemaFromData } from 'src/components/jsonforms/jsonform-utils'
 import { usePaymentHubCore, usePaymentHubUtils, useSubscriptionFormSchema, useSubscriptionUtils } from 'src/composables/payment-hub/usePaymentHub'
 import { bus } from 'src/wallet/event-bus'
 import TopUpDialog from 'src/components/payment-hub/TopUpDialog.vue'
 import UpdateNftDialog from 'src/components/payment-hub/UpdateNftDialog.vue'
 import InvoiceDetailDialog from 'src/components/payment-hub/InvoiceDetailDialog.vue'
 import JSONFormPreview from 'src/components/jsonforms/JSONFormPreview.vue'
+import InvoiceListItem from 'src/components/payment-hub/InvoiceListItem.vue'
 
 const { t: $t } = useI18n()
 
@@ -350,7 +336,7 @@ const $q = useQuasar()
 const darkMode = computed(() => $store.getters['darkmode/getStatus'])
 
 const { hub, initHub } = usePaymentHubCore()
-const { formatDate, formatAmount, getInvoiceBadgeColor } = usePaymentHubUtils()
+const { formatDate, formatAmount } = usePaymentHubUtils()
 const { PAYOUT_TX_FEE, getPeriodTextBase, satsToBchDisplay, getPaytacaFee, getTotalCostPerCycle, showBlocksInfo, getSubscriptionStatusColor } = useSubscriptionUtils();
 
 const loading = ref(true)
