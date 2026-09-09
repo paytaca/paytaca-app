@@ -389,20 +389,24 @@ const listingsLastFetched = ref($store.getters['auction/listingsLastFetched'])
 const listingsTotalTime = computed(() => Date.now - listingsLastFetched.value)
 
 // Lot-related variables
-const lotType = ref($store.getters['auction/lotTypeActivity'])
+const lotType = ref('All')
 const lotTypeOptions = $store.getters['auction/lotTypeOptions']
 const lotSearchQuery = ref('') // REVIEW
 const lots = ref([])
 
-const auctionLotsLastFetched = ref($store.getters['auction/auctionLotsLastFetched'])
-const auctionLotsTotalTime = computed(() => Date.now - auctionLotsLastFetched.value)
+const auctionLotsLastFetched = ref(0)
+const auctionLotsTotalTime = computed(() => Date.now() - auctionLotsLastFetched.value)
 
 const isLotEmpty = computed(() => {
+  console.log(filteredLots.value.length === 0)
   return !isLoading.value && filteredLots.value.length === 0
 })
 
 const filteredLots = computed(() => {
   let targetLots = lots.value 
+  console.log('targetLots: ', targetLots)
+  
+  console.log('lotType.value: ', lotType.value)
   
   if (lotType.value !== 'All') {
     targetLots = targetLots.filter(lot => lot.category_name === lotType.value)
@@ -419,8 +423,16 @@ const filteredLots = computed(() => {
 })
 
 const fetchAllData = async () => {
-  if(listingsTotalTime > 300000) await fetchAuctionDetails()
-  if(auctionLotsTotalTime > 300000) await fetchAuctionLots()
+  console.log('auctionLotsTotalTime: ', auctionLotsTotalTime.value)
+
+  // Check if props.auctionId is the same as stored auctionId (to prevent repeated fetching)
+  const isSameAuctionId = $store.getters['auction/auctionId'] === props.auctionId
+  if(!isSameAuctionId) $store.commit('auction/setAuctionId', props.auctionId)
+
+  if(!isSameAuctionId || listingsTotalTime.value > 30000) await fetchAuctionDetails()
+  else await fetchExistingAuctionDetails()
+
+  if(!isSameAuctionId || auctionLotsTotalTime.value > 30000) await fetchAuctionLots()
 
   if (auction.value?.type === 'Dutch' && lots.value.length) {
     const allSold = lots.value.every(l => l.is_sold)
@@ -437,16 +449,10 @@ const fetchAllData = async () => {
 
 onMounted(async () => {
   isLoading.value = true
-  
-  const auctionData = $store.getters['auction/processedItems'] || []
-  const specificAuctionData = auctionData.find(item => item.id === Number(props.auctionId))
-  auction.value = parseAuctionData(specificAuctionData)
-
-  // fetch auction details
   await fetchAllData()
+  isLoading.value = false
 
   // call the connectWebsocket function
-  isLoading.value = false
   socket = connectWebsocket()
 })
 
@@ -545,64 +551,74 @@ FETCHING AUCTION AND AUCTION LOT DETAILS
 ========================================
 */
 const fetchAuctionDetails = async () => {
-    try {
-      const result = await callAPI('auctions', Number(props.auctionId))
-      if (result.success && result.data) {
-        auction.value = parseAuctionData(result.data)
+  console.log('refetching auction details thru api')
+  const result = await callAPI('auctions', Number(props.auctionId))
+  if (result.success && result.data) {
+    auction.value = parseAuctionData(result.data)
+    setUserDetails()
+  }
+}
 
-        const userId = auction.value.user?.id
-        if (userId) {
-          const userRes = await callAPI('user-details', userId)
-          if (userRes.success && userRes.data) auction.value.setUserDetails(userRes.data)
-        }
-      }
-    } catch (err) {
-      console.error('Failed to update auction details:', err)
-    }
+const fetchExistingAuctionDetails = async () => {
+    console.log('existing listings')
+    const auctionData = $store.getters['auction/processedItems'] || []
+    const specificAuctionData = auctionData.find(item => item.id === Number(props.auctionId))
+    auction.value = parseAuctionData(specificAuctionData)
+    await setUserDetails()
+}
+
+const setUserDetails = async () => {
+  const userId = auction.value.user?.id
+  if (userId) {
+    console.log('user details existing')
+    const userRes = await callAPI('user-details', userId)
+    if (userRes.success && userRes.data) auction.value.setUserDetails(userRes.data)
+  }
 }
 
 const fetchAuctionLots = async () => {
-  try {
-    const result = await callAPI('lots-by-auction', Number(props.auctionId))
-    
-    if (result.success && result.data) {
-      lots.value = await Promise.all(
-        result.data.map(async (item) => {
-          const lot = LotsList.parse(item)
-          lot.start_date = auction.value?.start_date || null
-          lot.end_date = auction.value?.end_date || null
-          
-          try {
-            const imageResult = await callAPI('lot-images-by-lot', lot.id, 'get')
-            if (imageResult.success && Array.isArray(imageResult.data) && imageResult.data.length > 0) {
-              const firstImageRecord = imageResult.data[0]
-              
-              lot.image = typeof firstImageRecord === 'object' && firstImageRecord !== null 
-                ? (firstImageRecord.image || '') 
-                : firstImageRecord
-            } else {
-              lot.image = noImage
-            }
-          } catch (imgErr) {
-            console.error(`Failed to fetch images for lot ${lot.id}:`, imgErr)
+  console.log('fetching lots right now')
+  const result = await callAPI('lots-by-auction', Number(props.auctionId))
+  
+  if (result.success && result.data) {
+    lots.value = await Promise.all(
+      result.data.map(async (item) => {
+        const lot = LotsList.parse(item)
+        lot.start_date = auction.value?.start_date || null
+        lot.end_date = auction.value?.end_date || null
+        
+        try {
+          const imageResult = await callAPI('lot-images-by-lot', lot.id, 'get')
+          if (imageResult.success && Array.isArray(imageResult.data) && imageResult.data.length > 0) {
+            const firstImageRecord = imageResult.data[0]
+            
+            lot.image = typeof firstImageRecord === 'object' && firstImageRecord !== null 
+              ? (firstImageRecord.image || '') 
+              : firstImageRecord
+          } else {
             lot.image = noImage
           }
-          
-          if (auction.value?.type === 'English') {
-            try {
-              const bidResult = await callAPI(`lots/${lot.id}/highest-bid`)
-              lot.hasBid = !!(bidResult.success && bidResult.data && bidResult.data.user_id !== null)
-            } catch (bidErr) {
-              console.error(`Failed to check bid status for lot ${lot.id}:`, bidErr)
-              lot.hasBid = false
-            }
+        } catch (imgErr) {
+          console.error(`Failed to fetch images for lot ${lot.id}:`, imgErr)
+          lot.image = noImage
+        }
+        
+        if (auction.value?.type === 'English') {
+          try {
+            const bidResult = await callAPI(`lots/${lot.id}/highest-bid`)
+            lot.hasBid = !!(bidResult.success && bidResult.data && bidResult.data.user_id !== null)
+          } catch (bidErr) {
+            console.error(`Failed to check bid status for lot ${lot.id}:`, bidErr)
+            lot.hasBid = false
           }
+        }
 
-          return lot
-        })
-      )
-    }
-  } catch (err) {
+        return lot
+      })
+    )
+    console.log('lots.value: ', lots.value)
+    $store.commit('auction/updateAuctionLots', lots.value)
+  } else {
     console.error('Failed to update lots:', err)
   }
 }
