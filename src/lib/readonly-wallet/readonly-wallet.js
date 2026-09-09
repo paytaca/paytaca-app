@@ -19,6 +19,7 @@
  *    settings } is persisted (see toJSON/export/import).
  */
 
+import Big from 'big.js'
 import {
   decodeHdPublicKey,
   deriveHdPathRelative,
@@ -29,15 +30,22 @@ import {
   sha256,
   hash160,
   encodeTransactionCommon,
+  encodeTransactionOutput,
   getMinimumFee,
+  getDustThreshold,
   binToBase64,
   CashAddressNetworkPrefix
 } from 'bitauth-libauth-v3'
 import Watchtower from 'watchtower-cash-js'
 import { ElectrumNetworkProvider } from 'cashscript'
 import { pubkeyToAddress } from 'src/utils/crypto'
-import { Psbt, PsbtInput, PsbtOutput } from 'src/lib/multisig/psbt'
-import { ProprietaryFields } from '../multisig/psbt'
+import { Psbt, PsbtInput, PsbtOutput, ProprietaryFields } from 'src/lib/multisig/psbt'
+import {
+  selectUtxos,
+  commonUtxoToLibauthInput,
+  commonUtxoToLibauthOutput,
+  watchtowerWalletHashUtxoToCommonUtxo
+} from 'src/lib/multisig/utxo'
 
 export const BCH_DERIVATION_PATH = "m/44'/145'/0'"
 
@@ -350,17 +358,39 @@ export default class ReadOnlyWallet {
   }
 
   /**
-   * Fetch all non-token UTXOs associated with this wallet's addresses.
-   * @returns {Promise<Object[]>} UTXOs with txid/value/vout/address_path/satoshis
+   * Fetch all UTXOs associated with this wallet's addresses, including cash
+   * token (fungible + NFT) outputs, normalized to CommonUtxo shape.
+   * @returns {Promise<Object[]>} UTXOs with txid/value/vout/address_path/token
    */
   async getWalletHashUtxos (network = this.network) {
-    const apiResponse = await this.watchtowerFor(network).BCH._api.get(
-      `utxo/wallet/${this.walletHashFor(network)}/`
-    )
-    if (!Array.isArray(apiResponse?.data?.utxos)) return []
-    return apiResponse.data.utxos
-      .filter(u => !u.is_cashtoken && !u.tokenid)
-      .map(u => this._normalizeUtxo(u))
+    const walletHash = this.walletHashFor(network)
+    const api = this.watchtowerFor(network).BCH._api
+    const requests = [
+      api.get(`utxo/wallet/${walletHash}/`),
+      api.get(`utxo/wallet/${walletHash}/cashtoken/ft/`),
+      api.get(`utxo/wallet/${walletHash}/cashtoken/nft/`)
+    ]
+    const responses = await Promise.allSettled(requests)
+    const utxos = []
+    for (const r of responses) {
+      if (r.status === 'fulfilled' && Array.isArray(r.value?.data?.utxos)) {
+        utxos.push(...r.value.data.utxos)
+      }
+    }
+    const seen = new Set()
+    return utxos
+      .filter(u => {
+        const key = `${u.txid}:${u.vout}`
+        if (seen.has(key)) return false
+        seen.add(key)
+        return true
+      })
+      .map(u => {
+        const common = watchtowerWalletHashUtxoToCommonUtxo(u)
+        if (!common.addressPath) common.addressPath = u.address_path || ''
+        if (!common.addressPath) common.addressPath = u.addressPath || ''
+        return common
+      })
   }
 
   /**
@@ -377,18 +407,6 @@ export default class ReadOnlyWallet {
     )
   }
 
-  _normalizeUtxo (u) {
-    return {
-      txid: u.txid,
-      vout: Number(u.vout),
-      value: u.value === undefined ? u.satoshis : u.value,
-      satoshis: u.value === undefined ? u.satoshis : u.value,
-      height: u.block,
-      address_path: u.address_path,
-      addressPath: u.address_path
-    }
-  }
-
   /**
    * Get UTXOs for a specific address/path.
    * @returns {Promise<Object[]>}
@@ -401,20 +419,36 @@ export default class ReadOnlyWallet {
   }
 
   /**
-   * @returns {Promise<bigint>} balance in satoshis
+   * @returns {Promise<bigint>} BCH balance in satoshis (non-token UTXOs)
    */
   async getWalletBalance (network = this.network) {
     const utxos = await this.getWalletHashUtxos(network)
-    return utxos.reduce((total, u) => total + BigInt(u.satoshis), 0n)
+    return utxos
+      .filter(u => !u.token)
+      .reduce((total, u) => total + BigInt(u.satoshis), 0n)
   }
 
   /**
-   * @returns {Promise<Object>} { bch: <number in BCH units> }
+   * @returns {Promise<Object>} { bch: <number in BCH units>, [category]: <token units> }
    */
   async getWalletBalances (network = this.network) {
     const utxos = await this.getWalletHashUtxos(network)
-    const satoshis = utxos.reduce((total, u) => total + BigInt(u.satoshis), 0n)
-    return { bch: Number(satoshis) / 1e8 }
+    const balances = {}
+    for (const u of utxos) {
+      if (!u.token) {
+        balances.bch = (balances.bch || 0n) + BigInt(u.satoshis)
+      } else if (u.token.category && !u.token.nft) {
+        const category = String(u.token.category)
+        balances[category] = (balances[category] || 0n) + BigInt(u.token.amount || 0)
+      }
+    }
+    const result = {}
+    if (balances.bch) result.bch = Number(balances.bch) / 1e8
+    for (const category of Object.keys(balances)) {
+      if (category === 'bch') continue
+      result[category] = Number(balances[category])
+    }
+    return result
   }
 
   async getWalletTransactionHistory (opts = {}, network = this.network) {
@@ -455,105 +489,313 @@ export default class ReadOnlyWallet {
   }
 
   /**
-   * Select non-token UTXOs to cover an amount (satoshis) plus fee.
-   * @returns {{ selectedUtxos: Object[], changeAmount: bigint, inputSum: bigint, fee: bigint, satoshisSatisfied: boolean }}
+   * Build libauth outputs for a list of recipients (single-sig / P2PKH).
+   * Supports BCH, fungible tokens, and NFTs.
+   * @param {Array<{ address: string, amount: string, asset: string, decimals?: number, targetNftUtxo?: Object }>} recipients
+   * @returns {Object[]}
    */
-  async selectUtxos (targetSatoshis, opts = {}) {
-    const utxos = await this.getWalletHashUtxos(opts.network || this.network)
-    const sorted = [...utxos].sort((a, b) => Number(BigInt(b.satoshis) - BigInt(a.satoshis)))
-
-    const selectedUtxos = []
-    let inputSum = 0n
-
-    for (const utxo of sorted) {
-      const candidateSize = 10 + (selectedUtxos.length + 1) * 180 + 2 * 34
-      const candidateFee = getMinimumFee(BigInt(candidateSize), FEE_RATE_SAT_PER_KB)
-      if (inputSum + BigInt(utxo.satoshis) >= targetSatoshis + candidateFee) {
-        selectedUtxos.push(utxo)
-        inputSum += BigInt(utxo.satoshis)
-        break
+  recipientsToTransactionOutputs (recipients) {
+    return recipients.map(r => {
+      const output = {
+        lockingBytecode: cashAddressToLockingBytecode(r.address).bytecode,
+        valueSatoshis: 0n
       }
-      if (inputSum >= targetSatoshis) break
-      selectedUtxos.push(utxo)
-      inputSum += BigInt(utxo.satoshis)
+
+      if (r.asset === 'bch') {
+        output.valueSatoshis = BigInt(Big(r.amount).mul(1e8).toString())
+        return output
+      }
+
+      output.token = {
+        category: hexToBin(r.asset)
+      }
+
+      if (r.targetNftUtxo?.token?.nft) {
+        output.token.amount = BigInt(r.targetNftUtxo.token.amount ?? (Number(r.amount) || 1))
+        output.token.nft = {
+          capability: r.targetNftUtxo.token.nft.capability,
+          commitment: hexToBin(r.targetNftUtxo.token.nft.commitment)
+        }
+      } else if (Number(r.amount || 0) > 0) {
+        output.token.amount = BigInt(Big(r.amount).mul(`1e${r.decimals || 0}`).toString())
+      }
+
+      output.valueSatoshis = getDustThreshold(output)
+      return output
+    })
+  }
+
+  /**
+   * Select UTXOs to fund a proposal: BCH, fungible tokens, or NFTs.
+   * For NFTs without an explicit targetNftUtxo, the NFT UTXO is resolved by
+   * matching the recipient's token category.
+   * @param {Array<Object>} recipients
+   * @param {'send-fungible-assets'|'send-non-fungible-assets'} transactionType
+   * @param {Object[]} utxos
+   * @returns {Promise<Object[]>} selected UTXOs with addresses resolved
+   */
+  async selectProposalUtxos (recipients, transactionType, utxos) {
+    const network = this.network
+    const asset = recipients[0].asset
+    const includeNfts = transactionType === 'send-non-fungible-assets'
+
+    utxos = this._resolvableUtxos(utxos, network)
+
+    let selectedUtxos = []
+
+    if (asset === 'bch') {
+      const targetSatoshis = this.recipientsToTransactionOutputs(recipients).reduce((t, o) => t + o.valueSatoshis, 0n)
+      const bchUtxos = utxos.filter(u => !u.token)
+      if (bchUtxos.length === 0) throw new Error('Insufficient BCH balance!')
+      const result = selectUtxos(bchUtxos, { targetSatoshis })
+      if (!result.satoshisSatisfied) throw new Error('Insufficient BCH balance!')
+      selectedUtxos = result.selectedUtxos
+    } else if (includeNfts) {
+      const nftUtxos = utxos.filter(u => Boolean(u.token?.nft) && u.token?.category === asset)
+      for (const r of recipients) {
+        const target = r.targetNftUtxo
+          ? nftUtxos.find(u => u.txid === r.targetNftUtxo.txid && u.vout === r.targetNftUtxo.vout)
+          : nftUtxos[0]
+        if (!target) throw new Error('Insufficient token balance!')
+        r.targetNftUtxo = target
+        if (!selectedUtxos.some(u => u.txid === target.txid && u.vout === target.vout)) {
+          selectedUtxos.push(target)
+        }
+      }
+    } else {
+      const targetTokens = {}
+      for (const r of recipients) {
+        const amount = BigInt(Big(r.amount).mul(`1e${r.decimals || 0}`).toString())
+        targetTokens[r.asset] = (targetTokens[r.asset] || 0n) + amount
+      }
+      const tokenUtxos = utxos.filter(u => Boolean(u.token?.category) && !u.token?.nft)
+      if (tokenUtxos.length === 0) throw new Error('Insufficient token balance!')
+      const result = selectUtxos(tokenUtxos, { targetTokens })
+      const satisfied = Object.keys(targetTokens).every(cat => (result.totalTokens[cat]?.total || 0n) >= targetTokens[cat])
+      if (!satisfied) throw new Error('Insufficient token balance!')
+      selectedUtxos = result.selectedUtxos
     }
 
-    const fee = getMinimumFee(BigInt(10 + selectedUtxos.length * 180 + 2 * 34), FEE_RATE_SAT_PER_KB)
-    const changeAmount = inputSum - targetSatoshis - fee
+    selectedUtxos.forEach(u => { this._resolveUtxoAddress(u, network) })
+    return selectedUtxos
+  }
 
+  _resolveUtxoAddress (u, network = this.network) {
+    if (u.address) return u
+    u.addressPath = u.addressPath || u.address_path || ''
+    if (!u.addressPath) {
+      u._unaddressable = true
+      return u
+    }
+    const [ type, index ] = String(u.addressPath).split('/').map(Number)
+    if (!Number.isInteger(type) || !Number.isInteger(index) || (type !== 0 && type !== 1)) {
+      u._unaddressable = true
+      return u
+    }
+    u.address = type === 1
+      ? this.getChangeAddress(index, network).address
+      : this.getDepositAddress(index, network).address
+    return u
+  }
+
+  /**
+   * Resolve addresses for a set of UTXOs and drop any that cannot be
+   * attributed to a wallet address (they are unusable in a PSBT).
+   * @param {Object[]} utxos
+   * @param {string} [network]
+   * @returns {Object[]}
+   */
+  _resolvableUtxos (utxos, network = this.network) {
+    return utxos.filter(u => {
+      this._resolveUtxoAddress(u, network)
+      return !u._unaddressable
+    })
+  }
+
+  /**
+   * Estimate the minimum fee for a single-sig (P2PKH) transaction.
+   * @param {Object[]} inputs - libauth inputs with sourceOutput
+   * @param {Object[]} outputs - libauth outputs
+   * @returns {bigint}
+   */
+  _estimateFee (inputs, outputs) {
+    const headerSize = 10 // version(4) + varint input count(1) + varint output count(1) + locktime(4)
+    const p2pkhInputSize = 148 // outpoint(36) + scriptSig len(1) + DER sig(73) + pubkey(34) + sequence(4)
+    const inputSize = inputs.reduce((t) => t + p2pkhInputSize, 0)
+    const outputSize = outputs.reduce((t, o) => t + encodeTransactionOutput(o).length, 0)
+    return getMinimumFee(BigInt(headerSize + inputSize + outputSize), FEE_RATE_SAT_PER_KB)
+  }
+
+  /**
+   * BIP32 derivation data (single signer) for the wallet's xpub at a relative path.
+   * @param {string} relativePath - e.g. '0/3' or '1/0'
+   * @returns {{ pubkey: string, masterFingerprint: string, path: string }}
+   */
+  _bip32For (relativePath) {
     return {
-      selectedUtxos,
-      changeAmount,
-      inputSum,
-      fee,
-      satoshisSatisfied: inputSum >= targetSatoshis + fee
+      pubkey: this.getPubkeyAt(relativePath),
+      masterFingerprint: getXpubFingerprint(this.xpub),
+      path: toFullDerivationPath(relativePath, this.derivationPath)
     }
   }
 
   /**
-   * Build an UNSIGNED BCH transaction proposal and encode it as a PSBT.
-   * This is a BUILD-ONLY operation: nothing is signed or broadcast.
+   * Build an UNSIGNED transaction proposal (BCH, fungible token, or NFT) and
+   * encode it as a PSBT. BUILD-ONLY: nothing is signed or broadcast.
    *
    * @param {Object} opts
-   * @param {Array<{ address: string, satoshis: bigint }>} opts.outputs - Desired outputs
+   * @param {Array<{ address: string, amount: string, asset: string, decimals?: number, targetNftUtxo?: Object }>} [opts.recipients]
+   * @param {Array<{ address: string, satoshis: bigint }>} [opts.outputs] - Legacy BCH-only outputs (converted internally)
    * @param {string} [opts.origin] - Origin identifier stored in PSBT
    * @param {string} [opts.purpose] - Purpose identifier stored in PSBT
+   * @param {'send-fungible-assets'|'send-non-fungible-assets'} [opts.transactionType]
+   * @param {boolean} [opts.reserveWcAccountUtxos=false]
    * @returns {Promise<string>} base64 encoded PSBT
    */
   async createProposal (opts) {
-
     const network = this.network
-    const outputs = (opts?.outputs || []).map(o => ({
-      address: o.address,
-      valueSatoshis: BigInt(o.satoshis)
-    }))
+    const {
+      origin,
+      purpose,
+      transactionType = 'send-fungible-assets',
+      reserveWcAccountUtxos = false
+    } = opts || {}
 
-    if (!outputs.length) throw new Error('Must have at least one output')
+    let recipients = opts?.recipients
 
-    const totalSatoshis = outputs.reduce((t, o) => t + o.valueSatoshis, 0n)
-    const { selectedUtxos, changeAmount, satoshisSatisfied } =
-      await this.selectUtxos(totalSatoshis, { network })
+    if (!Array.isArray(recipients) || recipients.length === 0) {
+      const legacyOutputs = opts?.outputs
+      if (Array.isArray(legacyOutputs) && legacyOutputs.length > 0) {
+        recipients = legacyOutputs.map(o => ({
+          address: o.address,
+          amount: String(Number(o.satoshis) / 1e8),
+          asset: 'bch',
+          decimals: 8
+        }))
+      } else {
+        throw new Error('Must have at least one recipient')
+      }
+    }
 
-    if (!satoshisSatisfied) {
-      throw new Error('Insufficient BCH balance for the requested amount and fee')
+    if (!recipients.every(r => r.asset === recipients[0].asset)) {
+      throw new Error('Sending mixed assets is not yet supported!')
+    }
+
+    const utxos = await this.getWalletHashUtxos(network)
+    let sourceUtxos = utxos
+    if (reserveWcAccountUtxos) {
+      sourceUtxos = utxos.filter(u => u.addressPath !== '0/0' && u.address_path !== '0/0')
+    }
+    sourceUtxos = this._resolvableUtxos(sourceUtxos, network)
+    if (!sourceUtxos.length) throw new Error('Insufficient Balance')
+
+    let selectedUtxos = await this.selectProposalUtxos(recipients, transactionType, sourceUtxos)
+
+    let outputs = this.recipientsToTransactionOutputs(recipients)
+
+    const change = this.getChangeAddress(undefined, network)
+    const changePath = `1/${change.addressIndex}`
+
+    let tokenChangeOutput = null
+    if (selectedUtxos.some(u => Boolean(u.token))) {
+      const tokenInputsTotal = selectedUtxos
+        .filter(u => Boolean(u.token))
+        .reduce((t, u) => t + BigInt(u.token.amount || 0), 0n)
+      const tokenOutputsTotal = outputs
+        .filter(o => Boolean(o.token))
+        .reduce((t, o) => t + BigInt(o.token.amount || 0), 0n)
+
+      const tokenChangeAmount = tokenInputsTotal - tokenOutputsTotal
+      if (tokenChangeAmount > 0n) {
+        const tokenSample = outputs.find(o => Boolean(o.token))
+        tokenChangeOutput = {
+          lockingBytecode: cashAddressToLockingBytecode(change.address).bytecode,
+          valueSatoshis: 0n,
+          token: {
+            ...tokenSample.token,
+            amount: tokenChangeAmount
+          }
+        }
+        tokenChangeOutput.valueSatoshis = getDustThreshold(tokenChangeOutput)
+        outputs.push({
+          ...tokenChangeOutput,
+          _isChange: true,
+          _addressPath: changePath
+        })
+      }
+    }
+
+    const estimatedFee = this._estimateFee([], outputs)
+
+    const tokenUtxoSatoshis = selectedUtxos
+      .filter(u => Boolean(u.token))
+      .reduce((t, u) => t + BigInt(u.satoshis), 0n)
+
+    const bchOutputTotal = outputs.reduce((t, o) => t + o.valueSatoshis, 0n)
+    const bchTarget = BigInt(bchOutputTotal) + estimatedFee - tokenUtxoSatoshis
+
+    if (bchTarget > 0n) {
+      const bchUtxos = sourceUtxos.filter(u => !u.token)
+      const result = selectUtxos(bchUtxos, { targetSatoshis: BigInt(bchTarget) })
+      if (!result.satoshisSatisfied) throw new Error('Insufficient BCH balance!')
+      const added = result.selectedUtxos.filter(u => !selectedUtxos.some(s => s.txid === u.txid && s.vout === u.vout))
+      added.forEach(u => { this._resolveUtxoAddress(u, network) })
+      selectedUtxos = selectedUtxos.concat(added)
+    }
+
+    const inputs = selectedUtxos.map((u) => {
+      if (!u.address) {
+        throw new Error('UTXO is missing an address path')
+      }
+      return {
+        ...commonUtxoToLibauthInput(u, [], DEFAULT_SEQUENCE),
+        sourceOutput: commonUtxoToLibauthOutput(u, cashAddressToLockingBytecode(u.address).bytecode)
+      }
+    })
+
+    const totalSatoshisInputs = inputs.reduce((t, i) => t + i.sourceOutput.valueSatoshis, 0n)
+    const totalSatoshiOutputs = outputs.reduce((t, o) => t + o.valueSatoshis, 0n)
+    const fee = this._estimateFee(inputs, outputs)
+
+    let satoshisChangeAmount = totalSatoshisInputs - totalSatoshiOutputs - fee
+
+    if (satoshisChangeAmount < 0n) {
+      throw new Error('Insufficient BCH balance for fee!')
+    }
+
+    const satoshisChangeOutput = {
+      lockingBytecode: cashAddressToLockingBytecode(change.address).bytecode,
+      valueSatoshis: satoshisChangeAmount
+    }
+    const satoshisChangeDust = getDustThreshold(satoshisChangeOutput)
+
+    if (satoshisChangeAmount > satoshisChangeDust) {
+      outputs.push({
+        ...satoshisChangeOutput,
+        _isChange: true,
+        _addressPath: changePath
+      })
     }
 
     const prevTxHex = await Promise.all(
       selectedUtxos.map(async u => binToHex(await this.getRawTransaction(u.txid)))
     )
 
-    const change = this.getChangeAddress(undefined, network)
-
     const inputObjects = selectedUtxos.map((u, i) => ({
       outpointIndex: Number(u.vout),
       outpointTransactionHash: hexToBin(u.txid),
       sequenceNumber: DEFAULT_SEQUENCE,
       unlockingBytecode: [],
-      _addressPath: u.address_path,
+      _addressPath: u.addressPath || u.address_path,
       _prevTxHex: prevTxHex[i]
     }))
-
-    const outputObjects = [
-      ...outputs.map(o => ({
-        lockingBytecode: cashAddressToLockingBytecode(o.address).bytecode,
-        valueSatoshis: o.valueSatoshis,
-        _isChange: false,
-        _addressPath: null
-      })),
-      ...(changeAmount > 0n ? [{
-        lockingBytecode: cashAddressToLockingBytecode(change.address).bytecode,
-        valueSatoshis: changeAmount,
-        _isChange: true,
-        _addressPath: `1/${change.addressIndex}`
-      }] : [])
-    ]
 
     const unsignedTransactionHex = binToHex(
       encodeTransactionCommon({
         version: 2,
         locktime: 0,
         inputs: inputObjects,
-        outputs: outputObjects
+        outputs
       })
     )
 
@@ -562,64 +804,61 @@ export default class ReadOnlyWallet {
     psbt.globalMap.setTxVersion(2)
     psbt.globalMap.setFallbackLocktime(0)
     psbt.globalMap.setInputCount(inputObjects.length)
-    psbt.globalMap.setOutputCount(outputObjects.length)
+    psbt.globalMap.setOutputCount(outputs.length)
     psbt.globalMap.setPsbtVersion(145)
-    console.log('@ProprietaryFields', ProprietaryFields)
 
-    opts.origin && psbt.globalMap.addProprietaryField(
-        ProprietaryFields.paytaca.identifier, 
-        utf8ToBin(opts.origin), 
-        ProprietaryFields.paytaca.subKey.origin.subType, 
+    if (origin) {
+      psbt.globalMap.addProprietaryField(
+        ProprietaryFields.paytaca.identifier,
+        utf8ToBin(origin),
+        ProprietaryFields.paytaca.subKey.origin.subType,
         ProprietaryFields.paytaca.subKey.origin.subKeyData
       )
+    }
 
-    opts.purpose && psbt.globalMap.addProprietaryField(
-      ProprietaryFields.paytaca.identifier, 
-      utf8ToBin(opts.purpose), 
-      ProprietaryFields.paytaca.subKey.purpose.subType, 
-      ProprietaryFields.paytaca.subKey.purpose.subKeyData
-    )
-    
+    if (purpose) {
+      psbt.globalMap.addProprietaryField(
+        ProprietaryFields.paytaca.identifier,
+        utf8ToBin(purpose),
+        ProprietaryFields.paytaca.subKey.purpose.subType,
+        ProprietaryFields.paytaca.subKey.purpose.subKeyData
+      )
+    }
+
     inputObjects.forEach((input) => {
-      // const pubkey = this.getPubkeyAt(input._addressPath)
-      // const path = toFullDerivationPath(input._addressPath, this.derivationPath)
       const psbtInput = new PsbtInput()
       psbtInput.setOutpointTransaction(input._prevTxHex)
       psbtInput.setOutpointTransactionHash(input.outpointTransactionHash)
       psbtInput.setOutpointIndex(input.outpointIndex)
       psbtInput.setSequenceNumber(input.sequenceNumber)
-      // psbtInput.addBip32Derivation(pubkey, getXpubFingerprint(this.xpub), path)
+      const { pubkey, masterFingerprint, path } = this._bip32For(input._addressPath)
+      psbtInput.addBip32Derivation(pubkey, masterFingerprint, path)
       psbt.inputMap.add(psbtInput)
     })
 
-    outputObjects.forEach((output) => {
+    outputs.forEach((output) => {
       const psbtOutput = new PsbtOutput()
       psbtOutput.setAmount(output.valueSatoshis)
       psbtOutput.setOutScript(binToHex(output.lockingBytecode))
-      // if (output._isChange && output._addressPath) {
-      //   const pubkey = this.getPubkeyAt(output._addressPath)
-      //   const path = toFullDerivationPath(output._addressPath, this.derivationPath)
-      //   psbtOutput.addBip32Derivation(pubkey, getXpubFingerprint(this.xpub), path)
-      // }
+      if (output.token) {
+        psbtOutput.setToken({
+          amount: output.token.amount,
+          category: binToHex(output.token.category),
+          nft: output.token.nft
+            ? {
+                capability: output.token.nft.capability,
+                commitment: binToHex(output.token.nft.commitment)
+              }
+            : undefined
+        })
+      }
+      if (output._isChange && output._addressPath) {
+        const { pubkey, masterFingerprint, path } = this._bip32For(output._addressPath)
+        psbtOutput.addBip32Derivation(pubkey, masterFingerprint, path)
+      }
       psbt.outputMap.add(psbtOutput)
     })
 
-    const objz = {}
-    const serialized = psbt.serialize()
-    console.log('@serialized', serialized)
-    console.log('@decodez', new Psbt().decode(binToBase64(serialized), objz))
-    console.log('@objz', objz)
-
-    const rebuilt = binToHex(
-      encodeTransactionCommon({
-        version: 2,
-        locktime: 0,
-        inputs: objz.inputs,
-        outputs: objz.outputs
-      })
-    )
-
-    console.log('@rebuilt tx from decoded psbt', rebuilt)
     return binToBase64(psbt.serialize())
   }
 

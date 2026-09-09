@@ -100,6 +100,7 @@ import { convertTokenAmount, getWatchtowerApiUrl } from 'src/wallet/chipnet'
 import { convertIpfsUrl } from 'src/wallet/cashtokens'
 import { parseAssetDenomination } from 'src/utils/denomination-utils'
 import { getDarkModeClass, isHongKong } from 'src/utils/theme-darkmode-utils'
+import { isReadOnlyVaultEntry } from 'src/lib/readonly-wallet'
 import axios from 'axios'
 
 export default {
@@ -163,6 +164,10 @@ export default {
     },
     isChipnet () {
       return this.$store.getters['global/isChipnet']
+    },
+    isReadOnlyWallet () {
+      const index = this.$store.getters['global/getWalletIndex']
+      return isReadOnlyVaultEntry(this.$store.getters['global/getVault']?.[index])
     },
     online () {
       return this.$store.state.global.online
@@ -495,6 +500,7 @@ export default {
           tipRecipient: this.tipRecipient || undefined,
           assetData: assetData ? JSON.stringify(assetData) : undefined
         }
+        console.log('@query', query)
         if (this.amount) {
           query.amount = this.amount
         }
@@ -503,7 +509,7 @@ export default {
           query.paymentUrl = this.paymentUrl
         }
         this.$router.push({
-          name: 'transaction-send',
+          name: this.isReadOnlyWallet ? 'transaction-build' : 'transaction-send',
           query
         })
       } else {
@@ -523,7 +529,18 @@ export default {
     vm.$store.dispatch('market/updateAssetPrices', {})
 
     // Load wallet
-    const wallet = await cachedLoadWallet('BCH', vm.$store.getters['global/getWalletIndex'])
+    const walletIndex = vm.$store.getters['global/getWalletIndex']
+    const vaultEntry = vm.$store.getters['global/getVault']?.[walletIndex]
+    let wallet = await cachedLoadWallet('BCH', walletIndex)
+
+    // Read-only (xpub) wallets have no mnemonic; build the adapter from the xpub
+    if (isReadOnlyVaultEntry(vaultEntry)) {
+      const { loadReadOnlyWallet, buildReadOnlyWallet } = await import('src/lib/readonly-wallet')
+      const readonlyWallet = await loadReadOnlyWallet(walletIndex)
+      if (readonlyWallet) {
+        wallet = buildReadOnlyWallet(readonlyWallet)
+      }
+    }
     vm.wallet = wallet
 
     // For CashTokens, fetch tokens directly from API

@@ -101,13 +101,21 @@ export default function () {
     }
 
     // Read-only (xpub) wallets build unsigned transactions instead of sending.
-    // Redirect their send entry points to the build page so the existing send
-    // flow (which requires private keys) is never reached.
+    // Mirror the regular send flow: BCH/fungible-token sends first show the
+    // asset-selection page; NFT sends (already specific) go straight to the
+    // build page. The private-key send flow is never reached.
     if (to.name === 'transaction-send' || to.name === 'transaction-send-select-asset') {
       const { isReadOnlyVaultEntry } = await import('../lib/readonly-wallet')
       const currentEntry = store.getters['global/getVault']?.[store.getters['global/getWalletIndex']]
       if (isReadOnlyVaultEntry(currentEntry)) {
-        next({ name: 'transaction-build', query: to.query, replace: true })
+        if (to.name === 'transaction-send-select-asset') {
+          next()
+          return
+        }
+        const isNftSend = ['CT-NFT', '65'].includes(String(to.query?.tokenType)) || Boolean(to.query?.simpleNft)
+        next(isNftSend
+          ? { name: 'transaction-build', query: to.query, replace: true }
+          : { name: 'transaction-send-select-asset', query: to.query, replace: true })
         return
       }
     }
