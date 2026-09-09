@@ -82,7 +82,7 @@ const search = defineModel('search');
 
 const showFilterDialog = ref(false);
 const hasFilter = computed(() => {
-  if (includeSubscriptions.value) return true
+  if (typeof includeSubscriptions.value === 'boolean') return true
   if (Array.isArray(statuses.value) && statuses.value.length) return true
   return false
 })

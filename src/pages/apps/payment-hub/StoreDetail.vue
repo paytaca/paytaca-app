@@ -529,8 +529,10 @@ function clearInvoiceSearch() {
 const invoiceStatuses = computed(() => {
   if (includeSubscriptions.value) {
     return ['TOP UP', 'PAID', 'RECLAIMED']
-  } else {
+  } else if (includeSubscriptions.value === false) {
     return ['PENDING', 'PAID', 'EXPIRED', 'CANCELLED']
+  } else {
+    return ['PENDING', 'PAID', 'EXPIRED', 'CANCELLED', 'TOP UP', 'RECLAIMED']
   }
 })
 const mainTabs = ['invoices', 'api_keys', 'plans', 'subscriptions', 'settings']

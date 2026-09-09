@@ -106,7 +106,7 @@ const props = defineProps({
   },
   hasSubscriptions: {
     type: Boolean,
-    default: false
+    required: false,
   }
 })
 
