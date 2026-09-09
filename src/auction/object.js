@@ -64,6 +64,8 @@ export class LotsList {
     this.images = Array.isArray(data.images) 
       ? data.images.map(img => typeof img === 'object' ? img.image : img) 
       : [];
+    this.image = this.images[0] || null
+    
   }
 
   // Returns the drop interval in minutes, parsed from the HH:MM:SS time_interval string
