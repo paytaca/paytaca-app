@@ -763,7 +763,7 @@ export default defineComponent({
     const maxPlatformFeeSats = computed(() => {
       const bchUsdPrice = Number($store.getters['market/getAssetPrice']('bch', 'usd'));
       if (!bchUsdPrice || !isFinite(bchUsdPrice) || bchUsdPrice <= 0) return null;
-      return BigInt(Math.round((PLATFORM_FEE_MAX_USD / bchUsdPrice) * 10 ** 8));
+      return BigInt(Math.round((PLATFORM_FEE_MAX_USD * 10 ** 8) / bchUsdPrice));
     });
 
     const platformFee = computed(() => {
@@ -1029,7 +1029,9 @@ export default defineComponent({
         return;
       }
 
-      const estimatePlatformFee = supplyingBch ? (supply * 3n / 1000n) : 0n;
+      let estimatePlatformFee = supply * 3n / 1000n;
+      const platformFeeCapSats = maxPlatformFeeSats.value;
+      if (platformFeeCapSats != null && estimatePlatformFee > platformFeeCapSats) estimatePlatformFee = platformFeeCapSats;
       const estimateTxFee = 10_000n;
       const baseSupply = supply - estimatePlatformFee - estimateTxFee;
       if (!baseSupply || baseSupply <= 0n) {
