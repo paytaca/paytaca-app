@@ -21,6 +21,17 @@ export function processedItems(state) {
   })
 }
 
+// Options getters
+export function auctionTypeOptions(state) {
+  return state.auctionTypeOptions
+}
+
+export function lotTypeOptions(state) {
+  return state.lotTypeOptions
+}
+
+
+// Index getters
 export function listingsLastFetched(state) {
   return state.listingsLastFetched
 }
@@ -33,20 +44,40 @@ export function auctionQueryIndex(state) {
   return state.auctionTypeIndex
 }
 
-export function auctionTypeActivity(state) {
+
+// Auction Details getters
+export function auctionId(state){
+  return state.auctionId
+}
+
+export function auctionLots(state) {
+  return state.auctionLots || []
+}
+
+export function auctionLotsLastFetched(state) {
+  return state.auctionLotsLastFetched
+}
+
+// Lot Details getters
+export function lotId(state) {
+  return state.lotId 
+}
+
+export function lotData(state) {
+  return state.lotData 
+}
+
+export function lotDataLastFetched(state) {
+  return state.lotDataLastFetched
+}
+
+// Activity getters
+export function auctionTypeActivity(state) {0
   return state.auctionTypeActivity
 }
 
 export function auctionQueryActivity(state) {
   return state.auctionQueryActivity
-}
-
-export function auctionTypeOptions(state) {
-  return state.auctionTypeOptions
-}
-
-export function lotTypeOptions(state) {
-  return state.lotTypeOptions
 }
 
 export function lotTypeActivity(state) {
@@ -66,7 +97,7 @@ export function myBiddings(state) {
 }
 
 export function myBiddingsLastFetched(state) {
-  return state.myBiddingsLastFetched
+  return state.myBiddingsLastFetched 
 }
 
 export function myAuctions(state) {
@@ -74,8 +105,9 @@ export function myAuctions(state) {
 }
 
 export function myAuctionsLastFetched(state) {
-  return state.myAuctionsLastFetched
+  return state.myAuctionsLastFetched 
 }
+
 
 // Arbiter and Servicer Public Key Getters
 export function arbiterPublicKey(state) {

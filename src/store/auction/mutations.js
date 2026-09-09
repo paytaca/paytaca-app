@@ -13,7 +13,6 @@ export function updateAuctionQueryIndex(state, auctionQueryIndex) {
   state.auctionQueryIndex = auctionQueryIndex
 }
 
-
 // Activity page mutations
 export function updateActivityType(state, activityType) {
   state.activityType = activityType
@@ -46,11 +45,14 @@ export function setMyAuctions(state, myAuctions) {
 }
 
 // Auction Details Page mutations
+export function setAuctionId(state, auctionId) {
+  state.auctionId = auctionId
+}
+
 export function updateAuctionLots(state, auctionLots) {
   state.auctionLots = auctionLots
   state.auctionLotsLastFetched = Date.now()
 }
-
 
 // Arbiter and Servicer Public Key mutations
 export function setArbiterPublicKey(state, arbiterPk) {

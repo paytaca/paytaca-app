@@ -1,3 +1,5 @@
+import { lotId } from "./getters";
+
 export default function () {
   return {    
     // Option Types
@@ -22,10 +24,12 @@ export default function () {
     myAuctonsLastFetched: 0,
 
     // Auction Details Page States
+    auctionId: null,
     auctionLots: [],
     auctionLotsLastFetched: 0,
 
     // Lot Details Page States
+    lotId: null,
     lotData: {},
     lotDataLastFetched: 0,
 
