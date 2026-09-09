@@ -683,6 +683,7 @@ async function refreshPage(done, isBackground = false, scopes='all') {
         status: subscriptionsStatusFilter.value?.join?.(','),
       })
       subscriptions.value = subsData.results || []
+      subscriptions.value.forEach(sub => bus.emit('payment-hub-subscription-update', sub));
       hasNextSubscriptionsPage.value = !!subsData.next
     }
 
@@ -798,6 +799,7 @@ async function onLoadMoreSubscriptions(index, done) {
     })
     if (data.results?.length) {
       subscriptions.value.push(...data.results)
+      data.results.forEach(sub => bus.emit('payment-hub-subscription-update', sub));
     }
     hasNextSubscriptionsPage.value = !!data.next
   } catch (error) {

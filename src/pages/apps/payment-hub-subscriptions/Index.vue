@@ -273,6 +273,7 @@ async function refreshPage(done = null, showLoading = true) {
       search: searchQuery.value || undefined
     })
     subscriptions.value = subsData.results || []
+    subscriptions.value.forEach(sub => bus.emit('payment-hub-subscription-update', sub));
     hasNextSubscriptionsPage.value = !!subsData.next
   } catch (error) {
     console.error('Error fetching subscriptions:', error)
@@ -300,6 +301,7 @@ async function onLoadMoreSubscriptions(index, done) {
     })
     if (data.results?.length) {
       subscriptions.value.push(...data.results)
+      data.results.forEach(sub => bus.emit('payment-hub-subscription-update', sub));
     }
     hasNextSubscriptionsPage.value = !!data.next
   } catch (error) {
@@ -317,6 +319,7 @@ async function refetchSubscription(subId) {
 
   const index = subscriptions.value.findIndex(_sub => _compareUUID(_sub?.id, sub?.id));
   if (index >= 0) subscriptions.value[index] = sub
+  bus.emit('payment-hub-subscription-update', sub);
 }
 
 function setSubIdParam(subId) {

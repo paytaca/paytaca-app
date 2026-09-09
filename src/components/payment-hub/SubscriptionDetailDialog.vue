@@ -34,21 +34,59 @@
       <q-card-section v-else-if="sub" class="q-pt-md">
 
         <!-- Status header & Vault Focus -->
-        <div class="row justify-between items-start q-mb-md">
-          <div class="col">
-            <!-- Plan Name & Status -->
-            <div class="row items-center q-mb-sm">
-              <div class="text-h6 q-mr-sm">{{ sub.plan_details?.name || $t('Subscription') }}</div>
-              <q-badge
-                :color="statusColor"
-                :text-color="darkMode ? 'black' : 'white'"
-                class="text-weight-bold q-px-sm q-py-xs br-5"
-                style="font-size: 0.75rem;"
-              >
-                {{ sub.status }}
-              </q-badge>
-            </div>
+        <div class="q-mb-md">
+          <!-- Plan Name & Status -->
+          <div class="row items-start q-gutter-x-sm q-mb-sm">
+            <div class="text-h6 q-mr-sm">{{ sub.plan_details?.name || $t('Subscription') }}</div>
+            <q-badge
+              :color="statusColor"
+              :text-color="darkMode ? 'black' : 'white'"
+              class="text-weight-bold q-px-sm q-py-xs br-5"
+              style="font-size: 0.75rem;"
+            >
+              {{ sub.status }}
+            </q-badge>
 
+            <div class="row justify-end q-space q-gutter-x-sm">
+              <q-btn
+                v-if="isCustomer && sub.balance > 0"
+                flat
+                rounded
+                color="red"
+                :label="sub.status === 'ACTIVE' || sub.status === 'PENDING' ? $t('Cancel') : $t('Reclaim')"
+                class="q-px-sm"
+                @click="onCancelSubscriptionClick"
+              />
+              <q-btn
+                v-if="!isCustomer && (sub.status === 'ACTIVE' || sub.status === 'PENDING')"
+                flat
+                rounded
+                color="red"
+                :label="$t('Cancel') || 'Cancel'"
+                class="q-px-sm"
+                @click="onCancelSubscriptionClick"
+              />
+              <q-btn
+                v-if="!isCustomer && sub.status === 'ACTIVE'"
+                flat
+                rounded
+                color="pt-primary1"
+                :label="$t('Update') || 'Update'"
+                class="q-px-sm"
+                @click="openUpdateDialog"
+              />
+              <q-btn
+                v-if="isCustomer && (sub.status === 'ACTIVE' || sub.status === 'PENDING')"
+                unelevated
+                rounded
+                color="pt-primary1"
+                :label="$t('TopUp', 'Top Up')"
+                class="q-px-md"
+                @click="topUp"
+              />
+            </div>
+          </div>
+          <div class="col">
             <!-- Contract Balance -->
             <div class="q-mb-sm" v-if="sub.plan_details">
               <div class="text-caption text-grey">{{ $t('ContractBalance') }}</div>
@@ -128,44 +166,6 @@
             </div>
           </div>
           <div class="col-auto text-right">
-            <div class="q-mt-md row q-gutter-x-sm">
-              <q-btn
-                v-if="isCustomer && sub.balance > 0"
-                flat
-                rounded
-                color="red"
-                :label="sub.status === 'ACTIVE' || sub.status === 'PENDING' ? $t('Cancel') : $t('Reclaim')"
-                class="q-px-sm"
-                @click="onCancelSubscriptionClick"
-              />
-              <q-btn
-                v-if="!isCustomer && (sub.status === 'ACTIVE' || sub.status === 'PENDING')"
-                flat
-                rounded
-                color="red"
-                :label="$t('Cancel') || 'Cancel'"
-                class="q-px-sm"
-                @click="onCancelSubscriptionClick"
-              />
-              <q-btn
-                v-if="!isCustomer && sub.status === 'ACTIVE'"
-                flat
-                rounded
-                color="pt-primary1"
-                :label="$t('Update') || 'Update'"
-                class="q-px-sm"
-                @click="openUpdateDialog"
-              />
-              <q-btn
-                v-if="isCustomer && (sub.status === 'ACTIVE' || sub.status === 'PENDING')"
-                unelevated
-                rounded
-                color="pt-primary1"
-                :label="$t('TopUp', 'Top Up')"
-                class="q-px-md"
-                @click="topUp"
-              />
-            </div>
           </div>
         </div>
 
@@ -321,20 +321,19 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from 'vue'
-import { useRouter } from 'vue-router'
+import { ref, computed, onMounted, onBeforeUnmount } from 'vue'
 import { useDialogPluginComponent, copyToClipboard, useQuasar } from 'quasar'
 import { useStore } from 'vuex'
+import { useI18n } from 'vue-i18n'
 import { date } from 'quasar'
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
+import { inferSchemaFromData, serializeSchemaFields } from 'src/components/jsonforms/jsonform-utils'
+import { usePaymentHubCore } from 'src/composables/payment-hub/usePaymentHub'
+import { bus } from 'src/wallet/event-bus'
 import TopUpDialog from 'src/components/payment-hub/TopUpDialog.vue'
 import UpdateNftDialog from 'src/components/payment-hub/UpdateNftDialog.vue'
-import { PaymentHub } from 'src/wallet/payment-hub'
 import InvoiceDetailDialog from 'src/components/payment-hub/InvoiceDetailDialog.vue'
-import { loadWallet } from 'src/wallet'
-import { useI18n } from 'vue-i18n'
 import JSONFormPreview from 'src/components/jsonforms/JSONFormPreview.vue'
-import { inferSchemaFromData, serializeSchemaFields } from 'src/components/jsonforms/jsonform-utils'
 
 const { t: $t } = useI18n()
 
@@ -347,9 +346,10 @@ defineEmits([...useDialogPluginComponent.emits])
 
 const { dialogRef, onDialogHide, onDialogOK } = useDialogPluginComponent()
 const $store = useStore()
-const $router = useRouter()
 const $q = useQuasar()
 const darkMode = computed(() => $store.getters['darkmode/getStatus'])
+
+const { hub, initHub } = usePaymentHubCore()
 
 const loading = ref(true)
 const error = ref('')
@@ -387,8 +387,6 @@ const displayFormSchema = computed(() => {
   return subscriptionDataSchema.value
 })
 
-let hub = null
-
 const statusColor = computed(() => {
   if (!sub.value) return 'grey-5'
   const s = sub.value.status
@@ -424,7 +422,7 @@ function showBillingInfo() {
     )
   } else if (p.period_blocks) {
     msg = $t(
-      'TotalBilledEveryPeriodBlocksMsg',
+      'TotalBilledEveryPeriodBlockMsg',
       { periodText, blocks: p.period_blocks },
       `This is the total amount billed every ${periodText} or every ${p.period_blocks} blocks.`
     )
@@ -554,13 +552,12 @@ const nextPayoutDisplay = computed(() => {
   return dateString
 })
 
-async function fetchSubscription() {
+async function fetchSubscription(opts) {
   loading.value = true
   error.value = ''
   try {
-    const wallet = await loadWallet('BCH', $store.getters['global/getWalletIndex'])
-    if (!hub) hub = new PaymentHub(wallet)
-    sub.value = await hub.getSubscription(props.subscriptionId, props.isCustomer ? { customer: true } : undefined)
+    await initHub({ isBackground: true, autoRegister: false })
+    sub.value = await hub.value.getSubscription(props.subscriptionId, props.isCustomer ? { customer: true } : undefined)
     await fetchInvoices()
   } catch (err) {
     console.error('Error fetching subscription:', err)
@@ -573,8 +570,9 @@ async function fetchSubscription() {
 async function fetchInvoices() {
   loadingInvoices.value = true
   try {
+    await initHub({ isBackground: true, autoRegister: false })
     // Note: The method `listSubscriptionInvoices` will be implemented in payment-hub.js
-    const data = await hub.listSubscriptionInvoices(props.subscriptionId, { page: 1, ...(props.isCustomer ? { customer: true } : {}) })
+    const data = await hub.value.listSubscriptionInvoices(props.subscriptionId, { page: 1, ...(props.isCustomer ? { customer: true } : {}) })
     invoices.value = data.results || []
   } catch (err) {
     console.error('Error fetching invoices:', err)
@@ -679,9 +677,21 @@ function copyText(text, label = $t('Text')) {
   })
 }
 
+function onPaymentHubSubscriptionUpdate(subData) {
+  if (subData?.id === props.subscriptionId) {
+    sub.value = subData
+    fetchInvoices()
+  }
+}
+
+onBeforeUnmount(() => {
+  bus.off('payment-hub-subscription-update', onPaymentHubSubscriptionUpdate)
+})
 onMounted(() => {
+  bus.on('payment-hub-subscription-update', onPaymentHubSubscriptionUpdate)
   fetchSubscription()
 })
+
 function getBadgeColor(status) {
   switch(status) {
     case 'PAID': return 'green-4'
@@ -693,6 +703,7 @@ function getBadgeColor(status) {
     default: return 'grey-5'
   }
 }
+
 </script>
 
 <style scoped>
