@@ -185,14 +185,17 @@ const listingTotalTime = computed(() => Date.now() - listingsLastFetched.value)
 
 onMounted(async () => {
   // Fetch username and if it doesn't exist, print the error
-
-  await $store.dispatch('auction/fetchUsername')
-  const username = $store.getters['auction/username']
+  let username = $store.getters['auction/username']
   if (!username) {
-    // Route to username/profile page
-    console.warn('User details missing, redirecting...')
-    $router.push({ name: 'app-auction-profile' })
-    return
+    await $store.dispatch('auction/fetchUsername')
+    username = $store.getters['auction/username']
+
+    if (!username) {
+      // Route to username/profile page
+      console.warn('User details missing, redirecting...')
+      $router.push({ name: 'app-auction-profile' })
+      return
+    }
   }
 
   // Reroute user to arbiter page if they're an assigned arbiter
