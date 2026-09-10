@@ -1,5 +1,3 @@
-import { lotId } from "./getters";
-
 export default function () {
   return {    
     // Option Types
