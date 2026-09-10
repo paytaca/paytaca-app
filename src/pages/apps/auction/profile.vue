@@ -99,7 +99,6 @@ const username = ref('')
 
 // Mounts the username (if it exists)
 onMounted(async () => {
-  console.log('bruh')
   username.value = $store.getters['auction/username']
   if (!username.value) console.error('No existing profile username saved.')
   isLoading.value = false
