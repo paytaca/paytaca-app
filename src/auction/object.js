@@ -169,29 +169,14 @@ export class AuctionList {
     this.status = data.status || null
     
     this.type = data.type || (data.type ? data.type.id : null);
-    this.user = data.user && typeof data.user === 'object'
-      ? {
-          id: data.user.id || data.user.user || null,
-          username: data.user.username || null,
-          address: data.user.address || null
-        }
-      : { id: data.user || null, username: null, address: null };
-
+    this.user = data.user || ""
+    this.user_bch_address = data.user_bch_address || ""
     if(data.type == 1) this.type = "English"
     else this.type = "Dutch"
     
     this.lots = Array.isArray(data.lots)
       ? data.lots.map(lotObj => LotsList.parse(lotObj))
       : [];
-  }
-  
-  setUserDetails(data) {
-    if (!data) return
-    this.user = {
-      ...this.user,
-      username: data.username || this.user.username,
-      address: data.address || this.user.address
-    }
   }
 
   getStatus() {
