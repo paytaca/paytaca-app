@@ -66,19 +66,19 @@
                   
                   <div class="col column overflow-hidden">
                     <div class="row items-center no-wrap full-width">
-                      <span v-if="auction.user?.username" class="text-weight-medium ellipsis col-shrink q-mr-xs">
-                        {{ auction.user.username }}
+                      <span v-if="auction.username" class="text-weight-medium ellipsis col-shrink q-mr-xs">
+                        {{ auction.username }}
                       </span>
                       <q-badge v-if="isAuthor" color="positive" class="q-px-xs no-shrink">
                         <q-icon name="star" size="10px" class="q-mr-xs" />You
                       </q-badge>
                     </div>
                     <span class="text-caption ellipsis" style="opacity: 0.6;">
-                      {{ auction.getEllipsisInMiddleUserId() }}
+                      {{ auction.getEllipsisInMiddleAddress() }}
                     </span>
                   </div>
                   
-                  <q-btn flat round dense icon="content_copy" size="xs" @click="copyToClipboard(auction.user?.address)" />
+                  <q-btn flat round dense icon="content_copy" size="xs" @click="copyToClipboard(auction.user)" />
                 </div>
 
                 <q-separator />
@@ -163,10 +163,8 @@
           dense
           v-model="lotType"
           :options="lotTypeOptions"
-          emit-value
           autocomplete="off"
           color="pt-primary1"
-          debounce="500"
           :bg-color="darkMode ? 'dark' : 'white'"
           :popup-content-style="{ color: darkMode ? '#ffffff' : '#000000' }"
           class="q-ml-sm"
@@ -349,7 +347,6 @@ import { useRoute, useRouter } from 'vue-router'
 import { useQuasar, date } from 'quasar'
 import { callAPI } from 'src/auction/api'
 import { Store } from 'src/store'
-import { AuctionList, LotsList } from 'src/auction/object.js'
 
 // Components
 import HeaderNav from 'src/components/header-nav.vue'
@@ -365,11 +362,6 @@ const $router = useRouter()
 // System-related variables
 const darkMode = computed(() => $store.getters['darkmode/getStatus'])
 const isLoading = ref(false)
-defineOptions({
-  directives: {
-    'element-visibility': vElementVisibility
-  }
-})
 
 // Props
 const props = defineProps({
@@ -380,16 +372,16 @@ const props = defineProps({
 })
 
 // Auction-related variables
-const auction = computed(() => $store.getters['auction/auctionDetails'])
+const auction = computed(() => $store.getters['auction/auctionData'])
 const auctionCountdown = ref('Loading...')
 const auctionStartCountdown = ref('Loading...')
-const listingsTotalTime = computed(() => Date.now - $store.getters['auction/listingsLastFetched'])
+const listingsTotalTime = computed(() => Date.now() - $store.getters['auction/listingsLastFetched'])
 
 // Lot-related variables
 const lotType = ref('All')
 const lotTypeOptions = $store.getters['auction/lotTypeOptions']
 const lotSearchQuery = ref('') 
-const lots = ref([])
+const lots = computed(() => $store.getters['auction/auctionLots'])
 
 const auctionLotsTotalTime = computed(() => Date.now() - $store.getters['auction/auctionLotsLastFetched'])
 const isLotEmpty = computed(() => !isLoading.value && filteredLots.value.length === 0)
@@ -413,25 +405,27 @@ const filteredLots = computed(() => {
 
 const fetchAllData = async () => {
   // Check if props.auctionId is the same as stored auctionId (to prevent repeated fetching)
-  const isSameAuctionId = $store.getters['auction/auctionId'] === props.auctionId
-  if(!isSameAuctionId) $store.commit('auction/setAuctionId', props.auctionId)
+  const isSameAuctionId = $store.getters['auction/auctionId'] === Number(props.auctionId)
+  if(!isSameAuctionId) $store.commit('auction/setAuctionId', Number(props.auctionId))
 
-  if(!isSameAuctionId || listingsTotalTime.value > 30000) 
-    await $store.dispatch('fetchAuctionDetails')
-  else 
-    $store.dispatch('fetchExistingAuctionDetails')
+  if(!isSameAuctionId || listingsTotalTime.value > 30000) await $store.dispatch('auction/fetchAuctionData')
+  else await $store.dispatch('auction/fetchExistingAuctionData')
 
-  if(!isSameAuctionId || auctionLotsTotalTime.value > 30000) await fetchAuctionLots()
+  if(!isSameAuctionId || auctionLotsTotalTime.value > 30000) await $store.dispatch('auction/fetchAuctionLots')
 
   if (auction.value?.type === 'Dutch' && lots.value.length) {
     const allSold = lots.value.every(l => l.is_sold)
     const notYetClosed = new Date(auction.value.end_date) > new Date()
     
     if (allSold && notYetClosed) {
+      const endDate = new Date().toISOString()
       await callAPI('auctions', props.auctionId, 'patch', {
-        end_date: new Date().toISOString()
+        end_date: endDate
       })
-      auction.value.end_date = new Date().toISOString()
+      $store.commit('auction/updateAuctionData', {
+        attribute_name: 'end_date', 
+        data: endDate
+      })
     }
   }
 }
@@ -446,7 +440,7 @@ onMounted(async () => {
 })
 
 onBeforeUnmount(() => {
-  if (socket) clearSocket()
+  clearSocket()
 })
 
 /*
@@ -456,13 +450,15 @@ WEBSOCKET-RELATED FUNCTIONS
 */
 const viewCount = ref(0)
 let socket = null
+let reconnectTimeout = null
+let reconnectAttempts = 0
+let maxReconnectAttempts = 10
 
 const connectWebsocket = () => {
-  let reconnectAttempts = 0
-  let maxReconnectAttempts = 10
   const ws = callAuctionWebsocket(Number(props.auctionId))
 
   ws.onopen = (event) => {
+    reconnectAttempts = 0
     console.log("Connected to the auction websocket!")
   }
 
@@ -480,26 +476,37 @@ const connectWebsocket = () => {
         break
       case "auction.start":
         auctionCountdown.value = 'Starting Auction...'
-        auction.value.status = 2
-
-        lots.value.forEach(lot => {
-          lot.start_date = auction.value.start_date
-          lot.end_date = auction.value.end_date
+        $store.commit('auction/updateAuctionData', {
+          attribute_name: 'status', 
+          data: 2
+        })
+        $store.commit('auction/updateAuctionLotsData', {
+          attribute_name: 'start_date', 
+          data: auction.value.start_date
+        })
+        $store.commit('auction/updateAuctionLotsData', {
+          attribute_name: 'end_date', 
+          data: auction.value.end_date
         })
 
         refreshLotStatuses()
         break
       case "auction.closed": {
         auctionStartCountdown.value = "Time's Up!"
-        auction.value.status = 3
-
-        const endDate = data?.end_date || new Date().toISOString()
-        auction.value.end_date = endDate
-
-        lots.value.forEach(lot => {
-          lot.end_date = endDate
+        $store.commit('auction/updateAuctionData', {
+          attribute_name: 'status', 
+          data: 3
         })
 
+        const endDate = data?.end_date || new Date().toISOString()
+        $store.commit('auction/updateAuctionData', {
+          attribute_name: 'end_date', 
+          data: endDate
+        })
+        $store.commit('auction/updateAuctionLotsData', {
+          attribute_name: 'end_date', 
+          data: endDate
+        })
         refreshLotStatuses()
         break
       }
@@ -515,8 +522,11 @@ const connectWebsocket = () => {
     if (!event.wasClean && reconnectAttempts < maxReconnectAttempts) {
       const delay = Math.min(1000 * 2 ** reconnectAttempts, 30000)
       reconnectAttempts++
-      setTimeout(connectWebsocket, delay)
-    }
+      reconnectTimeout = setTimeout(() => {
+        reconnectTimeout = null
+        socket = connectWebsocket()
+      }, delay)
+    } 
   }
 
   ws.onerror = (event) => {
@@ -527,11 +537,18 @@ const connectWebsocket = () => {
 }
 
 const clearSocket = () => {
+  if (reconnectTimeout) {
+    clearTimeout(reconnectTimeout)
+    reconnectTimeout = null
+  }
+  if (!socket) return
+
   socket.close()
   socket.onmessage = null
   socket.onopen = null
   socket.onerror = null
   socket.onclose = null
+  socket = null
 }
 
 /*
@@ -539,53 +556,6 @@ const clearSocket = () => {
 FETCHING AUCTION AND AUCTION LOT DETAILS
 ========================================
 */
-
-const fetchAuctionLots = async () => {
-  console.log('fetching lots right now')
-  const result = await callAPI('lots-by-auction', Number(props.auctionId))
-  
-  if (result.success && result.data) {
-    lots.value = await Promise.all(
-      result.data.map(async (item) => {
-        const lot = LotsList.parse(item)
-        lot.start_date = auction.value?.start_date || null
-        lot.end_date = auction.value?.end_date || null
-        
-        try {
-          const imageResult = await callAPI('lot-images-by-lot', lot.id, 'get')
-          if (imageResult.success && Array.isArray(imageResult.data) && imageResult.data.length > 0) {
-            const firstImageRecord = imageResult.data[0]
-            
-            lot.image = typeof firstImageRecord === 'object' && firstImageRecord !== null 
-              ? (firstImageRecord.image || '') 
-              : firstImageRecord
-          } else {
-            lot.image = noImage
-          }
-        } catch (imgErr) {
-          console.error(`Failed to fetch images for lot ${lot.id}:`, imgErr)
-          lot.image = noImage
-        }
-        
-        if (auction.value?.type === 'English') {
-          try {
-            const bidResult = await callAPI(`lots/${lot.id}/highest-bid`)
-            lot.hasBid = !!(bidResult.success && bidResult.data && bidResult.data.user_id !== null)
-          } catch (bidErr) {
-            console.error(`Failed to check bid status for lot ${lot.id}:`, bidErr)
-            lot.hasBid = false
-          }
-        }
-
-        return lot
-      })
-    )
-    console.log('lots.value: ', lots.value)
-    $store.commit('auction/updateAuctionLots', [...lots.value])
-  } else {
-    console.error('Failed to update lots:', err)
-  }
-}
 
 const toggleEditAuction = async () => {
   const now = new Date()
@@ -595,7 +565,7 @@ const toggleEditAuction = async () => {
   if (minutesToStart > 30) {
     $router.push({ 
       name: 'app-auction-edit', 
-      params: { auctionId: auction.id }
+      params: { auctionId: auction.value.id }
     })
   } else {
     $q.notify({
@@ -613,7 +583,7 @@ IS USER AUCTIONEER OR BIDDER
 */
 const isAuthor = computed(() => {
   const walletHash = Store.getters['global/getWallet']('bch')?.walletHash
-  return walletHash === auction.value?.user?.id
+  return walletHash === auction.value?.user
 })
 
 // REVIEW THIS KAY WHY 30 MINS
@@ -657,6 +627,7 @@ const refreshLotStatuses = () => {
 }
 
 const getReactiveLotStatus = (lot) => {
+  lotStatusVersion.value
   return lot.getStatus()
 }
 
@@ -665,10 +636,6 @@ const getReactiveLotStatus = (lot) => {
 HELPER FUNCTIONS
 ================
 */
-const parseAuctionData = (data) => {
-  if (!data) return null
-  return AuctionList.parse(JSON.parse(JSON.stringify(data)))
-}
 
 // FORMATTING
 const formatAuctionDate = (dateString) => date.formatDate(dateString, 'MMM DD, YYYY hh:mm A') 
@@ -725,6 +692,9 @@ const refresh = async (done) => {
   await fetchAllData()
   
   isLoading.value = false
+
+  clearSocket()
+  socket = connectWebsocket()
   done()
 }
-</script>
+</script> 
