@@ -28,7 +28,7 @@ function getOAuthDomain() {
   if (!baseURL) return 'localhost'
   try {
     const url = new URL(baseURL)
-    console.log('[getoauthdomain] url.domain = ' + url.hostname);
+    //console.log('[getoauthdomain] url.domain = ' + url.hostname);
     return url.hostname
   } catch (e) {
     const match = baseURL.match(/https?:\/\/([^\/]+)/)
@@ -80,7 +80,7 @@ export async function getStoredToken() {
 async function saveToken(token) {
   try {
     await SecureStoragePlugin.set({ key: OAUTH_TOKEN_KEY, value: token })
-		console.log('[OAuth] Token saved to secure storage')
+		//console.log('[OAuth] Token saved to secure storage')
   } catch (error) {
     console.error('[OAuth] Failed to save token:', error)
   }
@@ -96,7 +96,7 @@ async function saveToken(token) {
 export async function clearToken() {
   try {
     await SecureStoragePlugin.remove({ key: OAUTH_TOKEN_KEY })
-		console.log('[OAuth] Token cleared from secure storage')
+		//console.log('[OAuth] Token cleared from secure storage')
   } catch (error) {
     // Token might not exist
   }
@@ -134,19 +134,19 @@ async function axiosFetch(url, options = {}) {
 export async function getAuthHeaders() {
   const walletHash = getWalletHash()
   if (!walletHash) throw new Error('Wallet hash not available')
-
+  
   const storedToken = await getStoredToken()
   if (storedToken) {
-		console.log('[OAuth] Using stored token')
+		//console.log('[OAuth] Using stored token')
     return { 'Authorization': `Bearer ${storedToken}` }
   }
 
-	console.log('[OAuth] No stored token, authenticating...')
+	//console.log('[OAuth] No stored token, authenticating...')
   const credentials = await deriveOAuthCredentials()
-  console.log('private key: ' + credentials.privateKey)
-  console.log('pubkey: ' + credentials.publicKey)
-  console.log('address: ' + credentials.address)
-  console.log('walletHash: ' + credentials.walletHash)
+  //console.log('private key: ' + credentials.privateKey)
+  //console.log('pubkey: ' + credentials.publicKey)
+  //console.log('address: ' + credentials.address)
+  //console.log('walletHash: ' + credentials.walletHash)
 
   const isChipnet = Store.getters['global/isChipnet']
   const client = new BitcoinCashOAuthClient({
@@ -167,17 +167,17 @@ export async function getAuthHeaders() {
 	const privateKeyHex = binToHex(addressNode.privateKey)
 
   const domain = getOAuthDomain()
-  console.log('[OAuth] Domain: ', domain)
+  //console.log('[OAuth] Domain: ', domain)
   const timestamp = Math.floor(Date.now() / 1000)
-  console.log('[OAuth] Timestamp: ', timestamp)
+  //console.log('[OAuth] Timestamp: ', timestamp)
 	const message = client.createAuthMessage(walletHash, timestamp, domain)
-	console.log('[OAuth] Message to sign:', message)
+	//console.log('[OAuth] Message to sign:', message)
   const signature = await client.signAuthMessage(message, privateKeyHex)
-	console.log('[OAuth] Signature:', signature)
+	//console.log('[OAuth] Signature:', signature)
 
   try {
     // Try to authenticate first
-    console.log('[OAuth] Attempting to authenticate user...')
+    //console.log('[OAuth] Attempting to authenticate user...')
     const auth = await client.authenticate(
       walletHash,
       credentials.privateKey,
@@ -186,7 +186,7 @@ export async function getAuthHeaders() {
       domain
     )
 
-    console.log('[OAuth] after client.authenticate: ' + auth)
+    //console.log('[OAuth] after client.authenticate: ' + auth)
     
     await saveToken(auth.access_token)
     return { 'Authorization': `Bearer ${auth.access_token}` }
