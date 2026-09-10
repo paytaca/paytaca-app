@@ -23,31 +23,31 @@ export function processedItems(state) {
 
 // Options getters
 export function auctionTypeOptions(state) {
-  return state.auctionTypeOptions
+  return state.auctionTypeOptions || ['English', 'Dutch', 'All']
 }
 
 export function lotTypeOptions(state) {
-  return state.lotTypeOptions
+  return state.lotTypeOptions || ['Physical', 'Digital', 'All']
 }
 
 
 // Index getters
 export function listingsLastFetched(state) {
-  return state.listingsLastFetched
+  return state.listingsLastFetched || 0
 }
 
 export function auctionTypeIndex(state) {
-  return state.auctionTypeIndex
+  return state.auctionTypeIndex || ''
 }
 
 export function auctionQueryIndex(state) {
-  return state.auctionTypeIndex
+  return state.auctionQueryIndex || ''
 }
 
 
 // Auction Details getters
 export function auctionId(state){
-  return state.auctionId
+  return state.auctionId 
 }
 
 export function auctionLots(state) {
@@ -55,7 +55,11 @@ export function auctionLots(state) {
 }
 
 export function auctionLotsLastFetched(state) {
-  return state.auctionLotsLastFetched
+  return state.auctionLotsLastFetched || 0
+}
+
+export function lotTypeAuction(state) {
+  return state.lotTypeAuction || 'All'
 }
 
 // Lot Details getters
@@ -68,28 +72,28 @@ export function lotData(state) {
 }
 
 export function lotDataLastFetched(state) {
-  return state.lotDataLastFetched
+  return state.lotDataLastFetched || 0
 }
 
 // Activity getters
 export function auctionTypeActivity(state) {0
-  return state.auctionTypeActivity
+  return state.auctionTypeActivity || 'All'
 }
 
 export function auctionQueryActivity(state) {
-  return state.auctionQueryActivity
+  return state.auctionQueryActivity | ''
 }
 
 export function lotTypeActivity(state) {
-  return state.lotTypeActivity
+  return state.lotTypeActivity || 'All'
 }
 
 export function lotQueryActivity(state) {
-  return state.lotQueryActivity
+  return state.lotQueryActivity || ''
 }
 
 export function activityType(state) {
-  return state.activityType
+  return state.activityType || 'My Bids'
 }
 
 export function myBiddings(state) {
@@ -97,7 +101,7 @@ export function myBiddings(state) {
 }
 
 export function myBiddingsLastFetched(state) {
-  return state.myBiddingsLastFetched 
+  return state.myBiddingsLastFetched || 0
 }
 
 export function myAuctions(state) {
@@ -105,7 +109,7 @@ export function myAuctions(state) {
 }
 
 export function myAuctionsLastFetched(state) {
-  return state.myAuctionsLastFetched 
+  return state.myAuctionsLastFetched || 0
 }
 
 
