@@ -12,6 +12,7 @@ export const REWARDS_URL = axios.create({ baseURL: `${ENGAGEMENT_HUB_URL}rewards
 requestManager.attachTo(REWARDS_URL)
 export const PROMO_TOKEN_CATEGORY = process.env.PROMO_TOKEN_CATEGORY
 export const PROMO_TOKEN_DECIMALS = 2
+export const PROMO_CONTRACT_VERSION = 'v2'
 
 export const Promos = {
   USERREWARDS: 'ur',

@@ -8,18 +8,18 @@ const NotificationTypes = types()
 export async function handleOpenedNotification(context) {
   const $router = Router()
   const openedNotification = context.getters['openedNotification']
-  
+
   // Check if app is locked
   const lockAppEnabled = context.rootGetters['global/lockApp']
   const isUnlocked = context.rootGetters['global/isUnlocked']
-  
+
   if (lockAppEnabled && !isUnlocked) {
     // Store the notification for later processing after unlock
     // The notification will be processed after unlock via push-notification-router
     $router.push($router.resolve({ name: 'push-notification-router' }))
     return
   }
-  
+
   const route = await context.dispatch('getOpenedNotificationRoute')
 
   // Check for wallet_hash first (newer wallets)
@@ -31,14 +31,14 @@ export async function handleOpenedNotification(context) {
     const normalizedNotificationHash = notificationWalletHash.trim()
     const normalizedCurrentHash = currentWalletHash ? currentWalletHash.trim() : null
 
-    if (normalizedCurrentHash && normalizedNotificationHash !== normalizedCurrentHash) {
+    if (!normalizedCurrentHash || normalizedNotificationHash !== normalizedCurrentHash) {
       $router.push($router.resolve({ name: 'push-notification-router' }))
       return
     }
     // If wallet hashes match, continue with routing
   } else {
     // Fall back to multi_wallet_index for backward compatibility (old wallets)
-    const multiWalletIndex = parseInt(openedNotification?.data?.multi_wallet_index)
+    const multiWalletIndex = parseInt(openedNotification?.data?.multi_wallet_index, 10)
     const currentWalletIndex = context.rootGetters['global/getWalletIndex']
 
     if (Number.isSafeInteger(multiWalletIndex) && multiWalletIndex !== currentWalletIndex) {
@@ -53,6 +53,9 @@ export async function handleOpenedNotification(context) {
 
 export function emitOpenedNotification(context) {
   bus.emit('handle-push-notification', context.getters['openedNotification'])
+  // The flow is complete — the stash (kept alive until here so the intent
+  // survives app locks/backgrounding) can finally be discarded
+  localStorage.removeItem('push_opened_notification')
   context.commit('clearOpenedNotification')
 }
 export function getOpenedNotificationRoute(context) {
@@ -62,7 +65,20 @@ export function getOpenedNotificationRoute(context) {
   let route = null
   switch(openedNotification?.data?.type) {
     case(NotificationTypes.MAIN_TRANSACTION):
-      route = { name: 'transaction-index' }
+      if (openedNotification?.data?.txid) {
+        route = {
+          name: 'transaction-detail',
+          params: { txid: openedNotification.data.txid },
+          query: Object.assign(
+            {},
+            openedNotification?.data?.token_id
+              ? { category: openedNotification.data.token_id }
+              : {}
+          ),
+        }
+      } else {
+        route = { name: 'transaction-index' }
+      }
       break
     case(NotificationTypes.ANYHEDGE_MATURED):
     case(NotificationTypes.ANYHEDGE_CONTRACT_CANCELLED):
@@ -72,7 +88,12 @@ export function getOpenedNotificationRoute(context) {
     case(NotificationTypes.ANYHEDGE_MUTUAL_REDEMPTION_COMPLETE):
       route = { name: 'app-any-hedge' }
       break
+    case(NotificationTypes.SBCH_TRANSACTION):
+      route = { name: 'transaction-index' }
+      break
+    case (NotificationTypes.MARKETPLACE_ORDER_CREATED):
     case (NotificationTypes.MARKETPLACE_ORDER_STATUS_UPDATE):
+    case (NotificationTypes.MARKETPLACE_ORDER_AUTOCOMPLETE_NOTICE):
     case (NotificationTypes.MARKETPLACE_ORDER_INCOMING_CALL):
       route = {
         name: 'app-marketplace-order',
@@ -119,9 +140,19 @@ export function getOpenedNotificationRoute(context) {
         }),
       }
       break
+    default:
+      // P2P exchange (Ramp) pushes carry no type, only an order_id
+      if (Number.isSafeInteger(parseInt(openedNotification?.data?.order_id, 10))) {
+        route = {
+          name: 'p2p-order',
+          params: { order: openedNotification.data.order_id },
+        }
+      }
+      break
   }
 
   try {
+    if (!route) return null
     return $router.resolve(route)
   } catch (error) { console.error(error) }
   return null

@@ -374,10 +374,9 @@
           </q-card>
         </q-dialog>
 
-        <!-- Leave / Rejoin group -->
+        <!-- Leave group -->
         <div class="leave-section q-mt-md">
           <q-btn
-            v-if="!isGroupBlocked"
             :label="$t('LeaveGroup', {}, 'Leave Group')"
             color="negative"
             outline
@@ -385,22 +384,12 @@
             class="full-width"
             @click="confirmLeaveGroup"
           />
-          <q-btn
-            v-else
-            :label="$t('RejoinGroup', {}, 'Rejoin Group')"
-            color="primary"
-            outline
-            rounded
-            class="full-width"
-            @click="confirmRejoinGroup"
-          />
         </div>
 
         <!-- Info note -->
         <div class="info-note q-mt-md">
           <q-icon name="info" size="16px" color="grey-5" />
-          <span v-if="!isGroupBlocked">{{ $t('LeaveGroupNote', {}, 'Leaving a group archives it and stops new messages from arriving. A message will be sent to the group notifying them you left. You can rejoin later.') }}</span>
-          <span v-else>{{ $t('LeftGroupNote', {}, 'You left this group. Rejoin to send and receive messages again.') }}</span>
+          <span>{{ $t('LeaveGroupNote', {}, 'Leaving a group removes you from the group and stops new messages from arriving.') }}</span>
         </div>
       </div>
     </div>
@@ -454,10 +443,6 @@ export default {
     },
     isMlsRoom () {
       return this.room?.type === 'mls-group'
-    },
-    isGroupBlocked () {
-      if (!this.roomId) return false
-      return this.$store.getters['nostrChat/isGroupBlocked'](this.roomId)
     },
     myPubKey () {
       return this.$store.getters['nostrChat/myPubKey']
@@ -614,26 +599,6 @@ export default {
       this.savingName = true
       try {
         await this.$store.dispatch('nostrChat/updateRoomName', { roomId: this.roomId, name })
-        // MLS groups don't use NIP-17 gift-wraps for group notifications, so
-        // the rename is persisted locally + via the relay's group metadata
-        // only.
-        if (this.room?.type !== 'mls-group') {
-          const text = this.$t('GroupRenamedTo', { name }, `Changed group name to "${name}"`)
-          const { giftWraps, message, roomId } = await this.$store.dispatch('nostrChat/sendMessage', {
-            roomId: this.roomId,
-            text,
-            subject: name,
-          })
-          this.$store.commit('nostrChat/ADD_MESSAGE', { roomId, message })
-          this.$store.commit('nostrChat/TOUCH_ROOM_LAST_MESSAGE_AT', roomId)
-          await this.$store.dispatch('nostrChat/publishGiftWraps', { giftWraps })
-        }
-        // Persist the new name on the relay so all members see it
-        this.$store.dispatch('nostrChat/publishGroupMetadata', {
-          roomId: this.roomId,
-          memberPubKeys: this.room?.members || [],
-          name,
-        }).catch(() => {})
         this.editingName = false
         this.$q.notify({ type: 'positive', message: this.$t('GroupRenamed', {}, 'Group renamed') })
       } catch (err) {
@@ -643,7 +608,7 @@ export default {
       }
     },
     confirmLeaveGroup () {
-      if (this.room?.type === 'mls-group' && this.isGroupOwner) {
+      if (this.isGroupOwner) {
         this.confirmOwnerLeaveGroup()
         return
       }
@@ -656,11 +621,7 @@ export default {
         persistent: true,
       }).onOk(async () => {
         try {
-          if (this.room?.type === 'mls-group') {
-            await this.$store.dispatch('nostrChat/leaveMlsGroup', { roomId: this.roomId })
-          } else {
-            await this.$store.dispatch('nostrChat/leaveGroup', { roomId: this.roomId })
-          }
+          await this.$store.dispatch('nostrChat/leaveMlsGroup', { roomId: this.roomId })
           this.$router.replace('/apps/chat')
           this.$q.notify({ type: 'info', message: this.$t('LeftGroup', {}, 'You left the group') })
         } catch (err) {
@@ -726,19 +687,6 @@ export default {
       } catch (err) {
         this.$q.notify({ type: 'negative', message: err.message || this.$t('LeaveGroupFailed', {}, 'Failed to leave group') })
       }
-    },
-    confirmRejoinGroup () {
-      this.$q.dialog({
-        title: this.$t('RejoinGroup', {}, 'Rejoin Group'),
-        message: this.$t('RejoinGroupConfirm', { name: this.room?.name }, `Rejoin "${this.room?.name}"? You will be able to send and receive messages again.`),
-        class: `pt-card text-bow ${this.getDarkModeClass(this.darkMode)}`,
-        cancel: { label: this.$t('Cancel', {}, 'Cancel'), flat: true, color: 'grey' },
-        ok: { label: this.$t('RejoinGroup', {}, 'Rejoin Group'), color: 'primary', flat: true },
-        persistent: true,
-      }).onOk(async () => {
-        await this.$store.dispatch('nostrChat/rejoinGroup', { roomId: this.roomId })
-        this.$q.notify({ type: 'positive', message: this.$t('GroupRejoined', {}, 'Group rejoined') })
-      })
     },
 
     openMemberDetails (member) {

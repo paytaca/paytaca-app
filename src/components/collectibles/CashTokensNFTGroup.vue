@@ -119,7 +119,7 @@
   </div>
 </template>
 <script setup>
-import { CashNonFungibleToken } from "src/wallet/cashtokens";
+import { CashNonFungibleToken, getBcmrBackend } from "src/wallet/cashtokens";
 import { Wallet } from "src/wallet"
 import { useStore } from "vuex";
 import { computed, onMounted, ref, watch } from "vue";
@@ -204,6 +204,9 @@ function fetchNfts(opts={limit: 0, offset: 0}) {
         nftsPagination.value.count = response?.data?.count
         nftsPagination.value.limit = response?.data?.limit
         nftsPagination.value.offset = response?.data?.offset
+        // Items without their own metadata inherit it from BCMR (per-item first,
+        // then collection-level) so they render with icon/title/description.
+        fillMissingMetadata(nfts.value)
         return response
       })
       .catch(error => {
@@ -217,6 +220,48 @@ function fetchNfts(opts={limit: 0, offset: 0}) {
     // If no category is provided, show empty state
     nfts.value = []
     fetchingNfts.value = false
+  }
+}
+
+function hasMetadata(nft) {
+  return Boolean(nft?.metadata && Object.keys(nft.metadata).length > 0)
+}
+
+function applyMetadata(nft, metadata) {
+  nft.metadata = metadata
+  nft.$state.metadataInitialized = true
+  nft.$state.fetchingMetadata = false
+}
+
+async function fillMissingMetadata(items) {
+  const category = props.category
+  if (!category) return
+  // Mutate through the reactive array proxies so card UI updates as metadata lands.
+  const missing = items.filter(nft => !hasMetadata(nft))
+  if (!missing.length) return
+
+  // Try each item's own BCMR endpoint in parallel, alongside the collection-level
+  // metadata used as fallback (mirrors the NFT dialog behavior).
+  const [groupResponse] = await Promise.all([
+    getBcmrBackend().get(`tokens/${category}/`).catch(() => null),
+    ...missing.map(nft =>
+      nft.commitment
+        ? getBcmrBackend().get(`tokens/${category}/${nft.commitment}/`)
+          .then(response => {
+            if (response?.data && Object.keys(response.data).length > 0) {
+              applyMetadata(nft, response.data)
+            }
+          })
+          .catch(() => null)
+        : Promise.resolve(null)
+    )
+  ])
+
+  const groupMetadata = groupResponse?.data
+  if (groupMetadata && Object.keys(groupMetadata).length > 0) {
+    missing.forEach(nft => {
+      if (!hasMetadata(nft)) applyMetadata(nft, groupMetadata)
+    })
   }
 }
 

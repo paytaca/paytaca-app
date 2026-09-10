@@ -6,40 +6,39 @@
         <p class="q-px-sm q-my-sm section-title text-subtitle1" :class="getDarkModeClass(darkMode)">
           {{ $t('WalletTools', {}, 'Support Tools') }}
         </p>
-        <q-list class="pt-card settings-list" :class="getDarkModeClass(darkMode)">
-          <q-item clickable v-ripple @click="scanUtxos" :disable="scanningUtxos">
-            <q-item-section>
-              <q-item-label class="pt-setting-menu" :class="getDarkModeClass(darkMode)">
-                {{ $t('UtxoScan') }}
-              </q-item-label>
-              <q-item-label caption style="line-height:1;margin-top:3px;" :class="darkMode ? 'text-grey-5' : 'text-grey-8'">
-                {{ $t('UtxoScanDescription') }}
-              </q-item-label>
-            </q-item-section>
-            <q-item-section avatar>
-              <q-icon name="search" :class="darkMode ? 'pt-setting-avatar-dark' : 'text-grey'"></q-icon>
-            </q-item-section>
-            <q-item-section side v-if="scanningUtxos">
-              <q-spinner color="primary" size="20px" />
-            </q-item-section>
-          </q-item>
-          <q-item clickable v-ripple @click="scanAddresses" :disable="scanningAddresses">
-            <q-item-section>
-              <q-item-label class="pt-setting-menu" :class="getDarkModeClass(darkMode)">
-                {{ $t('AddressScan') }}
-              </q-item-label>
-              <q-item-label caption style="line-height:1;margin-top:3px;" :class="darkMode ? 'text-grey-5' : 'text-grey-8'">
-                {{ $t('AddressScanDescription') }}
-              </q-item-label>
-            </q-item-section>
-            <q-item-section avatar>
-              <q-icon name="mdi-map-search" :class="darkMode ? 'pt-setting-avatar-dark' : 'text-grey'"></q-icon>
-            </q-item-section>
-            <q-item-section side v-if="scanningAddresses">
-              <q-spinner color="primary" size="20px" />
-            </q-item-section>
-          </q-item>
-        </q-list>
+        <p class="q-px-sm q-mb-sm text-caption" :class="darkMode ? 'text-grey-5' : 'text-grey-7'" style="line-height: 1.4;">
+          {{ $t('SupportToolsDescription', {}, 'Most issues involving balance, sending, and transaction history records can be resolved with these scan tools. Start with a Quick Scan. If still not resolved, do an Exhaustive Scan.') }}
+        </p>
+        <div class="row q-col-gutter-sm">
+          <div class="col-6">
+            <q-card
+              class="scan-menu-card text-center text-bow"
+              :class="getDarkModeClass(darkMode)"
+              @click="scanUtxos"
+            >
+              <q-spinner v-if="scanningUtxos" color="primary" size="40px" class="q-mt-md" />
+              <q-icon v-else name="search" size="40px" class="q-mt-md" :class="darkMode ? 'text-blue-4' : 'text-primary'" />
+              <div class="text-weight-medium q-mt-sm">{{ $t('QuickScan', {}, 'Quick Scan') }}</div>
+              <div class="text-caption" :class="darkMode ? 'text-grey-5' : 'text-grey-7'">
+                {{ $t('QuickScanDescription', {}, 'Scan for UTXOs of all the subscribed addresses') }}
+              </div>
+            </q-card>
+          </div>
+          <div class="col-6">
+            <q-card
+              class="scan-menu-card text-center text-bow"
+              :class="getDarkModeClass(darkMode)"
+              @click="scanAddresses"
+            >
+              <q-spinner v-if="scanningAddresses" color="primary" size="40px" class="q-mt-md" />
+              <q-icon v-else name="mdi-map-search" size="40px" class="q-mt-md" :class="darkMode ? 'text-blue-4' : 'text-primary'" />
+              <div class="text-weight-medium q-mt-sm">{{ $t('ExhaustiveScan', {}, 'Exhaustive Scan') }}</div>
+              <div class="text-caption" :class="darkMode ? 'text-grey-5' : 'text-grey-7'">
+                {{ $t('ExhaustiveScanDescription', {}, 'Discover all used addresses and their UTXOs') }}
+              </div>
+            </q-card>
+          </div>
+        </div>
       </div>
 
       <div class="col-12 q-px-lg q-mt-md">
@@ -212,7 +211,8 @@ export default {
       darkMode: this.$store.getters['darkmode/getStatus'],
       scanningUtxos: false,
       scanningAddresses: false,
-      utxoScanPollInterval: null
+      utxoScanPollInterval: null,
+      utxoScanDialog: null
     }
   },
   computed: {
@@ -270,18 +270,26 @@ export default {
     async scanUtxos () {
       const vm = this
       if (vm.scanningUtxos) return
-      
+
       vm.scanningUtxos = true
+      vm.utxoScanDialog = vm.$q.dialog({
+        title: vm.$t('QuickScan', {}, 'Quick Scan'),
+        message: vm.$t('ScanInProgress', {}, 'Scanning in progress. Please keep this screen open until done.'),
+        progress: { spinner: true },
+        persistent: true,
+        ok: false,
+        dark: vm.darkMode
+      })
       try {
         const walletIndex = vm.$store.getters['global/getWalletIndex']
         const wallet = await loadWallet('BCH', walletIndex)
         const isChipnet = vm.$store.getters['global/isChipnet']
         const bchWallet = getWalletByNetwork(wallet, 'bch')
         const walletHash = bchWallet.walletHash
-        
+
         const response = await bchWallet.scanUtxos({ background: true })
         const taskId = response?.data?.task_id || response?.data?.taskId
-        
+
         if (taskId) {
           // Store the task in the store
           vm.$store.commit('global/setUtxoScanTask', {
@@ -290,24 +298,21 @@ export default {
             status: 'PENDING',
             completedAt: 0
           })
-          
-          vm.$q.notify({
-            message: vm.$t('UTXOScanOngoing', {}, 'UTXO scan started in the background'),
-            timeout: 3000,
-            color: 'blue-9',
-            icon: 'check_circle'
-          })
-          
-          // Poll for completion (loader will be turned off in pollUtxoScanStatus)
+
+          // Poll for completion (dialog will be closed in pollUtxoScanStatus)
           vm.pollUtxoScanStatus(walletHash)
         } else {
           throw new Error('No task ID returned from scan')
         }
       } catch (error) {
-        console.error('Error starting UTXO scan:', error)
+        console.error('Error starting quick scan:', error)
         vm.scanningUtxos = false
+        if (vm.utxoScanDialog) {
+          vm.utxoScanDialog.hide()
+          vm.utxoScanDialog = null
+        }
         vm.$q.notify({
-          message: vm.$t('ErrorStartingUtxoScan', {}, 'Failed to start UTXO scan'),
+          message: vm.$t('ErrorStartingQuickScan', {}, 'Failed to start quick scan'),
           timeout: 3000,
           color: 'red-9',
           icon: 'error'
@@ -340,31 +345,41 @@ export default {
               clearInterval(vm.utxoScanPollInterval)
               vm.utxoScanPollInterval = null
               vm.scanningUtxos = false
-              
-              vm.$q.notify({
-                message: vm.$t('UTXOScanComplete', {}, 'UTXO scan completed'),
-                timeout: 5000,
-                color: 'green-9',
-                icon: 'check_circle'
+              if (vm.utxoScanDialog) {
+                vm.utxoScanDialog.hide()
+                vm.utxoScanDialog = null
+              }
+
+              vm.$q.dialog({
+                title: vm.$t('QuickScan', {}, 'Quick Scan'),
+                message: vm.$t('QuickScanComplete', {}, 'Quick scan completed'),
+                dark: vm.darkMode
               })
             } else if (status === 'FAILURE') {
               clearInterval(vm.utxoScanPollInterval)
               vm.utxoScanPollInterval = null
               vm.scanningUtxos = false
-              vm.$q.notify({
-                message: vm.$t('UTXOScanFailed', {}, 'UTXO scan failed'),
-                timeout: 5000,
-                color: 'red-9',
-                icon: 'error'
+              if (vm.utxoScanDialog) {
+                vm.utxoScanDialog.hide()
+                vm.utxoScanDialog = null
+              }
+              vm.$q.dialog({
+                title: vm.$t('QuickScan', {}, 'Quick Scan'),
+                message: vm.$t('QuickScanFailed', {}, 'Quick scan failed'),
+                dark: vm.darkMode
               })
             }
           }
-          
+
           // Stop polling after max attempts
           if (attempts >= maxAttempts) {
             clearInterval(vm.utxoScanPollInterval)
             vm.utxoScanPollInterval = null
             vm.scanningUtxos = false
+            if (vm.utxoScanDialog) {
+              vm.utxoScanDialog.hide()
+              vm.utxoScanDialog = null
+            }
           }
         } catch (error) {
           // If update fails (e.g., no task found), stop polling
@@ -372,115 +387,133 @@ export default {
             clearInterval(vm.utxoScanPollInterval)
             vm.utxoScanPollInterval = null
             vm.scanningUtxos = false
+            if (vm.utxoScanDialog) {
+              vm.utxoScanDialog.hide()
+              vm.utxoScanDialog = null
+            }
           }
         }
       }, 5000) // Poll every 5 seconds
     },
-    async scanAddresses () {
+    scanAddresses () {
       const vm = this
       if (vm.scanningAddresses) return
 
       vm.scanningAddresses = true
-      const walletIndex = vm.$store.getters['global/getWalletIndex']
-      const wallet = await loadWallet('BCH', walletIndex)
-      const isChipnet = vm.$store.getters['global/isChipnet']
-      const bchWallet = getWalletByNetwork(wallet, 'bch')
-      try {
-        // Try smart discovery first (checks transaction history via Watchtower node)
-        // This finds addresses used by other wallets (e.g. Electron Cash CashFusion)
-        // even if they have zero balance but have transaction history
-        let usedDiscovery = false
-        try {
-          const discoveryResult = await bchWallet.discoverAddresses({
-            gapLimit: 20,
-            batchSize: 50,
-            onProgress(progress) {
-              const phase = progress.phase === 'subscribing' ? 'subscribing' : 'discovering'
-              // Progress updates can be logged for debugging
-              console.log(`Address discovery: ${phase} - scanned ${progress.scanned}, found ${progress.discoveredReceiving + progress.discoveredChange} addresses`)
-            },
-          })
-
-          if (discoveryResult.success) {
-            const total = discoveryResult.discoveredReceiving.length + discoveryResult.discoveredChange.length
-            usedDiscovery = total > 0
-
-            vm.$q.notify({
-              message: vm.$t(
-                'AddressScanComplete',
-                {},
-                `Address discovery completed. Found ${total} used addresses.`
-              ),
-              timeout: 5000,
-              color: 'blue-9',
-              icon: 'check_circle'
-            })
-
-            // Refresh the wallet's last address index from Watchtower
-            try {
-              await vm.$store.dispatch('global/loadWalletLastAddressIndex')
-            } catch (e) {
-              console.warn('Failed to refresh last address index after discovery:', e)
-            }
-
-            // Refresh BCH balance so updated funds appear immediately
-            try {
-              await updateAssetBalanceOnLoad('bch', wallet, vm.$store)
-            } catch (e) {
-              console.warn('Failed to refresh BCH balance after address scan:', e)
-            }
-          }
-        } catch (discoveryError) {
-          console.warn('Address discovery endpoint not available, falling back to bulk scan:', discoveryError)
+      let scanDialog = vm.$q.dialog({
+        title: vm.$t('ExhaustiveScan', {}, 'Exhaustive Scan'),
+        message: vm.$t('ScanInProgress', {}, 'Scanning in progress. Please keep this screen open until done.'),
+        progress: { spinner: true },
+        persistent: true,
+        ok: false,
+        dark: vm.darkMode
+      })
+      const closeScanDialog = () => {
+        if (scanDialog) {
+          scanDialog.hide()
+          scanDialog = null
         }
-
-        // Fallback: use the old bulk scan approach if discovery failed or is unavailable
-        if (!usedDiscovery) {
-          const lastAddressIndex = vm.$store.getters['global/getWallet']('bch')?.lastAddressIndex || 0
-
-          const startIndex = 0
-          const gapLimit = 20
-          const count = lastAddressIndex + gapLimit + 1
-
-          const result = await bchWallet.scanAddresses({ startIndex, count })
-
-          if (result.success) {
-            vm.$q.notify({
-              message: vm.$t('AddressScanComplete', {}, 'Address scan completed successfully'),
-              timeout: 3000,
-              color: 'blue-9',
-              icon: 'check_circle'
-            })
-
-            // Refresh BCH balance so updated funds appear immediately
-            try {
-              await updateAssetBalanceOnLoad('bch', wallet, vm.$store)
-            } catch (e) {
-              console.warn('Failed to refresh BCH balance after address scan:', e)
-            }
-          } else {
-            throw new Error(result.error || 'Address scan failed')
-          }
-        }
-      } catch (error) {
-        console.error('Error scanning addresses:', error)
-        vm.$q.notify({
-          message: vm.$t('ErrorScanningAddresses', {}, 'Failed to scan addresses'),
-          timeout: 3000,
-          color: 'red-9',
-          icon: 'error'
-        })
-      } finally {
-        vm.scanningAddresses = false
-        bchWallet?.clearMasterHDNodeCache()
       }
+      setTimeout(async () => {
+        let bchWallet
+        let wallet
+        try {
+          const walletIndex = vm.$store.getters['global/getWalletIndex']
+          wallet = await loadWallet('BCH', walletIndex)
+          bchWallet = getWalletByNetwork(wallet, 'bch')
+
+          let usedDiscovery = false
+          try {
+            const discoveryResult = await bchWallet.discoverAddresses({
+              gapLimit: 20,
+              batchSize: 50,
+              onProgress(progress) {
+                const phase = progress.phase === 'subscribing' ? 'subscribing' : 'discovering'
+                console.log(`Address discovery: ${phase} - scanned ${progress.scanned}, found ${progress.discoveredReceiving + progress.discoveredChange} addresses`)
+              },
+            })
+
+            if (discoveryResult.success) {
+              const total = discoveryResult.discoveredReceiving.length + discoveryResult.discoveredChange.length
+              usedDiscovery = total > 0
+
+              closeScanDialog()
+              vm.$q.dialog({
+                title: vm.$t('ExhaustiveScan', {}, 'Exhaustive Scan'),
+                message: vm.$t(
+                  'ExhaustiveScanComplete',
+                  { total },
+                  'Address discovery completed. Found {total} used addresses.'
+                ),
+                dark: vm.darkMode
+              })
+
+              try {
+                await vm.$store.dispatch('global/loadWalletLastAddressIndex')
+              } catch (e) {
+                console.warn('Failed to refresh last address index after discovery:', e)
+              }
+
+              try {
+                await updateAssetBalanceOnLoad('bch', wallet, vm.$store)
+              } catch (e) {
+                console.warn('Failed to refresh BCH balance after address scan:', e)
+              }
+            }
+          } catch (discoveryError) {
+            console.warn('Address discovery endpoint not available, falling back to bulk scan:', discoveryError)
+          }
+
+          if (!usedDiscovery) {
+            const lastAddressIndex = vm.$store.getters['global/getWallet']('bch')?.lastAddressIndex || 0
+
+            const startIndex = 0
+            const gapLimit = 20
+            const count = lastAddressIndex + gapLimit + 1
+
+            const result = await bchWallet.scanAddresses({ startIndex, count })
+
+            if (result.success) {
+              closeScanDialog()
+              vm.$q.dialog({
+                title: vm.$t('ExhaustiveScan', {}, 'Exhaustive Scan'),
+                message: vm.$t('ExhaustiveScanComplete', {}, 'Exhaustive scan completed'),
+                dark: vm.darkMode
+              })
+
+              try {
+                await updateAssetBalanceOnLoad('bch', wallet, vm.$store)
+              } catch (e) {
+                console.warn('Failed to refresh BCH balance after address scan:', e)
+              }
+            } else {
+              throw new Error(result.error || 'Address scan failed')
+            }
+          }
+        } catch (error) {
+          console.error('Error scanning addresses:', error)
+          vm.$q.notify({
+            message: vm.$t('ErrorExhaustiveScan', {}, 'Failed to scan addresses'),
+            timeout: 3000,
+            color: 'red-9',
+            icon: 'error'
+          })
+        } finally {
+          closeScanDialog()
+          vm.scanningAddresses = false
+          bchWallet?.clearMasterHDNodeCache()
+        }
+      }, 100)
     }
   },
   beforeUnmount () {
-    // Clean up polling interval when component is destroyed
     if (this.utxoScanPollInterval) {
       clearInterval(this.utxoScanPollInterval)
       this.utxoScanPollInterval = null
+    }
+    if (this.utxoScanDialog) {
+      this.utxoScanDialog.hide()
+      this.utxoScanDialog = null
     }
   }
 }
@@ -514,6 +547,18 @@ export default {
   
   .pt-setting-avatar-dark {
     color: #A6ACAF;
+  }
+
+  .scan-menu-card {
+    padding: 24px 12px;
+    border-radius: 16px;
+    cursor: pointer;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+
+    &:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 6px 16px rgba(0, 0, 0, 0.12);
+    }
   }
 
   .pt-label {

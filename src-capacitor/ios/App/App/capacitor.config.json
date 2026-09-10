@@ -30,7 +30,8 @@
 		}
 	},
 	"ios": {
-		"scheme": "Paytaca"
+		"scheme": "Paytaca",
+		"webContentsDebuggingEnabled": false
 	},
 	"server": {
 		"androidScheme": "https"
