@@ -2026,6 +2026,7 @@ export default {
   PlanName: "Название плана",
   Plans: "Планы",
   PlatformFee: "Плата за платформу",
+  PlatformFeeInfo: "Платформа взимает комиссию в размере 0,3%, но не более 1 доллара США за BCH.",
   PleaseEnableLocationService: "Пожалуйста, включите службу определения местоположения устройства.",
   PleaseEnterNickname: "Пожалуйста, введите псевдоним",
   PleaseEnterOrScanEncryptionPublicKey: "Пожалуйста, введите или отсканируйте открытый ключ шифрования.",

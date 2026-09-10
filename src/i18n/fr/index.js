@@ -2026,6 +2026,7 @@ export default {
   PlanName: "Nom du régime",
   Plans: "Forfaits",
   PlatformFee: "Frais de plateforme",
+  PlatformFeeInfo: "Des frais de 0,3% facturés par la plateforme, plafonnés à un maximum de 1 USD de BCH.",
   PleaseEnableLocationService: "Veuillez activer le service de localisation de l'appareil.",
   PleaseEnterNickname: "Veuillez entrer votre pseudo",
   PleaseEnterOrScanEncryptionPublicKey: "Veuillez saisir ou scanner la clé publique de cryptage",

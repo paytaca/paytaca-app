@@ -2027,6 +2027,7 @@ export default {
   PlanName: "計劃名稱",
   Plans: "計劃",
   PlatformFee: "平台費",
+  PlatformFeeInfo: "平台收取0.3%的費用，上限為價值1美元的BCH。",
   PleaseEnableLocationService: "請啟用設備的定位服務。",
   PleaseEnterNickname: "請輸入暱稱",
   PleaseEnterOrScanEncryptionPublicKey: "請輸入或掃描加密公鑰",

@@ -23,6 +23,7 @@ let _mlsSubs = []
 let _mlsSeenEventIds = new Set()
 let _mlsSubscribedRelays = []
 let _mlsSubscribedPubKey = null
+let _mlsSubscribedGroupHexes = []
 let _mlsSubscribing = false
 let _mlsSubscriptionCallbacks = null
 let _mlsResubInterval = null
@@ -110,6 +111,7 @@ export function disconnect() {
   }
   _mlsSubscribedRelays = []
   _mlsSubscribedPubKey = null
+  _mlsSubscribedGroupHexes = []
   _mlsSubscriptionCallbacks = null
   _mlsSeenEventIds.clear()
 }
@@ -559,33 +561,6 @@ export async function fetchAvatar(relays, pubKey) {
 }
 
 /**
- * Fetch group metadata from relays (NIP-78 kind:30078).
- * Queries all authors for the d-tag paytaca:group:<roomId>.
- * @param {string[]} relays
- * @param {string} roomId
- * @returns {Promise<object|null>}
- */
-export async function fetchGroupMetadata(relays, roomId) {
-  const pool = getPool()
-  const dTag = `paytaca:group:${roomId}`
-  try {
-    const events = await pool.querySync(relays, { kinds: [30078], '#d': [dTag] })
-    const matching = events?.filter(e => {
-      const dt = e.tags?.find(t => t[0] === 'd')
-      return dt && dt[1] === dTag
-    })
-    if (!matching || matching.length === 0) return null
-    // Pick the newest event by created_at so the most recent rename wins,
-    // regardless of which member published it. This makes group naming
-    // deterministic across all clients.
-    return matching.reduce((newest, e) => e.created_at > newest.created_at ? e : newest)
-  } catch (err) {
-    console.warn('[Nostr] Failed to fetch group metadata:', err)
-    return null
-  }
-}
-
-/**
  * Query for historical kind:1059 gift-wraps addressed to our pubkey.
  * This catches messages that were published before our subscription was active.
  * @param {string[]} relays
@@ -620,20 +595,33 @@ export async function fetchHistoricalGiftWraps(relays, myPubKey, callbacks = {})
 }
 
 /**
- * Subscribe to MLS events (kind 30078 with the original MLS kind in data.mlsKind).
- * Follows the same pattern as subscribeGiftWraps.
+ * Subscribe to NIP-EE MLS group events for a list of nostr_group_ids.
+ *
+ * NIP-EE uses dedicated kinds on the relay:
+ *  - kind 443  (NIP-EE KeyPackage)   — authored by the identity key
+ *  - kind 444  (NIP-EE Welcome)      — always gift-wrapped (kind 1059), never
+ *                                      published directly, so no #444 filter
+ *  - kind 445  (NIP-EE Group Event)  — signed with an ephemeral key, tagged
+ *                                      with the 32-byte nostr_group_id in #h
+ *  - kind 10051 (NIP-EE relay list)  — ignored here (only written)
+ *
+ * Group events are NOT authored by our pubkey, so we filter by #h only.
+ *
  * @param {string[]} relays
- * @param {string} myPubKey - Hex pubkey
+ * @param {string} myPubKey - Hex pubkey (used for the replaceable resubscribe key)
+ * @param {string[]} nostrGroupHexes - nostr_group_ids (hex) to subscribe for
  * @param {{ onEvent(event): void }} callbacks
- * @param {{ force?: boolean, since?: number }} [options]
+ * @param {Object} [options]
+ * @param {boolean} [options.force]
+ * @param {number} [options.since]
  * @returns {{ close(): void }}
  */
-export function subscribeMlsEvents(relays, myPubKey, callbacks = {}, options = {}) {
-  const now = Date.now()
+export function subscribeMlsEvents(relays, myPubKey, nostrGroupHexes = [], callbacks = {}, options = {}) {
+  const subKey = JSON.stringify([myPubKey, nostrGroupHexes, relays])
 
   if (
     !options.force &&
-    _mlsSubscribedPubKey === myPubKey &&
+    _mlsSubscribedPubKey === subKey &&
     arraysEqual(_mlsSubscribedRelays, relays)
   ) {
     return { close() {} }
@@ -651,13 +639,20 @@ export function subscribeMlsEvents(relays, myPubKey, callbacks = {}, options = {
   _mlsSubscriptionCallbacks = callbacks
 
   const pool = getPool()
-  const filterReceived = { kinds: [30078], '#p': [myPubKey] }
-  const filterSent = { kinds: [30078], authors: [myPubKey] }
-  if (options.since) {
-    filterReceived.since = options.since
-    filterSent.since = options.since
+
+  const filters = []
+  // Group events for our groups, scoped by h tag. We deliberately don't
+  // filter on authors: NIP-EE kind-445 events are signed with an ephemeral
+  // key (event.pubkey != identity), so an `authors: [myPubKey]` filter would
+  // never match and would only waste a subscription.
+  if (nostrGroupHexes.length > 0) {
+    filters.push({ kinds: [445], '#h': nostrGroupHexes })
   }
-  const filters = [filterReceived, filterSent]
+  if (options.since) {
+    for (const filter of filters) {
+      filter.since = options.since
+    }
+  }
 
   try {
     _mlsSubscribing = true
@@ -690,14 +685,15 @@ export function subscribeMlsEvents(relays, myPubKey, callbacks = {}, options = {
   }
 
   _mlsSubscribedRelays = [...relays]
-  _mlsSubscribedPubKey = myPubKey
+  _mlsSubscribedPubKey = subKey
+  _mlsSubscribedGroupHexes = [...nostrGroupHexes]
 
   if (!_mlsResubInterval) {
     _mlsResubInterval = setInterval(() => {
       if (_mlsSubscribedRelays.length > 0 && _mlsSubscribedPubKey && _mlsSubscriptionCallbacks) {
         if (_mlsSubs.length === 0) {
           const since = Math.floor(Date.now() / 1000) - 259200
-          subscribeMlsEvents(_mlsSubscribedRelays, _mlsSubscribedPubKey, _mlsSubscriptionCallbacks, {
+          subscribeMlsEvents(_mlsSubscribedRelays, myPubKey, _mlsSubscribedGroupHexes, _mlsSubscriptionCallbacks, {
             force: true,
             since,
           })
@@ -718,24 +714,35 @@ export function subscribeMlsEvents(relays, myPubKey, callbacks = {}, options = {
 }
 
 /**
- * Fetch historical MLS events received/sent by our pubkey.
+ * Fetch historical NIP-EE MLS group events for our groups (by nostr_group_id).
  * @param {string[]} relays
- * @param {string} myPubKey - Hex pubkey
+ * @param {string[]} nostrGroupHexes - nostr_group_ids (hex)
  * @param {{ onEvent(event): void }} callbacks
  * @returns {Promise<void>}
  */
-export async function fetchMlsHistory(relays, myPubKey, callbacks = {}) {
+export async function fetchMlsHistory(relays, nostrGroupHexes = [], callbacks = {}) {
   const pool = getPool()
   try {
-    const [receivedResult, sentResult] = await Promise.allSettled([
-      pool.querySync(relays, { kinds: [30078], '#p': [myPubKey], limit: 200 }),
-      pool.querySync(relays, { kinds: [30078], authors: [myPubKey], limit: 200 }),
-    ])
-    const received = receivedResult.status === 'fulfilled' ? receivedResult.value : []
-    const sent = sentResult.status === 'fulfilled' ? sentResult.value : []
-    const events = [...(received || []), ...(sent || [])]
+    const queries = []
+    if (nostrGroupHexes.length > 0) {
+      queries.push({ kinds: [445], '#h': nostrGroupHexes, limit: 500 })
+    }
+
+    const results = await Promise.allSettled(queries.map((q) => pool.querySync(relays, q)))
+    const events = []
+    for (const result of results) {
+      if (result.status === 'fulfilled') events.push(...(result.value || []))
+    }
     if (!events.length) return
-    for (const event of events) {
+    // Dedupe across overlapping filters, order oldest-first for replay.
+    const seen = new Set()
+    const unique = []
+    for (const event of events.sort((a, b) => a.created_at - b.created_at)) {
+      if (seen.has(event.id)) continue
+      seen.add(event.id)
+      unique.push(event)
+    }
+    for (const event of unique) {
       if (_mlsSeenEventIds.has(event.id)) continue
       _mlsSeenEventIds.add(event.id)
       if (callbacks.onEvent) callbacks.onEvent(event)
@@ -746,33 +753,34 @@ export async function fetchMlsHistory(relays, myPubKey, callbacks = {}) {
 }
 
 /**
- * Fetch a member's KeyPackage from relays (kind:30078, d-tag: paytaca:mls-kp).
+ * Fetch a member's NIP-EE KeyPackages (kind 443, authored by the member).
  * @param {string[]} relays
  * @param {string} pubKey - Hex pubkey
- * @returns {Promise<import('nostr-tools').NostrEvent|null>}
+ * @returns {Promise<import('nostr-tools').NostrEvent[]>}
  */
-export async function fetchMlsKeyPackage(relays, pubKey) {
+export async function fetchNipEeKeyPackage(relays, pubKey) {
   const pool = getPool()
   try {
     const events = await pool.querySync(relays, {
-      kinds: [30078],
+      kinds: [443],
       authors: [pubKey],
-      '#d': ['paytaca:mls-kp'],
+      limit: 100,
     })
     if (events && events.length > 0) {
       return events.sort((a, b) => b.created_at - a.created_at)
     }
     return []
   } catch (err) {
-    console.warn('[MLS] Failed to fetch KeyPackage for', pubKey?.slice(0, 16), 'error:', err.message)
+    console.warn('[MLS] Failed to fetch NIP-EE KeyPackage for', pubKey?.slice(0, 16), 'error:', err.message)
     return []
   }
 }
 
 /**
- * Fetch MLS welcome events (MLS kind 30119, published as kind 30078) that the
- * given author sent to a specific member. Used to clean up stale welcomes on
- * re-invite.
+ * Fetch gift-wrapped event addressed to a specific member pubkey, returning
+ * only the NIP-EE MLS welcome envelopes among them. Kept for compatibility with
+ * legacy callers; welcome processing now happens inline in the gift-wrap
+ * subscription (kind-444 rumors surface via receiveMessage → receiveMlsWelcomeRumor).
  * @param {string[]} relays
  * @param {string} authorPubKey - Hex pubkey of the welcome sender
  * @param {string} memberPubKey - Hex pubkey of the invited member
@@ -782,20 +790,12 @@ export async function fetchMlsWelcomeEvents(relays, authorPubKey, memberPubKey) 
   const pool = getPool()
   try {
     const events = await pool.querySync(relays, {
-      kinds: [30078],
+      kinds: [1059],
       authors: [authorPubKey],
       '#p': [memberPubKey],
       limit: 100,
     })
-    // Keep only welcome envelopes (data.mlsKind === 30119).
-    return (events || []).filter(event => {
-      try {
-        const parsed = JSON.parse(event.content)
-        return parsed?.data?.mlsKind === 30119
-      } catch {
-        return false
-      }
-    })
+    return events || []
   } catch (err) {
     console.warn('[MLS] Failed to fetch welcome events:', err.message)
     return []
@@ -832,21 +832,22 @@ export async function fetchOwnDeletionEventIds(relays, pubKey) {
 }
 
 /**
- * Query the given relays for recent MLS group events addressed to a specific
- * group (matched by the #h tag). Returns events for that group regardless of
- * author, so a diagnostic can tell whether messages from other members are
- * actually reaching the relay (transport/publish ok) versus failing locally.
+ * Query the given relays for recent NIP-EE group events (kind 445) addressed
+ * to a specific group (matched by the #h tag). Returns events for that group
+ * regardless of author, so a diagnostic can tell whether messages from other
+ * members are actually reaching the relay (transport/publish ok) versus
+ * failing locally.
  * @param {string[]} relays
- * @param {string} mlsGroupIdHex - Hex MLS group id
+ * @param {string} nostrGroupIdHex - Hex NIP-EE nostr_group_data group id (#h tag value)
  * @param {number} [limit]
  * @returns {Promise<import('nostr-tools').NostrEvent[]>}
  */
-export async function fetchMlsGroupEvents(relays, mlsGroupIdHex, limit = 100) {
+export async function fetchMlsGroupEvents(relays, nostrGroupIdHex, limit = 100) {
   const pool = getPool()
   try {
     const events = await pool.querySync(relays, {
-      kinds: [30078],
-      '#h': [mlsGroupIdHex],
+      kinds: [445],
+      '#h': [nostrGroupIdHex],
       limit,
     })
     return (events || []).sort((a, b) => a.created_at - b.created_at)

@@ -2026,6 +2026,7 @@ export default {
   PlanName: "Nome del piano",
   Plans: "Piani",
   PlatformFee: "Tariffa della piattaforma",
+  PlatformFeeInfo: "Una commissione dello 0,3% addebitata dalla piattaforma, limitata a un massimo di 1 USD in BCH.",
   PleaseEnableLocationService: "Abilita il servizio di localizzazione del dispositivo.",
   PleaseEnterNickname: "Inserisci il soprannome",
   PleaseEnterOrScanEncryptionPublicKey: "Inserisci o scansiona la chiave pubblica di crittografia",

@@ -5,20 +5,57 @@ import {
   encodeMlsMessage,
   decodeMlsMessage,
   emptyPskIndex,
+  encodeRequiredCapabilities,
+  mlsExporter,
 } from 'ts-mls'
 import { getGroupMembers, getOwnLeafNode } from 'ts-mls/clientState.js'
 import { ensureMlsCrypto } from './context.js'
+import {
+  NOSTR_GROUP_DATA_EXTENSION_TYPE,
+  serializeNipEeGroupData,
+} from './nostr-transport.js'
+
+const REQUIRED_PROPOSAL_TYPES = [2]
+
+/**
+ * Build the GroupContext extensions for a NIP-EE group: the 0xF2EE
+ * nostr_group_data payload (Marmot wire format) plus required_capabilities
+ * declaring that every member must support nostr_group_data and the update
+ * proposal. Deliberately a subset of OPTN's requirements (no Marmot
+ * app-data dictionary ext 0x0006, no selfRemove proposal 10) so stock
+ * ts-mls can process every proposal in groups we create; OPTN clients can
+ * still join since they support 0xF2EE + update.
+ */
+export function buildNipEeGroupExtensions(nostrGroupIdHex, { name = '', description = '', adminPubkeys = [], relays = [] } = {}) {
+  return [
+    {
+      extensionType: NOSTR_GROUP_DATA_EXTENSION_TYPE,
+      extensionData: serializeNipEeGroupData({ nostrGroupIdHex, name, description, adminPubkeys, relays }),
+    },
+    {
+      extensionType: 'required_capabilities',
+      extensionData: encodeRequiredCapabilities({
+        extensionTypes: [NOSTR_GROUP_DATA_EXTENSION_TYPE],
+        proposalTypes: REQUIRED_PROPOSAL_TYPES,
+        credentialTypes: [],
+      }),
+    },
+  ]
+}
 
 /**
  * Create a new MLS group.
- * @param {Uint8Array} groupId — MLS internal group ID (32 random bytes)
+ * @param {Uint8Array} groupId — MLS internal group ID (32 random bytes, never published)
  * @param {Object} keyPackage — from generateMlsKeyPackage()
  * @param {Object} privatePackage — from generateMlsKeyPackage()
+ * @param {string} nostrGroupIdHex — 32-byte hex nostr_group_id used in kind-445 h tags
+ * @param {Object} [groupMeta] — name/description/adminPubkeys/relays for nostr_group_data
  * @returns {Promise<import('ts-mls').ClientState>}
  */
-export async function createMlsGroup(groupId, keyPackage, privatePackage) {
+export async function createMlsGroup(groupId, keyPackage, privatePackage, nostrGroupIdHex, groupMeta) {
   const { impl, clientConfig } = await ensureMlsCrypto()
-  return createGroup(groupId, keyPackage, privatePackage, [], impl, clientConfig)
+  const extensions = buildNipEeGroupExtensions(nostrGroupIdHex, groupMeta)
+  return createGroup(groupId, keyPackage, privatePackage, extensions, impl, clientConfig)
 }
 
 /**
@@ -67,6 +104,18 @@ export async function removeMlsMember(state, leafIndex, impl) {
 export async function joinMlsGroup(welcome, keyPackage, privatePackage) {
   const { impl, clientConfig } = await ensureMlsCrypto()
   return joinGroup(welcome, keyPackage, privatePackage, emptyPskIndex, impl, undefined, undefined, clientConfig)
+}
+
+/**
+ * Derive the NIP-EE exporter secret ("nostr" label, 32 bytes) from the
+ * group's current key schedule. Rotates per epoch — derive fresh from the
+ * latest state after every commit.
+ * @param {import('ts-mls').ClientState} state
+ * @returns {Promise<Uint8Array>}
+ */
+export async function getNostrExporterSecret(state) {
+  const { impl } = await ensureMlsCrypto()
+  return mlsExporter(state.keySchedule.exporterSecret, 'nostr', new Uint8Array(0), 32, impl)
 }
 
 /** Encode an MLSMessage for publishing. */

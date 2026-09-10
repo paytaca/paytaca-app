@@ -104,7 +104,7 @@ export default {
     messages: { type: Object, default: () => ({}) },
     archived: { type: Boolean, default: false },
   },
-  emits: ['select-room', 'archive-room', 'unarchive-room', 'delete-room', 'block-room', 'unblock-room', 'leave-room', 'rejoin-room'],
+  emits: ['select-room', 'archive-room', 'unarchive-room', 'delete-room', 'block-room', 'unblock-room', 'leave-room'],
   data () {
     return {
       dmAvatars: {},
@@ -197,27 +197,25 @@ export default {
   methods: {
     getDarkModeClass,
     isRoomBlocked (room) {
-      if (room.type === 'group' || room.type === 'mls-group') {
-        return this.$store.getters['nostrChat/isGroupBlocked'](room.id)
-      }
+      if (room.type === 'group' || room.type === 'mls-group') return false
       const otherPubKey = room.members?.find(m => m !== this.myPubKey)
       if (!otherPubKey) return false
       return this.$store.getters['nostrChat/isContactBlocked'](otherPubKey)
     },
     leftSwipeLabel (room) {
       if (this.archived) return this.$t('Unarchive', {}, 'Unarchive')
-      const blocked = this.isRoomBlocked(room)
       if (room.type === 'group' || room.type === 'mls-group') {
-        return blocked ? this.$t('Rejoin', {}, 'Rejoin') : this.$t('Leave', {}, 'Leave')
+        return this.$t('Leave', {}, 'Leave')
       }
+      const blocked = this.isRoomBlocked(room)
       return blocked ? this.$t('Unblock', {}, 'Unblock') : this.$t('Block', {}, 'Block')
     },
     leftSwipeIcon (room) {
       if (this.archived) return 'unarchive'
-      const blocked = this.isRoomBlocked(room)
       if (room.type === 'group' || room.type === 'mls-group') {
-        return blocked ? 'group_add' : 'exit_to_app'
+        return 'exit_to_app'
       }
+      const blocked = this.isRoomBlocked(room)
       return blocked ? 'lock_open' : 'block'
     },
     onSwipeLeft (room, { reset }) {
@@ -226,19 +224,15 @@ export default {
         this.$emit('unarchive-room', room.id)
         return
       }
-      const blocked = this.isRoomBlocked(room)
       if (room.type === 'group' || room.type === 'mls-group') {
-        if (blocked) {
-          this.$emit('rejoin-room', room.id)
-        } else {
-          this.$emit('leave-room', room.id)
-        }
+        this.$emit('leave-room', room.id)
+        return
+      }
+      const blocked = this.isRoomBlocked(room)
+      if (blocked) {
+        this.$emit('unblock-room', room.id)
       } else {
-        if (blocked) {
-          this.$emit('unblock-room', room.id)
-        } else {
-          this.$emit('block-room', room.id)
-        }
+        this.$emit('block-room', room.id)
       }
     },
     onSwipeRight (room, { reset }) {

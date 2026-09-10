@@ -2026,6 +2026,7 @@ export default {
   PlanName: "Pangalan ng Plano",
   Plans: "Mga plano",
   PlatformFee: "Bayad sa Platform",
+  PlatformFeeInfo: "Isang 0.3% na bayad na sinisingil ng platform, na nilimitahan sa maximum na 1 USD na halaga ng BCH.",
   PleaseEnableLocationService: "Mangyaring paganahin ang serbisyo sa lokasyon ng device.",
   PleaseEnterNickname: "Pakipasok ang palayaw",
   PleaseEnterOrScanEncryptionPublicKey: "Mangyaring ipasok o i-scan ang pampublikong key ng pag-encrypt",
