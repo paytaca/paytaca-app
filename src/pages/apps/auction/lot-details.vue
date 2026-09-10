@@ -738,6 +738,7 @@ const $route = useRoute()
 
 // System-related variables
 const darkMode = computed(() => $store.getters['darkmode/getStatus'])
+const isLoading = ref(false)
 const walletHash = $store.getters['global/getWallet']('bch')?.walletHash
 const bchToPhpRate = computed(() => $store.getters['market/getAssetPrice']('bch', 'php') || 0)
  
@@ -753,21 +754,24 @@ const props = defineProps({
   }
 })
 
+// Auction-related variables
+const auction = computed(() => $store.getters['auction/auctionData'])
+
+// Lot-related variables
 const activeSlide = ref(0)
 const lotImages = ref([])
 const lot = computed(() => $store.getters['auction/lotData'])
-const auction = computed(() => $store.getters['auction/auctionData'])
-const isLoading = ref(false)
+const isLotSold = ref(false)
 
 // Post-auction actions
 const showSellerDisputeDialog = ref(false)
 const showRefundDialog = ref(false)
-
 const showBidHistory = ref(false)
 const showDeliveryHistory = ref(false)
+
 const deliveryStatusId = ref(null)
 const deliveredDate = ref(null)
-const isLotSold = ref(false)
+
 const isMarkedComplete = ref(false)
 const isGrantedRefund = ref(false)
 const isGrantedReturn = ref(false)
@@ -826,22 +830,19 @@ const confirmPickupTrigger = async () => {
 }
 
 const markedAsCompleted = async () => {
-  try {
-    if (!winningBidId.value) {
-      $q.notify({ type: 'warning', message: 'Could not find bid to release funds for.' })
-      return
-    }
-
-    $q.loading.show({ message: 'Marking as complete, processing funds...' })
-    await callContractRelease(winningBidId.value)
-    $q.loading.hide()
-
-    await callAPI('delivery-trackings', props.lotId, 'patch', { mark_as_completed: true })
-  } catch (err) {
-    console.warn('Could not fetch delivery tracking:', err)
-  } finally {
-    await refresh(() => {})
+  if (!winningBidId.value) {
+    $q.notify({ type: 'warning', message: 'Could not find bid to release funds for.' })
+    return
   }
+
+  $q.loading.show({ message: 'Marking as complete, processing funds...' })
+  await callContractRelease(winningBidId.value)
+  $q.loading.hide()
+  
+  const res = await callAPI('delivery-trackings', props.lotId, 'patch', { mark_as_completed: true })
+  if(!res.success) console.warn('Could not update delivery tracking:', err)
+
+  await refresh(() => {})
 }
 
 // =========================================================================
@@ -1096,12 +1097,12 @@ const stopEnglishPolling = () => {
 // =========================================================================
 const isToggledBuyItNow = ref(false)
 const buyItNowLoading = ref(false)
-const dutchAlreadySold = ref(false)
+const dutchAlreadySold = computed(() => lot.value.isSold)
 const winningBid = ref(null)
-
 const secondsRemaining = ref(0)
 const intervalDurationSec = ref(600)
 const dutchAtFloor = ref(false)
+
 let dutchStartTime = null
 let visualCountdownTimer = null
 let dutchStartTimeout = null
@@ -1180,15 +1181,7 @@ const dutchIntervalProgress = computed(() => {
   return Math.max(0, Math.min(1, secondsRemaining.value / intervalDurationSec.value))
 })
 
-const formatCountdown = (totalSeconds) => {
-  const seconds = Math.max(0, Math.floor(totalSeconds || 0))
-  
-  const hour = Math.floor(seconds / 3600).toString().padStart(2, '0')
-  const minute = Math.floor((seconds % 3600) / 60).toString().padStart(2, '0')
-  const second = (seconds % 60).toString().padStart(2, '0')
-  
-  return `${hour}:${minute}:${second}`
-}
+
 
 const clearDutchTimers = () => {
   if (visualCountdownTimer) {
@@ -1384,7 +1377,6 @@ const handleBuyItNow = async (payload = {}) => {
 }
 
 const fetchDutchSoldStatus = async () => {
-  if (auction.value?.type !== 'Dutch') return
   dutchAlreadySold.value = lot.value?.is_sold ?? false
 }
 
@@ -1401,41 +1393,12 @@ const fetchWinningBid = async () => {
   }
 }
 
-const getFormattedBCH = (bch) => {
-  const numStr = Number(bch).toFixed(8)
-  const match = numStr.match(/^(.*?)0*$/)
-  const main = match ? match[1] : numStr
-  const zeros = numStr.substring(main.length)
-  return { main, zeros, full: numStr }
-}
+
 
 const winningBidId = computed(() => 
   auction.value?.type === 'English' ? highestBidId.value : winningBid.value?.id
 )
 
-const fetchAuction = async () => {
-  try {
-    const result = await callAPI('auctions', Number(props.auctionId))
-    if (result.success && result.data) 
-      auction.value = AuctionList.parse(result.data)
-    
-  } catch (error) {
-    console.error('Failed to update auction details:', error)
-  }
-}
-
-const fetchLot = async () => {
-  const result = await callAPI('lots', props.lotId)
-  if (result.success) {
-    isLotSold.value = result.data.is_sold
-    lot.value = LotsList.parse(result.data)
-
-    const imageResult = await callAPI('lot-images-by-lot', props.lotId, 'get')
-    if (imageResult.success && Array.isArray(imageResult.data)) {
-      lotImages.value = imageResult.data.map(item => item.image)
-    }
-  }
-}
 
 const isCreatingDeliveryTracking = ref(false)
 const initEnglishDeliveryTracking = async () => {
@@ -1553,10 +1516,24 @@ const autoMarkLotSold = async () => {
   }
 }
 
+const auctionLotsTotalTime = computed(() => Date.now() - $store.getters['auction/auctionLotsLastFetched'])
+
 const loadPageData = async () => {
-  await Promise.all([fetchLot(), fetchAuction()])
+  const isSameLotId = $store.getters['auction/lotId'] === Number(props.lotId)
+  if(!isSameLotId) $store.commit('auction/setLotId', Number(props.lotId))
+  if(!isSameLotId || auctionLotsTotalTime.value > 3000) await $store.dispatch('auction/fetchLotData') 
+  else await $store.dispatch('auction/fetchExistingLotData')
+
+  const isSameAuctionId = $store.getters['auction/auctionId'] === Number(props.auctionId)
+  if(!isSameAuctionId) $store.commit('auction/setAuctionId', Number(props.auctionId))
+  if(!isSameAuctionId || listingsTotalTime.value > 30000) await $store.dispatch('auction/fetchAuctionData')
+  else await $store.dispatch('auction/fetchExistingAuctionData')
+  
+  // BACK HERE
+  if(auction.value?.type === "Dutch") fetchDutchSoldStatus()
   await Promise.all([fetchDutchSoldStatus(), checkBidStatus(), checkUserBid()])
   initializeDutchAuctionTimer(lot.value)
+  
   await fetchWinningBid()
   await autoMarkLotSold()
   await Promise.all([fetchDeliveryTracking(), fetchDispute()])
@@ -1609,11 +1586,6 @@ const isAuthor = computed(() => {
   return walletHash === auction.value?.user?.id
 })
 
-const formatAuctionDate = (dateString) => {
-  if (!dateString) return 'N/A'
-  return date.formatDate(dateString, 'MMM DD, YYYY hh:mm A')
-}
-
 const smartBackPath = computed(() => {
   const sourceContext = $route.query.from
   if (sourceContext === 'activity') return '/apps/auction/activity'
@@ -1625,6 +1597,9 @@ const refresh = async (done) => {
   if (auction.value?.type === 'Dutch') dutchAlreadySold.value = false
   await loadPageData()
   isLoading.value = false
+
+  clearSocket()
+  socket = connectWebsocket()
   done()
 }
 
@@ -1757,11 +1732,32 @@ HELPER FUNCTIONS
 =================
 */
 // Formatting functions
+const formatAuctionDate = (dateString) => {
+  if (!dateString) return 'N/A'
+  return date.formatDate(dateString, 'MMM DD, YYYY hh:mm A')
+}
+
+const formatCountdown = (totalSeconds) => {
+  const seconds = Math.max(0, Math.floor(totalSeconds || 0))
+  const hour = Math.floor(seconds / 3600).toString().padStart(2, '0')
+  const minute = Math.floor((seconds % 3600) / 60).toString().padStart(2, '0')
+  const second = (seconds % 60).toString().padStart(2, '0')
+  return `${hour}:${minute}:${second}`
+}
+
 const formatFiat = (fiatValue) => {
   const numValue = Number(fiatValue) || 0
   return `₱${numValue.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
 }
 
 const formatBCH = (bchValue) => getFormattedBCH(Number(bchValue) || 0)
+
+const getFormattedBCH = (bch) => {
+  const numStr = Number(bch).toFixed(8)
+  const match = numStr.match(/^(.*?)0*$/)
+  const main = match ? match[1] : numStr
+  const zeros = numStr.substring(main.length)
+  return { main, zeros, full: numStr }
+}
 
 </script>
