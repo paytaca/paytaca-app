@@ -27,6 +27,7 @@ export default function () {
     auctionId: null,
     auctionLots: [],
     auctionLotsLastFetched: 0,
+    lotTypeAuction: 'All' ,
 
     // Lot Details Page States
     lotId: null,
