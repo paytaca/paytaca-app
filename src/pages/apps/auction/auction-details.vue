@@ -340,7 +340,6 @@
 <script setup>
 import noImage from 'src/assets/no-image.svg'
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
-import { vElementVisibility } from '@vueuse/components'
 import { useStore } from 'vuex'
 import { ref, computed, onMounted, onBeforeUnmount } from 'vue'
 import { useRoute, useRouter } from 'vue-router'

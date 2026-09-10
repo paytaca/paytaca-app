@@ -711,7 +711,6 @@
 
 <script setup>
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
-import { vElementVisibility } from '@vueuse/components'
 import { useStore } from 'vuex'
 import { ref, computed, watch, onMounted, onBeforeUnmount, onUnmounted } from 'vue'
 import { useRoute } from 'vue-router'
@@ -732,12 +731,17 @@ import SellerDisputePopup from 'src/components/auction/SellerDisputePopup.vue'
 import RefundPopup from 'src/components/auction/RefundPopup.vue'
 import DeliveryStatusHistoryDialog from 'src/components/auction/DeliveryStatusHistoryDialog.vue'
 
-defineOptions({
-  directives: {
-    'element-visibility': vElementVisibility
-  }
-})
+// Quasar variables
+const $q = useQuasar()
+const $store = useStore()
+const $route = useRoute()
 
+// System-related variables
+const darkMode = computed(() => $store.getters['darkmode/getStatus'])
+const walletHash = $store.getters['global/getWallet']('bch')?.walletHash
+const bchToPhpRate = computed(() => $store.getters['market/getAssetPrice']('bch', 'php') || 0)
+ 
+// Props
 const props = defineProps({
   auctionId: {
     type: [String, Number],
@@ -751,11 +755,9 @@ const props = defineProps({
 
 const activeSlide = ref(0)
 const lotImages = ref([])
-const lot = ref(null)
-const auction = ref(null)
-const walletHash = Store.getters['global/getWallet']('bch')?.walletHash
+const lot = computed(() => $store.getters['auction/lotData'])
+const auction = computed(() => $store.getters['auction/auctionData'])
 const isLoading = ref(false)
-const viewCount = ref(0) // current live viewers
 
 // Post-auction actions
 const showSellerDisputeDialog = ref(false)
@@ -771,78 +773,56 @@ const isGrantedRefund = ref(false)
 const isGrantedReturn = ref(false)
 const currentDispute = ref(null)
 
-const $q = useQuasar()
-const $store = useStore()
-const $route = useRoute()
-const darkMode = computed(() => $store.getters['darkmode/getStatus'])
-const bchToPhpRate = computed(() => $store.getters['market/getAssetPrice']('bch', 'php') || 0)
-
-const formatFiat = (fiatValue) => {
-  const numValue = Number(fiatValue) || 0
-  return `₱${numValue.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
-}
-
-const formatBCH = (bchValue) => getFormattedBCH(Number(bchValue) || 0)
 
 const estimatedAmountBch = computed(() => {
   if (!lot.value) return 0
-  const rate = bchToPhpRate.value
   
   if (auction.value?.is_fiat) {
     const fiat = Number(lot.value.estimated_amount_fiat || 0)
-    return rate > 0 ? fiat / rate : 0
+    return bchToPhpRate.value > 0 ? fiat / bchToPhpRate.value : 0
   }
-  
   return Number(lot.value.estimated_amount_bch || 0)
 })
 
 const estimatedAmountFiat = computed(() => {
   if (!lot.value) return 0
   
-  if (auction.value?.is_fiat) {
-    return Number(lot.value.estimated_amount_fiat || 0)
-  }
-  
+  if (auction.value?.is_fiat) return Number(lot.value.estimated_amount_fiat || 0)  
   return Number(lot.value.estimated_amount_bch || 0) * bchToPhpRate.value
 })
-
-
 
 
 // =========================================================================
 // ============================== POST-AUCTION =============================
 // =========================================================================
 const confirmDeliveryTrigger = async () => {
-  try {
-    const res = await callAPI('delivery-trackings', props.lotId, 'patch', {
-      status: 2,
-      shipping_date: new Date().toISOString()
-    })
-    if (res.success) {
-      $q.notify({ type: 'positive', message: 'Confirmed delivery!' })
-    }
-  } catch (err) {
-    console.warn('Could not fetch delivery tracking:', err)
-  } finally {
-    await refresh(() => {})
+  const res = await callAPI('delivery-trackings', props.lotId, 'patch', {
+    status: 2,
+    shipping_date: new Date().toISOString()
+  })
+
+  const data = {
+    type: (res.success) ? 'positive' : 'negative',
+    message: (res.success) ? 'Confirmed delivery!' : 'Could not fetch delivery tacking.'
   }
+
+  $q.notify(data)
+  await refresh(() => {})
 }
 
 const confirmPickupTrigger = async () => {
-  try {
-    const res = await callAPI('delivery-trackings', props.lotId, 'patch', {
-      status: 3,
-      delivered_date: new Date().toISOString()
-    })
+  const res = await callAPI('delivery-trackings', props.lotId, 'patch', {
+    status: 3,
+    delivered_date: new Date().toISOString()
+  })
 
-    if (res.success) {
-      $q.notify({ type: 'positive', message: 'Confirmed pickup!' })
-    }
-  } catch (err) {
-    console.warn('Could not fetch delivery tracking:', err)
-  } finally {
-    await refresh(() => {})
+  const data = {
+    type: (res.success) ? 'positive' : 'negative',
+    message: (res.success) ? 'Confirmed delivery!' : 'Could not fetch delivery tacking.'
   }
+
+  $q.notify(data)
+  await refresh(() => {})
 }
 
 const markedAsCompleted = async () => {
@@ -1648,105 +1628,140 @@ const refresh = async (done) => {
   done()
 }
 
+/*
+===========================
+WEBSOCKET-RELATED FUNCTIONS
+===========================
+*/
 
+const viewCount = ref(0) // current live viewers
 let socket = null
+let reconnectTimeout = null
+let reconnectAttempts = 0
+let maxReconnectAttempts = 10
+
 onMounted(async () => {
-  let reconnectAttempts = 0
-  let maxReconnectAttempts = 10
-
-  const connectWebsocket = async () => {
-    const ws = callLotWebsocket(Number(props.lotId))
-    ws.onopen = () => {
-      console.log("Connected to the lot websocket!")
-    };
-
-    ws.onmessage = async (event) => {
-      const { type, data } = JSON.parse(event.data);
-
-      switch (type) {
-        // update the viewcount
-        case "live.viewing":
-          viewCount.value = data.viewer_count
-          break
-
-        // start.close lot
-        case "lot.update_status":
-          lotStatus.value = lot.value.getLotStatus(
-            auction.value.start_date,
-            auction.value.end_date
-          )
-          await autoMarkLotSold()
-          break
-
-        // sends placebid acknowledgement
-        case "place.bid_ack":
-          bidResolver?.(data)
-          bidResolver = null
-          break
-
-        // update the highest bidder
-        case "update.highest_bid":
-          hasBid.value = Boolean(data?.user)
-          hasUserBid.value = data?.user === walletHash
-          
-          if (isSold.value) {
-            if (auction.value.type === 'English')
-              await initEnglishDeliveryTracking()
-            else
-              winningBid.value = data
-          }
-          break
-
-        // update the winningBidId
-        case "update.winner":
-          isSold.value = Boolean(data?.is_sold)
-          winningBid.value = data
-
-          await initEnglishDeliveryTracking()
-          break
-
-        // update the time interval
-        case "lot.time_interval":
-          secondsRemaining.value = data.seconds_remaining
-          timeLeft.value = data.time_left
-          break
-
-        // update the price drop
-        case "lot.drop_price":
-          dutchPrice.value = data.price
-          break
-
-        default:
-          console.warn("Unknown websocket message:", type, data)
-      }
-    }
-
-    ws.onclose = (event) => {
-        console.log("Disconnected from the lot websocket!")
-        if (!event.wasClean && reconnectAttempts < maxReconnectAttempts) {
-          const delay = Math.min(1000 * 2 ** reconnectAttempts, 30000)
-          reconnectAttempts++
-          setTimeout(connectWebsocket, delay)
-        }
-      }
-
-    ws.onerror = (event) => {
-      console.error("Lot websocket error:", event)
-    }
-
-    return ws
-  }
-
-  socket = await connectWebsocket()
+  socket = connectWebsocket()
 })
 
 onBeforeUnmount(() => {
-  if (socket) {
-    socket.close()
-    socket.onmessage = null
-    socket.onopen = null
-    socket.onerror = null
-    socket.onclose = null
-  }
+  clearSocket()
 })
+
+const connectWebsocket = async () => {
+  const ws = callLotWebsocket(Number(props.lotId))
+
+  ws.onopen = () => {
+    reconnectAttempts = 0
+    console.log("Connected to the lot websocket!")
+  };
+
+  ws.onmessage = async (event) => {
+    const { type, data } = JSON.parse(event.data);
+
+    switch (type) {
+      // update the viewcount
+      case "live.viewing":
+        viewCount.value = data.viewer_count
+        break
+
+      // start.close lot
+      case "lot.update_status":
+        lotStatus.value = lot.value.getLotStatus(
+          auction.value.start_date,
+          auction.value.end_date
+        )
+        await autoMarkLotSold()
+        break
+
+      // sends placebid acknowledgement
+      case "place.bid_ack":
+        bidResolver?.(data)
+        bidResolver = null
+        break
+
+      // update the highest bidder
+      case "update.highest_bid":
+        hasBid.value = Boolean(data?.user)
+        hasUserBid.value = data?.user === walletHash
+        
+        if (isSold.value) {
+          if (auction.value.type === 'English')
+            await initEnglishDeliveryTracking()
+          else
+            winningBid.value = data
+        }
+        break
+
+      // update the winningBidId
+      case "update.winner":
+        isSold.value = Boolean(data?.is_sold)
+        winningBid.value = data
+
+        await initEnglishDeliveryTracking()
+        break
+
+      // update the time interval
+      case "lot.time_interval":
+        secondsRemaining.value = data.seconds_remaining
+        timeLeft.value = data.time_left
+        break
+
+      // update the price drop
+      case "lot.drop_price":
+        dutchPrice.value = data.price
+        break
+
+      default:
+        console.warn("Unknown websocket message:", type, data)
+    }
+  }
+
+  ws.onclose = (event) => {
+      console.log("Disconnected from the lot websocket!")
+      if (!event.wasClean && reconnectAttempts < maxReconnectAttempts) {
+        const delay = Math.min(1000 * 2 ** reconnectAttempts, 30000)
+        reconnectAttempts++
+        reconnectTimeout = setTimeout({
+          reconnectTimeout = null
+          socket = connectWebsocket()
+        }, delay)
+      }
+    }
+
+  ws.onerror = (event) => {
+    console.error("Lot websocket error:", event)
+  }
+
+  return ws
+}
+
+const clearSocket = () => {
+  if (reconnectTimeout) {
+    clearTimeout(reconnectTimeout)
+    reconnectTimeout = null
+  }
+  if (!socket) return
+
+  socket.close()
+  socket.onmessage = null
+  socket.onopen = null
+  socket.onerror = null
+  socket.onclose = null
+  socket = null
+}
+
+/*
+=================
+HELPER FUNCTIONS
+=================
+*/
+// Formatting functions
+const formatFiat = (fiatValue) => {
+  const numValue = Number(fiatValue) || 0
+  return `₱${numValue.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
+}
+
+const formatBCH = (bchValue) => getFormattedBCH(Number(bchValue) || 0)
+
 </script>
