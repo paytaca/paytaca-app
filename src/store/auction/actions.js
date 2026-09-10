@@ -124,6 +124,26 @@ export async function fetchUsername({ commit }) {
   } 
 }
 
+export async function fetchAuctionDetails({commit}) {
+  const auctionId = getters['auction/auctionId']
+  const result = await callAPI('auctions', Number(auctionId))
+  if (result.success && result.data) {
+    commit('setAuctionDetails', AuctionList.parse(JSON.parse(JSON.stringify(data))))
+    return
+  }
+  console.error('Failed to fetch auction details from server.')
+}
+
+export function fetchExistingAuctionDetails({commit, getters}) {
+  const auctionData = getters['auction/processedItems']
+  const auctionId = getters['auction/auctionId']
+  const data = auctionData.find(item => item.id === Number(auctionId))
+  if (data) {
+    commit('setAuctionDetails', AuctionList.parse(JSON.parse(JSON.stringify(data))))
+    return
+  }
+  console.error('Failed to fetch existing auction details.')
+}
 /* 
 ================================================================
 FETCHING AUCTION INFORMATION FOR CONTRACT CREATION/INSTANTIATION
@@ -144,7 +164,7 @@ export async function fetchArbiterPublicKey({ commit }) {
 }
 
 // Fetching ServicerPK for contract instantiation/creation
-export async function fetchServicerPublicKey({ commit, getters }) {
+export async function fetchServicerPublicKey({ commit }) {
   try {
     const response = await callAPI('servicer-pk')
     if (response && response.success) {
