@@ -82,6 +82,7 @@
             v-model:statuses="invoiceStatusFilter"
             :status-opts="invoiceStatuses"
             :debounce-search="500"
+            @create="createInvoice"
           />
 
           <ApiKeysToolbar
@@ -462,6 +463,8 @@ import ApiKeysToolbar from 'src/components/payment-hub/toolbars/ApiKeysToolbar.v
 import SubscriptionPlansToolbar from 'src/components/payment-hub/toolbars/SubscriptionPlansToolbar.vue'
 import SubscriptionsToolbar from 'src/components/payment-hub/toolbars/SubscriptionsToolbar.vue'
 import StoreInfoDialog from 'src/components/payment-hub/StoreInfoDialog.vue'
+import CreateInvoiceDialog from 'src/components/payment-hub/CreateInvoiceDialog.vue'
+import InvoiceDetailDialog from 'src/components/payment-hub/InvoiceDetailDialog.vue'
 import ApiKeyFormDialog from 'src/components/payment-hub/ApiKeyFormDialog.vue'
 import PlanFormDialog from 'src/components/payment-hub/PlanFormDialog.vue'
 import PlanDetailDialog from 'src/components/payment-hub/PlanDetailDialog.vue'
@@ -690,7 +693,7 @@ async function refreshPage(done, isBackground = false, scopes='all') {
 
     // Refresh invoices list
     if (scopes === 'all' || scopes.includes('invoices')) {
-      if (invoiceListRef.value && !isBackground) {
+      if (invoiceListRef.value) {
         invoiceListRef.value.refreshList()
       }
     }
@@ -886,6 +889,41 @@ function editStore() {
     }
   })
 }
+
+// --- Invoices logic ---
+function createInvoice() {
+  $q.dialog({
+    component: CreateInvoiceDialog,
+    componentProps: {
+      storeData: storeData.value,
+    }
+  }).onOk(async data => {
+    try {
+      $q.loading.show();
+      const createInvoiceData = {
+        store_id: data.storeId,
+        amount: data.amount,
+        currency: data.currency,
+        memo: data.memo,
+        expiry_minutes: data.expiryMinutes,
+        redirect_url: data.redirectUrl,
+      }
+      const newInvoiceData = await hub.value.createInvoice(createInvoiceData);
+      $q.dialog({
+        component: InvoiceDetailDialog,
+        componentProps: {
+          invoiceId: newInvoiceData.invoice_id,
+        }
+      })
+    } catch(error) {
+      console.error(error);
+      $q.notify({ type: 'negative', message: $t('ErrorCreatingInvoice') })
+    } finally {
+      $q.loading.hide();
+    }
+  })
+}
+
 
 // --- API Keys logic ---
 function copyApiKey(key) {

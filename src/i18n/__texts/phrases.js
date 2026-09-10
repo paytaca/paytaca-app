@@ -3102,6 +3102,9 @@ const phrases = {
       UpdateNftFeeMsg: 'A network miner fee of approx. 1,500 satoshis (BCH) will be deducted from your merchant wallet to process this update.',
       PlanDeactivatedSuccessfully: 'Plan deactivated successfully',
       EveryPeriod: 'Every {period}',
+      CreateInvoice: 'Create Invoice',
+      ErrorCreatingInvoice: 'Error creating invoice',
+      RedirectURL: 'Redirect URL',
     },
     // ===== Card Management - Allow All Merchants =====
     {

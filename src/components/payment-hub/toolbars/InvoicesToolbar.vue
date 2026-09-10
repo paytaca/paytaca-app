@@ -11,9 +11,9 @@
       </q-btn>
       <!-- <q-btn flat padding="xs" icon="sort" @click="showSortOptions = !showSortOptions">
         <q-badge v-if="sortField" color="red" floating rounded />
-      </q-btn>
-      <q-btn flat padding="xs" icon="add" dense no-caps label="Create">
       </q-btn> -->
+      <q-btn flat padding="xs" icon="add" dense @click="$emit('create')">
+      </q-btn>
     </div>
     <q-slide-transition>
       <div v-if="showSearchbar">
