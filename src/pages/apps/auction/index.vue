@@ -36,7 +36,6 @@
             dense
             v-model="auctionType"
             :options="auctionTypeOptions"
-            emit-value
             autocomplete="off"
             color="pt-primary1"
             debounce="500"
@@ -175,9 +174,6 @@ const darkMode = computed(() => $store.getters['darkmode/getStatus'])
 const isLoading = ref(true)         // Controls auction listing loading
 const isCheckingAccess = ref(true)  // Controls loading screen during profile checking
 
-// Websocket-related
-let socket = null
-
 // Auction-related 
 const listingTotalTime = computed(() => Date.now() - $store.getters['auction/listingsLastFetched'])
 const username = computed(() => $store.getters['auction/username'])
@@ -214,9 +210,7 @@ onMounted(async () => {
   if (!servicerPK) await $store.dispatch('auction/fetchServicerPublicKey')
   
   // Refresh the list of auctions
-  console.log('listingTotalTime.value: ', listingTotalTime.value)
-  if (listingTotalTime.value > 300000) 
-    await $store.dispatch('auction/refreshCatalog')
+  if (listingTotalTime.value > 300000) await $store.dispatch('auction/refreshCatalog')
     
   isLoading.value = false
 
@@ -236,7 +230,7 @@ AUCTION-RELATED
 
 // Auction filter options
 const auctionTypeOptions = $store.getters['auction/auctionTypeOptions']
-const auctionType = computed(() => $store.getters['auction/auctionTypeIndex']);
+const auctionType = ref('All')
 
 // Auction ref variables
 const auctionSearchQuery = ref('') // fix this later nalang
@@ -247,7 +241,6 @@ const filteredItems = computed(() => {
   items = items.map(item => (item instanceof AuctionList ? item : AuctionList.parse(item)))
 
   if (auctionSearchQuery.value && auctionSearchQuery.value.trim() !== '') {
-    $store.commit('auction/updateAuctionQueryIndex', auctionSearchQuery.value)
     const query = auctionSearchQuery.value.toLowerCase().trim()
     items = items.filter(item => item.title?.toLowerCase().includes(query))
   }
@@ -277,10 +270,13 @@ WEBSOCKET FUNCTIONS
 ===================
 */
 
+// Websocket-related
+let socket = null
+let reconnectAttempts = 0
+let maxReconnectAttempts = 10
+
 // Websocket (WS)
 const connectWebsocket = () => {
-  let reconnectAttempts = 0
-  let maxReconnectAttempts = 10
   const ws = callIndexAuctionWebsocket()
 
   // Upon connection

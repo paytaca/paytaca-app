@@ -542,7 +542,7 @@
                     </div>
                     
                     <span class="text-caption ellipsis" style="opacity: 0.6;">
-                      {{ auction?.getEllipsisInMiddleUserId ? auction.getEllipsisInMiddleUserId() : 'N/A' }}
+                      {{ auction?.getEllipsisInMiddleAddress ? auction.getEllipsisInMiddleAddress() : 'N/A' }}
                     </span>
                   </div>
                   <q-btn flat round dense icon="content_copy" size="xs" @click="copyToClipboard(auction?.user?.address)" />

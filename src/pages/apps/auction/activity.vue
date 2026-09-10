@@ -41,7 +41,6 @@
         dense
         v-model="activityType"
         :options="activityTypeOptions"
-        emit-value
         map-options
         autocomplete="off"
         color="pt-primary1"
@@ -65,7 +64,6 @@
           dense
           v-model="auctionType"
           :options="auctionTypeOptions"
-          emit-value
           map-options
           autocomplete="off"
           color="pt-primary1"
@@ -203,7 +201,6 @@
           dense
           v-model="lotType"
           :options="lotTypeOptions"
-          emit-value
           map-options
           autocomplete="off"
           color="pt-primary1"
@@ -411,7 +408,7 @@ const data = computed(() => activityType.value === 'My Auctions' ? 'Auctions' : 
 // Auction-related variables
 const auctionTypeOptions = $store.getters['auction/auctionTypeOptions']
 const auctionType = ref($store.getters['auction/auctionTypeActivity'])
-const auctionDetails = computed(() => $store.getters['auction/myAuctions'])
+const auctions = computed(() => $store.getters['auction/myAuctions'])
 
 // MAYBE BRING BACK SEARCHQUERY AND JUST UPDATE THE AUCTIONQUERY AND LOTQUERY THRU COMMITS
 const auctionSearchQuery = ref($store.getters['auction/auctionQueryActivity'] || '')
@@ -579,7 +576,7 @@ FILTERING DATA
 ==============
 */
 const filteredAuctions = computed(() => {
-  let items = auctionDetails.value
+  let items = auctions.value
 
   if (auctionType.value !== 'All') 
     items = items.filter(auction => auction.type === auctionType.value)
@@ -641,7 +638,7 @@ const getIntervalMinutesInfo = (lot) => {
 }
 
 const fetchMyData = async () => {
-  auctionDetails.value = []
+  auctions.value = []
   isLoading.value = true
   await $store.dispatch(`auction/fetchMy${data.value}`)
   isLoading.value = false
