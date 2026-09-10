@@ -1,7 +1,7 @@
 import { callAPI } from 'src/auction/api'
 import { AuctionList, LotsList } from 'src/auction/object'
 import { getWallet } from '../../auction/payment'
-
+import noImage from 'src/assets/no-image.svg'
 /* 
 ===================
 PAGE UPDATE ACTIONS
@@ -44,7 +44,6 @@ export async function fetchMyBiddings({ commit }) {
 
   try {
     const result = await callAPI('my-biddings/lots')
-
     if (result && result.success && Array.isArray(result.data)) {
       const lotPromises = result.data.map(async (item) => {
         const lot = LotsList.parse(item)
@@ -124,29 +123,80 @@ export async function fetchUsername({ commit }) {
   } 
 }
 
-export async function fetchAuctionDetails({commit}) {
-  const auctionId = getters['auction/auctionId']
+/*
+============================
+FETCHING AUCTION INFORMATION
+============================
+*/
+
+export async function fetchAuctionData({commit, getters}) {
+  const auctionId = getters['auctionId']
   const result = await callAPI('auctions', Number(auctionId))
   if (result.success && result.data) {
-    commit('setAuctionDetails', AuctionList.parse(JSON.parse(JSON.stringify(data))))
+    commit('setAuctionData', AuctionList.parse(result.data))
     return
   }
   console.error('Failed to fetch auction details from server.')
 }
 
-export function fetchExistingAuctionDetails({commit, getters}) {
-  const auctionData = getters['auction/processedItems']
-  const auctionId = getters['auction/auctionId']
+export async function fetchExistingAuctionData({commit, getters}) {
+  const auctionData = getters['processedItems']
+  const auctionId = getters['auctionId']
   const data = auctionData.find(item => item.id === Number(auctionId))
   if (data) {
-    commit('setAuctionDetails', AuctionList.parse(JSON.parse(JSON.stringify(data))))
+    console.log('Existing data found')
+    commit('setAuctionData', AuctionList.parse(JSON.parse(JSON.stringify(data))))
     return
   }
   console.error('Failed to fetch existing auction details.')
 }
+
+export async function fetchAuctionLots({commit, getters}) {
+  console.log('FETCH AUCTION LOTS STARTED')
+  const auctionId = getters['auctionId']
+  const auctionData = getters['auctionData']
+
+  const result = await callAPI('lots-by-auction', Number(auctionId))  
+  if (result.success && result.data) {
+    const lots = await Promise.all(
+      result.data.map(async (item) => {
+        const lot = LotsList.parse(item)
+
+        lot.start_date = auctionData?.start_date || null
+        lot.end_date = auctionData?.end_date || null
+        
+        const imageResult = await callAPI('lot-images-by-lot', lot.id, 'get')
+        if (imageResult.success && Array.isArray(imageResult.data) && imageResult.data.length > 0) {
+          const firstImageRecord = imageResult.data[0]
+          
+          lot.image = typeof firstImageRecord === 'object' && firstImageRecord !== null 
+            ? (firstImageRecord.image || '') 
+            : firstImageRecord
+        } else lot.image = noImage
+        
+        if (auctionData.type === 'English') {
+          const bidResult = await callAPI(`lots/${lot.id}/highest-bid`)
+          lot.hasBid = !!(bidResult.success && bidResult.data && bidResult.data.user_id !== null)
+        }
+
+        return lot
+      })
+    )
+    commit('updateAuctionLots', [...lots])
+    return
+  } 
+  console.error('Failed to fetch lots.')
+}
+
+/*
+========================
+FETCHING LOT INFORMATION
+========================
+*/
+
 /* 
 ================================================================
-FETCHING AUCTION INFORMATION FOR CONTRACT CREATION/INSTANTIATION
+FETCHING PUBLIC KEYS FOR CONTRACT CREATION/INSTANTIATION
 ================================================================
 */
 

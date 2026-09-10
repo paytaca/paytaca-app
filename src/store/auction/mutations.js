@@ -49,9 +49,23 @@ export function setAuctionId(state, auctionId) {
   state.auctionId = auctionId
 }
 
+export function setAuctionData(state, auctionData) {
+  state.auctionData = auctionData
+}
+
+export function updateAuctionData(state, {attribute_name, data}) {
+  state.auctionData[attribute_name] = data
+}
+
 export function updateAuctionLots(state, auctionLots) {
   state.auctionLots = auctionLots
   state.auctionLotsLastFetched = Date.now()
+}
+
+export function updateAuctionLotsData(state, {attribute_name, data}) {
+  state.auctionLots.forEach(lot => {
+    lot[attribute_name] = data
+  })
 }
 
 // Arbiter and Servicer Public Key mutations
