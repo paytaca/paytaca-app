@@ -987,6 +987,7 @@ export default {
   EstimatedFee: "Ƙimar kuɗi",
   EstimatedTimeBasedOnBlocks: "Lokacin da aka nuna shine ƙididdigewa bisa tushen toshe hanyar sadarwar Bitcoin Cash na mintuna 10 a kowane toshe.",
   EstimatedValue: "Ƙimar Ƙimar",
+  EveryPeriod: "Kowane lokaci",
   ExactIntervalBlocksMsg: "Matsakaicin tazara shine tubalan {blocks}",
   Example: "Misali",
   ExceededBalanceError: "Wucewa ma'auni {spendableBchValue}",

@@ -987,6 +987,7 @@ export default {
   EstimatedFee: "Tariffa stimata",
   EstimatedTimeBasedOnBlocks: "Il tempo visualizzato è una stima basata sull'obiettivo di blocco della rete Bitcoin Cash di 10 minuti per blocco.",
   EstimatedValue: "Valore stimato",
+  EveryPeriod: "Ogni {period}",
   ExactIntervalBlocksMsg: "L'intervallo esatto è di {blocks} blocchi",
   Example: "Esempio",
   ExceededBalanceError: "Saldo eccedente {spendableBchValue}",

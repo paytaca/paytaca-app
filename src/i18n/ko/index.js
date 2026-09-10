@@ -987,6 +987,7 @@ export default {
   EstimatedFee: "예상 수수료",
   EstimatedTimeBasedOnBlocks: "표시된 시간은 비트코인 캐시 네트워크 블록 목표인 블록당 10분을 기준으로 한 추정치입니다.",
   EstimatedValue: "추정 가치",
+  EveryPeriod: "{기간}마다",
   ExactIntervalBlocksMsg: "정확한 간격은 {blocks} 블록입니다.",
   Example: "예",
   ExceededBalanceError: "잔액 {spendableBchValue} 초과",

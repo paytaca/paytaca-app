@@ -987,6 +987,7 @@ export default {
   EstimatedFee: "الرسوم المقدرة",
   EstimatedTimeBasedOnBlocks: "الوقت المعروض هو تقدير يعتمد على هدف كتلة شبكة Bitcoin Cash وهو 10 دقائق لكل كتلة.",
   EstimatedValue: "القيمة المقدرة",
+  EveryPeriod: "كل {فترة}",
   ExactIntervalBlocksMsg: "الفاصل الزمني الدقيق هو {blocks} كتل",
   Example: "مثال",
   ExceededBalanceError: "تجاوز الرصيد {spendableBchValue}",

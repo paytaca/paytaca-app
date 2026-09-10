@@ -988,6 +988,7 @@ export default {
   EstimatedFee: "預計費用",
   EstimatedTimeBasedOnBlocks: "顯示的時間是基於比特幣現金網路區塊目標（每個區塊 10 分鐘）的估計值。",
   EstimatedValue: "預估價值",
+  EveryPeriod: "每個{period}",
   ExactIntervalBlocksMsg: "確切的間隔是{blocks}個區塊",
   Example: "示例",
   ExceededBalanceError: "超出餘額 {spendableBchValue}",

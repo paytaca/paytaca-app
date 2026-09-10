@@ -988,6 +988,7 @@ export default {
   EstimatedFee: "预计费用",
   EstimatedTimeBasedOnBlocks: "显示的时间是基于比特币现金网络区块目标（每个区块 10 分钟）的估计值。",
   EstimatedValue: "预估价值",
+  EveryPeriod: "每个{period}",
   ExactIntervalBlocksMsg: "确切的间隔是{blocks}个块",
   Example: "示例",
   ExceededBalanceError: "超出余额 {spendableBchValue}",

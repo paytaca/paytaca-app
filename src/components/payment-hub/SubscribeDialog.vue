@@ -12,19 +12,40 @@
           <template v-if="step === 1">
             <q-input
               v-model="form.plan"
-              :label="($t('PlanID') || 'Plan ID') + ' *'"
+              :label="$t('Search') + ' / ' + $t('PlanID') + ' *'"
               outlined
               dense
               autofocus
               lazy-rules
               :rules="[val => !!val || $t('Required')]"
               hide-bottom-space
+              @update:model-value="() => debouncedFetchFromList()"
             >
               <template v-slot:append>
                 <q-btn flat round dense icon="image" @click="onQRUploaderClick" />
                 <q-btn flat round dense icon="qr_code_scanner" @click="showQrScanner = true" />
               </template>
             </q-input>
+            <q-slide-transition>
+              <div v-if="isLoading" class="text-center">
+                <q-spinner :dark="darkMode" size="1.5rem"/>
+              </div>
+              <q-list v-else-if="planOptions.length" bordered separator class="rounded-borders plan-list-options">
+                <q-item v-for="plan of planOptions" :key="plan.id" clickable v-ripple @click="selectPlan(plan)">
+                  <q-item-section top>
+                    <div class="text-weight-bold ellipsis-2-lines">{{ plan.name }}</div>
+                    <div class="text-caption text-grey">{{ plan.store_info.name }}</div>
+                  </q-item-section>
+                  <q-item-section top class="text-right">
+                    <div class="text-body2 text-weight-medium">
+                      <template v-if="plan.currency !== 'BCH'">{{ getTotalFiatStr(plan) }} {{ plan.currency }}</template>
+                      <template v-else>{{ getTotalBchStr(plan) }} BCH</template>
+                    </div>
+                    <div class="text-caption">{{ getPeriodText(plan) }}</div>
+                  </q-item-section>
+                </q-item>
+              </q-list>
+            </q-slide-transition>
           </template>
 
           <template v-else-if="step === 2">
@@ -111,12 +132,11 @@
 <script setup>
 import { ref, computed, reactive, onMounted, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
-import { useDialogPluginComponent, useQuasar } from 'quasar'
+import { debounce, useDialogPluginComponent, useQuasar } from 'quasar'
 import { useStore } from 'vuex'
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
-import { PaymentHub, extractPlanId } from 'src/wallet/payment-hub'
-import { loadWallet } from 'src/wallet'
-import { usePaymentHubUtils, useSubscriptionFormSchema, useSubscriptionUtils } from 'src/composables/payment-hub/usePaymentHub'
+import { extractPlanId } from 'src/wallet/payment-hub'
+import { usePaymentHubCore, usePaymentHubUtils, useSubscriptionFormSchema, useSubscriptionUtils } from 'src/composables/payment-hub/usePaymentHub'
 import QrScanner from 'src/components/qr-scanner.vue'
 import QRUploader from 'src/components/QRUploader.vue'
 import JSONFormPreview from 'src/components/jsonforms/JSONFormPreview.vue'
@@ -138,7 +158,10 @@ const $store = useStore()
 const $q = useQuasar()
 const darkMode = computed(() => $store.getters['darkmode/getStatus'])
 
-const { getPeriodText, satsToBchDisplay, getTotalCostPerCycle } = useSubscriptionUtils();
+const { initHub, hub } = usePaymentHubCore()
+const { getPeriodText, satsToBchDisplay, getTotalCostPerCycle, showBlocksInfo } = useSubscriptionUtils();
+const { formatAmount } = usePaymentHubUtils();
+
 const formRef = ref(null)
 const subscriptionFormRef = ref(null)
 
@@ -152,8 +175,6 @@ const isChipnet = computed(() => $store.getters['global/isChipnet'])
 const subscriptionFormData = ref({})
 const subscriptionFormErrors = ref([])
 const { subscriptionFormSchema, hasSubscriptionForm } = useSubscriptionFormSchema(planDetails);
-const { formatAmount } = usePaymentHubUtils();
-const { showBlocksInfo } = useSubscriptionUtils();
 
 watch(planDetails, () => {
   subscriptionFormData.value = {}
@@ -179,13 +200,18 @@ const bchPrice = computed(() => {
 })
 
 const bchUsdPrice = computed(() => $store.getters['market/getAssetPrice']('bch', 'usd') || 0)
+function getPlanBchPrice(plan) {
+  if (!plan || plan.currency === 'BCH') return 0
+  return $store.getters['market/getAssetPrice']('bch', plan.value.currency) || 0 
+}
 
-const totalCostSats = computed(() => {
-  if (!planDetails.value) return 0
-  let pledgeSats = planDetails.value.amount_satoshis
+function getPlanTotalCostPerCycle(plan) {
+  if (!plan) return 0
+  let pledgeSats = plan.amount_satoshis
   if (!pledgeSats) {
-    if (!bchPrice.value) return 0
-    const bchAmount = parseFloat(planDetails.value.amount) / bchPrice.value
+    const bchPrice = getPlanBchPrice(plan);
+    if (!bchPrice) return 0
+    const bchAmount = parseFloat(plan.amount) / bchPrice
     pledgeSats = Math.round(bchAmount * 100000000)
   }
 
@@ -194,23 +220,54 @@ const totalCostSats = computed(() => {
     maxFee = Math.round((1 / bchUsdPrice.value) * 100000000)
   }
   return getTotalCostPerCycle({ pledge_satoshis: pledgeSats, max_fee: maxFee })
-})
+}
 
-const totalBchStr = computed(() => {
-  if (totalCostSats.value === 0) return '0'
-  return satsToBchDisplay(totalCostSats.value) || '0'
-})
+function getTotalBchStr (plan) {
+  const _totalCostSats = getPlanTotalCostPerCycle(plan);
+  if (_totalCostSats === 0) return '0'
+  return satsToBchDisplay(_totalCostSats) || '0'
+}
 
-const totalFiatStr = computed(() => {
-  if (!planDetails.value) return '0'
-  if (planDetails.value.currency === 'BCH') return totalBchStr.value
-  
-  if (totalCostSats.value > 0 && bchPrice.value > 0) {
-    const totalBch = totalCostSats.value / 100000000
+function getTotalFiatStr(plan) {
+  const _totalCostSats = getPlanTotalCostPerCycle(plan);
+  const _totalBchStr = getTotalBchStr(plan)
+  if (plan.currency === 'BCH') return _totalBchStr
+  if (_totalCostSats > 0 && bchPrice.value > 0) {
+    const totalBch = _totalCostSats / 100000000
     return parseFloat((totalBch * bchPrice.value).toFixed(2)).toString()
   }
-  return formatAmount(planDetails.value.amount, 8)
-})
+  return formatAmount(plan.amount, 8)
+}
+
+const totalBchStr = computed(() => getTotalBchStr(planDetails.value))
+const totalFiatStr = computed(() => getTotalFiatStr(planDetails.value))
+
+const planOptions = ref([]);
+async function fetchFromList() {
+  try {
+    isLoading.value = true
+    const paymentHub = await initHub({ isBackground: true, autoRegister: false })
+    const plansResult = await paymentHub.listPlans(undefined, {
+      search: form.plan,
+    })
+
+    planOptions.value = plansResult.results
+  } catch (err) {
+    console.error('Error fetching plan:', err)
+    $q.notify({
+      type: 'negative',
+      message: err?.response?.data?.message || err.message || $t('InvalidPlanIdOrNotFound', 'Invalid Plan ID or plan not found')
+    })
+  } finally {
+    isLoading.value = false
+  }
+}
+const debouncedFetchFromList = debounce(fetchFromList, 500);
+
+function selectPlan(plan) {
+  planDetails.value = plan
+  step.value = 2
+}
 
 async function onFormSubmit() {
   const isValid = await formRef.value.validate()
@@ -239,9 +296,7 @@ async function onFormSubmit() {
 async function fetchPlanDetails() {
   isLoading.value = true
   try {
-    const wallet = await loadWallet('BCH', $store.getters['global/getWalletIndex']);
-    const paymentHub = new PaymentHub(wallet)
-    
+    const paymentHub = await initHub({ isBackground: true, autoRegister: false })
     const plan = await paymentHub.getPlan(form.plan)
     if (!plan) throw new Error('Plan not found')
     
@@ -283,3 +338,10 @@ function onCancelClick() {
   onDialogCancel()
 }
 </script>
+<style lang="scss" scoped>
+.plan-list-options {
+  max-height: 45vh;
+  overflow-y: auto !important;
+  overflow: hidden;
+}
+</style>

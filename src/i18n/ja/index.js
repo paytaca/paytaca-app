@@ -987,6 +987,7 @@ export default {
   EstimatedFee: "料金の目安",
   EstimatedTimeBasedOnBlocks: "表示される時間は、ビットコイン キャッシュ ネットワークのブロック目標であるブロックあたり 10 分に基づいた推定時間です。",
   EstimatedValue: "推定値",
+  EveryPeriod: "{period}ごと",
   ExactIntervalBlocksMsg: "正確な間隔は {blocks} ブロックです",
   Example: "例",
   ExceededBalanceError: "残高 {spendableBchValue} を超過しています",

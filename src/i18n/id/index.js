@@ -987,6 +987,7 @@ export default {
   EstimatedFee: "Perkiraan biaya",
   EstimatedTimeBasedOnBlocks: "Waktu yang ditampilkan merupakan perkiraan berdasarkan target blok jaringan Bitcoin Cash yaitu 10 menit per blok.",
   EstimatedValue: "Perkiraan Nilai",
+  EveryPeriod: "Setiap {period}",
   ExactIntervalBlocksMsg: "Interval tepatnya adalah {blocks} blok",
   Example: "Contoh",
   ExceededBalanceError: "Melebihi saldo {spendableBchValue}",

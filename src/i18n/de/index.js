@@ -987,6 +987,7 @@ export default {
   EstimatedFee: "Geschätzte Gebühr",
   EstimatedTimeBasedOnBlocks: "Die angezeigte Zeit ist eine Schätzung, die auf dem Blockziel des Bitcoin Cash-Netzwerks von 10 Minuten pro Block basiert.",
   EstimatedValue: "Geschätzter Wert",
+  EveryPeriod: "Alle {period}",
   ExactIntervalBlocksMsg: "Das genaue Intervall beträgt {blocks} Blöcke",
   Example: "Beispiel",
   ExceededBalanceError: "Überschreitung des Guthabens {spendableBchValue}",

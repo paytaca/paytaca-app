@@ -987,6 +987,7 @@ export default {
   EstimatedFee: "Geskatte fooi",
   EstimatedTimeBasedOnBlocks: "Die vertoonde tyd is 'n skatting gebaseer op die Bitcoin Cash-netwerkblokteiken van 10 minute per blok.",
   EstimatedValue: "Geskatte waarde",
+  EveryPeriod: "Elke {period}",
   ExactIntervalBlocksMsg: "Die presiese interval is {blocks} blokke",
   Example: "Voorbeeld",
   ExceededBalanceError: "Oorskry saldo {spendableBchValue}",

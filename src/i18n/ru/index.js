@@ -987,6 +987,7 @@ export default {
   EstimatedFee: "Ориентировочная плата",
   EstimatedTimeBasedOnBlocks: "Отображаемое время является оценочным, основанным на целевом блоке сети Bitcoin Cash, равном 10 минутам на блок.",
   EstimatedValue: "Оценочная стоимость",
+  EveryPeriod: "Каждый {период}",
   ExactIntervalBlocksMsg: "Точный интервал — {blocks} блоков.",
   Example: "Пример",
   ExceededBalanceError: "Превышение баланса {spendableBchValue}",

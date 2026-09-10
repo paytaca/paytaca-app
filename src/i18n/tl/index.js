@@ -987,6 +987,7 @@ export default {
   EstimatedFee: "Tinatayang bayad",
   EstimatedTimeBasedOnBlocks: "Ang ipinapakitang oras ay isang pagtatantya batay sa target na block ng network ng Bitcoin Cash na 10 minuto bawat bloke.",
   EstimatedValue: "Tinantyang Halaga",
+  EveryPeriod: "Bawat {period}",
   ExactIntervalBlocksMsg: "Ang eksaktong pagitan ay {blocks} blocks",
   Example: "Halimbawa",
   ExceededBalanceError: "Labis na balanse {spendableBchValue}",
