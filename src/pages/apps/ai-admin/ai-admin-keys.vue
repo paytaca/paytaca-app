@@ -257,7 +257,9 @@ export default {
             } else {
                 vm.APIKeys = []
                 vm.totalCount = 0
+                const errorMsg = serverResult.error || 'Failed to fetch API keys'
                 console.error('Failed to fetch API keys:', serverResult.error)
+                bus.emit('ai-admin:error', errorMsg)
             }
         },
         async refresh (done) {

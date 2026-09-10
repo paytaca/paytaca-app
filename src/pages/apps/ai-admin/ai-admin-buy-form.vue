@@ -82,6 +82,13 @@
                     </div>
                 </div>
 
+                <!-- Error state -->
+                <div v-else-if="fetchError" class="text-center q-pa-md">
+                    <q-icon name="mdi-alert-circle-outline" size="48px" :color="darkMode ? 'orange' : 'negative'" />
+                    <p class="q-mt-sm" :class="darkMode ? 'text-white' : 'text-grey-8'">{{ fetchError }}</p>
+                    <q-btn rounded outline no-caps label="Retry" :color="themeColor" class="q-mt-sm" @click="fetchModelsList" />
+                </div>
+
                 <!-- Empty state -->
                 <div v-else class="text-center text-grey q-pa-md">
                     No models found
@@ -183,7 +190,8 @@ export default {
             timeCreditsSeconds: 0,
             pinDialogAction: '',
             warningAttemptsStatus: '',
-            pendingSwipeReset: () => {}
+            pendingSwipeReset: () => {},
+            fetchError: null,
         }
     },
     computed: {
@@ -247,6 +255,8 @@ export default {
         async fetchModelsList () {
             const vm = this
             vm.isLoading = true
+            vm.fetchError = null
+
             const params = {}
             if (vm.search) params.search = vm.search
 
@@ -255,6 +265,7 @@ export default {
                 vm.models = result.data.data
             } else {
                 vm.models = []
+                vm.fetchError = result.error || 'Failed to load models'
             }
 
             // Clear selection if selected model is no longer in results

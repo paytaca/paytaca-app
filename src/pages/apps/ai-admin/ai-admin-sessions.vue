@@ -186,7 +186,9 @@ export default {
                 }
                 vm.totalCount = result.data.count || 0
             } else if (result.error) {
+                const errorMsg = result.error || 'Failed to fetch sessions'
                 vm.$q.notify({ type: 'negative', message: result.error, timeout: 5000 })
+                bus.emit('ai-admin:error', errorMsg)
             }
 
             vm.isLoading = false

@@ -45,8 +45,31 @@
             </div>
         </div>
 
+  
+        <!-- Error State -->
+        <div v-if="(authError || pageError) && !isBuyFormPage" class="auth-error-container q-pa-lg text-center">
+            <q-icon name="mdi-alert-circle-outline" size="48px" :color="darkMode ? 'orange' : 'negative'" />
+            <p class="q-mt-md text-body1" :class="darkMode ? 'text-white' : 'text-grey-8'">
+                {{ pageError || 'Unable to authenticate' }}
+            </p>
+            <p class="text-caption q-mt-xs" :class="darkMode ? 'text-grey-5' : 'text-grey-6'" v-if="authError && !pageError">
+                {{ $t('CheckWalletConnection') }}
+            </p>
+            <q-btn
+                unelevated
+                rounded
+                :color="darkMode ? 'grey-8' : 'grey-1'"
+                :text-color="darkMode ? 'white' : 'black'"
+                class="q-mt-md"
+                :label="$t('Retry')"
+                icon="mdi-refresh"
+                @click="retryAuth"
+            />
+        </div>
+
+
         <!-- Tab Content -->
-        <div class="ai-admin-content">
+        <div v-else class="ai-admin-content">
             <router-view :key="$route.path"></router-view>
         </div>
     </div>
@@ -56,6 +79,7 @@
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 import { bus } from 'src/wallet/event-bus.js'
 import HeaderNav from 'src/components/header-nav.vue'
+import * as AIAdminUtils from 'src/utils/ai-admin-utils.js'
 
 export default {
     data () {
@@ -63,7 +87,9 @@ export default {
             darkMode: this.$store.getters['darkmode/getStatus'],
             activeTab: 'api-keys',
             isloaded: false,
-            contentLoading: false 
+            contentLoading: false,
+            authError: false,
+            pageError: null
         }
     },
     computed: {
@@ -79,26 +105,35 @@ export default {
     },
     async created () {
       bus.on('ai-admin:loading', this.onContentLoading)
+      bus.on('ai-admin:error', this.onPageError)
     },
     beforeUnmount () {
         bus.off('ai-admin:loading', this.onContentLoading)
+        bus.off('ai-admin:error', this.onPageError)
     },
-    mounted () {
-        const vm = this
+    async mounted () {
+      const vm = this
 
-        console.log('route name: ' + vm.$route.name)
+      console.log('route name: ' + vm.$route.name)
 
-        // if at index, redirect to keys page
-        if (vm.$route.name === 'app-ai-admin') {
-            vm.$router.replace({ name: 'ai-admin-keys' })
-        }
+      // if at index, redirect to keys page
+      if (vm.$route.name === 'app-ai-admin') {
+        vm.$router.replace({ name: 'ai-admin-keys' })
+      }
 
-        // Selecting proper tab
-        if (vm.$route.name === 'ai-admin-sessions') {
-            vm.activeTab = 'sessions'
-        }
+      // Selecting proper tab
+      if (vm.$route.name === 'ai-admin-sessions') {
+        vm.activeTab = 'sessions'
+      }
 
-        vm.isloaded = true
+      // Authenticate before enabling tabs
+      const authOk = await AIAdminUtils.authUser()
+      if (authOk) {
+          vm.isloaded = true
+      } else {
+        vm.authError = true
+        vm.$q.notify({ type: 'negative', message: 'Unable to authenticate. Please try again.', timeout: 5000 })
+      }
     },
     methods: {
         getDarkModeClass,
@@ -124,7 +159,22 @@ export default {
         },
         onContentLoading (isLoading) {
             this.contentLoading = isLoading
-        }
+        },
+        async retryAuth () {
+          this.authError = false
+          this.pageError = null
+          this.isloaded = false
+          const authOk = await AIAdminUtils.authUser()
+          if (authOk) {
+            this.isloaded = true
+          } else {
+            this.authError = true
+            this.$q.notify({ type: 'negative', message: 'Unable to authenticate. Please try again.', timeout: 5000 })
+          }
+        },
+        onPageError (error) {
+          this.pageError = error
+        },
     }
 }
 </script>
