@@ -50,6 +50,10 @@ export function auctionId(state){
   return state.auctionId 
 }
 
+export function auctionData(state){
+  return state.auctionData 
+}
+
 export function auctionLots(state) {
   return state.auctionLots || []
 }
