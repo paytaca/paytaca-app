@@ -37,7 +37,6 @@
             v-model="auctionType"
             :options="auctionTypeOptions"
             emit-value
-            map-options
             autocomplete="off"
             color="pt-primary1"
             debounce="500"
@@ -179,18 +178,16 @@ const isCheckingAccess = ref(true)  // Controls loading screen during profile ch
 // Websocket-related
 let socket = null
 
-// Auciton-related 
-const listingsLastFetched = ref($store.getters['auction/listingsLastFetched'])
-const listingTotalTime = computed(() => Date.now() - listingsLastFetched.value)
+// Auction-related 
+const listingTotalTime = computed(() => Date.now() - $store.getters['auction/listingsLastFetched'])
+const username = computed(() => $store.getters['auction/username'])
 
 onMounted(async () => {
   // Fetch username and if it doesn't exist, print the error
-  let username = $store.getters['auction/username']
-  if (!username) {
+  if (!username.value) {
     await $store.dispatch('auction/fetchUsername')
-    username = $store.getters['auction/username']
 
-    if (!username) {
+    if (!username.value) {
       // Route to username/profile page
       console.warn('User details missing, redirecting...')
       $router.push({ name: 'app-auction-profile' })
@@ -239,7 +236,7 @@ AUCTION-RELATED
 
 // Auction filter options
 const auctionTypeOptions = $store.getters['auction/auctionTypeOptions']
-const auctionType = ref($store.getters['auction/auctionTypeIndex']);
+const auctionType = computed(() => $store.getters['auction/auctionTypeIndex']);
 
 // Auction ref variables
 const auctionSearchQuery = ref('') // fix this later nalang
@@ -366,7 +363,6 @@ const refresh = async (done) => {
   }
   if (typeof done === 'function') done()
 }
-
 </script>
 
 <style scoped lang="scss">
