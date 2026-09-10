@@ -5,6 +5,8 @@ import { updatePreferences } from 'src/utils/indexed-db-rollback/update-preferen
 import { resetWalletsAssetsList } from 'src/utils/indexed-db-rollback/reset-asset-list'
 import { getAllWalletNames } from 'src/utils/wallet-name-cache'
 import { migrateMnemonicsToWalletHash } from 'src/wallet/mnemonic-migration'
+import { AuctionList, LotsList } from 'src/auction/object'
+
 import useStore from 'src/store'
 import limitsConfig from 'src/store/subscription/limits.json'
 import wizardconnectDefaultState from 'src/store/wizardconnect/state'
@@ -129,8 +131,17 @@ export default boot(async (obj) => {
         parsedState.auction = defaultAuctionState()
       } else {
         parsedState.auction = {
-          ...defaultAuctionState,
+          ...defaultAuctionState(),
           ...parsedState.auction
+        }
+        if (parsedState.auction.auctionData) {
+          parsedState.auction.auctionData =
+            AuctionList.parse(parsedState.auction.auctionData)
+        }
+
+        if (Array.isArray(parsedState.auction.auctionLots)) {
+          parsedState.auction.auctionLots =
+            parsedState.auction.auctionLots.map(lot => LotsList.parse(lot))
         }
       }
 
