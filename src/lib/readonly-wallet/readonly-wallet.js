@@ -127,6 +127,7 @@ export default class ReadOnlyWallet {
     this.id = config?.id
     this.name = config?.name
     this.xpub = config?.xpub
+    this.masterFingerprint = config?.masterFingerprint
     this.derivationPath = config?.derivationPath || BCH_DERIVATION_PATH
     this.networks = config?.networks || {
       mainnet: {},
@@ -634,7 +635,7 @@ export default class ReadOnlyWallet {
   _bip32For (relativePath) {
     return {
       pubkey: this.getPubkeyAt(relativePath),
-      masterFingerprint: getXpubFingerprint(this.xpub),
+      masterFingerprint: this.masterFingerprint || getXpubFingerprint(this.xpub),
       path: toFullDerivationPath(relativePath, this.derivationPath)
     }
   }
@@ -897,6 +898,7 @@ export default class ReadOnlyWallet {
       id: this.id,
       name: this.name,
       xpub: this.xpub,
+      masterFingerprint: this.masterFingerprint,
       derivationPath: this.derivationPath,
       networks: this.networks,
       settings: this.settings

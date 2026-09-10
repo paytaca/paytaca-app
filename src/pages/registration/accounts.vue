@@ -487,22 +487,34 @@
           <div class="text-subtitle1 text-center text-bow step-title col" :class="getDarkModeClass(darkMode)">{{ $t('AddReadOnlyWallet') || 'Read-only wallet (XPub)' }}</div>
           <q-btn flat round dense class="invisible" style="margin-top: -6px;" />
         </div>
-        <p class="text-center text-bow step-subtitle" :class="getDarkModeClass(darkMode)">{{ $t('AddReadOnlyWalletSubtitle') || 'Paste the extended public key (xpub) of the wallet you want to watch' }}</p>
-
         <div class="glass-panel q-mt-md" :class="getDarkModeClass(darkMode)">
-          <div class="q-pa-md">
+      </div>
+        <div class="glass-panel q-mt-md" :class="getDarkModeClass(darkMode)">
+          <div class="q-pa-md q-gutter-y-sm">
+            <q-label class="q-mt-md">Extended Public Key (xpub)</q-label>
             <q-input
               type="textarea"
               v-model="xpub"
-              :placeholder="$t('PasteXpubPlaceholder') || 'xpub...'"
-              class="q-mt-xs glass-textarea bg-white"
-              :class="getDarkModeClass(darkMode)"
-              outlined
+              label="Extended Public Key (xpub)"
               rows="3"
               autogrow
+              outlined
               :error="Boolean(xpubError)"
-              :error-message="xpubError"
+              hide-bottoms
+              bg-color="white"
             />
+            <div class="q-mt-md q-gutter-y-sm">
+            <q-label>Master Fingerprint</q-label>
+            <q-input
+              v-model="masterFingerprint"
+              label="Master Fingerprint"
+              hint="(Recommended) Enter master fingerprint if you plan on generating a transaction on this device."
+              outlined
+              :error="Boolean(masterFingerprintError)"
+              :error-message="masterFingerprintError"
+              bg-color="white"
+            />
+            </div>
           </div>
         </div>
 
@@ -780,6 +792,8 @@ export default {
       authenticationPhase: 'options',
       xpub: '',
       xpubError: '',
+      masterFingerprint: '',
+      masterFingerprintError: '',
       skipToBackupPhrase: false,
       isOnboarding: false, // this.isVaultEmpty
       pageLoaded: false,
@@ -1486,6 +1500,12 @@ export default {
             return
           }
           this.xpubError = ''
+          const fingerprintValidation = this.validateMasterFingerprint()
+          if (!fingerprintValidation.valid) {
+            this.masterFingerprintError = fingerprintValidation.error
+            return
+          }
+          this.masterFingerprintError = ''
           this.walletRestoreInProgress = true
           this.walletRestoreError = ''
           try {
@@ -1577,6 +1597,14 @@ export default {
       if (!trimmed) return { valid: false, error: this.$t('PasteXpubPlaceholder') || 'Enter an xpub' }
       if (!this._isValidXpub(trimmed)) {
         return { valid: false, error: this.$t('InvalidXpubFormat') || 'Invalid xpub format' }
+      }
+      return { valid: true, error: '' }
+    },
+    validateMasterFingerprint () {
+      const trimmed = (this.masterFingerprint || '').trim()
+      if (trimmed === '') return { valid: true, error: '' }
+      if (!/^[0-9a-fA-F]{8}$/.test(trimmed)) {
+        return { valid: false, error: this.$t('InvalidMasterFingerprint', {}, 'Master fingerprint must be 8 hex characters (e.g. aabbccdd)') }
       }
       return { valid: true, error: '' }
     },
@@ -1690,6 +1718,7 @@ export default {
       const walletConfig = {
         name: this.walletName || 'Personal Wallet',
         xpub: cleanedXpub,
+        masterFingerprint: (this.masterFingerprint || '').trim(),
         networks: {
           mainnet: {},
           chipnet: {}

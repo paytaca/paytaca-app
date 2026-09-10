@@ -11,6 +11,17 @@
                 <MultiWalletDropdown/>
               </div>
               <div class="row items-center justify-end q-gutter-md">
+                <div v-if="isReadOnlyWallet" class="row items-center">
+                  <q-icon
+                    name="key_off"
+                    size="20px"
+                    class="text-bow"
+                    :class="getDarkModeClass(darkMode)"
+                    color="warning"
+                  >
+                    <q-tooltip>{{ $t('ReadOnlyWallet', {}, 'Read Only Wallet') }}</q-tooltip>
+                  </q-icon>
+                </div>
                 <q-btn
                   flat
                   round
