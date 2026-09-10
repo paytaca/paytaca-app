@@ -19,7 +19,7 @@
 
                 <!-- To Generate Key -->
                  <div v-if="!keyGenerated">
-                    <div class="text-left md-font-size text-bold q-pb-xs">Enter API Name</div>
+                    <div class="text-left md-font-size text-bold q-pb-xs">Enter API Key Name</div>
                     <q-input class="q-pb-md" outlined v-model="keyName"/>
 
                     <q-btn rounded label="Generate New Key" :color="themeColor" @click="createKey()"/>
