@@ -402,7 +402,7 @@ const filteredLots = computed(() => {
   return targetLots
 })
 
-const fetchAllData = async () => {
+const loadPageData = async () => {
   // Check if props.auctionId is the same as stored auctionId (to prevent repeated fetching)
   const isSameAuctionId = $store.getters['auction/auctionId'] === Number(props.auctionId)
   if(!isSameAuctionId) $store.commit('auction/setAuctionId', Number(props.auctionId))
@@ -431,7 +431,7 @@ const fetchAllData = async () => {
 
 onMounted(async () => {
   isLoading.value = true
-  await fetchAllData()
+  await loadPageData()
   isLoading.value = false
 
   // call the connectWebsocket function
@@ -688,8 +688,7 @@ const smartBackPath = computed(() => {
 
 const refresh = async (done) => {
   isLoading.value = true
-  await fetchAllData()
-  
+  await loadPageData()
   isLoading.value = false
 
   clearSocket()
