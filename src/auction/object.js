@@ -168,11 +168,9 @@ export class AuctionList {
     this.creation_date = data.creation_date || null;
     this.status = data.status || null
     
-    this.type = data.type || (data.type ? data.type.id : null);
+    this.type = Number(data.type) === 1 ? "English" : "Dutch"
     this.user = data.user || ""
-    this.user_bch_address = data.user_bch_address || ""
-    if(data.type == 1) this.type = "English"
-    else this.type = "Dutch"
+    this.username = data.username || ""
     
     this.lots = Array.isArray(data.lots)
       ? data.lots.map(lotObj => LotsList.parse(lotObj))
@@ -186,8 +184,8 @@ export class AuctionList {
     return { label: 'Closed', color: 'red' }
   }
   
-  getEllipsisInMiddleUserId() {
-    const targetString = this.user.address || String(this.user.id || '');
+  getEllipsisInMiddleAddress() {
+    const targetString = this.user;
     
     if (!targetString || targetString.length <= 22) return targetString;
     
