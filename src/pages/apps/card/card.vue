@@ -55,6 +55,9 @@
                     <q-img src="~assets/bch-logo.png" style="width: 14px; height: 14px;" fit="contain" />
                   </div>
                 </div>
+                <div v-if="!balanceHidden && formattedFiatBalance" style="font-size: 13px; opacity: 0.75; line-height: 1.2;">
+                  ≈ {{ formattedFiatBalance }}
+                </div>
                 <div v-if="cardTokenHoldings.length" class="row items-center q-mt-xs" style="gap: 6px;">
                   <q-chip
                     dense
@@ -272,6 +275,7 @@ import OrderCard from 'src/components/card/OrderCard.vue'
 import ActivateCardForm from 'src/components/card/ActivateCardForm.vue'
 import JourneyStepper from 'src/components/card/JourneyStepper.vue'
 import { satoshiToBch } from 'src/exchange'
+import { parseFiatCurrency } from 'src/utils/denomination-utils'
 import { loadCardUser } from 'src/services/card/user'
 import { Card } from 'src/services/card/card'
 import { cardLogger } from 'src/utils/debug-logger.js'
@@ -364,6 +368,22 @@ export default {
 
     selectedCurrency () {
       return this.$store.getters['market/selectedCurrency']
+    },
+
+    selectedMarketCurrency () {
+      return this.selectedCurrency?.symbol
+    },
+
+    bchPriceInFiat () {
+      if (!this.selectedMarketCurrency) return null
+      return this.$store.getters['market/getAssetPrice']('bch', this.selectedMarketCurrency)
+    },
+
+    formattedFiatBalance () {
+      if (this.balanceHidden) return ''
+      const balance = parseFloat(this.bchBalance) || 0
+      if (!this.bchPriceInFiat) return ''
+      return parseFiatCurrency((balance * Number(this.bchPriceInFiat)).toFixed(2), this.selectedMarketCurrency)
     },
 
     hasCardBalance () {
