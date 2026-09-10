@@ -11,6 +11,7 @@ import { getMnemonicByHash } from 'src/wallet'
 import { pubkeyToAddress } from 'src/utils/crypto'
 
 const OAUTH_TOKEN_KEY = 'paytaca-ai-oauth-token'
+const OAUTH_REFRESH_TOKEN_KEY = 'paytaca-ai-oauth-refresh-token'
 
 export const backend = axios.create()
 requestManager.attachTo(backend)
@@ -87,6 +88,44 @@ async function clearToken () {
   } catch {}
 }
 
+async function getStoredRefreshToken () {
+    try {
+        const result = await SecureStoragePlugin.get({ key: OAUTH_REFRESH_TOKEN_KEY })
+        return result.value || null
+    } catch {
+        return null
+    }
+}
+
+async function saveRefreshToken (token) {
+    await SecureStoragePlugin.set({ key: OAUTH_REFRESH_TOKEN_KEY, value: token })
+}
+
+async function clearRefreshToken () {
+    try {
+        await SecureStoragePlugin.remove({ key: OAUTH_REFRESH_TOKEN_KEY })
+    } catch {}
+}
+
+async function refreshAccessToken () {
+    const refreshToken = await getStoredRefreshToken()
+    if (!refreshToken) throw new Error('No refresh token available')
+
+    const response = await backend.post(baseURL + '/auth/refresh', {
+        refresh_token: refreshToken
+    })
+
+    if (response.data?.access_token) {
+        await saveToken(response.data.access_token)
+        if (response.data.refresh_token) {
+            await saveRefreshToken(response.data.refresh_token)
+        }
+        return response.data.access_token
+    }
+
+    throw new Error('Refresh failed')
+}
+
 async function axiosFetch(url, options = {}) {
   const { method = 'GET', headers = {}, body } = options
 
@@ -130,8 +169,18 @@ async function getAuthHeaders () {
       }
 
     } catch (error) {
-      await clearToken()
+      // await clearToken()
+      // Token invalid/expired — will try refresh below
     }
+  }
+
+  try {
+    const newToken = await refreshAccessToken()
+    return { 'Authorization': `Bearer ${newToken}` }
+  } catch {
+    // Refresh failed — clear all tokens, fall through to full re-auth
+    await clearToken()
+    await clearRefreshToken()
   }
 
   const { privateKeyHex, publicKeyHex, address, walletHash } = await deriveOAuthCredentials()
@@ -158,6 +207,9 @@ async function getAuthHeaders () {
 
     if (tokenResponse.data?.access_token) {
       await saveToken(tokenResponse.data.access_token)
+      if (tokenResponse.data.refresh_token) {
+        await saveRefreshToken(tokenResponse.data.refresh_token)
+      }
       return { 'Authorization': `Bearer ${tokenResponse.data.access_token}` }
     }
   } catch (error) {
@@ -194,6 +246,9 @@ async function getAuthHeaders () {
 
   if (finalTokenResponse.data?.access_token) {
     await saveToken(finalTokenResponse.data.access_token)
+    if (finalTokenResponse.data.refresh_token) {
+        await saveRefreshToken(finalTokenResponse.data.refresh_token)
+    }
     return { 'Authorization': `Bearer ${finalTokenResponse.data.access_token}` }
   }
 

@@ -24,9 +24,9 @@
         </div>
 
         <!-- Processing state -->
-        <div v-else-if="processing" class="text-center q-pt-lg">
+        <div v-else-if="processing" class="text-center" style="padding-top: 40vh;">
             <q-spinner :color="themeColor" size="48px" />
-            <div class="q-mt-md">Processing payment...</div>
+            <div class="q-mt-md">{{ processingMessage }}</div>
         </div>
 
         <!-- Form state -->
@@ -51,20 +51,39 @@
                     </template>
                 </q-input>
 
+                <!-- Tier Buttons -->
+                <div class="row q-gutter-sm q-mb-md">
+                    <q-btn
+                        no-caps rounded outlined
+                        :color="!selectedTier ? themeColor : ''"
+                        :text-color="!selectedTier ? 'white' : ''"
+                        :outline="!!selectedTier"
+                        :style="!selectedTier ? `background-color: ${themeColorHex}` : ''"
+                        label="All"
+                        size="sm"
+                        @click="filterByTier(null)"
+                    />
+                    <q-btn
+                        v-for="tier in tiers" :key="tier"
+                        no-caps rounded outlined
+                        :color="selectedTier === tier ? themeColor : ''"
+                        :text-color="selectedTier === tier ? 'white' : ''"
+                        :outline="selectedTier !== tier"
+                        :style="selectedTier === tier ? `background-color: ${themeColorHex}` : ''"
+                        :label="tier.charAt(0).toUpperCase() + tier.slice(1)"
+                        size="sm"
+                        :disable="isInitialLoading || isLoading"
+                        @click="filterByTier(tier)"
+                    />
+                </div>
+
                 <div class="text-bold md-font-size q-mb-sm">Select Model</div>
                 <!-- Loading skeleton -->
-                <div v-if="isLoading">
+                <div v-if="isInitialLoading || isLoading">
                     <div class="models-scroll no-scrollbar">
                         <div v-for="n in 4" :key="'skel-model-'+n" class="model-card q-pa-lg">
                             <q-skeleton type="text" width="70%" height="16px" style="border-radius: 6px;" />
                             <q-skeleton type="rect" width="50%" height="18px" class="q-mt-sm" style="border-radius: 6px;" />
-                        </div>
-                    </div>
-                    <div v-if="selectedModel" class="durations-scroll no-scrollbar q-mt-md">
-                        <div v-for="n in 3" :key="'skel-dur-'+n" class="duration-card q-pa-lg">
-                            <q-skeleton type="text" width="60%" height="16px" style="border-radius: 6px;" />
-                            <q-skeleton type="text" width="80%" height="14px" class="q-mt-sm" style="border-radius: 6px;" />
-                            <q-skeleton type="text" width="50%" height="12px" class="q-mt-xs" style="border-radius: 6px;" />
                         </div>
                     </div>
                 </div>
@@ -72,13 +91,23 @@
                 <!-- Model cards -->
                 <div v-else-if="models.length > 0" class="models-scroll no-scrollbar">
                     <div v-for="model in models" :key="model.model_id"
-                    class="model-card q-pa-lg cursor-pointer"
-                    :class="[getDarkModeClass(darkMode), { 'selected-model-card': selectedModel?.model_id === model.model_id }]"
-:style="selectedModel?.model_id === model.model_id ? `background-color: ${themeColorHex}; border-color: ${themeColorHex};` : ''"
-                    @click="selectModel(model)"
-                    >
+                        class="model-card q-pa-lg"
+                        :class="[
+                            getDarkModeClass(darkMode),
+                            {
+                                'selected-model-card': selectedModel?.model_id === model.model_id,
+                                'cursor-pointer': !activeModelIds.includes(model.model_id),
+                                'disabled-model': activeModelIds.includes(model.model_id)
+                            }
+                        ]"
+                        :style="selectedModel?.model_id === model.model_id ? `background-color: ${themeColorHex}; border-color: ${themeColorHex};` : ''"
+                        @click="!activeModelIds.includes(model.model_id) && selectModel(model)"
+                        >
                         <div class="text-bold text-subtitle2">{{ model.display_name }}</div>
-                        <q-badge :color="tierColor(model.tier)" :label="model.tier.toUpperCase()" class="q-mt-xs text-bold" />
+                        <div class="row items-center q-mt-xs">
+                            <q-badge rounded :color="tierColor(model.tier)" :label="model.tier.toUpperCase()" class="text-bold q-px-sm" />
+                            <q-badge rounded outline v-if="activeModelIds.includes(model.model_id)" color="positive" label="ACTIVE SESSION" class="text-bold q-mt-sm q-px-sm" />
+                        </div>
                     </div>
                 </div>
 
@@ -178,6 +207,7 @@ export default {
             darkMode: this.$store.getters['darkmode/getStatus'],
             models: [],
             isLoading: false,
+            isInitialLoading: false,
             search: '',
             searchTimeout: null,
             selectedModel: null,
@@ -192,6 +222,10 @@ export default {
             warningAttemptsStatus: '',
             pendingSwipeReset: () => {},
             fetchError: null,
+            processingMessage: '',
+            activeModelIds: [],
+            selectedTier: null,
+            tiers: ['budget', 'premium', 'frontier'],
         }
     },
     computed: {
@@ -217,7 +251,7 @@ export default {
             return themeMap[this.theme] || '#42a5f5'
         },
         canSubmitBuy () {
-            return this.selectedModel && this.selectedDuration && !this.processing
+            return this.selectedModel && this.selectedDuration && !this.processing && !this.activeModelIds.includes(this.selectedModel?.model_id)
         },
         selectedCurrency () {
             return this.$store.getters['market/selectedCurrency']?.symbol || 'USD'
@@ -232,7 +266,14 @@ export default {
         BiometricWarningAttempt
     },
     async mounted () {
-        await this.fetchModelsList()
+        this.isInitialLoading = true
+
+        await Promise.all([
+            this.fetchModelsList(),
+            this.fetchActiveSessions()
+        ])
+
+        this.isInitialLoading = false
     },
     methods: {
         getDarkModeClass,
@@ -259,10 +300,17 @@ export default {
 
             const params = {}
             if (vm.search) params.search = vm.search
+            if (vm.selectedTier) params.tier = vm.selectedTier
 
             const result = await AIAdminUtils.fetchModels(params)
             if (result.success && Array.isArray(result.data?.data)) {
-                vm.models = result.data.data
+                const tierOrder = { cheap: 0, budget: 1, premium: 2, frontier: 3 }
+                vm.models = result.data.data.sort((a, b) => {
+                    const orderA = tierOrder[a.tier] ?? 99
+                    const orderB = tierOrder[b.tier] ?? 99
+                    return orderA - orderB
+                })
+
             } else {
                 vm.models = []
                 vm.fetchError = result.error || 'Failed to load models'
@@ -274,6 +322,16 @@ export default {
                 vm.selectedDuration = null
             }
             vm.isLoading = false
+        },
+        async fetchActiveSessions () {
+            const vm = this
+            const result = await AIAdminUtils.fetchSessions({ page: 1, pageSize: 100 })
+            if (result.success && Array.isArray(result.data?.data)) {
+                const activeIds = result.data.data
+                    .filter(s => s.status === 'active')
+                    .map(s => s.model_id)
+                vm.activeModelIds = [...new Set(activeIds)]
+            }
         },
         selectModel (model) {
             if (this.selectedModel?.model_id === model.model_id) {
@@ -356,6 +414,7 @@ export default {
                 // Hide keyboard
                 try { await Keyboard.hide() } catch (e) {}
 
+                vm.processingMessage = 'Creating session...'
                 // 1. Create pending session → get payment address
                 const sessionResult = await AIAdminUtils.createSession(
                     vm.selectedModel.model_id,
@@ -373,6 +432,7 @@ export default {
                 vm.paymentAddress = sessionResult.data.payment_address
                 vm.amountSats = sessionResult.data.amount_sats
 
+                vm.processingMessage = 'Preparing payment...'
                 // 2. Load wallet (from store, not hardcoded)
                 const walletIndex = vm.$store.getters['global/getWalletIndex']
                 const wallet = await cachedLoadWallet('BCH', walletIndex)
@@ -382,7 +442,7 @@ export default {
 
                 // 3. Convert address to cash address format
                 const recipientCashAddr = new Address(String(vm.paymentAddress).trim()).toCashAddress()
-                const recipients = [{ address: recipientCashAddr, amount: vm.amountSats }]
+                const recipients = [{ address: recipientCashAddr, amount: vm.amountSats / 1e8 }]
 
                 // 4. Get BCH wallet instance
                 const bchWallet = getWalletByNetwork(wallet, 'bch')
@@ -390,12 +450,14 @@ export default {
                     throw new Error('BCH wallet unavailable')
                 }
 
+                vm.processingMessage = 'Sending BCH...'
                 // 5. Send BCH
                 const sendResult = await bchWallet.sendBch(0, '', changeAddress, null, undefined, recipients)
                 if (!sendResult?.success) {
                     throw new Error(sendResult?.error || 'Send BCH failed')
                 }
 
+                vm.processingMessage = 'Confirming payment...'
                 // 6. Confirm payment with server
                 const confirmResult = await AIAdminUtils.confirmSession(vm.paymentAddress, sendResult.txid)
                 if (!confirmResult.success) {
@@ -417,6 +479,7 @@ export default {
                 const userMessage = error?.userMessage || error?.message || 'Unable to complete purchase'
                 vm.$q.notify({ type: 'negative', message: userMessage, timeout: 5000 })
             } finally {
+                vm.processingMessage = ''
                 vm.processing = false
                 reset?.()
             }
@@ -430,7 +493,11 @@ export default {
             const bchAmount = satoshiToBch(sats)
             const fiatAmount = bchAmount * this.bchMarketPrice
             return parseFiatCurrency(fiatAmount, this.selectedCurrency)
-        }
+        },
+        filterByTier (tier) {
+            this.selectedTier = tier
+            this.fetchModelsList()
+        },
     }
 }
 </script>
@@ -489,5 +556,14 @@ export default {
 
 .selected-duration-card {
     color: white !important;
+}
+.disabled-model {
+    opacity: 0.45;
+    pointer-events: none;
+    border: 2px dashed rgba(0, 0, 0, 0.25) !important;
+    position: relative;
+}
+.disabled-model.dark {
+    border-color: rgba(255, 255, 255, 0.2) !important;
 }
 </style>

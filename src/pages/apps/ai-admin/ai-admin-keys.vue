@@ -3,8 +3,9 @@
          <!-- Skeleton loader -->
         <div v-if="loading" class="q-mx-lg q-pt-md">
             <!-- Button skeleton -->
-            <div class="q-pb-md">
+            <div class="row justify-between items-center q-pb-md">
                 <q-skeleton type="rect" width="160px" height="36px" style="border-radius: 18px;" />
+                <q-skeleton type="rect" width="170px" height="36px" style="border-radius: 18px;" />
             </div>
 
             <!-- Key card skeletons -->

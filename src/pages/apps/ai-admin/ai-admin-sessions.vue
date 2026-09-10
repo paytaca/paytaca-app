@@ -2,7 +2,11 @@
     <div class="text-bow q-pb-md" :class="getDarkModeClass(darkMode)">
         <!-- Skeleton loader -->
         <div v-if="isLoading" class="q-px-lg q-pt-md">
-            <q-skeleton type="rect" width="160px" height="36px" style="border-radius: 18px;" class="q-mb-md" />
+            <div class="row justify-between items-center q-mb-md">
+                <q-skeleton type="rect" width="150px" height="36px" style="border-radius: 18px;" />
+                <q-skeleton type="rect" width="170px" height="36px" style="border-radius: 18px;" />
+            </div>
+            
             <div v-for="n in 4" :key="'skel-'+n" class="app-row q-mb-sm" :class="getDarkModeClass(darkMode)">
                 <div class="app-info">
                     <q-skeleton type="text" width="50%" height="16px" class="q-mb-xs" />
