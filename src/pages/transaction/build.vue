@@ -184,7 +184,7 @@ import QrScanner from 'src/components/qr-scanner.vue'
 import { parsePaymentUri } from 'src/wallet/payment-uri'
 import { raiseNotifyError } from 'src/utils/notify-utils'
 import * as sendPageUtils from 'src/utils/send-page-utils'
-import { Address, getMnemonic } from 'src/wallet'
+import { Address } from 'src/wallet'
 import { getNetworkTimeDiff } from 'src/utils/time'
 import { prepareSendWithCauldron, CauldronSendError, calculateMaxSpendableForCauldron, TradePrepErrorCode } from 'src/wallet/cauldron/send'
 import { cashAddressToLockingBytecode, decodeCashAddress, CashAddressType, base64ToBin } from 'bitauth-libauth-v3'
@@ -1227,6 +1227,7 @@ export default {
         this.focusedInputField = field
         this.customKeyboardState = 'show'
         sendPageUtils.addRemoveInputFocus(index, field)
+        this.scrollFocusedInputAboveKeyboard(index, field)
       }
     },
 
@@ -1611,6 +1612,23 @@ export default {
       this.focusedInputField = value.field
       this.customKeyboardState = value.field !== '' ? 'show' : 'dismiss'
       sendPageUtils.addRemoveInputFocus(value.index, value.field)
+      if (value.field === 'bch' || value.field === 'fiat') {
+        this.scrollFocusedInputAboveKeyboard(value.index, value.field)
+      }
+    },
+    scrollFocusedInputAboveKeyboard (index, field) {
+      this.$nextTick(() => {
+        const form = this.$refs.sendPageRef?.[index]
+        const inputRef = field === 'fiat' ? form?.$refs?.fiatInput : form?.$refs?.amountInput
+        const el = inputRef?.$el?.querySelector?.('input') || inputRef?.$el
+        if (!el) return
+        const keyboardHeight = 300
+        const rect = el.getBoundingClientRect()
+        const keyboardTop = window.innerHeight - keyboardHeight
+        if (rect.bottom > keyboardTop) {
+          window.scrollBy({ top: rect.bottom - keyboardTop + 16, behavior: 'smooth' })
+        }
+      })
     },
     onQRScannerClick (value) {
       this.showQrScanner = value
