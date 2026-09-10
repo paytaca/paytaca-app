@@ -68,6 +68,23 @@ export function updateAuctionLotsData(state, {attribute_name, data}) {
   })
 }
 
+// Lot Details Page mutations
+export function setLotId(state, lotId) {
+  state.lotId = lotId
+}
+
+export function setLotData(state, lotData) {
+  state.lotData = lotData
+}
+
+export function setLotImages(state, lotImages) {
+  state.lotImages = lotImages
+}
+
+export function updateLotData(state, {attribute_name, data}) {
+  state.lotData[attribute_name] = data
+}
+
 // Arbiter and Servicer Public Key mutations
 export function setArbiterPublicKey(state, arbiterPk) {
   state.arbiterPublicKey = arbiterPk

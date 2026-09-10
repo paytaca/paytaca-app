@@ -37,7 +37,6 @@ export async function refreshCatalog({ commit }) {
 CURRENT USER ACTIONS
 ====================
 */
-
 // Fetching CURRENT USER'S bids
 export async function fetchMyBiddings({ commit }) {
   let lots = []
@@ -89,9 +88,9 @@ export async function fetchMyAuctions({ commit }) {
   if (result.data && result.success && result.data) {
     auctions = Array.isArray(result.data) ?
       result.data.map(item => (!item) ? null : item instanceof AuctionList ? item : AuctionList.parse(item)) :
-      AuctionList.parse(item)
+      AuctionList.parse(result.data)
   } else { // error occurred
-    console.error('Failed to update auction details:', err)
+    console.error('Failed to update auction details.')
   }
 
   commit('setMyAuctions', auctions)
@@ -140,12 +139,12 @@ export async function fetchAuctionData({commit, getters}) {
 }
 
 export async function fetchExistingAuctionData({commit, getters}) {
-  const auctionData = getters['processedItems']
+  const auctions = getters['processedItems']
   const auctionId = getters['auctionId']
-  const data = auctionData.find(item => item.id === Number(auctionId))
-  if (data) {
+  const auctionData = auctions.find(item => Number(item.id) === Number(auctionId))
+  if (auctionData) {
     console.log('Existing data found')
-    commit('setAuctionData', AuctionList.parse(JSON.parse(JSON.stringify(data))))
+    commit('setAuctionData', AuctionList.parse(JSON.parse(JSON.stringify(auctionData))))
     return
   }
   console.error('Failed to fetch existing auction details.')
@@ -167,6 +166,7 @@ export async function fetchAuctionLots({commit, getters}) {
         
         const imageResult = await callAPI('lot-images-by-lot', lot.id, 'get')
         if (imageResult.success && Array.isArray(imageResult.data) && imageResult.data.length > 0) {
+          commit('setLotImages', imageResult.data.map(item => item.image))
           const firstImageRecord = imageResult.data[0]
           
           lot.image = typeof firstImageRecord === 'object' && firstImageRecord !== null 
@@ -193,6 +193,35 @@ export async function fetchAuctionLots({commit, getters}) {
 FETCHING LOT INFORMATION
 ========================
 */
+export async function fetchLotData({commit, getters}) {
+  const lotId = getters['lotId']
+
+  const result = await callAPI('lots', lotId)
+  if (result.success && result.data) {
+    commit('setLotData', LotsList.parse(result.data))
+    
+    const imageResult = await callAPI('lot-images-by-lot', lotId, 'get')
+    if (imageResult.success && Array.isArray(imageResult.data)) {
+      commit('setLotImages', imageResult.data.map(item => item.image))
+      return
+    } 
+    console.warn('Failed to fetch lot images.')
+    return
+  }
+  console.warn('Failed to fetch lot data.')
+}
+
+export async function fetchExistingLotData({commit, getters}) {
+  const lots = getters['auctionLots']
+  const lotId = getters['lotId']
+  const lotData = lots.find(lot => Number(lot.id) === Number(lotId))
+  if (lotData) {
+    console.log('Existing lot data found')
+    commit('setLotData', LotsList.parse(JSON.parse(JSON.stringify(lotData))))
+    return
+  }
+  console.error('Failed to fetch existing lot details.')
+}
 
 /* 
 ================================================================

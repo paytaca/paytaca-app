@@ -79,6 +79,10 @@ export function lotDataLastFetched(state) {
   return state.lotDataLastFetched || 0
 }
 
+export function lotImages(state) {
+  return state.lotImages || []
+}
+
 // Activity getters
 export function auctionTypeActivity(state) {0
   return state.auctionTypeActivity || 'All'

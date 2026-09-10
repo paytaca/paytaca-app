@@ -19,7 +19,7 @@ export default function () {
     myBiddings: [],
     myBiddingsLastFetched: 0,
     myAuctions: [],
-    myAuctonsLastFetched: 0,
+    myAuctionsLastFetched: 0,
 
     // Auction Details Page States
     auctionId: null,
@@ -31,6 +31,7 @@ export default function () {
     // Lot Details Page States
     lotId: null,
     lotData: {},
+    lotImages: [],
     lotDataLastFetched: 0,
 
     // Arbiter and Servicer Public Key States
