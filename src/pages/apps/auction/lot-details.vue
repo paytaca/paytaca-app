@@ -864,10 +864,6 @@ const markedAsCompleted = async () => {
   }
 }
 
-
-
-
-
 // =========================================================================
 // ============================ ENGLISH AUCTION ============================
 // =========================================================================
@@ -1440,15 +1436,9 @@ const winningBidId = computed(() =>
 const fetchAuction = async () => {
   try {
     const result = await callAPI('auctions', Number(props.auctionId))
-    if (result.success && result.data) {
+    if (result.success && result.data) 
       auction.value = AuctionList.parse(result.data)
-
-      const userId = auction.value.user?.id
-      if (userId) {
-        const userRes = await callAPI('user-details', userId)
-        if (userRes.success && userRes.data) auction.value.setUserDetails(userRes.data)
-      }
-    }
+    
   } catch (error) {
     console.error('Failed to update auction details:', error)
   }
