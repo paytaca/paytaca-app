@@ -164,7 +164,6 @@
           v-model="lotType"
           :options="lotTypeOptions"
           emit-value
-          map-options
           autocomplete="off"
           color="pt-primary1"
           debounce="500"
@@ -381,32 +380,22 @@ const props = defineProps({
 })
 
 // Auction-related variables
-const auction = ref(null)
+const auction = computed(() => $store.getters['auction/auctionDetails'])
 const auctionCountdown = ref('Loading...')
 const auctionStartCountdown = ref('Loading...')
-
-const listingsLastFetched = ref($store.getters['auction/listingsLastFetched'])
-const listingsTotalTime = computed(() => Date.now - listingsLastFetched.value)
+const listingsTotalTime = computed(() => Date.now - $store.getters['auction/listingsLastFetched'])
 
 // Lot-related variables
 const lotType = ref('All')
 const lotTypeOptions = $store.getters['auction/lotTypeOptions']
-const lotSearchQuery = ref('') // REVIEW
+const lotSearchQuery = ref('') 
 const lots = ref([])
 
-const auctionLotsLastFetched = ref(0)
-const auctionLotsTotalTime = computed(() => Date.now() - auctionLotsLastFetched.value)
-
-const isLotEmpty = computed(() => {
-  console.log(filteredLots.value.length === 0)
-  return !isLoading.value && filteredLots.value.length === 0
-})
+const auctionLotsTotalTime = computed(() => Date.now() - $store.getters['auction/auctionLotsLastFetched'])
+const isLotEmpty = computed(() => !isLoading.value && filteredLots.value.length === 0)
 
 const filteredLots = computed(() => {
   let targetLots = lots.value 
-  console.log('targetLots: ', targetLots)
-  
-  console.log('lotType.value: ', lotType.value)
   
   if (lotType.value !== 'All') {
     targetLots = targetLots.filter(lot => lot.category_name === lotType.value)
@@ -423,14 +412,14 @@ const filteredLots = computed(() => {
 })
 
 const fetchAllData = async () => {
-  console.log('auctionLotsTotalTime: ', auctionLotsTotalTime.value)
-
   // Check if props.auctionId is the same as stored auctionId (to prevent repeated fetching)
   const isSameAuctionId = $store.getters['auction/auctionId'] === props.auctionId
   if(!isSameAuctionId) $store.commit('auction/setAuctionId', props.auctionId)
 
-  if(!isSameAuctionId || listingsTotalTime.value > 30000) await fetchAuctionDetails()
-  else await fetchExistingAuctionDetails()
+  if(!isSameAuctionId || listingsTotalTime.value > 30000) 
+    await $store.dispatch('fetchAuctionDetails')
+  else 
+    $store.dispatch('fetchExistingAuctionDetails')
 
   if(!isSameAuctionId || auctionLotsTotalTime.value > 30000) await fetchAuctionLots()
 
@@ -550,31 +539,6 @@ const clearSocket = () => {
 FETCHING AUCTION AND AUCTION LOT DETAILS
 ========================================
 */
-const fetchAuctionDetails = async () => {
-  console.log('refetching auction details thru api')
-  const result = await callAPI('auctions', Number(props.auctionId))
-  if (result.success && result.data) {
-    auction.value = parseAuctionData(result.data)
-    setUserDetails()
-  }
-}
-
-const fetchExistingAuctionDetails = async () => {
-    console.log('existing listings')
-    const auctionData = $store.getters['auction/processedItems'] || []
-    const specificAuctionData = auctionData.find(item => item.id === Number(props.auctionId))
-    auction.value = parseAuctionData(specificAuctionData)
-    await setUserDetails()
-}
-
-const setUserDetails = async () => {
-  const userId = auction.value.user?.id
-  if (userId) {
-    console.log('user details existing')
-    const userRes = await callAPI('user-details', userId)
-    if (userRes.success && userRes.data) auction.value.setUserDetails(userRes.data)
-  }
-}
 
 const fetchAuctionLots = async () => {
   console.log('fetching lots right now')
@@ -617,7 +581,7 @@ const fetchAuctionLots = async () => {
       })
     )
     console.log('lots.value: ', lots.value)
-    $store.commit('auction/updateAuctionLots', lots.value)
+    $store.commit('auction/updateAuctionLots', [...lots.value])
   } else {
     console.error('Failed to update lots:', err)
   }
@@ -703,7 +667,7 @@ HELPER FUNCTIONS
 */
 const parseAuctionData = (data) => {
   if (!data) return null
-  return data instanceof AuctionList ? data : AuctionList.parse(data)
+  return AuctionList.parse(JSON.parse(JSON.stringify(data)))
 }
 
 // FORMATTING
