@@ -219,7 +219,7 @@ export default {
         formatDate (dateStr) {
             try {
                 return formatDistanceToNow(new Date(dateStr), { addSuffix: true })
-            } catch (e) {
+            } catch {
                 return dateStr
             }
         },
@@ -228,19 +228,19 @@ export default {
             this.showSessionDetailDialog = true
         },
         copyBaseUrl () {
-    const baseUrl = process.env.PAYTACA_AI_API || ''
-    if (!baseUrl) {
-        this.$q.notify({ type: 'warning', message: 'Base URL not configured', timeout: 3000 })
-        return
-    }
-    copyToClipboard(baseUrl)
-        this.$q.notify({
-            color: 'green',
-            message: this.$t('CopiedToClipboard'),
-            icon: 'mdi-clipboard-check',
-            timeout: 2000
-        })
-    },
+            const baseUrl = process.env.PAYTACA_AI_API || ''
+            if (!baseUrl) {
+                this.$q.notify({ type: 'warning', message: 'Base URL not configured', timeout: 3000 })
+                return
+            }
+            copyToClipboard(baseUrl)
+            this.$q.notify({
+                color: 'green',
+                message: this.$t('CopiedToClipboard'),
+                icon: 'mdi-clipboard-check',
+                timeout: 2000
+            })
+        },
     copyText (text, label) {
         if (!text) return
         copyToClipboard(text)

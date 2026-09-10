@@ -109,8 +109,12 @@ export default {
         },
         async createKey () {
             const vm = this
+            if (!vm.keyName.trim()) {
+                vm.$q.notify({ type: 'warning', message: 'Name cannot be empty', timeout: 3000 })
+                return
+            }
             vm.generating = true
-            const result = await AIAdminUtils.createAPIKey(vm.keyName)
+            const result = await AIAdminUtils.createAPIKey(vm.keyName.trim())
             vm.generating = false
             if (result.success) {
                 vm.keyData = result.data

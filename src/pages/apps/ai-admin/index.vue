@@ -82,6 +82,7 @@ import HeaderNav from 'src/components/header-nav.vue'
 import * as AIAdminUtils from 'src/utils/ai-admin-utils.js'
 
 export default {
+    name: 'AiAdminIndex',
     data () {
         return {
             darkMode: this.$store.getters['darkmode/getStatus'],

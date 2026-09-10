@@ -412,7 +412,7 @@ export default {
 
             try {
                 // Hide keyboard
-                try { await Keyboard.hide() } catch (e) {}
+                try { await Keyboard.hide() } catch { /* ignore */ }
 
                 vm.processingMessage = 'Creating session...'
                 // 1. Create pending session → get payment address

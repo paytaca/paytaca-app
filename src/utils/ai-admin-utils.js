@@ -90,7 +90,7 @@ async function saveToken (token) {
 async function clearToken () {
   try {
     await SecureStoragePlugin.remove({ key: OAUTH_TOKEN_KEY })
-  } catch {}
+  } catch { /* ignore */ }
 }
 
 async function getStoredRefreshToken () {
@@ -109,7 +109,7 @@ async function saveRefreshToken (token) {
 async function clearRefreshToken () {
     try {
         await SecureStoragePlugin.remove({ key: OAUTH_REFRESH_TOKEN_KEY })
-    } catch {}
+    } catch { /* ignore */ }
 }
 
 let refreshPromise = null
@@ -315,8 +315,7 @@ export async function removeApiKey(keyId) {
  * @returns {Promise<string|null>} Full key string
  */
 export async function getApiKeyById(keyId) {
-  const walletHash = getWalletHash()
-  const keys = await getApiKeys(walletHash)
+  const keys = await getApiKeys()
   const found = keys.find(k => k.id === keyId)
   return found?.key || null
 }
@@ -371,10 +370,10 @@ export async function createAPIKey (name) {
       }
 
       return {
-				success: true,
-				data: response.data,
-				error: null
-			}
+        success: true,
+        data: response.data,
+        error: null
+      }
     } catch(error) {
       if ((error.response?.status === 401 || error.response?.status === 403) && attempt < MAX_AUTH_RETRIES) {
         await clearToken()
@@ -382,7 +381,7 @@ export async function createAPIKey (name) {
       }
 
       const errorMessage = error.response?.data?.message || error.message || 'Failed to create API key'
-			console.error('[createAPIKey] Error:', errorMessage)
+      console.error('[createAPIKey] Error:', errorMessage)
 
       if (attempt === MAX_AUTH_RETRIES) {
         return {
@@ -404,16 +403,16 @@ export async function fetchAPIKeys(data) {
       let params = {
         page: data.page || 1,
         page_size: data.pageSize || 10,
-        is_active: data.isActive || true // unrevoked keys
+        is_active: data.isActive ?? true // unrevoked keys
       }
 
       const response = await backend.get(baseURL + '/ai-admin/api-keys', { params: params, headers: headers})
 
       return {
-				success: true,
-				data: response.data,
-				error: null
-			}      
+        success: true,
+        data: response.data,
+        error: null
+      }      
     } catch(error) {
       if ((error.response?.status === 401 || error.response?.status === 403) && attempt < MAX_AUTH_RETRIES) {
         await clearToken()
@@ -421,7 +420,7 @@ export async function fetchAPIKeys(data) {
       }
 
       const errorMessage = error.response?.data?.message || error.message || 'Failed to fetch API keys'
-			console.error('[fetchAPIKeys] Error:', errorMessage)
+      console.error('[fetchAPIKeys] Error:', errorMessage)
 
       if (attempt === MAX_AUTH_RETRIES) {
         return {
@@ -443,10 +442,10 @@ export async function fetchAPIKeyDetails(uuid) {
       const response = await backend.get(baseURL + '/ai-admin/api-keys/' + uuid, { headers: headers})
       
       return {
-				success: true,
-				data: response.data,
-				error: null
-			}      
+        success: true,
+        data: response.data,
+        error: null
+      }      
     } catch (error) {
       if ((error.response?.status === 401 || error.response?.status === 403) && attempt < MAX_AUTH_RETRIES) {
         await clearToken()
@@ -454,7 +453,7 @@ export async function fetchAPIKeyDetails(uuid) {
       }
 
       const errorMessage = error.response?.data?.message || error.message || 'Failed to fetch API key details'
-			console.error('[fetchAPIKeyDetails] Error:', errorMessage)
+      console.error('[fetchAPIKeyDetails] Error:', errorMessage)
 
       if (attempt === MAX_AUTH_RETRIES) {
         return {
@@ -491,7 +490,7 @@ export async function revokeAPIKey(uuid) {
       }
 
       const errorMessage = error.response?.data?.message || error.message || 'Failed to revoke API key'
-			console.error('[revokeAPIKey] Error:', errorMessage)
+      console.error('[revokeAPIKey] Error:', errorMessage)
 
       if (attempt === MAX_AUTH_RETRIES) {
         return {

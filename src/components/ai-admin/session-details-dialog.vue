@@ -145,7 +145,7 @@ export default {
         formatDate (dateStr) {
             try {
                 return formatDistanceToNow(new Date(dateStr), { addSuffix: true })
-            } catch (e) {
+            } catch {
                 return dateStr
             }
         },
