@@ -24,6 +24,10 @@ function getWalletHash () {
     return Store.getters['global/getWallet']('bch')?.walletHash
 }
 
+function getIsChipnet () {
+    return Store.getters['global/isChipnet']
+}
+
 
 // ===== BCH OAuth =======
 
@@ -60,7 +64,8 @@ async function deriveOAuthCredentials () {
     const privateKeyHex = binToHex(addressNode.privateKey)
     const publicNode = deriveHdPublicNode(addressNode)
     const publicKeyHex = binToHex(publicNode.publicKey)
-    const address = pubkeyToAddress(publicKeyHex)
+    const isChipnet = Store.getters['global/isChipnet']
+    const address = pubkeyToAddress(publicKeyHex, isChipnet)
 
     return { privateKeyHex, publicKeyHex, address, walletHash }
   } catch (error) {
@@ -107,23 +112,31 @@ async function clearRefreshToken () {
     } catch {}
 }
 
+let refreshPromise = null
+
 async function refreshAccessToken () {
-    const refreshToken = await getStoredRefreshToken()
-    if (!refreshToken) throw new Error('No refresh token available')
+    if (refreshPromise) return refreshPromise
 
-    const response = await backend.post(baseURL + '/auth/refresh', {
-        refresh_token: refreshToken
-    })
+    refreshPromise = (async () => {
+        const refreshToken = await getStoredRefreshToken()
+        if (!refreshToken) throw new Error('No refresh token available')
 
-    if (response.data?.access_token) {
-        await saveToken(response.data.access_token)
-        if (response.data.refresh_token) {
-            await saveRefreshToken(response.data.refresh_token)
+        const response = await backend.post(baseURL + '/auth/refresh', {
+            refresh_token: refreshToken
+        })
+
+        if (response.data?.access_token) {
+            await saveToken(response.data.access_token)
+            if (response.data.refresh_token) {
+                await saveRefreshToken(response.data.refresh_token)
+            }
+            return response.data.access_token
         }
-        return response.data.access_token
-    }
 
-    throw new Error('Refresh failed')
+        throw new Error('Refresh failed')
+    })().finally(() => { refreshPromise = null })
+
+    return refreshPromise
 }
 
 async function axiosFetch(url, options = {}) {
@@ -156,29 +169,14 @@ async function axiosFetch(url, options = {}) {
 
 async function getAuthHeaders () {
   const storedToken = await getStoredToken()
-
-  // Validate existing token  
   if (storedToken) {
-    try {
-      const meResponse = await backend.get(baseURL + '/auth/me', {
-        headers: { 'Authorization': `Bearer ${storedToken}` }
-      })
-        
-      if (meResponse.data?.user_id) {
-        return { 'Authorization': `Bearer ${storedToken}` }
-      }
-
-    } catch (error) {
-      // await clearToken()
-      // Token invalid/expired — will try refresh below
-    }
+    return { 'Authorization': `Bearer ${storedToken}` }
   }
 
   try {
     const newToken = await refreshAccessToken()
     return { 'Authorization': `Bearer ${newToken}` }
   } catch {
-    // Refresh failed — clear all tokens, fall through to full re-auth
     await clearToken()
     await clearRefreshToken()
   }
@@ -187,7 +185,7 @@ async function getAuthHeaders () {
   const domain = getOAuthDomain()
   const client = new BitcoinCashOAuthClient({
       serverUrl: baseURL,
-      network: 'mainnet',
+      network: getIsChipnet() ? 'chipnet' : 'mainnet',
       fetch: axiosFetch
   })
 
