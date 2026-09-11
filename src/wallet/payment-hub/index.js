@@ -11,11 +11,11 @@ import { mnemonicToSeedSync } from 'bip39'
 import { getMnemonicByHash } from 'src/wallet'
 import { pubkeyToAddress } from 'src/utils/crypto'
 import { SecureStoragePlugin } from 'capacitor-secure-storage-plugin'
-import packageInfo from '../../package.json'
+import packageInfo from '../../../package.json'
 import { Loading, QSpinnerIos } from 'quasar'
 
 
-export const DISPLAY_SUBS_APP = false;
+export const DISPLAY_SUBS_APP = true;
 
 /**
  * Base URL for the Payment Hub API.
@@ -587,7 +587,7 @@ export class PaymentHub {
    * @param {String} planId - The UUID or Short ID of the plan.
    */
   async getPlan(planId) {
-    const response = await backend.get(`/plans/${planId}`)
+    const response = await backend.get(`/plans/${planId}/`)
     return response.data
   }
 
@@ -691,20 +691,6 @@ export class PaymentHub {
     })
     return response.data
   }
-
-  /**
-   * Reactivates a paused/cancelled subscription (if allowed).
-   * @param {String} subscriptionId - The UUID of the subscription.
-   */
-  async reactivateSubscription(subscriptionId) {
-    // Note: reactivate is not officially documented yet, but kept as placeholder
-    const response = await backend.post(`/subscriptions/${subscriptionId}/reactivate`, {}, {
-      authorize: true,
-      wallet: this.wallet
-    })
-    return response.data
-  }
-
 
   /**
    * Gets the parameters needed to update a subscription NFT (update kit).

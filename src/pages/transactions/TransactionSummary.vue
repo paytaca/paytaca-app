@@ -163,6 +163,7 @@ import { parseAssetDenomination, parseFiatCurrency, formatWithLocale } from 'src
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 import { getExplorerLink } from 'src/utils/send-page-utils'
 import { hexToRef as hexToRefUtil } from 'src/utils/reference-id-utils'
+import { parseRouteString } from 'src/router/utils'
 import { useI18n } from 'vue-i18n'
 
 const { t: $t } = useI18n();
@@ -226,7 +227,7 @@ const backNavPath = computed(() => {
     }
     return { name: 'transaction-detail', query }
   }
-  return '/transaction/list'
+  return parseRouteString(props.from) || '/transaction/list'
 })
 
 const transactionId = computed(() => props.txid || '')
