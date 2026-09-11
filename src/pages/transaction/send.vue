@@ -1141,7 +1141,7 @@ export default {
           new: 'true'
         }
         const redirectFrom = stringifyRoute(this.backPath)
-        if (redirectFrom) query.from = this.backNavigationPath
+        if (redirectFrom) query.from = redirectFrom
         // Add recipient address for "Add to Address Book" feature
         if (this.recipients?.length === 1 && this.recipients[0]?.recipientAddress) {
           query.recipient = this.recipients[0].recipientAddress

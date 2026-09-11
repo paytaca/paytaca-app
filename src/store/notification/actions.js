@@ -145,6 +145,7 @@ export function getOpenedNotificationRoute(context) {
         name: 'payment-hub-subscriptions-index',
         query: { subId: openedNotification?.data?.subId },
       }
+      break;
     default:
       // P2P exchange (Ramp) pushes carry no type, only an order_id
       if (Number.isSafeInteger(parseInt(openedNotification?.data?.order_id, 10))) {

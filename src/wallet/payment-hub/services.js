@@ -52,11 +52,6 @@ export async function createCancelSubscriptionTransaction(opts) {
   console.log("2. funder:", sub.funder_address);
   console.log("3. pledge:", sub.pledge_satoshis);
   console.log("4. period:", sub.period_blocks);
-  console.log(`\nFunction Arguments (${unlockerFunction}):`);
-  console.log("1. pk: (Derived from privKeyWif in playground)");
-  console.log("2. sig: (Derived from privKeyWif in playground)");
-  console.log("-> privKeyWif:", privKeyWif);
-  console.log("Derived Path:", pathStr);
   console.log("\nTransaction Inputs:");
   console.log(JSON.stringify(formattedInputs, (key, value) => typeof value === 'bigint' ? value.toString() : value, 2));
   console.log("\nTransaction Outputs:")

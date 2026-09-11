@@ -2,7 +2,7 @@ import { getBaseURL, backend } from ".";
 import { bus } from '../event-bus.js';
 
 
-class PaymnthubWebsocketManager {
+class PaymentHubWebsocketManager {
   
   constructor() {
     /** @type {WebSocket} */
@@ -161,4 +161,4 @@ class PaymnthubWebsocketManager {
   }
 }
 
-export const paymentHubWebsocketManager = new PaymnthubWebsocketManager();
+export const paymentHubWebsocketManager = new PaymentHubWebsocketManager();
