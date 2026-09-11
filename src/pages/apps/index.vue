@@ -626,7 +626,7 @@ export default {
           iconStyle: 'font-size: 4.2em',
           active: true,
           beta: true,
-          category: 'payment-hub'
+          category: 'beta'
         }]: []),
         {
           id: 'support',

@@ -15,7 +15,7 @@ import packageInfo from '../../../package.json'
 import { Loading, QSpinnerIos } from 'quasar'
 
 
-export const DISPLAY_SUBS_APP = false;
+export const DISPLAY_SUBS_APP = true;
 
 /**
  * Base URL for the Payment Hub API.
