@@ -619,7 +619,6 @@ onBeforeUnmount(() => {
 })
 
 const webSocketEventHandler = (data) => {
-  console.log('payment-hub-update', data);
   if (!data || !data.store_id || !_compareUUID(data.store_id, storeId.value)) return
 
   if (data?.type === 'store') queueRefresh(true, 'store');
@@ -634,7 +633,6 @@ const webSocketEventHandler = (data) => {
  * Main refresh function.
  */
 async function refreshPage(done, isBackground = false, scopes='all') {
-  console.log('Refreshing page', { isBackground, scopes });
   if (!isBackground) {
     fetchingData.value = true
     keysPage.value = 1
@@ -714,7 +712,6 @@ async function refreshPage(done, isBackground = false, scopes='all') {
 const debouncedRefreshPage = debounce((...args) => refreshPage(...args), 1000);
 const queuedRefresh = ref({ scopes: [], isBackground: true });
 function queueRefresh(isBackground, scope = '') {
-  console.log('Queueing refresh', scope);
   if (scope === 'all') {
     queuedRefresh.value.scopes = 'all';
   } else if (queuedRefresh.value.scopes !== 'all') {

@@ -46,17 +46,5 @@ export async function createCancelSubscriptionTransaction(opts) {
   txBuilder.addInputs(formattedInputs, unlocker)
   txBuilder.addOutputs(formattedOutputs)
 
-  console.log("=== CASHSCRIPT PLAYGROUND DEBUG ===");
-  console.log("Contract Arguments:");
-  console.log("1. recipient:", sub.merchant_address);
-  console.log("2. funder:", sub.funder_address);
-  console.log("3. pledge:", sub.pledge_satoshis);
-  console.log("4. period:", sub.period_blocks);
-  console.log("\nTransaction Inputs:");
-  console.log(JSON.stringify(formattedInputs, (key, value) => typeof value === 'bigint' ? value.toString() : value, 2));
-  console.log("\nTransaction Outputs:")
-  console.log(JSON.stringify(formattedOutputs, (key, value) => typeof value === 'bigint' ? value.toString() : value, 2));
-  console.log("===================================");
-
   return txBuilder.build();
 }

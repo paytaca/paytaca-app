@@ -242,7 +242,6 @@ async function onOKClick() {
     payload.period_blocks = form.period_value
   }
 
-  console.log('payload', payload);
   // onDialogHide();
   onDialogOK(payload)
 }

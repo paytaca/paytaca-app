@@ -275,7 +275,6 @@ function onSearch() {
 }
 
 const webSocketEventHandler = (data) => {
-  console.log('payment-hub-update', data);
   if (!data || data.type !== 'store' || !data.store_id || !['create', 'update', 'delete'].includes(data.action)) {
     return;
   }
