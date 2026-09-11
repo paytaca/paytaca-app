@@ -37,15 +37,17 @@
         <div class="q-mb-md">
           <!-- Plan Name & Status -->
           <div class="row items-start q-gutter-x-sm q-mb-sm">
-            <div class="text-h6 q-mr-sm">{{ sub.plan_details?.name || $t('Subscription') }}</div>
-            <q-badge
-              :color="getSubscriptionStatusColor(sub)"
-              :text-color="darkMode ? 'black' : 'white'"
-              class="text-weight-bold q-px-sm q-py-xs br-5"
-              style="font-size: 0.75rem;"
-            >
-              {{ sub.status }}
-            </q-badge>
+            <div class="row items-center">
+              <div class="text-h6 q-mr-sm">{{ sub.plan_details?.name || $t('Subscription') }}</div>
+              <q-badge
+                :color="getSubscriptionStatusColor(sub)"
+                :text-color="darkMode ? 'black' : 'white'"
+                class="text-weight-bold q-px-sm q-py-xs br-5"
+                style="font-size: 0.75rem;"
+              >
+                {{ sub.status }}
+              </q-badge>
+            </div>
 
             <div class="row justify-end q-space q-gutter-x-sm">
               <q-btn

@@ -285,7 +285,7 @@ async function onFormSubmit() {
     }
 
     onDialogOK({
-      plan: form.plan,
+      plan: planDetails.value?.id ?? form.plan,
       plan_details: planDetails.value,
       subscription_data: hasSubscriptionForm.value ? subscriptionFormData.value : undefined,
     })
