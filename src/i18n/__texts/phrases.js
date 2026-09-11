@@ -335,6 +335,7 @@ const phrases = {
       TransactionIdCopied: 'Transaction ID copied',
       InvalidTradeResult: 'Invalid trade result. Please try again.',
       PlatformFee: 'Platform Fee',
+      PlatformFeeInfo: 'A 0.3% fee charged by the platform, capped at a maximum of 1 USD worth of BCH.',
       TradeSummary: 'Trade Summary',
       ExchangeRate: 'Exchange rate',
       TotalPlatformFee: 'Total Platform Fee',
@@ -1691,6 +1692,7 @@ const phrases = {
       'Apps.Settings.Description': 'Customize your wallet preferences and security settings.',
       'Apps.Debug.Description': 'Developer tools and diagnostics.',
       'Apps.Eload.Description': 'Buy Telco loads, Cable Subscription and Gamepins',
+      'Apps.AIAdmin.Description': 'Manages Paytaca AI API keys and lets you subscribe to available AI models.',
       'Apps.Sandbox.Description': 'Experimental playground for testing features.',
       'AppsTour.DefaultTitle': 'App'
     },
@@ -2392,6 +2394,14 @@ const phrases = {
       TipRecipientMessage: 'Select the group member you want to send to.',
       TipRecipientTitle: 'Who are you tipping?',
       TransferOwnership: 'Transfer ownership',
+    },
+    // AI Admin
+    {
+      AIAdmin: 'AI Admin',
+      NoAPIKeysToDisplay: 'No API Keys to display',
+      NoSessionsToDisplay: 'No Sessions to display',
+      CreateAPIKeyDescription: 'Create an API key to use Paytaca AI <br> in any coding agent.',
+      CreateSessionDescription: 'Purchase a session to use Paytaca AI <br> models in any coding agent.'
     }
   ],
   dynamic: [
