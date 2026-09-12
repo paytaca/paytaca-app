@@ -442,11 +442,11 @@ onBeforeUnmount(() => {
   clearSocket()
 })
 
-/*
-===========================
-WEBSOCKET-RELATED FUNCTIONS
-===========================
-*/
+
+// ===========================
+// WEBSOCKET-RELATED FUNCTIONS
+// ===========================
+
 const viewCount = ref(0)
 let socket = null
 let reconnectTimeout = null
@@ -550,11 +550,10 @@ const clearSocket = () => {
   socket = null
 }
 
-/*
-========================================
-FETCHING AUCTION AND AUCTION LOT DETAILS
-========================================
-*/
+// ========================================
+// FETCHING AUCTION AND AUCTION LOT DETAILS
+// ========================================
+
 
 const toggleEditAuction = async () => {
   const now = new Date()
@@ -575,11 +574,10 @@ const toggleEditAuction = async () => {
   }
 }
 
-/* 
-============================
-IS USER AUCTIONEER OR BIDDER
-============================
-*/
+// ============================
+// IS USER AUCTIONEER OR BIDDER
+// ============================
+
 const isAuthor = computed(() => {
   const walletHash = Store.getters['global/getWallet']('bch')?.walletHash
   return walletHash === auction.value?.user
@@ -596,11 +594,10 @@ const canEdit = computed(() => {
   return minutesToStart > 30
 })
 
-/*
-=======================
-AUCTION STATUS UPDATING
-=======================
-*/
+// =======================
+// AUCTION STATUS UPDATING
+// =======================
+
 const getEnglishPriceInfo = (lot) => {
   return {
     label: lot.hasBid ? 'HIGHEST BID:' : 'STARTING PRICE:',
@@ -615,11 +612,11 @@ const getAuctionStatusInfo = (auction) => {
     : { label: 'NaN', color: 'purple' }
 }
 
-/*
-===================
-LOT STATUS UPDATING
-===================
-*/
+
+// ===================
+// LOT STATUS UPDATING
+// ===================
+
 const lotStatusVersion = ref(0)
 const refreshLotStatuses = () => {
   lotStatusVersion.value++
@@ -630,11 +627,10 @@ const getReactiveLotStatus = (lot) => {
   return lot.getStatus()
 }
 
-/*
-================
-HELPER FUNCTIONS
-================
-*/
+
+// ================
+// HELPER FUNCTIONS
+// ================
 
 // FORMATTING
 const formatAuctionDate = (dateString) => date.formatDate(dateString, 'MMM DD, YYYY hh:mm A') 
@@ -657,10 +653,7 @@ const formatFiat = (value) => {
 }
 
 const formatBCH = (value) => {
-  return getFormattedBCH(Number(value) || 0)
-}
-
-const getFormattedBCH = (bch) => {
+  const bch = Number(value) || 0
   const numStr = Number(bch).toFixed(8)
   const match = numStr.match(/^(.*?)0*$/)
   const main = match ? match[1] : numStr
@@ -668,11 +661,10 @@ const getFormattedBCH = (bch) => {
   return { main, zeros, full: numStr }
 }
 
-/*
-============
-PAGE-RELATED
-============
-*/
+
+// ============
+// PAGE-RELATED
+// ============
 const copyToClipboard = (text) => {
   if (!text) return
   navigator.clipboard.writeText(text).then(() => {

@@ -222,11 +222,9 @@ onBeforeUnmount(() => {
   if (socket) clearSocket()
 })
 
-/*
-===============
-AUCTION-RELATED
-=============== 
-*/
+// ===============
+// AUCTION-RELATED
+// =============== 
 
 // Auction filter options
 const auctionTypeOptions = $store.getters['auction/auctionTypeOptions']
@@ -264,11 +262,9 @@ watch(auctionType, (newType) => {
 })
 
 
-/*
-===================
-WEBSOCKET FUNCTIONS
-===================
-*/
+// ===================
+// WEBSOCKET FUNCTIONS
+// ===================
 
 // Websocket-related
 let socket = null
@@ -328,11 +324,9 @@ const clearSocket = () => {
 }
 
 
-/*
-================
-HELPER FUNCTIONS
-================
-*/
+// ================
+// HELPER FUNCTIONS
+// ================
 
 // Auction date format
 const formatAuctionDate = (dateString) => { 
@@ -340,11 +334,9 @@ const formatAuctionDate = (dateString) => {
   return date.formatDate(dateString, 'MMM DD, YYYY hh:mm A') 
 }
 
-/*
-======================
-PAGE-RELATED FUNCTIONS
-======================
-*/
+// ======================
+// PAGE-RELATED FUNCTIONS
+// ======================
 
 const refresh = async (done) => {
   if (listingTotalTime.value > 300000) {
