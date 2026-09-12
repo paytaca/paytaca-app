@@ -1,6 +1,6 @@
 export function processedItems(state) {
   const currentListings = state.listings || []
-  const activeTypeFilter = (state.auctionType || 'All').toLowerCase()
+  const activeTypeFilter = (state.auctionTypeIndex || 'All').toLowerCase()
 
   if (activeTypeFilter === 'all') return currentListings
   
@@ -66,6 +66,10 @@ export function lotTypeAuction(state) {
   return state.lotTypeAuction || 'All'
 }
 
+export function auctionLotsImages(state) {
+  return state.auctionLotsImages || []
+}
+
 // Lot Details getters
 export function lotId(state) {
   return state.lotId 
@@ -83,13 +87,25 @@ export function lotImages(state) {
   return state.lotImages || []
 }
 
+export function lotBids(state) {
+  return state.lotBids || []
+}
+
+export function highestBid(state) {
+  return state.highestBid || {}
+}
+
+export function highestBidLastFetched(state) {
+  return state.highestBidLastFetched || 0
+}
+
 // Activity getters
-export function auctionTypeActivity(state) {0
+export function auctionTypeActivity(state) {
   return state.auctionTypeActivity || 'All'
 }
 
 export function auctionQueryActivity(state) {
-  return state.auctionQueryActivity | ''
+  return state.auctionQueryActivity || ''
 }
 
 export function lotTypeActivity(state) {

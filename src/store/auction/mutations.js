@@ -2,6 +2,9 @@
 // Index page mutations
 export function setListings(state, listings) {
   state.listings = listings
+}
+
+export function setListingsLastFetched(state) {
   state.listingsLastFetched = Date.now()
 }
 
@@ -36,11 +39,17 @@ export function updateLotQueryActivity(state, lotQueryActivity) {
 
 export function setMyBiddings(state, myBiddings) {
   state.myBiddings = myBiddings
+}
+
+export function setMyBiddingsLastFetched(state) {
   state.myBiddingsLastFetched = Date.now()
 }
 
 export function setMyAuctions(state, myAuctions) {
   state.myAuctions = myAuctions
+}
+
+export function setMyAuctionsLastFetched(state) {
   state.myAuctionsLastFetched = Date.now()
 }
 
@@ -53,12 +62,19 @@ export function setAuctionData(state, auctionData) {
   state.auctionData = auctionData
 }
 
+export function setAuctionDataLastFetched(state) {
+  state.auctionDataLastFetched = Date.now()
+}
+
 export function updateAuctionData(state, {attribute_name, data}) {
   state.auctionData[attribute_name] = data
 }
 
-export function updateAuctionLots(state, auctionLots) {
+export function setAuctionLots(state, auctionLots) {
   state.auctionLots = auctionLots
+}
+
+export function setAuctionLotsLastFetched(state) {
   state.auctionLotsLastFetched = Date.now()
 }
 
@@ -66,6 +82,14 @@ export function updateAuctionLotsData(state, {attribute_name, data}) {
   state.auctionLots.forEach(lot => {
     lot[attribute_name] = data
   })
+}
+
+export function setAuctionLotsImages(state, auctionLotsImages) {
+  state.auctionLotsImages = auctionLotsImages
+}
+
+export function updateLotTypeAuction(state, lotTypeAuction) {
+  state.lotTypeAuction = lotTypeAuction
 }
 
 // Lot Details Page mutations
@@ -77,12 +101,32 @@ export function setLotData(state, lotData) {
   state.lotData = lotData
 }
 
+export function setLotDataLastFetched(state) {
+  state.lotDataLastFetched = Date.now()
+}
+
 export function setLotImages(state, lotImages) {
   state.lotImages = lotImages
 }
 
+export function setLotBids(state, lotBids) {
+  state.lotBids = lotBids
+}
+
+export function setLotBidsLastFetched(state) {
+  state.lotBidsLastFetched = Date.now()
+}
+
 export function updateLotData(state, {attribute_name, data}) {
   state.lotData[attribute_name] = data
+}
+
+export function setHighestBid(state, highestBid) {
+  state.highestBid = highestBid
+}
+
+export function setHighestBidLastFetched(state) {
+  state.highestBidLastFetched = Date.now()
 }
 
 // Arbiter and Servicer Public Key mutations
