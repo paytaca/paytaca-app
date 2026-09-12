@@ -420,14 +420,10 @@ const lotDetails = computed(() => $store.getters['auction/myBiddings'])
 const lotHasBid = ref({})
 const lotSearchQuery = ref($store.getters['auction/lotQueryActivity'] || '')
 
-// Websocket variables
-let socket = null 
+// ====================
+// FORMATTING FUNCTIONS
+// ====================
 
-/*
-====================
-FORMATTING FUNCTIONS
-====================
-*/
 const formatFiat = (value) => {
   const numValue = Number(value) || 0
   return `
@@ -478,10 +474,13 @@ const formatAuctionDate = (dateString) => date.formatDate(dateString, 'MMM DD, Y
 WEBSOCKET FUNCTIONS
 ================
 */
-const connectWebsocket = () => {
-  let reconnectAttempts = 0
-  let maxReconnectAttempts = 10
 
+let socket = null
+let reconnectTimeout = null
+let reconnectAttempts = 0
+let maxReconnectAttempts = 10
+
+const connectWebsocket = () => {
   const username = $store.getters['auction/username']
   const ws = callActivityWebsocket(username)
 
@@ -511,9 +510,12 @@ const connectWebsocket = () => {
     if (!event.wasClean && reconnectAttempts < maxReconnectAttempts) {
       const delay = Math.min(1000 * 2 ** reconnectAttempts, 30000)
       reconnectAttempts++
-      setTimeout(connectWebsocket, delay)
+      reconnectTimeout = setTimeout(() => {
+        reconnectTimeout = null
+        socket = connectWebsocket()
+      }, delay)
     }
-  };
+  }
 
   ws.onerror = (event) => {
     console.error("Activity websocket error:", event)
@@ -523,20 +525,25 @@ const connectWebsocket = () => {
 }
 
 const clearWebsocket = () => {
-  if (socket) {
-    socket.close()
-    socket.onmessage = null
-    socket.onopen = null
-    socket.onerror = null
-    socket.onclose = null
+  if (reconnectTimeout) {
+    clearTimeout(reconnectTimeout)
+    reconnectTimeout = null
   }
+  if (!socket) return
+
+  socket.close()
+  socket.onmessage = null
+  socket.onopen = null
+  socket.onerror = null
+  socket.onclose = null
+  socket = null
 }
 
 onMounted(async () => {
   console.log('PENI ', $store.state.auction)
   console.log(activityType.value)
   fetchMyData()
-  //socket = connectWebsocket()
+  socket = connectWebsocket()
 })
 
 onBeforeUnmount(() => {
