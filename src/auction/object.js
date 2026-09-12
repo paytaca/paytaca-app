@@ -1,5 +1,13 @@
 import { date } from 'quasar'
 
+const colors = {
+  'Sold': 'red',
+  'Closed': 'red',
+  'Active': 'blue',
+  'Upcoming': 'orange',
+  'Open': 'green'
+}
+
 export class LotsList {
   static parse(data) {
     return new LotsList(data)
@@ -39,36 +47,39 @@ export class LotsList {
    */
   set raw(data) {
     Object.defineProperty(this, '$raw', { enumerable: false, configurable: true, value: data })
-    this.id = data.id ? Number(data.id) : null;
-    this.title = data.title || "Unnamed Lot";
-    this.description = data.description || "";
+    this.id = data.id ? Number(data.id) : null
+    this.title = data.title || "Unnamed Lot"
+    this.description = data.description || ""
 
-    this.estimated_amount_bch = data.estimated_amount_bch !== undefined ? Number(data.estimated_amount_bch) : 0.00000000;
-    this.estimated_amount_fiat = data.estimated_amount_fiat !== undefined ? Number(data.estimated_amount_fiat) : 0.00;
-    this.threshold_bid_bch = data.threshold_bid_bch !== undefined ? Number(data.threshold_bid_bch) : 0.00000000;
-    this.threshold_bid_fiat = data.threshold_bid_fiat !== undefined ? Number(data.threshold_bid_fiat) : 0.00;
-    this.starting_price_bch = data.starting_price_bch !== undefined ? Number(data.starting_price_bch) : 0.00000000;
-    this.starting_price_fiat = data.starting_price_fiat !== undefined ? Number(data.starting_price_fiat) : 0.00;
-    this.price_drop_bch = data.price_drop_bch !== undefined ? Number(data.price_drop_bch) : 0.00000000;
-    this.price_drop_fiat = data.price_drop_fiat !== undefined ? Number(data.price_drop_fiat) : 0.00;
-    this.time_interval = data.time_interval || null;
-    this.is_fiat = !!data.is_fiat;
+    this.estimated_amount_bch = data.estimated_amount_bch !== undefined ? Number(data.estimated_amount_bch) : 0.00000000
+    this.estimated_amount_fiat = data.estimated_amount_fiat !== undefined ? Number(data.estimated_amount_fiat) : 0.00
+    this.threshold_bid_bch = data.threshold_bid_bch !== undefined ? Number(data.threshold_bid_bch) : 0.00000000
+    this.threshold_bid_fiat = data.threshold_bid_fiat !== undefined ? Number(data.threshold_bid_fiat) : 0.00
+    this.starting_price_bch = data.starting_price_bch !== undefined ? Number(data.starting_price_bch) : 0.00000000
+    this.starting_price_fiat = data.starting_price_fiat !== undefined ? Number(data.starting_price_fiat) : 0.00
+    this.price_drop_bch = data.price_drop_bch !== undefined ? Number(data.price_drop_bch) : 0.00000000
+    this.price_drop_fiat = data.price_drop_fiat !== undefined ? Number(data.price_drop_fiat) : 0.00
+    this.time_interval = data.time_interval || null
+    this.is_fiat = !!data.is_fiat
 
-    this.is_sold = !!data.is_sold;
-    this.date_sold = data.date_sold || null;
-    this.category = data.category || (data.category ? data.category.id : null);
-    this.category_name = data.category === 1 ? 'Physical' : 'Digital';
+    this.is_sold = !!data.is_sold
+    this.date_sold = data.date_sold || null
+    this.category = data.category || (data.category ? data.category.id : null)
+    this.category_name = data.category === 1 ? 'Physical' : 'Digital'
     this.auction_type = data.auction_type || null
-    this.auction = data.auction || (data.auction ? data.auction.id : null);
-    this.start_date = data.start_date || null;
-    this.end_date = data.end_date || null;
+    this.auction = data.auction || (data.auction ? data.auction.id : null)
+    this.start_date = data.start_date || null
+    this.end_date = data.end_date || null
+    this.status_label = 'Upcoming'
+    this.status_color = 'orange'
     
     this.images = Array.isArray(data.images) 
       ? data.images.map(img => typeof img === 'object' ? img.image : img) 
-      : [];
+      : []
     this.image = this.images[0] || null
-
     this.bids = this.bids || []
+
+    this.refreshStatus()
   }
 
   // Returns the drop interval in minutes, parsed from the HH:MM:SS time_interval string
@@ -88,44 +99,21 @@ export class LotsList {
     const [hours, minutes, seconds] = parts
     return (hours * 60 * 60) + (minutes * 60) + seconds
   }
-  
-  getFormattedBCH(bch) {
-    const numStr = bch.toFixed(8);
-    const match = numStr.match(/^(.*?)0*$/);
-    const main = match ? match[1] : numStr;
-    const zeros = numStr.substring(main.length);
-    return { main, zeros, full: numStr };
+
+  refreshStatus() {
+    const now = new Date().getTime()
+    const start = new Date(this.start_date.replace(' ', 'T')).getTime()
+    const end = new Date(this.end_date.replace(' ', 'T')).getTime()
+
+    this.status_label = (this.is_sold) ? 'Sold' 
+    : (!this.start_date || !this.end_date) ? 'Active' 
+    : (now < start) ? 'Upcoming' 
+    : (now >= start && now <= end) ? 'Open'
+    : 'Closed' 
+    
+    this.status_color = colors[this.status_label]
   }
 
-  getStatus() {
-    if (this.is_sold) return { label: 'Sold', color: 'red' };
-    
-    if (!this.start_date || !this.end_date) return { label: 'Active', color: 'blue' };
-
-    const now = new Date().getTime();
-    const start = new Date(this.start_date.replace(' ', 'T')).getTime();
-    const end = new Date(this.end_date.replace(' ', 'T')).getTime();
-
-    if (now < start) return { label: 'Upcoming', color: 'orange' };
-    if (now >= start && now <= end) return { label: 'Open', color: 'green' };
-    
-    return { label: 'Closed', color: 'red' };
-  }
-
-  getLotStatus(startDate, endDate) {
-    if (this.is_sold) return { label: 'Sold', color: 'red' };
-    
-    if (!startDate || !endDate) return { label: 'Active', color: 'blue' };
-
-    const now = new Date().getTime();
-    const start = new Date(startDate.replace(' ', 'T')).getTime();
-    const end = new Date(endDate.replace(' ', 'T')).getTime();
-
-    if (now < start) return { label: 'Upcoming', color: 'orange' };
-    if (now >= start && now <= end) return { label: 'Open', color: 'green' };
-    
-    return { label: 'Closed', color: 'red' };
-  }
 }
 
 export class AuctionList {
@@ -160,15 +148,15 @@ export class AuctionList {
   set raw(data) {
     Object.defineProperty(this, '$raw', { enumerable: false, configurable: true, value: data })
     
-    this.id = data.id ? Number(data.id) : null;
-    this.title = data.title || "Standard Auction Event";
-    this.description = data.description || "";
-    this.start_date = data.start_date || null;
-    this.end_date = data.end_date || null;
-    this.is_open = data.is_open !== undefined ? !!data.is_open : true;
-    this.is_fiat = data.is_fiat !== undefined ? !!data.is_fiat : true;
-    this.image = data.image || null;
-    this.creation_date = data.creation_date || null;
+    this.id = data.id ? Number(data.id) : null
+    this.title = data.title || "Standard Auction Event"
+    this.description = data.description || ""
+    this.start_date = data.start_date || null
+    this.end_date = data.end_date || null
+    this.is_open = data.is_open !== undefined ? !!data.is_open : true
+    this.is_fiat = data.is_fiat !== undefined ? !!data.is_fiat : true
+    this.image = data.image || null
+    this.creation_date = data.creation_date || null
     this.status = data.status || null
     
     this.type = Number(data.type) === 1 ? "English" : "Dutch"
@@ -177,7 +165,7 @@ export class AuctionList {
     
     this.lots = Array.isArray(data.lots)
       ? data.lots.map(lotObj => LotsList.parse(lotObj))
-      : [];
+      : []
   }
 
   getStatus() {
@@ -188,9 +176,9 @@ export class AuctionList {
   }
   
   getEllipsisInMiddleAddress() {
-    const targetString = this.user;
+    const targetString = this.user
     
-    if (!targetString || targetString.length <= 22) return targetString;
+    if (!targetString || targetString.length <= 22) return targetString
     
     const start = targetString.substring(0, 17)
     const end = targetString.substring(targetString.length - 5)
@@ -316,9 +304,9 @@ export class AppealList {
     })()
 
     this.reasons = Array.isArray(data.dispute_reason)
-      ? data.dispute_reason.flatMap(r => r.split(';').map(s => s.trim()).filter(Boolean))
+      ? data.dispute_reason.flatMap(r => r.split('').map(s => s.trim()).filter(Boolean))
       : (data.dispute_reason
-          ? data.dispute_reason.split(';').map(s => s.trim()).filter(Boolean)
+          ? data.dispute_reason.split('').map(s => s.trim()).filter(Boolean)
           : [])
   }
 }
@@ -424,9 +412,9 @@ export class AppealDetails {
     })()
 
     this.reasons = Array.isArray(data.dispute_reason)
-      ? data.dispute_reason.flatMap(r => r.split(';').map(s => s.trim()).filter(Boolean))
+      ? data.dispute_reason.flatMap(r => r.split('').map(s => s.trim()).filter(Boolean))
       : (data.dispute_reason
-          ? data.dispute_reason.split(';').map(s => s.trim()).filter(Boolean)
+          ? data.dispute_reason.split('').map(s => s.trim()).filter(Boolean)
           : [])
     
     this.auctioneer = data.auctioneer
@@ -446,6 +434,6 @@ export class AppealDetails {
       : { user: null, username: null, address: null }
 
     this.contract_address = data.contract_address || null
-    this.balance = data.bid_price_bch !== undefined ? Number(data.bid_price_bch) : 0.00000000;
+    this.balance = data.bid_price_bch !== undefined ? Number(data.bid_price_bch) : 0.00000000
   }
 }
