@@ -34,6 +34,8 @@ export class LotsList {
    * @param {String} data.auction_type
    * @param {Number} data.auction
    * @param {Array<Object|String>} data.images
+   * @param {Object|String} data.image
+   * @param {Array<Object|String>} data.bids
    */
   set raw(data) {
     Object.defineProperty(this, '$raw', { enumerable: false, configurable: true, value: data })
@@ -65,7 +67,8 @@ export class LotsList {
       ? data.images.map(img => typeof img === 'object' ? img.image : img) 
       : [];
     this.image = this.images[0] || null
-    
+
+    this.bids = this.bids || []
   }
 
   // Returns the drop interval in minutes, parsed from the HH:MM:SS time_interval string
@@ -193,6 +196,22 @@ export class AuctionList {
     const end = targetString.substring(targetString.length - 5)
     
     return `${start}........${end}`
+  }
+}
+
+export class BidsList {
+  static parse(data) {
+    return new BidsList(data)
+  }
+
+  constructor(data) {
+    this.id = data.id
+    this.user = data.user
+    this.lot = data.lot
+    this.bid_price_bch = Number(data.bid_price_bch)
+    this.bid_price_fiat = Number(data.bid_price_fiat)
+    this.is_final_bid = Number(data.is_final_bid)
+    this.bidding_date = data.bidding_date
   }
 }
 
