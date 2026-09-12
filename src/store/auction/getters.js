@@ -32,6 +32,10 @@ export function lotTypeOptions(state) {
 
 
 // Index getters
+export function listings(state) {
+  return state.listings || []
+}
+
 export function listingsLastFetched(state) {
   return state.listingsLastFetched || 0
 }
