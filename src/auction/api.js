@@ -18,7 +18,7 @@ export const backend = axios.create({
   * @param method = ['get', 'post', 'put', 'delete']; default is get 
   * @param payload = object containing the data for post/put (not needed for get/delete)
 */
-export async function callAPI(pathname, id=null, method="get", payload=null, args) {
+export async function callAPI(pathname, id=null, method="get", payload=null) {
   const store = useStore()
   
   // Add base api url
