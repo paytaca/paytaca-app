@@ -91,7 +91,7 @@
               </div>
             </div>
 
-            <div v-if="!isSold" class="row flex-center">
+            <div v-if="!lot?.is_sold" class="row flex-center">
               <div class="text-secondary q-m-auto q-mt-md">
                 There {{ viewCount === 1 ? 'is' : 'are' }} {{ viewCount }} {{ viewCount === 1 ? 'person' : 'people' }}
                 currently viewing this lot.
@@ -99,8 +99,18 @@
             </div>
 
             <div class="q-mt-md">
-              <div v-if="!isAuthor" class="full-width">
-                <div v-if="auction?.type === 'English'">
+              <!--User is auctioneer-->
+              <div v-if="isAuctioneer"
+                class="row flex-center full-width rounded-borders"
+                :class="darkMode ? 'bg-pt-dark' : 'bg-pt-light'"
+                style="min-height: 50px; width: 100%;"
+              >
+                <div :class="darkMode ? 'text-white' : 'text-black'">{{ $t('You are the author of this auction.') }}</div>
+              </div>
+
+              <!--User is bidder-->
+              <div v-else class="full-width">
+                <template v-if="auction?.type === 'English'">
                   <q-btn 
                     class="text-bold text-white full-width"
                     style="background-color: var(--q-secondary);"
@@ -113,9 +123,9 @@
                     "
                     @click="openBidDialog"
                   />
-                </div>
+                </template>
  
-                <div v-else>
+                <template v-else>
                   <q-btn 
                     class="text-bold text-white full-width"
                     style="background-color: var(--q-secondary);"
@@ -125,16 +135,9 @@
                     @click="buyItNow"
                     unelevated
                   />
-                </div>
+                </template>
               </div>
- 
-              <div v-else
-                class="row flex-center full-width rounded-borders"
-                :class="darkMode ? 'bg-pt-dark' : 'bg-pt-light'"
-                style="min-height: 50px; width: 100%;"
-              >
-                <div :class="darkMode ? 'text-white' : 'text-black'">{{ $t('You are the author of this auction.') }}</div>
-              </div>
+              
             </div>
 
             <div v-if="bidStatus" class="full-width q-mt-md">
@@ -187,7 +190,7 @@
               </q-banner>
             </div>
 
-            <div v-if="(bidStatus && bidStatus === 'win') || isAuthor">
+            <div v-if="(bidStatus && bidStatus === 'win') || isAuctioneer">
               <div v-if="isMarkedComplete" class="q-mt-md full-width">
                 <q-banner rounded dense class="bg-positive text-white q-pa-md">
                   <template v-slot:avatar>
@@ -197,7 +200,7 @@
                 </q-banner>
               </div>
 
-              <div v-if="(isLotSold || showPostAuctionActions) && (isAuthor || isWinningBidder)" class="q-mt-md full-width">
+              <div v-if="(lot?.is_sold || showPostAuctionActions) && (isAuctioneer || isWinningBidder)" class="q-mt-md full-width">
                 <q-btn
                   outline
                   dense
@@ -211,11 +214,11 @@
               </div>
 
               <div>
-                <div v-if="!isDisputeActive">
-                  <div v-if="showPostAuctionActions && (isAuthor || isWinningBidder)" class="q-mt-md full-width row q-col-gutter-none items-center justify-center">
+                <template v-if="!isDisputeActive">
+                  <div v-if="showPostAuctionActions && (isAuctioneer || isWinningBidder)" class="q-mt-md full-width row q-col-gutter-none items-center justify-center">
                     <div class="col text-center">
                       <q-btn
-                        v-if="isAuthor"
+                        v-if="isAuctioneer"
                         outline
                         stack
                         class="text-bold text-caption full-width"
@@ -242,7 +245,7 @@
 
                     <div class="col q-ml-md text-center">
                       <q-btn
-                        v-if="!isAuthor && deliveryStatusId !== 3"
+                        v-if="!isAuctioneer && deliveryStatusId !== 3"
                         class="text-bold text-caption full-width"
                         color="negative"
                         text-color="white"
@@ -256,7 +259,7 @@
                       />
 
                       <q-btn
-                        v-else-if="!isAuthor"
+                        v-else-if="!isAuctioneer"
                         class="text-bold text-caption full-width"
                         color="negative"
                         text-color="white"
@@ -272,12 +275,12 @@
                     </div>
                   </div>
 
-                  <div v-if="!isAuthor && deliveryStatusId === 3 && refundCountdown && !isGrantedRefund" class="text-caption text-right q-mt-xs">
+                  <div v-if="!isAuctioneer && deliveryStatusId === 3 && refundCountdown && !isGrantedRefund" class="text-caption text-right q-mt-xs">
                     Time left for refund: {{ refundCountdown }}
                   </div>
 
                   <!-- Seller: refund granted banner -->
-                  <div v-if="isAuthor && isGrantedRefund" class="q-mt-md full-width">
+                  <div v-if="isAuctioneer && isGrantedRefund" class="q-mt-md full-width">
                     <q-banner rounded dense class="bg-warning text-white q-pa-md">
                       <template v-slot:avatar>
                         <q-icon name="assignment_return" />
@@ -308,16 +311,16 @@
                       @click="markedAsCompleted"
                     />
                   </div>
-                </div>
+                </template>
                 
-                <div v-else>
+                <template v-else>
                   <q-banner class="bg-warning text-black rounded-borders q-mt-md">
                     <template v-slot:avatar>
                       <q-icon name="gavel" />
                     </template>
                     An active dispute is currently pending review. Operations are temporarily locked.
                   </q-banner>
-                </div>
+                </template>
               </div>
             </div>
           </div>
@@ -333,22 +336,21 @@
                     </div>
                     
                     <div>
-                      <div v-if="auction?.is_fiat">
-                        <div class="text-h6 text-weight-bold text-primary" style="line-height: 1.2;">
+                      <div class="text-h6 text-weight-bold text-primary" style="line-height: 1.2;">
+                        <template v-if="auction?.is_fiat">
                           {{ formatFiat(estimatedAmountFiat) }}
-                        </div>
-                        <div class="text-caption text-weight-medium text-primary">
+                        </template>
+                        <template v-else>
                           {{ formatBCH(estimatedAmountBch).main }}<span style="opacity: 0.4;">{{ formatBCH(estimatedAmountBch).zeros }}</span> BCH
-                        </div>
+                        </template>
                       </div>
-
-                      <div v-else>
-                        <div class="text-h6 text-weight-bold text-primary" style="line-height: 1.2;">
+                      <div class="text-caption text-weight-medium text-primary">
+                        <template v-if="auction?.is_fiat">
                           {{ formatBCH(estimatedAmountBch).main }}<span style="opacity: 0.4;">{{ formatBCH(estimatedAmountBch).zeros }}</span> BCH
-                        </div>
-                        <div class="text-caption text-weight-medium text-primary">
+                        </template>
+                        <template v-else>
                           {{ formatFiat(estimatedAmountFiat) }}
-                        </div>
+                        </template>
                       </div>
                     </div>
                   </q-card-section>
@@ -356,7 +358,8 @@
               </div>
 
               <div class="col-12 col-sm-6">
-                <q-card v-if="auction?.type === 'English'" flat bordered class="full-height">
+                <!--Viewing Highest Bid (English Auction)-->
+                <q-card v-if="auction?.type === 'English' " flat bordered class="full-height">
                   <q-card-section class="q-pa-sm">
                     <div class="row items-center justify-between q-mb-sm text-caption">
                       <div class="row items-center">
@@ -365,44 +368,43 @@
                       </div>
                       <q-spinner-dots v-if="englishBidPolling" size="14px" color="positive" />
                     </div>
-
+                    <!-- AUCTION HAS A BID -->
                     <div v-if="hasBid">
-                      <div v-if="auction?.is_fiat">
-                        <div class="text-h6 text-weight-bold text-positive" style="line-height: 1.2;">
+                      <div class="text-h6 text-weight-bold text-positive" style="line-height: 1.2;">
+                        <template v-if="auction?.is_fiat">
                           {{ formatFiat(englishCurrentFiat) }}
-                        </div>
-                        <div class="text-caption text-weight-medium text-positive q-mt-xs">
+                        </template>
+                        <template v-else>
                           {{ formatBCH(englishCurrentBch).main }}<span style="opacity: 0.4;">{{ formatBCH(englishCurrentBch).zeros }}</span> BCH
-                        </div>
+                        </template>
                       </div>
-
-                      <div v-else>
-                        <div class="text-h6 text-weight-bold text-positive" style="line-height: 1.2;">
+                      <div class="text-caption text-weight-medium text-positive q-mt-xs">
+                        <template v-if="auction?.is_fiat">
                           {{ formatBCH(englishCurrentBch).main }}<span style="opacity: 0.4;">{{ formatBCH(englishCurrentBch).zeros }}</span> BCH
-                        </div>
-                        <div class="text-caption text-weight-medium text-positive q-mt-xs">
+                        </template>
+                        <template v-else>
                           {{ formatFiat(englishCurrentFiat) }}
-                        </div>
+                        </template>
                       </div>
                     </div>
 
+                    <!-- AUCTION HAS NO BIDS YET -->
                     <div v-else>
                       <div class="text-subtitle1 text-weight-bold q-my-none text-grey-6" style="line-height: 1.2;">
                         No bids yet
                       </div>
-                      
                       <div class="text-caption text-weight-medium q-mt-xs">
-                        <div v-if="auction?.is_fiat">
+                        <template v-if="auction?.is_fiat">
                           {{ formatFiat(englishCurrentFiat) }} floor · {{ formatBCH(englishCurrentBch).main }}<span style="opacity: 0.4;">{{ formatBCH(englishCurrentBch).zeros }}</span> BCH
-                        </div>
-                        <div v-else>
+                        </template>
+                        <template v-else>
                           {{ formatBCH(englishCurrentBch).main }}<span style="opacity: 0.4;">{{ formatBCH(englishCurrentBch).zeros }}</span> BCH floor · {{ formatFiat(englishCurrentFiat) }}
-                        </div>
+                        </template>
                       </div>
                     </div>
                   </q-card-section>
                 </q-card>
-
+                
                 <q-card v-else flat bordered class="full-height">
                   <q-card-section v-if="lot.is_sold" class="q-pa-sm">
                     <div class="text-caption row items-center q-mb-sm">
@@ -410,7 +412,7 @@
                       Winning Bid Details
                     </div>
 
-                    <div v-if="winningBid">
+                    <template v-if="winningBid">
                       <div v-if="auction?.is_fiat">
                         <div class="text-h6 text-weight-bold text-green" style="line-height: 1.2;">
                           {{ formatFiat(winningBid.bid_price_fiat) }}
@@ -433,7 +435,7 @@
                         <q-icon name="schedule" size="11px" class="q-mr-xs" />
                         {{ formatAuctionDate(winningBid.bidding_date) }}
                       </div>
-                    </div>
+                    </template>
 
                     <div v-else class="text-caption text-grey-6">
                       Loading bid details...
@@ -514,6 +516,7 @@
               </div>
             </div>
  
+            <!--Lot Information-->
             <q-card flat bordered class="q-mb-md">
               <q-card-section class="q-pa-sm">
                 <div class="row items-center q-py-xs">
@@ -536,7 +539,7 @@
                         {{ auction.user.username }}
                       </span>
                       
-                      <q-badge v-if="isAuthor" color="positive" class="q-px-xs no-shrink">
+                      <q-badge v-if="isAuctioneer" color="positive" class="q-px-xs no-shrink">
                         <q-icon name="star" size="10px" class="q-mr-xs" />You
                       </q-badge>
                     </div>
@@ -563,7 +566,8 @@
                 {{ lot.description || 'No additional specifications provided.' }}
               </p>
             </div>
- 
+            
+            <!--Date start and end of auction/lot-->
             <div class="row q-gutter-sm">
               <div class="col rounded-borders q-pa-sm" :class="darkMode ? 'bg-dark' : 'bg-grey-2'">
                 <div class="text-caption q-mb-xs">
@@ -583,6 +587,7 @@
               </div>
             </div>
 
+            <!--Viewing bid history information (English Auction)-->
             <div v-if="auction?.type === 'English'" class="q-mt-md full-width">
               <q-btn
                 outline
@@ -761,7 +766,7 @@ const auction = computed(() => $store.getters['auction/auctionData'])
 const activeSlide = ref(0)
 const lotImages = ref([])
 const lot = computed(() => $store.getters['auction/lotData'])
-const isLotSold = ref(false)
+const lot?.is_sold = ref(false)
 
 // Post-auction actions
 const showSellerDisputeDialog = ref(false)
@@ -855,7 +860,6 @@ const hasBid = ref(false)
 const hasUserBid = ref(false)
 const highestBidderId = ref(null)
 const highestBidId = ref(null)
-const isSold = computed(() => lot.value?.is_sold || false)
 let englishPollingInterval = null
 
 const englishCurrentBch = computed(() => {
@@ -1048,7 +1052,7 @@ const isLotClosed = computed(() => {
 
 const showPostAuctionActions = computed(() => {
   if (isMarkedComplete.value) return false
-  if (isSold.value) return true
+  if (lot.value?.is_sold) return true
   return auction.value?.type === 'English' && isLotClosed.value && hasBid.value
 })
 
@@ -1063,7 +1067,7 @@ const bidStatus = computed(() => {
     return isLotClosed.value ? 'did-not-win' : null
   }
 
-  if (isSold.value || isLotClosed.value) {
+  if (lot.value?.is_sold || isLotClosed.value) {
     return isHighest ? 'win' : 'did-not-win'
   }
 
@@ -1097,7 +1101,7 @@ const stopEnglishPolling = () => {
 // =========================================================================
 const isToggledBuyItNow = ref(false)
 const buyItNowLoading = ref(false)
-const dutchAlreadySold = computed(() => lot.value.isSold)
+const dutchAlreadySold = computed(() => lot.value?.is_sold)
 const winningBid = ref(null)
 const secondsRemaining = ref(0)
 const intervalDurationSec = ref(600)
@@ -1222,7 +1226,7 @@ const startDutchPolling = () => {
     const res = await callAPI('lots', props.lotId)
     if (res.success && res.data?.is_sold) {
       lot.value = LotsList.parse(res.data)
-      dutchAlreadySold.value = true
+      lot.value?.is_sold = true
       clearDutchTimers()
       stopDutchPolling()
       await fetchWinningBid()
@@ -1331,7 +1335,7 @@ const handleBuyItNow = async (payload = {}) => {
 
     const highestBidRes = await callAPI(`lots/${props.lotId}/highest-bid`)
     if (!highestBidRes.success || highestBidRes.data?.id !== bidId) {
-      dutchAlreadySold.value = true
+      lot.value?.is_sold = true
       await fetchLot()
       $q.notify({
         type: 'warning',
@@ -1342,7 +1346,7 @@ const handleBuyItNow = async (payload = {}) => {
 
     winningBid.value = highestBidRes.data
 
-    dutchAlreadySold.value = true
+    lot.value?.is_sold = true
     clearDutchTimers()
     await closeAuctionIfAllSold()
 
@@ -1377,7 +1381,7 @@ const handleBuyItNow = async (payload = {}) => {
 }
 
 const fetchDutchSoldStatus = async () => {
-  dutchAlreadySold.value = lot.value?.is_sold ?? false
+  lot.value?.is_sold = lot.value?.is_sold ?? false
 }
 
 const fetchWinningBid = async () => {
@@ -1506,7 +1510,7 @@ const updateRefundCountdown = () => {
 
 const autoMarkLotSold = async () => {
   if (auction.value?.type !== 'English') return
-  if (!hasBid.value || isSold.value) return
+  if (!hasBid.value || lot.value?.is_sold) return
   if (!isLotClosed.value) return
   try {
     await callAPI('lots', props.lotId, 'patch', { is_sold: true })
@@ -1550,30 +1554,6 @@ const loadPageData = async () => {
   }
 }
 
-watch(() => [props.lotId, props.auctionId], async () => {
-  isLoading.value = true
-  dutchAlreadySold.value = false
-  await loadPageData()
-  isLoading.value = false
-
-  if (isSold.value) {
-    $q.notify({
-      type: 'info',
-      icon: 'lock',
-      message: 'This lot has already been sold.'
-    })
-  } else if (isLotClosed.value) {
-    $q.notify({
-      type: 'info',
-      icon: 'lock',
-      message: 'This lot is closed.'
-    })
-  }
-}, { immediate: true })
-
-
-
-
 const copyToClipboard = (text) => {
   if (!text) return
   navigator.clipboard.writeText(text).then(() => {
@@ -1581,7 +1561,7 @@ const copyToClipboard = (text) => {
   })
 }
 
-const isAuthor = computed(() => {
+const isAuctioneer = computed(() => {
   const walletHash = Store.getters['global/getWallet']('bch')?.walletHash
   return walletHash === auction.value?.user?.id
 })
@@ -1594,7 +1574,7 @@ const smartBackPath = computed(() => {
 
 const refresh = async (done) => {
   isLoading.value = true
-  if (auction.value?.type === 'Dutch') dutchAlreadySold.value = false
+  if (auction.value?.type === 'Dutch') lot.value?.is_sold = false
   await loadPageData()
   isLoading.value = false
 
@@ -1616,6 +1596,24 @@ let reconnectAttempts = 0
 let maxReconnectAttempts = 10
 
 onMounted(async () => {
+  isLoading.value = true
+  await loadPageData()
+
+  if (lot.value?.is_sold) {
+    $q.notify({
+      type: 'info',
+      icon: 'lock',
+      message: 'This lot has already been sold.'
+    })
+  } else if (isLotClosed.value) {
+    $q.notify({
+      type: 'info',
+      icon: 'lock',
+      message: 'This lot is closed.'
+    })
+  }
+  isLoading.value = false
+  
   socket = connectWebsocket()
 })
 
@@ -1660,7 +1658,7 @@ const connectWebsocket = async () => {
         hasBid.value = Boolean(data?.user)
         hasUserBid.value = data?.user === walletHash
         
-        if (isSold.value) {
+        if (lot.value?.is_sold) {
           if (auction.value.type === 'English')
             await initEnglishDeliveryTracking()
           else
@@ -1670,7 +1668,7 @@ const connectWebsocket = async () => {
 
       // update the winningBidId
       case "update.winner":
-        isSold.value = Boolean(data?.is_sold)
+        lot.value?.is_sold = Boolean(data?.is_sold)
         winningBid.value = data
 
         await initEnglishDeliveryTracking()
