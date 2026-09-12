@@ -1,6 +1,6 @@
 <template>
   <q-dialog
-    :model-value="modelValue"
+    :model-value="showMakeBidDialog"
     position="bottom"
     @update:model-value="emit('update:modelValue', $event)"
   >

@@ -1,6 +1,6 @@
 <template>
   <q-dialog 
-    :model-value="isToggledBuyItNow" 
+    :model-value="showBuyItNowDialog" 
     @update:model-value="$emit('update:isToggledBuyItNow', $event)" 
     position="bottom"
   >
