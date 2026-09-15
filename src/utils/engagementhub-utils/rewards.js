@@ -82,9 +82,9 @@ async function getData (url) {
     })
 }
 
-async function createData (url) {
+async function createData (url, data = {}) {
   return await REWARDS_URL
-    .post(url)
+    .post(url, data)
     .then(response => { return response.data })
     .catch(error => {
       if (!error?.message?.includes('aborted')) {
@@ -173,11 +173,11 @@ export async function createUserPromoData () {
 }
 
 export async function createUserRewardsData () {
-  return await createData('userreward/')
+  return await createData('userreward/', { wallet_hash: getWalletHash() })
 }
 
 export async function createRfPromoData () {
-  return await createData('rfpromo/')
+  return await createData('rfpromo/', { wallet_hash: getWalletHash() })
 }
 
 // ========== update functions ==========
