@@ -17,7 +17,7 @@
         {{ $t('ReadOnlyWalletNotice', {}, 'This is a read-only wallet. Instead of sending, an unsigned transaction (PSBT) is built which you can share with the wallet owner to sign and broadcast.') }}
       </q-banner>
       
-      <div class="glass-panel q-mt-md" :class="getDarkModeClass(darkMode)">
+      <div class="glass-panel q-mt-md q-px-md q-py-md" :class="getDarkModeClass(darkMode)">
           <!-- <q-list v-for="(recipient, index) in recipients" v-bind:key="index">
             <q-item>
               <q-input
@@ -178,7 +178,6 @@
 
 <script>
 import { debounce, Platform } from 'quasar'
-import axios from 'axios'
 import { NativeBiometric } from 'capacitor-native-biometric'
 import QrScanner from 'src/components/qr-scanner.vue'
 import { parsePaymentUri } from 'src/wallet/payment-uri'
@@ -216,7 +215,6 @@ import {
 } from 'src/utils/custom-keyboard-utils'
 
 import Watchtower from 'watchtower-cash-js'
-import WatchtowerExtended from 'src/lib/watchtower'
 import { MultiCauldronPoolTracker } from 'src/wallet/cauldron/pool-tracker'
 
 const SEND_SUCCESS_PENDING_KEY = 'paytaca-send-success-pending'
@@ -784,7 +782,7 @@ export default {
       }
 
       // Only add category for token assets
-      const shouldAddCategory = effectiveAssetId.startsWith('ct/') || effectiveAssetId.startsWith('slp/')
+      const shouldAddCategory = effectiveAssetId.startsWith('ct/')
       if (shouldAddCategory) {
         query.category = effectiveAssetId.split('/')[1]
       }
@@ -1478,35 +1476,6 @@ export default {
     async handleSubmit() {
       console.log('Unimplemented, should be signature')
     },
-    processSlpData (toSendData) {
-      const vm = this
-      const toSendSlpRecipients = []
-      let errorCount = 0
-
-      toSendData.forEach((sendData, index) => {
-        const address = sendData.recipientAddress.trim()
-        const addressObj = new Address(address)
-        const addressIsValid = this.validateAddress(address).valid
-        const amountIsValid = sendData.amount > 0
-
-        if (addressIsValid && amountIsValid) {
-          vm.sending = true
-
-          const recipientAddress = addressObj.toSLPAddress()
-          toSendSlpRecipients.push({
-            address: recipientAddress,
-            amount: sendData.amount
-          })
-        } else {
-          vm.sendingPromiseResponseHandler(addressIsValid, amountIsValid)
-          errorCount += 1
-          vm.inputExtras[index].incorrectAddress = true
-        }
-      })
-
-      if (errorCount > 0) return [[], true]
-      return [toSendSlpRecipients, false]
-    },
     processBchData (toSendData) {
       const vm = this
       const toSendBchRecipients = []
@@ -2007,58 +1976,6 @@ export default {
 
     // ========== other wallets methods ==========
     /**
-     * Get the last address index for a specific wallet
-     * @param {number} walletIndex - The vault index of the wallet
-     * @param {string} assetType - The asset type: 'bch' or 'slp' (defaults to 'bch')
-     * @returns {Promise<number>} The last address index or 0 if not available
-     */
-    async getLastAddressIndexForWallet (walletIndex, assetType = 'bch') {
-      try {
-        // Get the correct wallet hash based on asset type
-        // BCH and SLP have different derivation paths and wallet hashes
-        const vault = this.$store.getters['global/getVault'] || []
-        const wallet = vault?.[walletIndex]
-        
-        if (!wallet) {
-          console.warn(`No wallet found for wallet index ${walletIndex}`)
-          return 0
-        }
-
-        // Get wallet hash based on asset type and network (mainnet vs chipnet)
-        let walletHash = null
-        const walletData = this.isChipnet ? wallet?.chipnet : wallet?.wallet
-        
-        if (assetType === 'slp') {
-          walletHash = walletData?.slp?.walletHash || 
-                      walletData?.SLP?.walletHash ||
-                      null
-        } else {
-          // Default to BCH
-          walletHash = walletData?.bch?.walletHash || 
-                      walletData?.BCH?.walletHash ||
-                      null
-        }
-
-        if (!walletHash) {
-          console.warn(`No ${assetType} wallet hash found for wallet index ${walletIndex}`)
-          return 0
-        }
-
-        const watchtower = new WatchtowerExtended(this.isChipnet)
-        const lastAddressAndIndex = await watchtower.getLastExternalAddressIndex(walletHash)
-        
-        if (lastAddressAndIndex && typeof lastAddressAndIndex.address_index === 'number') {
-          return lastAddressAndIndex.address_index
-        }
-        
-        return 0
-      } catch (error) {
-        console.error(`Error getting last address index for wallet ${walletIndex} (${assetType}):`, error)
-        return 0
-      }
-    },
-
-    /**
      * Ensure address index is not 0 (reserved for message encryption)
      * @param {number} index - The address index to validate
      * @returns {number} - The validated address index (never 0)
@@ -2068,77 +1985,6 @@ export default {
         return 1 // Default to 1 if invalid
       }
       return index === 0 ? 1 : index
-    },
-
-    /**
-     * Get wallet type (bch or slp) from vault wallet object
-     * Note: All wallets support both BCH and SLP, but this can be used for validation
-     * @param {number} walletIndex - The vault index of the wallet
-     * @returns {string} 'bch' or 'slp' based on wallet structure, defaults to 'bch'
-     */
-    getWalletTypeFromVault (walletIndex) {
-      try {
-        const vault = this.$store.getters['global/getVault'] || []
-        const wallet = vault?.[walletIndex]
-        
-        if (!wallet) {
-          return 'bch' // Default to BCH
-        }
-        
-        // Check if wallet has SLP structure (indicating it's an SLP wallet)
-        // If both exist, default to BCH as it's more common
-        const hasSlp = !!(wallet?.wallet?.slp || wallet?.SLP)
-        const hasBch = !!(wallet?.wallet?.bch || wallet?.wallet?.BCH || wallet?.BCH || wallet?.bch)
-        
-        // For address generation, we use the asset type, not wallet type
-        // But return 'bch' as default since all wallets support BCH
-        return hasBch ? 'bch' : (hasSlp ? 'slp' : 'bch')
-      } catch (error) {
-        console.error(`Error getting wallet type for wallet ${walletIndex}:`, error)
-        return 'bch' // Default to BCH on error
-      }
-    },
-
-    /**
-     * Check if an address has been used (balance or prior transaction history)
-     * @param {string} address - The address to check
-     * @param {string} walletType - 'bch' or 'slp'
-     * @returns {Promise<boolean>} True if address has been used, false otherwise
-     */
-    async isAddressUsed (address, walletType) {
-      try {
-        const baseUrl = this.isChipnet ? 'https://chipnet.watchtower.cash' : 'https://watchtower.cash'
-        
-        const promises = []
-
-        if (walletType === 'slp') {
-          promises.push(
-            axios.get(`${baseUrl}/api/balance/bch/${address}/`).catch(() => ({ data: { balance: 0 } }))
-          )
-          promises.push(
-            axios.get(`${baseUrl}/api/balance/slp/${address}/`).catch(() => ({ data: { balance: 0 } }))
-          )
-        } else {
-          promises.push(
-            axios.get(`${baseUrl}/api/balance/bch/${address}/?include_token_sats=true`)
-          )
-        }
-
-        promises.push(
-          axios.get(`${baseUrl}/api/address-info/bch/${encodeURIComponent(address)}/isused/`).catch(() => ({ data: { is_used: false } }))
-        )
-
-        const results = await Promise.all(promises)
-        const isUsedResponse = results[results.length - 1]
-        const isUsed = isUsedResponse?.data?.is_used === true
-
-        const hasBalance = results.slice(0, -1).some(r => (r?.data?.balance || 0) > 0)
-
-        return hasBalance || isUsed
-      } catch (error) {
-        console.error('Error checking if address is used:', error)
-        return true
-      }
     },
   },
   async mounted () {
@@ -2210,7 +2056,7 @@ export default {
   border-radius: 16px;
   backdrop-filter: blur(16px);
   -webkit-backdrop-filter: blur(16px);
-  border: 1px solid rgba(255, 255, 255, 0.2);
+  //border: 1px solid rgba(255, 255, 255, 0.2);
 
   &.dark {
     background: rgba(39, 55, 70, 0.55);
