@@ -131,6 +131,7 @@ import { binToBase64, base64ToBin } from 'bitauth-libauth-v3';
 import { extractMValue, getWalletHash, MultisigWallet, Pst } from 'src/lib/multisig';
 
 import 'barcode-detector/polyfill'
+import { Psbt } from 'src/lib/multisig/psbt';
 
 const MAX_ZOOM = 4.0
 const MIN_ZOOM = 1.0
@@ -625,7 +626,22 @@ export default {
 
         if (normalizedValue.startsWith('ur:crypto-psbt') && resultUR) {
           const decodedData = Buffer.from(resultUR.cbor, 'base64')
-            const pst = Pst.import(binToBase64(decodedData))
+          const psbtBase64 = binToBase64(decodedData)
+
+          let isSingleSig = false
+          try {
+            const obj = {}
+            new Psbt().decode(psbtBase64, obj)
+            isSingleSig = Array.isArray(obj.inputs) && obj.inputs.length > 0 && obj.inputs.every(i => !i.redeemScript)
+          } catch { isSingleSig = false }
+
+          if (isSingleSig) {
+            sessionStorage.setItem('paytaca-single-sig-psbt', psbtBase64)
+            this.$router.push({ name: 'psbt-view' })
+            return
+          }
+
+            const pst = Pst.import(psbtBase64)
             const mValues = [...new Set(pst.inputs?.map(i => {
               if (!i.redeemScript) return null;
               return extractMValue(i.redeemScript)
