@@ -367,9 +367,9 @@ export default class ReadOnlyWallet {
     const walletHash = this.walletHashFor(network)
     const api = this.watchtowerFor(network).BCH._api
     const requests = [
-      api.get(`utxo/wallet/${walletHash}/`),
-      api.get(`utxo/wallet/${walletHash}/cashtoken/ft/`),
-      api.get(`utxo/wallet/${walletHash}/cashtoken/nft/`)
+      api.get(`utxo/wallet/${walletHash}/?is_cashtoken=false`),
+      api.get(`utxo/wallet/${walletHash}/?is_cashtoken=true&is_cashtoken_nft=false`),
+      api.get(`utxo/wallet/${walletHash}/?is_cashtoken=true&is_cashtoken_nft=true`)
     ]
     const responses = await Promise.allSettled(requests)
     const utxos = []
