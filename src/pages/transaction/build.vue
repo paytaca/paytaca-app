@@ -5,14 +5,14 @@
       @decode="onScannerDecode"
     />
     <headerNav
-      :title="$t('BuildTransaction', {}, 'Build Transaction')"
+      :title="$t('Send', {}, 'Send')"
       backnavpath="/"
       back-icon="keyboard_double_arrow_left"
       class="header-nav apps-header"
     />
 
     <div class="build-content q-px-md q-pt-md">
-      <q-banner rounded class="q-mb-md readonly-banner" :class="getDarkModeClass(darkMode)">
+      <q-banner rounded class="q-mb-md readonly-banner text-bow" :class="getDarkModeClass(darkMode)">
         <q-icon name="visibility" color="grad" size="sm" class="q-mr-sm"></q-icon>
         {{ $t('ReadOnlyWalletNotice', {}, 'This is a read-only wallet. Instead of sending, an unsigned transaction (PSBT) is built which you can share with the wallet owner to sign and broadcast.') }}
       </q-banner>
@@ -143,6 +143,14 @@
                   />
                 </template>
               </q-list>
+
+          <q-inner-loading
+            :showing="building"
+            :label="$t('BuildingTransaction')"
+            label-class="text-weight-medium"
+            size="50px"
+            color="primary"
+          />
         </div>
 
         </div>
@@ -158,7 +166,7 @@
         <DragSlide
           :disable="building || !canBuild"
           disable-absolute-bottom
-          :text="$t('SwipeToGenerateTx', {}, 'Swipe to Generate Tx')"
+          :text="$t('SwipeToBuildTx', {}, 'Swipe to Build')"
           @swiped="buildTransaction"
         />
       </template>
@@ -168,7 +176,7 @@
       <DragSlide
         v-if="customKeyboardState !== 'show' && formActive && !sending"
         :disable="building || !canBuild"
-        :text="$t('SwipeToGenerateTx', {}, 'Swipe to Generate Tx')"
+        :text="$t('SwipeToBuildTx', {}, 'Swipe to Build')"
         class="absolute-bottom"
         @swiped="buildTransaction"
       />
@@ -2053,6 +2061,7 @@ export default {
 }
 
 .glass-panel {
+  position: relative;
   border-radius: 16px;
   backdrop-filter: blur(16px);
   -webkit-backdrop-filter: blur(16px);
