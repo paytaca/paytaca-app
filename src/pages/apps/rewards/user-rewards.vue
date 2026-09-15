@@ -682,6 +682,11 @@ export default {
       if (this.urId === -1) {
         // new user; create and update necessary data
         urData = await createUserRewardsData()
+        if (!urData) {
+          this.dataError = this.$t('DataLoadError')
+          this.isLoading = false
+          return
+        }
         this.urId = urData.id
         await this.$router.replace({ params: { id: String(urData.id) } })
       } else {
