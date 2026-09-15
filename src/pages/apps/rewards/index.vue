@@ -575,7 +575,6 @@ export default {
       // generate user rewards data if not yet existing
       try {
         const urData = await createUserRewardsData()
-        updateUserPromoData({ ur: urData.id })
         // generate user rewards promo contract
         const contract = new PromoContract(this.user0thPubkey, PromosBytes.UR, PROMO_CONTRACT_VERSION)
         await contract.subscribeAddress()

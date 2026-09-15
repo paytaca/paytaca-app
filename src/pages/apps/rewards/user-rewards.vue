@@ -511,7 +511,6 @@ import {
   PromosBytes,
   // awardInitialUP,
   getUserRewardsData,
-  updateUserPromoData,
   updateUserRewardsData,
   createUserRewardsData,
   PROMO_CONTRACT_VERSION,
@@ -685,7 +684,6 @@ export default {
         urData = await createUserRewardsData()
         this.urId = urData.id
         await this.$router.replace({ params: { id: String(urData.id) } })
-        updateUserPromoData({ ur: urData.id })
       } else {
         urData = await getUserRewardsData(this.urId)
       }
