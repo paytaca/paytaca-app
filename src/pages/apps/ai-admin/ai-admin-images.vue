@@ -49,19 +49,22 @@
                     </div>
 
                     <div v-for="order in orders" :key="order.id" class="app-row q-mb-sm" :class="getDarkModeClass(darkMode)" @click="openOrderDetail(order)">
-                        <div class="app-info">
-                            <div class="app-name row items-center">
-                                {{ order.model }}
+                        <div class="app-info order-item">
+                            <!-- Status badge (absolute top-right) -->
+                            <q-badge rounded outline :color="statusColor(order.status)" :label="statusLabel(order.status)" class="order-status-badge" />
+
+                            <!-- Model display name (wraps below badge) -->
+                            <div class="app-name text-bold" :class="getDarkModeClass(darkMode)">
+                                {{ order.model_display_name || order.model }}
                             </div>
+                            <!-- Prompt -->
                             <div class="app-desc q-pt-xs" :class="getDarkModeClass(darkMode)">
                                 {{ order.prompt }}
                             </div>
+                            <!-- Date -->
                             <div class="app-desc q-mt-xs" :class="getDarkModeClass(darkMode)">
                                 {{ formatDate(order.created_at) }}
                             </div>
-                        </div>
-                        <div class="app-row-end">
-                            <q-badge rounded outline :color="statusColor(order.status)" :label="statusLabel(order.status)" />
                         </div>
                     </div>
 
@@ -76,8 +79,11 @@
 
         <!-- Order Detail Dialog -->
         <ImageOrderDetailsDialog
-            v-model="showDetailDialog"
+            v-if="selectedOrderId"
+            ref="orderDetailDialog"
+            :order-id="selectedOrderId"
             :order="selectedOrder"
+            @hide="selectedOrder = null; selectedOrderId = null"
         />
     </div>
 </template>
@@ -99,7 +105,7 @@ export default {
             pageSize: 20,
             totalCount: 0,
             loadingMore: false,
-            showDetailDialog: false,
+            selectedOrderId: null,
             selectedOrder: null
         }
     },
@@ -188,7 +194,10 @@ export default {
         },
         openOrderDetail (order) {
             this.selectedOrder = order
-            this.showDetailDialog = true
+            this.selectedOrderId = order.id
+            this.$nextTick(() => {
+                this.$refs.orderDetailDialog.show()
+            })
         },
         formatDate (dateStr) {
             try {
@@ -235,5 +244,16 @@ export default {
 
 .app-row-end {
   flex-shrink: 0;
+}
+
+.order-item {
+    position: relative;
+    padding-right: 80px; // space for the badge
+}
+
+.order-status-badge {
+    position: absolute;
+    top: 0;
+    right: 0;
 }
 </style>

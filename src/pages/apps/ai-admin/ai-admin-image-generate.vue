@@ -12,34 +12,50 @@
 
       <!-- Order Details -->
       <q-card class="q-pa-md br-15 text-left q-mt-md" :class="getDarkModeClass(darkMode)">
-        <div class="row justify-between q-mb-xs">
-          <span class="text-grey-7">Model</span>
-          <span class="text-bold">{{ selectedModel?.display_name }}</span>
-        </div>
-        <div class="row justify-between q-mb-xs">
-          <span class="text-grey-7">Prompt</span>
-          <span class="text-bold text-right" style="max-width: 60%">{{ prompt }}</span>
-        </div>
-        <div class="row justify-between q-mb-xs" v-if="selectedAspectRatio">
-          <span class="text-grey-7">Aspect Ratio</span>
-          <span>{{ selectedAspectRatio }}</span>
-        </div>
-        <div class="row justify-between q-mb-xs" v-if="selectedResolution">
-          <span class="text-grey-7">Resolution</span>
-          <span>{{ selectedResolution }}</span>
-        </div>
-        <q-separator class="q-my-sm" />
-        <div class="row justify-between">
-          <span class="text-grey-7">Paid</span>
-          <span class="text-bold">${{ resultPricing?.price_usd }}</span>
-        </div>
-      </q-card>
+            <!-- Model name -->
+            <div class="text-bold text-subtitle1 text-center q-mb-sm" :class="darkMode ? 'text-white' : ''">
+                {{ selectedModel?.display_name }}
+            </div>
 
-      <!-- Action Buttons -->
-      <q-btn rounded outline no-caps label="Generate Again" :color="themeColor" class="q-mt-lg full-width"
-        @click="resetForm" />
-      <q-btn flat no-caps label="View History" :color="themeColor" class="q-mt-sm full-width"
-        @click="$router.replace({ name: 'ai-admin-images' })" />
+            <!-- Prompt -->
+            <div class="q-mb-sm">
+                <div class="text-caption" :class="darkMode ? 'text-grey-5' : 'text-grey-6'">Prompt</div>
+                <div :class="darkMode ? 'text-white' : ''">{{ prompt }}</div>
+            </div>
+
+            <!-- Specs -->
+            <div class="row q-gutter-xs q-my-md">
+                <q-badge rounded v-if="selectedAspectRatio" outline :color="darkMode ? 'grey-5' : 'grey-7'" :label="selectedAspectRatio" />
+                <q-badge rounded v-if="selectedResolution" outline :color="darkMode ? 'grey-5' : 'grey-7'" :label="selectedResolution" />
+            </div>
+
+            <q-separator :color="darkMode ? 'grey-7' : 'grey-4'" class="q-my-sm" />
+
+            <!-- Paid (BCH + fiat, using resultPricing.price_sats) -->
+            <div class="row justify-between items-center">
+                <span class="text-weight-bold" :class="darkMode ? 'text-grey-5' : 'text-grey-6'">Paid</span>
+                <div class="text-right">
+                    <div class="text-bold" :class="darkMode ? 'text-white' : ''">{{ formatBch(resultPricing?.price_sats) }} BCH</div>
+                    <div class="text-caption" :class="darkMode ? 'text-grey-5' : 'text-grey-6'">
+                        {{ formatBchFiat(resultPricing?.price_sats) }}
+                    </div>
+                </div>
+            </div>
+        </q-card>
+
+        <!-- Action Buttons -->
+        <q-btn
+            rounded outline no-caps
+            label="Download Image"
+            :color="themeColor"
+            icon="download"
+            class="q-mt-lg full-width"
+            @click="downloadImage"
+        />
+        <q-btn rounded outline no-caps label="Generate Again" :color="themeColor" class="q-mt-lg full-width"
+            @click="resetForm" />
+        <q-btn flat no-caps label="View History" :color="themeColor" class="q-mt-sm full-width"
+            @click="$router.replace({ name: 'ai-admin-images' })" />
     </div>
 
     <!-- Polling State -->
@@ -71,6 +87,7 @@
       
         <!-- Search input -->
         <q-input
+            v-if="!showQuote"
             v-model="search"
             dense rounded outlined
             placeholder="Search models..."
@@ -87,45 +104,47 @@
         </q-input>
 
         <!-- Step 1: Model Selection -->
-        <div class="text-bold md-font-size q-mb-sm">Select Model</div>
-        <div v-if="modelsLoading" class="text-center q-py-lg">
-            <q-spinner :color="themeColor" size="32px" />
-        </div>
-        <div v-else-if="models.length > 0" class="models-container no-scrollbar">
-            <!-- Row 1: first half -->
-            <div class="models-row">
-                <div v-for="model in modelsRow1" :key="model.id"
-                    class="model-card q-pa-lg text-center"
-                    :class="[
-                        getDarkModeClass(darkMode),
-                        { 'selected-model-card': selectedModel?.id === model.id, 'cursor-pointer': true }
-                    ]"
-                    :style="selectedModel?.id === model.id ? `background-color: ${themeColorHex}; border-color: ${themeColorHex};` : ''"
-                    @click="selectModel(model)"
-                >
-
-                    <div class="text-bold text-subtitle2">{{ model.display_name }}</div>
-                </div>
+        <div v-if="!showQuote">
+            <div class="text-bold md-font-size q-mb-sm">Select Model</div>
+            <div v-if="modelsLoading" class="text-center q-py-lg">
+                <q-spinner :color="themeColor" size="32px" />
             </div>
+            <div v-else-if="models.length > 0" class="models-container no-scrollbar">
+                <!-- Row 1: first half -->
+                <div class="models-row">
+                    <div v-for="model in modelsRow1" :key="model.id"
+                        class="model-card q-pa-lg text-center"
+                        :class="[
+                            getDarkModeClass(darkMode),
+                            { 'selected-model-card': selectedModel?.id === model.id, 'cursor-pointer': true }
+                        ]"
+                        :style="selectedModel?.id === model.id ? `background-color: ${themeColorHex}; border-color: ${themeColorHex};` : ''"
+                        @click="selectModel(model)"
+                    >
 
-            <!-- Row 2: second half -->
-            <div v-if="modelsRow2.length > 0" class="models-row q-mt-sm">
-                <div v-for="model in modelsRow2" :key="model.id"
-                    class="model-card q-pa-lg text-center"
-                    :class="[
-                        getDarkModeClass(darkMode),
-                        { 'selected-model-card': selectedModel?.id === model.id, 'cursor-pointer': true }
-                    ]"
-                    :style="selectedModel?.id === model.id ? `background-color: ${themeColorHex}; border-color: ${themeColorHex};` : ''"
-                    @click="selectModel(model)"
-                >
-                    <div class="text-bold text-subtitle2">{{ model.display_name }}</div>
+                        <div class="text-bold text-subtitle2">{{ model.display_name }}</div>
+                    </div>
+                </div>
+
+                <!-- Row 2: second half -->
+                <div v-if="modelsRow2.length > 0" class="models-row q-mt-sm">
+                    <div v-for="model in modelsRow2" :key="model.id"
+                        class="model-card q-pa-lg text-center"
+                        :class="[
+                            getDarkModeClass(darkMode),
+                            { 'selected-model-card': selectedModel?.id === model.id, 'cursor-pointer': true }
+                        ]"
+                        :style="selectedModel?.id === model.id ? `background-color: ${themeColorHex}; border-color: ${themeColorHex};` : ''"
+                        @click="selectModel(model)"
+                    >
+                        <div class="text-bold text-subtitle2">{{ model.display_name }}</div>
+                    </div>
                 </div>
             </div>
         </div>
 
         <!-- Step 2: Spec Selection (after model selected) -->
-        <div v-if="selectedModel" class="q-pt-md">
+        <div v-if="selectedModel && !showQuote" class="q-pt-md">
             <!-- Aspect Ratio -->
             <div v-if="aspectRatios.length > 0" class="q-mb-sm">
                 <div class="text-bold md-font-size q-mb-xs">Aspect Ratio</div>
@@ -167,7 +186,7 @@
         </div>
 
         <!-- Step 3: Prompt -->
-        <div v-if="selectedModel" class="q-pt-sm">
+        <div v-if="selectedModel && !showQuote" class="q-pt-sm">
             <div class="text-bold md-font-size q-mb-sm">Prompt</div>
             
             <q-input
@@ -199,42 +218,48 @@
         </div>
 
         <!-- Step 5: Summary Card + DragSlide (after quote) -->
-        <div v-if="showQuote" class="q-pt-md q-pb-lg">
+        <div v-if="showQuote" class="q-pt-md" style="padding-bottom: 100px;">
             <q-card class="q-pa-md br-15" :class="getDarkModeClass(darkMode)">
-                <div class="row justify-between q-mb-xs">
-                    <span class="text-weight-bold" :class="darkMode ? 'text-grey-4' : 'text-grey-7'">Model</span>
-                    <span class="text-bold text-right" :class="darkMode ? 'text-white' : ''">{{ selectedModel.display_name }}</span>
+                <!-- Model name (larger, centered) -->
+                <div class="text-bold text-subtitle1 text-center q-mb-sm" :class="darkMode ? 'text-white' : ''">
+                    {{ selectedModel.display_name }}
                 </div>
-                <div class="row justify-between q-mb-xs">
-                    <span class="text-weight-bold" :class="darkMode ? 'text-grey-4' : 'text-grey-7'">Prompt</span>
-                    <span class="text-bold text-right" style="max-width: 60%" :class="darkMode ? 'text-white' : ''">{{ prompt }}</span>
+
+                <!-- Prompt (label above, left-aligned, not cramped) -->
+                <div class="q-mb-sm">
+                    <div class="text-caption" :class="darkMode ? 'text-grey-5' : 'text-grey-6'">Prompt</div>
+                    <div class="text-bold" :class="darkMode ? 'text-white' : ''">{{ prompt }}</div>
                 </div>
-                <div class="row justify-between q-mb-xs" v-if="selectedAspectRatio">
-                    <span class="text-weight-bold" :class="darkMode ? 'text-grey-4' : 'text-grey-7'">Aspect Ratio</span>
-                    <span :class="darkMode ? 'text-white' : ''">{{ selectedAspectRatio }}</span>
+
+                <!-- Specs row (chips together) -->
+                <div class="row q-gutter-xs q-my-md">
+                    <q-badge rounded v-if="selectedAspectRatio" outline :color="darkMode ? 'grey-5' : 'grey-7'" :label="selectedAspectRatio" />
+                    <q-badge rounded v-if="selectedResolution" outline :color="darkMode ? 'grey-5' : 'grey-7'" :label="selectedResolution" />
+                    <q-badge rounded v-if="selectedQuality" outline :color="darkMode ? 'grey-5' : 'grey-7'" :label="selectedQuality" />
                 </div>
-                <div class="row justify-between q-mb-xs" v-if="selectedResolution">
-                    <span class="text-weight-bold" :class="darkMode ? 'text-grey-4' : 'text-grey-7'">Resolution</span>
-                    <span :class="darkMode ? 'text-white' : ''">{{ selectedResolution }}</span>
-                </div>
-                <div class="row justify-between q-mb-xs" v-if="selectedQuality">
-                    <span class="text-weight-bold" :class="darkMode ? 'text-grey-4' : 'text-grey-7'">Quality</span>
-                    <span :class="darkMode ? 'text-white' : ''">{{ selectedQuality }}</span>
-                </div>
+
                 <q-separator :color="darkMode ? 'grey-7' : 'grey-4'" class="q-my-sm" />
-                <div class="row justify-between">
-                    <span class="text-weight-bold" :class="darkMode ? 'text-grey-4' : 'text-grey-7'">Price</span>
+
+                <!-- Price (BCH + fiat) -->
+                <div class="row justify-between items-center">
+                    <span class="text-weight-bold" :class="darkMode ? 'text-grey-5' : 'text-grey-6'">Price</span>
                     <div class="text-right">
                         <div class="text-bold" :class="darkMode ? 'text-white' : ''">{{ formatBch(amountSats) }} BCH</div>
-                        <div class="text-caption" :class="darkMode ? 'text-grey-4' : 'text-grey-7'">
+                        <div class="text-caption" :class="darkMode ? 'text-grey-5' : 'text-grey-6'">
                             {{ formatBchFiat(amountSats) }}
                         </div>
                     </div>
                 </div>
+
+                <!-- Insufficient balance warning -->
+                <div v-if="insufficientBalance" class="row items-center q-mt-sm text-caption text-negative">
+                    <q-icon name="warning" size="16px" class="q-mr-xs" />
+                    Insufficient BCH balance
+                </div>
             </q-card>
 
             <DragSlide
-                :disable="processing"
+                :disable="processing || insufficientBalance"
                 :text="$t('SwipeToConfirmLower')"
                 @swiped="onSwipe"
             />
@@ -250,6 +275,22 @@
         :warning-attempts="warningAttemptsStatus"
         @closeBiometricWarningAttempts="verifyBiometric(pendingSwipeReset)"
     />
+
+    <q-dialog v-model="showLeaveDialog" persistent>
+        <q-card class="br-15 pt-card text-bow" :class="getDarkModeClass(darkMode)">
+            <q-card-section class="row items-center">
+                <q-icon name="warning" size="32px" color="orange" class="q-mr-sm" />
+                <div class="text-h6">Leave Page?</div>
+            </q-card-section>
+            <q-card-section>
+                Your image is still generating. Leaving now will cancel the order and the image will expire.
+            </q-card-section>
+            <q-card-actions align="right">
+                <q-btn flat label="Stay" color="grey" @click="cancelLeave" />
+                <q-btn flat label="Leave" color="negative" @click="confirmLeave" />
+            </q-card-actions>
+        </q-card>
+    </q-dialog>
   </div>
 </template>
 
@@ -309,6 +350,8 @@ export default {
             paymentAddress: '',
             amountSats: 0,
             amountUsd: 0,
+            showLeaveDialog: false,
+            pendingNavigation: null,
         }
     },
     components: { 
@@ -366,9 +409,31 @@ export default {
         canContinue () {
             return this.selectedModel && this.prompt && !this.processing && !this.quoteLoading
         },
+        bchBalanceSats () {
+            const assets = this.$store.getters['assets/getAssets']
+            const bchAsset = assets?.find(asset => asset?.id === 'bch')
+            const balance = bchAsset?.spendable || bchAsset?.balance
+            return Math.floor(Number(balance || 0) * 1e8)
+        },
+        insufficientBalance () {
+            if (!this.amountSats) return false
+            return this.bchBalanceSats < this.amountSats
+        }
     },
     async mounted () {
         await this.fetchModels()
+    },
+    beforeUnmount () {
+        this.stopPolling()
+    },
+    beforeRouteLeave (to, from, next) {
+        if (this.polling) {
+            this.showLeaveDialog = true
+            this.pendingNavigation = next
+            next(false) // block navigation
+        } else {
+            next() // allow navigation
+        }
     },
     methods: {
         getDarkModeClass,
@@ -549,33 +614,44 @@ export default {
         startPolling () {
             this.polling = true
             this.pollingElapsed = 0
-            
             this.poll()
-            
-            this.pollingTimer = setInterval(() => {
-                this.pollingElapsed += this.currentPollInterval / 1000
-                this.poll()
-            }, this.currentPollInterval)
+            this.scheduleNextPoll()
         },
         stopPolling () {
             if (this.pollingTimer) {
-                clearInterval(this.pollingTimer)
+                clearTimeout(this.pollingTimer)
                 this.pollingTimer = null
             }
+        },
+        scheduleNextPoll () {
+            if (!this.polling) return
+            const interval = this.currentPollInterval
+            this.pollingTimer = setTimeout(() => {
+                this.pollingElapsed += interval / 1000
+                this.poll()
+                this.scheduleNextPoll()
+            }, interval)
         },
         async poll () {
             const result = await AIAdminUtils.getImageStatus(this.orderId)
             if (!result.success) return
 
             const status = result.data?.status
-            if (status === 'completed') {
+            if (status === 'generation_complete') {
                 this.stopPolling()
                 if (result.data.image) {
-                await this.handleImageReceived(result.data)
+                    await this.handleImageReceived(result.data)
                 } else {
-                this.$q.notify({ type: 'negative', message: 'Image expired. Please try again.', timeout: 5000 })
-                this.polling = false
+                    this.$q.notify({ type: 'negative', message: 'Image data missing. Please try again.', timeout: 5000 })
+                    this.polling = false
+                    await AIAdminUtils.confirmImageReceived(this.orderId)
                 }
+            } else if (status === 'completed') {
+                this.stopPolling()
+                this.polling = false
+                this.showQuote = false
+                this.orderId = null
+                this.$q.notify({ type: 'warning', message: 'Image expired. Please generate a new one.', timeout: 5000 })
             } else if (status === 'failed') {
                 this.stopPolling()
                 this.polling = false
@@ -635,6 +711,29 @@ export default {
             const bchAmount = satoshiToBch(sats)
             const fiatAmount = bchAmount * this.bchMarketPrice
             return parseFiatCurrency(fiatAmount, this.selectedCurrency)
+        },
+        async downloadImage () {
+            try {
+                const filename = `paytaca-${Date.now()}.png`
+                await SaveToGallery.saveImage({ base64Data: this.resultImage, filename })
+                this.$q.notify({ type: 'positive', message: 'Image saved to gallery' })
+            } catch (error) {
+                console.error('[ImageGen] Download failed:', error)
+                this.$q.notify({ type: 'warning', message: 'Failed to save image', timeout: 5000 })
+            }
+        },
+        cancelLeave () {
+            this.showLeaveDialog = false
+            this.pendingNavigation = null
+        },
+        confirmLeave () {
+            this.stopPolling()
+            this.polling = false
+            this.showLeaveDialog = false
+            if (this.pendingNavigation) {
+                this.pendingNavigation() // proceed with navigation
+                this.pendingNavigation = null
+            }
         },
     }
 }

@@ -1,166 +1,176 @@
 <template>
-  <q-dialog :value="value" @input="$emit('input', $event)" maximized position="bottom">
-    <q-card class="full-height" :class="getDarkModeClass(darkMode)">
-      <q-toolbar>
-        <q-toolbar-title>Order Details</q-toolbar-title>
-        <q-btn flat round icon="close" v-close-popup />
-      </q-toolbar>
+    <q-dialog ref="dialog" v-model="showDialog" @hide="$emit('hide')" @show="fetchDetails">
+        <q-card class="br-15 pt-card text-bow" :class="getDarkModeClass(darkMode)" style="width: 100%; max-width: 400px;">
+            <!-- Header -->
+            <q-card-section class="row items-center" :class="getDarkModeClass(darkMode)">
+                <div class="text-h6 text-bold">Order Details</div>
+                <q-space />
+                <q-btn icon="close" flat round dense v-close-popup />
+            </q-card-section>
 
-      <q-scroll-area class="full-height">
-        <q-card-section v-if="order">
-          <!-- Image Preview -->
-          <div v-if="order.status === 'completed' && localImage" class="text-center q-mb-md">
-            <img :src="'data:' + localMedia + ';base64,' + localImage" class="order-image" />
-          </div>
+            <!-- Loading -->
+            <div v-if="isLoading" class="text-center q-pa-lg">
+                <q-spinner :color="themeColor" size="36px" />
+            </div>
 
-          <!-- Model -->
-          <div class="text-subtitle1 text-bold q-mb-xs">{{ order.model }}</div>
+            <!-- Detail content -->
+            <q-card-section v-else-if="order" :class="getDarkModeClass(darkMode)">
+                <!-- Model + Status -->
+                <div class="row justify-between items-center q-mb-sm">
+                    <div class="text-bold text-subtitle1">{{ order.model_display_name }}</div>
+                    <q-badge rounded outline :color="statusColor(order.status)" :label="statusLabel(order.status)" />
+                </div>
 
-          <!-- Prompt -->
-          <div class="q-mb-md" :class="darkMode ? 'text-grey-5' : 'text-grey-7'">
-            {{ order.prompt }}
-          </div>
+                <!-- Prompt -->
+                <div class="q-mb-sm" :class="darkMode ? 'text-grey-5' : 'text-grey-7'">
+                    {{ order.prompt }}
+                </div>
 
-          <!-- Details List -->
-          <q-list>
-            <q-item>
-              <q-item-section>
-                <q-item-label caption>Status</q-item-label>
-              </q-item-section>
-              <q-item-section side>
-                <q-badge rounded :color="statusColor(order.status)" :label="statusLabel(order.status)" />
-              </q-item-section>
-            </q-item>
+                <q-separator :color="darkMode ? 'grey-7' : 'grey-4'" class="q-my-md" />
 
-            <q-item v-if="order.price_usd">
-              <q-item-section>
-                <q-item-label caption>Price</q-item-label>
-              </q-item-section>
-              <q-item-section side>
-                ${{ order.price_usd }} · {{ order.price_sats }} sats
-              </q-item-section>
-            </q-item>
+                <!-- Price -->
+                <div v-if="order.price_sats" class="row justify-between items-center q-mb-sm">
+                    <span class="text-weight-bold" :class="darkMode ? 'text-grey-5' : 'text-grey-6'">Price</span>
+                    <div class="text-right">
+                        <div :class="darkMode ? 'text-white' : ''">{{ formatBch(order.price_sats) }} BCH</div>
+                        <div class="text-caption" :class="darkMode ? 'text-grey-5' : 'text-grey-6'">
+                            {{ formatBchFiat(order.price_sats) }}
+                        </div>
+                    </div>
+                </div>
 
-            <q-item v-if="order.estimated_cost_usd">
-              <q-item-section>
-                <q-item-label caption>Estimated Cost</q-item-label>
-              </q-item-section>
-              <q-item-section side>
-                ${{ order.estimated_cost_usd }}
-              </q-item-section>
-            </q-item>
+                <!-- Created -->
+                <div class="row justify-between items-center q-mb-sm">
+                    <span class="text-weight-bold" :class="darkMode ? 'text-grey-4' : 'text-grey-7'">Created</span>
+                    <span class="text-caption" :class="darkMode ? 'text-grey-4' : 'text-grey-7'">
+                        {{ formatDate(order.created_at) }}
+                    </span>
+                </div>
 
-            <q-item v-if="order.actual_cost_usd">
-              <q-item-section>
-                <q-item-label caption>Actual Cost</q-item-label>
-              </q-item-section>
-              <q-item-section side>
-                ${{ order.actual_cost_usd }}
-              </q-item-section>
-            </q-item>
+                <!-- Completed -->
+                <div v-if="order.completed_at" class="row justify-between items-center q-mb-sm">
+                    <span class="text-weight-bold" :class="darkMode ? 'text-grey-4' : 'text-grey-7'">Completed</span>
+                    <span class="text-caption" :class="darkMode ? 'text-grey-4' : 'text-grey-7'">
+                        {{ formatDate(order.completed_at) }}
+                    </span>
+                </div>
 
-            <q-item>
-              <q-item-section>
-                <q-item-label caption>Created</q-item-label>
-              </q-item-section>
-              <q-item-section side>
-                {{ formatDate(order.created_at) }}
-              </q-item-section>
-            </q-item>
+                <!-- Refund TX -->
+                <div v-if="order.settlement_txid" class="row justify-between items-center q-mb-sm">
+                    <span class="text-weight-bold" :class="darkMode ? 'text-grey-4' : 'text-grey-7'">Refund TX</span>
+                    <span class="text-caption text-monospace" :class="darkMode ? 'text-grey-4' : 'text-grey-7'">
+                        {{ order.settlement_txid }}
+                    </span>
+                </div>
 
-            <q-item v-if="order.completed_at">
-              <q-item-section>
-                <q-item-label caption>Completed</q-item-label>
-              </q-item-section>
-              <q-item-section side>
-                {{ formatDate(order.completed_at) }}
-              </q-item-section>
-            </q-item>
-
-            <q-item v-if="order.settlement_txid">
-              <q-item-section>
-                <q-item-label caption>Refund TX</q-item-label>
-              </q-item-section>
-              <q-item-section side class="text-caption">
-                {{ order.settlement_txid }}
-              </q-item-section>
-            </q-item>
-
-            <q-item v-if="order.error">
-              <q-item-section>
-                <q-item-label caption>Error</q-item-label>
-              </q-item-section>
-              <q-item-section side class="text-negative text-caption">
-                {{ order.error }}
-              </q-item-section>
-            </q-item>
-          </q-list>
-        </q-card-section>
-      </q-scroll-area>
-    </q-card>
-  </q-dialog>
+                <!-- Error -->
+                <div v-if="order.error" class="row justify-between items-center">
+                    <span class="text-weight-bold" :class="darkMode ? 'text-grey-4' : 'text-grey-7'">Error</span>
+                    <span class="text-caption text-negative">{{ order.error }}</span>
+                </div>
+            </q-card-section>
+        </q-card>
+    </q-dialog>
 </template>
 
 <script>
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 import * as AIAdminUtils from 'src/utils/ai-admin-utils.js'
+import { formatDistanceToNow } from 'date-fns'
+import { satoshiToBch } from 'src/exchange'
+import { parseFiatCurrency } from 'src/utils/denomination-utils'
 
 export default {
-  name: 'ImageOrderDetailDialog',
-  props: {
-    value: Boolean,
-    order: Object
-  },
-  data () {
-    return {
-      darkMode: this.$store.getters['darkmode/getStatus'],
-      localImage: null,
-      localMedia: null
-    }
-  },
-  watch: {
-    value (val) {
-      if (val && this.order) {
-        this.fetchDetails()
-      }
-    }
-  },
-  methods: {
-    getDarkModeClass,
-    statusColor (status) {
-      const colors = {
-        completed: 'positive',
-        processing: 'blue',
-        pending_payment: 'orange',
-        failed: 'negative',
-        refunded: 'grey'
-      }
-      return colors[status] || 'grey'
-    },
-    statusLabel (status) {
-      return status?.replace(/_/g, ' ') || ''
-    },
-    formatDate (dateStr) {
-      if (!dateStr) return ''
-      const date = new Date(dateStr)
-      return date.toLocaleDateString(undefined, {
-        year: 'numeric', month: 'short', day: 'numeric',
-        hour: '2-digit', minute: '2-digit'
-      })
-    },
-    async fetchDetails () {
-      if (!this.order?.id) return
-
-      // Only fetch image if status is completed
-      if (this.order.status === 'completed') {
-        const result = await AIAdminUtils.getImageStatus(this.order.id)
-        if (result.success && result.data?.image) {
-          this.localImage = result.data.image
-          this.localMedia = result.data.media_type
+    data () {
+        return {
+            darkMode: this.$store.getters['darkmode/getStatus'],
+            showDialog: false,
+            isLoading: true,
+            localImage: null,
+            localMedia: null
         }
-      }
+    },
+    props: {
+        orderId: { type: String, required: true },
+        order: { type: Object, default: null }
+    },
+    computed: {
+        theme () {
+            return this.$store.getters['global/theme']
+        },
+        themeColor () {
+            const themeMap = {
+                'glassmorphic-blue': 'blue-6',
+                'glassmorphic-green': 'green-6',
+                'glassmorphic-gold': 'orange-6',
+                'glassmorphic-red': 'pink-6'
+            }
+            return themeMap[this.theme] || 'blue-6'
+        },
+        selectedCurrency () {
+            return this.$store.getters['market/selectedCurrency']?.symbol || 'USD'
+        },
+        bchMarketPrice () {
+            return this.$store.getters['market/getAssetPrice']('bch', this.selectedCurrency)
+        },
+    },
+    emits: ['hide'],
+    methods: {
+        getDarkModeClass,
+        statusColor (status) {
+            const colors = {
+                completed: 'positive',
+                processing: 'blue',
+                pending_payment: 'orange',
+                failed: 'negative',
+                refunded: 'grey'
+            }
+            return colors[status] || 'grey'
+        },
+        statusLabel (status) {
+            return status?.replace(/_/g, ' ') || ''
+        },
+        formatDate (dateStr) {
+            if (!dateStr) return ''
+            try {
+                return formatDistanceToNow(new Date(dateStr), { addSuffix: true })
+            } catch {
+                return dateStr
+            }
+        },
+        async fetchDetails () {
+            this.isLoading = true
+            this.localImage = null
+            this.localMedia = null
+
+            // Fetch image if status is completed
+            if (this.order?.status === 'completed') {
+                const result = await AIAdminUtils.getImageStatus(this.orderId)
+                if (result.success && result.data?.image) {
+                    this.localImage = result.data.image
+                    this.localMedia = result.data.media_type
+                }
+            }
+
+            this.isLoading = false
+        },
+        show () {
+            this.showDialog = true
+        },
+        hide () {
+            this.showDialog = false
+        },
+        formatBch (sats) {
+            if (!sats && sats !== 0) return '0'
+            return satoshiToBch(sats).toFixed(8).replace(/\.?0+$/, '')
+        },
+        formatBchFiat (sats) {
+            if (!sats || !this.bchMarketPrice) return ''
+            const bchAmount = satoshiToBch(sats)
+            const fiatAmount = bchAmount * this.bchMarketPrice
+            return parseFiatCurrency(fiatAmount, this.selectedCurrency)
+        },
     }
-  }
 }
 </script>
 
