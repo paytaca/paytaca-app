@@ -761,7 +761,7 @@ const attributeName = computed(() => auction.value?.is_fiat ? 'fiat' : 'bch')
 // Lot-related variables
 const lot = computed(() => $store.getters['auction/lotData'])
 const lotImages = computed(() => $store.getters['auction/lotImages'])
-const isLotClosed = computed(() => lot.value.status_label === 'Closed' || lot.value?.status_label === 'Sold')
+const isLotClosedOrSold = computed(() => lot.value.status_label === 'Closed' || lot.value?.status_label === 'Sold')
 const activeSlide = ref(0)
 
 // Bidding variables
@@ -769,16 +769,14 @@ const winningBid = computed(() => $store.getters['auction/highestBid'])
 const bidOrBuyLoading = ref(false)
 
 const estimatedAmountBch = computed(() => {
-  if (!auction.value?.is_fiat) 
-    return Number(lot.value?.estimated_amount_bch ?? 0)
+  if (!auction.value?.is_fiat) return Number(lot.value?.estimated_amount_bch ?? 0)
     
   const fiat = Number(lot.value?.estimated_amount_fiat ?? 0)
   return bchToPhpRate.value > 0 ? fiat / bchToPhpRate.value : 0
 })
 
 const estimatedAmountFiat = computed(() => {  
-  if (auction.value?.is_fiat) 
-    return Number(lot.value?.estimated_amount_fiat ?? 0)  
+  if (auction.value?.is_fiat) return Number(lot.value?.estimated_amount_fiat ?? 0)  
 
   const estBCH = Number(lot.value?.estimated_amount_bch ?? 0)
   return estBCH * bchToPhpRate.value
@@ -855,7 +853,6 @@ const markedAsCompleted = async () => {
 const showMakeBidDialog = ref(false)
 const englishLotHasBid = computed(() => Boolean(winningBid.value))
 const englishHasUserBid = computed(() => winningBid.value?.user === userWalletHash.value)
-let bidResolver = null
 
 const englishCurrentBch = computed(() => {
   const currentBCH = Number(lot.value?.[`threshold_bid_${attributeName.value}`] || 0)
@@ -873,25 +870,20 @@ const englishCurrentFiat = computed(() => {
 
 const openBidDialog = async () => showMakeBidDialog.value = true
 
-
-const verifyStillHighestBid = async (bidId) => {
-  const result = await callAPI(`lots/${props.lotId}/highest-bid`)
-  if (!result.success || !result.data) {
-    throw new Error('Could not verify current highest bid.')
-  }
-
-  winningBid.value = result.data
-  const isStillHighestBid = result.data.id === bidId
-
-  return isStillHighestBid
-}
-
+/* 
+MAKE IT SO THAT YOUR FLOW GOES:
+-> PLACE BID (WS)
+-> BACKEND MAKES BID PENDING
+-> SAME FOR OTHER PARALLEL AUCTIONS
+-> ONLY CONFIRM BID AS COMPLETE WHEN CONTRACT SENT FUNDS
+-> CANCEL OTHER PENDING BIDS (FIND A WAY TO CANCEL ALL PENDING PARALLEL BIDS IF A MESSAGE IS RECEIVED TO CANCEL THEM)
+  You may need to update the backend for this one too
+*/
 const handlePlaceBid = async ({ bid_price_bch, bid_price_fiat }) => {
   if (!userWalletHash.value) {
     $q.notify({ type: 'warning', message: 'Please connect your wallet first.' })
     return
   }
-
   bidOrBuyLoading.value = true
 
   try {
@@ -912,8 +904,8 @@ const handlePlaceBid = async ({ bid_price_bch, bid_price_fiat }) => {
       }
     ))
 
-    //const ack = await waitForBidAck()
-    //const bidId = ack.id
+    const ack = await waitForBidAck()
+    const bidId = ack?.id
 
     let isStillHighest
 
@@ -980,20 +972,14 @@ const handlePlaceBid = async ({ bid_price_bch, bid_price_fiat }) => {
     bidOrBuyLoading.value = false
   }
 }
-
-
-const showPostAuctionActions = computed(() => {
-  if (isMarkedComplete.value) return false  // lot must not yet be delivered
-  if (lot.value?.is_sold) return true       // lot must be sold
-  return auction.value?.type === 'English' && isLotClosed.value && englishLotHasBid.value
-})
+const showPostAuctionActions = computed(() => lot.value?.is_sold && !isMarkedComplete.value)
 
 const bidStatus = computed(() => {
   if (!englishHasUserBid.value) return null
-  if (!englishLotHasBid.value) return isLotClosed.value ? 'did-not-win' : null
+  if (!englishLotHasBid.value) return isLotClosedOrSold.value ? 'did-not-win' : null
 
   const isHighest = winningBid.value?.user === userWalletHash.value
-  if (lot.value?.is_sold || isLotClosed.value) return isHighest ? 'win' : 'did-not-win'
+  if (lot.value?.is_sold || isLotClosedOrSold.value) return isHighest ? 'win' : 'did-not-win'
   return isHighest ? 'highest' : 'outbid'
 })
 
@@ -1051,8 +1037,6 @@ const buyItNow = () => {
 
 const handleBuyItNow = async (payload = {}) => {
   showBuyItNowDialog.value = false
-  if (auction.value?.type !== 'Dutch') return
-
   
   if (!userWalletHash.value) {
     return $q.notify({ type: 'warning', message: 'Please connect your wallet first.' })
@@ -1079,7 +1063,7 @@ const handleBuyItNow = async (payload = {}) => {
     }))
 
     // FIx this ack
-    const ack = bidResolver
+    const ack = await waitForBidAck()
     const bidId = ack?.id
 
     if (!bidId) {
@@ -1138,7 +1122,7 @@ const isCreatingDeliveryTracking = ref(false)
 const initEnglishDeliveryTracking = async () => {
   if (isCreatingDeliveryTracking.value) return
   if (auction.value?.type !== 'English') return
-  if (!isLotClosed.value) return
+  if (!isLotClosedOrSold.value) return
   if (winningBid.value?.user !== userWalletHash.value) return
   if (deliveryStatusId.value !== null) return
 
@@ -1239,9 +1223,7 @@ const updateRefundCountdown = () => {
 }
 
 const autoMarkLotSold = async () => {
-  if (auction.value?.type !== 'English') return
-  if (!englishLotHasBid.value || lot.value?.is_sold) return
-  if (!isLotClosed.value) return
+  if (!isLotClosedOrSold.value) return
   try {
     await callAPI('lots', props.lotId, 'patch', { is_sold: true })
     if (lot.value) lot.value.is_sold = true
@@ -1252,7 +1234,6 @@ const autoMarkLotSold = async () => {
 
 const listingsTotalTime = computed(() => Date.now() - $store.getters['auction/listingsLastFetched'])
 const auctionLotsTotalTime = computed(() => Date.now() - $store.getters['auction/auctionLotsLastFetched'])
-
 const loadPageData = async () => {
   const isSameLotId = $store.getters['auction/lotId'] === Number(props.lotId)
   if(!isSameLotId) $store.commit('auction/setLotId', Number(props.lotId))
@@ -1280,7 +1261,6 @@ const copyToClipboard = (text) => {
   })
 }
 
-
 const smartBackPath = computed(() => {
   const sourceContext = $route.query.from
   if (sourceContext === 'activity') return '/apps/auction/activity'
@@ -1298,26 +1278,19 @@ const refresh = async (done) => {
   done()
 }
 
-
 onMounted(async () => {
   isLoading.value = true
   await loadPageData()
-
-  if (lot.value?.is_sold) {
+  if (isLotClosedOrSold.value) {
     $q.notify({
       type: 'info',
       icon: 'lock',
-      message: 'This lot has already been sold.'
-    })
-  } else if (isLotClosed.value) {
-    $q.notify({
-      type: 'info',
-      icon: 'lock',
-      message: 'This lot is closed.'
+      message: (lot.value?.is_sold) 
+        ? 'This lot has already been sold.'
+        : 'This lot is closed.'
     })
   }
   isLoading.value = false
-  
   socket = connectWebsocket()
 })
 
@@ -1335,7 +1308,6 @@ onUnmounted(() => {
 WEBSOCKET-RELATED FUNCTIONS
 ===========================
 */
-
 const viewCount = ref(0) // current live viewers
 const timeLeft = ref(0)
 let socket = null
@@ -1428,6 +1400,22 @@ const connectWebsocket = async () => {
   return ws
 }
 
+let bidResolver = null
+const waitForBidAck = () => {
+  return new Promise((resolve, reject) => {
+    const timeout = setTimeout(() => {
+      bidResolver = null
+      reject(new Error('Timed out waiting for bid confirmation.'))
+    }, 10000)
+
+    bidResolver = (data) => {
+      clearTimeout(timeout)
+      bidResolver = null
+      resolve(data)
+    }
+  })
+}
+
 const clearSocket = () => {
   if (reconnectTimeout) {
     clearTimeout(reconnectTimeout)
@@ -1475,5 +1463,4 @@ const formatBCH = (value) => {
   const zeros = numStr.substring(main.length)
   return { main, zeros, full: numStr }
 }
-
 </script>
