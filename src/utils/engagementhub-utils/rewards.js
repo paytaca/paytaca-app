@@ -159,6 +159,20 @@ export async function getLiftConversionRatio () {
   return { conversionRatio, eligibilityDate }
 }
 
+export async function getEliteProgramData () {
+  // TODO: Replace mock data with the real engagement-hub endpoint once the
+  // Paytaca Elite API is available (e.g. `await getData('elite/${getWalletHash()}/')`)
+  return {
+    status: 'locked', // 'locked' | 'active' | 'paused'
+    bchBalance: 640, // BCH balance value in PHP
+    bchThreshold: 1000, // PHP 1,000 in BCH
+    liftBalance: 100,
+    liftThreshold: 100,
+    cashbackLift: 12.5, // total cashback received in LIFT
+    eligibleTxCount: 24
+  }
+}
+
 export async function getRewardsSwapContractDetails () {
   return await getData('userpromo/get_rewards_swap_contract_details/')
 }

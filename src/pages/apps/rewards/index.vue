@@ -20,8 +20,16 @@
       </template>
     </header-nav>
 
+    <!-- Points Programs Section Label -->
+    <div
+      class="points-section-label q-mx-lg q-mt-md q-mb-md"
+      :class="getDarkModeClass(darkMode, 'text-grey-5', 'text-grey-8')"
+    >
+      Points Programs
+    </div>
+
     <!-- Collapsible Aggregated Points & LIFT Value Section -->
-    <div class="q-mx-lg q-mt-md q-mb-md card-help-highlight">
+    <div class="q-mx-lg q-mb-md card-help-highlight">
       <div
         class="br-15 q-pa-md group-currency cursor-pointer transition-card"
         :class="[getDarkModeClass(darkMode), { 'q-pb-md': !isSummaryExpanded }]"
@@ -307,6 +315,214 @@
           </div>
         </q-intersection>
       </template>
+
+      <!-- Paytaca Elite Section -->
+      <div class="col-12 q-pt-md card-help-highlight">
+        <div class="elite-section-label q-mb-xs">
+          Paytaca Elite
+        </div>
+
+        <!-- Elite: Scanning / Loading -->
+        <div
+          v-if="isLoading || isEliteLoading"
+          class="row full-width q-pa-md br-15 group-currency elite-card"
+          :class="getDarkModeClass(darkMode)"
+        >
+          <div class="col-12">
+            <div class="row full-width justify-between items-center">
+              <div class="row col-2 promo-icon">
+                <q-icon name="workspace_premium" size="md" class="elite-icon" />
+              </div>
+              <div class="col-8">
+                <span class="text-token elite-name" :class="getDarkModeClass(darkMode)">Paytaca Elite</span>
+                <br/>
+                <span class="elite-pill checking">Checking</span>
+              </div>
+              <div class="row col-2 justify-end">
+                <q-skeleton type="circle" size="40px" />
+              </div>
+            </div>
+            <div class="text-caption q-mb-md q-mt-sm" :class="darkMode ? 'text-grey-5' : 'text-grey-7'">
+              Checking elite eligibility…
+            </div>
+            <q-skeleton :dark="darkMode" type="text" height="12px" class="q-mb-sm" style="width: 80%;" />
+            <q-skeleton :dark="darkMode" type="text" height="12px" class="q-mb-sm" style="width: 100%;" />
+            <q-skeleton :dark="darkMode" type="text" height="12px" style="width: 55%;" />
+          </div>
+        </div>
+
+        <!-- Elite: Not Qualified -->
+        <div
+          v-else-if="eliteData && eliteData.status === 'locked'"
+          class="row full-width q-pa-md br-15 group-currency elite-card cursor-pointer"
+          :class="getDarkModeClass(darkMode)"
+          @click="redirectToElitePage"
+        >
+          <div class="col-12">
+            <div class="row full-width justify-between items-center">
+              <div class="row col-2 promo-icon">
+                <q-icon name="workspace_premium" size="md" class="elite-icon" />
+              </div>
+              <div class="col-8">
+                <span class="text-token elite-name" :class="getDarkModeClass(darkMode)">Paytaca Elite</span>
+                <br/>
+                <span class="elite-pill locked">Locked</span>
+              </div>
+              <div class="row col-2 justify-end">
+                <q-btn
+                  round
+                  class="btn-scan button text-white elite-btn"
+                  icon="chevron_right"
+                  @click.stop="redirectToElitePage"
+                />
+              </div>
+            </div>
+            <div class="text-caption q-my-sm" :class="darkMode ? 'text-grey-5' : 'text-grey-7'">
+              Get LIFT cashbacks on merchant OTC and marketplace purchases once you unlock the program.
+            </div>
+            <div class="text-caption q-mb-sm" :class="darkMode ? 'text-grey-5' : 'text-grey-7'">
+              To unlock, your wallet needs:
+            </div>
+            <div class="q-mb-sm">
+              <div class="row justify-between items-center q-mb-xs">
+                <span class="text-caption" :class="darkMode ? 'text-grey-5' : 'text-grey-7'">
+                  <template v-if="eliteBchPct >= 1"><span class="text-positive">✓&nbsp;</span></template>BCH balance
+                </span>
+                <span class="text-caption text-weight-medium" :class="darkMode ? 'text-grey-5' : 'text-grey-8'">{{ formattedEliteBch }} / ₱ 1,000</span>
+              </div>
+              <q-linear-progress
+                :value="eliteBchPct"
+                :color="eliteBchPct >= 1 ? 'positive' : 'primary'"
+                :track-color="darkMode ? 'grey-9' : 'grey-4'"
+                class="rounded-borders"
+                size="6px"
+              />
+            </div>
+            <div>
+              <div class="row justify-between items-center q-mb-xs">
+                <span class="text-caption" :class="darkMode ? 'text-grey-5' : 'text-grey-7'">
+                  <template v-if="eliteLiftPct >= 1"><span class="text-positive">✓&nbsp;</span></template>LIFT balance
+                </span>
+                <span class="text-caption text-weight-medium" :class="darkMode ? 'text-grey-5' : 'text-grey-8'">{{ formattedEliteLift }} / 100 LIFT</span>
+              </div>
+              <q-linear-progress
+                :value="eliteLiftPct"
+                :color="eliteLiftPct >= 1 ? 'positive' : 'primary'"
+                :track-color="darkMode ? 'grey-9' : 'grey-4'"
+                class="rounded-borders"
+                size="6px"
+              />
+            </div>
+          </div>
+        </div>
+
+        <!-- Elite: Active -->
+        <div
+          v-else-if="eliteData && eliteData.status === 'active'"
+          class="row full-width q-pa-md br-15 group-currency elite-card cursor-pointer"
+          :class="getDarkModeClass(darkMode)"
+          @click="redirectToElitePage"
+        >
+          <div class="col-12">
+            <div class="row full-width justify-between items-center">
+              <div class="row col-2 promo-icon">
+                <q-icon name="workspace_premium" size="md" class="elite-icon" />
+              </div>
+              <div class="col-8">
+                <span class="text-token elite-name" :class="getDarkModeClass(darkMode)">Paytaca Elite</span>
+                <br/>
+                <span class="elite-pill active">Active</span>
+              </div>
+              <div class="row col-2 justify-end">
+                <q-btn
+                  round
+                  class="btn-scan button text-white elite-btn"
+                  icon="chevron_right"
+                  @click.stop="redirectToElitePage"
+                />
+              </div>
+            </div>
+            <div class="text-caption q-mb-md q-mt-sm" :class="darkMode ? 'text-grey-5' : 'text-grey-7'">
+              You're earning LIFT cashbacks on every eligible OTC and marketplace purchase.
+            </div>
+            <div class="row q-col-gutter-sm">
+              <div class="col elite-stat-box br-10">
+                <div class="elite-stat-value">{{ formattedEliteCashback }} LIFT</div>
+                <div class="text-caption" :class="darkMode ? 'text-grey-5' : 'text-grey-7'">Total cashback received</div>
+              </div>
+              <div class="col elite-stat-box br-10">
+                <div class="elite-stat-value">{{ eliteData.eligibleTxCount }}</div>
+                <div class="text-caption" :class="darkMode ? 'text-grey-5' : 'text-grey-7'">Eligible transactions</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Elite: Paused -->
+        <div
+          v-else-if="eliteData && eliteData.status === 'paused'"
+          class="row full-width q-pa-md br-15 group-currency elite-card cursor-pointer"
+          :class="getDarkModeClass(darkMode)"
+          @click="redirectToElitePage"
+        >
+          <div class="col-12">
+            <div class="row full-width justify-between items-center">
+              <div class="row col-2 promo-icon">
+                <q-icon name="workspace_premium" size="md" class="elite-icon" />
+              </div>
+              <div class="col-8">
+                <span class="text-token elite-name" :class="getDarkModeClass(darkMode)">Paytaca Elite</span>
+                <br/>
+                <span class="elite-pill paused">Paused</span>
+              </div>
+              <div class="row col-2 justify-end">
+                <q-btn
+                  round
+                  class="btn-scan button text-white elite-btn"
+                  icon="chevron_right"
+                  @click.stop="redirectToElitePage"
+                />
+              </div>
+            </div>
+            <div class="text-caption q-mb-md q-mt-sm" :class="darkMode ? 'text-red-5' : 'text-negative'">
+              Paused. Your wallet balances fell below the threshold. Restore them to resume earning cashbacks.
+            </div>
+            <div class="text-caption q-mb-sm" :class="darkMode ? 'text-grey-5' : 'text-grey-7'">
+              Current vs. requirement:
+            </div>
+            <div class="q-mb-sm">
+              <div class="row justify-between items-center q-mb-xs">
+                <span class="text-caption" :class="darkMode ? 'text-grey-5' : 'text-grey-7'">
+                  <template v-if="eliteBchPct >= 1"><span class="text-positive">✓&nbsp;</span></template>BCH balance
+                </span>
+                <span class="text-caption text-weight-medium" :class="darkMode ? 'text-grey-5' : 'text-grey-8'">{{ formattedEliteBch }} / ₱ 1,000</span>
+              </div>
+              <q-linear-progress
+                :value="eliteBchPct"
+                :color="eliteBchPct >= 1 ? 'positive' : 'primary'"
+                :track-color="darkMode ? 'grey-9' : 'grey-4'"
+                class="rounded-borders"
+                size="6px"
+              />
+            </div>
+            <div>
+              <div class="row justify-between items-center q-mb-xs">
+                <span class="text-caption" :class="darkMode ? 'text-grey-5' : 'text-grey-7'">
+                  <template v-if="eliteLiftPct >= 1"><span class="text-positive">✓&nbsp;</span></template>LIFT balance
+                </span>
+                <span class="text-caption text-weight-medium" :class="darkMode ? 'text-grey-5' : 'text-grey-8'">{{ formattedEliteLift }} / 100 LIFT</span>
+              </div>
+              <q-linear-progress
+                :value="eliteLiftPct"
+                :color="eliteLiftPct >= 1 ? 'positive' : 'primary'"
+                :track-color="darkMode ? 'grey-9' : 'grey-4'"
+                class="rounded-borders"
+                size="6px"
+              />
+            </div>
+          </div>
+        </div>
+      </div>
     </div>
   </div>
 
@@ -343,6 +559,7 @@ import {
   updateRfPromoData,
   createUserRewardsData,
   PROMO_CONTRACT_VERSION,
+  getEliteProgramData,
 } from 'src/utils/engagementhub-utils/rewards'
 
 import HeaderNav from 'src/components/header-nav.vue'
@@ -392,6 +609,10 @@ export default {
 
       // Collapsible section state
       isSummaryExpanded: false,
+
+      // Paytaca Elite program state
+      isEliteLoading: false,
+      eliteData: null,
 
       // Referral banner state
       isReferralDialogActive: false,
@@ -537,6 +758,42 @@ export default {
         ? this.$t('CountPoint', { points: this.liftConversionRatio })
         : this.$t('CountPoints', { points: this.liftConversionRatio })
       return `${pointsTranslate} = 1 LIFT`
+    },
+
+    // Elite: BCH balance progress toward threshold (0-1)
+    eliteBchPct () {
+      if (!this.eliteData?.bchBalance || !this.eliteData?.bchThreshold) return 0
+      return Math.min(this.eliteData.bchBalance / this.eliteData.bchThreshold, 1)
+    },
+
+    // Elite: LIFT balance progress toward threshold (0-1)
+    eliteLiftPct () {
+      if (!this.eliteData?.liftBalance || !this.eliteData?.liftThreshold) return 0
+      return Math.min(this.eliteData.liftBalance / this.eliteData.liftThreshold, 1)
+    },
+
+    // Elite: formatted current BCH balance (in PHP)
+    formattedEliteBch () {
+      const amount = this.eliteData?.bchBalance ?? 0
+      // TODO: format using the user's selected currency once real engagement-hub data lands;
+      // the threshold is fixed at PHP 1,000
+      return `₱ ${amount.toLocaleString()}`
+    },
+
+    // Elite: formatted current LIFT balance
+    formattedEliteLift () {
+      const amount = this.eliteData?.liftBalance ?? 0
+      return amount.toLocaleString()
+    },
+
+    // Elite: formatted cashback received in LIFT
+    formattedEliteCashback () {
+      const amount = this.eliteData?.cashbackLift ?? 0
+      const hasFraction = amount % 1 !== 0
+      return formatWithLocale(
+        amount,
+        { min: hasFraction ? LIFT_TOKEN_DECIMALS : 0, max: LIFT_TOKEN_DECIMALS }
+      )
     }
   },
 
@@ -725,6 +982,9 @@ export default {
       // Start polling Cauldron prices (every 60 seconds)
       this.startCauldronPricePolling()
 
+      // Fetch Paytaca Elite program data (eligibility scan happens on the server)
+      await this.loadEliteProgramData()
+
       setTimeout(() => {
         this.$nextTick(() => {
           if (upData && !upData?.last_viewed) this.isHelpActive = true
@@ -756,12 +1016,115 @@ export default {
         name: promo.path,
         params: { id: promo.id ?? -1 }
       })
+    },
+
+    async loadEliteProgramData () {
+      this.isEliteLoading = true
+      try {
+        // TODO: Replace mock data with the real engagement-hub endpoint once available
+        this.eliteData = await getEliteProgramData()
+      } catch (error) {
+        console.error('Error loading elite program data: ', error)
+        this.eliteData = null
+      } finally {
+        this.isEliteLoading = false
+      }
+    },
+
+    redirectToElitePage () {
+      // TODO: Create the Paytaca Elite page and route, then navigate to it here
+      this.$q.notify({ type: 'info', message: 'Paytaca Elite page coming soon', timeout: 3000 })
     }
   }
 }
 </script>
 
 <style lang="scss" scoped>
+/* Section label for the points programs group */
+.points-section-label {
+  font-size: 12px;
+  letter-spacing: 1.4px;
+  text-transform: uppercase;
+  font-weight: 600;
+}
+
+/* Section label for the Paytaca Elite program */
+.elite-section-label {
+  font-size: 12px;
+  letter-spacing: 1.4px;
+  text-transform: uppercase;
+  font-weight: 700;
+  color: #d4a643;
+  display: flex;
+  align-items: center;
+
+  &::before {
+    content: "";
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: #d4a643;
+    margin-right: 6px;
+  }
+}
+
+/* Elite card gold accent */
+.elite-card {
+  border-left: 3px solid #d4a643;
+}
+
+/* Elite status pills */
+.elite-pill {
+  font-size: 9px;
+  letter-spacing: 1.5px;
+  font-weight: 800;
+  color: #fff;
+  border-radius: 6px;
+  padding: 3px 7px;
+  text-transform: uppercase;
+  flex-shrink: 0;
+
+  &.locked { background: #6b6b7b; }
+  &.active { background: #d4a643; color: #3a3325; }
+  &.paused { background: #d64545; }
+  &.checking { background: #6759c8; }
+}
+
+/* Elite stat boxes (active state) */
+.elite-stat-box {
+  background: rgba(212, 166, 67, 0.15);
+  border: 1px dashed rgba(212, 166, 67, 0.5);
+  padding: 10px 12px;
+  text-align: center;
+}
+
+.elite-stat-value {
+  font-size: 16px;
+  font-weight: 800;
+  color: #d4a643;
+}
+
+/* Elite chevron button (gold variant of .bg-grad).
+   Selector needs to out-specify `body.theme-* .button` (!important blue) */
+.elite-card .elite-btn {
+  background: linear-gradient(to right bottom, #e0b34e, #d4a643, #c8963a, #bc8a32, #b07e2a) !important;
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  box-shadow: 0 4px 20px 0 rgba(120, 90, 20, 0.15);
+}
+
+/* Elite title always gold, overriding `.group-currency .text-token` theme colors */
+.elite-card .elite-name {
+  color: #d4a643 !important;
+  font-weight: 700 !important;
+}
+
+/* Elite icon always gold, overriding any theme color applied to q-icon */
+.elite-card :deep(.elite-icon) {
+  color: #d4a643 !important;
+}
+
 /* Smooth card transition */
 .transition-card {
   transition: all 0.3s ease;
