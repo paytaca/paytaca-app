@@ -223,8 +223,34 @@
       <template v-if="showSweepTokens">
         <div class="q-pa-md full-width">
           <div class="row items-center q-mb-sm" style="gap: 8px;">
-            <q-btn flat dense icon="refresh" color="primary" :loading="ftLoading" @click="loadFtBalances" />
+            <q-btn flat dense icon="refresh" color="primary" :loading="ftLoading || sweepAuthLoading" @click="checkSweepAuthAndBalances" />
             <div class="text-caption" :class="$q.dark.isActive ? 'text-grey-5' : 'text-grey'">Sweepable fungible tokens on this card</div>
+          </div>
+          <div v-if="sweepAuthLoading" class="flex flex-center q-pa-md">
+            <q-spinner-dots color="primary" size="32px" />
+          </div>
+          <div v-else-if="sweepAuthError" class="text-caption text-negative q-mb-sm">
+            {{ sweepAuthError }}
+            <q-btn flat dense color="primary" :label="$t('Retry', {}, 'Retry')" @click="checkSweepAuth" />
+          </div>
+          <div
+            v-else-if="!sweepAuthNft"
+            class="q-mb-md q-pa-md"
+            :class="$q.dark.isActive ? 'bg-grey-9' : 'bg-grey-2'"
+            style="border-radius: 12px;"
+          >
+            <div class="text-caption q-mb-sm" :class="$q.dark.isActive ? 'text-grey-4' : 'text-grey-8'">
+              To recover these tokens, your card must authorize the server sweep key. This mints a small merchant auth NFT on-chain. No funds leave your card.
+            </div>
+            <q-btn
+              label="Mint Sweep Auth"
+              color="primary"
+              class="q-px-md bg-grad text-white"
+              unelevated
+              rounded
+              :loading="mintingSweepAuth"
+              @click="mintSweepAuth"
+            />
           </div>
           <div v-if="ftLoading" class="flex flex-center q-pa-md">
             <q-spinner-dots color="primary" size="32px" />
@@ -402,7 +428,11 @@ export default {
       ftSelected: [],
       ftDestination: '',
       ftSweeping: false,
-      ftStatusMap: {}
+      ftStatusMap: {},
+      sweepAuthLoading: false,
+      sweepAuthError: '',
+      sweepAuthNft: null,
+      mintingSweepAuth: false,
     }
   },
   computed: {
@@ -414,7 +444,7 @@ export default {
       return this.normalizeFtDestination(this.ftDestination) ? '' : 'Enter a valid CashToken address'
     },
     canSweepFt() {
-      return !this.ftSweeping && this.ftSelected.length > 0 && !!this.ftDestination && !this.ftDestinationError
+      return !this.ftSweeping && this.ftSelected.length > 0 && !!this.ftDestination && !this.ftDestinationError && !!this.sweepAuthNft
     },
     replacementReasons () {
       return [
@@ -431,7 +461,10 @@ export default {
   },
   watch: {
     showSweepTokens (open) {
-      if (open && !this.ftBalances.length && !this.ftLoading) this.loadFtBalances()
+      if (open) {
+        if (!this.ftBalances.length && !this.ftLoading) this.loadFtBalances()
+        if (!this.sweepAuthLoading) this.checkSweepAuth()
+      }
     }
   },
   methods: {
@@ -508,6 +541,45 @@ export default {
         this.ftLoading = false
       }
     },
+    async checkSweepAuthAndBalances() {
+      await Promise.allSettled([this.checkSweepAuth(), this.loadFtBalances()])
+    },
+    async checkSweepAuth() {
+      if (!this.activeCard) return
+      this.sweepAuthLoading = true
+      this.sweepAuthError = ''
+      try {
+        this.sweepAuthNft = await this.activeCard.findSweepAuthNft()
+      } catch (error) {
+        const { message } = parseFtSweepError(error)
+        this.sweepAuthError = message || 'Failed to check sweep authorization'
+        this.sweepAuthNft = null
+      } finally {
+        this.sweepAuthLoading = false
+      }
+    },
+    async mintSweepAuth() {
+      if (!this.activeCard) return
+      this.mintingSweepAuth = true
+      try {
+        await this.activeCard.mintSweepAuthToken()
+        this.$q.notify({
+          type: 'positive',
+          message: this.$t('SweepAuthMinted', {}, 'Sweep authorization minted successfully'),
+          timeout: 3000,
+        })
+        await this.checkSweepAuth()
+      } catch (error) {
+        cardLogger.error('Failed to mint sweep auth token:', error.message || error)
+        this.$q.notify({
+          type: 'negative',
+          message: error?.message || this.$t('FailedToMintSweepAuth', {}, 'Failed to mint sweep authorization'),
+          timeout: 5000,
+        })
+      } finally {
+        this.mintingSweepAuth = false
+      }
+    },
     toggleFtSelected(tokenId) {
       const index = this.ftSelected.indexOf(tokenId)
       if (index >= 0) this.ftSelected.splice(index, 1)
@@ -525,6 +597,9 @@ export default {
           this.ftStatusMap = { ...this.ftStatusMap, [tokenId]: { state: 'success', txid: result?.txid } }
         }
       } catch (error) {
+        if (error?.requiresSweepAuth) {
+          this.sweepAuthNft = null
+        }
         this.ftStatusMap = { ...this.ftStatusMap, [tokenId]: { state: 'error', error: error?.message || 'Sweep failed' } }
       }
     },

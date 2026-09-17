@@ -14,8 +14,44 @@ import {
   CardActivationStatus
 } from './storage';
 
-import { encodeCommitment } from 'src/services/card/auth-nft';
 import { sha256, utf8ToBin, secp256k1, decodePrivateKeyWif, binToHex } from '@bitauth/libauth';
+
+const SWEEP_MERCHANT_CACHE_TTL_MS = 5 * 60 * 1000;
+let _sweepMerchantCache = null;
+let _sweepMerchantCacheTime = 0;
+
+/**
+ * Fetches the server's sweep merchant pubkey.
+ * GET /sweep-merchant/ — public endpoint; result is cached briefly.
+ * @param {Object} [opts]
+ * @param {number} [opts.maxAgeMs=300000]
+ * @returns {Promise<{id: string, pubkey: string}>}
+ */
+export async function fetchSweepMerchant({ maxAgeMs = SWEEP_MERCHANT_CACHE_TTL_MS } = {}) {
+  const now = Date.now();
+  if (_sweepMerchantCache && (now - _sweepMerchantCacheTime) < maxAgeMs) {
+    return _sweepMerchantCache;
+  }
+  const response = await backend.get('/sweep-merchant/', { authorize: false }).catch(error => {
+    cardLogger.error('Error fetching sweep merchant:', error.response || error.message);
+    throw error;
+  });
+  const data = response?.data;
+  if (!data?.pubkey) {
+    throw new Error('Invalid sweep merchant response');
+  }
+  _sweepMerchantCache = {
+    id: String(data.id ?? '0'),
+    pubkey: data.pubkey,
+  };
+  _sweepMerchantCacheTime = now;
+  return _sweepMerchantCache;
+}
+
+export function clearSweepMerchantCache() {
+  _sweepMerchantCache = null;
+  _sweepMerchantCacheTime = 0;
+}
 
 export class Card {
   constructor(data) {
@@ -268,6 +304,86 @@ export class Card {
     this._assertContract();
     const tokenId = this.authCategory
     return await this.contract.getTokenUtxos(tokenId);
+  }
+
+  /**
+   * Fetches the server sweep merchant and finds the matching sweep auth NFT
+   * on this card. Returns the UTXO only if it is authorized.
+   * @returns {Promise<Object|null>}
+   */
+  async findSweepAuthNft() {
+    this._assertContract();
+    const merchant = await fetchSweepMerchant();
+    const { hex: merchantHash } = encodeMerchantHash({
+      merchantId: merchant.id,
+      merchantPk: merchant.pubkey,
+    });
+    const authTokenUtxos = await this.getAuthTokenUtxos();
+    return authTokenUtxos.find(utxo => {
+      const commitment = utxo?.token?.nft?.commitment;
+      if (!commitment) return false;
+      const decoded = decodeCommitment(commitment);
+      return decoded?.hash === merchantHash && decoded?.authorized === true;
+    }) || null;
+  }
+
+  /**
+   * Returns true when the card has an authorized sweep-merchant auth NFT.
+   * @returns {Promise<boolean>}
+   */
+  async hasSweepAuth() {
+    const nft = await this.findSweepAuthNft();
+    return !!nft;
+  }
+
+  /**
+   * Mints or updates the sweep-merchant auth NFT for this card.
+   * If the NFT already exists, mutates it to authorized=1 with a 5000-sat limit.
+   * Otherwise mints a new merchant auth NFT and issues it to the card.
+   * @returns {Promise<Object>}
+   */
+  async mintSweepAuthToken() {
+    this._assertWallet();
+    this._assertAuthNftService();
+    this._assertContract();
+
+    const merchant = await fetchSweepMerchant();
+    const spendLimitSats = 5000;
+    const { hex: merchantHash } = encodeMerchantHash({
+      merchantId: merchant.id,
+      merchantPk: merchant.pubkey,
+    });
+
+    const authTokenUtxos = await this.getAuthTokenUtxos();
+    const existingUtxo = authTokenUtxos.find(utxo => {
+      const commitment = utxo?.token?.nft?.commitment;
+      if (!commitment) return false;
+      const decoded = decodeCommitment(commitment);
+      return decoded?.hash === merchantHash;
+    });
+
+    if (existingUtxo) {
+      cardLogger.log('Updating existing sweep auth NFT');
+      return this._mutateAuthToken({
+        authorized: true,
+        spendLimitSats,
+        merchant,
+        broadcast: true,
+      });
+    }
+
+    cardLogger.log('Minting new sweep auth NFT');
+    const mintResult = await this.authNftService.mint({
+      tokenId: this.authCategory,
+      merchants: [{
+        id: merchant.id,
+        pubkey: merchant.pubkey,
+        authorized: true,
+        spendLimitSats,
+      }],
+    });
+    const issueResult = await this._issueAuthTokens(this.authCategory);
+    return { mintResult, issueResult };
   }
 
   /**
@@ -979,20 +1095,24 @@ export function parseFtSweepError(error) {
   const status = error?.response?.status
   const detail = error?.response?.data?.detail || error?.response?.data?.error
     || error?.response?.data?.message || error?.message || 'Sweep failed'
+  const detailStr = Array.isArray(detail) ? detail.join(' ') : String(detail || '')
+  const requiresSweepAuth = /no sweep auth/i.test(detailStr)
   switch (status) {
-    case 400: return { status, message: detail || 'Invalid token or destination address' }
-    case 401: return { status, message: 'Session expired. Please re-login and try again.' }
+    case 400: return { status, message: detail || 'Invalid token or destination address', requiresSweepAuth }
+    case 401: return { status, message: 'Session expired. Please re-login and try again.', requiresSweepAuth }
     case 403: {
-      const detailStr = Array.isArray(detail) ? detail.join(' ') : String(detail || '')
       if (/sign/i.test(detailStr)) {
-        return { status, message: 'Signature rejected — check the signing key matches the card owner' }
+        return { status, message: 'Signature rejected — check the signing key matches the card owner', requiresSweepAuth }
       }
-      return { status, message: 'You do not own this card' }
+      if (requiresSweepAuth) {
+        return { status, message: detailStr, requiresSweepAuth: true }
+      }
+      return { status, message: 'You do not own this card', requiresSweepAuth }
     }
-    case 404: return { status, message: 'Card or token not found' }
-    case 502: return { status, message: 'Sweep service unavailable. Please try again later.' }
-    case 500: return { status, message: 'No confirmation received. Check balances again; tokens may have swept.' }
-    default: return { status, message: Array.isArray(detail) ? detail.join(' ') : String(detail) }
+    case 404: return { status, message: 'Card or token not found', requiresSweepAuth }
+    case 502: return { status, message: 'Sweep service unavailable. Please try again later.', requiresSweepAuth }
+    case 500: return { status, message: 'No confirmation received. Check balances again; tokens may have swept.', requiresSweepAuth }
+    default: return { status, message: detailStr, requiresSweepAuth }
   }
 }
 
@@ -1082,9 +1202,10 @@ export async function sweepFungibleTokens(cardIdOrUid, tokenId, tokenAddress, si
     if (error.response.status === 500 && (error.response.data == null || error.response.data === '')) {
       return { success: 'unknown', txid: null }
     }
-    const { message } = parseFtSweepError(error)
+    const { message, requiresSweepAuth } = parseFtSweepError(error)
     const normalized = new Error(message)
     normalized.status = error?.response?.status
+    normalized.requiresSweepAuth = requiresSweepAuth
     normalized.cause = error
     throw normalized
   }
