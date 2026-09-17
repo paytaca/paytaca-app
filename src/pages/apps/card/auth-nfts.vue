@@ -2,7 +2,7 @@
   <div class="static-container">
     <div id="app-container" class="text-bow" :class="getDarkModeClass(darkMode)">
       <HeaderNav
-        :title="$t('Card')"
+        :title="$t('Cards')"
         backnavpath="/apps"
         class="q-px-sm apps-header"
       />

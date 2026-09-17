@@ -254,7 +254,7 @@ export default defineComponent({
 
       const txTemplate = {...this.tx} as TransactionTemplateFixed<typeof compiler>;
 
-      const mnemonic = await getMnemonic((this as any).$store.getters['global/getWalletIndex'])
+      const mnemonic = await getMnemonic((this as any).$store.getters['global/getWalletIndex']).catch(() => null)
       // Legacy network-specific signing support removed; always treat signing network as BCH for compatibility
       const network = {bch: "BCH", slp: "BCH"}[this.assetId]
       const wallet = new Wallet(mnemonic, network)

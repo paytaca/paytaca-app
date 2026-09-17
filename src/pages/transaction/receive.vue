@@ -5,6 +5,57 @@
         :backnavpath="backNavPath"
         class="header-nav"
       ></header-nav>
+
+      <!-- Mandatory receive-target selection gate (before any content renders) -->
+      <div v-if="showTargetSelection" class="target-selection-gate text-bow" :class="getDarkModeClass(darkMode)">
+        <div v-if="fetchingPosOptions" class="row flex-center q-mt-xl">
+          <q-spinner color="primary" size="2em" />
+        </div>
+        <template v-else>
+          <div class="text-h5 q-mt-lg q-mb-lg text-center">{{ $t('ReceiveFor', {}, 'Receive for') }}</div>
+
+          <q-card
+            class="pt-card br-15 q-mb-md q-pa-md target-option-card"
+            :class="getDarkModeClass(darkMode)"
+            clickable
+            v-ripple
+            @click="selectPosReceiveTarget(null, null)"
+          >
+            <div class="row items-center">
+              <q-icon name="person" size="2em" color="primary" class="q-mr-md" />
+              <div>
+                <div class="text-subtitle1 text-weight-medium">{{ $t('Personal', {}, 'Personal') }}</div>
+                <div class="text-caption text-grey">{{ $t('PersonalReceiveDesc', {}, 'Receive to your personal wallet address') }}</div>
+              </div>
+            </div>
+          </q-card>
+
+          <template v-for="option in merchantPosOptions" :key="option.merchant.id">
+            <div class="text-subtitle1 text-weight-bold q-mt-md q-mb-sm q-px-md">{{ option.merchant.name }}</div>
+            <q-card
+              v-for="device in option.devices"
+              :key="device.posid"
+              class="pt-card br-15 q-mb-sm q-pa-md target-option-card"
+              :class="getDarkModeClass(darkMode)"
+              clickable
+              v-ripple
+              @click="selectPosReceiveTarget(device, option.merchant)"
+            >
+              <div class="row items-center">
+                <q-icon name="storefront" size="2em" color="primary" class="q-mr-md" />
+                <div>
+                  <div class="text-subtitle2 text-weight-medium">
+                    {{ device.name || 'POSID' }} #{{ padPosId(device.posid) }}
+                  </div>
+                  <div class="text-caption text-grey">{{ $t('PosReceiveDesc', {}, 'Receive to this POS device address') }}</div>
+                </div>
+              </div>
+            </q-card>
+          </template>
+        </template>
+      </div>
+
+      <template v-else>
       <div v-if="!amountDialog" class="text-bow" :class="getDarkModeClass(darkMode)">
       <q-icon
         id="context-menu"
@@ -35,6 +86,63 @@
         </q-menu>
       </q-icon>
       <div>
+        <div v-if="showPosSelector" class="row flex-center">
+          <q-btn
+            flat
+            no-caps
+            rounded
+            dense
+            class="text-bow q-px-md pos-receive-target-btn"
+            :class="getDarkModeClass(darkMode)"
+          >
+            <q-icon name="storefront" size="xs" color="primary" class="q-mr-xs" />
+            <span class="text-grey q-mr-xs">{{ $t('ReceiveFor', {}, 'Receive for') }}:</span>
+            <span class="text-weight-medium pos-receive-target-label">{{ selectedPosLabel }}</span>
+            <q-icon name="expand_more" size="xs" class="q-ml-xs" />
+            <q-menu anchor="bottom middle" self="top middle">
+              <q-list class="pt-card" style="min-width: 220px" :class="getDarkModeClass(darkMode)">
+                <q-item clickable v-close-popup @click="selectPosReceiveTarget(null, null)">
+                  <q-item-section avatar>
+                    <q-icon name="person" color="primary" />
+                  </q-item-section>
+                  <q-item-section>
+                    <q-item-label class="pt-label" :class="getDarkModeClass(darkMode)">
+                      {{ $t('Personal', {}, 'Personal') }}
+                    </q-item-label>
+                  </q-item-section>
+                  <q-item-section side v-if="!selectedPosDevice">
+                    <q-icon name="check" color="primary" />
+                  </q-item-section>
+                </q-item>
+                <template v-for="option in merchantPosOptions" :key="option.merchant.id">
+                  <q-separator />
+                  <q-item-label header class="text-weight-bold pt-label" :class="getDarkModeClass(darkMode)">
+                    {{ option.merchant.name }}
+                  </q-item-label>
+                  <q-item
+                    v-for="device in option.devices"
+                    :key="device.posid"
+                    clickable
+                    v-close-popup
+                    @click="selectPosReceiveTarget(device, option.merchant)"
+                  >
+                    <q-item-section avatar>
+                      <q-icon name="devices" color="primary" />
+                    </q-item-section>
+                    <q-item-section>
+                      <q-item-label class="pt-label" :class="getDarkModeClass(darkMode)">
+                        {{ device.name || 'POSID' }} #{{ padPosId(device.posid) }}
+                      </q-item-label>
+                    </q-item-section>
+                    <q-item-section side v-if="selectedPosDevice && selectedPosDevice.posid === device.posid">
+                      <q-icon name="check" color="primary" />
+                    </q-item-section>
+                  </q-item>
+                </template>
+              </q-list>
+            </q-menu>
+          </q-btn>
+        </div>
         <div v-if="asset && asset.id ==='bch'" class="row flex-center">
           <div class="row flex-center" style="margin-top: 20px;">
             <q-img @click="isCt = false" src="bitcoin-cash-circle.svg" height="35px" width="35px" />
@@ -171,7 +279,7 @@
         </div>
       </div>
     </div>
-    <div v-if="amountDialog">
+      <div v-if="amountDialog">
       <div class="text-right">
         <q-btn
           flat
@@ -204,6 +312,7 @@
         </div>
       </div>
     </div>
+    </template>
   </div>
 </template>
 
@@ -223,6 +332,14 @@ import {
   getDerivationPathForWalletType,
   generateAddressSetWithoutSubscription
 } from 'src/utils/address-generation-utils.js'
+import {
+  backend as posBackend,
+  parsePosDeviceData,
+  padPosId,
+  resolvePosAddressIndex,
+  nextPosPaymentIndex,
+  fetchLastPosPaymentIndex
+} from 'src/wallet/pos'
 import { toTokenAddress } from 'src/utils/crypto.js'
 import axios from 'axios'
 
@@ -257,7 +374,14 @@ export default {
       tokens: [],
       dynamicAddress: '', // Store dynamically generated address (for display, may be token format)
       dynamicAddressRegular: '', // Store regular format address (for API calls, subscriptions, listeners)
-      isInitializing: true // Flag to prevent watcher from triggering during initial load
+      isInitializing: true, // Flag to prevent watcher from triggering during initial load
+      merchantPosOptions: [], // Merchants with their POS devices: [{ merchant, devices }]
+      selectedPosMerchant: null, // null means receiving for Personal
+      selectedPosDevice: null,
+      posPaymentIndex: null,
+      posAddressIndex: null,
+      receiveTargetChosen: false, // Whether the user has chosen a receive target (Personal or a POS device)
+      fetchingPosOptions: false // Loading state for merchant/device fetch
     }
   },
   props: {
@@ -338,18 +462,168 @@ export default {
         const tokenAmount = parseFloat(tempAmount) * (10 ** (this.asset?.decimals || 0))
         tempAddress += this.amount ? '&f=' + Math.round(tokenAmount) : ''
       } else {
-        tempAddress += this.amount ? '?amount=' + tempAmount : ''
+        const params = []
+        if (this.selectedPosDevice) params.push('POS=' + this.selectedPosDevice.posid)
+        if (this.amount) params.push('amount=' + tempAmount)
+        if (params.length) tempAddress += '?' + params.join('&')
       }
 
       return tempAddress
     },
     decimalObj () {
       return this.setAmountInFiat ? { min: 0, max: 4 } : { min: 0, max: 8 }
+    },
+    showTargetSelection () {
+      return this.walletType === 'bch' &&
+        this.asset && this.asset.id === 'bch' &&
+        !this.isChipnet &&
+        !this.receiveTargetChosen &&
+        (this.merchantPosOptions.length > 0 || this.fetchingPosOptions)
+    },
+    showPosSelector () {
+      return this.walletType === 'bch' &&
+        this.asset && this.asset.id === 'bch' &&
+        !this.isChipnet &&
+        this.receiveTargetChosen &&
+        this.merchantPosOptions.length > 0
+    },
+    selectedPosLabel () {
+      if (!this.selectedPosDevice) return this.$t('Personal', {}, 'Personal')
+      const merchantName = this.selectedPosMerchant?.name || ''
+      const deviceName = this.selectedPosDevice?.name || 'POSID'
+      const paddedId = padPosId(this.selectedPosDevice?.posid)
+      return `${merchantName} · ${deviceName} #${paddedId}`
     }
   },
   methods: {
     getDarkModeClass,
     formatWithLocale,
+    padPosId,
+
+    /**
+     * Fetch merchants of this wallet together with their POS devices
+     * and group them for the receive-target selector
+     */
+    async fetchMerchantPosOptions () {
+      const walletHash = this.getWallet('bch')?.walletHash
+      if (!walletHash) return
+      this.fetchingPosOptions = true
+      try {
+        await this.$store.dispatch('paytacapos/fetchMerchants', { walletHash })
+        const merchants = this.$store.getters['paytacapos/merchants']
+        if (!merchants?.length) return
+
+        const response = await posBackend.get('paytacapos/devices/', {
+          params: { wallet_hash: walletHash, limit: 100 }
+        })
+        const devices = (response?.data?.results || []).map(parsePosDeviceData)
+
+        this.merchantPosOptions = merchants
+          .map(merchant => ({
+            merchant,
+            devices: devices.filter(device => device?.merchantId === merchant.id)
+          }))
+          .filter(option => option.devices.length > 0)
+      } catch (error) {
+        console.error('Error fetching merchant POS options:', error)
+      } finally {
+        this.fetchingPosOptions = false
+      }
+    },
+
+    /**
+     * Switch the receive target: null device = Personal, otherwise a merchant POS device
+     */
+    async selectPosReceiveTarget (device, merchant) {
+      if (this.generating) return
+      if (this.receiveTargetChosen &&
+          this.selectedPosDevice?.posid === device?.posid &&
+          this.selectedPosMerchant?.id === merchant?.id) return
+
+      const wasTargetChosen = this.receiveTargetChosen
+
+      this.selectedPosDevice = device
+      this.selectedPosMerchant = device ? merchant : null
+      this.posPaymentIndex = null
+      this.posAddressIndex = null
+      this.generating = true
+      this.dynamicAddress = ''
+      this.dynamicAddressRegular = ''
+      this.receiveTargetChosen = true
+
+      if (wasTargetChosen) {
+        try { this.$disconnect() } catch (error) { console.error(error) }
+        delete this?.$options?.sockets
+      }
+
+      try {
+        if (device) {
+          await this.generatePosAddress(device, { freshPaymentIndex: true })
+        } else {
+          await this.refreshDynamicAddress()
+        }
+        try { await this.setupListener() } catch (error) { console.error(error) }
+      } finally {
+        this.generating = false
+      }
+    },
+
+    /**
+     * Generate the receiving address for a POS device.
+     * The address index embeds the posid in its last 4 digits, so watchtower
+     * counts payments to this address towards the POS device.
+     * @param {Object} device - parsed POS device data (must have posid)
+     * @param {Object} [opts]
+     * @param {Boolean} [opts.freshPaymentIndex] - fetch last payment index from
+     * watchtower instead of incrementing the locally tracked one
+     */
+    async generatePosAddress (device, opts) {
+      try {
+        const walletHash = this.getWallet('bch')?.walletHash
+        if (!walletHash) throw new Error('Missing wallet hash')
+
+        let lastPaymentIndex = this.posPaymentIndex
+        if (opts?.freshPaymentIndex || !Number.isInteger(lastPaymentIndex)) {
+          lastPaymentIndex = await fetchLastPosPaymentIndex(walletHash, device?.posid, this.isChipnet) || 0
+        }
+        const paymentIndex = nextPosPaymentIndex(lastPaymentIndex, device?.posid)
+        const addressIndex = resolvePosAddressIndex(paymentIndex, device?.posid)
+
+        const address = await generateReceivingAddress({
+          walletIndex: this.$store.getters['global/getWalletIndex'],
+          derivationPath: getDerivationPathForWalletType('bch'),
+          addressIndex,
+          isChipnet: this.isChipnet
+        })
+
+        if (!address) throw new Error('Failed to subscribe address to watchtower')
+
+        this.posPaymentIndex = paymentIndex
+        this.posAddressIndex = addressIndex
+        this.dynamicAddressRegular = address
+        this.dynamicAddress = address
+      } catch (error) {
+        console.error('Error generating POS address:', error)
+        this.$q.notify({
+          message: this.$t('FailedToGenerateAddress') || 'Failed to generate address. Please try again.',
+          color: 'negative',
+          icon: 'warning'
+        })
+        throw error
+      }
+    },
+
+    /**
+     * Address index of the currently displayed address (POS index when a
+     * POS device is selected, otherwise the wallet's last address index)
+     */
+    getDisplayedAddressIndex () {
+      if (this.selectedPosDevice && Number.isInteger(this.posAddressIndex)) {
+        return this.posAddressIndex
+      }
+      const lastAddressIndex = this.$store.getters['global/getLastAddressIndex'](this.walletType)
+      return this.ensureAddressIndexNotZero(lastAddressIndex)
+    },
 
     /**
      * Ensures address index is never 0 (0/0 is reserved for message encryption)
@@ -462,9 +736,21 @@ export default {
         this.generateNewAddress()
       })
     },
-    generateNewAddress () {
+    async generateNewAddress () {
       const vm = this
       vm.generating = true
+
+      if (vm.selectedPosDevice) {
+        delete this?.$options?.sockets
+        try {
+          await vm.generatePosAddress(vm.selectedPosDevice)
+          try { await vm.setupListener() } catch {}
+        } finally {
+          vm.generating = false
+        }
+        return
+      }
+
       const lastAddressIndex = vm.getLastAddressIndex()
       let newAddressIndex = lastAddressIndex + 1
       // Skip address 0/0 (reserved for message encryption)
@@ -472,7 +758,7 @@ export default {
 
       delete this?.$options?.sockets
 
-      getMnemonic(vm.$store.getters['global/getWalletIndex']).then(function (mnemonic) {
+      getMnemonic(vm.$store.getters['global/getWalletIndex']).catch(() => null).then(function (mnemonic) {
         const wallet = new Wallet(mnemonic, vm.network)
         if (vm.walletType === 'bch') {
           getWalletByNetwork(wallet, vm.walletType).getNewAddressSet(newAddressIndex).then(async function (result) {
@@ -507,11 +793,9 @@ export default {
     },
     async showPrivateKey () {
       try {
-        const mnemonic = await getMnemonic(this.$store.getters['global/getWalletIndex'])
+        const mnemonic = await getMnemonic(this.$store.getters['global/getWalletIndex']).catch(() => null)
         const wallet = new Wallet(mnemonic, this.network)
-        let lastAddressIndex = this.$store.getters['global/getLastAddressIndex'](this.walletType)
-        // Skip address 0/0 (reserved for message encryption)
-        lastAddressIndex = this.ensureAddressIndexNotZero(lastAddressIndex)
+        const lastAddressIndex = this.getDisplayedAddressIndex()
         const dynamicWallet = getWalletByNetwork(wallet, this.walletType)
         const privateKey = await dynamicWallet.getPrivateKey('0/' + String(lastAddressIndex))
         
@@ -535,9 +819,7 @@ export default {
       try {
         const mnemonic = await getMnemonic(this.$store.getters['global/getWalletIndex'])
         const wallet = new Wallet(mnemonic, this.network)
-        let lastAddressIndex = this.$store.getters['global/getLastAddressIndex'](this.walletType)
-        // Skip address 0/0 (reserved for message encryption)
-        lastAddressIndex = this.ensureAddressIndexNotZero(lastAddressIndex)
+        const lastAddressIndex = this.getDisplayedAddressIndex()
         const dynamicWallet = getWalletByNetwork(wallet, this.walletType)
         const publicKey = await dynamicWallet.getPublicKey('0/' + String(lastAddressIndex))
         
@@ -621,26 +903,39 @@ export default {
         return null
       }
     },
-    async checkAddressBalance(address, walletType) {
-      // Check if address has balance (including token sats)
+    async isAddressUsed(address, walletType) {
       try {
         const baseUrl = this.isChipnet ? 'https://chipnet.watchtower.cash' : 'https://watchtower.cash'
         
+        const promises = []
+
         if (walletType === 'slp') {
-          // For SLP, check BCH balance
-          const response = await axios.get(`${baseUrl}/api/balance/bch/${address}/`).catch(() => ({ data: { balance: 0 } }))
-          const balance = response?.data?.balance || 0
-          return balance > 0
+          promises.push(
+            axios.get(`${baseUrl}/api/balance/bch/${address}/`).catch(() => ({ data: { balance: 0 } }))
+          )
+          promises.push(
+            axios.get(`${baseUrl}/api/balance/slp/${address}/`).catch(() => ({ data: { balance: 0 } }))
+          )
         } else {
-          // For BCH, check balance including token sats
-          const response = await axios.get(`${baseUrl}/api/balance/bch/${address}/?include_token_sats=true`).catch(() => ({ data: { balance: 0 } }))
-          const balance = response?.data?.balance || 0
-          return balance > 0
+          promises.push(
+            axios.get(`${baseUrl}/api/balance/bch/${address}/?include_token_sats=true`).catch(() => ({ data: { balance: 0 } }))
+          )
         }
+
+        promises.push(
+          axios.get(`${baseUrl}/api/address-info/bch/${encodeURIComponent(address)}/isused/`).catch(() => ({ data: { is_used: false } }))
+        )
+
+        const results = await Promise.all(promises)
+        const isUsedResponse = results[results.length - 1]
+        const isUsed = isUsedResponse?.data?.is_used === true
+
+        const hasBalance = results.slice(0, -1).some(r => (r?.data?.balance || 0) > 0)
+
+        return hasBalance || isUsed
       } catch (error) {
-        console.error('Error checking address balance:', error)
-        // If check fails, assume no balance to be safe
-        return false
+        console.error('Error checking if address is used:', error)
+        return true
       }
     },
     async refreshDynamicAddress() {
@@ -695,7 +990,7 @@ export default {
         // Generate address from lastAddressIndex
         let address
         
-        // Step 1: Generate address from lastAddressIndex WITHOUT subscribing (just to check balance)
+        // Step 1: Generate address from lastAddressIndex WITHOUT subscribing (just to check if used)
         const addressResult = await generateAddressSetWithoutSubscription({
           walletIndex: this.$store.getters['global/getWalletIndex'],
           derivationPath: getDerivationPathForWalletType(this.walletType),
@@ -709,11 +1004,11 @@ export default {
         
         address = addressResult.addresses.receiving
         
-        // Step 2: Check if that address has balance (including token sats)
-        const hasBalance = await this.checkAddressBalance(address, this.walletType)
+        // Step 2: Check if that address has been used (balance or tx history)
+        const isUsed = await this.isAddressUsed(address, this.walletType)
         
-        if (!hasBalance) {
-          // Step 3: If balance is zero, subscribe and render that address
+        if (!isUsed) {
+          // Step 3: If address is unused, subscribe and render that address
           // Now subscribe the address since we're using it
           const subscribeResult = await generateReceivingAddress({
             walletIndex: this.$store.getters['global/getWalletIndex'],
@@ -757,7 +1052,7 @@ export default {
         }
         
         // Update store with new address index
-        const mnemonic = await getMnemonic(this.$store.getters['global/getWalletIndex'])
+        const mnemonic = await getMnemonic(this.$store.getters['global/getWalletIndex']).catch(() => null)
         const wallet = new Wallet(mnemonic, this.network)
         const result = await getWalletByNetwork(wallet, this.walletType).getNewAddressSet(newAddressIndex)
         const addresses = result.addresses
@@ -856,6 +1151,9 @@ export default {
       }
 
       vm.$connect(url)
+      if (!vm.$options.sockets) {
+        vm.$options.sockets = {}
+      }
       vm.$options.sockets.onmessage = async function (message) {
         const data = JSON.parse(message.data)
         const tokenType = vm.assetId.split('/')[0]
@@ -1051,7 +1349,9 @@ export default {
   },
 
   async beforeUnmount() {
-    if (this.generateAddressOnLeave) {
+    // Only rotate the personal address on leave; POS addresses rotate
+    // from the server's last payment index the next time one is selected
+    if (this.generateAddressOnLeave && !this.selectedPosDevice) {
       this.generateNewAddress()
     }
   },
@@ -1062,12 +1362,23 @@ export default {
       delete this?.$options?.sockets
     }
 
-    await self.wakeLock.release()
+    if (self.wakeLock) await self.wakeLock.release()
   },
 
   async mounted () {
     const vm = this
-    
+
+    // Fetch merchant POS devices first — if merchants with POS exist,
+    // force the user to pick a receive target before anything else renders
+    if (vm.walletType === 'bch' && !vm.isChipnet && vm.asset?.id === 'bch') {
+      await vm.fetchMerchantPosOptions()
+      if (vm.merchantPosOptions.length > 0) {
+        vm.isInitializing = false
+        vm.generating = false
+        return // Gate is shown; user picks target in selectPosReceiveTarget
+      }
+    }
+
     // Generate the dynamic address first (this handles balance check and subscription)
     await vm.refreshDynamicAddress()
     
@@ -1091,6 +1402,12 @@ export default {
 
   created () {
     const vm = this
+
+    if (vm.assetId.indexOf('slp/') > -1) {
+      vm.walletType = 'slp'
+    } else {
+      vm.walletType = 'bch'
+    }
     
     // Check if asset data was passed from select-asset page
     // This allows immediate rendering with correct logo and details
@@ -1198,5 +1515,29 @@ body {
 .set-amount-button {
   margin-left: 35px;
   font-weight: 500;
+}
+.pos-receive-target-btn {
+  border: 1px solid rgba(128, 128, 128, 0.4);
+  max-width: 90%;
+}
+.pos-receive-target-label {
+  max-width: 220px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.target-selection-gate {
+  display: flex;
+  flex-direction: column;
+  min-height: calc(100vh - 120px);
+  padding: 16px;
+  overflow-y: auto;
+}
+.target-option-card {
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+.target-option-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.12);
 }
 </style>

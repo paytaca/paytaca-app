@@ -313,7 +313,7 @@ import {
   createRfPromoData,
   updateRfPromoData,
   getRpMaxRedeemable,
-  updateUserPromoData,
+  PROMO_CONTRACT_VERSION,
 } from 'src/utils/engagementhub-utils/rewards'
 
 import HeaderNav from 'src/components/header-nav.vue'
@@ -361,6 +361,7 @@ export default {
       pointsError: '',
       dataError: '',
       rpMax: 0,
+      rpContractVersion: '',
 
       referralsList: [],
       referralsOverallStats: {}
@@ -403,23 +404,11 @@ export default {
       this.isLoading = true
 
       this.rpId = Number(this.$route.params.id || -1)
-
-      // initialize RP Promo Contract and retrieve points
-      try {
-        const walletIndex = this.$store.getters['global/getWalletIndex']
-        const userPubkey = await getAddress0_0PublicKey(walletIndex)
-        this.rpContract = new PromoContract(userPubkey, PromosBytes.RP)
-        if (this.rpId === -1) await this.rpContract.subscribeAddress()
-        this.points = await this.rpContract.getTokenBalance()
-        this.animatePointsCounter()
-      } catch (error) {
-        console.error(error)
-        this.pointsError = this.$t('PointsLoadError')
-      }
+      const isNewRpUser = this.rpId === -1
 
       // fetch and load data
+      let rpData = null
       try {
-        let rpData = null
         if (this.rpId === -1) {
           // open help dialog
           this.isHelpActive = true
@@ -430,10 +419,6 @@ export default {
 
           this.rpId = rpData.id
           await this.$router.replace({ params: { id: String(rpData.id) } })
-          rpData = await updateRfPromoData(this.rpId, {
-            contract_ct_address: this.rpContract.contract.tokenAddress
-          })
-          updateUserPromoData({ rp: this.rpId })
         } else {
           rpData = await getRfPromoData(this.rpId)
         }
@@ -452,6 +437,26 @@ export default {
       } catch (error) {
         console.error(error)
         this.dataError = this.$t('DataLoadError')
+      }
+
+      // initialize RP Promo Contract and retrieve points
+      try {
+        const walletIndex = this.$store.getters['global/getWalletIndex']
+        const userPubkey = await getAddress0_0PublicKey(walletIndex)
+        const contractVersion = rpData?.contract_version ?? PROMO_CONTRACT_VERSION
+        this.rpContractVersion = contractVersion
+        this.rpContract = new PromoContract(userPubkey, PromosBytes.RP, contractVersion)
+        if (isNewRpUser) {
+          await this.rpContract.subscribeAddress()
+          await updateRfPromoData(this.rpId, {
+            contract_ct_address: this.rpContract.contract.tokenAddress
+          })
+        }
+        this.points = await this.rpContract.getTokenBalance()
+        this.animatePointsCounter()
+      } catch (error) {
+        console.error(error)
+        this.pointsError = this.$t('PointsLoadError')
       }
 
       this.isLoading = false
@@ -516,7 +521,8 @@ export default {
           promoType: Promos.RFPROMO,
           promoBytes: PromosBytes.RP,
           redeemedPoints: this.redeemedPoints,
-          maxRedeemable: this.rpMax
+          maxRedeemable: this.rpMax,
+          contractVersion: this.rpContractVersion
         }
       }).onDismiss(async () => {
         this.isLoading = true

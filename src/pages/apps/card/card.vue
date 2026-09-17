@@ -389,6 +389,20 @@ export default {
     hasCardBalance () {
       const balance = parseFloat(this.activeCard?.balance) || 0
       return balance > 0
+    },
+
+    bchFiatText () {
+      if (this.balanceHidden) return ''
+      const bchPrice = this.$store.getters['market/getAssetPrice']('bch', this.selectedMarketCurrency)
+      if (!bchPrice) return ''
+      const balance = Number(this.bchBalance) || 0
+      const fiatValue = balance * Number(bchPrice)
+      return parseFiatCurrency(fiatValue.toFixed(2), this.selectedMarketCurrency)
+    },
+
+    selectedMarketCurrency () {
+      const currency = this.$store.getters['market/selectedCurrency']
+      return currency?.symbol || 'USD'
     }
   },
 
@@ -440,7 +454,7 @@ export default {
         this.fetchCardTokenHoldings()
         this.loadBalanceVisibility()
       } catch (err) {
-        cardLogger.error('Error loading card details:', err)
+        cardLogger.error('Error loading card details:', err.message || err)
       } finally {
         this.isLoaded = true
       }

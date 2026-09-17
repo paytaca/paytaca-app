@@ -2,8 +2,13 @@
     <div>
       <AppLoading v-if="showInitialLoad" />
       <WalletSwitchLoading v-if="showWalletSwitchLoading" />
-      <router-view :key="$store.getters['global/getWalletIndex']" />
+      <router-view :key="$store.getters['global/getWalletSwitchId']" />
       <v-offline @detected-condition="onConnectivityChange" />
+
+      <div v-if="isChipnet" class="chipnet-banner" @click="confirmSwitchToMainnet">
+        <span class="chipnet-banner-label">chipnet</span>
+        <q-btn flat dense no-caps class="chipnet-banner-btn" label="Switch to Mainnet" />
+      </div>
       
       <!-- Privacy overlay for app switcher/background preview -->
       <!-- Always present in DOM, controlled by CSS class for instant visibility -->
@@ -23,6 +28,7 @@
 
 <script>
 import { updateCssThemeColors } from './utils/theme-utils'
+import { getDarkModeClass } from './utils/theme-darkmode-utils'
 import { getMnemonic, Wallet, loadWallet } from './wallet'
 import { getWalletByNetwork } from 'src/wallet/chipnet'
 import { useStore } from "vuex"
@@ -105,6 +111,12 @@ export default {
       const darkMode = this.$store?.state?.darkmode?.darkmode
       return darkMode ? 'dark' : 'light'
     },
+    isChipnet() {
+      return this.$store.getters['global/isChipnet']
+    },
+    darkMode() {
+      return this.$store.getters['darkmode/getStatus']
+    },
     walletIndex() {
       return this.$store.getters['global/getWalletIndex']
     },
@@ -122,6 +134,9 @@ export default {
     }
   },
   watch: {
+    isChipnet (val) {
+      document.body.style.setProperty('--chipnet-banner-height', val ? '56px' : '0px')
+    },
     // Watch for wallet switches to update screenshot security and re-initialize
     async walletIndex(newIndex, oldIndex) {
       if (newIndex === oldIndex || oldIndex === undefined) return
@@ -419,6 +434,23 @@ export default {
         // Reset pause timestamp to prevent stale timestamps from interfering with future checks
         // This prevents spurious resume events on Android from incorrectly triggering genuine background handling
         vm.lastPauseTime = 0
+      })
+    },
+    getDarkModeClass (darkMode) {
+      return darkMode ? 'dark' : 'light'
+    },
+    confirmSwitchToMainnet () {
+      this.$q.dialog({
+        title: this.$t('SwitchToMainnet', {}, 'Switch to Mainnet'),
+        message: this.$t('SwitchToMainnetConfirm', {}, 'Are you sure you want to switch to Mainnet?'),
+        ok: { label: this.$t('Switch', {}, 'Switch'), color: 'primary' },
+        cancel: { label: this.$t('Cancel'), flat: true },
+        persistent: true
+      }).onOk(() => {
+        this.$store.commit('global/toggleIsChipnet')
+        this.$nextTick(() => {
+          window.location.reload()
+        })
       })
     },
     async onConnectivityChange (online) {
@@ -875,6 +907,30 @@ export default {
     // Clear stale flag from router guard (watcher won't fire if index unchanged)
     vm.$store.commit('global/setWalletSwitchInProgress', false)
 
+    // Process a push notification tap that arrived during boot (before the store
+    // was hydrated). See boot/push-notifications.js for why it gets stashed.
+    // NOTE: the stash is intentionally NOT removed here — it is kept alive until
+    // the flow completes (emitOpenedNotification) so the tap intent survives
+    // app locks and in-memory state clears.
+    try {
+      const stashedNotification = localStorage.getItem('push_opened_notification')
+      if (stashedNotification) {
+        let notification = null
+        try {
+          notification = JSON.parse(stashedNotification)
+        } catch (parseErr) {
+          console.error('Failed to parse stashed notification:', parseErr)
+          localStorage.removeItem('push_opened_notification')
+        }
+        if (notification) {
+          vm.$store.commit('notification/setOpenedNotification', notification)
+          await vm.$store.dispatch('notification/handleOpenedNotification')
+        }
+      }
+    } catch (err) {
+      console.error('Stash processing error:', err)
+    }
+
     // Fetch wallet creation date from backend (fire-and-forget, non-blocking)
     vm.$store.dispatch('global/fetchWalletCreationDate').catch(() => {})
 
@@ -914,7 +970,7 @@ export default {
     // Legacy feature flag removed; no-op (handled by removal in store)
 
     const index = vm.$store.getters['global/getWalletIndex']
-    const mnemonic = await getMnemonic(index)
+    const mnemonic = await getMnemonic(index).catch(() => null)
 
     // Check watchtower status (with wallet hash if available)
     const walletHash = vm.$store.getters['global/getWallet']('bch')?.walletHash
@@ -1375,6 +1431,44 @@ html {
   50% {
     transform: scale(1.05);
     opacity: 1;
+  }
+}
+
+.chipnet-banner {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  z-index: 5;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 20px;
+  padding-bottom: calc(12px + env(safe-area-inset-bottom, 0px));
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 600;
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  background: rgba(28, 40, 51, 0.85);
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+  color: rgba(255, 255, 255, 0.9);
+
+  .chipnet-banner-label {
+    text-transform: uppercase;
+    letter-spacing: 1.5px;
+    font-size: 11px;
+    font-weight: 700;
+  }
+
+  .chipnet-banner-btn {
+    border-radius: 6px !important;
+    padding: 4px 14px !important;
+    font-size: 11px !important;
+    font-weight: 600 !important;
+    color: rgba(255, 255, 255, 0.9) !important;
+    border: 1px solid rgba(255, 255, 255, 0.2) !important;
+    background: rgba(255, 255, 255, 0.08) !important;
   }
 }
 </style>

@@ -7,7 +7,7 @@ import { deleteAuthToken } from 'src/exchange/auth'
 import { decryptWalletName } from 'src/marketplace/chat/encryption'
 import { saveWalletName, getWalletName, removeWalletName } from 'src/utils/wallet-name-cache'
 import * as eloadServiceAPI from 'src/utils/eload-service'
-import { loadLibauthHdWallet, loadWallet, deleteMnemonic, getMnemonic, getMnemonicByHash, deleteMnemonicByHash, deleteAllWalletData, deleteDuplicateWalletData, computeWalletHash } from '../../wallet'
+import { loadLibauthHdWallet, loadWallet, deleteMnemonic, getMnemonic, getMnemonicByHash, deleteMnemonicByHash, deleteAllWalletData, deleteDuplicateWalletData, computeWalletHash, clearCachedWallet } from '../../wallet'
 import { getVaultIndexByWalletHashAsync } from 'src/utils/wallet-storage'
 import { Plugins } from '@capacitor/core'
 
@@ -535,6 +535,8 @@ export async function switchWallet (context, walletHashOrIndex) {
 
     // Sync settings to darkmode and market modules
     context.dispatch('syncSettingsToModules')
+
+    context.commit('incrementWalletSwitchId')
   } catch (error) {
     console.error('[switchWallet] Error during wallet switch:', error)
     console.error('[switchWallet] Error stack:', error.stack)
@@ -616,6 +618,9 @@ export async function deleteWallet (context, walletHashOrIndex) {
   if (walletHash) {
     removeWalletName(walletHash)
   }
+
+  // Release the cached in-memory wallet for this index
+  clearCachedWallet(index)
   
   // Actually remove from vault (not just mark as deleted)
   context.commit('removeVaultEntry', index)
@@ -1169,12 +1174,15 @@ export async function autoGenerateAddress(context, opts) {
   const address = opts?.address || context.getters['getAddress'](walletType)
   const lastAddressIndex = context.getters['getLastAddressIndex'](walletType)
 
-  const baseUrl = this.isChipnet ? 'https://chipnet.watchtower.cash' : 'https://watchtower.cash'
+  const baseUrl = context.state.isChipnet ? 'https://chipnet.watchtower.cash' : 'https://watchtower.cash'
 
   const promises = []
   if (walletType === 'slp') {
     let url = `${baseUrl}/api/balance/slp/${address}/`
     if (opts?.tokenId) url = url + `/${opts?.tokenId}/`
+    promises.push(
+      axios.get(url).catch(() => false)
+    )
     promises.push(
       axios.get(`${baseUrl}/api/balance/bch/${address}/`).catch(() => false)
     )
@@ -1191,12 +1199,20 @@ export async function autoGenerateAddress(context, opts) {
     }
   }
 
+  promises.push(
+    axios.get(`${baseUrl}/api/address-info/bch/${encodeURIComponent(address)}/isused/`).catch(() => ({ data: { is_used: false } }))
+  )
+
   const promiseResults = await Promise.all(promises)
-  const generateNewAddress = promiseResults.some(response => {
+  const isUsedResponse = promiseResults[promiseResults.length - 1]
+  const isUsed = isUsedResponse?.data?.is_used === true
+  const hasBalance = promiseResults.slice(0, -1).some(response => {
     return response?.data?.balance > 0
   })
 
-  if (!generateNewAddress) return { address, message: 'Address has no balance',  }
+  const generateNewAddress = hasBalance || isUsed
+
+  if (!generateNewAddress) return { address, message: 'Address has no balance or history',  }
 
   const newAddressIndex = parseInt(lastAddressIndex)+1 || 0
   const wallet = await loadWallet(context.getters['getWalletIndex'])

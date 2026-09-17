@@ -1237,7 +1237,7 @@ export default {
     }
   },
   async mounted() {
-    const mnemonic = await getMnemonic(this.$store.getters['global/getWalletIndex'])
+    const mnemonic = await getMnemonic(this.$store.getters['global/getWalletIndex']).catch(() => null)
     this.wallet = new Wallet(mnemonic)
     if (this.activeTab === 'unclaimed') {
       this.fetchGifts(null, { recordType: this.activeTab, limit: this.unclaimedGiftsLimit, offset: 0 })

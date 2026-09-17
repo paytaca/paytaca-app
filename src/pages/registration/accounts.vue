@@ -2575,7 +2575,7 @@ export default {
     }
 
     if (this.recreate) {
-      this.mnemonic = await getMnemonic(0) || ''
+      this.mnemonic = await getMnemonic(0).catch(() => null) || ''
       if (this.mnemonic.split(" ").length === 12) {
         this.steps = 0
       }
@@ -2614,6 +2614,11 @@ export default {
         })
       })
     }
+  },
+  beforeUnmount () {
+    // Drop the seed phrase and backup phrase references so they can be garbage collected
+    this.mnemonic = ''
+    this.seedPhraseBackup = null
   }
 }
 </script>

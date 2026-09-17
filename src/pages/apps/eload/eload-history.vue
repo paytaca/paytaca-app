@@ -35,9 +35,20 @@
 
 							<div class="sm-font-size" :class="darkMode ? '' : 'subtext'">{{ formatDate(order.created_at, true) }}</div>
 						</div>					
-						<div class="col-4 text-right">
-							<div class="text-capitalize text-weight-bold subtext">{{ getStatusLabel(order) }}</div>
-						</div>
+					<div class="col-4 text-right">
+						<div class="text-capitalize text-weight-bold subtext">{{ getStatusLabel(order) }}</div>
+						<q-btn
+							v-if="order?.status === 'success'"
+							dense
+							no-caps
+							unelevated
+							ripple
+							class="reorder-btn q-mt-xs"
+							:class="darkMode ? 'dark' : 'light'"
+							:label="$t('OrderAgain', {}, 'Order again')"
+							@click.stop="reorderOrder(order)"
+						/>
+					</div>
 					</div>					
 
 					<q-separator class="q-my-sm" :dark="darkMode"/>
@@ -201,8 +212,30 @@ export default {
 
 	    	this.fetchOrders()
 	    },
-	    selectOrder (order) {	    	
+	    selectOrder (order) {
 	    	this.$router.push({ name: 'eload-service-order-details', params: { orderId: order?.id } })
+	    },
+	    reorderOrder (order) {
+	    	// "Order again": reopen the purchase form pre-filled with the same
+	    	// product and recipient number from the stored promo snapshot.
+	    	const snapshot = order?.promo_snapshot
+	    	if (!snapshot || typeof snapshot !== 'object') {
+	    		this.$q.notify({ type: 'negative', message: this.$t('UnableToReorder', {}, 'Unable to reorder this order') })
+	    		return
+	    	}
+
+	    	try {
+	    		window.sessionStorage.setItem('eload-reorder-payload', JSON.stringify(snapshot))
+	    	} catch (e) {
+	    		console.error('[Eload] Failed to stash reorder payload:', e)
+	    		this.$q.notify({ type: 'negative', message: this.$t('UnableToReorder', {}, 'Unable to reorder this order') })
+	    		return
+	    	}
+
+	    	this.$router.push({
+	    		name: 'eload-service-form',
+	    		query: { reorder: order?.id != null ? String(order.id) : undefined }
+	    	})
 	    },
 	    async filterOrder (filter) {
 	    	this.filters = filter
@@ -236,5 +269,25 @@ export default {
   }
    .pointer {
  	cursor: pointer;
+ }
+
+ .reorder-btn {
+   font-size: 13px;
+   font-weight: 600;
+   padding: 6px 10px;
+   border-radius: 8px;
+   color: var(--q-primary);
+   background: transparent;
+   backdrop-filter: none;
+   -webkit-backdrop-filter: none;
+   border: 1px solid color-mix(in srgb, var(--q-primary) 45%, transparent);
+   box-shadow: none;
+
+   &.dark {
+     color: var(--q-primary);
+     background: transparent;
+     border-color: color-mix(in srgb, var(--q-primary) 45%, transparent);
+     box-shadow: none;
+   }
  }
 </style>

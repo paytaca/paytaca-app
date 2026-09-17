@@ -90,7 +90,7 @@ export default {
 
     async loadAddresses() {
       // Load wallets
-      const mnemonic = await getMnemonic(this.$store.getters['global/getWalletIndex'])
+      const mnemonic = await getMnemonic(this.$store.getters['global/getWalletIndex']).catch(() => null)
       const network = {bch: "BCH", slp: "BCH"}[this.assetId]
       const wallet = new Wallet(mnemonic, network)
       this.wallet = markRaw(wallet)

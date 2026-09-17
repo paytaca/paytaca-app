@@ -185,7 +185,7 @@ export class Card {
   async getBchBalance() {
     const response = await backend.get(`/cards/${this.id}/bch-balance/`)
     .catch(error => {
-      cardLogger.error('Error fetching BCH balance:', error.response || error.message);
+      cardLogger.error('Error fetching BCH balance:', error.message);
       throw error;
     });
     return response.data?.bch_balance || 0;
@@ -448,8 +448,8 @@ export class Card {
 
       return this;
     } catch (error) {
-      cardLogger.error('Error:', error);
-      cardLogger.error('Card creation workflow failed:', error.response || error.message);
+      cardLogger.error('Error:', error.message);
+      cardLogger.error('Card creation workflow failed:', error.message);
       throw error;
     }
   }
@@ -462,7 +462,7 @@ export class Card {
         return response.data;
       })
       .catch(error => {
-        cardLogger.error('Error processing linking transaction:', error.response || error.message);
+        cardLogger.error('Error processing linking transaction:', error.message);
         throw error;
       });
   }
@@ -480,7 +480,7 @@ export class Card {
           cardLogger.log(`Attempt ${attempts + 1}/${maxAttempts}: Linking token not found yet. Retrying in ${interval}ms...`);
         }
       } catch (error) {
-        cardLogger.error('Error polling for linking token:', error.response || error.message);
+        cardLogger.error('Error polling for linking token:', error.message);
       }
       attempts++;
       await new Promise(resolve => setTimeout(resolve, interval));
@@ -531,7 +531,7 @@ export class Card {
     cardLogger.log('Requesting linking token with data:', data)
     const response = await backend.post(`/cards/${this.id}/linking-token/`, data)
       .catch(error => {
-        cardLogger.error('Error requesting linking token:', error.response || error.message);
+        cardLogger.error('Error requesting linking token:', error.message);
         throw error;
       });
     cardLogger.log('response:', response.data)
@@ -554,7 +554,7 @@ export class Card {
     if (page_size) params.page_size = page_size
     const response = await backend.get(`/cards/${cardIdOrUid}/transactions/`, { params })
       .catch(error => {
-        cardLogger.error('Error fetching transactions:', error.response || error.message);
+        cardLogger.error('Error fetching transactions:', error.message);
         throw error;
       });
     return response.data?.results || [];
@@ -610,7 +610,7 @@ export class Card {
     await backend.post(`/cards/${this.id}/subscribe-transactions/`, null).then(() => {
       cardLogger.log('Successfully subscribed to card transactions')
     }).catch(err => {
-      cardLogger.error('Error subscribing to card transactions:', err.response || err)
+      cardLogger.error('Error subscribing to card transactions:', err.message || err)
     })
   }
 
@@ -637,7 +637,7 @@ export class Card {
             
             return { success: true, category, utxos };
           } else {
-            cardLogger.error(result.error)
+            cardLogger.error(result.error?.message || result.error)
             throw new Error('Genesis minting failed: ' + (result.error || 'Unknown error'));
           }
         } else {

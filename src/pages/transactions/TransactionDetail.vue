@@ -188,7 +188,7 @@
             color="pt-primary1"
             :label="$t('AddToFavorites', {}, 'Add this token to Favorites')"
             icon="star_border"
-            @click="addTokenToFavorites"
+            @click.stop="addTokenToFavorites"
             :loading="addingToFavorites"
             class="add-to-favorites-btn"
           />
@@ -498,6 +498,7 @@ import * as assetSettings from 'src/utils/asset-settings'
 import { getBcmrBackend, convertIpfsUrl } from 'src/wallet/cashtokens'
 import { binToHex } from '@bitauth/libauth'
 import { showLimitDialogWithDeps } from 'src/composables/useTieredLimitGate'
+import { parseRouteString } from 'src/router/utils'
 
 export default {
   name: 'TransactionDetailPage',
@@ -954,6 +955,9 @@ export default {
         }
       }
 
+      const dynamicRoute = parseRouteString(fromParam)
+      if (dynamicRoute) return dynamicRoute
+
       return '/'
     },
     canAddToAddressBook () {
@@ -1053,6 +1057,14 @@ export default {
     
     const preloaded = (window && window.history && window.history.state && window.history.state.tx) || null
     if (preloaded) {
+      // Verify preloaded transaction matches the route param txid
+      const routeTxid = this.$route?.params?.txid
+      const preloadedTxid = preloaded.txid || preloaded.tx_hash || preloaded.hash
+      if (routeTxid && preloadedTxid && String(preloadedTxid) !== String(routeTxid)) {
+        await this.fetchAndShow()
+        return
+      }
+
       // Check if preloaded is already corrupted (has numeric string keys like "0", "1", etc.)
       const preloadedKeys = Object.keys(preloaded)
       if (preloadedKeys.length > 0 && preloadedKeys.every(k => /^\d+$/.test(k))) {
@@ -2248,8 +2260,8 @@ export default {
           query: { assetID: assetId }
         })
       } else {
-        // If not from transactions page, navigate to home page
-        this.$router.push('/')
+        const dynamicRoute = parseRouteString(fromParam)
+        this.$router.push(dynamicRoute || '/')
       }
     },
     onAddToAddressBook () {
@@ -3005,6 +3017,10 @@ export default {
 
 .view-in-collectibles-btn {
   margin-top: 8px;
+}
+
+.add-to-favorites-btn {
+  touch-action: manipulation;
 }
 
 /* Transaction Metadata Badges */

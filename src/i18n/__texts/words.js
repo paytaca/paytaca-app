@@ -102,6 +102,7 @@ const words = [
     Open: "Open",
     Paid: "Paid",
     Pending: "Pending",
+    Personal: "Personal",
     Purchases: "Purchases",
     Purchase: "Purchase",
     Reservations: "Reservations",
@@ -126,6 +127,7 @@ const words = [
     Version: "Version",
     Wallet: "Wallet",
     Wallets: "Wallets",
+    Cards: "Cards",
     PersonalWallet: "Personal Wallet",
     Details: "Details",
     Transaction: "Transaction",
@@ -625,6 +627,42 @@ const words = [
     Later: 'Later',
     Pinned: 'Pinned',
     Utilities: 'Utilities'
+  },
+  {
+    Admin: 'Admin',
+    Blocked: 'BLOCKED',
+    Owner: 'Owner',
+    Transfer: 'Transfer',
+  },
+  // ======== JSON Forms =========
+  {
+    Fields: 'Fields',
+    fields: 'fields',
+    Options: 'Options',
+    Text: 'Text',
+    Number: 'Number',
+    Boolean: 'Boolean',
+    Array: 'Array',
+    Preview: 'Preview',
+  },
+  // ======== PaymentHub =========
+  {
+    Reactivate: "Reactivate",
+    Deactivate: "Deactivate",
+    Plans: "Plans",
+    Rotate: "Rotate",
+    Subscribe: "Subscribe",
+    Include: 'Include',
+    Exclude: 'Exclude',
+    Form: 'Form',
+    Store: "Store",
+    Blocks: "Blocks",
+    Unit: 'Unit',
+    // Duplicates
+    // Amount: "Amount",
+    // Cancel: "Cancel",
+    // Update: "Update",
+    // Set: "Set",
   }
 ]
 

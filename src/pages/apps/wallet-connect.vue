@@ -538,7 +538,7 @@ export default {
 
     loadWallet () {
       const vm = this
-      return getMnemonic(vm.$store.getters['global/getWalletIndex'])
+      return getMnemonic(vm.$store.getters['global/getWalletIndex']).catch(() => null)
         .then(function (mnemonic) {
           // Legacy network-specific initialization removed; initialize BCH wallet
           vm.wallet = markRaw(new Wallet(mnemonic, 'bch'))

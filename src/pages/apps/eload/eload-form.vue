@@ -769,6 +769,11 @@ export default {
 
 		// Fetch Services
 		vm.loading = false
+
+		// Handle "order again" flow seeded from the Orders tab.
+		if (vm.$route?.query?.reorder !== undefined) {
+			await vm.applyReorderFromStorage()
+		}
 	},
 	beforeUnmount () {
 		this.clearTxnPrepareAutoRetry()
@@ -785,6 +790,65 @@ export default {
 			}
 			this.txnPrepareAutoRetryKey = ''
 			this.txnPrepareAutoRetryCount = 0
+		},
+		async applyReorderFromStorage () {
+			const vm = this
+			let snapshot = null
+			try {
+				const raw = window.sessionStorage.getItem('eload-reorder-payload')
+				if (raw) snapshot = JSON.parse(raw)
+			} catch (e) {
+				console.error('[Eload] Failed to read reorder payload:', e)
+				snapshot = null
+			} finally {
+				try { window.sessionStorage.removeItem('eload-reorder-payload') } catch (e) { /* ignore */ }
+			}
+			if (!snapshot || typeof snapshot !== 'object') return
+
+			// Keep only promo fields; drop order-time computed values and the
+			// recipient address (re-applied separately below).
+			const promo = { ...snapshot }
+			delete promo.address
+			delete promo.subtotal_php
+			delete promo.convenience_fee_php
+			delete promo.total_php
+			delete promo.total_bch
+
+			// Stop step watchers from firing while we seed filters.
+			vm.suppressAutoStep = true
+
+			// Reset state related to txn preparation & address input.
+			vm.clearTxnPrepareAutoRetry()
+			vm.address = ''
+			vm.addressTouched = false
+			vm.txnPreparing = false
+			vm.txnPrepareError = ''
+			vm.txnRecipientAddress = ''
+			vm.txnPrepareKey = ''
+
+			// Resolve full service object (with id) so edit → change service group still works.
+			const serviceName = String(promo.service || '').toLowerCase() || 'eload'
+			const resolvedService = Array.isArray(vm.services) && vm.services.find(s => (s.name || '').toLowerCase() === serviceName)
+			vm.filters.service = resolvedService || { name: serviceName }
+
+			vm.filters.serviceGroup = { name: String(promo.service_group || '').trim() || '-' }
+			vm.filters.category = promo.category ? { name: String(promo.category) } : null
+
+			// Select promo, restore the previous recipient number, jump to address step.
+			vm.selectedPromo = promo
+			vm.step = 4
+			vm.address = String(snapshot.address || '').trim()
+
+			// Fetch quote/rate for BCH computations + txn preparation.
+			vm.ensurePhpBchRate()
+
+			await vm.$nextTick()
+			vm.suppressAutoStep = false
+
+			// Clean the query param so refresh/back doesn't re-trigger the flow.
+			if (vm.$route?.query?.reorder !== undefined) {
+				vm.$router.replace({ query: {} }).catch(() => {})
+			}
 		},
 		async onPromoSearchSelect (promo) {
 			const vm = this

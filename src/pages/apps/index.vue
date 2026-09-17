@@ -481,7 +481,7 @@ export default {
         {
           id: 'lift-token',
           name: `LIFT ${this.$t('Token')}`,
-          description: this.$t('Apps.LiftToken.Description', {}, 'View your LIFT token activity and manage related actions.'),
+          description: this.$t('Apps.LiftToken.Description', {}, 'Buy LIFT tokens and track vesting progress'),
           iconName: 'img:lift-token.png',
           path: '/apps/lift-token',
           iconStyle: 'width: 50%; height: 60%;',
@@ -498,6 +498,28 @@ export default {
           active: !this.$store.getters['global/isChipnet'],
           smartBCHOnly: false,
           category: 'assets-rewards'
+        },
+        {
+          id: 'card',
+          name: this.$t('Cards'),
+          description: this.$t('Apps.Card.Description', {}, 'Manage your Paytaca Card and view your card activity.'),
+          iconName: 'mdi-card-bulleted',
+          path: '/apps/card',
+          iconStyle: 'font-size: 4em',
+          active: !this.$store.getters['global/isChipnet'],
+          beta: true,
+          category: 'beta'
+        },
+        {
+          id: 'ai-admin',
+          name: this.$t('AIAdmin'),
+          description: this.$t('Apps.AIAdmin.Description', {}, 'Manages Paytaca AI API keys and lets you subscribe to available AI models.'),
+          iconName: 'mdi-console',
+          path: '/apps/ai-admin',
+          active: true,
+          iconStyle: 'font-size: 4em',
+          beta: true,
+          category: 'beta'
         },
         {
           id: 'multisig',
@@ -576,16 +598,6 @@ export default {
           category: 'wallet-connections'
         },
         {
-          id: 'card',
-          name: this.$t('Card'),
-          description: this.$t('Apps.Card.Description', {}, 'Manage your Paytaca Card and view your card activity.'),
-          iconName: 'mdi-card-bulleted',
-          path: '/apps/card',
-          iconStyle: 'font-size: 4em',
-          active: !this.$store.getters['global/isChipnet'],
-          category: 'marketplace'
-        },
-        {
           id: 'merchant-admin',
           name: this.$t('MerchantAdmin', {}, 'Merchant Admin'),
           description: this.$t('Apps.MerchantAdmin.Description', {}, 'Manage your merchant tools and settings.'),
@@ -609,9 +621,9 @@ export default {
           id: 'payment-hub',
           name: this.$t('PaymentHub', {}, 'Payment Hub'),
           description: this.$t('Apps.PaymentHub.Description', {}, 'Manage Payment Hub Stores, API Keys, and Invoices.'),
-          iconName: 'hub',
+          iconName: 'img:paytaca_payment_hub_logo.svg',
           path: '/apps/payment-hub/',
-          iconStyle: 'width: 100%; height: 100%;',
+          iconStyle: 'width: 90%; height: 90%; object-fit: contain;',
           active: true,
           beta: false,
           category: 'marketplace'
@@ -625,14 +637,14 @@ export default {
           iconStyle: 'font-size: 4.2em',
           active: true,
           beta: true,
-          category: 'payment-hub'
+          category: 'beta'
         }]: []),
         {
           id: 'support',
           name: this.$t('Support', {}, 'Support'),
           description: this.$t('Apps.Support.Description', {}, 'Get help, guides, and wallet information.'),
           iconName: 'support',
-          path: '/apps/wallet-info',
+          path: '/apps/support',
           active: true,
           iconStyle: 'font-size: 4em',
           category: 'utilities'

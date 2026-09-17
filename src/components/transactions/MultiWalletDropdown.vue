@@ -4,7 +4,7 @@
     ref="walletButton"
     :class="isMobile && !isChipnet ? 'col-10' : 'col-12'"
     align="left"
-    @click="showMultiWalletDialog"
+    @click="$router.push('/wallet/list')"
   >
     <template v-slot:default>
       <div class="row">
@@ -23,29 +23,13 @@
     </template>
 
   </q-btn>
-
-  <MultiWallet
-    ref="multi-wallet-parent"
-    @dialog-hide="onDialogHide"
-  />
 </template>
 
 <script>
-import MultiWallet from 'src/components/multi-wallet/index'
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 
 export default {
   name: 'MultiWalletDropdown',
-
-  components: {
-    MultiWallet
-  },
-
-  data () {
-    return {
-      isShow: false
-    }
-  },
 
   computed: {
     darkMode () {
@@ -73,19 +57,7 @@ export default {
   },
 
   methods: {
-    getDarkModeClass,
-    showMultiWalletDialog () {
-      if (this.isShow) {
-        this.$refs['multi-wallet-parent'].$refs['multi-wallet'].hide()
-        this.isShow = true
-      } else {
-        this.$refs['multi-wallet-parent'].$refs['multi-wallet'].show()
-        this.isShow = false
-      }
-    },
-    onDialogHide () {
-      this.isShow = false
-    }
+    getDarkModeClass
   },
 
   mounted () {

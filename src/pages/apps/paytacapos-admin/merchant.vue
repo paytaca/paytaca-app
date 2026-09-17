@@ -448,7 +448,7 @@ const $t = useI18n().t
 const confirm = ref(false)
 const wallet = ref(null)
 const walletType = 'bch'
-const darkMode = ref(null)
+const darkMode = computed(() => $store.getters['darkmode/getStatus'])
 
 function safeMerchantId () {
   const fromQuery = $route?.query?.merchantId
@@ -498,12 +498,14 @@ async function registerForCardPayments() {
   console.log('Registering merchant for card payments if not already enabled...')
 
   let nfcPaymentsEnabled = false
+  let watchtowerCheckFailed = false
   const watchtower = new Watchtower()
   await watchtower.BCH._api.get(`paytacapos/merchants/${merchantId}/`).then(response => {
     console.log('Merchant info from watchtower:', response?.data)
     nfcPaymentsEnabled = response?.data?.nfc_enabled || false
   }).catch(error => {
     console.error('Error fetching merchant info from watchtower:', error.response || error)
+    watchtowerCheckFailed = true
   })
 
   // await watchtower.BCH._api.patch(`paytacapos/merchants/${merchantId}/`, { nfc_enabled: true }).then(response => {
@@ -516,6 +518,11 @@ async function registerForCardPayments() {
   console.log('NFC payments enabled:', nfcPaymentsEnabled)
   if (nfcPaymentsEnabled) {
     console.log('NFC payments already enabled. Skipping registration.')
+    return
+  }
+
+  if (watchtowerCheckFailed) {
+    console.log('Merchant not found in watchtower. Card payments not available.')
     return
   }
 
@@ -533,11 +540,6 @@ async function registerForCardPayments() {
     })
     .catch(error => {
       console.error('Error registering merchant for card payments:', error.response || error)
-      $q.notify({
-        type: 'negative',
-        message: 'Failed to register merchant for card payments',
-        icon: 'error',
-      })
     })
 }
 
@@ -822,8 +824,7 @@ async function deviceUnlinkRequest(posDevice) {
       if (skip) return { skip }
       dialog.update({ message: $t('CreatingUnlinkDeviceRequest', {}, 'Creating unlink device request') })
       const data = { nonce, signature }
-      const watchtower = new Watchtower()
-      const response = await watchtower.BCH._api.post(`paytacapos/devices/${posDevice.walletHash}:${posDevice.posid}/unlink_device/request/`, data)
+      const response = await posBackend.post(`paytacapos/devices/${posDevice.walletHash}:${posDevice.posid}/unlink_device/request/`, data, { authorize: true })
       syncPosDevice(parsePosDeviceData(response?.data))
       dialog.update({
         title: $t('UnlinkDeviceRequestCreated', {}, 'Unlink device request created'),
@@ -860,8 +861,7 @@ function confirmCancelUnlinkPosDevice(posDevice) {
     })
 
   const handle = `${posDevice?.walletHash}:${posDevice?.posid}`
-  const watchtower = new Watchtower()
-  watchtower.BCH._api.post(`paytacapos/devices/${handle}/unlink_device/cancel/`)
+  posBackend.post(`paytacapos/devices/${handle}/unlink_device/cancel/`, null, { authorize: true })
     .then(response => {
       syncPosDevice(parsePosDeviceData(response?.data))
       dialog.update({ message: $t('UnlinkRequestCancelled', {}, 'Unlink request cancelled') })

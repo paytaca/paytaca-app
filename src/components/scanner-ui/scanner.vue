@@ -25,19 +25,13 @@
 }
 .qrcode-scanner {
   position: fixed;
-  top: 0px;
-  right: 0px;
+  top: 0;
+  left: 0;
   width: 100% !important;
   height: 100% !important;
   background: transparent;
   display: flex;
-}
-.qrcode-scanner {
-  position: absolute;
-  top: 0;
-  right: 0;
-  margin: 10px;
-  color: var(--scanner-primary, #ef4f84);
+  z-index: 99999;
 }
 .qrcode-scanner > .scanner-error-dialog {
 	border-radius: 15px;

@@ -23,6 +23,7 @@ import { useQuasar } from 'quasar';
 import { encryptWithPublicKey } from 'src/utils/ecies';
 import { loadCardMerchantWallet } from 'src/services/wallet';
 import { useStore } from 'vuex';
+import { useI18n } from 'vue-i18n';
 import EncryptionPubkeyInput from './EncryptionPubkeyInput.vue';
 import QrScanner from 'src/components/qr-scanner.vue'
 import NfcSetupRequestCode from './NfcSetupRequestCode.vue';
@@ -49,6 +50,7 @@ export default {
 
         const $q = useQuasar()
         const $store = useStore()
+        const { t: $t } = useI18n()
         const bchjs = new BCHJS()
 
         const showEnableNFCPaymentsForm = ref(true)
@@ -84,7 +86,7 @@ export default {
             try {
                 encryptionPublicKey.value = result
                 $q.notify({
-                    message: 'Encryption public key scanned successfully',
+                    message: $t('EncryptionPublicKeyScanned', {}, 'Encryption public key scanned successfully'),
                     color: 'positive',
                     icon: 'check_circle',
                     timeout: 2000
@@ -93,7 +95,7 @@ export default {
                 generateRequestCode({ checkExpiry: true })
             } catch (error) {
                 $q.notify({
-                    message: 'Invalid encryption public key',
+                    message: $t('InvalidEncryptionPublicKey', {}, 'Invalid encryption public key'),
                     color: 'negative',
                     icon: 'error',
                     timeout: 2000
@@ -104,7 +106,7 @@ export default {
         const submitEncryptionPublicKey = async (pubkey) => {
             if (!pubkey?.trim()) {
                 $q.notify({
-                message: 'Please enter or scan the encryption public key',
+                message: $t('PleaseEnterOrScanEncryptionPublicKey', {}, 'Please enter or scan the encryption public key'),
                 color: 'warning',
                 icon: 'warning',
                 timeout: 2000
@@ -115,7 +117,7 @@ export default {
             encryptionPublicKey.value = pubkey?.trim()
             
             $q.notify({
-                message: 'Encryption public key submitted successfully',
+                message: $t('EncryptionPublicKeySubmitted', {}, 'Encryption public key submitted successfully'),
                 color: 'positive',
                 icon: 'check_circle',
                 timeout: 2000
@@ -130,7 +132,7 @@ export default {
 
             if (!encryptionPublicKey.value) {
                 $q.notify({
-                    message: 'Encryption public key is required to generate link code',
+                    message: $t('EncryptionPublicKeyRequired', {}, 'Encryption public key is required to generate link code'),
                     color: 'warning',
                     icon: 'warning',
                     timeout: 2000
@@ -173,7 +175,7 @@ export default {
                 
             } catch (error) {
                 $q.notify({
-                    message: `Failed to generate request code: ${error?.message}`,
+                    message: `${$t('FailedToGenerateLinkCode', {}, 'Failed to generate link code')}: ${error?.message}`,
                     color: 'negative',
                     icon: 'error',
                     timeout: 3000

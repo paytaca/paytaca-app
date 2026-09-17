@@ -175,6 +175,32 @@
       <KeyboardTooltip v-if="activeKeyboardTip === 'fiat'" :dark-mode="darkMode" :key="'fiat-' + keyboardTipCounter" />
     </div>
   </div>
+  <div class="row" v-if="!isNFT && !recipient.fixedAmount && !sending" style="padding-bottom: 15px">
+    <div class="col q-mt-md balance-max-container" :class="getDarkModeClass(darkMode)">
+      <template v-if="currentWalletBalanceAsAsset?.id === 'bch' && asset?.id === 'bch'">
+        <span v-bch-amount="{ denomination: selectedDenomination }">
+        {{ parseAssetDenomination(selectedDenomination, currentWalletBalanceAsAsset) }}
+      </span>
+        {{ ` = ${parseFiatCurrency(
+          convertToFiatAmount(currentWalletBalance, selectedAssetMarketPrice), currentSendPageCurrency())
+        }` }}
+      </template>
+      <span v-else v-bch-amount="{ denomination: selectedDenomination }">
+        {{ parseAssetDenomination(selectedDenomination, currentWalletBalanceAsAsset) }}
+      </span>
+      <q-btn
+        flat
+        dense
+        no-caps
+        v-if="!computingMax || !recipient.sending"
+        class="max-button"
+        color="pt-primary1"
+        :class="getDarkModeClass(darkMode)"
+        :label="$t('MAX')"
+        @click="onInputFocus(index, ''), handleMaxClick()"
+      />
+    </div>
+  </div>
   <template v-if="!isNFT && !cauldronEnabled">
     <div v-if="asset?.id?.startsWith?.('ct/')" class="q-mt-sm text-center">
       <div v-if="showAdvancedOptions">
@@ -308,33 +334,6 @@
       round
       @click="toggleCauldron"
     />
-  </div>
-
-  <div class="row" v-if="!isNFT && !recipient.fixedAmount && !sending" style="padding-bottom: 15px">
-    <div class="col q-mt-md balance-max-container" :class="getDarkModeClass(darkMode)">
-      <template v-if="currentWalletBalanceAsAsset?.id === 'bch' && asset?.id === 'bch'">
-        <span v-bch-amount="{ denomination: selectedDenomination }">
-        {{ parseAssetDenomination(selectedDenomination, currentWalletBalanceAsAsset) }}
-      </span>
-        {{ ` = ${parseFiatCurrency(
-          convertToFiatAmount(currentWalletBalance, selectedAssetMarketPrice), currentSendPageCurrency())
-        }` }}
-      </template>
-      <span v-else v-bch-amount="{ denomination: selectedDenomination }">
-        {{ parseAssetDenomination(selectedDenomination, currentWalletBalanceAsAsset) }}
-      </span>
-      <q-btn
-        flat
-        dense
-        no-caps
-        v-if="!computingMax || !recipient.sending"
-        class="max-button"
-        color="pt-primary1"
-        :class="getDarkModeClass(darkMode)"
-        :label="$t('MAX')"
-        @click="onInputFocus(index, ''), handleMaxClick()"
-      />
-    </div>
   </div>
   <q-card
     class="row text-center justify-center q-pa-sm q-my-sm text-subtitle2 pt-card"

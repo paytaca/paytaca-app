@@ -83,7 +83,10 @@ export default {
       }      
     },
     continue (val) {
-      if (val) {
+      // Only redirect on the exchange entry route itself; the exchange page
+      // also mounts as an ancestor of deeper routes (e.g. deep-linked
+      // p2p-order pages) and must not hijack those navigations
+      if (val && this.$route.name === 'exchange') {
         this.goToMainPage()
       }
     }

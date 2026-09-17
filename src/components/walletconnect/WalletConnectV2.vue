@@ -1260,6 +1260,7 @@ const respondToSignTransactionRequest = async (sessionRequest) => {
   const response = { id: sessionRequest.id, jsonrpc: '2.0', result: undefined, error: undefined }
   if (sessionRequest?.params?.request?.method === 'bch_signTransaction' || sessionRequest?.params?.request?.method === 'bch_signTransactionP2SHMultisig') {
     const loadingKey = 'wc-sign-transaction'
+    let responseSent = false
     try {
       const wallet = sessionTopicWalletAddressMapping.value?.[sessionRequest.topic]
       if (wallet.signers) {
@@ -1297,6 +1298,7 @@ const respondToSignTransactionRequest = async (sessionRequest) => {
             }
           }
         })
+        responseSent = true
 
         $q.loading.show({ group: loadingKey, message: $t('ProcessingTransactionProposal') })
 
@@ -1333,40 +1335,43 @@ const respondToSignTransactionRequest = async (sessionRequest) => {
         wallet.wif
       )
 
-      if (sessionRequest.params.request.params?.broadcast) {
-        const broadcastResponse = watchtower.value?.BCH.broadcastTransaction(response.result.signedTransaction)
-        if (!broadcastResponse.success) {
-          response.error = { code: -32603, message: broadcastResponse?.error }
-          response.result = undefined
-        }
+      const broadcastResponse = await watchtower.value?.BCH.broadcastTransaction(response.result.signedTransaction)
+      if (!broadcastResponse?.data?.success) {
+        console.error('Broadcast failed:', broadcastResponse)
+        response.error = { code: -32603, message: broadcastResponse?.data?.error || 'Broadcast failed' }
+        response.result = undefined
+        sessionRequest.error = true
       }
 
       processingSession.value[sessionRequest.topic] = 'Confirming request'
 
-      if (!response.result) delete response.result
-      if (!response.error) delete response.error
-      
-      await web3Wallet.value.respondSessionRequest({
-        topic: sessionRequest.topic, response
-      })
-
-      if (!sessionRequest.error) {
-        sessionRequest.confirmed = true
-      }
-
-      delete processingSession.value[sessionRequest.topic]
-      
-      await delay(2)
-      await loadSessionRequests()
-
     } catch (err) {
+      console.error(err)
       response.error = {
         code: -32603,
-        reason: err?.name === 'SignBCHTransactionError' ? err?.message : 'Unknown error'
+        message: err?.name === 'SignBCHTransactionError' ? err?.message : 'Unknown error'
       }
       sessionRequest.error = true
       processingSession.value[sessionRequest.topic] = 'Sending error response'
+      $q.notify({
+        type: 'error',
+        message: err?.message || 'Failed to sign transaction',
+        timeout: 5000
+      })
     } finally {
+      if (!responseSent) {
+        if (!response.result) delete response.result
+        if (!response.error) delete response.error
+        await web3Wallet.value.respondSessionRequest({
+          topic: sessionRequest.topic, response
+        })
+        if (!sessionRequest.error) {
+          sessionRequest.confirmed = true
+        }
+        delete processingSession.value[sessionRequest.topic]
+        await delay(2)
+        await loadSessionRequests()
+      }
       $q.loading.hide(loadingKey)
     }
   }
@@ -1393,12 +1398,18 @@ const respondToSignMessageRequest = async (sessionRequest) => {
     response.result = signMessage(message, connectedAddressForTopic.wif)
     processingSession.value[sessionRequest.topic] = 'Confirming request'
   } catch (err) {
+    console.error(err)
     response.error = {
       code: -32603,
       message: err?.message || 'Unknown error'
     }
     sessionRequest.error = true
     processingSession.value[sessionRequest.topic] = 'Sending error response'
+    $q.notify({
+      type: 'error',
+      message: err?.message || 'Failed to sign message',
+      timeout: 5000
+    })
   } finally {
     if (!response.result) delete response.result
     if (!response.error) delete response.error
@@ -1473,6 +1484,7 @@ const respondToSessionRequest = async (sessionRequest) => {
       }
     }
   } catch (error) {
+    console.error(error)
   } finally {
     delete processingSession.value[sessionRequest.id]
   }

@@ -62,7 +62,7 @@ export async function resolvePrivateKeyFromAddress(address, wallet, maxIndex=100
   const libauthWallet = new LibauthHDWallet(wallet.BCH.mnemonic, wallet.BCH.derivationPath, network)
 
   let path
-  const _maxIndex = parseInt(maxIndex) || 100
+  const _maxIndex = maxIndex != null ? Math.max(1, parseInt(maxIndex, 10) || 1) : 100
   for(var index = 0; index < _maxIndex; index++) {
     const receiving = libauthWallet.getAddressAt({ path: `0/${index}`, token: true })
     const change = libauthWallet.getAddressAt({ path: `1/${index}`, token: true })

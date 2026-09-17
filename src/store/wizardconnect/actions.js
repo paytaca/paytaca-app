@@ -215,12 +215,18 @@ export async function approveRequestWithData ({ commit, dispatch, rootGetters },
     const isChipnet = rootGetters['global/isChipnet'] || false
     const watchtower = new Watchtower(isChipnet)
 
-    if (request.transaction?.broadcast === true) {
-      watchtower.BCH.broadcastTransaction(signedTxHex).catch(err => {
-        console.log('WizardConnect: wallet-side broadcast (redundant) failed or tx already known:', err)
+    const broadcastResponse = await watchtower.BCH.broadcastTransaction(signedTxHex)
+    if (!broadcastResponse?.data?.success) {
+      console.error('WizardConnect: broadcast failed:', broadcastResponse)
+      Notify.create({
+        type: 'negative',
+        message: broadcastResponse?.data?.error || 'Broadcast failed',
+        timeout: 5000
       })
+      await wizardConnectService.sendSignError(connectionId, sequence, broadcastResponse?.data?.error || 'Broadcast failed')
+      return
     }
-    
+
     await wizardConnectService.sendSignResponse(connectionId, sequence, signedTxHex)
     
     // After transaction, check buffer (delayed to allow backend to process)
@@ -229,6 +235,11 @@ export async function approveRequestWithData ({ commit, dispatch, rootGetters },
     }, 2000)
   } catch (err) {
     console.error('WizardConnect: sign error:', err)
+    Notify.create({
+      type: 'negative',
+      message: err.message || 'Failed to sign transaction',
+      timeout: 5000
+    })
     try {
       await wizardConnectService.sendSignError(connectionId, sequence, err.message || 'Signing failed')
     } catch {

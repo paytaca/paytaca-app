@@ -116,7 +116,8 @@ export default defineComponent({
     async function getStablehedgeWallet() {
       const walletIndex = $store.getters['global/getWalletIndex']
       const isChipnet = $store.getters['global/isChipnet']
-      const mnemonic = await getMnemonic(walletIndex)
+      const mnemonic = await getMnemonic(walletIndex).catch(() => null)
+      if (!mnemonic) throw new Error('No mnemonic available')
       const wallet = new StablehedgeWallet(
         mnemonic, undefined, isChipnet ? 'chipnet' : 'mainnet',
       )

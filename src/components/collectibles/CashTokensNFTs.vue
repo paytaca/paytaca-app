@@ -17,10 +17,23 @@
     </template>
 
     <!-- Categories Grid -->
-    <template v-else-if="parsedNftGroups?.length > 0">
+    <template v-else-if="visibleNftGroups?.length > 0">
+      <!-- Toggle to reveal NFTs missing metadata -->
+      <div
+        v-if="hasHiddenNoMetadataGroups"
+        class="row justify-end q-px-md q-pt-sm"
+      >
+        <q-checkbox
+          v-model="showWithoutMetadata"
+          dense
+          :label="$t('ShowNftsWithoutMetadata', {}, 'Show NFTs without metadata')"
+          class="text-caption"
+          :class="darkMode ? 'text-grey-5' : 'text-grey-7'"
+        />
+      </div>
       <div class="categories-grid q-pa-md">
         <q-card
-          v-for="group in parsedNftGroups" :key="group?.category"
+          v-for="group in visibleNftGroups" :key="group?.category"
           class="category-card text-bow"
           :class="getDarkModeClass(darkMode)"
           @click="() => selectCategory(group?.category)"
@@ -69,6 +82,28 @@
           :hide-below-pages="2"
           :modelValue="nftsPagination"
           @update:modelValue="fetchNftGroups"
+        />
+      </div>
+    </template>
+
+    <!-- All NFTs hidden by metadata filter -->
+    <template v-else-if="!fetchingNftGroups && hasHiddenNoMetadataGroups">
+      <div class="empty-state flex flex-center column q-pa-xl">
+        <q-icon
+          name="visibility_off"
+          size="80px"
+          class="q-mb-md"
+          :class="darkMode ? 'text-grey-5' : 'text-grey-7'"
+        />
+        <div class="text-h6 text-center q-mb-xs" :class="darkMode ? 'text-grey-6' : 'text-grey-8'">
+          {{ $t('AllNftsHiddenNoMetadata', {}, 'NFTs without metadata are hidden') }}
+        </div>
+        <q-checkbox
+          v-model="showWithoutMetadata"
+          dense
+          :label="$t('ShowNftsWithoutMetadata', {}, 'Show NFTs without metadata')"
+          class="q-mt-sm text-caption"
+          :class="darkMode ? 'text-grey-5' : 'text-grey-7'"
         />
       </div>
     </template>
@@ -177,6 +212,23 @@ const parsedNftGroups = computed(() => {
   // Groups from API already have metadata pre-populated and are ordered by backend
   // (those with metadata first, then those without) - preserve this ordering
   return nftGroups.value
+})
+
+const showWithoutMetadata = ref(false)
+
+function hasMetadata (group) {
+  // Same discriminator used by CashNonFungibleToken.updateData(): a group is
+  // considered to have metadata only when the API returned non-empty metadata.
+  return Boolean(group?.metadata && Object.keys(group.metadata).length > 0)
+}
+
+const visibleNftGroups = computed(() => {
+  if (showWithoutMetadata.value) return nftGroups.value
+  return nftGroups.value.filter(hasMetadata)
+})
+
+const hasHiddenNoMetadataGroups = computed(() => {
+  return nftGroups.value.some(group => !hasMetadata(group))
 })
 
 const selectedCategory = ref(null)

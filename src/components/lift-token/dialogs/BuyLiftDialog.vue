@@ -355,7 +355,8 @@ export default {
     async ensureWallet() {
       if (this.wallet) return this.wallet
       const walletIndex = this.$store.getters['global/getWalletIndex']
-      const mnemonic = await getMnemonic(walletIndex)
+      const mnemonic = await getMnemonic(walletIndex).catch(() => null)
+      if (!mnemonic) return null
       const wallet = new Wallet(mnemonic, 'BCH')
       this.wallet = markRaw(wallet)
       return this.wallet

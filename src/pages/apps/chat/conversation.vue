@@ -3,12 +3,13 @@
     id="app-container"
     class="sticky-header-container text-bow column"
     :class="getDarkModeClass(darkMode)"
-    @click="hideContextMenu"
+    @click="onRootClick"
   >
     <header-nav
       class="apps-header"
       backnavpath="/apps/chat"
       :title="roomName"
+      :normal-case="true"
       :subtitle="isGroupRoom ? $t('MemberCount', { count: room?.members?.length || 0 }, `${room?.members?.length || 0} members`) : typingDisplayText || (otherMemberIsActive ? $t('ActiveNow', {}, 'Active now') : null)"
     >
       <template v-if="room" v-slot:top-right-menu>
@@ -61,14 +62,6 @@
               </q-item-section>
               <q-item-section>
                 {{ $t('GroupInfo', {}, 'Group Info') }}
-              </q-item-section>
-            </q-item>
-            <q-item v-if="isGroupRoom && isRoomMember" clickable v-close-popup @click="shareGroupLink">
-              <q-item-section side>
-                <q-icon name="share" size="18px" />
-              </q-item-section>
-              <q-item-section>
-                {{ $t('ShareGroupLink', {}, 'Share Group Link') }}
               </q-item-section>
             </q-item>
             <q-item v-if="!isGroupRoom" clickable v-close-popup @click="$router.push(`/apps/chat/${roomId}/dm-info`)">
@@ -132,7 +125,7 @@
               </q-item-section>
             </q-item>
             <q-item
-              v-if="isGroupRoom && !isGroupBlocked"
+              v-if="isGroupRoom && isRoomMember"
               clickable
               v-close-popup
               @click="confirmLeaveGroup"
@@ -142,19 +135,6 @@
               </q-item-section>
               <q-item-section>
                 <span class="text-negative">{{ $t('LeaveGroup', {}, 'Leave Group') }}</span>
-              </q-item-section>
-            </q-item>
-            <q-item
-              v-if="isGroupRoom && isGroupBlocked"
-              clickable
-              v-close-popup
-              @click="confirmRejoinGroup"
-            >
-              <q-item-section side>
-                <q-icon name="group_add" size="18px" color="primary" />
-              </q-item-section>
-              <q-item-section>
-                {{ $t('RejoinGroup', {}, 'Rejoin Group') }}
               </q-item-section>
             </q-item>
           </q-menu>
@@ -319,7 +299,7 @@
 
     <!-- Member: messages scroll area -->
     <template v-if="isRoomMember">
-      <div ref="messagesContainer" class="messages-scroll-area col scroll" @click="hideContextMenu" @scroll="onMessagesScroll">
+      <div ref="messagesContainer" class="messages-scroll-area col scroll" @click="onMessagesClick" @scroll="onMessagesScroll">
         <div v-if="displayedMessages.length === 0" class="empty-conversation">
           <div class="empty-illustration">
             <q-icon name="chat_bubble_outline" size="64px" />
@@ -357,7 +337,7 @@
             <message-bubble
               :message="msg"
               :my-pub-key="myPubKey"
-              :show-sender-name="room?.type === 'group'"
+              :show-sender-name="isGroupRoom"
               :contacts="contacts"
               :display-names="memberDisplayNames"
               :is-read="messageReadMap[msg.id] || false"
@@ -366,10 +346,13 @@
               :reply-to-message="getMessageById(msg.replyTo)"
               :is-replying="replyToMessage?.id === msg.id"
               :reactions="getMessageReactions(msg.id)"
+              :is-selected="selectedMessageId === msg.id"
+              :text-selectable="isContextMenuOpen && selectedMessageId === msg.id"
               @context-menu="openMessageMenu"
               @remove-reaction="onRemoveReaction"
               @scroll-to-message="scrollToMessage"
               @open-transaction="onOpenTransaction"
+              @retry-message="onRetryFailedMessage"
             />
           </div>
         </div>
@@ -390,43 +373,10 @@
         <q-icon name="block" size="16px" />
         <span>{{ $t('ContactBlockedNotice', {}, 'Contact blocked') }}</span>
       </div>
-      <div v-if="isGroupRoom && isGroupBlocked" class="blocked-notice">
-        <q-icon name="exit_to_app" size="16px" />
-        <span>{{ $t('LeftGroupNotice', {}, 'You left this group') }}</span>
-      </div>
     </template>
 
-    <!-- Non-member group: request to join card -->
-    <template v-else-if="isGroupRoom && room?.members?.length">
-      <div class="request-to-join-container">
-        <div class="request-to-join-card" :class="getDarkModeClass(darkMode)">
-          <div class="request-card-icon">
-            <q-icon name="group" size="48px" />
-          </div>
-          <div class="request-card-title">{{ room?.name || $t('Group', {}, 'Group') }}</div>
-          <div class="request-card-meta">
-            {{ $t('MemberCount', { count: room?.members?.length || 0 }, `${room?.members?.length || 0} members`) }}
-          </div>
-          <div class="request-card-desc">
-            {{ $t('RequestToJoinDesc', {}, 'Request to join this group') }}
-          </div>
-          <q-btn
-            unelevated
-            rounded
-            color="primary"
-            size="lg"
-            no-caps
-            :label="$t('RequestToJoin', {}, 'Request to Join')"
-            class="request-join-btn q-mt-md"
-            :loading="requestingToJoin"
-            @click="requestToJoin"
-          />
-        </div>
-      </div>
-    </template>
-
-    <!-- Loading group metadata -->
-    <template v-else-if="_fetchingMeta || _loadingRoom">
+    <!-- Loading group info -->
+    <template v-else-if="_loadingRoom">
       <div class="request-to-join-container">
         <div class="request-to-join-card" :class="getDarkModeClass(darkMode)">
           <q-spinner color="primary" size="36px" />
@@ -487,75 +437,90 @@
       <span class="typing-text">{{ typingDisplayText }}</span>
     </div>
 
-    <chat-input ref="chatInput" :room-id="roomId" :disabled="isRoomArchived || isContactBlocked || isGroupBlocked" :blocked="isContactBlocked || isGroupBlocked" :blocked-placeholder="isGroupBlocked ? $t('LeftGroupInputDisabled', {}, 'You left this group') : null" @send="onSend" @command="onCommand" @tip="onTipAction" @focus="onInputFocus" @blur="onInputBlur" />
+    <chat-input ref="chatInput" :room-id="roomId" :disabled="isRoomArchived || isContactBlocked" :blocked="isContactBlocked" @send="onSend" @command="onCommand" @tip="onTipAction" @focus="onInputFocus" @blur="onInputBlur" />
 
     <!-- Message context menu -->
-    <q-menu ref="contextMenu" touch-position no-parent-event class="text-bow" :class="getDarkModeClass(darkMode)">
-      <q-list style="min-width: 150px">
-        <q-item clickable v-close-popup @click.stop="copyMessage(contextMessage)" @pointerdown.stop.prevent="menuPointerDown('copy', $event)">
-          <q-item-section avatar>
-            <q-icon name="content_copy" size="20px" />
-          </q-item-section>
-          <q-item-section>
-            <q-item-label>{{ $t('Copy', {}, 'Copy') }}</q-item-label>
-          </q-item-section>
-        </q-item>
-        <q-item v-if="hasTextSelection" clickable v-close-popup @click.stop="quoteMessage(contextMessage)" @pointerdown.stop.prevent="menuPointerDown('quote', $event)">
-          <q-item-section avatar>
-            <q-icon name="format_quote" size="20px" />
-          </q-item-section>
-          <q-item-section>
-            <q-item-label>{{ $t('Quote', {}, 'Quote') }}</q-item-label>
-          </q-item-section>
-        </q-item>
-        <template v-if="!hasTextSelection">
-          <q-item clickable v-close-popup @click.stop="setReply(contextMessage)" @pointerdown.stop.prevent="menuPointerDown('reply', $event)">
-            <q-item-section avatar>
-              <q-icon name="reply" size="20px" />
-            </q-item-section>
-            <q-item-section>
-              <q-item-label>{{ $t('Reply', {}, 'Reply') }}</q-item-label>
-            </q-item-section>
-          </q-item>
-          <q-item
-            v-if="contextMessage?.sender === myPubKey && canEditMessage(contextMessage)"
-            clickable
-            v-close-popup
-            @click.stop="setEdit(contextMessage)"
-            @pointerdown.stop.prevent="menuPointerDown('edit', $event)"
-          >
-            <q-item-section avatar>
-              <q-icon name="edit" size="20px" />
-            </q-item-section>
-            <q-item-section>
-              <q-item-label>{{ $t('Edit', {}, 'Edit') }}</q-item-label>
-            </q-item-section>
-          </q-item>
-          <q-item
-            v-if="contextMessage?.sender === myPubKey && canDeleteMessage(contextMessage)"
-            clickable
-            v-close-popup
-            @click.stop="confirmDeleteMessage(contextMessage)"
-            @pointerdown.stop.prevent="menuPointerDown('delete', $event)"
-          >
-            <q-item-section avatar>
-              <q-icon name="delete" size="20px" color="negative" />
-            </q-item-section>
-            <q-item-section>
-              <span class="text-negative">{{ $t('Delete', {}, 'Delete') }}</span>
-            </q-item-section>
-          </q-item>
-          <q-item-label header class="q-px-md q-pt-sm q-pb-none">{{ $t('React', {}, 'React') }}</q-item-label>
-          <q-item class="q-px-sm q-py-xs">
-            <q-item-section>
-              <div class="react-emoji-row">
-                <span v-for="emoji in quickReactions" :key="emoji" class="react-emoji" v-close-popup @click.stop="onReact(contextMessage, emoji)" @pointerdown.stop.prevent="menuPointerDown('emoji-'+emoji, $event)">{{ emoji }}</span>
-              </div>
-            </q-item-section>
-          </q-item>
-        </template>
-      </q-list>
-    </q-menu>
+    <transition name="context-menu-scale">
+      <div
+        v-if="showContextMenuDialog"
+        class="context-menu-backdrop"
+        :class="getDarkModeClass(darkMode)"
+        @click="hideContextMenu"
+        @contextmenu.prevent="hideContextMenu"
+        @pointerdown="onContextMenuBackdropPointerDown"
+      >
+        <div
+          ref="contextMenuEl"
+          class="context-menu text-bow"
+          :class="getDarkModeClass(darkMode)"
+          :style="contextMenuStyle"
+          @click.stop
+        >
+          <q-list style="min-width: 150px">
+            <q-item clickable @mousedown.prevent @click.stop="copyMessage(contextMessage)">
+              <q-item-section avatar>
+                <q-icon name="content_copy" size="20px" />
+              </q-item-section>
+              <q-item-section>
+                <q-item-label>{{ $t('Copy', {}, 'Copy') }}</q-item-label>
+              </q-item-section>
+            </q-item>
+            <q-item v-if="hasTextSelection" clickable @mousedown.prevent @click.stop="quoteMessage(contextMessage)">
+              <q-item-section avatar>
+                <q-icon name="format_quote" size="20px" />
+              </q-item-section>
+              <q-item-section>
+                <q-item-label>{{ $t('Quote', {}, 'Quote') }}</q-item-label>
+              </q-item-section>
+            </q-item>
+            <template v-if="!hasTextSelection">
+              <q-item clickable @mousedown.prevent @click.stop="setReply(contextMessage)">
+                <q-item-section avatar>
+                  <q-icon name="reply" size="20px" />
+                </q-item-section>
+                <q-item-section>
+                  <q-item-label>{{ $t('Reply', {}, 'Reply') }}</q-item-label>
+                </q-item-section>
+              </q-item>
+              <q-item
+                v-if="contextMessage?.sender === myPubKey && canEditMessage(contextMessage)"
+                clickable
+                @mousedown.prevent
+                @click.stop="setEdit(contextMessage)"
+              >
+                <q-item-section avatar>
+                  <q-icon name="edit" size="20px" />
+                </q-item-section>
+                <q-item-section>
+                  <q-item-label>{{ $t('Edit', {}, 'Edit') }}</q-item-label>
+                </q-item-section>
+              </q-item>
+              <q-item
+                v-if="contextMessage?.sender === myPubKey && canDeleteMessage(contextMessage)"
+                clickable
+                @mousedown.prevent
+                @click.stop="confirmDeleteMessage(contextMessage)"
+              >
+                <q-item-section avatar>
+                  <q-icon name="delete" size="20px" color="negative" />
+                </q-item-section>
+                <q-item-section>
+                  <span class="text-negative">{{ $t('Delete', {}, 'Delete') }}</span>
+                </q-item-section>
+              </q-item>
+              <q-item-label header class="q-px-md q-pt-sm q-pb-none">{{ $t('React', {}, 'React') }}</q-item-label>
+              <q-item class="q-px-sm q-py-xs">
+                <q-item-section>
+                  <div class="react-emoji-row">
+                    <span v-for="emoji in quickReactions" :key="emoji" class="react-emoji" @mousedown.prevent @click.stop="onReact(contextMessage, emoji)">{{ emoji }}</span>
+                  </div>
+                </q-item-section>
+              </q-item>
+            </template>
+          </q-list>
+        </div>
+      </div>
+    </transition>
 
   </div>
 </template>
@@ -575,6 +540,10 @@ export default {
   components: { HeaderNav, MessageBubble, ChatInput },
   props: {
     roomId: { type: String, required: true },
+    // Room type hint from the URL (?type=mls-group|group|private). Used as a
+    // fallback so the conversation can be handled correctly (e.g. MLS send
+    // routing) before/without the full room object being in the store.
+    type: { type: String, default: null },
   },
   data () {
     return {
@@ -598,17 +567,18 @@ export default {
       quickReactions: ['😂', '🎉', '❤️', '😊', '👍', '💯', '🔥', '🙏', '🤔', '😮', '😢', '👎'],
       showScrollToBottom: false,
       isContextMenuOpen: false,
+      showContextMenuDialog: false,
+      selectedMessageId: null,
+      contextMenuStyle: {},
       displayLimit: 15,
       isLoadingMore: false,
       _allMessagesLoaded: false,
       _scrollToMessageId: null,
       // Guard to ignore the next pointerdown which may be the finger lifting
       _ignoreNextPointerDown: false,
+      _selectionChangeHandler: null,
       ready: false,
       _savedScrollTop: null,
-      requestingToJoin: false,
-      _fetchedGroupMeta: null,
-      _fetchingMeta: false,
       _loadingRoom: true,
       otherMemberAvatar: null,
       memberDisplayNames: {},
@@ -626,30 +596,22 @@ export default {
     room () {
       const room = this.$store.getters['nostrChat/getRoomById'](this.roomId)
       if (room) return room
-      if (this._previewMembers?.length) {
+      if (this.type) {
         return {
           id: this.roomId,
-          type: 'group',
-          name: this._previewName || 'Group',
-          members: this._previewMembers,
+          type: this.type,
+          name: 'Group',
+          members: [],
         }
       }
       return null
     },
+    isMlsRoom () {
+      return (this.room?.type || this.type) === 'mls-group'
+    },
     isRoomMember () {
       if (!this.room || !this.myPubKey) return false
       return this.room.members?.includes(this.myPubKey)
-    },
-    _isGroupLink () {
-      return this.$route?.name === 'group-chat-link'
-    },
-    _previewMembers () {
-      if (this._fetchedGroupMeta?.members?.length) return this._fetchedGroupMeta.members
-      return this.$route.query?.members?.split(',') || null
-    },
-    _previewName () {
-      if (this._fetchedGroupMeta?.name) return this._fetchedGroupMeta.name
-      return this.$route.query?.name || null
     },
     otherMemberPubKey () {
       const room = this.room
@@ -685,12 +647,8 @@ export default {
     isRoomArchived () {
       return this.room?.archived === true
     },
-    isGroupBlocked () {
-      if (!this.roomId) return false
-      return this.$store.getters['nostrChat/isGroupBlocked'](this.roomId)
-    },
     isGroupRoom () {
-      return this.room?.type === 'group'
+      return this.room?.type === 'group' || this.room?.type === 'mls-group'
     },
     otherMemberIsActive () {
       const pk = this.otherMemberPubKey
@@ -738,7 +696,7 @@ export default {
       const room = this.room
       if (!room) return this.$t('Chat', {}, 'Chat')
       // Group rooms: use room.name directly
-      if (room.type === 'group') {
+      if (room.type === 'group' || room.type === 'mls-group') {
         return room.name || room.subject || this.$t('Group', {}, 'Group')
       }
       // DM: if a subject has been set, prefer it over the contact name
@@ -833,8 +791,6 @@ export default {
       return text.length > 80 ? text.slice(0, 80) + '...' : text
     },
     messageReadMap () {
-      // Compute read status for messages I sent.
-      // Uses Kind 7 "👀" reactions received via NIP-17 gift-wraps.
       const map = {}
       const myPubKey = this.myPubKey
       const room = this.room
@@ -842,31 +798,27 @@ export default {
 
       const readBy = this.$store.getters['nostrChat/getMessageReadBy'](this.roomId)
 
-      for (const msg of this.allMessages) {
-        // Only check read status for messages I sent
+      for (const msg of this.displayedMessages) {
         if (msg.sender !== myPubKey) continue
-        // Read if ANY other room member sent a 👀 reaction for this message
         map[msg.id] = Object.keys(readBy[msg.id] || {}).length > 0
       }
 
       return map
     },
     readByNamesMap () {
-      // For group chats: build a map of { [msgId]: [displayName, ...] } for reader avatars/tooltips
       const map = {}
       const myPubKey = this.myPubKey
       const room = this.room
-      if (!room || !myPubKey || room.type !== 'group') return map
+      if (!room || !myPubKey || (room.type !== 'group' && room.type !== 'mls-group')) return map
 
       const readBy = this.$store.getters['nostrChat/getMessageReadBy'](this.roomId)
-      const contactsByPubKey = this.contactsByPubKey
 
-      for (const msg of this.allMessages) {
+      for (const msg of this.displayedMessages) {
         if (msg.sender !== myPubKey) continue
         const readers = Object.keys(readBy[msg.id] || {})
         if (!readers.length) continue
         map[msg.id] = readers.map(pubKey => {
-          const contact = contactsByPubKey.get(pubKey)
+          const contact = this.contactsByPubKey.get(pubKey)
           if (contact?.name) return contact.name
           const displayName = this.memberDisplayNames[pubKey]
           if (displayName) return displayName
@@ -908,10 +860,6 @@ export default {
       immediate: true,
     },
     'allMessages.length' (newLen, oldLen) {
-      // Only auto-mark-as-read when this conversation is actually visible.
-      // When deactivated (keep-alive, user navigated to chat index), the
-      // watcher still fires on new messages — skip it so the unread counter
-      // on the chat index page stays accurate.
       if (!this._isActive) return
       this.markAsRead()
 
@@ -929,7 +877,6 @@ export default {
         if (sentByMe) {
           this.scrollToBottom()
         } else {
-          // Auto-scroll for incoming messages only if already near the bottom
           const container = this.$refs.messagesContainer
           const nearBottom = container &&
             container.scrollTop + container.clientHeight >= container.scrollHeight - 150
@@ -939,15 +886,20 @@ export default {
         }
       }
       this.previousMessageCount = newLen
-    this.$nextTick(() => this.observeMessages())
+
+      // Observe only newly added message groups instead of iterating all DOM elements
+      if (oldLen < newLen && this.$refs.messagesContainer) {
+        const els = this.$refs.messagesContainer.querySelectorAll(`[data-msg-id]:not(.observed)`)
+        for (let i = newLen - oldLen; i > 0 && els[i - 1]; i--) {
+          const el = els[i - 1]
+          this._messageObserver?.observe(el)
+          el.classList.add('observed')
+        }
+      }
     },
     room (val) {
       if (val) {
         this._loadingRoom = false
-        return
-      }
-      if (!this._isGroupLink) {
-        this.$router.replace('/apps/chat')
       }
     },
     otherMemberIsActive (isActive, wasActive) {
@@ -1026,17 +978,6 @@ export default {
     if (this.room) {
       this._loadingRoom = false
     }
-    if (!this.room && this._isGroupLink) {
-      this._fetchingMeta = true
-      this.$store.dispatch('nostrChat/fetchGroupMetadata', { roomId: this.roomId }).then(meta => {
-        this._fetchedGroupMeta = meta
-        this._fetchingMeta = false
-        this._loadingRoom = false
-      }).catch(() => {
-        this._fetchingMeta = false
-        this._loadingRoom = false
-      })
-    }
     const savedRoomId = sessionStorage.getItem('chat_scroll_room_id')
     const savedMessageId = sessionStorage.getItem('chat_scroll_message_id')
     const savedDisplayLimit = sessionStorage.getItem('chat_scroll_display_limit')
@@ -1069,7 +1010,6 @@ export default {
     }
     document.addEventListener('visibilitychange', this.onVisibilityChange)
     document.addEventListener('pointerdown', this.onDocumentPointerDown)
-    document.addEventListener('pointerup', this.onDocumentPointerUp)
     if (window.visualViewport) {
       window.visualViewport.addEventListener('resize', this.onViewportResize)
       window.visualViewport.addEventListener('scroll', this.onViewportResize)
@@ -1178,10 +1118,10 @@ export default {
       this.flushMarkAsRead()
     }
     this.ready = false
+    this._stopWatchingSelection()
     if (this._vpRaf) { cancelAnimationFrame(this._vpRaf); this._vpRaf = null }
     document.removeEventListener('visibilitychange', this.onVisibilityChange)
     document.removeEventListener('pointerdown', this.onDocumentPointerDown)
-    document.removeEventListener('pointerup', this.onDocumentPointerUp)
     if (window.visualViewport) {
       window.visualViewport.removeEventListener('resize', this.onViewportResize)
       window.visualViewport.removeEventListener('scroll', this.onViewportResize)
@@ -1273,9 +1213,23 @@ export default {
       }, { root: container, threshold: 0.5 })
     },
     observeMessages () {
-      if (!this._messageObserver || !this.$refs.messagesContainer) return
-      const els = this.$refs.messagesContainer.querySelectorAll('.message-group')
-      els.forEach(el => this._messageObserver.observe(el))
+      if (this._messageObserver && this.$refs.messagesContainer) {
+        const els = this.$refs.messagesContainer.querySelectorAll('.message-group')
+        els.forEach(el => {
+          this._messageObserver.observe(el)
+          el.classList.add('observed')
+        })
+      }
+      this.markDisplayedMessagesAsRead()
+    },
+    markDisplayedMessagesAsRead () {
+      if (!this.roomId || !this.myPubKey || !this._isActive) return
+      for (const msg of this.displayedMessages) {
+        if (msg.sender === this.myPubKey) continue
+        if (this._sentReadReceiptIds.has(msg.id)) continue
+        this._pendingReadMsgIds.add(msg.id)
+      }
+      this._flushReadMsgIds()
     },
     _flushReadMsgIds () {
       if (this._readMsgFlushTimer) return
@@ -1287,7 +1241,7 @@ export default {
         // Filter out own messages and already-processed IDs
         const filtered = ids.filter(id => {
           if (this._sentReadReceiptIds.has(id)) return false
-          const msg = this.allMessages.find(m => m.id === id)
+          const msg = this.messageIndexById.get(id)
           return msg && msg.sender !== this.myPubKey
         })
         if (filtered.length) {
@@ -1308,79 +1262,14 @@ export default {
     ensureSubscribed () {
       // Always ensure we have an active subscription,
       // especially after the tab has been backgrounded.
-      if (!this.$store.getters['nostrChat/isInitialized']) {
+      // isInitialized is persisted, but privKeyHex is stripped from persisted
+      // state for security — it must be restored by initialize first.
+      if (!this.$store.getters['nostrChat/isInitialized'] || !this.$store.getters['nostrChat/myPrivKey']) {
         return this.$store.dispatch('nostrChat/initialize').then(() => {
           return this.$store.dispatch('nostrChat/subscribeToRelays')
         })
       } else {
         return this.$store.dispatch('nostrChat/subscribeToRelays')
-      }
-    },
-    async requestToJoin () {
-      this.requestingToJoin = true
-      try {
-        const members = this._previewMembers || this.room?.members || []
-        await this.$store.dispatch('nostrChat/requestToJoinGroup', {
-          roomId: this.roomId,
-          memberPubKeys: members,
-          name: this._previewName || this.room?.name,
-        })
-        this.$q.notify({
-          type: 'positive',
-          message: this.$t('JoinRequestSent', {}, 'Join request sent to group members'),
-        })
-      } catch (err) {
-        console.error('[Conversation] Failed to send join request:', err)
-        this.$q.notify({
-          type: 'negative',
-          message: err.message || this.$t('JoinRequestFailed', {}, 'Failed to send join request'),
-        })
-      } finally {
-        this.requestingToJoin = false
-      }
-    },
-    async shareGroupLink () {
-      try {
-        if (!this.room?.name) {
-          this.$q.notify({
-            type: 'warning',
-            message: this.$t('GroupHasNoName', {}, 'Set a group name first before sharing'),
-          })
-          return
-        }
-        await this.$store.dispatch('nostrChat/publishGroupMetadata', {
-          roomId: this.roomId,
-          memberPubKeys: this.room?.members || [],
-          name: this.room?.name,
-        })
-      } catch (err) {
-        console.warn('[Conversation] Failed to publish group metadata:', err)
-      }
-      const url = `https://chat.paytaca.com/group/${this.roomId}`
-      if (navigator?.clipboard?.writeText) {
-        navigator.clipboard.writeText(url)
-        this.$q.notify({
-          type: 'positive',
-          message: this.$t('GroupLinkCopied', {}, 'Group link copied to clipboard'),
-        })
-      } else {
-        this.$q.dialog({
-          title: this.$t('ShareGroupLink', {}, 'Share Group Link'),
-          message: url,
-          class: `pt-card text-bow ${this.getDarkModeClass(this.darkMode)}`,
-          ok: { label: this.$t('Copy', {}, 'Copy'), flat: true, color: 'primary' },
-        }).onOk(() => {
-          const textArea = document.createElement('textarea')
-          textArea.value = url
-          document.body.appendChild(textArea)
-          textArea.select()
-          document.execCommand('copy')
-          document.body.removeChild(textArea)
-          this.$q.notify({
-            type: 'positive',
-            message: this.$t('GroupLinkCopied', {}, 'Group link copied to clipboard'),
-          })
-        })
       }
     },
     onVisibilityChange () {
@@ -1439,22 +1328,218 @@ export default {
     openMessageMenu (message, event) {
       if (this.isContextMenuOpen) this.hideContextMenu()
       this.contextMessage = message
-      const sel = window.getSelection()
-      const hasSelection = sel && !sel.isCollapsed
-      this.hasTextSelection = hasSelection
-      this.selectedText = hasSelection ? sel.toString().trim() : ''
-      this.$nextTick(() => {
-        this.$refs.contextMenu?.show(event)
+      this.selectedMessageId = message.id
+
+      // The initial long-press / right-click must not highlight any text —
+      // it only opens the context menu. Clear any leftover selection so the
+      // menu always starts in its full state; a new selection made while the
+      // menu is open swaps it to copy/quote.
+      window.getSelection()?.removeAllRanges()
+      this.hasTextSelection = false
+      this.selectedText = ''
+
+      this.$nextTick(async () => {
+        const msgElement = document.getElementById('msg-' + message.id)
+        if (!msgElement) {
+          this.showContextMenuCenter()
+          return
+        }
+
+        const menuMargin = 12
+        const estimatedMenuHeight = this.hasTextSelection ? 140 : 340
+        let msgRect = msgElement.getBoundingClientRect()
+
+        // If the menu doesn't fit below the bubble (bubble near the message
+        // input), raise the bubble by scrolling the list so the menu can sit
+        // below it without overlapping the bubble.
+        const container = this.$refs.messagesContainer
+        const spaceBelow = this._spaceBelowBubble(msgRect)
+        if (spaceBelow < estimatedMenuHeight + menuMargin && container) {
+          const scrollNeeded = estimatedMenuHeight + menuMargin - spaceBelow + 16
+          const startTop = container.scrollTop
+          const targetTop = Math.min(startTop + scrollNeeded, container.scrollHeight - container.clientHeight)
+          if (targetTop > startTop) {
+            // Smooth scrolling of a plain div is not reliably supported in
+            // mobile WebViews, so if the scroll never starts we jump straight
+            // to the target. Either way the bubble ends up raised and the
+            // menu can sit below it.
+            try {
+              container.scrollTo({ top: targetTop, behavior: 'smooth' })
+            } catch (e) {
+              container.scrollTop = targetTop
+            }
+            await this._awaitScrollSettled(container, targetTop, startTop)
+            msgRect = msgElement.getBoundingClientRect()
+          }
+        }
+
+        this.positionContextMenu(msgRect, message.sender === this.myPubKey, menuMargin, estimatedMenuHeight)
+
+        this.showContextMenuDialog = true
         this.isContextMenuOpen = true
         this._ignoreNextPointerDown = true
         setTimeout(() => { this._ignoreNextPointerDown = false }, 350)
+
+        this._startWatchingSelection(message.id)
+
+        // Re-anchor the menu to the bubble using its real rendered height —
+        // the estimate used for the initial position may differ, which would
+        // otherwise leave the menu floating too high above the bubble.
+        this.$nextTick(() => {
+          this._repositionContextMenu()
+        })
       })
+    },
+    // Usable space below the bubble, reserving room for the chat input so the
+    // menu never sits on top of it.
+    _spaceBelowBubble (msgRect) {
+      const inputEl = this.$refs.chatInput?.$el
+      const inputH = inputEl ? inputEl.offsetHeight : 64
+      return window.innerHeight - msgRect.bottom - inputH - 16
+    },
+    _awaitScrollSettled (el, targetTop, startTop) {
+      return new Promise(resolve => {
+        const begin = Date.now()
+        const tick = () => {
+          if (Math.abs(el.scrollTop - targetTop) <= 1) {
+            resolve()
+            return
+          }
+          // Smooth scroll never started (unsupported on this WebView) —
+          // jump straight to the target so the menu position is correct.
+          if (Date.now() - begin > 60 && Math.abs(el.scrollTop - startTop) <= 1) {
+            el.scrollTop = targetTop
+            resolve()
+            return
+          }
+          if (Date.now() - begin > 1200) {
+            resolve()
+            return
+          }
+          requestAnimationFrame(tick)
+        }
+        tick()
+      })
+    },
+    positionContextMenu (msgRect, isMine, margin, menuHeight = 340) {
+      const menuWidth = 200
+      const padding = 16
+      let left = Math.max(padding, msgRect.left)
+
+      if (isMine) {
+        left = Math.max(padding, msgRect.right - menuWidth)
+      }
+
+      // Prefer placing the menu below the bubble. When there is not enough
+      // room (bubble near the message input), flip it above so the context
+      // menu never overlays the message bubble itself.
+      const spaceBelow = this._spaceBelowBubble(msgRect)
+      const spaceAbove = msgRect.top - padding
+      let top
+      if (menuHeight <= spaceBelow) {
+        top = msgRect.bottom + margin
+      } else if (menuHeight <= spaceAbove) {
+        top = msgRect.top - menuHeight - margin
+      } else {
+        // Neither side fully fits — use the side with the most room.
+        top = spaceAbove >= spaceBelow
+          ? Math.max(padding, msgRect.top - menuHeight - margin)
+          : msgRect.bottom + margin
+      }
+
+      const inputEl = this.$refs.chatInput?.$el
+      const inputH = inputEl ? inputEl.offsetHeight : 64
+      top = Math.min(Math.max(top, padding), window.innerHeight - inputH - menuHeight - padding)
+      left = Math.min(Math.max(left, padding), window.innerWidth - menuWidth - padding)
+
+      this.contextMenuStyle = {
+        position: 'fixed',
+        top: top + 'px',
+        left: left + 'px',
+      }
+    },
+    showContextMenuCenter () {
+      this.contextMenuStyle = {
+        position: 'fixed',
+        top: '40%',
+        left: '50%',
+        transform: 'translateX(-50%)',
+      }
+      this.showContextMenuDialog = true
+      this.isContextMenuOpen = true
+      this._ignoreNextPointerDown = true
+      setTimeout(() => { this._ignoreNextPointerDown = false }, 350)
+      if (this.contextMessage) {
+        this._startWatchingSelection(this.contextMessage.id)
+      }
+    },
+    _startWatchingSelection (messageId) {
+      this._stopWatchingSelection()
+      this._selectionChangeHandler = () => {
+        const sel = window.getSelection()
+        if (!sel || sel.isCollapsed) {
+          if (this.hasTextSelection) {
+            this.hasTextSelection = false
+            this.selectedText = ''
+            this._repositionContextMenu()
+          }
+          return
+        }
+        const msgEl = document.getElementById('msg-' + messageId)
+        if (!msgEl) return
+        if (msgEl.contains(sel.anchorNode) && msgEl.contains(sel.focusNode)) {
+          const text = sel.toString().trim()
+          if (text && text !== this.selectedText) {
+            this.hasTextSelection = true
+            this.selectedText = text
+            this._repositionContextMenu()
+          }
+        }
+      }
+      document.addEventListener('selectionchange', this._selectionChangeHandler)
+    },
+    // Recompute the menu position when its content changes height (full menu
+    // <-> copy/quote) so it stays anchored to the message bubble. Uses the
+    // real rendered menu height so it never floats far from the bubble.
+    _repositionContextMenu () {
+      if (!this.contextMessage) return
+      const msgElement = document.getElementById('msg-' + this.contextMessage.id)
+      const menuEl = this.$refs.contextMenuEl
+      if (!msgElement || !menuEl) return
+      const msgRect = msgElement.getBoundingClientRect()
+      const menuHeight = menuEl.offsetHeight || (this.hasTextSelection ? 140 : 340)
+      this.positionContextMenu(msgRect, this.contextMessage.sender === this.myPubKey, 12, menuHeight)
+    },
+    _stopWatchingSelection () {
+      if (this._selectionChangeHandler) {
+        document.removeEventListener('selectionchange', this._selectionChangeHandler)
+        this._selectionChangeHandler = null
+      }
     },
     hideContextMenu () {
       if (this._ignoreNextPointerDown) return
-      this.$refs.contextMenu?.hide()
+      this._stopWatchingSelection()
+      this.showContextMenuDialog = false
       this.isContextMenuOpen = false
+      this.hasTextSelection = false
       this.selectedText = ''
+      this.selectedMessageId = null
+      const sel = window.getSelection()
+      if (sel && !sel.isCollapsed && sel.rangeCount > 0) sel.removeAllRanges()
+    },
+    onMessagesClick (e) {
+      this.onRootClick(e)
+    },
+    onRootClick (e) {
+      // Clicks inside the message whose context menu is open must not dismiss
+      // the menu — the user may be clicking to position or complete a text
+      // selection. This guards both the messages container and the root
+      // app-container, since the click bubbles up through both.
+      if (this.selectedMessageId && this.isContextMenuOpen) {
+        const msgEl = document.getElementById('msg-' + this.selectedMessageId)
+        if (msgEl && msgEl.contains(e.target)) return
+      }
+      this.hideContextMenu()
     },
     onDocumentPointerDown (e) {
       if (this._ignoreNextPointerDown) {
@@ -1463,52 +1548,33 @@ export default {
       }
 
       if (!this.isContextMenuOpen) return
-      const menuEl = this.$refs.contextMenu?.$el
+      const menuEl = this.$refs.contextMenuEl
       const target = e.target
-      // Use composedPath if available to accurately detect clicks inside teleported popups
-      const path = (typeof e.composedPath === 'function') ? e.composedPath() : (e.path || [])
-      const pathContainsMenu = path && menuEl && path.indexOf(menuEl) !== -1
-      const pathHasQClose = path && path.some && path.some(n => n && n.__qclosepopup)
       if (menuEl && (menuEl.contains && menuEl.contains(target))) return
-      if (pathContainsMenu) return
-      if (pathHasQClose) return
-      // As a last resort, check for the special Quasar close marker on the target
-      if (target && target.__qclosepopup) return
-      
+      const path = (typeof e.composedPath === 'function') ? e.composedPath() : (e.path || [])
+      if (path && menuEl && path.indexOf(menuEl) !== -1) return
+      const backdrop = target.closest?.('.context-menu-backdrop')
+      if (backdrop) return
+
+      // Allow clicking inside the selected message without closing the menu
+      // so users can select/copy text while the context menu is visible.
+      if (this.selectedMessageId) {
+        const msgEl = document.getElementById('msg-' + this.selectedMessageId)
+        if (msgEl && (msgEl.contains && msgEl.contains(target))) return
+      }
+
       this.hideContextMenu()
+      window.getSelection()?.removeAllRanges()
     },
-    onDocumentPointerUp (e) {
-      if (e.button !== 0) return
-      if (this.isContextMenuOpen) return
-      const sel = window.getSelection()
-      if (!sel || sel.isCollapsed) return
-      const msgEl = sel.anchorNode?.parentElement?.closest?.('[data-msg-id]')
-      if (!msgEl) return
-      const msgId = msgEl.dataset.msgId
-      const message = this.getMessageById(msgId)
-      if (!message) return
-      const selectedText = sel.toString().trim()
-      if (!selectedText) return
-      this.contextMessage = message
-      this.hasTextSelection = true
-      this.selectedText = selectedText
-      const range = sel.getRangeAt(0)
-      const rect = range.getBoundingClientRect()
-      this.$nextTick(() => {
-        this.$refs.contextMenu?.show({
-          clientX: rect.left + rect.width / 2,
-          clientY: rect.bottom + 4,
-        })
-        this.isContextMenuOpen = true
-        this._ignoreNextPointerDown = true
-        setTimeout(() => { this._ignoreNextPointerDown = false }, 350)
-      })
+    onContextMenuBackdropPointerDown (e) {
+      if (this._ignoreNextPointerDown) {
+        this._ignoreNextPointerDown = false
+        return
+      }
     },
     onReact (message, emoji) {
-      this.$refs.contextMenu?.hide()
+      this.hideContextMenu()
       if (!message || !emoji) return
-      // Visible debug feedback so we can see handlers firing without remote console
-      
       this.$store.dispatch('nostrChat/sendReaction', {
         roomId: this.roomId,
         messageId: message.id || message.kind14Id,
@@ -1516,11 +1582,6 @@ export default {
       }).catch(err => {
         console.error('[Conversation] Failed to send reaction:', err)
       })
-    },
-    menuPointerDown (tag, e) {
-      // Log pointerdown inside menu items to check event flow
-      
-      
     },
     onRemoveReaction ({ messageId, emoji }) {
       if (!messageId || !emoji) return
@@ -1603,8 +1664,11 @@ export default {
       container.scrollTo({ top: container.scrollHeight, behavior: 'smooth' })
     },
     copyMessage (message) {
-      if (this.selectedText) {
-        navigator.clipboard.writeText(this.selectedText)
+      const sel = window.getSelection()
+      const selection = sel && !sel.isCollapsed ? sel.toString().trim() : ''
+      this.hideContextMenu()
+      if (selection) {
+        navigator.clipboard.writeText(selection)
       } else {
         const { text } = parseMessageMarkup(message.content || '')
         const content = text || message.content || ''
@@ -1617,8 +1681,11 @@ export default {
       })
     },
     quoteMessage (message) {
+      const sel = window.getSelection()
+      const selection = sel && !sel.isCollapsed ? sel.toString().trim() : ''
+      this.hideContextMenu()
       const { text } = parseMessageMarkup(message.content || '')
-      const quoteText = this.selectedText || text || message.content || ''
+      const quoteText = selection || text || message.content || ''
       this.replyToMessage = message
       this.$nextTick(() => {
         this.$refs.chatInput?.setText(`> ${quoteText}\n\n`)
@@ -1628,6 +1695,7 @@ export default {
       })
     },
     setReply (message) {
+      this.hideContextMenu()
       this.replyToMessage = message
       this.$nextTick(() => {
         setTimeout(() => {
@@ -1649,6 +1717,7 @@ export default {
       return elapsed <= 60
     },
     setEdit (message) {
+      this.hideContextMenu()
       if (!this.canEditMessage(message)) return
       if (this.replyToMessage) this.replyToMessage = null
       this.editingMessage = message
@@ -1661,6 +1730,7 @@ export default {
       this.editingMessage = null
     },
     confirmDeleteMessage (message) {
+      this.hideContextMenu()
       this.$q.dialog({
         title: this.$t('DeleteMessage', {}, 'Delete Message'),
         message: this.$t('DeleteMessageConfirm', {}, 'Delete this message? This cannot be undone.'),
@@ -1686,17 +1756,12 @@ export default {
       })
     },
     onTipAction () {
-      const recipientPubKey = this.otherMemberPubKey
-      if (!recipientPubKey) {
-        this.$q.notify({ type: 'negative', message: this.$t('NoRecipientFound'), timeout: 5000, closeBtn: true })
-        return
-      }
-      this.sendTipNavigate(recipientPubKey, 0)
+      this.handleTipRequest(null, 0)
     },
     async onSend (text) {
       if (!this.room) return
       try {
-        if (this.editingMessage) {
+        if (this.editingMessage && !this.isMlsRoom) {
           const { giftWraps, roomId } = await this.$store.dispatch('nostrChat/sendEditMessage', {
             roomId: this.roomId,
             text,
@@ -1718,22 +1783,45 @@ export default {
           }
         } else {
           const replyTo = this.replyToMessage?.id
-          const { giftWraps, message, roomId } = await this.$store.dispatch('nostrChat/sendMessage', {
-            roomId: this.roomId,
-            text,
-            replyTo,
-          })
-          this.$store.commit('nostrChat/ADD_MESSAGE', { roomId, message })
-          this.$store.commit('nostrChat/TOUCH_ROOM_LAST_MESSAGE_AT', roomId)
-          this.$store.dispatch('nostrChat/touchRoom', { roomId, timestamp: new Date().toISOString() })
-          this.replyToMessage = null
-          this.scrollToBottom()
-          await this.$store.dispatch('nostrChat/publishGiftWraps', { giftWraps })
-          if (this.$store.getters['nostrChat/getShowActiveStatus']) {
-            this.$store.dispatch('nostrChat/touchActive', {
-              pubkey: this.myPubKey,
-              recipients: this.room?.members?.filter(m => m !== this.myPubKey) || [],
+
+          // MLS groups use the MLS encryption layer instead of NIP-17 gift-wraps.
+          // The message is returned already added to the local store by the action.
+          if (this.isMlsRoom) {
+            const { message, roomId } = await this.$store.dispatch('nostrChat/sendMlsMessage', {
+              roomId: this.roomId,
+              text,
+              replyTo,
             })
+            this.$store.commit('nostrChat/ADD_MESSAGE', { roomId, message })
+            this.$store.commit('nostrChat/TOUCH_ROOM_LAST_MESSAGE_AT', roomId)
+            this.$store.dispatch('nostrChat/touchRoom', { roomId, timestamp: new Date().toISOString() })
+            this.replyToMessage = null
+            this.editingMessage = null
+            this.scrollToBottom()
+            if (this.$store.getters['nostrChat/getShowActiveStatus']) {
+              this.$store.dispatch('nostrChat/touchActive', {
+                pubkey: this.myPubKey,
+                recipients: this.room?.members?.filter(m => m !== this.myPubKey) || [],
+              })
+            }
+          } else {
+            const { giftWraps, message, roomId } = await this.$store.dispatch('nostrChat/sendMessage', {
+              roomId: this.roomId,
+              text,
+              replyTo,
+            })
+            this.$store.commit('nostrChat/ADD_MESSAGE', { roomId, message })
+            this.$store.commit('nostrChat/TOUCH_ROOM_LAST_MESSAGE_AT', roomId)
+            this.$store.dispatch('nostrChat/touchRoom', { roomId, timestamp: new Date().toISOString() })
+            this.replyToMessage = null
+            this.scrollToBottom()
+            await this.$store.dispatch('nostrChat/publishGiftWraps', { giftWraps })
+            if (this.$store.getters['nostrChat/getShowActiveStatus']) {
+              this.$store.dispatch('nostrChat/touchActive', {
+                pubkey: this.myPubKey,
+                recipients: this.room?.members?.filter(m => m !== this.myPubKey) || [],
+              })
+            }
           }
         }
       } catch (err) {
@@ -1797,21 +1885,6 @@ export default {
         const name = this.renameGroupName.trim()
         if (!name || !this.room) return
         await this.$store.dispatch('nostrChat/updateRoomName', { roomId: this.roomId, name })
-        const text = this.$t('GroupRenamedTo', { name }, `Changed group name to "${name}"`)
-        const { giftWraps, message, roomId } = await this.$store.dispatch('nostrChat/sendMessage', {
-          roomId: this.roomId,
-          text,
-          subject: name,
-        })
-        this.$store.commit('nostrChat/ADD_MESSAGE', { roomId, message })
-        this.$store.commit('nostrChat/TOUCH_ROOM_LAST_MESSAGE_AT', roomId)
-        this.$store.dispatch('nostrChat/publishGiftWraps', { giftWraps })
-        // Persist the new name on the relay so all members see it
-        this.$store.dispatch('nostrChat/publishGroupMetadata', {
-          roomId: this.roomId,
-          memberPubKeys: this.room?.members || [],
-          name,
-        }).catch(() => {})
         this.renameGroupName = ''
         this.showRenameGroupDialog = false
         this.$q.notify({ type: 'positive', message: this.$t('GroupRenamed', {}, 'Group renamed') })
@@ -1820,6 +1893,15 @@ export default {
       }
     },
     confirmLeaveGroup () {
+      const isOwner = this.room?.admins?.length && this.myPubKey === this.room.members?.[0]
+      if (isOwner && this.room.members?.length > 1) {
+        this.$q.notify({
+          type: 'warning',
+          message: this.$t('OwnerLeaveNeedsAdmin', {}, 'Promote another member to admin first — the group needs a new owner before you can leave.'),
+          timeout: 6000,
+        })
+        return
+      }
       this.$q.dialog({
         title: this.$t('LeaveGroup', {}, 'Leave Group'),
         message: this.$t('LeaveGroupConfirm', { name: this.room?.name }, `Leave group "${this.room?.name}"?`),
@@ -1829,26 +1911,12 @@ export default {
         persistent: true,
       }).onOk(async () => {
         try {
-          await this.$store.dispatch('nostrChat/leaveGroup', { roomId: this.roomId })
+          await this.$store.dispatch('nostrChat/leaveMlsGroup', { roomId: this.roomId })
           this.$router.replace('/apps/chat')
           this.$q.notify({ type: 'info', message: this.$t('LeftGroup', {}, 'You left the group') })
         } catch (err) {
           this.$q.notify({ type: 'negative', message: err.message || this.$t('LeaveGroupFailed', {}, 'Failed to leave group') })
         }
-      })
-    },
-    confirmRejoinGroup () {
-      const roomName = this.roomName
-      this.$q.dialog({
-        title: this.$t('RejoinGroup', {}, 'Rejoin Group'),
-        message: this.$t('RejoinGroupConfirm', { name: roomName }, `Rejoin "${roomName}"? You will be able to send and receive messages again.`),
-        class: `pt-card text-bow ${this.getDarkModeClass(this.darkMode)}`,
-        cancel: { label: this.$t('Cancel', {}, 'Cancel'), flat: true, color: 'grey' },
-        ok: { label: this.$t('RejoinGroup', {}, 'Rejoin Group'), color: 'primary', flat: true },
-        persistent: true,
-      }).onOk(async () => {
-        await this.$store.dispatch('nostrChat/rejoinGroup', { roomId: this.roomId })
-        this.$q.notify({ type: 'positive', message: this.$t('GroupRejoined', {}, 'Group rejoined') })
       })
     },
     async renameContact () {
@@ -1958,8 +2026,7 @@ export default {
       const isBlocked = this.isContactBlocked
       const note = this.$t('DeleteConversationNote', {}, 'This only removes it from this device. It stays on the relay and will be restored if you Reset Chat.')
 
-      // Groups: leaving already handles "blocking" via BLOCK_GROUP, so delete
-      // is a simple permanent removal. Also clear any group-block tracker.
+      // Groups: delete is a simple permanent removal.
       if (this.isGroupRoom) {
         this.$q.dialog({
           title: this.$t('DeleteConversation', {}, 'Delete Conversation'),
@@ -1969,7 +2036,6 @@ export default {
           ok: { label: this.$t('Delete', {}, 'Delete'), color: 'negative', flat: true },
           persistent: true,
         }).onOk(() => {
-          this.$store.dispatch('nostrChat/unblockGroup', this.roomId)
           this.$store.dispatch('nostrChat/deleteRoom', this.roomId)
           this.$router.replace('/apps/chat')
           this.$q.notify({ type: 'info', message: this.$t('ConversationDeleted', {}, 'Conversation deleted') })
@@ -2031,7 +2097,7 @@ export default {
       }
     },
     handleTipResult () {
-      const { tipTxid, tipAmount, tipSymbol, tipLogo, tipAssetId } = this.$route.query
+      const { tipTxid, tipAmount, tipSymbol, tipLogo, tipAssetId, tipRecipient } = this.$route.query
       if (!tipTxid || !tipAmount) return
       const query = { ...this.$route.query }
       delete query.tipTxid
@@ -2039,30 +2105,95 @@ export default {
       delete query.tipSymbol
       delete query.tipLogo
       delete query.tipAssetId
+      delete query.tipRecipient
       this.$router.replace({ query })
-      this.$nextTick(() => this.sendTipConfirmationMessage(tipTxid, parseFloat(tipAmount), tipSymbol || 'BCH', tipLogo || '', tipAssetId || ''))
+      this.$nextTick(() => this.sendTipConfirmationMessage(tipTxid, parseFloat(tipAmount), tipSymbol || 'BCH', tipLogo || '', tipAssetId || '', tipRecipient || null))
     },
-    async sendTipConfirmationMessage (txid, amount, symbol, logo, assetId) {
+    async sendTipConfirmationMessage (txid, amount, symbol, logo, assetId, recipientPubKey = null) {
       if (!this.room || !txid) return
+      let markup = `t:payment,a:${amount},s:${symbol},x:${txid}`
+      if (logo) markup += `,l:${logo}`
+      if (assetId) markup += `,c:${assetId}`
+      // Embed the send-time fiat conversion so every member sees the same
+      // value regardless of when they render the message.
+      const fiatCurrency = this.$store.getters['market/selectedCurrency']?.symbol
+      const bchPrice = symbol === 'BCH' && fiatCurrency
+        ? this.$store.getters['market/getAssetPrice']('bch', fiatCurrency)
+        : null
+      if (bchPrice > 0) {
+        markup += `,f:${(amount * bchPrice).toFixed(2)},fc:${fiatCurrency}`
+      }
+      const recipientName = recipientPubKey ? this.resolveMemberName(recipientPubKey) : null
+      const text = recipientName
+        ? `Sent ${amount} ${symbol} to @${recipientName} [/*${markup}*/]`
+        : `Sent ${amount} ${symbol} [/*${markup}*/]`
       try {
-        let markup = `t:payment,a:${amount},s:${symbol},x:${txid}`
-        if (logo) markup += `,l:${logo}`
-        if (assetId) markup += `,c:${assetId}`
-        const text = `Sent ${amount} ${symbol} [/*${markup}*/]`
-        const { giftWraps, message, roomId } = await this.$store.dispatch('nostrChat/sendMessage', {
-          roomId: this.roomId,
-          text,
-        })
+        let message
+        let roomId = this.roomId
+        if (this.isMlsRoom) {
+          // Tip confirmation must go to the whole group, not as a DM to the
+          // person being tipped. Tag the recipient so the group sees who got it.
+          const res = await this.$store.dispatch('nostrChat/sendMlsMessage', { roomId: this.roomId, text, recipientPubKey })
+          message = res.message
+          roomId = res.roomId
+        } else {
+          const res = await this.$store.dispatch('nostrChat/sendMessage', { roomId: this.roomId, text })
+          message = res.message
+          roomId = res.roomId
+          await this.$store.dispatch('nostrChat/publishGiftWraps', { giftWraps: res.giftWraps })
+        }
         this.$store.commit('nostrChat/ADD_MESSAGE', { roomId, message })
         this.$store.commit('nostrChat/TOUCH_ROOM_LAST_MESSAGE_AT', roomId)
         this.$store.dispatch('nostrChat/touchRoom', { roomId, timestamp: new Date().toISOString() })
-        await this.$store.dispatch('nostrChat/publishGiftWraps', { giftWraps })
         this.$q.notify({
           type: 'positive',
-          message: this.$t('BchSentSuccess', { amount, txid: txid?.slice(0, 12) }, `Successfully sent ${amount} ${symbol}`),
+          message: this.$t('BchSentSuccess', { symbol }, `${symbol} sent successfully`),
         })
       } catch (err) {
         console.error('[Conversation] Failed to send tip confirmation:', err)
+        // Keep a local-only copy of the failed message so the sender sees it in
+        // the conversation with a retry button. It is never published, so no
+        // other member ever receives it.
+        this.$store.commit('nostrChat/ADD_MESSAGE', {
+          roomId: this.roomId,
+          message: {
+            id: `failed-${Date.now()}`,
+            sender: this.myPubKey,
+            content: text,
+            kind: this.isMlsRoom ? 445 : undefined,
+            created_at: Math.floor(Date.now() / 1000),
+            failed: true,
+            mls: this.isMlsRoom,
+            recipientPubKey: recipientPubKey || null,
+          },
+        })
+      }
+    },
+    async onRetryFailedMessage (message) {
+      if (!message?.failed || !this.room) return
+      try {
+        let res
+        if (message.mls || this.isMlsRoom) {
+          res = await this.$store.dispatch('nostrChat/sendMlsMessage', {
+            roomId: this.roomId,
+            text: message.content,
+            recipientPubKey: message.recipientPubKey || undefined,
+          })
+        } else {
+          res = await this.$store.dispatch('nostrChat/sendMessage', { roomId: this.roomId, text: message.content })
+          await this.$store.dispatch('nostrChat/publishGiftWraps', { giftWraps: res.giftWraps })
+        }
+        this.$store.commit('nostrChat/REMOVE_MESSAGE', { roomId: this.roomId, messageId: message.id })
+        this.$store.commit('nostrChat/ADD_MESSAGE', { roomId: res.roomId, message: res.message })
+        this.$store.commit('nostrChat/TOUCH_ROOM_LAST_MESSAGE_AT', res.roomId)
+        this.$q.notify({ type: 'positive', message: this.$t('MessageSent', {}, 'Message sent') })
+      } catch (err) {
+        console.error('[Conversation] Retry failed:', err)
+        this.$q.notify({
+          type: 'negative',
+          message: this.$t('RetryFailed', {}, 'Still failing — check your connection and try again'),
+          timeout: 5000,
+        })
       }
     },
     async onCommand ({ type, amount, currency, originalText }) {
@@ -2076,7 +2207,7 @@ export default {
       const currencyUpper = (currency || 'BCH').toUpperCase()
 
       if (currencyUpper === 'BCH') {
-        await this.sendTipNavigate(this.otherMemberPubKey, amount, originalText)
+        await this.handleTipRequest(amount, originalText)
       } else {
         this.$q.notify({
           type: 'info',
@@ -2086,6 +2217,54 @@ export default {
         })
         this.$refs.chatInput?.setText(originalText)
       }
+    },
+    async handleTipRequest (amount, originalText = null) {
+      let recipientPubKey = this.otherMemberPubKey
+      if (this.isGroupRoom) {
+        // Groups (both MLS open groups and NIP-17 closed groups) have no single
+        // "other member" — ask who is being tipped, then tip that member while
+        // posting the confirmation to the whole group (see
+        // sendTipConfirmationMessage).
+        recipientPubKey = await this.pickTipRecipient()
+        if (!recipientPubKey) {
+          if (originalText) this.$refs.chatInput?.setText(originalText)
+          return
+        }
+      }
+      await this.sendTipNavigate(recipientPubKey, amount, originalText)
+    },
+    // In a group room there is no single "other member", so ask which member is
+    // being tipped. The payment goes to that member's address, but the tip
+    // confirmation message is posted to the whole group (via MLS for open
+    // groups, via NIP-17 gift-wraps for closed groups), not as a DM to the
+    // recipient.
+    pickTipRecipient () {
+      const myPub = this.myPubKey
+      const members = (this.room?.members || []).filter(m => m && m !== myPub)
+      if (!members.length) return Promise.resolve(null)
+      const items = members.map(pk => {
+        const contact = this.contactsByPubKey.get(pk)
+        const displayName = this.memberDisplayNames[pk] || contact?.name || pk.slice(0, 12) + '...'
+        return { label: displayName, value: pk }
+      })
+      return new Promise(resolve => {
+        this.$q.dialog({
+          title: this.$t('TipRecipientTitle', {}, 'Who are you tipping?'),
+          message: this.$t('TipRecipientMessage', {}, 'Select the group member you want to send to.'),
+          options: { type: 'radio', model: items[0]?.value || null, items: items },
+          class: `pt-card text-bow ${this.getDarkModeClass(this.darkMode)}`,
+          ok: { label: this.$t('Next', {}, 'Next'), flat: true, color: 'primary' },
+          cancel: { label: this.$t('Cancel', {}, 'Cancel'), flat: true, color: 'grey' },
+          persistent: true,
+        }).onOk(pk => resolve(pk)).onCancel(() => resolve(null)).onDismiss(() => resolve(null))
+      })
+    },
+    resolveMemberName (pubKey) {
+      const contact = this.contactsByPubKey.get(pubKey)
+      if (contact?.name) return contact.name
+      const displayName = this.memberDisplayNames[pubKey]
+      if (displayName) return displayName
+      return pubKey.slice(0, 10)
     },
     async sendTipNavigate (recipientPubKey, amount, originalText = null) {
       if (!recipientPubKey) {
@@ -2108,6 +2287,7 @@ export default {
       const query = { chatRoomId: this.roomId, backPath: `/apps/chat/${this.roomId}` }
       if (address) query.address = address
       if (amount > 0) query.amount = amount
+      if (recipientPubKey) query.tipRecipient = recipientPubKey
 
       this.$router.push({ name: 'transaction-send-select-asset', query })
     },
@@ -2752,5 +2932,115 @@ export default {
 
 .dark .blocked-notice {
   color: #f87171;
+}
+
+/* Custom context menu */
+.context-menu-backdrop {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 2000;
+  background: transparent;
+  pointer-events: none;
+}
+
+.context-menu {
+  background: #ffffff;
+  border-radius: 12px;
+  box-shadow: 0 8px 40px rgba(0, 0, 0, 0.18), 0 0 0 1px rgba(0, 0, 0, 0.04);
+  padding: 6px 0;
+  overflow: hidden;
+  z-index: 2001;
+  min-width: 180px;
+  max-width: 260px;
+  pointer-events: auto;
+}
+
+.context-menu.dark {
+  background: #1e293b;
+  box-shadow: 0 8px 40px rgba(0, 0, 0, 0.4), 0 0 0 1px rgba(255, 255, 255, 0.06);
+}
+
+.context-menu :deep(.q-item) {
+  min-height: 44px;
+  padding: 8px 16px;
+  cursor: pointer;
+}
+
+.context-menu :deep(.q-item.q-item-label) {
+  cursor: default;
+}
+
+.context-menu :deep(.q-item:hover) {
+  background: rgba(0, 0, 0, 0.04);
+}
+
+.context-menu.dark :deep(.q-item:hover) {
+  background: rgba(255, 255, 255, 0.06);
+}
+
+.context-menu :deep(.q-item__section--avatar) {
+  min-width: 36px;
+  padding-right: 4px;
+}
+
+.context-menu :deep(.q-item__label--header) {
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: #9ca3af;
+  padding: 10px 16px 4px;
+}
+
+.context-menu.dark :deep(.q-item__label--header) {
+  color: #64748b;
+}
+
+.context-menu :deep(.react-emoji-row) {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 4px;
+  justify-items: center;
+  padding: 0 8px;
+}
+
+.context-menu :deep(.react-emoji) {
+  font-size: 22px;
+  cursor: pointer;
+  padding: 6px;
+  border-radius: 8px;
+  transition: background-color 0.15s ease, transform 0.15s ease;
+  line-height: 1;
+}
+
+.context-menu :deep(.react-emoji:hover) {
+  background: rgba(0, 0, 0, 0.06);
+  transform: scale(1.2);
+}
+
+.context-menu.dark :deep(.react-emoji:hover) {
+  background: rgba(255, 255, 255, 0.08);
+}
+
+/* Context menu scale transition */
+.context-menu-scale-enter-active {
+  transition: opacity 0.15s ease, transform 0.15s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.context-menu-scale-leave-active {
+  transition: opacity 0.1s ease, transform 0.1s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.context-menu-scale-enter-from {
+  opacity: 0;
+  transform: scale(0.92);
+}
+
+.context-menu-scale-leave-to {
+  opacity: 0;
+  transform: scale(0.92);
 }
 </style>

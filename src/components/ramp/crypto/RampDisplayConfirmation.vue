@@ -110,7 +110,7 @@ export default {
       vm.isloaded = false
       vm.creatingShift = true
       const ip = await this.getIPAddr()
-      const mnemonic = await getMnemonic(vm.$store.getters['global/getWalletIndex'])
+      const mnemonic = await getMnemonic(vm.$store.getters['global/getWalletIndex']).catch(() => null)
       const wallet = new Wallet(mnemonic)
 
       const walletHash = wallet.BCH.getWalletHash()

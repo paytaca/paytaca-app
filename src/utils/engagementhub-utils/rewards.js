@@ -12,6 +12,7 @@ export const REWARDS_URL = axios.create({ baseURL: `${ENGAGEMENT_HUB_URL}rewards
 requestManager.attachTo(REWARDS_URL)
 export const PROMO_TOKEN_CATEGORY = process.env.PROMO_TOKEN_CATEGORY
 export const PROMO_TOKEN_DECIMALS = 2
+export const PROMO_CONTRACT_VERSION = 'v2'
 
 export const Promos = {
   USERREWARDS: 'ur',
@@ -81,9 +82,9 @@ async function getData (url) {
     })
 }
 
-async function createData (url) {
+async function createData (url, data = {}) {
   return await REWARDS_URL
-    .post(url)
+    .post(url, data)
     .then(response => { return response.data })
     .catch(error => {
       if (!error?.message?.includes('aborted')) {
@@ -172,11 +173,11 @@ export async function createUserPromoData () {
 }
 
 export async function createUserRewardsData () {
-  return await createData('userreward/')
+  return await createData('userreward/', { wallet_hash: getWalletHash() })
 }
 
 export async function createRfPromoData () {
-  return await createData('rfpromo/')
+  return await createData('rfpromo/', { wallet_hash: getWalletHash() })
 }
 
 // ========== update functions ==========

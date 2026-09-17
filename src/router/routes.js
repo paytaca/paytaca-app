@@ -21,6 +21,11 @@ const routes = [
         component: () => import('pages/transaction/asset-list.vue')
       },
       {
+        path: 'wallet/list',
+        name: 'wallet-list',
+        component: () => import('pages/transaction/wallet-list.vue')
+      },
+      {
         path: 'receive/select-asset',
         name: 'transaction-receive-select-asset',
         component: () => import('pages/transaction/select-asset-receive.vue')
@@ -144,7 +149,7 @@ const routes = [
       { path: 'merchant-admin/merchant/cashout/order', component: () => import('src/pages/apps/paytacapos-admin/merchant-cashout/order-form.vue'), name: 'app-pos-cashout-form', props: route => route.query },
       { path: 'wallet-connect', component: () => import('src/pages/apps/wallet-connect2.vue'), name: 'app-wallet-connect', props: route => route.query },
       { path: 'wizard-connect', component: () => import('src/pages/apps/wizard-connect.vue'), name: 'app-wizard-connect', props: route => route.query },
-      { path: 'wallet-info', component: () => import('src/pages/apps/wallet-info.vue'), name: 'app-support' },
+      { path: 'support', component: () => import('src/pages/apps/wallet-info.vue'), name: 'app-support' },
       { path: 'asset-swap', component: () => import('src/pages/apps/asset-swap.vue'), name: 'app-asset-swap' },
       { path: 'sweep', component: () => import('src/pages/apps/sweep.vue'), name: 'app-sweep', props: route => Object.assign({}, route.params, route.query) },
       { path: 'collectibles', component: () => import('src/pages/apps/collectibles.vue'), name: 'app-collectibles' },
@@ -171,6 +176,16 @@ const routes = [
           { path: 'form', component: () => import('src/pages/apps/eload/eload-form.vue'), name: 'eload-service-form' },
           { path: 'orders', component: () => import('src/pages/apps/eload/eload-history.vue'), name: 'eload-service-orders' },
           { path: 'order/:orderId', component: () => import('src/pages/apps/eload/eload-history-details.vue'), name: 'eload-service-order-details', props: route => ({ ...route.params, ...route.query}), },
+        ]
+      },
+      {
+        path: 'ai-admin',
+        component: () => import('src/pages/apps/ai-admin/index.vue'), 
+        name: 'app-ai-admin',
+        children: [
+          { path: 'keys', component: () => import('src/pages/apps/ai-admin/ai-admin-keys.vue'), name: 'ai-admin-keys' },
+          { path: 'sessions', component: () => import('src/pages/apps/ai-admin/ai-admin-sessions.vue'), name: 'ai-admin-sessions' },
+          { path: 'buy-model', component: () => import('src/pages/apps/ai-admin/ai-admin-buy-form.vue'), name: 'ai-admin-buy-form' }
         ]
       },
 
@@ -515,7 +530,7 @@ const routes = [
           {
             path: ':roomId',
             name: 'app-chat-conversation',
-            props: true,
+            props: route => ({ roomId: route.params.roomId, ...route.query }),
             component: () => import('src/pages/apps/chat/conversation.vue')
           }
         ]

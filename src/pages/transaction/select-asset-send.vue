@@ -124,6 +124,10 @@ export default {
       type: String,
       default: null
     },
+    tipRecipient: {
+      type: String,
+      default: null
+    },
     amount: {
       type: Number,
       default: null
@@ -488,6 +492,7 @@ export default {
           recipient: this.address,
           backPath: this.backPath,
           chatRoomId: this.chatRoomId,
+          tipRecipient: this.tipRecipient || undefined,
           assetData: assetData ? JSON.stringify(assetData) : undefined
         }
         if (this.amount) {

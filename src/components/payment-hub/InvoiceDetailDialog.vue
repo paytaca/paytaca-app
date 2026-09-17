@@ -178,6 +178,7 @@ import { PaymentHub } from 'src/wallet/payment-hub'
 import { loadWallet } from 'src/wallet'
 import { getExplorerLink } from 'src/utils/send-page-utils'
 import { getTokenImage } from 'src/wallet/cashtokens'
+import { usePaymentHubUtils } from 'src/composables/payment-hub/usePaymentHub'
 import CopyButton from 'src/components/CopyButton.vue'
 
 const props = defineProps({
@@ -204,6 +205,8 @@ const $store = useStore()
 const $q = useQuasar()
 
 const darkMode = computed(() => $store.getters['darkmode/getStatus'])
+
+const { formatDate } = usePaymentHubUtils()
 
 // State
 const invoice = ref(null)
@@ -247,12 +250,6 @@ function getStatusColor(status) {
     case 'RECLAIMED': return 'purple'
     default: return 'grey'
   }
-}
-
-function formatDate(dateStr) {
-  if (!dateStr) return '-'
-  const date = new Date(dateStr)
-  return date.toLocaleString()
 }
 
 function formatSatoshis(sats) {

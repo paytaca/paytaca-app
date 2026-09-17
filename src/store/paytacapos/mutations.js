@@ -228,11 +228,11 @@ export function clearBranchInfo(state, walletHash = null) {
  * @param {Number} data.posid
  * @param {String} data.code
  * @param {Number} data.expiresAt
- * @param {String} data.encryptKey = ephemeral public key used for encryption (hex string)
+ * @param {String} data.decryptKey = password.iv used to decrypt the xpubkey
  * @param {Number} data.nonce
  */
 export function saveLinkCode(state, data) {
-  if (!data.walletHash || !data.code || !data.expiresAt || !data.encryptKey || !Number.isSafeInteger(data.nonce)) return
+  if (!data.walletHash || !data.code || !data.expiresAt || !data.decryptKey || !Number.isSafeInteger(data.nonce)) return
   const walletState = getOrInitWalletState(state)
   if (!walletState) return
   if (!Array.isArray(walletState.linkCodes)) walletState.linkCodes = []
@@ -242,7 +242,7 @@ export function saveLinkCode(state, data) {
     posid: data?.posid,
     code: data?.code || '',
     expiresAt: data?.expiresAt || 0,
-    encryptKey: data?.encryptKey || '',
+    decryptKey: data?.decryptKey || '',
     nonce: data?.nonce || 0,
   }
 

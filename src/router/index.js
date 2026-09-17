@@ -1,5 +1,6 @@
 import { createRouter, createMemoryHistory, createWebHistory, createWebHashHistory } from 'vue-router'
-import { getMnemonic } from '../wallet'
+import { Dialog } from 'quasar'
+import { getMnemonic, isSecureStorageDecryptError } from '../wallet'
 import routes from './routes'
 import useStore from '../store'
 import { isNativeIOS } from '../utils/native-platform'
@@ -17,7 +18,14 @@ const createHistory = process.env.SERVER
   ? createMemoryHistory
   : process.env.VUE_ROUTER_MODE === 'history' ? createWebHistory : createWebHashHistory
 export const Router = createRouter({
-  scrollBehavior: () => ({ left: 0, top: 0 }),
+  scrollBehavior: (to, from, savedPosition) => {
+    if (savedPosition) return savedPosition
+
+    // Same path, only query changed → preserve scroll
+    if (to.path === from.path) return false
+
+    return { top: 0, left: 0 }
+  },
   routes,
 
   // Leave this as is and make changes in quasar.config.js instead!
@@ -135,16 +143,19 @@ export default function () {
         // Check if mnemonic exists for this wallet
         // Prefer wallet hash if available (post-migration pattern)
         let mnemonic = null
+        let storageDecryptFailed = false
         if (walletHash) {
           mnemonic = await getMnemonic(walletHash).catch((err) => {
+            if (isSecureStorageDecryptError(err)) storageDecryptFailed = true
             console.warn('[Router] Error getting mnemonic with wallet hash:', err)
             return null
           })
         }
-        
+
         // Fallback to index-based lookup if wallet hash not available or mnemonic not found
         if (!mnemonic) {
           mnemonic = await getMnemonic(currentWalletIndex).catch((err) => {
+            if (isSecureStorageDecryptError(err)) storageDecryptFailed = true
             console.warn('[Router] Error getting mnemonic with index:', err)
             return null
           })
@@ -166,10 +177,16 @@ export default function () {
                                      otherWallet.bch?.walletHash ||
                                      otherWallet.walletHash
               if (otherWalletHash) {
-                _mnemonic = await getMnemonic(otherWalletHash).catch(() => null)
+                _mnemonic = await getMnemonic(otherWalletHash).catch((err) => {
+                  if (isSecureStorageDecryptError(err)) storageDecryptFailed = true
+                  return null
+                })
               }
               if (!_mnemonic) {
-                _mnemonic = await getMnemonic(walletIndex).catch(() => null)
+                _mnemonic = await getMnemonic(walletIndex).catch((err) => {
+                  if (isSecureStorageDecryptError(err)) storageDecryptFailed = true
+                  return null
+                })
               }
             }
           }
@@ -189,6 +206,20 @@ export default function () {
 
         if (mnemonic) {
           next()
+        } else if (storageDecryptFailed) {
+          // The stored mnemonic could not be decrypted (e.g. the device
+          // encryption key was lost after clearing browser data). The wallet
+          // cannot be opened from this storage; warn and route to restore.
+          Dialog.create({
+            title: 'Wallet data unreadable',
+            message: 'Your saved wallet could not be decrypted on this device, possibly because browser data was cleared. Please restore your wallet from your seed phrase backup.',
+            persistent: true,
+            ok: {
+              flat: true,
+              color: 'primary',
+              label: 'Restore wallet'
+            }
+          }).onOk(() => next('/accounts'))
         } else {
           next('/accounts')
         }

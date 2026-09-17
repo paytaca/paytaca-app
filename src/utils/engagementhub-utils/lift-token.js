@@ -159,21 +159,12 @@ export function convertDateToBlockHeight(date) {
 // ================================
 
 /**
- * Returns the discounted price (amount actually paid) for a purchase.
- * For single-partial-purchase reservations with a discount, prefers the
- * server-provided discounted_amount over client-side usd_paid.
- * @param {Object} purchase - Purchase object with purchase_more_details and purchase_partial_details
- * @returns {number} The discounted USD price
+ * Returns the USD amount paid for a purchase.
+ * @param {Object} purchase - Purchase object with purchase_partial_details
+ * @returns {number} The USD amount paid
  */
 export function getDiscountedPriceUsd(purchase) {
-  if (
-    Number.parseFloat(purchase.purchase_more_details.discount) > 0 &&
-    purchase.purchase_more_details.reservation_partial_purchase?.length === 1
-  ) {
-    return Number.parseFloat(purchase.purchase_more_details.discounted_amount)
-  }
-
-  return purchase.purchase_partial_details.usd_paid
+  return purchase.purchase_partial_details?.usd_paid || 0
 }
 
 /**

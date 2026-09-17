@@ -8,7 +8,7 @@
               class="row q-px-sm q-pt-sm"
             >
               <div data-tour="wallet-opener" class="col">
-                <MultiWalletDropdown ref="multi-wallet-component"/>
+                <MultiWalletDropdown/>
               </div>
               <div class="row items-center justify-end q-gutter-md">
                 <q-btn
@@ -21,7 +21,6 @@
                   @click="startHomeTour(false)"
                 />
                 <NotificationButton
-                  @hide-multi-wallet-dialog="hideMultiWalletDialog"
                   @find-and-open-transaction="findAndOpenTransaction"
                 />
               </div>
@@ -277,6 +276,7 @@
             ref="latest-transactions"
             :wallet="wallet"
             :denominationTabSelected="denominationTabSelected"
+            :favoriteTokenIds="favoriteTokenIds"
             data-tour="transactions"
             :tutorialMode="homeTour.active"
             :tutorialStepId="homeTour.steps?.[homeTour.stepIndex]?.id"
@@ -411,12 +411,10 @@ import Watchtower from 'watchtower-cash-js'
 import walletAssetsMixin from '../../mixins/wallet-assets-mixin.js'
 import { markRaw } from '@vue/reactivity'
 import { bus } from 'src/wallet/event-bus'
-import { getMnemonic } from '../../wallet'
+import { getMnemonic, getPin } from '../../wallet'
 import { getWalletByNetwork } from 'src/wallet/chipnet'
 import { dragscroll } from 'vue-dragscroll'
 import { NativeBiometric } from 'capacitor-native-biometric'
-import { SecureStoragePlugin } from 'capacitor-secure-storage-plugin'
-import { sha256 } from 'js-sha256'
 import { getAssetDenomination, parseAssetDenomination, parseFiatCurrency } from 'src/utils/denomination-utils'
 import { getDarkModeClass, isHongKong } from 'src/utils/theme-darkmode-utils'
 import { getBackendWsUrl, backend } from 'src/exchange/backend'
@@ -642,8 +640,8 @@ export default {
       if (!this.balanceLoaded && this.selectedAsset?.id === this?.bchAsset?.id) return '0'
       const currentDenomination = this.selectedDenomination
       
-      // Use aggregated balance if mode is 'bch+favorites', otherwise use BCH balance only
-      const balance = this.bchBalanceMode === 'bch+favorites' 
+      // Use aggregated balance if mode includes favorites, otherwise use BCH balance only
+      const balance = this.bchBalanceMode !== 'bch-only' 
         ? this.aggregatedBchBalance 
         : this.bchAsset.balance
 
@@ -762,7 +760,8 @@ export default {
     balanceModeOptions () {
       return [
         { label: this.$t('BCHOnly', {}, 'BCH only'), value: 'bch-only' },
-        { label: this.$t('BCHPlusFavorites', {}, 'BCH + favorite tokens'), value: 'bch+favorites' }
+        { label: this.$t('BCHPlusFavorites', {}, 'BCH + favorite tokens'), value: 'bch+favorites' },
+        { label: this.$t('FavoritesOnly', {}, 'Favorite tokens only'), value: 'favorites-only' }
       ]
     },
     currentBalanceModeLabel () {
@@ -778,29 +777,22 @@ export default {
       return (this.allSlpTokensFromAPI || []).filter(token => token.favorite === 1 || token.favorite === true)
     },
     aggregatedBchBalance () {
-      // If mode is 'bch-only', just return BCH balance in satoshis
-      if (this.bchBalanceMode !== 'bch+favorites') {
+      if (this.bchBalanceMode === 'bch-only') {
         return Number(this.bchAsset?.balance || 0)
       }
 
-      // Get BCH price in fiat
       const bchPriceInFiat = this.$store.getters['market/getAssetPrice']('bch', this.selectedMarketCurrency)
       if (!bchPriceInFiat || bchPriceInFiat === 0) {
-        // If BCH price not available, return BCH balance only
         return Number(this.bchAsset?.balance || 0)
       }
 
-      // Get BCH balance - balance is already in BCH units
       const bchBalanceInBch = Number(this.bchAsset?.balance || 0)
-      let totalBalanceInBch = bchBalanceInBch
+      let totalBalanceInBch = this.bchBalanceMode === 'bch+favorites' ? bchBalanceInBch : 0
 
-      // Get favorite tokens
       const favoriteAssets = this.favoriteTokens
 
-      // Calculate aggregated balance - sum all values in BCH
       for (const token of favoriteAssets) {
         try {
-          // Get token balance and account for decimals
           let tokenBalance = Number(token.balance || 0)
           if (token.decimals) {
             const decimals = parseInt(token.decimals) || 0
@@ -809,57 +801,44 @@ export default {
             }
           }
 
-          // Get token price in fiat
           const tokenPriceInFiat = this.$store.getters['market/getAssetPrice'](token.id, this.selectedMarketCurrency)
           if (!tokenPriceInFiat || tokenPriceInFiat === 0) {
-            // Skip tokens without prices
             continue
           }
 
-          // Calculate token value in BCH: (tokenBalance * tokenPriceInFiat) / bchPriceInFiat
           const tokenValueInBch = (tokenBalance * tokenPriceInFiat) / bchPriceInFiat
-          
-          // Add to total in BCH
           totalBalanceInBch += tokenValueInBch
         } catch (error) {
-          // Skip tokens with errors
           console.debug('Error calculating token value for aggregated balance:', token.id, error)
           continue
         }
       }
 
-      // Return total in BCH (balance is already in BCH units)
       return totalBalanceInBch
     },
     aggregatedFiatValue () {
-      if (this.bchBalanceMode !== 'bch+favorites') {
+      if (this.bchBalanceMode === 'bch-only') {
         return this.getAssetMarketBalance(this.bchAsset)
       }
 
-      // Start with BCH balance fiat conversion
       const bchBalance = Number(this.bchAsset?.balance || 0)
       const bchPriceInFiat = this.$store.getters['market/getAssetPrice']('bch', this.selectedMarketCurrency)
-      
+
       if (!bchPriceInFiat || bchPriceInFiat === 0) {
-        // While currency is switching/refreshing, show a safe placeholder instead of stale values.
         if (this.isMarketUpdating || (this.pendingCurrencySymbol && this.pendingCurrencySymbol === String(this.selectedMarketCurrency || '').toUpperCase())) {
           return '—'
         }
         return ''
       }
 
-      // BCH balance is already in BCH units, not satoshis
       const bchBalanceInBch = bchBalance
       const bchFiatValue = bchBalanceInBch * Number(bchPriceInFiat)
-      let totalFiatValue = bchFiatValue
+      let totalFiatValue = this.bchBalanceMode === 'bch+favorites' ? bchFiatValue : 0
 
-      // Get favorite tokens
       const favoriteAssets = this.favoriteTokens
 
-      // Add fiat conversion of each token balance directly
       for (const token of favoriteAssets) {
         try {
-          // Get token balance and account for decimals
           let tokenBalance = Number(token.balance || 0)
           if (token.decimals) {
             const decimals = parseInt(token.decimals) || 0
@@ -868,19 +847,14 @@ export default {
             }
           }
 
-          // Get token price in fiat
           const tokenPriceInFiat = this.$store.getters['market/getAssetPrice'](token.id, this.selectedMarketCurrency)
           if (!tokenPriceInFiat || tokenPriceInFiat === 0) {
-            // Skip tokens without prices
             continue
           }
 
-          // Calculate token value in fiat directly: tokenBalance * tokenPriceInFiat
           const tokenValueInFiat = tokenBalance * tokenPriceInFiat
-          
           totalFiatValue += tokenValueInFiat
         } catch (error) {
-          // Skip tokens with errors
           console.debug('Error calculating token fiat value for aggregated balance:', token.id, error)
           continue
         }
@@ -1623,8 +1597,8 @@ export default {
     getAssetMarketBalance (asset) {
       if (!asset?.id) return ''
 
-      // If BCH and mode is 'bch+favorites', return aggregated fiat value
-      if (asset.id === 'bch' && this.bchBalanceMode === 'bch+favorites') {
+      // If BCH and mode includes favorites, return aggregated fiat value
+      if (asset.id === 'bch' && this.bchBalanceMode !== 'bch-only') {
         return this.aggregatedFiatValue
       }
 
@@ -1664,7 +1638,6 @@ export default {
     },
     showTransactionDetails (transaction) {
       const vm = this
-      vm.hideMultiWalletDialog()
       vm.hideAssetInfo()
       // const txCheck = setInterval(function () {
       //   if (transaction) {
@@ -2280,24 +2253,10 @@ export default {
       } else if (preferredSecurity === 'pin') {
         // If using PIN, check if it's 6 digits
         const walletIndex = vm.$store.getters['global/getWalletIndex']
-        const mnemonic = await getMnemonic(walletIndex)
-        try {
-          let pin = null
-          try {
-            pin = await SecureStoragePlugin.get({ key: `pin-${sha256(mnemonic)}` })
-          } catch (error) {
-            try {
-              // fallback for retrieving pin using unhashed mnemonic
-              pin = await SecureStoragePlugin.get({ key: `pin ${mnemonic}` })
-            } catch (error1) {
-              // fallback for old process of pin retrieval
-              pin = await SecureStoragePlugin.get({ key: 'pin' })
-            }
-          }
-          if (pin?.value.length < 6) {
-            forceRecreate = true
-          }
-        } catch {
+        const mnemonic = await getMnemonic(walletIndex).catch(() => null)
+        // getPin also migrates the legacy `pin ${mnemonic}` key to the hashed key
+        const pin = await getPin(mnemonic).catch(() => null)
+        if (!pin || pin.length < 6) {
           forceRecreate = true
         }
       }
@@ -2308,9 +2267,6 @@ export default {
       }
 
       return !forceRecreate
-    },
-    hideMultiWalletDialog () {
-      this.$refs['multi-wallet-component'].$refs['multi-wallet-parent'].$refs['multi-wallet'].hide()
     },
     addNewAsset () {
       const vm = this

@@ -2,7 +2,7 @@
   <div
     class="row justify-center fixed-footer"
     :class="[getDarkModeClass(), { 'footer-hidden': isFooterHidden }]"
-    :style="{bottom: 'calc(16px + env(safe-area-inset-bottom, 0px))'}"
+    :style="{bottom: 'calc(16px + env(safe-area-inset-bottom, 0px) + var(--chipnet-banner-height, 0px))'}"
   >
     <div class="col row justify-evenly footer-btn-container q-ml-sm q-mr-sm q-gutter-xs">
       <button class="footer-icon-btn" :class="getDarkModeClass()" @click="$router.push({ name: 'app-chat', query: { from: 'home' } })">
@@ -137,7 +137,7 @@ export default {
     padding-top: 0;
     width: calc(100% - 32px) !important;
     max-width: 600px;
-    bottom: calc(16px + env(safe-area-inset-bottom, 0px));
+    bottom: calc(16px + env(safe-area-inset-bottom, 0px) + var(--chipnet-banner-height, 0px));
     left: 50%;
     transform: translateX(-50%);
     align-items: center;

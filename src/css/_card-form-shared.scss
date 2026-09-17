@@ -63,6 +63,11 @@
     max-width: 100%;
     border-radius: 0;
   }
+
+  .activate-card-dialog .dialog-header {
+    padding-top: max(constant(safe-area-inset-top), 16px);
+    padding-top: max(env(safe-area-inset-top), 16px);
+  }
 }
 
 /* Header Styling */

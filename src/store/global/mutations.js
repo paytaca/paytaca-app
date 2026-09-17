@@ -1,4 +1,4 @@
-import { deleteMnemonic, deleteMnemonicByHash } from './../../wallet'
+import { deleteMnemonic, deleteMnemonicByHash, clearCachedWallets } from './../../wallet'
 import { deleteAuthToken as deleteP2PExchangeAuthToken } from 'src/exchange/auth'
 import { removeWalletName } from 'src/utils/wallet-name-cache'
 import { clearLiftBalanceCache } from 'src/utils/subscription-utils'
@@ -220,6 +220,10 @@ export function updateWalletIndex (state, index) {
   state.walletIndex = index
   // Note: Settings sync to modules is handled by syncSettingsToModules action
   // which should be called after updateCurrentWallet
+}
+
+export function incrementWalletSwitchId (state) {
+  state.walletSwitchId = (state.walletSwitchId || 0) + 1
 }
 
 export function updateWalletName (state, details) {
@@ -704,6 +708,11 @@ export function setLockApp (state, value) {
  */
 export function setIsUnlocked (state, value) {
   state.isUnlocked = Boolean(value)
+  // Release the in-memory wallet cache (mnemonics/derived keys) when the app
+  // locks. Wallets are lazily re-created from secure storage after unlock.
+  if (!value) {
+    clearCachedWallets()
+  }
 }
 
 export function setPreviousRoute (state, path) {
@@ -716,6 +725,10 @@ export function setWalletSwitchInProgress (state, value) {
 
 export function setWalletSwitchLoading (state, value) {
   state.walletSwitchLoading = Boolean(value)
+}
+
+export function setBootHydrated (state, value) {
+  state.bootHydrated = Boolean(value)
 }
 
 export function setAppInitialLoadComplete (state, value) {

@@ -1,5 +1,5 @@
 <template>
-  <div class="row items-center q-pa-md" style="background: transparent;">
+  <div class="row items-center" :style="headerStyle">
     <q-btn
       flat
       round
@@ -24,10 +24,22 @@ export default {
       default: 'Card Management'
     }
   },
+  computed: {
+    headerStyle () {
+      const safeTop = 'max(env(safe-area-inset-top, 0px), var(--q-safe-area-top, 0px), var(--safe-area-inset-top, 0px), var(--pt-android-statusbar, 0px))'
+      return {
+        background: 'transparent',
+        paddingTop: `calc(${safeTop} + 12px)`,
+        paddingBottom: '12px',
+        paddingLeft: '16px',
+        paddingRight: '16px'
+      }
+    }
+  },
   methods: {
     goBack() {
       const currentRoute = this.$route?.name
-      
+
       // If on cards list page, go to card home page
       if (currentRoute === 'card-list') {
         this.$router.push({ name: 'app-card' })
