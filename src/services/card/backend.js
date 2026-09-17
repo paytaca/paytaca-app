@@ -1,6 +1,7 @@
 import axios from 'axios'
 import { getAuthToken, clearAuthToken, clearCardUserCache, saveAuthToken } from './user'
 import { loadWallet } from '../wallet';
+import { shouldTreatAsMaintenance, parseMaintenanceRestError, emitMaintenance } from './maintenance';
 
 const API_BASE_URL = process.env.MAINNET_CARD_API_BASE_URL
 if (!API_BASE_URL) {
@@ -99,6 +100,13 @@ backend.interceptors.response.use(
       } finally {
         isRefreshing = false
       }
+    }
+
+    if (shouldTreatAsMaintenance(error)) {
+      const parsed = parseMaintenanceRestError(error)
+      error.isCardMaintenance = true
+      error.maintenance = parsed
+      emitMaintenance(parsed)
     }
 
     return Promise.reject(error)

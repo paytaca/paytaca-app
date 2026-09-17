@@ -19,9 +19,16 @@
 
 <script>
 import CardPageHeader from 'src/components/card/CardPageHeader.vue';
+import CardMaintenanceDialog from 'src/components/card/CardMaintenanceDialog.vue';
 import { createCardLogic } from 'src/components/card/createCard.js';
 import { clearCardUserCache, loadCardUser } from 'src/services/card/user';
+import { fetchCardMaintenanceStatus, MAINTENANCE_EVENT, isUpdateRequired } from 'src/services/card/maintenance';
+import packageInfo from '../../../../package.json';
 import { cardLogger } from 'src/utils/debug-logger.js'
+
+let cardMaintenanceDialogInstance = null
+let cardMaintenanceDismissedKey = null
+let cardMaintenanceActiveKey = null
 
 export default {
   mixins: [createCardLogic],
@@ -33,6 +40,7 @@ export default {
     return {
       user: null,
       isloaded: false,
+      cardStatusFailCount: 0,
     }
   },
 
@@ -54,15 +62,79 @@ export default {
     } finally {
       this.isloaded = true
     }
+    this.startCardMaintenancePolling()
+    window.addEventListener(MAINTENANCE_EVENT, this.onCardMaintenanceEvent)
   },
 
   beforeUnmount () {
     document.documentElement.classList.remove('cards-page')
+    window.removeEventListener(MAINTENANCE_EVENT, this.onCardMaintenanceEvent)
+    if (this._cardMaintenanceTimer) clearInterval(this._cardMaintenanceTimer)
+    if (cardMaintenanceDialogInstance) {
+      cardMaintenanceDialogInstance.hide()
+      cardMaintenanceDialogInstance = null
+    }
+    cardMaintenanceActiveKey = null
     clearCardUserCache()
     this.clearCards()
   },
 
   methods: {
+    maintenanceKey (detail) {
+      return [detail?.mode || 'maintenance', detail?.message || '', detail?.eta || '', detail?.updateRequired ? '1' : ''].join('|')
+    },
+    showCardMaintenanceDialog (detail) {
+      if (cardMaintenanceDialogInstance) return
+      const key = this.maintenanceKey(detail)
+      if (key === cardMaintenanceDismissedKey) return
+      cardMaintenanceActiveKey = key
+      cardMaintenanceDialogInstance = this.$q.dialog({
+        component: CardMaintenanceDialog,
+        componentProps: {
+          mode: detail?.mode || 'maintenance',
+          message: detail?.message || '',
+          eta: detail?.eta || '',
+          updateRequired: Boolean(detail?.updateRequired),
+        }
+      }).onDismiss(() => {
+        cardMaintenanceDialogInstance = null
+        cardMaintenanceDismissedKey = cardMaintenanceActiveKey
+        cardMaintenanceActiveKey = null
+      })
+    },
+    onCardMaintenanceEvent (event) {
+      this.showCardMaintenanceDialog(event?.detail)
+    },
+    pollCardMaintenanceStatus () {
+      fetchCardMaintenanceStatus({ baseUrl: process.env.MAINNET_CARD_API_BASE_URL || '' })
+        .then(status => {
+          if (status?.maintenance) {
+            this.cardStatusFailCount = 0
+            this.showCardMaintenanceDialog({
+              message: status.message,
+              eta: status.eta,
+              updateRequired: isUpdateRequired(status, packageInfo.version),
+            })
+            return
+          }
+          if (!status?.offline) {
+            this.cardStatusFailCount = 0
+            cardMaintenanceDismissedKey = null
+            return
+          }
+          if (typeof navigator !== 'undefined' && navigator.onLine === false) return
+          this.cardStatusFailCount++
+          if (this.cardStatusFailCount >= 2) {
+            this.showCardMaintenanceDialog({ mode: 'unreachable' })
+          }
+        })
+        .catch(() => {})
+    },
+    startCardMaintenancePolling () {
+      this.pollCardMaintenanceStatus()
+      if (this._cardMaintenanceTimer) clearInterval(this._cardMaintenanceTimer)
+      this._cardMaintenanceTimer = setInterval(() => this.pollCardMaintenanceStatus(), 60000)
+    },
     async loadData () {
       await this.loadUser()
     },
