@@ -31,6 +31,26 @@
           <div class="text-subtitle-2 text-center text-bow-muted q-mt-md text-italic q-gutter-y-xs">
             <div>{{ $t('ScanPsbtTip', {}, `The sequence auto-recycles; keep scanning until all fragments are picked up by your scanner...`) }}</div>
           </div>
+          <div class="column items-center q-mt-md q-gutter-y-xs">
+            <div class="text-subtitle-2 text-bow-muted">{{ $t('QrDensity', {}, 'Density') }}</div>
+            <q-btn-toggle
+              v-model="selectedDensity"
+              :options="densityOptions"
+              toggle-color="secondary"
+              rounded
+              dense
+            />
+          </div>
+          <div class="column items-center q-mt-md q-gutter-y-xs">
+            <div class="text-subtitle-2 text-bow-muted">{{ $t('QrAnimationSpeed', {}, 'Animation') }}</div>
+            <q-btn-toggle
+              v-model="selectedAnimation"
+              :options="animationOptions"
+              toggle-color="secondary"
+              rounded
+              dense
+/>
+          </div>
         </div>
       </q-card-section>
       <q-card-actions>
@@ -48,11 +68,25 @@ import { getDarkModeClass } from "src/utils/theme-darkmode-utils";
 const { t: $t } = useI18n()
 import { base64ToBin } from "bitauth-libauth-v3";
 import { UR, UREncoder } from "@ngraveio/bc-ur";
+import { watch } from "vue";
 
 const props = defineProps({
   psbtBase64: String,
   darkMode: Boolean
 });
+
+const densityOptions = [
+  { label: 'Low', value: 50 },
+  { label: 'Medium', value: 150, default: true },
+  { label: 'High', value: 250 },
+]
+
+const animationOptions = [
+  { label: 'slow', value: 450 },
+  { label: 'normal', value: 300, default: true },
+  { label: 'fast', value: 100 }
+]
+
 
 const { dialogRef, onDialogOK } = useDialogPluginComponent();
 
@@ -60,6 +94,8 @@ const currentQr = ref("");
 const animationTimer = ref(null);
 const encoder = ref(null);
 const progress = ref(0)
+const selectedDensity = ref(densityOptions.find(o=> o.default).value)
+const selectedAnimation = ref(animationOptions.find(o => o.default).value)
 const progressLabel = computed(() => {
   return (Math.floor(progress.value * 100)) + '% of QR Code Fragments Shown.'
 })
@@ -127,8 +163,24 @@ function startAnimation() {
 
   animationTimer.value = setInterval(() => {
     updateQrFrame();
-  }, 300);
+  }, selectedAnimation.value);
 }
+
+function restartAnimation() {
+  if (animationTimer.value) clearInterval(animationTimer.value);
+  startAnimation();
+}
+
+watch(selectedDensity, async (density, oldDensity) => {
+  if (density !== oldDensity) {
+    await prepareBase64Chunks(density)
+  }
+  restartAnimation()
+})
+
+watch(selectedAnimation, () => {
+  restartAnimation()
+})
 
 onMounted(async () => {
   await prepareBase64Chunks()
