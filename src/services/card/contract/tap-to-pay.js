@@ -2,12 +2,12 @@
 import { cardLogger } from 'src/utils/debug-logger.js'
 import { Contract as MainnetContract } from '@mainnet-cash/contract';
 import { SignatureTemplate, Contract, TransactionBuilder, Network, ElectrumNetworkProvider } from 'cashscript';
-import { DUST_LIMIT, P2PKH_DUST, TX_FEE } from '../constants.js';
+import { DUST_LIMIT } from '../constants.js';
 import { binToHex } from '@bitauth/libauth';
 import { pubkeyToPkHash } from '../utils.js';
 import { decodeCommitment, encodeCommitment, encodeMerchantHash } from '../auth-nft.js';
-import artifact from './TapToPay.json';
-import artifactV2 from './TapToPay-V2.json';
+import artifactV1 from './TapToPayV1.json';
+import artifactV2 from './TapToPayV2.json';
 import { loadWallet } from 'src/services/wallet.js';
 import { isTokenAddress } from 'src/utils/address-utils.js';
 import { reverseHex } from 'src/marketplace/escrow/utils.js';
@@ -17,10 +17,8 @@ import Watchtower from 'watchtower-cash-js'
 const watchtower = new Watchtower()
 
 import { 
-    encodeOwnershipCommitment, 
     decodeOwnershipCommitment,
     encodeLinkingCommitment,
-    decodeLinkingCommitment
 } from '../utils.js';
 
 // /**
@@ -263,374 +261,7 @@ class TapToPay {
     }
 }
 
-export class TapToPayV1 extends TapToPay {
-    constructor (contractId, params = null) {
-        super(contractId)
-
-        if (contractId) {
-            const contract = MainnetContract.fromId(contractId);
-            const parameters = [];
-            contract.parameters.forEach((param) => {
-                parameters.push(Buffer(param).toString('hex'));
-            })
-
-            this.params = {
-                ownerPkh: parameters[0],
-                backendPkh: parameters[1],
-                category: parameters[2]
-            };
-        } else if (params) {
-            this.params = {
-                ownerPkh: params.ownerPkh,
-                backendPkh: params.backendPkh,
-                category: params.category
-            };
-        }
-    }
-
-    /**
-     * Contract creation parameters extracted from the on-chain contract.
-     * @returns {{ ownerPkh: string, backendPkh: string, category: string }}
-     */
-    get contractCreationParams () {
-        return {
-            ownerPkh: this.params.ownerPkh,
-            backendPkh: this.params.backendPkh,
-            category: this.params.category,
-        };
-    }
-
-    /**
-     * Builds and returns a CashScript contract instance.
-     * @returns {Contract}
-     */
-    getContract () {
-        const contractCreationParams = this.contractCreationParams
-        const contractParams = [
-            contractCreationParams.ownerPkh,
-            contractCreationParams.backendPkh,
-            contractCreationParams.category
-        ];
-
-        const contract = new Contract(artifact, contractParams)
-        return contract;
-    } 
-
-    /**
-     * Mutates authorization NFTs held by this contract.
-     *
-     * Rewrites NFT commitments for the provided merchant mutations and
-     * re-emits the NFTs back to the contract token address. Only the owner
-     * (matching `ownerPkh`) may perform this action.
-     *
-     * @param {Object} params
-     * @param {string} params.senderWif - Owner WIF used to sign the mutation.
-     * @param {Array<Object>} params.mutations - Mutation objects with merchant/authorization data.
-     * @param {string} params.mutations[].merchant.id - Merchant ID for the mutation.
-     * @param {string} params.mutations[].merchant.pubkey - Merchant public key for the mutation.
-     * @param {boolean} params.mutations[].authorized - Authorization status for the mutation.
-     * @param {number} params.mutations[].spendLimitSats - Optional spend limit in satoshis for the mutation.
-     * @param {boolean} [params.broadcast=true] - Broadcast the transaction when true, else return tx hex.
-     * @returns {Promise<Object>} Transaction result or `{ success: true, txHex }` when not broadcasting.
-     */
-    async mutate ({ senderWif, mutations, broadcast = true }) {
-
-        const contract = this.getContract()
-        const senderSig = new SignatureTemplate(senderWif)
-        const senderPk = binToHex(senderSig.getPublicKey())
-        const senderPkh = pubkeyToPkHash(senderPk)
-
-        if (senderPkh !== this.contractCreationParams.ownerPkh) {
-            throw new Error('Sender public key hash does not match the owner public key hash');
-        }
-
-        const tokenId = reverseHex(this.contractCreationParams.category)
-        const tokenUtxos = await this.getTokenUtxos(tokenId, contract.tokenAddress)
-
-        // Get the merchant hashes from the mutations
-        const merchantHashes = mutations.map(e => { 
-            const { hex } = encodeMerchantHash({ 
-                merchantId: e.merchant?.id, 
-                merchantPk: e.merchant?.pubkey 
-            })
-            return hex;
-        })
-
-        // Filter UTXOs to only those matching the token category and merchant hashes
-        const utxosToMutate = tokenUtxos.filter(utxo => {
-            if (utxo.token?.nft?.commitment) {
-                const commitment = utxo.token?.nft?.commitment
-                const { hash } = decodeCommitment(commitment)
-                return (
-                    utxo.token.category === tokenId && 
-                    merchantHashes.includes(hash)
-                )
-            } else {
-                return false
-            }
-        })
-
-        // Prepare the token inputs for mutation,
-        // normalizing the input UTXOs to expected format
-        const tokenInputs = utxosToMutate.map((input) => {
-
-            const normalized = { 
-                ...input, 
-                satoshis: toBigInt(input.satoshis),
-                txid: input.txid,
-                vout: input.vout
-            }
-            
-            const category = input.token.category || input.token.tokenId
-            const amount = toBigInt(input.token.amount ?? 0)
-            const capability = input.token.capability || input.token.nft?.capability
-            const commitment = input.token.commitment || input.token.nft?.commitment
-            
-            normalized.token = { 
-                category: String(category), 
-                amount
-            }
-
-            if (capability || commitment) {
-                normalized.token.nft = { 
-                    capability: String(capability), 
-                    commitment: String(commitment) 
-                }
-            }
-            return normalized
-        })
-
-        // Prepare the outputs for the mutations
-        const outputs = []
-        for (let i = 0; i < mutations.length; i++) {
-            const mutation = mutations[i]
-            const { hex: merchantHash } = encodeMerchantHash({ 
-                merchantId: mutation.merchant?.id, 
-                merchantPk: mutation.merchant?.pubkey
-            })
-            
-            // Find the utxos to mutate (matching the merchant hash)
-            const mutxo = utxosToMutate.find(utxo => {
-                const commitment = utxo.token?.nft?.commitment
-                const { hash } = decodeCommitment(commitment)
-                
-                return merchantHash === hash
-            })
-
-            if (!mutxo) {
-                cardLogger.warn(`No matching UTXO found for mutation with merchant hash ${merchantHash}. Skipping this mutation.`)
-                continue
-            }
-
-            const currCommitment = decodeCommitment(mutxo.token.nft.commitment)
-            const newCommitmentData = {
-                authorized: mutation.authorized,
-                spendLimitSats: mutation.spendLimitSats || currCommitment.spendLimitSats,
-                merchant: mutation.merchant
-            }
-
-            // Encode the new commitment
-            const newCommitment = encodeCommitment(newCommitmentData)
-
-            if (newCommitment === mutxo.token.nft.commitment) {
-                cardLogger.warn(`New commitment is the same as the current commitment for merchant hash ${merchantHash}. Skipping this mutation.`)
-                continue
-            }
-
-            // Prepare the output rewriting the commitment
-            const output = {
-                to: contract.tokenAddress,
-                amount: toBigInt(mutxo.satoshis),
-                token: {
-                    amount: toBigInt(mutxo.token?.amount ?? 0), // NFTs: 0n
-                    category: String(mutxo.token?.category),
-                    nft: {
-                        capability: String(mutxo.token?.nft?.capability),
-                        commitment: String(newCommitment)
-                    }
-                }
-            }
-
-            // Add the output to the outputs array
-            outputs.push(output)
-        }
-
-        if (outputs.length === 0) {
-            throw new Error('No valid mutations to process. No outputs were generated.')
-        }
-
-        // Estimate the fee based on the number of inputs and outputs, and get funding UTXOs to cover it
-        const estimatedFee = this.estimateFee({ 
-            numContractInputs: tokenInputs.length, 
-            numP2pkhInputs: 1, // Assume at least 1 P2PKH input for funding
-            numOutputs: outputs.length + 1 // Mutation outputs + potential change output
-        })
-        
-        const { 
-            cumulativeValue, 
-            groupedUtxos: groupedBchFundingInputs, 
-            changeAddress
-        } = await this.getFundingInputs(estimatedFee)
-        
-        const changeAmount = cumulativeValue - BigInt(estimatedFee)
-
-        // Add change output if there's leftover BCH after covering the fee
-        if (changeAmount > P2PKH_DUST) {
-            outputs.push({
-                to: changeAddress,
-                amount: toBigInt(changeAmount)
-            })
-        }
-
-        // Prepare the contract transaction from the combined inputs and outputs
-        const provider = new ElectrumNetworkProvider(Network.MAINNET)
-        const tx = new TransactionBuilder({provider})
-
-        tx.addInputs(tokenInputs, contract.unlock.mutate(senderPk, senderSig))
-        groupedBchFundingInputs.forEach(({ inputs, signatureTemplate }) => {
-            tx.addInputs(inputs, signatureTemplate.unlockP2PKH())
-        })
-        tx.addOutputs(outputs)
-        
-        let result
-
-        try {
-            // Build the transaction
-            const txHex = tx.build()
-            cardLogger.log('[mutate] Built transaction hex:', txHex)
-
-            if (broadcast) {
-                result = await this.broadcastTransaction(txHex)
-            } else {
-                result = { success: true, txHex }
-            }
-        } catch (error) {
-            throw error
-        }
-
-        cardLogger.log('[mutate] Transaction result:', result)
-        return result
-    }
-
-    /**
-     * Sweeps all contract-held tokens and BCH to the provided address.
-     *
-     * @param {Object} params
-     * @param {string} params.ownerWif - Owner WIF used to authorize the sweep.
-     * @param {string} params.toAddress - Destination cash address for BCH.
-     * @param {boolean} [params.broadcast=false] - Broadcast transactions when true.
-     * @returns {Promise<Object>} Sweep results for tokens and BCH.
-     */
-    async sweep ({ ownerWif, toAddress, broadcast = false }) {
-
-        const contract = this.getContract()
-        const ownerSig = new SignatureTemplate(ownerWif)
-        const ownerPk = binToHex(ownerSig.getPublicKey())
-        const ownerPkh = pubkeyToPkHash(ownerPk)
-
-        if (ownerPkh !== this.contractCreationParams.ownerPkh) {
-            throw new Error('Owner public key hash does not match the contract\'s owner public key hash')
-        }
-
-        let sweepResult = {}
-        const {
-            cumulativeValue: sweepAmount,
-            utxos: bchUtxos
-        } = await this.getBchUtxos()
-
-        if (!bchUtxos?.length || sweepAmount <= 0n) {
-            return { success: false, message: 'No BCH balance to sweep.' }
-        }
-
-        // Prepare inputs
-        const bchInputs = bchUtxos.map(utxo => {
-            const normalized = {
-                satoshis: toBigInt(utxo.satoshis),
-                txid: utxo.txid,
-                vout: utxo.vout
-            }
-            return normalized
-        })
-
-        // Estimate fee for a card-funded sweep: contract BCH inputs only,
-        // single owner-dest output, no wallet inputs.
-        const estimatedFee = this.estimateFee({
-            numContractInputs: bchInputs.length,
-            numP2pkhInputs: 0,
-            numOutputs: 1
-        })
-
-        let outputs = []
-        let groupedBchFundingInputs = []
-
-        if (sweepAmount > estimatedFee + P2PKH_DUST) {
-            outputs = [
-                { to: toAddress, amount: sweepAmount - estimatedFee }
-            ]
-        } else {
-            const feeWithWallet = this.estimateFee({
-                numContractInputs: bchInputs.length,
-                numP2pkhInputs: 1,
-                numOutputs: 2
-            })
-
-            const {
-                cumulativeValue: fundingAmount,
-                groupedUtxos: fetchedFundingInputs,
-                changeAddress
-            } = await this.getFundingInputs(feeWithWallet)
-
-            if (fundingAmount < BigInt(feeWithWallet)) {
-                return { success: false, message: 'Insufficient BCH balance to cover sweep fee.' }
-            }
-
-            const selected = this.selectMinimalFundingInputs(fetchedFundingInputs, feeWithWallet)
-            if (!selected) {
-                return { success: false, message: 'Insufficient BCH balance to cover sweep fee.' }
-            }
-            groupedBchFundingInputs = selected.inputs
-            const changeAmount = selected.total - BigInt(feeWithWallet)
-
-            outputs = [
-                { to: toAddress, amount: sweepAmount }
-            ]
-            if (changeAmount > P2PKH_DUST) {
-                outputs.push({ to: selected.changeAddress || changeAddress, amount: changeAmount })
-            }
-        }
-
-        const provider = new ElectrumNetworkProvider(Network.MAINNET)
-        const tx = new TransactionBuilder({provider})
-
-        tx.addInputs(bchInputs, contract.unlock.sweep(ownerPk, ownerSig))
-        groupedBchFundingInputs.forEach(({ inputs, signatureTemplate }) => {
-            tx.addInputs(inputs, signatureTemplate.unlockP2PKH())
-        })
-        tx.addOutputs(outputs)
-
-        let result
-        try {
-            // Build the transaction
-            const txHex = tx.build()
-            cardLogger.log('[sweep] Built transaction hex:', txHex)
-
-            if (broadcast) {
-                result = await this.broadcastTransaction(txHex)
-            } else {
-                result = { success: true, txHex }
-            }
-
-        } catch (error) {
-            throw error
-        }
-
-        cardLogger.log('[sweep] Sweep result:', result)
-        return result
-    }
-
-}
-
-export class TapToPayV2 extends TapToPay {
+class TapToPayNft extends TapToPay {
     constructor (contractId, params = null) {
         super(contractId)
 
@@ -1186,6 +817,71 @@ export class TapToPayV2 extends TapToPay {
     }  
 
     async burn() {
-        throw new Error('Burn operation is not supported in TapToPayV2. Please use the sweep method to retrieve funds.')
+        throw new Error('Burn operation is not supported. Please use the sweep method to retrieve funds.')
     }
+}
+
+export class TapToPayV1 extends TapToPayNft {
+    /**
+     * Builds and returns a CashScript contract instance using the v1 artifact.
+     * @returns {Contract}
+     */
+    getContract () {
+        const contractCreationParams = this.contractCreationParams
+        const contractParams = [
+            contractCreationParams.backendPkh,
+            contractCreationParams.category
+        ];
+
+        const contract = new Contract(artifactV1, contractParams)
+        return contract;
+    }
+}
+
+export class TapToPayV2 extends TapToPayNft {
+    /**
+     * Builds and returns a CashScript contract instance using the v2 artifact.
+     * @returns {Contract}
+     */
+    getContract () {
+        const contractCreationParams = this.contractCreationParams
+        const contractParams = [
+            contractCreationParams.backendPkh,
+            contractCreationParams.category
+        ];
+
+        const contract = new Contract(artifactV2, contractParams)
+        return contract;
+    }
+}
+
+function normalizeTapToPayVersion (version) {
+    if (version === undefined || version === null) return 1
+    if (typeof version === 'number') return version
+    const cleaned = String(version).toLowerCase().replace(/^v/, '')
+    const parsed = parseInt(cleaned, 10)
+    return Number.isNaN(parsed) ? 1 : parsed
+}
+
+/**
+ * Factory that creates the correct TapToPay implementation based on the
+ * contract version returned by the server.
+ *
+ * @param {string} contractId - The on-chain contract id.
+ * @param {number|string} [version=1] - Server-reported contract version.
+ * @param {Object} [params] - Optional creation params when not restoring from a contract id.
+ * @returns {TapToPayV1|TapToPayV2}
+ */
+export function createTapToPay (contractId, version, params = null) {
+    const normalizedVersion = normalizeTapToPayVersion(version)
+
+    if (normalizedVersion === 2) {
+        return new TapToPayV2(contractId, params)
+    }
+
+    if (normalizedVersion !== 1) {
+        cardLogger.warn(`[createTapToPay] Unknown contract version "${version}"; defaulting to v1`)
+    }
+
+    return new TapToPayV1(contractId, params)
 }

@@ -1,7 +1,7 @@
 import { cardLogger } from 'src/utils/debug-logger.js'
 import AuthNftService, { decodeCommitment, encodeMerchantHash } from './auth-nft';
 import { defaultSpendLimitSats } from './constants';
-import { TapToPayV2 as TapToPay } from './contract/tap-to-pay';
+import { createTapToPay } from './contract/tap-to-pay';
 import { backend } from './backend';
 import { loadWallet } from '../wallet';
 import { loadCardUser } from './user';
@@ -209,7 +209,8 @@ export class Card {
    */
   _initializeContract() {
     if (!this.raw?.contract?.contract_id) return;
-    this.contract = new TapToPay(this.raw?.contract?.contract_id);
+    const version = this.raw?.contract?.version
+    this.contract = createTapToPay(this.raw?.contract?.contract_id, version);
   }
 
   // ==================== CONTRACT OPERATIONS ====================
