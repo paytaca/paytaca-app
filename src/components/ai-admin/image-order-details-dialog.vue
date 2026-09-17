@@ -2,7 +2,7 @@
     <q-dialog ref="dialog" v-model="showDialog" @hide="$emit('hide')" @show="fetchDetails">
         <q-card class="br-15 pt-card text-bow" :class="getDarkModeClass(darkMode)" style="width: 100%; max-width: 400px;">
             <!-- Header -->
-            <q-card-section class="row items-center" :class="getDarkModeClass(darkMode)">
+            <q-card-section class="row items-center q-pb-none" :class="getDarkModeClass(darkMode)">
                 <div class="text-h6 text-bold">Order Details</div>
                 <q-space />
                 <q-btn icon="close" flat round dense v-close-popup />
@@ -39,19 +39,11 @@
                     </div>
                 </div>
 
-                <!-- Created -->
+                <!-- Date (show completed_at if present, else created_at) -->
                 <div class="row justify-between items-center q-mb-sm">
-                    <span class="text-weight-bold" :class="darkMode ? 'text-grey-4' : 'text-grey-7'">Created</span>
-                    <span class="text-caption" :class="darkMode ? 'text-grey-4' : 'text-grey-7'">
-                        {{ formatDate(order.created_at) }}
-                    </span>
-                </div>
-
-                <!-- Completed -->
-                <div v-if="order.completed_at" class="row justify-between items-center q-mb-sm">
-                    <span class="text-weight-bold" :class="darkMode ? 'text-grey-4' : 'text-grey-7'">Completed</span>
-                    <span class="text-caption" :class="darkMode ? 'text-grey-4' : 'text-grey-7'">
-                        {{ formatDate(order.completed_at) }}
+                    <span class="text-weight-bold" :class="darkMode ? 'text-grey-5' : 'text-grey-6'">Date</span>
+                    <span class="text-caption" :class="darkMode ? 'text-grey-5' : 'text-grey-6'">
+                        {{ formatDate(order.completed_at || order.created_at) }}
                     </span>
                 </div>
 

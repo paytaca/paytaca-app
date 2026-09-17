@@ -63,7 +63,7 @@
                             </div>
                             <!-- Date -->
                             <div class="app-desc q-mt-xs" :class="getDarkModeClass(darkMode)">
-                                {{ formatDate(order.created_at) }}
+                                {{ formatDate(order.completed_at || order.created_at) }}
                             </div>
                         </div>
                     </div>

@@ -2,7 +2,6 @@
   <div class="q-pa-md">
     <!-- Result State -->
     <div v-if="resultState" ref="resultSection" class="text-center">
-      <q-icon name="check_circle" :color="themeColor" size="64px" class="q-mb-md" />
       <div class="text-h6 text-bold">Image Generated!</div>
 
       <!-- Generated Image -->
@@ -52,7 +51,7 @@
             class="q-mt-lg full-width"
             @click="downloadImage"
         />
-        <q-btn rounded outline no-caps label="Generate Again" :color="themeColor" class="q-mt-lg full-width"
+        <q-btn rounded outline no-caps label="Generate Again" :color="themeColor" class="q-mt-sm full-width"
             @click="resetForm" />
         <q-btn flat no-caps label="View History" :color="themeColor" class="q-mt-sm full-width"
             @click="$router.replace({ name: 'ai-admin-images' })" />
@@ -309,6 +308,7 @@ import { getWalletByNetwork } from 'src/wallet/chipnet'
 import SaveToGallery from 'src/utils/save-to-gallery'
 import { satoshiToBch } from 'src/exchange'
 import { parseFiatCurrency } from 'src/utils/denomination-utils'
+import confetti from 'canvas-confetti'
 
 export default {
     data () {
@@ -336,6 +336,7 @@ export default {
             pollingElapsed: 0,
             pollingTimer: null,
             orderId: null,
+            isPollingActive: false,
             // Result
             resultState: false,
             resultImage: null,
@@ -614,14 +615,15 @@ export default {
         startPolling () {
             this.polling = true
             this.pollingElapsed = 0
-            this.poll()
-            this.scheduleNextPoll()
+            this.isPollingActive = false
+            this.poll()  // first poll, no timer scheduling here
         },
         stopPolling () {
             if (this.pollingTimer) {
                 clearTimeout(this.pollingTimer)
                 this.pollingTimer = null
             }
+            this.isPollingActive = false
         },
         scheduleNextPoll () {
             if (!this.polling) return
@@ -629,37 +631,53 @@ export default {
             this.pollingTimer = setTimeout(() => {
                 this.pollingElapsed += interval / 1000
                 this.poll()
-                this.scheduleNextPoll()
             }, interval)
         },
         async poll () {
-            const result = await AIAdminUtils.getImageStatus(this.orderId)
-            if (!result.success) return
+            if (this.isPollingActive) return  // skip if a poll is already in flight
+            this.isPollingActive = true
 
-            const status = result.data?.status
-            if (status === 'generation_complete') {
-                this.stopPolling()
-                if (result.data.image) {
-                    await this.handleImageReceived(result.data)
-                } else {
-                    this.$q.notify({ type: 'negative', message: 'Image data missing. Please try again.', timeout: 5000 })
+            try {
+                const result = await AIAdminUtils.getImageStatus(this.orderId)
+                if (!result.success) return  // still need to release guard below
+
+                const status = result.data?.status
+                if (status === 'generation_complete') {
+                    this.stopPolling()
+                    if (result.data.image) {
+                        await this.handleImageReceived(result.data)
+                    } else {
+                        this.$q.notify({ type: 'negative', message: 'Image data missing. Please try again.', timeout: 5000 })
+                        this.polling = false
+                        await AIAdminUtils.confirmImageReceived(this.orderId)
+                    }
+                } else if (status === 'completed') {
+                    this.stopPolling()
+                    if (result.data.image) {
+                        await this.handleImageReceived(result.data)
+                    } else {
+                        this.polling = false
+                        this.showQuote = false
+                        this.orderId = null
+                        this.$q.notify({ type: 'warning', message: 'Image expired. Please generate a new one.', timeout: 5000 })
+                    }
+                } else if (status === 'failed') {
+                    this.stopPolling()
                     this.polling = false
-                    await AIAdminUtils.confirmImageReceived(this.orderId)
+                    this.$q.notify({ type: 'negative', message: result.data.error || 'Generation failed', timeout: 5000 })
+                } else if (status === 'refunded') {
+                    this.stopPolling()
+                    this.polling = false
+                    this.$q.notify({ type: 'info', message: 'Order refunded', timeout: 5000 })
+                } else {
+                    // Still processing — schedule next poll
+                    this.scheduleNextPoll()
                 }
-            } else if (status === 'completed') {
-                this.stopPolling()
-                this.polling = false
-                this.showQuote = false
-                this.orderId = null
-                this.$q.notify({ type: 'warning', message: 'Image expired. Please generate a new one.', timeout: 5000 })
-            } else if (status === 'failed') {
-                this.stopPolling()
-                this.polling = false
-                this.$q.notify({ type: 'negative', message: result.data.error || 'Generation failed', timeout: 5000 })
-            } else if (status === 'refunded') {
-                this.stopPolling()
-                this.polling = false
-                this.$q.notify({ type: 'info', message: 'Order refunded', timeout: 5000 })
+            } catch (error) {
+                console.error('[ImageGen] Poll error:', error)
+                this.scheduleNextPoll()  // retry on error
+            } finally {
+                this.isPollingActive = false  // release guard
             }
         },
         async handleImageReceived (data) {
@@ -668,6 +686,9 @@ export default {
             this.resultMedia = data.media_type
             this.resultPricing = data.pricing
             this.resultState = true
+            this.showQuote = false
+
+            this.$nextTick(() => this.launchConfetti()) 
 
             try {
                 const filename = `paytaca-${data.id}.png`
@@ -681,6 +702,7 @@ export default {
             await AIAdminUtils.confirmImageReceived(data.id)
         },
         resetForm () {
+            this.confettiPlayed = false 
             this.resultState = false
             this.resultImage = null
             this.resultMedia = null
@@ -734,6 +756,25 @@ export default {
                 this.pendingNavigation() // proceed with navigation
                 this.pendingNavigation = null
             }
+        },
+        launchConfetti () {
+            if (this.confettiPlayed) return
+            this.confettiPlayed = true
+
+            const duration = 3000
+            const animationEnd = Date.now() + duration
+            const defaults = { startVelocity: 30, spread: 360, ticks: 60, zIndex: 10000 }
+
+            const randomInRange = (min, max) => Math.random() * (max - min) + min
+
+            const interval = setInterval(() => {
+                const timeLeft = animationEnd - Date.now()
+                if (timeLeft <= 0) return clearInterval(interval)
+
+                const particleCount = 50 * (timeLeft / duration)
+                confetti({ ...defaults, particleCount, origin: { x: randomInRange(0.1, 0.3), y: Math.random() - 0.2 } })
+                confetti({ ...defaults, particleCount, origin: { x: randomInRange(0.7, 0.9), y: Math.random() - 0.2 } })
+            }, 250)
         },
     }
 }
