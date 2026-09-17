@@ -62,7 +62,7 @@
         <q-spinner :color="themeColor" size="48px" />
         <div class="q-mt-md text-subtitle1">Generating your image...</div>
         <div class="text-caption q-mt-xs" :class="darkMode ? 'text-grey-5' : 'text-grey-7'">
-            {{ pollingElapsed }}s elapsed
+            {{ pollingTip }}
         </div>
     </div>
 
@@ -419,7 +419,20 @@ export default {
         insufficientBalance () {
             if (!this.amountSats) return false
             return this.bchBalanceSats < this.amountSats
-        }
+        },
+        pollingTips () {
+            return [
+                'Most images take 30–60 seconds to generate',
+                'Complex prompts may take a bit longer',
+                'Hang tight, your image is being created',
+                'Good things take time...',
+                'Processing your prompt...',
+            ]
+        },
+        pollingTip () {
+            const index = Math.floor(this.pollingElapsed / 4) % this.pollingTips.length
+            return this.pollingTips[index]
+        },
     },
     async mounted () {
         await this.fetchModels()

@@ -102,7 +102,7 @@ export default {
             orders: [],
             isLoading: true,
             currentPage: 1,
-            pageSize: 20,
+            pageSize: 10,
             totalCount: 0,
             loadingMore: false,
             selectedOrderId: null,
