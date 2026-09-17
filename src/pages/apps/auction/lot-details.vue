@@ -716,7 +716,7 @@ import { ref, computed, onMounted, onBeforeUnmount, onUnmounted } from 'vue'
 import { useRoute } from 'vue-router'
 import { useQuasar, date } from 'quasar'
 import { callAPI } from 'src/auction/api'
-import { walletToContract } from 'src/auction/payment'
+import { payBidToContract } from 'src/auction/payment'
 import { callContractRelease, callContractReturn } from 'src/auction/arbiter'
 import { callLotWebsocket } from 'src/auction/websocket'
 
@@ -870,22 +870,7 @@ const englishCurrentFiat = computed(() => {
 
 const openBidDialog = async () => showMakeBidDialog.value = true
 
-/* 
-MAKE IT SO THAT YOUR FLOW GOES:
--> PLACE BID (WS)
--> BACKEND MAKES BID PENDING
--> SAME FOR OTHER PARALLEL AUCTIONS
--> ONLY CONFIRM BID AS COMPLETE WHEN CONTRACT SENT FUNDS
--> CANCEL OTHER PENDING BIDS (FIND A WAY TO CANCEL ALL PENDING PARALLEL BIDS IF A MESSAGE IS RECEIVED TO CANCEL THEM)
-  You may need to update the backend for this one too
-*/
-const handlePlaceBid = async ({ bid_price_bch, bid_price_fiat }) => {
-  if (!userWalletHash.value) {
-    $q.notify({ type: 'warning', message: 'Please connect your wallet first.' })
-    return
-  }
-  bidOrBuyLoading.value = true
-
+const websocketSendBid = async ({ bid_price_bch, bid_price_fiat }) => {
   try {
     // if the socket is open, run the placebid
     if (!socket || socket.readyState !== WebSocket.OPEN)
@@ -904,73 +889,67 @@ const handlePlaceBid = async ({ bid_price_bch, bid_price_fiat }) => {
       }
     ))
 
+    // wait for the ack and return the bid id
     const ack = await waitForBidAck()
-    const bidId = ack?.id
-
-    let isStillHighest
-
-    try {
-      isStillHighest = await verifyStillHighestBid(bidId)
-    } catch (err) {
-      console.error('Could not confirm bid outcome:', err)
-
-      showMakeBidDialog.value = false
-      await $store.dispatch('auction/fetchLotData')
-      
-      $q.notify({
-        type: 'warning',
-        message: 'Your bid was submitted, but we could not confirm whether it is currently winning. Please check back.'
-      })
-      return
-    }
-
-    if (!isStillHighest) {
-      await $store.dispatch('auction/fetchLotData')
-      showMakeBidDialog.value = false
-      
-      $q.notify({
-        type: 'warning',
-        icon: 'warning',
-        message: 'Someone placed a higher bid right as you submitted yours. You have not committed any funds — check the new highest bid and try again.'
-      })
-      return
-    }
-
-    await callAPI('lots', props.lotId, 'patch', {
-      threshold_bid_bch: Number(bid_price_bch).toFixed(8),
-      threshold_bid_fiat: Number(bid_price_fiat).toFixed(2)
-    })
-
-    $q.loading.show({ message: 'Processing smart contract...' })
-    try {
-      await walletToContract(Number(bid_price_bch).toFixed(8), bidId)
-    } finally {
-      $q.loading.hide()
-    }
-    
-    const secondRes = await callAPI(`lots/${props.lotId}/second-highest-bid`)
-    if (secondRes.success && secondRes.data?.id) {
-      await callContractReturn(secondRes.data.id)
-    }
-
-    showMakeBidDialog.value = false
-
-    $q.notify({
-      type: 'positive',
-      icon: 'gavel',
-      message: `Bid of ${formatBCH(bid_price_bch).main}${formatBCH(bid_price_bch).zeros} BCH placed!`,
-      timeout: 3000
-    })
-
-    await $store.dispatch('auction/fetchLotData')
-    
+    return ack?.id
 
   } catch (err) {
     console.error(err)
     $q.notify({ type: 'negative', message: err.message || 'Something went wrong.' })
-  } finally {
-    bidOrBuyLoading.value = false
   }
+}
+
+/* 
+MAKE IT SO THAT YOUR FLOW GOES:
+-> PLACE BID (WS)
+-> BACKEND MAKES BID PENDING
+-> SAME FOR OTHER PARALLEL AUCTIONS
+-> ONLY CONFIRM BID AS COMPLETE WHEN CONTRACT SENT FUNDS
+-> CANCEL OTHER PENDING BIDS (FIND A WAY TO CANCEL ALL PENDING PARALLEL BIDS IF A MESSAGE IS RECEIVED TO CANCEL THEM)
+  You may need to update the backend for this one too
+*/
+const handlePlaceBid = async ({ bid_price_bch, bid_price_fiat }) => {
+  if (!userWalletHash.value) {
+    $q.notify({ type: 'warning', message: 'Please connect your wallet first.' })
+    return
+  }
+  bidOrBuyLoading.value = true
+
+  // STEP 1: Send the bid to the server via WS and get the bidId
+  const bidId = await websocketSendBid({ bid_price_bch, bid_price_fiat })
+
+  // STEP 2: 
+  await callAPI('lots', props.lotId, 'patch', {
+    threshold_bid_bch: Number(bid_price_bch).toFixed(8),
+    threshold_bid_fiat: Number(bid_price_fiat).toFixed(2)
+  })
+
+  $q.loading.show({ message: 'Processing smart contract...' })
+  try {
+    await payBidToContract(Number(bid_price_bch).toFixed(8), bidId)
+  } finally {
+    $q.loading.hide()
+  }
+  
+  const secondRes = await callAPI(`lots/${props.lotId}/second-highest-bid`)
+  if (secondRes.success && secondRes.data?.id) {
+    await callContractReturn(secondRes.data.id)
+  }
+
+  showMakeBidDialog.value = false
+
+  $q.notify({
+    type: 'positive',
+    icon: 'gavel',
+    message: `Bid of ${formatBCH(bid_price_bch).main}${formatBCH(bid_price_bch).zeros} BCH placed!`,
+    timeout: 3000
+  })
+
+  await $store.dispatch('auction/fetchLotData')
+  
+
+  bidOrBuyLoading.value = false
+  
 }
 const showPostAuctionActions = computed(() => lot.value?.is_sold && !isMarkedComplete.value)
 
@@ -1098,7 +1077,7 @@ const handleBuyItNow = async (payload = {}) => {
     $q.loading.show({ message: 'Processing smart contract...' })
 
     try {
-      await walletToContract(Number(bidBch).toFixed(8), bidId)
+      await payBidToContract(Number(bidBch).toFixed(8), bidId)
     } finally {
       $q.loading.hide()
     }
@@ -1324,6 +1303,7 @@ const connectWebsocket = async () => {
   };
 
   ws.onmessage = async (event) => {
+    clearInterval(websocketInterval)
     const { type, data } = JSON.parse(event.data);
 
     switch (type) {
@@ -1414,6 +1394,15 @@ const waitForBidAck = () => {
       resolve(data)
     }
   })
+}
+
+
+const websocketInterval = setInterval(async () => {
+    await waitForBidCancelledAck()
+}, 2000)
+
+const waitForBidCancelledAck = () => {
+  // I need the logic here to check if there was a cancel bid ack
 }
 
 const clearSocket = () => {
