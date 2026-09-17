@@ -445,12 +445,12 @@
             <div class="text-caption q-mb-md q-mt-sm" :class="darkMode ? 'text-grey-5' : 'text-grey-7'">
               You're earning LIFT cashbacks on every eligible OTC and marketplace purchase.
             </div>
-            <div class="row q-col-gutter-sm">
-              <div class="col elite-stat-box br-10">
+            <div class="row">
+              <div class="col elite-stat-box q-mx-xs br-10">
                 <div class="elite-stat-value">{{ formattedEliteCashback }} LIFT</div>
                 <div class="text-caption" :class="darkMode ? 'text-grey-5' : 'text-grey-7'">Total cashback received</div>
               </div>
-              <div class="col elite-stat-box br-10">
+              <div class="col elite-stat-box q-mx-xs br-10">
                 <div class="elite-stat-value">{{ eliteData.eligibleTxCount }}</div>
                 <div class="text-caption" :class="darkMode ? 'text-grey-5' : 'text-grey-7'">Eligible transactions</div>
               </div>
