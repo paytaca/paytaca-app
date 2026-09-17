@@ -319,7 +319,7 @@
       <!-- Paytaca Elite Section -->
       <div class="col-12 q-pt-md card-help-highlight">
         <div class="elite-section-label q-mb-xs">
-          Paytaca Elite
+          Paytaca Elite Program
         </div>
 
         <!-- Elite: Scanning / Loading -->
@@ -334,7 +334,7 @@
                 <q-icon name="workspace_premium" size="md" class="elite-icon" />
               </div>
               <div class="col-8">
-                <span class="text-token elite-name" :class="getDarkModeClass(darkMode)">Paytaca Elite</span>
+                <span class="text-token elite-name" :class="getDarkModeClass(darkMode)">Paytaca Elite Program</span>
                 <br/>
                 <span class="elite-pill checking">Checking</span>
               </div>
@@ -364,7 +364,7 @@
                 <q-icon name="workspace_premium" size="md" class="elite-icon" />
               </div>
               <div class="col-8">
-                <span class="text-token elite-name" :class="getDarkModeClass(darkMode)">Paytaca Elite</span>
+                <span class="text-token elite-name" :class="getDarkModeClass(darkMode)">Paytaca Elite Program</span>
                 <br/>
                 <span class="elite-pill locked">Locked</span>
               </div>
@@ -429,7 +429,7 @@
                 <q-icon name="workspace_premium" size="md" class="elite-icon" />
               </div>
               <div class="col-8">
-                <span class="text-token elite-name" :class="getDarkModeClass(darkMode)">Paytaca Elite</span>
+                <span class="text-token elite-name" :class="getDarkModeClass(darkMode)">Paytaca Elite Program</span>
                 <br/>
                 <span class="elite-pill active">Active</span>
               </div>
@@ -471,7 +471,7 @@
                 <q-icon name="workspace_premium" size="md" class="elite-icon" />
               </div>
               <div class="col-8">
-                <span class="text-token elite-name" :class="getDarkModeClass(darkMode)">Paytaca Elite</span>
+                <span class="text-token elite-name" :class="getDarkModeClass(darkMode)">Paytaca Elite Program</span>
                 <br/>
                 <span class="elite-pill paused">Paused</span>
               </div>
@@ -1033,7 +1033,7 @@ export default {
 
     redirectToElitePage () {
       // TODO: Create the Paytaca Elite page and route, then navigate to it here
-      this.$q.notify({ type: 'info', message: 'Paytaca Elite page coming soon', timeout: 3000 })
+      this.$q.notify({ type: 'info', message: 'Paytaca Elite Program page coming soon', timeout: 3000 })
     }
   }
 }
