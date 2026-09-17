@@ -1,22 +1,32 @@
-import AuctionEscrowContract from './contract'
+import Watchtower from 'watchtower-cash-js'
+import { ElectrumNetworkProvider, SignatureTemplate, TransactionBuilder } from 'cashscript'
+
+// src imports
 import { getChangeAddress } from 'src/utils/send-page-utils'
 import { loadWallet } from 'src/wallet'
-import { callAPI } from './api'
-import { Store } from 'src/store/'
 import { isChipnet } from 'src/store/global/getters'
+import { Store } from 'src/store/'
+
+// Contract-related
+import AuctionEscrowContract from './contract'
+import { callAPI } from './api'
+
+const watchtower = new Watchtower()
+const P2PKH_DUST = 546n;
+const DUST_LIMIT = P2PKH_DUST;
 
 const ARBITRATION_FEE = 1000
 const PLATFORM_FEE = 1000
 
 /**
- * @name walletToContract
- * @param {Integer} bidId - id of the user's official bid 
+ * @name payBidToContract
+ * @param {Integer} lotId - id of the user's official lot 
  * Call this when invoking any wallet-to-contract functions
  */
-export async function walletToContract(amountBCH, bidId) {
+export async function payBidToContract(amountBCH, lotId) {
   try {
     // make the contract here
-    const contractResult = await creatContractForBid(bidId)
+    const contractResult = await createContractForLot(lotId)
     if (!contractResult.is_created) 
       throw new Error("Contract failed to be created.")
     
@@ -28,9 +38,9 @@ export async function walletToContract(amountBCH, bidId) {
     if (!txid) 
       throw new Error("Failed to transfer BCH to contract.")
 
-    console.log("[walletToContract] Successfully transferred BCH to contract! txid = ", txid)
+    console.log("[payBidToContract] Successfully transferred BCH to contract! txid = ", txid)
   } catch (error) {
-    console.error("[walletToContract]", error)
+    console.error("[payBidToContract]", error)
   }
 }
 
@@ -38,59 +48,108 @@ export async function walletToContract(amountBCH, bidId) {
 /**
 <<<<<<< HEAD
  * @name createContract
- * @param {Integer} bidId
+ * @param {Integer} lotId
  * @returns contract and is_created (boolean)
  * Call this when establishing a new contract for a new lot
  */
-export async function creatContractForBid(bidId) {
-  try {
-    // get the auction public keys
-    const publicKeys = await getNewAuctionPublicKeys(bidId)
+export async function createContractForLot(lotId) {
+  // get the auction public keys
+  const publicKeys = await getNewAuctionPublicKeys(lotId)
 
-    // just get the fixed fees
-    const fees = {
-      arbitrationFee: ARBITRATION_FEE,
-      platformFee: PLATFORM_FEE
-    }
+  // just get the fixed fees
+  const fees = {
+    arbitrationFee: ARBITRATION_FEE,
+    platformFee: PLATFORM_FEE
+  }
 
-    // check if wallet is in chipnet
-    const isChipnet = Store.getters['global/isChipnet']
+  // check if wallet is in chipnet
+  const isChipnet = Store.getters['global/isChipnet']
 
-    // creation of contract
-    const contractResult = new AuctionEscrowContract(
-      publicKeys,
-      fees,
-      bidId,
-      isChipnet 
-    )
-    if (!contractResult.contract.getUtxos())
-      throw new Error('Contract failed to be created')
+  // creation of contract
+  const contractResult = new AuctionEscrowContract(
+    publicKeys,
+    fees,
+    lotId,
+    isChipnet 
+  )
 
-    // payload for adding contract to db
-    const payload = {
-      bid_id: bidId,
-      arbiter_pk: publicKeys.arbiter,
-      servicer_pk: publicKeys.servicer,
-      arbitration_fee: contractResult.fees.arbitrationFee,
-      platform_fee: contractResult.fees.platformFee
-    }
+  // payload for adding contract to db
+  const payload = {
+    lot_id: lotId,
+    arbiter_pk: publicKeys.arbiter,
+    servicer_pk: publicKeys.servicer,
+    arbitration_fee: contractResult.fees.arbitrationFee,
+    platform_fee: contractResult.fees.platformFee
+  }
 
-    const response = await callAPI('create-contract', null, 'post', payload)
-    if (!response || !response.success) 
-      throw new Error("Contract details failed to be saved in the database.")
+  const response = await callAPI('create-contract', null, 'post', payload)
+  
+  return {
+    contract: contractResult,
+    is_created: true
+  }
+}
+
+async function tokenGenesis(
+  contractTokenAddress, 
+  { broadcast = true } = {}
+) {
+    const genesisUtxo = await this.wallet.getOrCreateGenesisUtxo()
+    const categoryId = genesisUtxo.txid
+    const nftValue = 1000n // 1000 satoshis for each NFT output
     
-    return {
-      contract: contractResult,
-      is_created: true
+    const changeAddress = this.wallet.address()
+    const estimatedFee = this.wallet.estimateFee({ numP2pkhInputs: 1, numOutputs: 2, feeRate: 2n })
+    const change = genesisUtxo.satoshis - estimatedFee - nftValue
+    const tokenAddress = contractTokenAddress
+
+    const outputs = []
+
+    if (change > DUST_LIMIT) {
+        outputs.push({
+            to: changeAddress,
+            amount: change,
+        })
     }
-  }
-  catch(error) {
-    console.error('[creatContractForBid]', error)
-    return {
-      contract: null,
-      is_created: false
-    }
-  }
+
+    outputs.push({
+      to: tokenAddress,
+      amount: nftValue,
+      token: {
+          category: categoryId,
+          amount: 0n,
+          nft: {
+              capability: 'mutable',
+              commitment: ''
+          }
+      }
+    })
+
+
+    const network = isChipnet ? 'chipnet' : 'mainnet'
+    const privateKey = this.wallet.privkey(genesisUtxo.address_path)
+    const provider = new ElectrumNetworkProvider(network)
+    const sigTemplate = new SignatureTemplate(privateKey)
+
+    const tx = new TransactionBuilder({ provider })
+      .addInput(genesisUtxo, sigTemplate.unlockP2PKH())
+      .addOutputs(outputs)
+        
+    let result
+      // Build the transaction
+      const txHex = tx.build()
+
+      if (broadcast) {
+        const txResult = await watchtower.BCH.broadcastTransaction(txHex)
+        result = { 
+            success: txResult.data.success, 
+            txid: txResult.data.txid, 
+            category: categoryId 
+        }
+      } else {
+        result = { success: true, txHex }
+      }
+    return result
 }
 
 /**
@@ -100,7 +159,7 @@ export async function creatContractForBid(bidId) {
  * @param {Float} bchAmount - must be in BCH (convert fiats to BCH)
  * @returns 
  */
-export async function sendBCHToContract(contract, bchAmount) {
+async function sendBCHToContract(contract, bchAmount) {
   // change address 
   const changeAddress = await getChangeAddress('bch')
 
@@ -117,15 +176,17 @@ export async function sendBCHToContract(contract, bchAmount) {
   return txid
 }
 
+
+
 // ===== HELPER FUNCTIONS =====
 /**
  * Gets the public keys for a new contract
  * @name getNewAuctionPublicKeys
- * @param {Integer} bidId 
+ * @param {Integer} lotId 
  * @returns Gets the public keys needed for a NEW auction contract
  */
-async function getNewAuctionPublicKeys(bidId) {
-  const auctioneerPk = await getPublicKeyFromBidId('auctioneer', bidId)
+async function getNewAuctionPublicKeys(lotId) {
+  const auctioneerPk = await getPublicKeyFromLotId('auctioneer', lotId)
   const bidderPk = await getBidderPublicKey('0/0')
   const arbiterPk = Store.getters['auction/arbiterPublicKey']
   const servicerPk = Store.getters['auction/servicerPublicKey']
@@ -140,14 +201,14 @@ async function getNewAuctionPublicKeys(bidId) {
 
 /**
  * Fetches a person's public key from the server via api
- * @name getPublicKeyFromBidId
+ * @name getPublicKeyFromLotId
  * @param {String} pkCallName - either 'auctioneer-pk', 'arbiter-pk', or 'servicer-pk
- * @param {Integer} bidId - associated lot
+ * @param {Integer} lotId - associated lot
  * @returns 
  */
-async function getPublicKeyFromBidId(pkName, bidId) {
+async function getPublicKeyFromLotId(pkName, lotId) {
   try {
-    const response = await callAPI(`${pkName}-pk`, bidId)
+    const response = await callAPI(`${pkName}-pk`, lotId)
 
     if (response && response.success) 
       return response.data[`${pkName}_pk`]
