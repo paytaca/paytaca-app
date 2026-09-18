@@ -25,51 +25,14 @@
       <div v-else class="q-pt-md">
         <q-infinite-scroll @load="onLoadMore" :offset="250" :disable="!hasNextPage">
           <q-list separator class="br-15 overflow-hidden border-grey-4">
-            <q-item
+            <InvoiceListItem
               v-for="invoice in invoices"
               :key="invoice.invoice_id"
-              clickable
-              v-ripple
-              class="q-py-md"
+              :invoice="invoice"
+              status-style="icon"
+              date-format="relative"
               @click="showInvoiceDetail(invoice)"
-            >
-              <!-- Left Side: Status + Icon + Time -->
-              <q-item-section side top style="width: 110px;" class="flex-shrink-0">
-                <div class="row items-center no-wrap q-gutter-x-xs">
-                  <q-icon 
-                    :name="getStatusIcon(invoice.status)" 
-                    :color="getStatusColor(invoice.status)" 
-                    size="18px" 
-                  />
-                  <div 
-                    class="text-caption text-weight-bold" 
-                    :class="`text-${getStatusColor(invoice.status)}`"
-                  >
-                    {{ invoice.status }}
-                  </div>
-                </div>
-                <div class="text-caption text-grey q-mt-xs">
-                  {{ formatTimeAgo(invoice.date_updated) }}
-                </div>
-              </q-item-section>
-
-              <!-- Middle: Memo -->
-              <q-item-section>
-                <div class="text-body1 text-weight-medium ellipsis-2-lines" :class="getDarkModeClass(darkMode)" style="word-break: break-all;">
-                  {{ invoice.memo || $t('NoMemo') }}
-                </div>
-              </q-item-section>
-
-              <!-- Right Side: Amounts -->
-              <q-item-section side top class="text-right">
-                <div class="text-subtitle2 text-weight-bold" :class="getDarkModeClass(darkMode)">
-                  {{ invoice.total_bch }} BCH
-                </div>
-                <div class="text-caption text-grey">
-                  {{ invoice.total_fiat }}
-                </div>
-              </q-item-section>
-            </q-item>
+            />
           </q-list>
           <template v-slot:loading>
             <div class="row justify-center q-my-md">
@@ -87,10 +50,10 @@ import { ref, computed, onMounted, onBeforeUnmount, watch } from 'vue'
 import { useStore } from 'vuex'
 import { useQuasar } from 'quasar'
 import ago from 's-ago'
+import { usePaymentHubCore } from 'src/composables/payment-hub/usePaymentHub.js'
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
-import { PaymentHub } from 'src/wallet/payment-hub'
-import { loadWallet } from 'src/wallet'
 import InvoiceDetailDialog from './InvoiceDetailDialog.vue'
+import InvoiceListItem from './InvoiceListItem.vue'
 
 const props = defineProps({
   storeId: {
@@ -107,7 +70,7 @@ const props = defineProps({
   },
   hasSubscriptions: {
     type: Boolean,
-    default: false
+    required: false,
   }
 })
 
@@ -118,31 +81,25 @@ const $q = useQuasar()
 const darkMode = computed(() => $store.getters['darkmode/getStatus'])
 const isChipnet = computed(() => $store.getters['global/isChipnet'])
 
+const { hub, initHub } = usePaymentHubCore()
+
 // API State
 const invoices = ref([])
 const loading = ref(false)
 const currentPage = ref(1)
 const hasNextPage = ref(false)
-const hub = ref(null)
 
-let pollingInterval = null
 let expirationCheckInterval = null
 
 onMounted(async () => {
-  await initHub()
+  await initHub({ isBackground: true, autoRegister: false })
   refreshList()
-  pollingInterval = setInterval(() => {
-    if (currentPage.value === 1 && !props.searchQuery) {
-      refreshList(true)
-    }
-  }, 15000)
   
   // Local timer to automatically mark pending invoices as expired
   expirationCheckInterval = setInterval(checkExpirations, 5000)
 })
 
 onBeforeUnmount(() => {
-  if (pollingInterval) clearInterval(pollingInterval)
   if (expirationCheckInterval) clearInterval(expirationCheckInterval)
 })
 
@@ -180,12 +137,6 @@ function checkExpirations() {
       refreshList(true)
     }, 2000)
   }
-}
-
-async function initHub() {
-  const walletIndex = $store.getters['global/getWalletIndex']
-  const wallet = await loadWallet('BCH', walletIndex)
-  hub.value = new PaymentHub(wallet)
 }
 
 async function refreshList(isBackground = false) {
@@ -238,35 +189,6 @@ async function onLoadMore(index, done) {
     console.error('Error loading more invoices:', error)
   } finally {
     done()
-  }
-}
-
-function formatTimeAgo(date) {
-  if (!date) return ''
-  return ago(new Date(date))
-}
-
-function getStatusIcon(status) {
-  switch (status) {
-    case 'PAID': return 'check_circle'
-    case 'PENDING': return 'schedule'
-    case 'EXPIRED': return 'event_busy'
-    case 'CANCELLED': return 'cancel'
-    case 'TOP UP': return 'savings'
-    case 'RECLAIMED': return 'settings_backup_restore'
-    default: return 'help'
-  }
-}
-
-function getStatusColor(status) {
-  switch (status) {
-    case 'PAID': return 'green'
-    case 'PENDING': return 'orange'
-    case 'EXPIRED': return 'grey'
-    case 'CANCELLED': return 'red'
-    case 'TOP UP': return 'blue'
-    case 'RECLAIMED': return 'purple'
-    default: return 'grey'
   }
 }
 
