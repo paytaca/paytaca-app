@@ -12,7 +12,7 @@
         :class="getDarkModeClass(darkMode)"
         flat
       >
-        <q-card-section class="q-py-lg">
+        <q-card-section class="q-py-md">
           <!-- Loading State -->
           <template v-if="isLoading">
             <div class="row flex-center q-mb-md">
@@ -36,6 +36,7 @@
           <!-- Error State -->
           <error-card
             v-else-if="!isLoading && pointsError"
+            class="text-center"
             :is-points-card="true"
             :is-rewards-home-page="false"
             :error-text="pointsError"
@@ -49,29 +50,32 @@
                 <div class="hero-icon">
                   <q-icon name="workspace_premium" size="md" class="elite-icon" />
                 </div>
-                <span class="elite-name q-ml-sm">Paytaca Elite Program</span>
-                <span class="elite-pill active q-ml-xs">Active</span>
+                <div class="column q-ml-sm">
+                  <span class="elite-name">Paytaca Elite Program</span>
+                  <span class="elite-pill active q-mt-xs">Active</span>
+                </div>
               </div>
             </div>
 
-            <div class="row q-col-gutter-md q-mb-md">
-              <div class="col elite-stat-box br-10">
+            <div class="row q-mb-md">
+              <div class="col elite-stat-box q-mx-xs br-10">
                 <div class="elite-stat-value">{{ formattedCashback }} LIFT</div>
-                <div class="text-caption" :class="darkMode ? 'text-grey-5' : 'text-grey-7'">Total cashback received</div>
+                <div class="text-caption">Total cashback received</div>
               </div>
-              <div class="col elite-stat-box br-10">
+              <div class="col elite-stat-box q-mx-xs br-10">
                 <div class="elite-stat-value">{{ eliteData.eligibleTxCount }}</div>
-                <div class="text-caption" :class="darkMode ? 'text-grey-5' : 'text-grey-7'">Eligible transactions</div>
+                <div class="text-caption">Eligible transactions</div>
               </div>
             </div>
 
-            <div class="row justify-between text-caption q-mb-xs" :class="darkMode ? 'text-grey-5' : 'text-grey-7'">
+            <div class="row justify-between text-caption q-mb-xs">
               <span>Monthly cashback limit</span>
               <span class="text-weight-medium">{{ formattedMonthlyCashback }} of ₱{{ (eliteData.maxCashbackPerMonth || 1000).toLocaleString() }}</span>
             </div>
             <q-linear-progress
               :value="monthlyPct"
-              track-color="secondary"
+              color="#d4a643"
+              track-color="#b08a2e"
               class="rounded-borders"
               size="8px"
             />
@@ -174,6 +178,7 @@ import { getEliteProgramPageData } from 'src/utils/engagementhub-utils/rewards'
 import HeaderNav from 'src/components/header-nav.vue'
 import ErrorCard from 'src/components/rewards/cards/ErrorCard.vue'
 import TransactionList from 'src/components/rewards/transactions/TransactionList.vue'
+import { sleep } from '@walletconnect/utils'
 
 export default {
   name: 'EliteProgram',
@@ -252,13 +257,14 @@ export default {
           const fetchedCount = this.transactions.length
           this.hasMoreTransactions = fetchedCount >= this.limit
         } else {
-          this.dataError = 'Failed to load elite program data'
+          this.dataError = 'Failed to load Elite program data. Please try again later.'
         }
       } catch (error) {
         console.error('Error loading elite program data: ', error)
-        this.pointsError = 'Failed to load elite program data'
+        this.pointsError = 'Failed to load Elite program data. Please try again later.'
       }
 
+      await sleep(1000)
       if (!append) this.isLoading = false
     },
 
@@ -294,6 +300,8 @@ export default {
 
 <style lang="scss" scoped>
 .hero-card {
+  position: relative;
+  overflow: hidden;
   border-radius: 20px;
   background: linear-gradient(135deg, rgba(212, 166, 67, 0.16) 0%, rgba(212, 166, 67, 0.04) 100%);
   border: 1px solid rgba(212, 166, 67, 0.35);
@@ -302,6 +310,29 @@ export default {
     background: linear-gradient(135deg, rgba(212, 166, 67, 0.28) 0%, rgba(212, 166, 67, 0.06) 100%);
     border: 1px solid rgba(212, 166, 67, 0.45);
   }
+
+  &::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 40%;
+    height: 100%;
+    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.12), rgba(255, 255, 255, 0.18), transparent);
+    transform: translateX(-120%);
+    animation: elite-glimmer 3s ease-in-out infinite;
+    pointer-events: none;
+  }
+
+  &.dark::after {
+    background: linear-gradient(90deg, transparent, rgba(212, 166, 67, 0.08), rgba(212, 166, 67, 0.14), transparent);
+  }
+}
+
+@keyframes elite-glimmer {
+  0% { transform: translateX(-120%); }
+  55% { transform: translateX(320%); }
+  100% { transform: translateX(320%); }
 }
 
 /* Hero icon always gold, overriding any theme color applied to q-icon */
@@ -322,7 +353,7 @@ export default {
 /* Elite title always gold, overriding `.group-currency .text-token` theme colors */
 .elite-name {
   color: #d4a643 !important;
-  font-weight: 700 !important;
+  font-weight: bolder !important;
   font-size: 15px;
 }
 
@@ -336,6 +367,7 @@ export default {
   padding: 3px 7px;
   text-transform: uppercase;
   flex-shrink: 0;
+  align-self: flex-start;
 
   &.active { background: #d4a643; color: #3a3325; }
 }
