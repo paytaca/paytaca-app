@@ -51,32 +51,6 @@
                     </template>
                 </q-input>
 
-                <!-- Tier Buttons -->
-                <div class="row q-gutter-sm q-mb-md">
-                    <q-btn
-                        no-caps rounded outlined
-                        :color="!selectedTier ? themeColor : ''"
-                        :text-color="!selectedTier ? 'white' : ''"
-                        :outline="!!selectedTier"
-                        :style="!selectedTier ? `background-color: ${themeColorHex}` : ''"
-                        label="All"
-                        size="sm"
-                        @click="filterByTier(null)"
-                    />
-                    <q-btn
-                        v-for="tier in tiers" :key="tier"
-                        no-caps rounded outlined
-                        :color="selectedTier === tier ? themeColor : ''"
-                        :text-color="selectedTier === tier ? 'white' : ''"
-                        :outline="selectedTier !== tier"
-                        :style="selectedTier === tier ? `background-color: ${themeColorHex}` : ''"
-                        :label="tier.charAt(0).toUpperCase() + tier.slice(1)"
-                        size="sm"
-                        :disable="isInitialLoading || isLoading"
-                        @click="filterByTier(tier)"
-                    />
-                </div>
-
                 <div class="text-bold md-font-size q-mb-sm">Select Model</div>
                 <!-- Loading skeleton -->
                 <div v-if="isInitialLoading || isLoading">
@@ -105,7 +79,6 @@
                         >
                         <div class="text-bold text-subtitle2">{{ model.display_name }}</div>
                         <div class="row items-center q-mt-xs">
-                            <q-badge rounded :color="tierColor(model.tier)" :label="model.tier.toUpperCase()" class="text-bold q-px-sm" />
                             <q-badge rounded outline v-if="activeModelIds.includes(model.model_id)" color="positive" label="ACTIVE SESSION" class="text-bold q-mt-sm q-px-sm" />
                         </div>
                     </div>
@@ -224,8 +197,6 @@ export default {
             fetchError: null,
             processingMessage: '',
             activeModelIds: [],
-            selectedTier: null,
-            tiers: ['budget', 'premium', 'frontier'],
         }
     },
     computed: {
@@ -277,10 +248,6 @@ export default {
     },
     methods: {
         getDarkModeClass,
-        tierColor (tier) {
-            const map = { cheap: 'green', budget: 'blue', premium: 'amber-8', frontier: 'red' }
-            return map[tier] || 'grey'
-        },
         formatSeconds (totalSeconds) {
             const mins = Math.floor(totalSeconds / 60)
             const secs = Math.floor(totalSeconds % 60)
@@ -300,16 +267,10 @@ export default {
 
             const params = {}
             if (vm.search) params.search = vm.search
-            if (vm.selectedTier) params.tier = vm.selectedTier
 
             const result = await AIAdminUtils.fetchModels(params)
             if (result.success && Array.isArray(result.data?.data)) {
-                const tierOrder = { cheap: 0, budget: 1, premium: 2, frontier: 3 }
-                vm.models = result.data.data.sort((a, b) => {
-                    const orderA = tierOrder[a.tier] ?? 99
-                    const orderB = tierOrder[b.tier] ?? 99
-                    return orderA - orderB
-                })
+                vm.models = result.data.data
 
             } else {
                 vm.models = []
@@ -493,10 +454,6 @@ export default {
             const bchAmount = satoshiToBch(sats)
             const fiatAmount = bchAmount * this.bchMarketPrice
             return parseFiatCurrency(fiatAmount, this.selectedCurrency)
-        },
-        filterByTier (tier) {
-            this.selectedTier = tier
-            this.fetchModelsList()
         },
     }
 }
