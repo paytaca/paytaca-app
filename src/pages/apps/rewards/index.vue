@@ -566,6 +566,7 @@ import HeaderNav from 'src/components/header-nav.vue'
 import HelpCard from 'src/components/rewards/cards/HelpCard.vue'
 import ErrorCard from 'src/components/rewards/cards/ErrorCard.vue'
 import RewardsStep from 'src/components/registration/RewardsStep.vue'
+import EliteProgramLockedDialog from 'src/components/rewards/dialogs/EliteProgramLockedDialog.vue'
 
 import PromoContract from 'src/utils/rewards-utils/contracts/PromoContract'
 
@@ -1032,8 +1033,20 @@ export default {
     },
 
     redirectToElitePage () {
-      // TODO: Create the Paytaca Elite page and route, then navigate to it here
-      this.$q.notify({ type: 'info', message: 'Paytaca Elite Program page coming soon', timeout: 3000 })
+      if (this.eliteData.status === 'locked') {
+        this.$q.dialog({
+          component: EliteProgramLockedDialog,
+          componentProps: {
+            bchBalance: this.eliteData.bchBalance,
+            bchThreshold: this.eliteData.bchThreshold,
+            liftBalance: this.eliteData.liftBalance,
+            liftThreshold: this.eliteData.liftThreshold,
+          }
+        })
+      } else {
+        // TODO: Create the Paytaca Elite page and route, then navigate to it here
+        this.$q.notify({ type: 'info', message: 'Paytaca Elite Program page coming soon', timeout: 3000 })
+      }
     }
   }
 }
