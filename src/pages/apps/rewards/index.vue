@@ -1110,6 +1110,10 @@ export default {
   &.checking { background: #6759c8; }
 }
 
+.elite-card.light .elite-pill.active {
+  background: #c89d36;
+}
+
 /* Elite stat boxes (active state) */
 .elite-stat-box {
   background: rgba(212, 166, 67, 0.15);
@@ -1122,6 +1126,10 @@ export default {
   font-size: 16px;
   font-weight: 800;
   color: #d4a643;
+}
+
+.elite-card.light .elite-stat-value {
+  color: #c89d36;
 }
 
 /* Elite chevron button (gold variant of .bg-grad).
@@ -1140,9 +1148,17 @@ export default {
   font-weight: 700 !important;
 }
 
+.elite-card.light .elite-name {
+  color: #c89d36 !important;
+}
+
 /* Elite icon always gold, overriding any theme color applied to q-icon */
 .elite-card :deep(.elite-icon) {
   color: #d4a643 !important;
+}
+
+.elite-card.light :deep(.elite-icon) {
+  color: #c89d36 !important;
 }
 
 /* Smooth card transition */

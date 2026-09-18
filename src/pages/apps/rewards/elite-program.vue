@@ -338,6 +338,10 @@ export default {
   color: #d4a643 !important;
 }
 
+.light .hero-card :deep(.elite-icon) {
+  color: #c89d36 !important;
+}
+
 /* Gold progress bar; Quasar color props only accept theme names, so style directly */
 .elite-progress {
   color: #d4a643;
@@ -345,6 +349,10 @@ export default {
   :deep(.q-linear-progress__track) {
     background: #b08a2e;
   }
+}
+
+.light .elite-progress {
+  color: #c89d36;
 }
 
 .hero-icon {
@@ -364,6 +372,10 @@ export default {
   font-size: 15px;
 }
 
+.light .elite-name {
+  color: #c89d36 !important;
+}
+
 /* Elite status pill */
 .elite-pill {
   font-size: 9px;
@@ -379,6 +391,10 @@ export default {
   &.active { background: #d4a643; color: #3a3325; }
 }
 
+.light .elite-pill.active {
+  background: #c89d36;
+}
+
 /* Elite stat boxes (active state) */
 .elite-stat-box {
   background: rgba(212, 166, 67, 0.15);
@@ -391,6 +407,10 @@ export default {
   font-size: 16px;
   font-weight: 800;
   color: #d4a643;
+}
+
+.light .elite-stat-value {
+  color: #c89d36;
 }
 
 /* Section header */
@@ -410,6 +430,10 @@ export default {
   justify-content: center;
   font-size: 14px;
   margin-right: 8px;
+}
+
+.light .section-icon {
+  background: #c89d36;
 }
 
 .section-title {
