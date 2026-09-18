@@ -1,5 +1,5 @@
 <template>
-  <q-layout view="lHh Lpr lFf" :class="[getDarkModeClass(darkMode), darkMode ? 'bg-pt-dark-page' : 'bg-pt-light-page']">
+  <q-layout view="lHh Lpr lFf" :class="[getDarkModeClass(darkMode), darkMode ? 'bg-pt-dark-page' : 'bg-pt-light-page', 'text-bow']">
     <q-header class="shadow-2" :class="darkMode ? 'bg-pt-dark-page' : 'bg-pt-light-page'">
       <HeaderNav
         :title="storeData?.name || storeName || $t('StoreDetails')"
@@ -67,149 +67,50 @@
           <q-tab name="invoices" :label="$t('Invoices')" />
           <q-tab name="api_keys" :label="$t('APIKeys')" />
           <template v-if="displaySubs">
-            <q-tab name="plans" :label="$t('Plans') || 'Plans'" />
-            <q-tab name="subscriptions" :label="$t('Subscriptions') || 'Subscriptions'" />
+            <q-tab name="plans" :label="$t('Plans')" />
+            <q-tab name="subscriptions" :label="$t('Subscriptions')" />
           </template>
           <q-tab name="settings" :label="$t('Settings')" />
         </q-tabs>
         <q-separator :dark="darkMode" />
 
-        <!-- Sticky Section Header for Invoices -->
-        <div v-if="activeTab === 'invoices'" class="row items-center q-px-md q-py-sm q-gutter-x-sm">
-          <div class="col">
-            <q-select
-              v-model="invoiceStatusFilter"
-              :options="invoiceStatuses"
-              multiple
-              dense
-              outlined
-              rounded
-              :label="$t('Status') || 'Status'"
-              :bg-color="darkMode ? 'pt-dark' : 'white'"
-              :dark="darkMode"
-              clearable
-              emit-value
-              map-options
-              style="min-width: 150px;"
-            >
-              <template v-slot:selected-item="scope">
-                <q-badge
-                  color="pt-primary1"
-                  class="q-mr-xs"
-                >
-                  {{ scope.opt }}
-                </q-badge>
-              </template>
-            </q-select>
-          </div>
-          <div v-if="displaySubs" class="col-auto">
-            <q-checkbox
-              v-model="includeSubscriptions"
-              :label="$t('Subs') || 'Subs'"
-              dense
-              :dark="darkMode"
-            />
-          </div>
-          <div class="col-auto">
-            <q-btn
-              flat
-              round
-              dense
-              icon="search"
-              :color="invoiceSearchQuery ? 'pt-primary1' : 'grey'"
-              @click="showInvoiceSearchDialog = true"
-            >
-              <q-badge v-if="invoiceSearchQuery" color="red" floating circular />
-            </q-btn>
-          </div>
-        </div>
-        <q-separator v-if="activeTab === 'invoices'" :dark="darkMode" />
+        <div>
+          <InvoicesToolbar
+            v-if="activeTab === 'invoices'"
+            v-model:search="invoiceSearchQuery"
+            v-model:includeSubscriptions="includeSubscriptions"
+            v-model:statuses="invoiceStatusFilter"
+            :status-opts="invoiceStatuses"
+            :debounce-search="500"
+            @create="createInvoice"
+          />
 
-        <!-- Sticky Section Header (only for API Keys) -->
-        <div v-if="activeTab === 'api_keys'" class="q-px-md q-pt-sm q-pb-md">
-          <div class="row items-center q-mb-md">
-            <div class="text-h6 q-mr-sm text-bow" :class="getDarkModeClass(darkMode)">{{ $t('APIKeys') }}</div>
-            <q-btn flat round dense icon="help" color="grey" size="sm" @click="showHelpDialog">
-              <q-tooltip>{{ $t('Help') }}</q-tooltip>
-            </q-btn>
-            <q-space/>
-            <q-btn
-              flat
-              round
-              dense
-              :icon="hideInactive ? 'visibility_off' : 'visibility'"
-              :color="hideInactive ? 'grey' : 'pt-primary1'"
-              class="q-mr-sm"
-              @click="hideInactive = !hideInactive"
-            >
-              <q-tooltip>{{ hideInactive ? $t('ShowInactive') : $t('HideInactive') }}</q-tooltip>
-            </q-btn>
-            <q-btn
-              unelevated
-              rounded
-              dense
-              no-caps
-              icon="add"
-              color="pt-primary1"
-              class="q-px-sm"
-              :label="$t('CreateKey')"
-              @click="createApiKey()"
-            >
-              <q-tooltip>{{ $t('CreateKey') }}</q-tooltip>
-            </q-btn>
-          </div>
+          <ApiKeysToolbar
+            v-if="activeTab === 'api_keys'"
+            v-model:search="searchQuery"
+            v-model:hideInactive="hideInactive"
+            v-model:orderBy="orderBy"
+            v-model:orderDir="orderDir"
+            @showHelp="showHelpDialog"
+            @update:search="onSearch"
+            @setOrdering="setOrdering"
+            @create="() => createApiKey()"
+          />
 
-          <!-- Controls: Search and Sort for Keys -->
-          <div class="row items-center q-col-gutter-sm">
-            <div class="col">
-              <q-input
-                v-model="searchQuery"
-                dense
-                rounded
-                outlined
-                :placeholder="$t('SearchKeys')"
-                :bg-color="darkMode ? 'pt-dark' : 'white'"
-                :dark="darkMode"
-                @update:model-value="onSearch"
-                clearable
-              >
-                <template v-slot:prepend>
-                  <q-icon name="search" />
-                </template>
-              </q-input>
-            </div>
-            <div class="col-auto">
-              <q-btn
-                flat
-                round
-                dense
-                icon="sort"
-                :color="orderBy !== 'created' || orderDir !== 'desc' ? 'pt-primary1' : 'grey'"
-              >
-                <q-menu class="pt-card-2 text-bow" :class="getDarkModeClass(darkMode)">
-                  <q-list style="min-width: 150px;">
-                    <q-item-label header>{{ $t('SortBy') }}</q-item-label>
-                    <q-item clickable v-close-popup @click="setOrdering('name')">
-                      <q-item-section avatar><q-icon name="title" /></q-item-section>
-                      <q-item-section>{{ $t('Name') }}</q-item-section>
-                      <q-item-section side v-if="orderBy === 'name'">
-                        <q-icon :name="orderDir === 'asc' ? 'arrow_upward' : 'arrow_downward'" color="pt-primary1" />
-                      </q-item-section>
-                    </q-item>
-                    <q-item clickable v-close-popup @click="setOrdering('created')">
-                      <q-item-section avatar><q-icon name="event" /></q-item-section>
-                      <q-item-section>{{ $t('DateCreated') }}</q-item-section>
-                      <q-item-section side v-if="orderBy === 'created'">
-                        <q-icon :name="orderDir === 'asc' ? 'arrow_upward' : 'arrow_downward'" color="pt-primary1" />
-                      </q-item-section>
-                    </q-item>
-                  </q-list>
-                </q-menu>
-              </q-btn>
-            </div>
-          </div>
+          <SubscriptionPlansToolbar
+            v-if="activeTab === 'plans'"
+            v-model:search="plansSearchQuery"
+            v-model:isActive="isActiveFilter"
+            @create="() => createPlan()"
+          />
+
+          <SubscriptionsToolbar
+            v-if="activeTab === 'subscriptions'"
+            v-model:statuses="subscriptionsStatusFilter"
+            :status-opts="['ACTIVE', 'PENDING', 'CANCELLED', 'TERMINATED']"
+            v-model:search="subscriptionsSearchQuery"
+          />          
         </div>
-        <q-separator v-if="activeTab === 'api_keys'" :dark="darkMode" />
       </div>
     </q-header>
 
@@ -323,31 +224,13 @@
               <q-tab-panel name="plans" class="q-pa-none">
                 <q-linear-progress v-if="fetchingData" query reverse rounded color="pt-primary1" class="q-mt-none" />
                 <div v-else style="height: 4px;"></div>
-                <div style="height:8px;"></div>
 
                 <div class="q-px-md q-pb-md" :class="darkMode ? 'text-grey-2' : 'text-grey-10'">
-                  <div class="row items-center q-mb-md">
-                    <div class="text-h6 q-mr-sm text-bow" :class="getDarkModeClass(darkMode)">{{ $t('Plans') || 'Plans' }}</div>
-                    <q-space/>
-                    <q-btn
-                      unelevated
-                      rounded
-                      dense
-                      no-caps
-                      icon="add"
-                      color="pt-primary1"
-                      class="q-px-sm"
-                      :label="$t('CreatePlan') || 'Create Plan'"
-                      @click="createPlan()"
-                    >
-                    </q-btn>
-                  </div>
-
                   <div v-if="!fetchingData && plans.length === 0" class="text-center q-mt-xl">
                     <q-icon name="list_alt" size="4em" class="text-grey q-mb-md" />
-                    <div class="text-h6 text-grey q-mb-xs">{{ $t('NoPlans') || 'No Plans' }}</div>
-                    <div class="text-body2 text-grey q-mb-lg">{{ $t('NoPlansFound') || 'Create a plan to offer subscriptions.' }}</div>
-                    <q-btn unelevated rounded color="pt-primary1" :label="$t('CreatePlan') || 'Create Plan'" icon="add" @click="createPlan()" />
+                    <div class="text-h6 text-grey q-mb-xs">{{ $t('NoPlans', 'No Plans') }}</div>
+                    <div class="text-body2 text-grey q-mb-lg">{{ $t('NoPlansFound', 'Create a plan to offer subscriptions.') }}</div>
+                    <q-btn unelevated rounded color="pt-primary1" :label="$t('CreatePlan', 'Create Plan')" icon="add" @click="createPlan()" />
                   </div>
 
                   <div v-else class="q-mt-md">
@@ -376,7 +259,7 @@
                                   class="q-px-sm text-weight-medium"
                                   style="min-width: 80px;"
                                 >
-                                  {{ plan.is_active ? ($t('Active') || 'Active') : ($t('Inactive') || 'Inactive') }}
+                                  {{ plan.is_active ? $t('Active') : $t('Inactive') }}
                                 </q-badge>
                               </div>
                               <div class="col-auto text-right" style="width: 40px;">
@@ -390,7 +273,7 @@
                                   size="sm"
                                   @click.stop="deactivatePlan(plan)"
                                 >
-                                  <q-tooltip>{{ $t('Deactivate') || 'Deactivate' }}</q-tooltip>
+                                  <q-tooltip>{{ $t('Deactivate') }}</q-tooltip>
                                 </q-btn>
                               </div>
                             </div>
@@ -413,15 +296,10 @@
                 <div v-else style="height: 4px;"></div>
 
                 <div class="q-px-md q-pb-md" :class="darkMode ? 'text-grey-2' : 'text-grey-10'">
-                  <div class="row items-center q-mb-md">
-                    <div class="text-h6 q-mr-sm text-bow" :class="getDarkModeClass(darkMode)">{{ $t('Subscriptions') || 'Subscriptions' }}</div>
-                    <q-space/>
-                  </div>
-
                   <div v-if="!fetchingData && subscriptions.length === 0" class="text-center q-mt-xl">
                     <q-icon name="group" size="4em" class="text-grey q-mb-md" />
-                    <div class="text-h6 text-grey q-mb-xs">{{ $t('NoSubscriptions') || 'No Subscriptions' }}</div>
-                    <div class="text-body2 text-grey q-mb-lg">{{ $t('NoSubscriptionsFound') || "Users haven't subscribed yet." }}</div>
+                    <div class="text-h6 text-grey q-mb-xs">{{ $t('NoSubscriptions', 'No Subscriptions') }}</div>
+                    <div class="text-body2 text-grey q-mb-lg">{{ $t('NoSubscriptionsFound', "Users haven't subscribed yet.") }}</div>
                   </div>
 
                   <div v-else class="q-mt-md">
@@ -431,19 +309,19 @@
                           <q-item-section>
                             <div class="row items-center no-wrap full-width">
                               <div class="col ellipsis q-pr-sm">
-                                <div class="text-weight-bold">{{ sub.plan_details?.name || 'Subscription' }}</div>
+                                <div class="text-weight-bold">{{ sub.plan_details?.name || $t('Subscription') }}</div>
                                 <div class="text-caption text-grey text-weight-regular">
-                                  {{ sub.pledge_satoshis ? (sub.pledge_satoshis / 1e8).toFixed(8).replace(/\.?0+$/, '') + ' BCH' : (sub.plan_details?.amount + ' ' + sub.plan_details?.currency) }}
+                                  {{ sub.pledge_satoshis ? satsToBchDisplay(sub.pledge_satoshis) + ' BCH' : (sub.plan_details?.amount + ' ' + sub.plan_details?.currency) }}
                                   &bull;
-                                  <span v-if="sub.period_blocks">{{ sub.period_blocks }} {{ $t('Blocks') || 'blocks' }}</span>
-                                  <span v-else-if="sub.plan_details?.period_days">{{ sub.plan_details.period_days }} {{ $t('Days') || 'days' }}</span>
-                                  <span v-else-if="sub.plan_details?.period_blocks">{{ sub.plan_details.period_blocks }} {{ $t('Blocks') || 'blocks' }}</span>
+                                  <span v-if="sub.period_blocks">{{ sub.period_blocks }} {{ $t('Blocks') }}</span>
+                                  <span v-else-if="sub.plan_details?.period_days">{{ sub.plan_details.period_days }} {{ $t('Days') }}</span>
+                                  <span v-else-if="sub.plan_details?.period_blocks">{{ sub.plan_details.period_blocks }} {{ $t('Blocks') }}</span>
                                 </div>
                                 <div class="text-caption text-grey-6 font-mono q-mt-xs" style="font-size: 0.7rem;">{{ sub.funder_address || sub.subscriber_address }}</div>
                               </div>
                               <div class="col-auto text-center q-px-sm" style="width: 100px;">
                                 <q-badge
-                                  :color="sub.status === 'ACTIVE' ? 'green-4' : (sub.status === 'CANCELLED' ? 'red-4' : (sub.status === 'PENDING' ? 'orange-4' : 'grey-5'))"
+                                  :color="getSubscriptionStatusColor(sub)"
                                   :text-color="darkMode ? 'black' : 'white'"
                                   rounded
                                   class="q-px-sm text-weight-medium"
@@ -463,7 +341,7 @@
                                   size="sm"
                                   @click.stop="cancelSubscription(sub)"
                                 >
-                                  <q-tooltip>{{ $t('Cancel') || 'Cancel' }}</q-tooltip>
+                                  <q-tooltip>{{ $t('Cancel') }}</q-tooltip>
                                 </q-btn>
                                   <!-- Reactivation is not supported -->
                               </div>
@@ -495,7 +373,7 @@
 
                       <div class="q-gutter-y-sm">
                         <div class="row justify-between items-start">
-                          <div class="text-caption text-grey q-mr-md">{{ $t('WebhookURL') }}</div>
+                          <div class="text-caption text-grey q-mr-md">{{ $t('WebhookURL', 'Webhook URL') }}</div>
                           <div class="col text-body2 text-right" style="word-break: break-all;">{{ storeData?.webhook_url || $t('NotConfigured') }}</div>
                         </div>
                         <template v-if="storeData?.webhook_url">
@@ -569,38 +447,6 @@
       </q-page>
     </q-page-container>
 
-    <!-- Invoice Search Dialog -->
-    <q-dialog v-model="showInvoiceSearchDialog" position="top">
-      <q-card class="br-15 pt-card-2" :class="getDarkModeClass(darkMode)" style="width: 400px; max-width: 90vw;">
-        <q-card-section class="row items-center q-pb-none">
-          <div class="text-h6">{{ $t('SearchInvoices') }}</div>
-          <q-space />
-          <q-btn icon="close" flat round dense v-close-popup />
-        </q-card-section>
-
-        <q-card-section>
-          <q-input
-            v-model="tempInvoiceSearchQuery"
-            outlined
-            rounded
-            dense
-            :placeholder="$t('SearchByMemoTxidId')"
-            autofocus
-            @keyup.enter="applyInvoiceSearch"
-          >
-            <template v-slot:append>
-              <q-icon name="search" />
-            </template>
-          </q-input>
-        </q-card-section>
-
-        <q-card-actions align="right" class="q-pt-none">
-          <q-btn flat :label="$t('Clear')" color="grey" @click="clearInvoiceSearch" v-close-popup />
-          <q-btn unelevated rounded :label="$t('Search')" color="pt-primary1" @click="applyInvoiceSearch" v-close-popup />
-        </q-card-actions>
-      </q-card>
-    </q-dialog>
-
   </q-layout>
 </template>
 
@@ -608,23 +454,29 @@
 import { ref, computed, onMounted, onBeforeUnmount, watch } from 'vue'
 import { useRoute } from 'vue-router'
 import { useStore } from 'vuex'
-import { useQuasar, copyToClipboard, openURL } from 'quasar'
+import { useQuasar, copyToClipboard, openURL, debounce } from 'quasar'
 import { useI18n } from 'vue-i18n'
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 import HeaderNav from 'src/components/header-nav'
+import InvoicesToolbar from 'src/components/payment-hub/toolbars/InvoicesToolbar.vue'
+import ApiKeysToolbar from 'src/components/payment-hub/toolbars/ApiKeysToolbar.vue'
+import SubscriptionPlansToolbar from 'src/components/payment-hub/toolbars/SubscriptionPlansToolbar.vue'
+import SubscriptionsToolbar from 'src/components/payment-hub/toolbars/SubscriptionsToolbar.vue'
 import StoreInfoDialog from 'src/components/payment-hub/StoreInfoDialog.vue'
+import CreateInvoiceDialog from 'src/components/payment-hub/CreateInvoiceDialog.vue'
+import InvoiceDetailDialog from 'src/components/payment-hub/InvoiceDetailDialog.vue'
 import ApiKeyFormDialog from 'src/components/payment-hub/ApiKeyFormDialog.vue'
 import PlanFormDialog from 'src/components/payment-hub/PlanFormDialog.vue'
 import PlanDetailDialog from 'src/components/payment-hub/PlanDetailDialog.vue'
 import SubscriptionDetailDialog from 'src/components/payment-hub/SubscriptionDetailDialog.vue'
 import InvoiceList from 'src/components/payment-hub/InvoiceList.vue'
-import { DISPLAY_SUBS_APP, PaymentHub } from 'src/wallet/payment-hub'
-import { loadWallet } from 'src/wallet'
+import { DISPLAY_SUBS_APP } from 'src/wallet/payment-hub'
+import { bus } from 'src/wallet/event-bus'
+import { usePaymentHubCore, useSubscriptionUtils } from 'src/composables/payment-hub/usePaymentHub'
 
-
-import { Contract, SignatureTemplate, ElectrumNetworkProvider, TransactionBuilder } from 'cashscript13'
-import { encodeCashAddress } from '@bitauth/libauth'
-import { getPkhash } from 'src/wallet/payment-hub-cashscript'
+import { SignatureTemplate, TransactionBuilder } from 'cashscript13'
+import { formatKitInput, formatKitOutput, getSubscriptionContractInstance } from 'src/wallet/payment-hub/cashscript-utils'
+import { createCancelSubscriptionTransaction } from 'src/wallet/payment-hub/services'
 
 const $route = useRoute()
 const $store = useStore()
@@ -637,9 +489,10 @@ const storeName = computed(() => $route.query.name)
 
 const displaySubs = ref(DISPLAY_SUBS_APP);
 
+const { wallet, hub, initHub, initWebSocket, closeWebSocket, _compareUUID } = usePaymentHubCore()
+const { satsToBchDisplay, getSubscriptionStatusColor } = useSubscriptionUtils()
+
 // Core state
-const wallet = ref(null)
-const hub = ref(null)
 const storeData = ref(null)
 const apiKeys = ref([])
 const plans = ref([])
@@ -672,23 +525,18 @@ watch(includeSubscriptions, (val) => {
 })
 
 const invoiceSearchQuery = ref('')
-const tempInvoiceSearchQuery = ref('')
-const showInvoiceSearchDialog = ref(false)
-
-function applyInvoiceSearch() {
-  invoiceSearchQuery.value = tempInvoiceSearchQuery.value
-}
 
 function clearInvoiceSearch() {
   invoiceSearchQuery.value = ''
-  tempInvoiceSearchQuery.value = ''
 }
 
 const invoiceStatuses = computed(() => {
   if (includeSubscriptions.value) {
     return ['TOP UP', 'PAID', 'RECLAIMED']
-  } else {
+  } else if (includeSubscriptions.value === false) {
     return ['PENDING', 'PAID', 'EXPIRED', 'CANCELLED']
+  } else {
+    return ['PENDING', 'PAID', 'EXPIRED', 'CANCELLED', 'TOP UP', 'RECLAIMED']
   }
 })
 const mainTabs = ['invoices', 'api_keys', 'plans', 'subscriptions', 'settings']
@@ -715,8 +563,6 @@ function handleGlobalSwipe(details) {
 const searchQuery = ref('')
 const orderBy = ref(localStorage.getItem('paytaca_hub_keys_orderBy') || 'created')
 const orderDir = ref(localStorage.getItem('paytaca_hub_keys_orderDir') || 'desc')
-let searchTimeout = null
-let pollingInterval = null
 
 /**
  * Handles ordering toggles.
@@ -733,17 +579,14 @@ function setOrdering(field) {
   localStorage.setItem('paytaca_hub_keys_orderBy', orderBy.value)
   localStorage.setItem('paytaca_hub_keys_orderDir', orderDir.value)
 
-  refreshPage()
+  queueRefresh(false, 'api-keys')
 }
 
 /**
  * Debounced search handler.
  */
 function onSearch() {
-  if (searchTimeout) clearTimeout(searchTimeout)
-  searchTimeout = setTimeout(() => {
-    refreshPage()
-  }, 500)
+  queueRefresh(false, 'api-keys')
 }
 
 const filteredApiKeys = computed(() => {
@@ -754,84 +597,109 @@ const filteredApiKeys = computed(() => {
   return apiKeys.value
 })
 
+
+// SubscriptionPlans Filter & Search
+const plansSearchQuery = ref('');
+const isActiveFilter = ref(null);
+watch(plansSearchQuery, () => queueRefresh(false, 'plans'))
+watch(isActiveFilter, () => queueRefresh(false, 'plans'))
+
+// Subscriptions Filter & Search
+const subscriptionsSearchQuery = ref('');
+const subscriptionsStatusFilter = ref([]);
+watch(subscriptionsSearchQuery, () => queueRefresh(false, 'subscriptions'))
+watch(subscriptionsStatusFilter, () => queueRefresh(false, 'subscriptions'))
+
 onMounted(() => {
   refreshPage()
-  pollingInterval = setInterval(() => {
-    if (keysPage.value === 1) {
-      refreshPage(undefined, true)
-    }
-  }, 20000)
 })
 
 onBeforeUnmount(() => {
-  if (pollingInterval) clearInterval(pollingInterval)
+  closeWebSocket(webSocketEventHandler)
 })
 
-/**
- * Initializes the Hub interface for this specific store view.
- */
-async function initHub(isBackground = false) {
-  if (!isBackground) {
-    $q.loading.show({
-      message: $t('ConnectingToPaymentHub')
-    })
-  }
-  try {
-    if (!wallet.value) {
-      wallet.value = await loadWallet('BCH', $store.getters['global/getWalletIndex'])
-    }
-    if (!hub.value) {
-      hub.value = new PaymentHub(wallet.value)
-    }
-    return hub.value
-  } finally {
-    if (!isBackground) $q.loading.hide()
-  }
+const webSocketEventHandler = (data) => {
+  if (!data || !data.store_id || !_compareUUID(data.store_id, storeId.value)) return
+
+  if (data?.type === 'store') queueRefresh(true, 'store');
+  if (data?.type === 'invoice') queueRefresh(true, 'invoices');
+  if (data?.type === 'subscription') queueRefresh(true, 'subscriptions');
+  if (data?.type === 'plan') queueRefresh(true, 'plans');
+  if (data?.type === 'api-key') queueRefresh(true, 'api-keys');
+  if (data?.type === 'webhook') queueRefresh(true, 'webhook');
 }
 
 /**
  * Main refresh function.
  */
-async function refreshPage(done, isBackground = false) {
+async function refreshPage(done, isBackground = false, scopes='all') {
   if (!isBackground) {
     fetchingData.value = true
     keysPage.value = 1
   }
   try {
-    const paymentHub = await initHub(isBackground)
+    const paymentHub = await initHub({
+      isBackground,
+      autoRegister: false,
+      loadingMessage: $t('ConnectingToPaymentHub')
+    })
+    initWebSocket(webSocketEventHandler)
+    if (scopes !== 'all' && !Array.isArray(scopes)) scopes = [];
 
     // Fetch full store metadata
-    storeData.value = await paymentHub.getStore(storeId.value)
+    if (scopes === 'all' || scopes.includes('store')) {
+      storeData.value = await paymentHub.getStore(storeId.value)
+    }
 
-    // Construct ordering string
-    const ordering = (orderDir.value === 'desc' ? '-' : '') + orderBy.value
-
-    // Fetch API keys (Page 1)
-    const data = await paymentHub.listApiKeys(storeId.value, {
-      page: 1,
-      ordering: ordering,
-      search: searchQuery.value || undefined
-    })
-    apiKeys.value = data.results || []
-    hasNextKeysPage.value = !!data.next
+    if (scopes === 'all' || scopes.includes('api-keys')) {
+      // Construct ordering string
+      const ordering = (orderDir.value === 'desc' ? '-' : '') + orderBy.value
+  
+      // Fetch API keys (Page 1)
+      const data = await paymentHub.listApiKeys(storeId.value, {
+        page: 1,
+        ordering: ordering,
+        search: searchQuery.value || undefined
+      })
+      apiKeys.value = data.results || []
+      hasNextKeysPage.value = !!data.next
+    }
 
     // Fetch Plans (Page 1)
-    const plansData = await paymentHub.listPlans(storeId.value, { page: 1 })
-    plans.value = plansData.results || []
-    hasNextPlansPage.value = !!plansData.next
+    if (scopes === 'all' || scopes.includes('plans')) {
+      const plansData = await paymentHub.listPlans(storeId.value, {
+        search: plansSearchQuery.value,
+        is_active: typeof isActiveFilter.value === 'boolean' ? isActiveFilter.value : undefined,
+        page: 1,
+      })
+      plans.value = plansData.results || []
+      hasNextPlansPage.value = !!plansData.next
+    }
 
     // Fetch Subscriptions (Page 1)
-    const subsData = await paymentHub.listSubscriptions({ store_id: storeId.value, page: 1 })
-    subscriptions.value = subsData.results || []
-    hasNextSubscriptionsPage.value = !!subsData.next
-
-    // Fetch Webhook Public Key
-    const keyData = await paymentHub.getWebhookPublicKey(storeId.value).catch(() => null)
-    webhookPublicKey.value = keyData?.public_key || ''
+    if (scopes === 'all' || scopes.includes('subscriptions')) {
+      const subsData = await paymentHub.listSubscriptions({
+        store_id: storeId.value,
+        page: 1,
+        search: subscriptionsSearchQuery.value,
+        status: subscriptionsStatusFilter.value?.join?.(','),
+      })
+      subscriptions.value = subsData.results || []
+      subscriptions.value.forEach(sub => bus.emit('payment-hub-subscription-update', sub));
+      hasNextSubscriptionsPage.value = !!subsData.next
+    }
 
     // Refresh invoices list
-    if (invoiceListRef.value && !isBackground) {
-      invoiceListRef.value.refreshList()
+    if (scopes === 'all' || scopes.includes('invoices')) {
+      if (invoiceListRef.value) {
+        invoiceListRef.value.refreshList()
+      }
+    }
+
+    // Fetch Webhook Public Key
+    if (scopes === 'all' || scopes.includes('webhook')) {
+      const keyData = await paymentHub.getWebhookPublicKey(storeId.value).catch(() => null)
+      webhookPublicKey.value = keyData?.public_key || ''
     }
   } catch (error) {
     console.error('Error fetching store details:', error)
@@ -839,6 +707,27 @@ async function refreshPage(done, isBackground = false) {
     if (!isBackground) fetchingData.value = false
     if (typeof done === 'function') done()
   }
+}
+
+const debouncedRefreshPage = debounce((...args) => refreshPage(...args), 1000);
+const queuedRefresh = ref({ scopes: [], isBackground: true });
+function queueRefresh(isBackground, scope = '') {
+  if (scope === 'all') {
+    queuedRefresh.value.scopes = 'all';
+  } else if (queuedRefresh.value.scopes !== 'all') {
+    if (!Array.isArray(queuedRefresh.value.scopes)) queuedRefresh.value.scopes = [];
+    if (!queuedRefresh.value.scopes.includes(scope)) {
+      queuedRefresh.value.scopes.push(scope);
+    }
+  }
+  queuedRefresh.value.isBackground = queuedRefresh.value.isBackground && isBackground;
+
+  const onComplete = () => {
+    queuedRefresh.value.scopes = []
+    queuedRefresh.value.isBackground = true
+  }
+
+  debouncedRefreshPage(onComplete, queuedRefresh.value.isBackground, queuedRefresh.value.scopes);
 }
 
 /**
@@ -903,9 +792,15 @@ async function onLoadMoreSubscriptions(index, done) {
 
   try {
     subscriptionsPage.value++
-    const data = await hub.value.listSubscriptions({ store_id: storeId.value, page: subscriptionsPage.value })
+    const data = await hub.value.listSubscriptions({
+      store_id: storeId.value,
+      page: subscriptionsPage.value,
+      search: subscriptionsSearchQuery.value,
+      status: subscriptionsStatusFilter.value?.join?.(','),
+    })
     if (data.results?.length) {
       subscriptions.value.push(...data.results)
+      data.results.forEach(sub => bus.emit('payment-hub-subscription-update', sub));
     }
     hasNextSubscriptionsPage.value = !!data.next
   } catch (error) {
@@ -982,7 +877,7 @@ function editStore() {
     try {
       $q.loading.show()
       await hub.value.updateStore(storeId.value, data)
-      await refreshPage()
+      queueRefresh(false, 'store')
       $q.notify({ type: 'positive', message: $t('StoreUpdated') })
     } catch (error) {
       $q.notify({ type: 'negative', message: $t('ErrorUpdatingStore') })
@@ -992,20 +887,42 @@ function editStore() {
   })
 }
 
-function copyText(text, label = 'Text') {
-  if (!text) return
-  copyToClipboard(text)
-  $q.notify({
-    message: `${label} copied to clipboard`,
-    color: 'positive',
-    icon: 'check',
-    position: 'bottom',
-    timeout: 2000
+// --- Invoices logic ---
+function createInvoice() {
+  $q.dialog({
+    component: CreateInvoiceDialog,
+    componentProps: {
+      storeData: storeData.value,
+    }
+  }).onOk(async data => {
+    try {
+      $q.loading.show();
+      const createInvoiceData = {
+        store_id: data.storeId,
+        amount: data.amount,
+        currency: data.currency,
+        memo: data.memo,
+        expiry_minutes: data.expiryMinutes,
+        redirect_url: data.redirectUrl,
+      }
+      const newInvoiceData = await hub.value.createInvoice(createInvoiceData);
+      $q.dialog({
+        component: InvoiceDetailDialog,
+        componentProps: {
+          invoiceId: newInvoiceData.invoice_id,
+        }
+      })
+    } catch(error) {
+      console.error(error);
+      $q.notify({ type: 'negative', message: $t('ErrorCreatingInvoice') })
+    } finally {
+      $q.loading.hide();
+    }
   })
 }
 
-// --- API Keys logic ---
 
+// --- API Keys logic ---
 function copyApiKey(key) {
   copyToClipboard(key)
   $q.notify({
@@ -1039,7 +956,7 @@ function createApiKey() {
         class: `br-15 pt-card-2 text-bow ${getDarkModeClass(darkMode.value)}`
       }).onOk(() => {
         copyToClipboard(secret)
-        refreshPage()
+        queueRefresh(false, 'api-keys')
       })
     } catch (error) {
       $q.notify({ type: 'negative', message: $t('ErrorGeneratingKey') })
@@ -1060,7 +977,7 @@ function revokeKey(key) {
     try {
       $q.loading.show()
       await hub.value.revokeApiKey(key.id)
-      await refreshPage()
+      queueRefresh(false, 'api-keys')
     } catch (error) {
       $q.notify({ type: 'negative', message: $t('ErrorRevokingKey') })
     } finally {
@@ -1102,7 +1019,7 @@ function createPlan() {
     try {
       $q.loading.show()
       await hub.value.createPlan(storeId.value, data)
-      await refreshPage()
+      queueRefresh(false, 'plans')
       $q.notify({ type: 'positive', message: $t('PlanCreated') || 'Plan created successfully' })
     } catch (error) {
       $q.notify({ type: 'negative', message: $t('ErrorCreatingPlan') || 'Error creating plan' })
@@ -1115,18 +1032,22 @@ function createPlan() {
 function deactivatePlan(plan) {
   $q.dialog({
     title: $t('DeactivatePlan') || 'Deactivate Plan',
-    message: ($t('DeactivatePlanConfirm') || 'Are you sure you want to deactivate {name}?').replace('{name}', plan.name),
-    ok: { label: $t('Deactivate') || 'Deactivate', color: 'red', unelevated: true, rounded: true },
+    message: $t(
+      'DeactivatePlanConfirm',
+      { name: plan.name },
+      `Are you sure you want to deactivate ${plan.name}?`,
+    ),
+    ok: { label: $t('Deactivate'), color: 'red', unelevated: true, rounded: true },
     cancel: { label: $t('Cancel'), flat: true, color: 'grey' },
     class: `br-15 pt-card-2 text-bow ${getDarkModeClass(darkMode.value)}`
   }).onOk(async () => {
     try {
       $q.loading.show()
       await hub.value.deactivatePlan(plan.id)
-      await refreshPage()
-      $q.notify({ type: 'positive', message: 'Plan deactivated successfully' })
+      queueRefresh(false, 'plans')
+      $q.notify({ type: 'positive', message: $t('PlanDeactivatedSuccessfully') })
     } catch (error) {
-      $q.notify({ type: 'negative', message: $t('ErrorDeactivatingPlan') || 'Error deactivating plan' })
+      $q.notify({ type: 'negative', message: $t('ErrorDeactivatingPlan', 'Error deactivating plan') })
     } finally {
       $q.loading.hide()
     }
@@ -1164,30 +1085,12 @@ async function updateSubscriptionNft(sub, data) {
 
     $q.loading.show({ message: 'Signing update transaction...' })
 
-    const merchantPayload = getPkhash(sub.merchant_address)
-    const funderPayload = getPkhash(sub.funder_address)
-
     const isChipnet = $store.getters['global/isChipnet']
     const bchWallet = isChipnet ? wallet.value.BCH_CHIP : wallet.value.BCH
 
     const artifactObj = await hub.value.getContractArtifact()
-    const provider = new ElectrumNetworkProvider(isChipnet ? 'chipnet' : 'mainnet')
-    const paytacaPayload = getPkhash(kit.paytaca_address)
-    const reversedCategoryHex = sub.category.match(/.{1,2}/g).reverse().join('')
-    const categoryBytes = new Uint8Array(reversedCategoryHex.match(/.{1,2}/g).map(byte => parseInt(byte, 16)))
-
-    const contract = new Contract(artifactObj, [
-      merchantPayload,
-      funderPayload,
-      paytacaPayload,
-      BigInt(sub.max_fee),
-      BigInt(sub.max_pledge || sub.pledge_satoshis),
-      BigInt(sub.min_period || sub.period_blocks),
-      BigInt(sub.max_period || sub.period_blocks),
-      categoryBytes,
-      BigInt(sub.contract_timestamp),
-      BigInt(sub.max_payments || 0)
-    ], { provider })
+    const contract = getSubscriptionContractInstance(sub, artifactObj, isChipnet);
+    const provider = contract.provider;
 
     const addressIndex = sub.merchant_address_index
     if (addressIndex == null) throw new Error('Merchant address index not provided by backend')
@@ -1195,22 +1098,8 @@ async function updateSubscriptionNft(sub, data) {
 
     const privKeyWif = await bchWallet.getPrivateKey(pathStr)
     if (!privKeyWif) throw new Error('Could not derive private key for merchant address')
-
     const sig = new SignatureTemplate(privKeyWif)
-    const toAddress = kit.outputs[0].to
-    const formattedInputs = kit.inputs.map(input => {
-      const formattedInput = {
-        ...input,
-        satoshis: BigInt(input.satoshis)
-      }
-      if (input.token) {
-        formattedInput.token = {
-          ...input.token,
-          amount: BigInt(input.token.amount)
-        }
-      }
-      return formattedInput
-    })
+
     const bchUtxos = await bchWallet.getUtxos()
     const plainUtxos = bchUtxos.filter(u => !u.token)
     
@@ -1230,7 +1119,10 @@ async function updateSubscriptionNft(sub, data) {
     }
 
     const txBuilder = new TransactionBuilder({ provider })
+    const formattedInputs = kit.inputs.map(input => formatKitInput(input));
+    const formattedOutputs = kit.outputs.map(output => formatKitOutput(output));
     txBuilder.addInputs(formattedInputs, contract.unlock.updateNft(BigInt(data.new_pledge), BigInt(data.new_period), sig.getPublicKey(), sig))
+    txBuilder.addOutputs(formattedOutputs)
 
     for (const fUtxo of fundingUtxos) {
       const addressPath = fUtxo.address_path ?? ('0/' + String(fUtxo.wallet_index))
@@ -1243,15 +1135,6 @@ async function updateSubscriptionNft(sub, data) {
         satoshis: BigInt(fUtxo.satoshis ?? fUtxo.amount ?? fUtxo.value ?? 0)
       }, fSig.unlockP2PKH())
     }
-    
-    const outputSatoshis = BigInt(kit.outputs[0].satoshis)
-    const outputToken = kit.outputs[0].token ? {
-      amount: BigInt(kit.outputs[0].token.amount),
-      category: kit.outputs[0].token.category,
-      nft: kit.outputs[0].token.nft
-    } : undefined
-    
-    txBuilder.addOutput({ to: toAddress, amount: outputSatoshis, token: outputToken })
 
     const changeSatoshis = totalFundingSatoshis - estimatedFee
     if (changeSatoshis >= 546n) {
@@ -1263,7 +1146,7 @@ async function updateSubscriptionNft(sub, data) {
     $q.loading.show({ message: 'Submitting update...' })
     await hub.value.submitSubscriptionUpdate(sub.id, rawTx, data)
 
-    await refreshPage()
+    queueRefresh(false, 'subscriptions')
     $q.notify({ type: 'positive', message: $t('SubscriptionUpdated') || 'Subscription updated successfully' })
 
   } catch (error) {
@@ -1276,122 +1159,45 @@ async function updateSubscriptionNft(sub, data) {
 }
 
 async function cancelSubscription(sub) {
-
+  const address = sub.funder_address || sub.subscriber_address;
+  const msg = $t(
+    'CancelSubscriptionConfirm', { address },
+    `Are you sure you want to cancel the subscription for ${address}`,
+  ) 
   $q.dialog({
-    title: $t('CancelSubscription') || 'Cancel Subscription',
-    message: ($t('CancelSubscriptionConfirm') || 'Are you sure you want to cancel the subscription for {address}?').replace('{address}', sub.funder_address || sub.subscriber_address),
-    ok: { label: $t('CancelSubscription') || 'Cancel Subscription', color: 'red', unelevated: true, rounded: true },
+    title: $t('CancelSubscription', 'Cancel Subscription'),
+    message: msg,
+    ok: { label: $t('CancelSubscription', 'Cancel Subscription'), color: 'red', unelevated: true, rounded: true },
     cancel: { label: $t('Cancel'), flat: true, color: 'grey' },
     class: `br-15 pt-card-2 text-bow ${getDarkModeClass(darkMode.value)}`
   }).onOk(async () => {
     try {
-      $q.loading.show({ message: 'Fetching cancellation kit...' })
-      const kit = await hub.value.getSubscriptionCancelKit(sub.id, true)
-
-      $q.loading.show({ message: 'Signing cancellation transaction...' })
-
-      const merchantPayload = getPkhash(sub.merchant_address)
-      const funderPayload = getPkhash(sub.funder_address)
-
-      const isChipnet = $store.getters['global/isChipnet']
-      const bchWallet = isChipnet ? wallet.value.BCH_CHIP : wallet.value.BCH
-
-      // 1. Fetch contract artifact
-      const artifactObj = await hub.value.getContractArtifact()
-      const provider = new ElectrumNetworkProvider(isChipnet ? 'chipnet' : 'mainnet')
-      const paytacaPayload = getPkhash(kit.paytaca_address)
-      const reversedCategoryHex = sub.category.match(/.{1,2}/g).reverse().join('')
-      const categoryBytes = new Uint8Array(reversedCategoryHex.match(/.{1,2}/g).map(byte => parseInt(byte, 16)))
-
-      const contract = new Contract(artifactObj, [
-        merchantPayload,
-        funderPayload,
-        paytacaPayload,
-        BigInt(sub.max_fee),
-        BigInt(sub.max_pledge || sub.pledge_satoshis),
-        BigInt(sub.min_period || sub.period_blocks),
-        BigInt(sub.max_period || sub.period_blocks),
-        categoryBytes,
-        BigInt(sub.contract_timestamp),
-        BigInt(sub.max_payments || 0)
-      ], { provider })
-
-      console.log("Locally Generated Contract Address:", contract.address)
-      if (!kit.inputs || kit.inputs.length === 0) {
-        throw new Error('No funds available to cancel. This subscription may have already been cancelled or drained.')
-      }
-      console.log("Actual Contract Address from Kit:", kit.inputs[0].address)
-
-      // 2. Fetch private key using the exact address index
-      const addressIndex = sub.merchant_address_index
-      if (addressIndex == null) throw new Error('Merchant address index not provided by backend')
-      const pathStr = `0/${addressIndex}`
-
-      const privKeyWif = await bchWallet.getPrivateKey(pathStr)
-      console.log("Merchant Payload Target:", String(merchantPayload))
-      console.log("Derived Path:", pathStr)
-      if (!privKeyWif) throw new Error('Could not derive private key for merchant address')
-
-      // 3. Build & sign transaction
-      const sig = new SignatureTemplate(privKeyWif)
-      const toAddress = encodeCashAddress(
-        isChipnet ? 'bchtest' : 'bitcoincash',
-        'p2pkh',
-        getPkhash(kit.outputs[0].to)
-      )
-      const formattedInputs = kit.inputs.map(input => {
-        const formattedInput = {
-          ...input,
-          satoshis: BigInt(input.satoshis)
-        }
-        if (input.token) {
-          formattedInput.token = {
-            ...input.token,
-            amount: BigInt(input.token.amount)
-          }
-        }
-        return formattedInput
+      $q.loading.show({ message: 'Generating cancel transaction...' })
+      // Returns null if subscription contract doesnt have utxos (determined from the cancellation kit inside)
+      const rawTx = await createCancelSubscriptionTransaction({
+        hub: hub.value,
+        wallet: wallet.value,
+        isChipnet: $store.getters['global/isChipnet'],
+        isMerchant: true,
+        sub: sub,
       })
-      const txBuilder = new TransactionBuilder({ provider })
-      txBuilder.addInputs(formattedInputs, contract.unlock.merchantCancel(sig.getPublicKey(), sig))
-      txBuilder.addOutput({ to: toAddress, amount: BigInt(kit.outputs[0].satoshis) })
-
-      const arrayToHex = (arr) => '0x' + Array.from(arr).map(b => b.toString(16).padStart(2, '0')).join('')
-
-      console.log("=== CASHSCRIPT PLAYGROUND DEBUG ===")
-      console.log("Contract Arguments:")
-      console.log("1. recipient:", arrayToHex(merchantPayload))
-      console.log("2. funder:", arrayToHex(funderPayload))
-      console.log("3. pledge:", sub.pledge_satoshis)
-      console.log("4. period:", sub.period_blocks)
-      console.log("\nFunction Arguments (merchantCancel):")
-      console.log("1. pk: (Derived from privKeyWif in playground)")
-      console.log("2. sig: (Derived from privKeyWif in playground)")
-      console.log("-> privKeyWif:", privKeyWif)
-      console.log("\nTransaction Inputs:")
-      console.log(JSON.stringify(formattedInputs, (key, value) => typeof value === 'bigint' ? value.toString() : value, 2))
-      console.log("\nTransaction Outputs:")
-      console.log(JSON.stringify([{ to: toAddress, satoshis: kit.outputs[0].satoshis }], null, 2))
-      console.log("===================================")
-
-      const rawTx = await txBuilder.build()
 
       // 4. Submit to Payment Hub
       $q.loading.show({ message: 'Submitting cancellation...' })
       await hub.value.submitSubscriptionCancel(sub.id, rawTx, true)
 
-      await refreshPage()
-      $q.notify({ type: 'positive', message: $t('SubscriptionCancelled') || 'Subscription cancelled successfully' })
-
+      queueRefresh(false, 'subscriptions')
+      $q.notify({ type: 'positive', message: $t('SubscriptionCancelled', 'Subscription cancelled successfully') })
     } catch (error) {
       console.error(error)
       const errorMsg = error.response?.data?.error || error.message
-      $q.notify({ type: 'negative', message: ($t('ErrorCancellingSubscription') || 'Error cancelling subscription: ') + errorMsg })
+      $q.notify({ type: 'negative', message: ($t('ErrorCancellingSubscription', 'Error cancelling subscription: ')) + errorMsg })
     } finally {
       $q.loading.hide()
     }
   })
 }
+
 </script>
 
 <style lang="scss" scoped>

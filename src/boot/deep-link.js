@@ -60,7 +60,15 @@ export default boot(({ router, /* store */ }) => {
     } else if (url.host === 'p2p.paytaca.com' && url.pathname.match(/^\/ad\/share\/?$/)) {
       router.push({ name: 'exchange', query: { ad_id: url.searchParams.get('id') } })
     } else if (url.host === 'rewards.paytaca.com' && /\/referral\/?$/.test(url.pathname)) {
-      router.push({ name: 'app-rewards', query: { code: url.searchParams.get('code') } })
+      const code = url.searchParams.get('code')
+      const currentPath = router.currentRoute.value.path
+      const isInWalletCreation = currentPath.startsWith('/accounts/create/step-')
+
+      if (isInWalletCreation) {
+        router.push({ name: 'wallet-create-step-2', query: { referralCode: code } })
+      } else {
+        router.push({ name: 'app-rewards', query: { code } })
+      }
     } else if (
       (url.host === 'paymenthub.paytaca.com' || url.host === 'chipnet.paymenthub.paytaca.com') &&
       url.pathname.match('/plans')
