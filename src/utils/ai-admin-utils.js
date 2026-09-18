@@ -9,7 +9,6 @@ import { binToHex, deriveHdPath, deriveHdPrivateNodeFromSeed, deriveHdPublicNode
 import { mnemonicToSeedSync } from 'bip39'
 import { getMnemonicByHash } from 'src/wallet'
 import { pubkeyToAddress } from 'src/utils/crypto'
-import { resolution } from 'ts-mls/ratchetTree.js'
 
 const OAUTH_TOKEN_KEY = 'paytaca-ai-oauth-token'
 const OAUTH_REFRESH_TOKEN_KEY = 'paytaca-ai-oauth-refresh-token'

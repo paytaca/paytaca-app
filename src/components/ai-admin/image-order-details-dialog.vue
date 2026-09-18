@@ -60,6 +60,11 @@
                     <span class="text-weight-bold" :class="darkMode ? 'text-grey-4' : 'text-grey-7'">Error</span>
                     <span class="text-caption text-negative">{{ order.error }}</span>
                 </div>
+
+                <!-- Generated Image -->
+                <div v-if="localImage" class="q-mt-md text-center">
+                    <img :src="'data:' + localMedia + ';base64,' + localImage" class="order-image" />
+                </div>
             </q-card-section>
         </q-card>
     </q-dialog>

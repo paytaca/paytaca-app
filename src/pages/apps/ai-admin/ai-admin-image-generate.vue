@@ -353,6 +353,7 @@ export default {
             amountUsd: 0,
             showLeaveDialog: false,
             pendingNavigation: null,
+            confettiPlayed: false,
         }
     },
     components: { 
@@ -373,9 +374,7 @@ export default {
             
             return map[theme] || '#42a5f5'
         },
-        canSubmit () {
-            return this.selectedModel && this.prompt && !this.processing && !this.polling
-        },
+
         aspectRatios () {
             return this.selectedModel?.supported_parameters?.aspect_ratio?.values || []
         },
