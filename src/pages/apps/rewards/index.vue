@@ -1043,6 +1043,8 @@ export default {
             liftThreshold: this.eliteData.liftThreshold,
           }
         })
+      } else if (this.eliteData.status === 'active') {
+        this.$router.push({ name: 'app-rewards-elite-program' })
       } else {
         // TODO: Create the Paytaca Elite page and route, then navigate to it here
         this.$q.notify({ type: 'info', message: 'Paytaca Elite Program page coming soon', timeout: 3000 })

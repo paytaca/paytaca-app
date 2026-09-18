@@ -163,13 +163,34 @@ export async function getEliteProgramData () {
   // TODO: Replace mock data with the real engagement-hub endpoint once the
   // Paytaca Elite API is available (e.g. `await getData('elite/${getWalletHash()}/')`)
   return {
-    status: 'locked', // 'locked' | 'active' | 'paused'
+    status: 'active', // 'locked' | 'active' | 'paused'
     bchBalance: 640, // BCH balance value in PHP
     bchThreshold: 1000, // PHP 1,000 in BCH
     liftBalance: 100,
     liftThreshold: 100,
     cashbackLift: 12.5, // total cashback received in LIFT
     eligibleTxCount: 24
+  }
+}
+
+export async function getEliteProgramPageData () {
+  // TODO: Replace mock data with the real engagement-hub endpoint once the
+  // Paytaca Elite API is available (e.g. `await getData('elite/${getWalletHash()}/details/')`)
+  return {
+    status: 'active', // 'active' | 'paused'
+    cashbackLift: 12.5, // total cashback received in LIFT
+    eligibleTxCount: 24,
+    monthlyCashback: 350, // current month cashback in PHP
+    maxCashbackPerMonth: 1000, // PHP 1,000
+    transactions: [
+      { type: 'otc', txId: '1e8f1a5c6b2a4d9f0e7c3b1a5d6f8a9b0c1d2e3f', bchSpent: 0.0012, liftCashback: 1.5, date: '2026-07-10T09:15:00Z' },
+      { type: 'marketplace', txId: '2c9d0b3e4f5a6b7c8d9e0f1a2b3c4d5e6f7a8b9c', bchSpent: 0.0008, liftCashback: 0.9, date: '2026-06-18T14:30:00Z' },
+      { type: 'otc', txId: '3a5b6c7d8e9f0a1b2c3d4e5f6a7b8c9d0e1f2a3b', bchSpent: 0.0005, liftCashback: 0.4, date: '2026-08-28T11:05:00Z' }
+    ],
+    topups: [
+      { asset: 'bch', txId: '4b6c7d8e9f0a1b2c3d4e5f6a7b8c9d0e1f2a3b4c', amount: 0.005, date: '2026-08-02T08:45:00Z' },
+      { asset: 'lift', txId: '5c7d8e9f0a1b2c3d4e5f6a7b8c9d0e1f2a3b4c5d', amount: 50, date: '2026-08-02T08:50:00Z' }
+    ]
   }
 }
 
