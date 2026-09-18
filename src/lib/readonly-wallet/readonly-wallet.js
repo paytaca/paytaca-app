@@ -33,6 +33,7 @@ import {
   encodeTransactionOutput,
   getMinimumFee,
   getDustThreshold,
+  hashTransaction,
   binToBase64,
   CashAddressNetworkPrefix
 } from 'bitauth-libauth-v3'
@@ -861,6 +862,183 @@ export default class ReadOnlyWallet {
     })
 
     return binToBase64(psbt.serialize())
+  }
+
+  // ----- WalletConnect Integration (build-only, no signing) -----
+  /**
+   * Build an UNSIGNED PSBT from a WalletConnect `bch_signTransaction` request.
+   * Unlike `createProposal`, the dApp-specified inputs/outputs are preserved
+   * verbatim instead of re-running coin selection. Nothing is signed or
+   * broadcast from here.
+   *
+   * @param {Object} sessionRequest - WC session request (params.request.params.transaction)
+   * @param {Object} [opts]
+   * @param {string} [opts.accountAddress] - Session account cash address (used to tag wallet-owned inputs/outputs)
+   * @param {string} [opts.accountPath='0/0'] - Relative derivation path ('0/<i>') of the session account
+   * @returns {Promise<{ psbt: Psbt, psbtBase64: string, unsignedTransactionHex: string, unsignedTransactionHash: string }>}
+   */
+  async wcCreateProposal (sessionRequest, opts = {}) {
+    const transaction = sessionRequest?.params?.request?.params?.transaction
+    if (!transaction || !Array.isArray(transaction.inputs) || !Array.isArray(transaction.outputs)) {
+      throw new Error('Invalid WalletConnect transaction request')
+    }
+
+    const network = this.network
+    const accountAddress = opts.accountAddress ||
+      String(sessionRequest?.session?.namespaces?.bch?.accounts?.[0] || '').replace(/^bch:/, '') ||
+      this.getDepositAddress(0, network).address
+    const accountPath = opts.accountPath || '0/0'
+
+    const toBytes = (value) => {
+      if (!value) return undefined
+      if (value instanceof Uint8Array) return value
+      return hexToBin(typeof value === 'string' ? value : binToHex(value))
+    }
+    const sameBytecode = (a, b) => {
+      const aBin = toBytes(a)
+      const bBin = toBytes(b)
+      if (!aBin || !bBin || aBin.length !== bBin.length) return false
+      return aBin.every((byte, i) => byte === bBin[i])
+    }
+
+    const accountLockingBytecode = cashAddressToLockingBytecode(accountAddress).bytecode
+
+    const prevTxHex = await Promise.all(
+      transaction.inputs.map(async (input) => {
+        try {
+          const txidHex = binToHex(toBytes(input.outpointTransactionHash))
+          return binToHex(await this.getRawTransaction(txidHex))
+        } catch (error) {
+          console.warn('[ReadOnlyWallet] Could not fetch prev tx hex for input:', error)
+          return ''
+        }
+      })
+    )
+
+    const inputObjects = transaction.inputs.map((input, i) => ({
+      outpointIndex: Number(input.outpointIndex),
+      outpointTransactionHash: toBytes(input.outpointTransactionHash),
+      sequenceNumber: input.sequenceNumber ?? DEFAULT_SEQUENCE,
+      unlockingBytecode: [],
+      _prevTxHex: prevTxHex[i],
+      _owned: sameBytecode(input.sourceOutput?.lockingBytecode, accountLockingBytecode) ? accountPath : ''
+    }))
+
+    const outputs = transaction.outputs.map((output) => {
+      const lock = toBytes(output.lockingBytecode)
+      const mapped = {
+        lockingBytecode: lock,
+        valueSatoshis: BigInt(output.valueSatoshis ?? 0),
+        _owned: sameBytecode(lock, accountLockingBytecode) ? accountPath : ''
+      }
+      if (output.token && output.token.category) {
+        mapped.token = {
+          amount: BigInt(output.token.amount ?? 0),
+          category: toBytes(output.token.category)
+        }
+        if (output.token.nft) {
+          mapped.token.nft = {
+            capability: output.token.nft.capability,
+            commitment: toBytes(output.token.nft.commitment)
+          }
+        }
+      }
+      return mapped
+    })
+
+    const transactionVersion = Number(transaction.version ?? 2)
+    const transactionLocktime = Number(transaction.locktime ?? 0)
+
+    const unsignedTransactionHex = binToHex(
+      encodeTransactionCommon({
+        version: transactionVersion,
+        locktime: transactionLocktime,
+        inputs: inputObjects,
+        outputs
+      })
+    )
+
+    const rawTxid = hashTransaction(hexToBin(unsignedTransactionHex))
+    const unsignedTransactionHash = String(typeof rawTxid === 'string' ? rawTxid : binToHex(rawTxid)).toLowerCase()
+
+    const origin = sessionRequest?.session?.peer?.metadata?.url || ''
+    const purpose = sessionRequest?.params?.request?.params?.userPrompt || ''
+
+    const psbt = new Psbt()
+    psbt.globalMap.setUnsignedTx(unsignedTransactionHex)
+    psbt.globalMap.setTxVersion(transactionVersion)
+    psbt.globalMap.setFallbackLocktime(transactionLocktime)
+    psbt.globalMap.setInputCount(inputObjects.length)
+    psbt.globalMap.setOutputCount(outputs.length)
+    psbt.globalMap.setPsbtVersion(145)
+
+    if (origin) {
+      psbt.globalMap.addProprietaryField(
+        ProprietaryFields.paytaca.identifier,
+        utf8ToBin(origin),
+        ProprietaryFields.paytaca.subKey.origin.subType,
+        ProprietaryFields.paytaca.subKey.origin.subKeyData
+      )
+    }
+    if (purpose) {
+      psbt.globalMap.addProprietaryField(
+        ProprietaryFields.paytaca.identifier,
+        utf8ToBin(purpose),
+        ProprietaryFields.paytaca.subKey.purpose.subType,
+        ProprietaryFields.paytaca.subKey.purpose.subKeyData
+      )
+    }
+
+    inputObjects.forEach((input) => {
+      const psbtInput = new PsbtInput()
+      psbtInput.setOutpointTransaction(input._prevTxHex)
+      psbtInput.setOutpointTransactionHash(input.outpointTransactionHash)
+      psbtInput.setOutpointIndex(input.outpointIndex)
+      psbtInput.setSequenceNumber(input.sequenceNumber)
+      if (input._owned) {
+        const { pubkey, masterFingerprint, path } = this._bip32For(input._owned)
+        psbtInput.addBip32Derivation(pubkey, masterFingerprint, path)
+      }
+      psbt.inputMap.add(psbtInput)
+    })
+
+    outputs.forEach((output) => {
+      const psbtOutput = new PsbtOutput()
+      psbtOutput.setAmount(output.valueSatoshis)
+      psbtOutput.setOutScript(binToHex(output.lockingBytecode))
+      if (output.token) {
+        psbtOutput.setToken({
+          amount: output.token.amount,
+          category: binToHex(output.token.category),
+          nft: output.token.nft
+            ? {
+                capability: output.token.nft.capability,
+                commitment: binToHex(output.token.nft.commitment)
+              }
+            : undefined
+        })
+      }
+      if (output._owned) {
+        const { pubkey, masterFingerprint, path } = this._bip32For(output._owned)
+        psbtOutput.addBip32Derivation(pubkey, masterFingerprint, path)
+      }
+      psbt.outputMap.add(psbtOutput)
+    })
+
+    return {
+      psbt,
+      psbtBase64: binToBase64(psbt.serialize()),
+      unsignedTransactionHex,
+      unsignedTransactionHash
+    }
+  }
+
+  /**
+   * Default address exposed to WalletConnect sessions.
+   * @returns {string}
+   */
+  wcGetDefaultAddress () {
+    return this.getDepositAddress(0, this.network).address
   }
 
 
