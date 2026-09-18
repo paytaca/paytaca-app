@@ -9,7 +9,7 @@
       <!-- Hero Section: Cashback Summary -->
       <q-card
         class="q-mb-lg hero-card"
-        :class="getDarkModeClass(darkMode)"
+        :class="[getDarkModeClass(darkMode), { loaded: heroLoaded }]"
         flat
       >
         <q-card-section class="q-py-md">
@@ -229,6 +229,9 @@ export default {
     formattedMonthlyCashback () {
       const amount = this.eliteData?.monthlyCashback ?? 0
       return `₱ ${amount.toLocaleString()}`
+    },
+    heroLoaded () {
+      return !this.isLoading && !this.pointsError && !!this.eliteData
     }
   },
 
@@ -309,7 +312,7 @@ export default {
     border: 1px solid rgba(212, 166, 67, 0.45);
   }
 
-  &::after {
+  &.loaded::after {
     content: '';
     position: absolute;
     top: 0;
@@ -322,7 +325,7 @@ export default {
     pointer-events: none;
   }
 
-  &.dark::after {
+  &.loaded.dark::after {
     background: linear-gradient(90deg, transparent, rgba(212, 166, 67, 0.08), rgba(212, 166, 67, 0.14), transparent);
   }
 }
