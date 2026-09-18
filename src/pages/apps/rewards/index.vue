@@ -1086,6 +1086,11 @@ export default {
 /* Elite card gold accent */
 .elite-card {
   border-left: 3px solid #d4a643;
+  background: linear-gradient(135deg, rgba(212, 166, 67, 0.16) 0%, rgba(212, 166, 67, 0.04) 100%) !important;
+
+  &.dark {
+    background: linear-gradient(135deg, rgba(212, 166, 67, 0.28) 0%, rgba(212, 166, 67, 0.06) 100%) !important;
+  }
 }
 
 /* Elite status pills */
