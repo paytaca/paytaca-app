@@ -74,9 +74,7 @@
             </div>
             <q-linear-progress
               :value="monthlyPct"
-              color="#d4a643"
-              track-color="#b08a2e"
-              class="rounded-borders"
+              class="rounded-borders elite-progress"
               size="8px"
             />
           </template>
@@ -338,6 +336,15 @@ export default {
 /* Hero icon always gold, overriding any theme color applied to q-icon */
 .hero-card :deep(.elite-icon) {
   color: #d4a643 !important;
+}
+
+/* Gold progress bar; Quasar color props only accept theme names, so style directly */
+.elite-progress {
+  color: #d4a643;
+
+  :deep(.q-linear-progress__track) {
+    background: #b08a2e;
+  }
 }
 
 .hero-icon {
