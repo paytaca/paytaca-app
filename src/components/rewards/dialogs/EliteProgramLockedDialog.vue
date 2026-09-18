@@ -49,7 +49,7 @@
               <q-linear-progress
                 :value="eliteBchPct"
                 :color="eliteBchPct >= 1 ? 'positive' : 'primary'"
-                :track-color="darkMode ? 'grey-9' : 'grey-4'"
+                track-color="secondary"
                 class="rounded-borders"
                 size="6px"
               />
@@ -66,7 +66,7 @@
               <q-linear-progress
                 :value="eliteLiftPct"
                 :color="eliteLiftPct >= 1 ? 'positive' : 'primary'"
-                :track-color="darkMode ? 'grey-9' : 'grey-4'"
+                track-color="secondary"
                 class="rounded-borders"
                 size="6px"
               />
