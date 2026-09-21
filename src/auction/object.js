@@ -1,9 +1,14 @@
 import { date } from 'quasar'
 
-const colors = {
+const lotColors = {
   'Sold': 'red',
+  'Unsold': 'red',
+  'Active': 'green',
+  'Inactive': 'gray'
+}
+
+const auctionColors = {
   'Closed': 'red',
-  'Active': 'blue',
   'Upcoming': 'orange',
   'Open': 'green'
 }
@@ -65,21 +70,19 @@ export class LotsList {
     this.is_sold = !!data.is_sold
     this.date_sold = data.date_sold || null
     this.category = data.category || (data.category ? data.category.id : null)
-    this.category_name = data.category === 1 ? 'Physical' : 'Digital'
+    this.category_name = data.category
     this.auction_type = data.auction_type || null
     this.auction = data.auction || (data.auction ? data.auction.id : null)
     this.start_date = data.start_date || null
     this.end_date = data.end_date || null
-    this.status_label = 'Upcoming'
-    this.status_color = 'orange'
+    this.status_label = data.status || 'Upcoming'
+    this.status_color = lotColors[this.status_label] || 'orange'
     
     this.images = Array.isArray(data.images) 
       ? data.images.map(img => typeof img === 'object' ? img.image : img) 
       : []
     this.image = this.images[0] || null
     this.bids = this.bids || []
-
-    this.refreshStatus()
   }
 
   // Returns the drop interval in minutes, parsed from the HH:MM:SS time_interval string
@@ -101,17 +104,7 @@ export class LotsList {
   }
 
   refreshStatus() {
-    const now = new Date().getTime()
-    const start = new Date(this.start_date.replace(' ', 'T')).getTime()
-    const end = new Date(this.end_date.replace(' ', 'T')).getTime()
-
-    this.status_label = (this.is_sold) ? 'Sold' 
-    : (!this.start_date || !this.end_date) ? 'Active' 
-    : (now < start) ? 'Upcoming' 
-    : (now >= start && now <= end) ? 'Open'
-    : 'Closed' 
-    
-    this.status_color = colors[this.status_label]
+    this.status_color = lotColors[this.status_label]
   }
 
 }
@@ -159,20 +152,21 @@ export class AuctionList {
     this.creation_date = data.creation_date || null
     this.status = data.status || null
     
-    this.type = Number(data.type) === 1 ? "English" : "Dutch"
+    this.type = data.type
     this.user = data.user || ""
     this.username = data.username || ""
-    
+
+    this.status_label = data.status || 'Upcoming'
+    this.status_color = auctionColors[this.status_label] || 'orange'
+
     this.lots = Array.isArray(data.lots)
       ? data.lots.map(lotObj => LotsList.parse(lotObj))
       : []
   }
 
-  getStatus() {
-    if (!this.start_date || !this.end_date) return { label: 'Closed', color: 'red' }
-    if (this.status === 1) return { label: 'Upcoming', color: 'orange' }
-    if (this.status === 2) return { label: 'Open', color: 'green' }
-    return { label: 'Closed', color: 'red' }
+  refreshStatus() {   
+    console.log(this.status_label) 
+    this.status_color = auctionColors[this.status_label]
   }
   
   getEllipsisInMiddleAddress() {
