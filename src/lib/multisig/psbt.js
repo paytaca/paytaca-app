@@ -735,6 +735,10 @@ export class PsbtInput {
     return this
   }
 
+  getSighashType(){
+    return this.keypairs[PSBT_IN_SIGHASH_TYPE]?.value?.value
+  }
+
   /**
    * @param {string|Uint8Array} redeemScript
    */
@@ -780,20 +784,20 @@ export class PsbtInput {
   getBip32Derivation(){
     if (!this.keypairs[PSBT_IN_BIP32_DERIVATION]) return {}
     const bip32Derivation = {}
-    if (this.keypairs[PSBT_IN_BIP32_DERIVATION] instanceof Array) {
-      for(const keypair of this.keypairs[PSBT_IN_BIP32_DERIVATION]) {
-        
-        const bip32DerKeyPair = Bip32DerivationKeyPair.fromKeyPair(keypair)
-        const publicKey = bip32DerKeyPair.key.keyData        
-        const masterFingerprint = bip32DerKeyPair.getMasterFingerprint()
-        const derivationPath = bip32DerKeyPair.getDerivationPath()
-        bip32Derivation[binToHex(publicKey)] = {
-          path: bip32DecodeDerivationPath(derivationPath),
-          masterFingerprint: binToHex(masterFingerprint)
-        }
+    const derivationKeyPairs = this.keypairs[PSBT_IN_BIP32_DERIVATION] instanceof Array
+      ? this.keypairs[PSBT_IN_BIP32_DERIVATION]
+      : [this.keypairs[PSBT_IN_BIP32_DERIVATION]]
+    for (const keypair of derivationKeyPairs) {
+      const bip32DerKeyPair = Bip32DerivationKeyPair.fromKeyPair(keypair)
+      const publicKey = bip32DerKeyPair.key.keyData
+      const masterFingerprint = bip32DerKeyPair.getMasterFingerprint()
+      const derivationPath = bip32DerKeyPair.getDerivationPath()
+      bip32Derivation[binToHex(publicKey)] = {
+        path: bip32DecodeDerivationPath(derivationPath),
+        masterFingerprint: binToHex(masterFingerprint)
       }
-      return bip32Derivation
     }
+    return bip32Derivation
   }
 
   /**
@@ -1041,19 +1045,20 @@ export class PsbtOutput {
   getBip32Derivation(){
     if (!this.keypairs[PSBT_OUT_BIP32_DERIVATION]) return {}
     const bip32Derivation = {}
-    if (this.keypairs[PSBT_OUT_BIP32_DERIVATION] instanceof Array) {
-      for(const keypair of this.keypairs[PSBT_OUT_BIP32_DERIVATION]) {
-        const bip32DerKeyPair = Bip32DerivationKeyPair.fromKeyPair(keypair)
-        const publicKey = bip32DerKeyPair.key.keyData        
-        const masterFingerprint = bip32DerKeyPair.getMasterFingerprint()
-        const derivationPath = bip32DerKeyPair.getDerivationPath()
-        bip32Derivation[binToHex(publicKey)] = {
-          path: bip32DecodeDerivationPath(derivationPath),
-          masterFingerprint: binToHex(masterFingerprint)
-        }
+    const derivationKeyPairs = this.keypairs[PSBT_OUT_BIP32_DERIVATION] instanceof Array
+      ? this.keypairs[PSBT_OUT_BIP32_DERIVATION]
+      : [this.keypairs[PSBT_OUT_BIP32_DERIVATION]]
+    for (const keypair of derivationKeyPairs) {
+      const bip32DerKeyPair = Bip32DerivationKeyPair.fromKeyPair(keypair)
+      const publicKey = bip32DerKeyPair.key.keyData
+      const masterFingerprint = bip32DerKeyPair.getMasterFingerprint()
+      const derivationPath = bip32DerKeyPair.getDerivationPath()
+      bip32Derivation[binToHex(publicKey)] = {
+        path: bip32DecodeDerivationPath(derivationPath),
+        masterFingerprint: binToHex(masterFingerprint)
       }
-      return bip32Derivation
     }
+    return bip32Derivation
   }
 
   /**
@@ -1387,7 +1392,6 @@ export class Psbt {
   deserialize(serialized){
 
     const bin = isBase64(serialized) ? base64ToBin(serialized) : serialized
-
     const readMagicBytes = readBytes(5)
 
     const readMagicBytesResult = readMagicBytes({ bin, index: 0 })
@@ -1555,11 +1559,9 @@ export class Psbt {
    * @param {Object} decodeResult Mutable object, recipient of decoded values
    */
   decode (base64, decodeResult) {
-
     this.deserialize(base64ToBin(base64))
     decodeResult.version = this.globalMap.getTxVersion()
     decodeResult.locktime = this.globalMap.getFallbackLocktime()
-    
     const xpubs = this.globalMap.getXPubs()
     
     xpubs?.forEach(xpub => {
