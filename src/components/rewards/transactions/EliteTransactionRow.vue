@@ -56,11 +56,7 @@ export default {
 
 .elite-row-bch {
   font-size: 10.5px;
-  color: #6b6b7b;
+  font-weight: 800;
   margin-top: 2px;
-}
-
-.dark .elite-row-bch {
-  color: #9a97ad;
 }
 </style>

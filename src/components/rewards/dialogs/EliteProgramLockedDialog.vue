@@ -39,10 +39,10 @@
             </div>
             <div class="q-mb-sm">
               <div class="row justify-between items-center q-mb-xs">
-                <span class="text-caption" :class="darkMode ? 'text-grey-5' : 'text-grey-7'">
+                <span class="text-caption">
                   <template v-if="eliteBchPct >= 1"><span class="text-positive">✓&nbsp;</span></template>BCH balance
                 </span>
-                <span class="text-caption text-weight-medium" :class="darkMode ? 'text-grey-5' : 'text-grey-8'">
+                <span class="text-caption text-weight-medium">
                   {{ formattedEliteBch }} / ₱ 1,000
                 </span>
               </div>
@@ -56,10 +56,10 @@
             </div>
             <div>
               <div class="row justify-between items-center q-mb-xs">
-                <span class="text-caption" :class="darkMode ? 'text-grey-5' : 'text-grey-7'">
+                <span class="text-caption">
                   <template v-if="eliteLiftPct >= 1"><span class="text-positive">✓&nbsp;</span></template>LIFT balance
                 </span>
-                <span class="text-caption text-weight-medium" :class="darkMode ? 'text-grey-5' : 'text-grey-8'">
+                <span class="text-caption text-weight-medium">
                   {{ formattedEliteLift }} / 100 LIFT
                 </span>
               </div>

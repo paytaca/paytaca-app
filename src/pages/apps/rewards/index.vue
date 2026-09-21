@@ -342,7 +342,7 @@
                 <q-skeleton type="circle" size="40px" />
               </div>
             </div>
-            <div class="text-caption q-mb-md q-mt-sm" :class="darkMode ? 'text-grey-5' : 'text-grey-7'">
+            <div class="text-caption q-mb-md q-mt-sm">
               Checking elite eligibility…
             </div>
             <q-skeleton :dark="darkMode" type="text" height="12px" class="q-mb-sm" style="width: 80%;" />
@@ -377,18 +377,18 @@
                 />
               </div>
             </div>
-            <div class="text-caption q-my-sm" :class="darkMode ? 'text-grey-5' : 'text-grey-7'">
+            <div class="text-caption q-my-sm">
               Get LIFT cashbacks on merchant OTC and marketplace purchases once you unlock the program.
             </div>
-            <div class="text-caption q-mb-sm" :class="darkMode ? 'text-grey-5' : 'text-grey-7'">
+            <div class="text-caption q-mb-sm">
               To unlock, your wallet needs:
             </div>
             <div class="q-mb-sm">
               <div class="row justify-between items-center q-mb-xs">
-                <span class="text-caption" :class="darkMode ? 'text-grey-5' : 'text-grey-7'">
+                <span class="text-caption">
                   <template v-if="eliteBchPct >= 1"><span class="text-positive">✓&nbsp;</span></template>BCH balance
                 </span>
-                <span class="text-caption text-weight-medium" :class="darkMode ? 'text-grey-5' : 'text-grey-8'">{{ formattedEliteBch }} / ₱ 1,000</span>
+                <span class="text-caption text-weight-medium">{{ formattedEliteBch }} / ₱ 1,000</span>
               </div>
               <q-linear-progress
                 :value="eliteBchPct"
@@ -400,10 +400,10 @@
             </div>
             <div>
               <div class="row justify-between items-center q-mb-xs">
-                <span class="text-caption" :class="darkMode ? 'text-grey-5' : 'text-grey-7'">
+                <span class="text-caption">
                   <template v-if="eliteLiftPct >= 1"><span class="text-positive">✓&nbsp;</span></template>LIFT balance
                 </span>
-                <span class="text-caption text-weight-medium" :class="darkMode ? 'text-grey-5' : 'text-grey-8'">{{ formattedEliteLift }} / 100 LIFT</span>
+                <span class="text-caption text-weight-medium">{{ formattedEliteLift }} / 100 LIFT</span>
               </div>
               <q-linear-progress
                 :value="eliteLiftPct"
@@ -442,17 +442,17 @@
                 />
               </div>
             </div>
-            <div class="text-caption q-mb-md q-mt-sm" :class="darkMode ? 'text-grey-5' : 'text-grey-7'">
+            <div class="text-caption q-mb-md q-mt-sm">
               You're earning LIFT cashbacks on every eligible OTC and marketplace purchase.
             </div>
             <div class="row">
               <div class="col elite-stat-box q-mx-xs br-10">
                 <div class="elite-stat-value">{{ formattedEliteCashback }} LIFT</div>
-                <div class="text-caption" :class="darkMode ? 'text-grey-5' : 'text-grey-7'">Total cashback received</div>
+                <div class="text-caption">Total cashback received</div>
               </div>
               <div class="col elite-stat-box q-mx-xs br-10">
                 <div class="elite-stat-value">{{ eliteData.eligibleTxCount }}</div>
-                <div class="text-caption" :class="darkMode ? 'text-grey-5' : 'text-grey-7'">Eligible transactions</div>
+                <div class="text-caption">Eligible transactions</div>
               </div>
             </div>
           </div>
@@ -484,18 +484,18 @@
                 />
               </div>
             </div>
-            <div class="text-caption q-mb-md q-mt-sm" :class="darkMode ? 'text-red-5' : 'text-negative'">
+            <div class="text-caption q-mb-md q-mt-sm">
               Paused. Your wallet balances fell below the threshold. Restore them to resume earning cashbacks.
             </div>
-            <div class="text-caption q-mb-sm" :class="darkMode ? 'text-grey-5' : 'text-grey-7'">
+            <div class="text-caption q-mb-sm">
               Current vs. requirement:
             </div>
             <div class="q-mb-sm">
               <div class="row justify-between items-center q-mb-xs">
-                <span class="text-caption" :class="darkMode ? 'text-grey-5' : 'text-grey-7'">
+                <span class="text-caption">
                   <template v-if="eliteBchPct >= 1"><span class="text-positive">✓&nbsp;</span></template>BCH balance
                 </span>
-                <span class="text-caption text-weight-medium" :class="darkMode ? 'text-grey-5' : 'text-grey-8'">{{ formattedEliteBch }} / ₱ 1,000</span>
+                <span class="text-caption text-weight-medium">{{ formattedEliteBch }} / ₱ 1,000</span>
               </div>
               <q-linear-progress
                 :value="eliteBchPct"
@@ -507,10 +507,10 @@
             </div>
             <div>
               <div class="row justify-between items-center q-mb-xs">
-                <span class="text-caption" :class="darkMode ? 'text-grey-5' : 'text-grey-7'">
+                <span class="text-caption">
                   <template v-if="eliteLiftPct >= 1"><span class="text-positive">✓&nbsp;</span></template>LIFT balance
                 </span>
-                <span class="text-caption text-weight-medium" :class="darkMode ? 'text-grey-5' : 'text-grey-8'">{{ formattedEliteLift }} / 100 LIFT</span>
+                <span class="text-caption text-weight-medium">{{ formattedEliteLift }} / 100 LIFT</span>
               </div>
               <q-linear-progress
                 :value="eliteLiftPct"
