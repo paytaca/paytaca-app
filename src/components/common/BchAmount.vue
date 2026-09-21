@@ -42,8 +42,4 @@ export default {
 .bch-amount .trailing-zeros {
   opacity: 0.4;
 }
-
-.bch-amount .symbol {
-  font-weight: normal;
-}
 </style>
