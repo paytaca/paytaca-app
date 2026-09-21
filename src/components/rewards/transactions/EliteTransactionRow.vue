@@ -1,7 +1,7 @@
 <template>
   <div class="elite-row">
     <div class="elite-row-icon">
-      <q-icon :name="item.type === 'otc' ? 'store' : 'storefront'" />
+      <q-icon :name="item.type === 'otc' ? 'store' : 'img:marketplace.svg'" />
     </div>
     <div class="elite-row-main">
       <div class="elite-row-title">

@@ -1,7 +1,7 @@
 <template>
   <div class="elite-row">
     <div class="elite-row-icon">
-      <q-icon :name="item.asset === 'bch' ? 'currency_bitcoin' : 'workspace_premium'" />
+      <q-icon :name="item.asset === 'bch' ? 'img:bch-logo.png' : 'img:lift-token.png'" />
     </div>
     <div class="elite-row-main">
       <div class="elite-row-title">
