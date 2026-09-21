@@ -29,6 +29,7 @@
       :custom-keyboard-state="keyboardState"
       v-on:addKey="setAmount"
       v-on:makeKeyAction="makeKeyAction"
+      @backPressed="keyboardState = ''"
     />
   </teleport>
 </template>
