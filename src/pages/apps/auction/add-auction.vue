@@ -352,13 +352,13 @@ const handleCreateAuction = async () => {
     const auctionFormData = new FormData()
     
     auctionFormData.append('title', auctionForm.value.title)
-    auctionFormData.append('type', auctionForm.value.type === 'English' ? 1 : 2)
-    auctionFormData.append('start_date', auctionForm.value.start_date ? new Date(auctionForm.value.start_date).toISOString() : '')
-    auctionFormData.append('end_date', auctionForm.value.end_date ? new Date(auctionForm.value.end_date).toISOString() : '')
+    auctionFormData.append('user', Store.getters['global/getWallet']('bch')?.walletHash)
+    auctionFormData.append('type', auctionForm.value.type)
     auctionFormData.append('description', auctionForm.value.description)
     auctionFormData.append('is_fiat', auctionForm.value.isFiatUsed)
-    auctionFormData.append('user', Store.getters['global/getWallet']('bch')?.walletHash)
     auctionFormData.append('fiat_name', 'PHP')
+    auctionFormData.append('start_date', auctionForm.value.start_date ? new Date(auctionForm.value.start_date).toISOString() : '')
+    auctionFormData.append('end_date', auctionForm.value.end_date ? new Date(auctionForm.value.end_date).toISOString() : '')
     
     if (auctionForm.value.image) {
       auctionFormData.append('image', auctionForm.value.image)
@@ -380,10 +380,10 @@ const handleCreateAuction = async () => {
       })
 
       const lotFormData = new FormData()
-      lotFormData.append('auction', parentAuctionId)
       lotFormData.append('title', lot.title)
+      lotFormData.append('auction', parentAuctionId)
+      lotFormData.append('category', lot.type)
       lotFormData.append('description', lot.description || '')
-      lotFormData.append('category', lot.type === 'Physical' ? 1 : 2)
       lotFormData.append('estimated_amount_bch', lot.estimated_amount_bch || 0)
       lotFormData.append('estimated_amount_fiat', lot.estimated_amount_fiat || 0)
       lotFormData.append('starting_price_bch', lot.starting_price_bch || 0)
