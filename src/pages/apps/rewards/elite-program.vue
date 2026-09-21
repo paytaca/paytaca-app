@@ -93,72 +93,63 @@
       <template v-else>
         <!-- Eligible Transactions Section -->
         <div class="section-head q-mb-sm">
-          <div class="section-icon">
-            <q-icon name="storefront" />
+          <div class="row items-center">
+            <div class="section-icon">
+              <q-icon name="storefront" />
+            </div>
+            <span class="section-title">Eligible Transactions</span>
           </div>
-          <span class="section-title">Eligible Transactions</span>
+          <q-btn
+            v-if="!isLoading"
+            flat
+            color="primary"
+            size="sm"
+            icon-right="chevron_right"
+            label="View All"
+            @click="$router.push('/apps/rewards/elite-history/transactions')"
+          />
         </div>
         <transaction-list
-          :items="transactions"
+          :items="previewTransactions"
           :loading="isLoading"
-          :loading-more="loadingMore"
-          :has-more="hasMoreTransactions"
           :dark-mode="darkMode"
           :include-separator="false"
           :empty-state="txEmptyState"
           @refresh="refreshData"
-          @load-more="loadMoreTransactions"
         >
           <template #item="{ item }">
-            <div class="elite-row">
-              <div class="elite-row-icon">
-                <q-icon :name="item.type === 'otc' ? 'store' : 'storefront'" />
-              </div>
-              <div class="elite-row-main">
-                <div class="elite-row-title">
-                  {{ item.type === 'otc' ? 'OTC' : 'Marketplace' }}
-                  <span class="elite-row-tx">{{ formatTxDisplay(item.txId) }}</span>
-                </div>
-                <div class="elite-row-sub">{{ formatDateLocaleRelative(item.date, false) }}</div>
-              </div>
-              <div class="elite-row-side">
-                <div class="elite-row-amt">+{{ formatLift(item.liftCashback) }} LIFT</div>
-                <div class="elite-row-bch">{{ formatBch(item.bchSpent) }} BCH spent</div>
-              </div>
-            </div>
+            <elite-transaction-row :item="item" />
           </template>
         </transaction-list>
 
         <!-- Top-ups Section -->
         <div class="section-head q-mb-sm q-mt-lg">
-          <div class="section-icon">
-            <q-icon name="arrow_upward" />
+          <div class="row items-center">
+            <div class="section-icon">
+              <q-icon name="arrow_upward" />
+            </div>
+            <span class="section-title">Top-ups</span>
           </div>
-          <span class="section-title">Top-ups</span>
+          <q-btn
+            v-if="!isLoading"
+            flat
+            color="primary"
+            size="sm"
+            icon-right="chevron_right"
+            label="View All"
+            @click="$router.push('/apps/rewards/elite-history/topups')"
+          />
         </div>
         <transaction-list
-          :items="topups"
+          :items="previewTopups"
           :loading="isLoading"
           :dark-mode="darkMode"
           :include-separator="false"
           :empty-state="topupEmptyState"
+          @refresh="refreshData"
         >
           <template #item="{ item }">
-            <div class="elite-row">
-              <div class="elite-row-icon">
-                <q-icon :name="item.asset === 'bch' ? 'currency_bitcoin' : 'workspace_premium'" />
-              </div>
-              <div class="elite-row-main">
-                <div class="elite-row-title">
-                  {{ item.asset === 'bch' ? 'BCH' : 'LIFT' }}
-                  <span class="elite-row-tx">{{ formatTxDisplay(item.txId) }}</span>
-                </div>
-                <div class="elite-row-sub">{{ formatDateLocaleRelative(item.date, false) }}</div>
-              </div>
-              <div class="elite-row-side">
-                <div class="elite-row-amt">+{{ item.asset === 'bch' ? formatBch(item.amount) : formatLift(item.amount) }} {{ item.asset === 'bch' ? 'BCH' : 'LIFT' }}</div>
-              </div>
-            </div>
+            <elite-topup-row :item="item" />
           </template>
         </transaction-list>
       </template>
@@ -168,7 +159,6 @@
 
 <script>
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
-import { formatDateLocaleRelative } from 'src/utils/time'
 import { formatWithLocale } from 'src/utils/denomination-utils'
 import { LIFT_TOKEN_DECIMALS } from 'src/utils/subscription-utils'
 import { getEliteProgramPageData } from 'src/utils/engagementhub-utils/rewards'
@@ -176,6 +166,8 @@ import { getEliteProgramPageData } from 'src/utils/engagementhub-utils/rewards'
 import HeaderNav from 'src/components/header-nav.vue'
 import ErrorCard from 'src/components/rewards/cards/ErrorCard.vue'
 import TransactionList from 'src/components/rewards/transactions/TransactionList.vue'
+import EliteTransactionRow from 'src/components/rewards/transactions/EliteTransactionRow.vue'
+import EliteTopupRow from 'src/components/rewards/transactions/EliteTopupRow.vue'
 import { sleep } from '@walletconnect/utils'
 
 export default {
@@ -184,7 +176,9 @@ export default {
   components: {
     HeaderNav,
     ErrorCard,
-    TransactionList
+    TransactionList,
+    EliteTransactionRow,
+    EliteTopupRow
   },
 
   data () {
@@ -196,11 +190,6 @@ export default {
       eliteData: null,
       transactions: [],
       topups: [],
-
-      limit: 20,
-      offset: 0,
-      hasMoreTransactions: false,
-      loadingMore: false,
 
       txEmptyState: {
         title: 'No eligible transactions yet',
@@ -216,6 +205,12 @@ export default {
   computed: {
     darkMode () {
       return this.$store.getters['darkmode/getStatus']
+    },
+    previewTransactions () {
+      return this.transactions.slice(0, 5)
+    },
+    previewTopups () {
+      return this.topups.slice(0, 5)
     },
     monthlyPct () {
       const max = this.eliteData?.maxCashbackPerMonth || 0
@@ -241,7 +236,6 @@ export default {
 
   methods: {
     getDarkModeClass,
-    formatDateLocaleRelative,
 
     async loadData (append = false) {
       if (!append) this.isLoading = true
@@ -254,9 +248,6 @@ export default {
           this.eliteData = data
           this.transactions = data.transactions || []
           this.topups = data.topups || []
-
-          const fetchedCount = this.transactions.length
-          this.hasMoreTransactions = fetchedCount >= this.limit
         } else {
           this.dataError = 'Failed to load Elite program data. Please try again later.'
         }
@@ -270,30 +261,8 @@ export default {
     },
 
     async refreshData (done) {
-      this.offset = 0
       await this.loadData()
       if (done) done()
-    },
-
-    async loadMoreTransactions () {
-      this.loadingMore = true
-      this.offset += this.limit
-      await this.loadData(true)
-      this.loadingMore = false
-    },
-
-    formatTxDisplay (txId) {
-      if (!txId) return ''
-      if (txId.length <= 12) return txId
-      return `${txId.substring(0, 6)}…${txId.substring(txId.length - 4)}`
-    },
-
-    formatBch (amount) {
-      return formatWithLocale(amount ?? 0, { min: 0, max: 8 })
-    },
-
-    formatLift (amount) {
-      return formatWithLocale(amount ?? 0, { min: 0, max: LIFT_TOKEN_DECIMALS })
     }
   }
 }
@@ -420,6 +389,7 @@ export default {
 .section-head {
   display: flex;
   align-items: center;
+  justify-content: space-between;
 }
 
 .section-icon {
@@ -441,91 +411,5 @@ export default {
 .section-title {
   font-size: 15px;
   font-weight: 700;
-}
-
-/* Elite list rows */
-.elite-row {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  padding: 12px 14px;
-  min-height: 72px;
-  transition: background-color 0.2s ease;
-
-  &:hover {
-    background: rgba(212, 166, 67, 0.05);
-  }
-
-  .dark &:hover {
-    background: rgba(212, 166, 67, 0.1);
-  }
-}
-
-.elite-row-icon {
-  width: 40px;
-  height: 40px;
-  border-radius: 50%;
-  flex-shrink: 0;
-  background: rgba(212, 166, 67, 0.15);
-  color: #d4a643;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 18px;
-}
-
-.elite-row-main {
-  flex: 1;
-  min-width: 0;
-}
-
-.elite-row-title {
-  font-size: 13.5px;
-  font-weight: 700;
-  color: #d4a643;
-}
-
-.elite-row-tx {
-  font-weight: 500;
-  color: #6b6b7b;
-  font-size: 12px;
-  margin-left: 6px;
-  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
-  word-break: break-all;
-}
-
-.dark .elite-row-tx {
-  color: #9a97ad;
-}
-
-.elite-row-sub {
-  font-size: 11px;
-  color: #6b6b7b;
-  margin-top: 2px;
-}
-
-.dark .elite-row-sub {
-  color: #9a97ad;
-}
-
-.elite-row-side {
-  text-align: right;
-  flex-shrink: 0;
-}
-
-.elite-row-amt {
-  font-size: 13px;
-  font-weight: 800;
-  color: #d4a643;
-}
-
-.elite-row-bch {
-  font-size: 10.5px;
-  color: #6b6b7b;
-  margin-top: 2px;
-}
-
-.dark .elite-row-bch {
-  color: #9a97ad;
 }
 </style>

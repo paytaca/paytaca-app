@@ -40,7 +40,7 @@
     
     <!-- List Content -->
     <template v-else>
-      <q-pull-to-refresh @refresh="onRefresh">
+      <q-pull-to-refresh :disable="!pullToRefresh" @refresh="onRefresh">
         <q-list separator class="transaction-list-container">
           <q-intersection
             v-for="(item, index) in items"
@@ -99,6 +99,10 @@ export default {
       default: false
     },
     includeSeparator: {
+      type: Boolean,
+      default: true
+    },
+    pullToRefresh: {
       type: Boolean,
       default: true
     },

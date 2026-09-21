@@ -5,9 +5,9 @@ import { convertCashAddress } from 'src/wallet/chipnet'
 import { getWalletHash } from 'src/utils/engagementhub-utils/shared'
 import { requestManager } from 'src/utils/request-manager'
 
-const ENGAGEMENT_HUB_URL =
-  process.env.ENGAGEMENT_HUB_URL || 'https://engagementhub.paytaca.com/api/'
-// const ENGAGEMENT_HUB_URL = 'http://127.0.0.1:8000/api/'
+// const ENGAGEMENT_HUB_URL =
+//   process.env.ENGAGEMENT_HUB_URL || 'https://engagementhub.paytaca.com/api/'
+const ENGAGEMENT_HUB_URL = 'http://127.0.0.1:8000/api/'
 export const REWARDS_URL = axios.create({ baseURL: `${ENGAGEMENT_HUB_URL}rewards/` })
 requestManager.attachTo(REWARDS_URL)
 export const PROMO_TOKEN_CATEGORY = process.env.PROMO_TOKEN_CATEGORY
@@ -173,24 +173,90 @@ export async function getEliteProgramData () {
   }
 }
 
+function generateEliteTransactions () {
+  const entries = []
+  for (let i = 0; i < 30; i++) {
+    const type = i % 2 === 0 ? 'otc' : 'marketplace'
+    const bchSpent = Number((0.0003 + (i % 6) * 0.0003).toFixed(4))
+    const liftCashback = Number((0.3 + (i % 5) * 0.5).toFixed(1))
+    const date = new Date(Date.UTC(2026, 8, 28 - i, 9 + (i % 8), 15 + (i % 45)))
+    entries.push({
+      type,
+      txId: `${String.fromCharCode(97 + (i % 26))}${(i + 10).toString(16)}4f5a6b7c8d9e0f1a2b3c4d5e6f7a8b9c0d1e2f3a4b5c6d7e`,
+      bchSpent,
+      liftCashback,
+      date: date.toISOString()
+    })
+  }
+  return entries
+}
+
+function generateEliteTopups () {
+  const entries = []
+  for (let i = 0; i < 25; i++) {
+    const asset = i % 2 === 0 ? 'bch' : 'lift'
+    const amount = asset === 'bch'
+      ? Number((0.001 + (i % 7) * 0.001).toFixed(4))
+      : 10 + (i % 9) * 10
+    const date = new Date(Date.UTC(2026, 8, 24 - i, 8 + (i % 7), 5 + (i % 50)))
+    entries.push({
+      asset,
+      txId: `${String.fromCharCode(104 + (i % 26))}${(i + 20).toString(16)}0f1a2b3c4d5e6f7a8b9c0d1e2f3a4b5c6d7e8f9a0b1c2d3e`,
+      amount,
+      date: date.toISOString()
+    })
+  }
+  return entries
+}
+
+function buildEliteSummary (transactions, topups) {
+  const totalBchSpent = transactions.reduce((sum, t) => sum + t.bchSpent, 0)
+  const totalCashbackLift = transactions.reduce((sum, t) => sum + t.liftCashback, 0)
+  const bchTopups = topups.filter(t => t.asset === 'bch')
+  const liftTopups = topups.filter(t => t.asset === 'lift')
+  return {
+    transactions: {
+      totalCashbackLift: Number(totalCashbackLift.toFixed(2)),
+      eligibleTxCount: transactions.length,
+      totalBchSpent: Number(totalBchSpent.toFixed(4))
+    },
+    topups: {
+      totalCount: topups.length,
+      totalBch: Number(bchTopups.reduce((sum, t) => sum + t.amount, 0).toFixed(4)),
+      totalLift: Number(liftTopups.reduce((sum, t) => sum + t.amount, 0).toFixed(2))
+    }
+  }
+}
+
 export async function getEliteProgramPageData () {
   // TODO: Replace mock data with the real engagement-hub endpoint once the
   // Paytaca Elite API is available (e.g. `await getData('elite/${getWalletHash()}/details/')`)
+  const transactions = generateEliteTransactions()
+  const topups = generateEliteTopups()
+  const summary = buildEliteSummary(transactions, topups)
   return {
     status: 'active', // 'active' | 'paused'
-    cashbackLift: 12.5, // total cashback received in LIFT
-    eligibleTxCount: 24,
+    cashbackLift: summary.transactions.totalCashbackLift,
+    eligibleTxCount: summary.transactions.eligibleTxCount,
     monthlyCashback: 350, // current month cashback in PHP
     maxCashbackPerMonth: 1000, // PHP 1,000
-    transactions: [
-      { type: 'otc', txId: '1e8f1a5c6b2a4d9f0e7c3b1a5d6f8a9b0c1d2e3f', bchSpent: 0.0012, liftCashback: 1.5, date: '2026-07-10T09:15:00Z' },
-      { type: 'marketplace', txId: '2c9d0b3e4f5a6b7c8d9e0f1a2b3c4d5e6f7a8b9c', bchSpent: 0.0008, liftCashback: 0.9, date: '2026-06-18T14:30:00Z' },
-      { type: 'otc', txId: '3a5b6c7d8e9f0a1b2c3d4e5f6a7b8c9d0e1f2a3b', bchSpent: 0.0005, liftCashback: 0.4, date: '2026-08-28T11:05:00Z' }
-    ],
-    topups: [
-      { asset: 'bch', txId: '4b6c7d8e9f0a1b2c3d4e5f6a7b8c9d0e1f2a3b4c', amount: 0.005, date: '2026-08-02T08:45:00Z' },
-      { asset: 'lift', txId: '5c7d8e9f0a1b2c3d4e5f6a7b8c9d0e1f2a3b4c5d', amount: 50, date: '2026-08-02T08:50:00Z' }
-    ]
+    transactions,
+    topups,
+    summary
+  }
+}
+
+export async function getEliteProgramHistoryData ({ type, limit = 10, offset = 0 }) {
+  // TODO: Replace mock data with the real engagement-hub endpoint once the
+  // Paytaca Elite API is available (e.g. `await getData('elite/${getWalletHash()}/history/', { type, limit, offset })`)
+  const transactions = generateEliteTransactions()
+  const topups = generateEliteTopups()
+  const items = type === 'topups' ? topups : transactions
+  const sliced = items.slice(offset, offset + limit)
+  return {
+    items: sliced,
+    hasMore: offset + sliced.length < items.length,
+    summary: buildEliteSummary(transactions, topups)
   }
 }
 
