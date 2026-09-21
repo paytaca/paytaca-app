@@ -12,18 +12,23 @@
     </div>
     <div class="elite-row-side">
       <div class="elite-row-amt">+{{ formatWithLocale(item.liftCashback, { min: 0, max: LIFT_TOKEN_DECIMALS }) }} LIFT</div>
-      <div class="elite-row-bch">{{ formatWithLocale(item.bchSpent, { min: 0, max: 8 }) }} BCH spent</div>
+      <div class="elite-row-bch"><bch-amount :amount="getAssetDenomination('BCH', item.bchSpent, false, true)" symbol="BCH" /> spent</div>
     </div>
   </div>
 </template>
 
 <script>
 import { formatDateLocaleRelative } from 'src/utils/time'
-import { formatWithLocale } from 'src/utils/denomination-utils'
+import { formatWithLocale, getAssetDenomination } from 'src/utils/denomination-utils'
 import { LIFT_TOKEN_DECIMALS } from 'src/utils/subscription-utils'
+import BchAmount from 'src/components/common/BchAmount.vue'
 
 export default {
   name: 'EliteTransactionRow',
+
+  components: {
+    BchAmount
+  },
 
   props: {
     item: {
@@ -40,7 +45,8 @@ export default {
 
   methods: {
     formatDateLocaleRelative,
-    formatWithLocale
+    formatWithLocale,
+    getAssetDenomination
   }
 }
 </script>

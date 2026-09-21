@@ -230,13 +230,11 @@ export function splitBchAmount (formattedAmount, denomination, symbol = '') {
   const decimalPart = parts[1] || ''
   
   // Find trailing zeros in decimal part
-  const match = decimalPart.match(/^(\d*?)+(0+)$/)
+  const match = decimalPart.match(/^(\d*?)(0+)$/)
   if (match && match[2]) {
     const significantDecimals = match[1]
     const trailingZeros = match[2]
-    const mainPart = significantDecimals 
-      ? `${integerPart}${decimal}${significantDecimals}`
-      : integerPart
+    const mainPart = `${integerPart}${decimal}${significantDecimals}`
     return { 
       main: mainPart, 
       trailingZeros: trailingZeros, 

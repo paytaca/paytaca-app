@@ -11,18 +11,26 @@
       <div class="elite-row-sub">{{ formatDateLocaleRelative(item.date, false) }}</div>
     </div>
     <div class="elite-row-side">
-      <div class="elite-row-amt">+{{ item.asset === 'bch' ? formatWithLocale(item.amount, { min: 0, max: 8 }) : formatWithLocale(item.amount, { min: 0, max: LIFT_TOKEN_DECIMALS }) }} {{ item.asset === 'bch' ? 'BCH' : 'LIFT' }}</div>
+      <div class="elite-row-amt">
+        <template v-if="item.asset === 'bch'">+<bch-amount :amount="getAssetDenomination('BCH', item.amount, false, true)" symbol="BCH" /></template>
+        <template v-else>+{{ formatWithLocale(item.amount, { min: 0, max: LIFT_TOKEN_DECIMALS }) }} LIFT</template>
+      </div>
     </div>
   </div>
 </template>
 
 <script>
 import { formatDateLocaleRelative } from 'src/utils/time'
-import { formatWithLocale } from 'src/utils/denomination-utils'
+import { formatWithLocale, getAssetDenomination } from 'src/utils/denomination-utils'
 import { LIFT_TOKEN_DECIMALS } from 'src/utils/subscription-utils'
+import BchAmount from 'src/components/common/BchAmount.vue'
 
 export default {
   name: 'EliteTopupRow',
+
+  components: {
+    BchAmount
+  },
 
   props: {
     item: {
@@ -39,7 +47,8 @@ export default {
 
   methods: {
     formatDateLocaleRelative,
-    formatWithLocale
+    formatWithLocale,
+    getAssetDenomination
   }
 }
 </script>

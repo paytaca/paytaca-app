@@ -37,11 +37,17 @@
                 <div class="text-caption summary-label">{{ activeTab === 'transactions' ? 'Total cashback' : 'Total top-ups' }}</div>
               </div>
               <div class="col text-center q-pa-sm">
-                <div class="summary-value">{{ activeTab === 'transactions' ? summary.transactions.eligibleTxCount : `${summary.topups.totalBch} BCH` }}</div>
+                <div class="summary-value">
+                  <template v-if="activeTab === 'transactions'">{{ summary.transactions.eligibleTxCount }}</template>
+                  <template v-else><bch-amount :amount="getAssetDenomination('BCH', summary.topups.totalBch, false, true)" symbol="BCH" /></template>
+                </div>
                 <div class="text-caption summary-label">{{ activeTab === 'transactions' ? 'Eligible transactions' : 'BCH top-ups' }}</div>
               </div>
               <div class="col text-center q-pa-sm">
-                <div class="summary-value">{{ activeTab === 'transactions' ? `${summary.transactions.totalBchSpent} BCH` : `${summary.topups.totalLift} LIFT` }}</div>
+                <div class="summary-value">
+                  <template v-if="activeTab === 'transactions'"><bch-amount :amount="getAssetDenomination('BCH', summary.transactions.totalBchSpent, false, true)" symbol="BCH" /></template>
+                  <template v-else>{{ summary.topups.totalLift }} LIFT</template>
+                </div>
                 <div class="text-caption summary-label">{{ activeTab === 'transactions' ? 'BCH spent' : 'LIFT top-ups' }}</div>
               </div>
             </div>
@@ -107,6 +113,8 @@ import { sleep } from '@walletconnect/utils'
 import HeaderNav from 'src/components/header-nav.vue'
 import ErrorCard from 'src/components/rewards/cards/ErrorCard.vue'
 import EliteList from 'src/components/rewards/transactions/EliteList.vue'
+import BchAmount from 'src/components/common/BchAmount.vue'
+import { getAssetDenomination } from 'src/utils/denomination-utils'
 
 const TABS = ['transactions', 'topups']
 
@@ -116,7 +124,8 @@ export default {
   components: {
     HeaderNav,
     ErrorCard,
-    EliteList
+    EliteList,
+    BchAmount
   },
 
   data () {
@@ -171,6 +180,7 @@ export default {
 
   methods: {
     getDarkModeClass,
+    getAssetDenomination,
 
     isTx (type) {
       return type === 'transactions'
