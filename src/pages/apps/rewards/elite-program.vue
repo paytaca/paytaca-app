@@ -385,6 +385,7 @@ export default {
   height: 28px;
   border-radius: 50%;
   background: #d4a643;
+  color: white;
   display: flex;
   align-items: center;
   justify-content: center;
