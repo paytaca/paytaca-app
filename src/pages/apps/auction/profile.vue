@@ -118,9 +118,10 @@ const handleEditUserProfile = async () => {
     const data = {
       username: username.value,
       ...(method === 'post' && { user: walletHash } ),
-      ...(method === 'post' && { address: credentials.address } ),
+      ...(method === 'post' && { bch_address: credentials.address } ),
       ...(method === 'post' && { pub_key: credentials.publicKey } )
     } 
+    console.log(data)
 
     const response = await callAPI(
       `user-details${method === 'post' ? '' : `/${walletHash}/update`}`, 
