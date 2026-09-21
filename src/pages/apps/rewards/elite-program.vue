@@ -102,7 +102,8 @@
           <q-btn
             v-if="!isLoading"
             flat
-            color="primary"
+            class="view-all-button"
+            :class="getDarkModeClass(darkMode)"
             size="sm"
             icon-right="chevron_right"
             label="View All"
@@ -128,7 +129,8 @@
           <q-btn
             v-if="!isLoading"
             flat
-            color="primary"
+            class="view-all-button"
+            :class="getDarkModeClass(darkMode)"
             size="sm"
             icon-right="chevron_right"
             label="View All"
@@ -359,6 +361,15 @@ export default {
 }
 
 .light .elite-stat-value {
+  color: #c89d36;
+}
+
+.view-all-button {
+  color: #d4a643;
+  font-weight: bold;
+}
+
+.light .view-all-button {
   color: #c89d36;
 }
 
