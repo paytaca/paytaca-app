@@ -118,7 +118,7 @@
                     padding="md"
                     unelevated
                     :label="winningBid.value?.user === userWalletHash ? 'Highest Bidder' : 'Place Bid'"
-                    :disabled="lot.status_label !== 'Open' || winningBid.value?.user === userWalletHash || bidOrBuyLoading"
+                    :disabled="lot.status_label !== 'Active' || winningBid.value?.user === userWalletHash || bidOrBuyLoading"
                     @click="openBidDialog"
                   />
                 </template>
@@ -128,7 +128,7 @@
                     style="background-color: var(--q-secondary);"
                     padding="md"
                     label="Buy It Now"
-                    :disabled="lot.status_label !== 'Open' || lot.value?.is_sold || bidOrBuyLoading"
+                    :disabled="lot.status_label !== 'Active' || lot.value?.is_sold || bidOrBuyLoading"
                     @click="buyItNow"
                     unelevated
                   />
@@ -138,7 +138,7 @@
             </div>
 
             <!--General bid status content-->
-            <div v-if="bidStatus" class="full-width q-mt-md">
+            <div v-if="!isAuctioneer && bidStatus" class="full-width q-mt-md">
               <q-banner
                 rounded
                 dense
@@ -571,6 +571,10 @@
                 <div class="text-body2 text-weight-medium">
                   {{ formatAuctionDate(auction?.start_date) }}
                 </div>
+                <div  v-if="auction.status_label === 'Upcoming'" class="text-secondary">
+                  Time Remaining: {{ auctionStartCountdown }}
+                </div>
+                <div  v-else class="text-secondary"></div>
               </div>
               <div class="col rounded-borders q-pa-sm" :class="darkMode ? 'bg-dark' : 'bg-grey-2'">
                 <div class="text-caption q-mb-xs">
@@ -579,6 +583,10 @@
                 <div class="text-body2 text-weight-medium">
                   {{ formatAuctionDate(auction?.end_date) }}
                 </div>
+                <div v-if="auction.status_label === 'Open'" class="text-secondary">
+                  Time Remaining: {{ auctionEndCountdown }}
+                </div>
+                <div  v-else class="text-secondary"></div>
               </div>
             </div>
 
@@ -737,7 +745,7 @@ const $route = useRoute()
 // System-related variables
 const darkMode = computed(() => $store.getters['darkmode/getStatus'])
 const isLoading = ref(false)
-const userWalletHash = computed(() => $store.getters['global/getWallet']('bch')?.userWalletHash)
+const userWalletHash = computed(() => $store.getters['global/getWallet']('bch')?.walletHash)
 const bchToPhpRate = computed(() => $store.getters['market/getAssetPrice']('bch', 'php') || 0)
  
 // Props
@@ -752,9 +760,15 @@ const props = defineProps({
   }
 })
 
+const auctionEndCountdown = ref('Loading...')
+const auctionStartCountdown = ref('Loading...')
+
 // Auction-related variables
 const auction = computed(() => $store.getters['auction/auctionData'])
-const isAuctioneer = computed(() => auction.value?.user?.id === userWalletHash.value)
+const isAuctioneer = computed(() => {
+  const walletHash = $store.getters['global/getWallet']('bch')?.walletHash
+  return walletHash === auction.value?.user
+})
 const isWinningBidder = computed(() => bidStatus.value === 'win')
 const attributeName = computed(() => auction.value?.is_fiat ? 'fiat' : 'bch')
 
@@ -1312,6 +1326,14 @@ const connectWebsocket = async () => {
         viewCount.value = data.viewer_count
         break
 
+      case "lot.start_countdown":
+        auctionStartCountdown.value = formatCountdown(data.time_left)
+        break
+
+      case "lot.end_countdown":
+        auctionEndCountdown.value = formatCountdown(data.time_left)
+        break
+
       // start.close lot
       case "lot.update_status":
         lot.value?.refreshStatus()
@@ -1431,13 +1453,19 @@ const formatAuctionDate = (dateString) => {
   return date.formatDate(dateString, 'MMM DD, YYYY hh:mm A')
 }
 
-const formatCountdown = (totalSeconds) => {
-  const seconds = Math.max(0, Math.floor(totalSeconds || 0))
-  const hour = Math.floor(seconds / 3600).toString().padStart(2, '0')
-  const minute = Math.floor((seconds % 3600) / 60).toString().padStart(2, '0')
-  const second = (seconds % 60).toString().padStart(2, '0')
-  return `${hour}:${minute}:${second}`
+const formatCountdown = (timeLeft) => {
+  const splitTime = (timeLeft).split(":")
+  const timeToIndex = ['day', 'hour', 'minute', 'second']
+  for (let [index, time] of splitTime.entries()){
+    const numTime = Number(time)
+    if (numTime > 0) {
+      return `${numTime} ${timeToIndex[index]}${(numTime) > 1 ? 's':''} left.`
+    }
+  }
+  return "Time's Up!"
 }
+
+
 
 const formatFiat = (fiatValue) => {
   const numValue = Number(fiatValue) || 0
