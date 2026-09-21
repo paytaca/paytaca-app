@@ -38,7 +38,7 @@
                 </q-badge>
               </div>
               
-              <div v-if="isAuthor && canEdit">
+              <div v-if="isAuctioneer && canEdit">
                 <q-btn
                   flat
                   round
@@ -70,7 +70,7 @@
                       <span v-if="auction.username" class="text-weight-medium ellipsis col-shrink q-mr-xs">
                         {{ auction.username }}
                       </span>
-                      <q-badge v-if="isAuthor" color="positive" class="q-px-xs no-shrink">
+                      <q-badge v-if="isAuctioneer" color="positive" class="q-px-xs no-shrink">
                         <q-icon name="star" size="10px" class="q-mr-xs" />You
                       </q-badge>
                     </div>
@@ -129,7 +129,7 @@
                   {{ formatAuctionDate(auction?.end_date) }}
                 </div>
                 <div v-if="auction.status_label === 'Open'" class="text-secondary">
-                  Time Remaining: {{ auctionCountdown }}
+                  Time Remaining: {{ auctionEndCountdown }}
                 </div>
                 <div  v-else class="text-secondary"></div>
               </div>
@@ -373,7 +373,7 @@ const props = defineProps({
 
 // Auction-related variables
 const auction = computed(() => $store.getters['auction/auctionData'])
-const auctionCountdown = ref('Loading...')
+const auctionEndCountdown = ref('Loading...')
 const auctionStartCountdown = ref('Loading...')
 const listingsTotalTime = computed(() => Date.now() - $store.getters['auction/listingsLastFetched'])
 
@@ -473,10 +473,10 @@ const connectWebsocket = () => {
         auctionStartCountdown.value = formatCountdown(data.time_left)
         break
       case "auction.end_countdown":
-        auctionCountdown.value = formatCountdown(data.time_left)
+        auctionEndCountdown.value = formatCountdown(data.time_left)
         break
       case "auction.start":
-        auctionCountdown.value = 'Starting Auction...'
+        auctionEndCountdown.value = 'Starting Auction...'
         $store.commit('auction/updateAuctionData', {
           attribute_name: 'status', 
           data: 2
@@ -579,14 +579,13 @@ const toggleEditAuction = async () => {
 // IS USER AUCTIONEER OR BIDDER
 // ============================
 
-const isAuthor = computed(() => {
-  const walletHash = Store.getters['global/getWallet']('bch')?.walletHash
-  return walletHash === auction.value?.user
-})
+
+const userWalletHash = computed(() => $store.getters['global/getWallet']('bch')?.walletHash)
+const isAuctioneer = computed(() => userWalletHash.value === auction.value?.user)
 
 // REVIEW THIS KAY WHY 30 MINS
 const canEdit = computed(() => { 
-  if (!isAuthor.value || !auction.value?.start_date) return false
+  if (!isAuctioneer.value || !auction.value?.start_date) return false
 
   const now = new Date()
   const startDate = new Date(auction.value.start_date)

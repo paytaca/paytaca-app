@@ -150,7 +150,7 @@ const form = computed({
   set: (val) => emit('update:auction-form', val)
 })
 
-const minStartJsDate = computed(() => date.addToDate(new Date(), { days: 1 }))
+const minStartJsDate = computed(() => new Date())
 const minStartDate = computed(() => date.formatDate(minStartJsDate.value, 'YYYY-MM-DDTHH:mm'))
 
 const minEndDate = computed(() => {
@@ -165,7 +165,7 @@ const startDateRules = [
   val => {
     if (!val) return true
     const selected = date.extractDate(val, 'YYYY-MM-DDTHH:mm')
-    return selected >= minStartJsDate.value || 'Global time start must be at least 1 day from now'
+    return selected >= minStartJsDate.value || 'Auction must not start before the current time.'
   }
 ]
 
@@ -175,7 +175,7 @@ const endDateRules = [
     if (!val || !form.value.start_date) return true
     const start = date.extractDate(form.value.start_date, 'YYYY-MM-DDTHH:mm')
     const end = date.extractDate(val, 'YYYY-MM-DDTHH:mm')
-    return date.getDateDiff(end, start, 'minutes') >= 60 || 'Auction must run for at least 1 hour'
+    return date.getDateDiff(end, start, 'minutes') >= 60 || 'Auction must run for at least 1 hour.'
   }
 ]
 

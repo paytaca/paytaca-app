@@ -1,7 +1,7 @@
 <template>
   <q-dialog 
     :model-value="showBuyItNowDialog" 
-    @update:model-value="$emit('update:isToggledBuyItNow', $event)" 
+    @update:model-value="$emit('update:showBuyItNowDialog', $event)" 
     position="bottom"
   >
     <q-card class="br-15 pt-card-2 text-bow bottom-card" :class="getDarkModeClass(darkMode)">
@@ -38,7 +38,7 @@
             class="full-width text-weight-medium"
             color="primary"
             label="Cancel"
-            @click="$emit('update:isToggledBuyItNow', false)"
+            @click="$emit('update:showBuyItNowDialog', false)"
           />
         </div>
         <div class="col-6">
@@ -64,7 +64,7 @@ import { useStore } from 'vuex'
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 
 const props = defineProps({
-  isToggledBuyItNow: {
+  showBuyItNowDialog: {
     type: Boolean,
     required: true
   },
@@ -94,7 +94,7 @@ const props = defineProps({
   }
 })
 
-const emit = defineEmits(['update:isToggledBuyItNow', 'confirm-buy-it-now'])
+const emit = defineEmits(['update:showBuyItNowDialog', 'confirm-buy-it-now'])
 
 const $q = useQuasar()
 const $store = useStore()
