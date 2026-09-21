@@ -109,18 +109,13 @@
             @click="$router.push('/apps/rewards/elite-history/transactions')"
           />
         </div>
-        <transaction-list
+        <elite-list
+          type="transactions"
           :items="previewTransactions"
           :loading="isLoading"
           :dark-mode="darkMode"
-          :include-separator="false"
-          :empty-state="txEmptyState"
           @refresh="refreshData"
-        >
-          <template #item="{ item }">
-            <elite-transaction-row :item="item" />
-          </template>
-        </transaction-list>
+        />
 
         <!-- Top-ups Section -->
         <div class="section-head q-mb-sm q-mt-lg">
@@ -140,18 +135,13 @@
             @click="$router.push('/apps/rewards/elite-history/topups')"
           />
         </div>
-        <transaction-list
+        <elite-list
+          type="topups"
           :items="previewTopups"
           :loading="isLoading"
           :dark-mode="darkMode"
-          :include-separator="false"
-          :empty-state="topupEmptyState"
           @refresh="refreshData"
-        >
-          <template #item="{ item }">
-            <elite-topup-row :item="item" />
-          </template>
-        </transaction-list>
+        />
       </template>
     </div>
   </div>
@@ -165,9 +155,7 @@ import { getEliteProgramPageData } from 'src/utils/engagementhub-utils/rewards'
 
 import HeaderNav from 'src/components/header-nav.vue'
 import ErrorCard from 'src/components/rewards/cards/ErrorCard.vue'
-import TransactionList from 'src/components/rewards/transactions/TransactionList.vue'
-import EliteTransactionRow from 'src/components/rewards/transactions/EliteTransactionRow.vue'
-import EliteTopupRow from 'src/components/rewards/transactions/EliteTopupRow.vue'
+import EliteList from 'src/components/rewards/transactions/EliteList.vue'
 import { sleep } from '@walletconnect/utils'
 
 export default {
@@ -176,9 +164,7 @@ export default {
   components: {
     HeaderNav,
     ErrorCard,
-    TransactionList,
-    EliteTransactionRow,
-    EliteTopupRow
+    EliteList
   },
 
   data () {
@@ -189,16 +175,7 @@ export default {
 
       eliteData: null,
       transactions: [],
-      topups: [],
-
-      txEmptyState: {
-        title: 'No eligible transactions yet',
-        description: 'Your LIFT cashbacks from eligible OTC and marketplace purchases will appear here.'
-      },
-      topupEmptyState: {
-        title: 'No top-ups yet',
-        description: 'Your BCH and LIFT top-ups that qualify for the program will appear here.'
-      }
+      topups: []
     }
   },
 

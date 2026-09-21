@@ -69,39 +69,29 @@
 
         <q-tab-panels v-model="activeTab" animated>
           <q-tab-panel name="transactions" class="q-pa-none">
-            <transaction-list
+            <elite-list
+              type="transactions"
               :items="transactions"
               :loading="isLoadingTx"
               :loading-more="loadingMoreTx"
               :has-more="hasMoreTransactions"
               :dark-mode="darkMode"
-              :include-separator="false"
               :pull-to-refresh="false"
-              :empty-state="txEmptyState"
               @load-more="loadMoreTx"
-            >
-              <template #item="{ item }">
-                <elite-transaction-row :item="item" />
-              </template>
-            </transaction-list>
+            />
           </q-tab-panel>
 
           <q-tab-panel name="topups" class="q-pa-none">
-            <transaction-list
+            <elite-list
+              type="topups"
               :items="topups"
               :loading="isLoadingTopups"
               :loading-more="loadingMoreTopups"
               :has-more="hasMoreTopups"
               :dark-mode="darkMode"
-              :include-separator="false"
               :pull-to-refresh="false"
-              :empty-state="topupEmptyState"
               @load-more="loadMoreTopups"
-            >
-              <template #item="{ item }">
-                <elite-topup-row :item="item" />
-              </template>
-            </transaction-list>
+            />
           </q-tab-panel>
         </q-tab-panels>
       </template>
@@ -116,9 +106,7 @@ import { sleep } from '@walletconnect/utils'
 
 import HeaderNav from 'src/components/header-nav.vue'
 import ErrorCard from 'src/components/rewards/cards/ErrorCard.vue'
-import TransactionList from 'src/components/rewards/transactions/TransactionList.vue'
-import EliteTransactionRow from 'src/components/rewards/transactions/EliteTransactionRow.vue'
-import EliteTopupRow from 'src/components/rewards/transactions/EliteTopupRow.vue'
+import EliteList from 'src/components/rewards/transactions/EliteList.vue'
 
 const TABS = ['transactions', 'topups']
 
@@ -128,9 +116,7 @@ export default {
   components: {
     HeaderNav,
     ErrorCard,
-    TransactionList,
-    EliteTransactionRow,
-    EliteTopupRow
+    EliteList
   },
 
   data () {
@@ -150,14 +136,6 @@ export default {
       summary: {
         transactions: { totalCashbackLift: 0, eligibleTxCount: 0, totalBchSpent: 0 },
         topups: { totalCount: 0, totalBch: 0, totalLift: 0 }
-      },
-      txEmptyState: {
-        title: 'No eligible transactions yet',
-        description: 'Your LIFT cashbacks from eligible OTC and marketplace purchases will appear here.'
-      },
-      topupEmptyState: {
-        title: 'No top-ups yet',
-        description: 'Your BCH and LIFT top-ups that qualify for the program will appear here.'
       }
     }
   },
