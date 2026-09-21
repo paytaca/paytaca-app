@@ -392,9 +392,7 @@
               </div>
               <q-linear-progress
                 :value="eliteBchPct"
-                :color="eliteBchPct >= 1 ? 'positive' : 'primary'"
-                track-color="secondary"
-                class="rounded-borders"
+                class="rounded-borders elite-progress"
                 size="6px"
               />
             </div>
@@ -407,9 +405,7 @@
               </div>
               <q-linear-progress
                 :value="eliteLiftPct"
-                :color="eliteLiftPct >= 1 ? 'positive' : 'primary'"
-                track-color="secondary"
-                class="rounded-borders"
+                class="rounded-borders elite-progress"
                 size="6px"
               />
             </div>
@@ -499,9 +495,7 @@
               </div>
               <q-linear-progress
                 :value="eliteBchPct"
-                :color="eliteBchPct >= 1 ? 'positive' : 'primary'"
-                track-color="secondary"
-                class="rounded-borders"
+                class="rounded-borders elite-progress"
                 size="6px"
               />
             </div>
@@ -514,9 +508,7 @@
               </div>
               <q-linear-progress
                 :value="eliteLiftPct"
-                :color="eliteLiftPct >= 1 ? 'positive' : 'primary'"
-                track-color="secondary"
-                class="rounded-borders"
+                class="rounded-borders elite-progress"
                 size="6px"
               />
             </div>
@@ -1217,5 +1209,18 @@ export default {
       justify-content: center;
     }
   }
+}
+
+/* Gold progress bar; Quasar color props only accept theme names, so style directly */
+.elite-progress {
+  color: #d4a643;
+
+  :deep(.q-linear-progress__track) {
+    background: #b08a2e;
+  }
+}
+
+.light .elite-progress {
+  color: #c89d36;
 }
 </style>
