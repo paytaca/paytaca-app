@@ -1,3 +1,4 @@
+<!-- eslint-disable vue/no-use-v-if-with-v-for -->
 <template>
   <!--
     This page contains the auction details and list of lots.
@@ -30,10 +31,10 @@
                   {{ auction.type }} Auction
                 </q-badge>
                 <q-badge
-                  :color="getAuctionStatusInfo(auction).color"
+                  :color="auction.status_color"
                   class="q-pa-sm q-px-sm text-weight-bold"
                 >
-                  {{ getAuctionStatusInfo(auction).label }}
+                  {{ auction.status_label }}
                 </q-badge>
               </div>
               
@@ -114,7 +115,7 @@
                 <div class="text-body2 text-weight-medium">
                   {{ formatAuctionDate(auction?.start_date) }}
                 </div>
-                <div  v-if="getAuctionStatusInfo(auction).label === 'Upcoming'" class="text-secondary">
+                <div  v-if="auction.status_label === 'Upcoming'" class="text-secondary">
                   Time Remaining: {{ auctionStartCountdown }}
                 </div>
                 <div  v-else class="text-secondary"></div>
@@ -127,7 +128,7 @@
                 <div class="text-body2 text-weight-medium">
                   {{ formatAuctionDate(auction?.end_date) }}
                 </div>
-                <div v-if="getAuctionStatusInfo(auction).label === 'Open'" class="text-secondary">
+                <div v-if="auction.status_label === 'Open'" class="text-secondary">
                   Time Remaining: {{ auctionCountdown }}
                 </div>
                 <div  v-else class="text-secondary"></div>
@@ -456,13 +457,14 @@ let maxReconnectAttempts = 10
 const connectWebsocket = () => {
   const ws = callAuctionWebsocket(Number(props.auctionId))
 
-  ws.onopen = (event) => {
+  ws.onopen = () => {
     reconnectAttempts = 0
     console.log("Connected to the auction websocket!")
   }
 
   ws.onmessage = (event) => {
     const { type, data } = JSON.parse(event.data)
+    
     switch(type) {
       case "live.viewing":
         viewCount.value = data.viewer_count
@@ -470,7 +472,7 @@ const connectWebsocket = () => {
       case "auction.start_countdown":
         auctionStartCountdown.value = formatCountdown(data.time_left)
         break
-      case "auction.countdown":
+      case "auction.end_countdown":
         auctionCountdown.value = formatCountdown(data.time_left)
         break
       case "auction.start":
@@ -487,7 +489,6 @@ const connectWebsocket = () => {
           attribute_name: 'end_date', 
           data: auction.value.end_date
         })
-
         refreshLotStatuses()
         break
       case "auction.closed": {
@@ -606,25 +607,15 @@ const getEnglishPriceInfo = (lot) => {
   }
 }
 
-const getAuctionStatusInfo = (auction) => {
-  return (auction && typeof auction.getStatus === 'function') 
-    ? auction.getStatus() 
-    : { label: 'NaN', color: 'purple' }
-}
-
-
 // ===================
 // LOT STATUS UPDATING
 // ===================
 
-const lotStatusVersion = ref(0)
-const refreshLotStatuses = () => {
-  lotStatusVersion.value++
-}
-
 const getReactiveLotStatus = (lot) => {
-  lotStatusVersion.value
-  return lot.getStatus()
+  return {
+    label: lot.status_label,
+    color: lot.status_color
+  }
 }
 
 

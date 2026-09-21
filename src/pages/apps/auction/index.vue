@@ -1,3 +1,5 @@
+<!-- eslint-disable vue/multi-word-component-names -->
+<!-- eslint-disable vue/no-use-v-if-with-v-for -->
 <template>
   <!--
     This is the landing page for the Auction app. Redirects to appeals.vue if the user is
@@ -99,12 +101,12 @@
 
                 <q-chip
                   dense
-                  :color="getAuctionStatusInfo(auction).color"
+                  :color="auction.status_color"
                   text-color="white"
                   class="absolute text-caption text-weight-bold"
                   style="top: 8px; right: 8px; margin: 0; padding: 3px 8px; height: auto;"
                 >
-                  {{ getAuctionStatusInfo(auction).label }}
+                  {{ auction.status_label }}
                 </q-chip>
               </div>
             
@@ -126,15 +128,15 @@
                 <div class="column q-gutter-y-xs">
                   <div class="row items-center q-gutter-x-xs text-caption text-weight-bold">
                     <q-icon
-                      :name="getAuctionStatusInfo(auction).label === 'Upcoming' ? 'event_available' : 'event_busy'"
+                      :name="auction.status_label === 'Upcoming' ? 'event_available' : 'event_busy'"
                       style="font-size: 11px;"
                     />
                     <strong class="text-bow">
-                      {{ getAuctionStatusInfo(auction).label === 'Upcoming' ? 'Starts' : (getAuctionStatusInfo(auction).label === 'Closed' ? 'Ended' : 'Ends') }}
+                      {{ auction.status_label === 'Upcoming' ? 'Starts' : (auction.status_label === 'Closed' ? 'Ended' : 'Ends') }}
                     </strong>
                     <div>
                       {{
-                        getAuctionStatusInfo(auction).label === 'Upcoming'
+                        auction.status_label === 'Upcoming'
                           ? formatAuctionDate(auction.start_date)
                           : formatAuctionDate(auction.end_date)
                       }}
@@ -249,12 +251,6 @@ const filteredItems = computed(() => {
 const isAuctionEmpty = computed(() => {
   return !isLoading.value && filteredItems.value.length === 0
 })
-
-const getAuctionStatusInfo = (auction) => {
-  if (auction && typeof auction.getStatus === 'function') 
-    return auction.getStatus();
-  return { label: 'NaN', color: 'purple' };
-}
 
 // Keep tabs on the auction type so it would filter the items
 watch(auctionType, (newType) => {
