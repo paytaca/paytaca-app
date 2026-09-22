@@ -17,6 +17,7 @@
                 outlined
                 dense
                 reactive-rules
+                bottom-slots
                 :rules="[
                   val => !!val || $t('Required'),
                   val => !subscription.max_pledge || val <= maxPledge || errorMsgs.maxPledge
@@ -30,6 +31,12 @@
                     @click="form.pledge = maxPledge"
                   />
                 </template>
+                <template v-slot:hint>
+                  <div v-if="subscription.payment_category && pledgeValueSats">
+                    ~{{ satsToBchDisplay(pledgeValueSats) }} BCH
+                  </div>
+
+                </template>
               </q-input>
             </div>
             <div class="col-4">
@@ -41,6 +48,20 @@
                 dense
                 options-dense
               />
+            </div>
+          </div>
+          <div v-if="minFeeSats && pledgeValueSats" class="q-mb-md q-gutter-y-sm">
+            <div>
+              <div class="text-caption text-grey">
+                Paytaca Fee
+                <template v-if="!subscription.payment_category">(Approx.)</template>:
+              </div>
+              <div>{{ satsToBchDisplay(feeSats) }} BCH</div>
+            </div>
+            
+            <div>
+              <div class="text-caption text-grey">Minimum Fee Sats (0.01 USD)</div>
+              <div>{{ satsToBchDisplay(minFeeSats) }} BCH</div>
             </div>
           </div>
 
@@ -94,6 +115,7 @@ import { ref, computed, onMounted } from 'vue'
 import { useStore } from 'vuex'
 import { useDialogPluginComponent } from 'quasar'
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
+import { useSubscriptionUtils } from 'src/composables/payment-hub/usePaymentHub'
 
 const props = defineProps({
   subscription: {
@@ -108,9 +130,15 @@ const { t: $t } = useI18n();
 const $store = useStore()
 const darkMode = computed(() => $store.getters['darkmode/getStatus'])
 
+const { satsToBchDisplay } = useSubscriptionUtils();
+
 const planCurrency = computed(() => props.subscription.plan_details?.currency)
 const bchPrice = computed(() => {
   if (!planCurrency || planCurrency === 'BCH') return 1
+
+  const priceFromSubscription = parseFloat(props.subscription.bch_rate_value);
+  if (priceFromSubscription) return priceFromSubscription;
+
   return $store.state.global.fiatRates?.[planCurrency] || 0
 })
 
@@ -162,6 +190,27 @@ function resetForm() {
   }
 }
 
+const pledgeValueSats = computed(() => {
+  if (form.value.pledgeUnit === 'BCH') return Math.floor(form.value.pledge * 1e8);
+  if (form.value.pledgeUnit === 'Satoshis') return form.value.pledge;
+
+  if (!bchPrice.value) return null;
+  return Math.floor((form.value.pledge / bchPrice.value) * 1e8);
+})
+const feeSats = computed(() => {
+  const sub = props.subscription;
+  const fee = Math.floor(pledgeValueSats.value / 100)
+  if (fee > sub.max_fee) return sub.max_fee;
+  if (fee < minFeeSats.value) return minFeeSats.value;
+  return fee;
+})
+
+const usdPrice = computed(() => $store.getters['market/getAssetPrice']('bch', 'USD'))
+const minFeeSats = computed(() => {
+  // This is 0.01 USD
+  return Math.floor(1e6 / usdPrice.value);
+})
+
 const maxPledge = computed(() => {
   const sub = props.subscription;
   const maxUnit = sub.max_pledge;
@@ -172,7 +221,7 @@ const maxPledge = computed(() => {
     if (form.value.pledgeUnit === 'BCH') return maxUnit / 1e8;
     if (form.value.pledgeUnit === planCurrency.value && bchPrice.value) {
       const bch = maxUnit / 1e8;
-      return bch / bchPrice.value;
+      return bch * bchPrice.value;
     }
     return maxUnit;
   }
@@ -209,7 +258,8 @@ const finalPeriodBlocks = computed(() => {
 function submitUpdate() {
   onDialogOK({
     new_pledge: finalPledgeUnits.value,
-    new_period: finalPeriodBlocks.value
+    new_fee_sats: feeSats.value,
+    new_period: finalPeriodBlocks.value,
   })
 }
 
