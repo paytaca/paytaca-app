@@ -1148,10 +1148,17 @@ async function updateSubscriptionNft(sub, data) {
       throw new Error('Insufficient funds in merchant wallet to cover network fee')
     }
 
+    const unlockerArgs = [BigInt(data.new_pledge), BigInt(data.new_period), sig.getPublicKey(), sig];
+    if (sub.payment_category) {
+      const feeSats = BigInt(data.new_fee_sats ?? sub.paytaca_fee);
+      unlockerArgs.splice(1, 0, feeSats);
+    }
+    const unlocker = contract.unlock.updateNft(...unlockerArgs);
+
     const txBuilder = new TransactionBuilder({ provider })
     const formattedInputs = kit.inputs.map(input => formatKitInput(input));
     const formattedOutputs = kit.outputs.map(output => formatKitOutput(output));
-    txBuilder.addInputs(formattedInputs, contract.unlock.updateNft(BigInt(data.new_pledge), BigInt(data.new_period), sig.getPublicKey(), sig))
+    txBuilder.addInputs(formattedInputs, unlocker);
     txBuilder.addOutputs(formattedOutputs)
 
     for (const fUtxo of fundingUtxos) {
