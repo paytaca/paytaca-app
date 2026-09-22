@@ -102,7 +102,7 @@
           <q-btn
             v-if="!isLoading"
             flat
-            class="view-all-button"
+            class="view-all-button q-pr-none"
             :class="getDarkModeClass(darkMode)"
             size="sm"
             icon-right="chevron_right"
@@ -129,7 +129,7 @@
           <q-btn
             v-if="!isLoading"
             flat
-            class="view-all-button"
+            class="view-all-button q-pr-none"
             :class="getDarkModeClass(darkMode)"
             size="sm"
             icon-right="chevron_right"
