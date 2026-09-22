@@ -16,6 +16,20 @@ const DEFAULT_ADDRESS_INDEX = 0
 
 const toBigInt = (v) => (typeof v === 'bigint' ? v : BigInt(v ?? 0))
 
+export const INSUFFICIENT_BALANCE_CODE = 'INSUFFICIENT_BALANCE'
+
+/**
+ * Creates an Error flagged as an insufficient-balance failure so callers can
+ * abort retries instead of repeatedly attempting a transaction that cannot be funded.
+ * @param {string} message
+ * @returns {Error}
+ */
+export function insufficientBalanceError(message) {
+  const error = new Error(message)
+  error.code = INSUFFICIENT_BALANCE_CODE
+  return error
+}
+
 /**
  * Lightweight wrapper around LibauthHDWallet providing only the essential cryptographic 
  * operations needed for feature implementation.
@@ -424,20 +438,20 @@ export class Wallet {
     cardLogger.log('Starting UTXO consolidation process...');
     
     const receivingAddress = this.address(); // Use the wallet's own address for consolidation
-    const { cumulativeValue, groupedUtxos, changeAddress } = await this.getFundingUtxos(amountSats); // Get UTXOs up to the specified amount
+    const { cumulativeValue, groupedUtxos } = await this.getFundingUtxos(amountSats); // Get UTXOs up to the specified amount
     // cardLogger.log('cumulativeValue:', cumulativeValue);
     // cardLogger.log('UTXOs found for consolidation:', groupedUtxos);
 
     if (groupedUtxos.length === 0) {
-      throw new Error('Cannot create genesis UTXO, 0 UTXOs found.');
+      throw insufficientBalanceError('Insufficient BCH balance. Please fund your wallet with BCH and try again.');
     }
-
-    if (BigInt(cumulativeValue) < DUST_LIMIT) {
-      throw new Error(`Cannot create genesis UTXO, cumulative value ${cumulativeValue} is below dust limit ${DUST_LIMIT}.`);
-    } 
 
     const estimatedFee = this.estimateFee({ numP2pkhInputs: groupedUtxos.length, numOutputs: 1 }); // Estimated fee for consolidation transaction
     const satsAmount = BigInt(cumulativeValue) - estimatedFee;
+    if (satsAmount < DUST_LIMIT) {
+      throw insufficientBalanceError('Insufficient BCH balance to cover network fees. Please fund your wallet with BCH and try again.');
+    }
+
     cardLogger.log('Estimated fee for creating genesis UTXO:', estimatedFee);
     cardLogger.log('Genesis UTXO amount:', satsAmount);
     cardLogger.log(`Creating genesis UTXO from ${groupedUtxos.length} UTXOs totaling ${satsAmount} sats to address:`, receivingAddress);
@@ -462,24 +476,24 @@ export class Wallet {
     return sendResult;
   }
 
-  async getOrCreateGenesisUtxo() {
+  async getOrCreateGenesisUtxo(minSats = DUST_LIMIT) {
     const bchUtxos = await this.getBchUtxos() 
 
     if (!bchUtxos || !bchUtxos.utxos || bchUtxos.utxos.length === 0) {
-      throw new Error('Insufficient balance to create genesis UTXO. Please fund your wallet with BCH.')
+      throw insufficientBalanceError('Insufficient BCH balance. Please fund your wallet with BCH and try again.')
     }
 
     let genesisUtxo = bchUtxos.utxos[0] // Use the first UTXO for genesis
 
-    if (genesisUtxo.vout !== 0 || genesisUtxo.satoshis <= DUST_LIMIT) {
+    if (genesisUtxo.vout !== 0 || genesisUtxo.satoshis < minSats) {
       await this.createGenesisUtxo(5000) // Create a new genesis UTXO with 5k sats
       await new Promise(resolve => setTimeout(resolve, 5000))
       const updatedBchUtxos = await this.getBchUtxos()
       genesisUtxo = updatedBchUtxos.utxos[0]
     }
 
-    if (genesisUtxo.satoshis <= DUST_LIMIT) {
-      throw new Error(`Genesis UTXO is below dust limit: ${genesisUtxo.satoshis} sats`)
+    if (!genesisUtxo || genesisUtxo.satoshis < minSats) {
+      throw insufficientBalanceError('Insufficient BCH balance to create the genesis UTXO. Please fund your wallet with BCH and try again.')
     }
 
     return genesisUtxo

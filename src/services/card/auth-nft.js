@@ -75,14 +75,14 @@ class AuthNftService {
     async genesis(opts = {broadcast: true}) {
         cardLogger.log('====== Minting Token ======')
     
-        const genesisUtxo = await this.wallet.getOrCreateGenesisUtxo()
+        const nftValue = 1000n // satoshis held by the minting NFT output
+        const estimatedFee = this.wallet.estimateFee({ numP2pkhInputs: 1, numOutputs: 2, feeRate: 2n })
+        const genesisUtxo = await this.wallet.getOrCreateGenesisUtxo(nftValue + estimatedFee)
         const categoryId = genesisUtxo.txid
-        const nftValue = 1000n // 10000 satoshis for each NFT output
 
         cardLogger.log('genesisUtxo:', genesisUtxo)
         
         const changeAddress = this.wallet.address()
-        const estimatedFee = this.wallet.estimateFee({ numP2pkhInputs: 1, numOutputs: 2, feeRate: 2n })
         const change = genesisUtxo.satoshis - estimatedFee - nftValue
         const tokenAddress = this.wallet.tokenAddress()
 
@@ -116,28 +116,22 @@ class AuthNftService {
             .addInput(genesisUtxo, sigTemplate.unlockP2PKH())
             .addOutputs(outputs)
             
-        let result
-        try {
-            // Build the transaction
-            const txHex = tx.build()
-            cardLogger.log('Built transaction hex:', txHex)
+        // Build the transaction
+        const txHex = tx.build()
+        cardLogger.log('Built transaction hex:', txHex)
 
-            if (opts?.broadcast) {
-                const txResult = await watchtower.BCH.broadcastTransaction(txHex)
-                cardLogger.log('Transaction broadcast result:', txResult.data)
-                result = { 
-                    success: txResult.data.success, 
-                    txid: txResult.data.txid, 
-                    category: categoryId 
-                }
-            } else {
-                result = { success: true, txHex }
+        if (opts?.broadcast) {
+            const txResult = await watchtower.BCH.broadcastTransaction(txHex)
+            cardLogger.log('Transaction broadcast result:', txResult.data)
+            return { 
+                success: txResult.data.success, 
+                txid: txResult.data.txid, 
+                category: categoryId,
+                error: txResult.data.error || txResult.data.message || null,
             }
-        } catch (error) {
-            throw error
         }
 
-        return result
+        return { success: true, txHex }
     }
 
     /**

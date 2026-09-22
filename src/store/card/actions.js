@@ -13,7 +13,7 @@ function toPlainCard(card) {
 async function hydrateCard(cardData) {
     if (!cardData) return null;
     if (cardData?.raw) return cardData;
-    return cardData?.contract_id
+    return cardData?.contract?.contract_id
         ? await Card.createInitialized(cardData)
         : await Card.createWithWallet(cardData);
 }
@@ -160,6 +160,75 @@ export async function updateCardAlertsStatus(context, { cardId, isAlertsEnabled 
         return plainCard;
     } catch (error) {
         console.error('Error in updateCardAlertsStatus action:', error);
+        throw error;
+    }
+}
+
+export async function activateCardVersion(context, { cardId, version }) {
+    try {
+        const cardData = context.state.cards.find(c => c.id === cardId);
+        if (!cardData) {
+            throw new Error(`Card with ID ${cardId} not found`);
+        }
+        const card = await hydrateCard(cardData);
+        const updatedData = await card.activateVersion(version);
+        const plainCard = toPlainCard(updatedData);
+        context.commit('updateCard', plainCard);
+        return plainCard;
+    } catch (error) {
+        console.error('Error in activateCardVersion action:', error);
+        throw error;
+    }
+}
+
+export async function setupVersionOwnership(context, { cardId, version, onProgress }) {
+    try {
+        // Always fetch fresh so the version contract entry (linking_token,
+        // ownership state) is current before starting the linking flow.
+        const cardUser = await loadCardUser();
+        const fetchedCard = await cardUser.fetchCardByIdentifier(cardId);
+        if (!fetchedCard) {
+            throw new Error(`Card with ID ${cardId} not found`);
+        }
+        const freshData = toPlainCard(fetchedCard);
+        context.commit('updateCard', freshData);
+        const card = await hydrateCard(freshData);
+        const updatedData = await card.activateContractVersion(version, onProgress);
+        const plainCard = toPlainCard(updatedData);
+        context.commit('updateCard', plainCard);
+        return plainCard;
+    } catch (error) {
+        console.error('Error in setupVersionOwnership action:', error);
+        throw error;
+    }
+}
+
+export async function sweepCardToVersion(context, { cardId, version }) {
+    try {
+        const cardData = context.state.cards.find(c => c.id === cardId);
+        if (!cardData) {
+            throw new Error(`Card with ID ${cardId} not found`);
+        }
+        const card = await hydrateCard(cardData);
+        const result = await card.sweepToVersion(version);
+        return result;
+    } catch (error) {
+        console.error('Error in sweepCardToVersion action:', error);
+        throw error;
+    }
+}
+
+export async function sweepCardFtToActive(context, { cardId }) {
+    try {
+        const cardData = context.state.cards.find(c => c.id === cardId);
+        if (!cardData) {
+            throw new Error(`Card with ID ${cardId} not found`);
+        }
+        const card = await hydrateCard(cardData);
+        const result = await card.sweepFungibleTokensToActive();
+        return result;
+    } catch (error) {
+        console.error('Error in sweepCardFtToActive action:', error);
         throw error;
     }
 }

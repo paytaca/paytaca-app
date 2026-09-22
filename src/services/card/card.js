@@ -3,7 +3,7 @@ import AuthNftService, { decodeCommitment, encodeMerchantHash } from './auth-nft
 import { defaultSpendLimitSats } from './constants';
 import { createTapToPay } from './contract/tap-to-pay';
 import { backend } from './backend';
-import { loadWallet } from '../wallet';
+import { loadWallet, INSUFFICIENT_BALANCE_CODE } from '../wallet';
 import { loadCardUser } from './user';
 import { 
   createCardActivationAttempt,
@@ -117,6 +117,47 @@ export class Card {
   get isActivated() {
     return this.raw?.is_activated
   }
+
+  get contracts() {
+    return this.raw?.contracts || []
+  }
+
+  get activeContractVersion() {
+    const active = this.contracts.find(c => c.is_active)
+    return active?.version || null
+  }
+
+  get hasV2Contract() {
+    return this.contracts.some(c => c.version === 'v2')
+  }
+
+  get v2Contract() {
+    return this.contracts.find(c => c.version === 'v2') || null
+  }
+
+  get isV2Active() {
+    return this.activeContractVersion === 'v2'
+  }
+
+  /**
+   * Checks whether a contract version already has on-chain ownership set up.
+   * Used to distinguish "already upgraded" from "currently active version".
+   * @param {string} version - 'v1' or 'v2'
+   * @returns {Promise<boolean>}
+   */
+  async isVersionOwnershipSet(version) {
+    const entry = this.contracts.find(c => c.version === version)
+    const contractId = entry?.contract_id || entry?.id
+    if (!contractId) return false
+    try {
+      const contract = createTapToPay(contractId, version)
+      return await contract.isOwnershipSet()
+    } catch (error) {
+      cardLogger.error(`[Card.isVersionOwnershipSet] Failed to check ${version} ownership:`, error.message || error)
+      return false
+    }
+  }
+
   // ==================== FACTORIES ====================
 
   /**
@@ -208,9 +249,17 @@ export class Card {
    * @returns {void}
    */
   _initializeContract() {
-    if (!this.raw?.contract?.contract_id) return;
-    const version = this.raw?.contract?.version
-    this.contract = createTapToPay(this.raw?.contract?.contract_id, version);
+    const contractId = this.raw?.contract?.contract_id
+      || this.raw?.contract?.id
+      || this.activeContractEntry?.id
+      || this.activeContractEntry?.contract_id
+    if (!contractId) return;
+    const version = this.raw?.contract?.version || this.activeContractEntry?.version
+    this.contract = createTapToPay(contractId, version);
+  }
+
+  get activeContractEntry() {
+    return this.contracts.find(c => c.is_active) || null
   }
 
   // ==================== CONTRACT OPERATIONS ====================
@@ -408,10 +457,17 @@ export class Card {
   // ==================== WORKFLOWS ====================
   /**
    * Complete card activation workflow
+   * @param {Function} [callbackOnProgress] - Progress message callback
+   * @param {Object} [lastAttempt] - Resume from a previous attempt
+   * @param {Object} [opts]
+   * @param {string} [opts.version] - Contract version being activated ('v1' or 'v2').
+   *   Scopes the activation attempt storage and linking-token request to that
+   *   version. Omit for the default V1 card activation behavior.
    * @returns {Promise<Card>}
    */
-  async activate(callbackOnProgress=null, lastAttempt = null) {
+  async activate(callbackOnProgress=null, lastAttempt = null, opts = {}) {
     cardLogger.log('Starting card activation...',);
+    const attemptKey = opts.version ? `${this.wallet.walletHash}:${opts.version}` : this.wallet.walletHash;
 
     try {
 
@@ -434,7 +490,7 @@ export class Card {
       //            - Set contract.card.user = UserWallet
 
       if (!lastAttempt) {
-        lastAttempt = await this.saveActivationAttempt();
+        lastAttempt = await this.saveActivationAttempt(attemptKey);
       }
       cardLogger.log('[Card.activate] lastAttempt:', lastAttempt)
 
@@ -447,7 +503,7 @@ export class Card {
         cardLogger.log('[Card.activate] Obtaining linking token from backend...');
 
         this._notifyCallbackFn(callbackOnProgress, 'Obtaining linking token...');
-        const result = await this.requestLinkingToken();
+        const result = await this.requestLinkingToken({ version: opts.version });
 
         if (!result || !result.success) {
           throw new Error('Failed to obtain linking token from backend');
@@ -455,7 +511,7 @@ export class Card {
 
         linkingCategory = result.category
         currentStatus = CardActivationStatus.LINKING_TOKEN_REQUESTED;
-        await updateCardActivationAttempt(this.wallet.walletHash, { linkingCategory, status: currentStatus });
+        await updateCardActivationAttempt(attemptKey, { linkingCategory, status: currentStatus });
         this._notifyCallbackFn(callbackOnProgress, 'Linking token obtained');
       }
 
@@ -481,7 +537,7 @@ export class Card {
         }
 
         currentStatus = CardActivationStatus.LINKING_TOKEN_OBTAINED;
-        await updateCardActivationAttempt(this.wallet.walletHash, { status: currentStatus });
+        await updateCardActivationAttempt(attemptKey, { status: currentStatus });
       }
 
       // Mint the genesis token if not yet minted
@@ -499,7 +555,7 @@ export class Card {
         }
 
         currentStatus = CardActivationStatus.GENESIS_MINTED;
-        await updateCardActivationAttempt(this.wallet.walletHash, { authCategory, status: currentStatus });
+        await updateCardActivationAttempt(attemptKey, { authCategory, status: currentStatus });
       }
 
       // Set contract ownership
@@ -517,11 +573,11 @@ export class Card {
         linkingTxid = result.txid
         if (result.success && !linkingTxid) {
           currentStatus = CardActivationStatus.VALIDATION_REQUESTED;
-          await updateCardActivationAttempt(this.wallet.walletHash, { status: currentStatus });
+          await updateCardActivationAttempt(attemptKey, { status: currentStatus });
         } else {
           this._notifyCallbackFn(callbackOnProgress, 'Contract ownership updated. Waiting for confirmation...');
           currentStatus = CardActivationStatus.OWNERSHIP_UPDATED;
-          await updateCardActivationAttempt(this.wallet.walletHash, { linkingTxid, status: currentStatus });
+          await updateCardActivationAttempt(attemptKey, { linkingTxid, status: currentStatus });
         }
       }
       
@@ -530,7 +586,7 @@ export class Card {
         cardLogger.log('[Card.activate] Minting global auth token...');
         await this._mintGlobalAuthToken(authCategory);
         currentStatus = CardActivationStatus.GLOBAL_AUTH_MINTED;
-        await updateCardActivationAttempt(this.wallet.walletHash, { status: currentStatus });
+        await updateCardActivationAttempt(attemptKey, { status: currentStatus });
         this._notifyCallbackFn(callbackOnProgress, 'Global auth token minted');
       }
 
@@ -539,7 +595,7 @@ export class Card {
         cardLogger.log('[Card.activate] Issuing global auth token to contract...');
         await this._issueAuthTokens(authCategory);
         currentStatus = CardActivationStatus.GLOBAL_AUTH_ISSUED;
-        await updateCardActivationAttempt(this.wallet.walletHash, { status: currentStatus });
+        await updateCardActivationAttempt(attemptKey, { status: currentStatus });
         this._notifyCallbackFn(callbackOnProgress, 'Global auth token issued');
       }
 
@@ -553,13 +609,13 @@ export class Card {
         }
 
         currentStatus = CardActivationStatus.VALIDATION_REQUESTED;
-        await updateCardActivationAttempt(this.wallet.walletHash, { status: currentStatus });
+        await updateCardActivationAttempt(attemptKey, { status: currentStatus });
       }
 
       if (currentStatus === CardActivationStatus.VALIDATION_REQUESTED) {
         cardLogger.log('[Card.activate] Card creation completed successfully');
         // Clear the card activation attempt from local storage since workflow is complete
-        await clearCardActivationAttempt(this.wallet.walletHash);
+        await clearCardActivationAttempt(attemptKey);
         this._notifyCallbackFn(callbackOnProgress, 'Card created successfully!');
       }
 
@@ -609,15 +665,17 @@ export class Card {
 
   /**
    * Creates card entry on server
+   * @param {string} [attemptKey] - Storage key for the attempt. Defaults to the wallet hash.
    * @private
    * @returns {Promise<Object>}
    */
-  async saveActivationAttempt() {
+  async saveActivationAttempt(attemptKey = null) {
     cardLogger.log('Creating card entry...');
     this._assertWallet();
+    const key = attemptKey || this.wallet.walletHash;
     const idempotencyKey = `create-card-${this.wallet.pubkey()}-${crypto.randomUUID()}`;
 
-    await saveCardActivationAttempt(this.wallet.walletHash, {
+    await saveCardActivationAttempt(key, {
       idempotencyKey,
       ownershipCategory: this.ownershipCategory,
       walletHash: this.wallet.walletHash,
@@ -625,9 +683,9 @@ export class Card {
     });
     
     cardLogger.log('Card activation attempt created with idempotencyKey:', idempotencyKey);
-    await updateCardActivationAttempt(this.wallet.walletHash, { idempotencyKey, status: CardActivationStatus.NONE });
+    await updateCardActivationAttempt(key, { idempotencyKey, status: CardActivationStatus.NONE });
 
-    const attempt = await getCardActivationAttempt(this.wallet.walletHash)
+    const attempt = await getCardActivationAttempt(key)
     return attempt;
   }
 
@@ -641,9 +699,28 @@ export class Card {
     return { valid: response.data?.valid, message: response.data?.message };
   }
 
-  async requestLinkingToken() {
+  /**
+   * Requests a linking token from the backend for the card.
+   * @param {Object} [opts]
+   * @param {string} [opts.version] - Contract version the token is for ('v1' or 'v2').
+   *   When set, the version, contract id, and ownership category are sent so
+   *   the backend can issue the token for that version's own tokens.
+   *   Omit for the default behavior used by V1 activation.
+   */
+  async requestLinkingToken({ version = null } = {}) {
     const data = {
       to_address: this.wallet.tokenAddress(),
+    }
+    if (version) {
+      data.version = version
+      const entry = this.contracts.find(c => c.version === version)
+      const contractId = entry?.contract_id || null
+      if (contractId) {
+        data.contract_id = contractId
+      }
+      if (entry?.linking_token){
+        data.category = entry.linking_token
+      } 
     }
     cardLogger.log('Requesting linking token with data:', data)
     const response = await backend.post(`/cards/${this.id}/linking-token/`, data)
@@ -721,6 +798,101 @@ export class Card {
     return response.data;
   }
 
+  /**
+   * Switches the active contract version (v1 or 'v2')
+   * @param {string} version - 'v1' or 'v2'
+   * @returns {Promise<Object>} - Updated card data with new active version
+   */
+  async activateVersion(version) {
+    cardLogger.log(`Activating contract version: ${version}`);
+    if (!['v1', 'v2'].includes(version)) {
+      throw new Error('Invalid version. Must be "v1" or "v2".');
+    }
+    const response = await backend.post(`/cards/${this.id}/activate-version/`, { version });
+    return response.data;
+  }
+
+  /**
+   * Sets up on-chain ownership for a contract version by running the standard
+   * card-activation flow (linking token, genesis auth token, setOwner, global
+   * auth token) against the version contract, then marks the version active.
+   * Needed for V1→V2 migration since V2 has its own separate ownership tokens.
+   * @param {string} version - 'v1' or 'v2'
+   * @param {Function} [callbackOnProgress] - Progress message callback
+   * @returns {Promise<Object>} - Updated card data with new active version
+   */
+  async activateContractVersion(version, callbackOnProgress = null) {
+    cardLogger.log(`[Card.activateContractVersion] Setting up ${version} via standard activation...`);
+    this._assertWallet();
+    this._assertAuthNftService();
+
+    const entry = this.contracts.find(c => c.version === version)
+    if (!entry) throw new Error(`No ${version} contract found for this card`)
+
+    // Present the version entry as the card's contract so the standard
+    // activation flow operates on the version contract's own tokens.
+    const versionCard = new Card({ ...this.raw, contract: { ...entry } });
+    versionCard.wallet = this.wallet;
+    versionCard.authNftService = this.authNftService;
+    versionCard._initializeContract();
+    versionCard._assertContract();
+
+    // Guard against silently operating on the wrong contract when the entry
+    // carries no usable contract id and initialization falls back elsewhere.
+    const derivedAddress = versionCard.contract.getContract().address?.split(':').pop()
+    const expectedAddress = entry.cash_address?.split(':').pop()
+    if (!derivedAddress || derivedAddress !== expectedAddress) {
+      throw new Error(`${version.toUpperCase()} contract address mismatch, cannot set up ownership safely.`)
+    }
+
+    // Resolve the linking token to poll for. The backend only broadcasts the
+    // token UTXO when asked via the version-aware linking-token request, so
+    // merely knowing the provisioned id is not enough: if the wallet does not
+    // hold it yet, trigger the send first. The provisioned id on the version
+    // contract entry stays authoritative over any stale stored value, and a
+    // stored attempt already past the linking stage is resumed untouched.
+    const attemptKey = `${this.wallet.walletHash}:${version}`;
+    const provisioned = entry.linking_token || null;
+    let lastAttempt = await getCardActivationAttempt(attemptKey).catch(() => null);
+    const needsToken =
+      !lastAttempt ||
+      (lastAttempt.status ?? CardActivationStatus.NONE) < CardActivationStatus.LINKING_TOKEN_OBTAINED;
+    if (needsToken) {
+      let pollCategory = lastAttempt?.linkingCategory || provisioned || null;
+      if (pollCategory) {
+        const held = await this.wallet.getTokenUtxos(pollCategory).catch(() => []);
+        if (!held?.length) pollCategory = null;
+      }
+      if (!pollCategory) {
+        this._notifyCallbackFn(callbackOnProgress, `Requesting ${version.toUpperCase()} linking token...`);
+        const trigger = await versionCard.requestLinkingToken({ version });
+        if (!trigger || trigger.success === false) {
+          throw new Error('Failed to obtain linking token from backend');
+        }
+        pollCategory = provisioned || trigger.category || null;
+        if (!pollCategory) throw new Error('Failed to obtain linking token from backend');
+      }
+      if (!lastAttempt) {
+        cardLogger.log(`[Card.activateContractVersion] Seeding attempt with ${version} linking token`);
+        await saveCardActivationAttempt(attemptKey, {
+          linkingCategory: pollCategory,
+          walletHash: this.wallet.walletHash,
+          status: CardActivationStatus.LINKING_TOKEN_REQUESTED,
+          createdAt: Date.now(),
+        });
+        lastAttempt = await getCardActivationAttempt(attemptKey);
+      } else if (lastAttempt.linkingCategory !== pollCategory) {
+        cardLogger.log(`[Card.activateContractVersion] Refreshing stale ${version} linking token in stored attempt`);
+        lastAttempt = await updateCardActivationAttempt(attemptKey, { linkingCategory: pollCategory });
+      }
+    }
+
+    await versionCard.activate(callbackOnProgress, lastAttempt, { version });
+
+    this._notifyCallbackFn(callbackOnProgress, `Activating ${version.toUpperCase()}...`);
+    return this.activateVersion(version);
+  }
+
   async subscribeToTransactions() {
     if (this.isSubscribed) return;
     cardLogger.log('Subscribing to transactions for card ID:', this.id)
@@ -763,6 +935,9 @@ export class Card {
         
       } catch (error) {
         cardLogger.error('Error during genesis minting:', error.message || error);
+        if (error?.code === INSUFFICIENT_BALANCE_CODE) {
+          throw error;
+        }
         maxAttempts--;
         if (maxAttempts === 0) {
           throw error;
@@ -886,12 +1061,12 @@ export class Card {
    * @private
    * @returns {Promise<Object>}
    */
-  async _issueAuthTokens(tokenId, interval = 1000, maxAttempts = 5) {
+  async _issueAuthTokens(tokenId, interval = 1000, maxAttempts = 5, toAddress = null) {
     this._assertAuthNftService();
     let lastError = null;
     while (maxAttempts > 0) {
       try {
-        const result = await this._attemptIssueAuthTokens(tokenId);
+        const result = await this._attemptIssueAuthTokens(tokenId, toAddress);
         return result;
       } catch (error) {
         lastError = error;
@@ -907,7 +1082,7 @@ export class Card {
     }
   }
 
-  async _attemptIssueAuthTokens(tokenId) {
+  async _attemptIssueAuthTokens(tokenId, toAddress = null) {
     this._assertAuthNftService();
     const tokenUtxos = await this.wallet.getTokenUtxos(tokenId)
     const mutableTokens = tokenUtxos.filter(utxo => utxo?.token?.nft?.capability === 'mutable');
@@ -916,8 +1091,8 @@ export class Card {
       throw new Error('No mutable auth tokens available to issue.');
     }
 
-    const toAddress = this.tokenAddress
-    const result = await this.authNftService.issue(mutableTokens, toAddress);
+    const destAddress = toAddress || this.tokenAddress
+    const result = await this.authNftService.issue(mutableTokens, destAddress);
     cardLogger.log('Auth tokens issued:', result);
     return result;
   }
@@ -1021,6 +1196,112 @@ export class Card {
 
     cardLogger.log('Sweep response:', result);
     return { ...result, txHex, toAddress };
+  }
+
+  /**
+   * Sweeps BCH from this contract to another contract version's cash address.
+   * Used during V1→V2 migration to move funds before activation.
+   * @param {string} version - Target version ('v1' or 'v2')
+   * @param {Object} [opts]
+   * @param {boolean} [opts.broadcast=true]
+   * @returns {Promise<Object>}
+   */
+  async sweepToVersion(version, opts = { broadcast: true }) {
+    cardLogger.log(`[card.sweepToVersion] Sweeping BCH to ${version} address...`);
+    this._assertContract();
+    this._assertWallet();
+
+    const target = this.contracts.find(c => c.version === version)
+    if (!target) throw new Error(`No ${version} contract found for this card`)
+    const toAddress = target.cash_address
+    if (!toAddress) throw new Error(`${version} contract has no cash address`)
+
+    const privateKey = this.wallet.privkey();
+    const built = await this.contract.sweep({ ownerWif: privateKey, toAddress, broadcast: false });
+    if (built?.success === false) return { success: false, message: built?.message || 'No BCH balance to sweep.' }
+    const txHex = built?.txHex;
+    if (!txHex) return { success: false, message: 'No BCH balance to sweep.' }
+    if (!opts.broadcast) return { success: true, txHex, toAddress }
+
+    const result = await broadcastCardTransaction(txHex, 'sweep', { cardIdOrUid: this.id || this.uid });
+    cardLogger.log('[card.sweepToVersion] Sweep response:', result);
+    return { ...result, txHex, toAddress };
+  }
+
+  /**
+   * Sweeps BCH from one contract version to another. Defaults to the currently
+   * active contract as the destination, but an explicit target version can be
+   * given (e.g. always sweep V1 -> V2 during migration regardless of which
+   * version is active).
+   * @param {string} version - Source version ('v1' or 'v2')
+   * @param {string} [toVersion] - Destination version; defaults to the active contract.
+   * @param {Object} [opts]
+   * @param {boolean} [opts.broadcast=true]
+   * @returns {Promise<Object>}
+   */
+  async sweepFromVersion(version, toVersion = null, opts = { broadcast: true }) {
+    cardLogger.log(`[card.sweepFromVersion] Sweeping BCH from ${version} to ${toVersion || 'active'} contract...`);
+    this._assertWallet();
+
+    const source = this.contracts.find(c => c.version === version)
+    if (!source) throw new Error(`No ${version} contract found for this card`)
+    const targetVersion = toVersion || this.activeContractVersion
+    if (targetVersion === version) {
+      return { success: false, message: `Cannot sweep ${version.toUpperCase()} into itself.` }
+    }
+    const sourceId = source.contract_id || source.id
+    if (!sourceId) throw new Error(`${version} contract has no contract id`)
+    const target = toVersion
+      ? this.contracts.find(c => c.version === toVersion)
+      : this.activeContractEntry
+    const toAddress = target?.cash_address || this.raw?.contract?.cash_address
+    if (!toAddress) throw new Error('Target contract has no cash address')
+
+    const sourceContract = createTapToPay(sourceId, version);
+    const privateKey = this.wallet.privkey();
+    const built = await sourceContract.sweep({ ownerWif: privateKey, toAddress, broadcast: false });
+    if (built?.success === false) return { success: false, message: built?.message || 'No BCH balance to sweep.' }
+    const txHex = built?.txHex;
+    if (!txHex) return { success: false, message: 'No BCH balance to sweep.' }
+    if (!opts.broadcast) return { success: true, txHex, toAddress }
+
+    const result = await broadcastCardTransaction(txHex, 'sweep', { cardIdOrUid: this.id || this.uid });
+    cardLogger.log('[card.sweepFromVersion] Sweep response:', result);
+    return { ...result, txHex, toAddress };
+  }
+
+  /**
+   * Sweeps all fungible tokens from the current (inactive) contract to the
+   * currently active contract's token address via the backend endpoint.
+   * @returns {Promise<{success: boolean|'unknown', txid: string|null}>}
+   */
+  async sweepFungibleTokensToActive() {
+    this._assertWallet();
+    const message = `sweep_ft_to_active:${this.id || this.uid}`
+    const messageHash = sha256.hash(utf8ToBin(message))
+    const privateKeyBin = decodePrivateKeyWif(this.wallet.privkey()).privateKey
+    if (typeof privateKeyBin === 'string') throw new Error(privateKeyBin)
+    const signatureBin = secp256k1.signMessageHashDER(privateKeyBin, messageHash)
+    if (typeof signatureBin === 'string') throw new Error(signatureBin)
+    const signature = binToHex(signatureBin)
+
+    try {
+      const response = await backend.post(`/cards/${this.id || this.uid}/sweep-fungible-tokens/`, {
+        signature,
+      })
+      return normalizeFtSweepResult(response?.data)
+    } catch (error) {
+      if (!error?.response) throw error
+      if (error.response.status === 500 && (error.response.data == null || error.response.data === '')) {
+        return { success: 'unknown', txid: null }
+      }
+      const { message: errMsg, requiresSweepAuth } = parseFtSweepError(error)
+      const normalized = new Error(errMsg)
+      normalized.status = error?.response?.status
+      normalized.requiresSweepAuth = requiresSweepAuth
+      normalized.cause = error
+      throw normalized
+    }
   }
 
   // ==================== HELPERS ====================
