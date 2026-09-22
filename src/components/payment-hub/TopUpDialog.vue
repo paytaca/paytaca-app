@@ -92,7 +92,7 @@ import { useRouter } from 'vue-router'
 import { useI18n } from 'vue-i18n'
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 import { usePaymentHubCore, useSubscriptionUtils } from 'src/composables/payment-hub/usePaymentHub'
-import { topUpSubscription } from 'src/wallet/payment-hub/top-up'
+import { topUpSubscription } from 'src/wallet/payment-hub/services'
 import SecurityCheckDialog from 'src/components/SecurityCheckDialog.vue'
 
 const props = defineProps({
