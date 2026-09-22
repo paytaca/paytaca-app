@@ -185,7 +185,9 @@ const routes = [
         children: [
           { path: 'keys', component: () => import('src/pages/apps/ai-admin/ai-admin-keys.vue'), name: 'ai-admin-keys' },
           { path: 'sessions', component: () => import('src/pages/apps/ai-admin/ai-admin-sessions.vue'), name: 'ai-admin-sessions' },
-          { path: 'buy-model', component: () => import('src/pages/apps/ai-admin/ai-admin-buy-form.vue'), name: 'ai-admin-buy-form' }
+          { path: 'buy-model', component: () => import('src/pages/apps/ai-admin/ai-admin-buy-form.vue'), name: 'ai-admin-buy-form' },
+          { path: 'images', component: () => import('src/pages/apps/ai-admin/ai-admin-images.vue'), name: 'ai-admin-images' },
+          { path: 'image-generate', component: () => import('src/pages/apps/ai-admin/ai-admin-image-generate.vue'), name: 'ai-admin-image-generate' },
         ]
       },
 

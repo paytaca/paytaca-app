@@ -183,6 +183,11 @@ export default {
           this.manualReferralCode = formatted
         })
       }
+    },
+    referralCode (val) {
+      if (val) {
+        this.manualReferralCode = val
+      }
     }
   },
 

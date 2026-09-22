@@ -152,6 +152,7 @@
       <RewardsStep 
         :walletHash="newWalletHash"
         :darkMode="darkMode"
+        :referral-code="referralCode"
         @on-proceed-to-next-step="goToStep3"
       />
     </div>
@@ -632,6 +633,10 @@ export default {
     recreate: {
       type: Boolean,
       default: false
+    },
+    referralCode: {
+      type: String,
+      default: ''
     }
   },
   components: {
