@@ -20,39 +20,72 @@
 
       <template v-else>
         <!-- Tab-aware summary -->
-        <div class="summary-card q-mb-md">
-          <template v-if="isActiveLoading">
-            <div class="row">
-              <div class="col text-center q-pa-sm" v-for="n in 3" :key="`stat-skeleton-${n}`">
-                <q-skeleton type="text" width="60%" class="q-mx-auto" />
-                <q-skeleton type="text" width="40%" class="q-mx-auto" />
+        <q-card
+          class="summary-card q-mb-md"
+          :class="[getDarkModeClass(darkMode), { 'summary-anim': !isActiveLoading }]"
+          flat
+        >
+          <q-card-section class="q-py-sm q-px-md">
+            <template v-if="isActiveLoading">
+              <div class="text-center q-mb-md">
+                <q-skeleton type="text" width="40%" height="22px" class="q-mx-auto" />
+                <q-skeleton type="text" width="25%" class="q-mx-auto" />
               </div>
-            </div>
-          </template>
+              <div class="row">
+                <div class="col text-center" v-for="n in 2" :key="`stat-skeleton-${n}`">
+                  <q-skeleton type="text" width="60%" class="q-mx-auto" />
+                  <q-skeleton type="text" width="40%" class="q-mx-auto" />
+                </div>
+              </div>
+            </template>
 
-          <template v-else>
-            <div class="row">
-              <div class="col text-center q-pa-sm">
-                <div class="summary-value">{{ activeTab === 'transactions' ? `${summary.transactions.totalCashbackLift} LIFT` : summary.topups.totalCount }}</div>
-                <div class="text-caption summary-label">{{ activeTab === 'transactions' ? 'Total cashback' : 'Total top-ups' }}</div>
-              </div>
-              <div class="col text-center q-pa-sm">
-                <div class="summary-value">
-                  <template v-if="activeTab === 'transactions'">{{ summary.transactions.eligibleTxCount }}</template>
-                  <template v-else><bch-amount :amount="getAssetDenomination('BCH', summary.topups.totalBch, false, true)" symbol="BCH" /></template>
+            <template v-else>
+              <div class="text-center q-mb-sm">
+                <div class="summary-value summary-value-lg">
+                  {{ activeTab === 'transactions' ? `${summary.transactions.totalCashbackLift} LIFT` : summary.topups.totalCount }}
                 </div>
-                <div class="text-caption summary-label">{{ activeTab === 'transactions' ? 'Eligible transactions' : 'BCH top-ups' }}</div>
-              </div>
-              <div class="col text-center q-pa-sm">
-                <div class="summary-value">
-                  <template v-if="activeTab === 'transactions'"><bch-amount :amount="getAssetDenomination('BCH', summary.transactions.totalBchSpent, false, true)" symbol="BCH" /></template>
-                  <template v-else>{{ summary.topups.totalLift }} LIFT</template>
+                <div class="text-caption summary-label">
+                  {{ activeTab === 'transactions' ? 'Total cashback' : 'Total top-ups' }}
                 </div>
-                <div class="text-caption summary-label">{{ activeTab === 'transactions' ? 'BCH spent' : 'LIFT top-ups' }}</div>
               </div>
-            </div>
-          </template>
-        </div>
+
+              <q-separator class="summary-separator" />
+
+              <div class="row">
+                <div class="col text-center">
+                  <div class="summary-value">
+                    <template v-if="activeTab === 'transactions'">
+                      {{ summary.transactions.eligibleTxCount }}
+                    </template>
+                    <template v-else>
+                      <bch-amount
+                        :amount="getAssetDenomination('BCH', summary.topups.totalBch, false, true)"
+                        symbol="BCH"
+                      />
+                    </template>
+                  </div>
+                  <div class="text-caption summary-label">
+                    {{ activeTab === 'transactions' ? 'Eligible transactions' : 'BCH top-ups' }}
+                  </div>
+                </div>
+                <div class="col text-center">
+                  <div class="summary-value">
+                    <template v-if="activeTab === 'transactions'">
+                      <bch-amount
+                        :amount="getAssetDenomination('BCH', summary.transactions.totalBchSpent, false, true)"
+                        symbol="BCH"
+                      />
+                    </template>
+                    <template v-else>{{ summary.topups.totalLift }} LIFT</template>
+                  </div>
+                  <div class="text-caption summary-label">
+                    {{ activeTab === 'transactions' ? 'BCH spent' : 'LIFT top-ups' }}
+                  </div>
+                </div>
+              </div>
+            </template>
+          </q-card-section>
+        </q-card>
 
         <div class="tabs-wrapper q-mt-sm q-mb-md" :class="getDarkModeClass(darkMode)">
           <div class="elite-tabs q-pa-xs" :class="getDarkModeClass(darkMode)">
@@ -304,7 +337,14 @@ export default {
 .summary-card {
   border-radius: 16px;
   border: 1px dashed rgba(212, 166, 67, 0.5);
-  background: rgba(212, 166, 67, 0.1);
+  background: linear-gradient(135deg, rgba(212, 166, 67, 0.12) 0%, rgba(212, 166, 67, 0.04) 100%);
+  box-shadow: 0 4px 16px rgba(120, 90, 20, 0.12);
+
+  &.dark {
+    background: linear-gradient(135deg, rgba(212, 166, 67, 0.22) 0%, rgba(212, 166, 67, 0.06) 100%);
+    border: 1px dashed rgba(212, 166, 67, 0.6);
+    box-shadow: 0 4px 18px rgba(0, 0, 0, 0.45);
+  }
 
   .summary-value {
     font-size: 16px;
@@ -312,8 +352,71 @@ export default {
     color: #d4a643;
   }
 
-  .light & .summary-value {
+  .summary-value-lg {
+    font-size: 19px;
+    font-weight: 800;
+    color: #d4a643;
+  }
+
+  .light & .summary-value,
+  .light & .summary-value-lg {
     color: #c89d36;
+  }
+
+  .summary-label {
+    margin-top: 3px;
+  }
+
+  .summary-separator {
+    background: rgba(212, 166, 67, 0.35);
+    margin-top: 7px;
+    margin-bottom: 7px;
+    position: relative;
+    overflow: hidden;
+
+    &::after {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 45%;
+      height: 100%;
+      background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.55), transparent);
+      animation: summary-separator-glimmer 2.6s ease-in-out 0.7s infinite;
+      pointer-events: none;
+    }
+  }
+
+  .dark & .summary-separator::after {
+    background: linear-gradient(90deg, transparent, rgba(212, 166, 67, 0.35), transparent);
+  }
+
+  /* Fade & Rise once on load */
+  &.summary-anim {
+    animation: summary-rise 0.7s cubic-bezier(0.22, 1, 0.36, 1) both;
+  }
+}
+
+@keyframes summary-rise {
+  from {
+    opacity: 0;
+    transform: translateY(18px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes summary-separator-glimmer {
+  0% {
+    transform: translateX(-120%);
+  }
+  55% {
+    transform: translateX(320%);
+  }
+  100% {
+    transform: translateX(320%);
   }
 }
 </style>
