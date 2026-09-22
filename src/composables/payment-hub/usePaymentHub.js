@@ -17,6 +17,13 @@ export function usePaymentHubCore() {
   const hub = ref(null)
   let webSocketInitialized = false
 
+  async function initWallet() {
+    if (!wallet.value) {
+      wallet.value = await loadWallet('BCH', $store.getters['global/getWalletIndex'])
+    }
+    return wallet.value
+  }
+
   /**
    *
    * @param {Object} opts
@@ -31,9 +38,8 @@ export function usePaymentHubCore() {
       $q.loading.show({ message: opts.loadingMessage || 'Connecting…' })
     }
     try {
-      if (!wallet.value) {
-        wallet.value = await loadWallet('BCH', $store.getters['global/getWalletIndex'])
-      }
+      await initWallet();
+
       if (!hub.value) {
         hub.value = new PaymentHub(wallet.value)
       }
@@ -74,6 +80,7 @@ export function usePaymentHubCore() {
   return {
     wallet,
     hub,
+    initWallet,
     initHub,
     initWebSocket,
     closeWebSocket,
