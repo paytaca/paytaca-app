@@ -61,6 +61,7 @@
         <q-btn
           flat
           color="primary"
+          class="tx-list-load-more-btn"
           :loading="loadingMore"
           @click="loadMore"
         >

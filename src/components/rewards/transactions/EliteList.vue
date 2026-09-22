@@ -86,3 +86,9 @@ export default {
   }
 }
 </script>
+
+<style lang="scss">
+.tx-list-load-more-btn {
+  color: #d4a643 !important;
+}
+</style>

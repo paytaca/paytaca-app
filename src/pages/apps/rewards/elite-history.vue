@@ -5,7 +5,10 @@
       title="Paytaca Elite"
     />
 
-    <h5 class="q-ma-none q-px-md text-primary text-weight-bold text-center">
+    <h5
+      class="q-ma-none q-px-md text-primary text-weight-bold text-center"
+      style="color: #d4a643 !important;"
+    >
       Transactions History
     </h5>
 
