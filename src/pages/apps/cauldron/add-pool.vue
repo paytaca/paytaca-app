@@ -236,6 +236,7 @@
       hide-check-key
       @addKey="routeKey($event)"
       @makeKeyAction="routeAction($event)"
+      @backPressed="keyboardState = 'dismiss'"
     >
       <template #slide>
         <DragSlide
