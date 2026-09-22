@@ -643,6 +643,8 @@ async function refreshPage(done, isBackground = false, scopes='all') {
       autoRegister: false,
       loadingMessage: $t('ConnectingToPaymentHub')
     })
+    fetchSupportedTokens()
+
     initWebSocket(webSocketEventHandler)
     if (scopes !== 'all' && !Array.isArray(scopes)) scopes = [];
 
@@ -1011,10 +1013,30 @@ function confirmRotateWebhookKeys() {
 }
 
 // --- Plans logic ---
+const supportedTokens = ref([].map(() => {
+  return { category: '', name: '', symbol: '', decimals: 0, icon: '', network: '' }
+}));
+async function fetchSupportedTokens() {
+  const isChipnet = $store.getters['global/isChipnet']
+  const params = {
+    network: isChipnet ? 'chipnet' : 'mainnet',
+  }
+
+  return hub.value.getSupportedTokens(params)
+    .then(response => {
+      console.log('Supported Tokens', response.data);
+      if (!Array.isArray(response.data?.results)) return Promise.reject({ response });
+      supportedTokens.value = response.data.results
+      return response
+    })
+}
 
 function createPlan() {
   $q.dialog({
-    component: PlanFormDialog
+    component: PlanFormDialog,
+    componentProps: {
+      supportedTokens: supportedTokens.value,
+    }
   }).onOk(async (data) => {
     try {
       $q.loading.show()

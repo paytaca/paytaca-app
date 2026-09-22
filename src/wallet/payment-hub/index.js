@@ -544,6 +544,19 @@ export class PaymentHub {
     return response.data
   }
 
+
+  /**
+   * Retrieves full details for a specific invoice.
+   * @param {String} invoiceId - The UUID or Short ID of the invoice.
+   */
+  async createInvoice(data) {
+    const response = await backend.post(`/invoices/`, data, {
+      authorize: true,
+      wallet: this.wallet
+    })
+    return response.data
+  }
+
   /**
    * Retrieves full details for a specific invoice.
    * @param {String} invoiceId - The UUID or Short ID of the invoice.
@@ -557,9 +570,17 @@ export class PaymentHub {
   }
 
   // --- Contract Artifact Section ---
-  async getContractArtifact() {
-    const response = await backend.get(`/contract/artifact`)
+  async getContractArtifact(type) {
+    const params = {};
+    if (type) params.type = type
+    
+    const response = await backend.get(`/contract/artifact`, { params })
     return response.data
+  }
+
+  // --- Supported Token ---
+  async getSupportedTokens(params) {
+    return await backend.get(`/supported-tokens/`, { params })
   }
 
   // --- Plans Section ---
@@ -639,10 +660,9 @@ export class PaymentHub {
    * Creates a new subscription. Note: usually called via Customer App / Public API with API key.
    * But we provide it here for completeness or merchant-side creation.
    * @param {Object} subscriptionData - Data for the subscription (plan_id, etc.)
-   * @param {String} apiKey - Required if called from public context, otherwise uses auth.
    */
-  async createSubscription(subscriptionData, apiKey = null) {
-    const config = apiKey ? { apiKey } : { 
+  async createSubscription(subscriptionData) {
+    const config = { 
       authorize: true, 
       wallet: this.wallet 
     }
