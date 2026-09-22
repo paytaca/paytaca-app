@@ -45,10 +45,11 @@
             <template v-else>
               <div class="text-center q-mb-sm">
                 <div class="summary-value summary-value-lg">
-                  {{ activeTab === 'transactions' ? `${summary.transactions.totalCashbackLift} LIFT` : summary.topups.totalCount }}
+                  <template v-if="activeTab === 'transactions'">{{ summary.transactions.eligibleTxCount }}</template>
+                  <template v-else>{{ summary.topups.totalCount }}</template>
                 </div>
                 <div class="text-caption summary-label">
-                  {{ activeTab === 'transactions' ? 'Total cashback' : 'Total top-ups' }}
+                  {{ activeTab === 'transactions' ? 'Eligible transactions' : 'Total top-ups' }}
                 </div>
               </div>
 
@@ -57,32 +58,21 @@
               <div class="row">
                 <div class="col text-center">
                   <div class="summary-value">
-                    <template v-if="activeTab === 'transactions'">
-                      {{ summary.transactions.eligibleTxCount }}
-                    </template>
-                    <template v-else>
-                      <bch-amount
-                        :amount="getAssetDenomination('BCH', summary.topups.totalBch, false, true)"
-                        symbol="BCH"
-                      />
-                    </template>
+                    <bch-amount
+                      :amount="getAssetDenomination('BCH', activeTab === 'transactions' ? summary.transactions.totalBchSpent : summary.topups.totalBch, false, true)"
+                      symbol="BCH"
+                    />
                   </div>
                   <div class="text-caption summary-label">
-                    {{ activeTab === 'transactions' ? 'Eligible transactions' : 'BCH top-ups' }}
+                    {{ activeTab === 'transactions' ? 'BCH spent' : 'BCH top-ups' }}
                   </div>
                 </div>
                 <div class="col text-center">
                   <div class="summary-value">
-                    <template v-if="activeTab === 'transactions'">
-                      <bch-amount
-                        :amount="getAssetDenomination('BCH', summary.transactions.totalBchSpent, false, true)"
-                        symbol="BCH"
-                      />
-                    </template>
-                    <template v-else>{{ summary.topups.totalLift }} LIFT</template>
+                    {{ activeTab === 'transactions' ? `${summary.transactions.totalCashbackLift} LIFT` : `${summary.topups.totalLift} LIFT` }}
                   </div>
                   <div class="text-caption summary-label">
-                    {{ activeTab === 'transactions' ? 'BCH spent' : 'LIFT top-ups' }}
+                    {{ activeTab === 'transactions' ? 'Total cashback' : 'LIFT top-ups' }}
                   </div>
                 </div>
               </div>
