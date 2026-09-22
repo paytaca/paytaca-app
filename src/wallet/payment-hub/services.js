@@ -17,7 +17,7 @@ export async function createCancelSubscriptionTransaction(opts) {
   if (!kit.inputs || !kit.inputs.length) return;
 
   // 1. Fetch contract artifact
-  const artifactObj = await hub.getContractArtifact();
+  const artifactObj = await hub.getContractArtifact(opts?.sub?.payment_category ? 'token' : undefined);
   const contract = getSubscriptionContractInstance(sub, artifactObj, isChipnet);
   const provider = contract.provider;
 
