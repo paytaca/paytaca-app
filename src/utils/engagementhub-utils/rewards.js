@@ -175,13 +175,19 @@ export async function getEliteProgramData () {
 
 function generateEliteTransactions () {
   const entries = []
+  const otcMerchants = ['Kapitolyo OTC', 'Greenhills OTC', 'Divisoria OTC', 'Alabang OTC', 'Mall of Asia OTC']
+  const marketplaceMerchants = ['Talisay Store', 'Bacolod Market', 'Cebu Collectibles', 'Davao Depot', 'Iloilo Finds']
   for (let i = 0; i < 30; i++) {
     const type = i % 2 === 0 ? 'otc' : 'marketplace'
     const bchSpent = Number((0.0003 + (i % 6) * 0.0003).toFixed(4))
     const liftCashback = Number((0.3 + (i % 5) * 0.5).toFixed(1))
     const date = new Date(Date.UTC(2026, 8, 28 - i, 9 + (i % 8), 15 + (i % 45)))
+    const merchants = type === 'otc' ? otcMerchants : marketplaceMerchants
     entries.push({
       type,
+      merchantName: merchants[i % merchants.length],
+      refId: type === 'otc' ? String(10000000 + i * 7).padStart(8, '0') : undefined,
+      orderId: type === 'marketplace' ? String((i * 3) % 1000).padStart(3, '0') : undefined,
       txId: `${String.fromCharCode(97 + (i % 26))}${(i + 10).toString(16)}4f5a6b7c8d9e0f1a2b3c4d5e6f7a8b9c0d1e2f3a4b5c6d7e`,
       bchSpent,
       liftCashback,

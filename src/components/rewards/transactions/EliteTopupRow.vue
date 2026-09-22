@@ -1,22 +1,28 @@
 <template>
-  <div class="elite-row">
-    <div class="elite-row-icon">
-      <q-icon :name="item.asset === 'bch' ? 'img:bch-logo.png' : 'img:lift-token.png'" />
-    </div>
-    <div class="elite-row-main">
-      <div class="elite-row-title">
+  <q-item class="elite-row">
+    <q-item-section avatar>
+      <div class="elite-row-icon">
+        <q-icon :name="item.asset === 'bch' ? 'img:bch-logo.png' : 'img:lift-token.png'" />
+      </div>
+    </q-item-section>
+
+    <q-item-section>
+      <q-item-label class="elite-row-title">
         {{ item.asset === 'bch' ? 'BCH' : 'LIFT' }}
         <span class="elite-row-tx">{{ item.txId.slice(0, 8) }}...{{ item.txId.slice(-8) }}</span>
-      </div>
-      <div class="elite-row-sub">{{ formatDateLocaleRelative(item.date, false) }}</div>
-    </div>
-    <div class="elite-row-side">
+      </q-item-label>
+      <q-item-label class="text-caption elite-row-sub">
+        {{ formatDateLocaleRelative(item.date, false) }}
+      </q-item-label>
+    </q-item-section>
+
+    <q-item-section side>
       <div class="elite-row-amt">
         <template v-if="item.asset === 'bch'">+<bch-amount :amount="getAssetDenomination('BCH', item.amount, false, true)" symbol="BCH" /></template>
         <template v-else>+{{ formatWithLocale(item.amount, { min: 0, max: LIFT_TOKEN_DECIMALS }) }} LIFT</template>
       </div>
-    </div>
-  </div>
+    </q-item-section>
+  </q-item>
 </template>
 
 <script>
