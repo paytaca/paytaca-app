@@ -90,6 +90,7 @@ import { useDialogPluginComponent, useQuasar } from 'quasar'
 import { useStore } from 'vuex'
 import { useRouter } from 'vue-router'
 import { useI18n } from 'vue-i18n'
+import { asyncSleep } from 'src/wallet/transaction-listener'
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 import { usePaymentHubCore, useSubscriptionUtils } from 'src/composables/payment-hub/usePaymentHub'
 import { topUpSubscription } from 'src/wallet/payment-hub/services'
@@ -231,6 +232,7 @@ async function sendTopup() {
       query: { from: backRoute.fullPath },
       params: { txid: txid },
     };
+    await asyncSleep(2000);
     $router.push(redirectRoute);
   } catch(error) {
     console.error(error)
