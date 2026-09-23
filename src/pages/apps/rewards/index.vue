@@ -401,7 +401,9 @@
                 <span class="text-caption">
                   <template v-if="eliteLiftPct >= 1"><span class="text-positive">✓&nbsp;</span></template>LIFT balance
                 </span>
-                <span class="text-caption text-weight-medium">{{ formattedEliteLift }} LIFT / {{ eliteData.liftThreshold }} LIFT</span>
+                <span class="text-caption text-weight-medium">
+                  {{ parseLiftToken(eliteData.liftBalance, true) }} / {{ parseLiftToken(eliteData.liftThreshold) }}
+                </span>
               </div>
               <q-linear-progress
                 :value="eliteLiftPct"
@@ -443,7 +445,7 @@
             </div>
             <div class="row">
               <div class="col elite-stat-box q-mx-xs br-10">
-                <div class="elite-stat-value">{{ formattedEliteCashback }} LIFT</div>
+                <div class="elite-stat-value">{{ parseLiftToken(eliteData.cashbackLift, true) }} LIFT</div>
                 <div class="text-caption">Total cashback received</div>
               </div>
               <div class="col elite-stat-box q-mx-xs br-10">
@@ -504,7 +506,9 @@
                 <span class="text-caption">
                   <template v-if="eliteLiftPct >= 1"><span class="text-positive">✓&nbsp;</span></template>LIFT balance
                 </span>
-                <span class="text-caption text-weight-medium">{{ formattedEliteLift }} LIFT / {{ eliteData.liftThreshold }} LIFT</span>
+                <span class="text-caption text-weight-medium">
+                  {{ parseLiftToken(eliteData.liftBalance, true) }} / {{ parseLiftToken(eliteData.liftThreshold) }}
+                </span>
               </div>
               <q-linear-progress
                 :value="eliteLiftPct"
@@ -553,6 +557,7 @@ import {
   PROMO_CONTRACT_VERSION,
   getAssetsThresholds
 } from 'src/utils/engagementhub-utils/rewards'
+import { parseLiftToken } from 'src/utils/engagementhub-utils/shared'
 
 import HeaderNav from 'src/components/header-nav.vue'
 import HelpCard from 'src/components/rewards/cards/HelpCard.vue'
@@ -781,22 +786,6 @@ export default {
       return `${amount.toLocaleString()} PHP`
     },
 
-    // Elite: formatted current LIFT balance
-    formattedEliteLift () {
-      const amount = this.eliteData?.liftBalance ?? 0
-      return amount.toLocaleString()
-    },
-
-    // Elite: formatted cashback received in LIFT
-    formattedEliteCashback () {
-      const amount = this.eliteData?.cashbackLift ?? 0
-      const hasFraction = amount % 1 !== 0
-      return formatWithLocale(
-        amount,
-        { min: hasFraction ? LIFT_TOKEN_DECIMALS : 0, max: LIFT_TOKEN_DECIMALS }
-      )
-    },
-
     // Elite card animation trigger — only after data has loaded
     eliteLoaded () {
       return !this.isLoading && !this.isEliteLoading && !this.error && !!this.eliteData
@@ -858,6 +847,7 @@ export default {
 
   methods: {
     getDarkModeClass,
+    parseLiftToken,
 
     toggleSummary () {
       this.isSummaryExpanded = !this.isSummaryExpanded
@@ -1034,13 +1024,18 @@ export default {
         if (eliteProgram) {
           this.eliteData.status = eliteProgram.status
         } else {
-          this.eliteData.status = 'paused'
+          this.eliteData.status = 'locked'
         }
 
         // fetch assets thresholds values
         const assetsThresholds = await getAssetsThresholds()
         this.eliteData.bchThreshold = assetsThresholds.bch_min_threshold
         this.eliteData.liftThreshold = assetsThresholds.lift_min_threshold
+
+        // do client-side asset balances check when status is locked
+        // if (this.eliteData.status === 'locked') {
+        //   this.getWalletAssetBalances()
+        // }
       } catch (error) {
         console.error('Error loading elite program data: ', error)
         this.eliteData = null
@@ -1048,6 +1043,16 @@ export default {
         this.isEliteLoading = false
       }
     },
+
+    // getWalletAssetBalances () {
+    //   const assets = this.$store.getters['assets/getAssets']
+    //   const bchBalance = assets[0]?.balance ?? 0
+    //   const liftIndex = assets.findIndex(asset => asset.id === `ct/${LIFT_TOKEN_CATEGORY}`)
+    //   const liftBalance = assets[liftIndex].balance ?? 0
+    //   console.log(bchBalance)
+    //   console.log(liftBalance)
+    //   this.eliteData.liftBalance = liftBalance
+    // },
 
     redirectToElitePage () {
       if (this.eliteData.status === 'locked') {
