@@ -388,7 +388,9 @@
                 <span class="text-caption">
                   <template v-if="eliteBchPct >= 1"><span class="text-positive">✓&nbsp;</span></template>BCH balance
                 </span>
-                <span class="text-caption text-weight-medium">{{ formattedEliteBch }} / {{ eliteData.bchThreshold }} PHP</span>
+                <span class="text-caption text-weight-medium">
+                  {{ parseFiatCurrencyWrapper(eliteData.bchBalance) }} / {{ parseFiatCurrencyWrapper(eliteData.bchThreshold) }}
+                </span>
               </div>
               <q-linear-progress
                 :value="eliteBchPct"
@@ -493,7 +495,9 @@
                 <span class="text-caption">
                   <template v-if="eliteBchPct >= 1"><span class="text-positive">✓&nbsp;</span></template>BCH balance
                 </span>
-                <span class="text-caption text-weight-medium">{{ formattedEliteBch }} / {{ eliteData.bchThreshold }} PHP</span>
+                <span class="text-caption text-weight-medium">
+                  {{ parseFiatCurrencyWrapper(eliteData.bchBalance) }} / {{ parseFiatCurrencyWrapper(eliteData.bchThreshold) }}
+                </span>
               </div>
               <q-linear-progress
                 :value="eliteBchPct"
@@ -778,14 +782,6 @@ export default {
       return Math.min(this.eliteData.liftBalance / this.eliteData.liftThreshold, 1)
     },
 
-    // Elite: formatted current BCH balance (in PHP)
-    formattedEliteBch () {
-      const amount = this.eliteData?.bchBalance ?? 0
-      // TODO: format using the user's selected currency once real engagement-hub data lands;
-      // the threshold is fixed at PHP 1,000
-      return `${amount.toLocaleString()} PHP`
-    },
-
     // Elite card animation trigger — only after data has loaded
     eliteLoaded () {
       return !this.isLoading && !this.isEliteLoading && !this.error && !!this.eliteData
@@ -848,6 +844,10 @@ export default {
   methods: {
     getDarkModeClass,
     parseLiftToken,
+
+    parseFiatCurrencyWrapper (amount) {
+      return parseFiatCurrency(amount, this.selectedCurrency.symbol)
+    },
 
     toggleSummary () {
       this.isSummaryExpanded = !this.isSummaryExpanded
@@ -1033,9 +1033,9 @@ export default {
         this.eliteData.liftThreshold = assetsThresholds.lift_min_threshold
 
         // do client-side asset balances check when status is locked
-        // if (this.eliteData.status === 'locked') {
-        //   this.getWalletAssetBalances()
-        // }
+        if (this.eliteData.status === 'locked') {
+          this.getWalletAssetBalances()
+        }
       } catch (error) {
         console.error('Error loading elite program data: ', error)
         this.eliteData = null
@@ -1044,15 +1044,17 @@ export default {
       }
     },
 
-    // getWalletAssetBalances () {
-    //   const assets = this.$store.getters['assets/getAssets']
-    //   const bchBalance = assets[0]?.balance ?? 0
-    //   const liftIndex = assets.findIndex(asset => asset.id === `ct/${LIFT_TOKEN_CATEGORY}`)
-    //   const liftBalance = assets[liftIndex].balance ?? 0
-    //   console.log(bchBalance)
-    //   console.log(liftBalance)
-    //   this.eliteData.liftBalance = liftBalance
-    // },
+    getWalletAssetBalances () {
+      const assets = this.$store.getters['assets/getAssets']
+      const bchBalance = Number(assets[0]?.balance ?? 0)
+      const liftIndex = assets.findIndex(asset => asset.id === `ct/${LIFT_TOKEN_CATEGORY}`)
+      const bchPrice = Number(
+        this.$store.getters['market/getAssetPrice'](assets[0]?.id ?? 'bch', this.selectedCurrency.symbol)
+      )
+
+      this.eliteData.bchBalance = bchBalance * bchPrice
+      this.eliteData.liftBalance = assets[liftIndex].balance ?? 0
+    },
 
     redirectToElitePage () {
       if (this.eliteData.status === 'locked') {
