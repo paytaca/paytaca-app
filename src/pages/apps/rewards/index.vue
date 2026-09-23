@@ -447,7 +447,7 @@
             </div>
             <div class="row">
               <div class="col elite-stat-box q-mx-xs br-10">
-                <div class="elite-stat-value">{{ parseLiftToken(eliteData.cashbackLift, true) }} LIFT</div>
+                <div class="elite-stat-value">{{ parseLiftToken(eliteData.cashbackLift, true) }}</div>
                 <div class="text-caption">Total cashback received</div>
               </div>
               <div class="col elite-stat-box q-mx-xs br-10">
@@ -621,7 +621,8 @@ export default {
         bchThreshold: 0,
         liftThreshold: 0,
         cashbackLift: 0, // total cashback received in LIFT
-        eligibleTxCount: 0
+        eligibleTxCount: 0,
+        id: -1
       },
 
       // Referral banner state
@@ -1020,6 +1021,9 @@ export default {
         // load elite program details
         if (eliteProgram) {
           this.eliteData.status = eliteProgram.status
+          this.eliteData.id = eliteProgram.pk
+          this.eliteData.cashbackLift = eliteProgram.total_lift_cashback_received
+          this.eliteData.eligibleTxCount = eliteProgram.eliteprogram_transaction_count
         } else {
           this.eliteData.status = 'locked'
         }
