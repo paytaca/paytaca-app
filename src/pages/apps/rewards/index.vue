@@ -388,7 +388,7 @@
                 <span class="text-caption">
                   <template v-if="eliteBchPct >= 1"><span class="text-positive">✓&nbsp;</span></template>BCH balance
                 </span>
-                <span class="text-caption text-weight-medium">{{ formattedEliteBch }} / ₱ 1,000</span>
+                <span class="text-caption text-weight-medium">{{ formattedEliteBch }} / {{ eliteData.bchThreshold }} PHP</span>
               </div>
               <q-linear-progress
                 :value="eliteBchPct"
@@ -401,7 +401,7 @@
                 <span class="text-caption">
                   <template v-if="eliteLiftPct >= 1"><span class="text-positive">✓&nbsp;</span></template>LIFT balance
                 </span>
-                <span class="text-caption text-weight-medium">{{ formattedEliteLift }} / 100 LIFT</span>
+                <span class="text-caption text-weight-medium">{{ formattedEliteLift }} / {{ eliteData.liftThreshold }} LIFT</span>
               </div>
               <q-linear-progress
                 :value="eliteLiftPct"
@@ -491,7 +491,7 @@
                 <span class="text-caption">
                   <template v-if="eliteBchPct >= 1"><span class="text-positive">✓&nbsp;</span></template>BCH balance
                 </span>
-                <span class="text-caption text-weight-medium">{{ formattedEliteBch }} / ₱ 1,000</span>
+                <span class="text-caption text-weight-medium">{{ formattedEliteBch }} / {{ eliteData.bchThreshold }} PHP</span>
               </div>
               <q-linear-progress
                 :value="eliteBchPct"
@@ -504,7 +504,7 @@
                 <span class="text-caption">
                   <template v-if="eliteLiftPct >= 1"><span class="text-positive">✓&nbsp;</span></template>LIFT balance
                 </span>
-                <span class="text-caption text-weight-medium">{{ formattedEliteLift }} / 100 LIFT</span>
+                <span class="text-caption text-weight-medium">{{ formattedEliteLift }} / {{ eliteData.liftThreshold }} LIFT</span>
               </div>
               <q-linear-progress
                 :value="eliteLiftPct"
@@ -551,7 +551,7 @@ import {
   updateRfPromoData,
   createUserRewardsData,
   PROMO_CONTRACT_VERSION,
-  getEliteProgramData,
+  getAssetsThresholds
 } from 'src/utils/engagementhub-utils/rewards'
 
 import HeaderNav from 'src/components/header-nav.vue'
@@ -605,7 +605,15 @@ export default {
 
       // Paytaca Elite program state
       isEliteLoading: false,
-      eliteData: null,
+      eliteData: {
+        status: 'locked', // 'locked' | 'active' | 'paused'
+        bchBalance: 0,
+        liftBalance: 0,
+        bchThreshold: 0,
+        liftThreshold: 0,
+        cashbackLift: 0, // total cashback received in LIFT
+        eligibleTxCount: 0
+      },
 
       // Referral banner state
       isReferralDialogActive: false,
@@ -770,7 +778,7 @@ export default {
       const amount = this.eliteData?.bchBalance ?? 0
       // TODO: format using the user's selected currency once real engagement-hub data lands;
       // the threshold is fixed at PHP 1,000
-      return `₱ ${amount.toLocaleString()}`
+      return `${amount.toLocaleString()} PHP`
     },
 
     // Elite: formatted current LIFT balance
@@ -927,6 +935,7 @@ export default {
 
       // process fetched upData
       if (upData && Object.keys(upData).length > 0) {
+        // points program
         try {
           this.totalPoints = 0
           for (const type of this.pointsType) {
@@ -963,6 +972,10 @@ export default {
           console.error(error)
           this.error = this.$t('PromoDataLoadingError')
         }
+
+        // elite program
+        await this.loadEliteProgramData(upData.elite_program)
+        
       } else if (upData && Object.keys(upData).length === 0) {
         await createUserPromoData()
       } else {
@@ -974,9 +987,6 @@ export default {
       
       // Start polling Cauldron prices (every 60 seconds)
       this.startCauldronPricePolling()
-
-      // Fetch Paytaca Elite program data (eligibility scan happens on the server)
-      await this.loadEliteProgramData()
 
       setTimeout(() => {
         this.$nextTick(() => {
@@ -1011,11 +1021,21 @@ export default {
       })
     },
 
-    async loadEliteProgramData () {
+    async loadEliteProgramData (eliteProgram) {
       this.isEliteLoading = true
+
       try {
-        // TODO: Replace mock data with the real engagement-hub endpoint once available
-        this.eliteData = await getEliteProgramData()
+        // load elite program details
+        if (eliteProgram) {
+          this.eliteData.status = eliteProgram.status
+        } else {
+          this.eliteData.status = 'locked'
+        }
+
+        // fetch assets thresholds values
+        const assetsThresholds = await getAssetsThresholds()
+        this.eliteData.bchThreshold = assetsThresholds.bch_min_threshold
+        this.eliteData.liftThreshold = assetsThresholds.lift_min_threshold
       } catch (error) {
         console.error('Error loading elite program data: ', error)
         this.eliteData = null
