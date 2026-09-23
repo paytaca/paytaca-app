@@ -275,7 +275,7 @@ export async function getRewardsSwapContractDetails () {
 export async function createUserPromoData () {
   await REWARDS_URL
     .post('userpromo/', { wallet_hash: getWalletHash() })
-    .then(_response => { })
+    .then(() => {})
     .catch(error => { console.error(error) })
 }
 
@@ -323,7 +323,7 @@ export async function getPromoRedeemHistory (promo, data) {
 export async function processReferralCode (data) {
   return await REWARDS_URL
     .post('userreward/process_referral_code/', data)
-    .then(_response => { return {} })
+    .then(() => { return {} })
     .catch(error => {
       console.error(error)
       return error.response?.data || { error: error.message || 'Network error' }
@@ -333,7 +333,7 @@ export async function processReferralCode (data) {
 export async function awardInitialUP (data) {
   return await REWARDS_URL
     .post('userreward/award_initial_points/', data)
-    .then(_response => { })
+    .then(() => {})
     .catch(error => { console.error(error) })
 }
 
