@@ -43,7 +43,7 @@
                   <template v-if="eliteBchPct >= 1"><span class="text-positive">✓&nbsp;</span></template>BCH balance
                 </span>
                 <span class="text-caption text-weight-medium">
-                  {{ formattedEliteBch }} PHP / {{ bchThreshold }} PHP
+                  {{ parseFiatCurrencyWrapper(bchBalance) }} / {{ parseFiatCurrencyWrapper(bchThreshold) }}
                 </span>
               </div>
               <q-linear-progress
@@ -87,7 +87,8 @@
 
 <script>
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
-import { parseLiftToken } from 'src/utils/engagementhub-utils/shared';
+import { parseLiftToken } from 'src/utils/engagementhub-utils/shared'
+import { parseFiatCurrencyWrapper } from 'src/utils/denomination-utils';
 
 export default {
   name: 'EliteProgramLockedDialog',
@@ -114,19 +115,12 @@ export default {
       if (!this.liftBalance || !this.liftThreshold) return 0
       return Math.min(this.liftBalance / this.liftThreshold, 1)
     },
-
-    // Elite: formatted current BCH balance (in PHP)
-    formattedEliteBch () {
-      const amount = this.bchBalance ?? 0
-      // TODO: format using the user's selected currency once real engagement-hub data lands;
-      // the threshold is fixed at PHP 1,000
-      return amount.toLocaleString()
-    },
   },
 
   methods: {
     getDarkModeClass,
-    parseLiftToken
+    parseLiftToken,
+    parseFiatCurrencyWrapper
   }
 }
 </script>

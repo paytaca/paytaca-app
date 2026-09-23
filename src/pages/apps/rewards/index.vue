@@ -546,7 +546,7 @@
 import { fetchTokensList } from 'src/wallet/cauldron/tokens'
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 import { getAddress0_0PublicKey } from 'src/utils/memo-key-utils'
-import { formatWithLocale, parseFiatCurrency } from 'src/utils/denomination-utils'
+import { formatWithLocale, parseFiatCurrencyWrapper } from 'src/utils/denomination-utils'
 import { LIFT_TOKEN_CATEGORY, LIFT_TOKEN_DECIMALS } from 'src/utils/subscription-utils'
 import {
   PromosBytes,
@@ -751,14 +751,14 @@ export default {
     // Format fiat price using parseFiatCurrency with locale detection
     formattedFiatPrice () {
       if (!this.liftFiatPrice || this.liftFiatPrice === 0) return '--'
-      return parseFiatCurrency(this.liftFiatPrice, this.selectedCurrency?.symbol)
+      return parseFiatCurrencyWrapper(this.liftFiatPrice)
     },
 
     // Format total fiat value
     formattedTotalFiat () {
       if (this.totalFiatValue === 0) return `0 ${this.selectedCurrency?.symbol}`
       if (!this.totalFiatValue) return '--'
-      return parseFiatCurrency(this.totalFiatValue, this.selectedCurrency?.symbol)
+      return parseFiatCurrencyWrapper(this.totalFiatValue)
     },
 
     // Format conversion ratio display
@@ -844,10 +844,7 @@ export default {
   methods: {
     getDarkModeClass,
     parseLiftToken,
-
-    parseFiatCurrencyWrapper (amount) {
-      return parseFiatCurrency(amount, this.selectedCurrency.symbol)
-    },
+    parseFiatCurrencyWrapper,
 
     toggleSummary () {
       this.isSummaryExpanded = !this.isSummaryExpanded
