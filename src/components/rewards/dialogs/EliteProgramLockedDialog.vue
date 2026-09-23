@@ -58,7 +58,7 @@
                   <template v-if="eliteLiftPct >= 1"><span class="text-positive">✓&nbsp;</span></template>LIFT balance
                 </span>
                 <span class="text-caption text-weight-medium">
-                  {{ formattedEliteLift }} LIFT / {{ liftThreshold }} LIFT
+                  {{ parseLiftToken(liftBalance) }} / {{ parseLiftToken(liftThreshold) }}
                 </span>
               </div>
               <q-linear-progress
@@ -87,6 +87,7 @@
 
 <script>
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
+import { parseLiftToken } from 'src/utils/engagementhub-utils/shared';
 
 export default {
   name: 'EliteProgramLockedDialog',
@@ -121,15 +122,11 @@ export default {
       // the threshold is fixed at PHP 1,000
       return amount.toLocaleString()
     },
-    // Elite: formatted current LIFT balance
-    formattedEliteLift () {
-      const amount = this.liftBalance ?? 0
-      return amount.toLocaleString()
-    },
   },
 
   methods: {
-    getDarkModeClass
+    getDarkModeClass,
+    parseLiftToken
   }
 }
 </script>
