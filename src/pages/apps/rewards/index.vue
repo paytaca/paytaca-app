@@ -318,7 +318,7 @@
 
       <!-- Paytaca Elite Section -->
       <div class="col-12 q-pt-md card-help-highlight">
-        <div class="elite-section-label q-mb-xs">
+        <div class="elite-section-label q-mb-sm">
           Paytaca Elite Program
         </div>
 
@@ -401,7 +401,7 @@
                 <span class="text-caption">
                   <template v-if="eliteLiftPct >= 1"><span class="text-positive">✓&nbsp;</span></template>LIFT balance
                 </span>
-                <span class="text-caption text-weight-medium">{{ formattedEliteLift }} / {{ eliteData.liftThreshold }} LIFT</span>
+                <span class="text-caption text-weight-medium">{{ formattedEliteLift }} LIFT / {{ eliteData.liftThreshold }} LIFT</span>
               </div>
               <q-linear-progress
                 :value="eliteLiftPct"
@@ -481,7 +481,7 @@
               </div>
             </div>
             <div class="text-caption q-mb-md q-mt-sm">
-              Paused. Your wallet balances fell below the threshold. Restore them to resume earning cashbacks.
+              Your wallet balances fell below the threshold. Restore them to resume earning cashbacks.
             </div>
             <div class="text-caption q-mb-sm">
               Current vs. requirement:
@@ -504,7 +504,7 @@
                 <span class="text-caption">
                   <template v-if="eliteLiftPct >= 1"><span class="text-positive">✓&nbsp;</span></template>LIFT balance
                 </span>
-                <span class="text-caption text-weight-medium">{{ formattedEliteLift }} / {{ eliteData.liftThreshold }} LIFT</span>
+                <span class="text-caption text-weight-medium">{{ formattedEliteLift }} LIFT / {{ eliteData.liftThreshold }} LIFT</span>
               </div>
               <q-linear-progress
                 :value="eliteLiftPct"
@@ -1034,7 +1034,7 @@ export default {
         if (eliteProgram) {
           this.eliteData.status = eliteProgram.status
         } else {
-          this.eliteData.status = 'locked'
+          this.eliteData.status = 'paused'
         }
 
         // fetch assets thresholds values

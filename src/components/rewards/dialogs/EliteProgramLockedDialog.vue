@@ -43,7 +43,7 @@
                   <template v-if="eliteBchPct >= 1"><span class="text-positive">✓&nbsp;</span></template>BCH balance
                 </span>
                 <span class="text-caption text-weight-medium">
-                  {{ formattedEliteBch }} / ₱ 1,000
+                  {{ formattedEliteBch }} PHP / {{ bchThreshold }} PHP
                 </span>
               </div>
               <q-linear-progress
@@ -58,7 +58,7 @@
                   <template v-if="eliteLiftPct >= 1"><span class="text-positive">✓&nbsp;</span></template>LIFT balance
                 </span>
                 <span class="text-caption text-weight-medium">
-                  {{ formattedEliteLift }} / 100 LIFT
+                  {{ formattedEliteLift }} LIFT / {{ liftThreshold }} LIFT
                 </span>
               </div>
               <q-linear-progress
@@ -119,7 +119,7 @@ export default {
       const amount = this.bchBalance ?? 0
       // TODO: format using the user's selected currency once real engagement-hub data lands;
       // the threshold is fixed at PHP 1,000
-      return `₱ ${amount.toLocaleString()}`
+      return amount.toLocaleString()
     },
     // Elite: formatted current LIFT balance
     formattedEliteLift () {
