@@ -9,6 +9,14 @@ const denomDecimalPlaces = {
   DEEM: { convert: 10 ** 5, decimal: 0 }
 }
 
+function getSelectedCurrency () {
+  return Store.getters['market/selectedCurrency']
+}
+
+function getCountry () {
+  return Store.getters['global/country']
+}
+
 export function normalizeDenomination (denomination) {
   if (!denomination) return denomination
   if (denomination === 'Satoshis') return 'sats'
@@ -31,14 +39,6 @@ export function getDenominationDisplayLabel (denomination) {
 export function getDenomDecimals(denomination) {
   const normalized = normalizeDenomination(denomination)
   return denomDecimalPlaces[normalized] ?? denomDecimalPlaces.DEEM
-}
-
-function getCountryCode () {
-  return Store.getters['global/country'].code
-}
-
-function getCountry () {
-  return Store.getters['global/country']
 }
 
 function getLocale () {
@@ -322,6 +322,10 @@ export function getFiatCurrencyFractionDigits (currency) {
   if (threeDecimal.has(code)) return 3
   if (fourDecimal.has(code)) return 4
   return 2
+}
+
+export function parseFiatCurrencyWrapper (amount) {
+  return parseFiatCurrency(amount, getSelectedCurrency().symbol)
 }
 
 export function parseFiatCurrency (amount, currency) {
