@@ -10,6 +10,8 @@ import { requestManager } from 'src/utils/request-manager'
 const ENGAGEMENT_HUB_URL = 'http://127.0.0.1:8000/api/'
 export const REWARDS_URL = axios.create({ baseURL: `${ENGAGEMENT_HUB_URL}rewards/` })
 requestManager.attachTo(REWARDS_URL)
+export const ELITEPROGRAM_URL = axios.create({ baseURL: `${ENGAGEMENT_HUB_URL}eliteprogram/` })
+requestManager.attachTo(ELITEPROGRAM_URL)
 export const PROMO_TOKEN_CATEGORY = process.env.PROMO_TOKEN_CATEGORY
 export const PROMO_TOKEN_DECIMALS = 2
 export const PROMO_CONTRACT_VERSION = 'v2'
@@ -159,18 +161,27 @@ export async function getLiftConversionRatio () {
   return { conversionRatio, eligibilityDate }
 }
 
-export async function getEliteProgramData () {
-  // TODO: Replace mock data with the real engagement-hub endpoint once the
-  // Paytaca Elite API is available (e.g. `await getData('elite/${getWalletHash()}/')`)
-  return {
-    status: 'active', // 'locked' | 'active' | 'paused'
-    bchBalance: 640, // BCH balance value in PHP
-    bchThreshold: 1000, // PHP 1,000 in BCH
-    liftBalance: 100,
-    liftThreshold: 100,
-    cashbackLift: 12.5, // total cashback received in LIFT
-    eligibleTxCount: 24
-  }
+export async function getAssetsThresholds () {
+  return await ELITEPROGRAM_URL
+    .get('get_assets_min_thresholds/')
+    .then(response => {
+      if (response.status === 200) return response.data
+      else {
+        return { // default values agreed upon from initial meeting
+          bch_min_threshold: 1000,
+          lift_min_threshold: 100
+        }
+      }
+    })
+    .catch(error => {
+      if (!error?.message?.includes('aborted')) {
+        console.error(error)
+      }
+      return { // default values agreed upon from initial meeting
+          bch_min_threshold: 1000,
+          lift_min_threshold: 100
+        }
+    })
 }
 
 function generateEliteTransactions () {
