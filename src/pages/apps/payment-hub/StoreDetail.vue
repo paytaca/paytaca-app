@@ -311,7 +311,15 @@
                               <div class="col ellipsis q-pr-sm">
                                 <div class="text-weight-bold">{{ sub.plan_details?.name || $t('Subscription') }}</div>
                                 <div class="text-caption text-grey text-weight-regular">
-                                  {{ sub.pledge_satoshis ? satsToBchDisplay(sub.pledge_satoshis) + ' BCH' : (sub.plan_details?.amount + ' ' + sub.plan_details?.currency) }}
+                                  <template v-if="sub.payment_category">
+                                    {{ getTotalTokenCostAmountText(sub) }}
+                                  </template>
+                                  <template v-else-if="sub.pledge_satoshis">
+                                    {{ satsToBchDisplay(sub.pledge_satoshis) + ' BCH' }}
+                                  </template>
+                                  <template v-else>
+                                    {{ sub.plan_details?.amount + ' ' + sub.plan_details?.currency }}
+                                  </template>
                                   &bull;
                                   <span v-if="sub.period_blocks">{{ sub.period_blocks }} {{ $t('Blocks') }}</span>
                                   <span v-else-if="sub.plan_details?.period_days">{{ sub.plan_details.period_days }} {{ $t('Days') }}</span>
@@ -490,7 +498,7 @@ const storeName = computed(() => $route.query.name)
 const displaySubs = ref(DISPLAY_SUBS_APP);
 
 const { wallet, hub, initHub, initWebSocket, closeWebSocket, _compareUUID } = usePaymentHubCore()
-const { satsToBchDisplay, getSubscriptionStatusColor } = useSubscriptionUtils()
+const { satsToBchDisplay, getTotalTokenCostAmountText, getSubscriptionStatusColor } = useSubscriptionUtils()
 
 // Core state
 const storeData = ref(null)
@@ -643,6 +651,8 @@ async function refreshPage(done, isBackground = false, scopes='all') {
       autoRegister: false,
       loadingMessage: $t('ConnectingToPaymentHub')
     })
+    fetchSupportedTokens()
+
     initWebSocket(webSocketEventHandler)
     if (scopes !== 'all' && !Array.isArray(scopes)) scopes = [];
 
@@ -1011,10 +1021,30 @@ function confirmRotateWebhookKeys() {
 }
 
 // --- Plans logic ---
+const supportedTokens = ref([].map(() => {
+  return { category: '', name: '', symbol: '', decimals: 0, icon: '', network: '' }
+}));
+async function fetchSupportedTokens() {
+  const isChipnet = $store.getters['global/isChipnet']
+  const params = {
+    network: isChipnet ? 'chipnet' : 'mainnet',
+  }
+
+  return hub.value.getSupportedTokens(params)
+    .then(response => {
+      console.log('Supported Tokens', response.data);
+      if (!Array.isArray(response.data?.results)) return Promise.reject({ response });
+      supportedTokens.value = response.data.results
+      return response
+    })
+}
 
 function createPlan() {
   $q.dialog({
-    component: PlanFormDialog
+    component: PlanFormDialog,
+    componentProps: {
+      supportedTokens: supportedTokens.value,
+    }
   }).onOk(async (data) => {
     try {
       $q.loading.show()
@@ -1088,7 +1118,7 @@ async function updateSubscriptionNft(sub, data) {
     const isChipnet = $store.getters['global/isChipnet']
     const bchWallet = isChipnet ? wallet.value.BCH_CHIP : wallet.value.BCH
 
-    const artifactObj = await hub.value.getContractArtifact()
+    const artifactObj = await hub.value.getContractArtifact(sub?.payment_category ? 'token' : undefined)
     const contract = getSubscriptionContractInstance(sub, artifactObj, isChipnet);
     const provider = contract.provider;
 
@@ -1118,10 +1148,17 @@ async function updateSubscriptionNft(sub, data) {
       throw new Error('Insufficient funds in merchant wallet to cover network fee')
     }
 
+    const unlockerArgs = [BigInt(data.new_pledge), BigInt(data.new_period), sig.getPublicKey(), sig];
+    if (sub.payment_category) {
+      const feeSats = BigInt(data.new_fee_sats ?? sub.paytaca_fee);
+      unlockerArgs.splice(1, 0, feeSats);
+    }
+    const unlocker = contract.unlock.updateNft(...unlockerArgs);
+
     const txBuilder = new TransactionBuilder({ provider })
     const formattedInputs = kit.inputs.map(input => formatKitInput(input));
     const formattedOutputs = kit.outputs.map(output => formatKitOutput(output));
-    txBuilder.addInputs(formattedInputs, contract.unlock.updateNft(BigInt(data.new_pledge), BigInt(data.new_period), sig.getPublicKey(), sig))
+    txBuilder.addInputs(formattedInputs, unlocker);
     txBuilder.addOutputs(formattedOutputs)
 
     for (const fUtxo of fundingUtxos) {

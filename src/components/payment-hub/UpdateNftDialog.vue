@@ -16,11 +16,28 @@
                 :label="$t('NewPledge')"
                 outlined
                 dense
+                reactive-rules
+                bottom-slots
                 :rules="[
                   val => !!val || $t('Required'),
-                  () => !subscription.max_pledge || finalPledgeSats <= subscription.max_pledge || errorMsgs.maxPledge
+                  val => !subscription.max_pledge || val <= maxPledge || errorMsgs.maxPledge
                 ]"
-              />
+              >
+                <template v-slot:append>
+                  <q-btn
+                    flat
+                    dense
+                    :label="$t('Max')"
+                    @click="form.pledge = maxPledge"
+                  />
+                </template>
+                <template v-slot:hint>
+                  <div v-if="subscription.payment_category && pledgeValueSats">
+                    ~{{ satsToBchDisplay(pledgeValueSats) }} BCH
+                  </div>
+
+                </template>
+              </q-input>
             </div>
             <div class="col-4">
               <q-select
@@ -31,6 +48,20 @@
                 dense
                 options-dense
               />
+            </div>
+          </div>
+          <div v-if="minFeeSats && pledgeValueSats" class="q-mb-md q-gutter-y-sm">
+            <div>
+              <div class="text-caption text-grey">
+                Paytaca Fee
+                <template v-if="!subscription.payment_category">(Approx.)</template>:
+              </div>
+              <div>{{ satsToBchDisplay(feeSats) }} BCH</div>
+            </div>
+            
+            <div>
+              <div class="text-caption text-grey">Minimum Fee Sats (0.01 USD)</div>
+              <div>{{ satsToBchDisplay(minFeeSats) }} BCH</div>
             </div>
           </div>
 
@@ -80,10 +111,11 @@
 
 <script setup>
 import { useI18n } from 'vue-i18n'
-import { ref, computed } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { useStore } from 'vuex'
 import { useDialogPluginComponent } from 'quasar'
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
+import { useSubscriptionUtils } from 'src/composables/payment-hub/usePaymentHub'
 
 const props = defineProps({
   subscription: {
@@ -98,39 +130,110 @@ const { t: $t } = useI18n();
 const $store = useStore()
 const darkMode = computed(() => $store.getters['darkmode/getStatus'])
 
-const planCurrency = props.subscription.plan_details?.currency
-const pledgeUnitOptions = ['Satoshis', 'BCH']
-if (planCurrency && planCurrency !== 'BCH') {
-  pledgeUnitOptions.push(planCurrency)
-}
+const { satsToBchDisplay } = useSubscriptionUtils();
 
+const planCurrency = computed(() => props.subscription.plan_details?.currency)
 const bchPrice = computed(() => {
   if (!planCurrency || planCurrency === 'BCH') return 1
+
+  const priceFromSubscription = parseFloat(props.subscription.bch_rate_value);
+  if (priceFromSubscription) return priceFromSubscription;
+
   return $store.state.global.fiatRates?.[planCurrency] || 0
 })
 
+const pledgeUnitOptions = computed(() => {
+  const options = [];
+  if (!props.subscription?.payment_category) {
+    options.push('Satoshis', 'BCH');
+  }
+  if (planCurrency.value !== 'BCH' && bchPrice.value) {
+    options.push(planCurrency.value)
+  }
+  return options
+})
+
 const form = ref({
-  pledge: props.subscription.pledge_satoshis,
-  pledgeUnit: 'Satoshis',
-  period: props.subscription.period_blocks,
+  pledge: 0,
+  pledgeUnit: '',
+  period: 0,
   periodUnit: 'Blocks'
 })
 
-// Initialize with better units if possible
-if (props.subscription.period_blocks % 4320 === 0) {
-  form.value.period = props.subscription.period_blocks / 4320
-  form.value.periodUnit = 'Months'
-} else if (props.subscription.period_blocks % 144 === 0) {
-  form.value.period = props.subscription.period_blocks / 144
-  form.value.periodUnit = 'Days'
+onMounted(() => resetForm())
+function resetForm() {
+  const sub = props.subscription;
+  if (sub.payment_category) {
+    const decimals = sub.plan_details?.token?.decimals ?? 0;
+    form.value.pledge = sub.pledge_tokens / 10 ** decimals;
+    form.value.pledgeUnit = planCurrency.value
+  } else {
+    form.value.pledge = sub.pledge_satoshis
+    form.value.pledgeUnit = 'Satoshis';
+
+    if (form.value.pledge % 1e8 === 0) {
+      form.value.pledge = form.value.pledge / 1e8
+      form.value.pledgeUnit = 'BCH'
+    }
+  }
+
+  form.value.period = sub.period_blocks;
+  form.value.periodUnit = 'Blocks';
+
+  // Initialize with better units if possible
+  if (props.subscription.period_blocks % 4320 === 0) {
+    form.value.period = props.subscription.period_blocks / 4320
+    form.value.periodUnit = 'Months'
+  } else if (props.subscription.period_blocks % 144 === 0) {
+    form.value.period = props.subscription.period_blocks / 144
+    form.value.periodUnit = 'Days'
+  }
 }
 
-if (props.subscription.pledge_satoshis % 100000000 === 0) {
-  form.value.pledge = props.subscription.pledge_satoshis / 100000000
-  form.value.pledgeUnit = 'BCH'
-}
+const pledgeValueSats = computed(() => {
+  if (form.value.pledgeUnit === 'BCH') return Math.floor(form.value.pledge * 1e8);
+  if (form.value.pledgeUnit === 'Satoshis') return form.value.pledge;
 
-const finalPledgeSats = computed(() => {
+  if (!bchPrice.value) return null;
+  return Math.floor((form.value.pledge / bchPrice.value) * 1e8);
+})
+const feeSats = computed(() => {
+  const sub = props.subscription;
+  const fee = Math.floor(pledgeValueSats.value / 100)
+  if (fee > sub.max_fee) return sub.max_fee;
+  if (fee < minFeeSats.value) return minFeeSats.value;
+  return fee;
+})
+
+const usdPrice = computed(() => $store.getters['market/getAssetPrice']('bch', 'USD'))
+const minFeeSats = computed(() => {
+  // This is 0.01 USD
+  return Math.floor(1e6 / usdPrice.value);
+})
+
+const maxPledge = computed(() => {
+  const sub = props.subscription;
+  const maxUnit = sub.max_pledge;
+  if (sub.payment_category) {
+    const decimals = sub.plan_details?.token?.decimals ?? 0;
+    return maxUnit / 10 ** decimals;
+  } else {
+    if (form.value.pledgeUnit === 'BCH') return maxUnit / 1e8;
+    if (form.value.pledgeUnit === planCurrency.value && bchPrice.value) {
+      const bch = maxUnit / 1e8;
+      return bch * bchPrice.value;
+    }
+    return maxUnit;
+  }
+})
+
+const finalPledgeUnits = computed(() => {
+  const sub = props.subscription
+  if (sub.payment_category) {
+    const decimals = sub.plan_details?.token?.decimals ?? 0;    
+    return Math.floor(form.value.pledge * 10 ** decimals);
+  }
+
   if (form.value.pledgeUnit === 'BCH') {
     return Math.floor(form.value.pledge * 1e8)
   }
@@ -154,8 +257,9 @@ const finalPeriodBlocks = computed(() => {
 
 function submitUpdate() {
   onDialogOK({
-    new_pledge: finalPledgeSats.value,
-    new_period: finalPeriodBlocks.value
+    new_pledge: finalPledgeUnits.value,
+    new_fee_sats: feeSats.value,
+    new_period: finalPeriodBlocks.value,
   })
 }
 
@@ -163,8 +267,8 @@ const errorMsgs = computed(() => {
   const subscription = props.subscription;
   return {
     maxPledge: $t(
-      'CannotExceedMaxPledgeMsg', { maxPledge: subscription.max_pledge },
-      `Cannot exceed max pledge of ${subscription.max_pledge}`
+      'CannotExceedMaxPledgeMsg', { maxPledge: maxPledge.value },
+      `Cannot exceed max pledge of ${maxPledge.value}`
     ),
     minPeriod: $t(
       'MinPeriodMsg', { blocks: subscription.min_period },

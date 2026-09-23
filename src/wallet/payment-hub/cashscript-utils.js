@@ -25,7 +25,7 @@ export function getSubscriptionContractInstance(sub, artifactObj, isChipnet) {
   const funderPayload = getPkhash(sub.funder_address)
   const paytacaPayload = getPkhash(sub.paytaca_address)
 
-  const contract = new Contract(artifactObj, [
+  const contractParams = [
     merchantPayload,
     funderPayload,
     paytacaPayload,
@@ -36,8 +36,17 @@ export function getSubscriptionContractInstance(sub, artifactObj, isChipnet) {
     categoryBytes,
     BigInt(sub.contract_timestamp),
     BigInt(sub.max_payments || 0)
-  ], { provider })
+  ]
 
+  if(sub.payment_category) {
+    const reversedPaymentCategoryHex = sub.payment_category.match(/.{1,2}/g).reverse().join('')
+    const paymentCategoryBytes = new Uint8Array(
+      reversedPaymentCategoryHex.match(/.{1,2}/g).map(byte => parseInt(byte, 16))
+    )
+    contractParams.push(paymentCategoryBytes);
+  }
+
+  const contract = new Contract(artifactObj, contractParams, { provider })
   return contract
 }
 
