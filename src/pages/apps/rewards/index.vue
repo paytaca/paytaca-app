@@ -354,8 +354,8 @@
         <!-- Elite: Not Qualified -->
         <div
           v-else-if="eliteData && eliteData.status === 'locked'"
-          class="row full-width q-pa-md br-15 group-currency elite-card cursor-pointer"
-          :class="getDarkModeClass(darkMode)"
+          class="row full-width q-pa-md br-15 group-currency elite-card elite-locked cursor-pointer"
+          :class="[getDarkModeClass(darkMode), { loaded: eliteLoaded }]"
           @click="redirectToElitePage"
         >
           <div class="col-12">
@@ -415,8 +415,8 @@
         <!-- Elite: Active -->
         <div
           v-else-if="eliteData && eliteData.status === 'active'"
-          class="row full-width q-pa-md br-15 group-currency elite-card cursor-pointer"
-          :class="getDarkModeClass(darkMode)"
+          class="row full-width q-pa-md br-15 group-currency elite-card elite-active cursor-pointer"
+          :class="[getDarkModeClass(darkMode), { loaded: eliteLoaded }]"
           @click="redirectToElitePage"
         >
           <div class="col-12">
@@ -457,8 +457,8 @@
         <!-- Elite: Paused -->
         <div
           v-else-if="eliteData && eliteData.status === 'paused'"
-          class="row full-width q-pa-md br-15 group-currency elite-card cursor-pointer"
-          :class="getDarkModeClass(darkMode)"
+          class="row full-width q-pa-md br-15 group-currency elite-card elite-paused cursor-pointer"
+          :class="[getDarkModeClass(darkMode), { loaded: eliteLoaded }]"
           @click="redirectToElitePage"
         >
           <div class="col-12">
@@ -795,6 +795,11 @@ export default {
         amount,
         { min: hasFraction ? LIFT_TOKEN_DECIMALS : 0, max: LIFT_TOKEN_DECIMALS }
       )
+    },
+
+    // Elite card animation trigger — only after data has loaded
+    eliteLoaded () {
+      return !this.isLoading && !this.isEliteLoading && !this.error && !!this.eliteData
     }
   },
 
@@ -1097,12 +1102,50 @@ export default {
 
 /* Elite card gold accent */
 .elite-card {
+  position: relative;
+  overflow: hidden;
   border-left: 3px solid #d4a643;
   background: linear-gradient(135deg, rgba(212, 166, 67, 0.16) 0%, rgba(212, 166, 67, 0.04) 100%) !important;
 
   &.dark {
     background: linear-gradient(135deg, rgba(212, 166, 67, 0.28) 0%, rgba(212, 166, 67, 0.06) 100%) !important;
   }
+
+  /* Glimmer sweep — active status only */
+  &.loaded.elite-active::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 40%;
+    height: 100%;
+    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.12), rgba(255, 255, 255, 0.18), transparent);
+    transform: translateX(-120%);
+    animation: elite-star-sweep 3s ease-in-out infinite;
+    pointer-events: none;
+    z-index: 1;
+  }
+
+  &.loaded.dark.elite-active::before {
+    background: linear-gradient(90deg, transparent, rgba(212, 166, 67, 0.08), rgba(212, 166, 67, 0.14), transparent);
+  }
+
+  /* Pulsing border glow — locked/paused status */
+  &.loaded.elite-locked,
+  &.loaded.elite-paused {
+    animation: elite-border-glow 2.5s ease-in-out infinite;
+  }
+}
+
+@keyframes elite-star-sweep {
+  0% { transform: translateX(-120%); }
+  55% { transform: translateX(320%); }
+  100% { transform: translateX(320%); }
+}
+
+@keyframes elite-border-glow {
+  0%, 100% { box-shadow: 0 0 8px rgba(212, 166, 67, 0.25); }
+  50% { box-shadow: 0 0 20px rgba(212, 166, 67, 0.55); }
 }
 
 /* Elite status pills */
