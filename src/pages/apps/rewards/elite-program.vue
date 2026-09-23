@@ -176,6 +176,7 @@ export default {
       dataError: '',
 
       eliteData: null,
+      eliteId: -1,
       transactions: [],
       topups: []
     }
@@ -220,6 +221,7 @@ export default {
       if (!append) this.isLoading = true
       this.pointsError = ''
       this.dataError = ''
+      this.eliteId = Number(this.$route.params.id || -1)
 
       try {
         const data = await getEliteProgramPageData()

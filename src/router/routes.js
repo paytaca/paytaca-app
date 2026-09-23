@@ -371,7 +371,7 @@ const routes = [
             props: true
           },
           {
-            path: 'elite-program',
+            path: 'elite-program/:id',
             name: 'app-rewards-elite-program',
             component: () => import('src/pages/apps/rewards/elite-program.vue')
           },
