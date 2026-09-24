@@ -161,11 +161,15 @@ export async function getLiftConversionRatio () {
   return { conversionRatio, eligibilityDate }
 }
 
+export async function getRewardsSwapContractDetails () {
+  return await getData('userpromo/get_rewards_swap_contract_details/')
+}
+
 export async function getAssetsThresholds () {
   return await ELITEPROGRAM_URL
     .get('get_assets_min_thresholds/')
-    .then(response => {
-      if (response.status === 200) return response.data
+    .then(resp => {
+      if (resp.status === 200) return resp.data
       else {
         return { // default values agreed upon from initial meeting
           bch_min_threshold: 1000,
@@ -183,6 +187,21 @@ export async function getAssetsThresholds () {
         }
     })
 }
+
+export async function getEliteProgramSummaryData (id) {
+  return await ELITEPROGRAM_URL
+    .get(`${id}/`)
+    .then(resp => {
+      if (resp.status === 200) return resp.data
+      else return null
+    })
+    .catch(error => {
+      if (!error?.message?.includes('aborted')) {
+        console.error(error)
+      }
+      return null
+    })
+} 
 
 function generateEliteTransactions () {
   const entries = []
@@ -275,10 +294,6 @@ export async function getEliteProgramHistoryData ({ type, limit = 10, offset = 0
     hasMore: offset + sliced.length < items.length,
     summary: buildEliteSummary(transactions, topups)
   }
-}
-
-export async function getRewardsSwapContractDetails () {
-  return await getData('userpromo/get_rewards_swap_contract_details/')
 }
 
 // ========== create functions ==========
