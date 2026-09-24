@@ -233,97 +233,19 @@ export async function getEliteProgramTopupsData (id, limit, offset) {
     })
 }
 
-function generateEliteTransactions () {
-  const entries = []
-  const otcMerchants = ['Kapitolyo OTC', 'Greenhills OTC', 'Divisoria OTC', 'Alabang OTC', 'Mall of Asia OTC']
-  const marketplaceMerchants = ['Talisay Store', 'Bacolod Market', 'Cebu Collectibles', 'Davao Depot', 'Iloilo Finds']
-  for (let i = 0; i < 30; i++) {
-    const type = i % 2 === 0 ? 'otc' : 'marketplace'
-    const bchSpent = Number((0.0003 + (i % 6) * 0.0003).toFixed(4))
-    const liftCashback = Number((0.3 + (i % 5) * 0.5).toFixed(1))
-    const date = new Date(Date.UTC(2026, 8, 28 - i, 9 + (i % 8), 15 + (i % 45)))
-    const merchants = type === 'otc' ? otcMerchants : marketplaceMerchants
-    entries.push({
-      type,
-      merchantName: merchants[i % merchants.length],
-      refId: type === 'otc' ? String(10000000 + i * 7).padStart(8, '0') : undefined,
-      orderId: type === 'marketplace' ? String((i * 3) % 1000).padStart(3, '0') : undefined,
-      txId: `${String.fromCharCode(97 + (i % 26))}${(i + 10).toString(16)}4f5a6b7c8d9e0f1a2b3c4d5e6f7a8b9c0d1e2f3a4b5c6d7e`,
-      bchSpent,
-      liftCashback,
-      date: date.toISOString()
+export async function getEliteProgramHistorySummaryData (id) {
+  return await ELITEPROGRAM_URL
+    .get(`${id}/summary/`)
+    .then(resp => {
+      if (resp.status === 200) return resp.data
+      else return null
     })
-  }
-  return entries
-}
-
-function generateEliteTopups () {
-  const entries = []
-  for (let i = 0; i < 25; i++) {
-    const asset = i % 2 === 0 ? 'bch' : 'lift'
-    const amount = asset === 'bch'
-      ? Number((0.001 + (i % 7) * 0.001).toFixed(4))
-      : 10 + (i % 9) * 10
-    const date = new Date(Date.UTC(2026, 8, 24 - i, 8 + (i % 7), 5 + (i % 50)))
-    entries.push({
-      asset,
-      txId: `${String.fromCharCode(104 + (i % 26))}${(i + 20).toString(16)}0f1a2b3c4d5e6f7a8b9c0d1e2f3a4b5c6d7e8f9a0b1c2d3e`,
-      amount,
-      date: date.toISOString()
+    .catch(error => {
+      if (!error?.message?.includes('aborted')) {
+        console.error(error)
+      }
+      return null
     })
-  }
-  return entries
-}
-
-function buildEliteSummary (transactions, topups) {
-  const totalBchSpent = transactions.reduce((sum, t) => sum + t.bchSpent, 0)
-  const totalCashbackLift = transactions.reduce((sum, t) => sum + t.liftCashback, 0)
-  const bchTopups = topups.filter(t => t.asset === 'bch')
-  const liftTopups = topups.filter(t => t.asset === 'lift')
-  return {
-    transactions: {
-      totalCashbackLift: Number(totalCashbackLift.toFixed(2)),
-      eligibleTxCount: transactions.length,
-      totalBchSpent: Number(totalBchSpent.toFixed(4))
-    },
-    topups: {
-      totalCount: topups.length,
-      totalBch: Number(bchTopups.reduce((sum, t) => sum + t.amount, 0).toFixed(4)),
-      totalLift: Number(liftTopups.reduce((sum, t) => sum + t.amount, 0).toFixed(2))
-    }
-  }
-}
-
-export async function getEliteProgramPageData () {
-  // TODO: Replace mock data with the real engagement-hub endpoint once the
-  // Paytaca Elite API is available (e.g. `await getData('elite/${getWalletHash()}/details/')`)
-  const transactions = generateEliteTransactions()
-  const topups = generateEliteTopups()
-  const summary = buildEliteSummary(transactions, topups)
-  return {
-    status: 'active', // 'active' | 'paused'
-    cashbackLift: summary.transactions.totalCashbackLift,
-    eligibleTxCount: summary.transactions.eligibleTxCount,
-    monthlyCashback: 350, // current month cashback in PHP
-    maxCashbackPerMonth: 1000, // PHP 1,000
-    transactions,
-    topups,
-    summary
-  }
-}
-
-export async function getEliteProgramHistoryData ({ type, limit = 10, offset = 0 }) {
-  // TODO: Replace mock data with the real engagement-hub endpoint once the
-  // Paytaca Elite API is available (e.g. `await getData('elite/${getWalletHash()}/history/', { type, limit, offset })`)
-  const transactions = generateEliteTransactions()
-  const topups = generateEliteTopups()
-  const items = type === 'topups' ? topups : transactions
-  const sliced = items.slice(offset, offset + limit)
-  return {
-    items: sliced,
-    hasMore: offset + sliced.length < items.length,
-    summary: buildEliteSummary(transactions, topups)
-  }
 }
 
 // ========== create functions ==========

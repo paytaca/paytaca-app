@@ -58,21 +58,22 @@
               <div class="row">
                 <div class="col text-center">
                   <div class="summary-value">
-                    <bch-amount
-                      :amount="getAssetDenomination('BCH', activeTab === 'transactions' ? summary.transactions.totalBchSpent : summary.topups.totalBch, false, true)"
-                      symbol="BCH"
-                    />
+                    {{ parseFiatCurrencyWrapper(
+                      activeTab === 'transactions' ? summary.transactions.totalFiatCashback : summary.topups.totalFiatTopUp
+                      ) }}
                   </div>
                   <div class="text-caption summary-label">
-                    {{ activeTab === 'transactions' ? 'BCH spent' : 'BCH top-ups' }}
+                    {{ activeTab === 'transactions' ? 'Total cashback' : 'Total top-ups' }}
                   </div>
                 </div>
                 <div class="col text-center">
                   <div class="summary-value">
-                    {{ activeTab === 'transactions' ? `${summary.transactions.totalCashbackLift} LIFT` : `${summary.topups.totalLift} LIFT` }}
+                    {{ parseLiftToken(
+                      activeTab === 'transactions' ? summary.transactions.totalCashbackLift : summary.topups.totalTopUp
+                      ) }}
                   </div>
                   <div class="text-caption summary-label">
-                    {{ activeTab === 'transactions' ? 'Total cashback' : 'LIFT top-ups' }}
+                    {{ activeTab === 'transactions' ? 'LIFT cashback' : 'LIFT top-ups' }}
                   </div>
                 </div>
               </div>
@@ -133,13 +134,17 @@
 
 <script>
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
-import { getEliteProgramHistoryData, getEliteProgramTransactionsData, getEliteProgramTopupsData } from 'src/utils/engagementhub-utils/rewards'
+import {
+  getEliteProgramHistorySummaryData,
+  getEliteProgramTransactionsData,
+  getEliteProgramTopupsData
+} from 'src/utils/engagementhub-utils/rewards'
+import { parseLiftToken } from 'src/utils/engagementhub-utils/shared'
+import { parseFiatCurrencyWrapper } from 'src/utils/denomination-utils'
 
 import HeaderNav from 'src/components/header-nav.vue'
 import ErrorCard from 'src/components/rewards/cards/ErrorCard.vue'
 import EliteList from 'src/components/rewards/transactions/EliteList.vue'
-import BchAmount from 'src/components/common/BchAmount.vue'
-import { getAssetDenomination } from 'src/utils/denomination-utils'
 
 const TABS = new Set(['transactions', 'topups'])
 
@@ -149,8 +154,7 @@ export default {
   components: {
     HeaderNav,
     ErrorCard,
-    EliteList,
-    BchAmount
+    EliteList
   },
 
   data () {
@@ -169,8 +173,8 @@ export default {
       isLoadingTopups: false,
       dataError: '',
       summary: {
-        transactions: { totalCashbackLift: 0, eligibleTxCount: 0, totalBchSpent: 0 },
-        topups: { totalCount: 0, totalBch: 0, totalLift: 0 }
+        transactions: { totalCashbackLift: 0, eligibleTxCount: 0, totalFiatCashback: 0 },
+        topups: { totalCount: 0, totalTopUp: 0, totalFiatTopUp: 0 }
       }
     }
   },
@@ -206,7 +210,8 @@ export default {
 
   methods: {
     getDarkModeClass,
-    getAssetDenomination,
+    parseLiftToken,
+    parseFiatCurrencyWrapper,
 
     isTx (type) {
       return type === 'transactions'
@@ -222,14 +227,35 @@ export default {
       const offset = this.isTx(type) ? this.offsetTx : this.offsetTopups
 
       try {
+        const listPromise = this.isTx(type)
+          ? getEliteProgramTransactionsData(this.eliteId, this.limit, offset)
+          : getEliteProgramTopupsData(this.eliteId, this.limit, offset)
+
+        let data
         if (!append) {
-          const summaryData = await getEliteProgramHistoryData({ type, limit: this.limit, offset })
-          if (summaryData) this.summary = summaryData.summary
+          const [summaryData, listData] = await Promise.all([
+            getEliteProgramHistorySummaryData(this.eliteId),
+            listPromise
+          ])
+          if (summaryData) {
+            this.summary = {
+              transactions: {
+                totalCashbackLift: summaryData.transactions?.total_lift_cashback_received ?? 0,
+                eligibleTxCount: summaryData.transactions?.count ?? 0,
+                totalFiatCashback: summaryData.transactions?.total_fiat_lift_cashback_received ?? 0
+              },
+              topups: {
+                totalCount: summaryData.topups?.count ?? 0,
+                totalTopUp: summaryData.topups?.total_top_up_amount ?? 0,
+                totalFiatTopUp: summaryData.topups?.total_fiat_top_up_amount ?? 0
+              }
+            }
+          }
+          data = listData
+        } else {
+          data = await listPromise
         }
 
-        const data = this.isTx(type)
-          ? await getEliteProgramTransactionsData(this.eliteId, this.limit, offset)
-          : await getEliteProgramTopupsData(this.eliteId, this.limit, offset)
         const items = data?.results || []
         const hasMore = offset + items.length < (data?.count || 0)
 
