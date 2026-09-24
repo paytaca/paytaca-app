@@ -124,7 +124,7 @@ export class Card {
 
   get activeContractVersion() {
     const active = this.contracts.find(c => c.is_active)
-    return active?.version || null
+    return active?.version || this.raw?.contract?.version || null
   }
 
   get hasV2Contract() {
@@ -796,12 +796,13 @@ export class Card {
    * @param {number} [opts.page_size]
    * @returns {Promise<Array>}
    */
-  async getTransactions({ page, page_size } = {}) {
+  async getTransactions({ page, page_size, version } = {}) {
     const cardIdOrUid = this.id || this.uid
     if (!cardIdOrUid) throw new Error('Card id or uid is required')
     const params = {}
     if (page) params.page = page
     if (page_size) params.page_size = page_size
+    if (version) params.version = version
     const response = await backend.get(`/cards/${cardIdOrUid}/transactions/`, { params })
       .catch(error => {
         cardLogger.error('Error fetching transactions:', error.message);
@@ -1502,6 +1503,8 @@ export function normalizeContractHistoryItem(item) {
     merchantRefId: item?.merchant?.ref_id ?? null,
     address: item?.address || null,
     card: item?.card || null,
+    version: item?.version ?? null,
+    contract: item?.contract ?? null,
     created_at: item?.created_at || null,
     raw: item,
   }

@@ -53,6 +53,10 @@ export function clearUserLocation (state) {
   state.location = {}
 }
 
+export function setTransactionVersionFilter (state, { cardId, version }) {
+  state.transactionVersionFilters = { ...state.transactionVersionFilters, [cardId]: version }
+}
+
 export function setMerchants (state, merchants) {
   state.merchants = merchants
 }

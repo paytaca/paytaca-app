@@ -913,6 +913,7 @@ export default {
         })
         this.getCardBchBalance()
         this.fetchCardTokenHoldings()
+        this.refreshCardHistory()
       } catch (error) {
         cardLogger.error('Failed to activate V2:', error.message || error)
         this.$q.notify({

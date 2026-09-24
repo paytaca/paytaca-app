@@ -54,8 +54,15 @@ export async function fetchCards (context, { page = 1, page_size = 10, filters =
     }
 }
 
-export async function fetchCardTransactions (context, { cardId, page = 1, page_size = 25 } = {}) {
+export async function fetchCardTransactions (context, { cardId, page = 1, page_size = 25, version } = {}) {
     try {
+        const explicitVersion = version !== undefined;
+        if (explicitVersion) {
+            context.commit('setTransactionVersionFilter', { cardId, version: version || null });
+        }
+        const activeVersion = explicitVersion
+            ? version
+            : context.state.transactionVersionFilters?.[cardId];
         let cardData = context.state.cards.find(c => c.id === cardId);
         if (!cardData) {
             const cardUser = await loadCardUser();
@@ -69,7 +76,7 @@ export async function fetchCardTransactions (context, { cardId, page = 1, page_s
             }
         }
         const card = await hydrateCard(cardData);
-        const rawTransactions = await card.getTransactions({ page, page_size });
+        const rawTransactions = await card.getTransactions({ page, page_size, version: activeVersion || undefined });
         if (!Array.isArray(rawTransactions)) {
             throw new Error('fetchCardTransactions did not return an array');
         }
@@ -101,8 +108,8 @@ export async function fetchCardTransactions (context, { cardId, page = 1, page_s
     }
 }
 
-export async function refreshCardTransactions (context, { cardId } = {}) {
-    return fetchCardTransactions(context, { cardId, page: 1, page_size: 25 });
+export async function refreshCardTransactions (context, { cardId, version } = {}) {
+    return fetchCardTransactions(context, { cardId, page: 1, page_size: 25, version });
 }
 
 export async function fetchCardBalance (context, cardId) {

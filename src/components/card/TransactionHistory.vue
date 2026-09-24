@@ -23,6 +23,21 @@
     </div>
 
     <div class="row items-center q-mb-sm">
+      <q-btn-toggle
+        v-model="versionFilter"
+        :options="versionFilterOptions"
+        toggle-color="primary"
+        :color="$q.dark.isActive ? 'grey-9' : 'grey-3'"
+        :text-color="$q.dark.isActive ? 'grey-4' : 'grey-8'"
+        dense
+        no-caps
+        size="sm"
+        rounded
+        @update:model-value="onVersionFilterChange"
+      />
+    </div>
+
+    <div class="row items-center q-mb-sm">
       <div class="text-subtitle2" :class="textColor">History</div>
       <q-space />
       <q-btn
@@ -69,7 +84,15 @@
                 <q-icon v-else name="south_west" color="positive" size="xs" />
               </q-item-section>
               <q-item-section>
-                <div class="text-weight-bold" :class="textColor">{{ rowTitle(tx) }}</div>
+                <div class="row items-center" style="gap: 6px;">
+                  <div class="text-weight-bold" :class="textColor">{{ rowTitle(tx) }}</div>
+                  <q-badge
+                    :color="versionBadgeColor(tx.version)"
+                    :label="versionBadgeLabel(tx.version)"
+                    class="text-weight-medium"
+                    style="font-size: 9px; padding: 2px 6px;"
+                  />
+                </div>
                 <div class="text-caption" :class="$q.dark.isActive ? 'text-grey-5' : 'text-grey'">{{ tx.created_at_display }}</div>
               </q-item-section>
               <q-item-section side>
@@ -92,7 +115,7 @@
         </div>
       </div>
       <div v-else class="text-center q-pa-xl" :class="$q.dark.isActive ? 'text-grey-5' : 'text-grey'">
-        No transactions found
+        No transactions
       </div>
     </div>
 
@@ -120,6 +143,19 @@
               <q-item-section>
                 <q-item-label caption :class="captionColor">Type</q-item-label>
                 <q-item-label class="text-capitalize">{{ selectedTx.kind }}</q-item-label>
+              </q-item-section>
+            </q-item>
+            <q-item class="q-px-none">
+              <q-item-section>
+                <q-item-label caption :class="captionColor">Contract version</q-item-label>
+                <q-item-label>
+                  <q-badge
+                    :color="versionBadgeColor(selectedTx.version)"
+                    :label="versionBadgeLabel(selectedTx.version)"
+                    class="text-weight-medium"
+                    style="font-size: 10px; padding: 2px 6px;"
+                  />
+                </q-item-label>
               </q-item-section>
             </q-item>
             <q-item v-if="selectedTx.merchant?.name || selectedTx.merchantRefId != null" class="q-px-none">
@@ -180,6 +216,12 @@ export default {
       loading: false,
       showDetails: false,
       selectedTx: null,
+      versionFilter: 'all',
+      versionFilterOptions: [
+        { label: 'All', value: 'all' },
+        { label: 'V1', value: 'v1' },
+        { label: 'V2', value: 'v2' },
+      ],
     }
   },
   computed: {
@@ -240,11 +282,19 @@ export default {
     }
   },
   async mounted() {
+    const stored = this.$store.state.card?.transactionVersionFilters?.[this.card?.id]
+    this.versionFilter = stored === 'v1' || stored === 'v2' ? stored : 'all'
     await this.refresh()
   },
   methods: {
     async fetchTransactions() {
-      return this.$store.dispatch('card/fetchCardTransactions', { cardId: this.card?.id })
+      return this.$store.dispatch('card/fetchCardTransactions', {
+        cardId: this.card?.id,
+        version: this.versionFilter === 'all' ? null : this.versionFilter,
+      })
+    },
+    async onVersionFilterChange() {
+      await this.refresh()
     },
     async refresh() {
       if (!this.card?.id) return;
@@ -257,6 +307,15 @@ export default {
         this.loading = false;
         this.isLoaded = true;
       }
+    },
+    versionBadgeLabel(version) {
+      if (version === 'v1' || version === 'v2') return version.toUpperCase();
+      return 'Legacy';
+    },
+    versionBadgeColor(version) {
+      if (version === 'v2') return 'positive';
+      if (version === 'v1') return this.$q.dark.isActive ? 'grey-7' : 'grey-6';
+      return this.$q.dark.isActive ? 'grey-8' : 'grey-5';
     },
     ftTokenAsset(category) {
       if (!category) return null;
