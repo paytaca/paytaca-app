@@ -338,6 +338,62 @@ export class Card {
   }
 
   /**
+   * True when the active contract can sweep fungible tokens on-chain via
+   * the contract's `sweep` function (v2 contracts only).
+   * @returns {boolean}
+   */
+  get supportsOnchainTokenSweep() {
+    return this.isV2Active && !!this.contract?.supportsTokenSweep
+  }
+
+  /**
+   * Sweeps one FT category from the active contract to the wallet's token
+   * address using the contract's on-chain `sweep` function.
+   * Only supported on v2 contracts.
+   * @param {string} tokenId - FT category hex
+   * @param {Object} [opts]
+   * @param {boolean} [opts.broadcast=true]
+   * @returns {Promise<Object>}
+   */
+  async sweepFungibleToken(tokenId, opts = { broadcast: true }) {
+    cardLogger.log('[card.sweepFungibleToken] Sweeping FT category to wallet token address...');
+    this._assertContract();
+    this._assertWallet();
+
+    const tokenAddress = this.wallet.tokenAddress();
+    const toAddress = this.wallet.address();
+    const privateKey = this.wallet.privkey();
+    const built = await this.contract.sweepFungibleToken({
+      ownerWif: privateKey, tokenId, tokenAddress, toAddress, broadcast: false,
+    });
+    if (built?.success === false) return built;
+    const txHex = built?.txHex;
+    if (!txHex) throw new Error('Failed to build token sweep transaction');
+    if (!opts.broadcast) return { success: true, txHex, tokenAddress, toAddress, tokenId };
+
+    const result = await broadcastCardTransaction(txHex, 'sweep', { cardIdOrUid: this.id || this.uid });
+    cardLogger.log('[card.sweepFungibleToken] Sweep response:', result);
+    return { ...result, txHex, tokenAddress, toAddress, tokenId };
+  }
+
+  /**
+   * Sweeps one FT category to the wallet's token address.
+   * Uses the on-chain `sweep` for v2 contracts; falls back to the backend
+   * spend-based sweep for v1 contracts.
+   * @param {string} tokenId - FT category hex
+   * @param {Object} [opts]
+   * @param {boolean} [opts.broadcast=true]
+   * @returns {Promise<{success: boolean|'unknown', txid: string|null}>}
+   */
+  async sweepToken(tokenId, opts = { broadcast: true }) {
+    if (this.supportsOnchainTokenSweep) {
+      return this.sweepFungibleToken(tokenId, opts);
+    }
+    this._assertWallet();
+    return this.sweepFungibleTokens(tokenId, this.wallet.tokenAddress());
+  }
+
+  /**
    * Gets BCH UTXOs for card address
    * @returns {Promise<Object>}
    */

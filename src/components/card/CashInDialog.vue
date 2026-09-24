@@ -13,6 +13,7 @@
 
         <!-- Fund Type Toggle -->
         <q-btn-toggle
+          v-if="fundTypeOptions.length > 1"
           v-model="fundType"
           spread
           no-caps
@@ -21,10 +22,7 @@
           toggle-color="primary"
           :color="$q.dark.isActive ? 'grey-8' : 'grey-3'"
           :text-color="$q.dark.isActive ? 'grey-4' : 'grey-7'"
-          :options="[
-            { label: 'BCH', value: 'BCH' },
-            { label: 'CashToken', value: 'TOKEN' }
-          ]"
+          :options="fundTypeOptions"
           class="q-mb-md"
         />
 
@@ -378,6 +376,16 @@ export default {
     isBchMode () {
       return this.fundType === 'BCH'
     },
+    canFundTokens () {
+      const version = this.card?.activeContractVersion
+      if (!version) return true
+      return version !== 'v1'
+    },
+    fundTypeOptions () {
+      const options = [{ label: 'BCH', value: 'BCH' }]
+      if (this.canFundTokens) options.push({ label: 'CashToken', value: 'TOKEN' })
+      return options
+    },
     isExternalTokenPath () {
       return !this.isBchMode && this.tokenPath === 'external'
     },
@@ -442,8 +450,10 @@ export default {
     modelValue (val) {
       this.showDialog = val
       if (val) {
-        if (this.defaultFundType === 'BCH' || this.defaultFundType === 'TOKEN') {
-          this.fundType = this.defaultFundType
+        if (this.defaultFundType === 'TOKEN' && this.canFundTokens) {
+          this.fundType = 'TOKEN'
+        } else {
+          this.fundType = 'BCH'
         }
         this.refreshCardBalance()
         this.loadCardTokenHoldings()
@@ -478,6 +488,11 @@ export default {
     fundType() {
       this.updateInputErrorMessage(null)
       this.checkInputValidation()
+    },
+    canFundTokens(allowed) {
+      if (!allowed && this.fundType === 'TOKEN') {
+        this.fundType = 'BCH'
+      }
     },
     tokenPath() {
       this.updateInputErrorMessage(null)

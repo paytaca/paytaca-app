@@ -35,32 +35,6 @@
 
       <q-separator color="primary" />
 
-      <div class="settings-item">
-        <div class="settings-item-content">
-          <q-icon 
-            name="notifications" 
-            :color="activeCard?.isAlertsEnabled ? 'primary' : 'grey'"
-            size="24px"
-          />
-          <div class="q-ml-md disabled-item">
-            <div class="text-subtitle2" :class="textColor">Transaction Alerts</div>
-            <div 
-              class="text-caption"
-              :class="$q.dark.isActive ? 'text-grey-5' : 'text-grey'">
-              Get notified for every transaction
-            </div>
-          </div>
-        </div>
-        <q-toggle
-          disable
-          v-model="isAlertsEnabled"
-          color="primary"
-          @update:model-value="onAlertsToggle"
-        />
-      </div>
-
-      <q-separator color="primary" />
-
       <div v-if="activeCard?.hasV2Contract" class="settings-item">
         <div class="settings-item-content">
           <q-icon
@@ -290,15 +264,15 @@
             <q-btn flat dense icon="refresh" color="primary" :loading="ftLoading || sweepAuthLoading" @click="checkSweepAuthAndBalances" />
             <div class="text-caption" :class="$q.dark.isActive ? 'text-grey-5' : 'text-grey'">Sweepable fungible tokens on this card</div>
           </div>
-          <div v-if="sweepAuthLoading" class="flex flex-center q-pa-md">
+          <div v-if="requiresSweepAuth && sweepAuthLoading" class="flex flex-center q-pa-md">
             <q-spinner-dots color="primary" size="32px" />
           </div>
-          <div v-else-if="sweepAuthError" class="text-caption text-negative q-mb-sm">
+          <div v-else-if="requiresSweepAuth && sweepAuthError" class="text-caption text-negative q-mb-sm">
             {{ sweepAuthError }}
             <q-btn flat dense color="primary" :label="$t('Retry', {}, 'Retry')" @click="checkSweepAuth" />
           </div>
           <div
-            v-else-if="!sweepAuthNft"
+            v-else-if="requiresSweepAuth && !sweepAuthNft"
             class="q-mb-md q-pa-md"
             :class="$q.dark.isActive ? 'bg-grey-9' : 'bg-grey-2'"
             style="border-radius: 12px;"
@@ -475,7 +449,6 @@ export default {
   data() {
     return {
       isLocked: this.activeCard?.isLocked || false,
-      isAlertsEnabled: this.activeCard?.isAlertsEnabled || false,
       isLocking: false,
       replacementReason: null,
       cardReplacementStatus: 'none',
@@ -509,8 +482,12 @@ export default {
       if (!this.ftDestination) return ''
       return this.normalizeFtDestination(this.ftDestination) ? '' : 'Enter a valid CashToken address'
     },
+    requiresSweepAuth() {
+      return !this.activeCard?.isV2Active
+    },
     canSweepFt() {
-      return !this.ftSweeping && this.ftSelected.length > 0 && !!this.ftDestination && !this.ftDestinationError && !!this.sweepAuthNft
+      const authed = this.requiresSweepAuth ? !!this.sweepAuthNft : true
+      return !this.ftSweeping && this.ftSelected.length > 0 && !!this.ftDestination && !this.ftDestinationError && authed
     },
     replacementReasons () {
       return [
@@ -537,7 +514,6 @@ export default {
     satoshiToBch,
     async loadData() {
       this.isLocked = this.activeCard.isLocked || false;
-      this.isAlertsEnabled = this.activeCard.isAlertsEnabled || false;
       await this.loadCardBalance()
       this.loadCardReplacementStatus()
       this.setDefaultFtDestination()
@@ -611,7 +587,7 @@ export default {
       await Promise.allSettled([this.checkSweepAuth(), this.loadFtBalances()])
     },
     async checkSweepAuth() {
-      if (!this.activeCard) return
+      if (!this.activeCard || !this.requiresSweepAuth) return
       this.sweepAuthLoading = true
       this.sweepAuthError = ''
       try {
@@ -656,7 +632,10 @@ export default {
       if (!destination) return
       this.ftStatusMap = { ...this.ftStatusMap, [tokenId]: { state: 'loading' } }
       try {
-        const result = await this.activeCard.sweepFungibleTokens(tokenId, destination)
+        const result = await this.activeCard.sweepToken(tokenId)
+        if (result?.success === false) {
+          throw new Error(result?.message || 'Sweep failed')
+        }
         if (result?.success === 'unknown') {
           this.ftStatusMap = { ...this.ftStatusMap, [tokenId]: { state: 'unknown' } }
         } else {
@@ -732,28 +711,6 @@ export default {
         });
       } finally {
         this.isLocking = false;
-      }
-    },
-    async onAlertsToggle(isAlertsEnabled) {
-      try {
-        // Call API to update alerts status
-        await this.$store.dispatch('card/updateCardAlertsStatus', {
-          cardId: this.activeCard.id,
-          isAlertsEnabled
-        });
-        // Optionally show a success message
-        this.$q.notify({
-          type: 'positive',
-          message: this.$t('TransactionAlertsUpdated', { status: isAlertsEnabled ? this.$t('Enabled', {}, 'enabled') : this.$t('Disabled', {}, 'disabled') }, `Transaction alerts have been ${isAlertsEnabled ? 'enabled' : 'disabled'} successfully!`)
-        });
-      } catch (error) {
-        // Revert toggle state on error
-        this.isAlertsEnabled = !isAlertsEnabled;
-        // Show error message
-        this.$q.notify({
-          type: 'negative',
-          message: this.$t('FailedToUpdateTransactionAlerts', {}, 'Failed to update transaction alerts. Please try again.')
-        });
       }
     },
     async handleSweepFunds () {
@@ -860,7 +817,7 @@ export default {
     },
 
     saveCardSettings() {
-      // Emit event to save other card settings like transaction alerts
+      // Emit event to save other card settings
       this.$emit('save-card-settings', this.activeCard);
     },
 

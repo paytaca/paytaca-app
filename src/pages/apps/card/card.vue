@@ -106,7 +106,9 @@
                 {{ v2OwnershipSet ? 'V2 is ready' : 'Upgrade to V2 to pay with tokens' }}
               </div>
               <div class="text-caption" style="opacity: 0.85;">
-                {{ v2OwnershipSet ? 'Move your V1 funds into V2 or switch back to V2' : 'V2 supports fungible token payments' }}
+                {{ v2OwnershipSet
+                  ? (hasV1Funds ? 'Move your V1 funds into V2 or switch back to V2' : 'Switch back to V2 to keep your card up to date')
+                  : 'V2 supports fungible token payments' }}
               </div>
               <template v-slot:action>
                 <q-btn
@@ -132,7 +134,9 @@
 
                 <div class="q-mb-md" :class="textColorGrey" style="line-height: 1.5;">
                   {{ v2OwnershipSet
-                    ? 'V2 is already set up. Switch back to V2 or move your remaining V1 funds into it.'
+                    ? (hasV1Funds
+                      ? 'V2 is already set up. Switch back to V2 or move your remaining V1 funds into it.'
+                      : 'V2 is already set up. Switch back to V2 to continue using it.')
                     : 'V2 enables fungible token payments. Activate V2 first, then sweep your V1 funds into it.' }}
                 </div>
 
@@ -549,6 +553,10 @@ export default {
     showMigrationBanner () {
       if (!this.activeCard) return false
       return this.activeCard.hasV2Contract && !this.activeCard.isV2Active
+    },
+
+    hasV1Funds () {
+      return Number(this.bchBalance) > 0
     },
 
     bchFiatText () {

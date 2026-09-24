@@ -2,7 +2,7 @@
 import { cardLogger } from 'src/utils/debug-logger.js'
 import { Contract as MainnetContract } from '@mainnet-cash/contract';
 import { SignatureTemplate, Contract, TransactionBuilder, Network, ElectrumNetworkProvider } from 'cashscript';
-import { DUST_LIMIT } from '../constants.js';
+import { DUST_LIMIT, minTokenValue } from '../constants.js';
 import { binToHex } from '@bitauth/libauth';
 import { pubkeyToPkHash } from '../utils.js';
 import { decodeCommitment, encodeCommitment, encodeMerchantHash } from '../auth-nft.js';
@@ -119,6 +119,36 @@ class TapToPay {
             vout: utxo.vout,
             satoshis: BigInt(utxo.value)
         })) || []
+    }
+
+    /**
+     * Fetches fungible (non-NFT) CashToken UTXOs for the contract address.
+     * Auth and ownership NFTs are excluded.
+     * @param {string} [tokenId] - Optional token category to filter UTXOs.
+     * @returns {Promise<Array>}
+     */
+    async getFungibleTokenUtxos (tokenId = null) {
+        const tokenAddress = toTokenAddress(this.getContract().address)
+        const response = await watchtower.BCH._api.get(`utxo/ct/${tokenAddress}/`, {
+            params: { is_cashtoken: true }
+        })
+        const utxos = response.data?.utxos || []
+        return utxos
+            .filter(utxo => {
+                const hasNft = !!utxo.capability || (utxo.commitment !== null && utxo.commitment !== undefined && utxo.commitment !== '')
+                if (hasNft) return false
+                if (tokenId && String(utxo.tokenid) !== String(tokenId)) return false
+                return true
+            })
+            .map(utxo => ({
+                txid: utxo.txid,
+                vout: utxo.vout,
+                satoshis: BigInt(utxo.value),
+                token: {
+                    category: utxo.tokenid,
+                    amount: BigInt(utxo.amount || 0)
+                }
+            }))
     }
 
     /**
@@ -527,6 +557,15 @@ class TapToPayNft extends TapToPay {
     }
 
     /**
+     * Whether this contract version supports sweeping fungible tokens with
+     * the `sweep` function. V1 rejects token inputs; V2 allows them.
+     * @returns {boolean}
+     */
+    get supportsTokenSweep () {
+        return false
+    }
+
+    /**
      * Sweeps all contract-held BCH to the provided address.
      *
      * @param {Object} params
@@ -655,6 +694,168 @@ class TapToPayNft extends TapToPay {
         }
 
         cardLogger.log('[sweep] Sweep result:', result)
+        return result
+    }
+
+    /**
+     * Sweeps fungible tokens of a single category out of the contract.
+     *
+     * Uses the same `sweep` contract function as the BCH sweep, but with
+     * the category's FT UTXOs as inputs and a single consolidated FT output
+     * to the provided token address. The BCH sweep is left untouched.
+     * Only supported on v2 contracts; v1 contracts reject token inputs.
+     *
+     * @param {Object} params
+     * @param {string} params.ownerWif - Owner WIF used to authorize the sweep.
+     * @param {string} params.tokenId - FT category to sweep.
+     * @param {string} params.tokenAddress - Destination token-aware address for the tokens.
+     * @param {string} params.toAddress - Destination cash address for BCH value
+     *   carried by the token UTXOs.
+     * @param {boolean} [params.broadcast=true] - Broadcast transactions when true.
+     * @returns {Promise<Object>} Token sweep result.
+     */
+    async sweepFungibleToken ({ ownerWif, tokenId, tokenAddress, toAddress, broadcast = true }) {
+        cardLogger.log('[sweepFungibleToken] Starting token sweep with params:', { tokenId, tokenAddress, broadcast })
+
+        if (!this.supportsTokenSweep) {
+            throw new Error('Fungible token sweep is not supported by this contract version.')
+        }
+        if (!tokenId) {
+            throw new Error('tokenId is required to sweep fungible tokens.')
+        }
+
+        let destination = tokenAddress
+        if (!destination || isTokenAddress(destination) === false) {
+            try {
+                destination = toTokenAddress(destination)
+            } catch {
+                throw new Error('A valid token-aware destination address is required to sweep fungible tokens.')
+            }
+        }
+
+        const contract = this.getContract()
+        const ownerSig = new SignatureTemplate(ownerWif)
+        const ownerPk = binToHex(ownerSig.getPublicKey())
+        const ownerPkh = pubkeyToPkHash(ownerPk)
+
+        const ownerUtxo = await this.getOwnershipPkhUtxo()
+        const decodedCommitment = ownerUtxo?.token?.nft?.commitment ? decodeOwnershipCommitment(ownerUtxo.token.nft.commitment) : undefined
+        if (!ownerUtxo || !decodedCommitment || decodedCommitment.value !== ownerPkh) {
+            throw new Error('Invalid owner token UTXO or ownership not set correctly. Cannot proceed with token sweep.')
+        }
+
+        cardLogger.log('[sweepFungibleToken] Owner UTXO:', ownerUtxo)
+        const ftUtxos = await this.getFungibleTokenUtxos(tokenId)
+        cardLogger.log('[sweepFungibleToken] FT UTXOs:', ftUtxos)
+
+        if (!ftUtxos?.length) {
+            return { success: false, message: 'No fungible tokens to sweep.' }
+        }
+
+        // Prepare inputs: ownership NFT + the category's FT UTXOs being swept
+        const inputs = [{
+            satoshis: toBigInt(ownerUtxo.satoshis),
+            txid: ownerUtxo.txid,
+            vout: ownerUtxo.vout,
+            token: ownerUtxo.token
+        }]
+
+        const tokenInputs = ftUtxos.map(utxo => ({
+            satoshis: toBigInt(utxo.satoshis),
+            txid: utxo.txid,
+            vout: utxo.vout,
+            token: {
+                amount: toBigInt(utxo.token.amount),
+                category: utxo.token.category
+            }
+        }))
+
+        inputs.push(...tokenInputs)
+
+        const totalTokenAmount = tokenInputs.reduce((sum, input) => sum + toBigInt(input.token.amount), 0n)
+        const totalTokenSats = tokenInputs.reduce((sum, input) => sum + toBigInt(input.satoshis), 0n)
+
+        // Keep only dust in the token output; return the remaining BCH value
+        // carried by the token UTXOs to the cash address.
+        let tokenOutputSats = totalTokenSats
+        let excessBch = 0n
+        if (totalTokenSats > minTokenValue + DUST_LIMIT) {
+            if (!toAddress) {
+                throw new Error('toAddress (cash) is required to return excess BCH from the token UTXOs.')
+            }
+            tokenOutputSats = minTokenValue
+            excessBch = totalTokenSats - minTokenValue
+        }
+
+        // The sweep fee is covered by the wallet.
+        // Outputs = NFT back to contract + consolidated token output + optional
+        // BCH return to the cash address + wallet change.
+        const estimatedFee = this.estimateFee({
+            numContractInputs: inputs.length,
+            numP2pkhInputs: 1,
+            numOutputs: 2 + (excessBch > 0n ? 1 : 0) + 1
+        })
+        cardLogger.log('[sweepFungibleToken] Estimated fee:', estimatedFee)
+
+        const {
+            cumulativeValue: fundingAmount,
+            groupedUtxos: fetchedFundingInputs,
+            changeAddress
+        } = await this.getFundingInputs(estimatedFee)
+
+        if (fundingAmount < BigInt(estimatedFee)) {
+            return { success: false, message: 'Insufficient BCH balance to cover token sweep fee.' }
+        }
+
+        const selected = this.selectMinimalFundingInputs(fetchedFundingInputs, estimatedFee)
+        if (!selected) {
+            return { success: false, message: 'Insufficient BCH balance to cover token sweep fee.' }
+        }
+        const groupedBchFundingInputs = selected.inputs
+        const changeAmount = selected.total - BigInt(estimatedFee)
+
+        const outputs = [
+            { to: contract.tokenAddress, amount: toBigInt(ownerUtxo.satoshis), token: ownerUtxo.token },
+            { to: destination, amount: tokenOutputSats, token: { amount: totalTokenAmount, category: tokenId } }
+        ]
+        if (excessBch > 0n) {
+            outputs.push({ to: toAddress, amount: excessBch })
+        }
+        if (changeAmount > DUST_LIMIT) {
+            outputs.push({ to: selected.changeAddress || changeAddress, amount: changeAmount })
+        }
+
+        cardLogger.log('[sweepFungibleToken] Prepared inputs:', inputs)
+        cardLogger.log('[sweepFungibleToken] Prepared outputs:', outputs)
+
+        const provider = new ElectrumNetworkProvider(Network.MAINNET)
+        const tx = new TransactionBuilder({provider})
+
+        tx.addInputs(inputs, contract.unlock.sweep(ownerPk, ownerSig))
+        groupedBchFundingInputs.forEach(({ inputs, signatureTemplate }) => {
+            tx.addInputs(inputs, signatureTemplate.unlockP2PKH())
+        })
+        tx.addOutputs(outputs)
+
+        let result
+        try {
+            // Build the transaction
+            const txHex = tx.build()
+            cardLogger.log('[sweepFungibleToken] Built transaction hex:', txHex)
+
+            if (broadcast) {
+                cardLogger.log('[sweepFungibleToken] Broadcasting transaction...')
+                result = (await this.broadcastTransaction(txHex)).data
+            } else {
+                result = { success: true, txHex }
+            }
+
+        } catch (error) {
+            cardLogger.error('[sweepFungibleToken] Error during token sweep transaction build or broadcast:', error.message || error)
+            throw error
+        }
+
+        cardLogger.log('[sweepFungibleToken] Token sweep result:', result)
         return result
     }
 
@@ -839,6 +1040,14 @@ export class TapToPayV1 extends TapToPayNft {
 }
 
 export class TapToPayV2 extends TapToPayNft {
+    /**
+     * V2 contracts allow fungible-token inputs in the `sweep` function.
+     * @returns {boolean}
+     */
+    get supportsTokenSweep () {
+        return true
+    }
+
     /**
      * Builds and returns a CashScript contract instance using the v2 artifact.
      * @returns {Contract}
