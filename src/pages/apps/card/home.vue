@@ -105,7 +105,7 @@
           </div>
 
           <div class="text-h5 text-weight-bold q-mb-md" :class="textColor">
-            {{ $t('You have') }} {{ user?.cardCount }} {{ $t(user?.cardCount === 1 ? 'card' : 'cards') }}
+            {{ $t('You have') }} {{ cardCount }} {{ $t(cardCount === 1 ? 'card' : 'cards') }}
           </div>
 
           <!-- View My Cards -->
@@ -208,6 +208,8 @@ export default {
       return reasons[this.$route.query.reason] || this.$route.query.reason || ''
     },
     cardCount() {
+      const backendCount = this.user?.cardCount || 0
+      if (backendCount > 0) return backendCount
       return this.$store?.getters['card/cards']?.length || 0
     }
   },
@@ -221,7 +223,7 @@ export default {
       this.showLoading()
       try {
         await this.loadUser()
-        this.loadCardList()
+        await this.loadCardList()
         this.loadWizardStep()
       } catch (err) {
         cardLogger.error('Error loading card home data:', err.message || err)
@@ -230,9 +232,11 @@ export default {
       }
     },
 
-    loadCardList() {
-      if (this.user?.cardCount > 0) {
-        this.$store.dispatch('card/fetchCards')
+    async loadCardList() {
+      try {
+        await this.$store.dispatch('card/fetchCards')
+      } catch (err) {
+        cardLogger.error('Error fetching cards:', err.message || err)
       }
     },
 
@@ -240,7 +244,7 @@ export default {
       // Determine wizard step
       if (this.isReplacement) {
         this.wizardStep = 'dashboard'
-      } else if (this.user?.cardCount > 0) {
+      } else if (this.cardCount > 0) {
         this.wizardStep = 'dashboard'
       } else {
         this.wizardStep = 'welcome'
