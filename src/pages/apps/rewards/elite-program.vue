@@ -109,7 +109,7 @@
             size="sm"
             icon-right="chevron_right"
             label="View All"
-            @click="$router.push('/apps/rewards/elite-history/transactions')"
+            @click="$router.push(`/apps/rewards/elite-history/${this.eliteId}/transactions`)"
           />
         </div>
         <elite-list
@@ -136,7 +136,7 @@
             size="sm"
             icon-right="chevron_right"
             label="View All"
-            @click="$router.push('/apps/rewards/elite-history/topups')"
+            @click="$router.push(`/apps/rewards/elite-history/${this.eliteId}/topups`)"
           />
         </div>
         <elite-list

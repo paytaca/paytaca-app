@@ -376,7 +376,7 @@ const routes = [
             component: () => import('src/pages/apps/rewards/elite-program.vue')
           },
           {
-            path: 'elite-history/:tab',
+            path: 'elite-history/:id/:tab',
             name: 'app-rewards-elite-history',
             component: () => import('src/pages/apps/rewards/elite-history.vue')
           }

@@ -201,7 +201,37 @@ export async function getEliteProgramSummaryData (id) {
       }
       return null
     })
-} 
+}
+
+export async function getEliteProgramTransactionsData (id, limit, offset) {
+  return await ELITEPROGRAM_URL
+    .get(`${id}/transactions/?limit=${limit}&offset=${offset}`)
+    .then(resp => {
+      if (resp.status === 200) return resp.data
+      else return []
+    })
+    .catch(error => {
+      if (!error?.message?.includes('aborted')) {
+        console.error(error)
+      }
+      return []
+    })
+}
+
+export async function getEliteProgramTopupsData (id, limit, offset) {
+  return await ELITEPROGRAM_URL
+    .get(`${id}/topups/?limit=${limit}&offset=${offset}`)
+    .then(resp => {
+      if (resp.status === 200) return resp.data
+      else return []
+    })
+    .catch(error => {
+      if (!error?.message?.includes('aborted')) {
+        console.error(error)
+      }
+      return []
+    })
+}
 
 function generateEliteTransactions () {
   const entries = []

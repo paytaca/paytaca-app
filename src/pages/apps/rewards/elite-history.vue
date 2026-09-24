@@ -133,8 +133,7 @@
 
 <script>
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
-import { getEliteProgramHistoryData } from 'src/utils/engagementhub-utils/rewards'
-import { sleep } from '@walletconnect/utils'
+import { getEliteProgramHistoryData, getEliteProgramTransactionsData, getEliteProgramTopupsData } from 'src/utils/engagementhub-utils/rewards'
 
 import HeaderNav from 'src/components/header-nav.vue'
 import ErrorCard from 'src/components/rewards/cards/ErrorCard.vue'
@@ -142,7 +141,7 @@ import EliteList from 'src/components/rewards/transactions/EliteList.vue'
 import BchAmount from 'src/components/common/BchAmount.vue'
 import { getAssetDenomination } from 'src/utils/denomination-utils'
 
-const TABS = ['transactions', 'topups']
+const TABS = new Set(['transactions', 'topups'])
 
 export default {
   name: 'EliteHistory',
@@ -157,6 +156,7 @@ export default {
   data () {
     return {
       limit: 10,
+      eliteId: -1,
       transactions: [],
       topups: [],
       offsetTx: 0,
@@ -182,10 +182,10 @@ export default {
     activeTab: {
       get () {
         const tab = this.$route.params.tab
-        return TABS.includes(tab) ? tab : 'transactions'
+        return TABS.has(tab) ? tab : 'transactions'
       },
       set (tab) {
-        if (tab !== this.activeTab) this.$router.replace(`/apps/rewards/elite-history/${tab}`)
+        if (tab !== this.activeTab) this.$router.replace(`/apps/rewards/elite-history/${this.eliteId}/${tab}`)
       }
     },
     isActiveLoading () {
@@ -218,34 +218,35 @@ export default {
         else this.isLoadingTopups = true
       }
       this.dataError = ''
+      this.eliteId = Number(this.$route.params.id || -1)
+      const offset = this.isTx(type) ? this.offsetTx : this.offsetTopups
 
       try {
-        const data = await getEliteProgramHistoryData({
-          type,
-          limit: this.limit,
-          offset: this.isTx(type) ? this.offsetTx : this.offsetTopups
-        })
-        if (data) {
-          this.summary = data.summary
-          const items = data.items || []
-          if (this.isTx(type)) {
-            if (append) this.transactions.push(...items)
-            else this.transactions = items
-            this.hasMoreTransactions = data.hasMore
-          } else {
-            if (append) this.topups.push(...items)
-            else this.topups = items
-            this.hasMoreTopups = data.hasMore
-          }
+        if (!append) {
+          const summaryData = await getEliteProgramHistoryData({ type, limit: this.limit, offset })
+          if (summaryData) this.summary = summaryData.summary
+        }
+
+        const data = this.isTx(type)
+          ? await getEliteProgramTransactionsData(this.eliteId, this.limit, offset)
+          : await getEliteProgramTopupsData(this.eliteId, this.limit, offset)
+        const items = data?.results || []
+        const hasMore = offset + items.length < (data?.count || 0)
+
+        if (this.isTx(type)) {
+          if (append) this.transactions.push(...items)
+          else this.transactions = items
+          this.hasMoreTransactions = hasMore
         } else {
-          this.dataError = 'Failed to load Elite history. Please try again later.'
+          if (append) this.topups.push(...items)
+          else this.topups = items
+          this.hasMoreTopups = hasMore
         }
       } catch (error) {
         console.error('Error loading elite history: ', error)
         this.dataError = 'Failed to load Elite history. Please try again later.'
       }
 
-      await sleep(600)
       if (!append) {
         if (this.isTx(type)) this.isLoadingTx = false
         else this.isLoadingTopups = false
