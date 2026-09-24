@@ -2,24 +2,31 @@
   <q-item class="elite-row">
     <q-item-section avatar>
       <div class="elite-row-icon">
-        <q-icon :name="item.asset === 'bch' ? 'img:bch-logo.png' : 'img:lift-token.png'" />
+        <q-icon :name="item.asset === 'sats' ? 'img:bch-logo.png' : 'img:lift-token.png'" />
       </div>
     </q-item-section>
 
     <q-item-section>
       <q-item-label class="elite-row-title">
-        {{ item.asset === 'bch' ? 'BCH' : 'LIFT' }}
-        <span class="elite-row-tx">{{ item.txId.slice(0, 8) }}...{{ item.txId.slice(-8) }}</span>
+        {{ item.asset.toUpperCase() }}
+        <span class="elite-row-tx" @click="redirect">
+          Ref. ID {{ item.ref_id }}
+          <q-icon name="open_in_new" size="14px" class="q-ml-xs" />
+        </span>
       </q-item-label>
       <q-item-label class="text-caption elite-row-sub">
-        {{ formatDateLocaleRelative(item.date, false) }}
+        {{ formatDateLocaleRelative(item.created_at, false) }}
       </q-item-label>
     </q-item-section>
 
     <q-item-section side>
       <div class="elite-row-amt">
-        <template v-if="item.asset === 'bch'">+<bch-amount :amount="getAssetDenomination('BCH', item.amount, false, true)" symbol="BCH" /></template>
-        <template v-else>+{{ formatWithLocale(item.amount, { min: 0, max: LIFT_TOKEN_DECIMALS }) }} LIFT</template>
+        <template v-if="item.asset === 'sats'">
+          {{ parseFiatCurrencyWrapper(item.top_up_amount) }}
+        </template>
+        <template v-else>
+          +{{ parseLiftToken(item.top_up_amount, true) }}
+        </template>
       </div>
     </q-item-section>
   </q-item>
@@ -27,16 +34,12 @@
 
 <script>
 import { formatDateLocaleRelative } from 'src/utils/time'
-import { formatWithLocale, getAssetDenomination } from 'src/utils/denomination-utils'
+import { parseFiatCurrencyWrapper } from 'src/utils/denomination-utils'
 import { LIFT_TOKEN_DECIMALS } from 'src/utils/subscription-utils'
-import BchAmount from 'src/components/common/BchAmount.vue'
+import { parseLiftToken } from 'src/utils/engagementhub-utils/shared'
 
 export default {
   name: 'EliteTopupRow',
-
-  components: {
-    BchAmount
-  },
 
   props: {
     item: {
@@ -53,8 +56,16 @@ export default {
 
   methods: {
     formatDateLocaleRelative,
-    formatWithLocale,
-    getAssetDenomination
+    parseLiftToken,
+    parseFiatCurrencyWrapper,
+
+    redirect () {
+      this.$router.push({
+        name: 'transaction-detail',
+        params: { txid: this.item.tx_id },
+        query: { from: 'app-rewards-elite-history' }
+      })
+    }
   }
 }
 </script>
