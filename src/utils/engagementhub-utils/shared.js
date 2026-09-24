@@ -32,6 +32,13 @@ export function parseLocaleDate (date, isDayIncluded = true) {
   return '---'
 }
 
+/**
+ * Convert a raw LIFT token amount (base units) into a locale-formatted
+ * display string with the "LIFT" suffix.
+ * @param {number} amount The token amount in base units (not divided by token decimals)
+ * @param {boolean} addMinDecimals Whether to show trailing decimals for fractional amounts
+ * @returns {string} The formatted amount with " LIFT" appended, e.g. "1.25 LIFT"
+ */
 export function parseLiftToken (amount, addMinDecimals = false) {
   const newAmount = amount / (10 ** LIFT_TOKEN_DECIMALS)
   const preserveTrailingDecimals = { max: LIFT_TOKEN_DECIMALS }
