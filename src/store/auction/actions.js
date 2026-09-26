@@ -29,6 +29,78 @@ export async function refreshCatalog({ commit }) {
   console.error(`[actions:refreshCatalog] Error encountered.`)
 }
 
+export async function updateListingFromWebsocket({ commit, state }, auctionData) {
+  if (!auctionData?.id) return
+  let data = auctionData
+  if (Object.keys(auctionData).length === 1) {
+    const response = await callAPI('auctions', auctionData.id)
+    if (!response?.success || !response.data) return
+    data = response.data
+  }
+  if (state.listings.some(auction => Number(auction.id) === Number(data.id))) {
+    commit('updateListing', data)
+  } else {
+    commit('addListing', AuctionList.parse(data))
+  }
+  commit('mergeAuctionData', data)
+  commit('updateMyAuction', data)
+}
+
+export function removeListingFromWebsocket({ commit }, auctionId) {
+  if (auctionId === undefined || auctionId === null) return
+  commit('removeListing', auctionId)
+}
+
+export function updateMyAuctionFromWebsocket({ commit, state }, auctionData) {
+  if (!auctionData?.id) return
+  if (state.myAuctions.some(auction => Number(auction.id) === Number(auctionData.id))) {
+    commit('updateMyAuction', auctionData)
+  } else {
+    commit('addMyAuction', AuctionList.parse(auctionData))
+  }
+  commit('updateListing', auctionData)
+  commit('mergeAuctionData', auctionData)
+}
+
+export function removeMyAuctionFromWebsocket({ commit }, auctionId) {
+  if (auctionId === undefined || auctionId === null) return
+  commit('removeMyAuction', auctionId)
+}
+
+export function updateMyBiddingFromWebsocket({ commit }, biddingData) {
+  if (!biddingData?.id || !biddingData?.lot) return
+  commit('updateMyBidding', biddingData)
+}
+
+export function updateAuctionFromWebsocket({ commit }, auctionData) {
+  if (!auctionData?.id) return
+  commit('mergeAuctionData', auctionData)
+  commit('updateListing', auctionData)
+  commit('updateMyAuction', auctionData)
+}
+
+export function removeAuctionFromWebsocket({ commit }, auctionId) {
+  if (auctionId === undefined || auctionId === null) return
+  commit('removeAuctionData', auctionId)
+  commit('removeListing', auctionId)
+  commit('removeMyAuction', auctionId)
+}
+
+export function updateLotFromWebsocket({ commit }, lotData) {
+  if (!lotData?.id) return
+  commit('mergeLotData', lotData)
+}
+
+export function updateLotStatusFromWebsocket({ commit }, lotData) {
+  if (!lotData?.id || !lotData?.status) return
+  commit('updateLotStatus', lotData)
+}
+
+export function removeLotFromWebsocket({ commit }, lotId) {
+  if (lotId === undefined || lotId === null) return
+  commit('removeLotData', lotId)
+}
+
 /* 
 ====================
 CURRENT USER ACTIONS

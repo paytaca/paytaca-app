@@ -4,6 +4,27 @@ export function setListings(state, listings) {
   state.listings = listings
 }
 
+export function updateListing(state, auctionData) {
+  const auction = state.listings.find(
+    item => Number(item.id) === Number(auctionData.id)
+  )
+  if (!auction) return
+  Object.assign(auction, auctionData)
+  if (auctionData.status) auction.status_label = auctionData.status
+  auction.refreshStatus?.()
+}
+
+export function addListing(state, auction) {
+  if (state.listings.some(item => Number(item.id) === Number(auction.id))) return
+  state.listings.push(auction)
+}
+
+export function removeListing(state, auctionId) {
+  state.listings = state.listings.filter(
+    auction => Number(auction.id) !== Number(auctionId)
+  )
+}
+
 export function setListingsLastFetched(state) {
   state.listingsLastFetched = Date.now()
 }
@@ -41,12 +62,46 @@ export function setMyBiddings(state, myBiddings) {
   state.myBiddings = myBiddings
 }
 
+export function updateMyBidding(state, biddingData) {
+  const lot = state.myBiddings.find(
+    item => Number(item.id) === Number(biddingData.lot)
+  )
+  if (!lot) return
+  lot.bid_id = biddingData.id
+  lot.bid_status = biddingData.status
+  if (['Highest', 'Winner'].includes(biddingData.status)) {
+    lot.threshold_bid_bch = Number(biddingData.bid_price_bch)
+    lot.threshold_bid_fiat = Number(biddingData.bid_price_fiat)
+  }
+}
+
 export function setMyBiddingsLastFetched(state) {
   state.myBiddingsLastFetched = Date.now()
 }
 
 export function setMyAuctions(state, myAuctions) {
   state.myAuctions = myAuctions
+}
+
+export function updateMyAuction(state, auctionData) {
+  const auction = state.myAuctions.find(
+    item => Number(item.id) === Number(auctionData.id)
+  )
+  if (!auction) return
+  Object.assign(auction, auctionData)
+  if (auctionData.status) auction.status_label = auctionData.status
+  auction.refreshStatus?.()
+}
+
+export function addMyAuction(state, auction) {
+  if (state.myAuctions.some(item => Number(item.id) === Number(auction.id))) return
+  state.myAuctions.push(auction)
+}
+
+export function removeMyAuction(state, auctionId) {
+  state.myAuctions = state.myAuctions.filter(
+    auction => Number(auction.id) !== Number(auctionId)
+  )
 }
 
 export function setMyAuctionsLastFetched(state) {
@@ -68,6 +123,17 @@ export function setAuctionDataLastFetched(state) {
 
 export function updateAuctionData(state, {attribute_name, data}) {
   state.auctionData[attribute_name] = data
+}
+
+export function mergeAuctionData(state, auctionData) {
+  if (Number(state.auctionData.id) !== Number(auctionData.id)) return
+  Object.assign(state.auctionData, auctionData)
+  if (auctionData.status) state.auctionData.status_label = auctionData.status
+  state.auctionData.refreshStatus?.()
+}
+
+export function removeAuctionData(state, auctionId) {
+  if (Number(state.auctionData.id) === Number(auctionId)) state.auctionData = {}
 }
 
 export function setAuctionLots(state, auctionLots) {
@@ -119,6 +185,49 @@ export function setLotBidsLastFetched(state) {
 
 export function updateLotData(state, {attribute_name, data}) {
   state.lotData[attribute_name] = data
+}
+
+export function mergeLotData(state, lotData) {
+  if (Number(state.lotData.id) === Number(lotData.id)) {
+    Object.assign(state.lotData, lotData)
+    if (lotData.status) state.lotData.status_label = lotData.status
+    state.lotData.is_sold = state.lotData.status_label === 'Sold'
+    state.lotData.refreshStatus?.()
+  }
+
+  const lot = state.auctionLots.find(
+    item => Number(item.id) === Number(lotData.id)
+  )
+  if (lot) {
+    Object.assign(lot, lotData)
+    if (lotData.status) lot.status_label = lotData.status
+    lot.is_sold = lot.status_label === 'Sold'
+    lot.refreshStatus?.()
+  }
+
+  const activityLot = state.myBiddings.find(
+    item => Number(item.id) === Number(lotData.id)
+  )
+  if (activityLot) {
+    Object.assign(activityLot, lotData)
+    if (lotData.status) activityLot.status_label = lotData.status
+    activityLot.is_sold = activityLot.status_label === 'Sold'
+    activityLot.refreshStatus?.()
+  }
+}
+
+export function updateLotStatus(state, { id, status }) {
+  mergeLotData(state, { id, status })
+}
+
+export function removeLotData(state, lotId) {
+  if (Number(state.lotData.id) === Number(lotId)) state.lotData = {}
+  state.auctionLots = state.auctionLots.filter(
+    lot => Number(lot.id) !== Number(lotId)
+  )
+  state.myBiddings = state.myBiddings.filter(
+    lot => Number(lot.id) !== Number(lotId)
+  )
 }
 
 export function setHighestBid(state, highestBid) {
