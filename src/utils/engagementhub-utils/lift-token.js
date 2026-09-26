@@ -26,6 +26,27 @@ export const SaleGroupPrice = {
   priv: 0.03
 }
 
+export const LIFT_ERROR_REF = {
+  ContractAddressUnavailable: 'LIFT-01',
+  WalletUnavailable: 'LIFT-02',
+  InvalidPurchaseAmount: 'LIFT-03',
+  FailedToGetOracleData: 'LIFT-04',
+  FailedToGenerateAddress: 'LIFT-05',
+  FailedToGetAddressPath: 'LIFT-06',
+  FailedToGetContractData: 'LIFT-07',
+  FailedToInitializeVestingContract: 'LIFT-08',
+  PaymentSendingError: 'LIFT-09',
+  PurchasePaymentError: 'LIFT-10',
+  BalanceExceeded: 'LIFT-11',
+  ConfirmReservationError: 'LIFT-12',
+  ConfirmReservationNotReady: 'LIFT-13',
+}
+
+export function appendLiftErrorRef(message, errorCode) {
+  const ref = LIFT_ERROR_REF[errorCode]
+  return ref ? `${message} (${ref})` : message
+}
+
 const ENGAGEMENT_HUB_URL =
   process.env.ENGAGEMENT_HUB_URL || 'https://engagementhub.paytaca.com/api/'
 const LIFTTOKEN_URL = axios.create({ baseURL: `${ENGAGEMENT_HUB_URL}lifttoken/` })

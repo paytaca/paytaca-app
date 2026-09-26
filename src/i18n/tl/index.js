@@ -536,6 +536,7 @@ export default {
   ConfirmPin: "Kumpirmahin ang PIN",
   ConfirmReservation: "Kumpirmahin ang Pagpapareserba",
   ConfirmReservationError: "May naganap na error sa pagkumpirma ng reservation. Pakisubukan muli mamaya.",
+  ConfirmReservationNotReady: "Hindi pa handa ang iyong reservation. Pakisubukan muli mamaya.",
   ConfirmSwap: "Kumpirmahin ang Swap",
   Confirmation: "Kumpirmasyon",
   Confirmed: "Nakumpirma",

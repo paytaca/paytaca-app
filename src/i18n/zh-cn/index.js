@@ -537,6 +537,7 @@ export default {
   ConfirmPin: "确认密码",
   ConfirmReservation: "确认预订",
   ConfirmReservationError: "确认预订时出错，请稍后重试。",
+  ConfirmReservationNotReady: "您的预订尚未准备就绪，请稍后重试。",
   ConfirmSwap: "确认兑换",
   Confirmation: "确认",
   Confirmed: "已确认",
