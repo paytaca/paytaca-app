@@ -82,12 +82,23 @@ const darkMode = computed(() => $store.getters['darkmode/getStatus'])
 const walletHash = Store.getters['global/getWallet']('bch')?.walletHash
 
 const loading = ref(false)
-const bids = ref([])
+const fetchedBids = ref([])
 const usernames = ref({})
+const bids = computed(() => {
+  const biddingMap = new Map()
+  fetchedBids.value.forEach(bid => biddingMap.set(Number(bid.id), bid))
+  $store.getters['auction/lotBids']
+    .filter(bid => Number(bid.lot) === Number(props.lotId))
+    .forEach(bid => {
+      const existing = biddingMap.get(Number(bid.id)) || {}
+      biddingMap.set(Number(bid.id), { ...existing, ...bid })
+    })
+  return [...biddingMap.values()]
+})
 
 const fetchBids = async () => {
   if (!props.lotId) {
-    bids.value = []
+    fetchedBids.value = []
     usernames.value = {}
     return
   }
@@ -96,15 +107,15 @@ const fetchBids = async () => {
   try {
     const res = await callAPI('biddings-by-lot', props.lotId)
     if (res?.success) {
-      bids.value = Array.isArray(res.data) ? res.data : []
-      await fetchUsernamesForBids(bids.value)
+      fetchedBids.value = Array.isArray(res.data) ? res.data : []
+      await fetchUsernamesForBids(fetchedBids.value)
     } else {
       console.error('[BiddingHistoryPopup] fetchBids error:', res?.error)
-      bids.value = []
+      fetchedBids.value = []
     }
   } catch (err) {
     console.error('[BiddingHistoryPopup] fetchBids exception:', err)
-    bids.value = []
+    fetchedBids.value = []
   } finally {
     loading.value = false
   }
@@ -141,7 +152,11 @@ const sortedBids = computed(() =>
 
 const highestBid = computed(() => {
   if (!bids.value.length) return null
-  return bids.value.reduce((max, b) => (b.bid_price_bch > max.bid_price_bch ? b : max), bids.value[0])
+  const confirmed = bids.value.find(bid => ['Highest', 'Winner'].includes(bid.status))
+  if (confirmed) return confirmed
+  return bids.value.reduce((max, bid) => (
+    Number(bid.bid_price_bch) > Number(max.bid_price_bch) ? bid : max
+  ), bids.value[0])
 })
 
 const isOwnBid = (bid) => !!walletHash && bid.user === walletHash
@@ -152,6 +167,7 @@ const getBidderDisplayName = (bid) => {
   if (usernames.value[bid.user]) {
     return usernames.value[bid.user]
   }
+  if (bid.username) return bid.username
   
   return truncateWallet(bid.user)
 }
