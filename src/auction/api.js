@@ -54,6 +54,7 @@ export async function callAPI(pathname, id=null, method="get", payload=null) {
   let success = false;
   let data = null;
   let errorMessage = null;
+  let status = null;
 
   try {
     const headers = await bchOauth.getAuthHeaders()
@@ -72,6 +73,7 @@ export async function callAPI(pathname, id=null, method="get", payload=null) {
     store.commit('auction/setHasNetworkError', false)
   } catch (error) {
     if (error.response) {
+      status = error.response.status
       // Errors where a response was generated from the server
       switch(error.response?.status){
         case 404:
@@ -105,10 +107,10 @@ export async function callAPI(pathname, id=null, method="get", payload=null) {
   return {
     success,
     data,
-    error: errorMessage
+    error: errorMessage,
+    status
   } 
 }
-
 
 
 
