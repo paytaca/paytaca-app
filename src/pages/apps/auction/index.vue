@@ -264,6 +264,7 @@ watch(auctionType, (newType) => {
 
 // Websocket-related
 let socket = null
+let reconnectTimeout = null
 let reconnectAttempts = 0
 let maxReconnectAttempts = 10
 
@@ -272,16 +273,30 @@ const connectWebsocket = () => {
   const ws = callIndexAuctionWebsocket()
 
   // Upon connection
-  ws.onopen = () => { console.log("Connected to the index websocket!") };
+  ws.onopen = () => {
+    reconnectAttempts = 0
+    console.log("Connected to the index websocket!")
+  };
 
   // Receiving WS messages/data from the server:
-  ws.onmessage = (event) => {
-    const { type, data } = JSON.parse(event.data)
+  ws.onmessage = async (event) => {
+    let message
+    try {
+      message = JSON.parse(event.data)
+    } catch (error) {
+      console.error("Invalid index websocket message:", error)
+      return
+    }
+    const { type, data } = message
     switch (type) {
-      // Update a specific auction's status
-      // !!! FIX THIS/REVIEW
-      case "auction.refresh_page":
-        refresh()
+      case "index.refresh_listings":
+        await refresh()
+        break
+      case "index.update_auction":
+        await $store.dispatch('auction/updateListingFromWebsocket', data)
+        break
+      case "index.remove_auction":
+        await $store.dispatch('auction/removeListingFromWebsocket', data?.id)
         break
       
       // For unexpected WS messages
@@ -298,7 +313,10 @@ const connectWebsocket = () => {
     if (!event.wasClean && reconnectAttempts < maxReconnectAttempts) {
       const delay = Math.min(1000 * 2 ** reconnectAttempts, 300000)
       reconnectAttempts++
-      setTimeout(connectWebsocket, delay)
+      reconnectTimeout = setTimeout(() => {
+        reconnectTimeout = null
+        socket = connectWebsocket()
+      }, delay)
     }
   };
 
@@ -312,11 +330,18 @@ const connectWebsocket = () => {
 
 // Close or clear up the socket
 const clearSocket = () => {
+  if (reconnectTimeout) {
+    clearTimeout(reconnectTimeout)
+    reconnectTimeout = null
+  }
+  if (!socket) return
+
   socket.close()
   socket.onmessage = null
   socket.onopen = null
   socket.onerror = null
   socket.onclose = null
+  socket = null
 }
 
 
