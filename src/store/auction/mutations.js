@@ -179,6 +179,30 @@ export function setLotBids(state, lotBids) {
   state.lotBids = lotBids
 }
 
+export function updateLotBid(state, biddingData) {
+  const bidIndex = state.lotBids.findIndex(
+    bid => Number(bid.id) === Number(biddingData.id)
+  )
+  if (bidIndex < 0) {
+    state.lotBids.push(biddingData)
+    return
+  }
+
+  const bid = state.lotBids[bidIndex]
+  Object.assign(bid, biddingData)
+}
+
+export function cancelLotBids(state, bidIds) {
+  state.lotBids.forEach(bid => {
+    if (bidIds.some(id => Number(id) === Number(bid.id))) {
+      bid.status = 'Cancelled'
+    }
+  })
+  if (bidIds.some(id => Number(id) === Number(state.highestBid.id))) {
+    state.highestBid = {}
+  }
+}
+
 export function setLotBidsLastFetched(state) {
   state.lotBidsLastFetched = Date.now()
 }

@@ -2,6 +2,14 @@ import { callAPI } from 'src/auction/api'
 import { AuctionList, LotsList, BidsList } from 'src/auction/object'
 import { getWallet } from '../../auction/payment'
 import noImage from 'src/assets/no-image.svg'
+
+const bidStatusTransitions = {
+  Pending: ['Cancelled', 'Outbid', 'Highest', 'Winner'],
+  Highest: ['Outbid', 'Winner'],
+  Outbid: ['Winner'],
+  Cancelled: [],
+  Winner: [],
+}
 /* 
 ===================
 PAGE UPDATE ACTIONS
@@ -70,6 +78,47 @@ export function removeMyAuctionFromWebsocket({ commit }, auctionId) {
 export function updateMyBiddingFromWebsocket({ commit }, biddingData) {
   if (!biddingData?.id || !biddingData?.lot) return
   commit('updateMyBidding', biddingData)
+}
+
+export function updateBidFromWebsocket({ commit, state, rootGetters }, biddingData) {
+  if (!biddingData?.id || !biddingData?.lot) return
+  if (Number(biddingData.lot) !== Number(state.lotId)) return
+
+  const existingBid = state.lotBids.find(
+    bid => Number(bid.id) === Number(biddingData.id)
+  )
+  if (
+    existingBid?.status
+    && biddingData.status
+    && existingBid.status !== biddingData.status
+    && !bidStatusTransitions[existingBid.status]?.includes(biddingData.status)
+  ) return
+
+  commit('updateLotBid', BidsList.parse(biddingData))
+  const walletHash = rootGetters['global/getWallet']('bch')?.walletHash
+  if (biddingData.user === walletHash) commit('updateMyBidding', biddingData)
+
+  if (['Highest', 'Winner'].includes(biddingData.status)) {
+    commit('setHighestBid', BidsList.parse(biddingData))
+  } else if (
+    ['Cancelled', 'Outbid'].includes(biddingData.status)
+    && Number(state.highestBid.id) === Number(biddingData.id)
+  ) {
+    commit('setHighestBid', {})
+  }
+
+  if (biddingData.status === 'Highest') {
+    commit('mergeLotData', {
+      id: biddingData.lot,
+      threshold_bid_bch: Number(biddingData.bid_price_bch),
+      threshold_bid_fiat: Number(biddingData.bid_price_fiat),
+    })
+  }
+}
+
+export function cancelBidsFromWebsocket({ commit }, bidIds) {
+  if (!Array.isArray(bidIds) || !bidIds.length) return
+  commit('cancelLotBids', bidIds)
 }
 
 export function updateAuctionFromWebsocket({ commit }, auctionData) {
@@ -310,8 +359,11 @@ export async function fetchExistingLotBids({commit, getters}) {
 export async function fetchHighestBid({commit, getters}) {
   const lotId = getters['lotId']
   let highestBid = {}
-  const response = await callAPI(['lots', 'highest-bid'], lotId, 'get')
-  if (response && response.success && response.data) 
+  const response = await callAPI(`lots/${lotId}/highest-bid`, null, 'get')
+  if (
+    response && response.success && response.data
+    && ['Highest', 'Winner'].includes(response.data.status)
+  )
     highestBid = BidsList.parse(response.data)
   else console.error('Failed to fetch highest bid.')
   commit('setHighestBid', highestBid)
