@@ -1,22 +1,25 @@
 const APIURL = new URL(process.env.AUCTION_HUB_API)
+const websocketURL = (path) => {
+  const protocol = APIURL.protocol === 'https:' ? 'wss:' : 'ws:'
+  return `${protocol}//${APIURL.host}/ws/${path}/`
+}
 
-// change ws to ws if listening to HTTPS not HTTP
 export function callIndexAuctionWebsocket(){
-  return new WebSocket(`ws://${APIURL.hostname}:8000/ws/index/`) 
+  return new WebSocket(websocketURL('index'))
 }
 
 export function callActivityWebsocket(username){
-  return new WebSocket(`ws://${APIURL.hostname}:8000/ws/activity/${username}/`) 
+  return new WebSocket(websocketURL(`activity/${encodeURIComponent(username)}`))
 }
 
 export function callAuctionWebsocket(auctionId){
-  return new WebSocket(`ws://${APIURL.hostname}:8000/ws/auction/${auctionId}/`) 
+  return new WebSocket(websocketURL(`auction/${auctionId}`))
 }
 
 export function callLotWebsocket(lotId){
-  return new WebSocket(`ws://${APIURL.hostname}:8000/ws/lot/${lotId}/`)   
+  return new WebSocket(websocketURL(`lot/${lotId}`))
 }
 
 export function callRefundCountdownWebsocket(deliveryTrackingId){
-  return new WebSocket(`ws://${APIURL.hostname}:8000/ws/refund-countdown/${deliveryTrackingId}/`) 
-} 
+  return new WebSocket(websocketURL(`refund-countdown/${encodeURIComponent(deliveryTrackingId)}`))
+}
