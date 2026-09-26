@@ -231,16 +231,14 @@
 </template>
 
 <script>
-import { decodePrivateKeyWif, secp256k1 } from "@bitauth/libauth";
 import {
   getDarkModeClass,
 } from "src/utils/theme-darkmode-utils";
 import {
-  getAddressPath,
   getContractAddressApi,
   getPurchasesData,
   getReservationsData,
-  updateRsvpPublicKeys,
+  syncReservationPublicKeys,
 } from "src/utils/engagementhub-utils/lift-token";
 import { checkLiftTokenBalance } from "src/utils/subscription-utils";
 
@@ -248,7 +246,6 @@ import HeaderNav from "src/components/header-nav.vue";
 import AboutTabPanel from "src/components/lift-token/AboutTabPanel.vue";
 import ReservationsTabPanel from "src/components/lift-token/ReservationsTabPanel.vue";
 import PurchasesTabPanel from "src/components/lift-token/PurchasesTabPanel.vue";
-import { loadLibauthHdWallet } from "src/wallet";
 
 export default {
   name: "LiftTokenPage",
@@ -319,35 +316,8 @@ export default {
       // work in background
       // update the public keys of reservations if they are empty
       if (this.reservationsList.length > 0) {
-        const rsvp_payload = [];
         const walletIndex = this.$store.getters['global/getWalletIndex']
-        const libauthWallet = await loadLibauthHdWallet(walletIndex, false)
-
-        for (const rsvp of this.reservationsList) {
-          if (rsvp.public_key === "") {
-            const addressPath = await getAddressPath(rsvp.bch_address)
-            const wif = libauthWallet.getPrivateKeyWifAt(addressPath);
-            const decodedWif = decodePrivateKeyWif(wif);
-            const pubkey = secp256k1.derivePublicKeyCompressed(
-              decodedWif.privateKey
-            );
-            const pubkeyHex = Buffer.from(pubkey).toString("hex");
-
-            rsvp_payload.push({
-              id: rsvp.id,
-              public_key: pubkeyHex,
-            });
-
-            // update public key of reservation in reservations list
-            // this is done so that the public key will be populated
-            // immediately once the user finalizes their reservations
-            rsvp.public_key = pubkeyHex
-          }
-
-          if (rsvp_payload.length > 0) {
-            updateRsvpPublicKeys(rsvp_payload);
-          }
-        }
+        await syncReservationPublicKeys(this.reservationsList, walletIndex)
       }
 
       this.isLoading = false;

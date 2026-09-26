@@ -1,4 +1,4 @@
-import { hexToBin } from "@bitauth/libauth"
+import { hexToBin, decodePrivateKeyWif, secp256k1 } from "@bitauth/libauth"
 import { OracleData } from "@generalprotocols/price-oracle"
 import { Contract, ElectrumNetworkProvider } from "cashscript"
 import { NFTCapability, Wallet } from 'mainnet-js'
@@ -24,6 +24,27 @@ export const SaleGroup = {
 export const SaleGroupPrice = {
   seed: 0.015,
   priv: 0.03
+}
+
+export const LIFT_ERROR_REF = {
+  ContractAddressUnavailable: 'LIFT-01',
+  WalletUnavailable: 'LIFT-02',
+  InvalidPurchaseAmount: 'LIFT-03',
+  FailedToGetOracleData: 'LIFT-04',
+  FailedToGenerateAddress: 'LIFT-05',
+  FailedToGetAddressPath: 'LIFT-06',
+  FailedToGetContractData: 'LIFT-07',
+  FailedToInitializeVestingContract: 'LIFT-08',
+  PaymentSendingError: 'LIFT-09',
+  PurchasePaymentError: 'LIFT-10',
+  BalanceExceeded: 'LIFT-11',
+  ConfirmReservationError: 'LIFT-12',
+  ConfirmReservationNotReady: 'LIFT-13',
+}
+
+export function appendLiftErrorRef(message, errorCode) {
+  const ref = LIFT_ERROR_REF[errorCode] ?? 'LIFT-00' // fallback code for generic/unspecified errors
+  return ref ? `${message} (${ref})` : message
 }
 
 const ENGAGEMENT_HUB_URL =
@@ -236,6 +257,40 @@ export function updateRsvpPublicKeys (data) {
   return  LIFTTOKEN_URL
     .patch(`reservation/${getWalletHash()}/`, data)
     .catch(error => console.error(error))
+}
+
+export async function syncReservationPublicKeys (reservationsList, walletIndex) {
+  if (!Array.isArray(reservationsList) || reservationsList.length === 0) return []
+  const pending = reservationsList.filter(
+    rsvp => rsvp.public_key === '' || rsvp.public_key === null || rsvp.public_key === undefined
+  )
+  if (pending.length === 0) return []
+
+  const { loadLibauthHdWallet } = await import('src/wallet')
+  const libauthWallet = await loadLibauthHdWallet(walletIndex, false)
+
+  const payload = []
+  for (const rsvp of pending) {
+    try {
+      const addressPath = await getAddressPath(rsvp.bch_address)
+      const wif = libauthWallet.getPrivateKeyWifAt(addressPath);
+      const decodedWif = decodePrivateKeyWif(wif);
+      const pubkey = secp256k1.derivePublicKeyCompressed(
+        decodedWif.privateKey
+      );
+      const pubkeyHex = Buffer.from(pubkey).toString("hex");
+
+      payload.push({ id: rsvp.id, public_key: pubkeyHex });
+      rsvp.public_key = pubkeyHex
+    } catch (error) {
+      console.error('Failed to derive public key for reservation', rsvp.id, error)
+    }
+  }
+
+  if (payload.length > 0) {
+    await updateRsvpPublicKeys(payload)
+  }
+  return payload
 }
 
 export async function confirmReservationApi(data) {
