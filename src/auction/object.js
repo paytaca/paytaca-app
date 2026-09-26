@@ -189,7 +189,9 @@ export class BidsList {
   constructor(data) {
     this.id = data.id
     this.user = data.user
+    this.username = data.username
     this.lot = data.lot
+    this.status = data.status
     this.bid_price_bch = Number(data.bid_price_bch)
     this.bid_price_fiat = Number(data.bid_price_fiat)
     this.is_final_bid = Number(data.is_final_bid)
