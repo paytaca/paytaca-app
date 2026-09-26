@@ -325,28 +325,32 @@ export default {
 
         for (const rsvp of this.reservationsList) {
           if (rsvp.public_key === "") {
-            const addressPath = await getAddressPath(rsvp.bch_address)
-            const wif = libauthWallet.getPrivateKeyWifAt(addressPath);
-            const decodedWif = decodePrivateKeyWif(wif);
-            const pubkey = secp256k1.derivePublicKeyCompressed(
-              decodedWif.privateKey
-            );
-            const pubkeyHex = Buffer.from(pubkey).toString("hex");
+            try {
+              const addressPath = await getAddressPath(rsvp.bch_address)
+              const wif = libauthWallet.getPrivateKeyWifAt(addressPath);
+              const decodedWif = decodePrivateKeyWif(wif);
+              const pubkey = secp256k1.derivePublicKeyCompressed(
+                decodedWif.privateKey
+              );
+              const pubkeyHex = Buffer.from(pubkey).toString("hex");
 
-            rsvp_payload.push({
-              id: rsvp.id,
-              public_key: pubkeyHex,
-            });
+              rsvp_payload.push({
+                id: rsvp.id,
+                public_key: pubkeyHex,
+              });
 
-            // update public key of reservation in reservations list
-            // this is done so that the public key will be populated
-            // immediately once the user finalizes their reservations
-            rsvp.public_key = pubkeyHex
+              // update public key of reservation in reservations list
+              // this is done so that the public key will be populated
+              // immediately once the user finalizes their reservations
+              rsvp.public_key = pubkeyHex
+            } catch (error) {
+              console.error('Failed to derive public key for reservation', rsvp.id, error)
+            }
           }
+        }
 
-          if (rsvp_payload.length > 0) {
-            updateRsvpPublicKeys(rsvp_payload);
-          }
+        if (rsvp_payload.length > 0) {
+          await updateRsvpPublicKeys(rsvp_payload);
         }
       }
 
