@@ -261,7 +261,9 @@ export function updateRsvpPublicKeys (data) {
 
 export async function syncReservationPublicKeys (reservationsList, walletIndex) {
   if (!Array.isArray(reservationsList) || reservationsList.length === 0) return []
-  const pending = reservationsList.filter(rsvp => !rsvp.public_key)
+  const pending = reservationsList.filter(
+    rsvp => rsvp.public_key === '' || rsvp.public_key === null || rsvp.public_key === undefined
+  )
   if (pending.length === 0) return []
 
   const { loadLibauthHdWallet } = await import('src/wallet')
