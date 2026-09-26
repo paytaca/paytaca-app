@@ -48,6 +48,7 @@
             class="full-width text-weight-medium"
             color="green"
             label="Buy It Now"
+            :disable="loading || !currentPriceBch || currentPriceBch <= 0"
             :loading="loading"
             @click="confirmPurchase"
           />
@@ -118,7 +119,7 @@ const formatFiat = (value) => {
 }
 
 const confirmPurchase = () => {
-  const walletBalance = $store.getters['assets/getAssets'][0].spendable
+  const walletBalance = $store.getters['assets/getAssets'][0]?.spendable || 0
 
   if (walletBalance < props.currentPriceBch) {
     $q.notify({

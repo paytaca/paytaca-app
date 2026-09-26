@@ -179,8 +179,12 @@ const checkLiveBids = async () => {
   try {
     const result = await callAPI(`lots/${props.lot.id}/highest-bid`)
     
-    if (result.success && result.data && result.data.user_id !== null) {
-      hasBidsYet.value = result.data.user_id
+    if (
+      result.success
+      && result.data?.id
+      && ['Highest', 'Winner'].includes(result.data.status)
+    ) {
+      hasBidsYet.value = true
     } else {
       hasBidsYet.value = false
     }
@@ -298,7 +302,7 @@ const formatFiat = (val) => {
 }
 
 const placeBid = () => {
-  const walletBalance = $store.getters['assets/getAssets'][0].spendable
+  const walletBalance = $store.getters['assets/getAssets'][0]?.spendable || 0
 
   if (walletBalance < parseFloat(convertedOutputBch.value.toFixed(8))) {
     $q.notify({
