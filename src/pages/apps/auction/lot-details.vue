@@ -645,7 +645,6 @@
                 <q-skeleton type="rect" width="100%" height="82px" class="rounded-borders" />
               </div>
             </div>
-
             <div class="q-mb-md">
               <q-skeleton type="rect" width="100%" height="82px" class="rounded-borders" />
             </div>
@@ -721,7 +720,7 @@
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 import { useStore } from 'vuex'
 import { ref, computed, onMounted, onBeforeUnmount, onUnmounted } from 'vue'
-import { useRoute } from 'vue-router'
+import { useRoute, useRouter } from 'vue-router'
 import { useQuasar, date } from 'quasar'
 import { callAPI } from 'src/auction/api'
 import { payBidToContract } from 'src/auction/payment'
@@ -741,6 +740,7 @@ import DeliveryStatusHistoryDialog from 'src/components/auction/DeliveryStatusHi
 const $q = useQuasar()
 const $store = useStore()
 const $route = useRoute()
+const $router = useRouter()
 
 // System-related variables
 const darkMode = computed(() => $store.getters['darkmode/getStatus'])
@@ -931,16 +931,18 @@ const handlePlaceBid = async ({ bid_price_bch, bid_price_fiat }) => {
 
   // STEP 1: Send the bid to the server via WS and get the bidId
   const bidId = await websocketSendBid({ bid_price_bch, bid_price_fiat })
-
-  // STEP 2: 
-  await callAPI('lots', props.lotId, 'patch', {
-    threshold_bid_bch: Number(bid_price_bch).toFixed(8),
-    threshold_bid_fiat: Number(bid_price_fiat).toFixed(2)
-  })
+  if (!bidId) {
+    bidOrBuyLoading.value = false
+    return
+  }
 
   $q.loading.show({ message: 'Processing smart contract...' })
   try {
-    await payBidToContract(Number(bid_price_bch).toFixed(8), bidId)
+    await payBidToContract(Number(bid_price_bch).toFixed(8), bidId, Number(props.lotId))
+    socket.send(JSON.stringify({
+      type: 'paid_bid',
+      data: { id: bidId, lot: Number(props.lotId) }
+    }))
   } finally {
     $q.loading.hide()
   }
@@ -1091,7 +1093,11 @@ const handleBuyItNow = async (payload = {}) => {
     $q.loading.show({ message: 'Processing smart contract...' })
 
     try {
-      await payBidToContract(Number(bidBch).toFixed(8), bidId)
+      await payBidToContract(Number(bidBch).toFixed(8), bidId, Number(props.lotId))
+      socket.send(JSON.stringify({
+        type: 'paid_bid',
+        data: { id: bidId, lot: Number(props.lotId) }
+      }))
     } finally {
       $q.loading.hide()
     }
@@ -1308,7 +1314,7 @@ let reconnectTimeout = null
 let reconnectAttempts = 0
 let maxReconnectAttempts = 10
 
-const connectWebsocket = async () => {
+const connectWebsocket = () => {
   const ws = callLotWebsocket(Number(props.lotId))
 
   ws.onopen = () => {
@@ -1317,8 +1323,14 @@ const connectWebsocket = async () => {
   };
 
   ws.onmessage = async (event) => {
-    clearInterval(websocketInterval)
-    const { type, data } = JSON.parse(event.data);
+    let message
+    try {
+      message = JSON.parse(event.data)
+    } catch (error) {
+      console.error("Invalid lot websocket message:", error)
+      return
+    }
+    const { type, data = {} } = message
 
     switch (type) {
       // update the viewcount
@@ -1336,8 +1348,16 @@ const connectWebsocket = async () => {
 
       // start.close lot
       case "lot.update_status":
-        lot.value?.refreshStatus()
-        await autoMarkLotSold()
+        await $store.dispatch('auction/updateLotStatusFromWebsocket', data)
+        break
+
+      case "lot.update":
+        await $store.dispatch('auction/updateLotFromWebsocket', data)
+        break
+
+      case "lot.delete":
+        await $store.dispatch('auction/removeLotFromWebsocket', data.id)
+        $router.replace(smartBackPath.value)
         break
 
       // sends placebid acknowledgement
@@ -1346,10 +1366,27 @@ const connectWebsocket = async () => {
         bidResolver = null
         break
 
+      case "bid.error":
+        bidRejecter?.(new Error(data.message || 'Bid failed.'))
+        bidResolver = null
+        bidRejecter = null
+        break
+
+      case "bid.update":
+        await $store.dispatch('auction/updateMyBiddingFromWebsocket', data)
+        await $store.dispatch('auction/fetchLotBids')
+        if (data.status === 'Highest' || data.status === 'Winner') {
+          $store.commit('auction/setHighestBid', data)
+        }
+        break
+
+      case "bid.cancelled_ack":
+        await $store.dispatch('auction/fetchLotBids')
+        break
+
       // update the highest bidder
       case "update.highest_bid":
-        englishLotHasBid.value = Boolean(data?.user)
-        englishHasUserBid.value = data?.user === userWalletHash.value
+        $store.commit('auction/setHighestBid', data)
         
         if (lot.value?.is_sold) {
           if (auction.value.type === 'English')
@@ -1361,8 +1398,10 @@ const connectWebsocket = async () => {
 
       // update the winningBid.value?.id
       case "update.winner":
-        lot.value.is_sold = Boolean(data?.is_sold)
-        winningBid.value = data
+        lot.value.is_sold = true
+        lot.value.status_label = 'Sold'
+        lot.value.refreshStatus()
+        $store.commit('auction/setHighestBid', data)
 
         await initEnglishDeliveryTracking()
         break
@@ -1375,7 +1414,15 @@ const connectWebsocket = async () => {
 
       // update the price drop
       case "lot.drop_price":
-        dynamicPriceBch.value = data.price
+        if (auction.value?.is_fiat) {
+          dynamicPriceFiat.value = Number(data.price)
+          dynamicPriceBch.value = bchToPhpRate.value > 0
+            ? dynamicPriceFiat.value / bchToPhpRate.value
+            : 0
+        } else {
+          dynamicPriceBch.value = Number(data.price)
+          dynamicPriceFiat.value = dynamicPriceBch.value * bchToPhpRate.value
+        }
         break
 
       default:
@@ -1403,28 +1450,26 @@ const connectWebsocket = async () => {
 }
 
 let bidResolver = null
+let bidRejecter = null
 const waitForBidAck = () => {
   return new Promise((resolve, reject) => {
     const timeout = setTimeout(() => {
       bidResolver = null
+      bidRejecter = null
       reject(new Error('Timed out waiting for bid confirmation.'))
     }, 10000)
 
     bidResolver = (data) => {
       clearTimeout(timeout)
       bidResolver = null
+      bidRejecter = null
       resolve(data)
     }
+    bidRejecter = (error) => {
+      clearTimeout(timeout)
+      reject(error)
+    }
   })
-}
-
-
-const websocketInterval = setInterval(async () => {
-    await waitForBidCancelledAck()
-}, 2000)
-
-const waitForBidCancelledAck = () => {
-  // I need the logic here to check if there was a cancel bid ack
 }
 
 const clearSocket = () => {

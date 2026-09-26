@@ -487,16 +487,36 @@ const connectWebsocket = () => {
   const ws = callActivityWebsocket(username)
 
   ws.onopen = () => {
+    reconnectAttempts = 0
     console.log("Connected to the activity websocket!")
   };
 
-  ws.onmessage = (event) => {
-    const { type, data } = JSON.parse(event.data)
+  ws.onmessage = async (event) => {
+    let message
+    try {
+      message = JSON.parse(event.data)
+    } catch (error) {
+      console.error("Invalid activity websocket message:", error)
+      return
+    }
+    const { type, data } = message
 
     switch (type) {
-      // update a specific auction's status
-      case "my.auctions_refresh_page":
-      case "my.bids_refresh_page":
+      case "activity.refresh_auctions":
+      case "activity.refresh_bids":
+        await refresh()
+        break
+      case "activity.update_auctions":
+        await $store.dispatch('auction/updateMyAuctionFromWebsocket', data)
+        break
+      case "activity.remove_auction":
+        await $store.dispatch('auction/removeMyAuctionFromWebsocket', data?.id)
+        break
+      case "activity.update_bids":
+        await $store.dispatch('auction/updateMyBiddingFromWebsocket', data)
+        break
+      case "delivery.update":
+      case "dispute.update":
         if (activityType.value === 'My Auctions') refresh()
         else if (activityType.value === 'My Bids') refresh()
         break

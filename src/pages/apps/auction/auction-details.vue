@@ -346,7 +346,6 @@ import { ref, computed, onMounted, onBeforeUnmount } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useQuasar, date } from 'quasar'
 import { callAPI } from 'src/auction/api'
-import { Store } from 'src/store'
 
 // Components
 import HeaderNav from 'src/components/header-nav.vue'
@@ -463,7 +462,14 @@ const connectWebsocket = () => {
   }
 
   ws.onmessage = (event) => {
-    const { type, data } = JSON.parse(event.data)
+    let message
+    try {
+      message = JSON.parse(event.data)
+    } catch (error) {
+      console.error("Invalid auction websocket message:", error)
+      return
+    }
+    const { type, data = {} } = message
     
     switch(type) {
       case "live.viewing":
@@ -479,7 +485,7 @@ const connectWebsocket = () => {
         auctionEndCountdown.value = 'Starting Auction...'
         $store.commit('auction/updateAuctionData', {
           attribute_name: 'status', 
-          data: 2
+          data: data.status
         })
         $store.commit('auction/updateAuctionLotsData', {
           attribute_name: 'start_date', 
@@ -489,13 +495,13 @@ const connectWebsocket = () => {
           attribute_name: 'end_date', 
           data: auction.value.end_date
         })
-        refreshLotStatuses()
+        $store.dispatch('auction/fetchAuctionLots')
         break
-      case "auction.closed": {
+      case "auction.end": {
         auctionStartCountdown.value = "Time's Up!"
         $store.commit('auction/updateAuctionData', {
           attribute_name: 'status', 
-          data: 3
+          data: data.status
         })
 
         const endDate = data?.end_date || new Date().toISOString()
@@ -507,9 +513,16 @@ const connectWebsocket = () => {
           attribute_name: 'end_date', 
           data: endDate
         })
-        refreshLotStatuses()
+        $store.dispatch('auction/fetchAuctionLots')
         break
       }
+      case "auction.update":
+        $store.dispatch('auction/updateAuctionFromWebsocket', data)
+        break
+      case "auction.delete":
+        $store.dispatch('auction/removeAuctionFromWebsocket', data.id)
+        $router.replace({ name: 'app-auction' })
+        break
       default:
         console.log("Unrecognized websocket event: " + type)
         break
@@ -677,4 +690,4 @@ const refresh = async (done) => {
   socket = connectWebsocket()
   done()
 }
-</script> 
+</script>
