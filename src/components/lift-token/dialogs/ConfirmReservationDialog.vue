@@ -161,7 +161,8 @@ import {
   getIdAndPubkeyApi,
   getOracleData,
   confirmReservationApi,
-  initializeVestingContract
+  initializeVestingContract,
+  syncReservationPublicKeys
 } from 'src/utils/engagementhub-utils/lift-token';
 import { parseLiftToken } from 'src/utils/engagementhub-utils/shared';
 import {
@@ -222,7 +223,13 @@ export default {
       this.isSliderLoading = true;
 
       try {
-        if (this.rsvp.public_key === '' || this.rsvp.public_key === null || this.rsvp.public_key === undefined) {
+        // ensure the reservation's public key is persisted server-side
+        // before finalizing (redundancy for the background sync in retrieveData)
+        const walletIndex = this.$store.getters["global/getWalletIndex"];
+        const synced = await syncReservationPublicKeys([this.rsvp], walletIndex)
+        const publicKey = synced.length > 0 ? synced[0].public_key : this.rsvp.public_key
+
+        if (publicKey === '' || publicKey === null || publicKey === undefined) {
           console.error('Public key is empty')
           raiseNotifyError(this.$t("ConfirmReservationError"))
           this.isSliderLoading = false
@@ -245,7 +252,7 @@ export default {
         let vestingContract = null
         try {
           vestingContract = initializeVestingContract(
-            this.rsvp.public_key, token_id, pubkey, lockupEnd, this.rsvp.reserved_amount_tkn
+            publicKey, token_id, pubkey, lockupEnd, this.rsvp.reserved_amount_tkn
           )
         } catch (error) {
           console.error('Failed to initialize vesting contract:', error)

@@ -1,4 +1,4 @@
-import { hexToBin } from "@bitauth/libauth"
+import { hexToBin, decodePrivateKeyWif, secp256k1 } from "@bitauth/libauth"
 import { OracleData } from "@generalprotocols/price-oracle"
 import { Contract, ElectrumNetworkProvider } from "cashscript"
 import { NFTCapability, Wallet } from 'mainnet-js'
@@ -236,6 +236,38 @@ export function updateRsvpPublicKeys (data) {
   return  LIFTTOKEN_URL
     .patch(`reservation/${getWalletHash()}/`, data)
     .catch(error => console.error(error))
+}
+
+export async function syncReservationPublicKeys (reservationsList, walletIndex) {
+  if (!Array.isArray(reservationsList) || reservationsList.length === 0) return []
+  const pending = reservationsList.filter(rsvp => !rsvp.public_key)
+  if (pending.length === 0) return []
+
+  const { loadLibauthHdWallet } = await import('src/wallet')
+  const libauthWallet = await loadLibauthHdWallet(walletIndex, false)
+
+  const payload = []
+  for (const rsvp of pending) {
+    try {
+      const addressPath = await getAddressPath(rsvp.bch_address)
+      const wif = libauthWallet.getPrivateKeyWifAt(addressPath);
+      const decodedWif = decodePrivateKeyWif(wif);
+      const pubkey = secp256k1.derivePublicKeyCompressed(
+        decodedWif.privateKey
+      );
+      const pubkeyHex = Buffer.from(pubkey).toString("hex");
+
+      payload.push({ id: rsvp.id, public_key: pubkeyHex });
+      rsvp.public_key = pubkeyHex
+    } catch (error) {
+      console.error('Failed to derive public key for reservation', rsvp.id, error)
+    }
+  }
+
+  if (payload.length > 0) {
+    await updateRsvpPublicKeys(payload)
+  }
+  return payload
 }
 
 export async function confirmReservationApi(data) {
