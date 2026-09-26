@@ -865,7 +865,7 @@ const markedAsCompleted = async () => {
 // ENGLISH AUCTION
 // ===============
 const showMakeBidDialog = ref(false)
-const englishLotHasBid = computed(() => Boolean(winningBid.value))
+const englishLotHasBid = computed(() => Boolean(winningBid.value?.id))
 const englishHasUserBid = computed(() => winningBid.value?.user === userWalletHash.value)
 
 const englishCurrentBch = computed(() => {
@@ -885,32 +885,24 @@ const englishCurrentFiat = computed(() => {
 const openBidDialog = async () => showMakeBidDialog.value = true
 
 const websocketSendBid = async ({ bid_price_bch, bid_price_fiat }) => {
-  try {
-    // if the socket is open, run the placebid
-    if (!socket || socket.readyState !== WebSocket.OPEN)
-      throw new Error('Bid failed. Please try again.')
-    
-    // else, send the bid to the websocket
-    socket.send(JSON.stringify(
-      {
-        type: "place_bid",
-        data: {
-          user: userWalletHash.value,
-          lot: props.lotId,
-          bid_price_bch: Number(bid_price_bch).toFixed(8),
-          bid_price_fiat: Number(bid_price_fiat).toFixed(2)
-        }
-      }
-    ))
-
-    // wait for the ack and return the bid id
-    const ack = await waitForBidAck()
-    return ack?.id
-
-  } catch (err) {
-    console.error(err)
-    $q.notify({ type: 'negative', message: err.message || 'Something went wrong.' })
+  if (!socket || socket.readyState !== WebSocket.OPEN) {
+    throw new Error('Bid failed. Please try again.')
   }
+
+  const acknowledgement = waitForBidAck()
+  socket.send(JSON.stringify(
+    {
+      type: "place_bid",
+      data: {
+        user: userWalletHash.value,
+        lot: props.lotId,
+        bid_price_bch: Number(bid_price_bch).toFixed(8),
+        bid_price_fiat: Number(bid_price_fiat).toFixed(2)
+      }
+    }
+  ))
+
+  return await acknowledgement
 }
 
 /* 
@@ -923,50 +915,72 @@ MAKE IT SO THAT YOUR FLOW GOES:
   You may need to update the backend for this one too
 */
 const handlePlaceBid = async ({ bid_price_bch, bid_price_fiat }) => {
+  if (bidOrBuyLoading.value) return
   if (!userWalletHash.value) {
     $q.notify({ type: 'warning', message: 'Please connect your wallet first.' })
     return
   }
-  bidOrBuyLoading.value = true
-
-  // STEP 1: Send the bid to the server via WS and get the bidId
-  const bidId = await websocketSendBid({ bid_price_bch, bid_price_fiat })
-  if (!bidId) {
-    bidOrBuyLoading.value = false
+  if (lot.value?.status_label !== 'Active' || auction.value?.status_label !== 'Open') {
+    $q.notify({ type: 'warning', message: 'This lot is not accepting bids.' })
     return
   }
 
-  $q.loading.show({ message: 'Processing smart contract...' })
+  const bidBch = Number(bid_price_bch)
+  const bidFiat = Number(bid_price_fiat)
+  const bidPrice = auction.value?.is_fiat ? bidFiat : bidBch
+  const currentPrice = auction.value?.is_fiat
+    ? Number(lot.value?.threshold_bid_fiat || 0)
+    : Number(lot.value?.threshold_bid_bch || 0)
+  const invalidPrice = !Number.isFinite(bidPrice) || bidPrice <= 0 || (
+    englishLotHasBid.value ? bidPrice <= currentPrice : bidPrice < currentPrice
+  )
+  if (invalidPrice) {
+    $q.notify({ type: 'warning', message: 'Bid must be higher than the current bid.' })
+    return
+  }
+
+  bidOrBuyLoading.value = true
   try {
-    await payBidToContract(Number(bid_price_bch).toFixed(8), bidId, Number(props.lotId))
+    const pendingBid = await websocketSendBid({
+      bid_price_bch: bidBch,
+      bid_price_fiat: bidFiat,
+    })
+    if (!pendingBid?.id) throw new Error('Bid was not created.')
+
+    $q.loading.show({ message: 'Processing smart contract...' })
+    await payBidToContract(bidBch.toFixed(8), pendingBid.id, Number(props.lotId))
+    const settlement = waitForBidSettlement(pendingBid.id)
     socket.send(JSON.stringify({
       type: 'paid_bid',
-      data: { id: bidId, lot: Number(props.lotId) }
+      data: { id: pendingBid.id, lot: Number(props.lotId) }
     }))
+    const settledBid = await settlement
+
+    if (settledBid.status === 'Highest') {
+      const secondRes = await callAPI(`lots/${props.lotId}/second-highest-bid`)
+      if (secondRes.success && secondRes.data?.id) {
+        await callContractReturn(secondRes.data.id)
+      }
+    }
+
+    showMakeBidDialog.value = false
+    $q.notify({
+      type: settledBid.status === 'Highest' ? 'positive' : 'warning',
+      icon: 'gavel',
+      message: settledBid.status === 'Highest'
+        ? `Bid of ${formatBCH(bidBch).main}${formatBCH(bidBch).zeros} BCH placed!`
+        : 'Your bid was accepted but has already been outbid.',
+      timeout: 3000
+    })
+  } catch (err) {
+    console.error(err)
+    $q.notify({ type: 'negative', message: err.message || 'Something went wrong.' })
   } finally {
     $q.loading.hide()
+    bidOrBuyLoading.value = false
   }
-  
-  const secondRes = await callAPI(`lots/${props.lotId}/second-highest-bid`)
-  if (secondRes.success && secondRes.data?.id) {
-    await callContractReturn(secondRes.data.id)
-  }
-
-  showMakeBidDialog.value = false
-
-  $q.notify({
-    type: 'positive',
-    icon: 'gavel',
-    message: `Bid of ${formatBCH(bid_price_bch).main}${formatBCH(bid_price_bch).zeros} BCH placed!`,
-    timeout: 3000
-  })
-
-  await $store.dispatch('auction/fetchLotData')
-  
-
-  bidOrBuyLoading.value = false
-  
 }
+
 const showPostAuctionActions = computed(() => lot.value?.is_sold && !isMarkedComplete.value)
 
 const bidStatus = computed(() => {
@@ -1005,22 +1019,6 @@ const clearDutchTimers = () => {
   }
 }
 
-const closeAuctionIfAllSold = async () => {
-  try {
-    const res = await callAPI(`lots-by-auction/${props.auctionId}`)
-    if (!res.success || !Array.isArray(res.data)) return
-    const allSold = res.data.every(l => l.is_sold)
-    if (allSold && new Date(auction.value.end_date) > new Date()) {
-      await callAPI('auctions', props.auctionId, 'patch', {
-        end_date: new Date().toISOString()
-      })
-      await $store.dispatch('auction/fetchAuctionData')
-    }
-  } catch (err) {
-    console.warn('Could not close auction:', err)
-  }
-}
-
 const dutchFloorPriceBch = computed(() => Number(lot.value?.threshold_bid_bch || 0))
 const dutchFloorPriceFiat = computed(() => Number(lot.value?.threshold_bid_fiat || 0))
 const dynamicPriceBch = ref(0)
@@ -1030,7 +1028,8 @@ const buyItNow = () => {
   showBuyItNowDialog.value = true 
 }
 
-const handleBuyItNow = async (payload = {}) => {
+const handleBuyItNow = async () => {
+  if (bidOrBuyLoading.value) return
   showBuyItNowDialog.value = false
   
   if (!userWalletHash.value) {
@@ -1040,78 +1039,43 @@ const handleBuyItNow = async (payload = {}) => {
   bidOrBuyLoading.value = true
 
   try {
-    const bidBch = payload.bid_price_bch ?? dynamicPriceBch.value
-    const bidFiat = payload.bid_price_fiat ?? dynamicPriceFiat.value
-
-    if (!socket || socket.readyState !== WebSocket.OPEN) {
-      throw new Error('Bid failed. Please try again.')
+    if (lot.value?.status_label !== 'Active' || auction.value?.status_label !== 'Open') {
+      throw new Error('This lot is no longer available.')
     }
 
-    socket.send(JSON.stringify({
-      type: 'place_bid',
-      data: {
-        user: userWalletHash.value,
-        lot: props.lotId,
-        bid_price_bch: Number(bidBch).toFixed(8),
-        bid_price_fiat: Number(bidFiat).toFixed(2)
-      }
-    }))
-
-    // FIx this ack
-    const ack = await waitForBidAck()
-    const bidId = ack?.id
-
-    if (!bidId) {
-      throw new Error(ack?.error || 'Transaction failed. Please try again.')
+    const bidBch = dynamicPriceBch.value
+    const bidFiat = dynamicPriceFiat.value
+    if (!Number.isFinite(bidBch) || bidBch <= 0 || !Number.isFinite(bidFiat)) {
+      throw new Error('The current Dutch price is unavailable.')
     }
 
-    const highestBidRes = await callAPI(`lots/${props.lotId}/highest-bid`)
-    if (!highestBidRes.success || highestBidRes.data?.id !== bidId) {
-      lot.value.is_sold = true
-      await $store.dispatch('auction/fetchLotData')
-      $q.notify({
-        type: 'warning',
-        message: 'This lot has already been sold.'
-      })
-      return
-    }
-
-    winningBid.value = highestBidRes.data
-
-    lot.value.is_sold = true
-    clearDutchTimers()
-    await closeAuctionIfAllSold()
-
-    await callAPI('delivery-trackings', null, 'post', {
-      auctioneer: auction.value.user.id,
-      bidder: userWalletHash.value,
-      lot: props.lotId,
-      status: 1,
-      preparing_date: new Date().toISOString()
+    const pendingBid = await websocketSendBid({
+      bid_price_bch: bidBch,
+      bid_price_fiat: bidFiat,
     })
+    if (!pendingBid?.id) throw new Error('Purchase was not created.')
 
     $q.loading.show({ message: 'Processing smart contract...' })
-
-    try {
-      await payBidToContract(Number(bidBch).toFixed(8), bidId, Number(props.lotId))
-      socket.send(JSON.stringify({
-        type: 'paid_bid',
-        data: { id: bidId, lot: Number(props.lotId) }
-      }))
-    } finally {
-      $q.loading.hide()
+    await payBidToContract(Number(bidBch).toFixed(8), pendingBid.id, Number(props.lotId))
+    const settlement = waitForBidSettlement(pendingBid.id)
+    socket.send(JSON.stringify({
+      type: 'paid_bid',
+      data: { id: pendingBid.id, lot: Number(props.lotId) }
+    }))
+    const settledBid = await settlement
+    if (settledBid.status !== 'Winner') {
+      throw new Error('This lot was not secured.')
     }
-
-    await refresh(() => {})
 
     $q.notify({
       type: 'positive',
-      message: `Secured for ${formatBCH(dynamicPriceBch.value).main}${formatBCH(dynamicPriceBch.value).zeros} BCH!`,
+      message: `Secured for ${formatBCH(bidBch).main}${formatBCH(bidBch).zeros} BCH!`,
     })
   } catch (err) {
     console.error(err)
     $q.notify({ type: 'negative', message: err.message || 'Something went wrong.' })
   } finally {
+    $q.loading.hide()
     bidOrBuyLoading.value = false
   }
 }
@@ -1221,16 +1185,6 @@ const updateRefundCountdown = () => {
   refundCountdown.value = `${hours}h`
 }
 
-const autoMarkLotSold = async () => {
-  if (!isLotClosedOrSold.value) return
-  try {
-    await callAPI('lots', props.lotId, 'patch', { is_sold: true })
-    if (lot.value) lot.value.is_sold = true
-  } catch (err) {
-    console.warn('Could not auto-mark lot as sold:', err)
-  }
-}
-
 const listingsTotalTime = computed(() => Date.now() - $store.getters['auction/listingsLastFetched'])
 const auctionLotsTotalTime = computed(() => Date.now() - $store.getters['auction/auctionLotsLastFetched'])
 const loadPageData = async () => {
@@ -1243,8 +1197,9 @@ const loadPageData = async () => {
   if(!isSameAuctionId) $store.commit('auction/setAuctionId', Number(props.auctionId))
   if(!isSameAuctionId || listingsTotalTime.value > 30000) await $store.dispatch('auction/fetchAuctionData')
   else await $store.dispatch('auction/fetchExistingAuctionData')
+
+  await $store.dispatch('auction/fetchHighestBid')
   
-  await autoMarkLotSold()
   await Promise.all([fetchDeliveryTracking(), fetchDispute()])
   if (deliveredDate.value) {
     updateRefundCountdown()
@@ -1268,7 +1223,6 @@ const smartBackPath = computed(() => {
 
 const refresh = async (done) => {
   isLoading.value = true
-  if (auction.value?.type === 'Dutch') lot.value.is_sold = false
   await loadPageData()
   isLoading.value = false
 
@@ -1317,9 +1271,16 @@ let maxReconnectAttempts = 10
 const connectWebsocket = () => {
   const ws = callLotWebsocket(Number(props.lotId))
 
-  ws.onopen = () => {
+  ws.onopen = async () => {
+    const wasReconnect = reconnectAttempts > 0
     reconnectAttempts = 0
     console.log("Connected to the lot websocket!")
+    if (wasReconnect) {
+      await Promise.all([
+        $store.dispatch('auction/fetchLotData'),
+        $store.dispatch('auction/fetchHighestBid'),
+      ])
+    }
   };
 
   ws.onmessage = async (event) => {
@@ -1349,6 +1310,12 @@ const connectWebsocket = () => {
       // start.close lot
       case "lot.update_status":
         await $store.dispatch('auction/updateLotStatusFromWebsocket', data)
+        if (data.status !== 'Active') {
+          clearDutchTimers()
+          showBuyItNowDialog.value = false
+          showMakeBidDialog.value = false
+        }
+        if (data.status === 'Sold') await initEnglishDeliveryTracking()
         break
 
       case "lot.update":
@@ -1362,58 +1329,58 @@ const connectWebsocket = () => {
 
       // sends placebid acknowledgement
       case "place.bid_ack":
+        await $store.dispatch('auction/updateBidFromWebsocket', data)
         bidResolver?.(data)
         bidResolver = null
         break
 
-      case "bid.error":
-        bidRejecter?.(new Error(data.message || 'Bid failed.'))
+      case "bid.error": {
+        const error = new Error(data.message || 'Bid failed.')
+        bidRejecter?.(error)
+        settlementRejecter?.(error)
         bidResolver = null
         bidRejecter = null
+        settlementResolver = null
+        settlementRejecter = null
+        settlementBidId = null
         break
+      }
 
       case "bid.update":
-        await $store.dispatch('auction/updateMyBiddingFromWebsocket', data)
-        await $store.dispatch('auction/fetchLotBids')
-        if (data.status === 'Highest' || data.status === 'Winner') {
-          $store.commit('auction/setHighestBid', data)
-        }
+        await $store.dispatch('auction/updateBidFromWebsocket', data)
+        resolveBidSettlement(data)
         break
 
       case "bid.cancelled_ack":
-        await $store.dispatch('auction/fetchLotBids')
+        await $store.dispatch(
+          'auction/cancelBidsFromWebsocket',
+          data.cancelled_bid_ids
+        )
         break
 
       // update the highest bidder
       case "update.highest_bid":
-        $store.commit('auction/setHighestBid', data)
-        
-        if (lot.value?.is_sold) {
-          if (auction.value.type === 'English')
-            await initEnglishDeliveryTracking()
-          else
-            winningBid.value = data
-        }
+        await $store.dispatch('auction/updateBidFromWebsocket', data)
+        resolveBidSettlement(data)
         break
 
       // update the winningBid.value?.id
       case "update.winner":
-        lot.value.is_sold = true
-        lot.value.status_label = 'Sold'
-        lot.value.refreshStatus()
-        $store.commit('auction/setHighestBid', data)
-
-        await initEnglishDeliveryTracking()
+        await $store.dispatch('auction/updateBidFromWebsocket', data)
+        resolveBidSettlement(data)
+        clearDutchTimers()
         break
 
       // update the time interval
       case "lot.time_interval":
+        if (lot.value?.status_label !== 'Active' || lot.value?.is_sold) break
         secondsRemaining.value = data.seconds_remaining
         timeLeft.value = data.time_left
         break
 
       // update the price drop
       case "lot.drop_price":
+        if (lot.value?.status_label !== 'Active' || lot.value?.is_sold) break
         if (auction.value?.is_fiat) {
           dynamicPriceFiat.value = Number(data.price)
           dynamicPriceBch.value = bchToPhpRate.value > 0
@@ -1451,6 +1418,9 @@ const connectWebsocket = () => {
 
 let bidResolver = null
 let bidRejecter = null
+let settlementBidId = null
+let settlementResolver = null
+let settlementRejecter = null
 const waitForBidAck = () => {
   return new Promise((resolve, reject) => {
     const timeout = setTimeout(() => {
@@ -1472,6 +1442,41 @@ const waitForBidAck = () => {
   })
 }
 
+const waitForBidSettlement = (bidId) => {
+  return new Promise((resolve, reject) => {
+    const timeout = setTimeout(() => {
+      settlementBidId = null
+      settlementResolver = null
+      settlementRejecter = null
+      reject(new Error('Timed out waiting for bid settlement.'))
+    }, 15000)
+
+    settlementBidId = Number(bidId)
+    settlementResolver = (data) => {
+      clearTimeout(timeout)
+      settlementBidId = null
+      settlementResolver = null
+      settlementRejecter = null
+      resolve(data)
+    }
+    settlementRejecter = (error) => {
+      clearTimeout(timeout)
+      settlementBidId = null
+      settlementResolver = null
+      settlementRejecter = null
+      reject(error)
+    }
+  })
+}
+
+const resolveBidSettlement = (data) => {
+  if (
+    Number(data?.id) !== settlementBidId
+    || data?.status === 'Pending'
+  ) return
+  settlementResolver?.(data)
+}
+
 const clearSocket = () => {
   if (reconnectTimeout) {
     clearTimeout(reconnectTimeout)
@@ -1479,11 +1484,18 @@ const clearSocket = () => {
   }
   if (!socket) return
 
-  socket.close()
+  bidRejecter?.(new Error('Bid connection closed.'))
+  settlementRejecter?.(new Error('Bid connection closed.'))
+  bidResolver = null
+  bidRejecter = null
+  settlementBidId = null
+  settlementResolver = null
+  settlementRejecter = null
   socket.onmessage = null
   socket.onopen = null
   socket.onerror = null
   socket.onclose = null
+  socket.close()
   socket = null
 }
 
@@ -1499,7 +1511,7 @@ const formatAuctionDate = (dateString) => {
 }
 
 const formatCountdown = (timeLeft) => {
-  const splitTime = (timeLeft).split(":")
+  const splitTime = String(timeLeft).split(":")
   const timeToIndex = ['day', 'hour', 'minute', 'second']
   for (let [index, time] of splitTime.entries()){
     const numTime = Number(time)
