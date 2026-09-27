@@ -288,6 +288,7 @@ export default {
   },
   created () {
     bus.on('last-read-update', this.onLastReadUpdate)
+    bus.on('relogged', this.onRelogged)
     bus.on('manual-add-tx', () => {
       this.manuallyAddingTx = true
     })
@@ -389,7 +390,7 @@ export default {
       }
       return new Promise((resolve, reject) => {
         const url = `/ramp-p2p/order/${orderId}/members/`
-        backend.patch(url, null, { authorize: true })
+        backend.patch(url, null, { authorize: 'arbiter' })
           .then(response => {
             resolve(response.data)
           })
@@ -431,7 +432,7 @@ export default {
         console.warn('Order ID is missing, skipping fetchTransactions')
         return
       }
-      await backend.get(`/ramp-p2p/order/${orderId}/contract/transactions/`, { authorize: true })
+      await backend.get(`/ramp-p2p/order/${orderId}/contract/transactions/`, { authorize: 'arbiter' })
         .then(response => {
           this.transactions = response.data
         })
@@ -445,7 +446,7 @@ export default {
         console.warn('Order ID is missing, skipping fetchFees')
         return
       }
-      await backend.get(`/ramp-p2p/order/${orderId}/contract/fees/`, { authorize: true })
+      await backend.get(`/ramp-p2p/order/${orderId}/contract/fees/`, { authorize: 'arbiter' })
         .then(response => {
           this.fees = response.data
         })
@@ -459,7 +460,7 @@ export default {
         console.warn('Order ID is missing, skipping fetchAdSnapshot')
         return
       }
-      await backend.get(`/ramp-p2p/order/${orderId}/ad/snapshot/`, { authorize: true })
+      await backend.get(`/ramp-p2p/order/${orderId}/ad/snapshot/`, { authorize: 'arbiter' })
         .then(response => {
           this.adSnapshot = response.data
         })
@@ -475,7 +476,7 @@ export default {
         this.loading = false
         return
       }
-      await backend.get(`/ramp-p2p/order/${orderId}`, { authorize: true })
+      await backend.get(`/ramp-p2p/order/${orderId}`, { authorize: 'arbiter' })
         .then(response => {
           this.amount = satoshiToBch(response.data?.order?.trade_amount)
           this.order = response.data
@@ -492,7 +493,7 @@ export default {
         return
       }
       const url = `/ramp-p2p/order/${orderId}/contract/`
-      await backend.get(url, { authorize: true })
+      await backend.get(url, { authorize: 'arbiter' })
         .then(response => {
           this.contract = response.data
         })
@@ -571,6 +572,11 @@ export default {
     },
     onLastReadUpdate () {
       this.fetchChatUnread(this.order?.chat_session_ref)
+    },
+    onRelogged () {
+      this._loadingData = false
+      this.isloaded = false
+      this.loadData()
     },
     setupWebsocket () {
       this.closeWSConnection()
