@@ -40,16 +40,22 @@ export async function refreshCatalog({ commit }) {
 export async function updateListingFromWebsocket({ commit, state }, auctionData) {
   if (!auctionData?.id) return
   let data = auctionData
+
+  // only auction id
   if (Object.keys(auctionData).length === 1) {
     const response = await callAPI('auctions', auctionData.id)
     if (!response?.success || !response.data) return
     data = response.data
   }
+
+  // auction exists in listings
   if (state.listings.some(auction => Number(auction.id) === Number(data.id))) {
     commit('updateListing', data)
-  } else {
+  } else {AuctionList.parse(data)
+    // auction DNE
     commit('addListing', AuctionList.parse(data))
   }
+  
   commit('mergeAuctionData', data)
   commit('updateMyAuction', data)
 }

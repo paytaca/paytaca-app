@@ -1,3 +1,4 @@
+import { auctionData } from "./getters"
 
 // Index page mutations
 export function setListings(state, listings) {
@@ -8,6 +9,7 @@ export function updateListing(state, auctionData) {
   const auction = state.listings.find(
     item => Number(item.id) === Number(auctionData.id)
   )
+  
   if (!auction) return
   Object.assign(auction, auctionData)
   if (auctionData.status) auction.status_label = auctionData.status
@@ -123,6 +125,7 @@ export function setAuctionDataLastFetched(state) {
 
 export function updateAuctionData(state, {attribute_name, data}) {
   state.auctionData[attribute_name] = data
+  if (attribute_name == 'status_label') auctionData.refreshStatus()
 }
 
 export function mergeAuctionData(state, auctionData) {
@@ -147,6 +150,7 @@ export function setAuctionLotsLastFetched(state) {
 export function updateAuctionLotsData(state, {attribute_name, data}) {
   state.auctionLots.forEach(lot => {
     lot[attribute_name] = data
+    if (attribute_name == 'status_label') lot.refreshStatus()
   })
 }
 
