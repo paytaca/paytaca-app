@@ -136,7 +136,7 @@
         unelevated
         class="col q-py-md"
         color="primary"
-        :label="$t('ScanQrCode', {}, 'Scan QR Code')"
+        :label="$t('ScanQrCode', {}, 'Scan Sign Tx')"
         icon="qr_code_scanner"
         @click="openScanQr"
       />
@@ -146,7 +146,7 @@
         unelevated
         class="col q-py-md"
         color="primary"
-        :label="$t('ShareQrCode', {}, 'Share QR Code')"
+        :label="$t('ShareQrCode', {}, 'Share Tx')"
         icon="share"
         @click="openShareQr"
       />
