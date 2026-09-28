@@ -413,6 +413,7 @@
         hide-check-key
         @addKey="setAmount"
         @makeKeyAction="makeKeyAction"
+        @backPressed="customKeyboardState = 'dismiss'"
       >
         <template #slide>
           <DragSlide

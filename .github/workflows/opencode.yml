@@ -21,7 +21,7 @@ jobs:
       id-token: write
       contents: write
       pull-requests: write
-      issues: read
+      issues: write
     steps:
       - name: Checkout repository
         uses: actions/checkout@v6
@@ -53,5 +53,5 @@ jobs:
           TOKEN: ${{ secrets.GITHUB_TOKEN }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
-          model: opencode/kimi-k2.6
+          model: opencode/glm-5.3
           use_github_token: true

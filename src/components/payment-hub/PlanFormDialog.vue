@@ -179,6 +179,9 @@ import JSONFormBuilderDialog from '../jsonforms/JSONFormBuilderDialog.vue'
 defineEmits([
   ...useDialogPluginComponent.emits
 ])
+const props = defineProps({
+  supportedTokens: Array,
+})
 const { t: $t } = useI18n();
 const { dialogRef, onDialogHide, onDialogOK, onDialogCancel } = useDialogPluginComponent()
 const $store = useStore()
@@ -193,12 +196,25 @@ const periodTypeOptions = [
   { label: $t('Blocks'), value: 'blocks' }
 ]
 
-const currencyOptions = [
-  { label: 'BCH', value: 'BCH' },
-  { label: 'USD', value: 'USD' },
-  { label: 'PHP', value: 'PHP' },
-  { label: 'EUR', value: 'EUR' }
-]
+const currencyOptions = computed(() => {
+  const options = [
+    { label: 'BCH', value: 'BCH' },
+    { label: 'USD', value: 'USD' },
+    { label: 'PHP', value: 'PHP' },
+    { label: 'EUR', value: 'EUR' }
+  ]
+
+  if (props.supportedTokens?.length) {
+    options.push(
+      { label: `---- ${$t('CashTokens')} ----`, value: null, disable: true },
+      ...props.supportedTokens?.map(token => {
+        return { label: token.symbol, value: token.symbol }
+      })
+    )
+  }
+
+  return options
+})
 
 const form = reactive({
   name: '',
