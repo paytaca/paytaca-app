@@ -253,10 +253,11 @@ export async function getContractAddressApi () {
     .catch(_error => { return null } )
 }
 
-export function updateRsvpPublicKeys (data) {
-  return  LIFTTOKEN_URL
+export async function updateRsvpPublicKeys (data) {
+  return await LIFTTOKEN_URL
     .patch(`reservation/${getWalletHash()}/`, data)
-    .catch(error => console.error(error))
+    .then(response => { return response.status === 200 })
+    .catch(() => { return false })
 }
 
 export async function syncReservationPublicKeys (reservationsList, walletIndex) {
@@ -281,14 +282,18 @@ export async function syncReservationPublicKeys (reservationsList, walletIndex) 
       const pubkeyHex = Buffer.from(pubkey).toString("hex");
 
       payload.push({ id: rsvp.id, public_key: pubkeyHex });
-      rsvp.public_key = pubkeyHex
     } catch (error) {
       console.error('Failed to derive public key for reservation', rsvp.id, error)
     }
   }
 
   if (payload.length > 0) {
-    await updateRsvpPublicKeys(payload)
+    const isSuccessful = await updateRsvpPublicKeys(payload)
+    if (!isSuccessful) return []
+    for (const item of payload) {
+      const rsvp = reservationsList.find(r => r.id === item.id)
+      if (rsvp) rsvp.public_key = item.public_key
+    }
   }
   return payload
 }
