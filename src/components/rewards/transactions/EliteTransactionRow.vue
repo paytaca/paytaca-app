@@ -8,17 +8,13 @@
 
     <q-item-section>
       <q-item-label class="elite-row-title">
-        {{ item.type === 'otc' ? 'OTC' : 'Marketplace' }}
-        <span class="elite-row-ref" @click="redirect">
-          {{ item.type === 'otc' ? `Ref. ID ${item.ref_id}` : `Order #${item.order_id}` }}
-          <q-icon name="open_in_new" size="14px" class="q-ml-xs" />
+        <span class="row elite-row-type">
+          {{ parseItemType(item.type) }}
         </span>
-      </q-item-label>
-      <q-item-label class="text-caption elite-row-sub">
-        {{ item.merchant_name }}
-      </q-item-label>
-      <q-item-label class="text-caption elite-row-sub">
-        {{ formatDateLocaleRelative(item.created_at, false) }}
+        <span class="row elite-row-ref" @click="redirect">
+          {{ item.type === 'otc' ? `Ref. ID ${item.ref_id}` : `Order #${item.order_id}` }}
+          <q-icon name="open_in_new" size="14px" />
+        </span>
       </q-item-label>
     </q-item-section>
 
@@ -30,6 +26,15 @@
         +{{ parseFiatCurrencyWrapper(item.fiat_lift_cashback_received) }}
       </div>
     </q-item-section>
+
+    <div class="elite-row-date text-caption">
+      <span class="row">
+        {{ item.merchant_name }}
+      </span>
+      <span class="row" :class="darkMode ? 'text-grey-5' : 'text-grey-7'">
+        {{ formatDateLocaleRelative(item.created_at, false) }}
+      </span>
+    </div>
   </q-item>
 </template>
 
@@ -55,10 +60,27 @@ export default {
     }
   },
 
+  computed: {
+    darkMode () {
+      return this.$store.getters['darkmode/getStatus']
+    }
+  },
+
   methods: {
     formatDateLocaleRelative,
     parseLiftToken,
     parseFiatCurrencyWrapper,
+
+    parseItemType (type) {
+      switch (type) {
+        case 'otc':
+          return 'Over-the-counter'
+        case 'mkp':
+          return 'Marketplace'
+        default:
+          return 'Unknown purchase'
+      }
+    },
 
     redirect () {
       if (this.item.type === 'mkp' && this.item.order_id) {

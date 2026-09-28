@@ -10,6 +10,31 @@
   cursor: default;
   padding: 12px 16px;
   min-height: 72px;
+
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  grid-template-areas:
+    'avatar main   side'
+    'avatar date   date';
+}
+
+.elite-row :deep(.q-item__section--avatar) {
+  grid-area: avatar;
+}
+
+.elite-row :deep(.q-item__section--main) {
+  grid-area: main;
+}
+
+.elite-row :deep(.q-item__section--side:not(.q-item__section--avatar)) {
+  grid-area: side;
+}
+
+/* Full-width date footer: spans the main + side columns on its own row.
+   Grid rows keep the avatar centered across both rows. */
+.elite-row-date {
+  grid-area: date;
+  margin-top: 2px;
 }
 
 .elite-row-icon {
@@ -30,15 +55,15 @@
 }
 
 .elite-row-title {
-  font-size: 13.5px;
+  font-size: 13px;
   font-weight: 700;
   color: #d4a643;
 }
 
-.elite-row-ref {
+.elite-row-ref, .elite-row-tx {
   font-weight: 600;
-  font-size: 12px;
-  margin-left: 6px;
+  font-size: 14px;
+  margin-top: 2px;
   cursor: pointer;
   display: inline-flex;
   align-items: center;
@@ -46,8 +71,13 @@
 
   .q-icon {
     color: #d4a643;
+    margin-left: 2px;
   }
 }
+
+.elite-row-type {
+    font-style: italic;
+  }
 
 .light .elite-row-ref .q-icon {
   color: #c89d36;

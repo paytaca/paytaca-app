@@ -24,7 +24,6 @@
           <template v-if="isTransactions">
             <q-skeleton type="text" width="45%" height="12px" class="q-mb-xs" />
           </template>
-          <q-skeleton type="text" width="35%" height="12px" />
         </q-item-section>
         <q-item-section side>
           <q-skeleton type="text" width="70px" height="14px" class="q-mb-xs" />
@@ -32,6 +31,9 @@
             <q-skeleton type="text" width="50px" height="11px" />
           </template>
         </q-item-section>
+        <div class="elite-row-date">
+          <q-skeleton type="text" width="35%" height="12px" />
+        </div>
       </q-item>
     </template>
   </transaction-list>
@@ -119,4 +121,8 @@ export default {
 .tx-list-load-more-btn {
   color: #d4a643 !important;
 }
+</style>
+
+<style lang="scss" scoped>
+@import 'src/css/rewards/elite-row-styles.scss';
 </style>

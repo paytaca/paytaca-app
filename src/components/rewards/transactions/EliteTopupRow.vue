@@ -8,14 +8,13 @@
 
     <q-item-section>
       <q-item-label class="elite-row-title">
-        {{ item.asset.toUpperCase() }}
-        <span class="elite-row-tx" @click="redirect">
-          Ref. ID {{ item.ref_id }}
-          <q-icon name="open_in_new" size="14px" class="q-ml-xs" />
+        <span class="row elite-row-type">
+          {{ parseAsset(item.asset) }}
         </span>
-      </q-item-label>
-      <q-item-label class="text-caption elite-row-sub">
-        {{ formatDateLocaleRelative(item.created_at, false) }}
+        <span class="row elite-row-tx" @click="redirect">
+          Ref. ID {{ item.ref_id }}
+          <q-icon name="open_in_new" size="14px" />
+        </span>
       </q-item-label>
     </q-item-section>
 
@@ -29,6 +28,10 @@
         </template>
       </div>
     </q-item-section>
+
+    <div class="elite-row-date text-caption" :class="darkMode ? 'text-grey-5' : 'text-grey-7'">
+      {{ formatDateLocaleRelative(item.created_at, false) }}
+    </div>
   </q-item>
 </template>
 
@@ -54,10 +57,27 @@ export default {
     }
   },
 
+  computed: {
+    darkMode () {
+      return this.$store.getters['darkmode/getStatus']
+    }
+  },
+
   methods: {
     formatDateLocaleRelative,
     parseLiftToken,
     parseFiatCurrencyWrapper,
+
+    parseAsset (asset) {
+      switch (asset) {
+        case 'lift':
+          return 'LIFT Token'
+        case 'sats':
+          return 'BCH'
+        default:
+          return 'Unknown asset'
+      }
+    },
 
     redirect () {
       this.$router.push({
