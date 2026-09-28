@@ -14,10 +14,31 @@
     <template #item="{ item }">
       <component :is="rowComponent" :item="item" />
     </template>
+    <template #loading>
+      <q-item v-for="n in 4" :key="`elite-skeleton-${n}`" class="elite-row" :class="getDarkModeClass(darkMode)">
+        <q-item-section avatar>
+          <q-skeleton type="circle" size="40px" />
+        </q-item-section>
+        <q-item-section>
+          <q-skeleton type="text" width="65%" height="14px" class="q-mb-xs" />
+          <template v-if="isTransactions">
+            <q-skeleton type="text" width="45%" height="12px" class="q-mb-xs" />
+          </template>
+          <q-skeleton type="text" width="35%" height="12px" />
+        </q-item-section>
+        <q-item-section side>
+          <q-skeleton type="text" width="70px" height="14px" class="q-mb-xs" />
+          <template v-if="isTransactions">
+            <q-skeleton type="text" width="50px" height="11px" />
+          </template>
+        </q-item-section>
+      </q-item>
+    </template>
   </transaction-list>
 </template>
 
 <script>
+import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 import TransactionList from 'src/components/rewards/transactions/TransactionList.vue'
 import EliteTransactionRow from 'src/components/rewards/transactions/EliteTransactionRow.vue'
 import EliteTopupRow from 'src/components/rewards/transactions/EliteTopupRow.vue'
@@ -76,9 +97,16 @@ export default {
 
   emits: ['refresh', 'load-more'],
 
+  methods: {
+    getDarkModeClass
+  },
+
   computed: {
     rowComponent () {
       return this.type === 'transactions' ? EliteTransactionRow : EliteTopupRow
+    },
+    isTransactions () {
+      return this.type === 'transactions'
     },
     emptyState () {
       return EMPTY_STATES[this.type]

@@ -15,20 +15,30 @@
         <q-card-section class="q-py-md">
           <!-- Loading State -->
           <template v-if="isLoading">
-            <div class="row flex-center q-mb-md">
-              <q-skeleton type="circle" size="40px" />
+            <div class="hero-top q-mb-md">
+              <div class="row items-center">
+                <q-skeleton type="circle" size="40px" />
+                <div class="column q-ml-sm" style="flex: 1;">
+                  <q-skeleton type="text" width="150px" height="16px" class="q-mb-xs" />
+                  <q-skeleton type="text" width="70px" height="10px" />
+                </div>
+              </div>
             </div>
-            <q-skeleton type="text" width="160px" height="20px" class="q-mx-auto q-mb-sm" />
-            <q-skeleton type="text" width="140px" height="32px" class="q-mx-auto q-mb-md" />
-            <div class="row q-col-gutter-md q-mb-md">
-              <div class="col">
-                <q-skeleton type="text" width="80px" class="q-mx-auto" />
-                <q-skeleton type="text" width="60px" class="q-mx-auto" />
+
+            <div class="row q-mb-sm q-pb-xs">
+              <div class="col elite-stat-box q-mx-xs br-10">
+                <q-skeleton type="text" width="70%" height="16px" class="q-mx-auto q-mb-xs" />
+                <q-skeleton type="text" width="55%" height="12px" class="q-mx-auto" />
               </div>
-              <div class="col">
-                <q-skeleton type="text" width="80px" class="q-mx-auto" />
-                <q-skeleton type="text" width="60px" class="q-mx-auto" />
+              <div class="col elite-stat-box q-mx-xs br-10">
+                <q-skeleton type="text" width="50%" height="16px" class="q-mx-auto q-mb-xs" />
+                <q-skeleton type="text" width="55%" height="12px" class="q-mx-auto" />
               </div>
+            </div>
+
+            <div class="row justify-center text-caption q-mb-xs">
+              <q-skeleton type="text" width="40%" height="12px" class="q-mx-auto" />
+              <q-skeleton type="text" width="60%" height="14px" class="q-mx-auto" />
             </div>
             <q-skeleton type="text" width="100%" height="8px" class="q-mx-auto" />
           </template>

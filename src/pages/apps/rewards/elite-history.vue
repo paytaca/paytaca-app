@@ -30,14 +30,17 @@
         >
           <q-card-section class="q-py-sm q-px-md">
             <template v-if="isActiveLoading">
-              <div class="text-center q-mb-md">
-                <q-skeleton type="text" width="40%" height="22px" class="q-mx-auto" />
-                <q-skeleton type="text" width="25%" class="q-mx-auto" />
+              <div class="text-center q-mb-sm">
+                <q-skeleton type="text" width="40%" height="22px" class="q-mx-auto q-mb-xs" />
+                <q-skeleton type="text" width="30%" height="12px" class="q-mx-auto" />
               </div>
-              <div class="row">
+
+              <q-separator class="summary-separator" />
+
+              <div class="row" style="margin-top: 8px;">
                 <div class="col text-center" v-for="n in 2" :key="`stat-skeleton-${n}`">
-                  <q-skeleton type="text" width="60%" class="q-mx-auto" />
-                  <q-skeleton type="text" width="40%" class="q-mx-auto" />
+                  <q-skeleton type="text" width="55%" height="16px" class="q-mx-auto q-mb-xs" />
+                  <q-skeleton type="text" width="40%" height="12px" class="q-mx-auto" />
                 </div>
               </div>
             </template>
