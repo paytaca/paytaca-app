@@ -70,16 +70,16 @@
             <div class="row q-mb-sm q-pb-xs">
               <div class="col elite-stat-box q-mx-xs br-10">
                 <div class="elite-stat-value">{{ parseLiftToken(eliteData.cashbackLift) }}</div>
-                <div class="text-caption">Total cashback received</div>
+                <div class="text-caption">Cashback this month</div>
               </div>
               <div class="col elite-stat-box q-mx-xs br-10">
                 <div class="elite-stat-value">{{ eliteData.eligibleTxCount }}</div>
-                <div class="text-caption">Eligible transactions</div>
+                <div class="text-caption">Transactions this month</div>
               </div>
             </div>
 
             <div class="row justify-center text-caption q-mb-xs">
-              <span class="col-12 text-center">Monthly cashback limit</span>
+              <span class="col-12 text-center">Cashback limit this month</span>
               <span class="col-12 text-weight-bold text-center">
                 {{ parseFiatCurrencyWrapper(eliteData.monthlyCashback) }} of {{ parseFiatCurrencyWrapper(eliteData.maxCashbackPerMonth) }}
               </span>
@@ -231,7 +231,7 @@ export default {
         // TODO add guard for -1 id
         const epSummaryData = await getEliteProgramSummaryData(this.eliteId)
         if (epSummaryData) {
-          this.eliteData.cashbackLift = epSummaryData.eligible_transactions.total_lift_cashback
+          this.eliteData.cashbackLift = epSummaryData.eligible_transactions.current_month_total_lift_cashback
           this.eliteData.eligibleTxCount = epSummaryData.eligible_transactions.count
           this.eliteData.maxCashbackPerMonth = epSummaryData.monthly_cashback_limit
           this.eliteData.monthlyCashback = epSummaryData.eligible_transactions.current_month_fiat_lift_cashback

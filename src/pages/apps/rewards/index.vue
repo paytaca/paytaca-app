@@ -448,11 +448,11 @@
             <div class="row">
               <div class="col elite-stat-box q-mx-xs br-10">
                 <div class="elite-stat-value">{{ parseLiftToken(eliteData.cashbackLift, true) }}</div>
-                <div class="text-caption">Total cashback received</div>
+                <div class="text-caption">Cashback this month</div>
               </div>
               <div class="col elite-stat-box q-mx-xs br-10">
                 <div class="elite-stat-value">{{ eliteData.eligibleTxCount }}</div>
-                <div class="text-caption">Eligible transactions</div>
+                <div class="text-caption">Transactions this month</div>
               </div>
             </div>
           </div>
