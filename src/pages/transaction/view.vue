@@ -81,7 +81,7 @@
           </q-item>
           <q-item v-for="(o, i) in recipientRows" :key="i">
             <q-item-section top>
-              <div class="text-caption" style="word-break: break-all;">{{ o.address }}</div>
+              <div class="text-caption">{{ shortenAddressForDisplay(o.address) }}</div>
             </q-item-section>
             <q-item-section side>
               <div class="flex no-wrap items-center">
@@ -193,6 +193,7 @@ import SecurityCheckDialog from 'src/components/SecurityCheckDialog.vue'
 import BroadcastSuccessDialog from 'src/components/multisig/BroadcastSuccessDialog.vue'
 import PsbtQrDialog from 'src/components/sharing/PsbtQrDialog.vue'
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
+import { shortenAddressForDisplay } from 'src/utils/address-utils'
 import { Psbt } from 'src/lib/multisig/psbt'
 import { signBchTransaction } from 'src/wallet/bch-sign'
 import { getMnemonic } from 'src/wallet'
