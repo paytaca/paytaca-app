@@ -145,12 +145,12 @@
 
               <q-chip
                 dense
-                :color="auction.status_color"
+                :color="getReactiveAuctionStatus(auction).color"
                 text-color="white"
                 class="absolute text-caption text-weight-bold"
                 style="top: 8px; right: 8px; margin: 0; padding: 3px 8px; height: auto;"
               >
-                {{ auction.status_label }}
+                {{ getReactiveAuctionStatus(auction).label }}
               </q-chip>
             </div>
             
@@ -267,12 +267,12 @@
 
               <q-chip
                 dense
-                :color="lot.status_color"
+                :color="getReactiveLotStatus(lot).color"
                 text-color="white"
                 class="absolute text-caption text-weight-bold"
                 style="top: 8px; right: 8px; margin: 0; padding: 3px 8px; height: auto;"
               >
-                {{ lot.status_label }}
+                {{ getReactiveLotStatus(lot).label }}
               </q-chip>
             </div>
 
@@ -471,6 +471,21 @@ const fetchHasBidForLots = async (lotsArr) => {
 
 const formatAuctionDate = (dateString) => date.formatDate(dateString, 'MMM DD, YYYY hh:mm A')
 
+
+const getReactiveLotStatus = (lot) => {
+  return {
+    label: lot.status_label,
+    color: lot.status_color
+  }
+}
+
+const getReactiveAuctionStatus = (auction) => {
+  return {
+    label: auction.status_label,
+    color: auction.status_color
+  }
+}
+
 /*
 ================
 WEBSOCKET FUNCTIONS
@@ -506,7 +521,8 @@ const connectWebsocket = () => {
       case "activity.refresh_bids":
         await refresh()
         break
-      case "activity.update_auctions":
+      case "activity.update_auction":
+        console.log('index.update_auction')
         await $store.dispatch('auction/updateMyAuctionFromWebsocket', data)
         break
       case "activity.remove_auction":
@@ -657,7 +673,6 @@ const getIntervalMinutesInfo = (lot) => {
 }
 
 const fetchMyData = async () => {
-  auctions.value = []
   isLoading.value = true
   await $store.dispatch(`auction/fetchMy${data.value}`)
   isLoading.value = false

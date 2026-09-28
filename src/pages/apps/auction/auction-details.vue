@@ -31,10 +31,10 @@
                   {{ auction.type }} Auction
                 </q-badge>
                 <q-badge
-                  :color="auction.status_color"
+                  :color="getReactiveAuctionStatus(auction).color"
                   class="q-pa-sm q-px-sm text-weight-bold"
                 >
-                  {{ auction.status_label }}
+                  {{ getReactiveAuctionStatus(auction).label }}
                 </q-badge>
               </div>
               
@@ -431,6 +431,8 @@ const loadPageData = async () => {
 
 onMounted(async () => {
   isLoading.value = true
+  console.log('API image:', auction.value.image)
+  if (!auction.value) $router.replace(smartBackPath.value)
   await loadPageData()
   isLoading.value = false
 
@@ -479,14 +481,17 @@ const connectWebsocket = () => {
         auctionStartCountdown.value = formatCountdown(data.time_left)
         break
       case "auction.end_countdown":
-        auctionEndCountdown.value = formatCountdown(data.time_left)
+        console.log(data.time_left)
+        auctionEndCountdown.value = formatCountdown(data.time_left, true)
+        if (auctionStartCountdown.value) auctionStartCountdown.value = ""
         break
       case "auction.start":
-        auctionEndCountdown.value = 'Starting Auction...'
+        console.log("auction.start")
         $store.commit('auction/updateAuctionData', {
-          attribute_name: 'status', 
+          attribute_name: 'status_label', 
           data: data.status
         })
+
         $store.commit('auction/updateAuctionLotsData', {
           attribute_name: 'start_date', 
           data: auction.value.start_date
@@ -495,12 +500,12 @@ const connectWebsocket = () => {
           attribute_name: 'end_date', 
           data: auction.value.end_date
         })
-        $store.dispatch('auction/fetchAuctionLots')
         break
       case "auction.end": {
+        console.log("auction.end")
         auctionStartCountdown.value = "Time's Up!"
         $store.commit('auction/updateAuctionData', {
-          attribute_name: 'status', 
+          attribute_name: 'status_label', 
           data: data.status
         })
 
@@ -513,7 +518,6 @@ const connectWebsocket = () => {
           attribute_name: 'end_date', 
           data: endDate
         })
-        $store.dispatch('auction/fetchAuctionLots')
         break
       }
       case "auction.update":
@@ -630,6 +634,12 @@ const getReactiveLotStatus = (lot) => {
   }
 }
 
+const getReactiveAuctionStatus = (auction) => {
+  return {
+    label: auction.status_label,
+    color: auction.status_color
+  }
+}
 
 // ================
 // HELPER FUNCTIONS
@@ -638,7 +648,7 @@ const getReactiveLotStatus = (lot) => {
 // FORMATTING
 const formatAuctionDate = (dateString) => date.formatDate(dateString, 'MMM DD, YYYY hh:mm A') 
 
-const formatCountdown = (timeLeft) => {
+const formatCountdown = (timeLeft, countingToEnd=false) => {
   const splitTime = (timeLeft).split(":")
   const timeToIndex = ['day', 'hour', 'minute', 'second']
   for (let [index, time] of splitTime.entries()){
@@ -647,7 +657,8 @@ const formatCountdown = (timeLeft) => {
       return `${numTime} ${timeToIndex[index]}${(numTime) > 1 ? 's':''} left.`
     }
   }
-  return "Time's Up!"
+  
+  return (countingToEnd) ? "Time's Up!" : "Auction is Starting..."
 }
 
 const formatFiat = (value) => {

@@ -101,12 +101,12 @@
 
                 <q-chip
                   dense
-                  :color="auction.status_color"
+                  :color="getReactiveAuctionStatus(auction).color"
                   text-color="white"
                   class="absolute text-caption text-weight-bold"
                   style="top: 8px; right: 8px; margin: 0; padding: 3px 8px; height: auto;"
                 >
-                  {{ auction.status_label }}
+                  {{ getReactiveAuctionStatus(auction).label }}
                 </q-chip>
               </div>
             
@@ -179,6 +179,13 @@ const isCheckingAccess = ref(true)  // Controls loading screen during profile ch
 // Auction-related 
 const listingTotalTime = computed(() => Date.now() - $store.getters['auction/listingsLastFetched'])
 const username = computed(() => $store.getters['auction/username'])
+
+const getReactiveAuctionStatus = (auction) => {
+  return {
+    label: auction.status_label,
+    color: auction.status_color
+  }
+}
 
 onMounted(async () => {
   // Fetch username and if it doesn't exist, print the error
@@ -293,6 +300,7 @@ const connectWebsocket = () => {
         await refresh()
         break
       case "index.update_auction":
+        console.log('index.update_auction')
         await $store.dispatch('auction/updateListingFromWebsocket', data)
         break
       case "index.remove_auction":
