@@ -35,7 +35,7 @@ import {
   getDustThreshold,
   hashTransaction,
   binToBase64,
-  CashAddressNetworkPrefix
+  CashAddressNetworkPrefix,
 } from 'bitauth-libauth-v3'
 import Watchtower from 'watchtower-cash-js'
 import { ElectrumNetworkProvider } from 'cashscript'
@@ -71,8 +71,10 @@ const FEE_RATE_SAT_PER_KB = 1500n
  */
 export function derivePublicKeyFromXpub (xpub, relativePath) {
   const decoded = decodeHdPublicKey(xpub)
+  console.log('@decoded', decoded, xpub, relativePath)
   if (typeof decoded === 'string') throw new Error(decoded)
   const childNode = deriveHdPathRelative(decoded.node, relativePath)
+  console.log('@childnoded', childNode)
   return childNode.publicKey
 }
 
@@ -692,6 +694,7 @@ export default class ReadOnlyWallet {
     if (!sourceUtxos.length) throw new Error('Insufficient Balance')
 
     let selectedUtxos = await this.selectProposalUtxos(recipients, transactionType, sourceUtxos)
+    console.log('@selectedUtxos', selectedUtxos)
 
     let outputs = this.recipientsToTransactionOutputs(recipients)
 
