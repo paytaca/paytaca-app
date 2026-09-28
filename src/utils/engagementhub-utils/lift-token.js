@@ -222,7 +222,7 @@ export async function getReservationsData() {
       if (response.status !== 200) return []
       return response.data
     })
-    .catch(_error => { return [] })
+    .catch(() => { return [] })
 }
 
 export async function getPurchasesData() {
@@ -232,7 +232,7 @@ export async function getPurchasesData() {
       if (response.status !== 200) return []
       return response.data
     })
-    .catch(_error => { return [] })
+    .catch(() => { return [] })
 }
 
 export async function processPurchaseApi(data) {
@@ -240,7 +240,7 @@ export async function processPurchaseApi(data) {
   return await LIFTTOKEN_URL
     .post('purchase/process_purchase/', data)
     .then(response => { return response.status === 201 })
-    .catch(_error => { return false })
+    .catch(() => { return false })
 }
 
 export async function getContractAddressApi () {
@@ -250,7 +250,7 @@ export async function getContractAddressApi () {
       if (response.status === 200) return response.data.address
       return null
     })
-    .catch(_error => { return null } )
+    .catch(() => { return null } )
 }
 
 export async function updateRsvpPublicKeys (data) {
@@ -302,7 +302,7 @@ export async function confirmReservationApi(data) {
   return await LIFTTOKEN_URL
     .post('reservation/confirm_reservation/', data)
     .then(response => { return response.status === 200 })
-    .catch(_error => { return false })
+    .catch(() => { return false })
 }
 
 export async function getIdAndPubkeyApi() {
@@ -312,7 +312,7 @@ export async function getIdAndPubkeyApi() {
       if (response.status === 200) return response.data
       return null
     })
-    .catch(_error => { return null } )
+    .catch(() => { return null } )
 }
 
 // ================================
@@ -415,10 +415,10 @@ export async function executePurchaseFlow(params) {
     throw new Error('WalletUnavailable')
   }
 
-  let pubkeyHex
+  let pubkeyHex, libauthWallet
   try {
     const { loadLibauthHdWallet } = await import('src/wallet')
-    const libauthWallet = await loadLibauthHdWallet(walletIndex, false)
+    libauthWallet = await loadLibauthHdWallet(walletIndex, false)
     pubkeyHex = libauthWallet.getPubkeyAt(addressPath).toString('hex')
   } catch (error) {
     console.error('Failed to load wallet or get pubkey:', error)
@@ -561,6 +561,7 @@ function selectUtxosByAddressPath(utxos) {
   // Find the address_path with the greatest count
   const maxCount = Math.max(...Object.values(counts));
   const mostCommonPaths = Object.entries(counts)
+    // eslint-disable-next-line no-unused-vars
     .filter(([_, cnt]) => cnt === maxCount)
     .map(([address_path]) => address_path);
   // If tie, select the path whose utxo has the highest value
