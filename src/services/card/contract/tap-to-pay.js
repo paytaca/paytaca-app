@@ -19,6 +19,7 @@ const watchtower = new Watchtower()
 import { 
     decodeOwnershipCommitment,
     encodeLinkingCommitment,
+    isPointerCommitment,
 } from '../utils.js';
 
 // /**
@@ -102,9 +103,24 @@ class TapToPay {
         if (opts.commitment) {
             params.commitment = opts.commitment
         }
-    
+
+        const path = `utxo/ct/${tokenAddress}/${tokenId}/`
+        cardLogger.log('[TapToPay.getTokenUtxos] GET', {
+            path,
+            tokenId,
+            tokenAddress,
+            contractAddress: this.getContract().address,
+            contractTokenAddress: this.getContract().tokenAddress,
+            params,
+        })
+
         let result = []
-        const response = await watchtower.BCH._api.get(`utxo/ct/${tokenAddress}/${tokenId}/`, { params })
+        const response = await watchtower.BCH._api.get(path, { params })
+        cardLogger.log('[TapToPay.getTokenUtxos] response:', {
+            status: response?.status,
+            requestUrl: response?.request?.responseURL || response?.config?.url || path,
+            data: response?.data,
+        })
         result = response.data?.utxos
         return result?.map(utxo => ({
             txid: utxo.txid,
@@ -363,7 +379,7 @@ class TapToPayNft extends TapToPay {
         let authCategory
         const authOwnershipToken = ownershipTokens.find(utxo => {
             const decodedCommitment = utxo.token?.nft?.commitment ? decodeOwnershipCommitment(utxo.token.nft.commitment) : undefined
-            if (decodedCommitment.type === 'cat') {
+            if (decodedCommitment?.type === 'cat') {
                 authCategory = decodedCommitment.value
                 return true
             }
@@ -406,9 +422,28 @@ class TapToPayNft extends TapToPay {
         return catTokenUtxo
     }
 
-    async isOwnershipSet () {
-        const { authOwnershipToken } = await this.getMerchantAuthCategory()
-        return !!authOwnershipToken
+    /**
+     * Checks whether the contract's ownership has been configured.
+     *
+     * The ownership tokens are sent to the contract before `setOwner` runs, so
+     * the mere presence of a `cat` ownership token does not prove ownership is
+     * set (a freshly provisioned version already holds both tokens). When the
+     * expected `ownerPkh` is provided, ownership is only considered set once the
+     * `pkh` ownership token commitment matches it, mirroring the `alreadySet`
+     * check performed by `setOwner`.
+     * @param {string} [ownerPkh] - Expected owner public key hash (hex).
+     * @returns {Promise<boolean>}
+     */
+    async isOwnershipSet (ownerPkh = null) {
+        if (!ownerPkh) {
+            const { authOwnershipToken } = await this.getMerchantAuthCategory()
+            return !!authOwnershipToken
+        }
+        const pkhToken = await this.getOwnershipPkhUtxo()
+        const commitment = pkhToken?.token?.nft?.commitment
+        if (!commitment) return false
+        const decoded = decodeOwnershipCommitment(commitment)
+        return decoded?.type === 'pkh' && decoded.value === ownerPkh
     }
 
     // ================ Contract Methods ================
@@ -587,7 +622,27 @@ class TapToPayNft extends TapToPay {
         const ownerUtxo = await this.getOwnershipPkhUtxo()
         const decodedCommitment = ownerUtxo?.token?.nft?.commitment ? decodeOwnershipCommitment(ownerUtxo.token.nft.commitment) : undefined
         if (!ownerUtxo || !decodedCommitment || decodedCommitment.value !== ownerPkh) {
-            throw new Error('Invalid owner token UTXO or ownership not set correctly. Cannot proceed with sweep.')
+            const ownershipTokens = await this.getTokenUtxos(this.params.category, contract.tokenAddress).catch(() => [])
+            cardLogger.error('[sweep] Ownership check failed', {
+                contractAddress: contract.address,
+                tokenAddress: contract.tokenAddress,
+                expectedOwnerPkh: ownerPkh,
+                foundOwnerUtxo: ownerUtxo
+                    ? { txid: ownerUtxo.txid, vout: ownerUtxo.vout, commitment: ownerUtxo.token?.nft?.commitment, decoded: decodedCommitment }
+                    : null,
+                contractTokenUtxos: ownershipTokens.map(u => ({
+                    txid: u.txid,
+                    vout: u.vout,
+                    commitment: u.token?.nft?.commitment,
+                    capability: u.token?.nft?.capability,
+                })),
+            })
+            const reason = !ownerUtxo
+                ? 'no 0x00 owner token found at the origin contract'
+                : !decodedCommitment
+                    ? `owner token commitment is not a valid ownership commitment (${ownerUtxo.token?.nft?.commitment})`
+                    : 'owner token does not match the wallet key'
+            throw new Error(`Invalid owner token UTXO or ownership not set correctly. Cannot proceed with sweep (${reason}).`)
         }
 
         cardLogger.log('[sweep] Owner UTXO:', ownerUtxo)
@@ -1016,6 +1071,116 @@ class TapToPayNft extends TapToPay {
             return { success: true, txHex }
         }
     }  
+
+    /**
+     * Locates the pointer NFT at this contract's token address.
+     *
+     * A pointer is a mutable auth-category NFT whose commitment starts with
+     * 0x02. It must never be confused with an ownership/auth NFT (0x00/0x01).
+     * @returns {Promise<Object|null>}
+     */
+    async getPointerUtxo () {
+        const { authCategory } = await this.getMerchantAuthCategory()
+        if (!authCategory) return null
+        const tokenAddress = toTokenAddress(this.getContract().address)
+        const utxos = await this.getTokenUtxos(authCategory, tokenAddress)
+        return utxos.find(utxo => isPointerCommitment(utxo?.token?.nft?.commitment)) || null
+    }
+
+    /**
+     * Re-points the existing pointer NFT to a new commitment.
+     *
+     * Mutates the pointer in place on the ORIGIN contract. Never mints a second
+     * pointer: only the existing pointer UTXO is consumed and re-emitted with
+     * the new commitment. The fee is covered by a wallet-provided funding input;
+     * the origin contract's BCH balance may be zero.
+     *
+     * inputs:  [0] ownership pkh NFT, [1] ownership category NFT, [2] pointer NFT
+     * outputs: all three back to this contract, pointer commitment updated.
+     *
+     * @param {Object} params
+     * @param {string} params.ownerWif - Owner WIF authorizing the mutation.
+     * @param {Object} params.pointerUtxo - Existing pointer UTXO to mutate.
+     * @param {string} params.commitment - New pointer commitment hex.
+     * @param {boolean} [params.broadcast=true]
+     * @returns {Promise<Object>}
+     */
+    async mutatePointer ({ ownerWif, pointerUtxo, commitment, broadcast = true }) {
+        if (!pointerUtxo) {
+            throw new Error('Existing pointer NFT is required to re-point. Refusing to mint a new pointer.')
+        }
+        if (!commitment) {
+            throw new Error('New pointer commitment is required.')
+        }
+
+        const contract = this.getContract()
+        const ownerSig = new SignatureTemplate(ownerWif)
+        const ownerPk = binToHex(ownerSig.getPublicKey())
+
+        const ownerUtxo = await this.getOwnershipPkhUtxo()
+        const catUtxo = await this.getOwnershipCatUtxo()
+        if (!ownerUtxo || !catUtxo) {
+            throw new Error('Ownership tokens not found. Cannot re-point the pointer.')
+        }
+
+        const normalizedPointer = {
+            txid: pointerUtxo.txid,
+            vout: pointerUtxo.vout,
+            satoshis: toBigInt(pointerUtxo.satoshis ?? pointerUtxo.value),
+            token: {
+                amount: toBigInt(pointerUtxo.token?.amount ?? 0),
+                category: String(pointerUtxo.token?.category),
+                nft: {
+                    capability: String(pointerUtxo.token?.nft?.capability),
+                    commitment: String(commitment),
+                },
+            },
+        }
+
+        const inputs = [ownerUtxo, catUtxo, normalizedPointer]
+        const outputs = [ownerUtxo, catUtxo, normalizedPointer].map(utxo => ({
+            to: contract.tokenAddress,
+            amount: toBigInt(utxo.satoshis),
+            token: utxo.token,
+        }))
+
+        const estimatedFee = this.estimateFee({
+            numContractInputs: inputs.length,
+            numP2pkhInputs: 1,
+            numOutputs: outputs.length + 1,
+            feeRate: 3n,
+        })
+
+        const {
+            cumulativeValue,
+            groupedUtxos: groupedBchFundingInputs,
+            changeAddress,
+        } = await this.getFundingInputs(estimatedFee)
+
+        const changeAmount = cumulativeValue - estimatedFee
+        if (changeAmount < 0n) {
+            throw new Error('Insufficient BCH balance to cover pointer mutation fee. Required: ' + estimatedFee + ', Available: ' + cumulativeValue)
+        }
+        if (changeAmount > DUST_LIMIT) {
+            outputs.push({ to: changeAddress, amount: toBigInt(changeAmount) })
+        }
+
+        const provider = new ElectrumNetworkProvider(Network.MAINNET)
+        const tx = new TransactionBuilder({ provider })
+        tx.addInputs(inputs, contract.unlock.mutate(ownerPk, ownerSig))
+        groupedBchFundingInputs.forEach(({ inputs, signatureTemplate }) => {
+            tx.addInputs(inputs, signatureTemplate.unlockP2PKH())
+        })
+        tx.addOutputs(outputs)
+
+        const txHex = tx.build()
+        if (broadcast) {
+            const result = await this.broadcastTransaction(txHex)
+            cardLogger.log('[mutatePointer] Transaction result:', result)
+            return result.data
+        }
+        return { success: true, txHex }
+    }
 
     async burn() {
         throw new Error('Burn operation is not supported. Please use the sweep method to retrieve funds.')

@@ -135,9 +135,9 @@
                 <div class="q-mb-md" :class="textColorGrey" style="line-height: 1.5;">
                   {{ v2OwnershipSet
                     ? (hasV1Funds
-                      ? 'V2 is already set up. Switch back to V2 or move your remaining V1 funds into it.'
+                      ? 'V2 is already set up. Move your remaining V1 BCH and tokens into it, then switch.'
                       : 'V2 is already set up. Switch back to V2 to continue using it.')
-                    : 'V2 enables fungible token payments. Activate V2 first, then sweep your V1 funds into it.' }}
+                    : 'V2 enables fungible token payments. Upgrading sets up V2 ownership and moves your V1 BCH and tokens into it.' }}
                 </div>
 
                 <q-stepper
@@ -148,87 +148,53 @@
                   animated
                   class="bg-transparent"
                 >
-                  <!-- Step 1: Activate V2 -->
+                  <!-- Step 1: Upgrade / migrate V1 funds -->
                   <q-step
                     :name="1"
-                    :title="v2OwnershipSet ? 'V2 ready' : 'Activate V2'"
-                    icon="check_circle"
-                    :done="v2OwnershipSet || migrationStep > 1"
-                  >
-                    <template v-if="v2OwnershipSet">
-                      <div class="text-caption q-mb-sm" :class="textColorGrey">
-                        V2 ownership is already set up. Switch back to V2 to use it.
-                      </div>
-                      <div class="row q-gutter-sm">
-                        <q-btn
-                          unelevated
-                          :label="activeCard?.isV2Active ? 'V2 is active' : 'Switch to V2'"
-                          color="primary"
-                          class="bg-grad text-white"
-                          rounded
-                          :loading="migratingToV2"
-                          :disable="!!activeCard?.isV2Active"
-                          @click="migrateActivateV2"
-                        />
-                      </div>
-                    </template>
-                    <template v-else>
-                      <div class="text-caption q-mb-sm" :class="textColorGrey">
-                        This sets V2 as the active contract and sets up its ownership. No funds are moved.
-                      </div>
-                      <div class="row q-gutter-sm">
-                        <q-btn
-                          unelevated
-                          label="Activate V2"
-                          color="primary"
-                          class="bg-grad text-white"
-                          rounded
-                          :loading="migratingToV2"
-                          :disable="!!activeCard?.isV2Active"
-                          @click="migrateActivateV2"
-                        />
-                      </div>
-                      <div v-if="migrationActivateMsg" class="text-caption q-mt-sm" :class="textColorGrey">
-                        {{ migrationActivateMsg }}
-                      </div>
-                    </template>
-                  </q-step>
-
-                  <!-- Step 2: Sweep (optional) -->
-                  <q-step
-                    :name="2"
-                    title="Sweep funds (optional)"
-                    icon="swap_horiz"
-                    :done="false"
+                    :title="v2OwnershipSet ? 'Move V1 funds to V2' : 'Upgrade to V2'"
+                    icon="upgrade"
+                    :done="migrationStep > 1"
                   >
                     <div class="text-caption q-mb-sm" :class="textColorGrey">
-                      Move remaining BCH from V1 to your active V2 address. Tokens can be swept from Card Security afterwards.
+                      {{ v2OwnershipSet
+                        ? 'This moves any remaining V1 BCH and tokens into V2 and switches the card to V2.'
+                        : 'This sets up V2 ownership, moves your V1 BCH and tokens into V2, and switches the card to V2.' }}
                     </div>
                     <div class="row q-gutter-sm">
                       <q-btn
-                        flat
-                        dense
-                        label="Skip"
-                        color="primary"
-                        @click="showMigrationDialog = false"
-                      />
-                      <q-btn
                         unelevated
-                        label="Sweep BCH"
+                        :label="v2OwnershipSet ? 'Move funds to V2' : 'Upgrade to V2'"
                         color="primary"
                         class="bg-grad text-white"
                         rounded
-                        :loading="migrationSweepingBch"
-                        :disable="migrationSweepDone"
-                        @click="migrateSweepBch"
+                        :loading="migratingToV2"
+                        :disable="migratingToV2"
+                        @click="migrateActivateV2"
                       />
                     </div>
-                    <div v-if="migrationSweepDone" class="text-caption text-positive q-mt-sm">
-                      BCH swept successfully
+                    <div v-if="migrationActivateMsg" class="text-caption q-mt-sm" :class="textColorGrey">
+                      {{ migrationActivateMsg }}
                     </div>
-                    <div v-if="migrationSweepError" class="text-caption text-negative q-mt-sm">
-                      {{ migrationSweepError }}
+                  </q-step>
+
+                  <!-- Step 2: Done -->
+                  <q-step
+                    :name="2"
+                    title="Migration complete"
+                    icon="check_circle"
+                    :done="false"
+                  >
+                    <div class="text-caption q-mb-sm text-positive">
+                      V1 funds were moved into V2 and the card is now on V2.
                     </div>
+                    <q-btn
+                      unelevated
+                      label="Done"
+                      color="primary"
+                      class="bg-grad text-white"
+                      rounded
+                      @click="showMigrationDialog = false"
+                    />
                   </q-step>
                 </q-stepper>
               </q-card-section>
@@ -471,9 +437,6 @@ export default {
       migrationActivateMsg: '',
       showMigrationDialog: false,
       migrationStep: 1,
-      migrationSweepingBch: false,
-      migrationSweepDone: false,
-      migrationSweepError: '',
       v2OwnershipSet: false,
       orderJourneySteps: [
         { label: 'Order Card', icon: 'shopping_cart', status: 'active' },
@@ -858,30 +821,8 @@ export default {
       this.showCashInDialog = true
     },
 
-    async migrateSweepBch () {
-      if (!this.activeCard?.id) return
-      this.migrationSweepingBch = true
-      this.migrationSweepError = ''
-      try {
-        const result = await this.activeCard.sweepFromVersion('v1', 'v2')
-        if (result?.success === false) {
-          this.migrationSweepError = result?.message || 'No BCH balance to sweep'
-          return
-        }
-        this.migrationSweepDone = true
-        this.getCardBchBalance()
-      } catch (error) {
-        cardLogger.error('Migration sweep failed:', error.message || error)
-        this.migrationSweepError = error?.message || 'Sweep failed. Please try again.'
-      } finally {
-        this.migrationSweepingBch = false
-      }
-    },
-
     openMigrationDialog () {
-      this.migrationStep = this.v2OwnershipSet ? 2 : 1
-      this.migrationSweepDone = false
-      this.migrationSweepError = ''
+      this.migrationStep = 1
       this.showMigrationDialog = true
     },
 
@@ -890,22 +831,15 @@ export default {
       this.migratingToV2 = true
       this.migrationActivateMsg = ''
       try {
-        if (this.v2OwnershipSet) {
-          await this.$store.dispatch('card/activateCardVersion', {
-            cardId: this.activeCard.id,
-            version: 'v2',
-          })
-        } else {
-          await this.$store.dispatch('card/setupVersionOwnership', {
-            cardId: this.activeCard.id,
-            version: 'v2',
-            onProgress: (message) => { this.migrationActivateMsg = message },
-          })
-        }
+        const result = await this.$store.dispatch('card/migrateCardToVersion', {
+          cardId: this.activeCard.id,
+          targetVersion: 'v2',
+          sourceVersion: 'v1',
+          onProgress: (message) => { this.migrationActivateMsg = message },
+        })
+        cardLogger.log('[Migration] completed:', result)
         await this.loadActiveCard()
         this.migrationStep = 2
-        this.migrationSweepDone = false
-        this.migrationSweepError = ''
         this.$q.notify({
           type: 'positive',
           message: this.$t('CardUpgradedToV2', {}, 'Card upgraded to V2 successfully'),
@@ -915,7 +849,7 @@ export default {
         this.fetchCardTokenHoldings()
         this.refreshCardHistory()
       } catch (error) {
-        cardLogger.error('Failed to activate V2:', error.message || error)
+        cardLogger.error('Migration to V2 failed:', error.message || error)
         this.$q.notify({
           type: 'negative',
           message: error?.message || this.$t('FailedToUpgradeV2', {}, 'Failed to upgrade to V2. Please try again.'),

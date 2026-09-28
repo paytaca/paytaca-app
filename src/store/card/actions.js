@@ -210,6 +210,53 @@ export async function setupVersionOwnership(context, { cardId, version, onProgre
     }
 }
 
+export async function migrateCardToVersion(context, { cardId, targetVersion, sourceVersion, onProgress }) {
+    try {
+        const cardUser = await loadCardUser();
+        const fetchedCard = await cardUser.fetchCardByIdentifier(cardId);
+        if (!fetchedCard) {
+            throw new Error(`Card with ID ${cardId} not found`);
+        }
+        const freshData = toPlainCard(fetchedCard);
+        context.commit('updateCard', freshData);
+        const card = await hydrateCard(freshData);
+        const result = await card.migrateToVersion(targetVersion, { sourceVersion, onProgress });
+        return result;
+    } catch (error) {
+        console.error('Error in migrateCardToVersion action:', error);
+        throw error;
+    }
+}
+
+export async function ensureCardMigrationPointer(context, { cardId, targetVersion, sourceVersion }) {
+    try {
+        const cardUser = await loadCardUser();
+        const fetchedCard = await cardUser.fetchCardByIdentifier(cardId);
+        if (!fetchedCard) {
+            throw new Error(`Card with ID ${cardId} not found`);
+        }
+        const freshData = toPlainCard(fetchedCard);
+        context.commit('updateCard', freshData);
+        const card = await hydrateCard(freshData);
+        return await card.ensureMigrationPointer(targetVersion, { sourceVersion });
+    } catch (error) {
+        console.error('Error in ensureCardMigrationPointer action:', error);
+        throw error;
+    }
+}
+
+export async function fetchCardPointerState(context, { cardId }) {
+    try {
+        const cardData = context.state.cards.find(c => c.id === cardId);
+        const card = cardData ? await hydrateCard(cardData) : null;
+        if (!card) throw new Error(`Card with ID ${cardId} not found`);
+        return await card.getMigrationState();
+    } catch (error) {
+        console.error('Error in fetchCardPointerState action:', error);
+        throw error;
+    }
+}
+
 export async function sweepCardToVersion(context, { cardId, version }) {
     try {
         const cardData = context.state.cards.find(c => c.id === cardId);

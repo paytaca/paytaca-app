@@ -14,6 +14,10 @@ import {
   CardActivationStatus
 } from './storage';
 
+import { pubkeyToPkHash } from './utils';
+import { encodePointerCommitment, findPointerUtxo, describeMigrationState } from './pointer';
+import { buildSweepMessage, signSweepMessage } from './sweep';
+export { buildSweepMessage, signSweepMessage } from './sweep';
 import { sha256, utf8ToBin, secp256k1, decodePrivateKeyWif, binToHex } from '@bitauth/libauth';
 
 const SWEEP_MERCHANT_CACHE_TTL_MS = 5 * 60 * 1000;
@@ -83,11 +87,11 @@ export class Card {
   }
 
   get cashAddress() {
-    return this.raw?.contract?.cash_address;
+    return this._contractSource?.cash_address;
   }
 
   get tokenAddress() {
-    return this.raw?.contract?.token_address;
+    return this._contractSource?.token_address;
   }
 
   get bchBalance () {
@@ -107,11 +111,11 @@ export class Card {
   }
 
   get authCategory() {
-    return this.raw?.contract?.auth_token;
+    return this._contractSource?.auth_token;
   }
 
   get ownershipCategory() {
-    return this.raw?.contract?.ownership_token;
+    return this._contractSource?.ownership_token;
   }
 
   get isActivated() {
@@ -142,6 +146,14 @@ export class Card {
   /**
    * Checks whether a contract version already has on-chain ownership set up.
    * Used to distinguish "already upgraded" from "currently active version".
+   *
+   * The version's ownership tokens are sent to the contract before `setOwner`
+   * runs, so the mere presence of a `cat` ownership token does not mean
+   * ownership is configured (e.g. a freshly regenerated V2 already has its
+   * tokens but is not set up yet). The backend `ownership_token` field is
+   * scoped to the card rather than the contract version and can report another
+   * version's value, so ownership is verified on-chain against the wallet's
+   * owner pkh instead.
    * @param {string} version - 'v1' or 'v2'
    * @returns {Promise<boolean>}
    */
@@ -149,9 +161,11 @@ export class Card {
     const entry = this.contracts.find(c => c.version === version)
     const contractId = entry?.contract_id || entry?.id
     if (!contractId) return false
+    if (!this.wallet) return false
     try {
       const contract = createTapToPay(contractId, version)
-      return await contract.isOwnershipSet()
+      const ownerPkh = pubkeyToPkHash(this.wallet.pubkey())
+      return await contract.isOwnershipSet(ownerPkh)
     } catch (error) {
       cardLogger.error(`[Card.isVersionOwnershipSet] Failed to check ${version} ownership:`, error.message || error)
       return false
@@ -249,17 +263,29 @@ export class Card {
    * @returns {void}
    */
   _initializeContract() {
-    const contractId = this.raw?.contract?.contract_id
-      || this.raw?.contract?.id
-      || this.activeContractEntry?.id
-      || this.activeContractEntry?.contract_id
+    const source = this._contractSource
+    if (!source) return;
+    const contractId = source.contract_id || source.id
     if (!contractId) return;
-    const version = this.raw?.contract?.version || this.activeContractEntry?.version
+    const version = source.version || this.activeContractVersion
     this.contract = createTapToPay(contractId, version);
   }
 
   get activeContractEntry() {
     return this.contracts.find(c => c.is_active) || null
+  }
+
+  /**
+   * Resolves the contract entry that the card should operate on. The version
+   * entry backing the active contract takes precedence over the legacy
+   * top-level `contract` object so V1->V2 switches stay consistent across the
+   * contract instance, token/cash addresses and auth categories.
+   * @returns {Object|null}
+   */
+  get _contractSource() {
+    const active = this.activeContractEntry
+    if (active && (active.contract_id || active.id)) return active
+    return this.raw?.contract || active || null
   }
 
   // ==================== CONTRACT OPERATIONS ====================
@@ -403,13 +429,41 @@ export class Card {
   }
 
   /**
+   * Resolves the auth-token category for the card's active contract.
+   *
+   * The backend `auth_token` field is scoped to the card rather than the
+   * contract version, so a V2 contract can report the V1 auth token. The
+   * authoritative category is the one committed into the contract's `cat`
+   * ownership token, so prefer that and fall back to the backend value.
+   * @returns {Promise<string|undefined>}
+   */
+  async resolveAuthCategory() {
+    this._assertContract();
+    const fallback = this.authCategory
+    try {
+      const { authOwnershipToken, authCategory } = await this.contract.getMerchantAuthCategory()
+      if (authOwnershipToken && authCategory) return authCategory
+    } catch (error) {
+      cardLogger.warn('[Card.resolveAuthCategory] Failed to resolve on-chain auth category:', error.message || error)
+    }
+    return fallback
+  }
+
+  /**
    * Gets token UTXOs for card token address
    * @returns {Promise<Array>}
    */
   async getAuthTokenUtxos() {
     this._assertContract();
-    const tokenId = this.authCategory
-    return await this.contract.getTokenUtxos(tokenId);
+    const tokenId = await this.resolveAuthCategory()
+    cardLogger.log('[Card.getAuthTokenUtxos] querying token UTXOs:', {
+      tokenId,
+      contractAddress: this.contract?.getContract?.()?.address,
+      contractTokenAddress: this.contract?.getContract?.()?.tokenAddress,
+    })
+    const utxos = await this.contract.getTokenUtxos(tokenId);
+    cardLogger.log('[Card.getAuthTokenUtxos] returned UTXOs:', utxos)
+    return utxos
   }
 
   /**
@@ -479,8 +533,9 @@ export class Card {
     }
 
     cardLogger.log('Minting new sweep auth NFT');
+    const tokenId = await this.resolveAuthCategory();
     const mintResult = await this.authNftService.mint({
-      tokenId: this.authCategory,
+      tokenId,
       merchants: [{
         id: merchant.id,
         pubkey: merchant.pubkey,
@@ -488,7 +543,7 @@ export class Card {
         spendLimitSats,
       }],
     });
-    const issueResult = await this._issueAuthTokens(this.authCategory);
+    const issueResult = await this._issueAuthTokens(tokenId);
     return { mintResult, issueResult };
   }
 
@@ -717,6 +772,38 @@ export class Card {
     throw new Error('Max attempts reached while polling for linking token');
   }
 
+  /**
+   * Polls the wallet until a freshly minted pointer NFT (0x02 commitment) is
+   * visible in the UTXO set. Backends can lag a few seconds behind broadcast.
+   * @param {string} tokenId - Auth category of the origin contract.
+   * @param {number} [interval=2000] - Delay between attempts in ms.
+   * @param {number} [maxAttempts=15] - Maximum number of attempts.
+   * @returns {Promise<Object>} The pointer UTXO once visible.
+   */
+  async pollForPointerUtxo(tokenId, interval = 2000, maxAttempts = 15, tokenAddress = null) {
+    const address = tokenAddress || this.wallet.tokenAddress();
+    cardLogger.log(`Polling for pointer NFT with tokenId: ${tokenId} at ${address}`);
+    let attempts = 0;
+    while (attempts < maxAttempts) {
+      try {
+        const walletUtxos = await this.wallet.getTokenUtxos(tokenId, address);
+        const pointerUtxo = findPointerUtxo(walletUtxos);
+        if (pointerUtxo) {
+          cardLogger.log(`Pointer NFT found after ${attempts + 1} attempt(s):`, pointerUtxo);
+          return pointerUtxo;
+        }
+        cardLogger.log(`Attempt ${attempts + 1}/${maxAttempts}: Pointer NFT not visible yet. Retrying in ${interval}ms...`);
+      } catch (error) {
+        cardLogger.error('Error polling for pointer NFT:', error.message);
+      }
+      attempts++;
+      if (attempts < maxAttempts) {
+        await new Promise(resolve => setTimeout(resolve, interval));
+      }
+    }
+    throw new Error('Pointer NFT was not found in the wallet after minting (timed out waiting for it to appear).');
+  }
+
   // ==================== SERVER API ====================
 
   /**
@@ -816,32 +903,51 @@ export class Card {
    * @returns {Promise<Object>}
    */
   async getGlobalAuthNft() {
+    const contract = this.contract?.getContract?.()
+    cardLogger.log('[Card.getGlobalAuthNft] contract resolution:', {
+      activeContractVersion: this.activeContractVersion,
+      topLevelContractVersion: this.raw?.contract?.version,
+      activeEntryVersion: this.activeContractEntry?.version,
+      sourceVersion: this._contractSource?.version,
+      sourceContractId: this._contractSource?.contract_id || this._contractSource?.id,
+      resolvedContractAddress: contract?.address,
+      cardTokenAddress: this.tokenAddress,
+      authCategory: this.authCategory,
+      topLevelContract: this.raw?.contract,
+      contracts: this.contracts.map(c => ({
+        version: c.version,
+        is_active: c.is_active,
+        id: c.id,
+        contract_id: c.contract_id,
+        auth_token: c.auth_token,
+        ownership_token: c.ownership_token,
+        token_address: c.token_address,
+      })),
+    })
+
     const authTokenUtxos = await this.getAuthTokenUtxos();
-    let decodedCommitment = null;
     const globalAuthNft = authTokenUtxos.find(utxo => {
       const mutableNft = utxo?.token?.nft?.capability === 'mutable'
       if (!mutableNft) return false
 
       const commitment = utxo?.token?.nft?.commitment
       if (!commitment) return false
-      
-      decodedCommitment = decodeCommitment(commitment)
+
+      const decodedCommitment = decodeCommitment(commitment)
       if (!decodedCommitment) return false
 
-      const isGlobalMerchantHash = decodedCommitment.hash === ""
-      return mutableNft && isGlobalMerchantHash
+      return decodedCommitment.hash === ""
     });
 
-    return { ...globalAuthNft, ...decodedCommitment}
-  }
+    if (!globalAuthNft) {
+      cardLogger.log('[Card.getGlobalAuthNft] no global auth NFT found among', authTokenUtxos.length, 'auth UTXOs')
+      return {}
+    }
 
-  /**
-   * Gets the card's merchant auth NFTs
-   * @returns {Promise<Object>}
-   */
-  async getMerchantAuthNft() {
-    const { merchant_auth_nft } = await this.getAuthNfts()
-    return merchant_auth_nft
+    const decodedCommitment = decodeCommitment(globalAuthNft.token.nft.commitment)
+    const result = { ...globalAuthNft, ...decodedCommitment }
+    cardLogger.log('[Card.getGlobalAuthNft] global auth NFT found:', result)
+    return result
   }
 
   /**
@@ -862,10 +968,11 @@ export class Card {
    */
   async activateVersion(version) {
     cardLogger.log(`Activating contract version: ${version}`);
-    if (!['v1', 'v2'].includes(version)) {
-      throw new Error('Invalid version. Must be "v1" or "v2".');
+    const label = normalizeVersionLabel(version);
+    if (!label) {
+      throw new Error('Invalid version. Must be a positive integer or "vN".');
     }
-    const response = await backend.post(`/cards/${this.id}/activate-version/`, { version });
+    const response = await backend.post(`/cards/${this.id}/activate-version/`, { version: label });
     return response.data;
   }
 
@@ -876,9 +983,13 @@ export class Card {
    * Needed for V1→V2 migration since V2 has its own separate ownership tokens.
    * @param {string} version - 'v1' or 'v2'
    * @param {Function} [callbackOnProgress] - Progress message callback
+   * @param {Object} [opts]
+   * @param {boolean} [opts.markActive=true] - When false, only sets up on-chain
+   *   ownership and leaves the server's active version untouched. Used by
+   *   migration so a later failure does not register the card as migrated.
    * @returns {Promise<Object>} - Updated card data with new active version
    */
-  async activateContractVersion(version, callbackOnProgress = null) {
+  async activateContractVersion(version, callbackOnProgress = null, { markActive = true } = {}) {
     cardLogger.log(`[Card.activateContractVersion] Setting up ${version} via standard activation...`);
     this._assertWallet();
     this._assertAuthNftService();
@@ -887,8 +998,14 @@ export class Card {
     if (!entry) throw new Error(`No ${version} contract found for this card`)
 
     // Present the version entry as the card's contract so the standard
-    // activation flow operates on the version contract's own tokens.
-    const versionCard = new Card({ ...this.raw, contract: { ...entry } });
+    // activation flow operates on the version contract's own tokens. The
+    // `contracts` list is overridden too so the active-entry resolution used
+    // by the contract/category/address getters points at this version.
+    const versionCard = new Card({
+      ...this.raw,
+      contract: { ...entry },
+      contracts: [{ ...entry, is_active: true }],
+    });
     versionCard.wallet = this.wallet;
     versionCard.authNftService = this.authNftService;
     versionCard._initializeContract();
@@ -945,6 +1062,11 @@ export class Card {
     }
 
     await versionCard.activate(callbackOnProgress, lastAttempt, { version });
+
+    if (!markActive) {
+      cardLogger.log(`[Card.activateContractVersion] Ownership for ${version} set up; leaving active version unchanged`);
+      return null;
+    }
 
     this._notifyCallbackFn(callbackOnProgress, `Activating ${version.toUpperCase()}...`);
     return this.activateVersion(version);
@@ -1071,8 +1193,9 @@ export class Card {
     }
 
     try {
-      const mintResult = await this._mintMerchantAuthToken({ authorized, spendLimitSats, merchant }, retryOnFailure);
-      const issueResult = await this._issueAuthTokens(this.authCategory);
+      const tokenId = await this.resolveAuthCategory();
+      const mintResult = await this._mintMerchantAuthToken({ authorized, spendLimitSats, merchant, tokenId }, retryOnFailure);
+      const issueResult = await this._issueAuthTokens(tokenId);
       return { mintResult, issueResult };
     } catch (error) {
       cardLogger.error('Error during merchant auth token issuance:', error.message || error);
@@ -1091,7 +1214,7 @@ export class Card {
    * @param {string} options.merchant.pubkey - Merchant public key
    * @returns {Promise<Object>}
    */
-  async _mintMerchantAuthToken({ authorized = true, spendLimitSats, merchant } = {}, retryOnFailure = true) {
+  async _mintMerchantAuthToken({ authorized = true, spendLimitSats, merchant, tokenId } = {}, retryOnFailure = true) {
     cardLogger.log('Minting merchant auth token...');
     this._assertWallet();
     this._assertAuthNftService();
@@ -1100,8 +1223,9 @@ export class Card {
       throw new Error('Merchant id and pubkey are required to mint merchant auth token');
     }
 
+    const authTokenId = tokenId || await this.resolveAuthCategory()
     const result = await this.authNftService.mint({ 
-        tokenId: this.authCategory, 
+        tokenId: authTokenId, 
         merchants: [{
           id: merchant.id,
           pubkey: merchant.pubkey,
@@ -1243,6 +1367,13 @@ export class Card {
     this._assertContract();
     this._assertWallet();
 
+    // A pointer signals the origin contract is retired: its funds must move to
+    // the target contract via migration, not be spent out as an origin spend.
+    const pointer = await this.findPointerNft().catch(() => null);
+    if (pointer) {
+      throw new Error('Origin spend blocked: a migration pointer is present. Move funds to the target contract instead.');
+    }
+
     const privateKey = this.wallet.privkey();
     const toAddress = this.wallet.address();
     const built = await this.contract.sweep({ ownerWif: privateKey, toAddress, broadcast: false });
@@ -1361,6 +1492,297 @@ export class Card {
     }
   }
 
+  // ==================== POINTER / MIGRATION ====================
+
+  /**
+   * Builds a Card scoped to a specific contract version. The version entry is
+   * presented as the active contract so contract/address/category getters and
+   * the auth NFT service all operate on that version's tokens.
+   * @private
+   * @param {string} version - e.g. 'v1' or 'v2'
+   * @returns {Card}
+   */
+  _scopedVersionCard(version) {
+    this._assertWallet();
+    const entry = this.contracts.find(c => c.version === version);
+    if (!entry) throw new Error(`No ${version} contract found for this card`);
+    const scoped = new Card({
+      ...this.raw,
+      contract: { ...entry },
+      contracts: [{ ...entry, is_active: true }],
+    });
+    scoped.wallet = this.wallet;
+    scoped.authNftService = this.authNftService;
+    scoped._initializeContract();
+    scoped._assertContract();
+    return scoped;
+  }
+
+  /**
+   * Locates the pointer NFT at a contract version's token address.
+   * @param {string} [version] - Defaults to the active contract version.
+   * @returns {Promise<Object|null>}
+   */
+  async findPointerNft(version = null) {
+    const target = version || this.activeContractVersion;
+    const scoped = target ? this._scopedVersionCard(target) : this;
+    if (!scoped.contract) return null;
+    return scoped.contract.getPointerUtxo();
+  }
+
+  /**
+   * True when a pointer NFT exists at the given (default: active) contract.
+   * @param {string} [version]
+   * @returns {Promise<boolean>}
+   */
+  async hasPointerNft(version = null) {
+    return !!(await this.findPointerNft(version));
+  }
+
+  /**
+   * GET /api/cards/{id}/pointer-state/ — server mirror of the on-chain pointer.
+   * The on-chain pointer remains authoritative; this is only a hint/fast path.
+   * @returns {Promise<Object>}
+   */
+  async getPointerState() {
+    const idOrUid = this.id || this.uid;
+    if (!idOrUid) throw new Error('Card id or uid is required');
+    const response = await backend.get(`/cards/${idOrUid}/pointer-state/`)
+      .catch(error => {
+        cardLogger.error('Error fetching pointer state:', error.response || error.message);
+        throw error;
+      });
+    return response.data || {};
+  }
+
+  /**
+   * Derives the migration status from the server pointer-state plus on-chain
+   * origin funding.
+   * @returns {Promise<{status: string, version: number|null, label: string, pointerState: Object}>}
+   */
+  async getMigrationState() {
+    const pointerState = await this.getPointerState().catch(() => ({}));
+    let originFunded = false;
+    if (pointerState?.pointer_present) {
+      const originVersion = pointerState.origin_version != null ? normalizeVersionLabel(pointerState.origin_version) : this.activeContractVersion;
+      try {
+        const origin = this._scopedVersionCard(originVersion);
+        const address = origin.tokenAddress || origin.cashAddress;
+        if (address) {
+          const balances = await origin.fetchFtBalances().catch(() => []);
+          const bch = await origin.getBchBalance().catch(() => 0);
+          originFunded = (balances?.length > 0) || bch > 0;
+        }
+      } catch (error) {
+        cardLogger.warn('[Card.getMigrationState] Failed to read origin funding:', error.message || error);
+      }
+    }
+    return { ...describeMigrationState(pointerState, { originFunded }), pointerState };
+  }
+
+  /**
+   * Mints the pointer NFT under the ORIGIN auth category and sends it to the
+   * ORIGIN contract token address. Refuses to mint when a pointer already
+   * exists (use re-point instead).
+   * @param {Object} params
+   * @param {number} params.version - Target contract version (1..255).
+   * @param {string} params.category - Target contract category (params.category encoding).
+   * @param {string} [params.sourceVersion] - Origin version; defaults to active.
+   * @param {boolean} [params.broadcast=true]
+   * @returns {Promise<Object>}
+   */
+  async mintPointerToken({ version, category, sourceVersion = null, broadcast = true } = {}) {
+    this._assertWallet();
+    this._assertAuthNftService();
+    const source = sourceVersion || this.activeContractVersion;
+    const origin = this._scopedVersionCard(source);
+
+    const existing = await origin.contract.getPointerUtxo();
+    if (existing) {
+      throw new Error('Pointer NFT already present. Use re-point instead of minting a second pointer.');
+    }
+
+    const tokenId = await origin.resolveAuthCategory();
+    const commitment = encodePointerCommitment({ version, category });
+    cardLogger.log(`[Card.mintPointerToken] origin=${source} authCategory=${tokenId} -> ${commitment}`);
+
+    // Recover a pointer that was minted on a previous attempt but never issued
+    // (e.g. the post-broadcast lookup timed out). Reusing it prevents minting a
+    // duplicate pointer NFT under the same auth category.
+    const walletAddress = this.wallet.tokenAddress();
+    let walletPointer = findPointerUtxo(await this.wallet.getTokenUtxos(tokenId, walletAddress));
+    let mintResult = null;
+    if (walletPointer) {
+      cardLogger.log('[Card.mintPointerToken] reusing unissued pointer already in wallet:', walletPointer.txid);
+    } else {
+      mintResult = await origin.authNftService.mint({
+        tokenId,
+        merchants: [{ commitment }],
+        opts: { broadcast },
+      });
+      walletPointer = await this.pollForPointerUtxo(tokenId);
+    }
+
+    const issueResult = await origin.authNftService.issue([walletPointer], origin.tokenAddress, { broadcast });
+
+    // If the reused pointer carried a different commitment, correct it on-chain
+    // so exactly one pointer points at the requested target.
+    const existingCommitment = String(walletPointer?.token?.nft?.commitment || '').toLowerCase();
+    if (existingCommitment && existingCommitment !== commitment.toLowerCase()) {
+      cardLogger.log('[Card.mintPointerToken] reused pointer commitment differs; re-pointing to target');
+      const issuedPointer = await this.pollForPointerUtxo(tokenId, 2000, 15, origin.tokenAddress);
+      const repointResult = await origin.contract.mutatePointer({
+        ownerWif: this.wallet.privkey(),
+        pointerUtxo: issuedPointer,
+        commitment,
+        broadcast,
+      });
+      return { commitment, mintResult, issueResult, repointResult };
+    }
+
+    return { commitment, mintResult, issueResult };
+  }
+
+  /**
+   * Re-points the existing pointer NFT at the ORIGIN contract to a new
+   * commitment. Always mutates the existing pointer; never mints a second one.
+   * @param {Object} params
+   * @param {number} params.version
+   * @param {string} params.category
+   * @param {string} [params.sourceVersion] - Origin version; defaults to active.
+   * @param {boolean} [params.broadcast=true]
+   * @returns {Promise<Object>}
+   */
+  async repointPointer({ version, category, sourceVersion = null, broadcast = true } = {}) {
+    this._assertWallet();
+    this._assertContract();
+    const source = sourceVersion || this.activeContractVersion;
+    const origin = this._scopedVersionCard(source);
+
+    const pointerUtxo = await origin.contract.getPointerUtxo();
+    if (!pointerUtxo) {
+      throw new Error('No pointer NFT found at the origin contract. Cannot re-point; migrate first.');
+    }
+
+    const commitment = encodePointerCommitment({ version, category });
+    cardLogger.log(`[Card.repointPointer] origin=${source} pointer=${pointerUtxo.txid}:${pointerUtxo.vout} -> ${commitment}`);
+    const result = await origin.contract.mutatePointer({
+      ownerWif: this.wallet.privkey(),
+      pointerUtxo,
+      commitment,
+      broadcast,
+    });
+    return { commitment, ...result };
+  }
+
+  /**
+   * Idempotently ensures the origin contract carries a pointer to the target
+   * version: mints on first migration, re-points on subsequent ones.
+   * @param {number|string} targetVersion
+   * @param {Object} [opts]
+   * @param {string} [opts.sourceVersion] - Origin version; defaults to active.
+   * @param {boolean} [opts.broadcast=true]
+   * @returns {Promise<Object>}
+   */
+  async ensureMigrationPointer(targetVersion, { sourceVersion = null, broadcast = true } = {}) {
+    this._assertWallet();
+    this._assertAuthNftService();
+    const targetLabel = normalizeVersionLabel(targetVersion);
+    const targetEntry = this.contracts.find(c => c.version === targetLabel);
+    if (!targetEntry) throw new Error(`No ${targetLabel} contract found for this card`);
+
+    const targetCategory = targetEntry.ownership_token
+      || (targetEntry.contract_id || targetEntry.id
+        ? createTapToPay(targetEntry.contract_id || targetEntry.id, targetLabel).getOwnershipCategory()
+        : null);
+    if (!targetCategory) throw new Error('Unable to resolve target contract category');
+
+    const source = sourceVersion || this.activeContractVersion;
+    const origin = this._scopedVersionCard(source);
+    const existingPointer = await origin.contract.getPointerUtxo();
+    const version = parseVersionNumber(targetLabel);
+
+    if (existingPointer) {
+      cardLogger.log(`[Card.ensureMigrationPointer] pointer present at ${source}; re-pointing to ${targetLabel}`);
+      return { action: 'repoint', ...(await this.repointPointer({ version, category: targetCategory, sourceVersion: source, broadcast })) };
+    }
+
+    cardLogger.log(`[Card.ensureMigrationPointer] no pointer at ${source}; minting for ${targetLabel}`);
+    return { action: 'mint', ...(await this.mintPointerToken({ version, category: targetCategory, sourceVersion: source, broadcast })) };
+  }
+
+  /**
+   * Migrates the card from an origin contract to a target version by minting /
+   * re-pointing the pointer, moving sweep auth, BCH and FTs, then switching the
+   * server preimage version. The on-chain pointer is authoritative.
+   *
+   * Ordering matters: pointer, sweep-auth, BCH, FT, activate-version.
+   *
+   * @param {number|string} targetVersion
+   * @param {Object} [opts]
+   * @param {string} [opts.sourceVersion] - Origin version; defaults to active.
+   * @param {Function} [opts.onProgress]
+   * @param {boolean} [opts.broadcast=true]
+   * @returns {Promise<Object>}
+   */
+  async migrateToVersion(targetVersion, { sourceVersion = null, onProgress = null, broadcast = true } = {}) {
+    this._assertWallet();
+    this._assertAuthNftService();
+    const targetLabel = normalizeVersionLabel(targetVersion);
+    const targetEntry = this.contracts.find(c => c.version === targetLabel);
+    if (!targetEntry) throw new Error(`No ${targetLabel} contract found for this card`);
+    const source = sourceVersion || this.activeContractVersion;
+    const origin = this._scopedVersionCard(source);
+
+    const targetCategory = targetEntry.ownership_token
+      || (targetEntry.contract_id || targetEntry.id
+        ? createTapToPay(targetEntry.contract_id || targetEntry.id, targetLabel).getOwnershipCategory()
+        : null);
+    if (!targetCategory) throw new Error('Unable to resolve target contract category');
+    const targetTokenAddress = targetEntry.token_address;
+    if (!targetTokenAddress) throw new Error('Target contract has no token address');
+
+    // 2. Ensure target ownership is set with the user's key. Do NOT flip the
+    // server active version yet: only the final step marks the card migrated,
+    // so an error in any sweep step leaves the card on the origin version.
+    this._notifyCallbackFn(onProgress, `Preparing ${targetLabel.toUpperCase()} ownership...`);
+    if (!(await this.isVersionOwnershipSet(targetLabel))) {
+      await this.activateContractVersion(targetLabel, onProgress, { markActive: false });
+    }
+
+    // 3. Pointer: mint on first migration, re-point afterwards.
+    this._notifyCallbackFn(onProgress, 'Setting migration pointer...');
+    await this.ensureMigrationPointer(targetLabel, { sourceVersion: source, broadcast });
+
+    // 4. Origin sweep-auth NFT.
+    this._notifyCallbackFn(onProgress, 'Minting sweep authorization...');
+    await origin.mintSweepAuthToken();
+
+    // 5. Move BCH origin -> target.
+    this._notifyCallbackFn(onProgress, 'Moving BCH to target contract...');
+    const bchResult = await this.sweepFromVersion(source, targetLabel, { broadcast });
+
+    // 6. Move each FT origin -> target (server-signed).
+    this._notifyCallbackFn(onProgress, 'Moving tokens to target contract...');
+    const ftBalances = await origin.fetchFtBalances().catch(() => []);
+    const ftResults = [];
+    for (const balance of ftBalances) {
+      const tokenId = balance.tokenId || balance.category;
+      if (!tokenId) continue;
+      this._notifyCallbackFn(onProgress, `Moving ${tokenId.slice(0, 8)}... to target`);
+      const result = await origin.sweepFungibleTokens(tokenId, targetTokenAddress);
+      ftResults.push({ tokenId, result });
+    }
+
+    // 7. Server preimage version hint.
+    this._notifyCallbackFn(onProgress, 'Activating target version...');
+    await this.activateVersion(targetLabel);
+
+    // 8. Verify against the on-chain pointer.
+    const pointerState = await this.getPointerState().catch(() => ({}));
+    return { bchResult, ftResults, pointerState, targetVersion: targetLabel, targetCategory };
+  }
+
   // ==================== HELPERS ====================
 
     /**
@@ -1455,18 +1877,28 @@ export function parseFtSweepError(error) {
   }
 }
 
-export function buildSweepMessage(card, tokenId, tokenAddress) {
-  const cardRef = card?.uid || String(card?.id)
-  return `sweep_ft:${cardRef}:${tokenId}:${tokenAddress}`
+/**
+ * Normalizes a version into its 'vN' label (e.g. 2 -> 'v2', 'V3' -> 'v3').
+ * @param {number|string} version
+ * @returns {string|null}
+ */
+export function normalizeVersionLabel(version) {
+  if (version === undefined || version === null || version === '') return null
+  const str = String(version).toLowerCase().trim()
+  const label = str.startsWith('v') ? str : `v${str}`
+  if (!/^v[1-9][0-9]*$/.test(label)) return null
+  return label
 }
 
-export function signSweepMessage(privateKeyWif, message) {
-  const messageHash = sha256.hash(utf8ToBin(message))
-  const privateKeyBin = decodePrivateKeyWif(privateKeyWif).privateKey
-  if (typeof privateKeyBin === 'string') throw new Error(privateKeyBin)
-  const signatureBin = secp256k1.signMessageHashDER(privateKeyBin, messageHash)
-  if (typeof signatureBin === 'string') throw new Error(signatureBin)
-  return binToHex(signatureBin)
+/**
+ * Parses a version label into its integer number (e.g. 'v2' -> 2).
+ * @param {number|string} version
+ * @returns {number}
+ */
+export function parseVersionNumber(version) {
+  const label = normalizeVersionLabel(version)
+  if (!label) throw new Error(`Invalid contract version: ${version}`)
+  return parseInt(label.slice(1), 10)
 }
 
 export function isContractHistoryMutation(item) {

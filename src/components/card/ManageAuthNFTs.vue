@@ -872,6 +872,7 @@ export default {
           await new Promise(resolve => setTimeout(resolve, interval))
           return this.loadGlobalAuthNft(interval * 2, retries - 1)
         }
+        this.globalAuthNft = { authorized: false }
       } catch (error) {
         cardLogger.error('Error loading global auth NFT:', error.message || error)
         this.globalAuthNft = { authorized: false }
@@ -917,7 +918,7 @@ export default {
         const params = {
           limit: this.merchantsPagination.limit,
           offset: this.merchantsPagination.offset,
-          token_id: this.card?.authCategory,
+          token_id: await this.card?.resolveAuthCategory?.(),
           // location: locationCoords,
           // radius: this.radius
         }

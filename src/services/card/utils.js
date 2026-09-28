@@ -13,6 +13,15 @@ import {
 import { BLOCK_TIME_SEC } from './constants.js'
 import { ElectrumNetworkProvider } from 'cashscript'
 import { cardLogger } from 'src/utils/debug-logger.js'
+export {
+  POINTER_PREFIX,
+  POINTER_COMMITMENT_LENGTH,
+  encodePointerCommitment,
+  isPointerCommitment,
+  decodePointerCommitment,
+  findPointerUtxo,
+  describeMigrationState,
+} from './pointer.js'
 
 const HASHTYPE = 0x41; // SIGHASH_ALL | SIGHASH_FORKID
 
@@ -143,16 +152,25 @@ export function encodeOwnershipCommitment({ holderType, category }) {
 
 /**
  * Decodes an NFT commitment hex into its fields.
+ *
+ * Only the explicit ownership prefixes are recognized:
+ *   0x00 -> pkh, 0x01 -> cat. Any other prefix (e.g. 0x02 migration pointer)
+ * returns null so non-ownership NFTs can never be mistaken for ownership
+ * tokens when scanning a contract's token UTXOs.
  * @param {string} hex
- * @returns {{ type: string, category: string }|null}
+ * @returns {{ type: string, value: string }|null}
  */
 export function decodeOwnershipCommitment(hex) {
-    if (hex.length === 0) return null;
+    if (!hex || hex.length < 2) return null;
     const buf = Buffer.from(hex, 'hex');
-    return {
-        type: buf[0] === 1 ? 'cat' : 'pkh',
-        value: buf.subarray(1, buf.length).toString('hex')
-    };
+    if (buf.length === 0) return null;
+    if (buf[0] === 0x00) {
+        return { type: 'pkh', value: buf.subarray(1).toString('hex') };
+    }
+    if (buf[0] === 0x01) {
+        return { type: 'cat', value: buf.subarray(1).toString('hex') };
+    }
+    return null;
 }
 
 export function estimateP2pkhFee({ numInputs = 0, numOutputs = 2, feeRate = 2n } = {}) {

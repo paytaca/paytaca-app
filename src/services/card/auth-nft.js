@@ -206,7 +206,10 @@ class AuthNftService {
                 }
             }
 
-            const commitment = encodeCommitment(commitmentData)
+            // Raw commitments (e.g. pointer NFTs) bypass auth encoding.
+            const commitment = merchant.commitment
+                ? String(merchant.commitment)
+                : encodeCommitment(commitmentData)
             outputs.push({
                 to: this.wallet.tokenAddress(),
                 amount: MINT_VALUE,
