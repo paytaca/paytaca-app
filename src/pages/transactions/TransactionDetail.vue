@@ -937,7 +937,8 @@ export default {
           query: { assetID: assetId }
         }
       }
-      if (['app-rewards-transaction-history', 'user-rewards'].includes(fromParam)) {
+      const fromPathNames = ['app-rewards-transaction-history', 'user-rewards', 'app-rewards-elite-history']
+      if (fromPathNames.includes(fromParam)) {
         return -1
       }
       if (fromParam?.includes('apps/multisig')) { 
