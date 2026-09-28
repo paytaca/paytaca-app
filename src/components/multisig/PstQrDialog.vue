@@ -69,6 +69,7 @@ const { t: $t } = useI18n()
 const $q = useQuasar()
 import { base64ToBin } from "bitauth-libauth-v3";
 import { UR, UREncoder } from "@ngraveio/bc-ur";
+import { cborEncode } from "@ngraveio/bc-ur/dist/cbor";
 import { Pst } from 'src/lib/multisig'
 
 const props = defineProps({
@@ -134,8 +135,8 @@ async function prepareBase64Chunks(chunkSize = 100) {
       return false;
     }
     const base64Psbt = await props.pst.export()
-    const buffer = Buffer.from(base64ToBin(base64Psbt), 'base64');
-    const ur = new UR(buffer, "crypto-psbt");
+    const psbtBytes = Buffer.from(base64ToBin(base64Psbt));
+    const ur = new UR(cborEncode(psbtBytes), "crypto-psbt");
     
     encoder.value = new UREncoder(ur, chunkSize);
     return encoder.value?.fragments?.length;

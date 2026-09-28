@@ -625,15 +625,13 @@ export default {
         }
 
         if (normalizedValue.startsWith('ur:crypto-psbt') && resultUR) {
-          const decodedData = Buffer.from(resultUR.cbor, 'base64')
+          const decodedData = cborDecode(resultUR.cbor)
           const psbtBase64 = binToBase64(decodedData)
 
           let isSingleSig = false
-          try {
-            const obj = {}
-            new Psbt().decode(psbtBase64, obj)
-            isSingleSig = Array.isArray(obj.inputs) && obj.inputs.length > 0 && obj.inputs.every(i => !i.redeemScript)
-          } catch { isSingleSig = false }
+          const obj = {}
+          new Psbt().decode(psbtBase64, obj)
+          isSingleSig = Array.isArray(obj.inputs) && obj.inputs.length > 0 && obj.inputs.every(i => !i.redeemScript)
 
           if (isSingleSig) {
             sessionStorage.setItem('paytaca-single-sig-psbt', psbtBase64)
