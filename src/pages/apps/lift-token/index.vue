@@ -317,11 +317,8 @@ export default {
       // update the public keys of reservations if they are empty
       if (this.reservationsList.length > 0) {
         const walletIndex = this.$store.getters['global/getWalletIndex']
-        try {
-          await syncReservationPublicKeys(this.reservationsList, walletIndex)
-        } catch (error) {
-          console.error('Failed to sync reservation public keys:', error)
-        }
+        syncReservationPublicKeys(this.reservationsList, walletIndex)
+          .catch(error => console.error('Failed to sync reservation public keys:', error))
       }
 
       this.isLoading = false;
