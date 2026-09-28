@@ -51,11 +51,11 @@ export async function updateListingFromWebsocket({ commit, state }, auctionData)
   // auction exists in listings
   if (state.listings.some(auction => Number(auction.id) === Number(data.id))) {
     commit('updateListing', data)
-  } else {AuctionList.parse(data)
+  } else {
     // auction DNE
     commit('addListing', AuctionList.parse(data))
   }
-  
+
   commit('mergeAuctionData', data)
   commit('updateMyAuction', data)
 }
@@ -65,15 +65,27 @@ export function removeListingFromWebsocket({ commit }, auctionId) {
   commit('removeListing', auctionId)
 }
 
-export function updateMyAuctionFromWebsocket({ commit, state }, auctionData) {
+export async function updateMyAuctionFromWebsocket({ commit, state }, auctionData) {
   if (!auctionData?.id) return
-  if (state.myAuctions.some(auction => Number(auction.id) === Number(auctionData.id))) {
-    commit('updateMyAuction', auctionData)
-  } else {
-    commit('addMyAuction', AuctionList.parse(auctionData))
+  let data = auctionData
+
+  // only auction id
+  if (Object.keys(auctionData).length === 1) {
+    const response = await callAPI('auctions', auctionData.id)
+    if (!response?.success || !response.data) return
+    data = response.data
   }
-  commit('updateListing', auctionData)
-  commit('mergeAuctionData', auctionData)
+
+  if (state.myAuctions.some(
+    auction => Number(auction.id) === Number(data.id)
+  )) {
+    commit('updateMyAuction', data)
+  } else {
+    commit('addMyAuction', AuctionList.parse(data))
+  }
+
+  commit('updateListing', data)
+  commit('mergeAuctionData', data)
 }
 
 export function removeMyAuctionFromWebsocket({ commit }, auctionId) {

@@ -1,4 +1,3 @@
-import { auctionData } from "./getters"
 
 // Index page mutations
 export function setListings(state, listings) {
@@ -9,16 +8,22 @@ export function updateListing(state, auctionData) {
   const auction = state.listings.find(
     item => Number(item.id) === Number(auctionData.id)
   )
-  
+  console.log('Incoming status:', auctionData.status)
+  console.log('Before:', auction.status_label)
   if (!auction) return
   Object.assign(auction, auctionData)
-  if (auctionData.status) auction.status_label = auctionData.status
-  auction.refreshStatus?.()
+
+  if (auctionData.status) {
+    auction.status_label = auctionData.status
+    auction.refreshStatus()
+  }
+  
+  console.log('After:', auction.status_label)
 }
 
 export function addListing(state, auction) {
   if (state.listings.some(item => Number(item.id) === Number(auction.id))) return
-  state.listings.push(auction)
+  state.listings.push(auction)  
 }
 
 export function removeListing(state, auctionId) {
@@ -89,10 +94,13 @@ export function updateMyAuction(state, auctionData) {
   const auction = state.myAuctions.find(
     item => Number(item.id) === Number(auctionData.id)
   )
+
   if (!auction) return
   Object.assign(auction, auctionData)
-  if (auctionData.status) auction.status_label = auctionData.status
-  auction.refreshStatus?.()
+  if (auctionData.status) {
+    auction.status_label = auctionData.status
+    auction.refreshStatus()
+  }
 }
 
 export function addMyAuction(state, auction) {
@@ -125,7 +133,7 @@ export function setAuctionDataLastFetched(state) {
 
 export function updateAuctionData(state, {attribute_name, data}) {
   state.auctionData[attribute_name] = data
-  if (attribute_name == 'status_label') auctionData.refreshStatus()
+  if (attribute_name == 'status_label') state.auctionData.refreshStatus()
 }
 
 export function mergeAuctionData(state, auctionData) {
