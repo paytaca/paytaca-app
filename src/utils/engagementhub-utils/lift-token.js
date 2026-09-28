@@ -1,4 +1,4 @@
-import { hexToBin, decodePrivateKeyWif, secp256k1 } from "@bitauth/libauth"
+import { hexToBin } from "@bitauth/libauth"
 import { OracleData } from "@generalprotocols/price-oracle"
 import { Contract, ElectrumNetworkProvider } from "cashscript"
 import { NFTCapability, Wallet } from 'mainnet-js'
@@ -280,12 +280,7 @@ export async function syncReservationPublicKeys (reservationsList, walletIndex) 
   for (const rsvp of pending) {
     try {
       const addressPath = await getAddressPath(rsvp.bch_address)
-      const wif = libauthWallet.getPrivateKeyWifAt(addressPath);
-      const decodedWif = decodePrivateKeyWif(wif);
-      const pubkey = secp256k1.derivePublicKeyCompressed(
-        decodedWif.privateKey
-      );
-      const pubkeyHex = Buffer.from(pubkey).toString("hex");
+      const pubkeyHex = libauthWallet.getPubkeyAt(addressPath)
 
       payload.push({ id: rsvp.id, public_key: pubkeyHex });
     } catch (error) {
