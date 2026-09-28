@@ -32,6 +32,61 @@ export const PromosBytes = {
 }
 
 // ================================
+// Paytaca Elite Program enums
+// ================================
+
+export const EliteStatus = Object.freeze({
+  CHECKING: 'checking',
+  LOCKED: 'locked',
+  ACTIVE: 'active',
+  PAUSED: 'paused'
+})
+
+export const EliteStatusLabels = Object.freeze({
+  [EliteStatus.CHECKING]: 'Checking',
+  [EliteStatus.LOCKED]: 'Locked',
+  [EliteStatus.ACTIVE]: 'Active',
+  [EliteStatus.PAUSED]: 'Paused'
+})
+
+export const EliteTxType = Object.freeze({
+  OTC: 'otc',
+  MARKETPLACE: 'mkp'
+})
+
+export const EliteTxTypeLabels = Object.freeze({
+  [EliteTxType.OTC]: 'Over-the-counter',
+  [EliteTxType.MARKETPLACE]: 'Marketplace'
+})
+export const getEliteTxTypeLabel = type => EliteTxTypeLabels[type] || 'Unknown purchase'
+
+export const EliteTxTypeIcons = Object.freeze({
+  [EliteTxType.OTC]: 'store',
+  [EliteTxType.MARKETPLACE]: 'img:marketplace.svg'
+})
+
+export const EliteTxTypeRefLabels = Object.freeze({
+  [EliteTxType.OTC]: 'Ref. ID',
+  [EliteTxType.MARKETPLACE]: 'Order #'
+})
+
+export const EliteAsset = Object.freeze({
+  BCH: 'sats',
+  LIFT: 'lift'
+})
+
+export const EliteAssetLabels = Object.freeze({
+  [EliteAsset.BCH]: 'BCH',
+  [EliteAsset.LIFT]: 'LIFT Token'
+})
+export const getEliteAssetLabel = asset => EliteAssetLabels[asset] || 'Unknown asset'
+
+export const EliteAssetIcons = Object.freeze({
+  [EliteAsset.BCH]: 'img:bch-logo.png',
+  [EliteAsset.LIFT]: 'img:lift-token.png'
+})
+
+// ================================
 // util functions
 // ================================
 

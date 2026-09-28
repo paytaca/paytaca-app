@@ -336,7 +336,7 @@
               <div class="col-8">
                 <span class="text-token elite-name" :class="getDarkModeClass(darkMode)">Paytaca Elite Program</span>
                 <br/>
-                <span class="elite-pill checking">Checking</span>
+                <span class="elite-pill checking">{{ EliteStatusLabels[EliteStatus.CHECKING] }}</span>
               </div>
               <div class="row col-2 justify-end">
                 <q-skeleton type="circle" size="40px" />
@@ -353,7 +353,7 @@
 
         <!-- Elite: Not Qualified -->
         <div
-          v-else-if="eliteData && eliteData.status === 'locked'"
+          v-else-if="eliteData && eliteData.status === EliteStatus.LOCKED"
           class="row full-width q-pa-md br-15 group-currency elite-card elite-locked cursor-pointer"
           :class="[getDarkModeClass(darkMode), { loaded: eliteLoaded }]"
           @click="redirectToElitePage"
@@ -366,7 +366,7 @@
               <div class="col-8">
                 <span class="text-token elite-name" :class="getDarkModeClass(darkMode)">Paytaca Elite Program</span>
                 <br/>
-                <span class="elite-pill locked">Locked</span>
+                <span class="elite-pill locked">{{ EliteStatusLabels[EliteStatus.LOCKED] }}</span>
               </div>
               <div class="row col-2 justify-end">
                 <q-btn
@@ -418,7 +418,7 @@
 
         <!-- Elite: Active -->
         <div
-          v-else-if="eliteData && eliteData.status === 'active'"
+          v-else-if="eliteData && eliteData.status === EliteStatus.ACTIVE"
           class="row full-width q-pa-md br-15 group-currency elite-card elite-active cursor-pointer"
           :class="[getDarkModeClass(darkMode), { loaded: eliteLoaded }]"
           @click="redirectToElitePage"
@@ -431,7 +431,7 @@
               <div class="col-8">
                 <span class="text-token elite-name" :class="getDarkModeClass(darkMode)">Paytaca Elite Program</span>
                 <br/>
-                <span class="elite-pill active">Active</span>
+                <span class="elite-pill active">{{ EliteStatusLabels[EliteStatus.ACTIVE] }}</span>
               </div>
               <div class="row col-2 justify-end">
                 <q-btn
@@ -460,7 +460,7 @@
 
         <!-- Elite: Paused -->
         <div
-          v-else-if="eliteData && eliteData.status === 'paused'"
+          v-else-if="eliteData && eliteData.status === EliteStatus.PAUSED"
           class="row full-width q-pa-md br-15 group-currency elite-card elite-paused cursor-pointer"
           :class="[getDarkModeClass(darkMode), { loaded: eliteLoaded }]"
           @click="redirectToElitePage"
@@ -473,7 +473,7 @@
               <div class="col-8">
                 <span class="text-token elite-name" :class="getDarkModeClass(darkMode)">Paytaca Elite Program</span>
                 <br/>
-                <span class="elite-pill paused">Paused</span>
+                <span class="elite-pill paused">{{ EliteStatusLabels[EliteStatus.PAUSED] }}</span>
               </div>
               <div class="row col-2 justify-end">
                 <q-btn
@@ -559,7 +559,9 @@ import {
   updateRfPromoData,
   createUserRewardsData,
   PROMO_CONTRACT_VERSION,
-  getAssetsThresholds
+  getAssetsThresholds,
+  EliteStatus,
+  EliteStatusLabels
 } from 'src/utils/engagementhub-utils/rewards'
 import { parseLiftToken } from 'src/utils/engagementhub-utils/shared'
 
@@ -614,8 +616,10 @@ export default {
 
       // Paytaca Elite program state
       isEliteLoading: false,
+      EliteStatus,
+      EliteStatusLabels,
       eliteData: {
-        status: 'locked', // 'locked' | 'active' | 'paused'
+        status: EliteStatus.LOCKED, // 'locked' | 'active' | 'paused'
         bchBalance: 0,
         liftBalance: 0,
         bchThreshold: 0,
@@ -1025,7 +1029,7 @@ export default {
           this.eliteData.cashbackLift = eliteProgram.total_lift_cashback_received
           this.eliteData.eligibleTxCount = eliteProgram.eliteprogram_transaction_count
         } else {
-          this.eliteData.status = 'locked'
+          this.eliteData.status = EliteStatus.LOCKED
         }
 
         // fetch assets thresholds values
@@ -1034,7 +1038,7 @@ export default {
         this.eliteData.liftThreshold = assetsThresholds.lift_min_threshold
 
         // do client-side asset balances check when status is locked
-        if (this.eliteData.status === 'locked') {
+        if (this.eliteData.status === EliteStatus.LOCKED) {
           this.getWalletAssetBalances()
         }
       } catch (error) {
@@ -1058,7 +1062,7 @@ export default {
     },
 
     redirectToElitePage () {
-      if (this.eliteData.status === 'locked') {
+      if (this.eliteData.status === EliteStatus.LOCKED) {
         this.$q.dialog({
           component: EliteProgramLockedDialog,
           componentProps: {
@@ -1068,7 +1072,7 @@ export default {
             liftThreshold: this.eliteData.liftThreshold,
           }
         })
-      } else if (this.eliteData.status === 'active') {
+      } else if (this.eliteData.status === EliteStatus.ACTIVE) {
         this.$router.push({ name: 'app-rewards-elite-program', params: { id: this.eliteData.id ?? -1 } })
       } else {
         // TODO: Create the Paytaca Elite page and route, then navigate to it here

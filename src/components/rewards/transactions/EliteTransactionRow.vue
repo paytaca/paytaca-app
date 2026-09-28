@@ -2,17 +2,17 @@
   <q-item class="elite-row">
     <q-item-section avatar>
       <div class="elite-row-icon">
-        <q-icon :name="item.type === 'otc' ? 'store' : 'img:marketplace.svg'" />
+        <q-icon :name="EliteTxTypeIcons[item.type]" />
       </div>
     </q-item-section>
 
     <q-item-section>
       <q-item-label class="elite-row-title">
         <span class="row elite-row-type">
-          {{ parseItemType(item.type) }}
+          {{ getEliteTxTypeLabel(item.type) }}
         </span>
         <span class="row elite-row-ref" @click="redirect">
-          {{ item.type === 'otc' ? `Ref. ID ${item.ref_id}` : `Order #${item.order_id}` }}
+          {{ EliteTxTypeRefLabels[item.type] }} {{ item.type === EliteTxType.OTC ? item.ref_id : item.order_id }}
           <q-icon name="open_in_new" size="14px" />
         </span>
       </q-item-label>
@@ -43,6 +43,12 @@ import { formatDateLocaleRelative } from 'src/utils/time'
 import { parseFiatCurrencyWrapper } from 'src/utils/denomination-utils'
 import { LIFT_TOKEN_DECIMALS } from 'src/utils/subscription-utils'
 import { parseLiftToken } from 'src/utils/engagementhub-utils/shared'
+import {
+  EliteTxType,
+  EliteTxTypeIcons,
+  EliteTxTypeRefLabels,
+  getEliteTxTypeLabel
+} from 'src/utils/engagementhub-utils/rewards'
 
 export default {
   name: 'EliteTransactionRow',
@@ -56,7 +62,10 @@ export default {
 
   data () {
     return {
-      LIFT_TOKEN_DECIMALS
+      LIFT_TOKEN_DECIMALS,
+      EliteTxType,
+      EliteTxTypeIcons,
+      EliteTxTypeRefLabels
     }
   },
 
@@ -70,20 +79,10 @@ export default {
     formatDateLocaleRelative,
     parseLiftToken,
     parseFiatCurrencyWrapper,
-
-    parseItemType (type) {
-      switch (type) {
-        case 'otc':
-          return 'Over-the-counter'
-        case 'mkp':
-          return 'Marketplace'
-        default:
-          return 'Unknown purchase'
-      }
-    },
+    getEliteTxTypeLabel,
 
     redirect () {
-      if (this.item.type === 'mkp' && this.item.order_id) {
+      if (this.item.type === EliteTxType.MARKETPLACE && this.item.order_id) {
         this.$router.push({
           name: 'app-marketplace-order',
           params: { orderId: this.item.order_id }

@@ -2,14 +2,14 @@
   <q-item class="elite-row">
     <q-item-section avatar>
       <div class="elite-row-icon">
-        <q-icon :name="item.asset === 'sats' ? 'img:bch-logo.png' : 'img:lift-token.png'" />
+        <q-icon :name="EliteAssetIcons[item.asset]" />
       </div>
     </q-item-section>
 
     <q-item-section>
       <q-item-label class="elite-row-title">
         <span class="row elite-row-type">
-          {{ parseAsset(item.asset) }}
+          {{ getEliteAssetLabel(item.asset) }}
         </span>
         <span class="row elite-row-tx" @click="redirect">
           Ref. ID {{ item.ref_id }}
@@ -20,8 +20,8 @@
 
     <q-item-section side>
       <div class="elite-row-amt">
-        <template v-if="item.asset === 'sats'">
-          {{ parseFiatCurrencyWrapper(item.top_up_amount) }}
+        <template v-if="item.asset === EliteAsset.BCH">
+          +{{ parseFiatCurrencyWrapper(item.top_up_amount) }}
         </template>
         <template v-else>
           +{{ parseLiftToken(item.top_up_amount, true) }}
@@ -40,6 +40,11 @@ import { formatDateLocaleRelative } from 'src/utils/time'
 import { parseFiatCurrencyWrapper } from 'src/utils/denomination-utils'
 import { LIFT_TOKEN_DECIMALS } from 'src/utils/subscription-utils'
 import { parseLiftToken } from 'src/utils/engagementhub-utils/shared'
+import {
+  EliteAsset,
+  EliteAssetIcons,
+  getEliteAssetLabel
+} from 'src/utils/engagementhub-utils/rewards'
 
 export default {
   name: 'EliteTopupRow',
@@ -53,7 +58,9 @@ export default {
 
   data () {
     return {
-      LIFT_TOKEN_DECIMALS
+      LIFT_TOKEN_DECIMALS,
+      EliteAsset,
+      EliteAssetIcons
     }
   },
 
@@ -67,17 +74,7 @@ export default {
     formatDateLocaleRelative,
     parseLiftToken,
     parseFiatCurrencyWrapper,
-
-    parseAsset (asset) {
-      switch (asset) {
-        case 'lift':
-          return 'LIFT Token'
-        case 'sats':
-          return 'BCH'
-        default:
-          return 'Unknown asset'
-      }
-    },
+    getEliteAssetLabel,
 
     redirect () {
       this.$router.push({

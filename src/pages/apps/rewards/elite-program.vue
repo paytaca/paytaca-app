@@ -62,7 +62,7 @@
                 </div>
                 <div class="column q-ml-sm">
                   <span class="elite-name">Paytaca Elite Program</span>
-                  <span class="elite-pill active q-mt-xs">Active</span>
+                  <span class="elite-pill q-mt-xs" :class="eliteStatus">{{ EliteStatusLabels[eliteStatus] }}</span>
                 </div>
               </div>
             </div>
@@ -165,7 +165,7 @@
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 import { parseLiftToken } from 'src/utils/engagementhub-utils/shared'
 import { parseFiatCurrencyWrapper } from 'src/utils/denomination-utils'
-import { getEliteProgramSummaryData } from 'src/utils/engagementhub-utils/rewards'
+import { getEliteProgramSummaryData, EliteStatus, EliteStatusLabels } from 'src/utils/engagementhub-utils/rewards'
 
 import HeaderNav from 'src/components/header-nav.vue'
 import ErrorCard from 'src/components/rewards/cards/ErrorCard.vue'
@@ -185,8 +185,11 @@ export default {
       isLoading: false,
       pointsError: '',
       dataError: '',
+      EliteStatus,
+      EliteStatusLabels,
 
       eliteData: {
+        status: EliteStatus.ACTIVE,
         cashbackLift: 0,
         eligibleTxCount: 0,
         maxCashbackPerMonth: 0,
@@ -201,6 +204,10 @@ export default {
   computed: {
     darkMode () {
       return this.$store.getters['darkmode/getStatus']
+    },
+    eliteStatus () {
+      const status = this.eliteData?.status
+      return Object.values(EliteStatus).includes(status) ? status : EliteStatus.ACTIVE
     },
     monthlyPct () {
       const max = this.eliteData?.maxCashbackPerMonth || 0
@@ -231,6 +238,7 @@ export default {
         // TODO add guard for -1 id
         const epSummaryData = await getEliteProgramSummaryData(this.eliteId)
         if (epSummaryData) {
+          this.eliteData.status = epSummaryData.status
           this.eliteData.cashbackLift = epSummaryData.eligible_transactions.current_month_total_lift_cashback
           this.eliteData.eligibleTxCount = epSummaryData.eligible_transactions.count
           this.eliteData.maxCashbackPerMonth = epSummaryData.monthly_cashback_limit
