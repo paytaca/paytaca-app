@@ -44,7 +44,7 @@ export const LIFT_ERROR_REF = {
 
 export function appendLiftErrorRef(message, errorCode) {
   const ref = LIFT_ERROR_REF[errorCode] ?? 'LIFT-00' // fallback code for generic/unspecified errors
-  return ref ? `${message} (${ref})` : message
+  return `${message} (${ref})`
 }
 
 const ENGAGEMENT_HUB_URL =
