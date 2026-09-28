@@ -30,12 +30,12 @@
           <!-- Description -->
           <div class="column q-gutter-y-sm text-body1">
             <p class="q-ma-none">
-              Oops! You are not yet qualified for the Paytaca Elite Program.
+              {{ isLocked ? 'Oops! You are not yet qualified for the Paytaca Elite Program.' : 'Oops! Your wallet balances fell below the threshold. Restore them to resume earning cashbacks.' }}
             </p>
 
             <!-- Wallet Balance Progress -->
             <div class="q-mb-sm">
-              To unlock, your wallet needs:
+              {{ isLocked ? 'To unlock, your wallet needs:' : 'Current vs. requirement:' }}
             </div>
             <div class="q-mb-sm">
               <div class="row justify-between items-center q-mb-xs">
@@ -98,6 +98,7 @@ export default {
     bchThreshold: { type: Number, default: 0 },
     liftBalance: { type: Number, default: 0 },
     liftThreshold: { type: Number, default: 0 },
+    isLocked: { type: Boolean, default: true }
   },
 
   computed: {

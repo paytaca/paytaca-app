@@ -1091,7 +1091,7 @@ export default {
         this.eliteData.liftThreshold = assetsThresholds.lift_min_threshold
 
         // do client-side asset balances check when status is locked
-        if (this.eliteData.status === EliteStatus.LOCKED) {
+        if (this.eliteData.status === EliteStatus.LOCKED || this.eliteData.status === EliteStatus.PAUSED) {
           this.getWalletAssetBalances()
         }
       } catch (error) {
@@ -1121,7 +1121,7 @@ export default {
     },
 
     redirectToElitePage () {
-      if (this.eliteData.status === EliteStatus.LOCKED) {
+      if (this.eliteData.status === EliteStatus.LOCKED || this.eliteData.status === EliteStatus.PAUSED) {
         this.$q.dialog({
           component: EliteProgramLockedDialog,
           componentProps: {
@@ -1129,13 +1129,14 @@ export default {
             bchThreshold: this.eliteData.bchThreshold,
             liftBalance: this.eliteData.liftBalance,
             liftThreshold: this.eliteData.liftThreshold,
+            isLocked: this.eliteData.status === EliteStatus.LOCKED
           }
         })
       } else if (this.eliteData.status === EliteStatus.ACTIVE) {
-        this.$router.push({ name: 'app-rewards-elite-program', params: { id: this.eliteData.id ?? -1 } })
-      } else {
-        // TODO: Create the Paytaca Elite page and route, then navigate to it here
-        this.$q.notify({ type: 'info', message: 'Paytaca Elite Program page coming soon', timeout: 3000 })
+        this.$router.push({
+          name: 'app-rewards-elite-program',
+          params: { id: this.eliteData.id ?? -1 }
+        })
       }
     }
   }
