@@ -28,9 +28,6 @@
               <span class="text-caption text-bold text-white text-center">{{ progressLabel }}</span>
             </div>
           </q-linear-progress>
-          <div class="text-subtitle-2 text-center text-bow-muted q-mt-md text-italic q-gutter-y-xs">
-            <div>{{ $t('ScanPsbtTip', {}, `The sequence auto-recycles; keep scanning until all fragments are picked up by your scanner...`) }}</div>
-          </div>
           <div class="column items-center q-mt-md q-gutter-y-xs">
             <div class="text-subtitle-2 text-bow-muted">{{ $t('QrDensity', {}, 'Density') }}</div>
             <q-btn-toggle
@@ -68,6 +65,7 @@ import { getDarkModeClass } from "src/utils/theme-darkmode-utils";
 const { t: $t } = useI18n()
 import { base64ToBin } from "bitauth-libauth-v3";
 import { UR, UREncoder } from "@ngraveio/bc-ur";
+import { cborEncode } from "@ngraveio/bc-ur/dist/cbor";
 import { watch } from "vue";
 
 const props = defineProps({
@@ -100,14 +98,13 @@ const progressLabel = computed(() => {
   return (Math.floor(progress.value * 100)) + '% of QR Code Fragments Shown.'
 })
 
-function prepareBase64Chunks() {
+function prepareBase64Chunks(chunkSize = 50) {
   if (!props.psbtBase64) {
     return false;
   }
-  const buffer = Buffer.from(base64ToBin(props.psbtBase64), 'base64');
-  const ur = new UR(buffer, "crypto-psbt");
+  const psbtBytes = Buffer.from(base64ToBin(props.psbtBase64));
+  const ur = new UR(cborEncode(psbtBytes), "crypto-psbt");
 
-  const chunkSize = 50;
   encoder.value = new UREncoder(ur, chunkSize);
   return encoder.value?.fragments?.length;
 }

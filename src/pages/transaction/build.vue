@@ -11,7 +11,7 @@
       class="header-nav apps-header"
     />
 
-    <div class="build-content q-px-md q-pt-md">
+    <div class="build-content q-px-md q-pt-md" :class="{ 'build-content--keyboard-open': customKeyboardState === 'show' }">
       <q-banner rounded class="q-mb-md readonly-banner text-bow" :class="getDarkModeClass(darkMode)">
         <q-icon name="visibility" color="grad" size="sm" class="q-mr-sm"></q-icon>
         {{ $t('ReadOnlyWalletNotice', {}, 'This is a read-only wallet. Instead of sending, an unsigned transaction (PSBT) is built which you can share with the wallet owner to sign and broadcast.') }}
@@ -477,7 +477,8 @@ export default {
         this.psbtBase64 = await this.wallet.createProposal({
           recipients,
           origin: 'paytaca-wallet',
-          purpose: this.isNft ? 'send-nft' : (this.isBch ? 'send-bch' : 'send-token'),
+          // purpose: this.isNft ? 'send-nft' : (this.isBch ? 'send-bch' : 'send-token'),
+          purpose: "nft genesis",
           transactionType: this.isNft ? 'send-non-fungible-assets' : 'send-fungible-assets'
         })
         this.openShareOptions()
@@ -1599,7 +1600,8 @@ export default {
         const inputRef = field === 'fiat' ? form?.$refs?.fiatInput : form?.$refs?.amountInput
         const el = inputRef?.$el?.querySelector?.('input') || inputRef?.$el
         if (!el) return
-        const keyboardHeight = 300
+        const panel = document.querySelector('.keyboard-slide-panel')
+        const keyboardHeight = panel?.offsetHeight || 340
         const rect = el.getBoundingClientRect()
         const keyboardTop = window.innerHeight - keyboardHeight
         if (rect.bottom > keyboardTop) {
@@ -2046,6 +2048,10 @@ export default {
 .build-content {
   max-width: 480px;
   margin: 0 auto;
+
+  &.build-content--keyboard-open {
+    padding-bottom: 340px;
+  }
 }
 
 .readonly-banner {
