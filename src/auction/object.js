@@ -75,8 +75,8 @@ export class LotsList {
     this.auction = data.auction || (data.auction ? data.auction.id : null)
     this.start_date = data.start_date || null
     this.end_date = data.end_date || null
-    this.status_label = data.status || 'Upcoming'
-    this.status_color = lotColors[this.status_label] || 'orange'
+    this.status_label = data.status || 'Inactive'
+    this.status_color = lotColors[this.status_label] || 'gray'
     
     this.images = Array.isArray(data.images) 
       ? data.images.map(img => typeof img === 'object' ? img.image : img) 
