@@ -267,8 +267,14 @@ export async function syncReservationPublicKeys (reservationsList, walletIndex) 
   )
   if (pending.length === 0) return []
 
-  const { loadLibauthHdWallet } = await import('src/wallet')
-  const libauthWallet = await loadLibauthHdWallet(walletIndex, false)
+  let libauthWallet
+  try {
+    const { loadLibauthHdWallet } = await import('src/wallet')
+    libauthWallet = await loadLibauthHdWallet(walletIndex, false)
+  } catch (error) {
+    console.error('Failed to load wallet for reservation sync:', error)
+    return []
+  }
 
   const payload = []
   for (const rsvp of pending) {
