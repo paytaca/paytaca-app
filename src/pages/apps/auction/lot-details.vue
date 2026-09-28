@@ -1233,6 +1233,7 @@ const refresh = async (done) => {
 
 onMounted(async () => {
   isLoading.value = true
+  if (!auction.value || !lot.value) $router.replace(smartBackPath.value)
   await loadPageData()
   if (isLotClosedOrSold.value) {
     $q.notify({
@@ -1304,7 +1305,8 @@ const connectWebsocket = () => {
         break
 
       case "lot.end_countdown":
-        auctionEndCountdown.value = formatCountdown(data.time_left)
+        auctionEndCountdown.value = formatCountdown(data.time_left, true)
+        if (auctionStartCountdown.value) auctionStartCountdown.value = ""
         break
 
       // start.close lot
@@ -1510,7 +1512,7 @@ const formatAuctionDate = (dateString) => {
   return date.formatDate(dateString, 'MMM DD, YYYY hh:mm A')
 }
 
-const formatCountdown = (timeLeft) => {
+const formatCountdown = (timeLeft, countingToEnd=false) => {
   const splitTime = String(timeLeft).split(":")
   const timeToIndex = ['day', 'hour', 'minute', 'second']
   for (let [index, time] of splitTime.entries()){
@@ -1519,7 +1521,7 @@ const formatCountdown = (timeLeft) => {
       return `${numTime} ${timeToIndex[index]}${(numTime) > 1 ? 's':''} left.`
     }
   }
-  return "Time's Up!"
+  return (countingToEnd) ? "Time's Up!" : "Auction is Starting..."
 }
 
 
