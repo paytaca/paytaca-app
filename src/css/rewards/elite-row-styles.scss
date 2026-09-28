@@ -1,0 +1,151 @@
+/* Paytaca Elite shared styles: list rows + gold theme tokens used across
+ * the elite program page, rewards index and elite row components.
+ * Import this inside each component's `<style lang="scss" scoped>` block. */
+
+// ==============================
+// Elite list rows
+// ==============================
+
+.elite-row {
+  cursor: default;
+  padding: 12px 16px;
+  min-height: 72px;
+}
+
+.elite-row-icon {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  background: #d4a643;
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 22px;
+}
+
+.light .elite-row-icon {
+  background: #c89d36;
+}
+
+.elite-row-title {
+  font-size: 13.5px;
+  font-weight: 700;
+  color: #d4a643;
+}
+
+.elite-row-ref {
+  font-weight: 600;
+  font-size: 12px;
+  margin-left: 6px;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  white-space: nowrap;
+
+  .q-icon {
+    color: #d4a643;
+  }
+}
+
+.light .elite-row-ref .q-icon {
+  color: #c89d36;
+}
+
+.elite-row-sub {
+  margin-top: 2px;
+}
+
+.elite-row-amt {
+  font-size: 13px;
+  font-weight: 800;
+  color: #d4a643;
+}
+
+.elite-row-bch {
+  font-size: 10.5px;
+  font-weight: 800;
+  margin-top: 2px;
+}
+
+// ==============================
+// Gold theme tokens
+// ==============================
+
+/* Gold progress bar; Quasar color props only accept theme names, so style directly */
+.elite-progress {
+  color: #d4a643;
+
+  :deep(.q-linear-progress__track) {
+    background: #b08a2e;
+  }
+}
+
+.light .elite-progress {
+  color: #c89d36;
+}
+
+/* Elite stat boxes (active state) */
+.elite-stat-box {
+  background: rgba(212, 166, 67, 0.15);
+  border: 1px dashed rgba(212, 166, 67, 0.5);
+  padding: 10px 12px;
+  text-align: center;
+}
+
+.elite-stat-value {
+  font-size: 16px;
+  font-weight: 800;
+  color: #d4a643;
+}
+
+.light .elite-stat-value,
+.elite-card.light .elite-stat-value {
+  color: #c89d36;
+}
+
+/* Elite status pills */
+.elite-pill {
+  font-size: 9px;
+  letter-spacing: 1.5px;
+  font-weight: 800;
+  color: #fff;
+  border-radius: 6px;
+  padding: 3px 7px;
+  text-transform: uppercase;
+  flex-shrink: 0;
+  align-self: flex-start;
+
+  &.locked { background: #6b6b7b; }
+  &.active { background: #d4a643; color: #3a3325; }
+  &.paused { background: #d64545; }
+  &.checking { background: #6759c8; }
+}
+
+.light .elite-pill.active,
+.elite-card.light .elite-pill.active {
+  background: #c89d36;
+}
+
+/* Elite title always gold, overriding theme color classes */
+.elite-name {
+  color: #d4a643 !important;
+  font-weight: 700 !important;
+}
+
+.light .elite-name,
+.elite-card.light .elite-name {
+  color: #c89d36 !important;
+}
+
+/* Elite icon always gold, overriding any theme color applied to q-icon */
+.elite-card :deep(.elite-icon),
+.hero-card :deep(.elite-icon) {
+  color: #d4a643 !important;
+}
+
+.elite-card.light :deep(.elite-icon),
+.light .hero-card :deep(.elite-icon) {
+  color: #c89d36 !important;
+}

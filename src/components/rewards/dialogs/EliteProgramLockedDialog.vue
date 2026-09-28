@@ -126,16 +126,5 @@ export default {
 </script>
 
 <style lang="scss" scoped>
-/* Gold progress bar; Quasar color props only accept theme names, so style directly */
-.elite-progress {
-  color: #d4a643;
-
-  :deep(.q-linear-progress__track) {
-    background: #b08a2e;
-  }
-}
-
-.light .elite-progress {
-  color: #c89d36;
-}
+@import 'src/css/rewards/elite-row-styles.scss';
 </style>

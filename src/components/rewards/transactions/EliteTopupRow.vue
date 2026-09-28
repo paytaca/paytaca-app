@@ -71,5 +71,5 @@ export default {
 </script>
 
 <style lang="scss" scoped>
-@import './elite-row-styles.scss';
+@import 'src/css/rewards/elite-row-styles.scss';
 </style>

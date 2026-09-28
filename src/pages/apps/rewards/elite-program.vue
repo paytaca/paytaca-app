@@ -258,6 +258,8 @@ export default {
 </script>
 
 <style lang="scss" scoped>
+@import 'src/css/rewards/elite-row-styles.scss';
+
 .hero-card {
   position: relative;
   overflow: hidden;
@@ -294,28 +296,6 @@ export default {
   100% { transform: translateX(320%); }
 }
 
-/* Hero icon always gold, overriding any theme color applied to q-icon */
-.hero-card :deep(.elite-icon) {
-  color: #d4a643 !important;
-}
-
-.light .hero-card :deep(.elite-icon) {
-  color: #c89d36 !important;
-}
-
-/* Gold progress bar; Quasar color props only accept theme names, so style directly */
-.elite-progress {
-  color: #d4a643;
-
-  :deep(.q-linear-progress__track) {
-    background: #b08a2e;
-  }
-}
-
-.light .elite-progress {
-  color: #c89d36;
-}
-
 .hero-icon {
   width: 40px;
   height: 40px;
@@ -324,54 +304,6 @@ export default {
   display: flex;
   align-items: center;
   justify-content: center;
-}
-
-/* Elite title always gold, overriding `.group-currency .text-token` theme colors */
-.elite-name {
-  color: #d4a643 !important;
-  font-weight: bolder !important;
-  font-size: 15px;
-}
-
-.light .elite-name {
-  color: #c89d36 !important;
-}
-
-/* Elite status pill */
-.elite-pill {
-  font-size: 9px;
-  letter-spacing: 1.5px;
-  font-weight: 800;
-  color: #fff;
-  border-radius: 6px;
-  padding: 3px 7px;
-  text-transform: uppercase;
-  flex-shrink: 0;
-  align-self: flex-start;
-
-  &.active { background: #d4a643; color: #3a3325; }
-}
-
-.light .elite-pill.active {
-  background: #c89d36;
-}
-
-/* Elite stat boxes (active state) */
-.elite-stat-box {
-  background: rgba(212, 166, 67, 0.15);
-  border: 1px dashed rgba(212, 166, 67, 0.5);
-  padding: 10px 12px;
-  text-align: center;
-}
-
-.elite-stat-value {
-  font-size: 16px;
-  font-weight: 800;
-  color: #d4a643;
-}
-
-.light .elite-stat-value {
-  color: #c89d36;
 }
 
 .view-all-button {

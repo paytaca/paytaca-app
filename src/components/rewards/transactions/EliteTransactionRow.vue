@@ -79,11 +79,5 @@ export default {
 </script>
 
 <style lang="scss" scoped>
-@import './elite-row-styles.scss';
-
-.elite-row-bch {
-  font-size: 10.5px;
-  font-weight: 800;
-  margin-top: 2px;
-}
+@import 'src/css/rewards/elite-row-styles.scss';
 </style>
