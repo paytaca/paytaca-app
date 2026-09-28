@@ -276,6 +276,17 @@
         </div>
       </template>
 
+      <!-- Promo: Error -->
+      <template v-else-if="promoError">
+        <error-card
+          :is-points-card="false"
+          :is-rewards-home-page="true"
+          :error-text="promoError"
+          @on-retry="loadRewards()"
+          style="margin-inline: 0;"
+        />
+      </template>
+
       <!-- Promo Cards -->
       <template v-else>
         <q-intersection
@@ -348,6 +359,36 @@
             <q-skeleton :dark="darkMode" type="text" height="12px" class="q-mb-sm" style="width: 80%;" />
             <q-skeleton :dark="darkMode" type="text" height="12px" class="q-mb-sm" style="width: 100%;" />
             <q-skeleton :dark="darkMode" type="text" height="12px" style="width: 55%;" />
+          </div>
+        </div>
+
+        <!-- Elite: Error -->
+        <div
+          v-else-if="eliteError"
+          class="row full-width q-pa-md br-15 group-currency elite-card"
+          :class="getDarkModeClass(darkMode)"
+        >
+          <div class="col-12">
+            <div class="row full-width justify-between items-center">
+              <div class="row col-2 promo-icon">
+                <q-icon name="error_outline" size="md" class="elite-icon" />
+              </div>
+              <div class="col-8">
+                <span class="text-token elite-name" :class="getDarkModeClass(darkMode)">Paytaca Elite Program</span>
+                <br/>
+                <span class="text-caption">
+                  {{ eliteError }}
+                </span>
+              </div>
+              <div class="row col-2 justify-end">
+                <q-btn
+                  round
+                  class="button elite-btn"
+                  icon="refresh"
+                  @click="retryEliteProgram"
+                />
+              </div>
+            </div>
           </div>
         </div>
 
@@ -573,6 +614,17 @@ import EliteProgramLockedDialog from 'src/components/rewards/dialogs/EliteProgra
 
 import PromoContract from 'src/utils/rewards-utils/contracts/PromoContract'
 
+const defaultEliteData = () => ({
+  status: EliteStatus.LOCKED, // 'locked' | 'active' | 'paused'
+  bchBalance: 0,
+  liftBalance: 0,
+  bchThreshold: 0,
+  liftThreshold: 0,
+  cashbackLift: 0, // total cashback received in LIFT
+  eligibleTxCount: 0,
+  id: -1
+})
+
 export default {
   name: 'RewardsPage',
 
@@ -618,16 +670,10 @@ export default {
       isEliteLoading: false,
       EliteStatus,
       EliteStatusLabels,
-      eliteData: {
-        status: EliteStatus.LOCKED, // 'locked' | 'active' | 'paused'
-        bchBalance: 0,
-        liftBalance: 0,
-        bchThreshold: 0,
-        liftThreshold: 0,
-        cashbackLift: 0, // total cashback received in LIFT
-        eligibleTxCount: 0,
-        id: -1
-      },
+      promoError: '',
+      eliteError: '',
+      eliteProgram: null,
+      eliteData: defaultEliteData(),
 
       // Referral banner state
       isReferralDialogActive: false,
@@ -914,87 +960,92 @@ export default {
     async loadRewards () {
       this.isLoading = true
       this.error = null
+      this.promoError = ''
       this.isPriceLoading = true
       this.priceError = null
 
-      const [upResp, ratioResp] = await Promise.allSettled(
-        [getUserPromoData(), getLiftConversionRatio()]
-      )
-      const upData = upResp.value
-      const ratioData = ratioResp.value
+      try {
+        const [upResp, ratioResp] = await Promise.allSettled(
+          [getUserPromoData(), getLiftConversionRatio()]
+        )
+        const upData = upResp.value
+        const ratioData = ratioResp.value
 
-      // process fetched ratioData
-      this.liftConversionRatio = ratioData.conversionRatio
-      this.referralCodeEligibilityDate = ratioData.eligibilityDate
+        // process fetched ratioData
+        this.liftConversionRatio = ratioData.conversionRatio
+        this.referralCodeEligibilityDate = ratioData.eligibilityDate
 
-      // check referral code eligibility of wallet
-      this.checkReferralCodeEligibility(upData)
+        // check referral code eligibility of wallet
+        this.checkReferralCodeEligibility(upData)
 
-      // process fetched upData
-      if (upData && Object.keys(upData).length > 0) {
-        // points program
-        try {
-          this.totalPoints = 0
-          for (const type of this.pointsType) {
-            const promoId = upData[type]?.pk ?? null
-            if (promoId) {
-              const targetPromo = PromosBytes[type.toUpperCase()]
-              const contractVersion = upData[type]?.contract_version ?? PROMO_CONTRACT_VERSION
-              const contract = new PromoContract(this.user0thPubkey, targetPromo, contractVersion)
-              const promoBalance = await contract.getTokenBalance()
-              this.totalPoints += promoBalance
-              this.promos[type].points = promoBalance
-              this.promos[type].id = promoId
+        // process fetched upData
+        if (upData && Object.keys(upData).length > 0) {
+          // points program
+          try {
+            this.totalPoints = 0
+            for (const type of this.pointsType) {
+              const promoId = upData[type]?.pk ?? null
+              if (promoId) {
+                const targetPromo = PromosBytes[type.toUpperCase()]
+                const contractVersion = upData[type]?.contract_version ?? PROMO_CONTRACT_VERSION
+                const contract = new PromoContract(this.user0thPubkey, targetPromo, contractVersion)
+                const promoBalance = await contract.getTokenBalance()
+                this.totalPoints += promoBalance
+                this.promos[type].points = promoBalance
+                this.promos[type].id = promoId
 
-              if (contract.contract.tokenAddress !== upData[type].contract_ct_address) {
-                // update promo contract address in background
-                switch (type) {
-                  case Promos.USERREWARDS:
-                    updateUserRewardsData(
-                      promoId, { contract_ct_address: contract.contract.tokenAddress }
-                    )
-                    break
-                  case Promos.RFPROMO:
-                    updateRfPromoData(
-                      promoId, { contract_ct_address: contract.contract.tokenAddress }
-                    )
-                    break
-                  default:
-                    break
+                if (contract.contract.tokenAddress !== upData[type].contract_ct_address) {
+                  // update promo contract address in background
+                  switch (type) {
+                    case Promos.USERREWARDS:
+                      updateUserRewardsData(
+                        promoId, { contract_ct_address: contract.contract.tokenAddress }
+                      )
+                      break
+                    case Promos.RFPROMO:
+                      updateRfPromoData(
+                        promoId, { contract_ct_address: contract.contract.tokenAddress }
+                      )
+                      break
+                    default:
+                      break
+                  }
                 }
               }
             }
+          } catch (error) {
+            console.error(error)
+            this.promoError = this.$t('PromoDataLoadingError')
           }
-        } catch (error) {
-          console.error(error)
-          this.error = this.$t('PromoDataLoadingError')
+
+          // elite program
+          await this.loadEliteProgramData(upData.elite_program)
+
+        } else if (upData && Object.keys(upData).length === 0) {
+          await createUserPromoData()
+        } else {
+          this.error = this.$t('PointsLoadError')
         }
 
-        // elite program
-        await this.loadEliteProgramData(upData.elite_program)
-        
-      } else if (upData && Object.keys(upData).length === 0) {
-        await createUserPromoData()
-      } else {
-        this.error = this.$t('PointsLoadError')
+        // Fetch LIFT token price from Cauldron API
+        await this.fetchLiftPriceFromCauldron()
+
+        // Start polling Cauldron prices (every 60 seconds)
+        this.startCauldronPricePolling()
+
+        setTimeout(() => {
+          this.$nextTick(() => {
+            if (upData && !upData?.last_viewed) this.isHelpActive = true
+            const updateData = { last_viewed: new Date() }
+            if (upData?.address_0_public_key === "") {
+              updateData.address_0_public_key = this.user0thPubkey
+            }
+            updateUserPromoData(updateData)
+          })
+        }, 250)
+      } finally {
+        this.isLoading = false
       }
-
-      // Fetch LIFT token price from Cauldron API
-      await this.fetchLiftPriceFromCauldron()
-      
-      // Start polling Cauldron prices (every 60 seconds)
-      this.startCauldronPricePolling()
-
-      setTimeout(() => {
-        this.$nextTick(() => {
-          if (upData && !upData?.last_viewed) this.isHelpActive = true
-          const updateData = { last_viewed: new Date() }
-          if (upData?.address_0_public_key === "") {
-            updateData.address_0_public_key = this.user0thPubkey
-          }
-          updateUserPromoData(updateData)
-        })
-      }, 250)
     },
 
     checkReferralCodeEligibility (upData) {
@@ -1020,6 +1071,8 @@ export default {
 
     async loadEliteProgramData (eliteProgram) {
       this.isEliteLoading = true
+      this.eliteError = ''
+      this.eliteProgram = eliteProgram
 
       try {
         // load elite program details
@@ -1044,9 +1097,15 @@ export default {
       } catch (error) {
         console.error('Error loading elite program data: ', error)
         this.eliteData = null
+        this.eliteError = this.$t('EliteProgramLoadingError', {}, 'Unable to load your elite program status. Please try again later.')
       } finally {
         this.isEliteLoading = false
       }
+    },
+
+    retryEliteProgram () {
+      this.eliteData = defaultEliteData()
+      this.loadEliteProgramData(this.eliteProgram)
     },
 
     getWalletAssetBalances () {
