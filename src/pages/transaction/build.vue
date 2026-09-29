@@ -480,7 +480,8 @@ export default {
           purpose: "nft genesis",
           transactionType: this.isNft ? 'send-non-fungible-assets' : 'send-fungible-assets'
         })
-        this.openShareOptions()
+        // this.openShareOptions()
+        this.openQrDialog()
       } catch (error) {
         console.error('[BuildTransaction] Error building transaction:', error)
         this.$q.notify({
