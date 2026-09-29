@@ -89,8 +89,8 @@
             </q-item-section>
           </q-item>
           <q-item v-for="(o, i) in recipientRows" :key="i">
-            <q-item-section top>
-              <div class="text-caption">{{ shortenAddressForDisplay(o.address) }}</div>
+            <q-item-section>
+              <div class="text-caption q-ml-sm">{{ shortenAddressForDisplay(o.address) }}</div>
             </q-item-section>
             <q-item-section side>
               <div class="flex no-wrap items-center q-gutter-x-xs">
