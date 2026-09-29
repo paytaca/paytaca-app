@@ -17,7 +17,7 @@
         {{ $t('ReadOnlyWalletNotice', {}, 'This is a read-only wallet. Instead of sending, an unsigned transaction (PSBT) is built which you can share with the wallet owner to sign and broadcast.') }}
       </q-banner>
       
-      <div class="glass-panel q-mt-md q-px-md q-py-md" :class="getDarkModeClass(darkMode)">
+      <div class="glass-panel q-mt-md q-px-md q-py-md" :class="getDarkModeClass(darkMode)" style="">
           <!-- <q-list v-for="(recipient, index) in recipients" v-bind:key="index">
             <q-item>
               <q-input
@@ -59,7 +59,7 @@
             />
             </q-item>  
           </q-list> -->
-          <q-list v-for="(recipient, index) in recipients" v-bind:key="index">
+          <q-list v-for="(recipient, index) in recipients" v-bind:key="index" flat>
                 <template v-if="!isNft">
                   <q-expansion-item
                     default-opened
@@ -2068,19 +2068,13 @@ export default {
 
 .glass-panel {
   position: relative;
-  border-radius: 16px;
-  backdrop-filter: blur(16px);
-  -webkit-backdrop-filter: blur(16px);
-  //border: 1px solid rgba(255, 255, 255, 0.2);
 
   &.dark {
     background: rgba(39, 55, 70, 0.55);
-    border-color: rgba(255, 255, 255, 0.12);
   }
 
   &.light {
     background: rgba(255, 255, 255, 0.55);
-    border-color: rgba(0, 0, 0, 0.06);
   }
 }
 </style>
