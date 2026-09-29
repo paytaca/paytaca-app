@@ -19,18 +19,29 @@
                     <q-tooltip>{{ $t('Copy') }}</q-tooltip>
                   </q-btn>
                 </div>
+                <div class="flex justify-end">
+                  <q-btn
+                    rounded
+                    no-caps
+                    icon="qr_code"
+                    @click="openShareQr"
+                    flat
+                    size="lg"
+                    dense
+                  />
+                </div>
               </q-card-section>
             </q-card>
           </div>
         </div>
 
-        <div v-if="isReadOnlyWallet" class="q-pa-md">
+        <!-- <div v-if="isReadOnlyWallet" class="q-pa-md">
           <q-banner rounded class="readonly-banner" :class="getDarkModeClass(darkMode)">
             <q-icon name="visibility" class="q-mr-sm" />
             {{ $t('ReadOnlyCannotSign', {}, 'This is a read-only wallet — you can review but cannot sign this transaction.') }}
           </q-banner>
-        </div>
-        <div v-if="!isSigned" class="q-pa-md">
+        </div> -->
+        <div v-if="!isSigned" class="q-pa-sm">
           <q-banner rounded class="unsigned-banner" :class="getDarkModeClass(darkMode)">
             <q-icon name="lock_open" class="q-mr-sm" />
             {{ $t('UnsignedTransactionBanner', {}, 'This transaction is unsigned.') }}
@@ -43,40 +54,38 @@
               <span class="coin-symbol">BCH</span>
             </q-item-section>
             <q-item-section side top class="q-gutter-y-sm">
-              <div class="flex no-wrap items-center text-red">
+              <div class="flex no-wrap items-center text-red q-gutter-x-xs">
                 <span class="coin-amount">- {{ debitBch }}</span>
-                <q-icon name="img:bitcoin-cash-circle.svg" size="sm" />
+                <q-icon name="img:bitcoin-cash-circle.svg" size="xs" />
               </div>
-              <div v-if="Number(changeBch) > 0" class="flex no-wrap items-center">
+              <div v-if="Number(changeBch) > 0" class="flex no-wrap items-center q-gutter-x-xs">
                 <span class="text-caption q-mr-xs">[{{ $t('Change') }}]</span>
                 <span class="coin-amount">{{ changeBch }}</span>
-                <q-icon name="img:bitcoin-cash-circle.svg" size="sm" />
+                <q-icon name="img:bitcoin-cash-circle.svg" size="xs" />
               </div>
             </q-item-section>
           </q-item>
-
           <template v-for="category in tokenCategories" :key="category">
             <q-item v-if="BigInt(tokenDebit[category] || 0) > 0n">
               <q-item-section>
                 <span class="coin-symbol ellipsis">{{ shortenString(category, 16) }}</span>
               </q-item-section>
               <q-item-section side top class="q-gutter-y-sm">
-                <div class="flex no-wrap items-center text-red">
+                <div class="flex no-wrap items-center text-red q-gutter-x-xs">
                   <span class="coin-amount">- {{ formatTokenAmount(tokenDebit[category]) }}&nbsp;</span>
-                  <q-icon name="token" size="sm" />
+                  <q-icon name="token" size="xs" />
                 </div>
-                <div v-if="BigInt(tokenChange[category] || 0) > 0n" class="flex no-wrap items-center">
+                <div v-if="BigInt(tokenChange[category] || 0) > 0n" class="flex no-wrap items-center q-gutter-x-xs">
                   <span class="text-caption q-mr-xs">[{{ $t('Change') }}]</span>
                   <span class="coin-amount">{{ formatTokenAmount(tokenChange[category]) }}</span>
-                  <q-icon name="token" size="sm" />
+                  <q-icon name="token" size="xs" />
                 </div>
               </q-item-section>
             </q-item>
           </template>
-
           <q-item>
             <q-item-section>
-              <q-item-label caption>{{ $t('Recipients') }}</q-item-label>
+              <q-item-label class="coin-symbol">{{ $t('Recipients') }}</q-item-label>
             </q-item-section>
           </q-item>
           <q-item v-for="(o, i) in recipientRows" :key="i">
@@ -84,24 +93,25 @@
               <div class="text-caption">{{ shortenAddressForDisplay(o.address) }}</div>
             </q-item-section>
             <q-item-section side>
-              <div class="flex no-wrap items-center">
-                <span class="coin-amount">{{ o.amountText }}</span>
+              <div class="flex no-wrap items-center q-gutter-x-xs">
+                <span class="coin-amount">{{ o.amountText?.replace('BCH', '') }}</span>
+                <q-icon v-if="o.amountText?.includes('BCH')" name="img:bitcoin-cash-circle.svg" size="xs" />
               </div>
             </q-item-section>
           </q-item>
-
-          <q-separator />
+          
           <q-item>
             <q-item-section>
-              <q-item-label caption>{{ $t('TransactionFee') }}</q-item-label>
+              <q-item-label class="coin-symbol">{{ $t('TransactionFee') }}</q-item-label>
             </q-item-section>
             <q-item-section side>
-              <div class="flex no-wrap items-center justify-right">
+              <div class="flex no-wrap items-center justify-right q-gutter-x-xs">
                 <span class="coin-amount">{{ feeBch }}</span>
-                <q-icon name="img:bitcoin-cash-circle.svg" size="sm" />
+                <q-icon name="img:bitcoin-cash-circle.svg" size="xs" />
               </div>
             </q-item-section>
           </q-item>
+          <q-separator />
           <q-item>
             <q-item-section>
               <q-item-label>{{ $t('RequiredSignatures', {}, 'Required Signatures') }}</q-item-label>
@@ -110,6 +120,18 @@
               <q-item-label>1 / 1</q-item-label>
             </q-item-section>
           </q-item>
+          <q-item>
+            <q-item-section>
+              <q-item-label>{{ $t('LoadSignedTxQrCode', {}, 'Import Signature By QR Code') }}</q-item-label>
+            </q-item-section>
+            <q-item-section side>
+              <q-btn clickable @click="openScanQr" :disable="isSigned" rounded no-caps>
+                <q-avatar size="md"><q-icon name="qr_code_scanner" size="sm" color="primary"></q-icon></q-avatar>
+                <span>{{ $t('Scan QR') }}</span>
+              </q-btn>
+            </q-item-section>
+          </q-item>
+          
         </q-list>
         <div class="sticky-bottom-spacer"></div>
       </div>
@@ -129,7 +151,7 @@
         @swiped="onConfirmSliderSwiped"
       />
     </div>
-    <div v-else class="sticky-bottom-actions row q-gutter-sm" :class="getDarkModeClass(darkMode)">
+    <!-- <div v-else class="sticky-bottom-actions row q-gutter-sm" :class="getDarkModeClass(darkMode)">
       <q-btn
         rounded
         no-caps
@@ -150,7 +172,7 @@
         icon="share"
         @click="openShareQr"
       />
-    </div>
+    </div> -->
 
     <div v-if="showActionConfirmationSlider" class="action-confirmation-backdrop" @click.stop="showActionConfirmationSlider = false">
       <div class="action-confirmation-slider-content" @click.stop>
