@@ -10,7 +10,7 @@
       back-icon="keyboard_double_arrow_left"
       class="header-nav apps-header"
     />
-
+    TESTZ
     <div class="build-content q-px-md q-pt-md" :class="{ 'build-content--keyboard-open': customKeyboardState === 'show' }">
       <q-banner rounded class="q-mb-md readonly-banner text-bow" :class="getDarkModeClass(darkMode)">
         <q-icon name="visibility" color="grad" size="sm" class="q-mr-sm"></q-icon>
@@ -511,6 +511,7 @@ export default {
       }).onCancel(() => {
         // Dialog closed
         vm.psbtBase64 = ''
+        
       })
     },
     openQrDialog () {
@@ -520,6 +521,9 @@ export default {
           darkMode: this.darkMode,
           psbtBase64: this.psbtBase64
         }
+      }).onDismiss(() => {
+        sessionStorage.setItem('paytaca-single-sig-psbt', this.psbtBase64)
+        this.$router.push({ name: 'psbt-view' })
       })
     },
     async downloadPsbt () {
