@@ -135,9 +135,9 @@
                 <div class="q-mb-md" :class="textColorGrey" style="line-height: 1.5;">
                   {{ v2OwnershipSet
                     ? (hasV1Funds
-                      ? 'V2 is already set up. Move your remaining V1 BCH and tokens into it, then switch.'
+                      ? 'V2 is already set up. Move your remaining V1 BCH into it, then switch.'
                       : 'V2 is already set up. Switch back to V2 to continue using it.')
-                    : 'V2 enables fungible token payments. Upgrading sets up V2 ownership and moves your V1 BCH and tokens into it.' }}
+                    : 'Upgrading sets up V2 ownership and moves your V1 BCH into it.' }}
                 </div>
 
                 <q-stepper
@@ -157,8 +157,8 @@
                   >
                     <div class="text-caption q-mb-sm" :class="textColorGrey">
                       {{ v2OwnershipSet
-                        ? 'This moves any remaining V1 BCH and tokens into V2 and switches the card to V2.'
-                        : 'This sets up V2 ownership, moves your V1 BCH and tokens into V2, and switches the card to V2.' }}
+                        ? 'This moves any remaining V1 BCH into V2 and switches the card to V2.'
+                        : 'This sets up V2 ownership, moves your V1 BCH into V2, and switches the card to V2.' }}
                     </div>
                     <div class="row q-gutter-sm">
                       <q-btn

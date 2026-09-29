@@ -423,6 +423,31 @@ class TapToPayNft extends TapToPay {
     }
 
     /**
+     * Resolves the ownership `pkh` token UTXO at this contract, polling briefly
+     * because the watchtower's UTXO index can lag behind a just-broadcast
+     * ownership or pointer transaction made earlier in the same migration flow.
+     * @param {string} ownerPkh - Expected owner public key hash (hex).
+     * @param {Object} [opts]
+     * @param {number} [opts.interval=2000]
+     * @param {number} [opts.maxAttempts=15]
+     * @returns {Promise<Object|null>} The matching ownership UTXO, or null.
+     */
+    async waitForOwnershipPkhUtxo (ownerPkh, { interval = 2000, maxAttempts = 15 } = {}) {
+        for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+            const ownerUtxo = await this.getOwnershipPkhUtxo().catch(() => null)
+            const decoded = ownerUtxo?.token?.nft?.commitment ? decodeOwnershipCommitment(ownerUtxo.token.nft.commitment) : null
+            if (ownerUtxo && decoded?.type === 'pkh' && decoded.value === ownerPkh) {
+                return ownerUtxo
+            }
+            if (attempt < maxAttempts) {
+                cardLogger.log(`[waitForOwnershipPkhUtxo] owner token not visible yet (${attempt}/${maxAttempts}); retrying in ${interval}ms`)
+                await new Promise(resolve => setTimeout(resolve, interval))
+            }
+        }
+        return null
+    }
+
+    /**
      * Checks whether the contract's ownership has been configured.
      *
      * The ownership tokens are sent to the contract before `setOwner` runs, so
@@ -619,7 +644,7 @@ class TapToPayNft extends TapToPay {
         
         cardLogger.log('[sweep] Owner public key hash:', ownerPkh)
 
-        const ownerUtxo = await this.getOwnershipPkhUtxo()
+        const ownerUtxo = await this.waitForOwnershipPkhUtxo(ownerPkh)
         const decodedCommitment = ownerUtxo?.token?.nft?.commitment ? decodeOwnershipCommitment(ownerUtxo.token.nft.commitment) : undefined
         if (!ownerUtxo || !decodedCommitment || decodedCommitment.value !== ownerPkh) {
             const ownershipTokens = await this.getTokenUtxos(this.params.category, contract.tokenAddress).catch(() => [])
@@ -793,7 +818,7 @@ class TapToPayNft extends TapToPay {
         const ownerPk = binToHex(ownerSig.getPublicKey())
         const ownerPkh = pubkeyToPkHash(ownerPk)
 
-        const ownerUtxo = await this.getOwnershipPkhUtxo()
+        const ownerUtxo = await this.waitForOwnershipPkhUtxo(ownerPkh)
         const decodedCommitment = ownerUtxo?.token?.nft?.commitment ? decodeOwnershipCommitment(ownerUtxo.token.nft.commitment) : undefined
         if (!ownerUtxo || !decodedCommitment || decodedCommitment.value !== ownerPkh) {
             throw new Error('Invalid owner token UTXO or ownership not set correctly. Cannot proceed with token sweep.')
@@ -934,7 +959,7 @@ class TapToPayNft extends TapToPay {
 
         // Get the ownership owner token UTXO
         // Get the ownership category token UTXO
-        const ownerUtxo = await this.getOwnershipPkhUtxo()
+        const ownerUtxo = await this.waitForOwnershipPkhUtxo(ownerPkh)
         const catUtxo = await this.getOwnershipCatUtxo()
 
         if (!ownerUtxo || !catUtxo) {
@@ -1117,7 +1142,7 @@ class TapToPayNft extends TapToPay {
         const ownerSig = new SignatureTemplate(ownerWif)
         const ownerPk = binToHex(ownerSig.getPublicKey())
 
-        const ownerUtxo = await this.getOwnershipPkhUtxo()
+        const ownerUtxo = await this.waitForOwnershipPkhUtxo(pubkeyToPkHash(ownerPk))
         const catUtxo = await this.getOwnershipCatUtxo()
         if (!ownerUtxo || !catUtxo) {
             throw new Error('Ownership tokens not found. Cannot re-point the pointer.')

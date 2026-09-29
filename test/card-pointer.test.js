@@ -7,8 +7,6 @@ import {
   describeMigrationState,
   POINTER_COMMITMENT_LENGTH,
 } from '../src/services/card/pointer.js'
-import { buildSweepMessage, signSweepMessage } from '../src/services/card/sweep.js'
-import { sha256, utf8ToBin, secp256k1, decodePrivateKeyWif } from '@bitauth/libauth'
 
 const CATEGORY = '01'.repeat(31) + '02'
 const CATEGORY_REVERSED = '02' + '01'.repeat(31)
@@ -67,37 +65,5 @@ describe('pointer codec', () => {
     const migrated = describeMigrationState({ pointer_present: true, target_version: 2 }, { originFunded: false })
     assert.equal(migrated.status, 'migrated')
     assert.equal(migrated.label, 'Migrated to v2')
-  })
-})
-
-describe('ft sweep signature', () => {
-  const wif = 'L1aW4aubDFB7yfras2S1mN3bqg9nwySY8nkoLmJebSLD5BWv3ENZ'
-  const tokenId = 'aa'.repeat(32)
-  const tokenAddress = 'bitcoincash:zz'.repeat(1) + 'qq'.repeat(20)
-  const card = { uid: 'CARD-UID-123', id: '999' }
-
-  it('builds the exact canonical message using card.uid when present', () => {
-    assert.equal(
-      buildSweepMessage(card, tokenId, tokenAddress),
-      `sweep_ft:CARD-UID-123:${tokenId}:${tokenAddress}`,
-    )
-    assert.equal(
-      buildSweepMessage({ uid: '', id: '999' }, tokenId, tokenAddress),
-      `sweep_ft:999:${tokenId}:${tokenAddress}`,
-    )
-  })
-
-  it('signs a DER-hex signature over sha256(utf8(message)) that verifies', () => {
-    const message = buildSweepMessage(card, tokenId, tokenAddress)
-    const signature = signSweepMessage(wif, message)
-    assert.match(signature, /^30[0-9a-f]+$/)
-
-    const messageHash = sha256.hash(utf8ToBin(message))
-    const privateKey = decodePrivateKeyWif(wif).privateKey
-    const pubkey = secp256k1.derivePublicKeyCompressed(privateKey)
-    assert.equal(
-      secp256k1.verifySignatureDER(Buffer.from(signature, 'hex'), pubkey, messageHash),
-      true,
-    )
   })
 })

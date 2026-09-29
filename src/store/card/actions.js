@@ -272,21 +272,6 @@ export async function sweepCardToVersion(context, { cardId, version }) {
     }
 }
 
-export async function sweepCardFtToActive(context, { cardId }) {
-    try {
-        const cardData = context.state.cards.find(c => c.id === cardId);
-        if (!cardData) {
-            throw new Error(`Card with ID ${cardId} not found`);
-        }
-        const card = await hydrateCard(cardData);
-        const result = await card.sweepFungibleTokensToActive();
-        return result;
-    } catch (error) {
-        console.error('Error in sweepCardFtToActive action:', error);
-        throw error;
-    }
-}
-
 export async function fetchMerchantList(context, { coordinates, radius = 10, page = 1, page_size = 20 } = {}) {
     try {
         const params = {

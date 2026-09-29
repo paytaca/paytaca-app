@@ -244,105 +244,81 @@
       </q-card>
     </q-dialog>
 
-    <q-separator color="primary" />
+    <template v-if="activeCard?.isV2Active">
+      <q-separator color="primary" />
 
-    <div class="settings-list">
-      <div class="settings-item clickable" @click="showSweepTokens = !showSweepTokens">
-        <div class="settings-item-content">
-          <q-icon name="paid" color="primary" size="24px" />
-          <div class="q-ml-md">
-            <div class="text-subtitle2" :class="textColor">Sweep CashTokens</div>
-            <div class="text-caption" :class="$q.dark.isActive ? 'text-grey-5' : 'text-grey'">Transfer fungible tokens back to wallet</div>
-          </div>
-        </div>
-        <q-icon :name="showSweepTokens ? 'expand_less' : 'expand_more'" :color="$q.dark.isActive ? 'grey-5' : 'grey-7'" />
-      </div>
-
-      <template v-if="showSweepTokens">
-        <div class="q-pa-md full-width">
-          <div class="row items-center q-mb-sm" style="gap: 8px;">
-            <q-btn flat dense icon="refresh" color="primary" :loading="ftLoading || sweepAuthLoading" @click="checkSweepAuthAndBalances" />
-            <div class="text-caption" :class="$q.dark.isActive ? 'text-grey-5' : 'text-grey'">Sweepable fungible tokens on this card</div>
-          </div>
-          <div v-if="requiresSweepAuth && sweepAuthLoading" class="flex flex-center q-pa-md">
-            <q-spinner-dots color="primary" size="32px" />
-          </div>
-          <div v-else-if="requiresSweepAuth && sweepAuthError" class="text-caption text-negative q-mb-sm">
-            {{ sweepAuthError }}
-            <q-btn flat dense color="primary" :label="$t('Retry', {}, 'Retry')" @click="checkSweepAuth" />
-          </div>
-          <div
-            v-else-if="requiresSweepAuth && !sweepAuthNft"
-            class="q-mb-md q-pa-md"
-            :class="$q.dark.isActive ? 'bg-grey-9' : 'bg-grey-2'"
-            style="border-radius: 12px;"
-          >
-            <div class="text-caption q-mb-sm" :class="$q.dark.isActive ? 'text-grey-4' : 'text-grey-8'">
-              To recover these tokens, your card must authorize the server sweep key. This mints a small merchant auth NFT on-chain. No funds leave your card.
+      <div class="settings-list">
+        <div class="settings-item clickable" @click="showSweepTokens = !showSweepTokens">
+          <div class="settings-item-content">
+            <q-icon name="paid" color="primary" size="24px" />
+            <div class="q-ml-md">
+              <div class="text-subtitle2" :class="textColor">Sweep CashTokens</div>
+              <div class="text-caption" :class="$q.dark.isActive ? 'text-grey-5' : 'text-grey'">Transfer fungible tokens back to wallet</div>
             </div>
-            <q-btn
-              label="Mint Sweep Auth"
-              color="primary"
-              class="q-px-md bg-grad text-white"
-              unelevated
-              rounded
-              :loading="mintingSweepAuth"
-              @click="mintSweepAuth"
-            />
           </div>
-          <div v-if="ftLoading" class="flex flex-center q-pa-md">
-            <q-spinner-dots color="primary" size="32px" />
-          </div>
-          <div v-else-if="ftError" class="text-caption text-negative q-mb-sm">{{ ftError }}</div>
-          <div v-else-if="!ftBalances.length" class="text-caption q-mb-sm" :class="$q.dark.isActive ? 'text-grey-5' : 'text-grey'">No fungible tokens to sweep</div>
-          <q-list v-else separator dense>
-            <q-item v-for="token in ftBalances" :key="token.tokenId" clickable @click="toggleFtSelected(token.tokenId)">
-              <q-item-section side>
-                <q-checkbox :model-value="ftSelected.includes(token.tokenId)" @update:model-value="toggleFtSelected(token.tokenId)" />
-              </q-item-section>
-              <q-item-section>
-                <div class="text-caption text-weight-medium" :class="textColor">{{ ftTokenTitle(token) }}</div>
-                <div class="text-caption" :class="$q.dark.isActive ? 'text-grey-5' : 'text-grey'">{{ ftTokenSubtitle(token) }} · Amount: {{ ftDisplayAmount(token) }}</div>
-                <div v-if="ftStatusMap[token.tokenId]?.txid" class="text-caption text-positive">txid: {{ ftStatusMap[token.tokenId].txid }}</div>
-                <div v-else-if="ftStatusMap[token.tokenId]?.error" class="text-caption text-negative">{{ ftStatusMap[token.tokenId].error }}</div>
-                <div v-else-if="ftStatusMap[token.tokenId]?.state === 'unknown'" class="text-caption text-warning">No confirmation received. Check balances again.</div>
-              </q-item-section>
-              <q-item-section side>
-                <q-spinner v-if="ftStatusMap[token.tokenId]?.state === 'loading'" color="primary" size="20px" />
-                <q-icon v-else-if="ftStatusMap[token.tokenId]?.state === 'success'" name="check_circle" color="positive" />
-                <q-btn
-                  v-else-if="ftStatusMap[token.tokenId]?.state === 'error'"
-                  flat
-                  dense
-                  round
-                  icon="refresh"
-                  color="primary"
-                  :disable="ftSweeping"
-                  @click.stop="retrySingleFt(token.tokenId)"
-                >
-                  <q-tooltip>Retry sweep</q-tooltip>
-                </q-btn>
-              </q-item-section>
-            </q-item>
-          </q-list>
-          <div class="text-caption q-mt-sm" :class="$q.dark.isActive ? 'text-grey-5' : 'text-grey'">
-            Destination (your wallet): {{ ftDestination || '...' }}
-          </div>
-          <div class="row justify-center q-mt-sm">
-            <q-btn
-              label="Sweep Tokens"
-              color="primary"
-              class="q-px-xl bg-grad text-white"
-              unelevated
-              rounded
-              :disable="!canSweepFt"
-              :loading="ftSweeping"
-              @click="sweepSelectedFt"
-            />
-          </div>
+          <q-icon :name="showSweepTokens ? 'expand_less' : 'expand_more'" :color="$q.dark.isActive ? 'grey-5' : 'grey-7'" />
         </div>
-      </template>
-    </div>
+
+        <template v-if="showSweepTokens">
+          <div class="q-pa-md full-width">
+            <div class="row items-center q-mb-sm" style="gap: 8px;">
+              <q-btn flat dense icon="refresh" color="primary" :loading="ftLoading" @click="loadFtBalances" />
+              <div class="text-caption" :class="$q.dark.isActive ? 'text-grey-5' : 'text-grey'">Sweepable fungible tokens on this card</div>
+            </div>
+            <div v-if="ftLoading" class="flex flex-center q-pa-md">
+              <q-spinner-dots color="primary" size="32px" />
+            </div>
+            <div v-else-if="ftError" class="text-caption text-negative q-mb-sm">{{ ftError }}</div>
+            <div v-else-if="!ftBalances.length" class="text-caption q-mb-sm" :class="$q.dark.isActive ? 'text-grey-5' : 'text-grey'">No fungible tokens to sweep</div>
+            <q-list v-else separator dense>
+              <q-item v-for="token in ftBalances" :key="token.tokenId" clickable @click="toggleFtSelected(token.tokenId)">
+                <q-item-section side>
+                  <q-checkbox :model-value="ftSelected.includes(token.tokenId)" @update:model-value="toggleFtSelected(token.tokenId)" />
+                </q-item-section>
+                <q-item-section>
+                  <div class="text-caption text-weight-medium" :class="textColor">{{ ftTokenTitle(token) }}</div>
+                  <div class="text-caption" :class="$q.dark.isActive ? 'text-grey-5' : 'text-grey'">{{ ftTokenSubtitle(token) }} · Amount: {{ ftDisplayAmount(token) }}</div>
+                  <div v-if="ftStatusMap[token.tokenId]?.txid" class="text-caption text-positive">txid: {{ ftStatusMap[token.tokenId].txid }}</div>
+                  <div v-else-if="ftStatusMap[token.tokenId]?.error" class="text-caption text-negative">{{ ftStatusMap[token.tokenId].error }}</div>
+                  <div v-else-if="ftStatusMap[token.tokenId]?.state === 'unknown'" class="text-caption text-warning">No confirmation received. Check balances again.</div>
+                </q-item-section>
+                <q-item-section side>
+                  <q-spinner v-if="ftStatusMap[token.tokenId]?.state === 'loading'" color="primary" size="20px" />
+                  <q-icon v-else-if="ftStatusMap[token.tokenId]?.state === 'success'" name="check_circle" color="positive" />
+                  <q-btn
+                    v-else-if="ftStatusMap[token.tokenId]?.state === 'error'"
+                    flat
+                    dense
+                    round
+                    icon="refresh"
+                    color="primary"
+                    :disable="ftSweeping"
+                    @click.stop="retrySingleFt(token.tokenId)"
+                  >
+                    <q-tooltip>Retry sweep</q-tooltip>
+                  </q-btn>
+                </q-item-section>
+              </q-item>
+            </q-list>
+            <div class="text-caption q-mt-sm" :class="$q.dark.isActive ? 'text-grey-5' : 'text-grey'">
+              Destination (your wallet): {{ walletTokenAddress || '...' }}
+            </div>
+            <div class="row justify-center q-mt-sm">
+              <q-btn
+                label="Sweep Tokens"
+                color="primary"
+                class="q-px-xl bg-grad text-white"
+                unelevated
+                rounded
+                :disable="!canSweepFt"
+                :loading="ftSweeping"
+                @click="sweepSelectedFt"
+              />
+            </div>
+          </div>
+        </template>
+      </div>
+    </template>
   </div>
 
   <div 
@@ -432,9 +408,6 @@ import CardMixin from 'src/mixins/card/card-mixin';
 import { CardStorage } from 'src/components/card/createCard'
 import { satoshiToBch } from 'src/exchange';
 import { cardLogger } from 'src/utils/debug-logger.js';
-import { parseFtSweepError } from 'src/services/card/card';
-import { isTokenAddress } from 'src/utils/address-utils';
-import { toTokenAddress } from 'src/utils/crypto';
 
 export default {
   name: 'CardSettings',
@@ -463,13 +436,8 @@ export default {
       ftLoading: false,
       ftError: '',
       ftSelected: [],
-      ftDestination: '',
       ftSweeping: false,
       ftStatusMap: {},
-      sweepAuthLoading: false,
-      sweepAuthError: '',
-      sweepAuthNft: null,
-      mintingSweepAuth: false,
       showVersionSwitchDialog: false,
       switchingVersion: false,
     }
@@ -478,16 +446,15 @@ export default {
     hasCardBalance() {
       return parseFloat(this.cardBalance) > 0
     },
-    ftDestinationError() {
-      if (!this.ftDestination) return ''
-      return this.normalizeFtDestination(this.ftDestination) ? '' : 'Enter a valid CashToken address'
-    },
-    requiresSweepAuth() {
-      return !this.activeCard?.isV2Active
+    walletTokenAddress() {
+      try {
+        return this.activeCard?.wallet?.tokenAddress?.() || ''
+      } catch {
+        return ''
+      }
     },
     canSweepFt() {
-      const authed = this.requiresSweepAuth ? !!this.sweepAuthNft : true
-      return !this.ftSweeping && this.ftSelected.length > 0 && !!this.ftDestination && !this.ftDestinationError && authed
+      return !this.ftSweeping && this.ftSelected.length > 0
     },
     replacementReasons () {
       return [
@@ -506,7 +473,6 @@ export default {
     showSweepTokens (open) {
       if (open) {
         if (!this.ftBalances.length && !this.ftLoading) this.loadFtBalances()
-        if (!this.sweepAuthLoading) this.checkSweepAuth()
       }
     }
   },
@@ -516,24 +482,6 @@ export default {
       this.isLocked = this.activeCard.isLocked || false;
       await this.loadCardBalance()
       this.loadCardReplacementStatus()
-      this.setDefaultFtDestination()
-    },
-    setDefaultFtDestination() {
-      if (this.ftDestination) return
-      try {
-        const addr = this.activeCard?.wallet?.tokenAddress?.()
-        if (addr) this.ftDestination = addr
-      } catch {}
-    },
-    normalizeFtDestination(address) {
-      const clean = String(address || '').trim().split('?')[0].split(' ')[0]
-      if (!clean) return null
-      if (isTokenAddress(clean)) return clean
-      try {
-        return toTokenAddress(clean)
-      } catch {
-        return null
-      }
     },
     truncateTokenId(tokenId) {
       if (!tokenId) return 'Unknown token'
@@ -570,56 +518,15 @@ export default {
       this.ftLoading = true
       this.ftError = ''
       try {
-        this.setDefaultFtDestination()
         this.ftBalances = await this.activeCard.fetchFtBalances() || []
         this.ftSelected = []
         this.ftStatusMap = {}
         this.hydrateFtMetadata()
       } catch (error) {
-        const { message } = parseFtSweepError(error)
-        this.ftError = message || 'Failed to load token balances'
+        this.ftError = error?.message || 'Failed to load token balances'
         this.ftBalances = []
       } finally {
         this.ftLoading = false
-      }
-    },
-    async checkSweepAuthAndBalances() {
-      await Promise.allSettled([this.checkSweepAuth(), this.loadFtBalances()])
-    },
-    async checkSweepAuth() {
-      if (!this.activeCard || !this.requiresSweepAuth) return
-      this.sweepAuthLoading = true
-      this.sweepAuthError = ''
-      try {
-        this.sweepAuthNft = await this.activeCard.findSweepAuthNft()
-      } catch (error) {
-        const { message } = parseFtSweepError(error)
-        this.sweepAuthError = message || 'Failed to check sweep authorization'
-        this.sweepAuthNft = null
-      } finally {
-        this.sweepAuthLoading = false
-      }
-    },
-    async mintSweepAuth() {
-      if (!this.activeCard) return
-      this.mintingSweepAuth = true
-      try {
-        await this.activeCard.mintSweepAuthToken()
-        this.$q.notify({
-          type: 'positive',
-          message: this.$t('SweepAuthMinted', {}, 'Sweep authorization minted successfully'),
-          timeout: 3000,
-        })
-        await this.checkSweepAuth()
-      } catch (error) {
-        cardLogger.error('Failed to mint sweep auth token:', error.message || error)
-        this.$q.notify({
-          type: 'negative',
-          message: error?.message || this.$t('FailedToMintSweepAuth', {}, 'Failed to mint sweep authorization'),
-          timeout: 5000,
-        })
-      } finally {
-        this.mintingSweepAuth = false
       }
     },
     toggleFtSelected(tokenId) {
@@ -628,8 +535,6 @@ export default {
       else this.ftSelected.push(tokenId)
     },
     async sweepSingleFt(tokenId) {
-      const destination = this.normalizeFtDestination(this.ftDestination)
-      if (!destination) return
       this.ftStatusMap = { ...this.ftStatusMap, [tokenId]: { state: 'loading' } }
       try {
         const result = await this.activeCard.sweepToken(tokenId)
@@ -642,9 +547,6 @@ export default {
           this.ftStatusMap = { ...this.ftStatusMap, [tokenId]: { state: 'success', txid: result?.txid } }
         }
       } catch (error) {
-        if (error?.requiresSweepAuth) {
-          this.sweepAuthNft = null
-        }
         this.ftStatusMap = { ...this.ftStatusMap, [tokenId]: { state: 'error', error: error?.message || 'Sweep failed' } }
       }
     },
@@ -662,7 +564,6 @@ export default {
       this.$store.dispatch('card/fetchCardTransactions', { cardId: this.activeCard.id }).catch(() => {})
     },
     async sweepSelectedFt() {
-      if (!this.normalizeFtDestination(this.ftDestination)) return
       if (!this.ftSelected.length) return
       this.ftSweeping = true
       for (const tokenId of [...this.ftSelected]) {

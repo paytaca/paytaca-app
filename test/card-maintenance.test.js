@@ -59,7 +59,6 @@ describe('card maintenance', () => {
       '/cards/balance/',
       '/contracts/abc/ft/balances/',
       '/cards/1/transactions/',
-      '/cards/1/sweep_fungible_tokens/',
     ]) {
       assert.equal(isDrainPath(url), true)
       assert.equal(shouldTreatAsMaintenance(maintenanceRestError(url)), false)

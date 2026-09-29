@@ -11,51 +11,16 @@ import {
   updateCardActivationAttempt, 
   getCardActivationAttempt,
   clearCardActivationAttempt,
-  CardActivationStatus
+  CardActivationStatus,
+  saveCardMigrationAttempt,
+  updateCardMigrationAttempt,
+  getCardMigrationAttempt,
+  clearCardMigrationAttempt,
+  CardMigrationStatus,
 } from './storage';
 
 import { pubkeyToPkHash } from './utils';
 import { encodePointerCommitment, findPointerUtxo, describeMigrationState } from './pointer';
-import { buildSweepMessage, signSweepMessage } from './sweep';
-export { buildSweepMessage, signSweepMessage } from './sweep';
-import { sha256, utf8ToBin, secp256k1, decodePrivateKeyWif, binToHex } from '@bitauth/libauth';
-
-const SWEEP_MERCHANT_CACHE_TTL_MS = 5 * 60 * 1000;
-let _sweepMerchantCache = null;
-let _sweepMerchantCacheTime = 0;
-
-/**
- * Fetches the server's sweep merchant pubkey.
- * GET /sweep-merchant/ — public endpoint; result is cached briefly.
- * @param {Object} [opts]
- * @param {number} [opts.maxAgeMs=300000]
- * @returns {Promise<{id: string, pubkey: string}>}
- */
-export async function fetchSweepMerchant({ maxAgeMs = SWEEP_MERCHANT_CACHE_TTL_MS } = {}) {
-  const now = Date.now();
-  if (_sweepMerchantCache && (now - _sweepMerchantCacheTime) < maxAgeMs) {
-    return _sweepMerchantCache;
-  }
-  const response = await backend.get('/sweep-merchant/', { authorize: false }).catch(error => {
-    cardLogger.error('Error fetching sweep merchant:', error.response || error.message);
-    throw error;
-  });
-  const data = response?.data;
-  if (!data?.pubkey) {
-    throw new Error('Invalid sweep merchant response');
-  }
-  _sweepMerchantCache = {
-    id: String(data.id ?? '0'),
-    pubkey: data.pubkey,
-  };
-  _sweepMerchantCacheTime = now;
-  return _sweepMerchantCache;
-}
-
-export function clearSweepMerchantCache() {
-  _sweepMerchantCache = null;
-  _sweepMerchantCacheTime = 0;
-}
 
 export class Card {
   constructor(data) {
@@ -348,31 +313,6 @@ export class Card {
   }
 
   /**
-   * Sweeps one FT category via `POST /cards/{id}/sweep_fungible_tokens/` (auth required).
-   * Backend consolidates all UTXOs for the tokenId in one tx.
-   * Signs the canonical message with the owner's key; backend verifies
-   * the signature against `card.owner.public_key` before broadcasting.
-   * @param {string} tokenId - FT category hex
-   * @param {string} tokenAddress - destination token-aware address
-   * @returns {Promise<{success: boolean|'unknown', txid: string|null}>}
-   */
-  async sweepFungibleTokens(tokenId, tokenAddress) {
-    this._assertWallet();
-    const message = buildSweepMessage(this.raw, tokenId, tokenAddress)
-    const signature = signSweepMessage(this.wallet.privkey(), message)
-    return sweepFungibleTokens(this.id || this.uid, tokenId, tokenAddress, signature)
-  }
-
-  /**
-   * True when the active contract can sweep fungible tokens on-chain via
-   * the contract's `sweep` function (v2 contracts only).
-   * @returns {boolean}
-   */
-  get supportsOnchainTokenSweep() {
-    return this.isV2Active && !!this.contract?.supportsTokenSweep
-  }
-
-  /**
    * Sweeps one FT category from the active contract to the wallet's token
    * address using the contract's on-chain `sweep` function.
    * Only supported on v2 contracts.
@@ -403,20 +343,15 @@ export class Card {
   }
 
   /**
-   * Sweeps one FT category to the wallet's token address.
-   * Uses the on-chain `sweep` for v2 contracts; falls back to the backend
-   * spend-based sweep for v1 contracts.
+   * Sweeps one FT category to the wallet's token address using the on-chain
+   * `sweep` function (v2 contracts only).
    * @param {string} tokenId - FT category hex
    * @param {Object} [opts]
    * @param {boolean} [opts.broadcast=true]
-   * @returns {Promise<{success: boolean|'unknown', txid: string|null}>}
+   * @returns {Promise<Object>}
    */
   async sweepToken(tokenId, opts = { broadcast: true }) {
-    if (this.supportsOnchainTokenSweep) {
-      return this.sweepFungibleToken(tokenId, opts);
-    }
-    this._assertWallet();
-    return this.sweepFungibleTokens(tokenId, this.wallet.tokenAddress());
+    return this.sweepFungibleToken(tokenId, opts);
   }
 
   /**
@@ -464,87 +399,6 @@ export class Card {
     const utxos = await this.contract.getTokenUtxos(tokenId);
     cardLogger.log('[Card.getAuthTokenUtxos] returned UTXOs:', utxos)
     return utxos
-  }
-
-  /**
-   * Fetches the server sweep merchant and finds the matching sweep auth NFT
-   * on this card. Returns the UTXO only if it is authorized.
-   * @returns {Promise<Object|null>}
-   */
-  async findSweepAuthNft() {
-    this._assertContract();
-    const merchant = await fetchSweepMerchant();
-    const { hex: merchantHash } = encodeMerchantHash({
-      merchantId: merchant.id,
-      merchantPk: merchant.pubkey,
-    });
-    const authTokenUtxos = await this.getAuthTokenUtxos();
-    return authTokenUtxos.find(utxo => {
-      const commitment = utxo?.token?.nft?.commitment;
-      if (!commitment) return false;
-      const decoded = decodeCommitment(commitment);
-      return decoded?.hash === merchantHash && decoded?.authorized === true;
-    }) || null;
-  }
-
-  /**
-   * Returns true when the card has an authorized sweep-merchant auth NFT.
-   * @returns {Promise<boolean>}
-   */
-  async hasSweepAuth() {
-    const nft = await this.findSweepAuthNft();
-    return !!nft;
-  }
-
-  /**
-   * Mints or updates the sweep-merchant auth NFT for this card.
-   * If the NFT already exists, mutates it to authorized=1 with a 5000-sat limit.
-   * Otherwise mints a new merchant auth NFT and issues it to the card.
-   * @returns {Promise<Object>}
-   */
-  async mintSweepAuthToken() {
-    this._assertWallet();
-    this._assertAuthNftService();
-    this._assertContract();
-
-    const merchant = await fetchSweepMerchant();
-    const spendLimitSats = 5000;
-    const { hex: merchantHash } = encodeMerchantHash({
-      merchantId: merchant.id,
-      merchantPk: merchant.pubkey,
-    });
-
-    const authTokenUtxos = await this.getAuthTokenUtxos();
-    const existingUtxo = authTokenUtxos.find(utxo => {
-      const commitment = utxo?.token?.nft?.commitment;
-      if (!commitment) return false;
-      const decoded = decodeCommitment(commitment);
-      return decoded?.hash === merchantHash;
-    });
-
-    if (existingUtxo) {
-      cardLogger.log('Updating existing sweep auth NFT');
-      return this._mutateAuthToken({
-        authorized: true,
-        spendLimitSats,
-        merchant,
-        broadcast: true,
-      });
-    }
-
-    cardLogger.log('Minting new sweep auth NFT');
-    const tokenId = await this.resolveAuthCategory();
-    const mintResult = await this.authNftService.mint({
-      tokenId,
-      merchants: [{
-        id: merchant.id,
-        pubkey: merchant.pubkey,
-        authorized: true,
-        spendLimitSats,
-      }],
-    });
-    const issueResult = await this._issueAuthTokens(tokenId);
-    return { mintResult, issueResult };
   }
 
   /**
@@ -1458,40 +1312,6 @@ export class Card {
     return { ...result, txHex, toAddress };
   }
 
-  /**
-   * Sweeps all fungible tokens from the current (inactive) contract to the
-   * currently active contract's token address via the backend endpoint.
-   * @returns {Promise<{success: boolean|'unknown', txid: string|null}>}
-   */
-  async sweepFungibleTokensToActive() {
-    this._assertWallet();
-    const message = `sweep_ft_to_active:${this.id || this.uid}`
-    const messageHash = sha256.hash(utf8ToBin(message))
-    const privateKeyBin = decodePrivateKeyWif(this.wallet.privkey()).privateKey
-    if (typeof privateKeyBin === 'string') throw new Error(privateKeyBin)
-    const signatureBin = secp256k1.signMessageHashDER(privateKeyBin, messageHash)
-    if (typeof signatureBin === 'string') throw new Error(signatureBin)
-    const signature = binToHex(signatureBin)
-
-    try {
-      const response = await backend.post(`/cards/${this.id || this.uid}/sweep-fungible-tokens/`, {
-        signature,
-      })
-      return normalizeFtSweepResult(response?.data)
-    } catch (error) {
-      if (!error?.response) throw error
-      if (error.response.status === 500 && (error.response.data == null || error.response.data === '')) {
-        return { success: 'unknown', txid: null }
-      }
-      const { message: errMsg, requiresSweepAuth } = parseFtSweepError(error)
-      const normalized = new Error(errMsg)
-      normalized.status = error?.response?.status
-      normalized.requiresSweepAuth = requiresSweepAuth
-      normalized.cause = error
-      throw normalized
-    }
-  }
-
   // ==================== POINTER / MIGRATION ====================
 
   /**
@@ -1567,12 +1387,8 @@ export class Card {
       const originVersion = pointerState.origin_version != null ? normalizeVersionLabel(pointerState.origin_version) : this.activeContractVersion;
       try {
         const origin = this._scopedVersionCard(originVersion);
-        const address = origin.tokenAddress || origin.cashAddress;
-        if (address) {
-          const balances = await origin.fetchFtBalances().catch(() => []);
-          const bch = await origin.getBchBalance().catch(() => 0);
-          originFunded = (balances?.length > 0) || bch > 0;
-        }
+        const bch = await origin.getBchBalance().catch(() => 0);
+        originFunded = bch > 0;
       } catch (error) {
         cardLogger.warn('[Card.getMigrationState] Failed to read origin funding:', error.message || error);
       }
@@ -1591,7 +1407,7 @@ export class Card {
    * @param {boolean} [params.broadcast=true]
    * @returns {Promise<Object>}
    */
-  async mintPointerToken({ version, category, sourceVersion = null, broadcast = true } = {}) {
+  async mintPointerToken({ version, category, sourceVersion = null, broadcast = true, migrationKey = null } = {}) {
     this._assertWallet();
     this._assertAuthNftService();
     const source = sourceVersion || this.activeContractVersion;
@@ -1608,12 +1424,30 @@ export class Card {
 
     // Recover a pointer that was minted on a previous attempt but never issued
     // (e.g. the post-broadcast lookup timed out). Reusing it prevents minting a
-    // duplicate pointer NFT under the same auth category.
+    // duplicate pointer NFT under the same auth category. When a prior attempt
+    // recorded the exact minted UTXO, prefer that one.
+    const record = migrationKey ? await getCardMigrationAttempt(migrationKey).catch(() => null) : null;
     const walletAddress = this.wallet.tokenAddress();
-    let walletPointer = findPointerUtxo(await this.wallet.getTokenUtxos(tokenId, walletAddress));
+    const walletCandidates = await this.wallet.getTokenUtxos(tokenId, walletAddress);
+    let walletPointer = null;
+    if (record?.pointerTxid && !record.pointerIssued) {
+      walletPointer = walletCandidates.find(u => u.txid === record.pointerTxid && u.vout === record.pointerVout)
+        || findPointerUtxo(walletCandidates);
+    } else {
+      walletPointer = findPointerUtxo(walletCandidates);
+    }
+
     let mintResult = null;
     if (walletPointer) {
       cardLogger.log('[Card.mintPointerToken] reusing unissued pointer already in wallet:', walletPointer.txid);
+      if (migrationKey) {
+        await updateCardMigrationAttempt(migrationKey, {
+          status: CardMigrationStatus.POINTER_MINTED,
+          pointerTxid: walletPointer.txid,
+          pointerVout: walletPointer.vout,
+          pointerIssued: false,
+        });
+      }
     } else {
       mintResult = await origin.authNftService.mint({
         tokenId,
@@ -1621,9 +1455,24 @@ export class Card {
         opts: { broadcast },
       });
       walletPointer = await this.pollForPointerUtxo(tokenId);
+      if (migrationKey) {
+        await updateCardMigrationAttempt(migrationKey, {
+          status: CardMigrationStatus.POINTER_MINTED,
+          pointerTxid: walletPointer?.txid || null,
+          pointerVout: walletPointer?.vout ?? null,
+          pointerIssued: false,
+        });
+      }
     }
 
     const issueResult = await origin.authNftService.issue([walletPointer], origin.tokenAddress, { broadcast });
+    if (migrationKey) {
+      await updateCardMigrationAttempt(migrationKey, {
+        status: CardMigrationStatus.POINTER_ISSUED,
+        pointerIssued: true,
+        pointerCommitment: commitment,
+      });
+    }
 
     // If the reused pointer carried a different commitment, correct it on-chain
     // so exactly one pointer points at the requested target.
@@ -1637,9 +1486,23 @@ export class Card {
         commitment,
         broadcast,
       });
+      if (migrationKey) {
+        await updateCardMigrationAttempt(migrationKey, {
+          status: CardMigrationStatus.POINTER_COMMITTED,
+          pointerCommitment: commitment,
+          pointerIssued: true,
+        });
+      }
       return { commitment, mintResult, issueResult, repointResult };
     }
 
+    if (migrationKey) {
+      await updateCardMigrationAttempt(migrationKey, {
+        status: CardMigrationStatus.POINTER_COMMITTED,
+        pointerCommitment: commitment,
+        pointerIssued: true,
+      });
+    }
     return { commitment, mintResult, issueResult };
   }
 
@@ -1653,7 +1516,7 @@ export class Card {
    * @param {boolean} [params.broadcast=true]
    * @returns {Promise<Object>}
    */
-  async repointPointer({ version, category, sourceVersion = null, broadcast = true } = {}) {
+  async repointPointer({ version, category, sourceVersion = null, broadcast = true, migrationKey = null } = {}) {
     this._assertWallet();
     this._assertContract();
     const source = sourceVersion || this.activeContractVersion;
@@ -1663,8 +1526,23 @@ export class Card {
     if (!pointerUtxo) {
       throw new Error('No pointer NFT found at the origin contract. Cannot re-point; migrate first.');
     }
-
+    
     const commitment = encodePointerCommitment({ version, category });
+
+    // Already pointing at the target: nothing to spend, just keep the record.
+    const existingCommitment = String(pointerUtxo?.token?.nft?.commitment || '').toLowerCase();
+    if (existingCommitment === commitment.toLowerCase()) {
+      cardLogger.log('[Card.repointPointer] pointer already points at target; skipping mutation');
+      if (migrationKey) {
+        await updateCardMigrationAttempt(migrationKey, {
+          status: CardMigrationStatus.POINTER_COMMITTED,
+          pointerCommitment: commitment,
+          pointerIssued: true,
+        });
+      }
+      return { commitment, skipped: true };
+    }
+
     cardLogger.log(`[Card.repointPointer] origin=${source} pointer=${pointerUtxo.txid}:${pointerUtxo.vout} -> ${commitment}`);
     const result = await origin.contract.mutatePointer({
       ownerWif: this.wallet.privkey(),
@@ -1672,6 +1550,13 @@ export class Card {
       commitment,
       broadcast,
     });
+    if (migrationKey) {
+      await updateCardMigrationAttempt(migrationKey, {
+        status: CardMigrationStatus.POINTER_COMMITTED,
+        pointerCommitment: commitment,
+        pointerIssued: true,
+      });
+    }
     return { commitment, ...result };
   }
 
@@ -1684,7 +1569,7 @@ export class Card {
    * @param {boolean} [opts.broadcast=true]
    * @returns {Promise<Object>}
    */
-  async ensureMigrationPointer(targetVersion, { sourceVersion = null, broadcast = true } = {}) {
+  async ensureMigrationPointer(targetVersion, { sourceVersion = null, broadcast = true, migrationKey = null } = {}) {
     this._assertWallet();
     this._assertAuthNftService();
     const targetLabel = normalizeVersionLabel(targetVersion);
@@ -1704,19 +1589,19 @@ export class Card {
 
     if (existingPointer) {
       cardLogger.log(`[Card.ensureMigrationPointer] pointer present at ${source}; re-pointing to ${targetLabel}`);
-      return { action: 'repoint', ...(await this.repointPointer({ version, category: targetCategory, sourceVersion: source, broadcast })) };
+      return { action: 'repoint', ...(await this.repointPointer({ version, category: targetCategory, sourceVersion: source, broadcast, migrationKey })) };
     }
 
     cardLogger.log(`[Card.ensureMigrationPointer] no pointer at ${source}; minting for ${targetLabel}`);
-    return { action: 'mint', ...(await this.mintPointerToken({ version, category: targetCategory, sourceVersion: source, broadcast })) };
+    return { action: 'mint', ...(await this.mintPointerToken({ version, category: targetCategory, sourceVersion: source, broadcast, migrationKey })) };
   }
 
   /**
    * Migrates the card from an origin contract to a target version by minting /
-   * re-pointing the pointer, moving sweep auth, BCH and FTs, then switching the
-   * server preimage version. The on-chain pointer is authoritative.
+   * re-pointing the pointer and moving BCH, then switching the server preimage
+   * version. The on-chain pointer is authoritative.
    *
-   * Ordering matters: pointer, sweep-auth, BCH, FT, activate-version.
+   * Ordering matters: pointer, BCH, activate-version.
    *
    * @param {number|string} targetVersion
    * @param {Object} [opts]
@@ -1732,55 +1617,66 @@ export class Card {
     const targetEntry = this.contracts.find(c => c.version === targetLabel);
     if (!targetEntry) throw new Error(`No ${targetLabel} contract found for this card`);
     const source = sourceVersion || this.activeContractVersion;
-    const origin = this._scopedVersionCard(source);
 
     const targetCategory = targetEntry.ownership_token
       || (targetEntry.contract_id || targetEntry.id
         ? createTapToPay(targetEntry.contract_id || targetEntry.id, targetLabel).getOwnershipCategory()
         : null);
     if (!targetCategory) throw new Error('Unable to resolve target contract category');
-    const targetTokenAddress = targetEntry.token_address;
-    if (!targetTokenAddress) throw new Error('Target contract has no token address');
+
+    // Resume a previous partial run for the same source -> target, otherwise
+    // start a fresh attempt. Progress is persisted so a failed step (notably a
+    // pointer mutation) can be retried without re-minting or re-pointing blindly.
+    const migrationKey = this.id || this.uid;
+    if (!migrationKey) throw new Error('Card id or uid is required to migrate');
+    let attempt = await getCardMigrationAttempt(migrationKey).catch(() => null);
+    if (!attempt || attempt.sourceVersion !== source || attempt.targetVersion !== targetLabel) {
+      attempt = await saveCardMigrationAttempt(migrationKey, {
+        sourceVersion: source,
+        targetVersion: targetLabel,
+        status: CardMigrationStatus.STARTED,
+      });
+    } else {
+      cardLogger.log(`[Card.migrateToVersion] resuming ${source}->${targetLabel} from status ${attempt.status}`, attempt);
+    }
 
     // 2. Ensure target ownership is set with the user's key. Do NOT flip the
     // server active version yet: only the final step marks the card migrated,
     // so an error in any sweep step leaves the card on the origin version.
-    this._notifyCallbackFn(onProgress, `Preparing ${targetLabel.toUpperCase()} ownership...`);
-    if (!(await this.isVersionOwnershipSet(targetLabel))) {
-      await this.activateContractVersion(targetLabel, onProgress, { markActive: false });
+    if (attempt.status < CardMigrationStatus.TARGET_OWNERSHIP_SET) {
+      this._notifyCallbackFn(onProgress, `Preparing ${targetLabel.toUpperCase()} ownership...`);
+      if (!(await this.isVersionOwnershipSet(targetLabel))) {
+        await this.activateContractVersion(targetLabel, onProgress, { markActive: false });
+      }
+      attempt = await updateCardMigrationAttempt(migrationKey, { status: CardMigrationStatus.TARGET_OWNERSHIP_SET });
     }
 
     // 3. Pointer: mint on first migration, re-point afterwards.
-    this._notifyCallbackFn(onProgress, 'Setting migration pointer...');
-    await this.ensureMigrationPointer(targetLabel, { sourceVersion: source, broadcast });
-
-    // 4. Origin sweep-auth NFT.
-    this._notifyCallbackFn(onProgress, 'Minting sweep authorization...');
-    await origin.mintSweepAuthToken();
-
-    // 5. Move BCH origin -> target.
-    this._notifyCallbackFn(onProgress, 'Moving BCH to target contract...');
-    const bchResult = await this.sweepFromVersion(source, targetLabel, { broadcast });
-
-    // 6. Move each FT origin -> target (server-signed).
-    this._notifyCallbackFn(onProgress, 'Moving tokens to target contract...');
-    const ftBalances = await origin.fetchFtBalances().catch(() => []);
-    const ftResults = [];
-    for (const balance of ftBalances) {
-      const tokenId = balance.tokenId || balance.category;
-      if (!tokenId) continue;
-      this._notifyCallbackFn(onProgress, `Moving ${tokenId.slice(0, 8)}... to target`);
-      const result = await origin.sweepFungibleTokens(tokenId, targetTokenAddress);
-      ftResults.push({ tokenId, result });
+    if (attempt.status < CardMigrationStatus.POINTER_COMMITTED) {
+      this._notifyCallbackFn(onProgress, 'Setting migration pointer...');
+      await this.ensureMigrationPointer(targetLabel, { sourceVersion: source, broadcast, migrationKey });
+      attempt = await updateCardMigrationAttempt(migrationKey, { status: CardMigrationStatus.POINTER_COMMITTED });
     }
 
-    // 7. Server preimage version hint.
+    // 4. Move BCH origin -> target.
+    let bchResult = null;
+    if (attempt.status < CardMigrationStatus.BCH_SWEPT) {
+      this._notifyCallbackFn(onProgress, 'Moving BCH to target contract...');
+      bchResult = await this.sweepFromVersion(source, targetLabel, { broadcast });
+      attempt = await updateCardMigrationAttempt(migrationKey, { status: CardMigrationStatus.BCH_SWEPT });
+    }
+
+    // 5. Server preimage version hint. Only now is the card marked migrated.
     this._notifyCallbackFn(onProgress, 'Activating target version...');
     await this.activateVersion(targetLabel);
+    await updateCardMigrationAttempt(migrationKey, { status: CardMigrationStatus.ACTIVATED });
 
-    // 8. Verify against the on-chain pointer.
+    // Completed: drop the local resume record.
+    await clearCardMigrationAttempt(migrationKey).catch(() => {});
+
+    // 6. Verify against the on-chain pointer.
     const pointerState = await this.getPointerState().catch(() => ({}));
-    return { bchResult, ftResults, pointerState, targetVersion: targetLabel, targetCategory };
+    return { bchResult, pointerState, targetVersion: targetLabel, targetCategory };
   }
 
   // ==================== HELPERS ====================
@@ -1822,59 +1718,6 @@ export async function fetchFtBalances(contractAddress, { tokenIds = [], includeU
       throw error;
     });
   return normalizeFtBalances(response.data)
-}
-
-function findTxid(obj, depth = 0) {
-  if (!obj || depth > 3) return null
-  if (typeof obj === 'string' && /^[0-9a-f]{64}$/i.test(obj)) return obj
-  if (typeof obj !== 'object') return null
-  for (const key of ['txid', 'tx_id', 'txId', 'transaction_id', 'transactionId', 'hash']) {
-    if (typeof obj[key] === 'string' && obj[key]) return obj[key]
-  }
-  for (const value of Object.values(obj)) {
-    const found = findTxid(value, depth + 1)
-    if (found) return found
-  }
-  return null
-}
-
-export function normalizeFtSweepResult(data) {
-  if (data == null || data === '') return { success: 'unknown', txid: null }
-  if (typeof data === 'string') {
-    const txid = findTxid(data)
-    return { success: txid ? true : 'unknown', txid }
-  }
-  if (data.success === true || data.ok === true) return { success: true, txid: findTxid(data) }
-  if (data.success === false || data.ok === false) return { success: false, txid: findTxid(data) }
-  const txid = findTxid(data)
-  if (txid) return { success: true, txid }
-  if (typeof data === 'object' && Object.keys(data).length === 0) return { success: 'unknown', txid: null }
-  return { success: 'unknown', txid: null, raw: data }
-}
-
-export function parseFtSweepError(error) {
-  const status = error?.response?.status
-  const detail = error?.response?.data?.detail || error?.response?.data?.error
-    || error?.response?.data?.message || error?.message || 'Sweep failed'
-  const detailStr = Array.isArray(detail) ? detail.join(' ') : String(detail || '')
-  const requiresSweepAuth = /no sweep auth/i.test(detailStr)
-  switch (status) {
-    case 400: return { status, message: detail || 'Invalid token or destination address', requiresSweepAuth }
-    case 401: return { status, message: 'Session expired. Please re-login and try again.', requiresSweepAuth }
-    case 403: {
-      if (/sign/i.test(detailStr)) {
-        return { status, message: 'Signature rejected — check the signing key matches the card owner', requiresSweepAuth }
-      }
-      if (requiresSweepAuth) {
-        return { status, message: detailStr, requiresSweepAuth: true }
-      }
-      return { status, message: 'You do not own this card', requiresSweepAuth }
-    }
-    case 404: return { status, message: 'Card or token not found', requiresSweepAuth }
-    case 502: return { status, message: 'Sweep service unavailable. Please try again later.', requiresSweepAuth }
-    case 500: return { status, message: 'No confirmation received. Check balances again; tokens may have swept.', requiresSweepAuth }
-    default: return { status, message: detailStr, requiresSweepAuth }
-  }
 }
 
 /**
@@ -1956,32 +1799,6 @@ export async function broadcastCardTransaction(txHex, txType, { cardIdOrUid } = 
       throw error;
     });
   return response.data
-}
-
-export async function sweepFungibleTokens(cardIdOrUid, tokenId, tokenAddress, signature) {
-  if (!cardIdOrUid) throw new Error('Card id or uid is required')
-  if (!tokenId) throw new Error('token_id is required')
-  if (!tokenAddress) throw new Error('token_address is required')
-  if (!signature) throw new Error('signature is required')
-  try {
-    const response = await backend.post(`/cards/${cardIdOrUid}/sweep_fungible_tokens/`, {
-      token_id: tokenId,
-      token_address: tokenAddress,
-      signature,
-    })
-    return normalizeFtSweepResult(response?.data)
-  } catch (error) {
-    if (!error?.response) throw error
-    if (error.response.status === 500 && (error.response.data == null || error.response.data === '')) {
-      return { success: 'unknown', txid: null }
-    }
-    const { message, requiresSweepAuth } = parseFtSweepError(error)
-    const normalized = new Error(message)
-    normalized.status = error?.response?.status
-    normalized.requiresSweepAuth = requiresSweepAuth
-    normalized.cause = error
-    throw normalized
-  }
 }
 
 export default Card;

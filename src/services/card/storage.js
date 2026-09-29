@@ -13,7 +13,69 @@ export const CardActivationStatus = {
   VALIDATION_REQUESTED: 6,
 }
 
+export const CardMigrationStatus = {
+  NONE: -1,
+  STARTED: 0,
+  TARGET_OWNERSHIP_SET: 1,
+  POINTER_MINTED: 2,
+  POINTER_ISSUED: 3,
+  POINTER_COMMITTED: 4,
+  BCH_SWEPT: 6,
+  ACTIVATED: 8,
+}
+
 const CARD_ACTIVATION_STORAGE_KEY = 'card:activation-attempt'
+const CARD_MIGRATION_STORAGE_KEY = 'card:migration-attempt'
+
+/**
+ * Persists per-card migration progress so a failed run (e.g. a pointer
+ * mutation) can be resumed without re-minting or re-pointing blindly.
+ * Keyed by card id/uid; the on-chain pointer remains authoritative.
+ */
+export async function saveCardMigrationAttempt(cardId, attempt) {
+  if (!cardId) {
+    throw new Error('Card id is required to save a migration attempt')
+  }
+  const storageKey = `${CARD_MIGRATION_STORAGE_KEY}:${cardId}`
+  const nextValue = {
+    cardId: String(cardId),
+    sourceVersion: attempt.sourceVersion || null,
+    targetVersion: attempt.targetVersion || null,
+    status: attempt.status ?? CardMigrationStatus.NONE,
+    pointerTxid: attempt.pointerTxid || null,
+    pointerVout: attempt.pointerVout ?? null,
+    pointerCommitment: attempt.pointerCommitment || null,
+    pointerIssued: !!attempt.pointerIssued,
+    createdAt: attempt.createdAt || Date.now(),
+    updatedAt: Date.now(),
+  }
+  localStorage.setItem(storageKey, JSON.stringify(nextValue))
+  return nextValue
+}
+
+export async function getCardMigrationAttempt(cardId) {
+  if (!cardId) return null
+  const storageKey = `${CARD_MIGRATION_STORAGE_KEY}:${cardId}`
+  const raw = localStorage.getItem(storageKey)
+  if (!raw) return null
+  try {
+    return JSON.parse(raw)
+  } catch {
+    localStorage.removeItem(storageKey)
+    return null
+  }
+}
+
+export async function updateCardMigrationAttempt(cardId, patch) {
+  const current = await getCardMigrationAttempt(cardId)
+  const nextValue = { ...(current || { cardId: String(cardId) }), ...patch, cardId: String(cardId), updatedAt: Date.now() }
+  return saveCardMigrationAttempt(cardId, nextValue)
+}
+
+export async function clearCardMigrationAttempt(cardId) {
+  if (!cardId) return
+  localStorage.removeItem(`${CARD_MIGRATION_STORAGE_KEY}:${cardId}`)
+}
 
 export async function saveCardActivationAttempt(walletHash, attempt) {
   if (!walletHash) {
