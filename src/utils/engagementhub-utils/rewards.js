@@ -49,8 +49,6 @@ export const EliteStatusLabels = Object.freeze({
   [EliteStatus.PAUSED]: 'Paused'
 })
 
-export const EliteEligibleCountries = Object.freeze(['ph'])
-
 export const EliteTxType = Object.freeze({
   OTC: 'otc',
   MARKETPLACE: 'mkp'
@@ -243,6 +241,28 @@ export async function getAssetsThresholds () {
           lift_min_threshold: 100
         }
     })
+}
+
+export async function getEpValidCountries () {
+  const response = await ELITEPROGRAM_URL
+    .get('get_ep_valid_countries/')
+    .then(resp => {
+      if (resp.status === 200) return resp.data
+      else {
+        return { // default values agreed upon from initial meeting
+          valid_countries: ['ph']
+        }
+      }
+    })
+    .catch(error => {
+      if (!error?.message?.includes('aborted')) {
+        console.error(error)
+      }
+      return { // default values agreed upon from initial meeting
+          valid_countries: ['ph']
+        }
+    })
+  return response.valid_countries
 }
 
 export async function getEliteProgramSummaryData (id) {

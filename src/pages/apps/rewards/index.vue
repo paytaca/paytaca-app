@@ -625,7 +625,7 @@ import {
   getAssetsThresholds,
   EliteStatus,
   EliteStatusLabels,
-  EliteEligibleCountries
+  getEpValidCountries
 } from 'src/utils/engagementhub-utils/rewards'
 import { parseLiftToken } from 'src/utils/engagementhub-utils/shared'
 import { geolocationManager } from 'src/boot/geolocation'
@@ -1098,6 +1098,7 @@ export default {
     },
 
     async checkEliteCountryEligibility () {
+      const validCountries = await getEpValidCountries()
       const geo = await geolocationManager.getOrUpdateGeoIp().catch(console.error)
       const geoCountry = (geo?.country_code || '').toLowerCase()
 
@@ -1109,7 +1110,7 @@ export default {
 
       if (!this.deviceCountry) {
         this.eliteCountryStatus = 'eligible'
-      } else if (EliteEligibleCountries.includes(this.deviceCountry)) {
+      } else if (validCountries.includes(this.deviceCountry)) {
         this.eliteCountryStatus = 'eligible'
       } else {
         this.eliteCountryStatus = 'ineligible'
