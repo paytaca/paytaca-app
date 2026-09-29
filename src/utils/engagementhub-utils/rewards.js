@@ -49,6 +49,8 @@ export const EliteStatusLabels = Object.freeze({
   [EliteStatus.PAUSED]: 'Paused'
 })
 
+export const EliteEligibleCountries = Object.freeze(['ph'])
+
 export const EliteTxType = Object.freeze({
   OTC: 'otc',
   MARKETPLACE: 'mkp'
