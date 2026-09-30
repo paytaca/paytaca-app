@@ -107,6 +107,18 @@ export default function () {
       return
     }
 
+    // Read-only (xpub) wallets have no private keys, so most apps are unusable.
+    // Only Settings and Support remain accessible (mirrors the disabled app tiles).
+    if (to.path.startsWith('/apps') && to.name !== 'apps-dashboard' &&
+        to.path !== '/apps/settings' && to.path !== '/apps/support') {
+      const { isReadOnlyVaultEntry } = await import('../lib/readonly-wallet')
+      const currentEntry = store.getters['global/getVault']?.[store.getters['global/getWalletIndex']]
+      if (isReadOnlyVaultEntry(currentEntry)) {
+        next({ name: 'apps-dashboard', replace: true })
+        return
+      }
+    }
+
     // Read-only (xpub) wallets build unsigned transactions instead of sending.
     // Mirror the regular send flow: BCH/fungible-token sends first show the
     // asset-selection page; NFT sends (already specific) go straight to the
