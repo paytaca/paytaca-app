@@ -359,6 +359,7 @@
       hide-check-key
       @addKey="customInputRef?.setAmount($event)"
       @makeKeyAction="customInputRef?.makeKeyAction($event)"
+      @backPressed="keyboardState = 'dismiss'"
     >
       <template #slide>
         <DragSlide

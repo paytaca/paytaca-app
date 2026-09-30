@@ -151,7 +151,7 @@ class PaymentHubWebsocketManager {
 
   async getWebsocket(wallet) {
     const url = new URL(getBaseURL());
-    const protocol = url.protocol === 'https' ? 'wss' : 'ws';
+    const protocol = url.protocol === 'https:' ? 'wss' : 'ws';
 
     const response = await backend.post('websocket-ticket/', null,  { authorize: true, wallet: wallet });
     const ticket = response.data?.ticket
