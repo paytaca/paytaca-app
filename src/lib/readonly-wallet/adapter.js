@@ -10,7 +10,6 @@
  * paths.
  */
 
-import { cashAddressToLockingBytecode } from 'bitauth-libauth-v3'
 import { getWatchtowerApiUrl } from 'src/wallet/chipnet'
 import { getXpubFingerprint, toFullDerivationPath } from './readonly-wallet'
 
@@ -18,8 +17,6 @@ const projectId = {
   mainnet: process.env.WATCHTOWER_PROJECT_ID,
   chipnet: process.env.WATCHTOWER_CHIP_PROJECT_ID
 }
-
-const UNSUPPORTED_ERROR = 'Read-only wallets do not support SLP tokens'
 
 export class ReadOnlyBchWallet {
   /**
@@ -324,50 +321,16 @@ export class ReadOnlyBchWallet {
   }
 }
 
-export class ReadOnlySlpWallet {
-  constructor () {
-    this.isChipnet = false
-    this.walletHash = ''
-    this.derivationPath = ''
-  }
-
-  get addressLockingScript () {
-    return cashAddressToLockingBytecode
-  }
-
-  getWalletHash () {
-    return ''
-  }
-
-  _assertUnsupported () {
-    throw new Error(UNSUPPORTED_ERROR)
-  }
-
-  getXPubKey () { return this._assertUnsupported() }
-  getAddressSetAt () { return this._assertUnsupported() }
-  getNewAddressSet () { return this._assertUnsupported() }
-  getLastAddressIndex () { return this._assertUnsupported() }
-  scanUtxos () { return this._assertUnsupported() }
-  getUtxos () { return this._assertUnsupported() }
-  getBalance () { return this._assertUnsupported() }
-  getTransactions () { return this._assertUnsupported() }
-  getPrivateKey () { return this._assertUnsupported() }
-  signMessage () { return this._assertUnsupported() }
-  sendSlp () { return this._assertUnsupported() }
-  getTokenDetails () { return this._assertUnsupported() }
-}
-
 /**
  * Build a wallet-shaped object compatible with getWalletByNetwork().
+ * Read-only wallets support BCH/CashTokens only; SLP is not supported.
  * @param {import('./readonly-wallet').default} readonlyWallet
- * @returns {{ BCH: ReadOnlyBchWallet, BCH_CHIP: ReadOnlyBchWallet, SLP: ReadOnlySlpWallet, SLP_TEST: ReadOnlySlpWallet }}
+ * @returns {{ BCH: ReadOnlyBchWallet, BCH_CHIP: ReadOnlyBchWallet }}
  */
 export function buildReadOnlyWallet (readonlyWallet) {
   return {
     BCH: new ReadOnlyBchWallet({ wallet: readonlyWallet, network: 'mainnet' }),
-    BCH_CHIP: new ReadOnlyBchWallet({ wallet: readonlyWallet, network: 'chipnet' }),
-    SLP: new ReadOnlySlpWallet(),
-    SLP_TEST: new ReadOnlySlpWallet()
+    BCH_CHIP: new ReadOnlyBchWallet({ wallet: readonlyWallet, network: 'chipnet' })
   }
 }
 
