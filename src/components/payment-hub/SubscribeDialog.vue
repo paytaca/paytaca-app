@@ -249,6 +249,7 @@ async function fetchFromList() {
     const paymentHub = await initHub({ isBackground: true, autoRegister: false })
     const plansResult = await paymentHub.listPlans(undefined, {
       search: form.plan,
+      is_active: true,
     })
 
     planOptions.value = plansResult.results

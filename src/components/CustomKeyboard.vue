@@ -35,10 +35,12 @@
   </div>
 </template>
 <script>
+import { Capacitor } from '@capacitor/core'
 import { getLocaleSeparators } from 'src/utils/denomination-utils'
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 
 export default {
+  emits: ['addKey', 'makeKeyAction', 'update:modelValue', 'backPressed'],
   props: {
     customKeyboardState: {},
     modelValue: {
@@ -66,9 +68,42 @@ export default {
       return Number(this.val)
     }
   },
+  created () {
+    this.__kbSentinelActive = false
+    this.__kbOnPopstate = () => {
+      if (this.__kbSentinelActive) {
+        this.__kbSentinelActive = false
+        window.removeEventListener('popstate', this.__kbOnPopstate)
+      }
+      if (this.customKeyboardState === 'show') {
+        const activeEl = document.activeElement
+        if (activeEl && typeof activeEl.blur === 'function') activeEl.blur()
+        this.$emit('backPressed')
+      }
+    }
+  },
+  mounted () {
+    if (this.customKeyboardState === 'show') this.addBackButtonSentinel()
+  },
+  beforeUnmount () {
+    this.removeBackButtonSentinel()
+  },
   methods: {
     getLocaleSeparators,
     getDarkModeClass,
+
+    addBackButtonSentinel () {
+      if (Capacitor.getPlatform() !== 'android' || this.__kbSentinelActive) return
+      this.__kbSentinelActive = true
+      window.addEventListener('popstate', this.__kbOnPopstate)
+      window.history.pushState({ ...window.history.state, __ptCustomKeyboard: true }, '')
+    },
+    removeBackButtonSentinel () {
+      if (!this.__kbSentinelActive) return
+      this.__kbSentinelActive = false
+      window.removeEventListener('popstate', this.__kbOnPopstate)
+      if (window.history.state?.__ptCustomKeyboard === true) window.history.back()
+    },
 
     enterKey (num) {
       this.$emit('addKey', num)
@@ -108,8 +143,10 @@ export default {
     modelValue () {
       this.val = this.modelValue
     },
-    customKeyboardState () {
-      this.keyboard = this.customKeyboardState === 'show'
+    customKeyboardState (state) {
+      this.keyboard = state === 'show'
+      if (state === 'show') this.addBackButtonSentinel()
+      else this.removeBackButtonSentinel()
     }
   }
 }
