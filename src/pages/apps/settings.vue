@@ -227,7 +227,7 @@
                   {{ $t('EnableSlp', {}, 'Enable SLP') }}
                 </q-item-label>
                 <q-item-label caption style="line-height:1;margin-top:3px;" :class="darkMode ? 'text-grey-5' : 'text-grey-8'">
-                  {{ $t('EnableSlpToolTip', {}, 'Enable SLP token support') }}
+                  {{ isReadOnlyWallet ? $t('ReadOnlySlpUnsupported', {}, 'SLP tokens are not supported on read-only wallets') : $t('EnableSlpToolTip', {}, 'Enable SLP token support') }}
                 </q-item-label>
               </q-item-section>
               <q-item-section avatar>
@@ -235,6 +235,7 @@
                   v-model="enableSLP"
                   :color="toggleColor"
                   keep-color
+                  :disable="isReadOnlyWallet"
                 />
               </q-item-section>
             </q-item>
@@ -345,6 +346,7 @@ import { getDarkModeClass, isHongKong } from 'src/utils/theme-darkmode-utils'
 import { loadWallet, getMnemonic, pinExists } from 'src/wallet'
 import { getWalletByNetwork } from 'src/wallet/chipnet'
 import ScreenshotSecurity from 'src/utils/screenshot-security'
+import { isReadOnlyVaultEntry } from 'src/lib/readonly-wallet'
 
 export default {
   data () {
@@ -425,10 +427,15 @@ export default {
         return this.$store.getters['global/enableSLP']
       },
       set (value) {
+        if (this.isReadOnlyWallet) return
         const current = this.$store.getters['global/enableSLP']
         if (value === current) return
         this.$store.commit('global/enableSLP')
       }
+    },
+    isReadOnlyWallet () {
+      const index = this.$store.getters['global/getWalletIndex']
+      return isReadOnlyVaultEntry(this.$store.getters['global/getVault']?.[index])
     },
     isChipnet: {
       get () {

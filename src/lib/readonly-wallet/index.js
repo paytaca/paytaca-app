@@ -24,7 +24,6 @@ export {
 
 export {
   ReadOnlyBchWallet,
-  ReadOnlySlpWallet,
   buildReadOnlyWallet
 } from './adapter'
 
