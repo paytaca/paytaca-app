@@ -16,6 +16,7 @@ export {
   ReadOnlyNetwork,
   BCH_DERIVATION_PATH,
   isValidXpub,
+  getXpubNetwork,
   getXpubFingerprint,
   toFullDerivationPath,
   derivePublicKeyFromXpub

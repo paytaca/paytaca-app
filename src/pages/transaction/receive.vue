@@ -1080,6 +1080,12 @@ export default {
             lastChangeAddress: addressSet.change,
             lastAddressIndex: newAddressIndex
           })
+          this.$store.commit('global/updateReadOnlyWalletAddressIndex', {
+            index: this.$store.getters['global/getWalletIndex'],
+            network: this.isChipnet ? 'chipnet' : 'mainnet',
+            kind: 'lastIssuedDepositAddressIndex',
+            value: newAddressIndex
+          })
         } else {
           const wallet = await cachedLoadWallet('BCH', this.$store.getters['global/getWalletIndex'])
           const result = await getWalletByNetwork(wallet, this.walletType).getNewAddressSet(newAddressIndex)

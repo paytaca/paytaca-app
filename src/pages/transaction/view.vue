@@ -193,7 +193,7 @@
 import { useStore } from 'vuex'
 import { useQuasar, copyToClipboard } from 'quasar'
 import { useI18n } from 'vue-i18n'
-import { ref, computed, onMounted, onUnmounted } from 'vue'
+import { ref, computed, watch, onMounted, onUnmounted } from 'vue'
 import { useRouter } from 'vue-router'
 import Big from 'big.js'
 import {
@@ -297,7 +297,21 @@ function shortenString (str, max = 20) {
   return `${s.slice(0, max / 2)}...${s.slice(-max / 2)}`
 }
 
+function resetPsbtState () {
+  unsignedTx.value = null
+  unsignedTransactionHash.value = ''
+  psbtBase64.value = ''
+  purpose.value = ''
+  inputs.value = []
+  outputRows.value = []
+  tokenCategories.value = []
+  tokenDebit.value = {}
+  tokenChange.value = {}
+  ownedKeyMap.clear()
+}
+
 async function loadPsbt () {
+  resetPsbtState()
   const raw = sessionStorage.getItem(PENDING_PSBT_KEY)
   if (!raw) {
     $q.notify({
@@ -547,6 +561,12 @@ async function refreshPage (done) {
 
 onMounted(() => {
   loadPsbt()
+})
+
+watch(() => router.currentRoute.value.name, (to, from) => {
+  if (to === 'psbt-view' && from === 'qr-reader') {
+    loadPsbt()
+  }
 })
 
 onUnmounted(() => {
