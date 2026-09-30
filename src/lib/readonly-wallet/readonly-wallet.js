@@ -90,6 +90,18 @@ export function isValidXpub (xpub) {
 }
 
 /**
+ * The network a BIP32 extended public key targets ('mainnet' for xpub,
+ * 'testnet' for tpub), or null if the string is not a valid xpub.
+ * @param {string} xpub
+ * @returns {'mainnet'|'testnet'|null}
+ */
+export function getXpubNetwork (xpub) {
+  if (typeof xpub !== 'string' || !xpub) return null
+  const decoded = decodeHdPublicKey(xpub)
+  return typeof decoded === 'string' ? null : decoded.network
+}
+
+/**
  * Master fingerprint stand-in for an xpub.
  * The true master fingerprint is not derivable from an xpub alone, so we use
  * the first 4 bytes of HASH160 of the xpub node's public key as a stable

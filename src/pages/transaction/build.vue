@@ -480,6 +480,17 @@ export default {
           purpose: "nft genesis",
           transactionType: this.isNft ? 'send-non-fungible-assets' : 'send-fungible-assets'
         })
+        // Advance + persist the read-only change address so it is not reused
+        const change = this.wallet.getChangeAddress(undefined, this.wallet.network)
+        if (!this.wallet.networks) this.wallet.networks = {}
+        if (!this.wallet.networks[this.wallet.network]) this.wallet.networks[this.wallet.network] = {}
+        this.wallet.networks[this.wallet.network].lastUsedChangeAddressIndex = change.addressIndex
+        this.$store.commit('global/updateReadOnlyWalletAddressIndex', {
+          index: this.$store.getters['global/getWalletIndex'],
+          network: this.wallet.network,
+          kind: 'lastUsedChangeAddressIndex',
+          value: change.addressIndex
+        })
         // this.openShareOptions()
         this.openQrDialog()
       } catch (error) {

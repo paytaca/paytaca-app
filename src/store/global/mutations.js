@@ -581,6 +581,20 @@ export function generateNewAddressSet (state, details) {
 }
 
 /**
+ * Persist read-only (xpub) wallet address-index state into the vault entry's
+ * `readOnly.networks[network]` so next-address / change-address auto-increment
+ * survives reloads. `kind` is one of 'lastIssuedDepositAddressIndex' |
+ * 'lastUsedDepositAddressIndex' | 'lastUsedChangeAddressIndex'.
+ */
+export function updateReadOnlyWalletAddressIndex (state, { index, network, kind, value }) {
+  const entry = state.vault?.[index]
+  if (!entry?.readOnly || typeof kind !== 'string') return
+  if (!entry.readOnly.networks) entry.readOnly.networks = {}
+  if (!entry.readOnly.networks[network]) entry.readOnly.networks[network] = {}
+  entry.readOnly.networks[network][kind] = value
+}
+
+/**
  * @param {Object} state
  * @param {Object} data
  * @param {String} data.walletHash

@@ -1598,10 +1598,17 @@ export default {
         const { isValidXpub } = await import('src/lib/readonly-wallet')
         this._isValidXpub = isValidXpub
       }
+      if (!this._getXpubNetwork) {
+        const { getXpubNetwork } = await import('src/lib/readonly-wallet')
+        this._getXpubNetwork = getXpubNetwork
+      }
       const trimmed = (this.xpub || '').trim()
       if (!trimmed) return { valid: false, error: this.$t('PasteXpubPlaceholder') || 'Enter an xpub' }
       if (!this._isValidXpub(trimmed)) {
         return { valid: false, error: this.$t('InvalidXpubFormat') || 'Invalid xpub format' }
+      }
+      if (this._getXpubNetwork(trimmed) !== 'mainnet') {
+        return { valid: false, error: this.$t('MainnetXpubRequired', {}, 'Please enter a mainnet xpub (starts with xpub…)') }
       }
       return { valid: true, error: '' }
     },
