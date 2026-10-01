@@ -483,17 +483,24 @@
             class="glass-button-text"
             style="margin-top: -6px;"
             :class="getDarkModeClass(darkMode)"
-            @click="authenticationPhase = 'options', $router.push('/accounts/restore/step-1')"
+            @click="backToWalletOptions()"
           />
           <div class="text-subtitle1 text-center text-bow step-title col" :class="getDarkModeClass(darkMode)">{{ $t('AddReadOnlyWallet') || 'Read-only wallet (XPub)' }}</div>
           <q-btn flat round dense class="invisible" style="margin-top: -6px;" />
         </div>
         <div class="glass-panel q-mt-md" :class="getDarkModeClass(darkMode)">
-      </div>
-        <div class="glass-panel q-mt-md" :class="getDarkModeClass(darkMode)">
-          <div class="q-pa-md q-gutter-y-sm">
-            <q-label class="q-mt-md">Extended Public Key (xpub)</q-label>
+          <div class="q-pa-md">
+            <q-label class="q-my-xs">{{ $t('WalletName', {}, 'Wallet Name') }}</q-label>
             <q-input
+              class="q-my-xs"
+              v-model="walletName"
+              label="Wallet Name"
+              outlined
+              bg-color="white"
+            />
+            <q-label class="q-my-xs">Extended Public Key (xpub)</q-label>
+            <q-input
+              class="q-my-xs"
               type="textarea"
               v-model="xpub"
               label="Extended Public Key (xpub)"
@@ -504,9 +511,9 @@
               hide-bottoms
               bg-color="white"
             />
-            <div class="q-mt-md q-gutter-y-sm">
-            <q-label>Master Fingerprint</q-label>
+            <q-label class="q-my-xs">Master Fingerprint</q-label>
             <q-input
+              class="q-my-xs"
               v-model="masterFingerprint"
               label="Master Fingerprint"
               hint="(Recommended) Enter master fingerprint if you plan on generating a transaction on this device."
@@ -515,7 +522,6 @@
               :error-message="masterFingerprintError"
               bg-color="white"
             />
-            </div>
           </div>
         </div>
 
@@ -1589,9 +1595,15 @@ export default {
       // authentication phase so the XPub entry UI is shown.
       this.importSeedPhrase = true
       this.authenticationPhase = 'xpub'
+      this.walletName = 'Read-Only Wallet'
       this.xpub = ''
       this.xpubError = ''
       this.$router.push('/accounts/restore/step-2')
+    },
+    backToWalletOptions () {
+      this.walletName = 'Personal Wallet'
+      this.authenticationPhase = 'options'
+      this.$router.push('/accounts/restore/step-1')
     },
     async validateXpub () {
       if (!this._isValidXpub) {
