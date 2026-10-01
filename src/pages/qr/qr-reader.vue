@@ -494,6 +494,16 @@ export default {
       const addressValidation = !rawValue.includes('?') ? parseAddressWithoutPrefix(rawValue) : { valid: false }
       const value = addressValidation?.valid ? addressValidation.address : rawValue
 
+      // Read-only wallet BSMS descriptor scan
+      const looksLikeReadOnlyDescriptor = (val) =>
+        val.trim().startsWith('BSMS ') ||
+        /\[[0-9a-fA-F]{8}(?:\/[^\]]+)?\][123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz]*pub/.test(val)
+      if (vm.$route.query?.scanType === 'bsms' || looksLikeReadOnlyDescriptor(rawValue)) {
+        sessionStorage.setItem('readonly-bsms-scan', rawValue)
+        vm.$router.push('/accounts/restore/step-2?phase=xpub')
+        return
+      }
+
       // Paytaca Explorer transaction URL (extract txid)
       // Example: https://explorer.paytaca.com/tx/<txid>
       const explorerTxMatch = String(value || '').match(/^(https?:\/\/)?explorer\.paytaca\.com\/tx\/([0-9a-fA-F]{64})/i)
