@@ -490,38 +490,41 @@
         </div>
         <div class="glass-panel q-mt-md" :class="getDarkModeClass(darkMode)">
           <div class="q-pa-md">
-            <q-label class="q-my-xs">{{ $t('WalletName', {}, 'Wallet Name') }}</q-label>
-            <q-input
-              class="q-my-xs"
-              v-model="walletName"
-              label="Wallet Name"
-              outlined
-              bg-color="white"
-            />
-            <q-label class="q-my-xs">Extended Public Key (xpub)</q-label>
-            <q-input
-              class="q-my-xs"
-              type="textarea"
-              v-model="xpub"
-              label="Extended Public Key (xpub)"
-              rows="3"
-              autogrow
-              outlined
-              :error="Boolean(xpubError)"
-              hide-bottoms
-              bg-color="white"
-            />
-            <q-label class="q-my-xs">Master Fingerprint</q-label>
-            <q-input
-              class="q-my-xs"
-              v-model="masterFingerprint"
-              label="Master Fingerprint"
-              hint="(Recommended) Enter master fingerprint if you plan on generating a transaction on this device."
-              outlined
-              :error="Boolean(masterFingerprintError)"
-              :error-message="masterFingerprintError"
-              bg-color="white"
-            />
+            <div class="q-mb-md">
+              <q-label class="q-block q-mb-xs">{{ $t('WalletName', {}, 'Wallet Name') }}</q-label>
+              <q-input
+                v-model="walletName"
+                label="Wallet Name"
+                outlined
+                bg-color="white"
+              />
+            </div>
+            <div class="q-mb-sm">
+              <q-label class="q-block q-mb-xs">Extended Public Key (xpub)</q-label>
+              <q-input
+                type="textarea"
+                v-model="xpub"
+                label="Extended Public Key (xpub)"
+                rows="3"
+                autogrow
+                outlined
+                :error="Boolean(xpubError)"
+                hide-bottoms
+                bg-color="white"
+              />
+            </div>
+            <div class="q-mb-sm">
+              <q-label class="q-block q-mb-xs">Master Fingerprint</q-label>
+              <q-input
+                v-model="masterFingerprint"
+                label="Master Fingerprint"
+                hint="(Recommended) Enter master fingerprint if you plan on generating a transaction on this device."
+                outlined
+                :error="Boolean(masterFingerprintError)"
+                :error-message="masterFingerprintError"
+                bg-color="white"
+              />
+            </div>
           </div>
         </div>
 
@@ -1598,7 +1601,7 @@ export default {
       this.walletName = 'Read-Only Wallet'
       this.xpub = ''
       this.xpubError = ''
-      this.$router.push('/accounts/restore/step-2')
+      this.$router.push({ path: '/accounts/restore/step-2', query: { phase: 'xpub' } })
     },
     backToWalletOptions () {
       this.walletName = 'Personal Wallet'
