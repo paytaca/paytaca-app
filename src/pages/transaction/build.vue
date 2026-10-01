@@ -101,6 +101,7 @@
                       @on-cauldron-toggle="onCauldronToggle"
                       :add-another-recipient="index === recipients.length - 1 ? addAnotherRecipient : undefined"
                       :sending="sending"
+                      :hide-cauldron="true"
                       ref="sendPageRef"
                     />
 
@@ -130,6 +131,7 @@
                     :setMaximumSendAmount="setMaximumSendAmount"
                     :walletType="walletType"
                     :sending="sending"
+                    :hide-cauldron="true"
                     @on-qr-scanner-click="onQRScannerClick"
                     @on-input-focus="onInputFocus"
                     @on-recipient-input="onRecipientInput"
@@ -2083,6 +2085,7 @@ export default {
 
 .glass-panel {
   position: relative;
+  border: none;
 
   &.dark {
     background: rgba(39, 55, 70, 0.55);
