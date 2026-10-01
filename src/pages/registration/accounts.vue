@@ -488,43 +488,58 @@
           <div class="text-subtitle1 text-center text-bow step-title col" :class="getDarkModeClass(darkMode)">{{ $t('AddReadOnlyWallet') || 'Read-only wallet (XPub)' }}</div>
           <q-btn flat round dense class="invisible" style="margin-top: -6px;" />
         </div>
-        <div class="glass-panel q-mt-md" :class="getDarkModeClass(darkMode)">
+        <div class="send-option-card pt-card" :class="getDarkModeClass(darkMode)">
+          <div class="send-option-header">
+            <q-icon name="mdi-qrcode-scan" size="28px" class="text-grad"/>
+            <div class="send-option-title">
+              <div class="text-subtitle1 text-weight-medium" :class="getDarkModeClass(darkMode)">
+                {{ $t('ScanBsmsDescriptor', {}, 'Scan Wallet Descriptor') }}
+              </div>
+              <div class="text-caption" :class="getDarkModeClass(darkMode)" style="opacity: 0.7">
+                {{ $t('ScanBsmsDescriptorHint', {}, 'Scan a BSMS wallet descriptor QR to fill in the xpub') }}
+              </div>
+            </div>
+          </div>
+          <q-btn
+            unelevated
+            no-caps
+            class="full-width scan-option-btn q-mt-sm"
+            :style="`border: 2px solid ${getThemeColor()}; color: ${getThemeColor()};`"
+            @click="openReadOnlyScan"
+          >
+            <div class="column items-center">
+              <q-icon name="mdi-qrcode-scan" size="28px"/>
+              <div class="text-caption q-mt-xs">{{ $t('Scan', {}, 'Scan') }}</div>
+            </div>
+          </q-btn>
+        </div>
+
+        <div class="row items-center q-my-xs" :class="getDarkModeClass(darkMode)">
+          <div class="col text-center text-subtitle1 text-weight-bold">{{ $t('Or', {}, 'OR') }}</div>
+        </div>
+
+        <div class="glass-panel q-mt-sm pt-card" :class="getDarkModeClass(darkMode)">
           <div class="q-pa-md">
-            <div class="q-mb-md">
-              <q-label class="q-block q-mb-xs">{{ $t('WalletName', {}, 'Wallet Name') }}</q-label>
-              <q-input
-                v-model="walletName"
-                label="Wallet Name"
-                outlined
-                bg-color="white"
-              />
-            </div>
-            <div class="q-mb-sm">
-              <q-label class="q-block q-mb-xs">Extended Public Key (xpub)</q-label>
-              <q-input
-                type="textarea"
-                v-model="xpub"
-                label="Extended Public Key (xpub)"
-                rows="3"
-                autogrow
-                outlined
-                :error="Boolean(xpubError)"
-                hide-bottoms
-                bg-color="white"
-              />
-            </div>
-            <div class="q-mb-sm">
-              <q-label class="q-block q-mb-xs">Master Fingerprint</q-label>
-              <q-input
-                v-model="masterFingerprint"
-                label="Master Fingerprint"
-                hint="(Recommended) Enter master fingerprint if you plan on generating a transaction on this device."
-                outlined
-                :error="Boolean(masterFingerprintError)"
-                :error-message="masterFingerprintError"
-                bg-color="white"
-              />
-            </div>
+            <q-label class="q-block q-mb-sm">Extended Public Key (xpub)</q-label>
+            <q-input
+              type="textarea"
+              v-model="xpub"
+              rows="3"
+              autogrow
+              outlined
+              :error="Boolean(xpubError)"
+              hide-bottoms
+              bg-color="white"
+            />
+            <q-label class="q-block q-mb-xs q-mt-md">Master Fingerprint</q-label>
+            <q-input
+              v-model="masterFingerprint"
+              hint="(Recommended) Enter master fingerprint if you plan on generating a transaction on this device."
+              outlined
+              :error="Boolean(masterFingerprintError)"
+              :error-message="masterFingerprintError"
+              bg-color="white"
+            />
           </div>
         </div>
 
@@ -791,6 +806,7 @@ export default {
       steps: -1,
       totalSteps: 6,
       walletName: 'Personal Wallet',
+      readOnlyDerivationPath: '',
       walletCreationInProgress: false,
       walletCreationComplete: false,
       walletRestoreInProgress: false,
@@ -913,6 +929,7 @@ export default {
             } else if (!this.authenticationPhase || this.authenticationPhase === 'options') {
               this.authenticationPhase = 'backup-phrase'
             }
+            this.applyScannedReadonlyDescriptor()
           }
           // Initialize step 3 (settings) when navigating to it (geoip call happens here)
           if (routeStep === 3) {
@@ -1608,6 +1625,66 @@ export default {
       this.authenticationPhase = 'options'
       this.$router.push('/accounts/restore/step-1')
     },
+    getThemeColor () {
+      const theme = this.$store.getters['global/theme']
+      const themeMap = {
+        'glassmorphic-blue': '#42a5f5',
+        'glassmorphic-green': '#4caf50',
+        'glassmorphic-gold': '#ffa726',
+        'glassmorphic-red': '#f54270'
+      }
+      return themeMap[theme] || '#42a5f5'
+    },
+    openReadOnlyScan () {
+      this.$router.push({
+        name: 'qr-reader',
+        query: {
+          scanType: 'bsms',
+          backnavpath: '/accounts/restore/step-2?phase=xpub'
+        }
+      })
+    },
+    async applyScannedReadonlyDescriptor () {
+      const raw = sessionStorage.getItem('readonly-bsms-scan')
+      if (!raw) return
+      sessionStorage.removeItem('readonly-bsms-scan')
+
+      let parsed
+      try {
+        const { parseReadOnlyDescriptor } = await import('src/lib/readonly-wallet/bsms')
+        try {
+          parsed = parseReadOnlyDescriptor(raw)
+        } catch {
+          parsed = parseReadOnlyDescriptor(raw, { lenient: true })
+        }
+      } catch (error) {
+        this.$q.notify({
+          type: 'negative',
+          message: error?.message || this.$t('InvalidDescriptor', {}, 'Could not parse wallet descriptor'),
+          timeout: 5000
+        })
+        return
+      }
+
+      this.xpub = parsed.xpub
+      this.masterFingerprint = parsed.masterFingerprint || ''
+      this.readOnlyDerivationPath = parsed.derivationPath
+
+      if (parsed.complete) {
+        this.$q.notify({
+          type: 'positive',
+          message: this.$t('DescriptorValidCreating', {}, 'Wallet descriptor valid — creating read-only wallet'),
+          timeout: 3000
+        })
+        await this.initCreateWallet()
+      } else {
+        this.$q.notify({
+          type: 'warning',
+          message: parsed.error || this.$t('DescriptorIncomplete', {}, 'Wallet descriptor is incomplete or invalid — review the fields'),
+          timeout: 5000
+        })
+      }
+    },
     async validateXpub () {
       if (!this._isValidXpub) {
         const { isValidXpub } = await import('src/lib/readonly-wallet')
@@ -1746,6 +1823,7 @@ export default {
         name: this.walletName || 'Personal Wallet',
         xpub: cleanedXpub,
         masterFingerprint: (this.masterFingerprint || '').trim(),
+        derivationPath: this.readOnlyDerivationPath || undefined,
         networks: {
           mainnet: {},
           chipnet: {}
@@ -2924,6 +3002,7 @@ export default {
         } else if (!this.authenticationPhase || this.authenticationPhase === 'options') {
           this.authenticationPhase = 'backup-phrase'
         }
+        this.applyScannedReadonlyDescriptor()
       }
     }
 
@@ -2979,6 +3058,43 @@ export default {
 <style lang="scss">
 [v-cloak] {
   display: none;
+}
+
+.send-option-card {
+  width: 100%;
+  padding: 16px;
+  border-radius: 16px;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+
+  &:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 16px rgba(0, 0, 0, 0.12);
+  }
+}
+
+.send-option-header {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+}
+
+.send-option-title {
+  flex: 1;
+}
+
+.scan-option-btn {
+  border-radius: 12px;
+  min-height: 100px;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+
+  &:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.12);
+  }
+
+  &:active {
+    transform: translateY(0);
+  }
 }
 /* Use the same main background as wallet home page */
 .pt-wallet {
