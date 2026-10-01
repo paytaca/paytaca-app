@@ -27,6 +27,10 @@ export {
   buildReadOnlyWallet
 } from './adapter'
 
+export {
+  parseReadOnlyDescriptor
+} from './bsms'
+
 /**
  * True if the given vault entry is a read-only (xpub) wallet.
  * @param {Object} entry - A vault entry
