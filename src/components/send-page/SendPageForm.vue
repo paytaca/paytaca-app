@@ -228,6 +228,7 @@
         </q-btn>
       </div>
       <q-btn
+        v-if="!hideAdvancedOptionsToggle"
         no-caps
         flat
         dense
@@ -263,6 +264,7 @@
         </q-btn>
       </div>
       <q-btn
+        v-if="!hideAdvancedOptionsToggle"
         no-caps
         flat
         dense
@@ -288,6 +290,7 @@
         </q-btn>
       </div>
       <q-btn
+        v-if="!hideAdvancedOptionsToggle"
         no-caps
         flat
         dense
@@ -411,6 +414,7 @@ export default {
     addAnotherRecipient: { type: Function, default: undefined },
     sending: { type: Boolean, default: false },
     hideCauldron: { type: Boolean, default: false },
+    hideAdvancedOptionsToggle: { type: Boolean, default: false },
   },
 
   emits: [

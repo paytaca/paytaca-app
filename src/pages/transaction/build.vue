@@ -67,12 +67,26 @@
                     class="q-expansion-item-recipient"
                     v-model="expandedItems[`R${index + 1}`]"
                     :class="getDarkModeClass(darkMode)"
-                    :label="`${$t('Recipient')} #${index + 1}`"
                     :header-class="[
                       inputExtras[index].incorrectAddress ? 'expansion-item-error' : '',
                       'q-px-none',
                     ]"
                   >
+                    <template #header>
+                      <div class="row items-center no-wrap q-px-none" style="flex: 1;">
+                        <div class="col text-subtitle2">{{ $t('Recipient') }} #{{ index + 1 }}</div>
+                        <q-btn
+                          v-if="recipients.length > 1 && !sending"
+                          icon="delete"
+                          color="red"
+                          flat
+                          round
+                          dense
+                          size="sm"
+                          @click.stop="removeLastRecipient(index)"
+                        />
+                      </div>
+                    </template>
                     <SendPageForm
                       :recipient="recipients[index]"
                       :inputExtras="inputExtras[index]"
@@ -99,17 +113,11 @@
                       @on-qr-uploader-click="onQRUploaderClick"
                       @on-selected-change-address="onUserSelectedChangeAddress"
                       @on-cauldron-toggle="onCauldronToggle"
-                      :add-another-recipient="index === recipients.length - 1 ? addAnotherRecipient : undefined"
                       :sending="sending"
                       :hide-cauldron="true"
+                      :hide-advanced-options-toggle="true"
                       ref="sendPageRef"
                     />
-
-                    <div class="row" v-if="recipients.length > 1 && !sending">
-                      <p class="remove-recipient-button" @click="removeLastRecipient(index)">
-                        {{ $t('RemoveRecipient') }} #{{ index + 1 }}
-                      </p>
-                    </div>
                   </q-expansion-item>
                 </template>
 
@@ -132,6 +140,7 @@
                     :walletType="walletType"
                     :sending="sending"
                     :hide-cauldron="true"
+                    :hide-advanced-options-toggle="true"
                     @on-qr-scanner-click="onQRScannerClick"
                     @on-input-focus="onInputFocus"
                     @on-recipient-input="onRecipientInput"
@@ -144,6 +153,19 @@
                   />
                 </template>
               </q-list>
+
+          <q-btn
+            v-if="!isNft"
+            no-caps
+            icon="person_add"
+            color="pt-primary1"
+            padding="sm md"
+            class="full-width q-my-sm"
+            :disable="!canBuild"
+            @click="addAnotherRecipient"
+          >
+            {{ $t('AddAnotherRecipient') }}
+          </q-btn>
 
           <q-inner-loading
             :showing="building"
