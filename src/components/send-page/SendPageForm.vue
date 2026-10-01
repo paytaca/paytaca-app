@@ -206,6 +206,7 @@
       <div v-if="showAdvancedOptions">
         
         <q-btn
+          v-if="!hideCauldron"
           no-caps
           :label="$t('SendUsingBchWithCauldron')"
           icon="img:cauldron-logo.svg"
@@ -240,6 +241,7 @@
     <div v-else-if="asset?.id === 'bch'" class="q-mt-sm text-center">
       <div v-if="showAdvancedOptions">
         <q-btn
+          v-if="!hideCauldron"
           no-caps
           :label="$t('SendUsingTokensWithCauldron')"
           icon="img:cauldron-logo.svg"
@@ -297,7 +299,7 @@
       </q-btn>
     </div>
   </template>
-  <div v-else-if="!isNFT && cauldronEnabled" class="row items-start no-wrap q-mt-sm">
+  <div v-else-if="!isNFT && cauldronEnabled && !hideCauldron" class="row items-start no-wrap q-mt-sm">
     <div class="full-width">
       <q-input
         ref="cauldronAmountInput"
@@ -408,6 +410,7 @@ export default {
     walletType: { type: String },
     addAnotherRecipient: { type: Function, default: undefined },
     sending: { type: Boolean, default: false },
+    hideCauldron: { type: Boolean, default: false },
   },
 
   emits: [
