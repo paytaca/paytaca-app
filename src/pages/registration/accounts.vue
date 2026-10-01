@@ -540,6 +540,16 @@
               :error-message="masterFingerprintError"
               bg-color="white"
             />
+            <template v-if="readOnlyDerivationPath">
+              <q-label class="q-block q-mb-xs q-mt-md">Derivation Path</q-label>
+              <q-input
+                :model-value="readOnlyDerivationPath"
+                label="Derivation Path"
+                readonly
+                outlined
+                bg-color="white"
+              />
+            </template>
           </div>
         </div>
 
@@ -924,7 +934,8 @@ export default {
             // Preserve authenticationPhase if already set, otherwise default to 'backup-phrase'
             // (the read-only flow navigates here with phase=xpub)
             const phase = to.query?.phase
-            if (phase === 'xpub') {
+            const returningFromScan = Boolean(sessionStorage.getItem('readonly-bsms-scan'))
+            if (phase === 'xpub' || returningFromScan) {
               this.authenticationPhase = 'xpub'
             } else if (!this.authenticationPhase || this.authenticationPhase === 'options') {
               this.authenticationPhase = 'backup-phrase'
@@ -1673,10 +1684,9 @@ export default {
       if (parsed.complete) {
         this.$q.notify({
           type: 'positive',
-          message: this.$t('DescriptorValidCreating', {}, 'Wallet descriptor valid — creating read-only wallet'),
-          timeout: 3000
+          message: this.$t('DescriptorValidImported', {}, 'Wallet descriptor valid — review the fields and add the wallet'),
+          timeout: 4000
         })
-        await this.initCreateWallet()
       } else {
         this.$q.notify({
           type: 'warning',
@@ -2997,7 +3007,8 @@ export default {
       } else if (this.restoreStep === 2) {
         // Preserve authenticationPhase if already set, otherwise default to 'backup-phrase'
         const phase = this.$route.query?.phase
-        if (phase === 'xpub') {
+        const returningFromScan = Boolean(sessionStorage.getItem('readonly-bsms-scan'))
+        if (phase === 'xpub' || returningFromScan) {
           this.authenticationPhase = 'xpub'
         } else if (!this.authenticationPhase || this.authenticationPhase === 'options') {
           this.authenticationPhase = 'backup-phrase'

@@ -28,7 +28,9 @@ export {
 } from './adapter'
 
 export {
-  parseReadOnlyDescriptor
+  parseReadOnlyDescriptor,
+  buildReadOnlyBsmsDescriptor,
+  descriptorChecksum
 } from './bsms'
 
 /**

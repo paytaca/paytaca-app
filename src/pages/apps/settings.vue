@@ -52,8 +52,19 @@
                 <q-item-section>
                   <q-item-label :class="{ 'text-blue-5': darkMode }" caption>{{ $t('MasterFingerprint') }}</q-item-label>
                   <q-item-label class="pt-label" :class="getDarkModeClass(darkMode)" style="word-wrap: break-word;">
-                    {{ walletMasterFingerprint }}
+                    {{ walletMasterFingerprint || $t('Empty', {}, '(empty)') }}
                   </q-item-label>
+                </q-item-section>
+              </q-item>
+              <q-item v-if="isReadOnlyWallet && showSensitiveInfo" clickable v-ripple @click="showBsmsDescriptorQr">
+                <q-item-section>
+                  <q-item-label :class="{ 'text-blue-5': darkMode }" caption>{{ $t('WalletDescriptor', {}, 'Wallet Descriptor') }}</q-item-label>
+                  <q-item-label class="pt-label" :class="getDarkModeClass(darkMode)" style="word-wrap: break-word;">
+                    {{ $t('BsmsWalletDescriptorHint', {}, 'Show the BSMS wallet descriptor QR to import this wallet') }}
+                  </q-item-label>
+                </q-item-section>
+                <q-item-section side>
+                  <q-btn icon="qr_code" @click.stop="showBsmsDescriptorQr" flat></q-btn>
                 </q-item-section>
               </q-item>
               <q-item v-if="showSensitiveInfo" :clickable="!!bchWallet.walletHash" v-ripple @click="bchWallet.walletHash && copyToClipboard(bchWallet.walletHash)">
@@ -342,11 +353,12 @@ import ThemeSelector from 'src/components/settings/ThemeSelector.vue'
 import RenameDialog from 'src/components/multi-wallet/renameDialog.vue'
 import SubscriptionStatus from 'src/components/subscription/SubscriptionStatus.vue'
 import XPubQrCodeDialog from 'src/components/settings/dialogs/XPubQrCodeDialog.vue'
+import BsmsDescriptorQrDialog from 'src/components/settings/dialogs/BsmsDescriptorQrDialog.vue'
 import { getDarkModeClass, isHongKong } from 'src/utils/theme-darkmode-utils'
 import { loadWallet, getMnemonic, pinExists } from 'src/wallet'
 import { getWalletByNetwork } from 'src/wallet/chipnet'
 import ScreenshotSecurity from 'src/utils/screenshot-security'
-import { isReadOnlyVaultEntry } from 'src/lib/readonly-wallet'
+import { isReadOnlyVaultEntry, getVaultReadOnlyConfig, buildReadOnlyBsmsDescriptor } from 'src/lib/readonly-wallet'
 
 export default {
   data () {
@@ -378,7 +390,8 @@ export default {
     ThemeSelector,
     RenameDialog,
     SubscriptionStatus,
-    XPubQrCodeDialog
+    XPubQrCodeDialog,
+    BsmsDescriptorQrDialog
   },
   computed: {
     toggleColor () {
@@ -409,6 +422,10 @@ export default {
       }
       return wallet
     },
+    isReadOnlyWallet () {
+      const index = this.$store.getters['global/getWalletIndex']
+      return isReadOnlyVaultEntry(this.$store.getters['global/getVault']?.[index])
+    },
     lockAppEnabled () {
       return this.$store.getters['global/lockApp']
     },
@@ -432,10 +449,6 @@ export default {
         if (value === current) return
         this.$store.commit('global/enableSLP')
       }
-    },
-    isReadOnlyWallet () {
-      const index = this.$store.getters['global/getWalletIndex']
-      return isReadOnlyVaultEntry(this.$store.getters['global/getVault']?.[index])
     },
     isChipnet: {
       get () {
@@ -490,6 +503,17 @@ export default {
         component: XPubQrCodeDialog,
         componentProps: {
           xPubKey: this.bchWallet.xPubKey
+        }
+      })
+    },
+    showBsmsDescriptorQr () {
+      const index = this.$store.getters['global/getWalletIndex']
+      const descriptor = buildReadOnlyBsmsDescriptor(getVaultReadOnlyConfig(index))
+      if (!descriptor) return
+      this.$q.dialog({
+        component: BsmsDescriptorQrDialog,
+        componentProps: {
+          descriptor
         }
       })
     },
@@ -756,7 +780,17 @@ export default {
       })
     },
     async loadWalletMasterFingerprint(type) {
-      const m = await getMnemonic(this.$store.getters['global/getWalletIndex']).catch(() => null)
+      const walletIndex = this.$store.getters['global/getWalletIndex']
+      const vaultEntry = this.$store.getters['global/getVault']?.[walletIndex]
+
+      // Read-only (xpub) wallets have no mnemonic; the master fingerprint comes from
+      // the seed and is stored on import — never derive a fake one from the xpub
+      if (isReadOnlyVaultEntry(vaultEntry)) {
+        this.walletMasterFingerprint = getVaultReadOnlyConfig(walletIndex)?.masterFingerprint || ''
+        return this.walletMasterFingerprint
+      }
+
+      const m = await getMnemonic(walletIndex).catch(() => null)
       if (!m) return ''
       this.walletMasterFingerprint = binToHex(
           hash160(
