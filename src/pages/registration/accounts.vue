@@ -532,9 +532,11 @@
               bg-color="white"
             />
             <q-label class="q-block q-mb-xs q-mt-md">Master Fingerprint</q-label>
+            <div class="text-caption q-mb-xs" :class="getDarkModeClass(darkMode)" style="opacity: 0.7">
+              {{ $t('MasterFingerprintHint', {}, 'Recommended if you plan on generating a transaction on this device.') }}
+            </div>
             <q-input
               v-model="masterFingerprint"
-              hint="(Recommended) Enter master fingerprint if you plan on generating a transaction on this device."
               outlined
               :error="Boolean(masterFingerprintError)"
               :error-message="masterFingerprintError"
@@ -544,10 +546,8 @@
               <q-label class="q-block q-mb-xs q-mt-md">Derivation Path</q-label>
               <q-input
                 :model-value="readOnlyDerivationPath"
-                label="Derivation Path"
-                readonly
+                disable
                 outlined
-                bg-color="white"
               />
             </template>
           </div>
@@ -1627,14 +1627,21 @@ export default {
       this.importSeedPhrase = true
       this.authenticationPhase = 'xpub'
       this.walletName = 'Read-Only Wallet'
-      this.xpub = ''
-      this.xpubError = ''
+      this.resetReadOnlyForm()
       this.$router.push({ path: '/accounts/restore/step-2', query: { phase: 'xpub' } })
     },
     backToWalletOptions () {
       this.walletName = 'Personal Wallet'
       this.authenticationPhase = 'options'
+      this.resetReadOnlyForm()
       this.$router.push('/accounts/restore/step-1')
+    },
+    resetReadOnlyForm () {
+      this.xpub = ''
+      this.xpubError = ''
+      this.masterFingerprint = ''
+      this.masterFingerprintError = ''
+      this.readOnlyDerivationPath = ''
     },
     getThemeColor () {
       const theme = this.$store.getters['global/theme']
