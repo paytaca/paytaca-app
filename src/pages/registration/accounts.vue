@@ -89,8 +89,8 @@
                   </div>
                 </div>
                 <div class="action-content">
-                  <div class="text-subtitle1 q-mb-xs">{{ $t('AddReadOnlyWallet') || 'Read-only wallet (XPub)' }}</div>
-                  <div class="text-body2 q-mt-xs">{{ $t('AddReadOnlyWalletDescription') || 'Watch an existing wallet from its public key' }}</div>
+                  <div class="text-subtitle1 q-mb-xs">{{ $t('ImportReadOnlyWallet') || 'Read-only wallet (XPub)' }}</div>
+                  <div class="text-body2 q-mt-xs">{{ $t('ImportReadOnlyWalletDescription') || 'Watch an existing wallet from its public key' }}</div>
                 </div>
               </div>
             </transition>
@@ -334,24 +334,6 @@
                 </div>
               </div>
             </transition>
-
-            <transition appear @enter="onButtonEnter" :style="{ '--delay': '0.6s' }">
-              <div 
-                class="action-glass-card pt-card bg-grad cursor-pointer text-bow"
-                :class="getDarkModeClass(darkMode)"
-                @click="initReadOnlyWallet"
-              >
-                <div class="action-icon-wrapper">
-                  <div class="row justify-center">
-                    <q-icon name="mdi-eye-outline" class="col-12" :color="darkMode ? 'primary' : 'black'" size="29px"></q-icon>
-                  </div>
-                </div>
-                <div class="action-content">
-                  <div class="text-subtitle1 q-mb-xs">{{ $t('AddReadOnlyWallet') || 'Read-only wallet (XPub)' }}</div>
-                  <div class="text-body2 q-mt-xs">{{ $t('AddReadOnlyWalletDescription') || 'Watch an existing wallet from its public key' }}</div>
-                </div>
-              </div>
-            </transition>
           </div>
 
           <!-- Back Button with Animation -->
@@ -485,7 +467,7 @@
             :class="getDarkModeClass(darkMode)"
             @click="backToWalletOptions()"
           />
-          <div class="text-subtitle1 text-center text-bow step-title col" :class="getDarkModeClass(darkMode)">{{ $t('AddReadOnlyWallet') || 'Read-only wallet (XPub)' }}</div>
+          <div class="text-subtitle1 text-center text-bow step-title col" :class="getDarkModeClass(darkMode)">{{ $t('ImportReadOnlyWallet') || 'Read-only wallet (XPub)' }}</div>
           <q-btn flat round dense class="invisible" style="margin-top: -6px;" />
         </div>
         <div class="send-option-card pt-card" :class="getDarkModeClass(darkMode)">
@@ -518,7 +500,18 @@
           <div class="col text-center text-subtitle1 text-weight-bold">{{ $t('Or', {}, 'OR') }}</div>
         </div>
 
-        <div class="glass-panel q-mt-sm pt-card" :class="getDarkModeClass(darkMode)">
+        <div class="glass-panel send-option-card q-mt-sm pt-card" :class="getDarkModeClass(darkMode)">
+          <div class="send-option-header q-px-md q-pt-md">
+            <q-icon name="mdi-pencil" size="28px" class="text-grad"/>
+            <div class="send-option-title">
+              <div class="text-subtitle1 text-weight-medium" :class="getDarkModeClass(darkMode)">
+                {{ $t('EnterWalletDescriptorDetails', {}, 'Enter Wallet Details') }}
+              </div>
+              <div class="text-caption" :class="getDarkModeClass(darkMode)" style="opacity: 0.7">
+                {{ $t('EnterWalletDescriptorDetailsHint', {}, 'Fill out the form') }}
+              </div>
+            </div>
+          </div>
           <div class="q-pa-md">
             <q-label class="q-block q-mb-sm">Extended Public Key (xpub)</q-label>
             <q-input
@@ -533,7 +526,7 @@
             />
             <q-label class="q-block q-mb-xs q-mt-md">Master Fingerprint</q-label>
             <div class="text-caption q-mb-xs" :class="getDarkModeClass(darkMode)" style="opacity: 0.7">
-              {{ $t('MasterFingerprintHint', {}, 'Recommended if you plan on generating a transaction on this device.') }}
+              {{ $t('MasterFingerprintHint', {}, 'Required if you want to be able to generate unsigned transactions on this device.') }}
             </div>
             <q-input
               v-model="masterFingerprint"
@@ -555,7 +548,7 @@
 
         <q-btn
           rounded
-          :label="$t('AddReadOnlyWallet') || 'Add read-only wallet'"
+          :label="$t('ImportReadOnlyWallet') || 'Import read-only wallet'"
           class="q-mt-lg full-width primary-cta bg-grad"
           @click="initCreateWallet()"
           :disable="!xpub"
@@ -1634,7 +1627,7 @@ export default {
       this.walletName = 'Personal Wallet'
       this.authenticationPhase = 'options'
       this.resetReadOnlyForm()
-      this.$router.push('/accounts/restore/step-1')
+      this.$router.push('/accounts')
     },
     resetReadOnlyForm () {
       this.xpub = ''
@@ -1837,7 +1830,7 @@ export default {
 
       const cleanedXpub = (this.xpub || '').trim()
       const walletConfig = {
-        name: this.walletName || 'Personal Wallet',
+        name: this.walletName || 'Read-Only Wallet',
         xpub: cleanedXpub,
         masterFingerprint: (this.masterFingerprint || '').trim(),
         derivationPath: this.readOnlyDerivationPath || undefined,
@@ -1908,7 +1901,7 @@ export default {
       const vaultEntry = {
         wallet: walletStructure,
         chipnet: chipnetStructure,
-        name: this.walletName || 'Personal Wallet',
+        name: this.walletName || 'Read-Only Wallet',
         readOnly: mainnetWallet.toJSON(),
         settings: {
           isReadOnly: true
@@ -1930,7 +1923,7 @@ export default {
           index: existingIndex,
           walletSnapshot: walletStructure,
           chipnetSnapshot: chipnetStructure,
-          name: existingVault[existingIndex]?.name || this.walletName || 'Personal Wallet',
+          name: existingVault[existingIndex]?.name || this.walletName || 'Read-Only Wallet',
           deleted: false
         })
         this.$store.commit('global/updateWalletSettings', {
