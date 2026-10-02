@@ -351,6 +351,7 @@ import { callAPI } from 'src/auction/api'
 import HeaderNav from 'src/components/header-nav.vue'
 import LotSearch from 'src/components/auction/LotSearch.vue'
 import { callAuctionWebsocket } from 'src/auction/websocket'
+import { formatAuctionCountdown, formatFiat, formatBCH, formatAuctionDate } from './helper-functions'
 
 // Quasar variables
 const $q = useQuasar()
@@ -405,7 +406,6 @@ const filteredLots = computed(() => {
 const loadPageData = async () => {
   // Check if props.auctionId is the same as stored auctionId (to prevent repeated fetching)
   const isSameAuctionId = $store.getters['auction/auctionId'] === Number(props.auctionId)
-  if(!isSameAuctionId) $store.commit('auction/setAuctionId', Number(props.auctionId))
 
   await Promise.all([
     (!isSameAuctionId || listingsTotalTime.value > 30000)
@@ -423,7 +423,7 @@ const loadPageData = async () => {
     
     if (allSold && notYetClosed) {
       const endDate = new Date().toISOString()
-      await callAPI('auctions', props.auctionId, 'patch', {
+      await callAPI('listings', props.auctionId, 'patch', {
         end_date: endDate
       })
       $store.commit('auction/updateAuctionData', {
@@ -482,11 +482,11 @@ const connectWebsocket = () => {
         viewCount.value = data.viewer_count
         break
       case "auction.start_countdown":
-        auctionStartCountdown.value = formatCountdown(data.time_left)
+        auctionStartCountdown.value = formatAuctionCountdown(data.time_left)
         break
       case "auction.end_countdown":
         console.log(data.time_left)
-        auctionEndCountdown.value = formatCountdown(data.time_left, true)
+        auctionEndCountdown.value = formatAuctionCountdown(data.time_left, true)
         if (auctionStartCountdown.value) auctionStartCountdown.value = ""
         break
       case "auction.start":
@@ -599,7 +599,6 @@ const toggleEditAuction = async () => {
 // IS USER AUCTIONEER OR BIDDER
 // ============================
 
-
 const userWalletHash = computed(() => $store.getters['global/getWallet']('bch')?.walletHash)
 const isAuctioneer = computed(() => userWalletHash.value === auction.value?.user)
 
@@ -630,39 +629,7 @@ const getEnglishPriceInfo = (lot) => {
 // LOT STATUS UPDATING
 // ===================
 
-// ================
-// HELPER FUNCTIONS
-// ================
 
-// FORMATTING
-const formatAuctionDate = (dateString) => date.formatDate(dateString, 'MMM DD, YYYY hh:mm A') 
-
-const formatCountdown = (timeLeft, countingToEnd=false) => {
-  const splitTime = (timeLeft).split(":")
-  const timeToIndex = ['day', 'hour', 'minute', 'second']
-  for (let [index, time] of splitTime.entries()){
-    const numTime = Number(time)
-    if (numTime > 0) {
-      return `${numTime} ${timeToIndex[index]}${(numTime) > 1 ? 's':''} left.`
-    }
-  }
-  
-  return (countingToEnd) ? "Time's Up!" : "Auction is Starting..."
-}
-
-const formatFiat = (value) => {
-  const numValue = Number(value) || 0
-  return `₱${numValue.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
-}
-
-const formatBCH = (value) => {
-  const bch = Number(value) || 0
-  const numStr = Number(bch).toFixed(8)
-  const match = numStr.match(/^(.*?)0*$/)
-  const main = match ? match[1] : numStr
-  const zeros = numStr.substring(main.length)
-  return { main, zeros, full: numStr }
-}
 
 
 // ============

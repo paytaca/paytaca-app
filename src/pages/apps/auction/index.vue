@@ -32,7 +32,7 @@
 
       <div class="q-pa-sm text-bow" :class="getDarkModeClass(darkMode)">
         <div class="row items-center q-pa-sm q-mb-md">
-          <div class="text-h5 q-px-xs">Auctions</div>
+          <div class="text-h5 q-px-xs">Listings</div>
           <q-select
             outlined
             dense
@@ -80,7 +80,7 @@
             :class="darkMode ? 'bg-pt-dark' : 'bg-pt-light'"
             style="min-height: 70px; width: 100%;"
           >
-            <div :class="darkMode ? 'text-white' : 'text-black'">{{ $t('No Auctions Listed') }}</div>
+            <div :class="darkMode ? 'text-white' : 'text-black'">{{ $t('No Listings Listed') }}</div>
           </div>
 
           <div v-else v-for="auction in filteredItems" :key="auction.id" class="col-6 col-sm-4 q-pa-xs">
@@ -157,7 +157,6 @@ import { useStore } from 'vuex'
 import { useRouter } from 'vue-router'
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 import { ref, computed, watch, onMounted, onBeforeUnmount } from 'vue'
-import { date } from 'quasar'
 
 // Components
 import HeaderNav from 'src/components/header-nav.vue'
@@ -165,6 +164,7 @@ import AuctionHeaderMenu from 'src/components/auction/AuctionHeaderMenu.vue'
 import AuctionSearch from 'src/components/auction/AuctionSearch.vue'
 import noImage from 'src/assets/no-image.svg'
 import { callIndexAuctionWebsocket } from 'src/auction/websocket'
+import { formatAuctionDate, getArbiterServicerData } from './helper-functions'
 
 // Quasar-related variables
 const $store = useStore()
@@ -176,26 +176,29 @@ const isLoading = ref(true)         // Controls auction listing loading
 const isCheckingAccess = ref(true)  // Controls loading screen during profile checking
 
 // Auction-related 
-const listingTotalTime = computed(() => Date.now() - $store.getters['auction/listingsLastFetched'])
+const listingsTotalTime = computed(() => Date.now() - $store.getters['auction/listingsLastFetched'])
 const username = computed(() => $store.getters['auction/username'])
 
 onMounted(async () => {
-  // Refresh the list of auctions
-  if (listingTotalTime.value > 300000) {
-    await $store.dispatch('auction/refreshCatalog')
-  }
+  // Refresh the list of listings
+  await (
+    (listingsTotalTime.value > 300000)
+    ?  $store.dispatch('auction/fetchListings')
+    : Promise.resolve()
+  )
   isLoading.value = false
 
   // Fetch username and if it doesn't exist, print the error
+  await (
+    (!username.value)
+    ? $store.dispatch('auction/fetchUsername')
+    : Promise.resolve()
+  )
   if (!username.value) {
-    await $store.dispatch('auction/fetchUsername')
-
-    if (!username.value) {
-      // Route to username/profile page
-      console.warn('User details missing, redirecting...')
-      $router.push({ name: 'app-auction-profile' })
-      return
-    }
+    // Route to username/profile page
+    console.warn('User details missing, redirecting...')
+    $router.push({ name: 'app-auction-profile' })
+    return
   }
 
   // Reroute user to arbiter page if they're an assigned arbiter
@@ -208,19 +211,8 @@ onMounted(async () => {
   // close profile checking loading screen 
   isCheckingAccess.value = false
 
-  // Check if the arbiterPK and servicerPK are not null (prevents dispatching it every time)
-  const arbiterPK = $store.getters['auction/arbiterPublicKey']
-  const servicerPK = $store.getters['auction/servicerPublicKey']
-  
-  // Only dispatch if arbiterPK/servicerPK are null
-  await Promise.all([
-    !arbiterPK
-      ? $store.dispatch('auction/fetchArbiterPublicKey')
-      : Promise.resolve(),
-    !servicerPK
-      ? $store.dispatch('auction/fetchServicerPublicKey')
-      : Promise.resolve()
-  ])
+  // fetch arbiter servicer data
+  await getArbiterServicerData()
 
   // Connect to the WS (Review)
   socket = connectWebsocket()
@@ -234,27 +226,20 @@ onBeforeUnmount(() => {
 // AUCTION-RELATED
 // =============== 
 
-// Auction filter options
+// Variables
 const auctionTypeOptions = $store.getters['auction/auctionTypeOptions']
 const auctionType = ref('All')
-
-// Auction ref variables
-const auctionSearchQuery = ref('') // fix this later nalang
+const auctionSearchQuery = ref('') 
 
 // Filters the auction items
 const filteredItems = computed(() => {
-  let items = $store.getters['auction/processedItems'] || []
-  
+  let items = $store.getters['auction/filteredItems'] || []
   const query = auctionSearchQuery.value.trim().toLowerCase()
-  if (!query) return items
-
-  return items.filter(item => item.title?.toLowerCase().includes(query))
+  return (query) ? items.filter(item => item.title?.toLowerCase().includes(query)) : items
 })
 
-// Counts if
-const isAuctionEmpty = computed(() => {
-  return !isLoading.value && filteredItems.value.length === 0
-})
+// Checks if auction is empty
+const isAuctionEmpty = computed(() => !isLoading.value && filteredItems.value.length === 0)
 
 // Keep tabs on the auction type so it would filter the items
 watch(auctionType, (newType) => {
@@ -354,32 +339,20 @@ const clearSocket = () => {
 // HELPER FUNCTIONS
 // ================
 
-// Auction date format
-const formatAuctionDate = (dateString) => { 
-  if (!dateString) return 'N/A'
-  return date.formatDate(dateString, 'MMM DD, YYYY hh:mm A') 
-}
-
 // ======================
 // PAGE-RELATED FUNCTIONS
 // ======================
 
-const refresh = async (done) => {
-  if (listingTotalTime.value > 300000) {
-    await $store.dispatch('auction/refreshCatalog')
+// Check if the arbiterPK and servicerPK are not null (prevents dispatching it every time)
 
-    // Check if the arbiterPK and servicerPK are not null (prevents dispatching it every time)
-    const arbiterPK = $store.getters['auction/arbiterPublicKey']
-    const servicerPK = $store.getters['auction/servicerPublicKey']
-    await Promise.all([
-      !arbiterPK
-        ? $store.dispatch('auction/fetchArbiterPublicKey')
-        : Promise.resolve(),
-      !servicerPK
-        ? $store.dispatch('auction/fetchServicerPublicKey')
-        : Promise.resolve()
-    ])
-  }
+const refresh = async (done) => {
+  await (
+    (listingsTotalTime.value > 300000)
+    ?  $store.dispatch('auction/fetchListings')
+    : Promise.resolve()
+  )
+
+  await getArbiterServicerData()
   if (typeof done === 'function') done()
 }
 </script>
