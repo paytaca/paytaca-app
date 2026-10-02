@@ -1,92 +1,190 @@
 pragma cashscript ^0.13.0;
 
-contract AuctionEscrow(bytes20 arbiter, bytes20 auctioneer, bytes20 servicer, int lotId, int platformFee, int arbitrationFee, bytes32 paramHash) {
-    // NOTE: NFT Commitments need 2 information (biddingPrice and bidder pubkey hash)
+contract AuctionEscrow(bytes20 auctioneer, bytes20 arbiter, bytes20 servicer, int lotId, int platformFee, int arbitrationFee, bytes32 paramHash) {
+    // NOTE: Comm Commitments need 2 information (bidPrice and newBidder pubkey hash)
+    
+    // Used for English Auctions
+    function outbid(int lot, bytes20 bidder, bytes32 hash) {
+        require(hash == paramHash);
+        require(lot == lotId);
+        
+        require(tx.inputs.length == 2);
+        require(tx.outputs.length == 2 || tx.outputs.length == 3);
+        
+        // check bid input and output types
+        bool inputZeroBCH = tx.inputs[0].tokenCategory == 0x;
+        bool inputOneNFT = tx.inputs[1].tokenCategory != 0x;
 
+        bool outputZeroNFT = tx.outputs[0].tokenCategory != 0x;
+        bool outputOneBCH = tx.outputs[1].tokenCategory == 0x;
+
+        require(inputZeroBCH && inputOneNFT && outputZeroNFT && outputOneBCH); 
+
+        if (tx.outputs.length == 3) {       
+            require(tx.outputs[2].tokenCategory == 0x); // change is bch
+        }
+        
+        bool positiveInputs = tx.inputs[0].value > 0 && tx.inputs[1].value > 0;
+        bool positiveOutputs = tx.outputs[0].value > 0 && tx.outputs[1].value > 0;
+
+        require(positiveInputs && positiveOutputs); 
+
+        if (tx.outputs.length == 3) {
+            require(tx.outputs[2].value > 0); // change > 0
+        }
+        
+        bytes20 commNewBidder, bytes commNewBidPriceBytes = tx.outputs[0].nftCommitment.split(20);
+        bytes20 commPrevBidder, bytes commPrevBidPriceBytes = tx.inputs[1].nftCommitment.split(20);
+
+        int commNewBidPrice = int(commNewBidPriceBytes);
+        int commPrevBidPrice = int(commPrevBidPriceBytes);
+
+        bool positiveCommBidPrices = commNewBidPrice > 0 && commPrevBidPrice > 0;
+        bool validCommBidPrices = commPrevBidPrice < commNewBidPrice;
+
+        require(positiveCommBidPrices && validCommBidPrices);
+
+        bytes25 bidderLock = new LockingBytecodeP2PKH(bidder);
+        bytes25 commNewBidderLock = new LockingBytecodeP2PKH(commNewBidder);
+        bytes25 commPrevBidderLock = new LockingBytecodeP2PKH(commPrevBidder);
+
+        bool validCommBidder = commNewBidderLock == bidderLock;
+        bool receivesFromBidder = tx.inputs[0].lockingBytecode == bidderLock;
+
+        require(receivesFromBidder && validCommBidder);
+
+        bool sendsToPrevBidder = tx.outputs[1].lockingBytecode == commPrevBidderLock;
+        bool sendsToContract = tx.inputs[1].lockingBytecode == tx.outputs[0].lockingBytecode;
+        
+        require(sendsToContract && sendsToPrevBidder);
+
+        if (tx.outputs.length == 3) {
+            // Parameter bidder == bidder being given change
+            require(tx.outputs[2].lockingBytecode == bidderLock);
+        }
+
+        // Accounting
+        int minerFee = 1000;
+        int fees = minerFee + platformFee + arbitrationFee;
+        int calculatedChange = 0;
+
+        if (tx.outputs.length == 3) {
+            calculatedChange = tx.inputs[0].value - commNewBidPrice - fees;
+            require(calculatedChange > 0 && tx.outputs[2].value == calculatedChange);
+        }
+
+        int newBidValueFull = tx.inputs[0].value - calculatedChange;
+        int newBidValue = newBidValueFull - fees;
+        int prevBidValueFull = tx.inputs[1].value - minerFee;
+        int prevBidValue = tx.inputs[1].value - fees;
+
+        require(newBidValueFull > 0 && newBidValue > 0 && prevBidValue > 0 && prevBidValueFull > 0);
+
+        bool correctNewBidPrice = tx.outputs[0].value == newBidValueFull;
+        bool validCommNewBidPrice = commNewBidPrice == newBidValue;
+
+        bool correctPrevBidPrice = tx.outputs[1].value == prevBidValueFull;
+        bool validCommPrevBidPrice = commPrevBidPrice == prevBidValue;
+
+        require(correctNewBidPrice && validCommNewBidPrice && correctPrevBidPrice && validCommPrevBidPrice);
+    }
+
+    // Releases the bch in the Comm to the Auctioneer
     function release(int lot, pubkey pk, bytes32 hash) {
         require(hash == paramHash);
         require(lot == lotId);
 
-        bytes20 bidder, bytes bidPrice = tx.inputs[this.activeInputIndex].nftCommitment.split(20);
-        
-        require(hash160(pk) == arbiter || hash160(pk) == bidder);
-
         require(tx.inputs.length == 1);
         require(tx.outputs.length == 3);
 
-        int minerFee = 1000;
-        int fees = minerFee + platformFee + arbitrationFee;
-        int amount = tx.inputs[this.activeInputIndex].value - fees;        
+        // check bid input and output types
+        bool inputZeroNFT = tx.inputs[0].tokenCategory != 0x;
+        bool outputZeroBCH = tx.outputs[0].tokenCategory == 0x;
+        bool outputOneBCH = tx.outputs[1].tokenCategory == 0x;
+        bool outputTwoBCH = tx.outputs[2].tokenCategory == 0x;
+
+        require(inputZeroNFT && outputZeroBCH && outputOneBCH && outputTwoBCH); 
         
-        bool correctBidPrice = int(bidPrice) == amount;
-        bool correctAmount = tx.outputs[0].value == amount;
-        bool correctPlatformFee = tx.outputs[1].value == platformFee;
-        bool correctArbitrationFee = tx.outputs[2].value == arbitrationFee;
+        bool positiveInputs = tx.inputs[0].value > 0;
+        bool positiveOutputs = tx.outputs[0].value > 0 && tx.outputs[1].value > 0 && tx.outputs[2].value > 0;
 
-        require(correctBidPrice && correctAmount && correctPlatformFee && correctArbitrationFee);
+        require(positiveInputs && positiveOutputs); 
 
+        bytes20 commBidder, bytes commBidValue = tx.inputs[0].nftCommitment.split(20);
+
+        require(int(commBidValue) > 0);
+        require(hash160(pk) == commBidder || hash160(pk) == arbiter);
+
+        // LockingBytecodes from parameters (Contract and function)
         bytes25 auctioneerLock = new LockingBytecodeP2PKH(auctioneer);
-        bytes25 servicerLock = new LockingBytecodeP2PKH(servicer);
-        bytes25 arbiterLock = new LockingBytecodeP2PKH(arbiter); 
-        
-        bool sendsToAuctioneer = tx.outputs[0].lockingBytecode == auctioneerLock;
-        bool sendsToServicer = tx.outputs[1].lockingBytecode == servicerLock;
-        bool sendsToArbiter = tx.outputs[2].lockingBytecode == arbiterLock;
-        
-        require(sendsToAuctioneer && sendsToServicer && sendsToArbiter);
-    }
-
-    function return(int lot, pubkey pk, bytes32 hash) {
-        require(hash == paramHash);
-        require(lot == lotId);
-
-        bytes20 bidder, bytes bidPrice = tx.inputs[this.activeInputIndex].nftCommitment.split(20);
-        require(hash160(pk) != bidder);
-
-        require(tx.inputs.length == 1);
-        require(tx.outputs.length == 1);
-
-        int minerFee = 1000;
-        int amount = tx.inputs[this.activeInputIndex].value - minerFee;
-        bool correctBidPrice = int(bidPrice) == amount;
-        bool correctAmount = tx.outputs[0].value == amount;
-
-        require(correctBidPrice && correctAmount);
-
-        bytes25 bidderLock = new LockingBytecodeP2PKH(bidder);
-        bool sendsToBidder = tx.outputs[0].lockingBytecode == bidderLock;
-    
-        require(sendsToBidder);
-    }
-
-    function refund(int lot, pubkey pk, bytes32 hash) {
-        require(hash == paramHash);
-        require(lot == lotId);
-        require(hash160(pk) == arbiter || hash160(pk) == auctioneer);
-
-        require(tx.inputs.length == 1);
-        require(tx.outputs.length == 3);
-
-        bytes20 bidder, bytes bidPrice = tx.inputs[this.activeInputIndex].nftCommitment.split(20);
-        int minerFee = 1000;
-        int fees = minerFee + platformFee + arbitrationFee;
-        int amount = tx.inputs[this.activeInputIndex].value - fees;     
-
-        bool correctBidPrice = int(bidPrice) == amount;
-        bool correctAmount = tx.outputs[0].value == amount;
-        bool correctPlatformFee = tx.outputs[1].value == platformFee;
-        bool correctArbitrationFee = tx.outputs[2].value == arbitrationFee;
-        
-        require(correctBidPrice && correctAmount && correctPlatformFee && correctArbitrationFee);
-
-        bytes25 bidderLock = new LockingBytecodeP2PKH(bidder);
         bytes25 servicerLock = new LockingBytecodeP2PKH(servicer);
         bytes25 arbiterLock = new LockingBytecodeP2PKH(arbiter);
 
-        bool sendsToBidder = tx.outputs[0].lockingBytecode == bidderLock;
-        bool sendsToServicer = tx.outputs[1].lockingBytecode == servicerLock;
-        bool sendsToArbiter = tx.outputs[2].lockingBytecode == arbiterLock;
+        // LockingBytecodes from inputs and outputs
+        bool sendsToAuctioneer = tx.outputs[0].lockingBytecode == auctioneerLock;
+        bool sendsToArbiter = tx.outputs[1].lockingBytecode == arbiterLock;
+        bool sendsToServicer = tx.outputs[2].lockingBytecode == servicerLock;
+
+        require(sendsToAuctioneer && sendsToArbiter && sendsToServicer);
+
+        int minerFee = 1000;
+        int fees = minerFee + platformFee + arbitrationFee;
+        int amount = tx.inputs[0].value - fees;        
         
-        require(sendsToBidder && sendsToServicer && sendsToArbiter);
+        bool correctBidPrice = int(commBidValue) == amount;
+        bool correctAmount = tx.outputs[0].value == amount;
+        bool correctPlatformFee = tx.outputs[1].value == platformFee;
+        bool correctArbitrationFee = tx.outputs[2].value == arbitrationFee;
+
+        require(correctBidPrice && correctAmount && correctPlatformFee && correctArbitrationFee);
+    }
+    
+    function refund(int lot, pubkey pk, bytes32 hash) {
+        require(hash == paramHash);
+        require(lot == lotId);
+
+        require(tx.inputs.length == 1);
+        require(tx.outputs.length == 3);
+
+        // check bid input and output types
+        bool inputZeroNFT = tx.inputs[0].tokenCategory != 0x;
+        bool outputZeroBCH = tx.outputs[0].tokenCategory == 0x;
+        bool outputOneBCH = tx.outputs[1].tokenCategory == 0x;
+        bool outputTwoBCH = tx.outputs[2].tokenCategory == 0x;
+
+        require(inputZeroNFT && outputZeroBCH && outputOneBCH && outputTwoBCH); 
+        
+        bool positiveInputs = tx.inputs[0].value > 0;
+        bool positiveOutputs = tx.outputs[0].value > 0 && tx.outputs[1].value > 0 && tx.outputs[2].value > 0;
+
+        require(positiveInputs && positiveOutputs); 
+
+        bytes20 commBidder, bytes commBidValue = tx.inputs[0].nftCommitment.split(20);
+
+        require(int(commBidValue) > 0);
+        require(hash160(pk) == commBidder || hash160(pk) == arbiter);
+
+        // LockingBytecodes from parameters (Contract and function)
+        bytes25 bidderLock = new LockingBytecodeP2PKH(commBidder);
+        bytes25 servicerLock = new LockingBytecodeP2PKH(servicer);
+        bytes25 arbiterLock = new LockingBytecodeP2PKH(arbiter);
+
+        // LockingBytecodes from inputs and outputs
+        bool sendsToBidder = tx.outputs[0].lockingBytecode == bidderLock;
+        bool sendsToArbiter = tx.outputs[1].lockingBytecode == arbiterLock;
+        bool sendsToServicer = tx.outputs[2].lockingBytecode == servicerLock;
+
+        require(sendsToBidder && sendsToArbiter && sendsToServicer);
+
+        int minerFee = 1000;
+        int fees = minerFee + platformFee + arbitrationFee;
+        int amount = tx.inputs[0].value - fees;        
+        
+        bool correctBidPrice = int(commBidValue) == amount;
+        bool correctAmount = tx.outputs[0].value == amount;
+        bool correctPlatformFee = tx.outputs[1].value == platformFee;
+        bool correctArbitrationFee = tx.outputs[2].value == arbitrationFee;
+
+        require(correctBidPrice && correctAmount && correctPlatformFee && correctArbitrationFee);
     }
 }
