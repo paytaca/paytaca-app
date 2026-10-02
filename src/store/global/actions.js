@@ -918,7 +918,7 @@ export async function cleanupDuplicateWallets (context) {
 
   vault.forEach((wallet, index) => {
     // Skip already deleted wallets
-    if (wallet.deleted === true) {
+    if ((!wallet || wallet.deleted === true)) {
       return
     }
 
