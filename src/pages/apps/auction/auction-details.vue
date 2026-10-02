@@ -31,10 +31,10 @@
                   {{ auction.type }} Auction
                 </q-badge>
                 <q-badge
-                  :color="getReactiveAuctionStatus(auction).color"
+                  :color="auction.status_color"
                   class="q-pa-sm q-px-sm text-weight-bold"
                 >
-                  {{ getReactiveAuctionStatus(auction).label }}
+                  {{ auction.status_label }}
                 </q-badge>
               </div>
               
@@ -230,12 +230,12 @@
 
                 <q-chip
                   dense
-                  :color="getReactiveLotStatus(lot).color"
+                  :color="lot.status_color"
                   text-color="white"
                   class="absolute text-caption text-weight-bold"
                   style="top: 8px; right: 8px; margin: 0; padding: 3px 8px; height: auto;"
                 >
-                  {{  getReactiveLotStatus(lot).label }}
+                  {{  lot.status_label }}
                 </q-chip>
               </div>
 
@@ -407,10 +407,15 @@ const loadPageData = async () => {
   const isSameAuctionId = $store.getters['auction/auctionId'] === Number(props.auctionId)
   if(!isSameAuctionId) $store.commit('auction/setAuctionId', Number(props.auctionId))
 
-  if(!isSameAuctionId || listingsTotalTime.value > 30000) await $store.dispatch('auction/fetchAuctionData')
-  else await $store.dispatch('auction/fetchExistingAuctionData')
+  await Promise.all([
+    (!isSameAuctionId || listingsTotalTime.value > 30000)
+      ? $store.dispatch('auction/fetchAuctionData')
+      : $store.dispatch('auction/fetchExistingAuctionData'),
 
-  if(!isSameAuctionId || auctionLotsTotalTime.value > 30000) await $store.dispatch('auction/fetchAuctionLots')
+    (!isSameAuctionId || auctionLotsTotalTime.value > 30000)
+      ? $store.dispatch('auction/fetchAuctionLots')
+      : Promise.resolve()
+  ])
 
   if (auction.value?.type === 'Dutch' && lots.value.length) {
     const allSold = lots.value.every(l => l.is_sold)
@@ -431,7 +436,6 @@ const loadPageData = async () => {
 
 onMounted(async () => {
   isLoading.value = true
-  console.log('API image:', auction.value.image)
   if (!auction.value) $router.replace(smartBackPath.value)
   await loadPageData()
   isLoading.value = false
@@ -572,7 +576,6 @@ const clearSocket = () => {
 // FETCHING AUCTION AND AUCTION LOT DETAILS
 // ========================================
 
-
 const toggleEditAuction = async () => {
   const now = new Date()
   const startDate = new Date(auction.value.start_date)
@@ -627,20 +630,6 @@ const getEnglishPriceInfo = (lot) => {
 // LOT STATUS UPDATING
 // ===================
 
-const getReactiveLotStatus = (lot) => {
-  return {
-    label: lot.status_label,
-    color: lot.status_color
-  }
-}
-
-const getReactiveAuctionStatus = (auction) => {
-  return {
-    label: auction.status_label,
-    color: auction.status_color
-  }
-}
-
 // ================
 // HELPER FUNCTIONS
 // ================
@@ -693,9 +682,8 @@ const smartBackPath = computed(() => {
 })
 
 const refresh = async (done) => {
-  isLoading.value = true
+  if (!auction.value) $router.replace(smartBackPath.value)
   await loadPageData()
-  isLoading.value = false
 
   clearSocket()
   socket = connectWebsocket()

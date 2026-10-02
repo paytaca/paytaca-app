@@ -145,12 +145,12 @@
 
               <q-chip
                 dense
-                :color="getReactiveAuctionStatus(auction).color"
+                :color="auction.status_color"
                 text-color="white"
                 class="absolute text-caption text-weight-bold"
                 style="top: 8px; right: 8px; margin: 0; padding: 3px 8px; height: auto;"
               >
-                {{ getReactiveAuctionStatus(auction).label }}
+                {{ auction.status_label }}
               </q-chip>
             </div>
             
@@ -267,12 +267,12 @@
 
               <q-chip
                 dense
-                :color="getReactiveLotStatus(lot).color"
+                :color="lot.status_color"
                 text-color="white"
                 class="absolute text-caption text-weight-bold"
                 style="top: 8px; right: 8px; margin: 0; padding: 3px 8px; height: auto;"
               >
-                {{ getReactiveLotStatus(lot).label }}
+                {{ lot.status_label }}
               </q-chip>
             </div>
 
@@ -673,9 +673,7 @@ const getIntervalMinutesInfo = (lot) => {
 }
 
 const fetchMyData = async () => {
-  isLoading.value = true
   await $store.dispatch(`auction/fetchMy${data.value}`)
-  isLoading.value = false
 }
 
 const refresh = async (done) => {

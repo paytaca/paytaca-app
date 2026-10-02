@@ -101,12 +101,12 @@
 
                 <q-chip
                   dense
-                  :color="getReactiveAuctionStatus(auction).color"
+                  :color="auction.status_color"
                   text-color="white"
                   class="absolute text-caption text-weight-bold"
                   style="top: 8px; right: 8px; margin: 0; padding: 3px 8px; height: auto;"
                 >
-                  {{ getReactiveAuctionStatus(auction).label }}
+                  {{ auction.status_label }}
                 </q-chip>
               </div>
             
@@ -158,7 +158,6 @@ import { useRouter } from 'vue-router'
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 import { ref, computed, watch, onMounted, onBeforeUnmount } from 'vue'
 import { date } from 'quasar'
-import { AuctionList } from 'src/auction/object.js'
 
 // Components
 import HeaderNav from 'src/components/header-nav.vue'
@@ -180,14 +179,13 @@ const isCheckingAccess = ref(true)  // Controls loading screen during profile ch
 const listingTotalTime = computed(() => Date.now() - $store.getters['auction/listingsLastFetched'])
 const username = computed(() => $store.getters['auction/username'])
 
-const getReactiveAuctionStatus = (auction) => {
-  return {
-    label: auction.status_label,
-    color: auction.status_color
-  }
-}
-
 onMounted(async () => {
+  // Refresh the list of auctions
+  if (listingTotalTime.value > 300000) {
+    await $store.dispatch('auction/refreshCatalog')
+  }
+  isLoading.value = false
+
   // Fetch username and if it doesn't exist, print the error
   if (!username.value) {
     await $store.dispatch('auction/fetchUsername')
@@ -215,13 +213,14 @@ onMounted(async () => {
   const servicerPK = $store.getters['auction/servicerPublicKey']
   
   // Only dispatch if arbiterPK/servicerPK are null
-  if (!arbiterPK) await $store.dispatch('auction/fetchArbiterPublicKey')
-  if (!servicerPK) await $store.dispatch('auction/fetchServicerPublicKey')
-  
-  // Refresh the list of auctions
-  if (listingTotalTime.value > 300000) await $store.dispatch('auction/refreshCatalog')
-    
-  isLoading.value = false
+  await Promise.all([
+    !arbiterPK
+      ? $store.dispatch('auction/fetchArbiterPublicKey')
+      : Promise.resolve(),
+    !servicerPK
+      ? $store.dispatch('auction/fetchServicerPublicKey')
+      : Promise.resolve()
+  ])
 
   // Connect to the WS (Review)
   socket = connectWebsocket()
@@ -245,13 +244,11 @@ const auctionSearchQuery = ref('') // fix this later nalang
 // Filters the auction items
 const filteredItems = computed(() => {
   let items = $store.getters['auction/processedItems'] || []
-  items = items.map(item => (item instanceof AuctionList ? item : AuctionList.parse(item)))
+  
+  const query = auctionSearchQuery.value.trim().toLowerCase()
+  if (!query) return items
 
-  if (auctionSearchQuery.value && auctionSearchQuery.value.trim() !== '') {
-    const query = auctionSearchQuery.value.toLowerCase().trim()
-    items = items.filter(item => item.title?.toLowerCase().includes(query))
-  }
-  return items
+  return items.filter(item => item.title?.toLowerCase().includes(query))
 })
 
 // Counts if
@@ -373,10 +370,15 @@ const refresh = async (done) => {
 
     // Check if the arbiterPK and servicerPK are not null (prevents dispatching it every time)
     const arbiterPK = $store.getters['auction/arbiterPublicKey']
-    if (!arbiterPK) await $store.dispatch('auction/fetchArbiterPublicKey')
-    
     const servicerPK = $store.getters['auction/servicerPublicKey']
-    if (!servicerPK) await $store.dispatch('auction/fetchServicerPublicKey')
+    await Promise.all([
+      !arbiterPK
+        ? $store.dispatch('auction/fetchArbiterPublicKey')
+        : Promise.resolve(),
+      !servicerPK
+        ? $store.dispatch('auction/fetchServicerPublicKey')
+        : Promise.resolve()
+    ])
   }
   if (typeof done === 'function') done()
 }

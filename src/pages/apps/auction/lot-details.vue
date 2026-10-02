@@ -1222,9 +1222,8 @@ const smartBackPath = computed(() => {
 })
 
 const refresh = async (done) => {
-  isLoading.value = true
+  if (!auction.value || !lot.value) $router.replace(smartBackPath.value)
   await loadPageData()
-  isLoading.value = false
 
   clearSocket()
   socket = connectWebsocket()
@@ -1235,6 +1234,8 @@ onMounted(async () => {
   isLoading.value = true
   if (!auction.value || !lot.value) $router.replace(smartBackPath.value)
   await loadPageData()
+  isLoading.value = false
+
   if (isLotClosedOrSold.value) {
     $q.notify({
       type: 'info',
@@ -1244,7 +1245,6 @@ onMounted(async () => {
         : 'This lot is closed.'
     })
   }
-  isLoading.value = false
   socket = connectWebsocket()
 })
 
