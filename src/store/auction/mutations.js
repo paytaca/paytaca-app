@@ -4,7 +4,7 @@ export function setListings(state, listings) {
   state.listings = listings
 }
 
-export function updateListing(state, auctionData) {
+export function updateAuction(state, auctionData) {
   const auction = state.listings.find(
     item => Number(item.id) === Number(auctionData.id)
   )
@@ -21,12 +21,12 @@ export function updateListing(state, auctionData) {
   console.log('After:', auction.status_label)
 }
 
-export function addListing(state, auction) {
+export function addAuction(state, auction) {
   if (state.listings.some(item => Number(item.id) === Number(auction.id))) return
   state.listings.push(auction)  
 }
 
-export function removeListing(state, auctionId) {
+export function removeAuction(state, auctionId) {
   state.listings = state.listings.filter(
     auction => Number(auction.id) !== Number(auctionId)
   )
@@ -86,7 +86,7 @@ export function setMyBiddingsLastFetched(state) {
   state.myBiddingsLastFetched = Date.now()
 }
 
-export function setMyAuctions(state, myAuctions) {
+export function setmyAuctions(state, myAuctions) {
   state.myAuctions = myAuctions
 }
 
@@ -114,15 +114,11 @@ export function removeMyAuction(state, auctionId) {
   )
 }
 
-export function setMyAuctionsLastFetched(state) {
+export function setmyAuctionsLastFetched(state) {
   state.myAuctionsLastFetched = Date.now()
 }
 
 // Auction Details Page mutations
-export function setAuctionId(state, auctionId) {
-  state.auctionId = auctionId
-}
-
 export function setAuctionData(state, auctionData) {
   state.auctionData = auctionData
 }
@@ -171,13 +167,6 @@ export function updateLotTypeAuction(state, lotTypeAuction) {
 }
 
 // Lot Details Page mutations
-export function setLotId(state, lotId) {
-  state.lotId = lotId
-}
-
-export function setLotData(state, lotData) {
-  state.lotData = lotData
-}
 
 export function setLotDataLastFetched(state) {
   state.lotDataLastFetched = Date.now()
@@ -272,6 +261,22 @@ export function setHighestBid(state, highestBid) {
 
 export function setHighestBidLastFetched(state) {
   state.highestBidLastFetched = Date.now()
+}
+
+export function setDeliveryData(state, deliveryData) {
+  state.deliveryData = deliveryData
+} 
+
+export function setDeliveryDataLastFetched(state) {
+  state.deliveryDataLastFetched = Date.now()
+}
+
+export function setDisputeData(state, disputeData) {
+  state.disputeData = disputeData
+} 
+
+export function setDisputeDataLastFetched(state) {
+  state.disputeDataLastFetched = Date.now()
 }
 
 // Arbiter and Servicer Public Key mutations

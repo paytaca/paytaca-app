@@ -22,7 +22,6 @@ export default function () {
     myAuctionsLastFetched: 0,
 
     // Auction Details Page States
-    auctionId: null,
     auctionData: {},
     auctionDataLastFetched: 0,
     auctionLots: [],
@@ -31,7 +30,6 @@ export default function () {
     lotTypeAuction: 'All' ,
 
     // Lot Details Page States
-    lotId: null,
     lotData: {},
     lotImages: [],
     lotDataLastFetched: 0,
@@ -39,6 +37,10 @@ export default function () {
     lotBidsLastFetched: 0,
     highestBid: {},
     highestBidLastFetched: 0,
+    deliveryData: {},
+    deliveryDataLastFetched: 0,
+    disputeData: {},
+    disputeDataLastFetched: 0,
 
     // Arbiter and Servicer Public Key States
     arbiterPublicKey: '',

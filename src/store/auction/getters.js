@@ -51,7 +51,7 @@ export function auctionQueryIndex(state) {
 
 // Auction Details getters
 export function auctionId(state){
-  return state.auctionId 
+  return state.auctionData['id'] 
 }
 
 export function auctionData(state){
@@ -76,7 +76,7 @@ export function auctionLotsImages(state) {
 
 // Lot Details getters
 export function lotId(state) {
-  return state.lotId 
+  return state.lotData['id']
 }
 
 export function lotData(state) {
@@ -101,6 +101,22 @@ export function highestBid(state) {
 
 export function highestBidLastFetched(state) {
   return state.highestBidLastFetched || 0
+}
+
+export function deliveryData(state) {
+  return state.deliveryData || {}
+}
+
+export function deliveryDataLastFetched(state) {
+  return state.deliveryDataLastFetched || 0
+}
+
+export function disputeData(state) {
+  return state.disputeData || {}
+}
+
+export function disputeDataLastFetched(state) {
+  return state.disputeDataLastFetched || 0
 }
 
 // Activity getters
