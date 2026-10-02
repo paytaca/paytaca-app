@@ -146,8 +146,16 @@ export function arbiterPublicKey(state) {
   return state.arbiterPublicKey
 }
 
+export function arbiterLastFetched(state) {
+  return state.arbiterLastFetched
+}
+
 export function servicerPublicKey(state) {
   return state.servicerPublicKey
+}
+
+export function servicerLastFetched(state) {
+  return state.servicerLastFetched
 }
 
 

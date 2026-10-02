@@ -42,7 +42,9 @@ export default function () {
 
     // Arbiter and Servicer Public Key States
     arbiterPublicKey: '',
+    arbiterLastFetched: 0,
     servicerPublicKey: '',
+    servicerLastFetched: 0,
 
     // User Details States
     username: '',

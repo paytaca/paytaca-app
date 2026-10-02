@@ -279,8 +279,16 @@ export function setArbiterPublicKey(state, arbiterPk) {
   state.arbiterPublicKey = arbiterPk
 }
 
+export function setArbiterLastFetched(state) {
+  state.arbiterLastFetched = Date.now()
+}
+
 export function setServicerPublicKey(state, servicerPk) {
   state.servicerPublicKey = servicerPk
+}
+
+export function setServicerLastFetched(state, servicerPk) {
+  state.servicerLastFetched = servicerPk
 }
 
 export function setUsername(state, username) {
