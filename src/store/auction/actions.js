@@ -32,6 +32,7 @@ export async function refreshCatalog({ commit }) {
   if (response && response.success && Array.isArray(response.data)) {
     const allAuctions = response.data.map(item => AuctionList.parse(item))
     commit('setListings', allAuctions)
+    commit('setListingsLastFetch')
     return
   }
   console.error(`[actions:refreshCatalog] Error encountered.`)
@@ -179,6 +180,8 @@ export async function fetchMyBiddings({ commit }) {
 
   const response = await callAPI('my-biddings/lots')
   if (response && response.success && Array.isArray(response.data)) {
+    commit('setMyBiddingsLastFetched')
+
     const lotPromises = response.data.map(async (item) => {
       const lot = LotsList.parse(item)
 
@@ -216,6 +219,7 @@ export async function fetchMyAuctions({ commit }) {
 
   // successfully fetched data
   if (response && response.success && response.data) {
+    commit('setMyAuctionsLastFetched')
     auctions = Array.isArray(response.data) ?
       response.data.map(item => (!item) ? null : item instanceof AuctionList ? item : AuctionList.parse(item)) :
       AuctionList.parse(response.data)
@@ -259,6 +263,7 @@ export async function fetchAuctionData({commit, getters}) {
   const response = await callAPI('auctions', Number(auctionId))
   if (response && response.success && response.data) {
     commit('setAuctionData', AuctionList.parse(response.data))
+    commit('setAuctionDataLastFetched')
     return
   }
   console.error('Failed to fetch auction details from server.')
@@ -285,6 +290,7 @@ export async function fetchAuctionLots({commit, getters}) {
 
   const response = await callAPI('lots-by-auction', Number(auctionId))  
   if (response && response.success && response.data) {
+    commit('setAuctionLotsLastFetched')
     lots = await Promise.all(
       response.data.map(async (item) => {
         const lot = LotsList.parse(item)
@@ -321,11 +327,15 @@ export async function fetchLotData({commit, dispatch, getters}) {
 
   const response = await callAPI('lots', lotId)
   if (response && response.success && response.data) {
+    commit('setLotDataLastFetched')
+
     lotData = LotsList.parse(response.data)
     const imageResponse = await callAPI('lot-images-by-lot', lotId, 'get')
-    if (imageResponse && imageResponse.success && Array.isArray(imageResponse.data))
+    if (imageResponse && imageResponse.success && Array.isArray(imageResponse.data)){
       lotImages = imageResponse.data.map(item => item.image)
+    }
     else console.error('Failed to fetch lot images.')
+
   } else console.error('Failed to fetch lot data.')
 
   // Also fetch the lot's bids if there's any
@@ -359,9 +369,11 @@ export async function fetchLotBids({commit, getters}) {
   const lotId = getters['lotId']
   let lotBids = []
   const response = await callAPI('biddings-by-lot', lotId, 'get')
-  if (response && response.success && response.data && Array.isArray(response.data)) 
+  if (response && response.success && response.data && Array.isArray(response.data)) {
     lotBids = response.data.map(bid => BidsList.parse(bid))
-  else console.error('Failed to fetch lot bids.')
+    commit('setLotBidsLastFetched')
+  } else console.error('Failed to fetch lot bids.')
+
   commit('setLotBids', lotBids)
 }
 
@@ -381,9 +393,10 @@ export async function fetchHighestBid({commit, getters}) {
   if (
     response && response.success && response.data
     && ['Highest', 'Winner'].includes(response.data.status)
-  )
+  ){
     highestBid = BidsList.parse(response.data)
-  else console.error('Failed to fetch highest bid.')
+    commit('setHighestBidLastFetched')
+  } else console.error('Failed to fetch highest bid.')
   commit('setHighestBid', highestBid)
 }
 
@@ -406,9 +419,10 @@ FETCHING PUBLIC KEYS FOR CONTRACT CREATION/INSTANTIATION
 export async function fetchArbiterPublicKey({ commit }) {
   let arbiterPk = ''
   const response = await callAPI('arbiter-pk')
-  if (response && response.success && response.data) 
+  if (response && response.success && response.data) {
     arbiterPk = response.data.arbiter_pk
-  else console.error(`[actions:fetchArbiterPublicKey] Error encountered.`)
+    commit('setArbiterLastFetched')
+  } else console.error(`[actions:fetchArbiterPublicKey] Error encountered.`)
   commit('setArbiterPublicKey', arbiterPk)
 }
 
@@ -416,8 +430,9 @@ export async function fetchArbiterPublicKey({ commit }) {
 export async function fetchServicerPublicKey({ commit }) {
   let servicerPk = ''
   const response = await callAPI('servicer-pk')
-  if (response && response.success && response.data) 
+  if (response && response.success && response.data) {
     servicerPk = response.data.servicer_pk
-  else console.error(`[actions:fetchServicerPublicKey] Error encountered.`)
+    commit('setServicerLastFetched')
+  } else console.error(`[actions:fetchServicerPublicKey] Error encountered.`)
   commit('setServicerPublicKey', servicerPk)
 }
