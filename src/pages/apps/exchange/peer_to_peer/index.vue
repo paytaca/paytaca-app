@@ -65,12 +65,12 @@ export default {
       }
     })
   },
-  beforeRouteLeave (to, from, next) {    
+  beforeRouteLeave (to, from, next) {
     if (to.name === 'exchange') {
-      this.$router.push({ name: 'apps-dashboard' })
+      next({ name: 'apps-dashboard' })
     } else {
       next()
-    }    
+    }
   },
   computed: {
     multipleAdLimitMessage () {

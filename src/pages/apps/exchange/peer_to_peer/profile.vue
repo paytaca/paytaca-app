@@ -342,7 +342,7 @@ export default {
   },
   beforeRouteEnter (to, from, next) {
     next(vm => {
-      vm.previousRoute = from.path
+      vm.previousRoute = from.name === 'exchange' ? '/apps' : from.path
     })
   },
   emits: ['back', 'updatePageName', 'selectListing'],
