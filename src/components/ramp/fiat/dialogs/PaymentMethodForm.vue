@@ -59,7 +59,7 @@
             class="q-py-xs"
             :dark="darkMode"
             :options="fiatCurrencies"
-            @update:model-value="async () => { await fetchPaymentTypes(); await fetchPaymentMethods(); }">
+            @update:model-value="async () => { await fetchPaymentTypes(); await fetchPaymentMethods(); filterPaymentTypes(); }">
             <template v-slot:option="scope">
               <q-item v-bind="scope.itemProps">
                 <q-item-section>
@@ -275,6 +275,7 @@ export default {
         }
       })
       this.paymentMethod.fields = paymentFields
+      this.onUpdateFieldValue()
     },
     filterPaymentTypes () {
       let currentMethods = null

@@ -12,6 +12,19 @@
         {{ type === 'Profile' ? $t('YourPaymentMethods') : $t('SelectPaymentMethods') }}
       </div>
 
+      <div v-if="type === 'Profile'" class="row q-mx-md q-mt-md">
+        <q-btn
+          outline
+          rounded
+          no-caps
+          icon="add"
+          :label="$t('AddPaymentMethod', {}, 'Add Payment Method')"
+          class="q-space button button-icon"
+          :class="getDarkModeClass(darkMode)"
+          @click="createMethod()"
+        />
+      </div>
+
       <q-separator v-if="type !== 'Profile'" :dark="darkMode" class="q-mx-md"/>
 
       <div v-if="type != 'Profile'" class="subtext q-mx-lg q-mt-sm">{{ instructionMessage }}</div>
@@ -149,9 +162,6 @@
               <q-separator :dark="darkMode" class="q-my-sm"/>
             </q-item-section>
           </q-item>
-          <div class="row q-mx-md q-py-sm">
-            <q-btn outline rounded no-caps :label="$t('AddMethod')" class="q-space button button-icon" :class="getDarkModeClass(darkMode)" @click="createMethod(selectedCurrency.symbol)"/>
-          </div>
         </div>
         <div v-if="type === 'General' && emptyPaymentMethods.length !== 0">
           <q-item v-for="(method, index) in emptyPaymentMethods" :key="index">
@@ -427,6 +437,10 @@ export default {
     },
     async onPaymentMethodSuccess () {
       const createdPaymentTypeId = this.info?.payment_type?.id || this.info?.id
+      if (this.type === 'Profile') {
+        await this.fetchAllPaymentMethodsProfile()
+        return
+      }
       await this.fetchPaymentMethods()
       if (this.type === 'General' && createdPaymentTypeId) {
         const newlyCreated = this.paymentMethods.filter(p => p.payment_type?.id === createdPaymentTypeId && !this.isPaymentSelected(p))
