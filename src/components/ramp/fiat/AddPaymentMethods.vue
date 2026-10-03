@@ -2,7 +2,7 @@
   <div v-if="type === 'Profile'" class="sticky-header" :class="getDarkModeClass(darkMode)">
     <HeaderNav :title="`P2P Ramp`" @click="onBack" />
   </div>
-  <div v-if="type === 'Profile'" :style="{ height: headerOffset + 'px' }"></div>
+  <div v-if="type === 'Profile'" :style="{ height: headerOffset }"></div>
   <div class="q-mx-md q-mx-none text-bow"
     :class="getDarkModeClass(darkMode)">
     <div class="q-mx-md" v-if="isloaded">
@@ -352,8 +352,11 @@ export default {
       return { height: `${this.minHeight}px`, overflowY: 'auto' }
     },
     headerOffset () {
-      // mirror header-nav default height values
-      return this.$q.platform.is.ios ? 95 : 70
+      // Mirror header-nav's rendered height (53px content + safe-area inset) so the
+      // fixed header never overlaps the page title. The title here is short/static,
+      // so header-nav adds no extra height for a tall title.
+      const safeTop = 'max(env(safe-area-inset-top, 0px), var(--q-safe-area-top, 0px), var(--safe-area-inset-top, 0px), var(--pt-android-statusbar, 0px))'
+      return `calc(${safeTop} + 53px)`
     },
     hasAlienPaymentsSelected () {
       const alienPaymentMethods = this.paymentMethods.filter(element => {
