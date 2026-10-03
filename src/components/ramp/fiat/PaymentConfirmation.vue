@@ -217,13 +217,13 @@
                   ref="filePickerRef"
                   :max-file-size="maxFileSize"
                   clearable
-                  accept="image/jpg, image/png, image/jpeg"
+                  accept="image/*"
                   dense
                   color="blue-12"
                   label="Upload Proof of Payment"
                   style="display: none"
                   v-model="method.attachment"
-                  @update:model-value="onSelectAttachment(index, method.id)"
+                  @update:model-value="onFilePicked(index)"
                   @rejected="onRejectedFilePick">
                   <template v-slot:prepend>
                     <q-icon name="upload" />
@@ -358,11 +358,14 @@
 import { ref } from 'vue'
 import { bus } from 'src/wallet/event-bus.js'
 import { openURL } from 'quasar'
+import { Capacitor } from '@capacitor/core'
+import { Camera } from '@capacitor/camera'
 import { wallet } from 'src/exchange/wallet'
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 import { getExplorerAddressLink } from 'src/utils/send-page-utils'
 import { backend } from 'src/exchange/backend'
 import { bchToFiat, formatCurrency, satoshiToBch } from 'src/exchange'
+import { resizeImage, base64ImageToFile, dataUrlToFile } from 'src/marketplace/chat/attachment'
 import RampDragSlide from './dialogs/RampDragSlide.vue'
 import AppealForm from './dialogs/AppealForm.vue'
 import ProgressLoader from 'src/components/ProgressLoader.vue'
@@ -466,7 +469,8 @@ export default {
       return showBtn && Number(this.appealCountdownSeconds) === 0
     },
     maxFileSize () {
-      return 5 * 1024 * 1024
+      // Allow larger originals; images are resized/compressed client-side before upload.
+      return 20 * 1024 * 1024
     },
     hasUploadingMsg () {
       return this.uploadingProof
@@ -685,13 +689,81 @@ export default {
       vm.uploadingProofByMethodId = { ...vm.uploadingProofByMethodId, [paymentMethodId]: false }
       vm.uploadingProof = Object.values(vm.uploadingProofByMethodId).some(v => v)
     },
-    onClickUpload (index) {
-      this.$refs.filePickerRef[index].pickFiles()
+    getFilePickerRef (index) {
+      const refs = this.$refs.filePickerRef
+      if (Array.isArray(refs)) return refs[index] || null
+      return refs || null
+    },
+    openSystemFilePicker (index) {
+      const picker = this.getFilePickerRef(index)
+      if (picker?.pickFiles) {
+        picker.pickFiles()
+      } else {
+        this.$q.notify({ type: 'negative', message: 'Unable to open file picker' })
+      }
+    },
+    async onClickUpload (index) {
+      const method = this.paymentMethods?.[index]
+      if (!method) return
+      // On native (Android/iOS) prefer the Capacitor camera/gallery picker: it
+      // re-encodes photos (HEIC -> JPEG) and avoids WebView file-input quirks.
+      if (Capacitor?.isNativePlatform?.()) {
+        const handled = await this.pickPhotoWithCamera(index, method)
+        if (handled) return
+      }
+      this.openSystemFilePicker(index)
+    },
+    async pickPhotoWithCamera (methodIndex, method) {
+      const vm = this
+      if (!method) return false
+      try {
+        let permission = await Camera.checkPermissions()
+        const promptStatuses = ['prompt', 'prompt-with-rationale', 'limited']
+        if (promptStatuses.includes(permission.photos) || promptStatuses.includes(permission.camera)) {
+          permission = await Camera.requestPermissions()
+        }
+        const cameraGranted = permission.camera === 'granted'
+        const photosGranted = permission.photos === 'granted' || permission.photos === 'limited'
+        if (!cameraGranted && !photosGranted) {
+          // Fall back to the system file picker which may still work without plugin permissions.
+          return false
+        }
+        const photo = await Camera.getPhoto({
+          presentationStyle: 'popover',
+          resultType: 'dataUrl',
+          source: 'PROMPT'
+        })
+        let file
+        if (photo?.dataUrl) file = dataUrlToFile(photo.dataUrl)
+        else if (photo?.base64String) file = base64ImageToFile(photo.base64String)
+        if (!file) return true
+        method.attachment = await resizeImage({ file, maxWidthHeight: 1600 })
+        vm.onSelectAttachment(methodIndex, method.id)
+        return true
+      } catch (error) {
+        const msg = String(error?.message || '')
+        if (msg.toLowerCase().includes('cancel')) return true
+        console.error('Error capturing proof of payment:', error)
+        return false
+      }
+    },
+    async onFilePicked (index) {
+      const method = this.paymentMethods?.[index]
+      if (!method?.attachment) {
+        this.onSelectAttachment(index, method?.id)
+        return
+      }
+      try {
+        method.attachment = await resizeImage({ file: method.attachment, maxWidthHeight: 1600 })
+      } catch (error) {
+        console.error('Error resizing proof of payment, uploading original:', error)
+      }
+      this.onSelectAttachment(index, method.id)
     },
     onRejectedFilePick (rejectedEntries) {
       let message = 'File did not pass validation constraints'
       if (rejectedEntries.length > 0 && rejectedEntries[0]?.failedPropValidation === 'max-file-size') {
-        message = 'File size should not exceed 5MB'
+        message = `File size should not exceed ${Math.round(this.maxFileSize / (1024 * 1024))}MB`
       }
       this.$q.notify({
         type: 'negative',
