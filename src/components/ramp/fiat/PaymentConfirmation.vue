@@ -736,7 +736,13 @@ export default {
         let file
         if (photo?.dataUrl) file = dataUrlToFile(photo.dataUrl)
         else if (photo?.base64String) file = base64ImageToFile(photo.base64String)
-        if (!file) return true
+        if (!file) {
+          this.$q.notify({
+            type: 'negative',
+            message: this.$t('UnsupportedImageFormat', {}, "That image couldn't be processed. Please choose a JPEG or PNG photo.")
+          })
+          return true
+        }
         try {
           method.attachment = await resizeImage({ file, maxWidthHeight: 1600 })
         } catch (error) {
