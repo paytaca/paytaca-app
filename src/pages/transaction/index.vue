@@ -1271,8 +1271,16 @@ export default {
         const favorites = allTokens.filter(token => token.favorite === 1 || token.favorite === true)
         this.favoriteTokenIds = favorites.map(token => token.id).filter(id => id !== 'bch')
 
-        // Update store assets with balances and metadata from API
+        // Only sync store assets for the tokens initially visible on the home
+        // screen (the first INITIAL_VISIBLE_TOKEN_COUNT cards, favorites first).
+        // The remaining cards in the strip are revealed on horizontal scroll and
+        // their metadata is fetched on demand by the IntersectionObserver, so we
+        // avoid touching every token the wallet holds on load.
+        const visibleTokenIds = new Set(
+          (this.assets || []).slice(0, INITIAL_VISIBLE_TOKEN_COUNT).map(asset => asset.id)
+        )
         allTokens.forEach(token => {
+          if (!visibleTokenIds.has(token.id)) return
           this.$store.commit('assets/updateAssetBalance', {
             id: token.id,
             balance: token.balance
@@ -2461,16 +2469,20 @@ export default {
         const assetsId = assets.map(a => a.id)
 
         if (vm.isCashToken) {
-          // For CashTokens, use tokens already fetched from fetchAllTokensFromAPI()
-          // No need to call getMissingAssets() - the API already provided all the data
-          const allTokensFromAPI = vm.allTokensFromAPI || []
-          const newTokens = allTokensFromAPI.filter(token => 
-            !assetsId.includes(token.id) && 
-            !vaultRemovedAssetIds.includes(token.id) &&
-            !hiddenIds.includes(token.id)
-          )
+          // For CashTokens, only register the initially visible cards (the first
+          // N, favorites first). The remaining tokens stay out of the store on
+          // home load and are registered on demand by the screens that need them
+          // (e.g. "View All", send/receive).
+          const visibleTokens = (vm.assets || [])
+            .slice(0, INITIAL_VISIBLE_TOKEN_COUNT)
+            .filter(token =>
+              token?.id &&
+              !assetsId.includes(token.id) &&
+              !vaultRemovedAssetIds.includes(token.id) &&
+              !hiddenIds.includes(token.id)
+            )
 
-          newTokens.forEach(token => {
+          visibleTokens.forEach(token => {
             // Convert API token format to asset format expected by addNewAsset
             vm.$store.commit('assets/addNewAsset', {
               id: token.id,
