@@ -330,7 +330,6 @@ export default {
       loadingAds: false,
       minHeight: this.$q.platform.is.ios ? this.$q.screen.height - (80 + 120) : this.$q.screen.height - (50 + 100),
       pageName: null,
-      previousRoute: null,
       errorDialogActive: false,
       wallet: null,
       reportSubmitted: false,
@@ -339,11 +338,6 @@ export default {
   },
   props: {
     userInfo: Object
-  },
-  beforeRouteEnter (to, from, next) {
-    next(vm => {
-      vm.previousRoute = from.name === 'exchange' ? '/apps' : from.path
-    })
   },
   emits: ['back', 'updatePageName', 'selectListing'],
   watch: {
@@ -397,12 +391,6 @@ export default {
       const isChipnet = this.$store.getters['global/isChipnet']
       const walletIndex = this.$store.getters['global/getWalletIndex']
       this.wallet = await loadLibauthHdWallet(walletIndex, isChipnet)
-    },
-    onNavBack () {
-      const currentRoute = this.$route.path
-      if (currentRoute === this.previousRoute) {
-        this.previousRoute = '/apps/exchange/peer-to-peer/store/'
-      }
     },
     async onEditPayments () {
       this.state = 'edit-pm'

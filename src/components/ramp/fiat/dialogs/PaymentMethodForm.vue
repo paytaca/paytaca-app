@@ -59,7 +59,7 @@
             class="q-py-xs"
             :dark="darkMode"
             :options="fiatCurrencies"
-            @update:model-value="async () => { await fetchPaymentTypes(); await fetchPaymentMethods(); filterPaymentTypes(); }">
+            @update:model-value="onCurrencyChange">
             <template v-slot:option="scope">
               <q-item v-bind="scope.itemProps">
                 <q-item-section>
@@ -213,6 +213,15 @@ export default {
         .catch(() => {})
     },
     getDarkModeClass,
+    async onCurrencyChange () {
+      // Changing currency invalidates the previously selected payment type
+      this.paymentMethod.payment_type = null
+      this.paymentMethod.fields = {}
+      this.disableSubmitBtn = true
+      await this.fetchPaymentTypes()
+      await this.fetchPaymentMethods()
+      this.filterPaymentTypes()
+    },
     onUpdateFieldValue () {
       // Checks if value is valid
       let hasEmptyValue = false

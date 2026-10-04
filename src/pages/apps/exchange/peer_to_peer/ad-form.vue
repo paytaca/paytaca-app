@@ -525,7 +525,6 @@ export default {
       setTradeLimitsInFiat: false,
       arbiterOptions: [],
       transactionType: null,
-      previousRoute: null,
       adsState: null,
       isBlinking: false,
       description: '',
@@ -684,11 +683,6 @@ export default {
   },
   beforeUnmount () {
     this.closeWSConnection()
-  },
-  beforeRouteEnter (to, from, next) {
-    next(vm => {
-      vm.previousRoute = from.path
-    })
   },
   methods: {
     getDarkModeClass,

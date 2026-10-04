@@ -737,7 +737,16 @@ export default {
         if (photo?.dataUrl) file = dataUrlToFile(photo.dataUrl)
         else if (photo?.base64String) file = base64ImageToFile(photo.base64String)
         if (!file) return true
-        method.attachment = await resizeImage({ file, maxWidthHeight: 1600 })
+        try {
+          method.attachment = await resizeImage({ file, maxWidthHeight: 1600 })
+        } catch (error) {
+          console.error('Error resizing proof of payment:', error)
+          this.$q.notify({
+            type: 'negative',
+            message: this.$t('UnsupportedImageFormat', {}, "That image couldn't be processed. Please choose a JPEG or PNG photo.")
+          })
+          return true
+        }
         vm.onSelectAttachment(methodIndex, method.id)
         return true
       } catch (error) {
@@ -756,7 +765,13 @@ export default {
       try {
         method.attachment = await resizeImage({ file: method.attachment, maxWidthHeight: 1600 })
       } catch (error) {
-        console.error('Error resizing proof of payment, uploading original:', error)
+        console.error('Error resizing proof of payment:', error)
+        method.attachment = null
+        this.$q.notify({
+          type: 'negative',
+          message: this.$t('UnsupportedImageFormat', {}, "That image couldn't be processed. Please choose a JPEG or PNG photo.")
+        })
+        return
       }
       this.onSelectAttachment(index, method.id)
     },
