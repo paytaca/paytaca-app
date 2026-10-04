@@ -112,7 +112,7 @@ import TransactionListItemSkeleton from 'src/components/transactions/Transaction
 import TransactionTimestampSettings from 'src/components/transactions/TransactionTimestampSettings.vue'
 import { getWalletByNetwork, getWatchtowerApiUrl } from 'src/wallet/chipnet'
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
-import { getCachedTransactions, setCachedTransactions, mergeTransactions } from 'src/utils/transaction-cache'
+import { getCachedTransactions, setCachedTransactions } from 'src/utils/transaction-cache'
 import axios from 'axios'
 
 const recordTypeMap = {
@@ -225,6 +225,7 @@ export default {
     }
   },
   mounted () {
+    this._didMount = true
     if (!this.transactionsLoaded && this.wallet) {
       this.loadTransactions()
     } else if (!this.wallet) {
@@ -237,6 +238,17 @@ export default {
     } else {
       this.loadTransactions()
     }
+  },
+  activated () {
+    // Refresh when the section becomes active again (e.g. returning from the
+    // dedicated transactions page) instead of relying on a full remount.
+    // Skip the initial activation that accompanies mounted().
+    if (this._didMount) {
+      this._didMount = false
+      return
+    }
+    this.walletHash = this.resolveWalletHash()
+    this.loadTransactions()
   },
   
   methods: {
@@ -358,35 +370,17 @@ export default {
         }
 
         const enrichedTransactions = await this.enrichTransactionsWithAssetInfo(transactions)
-        let display
-        let hasMore
 
-        if (this.txAssetFilter !== 'all') {
-          enrichedTransactions.sort((a, b) => {
-            const tA = a.tx_timestamp || a.date_created || 0
-            const tB = b.tx_timestamp || b.date_created || 0
-            return tB - tA
-          })
-          display = enrichedTransactions.slice(0, 5)
-          hasMore = response.data?.has_next || enrichedTransactions.length > 5
-        } else {
-          const currentCached = getCachedTransactions(this.walletHash, this.transactionsFilter)
-          let merged
-          if (currentCached && Array.isArray(currentCached.transactions) && currentCached.transactions.length) {
-            merged = mergeTransactions(currentCached.transactions, enrichedTransactions)
-          } else {
-            merged = enrichedTransactions
-          }
+        // The server response is authoritative: never let the cache shadow fresh
+        // data. The cache is only used for the instant pre-fetch paint in created().
+        enrichedTransactions.sort((a, b) => {
+          const tA = a.tx_timestamp || a.date_created || 0
+          const tB = b.tx_timestamp || b.date_created || 0
+          return tB - tA
+        })
 
-          merged.sort((a, b) => {
-            const tA = a.tx_timestamp || a.date_created || 0
-            const tB = b.tx_timestamp || b.date_created || 0
-            return tB - tA
-          })
-
-          display = merged.slice(0, 5)
-          hasMore = response.data?.has_next || enrichedTransactions.length > 5
-        }
+        const display = enrichedTransactions.slice(0, 5)
+        const hasMore = response.data?.has_next || enrichedTransactions.length > 5
 
         this.transactions = display
         this.hasMoreTransactions = hasMore

@@ -1471,14 +1471,18 @@ export default {
         
         // Refresh WalletConnect session requests
         this.$store.dispatch('walletconnect/loadSessionRequests')
-
-        // Refresh latest transactions
-        if (this.$refs['latest-transactions']) {
-          await this.$refs['latest-transactions'].refresh()
-        }
       } catch (error) {
         console.error('Error refreshing:', error)
       } finally {
+        // Always refresh the latest transactions independently so a failure in
+        // any of the steps above cannot leave the home section stale.
+        try {
+          if (this.$refs['latest-transactions']) {
+            await this.$refs['latest-transactions'].refresh()
+          }
+        } catch (error) {
+          console.error('Error refreshing latest transactions:', error)
+        }
         done()
       }
     },
@@ -2543,22 +2547,22 @@ export default {
         // Auto-run home tour only after backup is confirmed.
         this._maybeAutoStartHomeTourAfterBackup()
       }
-
-      // Full refresh after page mounts (especially after wallet switch)
-      // skipConnectivity = true to avoid duplicate onConnectivityChange call
-      // (already called earlier in the mount flow above)
-      // Note: onConnectivityChange(true) above already calls refreshFavoriteTokenBalances()
-      // and refreshDisplayedTokenPrices(), so we only refresh transactions here to avoid
-      // duplicating balance/price fetches and the associated store mutations.
-      if (this.$refs['latest-transactions']) {
-        this.$refs['latest-transactions'].refresh().catch(() => {})
-      }
-      this.pendingTransactionsKey++
     } catch (error) {
       console.error('Error in mounted hook:', error)
       // Ensure loading state is reset even on error
       this.isLoadingAssets = false
       this.loadingBchPrice = false
+    } finally {
+      // Always refresh the latest transactions independently so a failure in the
+      // mount flow above cannot leave the home section stale.
+      try {
+        if (this.$refs['latest-transactions']) {
+          await this.$refs['latest-transactions'].refresh()
+        }
+        this.pendingTransactionsKey++
+      } catch (error) {
+        console.error('Error refreshing latest transactions on mount:', error)
+      }
     }
   },
 }
