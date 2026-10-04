@@ -200,6 +200,7 @@
               @select-asset="asset => setSelectedAsset(asset)"
               @show-asset-info="asset => showAssetInfo(asset)"
               @hide-asset-info="hideAssetInfo()"
+              @request-asset-metadata="requestAssetMetadata"
               @removed-asset="selectBch()"
               @click="() => {txSearchActive = false; txSearchReference = ''}"
             >
@@ -224,6 +225,7 @@
               @select-asset="asset => setSelectedAsset(asset)"
               @show-asset-info="asset => showAssetInfo(asset)"
               @hide-asset-info="hideAssetInfo()"
+              @request-asset-metadata="requestAssetMetadata"
               @removed-asset="selectBch()"
               @click="() => {txSearchActive = false; txSearchReference = ''}"
             >
@@ -447,6 +449,8 @@ import { cachedLoadWallet } from '../../wallet'
 import axios from 'axios'
 import { getWatchtowerApiUrl } from 'src/wallet/chipnet'
 import { convertIpfsUrl } from 'src/wallet/cashtokens'
+
+const INITIAL_VISIBLE_TOKEN_COUNT = 3
 
 export default {
   name: 'Transaction-page',
@@ -1288,27 +1292,7 @@ export default {
           }
         })
 
-        // Background-fetch metadata from BCMR for tokens still missing name/symbol/logo
-        allTokens.forEach(token => {
-          if (!token.name || token.name === 'Unknown Token' || !token.symbol || !token.logo) {
-            this.$store.dispatch('assets/getAssetMetadata', token.id).then(metadata => {
-              if (metadata) {
-                const idx = this.allTokensFromAPI.findIndex(t => t.id === token.id)
-                if (idx !== -1) {
-                  this.allTokensFromAPI[idx] = {
-                    ...this.allTokensFromAPI[idx],
-                    name: metadata.name || this.allTokensFromAPI[idx].name,
-                    symbol: metadata.symbol || this.allTokensFromAPI[idx].symbol,
-                    decimals: metadata.decimals !== undefined ? metadata.decimals : this.allTokensFromAPI[idx].decimals,
-                    logo: metadata.logo || this.allTokensFromAPI[idx].logo,
-                  }
-                }
-              }
-            }).catch(err => {
-              console.warn(`[HomePage] Failed to fetch BCMR metadata for ${token.id}:`, err)
-            })
-          }
-        })
+        allTokens.slice(0, INITIAL_VISIBLE_TOKEN_COUNT).forEach(token => this.requestAssetMetadata(token))
 
         console.log(`Fetched ${allTokens.length} tokens from API for wallet ${walletHash}`)
         return allTokens
@@ -1446,6 +1430,43 @@ export default {
         console.error('Error fetching SLP tokens:', error)
         this.allSlpTokensFromAPI = []
         return []
+      }
+    },
+    requestAssetMetadata (asset) {
+      const vm = this
+      if (!asset || !asset.id) return
+      const assetId = asset.id
+      if (!vm._pendingTokenMetadataIds) vm._pendingTokenMetadataIds = new Set()
+      if (vm._pendingTokenMetadataIds.has(assetId)) return
+      vm._pendingTokenMetadataIds.add(assetId)
+
+      const applyMetadata = (metadata) => {
+        vm._pendingTokenMetadataIds.delete(assetId)
+        if (!metadata) return
+        const list = assetId.startsWith('slp/') ? vm.allSlpTokensFromAPI : vm.allTokensFromAPI
+        const idx = list.findIndex(token => token && token.id === assetId)
+        if (idx === -1) return
+        const patch = {}
+        if (metadata.name) patch.name = metadata.name
+        if (metadata.symbol) patch.symbol = metadata.symbol
+        if (metadata.decimals !== undefined && metadata.decimals !== null) patch.decimals = metadata.decimals
+        if (metadata.logo) patch.logo = metadata.logo
+        if (Object.keys(patch).length) list.splice(idx, 1, { ...list[idx], ...patch })
+      }
+
+      if (assetId.startsWith('ct/')) {
+        vm.$store.dispatch('assets/getAssetMetadata', assetId)
+          .then(metadata => applyMetadata(metadata))
+          .catch(err => {
+            console.warn(`[HomePage] Failed to fetch metadata for ${assetId}:`, err)
+            applyMetadata(null)
+          })
+      } else if (assetId.startsWith('slp/')) {
+        vm.$store.dispatch('assets/updateTokenIcon', { assetId })
+          .then(logo => applyMetadata(logo ? { logo } : null))
+          .catch(() => applyMetadata(null))
+      } else {
+        applyMetadata(null)
       }
     },
     async onRefresh (done, skipConnectivity) {
