@@ -1,6 +1,6 @@
 <template>
   <div class="ad-form-container" :class="getDarkModeClass(darkMode)">
-    <HeaderNav :title="`P2P Ramp`" :backnavpath="previousRoute" class="header-nav" />
+    <HeaderNav :title="`P2P Ramp`" backnavpath="/apps/exchange/peer-to-peer/ads" class="header-nav" />
     <div v-if="currentStep === 1"
       class="text-bow"
       :class="getDarkModeClass(darkMode)">
@@ -957,7 +957,7 @@ export default {
       }
       if (currentStep === 3) {
         this.onSubmit()
-        await this.$router.push(this.previousRoute)
+        await this.$router.push({ name: 'p2p-ads' })
         // await this.$router.push({ name: 'p2p-ads' })
       }
       if (currentStep < 3) {
