@@ -60,14 +60,14 @@ export class AuctionList {
     this.end_date = data.end_date ?? null
     this.creation_date = data.creation_date ?? null
 
-    this.is_open = data.is_open ?? 'Upcoming'
-    this.is_fiat = data.is_fiat ?? 'N/A'
+    this.is_open = data.is_open ?? false
+    this.is_fiat = data.is_fiat ?? true
 
     this.image = data.image ?? null
     this.status = data.status ?? null
 
-    this.status_label = data.status ?? 'Upcoming'
-    this.status_color = auctionColors[this.status_label]
+    this.status = data.status ?? 'Upcoming'
+    this.status_color = auctionColors[this.status]
 
     this.lots = Array.isArray(data.lots)
       ? data.lots.map(lotObj => LotsList.parse(lotObj, this))
@@ -75,7 +75,7 @@ export class AuctionList {
   }
 
   refreshStatus() {   
-    this.status_color = auctionColors[this.status_label]
+    this.status_color = auctionColors[this.status]
   }
   
   getEllipsisInMiddleAddress() {
@@ -143,8 +143,8 @@ export class LotsList {
     this.is_sold = data.is_sold ?? null
     this.date_sold = data.date_sold ?? null
 
-    this.status_label = data.status ?? 'Inactive'
-    this.status_color = lotColors[this.status_label]
+    this.status = data.status ?? 'Inactive'
+    this.status_color = lotColors[this.status]
     
     // Images
     this.images = Array.isArray(data.images) 
@@ -181,7 +181,7 @@ export class LotsList {
   }
 
   refreshStatus() {
-    this.status_color = lotColors[this.status_label]
+    this.status_color = lotColors[this.status]
   }
 
   hasBids() {
@@ -489,15 +489,15 @@ export class DeliveryDetails {
     this.creation_date = data.creation_date || null
 
     this.delivery_events = data.delivery_events || []
-    this.status_label = data.status || 'Preparing'
-    this.status_color = deliveryColors[this.status_label]
+    this.status = data.status || 'Preparing'
+    this.status_color = deliveryColors[this.status]
 
     this.refreshStatus()
   }
 
   updateDeliveryEvent() {
-    this.status_label = data.status || null
-    this.status_color = deliveryColors[this.status_label]
+    this.status = data.status || null
+    this.status_color = deliveryColors[this.status]
     this.description = data.description || null
     this.location = data.location || null
     this.event_date = data.event_date || null
@@ -523,6 +523,6 @@ export class DeliveryDetails {
   }
 
   refreshStatus() {
-    this.status_color = deliveryColors[this.status_label]
+    this.status_color = deliveryColors[this.status]
   }
 }
