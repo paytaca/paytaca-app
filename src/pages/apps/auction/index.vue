@@ -83,7 +83,7 @@
             <div :class="darkMode ? 'text-white' : 'text-black'">{{ $t('No Listings Listed') }}</div>
           </div>
 
-          <div v-else v-for="auction in filteredItems" :key="auction.id" class="col-6 col-sm-4 q-pa-xs">
+          <div v-else v-for="auction in filteredListings" :key="auction.id" class="col-6 col-sm-4 q-pa-xs">
             <q-card
               class="pt-card text-bow cursor-pointer"
               :class="getDarkModeClass(darkMode)"
@@ -106,7 +106,7 @@
                   class="absolute text-caption text-weight-bold"
                   style="top: 8px; right: 8px; margin: 0; padding: 3px 8px; height: auto;"
                 >
-                  {{ auction.status_label }}
+                  {{ auction.status }}
                 </q-chip>
               </div>
             
@@ -128,15 +128,15 @@
                 <div class="column q-gutter-y-xs">
                   <div class="row items-center q-gutter-x-xs text-caption text-weight-bold">
                     <q-icon
-                      :name="auction.status_label === 'Upcoming' ? 'event_available' : 'event_busy'"
+                      :name="auction.status === 'Upcoming' ? 'event_available' : 'event_busy'"
                       style="font-size: 11px;"
                     />
                     <strong class="text-bow">
-                      {{ auction.status_label === 'Upcoming' ? 'Starts' : (auction.status_label === 'Closed' ? 'Ended' : 'Ends') }}
+                      {{ auction.status === 'Upcoming' ? 'Starts' : (auction.status === 'Closed' ? 'Ended' : 'Ends') }}
                     </strong>
                     <div>
                       {{
-                        auction.status_label === 'Upcoming'
+                        auction.status === 'Upcoming'
                           ? formatAuctionDate(auction.start_date)
                           : formatAuctionDate(auction.end_date)
                       }}
@@ -175,7 +175,7 @@ const darkMode = computed(() => $store.getters['darkmode/getStatus'])
 const isLoading = ref(true)         // Controls auction listing loading
 const isCheckingAccess = ref(true)  // Controls loading screen during profile checking
 
-// Auction-related 
+// Auction-related listings
 const listingsTotalTime = computed(() => Date.now() - $store.getters['auction/listingsLastFetched'])
 const username = computed(() => $store.getters['auction/username'])
 
@@ -232,14 +232,14 @@ const auctionType = ref('All')
 const auctionSearchQuery = ref('') 
 
 // Filters the auction items
-const filteredItems = computed(() => {
-  let items = $store.getters['auction/filteredItems'] || []
+const filteredListings = computed(() => {
+  let items = $store.getters['auction/filteredListings'] || []
   const query = auctionSearchQuery.value.trim().toLowerCase()
   return (query) ? items.filter(item => item.title?.toLowerCase().includes(query)) : items
 })
 
 // Checks if auction is empty
-const isAuctionEmpty = computed(() => !isLoading.value && filteredItems.value.length === 0)
+const isAuctionEmpty = computed(() => !isLoading.value && filteredListings.value.length === 0)
 
 // Keep tabs on the auction type so it would filter the items
 watch(auctionType, (newType) => {

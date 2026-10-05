@@ -34,7 +34,7 @@
                   :color="auction.status_color"
                   class="q-pa-sm q-px-sm text-weight-bold"
                 >
-                  {{ auction.status_label }}
+                  {{ auction.status }}
                 </q-badge>
               </div>
               
@@ -67,8 +67,8 @@
                   
                   <div class="col column overflow-hidden">
                     <div class="row items-center no-wrap full-width">
-                      <span v-if="auction.username" class="text-weight-medium ellipsis col-shrink q-mr-xs">
-                        {{ auction.username }}
+                      <span v-if="auction.auctioneer_username" class="text-weight-medium ellipsis col-shrink q-mr-xs">
+                        {{ auction.auctioneer_username }}
                       </span>
                       <q-badge v-if="isAuctioneer" color="positive" class="q-px-xs no-shrink">
                         <q-icon name="star" size="10px" class="q-mr-xs" />You
@@ -79,7 +79,7 @@
                     </span>
                   </div>
                   
-                  <q-btn flat round dense icon="content_copy" size="xs" @click="copyToClipboard(auction.user)" />
+                  <q-btn flat round dense icon="content_copy" size="xs" @click="copyToClipboard(auction.auctioneer)" />
                 </div>
 
                 <q-separator />
@@ -115,7 +115,7 @@
                 <div class="text-body2 text-weight-medium">
                   {{ formatAuctionDate(auction?.start_date) }}
                 </div>
-                <div  v-if="auction.status_label === 'Upcoming'" class="text-secondary">
+                <div  v-if="auction.status === 'Upcoming'" class="text-secondary">
                   Time Remaining: {{ auctionStartCountdown }}
                 </div>
                 <div  v-else class="text-secondary"></div>
@@ -128,7 +128,7 @@
                 <div class="text-body2 text-weight-medium">
                   {{ formatAuctionDate(auction?.end_date) }}
                 </div>
-                <div v-if="auction.status_label === 'Open'" class="text-secondary">
+                <div v-if="auction.status === 'Open'" class="text-secondary">
                   Time Remaining: {{ auctionEndCountdown }}
                 </div>
                 <div  v-else class="text-secondary"></div>
@@ -235,7 +235,7 @@
                   class="absolute text-caption text-weight-bold"
                   style="top: 8px; right: 8px; margin: 0; padding: 3px 8px; height: auto;"
                 >
-                  {{  lot.status_label }}
+                  {{  lot.status }}
                 </q-chip>
               </div>
 
@@ -247,11 +247,11 @@
                   style="margin: 0; padding: 3px 8px; height: auto;"
                 >
                   <q-icon
-                    :name="lot.category_name === 'Digital' ? 'computer' : 'delivery_dining'"
+                    :name="lot.category === 'Digital' ? 'computer' : 'delivery_dining'"
                     size="xs"
                     class="q-mr-xs"
                   />
-                  {{ lot.category_name }}
+                  {{ lot.category }}
                 </q-chip>
 
                 <div class="text-subtitle1 text-weight-medium ellipsis-2-lines q-mb-xs">
@@ -390,7 +390,7 @@ const filteredLots = computed(() => {
   let targetLots = lots.value 
   
   if (lotType.value !== 'All') {
-    targetLots = targetLots.filter(lot => lot.category_name === lotType.value)
+    targetLots = targetLots.filter(lot => lot.category === lotType.value)
   }
   
   if (lotSearchQuery.value && lotSearchQuery.value.trim() !== '') {
@@ -492,7 +492,7 @@ const connectWebsocket = () => {
       case "auction.start":
         console.log("auction.start")
         $store.commit('auction/updateAuctionData', {
-          attribute_name: 'status_label', 
+          attribute_name: 'status', 
           data: data.status
         })
 
@@ -509,7 +509,7 @@ const connectWebsocket = () => {
         console.log("auction.end")
         auctionStartCountdown.value = "Time's Up!"
         $store.commit('auction/updateAuctionData', {
-          attribute_name: 'status_label', 
+          attribute_name: 'status', 
           data: data.status
         })
 
@@ -619,7 +619,7 @@ const canEdit = computed(() => {
 
 const getEnglishPriceInfo = (lot) => {
   return {
-    label: lot.hasBid ? 'HIGHEST BID:' : 'STARTING PRICE:',
+    label: lot.hasBids() ? 'HIGHEST BID:' : 'STARTING PRICE:',
     fiat: lot.threshold_bid_fiat,
     bch: lot.threshold_bid_bch
   }
