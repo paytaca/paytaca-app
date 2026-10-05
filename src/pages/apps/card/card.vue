@@ -107,7 +107,7 @@
               </div>
               <div class="text-caption" style="opacity: 0.85;">
                 {{ v2OwnershipSet
-                  ? (hasV1Funds ? 'Move your V1 funds into V2 or switch back to V2' : 'Switch back to V2 to keep your card up to date')
+                  ? (hasV1Funds ? 'Move your remaining V1 funds into V2' : 'Move to V2 to keep your card up to date')
                   : 'V2 supports fungible token payments' }}
               </div>
               <template v-slot:action>
@@ -135,9 +135,9 @@
                 <div class="q-mb-md" :class="textColorGrey" style="line-height: 1.5;">
                   {{ v2OwnershipSet
                     ? (hasV1Funds
-                      ? 'V2 is already set up. Move your remaining V1 BCH into it, then switch.'
-                      : 'V2 is already set up. Switch back to V2 to continue using it.')
-                    : 'Upgrading sets up V2 ownership and moves your V1 BCH into it.' }}
+                      ? 'V2 is already set up. Move your remaining V1 BCH into it.'
+                      : 'V2 is already set up. Move to V2 to continue using it.')
+                    : 'Upgrading sets up V2 ownership and moves your V1 BCH into it. Migration is one-way.' }}
                 </div>
 
                 <q-stepper
@@ -245,12 +245,13 @@
             :loading="tokensLoading"
             @fund-tokens="openTokenFundDialog"
           />
-          <CardSettings v-if="activeTab === 'Card Security'" 
+          <CardSettings v-if="activeTab === 'Card Security'"
             :key="cardSettingsKey"
-            :active-card="activeCard" 
-            @lock-status-changed="onLockStatusChanged" 
+            :active-card="activeCard"
+            @lock-status-changed="onLockStatusChanged"
             @sweep-funds="onSweepFunds"
             @version-changed="onVersionChanged"
+            @view-v1-history="goToV1History"
             />
           <div v-else-if="activeTab === 'Order Card'" class="full-width column items-center q-pa-md">
             <div class="full-width q-mb-md" style="max-width: 400px;">
@@ -681,6 +682,12 @@ export default {
       await this.loadActiveCard()
       await Promise.allSettled([this.getCardBchBalance(), this.fetchCardTokenHoldings(), this.refreshCardHistory()])
       this.cardSettingsKey++
+    },
+
+    async goToV1History () {
+      if (!this.activeCard?.id) return
+      await this.$store.dispatch('card/fetchCardTransactions', { cardId: this.activeCard.id, version: 'v1' }).catch(() => {})
+      this.activeTab = 'Transactions'
     },
 
     async onPullRefresh (done) {

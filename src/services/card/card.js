@@ -196,6 +196,22 @@ export class Card {
   }
 
   /**
+   * Returns true when a v1 contract entry exists.
+   * @returns {boolean}
+   */
+  get hasV1Contract() {
+    return this.contracts.some(c => c.version === 'v1')
+  }
+
+  /**
+   * Returns the v1 contract entry, if present.
+   * @returns {Object|null}
+   */
+  get v1Contract() {
+    return this.contracts.find(c => c.version === 'v1') || null
+  }
+
+  /**
    * Returns true when v2 is the active contract version.
    * @returns {boolean}
    */
@@ -356,10 +372,14 @@ export class Card {
   /**
    * Returns BCH balance for card address.
    * Fetches from server data, server queries blockchain.
+   * @param {Object} [opts]
+   * @param {string} [opts.version] - Contract version ('v1' or 'v2'); defaults to active.
    * @returns {Promise<number>}
    */
-  async getBchBalance() {
-    const response = await backend.get(`/cards/${this.id}/bch-balance/`)
+  async getBchBalance({ version } = {}) {
+    const params = {}
+    if (version) params.version = version
+    const response = await backend.get(`/cards/${this.id}/bch-balance/`, { params })
     .catch(error => {
       cardLogger.error('Error fetching BCH balance:', error.message);
       throw error;
@@ -930,6 +950,10 @@ export class Card {
 
   /**
    * Switches the active contract version (v1 or 'v2')
+   * Migration is one-way: once the card is on V2 with a migration pointer,
+   * card payments settle on V2 and the server preimage must stay on V2, so a
+   * V2 -> V1 downgrade is refused here instead of flipping the preimage hint.
+   * Use sweepFromVersion('v1', 'v2') to recover stranded V1 funds.
    * @param {string} version - 'v1' or 'v2'
    * @returns {Promise<Object>} - Updated card data with new active version
    */
@@ -939,8 +963,53 @@ export class Card {
     if (!label) {
       throw new Error('Invalid version. Must be a positive integer or "vN".');
     }
-    const response = await backend.post(`/cards/${this.id}/activate-version/`, { version: label });
-    return response.data;
+    if (label === 'v1' && this.isV2Active) {
+      const pointer = await this.findPointerNft('v1').catch(() => null)
+        || await this.findPointerNft().catch(() => null);
+      if (pointer) {
+        throw new Error('Already migrated — V1 is view-only.');
+      }
+    }
+    try {
+      const response = await backend.post(`/cards/${this.id}/activate-version/`, { version: label });
+      return response.data;
+    } catch (error) {
+      throw new Error(friendlyActivateVersionError(error) || error?.message || 'Failed to switch version.');
+    }
+  }
+
+  /**
+   * Returns the cash address for a contract version without changing the
+   * active version. Used for read-only V1 preview after migration.
+   * @param {string} version - e.g. 'v1' or 'v2'
+   * @returns {string|undefined}
+   */
+  getVersionCashAddress(version) {
+    const entry = this.contracts.find(c => c.version === version);
+    return entry?.cash_address || (version === this.activeContractVersion ? this.cashAddress : undefined);
+  }
+
+  /**
+   * Returns the BCH balance (sats) for a contract version without changing
+   * the active version. Served by GET bch-balance?version=; falls back to
+   * on-chain UTXOs when the versioned endpoint is unavailable.
+   * @param {string} version - e.g. 'v1' or 'v2'
+   * @returns {Promise<number>}
+   */
+  async getVersionBchBalance(version) {
+    try {
+      const sats = await this.getBchBalance({ version });
+      if (sats != null) return Number(sats) || 0;
+    } catch (error) {
+      cardLogger.warn(`[Card.getVersionBchBalance] Versioned balance failed for ${version}, falling back on-chain:`, error.message || error);
+    }
+    const scoped = this._scopedVersionCard(version);
+    const result = await scoped.contract.getBchUtxos();
+    if (typeof result === 'number') return result;
+    if (typeof result?.cumulativeValue === 'bigint') return Number(result.cumulativeValue);
+    if (typeof result?.cumulativeValue === 'number') return result.cumulativeValue;
+    if (Array.isArray(result)) return result.reduce((sum, u) => sum + Number(u?.satoshis ?? u?.value ?? 0), 0);
+    return 0;
   }
 
   /**
@@ -1543,7 +1612,7 @@ export class Card {
       const originVersion = pointerState.origin_version != null ? normalizeVersionLabel(pointerState.origin_version) : this.activeContractVersion;
       try {
         const origin = this._scopedVersionCard(originVersion);
-        const bch = await origin.getBchBalance().catch(() => 0);
+        const bch = await origin.getBchBalance({ version: originVersion }).catch(() => 0);
         originFunded = bch > 0;
       } catch (error) {
         cardLogger.warn('[Card.getMigrationState] Failed to read origin funding:', error.message || error);
@@ -1906,6 +1975,22 @@ export async function fetchFtBalances(contractAddress, { tokenIds = [], includeU
       throw error;
     });
   return normalizeFtBalances(response.data)
+}
+
+/**
+ * Maps an activate-version failure to display copy. The backend rejects a
+ * V1 downgrade after migration with 400 ("V1 is read-only"), surfaced as
+ * "Already migrated — V1 is view-only." Returns null for unrelated errors.
+ * @param {Object} error - Axios-style error.
+ * @returns {string|null}
+ */
+export function friendlyActivateVersionError(error) {
+  const data = error?.response?.data;
+  const text = String(typeof data === 'string' ? data : (data?.detail || data?.message || data?.error || ''));
+  if (error?.response?.status === 400 && /read-only|already migrated/i.test(text)) {
+    return 'Already migrated — V1 is view-only.';
+  }
+  return null;
 }
 
 /**

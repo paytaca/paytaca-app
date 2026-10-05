@@ -112,7 +112,10 @@ export async function refreshCardTransactions (context, { cardId, version } = {}
     return fetchCardTransactions(context, { cardId, page: 1, page_size: 25, version });
 }
 
-export async function fetchCardBalance (context, cardId) {
+export async function fetchCardBalance (context, cardIdOrOpts) {
+    const { cardId, version } = typeof cardIdOrOpts === 'object' && cardIdOrOpts !== null
+        ? cardIdOrOpts
+        : { cardId: cardIdOrOpts };
     try {
         let cardData = context.state.cards.find(c => c.id === cardId);
         if (!cardData) {
@@ -127,9 +130,9 @@ export async function fetchCardBalance (context, cardId) {
             throw new Error(`Card with ID ${cardId} not found`);
         }
         const card = await hydrateCard(cardData);
-        const balanceSats = await card.getBchBalance();
+        const balanceSats = await card.getBchBalance({ version });
         const balance = satoshiToBch(balanceSats);
-        context.commit('updateCardBalance', { cardId, balance });
+        if (!version) context.commit('updateCardBalance', { cardId, balance });
         return balance;
     } catch (error) {
         console.error('Error in fetchCardBalance action:', error);

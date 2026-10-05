@@ -415,6 +415,8 @@ export default {
       return this.isBchMode ? 'Slide to Cash In' : 'Slide to Fund Token'
     },
     depositAddress () {
+      const v2CashAddress = this.card?.v2Contract?.cash_address
+      if (this.card?.isV2Active && v2CashAddress) return v2CashAddress
       if (!this.isBchMode) return this.card?.tokenAddress || this.card?.cashAddress
       return this.card?.cashAddress
     },
@@ -633,7 +635,7 @@ export default {
         const wallet = await user.wallet.getRawWallet()
         if (this.isBchMode) {
           const sendAmount = this.cryptoCashInAmount
-          result = await wallet.sendBch(sendAmount, this.card?.cashAddress)
+          result = await wallet.sendBch(sendAmount, this.depositAddress)
           successMessage = `Successfully added ${this.fiatCashInAmount} ${this.selectedFiatCurrency} (${sendAmount} BCH) to your card!`
         } else {
           const tokenId = this.selectedTokenId?.split('ct/')[1] || this.selectedToken?.id?.split('ct/')[1]
