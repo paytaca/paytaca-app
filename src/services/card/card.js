@@ -1,3 +1,11 @@
+/**
+ * Card domain model and workflows for TapToPay cards.
+ *
+ * Wraps the server card payload with version-aware contract resolution and
+ * provides helpers to activate cards, manage auth NFTs, sweep BCH/FTs, and
+ * migrate between contract versions. Requires a wallet via
+ * `Card.createWithWallet()` or `Card.createInitialized()` before on-chain use.
+ */
 import { cardLogger } from 'src/utils/debug-logger.js'
 import AuthNftService, { decodeCommitment, encodeMerchantHash } from './auth-nft';
 import { defaultSpendLimitSats } from './constants';
@@ -22,7 +30,18 @@ import {
 import { pubkeyToPkHash } from './utils';
 import { encodePointerCommitment, findPointerUtxo, describeMigrationState } from './pointer';
 
+/**
+ * Card backed by the server payload plus wallet/contract services.
+ *
+ * Holds the raw server data in `raw` and resolves addresses and token
+ * categories from the active contract version entry. Wallet, AuthNftService,
+ * and TapToPay contract are attached by the `create*` factories.
+ */
 export class Card {
+  /**
+   * Creates a card wrapper around the server payload.
+   * @param {Object} [data] - Server card payload.
+   */
   constructor(data) {
     this.raw = data;
     // Normalize default lock status to unlocked (false)
@@ -31,79 +50,155 @@ export class Card {
     }
   }
 
+  /**
+   * Replaces the underlying server payload.
+   * @param {Object} data - Server card payload.
+   */
   set raw(data) {
     this._rawData = data;
   }
 
+  /**
+   * Returns the underlying server payload.
+   * @returns {Object}
+   */
   get raw() {
     return this._rawData;
   }
 
+  /**
+   * Returns the card alias.
+   * @returns {string|undefined}
+   */
   get alias() {
     return this.raw?.alias;
   }
 
+  /**
+   * Returns the server card id.
+   * @returns {string|number|undefined}
+   */
   get id() {
     return this.raw?.id;
   }
 
+  /**
+   * Returns the card UID from the NFC tag.
+   * @returns {string|undefined}
+   */
   get uid() {
     return this.raw?.uid;
   }
 
+  /**
+   * Returns the active contract cash address.
+   * @returns {string|undefined}
+   */
   get cashAddress() {
     return this._contractSource?.cash_address;
   }
 
+  /**
+   * Returns the active contract token address.
+   * @returns {string|undefined}
+   */
   get tokenAddress() {
     return this._contractSource?.token_address;
   }
 
+  /**
+   * Returns the cached BCH balance from server data.
+   * @returns {number}
+   */
   get bchBalance () {
     return this.raw?.bch_balance || 0;
   }
 
+  /**
+   * Returns true when the card is locked.
+   * @returns {boolean}
+   */
   get isLocked() {
     return !!this.raw?.is_locked;
   }
 
+  /**
+   * Returns true when transaction alerts are enabled.
+   * @returns {boolean|undefined}
+   */
   get isAlertsEnabled() {
     return this.raw?.is_alerts_enabled;
   }
 
+  /**
+   * Returns true when subscribed to transaction notifications.
+   * @returns {boolean|undefined}
+   */
   get isSubscribed() {
     return this.raw?.subscribed_to_transactions;
   }
 
+  /**
+   * Returns the active contract auth-token category.
+   * @returns {string|undefined}
+   */
   get authCategory() {
     return this._contractSource?.auth_token;
   }
 
+  /**
+   * Returns the active contract ownership-token category.
+   * @returns {string|undefined}
+   */
   get ownershipCategory() {
     return this._contractSource?.ownership_token;
   }
 
+  /**
+   * Returns true when the card completed activation.
+   * @returns {boolean|undefined}
+   */
   get isActivated() {
     return this.raw?.is_activated
   }
 
+  /**
+   * Returns all contract version entries for the card.
+   * @returns {Array}
+   */
   get contracts() {
     return this.raw?.contracts || []
   }
 
+  /**
+   * Returns the active contract version label (e.g. 'v1', 'v2').
+   * @returns {string|null}
+   */
   get activeContractVersion() {
     const active = this.contracts.find(c => c.is_active)
     return active?.version || this.raw?.contract?.version || null
   }
 
+  /**
+   * Returns true when a v2 contract entry exists.
+   * @returns {boolean}
+   */
   get hasV2Contract() {
     return this.contracts.some(c => c.version === 'v2')
   }
 
+  /**
+   * Returns the v2 contract entry, if present.
+   * @returns {Object|null}
+   */
   get v2Contract() {
     return this.contracts.find(c => c.version === 'v2') || null
   }
 
+  /**
+   * Returns true when v2 is the active contract version.
+   * @returns {boolean}
+   */
   get isV2Active() {
     return this.activeContractVersion === 'v2'
   }
@@ -236,6 +331,10 @@ export class Card {
     this.contract = createTapToPay(contractId, version);
   }
 
+  /**
+   * Returns the active contract version entry, if any.
+   * @returns {Object|null}
+   */
   get activeContractEntry() {
     return this.contracts.find(c => c.is_active) || null
   }
@@ -255,9 +354,9 @@ export class Card {
 
   // ==================== CONTRACT OPERATIONS ====================
   /**
-   * Returns BCH balance for card address. 
+   * Returns BCH balance for card address.
    * Fetches from server data, server queries blockchain.
-   * @returns {number}
+   * @returns {Promise<number>}
    */
   async getBchBalance() {
     const response = await backend.get(`/cards/${this.id}/bch-balance/`)
@@ -592,6 +691,11 @@ export class Card {
     }
   }
 
+  /**
+   * Submits the linking txid for server validation and processing.
+   * @param {string} linkingTxid - Linking (setOwner) transaction id.
+   * @returns {Promise<Object>}
+   */
   async processLinkingTx(linkingTxid) {
     cardLogger.log('Processing linking transaction with txid:', linkingTxid);
     return await backend.post(`/cards/process-linking-tx/`, { linking_txid: linkingTxid })
@@ -605,6 +709,13 @@ export class Card {
       });
   }
 
+  /**
+   * Polls the wallet until the linking token UTXO appears.
+   * @param {string} tokenId - Linking token category.
+   * @param {number} [interval=1000] - Delay between attempts in ms.
+   * @param {number} [maxAttempts=10] - Maximum number of attempts.
+   * @returns {Promise<Array>} The linking token UTXOs once visible.
+   */
   async pollForLinkingToken(tokenId, interval = 1000, maxAttempts = 10) {
     cardLogger.log(`Polling for linking token with tokenId: ${tokenId}`);
     let attempts = 0;
@@ -632,6 +743,7 @@ export class Card {
    * @param {string} tokenId - Auth category of the origin contract.
    * @param {number} [interval=2000] - Delay between attempts in ms.
    * @param {number} [maxAttempts=15] - Maximum number of attempts.
+   * @param {string} [tokenAddress] - Token address to scan; defaults to wallet token address.
    * @returns {Promise<Object>} The pointer UTXO once visible.
    */
   async pollForPointerUtxo(tokenId, interval = 2000, maxAttempts = 15, tokenAddress = null) {
@@ -703,6 +815,7 @@ export class Card {
    *   When set, the version, contract id, and ownership category are sent so
    *   the backend can issue the token for that version's own tokens.
    *   Omit for the default behavior used by V1 activation.
+   * @returns {Promise<Object|null>}
    */
   async requestLinkingToken({ version = null } = {}) {
     const data = {
@@ -882,6 +995,17 @@ export class Card {
     const attemptKey = `${this.wallet.walletHash}:${version}`;
     const provisioned = entry.linking_token || null;
     let lastAttempt = await getCardActivationAttempt(attemptKey).catch(() => null);
+
+    // A stored attempt whose linking token no longer matches the contract
+    // belongs to a different (relinked) contract. Resuming it would skip
+    // minting and try to issue a token that is not in the wallet, so discard it
+    // and start this version's activation fresh.
+    if (lastAttempt && provisioned && lastAttempt.linkingCategory && lastAttempt.linkingCategory !== provisioned) {
+      cardLogger.log(`[Card.activateContractVersion] Discarding stale ${version} attempt for a different contract`);
+      await clearCardActivationAttempt(attemptKey).catch(() => {});
+      lastAttempt = null;
+    }
+
     const needsToken =
       !lastAttempt ||
       (lastAttempt.status ?? CardActivationStatus.NONE) < CardActivationStatus.LINKING_TOKEN_OBTAINED;
@@ -910,8 +1034,13 @@ export class Card {
         });
         lastAttempt = await getCardActivationAttempt(attemptKey);
       } else if (lastAttempt.linkingCategory !== pollCategory) {
-        cardLogger.log(`[Card.activateContractVersion] Refreshing stale ${version} linking token in stored attempt`);
-        lastAttempt = await updateCardActivationAttempt(attemptKey, { linkingCategory: pollCategory });
+        cardLogger.log(`[Card.activateContractVersion] Resetting attempt for new ${version} linking token`);
+        lastAttempt = await saveCardActivationAttempt(attemptKey, {
+          linkingCategory: pollCategory,
+          walletHash: this.wallet.walletHash,
+          status: CardActivationStatus.LINKING_TOKEN_REQUESTED,
+          createdAt: lastAttempt.createdAt || Date.now(),
+        });
       }
     }
 
@@ -926,6 +1055,10 @@ export class Card {
     return this.activateVersion(version);
   }
 
+  /**
+   * Subscribes the card to transaction notifications. No-op when already subscribed.
+   * @returns {Promise<void>}
+   */
   async subscribeToTransactions() {
     if (this.isSubscribed) return;
     cardLogger.log('Subscribing to transactions for card ID:', this.id)
@@ -989,6 +1122,22 @@ export class Card {
     cardLogger.log('Minting global auth token...');
     this._assertAuthNftService();
     cardLogger.log('tokenId:', tokenId)
+
+    // Reuse a global auth token already minted by a previous partial run so a
+    // resume does not fail consuming an already-spent minting UTXO.
+    const existing = await this.wallet.getTokenUtxos(tokenId).catch(() => []);
+    const existingGlobal = existing.find(utxo => {
+      if (utxo?.token?.nft?.capability !== 'mutable') return false;
+      const commitment = utxo.token.nft.commitment;
+      if (!commitment) return false;
+      const decoded = decodeCommitment(commitment);
+      return !!decoded && decoded.hash === '';
+    });
+    if (existingGlobal) {
+      cardLogger.log('[Card._mintGlobalAuthToken] reusing existing global auth token:', existingGlobal.txid);
+      return { success: true, txid: existingGlobal.txid, reused: true };
+    }
+
     while (maxAttempts > 0) {
       try {
         const result = await this.authNftService.mint({ 
@@ -1117,6 +1266,13 @@ export class Card {
     }
   }
 
+  /**
+   * Sends all mutable auth tokens under a category to a destination address.
+   * @private
+   * @param {string} tokenId - Auth token category.
+   * @param {string} [toAddress] - Destination; defaults to the card token address.
+   * @returns {Promise<Object>}
+   */
   async _attemptIssueAuthTokens(tokenId, toAddress = null) {
     this._assertAuthNftService();
     const tokenUtxos = await this.wallet.getTokenUtxos(tokenId)
@@ -1576,10 +1732,8 @@ export class Card {
     const targetEntry = this.contracts.find(c => c.version === targetLabel);
     if (!targetEntry) throw new Error(`No ${targetLabel} contract found for this card`);
 
-    const targetCategory = targetEntry.ownership_token
-      || (targetEntry.contract_id || targetEntry.id
-        ? createTapToPay(targetEntry.contract_id || targetEntry.id, targetLabel).getOwnershipCategory()
-        : null);
+    const targetCategory = this._resolveVersionOwnershipCategory(targetEntry, targetLabel)
+      || targetEntry.ownership_token;
     if (!targetCategory) throw new Error('Unable to resolve target contract category');
 
     const source = sourceVersion || this.activeContractVersion;
@@ -1618,10 +1772,8 @@ export class Card {
     if (!targetEntry) throw new Error(`No ${targetLabel} contract found for this card`);
     const source = sourceVersion || this.activeContractVersion;
 
-    const targetCategory = targetEntry.ownership_token
-      || (targetEntry.contract_id || targetEntry.id
-        ? createTapToPay(targetEntry.contract_id || targetEntry.id, targetLabel).getOwnershipCategory()
-        : null);
+    const targetCategory = this._resolveVersionOwnershipCategory(targetEntry, targetLabel)
+      || targetEntry.ownership_token;
     if (!targetCategory) throw new Error('Unable to resolve target contract category');
 
     // Resume a previous partial run for the same source -> target, otherwise
@@ -1681,11 +1833,34 @@ export class Card {
 
   // ==================== HELPERS ====================
 
-    /**
-   * Helper to call progress callback if provided
+  /**
+   * Resolves a contract version's ownership category from the contract itself.
+   *
+   * The backend `ownership_token` field is scoped to the card rather than the
+   * contract version and can report another version's value, so the on-chain
+   * contract parameters are authoritative.
    * @private
-   * @param {Function} callback
-   * @param {string} message
+   * @param {Object} entry - Contract version entry.
+   * @param {string} version - Version label (e.g. 'v2').
+   * @returns {string|null}
+   */
+  _resolveVersionOwnershipCategory(entry, version) {
+    const contractId = entry?.contract_id || entry?.id;
+    if (!contractId) return null;
+    try {
+      return createTapToPay(contractId, version).getOwnershipCategory();
+    } catch (error) {
+      cardLogger.warn(`[Card._resolveVersionOwnershipCategory] Failed to derive ${version} category on-chain:`, error.message || error);
+      return null;
+    }
+  }
+
+  /**
+   * Calls the progress callback when provided.
+   * @private
+   * @param {Function} [callback] - Progress message callback.
+   * @param {string} message - Progress message.
+   * @returns {void}
    */
   _notifyCallbackFn(callback, message) {
     if (callback && typeof callback === 'function') {
@@ -1694,6 +1869,11 @@ export class Card {
   }
 }
 
+/**
+ * Normalizes FT balance payloads into a uniform list.
+ * @param {Object|Array} data - Raw balances, results, or map payload.
+ * @returns {Array<{tokenId: string, category: string, amount: number|string, balance: number|string}>}
+ */
 export function normalizeFtBalances(data) {
   const raw = data?.balances || data?.results || data || []
   const list = Array.isArray(raw) ? raw : Object.entries(raw).map(([tokenId, value]) => {
@@ -1707,6 +1887,14 @@ export function normalizeFtBalances(data) {
   }).filter(item => item.tokenId)
 }
 
+/**
+ * Lists sweepable FT balances for a contract address (no auth).
+ * @param {string} contractAddress - Contract cash or token address.
+ * @param {Object} [opts]
+ * @param {Array<string>} [opts.tokenIds] - Only return these categories.
+ * @param {boolean} [opts.includeUtxos] - Include UTXOs per token.
+ * @returns {Promise<Array>}
+ */
 export async function fetchFtBalances(contractAddress, { tokenIds = [], includeUtxos = false } = {}) {
   if (!contractAddress) throw new Error('Contract address is required')
   const params = {}
@@ -1744,10 +1932,20 @@ export function parseVersionNumber(version) {
   return parseInt(label.slice(1), 10)
 }
 
+/**
+ * Returns true when a history row is an on-chain mutation.
+ * @param {Object} item - ContractHistory row.
+ * @returns {boolean}
+ */
 export function isContractHistoryMutation(item) {
   return item?.tx_type === 'mutation'
 }
 
+/**
+ * Maps a history row to its display kind.
+ * @param {Object} item - ContractHistory row.
+ * @returns {string|null} 'cash-in', 'payment', 'sweep', or null when not displayable.
+ */
 export function getContractHistoryKind(item) {
   if (!item || isContractHistoryMutation(item)) return null
   if (item.direction === 'incoming' && (item.tx_type == null || item.tx_type === '')) return 'cash-in'
@@ -1756,6 +1954,11 @@ export function getContractHistoryKind(item) {
   return null
 }
 
+/**
+ * Normalizes a ContractHistory row for display. Returns null when not displayable.
+ * @param {Object} item - ContractHistory row.
+ * @returns {Object|null}
+ */
 export function normalizeContractHistoryItem(item) {
   if (!item) return null
   const kind = getContractHistoryKind(item)
@@ -1785,10 +1988,23 @@ export function normalizeContractHistoryItem(item) {
   }
 }
 
+/**
+ * Normalizes a list of ContractHistory rows, dropping non-displayable ones.
+ * @param {Array} items - ContractHistory rows.
+ * @returns {Array}
+ */
 export function normalizeContractHistoryList(items) {
   return (Array.isArray(items) ? items : []).map(normalizeContractHistoryItem).filter(Boolean)
 }
 
+/**
+ * Broadcasts a card transaction hex via the server.
+ * @param {string} txHex - Raw transaction hex.
+ * @param {string} txType - Transaction type (e.g. 'sweep').
+ * @param {Object} [opts]
+ * @param {string} [opts.cardIdOrUid] - Card id or uid for server linkage.
+ * @returns {Promise<Object>}
+ */
 export async function broadcastCardTransaction(txHex, txType, { cardIdOrUid } = {}) {
   if (!txHex) throw new Error('tx_hex is required')
   const payload = { tx_hex: txHex, tx_type: txType }

@@ -105,20 +105,11 @@ class TapToPay {
         }
 
         const path = `utxo/ct/${tokenAddress}/${tokenId}/`
-        cardLogger.log('[TapToPay.getTokenUtxos] GET', {
-            path,
-            tokenId,
-            tokenAddress,
-            contractAddress: this.getContract().address,
-            contractTokenAddress: this.getContract().tokenAddress,
-            params,
-        })
+        console.log('path:', path)
 
         let result = []
         const response = await watchtower.BCH._api.get(path, { params })
         cardLogger.log('[TapToPay.getTokenUtxos] response:', {
-            status: response?.status,
-            requestUrl: response?.request?.responseURL || response?.config?.url || path,
             data: response?.data,
         })
         result = response.data?.utxos
@@ -1131,6 +1122,8 @@ class TapToPayNft extends TapToPay {
      * @returns {Promise<Object>}
      */
     async mutatePointer ({ ownerWif, pointerUtxo, commitment, broadcast = true }) {
+        console.log('>>>>>>[mutatePointer] pointerUtxo:', pointerUtxo)
+        console.log('>>>>>>[mutatePointer] commitment:', commitment)
         if (!pointerUtxo) {
             throw new Error('Existing pointer NFT is required to re-point. Refusing to mint a new pointer.')
         }
@@ -1148,7 +1141,7 @@ class TapToPayNft extends TapToPay {
             throw new Error('Ownership tokens not found. Cannot re-point the pointer.')
         }
 
-        const normalizedPointer = {
+        const pointerInput = {
             txid: pointerUtxo.txid,
             vout: pointerUtxo.vout,
             satoshis: toBigInt(pointerUtxo.satoshis ?? pointerUtxo.value),
@@ -1157,17 +1150,29 @@ class TapToPayNft extends TapToPay {
                 category: String(pointerUtxo.token?.category),
                 nft: {
                     capability: String(pointerUtxo.token?.nft?.capability),
+                    commitment: String(pointerUtxo.token?.nft?.commitment),
+                },
+            },
+        }
+
+        const pointerOutput = {
+            to: contract.tokenAddress,
+            amount: toBigInt(pointerInput.satoshis),
+            token: {
+                ...pointerInput.token,
+                nft: {
+                    ...pointerInput.token.nft,
                     commitment: String(commitment),
                 },
             },
         }
 
-        const inputs = [ownerUtxo, catUtxo, normalizedPointer]
-        const outputs = [ownerUtxo, catUtxo, normalizedPointer].map(utxo => ({
-            to: contract.tokenAddress,
-            amount: toBigInt(utxo.satoshis),
-            token: utxo.token,
-        }))
+        const inputs = [ownerUtxo, catUtxo, pointerInput]
+        const outputs = [
+            { to: contract.tokenAddress, amount: toBigInt(ownerUtxo.satoshis), token: ownerUtxo.token },
+            { to: contract.tokenAddress, amount: toBigInt(catUtxo.satoshis), token: catUtxo.token },
+            pointerOutput,
+        ]
 
         const estimatedFee = this.estimateFee({
             numContractInputs: inputs.length,
@@ -1202,6 +1207,9 @@ class TapToPayNft extends TapToPay {
         if (broadcast) {
             const result = await this.broadcastTransaction(txHex)
             cardLogger.log('[mutatePointer] Transaction result:', result)
+            if (result?.data?.success === false) {
+                throw new Error(`Pointer mutation broadcast failed: ${result.data.error || result.data.message || 'unknown error'}`)
+            }
             return result.data
         }
         return { success: true, txHex }

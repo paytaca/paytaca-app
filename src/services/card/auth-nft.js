@@ -247,6 +247,9 @@ class AuthNftService {
         if (opts?.broadcast) {
             const txResult = await watchtower.BCH.broadcastTransaction(txHex)
             cardLogger.log('Mint transaction broadcast result:', txResult.data)
+            if (txResult.data?.success === false) {
+                throw new Error(`Mint broadcast failed: ${txResult.data.error || txResult.data.message || 'unknown error'}`)
+            }
             return { 
                 success: txResult.data.success, 
                 txid: txResult.data.txid
@@ -330,6 +333,9 @@ class AuthNftService {
         if (opts?.broadcast) {
             const txResult = await watchtower.BCH.broadcastTransaction(txHex)
             cardLogger.log('Transaction broadcast result:', txResult.data)
+            if (txResult.data?.success === false) {
+                throw new Error(`Issue broadcast failed: ${txResult.data.error || txResult.data.message || 'unknown error'}`)
+            }
             return { success: txResult.data.success, txid: txResult.data.txid }
         }
 
