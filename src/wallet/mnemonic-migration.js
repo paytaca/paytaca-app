@@ -178,10 +178,17 @@ export async function migrateMnemonicsToWalletHash() {
     }
   }
 
-  // Mark migration as completed
+  // Mark migration as completed ONLY if every migration attempt succeeded.
+  // If any error occurred, leave the flag unset so the legacy index-based keys
+  // remain valid and getMnemonic() can still fall back to them. Setting the flag
+  // despite errors makes those wallets look like they have no mnemonic.
+  if (errorCount > 0) {
+    console.error(`[Mnemonic Migration] ${errorCount} error(s) during migration; not marking migration complete.`)
+    return
+  }
   try {
     await SecureStoragePlugin.set({ key: MIGRATION_FLAG_KEY, value: 'true' })
-    if (migratedCount === 0 && errorCount === 0) {
+    if (migratedCount === 0) {
       console.warn(`[Mnemonic Migration] WARNING: No mnemonics were found to migrate!`)
     }
   } catch (error) {

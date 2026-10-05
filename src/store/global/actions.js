@@ -763,38 +763,21 @@ export async function cleanupNullAndDeletedWallets (context) {
   for (let i = vault.length - 1; i >= 0; i--) {
     const wallet = vault[i]
     
-    // Check if entry is null or deleted
+    // Only remove entries that carry no recoverable wallet data:
+    //  - null/undefined placeholders
+    //  - entries explicitly marked deleted (already wiped by deleteWallet)
+    // SECURITY: We deliberately do NOT run destructive secure-storage cleanup
+    // here. On Android a lost/invalidated Keystore key makes every mnemonic
+    // read return null, which is indistinguishable from "not found". Treating
+    // that as an orphan and deleting the vault entry + mnemonic permanently
+    // destroys the user's wallet on the next boot. Deletion only ever happens
+    // through the explicit global/deleteWallet action.
     if (wallet === null || wallet === undefined || wallet.deleted === true) {
       indicesToRemove.push(i)
       
       // If this is the current wallet, mark it for removal
       if (i === currentWalletIndex) {
         currentWalletRemoved = true
-      }
-      
-      // Perform complete cleanup for deleted/null wallets
-      // Check all possible wallet hash locations (post-migration pattern)
-      const walletHash = wallet?.wallet?.bch?.walletHash || 
-                         wallet?.wallet?.BCH?.walletHash ||
-                         wallet?.BCH?.walletHash || 
-                         wallet?.bch?.walletHash ||
-                         wallet?.walletHash
-      if (walletHash) {
-        // Try to get mnemonic for complete cleanup (including PIN)
-        let mnemonic = null
-        try {
-          mnemonic = await getMnemonicByHash(walletHash).catch(() => null)
-        } catch (err) {
-          // Couldn't get mnemonic, continue with cleanup without it
-        }
-        
-        // Perform complete cleanup
-        await deleteAllWalletData(walletHash, mnemonic, i).catch(err => {
-          console.error(`[Wallet Cleanup] Error cleaning up wallet at index ${i}:`, err)
-        })
-      } else {
-        // Fall back to index-based deletion if no wallet hash
-        await deleteMnemonic(i).catch(console.error)
       }
       continue
     }
@@ -837,25 +820,15 @@ export async function cleanupNullAndDeletedWallets (context) {
     }
     
     if (!mnemonic) {
-      // No mnemonic exists - this is an orphaned vault entry, remove it
-      indicesToRemove.push(i)
-      
-      // If this is the current wallet, mark it for removal
-      if (i === currentWalletIndex) {
-        currentWalletRemoved = true
-      }
-      
-      // Perform cleanup for orphaned entry (we don't have mnemonic, so can't delete PIN)
-      if (walletHash) {
-        // Clean up what we can without mnemonic
-        await deleteAllWalletData(walletHash, null, i).catch(err => {
-          console.error(`[Wallet Cleanup] Error cleaning up orphaned wallet at index ${i}:`, err)
-        })
-      } else {
-        // Fall back to index-based deletion if no wallet hash
-        await deleteMnemonic(i).catch(console.error)
-      }
-      
+      // SECURITY: Do NOT delete the vault entry or its secure-storage data.
+      // A missing/unreadable mnemonic is not proof the wallet is orphaned
+      // (e.g. a lost Android Keystore key makes reads return null). Keep the
+      // entry so funds are never silently lost; surface a warning instead.
+      console.warn(`[Wallet Cleanup] Mnemonic for wallet at index ${i} is missing or unreadable; keeping vault entry.`)
+      context.commit(
+        'setWalletRecoveryMessage',
+        `Wallet "${wallet?.name || i}" could not be read on this device. Restore it from your seed phrase backup if needed.`
+      )
     }
   }
 
