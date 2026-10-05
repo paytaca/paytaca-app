@@ -23,8 +23,8 @@
 	                    </div>
 	                    <img src="bitcoin-cash-circle.svg" class="bch-overlay-icon-small" alt="BCH" />
 	                  </div>
-	                  <div v-else-if="opt.name === 'spend bch'" class="default-text-color quick-action-icon-wrap">
-	                    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M2 7l1.5-4.5A2 2 0 0 1 5.4 1h13.2a2 2 0 0 1 1.9 1.5L22 7"/><path d="M2 7h20"/><path d="M2 7v12a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V7"/><path d="M7 7v2a3 3 0 0 0 6 0V7"/><path d="M13 7v2a3 3 0 0 0 6 0V7"/></svg>	                  </div>
+	                  <div v-else-if="opt.name === 'get help'" class="default-text-color quick-action-icon-wrap">
+	                    <q-icon name="support" size="22px" />	                  </div>
 	                  <div v-else class="default-text-color quick-action-icon-wrap">
 	                    <svg v-if="opt.name === 'send'" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
 	                    <svg v-else-if="opt.name === 'receive'" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 12 16 12 14 15 10 15 8 12 2 12"/><path d="M5.45 5.11L2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.45-6.89A2 2 0 0 0 16.76 4H7.24a2 2 0 0 0-1.79 1.11z"/></svg>
@@ -75,7 +75,7 @@ export default {
 	        { name: 'send', label: this.$t('Send'), icon: 'img:app-send.svg' },
 	        { name: 'receive', label: this.$t('Receive'), icon: 'img:app-receive.svg' },
 	        { name: 'cash in', label: this.$t('GetBCH', {}, 'Get BCH'), icon: 'img:cashin.svg' },
-	        { name: 'spend bch', label: this.$t('SpendBCH', {}, 'Spend BCH'), icon: 'storefront' }
+	        { name: 'get help', label: this.$t('GetHelp', {}, 'Get Help'), icon: 'support' }
 		],
 			stablehedgeOpt: [		
 		        { name: 'freeze', label: this.$t('Freeze'), icon: 'ac_unit' },
@@ -104,7 +104,7 @@ export default {
 	},
 	emits: [
 		'cashin',
-		'spend-bch',
+		'get-help',
 		'stats',
     'deposit',
     'redeem'
@@ -154,8 +154,8 @@ export default {
 	        case 'cash in':
 	          this.$router.push({ name: 'app-get-bch' })
 	          break
-	        case 'spend bch':
-	          this.$emit('spend-bch')
+	        case 'get help':
+	          this.$emit('get-help')
 	          break
 	        case 'stats':
 	        	this.$emit('stats')
@@ -163,6 +163,7 @@ export default {
 	      } 
 	},
 	disableButton (name) {
+		if (name === 'get help') return false
 		return !this.loaded
 	},
  		async openFreezeDialog() { 			

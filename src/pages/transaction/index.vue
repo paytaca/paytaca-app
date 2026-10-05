@@ -147,7 +147,7 @@
             data-tour="quick-actions"
             :loaded="balanceLoaded"
             :selectedDenomination="selectedDenomination"
-            @spend-bch="openSpendBch()"
+            @get-help="openSupport()"
           />
           <div class="row items-center justify-between q-mb-sm q-mt-sm">
             <div class="q-ml-lg button button-text-primary" style="font-size: 20px;">
@@ -1538,8 +1538,8 @@ export default {
       // console.log('Handling Ramp Notification')
       this.$router.push({ name: 'ramp-fiat', query: notif })
     },
-    openSpendBch () {
-      this.$router.push({ name: 'spend-bch' })
+    openSupport () {
+      this.$router.push({ name: 'app-support', query: { from: 'home' } })
     },
     goToAssetList () {
       this.$router.push({ name: 'asset-list' })
