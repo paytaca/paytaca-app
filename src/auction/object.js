@@ -1,3 +1,4 @@
+import { data } from 'autoprefixer'
 import { date } from 'quasar'
 
 const lotColors = {
@@ -13,102 +14,15 @@ const auctionColors = {
   'Open': 'green'
 }
 
-export class LotsList {
-  static parse(data) {
-    return new LotsList(data)
-  }
-
-  constructor(data) {
-    this.raw = data
-  }
-
-  get raw() {
-    return this.$raw
-  }
-
-  /**
-   * @param {Object} data
-   * @param {Number} data.id
-   * @param {String} data.title
-   * @param {String} data.description
-   * @param {Number|String} data.estimated_amount_bch
-   * @param {Number|String} data.estimated_amount_fiat
-   * @param {Number|String} data.threshold_bid_bch
-   * @param {Number|String} data.threshold_bid_fiat
-   * @param {Number|String} data.starting_price_bch
-   * @param {Number|String} data.starting_price_fiat
-   * @param {Number|String} data.price_drop_bch
-   * @param {Number|String} data.price_drop_fiat
-   * @param {String} data.time_interval
-   * @param {Boolean} data.is_fiat
-   * @param {Boolean} data.is_sold
-   * @param {String|null} data.date_sold
-   * @param {Number} data.category
-   * @param {String} data.auction_type
-   * @param {Number} data.auction
-   * @param {Array<Object|String>} data.images
-   * @param {Object|String} data.image
-   * @param {Array<Object|String>} data.bids
-   */
-  set raw(data) {
-    Object.defineProperty(this, '$raw', { enumerable: false, configurable: true, value: data })
-    this.id = data.id ? Number(data.id) : null
-    this.title = data.title || "Unnamed Lot"
-    this.description = data.description || ""
-
-    this.estimated_amount_bch = data.estimated_amount_bch !== undefined ? Number(data.estimated_amount_bch) : 0.00000000
-    this.estimated_amount_fiat = data.estimated_amount_fiat !== undefined ? Number(data.estimated_amount_fiat) : 0.00
-    this.threshold_bid_bch = data.threshold_bid_bch !== undefined ? Number(data.threshold_bid_bch) : 0.00000000
-    this.threshold_bid_fiat = data.threshold_bid_fiat !== undefined ? Number(data.threshold_bid_fiat) : 0.00
-    this.starting_price_bch = data.starting_price_bch !== undefined ? Number(data.starting_price_bch) : 0.00000000
-    this.starting_price_fiat = data.starting_price_fiat !== undefined ? Number(data.starting_price_fiat) : 0.00
-    this.price_drop_bch = data.price_drop_bch !== undefined ? Number(data.price_drop_bch) : 0.00000000
-    this.price_drop_fiat = data.price_drop_fiat !== undefined ? Number(data.price_drop_fiat) : 0.00
-    this.time_interval = data.time_interval || null
-    this.is_fiat = !!data.is_fiat
-
-    this.is_sold = !!data.is_sold
-    this.date_sold = data.date_sold || null
-    this.category = data.category || (data.category ? data.category.id : null)
-    this.category_name = data.category
-    this.auction_type = data.auction_type || null
-    this.auction = data.auction || (data.auction ? data.auction.id : null)
-    this.start_date = data.start_date || null
-    this.end_date = data.end_date || null
-    this.status_label = data.status || 'Inactive'
-    this.status_color = lotColors[this.status_label] || 'gray'
-    
-    this.images = Array.isArray(data.images) 
-      ? data.images.map(img => typeof img === 'object' ? img.image : img) 
-      : []
-    this.image = this.images[0] || null
-    this.bids = this.bids || []
-  }
-
-  // Returns the drop interval in minutes, parsed from the HH:MM:SS time_interval string
-  getIntervalMinutes() {
-    if (!this.time_interval) return 10
-    const parts = this.time_interval.split(':').map(Number)
-    if (parts.length !== 3 || parts.some(isNaN)) return 10
-    const [hours, minutes] = parts
-    return (hours * 60) + minutes
-  }
-
-  // Returns the drop interval in seconds, parsed from the HH:MM:SS time_interval string
-  getIntervalSeconds() {
-    if (!this.time_interval) return 10
-    const parts = this.time_interval.split(':').map(Number)
-    if (parts.length !== 3 || parts.some(isNaN)) return 10
-    const [hours, minutes, seconds] = parts
-    return (hours * 60 * 60) + (minutes * 60) + seconds
-  }
-
-  refreshStatus() {
-    this.status_color = lotColors[this.status_label]
-  }
-
+const deliveryColors = {
+  'Preparing': 'yellow',
+  'Shipped': 'orange',
+  'In Transit': 'green',
+  'Out for Delivery': 'blue',
+  'Delivered': 'gray'
 }
 
+// object class for Auctions
 export class AuctionList {
   static parse(data) {
     return new AuctionList(data)
@@ -122,50 +36,45 @@ export class AuctionList {
     return this.$raw
   }
 
-  /**
-   * @param {Object} data
-   * @param {Number} data.id
-   * @param {String} data.title
-   * @param {String} data.description
-   * @param {String} data.start_date
-   * @param {String} data.end_date
-   * @param {Boolean} data.is_open
-   * @param {Boolean} data.is_fiat
-   * @param {String|null} data.image
-   * @param {String} data.creation_date
-   * @param {Number} data.status
-   * @param {Number} data.type
-   * @param {Object|Number|String} data.user
-   * @param {Array<Object>} data.lots
-   */
   set raw(data) {
-    Object.defineProperty(this, '$raw', { enumerable: false, configurable: true, value: data })
-    
-    this.id = data.id ? Number(data.id) : null
-    this.title = data.title || "Standard Auction Event"
-    this.description = data.description || ""
-    this.start_date = data.start_date || null
-    this.end_date = data.end_date || null
-    this.is_open = data.is_open !== undefined ? !!data.is_open : true
-    this.is_fiat = data.is_fiat !== undefined ? !!data.is_fiat : true
-    this.image = data.image || null
-    this.creation_date = data.creation_date || null
-    this.status = data.status || null
-    
-    this.type = data.type
-    this.user = data.user || ""
-    this.username = data.username || ""
+    Object.defineProperty(
+      this, 
+      '$raw', 
+      { 
+        enumerable: false, 
+        configurable: true, 
+        value: data 
+      }
+    )
 
-    this.status_label = data.status || 'Upcoming'
-    this.status_color = auctionColors[this.status_label] || 'orange'
+    // Auction core information
+    this.id = data.id != null ? Number(data.id) : null
+    this.title = data.title ?? 'Standard Auction Event'
+    this.description = data.description ?? ''
+    this.type = data.type ?? 'N/A'
+
+    this.auctioneer = data.auctioneer ?? ''
+    this.username = data.auctioneer_username ?? ''
+
+    this.start_date = data.start_date ?? null
+    this.end_date = data.end_date ?? null
+    this.creation_date = data.creation_date ?? null
+
+    this.is_open = data.is_open ?? 'Upcoming'
+    this.is_fiat = data.is_fiat ?? 'N/A'
+
+    this.image = data.image ?? null
+    this.status = data.status ?? null
+
+    this.status_label = data.status ?? 'Upcoming'
+    this.status_color = auctionColors[this.status_label]
 
     this.lots = Array.isArray(data.lots)
-      ? data.lots.map(lotObj => LotsList.parse(lotObj))
+      ? data.lots.map(lotObj => LotsList.parse(lotObj, this))
       : []
   }
 
   refreshStatus() {   
-    console.log(this.status_label) 
     this.status_color = auctionColors[this.status_label]
   }
   
@@ -181,21 +90,139 @@ export class AuctionList {
   }
 }
 
-export class BidsList {
-  static parse(data) {
-    return new BidsList(data)
+// object class for Lots
+export class LotsList {
+  static parse(data, auction) {
+    return new LotsList(data, auction)
   }
 
-  constructor(data) {
-    this.id = data.id
-    this.user = data.user
-    this.username = data.username
-    this.lot = data.lot
-    this.status = data.status
-    this.bid_price_bch = Number(data.bid_price_bch)
-    this.bid_price_fiat = Number(data.bid_price_fiat)
-    this.is_final_bid = Number(data.is_final_bid)
-    this.bidding_date = data.bidding_date
+  constructor(data, auction = null) {
+    this.raw = data
+    this.auction = auction
+  }
+
+  get raw() {
+    return this.$raw
+  }
+
+  set raw(data) {
+    Object.defineProperty(
+      this, 
+      '$raw', 
+      { 
+        enumerable: false, 
+        configurable: true, 
+        value: data 
+      }
+    )
+    
+    // Lot core information
+    this.id = data.id != null ? Number(data.id) : null
+    this.title = data.title ?? 'Unnamed Lot'
+    this.description = data.description ?? ''
+    this.category = data.category ?? 'N/A'
+
+    // Est amt/original price
+    this.estimated_amount_bch = Number(data.estimated_amount_bch ?? 0)
+    this.estimated_amount_fiat = Number(data.estimated_amount_fiat ?? 0)
+
+    // Upper limit (English) or lowest limit (Dutch)
+    this.threshold_bid_bch = Number(data.threshold_bid_bch ?? 0)
+    this.threshold_bid_fiat = Number(data.threshold_bid_fiat ?? 0)
+
+    // Starting price of bidding
+    this.starting_price_bch = Number(data.starting_price_bch ?? 0)
+    this.starting_price_fiat = Number(data.starting_price_fiat ?? 0)
+
+    // (Dutch only)
+    this.price_drop_bch = Number(data.price_drop_bch ?? 0)
+    this.price_drop_fiat = Number(data.price_drop_fiat ?? 0)
+    this.time_interval = data.time_interval ?? null
+
+    // Dynamic values
+    this.is_sold = data.is_sold ?? null
+    this.date_sold = data.date_sold ?? null
+
+    this.status_label = data.status ?? 'Inactive'
+    this.status_color = lotColors[this.status_label]
+    
+    // Images
+    this.images = Array.isArray(data.images) 
+      ? data.images.map(img => typeof img === 'object' ? img.image : img) 
+      : []
+    this.image = this.images[0] ?? null
+
+    // Bid history
+    this.bids = Array.isArray(data.lots)
+      ? data.bids.map(bidObj => BidsList.parse(bidObj, this))
+      : []
+  }
+
+  // Returns the drop interval in minutes, parsed from the HH:MM:SS time_interval string
+  getIntervalMinutes() {
+    if (!this.time_interval) return 10
+
+    const parts = this.time_interval.split(':').map(Number)
+    if (parts.length !== 3 || parts.some(isNaN)) return 10
+
+    const [hours, minutes] = parts
+    return (hours * 60) + minutes
+  }
+
+  // Returns the drop interval in seconds, parsed from the HH:MM:SS time_interval string
+  getIntervalSeconds() {
+    if (!this.time_interval) return 10
+
+    const parts = this.time_interval.split(':').map(Number)
+    if (parts.length !== 3 || parts.some(isNaN)) return 10
+
+    const [hours, minutes, seconds] = parts
+    return (hours * 60 * 60) + (minutes * 60) + seconds
+  }
+
+  refreshStatus() {
+    this.status_color = lotColors[this.status_label]
+  }
+
+  hasBids() {
+    return this.bids?.length > 0
+  }
+
+}
+
+// object class for Bids
+export class BidsList {
+  static parse(data, lot) {
+    return new BidsList(data, lot)
+  }
+  
+  constructor(data, lot) {
+    this.raw = data
+    this.lot = lot
+  }
+
+  get raw() {
+    return this.$raw
+  }
+
+  set raw(data) {
+    Object.defineProperty(
+      this, 
+      '$raw', 
+      { 
+        enumerable: false, 
+        configurable: true, 
+        value: data 
+      }
+    )
+    
+    this.id = data.id != null ? Number(data.id) : null
+    this.bidder = data.bidder ?? null
+    this.bidder_username = data.bidder_username ?? null
+    this.status = data.status ?? null
+    this.bid_price_bch = Number(data.bid_price_bch ?? 0)
+    this.bid_price_fiat = Number(data.bid_price_fiat ?? 0)
+    this.bidding_date = data.bidding_date ?? null
   }
 }
 
@@ -212,16 +239,16 @@ export class AppealList {
     return this.$raw
   }
 
-  /**
-   * @param {Object} data
-   * @param {Number} data.id
-   * @param {String} data.status
-   * @param {String} data.creation_date
-   * @param {Array<String>} data.reasons
-   * @param {Object} data.bid
-   */
   set raw(data) {
-    Object.defineProperty(this, '$raw', { enumerable: false, configurable: true, value: data })
+    Object.defineProperty(
+      this, 
+      '$raw', 
+      { 
+        enumerable: false, 
+        configurable: true, 
+        value: data 
+      }
+    )
 
     this.id = data.id ? Number(data.id) : null
 
@@ -229,7 +256,7 @@ export class AppealList {
     this.lot_id = data.lotId ? Number(data.lotId) : null
     this.auction_id = data.auctionId ? Number(data.auctionId) : null
 
-    this.creation_date = data.creation_date || null
+    this.creation_date = data.creation_date ?? null
     this.timeSinceFiled = (() => {
       if (!this.creation_date) return '0s'
       
@@ -320,16 +347,16 @@ export class AppealDetails {
     return this.$raw
   }
 
-  /**
-   * @param {Object} data
-   * @param {Object} data.dispute
-   * @param {Number} data.lotId
-   * @param {Number} data.auctionId
-   * @param {Object|null} data.auctioneer
-   * @param {Object|null} data.bidder
-   */
   set raw(data) {
-    Object.defineProperty(this, '$raw', { enumerable: false, configurable: true, value: data })
+    Object.defineProperty(
+      this, 
+      '$raw', 
+      { 
+        enumerable: false, 
+        configurable: true, 
+        value: data 
+      }
+    )
 
     this.id = data.id ? Number(data.id) : null
 
@@ -431,5 +458,71 @@ export class AppealDetails {
 
     this.contract_address = data.contract_address || null
     this.balance = data.bid_price_bch !== undefined ? Number(data.bid_price_bch) : 0.00000000
+  }
+}
+
+export class DeliveryDetails {
+  static parse(data) {
+    return new DeliveryDetails(data)
+  }
+
+  constructor(data) {
+    this.raw = data
+  }
+
+  get raw() {
+    return this.$raw
+  }
+
+  set raw(data) {
+    Object.defineProperty(this, '$raw', { enumerable: false, configurable: true, value: data })
+    this.tracking_id = data.tracking_id ? Number(data.tracking_id) : null
+    this.lot_id = data.lotId ? Number(data.lotId) : null
+
+    this.sender_id = data.sender !== undefined ? Number(data.sender) : null
+    this.sender_location = data.sender_location !== undefined ? data.sender_location : null
+    
+    this.receiver_id = data.receiver !== undefined ? Number(data.receiver) : null
+    this.receiver_location = data.receiver_location !== undefined ? data.receiver_location : null
+    
+    this.courier = data.courier !== undefined ? data.courier : null
+    this.creation_date = data.creation_date || null
+
+    this.delivery_events = data.delivery_events || []
+    this.status_label = data.status || 'Preparing'
+    this.status_color = deliveryColors[this.status_label]
+
+    this.refreshStatus()
+  }
+
+  updateDeliveryEvent() {
+    this.status_label = data.status || null
+    this.status_color = deliveryColors[this.status_label]
+    this.description = data.description || null
+    this.location = data.location || null
+    this.event_date = data.event_date || null
+    
+  }
+
+  // Returns the drop interval in minutes, parsed from the HH:MM:SS time_interval string
+  getIntervalMinutes() {
+    if (!this.time_interval) return 10
+    const parts = this.time_interval.split(':').map(Number)
+    if (parts.length !== 3 || parts.some(isNaN)) return 10
+    const [hours, minutes] = parts
+    return (hours * 60) + minutes
+  }
+
+  // Returns the drop interval in seconds, parsed from the HH:MM:SS time_interval string
+  getIntervalSeconds() {
+    if (!this.time_interval) return 10
+    const parts = this.time_interval.split(':').map(Number)
+    if (parts.length !== 3 || parts.some(isNaN)) return 10
+    const [hours, minutes, seconds] = parts
+    return (hours * 60 * 60) + (minutes * 60) + seconds
+  }
+
+  refreshStatus() {
+    this.status_color = deliveryColors[this.status_label]
   }
 }
