@@ -40,8 +40,8 @@
               <q-select
                 outlined
                 dense
-                v-model="lotType" 
-                :options="lotTypeOptions"
+                v-model="lotCategory" 
+                :options="lotCategoryOptions"
                 autocomplete="off"
                 placeholder="Select lot type"
                 color="pt-primary1"
@@ -299,8 +299,8 @@ const darkMode = computed(() => $store.getters['darkmode/getStatus'])
 const bchToPhpRate = computed(() => $store.getters['market/getAssetPrice']('bch', 'php') || 0)
 
 const lotName = ref('')
-const lotType = ref('Physical')
-const lotTypeOptions = ['Physical', 'Digital']
+const lotCategory = ref('Physical')
+const lotCategoryOptions = ['Physical', 'Digital']
 const estimatedPrice = ref(0)
 const startingPrice = ref(0)
 const priceThreshold = ref(0)
@@ -419,7 +419,7 @@ const formatEquivalent = (value) => {
 watch([() => props.lotData, () => props.isFiatUsed], ([newLot]) => {
   if (newLot) {
     lotName.value = newLot.title || ''
-    lotType.value = newLot.type || 'Physical'
+    lotCategory.value = newLot.type || 'Physical'
 
     if (props.isFiatUsed) {
       estimatedPrice.value = Number(newLot.estimated_amount_fiat) || 0
@@ -482,7 +482,7 @@ const saveLot = async () => {
   const updatedPayload = {
     ...props.lotData,
     title: lotName.value,
-    type: lotType.value,
+    type: lotCategory.value,
     estimatedPrice: estimatedPrice.value,
     startingPrice: startingPrice.value,
     threshold: priceThreshold.value || 0,

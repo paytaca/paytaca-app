@@ -48,8 +48,8 @@
               <q-select
                 outlined
                 dense
-                v-model="lotType" 
-                :options="lotTypeOptions"
+                v-model="lotCategory" 
+                :options="lotCategoryOptions"
                 autocomplete="off"
                 placeholder="Select lot type"
                 color="pt-primary1"
@@ -301,8 +301,8 @@ const darkMode = computed(() => $store.getters['darkmode/getStatus'])
 const bchToPhpRate = computed(() => $store.getters['market/getAssetPrice']('bch', 'php'))
 
 const lotName = ref('')
-const lotType = ref('Physical')
-const lotTypeOptions = ['Physical', 'Digital']
+const lotCategory = ref('Physical')
+const lotCategoryOptions = ['Physical', 'Digital']
 const estimatedPrice = ref(0)
 const startingPrice = ref(0)
 const priceThreshold = ref(0)
@@ -492,7 +492,7 @@ const addLot = async () => {
 
   const payload = {
     title: lotName.value,
-    type: lotType.value,
+    type: lotCategory.value,
     estimatedPrice: estimatedPrice.value,
     startingPrice: startingPrice.value,
     threshold: priceThreshold.value || 0,
