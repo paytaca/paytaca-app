@@ -1479,39 +1479,33 @@ export default {
     },
     async onRefresh (done, skipConnectivity) {
       try {
-        // Refresh wallet balances and token icons
-        if (!skipConnectivity) {
-          await this.onConnectivityChange(true)
-        }
-        
-        // Fetch favorite tokens from API (includes balances for CashTokens)
-        await this.refreshFavoriteTokenBalances()
-        
-        // Refresh prices for all favorite tokens + BCH
-        await this.refreshDisplayedTokenPrices()
-        
-        // Refresh transaction list
-        if (this.$refs['transaction-list-component']) {
-          await this.$refs['transaction-list-component'].getTransactions(1)
-        }
-        
-        // Refresh pending transactions
+        // Only the above-the-fold balance/token data gates the pull-to-refresh
+        // spinner, so it is dismissed as soon as the visible cards are fresh.
+        // onConnectivityChange() already refreshes favorite token balances, so
+        // only call the standalone refresh when connectivity handling is skipped
+        // (this avoids a duplicate fetchAllTokensFromAPI request).
+        const coreTasks = [
+          skipConnectivity
+            ? this.refreshFavoriteTokenBalances()
+            : this.onConnectivityChange(true)
+        ]
+
+        // Prices and both transaction lists refresh in the background. They can
+        // take several seconds (history + per-token metadata enrichment) and
+        // each section keeps its current content visible until fresh data
+        // arrives, so they must not keep the spinner on screen.
+        this.refreshDisplayedTokenPrices().catch(() => {})
+        this.$refs['transaction-list-component']?.getTransactions(1).catch(() => {})
+        this.$refs['latest-transactions']?.refresh().catch(() => {})
+
+        // Refresh pending transactions and WalletConnect session requests
         this.pendingTransactionsKey++
-        
-        // Refresh WalletConnect session requests
         this.$store.dispatch('walletconnect/loadSessionRequests')
+
+        await Promise.allSettled(coreTasks)
       } catch (error) {
         console.error('Error refreshing:', error)
       } finally {
-        // Always refresh the latest transactions independently so a failure in
-        // any of the steps above cannot leave the home section stale.
-        try {
-          if (this.$refs['latest-transactions']) {
-            await this.$refs['latest-transactions'].refresh()
-          }
-        } catch (error) {
-          console.error('Error refreshing latest transactions:', error)
-        }
         done()
       }
     },
@@ -2676,6 +2670,14 @@ export default {
     -ms-overflow-style: none !important;
     scrollbar-width: none !important;
     -webkit-overflow-scrolling: touch !important;
+  }
+
+  /* Show the pull-to-refresh spinner in the middle of the viewport instead of
+     at the top edge (where it is mostly hidden behind the header). The puller
+     is translated down by 20px while refreshing, so offset by its own height to
+     land its center at 50% of the viewport. */
+  :deep(.q-pull-to-refresh__puller-container) {
+    top: calc(50% - 40px) !important;
   }
 
   #bch-card {
