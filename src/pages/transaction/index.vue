@@ -272,7 +272,7 @@
             </div>
           </div>
 
-          <PendingTransactions :key="pendingTransactionsKey"/>
+          <PendingTransactions ref="pending-transactions" />
 
           <LatestTransactions 
             ref="latest-transactions"
@@ -508,7 +508,6 @@ export default {
       websocketManager: null,
       assetClickTimer: null,
       assetClickCounter: 0 ,
-      pendingTransactionsKey: 0,
       loadingBchPrice: false,
       bchBalanceMode: localStorage.getItem('bchBalanceMode') || 'bch-only',
       favoriteTokenIds: [], // Store favorite token IDs for synchronous access (deprecated, kept for compatibility)
@@ -1509,7 +1508,7 @@ export default {
         this.$refs['latest-transactions']?.refresh().catch(() => {})
 
         // Refresh pending transactions and WalletConnect session requests
-        this.pendingTransactionsKey++
+        this.$refs['pending-transactions']?.refresh()
         this.$store.dispatch('walletconnect/loadSessionRequests')
 
         await Promise.allSettled(coreTasks)
@@ -1717,7 +1716,7 @@ export default {
         return this.getBalance(asset.id)
       })
       this.transactions = []
-      this.pendingTransactionsKey++
+      this.$refs['pending-transactions']?.refresh()
         // this.$refs['transaction-list-component'].getTransactions()
     },
     setTransactionsFilter(value) {
@@ -2618,7 +2617,7 @@ export default {
         if (this.$refs['latest-transactions']) {
           await this.$refs['latest-transactions'].refresh()
         }
-        this.pendingTransactionsKey++
+        this.$refs['pending-transactions']?.refresh()
       } catch (error) {
         console.error('Error refreshing latest transactions on mount:', error)
       }
