@@ -307,6 +307,7 @@ export default {
         cashbackData: null,
         merchantData: null,
         incorrectAddress: false,
+        recipientError: '',
         cauldron: {
           enable: false,
           token: null,
@@ -431,37 +432,34 @@ export default {
       }
     },
     validateAddress (address) {
-      if (!address) return { valid: false, error: this.$t('RecipientAddressRequired', {}, 'Recipient address is required') }
+      if (!address) return { valid: false, error: this.$t('RecipientAddressRequired', {}, 'Recipient address is required'), wrongTokenType: false }
 
       let lockingBytecode
       try {
         lockingBytecode = cashAddressToLockingBytecode(address)
       } catch {
-        return { valid: false, error: this.$t('InvalidRecipientAddress', {}, 'Invalid recipient address') }
+        return { valid: false, error: this.$t('InvalidRecipientAddress', {}, 'Invalid recipient address'), wrongTokenType: false }
       }
       if (typeof lockingBytecode === 'string') {
-        return { valid: false, error: this.$t('InvalidRecipientAddress', {}, 'Invalid recipient address') }
+        return { valid: false, error: this.$t('InvalidRecipientAddress', {}, 'Invalid recipient address'), wrongTokenType: false }
       }
 
       let decoded
       try {
         decoded = decodeCashAddress(address)
       } catch {
-        return { valid: false, error: this.$t('InvalidRecipientAddress', {}, 'Invalid recipient address') }
+        return { valid: false, error: this.$t('InvalidRecipientAddress', {}, 'Invalid recipient address'), wrongTokenType: false }
       }
       if (typeof decoded === 'string' || !decoded?.type) {
-        return { valid: false, error: this.$t('InvalidRecipientAddress', {}, 'Invalid recipient address') }
+        return { valid: false, error: this.$t('InvalidRecipientAddress', {}, 'Invalid recipient address'), wrongTokenType: false }
       }
 
       const isTokenAddress = decoded.type === CashAddressType.p2pkhWithTokens || decoded.type === CashAddressType.p2shWithTokens
-      if (this.isBch && isTokenAddress) {
-        return { valid: false, error: this.$t('TokenAddressNotAccepted', {}, 'Token addresses are not supported for BCH') }
-      }
       if (!this.isBch && !isTokenAddress) {
-        return { valid: false, error: this.$t('BchAddressNotAccepted', {}, 'Token addresses are required when sending tokens') }
+        return { valid: false, error: this.$t('BchAddressNotAccepted', {}, 'Token addresses are required when sending tokens'), wrongTokenType: true }
       }
 
-      return { valid: true, error: '' }
+      return { valid: true, error: '', wrongTokenType: false }
     },
     async buildTransaction (reset = () => {}) {
       this.customKeyboardState = 'dismiss'
@@ -1435,6 +1433,7 @@ export default {
           isLegacyAddress: false,
           cashbackData: null,
           incorrectAddress: false,
+          recipientError: '',
           cauldron: { enable: false, token: null, amountFormatted: '' },
           merchantData: null,
         })
@@ -1675,7 +1674,13 @@ export default {
 
       this.recipients[this.currentRecipientIndex].recipientAddress = value
       this.inputExtras[this.currentRecipientIndex].emptyRecipient = value === ''
-      this.inputExtras[this.currentRecipientIndex].incorrectAddress = false
+
+      const trimmed = String(value ?? '').trim()
+      const validation = trimmed ? this.validateAddress(trimmed) : { valid: true, wrongTokenType: false }
+      const showRecipientHint = !validation.valid && validation.wrongTokenType
+      this.inputExtras[this.currentRecipientIndex].incorrectAddress = showRecipientHint
+      this.inputExtras[this.currentRecipientIndex].recipientError = showRecipientHint ? validation.error : ''
+
       this.inputExtras[this.currentRecipientIndex].merchantData = null
       this.updateAddressPrecheckValues(isLegacy, isWalletAddress)
     },
@@ -1946,7 +1951,13 @@ export default {
         currentRecipient.recipientAddress = addressValidation.address
         return true
       } else {
-        raiseNotifyError(this.$t('InvalidAddress'))
+        this.inputExtras[this.currentRecipientIndex].incorrectAddress = true
+        this.inputExtras[this.currentRecipientIndex].recipientError = addressValidation.error
+        raiseNotifyError(
+          addressValidation.wrongTokenType
+            ? this.$t('NotATokenAddress', {}, 'Not a token address')
+            : this.$t('InvalidAddress')
+        )
         return false
       }
     },

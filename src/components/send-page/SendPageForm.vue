@@ -40,7 +40,7 @@
           emptyRecipient
             ? $t('EmptyRecipient')
             : inputExtras.incorrectAddress
-              ? $t(
+              ? inputExtras.recipientError || $t(
                   'InvalidRecipient',
                   { walletType: walletType.toUpperCase() },
                   `Recipient should be a valid ${walletType.toUpperCase()} address`
