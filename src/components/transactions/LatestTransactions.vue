@@ -204,7 +204,7 @@ export default {
   watch: {
     txAssetFilter (value) {
       localStorage.setItem('txAssetFilter', value)
-      this.loadTransactions()
+      this.loadTransactions(true)
     },
     favoriteTokenIds () {
       if (this.txAssetFilter === 'favorites-only' || this.txAssetFilter === 'bch+favorites') {
@@ -214,6 +214,8 @@ export default {
   },
 
   created () {
+    this._loadInFlight = null
+    this._loadRequestId = 0
     this.walletHash = this.resolveWalletHash()
     if (this.walletHash) {
       const cached = getCachedTransactions(this.walletHash, this.transactionsFilter)
@@ -333,9 +335,29 @@ export default {
       } catch { /* ignore */ }
       return null
     },
-    async loadTransactions () {
-      this.transactions = []
-      this.transactionsLoaded = false
+    async loadTransactions (reset = false) {
+      // Only dedupe background refreshes. A reset (e.g. filter change) must
+      // always run so it isn't dropped in favour of an in-flight load.
+      if (!reset && this._loadInFlight) return this._loadInFlight
+
+      // Show the skeleton only on the first load. On refreshes keep the current
+      // list visible until fresh data arrives, so the loader doesn't flash twice
+      // (the component loads on mount and the home page also refreshes it).
+      if (reset || !this.transactions.length) {
+        this.transactions = []
+        this.transactionsLoaded = false
+      }
+
+      const requestId = ++this._loadRequestId
+      const request = this._fetchTransactions(requestId)
+      this._loadInFlight = request
+      try {
+        return await request
+      } finally {
+        if (this._loadRequestId === requestId) this._loadInFlight = null
+      }
+    },
+    async _fetchTransactions (requestId) {
       try {
         if (!this.walletHash) {
           this.walletHash = getWalletByNetwork(this.wallet, 'bch').getWalletHash()
@@ -364,6 +386,7 @@ export default {
         const transactions = response.data.history || response.data
 
         if (!Array.isArray(transactions)) {
+          if (requestId !== this._loadRequestId) return
           this.transactions = []
           this.transactionsLoaded = true
           return
@@ -382,6 +405,8 @@ export default {
         const display = enrichedTransactions.slice(0, 5)
         const hasMore = response.data?.has_next || enrichedTransactions.length > 5
 
+        if (requestId !== this._loadRequestId) return
+
         this.transactions = display
         this.hasMoreTransactions = hasMore
         this.transactionsLoaded = true
@@ -391,6 +416,7 @@ export default {
         }
       } catch (error) {
         console.error('Error loading latest transactions:', error)
+        if (requestId !== this._loadRequestId) return
         if (!this.transactionsLoaded) {
           this.transactions = []
           this.transactionsLoaded = true
@@ -677,12 +703,13 @@ export default {
         this.transactionsFilter = 'all'
       }
       const cached = getCachedTransactions(this.walletHash, this.transactionsFilter)
-      if (cached && Array.isArray(cached.transactions) && cached.transactions.length) {
+      const hasCached = !!(cached && Array.isArray(cached.transactions) && cached.transactions.length)
+      if (hasCached) {
         this.transactions = cached.transactions.slice(0, 5)
         this.hasMoreTransactions = cached.hasMore
         this.transactionsLoaded = true
       }
-      this.loadTransactions()
+      this.loadTransactions(!hasCached)
     }
   }
 }
