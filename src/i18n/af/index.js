@@ -536,6 +536,7 @@ export default {
   ConfirmPin: "Bevestig PIN",
   ConfirmReservation: "Bevestig bespreking",
   ConfirmReservationError: "Kon nie bespreking bevestig nie. Probeer asseblief later weer.",
+  ConfirmReservationNotReady: "Jou bespreking is nog nie gereed nie. Probeer asseblief later weer.",
   ConfirmSwap: "Bevestig omruiling",
   Confirmation: "Bevestiging",
   Confirmed: "Bevestig",
