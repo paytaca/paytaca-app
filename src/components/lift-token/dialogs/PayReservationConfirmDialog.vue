@@ -79,7 +79,8 @@ import {
 } from "src/utils/denomination-utils";
 import { parseLiftToken } from "src/utils/engagementhub-utils/shared";
 import {
-  executePurchaseFlow
+  executePurchaseFlow,
+  appendLiftErrorRef
 } from "src/utils/engagementhub-utils/lift-token";
 import { raiseNotifyError } from 'src/utils/notify-utils';
 import { getMnemonic, Wallet } from "src/wallet"
@@ -176,9 +177,10 @@ export default {
         this.$refs.confirmDialogRef.$emit("ok");
         this.$refs.confirmDialogRef.hide();
       } catch (error) {
-        const message = this.$t(error?.message || 'PurchasePaymentError')
+        const code = error?.message || 'PurchasePaymentError'
+        const message = this.$t(code, {}, 'Something happened while processing your purchase. Please try again later.')
         console.error('PayReservationConfirmDialog purchase error:', message)
-        raiseNotifyError(message, 5000);
+        raiseNotifyError(appendLiftErrorRef(message, code), 5000);
       } finally {
         this.isSliderLoading = false;
       }
