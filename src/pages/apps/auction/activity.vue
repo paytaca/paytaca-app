@@ -201,8 +201,8 @@
         <q-select
           outlined
           dense
-          v-model="lotType"
-          :options="lotTypeOptions"
+          v-model="lotCategory"
+          :options="lotCategoryOptions"
           map-options
           autocomplete="off"
           color="pt-primary1"
@@ -416,8 +416,8 @@ const auctions = computed(() => $store.getters['auction/myAuctions'])
 const auctionSearchQuery = ref($store.getters['auction/auctionQueryActivity'] || '')
 
 // Lot-related variables
-const lotTypeOptions = $store.getters['auction/lotTypeOptions']
-const lotType = ref($store.getters['auction/lotTypeActivity'])
+const lotCategoryOptions = $store.getters['auction/lotCategoryOptions']
+const lotCategory = ref($store.getters['auction/lotCategoryActivity'])
 const lotDetails = computed(() => $store.getters['auction/myBiddings'])
 const lotHasBid = ref({})
 const lotSearchQuery = ref($store.getters['auction/lotQueryActivity'] || '')
@@ -598,8 +598,8 @@ const filteredListings = computed(() => {
 const filteredLots = computed(() => {
   let items = lotDetails.value
 
-  if (lotType.value !== 'All') 
-    items = items.filter(lot => lot.category === lotType.value)
+  if (lotCategory.value !== 'All') 
+    items = items.filter(lot => lot.category === lotCategory.value)
 
   const query = lotSearchQuery.value.toLowerCase().trim()
   if (query) {
