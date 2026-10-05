@@ -228,12 +228,12 @@ onBeforeUnmount(() => {
 
 // Variables
 const auctionTypeOptions = $store.getters['auction/auctionTypeOptions']
-const auctionType = ref('All')
+const auctionType = ref($store.getters['auction/auctionTypeIndex'] ?? 'All')
 const auctionSearchQuery = ref('') 
 
 // Filters the auction items
 const filteredListings = computed(() => {
-  let items = $store.getters['auction/filteredListings'] || []
+  let items = $store.getters['auction/filteredListings'] ?? []
   const query = auctionSearchQuery.value.trim().toLowerCase()
   return (query) ? items.filter(item => item.title?.toLowerCase().includes(query)) : items
 })
@@ -243,7 +243,10 @@ const isAuctionEmpty = computed(() => !isLoading.value && filteredListings.value
 
 // Keep tabs on the auction type so it would filter the items
 watch(auctionType, (newType) => {
-  $store.dispatch('auction/filterAuctionItems', newType)
+  $store.dispatch('auction/filterAuctionItems', {
+    type: newType,
+    isIndex: true
+  })
 })
 
 

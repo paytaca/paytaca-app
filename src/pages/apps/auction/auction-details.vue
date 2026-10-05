@@ -1,7 +1,7 @@
 <!-- eslint-disable vue/no-use-v-if-with-v-for -->
 <template>
   <!--
-    This page contains the auction details and list of lots.
+    This page contains the auction details and list of filteredLots.
   -->
   <q-pull-to-refresh
     id="app-container"
@@ -162,8 +162,8 @@
         <q-select
           outlined
           dense
-          v-model="lotType"
-          :options="lotTypeOptions"
+          v-model="lotCategory"
+          :options="lotCategoryOptions"
           autocomplete="off"
           color="pt-primary1"
           :bg-color="darkMode ? 'dark' : 'white'"
@@ -342,7 +342,7 @@
 import noImage from 'src/assets/no-image.svg'
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 import { useStore } from 'vuex'
-import { ref, computed, onMounted, onBeforeUnmount } from 'vue'
+import { ref, computed, watch, onMounted, onBeforeUnmount } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useQuasar, date } from 'quasar'
 import { callAPI } from 'src/auction/api'
@@ -378,38 +378,37 @@ const auctionStartCountdown = ref('Loading...')
 const listingsTotalTime = computed(() => Date.now() - $store.getters['auction/listingsLastFetched'])
 
 // Lot-related variables
-const lotType = ref('All')
-const lotTypeOptions = $store.getters['auction/lotTypeOptions']
+const lotCategory = ref($store.getters['auction/auctionLotCategory'] ?? 'All')
+const lotCategoryOptions = $store.getters['auction/lotCategoryOptions']
 const lotSearchQuery = ref('') 
-const lots = computed(() => $store.getters['auction/auctionLots'])
 
 const auctionLotsTotalTime = computed(() => Date.now() - $store.getters['auction/auctionLotsLastFetched'])
 const isLotEmpty = computed(() => !isLoading.value && filteredLots.value.length === 0)
 
 const filteredLots = computed(() => {
-  let targetLots = lots.value 
-  
-  if (lotType.value !== 'All') {
-    targetLots = targetLots.filter(lot => lot?.category === lotType.value)
-  }
-  
-  if (lotSearchQuery.value && lotSearchQuery.value.trim() !== '') {
-    const query = lotSearchQuery.value.toLowerCase().trim()
-    targetLots = targetLots.filter(lot => 
-      lot?.title?.toLowerCase().includes(query) || 
-      lot?.id?.toString().includes(query)
-    )
-  }
-  return targetLots
+  let targetLots = $store.getters['auction/filteredLots'] ?? []
+  const query = lotSearchQuery.value.trim().toLowerCase()
+  return (query) ? targetLots.filter(lot => lot?.title.toLowerCase().includes(query)) : targetLots
+})
+
+watch(lotCategory, (newType) => {
+  $store.dispatch('auction/filterAuctionLots', { type: newType })
 })
 
 const loadPageData = async () => {
   // Check if props.auctionId is the same as stored auctionId (to prevent repeated fetching)
+  console.log('auctionId: ', props.auctionId)
   const isSameAuctionId = $store.getters['auction/auctionId'] === Number(props.auctionId)
+
+  console.log('2. fetching data', {
+      isSameAuctionId,
+      listingsTotalTime: listingsTotalTime.value,
+      auctionLotsTotalTime: auctionLotsTotalTime.value
+  })
 
   await Promise.all([
     (!isSameAuctionId || listingsTotalTime.value > 30000)
-      ? $store.dispatch('auction/fetchAuctionData')
+      ? $store.dispatch('auction/fetchAuctionData', props.auctionId)
       : $store.dispatch('auction/fetchExistingAuctionData'),
 
     (!isSameAuctionId || auctionLotsTotalTime.value > 30000)
@@ -417,8 +416,8 @@ const loadPageData = async () => {
       : Promise.resolve()
   ])
 
-  if (auction.value?.type === 'Dutch' && lots.value.length) {
-    const allSold = lots.value.every(l => l.is_sold)
+  if (auction.value?.type === 'Dutch' && filteredLots.value.length) {
+    const allSold = filteredLots.value.every(l => l.is_sold)
     const notYetClosed = new Date(auction.value?.end_date) > new Date()
     
     if (allSold && notYetClosed) {
@@ -432,6 +431,8 @@ const loadPageData = async () => {
       })
     }
   }
+
+  console.log('3. Promise.all finished')
 }
 
 onMounted(async () => {
