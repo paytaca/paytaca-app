@@ -1,51 +1,42 @@
+import { AuctionList, LotsList } from "src/auction/object"
+
 export function filteredListings(state) {
-  const currentListings = state.listings || []
-  const activeTypeFilter = (state.auctionTypeIndex || 'All').toLowerCase()
+  const currentListings = state.listings ?? []
+  const activeTypeFilter = (state.auctionTypeIndex ?? 'All').toLowerCase()
 
-  if (activeTypeFilter === 'all') return currentListings
-  
-  return currentListings.filter(item => {
-    let typeLabel = ''
-    
-    if (item.raw?.type_id?.type) {
-      typeLabel = item.raw.type_id.type
-    } else if (item.raw?.type?.type) {
-      typeLabel = item.raw.type.type
-    } else {
-      const typeId = Number(item.type_id || item.raw?.type_id)
-      if (typeId === 1) typeLabel = 'English'
-      if (typeId === 2) typeLabel = 'Dutch'
-    }
-
-    return typeLabel.toLowerCase() === activeTypeFilter
-  })
+  return (activeTypeFilter === 'all') 
+    ? currentListings 
+    : currentListings.filter(item => {
+      const typeLabel = item.type ?? 'N/A'
+      return typeLabel.toLowerCase() === activeTypeFilter
+    })
 }
 
 // Options getters
 export function auctionTypeOptions(state) {
-  return state.auctionTypeOptions || ['English', 'Dutch', 'All']
+  return state.auctionTypeOptions ?? ['English', 'Dutch', 'All']
 }
 
 export function lotTypeOptions(state) {
-  return state.lotTypeOptions || ['Physical', 'Digital', 'All']
+  return state.lotTypeOptions ?? ['Physical', 'Digital', 'All']
 }
 
 
 // Index getters
 export function listings(state) {
-  return state.listings || []
+  return state.listings ?? []
 }
 
 export function listingsLastFetched(state) {
-  return state.listingsLastFetched || 0
+  return state.listingsLastFetched ?? 0
 }
 
 export function auctionTypeIndex(state) {
-  return state.auctionTypeIndex || ''
+  return state.auctionTypeIndex ?? ''
 }
 
 export function auctionQueryIndex(state) {
-  return state.auctionQueryIndex || ''
+  return state.auctionQueryIndex ?? ''
 }
 
 
@@ -55,23 +46,23 @@ export function auctionId(state){
 }
 
 export function auctionData(state){
-  return state.auctionData 
+  return state.auctionData ?? AuctionList({})
 }
 
 export function auctionLots(state) {
-  return state.auctionLots || []
+  return state.auctionLots ?? []
 }
 
 export function auctionLotsLastFetched(state) {
-  return state.auctionLotsLastFetched || 0
+  return state.auctionLotsLastFetched ?? 0
 }
 
 export function lotTypeAuction(state) {
-  return state.lotTypeAuction || 'All'
+  return state.lotTypeAuction ?? 'All'
 }
 
 export function auctionLotsImages(state) {
-  return state.auctionLotsImages || []
+  return state.auctionLotsImages ?? []
 }
 
 // Lot Details getters
@@ -80,113 +71,113 @@ export function lotId(state) {
 }
 
 export function lotData(state) {
-  return state.lotData 
+  return state.lotData ?? LotsList({})
 }
 
 export function lotDataLastFetched(state) {
-  return state.lotDataLastFetched || 0
+  return state.lotDataLastFetched ?? 0
 }
 
 export function lotImages(state) {
-  return state.lotImages || []
+  return state.lotImages ?? []
 }
 
 export function lotBids(state) {
-  return state.lotBids || []
+  return state.lotBids ?? []
 }
 
 export function highestBid(state) {
-  return state.highestBid || {}
+  return state.highestBid ?? {}
 }
 
 export function highestBidLastFetched(state) {
-  return state.highestBidLastFetched || 0
+  return state.highestBidLastFetched ?? 0
 }
 
 export function deliveryData(state) {
-  return state.deliveryData || {}
+  return state.deliveryData ?? {}
 }
 
 export function deliveryDataLastFetched(state) {
-  return state.deliveryDataLastFetched || 0
+  return state.deliveryDataLastFetched ?? 0
 }
 
 export function disputeData(state) {
-  return state.disputeData || {}
+  return state.disputeData ?? {}
 }
 
 export function disputeDataLastFetched(state) {
-  return state.disputeDataLastFetched || 0
+  return state.disputeDataLastFetched ?? 0
 }
 
 // Activity getters
 export function auctionTypeActivity(state) {
-  return state.auctionTypeActivity || 'All'
+  return state.auctionTypeActivity ?? 'All'
 }
 
 export function auctionQueryActivity(state) {
-  return state.auctionQueryActivity || ''
+  return state.auctionQueryActivity ?? ''
 }
 
 export function lotTypeActivity(state) {
-  return state.lotTypeActivity || 'All'
+  return state.lotTypeActivity ?? 'All'
 }
 
 export function lotQueryActivity(state) {
-  return state.lotQueryActivity || ''
+  return state.lotQueryActivity ?? ''
 }
 
 export function activityType(state) {
-  return state.activityType || 'My Bids'
+  return state.activityType ?? 'My Bids'
 }
 
 export function myBiddings(state) {
-  return state.myBiddings || []
+  return state.myBiddings ?? []
 }
 
 export function myBiddingsLastFetched(state) {
-  return state.myBiddingsLastFetched || 0
+  return state.myBiddingsLastFetched ?? 0
 }
 
 export function myAuctions(state) {
-  return state.myAuctions || []
+  return state.myAuctions ?? []
 }
 
 export function myAuctionsLastFetched(state) {
-  return state.myAuctionsLastFetched || 0
+  return state.myAuctionsLastFetched ?? 0
 }
 
 
 // Arbiter and Servicer Public Key Getters
 export function arbiterPublicKey(state) {
-  return state.arbiterPublicKey
+  return state.arbiterPublicKey ?? null
 }
 
 export function arbiterLastFetched(state) {
-  return state.arbiterLastFetched
+  return state.arbiterLastFetched ?? 0
 }
 
 export function servicerPublicKey(state) {
-  return state.servicerPublicKey
+  return state.servicerPublicKey ?? null
 }
 
 export function servicerLastFetched(state) {
-  return state.servicerLastFetched
+  return state.servicerLastFetched ?? 0
 }
 
 
 // User Details Getters
 // Getter for stored username
 export function username(state) {
-  return state.username
+  return state.username ?? false
 }
 
 // Getter for stored isArbiter
 export function isArbiter(state) {
-  return state.isArbiter
+  return state.isArbiter ?? false
 }
 
 // Getter for stored hasNetworkError (related to network errors during API calls)
 export function hasNetworkError(state) {
-  return state.hasNetworkError
+  return state.hasNetworkError ?? false
 }
