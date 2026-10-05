@@ -123,13 +123,13 @@
           <div :class="darkMode ? 'text-white' : 'text-black'">{{ $t('No Listings Created') }}</div>
         </div>
 
-        <div v-else v-for="auction in filteredListings" :key="auction.id" class="col-6 col-sm-4 q-pa-xs">
+        <div v-else v-for="auction in filteredListings" :key="auction?.id" class="col-6 col-sm-4 q-pa-xs">
           <q-card
             class="pt-card text-bow cursor-pointer"
             :class="getDarkModeClass(darkMode)"
             @click="$router.push({ 
               name: 'app-auction-details', 
-              params: { auctionId: auction.id },
+              params: { auctionId: auction?.id },
               query: { from: 'activity' }
             })"
           >
@@ -145,12 +145,12 @@
 
               <q-chip
                 dense
-                :color="auction.status_color"
+                :color="auction?.status_color"
                 text-color="white"
                 class="absolute text-caption text-weight-bold"
                 style="top: 8px; right: 8px; margin: 0; padding: 3px 8px; height: auto;"
               >
-                {{ auction.status }}
+                {{ auction?.status }}
               </q-chip>
             </div>
             
@@ -163,27 +163,27 @@
                 style="margin: 0; padding: 3px 8px; height: auto;"
               >
                 <q-icon name="gavel" size="xs" class="q-mr-xs" />
-                {{ auction.type }}
+                {{ auction?.type }}
               </q-chip>
 
-              <div class="text-subtitle1 text-weight-medium ellipsis-3-lines q-mb-xs">{{ auction.title }}</div>
+              <div class="text-subtitle1 text-weight-medium ellipsis-3-lines q-mb-xs">{{ auction?.title }}</div>
               
               <q-separator spaced="sm" />
 
               <div class="column q-gutter-y-xs">
                 <div class="row items-center q-gutter-x-xs text-caption text-weight-bold">
                   <q-icon
-                    :name="auction.status === 'Upcoming' ? 'event_available' : 'event_busy'"
+                    :name="auction?.status === 'Upcoming' ? 'event_available' : 'event_busy'"
                     style="font-size: 11px;"
                   />
                   <strong class="text-bow">
-                    {{ auction.status === 'Upcoming' ? 'Starts' : (auction.status === 'Closed' ? 'Ended' : 'Ends') }}
+                    {{ auction?.status === 'Upcoming' ? 'Starts' : (auction?.status === 'Closed' ? 'Ended' : 'Ends') }}
                   </strong>
                   <div>
                     {{
-                      auction.status === 'Upcoming'
-                        ? formatAuctionDate(auction.start_date)
-                        : formatAuctionDate(auction.end_date)
+                      auction?.status === 'Upcoming'
+                        ? formatAuctionDate(auction?.start_date)
+                        : formatAuctionDate(auction?.end_date)
                     }}
                   </div>
                 </div>
@@ -249,15 +249,15 @@
           <div :class="darkMode ? 'text-white' : 'text-black'">{{ $t('No Biddings Made') }}</div>
         </div>
 
-        <div v-else v-for="lot in filteredLots" :key="lot.id" class="col-6 col-sm-4 col-md-3 q-pa-sm">
+        <div v-else v-for="lot in filteredLots" :key="lot?.id" class="col-6 col-sm-4 col-md-3 q-pa-sm">
           <q-card
             class="pt-card text-bow cursor-pointer"
             :class="getDarkModeClass(darkMode)"
-            @click="$router.push({ name: 'app-auction-lot-details', params: { auctionId: lot.auction, lotId: lot.id }, query: { from: 'activity' }})"
+            @click="$router.push({ name: 'app-auction-lot-details', params: { auctionId: lot?.auction, lotId: lot?.id }, query: { from: 'activity' }})"
           >
             <div class="relative-position">
               <q-img
-                :src="lot.image || noImage"
+                :src="lot?.image || noImage"
                 ratio="1.25"
               >
                 <template v-slot:loading>
@@ -267,12 +267,12 @@
 
               <q-chip
                 dense
-                :color="lot.status_color"
+                :color="lot?.status_color"
                 text-color="white"
                 class="absolute text-caption text-weight-bold"
                 style="top: 8px; right: 8px; margin: 0; padding: 3px 8px; height: auto;"
               >
-                {{ lot.status }}
+                {{ lot?.status }}
               </q-chip>
             </div>
 
@@ -284,23 +284,23 @@
                 style="margin: 0; padding: 3px 8px; height: auto;"
               >
                 <q-icon
-                  :name="lot.category === 'Digital' ? 'computer' : 'delivery_dining'"
+                  :name="lot?.category === 'Digital' ? 'computer' : 'delivery_dining'"
                   size="xs"
                   class="q-mr-xs"
                 />
-                {{ lot.category }}
+                {{ lot?.category }}
               </q-chip>
 
               <div class="text-subtitle1 text-weight-medium ellipsis-2-lines q-mb-xs">
-                {{ lot.title }}
+                {{ lot?.title }}
               </div>
 
               <q-separator spaced="sm" />
               
-              <div v-if="lot.auction.type === 'English'" class="column q-gap-y-none q-mb-xs">
+              <div v-if="lot?.auction?.type === 'English'" class="column q-gap-y-none q-mb-xs">
                 <div class="text-caption text-weight-medium">{{ getEnglishPriceInfo(lot).label }}</div>
 
-                <template v-if="lot.auction.is_fiat">
+                <template v-if="lot?.auction?.is_fiat">
                   <div class="text-caption text-weight-bold">
                     {{ formatFiat(getEnglishPriceInfo(lot).fiat) }}
                   </div>
@@ -319,25 +319,25 @@
                 </template>
               </div>
               
-              <div v-else-if="lot.auction.type === 'Dutch'" class="column q-gap-y-sm q-mb-xs">
+              <div v-else-if="lot?.auction?.type === 'Dutch'" class="column q-gap-y-sm q-mb-xs">
                 <div class="column q-gap-y-none">
                   <div class="text-caption text-weight-medium">START PRICE:</div>
 
-                  <template v-if="lot.auction.is_fiat">
+                  <template v-if="lot?.auction?.is_fiat">
                     <div class="text-caption text-weight-bold">
-                      {{ formatFiat(lot.starting_price_fiat) }}
+                      {{ formatFiat(lot?.starting_price_fiat) }}
                     </div>
                     <div style="opacity: 0.65; margin-top: -2px; font-size: 11px;">
-                      {{ formatBCH(lot.starting_price_bch).main }}<span style="opacity: 0.4;">{{ formatBCH(lot.starting_price_bch).zeros }}</span>&nbsp;BCH
+                      {{ formatBCH(lot?.starting_price_bch).main }}<span style="opacity: 0.4;">{{ formatBCH(lot?.starting_price_bch).zeros }}</span>&nbsp;BCH
                     </div>
                   </template>
 
                   <template v-else>
                     <div class="text-caption text-weight-bold">
-                      {{ formatBCH(lot.starting_price_bch).main }}<span style="opacity: 0.4;">{{ formatBCH(lot.starting_price_bch).zeros }}</span>&nbsp;BCH
+                      {{ formatBCH(lot?.starting_price_bch).main }}<span style="opacity: 0.4;">{{ formatBCH(lot?.starting_price_bch).zeros }}</span>&nbsp;BCH
                     </div>
                     <div style="opacity: 0.65; margin-top: -2px; font-size: 11px;">
-                      {{ formatFiat(lot.starting_price_fiat) }}
+                      {{ formatFiat(lot?.starting_price_fiat) }}
                     </div>
                   </template>
                 </div>
@@ -347,21 +347,21 @@
                 <div class="column q-gap-y-none text-negative">
                   <div class="text-caption text-weight-bold">DROPS EVERY {{ getIntervalMinutesInfo(lot) }}M:</div>
 
-                  <template v-if="lot.auction.is_fiat">
+                  <template v-if="lot?.auction?.is_fiat">
                     <div class="text-caption text-weight-bold">
-                      -{{ formatFiat(lot.price_drop_fiat) }}
+                      -{{ formatFiat(lot?.price_drop_fiat) }}
                     </div>
                     <div style="opacity: 0.65; margin-top: -2px; font-size: 11px;">
-                      -{{ formatBCH(lot.price_drop_bch).main }}<span style="opacity: 0.4;">{{ formatBCH(lot.price_drop_bch).zeros }}</span>&nbsp;BCH
+                      -{{ formatBCH(lot?.price_drop_bch).main }}<span style="opacity: 0.4;">{{ formatBCH(lot?.price_drop_bch).zeros }}</span>&nbsp;BCH
                     </div>
                   </template>
 
                   <template v-else>
                     <div class="text-caption text-weight-bold">
-                      -{{ formatBCH(lot.price_drop_bch).main }}<span style="opacity: 0.4;">{{ formatBCH(lot.price_drop_bch).zeros }}</span>&nbsp;BCH
+                      -{{ formatBCH(lot?.price_drop_bch).main }}<span style="opacity: 0.4;">{{ formatBCH(lot?.price_drop_bch).zeros }}</span>&nbsp;BCH
                     </div>
                     <div style="opacity: 0.65; margin-top: -2px; font-size: 11px;">
-                      -{{ formatFiat(lot.price_drop_fiat) }}
+                      -{{ formatFiat(lot?.price_drop_fiat) }}
                     </div>
                   </template>
                 </div>
@@ -435,7 +435,7 @@ const getEnglishPriceInfo = (lot) => {
 }
 
 const fetchHasBidForLots = async (lotsArr) => {
-  const englishLots = (lotsArr || []).filter((lot) => lot.auction.type === 'English')
+  const englishLots = (lotsArr || []).filter((lot) => lot.auction?.type === 'English')
 
   await Promise.all(englishLots.map(async (lot) => {
     try {

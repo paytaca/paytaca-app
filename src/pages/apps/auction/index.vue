@@ -83,15 +83,15 @@
             <div :class="darkMode ? 'text-white' : 'text-black'">{{ $t('No Listings Listed') }}</div>
           </div>
 
-          <div v-else v-for="auction in filteredListings" :key="auction.id" class="col-6 col-sm-4 q-pa-xs">
+          <div v-else v-for="auction in filteredListings" :key="auction?.id" class="col-6 col-sm-4 q-pa-xs">
             <q-card
               class="pt-card text-bow cursor-pointer"
               :class="getDarkModeClass(darkMode)"
-              @click="$router.push({ name: 'app-auction-details', params: { auctionId: auction.id }})"
+              @click="$router.push({ name: 'app-auction-details', params: { auctionId: auction?.id }})"
             >
               <div class="relative-position">
                 <q-img 
-                  :src="auction.image || noImage"
+                  :src="auction?.image || noImage"
                   ratio="1.25"
                 >
                   <template v-slot:loading>
@@ -101,12 +101,12 @@
 
                 <q-chip
                   dense
-                  :color="auction.status_color"
+                  :color="auction?.status_color"
                   text-color="white"
                   class="absolute text-caption text-weight-bold"
                   style="top: 8px; right: 8px; margin: 0; padding: 3px 8px; height: auto;"
                 >
-                  {{ auction.status }}
+                  {{ auction?.status }}
                 </q-chip>
               </div>
             
@@ -118,27 +118,27 @@
                   style="margin: 0; padding: 3px 8px; height: auto;"
                 >
                   <q-icon name="gavel" size="xs" class="q-mr-xs" />
-                  {{ auction.type }}
+                  {{ auction?.type }}
                 </q-chip>
 
-                <div class="text-subtitle1 text-weight-medium ellipsis-3-lines q-mb-xs">{{ auction.title }}</div>
+                <div class="text-subtitle1 text-weight-medium ellipsis-3-lines q-mb-xs">{{ auction?.title }}</div>
                 
                 <q-separator spaced="sm" />
 
                 <div class="column q-gutter-y-xs">
                   <div class="row items-center q-gutter-x-xs text-caption text-weight-bold">
                     <q-icon
-                      :name="auction.status === 'Upcoming' ? 'event_available' : 'event_busy'"
+                      :name="auction?.status === 'Upcoming' ? 'event_available' : 'event_busy'"
                       style="font-size: 11px;"
                     />
                     <strong class="text-bow">
-                      {{ auction.status === 'Upcoming' ? 'Starts' : (auction.status === 'Closed' ? 'Ended' : 'Ends') }}
+                      {{ auction?.status === 'Upcoming' ? 'Starts' : (auction?.status === 'Closed' ? 'Ended' : 'Ends') }}
                     </strong>
                     <div>
                       {{
-                        auction.status === 'Upcoming'
-                          ? formatAuctionDate(auction.start_date)
-                          : formatAuctionDate(auction.end_date)
+                        auction?.status === 'Upcoming'
+                          ? formatAuctionDate(auction?.start_date)
+                          : formatAuctionDate(auction?.end_date)
                       }}
                     </div>
                   </div>

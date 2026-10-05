@@ -28,13 +28,13 @@
               <div class="row items-center q-gutter-sm">
                 <q-badge color="primary" class="q-pa-sm q-px-sm text-weight-bold">
                   <q-icon name="gavel" size="12px" class="q-mr-xs" />
-                  {{ auction.type }} Auction
+                  {{ auction?.type }} Auction
                 </q-badge>
                 <q-badge
-                  :color="auction.status_color"
+                  :color="auction?.status_color"
                   class="q-pa-sm q-px-sm text-weight-bold"
                 >
-                  {{ auction.status }}
+                  {{ auction?.status }}
                 </q-badge>
               </div>
               
@@ -67,19 +67,19 @@
                   
                   <div class="col column overflow-hidden">
                     <div class="row items-center no-wrap full-width">
-                      <span v-if="auction.auctioneer_username" class="text-weight-medium ellipsis col-shrink q-mr-xs">
-                        {{ auction.auctioneer_username }}
+                      <span v-if="auction?.auctioneer_username" class="text-weight-medium ellipsis col-shrink q-mr-xs">
+                        {{ auction?.auctioneer_username }}
                       </span>
                       <q-badge v-if="isAuctioneer" color="positive" class="q-px-xs no-shrink">
                         <q-icon name="star" size="10px" class="q-mr-xs" />You
                       </q-badge>
                     </div>
                     <span class="text-caption ellipsis" style="opacity: 0.6;">
-                      {{ auction.getEllipsisInMiddleAddress() }}
+                      {{ auction?.getEllipsisInMiddleAddress() }}
                     </span>
                   </div>
                   
-                  <q-btn flat round dense icon="content_copy" size="xs" @click="copyToClipboard(auction.auctioneer)" />
+                  <q-btn flat round dense icon="content_copy" size="xs" @click="copyToClipboard(auction?.auctioneer)" />
                 </div>
 
                 <q-separator />
@@ -97,7 +97,7 @@
                   <div class="text-caption col-4 q-mr-sm">
                     <q-icon name="event" size="13px" class="q-mr-xs" />Posted on
                   </div>
-                  <span>{{ formatAuctionDate(auction.creation_date) }}</span>
+                  <span>{{ formatAuctionDate(auction?.creation_date) }}</span>
                 </div>
               </q-card-section>
             </q-card>
@@ -115,7 +115,7 @@
                 <div class="text-body2 text-weight-medium">
                   {{ formatAuctionDate(auction?.start_date) }}
                 </div>
-                <div  v-if="auction.status === 'Upcoming'" class="text-secondary">
+                <div  v-if="auction?.status === 'Upcoming'" class="text-secondary">
                   Time Remaining: {{ auctionStartCountdown }}
                 </div>
                 <div  v-else class="text-secondary"></div>
@@ -128,7 +128,7 @@
                 <div class="text-body2 text-weight-medium">
                   {{ formatAuctionDate(auction?.end_date) }}
                 </div>
-                <div v-if="auction.status === 'Open'" class="text-secondary">
+                <div v-if="auction?.status === 'Open'" class="text-secondary">
                   Time Remaining: {{ auctionEndCountdown }}
                 </div>
                 <div  v-else class="text-secondary"></div>
@@ -212,15 +212,15 @@
           </div>
 
           <!-- Actual products -->
-          <div v-else v-for="lot in filteredLots" :key="lot.id" class="col-6 col-sm-4 col-md-3 q-pa-sm">
+          <div v-else v-for="lot in filteredLots" :key="lot?.id" class="col-6 col-sm-4 col-md-3 q-pa-sm">
             <q-card
               class="pt-card text-bow cursor-pointer"
               :class="getDarkModeClass(darkMode)"
-              @click="$router.push({ name: 'app-auction-lot-details', params: { auctionId: auctionId, lotId: lot.id } })"
+              @click="$router.push({ name: 'app-auction-lot-details', params: { auctionId: auctionId, lotId: lot?.id } })"
             >
               <div class="relative-position">
                 <q-img
-                  :src="lot.image"
+                  :src="lot?.image"
                   ratio="1.25"
                 >
                   <template v-slot:loading>
@@ -230,12 +230,12 @@
 
                 <q-chip
                   dense
-                  :color="lot.status_color"
+                  :color="lot?.status_color"
                   text-color="white"
                   class="absolute text-caption text-weight-bold"
                   style="top: 8px; right: 8px; margin: 0; padding: 3px 8px; height: auto;"
                 >
-                  {{  lot.status }}
+                  {{  lot?.status }}
                 </q-chip>
               </div>
 
@@ -247,15 +247,15 @@
                   style="margin: 0; padding: 3px 8px; height: auto;"
                 >
                   <q-icon
-                    :name="lot.category === 'Digital' ? 'computer' : 'delivery_dining'"
+                    :name="lot?.category === 'Digital' ? 'computer' : 'delivery_dining'"
                     size="xs"
                     class="q-mr-xs"
                   />
-                  {{ lot.category }}
+                  {{ lot?.category }}
                 </q-chip>
 
                 <div class="text-subtitle1 text-weight-medium ellipsis-2-lines q-mb-xs">
-                  {{ lot.title }}
+                  {{ lot?.title }}
                 </div>
 
                 <q-separator spaced="sm" />
@@ -288,19 +288,19 @@
 
                     <template v-if="auction?.is_fiat">
                       <div class="text-caption text-weight-bold">
-                        {{ formatFiat(lot.starting_price_fiat) }}
+                        {{ formatFiat(lot?.starting_price_fiat) }}
                       </div>
                       <div style="opacity: 0.65; margin-top: -2px; font-size: 11px;">
-                        {{ formatBCH(lot.starting_price_bch).main }}<span style="opacity: 0.4;">{{ formatBCH(lot.starting_price_bch).zeros }}</span>&nbsp;BCH
+                        {{ formatBCH(lot?.starting_price_bch).main }}<span style="opacity: 0.4;">{{ formatBCH(lot?.starting_price_bch).zeros }}</span>&nbsp;BCH
                       </div>
                     </template>
 
                     <template v-else>
                       <div class="text-caption text-weight-bold">
-                        {{ formatBCH(lot.starting_price_bch).main }}<span style="opacity: 0.4;">{{ formatBCH(lot.starting_price_bch).zeros }}</span>&nbsp;BCH
+                        {{ formatBCH(lot?.starting_price_bch).main }}<span style="opacity: 0.4;">{{ formatBCH(lot?.starting_price_bch).zeros }}</span>&nbsp;BCH
                       </div>
                       <div style="opacity: 0.65; margin-top: -2px; font-size: 11px;">
-                        {{ formatFiat(lot.starting_price_fiat) }}
+                        {{ formatFiat(lot?.starting_price_fiat) }}
                       </div>
                     </template>
                   </div>
@@ -308,23 +308,23 @@
                   <q-separator spaced="sm" />
 
                   <div class="column q-gap-y-none text-negative">
-                    <div class="text-caption text-weight-bold">DROPS EVERY {{ lot.getIntervalMinutes() }} MINUTES:</div>
+                    <div class="text-caption text-weight-bold">DROPS EVERY {{ lot?.getIntervalMinutes() }} MINUTES:</div>
 
                     <template v-if="auction?.is_fiat">
                       <div class="text-caption text-weight-bold">
-                        -{{ formatFiat(lot.price_drop_fiat) }}
+                        -{{ formatFiat(lot?.price_drop_fiat) }}
                       </div>
                       <div style="opacity: 0.65; margin-top: -2px; font-size: 11px;">
-                        -{{ formatBCH(lot.price_drop_bch).main }}<span style="opacity: 0.4;">{{ formatBCH(lot.price_drop_bch).zeros }}</span>&nbsp;BCH
+                        -{{ formatBCH(lot?.price_drop_bch).main }}<span style="opacity: 0.4;">{{ formatBCH(lot?.price_drop_bch).zeros }}</span>&nbsp;BCH
                       </div>
                     </template>
 
                     <template v-else>
                       <div class="text-caption text-weight-bold">
-                        -{{ formatBCH(lot.price_drop_bch).main }}<span style="opacity: 0.4;">{{ formatBCH(lot.price_drop_bch).zeros }}</span>&nbsp;BCH
+                        -{{ formatBCH(lot?.price_drop_bch).main }}<span style="opacity: 0.4;">{{ formatBCH(lot?.price_drop_bch).zeros }}</span>&nbsp;BCH
                       </div>
                       <div style="opacity: 0.65; margin-top: -2px; font-size: 11px;">
-                        -{{ formatFiat(lot.price_drop_fiat) }}
+                        -{{ formatFiat(lot?.price_drop_fiat) }}
                       </div>
                     </template>
                   </div>
@@ -390,14 +390,14 @@ const filteredLots = computed(() => {
   let targetLots = lots.value 
   
   if (lotType.value !== 'All') {
-    targetLots = targetLots.filter(lot => lot.category === lotType.value)
+    targetLots = targetLots.filter(lot => lot?.category === lotType.value)
   }
   
   if (lotSearchQuery.value && lotSearchQuery.value.trim() !== '') {
     const query = lotSearchQuery.value.toLowerCase().trim()
     targetLots = targetLots.filter(lot => 
-      lot.title?.toLowerCase().includes(query) || 
-      lot.id?.toString().includes(query)
+      lot?.title?.toLowerCase().includes(query) || 
+      lot?.id?.toString().includes(query)
     )
   }
   return targetLots
@@ -419,7 +419,7 @@ const loadPageData = async () => {
 
   if (auction.value?.type === 'Dutch' && lots.value.length) {
     const allSold = lots.value.every(l => l.is_sold)
-    const notYetClosed = new Date(auction.value.end_date) > new Date()
+    const notYetClosed = new Date(auction.value?.end_date) > new Date()
     
     if (allSold && notYetClosed) {
       const endDate = new Date().toISOString()
@@ -498,11 +498,11 @@ const connectWebsocket = () => {
 
         $store.commit('auction/updateAuctionLotsData', {
           attribute_name: 'start_date', 
-          data: auction.value.start_date
+          data: auction.value?.start_date
         })
         $store.commit('auction/updateAuctionLotsData', {
           attribute_name: 'end_date', 
-          data: auction.value.end_date
+          data: auction.value?.end_date
         })
         break
       case "auction.end": {
@@ -578,13 +578,13 @@ const clearSocket = () => {
 
 const toggleEditAuction = async () => {
   const now = new Date()
-  const startDate = new Date(auction.value.start_date)
+  const startDate = new Date(auction.value?.start_date)
   const minutesToStart = date.getDateDiff(startDate, now, 'minutes')
 
   if (minutesToStart > 30) {
     $router.push({ 
       name: 'app-auction-edit', 
-      params: { auctionId: auction.value.id }
+      params: { auctionId: auction.value?.id }
     })
   } else {
     $q.notify({
@@ -607,7 +607,7 @@ const canEdit = computed(() => {
   if (!isAuctioneer.value || !auction.value?.start_date) return false
 
   const now = new Date()
-  const startDate = new Date(auction.value.start_date)
+  const startDate = new Date(auction.value?.start_date)
   const minutesToStart = date.getDateDiff(startDate, now, 'minutes')
   
   return minutesToStart > 30
@@ -619,9 +619,9 @@ const canEdit = computed(() => {
 
 const getEnglishPriceInfo = (lot) => {
   return {
-    label: lot.hasBids() ? 'HIGHEST BID:' : 'STARTING PRICE:',
-    fiat: lot.threshold_bid_fiat,
-    bch: lot.threshold_bid_bch
+    label: lot?.hasBids() ? 'HIGHEST BID:' : 'STARTING PRICE:',
+    fiat: lot?.threshold_bid_fiat,
+    bch: lot?.threshold_bid_bch
   }
 }
 
