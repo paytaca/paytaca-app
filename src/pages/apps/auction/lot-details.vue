@@ -15,19 +15,19 @@
       <div v-if="!isLoading && lot && auction" class="q-pa-md text-bow" :class="getDarkModeClass(darkMode)">
         <div class="q-mb-lg text-left">
           <div class="text-h4 text-weight-bold q-mb-xs" style="overflow-wrap: break-word; word-wrap: break-word;">
-            Lot {{ lot.id }}: <span class="text-weight-regular">{{ lot.title }}</span>
+            Lot {{ lot?.id }}: <span class="text-weight-regular">{{ lot?.title }}</span>
           </div>
  
           <div class="row items-center q-gutter-sm q-mb-sm">
             <q-badge color="primary" class="q-pa-sm q-px-sm text-weight-bold">
-              <q-icon :name="lot.category_name === 'Digital' ? 'computer' : 'delivery_dining'" size="12px" class="q-mr-xs" />
-              {{ lot.category_name }}
+              <q-icon :name="lot?.category === 'Digital' ? 'computer' : 'delivery_dining'" size="12px" class="q-mr-xs" />
+              {{ lot?.category }}
             </q-badge>
             <q-badge
-              :color="lot.status_color"
+              :color="lot?.status_color"
               class="q-pa-sm q-px-sm text-weight-bold"
             >
-              {{ lot.status_label }}
+              {{ lot?.status }}
             </q-badge>
           </div>
         </div>
@@ -94,7 +94,7 @@
             <div v-if="!lot?.is_sold" class="row flex-center">
               <div class="text-secondary q-m-auto q-mt-md">
                 There {{ viewCount === 1 ? 'is' : 'are' }} {{ viewCount }} {{ viewCount === 1 ? 'person' : 'people' }}
-                currently viewing this lot.
+                currently viewing this lot?.
               </div>
             </div>
 
@@ -118,7 +118,7 @@
                     padding="md"
                     unelevated
                     :label="winningBid.value?.user === userWalletHash ? 'Highest Bidder' : 'Place Bid'"
-                    :disabled="lot.status_label !== 'Active' || winningBid.value?.user === userWalletHash || bidOrBuyLoading"
+                    :disabled="lot?.status !== 'Active' || winningBid.value?.user === userWalletHash || bidOrBuyLoading"
                     @click="openBidDialog"
                   />
                 </template>
@@ -128,7 +128,7 @@
                     style="background-color: var(--q-secondary);"
                     padding="md"
                     label="Buy It Now"
-                    :disabled="lot.status_label !== 'Active' || lot.value?.is_sold || bidOrBuyLoading"
+                    :disabled="lot?.status !== 'Active' || lot?.value?.is_sold || bidOrBuyLoading"
                     @click="buyItNow"
                     unelevated
                   />
@@ -403,7 +403,7 @@
                 </q-card>
                 
                 <q-card v-else flat bordered class="full-height">
-                  <q-card-section v-if="lot.is_sold" class="q-pa-sm">
+                  <q-card-section v-if="lot?.is_sold" class="q-pa-sm">
                     <div class="text-caption row items-center q-mb-sm">
                       <q-icon name="price_change" size="14px" class="q-mr-xs" />
                       Winning Bid Details
@@ -487,7 +487,7 @@
                       </div>
                     </div>
 
-                    <div v-if="lot.value?.is_sold" class="text-caption text-center q-mt-sm text-positive text-weight-medium">
+                    <div v-if="lot?.value?.is_sold" class="text-caption text-center q-mt-sm text-positive text-weight-medium">
                       <q-icon name="check_circle" size="12px" class="q-mr-xs" />Sold
                     </div>
                     <div v-else-if="!dutchAtFloor" class="q-mt-sm">
@@ -531,7 +531,7 @@
                         v-if="auction?.user?.username" 
                         class="text-weight-medium ellipsis col-shrink q-mr-xs" 
                       >
-                        {{ auction.user.username }}
+                        {{ auction.auctioneer_username }}
                       </span>
                       
                       <q-badge v-if="isAuctioneer" color="positive" class="q-px-xs no-shrink">
@@ -558,7 +558,7 @@
             <div class="column q-mt-xs">
               <div class="text-bold q-mb-xs">Description:</div>
               <p class="text-body2 text-left" style="white-space: pre-wrap; line-height: 1.5;">
-                {{ lot.description || 'No additional specifications provided.' }}
+                {{ lot?.description || 'No additional specifications provided.' }}
               </p>
             </div>
             
@@ -571,7 +571,7 @@
                 <div class="text-body2 text-weight-medium">
                   {{ formatAuctionDate(auction?.start_date) }}
                 </div>
-                <div  v-if="auction.status_label === 'Upcoming'" class="text-secondary">
+                <div  v-if="auction.status === 'Upcoming'" class="text-secondary">
                   Time Remaining: {{ auctionStartCountdown }}
                 </div>
                 <div  v-else class="text-secondary"></div>
@@ -583,7 +583,7 @@
                 <div class="text-body2 text-weight-medium">
                   {{ formatAuctionDate(auction?.end_date) }}
                 </div>
-                <div v-if="auction.status_label === 'Open'" class="text-secondary">
+                <div v-if="auction.status === 'Open'" class="text-secondary">
                   Time Remaining: {{ auctionEndCountdown }}
                 </div>
                 <div  v-else class="text-secondary"></div>
@@ -767,7 +767,7 @@ const auctionStartCountdown = ref('Loading...')
 const auction = computed(() => $store.getters['auction/auctionData'])
 const isAuctioneer = computed(() => {
   const walletHash = $store.getters['global/getWallet']('bch')?.walletHash
-  return walletHash === auction.value?.user
+  return walletHash === auction.value?.auctioneer
 })
 const isWinningBidder = computed(() => bidStatus.value === 'win')
 const attributeName = computed(() => auction.value?.is_fiat ? 'fiat' : 'bch')
@@ -775,7 +775,7 @@ const attributeName = computed(() => auction.value?.is_fiat ? 'fiat' : 'bch')
 // Lot-related variables
 const lot = computed(() => $store.getters['auction/lotData'])
 const lotImages = computed(() => $store.getters['auction/lotImages'])
-const isLotClosedOrSold = computed(() => lot.value.status_label === 'Closed' || lot.value?.status_label === 'Sold')
+const isLotClosedOrSold = computed(() => lot.value?.status === 'Closed' || lot.value?.status === 'Sold')
 const activeSlide = ref(0)
 
 // Bidding variables
@@ -920,7 +920,7 @@ const handlePlaceBid = async ({ bid_price_bch, bid_price_fiat }) => {
     $q.notify({ type: 'warning', message: 'Please connect your wallet first.' })
     return
   }
-  if (lot.value?.status_label !== 'Active' || auction.value?.status_label !== 'Open') {
+  if (lot.value?.status !== 'Active' || auction.value?.status !== 'Open') {
     $q.notify({ type: 'warning', message: 'This lot is not accepting bids.' })
     return
   }
@@ -1039,7 +1039,7 @@ const handleBuyItNow = async () => {
   bidOrBuyLoading.value = true
 
   try {
-    if (lot.value?.status_label !== 'Active' || auction.value?.status_label !== 'Open') {
+    if (lot.value?.status !== 'Active' || auction.value?.status !== 'Open') {
       throw new Error('This lot is no longer available.')
     }
 
@@ -1091,7 +1091,7 @@ const initEnglishDeliveryTracking = async () => {
 
   try {
     await callAPI('delivery-trackings', null, 'post', {
-      auctioneer: auction.value.user.id,
+      auctioneer: auction.value?.auctioneer,
       bidder: userWalletHash.value,
       lot: props.lotId,
       status: 1,
@@ -1106,17 +1106,10 @@ const initEnglishDeliveryTracking = async () => {
 }
 
 const fetchDeliveryTracking = async () => {
-  try {
-    const res = await callAPI('delivery-trackings', props.lotId)
-    if (res.success && res.data) {
-      const data = Array.isArray(res.data) ? res.data[0] : res.data
+  //const deliveryData
       deliveryStatusId.value = data?.status ?? null
       deliveredDate.value = data?.delivered_date ?? null
       isMarkedComplete.value = data?.mark_as_completed ?? false
-    }
-  } catch (err) {
-    console.warn('Could not fetch delivery tracking:', err)
-  }
 }
 
 const fetchDispute = async () => {
@@ -1187,20 +1180,20 @@ const updateRefundCountdown = () => {
 
 const listingsTotalTime = computed(() => Date.now() - $store.getters['auction/listingsLastFetched'])
 const auctionLotsTotalTime = computed(() => Date.now() - $store.getters['auction/auctionLotsLastFetched'])
+
 const loadPageData = async () => {
   const isSameLotId = $store.getters['auction/lotId'] === Number(props.lotId)
-  if(!isSameLotId) $store.commit('auction/setLotId', Number(props.lotId))
-  if(!isSameLotId || auctionLotsTotalTime.value > 3000) await $store.dispatch('auction/fetchLotData') 
-  else await $store.dispatch('auction/fetchExistingLotData')
-
   const isSameAuctionId = $store.getters['auction/auctionId'] === Number(props.auctionId)
-  if(!isSameAuctionId) $store.commit('auction/setAuctionId', Number(props.auctionId))
-  if(!isSameAuctionId || listingsTotalTime.value > 30000) await $store.dispatch('auction/fetchAuctionData')
-  else await $store.dispatch('auction/fetchExistingAuctionData')
 
-  await $store.dispatch('auction/fetchHighestBid')
+  await Promise.all([
+    !isSameLotId || auctionLotsTotalTime.value > 3000
+      ? $store.dispatch('auction/fetchLotData', props.lotId) 
+      : $store.dispatch('auction/fetchExistingLotData'),
+    !isSameAuctionId || listingsTotalTime.value > 30000
+      ? $store.dispatch('auction/fetchAuctionData', props.auctionId)
+      : $store.dispatch('auction/fetchExistingAuctionData'),
+  ])
   
-  await Promise.all([fetchDeliveryTracking(), fetchDispute()])
   if (deliveredDate.value) {
     updateRefundCountdown()
     refundCountdownInterval = setInterval(updateRefundCountdown, 1000)
@@ -1375,14 +1368,14 @@ const connectWebsocket = () => {
 
       // update the time interval
       case "lot.time_interval":
-        if (lot.value?.status_label !== 'Active' || lot.value?.is_sold) break
+        if (lot.value?.status !== 'Active' || lot.value?.is_sold) break
         secondsRemaining.value = data.seconds_remaining
         timeLeft.value = data.time_left
         break
 
       // update the price drop
       case "lot.drop_price":
-        if (lot.value?.status_label !== 'Active' || lot.value?.is_sold) break
+        if (lot.value?.status !== 'Active' || lot.value?.is_sold) break
         if (auction.value?.is_fiat) {
           dynamicPriceFiat.value = Number(data.price)
           dynamicPriceBch.value = bchToPhpRate.value > 0
