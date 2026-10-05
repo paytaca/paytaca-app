@@ -22,6 +22,7 @@
     "@capacitor/keyboard": "^5.0.9",
     "@capacitor/push-notifications": "^5.0.0",
     "@capacitor/share": "^5.0.8",
+    "@paytaca/escrow-key": "file:../capacitor-plugins/escrow-key",
     "capacitor-native-biometric": "^4.2.2"
   },
   "devDependencies": {

@@ -1,0 +1,32 @@
+{
+  "name": "@paytaca/escrow-key",
+  "version": "1.0.0",
+  "description": "Portable escrow storage for Paytaca seed vaults (iCloud Keychain / Google Block Store)",
+  "main": "src/index.js",
+  "module": "src/index.js",
+  "types": "src/index.d.ts",
+  "license": "MIT",
+  "files": [
+    "src/",
+    "ios/",
+    "android/",
+    "PaytacaEscrowKey.podspec"
+  ],
+  "keywords": [
+    "capacitor",
+    "plugin",
+    "native",
+    "escrow"
+  ],
+  "peerDependencies": {
+    "@capacitor/core": "^5.0.0"
+  },
+  "capacitor": {
+    "ios": {
+      "src": "ios"
+    },
+    "android": {
+      "src": "android"
+    }
+  }
+}

@@ -44,6 +44,10 @@
 		"classpath": "com.capacitorjs.plugins.share.SharePlugin"
 	},
 	{
+		"pkg": "@paytaca/escrow-key",
+		"classpath": "com.paytaca.escrowkey.EscrowKeyPlugin"
+	},
+	{
 		"pkg": "capacitor-native-biometric",
 		"classpath": "com.epicshaggy.biometric.NativeBiometric"
 	}

@@ -35,5 +35,8 @@ project(':capacitor-push-notifications').projectDir = new File('../node_modules/
 include ':capacitor-share'
 project(':capacitor-share').projectDir = new File('../node_modules/@capacitor/share/android')
 
+include ':paytaca-escrow-key'
+project(':paytaca-escrow-key').projectDir = new File('../../capacitor-plugins/escrow-key/android')
+
 include ':capacitor-native-biometric'
 project(':capacitor-native-biometric').projectDir = new File('../node_modules/capacitor-native-biometric/android')

@@ -26,6 +26,8 @@ PODS:
     - Capacitor
   - CapacitorShare (5.0.8):
     - Capacitor
+  - PaytacaEscrowKey (1.0.0):
+    - Capacitor
 
 DEPENDENCIES:
   - "Capacitor (from `../../node_modules/@capacitor/ios`)"
@@ -42,6 +44,7 @@ DEPENDENCIES:
   - CapacitorNativeBiometric (from `../../node_modules/capacitor-native-biometric`)
   - "CapacitorPushNotifications (from `../../node_modules/@capacitor/push-notifications`)"
   - "CapacitorShare (from `../../node_modules/@capacitor/share`)"
+  - PaytacaEscrowKey (from `../../../capacitor-plugins/escrow-key`)
 
 EXTERNAL SOURCES:
   Capacitor:
@@ -72,6 +75,8 @@ EXTERNAL SOURCES:
     :path: "../../node_modules/@capacitor/push-notifications"
   CapacitorShare:
     :path: "../../node_modules/@capacitor/share"
+  PaytacaEscrowKey:
+    :path: "../../../capacitor-plugins/escrow-key"
 
 SPEC CHECKSUMS:
   Capacitor: 7d42085cb786b2d3ea9ac8a17ebd7e3305be7b72
@@ -88,7 +93,8 @@ SPEC CHECKSUMS:
   CapacitorNativeBiometric: b47637a8cd349bdac014424bb4ddcae9ee5d4919
   CapacitorPushNotifications: 2327900bc002f5ff49ee6d2231796d0635b4a1b0
   CapacitorShare: abef1f7be4e10b448693b0b83b540cb4b92dc849
+  PaytacaEscrowKey: fcfb96e9d715eac4e5f21e2a2276ab62d1be2e83
 
-PODFILE CHECKSUM: 904e7a9b38aa313fd9a514d469080acd25f7185a
+PODFILE CHECKSUM: 3901270f11b1ac4985bda20aa9cb02f9aa855984
 
 COCOAPODS: 1.16.2

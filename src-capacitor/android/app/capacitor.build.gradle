@@ -20,6 +20,7 @@ dependencies {
     implementation project(':capacitor-keyboard')
     implementation project(':capacitor-push-notifications')
     implementation project(':capacitor-share')
+    implementation project(':paytaca-escrow-key')
     implementation project(':capacitor-native-biometric')
 
 }

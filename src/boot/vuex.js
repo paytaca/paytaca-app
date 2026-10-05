@@ -5,6 +5,7 @@ import { updatePreferences } from 'src/utils/indexed-db-rollback/update-preferen
 import { resetWalletsAssetsList } from 'src/utils/indexed-db-rollback/reset-asset-list'
 import { getAllWalletNames } from 'src/utils/wallet-name-cache'
 import { migrateMnemonicsToWalletHash } from 'src/wallet/mnemonic-migration'
+import { restoreOnBoot, syncToEscrow } from 'src/wallet/escrow-vault'
 import useStore from 'src/store'
 import limitsConfig from 'src/store/subscription/limits.json'
 import wizardconnectDefaultState from 'src/store/wizardconnect/state'
@@ -19,6 +20,16 @@ import nostrChatDefaultState from 'src/store/nostr-chat/state'
  */
 export default boot(async (obj) => {
   try {
+
+    // Ask the WebView to keep our storage (localStorage + IndexedDB) from being
+    // evicted under storage pressure. Best-effort only; a denial is harmless.
+    try {
+      if (navigator.storage && navigator.storage.persist) {
+        await navigator.storage.persist()
+      }
+    } catch (err) {
+      console.warn('[Boot] Storage persist request failed:', err)
+    }
 
     await migrateVuexStorage()
 
@@ -158,6 +169,13 @@ export default boot(async (obj) => {
 
     app.use(store)
 
+    // Restore any secrets that were lost with the local WebView storage key
+    // (or on a new device) from the account-backed escrow. Runs before wallet
+    // recovery so restored mnemonics are visible to it. Never blocks boot.
+    await restoreOnBoot().catch(error => {
+      console.error('[Boot] Escrow restore failed:', error)
+    })
+
     await recoverWalletsFromStorage().catch(error => {
       store.commit('global/setWalletRecoveryMessage', String(error))
     })
@@ -169,6 +187,12 @@ export default boot(async (obj) => {
     // This should run after wallet recovery but before cleanup
     await migrateMnemonicsToWalletHash().catch(error => {
       console.error('[Boot] Error migrating mnemonics:', error)
+    })
+
+    // Mirror irreplaceable secrets to the account-backed escrow. Fire-and-forget
+    // so a slow escrow write never delays boot.
+    syncToEscrow().catch(error => {
+      console.error('[Boot] Escrow sync failed:', error)
     })
     
     // Migrate existing wallets to have wallet-specific settings

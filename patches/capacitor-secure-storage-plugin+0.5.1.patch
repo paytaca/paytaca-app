@@ -1,8 +1,8 @@
 diff --git a/node_modules/capacitor-secure-storage-plugin/dist/esm/web.js b/node_modules/capacitor-secure-storage-plugin/dist/esm/web.js
-index db99e67..841a344 100644
+index db99e67..ec2be5e 100644
 --- a/node_modules/capacitor-secure-storage-plugin/dist/esm/web.js
 +++ b/node_modules/capacitor-secure-storage-plugin/dist/esm/web.js
-@@ -1,4 +1,111 @@
+@@ -1,4 +1,162 @@
  import { WebPlugin } from '@capacitor/core';
 +
 +// --- Paytaca patch: encrypt values at rest on web/BEX (AES-256-GCM) ---------
@@ -15,6 +15,8 @@ index db99e67..841a344 100644
 +const DB_STORE = 'keys';
 +const DB_KEY_ID = 'aes-gcm-256';
 +export const SECURE_STORAGE_DECRYPT_ERROR = 'SECURE_STORAGE_DECRYPT_FAILED';
++export const SECURE_STORAGE_KEY_MISSING = 'SECURE_STORAGE_KEY_MISSING';
++const SECURE_STORAGE_PREFIX = 'cap_sec_';
 +
 +const hasWebCrypto = typeof crypto !== 'undefined' &&
 +    !!crypto.subtle &&
@@ -67,13 +69,46 @@ index db99e67..841a344 100644
 +    });
 +}
 +
++function idbDelete(db, id) {
++    return new Promise((resolve, reject) => {
++        const request = db.transaction(DB_STORE, 'readwrite').objectStore(DB_STORE).delete(id);
++        request.onsuccess = () => resolve();
++        request.onerror = () => reject(request.error);
++    });
++}
++
 +let aesKeyPromise = null;
++let recoveryMode = false;
++
++// True when at least one encrypted value exists in localStorage. Used to
++// distinguish a fresh install (safe to generate a key) from a lost key that
++// still has data depending on it (must NOT silently generate a new one).
++function hasEncryptedData() {
++    for (let i = 0; i < localStorage.length; i++) {
++        const key = localStorage.key(i);
++        if (key && key.indexOf(SECURE_STORAGE_PREFIX) === 0) {
++            const value = localStorage.getItem(key);
++            if (value && value.startsWith(ENC_PREFIX)) {
++                return true;
++            }
++        }
++    }
++    return false;
++}
++
 +function getAesKey() {
 +    if (!aesKeyPromise) {
 +        aesKeyPromise = (async () => {
 +            const db = await openKeysDb();
 +            const existing = await idbGet(db, DB_KEY_ID);
 +            if (existing) return existing;
++            // Fail loud instead of silently minting a new key: if encrypted
++            // values exist but the key is gone (evicted/cleared IndexedDB),
++            // generating a new key would render every existing value
++            // undecryptable. Recovery must go through resetAesKeyForRecovery.
++            if (!recoveryMode && hasEncryptedData()) {
++                throw new Error(SECURE_STORAGE_KEY_MISSING);
++            }
 +            const key = await crypto.subtle.generateKey({ name: 'AES-GCM', length: 256 }, false, ['encrypt', 'decrypt']);
 +            await idbPut(db, DB_KEY_ID, key);
 +            return key;
@@ -83,6 +118,22 @@ index db99e67..841a344 100644
 +        });
 +    }
 +    return aesKeyPromise;
++}
++
++// Explicitly discard a missing/unusable key and mint a fresh one. Only call
++// after restoring the underlying values from escrow; this makes the existing
++// (undecryptable) ciphertext unreadable, which is the point.
++export async function resetAesKeyForRecovery() {
++    recoveryMode = true;
++    aesKeyPromise = null;
++    try {
++        const db = await openKeysDb();
++        await idbDelete(db, DB_KEY_ID);
++        return await getAesKey();
++    }
++    finally {
++        recoveryMode = false;
++    }
 +}
 +
 +async function encryptValue(plaintext) {
@@ -114,7 +165,7 @@ index db99e67..841a344 100644
  export class SecureStoragePluginWeb extends WebPlugin {
      constructor() {
          super({
-@@ -8,16 +115,31 @@ export class SecureStoragePluginWeb extends WebPlugin {
+@@ -8,16 +166,31 @@ export class SecureStoragePluginWeb extends WebPlugin {
          this.PREFIX = 'cap_sec_';
          this.addPrefix = (key) => this.PREFIX + key;
      }
