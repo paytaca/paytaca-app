@@ -17,8 +17,20 @@ export function auctionTypeOptions(state) {
   return state.auctionTypeOptions ?? ['English', 'Dutch', 'All']
 }
 
-export function lotTypeOptions(state) {
-  return state.lotTypeOptions ?? ['Physical', 'Digital', 'All']
+export function lotCategoryOptions(state) {
+  return state.lotCategoryOptions ?? ['Physical', 'Digital', 'All']
+}
+
+export function filteredLots(state) {
+  const currentAuctionLots = state.auctionLots ?? []
+  const activeTypeFilter = (state.auctionLotCategory ?? 'All').toLowerCase()
+
+  return (activeTypeFilter === 'all') 
+    ? currentAuctionLots
+    : currentAuctionLots.filter(lot => {
+      const typeLabel = lot.category ?? 'N/A'
+      return typeLabel.toLowerCase() === activeTypeFilter
+    })
 }
 
 
@@ -57,8 +69,8 @@ export function auctionLotsLastFetched(state) {
   return state.auctionLotsLastFetched ?? 0
 }
 
-export function lotTypeAuction(state) {
-  return state.lotTypeAuction ?? 'All'
+export function auctionLotCategory(state) {
+  return state.auctionLotCategory ?? 'All'
 }
 
 export function auctionLotsImages(state) {
@@ -119,8 +131,8 @@ export function auctionQueryActivity(state) {
   return state.auctionQueryActivity ?? ''
 }
 
-export function lotTypeActivity(state) {
-  return state.lotTypeActivity ?? 'All'
+export function lotCategoryActivity(state) {
+  return state.lotCategoryActivity ?? 'All'
 }
 
 export function lotQueryActivity(state) {

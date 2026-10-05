@@ -5,20 +5,15 @@ export function setListings(state, listings) {
 }
 
 export function updateAuction(state, auctionData) {
+  if(!state.listings) return 
+
   const auction = state.listings.find(
     item => Number(item.id) === Number(auctionData.id)
   )
-  console.log('Incoming status:', auctionData.status)
-  console.log('Before:', auction.status_label)
   if (!auction) return
-  Object.assign(auction, auctionData)
-
-  if (auctionData.status) {
-    auction.status_label = auctionData.status
-    auction.refreshStatus()
-  }
   
-  console.log('After:', auction.status_label)
+  Object.assign(auction, auctionData)
+  if (auctionData.status) auction.refreshStatus()
 }
 
 export function addAuction(state, auction) {
@@ -57,8 +52,8 @@ export function updateAuctionQueryActivity(state, auctionQueryActivity) {
   state.auctionQueryActivity = auctionQueryActivity
 }
 
-export function updateLotTypeActivity(state, lotTypeActivity) {
-  state.lotTypeActivity = lotTypeActivity
+export function updateLotCategoryActivity(state, lotCategoryActivity) {
+  state.lotCategoryActivity = lotCategoryActivity
 }
 
 export function updateLotQueryActivity(state, lotQueryActivity) {
@@ -86,8 +81,12 @@ export function setMyBiddingsLastFetched(state) {
   state.myBiddingsLastFetched = Date.now()
 }
 
-export function setmyAuctions(state, myAuctions) {
+export function setMyAuctions(state, myAuctions) {
   state.myAuctions = myAuctions
+}
+
+export function setMyAuctionsLastFetched(state) {
+  state.myAuctionsLastFetched = Date.now()
 }
 
 export function updateMyAuction(state, auctionData) {
@@ -98,7 +97,7 @@ export function updateMyAuction(state, auctionData) {
   if (!auction) return
   Object.assign(auction, auctionData)
   if (auctionData.status) {
-    auction.status_label = auctionData.status
+    auction.status = auctionData.status
     auction.refreshStatus()
   }
 }
@@ -114,11 +113,11 @@ export function removeMyAuction(state, auctionId) {
   )
 }
 
-export function setmyAuctionsLastFetched(state) {
-  state.myAuctionsLastFetched = Date.now()
+// Auction Details Page mutations
+export function updateLotCategory(state, lotCategory) {
+  state.auctionLotCategory = lotCategory
 }
 
-// Auction Details Page mutations
 export function setAuctionData(state, auctionData) {
   state.auctionData = auctionData
 }
@@ -129,13 +128,13 @@ export function setAuctionDataLastFetched(state) {
 
 export function updateAuctionData(state, {attribute_name, data}) {
   state.auctionData[attribute_name] = data
-  if (attribute_name == 'status_label') state.auctionData.refreshStatus()
+  if (attribute_name == 'status') state.auctionData.refreshStatus()
 }
 
 export function mergeAuctionData(state, auctionData) {
   if (Number(state.auctionData.id) !== Number(auctionData.id)) return
   Object.assign(state.auctionData, auctionData)
-  if (auctionData.status) state.auctionData.status_label = auctionData.status
+  if (auctionData.status) state.auctionData.status = auctionData.status
   state.auctionData.refreshStatus?.()
 }
 
@@ -154,7 +153,7 @@ export function setAuctionLotsLastFetched(state) {
 export function updateAuctionLotsData(state, {attribute_name, data}) {
   state.auctionLots.forEach(lot => {
     lot[attribute_name] = data
-    if (attribute_name == 'status_label') lot.refreshStatus()
+    if (attribute_name == 'status') lot.refreshStatus()
   })
 }
 
@@ -162,8 +161,8 @@ export function setAuctionLotsImages(state, auctionLotsImages) {
   state.auctionLotsImages = auctionLotsImages
 }
 
-export function updateLotTypeAuction(state, lotTypeAuction) {
-  state.lotTypeAuction = lotTypeAuction
+export function updateLotCategoryAuction(state, lotCategoryAuction) {
+  state.lotCategoryAuction = lotCategoryAuction
 }
 
 // Lot Details Page mutations
@@ -215,8 +214,8 @@ export function updateLotData(state, {attribute_name, data}) {
 export function mergeLotData(state, lotData) {
   if (Number(state.lotData.id) === Number(lotData.id)) {
     Object.assign(state.lotData, lotData)
-    if (lotData.status) state.lotData.status_label = lotData.status
-    state.lotData.is_sold = state.lotData.status_label === 'Sold'
+    if (lotData.status) state.lotData.status = lotData.status
+    state.lotData.is_sold = state.lotData.status === 'Sold'
     state.lotData.refreshStatus?.()
   }
 
@@ -225,8 +224,8 @@ export function mergeLotData(state, lotData) {
   )
   if (lot) {
     Object.assign(lot, lotData)
-    if (lotData.status) lot.status_label = lotData.status
-    lot.is_sold = lot.status_label === 'Sold'
+    if (lotData.status) lot.status = lotData.status
+    lot.is_sold = lot.status === 'Sold'
     lot.refreshStatus?.()
   }
 
@@ -235,8 +234,8 @@ export function mergeLotData(state, lotData) {
   )
   if (activityLot) {
     Object.assign(activityLot, lotData)
-    if (lotData.status) activityLot.status_label = lotData.status
-    activityLot.is_sold = activityLot.status_label === 'Sold'
+    if (lotData.status) activityLot.status = lotData.status
+    activityLot.is_sold = activityLot.status === 'Sold'
     activityLot.refreshStatus?.()
   }
 }

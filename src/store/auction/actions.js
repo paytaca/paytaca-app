@@ -17,8 +17,12 @@ PAGE UPDATE ACTIONS
 */
 
 // Filtering auction items by type (English, Dutch, or All)
-export async function filterAuctionItems({ commit }, type, isIndex) {
+export async function filterAuctionItems({ commit }, { type, isIndex=false }) {
   commit(`updateAuctionType${isIndex ? 'Index' : 'Activity'}`, type)
+}
+
+export async function filterAuctionLots({ commit }, { type }) {
+  commit('updateLotCategory', type)
 }
 
 // Filtering user activities
@@ -32,7 +36,7 @@ export async function fetchListings({ commit }) {
   if (response && response.success && Array.isArray(response.data)) {
     const listings = response.data.map(item => AuctionList.parse(item))
     commit('setListings', listings)
-    commit('setListingsLastFetch')
+    commit('setListingsLastFetched')
   } else 
   console.error(`[actions:fetchListings] Error encountered.`)
 }
@@ -212,20 +216,20 @@ export async function fetchMyBiddings({ commit }) {
   commit('setMyBiddings', lots)
 }
 
-export async function fetchmyAuctions({ commit }) {
+export async function fetchMyAuctions({ commit }) {
   let myAuctions = []
   const response = await callAPI('my-auctions')
 
   // successfully fetched data
   if (response && response.success && response.data) {
-    commit('setmyAuctionsLastFetched')
+    commit('setMyAuctionsLastFetched')
     myAuctions = Array.isArray(response.data) ?
       response.data.map(item => (!item) ? null : item instanceof AuctionList ? item : AuctionList.parse(item)) :
       AuctionList.parse(response.data)
   } else { // error occurred
     console.error('Failed to update auction details.')
   }
-  commit('setmyAuctions', myAuctions)
+  commit('setMyAuctions', myAuctions)
 }
 
 // Fetching CURRENT USER username
@@ -254,11 +258,12 @@ FETCHING AUCTION INFORMATION
 ============================
 */
 
-export async function fetchAuctionData({commit}, auctionId) {
+export async function fetchAuctionData({commit, dispatch}, auctionId) {
   const response = await callAPI('auctions', Number(auctionId))
   let auctionData = {}
   if (response && response.success && response.data) {
     auctionData = AuctionList.parse(response.data)
+    dispatch('fetchAuctionLots', auctionId)
     commit('setAuctionDataLastFetched')
   } else console.error('Failed to fetch auction details from server.')
   commit('setAuctionData', auctionData)
@@ -379,37 +384,43 @@ export async function fetchExistingHighestBid({ commit, getters }) {
 
 
 export async function fetchDeliveryTracking({commit}, lotId) {
-  try {
-    const res = await callAPI('delivery-trackings', lotId)
-    if (res.success && res.data) {
-      const data = Array.isArray(res.data) ? res.data[0] : res.data
-      deliveryStatusId.value = data?.status ?? null
-      deliveredDate.value = data?.delivered_date ?? null
-      isMarkedComplete.value = data?.mark_as_completed ?? false
-    }
-  } catch (err) {
-    console.warn('Could not fetch delivery tracking:', err)
+  const data = {
+    
   }
+  const res = await callAPI('delivery-trackings', lotId)
+  if (res.success && res.data) {
+    const data = Array.isArray(res.data) ? res.data[0] : res.data
+    deliveryStatusId.value = data?.status ?? null
+    deliveredDate.value = data?.delivered_date ?? null
+    isMarkedComplete.value = data?.mark_as_completed ?? false
+  } else console.warn('Could not fetch delivery tracking.')
 }
 
 export async function fetchDispute({commit}) {
-  try {
-    const res = await callAPI('disputes-by-bid', winningBid.value?.id)
-    if (res.success && res.data) {
-      const data = Array.isArray(res.data) ? res.data[0] : res.data
-      currentDispute.value = data || null
-      isGrantedRefund.value = data?.is_granted_refund ?? false
-      isGrantedReturn.value = data?.is_granted_return ?? false
-    }
-  } catch (err) {
-    console.warn('Could not fetch dispute:', err)
-    currentDispute.value = null
+  const res = await callAPI('disputes-by-bid', winningBid.value?.id)
+  if (res.success && res.data) {
+    const data = Array.isArray(res.data) ? res.data[0] : res.data
+    currentDispute.value = data || null
+    isGrantedRefund.value = data?.is_granted_refund ?? false
+    isGrantedReturn.value = data?.is_granted_return ?? false
   }
+  console.warn('Could not fetch dispute:', err)
+    
+}
+
+export async function fetchHasBidForLots(lotsArr) {
+  const englishLots = (lotsArr || []).filter((lot) => lot.auction_type === 'English')
+
+  return await Promise.all(englishLots.map(async (lot) => {
+      const result = await callAPI(`lots/${lot.id}/highest-bid`)
+      if (result.success && result.data && result.data.user !== null) {
+        return 
+      }
+      return false
+  }))
 }
 
 /* 
-
-
 ================================================================
 FETCHING PUBLIC KEYS FOR CONTRACT CREATION/INSTANTIATION
 ================================================================

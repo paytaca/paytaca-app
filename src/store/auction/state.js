@@ -2,7 +2,7 @@ export default function () {
   return {    
     // Option Types
     auctionTypeOptions: ['English', 'Dutch', 'All'],
-    lotTypeOptions: ['Physical', 'Digital', 'All'],
+    lotCategoryOptions: ['Physical', 'Digital', 'All'],
 
     // Index Page States
     auctionTypeIndex: 'All',
@@ -14,7 +14,7 @@ export default function () {
     activityType: 'My Bids',
     auctionTypeActivity: 'All',
     auctionQueryActivity: '',
-    lotTypeActivity: 'All',
+    lotCategoryActivity: 'All',
     lotQueryActivity: '',
     myBiddings: [],
     myBiddingsLastFetched: 0,
@@ -27,7 +27,7 @@ export default function () {
     auctionLots: [],
     auctionLotsImages: [],
     auctionLotsLastFetched: 0,
-    lotTypeAuction: 'All' ,
+    auctionLotCategory: 'All' ,
 
     // Lot Details Page States
     lotData: {},
