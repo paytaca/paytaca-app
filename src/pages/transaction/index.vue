@@ -425,6 +425,7 @@ import { updateAssetBalanceOnLoad } from 'src/utils/asset-utils'
 import { debounce } from 'quasar'
 import { refToHex } from 'src/utils/reference-id-utils'
 import { buildHomeTourSteps, HOME_TOUR_SEEN_KEY } from 'src/utils/home-tour'
+import { requestHomeDialog, resetHomeDialogQueue, blockHomeDialogs, unblockHomeDialogs } from 'src/utils/home-dialog-queue'
 
 import Transaction from '../../components/transaction'
 import AssetCards from '../../components/asset-cards'
@@ -539,6 +540,15 @@ export default {
       // This prevents the tour from competing with the backup reminder UI.
       if (!oldValue && newValue) {
         this._maybeAutoStartHomeTourAfterBackup()
+      }
+    },
+    securityOptionDialogStatus (value) {
+      // While the security preference dialog is up, hold off other home-load
+      // dialogs so they don't stack on top of it.
+      if (value === 'show' || value === 'show in settings') {
+        blockHomeDialogs('security-preference')
+      } else {
+        unblockHomeDialogs('security-preference')
       }
     },
     async isCashToken (newValue, oldValue) {
@@ -2231,15 +2241,21 @@ export default {
           sessionStorage.setItem('appUpdateDialogActive', '1')
           sessionStorage.setItem('appUpdateDialogActiveAt', Date.now().toString())
         } catch (_) {}
+        // Hold off other home-load dialogs while the update prompt is up.
+        blockHomeDialogs('version-update')
+        const clearUpdateBlocker = () => {
+          unblockHomeDialogs('version-update')
+          try { sessionStorage.removeItem('appUpdateDialogActive'); sessionStorage.removeItem('appUpdateDialogActiveAt') } catch (_) {}
+        }
         const dlg = this.$q.dialog({
           component: versionUpdate,
           componentProps: {
             data: response.data
           }
         })
-        dlg?.onOk?.(() => { try { sessionStorage.removeItem('appUpdateDialogActive'); sessionStorage.removeItem('appUpdateDialogActiveAt') } catch (_) {} })
-        dlg?.onCancel?.(() => { try { sessionStorage.removeItem('appUpdateDialogActive'); sessionStorage.removeItem('appUpdateDialogActiveAt') } catch (_) {} })
-        dlg?.onDismiss?.(() => { try { sessionStorage.removeItem('appUpdateDialogActive'); sessionStorage.removeItem('appUpdateDialogActiveAt') } catch (_) {} })
+        dlg?.onOk?.(clearUpdateBlocker)
+        dlg?.onCancel?.(clearUpdateBlocker)
+        dlg?.onDismiss?.(clearUpdateBlocker)
         return true
       } catch (error) {
         console.error('Error checking version update:', error)
@@ -2288,6 +2304,9 @@ export default {
         }
       }
       if (forceRecreate) {
+        // Block synchronously (don't wait for the watcher flush) so the backup
+        // reminder can't slip in ahead of the security dialog.
+        blockHomeDialogs('security-preference')
         this.securityOptionDialogStatus = 'show'
         // await vm.$store.dispatch('global/updateOnboardingStep', 0)
         // vm.$router.push('/accounts?recreate=true')
@@ -2313,16 +2332,22 @@ export default {
         // if (asset.data?.id) vm.selectAsset(null, asset.data)
       })
     },
+    _releaseBackupDialog () {
+      const release = this._backupDialogRelease
+      this._backupDialogRelease = null
+      if (typeof release === 'function') release()
+    },
     dismissAlertForSession () {
       // Store dismissal timestamp in sessionStorage
       // This persists during app runtime but gets cleared when app is fully closed and reopened
       sessionStorage.setItem('backupReminderDismissedTimestamp', Date.now().toString())
       this.alertDismissedForSession = true
       this.showBackupAlert = false
-      this.$store.commit('global/setBackupDialogActive', false)
+      this._releaseBackupDialog()
     },
     goToBackupPage () {
       this.showBackupAlert = false
+      this._releaseBackupDialog()
       this.$router.push('/apps/wallet-backup')
     },
     checkAndShowBackupAlert () {
@@ -2336,7 +2361,6 @@ export default {
             sessionStorage.removeItem('appUpdateDialogActive')
             sessionStorage.removeItem('appUpdateDialogActiveAt')
           } else {
-            this.$store.commit('global/setBackupDialogActive', false)
             return
           }
         }
@@ -2344,36 +2368,40 @@ export default {
 
       // Don't show if lastBackupTimestamp is already set for this wallet (user has confirmed backup)
       // Each wallet is tracked independently
-      if (this.lastBackupTimestamp) {
-        this.$store.commit('global/setBackupDialogActive', false)
-        return
-      }
+      if (this.lastBackupTimestamp) return
 
       // Check if user dismissed for this session (app runtime)
       // The dismissal is cleared in App.vue on mount (fresh app start)
       const dismissedTimestamp = sessionStorage.getItem('backupReminderDismissedTimestamp')
       if (dismissedTimestamp) {
         this.alertDismissedForSession = true
-        this.$store.commit('global/setBackupDialogActive', false)
         return
       }
 
       // Check if this is a newly created wallet
       const isNewWallet = this.$route.query.newWallet === 'true'
-      
+
       if (isNewWallet) {
-        // Show after delay for newly created wallets (4 seconds)
-        this.$store.commit('global/setBackupDialogActive', true)
+        // Queue after delay for newly created wallets (4 seconds)
         this.backupAlertTimeout = setTimeout(() => {
-          this.showBackupAlert = true
-          // Clear the query parameter after showing
-          this.$router.replace({ query: {} }).catch(() => {})
+          this._queueBackupDialog()
         }, 4000)
       } else {
-        // Show immediately for existing wallets
-        this.$store.commit('global/setBackupDialogActive', true)
-        this.showBackupAlert = true
+        // Queue immediately for existing wallets
+        this._queueBackupDialog()
       }
+    },
+    _queueBackupDialog () {
+      requestHomeDialog('backup-reminder', (done) => {
+        // Re-check at show time in case the wallet was backed up while queued
+        if (this.lastBackupTimestamp) return done()
+        this._backupDialogRelease = done
+        this.showBackupAlert = true
+        // Clear the query parameter after showing
+        if (this.$route.query.newWallet === 'true') {
+          this.$router.replace({ query: {} }).catch(() => {})
+        }
+      }, 20)
     }
   },
 
@@ -2388,6 +2416,8 @@ export default {
     if (this.backupAlertTimeout) {
       clearTimeout(this.backupAlertTimeout)
     }
+    // Release the queue if the backup dialog was still active when leaving.
+    this._releaseBackupDialog()
     // Remove the scoped WC2 session_request listener
     if (this._wcSessionRequestHandler) {
       try {
@@ -2416,6 +2446,8 @@ export default {
 
   },
   async mounted () {
+    // Fresh home page load: allow one home-load dialog at a time again.
+    resetHomeDialogQueue()
     try {
       const vm = this
       let walletLoadPromise
