@@ -120,10 +120,10 @@
           :class="darkMode ? 'bg-pt-dark' : 'bg-pt-light'"
           style="min-height: 70px; width: 100%;"
         >
-          <div :class="darkMode ? 'text-white' : 'text-black'">{{ $t('No Auctions Created') }}</div>
+          <div :class="darkMode ? 'text-white' : 'text-black'">{{ $t('No Listings Created') }}</div>
         </div>
 
-        <div v-else v-for="auction in filteredAuctions" :key="auction.id" class="col-6 col-sm-4 q-pa-xs">
+        <div v-else v-for="auction in filteredListings" :key="auction.id" class="col-6 col-sm-4 q-pa-xs">
           <q-card
             class="pt-card text-bow cursor-pointer"
             :class="getDarkModeClass(darkMode)"
@@ -150,7 +150,7 @@
                 class="absolute text-caption text-weight-bold"
                 style="top: 8px; right: 8px; margin: 0; padding: 3px 8px; height: auto;"
               >
-                {{ auction.status_label }}
+                {{ auction.status }}
               </q-chip>
             </div>
             
@@ -173,15 +173,15 @@
               <div class="column q-gutter-y-xs">
                 <div class="row items-center q-gutter-x-xs text-caption text-weight-bold">
                   <q-icon
-                    :name="auction.status_label === 'Upcoming' ? 'event_available' : 'event_busy'"
+                    :name="auction.status === 'Upcoming' ? 'event_available' : 'event_busy'"
                     style="font-size: 11px;"
                   />
                   <strong class="text-bow">
-                    {{ auction.status_label === 'Upcoming' ? 'Starts' : (auction.status_label === 'Closed' ? 'Ended' : 'Ends') }}
+                    {{ auction.status === 'Upcoming' ? 'Starts' : (auction.status === 'Closed' ? 'Ended' : 'Ends') }}
                   </strong>
                   <div>
                     {{
-                      auction.status_label === 'Upcoming'
+                      auction.status === 'Upcoming'
                         ? formatAuctionDate(auction.start_date)
                         : formatAuctionDate(auction.end_date)
                     }}
@@ -272,7 +272,7 @@
                 class="absolute text-caption text-weight-bold"
                 style="top: 8px; right: 8px; margin: 0; padding: 3px 8px; height: auto;"
               >
-                {{ lot.status_label }}
+                {{ lot.status }}
               </q-chip>
             </div>
 
@@ -284,11 +284,11 @@
                 style="margin: 0; padding: 3px 8px; height: auto;"
               >
                 <q-icon
-                  :name="lot.category_name === 'Digital' ? 'computer' : 'delivery_dining'"
+                  :name="lot.category === 'Digital' ? 'computer' : 'delivery_dining'"
                   size="xs"
                   class="q-mr-xs"
                 />
-                {{ lot.category_name }}
+                {{ lot.category }}
               </q-chip>
 
               <div class="text-subtitle1 text-weight-medium ellipsis-2-lines q-mb-xs">
@@ -297,10 +297,10 @@
 
               <q-separator spaced="sm" />
               
-              <div v-if="lot.auction_type === 'English'" class="column q-gap-y-none q-mb-xs">
+              <div v-if="lot.auction.type === 'English'" class="column q-gap-y-none q-mb-xs">
                 <div class="text-caption text-weight-medium">{{ getEnglishPriceInfo(lot).label }}</div>
 
-                <template v-if="lot.is_fiat">
+                <template v-if="lot.auction.is_fiat">
                   <div class="text-caption text-weight-bold">
                     {{ formatFiat(getEnglishPriceInfo(lot).fiat) }}
                   </div>
@@ -319,11 +319,11 @@
                 </template>
               </div>
               
-              <div v-else-if="lot.auction_type === 'Dutch'" class="column q-gap-y-sm q-mb-xs">
+              <div v-else-if="lot.auction.type === 'Dutch'" class="column q-gap-y-sm q-mb-xs">
                 <div class="column q-gap-y-none">
                   <div class="text-caption text-weight-medium">START PRICE:</div>
 
-                  <template v-if="lot.is_fiat">
+                  <template v-if="lot.auction.is_fiat">
                     <div class="text-caption text-weight-bold">
                       {{ formatFiat(lot.starting_price_fiat) }}
                     </div>
@@ -347,7 +347,7 @@
                 <div class="column q-gap-y-none text-negative">
                   <div class="text-caption text-weight-bold">DROPS EVERY {{ getIntervalMinutesInfo(lot) }}M:</div>
 
-                  <template v-if="lot.is_fiat">
+                  <template v-if="lot.auction.is_fiat">
                     <div class="text-caption text-weight-bold">
                       -{{ formatFiat(lot.price_drop_fiat) }}
                     </div>
@@ -376,12 +376,12 @@
 </template>
 
 <script setup>
-import { date } from 'quasar'
 import { useStore } from 'vuex'
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 import { computed, ref, onMounted, watch, onBeforeUnmount } from 'vue'
 import { useRouter } from 'vue-router'
 import { callAPI } from 'src/auction/api'
+import { formatAuctionDate, formatFiat, formatBCH } from './helper-functions'
 
 // Components
 import HeaderNav from 'src/components/header-nav.vue'
@@ -426,27 +426,6 @@ const lotSearchQuery = ref($store.getters['auction/lotQueryActivity'] || '')
 // FORMATTING FUNCTIONS
 // ====================
 
-const formatFiat = (value) => {
-  const numValue = Number(value) || 0
-  return `
-  ₱${numValue.toLocaleString('en-US', 
-    { 
-      minimumFractionDigits: 2, 
-      maximumFractionDigits: 2 
-    }
-  )}`
-}
-
-const formatBCH = (value) => {
-  const bch = Number(value) || 0
-
-  const numStr = Number(bch).toFixed(8);
-  const match = numStr.match(/^(.*?)0*$/);
-  const main = match ? match[1] : numStr;
-  const zeros = numStr.substring(main.length);
-  return { main, zeros, full: numStr };
-}
-
 const getEnglishPriceInfo = (lot) => {
   return {
     label: lotHasBid.value[lot.id] ? 'HIGHEST BID:' : 'STARTING PRICE:',
@@ -456,7 +435,7 @@ const getEnglishPriceInfo = (lot) => {
 }
 
 const fetchHasBidForLots = async (lotsArr) => {
-  const englishLots = (lotsArr || []).filter((lot) => lot.auction_type === 'English')
+  const englishLots = (lotsArr || []).filter((lot) => lot.auction.type === 'English')
 
   await Promise.all(englishLots.map(async (lot) => {
     try {
@@ -467,23 +446,6 @@ const fetchHasBidForLots = async (lotsArr) => {
       lotHasBid.value[lot.id] = false
     }
   }))
-}
-
-const formatAuctionDate = (dateString) => date.formatDate(dateString, 'MMM DD, YYYY hh:mm A')
-
-
-const getReactiveLotStatus = (lot) => {
-  return {
-    label: lot.status_label,
-    color: lot.status_color
-  }
-}
-
-const getReactiveAuctionStatus = (auction) => {
-  return {
-    label: auction.status_label,
-    color: auction.status_color
-  }
 }
 
 /*
@@ -578,9 +540,7 @@ const clearWebsocket = () => {
 }
 
 onMounted(async () => {
-  console.log('PENI ', $store.state.auction)
-  console.log(activityType.value)
-  fetchMyData()
+  await fetchMyData()
   socket = connectWebsocket()
 })
 
@@ -620,7 +580,7 @@ watch(lotDetails, (newLots) => {
 FILTERING DATA
 ==============
 */
-const filteredAuctions = computed(() => {
+const filteredListings = computed(() => {
   let items = auctions.value
 
   if (auctionType.value !== 'All') 
@@ -639,7 +599,7 @@ const filteredLots = computed(() => {
   let items = lotDetails.value
 
   if (lotType.value !== 'All') 
-    items = items.filter(lot => lot.category_name === lotType.value)
+    items = items.filter(lot => lot.category === lotType.value)
 
   const query = lotSearchQuery.value.toLowerCase().trim()
   if (query) {
@@ -651,7 +611,7 @@ const filteredLots = computed(() => {
 })
 
 const isMyAuctionEmpty = computed(() => {
-  return !isLoading.value && filteredAuctions.value.length === 0
+  return !isLoading.value && filteredListings.value.length === 0
 })
 
 const isMyBiddingEmpty = computed(() => {
