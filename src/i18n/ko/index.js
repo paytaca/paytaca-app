@@ -536,6 +536,7 @@ export default {
   ConfirmPin: "PIN 확인",
   ConfirmReservation: "예약 확인",
   ConfirmReservationError: "예약 확인 중 오류가 발생했습니다. 나중에 다시 시도해 주세요.",
+  ConfirmReservationNotReady: "예약이 아직 준비되지 않았습니다. 나중에 다시 시도해 주세요.",
   ConfirmSwap: "교환 확인",
   Confirmation: "확인",
   Confirmed: "확인됨",

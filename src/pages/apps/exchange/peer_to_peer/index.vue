@@ -34,7 +34,6 @@ export default {
         ongoingOrdersCount: 0
       },
       showLogin: false,
-      previousRoute: null,
       reconnectWebsocket: true,
       showNoticeBoard: false,
       noticeBoardMessage: null,
@@ -55,22 +54,12 @@ export default {
       default: null
     }
   },
-  beforeRouteEnter (to, from, next) {
-    next(vm => {
-      vm.previousRoute = from.path
-
-      // console.log('previous: ', vm.previousRoute)
-      if (from.name === 'exchange') {
-        vm.previousRoute = '/apps'
-      }
-    })
-  },
-  beforeRouteLeave (to, from, next) {    
+  beforeRouteLeave (to, from, next) {
     if (to.name === 'exchange') {
-      this.$router.push({ name: 'apps-dashboard' })
+      next({ name: 'apps-dashboard' })
     } else {
       next()
-    }    
+    }
   },
   computed: {
     multipleAdLimitMessage () {

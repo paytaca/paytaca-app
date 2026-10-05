@@ -1,7 +1,7 @@
 <template>
   <!-- <div class="fixed back-btn" :style="$q.platform.is.ios ? 'top: 45px;' : 'top: 10px;'" v-if="pageName && pageName != 'main'" @click="customBack"></div> -->
   <div v-if="!$route.query?.edit">
-    <HeaderNav :title="`P2P Ramp`" :backnavpath="previousRoute" class="header-nav" />
+    <HeaderNav :title="`P2P Ramp`" backnavpath="/apps/exchange/peer-to-peer/store" class="header-nav" />
     <div class="q-mx-md q-mb-lg q-pb-lg text-bow"
       :class="getDarkModeClass(darkMode)"
       :style="`height: ${minHeight}px;`">
@@ -330,7 +330,6 @@ export default {
       loadingAds: false,
       minHeight: this.$q.platform.is.ios ? this.$q.screen.height - (80 + 120) : this.$q.screen.height - (50 + 100),
       pageName: null,
-      previousRoute: null,
       errorDialogActive: false,
       wallet: null,
       reportSubmitted: false,
@@ -339,11 +338,6 @@ export default {
   },
   props: {
     userInfo: Object
-  },
-  beforeRouteEnter (to, from, next) {
-    next(vm => {
-      vm.previousRoute = from.path
-    })
   },
   emits: ['back', 'updatePageName', 'selectListing'],
   watch: {
@@ -397,12 +391,6 @@ export default {
       const isChipnet = this.$store.getters['global/isChipnet']
       const walletIndex = this.$store.getters['global/getWalletIndex']
       this.wallet = await loadLibauthHdWallet(walletIndex, isChipnet)
-    },
-    onNavBack () {
-      const currentRoute = this.$route.path
-      if (currentRoute === this.previousRoute) {
-        this.previousRoute = '/apps/exchange/peer-to-peer/store/'
-      }
     },
     async onEditPayments () {
       this.state = 'edit-pm'

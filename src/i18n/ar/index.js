@@ -536,6 +536,7 @@ export default {
   ConfirmPin: "تأكيد رقم التعريف الشخصي",
   ConfirmReservation: "تأكيد الحجز",
   ConfirmReservationError: "حدث خطأ في تأكيد الحجز. يرجى المحاولة مرة أخرى لاحقًا.",
+  ConfirmReservationNotReady: "حجزك غير جاهز بعد. يرجى المحاولة مرة أخرى لاحقًا.",
   ConfirmSwap: "تأكيد المبادلة",
   Confirmation: "تأكيد",
   Confirmed: "تم التأكيد",

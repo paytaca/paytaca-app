@@ -536,6 +536,7 @@ export default {
   ConfirmPin: "Konfirmasi PIN",
   ConfirmReservation: "Konfirmasi Reservasi",
   ConfirmReservationError: "Terjadi kesalahan saat mengonfirmasi reservasi. Silakan coba lagi nanti.",
+  ConfirmReservationNotReady: "Reservasi Anda belum siap. Silakan coba lagi nanti.",
   ConfirmSwap: "Konfirmasi Tukar",
   Confirmation: "Konfirmasi",
   Confirmed: "Dikonfirmasi",
