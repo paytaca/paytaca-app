@@ -392,7 +392,7 @@ const filteredLots = computed(() => {
 })
 
 watch(lotCategory, (newType) => {
-  $store.dispatch('auction/filterAuctionLots', { type: newType })
+  $store.commit('auction/updateAuctionLotCategory', { type: newType })
 })
 
 const loadPageData = async () => {

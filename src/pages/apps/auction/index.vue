@@ -228,7 +228,7 @@ onBeforeUnmount(() => {
 
 // Variables
 const auctionTypeOptions = $store.getters['auction/auctionTypeOptions']
-const auctionType = ref($store.getters['auction/auctionTypeIndex'] ?? 'All')
+const auctionType = ref($store.getters['auction/indexAuctionType'] ?? 'All')
 const auctionSearchQuery = ref('') 
 
 // Filters the auction items

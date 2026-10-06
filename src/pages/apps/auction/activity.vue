@@ -409,18 +409,18 @@ const data = computed(() => activityType.value === 'My Auctions' ? 'Auctions' : 
 
 // Auction-related variables
 const auctionTypeOptions = $store.getters['auction/auctionTypeOptions']
-const auctionType = ref($store.getters['auction/auctionTypeActivity'])
+const auctionType = ref($store.getters['auction/activityAuctionType'])
 const auctions = computed(() => $store.getters['auction/myAuctions'])
 
 // MAYBE BRING BACK SEARCHQUERY AND JUST UPDATE THE AUCTIONQUERY AND LOTQUERY THRU COMMITS
-const auctionSearchQuery = ref($store.getters['auction/auctionQueryActivity'] || '')
+const auctionSearchQuery = ref($store.getters['auction/activityAuctionQuery'] || '')
 
 // Lot-related variables
 const lotCategoryOptions = $store.getters['auction/lotCategoryOptions']
-const lotCategory = ref($store.getters['auction/lotCategoryActivity'])
+const lotCategory = ref($store.getters['auction/activityLotCategory'])
 const lotDetails = computed(() => $store.getters['auction/myBiddings'])
 const lotHasBid = ref({})
-const lotSearchQuery = ref($store.getters['auction/lotQueryActivity'] || '')
+const lotSearchQuery = ref($store.getters['auction/activityLotQuery'] || '')
 
 // ====================
 // FORMATTING FUNCTIONS
@@ -550,24 +550,24 @@ onBeforeUnmount(() => {
 
 watch(activityType, async (newType) => {
   await fetchMyData()
-  $store.dispatch('auction/filterActivities', newType)
+  $store.commit('auction/updateActivityType', newType)
   console.log(auctionSearchQuery.value)
 })
 
 watch(auctionType, (newType) => {
-  $store.dispatch('auction/filterAuctionItems', newType)
+  $store.commit('auction/updateActivityAuctionType', newType)
 })
 
 // FIX THIS NEXT TIME
 watch(auctionSearchQuery, (newQuery) => {
-  $store.commit('auction/updateAuctionQueryActivity', newQuery)
-  $store.dispatch('auction/filterAuctionItems', newQuery)
+  $store.commit('auction/updateActivityAuctionQuery', newQuery)
+  $store.commit('auction/updateActivityAuctionType', newQuery)
 })
 
 // FIX THIS TOO
 watch(lotSearchQuery, (newQuery) => {
-  $store.commit('auction/updateLotQueryActivity', newQuery)
-  $store.dispatch('auction/filterLotItems', newQuery)
+  $store.commit('auction/updateActivityLotQuery', newQuery)
+  $store.commit('auction/filterLotItems', newQuery)
 })
 
 watch(lotDetails, (newLots) => {
@@ -588,7 +588,7 @@ const filteredListings = computed(() => {
   
   const query = auctionSearchQuery.value.toLowerCase().trim()
   if (query) {
-    $store.commit('auction/updateAuctionQueryActivity', auctionSearchQuery.value)
+    $store.commit('auction/updateActivityAuctionQuery', auctionSearchQuery.value)
     items = items.filter(auction => auction.title?.toLowerCase().includes(query))
   }
 
@@ -603,7 +603,7 @@ const filteredLots = computed(() => {
 
   const query = lotSearchQuery.value.toLowerCase().trim()
   if (query) {
-    $store.commit('auction/updateLotQueryActivity', lotSearchQuery.value)
+    $store.commit('auction/updateActivityLotQuery', lotSearchQuery.value)
     items = items.filter(lot => lot.title?.toLowerCase().includes(query))
   }
 
