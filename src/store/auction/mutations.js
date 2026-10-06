@@ -16,12 +16,12 @@ export function updateAuction(state, auctionData) {
   if (auctionData.status) auction.refreshStatus()
 }
 
-export function addAuction(state, auction) {
+export function addListing(state, auction) {
   if (state.listings.some(item => Number(item.id) === Number(auction.id))) return
   state.listings.push(auction)  
 }
 
-export function removeAuction(state, auctionId) {
+export function removeListing(state, auctionId) {
   state.listings = state.listings.filter(
     auction => Number(auction.id) !== Number(auctionId)
   )
