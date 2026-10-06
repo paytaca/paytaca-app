@@ -35,15 +35,6 @@
         </q-btn>
       </div>
       <div class="q-mr-lg">
-        <q-btn
-          flat
-          round
-          dense
-          icon="support"
-          :color="darkMode ? 'blue-4' : 'blue-6'"
-          :aria-label="$t('Support', {}, 'Support')"
-          @click="$router.push({ name: 'app-support', query: { from: 'home' } })"
-        />
         <TransactionTimestampSettings />
       </div>
     </div>
@@ -112,7 +103,7 @@ import TransactionListItemSkeleton from 'src/components/transactions/Transaction
 import TransactionTimestampSettings from 'src/components/transactions/TransactionTimestampSettings.vue'
 import { getWalletByNetwork, getWatchtowerApiUrl } from 'src/wallet/chipnet'
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
-import { getCachedTransactions, setCachedTransactions, mergeTransactions } from 'src/utils/transaction-cache'
+import { getCachedTransactions, setCachedTransactions } from 'src/utils/transaction-cache'
 import axios from 'axios'
 
 const recordTypeMap = {
@@ -204,7 +195,7 @@ export default {
   watch: {
     txAssetFilter (value) {
       localStorage.setItem('txAssetFilter', value)
-      this.loadTransactions()
+      this.loadTransactions(true)
     },
     favoriteTokenIds () {
       if (this.txAssetFilter === 'favorites-only' || this.txAssetFilter === 'bch+favorites') {
@@ -214,6 +205,8 @@ export default {
   },
 
   created () {
+    this._loadInFlight = null
+    this._loadRequestId = 0
     this.walletHash = this.resolveWalletHash()
     if (this.walletHash) {
       const cached = getCachedTransactions(this.walletHash, this.transactionsFilter)
@@ -225,6 +218,7 @@ export default {
     }
   },
   mounted () {
+    this._didMount = true
     if (!this.transactionsLoaded && this.wallet) {
       this.loadTransactions()
     } else if (!this.wallet) {
@@ -237,6 +231,17 @@ export default {
     } else {
       this.loadTransactions()
     }
+  },
+  activated () {
+    // Refresh when the section becomes active again (e.g. returning from the
+    // dedicated transactions page) instead of relying on a full remount.
+    // Skip the initial activation that accompanies mounted().
+    if (this._didMount) {
+      this._didMount = false
+      return
+    }
+    this.walletHash = this.resolveWalletHash()
+    this.loadTransactions()
   },
   
   methods: {
@@ -321,9 +326,29 @@ export default {
       } catch { /* ignore */ }
       return null
     },
-    async loadTransactions () {
-      this.transactions = []
-      this.transactionsLoaded = false
+    async loadTransactions (reset = false) {
+      // Only dedupe background refreshes. A reset (e.g. filter change) must
+      // always run so it isn't dropped in favour of an in-flight load.
+      if (!reset && this._loadInFlight) return this._loadInFlight
+
+      // Show the skeleton only on the first load. On refreshes keep the current
+      // list visible until fresh data arrives, so the loader doesn't flash twice
+      // (the component loads on mount and the home page also refreshes it).
+      if (reset || !this.transactions.length) {
+        this.transactions = []
+        this.transactionsLoaded = false
+      }
+
+      const requestId = ++this._loadRequestId
+      const request = this._fetchTransactions(requestId)
+      this._loadInFlight = request
+      try {
+        return await request
+      } finally {
+        if (this._loadRequestId === requestId) this._loadInFlight = null
+      }
+    },
+    async _fetchTransactions (requestId) {
       try {
         if (!this.walletHash) {
           this.walletHash = getWalletByNetwork(this.wallet, 'bch').getWalletHash()
@@ -352,41 +377,26 @@ export default {
         const transactions = response.data.history || response.data
 
         if (!Array.isArray(transactions)) {
+          if (requestId !== this._loadRequestId) return
           this.transactions = []
           this.transactionsLoaded = true
           return
         }
 
         const enrichedTransactions = await this.enrichTransactionsWithAssetInfo(transactions)
-        let display
-        let hasMore
 
-        if (this.txAssetFilter !== 'all') {
-          enrichedTransactions.sort((a, b) => {
-            const tA = a.tx_timestamp || a.date_created || 0
-            const tB = b.tx_timestamp || b.date_created || 0
-            return tB - tA
-          })
-          display = enrichedTransactions.slice(0, 5)
-          hasMore = response.data?.has_next || enrichedTransactions.length > 5
-        } else {
-          const currentCached = getCachedTransactions(this.walletHash, this.transactionsFilter)
-          let merged
-          if (currentCached && Array.isArray(currentCached.transactions) && currentCached.transactions.length) {
-            merged = mergeTransactions(currentCached.transactions, enrichedTransactions)
-          } else {
-            merged = enrichedTransactions
-          }
+        // The server response is authoritative: never let the cache shadow fresh
+        // data. The cache is only used for the instant pre-fetch paint in created().
+        enrichedTransactions.sort((a, b) => {
+          const tA = a.tx_timestamp || a.date_created || 0
+          const tB = b.tx_timestamp || b.date_created || 0
+          return tB - tA
+        })
 
-          merged.sort((a, b) => {
-            const tA = a.tx_timestamp || a.date_created || 0
-            const tB = b.tx_timestamp || b.date_created || 0
-            return tB - tA
-          })
+        const display = enrichedTransactions.slice(0, 5)
+        const hasMore = response.data?.has_next || enrichedTransactions.length > 5
 
-          display = merged.slice(0, 5)
-          hasMore = response.data?.has_next || enrichedTransactions.length > 5
-        }
+        if (requestId !== this._loadRequestId) return
 
         this.transactions = display
         this.hasMoreTransactions = hasMore
@@ -397,6 +407,7 @@ export default {
         }
       } catch (error) {
         console.error('Error loading latest transactions:', error)
+        if (requestId !== this._loadRequestId) return
         if (!this.transactionsLoaded) {
           this.transactions = []
           this.transactionsLoaded = true
@@ -683,12 +694,13 @@ export default {
         this.transactionsFilter = 'all'
       }
       const cached = getCachedTransactions(this.walletHash, this.transactionsFilter)
-      if (cached && Array.isArray(cached.transactions) && cached.transactions.length) {
+      const hasCached = !!(cached && Array.isArray(cached.transactions) && cached.transactions.length)
+      if (hasCached) {
         this.transactions = cached.transactions.slice(0, 5)
         this.hasMoreTransactions = cached.hasMore
         this.transactionsLoaded = true
       }
-      this.loadTransactions()
+      this.loadTransactions(!hasCached)
     }
   }
 }
