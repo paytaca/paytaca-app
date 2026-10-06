@@ -31,14 +31,13 @@ export async function filterActivities({ commit }, type) {
 }
 
 // Refreshing list of listings 
-export async function fetchListings({ commit }) {
+export async function fetchListings({ commit, dispatch }) {
   const response = await callAPI('auctions')
   if (response && response.success && Array.isArray(response.data)) {
     const listings = response.data.map(item => AuctionList.parse(item))
     commit('setListings', listings)
     commit('setListingsLastFetched')
-  } else 
-  console.error(`[actions:fetchListings] Error encountered.`)
+  } else dispatch('printFailedFetch', 'listing')
 }
 
 export async function updateListingFromWebsocket({ commit, state }, auctionData) {
@@ -80,9 +79,7 @@ export async function updateMyAuctionFromWebsocket({ commit, state }, auctionDat
     data = response.data
   }
 
-  if (state.myAuctions.some(
-    auction => Number(auction.id) === Number(data.id)
-  )) {
+  if (state.myAuctions.some(auction => Number(auction.id) === Number(data.id))) {
     commit('updateMyAuction', data)
   } else {
     commit('addMyAuction', AuctionList.parse(data))
@@ -178,7 +175,7 @@ CURRENT USER ACTIONS
 ====================
 */
 // Fetching CURRENT USER'S bids
-export async function fetchMyBiddings({ commit }) {
+export async function fetchMyBiddings({ commit, dispatch }) {
   let lots = []
 
   const response = await callAPI('my-biddings/lots')
@@ -212,28 +209,26 @@ export async function fetchMyBiddings({ commit }) {
     })
 
     lots = (await Promise.all(lotPromises)).filter(Boolean)
-  } else console.error(`[actions:fetchMyBiddings] Error encountered: `)
+  } else dispatch
   commit('setMyBiddings', lots)
 }
 
-export async function fetchMyAuctions({ commit }) {
+export async function fetchMyAuctions({ commit, dispatch }) {
   let myAuctions = []
   const response = await callAPI('my-auctions')
 
   // successfully fetched data
   if (response && response.success && response.data) {
-    commit('setMyAuctionsLastFetched')
     myAuctions = Array.isArray(response.data) ?
       response.data.map(item => (!item) ? null : item instanceof AuctionList ? item : AuctionList.parse(item)) :
       AuctionList.parse(response.data)
-  } else { // error occurred
-    console.error('Failed to update auction details.')
-  }
+    commit('setMyAuctionsLastFetched')
+  } else dispatch('printNotExisting', 'auction_data')
   commit('setMyAuctions', myAuctions)
 }
 
 // Fetching CURRENT USER username
-export async function fetchUsername({ commit }) {
+export async function fetchUsername({ commit, dispatch }) {
   let username = ''
   let isArbiter = false
 
@@ -246,7 +241,7 @@ export async function fetchUsername({ commit }) {
     username = response.data.username ?? ''
     isArbiter = response.data.is_arbiter ?? false
     commit('setHasNetworkError', false) 
-  } else console.error(`[actions:fetchUsername] Error encountered.`)
+  } else dispatch('printFailedFetch', 'user details')
 
   commit('setUsername', username)
   commit('setIsArbiter', isArbiter)
@@ -258,32 +253,31 @@ FETCHING AUCTION INFORMATION
 ============================
 */
 
-export async function fetchAuctionData({commit, dispatch}, auctionId) {
-  const response = await callAPI('auctions', Number(auctionId))
+export async function fetchAuctionData({ commit, dispatch }, auctionId) {
   let auctionData = {}
+
+  const response = await callAPI('auctions', Number(auctionId))
   if (response && response.success && response.data) {
     auctionData = AuctionList.parse(response.data)
     dispatch('fetchAuctionLots', auctionId)
     commit('setAuctionDataLastFetched')
-  } else console.error('Failed to fetch auction details from server.')
+  } else dispatch('printFailedFetch', 'auction data')
   commit('setAuctionData', auctionData)
 }
 
-export async function fetchExistingAuctionData({commit, getters}, auctionId) {
-  const auctionData = getters['listings'].find(item => Number(item.id) === Number(auctionId))
-  commit('setAuctionData', (auctionData) ? AuctionList.parse(auctionData) : {})
-  if (!auctionData) console.error('Failed to fetch existing auction details.')
+export async function fetchExistingAuctionData({ commit, getters, dispatch }, auctionId) {
+  const existingAuction = getters['listings'].find(item => Number(item.id) === Number(auctionId))
+  if (!existingAuction) dispatch('printNotExisting', 'auction data')
+  commit('setAuctionData', AuctionList.parse(existingAuction ?? {}))
 }
 
-export async function fetchAuctionLots({commit, getters}, auctionId) {
+export async function fetchAuctionLots({ commit, getters, dispatch }, auctionId) {
   const { auctionData } = getters
   let lots = []
   let lotsImages = []
 
   const response = await callAPI('lots-by-auction', Number(auctionId))  
   if (response && response.success && response.data) {
-    commit('setAuctionLotsLastFetched')
-
     lots = await Promise.all(
       response.data.map(async (item) => {
         const lot = LotsList.parse(item)
@@ -302,7 +296,8 @@ export async function fetchAuctionLots({commit, getters}, auctionId) {
         return lot
       })
     )
-  } else console.error('Failed to fetch lots.')
+    commit('setAuctionLotsLastFetched')
+  } else dispatch('printFailedFetch', 'auction lots')
 
   commit('setAuctionLots', lots)
   commit('setAuctionLotsImages', lotsImages)
@@ -313,77 +308,70 @@ export async function fetchAuctionLots({commit, getters}, auctionId) {
 FETCHING LOT INFORMATION
 ========================
 */
-export async function fetchLotData({commit, dispatch}, lotId) {
+export async function fetchLotData({ commit, dispatch }, lotId) {
   let lotData = {}
   let lotImages = []
 
   // Fetch lot data
   const response = await callAPI('lots', lotId)
   if (response && response.success && response.data) {
-    commit('setLotDataLastFetched')
-
     lotData = LotsList.parse(response.data)
     const imageResponse = await callAPI('lot-images-by-lot', lotId, 'get')
     if (imageResponse && imageResponse.success && Array.isArray(imageResponse.data)){
       lotImages = imageResponse.data.map(item => item.image)
-    } else console.error('Failed to fetch lot images.')
-
-  } else console.error('Failed to fetch lot data.')
+    } else dispatch('printFailedFetch', 'lot images')
+    commit('setLotDataLastFetched')
+  } else dispatch('printFailedFetch', 'lot data')
 
   commit('setLotData', lotData)
   commit('setLotImages', lotImages)
-
-  await dispatch('fetchLotBids')
-
-  // Commit the lot data
+  await dispatch('fetchLotBids', lotId)
 }
 
-export async function fetchExistingLotData({commit, getters, dispatch}) {
-  const { lotId, auctionLots } = getters
-  const existingLot = auctionLots.find(lot => Number(lot.id) === Number(lotId))
-  commit('setLotData', LotsList.parse(existingLot ?? {}))
-  await dispatch('fetchExistingLotBids')
+export async function fetchExistingLotData({ commit, getters, dispatch }, lotId) {
+  const existingLot = getters['auctionLots'].find(lot => Number(lot.id) === Number(lotId))
+  if (!existingLot) dispatch('printNotExisting', 'lot data')
+  commit('setLotData', existingLot ? LotsList.parse(existingLot) : {})
+  await dispatch('fetchExistingLotBids', lotId)
 }
 
-export async function fetchLotBids({commit}, lotId) {
+export async function fetchLotBids({ commit, dispatch }, lotId) {
   let lotBids = []
-  const response = await callAPI('biddings-by-lot', lotId, 'get')
+  const response = await callAPI('biddings-by-lot', lotId)
   if (response && response.success && response.data && Array.isArray(response.data)) {
     lotBids = response.data.map(bid => BidsList.parse(bid))
     commit('setLotBidsLastFetched')
-  } else console.error('Failed to fetch lot bids.')
+  } else dispatch('printFailedFetch', 'lot bids')
   commit('setLotBids', lotBids)
 }
 
 // REVIEW IF NEEDED, FOR NOW WE KEEP
-export async function fetchExistingLotBids({ commit, getters }) {
-  const { lotId, lotBids } = getters
-  const existingLotBids = lotBids.filter(
-    bid => Number(bid.lot) === Number(lotId)
-  )
-  
-  if (!existingLotBids.length) console.error('Failed to fetch existing lot bids.')
+export async function fetchExistingLotBids({ commit, getters, dispatch }, lotId) {
+  const existingLotBids = getters['lotBids'].filter(bid => Number(bid.lot) === Number(lotId))
+  if (!existingLotBids.length) dispatch('printNotExisting', 'lot bids')
   commit('setLotBids', existingLotBids)
   commit('updateLotData', 'hasBid', existingLotBids.length > 0)
 }
 
-export async function fetchHighestBid({commit}, lotId) {
-  const response = await callAPI(`lots/${lotId}/highest-bid`, null, 'get')
-  commit('setHighestBid', 
-    response && response.success && response.data
-    && ['Highest', 'Winner'].includes(response.data.status)
-    ? BidsList.parse(response.data)
-    : {}
+export async function fetchHighestBid({ commit, dispatch }, lotId) {
+  const response = await callAPI(`lots/${lotId}/highest-bid`, null)
+  if (!(response && response.success && response.data && ['Highest', 'Winner'].includes(response.data.status))) {
+    dispatch('printFailedFetch', 'highest bid')
+  }
+  commit('setHighestBid', BidsList.parse(response.data ?? {}))
+}
+
+export async function fetchExistingHighestBid({ commit, getters, dispatch }) {
+  if (!getters['lotBids'].length) {
+    dispatch('printNotExisting', 'highest bid')
+  }
+  const highestBid = getters['lotBids'].reduce((latest, bid) =>
+    new Date(bid.bidding_date) > new Date(latest.bidding_date) ? bid : latest
   )
+  commit('setHighestBid', highestBid ? BidsList.parse(highestBid) : {})
 }
 
-export async function fetchExistingHighestBid({ commit, getters }) {
-  const existingBid = getters['lotBids'].find(bid => bid.is_final_bid)
-  commit('setHighestBid', existingBid ? BidsList.parse(existingBid) : {})
-}
-
-
-export async function fetchDeliveryTracking({commit}, lotId) {
+export async function fetchDeliveryTracking({ commit }, lotId) {
   const data = {
     
   }
@@ -396,7 +384,7 @@ export async function fetchDeliveryTracking({commit}, lotId) {
   } else console.warn('Could not fetch delivery tracking.')
 }
 
-export async function fetchDispute({commit}) {
+export async function fetchDispute({ commit }) {
   const res = await callAPI('disputes-by-bid', winningBid.value?.id)
   if (res.success && res.data) {
     const data = Array.isArray(res.data) ? res.data[0] : res.data
@@ -407,15 +395,13 @@ export async function fetchDispute({commit}) {
   console.warn('Could not fetch dispute:', err)
     
 }
-
 export async function fetchHasBidForLots(lotsArr) {
   const englishLots = (lotsArr || []).filter((lot) => lot.auction_type === 'English')
 
   return await Promise.all(englishLots.map(async (lot) => {
       const result = await callAPI(`lots/${lot.id}/highest-bid`)
-      if (result.success && result.data && result.data.user !== null) {
+      if (result.success && result.data && result.data.user !== null) 
         return 
-      }
       return false
   }))
 }
@@ -427,23 +413,33 @@ FETCHING PUBLIC KEYS FOR CONTRACT CREATION/INSTANTIATION
 */
 
 // Fetching ArbiterPK for contract instantiation/creation
-export async function fetchArbiterPublicKey({ commit }) {
+export async function fetchArbiterPublicKey({ commit, dispatch }) {
   let arbiterPk = ''
   const response = await callAPI('arbiter-pk')
   if (response && response.success && response.data) {
     arbiterPk = response.data.arbiter_pk
     commit('setArbiterLastFetched')
-  } else console.error(`[actions:fetchArbiterPublicKey] Error encountered.`)
+  } else dispatch('printFailedFetch', 'arbiter public key')
   commit('setArbiterPublicKey', arbiterPk)
 }
 
 // Fetching ServicerPK for contract instantiation/creation
-export async function fetchServicerPublicKey({ commit }) {
+export async function fetchServicerPublicKey({ commit, dispatch }) {
   let servicerPk = ''
   const response = await callAPI('servicer-pk')
   if (response && response.success && response.data) {
     servicerPk = response.data.servicer_pk
     commit('setServicerLastFetched')
-  } else console.error(`[actions:fetchServicerPublicKey] Error encountered.`)
+  } else dispatch('printFailedFetch', 'servicer public key')
   commit('setServicerPublicKey', servicerPk)
+}
+
+export async function printFailedFetch({ getters }, itemName) {
+  const { hasNetworkError } = getters
+  if (hasNetworkError) console.error(`Failed to fetch ${itemName} from the server.`)
+  else console.log(`Server does not have requested ${itemName}.`)
+}
+
+export async function printNotExisting(itemName) {
+  console.error(`Failed to fetch existing ${itemName} as it DNE.`)
 }
