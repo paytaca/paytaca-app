@@ -1188,10 +1188,10 @@ const loadPageData = async () => {
   await Promise.all([
     !isSameLotId || auctionLotsTotalTime.value > 3000
       ? $store.dispatch('auction/fetchLotData', props.lotId) 
-      : $store.dispatch('auction/fetchExistingLotData'),
+      : $store.dispatch('auction/fetchExistingLotData', props.lotId),
     !isSameAuctionId || listingsTotalTime.value > 30000
       ? $store.dispatch('auction/fetchAuctionData', props.auctionId)
-      : $store.dispatch('auction/fetchExistingAuctionData'),
+      : $store.dispatch('auction/fetchExistingAuctionData', props.auctionId),
   ])
   
   if (deliveredDate.value) {
