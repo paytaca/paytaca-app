@@ -2,7 +2,7 @@ import { AuctionList, LotsList } from "src/auction/object"
 
 export function filteredListings(state) {
   const currentListings = state.listings ?? []
-  const activeTypeFilter = (state.auctionTypeIndex ?? 'All').toLowerCase()
+  const activeTypeFilter = (state.indexAuctionType ?? 'All').toLowerCase()
 
   return (activeTypeFilter === 'all') 
     ? currentListings 
@@ -43,12 +43,12 @@ export function listingsLastFetched(state) {
   return state.listingsLastFetched ?? 0
 }
 
-export function auctionTypeIndex(state) {
-  return state.auctionTypeIndex ?? ''
+export function indexAuctionType(state) {
+  return state.indexAuctionType ?? ''
 }
 
-export function auctionQueryIndex(state) {
-  return state.auctionQueryIndex ?? ''
+export function indexAuctionQuery(state) {
+  return state.indexAuctionQuery ?? ''
 }
 
 
@@ -123,20 +123,20 @@ export function disputeDataLastFetched(state) {
 }
 
 // Activity getters
-export function auctionTypeActivity(state) {
-  return state.auctionTypeActivity ?? 'All'
+export function activityAuctionType(state) {
+  return state.activityAuctionType ?? 'All'
 }
 
-export function auctionQueryActivity(state) {
-  return state.auctionQueryActivity ?? ''
+export function activityAuctionQuery(state) {
+  return state.activityAuctionQuery ?? ''
 }
 
-export function lotCategoryActivity(state) {
-  return state.lotCategoryActivity ?? 'All'
+export function activityLotCategory(state) {
+  return state.activityLotCategory ?? 'All'
 }
 
-export function lotQueryActivity(state) {
-  return state.lotQueryActivity ?? ''
+export function activityLotQuery(state) {
+  return state.activityLotQuery ?? ''
 }
 
 export function activityType(state) {

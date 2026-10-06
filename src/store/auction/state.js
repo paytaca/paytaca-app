@@ -5,17 +5,17 @@ export default function () {
     lotCategoryOptions: ['Physical', 'Digital', 'All'],
 
     // Index Page States
-    auctionTypeIndex: 'All',
-    auctionQueryIndex: '',
+    indexAuctionType: 'All',
+    indexAuctionQuery: '',
     listings: [],
     listingsLastFetched: 0,
     
     // Activity Page States
     activityType: 'My Bids',
-    auctionTypeActivity: 'All',
-    auctionQueryActivity: '',
-    lotCategoryActivity: 'All',
-    lotQueryActivity: '',
+    activityAuctionType: 'All',
+    activityAuctionQuery: '',
+    activityLotCategory: 'All',
+    activityLotQuery: '',
     myBiddings: [],
     myBiddingsLastFetched: 0,
     myAuctions: [],
@@ -28,6 +28,7 @@ export default function () {
     auctionLotsImages: [],
     auctionLotsLastFetched: 0,
     auctionLotCategory: 'All' ,
+    auctionLotQuery: '',
 
     // Lot Details Page States
     lotData: {},

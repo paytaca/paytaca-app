@@ -10,27 +10,12 @@ const bidStatusTransitions = {
   Cancelled: [],
   Winner: [],
 }
-/* 
-===================
-PAGE UPDATE ACTIONS
-===================
-*/
+ 
+// ===================
+// PAGE UPDATE ACTIONS
+// ===================
 
-// Filtering auction items by type (English, Dutch, or All)
-export async function filterAuctionItems({ commit }, { type, isIndex=false }) {
-  commit(`updateAuctionType${isIndex ? 'Index' : 'Activity'}`, type)
-}
-
-export async function filterAuctionLots({ commit }, { type }) {
-  commit('updateLotCategory', type)
-}
-
-// Filtering user activities
-export async function filterActivities({ commit }, type) {
-  commit('updateActivityType', type)
-}
-
-// Refreshing list of listings 
+// Fetches listings from the server
 export async function fetchListings({ commit, dispatch }) {
   const response = await callAPI('auctions')
   if (response && response.success && Array.isArray(response.data)) {
@@ -55,7 +40,6 @@ export async function updateListingFromWebsocket({ commit, state }, auctionData)
   if (state.listings.some(auction => Number(auction.id) === Number(data.id))) {
     commit('updateListing', data)
   } else {
-    // auction DNE
     commit('addListing', AuctionList.parse(data))
   }
 
@@ -169,11 +153,10 @@ export function removeLotFromWebsocket({ commit }, lotId) {
   commit('removeLotData', lotId)
 }
 
-/* 
-====================
-CURRENT USER ACTIONS
-====================
-*/
+// ====================
+// CURRENT USER ACTIONS
+// ====================
+
 // Fetching CURRENT USER'S bids
 export async function fetchMyBiddings({ commit, dispatch }) {
   let lots = []
@@ -247,11 +230,11 @@ export async function fetchUsername({ commit, dispatch }) {
   commit('setIsArbiter', isArbiter)
 }
 
-/*
-============================
-FETCHING AUCTION INFORMATION
-============================
-*/
+
+// ============================
+// FETCHING AUCTION INFORMATION
+// ============================
+
 
 export async function fetchAuctionData({ commit, dispatch }, auctionId) {
   let auctionData = {}
@@ -303,11 +286,10 @@ export async function fetchAuctionLots({ commit, getters, dispatch }, auctionId)
   commit('setAuctionLotsImages', lotsImages)
 }
 
-/*
-========================
-FETCHING LOT INFORMATION
-========================
-*/
+// ========================
+// FETCHING LOT INFORMATION
+// ========================
+
 export async function fetchLotData({ commit, dispatch }, lotId) {
   let lotData = {}
   let lotImages = []
@@ -406,11 +388,9 @@ export async function fetchHasBidForLots(lotsArr) {
   }))
 }
 
-/* 
-================================================================
-FETCHING PUBLIC KEYS FOR CONTRACT CREATION/INSTANTIATION
-================================================================
-*/
+// ================================================================
+// FETCHING PUBLIC KEYS FOR CONTRACT CREATION/INSTANTIATION
+// ================================================================
 
 // Fetching ArbiterPK for contract instantiation/creation
 export async function fetchArbiterPublicKey({ commit, dispatch }) {
@@ -433,6 +413,7 @@ export async function fetchServicerPublicKey({ commit, dispatch }) {
   } else dispatch('printFailedFetch', 'servicer public key')
   commit('setServicerPublicKey', servicerPk)
 }
+
 
 export async function printFailedFetch({ getters }, itemName) {
   const { hasNetworkError } = getters
