@@ -233,6 +233,16 @@ export default {
 	},
 	methods: {
 		getDarkModeClass,
+		async refresh () {
+			this.orderPage = 1
+			this.appealPage = 1
+			this.marketplacePagination.offset = 0
+			return Promise.all([
+				this.fetchOrders(true),
+				this.fetchAppeals(true),
+				this.fetchMarketOrders()
+			])
+		},
 		async fetchOrders (overwrite = false) {
 			const vm = this 
 
