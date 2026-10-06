@@ -212,6 +212,12 @@ export async function approveRequestWithData ({ commit, dispatch, rootGetters },
     const request = JSON.parse(transactionJson)
     const signedTxHex = await wizardConnectService.signRequest(request)
 
+    const shouldBroadcast = request?.transaction?.broadcast !== false && request?.broadcast !== false
+    if (!shouldBroadcast) {
+      await wizardConnectService.sendSignResponse(connectionId, sequence, signedTxHex)
+      return
+    }
+
     const isChipnet = rootGetters['global/isChipnet'] || false
     const watchtower = new Watchtower(isChipnet)
 
