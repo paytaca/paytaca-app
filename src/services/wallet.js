@@ -154,7 +154,6 @@ export class Wallet {
    */
   pubkey (addressPath = '') {
     if (!addressPath) addressPath = this.addressPath()
-    cardLogger.log('>>>>>>>>pubkey:', this.libauthWallet.getPubkeyAt(addressPath))
     return this.libauthWallet.getPubkeyAt(addressPath)
   }
 

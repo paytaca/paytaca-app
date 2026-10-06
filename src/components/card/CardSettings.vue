@@ -820,8 +820,6 @@ export default {
       }
     },
     async handleSweepFunds () {
-      cardLogger.log('[CardSettings] handleSweepFunds called')
-      cardLogger.log('[CardSettings] activeCard:', this.activeCard)
 
       this.$q.loading.show({
         message: this.$t('SweepingFundsPleaseWait', {}, 'Sweeping funds, please wait...'),

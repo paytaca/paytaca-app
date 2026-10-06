@@ -160,7 +160,6 @@ export class CardUser {
      * @returns {Promise<void>}
      */
     async login() {
-        cardLogger.log('Starting Card User login process...');
 
         try {
             const keypair = this.wallet.keypair();
@@ -174,7 +173,6 @@ export class CardUser {
             // send to backend to verify and create card session
             const loginResp = await this.verifyChallenge(keypair.publicKey, signature);
 
-            cardLogger.log('Login successful. Received session data:', loginResp);
             
             // Save token if provided
             if (loginResp?.token) {
@@ -223,11 +221,9 @@ export class CardUser {
      * @returns {Promise<Card>}
      */
     async fetchCardByIdentifier(identifier) {
-        cardLogger.log(`Fetching card info for identifier: ${identifier}`);
         try {
             const response = await backend.get(`/cards/by-identifier/${identifier}/`);
             const cardData = response.data;
-            cardLogger.log('cardData received:', cardData);
             const card = cardData?.contract?.contract_id
                 ? await Card.createInitialized(cardData)
                 : await Card.createWithWallet(cardData);
@@ -373,7 +369,6 @@ let _cachedUser = null;
 export async function loadCardUser({ forceLogin = false } = {}) {
     if (_cachedUser && !forceLogin) return _cachedUser;
 
-    cardLogger.log('Loading Card User session...');
     try {
         const wallet = await loadWallet();
         let user = await fetchOrCreateCardUser(wallet);
@@ -381,12 +376,10 @@ export async function loadCardUser({ forceLogin = false } = {}) {
         if (forceLogin || !user.is_authenticated) {
             await user.login();
             user = await fetchCardUser(wallet);
-            cardLogger.log('Card User reloaded after login:', user);
         }
         
         _cachedUser = user;
 
-        cardLogger.log('Card User loaded successfully:', user);
 
         return user;
     } catch (error) {

@@ -1,5 +1,4 @@
 
-import { cardLogger } from 'src/utils/debug-logger.js'
 import { createHash } from 'crypto';
 import { NFTCapability, Wallet } from 'mainnet-js';
 import { defaultSpendLimitSats, DUST_LIMIT } from './constants';
@@ -73,14 +72,12 @@ class AuthNftService {
     }
 
     async genesis(opts = {broadcast: true}) {
-        cardLogger.log('====== Minting Token ======')
     
         const nftValue = 1000n // satoshis held by the minting NFT output
         const estimatedFee = this.wallet.estimateFee({ numP2pkhInputs: 1, numOutputs: 2, feeRate: 2n })
         const genesisUtxo = await this.wallet.getOrCreateGenesisUtxo(nftValue + estimatedFee)
         const categoryId = genesisUtxo.txid
 
-        cardLogger.log('genesisUtxo:', genesisUtxo)
         
         const changeAddress = this.wallet.address()
         const change = genesisUtxo.satoshis - estimatedFee - nftValue
@@ -118,11 +115,9 @@ class AuthNftService {
             
         // Build the transaction
         const txHex = tx.build()
-        cardLogger.log('Built transaction hex:', txHex)
 
         if (opts?.broadcast) {
             const txResult = await watchtower.BCH.broadcastTransaction(txHex)
-            cardLogger.log('Transaction broadcast result:', txResult.data)
             return { 
                 success: txResult.data.success, 
                 txid: txResult.data.txid, 
@@ -169,7 +164,6 @@ class AuthNftService {
         const totalFee = txFee + mintFee
         const { cumulativeValue, groupedUtxos: groupedBchFundingInputs, changeAddress } = await this.wallet.getFundingUtxos(totalFee)
 
-        cardLogger.log('cumulativeValue:', cumulativeValue)
         if (cumulativeValue < totalFee) {
             throw new Error(`Insufficient BCH funds to cover minting fee. Required: ${totalFee}, Available: ${cumulativeValue}`);
         }
@@ -242,11 +236,9 @@ class AuthNftService {
         tx.addOutputs(outputs)
 
         const txHex = tx.build()
-        cardLogger.log('Built mint transaction hex:', txHex)
 
         if (opts?.broadcast) {
             const txResult = await watchtower.BCH.broadcastTransaction(txHex)
-            cardLogger.log('Mint transaction broadcast result:', txResult.data)
             if (txResult.data?.success === false) {
                 throw new Error(`Mint broadcast failed: ${txResult.data.error || txResult.data.message || 'unknown error'}`)
             }
@@ -265,7 +257,6 @@ class AuthNftService {
      * @returns {Promise<Object>}
      */
     async issue(tokenUtxos, toTokenAddress, opts = { broadcast: true }) {
-        cardLogger.log('====== Sending Token ======')
 
         this._assertWallet();
 
@@ -327,12 +318,9 @@ class AuthNftService {
             
         // Build the transaction
         const txHex = tx.build()
-        cardLogger.log('Built transaction hex:', txHex)
-        cardLogger.log('Broadcasting transaction...')
 
         if (opts?.broadcast) {
             const txResult = await watchtower.BCH.broadcastTransaction(txHex)
-            cardLogger.log('Transaction broadcast result:', txResult.data)
             if (txResult.data?.success === false) {
                 throw new Error(`Issue broadcast failed: ${txResult.data.error || txResult.data.message || 'unknown error'}`)
             }

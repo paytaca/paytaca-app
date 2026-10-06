@@ -707,7 +707,6 @@ export default {
       this.tokensLoading = true
       try {
         const holdings = await this.activeCard.getFungibleTokenBalances()
-        cardLogger.log('Card fungible token balances:', holdings)
         this.cardTokenHoldings = this.normalizeTokenHoldings(holdings)
       } catch (error) {
         cardLogger.error('Fungible balances failed, falling back to /cards/balance/:', error)
@@ -844,7 +843,6 @@ export default {
           sourceVersion: 'v1',
           onProgress: (message) => { this.migrationActivateMsg = message },
         })
-        cardLogger.log('[Migration] completed:', result)
         await this.loadActiveCard()
         this.migrationStep = 2
         this.$q.notify({
@@ -915,7 +913,7 @@ export default {
      */
     async mutateMerchantAuthToken(card, mutation) {
       try {
-        const result = await card.mutateMerchantAuthToken(mutation)
+        await card.mutateMerchantAuthToken(mutation)
       } catch(error) {
       }
     },

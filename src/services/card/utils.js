@@ -12,7 +12,6 @@ import {
 } from "@bitauth/libauth"
 import { BLOCK_TIME_SEC } from './constants.js'
 import { ElectrumNetworkProvider } from 'cashscript'
-import { cardLogger } from 'src/utils/debug-logger.js'
 export {
   POINTER_PREFIX,
   POINTER_COMMITMENT_LENGTH,
@@ -28,7 +27,6 @@ const HASHTYPE = 0x41; // SIGHASH_ALL | SIGHASH_FORKID
 export async function getBlockHeight() {
   const provider = new ElectrumNetworkProvider('mainnet')
   const blockHeight = await provider.getBlockHeight()
-  cardLogger.log('blockHeight:', blockHeight)
   return blockHeight
 }
 
@@ -37,7 +35,6 @@ export async function convertTimeToBlock(timestamp) {
   const blocksAhead = Math.floor((timestamp - currentTime) / BLOCK_TIME_SEC)
   const currentBlockHeight = await getBlockHeight()
   const estimatedBlockHeight = currentBlockHeight + blocksAhead
-  cardLogger.log('estimatedBlockHeight:', estimatedBlockHeight)
   return estimatedBlockHeight
 }
 

@@ -195,10 +195,8 @@ export const createCardLogic = {
      */
     async getCards() {
       const cardUser = await this.loadCardUser()
-      cardLogger.log('Card User loaded:', cardUser)
       const cards = await cardUser.fetchCards()
       this.subCards = cards
-      cardLogger.log('Fetched Cards:', cards)
       return cards
     },
 
@@ -211,7 +209,6 @@ export const createCardLogic = {
       // This is a base implementation - components can override
       try {
         const data = await getMerchantList({ limit: 0, offset: 0 })
-        cardLogger.log('Merchants loaded:', data.results?.length || 0, 'merchants')
         return data.results || []
       }
       catch (error) {

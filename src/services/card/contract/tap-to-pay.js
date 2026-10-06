@@ -105,13 +105,9 @@ class TapToPay {
         }
 
         const path = `utxo/ct/${tokenAddress}/${tokenId}/`
-        console.log('path:', path)
 
         let result = []
         const response = await watchtower.BCH._api.get(path, { params })
-        cardLogger.log('[TapToPay.getTokenUtxos] response:', {
-            data: response?.data,
-        })
         result = response.data?.utxos
         return result?.map(utxo => ({
             txid: utxo.txid,
@@ -233,7 +229,6 @@ class TapToPay {
     }
 
     estimateFee({ numContractInputs = 0, numP2pkhInputs = 0, numOutputs = 2, feeRate = 5n } = {}) {
-        cardLogger.log('[estimateFee] numContractInputs:', numContractInputs, 'numP2pkhInputs:', numP2pkhInputs, 'numOutputs:', numOutputs, 'feeRate:', feeRate)
         // CashScript contract inputs are larger due to unlocking script (redeem script + args)
         // Approximate: ~300 bytes per contract input, ~148 bytes per P2PKH input
         const CONTRACT_INPUT_SIZE = 300
@@ -293,7 +288,6 @@ class TapToPay {
      * @returns {Promise<Object>}
      */
     async broadcastTransaction(txHex) {
-        cardLogger.log('[broadcastTransaction] Broadcasting transaction...')
         return await watchtower.BCH.broadcastTransaction(txHex)
     }
 }
@@ -342,7 +336,6 @@ class TapToPayNft extends TapToPay {
             contractCreationParams.backendPkh,
             contractCreationParams.category
         ];
-        // cardLogger.log('contractParams:', contractParams)
 
         const contract = new Contract(artifactV2, contractParams)
         return contract;
@@ -431,7 +424,6 @@ class TapToPayNft extends TapToPay {
                 return ownerUtxo
             }
             if (attempt < maxAttempts) {
-                cardLogger.log(`[waitForOwnershipPkhUtxo] owner token not visible yet (${attempt}/${maxAttempts}); retrying in ${interval}ms`)
                 await new Promise(resolve => setTimeout(resolve, interval))
             }
         }
@@ -510,8 +502,6 @@ class TapToPayNft extends TapToPay {
                 cardLogger.warn('pkh ownership token already set to ownerPkh')
             }
 
-            const alreadySet = (pkhCategory === ownerPkh)
-            cardLogger.log('Ownership tokens already set: ' + alreadySet)
             return {
                 success: true,
                 message: 'Ownership tokens already set to the desired values.'
@@ -601,9 +591,7 @@ class TapToPayNft extends TapToPay {
         tx.addOutputs(outputs)
 
         const txHex = tx.build()
-        cardLogger.log('txHex:', txHex)
         const result = await this.broadcastTransaction(txHex)
-        cardLogger.log('result:', result)
         return result.data
     }
 
@@ -626,14 +614,12 @@ class TapToPayNft extends TapToPay {
      * @returns {Promise<Object>} Sweep results for tokens and BCH.
      */
     async sweep ({ ownerWif, toAddress, broadcast = true }) {
-        cardLogger.log('[sweep] Starting sweep process with params:', { toAddress, broadcast })
         
         const contract = this.getContract()
         const ownerSig = new SignatureTemplate(ownerWif)
         const ownerPk = binToHex(ownerSig.getPublicKey())
         const ownerPkh = pubkeyToPkHash(ownerPk)
         
-        cardLogger.log('[sweep] Owner public key hash:', ownerPkh)
 
         const ownerUtxo = await this.waitForOwnershipPkhUtxo(ownerPkh)
         const decodedCommitment = ownerUtxo?.token?.nft?.commitment ? decodeOwnershipCommitment(ownerUtxo.token.nft.commitment) : undefined
@@ -661,9 +647,7 @@ class TapToPayNft extends TapToPay {
             throw new Error(`Invalid owner token UTXO or ownership not set correctly. Cannot proceed with sweep (${reason}).`)
         }
 
-        cardLogger.log('[sweep] Owner UTXO:', ownerUtxo)
         const { cumulativeValue: sweepAmount, utxos: bchUtxos } = await this.getBchUtxos()
-        cardLogger.log('[sweep] BCH UTXOs:', bchUtxos)
 
         if (!bchUtxos?.length || sweepAmount <= 0n) {
             return { success: false, message: 'No BCH balance to sweep.' }
@@ -687,13 +671,11 @@ class TapToPayNft extends TapToPay {
 
         inputs.push(...bchInputs)
 
-        cardLogger.log('[sweep] Prepared inputs:', inputs)
 
         // Estimate fee first for a card-funded sweep:
         // inputs = ownership NFT + all contract BCH UTXOs,
         // outputs = NFT back to contract + 1 owner dest. No wallet inputs.
         const estimatedFee = this.estimateFee({ numContractInputs: inputs.length, numP2pkhInputs: 0, numOutputs: 2 })
-        cardLogger.log('[sweep] Estimated fee:', estimatedFee)
 
         const nftOutput = { to: contract.tokenAddress, amount: toBigInt(ownerUtxo.satoshis), token: ownerUtxo.token }
         let outputs = []
@@ -732,7 +714,6 @@ class TapToPayNft extends TapToPay {
             }
         }
 
-        cardLogger.log('[sweep] Prepared outputs:', outputs)
 
         const provider = new ElectrumNetworkProvider(Network.MAINNET)
         const tx = new TransactionBuilder({provider})
@@ -743,17 +724,13 @@ class TapToPayNft extends TapToPay {
         })
         tx.addOutputs(outputs)
 
-        cardLogger.log('[sweep] Transaction inputs:', tx.inputs)
-        cardLogger.log('[sweep] Transaction outputs:', tx.outputs)
 
         let result
         try {
             // Build the transaction
             const txHex = tx.build()
-            cardLogger.log('[sweep] Built transaction hex:', txHex)
 
             if (broadcast) {
-                cardLogger.log('[sweep] Broadcasting transaction...')
                 result = (await this.broadcastTransaction(txHex)).data
             } else {
                 result = { success: true, txHex }
@@ -764,7 +741,6 @@ class TapToPayNft extends TapToPay {
             throw error
         }
 
-        cardLogger.log('[sweep] Sweep result:', result)
         return result
     }
 
@@ -786,7 +762,6 @@ class TapToPayNft extends TapToPay {
      * @returns {Promise<Object>} Token sweep result.
      */
     async sweepFungibleToken ({ ownerWif, tokenId, tokenAddress, toAddress, broadcast = true }) {
-        cardLogger.log('[sweepFungibleToken] Starting token sweep with params:', { tokenId, tokenAddress, broadcast })
 
         if (!this.supportsTokenSweep) {
             throw new Error('Fungible token sweep is not supported by this contract version.')
@@ -815,9 +790,7 @@ class TapToPayNft extends TapToPay {
             throw new Error('Invalid owner token UTXO or ownership not set correctly. Cannot proceed with token sweep.')
         }
 
-        cardLogger.log('[sweepFungibleToken] Owner UTXO:', ownerUtxo)
         const ftUtxos = await this.getFungibleTokenUtxos(tokenId)
-        cardLogger.log('[sweepFungibleToken] FT UTXOs:', ftUtxos)
 
         if (!ftUtxos?.length) {
             return { success: false, message: 'No fungible tokens to sweep.' }
@@ -866,7 +839,6 @@ class TapToPayNft extends TapToPay {
             numP2pkhInputs: 1,
             numOutputs: 2 + (excessBch > 0n ? 1 : 0) + 1
         })
-        cardLogger.log('[sweepFungibleToken] Estimated fee:', estimatedFee)
 
         const {
             cumulativeValue: fundingAmount,
@@ -896,8 +868,6 @@ class TapToPayNft extends TapToPay {
             outputs.push({ to: selected.changeAddress || changeAddress, amount: changeAmount })
         }
 
-        cardLogger.log('[sweepFungibleToken] Prepared inputs:', inputs)
-        cardLogger.log('[sweepFungibleToken] Prepared outputs:', outputs)
 
         const provider = new ElectrumNetworkProvider(Network.MAINNET)
         const tx = new TransactionBuilder({provider})
@@ -912,10 +882,8 @@ class TapToPayNft extends TapToPay {
         try {
             // Build the transaction
             const txHex = tx.build()
-            cardLogger.log('[sweepFungibleToken] Built transaction hex:', txHex)
 
             if (broadcast) {
-                cardLogger.log('[sweepFungibleToken] Broadcasting transaction...')
                 result = (await this.broadcastTransaction(txHex)).data
             } else {
                 result = { success: true, txHex }
@@ -926,7 +894,6 @@ class TapToPayNft extends TapToPay {
             throw error
         }
 
-        cardLogger.log('[sweepFungibleToken] Token sweep result:', result)
         return result
     }
 
@@ -942,7 +909,6 @@ class TapToPayNft extends TapToPay {
      * @returns {Promise<Object>} Result of the mutate operation.
      */
     async mutate({ ownerWif, mutations, broadcast = true }) {
-        cardLogger.log('[mutate] Starting mutation process with params:', { mutations, broadcast })
         const contract = this.getContract()
         const ownerSig = new SignatureTemplate(ownerWif)
         const ownerPk = binToHex(ownerSig.getPublicKey())
@@ -960,7 +926,6 @@ class TapToPayNft extends TapToPay {
         // Get the auth tokens to mutate based on params.mutations
         const { authCategory } = await this.getMerchantAuthCategory()
         const tokenUtxos = await this.getTokenUtxos(authCategory, contract.tokenAddress)
-        cardLogger.log('tokenUtxos:', tokenUtxos)
 
         const inputs = [ownerUtxo, catUtxo]
         const outputs = [ownerUtxo, catUtxo].map(utxo => ({
@@ -975,14 +940,12 @@ class TapToPayNft extends TapToPay {
                 merchantId: mutation.merchant?.id, 
                 merchantPk: mutation.merchant?.pubkey 
             }).hex
-            cardLogger.log('merchantHash:', merchantHash)
             const utxoToMutate = tokenUtxos.find(utxo => {
                 const commitment = utxo.token?.nft?.commitment
                 const decodedCommitment = decodeCommitment(commitment)
                 return decodedCommitment.hash === merchantHash
             })
 
-            cardLogger.log('utxoToMutate:', utxoToMutate)
 
             if (!utxoToMutate) {
                 cardLogger.warn(`No matching UTXO found for mutation with merchant hash ${merchantHash}. Skipping this mutation.`)
@@ -990,26 +953,20 @@ class TapToPayNft extends TapToPay {
             }
 
             const decodedCommitment = decodeCommitment(utxoToMutate?.token?.nft?.commitment)
-            cardLogger.log('decodedCommitment:', decodedCommitment)
 
             // Prepare the output rewriting the commitment
             let authorized = decodedCommitment.authorized
-            cardLogger.log('mutation:', mutation)
-            cardLogger.log('mutation.authorized !== null:', mutation.authorized !== null)
             if (mutation.authorized !== null) {
                 authorized = mutation.authorized
             }
 
-            cardLogger.log('=========authorized:', authorized)
             const newCommitmentData = {
                 authorized: authorized,
                 spendLimitSats: mutation.spendLimitSats || decodedCommitment.spendLimitSats,
                 merchant: mutation.merchant
             }
-            cardLogger.log('newCommitmentData:', newCommitmentData)
             const newCommitment = encodeCommitment(newCommitmentData)
 
-            cardLogger.log('newCommitment:', newCommitment)
 
             if (newCommitment === utxoToMutate.token.nft.commitment) {
                 cardLogger.warn(`New commitment is the same as the current commitment for merchant hash ${merchantHash}. Skipping this mutation.`)
@@ -1031,8 +988,6 @@ class TapToPayNft extends TapToPay {
             })
         }
 
-        cardLogger.log('[mutate] Prepared inputs:', inputs)
-        cardLogger.log('[mutate] Prepared outputs:', outputs)
 
         // Estimate the fee based on the number of inputs and outputs, and get funding UTXOs to cover it
         const estimatedFee = this.estimateFee({ 
@@ -1042,18 +997,15 @@ class TapToPayNft extends TapToPay {
             feeRate: 3n // Use a fee rate of 1 sat/byte for estimation
         })
 
-        cardLogger.log('[mutate] Estimated fee:', estimatedFee)
         
         const { 
             cumulativeValue, 
             groupedUtxos: groupedBchFundingInputs, 
             changeAddress
         } = await this.getFundingInputs(estimatedFee)
-        cardLogger.log('groupedBchFundingInputs:', groupedBchFundingInputs)
         
         const changeAmount = cumulativeValue - BigInt(estimatedFee)
 
-        cardLogger.log('[changeAmount]:', changeAmount)
 
         if (changeAmount < 0n) {
             throw new Error('Insufficient BCH balance to cover mutation fee. Required: ' + estimatedFee + ', Available: ' + cumulativeValue)
@@ -1081,7 +1033,6 @@ class TapToPayNft extends TapToPay {
 
         if (broadcast) {
             const result = await this.broadcastTransaction(txHex)
-            cardLogger.log('[mutate] Transaction result:', result)
             return result.data
         } else {
             return { success: true, txHex }
@@ -1122,8 +1073,6 @@ class TapToPayNft extends TapToPay {
      * @returns {Promise<Object>}
      */
     async mutatePointer ({ ownerWif, pointerUtxo, commitment, broadcast = true }) {
-        console.log('>>>>>>[mutatePointer] pointerUtxo:', pointerUtxo)
-        console.log('>>>>>>[mutatePointer] commitment:', commitment)
         if (!pointerUtxo) {
             throw new Error('Existing pointer NFT is required to re-point. Refusing to mint a new pointer.')
         }
@@ -1206,7 +1155,6 @@ class TapToPayNft extends TapToPay {
         const txHex = tx.build()
         if (broadcast) {
             const result = await this.broadcastTransaction(txHex)
-            cardLogger.log('[mutatePointer] Transaction result:', result)
             if (result?.data?.success === false) {
                 throw new Error(`Pointer mutation broadcast failed: ${result.data.error || result.data.message || 'unknown error'}`)
             }

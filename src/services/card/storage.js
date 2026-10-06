@@ -85,7 +85,6 @@ export async function saveCardActivationAttempt(walletHash, attempt) {
       throw new Error('Wallet hash is required to save create card attempt')
     }
   }
-  cardLogger.log('Saving card activation attempt for walletHash:', walletHash, 'attempt:', attempt)
   const storageKey = `${CARD_ACTIVATION_STORAGE_KEY}:${walletHash}`
   localStorage.setItem(
     storageKey,

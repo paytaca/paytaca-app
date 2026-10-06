@@ -268,7 +268,6 @@ export class Card {
    */
   static async createInitialized(data) {
     const card = await Card.createWithWallet(data);
-    cardLogger.log('created with wallet:', card)
     await card._initializeAuthNftService();
     card._initializeContract();
     return card;
@@ -305,7 +304,6 @@ export class Card {
    */
   _assertContract() {
     if (!this.contract) {
-      cardLogger.log('contract is null or undefined')
       throw new Error('TapToPay not initialized. Ensure card has contract_id and call initializeContract() first.');
     }
   }
@@ -441,7 +439,6 @@ export class Card {
    * @returns {Promise<Object>}
    */
   async sweepFungibleToken(tokenId, opts = { broadcast: true }) {
-    cardLogger.log('[card.sweepFungibleToken] Sweeping FT category to wallet token address...');
     this._assertContract();
     this._assertWallet();
 
@@ -457,7 +454,6 @@ export class Card {
     if (!opts.broadcast) return { success: true, txHex, tokenAddress, toAddress, tokenId };
 
     const result = await broadcastCardTransaction(txHex, 'sweep', { cardIdOrUid: this.id || this.uid });
-    cardLogger.log('[card.sweepFungibleToken] Sweep response:', result);
     return { ...result, txHex, tokenAddress, toAddress, tokenId };
   }
 
@@ -510,13 +506,7 @@ export class Card {
   async getAuthTokenUtxos() {
     this._assertContract();
     const tokenId = await this.resolveAuthCategory()
-    cardLogger.log('[Card.getAuthTokenUtxos] querying token UTXOs:', {
-      tokenId,
-      contractAddress: this.contract?.getContract?.()?.address,
-      contractTokenAddress: this.contract?.getContract?.()?.tokenAddress,
-    })
     const utxos = await this.contract.getTokenUtxos(tokenId);
-    cardLogger.log('[Card.getAuthTokenUtxos] returned UTXOs:', utxos)
     return utxos
   }
 
@@ -550,7 +540,6 @@ export class Card {
    * @returns {Promise<Card>}
    */
   async activate(callbackOnProgress=null, lastAttempt = null, opts = {}) {
-    cardLogger.log('Starting card activation...',);
     const attemptKey = opts.version ? `${this.wallet.walletHash}:${opts.version}` : this.wallet.walletHash;
 
     try {
@@ -576,15 +565,12 @@ export class Card {
       if (!lastAttempt) {
         lastAttempt = await this.saveActivationAttempt(attemptKey);
       }
-      cardLogger.log('[Card.activate] lastAttempt:', lastAttempt)
 
       let currentStatus = lastAttempt ? lastAttempt.status : CardActivationStatus.NONE;
-      cardLogger.log('[Card.activate] currentStatus:', currentStatus)
 
       // Obtain the linking token from the backend
       let linkingCategory = lastAttempt.linkingCategory ? lastAttempt.linkingCategory : null;
       if (currentStatus < CardActivationStatus.LINKING_TOKEN_REQUESTED) {
-        cardLogger.log('[Card.activate] Obtaining linking token from backend...');
 
         this._notifyCallbackFn(callbackOnProgress, 'Obtaining linking token...');
         const result = await this.requestLinkingToken({ version: opts.version });
@@ -605,14 +591,12 @@ export class Card {
 
       let authCategory = lastAttempt.authCategory ? lastAttempt.authCategory : null;
       if (currentStatus < CardActivationStatus.LINKING_TOKEN_OBTAINED) {
-        cardLogger.log('[Card.activate] Polling for linking token in wallet...');
 
         const { authCategory: _authCategory } = await this.contract.getMerchantAuthCategory();
 
         // Check if the ownership tokens are already set in the contract which indicates that the linking token has been obtained 
         // and consumed. If not, poll for the linking token in the wallet.
         const ownershipTokensNotSet = _authCategory !== this.ownershipCategory
-        cardLogger.log('[Card.activate] ownershipTokensNotSet:', ownershipTokensNotSet)
         
         if (ownershipTokensNotSet) {
           await this.pollForLinkingToken(linkingCategory, 1000, 10);
@@ -626,12 +610,10 @@ export class Card {
 
       // Mint the genesis token if not yet minted
       if (!authCategory && currentStatus < CardActivationStatus.GENESIS_MINTED) {
-        cardLogger.log('[Card.activate] Minting genesis token');
 
         this._notifyCallbackFn(callbackOnProgress, 'Minting genesis token. This may take a minute...');
             
         ({ category: authCategory } = await this._mintGenesisAuthToken());
-        cardLogger.log('[Card.activate] Genesis token minted with category:', authCategory);
         this._notifyCallbackFn(callbackOnProgress, 'Genesis token minted');
 
         if (!authCategory) {
@@ -645,7 +627,6 @@ export class Card {
       // Set contract ownership
       let linkingTxid = lastAttempt?.linkingTxid ? lastAttempt.linkingTxid : null;
       if (currentStatus < CardActivationStatus.OWNERSHIP_UPDATED) {
-        cardLogger.log('[Card.activate] Setting contract ownership with linking token...');
 
         const privateKey = this.wallet.privkey();
         const result = await this.contract.setOwner(privateKey, authCategory);
@@ -667,7 +648,6 @@ export class Card {
       
       // Mint global auth token
       if (currentStatus < CardActivationStatus.GLOBAL_AUTH_MINTED) {
-        cardLogger.log('[Card.activate] Minting global auth token...');
         await this._mintGlobalAuthToken(authCategory);
         currentStatus = CardActivationStatus.GLOBAL_AUTH_MINTED;
         await updateCardActivationAttempt(attemptKey, { status: currentStatus });
@@ -676,7 +656,6 @@ export class Card {
 
       // Send the global auth token to the contract
       if (currentStatus < CardActivationStatus.GLOBAL_AUTH_ISSUED) {
-        cardLogger.log('[Card.activate] Issuing global auth token to contract...');
         await this._issueAuthTokens(authCategory);
         currentStatus = CardActivationStatus.GLOBAL_AUTH_ISSUED;
         await updateCardActivationAttempt(attemptKey, { status: currentStatus });
@@ -684,7 +663,6 @@ export class Card {
       }
 
       if (currentStatus < CardActivationStatus.VALIDATION_REQUESTED) {
-        cardLogger.log('[Card.activate] Requesting server to process linking transaction with txid:', linkingTxid);
         if (!linkingTxid) linkingTxid = lastAttempt?.linkingTxid;
 
         const result = await this.processLinkingTx(linkingTxid);
@@ -697,7 +675,6 @@ export class Card {
       }
 
       if (currentStatus === CardActivationStatus.VALIDATION_REQUESTED) {
-        cardLogger.log('[Card.activate] Card creation completed successfully');
         // Clear the card activation attempt from local storage since workflow is complete
         await clearCardActivationAttempt(attemptKey);
         this._notifyCallbackFn(callbackOnProgress, 'Card created successfully!');
@@ -717,10 +694,8 @@ export class Card {
    * @returns {Promise<Object>}
    */
   async processLinkingTx(linkingTxid) {
-    cardLogger.log('Processing linking transaction with txid:', linkingTxid);
     return await backend.post(`/cards/process-linking-tx/`, { linking_txid: linkingTxid })
       .then(response => {
-        cardLogger.log('Linking transaction processed successfully:', response.data);
         return response.data;
       })
       .catch(error => {
@@ -737,16 +712,12 @@ export class Card {
    * @returns {Promise<Array>} The linking token UTXOs once visible.
    */
   async pollForLinkingToken(tokenId, interval = 1000, maxAttempts = 10) {
-    cardLogger.log(`Polling for linking token with tokenId: ${tokenId}`);
     let attempts = 0;
     while (attempts < maxAttempts) {
       try {
         const tokenUtxos = await this.wallet.getTokenUtxos(tokenId);
         if (tokenUtxos.length > 0) {
-          cardLogger.log('Linking token found in wallet:', tokenUtxos);
           return tokenUtxos;
-        } else {
-          cardLogger.log(`Attempt ${attempts + 1}/${maxAttempts}: Linking token not found yet. Retrying in ${interval}ms...`);
         }
       } catch (error) {
         cardLogger.error('Error polling for linking token:', error.message);
@@ -768,17 +739,14 @@ export class Card {
    */
   async pollForPointerUtxo(tokenId, interval = 2000, maxAttempts = 15, tokenAddress = null) {
     const address = tokenAddress || this.wallet.tokenAddress();
-    cardLogger.log(`Polling for pointer NFT with tokenId: ${tokenId} at ${address}`);
     let attempts = 0;
     while (attempts < maxAttempts) {
       try {
         const walletUtxos = await this.wallet.getTokenUtxos(tokenId, address);
         const pointerUtxo = findPointerUtxo(walletUtxos);
         if (pointerUtxo) {
-          cardLogger.log(`Pointer NFT found after ${attempts + 1} attempt(s):`, pointerUtxo);
           return pointerUtxo;
         }
-        cardLogger.log(`Attempt ${attempts + 1}/${maxAttempts}: Pointer NFT not visible yet. Retrying in ${interval}ms...`);
       } catch (error) {
         cardLogger.error('Error polling for pointer NFT:', error.message);
       }
@@ -799,7 +767,6 @@ export class Card {
    * @returns {Promise<Object>}
    */
   async saveActivationAttempt(attemptKey = null) {
-    cardLogger.log('Creating card entry...');
     this._assertWallet();
     const key = attemptKey || this.wallet.walletHash;
     const idempotencyKey = `create-card-${this.wallet.pubkey()}-${crypto.randomUUID()}`;
@@ -811,7 +778,6 @@ export class Card {
       createdAt: Date.now(),
     });
     
-    cardLogger.log('Card activation attempt created with idempotencyKey:', idempotencyKey);
     await updateCardActivationAttempt(key, { idempotencyKey, status: CardActivationStatus.NONE });
 
     const attempt = await getCardActivationAttempt(key)
@@ -852,13 +818,11 @@ export class Card {
         data.category = entry.linking_token
       } 
     }
-    cardLogger.log('Requesting linking token with data:', data)
     const response = await backend.post(`/cards/${this.id}/linking-token/`, data)
       .catch(error => {
         cardLogger.error('Error requesting linking token:', error.message);
         throw error;
       });
-    cardLogger.log('response:', response.data)
     return response.data || null;
   }
 
@@ -882,8 +846,17 @@ export class Card {
         cardLogger.error('Error fetching transactions:', error.message);
         throw error;
       });
-    console.log('getTransactions response:', response.data)
     return response.data?.results || [];
+  }
+
+  async getMerchantAuthNfts({ page = 1, page_size = 50 } = {}) {
+    const cardIdOrUid = this.id || this.uid
+    if (!cardIdOrUid) throw new Error('Card id or uid is required')
+    const params = { page, page_size }
+    if (this.activeContractVersion) params.version = this.activeContractVersion
+    const response = await backend.get(`/cards/${cardIdOrUid}/auth-nfts/`, { params })
+    if (!Array.isArray(response.data?.results)) throw new Error('Invalid merchant authorization NFT response')
+    return response.data
   }
 
   /**
@@ -891,28 +864,6 @@ export class Card {
    * @returns {Promise<Object>}
    */
   async getGlobalAuthNft() {
-    const contract = this.contract?.getContract?.()
-    cardLogger.log('[Card.getGlobalAuthNft] contract resolution:', {
-      activeContractVersion: this.activeContractVersion,
-      topLevelContractVersion: this.raw?.contract?.version,
-      activeEntryVersion: this.activeContractEntry?.version,
-      sourceVersion: this._contractSource?.version,
-      sourceContractId: this._contractSource?.contract_id || this._contractSource?.id,
-      resolvedContractAddress: contract?.address,
-      cardTokenAddress: this.tokenAddress,
-      authCategory: this.authCategory,
-      topLevelContract: this.raw?.contract,
-      contracts: this.contracts.map(c => ({
-        version: c.version,
-        is_active: c.is_active,
-        id: c.id,
-        contract_id: c.contract_id,
-        auth_token: c.auth_token,
-        ownership_token: c.ownership_token,
-        token_address: c.token_address,
-      })),
-    })
-
     const authTokenUtxos = await this.getAuthTokenUtxos();
     const globalAuthNft = authTokenUtxos.find(utxo => {
       const mutableNft = utxo?.token?.nft?.capability === 'mutable'
@@ -928,13 +879,11 @@ export class Card {
     });
 
     if (!globalAuthNft) {
-      cardLogger.log('[Card.getGlobalAuthNft] no global auth NFT found among', authTokenUtxos.length, 'auth UTXOs')
       return {}
     }
 
     const decodedCommitment = decodeCommitment(globalAuthNft.token.nft.commitment)
     const result = { ...globalAuthNft, ...decodedCommitment }
-    cardLogger.log('[Card.getGlobalAuthNft] global auth NFT found:', result)
     return result
   }
 
@@ -944,7 +893,6 @@ export class Card {
    * @returns {Promise<Object>} - The updated card data
    */
   async update(data = {}) {
-    cardLogger.log('Updating card with data:', data);
     const response = await backend.patch(`/cards/${this.id}/`, data);
     return response.data;
   }
@@ -959,7 +907,6 @@ export class Card {
    * @returns {Promise<Object>} - Updated card data with new active version
    */
   async activateVersion(version) {
-    cardLogger.log(`Activating contract version: ${version}`);
     const label = normalizeVersionLabel(version);
     if (!label) {
       throw new Error('Invalid version. Must be a positive integer or "vN".');
@@ -1027,7 +974,6 @@ export class Card {
    * @returns {Promise<Object>} - Updated card data with new active version
    */
   async activateContractVersion(version, callbackOnProgress = null, { markActive = true } = {}) {
-    cardLogger.log(`[Card.activateContractVersion] Setting up ${version} via standard activation...`);
     this._assertWallet();
     this._assertAuthNftService();
 
@@ -1071,7 +1017,6 @@ export class Card {
     // minting and try to issue a token that is not in the wallet, so discard it
     // and start this version's activation fresh.
     if (lastAttempt && provisioned && lastAttempt.linkingCategory && lastAttempt.linkingCategory !== provisioned) {
-      cardLogger.log(`[Card.activateContractVersion] Discarding stale ${version} attempt for a different contract`);
       await clearCardActivationAttempt(attemptKey).catch(() => {});
       lastAttempt = null;
     }
@@ -1095,7 +1040,6 @@ export class Card {
         if (!pollCategory) throw new Error('Failed to obtain linking token from backend');
       }
       if (!lastAttempt) {
-        cardLogger.log(`[Card.activateContractVersion] Seeding attempt with ${version} linking token`);
         await saveCardActivationAttempt(attemptKey, {
           linkingCategory: pollCategory,
           walletHash: this.wallet.walletHash,
@@ -1104,7 +1048,6 @@ export class Card {
         });
         lastAttempt = await getCardActivationAttempt(attemptKey);
       } else if (lastAttempt.linkingCategory !== pollCategory) {
-        cardLogger.log(`[Card.activateContractVersion] Resetting attempt for new ${version} linking token`);
         lastAttempt = await saveCardActivationAttempt(attemptKey, {
           linkingCategory: pollCategory,
           walletHash: this.wallet.walletHash,
@@ -1117,7 +1060,6 @@ export class Card {
     await versionCard.activate(callbackOnProgress, lastAttempt, { version });
 
     if (!markActive) {
-      cardLogger.log(`[Card.activateContractVersion] Ownership for ${version} set up; leaving active version unchanged`);
       return null;
     }
 
@@ -1131,9 +1073,7 @@ export class Card {
    */
   async subscribeToTransactions() {
     if (this.isSubscribed) return;
-    cardLogger.log('Subscribing to transactions for card ID:', this.id)
     await backend.post(`/cards/${this.id}/subscribe-transactions/`, null).then(() => {
-      cardLogger.log('Successfully subscribed to card transactions')
     }).catch(err => {
       cardLogger.error('Error subscribing to card transactions:', err.message || err)
     })
@@ -1147,13 +1087,11 @@ export class Card {
    * @returns {Promise<{tokenId: string, utxos: Array}>}
    */
   async _mintGenesisAuthToken(interval = 1000, maxAttempts = 10) {
-    cardLogger.log('Starting genesis token minting...');
     this._assertAuthNftService();
 
     while (maxAttempts > 0) {
       try {
         const result = await this.authNftService.genesis();
-        cardLogger.log('Genesis result:', result);
         
         if (result) {
           if (result.success) {
@@ -1189,9 +1127,7 @@ export class Card {
    * @returns {Promise<Object>}
    */
   async _mintGlobalAuthToken(tokenId, interval = 1000, maxAttempts = 10) {
-    cardLogger.log('Minting global auth token...');
     this._assertAuthNftService();
-    cardLogger.log('tokenId:', tokenId)
 
     // Reuse a global auth token already minted by a previous partial run so a
     // resume does not fail consuming an already-spent minting UTXO.
@@ -1204,7 +1140,6 @@ export class Card {
       return !!decoded && decoded.hash === '';
     });
     if (existingGlobal) {
-      cardLogger.log('[Card._mintGlobalAuthToken] reusing existing global auth token:', existingGlobal.txid);
       return { success: true, txid: existingGlobal.txid, reused: true };
     }
 
@@ -1218,7 +1153,6 @@ export class Card {
             }]
         });
         
-        cardLogger.log('Global auth token minted:', result);
 
         return result;
       } catch (error) {
@@ -1226,7 +1160,6 @@ export class Card {
       }
       maxAttempts--;
       if (maxAttempts > 0) {
-        cardLogger.log(`Retrying in ${interval}ms... (${maxAttempts} attempts left)`);
         await new Promise(resolve => setTimeout(resolve, interval));
       } else {
         throw new Error('Max attempts reached while minting global auth token');
@@ -1245,7 +1178,6 @@ export class Card {
    * @returns {Promise<{mintResult: Object, issueResult: Object}>}
    */
   async issueMerchantAuthToken({ authorized = true, spendLimitSats = defaultSpendLimitSats, merchant } = {}, retryOnFailure = true) {
-    cardLogger.log('Issuing merchant auth token...');
 
     if (!merchant?.id || !merchant?.pubkey) {
       throw new Error('Merchant id and pubkey are required to issue merchant auth token');
@@ -1288,7 +1220,6 @@ export class Card {
    * @returns {Promise<Object>}
    */
   async _mintMerchantAuthToken({ authorized = true, spendLimitSats, merchant, tokenId } = {}, retryOnFailure = true) {
-    cardLogger.log('Minting merchant auth token...');
     this._assertWallet();
     this._assertAuthNftService();
 
@@ -1306,7 +1237,6 @@ export class Card {
           spendLimitSats: spendLimitSats || defaultSpendLimitSats,
         }]
     });
-    cardLogger.log('Merchant auth token minted:', result);
     return result;
   }
 
@@ -1327,7 +1257,6 @@ export class Card {
         cardLogger.error('Error issuing auth tokens:', error.message || error);
         maxAttempts--;
         if (maxAttempts > 0) {
-          cardLogger.log(`Retrying in ${interval}ms... (${maxAttempts} attempts left)`);
           await new Promise(resolve => setTimeout(resolve, interval));
         } else {
           throw new Error(`Error: ${lastError?.message || lastError}`);
@@ -1354,7 +1283,6 @@ export class Card {
 
     const destAddress = toAddress || this.tokenAddress
     const result = await this.authNftService.issue(mutableTokens, destAddress);
-    cardLogger.log('Auth tokens issued:', result);
     return result;
   }
 
@@ -1367,7 +1295,6 @@ export class Card {
    * @returns {Promise<Object>}
    */
   async mutateGlobalAuthToken({ authorized, spendLimitSats, broadcast = true }) {
-    cardLogger.log('Mutating global auth token with options:', { authorized, spendLimitSats, broadcast });
     return this._mutateAuthToken({ authorized, spendLimitSats, broadcast });
   }
 
@@ -1420,8 +1347,6 @@ export class Card {
       }
 
       const mutations = [mutation];
-      const mutationTarget = merchant ? 'merchant' : 'global';
-      cardLogger.log(`Mutating ${mutationTarget} auth token commitment:`, mutations);
 
       const privateKey = this.wallet.privkey();
       const mutateResponse = await this.contract.mutate({
@@ -1443,7 +1368,6 @@ export class Card {
    * @returns {Promise<Object>}
    */
   async sweep(opts = { broadcast: true }) {
-    cardLogger.log('[card.sweep] Sweeping card BCH balance to external address...');
     this._assertContract();
     this._assertWallet();
 
@@ -1462,7 +1386,6 @@ export class Card {
     if (!txHex) throw new Error('Failed to build sweep transaction');
     const result = await broadcastCardTransaction(txHex, 'sweep', { cardIdOrUid: this.id || this.uid });
 
-    cardLogger.log('Sweep response:', result);
     return { ...result, txHex, toAddress };
   }
 
@@ -1475,7 +1398,6 @@ export class Card {
    * @returns {Promise<Object>}
    */
   async sweepToVersion(version, opts = { broadcast: true }) {
-    cardLogger.log(`[card.sweepToVersion] Sweeping BCH to ${version} address...`);
     this._assertContract();
     this._assertWallet();
 
@@ -1492,7 +1414,6 @@ export class Card {
     if (!opts.broadcast) return { success: true, txHex, toAddress }
 
     const result = await broadcastCardTransaction(txHex, 'sweep', { cardIdOrUid: this.id || this.uid });
-    cardLogger.log('[card.sweepToVersion] Sweep response:', result);
     return { ...result, txHex, toAddress };
   }
 
@@ -1508,7 +1429,6 @@ export class Card {
    * @returns {Promise<Object>}
    */
   async sweepFromVersion(version, toVersion = null, opts = { broadcast: true }) {
-    cardLogger.log(`[card.sweepFromVersion] Sweeping BCH from ${version} to ${toVersion || 'active'} contract...`);
     this._assertWallet();
 
     const source = this.contracts.find(c => c.version === version)
@@ -1534,7 +1454,6 @@ export class Card {
     if (!opts.broadcast) return { success: true, txHex, toAddress }
 
     const result = await broadcastCardTransaction(txHex, 'sweep', { cardIdOrUid: this.id || this.uid });
-    cardLogger.log('[card.sweepFromVersion] Sweep response:', result);
     return { ...result, txHex, toAddress };
   }
 
@@ -1646,7 +1565,6 @@ export class Card {
 
     const tokenId = await origin.resolveAuthCategory();
     const commitment = encodePointerCommitment({ version, category });
-    cardLogger.log(`[Card.mintPointerToken] origin=${source} authCategory=${tokenId} -> ${commitment}`);
 
     // Recover a pointer that was minted on a previous attempt but never issued
     // (e.g. the post-broadcast lookup timed out). Reusing it prevents minting a
@@ -1665,7 +1583,6 @@ export class Card {
 
     let mintResult = null;
     if (walletPointer) {
-      cardLogger.log('[Card.mintPointerToken] reusing unissued pointer already in wallet:', walletPointer.txid);
       if (migrationKey) {
         await updateCardMigrationAttempt(migrationKey, {
           status: CardMigrationStatus.POINTER_MINTED,
@@ -1704,7 +1621,6 @@ export class Card {
     // so exactly one pointer points at the requested target.
     const existingCommitment = String(walletPointer?.token?.nft?.commitment || '').toLowerCase();
     if (existingCommitment && existingCommitment !== commitment.toLowerCase()) {
-      cardLogger.log('[Card.mintPointerToken] reused pointer commitment differs; re-pointing to target');
       const issuedPointer = await this.pollForPointerUtxo(tokenId, 2000, 15, origin.tokenAddress);
       const repointResult = await origin.contract.mutatePointer({
         ownerWif: this.wallet.privkey(),
@@ -1758,7 +1674,6 @@ export class Card {
     // Already pointing at the target: nothing to spend, just keep the record.
     const existingCommitment = String(pointerUtxo?.token?.nft?.commitment || '').toLowerCase();
     if (existingCommitment === commitment.toLowerCase()) {
-      cardLogger.log('[Card.repointPointer] pointer already points at target; skipping mutation');
       if (migrationKey) {
         await updateCardMigrationAttempt(migrationKey, {
           status: CardMigrationStatus.POINTER_COMMITTED,
@@ -1769,7 +1684,6 @@ export class Card {
       return { commitment, skipped: true };
     }
 
-    cardLogger.log(`[Card.repointPointer] origin=${source} pointer=${pointerUtxo.txid}:${pointerUtxo.vout} -> ${commitment}`);
     const result = await origin.contract.mutatePointer({
       ownerWif: this.wallet.privkey(),
       pointerUtxo,
@@ -1812,11 +1726,9 @@ export class Card {
     const version = parseVersionNumber(targetLabel);
 
     if (existingPointer) {
-      cardLogger.log(`[Card.ensureMigrationPointer] pointer present at ${source}; re-pointing to ${targetLabel}`);
       return { action: 'repoint', ...(await this.repointPointer({ version, category: targetCategory, sourceVersion: source, broadcast, migrationKey })) };
     }
 
-    cardLogger.log(`[Card.ensureMigrationPointer] no pointer at ${source}; minting for ${targetLabel}`);
     return { action: 'mint', ...(await this.mintPointerToken({ version, category: targetCategory, sourceVersion: source, broadcast, migrationKey })) };
   }
 
@@ -1858,8 +1770,6 @@ export class Card {
         targetVersion: targetLabel,
         status: CardMigrationStatus.STARTED,
       });
-    } else {
-      cardLogger.log(`[Card.migrateToVersion] resuming ${source}->${targetLabel} from status ${attempt.status}`, attempt);
     }
 
     // 2. Ensure target ownership is set with the user's key. Do NOT flip the

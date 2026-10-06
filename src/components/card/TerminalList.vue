@@ -131,7 +131,6 @@ export default {
     async fetchTerminals () {
       try {
         const response = await fetchUnissuedTerminals(this.cardInfo.id);
-        cardLogger.log('Fetched terminals:', response);
         this.terminals = response.results.map(terminal => ({
           id: terminal.id,
           merchant_name: terminal.merchant_name,
@@ -158,8 +157,7 @@ export default {
         await createNFTs(createSaveNftPayload)
 
         const wallet = await Wallet.fromWIF(this.walletInfo.wif)  
-        const _utxos = await wallet.getTokenUtxos()
-        cardLogger.log('_utxos:', _utxos)
+        await wallet.getTokenUtxos()
         this.showLoading('Issuing authorization NFTs')
         await this.issueAuthNfts(authNfts)
 
@@ -215,7 +213,6 @@ export default {
     async issueAuthNfts(authNfts) {
       const tokenManager = new AuthTokenManager(this.walletInfo.wif)
       const recipients = []
-      cardLogger.log('___authNfts:', authNfts)
       for (const nft of authNfts) {
         recipients.push({
           address: this.cardInfo?.tokenaddr,
@@ -226,12 +223,9 @@ export default {
           value: nft.satoshis
         })
       }
-      cardLogger.log('recipients:', recipients)
       const response = await tokenManager.issue({ recipients })
       const contract = Contract.fromId(this.cardInfo.contract_id)
-      cardLogger.log('___contract:', contract)
-      const utxosContract = await contract.getUtxos()
-      cardLogger.log('++++++utxosContract:', utxosContract)
+      await contract.getUtxos()
       return response
     }
   }

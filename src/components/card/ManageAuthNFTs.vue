@@ -1,6 +1,22 @@
 <template>
   <div class="full-width">
+    <q-btn-toggle
+      v-model="merchantView"
+      :options="[
+        { label: $t('ByCity', {}, 'By city'), value: 'city' },
+        { label: $t('AuthorizedMerchants', {}, 'Authorized merchants'), value: 'authorized' }
+      ]"
+      toggle-color="primary"
+      toggle-text-color="white"
+      :color="$q.dark.isActive ? 'grey-9' : 'grey-3'"
+      :text-color="$q.dark.isActive ? 'grey-4' : 'grey-9'"
+      no-caps
+      spread
+      class="q-mb-md"
+      @update:model-value="loadMerchantList({ reset: true })"
+    />
     <q-select
+      v-if="merchantView === 'city'"
       ref="citySelect"
       v-model="selectedCity"
       :options="cities"
@@ -101,10 +117,10 @@
                 {{ $t('GlobalAuthenticationNFT', {}, 'Global Authentication NFT') }}
               </div>
               <div class="text-body2">
-                {{ $t('GlobalAuthenticationNFTDescription', {}, 'Enabling the Global Authentication NFT will authorize all merchants in your city to accept payments from your card. This is a convenient option if you want to quickly enable payments for all merchants without having to select them individually.') }}
+                {{ $t('GlobalAuthMerchantProtectionDescription', {}, 'Global authorization relies on the server to control which merchants can charge your card. Per-merchant authorization enforces merchant permissions and spend limits on-chain.') }}
               </div>
               <div class="text-caption q-mt-sm text-bow-muted">
-                {{ $t('GlobalAuthenticationNFTNote', {}, 'Note: This will override any individual merchant selections you have made.') }}
+                {{ $t('GlobalAuthMerchantProtectionNote', {}, 'For stronger protection, turn off global authorization and authorize only the merchants you trust.') }}
               </div>
             </div>
           </q-menu>
@@ -112,6 +128,18 @@
       </div>
 
       <q-separator horizontal :dark="$q.dark.isActive" class="q-my-sm" />
+
+      <q-banner rounded class="q-mb-sm" :class="$q.dark.isActive ? 'bg-grey-9 text-white' : 'bg-grey-2 text-grey-10'">
+        <template v-slot:avatar>
+          <q-icon name="shield" color="primary" />
+        </template>
+        <div class="text-weight-medium">
+          {{ $t('PerMerchantAuthorizationRecommended', {}, 'Recommended: use per-merchant authorization') }}
+        </div>
+        <div class="text-caption q-mt-xs">
+          {{ $t('PerMerchantAuthorizationProtectionHint', {}, 'Turn off global authorization and authorize merchants individually below. Per-merchant NFTs enforce merchant permissions and spend limits on-chain; global authorization relies on the server to restrict merchants.') }}
+        </div>
+      </q-banner>
 
       <!-- Authorization -->
       <div class="row justify-between items-center q-py-xs">
@@ -191,7 +219,7 @@
     <!-- Merchants List -->
     <div class="text-subtitle2 q-mb-sm" :class="textColor">
       {{ $t('Merchants', {}, 'Merchants') }}
-      <span v-if="selectedCity" class="text-caption text-grey">
+      <span v-if="merchantView === 'city' && selectedCity" class="text-caption text-grey">
         {{ $t('InCity', { city: selectedCity }, 'in ' + selectedCity) }}
       </span>
       <span v-if="merchants.length > 0" class="text-caption text-grey">
@@ -230,12 +258,12 @@
             <q-skeleton type="text" width="200px" height="12px" />
           </q-item-section>
           <q-item-section side><q-skeleton type="QToggle" /></q-item-section>
-        </q-item>Generic
+        </q-item>
       </div>
 
       <!-- Empty State - No City Selected -->
       <div
-        v-else-if="!selectedCity"
+        v-else-if="merchantView === 'city' && !selectedCity"
         class="text-center q-pa-xl"
         :class="$q.dark.isActive ? 'text-grey-5' : 'text-grey'"
       >
@@ -250,8 +278,8 @@
         :class="$q.dark.isActive ? 'text-grey-5' : 'text-grey'"
       >
         <q-icon name="storefront" size="48px" class="q-mb-md" />
-        <div>{{ $t('NoMerchantsFoundInCity', {}, 'No merchants found in your city') }}</div>
-        <div class="text-caption q-mt-sm">
+        <div>{{ merchantView === 'authorized' ? $t('NoMerchantAuthTokensFound', {}, 'No minted merchant authorization NFTs found') : $t('NoMerchantsFoundInCity', {}, 'No merchants found in your city') }}</div>
+        <div v-if="merchantView === 'city'" class="text-caption q-mt-sm">
           {{ $t('TryChangingLocation', {}, 'Try changing your location to find merchants in other areas') }}
         </div>
       </div>
@@ -277,13 +305,17 @@
                 class="text-weight-bold"
                 :class="merchant.isEnabled ? textColor : ($q.dark.isActive ? 'text-grey-6' : 'text-grey-7')">
                 {{ merchant.name }}
+                <div v-if="merchant.unresolved" class="text-caption" :class="textColorGrey">
+                  {{ $t('MerchantDetailsUnavailable', {}, 'Merchant details unavailable. This authorization NFT is still on-chain.') }}
+                </div>
+                <div v-if="merchant.unresolved" class="text-caption" :class="textColorGrey" style="word-break: break-all;">{{ merchant.authHash }}</div>
                 <span
                   v-if="merchant.isEnabled && !genericAuthEnabled && merchant.spendLimit"
                   class="text-caption text-secondary q-ml-xs">
                   ({{ formatSpendLimit(merchant.spendLimit) }} BCH)
                 </span>
                 <span
-                  v-if="merchant.registered === false"
+                  v-if="merchant.registered === false && !merchant.unresolved"
                   class="text-caption q-ml-xs"
                   :class="$q.dark.isActive ? 'text-grey-5' : 'text-grey-6'">
                   ({{ $t('NotRegisteredForCard', {}, 'Not registered for card payments') }})
@@ -573,6 +605,8 @@ export default {
   data() {
     return {
       search: '',
+      merchantView: 'city',
+      merchantLoadId: 0,
       cities: [],
       allCities: [],
       citiesLoading: false,
@@ -651,7 +685,7 @@ export default {
       let list = [...this.merchants];
       if (this.search) {
         const s = this.search.toLowerCase();
-        list = list.filter(m => m.name.toLowerCase().includes(s));
+        list = list.filter(m => m.name.toLowerCase().includes(s) || (m.authHash || '').toLowerCase().includes(s));
       }
       return list;
     },
@@ -662,11 +696,13 @@ export default {
       return this.filteredMerchants.filter(m => m.registered === false);
     },
     displayedMerchants() {
+      if (this.merchantView === 'authorized') return this.filteredMerchants
       return this.showUnregistered
         ? [...this.registeredMerchants, ...this.unregisteredMerchants]
         : this.registeredMerchants;
     },
     hiddenMerchantCount() {
+      if (this.merchantView === 'authorized') return 0
       return this.showUnregistered ? 0 : this.unregisteredMerchants.length;
     },
     textColor() {
@@ -954,7 +990,6 @@ export default {
       } finally {
         this.loadingGlobalAuthNft = false
       }
-      cardLogger.log('Global Auth NFT loaded:', this.globalAuthNft)
     },
 
     normalizeCityEntry(entry, country = null) {
@@ -1136,6 +1171,11 @@ export default {
     },
 
     async loadMerchantList(opts = {}) {
+      const loadId = ++this.merchantLoadId
+      if (this.merchantView === 'authorized') {
+        await this.loadAuthorizedMerchants(loadId, opts)
+        return
+      }
       let city = opts.city || this.selectedCity || this.userLocation?.city
       if (city && typeof city === 'object') city = city.value || city.label
       if (!city) {
@@ -1166,6 +1206,7 @@ export default {
 
         const merchants = await getAllMerchantsByCity(city, params)
         await this.applyOnchainAuthState(merchants)
+        if (loadId !== this.merchantLoadId) return
         this.merchants = merchants
         this.merchantsPagination = {
           count: merchants.length,
@@ -1174,6 +1215,7 @@ export default {
           hasMore: false
         }
       } catch (error) {
+        if (loadId !== this.merchantLoadId) return
         cardLogger.error('Failed to load merchants for city:', city, error?.response?.data || error?.message || error)
         this.$q.notify({
           message: this.$t('FailedToLoadMerchants', {}, 'Failed to load merchants near your location'),
@@ -1182,8 +1224,74 @@ export default {
           timeout: 4000,
         })
       } finally {
-        this.loading = false
-        this.loadingMore = false
+        if (loadId === this.merchantLoadId) {
+          this.loading = false
+          this.loadingMore = false
+        }
+      }
+    },
+
+    async loadAuthorizedMerchants(loadId, opts = {}) {
+      const reset = opts.reset === true
+      const page = reset ? 1 : (this.merchantsPagination.page || 0) + 1
+      if (reset) {
+        this.merchants = []
+        this.loading = true
+        this.merchantsPagination = { page: 0, hasMore: false }
+      } else {
+        this.loadingMore = true
+      }
+      try {
+        const response = await this.card.getMerchantAuthNfts({ page, page_size: 50 })
+        if (loadId !== this.merchantLoadId) return
+        const byHash = new Map((reset ? [] : this.merchants).map(merchant => [merchant.authHash, {
+          ...merchant,
+          auth_nfts: [...merchant.auth_nfts],
+        }]))
+        for (const item of response.results) {
+          const hash = item.merchant_hash
+          const merchant = item.merchant
+          const nft = {
+            id: item.id ?? `${item.txid}:${item.vout}`,
+            token: {
+              category: item.category,
+              commitment: item.commitment,
+              authorized: item.authorized,
+              spend_limit_sats: item.spend_limit_sats,
+            },
+          }
+          if (!byHash.has(hash)) {
+            byHash.set(hash, {
+              ...merchant,
+              id: hash,
+              name: merchant?.name || this.$t('UnknownMerchant', {}, 'Unknown merchant'),
+              registered: merchant?.ref_id != null && !!merchant?.public_key,
+              unresolved: !merchant,
+              authHash: hash,
+              auth_nfts: [],
+              isEnabled: item.authorized,
+              spendLimit: satoshiToBch(item.spend_limit_sats),
+            })
+          }
+          const row = byHash.get(hash)
+          if (!row.auth_nfts.some(existing => existing.id === nft.id)) row.auth_nfts.push(nft)
+        }
+        this.merchants = [...byHash.values()]
+        this.merchantsPagination = {
+          count: response.count,
+          page,
+          limit: 50,
+          hasMore: response.next != null,
+        }
+      } catch (error) {
+        if (loadId !== this.merchantLoadId) return
+        cardLogger.error('Failed to load merchant authorization NFTs:', error?.message || error)
+        this.$q.notify({ type: 'error', message: this.$t('FailedToLoadMerchantAuthTokens', {}, 'Failed to load merchant authorization NFTs'), timeout: 5000 })
+      } finally {
+        if (loadId === this.merchantLoadId) {
+          this.loading = false
+          this.loadingMore = false
+        }
       }
     },
 
@@ -1330,8 +1438,7 @@ export default {
             id: merchant.ref_id,
             pubkey: merchant.public_key,
           } 
-        }).then(response => {
-          cardLogger.log('Mint response:', response)
+        }).then(() => {
 
           // Show success message
           this.mintedMerchants.add(merchant.id);
