@@ -54,7 +54,7 @@ export function auctionQueryIndex(state) {
 
 // Auction Details getters
 export function auctionId(state){
-  return state.auctionData['id'] 
+  return state.auctionData['id'] ?? null
 }
 
 export function auctionData(state){
@@ -79,7 +79,7 @@ export function auctionLotsImages(state) {
 
 // Lot Details getters
 export function lotId(state) {
-  return state.lotData['id']
+  return state.lotData['id'] ?? null
 }
 
 export function lotData(state) {

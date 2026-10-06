@@ -166,6 +166,9 @@ export function updateLotCategoryAuction(state, lotCategoryAuction) {
 }
 
 // Lot Details Page mutations
+export function setLotData(state, lotData) {
+  state.lotData = lotData
+}
 
 export function setLotDataLastFetched(state) {
   state.lotDataLastFetched = Date.now()
