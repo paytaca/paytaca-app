@@ -1,7 +1,5 @@
 import {
   SigningSerializationFlag,
-  walletTemplateP2pkhNonHd,
-  walletTemplateToCompilerBCH,
   binToHex,
   decodeAuthenticationInstructions,
   encodeLockingBytecodeP2pkh,
@@ -11,7 +9,6 @@ import {
   hash160,
   hash256,
   hexToBin,
-  importWalletTemplate,
   lockingBytecodeToCashAddress,
   secp256k1,
   sha256,
@@ -85,10 +82,6 @@ export function extractContractBytecode(unlockingBytecode) {
  * @returns {{ signedTransaction: string, signedTransactionHash: string }}
  */
 export function signBchTransaction({ transaction, sourceOutputs, resolveKey, prefix }) {
-  const walletTemplate = importWalletTemplate(walletTemplateP2pkhNonHd)
-  if (typeof walletTemplate === 'string') throw new Error(walletTemplate)
-  const compiler = walletTemplateToCompilerBCH(walletTemplate)
-
   const txTemplate = { ...transaction, inputs: transaction.inputs.map(i => ({ ...i })) }
 
   for (const [index, input] of txTemplate.inputs.entries()) {
@@ -167,16 +160,18 @@ export function signBchTransaction({ transaction, sourceOutputs, resolveKey, pre
 
       input.unlockingBytecode = hexToBin(unlockingBytecodeHex)
     } else if (!sourceOutput?.unlockingBytecode?.length) {
-      // P2PKH input — use compiler
-      input.unlockingBytecode = {
-        compiler,
-        data: {
-          keys: { privateKeys: { key: privateKey } },
-        },
-        valueSatoshis: sourceOutput.valueSatoshis,
-        script: 'unlock',
-        token: sourceOutput.token,
-      }
+      // P2PKH input — sign explicitly with SIGHASH_ALL | SIGHASH_FORKID | SIGHASH_UTXOS (0x61)
+      const hashType = SigningSerializationFlag.allOutputs | SigningSerializationFlag.utxos | SigningSerializationFlag.forkId
+      const context = { inputIndex: index, sourceOutputs, transaction }
+      const signingSerializationType = new Uint8Array([hashType])
+
+      const sighashPreimage = generateSigningSerializationBCH(context, { coveredBytecode: sourceOutput.lockingBytecode, signingSerializationType })
+      const sighash = hash256(sighashPreimage)
+      const signature = secp256k1.signMessageHashSchnorr(privateKey, sighash)
+      if (typeof signature === 'string') throw signBchTxError(signature)
+      const sig = Uint8Array.from([...signature, hashType])
+
+      input.unlockingBytecode = hexToBin(`41${binToHex(sig)}21${binToHex(publicKey)}`)
     }
   }
 
