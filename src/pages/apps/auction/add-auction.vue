@@ -352,7 +352,7 @@ const handleCreateAuction = async () => {
     const auctionFormData = new FormData()
     
     auctionFormData.append('title', auctionForm.value.title)
-    auctionFormData.append('user', Store.getters['global/getWallet']('bch')?.walletHash)
+    auctionFormData.append('auctioneer', Store.getters['global/getWallet']('bch')?.walletHash)
     auctionFormData.append('type', auctionForm.value.type)
     auctionFormData.append('description', auctionForm.value.description)
     auctionFormData.append('is_fiat', auctionForm.value.isFiatUsed)
