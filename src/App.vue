@@ -472,12 +472,14 @@ export default {
         getWalletByNetwork(wallet, 'slp').getWalletHash()
       ]
 
-      await this.$pushNotifications.isPushNotificationEnabled().catch(console.log)
-      if (!this.$pushNotifications.isEnabled && !this.promptedPushNotifications) {
-        await this.$pushNotifications.openPushNotificationsSettingsPrompt({
-          message: 'Enable push notifications to receive updates from the app',
-        }).catch(console.log)
-        this.promptedPushNotifications = true
+      if (this.$pushNotifications.canRequestPermission) {
+        await this.$pushNotifications.isPushNotificationEnabled().catch(console.log)
+        if (!this.$pushNotifications.isEnabled && !this.promptedPushNotifications) {
+          await this.$pushNotifications.openPushNotificationsSettingsPrompt({
+            message: 'Enable push notifications to receive updates from the app',
+          }).catch(console.log)
+          this.promptedPushNotifications = true
+        }
       }
 
       this.$pushNotifications.watchtower = new Watchtower(this.$store.state.global.isChipnet)
