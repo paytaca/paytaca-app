@@ -882,6 +882,7 @@ export class Card {
         cardLogger.error('Error fetching transactions:', error.message);
         throw error;
       });
+    console.log('getTransactions response:', response.data)
     return response.data?.results || [];
   }
 
@@ -2026,17 +2027,28 @@ export function isContractHistoryMutation(item) {
   return item?.tx_type === 'mutation'
 }
 
+export function isContractHistoryNft(item) {
+  return item?.is_nft === true || item?.is_nft === 'true' ||
+    item?.is_cashtoken_nft === true || item?.is_cashtoken_nft === 'true' ||
+    item?.token?.is_nft === true || item?.token?.is_nft === 'true' ||
+    item?.token?.is_cashtoken_nft === true || item?.token?.is_cashtoken_nft === 'true' ||
+    !!item?.token?.nft || !!item?.nft || !!item?.token?.commitment ||
+    item?.token?.is_global_auth === true || item?.token?.is_global_auth === 'true'
+}
+
 /**
  * Maps a history row to its display kind.
  * @param {Object} item - ContractHistory row.
- * @returns {string|null} 'cash-in', 'payment', 'sweep', or null when not displayable.
+ * @returns {string|null} Display kind for the history record.
  */
 export function getContractHistoryKind(item) {
-  if (!item || isContractHistoryMutation(item)) return null
-  if (item.direction === 'incoming' && (item.tx_type == null || item.tx_type === '')) return 'cash-in'
+  if (!item) return null
+  const isNft = isContractHistoryNft(item)
+  if (isContractHistoryMutation(item)) return isNft ? 'nft-mutation' : 'mutation'
+  if (item.direction === 'incoming') return 'cash-in'
   if (item.direction === 'outgoing' && item.tx_type === 'payment') return 'payment'
   if (item.direction === 'outgoing' && item.tx_type === 'sweep') return 'sweep'
-  return null
+  return 'transaction'
 }
 
 /**
@@ -2048,22 +2060,27 @@ export function normalizeContractHistoryItem(item) {
   if (!item) return null
   const kind = getContractHistoryKind(item)
   if (!kind) return null
-  const isToken = !!item.is_token
+  const isToken = !!item.is_token || !!item.token
   const tokenAmount = item?.token?.amount ?? null
   const category = item?.token?.category || null
+  const isNft = isContractHistoryNft(item)
   return {
     id: item.id,
     txid: item.txid,
     direction: item.direction,
     tx_type: item.tx_type,
+    token_action: item?.token_action || item?.nft_action || item?.action || null,
+    auth_nft_change: item?.auth_nft_change ?? null,
     kind,
     is_token: isToken,
+    is_nft: isNft,
     value: Number(item?.value ?? 0),
     amount: isToken ? tokenAmount : Number(item?.value ?? 0),
     category,
     token: item?.token || null,
+    nft: item?.token?.nft || item?.nft || (isNft ? item?.token : null),
     merchant: item?.merchant || null,
-    merchantRefId: item?.merchant?.ref_id ?? null,
+    merchantRefId: item?.merchant?.ref_id ?? item?.merchant_ref_id ?? item?.merchant_id ?? null,
     address: item?.address || null,
     card: item?.card || null,
     version: item?.version ?? null,

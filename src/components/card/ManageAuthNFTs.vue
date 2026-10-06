@@ -1,56 +1,66 @@
 <template>
   <div class="full-width">
-    <!-- Location Info - clickable to open map popup -->
-    <GeolocateBtn silent-on-error silent-on-deny @geolocate="onGeolocated" @denied="onLocationDenied">
-      <template #default="{ attemptGeolocate }">
-        <div
-          v-if="userLocation"
-          class="row items-center q-mb-md q-px-sm cursor-pointer location-info disabled"
-          :class="$q.dark.isActive ? 'text-grey-4' : 'text-grey-7'"
-          @click="onSelectLocation"
-        >
-          <q-icon name="location_on" size="1.2rem" class="q-mr-xs" color="primary" />
-          <span class="text-caption ellipsis">
-            {{ fullUserLocation || $t('UsingCurrentLocation', {}, 'Using current location') }}
-          </span>
-          <q-icon name="edit" size="0.9rem" class="q-ml-xs" color="primary" />
-          <q-tooltip>{{ $t('ClickToUpdateLocation', {}, 'Click to update your location') }}</q-tooltip>
-        </div>
-        <div
-          v-else
-          class="row items-center q-mb-md q-px-sm cursor-pointer location-info"
-          :class="$q.dark.isActive ? 'text-grey-5' : 'text-grey'"
-          @click="() => attemptGeolocate().catch(err => cardLogger.error(err.message || err)).then(() => openLocationMapDialog())"
-        >
-          <q-icon name="location_off" size="1.2rem" class="q-mr-xs" />
-          <span class="text-caption">{{ $t('DetectingYourLocation', {}, 'Detecting your location... (click to set manually)') }}</span>
-          <q-icon name="edit" size="0.9rem" class="q-ml-xs" />
-          <q-tooltip>{{ $t('ClickToSetLocation', {}, 'Click to set your location') }}</q-tooltip>
-        </div>
+    <q-select
+      ref="citySelect"
+      v-model="selectedCity"
+      :options="cities"
+      :loading="citiesLoading"
+      dense
+      outlined
+      clearable
+      use-input
+      fill-input
+      hide-selected
+      emit-value
+      map-options
+      option-label="label"
+      option-value="value"
+      input-debounce="300"
+      :label="$t('SelectCity', {}, 'Select city')"
+      class="q-mb-md"
+      :dark="$q.dark.isActive"
+      @update:model-value="onCitySelected"
+      @filter="onFilterCities"
+    >
+      <template v-slot:prepend>
+        <q-icon name="location_on" color="primary" />
       </template>
-    </GeolocateBtn>
-
-    <!-- Search bar and Select Multiple Toggle -->
-    <div class="row items-center q-mb-md q-gutter-x-sm">
-      <div class="col">
-        <q-input
-          v-model="search"
-          :placeholder="$t('SearchMerchants', {}, 'Search merchants...')"
-          dense
-          borderless
-          input-class="search-input-field"
-          :dark="$q.dark.isActive"
-          clearable
-          disable
-          class="search-input-wrapper"
+      <template v-slot:option="scope">
+        <q-item
+          v-if="scope.opt.__showMore"
+          clickable
+          @click.stop="onShowMoreCities"
         >
-          <template v-slot:prepend>
-            <q-icon name="search" size="1.1rem" color="primary" />
-          </template>
-        </q-input>
-      </div>
-
-    </div>
+          <q-item-section>
+            <q-item-label class="text-primary text-weight-medium">
+              <q-icon name="expand_more" size="1rem" class="q-mr-xs" />
+              {{ scope.opt.label }}
+            </q-item-label>
+          </q-item-section>
+        </q-item>
+        <q-item v-else v-bind="scope.itemProps">
+          <q-item-section>
+            <q-item-label :style="$q.dark.isActive ? 'color: white;' : 'color: black;'">
+              {{ scope.opt.label }}
+            </q-item-label>
+            <q-item-label
+              v-if="scope.opt.country"
+              caption
+              :style="$q.dark.isActive ? 'color: rgba(255,255,255,0.7);' : 'color: rgba(0,0,0,0.6);'"
+            >
+              {{ scope.opt.country }}
+            </q-item-label>
+          </q-item-section>
+        </q-item>
+      </template>
+      <template v-slot:no-option>
+        <q-item>
+          <q-item-section class="text-grey">
+            {{ $t('NoCitiesFound', {}, 'No cities found') }}
+          </q-item-section>
+        </q-item>
+      </template>
+    </q-select>
 
     <!-- Global Auth NFT -->
     <div 
@@ -180,10 +190,30 @@
 
     <!-- Merchants List -->
     <div class="text-subtitle2 q-mb-sm" :class="textColor">
-      {{ $t('NearbyMerchants', {}, 'Nearby Merchants') }}
-      <span v-if="merchants.length > 0" class="text-caption text-grey">
-        ({{ filteredMerchants.length }})
+      {{ $t('Merchants', {}, 'Merchants') }}
+      <span v-if="selectedCity" class="text-caption text-grey">
+        {{ $t('InCity', { city: selectedCity }, 'in ' + selectedCity) }}
       </span>
+      <span v-if="merchants.length > 0" class="text-caption text-grey">
+        ({{ displayedMerchants.length }}<span v-if="hiddenMerchantCount > 0"> +{{ hiddenMerchantCount }}</span>)
+      </span>
+    </div>
+
+    <div class="q-mb-sm">
+      <q-input
+        v-model="search"
+        :placeholder="$t('SearchMerchants', {}, 'Search merchants...')"
+        dense
+        borderless
+        input-class="search-input-field"
+        :dark="$q.dark.isActive"
+        clearable
+        class="search-input-wrapper"
+      >
+        <template v-slot:prepend>
+          <q-icon name="search" size="1.1rem" color="primary" />
+        </template>
+      </q-input>
     </div>
     
     <div 
@@ -203,17 +233,14 @@
         </q-item>Generic
       </div>
 
-      <!-- Empty State - No Location -->
-      <div 
-        v-else-if="!userLocationValid" 
-        class="text-center q-pa-xl" 
+      <!-- Empty State - No City Selected -->
+      <div
+        v-else-if="!selectedCity"
+        class="text-center q-pa-xl"
         :class="$q.dark.isActive ? 'text-grey-5' : 'text-grey'"
       >
         <q-icon name="location_off" size="48px" class="q-mb-md" />
-        <div>{{ $t('WaitingForGPSLocation', {}, 'Waiting for GPS location...') }}</div>
-        <div class="text-caption q-mt-sm">
-          {{ $t('PleaseEnableLocationServices', {}, 'Please enable location services') }}
-        </div>
+        <div>{{ $t('SelectCityToViewMerchants', {}, 'Select a city to view merchants') }}</div>
       </div>
 
       <!-- Empty State - No Merchants -->
@@ -231,12 +258,14 @@
 
       <!-- Merchant List -->
       <div v-else-if="filteredMerchants.length > 0">
-        <q-list disabled separator :dark="$q.dark.isActive">
-          <q-item 
-            v-for="merchant in filteredMerchants" 
-            :key="merchant.id" 
+        <q-list separator :dark="$q.dark.isActive">
+          <q-item
+            v-for="merchant in displayedMerchants"
+            :key="merchant.id"
             class="q-px-none manage-auth-merchant-item q-px-md"
-            :class="{ 'disabled-merchant': genericAuthEnabled }">
+            :clickable="merchant.registered !== false && !genericAuthEnabled"
+            @click="onMerchantRowClick(merchant)"
+            :class="{ 'disabled-merchant': genericAuthEnabled, 'unregistered-merchant': merchant.registered === false }">
             <q-item-section>
               <q-tooltip 
                 v-if="merchant.isEnabled && !genericAuthEnabled && merchant.spendLimit" 
@@ -248,10 +277,16 @@
                 class="text-weight-bold"
                 :class="merchant.isEnabled ? textColor : ($q.dark.isActive ? 'text-grey-6' : 'text-grey-7')">
                 {{ merchant.name }}
-                <span 
-                  v-if="merchant.isEnabled && !genericAuthEnabled && merchant.spendLimit" 
+                <span
+                  v-if="merchant.isEnabled && !genericAuthEnabled && merchant.spendLimit"
                   class="text-caption text-secondary q-ml-xs">
                   ({{ formatSpendLimit(merchant.spendLimit) }} BCH)
+                </span>
+                <span
+                  v-if="merchant.registered === false"
+                  class="text-caption q-ml-xs"
+                  :class="$q.dark.isActive ? 'text-grey-5' : 'text-grey-6'">
+                  ({{ $t('NotRegisteredForCard', {}, 'Not registered for card payments') }})
                 </span>
               </div>
             </q-item-section>
@@ -269,17 +304,46 @@
                   class="text-positive text-caption">
                   {{ $t('MintingDone', {}, 'minting done') }}
                 </span>
-                <!-- Merchant has NFTs: show authorized label -->
+                <!-- Merchant has NFTs: show authorized/disabled label -->
                 <span
                   v-if="merchant.auth_nfts?.length > 0"
-                  class="text-caption text-positive">
-                  {{ $t('AuthorizedNftCount', { count: merchant.auth_nfts.length }, 'Authorized (' + merchant.auth_nfts.length + ' NFT' + (merchant.auth_nfts.length > 1 ? 's' : '') + ')') }}
+                  class="text-caption"
+                  :class="merchantAuthorized(merchant) ? 'text-positive' : ($q.dark.isActive ? 'text-grey-5' : 'text-grey-6')">
+                  {{ merchantAuthorized(merchant)
+                    ? $t('AuthorizedNftCount', { count: merchant.auth_nfts.length }, 'Authorized (' + merchant.auth_nfts.length + ' NFT' + (merchant.auth_nfts.length > 1 ? 's' : '') + ')')
+                    : $t('Disabled', {}, 'Disabled') }}
                 </span>
-                <!-- Merchant has no NFTs: show mint toggle -->
+                <!-- Edit spend limit (registered merchants only) -->
+                <q-btn
+                  v-if="merchant.registered !== false"
+                  flat
+                  dense
+                  round
+                  size="sm"
+                  icon="edit"
+                  :disable="genericAuthEnabled"
+                  :color="$q.dark.isActive ? 'grey-4' : 'grey-7'"
+                  @click.stop="openSpendLimitDialog(merchant)"
+                >
+                  <q-tooltip>{{ $t('EditSpendLimit', {}, 'Edit spend limit') }}</q-tooltip>
+                </q-btn>
               </div>
             </q-item-section>
           </q-item>
         </q-list>
+
+        <!-- Show Unregistered Merchants -->
+        <div v-if="hiddenMerchantCount > 0" class="text-center q-py-sm">
+          <q-btn
+            flat
+            no-caps
+            dense
+            color="primary"
+            icon="expand_more"
+            :label="$t('ShowUnregisteredMerchants', { count: hiddenMerchantCount }, `Show ${hiddenMerchantCount} more (not registered for card payments)`)"
+            @click="showUnregistered = true"
+          />
+        </div>
 
         <!-- Loading More Indicator -->
         <div v-if="loadingMore" class="text-center q-pa-md">
@@ -336,61 +400,44 @@
 
     <!-- Spend Limit Dialog -->
     <q-dialog v-model="showMutateAuthDialog">
-      <q-card class="pt-card" :class="$q.dark.isActive ? 'dark' : 'light'" style="min-width: 320px; border-radius: 24px;">
+      <q-card class="pt-card" :class="[$q.dark.isActive ? 'dark' : 'light', textColor]" style="min-width: 320px; border-radius: 24px;">
         <q-card-section class="q-pa-lg">
           <div class="row items-center justify-between q-mb-sm">
             <div class="text-h6 text-weight-bold" :class="textColor">
-              {{ $t('EditAuthorizationNFT', {}, 'Edit Authorization NFT') }}
+              {{ selectedAuthNFT ? $t('EditAuthorizationNFT', {}, 'Edit Authorization NFT') : $t('AuthorizeMerchant', {}, 'Authorize Merchant') }}
             </div>
             <q-btn flat round dense icon="close" :color="$q.dark.isActive ? 'grey-4' : 'grey-6'" @click="closeSpendLimitDialog" />
           </div>
           <div class="q-mb-md" :class="textColor">
             <span class="text-weight-bold">{{ $t('MerchantLabel', {}, 'Merchant:') }} {{ selectedMerchant?.name }}</span>
           </div>
-          <q-tabs v-model="selectedNFT.id" class="text-subtitle2 bg-transparent" :dark="$q.dark.isActive">
-            <q-tab
-              v-for="nft in selectedMerchant.auth_nfts"
-              :key="nft.id"
-              :name="nft.id"
-              :label="`NFT ${nft.id}`"
-              @click="() => { selectedNFT = nft }"
-            />
-              <q-tab v-if="selectedMerchant.auth_nfts.length === 0" name="no-nft" :label="$t('NoNFTs', {}, 'No NFTs')" :disable="true" />
-          </q-tabs>
-          <q-tab-panels v-model="selectedNFT.id" animated class="bg-transparent">
-            <q-tab-panel :name="selectedNFT.id">
-              <q-toggle
-                left-label
-                :label="$t('Authorize', {}, 'Authorize')"
-                v-model:model-value="selectedNFTAuthorized"/>
-              <q-input
-                v-model="spendLimitInput"
-                type="number"
-                filled
-                :dark="$q.dark.isActive"
-                :label="$t('SpendLimitBCH', {}, 'Spend Limit (BCH)')"
-                step="0.00000001"
-                min="0"
-                :error="!!spendLimitError"
-                :error-message="spendLimitError"
-                lazy-rules
-              />
-              <div v-if="selectedAuthNFT" class="q-mt-md q-gutter-y-xs text-caption" :class="textColorGrey">
-                <div><span class="text-weight-medium">{{ $t('NftId', {}, 'NFT ID:') }}</span> {{ selectedAuthNFT.id }}</div>
-                <div><span class="text-weight-medium">{{ $t('Category', {}, 'Category:') }}</span> {{ selectedAuthNFT.token?.category || $t('N/A', {}, 'N/A') }}</div>
-                <div><span class="text-weight-medium">{{ $t('Commitment', {}, 'Commitment:') }}</span> {{ selectedAuthNFT.token?.commitment || $t('N/A', {}, 'N/A') }}</div>
-                <div><span class="text-weight-medium">{{ $t('Amount', {}, 'Amount:') }}</span> {{ selectedAuthNFT.token?.amount || '0' }}</div>
-                <div><span class="text-weight-medium">{{ $t('GlobalAuth', {}, 'Global Auth:') }}</span> {{ selectedAuthNFT.token?.is_global_auth ? $t('Yes', {}, 'Yes') : $t('No', {}, 'No') }}</div>
-                <div><span class="text-weight-medium">{{ $t('SpendLimit', {}, 'Spend Limit:') }}</span> {{ formatSpendLimitFromSats(selectedAuthNFT.token?.spend_limit_sats) }} BCH</div>
-              </div>
-            </q-tab-panel>
-          </q-tab-panels>
+          <div v-if="!selectedAuthNFT" class="q-mb-md text-caption" :class="textColorGrey">
+            {{ $t('MerchantNotAuthorizedHint', {}, 'This merchant is not yet authorized. Minting will authorize it with the spend limit below.') }}
+          </div>
+          <q-toggle
+            v-if="selectedAuthNFT"
+            left-label
+            :label="$t('Authorize', {}, 'Authorize')"
+            v-model:model-value="selectedNFTAuthorized"/>
+          <q-input
+            v-model="spendLimitInput"
+            type="number"
+            filled
+            :dark="$q.dark.isActive"
+            :label="$t('SpendLimitBCH', {}, 'Spend Limit (BCH)')"
+            step="0.00000001"
+            min="0"
+            :error="!!spendLimitError"
+            :error-message="spendLimitError"
+            lazy-rules
+          />
         </q-card-section>
 
         <q-card-actions align="between" class="q-px-lg q-pb-md">
           <div class="row items-center q-gutter-sm">
             <q-btn flat label="Cancel" :color="$q.dark.isActive ? 'grey-4' : 'grey-7'" rounded @click="closeSpendLimitDialog" />
-            <q-btn unelevated label="Save" color="primary" class="bg-grad text-white" rounded @click="submitMutation" />
+            <q-btn v-if="!selectedAuthNFT" unelevated :label="$t('Mint', {}, 'Mint')" color="primary" class="bg-grad text-white" rounded @click="submitMerchantAuth" />
+            <q-btn v-else unelevated :label="$t('Save', {}, 'Save')" color="primary" class="bg-grad text-white" rounded @click="submitMutation" />
           </div>
         </q-card-actions>
       </q-card>
@@ -498,9 +545,11 @@
 
 <script>
 // import { createCardLogic, CardStorage } from './createCard.js'
-import { getMerchantList, getMerchantsByCity } from 'src/services/card/merchants'
+import { getMerchantList, getAllMerchantsByCity, getMerchantCities, getMerchantCountries } from 'src/services/card/merchants'
+import { decodeCommitment, encodeMerchantHash } from 'src/services/card/auth-nft'
+
+const SHOW_MORE_CITIES = '__show_more_cities__'
 import { geolocationManager } from 'src/boot/geolocation'
-import GeolocateBtn from 'src/components/GeolocateBtn.vue'
 import PinLocationDialog from 'src/components/PinLocationDialog.vue';
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils.js';
 import { bchToSatoshi } from 'src/exchange/index.js';
@@ -511,7 +560,7 @@ import { satoshiToBch } from 'src/exchange/index.js';
 export default {
   name: 'ManageAuthNFTs',
   // mixins: [createCardLogic],
-  components: { GeolocateBtn },
+  components: {},
   inject: ['cardUser'],
   props: {
     card: { type: Object, required: true }
@@ -524,6 +573,13 @@ export default {
   data() {
     return {
       search: '',
+      cities: [],
+      allCities: [],
+      citiesLoading: false,
+      selectedCity: null,
+      previousCity: null,
+      showAllCities: false,
+      showUnregistered: false,
       // showBurnTokenDialog: false,
       genericAuthEnabled: false,
       // Hardcoded global spend limit: ~500 PHP worth of BCH (approximately 0.0017 BCH)
@@ -599,6 +655,20 @@ export default {
       }
       return list;
     },
+    registeredMerchants() {
+      return this.filteredMerchants.filter(m => m.registered !== false);
+    },
+    unregisteredMerchants() {
+      return this.filteredMerchants.filter(m => m.registered === false);
+    },
+    displayedMerchants() {
+      return this.showUnregistered
+        ? [...this.registeredMerchants, ...this.unregisteredMerchants]
+        : this.registeredMerchants;
+    },
+    hiddenMerchantCount() {
+      return this.showUnregistered ? 0 : this.unregisteredMerchants.length;
+    },
     textColor() {
       return this.$q.dark.isActive ? 'text-white' : 'text-grey-10'
     },
@@ -634,6 +704,7 @@ export default {
   },
   async mounted() {
     this.loadGlobalAuthNft()
+    await this.loadCities()
   },
 
   methods: {
@@ -886,60 +957,301 @@ export default {
       cardLogger.log('Global Auth NFT loaded:', this.globalAuthNft)
     },
 
+    normalizeCityEntry(entry, country = null) {
+      let city = null
+      let resolvedCountry = country
+      if (typeof entry === 'string') city = entry.trim()
+      if (entry && typeof entry === 'object') {
+        const val = entry.city || entry.name || entry.label || entry.value
+        if (typeof val === 'string') city = val.trim()
+        const entryCountry = entry.country || entry.country_name
+        if (typeof entryCountry === 'string' && entryCountry.trim()) resolvedCountry = entryCountry.trim()
+      }
+      if (!city) return null
+      return {
+        label: resolvedCountry ? `${city}, ${resolvedCountry}` : city,
+        value: city,
+        country: resolvedCountry || null,
+      }
+    },
+
+    cityMatchKey(name) {
+      if (!name || typeof name !== 'string') return ''
+      return name
+        .toLowerCase()
+        .replace(/[.,]/g, ' ')
+        .replace(/\b(city|municipality|town|village)\b/g, ' ')
+        .replace(/\s+/g, ' ')
+        .trim()
+    },
+
+    findNearestCityOption(storeCity, options) {
+      const key = this.cityMatchKey(storeCity)
+      if (!key) return null
+      const exact = (options || []).find(opt => this.cityMatchKey(opt.value) === key)
+      if (exact) return exact
+      const partial = (options || []).filter(opt => {
+        const optKey = this.cityMatchKey(opt.value)
+        return optKey && (optKey.startsWith(key) || key.startsWith(optKey))
+      })
+      return partial.length === 1 ? partial[0] : null
+    },
+
+    normalizeCountryEntry(entry) {
+      if (typeof entry === 'string') return entry.trim()
+      if (entry && typeof entry === 'object') {
+        const val = entry.country || entry.name || entry.label || entry.value
+        if (typeof val === 'string') return val.trim()
+      }
+      return null
+    },
+
+    isCityInUserCountry(opt) {
+      const userCountry = this.userLocation?.country
+      if (!userCountry || !opt?.country) return false
+      return this.cityMatchKey(opt.country) === this.cityMatchKey(userCountry)
+    },
+
+    countryScopedCities(list) {
+      const all = list || []
+      const userCountry = this.userLocation?.country
+      if (!userCountry) return all
+      const inCountry = all.filter(opt => this.isCityInUserCountry(opt))
+      return inCountry.length ? inCountry : all
+    },
+
+    applyCityFilter(searchVal = '') {
+      const all = this.allCities || []
+      const needle = (searchVal || '').toLowerCase()
+      if (needle) {
+        this.cities = all.filter(opt => opt.label.toLowerCase().includes(needle))
+        return
+      }
+      const scoped = this.showAllCities ? all : this.countryScopedCities(all)
+      const hiddenCount = all.length - scoped.length
+      if (!this.showAllCities && hiddenCount > 0) {
+        this.cities = [
+          ...scoped,
+          {
+            label: this.$t('ShowMoreCities', { count: hiddenCount }, `Show ${hiddenCount} more cities`),
+            value: SHOW_MORE_CITIES,
+            country: null,
+            __showMore: true,
+          },
+        ]
+        return
+      }
+      this.cities = scoped
+    },
+
+    onShowMoreCities() {
+      this.showAllCities = true
+      if (this.selectedCity === SHOW_MORE_CITIES) this.selectedCity = this.previousCity
+      this.$nextTick(() => {
+        const select = this.$refs.citySelect
+        if (select?.updateInputValue) select.updateInputValue('')
+        this.applyCityFilter('')
+      })
+    },
+
+    async loadCities() {
+      this.citiesLoading = true
+      try {
+        let options = []
+        try {
+          const rawCountries = await getMerchantCountries()
+          const countries = (rawCountries || []).map(c => this.normalizeCountryEntry(c)).filter(Boolean)
+          if (countries.length > 0) {
+            const results = await Promise.allSettled(countries.map(country => getMerchantCities({ country })))
+            results.forEach((result, index) => {
+              if (result.status !== 'fulfilled') return
+              const country = countries[index]
+              ;(result.value || []).forEach(entry => {
+                const opt = this.normalizeCityEntry(entry, country)
+                if (opt) options.push(opt)
+              })
+            })
+          }
+        } catch (error) {
+          cardLogger.error('Failed to load merchant countries:', error?.message || error)
+        }
+        if (options.length === 0) {
+          const rawCities = await getMerchantCities()
+          options = (rawCities || []).map(c => this.normalizeCityEntry(c)).filter(Boolean)
+        }
+        const seen = new Set()
+        options = options.filter(opt => {
+          const key = `${opt.value}||${opt.country || ''}`
+          if (seen.has(key)) return false
+          seen.add(key)
+          return true
+        })
+        this.allCities = options
+        const scoped = this.countryScopedCities(options)
+        const nearest = this.findNearestCityOption(this.userLocation?.city, scoped)
+          || this.findNearestCityOption(this.userLocation?.city, options)
+        if (nearest) {
+          this.selectedCity = nearest.value
+        } else if (!this.selectedCity && scoped.length > 0) {
+          this.selectedCity = scoped[0].value
+        }
+        this.previousCity = this.selectedCity
+        this.applyCityFilter('')
+        if (this.selectedCity) await this.loadMerchantList({ reset: true })
+      } catch (error) {
+        cardLogger.error('Failed to load merchant cities:', error?.message || error)
+      } finally {
+        this.citiesLoading = false
+      }
+    },
+
+    onFilterCities(val, update) {
+      update(() => this.applyCityFilter(val))
+    },
+
+    onCitySelected(city) {
+      if (city === SHOW_MORE_CITIES || (city && typeof city === 'object' && city.__showMore)) {
+        this.onShowMoreCities()
+        return
+      }
+      const cityName = city && typeof city === 'object' ? (city.value || city.label) : city
+      if (cityName) this.previousCity = cityName
+      this.selectedCity = cityName
+      if (cityName) {
+        this.$store.commit('card/setUserLocation', {
+          ...(this.userLocation || {}),
+          city: cityName,
+        })
+        this.loadMerchantList({ reset: true }).then(() => this.saveMerchantsToCard())
+      } else {
+        this.merchants = []
+      }
+    },
+
+    selectedCityCountry() {
+      const city = this.selectedCity || this.userLocation?.city
+      const cityName = typeof city === 'object' ? (city?.value || city?.label) : city
+      const match = (this.allCities || []).find(opt => opt.value === cityName)
+      return match?.country || null
+    },
+
     async loadMerchantList(opts = {}) {
-      // Use provided coordinates or fall back to store
-      const locationCoords = opts.location || this.userLocation
-      if (!locationCoords || !Number.isFinite(locationCoords.latitude) || !Number.isFinite(locationCoords.longitude)) {
+      let city = opts.city || this.selectedCity || this.userLocation?.city
+      if (city && typeof city === 'object') city = city.value || city.label
+      if (!city) {
         this.loading = false
         return
       }
 
-      const isReset = opts.reset || false
-      
-      if (isReset) {
-        this.merchants = []
+      const country = opts.country || this.selectedCityCountry()
+      this.showUnregistered = false
+      this.merchants = []
+      this.merchantsPagination = {
+        count: 0,
+        limit: 50,
+        offset: 0,
+        hasMore: false
+      }
+      this.loading = true
+
+      try {
+        let token_id = null
+        try {
+          token_id = await this.card?.resolveAuthCategory?.()
+        } catch {
+          token_id = null
+        }
+        const params = { token_id }
+        if (country) params.country = country
+
+        const merchants = await getAllMerchantsByCity(city, params)
+        await this.applyOnchainAuthState(merchants)
+        this.merchants = merchants
         this.merchantsPagination = {
-          count: 0,
-          limit: 50,
+          count: merchants.length,
+          limit: merchants.length,
           offset: 0,
           hasMore: false
         }
-      }
-
-      // Don't load more if already loading or no more results
-
-      if (isReset) {
-        this.loading = true
-      } else {
-        this.loadingMore = true
-      }
-
-      try {
-        const params = {
-          limit: this.merchantsPagination.limit,
-          offset: this.merchantsPagination.offset,
-          token_id: await this.card?.resolveAuthCategory?.(),
-          // location: locationCoords,
-          // radius: this.radius
-        }
-
-        const response = await getMerchantsByCity(locationCoords.city, params)
-        this.merchants = response.results
-
-        // Update pagination - use the filtered count
-        this.merchantsPagination = {
-          count: response.count,
-          limit: response.limit,
-          offset: response.offset + response.results.length,
-          hasMore: response.hasMore
-        }
-
       } catch (error) {
-        this.notifyError(this.$t('FailedToLoadMerchants', {}, 'Failed to load merchants near your location'));
+        cardLogger.error('Failed to load merchants for city:', city, error?.response?.data || error?.message || error)
+        this.$q.notify({
+          message: this.$t('FailedToLoadMerchants', {}, 'Failed to load merchants near your location'),
+          color: 'red',
+          icon: 'error',
+          timeout: 4000,
+        })
       } finally {
         this.loading = false
         this.loadingMore = false
       }
+    },
+
+    async applyOnchainAuthState(merchants) {
+      if (!Array.isArray(merchants) || merchants.length === 0) return merchants
+
+      let utxos = []
+      try {
+        utxos = await this.card?.getAuthTokenUtxos?.() || []
+      } catch (error) {
+        cardLogger.warn('Failed to load on-chain auth tokens:', error?.message || error)
+        return merchants
+      }
+
+      const byHash = new Map()
+      for (const utxo of utxos) {
+        const commitment = utxo?.token?.nft?.commitment
+        if (!commitment) continue
+        const decoded = decodeCommitment(commitment)
+        if (!decoded || !decoded.hash) continue
+        byHash.set(decoded.hash, {
+          authorized: decoded.authorized,
+          spendLimitSats: Number(decoded.spendLimitSats),
+          commitment,
+          category: utxo?.token?.category,
+          txid: utxo?.txid,
+          vout: utxo?.vout,
+        })
+      }
+
+      for (const merchant of merchants) {
+        if (!merchant?.ref_id || !merchant?.public_key) continue
+        const { hex: hash } = encodeMerchantHash({
+          merchantId: merchant.ref_id,
+          merchantPk: merchant.public_key,
+        })
+        if (!hash) continue
+
+        const onchain = byHash.get(hash)
+        if (!onchain) continue
+
+        merchant.onchainAuth = onchain
+        if (!Array.isArray(merchant.auth_nfts) || merchant.auth_nfts.length === 0) {
+          merchant.auth_nfts = [{
+            id: onchain.txid ? `${onchain.txid}:${onchain.vout}` : 'onchain',
+            authorized: onchain.authorized,
+            token: {
+              category: onchain.category,
+              commitment: onchain.commitment,
+              authorized: onchain.authorized,
+              spend_limit_sats: onchain.spendLimitSats,
+            },
+            token_data: {
+              spend_limit_sats: onchain.spendLimitSats,
+            },
+          }]
+        }
+      }
+
+      return merchants
+    },
+
+    merchantAuthorized(merchant) {
+      const nft = merchant?.auth_nfts?.[0]
+      if (!nft) return false
+      if (nft.token && typeof nft.token.authorized === 'boolean') return nft.token.authorized
+      if (typeof nft.authorized === 'boolean') return nft.authorized
+      return true
     },
 
     handleScroll(evt) {
@@ -993,7 +1305,12 @@ export default {
       this.mutateGlobalAuthNft(true, null)
     },
 
-    async onMerchantToggle(merchant, enabled) {
+    onMerchantRowClick(merchant) {
+      if (merchant.registered === false || this.genericAuthEnabled) return
+      this.openSpendLimitDialog(merchant)
+    },
+
+    async onMerchantToggle(merchant, enabled, opts = {}) {
       if (enabled) {
         // Start minting process
         this.mintingMerchants.add(merchant.id);
@@ -1008,6 +1325,7 @@ export default {
         });
 
         await this.card.issueMerchantAuthToken({ 
+          spendLimitSats: opts.spendLimitSats,
           merchant: {
             id: merchant.ref_id,
             pubkey: merchant.public_key,
@@ -1018,6 +1336,12 @@ export default {
           // Show success message
           this.mintedMerchants.add(merchant.id);
           this.mintedMerchants = new Set(this.mintedMerchants);
+          this.$q.notify({
+            message: this.$t('MintedAuthNFTForMerchant', { merchantName: merchant.name }, `Authorized ${merchant.name}`),
+            color: 'positive',
+            icon: 'check',
+            timeout: 1500
+          })
 
           // Clear success message after 2 seconds
           setTimeout(() => {
@@ -1039,14 +1363,23 @@ export default {
           this.mintingMerchants = new Set(this.mintingMerchants);
         });
       }
-      
-      const action = enabled ? this.$t('Enabled', {}, 'enabled') : this.$t('Disabled', {}, 'disabled');
-      this.$q.notify({
-        message: `${merchant.name} ${action}`,
-        color: enabled ? 'positive' : 'grey',
-        icon: enabled ? 'check' : 'block',
-        timeout: 1000
-      });
+
+      await this.loadMerchantList({ reset: true })
+    },
+
+    async submitMerchantAuth() {
+      const merchant = this.selectedMerchant
+      if (!merchant) return
+
+      const spendLimit = parseFloat(this.spendLimitInput)
+      if (isNaN(spendLimit) || spendLimit <= 0) {
+        this.spendLimitError = this.$t('PleaseEnterValidAmountGreaterThanZero', {}, 'Please enter a valid amount greater than 0')
+        return
+      }
+
+      const spendLimitSats = bchToSatoshi(this.spendLimitInput)
+      this.closeSpendLimitDialog()
+      await this.onMerchantToggle(merchant, true, { spendLimitSats })
     },
 
     openSpendLimitDialog(merchant) {
@@ -1056,10 +1389,12 @@ export default {
         id: merchant.auth_nfts?.length > 0 ? merchant.auth_nfts[0].id : null
       }
       const initialNft = merchant.auth_nfts?.find(nft => nft.id === this.selectedNFT.id)
-      const initialSpendLimitSats = initialNft?.token_data?.spend_limit_sats
+      const initialSpendLimitSats = initialNft?.token?.spend_limit_sats ?? initialNft?.token_data?.spend_limit_sats
       this.spendLimitInput = initialSpendLimitSats != null
         ? (Number(initialSpendLimitSats) / 100000000).toFixed(8)
         : (merchant.spendLimit || '1')
+      this.selectedNFT.authorized = this.selectedNFTAuthorized
+      this.selectedNFT.spendLimitSats = Math.round(Number(this.spendLimitInput) * 100000000)
       this.showMutateAuthDialog = true;
     },
 
@@ -1072,8 +1407,16 @@ export default {
 
     async submitMutation() {
       const spendLimit = parseFloat(this.spendLimitInput);
+      const spendLimitSats = Math.round(spendLimit * 100000000)
 
-      if (isNaN(spendLimit) || spendLimit <= 0) {
+      if (this.selectedAuthNFT &&
+          this.selectedNFTAuthorized === this.selectedNFT.authorized &&
+          spendLimitSats === this.selectedNFT.spendLimitSats) {
+        this.closeSpendLimitDialog()
+        return
+      }
+
+      if (!Number.isFinite(spendLimit) || spendLimit <= 0) {
         this.spendLimitError = this.$t('PleaseEnterValidAmountGreaterThanZero', {}, 'Please enter a valid amount greater than 0');
         return;
       }
@@ -1082,12 +1425,12 @@ export default {
         this.selectedMerchant.spendLimit = spendLimit.toFixed(8);
 
         if (this.selectedAuthNFT?.token_data) {
-          this.selectedAuthNFT.token_data.spend_limit_sats = Math.round(spendLimit * 100000000)
+          this.selectedAuthNFT.token_data.spend_limit_sats = spendLimitSats
         }
         
         const mutation = {
-          authorize: this.selectedNFTAuthorized,
-          spendLimitSats: bchToSatoshi(this.spendLimitInput),
+          authorized: this.selectedAuthNFT ? this.selectedNFTAuthorized : true,
+          spendLimitSats,
           merchant: {
             id: this.selectedMerchant.ref_id,
             pubkey: this.selectedMerchant.public_key,
@@ -1124,6 +1467,7 @@ export default {
       }
 
       this.closeSpendLimitDialog();
+      await this.loadMerchantList({ reset: true })
     },
 
     destroyLocationMap() {
@@ -1323,6 +1667,7 @@ export default {
 
     // Save merchants to card storage
     saveMerchantsToCard() {
+      if (typeof CardStorage === 'undefined') return;
       if (!this.card || !this.card.id || this.merchants.length === 0) {
         return;
       }
@@ -1346,6 +1691,7 @@ export default {
 
     // Load saved merchants from card storage
     loadSavedMerchants() {
+      if (typeof CardStorage === 'undefined') return;
       if (!this.card || !this.card.id) {
         return;
       }
@@ -1432,6 +1778,10 @@ export default {
     &:hover {
       background: rgba(25, 118, 210, 0.1);
     }
+  }
+
+  .unregistered-merchant {
+    opacity: 0.65;
   }
 
   .location-search {

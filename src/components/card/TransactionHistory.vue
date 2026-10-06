@@ -79,8 +79,11 @@
           <q-list separator :dark="$q.dark.isActive">
             <q-item v-for="tx in group.rows" :key="tx.id" class="q-px-none" clickable v-ripple @click="openDetails(tx)">
               <q-item-section avatar>
-                <q-icon v-if="tx.kind === 'payment'" name="north_east" color="negative" size="xs" />
+                <q-icon v-if="tx.kind === 'nft-mutation'" name="token" color="secondary" size="xs" />
+                <q-icon v-else-if="tx.kind === 'mutation'" name="sync" color="secondary" size="xs" />
+                <q-icon v-else-if="tx.kind === 'payment'" name="north_east" color="negative" size="xs" />
                 <q-icon v-else-if="tx.kind === 'sweep'" name="swap_horiz" color="info" size="xs" />
+                <q-icon v-else-if="tx.direction === 'outgoing'" name="north_east" color="negative" size="xs" />
                 <q-icon v-else name="south_west" color="positive" size="xs" />
               </q-item-section>
               <q-item-section>
@@ -94,9 +97,20 @@
                   />
                 </div>
                 <div class="text-caption" :class="$q.dark.isActive ? 'text-grey-5' : 'text-grey'">{{ tx.created_at_display }}</div>
+                <div v-if="tx.is_nft" class="text-caption" :class="$q.dark.isActive ? 'text-grey-5' : 'text-grey'">
+                  <template v-if="authNftChangeLabels(tx).length">
+                    <div v-for="label in authNftChangeLabels(tx)" :key="label">{{ label }}</div>
+                  </template>
+                  <template v-else>{{ nftAction(tx) }} · {{ nftAuthorizationLabel(tx) }}</template>
+                </div>
               </q-item-section>
               <q-item-section side>
-                <div v-if="tx.is_token" class="text-weight-bold text-positive">
+                <div v-if="tx.is_nft" class="text-weight-bold" :class="tx.direction === 'outgoing' ? 'text-negative' : 'text-positive'">
+                  <span v-if="tx.direction === 'outgoing'">-</span>
+                  <span v-else>+</span>
+                  <span>NFT</span>
+                </div>
+                <div v-else-if="tx.is_token" class="text-weight-bold text-positive">
                   <span v-if="tx.direction === 'outgoing'">-</span>
                   <span v-else>+</span>
                   <span>{{ ftDisplayAmount(tx) }} {{ ftTokenSymbol(tx) }}</span>
@@ -129,7 +143,8 @@
           <div class="text-h6 text-weight-bold q-mb-md" :class="selectedTx.direction === 'outgoing' ? 'text-negative' : 'text-positive'">
             <span v-if="selectedTx.direction === 'outgoing'">-</span>
             <span v-else>+</span>
-            <span v-if="selectedTx.is_token">{{ ftDisplayAmount(selectedTx) }} {{ ftTokenSymbol(selectedTx) }}</span>
+            <span v-if="selectedTx.is_nft">NFT</span>
+            <span v-else-if="selectedTx.is_token">{{ ftDisplayAmount(selectedTx) }} {{ ftTokenSymbol(selectedTx) }}</span>
             <span v-else>{{ selectedTx.displayAmount }} BCH</span>
           </div>
           <q-list separator :dark="$q.dark.isActive">
@@ -165,11 +180,28 @@
                 <q-item-label v-if="selectedTx.merchantRefId != null" caption :class="captionColor">Ref {{ selectedTx.merchantRefId }}</q-item-label>
               </q-item-section>
             </q-item>
-            <q-item v-if="selectedTx.is_token" class="q-px-none">
+            <q-item v-if="selectedTx.is_token || selectedTx.is_nft" class="q-px-none">
               <q-item-section>
-                <q-item-label caption :class="captionColor">Token</q-item-label>
-                <q-item-label>{{ ftTokenFullName(selectedTx) }}</q-item-label>
+                <q-item-label caption :class="captionColor">{{ selectedTx.is_nft ? 'NFT' : 'Token' }}</q-item-label>
+                <q-item-label>{{ selectedTx.is_nft ? nftName(selectedTx) : ftTokenFullName(selectedTx) }}</q-item-label>
                 <q-item-label caption class="tx-hash" :class="captionColor">{{ selectedTx.category }}</q-item-label>
+                <q-item-label v-if="selectedTx.is_nft && selectedTx.nft?.capability" caption :class="captionColor">Capability: {{ selectedTx.nft.capability }}</q-item-label>
+                <q-item-label v-if="selectedTx.is_nft && selectedTx.nft?.commitment != null" caption class="tx-hash" :class="captionColor">Commitment: {{ selectedTx.nft.commitment }}</q-item-label>
+              </q-item-section>
+            </q-item>
+            <q-item v-if="selectedTx.is_nft" class="q-px-none">
+              <q-item-section>
+                <q-item-label caption :class="captionColor">Action</q-item-label>
+                <template v-if="authNftChangeLabels(selectedTx).length">
+                  <q-item-label v-for="label in authNftChangeLabels(selectedTx)" :key="label">{{ label }}</q-item-label>
+                </template>
+                <q-item-label v-else>{{ nftAction(selectedTx) }}</q-item-label>
+              </q-item-section>
+            </q-item>
+            <q-item v-if="selectedTx.is_nft" class="q-px-none">
+              <q-item-section>
+                <q-item-label caption :class="captionColor">Authorization</q-item-label>
+                <q-item-label>{{ nftAuthorizationLabel(selectedTx) }}</q-item-label>
               </q-item-section>
             </q-item>
             <q-item v-if="selectedTx.address" class="q-px-none">
@@ -202,6 +234,9 @@
 </template>
 
 <script>
+import { decodeCommitment } from 'src/services/card/auth-nft'
+import { satoshiToBch } from 'src/exchange'
+
 export default {
   name: 'TransactionHistory',
   props: {
@@ -245,8 +280,8 @@ export default {
       list.sort((a, b) => {
         let mod = this.sortOrder === 'asc' ? 1 : -1;
         if (this.sortKey === 'amount') {
-          const aNum = a.is_token ? this.ftDecimalValue(a) : Number(a.value || 0);
-          const bNum = b.is_token ? this.ftDecimalValue(b) : Number(b.value || 0);
+          const aNum = a.is_nft ? 1 : (a.is_token ? this.ftDecimalValue(a) : Number(a.value || 0));
+          const bNum = b.is_nft ? 1 : (b.is_token ? this.ftDecimalValue(b) : Number(b.value || 0));
           return (aNum - bNum) * mod;
         }
         return (new Date(a.created_at) - new Date(b.created_at)) * mod;
@@ -341,7 +376,7 @@ export default {
       return this.ftTokenName(tx);
     },
     hydrateFtMetadata() {
-      const categories = [...new Set(this.transactions.filter(t => t.is_token && t.category).map(t => t.category))];
+      const categories = [...new Set(this.transactions.filter(t => t.is_token && !t.is_nft && t.category).map(t => t.category))];
       categories.forEach(category => {
         const exists = this.$store.getters['assets/getAsset']?.(`ct/${category}`)?.length;
         if (!exists) this.$store.dispatch('assets/getAssetMetadata', `ct/${category}`).catch(() => {});
@@ -356,10 +391,12 @@ export default {
       }
     },
     rowTitle(tx) {
+      if (tx.is_nft) return `${this.nftAction(tx)} · ${this.nftAuthorizationLabel(tx)}`;
+      if (tx.kind === 'mutation') return 'Contract Updated';
       if (tx.kind === 'payment') return tx.merchant?.name || (tx.merchantRefId != null ? `Merchant #${tx.merchantRefId}` : 'Payment');
       if (tx.kind === 'sweep') return tx.is_token ? `Sweep ${this.ftTokenName(tx)}` : 'Sweep';
       if (tx.is_token) return `Cash In ${this.ftTokenName(tx)}`;
-      return 'Cash In';
+      return tx.direction === 'outgoing' ? 'Transaction' : 'Cash In';
     },
     openDetails(tx) {
       this.selectedTx = tx;
@@ -376,6 +413,41 @@ export default {
       const asset = this.ftTokenAsset(tx?.category);
       if (asset?.symbol && asset?.name) return `${asset.symbol} · ${asset.name}`;
       return asset?.symbol || asset?.name || tx?.category || '';
+    },
+    nftName(tx) {
+      return tx?.token?.name || tx?.token?.symbol || this.shortCategory(tx?.category) || 'NFT';
+    },
+    nftAction(tx) {
+      const action = tx?.token_action || (tx?.kind === 'nft-mutation' ? 'updated' : tx?.direction === 'outgoing' ? 'sent' : 'received')
+      return String(action).replace(/[_-]+/g, ' ').replace(/\b\w/g, char => char.toUpperCase())
+    },
+    authNftChangeLabels(tx) {
+      const changes = tx?.auth_nft_change
+      if (tx?.token_action !== 'MUTATED' || changes == null) return []
+      const labels = []
+      if (Object.prototype.hasOwnProperty.call(changes, 'authorized')) {
+        const { from, to } = changes.authorized
+        labels.push(`Authorization: ${from === true ? 'Enabled' : 'Disabled'} → ${to === true ? 'Enabled' : 'Disabled'}`)
+      }
+      if (Object.prototype.hasOwnProperty.call(changes, 'spend_limit_sats')) {
+        const { from, to } = changes.spend_limit_sats
+        labels.push(`Spend limit: ${satoshiToBch(from)} BCH → ${satoshiToBch(to)} BCH`)
+      }
+      if (Object.prototype.hasOwnProperty.call(changes, 'merchant_hash')) {
+        labels.push('Merchant authorization changed')
+      }
+      return labels
+    },
+    nftAuthorizationLabel(tx) {
+      if (tx?.token?.is_global_auth === true || tx?.token?.is_global_auth === 'true') return 'Global token'
+      const commitment = tx?.nft?.commitment
+      const commitmentHex = String(commitment || '')
+      if (/^[0-9a-f]+$/i.test(commitmentHex) && commitmentHex.length >= 18) {
+        if (decodeCommitment(commitmentHex)?.hash === '') return 'Global token'
+      }
+      if (tx?.merchant?.name) return `Merchant token · ${tx.merchant.name}`
+      if (tx?.merchantRefId != null) return `Merchant token · Merchant #${tx.merchantRefId}`
+      return 'Merchant token'
     },
     rowSubtitle(tx) {
       const parts = [];

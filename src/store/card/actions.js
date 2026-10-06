@@ -96,7 +96,7 @@ export async function fetchCardTransactions (context, { cardId, page = 1, page_s
             return {
                 ...tx,
                 displayAmount: tx.is_token ? tx.amount : satoshiToBch(tx.value),
-                merchant: tx.merchant ? { ...tx.merchant, name: merchantName } : null,
+                merchant: merchantName ? { ...(tx.merchant || {}), name: merchantName } : null,
                 created_at_display: tx.created_at ? (new Date(tx.created_at)).toLocaleString() : '',
             };
         });

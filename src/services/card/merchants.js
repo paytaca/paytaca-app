@@ -1,5 +1,6 @@
 import { backend } from 'src/marketplace/backend';
 import { backend as cardBackend } from './backend';
+import { backend as posBackend } from 'src/wallet/pos';
 import { cardLogger } from 'src/utils/debug-logger.js';
 
 /**
@@ -77,8 +78,27 @@ export async function getMerchantList(params = {}) {
  * @param {number} params.offset - Offset for pagination (default: 0)
  * @returns {Promise<Object>} Response with results, count, limit, offset
  */
+export async function getMerchantCities(params = {}) {
+  const response = await posBackend.get('paytacapos/merchants/cities/', { params });
+  const data = response?.data;
+  if (Array.isArray(data)) return data;
+  if (Array.isArray(data?.results)) return data.results;
+  if (Array.isArray(data?.cities)) return data.cities;
+  return [];
+}
+
+export async function getMerchantCountries(params = {}) {
+  const response = await posBackend.get('paytacapos/merchants/countries/', { params });
+  const data = response?.data;
+  if (Array.isArray(data)) return data;
+  if (Array.isArray(data?.results)) return data.results;
+  if (Array.isArray(data?.countries)) return data.countries;
+  return [];
+}
+
 export async function getMerchantsByCity(city, params = {limit: 50, offset: 0, token_id: null}) {
-  const response = await cardBackend.get(`/merchants/by-city/${city}`, { params: params });
+  const cityName = typeof city === 'object' ? (city?.value || city?.label || city?.city || city?.name) : city;
+  const response = await cardBackend.get(`/merchants/by-city/${encodeURIComponent(cityName)}`, { params: params });
   cardLogger.log('Fetched merchants by city:', response?.data);
   
   return {
@@ -88,4 +108,23 @@ export async function getMerchantsByCity(city, params = {limit: 50, offset: 0, t
     offset: response?.data?.offset || params.offset,
     hasMore: (response?.data?.offset || params.offset) + (response?.data?.results?.length || 0) < (response?.data?.count || 0)
   };
+}
+
+export async function getAllMerchantsByCity(city, params = {}) {
+  const all = [];
+  const limit = params.limit || 100;
+  let offset = 0;
+  for (;;) {
+    const response = await getMerchantsByCity(city, {
+      ...params,
+      include_unregistered: true,
+      limit,
+      offset,
+    });
+    if (!response.results.length) break;
+    all.push(...response.results);
+    if (!response.hasMore) break;
+    offset += response.results.length;
+  }
+  return all;
 }
