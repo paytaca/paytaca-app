@@ -1,74 +1,95 @@
+// ====================
+// INDEX PAGE MUTATIONS
+// ====================
 
-// Index page mutations
+// SETS ALL listing data (listings is an array)
 export function setListings(state, listings) {
   state.listings = listings
 }
 
-export function updateAuction(state, auctionData) {
-  if(!state.listings) return 
+// SETS last time listings was fetched
+export function setListingsLastFetched(state) {
+  state.listingsLastFetched = Date.now()
+}
 
-  const auction = state.listings.find(
-    item => Number(item.id) === Number(auctionData.id)
-  )
+// SETS index page's auction type
+export function setIndexAuctionType(state, indexAuctionType) {
+  state.indexAuctionType = indexAuctionType
+}
+
+// SETS index page's auction query
+export function setIndexAuctionQuery(state, indexAuctionQuery) {
+  state.indexAuctionQuery = indexAuctionQuery
+}
+
+// ADDS a new auction to the listing
+export function addListing(state, auction) {
+  const existingAuction = state.listings.some(item => Number(item.id) === Number(auction.id))
+  if (existingAuction) return
+  state.listings.push(auction)  
+}
+
+// UPDATES an auction from the listing
+export function updateListing(state, auctionData) {
+  if(!state.listings || !auctionData) return 
+
+  const auction = state.listings.find(item => Number(item.id) === Number(auctionData.id))
   if (!auction) return
   
   Object.assign(auction, auctionData)
   if (auctionData.status) auction.refreshStatus()
 }
 
-export function addListing(state, auction) {
-  if (state.listings.some(item => Number(item.id) === Number(auction.id))) return
-  state.listings.push(auction)  
-}
-
+// REMOVES an auction from the listing
 export function removeListing(state, auctionId) {
-  state.listings = state.listings.filter(
-    auction => Number(auction.id) !== Number(auctionId)
-  )
+  state.listings = state.listings.filter(auction => Number(auction.id) !== Number(auctionId))
 }
 
-export function setListingsLastFetched(state) {
-  state.listingsLastFetched = Date.now()
-}
 
-export function updateAuctionTypeIndex(state, auctionTypeIndex) {
-  state.auctionTypeIndex = auctionTypeIndex
-}
+// =======================
+// ACTIVITY PAGE MUTATIONS
+// =======================
 
-export function updateAuctionQueryIndex(state, auctionQueryIndex) {
-  state.auctionQueryIndex = auctionQueryIndex
-}
-
-// Activity page mutations
-export function updateActivityType(state, activityType) {
+// SETS the activity type (Bids or Auctions)
+export function setActivityType(state, activityType) {
   state.activityType = activityType
 }
 
-export function updateAuctionTypeActivity(state, auctionTypeActivity) {
-  state.auctionTypeActivity = auctionTypeActivity
+// SETS the activity auction type (English, Dutch, or All)
+export function setActivityAuctionType(state, activityAuctionType) {
+  state.activityAuctionType = activityAuctionType
 }
 
-export function updateAuctionQueryActivity(state, auctionQueryActivity) {
-  state.auctionQueryActivity = auctionQueryActivity
+// SETS the activity auction query
+export function setActivityAuctionQuery(state, activityAuctionQuery) {
+  state.activityAuctionQuery = activityAuctionQuery
 }
 
-export function updateLotCategoryActivity(state, lotCategoryActivity) {
-  state.lotCategoryActivity = lotCategoryActivity
+// SETS the activity bid lot category (Physical or Digital)
+export function setActivityLotCategory(state, activityLotCategory) {
+  state.activityLotCategory = activityLotCategory
 }
 
-export function updateLotQueryActivity(state, lotQueryActivity) {
-  state.lotQueryActivity = lotQueryActivity
+// SETS the activity bid lot query
+export function setActivityLotQuery(state, activityLotQuery) {
+  state.activityLotQuery = activityLotQuery
 }
 
+// SETS ALL bidding data (myBiddings is an array)
 export function setMyBiddings(state, myBiddings) {
   state.myBiddings = myBiddings
 }
 
+// SETS last time my biddings were fetched
+export function setMyBiddingsLastFetched(state) {
+  state.myBiddingsLastFetched = Date.now()
+}
+
+// UPDATES an existing bid
 export function updateMyBidding(state, biddingData) {
-  const lot = state.myBiddings.find(
-    item => Number(item.id) === Number(biddingData.lot)
-  )
+  const lot = state.myBiddings.find(item => Number(item.id) === Number(biddingData.lot))
   if (!lot) return
+
   lot.bid_id = biddingData.id
   lot.bid_status = biddingData.status
   if (['Highest', 'Winner'].includes(biddingData.status)) {
@@ -77,24 +98,27 @@ export function updateMyBidding(state, biddingData) {
   }
 }
 
-export function setMyBiddingsLastFetched(state) {
-  state.myBiddingsLastFetched = Date.now()
-}
-
+// SETS ALL my auctions data (myAuctions is an array)
 export function setMyAuctions(state, myAuctions) {
   state.myAuctions = myAuctions
 }
 
+// SETS last time my auctions were fetched
 export function setMyAuctionsLastFetched(state) {
   state.myAuctionsLastFetched = Date.now()
 }
 
-export function updateMyAuction(state, auctionData) {
-  const auction = state.myAuctions.find(
-    item => Number(item.id) === Number(auctionData.id)
-  )
+// ADDS a new auction to my auctions
+export function addMyAuction(state, auction) {
+  if (state.myAuctions.some(item => Number(item.id) === Number(auction.id))) return
+  state.myAuctions.push(auction)
+}
 
+// UPDATES an existing auction
+export function updateMyAuction(state, auctionData) {
+  const auction = state.myAuctions.find(item => Number(item.id) === Number(auctionData.id))
   if (!auction) return
+
   Object.assign(auction, auctionData)
   if (auctionData.status) {
     auction.status = auctionData.status
@@ -102,22 +126,12 @@ export function updateMyAuction(state, auctionData) {
   }
 }
 
-export function addMyAuction(state, auction) {
-  if (state.myAuctions.some(item => Number(item.id) === Number(auction.id))) return
-  state.myAuctions.push(auction)
-}
-
+// REMOVES an auction from my auctions
 export function removeMyAuction(state, auctionId) {
-  state.myAuctions = state.myAuctions.filter(
-    auction => Number(auction.id) !== Number(auctionId)
-  )
+  state.myAuctions = state.myAuctions.filter(auction => Number(auction.id) !== Number(auctionId))
 }
 
 // Auction Details Page mutations
-export function updateLotCategory(state, lotCategory) {
-  state.auctionLotCategory = lotCategory
-}
-
 export function setAuctionData(state, auctionData) {
   state.auctionData = auctionData
 }
@@ -156,12 +170,15 @@ export function updateAuctionLotsData(state, {attribute_name, data}) {
     if (attribute_name == 'status') lot.refreshStatus()
   })
 }
+export function setLotQueryAuction(state, lotQueryAuction) {
+  state.lotQueryAuction = lotQueryAuction
+}
 
 export function setAuctionLotsImages(state, auctionLotsImages) {
   state.auctionLotsImages = auctionLotsImages
 }
 
-export function updateLotCategoryAuction(state, lotCategoryAuction) {
+export function setLotCategoryAuction(state, lotCategoryAuction) {
   state.lotCategoryAuction = lotCategoryAuction
 }
 
