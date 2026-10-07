@@ -1,6 +1,7 @@
 import { data } from 'autoprefixer'
 import { date } from 'quasar'
 
+// Colors for lot statuses
 const lotColors = {
   'Sold': 'red',
   'Unsold': 'red',
@@ -8,12 +9,14 @@ const lotColors = {
   'Inactive': 'gray'
 }
 
+// Colors for auction statuses
 const auctionColors = {
   'Closed': 'red',
   'Upcoming': 'orange',
   'Open': 'green'
 }
 
+// Colors for delivery statuses
 const deliveryColors = {
   'Preparing': 'yellow',
   'Shipped': 'orange',
@@ -22,7 +25,11 @@ const deliveryColors = {
   'Delivered': 'gray'
 }
 
-// object class for Auctions
+// ==============
+// OBJECT CLASSES 
+// ==============
+
+// AUCTION OBJECTS
 export class AuctionList {
   static parse(data) {
     return new AuctionList(data)
@@ -32,10 +39,12 @@ export class AuctionList {
     this.raw = data
   }
 
+  // getter for raw data
   get raw() {
     return this.$raw
   }
-
+  
+  // setter for raw data
   set raw(data) {
     Object.defineProperty(
       this, 
@@ -72,25 +81,25 @@ export class AuctionList {
     this.lots = Array.isArray(data.lots)
       ? data.lots.map(lotObj => LotsList.parse(lotObj, this))
       : []
-  }
+  } 
 
+  // Updates the auction status color
   refreshStatus() {   
     this.status_color = auctionColors[this.status]
   }
   
+  // Formats the user bch address with an ellipsis in the middle
   getEllipsisInMiddleAddress() {
     const targetString = this.user
-    
     if (!targetString || targetString.length <= 22) return targetString
     
     const start = targetString.substring(0, 17)
     const end = targetString.substring(targetString.length - 5)
-    
     return `${start}........${end}`
   }
 }
 
-// object class for Lots
+// LOT OBJECTS
 export class LotsList {
   static parse(data, auction) {
     return new LotsList(data, auction)
@@ -101,10 +110,12 @@ export class LotsList {
     this.auction = auction
   }
 
+  // getter for raw data
   get raw() {
     return this.$raw
   }
 
+  // setter for raw data
   set raw(data) {
     Object.defineProperty(
       this, 
@@ -180,17 +191,18 @@ export class LotsList {
     return (hours * 60 * 60) + (minutes * 60) + seconds
   }
 
+  // Updates the lot status colors
   refreshStatus() {
     this.status_color = lotColors[this.status]
   }
 
+  // Checks if the lot has any bids
   hasBids() {
     return this.bids?.length > 0
   }
-
 }
 
-// object class for Bids
+// BID OBJECTS
 export class BidsList {
   static parse(data, lot) {
     return new BidsList(data, lot)
@@ -201,10 +213,12 @@ export class BidsList {
     this.lot = lot
   }
 
+  // getter for raw data
   get raw() {
     return this.$raw
   }
 
+  // setter for raw data
   set raw(data) {
     Object.defineProperty(
       this, 
@@ -226,6 +240,7 @@ export class BidsList {
   }
 }
 
+// APPEAL LIST (FOR DISPUTES)
 export class AppealList {
   static parse(data) {
     return new AppealList(data)
@@ -334,6 +349,7 @@ export class AppealList {
   }
 }
 
+// APPEAD INFORMATION (FOR DISPUTES)
 export class AppealDetails {
   static parse(data) {
     return new AppealDetails(data)
@@ -461,6 +477,7 @@ export class AppealDetails {
   }
 }
 
+// DELIVERY INFORMATION (FOR POST BIDS)
 export class DeliveryDetails {
   static parse(data) {
     return new DeliveryDetails(data)
@@ -470,10 +487,12 @@ export class DeliveryDetails {
     this.raw = data
   }
 
+  // getter for raw data
   get raw() {
     return this.$raw
   }
 
+  // setter for raw data
   set raw(data) {
     Object.defineProperty(this, '$raw', { enumerable: false, configurable: true, value: data })
     this.tracking_id = data.tracking_id ? Number(data.tracking_id) : null
@@ -507,8 +526,10 @@ export class DeliveryDetails {
   // Returns the drop interval in minutes, parsed from the HH:MM:SS time_interval string
   getIntervalMinutes() {
     if (!this.time_interval) return 10
+
     const parts = this.time_interval.split(':').map(Number)
     if (parts.length !== 3 || parts.some(isNaN)) return 10
+
     const [hours, minutes] = parts
     return (hours * 60) + minutes
   }
@@ -516,8 +537,10 @@ export class DeliveryDetails {
   // Returns the drop interval in seconds, parsed from the HH:MM:SS time_interval string
   getIntervalSeconds() {
     if (!this.time_interval) return 10
+
     const parts = this.time_interval.split(':').map(Number)
     if (parts.length !== 3 || parts.some(isNaN)) return 10
+    
     const [hours, minutes, seconds] = parts
     return (hours * 60 * 60) + (minutes * 60) + seconds
   }
