@@ -131,74 +131,146 @@ export function removeMyAuction(state, auctionId) {
   state.myAuctions = state.myAuctions.filter(auction => Number(auction.id) !== Number(auctionId))
 }
 
-// Auction Details Page mutations
+// ==============================
+// AUCTION DETAILS PAGE MUTATIONS
+// ==============================
+
+// SETS the auction data
 export function setAuctionData(state, auctionData) {
   state.auctionData = auctionData
 }
 
+// SETS last time auction data was last fetched
 export function setAuctionDataLastFetched(state) {
   state.auctionDataLastFetched = Date.now()
 }
 
+// UPDATES auction data
 export function updateAuctionData(state, {attribute_name, data}) {
   state.auctionData[attribute_name] = data
   if (attribute_name == 'status') state.auctionData.refreshStatus()
 }
 
+// MERGES existing state auction data from parameter auction data
 export function mergeAuctionData(state, auctionData) {
   if (Number(state.auctionData.id) !== Number(auctionData.id)) return
+  
   Object.assign(state.auctionData, auctionData)
   if (auctionData.status) state.auctionData.status = auctionData.status
   state.auctionData.refreshStatus?.()
 }
 
-export function removeAuctionData(state, auctionId) {
+// CLEARS existing auction  
+export function clearAuctionData(state, auctionId) {
   if (Number(state.auctionData.id) === Number(auctionId)) state.auctionData = {}
 }
 
+// SETS ALL lots of an auction
 export function setAuctionLots(state, auctionLots) {
   state.auctionLots = auctionLots
 }
 
+// SETS ALL lots' images of an auction
+export function setAuctionLotsImages(state, auctionLotsImages) {
+  state.auctionLotsImages = auctionLotsImages
+}
+
+// SETS last time auction lots was fetched
 export function setAuctionLotsLastFetched(state) {
   state.auctionLotsLastFetched = Date.now()
 }
 
+// UPDATES ALL lots within the auction
 export function updateAuctionLotsData(state, {attribute_name, data}) {
   state.auctionLots.forEach(lot => {
     lot[attribute_name] = data
     if (attribute_name == 'status') lot.refreshStatus()
   })
 }
+
+// SETS the auction-details lot query 
 export function setLotQueryAuction(state, lotQueryAuction) {
   state.lotQueryAuction = lotQueryAuction
 }
 
-export function setAuctionLotsImages(state, auctionLotsImages) {
-  state.auctionLotsImages = auctionLotsImages
-}
-
+// SETS the auction-details lot category (filtering)
 export function setLotCategoryAuction(state, lotCategoryAuction) {
   state.lotCategoryAuction = lotCategoryAuction
 }
 
-// Lot Details Page mutations
+// ==========================
+// LOT-DETAILS PAGE MUTATIONS
+// ==========================
+
+// SETS the lot data
 export function setLotData(state, lotData) {
   state.lotData = lotData
 }
 
+// SETS last time lot data was fetched
 export function setLotDataLastFetched(state) {
   state.lotDataLastFetched = Date.now()
 }
 
+// UPDATES the lot data
+export function updateLotData(state, {attribute_name, data}) {
+  state.lotData[attribute_name] = data
+}
+
+// MERGES existing state lot data from parameter lot data
+export function mergeLotData(state, lotData) {
+  if (Number(state.lotData.id) === Number(lotData.id)) {
+    Object.assign(state.lotData, lotData)
+    if (lotData.status) state.lotData.status = lotData.status
+    state.lotData.is_sold = state.lotData.status === 'Sold'
+    state.lotData.refreshStatus?.()
+  }
+
+  const lot = state.auctionLots.find(item => Number(item.id) === Number(lotData.id))
+  if (lot) {
+    Object.assign(lot, lotData)
+    if (lotData.status) lot.status = lotData.status
+    lot.is_sold = lot.status === 'Sold'
+    lot.refreshStatus?.()
+  }
+
+  const activityLot = state.myBiddings.find(item => Number(item.id) === Number(lotData.id))
+  if (activityLot) {
+    Object.assign(activityLot, lotData)
+    if (lotData.status) activityLot.status = lotData.status
+    activityLot.is_sold = activityLot.status === 'Sold'
+    activityLot.refreshStatus?.()
+  }
+}
+
+// UPDATES lot status
+export function updateLotStatus(state, { id, status }) {
+  mergeLotData(state, { id, status })
+}
+
+// CLEARS the lot data 
+export function clearLotData(state, lotId) {
+  if (Number(state.lotData.id) === Number(lotId)) state.lotData = {}
+  state.auctionLots = state.auctionLots.filter(lot => Number(lot.id) !== Number(lotId))
+  state.myBiddings = state.myBiddings.filter(lot => Number(lot.id) !== Number(lotId))
+}
+
+// SETS the lot's images
 export function setLotImages(state, lotImages) {
   state.lotImages = lotImages
 }
 
+// SETS the lot's bid history
 export function setLotBids(state, lotBids) {
   state.lotBids = lotBids
 }
 
+// SETS last time lot bids were fetched
+export function setLotBidsLastFetched(state) {
+  state.lotBidsLastFetched = Date.now()
+}
+
+// UPDATES a specific bid of a lot
 export function updateLotBid(state, biddingData) {
   const bidIndex = state.lotBids.findIndex(
     bid => Number(bid.id) === Number(biddingData.id)
@@ -212,6 +284,7 @@ export function updateLotBid(state, biddingData) {
   Object.assign(bid, biddingData)
 }
 
+// CANCELS a specific bid of a lot
 export function cancelLotBids(state, bidIds) {
   state.lotBids.forEach(bid => {
     if (bidIds.some(id => Number(id) === Number(bid.id))) {
@@ -223,106 +296,83 @@ export function cancelLotBids(state, bidIds) {
   }
 }
 
-export function setLotBidsLastFetched(state) {
-  state.lotBidsLastFetched = Date.now()
-}
+// =========================
+// BIDDING-RELATED MUTATIONS
+// =========================
 
-export function updateLotData(state, {attribute_name, data}) {
-  state.lotData[attribute_name] = data
-}
-
-export function mergeLotData(state, lotData) {
-  if (Number(state.lotData.id) === Number(lotData.id)) {
-    Object.assign(state.lotData, lotData)
-    if (lotData.status) state.lotData.status = lotData.status
-    state.lotData.is_sold = state.lotData.status === 'Sold'
-    state.lotData.refreshStatus?.()
-  }
-
-  const lot = state.auctionLots.find(
-    item => Number(item.id) === Number(lotData.id)
-  )
-  if (lot) {
-    Object.assign(lot, lotData)
-    if (lotData.status) lot.status = lotData.status
-    lot.is_sold = lot.status === 'Sold'
-    lot.refreshStatus?.()
-  }
-
-  const activityLot = state.myBiddings.find(
-    item => Number(item.id) === Number(lotData.id)
-  )
-  if (activityLot) {
-    Object.assign(activityLot, lotData)
-    if (lotData.status) activityLot.status = lotData.status
-    activityLot.is_sold = activityLot.status === 'Sold'
-    activityLot.refreshStatus?.()
-  }
-}
-
-export function updateLotStatus(state, { id, status }) {
-  mergeLotData(state, { id, status })
-}
-
-export function removeLotData(state, lotId) {
-  if (Number(state.lotData.id) === Number(lotId)) state.lotData = {}
-  state.auctionLots = state.auctionLots.filter(
-    lot => Number(lot.id) !== Number(lotId)
-  )
-  state.myBiddings = state.myBiddings.filter(
-    lot => Number(lot.id) !== Number(lotId)
-  )
-}
-
+// SETS the highest bid for a lot
 export function setHighestBid(state, highestBid) {
   state.highestBid = highestBid
 }
 
+// SETS last time highest bid was fetched
 export function setHighestBidLastFetched(state) {
   state.highestBidLastFetched = Date.now()
 }
 
+// SETS the delivery data for a lot
 export function setDeliveryData(state, deliveryData) {
   state.deliveryData = deliveryData
 } 
 
+// SETS last time delivery data was fetched
 export function setDeliveryDataLastFetched(state) {
   state.deliveryDataLastFetched = Date.now()
 }
 
+// =========================
+// DISPUTE-RELATED MUTATIONS
+// =========================
+
+// SETS dispute data
 export function setDisputeData(state, disputeData) {
   state.disputeData = disputeData
 } 
 
+// SETS last time dispute data was fetched
 export function setDisputeDataLastFetched(state) {
   state.disputeDataLastFetched = Date.now()
 }
 
-// Arbiter and Servicer Public Key mutations
+// SETS arbiter PK
 export function setArbiterPublicKey(state, arbiterPk) {
   state.arbiterPublicKey = arbiterPk
 }
 
+// SETS last time arbiter PK was fetched
 export function setArbiterLastFetched(state) {
   state.arbiterLastFetched = Date.now()
 }
 
+// SETS servicer PK
 export function setServicerPublicKey(state, servicerPk) {
   state.servicerPublicKey = servicerPk
 }
 
+// SETS last time servicer PK was fetched
 export function setServicerLastFetched(state, servicerPk) {
   state.servicerLastFetched = servicerPk
 }
 
+// ======================
+// USER-DETAILS MUTATIONS
+// ======================
+
+// SETS current user's username
 export function setUsername(state, username) {
   state.username = username
 }
 
+// SETS current user's arbiter status
 export function setIsArbiter(state, isArbiter) {
   state.isArbiter = isArbiter
 }
 
+// ===============
+// OTHER MUTATIONS
+// ===============
+
+// SETS the hasNetworkError state (if there was a network error during api calls)
 export function setHasNetworkError(state, hasNetworkError) {
   state.hasNetworkError = hasNetworkError
 }

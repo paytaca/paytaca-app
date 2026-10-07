@@ -1,5 +1,5 @@
 import { callAPI } from 'src/auction/api'
-import { AuctionList, LotsList, BidsList } from 'src/auction/object'
+import { AuctionList, LotsList, BidsList, DeliveryDetails } from 'src/auction/object'
 import { getWallet } from '../../auction/payment'
 import noImage from 'src/assets/no-image.svg'
 
@@ -11,11 +11,11 @@ const bidStatusTransitions = {
   Winner: [],
 }
  
-// ===================
-// PAGE UPDATE ACTIONS
-// ===================
+// ==============================
+// INDEX/LISTINGS-RELATED ACTIONS
+// ==============================
 
-// Fetches listings from the server
+// FETCHES listings from the server
 export async function fetchListings({ commit, dispatch }) {
   const response = await callAPI('auctions')
   if (response && response.success && Array.isArray(response.data)) {
@@ -23,64 +23,6 @@ export async function fetchListings({ commit, dispatch }) {
     commit('setListings', listings)
     commit('setListingsLastFetched')
   } else dispatch('printFailedFetch', 'listing')
-}
-
-export async function updateListingFromWebsocket({ commit, state }, auctionData) {
-  if (!auctionData?.id) return
-  let data = auctionData
-
-  // only auction id
-  if (Object.keys(auctionData).length === 1) {
-    const response = await callAPI('auctions', auctionData.id)
-    if (!response?.success || !response.data) return
-    data = response.data
-  }
-
-  // auction exists in listings
-  if (state.listings.some(auction => Number(auction.id) === Number(data.id))) {
-    commit('updateListing', data)
-  } else {
-    commit('addListing', AuctionList.parse(data))
-  }
-
-  commit('mergeAuctionData', data)
-  commit('updateMyAuction', data)
-}
-
-export function removeListingFromWebsocket({ commit }, auctionId) {
-  if (auctionId === undefined || auctionId === null) return
-  commit('removeListing', auctionId)
-}
-
-export async function updateMyAuctionFromWebsocket({ commit, state }, auctionData) {
-  if (!auctionData?.id) return
-  let data = auctionData
-
-  // only auction id
-  if (Object.keys(auctionData).length === 1) {
-    const response = await callAPI('auctions', auctionData.id)
-    if (!response?.success || !response.data) return
-    data = response.data
-  }
-
-  if (state.myAuctions.some(auction => Number(auction.id) === Number(data.id))) {
-    commit('updateMyAuction', data)
-  } else {
-    commit('addMyAuction', AuctionList.parse(data))
-  }
-
-  commit('updateListing', data)
-  commit('mergeAuctionData', data)
-}
-
-export function removeMyAuctionFromWebsocket({ commit }, auctionId) {
-  if (auctionId === undefined || auctionId === null) return
-  commit('removeMyAuction', auctionId)
-}
-
-export function updateMyBiddingFromWebsocket({ commit }, biddingData) {
-  if (!biddingData?.id || !biddingData?.lot) return
-  commit('updateMyBidding', biddingData)
 }
 
 export function updateBidFromWebsocket({ commit, state, rootGetters }, biddingData) {
@@ -119,45 +61,11 @@ export function updateBidFromWebsocket({ commit, state, rootGetters }, biddingDa
   }
 }
 
-export function cancelBidsFromWebsocket({ commit }, bidIds) {
-  if (!Array.isArray(bidIds) || !bidIds.length) return
-  commit('cancelLotBids', bidIds)
-}
+// ========================
+// ACTIVITY-RELATED ACTIONS
+// ========================
 
-export function updateAuctionFromWebsocket({ commit }, auctionData) {
-  if (!auctionData?.id) return
-  commit('mergeAuctionData', auctionData)
-  commit('updateListing', auctionData)
-  commit('updateMyAuction', auctionData)
-}
-
-export function removeAuctionFromWebsocket({ commit }, auctionId) {
-  if (auctionId === undefined || auctionId === null) return
-  commit('removeAuctionData', auctionId)
-  commit('removeListing', auctionId)
-  commit('removeMyAuction', auctionId)
-}
-
-export function updateLotFromWebsocket({ commit }, lotData) {
-  if (!lotData?.id) return
-  commit('mergeLotData', lotData)
-}
-
-export function updateLotStatusFromWebsocket({ commit }, lotData) {
-  if (!lotData?.id || !lotData?.status) return
-  commit('updateLotStatus', lotData)
-}
-
-export function removeLotFromWebsocket({ commit }, lotId) {
-  if (lotId === undefined || lotId === null) return
-  commit('removeLotData', lotId)
-}
-
-// ====================
-// CURRENT USER ACTIONS
-// ====================
-
-// Fetching CURRENT USER'S bids
+// FETCHES current user's bids
 export async function fetchMyBiddings({ commit, dispatch }) {
   let lots = []
 
@@ -196,46 +104,30 @@ export async function fetchMyBiddings({ commit, dispatch }) {
   commit('setMyBiddings', lots)
 }
 
+// FETCHES user's auctions
 export async function fetchMyAuctions({ commit, dispatch }) {
   let myAuctions = []
   const response = await callAPI('my-auctions')
 
   // successfully fetched data
   if (response && response.success && response.data) {
-    myAuctions = Array.isArray(response.data) ?
-      response.data.map(item => (!item) ? null : item instanceof AuctionList ? item : AuctionList.parse(item)) :
-      AuctionList.parse(response.data)
+    myAuctions = Array.isArray(response.data) 
+      ? response.data.map(item => (!item) 
+        ? null 
+        : item instanceof AuctionList 
+          ? item 
+          : AuctionList.parse(item)) 
+      : AuctionList.parse(response.data)
     commit('setMyAuctionsLastFetched')
   } else dispatch('printNotExisting', 'auction_data')
   commit('setMyAuctions', myAuctions)
 }
 
-// Fetching CURRENT USER username
-export async function fetchUsername({ commit, dispatch }) {
-  let username = ''
-  let isArbiter = false
+// ===============================
+// AUCTION-DETAILS-RELATED ACTIONS
+// ===============================
 
-  // Using PK to fetch user details from server
-  const wallet = await getWallet()
-  const publicKey = await wallet.BCH.getPublicKey(`0/0`)
-  const response = await callAPI('user-details-by-public-key', publicKey)
-
-  if (response && response.success && response.data) {
-    username = response.data.username ?? ''
-    isArbiter = response.data.is_arbiter ?? false
-    commit('setHasNetworkError', false) 
-  } else dispatch('printFailedFetch', 'user details')
-
-  commit('setUsername', username)
-  commit('setIsArbiter', isArbiter)
-}
-
-
-// ============================
-// FETCHING AUCTION INFORMATION
-// ============================
-
-
+// FETCHES auction data from the server
 export async function fetchAuctionData({ commit, dispatch }, auctionId) {
   let auctionData = {}
 
@@ -248,12 +140,14 @@ export async function fetchAuctionData({ commit, dispatch }, auctionId) {
   commit('setAuctionData', auctionData)
 }
 
+// GETS existing auction data from listings
 export async function fetchExistingAuctionData({ commit, getters, dispatch }, auctionId) {
   const existingAuction = getters['listings'].find(item => Number(item.id) === Number(auctionId))
   if (!existingAuction) dispatch('printNotExisting', 'auction data')
   commit('setAuctionData', AuctionList.parse(existingAuction ?? {}))
 }
 
+// FETCHES auction lots from the server
 export async function fetchAuctionLots({ commit, getters, dispatch }, auctionId) {
   const { auctionData } = getters
   let lots = []
@@ -286,10 +180,11 @@ export async function fetchAuctionLots({ commit, getters, dispatch }, auctionId)
   commit('setAuctionLotsImages', lotsImages)
 }
 
-// ========================
-// FETCHING LOT INFORMATION
-// ========================
+// ===================
+// LOT-RELATED ACTIONS
+// ===================
 
+// FETCHES lot data from the server
 export async function fetchLotData({ commit, dispatch }, lotId) {
   let lotData = {}
   let lotImages = []
@@ -310,6 +205,7 @@ export async function fetchLotData({ commit, dispatch }, lotId) {
   await dispatch('fetchLotBids', lotId)
 }
 
+// GETS existing lot data from auctionLots
 export async function fetchExistingLotData({ commit, getters, dispatch }, lotId) {
   const existingLot = getters['auctionLots'].find(lot => Number(lot.id) === Number(lotId))
   if (!existingLot) dispatch('printNotExisting', 'lot data')
@@ -317,6 +213,7 @@ export async function fetchExistingLotData({ commit, getters, dispatch }, lotId)
   await dispatch('fetchExistingLotBids', lotId)
 }
 
+// FETCHES a lot's bids from the server
 export async function fetchLotBids({ commit, dispatch }, lotId) {
   let lotBids = []
   const response = await callAPI('biddings-by-lot', lotId)
@@ -327,7 +224,7 @@ export async function fetchLotBids({ commit, dispatch }, lotId) {
   commit('setLotBids', lotBids)
 }
 
-// REVIEW IF NEEDED, FOR NOW WE KEEP
+// FETCHES a lot's existing bids from lotBids (REVIEW)
 export async function fetchExistingLotBids({ commit, getters, dispatch }, lotId) {
   const existingLotBids = getters['lotBids'].filter(bid => Number(bid.lot) === Number(lotId))
   if (!existingLotBids.length) dispatch('printNotExisting', 'lot bids')
@@ -335,6 +232,19 @@ export async function fetchExistingLotBids({ commit, getters, dispatch }, lotId)
   commit('updateLotData', 'hasBid', existingLotBids.length > 0)
 }
 
+// FETCHES has bids for all lots
+export async function fetchHasBidForLots(lotsArr) {
+  const englishLots = (lotsArr || []).filter((lot) => lot.auction_type === 'English')
+
+  return await Promise.all(englishLots.map(async (lot) => {
+      const result = await callAPI(`lots/${lot.id}/highest-bid`)
+      if (result.success && result.data && result.data.user !== null) 
+        return 
+      return false
+  }))
+}
+
+// FETCHES a lot's highest bid
 export async function fetchHighestBid({ commit, dispatch }, lotId) {
   const response = await callAPI(`lots/${lotId}/highest-bid`, null)
   if (!(response && response.success && response.data && ['Highest', 'Winner'].includes(response.data.status))) {
@@ -343,6 +253,7 @@ export async function fetchHighestBid({ commit, dispatch }, lotId) {
   commit('setHighestBid', BidsList.parse(response.data ?? {}))
 }
 
+// GETS a lot's existing highest bid (REVIEW)
 export async function fetchExistingHighestBid({ commit, getters, dispatch }) {
   if (!getters['lotBids'].length) {
     dispatch('printNotExisting', 'highest bid')
@@ -353,39 +264,32 @@ export async function fetchExistingHighestBid({ commit, getters, dispatch }) {
   commit('setHighestBid', highestBid ? BidsList.parse(highestBid) : {})
 }
 
-export async function fetchDeliveryTracking({ commit }, lotId) {
-  const data = {
-    
+// FETCHES delivery details of a lot from the server
+export async function fetchDeliveryDetails({ commit, dispatch }, lotId) {
+  let deliveryData = {}
+
+  const response = await callAPI('delivery-trackings', lotId)
+  if (response.success && response.data) {
+    deliveryData = Array.isArray(response.data) ? response.data[0] : response.data
+  } else dispatch('printFailedFetch', 'delivery details')
+  commit('setDeliveryDetails', DeliveryDetails.parse(deliveryData))
+  
+  return {
+    deliveryStatusIde: deliveryData?.status ?? null,
+    deliveredDate: deliveryData?.delivered_date ?? null,
+    isMarkedComplete: deliveryData?.mark_as_completed ?? false
   }
-  const res = await callAPI('delivery-trackings', lotId)
-  if (res.success && res.data) {
-    const data = Array.isArray(res.data) ? res.data[0] : res.data
-    deliveryStatusId.value = data?.status ?? null
-    deliveredDate.value = data?.delivered_date ?? null
-    isMarkedComplete.value = data?.mark_as_completed ?? false
-  } else console.warn('Could not fetch delivery tracking.')
 }
 
 export async function fetchDispute({ commit }) {
-  const res = await callAPI('disputes-by-bid', winningBid.value?.id)
-  if (res.success && res.data) {
-    const data = Array.isArray(res.data) ? res.data[0] : res.data
+  const response = await callAPI('disputes-by-bid', winningBid.value?.id)
+  if (response.success && response.data) {
+    const data = Array.isArray(response.data) ? response.data[0] : response.data
     currentDispute.value = data || null
     isGrantedRefund.value = data?.is_granted_refund ?? false
     isGrantedReturn.value = data?.is_granted_return ?? false
   }
-  console.warn('Could not fetch dispute:', err)
-    
-}
-export async function fetchHasBidForLots(lotsArr) {
-  const englishLots = (lotsArr || []).filter((lot) => lot.auction_type === 'English')
-
-  return await Promise.all(englishLots.map(async (lot) => {
-      const result = await callAPI(`lots/${lot.id}/highest-bid`)
-      if (result.success && result.data && result.data.user !== null) 
-        return 
-      return false
-  }))
+  console.warn('Could not fetch dispute:', err)   
 }
 
 // ================================================================
@@ -412,6 +316,27 @@ export async function fetchServicerPublicKey({ commit, dispatch }) {
     commit('setServicerLastFetched')
   } else dispatch('printFailedFetch', 'servicer public key')
   commit('setServicerPublicKey', servicerPk)
+}
+
+
+// FETCHES current user's username
+export async function fetchUsername({ commit, dispatch }) {
+  let username = ''
+  let isArbiter = false
+
+  // Using PK to fetch user details from server
+  const wallet = await getWallet()
+  const publicKey = await wallet.BCH.getPublicKey(`0/0`)
+  const response = await callAPI('user-details-by-public-key', publicKey)
+
+  if (response && response.success && response.data) {
+    username = response.data.username ?? ''
+    isArbiter = response.data.is_arbiter ?? false
+    commit('setHasNetworkError', false) 
+  } else dispatch('printFailedFetch', 'user details')
+
+  commit('setUsername', username)
+  commit('setIsArbiter', isArbiter)
 }
 
 
