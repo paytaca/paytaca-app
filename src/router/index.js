@@ -108,6 +108,10 @@ export default function () {
         next({ name: 'app-auction-profile' })
         return
       }
+      if (store.getters['auction/isArbiter'] && to.name !== 'app-auction-appeals') {
+        next({ name: 'app-auction-appeals' })
+        return
+      }
     }
 
     if (to.path === '/') {

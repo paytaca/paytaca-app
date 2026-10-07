@@ -23,17 +23,22 @@ export default {
   },
   watch: {
     walletSwitchId () {
-      this.checkAuctionProfile()
+      this.checkAuctionAccess()
     }
   },
   methods: {
-    async checkAuctionProfile () {
-      if (this.$route.name === 'app-auction-profile') return
+    async checkAuctionAccess () {
       if (!this.$store.getters['auction/username']) {
         await this.$store.dispatch('auction/fetchUsername')
       }
       if (!this.$store.getters['auction/username']) {
-        this.$router.replace({ name: 'app-auction-profile' })
+        if (this.$route.name !== 'app-auction-profile') {
+          this.$router.replace({ name: 'app-auction-profile' })
+        }
+        return
+      }
+      if (this.$store.getters['auction/isArbiter'] && this.$route.name !== 'app-auction-appeals') {
+        this.$router.replace({ name: 'app-auction-appeals' })
       }
     }
   }
