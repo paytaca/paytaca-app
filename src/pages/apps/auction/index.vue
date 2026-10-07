@@ -165,6 +165,7 @@ import AuctionSearch from 'src/components/auction/AuctionSearch.vue'
 import noImage from 'src/assets/no-image.svg'
 import { callIndexAuctionWebsocket } from 'src/auction/websocket'
 import { formatAuctionDate, getArbiterServicerData } from './helper-functions'
+import { AuctionList } from 'src/auction/object'
 
 // Quasar-related variables
 const $store = useStore()
@@ -285,13 +286,21 @@ const connectWebsocket = () => {
         await refresh()
         break
       case "index.update_auction":
-        console.log('index.update_auction')
-        await $store.dispatch('auction/updateListingFromWebsocket', data)
-        break
+        { 
+          if (!data?.id) break
+        
+          const listings = $store.getters['auction/listings']
+          const auctionExists = listings.some(auction => Number(auction.id) === Number(data.id))
+          if (auctionExists) $store.commit('auction/updateListing', data)
+          else $store.commit('auction/addListing', AuctionList.parse(data))
+
+          $store.commit('auction/mergeAuctionData', data)
+          $store.commit('auction/updateMyAuction', data)
+          break 
+        }
       case "index.remove_auction":
-        await $store.dispatch('auction/removeListingFromWebsocket', data?.id)
+        if (data?.id) $store.commit('auction/removeListing', data.id)
         break
-      
       // For unexpected WS messages
       default:
         console.warn("Unknown websocket message:", type, data)

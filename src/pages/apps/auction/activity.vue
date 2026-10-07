@@ -393,6 +393,7 @@ import noImage from 'src/assets/no-image.svg'
 
 // Websocket-related imports
 import { callActivityWebsocket } from 'src/auction/websocket'
+import { AuctionList } from 'src/auction/object'
 
 // Quasar-related variales
 const $store = useStore()
@@ -484,14 +485,23 @@ const connectWebsocket = () => {
         await refresh()
         break
       case "activity.update_auction":
-        console.log('index.update_auction')
-        await $store.dispatch('auction/updateMyAuctionFromWebsocket', data)
-        break
+        {
+          if (!data?.id) break
+
+          const myAuctions = $store.getters['auctions/myAuctions']
+          const auctionExists = myAuctions.some(auction => Number(auction.id) === Number(data.id))
+          if (auctionExists) $store.commit('auction/updateMyAuction', data)
+          else $store.commit('auction/addMyAuction', AuctionList.parse(data))
+
+          $store.commit('auction/updateListing', data)
+          $store.commit('auction/mergeAuctionData', data)
+          break
+        }
       case "activity.remove_auction":
-        await $store.dispatch('auction/removeMyAuctionFromWebsocket', data?.id)
+        if (data?.id) $store.commit('auction/removeMyAuction', data.id)
         break
       case "activity.update_bids":
-        await $store.dispatch('auction/updateMyBiddingFromWebsocket', data)
+        if (data?.id && data?.lot) $store.commit('auction/updateMyBidding', data)
         break
       case "delivery.update":
       case "dispute.update":

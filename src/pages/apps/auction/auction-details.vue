@@ -507,7 +507,6 @@ const connectWebsocket = () => {
         })
         break
       case "auction.end": {
-        console.log("auction.end")
         auctionStartCountdown.value = "Time's Up!"
         $store.commit('auction/updateAuctionData', {
           attribute_name: 'status', 
@@ -526,10 +525,17 @@ const connectWebsocket = () => {
         break
       }
       case "auction.update":
-        $store.dispatch('auction/updateAuctionFromWebsocket', data)
+        if (!data || !data?.id) break
+        $store.commit('auction/mergeAuctionData', data)
+        $store.commit('auction/updateListing', data)
+        $store.commit('auction/updateMyAuction', data)
+        
         break
       case "auction.delete":
-        $store.dispatch('auction/removeAuctionFromWebsocket', data.id)
+        if (!data?.id) break
+        $store.commit('auction/clearAuctionData', data.id)
+        $store.commit('auction/removeListing', data.id)
+        $store.commit('auction/removeMyAuction', data.id)
         $router.replace({ name: 'app-auction' })
         break
       default:
