@@ -281,6 +281,12 @@ export async function fetchDeliveryDetails({ commit, dispatch }, lotId) {
   }
 }
 
+// PATCHES a lot's delviery details
+export async function patchDeliveryDetails({ dispatch }, lotId, data) {
+  const response = await callAPI('delivery-trackings', lotId, 'patch', data)
+  if (!response.success) dispatch('printFailedPatch', 'delivery details')
+}
+
 export async function fetchDispute({ commit }) {
   const response = await callAPI('disputes-by-bid', winningBid.value?.id)
   if (response.success && response.data) {
@@ -344,6 +350,12 @@ export async function printFailedFetch({ getters }, itemName) {
   const { hasNetworkError } = getters
   if (hasNetworkError) console.error(`Failed to fetch ${itemName} from the server.`)
   else console.log(`Server does not have requested ${itemName}.`)
+}
+
+export async function printFailedPatch({ getters }, itemName) {
+  const { hasNetworkError } = getters
+  if (hasNetworkError) console.error(`Failed to patch ${itemName} to the server.`)
+  else console.log(`Network error occurred when requesting patch for ${itemName}.`)
 }
 
 export async function printNotExisting(itemName) {
