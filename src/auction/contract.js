@@ -32,19 +32,20 @@ class AuctionEscrowContract {
     const auctioneerPkh = this.getPubKeyHash(this.publicKeys.auctioneer)
     const servicerPkh = this.getPubKeyHash(this.publicKeys.servicer)
 
+    // Hash
     this.hash = this.sha256Hash(
-      this.publicKeys.arbiter,
       this.publicKeys.auctioneer,
+      this.publicKeys.arbiter,
       this.publicKeys.servicer,
       this.lotId
     )
 
-    // , bytes20 auctioneer, bytes20 servicer, int lotId, int platformFee, int arbitrationFee, bytes32 paramHash
+    // Contract Parameters
     const contractParams = [
       auctioneerPkh,  // bytes20 auctioneer
       arbiterPkh,     // bytes20 arbiter
       servicerPkh,    // bytes20 servicer
-      this.lotId,     // int lotId
+      BigInt(this.lotId), // int lotId
       BigInt(parseInt(this.fees.platformFee)),    // int platformFee
       BigInt(parseInt(this.fees.arbitrationFee)), // int arbitrationFee
       this.hash       // bytes paramHash
@@ -63,21 +64,41 @@ class AuctionEscrowContract {
   }
 
   /**
-   * Generates a SHA-256 hash of the contents of the contract file and a timestamp.
-   * @param {number} timestamp - The timestamp to be included in the hash.
+   * Generates a SHA-256 hash of the contents of the contract file.
+   * @param {bytes} auctioneerPk - The timestamp to be included in the hash.
+   * @param {bytes} arbiterPk - The timestamp to be included in the hash.
+   * @param {bytes} servicerPk - The timestamp to be included in the hash.
+   * @param {number} lotId - The timestamp to be included in the hash.
    * @returns {Promise<string>} A promise that resolves with the generated hash as a string.
    */
-  sha256Hash (arbiterPk, bidderPk, auctioneerPk, servicerPk, lotId) {
-    const message = arbiterPk + bidderPk + auctioneerPk + servicerPk + lotId
+  sha256Hash (auctioneerPk, arbiterPk, servicerPk, lotId) {
+    const message = auctioneerPk + arbiterPk + servicerPk + lotId
     return CryptoJS.SHA256(message).toString()
   }
 
+  outbid (lot, bidder, hash) {
+    return this.contract.functions.outbid(BigInt(lot), bidder, hash)
+  }
+
+  release (lot, pk, hash) {
+    return this.contract.functions.release(BigInt(lot), pk, hash)
+  }
+
+  refund (lot, pk, hash) {
+    return this.contract.functions.refund(BigInt(lot), pk, hash)
+  }
+
+  /**
+   * Broadcasts a transaction
+   * @param {bytes} txHex - The timestamp to be included in the hash.
+   * @param {number} priceId - The timestamp to be included in the hash.
+   * @returns {Promise<string>} A promise that resolves with the generated hash as a string.
+   */
   async broadcastTransaction (txHex, priceId) {
     try {
       const broadcastData = { transaction: txHex }
-      if (priceId) {
-        broadcastData.price_id = priceId
-      }
+      if (priceId) broadcastData.price_id = priceId
+
       const response = await watchtower.BCH._api.post('broadcast/', broadcastData)
       return response.data
     } catch (error) {
@@ -86,7 +107,12 @@ class AuctionEscrowContract {
     }
   }
 
-  // sending BCH from wallet to address
+  /**
+   * Broadcasts a transaction
+   * @param {bytes} txHex - The timestamp to be included in the hash.
+   * @param {number} priceId - The timestamp to be included in the hash.
+   * @returns {Promise<string>} A promise that resolves with the generated hash as a string.
+   */
   async sendAmountToAddress (
     changeAddress,
     bchAmount,
