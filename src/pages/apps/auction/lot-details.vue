@@ -119,7 +119,7 @@
                     unelevated
                     :label="winningBid.value?.user === userWalletHash ? 'Highest Bidder' : 'Place Bid'"
                     :disabled="lot?.status !== 'Active' || winningBid.value?.user === userWalletHash || bidOrBuyLoading"
-                    @click="openBidDialog"
+                    @click="() => { showMakeBidDialog = true }"
                   />
                 </template>
                 <template v-else>
@@ -129,7 +129,7 @@
                     padding="md"
                     label="Buy It Now"
                     :disabled="lot?.status !== 'Active' || lot?.value?.is_sold || bidOrBuyLoading"
-                    @click="buyItNow"
+                    @click="() => { showMakeBidDialog = true }"
                     unelevated
                   />
                 </template>
@@ -366,21 +366,21 @@
                       </div>
                     </div>
                     <!-- AUCTION HAS A BID -->
-                    <div v-if="englishLotHasBid">
+                    <div v-if="engLotHasBid">
                       <div class="text-h6 text-weight-bold text-positive" style="line-height: 1.2;">
                         <template v-if="auction?.is_fiat">
-                          {{ formatFiat(englishCurrentFiat) }}
+                          {{ formatFiat(engCurrentFiat) }}
                         </template>
                         <template v-else>
-                          {{ formatBCH(englishCurrentBch).main }}<span style="opacity: 0.4;">{{ formatBCH(englishCurrentBch).zeros }}</span> BCH
+                          {{ formatBCH(engCurrentBch).main }}<span style="opacity: 0.4;">{{ formatBCH(engCurrentBch).zeros }}</span> BCH
                         </template>
                       </div>
                       <div class="text-caption text-weight-medium text-positive q-mt-xs">
                         <template v-if="auction?.is_fiat">
-                          {{ formatBCH(englishCurrentBch).main }}<span style="opacity: 0.4;">{{ formatBCH(englishCurrentBch).zeros }}</span> BCH
+                          {{ formatBCH(engCurrentBch).main }}<span style="opacity: 0.4;">{{ formatBCH(engCurrentBch).zeros }}</span> BCH
                         </template>
                         <template v-else>
-                          {{ formatFiat(englishCurrentFiat) }}
+                          {{ formatFiat(engCurrentFiat) }}
                         </template>
                       </div>
                     </div>
@@ -392,10 +392,10 @@
                       </div>
                       <div class="text-caption text-weight-medium q-mt-xs">
                         <template v-if="auction?.is_fiat">
-                          {{ formatFiat(englishCurrentFiat) }} floor · {{ formatBCH(englishCurrentBch).main }}<span style="opacity: 0.4;">{{ formatBCH(englishCurrentBch).zeros }}</span> BCH
+                          {{ formatFiat(engCurrentFiat) }} floor · {{ formatBCH(engCurrentBch).main }}<span style="opacity: 0.4;">{{ formatBCH(engCurrentBch).zeros }}</span> BCH
                         </template>
                         <template v-else>
-                          {{ formatBCH(englishCurrentBch).main }}<span style="opacity: 0.4;">{{ formatBCH(englishCurrentBch).zeros }}</span> BCH floor · {{ formatFiat(englishCurrentFiat) }}
+                          {{ formatBCH(engCurrentBch).main }}<span style="opacity: 0.4;">{{ formatBCH(engCurrentBch).zeros }}</span> BCH floor · {{ formatFiat(engCurrentFiat) }}
                         </template>
                       </div>
                     </div>
@@ -680,7 +680,7 @@
     />
 
     <BuyItNowPopup
-      v-model:showBuyItNowDialog="showBuyItNowDialog"
+      v-model="showMakeBidDialog"
       :lot="lot"
       :auction="auction"
       :current-price-bch="dynamicPriceBch"
@@ -719,12 +719,12 @@
 <script setup>
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 import { useStore } from 'vuex'
-import { ref, computed, onMounted, onBeforeUnmount, onUnmounted } from 'vue'
+import { ref, computed, onMounted, onBeforeUnmount } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useQuasar, date } from 'quasar'
 import { callAPI } from 'src/auction/api'
 import { payBidToContract } from 'src/auction/payment'
-import { callContractRelease, callContractReturn } from 'src/auction/arbiter'
+import { callContractRelease } from 'src/auction/arbiter'
 import { callLotWebsocket } from 'src/auction/websocket'
 
 // Components
@@ -815,6 +815,7 @@ const isGrantedRefund = ref(false)
 const isGrantedReturn = ref(false)
 const currentDispute = ref(null)
 
+// Confirms the delivery (auctioneer)
 const confirmDeliveryTrigger = async () => {
   const res = await callAPI('delivery-trackings', props.lotId, 'patch', {
     status: 2,
@@ -830,6 +831,7 @@ const confirmDeliveryTrigger = async () => {
   await refresh(() => {})
 }
 
+// Confirms the pickup (auctioneer)
 const confirmPickupTrigger = async () => {
   const res = await callAPI('delivery-trackings', props.lotId, 'patch', {
     status: 3,
@@ -845,6 +847,7 @@ const confirmPickupTrigger = async () => {
   await refresh(() => {})
 }
 
+// Marks the delivery as complete (bidder)
 const markedAsCompleted = async () => {
   if (!winningBid.value) {
     $q.notify({ type: 'warning', message: 'Could not find bid to release funds for.' })
@@ -854,10 +857,8 @@ const markedAsCompleted = async () => {
   $q.loading.show({ message: 'Marking as complete, processing funds...' })
   await callContractRelease(winningBid.value?.id)
   $q.loading.hide()
-  
-  const res = await callAPI('delivery-trackings', props.lotId, 'patch', { mark_as_completed: true })
-  if(!res.success) console.warn('Could not update delivery tracking:')
 
+  await $store.dispatch('auction/patchDeliveryDetails', { marked_as_complete: true })
   await refresh(() => {})
 }
 
@@ -865,45 +866,22 @@ const markedAsCompleted = async () => {
 // ENGLISH AUCTION
 // ===============
 const showMakeBidDialog = ref(false)
-const englishLotHasBid = computed(() => Boolean(winningBid.value?.id))
-const englishHasUserBid = computed(() => winningBid.value?.user === userWalletHash.value)
+const engLotHasBid = computed(() => Boolean(winningBid.value?.id)) // what? REVIEW
+const engUserIsHighestBid = computed(() => winningBid.value?.user === userWalletHash.value)
 
-const englishCurrentBch = computed(() => {
+const engCurrentBch = computed(() => {
   const currentBCH = Number(lot.value?.[`threshold_bid_${attributeName.value}`] || 0)
   return (!auction.value?.is_fiat) 
     ? currentBCH
     : bchToPhpRate.value > 0 ? currentBCH / bchToPhpRate.value : 0
 })
 
-const englishCurrentFiat = computed(() => {
+const engCurrentFiat = computed(() => {
   const currentFiat = Number(lot.value?.[`threshold_bid_${attributeName.value}`] || 0)
   return (auction.value?.is_fiat) 
     ? currentFiat 
     : currentFiat * bchToPhpRate.value
 })
-
-const openBidDialog = async () => showMakeBidDialog.value = true
-
-const websocketSendBid = async ({ bid_price_bch, bid_price_fiat }) => {
-  if (!socket || socket.readyState !== WebSocket.OPEN) {
-    throw new Error('Bid failed. Please try again.')
-  }
-
-  const acknowledgement = waitForBidAck()
-  socket.send(JSON.stringify(
-    {
-      type: "place_bid",
-      data: {
-        user: userWalletHash.value,
-        lot: props.lotId,
-        bid_price_bch: Number(bid_price_bch).toFixed(8),
-        bid_price_fiat: Number(bid_price_fiat).toFixed(2)
-      }
-    }
-  ))
-
-  return await acknowledgement
-}
 
 /* 
 MAKE IT SO THAT YOUR FLOW GOES:
@@ -915,11 +893,16 @@ MAKE IT SO THAT YOUR FLOW GOES:
   You may need to update the backend for this one too
 */
 const handlePlaceBid = async ({ bid_price_bch, bid_price_fiat }) => {
+  // Loading is still ongoing
   if (bidOrBuyLoading.value) return
+
+  // Wallet not connected
   if (!userWalletHash.value) {
     $q.notify({ type: 'warning', message: 'Please connect your wallet first.' })
     return
   }
+
+  // If ever (supposedly not being reached)
   if (lot.value?.status !== 'Active' || auction.value?.status !== 'Open') {
     $q.notify({ type: 'warning', message: 'This lot is not accepting bids.' })
     return
@@ -928,40 +911,41 @@ const handlePlaceBid = async ({ bid_price_bch, bid_price_fiat }) => {
   const bidBch = Number(bid_price_bch)
   const bidFiat = Number(bid_price_fiat)
   const bidPrice = auction.value?.is_fiat ? bidFiat : bidBch
+
   const currentPrice = auction.value?.is_fiat
     ? Number(lot.value?.threshold_bid_fiat || 0)
     : Number(lot.value?.threshold_bid_bch || 0)
-  const invalidPrice = !Number.isFinite(bidPrice) || bidPrice <= 0 || (
-    englishLotHasBid.value ? bidPrice <= currentPrice : bidPrice < currentPrice
+
+  const isLesserThanCurrentBid = !Number.isFinite(bidPrice) || bidPrice <= 0 || (
+    engLotHasBid.value
+    ? bidPrice <= currentPrice
+    : bidPrice < currentPrice
   )
-  if (invalidPrice) {
+  if (isLesserThanCurrentBid) {
     $q.notify({ type: 'warning', message: 'Bid must be higher than the current bid.' })
     return
   }
 
   bidOrBuyLoading.value = true
   try {
+    // Send bid to WS
     const pendingBid = await websocketSendBid({
       bid_price_bch: bidBch,
       bid_price_fiat: bidFiat,
     })
     if (!pendingBid?.id) throw new Error('Bid was not created.')
 
+    // Paying for the bid (sending it to the contract)
     $q.loading.show({ message: 'Processing smart contract...' })
-    await payBidToContract(bidBch.toFixed(8), pendingBid.id, Number(props.lotId))
+    const txid = await payBidToContract(bidBch.toFixed(8), Number(props.lotId))
+
+    // Wait for bid to be marked as complete
     const settlement = waitForBidSettlement(pendingBid.id)
     socket.send(JSON.stringify({
       type: 'paid_bid',
-      data: { id: pendingBid.id, lot: Number(props.lotId) }
+      data: { id: pendingBid.id, lot: Number(props.lotId), txid }
     }))
     const settledBid = await settlement
-
-    if (settledBid.status === 'Highest') {
-      const secondRes = await callAPI(`lots/${props.lotId}/second-highest-bid`)
-      if (secondRes.success && secondRes.data?.id) {
-        await callContractReturn(secondRes.data.id)
-      }
-    }
 
     showMakeBidDialog.value = false
     $q.notify({
@@ -984,8 +968,8 @@ const handlePlaceBid = async ({ bid_price_bch, bid_price_fiat }) => {
 const showPostAuctionActions = computed(() => lot.value?.is_sold && !isMarkedComplete.value)
 
 const bidStatus = computed(() => {
-  if (!englishHasUserBid.value) return null
-  if (!englishLotHasBid.value) return isLotClosedOrSold.value ? 'did-not-win' : null
+  if (!engUserIsHighestBid.value) return null
+  if (!engLotHasBid.value) return isLotClosedOrSold.value ? 'did-not-win' : null
 
   const isHighest = winningBid.value?.user === userWalletHash.value
   if (lot.value?.is_sold || isLotClosedOrSold.value) return isHighest ? 'win' : 'did-not-win'
@@ -995,42 +979,25 @@ const bidStatus = computed(() => {
 // =============
 // DUTCH AUCTION
 // =============
-const showBuyItNowDialog = ref(false)
 
 const secondsRemaining = ref(0)
 const intervalDurationSec = ref(600)
+
 const dutchAtFloor = ref(false)
-let visualCountdownTimer = null
-let dutchStartTimeout = null
 
 const dutchIntervalProgress = computed(() => {
   if (!intervalDurationSec.value) return 0
   return Math.max(0, Math.min(1, secondsRemaining.value / intervalDurationSec.value))
 })
 
-const clearDutchTimers = () => {
-  if (visualCountdownTimer) {
-    clearInterval(visualCountdownTimer)
-    visualCountdownTimer = null
-  }
-  if (dutchStartTimeout) {
-    clearTimeout(dutchStartTimeout)
-    dutchStartTimeout = null
-  }
-}
-
 const dutchFloorPriceBch = computed(() => Number(lot.value?.threshold_bid_bch || 0))
 const dutchFloorPriceFiat = computed(() => Number(lot.value?.threshold_bid_fiat || 0))
 const dynamicPriceBch = ref(0)
 const dynamicPriceFiat = ref(0)
 
-const buyItNow = () => { 
-  showBuyItNowDialog.value = true 
-}
-
 const handleBuyItNow = async () => {
   if (bidOrBuyLoading.value) return
-  showBuyItNowDialog.value = false
+  showMakeBidDialog.value = false
   
   if (!userWalletHash.value) {
     return $q.notify({ type: 'warning', message: 'Please connect your wallet first.' })
@@ -1056,11 +1023,11 @@ const handleBuyItNow = async () => {
     if (!pendingBid?.id) throw new Error('Purchase was not created.')
 
     $q.loading.show({ message: 'Processing smart contract...' })
-    await payBidToContract(Number(bidBch).toFixed(8), pendingBid.id, Number(props.lotId))
+    const txid = await payBidToContract(Number(bidBch).toFixed(8), Number(props.lotId))
     const settlement = waitForBidSettlement(pendingBid.id)
     socket.send(JSON.stringify({
       type: 'paid_bid',
-      data: { id: pendingBid.id, lot: Number(props.lotId) }
+      data: { id: pendingBid.id, lot: Number(props.lotId), txid }
     }))
     const settledBid = await settlement
     if (settledBid.status !== 'Winner') {
@@ -1102,28 +1069,6 @@ const initEnglishDeliveryTracking = async () => {
     console.warn('Could not init delivery tracking for English auction:', err)
   } finally {
     isCreatingDeliveryTracking.value = false
-  }
-}
-
-const fetchDeliveryTracking = async () => {
-  //const deliveryData
-      deliveryStatusId.value = data?.status ?? null
-      deliveredDate.value = data?.delivered_date ?? null
-      isMarkedComplete.value = data?.mark_as_completed ?? false
-}
-
-const fetchDispute = async () => {
-  try {
-    const res = await callAPI('disputes-by-bid', winningBid.value?.id)
-    if (res.success && res.data) {
-      const data = Array.isArray(res.data) ? res.data[0] : res.data
-      currentDispute.value = data || null
-      isGrantedRefund.value = data?.is_granted_refund ?? false
-      isGrantedReturn.value = data?.is_granted_return ?? false
-    }
-  } catch (err) {
-    console.warn('Could not fetch dispute:', err)
-    currentDispute.value = null
   }
 }
 
@@ -1245,10 +1190,6 @@ onBeforeUnmount(() => {
   clearSocket()
 })
 
-onUnmounted(() => {
-  if (visualCountdownTimer) clearInterval(visualCountdownTimer)
-  if (refundCountdownInterval) clearInterval(refundCountdownInterval)
-})
 
 /*
 ===========================
@@ -1304,22 +1245,23 @@ const connectWebsocket = () => {
 
       // start.close lot
       case "lot.update_status":
-        await $store.dispatch('auction/updateLotStatusFromWebsocket', data)
+        if (data?.id && data?.status) $store.commit('auction/updateLotStatus', data)
         if (data.status !== 'Active') {
-          clearDutchTimers()
-          showBuyItNowDialog.value = false
+          showMakeBidDialog.value = false
           showMakeBidDialog.value = false
         }
         if (data.status === 'Sold') await initEnglishDeliveryTracking()
         break
 
       case "lot.update":
-        await $store.dispatch('auction/updateLotFromWebsocket', data)
+        if (data?.id) $store.commit('auction/mergeLotData', data)
         break
 
       case "lot.delete":
-        await $store.dispatch('auction/removeLotFromWebsocket', data.id)
-        $router.replace(smartBackPath.value)
+        if (data?.id) {
+          $store.commit('auction/clearLotData', data.id)
+          $router.replace(smartBackPath.value)
+        }
         break
 
       // sends placebid acknowledgement
@@ -1347,10 +1289,9 @@ const connectWebsocket = () => {
         break
 
       case "bid.cancelled_ack":
-        await $store.dispatch(
-          'auction/cancelBidsFromWebsocket',
-          data.cancelled_bid_ids
-        )
+        if (Array.isArray(data.cancelled_bid_ids) && data.cancelled_bid_ids.length) {
+          $store.commit('auction/cancelLotBids', data.cancelled_bid_ids)
+        }
         break
 
       // update the highest bidder
@@ -1363,7 +1304,6 @@ const connectWebsocket = () => {
       case "update.winner":
         await $store.dispatch('auction/updateBidFromWebsocket', data)
         resolveBidSettlement(data)
-        clearDutchTimers()
         break
 
       // update the time interval
@@ -1416,7 +1356,31 @@ let bidRejecter = null
 let settlementBidId = null
 let settlementResolver = null
 let settlementRejecter = null
-const waitForBidAck = () => {
+
+// Sends a bid through WS
+const websocketSendBid = async ({ bid_price_bch, bid_price_fiat }) => {
+  if (!socket || socket.readyState !== WebSocket.OPEN) {
+    throw new Error('Bid failed. Please try again.')
+  }
+
+  const ack = waitForWebsocketBidAck()
+  socket.send(JSON.stringify(
+    {
+      type: "place_bid",
+      data: {
+        bidder: userWalletHash.value,
+        lot: props.lotId,
+        bid_price_bch: Number(bid_price_bch).toFixed(8),
+        bid_price_fiat: Number(bid_price_fiat).toFixed(2)
+      }
+    }
+  ))
+
+  return ack
+}
+
+// Waits for the bid ack (data saved to server)
+const waitForWebsocketBidAck = () => {
   return new Promise((resolve, reject) => {
     const timeout = setTimeout(() => {
       bidResolver = null
@@ -1437,6 +1401,7 @@ const waitForBidAck = () => {
   })
 }
 
+// Waits for the bid to be marked as complete
 const waitForBidSettlement = (bidId) => {
   return new Promise((resolve, reject) => {
     const timeout = setTimeout(() => {
@@ -1464,14 +1429,13 @@ const waitForBidSettlement = (bidId) => {
   })
 }
 
+
 const resolveBidSettlement = (data) => {
-  if (
-    Number(data?.id) !== settlementBidId
-    || data?.status === 'Pending'
-  ) return
+  if (Number(data?.id) !== settlementBidId || data?.status === 'Pending') return
   settlementResolver?.(data)
 }
 
+// Clears the socket
 const clearSocket = () => {
   if (reconnectTimeout) {
     clearTimeout(reconnectTimeout)
