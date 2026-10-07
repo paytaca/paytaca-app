@@ -24,73 +24,45 @@ const PLATFORM_FEE = 1000
  * Call this when invoking any wallet-to-contract functions
  */
 export async function payBidToContract(amountBCH, lotId) {
-  try {
-    // make the contract here
-    const contractResult = await createContractForLot(lotId)
-    if (!contractResult.is_created) 
-      throw new Error("Contract failed to be created.")
+    const contract = await initializeContract(lotId)
     
-    const contractUTXOS = await contractResult.contract.contract.getUtxos()
+    const contractUTXOS = await contract.contract.getUtxos()
     if (contractUTXOS.length > 0)
       throw new Error("Funds exist inside the contract! Please release/refund first before adding new funds.")
     
-    const txid = await sendBCHToContract(contractResult.contract, amountBCH)
+    const payment = await sendBCHToContract(contract, amountBCH)
+    const txid = typeof payment === 'string' ? payment : payment?.txid
     if (!txid) 
       throw new Error("Failed to transfer BCH to contract.")
 
     console.log("[payBidToContract] Successfully transferred BCH to contract! txid = ", txid)
-  } catch (error) {
-    console.error("[payBidToContract]", error)
-  }
+    return txid
 }
 
 
 /**
-<<<<<<< HEAD
- * @name createContract
+ * @name initializeContract
  * @param {Integer} lotId
- * @returns contract and is_created (boolean)
- * Call this when establishing a new contract for a new lot
+ * @returns initialized contract
  */
-export async function createContractForLot(lotId) {
-  // get the auction public keys
-  const publicKeys = await getNewAuctionPublicKeys(lotId)
+export async function initializeContract(lotId) {
+  const publicKeys = await getAuctionPublicKeys(lotId)
 
-  // just get the fixed fees
+  // Fixed fees
   const fees = {
     arbitrationFee: ARBITRATION_FEE,
     platformFee: PLATFORM_FEE
   }
 
-  // check if wallet is in chipnet
-  const isChipnet = Store.getters['global/isChipnet']
-
-  // creation of contract
-  const contractResult = new AuctionEscrowContract(
+  return new AuctionEscrowContract(
     publicKeys,
     fees,
     lotId,
-    isChipnet 
+    Store.getters['global/isChipnet'] // Check if wallet is in chipnet
   )
-
-  // payload for adding contract to db
-  const payload = {
-    lot_id: lotId,
-    arbiter_pk: publicKeys.arbiter,
-    servicer_pk: publicKeys.servicer,
-    arbitration_fee: contractResult.fees.arbitrationFee,
-    platform_fee: contractResult.fees.platformFee
-  }
-
-  const response = await callAPI('create-contract', null, 'post', payload)
-  
-  return {
-    contract: contractResult,
-    is_created: true
-  }
 }
 
-async function tokenGenesis(
+export async function tokenGenesis(
   contractTokenAddress, 
   { broadcast = true } = {}
 ) {
@@ -166,7 +138,7 @@ async function sendBCHToContract(contract, bchAmount) {
   // wallet info
   const wallet = await getWallet()
   
-  const txid = contract.sendAmountToAddress(
+  const txid = await contract.sendAmountToAddress(
     changeAddress,
     bchAmount,
     undefined,
@@ -181,19 +153,29 @@ async function sendBCHToContract(contract, bchAmount) {
 // ===== HELPER FUNCTIONS =====
 /**
  * Gets the public keys for a new contract
- * @name getNewAuctionPublicKeys
- * @param {Integer} lotId 
+ * @name getAuctionPublicKeys
+ * @param {Integer} lotId
  * @returns Gets the public keys needed for a NEW auction contract
  */
-async function getNewAuctionPublicKeys(lotId) {
+async function getAuctionPublicKeys(lotId) {
   const auctioneerPk = await getPublicKeyFromLotId('auctioneer', lotId)
-  const bidderPk = await getBidderPublicKey('0/0')
+  await Promise.all([
+    Store.getters['auction/arbiterPublicKey']
+      ? Promise.resolve()
+      : Store.dispatch('auction/fetchArbiterPublicKey'),
+    Store.getters['auction/servicerPublicKey']
+      ? Promise.resolve()
+      : Store.dispatch('auction/fetchServicerPublicKey')
+  ])
   const arbiterPk = Store.getters['auction/arbiterPublicKey']
   const servicerPk = Store.getters['auction/servicerPublicKey']
 
+  if (!auctioneerPk || !arbiterPk || !servicerPk) {
+    throw new Error('Contract public keys could not be loaded.')
+  }
+
   return {
     auctioneer: auctioneerPk,
-    bidder: bidderPk,
     arbiter: arbiterPk,
     servicer: servicerPk
   }
@@ -242,4 +224,3 @@ export async function getWallet() {
   const wallet = await loadWallet('BCH', walletIndex)
   return wallet
 }
-
