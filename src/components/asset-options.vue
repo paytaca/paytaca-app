@@ -101,6 +101,10 @@ export default {
 			type: String,
 			default: null
 		},
+		isReadOnlyWallet: {
+			type: Boolean,
+			default: false
+		},
 	},
 	emits: [
 		'cashin',
@@ -163,6 +167,7 @@ export default {
 	      } 
 	},
 	disableButton (name) {
+		if (this.isReadOnlyWallet && (name === 'cash in' || name === 'spend bch')) return true
 		return !this.loaded
 	},
  		async openFreezeDialog() { 			

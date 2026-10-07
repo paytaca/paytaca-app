@@ -54,7 +54,7 @@
           inputExtras.scannedRecipientAddress
         ]"
       >
-        <template v-slot:label id="sub-btn"> 
+        <template v-slot:label> 
           {{ $t('Recipient') }}
         </template>
         <template v-slot:append>
