@@ -276,7 +276,7 @@ module.exports = defineConfig((ctx) => {
       server: {
         type: 'http', // https | http
       },
-      port: 9000,
+      port: 9001,
       open: true, // opens browser window automatically
       client: {
         overlay: {

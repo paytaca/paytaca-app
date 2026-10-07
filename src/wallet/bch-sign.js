@@ -71,6 +71,36 @@ export function extractContractBytecode(unlockingBytecode) {
   return script?.length ? script : undefined
 }
 
+function unlockingBytecodeHexHasSignature(unlockingBytecodeHex, publicKey, sighash) {
+  let decoded
+  try {
+    decoded = decodeAuthenticationInstructions(hexToBin(unlockingBytecodeHex))
+  } catch {
+    return false
+  }
+  if (typeof decoded === 'string') return false
+  return decoded.some((instruction) => {
+    let data = instruction?.data
+    if (!data?.length) return false
+    if (typeof data === 'string') {
+      try {
+        data = hexToBin(data)
+      } catch {
+        return false
+      }
+    }
+    if (data.length < 65 || data.length > 73) return false
+    if (data[data.length - 1] !== 0x61) return false
+    const body = data.subarray(0, data.length - 1)
+    try {
+      if (body.length === 64) return secp256k1.verifySignatureSchnorr(body, publicKey, sighash)
+      return secp256k1.verifySignatureDER(body, publicKey, sighash)
+    } catch {
+      return false
+    }
+  })
+}
+
 /**
  * Sign a BCH transaction, handling both P2PKH and CashScript contract inputs.
  *
@@ -140,22 +170,36 @@ export function signBchTransaction({ transaction, sourceOutputs, resolveKey, pre
         throw signBchTxError('Contract input locking bytecode is not valid P2SH/P2SH32')
       }
 
-      if (unlockingBytecodeHex.indexOf(sigPlaceholder) !== -1) {
-        const hashType = SigningSerializationFlag.allOutputs | SigningSerializationFlag.utxos | SigningSerializationFlag.forkId
-        const context = { inputIndex: index, sourceOutputs, transaction }
-        const signingSerializationType = new Uint8Array([hashType])
+      let signedContractInput = false
+      const hashType = SigningSerializationFlag.allOutputs | SigningSerializationFlag.utxos | SigningSerializationFlag.forkId
+      const context = { inputIndex: index, sourceOutputs, transaction }
+      const signingSerializationType = new Uint8Array([hashType])
 
-        const sighashPreimage = generateSigningSerializationBCH(context, { coveredBytecode, signingSerializationType })
-        const sighash = hash256(sighashPreimage)
+      const sighashPreimage = generateSigningSerializationBCH(context, { coveredBytecode, signingSerializationType })
+      const sighash = hash256(sighashPreimage)
+
+      if (unlockingBytecodeHex.indexOf(sigPlaceholder) !== -1) {
         const signature = secp256k1.signMessageHashSchnorr(privateKey, sighash)
         if (typeof signature === 'string') throw signBchTxError(signature)
         const sig = Uint8Array.from([...signature, hashType])
 
         unlockingBytecodeHex = unlockingBytecodeHex.replace(sigPlaceholder, "41" + binToHex(sig))
+        signedContractInput = true
+      } else if (!unlockingBytecodeHexHasSignature(unlockingBytecodeHex, publicKey, sighash)) {
+        throw signBchTxError(
+          `Contract input ${index}: no signature placeholder found in the unlocking bytecode, ` +
+          'and no valid signature from this wallet is present. Refusing to return an unsigned ' +
+          'contract input — the transaction template must include a 65-zero-byte signature ' +
+          'placeholder (0x41 push) for this wallet.'
+        )
       }
 
       if (unlockingBytecodeHex.indexOf(pubkeyPlaceholder) !== -1) {
         unlockingBytecodeHex = unlockingBytecodeHex.replace(pubkeyPlaceholder, "21" + binToHex(publicKey))
+      }
+
+      if (!signedContractInput) {
+        console.warn(`[bch-sign] Contract input ${index}: no signature placeholder found; input already carries a signature from this wallet`)
       }
 
       input.unlockingBytecode = hexToBin(unlockingBytecodeHex)
