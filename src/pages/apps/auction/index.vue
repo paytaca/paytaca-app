@@ -15,17 +15,11 @@
   >
     <HeaderNav :title="$t('Auction')" backnavpath="/apps" class="header-nav">
       <template v-slot:top-right-menu>
-        <template v-if="!isCheckingAccess">
-          <AuctionHeaderMenu />
-        </template>
+        <AuctionHeaderMenu />
       </template>
     </HeaderNav>
 
-    <div v-if="isCheckingAccess" class="row justify-center q-pa-xl">
-      <q-spinner color="primary" size="40px" />
-    </div>
-
-    <div v-else>
+    <div>
       <div class="q-px-md q-pt-xs q-pb-md sticky-below-header">
         <AuctionSearch @search-change="auctionSearchQuery = $event"/>
       </div>
@@ -154,7 +148,6 @@
 
 <script setup>
 import { useStore } from 'vuex'
-import { useRouter } from 'vue-router'
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 import { ref, computed, watch, onMounted, onBeforeUnmount } from 'vue'
 
@@ -169,17 +162,13 @@ import { AuctionList } from 'src/auction/object'
 
 // Quasar-related variables
 const $store = useStore()
-const $router = useRouter()
 
 // System variables
 const darkMode = computed(() => $store.getters['darkmode/getStatus'])
 const isLoading = ref(true)         // Controls auction listing loading
-const isCheckingAccess = ref(true)  // Controls loading screen during profile checking
 
 // Auction-related listings
 const listingsTotalTime = computed(() => Date.now() - $store.getters['auction/listingsLastFetched'])
-const username = computed(() => $store.getters['auction/username'])
-
 onMounted(async () => {
   // Refresh the list of listings
   await (
@@ -188,29 +177,6 @@ onMounted(async () => {
     : Promise.resolve()
   )
   isLoading.value = false
-
-  // Fetch username and if it doesn't exist, print the error
-  await (
-    (!username.value)
-    ? $store.dispatch('auction/fetchUsername')
-    : Promise.resolve()
-  )
-  if (!username.value) {
-    // Route to username/profile page
-    console.warn('User details missing, redirecting...')
-    $router.push({ name: 'app-auction-profile' })
-    return
-  }
-
-  // Reroute user to arbiter page if they're an assigned arbiter
-  const isUserArbiter = $store.getters['auction/isArbiter']
-  if (isUserArbiter) {
-    $router.push({ name: 'app-auction-appeals' })
-    return
-  }
-  
-  // close profile checking loading screen 
-  isCheckingAccess.value = false
 
   // fetch arbiter servicer data
   await getArbiterServicerData()
