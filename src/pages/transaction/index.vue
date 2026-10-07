@@ -10,6 +10,7 @@
               <div data-tour="wallet-opener" class="col">
                 <MultiWalletDropdown/>
               </div>
+              
               <div class="row items-center justify-end q-gutter-md">
                 <div v-if="isReadOnlyWallet" class="row items-center">
                   <q-icon
@@ -36,6 +37,17 @@
                 />
               </div>
             </div>
+            <div class="row items-center justify-center q-mb-sm q-mt-sm q-mx-lg">
+            <q-banner
+            v-if="isReadOnlyWallet"
+            rounded
+            class="col-12 q-mb-sm readonly-banner text-bow"
+            :class="getDarkModeClass(darkMode)"
+          >
+            <q-icon name="key_off" color="warning" size="sm" class="q-mr-sm" />
+            {{ $t('ReadOnlyWalletFeaturesDisabled', {}, 'This is a read-only wallet. Some features are disabled.') }}
+          </q-banner>
+          </div>
 
             <div class="row q-pt-sm">
               <template v-if="isDenominationTabEnabled">
@@ -158,9 +170,11 @@
             data-tour="quick-actions"
             :loaded="balanceLoaded"
             :selectedDenomination="selectedDenomination"
+            :isReadOnlyWallet="isReadOnlyWallet"
             @spend-bch="openSpendBch()"
           />
-          <div class="row items-center justify-between q-mb-sm q-mt-sm">
+          
+          <div class="row items-center justify-between q-mt-sm">
             <div class="q-ml-lg button button-text-primary" style="font-size: 20px;">
               {{ $t(isHongKong(currentCountry) ? 'Points' : 'Tokens') }}
               <q-btn
@@ -2818,6 +2832,17 @@ export default {
   .cash-in {
     background-color: #ECF3F3;
     color: #3b7bf6;
+  }
+  .readonly-banner {
+    border-radius: 12px;
+
+    &.dark {
+      background: rgba(255, 255, 255, 0.06);
+    }
+
+    &.light {
+      background: rgba(255, 255, 255, 0.35);
+    }
   }
 </style>
 
