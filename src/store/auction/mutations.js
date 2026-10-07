@@ -1,3 +1,9 @@
+import defaultState from './state'
+
+export function resetState(state) {
+  Object.assign(state, defaultState())
+}
+
 // ====================
 // INDEX PAGE MUTATIONS
 // ====================

@@ -100,6 +100,16 @@ export default function () {
       return
     }
 
+    if (to.path.startsWith('/apps/auction') && to.name !== 'app-auction-profile') {
+      if (!store.getters['auction/username']) {
+        await store.dispatch('auction/fetchUsername')
+      }
+      if (!store.getters['auction/username']) {
+        next({ name: 'app-auction-profile' })
+        return
+      }
+    }
+
     if (to.path === '/') {
       try {
         // Ensure current wallet index is valid (points to undeleted wallet)

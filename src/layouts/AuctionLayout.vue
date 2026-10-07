@@ -15,6 +15,27 @@ export default {
   data () {
     return {
     }
+  },
+  computed: {
+    walletSwitchId () {
+      return this.$store.getters['global/getWalletSwitchId']
+    }
+  },
+  watch: {
+    walletSwitchId () {
+      this.checkAuctionProfile()
+    }
+  },
+  methods: {
+    async checkAuctionProfile () {
+      if (this.$route.name === 'app-auction-profile') return
+      if (!this.$store.getters['auction/username']) {
+        await this.$store.dispatch('auction/fetchUsername')
+      }
+      if (!this.$store.getters['auction/username']) {
+        this.$router.replace({ name: 'app-auction-profile' })
+      }
+    }
   }
 }
 </script>
