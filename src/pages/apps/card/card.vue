@@ -85,9 +85,13 @@
 
               <!-- Version badge -->
               <div v-if="activeCard?.activeContractVersion" class="card-version-badge">
-                <q-badge :color="activeCard.isV2Active ? 'positive' : 'grey'" class="text-weight-medium" style="font-size: 9px; padding: 2px 6px;">
-                  Active: {{ activeCard.activeContractVersion?.toUpperCase() }}
-                </q-badge>
+                <span
+                  class="version-pill version-pill--on-card"
+                  :class="{ 'version-pill--legacy': !activeCard.isV2Active }"
+                >
+                  {{ activeCard.activeContractVersion.toUpperCase() }}
+                </span>
+                <q-tooltip class="version-pill-tooltip">{{ activeCard.isV2Active ? 'Active contract version' : 'Legacy contract version' }}</q-tooltip>
               </div>
             </div>
           </div>
@@ -948,8 +952,11 @@ export default {
   }
   .card-version-badge {
     position: absolute;
-    bottom: 10px;
-    right: 10px;
-    z-index: 1;
+    bottom: 24px;
+    right: 16px;
+    z-index: 6;
+  }
+  .card-logo-container {
+    right: 60px;
   }
 </style>

@@ -43,15 +43,22 @@
             size="24px"
           />
           <div class="q-ml-md">
-            <div class="text-subtitle2" :class="textColor">
-              Contract Version
+            <div class="row items-center" style="gap: 8px;">
+              <div class="text-subtitle2" :class="textColor">
+                Contract Version
+              </div>
+              <span
+                class="version-pill"
+                :class="activeCard?.isV2Active ? 'version-pill--active' : 'version-pill--legacy'"
+              >
+                {{ activeCard?.activeContractVersion?.toUpperCase() || 'V1' }}
+              </span>
             </div>
             <div
               class="text-caption"
               :class="$q.dark.isActive ? 'text-grey-5' : 'text-grey'"
             >
-              Active: {{ activeCard?.activeContractVersion?.toUpperCase() || 'V1' }}
-              <span v-if="activeCard?.isV2Active" class="text-positive"> · Token payments enabled · Locked to V2</span>
+              {{ activeCard?.isV2Active ? 'Token payments enabled · Locked to V2' : 'Token payments available after upgrade' }}
             </div>
           </div>
         </div>
@@ -64,7 +71,6 @@
           :loading="switchingVersion"
           @click="showVersionSwitchDialog = true"
         />
-        <q-chip v-else dense color="positive" text-color="white" icon="lock">V2 locked</q-chip>
       </div>
 
       <q-dialog v-model="showVersionSwitchDialog" persistent>

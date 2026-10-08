@@ -1265,6 +1265,91 @@ animation: float 6s ease-in-out infinite;
   }
 }
 
+// ====== Contract version pills ======
+.version-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 2px 8px;
+  border-radius: 999px;
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.4px;
+  line-height: 1.4;
+  text-transform: uppercase;
+  white-space: nowrap;
+  border: 1px solid transparent;
+  transition: all 0.2s ease;
+
+  &::before {
+    content: '';
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    flex-shrink: 0;
+  }
+}
+
+.version-pill--active {
+  background: color-mix(in srgb, var(--q-primary) 15%, transparent);
+  color: var(--q-primary);
+  border-color: color-mix(in srgb, var(--q-primary) 40%, transparent);
+
+  &::before {
+    background: var(--q-primary);
+  }
+}
+
+.version-pill--legacy {
+  background: rgba(128, 128, 128, 0.12);
+  color: #9e9e9e;
+  border-color: rgba(128, 128, 128, 0.25);
+
+  &::before {
+    background: transparent;
+    border: 1.5px solid currentColor;
+  }
+}
+
+.version-pill--on-card {
+  background: rgba(255, 255, 255, 0.15);
+  color: #fff;
+  border-color: rgba(255, 255, 255, 0.25);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+
+  &::before {
+    background: #fff;
+  }
+
+  &.version-pill--legacy::before {
+    background: rgba(255, 255, 255, 0.45);
+    border: none;
+  }
+}
+
+// Tooltip for the contract version pill (theme-aware glass, matches the pill)
+.q-tooltip.version-pill-tooltip {
+  background: color-mix(in srgb, var(--q-primary) 12%, rgba(255, 255, 255, 0.94));
+  color: var(--q-primary);
+  border: 1px solid color-mix(in srgb, var(--q-primary) 30%, transparent);
+  border-radius: 10px;
+  padding: 6px 10px;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.2px;
+  line-height: 1.3;
+  box-shadow: 0 6px 20px color-mix(in srgb, var(--q-primary) 18%, rgba(0, 0, 0, 0.12));
+  backdrop-filter: blur(12px) saturate(180%);
+  -webkit-backdrop-filter: blur(12px) saturate(180%);
+}
+
+.body--dark .q-tooltip.version-pill-tooltip {
+  background: color-mix(in srgb, var(--q-primary) 32%, rgba(22, 26, 36, 0.94));
+  color: #fff;
+  border-color: color-mix(in srgb, var(--q-primary) 50%, transparent);
+}
+
 // ====== Auth NFTs Page Styles ======
 .auth-nfts-merchant-item {
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);

@@ -29,10 +29,9 @@
         toggle-color="primary"
         :color="$q.dark.isActive ? 'grey-9' : 'grey-3'"
         :text-color="$q.dark.isActive ? 'grey-4' : 'grey-8'"
-        dense
         no-caps
-        size="sm"
         rounded
+        class="version-filter-toggle"
         @update:model-value="onVersionFilterChange"
       />
     </div>
@@ -89,12 +88,10 @@
               <q-item-section>
                 <div class="row items-center" style="gap: 6px;">
                   <div class="text-weight-bold" :class="textColor">{{ rowTitle(tx) }}</div>
-                  <q-badge
-                    :color="versionBadgeColor(tx.version)"
-                    :label="versionBadgeLabel(tx.version)"
-                    class="text-weight-medium"
-                    style="font-size: 9px; padding: 2px 6px;"
-                  />
+                  <span
+                    class="version-pill"
+                    :class="isActiveVersion(tx.version) ? 'version-pill--active' : 'version-pill--legacy'"
+                  >{{ versionBadgeLabel(tx.version) }}</span>
                 </div>
                 <div class="text-caption" :class="$q.dark.isActive ? 'text-grey-5' : 'text-grey'">{{ tx.created_at_display }}</div>
                 <div v-if="tx.is_nft" class="text-caption" :class="$q.dark.isActive ? 'text-grey-5' : 'text-grey'">
@@ -164,12 +161,10 @@
               <q-item-section>
                 <q-item-label caption :class="captionColor">Contract version</q-item-label>
                 <q-item-label>
-                  <q-badge
-                    :color="versionBadgeColor(selectedTx.version)"
-                    :label="versionBadgeLabel(selectedTx.version)"
-                    class="text-weight-medium"
-                    style="font-size: 10px; padding: 2px 6px;"
-                  />
+                  <span
+                    class="version-pill"
+                    :class="isActiveVersion(selectedTx.version) ? 'version-pill--active' : 'version-pill--legacy'"
+                  >{{ versionBadgeLabel(selectedTx.version) }}</span>
                 </q-item-label>
               </q-item-section>
             </q-item>
@@ -347,10 +342,8 @@ export default {
       if (version === 'v1' || version === 'v2') return version.toUpperCase();
       return 'Legacy';
     },
-    versionBadgeColor(version) {
-      if (version === 'v2') return 'positive';
-      if (version === 'v1') return this.$q.dark.isActive ? 'grey-7' : 'grey-6';
-      return this.$q.dark.isActive ? 'grey-8' : 'grey-5';
+    isActiveVersion(version) {
+      return version === (this.card?.activeContractVersion || 'v2');
     },
     ftTokenAsset(category) {
       if (!category) return null;
@@ -491,6 +484,16 @@ export default {
 
   .search-input-field {
     font-size: 13px;
+  }
+
+  // Larger tap targets for the version filter on mobile
+  .version-filter-toggle :deep(.q-btn) {
+    min-height: 44px;
+    min-width: 64px;
+    padding: 0 18px;
+    font-size: 13px;
+    font-weight: 600;
+    letter-spacing: 0.3px;
   }
 
   .tx-hash {
