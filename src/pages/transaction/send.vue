@@ -860,7 +860,7 @@ export default {
       if (!this.totalFiatAmountSent || this.totalFiatAmountSent <= 0) return null
       if (this.isNFT) return null
       
-      const currency = this.selectedMarketCurrency || 'USD'
+      const currency = this.priceIdCurrency || this.selectedMarketCurrency || 'USD'
       return parseFiatCurrency(this.totalFiatAmountSent, currency)
     },
     // Get asset from store reactively to ensure balance updates are reflected
@@ -1268,9 +1268,7 @@ export default {
       vm.disableSending = false
       vm.bip21Expires = null
       vm.showQrScanner = false
-      vm.priceId = null
-      vm.priceIdPrice = null
-      vm.priceIdCurrency = null
+      vm.clearPriceIdState()
 
       content = Array.isArray(content) ? content[0].rawValue : content
       let amount = null
@@ -1566,7 +1564,7 @@ export default {
         currentRecipient.amount = amount
         // When the QR carries a price_id, use the POS's recorded rate so the
         // displayed fiat matches exactly what was requested.
-        const usePriceId = typeof this.priceIdPrice === 'number' && isFinite(this.priceIdPrice) && this.priceIdPrice > 0
+        const usePriceId = !!this.priceIdCurrency && typeof this.priceIdPrice === 'number' && isFinite(this.priceIdPrice) && this.priceIdPrice > 0
         currentRecipient.fiatAmount = usePriceId
           ? Number((amount * this.priceIdPrice).toFixed(2))
           : this.convertToFiatAmount(amount)
@@ -2241,7 +2239,14 @@ export default {
       const merchantData = await sendPageUtils.lookupMerchantByAddress(address, this.isChipnet)
       this.inputExtras[this.currentRecipientIndex].merchantData = merchantData
     },
+    clearPriceIdState () {
+      this.priceId = null
+      this.priceIdPrice = null
+      this.priceIdCurrency = null
+    },
     onRecipientInput (value) {
+      // A manually edited address must not inherit a price_id from a prior POS scan
+      this.clearPriceIdState()
       const [isLegacy, isDuplicate, isWalletAddress] = sendPageUtils.addressPrechecks(
         value ?? '',
         this.recipients.map(a => a.recipientAddress),
@@ -2262,6 +2267,7 @@ export default {
     },
     onEmptyRecipient (value) {
       this.inputExtras[this.currentRecipientIndex].emptyRecipient = value
+      if (value) this.clearPriceIdState()
       if (!value) {
         this.lookupMerchantForCurrentRecipient()
       }
