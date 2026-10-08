@@ -139,6 +139,7 @@ const handleEditUserProfile = async () => {
         timeout
       })
 
+      $store.commit('auction/setUsername', username.value)
       $router.push('/apps/auction')
     } else {
       // Couldn't save the username to database
