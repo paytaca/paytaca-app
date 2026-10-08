@@ -235,7 +235,8 @@ export default {
         const params = {
           all: true,
           page: page,
-          type: recordType
+          type: recordType,
+          exclude: 'senders,recipients'
         }
         
         if (hasTxidsFilter) {
@@ -294,7 +295,7 @@ export default {
 
         let walletHash = ''
         let url = ''
-        const params = { page: page, type: recordType, txids }
+        const params = { page: page, type: recordType, txids, exclude: 'senders,recipients' }
 
         if (id?.startsWith?.('slp/')) {
           const tokenId = id.split('/')[1]

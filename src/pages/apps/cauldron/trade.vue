@@ -2,12 +2,12 @@
   <q-pull-to-refresh
     id="app-container"
     :class="getDarkModeClass(darkMode)"
-    style="padding-bottom:250px;"
+    :style="{ paddingBottom: bottomPadding }"
     @refresh="refreshPage"
   >
     <HeaderNav
       title="Cauldron DEX"
-      backnavpath="/apps"
+      :backnavpath="backNavPath"
       class="apps-header"
     />
 
@@ -197,9 +197,11 @@
                 </template>
                 <CustomInput
                   v-else
+                  ref="customInputRef"
+                  :no-keyboard="true"
                   :model-value="amountInputString"
                   @update:model-value="updateAmountInput($event)"
-                  @keyboard-state-change="handleKeyboardStateChange"
+                  @keyboard-state-change="onKeyboardStateChange"
                   :input-symbol="amountInputSymbol"
                   :label="isBuyingToken ? $t('AmountToReceive') : $t('AmountToSupply')"
                   :decimal-obj="amountInputDecimalObj"
@@ -255,7 +257,15 @@
                     <q-skeleton type="text" width="80px" style="height: 1.5em;" />
                   </div>
                   <div class="row items-center justify-between text-caption text-grey">
-                    <div>{{ $t('PlatformFee') }} (0.3%)</div>
+                    <div class="row items-center">
+                      <span>{{ $t('PlatformFee') }}</span>
+                      <q-icon
+                        name="info"
+                        size="16px"
+                        class="q-ml-xs cursor-pointer"
+                        @click="showPlatformFeeInfo"
+                      />
+                    </div>
                     <q-skeleton type="text" width="80px" style="height: 1.5em;" />
                   </div>
                   <div class="row items-center justify-between text-caption text-grey">
@@ -277,7 +287,15 @@
                     <div>{{ tradeFee }} BCH</div>
                   </div>
                   <div class="row items-center justify-between text-caption text-grey">
-                    <div>{{ $t('PlatformFee') }} (0.3%)</div>
+                    <div class="row items-center">
+                      <span>{{ $t('PlatformFee') }}</span>
+                      <q-icon
+                        name="info"
+                        size="16px"
+                        class="q-ml-xs cursor-pointer"
+                        @click="showPlatformFeeInfo"
+                      />
+                    </div>
                     <div>{{ platformFeeBch }} BCH</div>
                   </div>
                   <div class="row items-center justify-between text-caption text-grey">
@@ -318,17 +336,7 @@
                 </div>
               </div>
 
-              <!-- Swap Button -->
-              <q-slide-transition>
-                <div v-if="tradeResult && tradeResult.summary && amountInput > 0 && selectedToken && !isKeyboardVisible">
-                  <DragSlide
-                    disable-absolute-bottom
-                    :text="$t('Swap')"
-                    :disable="!hasSufficientBalance"
-                    @swiped="securityCheck"
-                  />
-                </div>
-              </q-slide-transition>
+              <!-- Swap Button (in keyboard-slide panel) -->
             </template>
           </q-card-section>
           <div class="row justify-center q-mb-md text-grey-6">
@@ -344,6 +352,24 @@
         />
       </div>
     </div>
+
+    <KeyboardSlidePanel
+      :panel-visible="panelVisible"
+      :keyboard-state="keyboardState"
+      hide-check-key
+      @addKey="customInputRef?.setAmount($event)"
+      @makeKeyAction="customInputRef?.makeKeyAction($event)"
+      @backPressed="keyboardState = 'dismiss'"
+    >
+      <template #slide>
+        <DragSlide
+          disable-absolute-bottom
+          :text="$t('Swap')"
+          :disable="!hasSufficientBalance"
+          @swiped="securityCheck"
+        />
+      </template>
+    </KeyboardSlidePanel>
   </q-pull-to-refresh>
 </template>
 <script>
@@ -367,6 +393,7 @@ import HeaderNav from 'src/components/header-nav'
 import SecurityCheckDialog from 'src/components/SecurityCheckDialog.vue';
 import DragSlide from 'src/components/drag-slide.vue';
 import CustomInput from 'src/components/CustomInput.vue';
+import KeyboardSlidePanel from 'src/components/KeyboardSlidePanel.vue';
 import CauldronHeaderMenu from 'src/components/cauldron/CauldronHeaderMenu.vue';
 import TokenSelectDialog from 'src/components/cauldron/TokenSelectDialog.vue';
 import LiftTokenDexComingSoonDialog from 'src/components/subscription/LiftTokenDexComingSoonDialog.vue'
@@ -387,6 +414,7 @@ export default defineComponent({
     HeaderNav,
     DragSlide,
     CustomInput,
+    KeyboardSlidePanel,
     CauldronHeaderMenu,
     TokenSelectDialog,
   },
@@ -394,12 +422,24 @@ export default defineComponent({
     selectTokenId: String,
     buyAmount: [String, Number],
     amount: [String, Number],
+    backPath: String,
   },
   setup(props) {
     const { t: $t } = useI18n()
     const $q = useQuasar();
     const $store = useStore();
     const darkMode = computed(() => $store.getters['darkmode/getStatus']);
+    const backNavPath = computed(() => {
+      if (props.backPath) {
+        const [path, queryString] = props.backPath.split('?')
+        if (queryString) {
+          const query = Object.fromEntries(new URLSearchParams(queryString))
+          return { path, query }
+        }
+        return props.backPath
+      }
+      return '/apps'
+    });
     const exlab = new ExchangeLab();
     exlab.setDefaultPreferredTokenOutputBCHAmount(1000n);
     
@@ -469,7 +509,8 @@ export default defineComponent({
     const showTokenDialog = ref(false);
     const isRecomputingTrade = ref(false);
     const tokenSelectDialog = ref();
-    const isKeyboardVisible = ref(false);
+    const keyboardState = ref('dismiss');
+    const customInputRef = ref(null);
 
     function updateAmountInput(value) {
       amountInputString.value = value || '';
@@ -480,9 +521,13 @@ export default defineComponent({
       }
     }
 
-    function handleKeyboardStateChange(state) {
-      isKeyboardVisible.value = state === 'show';
+    function onKeyboardStateChange(state) {
+      keyboardState.value = state;
     }
+
+    const slideReady = computed(() => tradeResult.value?.summary && amountInput.value > 0 && selectedToken.value);
+    const panelVisible = computed(() => keyboardState.value === 'show' || slideReady.value);
+    const bottomPadding = computed(() => panelVisible.value ? '320px' : '0px');
 
     /** 
      * Input field always shows tokens (consistent UX)
@@ -715,14 +760,25 @@ export default defineComponent({
       return tradeFeeBch.toFixed(8);
     });
 
+    const PLATFORM_FEE_MAX_USD = 1;
+    const maxPlatformFeeSats = computed(() => {
+      const bchUsdPrice = Number($store.getters['market/getAssetPrice']('bch', 'usd'));
+      if (!bchUsdPrice || !isFinite(bchUsdPrice) || bchUsdPrice <= 0) return null;
+      return BigInt(Math.round((PLATFORM_FEE_MAX_USD * 10 ** 8) / bchUsdPrice));
+    });
+
     const platformFee = computed(() => {
       if (!tradeResult.value) return;
       const recipient = process.env.CAULDRON_PLATFORM_FEE_ADDRESS;
       if (!recipient) return;
 
+      const platformFeeCapSats = maxPlatformFeeSats.value;
+      if (platformFeeCapSats == null) return;
+
       const summary = tradeResult.value.summary
       const tradeSizeSats = (isBuyingToken.value ? summary.supply : summary.demand) - summary.trade_fee;
-      const platformFeeSats = tradeSizeSats * 3n / 1000n;
+      let platformFeeSats = tradeSizeSats * 3n / 1000n;
+      if (platformFeeSats > platformFeeCapSats) platformFeeSats = platformFeeCapSats;
       if (platformFeeSats < 546n) return;
       return { amount: platformFeeSats, to: recipient };
     })
@@ -730,6 +786,15 @@ export default defineComponent({
       if (!platformFee.value) return 0;
       return Number(platformFee.value.amount) / 10 ** 8;
     });
+
+    function showPlatformFeeInfo() {
+      $q.dialog({
+        title: $t('PlatformFee'),
+        message: $t('PlatformFeeInfo', {}, 'A 0.3% fee charged by the platform, capped at a maximum of 1 USD worth of BCH.'),
+        color: 'primary',
+        class: `text-bow ${getDarkModeClass(darkMode.value)}`,
+      })
+    }
     
     const estimateTransactionFee = computed(() => {
       if (!tradeResult.value || !selectedToken.value || !tradeResult.value.summary) return '0';
@@ -965,7 +1030,9 @@ export default defineComponent({
         return;
       }
 
-      const estimatePlatformFee = supplyingBch ? (supply * 3n / 1000n) : 0n;
+      let estimatePlatformFee = supply * 3n / 1000n;
+      const platformFeeCapSats = maxPlatformFeeSats.value;
+      if (platformFeeCapSats != null && estimatePlatformFee > platformFeeCapSats) estimatePlatformFee = platformFeeCapSats;
       const estimateTxFee = 10_000n;
       const baseSupply = supply - estimatePlatformFee - estimateTxFee;
       if (!baseSupply || baseSupply <= 0n) {
@@ -1027,11 +1094,8 @@ export default defineComponent({
       tradeResult.value = null;
     }
 
-    const showSlider = computed(() => {
-      return Boolean(tradeResult.value)
-    });
-
     function securityCheck(resetSwipe=() => {}) {
+      keyboardState.value = 'dismiss';
       $q.dialog({ component: SecurityCheckDialog })
         .onOk(() => commitTrade())
         .onCancel(() => resetSwipe?.())
@@ -1039,6 +1103,7 @@ export default defineComponent({
 
     async function commitTrade() {
       isSwapping.value = true;
+      keyboardState.value = 'dismiss';
       let dialog
       try {
         const _tokenData = selectedToken.value
@@ -1201,6 +1266,9 @@ export default defineComponent({
 
     // Initialize on mount
     onMounted(async () => {
+      if ($store.getters['market/getAssetPrice']('bch', 'usd') == null) {
+        $store.dispatch('market/updateAssetPrices', { assetId: 'bch' })
+      }
       if (props.selectTokenId) {
         try {
           const tokens = await fetchTokensList({ token_id: props.selectTokenId });
@@ -1254,6 +1322,7 @@ export default defineComponent({
 
     return {
       darkMode,
+      backNavPath,
       getDarkModeClass,
 
       poolTracker,
@@ -1270,8 +1339,12 @@ export default defineComponent({
       amountInput,
       amountInputString,
       updateAmountInput,
-      handleKeyboardStateChange,
-      isKeyboardVisible,
+      onKeyboardStateChange,
+      keyboardState,
+      customInputRef,
+      slideReady,
+      panelVisible,
+      bottomPadding,
       amountInputSymbol,
       amountInputDecimalObj,
       amountInputAsset,
@@ -1287,6 +1360,7 @@ export default defineComponent({
       formattedOutputAmount,
       tradeFee,
       platformFeeBch,
+      showPlatformFeeInfo,
       estimateTransactionFee,
       hasSufficientBalance,
       showInsufficientBalance,
@@ -1298,7 +1372,6 @@ export default defineComponent({
       formattedMaxAmount,
       explorerLink,
 
-      showSlider,
       securityCheck,
     
       selectToken,

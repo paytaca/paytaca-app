@@ -11,10 +11,12 @@ const Translator = require('./translator')
  * - --langs <codes>          translate multiple languages (comma-separated)
  *                             (e.g. --langs en-us,de)
  * - --include-existing       DO NOT ignore existing keys (use with care)
- *                             (default: ignore existing keys)
+ *                             (default: ignore existing keys when not targeting specific keys)
  * - --key <key>              translate a single key (e.g. --key TokensInstruction)
  * - --keys <keys>            translate multiple keys (comma-separated)
  *                             (e.g. --keys TokensInstruction,HideHiddenAssets)
+ *                             When --key or --keys is specified, existing translations
+ *                             for those keys are automatically overwritten.
  *
  *
  */
@@ -39,7 +41,6 @@ const targetKeys = (keys || key)
   : undefined
 
 const opts = {
-  // default: ignore existing keys to avoid re-translation
   ignoreExisting: !argv.includes('--include-existing'),
   supportedLangs,
   targetKeys,

@@ -1,16 +1,24 @@
 <template>
-  <div class="pt-custom-keyboard" v-if="keyboard">
+  <div class="pt-custom-keyboard" :class="{'pt-custom-keyboard--embedded': embedded}" v-if="keyboard">
     <div class="pt-keyboard-container shadow-2 br-top-15 pt-card" :class="getDarkModeClass(darkMode)">
       <div class="row q-px-sm q-mb-none q-py-sm pt-custom-keyboard-row br-top-15 full-height bg-grad q-pb-lg q-pt-md">
         <div class="col-3 pt-col-key" v-for="(key, index) in 15" :key="index">
           <q-btn
             push
-            v-if="[4, 8, 12].includes(key)"
-            @click="makeKeyAction(key === 4 ? 'delete' : key === 8 ? 'backspace' : key === 12 ? 'ready to submit' : '')"
+            v-if="[4, 8].includes(key)"
+            @click="makeKeyAction(key === 4 ? 'delete' : 'backspace')"
             class="pt-key-del"
             style="width: 95%; height: 95%"
-            :class="[key === 12 ? 'pt-check-key' : 'pt-remove-key', {'bg-grey-9 text-white': darkMode && key !== 12}]"
-            :icon="key === 4 ? 'delete' : key === 8 ? 'backspace' : key === 12 ? 'done' : ''" />
+            :class="['pt-remove-key', {'bg-grey-9 text-white': darkMode}]"
+            :icon="key === 4 ? 'delete' : 'backspace'" />
+          <q-btn
+            push
+            v-else-if="key === 12 && !hideCheckKey"
+            @click="makeKeyAction('ready to submit')"
+            class="pt-key-del pt-check-key"
+            style="width: 95%; height: 95%"
+            icon="done" />
+          <div v-else-if="key === 12 && hideCheckKey" />
           <q-btn
             push
             class="pt-key-num"
@@ -27,15 +35,25 @@
   </div>
 </template>
 <script>
+import { Capacitor } from '@capacitor/core'
 import { getLocaleSeparators } from 'src/utils/denomination-utils'
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 
 export default {
+  emits: ['addKey', 'makeKeyAction', 'update:modelValue', 'backPressed'],
   props: {
     customKeyboardState: {},
     modelValue: {
       type: [String, Number],
       default: ''
+    },
+    hideCheckKey: {
+      type: Boolean,
+      default: false
+    },
+    embedded: {
+      type: Boolean,
+      default: false
     }
   },
   data () {
@@ -50,9 +68,42 @@ export default {
       return Number(this.val)
     }
   },
+  created () {
+    this.__kbSentinelActive = false
+    this.__kbOnPopstate = () => {
+      if (this.__kbSentinelActive) {
+        this.__kbSentinelActive = false
+        window.removeEventListener('popstate', this.__kbOnPopstate)
+      }
+      if (this.customKeyboardState === 'show') {
+        const activeEl = document.activeElement
+        if (activeEl && typeof activeEl.blur === 'function') activeEl.blur()
+        this.$emit('backPressed')
+      }
+    }
+  },
+  mounted () {
+    if (this.customKeyboardState === 'show') this.addBackButtonSentinel()
+  },
+  beforeUnmount () {
+    this.removeBackButtonSentinel()
+  },
   methods: {
     getLocaleSeparators,
     getDarkModeClass,
+
+    addBackButtonSentinel () {
+      if (Capacitor.getPlatform() !== 'android' || this.__kbSentinelActive) return
+      this.__kbSentinelActive = true
+      window.addEventListener('popstate', this.__kbOnPopstate)
+      window.history.pushState({ ...window.history.state, __ptCustomKeyboard: true }, '')
+    },
+    removeBackButtonSentinel () {
+      if (!this.__kbSentinelActive) return
+      this.__kbSentinelActive = false
+      window.removeEventListener('popstate', this.__kbOnPopstate)
+      if (window.history.state?.__ptCustomKeyboard === true) window.history.back()
+    },
 
     enterKey (num) {
       this.$emit('addKey', num)
@@ -92,8 +143,10 @@ export default {
     modelValue () {
       this.val = this.modelValue
     },
-    customKeyboardState () {
-      this.keyboard = this.customKeyboardState === 'show'
+    customKeyboardState (state) {
+      this.keyboard = state === 'show'
+      if (state === 'show') this.addBackButtonSentinel()
+      else this.removeBackButtonSentinel()
     }
   }
 }
@@ -109,9 +162,26 @@ export default {
   bottom: 0 !important;
   z-index: 9000;
 }
+.pt-custom-keyboard--embedded {
+  position: relative !important;
+  left: auto !important;
+  bottom: auto !important;
+}
+.pt-custom-keyboard--embedded .pt-keyboard-container,
+.pt-custom-keyboard--embedded .pt-custom-keyboard-row {
+  border-radius: 0 !important;
+  box-shadow: none !important;
+}
+.pt-custom-keyboard--embedded .pt-keyboard-container {
+  background: transparent !important;
+  margin-bottom: 20px;
+}
 .pt-keyboard-container {
   height: calc(250px + env(safe-area-inset-bottom, 0px));
   background: #fff;
+}
+.pt-custom-keyboard--embedded .pt-keyboard-container {
+  height: 250px;
 }
 .br-top-15 {
   border-top-left-radius: 15px;
@@ -122,6 +192,7 @@ export default {
   color: #515151;
   padding-bottom: env(safe-area-inset-bottom, 0px);
 }
+
 .pt-key-num {
   height: 45px;
   font-size: 16px;

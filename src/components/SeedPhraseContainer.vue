@@ -266,7 +266,7 @@ export default {
         }
         
         .word-text {
-          text-transform: capitalize;
+          text-transform: lowercase;
         }
       }
       

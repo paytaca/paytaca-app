@@ -1,0 +1,157 @@
+diff --git a/node_modules/capacitor-secure-storage-plugin/dist/esm/web.js b/node_modules/capacitor-secure-storage-plugin/dist/esm/web.js
+index db99e67..841a344 100644
+--- a/node_modules/capacitor-secure-storage-plugin/dist/esm/web.js
++++ b/node_modules/capacitor-secure-storage-plugin/dist/esm/web.js
+@@ -1,4 +1,111 @@
+ import { WebPlugin } from '@capacitor/core';
++
++// --- Paytaca patch: encrypt values at rest on web/BEX (AES-256-GCM) ---------
++// The upstream web implementation stored values as plain base64 in
++// localStorage. This patch encrypts values with a non-extractable AES-GCM
++// CryptoKey kept in IndexedDB, so raw key material is never exposed to JS.
++// Legacy base64 values are still readable and are lazily re-encrypted.
++const ENC_PREFIX = 'enc:v1:';
++const DB_NAME = 'paytaca-secure-storage';
++const DB_STORE = 'keys';
++const DB_KEY_ID = 'aes-gcm-256';
++export const SECURE_STORAGE_DECRYPT_ERROR = 'SECURE_STORAGE_DECRYPT_FAILED';
++
++const hasWebCrypto = typeof crypto !== 'undefined' &&
++    !!crypto.subtle &&
++    typeof indexedDB !== 'undefined';
++
++function bytesToBase64(bytes) {
++    let binary = '';
++    const chunkSize = 0x8000;
++    for (let i = 0; i < bytes.length; i += chunkSize) {
++        binary += String.fromCharCode.apply(null, bytes.subarray(i, i + chunkSize));
++    }
++    return btoa(binary);
++}
++
++function base64ToBytes(base64) {
++    const binary = atob(base64);
++    const bytes = new Uint8Array(binary.length);
++    for (let i = 0; i < binary.length; i++) {
++        bytes[i] = binary.charCodeAt(i);
++    }
++    return bytes;
++}
++
++function openKeysDb() {
++    return new Promise((resolve, reject) => {
++        const request = indexedDB.open(DB_NAME, 1);
++        request.onupgradeneeded = () => {
++            if (!request.result.objectStoreNames.contains(DB_STORE)) {
++                request.result.createObjectStore(DB_STORE);
++            }
++        };
++        request.onsuccess = () => resolve(request.result);
++        request.onerror = () => reject(request.error);
++    });
++}
++
++function idbGet(db, id) {
++    return new Promise((resolve, reject) => {
++        const request = db.transaction(DB_STORE, 'readonly').objectStore(DB_STORE).get(id);
++        request.onsuccess = () => resolve(request.result);
++        request.onerror = () => reject(request.error);
++    });
++}
++
++function idbPut(db, id, value) {
++    return new Promise((resolve, reject) => {
++        const request = db.transaction(DB_STORE, 'readwrite').objectStore(DB_STORE).put(value, id);
++        request.onsuccess = () => resolve();
++        request.onerror = () => reject(request.error);
++    });
++}
++
++let aesKeyPromise = null;
++function getAesKey() {
++    if (!aesKeyPromise) {
++        aesKeyPromise = (async () => {
++            const db = await openKeysDb();
++            const existing = await idbGet(db, DB_KEY_ID);
++            if (existing) return existing;
++            const key = await crypto.subtle.generateKey({ name: 'AES-GCM', length: 256 }, false, ['encrypt', 'decrypt']);
++            await idbPut(db, DB_KEY_ID, key);
++            return key;
++        })().catch((err) => {
++            aesKeyPromise = null;
++            throw err;
++        });
++    }
++    return aesKeyPromise;
++}
++
++async function encryptValue(plaintext) {
++    const key = await getAesKey();
++    const iv = crypto.getRandomValues(new Uint8Array(12));
++    const data = new TextEncoder().encode(plaintext);
++    const ciphertext = await crypto.subtle.encrypt({ name: 'AES-GCM', iv }, key, data);
++    const packed = new Uint8Array(iv.length + ciphertext.byteLength);
++    packed.set(iv, 0);
++    packed.set(new Uint8Array(ciphertext), iv.length);
++    return ENC_PREFIX + bytesToBase64(packed);
++}
++
++async function decryptValue(stored) {
++    const key = await getAesKey();
++    const bytes = base64ToBytes(stored.slice(ENC_PREFIX.length));
++    const iv = bytes.slice(0, 12);
++    const data = bytes.slice(12);
++    try {
++        const plaintext = await crypto.subtle.decrypt({ name: 'AES-GCM', iv }, key, data);
++        return new TextDecoder().decode(plaintext);
++    }
++    catch (err) {
++        throw new Error(SECURE_STORAGE_DECRYPT_ERROR);
++    }
++}
++// --- End Paytaca patch ------------------------------------------------------
++
+ export class SecureStoragePluginWeb extends WebPlugin {
+     constructor() {
+         super({
+@@ -8,16 +115,31 @@ export class SecureStoragePluginWeb extends WebPlugin {
+         this.PREFIX = 'cap_sec_';
+         this.addPrefix = (key) => this.PREFIX + key;
+     }
+-    get(options) {
+-        return localStorage.getItem(this.addPrefix(options.key)) !== null
+-            ? Promise.resolve({
+-                value: atob(localStorage.getItem(this.addPrefix(options.key))),
+-            })
+-            : Promise.reject('Item with given key does not exist');
++    async get(options) {
++        const raw = localStorage.getItem(this.addPrefix(options.key));
++        if (raw === null) {
++            return Promise.reject('Item with given key does not exist');
++        }
++        if (hasWebCrypto && raw.startsWith(ENC_PREFIX)) {
++            const value = await decryptValue(raw);
++            return { value };
++        }
++        // Legacy plaintext base64 value: read it, then lazily re-encrypt.
++        const value = atob(raw);
++        if (hasWebCrypto) {
++            this.set({ key: options.key, value }).catch(() => { });
++        }
++        return { value };
+     }
+-    set(options) {
+-        localStorage.setItem(this.addPrefix(options.key), btoa(options.value));
+-        return Promise.resolve({ value: true });
++    async set(options) {
++        if (hasWebCrypto) {
++            const encoded = await encryptValue(options.value);
++            localStorage.setItem(this.addPrefix(options.key), encoded);
++        }
++        else {
++            localStorage.setItem(this.addPrefix(options.key), btoa(options.value));
++        }
++        return { value: true };
+     }
+     remove(options) {
+         localStorage.removeItem(this.addPrefix(options.key));

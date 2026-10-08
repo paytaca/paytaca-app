@@ -11,7 +11,8 @@ export function getInitialWalletState() {
     paymentOTPCache: {},
     paymentMethod: {},
     lastPaymentMethod: null,
-    cashoutMerchant: {}
+    cashoutMerchant: {},
+    nfcPaymentsEnabled: false
   }
 }
 

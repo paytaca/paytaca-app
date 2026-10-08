@@ -152,6 +152,7 @@
       <RewardsStep 
         :walletHash="newWalletHash"
         :darkMode="darkMode"
+        :referral-code="referralCode"
         @on-proceed-to-next-step="goToStep3"
       />
     </div>
@@ -231,7 +232,7 @@
         rounded
         :label="$t('Continue')"
         class="q-mt-lg full-width primary-cta bg-grad"
-        @click="goToStep6"
+        @click="goToStep5"
       />
     </div>
 
@@ -632,6 +633,10 @@ export default {
     recreate: {
       type: Boolean,
       default: false
+    },
+    referralCode: {
+      type: String,
+      default: ''
     }
   },
   components: {
@@ -1315,6 +1320,15 @@ export default {
         
         vm.saveToVault()
         
+        // Initialize nostr chat per-wallet state for the new wallet and reinitialize
+        const newWalletHash = vm.$store.getters['global/getWallet']('bch')?.walletHash
+        if (newWalletHash) {
+          vm.$store.commit('nostrChat/initializeWalletState', newWalletHash)
+        }
+        vm.$store.dispatch('nostrChat/reinitialize').catch(err => {
+          console.warn('Nostr chat reinit failed after wallet creation:', err)
+        })
+        
         // Sync wallet name after saving to vault (for imported wallets)
         const walletIndex = vm.$store.getters['global/getWalletIndex']
         if (walletIndex >= 0) {
@@ -1827,24 +1841,24 @@ export default {
       if (this.importSeedPhrase && this.restoreStep === 3) {
         this.$router.push('/accounts/restore/step-4')
       } else {
-        this.$router.push('/accounts/create/step-4')
+        this.$router.push('/accounts/create/step-3')
       }
     },
     goToStep4 () {
-      // Handle restore flow navigation
-      if (this.importSeedPhrase && this.restoreStep === 4) {
-        this.$router.push('/accounts/restore/step-5')
+      if (this.importSeedPhrase) {
+        this.$router.push('/accounts/restore/step-4')
       } else {
         this.$router.push('/accounts/create/step-5')
       }
     },
     goToStep5 () {
-      this.$router.push('/accounts/create/step-6')
+      if (this.importSeedPhrase) {
+        this.$router.push('/accounts/restore/step-5')
+      } else {
+        this.$router.push('/accounts/create/step-6')
+      }
     },
-    goToStep6 () {
-      // This is the final step - no navigation needed, handled by setupSecurity
-      console.log('[Step 6] Security setup step reached')
-    },
+
     setupSecurity (authType) {
       // Prevent multiple calls
       if (this.isRedirecting) return
@@ -2566,7 +2580,7 @@ export default {
     }
 
     if (this.recreate) {
-      this.mnemonic = await getMnemonic(0) || ''
+      this.mnemonic = await getMnemonic(0).catch(() => null) || ''
       if (this.mnemonic.split(" ").length === 12) {
         this.steps = 0
       }
@@ -2605,6 +2619,11 @@ export default {
         })
       })
     }
+  },
+  beforeUnmount () {
+    // Drop the seed phrase and backup phrase references so they can be garbage collected
+    this.mnemonic = ''
+    this.seedPhraseBackup = null
   }
 }
 </script>

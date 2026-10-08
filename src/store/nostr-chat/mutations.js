@@ -1,22 +1,108 @@
+import { Store } from 'src/store'
+import { getInitialWalletState } from './state'
+
+function getCurrentWalletHash () {
+  try {
+    const wallet = Store.getters['global/getWallet']('bch')
+    return wallet?.walletHash || null
+  } catch (error) {
+    return null
+  }
+}
+
+function mergeWalletStateDefaults (ws) {
+  const defaults = getInitialWalletState()
+  for (const key of Object.keys(defaults)) {
+    if (ws[key] === undefined) {
+      ws[key] = defaults[key]
+    }
+  }
+  if (typeof ws.mls !== 'object' || ws.mls === null) {
+    ws.mls = defaults.mls
+  } else {
+    for (const mk of Object.keys(defaults.mls)) {
+      if (ws.mls[mk] === undefined) {
+        ws.mls[mk] = defaults.mls[mk]
+      }
+    }
+  }
+}
+
+function getOrInitWalletState (state, walletHash = null) {
+  const hash = walletHash || getCurrentWalletHash()
+  if (!hash) {
+    console.warn('No wallet hash available for nostr-chat state')
+    return null
+  }
+
+  if (!state.byWallet) state.byWallet = {}
+
+  if (!state.byWallet[hash]) {
+    state.byWallet[hash] = getInitialWalletState()
+  } else {
+    // Restored state may predate newer fields (e.g. MLS); merge defaults so
+    // the missing keys (like `mls`) always exist.
+    mergeWalletStateDefaults(state.byWallet[hash])
+  }
+
+  return state.byWallet[hash]
+}
+
+export function initializeWalletState (state, walletHash) {
+  if (!walletHash) {
+    console.warn('initializeWalletState: walletHash is required')
+    return
+  }
+
+  if (!state.byWallet) state.byWallet = {}
+
+  if (!state.byWallet[walletHash]) {
+    state.byWallet[walletHash] = getInitialWalletState()
+  } else {
+    mergeWalletStateDefaults(state.byWallet[walletHash])
+  }
+}
+
+export function removeWalletState (state, walletHash) {
+  if (state.byWallet && walletHash) {
+    delete state.byWallet[walletHash]
+  }
+}
+
+// ---- Per-wallet mutations ----
+
 export function SET_KEYS (state, keys) {
-  state.keys = keys
+  const ws = getOrInitWalletState(state)
+  if (ws) ws.keys = keys
 }
 
 export function SET_READY (state, ready) {
-  state.isReady = ready
+  const ws = getOrInitWalletState(state)
+  if (ws) ws.isReady = ready
 }
 
 export function SET_INITIALIZED (state, val) {
-  state.initialized = val
+  const ws = getOrInitWalletState(state)
+  if (ws) ws.initialized = val
 }
 
 export function SET_RELAY_STATUS (state, { url, status }) {
-  state.relayStatus = { ...state.relayStatus, [url]: status }
+  const ws = getOrInitWalletState(state)
+  if (!ws) return
+  ws.relayStatus = { ...ws.relayStatus, [url]: status }
+}
+
+export function SET_SHOW_ACTIVE_STATUS (state, value) {
+  const ws = getOrInitWalletState(state)
+  if (ws) ws.showActiveStatus = value
 }
 
 export function SET_SUBSCRIBED (state, val) {
-  state.isSubscribed = val
+  const ws = getOrInitWalletState(state)
+  if (ws) ws.isSubscribed = val
 }
+
+// ---- Global mutations (contacts, relays) ----
 
 export function ADD_CONTACT (state, contact) {
   if (!state.contacts.find(c => c.npub === contact.npub)) {
@@ -35,21 +121,38 @@ export function REMOVE_CONTACT (state, npub) {
   state.contacts = state.contacts.filter(c => c.npub !== npub)
 }
 
+export function SET_RELAYS (state, relays) {
+  state.relays = relays
+}
+
+export function SET_ACTIVE_STATUS (state, statusMap) {
+  if (!state.activeStatus) state.activeStatus = {}
+  state.activeStatus = { ...state.activeStatus, ...statusMap }
+}
+
+// ---- Per-wallet room mutations ----
+
 export function ADD_ROOM (state, room) {
-  if (!state.rooms.find(r => r.id === room.id)) {
-    state.rooms.push(room)
+  const ws = getOrInitWalletState(state)
+  if (!ws) return
+  if (!ws.rooms.find(r => r.id === room.id)) {
+    ws.rooms.push(room)
   }
 }
 
 export function UPDATE_ROOM (state, room) {
-  const index = state.rooms.findIndex(r => r.id === room.id)
+  const ws = getOrInitWalletState(state)
+  if (!ws) return
+  const index = ws.rooms.findIndex(r => r.id === room.id)
   if (index >= 0) {
-    state.rooms[index] = { ...state.rooms[index], ...room }
+    ws.rooms[index] = { ...ws.rooms[index], ...room }
   }
 }
 
 export function UPDATE_ROOM_SUBJECT (state, { roomId, subject }) {
-  const room = state.rooms.find(r => r.id === roomId)
+  const ws = getOrInitWalletState(state)
+  if (!ws) return
+  const room = ws.rooms.find(r => r.id === roomId)
   if (room) {
     room.subject = subject
     if (subject) {
@@ -60,7 +163,9 @@ export function UPDATE_ROOM_SUBJECT (state, { roomId, subject }) {
 }
 
 export function UPDATE_ROOM_NAME (state, { roomId, name }) {
-  const room = state.rooms.find(r => r.id === roomId)
+  const ws = getOrInitWalletState(state)
+  if (!ws) return
+  const room = ws.rooms.find(r => r.id === roomId)
   if (room) {
     room.name = name
     room.updatedAt = Math.floor(Date.now() / 1000)
@@ -68,29 +173,29 @@ export function UPDATE_ROOM_NAME (state, { roomId, name }) {
 }
 
 export function UPDATE_ROOM_TYPE (state, { roomId, type }) {
-  const room = state.rooms.find(r => r.id === roomId)
+  const ws = getOrInitWalletState(state)
+  if (!ws) return
+  const room = ws.rooms.find(r => r.id === roomId)
   if (room) {
     room.type = type
   }
 }
 
 export function REMOVE_ROOM (state, roomId) {
-  if (!state.deletedRooms) state.deletedRooms = {}
-  const messages = state.messages[roomId] || []
-  const knownMessageIds = {}
-  for (const msg of messages) {
-    if (msg.id) knownMessageIds[msg.id] = true
+  const ws = getOrInitWalletState(state)
+  if (!ws) return
+  if (!ws.deletedRooms) ws.deletedRooms = []
+  if (!ws.deletedRooms.includes(roomId)) {
+    ws.deletedRooms.push(roomId)
   }
-  state.deletedRooms[roomId] = {
-    deletedAt: Date.now(),
-    knownMessageIds,
-  }
-  state.rooms = state.rooms.filter(r => r.id !== roomId)
-  delete state.messages[roomId]
+  ws.rooms = ws.rooms.filter(r => r.id !== roomId)
+  delete ws.messages[roomId]
 }
 
 export function ARCHIVE_ROOM (state, roomId) {
-  const room = state.rooms.find(r => r.id === roomId)
+  const ws = getOrInitWalletState(state)
+  if (!ws) return
+  const room = ws.rooms.find(r => r.id === roomId)
   if (room) {
     room.archived = true
     room.updatedAt = Math.floor(Date.now() / 1000)
@@ -98,47 +203,128 @@ export function ARCHIVE_ROOM (state, roomId) {
 }
 
 export function UNARCHIVE_ROOM (state, roomId) {
-  const room = state.rooms.find(r => r.id === roomId)
+  const ws = getOrInitWalletState(state)
+  if (!ws) return
+  const room = ws.rooms.find(r => r.id === roomId)
   if (room) {
     room.archived = false
     room.updatedAt = Math.floor(Date.now() / 1000)
   }
 }
 
+// ---- Per-wallet blocked contacts ----
+
 export function BLOCK_CONTACT (state, pubKeyHex) {
-  if (!state.blockedContacts.includes(pubKeyHex)) {
-    state.blockedContacts.push(pubKeyHex)
+  const ws = getOrInitWalletState(state)
+  if (!ws) return
+  if (!ws.blockedContacts.includes(pubKeyHex)) {
+    ws.blockedContacts.push(pubKeyHex)
   }
 }
 
 export function UNBLOCK_CONTACT (state, pubKeyHex) {
-  state.blockedContacts = state.blockedContacts.filter(k => k !== pubKeyHex)
+  const ws = getOrInitWalletState(state)
+  if (!ws) return
+  ws.blockedContacts = ws.blockedContacts.filter(k => k !== pubKeyHex)
 }
 
-export function ADD_MESSAGE (state, { roomId, message }) {
-  if (!state.messages[roomId]) {
-    state.messages[roomId] = []
+// ---- Server-backed cache mutations ----
+
+export function SET_BLOCKED_CONTACTS (state, pubKeys) {
+  const ws = getOrInitWalletState(state)
+  if (ws) ws.blockedContacts = pubKeys
+}
+
+export function SET_ROOMS (state, rooms) {
+  const ws = getOrInitWalletState(state)
+  if (!ws) return
+  // Preserve local lastMessageAt — once set by TOUCH_ROOM_LAST_MESSAGE_AT
+  // (wall-clock time) or a previous server fetch, never overwrite it with
+  // a server value. Server data is only used as fallback for rooms that
+  // have never been loaded.
+  const localMap = new Map((ws.rooms || []).map(r => [r.id, r]))
+  ws.rooms = rooms.map(sr => {
+    const lr = localMap.get(sr.id)
+    if (!lr) return sr
+    // Preserve local lastMessageAt — once set by TOUCH_ROOM_LAST_MESSAGE_AT
+    // (wall-clock time) or a previous server fetch, never overwrite it with
+    // a server value.
+    const merged = { ...sr }
+    if (lr.lastMessageAt) merged.lastMessageAt = lr.lastMessageAt
+    // Server rows never carry MLS role fields (owner/admins are relay-broadcast
+    // and only present on the creating/owning device). Merge them from the
+    // local copy so a role change made locally isn't wiped by a refetch.
+    if (lr.type === 'mls-group') {
+      merged.owner = lr.owner
+      merged.admins = lr.admins || []
+    }
+    return merged
+  })
+  // Preserve local-only rooms that the server doesn't know about (e.g. MLS
+  // groups, which are never synced to the server). Without this, a fetch
+  // from the server-authoritative room list would remove them from the
+  // store and redirect an open conversation to the chat index.
+  const serverIds = new Set(rooms.map(r => r.id))
+  for (const [id, room] of localMap) {
+    if (!serverIds.has(id)) {
+      ws.rooms = [...ws.rooms, room]
+    }
   }
-  const exists = state.messages[roomId].find(m => m.id === message.id)
+}
+
+// ---- Per-wallet message mutations ----
+
+export function ADD_MESSAGE (state, { roomId, message }) {
+  const ws = getOrInitWalletState(state)
+  if (!ws) return
+  if (!ws.messages[roomId]) {
+    ws.messages[roomId] = []
+  }
+  const exists = ws.messages[roomId].find(m => m.id === message.id)
   if (!exists) {
-    const arr = state.messages[roomId]
-    // Insertion-sort: find correct position and splice in place
+    const arr = ws.messages[roomId]
     let i = arr.length
     while (i > 0 && arr[i - 1].created_at > message.created_at) i--
     arr.splice(i, 0, message)
-    const room = state.rooms.find(r => r.id === roomId)
-    if (room) {
-      room.updatedAt = Math.max(room.updatedAt || 0, message.created_at)
+  }
+}
+
+export function REMOVE_MESSAGE (state, { roomId, messageId }) {
+  const ws = getOrInitWalletState(state)
+  if (!ws) return
+  const arr = ws.messages[roomId]
+  if (!arr) return
+  const index = arr.findIndex(m => m.id === messageId)
+  if (index !== -1) {
+    arr.splice(index, 1)
+  }
+}
+
+// Set room.lastMessageAt to wall-clock time for instant list re-sorting.
+// Called only when a genuinely new message is sent or received live —
+// never for historical messages or replayed duplicates.
+export function TOUCH_ROOM_LAST_MESSAGE_AT (state, roomId) {
+  const ws = getOrInitWalletState(state)
+  if (!ws) return
+  const room = ws.rooms?.find(r => r.id === roomId)
+  if (room) {
+    const now = Math.floor(Date.now() / 1000)
+    if (now > (room.lastMessageAt || 0)) {
+      room.lastMessageAt = now
     }
   }
 }
 
 export function SET_MESSAGES_FOR_ROOM (state, { roomId, messages }) {
-  state.messages[roomId] = messages.slice().sort((a, b) => a.created_at - b.created_at)
+  const ws = getOrInitWalletState(state)
+  if (!ws) return
+  ws.messages[roomId] = messages.slice().sort((a, b) => a.created_at - b.created_at)
 }
 
 export function UPDATE_MESSAGE (state, { roomId, messageId, newContent }) {
-  const messages = state.messages[roomId]
+  const ws = getOrInitWalletState(state)
+  if (!ws) return
+  const messages = ws.messages[roomId]
   if (!messages) return
   const msg = messages.find(m => m.id === messageId)
   if (msg) {
@@ -148,7 +334,9 @@ export function UPDATE_MESSAGE (state, { roomId, messageId, newContent }) {
 }
 
 export function DELETE_MESSAGE (state, { roomId, messageId }) {
-  const messages = state.messages[roomId]
+  const ws = getOrInitWalletState(state)
+  if (!ws) return
+  const messages = ws.messages[roomId]
   if (!messages) return
   const msg = messages.find(m => m.id === messageId)
   if (msg) {
@@ -157,47 +345,45 @@ export function DELETE_MESSAGE (state, { roomId, messageId }) {
   }
 }
 
+// ---- Per-wallet read receipts ----
+
 export function SET_READ_RECEIPT (state, { roomId, pubKey, timestamp }) {
-  if (!state.readReceipts) {
-    state.readReceipts = {}
-  }
-  if (!state.readReceipts[roomId]) {
-    state.readReceipts[roomId] = {}
-  }
-  state.readReceipts[roomId][pubKey] = timestamp
+  const ws = getOrInitWalletState(state)
+  if (!ws) return
+  if (!ws.readReceipts) ws.readReceipts = {}
+  if (!ws.readReceipts[roomId]) ws.readReceipts[roomId] = {}
+  ws.readReceipts[roomId][pubKey] = timestamp
 }
 
 export function MARK_MESSAGES_AS_READ (state, { roomId, messageIds }) {
-  if (!state.readMessageIds) {
-    state.readMessageIds = {}
-  }
-  if (!state.readMessageIds[roomId]) {
-    state.readMessageIds[roomId] = {}
-  }
+  const ws = getOrInitWalletState(state)
+  if (!ws) return
+  if (!ws.readMessageIds) ws.readMessageIds = {}
+  if (!ws.readMessageIds[roomId]) ws.readMessageIds[roomId] = {}
   for (const id of messageIds) {
-    state.readMessageIds[roomId][id] = true
+    ws.readMessageIds[roomId][id] = true
   }
 }
 
 export function SET_MESSAGE_READ_BY (state, { roomId, messageId, readerPubKey }) {
-  if (!state.messageReadBy) {
-    state.messageReadBy = {}
-  }
-  if (!state.messageReadBy[roomId]) {
-    state.messageReadBy[roomId] = {}
-  }
-  if (!state.messageReadBy[roomId][messageId]) {
-    state.messageReadBy[roomId][messageId] = {}
-  }
-  state.messageReadBy[roomId][messageId][readerPubKey] = true
+  const ws = getOrInitWalletState(state)
+  if (!ws) return
+  if (!ws.messageReadBy) ws.messageReadBy = {}
+  if (!ws.messageReadBy[roomId]) ws.messageReadBy[roomId] = {}
+  if (!ws.messageReadBy[roomId][messageId]) ws.messageReadBy[roomId][messageId] = {}
+  ws.messageReadBy[roomId][messageId][readerPubKey] = true
 }
 
-export function ADD_MESSAGE_REACTION (state, { roomId, messageId, reactorPubKey, emoji, createdAt }) {
-  if (!state.reactions) state.reactions = {}
-  if (!state.reactions[roomId]) state.reactions[roomId] = {}
-  if (!state.reactions[roomId][messageId]) state.reactions[roomId][messageId] = []
+// ---- Per-wallet reactions ----
 
-  const reactions = state.reactions[roomId][messageId]
+export function ADD_MESSAGE_REACTION (state, { roomId, messageId, reactorPubKey, emoji, createdAt }) {
+  const ws = getOrInitWalletState(state)
+  if (!ws) return
+  if (!ws.reactions) ws.reactions = {}
+  if (!ws.reactions[roomId]) ws.reactions[roomId] = {}
+  if (!ws.reactions[roomId][messageId]) ws.reactions[roomId][messageId] = []
+
+  const reactions = ws.reactions[roomId][messageId]
   const existing = reactions.findIndex(r => r.reactorPubKey === reactorPubKey && r.emoji === emoji)
   if (existing >= 0) {
     reactions.splice(existing, 1)
@@ -206,7 +392,9 @@ export function ADD_MESSAGE_REACTION (state, { roomId, messageId, reactorPubKey,
 }
 
 export function REMOVE_MESSAGE_REACTION (state, { roomId, messageId, reactorPubKey, emoji }) {
-  const reactions = state.reactions?.[roomId]?.[messageId]
+  const ws = getOrInitWalletState(state)
+  if (!ws) return
+  const reactions = ws.reactions?.[roomId]?.[messageId]
   if (!reactions) return
   const existing = reactions.findIndex(r => r.reactorPubKey === reactorPubKey && r.emoji === emoji)
   if (existing >= 0) {
@@ -214,63 +402,126 @@ export function REMOVE_MESSAGE_REACTION (state, { roomId, messageId, reactorPubK
   }
 }
 
-export function SET_RELAYS (state, relays) {
-  state.relays = relays
+// ---- Per-wallet typing indicators ----
+
+export function SET_TYPING (state, { roomId, pubKeyHex }) {
+  const ws = getOrInitWalletState(state)
+  if (!ws) return
+  if (!ws.typing) ws.typing = {}
+  if (!ws.typing[roomId]) ws.typing[roomId] = {}
+  ws.typing[roomId][pubKeyHex] = Date.now()
 }
 
+export function CLEAR_TYPING (state, { roomId, pubKeyHex }) {
+  const ws = getOrInitWalletState(state)
+  if (!ws?.typing?.[roomId]) return
+  delete ws.typing[roomId][pubKeyHex]
+  if (Object.keys(ws.typing[roomId]).length === 0) {
+    delete ws.typing[roomId]
+  }
+}
+
+// ---- Per-wallet caches ----
+
 export function CACHE_BCH_ADDRESS (state, { pubKeyHex, address }) {
-  if (!state.bchAddressCache) state.bchAddressCache = {}
-  state.bchAddressCache[pubKeyHex] = { address, fetchedAt: Date.now() }
+  const ws = getOrInitWalletState(state)
+  if (!ws) return
+  if (!ws.bchAddressCache) ws.bchAddressCache = {}
+  ws.bchAddressCache[pubKeyHex] = { address, fetchedAt: Date.now() }
 }
 
 export function CACHE_DISPLAY_NAME (state, { pubKeyHex, displayName }) {
-  if (!state.displayNameCache) state.displayNameCache = {}
-  state.displayNameCache[pubKeyHex] = { displayName, fetchedAt: Date.now() }
+  const ws = getOrInitWalletState(state)
+  if (!ws) return
+  if (!ws.displayNameCache) ws.displayNameCache = {}
+  ws.displayNameCache[pubKeyHex] = { displayName, fetchedAt: Date.now() }
 }
 
 export function CACHE_AVATAR (state, { pubKeyHex, avatar }) {
-  if (!state.avatarCache) state.avatarCache = {}
-  state.avatarCache[pubKeyHex] = { avatar, fetchedAt: Date.now() }
+  const ws = getOrInitWalletState(state)
+  if (!ws) return
+  if (!ws.avatarCache) ws.avatarCache = {}
+  ws.avatarCache[pubKeyHex] = { avatar, fetchedAt: Date.now() }
 }
 
+export function CLEAR_CACHE_BCH_ADDRESS (state, { pubKeyHex }) {
+  const ws = getOrInitWalletState(state)
+  if (!ws) return
+  if (ws.bchAddressCache && pubKeyHex) {
+    delete ws.bchAddressCache[pubKeyHex]
+  }
+}
+
+export function CLEAR_CACHE_DISPLAY_NAME (state, { pubKeyHex }) {
+  const ws = getOrInitWalletState(state)
+  if (!ws) return
+  if (ws.displayNameCache && pubKeyHex) {
+    delete ws.displayNameCache[pubKeyHex]
+  }
+}
+
+export function CLEAR_CACHE_AVATAR (state, { pubKeyHex }) {
+  const ws = getOrInitWalletState(state)
+  if (!ws) return
+  if (ws.avatarCache && pubKeyHex) {
+    delete ws.avatarCache[pubKeyHex]
+  }
+}
+
+// ---- Per-wallet profile mutations ----
+
 export function SET_PROFILE_BCH_ADDRESS (state, { address, publishedAt }) {
-  if (!state.profile) state.profile = {}
-  state.profile.bchAddress = address
-  state.profile.publishedAt = publishedAt
+  const ws = getOrInitWalletState(state)
+  if (!ws) return
+  if (!ws.profile) ws.profile = {}
+  ws.profile.bchAddress = address
+  ws.profile.publishedAt = publishedAt
 }
 
 export function CLEAR_PROFILE_BCH_ADDRESS (state) {
-  if (!state.profile) state.profile = {}
-  state.profile.bchAddress = null
-  state.profile.publishedAt = null
+  const ws = getOrInitWalletState(state)
+  if (!ws) return
+  if (!ws.profile) ws.profile = {}
+  ws.profile.bchAddress = null
+  ws.profile.publishedAt = null
 }
 
 export function SET_PROFILE_DISPLAY_NAME (state, { displayName, publishedAt }) {
-  if (!state.profile) state.profile = {}
-  state.profile.displayName = displayName
-  state.profile.displayNamePublishedAt = publishedAt
+  const ws = getOrInitWalletState(state)
+  if (!ws) return
+  if (!ws.profile) ws.profile = {}
+  ws.profile.displayName = displayName
+  ws.profile.displayNamePublishedAt = publishedAt
 }
 
 export function CLEAR_PROFILE_DISPLAY_NAME (state) {
-  if (!state.profile) state.profile = {}
-  state.profile.displayName = null
-  state.profile.displayNamePublishedAt = null
+  const ws = getOrInitWalletState(state)
+  if (!ws) return
+  if (!ws.profile) ws.profile = {}
+  ws.profile.displayName = null
+  ws.profile.displayNamePublishedAt = null
 }
 
 export function SET_PROFILE_AVATAR (state, { avatar, publishedAt }) {
-  if (!state.profile) state.profile = {}
-  state.profile.avatar = avatar
-  state.profile.avatarPublishedAt = publishedAt
+  const ws = getOrInitWalletState(state)
+  if (!ws) return
+  if (!ws.profile) ws.profile = {}
+  ws.profile.avatar = avatar
+  ws.profile.avatarPublishedAt = publishedAt
 }
 
 export function CLEAR_PROFILE_AVATAR (state) {
-  if (!state.profile) state.profile = {}
-  state.profile.avatar = null
-  state.profile.avatarPublishedAt = null
+  const ws = getOrInitWalletState(state)
+  if (!ws) return
+  if (!ws.profile) ws.profile = {}
+  ws.profile.avatar = null
+  ws.profile.avatarPublishedAt = null
 }
 
 export function RESET_PROFILE (state) {
-  state.profile = {
+  const ws = getOrInitWalletState(state)
+  if (!ws) return
+  ws.profile = {
     bchAddress: null,
     publishedAt: null,
     displayName: null,
@@ -278,4 +529,50 @@ export function RESET_PROFILE (state) {
     avatar: null,
     avatarPublishedAt: null,
   }
+}
+
+// Direct mutation for deleting a deletedRooms entry (used by actions)
+export function DELETE_ROOM_TRACKER (state, roomId) {
+  const ws = getOrInitWalletState(state)
+  if (!ws) return
+  if (ws.deletedRooms) {
+    ws.deletedRooms = ws.deletedRooms.filter(id => id !== roomId)
+  }
+}
+
+// Reset all per-wallet chat data (keys, conversations, caches, profile)
+export function RESET_WALLET_CHAT_DATA (state) {
+  const ws = getOrInitWalletState(state)
+  if (!ws) return
+  ws.keys = {
+    npub: null,
+    nsec: null,
+    pubKeyHex: null,
+    privKeyHex: null,
+  }
+  ws.rooms = []
+  ws.deletedRooms = []
+  ws.messages = {}
+  ws.readReceipts = {}
+  ws.readMessageIds = {}
+  ws.messageReadBy = {}
+  ws.reactions = {}
+  ws.typing = {}
+  ws.blockedContacts = []
+  ws.bchAddressCache = {}
+  ws.displayNameCache = {}
+  ws.avatarCache = {}
+  ws.isSubscribed = false
+  ws.profile = {
+    bchAddress: null,
+    publishedAt: null,
+    displayName: null,
+    displayNamePublishedAt: null,
+    avatar: null,
+    avatarPublishedAt: null,
+  }
+}
+
+export function RESET_CONTACTS (state) {
+  state.contacts = []
 }

@@ -39,7 +39,8 @@ export const useMultisigHelpers = () => {
     const vault = $store.getters["global/getVault"]
     const wallets = []
     for (const index of vault.keys()) {
-      const m = await getMnemonic(index)
+      const m = await getMnemonic(index).catch(() => null)
+      if (!m) continue
       const masterFingerprint = binToHex(getMasterFingerprint(m))
       const wallet = {
         name: vault[index].name,

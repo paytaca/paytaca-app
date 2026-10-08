@@ -2,7 +2,7 @@
   <div
     class="row justify-center fixed-footer"
     :class="[getDarkModeClass(), { 'footer-hidden': isFooterHidden }]"
-    :style="{bottom: 'calc(16px + env(safe-area-inset-bottom, 0px))'}"
+    :style="{bottom: 'calc(16px + env(safe-area-inset-bottom, 0px) + var(--chipnet-banner-height, 0px))'}"
   >
     <div class="col row justify-evenly footer-btn-container q-ml-sm q-mr-sm q-gutter-xs">
       <button class="footer-icon-btn" :class="getDarkModeClass()" @click="$router.push({ name: 'app-chat', query: { from: 'home' } })">
@@ -10,26 +10,26 @@
           <q-icon name="o_chat" size="24px" />
           <span v-if="totalUnreadCount > 0" class="footer-chat-badge"><span class="badge-text">{{ totalUnreadCount > 99 ? '99+' : totalUnreadCount }}</span></span>
         </div>
-        <span id="chat-button" class="footer-label">{{ $t('Chat') }}</span>
+        <span id="chat-button" class="footer-label text-bow" :class="getDarkModeClass()">{{ $t('Chat') }}</span>
       </button>
       <button class="footer-icon-btn" :class="getDarkModeClass()" @click="$router.push({ name: 'transaction-list', query: { assetID: 'all' } })">
         <div class="default-text-color footer-icon-wrap">
           <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M4 2a2 2 0 0 0-2 2v16l3-2 3 2 3-2 3 2 3-2 3 2V4a2 2 0 0 0-2-2z"/><line x1="7" y1="8" x2="17" y2="8"/><line x1="7" y1="12" x2="13" y2="12"/></svg>
         </div>
-        <span id="send-button" class="footer-label">TX</span>
+        <span id="send-button" class="footer-label text-bow" :class="getDarkModeClass()">TX</span>
       </button>
       <div style="width: 50px;"></div>
       <button class="footer-icon-btn" :class="getDarkModeClass()" @click="$router.push({ name: 'app-settings' })">
         <div class="default-text-color footer-icon-wrap">
           <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
         </div>
-        <span id="settings-button" class="footer-label">{{ $t('Settings') }}</span>
+        <span id="settings-button" class="footer-label text-bow" :class="getDarkModeClass()">{{ $t('Settings') }}</span>
       </button>
       <button class="footer-icon-btn" :class="getDarkModeClass()" @click="$router.push({ name: 'apps-dashboard' })">
         <div class="default-text-color footer-icon-wrap">
           <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
         </div>
-        <span id="apps-button" class="footer-label ellipsis-2-lines">{{ $t('Apps') }}</span>
+        <span id="apps-button" class="footer-label ellipsis-2-lines text-bow" :class="getDarkModeClass()">{{ $t('Apps') }}</span>
       </button>
     </div>
 
@@ -53,13 +53,15 @@ export default {
   name: 'footer-menu',
   data () {
     return {
-      darkMode: this.$store.getters['darkmode/getStatus'],
       lastScrollY: 0,
       isFooterHidden: false,
       scrollThreshold: 50
     }
   },
   computed: {
+    darkMode () {
+      return this.$store.getters['darkmode/getStatus']
+    },
     totalUnreadCount () {
       try {
         return this.$store.getters['nostrChat/getTotalUnreadCount'] || 0
@@ -135,7 +137,7 @@ export default {
     padding-top: 0;
     width: calc(100% - 32px) !important;
     max-width: 600px;
-    bottom: calc(16px + env(safe-area-inset-bottom, 0px));
+    bottom: calc(16px + env(safe-area-inset-bottom, 0px) + var(--chipnet-banner-height, 0px));
     left: 50%;
     transform: translateX(-50%);
     align-items: center;
@@ -155,7 +157,6 @@ export default {
       outline: none;
       background-color: transparent;
       font-size: 12px;
-      color: black;
       line-height: normal;
       min-width: 50px;
       text-align: center;

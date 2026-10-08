@@ -101,3 +101,12 @@ export function cashoutMerchant (state) {
   const walletState = getWalletState(state)
   return walletState.cashoutMerchant || null
 }
+
+/**
+ * Get NFC payments enabled status
+ * @param {*} state 
+ * @returns 
+ */
+export function nfcPaymentsEnabled (state) {
+  return state.nfcPaymentsEnabled
+}

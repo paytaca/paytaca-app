@@ -1,10 +1,49 @@
 <template>
   <div class="latest-transactions-section" :class="getDarkModeClass(darkMode)">
     <div class="row items-center justify-between q-mb-sm q-mt-sm">
-      <div class="q-ml-lg button button-text-primary" :class="getDarkModeClass(darkMode)" style="font-size: 20px;">
-        {{ $t('Transactions', {}, 'Transactions') }}
+      <div class="q-ml-lg row items-center no-wrap" :class="getDarkModeClass(darkMode)" style="font-size: 20px;">
+        <span class="button button-text-primary">{{ $t('Transactions', {}, 'Transactions') }}</span>
+        <q-btn
+          flat
+          dense
+          no-caps
+          size="sm"
+          class="filter-btn q-ml-sm"
+          :color="txAssetFilter !== 'all' ? (darkMode ? 'blue-4' : 'blue-6') : (darkMode ? 'grey-5' : 'grey-7')"
+          :aria-label="$t('TransactionAssetFilter', {}, 'Transaction asset filter')"
+          @click.stop
+        >
+          <q-icon name="filter_alt" size="sm" class="q-mr-xs" />
+          <span class="filter-label text-caption">{{ getCurrentFilterLabel() }}</span>
+          <q-menu anchor="bottom left" self="top left" :offset="[0, 8]">
+            <q-list style="min-width: 220px">
+              <q-item
+                v-for="opt in txAssetFilterOpts" :key="opt.value"
+                clickable
+                dense
+                @click.stop="txAssetFilter = opt.value"
+              >
+                <q-item-section>
+                  <q-item-label :style="darkMode ? 'color: white;' : 'color: black;'">{{ opt.label }}</q-item-label>
+                </q-item-section>
+                <q-item-section side v-if="txAssetFilter === opt.value">
+                  <q-icon name="check" :color="darkMode ? 'blue-4' : 'blue-6'" size="sm" />
+                </q-item-section>
+              </q-item>
+            </q-list>
+          </q-menu>
+        </q-btn>
       </div>
       <div class="q-mr-lg">
+        <q-btn
+          flat
+          round
+          dense
+          icon="support"
+          :color="darkMode ? 'blue-4' : 'blue-6'"
+          :aria-label="$t('Support', {}, 'Support')"
+          @click="$router.push({ name: 'app-support', query: { from: 'home' } })"
+        />
         <TransactionTimestampSettings />
       </div>
     </div>
@@ -94,6 +133,10 @@ export default {
   props: {
     wallet: Object,
     denominationTabSelected: String,
+    favoriteTokenIds: {
+      type: Array,
+      default: () => []
+    },
     tutorialMode: {
       type: Boolean,
       default: false
@@ -111,6 +154,7 @@ export default {
       transactionsLoaded: false,
       hasMoreTransactions: false,
       transactionsFilter: 'all',
+      txAssetFilter: localStorage.getItem('txAssetFilter') || 'all',
       allAsset: {
         id: 'all',
         symbol: 'All',
@@ -136,6 +180,14 @@ export default {
       }
       return this.transactions
     },
+    txAssetFilterOpts () {
+      return [
+        { label: this.$t('All'), value: 'all' },
+        { label: this.$t('BCHOnly', {}, 'BCH only'), value: 'bch-only' },
+        { label: this.$t('BCHPlusFavorites', {}, 'BCH + favorite tokens'), value: 'bch+favorites' },
+        { label: this.$t('FavoritesOnly', {}, 'Favorite tokens only'), value: 'favorites-only' }
+      ]
+    },
     displayHasMoreTransactions () {
       if (this.tutorialMode && this.tutorialStepId === 'transactions' && this.transactionsLoaded && this.transactions.length === 0) return false
       return this.hasMoreTransactions
@@ -148,7 +200,19 @@ export default {
       ]
     }
   },
-  
+
+  watch: {
+    txAssetFilter (value) {
+      localStorage.setItem('txAssetFilter', value)
+      this.loadTransactions()
+    },
+    favoriteTokenIds () {
+      if (this.txAssetFilter === 'favorites-only' || this.txAssetFilter === 'bch+favorites') {
+        this.loadTransactions()
+      }
+    }
+  },
+
   created () {
     this.walletHash = this.resolveWalletHash()
     if (this.walletHash) {
@@ -179,6 +243,10 @@ export default {
     getDarkModeClass,
     tabButtonClass (tab) {
       return this.transactionsFilter === tab ? 'active-theme-btn' : ''
+    },
+    getCurrentFilterLabel () {
+      const opt = this.txAssetFilterOpts.find(o => o.value === this.txAssetFilter)
+      return opt ? opt.label : ''
     },
     getThemeColor () {
       const themeMap = {
@@ -254,6 +322,8 @@ export default {
       return null
     },
     async loadTransactions () {
+      this.transactions = []
+      this.transactionsLoaded = false
       try {
         if (!this.walletHash) {
           this.walletHash = getWalletByNetwork(this.wallet, 'bch').getWalletHash()
@@ -265,7 +335,17 @@ export default {
         const params = {
           all: true,
           page: 1,
-          type: recordType
+          type: recordType,
+          exclude: 'senders,recipients'
+        }
+        if (this.txAssetFilter === 'bch-only') {
+          params.asset_filter = 'bch-only'
+        } else if (this.txAssetFilter === 'favorites-only') {
+          params.asset_filter = 'favorites'
+          params.token_ids = (this.favoriteTokenIds || []).join(',')
+        } else if (this.txAssetFilter === 'bch+favorites') {
+          params.asset_filter = 'bch-and-favorites'
+          params.token_ids = (this.favoriteTokenIds || []).join(',')
         }
 
         const response = await axios.get(url, { params })
@@ -278,28 +358,43 @@ export default {
         }
 
         const enrichedTransactions = await this.enrichTransactionsWithAssetInfo(transactions)
-        const currentCached = getCachedTransactions(this.walletHash, this.transactionsFilter)
-        let merged
-        if (currentCached && Array.isArray(currentCached.transactions) && currentCached.transactions.length) {
-          merged = mergeTransactions(currentCached.transactions, enrichedTransactions)
+        let display
+        let hasMore
+
+        if (this.txAssetFilter !== 'all') {
+          enrichedTransactions.sort((a, b) => {
+            const tA = a.tx_timestamp || a.date_created || 0
+            const tB = b.tx_timestamp || b.date_created || 0
+            return tB - tA
+          })
+          display = enrichedTransactions.slice(0, 5)
+          hasMore = response.data?.has_next || enrichedTransactions.length > 5
         } else {
-          merged = enrichedTransactions
+          const currentCached = getCachedTransactions(this.walletHash, this.transactionsFilter)
+          let merged
+          if (currentCached && Array.isArray(currentCached.transactions) && currentCached.transactions.length) {
+            merged = mergeTransactions(currentCached.transactions, enrichedTransactions)
+          } else {
+            merged = enrichedTransactions
+          }
+
+          merged.sort((a, b) => {
+            const tA = a.tx_timestamp || a.date_created || 0
+            const tB = b.tx_timestamp || b.date_created || 0
+            return tB - tA
+          })
+
+          display = merged.slice(0, 5)
+          hasMore = response.data?.has_next || enrichedTransactions.length > 5
         }
-
-        merged.sort((a, b) => {
-          const tA = a.tx_timestamp || a.date_created || 0
-          const tB = b.tx_timestamp || b.date_created || 0
-          return tB - tA
-        })
-
-        const display = merged.slice(0, 5)
-        const hasMore = response.data?.has_next || enrichedTransactions.length > 5
 
         this.transactions = display
         this.hasMoreTransactions = hasMore
         this.transactionsLoaded = true
 
-        setCachedTransactions(this.walletHash, this.transactionsFilter, enrichedTransactions, hasMore)
+        if (this.txAssetFilter === 'all') {
+          setCachedTransactions(this.walletHash, this.transactionsFilter, enrichedTransactions, hasMore)
+        }
       } catch (error) {
         console.error('Error loading latest transactions:', error)
         if (!this.transactionsLoaded) {
@@ -619,6 +714,22 @@ export default {
 
 .see-more-btn {
   font-weight: 500;
+}
+
+.filter-btn {
+  border-radius: 16px;
+  padding: 2px 8px;
+  min-height: 0;
+  height: auto;
+  margin-top: 3px;
+}
+
+.filter-label {
+  font-weight: 500;
+  max-width: 100px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .empty-state {

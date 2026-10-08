@@ -61,6 +61,10 @@ export const authToken = Object.freeze({
       public_key: pubkey
     }
     const loginResponse = await backend.post(`/auth/login/main`, body)
+      .catch(error => {
+        console.error('Login error:', error.response || error)
+        throw error
+      })
     // Use wallet hash from the wallet parameter for storage key
     const storageKey = getAuthTokenStorageKey(wallet.BCH.walletHash)
     await SecureStoragePlugin.set({ key: storageKey, value: loginResponse.data.token })
@@ -168,7 +172,10 @@ export function parsePosDeviceData(data) {
     },
     isLinked(){
       return Boolean(this.linkedDevice.linkCode)
-    }
+    },
+    isNFCPaymentsEnabled(){
+      return Boolean(data?.nfc_payments_enabled)
+    },
   }
 
   return response
@@ -184,6 +191,78 @@ export function padPosId(posId, digits=4) {
     val = "0" + val
   }
   return val
+}
+
+/**
+ * POS address indices embed the posid in the last 4 decimal digits:
+ * addressIndex = <paymentIndex><posid padded to 4 digits>
+ * This mirrors the address generation scheme used by the Paytaca POS app.
+ */
+export const POS_ADDRESS_INDEX = Object.freeze({
+  MAX_UNHARDENED_ADDRESS_INDEX: 2 ** 31 - 1,
+  POS_DEVICE_ID_DIGITS: 4,
+  MAX_POS_DEVICE_ID_COUNT: 10 ** 4,
+  MAX_PAYMENT_INDEX: Math.floor((2 ** 31 - 1) / (10 ** 4)),
+  MAX_POSID_ON_MAX_PAYMENT_INDEX: (2 ** 31 - 1) % (10 ** 4),
+})
+
+/**
+ * Maximum valid payment index for a given posid, keeping the
+ * resulting address index within the unhardened BIP32 range
+ * @param {Number} posid
+ */
+export function getPosMaxPaymentIndex(posid) {
+  if (posid > POS_ADDRESS_INDEX.MAX_POSID_ON_MAX_PAYMENT_INDEX) {
+    return POS_ADDRESS_INDEX.MAX_PAYMENT_INDEX - 1
+  }
+  return POS_ADDRESS_INDEX.MAX_PAYMENT_INDEX
+}
+
+/**
+ * @param {Number} paymentIndex
+ * @param {Number} posid
+ * @returns {Number} address index usable for BIP32 derivation (0/<index>)
+ */
+export function resolvePosAddressIndex(paymentIndex, posid) {
+  if (!Number.isInteger(paymentIndex) || paymentIndex < 1) {
+    throw new Error(`Invalid payment index: ${paymentIndex}`)
+  }
+  if (!Number.isInteger(posid) || posid < 0 || posid >= POS_ADDRESS_INDEX.MAX_POS_DEVICE_ID_COUNT) {
+    throw new Error(`Invalid posid: ${posid}`)
+  }
+  if (paymentIndex > getPosMaxPaymentIndex(posid)) {
+    throw new Error(`Payment index ${paymentIndex} exceeds max for posid ${posid}`)
+  }
+  return Number(String(paymentIndex) + padPosId(posid, POS_ADDRESS_INDEX.POS_DEVICE_ID_DIGITS))
+}
+
+/**
+ * Get the next payment index to use for a posid, rotating within the valid range
+ * @param {Number} lastPaymentIndex - last used payment index (0 if none yet)
+ * @param {Number} posid
+ */
+export function nextPosPaymentIndex(lastPaymentIndex, posid) {
+  const maxPaymentIndex = getPosMaxPaymentIndex(posid)
+  let nextIndex = (Number.isInteger(lastPaymentIndex) ? lastPaymentIndex : 0) + 1
+  if (nextIndex > maxPaymentIndex) nextIndex = 1
+  return nextIndex
+}
+
+/**
+ * Fetch the last payment index with a transaction for a POS device from watchtower
+ * @param {String} walletHash
+ * @param {Number} posid
+ * @param {Boolean} isChipnet
+ * @returns {Promise<Number|null>} last payment index, null if none
+ */
+export async function fetchLastPosPaymentIndex(walletHash, posid, isChipnet=false) {
+  const baseUrl = isChipnet ? 'https://chipnet.watchtower.cash' : 'https://watchtower.cash'
+  const response = await axios.get(
+    `${baseUrl}/api/last-address-index/wallet/${walletHash}/`,
+    { params: { with_tx: true, posid } }
+  )
+  const paymentIndex = response?.data?.address?.payment_index
+  return Number.isInteger(paymentIndex) ? paymentIndex : null
 }
 
 /**

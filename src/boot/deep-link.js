@@ -55,10 +55,26 @@ export default boot(({ router, /* store */ }) => {
         const txid = match[1]
         router.push({ name: 'transaction-list', query: { txid } })
       }
-    } else if (url.host === 'gifts.paytaca.com' && url.pathname.match('/claim/?')) {
+    } else if (url.host === 'gifts.paytaca.com' && url.pathname.match(/^\/claim\/?$/)) {
       router.push({ name: 'claim-gift', query: { claimShare: url.searchParams.get('code') } })
-    } else if (url.host === 'p2p.paytaca.com' && url.pathname.match('/ad/share/?')) {
+    } else if (url.host === 'p2p.paytaca.com' && url.pathname.match(/^\/ad\/share\/?$/)) {
       router.push({ name: 'exchange', query: { ad_id: url.searchParams.get('id') } })
+    } else if (url.host === 'rewards.paytaca.com' && /\/referral\/?$/.test(url.pathname)) {
+      const code = url.searchParams.get('code')
+      const currentPath = router.currentRoute.value.path
+      const isInWalletCreation = currentPath.startsWith('/accounts/create/step-')
+
+      if (isInWalletCreation) {
+        router.push({ name: 'wallet-create-step-2', query: { referralCode: code } })
+      } else {
+        router.push({ name: 'app-rewards', query: { code } })
+      }
+    } else if (
+      (url.host === 'paymenthub.paytaca.com' || url.host === 'chipnet.paymenthub.paytaca.com') &&
+      url.pathname.match('/plans')
+    ) {
+      const shortUuid = url.pathname.match('/plans/([A-Za-z0-9]+)/?')?.[1];
+      router.push({ name: 'payment-hub-subscriptions-index', query: { plan: shortUuid } })
     }
   })
 

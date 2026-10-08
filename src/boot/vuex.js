@@ -114,9 +114,12 @@ export default boot(async (obj) => {
         if (hasBroken || currentRelays.length === 0) {
           parsedState.nostrChat.relays = nostrChatDefaultState().relays
         }
-        // Ensure new properties exist in persisted state
-        if (!parsedState.nostrChat.readReceipts) {
-          parsedState.nostrChat.readReceipts = {}
+        // Ensure byWallet and global fields exist in persisted state
+        if (!parsedState.nostrChat.byWallet) {
+          parsedState.nostrChat.byWallet = {}
+        }
+        if (!parsedState.nostrChat.contacts) {
+          parsedState.nostrChat.contacts = []
         }
       }
 
@@ -131,14 +134,21 @@ export default boot(async (obj) => {
         }
       }
 
+      // Ensure card module state is initialized — cards are never persisted,
+      // always fetched fresh, so replaceState must not wipe out the module
+      if (!parsedState.card || typeof parsedState.card !== 'object') {
+        parsedState.card = { cards: [] }
+      }
+
       store.replaceState(parsedState)
     }
+    store.commit('global/setBootHydrated', true)
 
     // Add error handler for store mutations
     store.subscribe((mutation, state) => {
       try {
         // Log any state changes that might be problematic
-        if (mutation.type.includes('update') || mutation.type.includes('set')) {
+        if (process.env.NODE_ENV === 'development' && (mutation.type.includes('update') || mutation.type.includes('set'))) {
           console.debug('Store mutation:', mutation.type, mutation.payload)
         }
       } catch (err) {

@@ -1004,7 +1004,7 @@ export default {
     }
   },
   async mounted () {
-    const mnemonic = await getMnemonic(this.$store.getters['global/getWalletIndex'])
+    const mnemonic = await getMnemonic(this.$store.getters['global/getWalletIndex']).catch(() => null)
     this.wallet = markRaw(new Wallet(mnemonic))
 
     if (this.w) {

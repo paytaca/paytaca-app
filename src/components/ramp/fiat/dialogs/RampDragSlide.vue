@@ -10,7 +10,7 @@
               {{ $t('SecurityCheck') }}
             </div>
           </template>
-          <q-item class="bg-grad text-white q-py-sm">
+          <q-item class="bg-grad text-white q-py-sm" :class="{ 'drag-slide-active': !locked }">
             <q-item-section avatar>
               <q-icon v-if="locked" name="lock" size="sm" :class="`bg-${themeColor}`" class="q-pa-sm" style="border-radius: 50%" />
               <q-icon v-else name="mdi-chevron-double-right" size="lg" :class="`bg-${themeColor}`" style="border-radius: 50%" />
@@ -216,6 +216,30 @@ export default {
   }
 }
 
+/* Active (enabled) button: constant shimmer sweep */
+.drag-slide-active {
+  position: relative;
+  overflow: hidden;
+}
+.drag-slide-active::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 55%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255,255,255,0.12), rgba(255,255,255,0.15), transparent);
+  clip-path: polygon(0% 0%, 65% 0%, 100% 50%, 65% 100%, 0% 100%, 25% 50%);
+  transform: translateX(-100%);
+  animation: shimmer-sweep 2.8s ease-in-out infinite;
+  pointer-events: none;
+}
+@keyframes shimmer-sweep {
+  0% { transform: translateX(-100%); }
+  45% { transform: translateX(160%); }
+  100% { transform: translateX(160%); }
+}
+
 /* Attention nudge: subtle shine + pulse */
 .ramp-drag-slide-container.nudge {
   :deep(.q-item.bg-grad) {
@@ -237,6 +261,12 @@ export default {
   }
   :deep(.q-icon.mdi-chevron-double-right) {
     animation: swipeNudgeChevron 1.0s ease-in-out infinite;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .drag-slide-active::after {
+    animation: none;
   }
 }
 

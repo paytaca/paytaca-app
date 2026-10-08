@@ -26,20 +26,23 @@
 	    	</div>
 	    	
 	    	<q-list class="q-ma-md" style="margin-top: 12px;">
-	    		<q-card v-for="i in 8" :key="i" class="q-py-sm q-my-sm br-15">
-	    			<q-item>
-	    				<q-item-section avatar>
-	    					<q-skeleton type="QAvatar" size="50px" />
-	    				</q-item-section>
-	    				<q-item-section>
-	    					<q-skeleton type="text" width="60%" />
-	    					<q-skeleton type="text" width="40%" class="q-mt-xs" />
-	    				</q-item-section>
-	    				<q-item-section side>
+	    		<div v-for="i in 8" :key="i" class="q-my-sm">
+	    			<div class="asset-row" :class="getDarkModeClass(darkmode)">
+	    				<div style="width: 28px; flex-shrink: 0;">
+	    					<q-skeleton type="QIcon" size="20px" />
+	    				</div>
+	    				<div style="width: 48px; height: 48px; flex-shrink: 0; border-radius: 14px; overflow: hidden;">
+	    					<q-skeleton type="QAvatar" size="48px" />
+	    				</div>
+	    				<div style="flex: 1; min-width: 0;">
+	    					<q-skeleton type="text" width="60%" height="18px" />
+	    					<q-skeleton type="text" width="40%" height="14px" class="q-mt-xs" />
+	    				</div>
+	    				<div style="flex-shrink: 0;">
 	    					<q-skeleton type="QBtn" width="30px" height="30px" />
-	    				</q-item-section>
-	    			</q-item>
-	    		</q-card>
+	    				</div>
+	    			</div>
+	    		</div>
 	    	</q-list>
 	    </div>
 	    
@@ -80,51 +83,60 @@
 			      	    				<q-icon name="visibility_off" size="24px" color="white" />
 			      	    			</div>
 			      	    		</template>
-    				   	<q-card class="q-py-sm br-15 asset-card" :class="{'has-drag-handle': asset.favorite === 1 || asset.favorite === true}">
-    				   		<q-item>
-    				   			<q-item-section v-if="asset.favorite === 1 || asset.favorite === true" side class="handle drag-handle">
-    				   				<q-icon name="drag_indicator" size="20px" :color="darkmode ? 'grey-5' : 'grey-7'" />
-    				   			</q-item-section>
-    				   			<q-item-section v-else side class="hide-btn" @click.stop="hideAsset(asset)">
-    				   				<q-icon name="visibility" size="20px" :color="darkmode ? 'grey-5' : 'grey-7'" />
-    				   			</q-item-section>
-								      <q-item-section avatar>
-									          <q-avatar>
-									            <img 
-									              :src="getImageUrl(asset)" 
-									              class="asset-icon"
-									              @contextmenu.prevent
-									              @selectstart.prevent
-									            >
-									          </q-avatar>
-									        </q-item-section>
-									        <q-item-section>
-									        	<div class="text-bold ">{{ asset.name}}</div>
-									        	<div :class="darkmode ? 'text-grey-5' : 'text-grey-8'">
-									      			{{ formatAssetTokenAmount(asset) }} {{ asset.symbol }}			      			
-									      		</div>
-									        </q-item-section>
-									      	<q-item-section side>			      		
-									      		<q-spinner
-									      			v-if="favoriteLoading[asset.id]"
-									      			size="2em"
-									      			color="amber-6"
-									      			/>
-									      		<q-rating
-									      			v-else
-									      			readonly
-											        v-model="asset.favorite"
-											        max="1"
-											        size="2em"
-											        color="amber-6"
-											        icon="star_border"
-											        icon-selected="star"
-											        @click.stop="updateFavorite(asset)"					      
-											      />			      						      				      	
-									      	</q-item-section>
-				      	    		</q-item>			      	    	
-								      </q-card>
-							      </q-slide-item>
+			      	    		<div
+			      	    		  class="asset-row"
+			      	    		  :class="[
+			      	    		    getDarkModeClass(darkmode),
+			      	    		    { 'has-drag-handle': asset.favorite === 1 || asset.favorite === true }
+			      	    		  ]"
+			      	    		>
+			      	    		  <div
+			      	    		    v-if="asset.favorite === 1 || asset.favorite === true"
+			      	    		    class="asset-left handle drag-handle"
+			      	    		  >
+			      	    		    <q-icon name="drag_indicator" size="20px" :color="darkmode ? 'grey-5' : 'grey-7'" />
+			      	    		  </div>
+			      	    		  <div
+			      	    		    v-else
+			      	    		    class="asset-left hide-btn"
+			      	    		    @click.stop="hideAsset(asset)"
+			      	    		  >
+			      	    		    <q-icon name="visibility" size="20px" :color="darkmode ? 'grey-5' : 'grey-7'" />
+			      	    		  </div>
+			      	    		  <div class="asset-icon-tile">
+			      	    		    <q-avatar>
+			      	    		      <img
+			      	    		        :src="getImageUrl(asset)"
+			      	    		        class="asset-icon"
+			      	    		        @contextmenu.prevent
+			      	    		        @selectstart.prevent
+			      	    		      >
+			      	    		    </q-avatar>
+			      	    		  </div>
+			      	    		  <div class="asset-info">
+			      	    		    <div class="asset-name" :class="getDarkModeClass(darkmode)">{{ asset.name }}</div>
+			      	    		    <div class="asset-balance" :class="getDarkModeClass(darkmode)">{{ formatAssetTokenAmount(asset) }} {{ asset.symbol }}</div>
+			      	    		  </div>
+			      	    		  <div class="asset-right">
+			      	    		    <q-spinner
+			      	    		      v-if="favoriteLoading[asset.id]"
+			      	    		      size="2em"
+			      	    		      color="amber-6"
+			      	    		    />
+			      	    		    <q-rating
+			      	    		      v-else
+			      	    		      readonly
+			      	    		      v-model="asset.favorite"
+			      	    		      max="1"
+			      	    		      size="2em"
+			      	    		      color="amber-6"
+			      	    		      icon="star_border"
+			      	    		      icon-selected="star"
+			      	    		      @click.stop="updateFavorite(asset)"
+			      	    		    />
+			      	    		  </div>
+			      	    		</div>
+						      </q-slide-item>
 			      	    </template>			      
 			        </draggable>  
 			    </q-list>
@@ -160,24 +172,23 @@
 			              <q-icon name="visibility" size="24px" color="white" />
 			            </div>
 			          </template>
-			          <q-card class="q-py-sm br-15 asset-card-hidden" :class="getDarkModeClass(darkmode)">
-			            <q-item>
-			              <q-item-section side class="hide-btn" @click.stop="onSwipeUnhide(asset)">
-			                <q-icon name="visibility_off" size="20px" :color="darkmode ? 'grey-5' : 'grey-7'" />
-			              </q-item-section>
-			              <q-item-section avatar>
-			                <q-avatar>
-			                  <img :src="getImageUrl(asset)" class="asset-icon" @contextmenu.prevent @selectstart.prevent>
-			                </q-avatar>
-			              </q-item-section>
-			              <q-item-section>
-			                <div class="text-bold">{{ asset.name }}</div>
-			                <div :class="darkmode ? 'text-grey-5' : 'text-grey-8'">
-			                  {{ formatAssetTokenAmount(asset) }} {{ asset.symbol }}
-			                </div>
-			              </q-item-section>
-			            </q-item>
-			          </q-card>
+			          <div
+			            class="asset-row asset-row-hidden"
+			            :class="getDarkModeClass(darkmode)"
+			          >
+			            <div class="asset-left hide-btn" @click.stop="onSwipeUnhide(asset)">
+			              <q-icon name="visibility_off" size="20px" :color="darkmode ? 'grey-5' : 'grey-7'" />
+			            </div>
+			            <div class="asset-icon-tile">
+			              <q-avatar>
+			                <img :src="getImageUrl(asset)" class="asset-icon" @contextmenu.prevent @selectstart.prevent>
+			              </q-avatar>
+			            </div>
+			            <div class="asset-info">
+			              <div class="asset-name" :class="getDarkModeClass(darkmode)">{{ asset.name }}</div>
+			              <div class="asset-balance" :class="getDarkModeClass(darkmode)">{{ formatAssetTokenAmount(asset) }} {{ asset.symbol }}</div>
+			            </div>
+			          </div>
 			        </q-slide-item>
 			      </q-list>
 			    </div>
@@ -293,7 +304,7 @@ export default {
 			// Skeleton loaders handle loading state
 		}
 	},
-	unmount() {
+	unmounted() {
 		// Cleanup if needed
 	},	
 	async mounted () {		
@@ -331,8 +342,8 @@ export default {
 	        }
 	      }
 	    },
-	    async loadData() {
-	    	this.isloaded = false
+	    async loadData(silent = false) {
+	    	if (!silent) this.isloaded = false
 	    	this.networkError = false
 
 	    	// register / get auth
@@ -440,17 +451,19 @@ export default {
     		// Combine all assets and save to backend
     		let allFavoritesData = [...favoritesWithOrder, ...nonFavoritesData]
     		
-    		// Preserve hidden favorites that aren't in the current view
-    		const hiddenFavorites = this.assetList.filter(a => hidden.includes(a.id) && (a.favorite === 1 || a.favorite === true))
-    		hiddenFavorites.forEach(fav => {
-    			if (!allFavoritesData.some(data => data.id === fav.id)) {
-    				allFavoritesData.push({
-    					id: fav.id,
-    					favorite: 1,
-    					favorite_order: fav.favorite_order || null
-    				})
-    			}
-    		})
+		// Preserve hidden favorites that aren't in the current view
+		// Assign them sequential orders after visible favorites to avoid conflicts
+		const hiddenFavorites = this.assetList.filter(a => hidden.includes(a.id) && (a.favorite === 1 || a.favorite === true))
+		let hiddenOrder = favorites.length + 1
+		hiddenFavorites.forEach(fav => {
+			if (!allFavoritesData.some(data => data.id === fav.id)) {
+				allFavoritesData.push({
+					id: fav.id,
+					favorite: 1,
+					favorite_order: hiddenOrder++
+				})
+			}
+		})
     		
     		try {
     			const slpWalletHash = this.wallet?.SLP?.walletHash || this.wallet?.slp?.walletHash
@@ -479,268 +492,87 @@ export default {
 	    // },
     async updateFavorite (favAsset) {
     	if (!favAsset?.id) return
-    	// Prevent firing favorite/unfavorite events while another is in progress
     	if (this.favoriteMutationInProgress) return
     	this.favoriteLoading = { ...this.favoriteLoading, [favAsset.id]: true }
 
-    	// Toggle favorite status
     	const wasFavorite = favAsset.favorite === 1 || favAsset.favorite === true
-    	
-    	// Declare currentFavorites at function scope so it's accessible throughout
-    	let currentFavorites = []
+
     	try {
-	    	// If adding a favorite (not removing), check subscription limit first
-	    	if (!wasFavorite) {
-	    			// IMPORTANT:
-	    			// In `/asset/list`, the visible token list is sourced from Watchtower's
-	    			// fungible token list endpoints (see `fetchTokensDirectlyFromAPI` and `fetchSlpTokensDirectlyFromAPI`).
-	    			// Count favorites against the same dataset so we don't block early due to
-	    			// "hidden" favorites in the app-setting favorites list.
-	    			const limit = this.$store.getters['subscription/getLimit']('favoriteTokens')
-	    			let tokenFavoritesIds = new Set()
-	    			try {
-	    				const tokens = this.isCashToken
-	    					? await this.fetchTokensDirectlyFromAPI()
-	    					: await this.fetchSlpTokensDirectlyFromAPI()
-	    				tokenFavoritesIds = new Set(
-	    					(Array.isArray(tokens) ? tokens : [])
-	    						.filter(t => t && t.id && (t.favorite === 1 || t.favorite === true))
-	    						.map(t => t.id)
-	    				)
-	    			} catch (e) {
-	    				// Best-effort only; fall back to empty set.
-	    			}
+    		// If adding a favorite, check subscription limit first
+    		if (!wasFavorite) {
+    			const limit = this.$store.getters['subscription/getLimit']('favoriteTokens')
+    			let tokenFavoritesIds = new Set()
+    			try {
+    				const tokens = this.isCashToken
+    					? await this.fetchTokensDirectlyFromAPI()
+    					: await this.fetchSlpTokensDirectlyFromAPI()
+    				tokenFavoritesIds = new Set(
+    					(Array.isArray(tokens) ? tokens : [])
+    						.filter(t => t && t.id && (t.favorite === 1 || t.favorite === true))
+    						.map(t => t.id)
+    				)
+    			} catch (e) { /* best-effort */ }
 
-	    			const currentFavoriteCount = tokenFavoritesIds.size
-	    			const isAlreadyFavorite = tokenFavoritesIds.has(favAsset.id)
+    			const currentFavoriteCount = tokenFavoritesIds.size
+    			const isAlreadyFavorite = tokenFavoritesIds.has(favAsset.id)
 
-	    			// If not already a favorite, check limit
-	    			if (!isAlreadyFavorite && currentFavoriteCount >= limit) {
-	    				// Tier-aware prompt (Free→Plus, Plus→Max coming soon)
-	    				await showLimitDialogWithDeps(
-	    					{ $q: this.$q, $store: this.$store },
-	    					'favoriteTokens',
-	    					{ darkMode: this.darkmode, forceRefresh: true }
-	    				)
-	    				return // Prevent adding favorite if limit is reached
-	    			}
-	    	}
-	    	
-	    	// Update UI immediately for better UX
-	    	this.assetList = this.assetList.map(asset => asset.id === favAsset.id ? {...asset, favorite: wasFavorite ? 0 : 1} : asset)
-	    	
-	    	// If unfavoriting, set favorite_order to null and sort immediately
-	    	if (wasFavorite) {
-	    		// Set favorite_order to null for the unfavorited token
-	    		this.assetList = this.assetList.map(asset => {
-	    		if (asset.id === favAsset.id && (asset.favorite === 0 || asset.favorite === false)) {
-	    				return { ...asset, favorite_order: null }
-	    			}
-	    			return asset
-	    		})
-	    		
-	    		// Sort immediately: favorites first (by favorite_order), then non-favorites
-				this.assetList = this.assetList.sort((a, b) => {
-					// If one is favorite and other is not, favorite comes first
-					if ((a.favorite === 1 || a.favorite === true) && (b.favorite === 0 || b.favorite === false)) return -1
-					if ((a.favorite === 0 || a.favorite === false) && (b.favorite === 1 || b.favorite === true)) return 1
-					// If both are favorites, maintain their favorite_order
-					if ((a.favorite === 1 || a.favorite === true) && (b.favorite === 1 || b.favorite === true)) {
-						const orderA = (a.favorite_order !== null && a.favorite_order !== undefined && a.favorite_order > 0) 
-							? a.favorite_order 
-							: Number.MAX_SAFE_INTEGER
-						const orderB = (b.favorite_order !== null && b.favorite_order !== undefined && b.favorite_order > 0) 
-							? b.favorite_order 
-							: Number.MAX_SAFE_INTEGER
-						return orderA - orderB
-					}
-					// If both are non-favorites, maintain their relative order (or sort by name/id for consistency)
-					// Put the newly unfavorited token first in the non-favorites list
-					if ((a.favorite === 0 || a.favorite === false) && (b.favorite === 0 || b.favorite === false)) {
-	    				if (a.id === favAsset.id) return -1 // Newly unfavorited comes first
-	    				if (b.id === favAsset.id) return 1
-	    				return 0 // Maintain relative order for others
-	    			}
-	    			return 0
-	    		})
-	    	}
-	    	
-	    	// If favoriting (not unfavoriting), calculate and assign favorite_order IMMEDIATELY (synchronously)
-	    	// This ensures the sort uses the correct order before any async operations
-	    	if (!wasFavorite) {
-	    		// Get favorites in current view (excluding the one we're favoriting)
-	    		const favoritesInView = this.assetList.filter(asset => (asset.favorite === 1 || asset.favorite === true) && asset.id !== favAsset.id)
-	    		
-	    		// Get valid favorite_order values from visible favorites (only count non-null, non-undefined orders)
-	    		const validOrdersInView = favoritesInView
-	    			.map(f => f.favorite_order)
-	    			.filter(order => order !== null && order !== undefined && order > 0)
-	    		
-	    		// Also get valid orders from API favorites (including those not in current view)
-	    		// We already fetched currentFavorites above when checking subscription limits
-	    		const allFavoritesFromAPI = currentFavorites.filter(fav => fav.favorite === 1 || fav.favorite === true)
-	    		const validOrdersFromAPI = allFavoritesFromAPI
-	    			.map(f => f.favorite_order)
-	    			.filter(order => order !== null && order !== undefined && order > 0)
-	    		
-	    		// Combine all valid orders to get the true maximum
-	    		const allValidOrders = [...validOrdersInView, ...validOrdersFromAPI]
-	    		const maxOrderFromValid = allValidOrders.length > 0 ? Math.max(...allValidOrders) : 0
-	    		
-	    		// Find favorites in view with null/undefined orders - these need orders assigned first
-	    		const favoritesWithNullOrder = favoritesInView.filter(f => 
-	    			f.favorite_order === null || f.favorite_order === undefined || f.favorite_order <= 0
-	    		)
-	    		
-	    		// Assign orders to null-order favorites first, starting from maxOrderFromValid + 1
-	    		let nextOrder = maxOrderFromValid + 1
-	    		this.assetList = this.assetList.map(asset => {
-	    			if (favoritesWithNullOrder.some(f => f.id === asset.id)) {
-	    				const assignedOrder = nextOrder
-	    				nextOrder++
-	    				return { ...asset, favorite_order: assignedOrder }
-	    			}
-	    			return asset
-	    		})
-	    		
-	    		// Now assign favorite_order to the newly favorited token (after null-order favorites)
-	    		this.assetList = this.assetList.map(asset => {
-	    			if (asset.id === favAsset.id && (asset.favorite === 1 || asset.favorite === true)) {
-	    				return { ...asset, favorite_order: nextOrder }
-	    			}
-	    			return asset
-	    		})
-	    		
-				// Sort immediately after assigning favorite_order (synchronously)
-				// This ensures the UI shows the correct order right away
-				this.assetList = this.assetList.sort((a, b) => {
-					// If one is favorite and other is not, favorite comes first
-					if ((a.favorite === 1 || a.favorite === true) && (b.favorite === 0 || b.favorite === false)) return -1
-					if ((a.favorite === 0 || a.favorite === false) && (b.favorite === 1 || b.favorite === true)) return 1
-					// If both are favorites, maintain their favorite_order
-					if ((a.favorite === 1 || a.favorite === true) && (b.favorite === 1 || b.favorite === true)) {
-	    				// Handle null/undefined orders - treat them as very large numbers so they sort to the end
-	    				// This ensures favorites with valid orders come first
-	    				const orderA = (a.favorite_order !== null && a.favorite_order !== undefined && a.favorite_order > 0) 
-	    					? a.favorite_order 
-	    					: Number.MAX_SAFE_INTEGER
-	    				const orderB = (b.favorite_order !== null && b.favorite_order !== undefined && b.favorite_order > 0) 
-	    					? b.favorite_order 
-	    					: Number.MAX_SAFE_INTEGER
-	    				return orderA - orderB
-	    			}
-	    			// If both have same favorite status, maintain their relative order
-	    			return 0
-	    		})
-	    	}
+    			if (!isAlreadyFavorite && currentFavoriteCount >= limit) {
+    				await showLimitDialogWithDeps(
+    					{ $q: this.$q, $store: this.$store },
+    					'favoriteTokens',
+    					{ darkMode: this.darkmode, forceRefresh: true }
+    				)
+    				return
+    			}
+    		}
 
-	    	// Small delay to keep the reorder animation noticeable, but keep the spinner visible
-	    	await new Promise(resolve => setTimeout(resolve, 100))
+    		// Toggle favorite locally for immediate UI feedback
+    		this.assetList = this.assetList.map(asset =>
+    			asset.id === favAsset.id ? { ...asset, favorite: wasFavorite ? 0 : 1 } : asset
+    		)
 
-	    	// Fetch current favorites from API to get complete state including favorite_order
-	    	const slpWalletHash = this.wallet?.SLP?.walletHash || this.wallet?.slp?.walletHash
-	    	currentFavorites = await assetSettings.fetchFavorites({
-	    		forceRefresh: true,
-	    		walletHash: this.isCashToken ? undefined : slpWalletHash
-	    	})
-	    	if (!Array.isArray(currentFavorites)) {
-	    		currentFavorites = []
-	    	}
-		    	
-		    	// Create a map of current favorites for quick lookup
-		    	const favoritesMap = new Map()
-		    	currentFavorites.forEach(fav => {
-		    		favoritesMap.set(fav.id, { favorite: fav.favorite, favorite_order: fav.favorite_order })
-		    	})
-		    	
-		    	// Separate favorites and non-favorites from current view
-		    	const favorites = this.assetList.filter(asset => asset.favorite === 1 || asset.favorite === true)
-		    	const nonFavorites = this.assetList.filter(asset => asset.favorite === 0 || asset.favorite === false)
-		    	
-		    	// Build favorites data with favorite_order preserved
-		    	let favoritesData = []
-		    	
-		    	if (wasFavorite) {
-		    		// Unfavoriting: reassign orders sequentially for remaining favorites
-		    		favoritesData = favorites.map((asset, index) => ({
-		    			id: asset.id,
-		    			favorite: 1,
-		    			favorite_order: index + 1 // Reassign orders sequentially
-		    		}))
-		    		
-		    		// Add the unfavorited asset with favorite: 0 and favorite_order: null
-		    		favoritesData.push({
-		    			id: favAsset.id,
-		    			favorite: 0,
-		    			favorite_order: null
-		    		})
-		    		
-		    		// Add all other non-favorites with favorite: 0 and favorite_order: null
-		    		nonFavorites.forEach(asset => {
-		    			if (asset.id !== favAsset.id) {
-		    				favoritesData.push({
-		    					id: asset.id,
-		    					favorite: 0,
-		    					favorite_order: null
-		    				})
-		    			}
-		    		})
-		    		
-		    		// Preserve favorites from API that aren't in current view (assets with zero balance, etc.)
-		    		currentFavorites.forEach(fav => {
-		    			const isInCurrentView = this.assetList.some(asset => asset.id === fav.id)
-					if (!isInCurrentView && (fav.favorite === 1 || fav.favorite === true)) {
-						// Keep existing favorites not in current view, but adjust their order if needed
-						favoritesData.push({
-							id: fav.id,
-							favorite: 1,
-							favorite_order: fav.favorite_order || null
-						})
-					}
-				})
-	    	} else {
-	    		// Favoriting: use the favorite_order values already in assetList (assigned synchronously)
-	    		// This ensures consistency between what's displayed and what's saved
-	    		favoritesData = favorites.map((asset) => {
-	    			// Use the favorite_order from assetList (which was assigned synchronously)
-	    			// All favorites in the list should have a valid favorite_order at this point
-	    			return {
-	    				id: asset.id,
-	    				favorite: 1,
-	    				favorite_order: asset.favorite_order || null
-	    			}
-	    		})
-	    		
-	    		// Add all non-favorites with favorite: 0 and favorite_order: null
-	    		nonFavorites.forEach(asset => {
-	    			favoritesData.push({
-	    				id: asset.id,
-	    				favorite: 0,
-	    				favorite_order: null
-	    			})
-	    		})
-	    		
-	    		// Preserve favorites from API that aren't in current view
-	    		currentFavorites.forEach(fav => {
-	    			const isInCurrentView = this.assetList.some(asset => asset.id === fav.id)
-	    			if (!isInCurrentView && (fav.favorite === 1 || fav.favorite === true)) {
-		    				favoritesData.push({
-		    					id: fav.id,
-		    					favorite: 1,
-		    					favorite_order: fav.favorite_order || null
-		    				})
-		    			}
-		    		})
-		    	}
-		    	
-		    	// Save all assets with favorite_order to preserve ordering
-		    	await assetSettings.saveFavorites(favoritesData, {
-		    		walletHash: this.isCashToken ? undefined : slpWalletHash
-		    	})
+    		// Build favorites data from current state
+    		const slpWalletHash = this.wallet?.SLP?.walletHash || this.wallet?.slp?.walletHash
+    		const currentFavorites = await assetSettings.fetchFavorites({
+    			forceRefresh: true,
+    			walletHash: this.isCashToken ? undefined : slpWalletHash
+    		})
+    		const apiFavorites = Array.isArray(currentFavorites) ? currentFavorites : []
+
+    		// Build the full favorites list to save
+    		// Favorites in current view get sequential orders; out-of-view favorites follow
+    		const inViewFavorites = this.assetList.filter(a => a.favorite === 1 || a.favorite === true)
+    		const inViewNonFavorites = this.assetList.filter(a => a.favorite === 0 || a.favorite === false)
+    		const inViewIds = new Set(this.assetList.map(a => a.id))
+
+    		let order = 1
+    		const favoritesData = inViewFavorites.map(a => ({
+    			id: a.id,
+    			favorite: 1,
+    			favorite_order: order++
+    		}))
+
+    		inViewNonFavorites.forEach(a => {
+    			favoritesData.push({ id: a.id, favorite: 0, favorite_order: null })
+    		})
+
+    		// Preserve out-of-view favorites (zero balance, etc.) with non-conflicting orders
+    		apiFavorites.forEach(fav => {
+    			if (!inViewIds.has(fav.id) && (fav.favorite === 1 || fav.favorite === true)) {
+    				favoritesData.push({ id: fav.id, favorite: 1, favorite_order: order++ })
+    			}
+    		})
+
+    		await assetSettings.saveFavorites(favoritesData, {
+    			walletHash: this.isCashToken ? undefined : slpWalletHash
+    		})
+
+    		// Reload from API to get the correct ordering (source of truth)
+    		await this.loadData(true)
     	} finally {
     		this.favoriteLoading = { ...this.favoriteLoading, [favAsset.id]: false }
     	}
-	    },
+    },
 	    getWallet (type) {
 	      return this.$store.getters['global/getWallet'](type)
 	    },
@@ -933,51 +765,99 @@ export default {
   padding-bottom: calc(140px + env(safe-area-inset-bottom));
 }
 
-.drag-handle {
-  cursor: grab;
+// ---- Asset row (matching apps list design) ----
+.asset-row {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 12px 10px;
+  cursor: default;
+  position: relative;
+  -webkit-user-select: none;
   user-select: none;
-  padding: 0 !important;
-  min-width: 30px !important;
-  
-  &:active {
-    cursor: grabbing;
+  border-radius: 10px;
+  transition: background 0.15s ease, opacity 0.15s ease;
+
+  &.dark {
+    background: rgba(255,255,255,0.03);
+    &:active { background: rgba(255,255,255,0.08); }
   }
-  
-  .q-icon {
-    opacity: 0.5;
-    transition: opacity 0.2s ease;
-  }
-  
-  &:hover .q-icon {
-    opacity: 0.8;
+  &.light {
+    background: rgba(0,0,0,0.025);
+    &:active { background: rgba(0,0,0,0.06); }
   }
 }
 
-.hide-btn {
-  cursor: pointer;
-  user-select: none;
-  padding: 0 !important;
-  min-width: 30px !important;
+.asset-row-hidden {
+  opacity: 0.5;
+}
 
+.asset-left {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 48px;
+  cursor: pointer;
   .q-icon {
     opacity: 0.4;
     transition: opacity 0.2s ease;
   }
-
-  &:hover .q-icon {
-    opacity: 0.8;
+  &:hover .q-icon { opacity: 0.8; }
+  &.drag-handle {
+    cursor: grab;
+    &:active { cursor: grabbing; }
+    .q-icon { opacity: 0.5; }
+    &:hover .q-icon { opacity: 0.8; }
   }
 }
 
-.asset-card {
-  &.has-drag-handle:hover .drag-handle .q-icon {
-    opacity: 0.7;
-  }
-  
-  // Non-favorites should not appear draggable
-  &:not(.has-drag-handle) {
-    cursor: default;
-  }
+.asset-icon-tile {
+  flex-shrink: 0;
+  width: 48px;
+  height: 48px;
+  border-radius: 14px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+}
+
+.asset-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.asset-name {
+  font-size: 15px;
+  font-weight: 600;
+  line-height: 1.3;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  &.dark { color: #ffffff; }
+  &.light { color: #000000; }
+}
+
+.asset-balance {
+  font-size: 12px;
+  font-weight: 400;
+  line-height: 1.4;
+  margin-top: 2px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  &.dark { color: rgba(255,255,255,0.75); }
+  &.light { color: rgba(0,0,0,0.65); }
+}
+
+.asset-right {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  position: relative;
 }
 
 .banner {
@@ -991,26 +871,20 @@ export default {
 // Smooth transition animation for reordering
 .asset-list-transition {
   transition: all 0.6s ease;
-  
-  .q-card {
-    transition: all 0.6s cubic-bezier(0.25, 0.8, 0.25, 1);
-    transition-property: transform, opacity;
-  }
 }
 
 // Animation classes for sortable.js
 :deep(.sortable-ghost) {
-  opacity: 0.4;
-  transform: scale(1.02);
+  opacity: 0.3;
+  transform: scale(0.95);
 }
 
 :deep(.sortable-drag) {
-  opacity: 0.8;
+  opacity: 0.9;
   transform: scale(1.05);
   box-shadow: 0 8px 16px rgba(0, 0, 0, 0.2);
   z-index: 1000;
-  
-  .drag-handle {
+  .asset-left.drag-handle {
     cursor: grabbing !important;
   }
 }
@@ -1021,11 +895,11 @@ export default {
 
 // Swipe-to-delete styling
 :deep(.q-slide-item) {
-  overflow: visible;
+  overflow: hidden;
+  border-radius: 10px;
 }
 
 :deep(.q-slide-item__content) {
-  border-radius: 0;
   overflow: visible;
 }
 
@@ -1046,10 +920,5 @@ export default {
   &:hover { opacity: 0.8; }
   &.dark { color: rgba(255,255,255,0.6); }
   &.light { color: rgba(0,0,0,0.5); }
-}
-
-.asset-card-hidden {
-  opacity: 0.5;
-  border-radius: 15px;
 }
 </style>

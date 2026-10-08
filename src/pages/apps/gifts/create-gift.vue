@@ -423,6 +423,7 @@
           :custom-keyboard-state="customKeyboardState"
           v-on:addKey="setAmount"
           v-on:makeKeyAction="makeKeyAction"
+          @backPressed="customKeyboardState = 'dismiss'"
         />
       </div>
     </div>
@@ -1532,7 +1533,7 @@ export default {
       }
     },
     async fetchCampaigns() {
-      const mnemonic = await getMnemonic(this.$store.getters['global/getWalletIndex'])
+      const mnemonic = await getMnemonic(this.$store.getters['global/getWalletIndex']).catch(() => null)
       this.wallet = new Wallet(mnemonic)
       let walletHash = this.$store.getters['global/getWallet']?.('bch')?.walletHash
       if (!walletHash) {

@@ -458,7 +458,7 @@ export default {
           this.handleRequestError(error)
           return Promise.reject(error)
         })
-      bus.emit('update-unread-count', response.unread_count)
+      bus.emit('update-ongoing-count', response.ongoing_count)
     },
     receiveDialog (data, type = 'filter') {
       const vm = this
@@ -624,6 +624,11 @@ export default {
       await vm.resetAndRefetchListings()
     },
     handleRequestError (error) {
+      // Suppress ECONNABORTED — these are XHR aborts from navigation
+      // (requestManager.abortAll), not actual HTTP timeouts. No timeout is
+      // configured on the backend axios instance, so ECONNABORTED can only
+      // come from a navigation-triggered abort.
+      if (error?.code === 'ECONNABORTED') return
       bus.emit('handle-request-error', error)
     }
   }

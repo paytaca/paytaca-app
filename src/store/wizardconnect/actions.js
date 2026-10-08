@@ -3,6 +3,9 @@ import Watchtower from 'src/lib/watchtower'
 import { Notify } from 'quasar'
 import { ensureBuffer } from 'src/wallet/wizardconnect/advance-subscription'
 
+const isDev = process.env.NODE_ENV !== 'production'
+const debug = (...args) => { if (isDev) console.log('[WizardConnect]', ...args) }
+
 function getStorageKey(walletHash) {
   if (!walletHash) return null
   return `paytaca:wizardConnectUris:${walletHash}`
@@ -73,7 +76,7 @@ export async function init ({ commit, dispatch, rootGetters, state }) {
     manager = await wizardConnectService.getManager()
   } catch (err) {
     // No wallet created yet — skip initialization silently
-    console.log('WizardConnect: skipping init (no wallet):', err.message)
+    debug('skipping init (no wallet):', err.message)
     return
   }
 
@@ -81,7 +84,7 @@ export async function init ({ commit, dispatch, rootGetters, state }) {
   manager.on('connectionStatusChanged', (connectionId) => {
     const conn = manager.getConnections()[connectionId]
     if (!conn) return
-    console.log('WizC[connectionStatusChanged]', connectionId, conn);
+    debug('connectionStatusChanged', connectionId, conn);
     commit('updateConnection', {
       connectionId,
       data: serializeConnection(connectionId, conn)
@@ -96,7 +99,7 @@ export async function init ({ commit, dispatch, rootGetters, state }) {
   manager.off('connectionsChanged');
   manager.on('connectionsChanged', () => {
     const connections = serializeConnections(manager.getConnections())
-    console.log('WizC[connectionsChanged]', connections);
+    debug('connectionsChanged', connections);
     commit('setConnections', connections)
   })
 
@@ -212,12 +215,18 @@ export async function approveRequestWithData ({ commit, dispatch, rootGetters },
     const isChipnet = rootGetters['global/isChipnet'] || false
     const watchtower = new Watchtower(isChipnet)
 
-    if (request.transaction?.broadcast === true) {
-      watchtower.BCH.broadcastTransaction(signedTxHex).catch(err => {
-        console.log('WizardConnect: wallet-side broadcast (redundant) failed or tx already known:', err)
+    const broadcastResponse = await watchtower.BCH.broadcastTransaction(signedTxHex)
+    if (!broadcastResponse?.data?.success) {
+      console.error('WizardConnect: broadcast failed:', broadcastResponse)
+      Notify.create({
+        type: 'negative',
+        message: broadcastResponse?.data?.error || 'Broadcast failed',
+        timeout: 5000
       })
+      await wizardConnectService.sendSignError(connectionId, sequence, broadcastResponse?.data?.error || 'Broadcast failed')
+      return
     }
-    
+
     await wizardConnectService.sendSignResponse(connectionId, sequence, signedTxHex)
     
     // After transaction, check buffer (delayed to allow backend to process)
@@ -226,6 +235,11 @@ export async function approveRequestWithData ({ commit, dispatch, rootGetters },
     }, 2000)
   } catch (err) {
     console.error('WizardConnect: sign error:', err)
+    Notify.create({
+      type: 'negative',
+      message: err.message || 'Failed to sign transaction',
+      timeout: 5000
+    })
     try {
       await wizardConnectService.sendSignError(connectionId, sequence, err.message || 'Signing failed')
     } catch {
@@ -284,40 +298,40 @@ export function handleRemoteDisconnect ({ commit, state, rootGetters }, { connec
  * Ensure advance subscription buffer is maintained
  */
 export async function ensureAddressBuffer ({ rootGetters, state }) {
-  console.log('[WizardConnect] ensureAddressBuffer called')
-  
+  debug('ensureAddressBuffer called')
+
   // Only run if we have active connections
   if (!state.connections || Object.keys(state.connections).length === 0) {
-    console.log('[WizardConnect] No active connections, skipping buffer check')
+    debug('No active connections, skipping buffer check')
     return
   }
-  
+
   const isChipnet = rootGetters['global/isChipnet'] || false
   const walletHash = rootGetters['global/getWallet']?.('bch')?.walletHash
-  
-  console.log('[WizardConnect] Buffer check - walletHash:', walletHash, 'isChipnet:', isChipnet)
-  
+
+  debug('Buffer check - walletHash:', walletHash, 'isChipnet:', isChipnet)
+
   if (!walletHash) {
-    console.log('[WizardConnect] No wallet hash, skipping buffer check')
+    debug('No wallet hash, skipping buffer check')
     return
   }
-  
+
   try {
     const watchtower = new Watchtower(isChipnet)
     const hdNodes = await wizardConnectService.ensureHdNodes()
-    
+
     if (!hdNodes) {
       console.warn('[WizardConnect] Could not get HD nodes for buffer check')
       return
     }
-    
-    console.log('[WizardConnect] HD nodes ready, calling ensureBuffer...')
-    
+
+    debug('HD nodes ready, calling ensureBuffer...')
+
     const prefix = isChipnet ? 'bchtest' : 'bitcoincash'
     const result = await ensureBuffer(watchtower, walletHash, hdNodes, prefix)
-    
+
     if (result.success && result.subscribed > 0) {
-      console.log(`[WizardConnect] ${result.message}`)
+      debug(result.message)
     }
   } catch (err) {
     console.error('[WizardConnect] Buffer check failed:', err)

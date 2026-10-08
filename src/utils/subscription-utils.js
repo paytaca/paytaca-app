@@ -54,6 +54,9 @@ export async function checkLiftTokenBalance () {
         if (error?.response?.status === 404 || error?.message?.includes('404')) {
           return 0
         }
+        if (error?.code === 'ECONNABORTED') {
+          return 0
+        }
         console.debug(`LIFT token balance check failed for wallet ${walletHash}:`, error)
         return 0
       }
@@ -67,7 +70,9 @@ export async function checkLiftTokenBalance () {
     
     return totalBalance
   } catch (error) {
-    console.error('Error checking total LIFT token balance:', error)
+    if (error?.code !== 'ECONNABORTED') {
+      console.error('Error checking total LIFT token balance:', error)
+    }
     return 0
   }
 }

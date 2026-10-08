@@ -163,6 +163,7 @@ import { parseAssetDenomination, parseFiatCurrency, formatWithLocale } from 'src
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 import { getExplorerLink } from 'src/utils/send-page-utils'
 import { hexToRef as hexToRefUtil } from 'src/utils/reference-id-utils'
+import { parseRouteString } from 'src/router/utils'
 import { useI18n } from 'vue-i18n'
 
 const { t: $t } = useI18n();
@@ -171,6 +172,8 @@ const $route = useRoute()
 const $router = useRouter()
 
 const darkMode = computed(() => $store.getters['darkmode/getStatus'])
+const isChipnet = computed(() => $store.getters['global/isChipnet'])
+
 
 const props = defineProps({
   txid: String,
@@ -226,7 +229,7 @@ const backNavPath = computed(() => {
     }
     return { name: 'transaction-detail', query }
   }
-  return '/transaction/list'
+  return parseRouteString(props.from) || '/transaction/list'
 })
 
 const transactionId = computed(() => props.txid || '')
@@ -311,8 +314,8 @@ async function fetchAllHistories () {
   loadError.value = ''
 
   try {
-    const baseUrl = getWatchtowerApiUrl()
-    const params = { all: true, txids: props.txid };
+    const baseUrl = getWatchtowerApiUrl(isChipnet.value)
+    const params = { all: true, txids: props.txid, exclude: 'senders,recipients' };
     const url = `${baseUrl}/history/wallet/${encodeURIComponent(walletHash.value)}/`
     const response = await axios.get(url, { params });
     const data = response?.data?.history || response?.data || []

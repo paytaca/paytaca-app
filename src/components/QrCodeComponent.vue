@@ -1,11 +1,8 @@
 <template>
   <div class="col row justify-center qr">
-    <div
-      class="qr-wrap q-mb-sm"
-      :style="{ width: wrapperSize + 'px', height: wrapperSize + 'px' }"
-    >
+    <div class="qr-wrap q-mb-sm">
       <div class="qr-layer qr-skeleton" v-show="loading">
-        <q-skeleton style="border-radius: 12px;" :height="wrapperSize + 'px'" :width="wrapperSize + 'px'"/>
+        <q-skeleton class="qr-skeleton-box"/>
       </div>
 
       <div class="qr-layer">
@@ -180,10 +177,6 @@ export default {
           const svgDoc = parser.parseFromString(qrcode.svg(), "image/svg+xml")
           const svgElement = svgDoc.documentElement
 
-          // Set explicit size to prevent overflow on mobile
-          svgElement.setAttribute('width', vm.size)
-          svgElement.setAttribute('height', vm.size)
-
           // Prepare fade-in to avoid flicker
           svgElement.style.opacity = '0'
           svgElement.style.willChange = 'opacity'
@@ -230,6 +223,14 @@ export default {
 
 .qr-wrap {
   position: relative;
+  width: min(v-bind(wrapperSize + 'px'), 100%);
+  aspect-ratio: 1;
+}
+
+.qr-skeleton-box {
+  border-radius: 12px;
+  width: 100%;
+  height: 100%;
 }
 .qr-layer {
   position: absolute;
@@ -241,14 +242,15 @@ export default {
 .qr-canvas {
   position: relative;
   z-index: 2;
+  width: 100%;
+  height: 100%;
 }
 
 .qr svg {
   display: block;
-  width: auto;
-  height: auto;
-  max-width: 100%;
-  max-height: 100%;
+  box-sizing: border-box;
+  width: 100%;
+  height: 100%;
   padding: v-bind(padding + 'px');
   background-color: white;
   border-radius: 10px;

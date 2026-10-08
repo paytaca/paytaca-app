@@ -244,7 +244,7 @@
                         <points-badge
                           :complete="hasReceivedFirstTxBonus"
                           :dark-mode-class="getDarkModeClass(darkMode)"
-                          :points="5"
+                          :points="firstTxBonusPointsReceived"
                         />
                       </div>
                     </q-card-section>
@@ -511,9 +511,9 @@ import {
   PromosBytes,
   // awardInitialUP,
   getUserRewardsData,
-  updateUserPromoData,
   updateUserRewardsData,
   createUserRewardsData,
+  PROMO_CONTRACT_VERSION,
 } from 'src/utils/engagementhub-utils/rewards'
 
 import HeaderNav from 'src/components/header-nav.vue'
@@ -562,13 +562,14 @@ export default {
       dataError: '',
 
       hasReceivedFirstTxBonus: false,
+      firstTxBonusPointsReceived: 0,
       firstTxDate: null,
       isFirstSevenComplete: false,
       isFirstTimeUser: true,
       hasReceivedFirstVisitBonus: false,
-      has_viewed_page: false,
       dateJoined: '',
       urContract: null,
+      urContractVersion: '',
 
       // continuous points data grouped by type
       continuousPoints: {
@@ -674,13 +675,32 @@ export default {
       this.dataError = ''
 
       this.urId = Number(this.$route.params.id || -1)
+      const isNewUrUser = this.urId === -1
+      
+      // fetch and load data
+      let urData = null
+      if (this.urId === -1) {
+        // new user; create and update necessary data
+        urData = await createUserRewardsData()
+        if (!urData) {
+          this.dataError = this.$t('DataLoadError')
+          this.isLoading = false
+          return
+        }
+        this.urId = urData.id
+        await this.$router.replace({ params: { id: String(urData.id) } })
+      } else {
+        urData = await getUserRewardsData(this.urId)
+      }
 
       // initialize UR Promo Contract and retrieve points
       try {
         const walletIndex = this.$store.getters['global/getWalletIndex']
         const userPubkey = await getAddress0_0PublicKey(walletIndex)
-        this.urContract = new PromoContract(userPubkey, PromosBytes.UR)
-        if (this.urId === -1) await this.urContract.subscribeAddress()
+        const contractVersion = urData?.contract_version ?? PROMO_CONTRACT_VERSION
+        this.urContractVersion = contractVersion
+        this.urContract = new PromoContract(userPubkey, PromosBytes.UR, contractVersion)
+        if (isNewUrUser) await this.urContract.subscribeAddress()
         this.points = await this.urContract.getTokenBalance()
         this.animatePointsCounter()
       } catch (error) {
@@ -688,26 +708,7 @@ export default {
         this.pointsError = this.$t('PointsLoadError')
       }
       
-      // fetch and load data
-      let urData = null
-      if (this.urId === -1) {
-        // new user; create and update necessary data
-        urData = await createUserRewardsData()
-        this.urId = urData.id
-        this.$router.replace({ params: { id: String(urData.id) } })
-        Promise.allSettled([
-          updateUserPromoData({ ur: urData.id }),
-          updateUserRewardsData(urData.id, {
-            contract_ct_address: this.urContract.contract.tokenAddress
-          })
-        ])
-      } else {
-        urData = await getUserRewardsData(this.urId)
-      }
-      
       if (urData && Object.keys(urData).length > 0) {
-        this.has_viewed_page = urData.has_viewed_page
-
         if (!urData.has_viewed_page) {
           // mark has_viewed_page to true
           urData = await updateUserRewardsData(this.urId, {
@@ -716,7 +717,8 @@ export default {
           })
 
           // send 5 initial points when user is a first time user and was referred
-          if (urData.is_first_time_user) {
+          /*
+          if (urData && urData.is_first_time_user) {
             // await awardInitialUP({ ur_id: this.urId }) // temporarily disabled
             urData = await getUserRewardsData(this.urId)
             // sleep to allow utxos to update
@@ -724,13 +726,18 @@ export default {
             this.points = await this.urContract.getTokenBalance()
             this.animatePointsCounter()
           }
+          */
 
           // display help dialog if has_viewed_page is false
           this.isOneTimeSectionExpanded = false
           this.isHelpActive = true
         }
 
-        this.propagateData(urData)
+        if (urData) {
+          this.propagateData(urData)
+        } else {
+          this.dataError = this.$t('DataLoadError')
+        }
       } else {
         this.dataError = this.$t('DataLoadError')
       }
@@ -743,6 +750,7 @@ export default {
       this.isFirstSevenComplete = urData.is_first_seven_complete
       // this.hasReceivedFirstVisitBonus = urData.has_received_first_visit_bonus
       this.hasReceivedFirstTxBonus = urData.has_received_first_tx_bonus
+      this.firstTxBonusPointsReceived = urData.first_tx_bonus_points_received
       this.firstTxDate = urData.first_tx_date
       this.dateJoined = urData.date_joined
 
@@ -828,7 +836,8 @@ export default {
         componentProps: {
           promoId: this.urId,
           promoType: Promos.USERREWARDS,
-          promoBytes: PromosBytes.UR
+          promoBytes: PromosBytes.UR,
+          contractVersion: this.urContractVersion
         }
       }).onDismiss(async () => {
         this.isLoading = true

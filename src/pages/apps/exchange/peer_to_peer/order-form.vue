@@ -275,6 +275,7 @@
           :custom-keyboard-state="customKeyboardState"
           v-on:addKey="setAmount"
           v-on:makeKeyAction="makeKeyAction"
+          @backPressed="customKeyboardState = 'dismiss'"
         />
       </div>
     </div>
@@ -1050,11 +1051,9 @@ export default {
       })
     },
     handleRequestError (error) {
+      if (error.code === 'ECONNABORTED') return
       console.error(error?.response || error)
-      if (error.code === 'ECONNABORTED') {
-        // Request timeout
-        this.showErrorDialog('Request timed out. Please try again later.')
-      } else if (!error.response) {
+      if (!error.response) {
         // Network error
         bus.emit('network-error')
       } else {

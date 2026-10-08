@@ -8,7 +8,7 @@
               class="row q-px-sm q-pt-sm"
             >
               <div data-tour="wallet-opener" class="col">
-                <MultiWalletDropdown ref="multi-wallet-component"/>
+                <MultiWalletDropdown/>
               </div>
               <div class="row items-center justify-end q-gutter-md">
                 <q-btn
@@ -21,7 +21,6 @@
                   @click="startHomeTour(false)"
                 />
                 <NotificationButton
-                  @hide-multi-wallet-dialog="hideMultiWalletDialog"
                   @find-and-open-transaction="findAndOpenTransaction"
                 />
               </div>
@@ -196,6 +195,7 @@
               :wallet="wallet"
               :isCashToken="isCashToken"
               :currentCountry="currentCountry"
+              :has-more-tokens="hasMoreTokens"
               :is-loading-initial="isLoadingAssets && !hasTokensButNoFavorites"
               @select-asset="asset => setSelectedAsset(asset)"
               @show-asset-info="asset => showAssetInfo(asset)"
@@ -219,6 +219,7 @@
               :wallet="wallet"
               :isCashToken="isCashToken"
               :currentCountry="currentCountry"
+              :has-more-tokens="hasMoreTokens"
               :is-loading-initial="isLoadingAssets && !hasTokensButNoFavorites"
               @select-asset="asset => setSelectedAsset(asset)"
               @show-asset-info="asset => showAssetInfo(asset)"
@@ -275,6 +276,7 @@
             ref="latest-transactions"
             :wallet="wallet"
             :denominationTabSelected="denominationTabSelected"
+            :favoriteTokenIds="favoriteTokenIds"
             data-tour="transactions"
             :tutorialMode="homeTour.active"
             :tutorialStepId="homeTour.steps?.[homeTour.stepIndex]?.id"
@@ -404,16 +406,15 @@
 
 <script>
 import { mapState } from 'vuex'
+import { getWeb3Wallet, isWalletConnectInitialized } from 'src/wallet/walletconnect2'
 import Watchtower from 'watchtower-cash-js'
 import walletAssetsMixin from '../../mixins/wallet-assets-mixin.js'
 import { markRaw } from '@vue/reactivity'
 import { bus } from 'src/wallet/event-bus'
-import { getMnemonic } from '../../wallet'
+import { getMnemonic, getPin } from '../../wallet'
 import { getWalletByNetwork } from 'src/wallet/chipnet'
 import { dragscroll } from 'vue-dragscroll'
 import { NativeBiometric } from 'capacitor-native-biometric'
-import { SecureStoragePlugin } from 'capacitor-secure-storage-plugin'
-import { sha256 } from 'js-sha256'
 import { getAssetDenomination, parseAssetDenomination, parseFiatCurrency } from 'src/utils/denomination-utils'
 import { getDarkModeClass, isHongKong } from 'src/utils/theme-darkmode-utils'
 import { getBackendWsUrl, backend } from 'src/exchange/backend'
@@ -639,8 +640,8 @@ export default {
       if (!this.balanceLoaded && this.selectedAsset?.id === this?.bchAsset?.id) return '0'
       const currentDenomination = this.selectedDenomination
       
-      // Use aggregated balance if mode is 'bch+favorites', otherwise use BCH balance only
-      const balance = this.bchBalanceMode === 'bch+favorites' 
+      // Use aggregated balance if mode includes favorites, otherwise use BCH balance only
+      const balance = this.bchBalanceMode !== 'bch-only' 
         ? this.aggregatedBchBalance 
         : this.bchAsset.balance
 
@@ -664,45 +665,31 @@ export default {
     assets () {
       const vm = this
 
-      // Token cards display the first N tokens received in the wallet
-      // (7 for Paytaca Free, 24 for Paytaca Plus) with favorites prioritized.
-      // For both CashTokens and SLP, use Watchtower API responses (not Vuex store)
-      // because the API includes `favorite` and `favorite_order`.
-      
-      // Get the limit based on subscription tier
-      const limit = this.$store.getters['subscription/getLimit']('favoriteTokens')
-      
+      // Number of token cards follows the wallet's subscription tier limit
+      // (7 for Free, 24 for Plus). The API returns tokens ordered with
+      // favorites first (by favorite_order) then non-favorites, so slicing the
+      // first N naturally shows favorites first and fills with non-favorites.
+      const limit = this.$store.getters['subscription/getLimit']('favoriteTokens') || 7
+
       const allTokens = vm.isCashToken
         ? (this.allTokensFromAPI || [])
         : (this.allSlpTokensFromAPI || [])
-      
-      // Sort tokens: favorites first (ordered by favorite_order), then non-favorites
-      const sortedTokens = [...allTokens].sort((a, b) => {
-        const aIsFavorite = a.favorite === 1 || a.favorite === true
-        const bIsFavorite = b.favorite === 1 || b.favorite === true
-        
-        // Favorites come first
-        if (aIsFavorite && !bIsFavorite) return -1
-        if (!aIsFavorite && bIsFavorite) return 1
-        
-        // Both favorites: sort by favorite_order (lower order first)
-        if (aIsFavorite && bIsFavorite) {
-          const aOrder = a.favorite_order ?? Number.MAX_SAFE_INTEGER
-          const bOrder = b.favorite_order ?? Number.MAX_SAFE_INTEGER
-          return aOrder - bOrder
-        }
-        
-        // Neither is a favorite: maintain original order (by receive time from API)
-        return 0
-      })
-      
-      // Filter out hidden tokens, then return the first N based on subscription limit
+
+      // Filter out hidden tokens, then return the first N
       const bchWalletHash = this.wallet?.BCH?.walletHash || this.wallet?.bch?.walletHash || ''
       const hiddenIds = getHiddenAssetIds(bchWalletHash)
       if (hiddenIds.length) {
-        return sortedTokens.filter(t => !hiddenIds.includes(t.id)).slice(0, limit)
+        return allTokens.filter(t => !hiddenIds.includes(t.id)).slice(0, limit)
       }
-      return sortedTokens.slice(0, limit)
+      return allTokens.slice(0, limit)
+    },
+    hasMoreTokens() {
+      // The View All card is shown whenever the wallet holds more than 7 tokens
+      // total, regardless of subscription tier.
+      const allTokens = this.isCashToken
+        ? (this.allTokensFromAPI || [])
+        : (this.allSlpTokensFromAPI || [])
+      return allTokens.length > 7
     },
     tokenCardsAssets () {
       // Show temporary dummy tokens ONLY while the tutorial is active
@@ -773,7 +760,8 @@ export default {
     balanceModeOptions () {
       return [
         { label: this.$t('BCHOnly', {}, 'BCH only'), value: 'bch-only' },
-        { label: this.$t('BCHPlusFavorites', {}, 'BCH + favorite tokens'), value: 'bch+favorites' }
+        { label: this.$t('BCHPlusFavorites', {}, 'BCH + favorite tokens'), value: 'bch+favorites' },
+        { label: this.$t('FavoritesOnly', {}, 'Favorite tokens only'), value: 'favorites-only' }
       ]
     },
     currentBalanceModeLabel () {
@@ -789,29 +777,22 @@ export default {
       return (this.allSlpTokensFromAPI || []).filter(token => token.favorite === 1 || token.favorite === true)
     },
     aggregatedBchBalance () {
-      // If mode is 'bch-only', just return BCH balance in satoshis
-      if (this.bchBalanceMode !== 'bch+favorites') {
+      if (this.bchBalanceMode === 'bch-only') {
         return Number(this.bchAsset?.balance || 0)
       }
 
-      // Get BCH price in fiat
       const bchPriceInFiat = this.$store.getters['market/getAssetPrice']('bch', this.selectedMarketCurrency)
       if (!bchPriceInFiat || bchPriceInFiat === 0) {
-        // If BCH price not available, return BCH balance only
         return Number(this.bchAsset?.balance || 0)
       }
 
-      // Get BCH balance - balance is already in BCH units
       const bchBalanceInBch = Number(this.bchAsset?.balance || 0)
-      let totalBalanceInBch = bchBalanceInBch
+      let totalBalanceInBch = this.bchBalanceMode === 'bch+favorites' ? bchBalanceInBch : 0
 
-      // Get favorite tokens
       const favoriteAssets = this.favoriteTokens
 
-      // Calculate aggregated balance - sum all values in BCH
       for (const token of favoriteAssets) {
         try {
-          // Get token balance and account for decimals
           let tokenBalance = Number(token.balance || 0)
           if (token.decimals) {
             const decimals = parseInt(token.decimals) || 0
@@ -820,57 +801,44 @@ export default {
             }
           }
 
-          // Get token price in fiat
           const tokenPriceInFiat = this.$store.getters['market/getAssetPrice'](token.id, this.selectedMarketCurrency)
           if (!tokenPriceInFiat || tokenPriceInFiat === 0) {
-            // Skip tokens without prices
             continue
           }
 
-          // Calculate token value in BCH: (tokenBalance * tokenPriceInFiat) / bchPriceInFiat
           const tokenValueInBch = (tokenBalance * tokenPriceInFiat) / bchPriceInFiat
-          
-          // Add to total in BCH
           totalBalanceInBch += tokenValueInBch
         } catch (error) {
-          // Skip tokens with errors
           console.debug('Error calculating token value for aggregated balance:', token.id, error)
           continue
         }
       }
 
-      // Return total in BCH (balance is already in BCH units)
       return totalBalanceInBch
     },
     aggregatedFiatValue () {
-      if (this.bchBalanceMode !== 'bch+favorites') {
+      if (this.bchBalanceMode === 'bch-only') {
         return this.getAssetMarketBalance(this.bchAsset)
       }
 
-      // Start with BCH balance fiat conversion
       const bchBalance = Number(this.bchAsset?.balance || 0)
       const bchPriceInFiat = this.$store.getters['market/getAssetPrice']('bch', this.selectedMarketCurrency)
-      
+
       if (!bchPriceInFiat || bchPriceInFiat === 0) {
-        // While currency is switching/refreshing, show a safe placeholder instead of stale values.
         if (this.isMarketUpdating || (this.pendingCurrencySymbol && this.pendingCurrencySymbol === String(this.selectedMarketCurrency || '').toUpperCase())) {
           return '—'
         }
         return ''
       }
 
-      // BCH balance is already in BCH units, not satoshis
       const bchBalanceInBch = bchBalance
       const bchFiatValue = bchBalanceInBch * Number(bchPriceInFiat)
-      let totalFiatValue = bchFiatValue
+      let totalFiatValue = this.bchBalanceMode === 'bch+favorites' ? bchFiatValue : 0
 
-      // Get favorite tokens
       const favoriteAssets = this.favoriteTokens
 
-      // Add fiat conversion of each token balance directly
       for (const token of favoriteAssets) {
         try {
-          // Get token balance and account for decimals
           let tokenBalance = Number(token.balance || 0)
           if (token.decimals) {
             const decimals = parseInt(token.decimals) || 0
@@ -879,19 +847,14 @@ export default {
             }
           }
 
-          // Get token price in fiat
           const tokenPriceInFiat = this.$store.getters['market/getAssetPrice'](token.id, this.selectedMarketCurrency)
           if (!tokenPriceInFiat || tokenPriceInFiat === 0) {
-            // Skip tokens without prices
             continue
           }
 
-          // Calculate token value in fiat directly: tokenBalance * tokenPriceInFiat
           const tokenValueInFiat = tokenBalance * tokenPriceInFiat
-          
           totalFiatValue += tokenValueInFiat
         } catch (error) {
-          // Skip tokens with errors
           console.debug('Error calculating token fiat value for aggregated balance:', token.id, error)
           continue
         }
@@ -1485,10 +1448,12 @@ export default {
         return []
       }
     },
-    async onRefresh (done) {
+    async onRefresh (done, skipConnectivity) {
       try {
         // Refresh wallet balances and token icons
-        await this.onConnectivityChange(true)
+        if (!skipConnectivity) {
+          await this.onConnectivityChange(true)
+        }
         
         // Fetch favorite tokens from API (includes balances for CashTokens)
         await this.refreshFavoriteTokenBalances()
@@ -1506,10 +1471,7 @@ export default {
         
         // Refresh WalletConnect session requests
         this.$store.dispatch('walletconnect/loadSessionRequests')
-        
-        // Refresh WizardConnect (re-init to restore connections and receive pending requests)
-        this.$store.dispatch('wizardconnect/init')
-        
+
         // Refresh latest transactions
         if (this.$refs['latest-transactions']) {
           await this.$refs['latest-transactions'].refresh()
@@ -1635,8 +1597,8 @@ export default {
     getAssetMarketBalance (asset) {
       if (!asset?.id) return ''
 
-      // If BCH and mode is 'bch+favorites', return aggregated fiat value
-      if (asset.id === 'bch' && this.bchBalanceMode === 'bch+favorites') {
+      // If BCH and mode includes favorites, return aggregated fiat value
+      if (asset.id === 'bch' && this.bchBalanceMode !== 'bch-only') {
         return this.aggregatedFiatValue
       }
 
@@ -1676,7 +1638,6 @@ export default {
     },
     showTransactionDetails (transaction) {
       const vm = this
-      vm.hideMultiWalletDialog()
       vm.hideAssetInfo()
       // const txCheck = setInterval(function () {
       //   if (transaction) {
@@ -1954,30 +1915,23 @@ export default {
             }
           })
 
-          // Still need to refresh BCH balance separately
-          return vm.getBalance('bch')
-            .catch(error => {
-              console.error('Error refreshing BCH balance:', error)
-              return null
-            })
+          // BCH balance is already fetched by the caller (onConnectivityChange),
+          // no need to call getBalance again here.
+          return Promise.resolve()
         } else {
           // For SLP, refresh token list from Watchtower and refresh BCH balance.
           await vm.fetchSlpTokensFromServer()
           if (!vm.refreshingTokenIds.includes('bch')) {
             vm.refreshingTokenIds.push('bch')
           }
-          
-          return vm.getBalance('bch')
-            .catch(error => {
-              console.error('Error refreshing BCH balance:', error)
-              return null
-            })
-            .finally(() => {
-              const index = vm.refreshingTokenIds.indexOf('bch')
-              if (index > -1) {
-                vm.refreshingTokenIds.splice(index, 1)
-              }
-            })
+
+          // BCH balance is already fetched by the caller (onConnectivityChange),
+          // no need to call getBalance again here.
+          const index = vm.refreshingTokenIds.indexOf('bch')
+          if (index > -1) {
+            vm.refreshingTokenIds.splice(index, 1)
+          }
+          return Promise.resolve()
         }
       } catch (error) {
         console.error('Error refreshing favorite token balances:', error)
@@ -1997,18 +1951,13 @@ export default {
         // Always include BCH (id: 'bch')
         const tokensToRefresh = [...new Set([...displayedTokenIds, 'bch'])]
 
-        // Refresh prices for all displayed tokens + BCH using unified API
-        const pricePromises = tokensToRefresh.map(assetId => {
-          return vm.$store.dispatch('market/updateAssetPrices', {
-            assetId: assetId,
-            clearExisting: false
-          }).catch(error => {
-            console.error(`Error refreshing price for ${assetId}:`, error)
-            return null
-          })
+        // Batch all token IDs into a single API call instead of N individual requests
+        await vm.$store.dispatch('market/updateAssetPrices', {
+          assetId: tokensToRefresh,
+          clearExisting: false
+        }).catch(error => {
+          console.error('Error refreshing token prices:', error)
         })
-
-        return Promise.allSettled(pricePromises)
       } catch (error) {
         console.error('Error refreshing displayed token prices:', error)
         return Promise.resolve()
@@ -2153,7 +2102,7 @@ export default {
         apiPath = isToken ? `history/wallet/${walletHash}/${tokenId}/` : `history/wallet/${walletHash}/`
       }
 
-      return watchtower.BCH._api(apiPath, { params: { txids: txid } })
+      return watchtower.BCH._api(apiPath, { params: { txids: txid, exclude: 'senders,recipients' } })
         .then(response => {
           return response?.data?.history?.find?.(tx => tx?.txid === txid)
         })
@@ -2304,24 +2253,10 @@ export default {
       } else if (preferredSecurity === 'pin') {
         // If using PIN, check if it's 6 digits
         const walletIndex = vm.$store.getters['global/getWalletIndex']
-        const mnemonic = await getMnemonic(walletIndex)
-        try {
-          let pin = null
-          try {
-            pin = await SecureStoragePlugin.get({ key: `pin-${sha256(mnemonic)}` })
-          } catch (error) {
-            try {
-              // fallback for retrieving pin using unhashed mnemonic
-              pin = await SecureStoragePlugin.get({ key: `pin ${mnemonic}` })
-            } catch (error1) {
-              // fallback for old process of pin retrieval
-              pin = await SecureStoragePlugin.get({ key: 'pin' })
-            }
-          }
-          if (pin?.value.length < 6) {
-            forceRecreate = true
-          }
-        } catch {
+        const mnemonic = await getMnemonic(walletIndex).catch(() => null)
+        // getPin also migrates the legacy `pin ${mnemonic}` key to the hashed key
+        const pin = await getPin(mnemonic).catch(() => null)
+        if (!pin || pin.length < 6) {
           forceRecreate = true
         }
       }
@@ -2332,9 +2267,6 @@ export default {
       }
 
       return !forceRecreate
-    },
-    hideMultiWalletDialog () {
-      this.$refs['multi-wallet-component'].$refs['multi-wallet-parent'].$refs['multi-wallet'].hide()
     },
     addNewAsset () {
       const vm = this
@@ -2360,6 +2292,7 @@ export default {
       sessionStorage.setItem('backupReminderDismissedTimestamp', Date.now().toString())
       this.alertDismissedForSession = true
       this.showBackupAlert = false
+      this.$store.commit('global/setBackupDialogActive', false)
     },
     goToBackupPage () {
       this.showBackupAlert = false
@@ -2376,6 +2309,7 @@ export default {
             sessionStorage.removeItem('appUpdateDialogActive')
             sessionStorage.removeItem('appUpdateDialogActiveAt')
           } else {
+            this.$store.commit('global/setBackupDialogActive', false)
             return
           }
         }
@@ -2384,6 +2318,7 @@ export default {
       // Don't show if lastBackupTimestamp is already set for this wallet (user has confirmed backup)
       // Each wallet is tracked independently
       if (this.lastBackupTimestamp) {
+        this.$store.commit('global/setBackupDialogActive', false)
         return
       }
 
@@ -2392,6 +2327,7 @@ export default {
       const dismissedTimestamp = sessionStorage.getItem('backupReminderDismissedTimestamp')
       if (dismissedTimestamp) {
         this.alertDismissedForSession = true
+        this.$store.commit('global/setBackupDialogActive', false)
         return
       }
 
@@ -2400,6 +2336,7 @@ export default {
       
       if (isNewWallet) {
         // Show after delay for newly created wallets (4 seconds)
+        this.$store.commit('global/setBackupDialogActive', true)
         this.backupAlertTimeout = setTimeout(() => {
           this.showBackupAlert = true
           // Clear the query parameter after showing
@@ -2407,6 +2344,7 @@ export default {
         }, 4000)
       } else {
         // Show immediately for existing wallets
+        this.$store.commit('global/setBackupDialogActive', true)
         this.showBackupAlert = true
       }
     }
@@ -2423,6 +2361,21 @@ export default {
     if (this.backupAlertTimeout) {
       clearTimeout(this.backupAlertTimeout)
     }
+    // Remove the scoped WC2 session_request listener
+    if (this._wcSessionRequestHandler) {
+      try {
+        const wallet = isWalletConnectInitialized() ? getWeb3Wallet() : null
+        if (wallet) {
+          wallet.off('session_request', this._wcSessionRequestHandler)
+          wallet.off('session_request_expire', this._wcSessionRequestHandler)
+        }
+      } catch (_) {}
+      this._wcSessionRequestHandler = null
+    }
+    // Stop WizardConnect's background buffer check when leaving the home page
+    try {
+      this.$store.dispatch('wizardconnect/stopPeriodicBufferCheck')
+    } catch (_) {}
   },
   created () {
     bus.on('handle-push-notification', this.handleOpenedNotification)
@@ -2546,7 +2499,27 @@ export default {
         console.error('Error loading WalletConnect session requests:', error)
       }
 
-      // Initialize WizardConnect to restore connections and receive pending requests
+      // Register a scoped `session_request` handler on the WC2 singleton so
+      // inbound dApp requests refresh the Pending section while the home page
+      // is active. This (and the WalletConnect page's own handler) are the
+      // only places the handler runs — it is NOT global at boot, so other
+      // pages don't pay the refresh cost.
+      try {
+        const wallet = isWalletConnectInitialized() ? getWeb3Wallet() : null
+        if (wallet) {
+          vm._wcSessionRequestHandler = () => {
+            vm.$store.dispatch('walletconnect/loadSessionRequests').catch(() => {})
+          }
+          wallet.on('session_request', vm._wcSessionRequestHandler)
+          wallet.on('session_request_expire', vm._wcSessionRequestHandler)
+        }
+      } catch (error) {
+        console.error('Error registering WC session_request listener on home page:', error)
+      }
+
+      // Initialize WizardConnect so its manager listeners catch pending sign
+      // requests and surface them in the Pending section. Scoped to the home
+      // page (and the wizard-connect page) rather than running globally at boot.
       try {
         vm.$store.dispatch('wizardconnect/init')
       } catch (error) {
@@ -2570,6 +2543,17 @@ export default {
         // Auto-run home tour only after backup is confirmed.
         this._maybeAutoStartHomeTourAfterBackup()
       }
+
+      // Full refresh after page mounts (especially after wallet switch)
+      // skipConnectivity = true to avoid duplicate onConnectivityChange call
+      // (already called earlier in the mount flow above)
+      // Note: onConnectivityChange(true) above already calls refreshFavoriteTokenBalances()
+      // and refreshDisplayedTokenPrices(), so we only refresh transactions here to avoid
+      // duplicating balance/price fetches and the associated store mutations.
+      if (this.$refs['latest-transactions']) {
+        this.$refs['latest-transactions'].refresh().catch(() => {})
+      }
+      this.pendingTransactionsKey++
     } catch (error) {
       console.error('Error in mounted hook:', error)
       // Ensure loading state is reset even on error

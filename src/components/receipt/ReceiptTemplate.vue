@@ -85,6 +85,7 @@ export default {
     txFeeFormatted: { type: String, default: null },
     hasFee: Boolean,
     txFeeInFiat: { type: [Number, String], default: null },
+    txFeeInFiatFormatted: { type: String, default: '' },
     merchantData: { type: Object, default: null },
     merchantLogoSrc: { type: String, default: '' },
     hasMemo: Boolean,
@@ -164,8 +165,8 @@ export default {
     },
     txFeeString () {
       if (!this.txFeeFormatted) return ''
-      if (this.txFeeInFiat !== null && this.txFeeInFiat !== undefined && !Number.isNaN(Number(this.txFeeInFiat))) {
-        return `${this.txFeeFormatted} (${this.txFeeInFiat})`
+      if (this.txFeeInFiatFormatted) {
+        return `${this.txFeeFormatted} (${this.txFeeInFiatFormatted})`
       }
       return this.txFeeFormatted
     },
@@ -221,6 +222,9 @@ export default {
   margin-bottom: 30px;
   text-align: center;
 }
+.receipt-amount-box {
+  text-align: center;
+}
 .receipt-type-label {
   font-size: 18px;
   font-weight: 700;
@@ -247,6 +251,7 @@ export default {
 }
 .receipt-detail-row {
   margin-bottom: 20px;
+  text-align: center;
 }
 .receipt-detail-label {
   font-size: 12px;
@@ -255,12 +260,14 @@ export default {
   text-transform: uppercase;
   letter-spacing: 0.5px;
   margin-bottom: 6px;
+  text-align: center;
 }
 .receipt-detail-value {
   font-size: 18px;
   font-weight: 600;
   color: #2d3748;
   letter-spacing: 0.2px;
+  text-align: center;
 }
 .receipt-txid {
   font-family: monospace;

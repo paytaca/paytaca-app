@@ -102,73 +102,18 @@
                 <q-avatar
                   color="primary"
                   text-color="white"
-                  size="64px"
-                  style="font-size: 28px;"
+                  size="128px"
+                  style="font-size: 56px;"
                 >
-                  {{ contactInitial }}
+                  <img v-if="avatarUrl" :src="avatarUrl" />
+                  <template v-else>{{ contactInitial }}</template>
                 </q-avatar>
                 <div class="contact-header-info">
-                  <div v-if="!editingContactName" class="contact-display-name">
+                  <div class="contact-display-name">
                     {{ contactDisplayName }}
                   </div>
-                  <q-input
-                    v-else
-                    v-model="editContactNameValue"
-                    outlined
-                    dense
-                    rounded
-                    class="contact-name-input"
-                    autofocus
-                    @keyup.enter="saveContactName"
-                  />
                   <div class="contact-npub-display">{{ fullShortNpub }}</div>
                 </div>
-              </div>
-
-              <!-- Edit name button / actions -->
-              <div v-if="!editingContactName" class="edit-name-section">
-                <q-btn
-                  flat
-                  :label="$t('EditName', {}, 'Edit Name')"
-                  color="primary"
-                  icon="edit"
-                  class="full-width"
-                  @click="startEditContactName"
-                />
-              </div>
-              <div v-else class="edit-actions-row">
-                <q-btn
-                  flat
-                  :label="$t('Cancel', {}, 'Cancel')"
-                  color="grey"
-                  rounded
-                  @click="cancelEditContactName"
-                />
-                <q-btn
-                  unelevated
-                  :label="$t('Save', {}, 'Save')"
-                  color="primary"
-                  rounded
-                  :disable="!editContactNameValue.trim()"
-                  @click="saveContactName"
-                />
-              </div>
-
-              <!-- Use published name option -->
-              <div v-if="editingContactName && fetchedContactDisplayName" class="use-published-name-row q-mt-md">
-                <q-icon name="badge" size="16px" color="primary" />
-                <span class="use-published-name-text">
-                  {{ $t('UsePublishedDisplayName', {}, 'Use published display name:') }}
-                  <strong>{{ fetchedContactDisplayName }}</strong>
-                </span>
-                <q-btn
-                  flat
-                  dense
-                  :label="$t('Use', {}, 'Use')"
-                  color="primary"
-                  size="sm"
-                  @click="useFetchedContactDisplayName"
-                />
               </div>
 
               <!-- Copy npub -->
@@ -182,9 +127,6 @@
               />
             </q-card-section>
 
-            <q-card-actions align="right">
-              <q-btn flat :label="$t('Close', {}, 'Close')" color="primary" v-close-popup />
-            </q-card-actions>
           </q-card>
         </q-dialog>
       </div>
@@ -211,9 +153,6 @@ export default {
       editSubjectValue: '',
       savingSubject: false,
       showContactDetails: false,
-      editingContactName: false,
-      editContactNameValue: '',
-      fetchedContactDisplayName: null,
       otherMemberAvatar: null,
     }
   },
@@ -250,7 +189,7 @@ export default {
       return this.contactDisplayName.charAt(0).toUpperCase() || '?'
     },
     avatarUrl () {
-      return this.otherMemberAvatar || (this.otherMemberPubKey ? getCachedAvatar(this.otherMemberPubKey) : null)
+      return this.otherMemberAvatar || null
     },
     shortNpub () {
       const npub = this.otherMemberNpub
@@ -270,9 +209,12 @@ export default {
   },
   watch: {
     otherMemberPubKey: {
-      handler (pubKey) {
+      async handler (pubKey) {
         if (!pubKey) return
-        this.otherMemberAvatar = getCachedAvatar(pubKey)
+        const walletHash = this.$store.getters['global/getWallet']('bch')?.walletHash
+        const walletState = walletHash ? this.$store.state.nostrChat?.byWallet?.[walletHash] : null
+        const cachedUrl = await getCachedAvatar(pubKey)
+        this.otherMemberAvatar = cachedUrl || walletState?.avatarCache?.[pubKey]?.avatar || null
         this.$store.dispatch('nostrChat/fetchPublishedAvatar', { pubKeyHex: pubKey })
           .then(avatar => {
             if (avatar) {
@@ -289,20 +231,8 @@ export default {
         this.$router.replace('/apps/chat')
       }
     },
-    async showContactDetails (val) {
-      this.fetchedContactDisplayName = null
-      if (val && this.otherMemberPubKey) {
-        try {
-          const displayName = await this.$store.dispatch('nostrChat/fetchPublishedDisplayName', {
-            pubKeyHex: this.otherMemberPubKey,
-          })
-          if (displayName) {
-            this.fetchedContactDisplayName = displayName
-          }
-        } catch (err) {
-          console.warn('[DmInfo] Failed to fetch display name:', err)
-        }
-      }
+    showContactDetails (val) {
+      // Avatar is already loaded via otherMemberPubKey watcher
     },
   },
   methods: {
@@ -334,11 +264,11 @@ export default {
       this.savingSubject = true
       try {
         if (subject) {
-          this.$store.commit('nostrChat/UPDATE_ROOM_NAME', { roomId: this.roomId, name: subject })
+          await this.$store.dispatch('nostrChat/updateRoomName', { roomId: this.roomId, name: subject })
         } else if (this.otherMemberContact) {
-          this.$store.commit('nostrChat/UPDATE_ROOM_NAME', { roomId: this.roomId, name: this.otherMemberContact.name })
+          await this.$store.dispatch('nostrChat/updateRoomName', { roomId: this.roomId, name: this.otherMemberContact.name })
         }
-        this.$store.commit('nostrChat/UPDATE_ROOM_SUBJECT', { roomId: this.roomId, subject: subject || null })
+        await this.$store.dispatch('nostrChat/updateRoomSubject', { roomId: this.roomId, subject: subject || null })
         let text
         if (subject) {
           text = this.$t('SubjectChangedTo', { subject }, `Changed subject to "${subject}"`)
@@ -351,6 +281,7 @@ export default {
           subject,
         })
         this.$store.commit('nostrChat/ADD_MESSAGE', { roomId, message })
+        this.$store.commit('nostrChat/TOUCH_ROOM_LAST_MESSAGE_AT', roomId)
         await this.$store.dispatch('nostrChat/publishGiftWraps', { giftWraps })
         this.editingSubject = false
         this.$q.notify({
@@ -368,37 +299,6 @@ export default {
     openContactDetails () {
       this.showContactDetails = true
     },
-    startEditContactName () {
-      this.editContactNameValue = this.otherMemberContact?.name || this.contactDisplayName
-      this.editingContactName = true
-    },
-    cancelEditContactName () {
-      this.editingContactName = false
-      this.editContactNameValue = ''
-    },
-    async saveContactName () {
-      const name = this.editContactNameValue.trim()
-      const contact = this.otherMemberContact
-      if (!name || !contact) return
-      try {
-        await this.$store.dispatch('nostrChat/updateContact', {
-          npub: contact.npub,
-          name,
-        })
-        // Update room name if it's a DM room matching this contact
-        const room = this.$store.getters['nostrChat/getRoomByMember'](contact.pubKeyHex)
-        if (room && room.members.length === 2) {
-          this.$store.commit('nostrChat/UPDATE_ROOM_NAME', {
-            roomId: room.id,
-            name,
-          })
-        }
-        this.editingContactName = false
-        this.$q.notify({ type: 'positive', message: this.$t('ContactRenamed', {}, 'Contact renamed') })
-      } catch (err) {
-        this.$q.notify({ type: 'negative', message: err.message || this.$t('ContactRenameFailed', {}, 'Failed to rename contact') })
-      }
-    },
     copyContactNpub () {
       if (!this.otherMemberNpub) return
       copyToClipboard(this.otherMemberNpub)
@@ -407,11 +307,6 @@ export default {
         message: this.$t('Copied', {}, 'Copied to clipboard'),
         timeout: 1500,
       })
-    },
-    useFetchedContactDisplayName () {
-      if (this.fetchedContactDisplayName) {
-        this.editContactNameValue = this.fetchedContactDisplayName
-      }
     },
   },
 }

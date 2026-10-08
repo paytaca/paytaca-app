@@ -157,7 +157,7 @@ export function parseWalletConnectUri (uri) {
 
   return data
 }
-window.test = parseWalletConnectUri
+if (process.env.NODE_ENV !== 'production') window.test = parseWalletConnectUri
 
 export class WalletConnectManager {
   // store is the vuex instance of the app

@@ -78,6 +78,15 @@
             {{ $t('SellBCH') }}
           </button>
         </div>
+        <div class="q-mt-sm banner-wrap">
+          <q-banner
+            class="info-banner rounded-borders q-py-sm q-px-md"
+            :class="getDarkModeClass(darkMode)">
+            {{ transactionType === 'SELL'
+              ? $t('ChooseBchSellerFromListing')
+              : $t('ChooseBchBuyerFromListing') }}
+          </q-banner>
+        </div>
       </q-pull-to-refresh>
       <div class="q-mt-sm">
         <!-- Skeleton Loading State -->
@@ -589,6 +598,7 @@ export default {
       }
     },
     handleRequestError (error) {
+      if (error?.code === 'ECONNABORTED') return
       bus.emit('handle-request-error', error)
     }
   }
@@ -685,5 +695,41 @@ export default {
     width: 70px;
     z-index: 1;
     left: 10px;
+  }
+  .info-banner {
+    border: 1px solid rgba(59, 123, 246, 0.2);
+    background: rgba(59, 123, 246, 0.05);
+    font-size: 14px;
+    text-align: center;
+    position: relative;
+    overflow: hidden;
+  }
+  .info-banner::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(
+      110deg,
+      transparent 30%,
+      rgba(59, 123, 246, 0.25) 50%,
+      transparent 70%
+    );
+    animation: banner-shimmer 2.5s ease-in-out infinite;
+    pointer-events: none;
+  }
+  .banner-wrap {
+    margin-left: 7%;
+    margin-right: 7%;
+  }
+  @keyframes banner-shimmer {
+    0% { transform: translateX(-100%); }
+    100% { transform: translateX(100%); }
+  }
+  .info-banner.dark {
+    border-color: rgba(255, 255, 255, 0.1);
+    background: rgba(255, 255, 255, 0.03);
   }
   </style>

@@ -18,7 +18,7 @@
       <button class="footer-icon-btn" :class="getDarkModeClass()" @click="onSelectMenu('FiatOrders')">
         <div class="icon-wrapper">
           <q-icon class="mb-2" :class="isActive('FiatOrders') ? 'default-text-color' : 'default-text-color'" size="30px" name="sym_o_receipt_long"></q-icon>
-          <q-badge v-if="data?.unreadOrdersCount > 0" rounded color="red" floating>{{ data?.unreadOrdersCount }}</q-badge>
+          <q-badge v-if="data?.ongoingOrdersCount > 0" rounded color="red" floating>{{ data?.ongoingOrdersCount }}</q-badge>
         </div>
         <br>
         <span>{{ $t('Orders') }}</span>

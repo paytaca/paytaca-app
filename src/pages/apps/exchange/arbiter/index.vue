@@ -109,11 +109,12 @@ export default {
       })
     },
     handleRequestError (error) {
+      // Suppress ECONNABORTED — these are XHR aborts from
+      // requestManager.abortAll on navigation, not actual HTTP timeouts.
+      if (error?.code === 'ECONNABORTED') return
+
       console.error('Handling error:', error?.response || error)
-      if (error?.code === 'ECONNABORTED') {
-        // Request timeout
-        this.showErrorDialog('Request timed out. Please try again later.')
-      } else if (!error?.response) {
+      if (!error?.response) {
         // Network error
         bus.emit('network-error')
       } else {
