@@ -18,6 +18,9 @@ const PluginAvailability = {
   PushNotificationSettings: Capacitor.isPluginAvailable('PushNotificationSettings'),
 }
 
+const NOTIFICATIONS_DECLINE_COUNT_KEY = 'pushNotificationsPermissionDeclineCount'
+const MAX_NOTIFICATIONS_DECLINE_COUNT = 7
+
 /**
  * This is a proxy events emitter for PushNotification plugin's events
  * - Created a proxy emitter class since the original event emitter lack removing specific event listeners
@@ -194,6 +197,8 @@ class PushNotificationsManager {
       return
     }
 
+    if (!this.canRequestPermission) return
+
     if (this._openSettingsPromptPromise) return this._openSettingsPromptPromise
     this._openSettingsPromptPromise = PushNotificationSettings.openNotificationSettingsPrompt(opts)
     return this._openSettingsPromptPromise
@@ -215,15 +220,52 @@ class PushNotificationsManager {
     return PushNotifications.checkPermissions()
       .then(response => {
         this.permissionStatus = response?.receive
+        if (this.permissionStatus === 'granted') this.resetDeclineCount()
         return Promise.resolve(response)
       })
   }
 
+  /**
+   * Number of times the user has declined the notifications permission prompt.
+   * Persisted across app launches so we can stop asking after
+   * MAX_NOTIFICATIONS_DECLINE_COUNT declines.
+   */
+  getDeclineCount() {
+    const count = parseInt(localStorage.getItem(NOTIFICATIONS_DECLINE_COUNT_KEY), 10)
+    return Number.isInteger(count) && count > 0 ? count : 0
+  }
+
+  setDeclineCount(count) {
+    try {
+      localStorage.setItem(NOTIFICATIONS_DECLINE_COUNT_KEY, String(count))
+    } catch (error) {
+      console.warn('Failed to persist notification permission decline count:', error)
+    }
+  }
+
+  resetDeclineCount() {
+    try {
+      localStorage.removeItem(NOTIFICATIONS_DECLINE_COUNT_KEY)
+    } catch (error) {
+      console.warn('Failed to reset notification permission decline count:', error)
+    }
+  }
+
+  get canRequestPermission() {
+    return this.getDeclineCount() < MAX_NOTIFICATIONS_DECLINE_COUNT
+  }
+
   requestPermission() {
     if (!PluginAvailability.PushNotifications) return Promise.resolve()
+    if (!this.canRequestPermission) return Promise.resolve({ receive: this.permissionStatus })
     return PushNotifications.requestPermissions()
       .then(response => {
         this.permissionStatus = response?.receive
+        if (this.permissionStatus === 'granted') {
+          this.resetDeclineCount()
+        } else {
+          this.setDeclineCount(this.getDeclineCount() + 1)
+        }
         return Promise.resolve(response)
       })
   }
@@ -286,7 +328,10 @@ class PushNotificationsManager {
 
     // do not ask for permission to save device ID during wallet creation/import
     if (!isCreateOrImport) {
-      if (this.permissionStatus !== 'granted') await this.requestPermission()
+      await this.checkPermissions()
+      if (this.permissionStatus !== 'granted' && this.canRequestPermission) {
+        await this.requestPermission()
+      }
       if (this.permissionStatus !== 'granted') {
         console.warn('Aborting push notification subscribe due to permission status:', this.permissionStatus)
         return
