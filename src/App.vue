@@ -44,6 +44,7 @@ import { App as CapacitorApp } from '@capacitor/app'
 import { Capacitor } from '@capacitor/core'
 import ScreenshotSecurity from './utils/screenshot-security'
 import JoinRewardsDialog from './components/rewards/dialogs/JoinRewardsDialog.vue'
+import { requestHomeDialog, blockHomeDialogs, unblockHomeDialogs } from 'src/utils/home-dialog-queue'
 
 // Module-level variable to track version update dialog instance
 // This persists across component remounts (important for iOS/Capacitor)
@@ -99,7 +100,6 @@ export default {
       lastPauseTime: 0, // Timestamp of last pause event (to detect genuine background/foreground transitions)
       showPrivacyOverlay: false, // Controls privacy overlay visibility for app preview protection
       androidInsetResizeHandler: null, // Window resize handler for android status bar inset
-      joinRewardsDialogPending: false, // Tracks whether join rewards dialog was deferred waiting for backup dialog
     }
   },
   computed: {
@@ -128,9 +128,6 @@ export default {
     },
     showWalletSwitchLoading() {
       return this.$store.state.global.walletSwitchLoading
-    },
-    backupDialogActive() {
-      return this.$store?.state?.global?.backupDialogActive
     }
   },
   watch: {
@@ -150,13 +147,6 @@ export default {
     // Show join rewards dialog after initial loading screen completes
     showInitialLoad (val, oldVal) {
       if (oldVal === true && val === false) {
-        this.maybeShowJoinRewardsDialog()
-      }
-    },
-    // Re-trigger join rewards dialog once backup dialog is dismissed
-    backupDialogActive (val, oldVal) {
-      if (oldVal === true && val === false && this.joinRewardsDialogPending) {
-        this.joinRewardsDialogPending = false
         this.maybeShowJoinRewardsDialog()
       }
     }
@@ -482,12 +472,14 @@ export default {
         getWalletByNetwork(wallet, 'slp').getWalletHash()
       ]
 
-      await this.$pushNotifications.isPushNotificationEnabled().catch(console.log)
-      if (!this.$pushNotifications.isEnabled && !this.promptedPushNotifications) {
-        await this.$pushNotifications.openPushNotificationsSettingsPrompt({
-          message: 'Enable push notifications to receive updates from the app',
-        }).catch(console.log)
-        this.promptedPushNotifications = true
+      if (this.$pushNotifications.canRequestPermission) {
+        await this.$pushNotifications.isPushNotificationEnabled().catch(console.log)
+        if (!this.$pushNotifications.isEnabled && !this.promptedPushNotifications) {
+          await this.$pushNotifications.openPushNotificationsSettingsPrompt({
+            message: 'Enable push notifications to receive updates from the app',
+          }).catch(console.log)
+          this.promptedPushNotifications = true
+        }
       }
 
       this.$pushNotifications.watchtower = new Watchtower(this.$store.state.global.isChipnet)
@@ -643,43 +635,37 @@ export default {
     },
     maybeShowJoinRewardsDialog () {
       const vm = this
+      // Queue the dialog so it never stacks with other home-load dialogs
+      // (e.g. the backup reminder). Guards are re-checked when it's our turn.
+      requestHomeDialog('join-rewards', (done) => {
+        const vault = vm.$store.getters['global/getVault']
+        const wallet = vault?.[vm.walletIndex]
 
-      // Don't show if backup dialog is still active; defer until it's dismissed
-      if (vm.backupDialogActive) {
-        vm.joinRewardsDialogPending = true
-        return
-      }
+        // Only show if wallet is loaded
+        const walletHash = wallet?.wallet?.bch?.walletHash || wallet?.bch?.walletHash
+        if (!walletHash) return done()
 
-      // Fetch from vault directly
-      const vault = vm.$store.getters['global/getVault']
-      const wallet = vault?.[vm.walletIndex]
+        // Don't show if on lock screen
+        if (vm.$router.currentRoute.value.path === '/lock') return done()
 
-      // Only show if wallet is loaded
-      const walletHash = wallet?.wallet?.bch?.walletHash || wallet?.bch?.walletHash
-      if (!walletHash) return
+        // Don't show if app is backgrounded (privacy overlay active)
+        if (vm.showPrivacyOverlay) return done()
 
-      // Don't show if on lock screen
-      const currentRoute = vm.$router.currentRoute.value.path
-      if (currentRoute === '/lock') return
+        // Don't show if already dismissed for this wallet
+        if (wallet?.settings?.joinRewardsPromptShown) return done()
 
-      // Don't show if app is backgrounded (privacy overlay active)
-      if (vm.showPrivacyOverlay) return
-
-      // Don't show if already dismissed for this wallet
-      const alreadyShown = wallet?.settings?.joinRewardsPromptShown
-      if (alreadyShown) return
-
-      // Show dialog and mark as shown on dismiss
-      const dialog = vm.$q.dialog({
-        component: JoinRewardsDialog
-      })
-
-      dialog.onDismiss(() => {
-        vm.$store.commit('global/saveWalletSetting', {
-          key: 'joinRewardsPromptShown',
-          value: true
+        const dialog = vm.$q.dialog({
+          component: JoinRewardsDialog
         })
-      })
+
+        dialog.onDismiss(() => {
+          vm.$store.commit('global/saveWalletSetting', {
+            key: 'joinRewardsPromptShown',
+            value: true
+          })
+          done()
+        })
+      }, 10)
     },
     setupImageContextMenuPrevention() {
       const vm = this
@@ -891,8 +877,6 @@ export default {
     // Cold start: reset so the loading overlay shows until the home page is ready
     vm.$store.commit('global/setAppInitialLoadComplete', false)
     vm._loadingStartTime = Date.now()
-    vm.$store.commit('global/setBackupDialogActive', false)
-    vm.joinRewardsDialogPending = false
 
     // Clear session-based backup reminder dismissal on fresh app start
     // App.vue only mounts on fresh app start (not during navigation), so always clear
@@ -992,6 +976,8 @@ export default {
               sessionStorage.setItem('appUpdateDialogActive', '1')
               sessionStorage.setItem('appUpdateDialogActiveAt', Date.now().toString())
             } catch (_) {}
+            // Hold off other home-load dialogs while the update prompt is up.
+            blockHomeDialogs('version-update')
             versionUpdateDialogInstance = vm.$q.dialog({
               component: AppVersionUpdate,
               componentProps: {
@@ -1002,18 +988,21 @@ export default {
             // Clear reference when dialog is closed
             versionUpdateDialogInstance.onOk(() => {
               versionUpdateDialogInstance = null
+              unblockHomeDialogs('version-update')
               try {
                 sessionStorage.removeItem('appUpdateDialogActive')
                 sessionStorage.removeItem('appUpdateDialogActiveAt')
               } catch (_) {}
             }).onCancel(() => {
               versionUpdateDialogInstance = null
+              unblockHomeDialogs('version-update')
               try {
                 sessionStorage.removeItem('appUpdateDialogActive')
                 sessionStorage.removeItem('appUpdateDialogActiveAt')
               } catch (_) {}
             }).onDismiss(() => {
               versionUpdateDialogInstance = null
+              unblockHomeDialogs('version-update')
               try {
                 sessionStorage.removeItem('appUpdateDialogActive')
                 sessionStorage.removeItem('appUpdateDialogActiveAt')
