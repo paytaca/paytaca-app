@@ -1348,7 +1348,7 @@ export default {
   "HomeTour.MainMenus.Title": "Main menus",
   "HomeTour.Notifications.Body": "Tap here to view your notifications.",
   "HomeTour.Notifications.Title": "Notifications",
-  "HomeTour.QuickActions.Body": "Use these buttons to quickly Send, Receive, Get BCH, or Spend BCH.",
+  "HomeTour.QuickActions.Body": "Use these buttons to quickly Send, Receive, Get BCH, or Get Help.",
   "HomeTour.QuickActions.Title": "Quick actions",
   "HomeTour.TokenCards.Body": "These are your token cards. Tap a token card to view the token's full transaction history. Long-press or double-click for more details and actions.",
   "HomeTour.TokenCards.Title": "Token cards",

@@ -1926,7 +1926,7 @@ const phrases = {
       'HomeTour.BchCard.Title': 'Bitcoin Cash card',
       'HomeTour.BchCard.Body': 'This card shows your BCH balance. Tap to view your full transaction history. Long-press or double-click for more details and actions.',
       'HomeTour.QuickActions.Title': 'Quick actions',
-      'HomeTour.QuickActions.Body': 'Use these buttons to quickly Send, Receive, Get BCH, or Spend BCH.',
+      'HomeTour.QuickActions.Body': 'Use these buttons to quickly Send, Receive, Get BCH, or Get Help.',
       'HomeTour.TokenCards.Title': 'Token cards',
       'HomeTour.TokenCards.Body': 'These are your token cards. Tap a token card to view the token\'s full transaction history. Long-press or double-click for more details and actions.',
       'HomeTour.Transactions.Title': 'Transactions',
