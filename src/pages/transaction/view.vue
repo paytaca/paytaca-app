@@ -523,6 +523,10 @@ async function commitSignAndBroadcast () {
 
 function onSliderSwiped (reset) {
   showActionConfirmationSlider.value = false
+  if (isReadOnlyWallet.value) {
+    commitSignAndBroadcast()
+    return
+  }
   $q.dialog({ component: SecurityCheckDialog })
     .onOk(() => {
       commitSignAndBroadcast()
