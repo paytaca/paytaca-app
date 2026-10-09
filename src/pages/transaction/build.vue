@@ -432,34 +432,41 @@ export default {
       }
     },
     validateAddress (address) {
-      if (!address) return { valid: false, error: this.$t('RecipientAddressRequired', {}, 'Recipient address is required'), wrongTokenType: false }
+      if (!address) return { valid: false, address: '', error: this.$t('RecipientAddressRequired', {}, 'Recipient address is required'), wrongTokenType: false }
+
+      // Normalize before validating: trim stray whitespace (common when pasting)
+      // and restore the network prefix when it is missing. libauth's cash
+      // address helpers require the "prefix:payload" form.
+      const trimmed = String(address).trim()
+      const prefixless = sendPageUtils.parseAddressWithoutPrefix(trimmed)
+      const normalizedAddress = prefixless.valid ? prefixless.address : trimmed
 
       let lockingBytecode
       try {
-        lockingBytecode = cashAddressToLockingBytecode(address)
+        lockingBytecode = cashAddressToLockingBytecode(normalizedAddress)
       } catch {
-        return { valid: false, error: this.$t('InvalidRecipientAddress', {}, 'Invalid recipient address'), wrongTokenType: false }
+        return { valid: false, address: normalizedAddress, error: this.$t('InvalidRecipientAddress', {}, 'Invalid recipient address'), wrongTokenType: false }
       }
       if (typeof lockingBytecode === 'string') {
-        return { valid: false, error: this.$t('InvalidRecipientAddress', {}, 'Invalid recipient address'), wrongTokenType: false }
+        return { valid: false, address: normalizedAddress, error: this.$t('InvalidRecipientAddress', {}, 'Invalid recipient address'), wrongTokenType: false }
       }
 
       let decoded
       try {
-        decoded = decodeCashAddress(address)
+        decoded = decodeCashAddress(normalizedAddress)
       } catch {
-        return { valid: false, error: this.$t('InvalidRecipientAddress', {}, 'Invalid recipient address'), wrongTokenType: false }
+        return { valid: false, address: normalizedAddress, error: this.$t('InvalidRecipientAddress', {}, 'Invalid recipient address'), wrongTokenType: false }
       }
       if (typeof decoded === 'string' || !decoded?.type) {
-        return { valid: false, error: this.$t('InvalidRecipientAddress', {}, 'Invalid recipient address'), wrongTokenType: false }
+        return { valid: false, address: normalizedAddress, error: this.$t('InvalidRecipientAddress', {}, 'Invalid recipient address'), wrongTokenType: false }
       }
 
       const isTokenAddress = decoded.type === CashAddressType.p2pkhWithTokens || decoded.type === CashAddressType.p2shWithTokens
       if (!this.isBch && !isTokenAddress) {
-        return { valid: false, error: this.$t('BchAddressNotAccepted', {}, 'Token addresses are required when sending tokens'), wrongTokenType: true }
+        return { valid: false, address: normalizedAddress, error: this.$t('BchAddressNotAccepted', {}, 'Token addresses are required when sending tokens'), wrongTokenType: true }
       }
 
-      return { valid: true, error: '', wrongTokenType: false }
+      return { valid: true, address: normalizedAddress, error: '', wrongTokenType: false }
     },
     async buildTransaction (reset = () => {}) {
       this.customKeyboardState = 'dismiss'
@@ -1672,10 +1679,10 @@ export default {
         return
       }
 
-      this.recipients[this.currentRecipientIndex].recipientAddress = value
-      this.inputExtras[this.currentRecipientIndex].emptyRecipient = value === ''
-
       const trimmed = String(value ?? '').trim()
+      this.recipients[this.currentRecipientIndex].recipientAddress = trimmed
+      this.inputExtras[this.currentRecipientIndex].emptyRecipient = trimmed === ''
+
       const validation = trimmed ? this.validateAddress(trimmed) : { valid: true, wrongTokenType: false }
       const showRecipientHint = !validation.valid && validation.wrongTokenType
       this.inputExtras[this.currentRecipientIndex].incorrectAddress = showRecipientHint
