@@ -29,11 +29,16 @@
         label-slot
         clearable
         clear-icon="close"
+        type="textarea"
+        autogrow
+        :rows="1"
+        input-style="white-space: pre-wrap; word-break: break-all;"
         :disabled="inputExtras.isBip21"
         :readonly="inputExtras.isBip21"
         v-model="recipientAddress"
         @focus="onInputFocus(index, '')"
         @blur="onEmptyRecipient"
+        @keydown.enter.prevent
         class="recipient-input"
         :error="emptyRecipient || inputExtras.incorrectAddress"
         :error-message="
