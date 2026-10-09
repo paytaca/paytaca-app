@@ -29,13 +29,19 @@ export function useCheckoutDetails(checkoutDataOrRef) {
 
   const checkoutAmounts = computed(() => {
     const parseBch = num => Math.floor(num * 10 ** 8) / 10 ** 8
+    const totalDiscount = parseFloat(checkout.value?.cart?.totalDiscount) || 0
+    const markupSubtotal = parseFloat(checkout.value?.cart?.markupSubtotal) || 0
     const data = {
-      subtotal: { currency: checkout.value?.cart?.markupSubtotal || 0, bch: 0 },
+      subtotal: { currency: markupSubtotal + totalDiscount, bch: 0 },
       deliveryFee: { currency: checkout.value?.payment?.deliveryFee || 0, bch: 0 },
       total: { currency: checkout.value?.total, bch: 0 },
       totalPaymentsSent: { currency: parseFloat(checkout.value.totalPaymentsSent), bch: 0 },
       balanceToPay: { currency: parseFloat(checkout.value?.balanceToPay), bch: 0 },
       change: { currency: checkout.value?.change, bch: 0 },
+    }
+
+    if (totalDiscount) {
+      data.discount = { currency: totalDiscount, bch: 0 }
     }
 
     if (checkout.value?.payment?.deliveryFeeDiscount) {
@@ -52,6 +58,9 @@ export function useCheckoutDetails(checkoutDataOrRef) {
       data.totalPaymentsSent.bch = parseBch(data.totalPaymentsSent.currency / checkoutBchPrice.value)
       data.balanceToPay.bch = parseBch(data.balanceToPay.currency / checkoutBchPrice.value)
       data.change.bch = parseBch(data.change.currency / checkoutBchPrice.value)
+      if (data.discount) {
+        data.discount.bch = parseBch(data.discount.currency / checkoutBchPrice.value)
+      }
       if (data.deliveryFeeDiscount) {
         data.deliveryFeeDiscount.bch = parseBch(data.deliveryFeeDiscount.currency / checkoutBchPrice.value)
       }
@@ -62,6 +71,7 @@ export function useCheckoutDetails(checkoutDataOrRef) {
       data.totalPaymentsSent.bch = null
       data.balanceToPay.bch = null
       data.change.bch = null
+      if (data.discount) data.discount.bch = null
     }
     return data
   })
