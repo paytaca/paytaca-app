@@ -421,6 +421,13 @@
             <div v-if="displayBch" class="text-right">{{ checkoutAmounts.subtotal.bch }} BCH</div>
             <div v-else class="text-right">{{ checkoutAmounts.subtotal.currency }} {{ checkoutCurrency }}</div>
           </div>
+          <div v-if="checkoutAmounts.discount" class="row items-start text-subtitle1" @click="toggleAmountsDisplay">
+            <div class="q-space">{{ $t('Discount') }}</div>
+            <div class="text-red-5">
+              <div v-if="displayBch" class="text-right">-{{ checkoutAmounts.discount.bch }} BCH</div>
+              <div v-else class="text-right">-{{ checkoutAmounts.discount.currency }} {{ checkoutCurrency }}</div>
+            </div>
+          </div>
           <div
             :class="[
               'row items-start text-subtitle1',
@@ -771,11 +778,24 @@
               <div v-if="displayBch">{{ checkoutAmounts.subtotal.bch }} BCH</div>
               <div v-else>{{ checkoutAmounts.subtotal.currency }} {{ checkoutCurrency }}</div>
             </div>
+            <div v-if="checkoutAmounts.discount" class="row items-start text-subtitle2">
+              <div class="q-space">{{ $t('Discount') }}</div>
+              <div class="text-red-5">
+                <div v-if="displayBch">-{{ checkoutAmounts.discount.bch }} BCH</div>
+                <div v-else>-{{ checkoutAmounts.discount.currency }} {{ checkoutCurrency }}</div>
+              </div>
+            </div>
             <div class="row items-start text-subtitle2">
               <div class="q-space">Delivery fee</div>
               <div v-if="checkout?.deliveryAddress?.distance" class="text-grey q-mx-xs">{{ (checkout?.deliveryAddress?.distance / 1000).toFixed(3) }} km</div>
-              <div v-if="displayBch">{{ checkoutAmounts.deliveryFee.bch }} BCH</div>
-              <div v-else>{{ checkoutAmounts.deliveryFee.currency }} {{ checkoutCurrency }}</div>
+              <div>
+                <div v-if="displayBch">{{ checkoutAmounts.deliveryFee.bch }} BCH</div>
+                <div v-else>{{ checkoutAmounts.deliveryFee.currency }} {{ checkoutCurrency }}</div>
+                <div v-if="checkoutAmounts.deliveryFeeDiscount" class="text-red-5">
+                  <div v-if="displayBch">-{{ checkoutAmounts.deliveryFeeDiscount.bch }} BCH</div>
+                  <div v-else>-{{ checkoutAmounts.deliveryFeeDiscount.currency }} {{ checkoutCurrency }}</div>
+                </div>
+              </div>
             </div>
             <div class="row items-start text-h6">
               <div class="q-space">Total</div>
@@ -1564,6 +1584,7 @@ async function applyDiscountCode(code) {
   return backend.post(`connecta/checkouts/discount_application/`, data)
     .then(response => {
       setCheckoutData(response?.data)
+      attemptCreatePayment()
       dialog.hide()
       return response
     })
@@ -1669,7 +1690,7 @@ const createPayment = debounce(async () => {
     checkout_id: checkout.value.id,
     ignore_pending_payments: true,
     escrow: {
-      // network: $store.getters['global/isChipnet'] ? 'chipnet' : 'mainnet',
+      network: $store.getters['global/isChipnet'] ? 'chipnet' : 'mainnet',
       buyer_address: checkout.value?.payment?.escrowRefundAddress ? undefined : formData.value.payment?.escrowRefundAddress,
     },
     // amount: 100,

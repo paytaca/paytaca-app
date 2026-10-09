@@ -909,6 +909,7 @@ export class Cart {
    * @param {Number} data.cutlery_subtotal
    * @param {Number} data.subtotal
    * @param {Number} data.markup_subtotal
+   * @param {Number} data.total_discount
    * @param {Object} data.customer
    * @param {Object[]} data.items
    * @param {Object[]} data.discounts
@@ -923,6 +924,7 @@ export class Cart {
     this.requireCutlery = data?.require_cutlery
     this.subtotal = data?.subtotal
     this.markupSubtotal = data?.markup_subtotal
+    this.totalDiscount = data?.total_discount
     this.customer = Customer.parse(data?.customer)
     this.items = data?.items?.map?.(CartItem.parse)
     this.discounts = DiscountType.parseList(data?.discounts)
