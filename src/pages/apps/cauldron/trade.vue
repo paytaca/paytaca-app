@@ -91,11 +91,10 @@
       <div v-else>
         <q-card class="br-15 pt-card-2" :class="getDarkModeClass(darkMode)">
           <q-card-section>
-            <!-- Token Selector -->
-            <div class="q-mb-md">
+            <!-- No token selected -->
+            <div v-if="!selectedToken" class="q-mb-md">
               <div class="text-caption text-grey q-mb-xs">{{ $t('SelectToken') }}</div>
               <q-btn
-                v-if="!selectedToken"
                 :label="$t('SelectToken')"
                 no-caps
                 outline
@@ -103,29 +102,6 @@
                 color="primary"
                 @click="showTokenDialog = true"
               />
-              <div v-else class="row items-center q-pa-sm" style="border: 1px solid rgba(0,0,0,0.12); border-radius: 8px;">
-                <img
-                  v-if="tokenData?.bcmr?.uris?.icon"
-                  :src="getTokenImage(tokenData.bcmr.uris.icon)"
-                  height="30"
-                  class="q-mr-sm"
-                  @error="onImgError"
-                />
-                <div class="col">
-                  <div class="text-weight-bold">{{ tokenSymbol || $t('Unknown') }}</div>
-                  <div class="text-caption text-grey">{{ tokenData?.bcmr?.name || '' }}</div>
-                </div>
-                <div class="q-px-sm">
-                  <q-btn flat dense no-caps :label="$t('Change')" size="md" @click="showTokenDialog = true"/>
-                </div>
-                <q-btn
-                  flat
-                  dense
-                  icon="close"
-                  size="sm"
-                  @click="selectedToken = null"
-                />
-              </div>
             </div>
 
             <template v-if="selectedToken">
@@ -155,81 +131,104 @@
                 <q-spinner size="1.5em" color="primary" /> 
               </div>
   
-              <!-- Swap Direction Toggle -->
-              <div class="q-mb-md">
-                <div class="row q-gutter-sm">
+              <!-- Familiar swap layout: BCH ⇄ token panels with flip arrow -->
+              <div class="swap-stack">
+                <!-- BCH panel (fixed asset). You pay it when buying, receive it when selling -->
+                <div class="swap-panel" :class="getDarkModeClass(darkMode)" :style="{ order: isBuyingToken ? 1 : 3 }">
+                  <div class="swap-panel-header">
+                    <span class="swap-panel-title">{{ isBuyingToken ? $t('YouPay') : $t('YouReceive') }}</span>
+                    <span class="swap-panel-balance">{{ $t('Balance') }}: {{ formatAmount(bchBalanceSats, 8) }} BCH</span>
+                  </div>
+                  <div class="swap-panel-body">
+                    <div class="asset-chip asset-chip-static">
+                      <img src="/bch-logo.png" height="26" class="asset-chip-icon q-mr-sm" />
+                      <span class="asset-chip-symbol">BCH</span>
+                    </div>
+                    <div class="swap-amount">
+                      <q-skeleton
+                        v-if="amountInput > 0 && (updatingPool || isRecomputingTrade || !tradeResult || !tradeResult.summary)"
+                        type="text"
+                        width="140px"
+                        height="2em"
+                        class="swap-amount-skeleton"
+                      />
+                      <div v-else class="swap-amount-value">
+                        {{ formattedOutputAmount }}
+                        <span class="swap-amount-unit">BCH</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Flip direction -->
+                <div class="swap-arrow-wrapper" :style="{ order: 2 }">
                   <q-btn
-                    :label="`${$t('Buy')} ${tokenSymbol || $t('Token')}`"
-                    no-caps
-                    :unelevated="!isBuyingToken"
-                    :color="isBuyingToken ? 'primary' : null"
-                    class="col"
-                    :class="(!darkMode && !isBuyingToken) ? 'text-grey' : 'text-white'"
-                    @click="handleBuyClick"
-                  />
-                  <q-btn
-                    :label="`${$t('Sell')} ${tokenSymbol || $t('Token')}`"
-                    no-caps
-                    :unelevated="isBuyingToken"
-                    :color="!isBuyingToken ? 'primary' : null"
-                    class="col"
-                    :class="(!darkMode && isBuyingToken) ? 'text-grey' : 'text-white'"
-                    @click="handleSellClick"
+                    icon="swap_vert"
+                    round
+                    unelevated
+                    color="primary"
+                    :disable="updatingPool"
+                    @click="toggleSupplyMode"
                   />
                 </div>
-              </div>
 
-              <div class="row items-center justify-end q-px-xs q-mb-sm">
-                Balance:
-                <template v-if="isBuyingToken">
-                  {{ formatAmount(bchBalanceSats, 8) }} BCH
-                </template>
-                <template v-else>
-                  {{ formatAmount(selectedTokenBalance, selectedToken?.bcmr?.token?.decimals || 0) }}
-                  {{ isNaN(selectedToken?.bcmr?.token?.decimals) ? $t('Tokens') : tokenSymbol }}
-                </template>
-              </div>
-  
-              <!-- Amount Input -->
-              <div class="q-mb-md">
-                <template v-if="updatingPool || (selectedToken && !isLiquidityAvailable)">
-                  <q-skeleton type="rect" height="56px" class="br-4" />
-                </template>
-                <CustomInput
-                  v-else
-                  ref="customInputRef"
-                  :no-keyboard="true"
-                  :model-value="amountInputString"
-                  @update:model-value="updateAmountInput($event)"
-                  @keyboard-state-change="onKeyboardStateChange"
-                  :input-symbol="amountInputSymbol"
-                  :label="isBuyingToken ? $t('AmountToReceive') : $t('AmountToSupply')"
-                  :decimal-obj="amountInputDecimalObj"
-                  :asset="amountInputAsset"
-                  :disable="isSwapping || updatingPool"
-                />
-                <div v-if="formattedMaxAmount" class="row items-center justify-end">
-                  <q-btn
-                    flat
-                    dense
-                    no-caps
-                    class="max-button"
-                    :class="getDarkModeClass(darkMode)"
-                    @click="amountInputString = formattedMaxAmount"
-                  >
-                    {{ $t('Max') }}: {{ formattedMaxAmount }} {{ amountInputSymbol }}
-                  </q-btn>
+                <!-- Token panel (dropdown). Receive it when buying, pay it when selling -->
+                <div class="swap-panel" :class="getDarkModeClass(darkMode)" :style="{ order: isBuyingToken ? 3 : 1 }">
+                  <div class="swap-panel-header">
+                    <span class="swap-panel-title">{{ isBuyingToken ? $t('YouReceive') : $t('YouPay') }}</span>
+                    <span class="swap-panel-balance">
+                      {{ $t('Balance') }}:
+                      {{ formatAmount(selectedTokenBalance, selectedToken?.bcmr?.token?.decimals || 0) }}
+                      {{ isNaN(selectedToken?.bcmr?.token?.decimals) ? $t('Tokens') : tokenSymbol }}
+                    </span>
+                  </div>
+                  <div class="swap-panel-body">
+                    <q-btn flat dense no-caps class="asset-chip" @click="showTokenDialog = true">
+                      <img
+                        v-if="tokenData?.bcmr?.uris?.icon"
+                        :src="getTokenImage(tokenData.bcmr.uris.icon)"
+                        height="26"
+                        class="asset-chip-icon q-mr-sm"
+                        @error="onImgError"
+                      />
+                      <span class="asset-chip-symbol">{{ tokenSymbol || $t('Unknown') }}</span>
+                      <q-icon name="expand_more" size="18px" class="q-ml-xs" />
+                    </q-btn>
+                    <div class="swap-amount">
+                      <q-skeleton
+                        v-if="updatingPool || !isLiquidityAvailable"
+                        type="rect"
+                        height="56px"
+                        class="br-4"
+                      />
+                      <CustomInput
+                        v-else
+                        ref="customInputRef"
+                        :no-keyboard="true"
+                        :show-label="false"
+                        :model-value="amountInputString"
+                        @update:model-value="updateAmountInput($event)"
+                        @keyboard-state-change="onKeyboardStateChange"
+                        :input-symbol="amountInputSymbol"
+                        :decimal-obj="amountInputDecimalObj"
+                        :asset="amountInputAsset"
+                        :disable="isSwapping || updatingPool"
+                      />
+                    </div>
+                  </div>
+                  <div v-if="formattedMaxAmount" class="row items-center justify-end">
+                    <q-btn
+                      flat
+                      dense
+                      no-caps
+                      class="max-button"
+                      :class="getDarkModeClass(darkMode)"
+                      @click="amountInputString = formattedMaxAmount"
+                    >
+                      {{ $t('Max') }}: {{ formattedMaxAmount }} {{ amountInputSymbol }}
+                    </q-btn>
+                  </div>
                 </div>
-              </div>
-
-              <div v-if="amountInput > 0" class="q-mb-md row justify-center">
-                <q-btn
-                  icon="swap_vert"
-                  round
-                  unelevated
-                  color="primary"
-                  @click="toggleSupplyMode"
-                />
               </div>
   
               <div
@@ -241,68 +240,46 @@
                 <span class="insufficient-balance-text">{{ tradeResultError }}</span>
               </div>
   
-              <!-- Output Display -->
-              <div v-if="amountInput > 0 && selectedToken" class="q-mb-md">
-                <!-- Skeleton loader while computing -->
-                <template v-if="updatingPool || isRecomputingTrade || !tradeResult || !tradeResult.summary">
-                  <div class="text-center text-caption text-grey q-mb-xs">
-                    <template v-if="isBuyingToken">{{ $t('YouNeed') }}</template>
-                    <template v-else>{{ $t('YouWillReceive') }}</template>
+              <!-- Fees -->
+              <div v-if="amountInput > 0 && selectedToken" class="q-mt-md">
+                <div class="row items-center justify-between text-caption text-grey">
+                  <div>{{ $t('TradeFee') }} (0.3%)</div>
+                  <q-skeleton
+                    v-if="updatingPool || isRecomputingTrade || !tradeResult || !tradeResult.summary"
+                    type="text"
+                    width="80px"
+                    style="height: 1.5em;"
+                  />
+                  <div v-else>{{ tradeFee }} BCH</div>
+                </div>
+                <div class="row items-center justify-between text-caption text-grey">
+                  <div class="row items-center">
+                    <span>{{ $t('PlatformFee') }}</span>
+                    <q-icon
+                      name="info"
+                      size="16px"
+                      class="q-ml-xs cursor-pointer"
+                      @click="showPlatformFeeInfo"
+                    />
                   </div>
-                  <div class="text-center text-h6 q-mb-md">
-                    <q-skeleton type="text" width="150px" class="q-mx-auto" style="height: 1.5em;" />
-                  </div>
-                  <div class="row items-center justify-between text-caption text-grey">
-                    <div>{{ $t('TradeFee') }} (0.3%)</div>
-                    <q-skeleton type="text" width="80px" style="height: 1.5em;" />
-                  </div>
-                  <div class="row items-center justify-between text-caption text-grey">
-                    <div class="row items-center">
-                      <span>{{ $t('PlatformFee') }}</span>
-                      <q-icon
-                        name="info"
-                        size="16px"
-                        class="q-ml-xs cursor-pointer"
-                        @click="showPlatformFeeInfo"
-                      />
-                    </div>
-                    <q-skeleton type="text" width="80px" style="height: 1.5em;" />
-                  </div>
-                  <div class="row items-center justify-between text-caption text-grey">
-                    <div>{{ $t('TransactionFee') }}</div>
-                    <q-skeleton type="text" width="80px" style="height: 1.5em;" />
-                  </div>
-                </template>
-                <!-- Actual values when computed -->
-                <template v-else>
-                  <div class="text-center text-caption text-grey q-mb-xs">
-                    <template v-if="isBuyingToken">{{ $t('YouNeed') }}</template>
-                    <template v-else>{{ $t('YouWillReceive') }}</template>
-                  </div>
-                  <div class="text-center text-h6 q-mb-md">
-                    {{ formattedOutputAmount }} {{ formattedOutputSymbol }}
-                  </div>
-                  <div class="row items-center justify-between text-caption text-grey">
-                    <div>{{ $t('TradeFee') }} (0.3%)</div>
-                    <div>{{ tradeFee }} BCH</div>
-                  </div>
-                  <div class="row items-center justify-between text-caption text-grey">
-                    <div class="row items-center">
-                      <span>{{ $t('PlatformFee') }}</span>
-                      <q-icon
-                        name="info"
-                        size="16px"
-                        class="q-ml-xs cursor-pointer"
-                        @click="showPlatformFeeInfo"
-                      />
-                    </div>
-                    <div>{{ platformFeeBch }} BCH</div>
-                  </div>
-                  <div class="row items-center justify-between text-caption text-grey">
-                    <div>{{ $t('TransactionFee') }}</div>
-                    <div>{{ estimateTransactionFee }} BCH</div>
-                  </div>
-                </template>
+                  <q-skeleton
+                    v-if="updatingPool || isRecomputingTrade || !tradeResult || !tradeResult.summary"
+                    type="text"
+                    width="80px"
+                    style="height: 1.5em;"
+                  />
+                  <div v-else>{{ platformFeeBch }} BCH</div>
+                </div>
+                <div class="row items-center justify-between text-caption text-grey">
+                  <div>{{ $t('TransactionFee') }}</div>
+                  <q-skeleton
+                    v-if="updatingPool || isRecomputingTrade || !tradeResult || !tradeResult.summary"
+                    type="text"
+                    width="80px"
+                    style="height: 1.5em;"
+                  />
+                  <div v-else>{{ estimateTransactionFee }} BCH</div>
+                </div>
               </div>
 
               <!-- Insufficient Balance Message - Always show when applicable -->
@@ -396,7 +373,6 @@ import CustomInput from 'src/components/CustomInput.vue';
 import KeyboardSlidePanel from 'src/components/KeyboardSlidePanel.vue';
 import CauldronHeaderMenu from 'src/components/cauldron/CauldronHeaderMenu.vue';
 import TokenSelectDialog from 'src/components/cauldron/TokenSelectDialog.vue';
-import LiftTokenDexComingSoonDialog from 'src/components/subscription/LiftTokenDexComingSoonDialog.vue'
 import { LIFT_TOKEN_CATEGORY } from 'src/utils/subscription-utils'
 import { processCauldronPoints } from 'src/utils/engagementhub-utils/rewards';
 import { raiseNotifySuccess } from 'src/utils/notify-utils';
@@ -579,26 +555,6 @@ export default defineComponent({
       }
     }, { deep: true })
     
-    function handleBuyClick() {
-      if (!isBuyingToken.value) {
-        isBuyingToken.value = true;
-        isSupplyMode.value = false;
-        if (amountInput.value > 0 && selectedToken.value) {
-          isRecomputingTrade.value = true;
-        }
-      }
-    }
-    
-    function handleSellClick() {
-      if (isBuyingToken.value) {
-        isBuyingToken.value = false;
-        isSupplyMode.value = true;
-        if (amountInput.value > 0 && selectedToken.value) {
-          isRecomputingTrade.value = true;
-        }
-      }
-    }
-
     function toggleSupplyMode() {
       // Toggle between buy and sell
       // Buy: isBuyingToken=true, isSupplyMode=false (input=tokens to receive, output=BCH to pay)
@@ -1287,17 +1243,6 @@ export default defineComponent({
               ? `${categoryId.substring(0, 8)}...${categoryId.substring(categoryId.length - 8)}`
               : categoryId;
 
-            // Special-case LIFT: show a branded "coming soon" dialog instead of generic Not Found.
-            if (String(props.selectTokenId) === String(LIFT_TOKEN_CATEGORY)) {
-              $q.dialog({
-                component: LiftTokenDexComingSoonDialog,
-                componentProps: {
-                  darkMode: Boolean(darkMode.value)
-                }
-              })
-              return
-            }
-
             $q.dialog({
               title: $t('NotFound'),
               message: $t('TokenNotListedInCauldron', { categoryId: truncatedId }, `The token with category ID ${truncatedId} has not been listed in Cauldron DEX.`),
@@ -1312,6 +1257,17 @@ export default defineComponent({
             message: $t('NetworkError'),
             color: 'negative',
           })
+        }
+      } else {
+        // Default the destination token to LIFT when nothing else is selected
+        try {
+          const tokens = await fetchTokensList({ token_id: LIFT_TOKEN_CATEGORY });
+          if (tokens.length > 0) {
+            selectedToken.value = tokens[0];
+            updateBalance()
+          }
+        } catch (error) {
+          console.error('Error fetching default token:', error);
         }
       }
       refreshPage()
@@ -1381,8 +1337,6 @@ export default defineComponent({
       onImgError,
       commitTrade,
       refreshPage,
-      handleBuyClick,
-      handleSellClick,
     }
   }
 })
@@ -1551,5 +1505,130 @@ export default defineComponent({
   max-width: min(250px, 80vw);
   // font-size: 12px;
   // line-height: 1.4;
+}
+
+.swap-stack {
+  display: flex;
+  flex-direction: column;
+}
+
+.swap-panel {
+  border: 1px solid rgba(0, 0, 0, 0.08);
+  border-radius: 16px;
+  padding: 12px 14px;
+  background: rgba(0, 0, 0, 0.02);
+  transition: border-color 0.2s ease, background 0.2s ease;
+
+  &.dark {
+    border-color: rgba(255, 255, 255, 0.1);
+    background: rgba(255, 255, 255, 0.04);
+  }
+}
+
+.swap-panel-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+
+.swap-panel-title {
+  font-size: 13px;
+  font-weight: 600;
+  color: #6b7280;
+
+  .dark & {
+    color: rgba(255, 255, 255, 0.7);
+  }
+}
+
+.swap-panel-balance {
+  font-size: 12px;
+  color: #9ca3af;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+
+  .dark & {
+    color: rgba(255, 255, 255, 0.5);
+  }
+}
+
+.swap-panel-body {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.asset-chip {
+  flex: 0 0 auto;
+  min-height: 40px;
+  padding: 4px 10px;
+  border-radius: 20px;
+  background: rgba(0, 0, 0, 0.04);
+  font-weight: 600;
+
+  &.dark {
+    background: rgba(255, 255, 255, 0.08);
+  }
+
+  &.asset-chip-static {
+    display: inline-flex;
+    align-items: center;
+    cursor: default;
+  }
+}
+
+.asset-chip-icon {
+  border-radius: 50%;
+}
+
+.asset-chip-symbol {
+  font-size: 15px;
+  font-weight: 700;
+}
+
+.swap-amount {
+  flex: 1 1 auto;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+}
+
+.swap-amount > div {
+  width: 100%;
+}
+
+.swap-amount-value {
+  font-size: 22px;
+  font-weight: 700;
+  line-height: 1.2;
+  word-break: break-all;
+  text-align: right;
+}
+
+.swap-amount-unit {
+  font-size: 14px;
+  font-weight: 600;
+  color: #6b7280;
+  margin-left: 4px;
+
+  .dark & {
+    color: rgba(255, 255, 255, 0.6);
+  }
+}
+
+.swap-amount-skeleton {
+  margin-left: auto;
+}
+
+.swap-arrow-wrapper {
+  display: flex;
+  justify-content: center;
+  margin: -14px 0;
+  position: relative;
+  z-index: 1;
 }
 </style>
