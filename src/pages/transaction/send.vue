@@ -2239,6 +2239,9 @@ export default {
       this.inputExtras[this.currentRecipientIndex].incorrectAddress = false
       this.inputExtras[this.currentRecipientIndex].merchantData = null
       this.updateAddressPrecheckValues(isLegacy, isWalletAddress)
+      if (value === '') {
+        this.customKeyboardState = 'dismiss'
+      }
     },
     onEmptyRecipient (value) {
       this.inputExtras[this.currentRecipientIndex].emptyRecipient = value
