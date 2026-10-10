@@ -91,8 +91,35 @@
       <div v-else>
         <q-card class="br-15 pt-card-2" :class="getDarkModeClass(darkMode)">
           <q-card-section>
-            <!-- No token selected -->
-            <div v-if="!selectedToken" class="q-mb-md">
+            <!-- Resolving default token: show swap-shaped skeleton so no intermediate UI flashes -->
+            <div v-if="loadingSelectedToken" class="swap-stack" aria-busy="true">
+              <div class="swap-panel" :class="getDarkModeClass(darkMode)" :style="{ order: 1 }">
+                <div class="swap-panel-header">
+                  <q-skeleton type="text" width="56px" />
+                  <q-skeleton type="text" width="96px" />
+                </div>
+                <div class="swap-panel-body">
+                  <q-skeleton type="rect" width="84px" height="26px" class="br-4" />
+                  <q-skeleton type="text" width="130px" height="2em" />
+                </div>
+              </div>
+              <div class="swap-arrow-wrapper" :style="{ order: 2 }">
+                <q-btn icon="swap_vert" round unelevated color="primary" disable />
+              </div>
+              <div class="swap-panel" :class="getDarkModeClass(darkMode)" :style="{ order: 3 }">
+                <div class="swap-panel-header">
+                  <q-skeleton type="text" width="56px" />
+                  <q-skeleton type="text" width="96px" />
+                </div>
+                <div class="swap-panel-body">
+                  <q-skeleton type="rect" width="84px" height="26px" class="br-4" />
+                  <q-skeleton type="rect" height="56px" class="br-4" />
+                </div>
+              </div>
+            </div>
+
+            <!-- No token selected (fallback) -->
+            <div v-else-if="!selectedToken" class="q-mb-md">
               <div class="text-caption text-grey q-mb-xs">{{ $t('SelectToken') }}</div>
               <q-btn
                 :label="$t('SelectToken')"
@@ -447,6 +474,9 @@ export default defineComponent({
 
     /** @type {import("vue").Ref<CauldronTokenData>} */
     const selectedToken = ref()
+    // True while the initial/default token is being resolved on mount.
+    // Prevents the "Select token" prompt from flashing before the swap form appears.
+    const loadingSelectedToken = ref(true)
     // onMounted(() => {
     //   mockFetchTokensList().then(response => {
     //     selectToken(response[0]);
@@ -1270,6 +1300,7 @@ export default defineComponent({
           console.error('Error fetching default token:', error);
         }
       }
+      loadingSelectedToken.value = false
       refreshPage()
     })
     onUnmounted(() => {
@@ -1289,6 +1320,7 @@ export default defineComponent({
       tokenData,
       tokenSymbol,
       selectedToken,
+      loadingSelectedToken,
       getTokenImage,
       isBuyingToken,
       isSupplyMode,
