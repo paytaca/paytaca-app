@@ -154,6 +154,17 @@
               {{ $t(isHongKong(currentCountry) ? 'Points' : 'Tokens') }}
               <q-btn
                 flat
+                dense
+                no-caps
+                :label="$t('ViewAll')"
+                :color="darkMode ? 'blue-4' : 'blue-6'"
+                @click="goToAssetList"
+                padding="0 8px"
+                style="font-size: 13px"
+                class="q-ml-sm"
+              />
+              <q-btn
+                flat
                 padding="none"
                 v-if="manageAssets"
                 size="sm"
@@ -173,10 +184,11 @@
                 flat
                 dense
                 no-caps
-                :label="$t('Manage')"
+                :label="$t('Swap')"
                 :color="darkMode ? 'blue-4' : 'blue-6'"
-                @click="goToAssetList"
+                @click="goToCauldronDex"
                 padding="4px 8px"
+                style="font-size: 13px"
                 class="q-mr-md"
               />
             </div>
@@ -1542,6 +1554,9 @@ export default {
     },
     goToAssetList () {
       this.$router.push({ name: 'asset-list' })
+    },
+    goToCauldronDex () {
+      this.$router.push({ name: 'app-cauldron' })
     },
     async updateTokenMenuPosition () {
       await this.$nextTick()
