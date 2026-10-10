@@ -31,7 +31,7 @@
           <div class="balance-label text-grey-6 text-weight-medium" style="font-size: 10px; text-transform: uppercase; letter-spacing: 0.8px; margin-bottom: 4px;">
             {{ $t('Balance', {}, 'Balance') }}
           </div>
-          <div class="balance-amount text-weight-bold" style="font-size: 24px; line-height: 1.2;" v-bch-amount="{ denomination }">
+          <div class="balance-amount text-weight-bold" style="font-size: 28px; line-height: 1.2;" v-bch-amount="{ denomination }">
             {{ parseAssetDenomination(denomination, asset) }}
           </div>
           <div v-if="assetFiatValue" class="fiat-value text-grey-7 q-mt-xs" style="font-size: 14px;">
@@ -42,19 +42,6 @@
           </div>
         </div>
 
-        <!-- Swap Button for Tokens (below balance) -->
-        <div v-if="asset.id?.startsWith?.('ct/')" class="swap-button-section q-mb-md">
-          <q-btn 
-            @click="cauldronSwap"
-            class="swap-btn"
-            color="primary"
-            no-caps
-          >
-            <q-icon name="img:cauldron-logo.svg" size="18px" class="q-mr-sm" />
-            <span>{{ $t('Swap') }}</span>
-          </q-btn>
-        </div>
-        
         <!-- Price Chart for BCH -->
         <div v-if="asset.id === 'bch'" class="price-chart-section q-mb-md">
           <div class="section-divider q-mb-sm"></div>
@@ -74,19 +61,19 @@
               <div class="price-label text-grey-6 text-weight-medium" style="font-size: 9px; text-transform: uppercase; letter-spacing: 0.8px; margin-bottom: 2px;">
                 {{ $t('CurrentPrice', {}, 'Current Price') }}
               </div>
-              <div class="price-value text-weight-bold" style="font-size: 18px;">
+              <div class="price-value text-weight-bold" style="font-size: 28px;">
                 {{ parseFiatCurrency(currentPrice, selectedCurrency?.symbol) }}
               </div>
               <div class="price-change q-mt-xs">
                 <q-chip 
                   :color="priceIncreased ? 'green-1' : 'red-1'"
                   :text-color="priceIncreased ? 'green-8' : 'red-8'"
-                  size="xs"
-                  class="text-weight-bold"
+                  size="md"
+                  class="text-weight-bold price-change-chip"
                 >
-                  <q-icon size="xs" :name="priceIncreased ? 'mdi-trending-up' : 'mdi-trending-down'" class="q-mr-xs"/>
+                  <q-icon size="16px" :name="priceIncreased ? 'mdi-trending-up' : 'mdi-trending-down'" class="q-mr-xs"/>
                   {{ priceIncreased ? '+' : '' }}{{ priceChangePercent }}%
-                  <span class="text-weight-regular q-ml-xs" style="font-size: 9px;">24h</span>
+                  <span class="text-weight-regular q-ml-xs" style="font-size: 11px;">24h</span>
                 </q-chip>
               </div>
             </div>
@@ -106,31 +93,13 @@
         <div v-if="asset.id !== 'bch'" class="token-sections q-mb-md">
           <div class="section-divider q-mb-md"></div>
           
-          <!-- Token Info -->
-          <div class="token-info-section text-center q-mb-md">
-            <div class="metadata-label text-grey-6 text-weight-medium" style="font-size: 9px; text-transform: uppercase; letter-spacing: 0.8px; margin-bottom: 4px;">
-              {{ $t('Metadata', {}, 'Metadata') }}
-            </div>
-            <div class="view-explorer-container q-mt-xs">
-              <a
-                :href="assetLink"
-                class="view-explorer-link"
-                :class="getDarkModeClass(darkMode)"
-                target="_blank"
-              >
-                {{ asset.id.split('/')[1].slice(0, 7) }}...{{ asset.id.split('/')[1].slice(-7) }}
-                <q-icon name="open_in_new" size="14px" class="q-ml-xs" />
-              </a>
-            </div>
-          </div>
-          
           <!-- Price Display for Tokens -->
           <div class="token-price-section text-center">
             <div v-if="tokenPrice" class="current-price-section q-mb-sm">
               <div class="price-label text-grey-6 text-weight-medium" style="font-size: 9px; text-transform: uppercase; letter-spacing: 0.8px; margin-bottom: 2px;">
                 {{ $t('CurrentPrice', {}, 'Current Price') }}
               </div>
-              <div class="price-value text-weight-bold" style="font-size: 18px;">
+              <div class="price-value text-weight-bold" style="font-size: 28px;">
                 {{ formattedTokenPrice }}
               </div>
               <div class="price-per-token text-grey-7 q-mt-xs" style="font-size: 11px;">
@@ -164,30 +133,60 @@
         <!-- Action Buttons -->
         <div class="action-buttons q-mt-lg">
           <div class="action-buttons-container">
-            <q-btn 
-              @click="send" 
-              unelevated
+            <q-btn
+              @click="send"
+              flat
               class="action-btn"
-              color="primary"
-              text-color="white"
               no-caps
             >
               <q-icon name="send" size="18px" class="action-icon" />
               <span class="action-label">{{ $t('Send') }}</span>
             </q-btn>
-            
-            <q-btn 
-              @click="receive" 
-              unelevated
+
+            <q-btn
+              @click="receive"
+              flat
               class="action-btn"
-              color="primary"
-              text-color="white"
               no-caps
             >
               <q-icon name="qr_code_2" size="18px" class="action-icon" />
               <span class="action-label">{{ $t('Receive') }}</span>
             </q-btn>
+
+            <q-btn
+              @click="viewHistory"
+              flat
+              class="action-btn"
+              no-caps
+            >
+              <q-icon name="history" size="18px" class="action-icon" />
+              <span class="action-label">{{ $t('History', {}, 'History') }}</span>
+            </q-btn>
+
+            <q-btn
+              v-if="asset.id?.startsWith?.('ct/')"
+              @click="cauldronSwap"
+              flat
+              class="action-btn"
+              no-caps
+            >
+              <q-icon name="swap_horiz" size="18px" class="action-icon" />
+              <span class="action-label">{{ $t('Swap') }}</span>
+            </q-btn>
           </div>
+        </div>
+
+        <!-- Metadata / explorer link -->
+        <div v-if="asset.id !== 'bch'" class="metadata-footer text-center q-mt-md">
+          <a
+            :href="assetLink"
+            class="view-explorer-link"
+            :class="getDarkModeClass(darkMode)"
+            target="_blank"
+          >
+            {{ asset.id.split('/')[1].slice(0, 7) }}...{{ asset.id.split('/')[1].slice(-7) }}
+            <q-icon name="open_in_new" size="14px" class="q-ml-xs" />
+          </a>
         </div>
       </q-card-section>
     </q-card>
@@ -418,6 +417,15 @@ export default {
         }
       })
     },
+    viewHistory () {
+      this.hide()
+      this.$router.push({
+        name: 'transaction-list',
+        query: {
+          assetID: this.asset.id
+        }
+      })
+    },
     cauldronSwap() {
       this.$router.push({
         name: 'app-cauldron',
@@ -636,6 +644,14 @@ export default {
   position: relative;
 }
 
+.price-change-chip {
+  font-size: 14px;
+
+  :deep(.q-chip__content) {
+    font-size: 14px;
+  }
+}
+
 // Token Price Section
 .token-price-section {
   max-width: 100%;
@@ -657,141 +673,91 @@ export default {
   }
 }
 
-// Token Info Section
-.token-info-section {
-  .view-explorer-container {
-    display: block;
-    text-align: center;
-    
-    .view-explorer-link {
-      display: inline-flex;
-      align-items: center;
-      text-decoration: none;
-      color: var(--q-primary);
-      font-size: 13px;
-      font-weight: 500;
-      padding: 6px 12px;
-      border-radius: 8px;
-      transition: all 0.2s ease;
-      
-      &:hover {
-        background: rgba(59, 123, 246, 0.08);
-        transform: translateX(2px);
-      }
-      
-      &.dark {
-        color: #4ade80;
-        
-        &:hover {
-          background: rgba(74, 222, 128, 0.1);
-        }
-      }
-    }
-  }
-}
-
-// Swap Button Section (below balance for tokens)
-.swap-button-section {
-  display: flex;
-  justify-content: center;
-  padding: 4px 0;
-  
-  .swap-btn {
+// Metadata / explorer footer
+.metadata-footer {
+  .view-explorer-link {
+    display: inline-flex;
+    align-items: center;
+    text-decoration: none;
+    color: var(--q-primary);
+    font-size: 13px;
     font-weight: 500;
-    letter-spacing: 0.3px;
-    font-size: 14px;
-    border-radius: 10px;
-    padding: 10px 20px;
-    border-width: 1.5px;
-    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
-    
+    padding: 6px 12px;
+    border-radius: 8px;
+    transition: all 0.2s ease;
+
     &:hover {
       background: rgba(59, 123, 246, 0.08);
-      transform: translateY(-1px);
-      box-shadow: 0 2px 8px rgba(59, 123, 246, 0.15);
     }
-    
-    &:active {
-      transform: translateY(0);
+
+    &.dark {
+      color: #4ade80;
+
+      &:hover {
+        background: rgba(74, 222, 128, 0.1);
+      }
     }
   }
 }
 
-// Action Buttons (Send and Receive only)
+// Action Buttons (Send, Receive, History, Swap)
 .action-buttons {
   padding-top: 8px;
   
   .action-buttons-container {
     display: flex;
-    gap: 10px;
+    flex-wrap: wrap;
+    gap: 8px;
     justify-content: center;
   }
   
   .action-btn {
-    flex: 1;
+    flex: 0 1 calc(33.333% - 6px);
     min-width: 0;
-    font-weight: 600;
-    letter-spacing: 0.3px;
-    font-size: 14px;
-    border-radius: 10px;
-    padding: 10px 12px;
-    box-shadow: 0 2px 8px rgba(59, 123, 246, 0.2);
-    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    gap: 4px;
-    min-height: 56px;
+    font-weight: 500;
+    font-size: 13px;
+    border-radius: 12px;
+    padding: 10px 6px;
+    color: var(--q-primary);
+    background: rgba(59, 123, 246, 0.08);
+    box-shadow: none;
+    transition: background 0.2s ease, transform 0.2s ease;
+    min-height: 52px;
+
+    :deep(.q-btn__content) {
+      gap: 5px;
+    }
     
     .action-icon {
-      opacity: 0.95;
+      opacity: 0.9;
       transition: transform 0.2s ease;
-      font-size: 18px;
+      font-size: 22px;
     }
     
     .action-label {
-      font-weight: 600;
+      font-weight: 500;
       line-height: 1.2;
-      padding-left: 5px;
-      font-size: clamp(13px, 2.5vw, 16px);
+      font-size: 12px;
+      white-space: nowrap;
     }
     
     &:hover {
-      box-shadow: 0 4px 14px rgba(59, 123, 246, 0.3);
-      transform: translateY(-2px);
+      background: rgba(59, 123, 246, 0.16);
       
       .action-icon {
-        transform: scale(1.1);
+        transform: scale(1.08);
       }
     }
     
     &:active {
-      transform: translateY(0);
-      box-shadow: 0 2px 6px rgba(59, 123, 246, 0.25);
-      
-      .action-icon {
-        transform: scale(1);
-      }
+      transform: scale(0.97);
     }
   }
   
-  // Responsive adjustments for smaller screens
-  @media (max-width: 480px) {
-    .action-buttons-container {
-      gap: 8px;
-    }
-    
+  @media (max-width: 360px) {
     .action-btn {
-      min-height: 52px;
-      padding: 8px 10px;
-      gap: 3px;
+      flex: 1 1 calc(50% - 4px);
     }
-  }
-  
-  // When only 2 buttons
-  .action-btn:nth-last-child(2):first-child {
-    min-width: calc(50% - 5px);
   }
 }
 

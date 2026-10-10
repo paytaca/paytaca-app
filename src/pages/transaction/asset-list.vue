@@ -89,6 +89,7 @@
 			      	    		    getDarkModeClass(darkmode),
 			      	    		    { 'has-drag-handle': asset.favorite === 1 || asset.favorite === true }
 			      	    		  ]"
+			      	    		  @click="showAssetInfo(asset)"
 			      	    		>
 			      	    		  <div
 			      	    		    v-if="asset.favorite === 1 || asset.favorite === true"
@@ -209,6 +210,8 @@
 			  
 		</div>
 
+		<AssetInfo ref="asset-info" :network="assetInfoNetwork"></AssetInfo>
+
 	</div>
 </template>
 <script>
@@ -225,6 +228,7 @@ import { hideAsset, unhideAsset, getHiddenAssetIds } from 'src/utils/hidden-asse
 import headerNav from 'src/components/header-nav'
 import AssetFilter from '../../components/AssetFilter'
 import RemoveAsset from 'src/pages/transaction/dialog/RemoveAsset'
+import AssetInfo from 'src/pages/transaction/dialog/AssetInfo.vue'
 import { showLimitDialogWithDeps } from 'src/composables/useTieredLimitGate'
 
 export default {
@@ -274,6 +278,9 @@ export default {
 	    isChipnet () {
 	      return this.$store.getters['global/isChipnet']
 	    },
+	    assetInfoNetwork () {
+	      return this.isCashToken ? 'BCH' : 'SLP'
+	    },
 	    walletHash () {
 	      return this.wallet?.BCH?.walletHash || this.wallet?.bch?.walletHash || ''
 	    },
@@ -292,6 +299,7 @@ export default {
 		headerNav,
 		AssetFilter,
 		RemoveAsset,
+		AssetInfo,
 		draggable
 	},
 	watch: {
@@ -316,6 +324,10 @@ export default {
 	methods: {
 		getDarkModeClass,
 		isHongKong,		
+		showAssetInfo (asset) {
+			if (!asset) return
+			this.$refs['asset-info'].show(asset)
+		},
 		formatAssetTokenAmount(asset) {
 	      return convertToTokenAmountWithDecimals(asset?.balance, asset?.decimals).toLocaleString(
 	        'en-US', { maximumFractionDigits: parseInt(asset?.decimals) || 0 },
@@ -771,7 +783,7 @@ export default {
   align-items: center;
   gap: 14px;
   padding: 12px 10px;
-  cursor: default;
+  cursor: pointer;
   position: relative;
   -webkit-user-select: none;
   user-select: none;
