@@ -29,7 +29,7 @@
 	    		<div v-for="i in 8" :key="i" class="q-my-sm">
 	    			<div class="asset-row" :class="getDarkModeClass(darkmode)">
 	    				<div style="width: 28px; flex-shrink: 0;">
-	    					<q-skeleton type="QIcon" size="20px" />
+	    					<q-skeleton type="circle" size="20px" />
 	    				</div>
 	    				<div style="width: 48px; height: 48px; flex-shrink: 0; border-radius: 14px; overflow: hidden;">
 	    					<q-skeleton type="QAvatar" size="48px" />
