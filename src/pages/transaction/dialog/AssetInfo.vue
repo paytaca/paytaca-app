@@ -24,6 +24,16 @@
           <div class="asset-name q-mt-xs text-weight-bold" style="font-size: 20px; letter-spacing: 0.3px;">
             {{ assetDisplayName }}
           </div>
+          <a
+            v-if="asset.id !== 'bch'"
+            :href="assetLink"
+            class="view-explorer-link q-mt-xs"
+            :class="getDarkModeClass(darkMode)"
+            target="_blank"
+          >
+            {{ asset.id.split('/')[1].slice(0, 7) }}...{{ asset.id.split('/')[1].slice(-7) }}
+            <q-icon name="open_in_new" size="14px" class="q-ml-xs" />
+          </a>
         </div>
 
         <!-- Balance Display -->
@@ -174,19 +184,6 @@
               <span class="action-label">{{ $t('Swap') }}</span>
             </q-btn>
           </div>
-        </div>
-
-        <!-- Metadata / explorer link -->
-        <div v-if="asset.id !== 'bch'" class="metadata-footer text-center q-mt-md">
-          <a
-            :href="assetLink"
-            class="view-explorer-link"
-            :class="getDarkModeClass(darkMode)"
-            target="_blank"
-          >
-            {{ asset.id.split('/')[1].slice(0, 7) }}...{{ asset.id.split('/')[1].slice(-7) }}
-            <q-icon name="open_in_new" size="14px" class="q-ml-xs" />
-          </a>
         </div>
       </q-card-section>
     </q-card>
@@ -673,29 +670,27 @@ export default {
   }
 }
 
-// Metadata / explorer footer
-.metadata-footer {
-  .view-explorer-link {
-    display: inline-flex;
-    align-items: center;
-    text-decoration: none;
-    color: var(--q-primary);
-    font-size: 13px;
-    font-weight: 500;
-    padding: 6px 12px;
-    border-radius: 8px;
-    transition: all 0.2s ease;
+// Explorer link (under the token name)
+.view-explorer-link {
+  display: inline-flex;
+  align-items: center;
+  text-decoration: none;
+  color: var(--q-primary);
+  font-size: 12px;
+  font-weight: 500;
+  padding: 3px 8px;
+  border-radius: 8px;
+  transition: all 0.2s ease;
+
+  &:hover {
+    background: rgba(59, 123, 246, 0.08);
+  }
+
+  &.dark {
+    color: #4ade80;
 
     &:hover {
-      background: rgba(59, 123, 246, 0.08);
-    }
-
-    &.dark {
-      color: #4ade80;
-
-      &:hover {
-        background: rgba(74, 222, 128, 0.1);
-      }
+      background: rgba(74, 222, 128, 0.1);
     }
   }
 }

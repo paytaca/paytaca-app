@@ -370,7 +370,7 @@ export default {
     },
     onAssetClick (event, asset) {
       if (!this.isSelectableAsset(asset)) return
-      this.selectAsset(event, asset)
+      this.showAssetInfo(asset)
     },
     onAssetHold (asset) {
       if (!this.isSelectableAsset(asset)) return
