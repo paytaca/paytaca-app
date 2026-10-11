@@ -22,7 +22,7 @@
       {{ inputExtras.merchantData.verified ? $t('VerifiedMerchant', {}, 'Verified') : $t('UnverifiedMerchant', {}, 'Unverified') }}
     </q-badge>
   </q-card>
-  <div class="row items-center no-wrap">
+  <div class="row items-center no-wrap q-mb-md">
     <div class="recipient-field q-mt-sm se">
       <q-input
         v-if="!recipientAddress || recipientEditing"
@@ -460,6 +460,7 @@ export default {
     'on-input-focus',
     'on-recipient-input',
     'on-empty-recipient',
+    'on-address-set',
     'on-selected-denomination-change',
     'on-qr-uploader-click',
     'on-selected-change-address',
@@ -633,6 +634,9 @@ export default {
     onRecipientBlur () {
       this.recipientEditing = false
       this.onEmptyRecipient()
+      if (this.recipientAddress) {
+        this.$emit('on-address-set', { index: this.index, address: this.recipientAddress })
+      }
     },
     startEditingRecipient () {
       if (this.inputExtras.isBip21) return

@@ -305,90 +305,155 @@
             :style="isNFT ? 'margin-top: 25px' : ''"
           >
             <form class="q-pa-sm send-form" @submit.prevent="handleSubmit">
-              <q-list v-for="(recipient, index) in recipients" v-bind:key="index">
-                <template v-if="!isNFT">
-                  <q-expansion-item
-                    default-opened
-                    dense
-                    dense-toggle
-                    class="q-expansion-item-recipient"
-                    v-model="expandedItems[`R${index + 1}`]"
-                    :class="getDarkModeClass(darkMode)"
-                    :label="`${$t('Recipient')} #${index + 1}`"
-                    :header-class="[
-                      inputExtras[index].incorrectAddress ? 'expansion-item-error' : '',
-                      'q-px-none',
-                    ]"
-                  >
-                    <SendPageForm
-                      :recipient="recipients[index]"
-                      :inputExtras="inputExtras[index]"
-                      :asset="asset"
-                      :index="index"
-                      :showQrScanner="showQrScanner"
-                      :computingMax="computingMax"
-                      :calculatingCauldronTrade="calculatingCauldronTrade"
-                      :selectedAssetMarketPrice="selectedAssetMarketPrice"
-                      :isNFT="isNFT"
-                      :currentWalletBalance="currentWalletBalances[index].balance"
-                      :currentWalletBalanceAssetId="currentWalletBalances[index].assetId"
-                      :cauldronErrorMessage="resolveCauldronTradePrepErrorMessageFromIndex(index)"
-                      :cauldronStatusMessage="getPoolTrackerStatus(index)?.statusMessage"
-                      :currentSendPageCurrency="currentSendPageCurrency"
-                      :setMaximumSendAmount="setMaximumSendAmount"
-                      :defaultSelectedFtChangeAddress="userSelectedChangeAddress"
-                      :walletType="walletType"
-                      @on-qr-scanner-click="onQRScannerClick"
-                      @on-input-focus="onInputFocus"
-                      @on-recipient-input="onRecipientInput"
-                      @on-empty-recipient="onEmptyRecipient"
-                      @on-selected-denomination-change="onSelectedDenomination"
-                      @on-qr-uploader-click="onQRUploaderClick"
-                      @on-selected-change-address="onUserSelectedChangeAddress"
-                      @on-cauldron-toggle="onCauldronToggle"
-                      :add-another-recipient="index === recipients.length - 1 ? addAnotherRecipient : undefined"
-                      :sending="sending"
-                      ref="sendPageRef"
-                    />
-
-                    <div class="row" v-if="recipients.length > 1 && !sending">
-                      <p class="remove-recipient-button" @click="removeLastRecipient(index)">
-                        {{ $t('RemoveRecipient') }} #{{ index + 1 }}
-                      </p>
+              <div
+                class="recipients-pager"
+                ref="recipientsPager"
+                @scroll.passive="onRecipientsScroll"
+              >
+                <div
+                  v-for="(recipient, index) in recipients"
+                  v-bind:key="index"
+                  class="recipient-slide"
+                >
+                  <div class="recipient-slide-inner" :class="getDarkModeClass(darkMode)">
+                    <div class="recipient-card-header row items-center no-wrap">
+                      <span class="recipient-card-title">
+                        {{ $t('Recipient') }} #{{ index + 1 }}
+                      </span>
+                      <q-icon
+                        v-if="inputExtras[index].incorrectAddress"
+                        name="error"
+                        size="16px"
+                        color="negative"
+                        class="q-ml-xs"
+                      />
+                      <q-space />
+                      <div class="recipient-header-actions row items-center no-wrap">
+                        <q-btn
+                          v-if="index === recipients.length - 1 && recipients.length < 10 && !sending"
+                          icon="add"
+                          round
+                          unelevated
+                          size="sm"
+                          color="primary"
+                          class="recipient-action-btn"
+                          @click="addAnotherRecipient"
+                        />
+                        <div
+                          v-if="recipients.length > 1"
+                          class="recipients-nav row items-center no-wrap"
+                        >
+                          <q-btn
+                            icon="chevron_left"
+                            round
+                            unelevated
+                            size="sm"
+                            color="primary"
+                            class="recipient-action-btn"
+                            :disable="currentRecipientIndex === 0"
+                            @click="scrollToRecipient(currentRecipientIndex - 1)"
+                          />
+                          <div class="recipients-dots row items-center">
+                            <span
+                              v-for="(recipient, dotIndex) in recipients"
+                              v-bind:key="`dot-${dotIndex}`"
+                              class="recipients-dot"
+                              :class="{ active: dotIndex === currentRecipientIndex }"
+                              @click="scrollToRecipient(dotIndex)"
+                            />
+                          </div>
+                          <q-btn
+                            icon="chevron_right"
+                            round
+                            unelevated
+                            size="sm"
+                            color="primary"
+                            class="recipient-action-btn"
+                            :disable="currentRecipientIndex === recipients.length - 1"
+                            @click="scrollToRecipient(currentRecipientIndex + 1)"
+                          />
+                        </div>
+                        <q-btn
+                          v-if="recipients.length > 1 && !sending"
+                          icon="close"
+                          round
+                          unelevated
+                          size="sm"
+                          color="negative"
+                          class="recipient-action-btn"
+                          @click="confirmRemoveRecipient(index)"
+                        />
+                      </div>
                     </div>
-                  </q-expansion-item>
-                </template>
 
-                <template v-else>
-                  <SendPageForm
-                    :recipient="recipients[index]"
-                    :inputExtras="inputExtras[index]"
-                    :asset="asset"
-                    :index="index"
-                    :showQrScanner="showQrScanner"
-                    :computingMax="computingMax"
-                    :selectedAssetMarketPrice="selectedAssetMarketPrice"
-                    :isNFT="isNFT"
-                    :currentWalletBalance="currentWalletBalances[index].balance"
-                    :currentWalletBalanceAssetId="currentWalletBalances[index].assetId"
-                    :cauldronErrorMessage="resolveCauldronTradePrepErrorMessageFromIndex(index)"
-                    :cauldronStatusMessage="getPoolTrackerStatus(index)?.statusMessage"
-                    :currentSendPageCurrency="currentSendPageCurrency"
-                    :setMaximumSendAmount="setMaximumSendAmount"
-                    :walletType="walletType"
-                    :sending="sending"
-                    @on-qr-scanner-click="onQRScannerClick"
-                    @on-input-focus="onInputFocus"
-                    @on-recipient-input="onRecipientInput"
-                    @on-empty-recipient="onEmptyRecipient"
-                    @on-selected-denomination-change="onSelectedDenomination"
-                    @on-qr-uploader-click="onQRUploaderClick"
-                    @on-selected-change-address="onUserSelectedChangeAddress"
-                    @on-cauldron-toggle="onCauldronToggle"
-                    ref="sendPageRef"
-                  />
-                </template>
-              </q-list>
+                    <template v-if="!isNFT">
+                      <SendPageForm
+                        :recipient="recipients[index]"
+                        :inputExtras="inputExtras[index]"
+                        :asset="asset"
+                        :index="index"
+                        :showQrScanner="showQrScanner"
+                        :computingMax="computingMax"
+                        :calculatingCauldronTrade="calculatingCauldronTrade"
+                        :selectedAssetMarketPrice="selectedAssetMarketPrice"
+                        :isNFT="isNFT"
+                        :currentWalletBalance="currentWalletBalances[index].balance"
+                        :currentWalletBalanceAssetId="currentWalletBalances[index].assetId"
+                        :cauldronErrorMessage="resolveCauldronTradePrepErrorMessageFromIndex(index)"
+                        :cauldronStatusMessage="getPoolTrackerStatus(index)?.statusMessage"
+                        :currentSendPageCurrency="currentSendPageCurrency"
+                        :setMaximumSendAmount="setMaximumSendAmount"
+                        :defaultSelectedFtChangeAddress="userSelectedChangeAddress"
+                        :walletType="walletType"
+                        @on-qr-scanner-click="onQRScannerClick"
+                        @on-input-focus="onInputFocus"
+                        @on-recipient-input="onRecipientInput"
+                        @on-address-set="onAddressSet"
+                        @on-empty-recipient="onEmptyRecipient"
+                        @on-selected-denomination-change="onSelectedDenomination"
+                        @on-qr-uploader-click="onQRUploaderClick"
+                        @on-selected-change-address="onUserSelectedChangeAddress"
+                        @on-cauldron-toggle="onCauldronToggle"
+                        :add-another-recipient="index === recipients.length - 1 ? addAnotherRecipient : undefined"
+                        :sending="sending"
+                        ref="sendPageRef"
+                      />
+                    </template>
+
+                    <template v-else>
+                      <SendPageForm
+                        :recipient="recipients[index]"
+                        :inputExtras="inputExtras[index]"
+                        :asset="asset"
+                        :index="index"
+                        :showQrScanner="showQrScanner"
+                        :computingMax="computingMax"
+                        :selectedAssetMarketPrice="selectedAssetMarketPrice"
+                        :isNFT="isNFT"
+                        :currentWalletBalance="currentWalletBalances[index].balance"
+                        :currentWalletBalanceAssetId="currentWalletBalances[index].assetId"
+                        :cauldronErrorMessage="resolveCauldronTradePrepErrorMessageFromIndex(index)"
+                        :cauldronStatusMessage="getPoolTrackerStatus(index)?.statusMessage"
+                        :currentSendPageCurrency="currentSendPageCurrency"
+                        :setMaximumSendAmount="setMaximumSendAmount"
+                        :walletType="walletType"
+                        :sending="sending"
+                        @on-qr-scanner-click="onQRScannerClick"
+                        @on-input-focus="onInputFocus"
+                        @on-recipient-input="onRecipientInput"
+                        @on-address-set="onAddressSet"
+                        @on-empty-recipient="onEmptyRecipient"
+                        @on-selected-denomination-change="onSelectedDenomination"
+                        @on-qr-uploader-click="onQRUploaderClick"
+                        @on-selected-change-address="onUserSelectedChangeAddress"
+                        @on-cauldron-toggle="onCauldronToggle"
+                        ref="sendPageRef"
+                      />
+                    </template>
+                  </div>
+                </div>
+              </div>
+
               <div class="row" v-if="sending">
                 <div class="col-12 text-center">
                   <ProgressLoader />
@@ -653,7 +718,6 @@ export default {
         }
       }],
       currentWalletBalances: [{ balance: 0, assetId: '' }],
-      expandedItems: {},
       pinDialogAction: '',
       warningAttemptsStatus: 'dismiss',
 
@@ -1379,6 +1443,9 @@ export default {
 
         // Look up merchant by address
         vm.lookupMerchantForCurrentRecipient()
+
+        // Bring up the amount keyboard for the card whose address was just set
+        vm.onAddressSet({ index: vm.currentRecipientIndex })
       }
     },
 
@@ -1632,7 +1699,6 @@ export default {
       this.inputExtras = remainingInputExtras
       this.currentWalletBalances = currentWalletBalances;
       this.currentRecipientIndex = 0
-      this.expandedItems = { R1: true }
       if (currentInputExtras.cauldron.enable) {
         this.prepareCauldronTrade()
         this.adjustWalletBalance()
@@ -1658,6 +1724,37 @@ export default {
         this.customKeyboardState = 'show'
         sendPageUtils.addRemoveInputFocus(index, field)
       }
+    },
+
+    // recipient pager
+    scrollToRecipient (index) {
+      if (index < 0 || index >= this.recipients.length) return
+      this.currentRecipientIndex = index
+      this.$nextTick(() => this.scrollToRecipientIndex(index))
+    },
+    scrollToRecipientIndex (index) {
+      const pager = this.$refs.recipientsPager
+      if (!pager || typeof pager.scrollTo !== 'function' || !pager.clientWidth) return
+      pager.scrollTo({ left: index * pager.clientWidth, behavior: 'smooth' })
+    },
+    onRecipientsScroll () {
+      const pager = this.$refs.recipientsPager
+      if (!pager || !this.recipients.length || !pager.clientWidth) return
+      const index = Math.round(pager.scrollLeft / pager.clientWidth)
+      if (index !== this.currentRecipientIndex && index >= 0 && index < this.recipients.length) {
+        this.currentRecipientIndex = index
+      }
+    },
+    onAddressSet (value) {
+      const index = (value && typeof value.index === 'number') ? value.index : this.currentRecipientIndex
+      const recipient = this.recipients[index]
+      if (!recipient || !recipient.recipientAddress || recipient.fixedAmount) return
+      if (!this.checkAddressValidity(recipient.recipientAddress)) return
+      this.currentRecipientIndex = index
+      this.$nextTick(() => {
+        this.scrollToRecipientIndex(index)
+        this.autoFocusAmount()
+      })
     },
 
     // keyboard
@@ -1823,16 +1920,34 @@ export default {
         })
         this.currentWalletBalances.push({ balance: 0, assetId: this.asset.id })
         this.adjustWalletBalance();
-        for (let i = 1; i <= recipientsLength; i++) {
-          this.expandedItems[`R${i}`] = false
-        }
+        this.scrollToRecipient(this.recipients.length - 1)
       } else raiseNotifyError(this.$t('CannotAddRecipient'))
     },
+    confirmRemoveRecipient (index) {
+      const vm = this
+      vm.$q.dialog({
+        title: vm.$t('RemoveRecipient'),
+        message: `${vm.$t('RemoveRecipient')} #${index + 1}?`,
+        persistent: false,
+        class: `pt-card text-bow ${vm.getDarkModeClass(vm.darkMode)}`,
+        ok: {
+          label: vm.$t('Remove'),
+          color: 'negative'
+        },
+        cancel: {
+          label: vm.$t('Cancel'),
+          flat: true
+        }
+      }).onOk(() => {
+        vm.removeLastRecipient(index)
+      })
+    },
     removeLastRecipient (index) {
-      delete this.expandedItems[`R${index}`]
-      this.expandedItems[`R${index + 1}`] = true
       this.recipients.splice(index, 1)
       this.inputExtras.splice(index, 1)
+      this.currentWalletBalances.splice(index, 1)
+      // Show the last card after deletion
+      this.scrollToRecipient(Math.max(0, this.recipients.length - 1))
     },
 
     // sending
@@ -3436,16 +3551,64 @@ export default {
     .send-form {
       font-size: 26px !important;
       margin-top: -100px;
-      padding-top: 30px;
-      .remove-recipient-button {
-        font-size: 14px;
-        color: red;
-        margin-top: 10px;
-        cursor: pointer;
-      }
+      padding-top: 60px;
       .set-amount-button {
         font-size: 16px;
         text-decoration: none;
+      }
+      .recipients-pager {
+        display: flex;
+        overflow-x: auto;
+        overflow-y: hidden;
+        scroll-snap-type: x mandatory;
+        -webkit-overflow-scrolling: touch;
+        scrollbar-width: none;
+        -ms-overflow-style: none;
+        &::-webkit-scrollbar {
+          display: none;
+        }
+        .recipient-slide {
+          flex: 0 0 100%;
+          width: 100%;
+          scroll-snap-align: start;
+          scroll-snap-stop: always;
+          box-sizing: border-box;
+        }
+      }
+      .recipient-card-header {
+        justify-content: space-between;
+        margin-bottom: 8px;
+        .recipient-card-title {
+          font-size: 18px;
+          font-weight: 500;
+        }
+      }
+      .recipient-header-actions {
+        gap: 4px;
+      }
+      .recipient-action-btn {
+        min-width: 32px;
+        min-height: 32px;
+      }
+      .recipients-nav {
+        gap: 2px;
+        margin: 0 2px;
+      }
+      .recipients-dots {
+        gap: 6px;
+        margin: 0 4px;
+        .recipients-dot {
+          width: 7px;
+          height: 7px;
+          border-radius: 50%;
+          background: rgba(128, 128, 128, 0.45);
+          cursor: pointer;
+          transition: transform 0.2s ease, background-color 0.2s ease;
+          &.active {
+            background: var(--q-primary);
+            transform: scale(1.3);
+          }
+        }
       }
     }
   }
