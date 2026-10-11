@@ -9,6 +9,11 @@ const { hexToBytes } = nostrUtils
 const _readReceiptRetries = new Map()
 const MAX_READ_RECEIPT_RETRIES = 3
 const _markRoomLocks = new Set()
+// messageIds that arrive while a markRoomAsRead run is already in flight for
+// the same room. We queue them and process after the lock is released instead
+// of dropping them — dropping silently created permanent "never seen" gaps for
+// messages that happened to arrive during a burst.
+const _pendingMarkRoomIds = new Map()
 
 // Pending read receipts where the referenced message hadn't arrived yet.
 // Keyed by messageId → [{ readerPubKey }]. Flushed at the end of every
@@ -2394,7 +2399,16 @@ export async function markRoomAsRead ({ commit, state, dispatch }, { roomId, mes
     if (ids.length) commit('MARK_MESSAGES_AS_READ', { roomId, messageIds: ids })
     return
   }
-  if (_markRoomLocks.has(roomId)) return
+  if (_markRoomLocks.has(roomId)) {
+    // A run is already in flight for this room. Queue the incoming ids so they
+    // are processed once the current run finishes (see finally below).
+    if (messageIds?.length) {
+      const pending = _pendingMarkRoomIds.get(roomId) || new Set()
+      for (const id of messageIds) pending.add(id)
+      _pendingMarkRoomIds.set(roomId, pending)
+    }
+    return
+  }
   _markRoomLocks.add(roomId)
   try {
   const ws = getWalletState(state)
@@ -2504,6 +2518,12 @@ export async function markRoomAsRead ({ commit, state, dispatch }, { roomId, mes
   }
   } finally {
     _markRoomLocks.delete(roomId)
+    // Process any ids that were queued while this run was in flight.
+    const pending = _pendingMarkRoomIds.get(roomId)
+    if (pending && pending.size) {
+      _pendingMarkRoomIds.delete(roomId)
+      dispatch('markRoomAsRead', { roomId, messageIds: Array.from(pending) })
+    }
   }
 }
 
@@ -2644,6 +2664,7 @@ export async function resetAndRefetch ({ commit, dispatch, state }) {
   _messageRoomMap.clear()
   _readReceiptRetries.clear()
   _pendingReadReceipts.clear()
+  _pendingMarkRoomIds.clear()
   clearAllTypingTimers()
   for (const key of Object.keys(_lastTypingSent)) {
     delete _lastTypingSent[key]
