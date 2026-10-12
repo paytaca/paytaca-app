@@ -8,7 +8,7 @@
     v-model="valFormatted"
     @focus="!disable && (keyboardState = 'show')"
     @keydown="onKeyboardInput"
-    :label="label || $t('Amount')"
+    :label="showLabel ? (label || $t('Amount')) : undefined"
     :dark="darkMode"
     :rules="inputRules"
     :disable="disable"
@@ -54,6 +54,7 @@ export default {
     inputSymbol: { type: String, default: '' },
     disable: { type: Boolean, default: false },
     label: { type: String, default: '' },
+    showLabel: { type: Boolean, default: true },
     inputRules: { type: Array, default: new Array(() => {}) },
     asset: { type: Object, default: {} },
     decimalObj: {

@@ -53,10 +53,12 @@ export default {
   },
   mounted () {
     if (this.tab) this.activeButton = this.tab
-    window.addEventListener('scroll', this.handleScroll, { passive: true })
+    // P2P pages scroll inside inner containers (e.g. q-list.scroll-y), not the
+    // window, so listen in the capture phase to catch descendant scroll events.
+    document.addEventListener('scroll', this.handleScroll, { passive: true, capture: true })
   },
   beforeUnmount() {
-    window.removeEventListener('scroll', this.handleScroll)
+    document.removeEventListener('scroll', this.handleScroll, { capture: true })
   },
   methods: {
     expandBex () {
@@ -98,10 +100,28 @@ export default {
     getDarkModeClass (darkModeClass = '', lightModeClass = '') {
       return this.darkMode ? `dark ${darkModeClass}` : `light ${lightModeClass}`
     },
-    handleScroll () {
-      const currentScrollY = window.scrollY
-      const windowHeight = window.innerHeight
-      const documentHeight = document.documentElement.scrollHeight
+    handleScroll (event) {
+      const target = event?.target
+      let currentScrollY
+      let windowHeight
+      let documentHeight
+
+      // Use the actual scrolling element when the event comes from an inner
+      // container; fall back to the window for normal page scrolling.
+      if (
+        target instanceof Element &&
+        target !== document.documentElement &&
+        target !== document.body &&
+        target.scrollHeight > target.clientHeight
+      ) {
+        currentScrollY = target.scrollTop
+        windowHeight = target.clientHeight
+        documentHeight = target.scrollHeight
+      } else {
+        currentScrollY = window.scrollY
+        windowHeight = window.innerHeight
+        documentHeight = document.documentElement.scrollHeight
+      }
 
       // If at the top of the page, always show the footer
       if (currentScrollY <= 10) {

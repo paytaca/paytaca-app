@@ -91,11 +91,37 @@
       <div v-else>
         <q-card class="br-15 pt-card-2" :class="getDarkModeClass(darkMode)">
           <q-card-section>
-            <!-- Token Selector -->
-            <div class="q-mb-md">
+            <!-- Resolving default token: show swap-shaped skeleton so no intermediate UI flashes -->
+            <div v-if="loadingSelectedToken" class="swap-stack" aria-busy="true">
+              <div class="swap-panel" :class="getDarkModeClass(darkMode)" :style="{ order: 1 }">
+                <div class="swap-panel-header">
+                  <q-skeleton type="text" width="56px" />
+                  <q-skeleton type="text" width="96px" />
+                </div>
+                <div class="swap-panel-body">
+                  <q-skeleton type="rect" width="84px" height="26px" class="br-4" />
+                  <q-skeleton type="text" width="130px" height="2em" />
+                </div>
+              </div>
+              <div class="swap-arrow-wrapper" :style="{ order: 2 }">
+                <q-btn icon="swap_vert" round unelevated color="primary" disable />
+              </div>
+              <div class="swap-panel" :class="getDarkModeClass(darkMode)" :style="{ order: 3 }">
+                <div class="swap-panel-header">
+                  <q-skeleton type="text" width="56px" />
+                  <q-skeleton type="text" width="96px" />
+                </div>
+                <div class="swap-panel-body">
+                  <q-skeleton type="rect" width="84px" height="26px" class="br-4" />
+                  <q-skeleton type="rect" height="56px" class="br-4" />
+                </div>
+              </div>
+            </div>
+
+            <!-- No token selected (fallback) -->
+            <div v-else-if="!selectedToken" class="q-mb-md">
               <div class="text-caption text-grey q-mb-xs">{{ $t('SelectToken') }}</div>
               <q-btn
-                v-if="!selectedToken"
                 :label="$t('SelectToken')"
                 no-caps
                 outline
@@ -103,29 +129,6 @@
                 color="primary"
                 @click="showTokenDialog = true"
               />
-              <div v-else class="row items-center q-pa-sm" style="border: 1px solid rgba(0,0,0,0.12); border-radius: 8px;">
-                <img
-                  v-if="tokenData?.bcmr?.uris?.icon"
-                  :src="getTokenImage(tokenData.bcmr.uris.icon)"
-                  height="30"
-                  class="q-mr-sm"
-                  @error="onImgError"
-                />
-                <div class="col">
-                  <div class="text-weight-bold">{{ tokenSymbol || $t('Unknown') }}</div>
-                  <div class="text-caption text-grey">{{ tokenData?.bcmr?.name || '' }}</div>
-                </div>
-                <div class="q-px-sm">
-                  <q-btn flat dense no-caps :label="$t('Change')" size="md" @click="showTokenDialog = true"/>
-                </div>
-                <q-btn
-                  flat
-                  dense
-                  icon="close"
-                  size="sm"
-                  @click="selectedToken = null"
-                />
-              </div>
             </div>
 
             <template v-if="selectedToken">
@@ -155,81 +158,112 @@
                 <q-spinner size="1.5em" color="primary" /> 
               </div>
   
-              <!-- Swap Direction Toggle -->
-              <div class="q-mb-md">
-                <div class="row q-gutter-sm">
+              <!-- Familiar swap layout: BCH ⇄ token panels with flip arrow -->
+              <div class="swap-stack">
+                <!-- BCH panel (fixed asset). You pay it when buying, receive it when selling -->
+                <div class="swap-panel" :class="getDarkModeClass(darkMode)" :style="{ order: isBuyingToken ? 1 : 3 }">
+                  <div class="swap-panel-header">
+                    <span class="swap-panel-title">{{ isBuyingToken ? $t('YouPay') : $t('YouReceive') }}</span>
+                    <span class="swap-panel-balance">{{ $t('Balance') }}: {{ formatAmount(bchBalanceSats, 8) }} BCH</span>
+                  </div>
+                  <div class="swap-panel-body">
+                    <div class="asset-chip asset-chip-static">
+                      <img src="/bch-logo.png" height="26" class="asset-chip-icon q-mr-sm" />
+                      <span class="asset-chip-symbol">BCH</span>
+                    </div>
+                    <div class="swap-amount" @click="activateAmountField('bch')">
+                      <q-skeleton
+                        v-if="updatingPool || !isLiquidityAvailable"
+                        type="rect"
+                        height="56px"
+                        class="br-4"
+                      />
+                      <CustomInput
+                        v-else
+                        ref="bchInputRef"
+                        :no-keyboard="true"
+                        :show-label="false"
+                        :model-value="bchInputString"
+                        @update:model-value="updateBchInput($event)"
+                        @keyboard-state-change="onBchKeyboardStateChange"
+                        input-symbol="BCH"
+                        :decimal-obj="bchDecimalObj"
+                        :asset="bchAsset"
+                        :disable="isSwapping || updatingPool"
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Flip direction -->
+                <div class="swap-arrow-wrapper" :style="{ order: 2 }">
                   <q-btn
-                    :label="`${$t('Buy')} ${tokenSymbol || $t('Token')}`"
-                    no-caps
-                    :unelevated="!isBuyingToken"
-                    :color="isBuyingToken ? 'primary' : null"
-                    class="col"
-                    :class="(!darkMode && !isBuyingToken) ? 'text-grey' : 'text-white'"
-                    @click="handleBuyClick"
-                  />
-                  <q-btn
-                    :label="`${$t('Sell')} ${tokenSymbol || $t('Token')}`"
-                    no-caps
-                    :unelevated="isBuyingToken"
-                    :color="!isBuyingToken ? 'primary' : null"
-                    class="col"
-                    :class="(!darkMode && isBuyingToken) ? 'text-grey' : 'text-white'"
-                    @click="handleSellClick"
+                    icon="swap_vert"
+                    round
+                    unelevated
+                    color="primary"
+                    :disable="updatingPool"
+                    @click="toggleSupplyMode"
                   />
                 </div>
-              </div>
 
-              <div class="row items-center justify-end q-px-xs q-mb-sm">
-                Balance:
-                <template v-if="isBuyingToken">
-                  {{ formatAmount(bchBalanceSats, 8) }} BCH
-                </template>
-                <template v-else>
-                  {{ formatAmount(selectedTokenBalance, selectedToken?.bcmr?.token?.decimals || 0) }}
-                  {{ isNaN(selectedToken?.bcmr?.token?.decimals) ? $t('Tokens') : tokenSymbol }}
-                </template>
-              </div>
-  
-              <!-- Amount Input -->
-              <div class="q-mb-md">
-                <template v-if="updatingPool || (selectedToken && !isLiquidityAvailable)">
-                  <q-skeleton type="rect" height="56px" class="br-4" />
-                </template>
-                <CustomInput
-                  v-else
-                  ref="customInputRef"
-                  :no-keyboard="true"
-                  :model-value="amountInputString"
-                  @update:model-value="updateAmountInput($event)"
-                  @keyboard-state-change="onKeyboardStateChange"
-                  :input-symbol="amountInputSymbol"
-                  :label="isBuyingToken ? $t('AmountToReceive') : $t('AmountToSupply')"
-                  :decimal-obj="amountInputDecimalObj"
-                  :asset="amountInputAsset"
-                  :disable="isSwapping || updatingPool"
-                />
-                <div v-if="formattedMaxAmount" class="row items-center justify-end">
-                  <q-btn
-                    flat
-                    dense
-                    no-caps
-                    class="max-button"
-                    :class="getDarkModeClass(darkMode)"
-                    @click="amountInputString = formattedMaxAmount"
-                  >
-                    {{ $t('Max') }}: {{ formattedMaxAmount }} {{ amountInputSymbol }}
-                  </q-btn>
+                <!-- Token panel (dropdown). Receive it when buying, pay it when selling -->
+                <div class="swap-panel" :class="getDarkModeClass(darkMode)" :style="{ order: isBuyingToken ? 3 : 1 }">
+                  <div class="swap-panel-header">
+                    <span class="swap-panel-title">{{ isBuyingToken ? $t('YouReceive') : $t('YouPay') }}</span>
+                    <span class="swap-panel-balance">
+                      {{ $t('Balance') }}:
+                      {{ formatAmount(selectedTokenBalance, selectedToken?.bcmr?.token?.decimals || 0) }}
+                      {{ isNaN(selectedToken?.bcmr?.token?.decimals) ? $t('Tokens') : tokenSymbol }}
+                    </span>
+                  </div>
+                  <div class="swap-panel-body">
+                    <q-btn flat dense no-caps class="asset-chip" @click="showTokenDialog = true">
+                      <img
+                        v-if="tokenData?.bcmr?.uris?.icon"
+                        :src="getTokenImage(tokenData.bcmr.uris.icon)"
+                        height="26"
+                        class="asset-chip-icon q-mr-sm"
+                        @error="onImgError"
+                      />
+                      <span class="asset-chip-symbol">{{ tokenSymbol || $t('Unknown') }}</span>
+                      <q-icon name="expand_more" size="18px" class="q-ml-xs" />
+                    </q-btn>
+                    <div class="swap-amount" @click="activateAmountField('token')">
+                      <q-skeleton
+                        v-if="updatingPool || !isLiquidityAvailable"
+                        type="rect"
+                        height="56px"
+                        class="br-4"
+                      />
+                      <CustomInput
+                        v-else
+                        ref="customInputRef"
+                        :no-keyboard="true"
+                        :show-label="false"
+                        :model-value="amountInputString"
+                        @update:model-value="updateAmountInput($event)"
+                        @keyboard-state-change="onKeyboardStateChange"
+                        :input-symbol="amountInputSymbol"
+                        :decimal-obj="amountInputDecimalObj"
+                        :asset="amountInputAsset"
+                        :disable="isSwapping || updatingPool"
+                      />
+                    </div>
+                  </div>
+                  <div v-if="formattedMaxAmount" class="row items-center justify-end">
+                    <q-btn
+                      flat
+                      dense
+                      no-caps
+                      class="max-button"
+                      :class="getDarkModeClass(darkMode)"
+                      @click="updateAmountInput(formattedMaxAmount)"
+                    >
+                      {{ $t('Max') }}: {{ formattedMaxAmount }} {{ amountInputSymbol }}
+                    </q-btn>
+                  </div>
                 </div>
-              </div>
-
-              <div v-if="amountInput > 0" class="q-mb-md row justify-center">
-                <q-btn
-                  icon="swap_vert"
-                  round
-                  unelevated
-                  color="primary"
-                  @click="toggleSupplyMode"
-                />
               </div>
   
               <div
@@ -241,73 +275,51 @@
                 <span class="insufficient-balance-text">{{ tradeResultError }}</span>
               </div>
   
-              <!-- Output Display -->
-              <div v-if="amountInput > 0 && selectedToken" class="q-mb-md">
-                <!-- Skeleton loader while computing -->
-                <template v-if="updatingPool || isRecomputingTrade || !tradeResult || !tradeResult.summary">
-                  <div class="text-center text-caption text-grey q-mb-xs">
-                    <template v-if="isBuyingToken">{{ $t('YouNeed') }}</template>
-                    <template v-else>{{ $t('YouWillReceive') }}</template>
+              <!-- Fees -->
+              <div v-if="activeAmountUnits > 0n && selectedToken" class="q-mt-md">
+                <div class="row items-center justify-between text-caption text-grey">
+                  <div>{{ $t('TradeFee') }} (0.3%)</div>
+                  <q-skeleton
+                    v-if="updatingPool || isRecomputingTrade || !tradeResult || !tradeResult.summary"
+                    type="text"
+                    width="80px"
+                    style="height: 1.5em;"
+                  />
+                  <div v-else>{{ tradeFee }} BCH</div>
+                </div>
+                <div class="row items-center justify-between text-caption text-grey">
+                  <div class="row items-center">
+                    <span>{{ $t('PlatformFee') }}</span>
+                    <q-icon
+                      name="info"
+                      size="16px"
+                      class="q-ml-xs cursor-pointer"
+                      @click="showPlatformFeeInfo"
+                    />
                   </div>
-                  <div class="text-center text-h6 q-mb-md">
-                    <q-skeleton type="text" width="150px" class="q-mx-auto" style="height: 1.5em;" />
-                  </div>
-                  <div class="row items-center justify-between text-caption text-grey">
-                    <div>{{ $t('TradeFee') }} (0.3%)</div>
-                    <q-skeleton type="text" width="80px" style="height: 1.5em;" />
-                  </div>
-                  <div class="row items-center justify-between text-caption text-grey">
-                    <div class="row items-center">
-                      <span>{{ $t('PlatformFee') }}</span>
-                      <q-icon
-                        name="info"
-                        size="16px"
-                        class="q-ml-xs cursor-pointer"
-                        @click="showPlatformFeeInfo"
-                      />
-                    </div>
-                    <q-skeleton type="text" width="80px" style="height: 1.5em;" />
-                  </div>
-                  <div class="row items-center justify-between text-caption text-grey">
-                    <div>{{ $t('TransactionFee') }}</div>
-                    <q-skeleton type="text" width="80px" style="height: 1.5em;" />
-                  </div>
-                </template>
-                <!-- Actual values when computed -->
-                <template v-else>
-                  <div class="text-center text-caption text-grey q-mb-xs">
-                    <template v-if="isBuyingToken">{{ $t('YouNeed') }}</template>
-                    <template v-else>{{ $t('YouWillReceive') }}</template>
-                  </div>
-                  <div class="text-center text-h6 q-mb-md">
-                    {{ formattedOutputAmount }} {{ formattedOutputSymbol }}
-                  </div>
-                  <div class="row items-center justify-between text-caption text-grey">
-                    <div>{{ $t('TradeFee') }} (0.3%)</div>
-                    <div>{{ tradeFee }} BCH</div>
-                  </div>
-                  <div class="row items-center justify-between text-caption text-grey">
-                    <div class="row items-center">
-                      <span>{{ $t('PlatformFee') }}</span>
-                      <q-icon
-                        name="info"
-                        size="16px"
-                        class="q-ml-xs cursor-pointer"
-                        @click="showPlatformFeeInfo"
-                      />
-                    </div>
-                    <div>{{ platformFeeBch }} BCH</div>
-                  </div>
-                  <div class="row items-center justify-between text-caption text-grey">
-                    <div>{{ $t('TransactionFee') }}</div>
-                    <div>{{ estimateTransactionFee }} BCH</div>
-                  </div>
-                </template>
+                  <q-skeleton
+                    v-if="updatingPool || isRecomputingTrade || !tradeResult || !tradeResult.summary"
+                    type="text"
+                    width="80px"
+                    style="height: 1.5em;"
+                  />
+                  <div v-else>{{ platformFeeBch }} BCH</div>
+                </div>
+                <div class="row items-center justify-between text-caption text-grey">
+                  <div>{{ $t('TransactionFee') }}</div>
+                  <q-skeleton
+                    v-if="updatingPool || isRecomputingTrade || !tradeResult || !tradeResult.summary"
+                    type="text"
+                    width="80px"
+                    style="height: 1.5em;"
+                  />
+                  <div v-else>{{ estimateTransactionFee }} BCH</div>
+                </div>
               </div>
 
               <!-- Insufficient Balance Message - Always show when applicable -->
               <div
-                v-if="showInsufficientBalance && tradeResult && tradeResult.summary && amountInput > 0 && selectedToken"
+                v-if="showInsufficientBalance && tradeResult && tradeResult.summary && activeAmountUnits > 0n && selectedToken"
                 class="insufficient-balance-alert q-my-sm"
                 :class="getDarkModeClass(darkMode)"
               >
@@ -357,8 +369,8 @@
       :panel-visible="panelVisible"
       :keyboard-state="keyboardState"
       hide-check-key
-      @addKey="customInputRef?.setAmount($event)"
-      @makeKeyAction="customInputRef?.makeKeyAction($event)"
+      @addKey="onAddKey($event)"
+      @makeKeyAction="onMakeKeyAction($event)"
       @backPressed="keyboardState = 'dismiss'"
     >
       <template #slide>
@@ -396,7 +408,6 @@ import CustomInput from 'src/components/CustomInput.vue';
 import KeyboardSlidePanel from 'src/components/KeyboardSlidePanel.vue';
 import CauldronHeaderMenu from 'src/components/cauldron/CauldronHeaderMenu.vue';
 import TokenSelectDialog from 'src/components/cauldron/TokenSelectDialog.vue';
-import LiftTokenDexComingSoonDialog from 'src/components/subscription/LiftTokenDexComingSoonDialog.vue'
 import { LIFT_TOKEN_CATEGORY } from 'src/utils/subscription-utils'
 import { processCauldronPoints } from 'src/utils/engagementhub-utils/rewards';
 import { raiseNotifySuccess } from 'src/utils/notify-utils';
@@ -471,6 +482,9 @@ export default defineComponent({
 
     /** @type {import("vue").Ref<CauldronTokenData>} */
     const selectedToken = ref()
+    // True while the initial/default token is being resolved on mount.
+    // Prevents the "Select token" prompt from flashing before the swap form appears.
+    const loadingSelectedToken = ref(true)
     // onMounted(() => {
     //   mockFetchTokensList().then(response => {
     //     selectToken(response[0]);
@@ -505,14 +519,23 @@ export default defineComponent({
     const isSupplyMode = ref(false);
     const amountInput = ref(0);
     const amountInputString = ref('');
+    // Which asset amount the user is actively editing: 'token' | 'bch'
+    const activeAmountField = ref('token');
+    const bchInput = ref(0);
+    const bchInputString = ref('');
     const isSwapping = ref(false);
     const showTokenDialog = ref(false);
     const isRecomputingTrade = ref(false);
     const tokenSelectDialog = ref();
     const keyboardState = ref('dismiss');
     const customInputRef = ref(null);
+    const bchInputRef = ref(null);
+    // True while we mirror the trade result into the inactive field, so the
+    // resulting `update:model-value` from that field doesn't steal focus.
+    const syncingAmounts = ref(false);
 
     function updateAmountInput(value) {
+      if (!syncingAmounts.value) activeAmountField.value = 'token';
       amountInputString.value = value || '';
       // Convert to number for calculations, but preserve string for display
       const numValue = value === '' || value === null ? 0 : Number(value);
@@ -521,16 +544,59 @@ export default defineComponent({
       }
     }
 
+    function updateBchInput(value) {
+      if (!syncingAmounts.value) activeAmountField.value = 'bch';
+      bchInputString.value = value || '';
+      const numValue = value === '' || value === null ? 0 : Number(value);
+      if (!isNaN(numValue)) {
+        bchInput.value = numValue;
+      }
+    }
+
+    function onAddKey(key) {
+      activeInput()?.setAmount(key);
+    }
+
+    function onMakeKeyAction(key) {
+      activeInput()?.makeKeyAction(key);
+    }
+
+    function activeInput() {
+      return activeAmountField.value === 'bch' ? bchInputRef.value : customInputRef.value;
+    }
+
     function onKeyboardStateChange(state) {
+      if (state === 'show') activeAmountField.value = 'token';
       keyboardState.value = state;
     }
 
-    const slideReady = computed(() => tradeResult.value?.summary && amountInput.value > 0 && selectedToken.value);
+    function onBchKeyboardStateChange(state) {
+      if (state === 'show') activeAmountField.value = 'bch';
+      keyboardState.value = state;
+    }
+
+    // Tapping an amount input focuses it and (re)opens the on-screen keyboard,
+    // even if it was auto-hidden while a warning is visible.
+    function activateAmountField(field) {
+      activeAmountField.value = field;
+      keyboardState.value = 'show';
+    }
+
+    const activeAmountUnits = computed(() => {
+      return activeAmountField.value === 'bch' ? bchAmountInUnits.value : amountInUnits.value;
+    })
+    // Whether the actively-edited amount is the supply side of the trade.
+    // Editing tokens: token is supply only when selling. Editing BCH: BCH is supply only when buying.
+    const activeAmountIsSupply = computed(() => {
+      return activeAmountField.value === 'bch' ? isBuyingToken.value : isSupplyMode.value;
+    })
+
+    const slideReady = computed(() => tradeResult.value?.summary && activeAmountUnits.value > 0n && selectedToken.value);
     const panelVisible = computed(() => keyboardState.value === 'show' || slideReady.value);
     const bottomPadding = computed(() => panelVisible.value ? '320px' : '0px');
 
     /** 
-     * Input field always shows tokens (consistent UX)
+     * Token input field always shows tokens (consistent UX)
      * - Buy mode: tokens to receive
      * - Sell mode: tokens to sell
      */
@@ -564,49 +630,37 @@ export default defineComponent({
       return BigInt(Math.floor(amountInput.value * 10 ** decimals))
     })
 
-    watch(amountInUnits, () => {
-      if (amountInput.value > 0 && selectedToken.value) {
+    // BCH side is always denominated in satoshis (8 decimals)
+    const bchDecimalObj = { min: 0, max: 8 }
+    const bchAsset = { id: 'bch', decimals: 8 }
+    const bchAmountInUnits = computed(() => {
+      if (!bchInput.value || !selectedToken.value) return 0n;
+      return BigInt(Math.floor(bchInput.value * 10 ** 8))
+    })
+
+    watch(activeAmountUnits, () => {
+      if (activeAmountUnits.value > 0n && selectedToken.value) {
         isRecomputingTrade.value = true;
       }
       useFilteredPools.value = false;
       updateTradeResult()
     })
-    watch([selectedToken, isBuyingToken, isSupplyMode], () => {
-      if (amountInput.value > 0 && selectedToken.value) {
+    watch([selectedToken, isBuyingToken, isSupplyMode, activeAmountField], () => {
+      if (activeAmountUnits.value > 0n && selectedToken.value) {
         isRecomputingTrade.value = true;
         useFilteredPools.value = false;
         updateTradeResult()
       }
     }, { deep: true })
     
-    function handleBuyClick() {
-      if (!isBuyingToken.value) {
-        isBuyingToken.value = true;
-        isSupplyMode.value = false;
-        if (amountInput.value > 0 && selectedToken.value) {
-          isRecomputingTrade.value = true;
-        }
-      }
-    }
-    
-    function handleSellClick() {
-      if (isBuyingToken.value) {
-        isBuyingToken.value = false;
-        isSupplyMode.value = true;
-        if (amountInput.value > 0 && selectedToken.value) {
-          isRecomputingTrade.value = true;
-        }
-      }
-    }
-
     function toggleSupplyMode() {
       // Toggle between buy and sell
-      // Buy: isBuyingToken=true, isSupplyMode=false (input=tokens to receive, output=BCH to pay)
-      // Sell: isBuyingToken=false, isSupplyMode=true (input=tokens to sell, output=BCH to receive)
+      // Buy: isBuyingToken=true, isSupplyMode=false (BCH is supply, token is demand)
+      // Sell: isBuyingToken=false, isSupplyMode=true (token is supply, BCH is demand)
       isBuyingToken.value = !isBuyingToken.value;
       isSupplyMode.value = !isBuyingToken.value; // false for buy, true for sell
       // Mark as recomputing when switching modes
-      if (amountInput.value > 0 && selectedToken.value) {
+      if (activeAmountUnits.value > 0n && selectedToken.value) {
         isRecomputingTrade.value = true;
       }
     }
@@ -620,7 +674,7 @@ export default defineComponent({
         ? poolTracker.getFilteredPools(tokenId) 
         : poolTracker.getPoolsForToken(tokenId);
       const arePoolsCorrect = poolV0List.every(pool => pool.output.token.token_id === tokenId)
-      if (!amountInUnits.value || !selectedToken.value || !arePoolsCorrect) {
+      if (!activeAmountUnits.value || !selectedToken.value || !arePoolsCorrect) {
         tradeResult.value = null;
         isRecomputingTrade.value = false;
         return;
@@ -632,20 +686,22 @@ export default defineComponent({
           isRecomputingTrade.value = false;
           return;
         }
+        const fixedAmount = activeAmountUnits.value;
+        const fixedIsSupply = activeAmountIsSupply.value;
         let result = attemptTrade({
           exlab,
           pools: poolV0List,
           isBuyingToken: isBuyingToken.value,
-          demand: isSupplyMode.value ? 0n : amountInUnits.value,
-          supply: isSupplyMode.value ? amountInUnits.value : 0n,
+          demand: fixedIsSupply ? 0n : fixedAmount,
+          supply: fixedIsSupply ? fixedAmount : 0n,
         })
 
-        if (!isSupplyMode.value && amountInUnits.value != result.summary.demand) {
-          const adjustAmount = amountInUnits.value - result.summary.demand;
+        if (!fixedIsSupply && fixedAmount != result.summary.demand) {
+          const adjustAmount = fixedAmount - result.summary.demand;
           const adjustedTradeResult = adjustDemand({ exlab, tradeResult: result, amount: adjustAmount });
           if (adjustedTradeResult) result = adjustedTradeResult;
-        } else if (isSupplyMode.value && result.summary.supply != amountInUnits.value) {
-          const adjustAmount = amountInUnits.value - result.summary.supply;
+        } else if (fixedIsSupply && result.summary.supply != fixedAmount) {
+          const adjustAmount = fixedAmount - result.summary.supply;
           const adjustedTradeResult = adjustSupply({ exlab, tradeResult: result, amount: adjustAmount });
           if (adjustedTradeResult) result = adjustedTradeResult;
         }
@@ -726,33 +782,54 @@ export default defineComponent({
       }
     });
 
-    const formattedOutputDecimals = computed(() => {
-      // Output always shows BCH (8 decimals)
-      return 8;
-    })
     const formattedOutputSymbol = computed(() => {
       // Output always shows BCH
       return 'BCH';
     })
 
-    const formattedOutputAmount = computed(() => {
+    // Buying a token always means BCH is the supplied asset; selling means BCH is demanded.
+    const isSupplyingBch = computed(() => isBuyingToken.value);
+
+    // BCH side of the trade (raw pool amount), editable/displayed in the BCH panel.
+    // Fees are shown separately and accounted for in the balance check.
+    const formattedBchAmount = computed(() => {
       if (!tradeResult.value || !selectedToken.value || !tradeResult.value.summary) return '0';
-      const output = isSupplyMode.value
+      const output = isSupplyingBch.value
+        ? tradeResult.value.summary.supply
+        : tradeResult.value.summary.demand;
+      if (!output) return '0';
+      return (Number(output) / 10 ** 8).toFixed(8);
+    });
+
+    // Token side of the trade (raw pool amount), used to display the token panel
+    // when the BCH amount is the one being edited.
+    const formattedTokenAmount = computed(() => {
+      if (!tradeResult.value?.summary) return '';
+      const units = isSupplyingBch.value
         ? tradeResult.value.summary.demand
         : tradeResult.value.summary.supply;
-
-      // trade fee is accounted in tradeResult's summary, and is also included in totalBchFees
-      // We have to subtract the trade fee since it's included twice
-      const unaccountedFees = totalBchFees.value - tradeResult.value.summary.trade_fee;
-
-      let totalOutput = output
-      if (isSupplyMode.value) totalOutput -= unaccountedFees
-      else totalOutput += unaccountedFees
-
-      if (!output) return '0';
-      const decimals = formattedOutputDecimals.value;
-      return (Number(totalOutput) / (10 ** decimals)).toFixed(decimals > 8 ? 8 : decimals);
+      if (!units) return '';
+      const decimals = amountInputDecimals.value;
+      return (Number(units) / 10 ** decimals).toFixed(decimals);
     });
+
+    // Keep the non-active amount field mirrored to the current trade result.
+    function syncDerivedAmounts() {
+      const hasSummary = !!tradeResult.value?.summary;
+      syncingAmounts.value = true;
+      if (activeAmountField.value !== 'token') {
+        const str = hasSummary ? formattedTokenAmount.value : '';
+        amountInputString.value = str;
+        amountInput.value = Number(str) || 0;
+      }
+      if (activeAmountField.value !== 'bch') {
+        const str = hasSummary ? formattedBchAmount.value : '';
+        bchInputString.value = str;
+        bchInput.value = Number(str) || 0;
+      }
+      nextTick(() => { syncingAmounts.value = false; });
+    }
+    watch([tradeResult, activeAmountField], syncDerivedAmounts);
 
     const tradeFee = computed(() => {
       if (!tradeResult.value || !selectedToken.value || !tradeResult.value.summary) return '0';
@@ -825,28 +902,21 @@ export default defineComponent({
       return platformFeeSats + txFeeSats;
     })
 
-    // Calculate total BCH fees needed
-    const totalBchFees = computed(() => {
-      if (!tradeResult.value || !selectedToken.value) return 0n;
-      const tradeFeeSats = BigInt(Math.floor(Number(tradeFee.value) * 10 ** 8));
-      return tradeFeeSats + unaccountedFees.value;
-    })
-
     // Calculate required supply amount in units
     const requiredSupplyAmount = computed(() => {
       if (!tradeResult.value || !selectedToken.value || !tradeResult.value.summary) return 0n;
-      return isSupplyMode.value ? amountInUnits.value : tradeResult.value.summary.supply;
+      return tradeResult.value.summary.supply;
     })
 
-    // Detect when trade result summary supply/demand does not match user input (amountInUnits)
+    // Detect when trade result summary supply/demand does not match user input (activeAmountUnits)
     const summaryAmountMismatch = computed(() => {
-      if (!tradeResult.value?.summary || !selectedToken.value || amountInUnits.value === 0n) return null;
-      const actual = isSupplyMode.value ? tradeResult.value.summary.supply : tradeResult.value.summary.demand;
-      const expected = amountInUnits.value;
+      if (!tradeResult.value?.summary || !selectedToken.value || activeAmountUnits.value === 0n) return null;
+      const actual = activeAmountIsSupply.value ? tradeResult.value.summary.supply : tradeResult.value.summary.demand;
+      const expected = activeAmountUnits.value;
       if (actual === expected) return null;
       const diff = actual - expected;
-      const decimals = amountInputDecimals.value;
-      const symbol = amountInputSymbol.value
+      const decimals = activeAmountField.value === 'bch' ? 8 : amountInputDecimals.value;
+      const symbol = activeAmountField.value === 'bch' ? 'BCH' : amountInputSymbol.value
       const diffSign = diff > 0n ? '+' : '';
       const diffFormatted = `${diffSign}${formatAmount(diff, decimals)}`;
       const shortMessage = isBuyingToken.value
@@ -890,7 +960,7 @@ export default defineComponent({
     const showInsufficientBalance = computed(() => {
       return tradeResult.value && 
              tradeResult.value.summary && 
-             amountInput.value > 0 && 
+             activeAmountUnits.value > 0n && 
              selectedToken.value && 
              requiredSupplyAmount.value > 0n &&
              !hasSufficientBalance.value;
@@ -1074,6 +1144,9 @@ export default defineComponent({
       showTokenDialog.value = false;
       amountInput.value = 0;
       amountInputString.value = '';
+      bchInput.value = 0;
+      bchInputString.value = '';
+      activeAmountField.value = 'token';
       tradeResult.value = null;
       tradeResultError.value = '';
       if (newToken) {
@@ -1091,6 +1164,9 @@ export default defineComponent({
       };
       amountInput.value = 0;
       amountInputString.value = '';
+      bchInput.value = 0;
+      bchInputString.value = '';
+      activeAmountField.value = 'token';
       tradeResult.value = null;
     }
 
@@ -1287,17 +1363,6 @@ export default defineComponent({
               ? `${categoryId.substring(0, 8)}...${categoryId.substring(categoryId.length - 8)}`
               : categoryId;
 
-            // Special-case LIFT: show a branded "coming soon" dialog instead of generic Not Found.
-            if (String(props.selectTokenId) === String(LIFT_TOKEN_CATEGORY)) {
-              $q.dialog({
-                component: LiftTokenDexComingSoonDialog,
-                componentProps: {
-                  darkMode: Boolean(darkMode.value)
-                }
-              })
-              return
-            }
-
             $q.dialog({
               title: $t('NotFound'),
               message: $t('TokenNotListedInCauldron', { categoryId: truncatedId }, `The token with category ID ${truncatedId} has not been listed in Cauldron DEX.`),
@@ -1313,7 +1378,19 @@ export default defineComponent({
             color: 'negative',
           })
         }
+      } else {
+        // Default the destination token to LIFT when nothing else is selected
+        try {
+          const tokens = await fetchTokensList({ token_id: LIFT_TOKEN_CATEGORY });
+          if (tokens.length > 0) {
+            selectedToken.value = tokens[0];
+            updateBalance()
+          }
+        } catch (error) {
+          console.error('Error fetching default token:', error);
+        }
       }
+      loadingSelectedToken.value = false
       refreshPage()
     })
     onUnmounted(() => {
@@ -1333,6 +1410,7 @@ export default defineComponent({
       tokenData,
       tokenSymbol,
       selectedToken,
+      loadingSelectedToken,
       getTokenImage,
       isBuyingToken,
       isSupplyMode,
@@ -1340,6 +1418,16 @@ export default defineComponent({
       amountInputString,
       updateAmountInput,
       onKeyboardStateChange,
+      bchInputString,
+      bchInputRef,
+      updateBchInput,
+      onBchKeyboardStateChange,
+      activateAmountField,
+      bchDecimalObj,
+      bchAsset,
+      activeAmountUnits,
+      onAddKey,
+      onMakeKeyAction,
       keyboardState,
       customInputRef,
       slideReady,
@@ -1357,7 +1445,7 @@ export default defineComponent({
       tokenSelectDialog,
       formattedPrice,
       formattedOutputSymbol,
-      formattedOutputAmount,
+      formattedBchAmount,
       tradeFee,
       platformFeeBch,
       showPlatformFeeInfo,
@@ -1381,8 +1469,6 @@ export default defineComponent({
       onImgError,
       commitTrade,
       refreshPage,
-      handleBuyClick,
-      handleSellClick,
     }
   }
 })
@@ -1551,5 +1637,130 @@ export default defineComponent({
   max-width: min(250px, 80vw);
   // font-size: 12px;
   // line-height: 1.4;
+}
+
+.swap-stack {
+  display: flex;
+  flex-direction: column;
+}
+
+.swap-panel {
+  border: 1px solid rgba(0, 0, 0, 0.08);
+  border-radius: 16px;
+  padding: 12px 14px;
+  background: rgba(0, 0, 0, 0.02);
+  transition: border-color 0.2s ease, background 0.2s ease;
+
+  &.dark {
+    border-color: rgba(255, 255, 255, 0.1);
+    background: rgba(255, 255, 255, 0.04);
+  }
+}
+
+.swap-panel-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+
+.swap-panel-title {
+  font-size: 13px;
+  font-weight: 600;
+  color: #6b7280;
+
+  .dark & {
+    color: rgba(255, 255, 255, 0.7);
+  }
+}
+
+.swap-panel-balance {
+  font-size: 12px;
+  color: #9ca3af;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+
+  .dark & {
+    color: rgba(255, 255, 255, 0.5);
+  }
+}
+
+.swap-panel-body {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.asset-chip {
+  flex: 0 0 auto;
+  min-height: 40px;
+  padding: 4px 10px;
+  border-radius: 20px;
+  background: rgba(0, 0, 0, 0.04);
+  font-weight: 600;
+
+  &.dark {
+    background: rgba(255, 255, 255, 0.08);
+  }
+
+  &.asset-chip-static {
+    display: inline-flex;
+    align-items: center;
+    cursor: default;
+  }
+}
+
+.asset-chip-icon {
+  border-radius: 50%;
+}
+
+.asset-chip-symbol {
+  font-size: 15px;
+  font-weight: 700;
+}
+
+.swap-amount {
+  flex: 1 1 auto;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+}
+
+.swap-amount > div {
+  width: 100%;
+}
+
+.swap-amount-value {
+  font-size: 22px;
+  font-weight: 700;
+  line-height: 1.2;
+  word-break: break-all;
+  text-align: right;
+}
+
+.swap-amount-unit {
+  font-size: 14px;
+  font-weight: 600;
+  color: #6b7280;
+  margin-left: 4px;
+
+  .dark & {
+    color: rgba(255, 255, 255, 0.6);
+  }
+}
+
+.swap-amount-skeleton {
+  margin-left: auto;
+}
+
+.swap-arrow-wrapper {
+  display: flex;
+  justify-content: center;
+  margin: -14px 0;
+  position: relative;
+  z-index: 1;
 }
 </style>
