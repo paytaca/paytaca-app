@@ -125,6 +125,7 @@
 import { parseDeviceId } from 'src/utils/engagementhub-utils/engagementhub-utils'
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 import { processReferralCode } from 'src/utils/engagementhub-utils/rewards'
+import { captureDeferredReferralCode, clearDeferredReferralCode } from 'src/utils/deferred-referral'
 import { Capacitor } from '@capacitor/core'
 
 import QrScanner from 'src/components/qr-scanner'
@@ -147,9 +148,13 @@ export default {
     referralCode: { type: String, default: '' }
   },
 
-  mounted () {
+  async mounted () {
     if (this.referralCode) {
       this.manualReferralCode = this.referralCode
+      return
+    }
+    if (this.fromCreateWallet) {
+      await this.applyDeferredReferralCode()
     }
   },
 
@@ -265,6 +270,14 @@ export default {
     async processManualCode () {
       if (!this.isValidManualCode) return
       await this.executeReferralSubmission(this.manualReferralCode.trim())
+    },
+
+    async applyDeferredReferralCode () {
+      const code = await captureDeferredReferralCode()
+      if (!code) return
+      clearDeferredReferralCode()
+      this.manualReferralCode = code
+      await this.executeReferralSubmission(code)
     },
 
     async executeReferralSubmission (code) {
