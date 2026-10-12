@@ -70,6 +70,10 @@ export default {
   },
   created () {
     this.__kbSentinelActive = false
+    this.__kbObstructionObserver = null
+    this.__kbObstructionCheckTimer = null
+    this.__kbObstructionHideTimer = null
+    this.__kbOnViewportChange = () => this.scheduleObstructionCheck()
     this.__kbOnPopstate = () => {
       if (this.__kbSentinelActive) {
         this.__kbSentinelActive = false
@@ -84,9 +88,11 @@ export default {
   },
   mounted () {
     if (this.customKeyboardState === 'show') this.addBackButtonSentinel()
+    if (this.keyboard) this.startObstructionWatch()
   },
   beforeUnmount () {
     this.removeBackButtonSentinel()
+    this.stopObstructionWatch()
   },
   methods: {
     getLocaleSeparators,
@@ -103,6 +109,98 @@ export default {
       this.__kbSentinelActive = false
       window.removeEventListener('popstate', this.__kbOnPopstate)
       if (window.history.state?.__ptCustomKeyboard === true) window.history.back()
+    },
+
+    // Universal auto-hide: while the keyboard is open, if a user-facing message
+    // (alert/warning/error/notice/notification) is rendered in the area the
+    // keyboard covers, hide the keyboard after a short delay so the message is
+    // readable. Tapping an amount input brings the keyboard back.
+    obstructionSelectors () {
+      return '[role="alert"],[role="status"],[aria-live="polite"],[aria-live="assertive"],.q-notification,[class*="alert"],[class*="warning"],[class*="error"],[class*="notice"],[class*="toast"],[class*="banner"]'
+    },
+    isObstructionCandidateVisible (el) {
+      if (!el || !el.isConnected) return false
+      const style = window.getComputedStyle(el)
+      if (style.display === 'none' || style.visibility === 'hidden' || style.opacity === '0') return false
+      const rect = el.getBoundingClientRect()
+      return rect.width > 0 && rect.height > 0
+    },
+    startObstructionWatch () {
+      if (typeof MutationObserver !== 'undefined' && !this.__kbObstructionObserver) {
+        this.__kbObstructionObserver = new MutationObserver(() => this.scheduleObstructionCheck())
+        this.__kbObstructionObserver.observe(document.body, {
+          childList: true,
+          subtree: true,
+          attributes: true,
+          attributeFilter: ['class', 'style']
+        })
+      }
+      window.addEventListener('scroll', this.__kbOnViewportChange, true)
+      window.addEventListener('resize', this.__kbOnViewportChange)
+      this.scheduleObstructionCheck()
+    },
+    stopObstructionWatch () {
+      if (this.__kbObstructionObserver) {
+        this.__kbObstructionObserver.disconnect()
+        this.__kbObstructionObserver = null
+      }
+      window.removeEventListener('scroll', this.__kbOnViewportChange, true)
+      window.removeEventListener('resize', this.__kbOnViewportChange)
+      if (this.__kbObstructionCheckTimer) {
+        clearTimeout(this.__kbObstructionCheckTimer)
+        this.__kbObstructionCheckTimer = null
+      }
+      this.cancelObstructionHide()
+    },
+    scheduleObstructionCheck () {
+      if (this.__kbObstructionCheckTimer) return
+      this.__kbObstructionCheckTimer = setTimeout(() => {
+        this.__kbObstructionCheckTimer = null
+        this.checkForObstruction()
+      }, 150)
+    },
+    checkForObstruction () {
+      if (!this.keyboard) return
+      const el = this.$el
+      if (!el || typeof el.getBoundingClientRect !== 'function') return
+      const kbRect = el.getBoundingClientRect()
+      if (!kbRect.height) return
+
+      let occluded = false
+      const nodes = document.querySelectorAll(this.obstructionSelectors())
+      for (const node of nodes) {
+        if (el.contains(node)) continue
+        if (!this.isObstructionCandidateVisible(node)) continue
+        const rect = node.getBoundingClientRect()
+        // Message sits in (or under) the region covered by the keyboard.
+        if (rect.bottom > kbRect.top + 4 && rect.top < kbRect.bottom - 4) {
+          occluded = true
+          break
+        }
+      }
+
+      if (occluded) this.scheduleObstructionHide()
+      else this.cancelObstructionHide()
+    },
+    scheduleObstructionHide () {
+      if (this.__kbObstructionHideTimer) return
+      this.__kbObstructionHideTimer = setTimeout(() => {
+        this.__kbObstructionHideTimer = null
+        this.hideForObstruction()
+      }, 3000)
+    },
+    cancelObstructionHide () {
+      if (this.__kbObstructionHideTimer) {
+        clearTimeout(this.__kbObstructionHideTimer)
+        this.__kbObstructionHideTimer = null
+      }
+    },
+    hideForObstruction () {
+      if (!this.keyboard) return
+      // Blur so the next tap on an input re-emits focus and reopens the keyboard.
+      const activeEl = document.activeElement
+      if (activeEl && typeof activeEl.blur === 'function') activeEl.blur()
+      this.$emit('backPressed')
     },
 
     enterKey (num) {
@@ -147,6 +245,10 @@ export default {
       this.keyboard = state === 'show'
       if (state === 'show') this.addBackButtonSentinel()
       else this.removeBackButtonSentinel()
+    },
+    keyboard (visible) {
+      if (visible) this.startObstructionWatch()
+      else this.stopObstructionWatch()
     }
   }
 }

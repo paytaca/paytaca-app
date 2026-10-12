@@ -171,18 +171,26 @@
                       <img src="/bch-logo.png" height="26" class="asset-chip-icon q-mr-sm" />
                       <span class="asset-chip-symbol">BCH</span>
                     </div>
-                    <div class="swap-amount">
+                    <div class="swap-amount" @click="activateAmountField('bch')">
                       <q-skeleton
-                        v-if="amountInput > 0 && (updatingPool || isRecomputingTrade || !tradeResult || !tradeResult.summary)"
-                        type="text"
-                        width="140px"
-                        height="2em"
-                        class="swap-amount-skeleton"
+                        v-if="updatingPool || !isLiquidityAvailable"
+                        type="rect"
+                        height="56px"
+                        class="br-4"
                       />
-                      <div v-else class="swap-amount-value">
-                        {{ formattedOutputAmount }}
-                        <span class="swap-amount-unit">BCH</span>
-                      </div>
+                      <CustomInput
+                        v-else
+                        ref="bchInputRef"
+                        :no-keyboard="true"
+                        :show-label="false"
+                        :model-value="bchInputString"
+                        @update:model-value="updateBchInput($event)"
+                        @keyboard-state-change="onBchKeyboardStateChange"
+                        input-symbol="BCH"
+                        :decimal-obj="bchDecimalObj"
+                        :asset="bchAsset"
+                        :disable="isSwapping || updatingPool"
+                      />
                     </div>
                   </div>
                 </div>
@@ -221,7 +229,7 @@
                       <span class="asset-chip-symbol">{{ tokenSymbol || $t('Unknown') }}</span>
                       <q-icon name="expand_more" size="18px" class="q-ml-xs" />
                     </q-btn>
-                    <div class="swap-amount">
+                    <div class="swap-amount" @click="activateAmountField('token')">
                       <q-skeleton
                         v-if="updatingPool || !isLiquidityAvailable"
                         type="rect"
@@ -250,7 +258,7 @@
                       no-caps
                       class="max-button"
                       :class="getDarkModeClass(darkMode)"
-                      @click="amountInputString = formattedMaxAmount"
+                      @click="updateAmountInput(formattedMaxAmount)"
                     >
                       {{ $t('Max') }}: {{ formattedMaxAmount }} {{ amountInputSymbol }}
                     </q-btn>
@@ -268,7 +276,7 @@
               </div>
   
               <!-- Fees -->
-              <div v-if="amountInput > 0 && selectedToken" class="q-mt-md">
+              <div v-if="activeAmountUnits > 0n && selectedToken" class="q-mt-md">
                 <div class="row items-center justify-between text-caption text-grey">
                   <div>{{ $t('TradeFee') }} (0.3%)</div>
                   <q-skeleton
@@ -311,7 +319,7 @@
 
               <!-- Insufficient Balance Message - Always show when applicable -->
               <div
-                v-if="showInsufficientBalance && tradeResult && tradeResult.summary && amountInput > 0 && selectedToken"
+                v-if="showInsufficientBalance && tradeResult && tradeResult.summary && activeAmountUnits > 0n && selectedToken"
                 class="insufficient-balance-alert q-my-sm"
                 :class="getDarkModeClass(darkMode)"
               >
@@ -361,8 +369,8 @@
       :panel-visible="panelVisible"
       :keyboard-state="keyboardState"
       hide-check-key
-      @addKey="customInputRef?.setAmount($event)"
-      @makeKeyAction="customInputRef?.makeKeyAction($event)"
+      @addKey="onAddKey($event)"
+      @makeKeyAction="onMakeKeyAction($event)"
       @backPressed="keyboardState = 'dismiss'"
     >
       <template #slide>
@@ -511,14 +519,23 @@ export default defineComponent({
     const isSupplyMode = ref(false);
     const amountInput = ref(0);
     const amountInputString = ref('');
+    // Which asset amount the user is actively editing: 'token' | 'bch'
+    const activeAmountField = ref('token');
+    const bchInput = ref(0);
+    const bchInputString = ref('');
     const isSwapping = ref(false);
     const showTokenDialog = ref(false);
     const isRecomputingTrade = ref(false);
     const tokenSelectDialog = ref();
     const keyboardState = ref('dismiss');
     const customInputRef = ref(null);
+    const bchInputRef = ref(null);
+    // True while we mirror the trade result into the inactive field, so the
+    // resulting `update:model-value` from that field doesn't steal focus.
+    const syncingAmounts = ref(false);
 
     function updateAmountInput(value) {
+      if (!syncingAmounts.value) activeAmountField.value = 'token';
       amountInputString.value = value || '';
       // Convert to number for calculations, but preserve string for display
       const numValue = value === '' || value === null ? 0 : Number(value);
@@ -527,16 +544,59 @@ export default defineComponent({
       }
     }
 
+    function updateBchInput(value) {
+      if (!syncingAmounts.value) activeAmountField.value = 'bch';
+      bchInputString.value = value || '';
+      const numValue = value === '' || value === null ? 0 : Number(value);
+      if (!isNaN(numValue)) {
+        bchInput.value = numValue;
+      }
+    }
+
+    function onAddKey(key) {
+      activeInput()?.setAmount(key);
+    }
+
+    function onMakeKeyAction(key) {
+      activeInput()?.makeKeyAction(key);
+    }
+
+    function activeInput() {
+      return activeAmountField.value === 'bch' ? bchInputRef.value : customInputRef.value;
+    }
+
     function onKeyboardStateChange(state) {
+      if (state === 'show') activeAmountField.value = 'token';
       keyboardState.value = state;
     }
 
-    const slideReady = computed(() => tradeResult.value?.summary && amountInput.value > 0 && selectedToken.value);
+    function onBchKeyboardStateChange(state) {
+      if (state === 'show') activeAmountField.value = 'bch';
+      keyboardState.value = state;
+    }
+
+    // Tapping an amount input focuses it and (re)opens the on-screen keyboard,
+    // even if it was auto-hidden while a warning is visible.
+    function activateAmountField(field) {
+      activeAmountField.value = field;
+      keyboardState.value = 'show';
+    }
+
+    const activeAmountUnits = computed(() => {
+      return activeAmountField.value === 'bch' ? bchAmountInUnits.value : amountInUnits.value;
+    })
+    // Whether the actively-edited amount is the supply side of the trade.
+    // Editing tokens: token is supply only when selling. Editing BCH: BCH is supply only when buying.
+    const activeAmountIsSupply = computed(() => {
+      return activeAmountField.value === 'bch' ? isBuyingToken.value : isSupplyMode.value;
+    })
+
+    const slideReady = computed(() => tradeResult.value?.summary && activeAmountUnits.value > 0n && selectedToken.value);
     const panelVisible = computed(() => keyboardState.value === 'show' || slideReady.value);
     const bottomPadding = computed(() => panelVisible.value ? '320px' : '0px');
 
     /** 
-     * Input field always shows tokens (consistent UX)
+     * Token input field always shows tokens (consistent UX)
      * - Buy mode: tokens to receive
      * - Sell mode: tokens to sell
      */
@@ -570,15 +630,23 @@ export default defineComponent({
       return BigInt(Math.floor(amountInput.value * 10 ** decimals))
     })
 
-    watch(amountInUnits, () => {
-      if (amountInput.value > 0 && selectedToken.value) {
+    // BCH side is always denominated in satoshis (8 decimals)
+    const bchDecimalObj = { min: 0, max: 8 }
+    const bchAsset = { id: 'bch', decimals: 8 }
+    const bchAmountInUnits = computed(() => {
+      if (!bchInput.value || !selectedToken.value) return 0n;
+      return BigInt(Math.floor(bchInput.value * 10 ** 8))
+    })
+
+    watch(activeAmountUnits, () => {
+      if (activeAmountUnits.value > 0n && selectedToken.value) {
         isRecomputingTrade.value = true;
       }
       useFilteredPools.value = false;
       updateTradeResult()
     })
-    watch([selectedToken, isBuyingToken, isSupplyMode], () => {
-      if (amountInput.value > 0 && selectedToken.value) {
+    watch([selectedToken, isBuyingToken, isSupplyMode, activeAmountField], () => {
+      if (activeAmountUnits.value > 0n && selectedToken.value) {
         isRecomputingTrade.value = true;
         useFilteredPools.value = false;
         updateTradeResult()
@@ -587,12 +655,12 @@ export default defineComponent({
     
     function toggleSupplyMode() {
       // Toggle between buy and sell
-      // Buy: isBuyingToken=true, isSupplyMode=false (input=tokens to receive, output=BCH to pay)
-      // Sell: isBuyingToken=false, isSupplyMode=true (input=tokens to sell, output=BCH to receive)
+      // Buy: isBuyingToken=true, isSupplyMode=false (BCH is supply, token is demand)
+      // Sell: isBuyingToken=false, isSupplyMode=true (token is supply, BCH is demand)
       isBuyingToken.value = !isBuyingToken.value;
       isSupplyMode.value = !isBuyingToken.value; // false for buy, true for sell
       // Mark as recomputing when switching modes
-      if (amountInput.value > 0 && selectedToken.value) {
+      if (activeAmountUnits.value > 0n && selectedToken.value) {
         isRecomputingTrade.value = true;
       }
     }
@@ -606,7 +674,7 @@ export default defineComponent({
         ? poolTracker.getFilteredPools(tokenId) 
         : poolTracker.getPoolsForToken(tokenId);
       const arePoolsCorrect = poolV0List.every(pool => pool.output.token.token_id === tokenId)
-      if (!amountInUnits.value || !selectedToken.value || !arePoolsCorrect) {
+      if (!activeAmountUnits.value || !selectedToken.value || !arePoolsCorrect) {
         tradeResult.value = null;
         isRecomputingTrade.value = false;
         return;
@@ -618,20 +686,22 @@ export default defineComponent({
           isRecomputingTrade.value = false;
           return;
         }
+        const fixedAmount = activeAmountUnits.value;
+        const fixedIsSupply = activeAmountIsSupply.value;
         let result = attemptTrade({
           exlab,
           pools: poolV0List,
           isBuyingToken: isBuyingToken.value,
-          demand: isSupplyMode.value ? 0n : amountInUnits.value,
-          supply: isSupplyMode.value ? amountInUnits.value : 0n,
+          demand: fixedIsSupply ? 0n : fixedAmount,
+          supply: fixedIsSupply ? fixedAmount : 0n,
         })
 
-        if (!isSupplyMode.value && amountInUnits.value != result.summary.demand) {
-          const adjustAmount = amountInUnits.value - result.summary.demand;
+        if (!fixedIsSupply && fixedAmount != result.summary.demand) {
+          const adjustAmount = fixedAmount - result.summary.demand;
           const adjustedTradeResult = adjustDemand({ exlab, tradeResult: result, amount: adjustAmount });
           if (adjustedTradeResult) result = adjustedTradeResult;
-        } else if (isSupplyMode.value && result.summary.supply != amountInUnits.value) {
-          const adjustAmount = amountInUnits.value - result.summary.supply;
+        } else if (fixedIsSupply && result.summary.supply != fixedAmount) {
+          const adjustAmount = fixedAmount - result.summary.supply;
           const adjustedTradeResult = adjustSupply({ exlab, tradeResult: result, amount: adjustAmount });
           if (adjustedTradeResult) result = adjustedTradeResult;
         }
@@ -712,33 +782,54 @@ export default defineComponent({
       }
     });
 
-    const formattedOutputDecimals = computed(() => {
-      // Output always shows BCH (8 decimals)
-      return 8;
-    })
     const formattedOutputSymbol = computed(() => {
       // Output always shows BCH
       return 'BCH';
     })
 
-    const formattedOutputAmount = computed(() => {
+    // Buying a token always means BCH is the supplied asset; selling means BCH is demanded.
+    const isSupplyingBch = computed(() => isBuyingToken.value);
+
+    // BCH side of the trade (raw pool amount), editable/displayed in the BCH panel.
+    // Fees are shown separately and accounted for in the balance check.
+    const formattedBchAmount = computed(() => {
       if (!tradeResult.value || !selectedToken.value || !tradeResult.value.summary) return '0';
-      const output = isSupplyMode.value
+      const output = isSupplyingBch.value
+        ? tradeResult.value.summary.supply
+        : tradeResult.value.summary.demand;
+      if (!output) return '0';
+      return (Number(output) / 10 ** 8).toFixed(8);
+    });
+
+    // Token side of the trade (raw pool amount), used to display the token panel
+    // when the BCH amount is the one being edited.
+    const formattedTokenAmount = computed(() => {
+      if (!tradeResult.value?.summary) return '';
+      const units = isSupplyingBch.value
         ? tradeResult.value.summary.demand
         : tradeResult.value.summary.supply;
-
-      // trade fee is accounted in tradeResult's summary, and is also included in totalBchFees
-      // We have to subtract the trade fee since it's included twice
-      const unaccountedFees = totalBchFees.value - tradeResult.value.summary.trade_fee;
-
-      let totalOutput = output
-      if (isSupplyMode.value) totalOutput -= unaccountedFees
-      else totalOutput += unaccountedFees
-
-      if (!output) return '0';
-      const decimals = formattedOutputDecimals.value;
-      return (Number(totalOutput) / (10 ** decimals)).toFixed(decimals > 8 ? 8 : decimals);
+      if (!units) return '';
+      const decimals = amountInputDecimals.value;
+      return (Number(units) / 10 ** decimals).toFixed(decimals);
     });
+
+    // Keep the non-active amount field mirrored to the current trade result.
+    function syncDerivedAmounts() {
+      const hasSummary = !!tradeResult.value?.summary;
+      syncingAmounts.value = true;
+      if (activeAmountField.value !== 'token') {
+        const str = hasSummary ? formattedTokenAmount.value : '';
+        amountInputString.value = str;
+        amountInput.value = Number(str) || 0;
+      }
+      if (activeAmountField.value !== 'bch') {
+        const str = hasSummary ? formattedBchAmount.value : '';
+        bchInputString.value = str;
+        bchInput.value = Number(str) || 0;
+      }
+      nextTick(() => { syncingAmounts.value = false; });
+    }
+    watch([tradeResult, activeAmountField], syncDerivedAmounts);
 
     const tradeFee = computed(() => {
       if (!tradeResult.value || !selectedToken.value || !tradeResult.value.summary) return '0';
@@ -811,28 +902,21 @@ export default defineComponent({
       return platformFeeSats + txFeeSats;
     })
 
-    // Calculate total BCH fees needed
-    const totalBchFees = computed(() => {
-      if (!tradeResult.value || !selectedToken.value) return 0n;
-      const tradeFeeSats = BigInt(Math.floor(Number(tradeFee.value) * 10 ** 8));
-      return tradeFeeSats + unaccountedFees.value;
-    })
-
     // Calculate required supply amount in units
     const requiredSupplyAmount = computed(() => {
       if (!tradeResult.value || !selectedToken.value || !tradeResult.value.summary) return 0n;
-      return isSupplyMode.value ? amountInUnits.value : tradeResult.value.summary.supply;
+      return tradeResult.value.summary.supply;
     })
 
-    // Detect when trade result summary supply/demand does not match user input (amountInUnits)
+    // Detect when trade result summary supply/demand does not match user input (activeAmountUnits)
     const summaryAmountMismatch = computed(() => {
-      if (!tradeResult.value?.summary || !selectedToken.value || amountInUnits.value === 0n) return null;
-      const actual = isSupplyMode.value ? tradeResult.value.summary.supply : tradeResult.value.summary.demand;
-      const expected = amountInUnits.value;
+      if (!tradeResult.value?.summary || !selectedToken.value || activeAmountUnits.value === 0n) return null;
+      const actual = activeAmountIsSupply.value ? tradeResult.value.summary.supply : tradeResult.value.summary.demand;
+      const expected = activeAmountUnits.value;
       if (actual === expected) return null;
       const diff = actual - expected;
-      const decimals = amountInputDecimals.value;
-      const symbol = amountInputSymbol.value
+      const decimals = activeAmountField.value === 'bch' ? 8 : amountInputDecimals.value;
+      const symbol = activeAmountField.value === 'bch' ? 'BCH' : amountInputSymbol.value
       const diffSign = diff > 0n ? '+' : '';
       const diffFormatted = `${diffSign}${formatAmount(diff, decimals)}`;
       const shortMessage = isBuyingToken.value
@@ -876,7 +960,7 @@ export default defineComponent({
     const showInsufficientBalance = computed(() => {
       return tradeResult.value && 
              tradeResult.value.summary && 
-             amountInput.value > 0 && 
+             activeAmountUnits.value > 0n && 
              selectedToken.value && 
              requiredSupplyAmount.value > 0n &&
              !hasSufficientBalance.value;
@@ -1060,6 +1144,9 @@ export default defineComponent({
       showTokenDialog.value = false;
       amountInput.value = 0;
       amountInputString.value = '';
+      bchInput.value = 0;
+      bchInputString.value = '';
+      activeAmountField.value = 'token';
       tradeResult.value = null;
       tradeResultError.value = '';
       if (newToken) {
@@ -1077,6 +1164,9 @@ export default defineComponent({
       };
       amountInput.value = 0;
       amountInputString.value = '';
+      bchInput.value = 0;
+      bchInputString.value = '';
+      activeAmountField.value = 'token';
       tradeResult.value = null;
     }
 
@@ -1328,6 +1418,16 @@ export default defineComponent({
       amountInputString,
       updateAmountInput,
       onKeyboardStateChange,
+      bchInputString,
+      bchInputRef,
+      updateBchInput,
+      onBchKeyboardStateChange,
+      activateAmountField,
+      bchDecimalObj,
+      bchAsset,
+      activeAmountUnits,
+      onAddKey,
+      onMakeKeyAction,
       keyboardState,
       customInputRef,
       slideReady,
@@ -1345,7 +1445,7 @@ export default defineComponent({
       tokenSelectDialog,
       formattedPrice,
       formattedOutputSymbol,
-      formattedOutputAmount,
+      formattedBchAmount,
       tradeFee,
       platformFeeBch,
       showPlatformFeeInfo,
