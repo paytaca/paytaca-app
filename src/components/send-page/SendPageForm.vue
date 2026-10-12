@@ -507,7 +507,7 @@ export default {
       },
       set (value) {
         // We'll hope the event handler for this updates the this.recipient.recipientAddress
-        this.$emit('on-recipient-input', value)
+        this.$emit('on-recipient-input', { index: this.index, value })
       }
     },
     defaultChangeAddress () {
@@ -631,9 +631,11 @@ export default {
       this.recipientEditing = true
       this.onInputFocus(this.index, '')
     },
-    onRecipientBlur () {
+    onRecipientBlur (event) {
       this.recipientEditing = false
       this.onEmptyRecipient()
+      // Don't auto-advance when focus moves to another recipient input.
+      if (event?.relatedTarget?.closest?.('.recipient-input')) return
       if (this.recipientAddress) {
         this.$emit('on-address-set', { index: this.index, address: this.recipientAddress })
       }
@@ -665,7 +667,7 @@ export default {
     },
     onEmptyRecipient () {
       this.emptyRecipient = this.recipientAddress === ''
-      this.$emit('on-empty-recipient', this.emptyRecipient)
+      this.$emit('on-empty-recipient', { index: this.index, value: this.emptyRecipient })
     },
     onQRUploaderClick () {
       this.$emit('on-qr-uploader-click')

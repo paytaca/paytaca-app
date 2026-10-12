@@ -134,7 +134,7 @@
 import { parseDeviceId } from 'src/utils/engagementhub-utils/engagementhub-utils'
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 import { processReferralCode } from 'src/utils/engagementhub-utils/rewards'
-import { captureDeferredReferralCode, clearDeferredReferralCode } from 'src/utils/deferred-referral'
+import { captureDeferredReferralCode, clearDeferredReferralCode, normalizeReferralCode } from 'src/utils/deferred-referral'
 import { Capacitor } from '@capacitor/core'
 
 import QrScanner from 'src/components/qr-scanner'
@@ -273,11 +273,13 @@ export default {
         referralCode = url.searchParams.get('code')
       } catch { /* not a URL, use raw value */ }
 
-      if (referralCode) {
-        await this.executeReferralSubmission(referralCode)
+      const normalized = normalizeReferralCode(referralCode)
+      if (normalized) {
+        this.manualReferralCode = normalized
+        await this.executeReferralSubmission(normalized)
       } else {
         this.isProcessingError = true
-        this.errorMessage = this.$t('ProcessingReferralCodeError')
+        this.errorMessage = this.$t('InvalidCodeError')
         this.isCodeProcessed = false
         this.isLoading = false
       }
@@ -291,9 +293,11 @@ export default {
     async applyDeferredReferralCode () {
       const code = await captureDeferredReferralCode()
       if (!code) return
-      clearDeferredReferralCode()
       this.manualReferralCode = code
       await this.executeReferralSubmission(code)
+      // Only drop the stored code once the outcome is terminal, so a transient
+      // failure (e.g. network) can still be retried.
+      if (this.isCodeProcessed || this.isSelfReferral) clearDeferredReferralCode()
     },
 
     async executeReferralSubmission (code) {

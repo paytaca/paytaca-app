@@ -2327,16 +2327,22 @@ export default {
     onQRScannerClick (value) {
       this.showQrScanner = value
     },
-    async lookupMerchantForCurrentRecipient () {
-      const currentRecipient = this.recipients[this.currentRecipientIndex]
+    async lookupMerchantForCurrentRecipient (index = this.currentRecipientIndex) {
+      const currentRecipient = this.recipients[index]
       const address = currentRecipient?.recipientAddress
       if (!address) return
       const valid = this.checkAddressValidity(address)
       if (!valid) return
       const merchantData = await sendPageUtils.lookupMerchantByAddress(address, this.isChipnet)
-      this.inputExtras[this.currentRecipientIndex].merchantData = merchantData
+      this.inputExtras[index].merchantData = merchantData
     },
-    onRecipientInput (value) {
+    onRecipientInput (payload) {
+      const index = (payload && typeof payload.index === 'number')
+        ? payload.index
+        : this.currentRecipientIndex
+      const value = (payload && typeof payload === 'object' && 'value' in payload)
+        ? payload.value
+        : payload
       const [isLegacy, isDuplicate, isWalletAddress] = sendPageUtils.addressPrechecks(
         value ?? '',
         this.recipients.map(a => a.recipientAddress),
@@ -2345,23 +2351,29 @@ export default {
 
       if (isDuplicate) {
         raiseNotifyError(this.$t('AddressAlreadyAdded'))
-        this.recipients[this.currentRecipientIndex].recipientAddress = ''
+        this.recipients[index].recipientAddress = ''
         return
       }
 
-      this.recipients[this.currentRecipientIndex].recipientAddress = value
-      this.inputExtras[this.currentRecipientIndex].emptyRecipient = value === ''
-      this.inputExtras[this.currentRecipientIndex].incorrectAddress = false
-      this.inputExtras[this.currentRecipientIndex].merchantData = null
+      this.recipients[index].recipientAddress = value
+      this.inputExtras[index].emptyRecipient = value === ''
+      this.inputExtras[index].incorrectAddress = false
+      this.inputExtras[index].merchantData = null
       this.updateAddressPrecheckValues(isLegacy, isWalletAddress)
       if (value === '') {
         this.customKeyboardState = 'dismiss'
       }
     },
-    onEmptyRecipient (value) {
-      this.inputExtras[this.currentRecipientIndex].emptyRecipient = value
+    onEmptyRecipient (payload) {
+      const index = (payload && typeof payload.index === 'number')
+        ? payload.index
+        : this.currentRecipientIndex
+      const value = (payload && typeof payload === 'object' && 'value' in payload)
+        ? payload.value
+        : payload
+      this.inputExtras[index].emptyRecipient = value
       if (!value) {
-        this.lookupMerchantForCurrentRecipient()
+        this.lookupMerchantForCurrentRecipient(index)
       }
     },
     onSelectedDenomination (value) {

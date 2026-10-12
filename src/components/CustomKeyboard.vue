@@ -116,7 +116,7 @@ export default {
     // keyboard covers, hide the keyboard after a short delay so the message is
     // readable. Tapping an amount input brings the keyboard back.
     obstructionSelectors () {
-      return '[role="alert"],[role="status"],[aria-live="polite"],[aria-live="assertive"],.q-notification,[class*="alert"],[class*="warning"],[class*="error"],[class*="notice"],[class*="toast"],[class*="banner"]'
+      return '[role="alert"],[role="status"],[aria-live="polite"],[aria-live="assertive"],.q-notification,.q-dialog,.q-banner'
     },
     isObstructionCandidateVisible (el) {
       if (!el || !el.isConnected) return false
