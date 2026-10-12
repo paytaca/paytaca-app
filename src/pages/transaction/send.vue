@@ -695,6 +695,7 @@ export default {
       isScrolledToBottom: false,
       priceId: null,
       priceIdPrice: null,
+      priceIdCurrency: null,
       selectedOtherWallet: null,
       generatingOtherWalletAddress: false,
       showSendSuccessPage: false,
@@ -859,7 +860,7 @@ export default {
       if (!this.totalFiatAmountSent || this.totalFiatAmountSent <= 0) return null
       if (this.isNFT) return null
       
-      const currency = this.selectedMarketCurrency || 'USD'
+      const currency = this.priceIdCurrency || this.selectedMarketCurrency || 'USD'
       return parseFiatCurrency(this.totalFiatAmountSent, currency)
     },
     // Get asset from store reactively to ensure balance updates are reflected
@@ -877,7 +878,7 @@ export default {
       this.restoreSendSuccessPending()
     },
     selectedAssetMarketPrice () {
-      if (!this.bip21Expires) {
+      if (!this.bip21Expires && !this.priceIdPrice) {
         if (!this.selectedAssetMarketPrice) {
           this.$store.dispatch('market/updateAssetPrices', { assetId: this.assetId, customCurrency: this.paymentCurrency })
         }
@@ -1238,7 +1239,10 @@ export default {
         const watchtower = new Watchtower(this.isChipnet)
         const response = await watchtower.BCH._api.get(`asset-price-log/${priceId}/`)
         if (response?.data?.price_value) {
-          return parseFloat(response.data.price_value)
+          return {
+            price: parseFloat(response.data.price_value),
+            currency: response.data.currency || null
+          }
         }
       } catch (error) {
         console.error('Error fetching price by price_id:', error)
@@ -1264,6 +1268,7 @@ export default {
       vm.disableSending = false
       vm.bip21Expires = null
       vm.showQrScanner = false
+      vm.clearPriceIdState()
 
       content = Array.isArray(content) ? content[0].rawValue : content
       let amount = null
@@ -1349,6 +1354,12 @@ export default {
             currentRecipient.recipientAddress = ''
             return
           }
+        }
+
+        // POS/BIP21 requests carrying a price_id (no explicit currency param) are
+        // denominated in the currency recorded on that price log entry.
+        if (vm.priceIdPrice && typeof currency !== 'string' && vm.priceIdCurrency) {
+          vm.paymentCurrency = vm.priceIdCurrency
         }
 
         if (vm.fungible || fungibleTokenAmount) {
@@ -1454,7 +1465,9 @@ export default {
       if (paymentUriData?.otherParams?.price_id) {
         vm.priceId = paymentUriData.otherParams.price_id
         // Fetch price using price_id
-        vm.priceIdPrice = await vm.fetchPriceById(vm.priceId)
+        const priceMeta = await vm.fetchPriceById(vm.priceId)
+        vm.priceIdPrice = priceMeta?.price ?? null
+        vm.priceIdCurrency = priceMeta?.currency ?? null
       }
 
       // skip the usual route when found a valid JSON payment protocol url
@@ -1549,7 +1562,12 @@ export default {
         const currentInputExtras = this.inputExtras[this.currentRecipientIndex]
 
         currentRecipient.amount = amount
-        currentRecipient.fiatAmount = this.convertToFiatAmount(amount)
+        // When the QR carries a price_id, use the POS's recorded rate so the
+        // displayed fiat matches exactly what was requested.
+        const usePriceId = !!this.priceIdCurrency && typeof this.priceIdPrice === 'number' && isFinite(this.priceIdPrice) && this.priceIdPrice > 0
+        currentRecipient.fiatAmount = usePriceId
+          ? Number((amount * this.priceIdPrice).toFixed(2))
+          : this.convertToFiatAmount(amount)
         currentInputExtras.amountFormatted = formatWithLocale(
           currentRecipient.amount, this.decimalObj(false)
         )
@@ -2030,7 +2048,7 @@ export default {
 
             // Only include fiat amounts if at least one is available
             if (fiatAmounts.some(amount => amount !== null && amount !== '')) {
-              fiatCurrency = vm.currentSendPageCurrency()
+              fiatCurrency = vm.priceIdCurrency || vm.currentSendPageCurrency()
               
               // If no priceId from BIP21, get the price_id from the market store
               if (!priceIdToUse && fiatCurrency) {
@@ -2221,7 +2239,14 @@ export default {
       const merchantData = await sendPageUtils.lookupMerchantByAddress(address, this.isChipnet)
       this.inputExtras[this.currentRecipientIndex].merchantData = merchantData
     },
+    clearPriceIdState () {
+      this.priceId = null
+      this.priceIdPrice = null
+      this.priceIdCurrency = null
+    },
     onRecipientInput (value) {
+      // A manually edited address must not inherit a price_id from a prior POS scan
+      this.clearPriceIdState()
       const [isLegacy, isDuplicate, isWalletAddress] = sendPageUtils.addressPrechecks(
         value ?? '',
         this.recipients.map(a => a.recipientAddress),
@@ -2242,6 +2267,7 @@ export default {
     },
     onEmptyRecipient (value) {
       this.inputExtras[this.currentRecipientIndex].emptyRecipient = value
+      if (value) this.clearPriceIdState()
       if (!value) {
         this.lookupMerchantForCurrentRecipient()
       }

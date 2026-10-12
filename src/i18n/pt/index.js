@@ -536,6 +536,7 @@ export default {
   ConfirmPin: "Confirmar PIN",
   ConfirmReservation: "Confirmar reserva",
   ConfirmReservationError: "Ocorreu um erro ao confirmar a reserva. Tente novamente mais tarde.",
+  ConfirmReservationNotReady: "Sua reserva ainda não está pronta. Tente novamente mais tarde.",
   ConfirmSwap: "Confirmar troca",
   Confirmation: "Confirmação",
   Confirmed: "Confirmado",

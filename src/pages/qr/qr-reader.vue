@@ -242,55 +242,35 @@ export default {
       const status = await BarcodeScanner.checkPermission({ force: false })
 
       if (status.granted) {
-        // user granted permission
+        // permission already granted
         return true
+      }
+
+      if (status.restricted) {
+        // ios only, e.g. parental controls; the user cannot grant this
+        return false
       }
 
       if (status.denied) {
-        // user denied permission
+        // permanently denied: the OS will not prompt again, open app settings
+        BarcodeScanner.openAppSettings()
         return false
       }
 
-      if (status.asked) {
-        // system requested the user for permission during this call
-        // only possible when force set to true
-        BarcodeScanner.openAppSettings()
-      }
-
-      if (status.neverAsked) {
-        // user has not been requested this permission before
-        // it is advised to show the user some sort of prompt
-        // this way you will not waste your only chance to ask for the permission
-        // const c = confirm('We need your permission to use your camera to be able to scan QR codes')
-        BarcodeScanner.openAppSettings()
-      }
-
-      if (status.restricted || status.unknown) {
-        // ios only
-        // probably means the permission has been denied
-        return false
-      }
-
-      // user has not denied permission
-      // but the user also has not yet granted the permission
-      // so request it
+      // Permission has not been granted yet (never asked before, or denied but
+      // still askable). Ask again so the OS permission prompt is shown.
       const statusRequest = await BarcodeScanner.checkPermission({ force: true })
 
-      if (statusRequest.asked) {
-        // system requested the user for permission during this call
-        // only possible when force set to true
-        return statusRequest.granted
-      }
-
       if (statusRequest.granted) {
-        // the user did grant the permission now
         return true
       }
 
-      // statusRequest.granted = true; the user did grant the permission now
-      // statusRequest.granted = false; user did not grant the permission,
-      // so he must have declined the request
-      return statusRequest.granted
+      if (statusRequest.denied) {
+        // the user declined and cannot be asked again, open app settings
+        BarcodeScanner.openAppSettings()
+      }
+
+      return false
     },
     async scanBarcode () {
       const vm = this

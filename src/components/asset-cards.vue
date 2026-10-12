@@ -26,6 +26,7 @@
     <div
       v-for="(asset, index) in filteredFavAssets"
       :key="index"
+      :ref="(el) => registerCardEl(asset, el)"
       class="method-cards asset-card-border q-mr-none"
       :class="[{ selected: isSelectableAsset(asset) && asset?.id === selectedAsset?.id }, { 'is-disabled-card': !isSelectableAsset(asset) }]"
       @click="(event) => onAssetClick(event, asset)"
@@ -105,7 +106,8 @@ export default {
   emits: [
     'hide-asset-info',
     'show-asset-info',
-    'select-asset'
+    'select-asset',
+    'request-asset-metadata'
   ],
   props: {
     network: {
@@ -145,7 +147,8 @@ export default {
       customList: null,
       networkError: false,
       favorites: [],
-      favResult: []
+      favResult: [],
+      metadataObserver: null
     }
   },
   computed: {
@@ -320,8 +323,45 @@ export default {
       this.networkError = true
     }     
   },
+  beforeUnmount () {
+    if (this.metadataObserver) {
+      this.metadataObserver.disconnect()
+      this.metadataObserver = null
+    }
+  },
   methods: {
     parseAssetDenomination,
+    needsAssetMetadata (asset) {
+      if (!asset || !asset.id) return false
+      if (!asset.id.startsWith('ct/') && !asset.id.startsWith('slp/')) return false
+      if (!asset.logo) return true
+      if (!asset.symbol || !asset.name || asset.name === 'Unknown Token') return true
+      return false
+    },
+    registerCardEl (asset, el) {
+      if (!el || !asset || !asset.id) return
+      if (!this._cardElAssetId) this._cardElAssetId = new WeakMap()
+      this._cardElAssetId.set(el, asset.id)
+      if (!this.metadataObserver) this.setupMetadataObserver()
+      if (this.metadataObserver) this.metadataObserver.observe(el)
+    },
+    setupMetadataObserver () {
+      if (this.metadataObserver) return
+      this.metadataObserver = new IntersectionObserver((entries) => {
+        entries.forEach((entry) => {
+          if (!entry.isIntersecting) return
+          const assetId = this._cardElAssetId ? this._cardElAssetId.get(entry.target) : null
+          this.metadataObserver.unobserve(entry.target)
+          if (!assetId) return
+          if (this._requestedMetadataIds && this._requestedMetadataIds.has(assetId)) return
+          const asset = (this.filteredFavAssets || []).find(item => item && item.id === assetId)
+          if (!this.needsAssetMetadata(asset)) return
+          if (!this._requestedMetadataIds) this._requestedMetadataIds = new Set()
+          this._requestedMetadataIds.add(assetId)
+          this.$emit('request-asset-metadata', asset)
+        })
+      }, { rootMargin: '200px', threshold: 0.01 })
+    },
     isSelectableAsset (asset) {
       // Requirement: SLP token cards must not be clickable (only SLP; CashTokens unaffected).
       // On the home page, `isCashToken === false` corresponds to the SLP selector.

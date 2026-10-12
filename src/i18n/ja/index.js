@@ -536,6 +536,7 @@ export default {
   ConfirmPin: "PINの確認",
   ConfirmReservation: "予約を確認する",
   ConfirmReservationError: "予約の確認中にエラーが発生しました。後でもう一度お試しください。",
+  ConfirmReservationNotReady: "予約はまだ準備ができていません。後でもう一度お試しください。",
   ConfirmSwap: "スワップの確認",
   Confirmation: "確認",
   Confirmed: "確認済み",

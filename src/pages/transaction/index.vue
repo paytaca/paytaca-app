@@ -147,7 +147,7 @@
             data-tour="quick-actions"
             :loaded="balanceLoaded"
             :selectedDenomination="selectedDenomination"
-            @spend-bch="openSpendBch()"
+            @get-help="openSupport()"
           />
           <div class="row items-center justify-between q-mb-sm q-mt-sm">
             <div class="q-ml-lg button button-text-primary" style="font-size: 20px;">
@@ -200,6 +200,7 @@
               @select-asset="asset => setSelectedAsset(asset)"
               @show-asset-info="asset => showAssetInfo(asset)"
               @hide-asset-info="hideAssetInfo()"
+              @request-asset-metadata="requestAssetMetadata"
               @removed-asset="selectBch()"
               @click="() => {txSearchActive = false; txSearchReference = ''}"
             >
@@ -224,6 +225,7 @@
               @select-asset="asset => setSelectedAsset(asset)"
               @show-asset-info="asset => showAssetInfo(asset)"
               @hide-asset-info="hideAssetInfo()"
+              @request-asset-metadata="requestAssetMetadata"
               @removed-asset="selectBch()"
               @click="() => {txSearchActive = false; txSearchReference = ''}"
             >
@@ -270,7 +272,7 @@
             </div>
           </div>
 
-          <PendingTransactions :key="pendingTransactionsKey"/>
+          <PendingTransactions ref="pending-transactions" />
 
           <LatestTransactions 
             ref="latest-transactions"
@@ -423,6 +425,7 @@ import { updateAssetBalanceOnLoad } from 'src/utils/asset-utils'
 import { debounce } from 'quasar'
 import { refToHex } from 'src/utils/reference-id-utils'
 import { buildHomeTourSteps, HOME_TOUR_SEEN_KEY } from 'src/utils/home-tour'
+import { requestHomeDialog, resetHomeDialogQueue, blockHomeDialogs, unblockHomeDialogs } from 'src/utils/home-dialog-queue'
 
 import Transaction from '../../components/transaction'
 import AssetCards from '../../components/asset-cards'
@@ -447,6 +450,8 @@ import { cachedLoadWallet } from '../../wallet'
 import axios from 'axios'
 import { getWatchtowerApiUrl } from 'src/wallet/chipnet'
 import { convertIpfsUrl } from 'src/wallet/cashtokens'
+
+const INITIAL_VISIBLE_TOKEN_COUNT = 3
 
 export default {
   name: 'Transaction-page',
@@ -503,7 +508,6 @@ export default {
       websocketManager: null,
       assetClickTimer: null,
       assetClickCounter: 0 ,
-      pendingTransactionsKey: 0,
       loadingBchPrice: false,
       bchBalanceMode: localStorage.getItem('bchBalanceMode') || 'bch-only',
       favoriteTokenIds: [], // Store favorite token IDs for synchronous access (deprecated, kept for compatibility)
@@ -535,6 +539,15 @@ export default {
       // This prevents the tour from competing with the backup reminder UI.
       if (!oldValue && newValue) {
         this._maybeAutoStartHomeTourAfterBackup()
+      }
+    },
+    securityOptionDialogStatus (value) {
+      // While the security preference dialog is up, hold off other home-load
+      // dialogs so they don't stack on top of it.
+      if (value === 'show' || value === 'show in settings') {
+        blockHomeDialogs('security-preference')
+      } else {
+        unblockHomeDialogs('security-preference')
       }
     },
     async isCashToken (newValue, oldValue) {
@@ -1267,8 +1280,16 @@ export default {
         const favorites = allTokens.filter(token => token.favorite === 1 || token.favorite === true)
         this.favoriteTokenIds = favorites.map(token => token.id).filter(id => id !== 'bch')
 
-        // Update store assets with balances and metadata from API
+        // Only sync store assets for the tokens initially visible on the home
+        // screen (the first INITIAL_VISIBLE_TOKEN_COUNT cards, favorites first).
+        // The remaining cards in the strip are revealed on horizontal scroll and
+        // their metadata is fetched on demand by the IntersectionObserver, so we
+        // avoid touching every token the wallet holds on load.
+        const visibleTokenIds = new Set(
+          (this.assets || []).slice(0, INITIAL_VISIBLE_TOKEN_COUNT).map(asset => asset.id)
+        )
         allTokens.forEach(token => {
+          if (!visibleTokenIds.has(token.id)) return
           this.$store.commit('assets/updateAssetBalance', {
             id: token.id,
             balance: token.balance
@@ -1288,27 +1309,7 @@ export default {
           }
         })
 
-        // Background-fetch metadata from BCMR for tokens still missing name/symbol/logo
-        allTokens.forEach(token => {
-          if (!token.name || token.name === 'Unknown Token' || !token.symbol || !token.logo) {
-            this.$store.dispatch('assets/getAssetMetadata', token.id).then(metadata => {
-              if (metadata) {
-                const idx = this.allTokensFromAPI.findIndex(t => t.id === token.id)
-                if (idx !== -1) {
-                  this.allTokensFromAPI[idx] = {
-                    ...this.allTokensFromAPI[idx],
-                    name: metadata.name || this.allTokensFromAPI[idx].name,
-                    symbol: metadata.symbol || this.allTokensFromAPI[idx].symbol,
-                    decimals: metadata.decimals !== undefined ? metadata.decimals : this.allTokensFromAPI[idx].decimals,
-                    logo: metadata.logo || this.allTokensFromAPI[idx].logo,
-                  }
-                }
-              }
-            }).catch(err => {
-              console.warn(`[HomePage] Failed to fetch BCMR metadata for ${token.id}:`, err)
-            })
-          }
-        })
+        allTokens.slice(0, INITIAL_VISIBLE_TOKEN_COUNT).forEach(token => this.requestAssetMetadata(token))
 
         console.log(`Fetched ${allTokens.length} tokens from API for wallet ${walletHash}`)
         return allTokens
@@ -1448,34 +1449,69 @@ export default {
         return []
       }
     },
+    requestAssetMetadata (asset) {
+      const vm = this
+      if (!asset || !asset.id) return
+      const assetId = asset.id
+      if (!vm._pendingTokenMetadataIds) vm._pendingTokenMetadataIds = new Set()
+      if (vm._pendingTokenMetadataIds.has(assetId)) return
+      vm._pendingTokenMetadataIds.add(assetId)
+
+      const applyMetadata = (metadata) => {
+        vm._pendingTokenMetadataIds.delete(assetId)
+        if (!metadata) return
+        const list = assetId.startsWith('slp/') ? vm.allSlpTokensFromAPI : vm.allTokensFromAPI
+        const idx = list.findIndex(token => token && token.id === assetId)
+        if (idx === -1) return
+        const patch = {}
+        if (metadata.name) patch.name = metadata.name
+        if (metadata.symbol) patch.symbol = metadata.symbol
+        if (metadata.decimals !== undefined && metadata.decimals !== null) patch.decimals = metadata.decimals
+        if (metadata.logo) patch.logo = metadata.logo
+        if (Object.keys(patch).length) list.splice(idx, 1, { ...list[idx], ...patch })
+      }
+
+      if (assetId.startsWith('ct/')) {
+        vm.$store.dispatch('assets/getAssetMetadata', assetId)
+          .then(metadata => applyMetadata(metadata))
+          .catch(err => {
+            console.warn(`[HomePage] Failed to fetch metadata for ${assetId}:`, err)
+            applyMetadata(null)
+          })
+      } else if (assetId.startsWith('slp/')) {
+        vm.$store.dispatch('assets/updateTokenIcon', { assetId })
+          .then(logo => applyMetadata(logo ? { logo } : null))
+          .catch(() => applyMetadata(null))
+      } else {
+        applyMetadata(null)
+      }
+    },
     async onRefresh (done, skipConnectivity) {
       try {
-        // Refresh wallet balances and token icons
-        if (!skipConnectivity) {
-          await this.onConnectivityChange(true)
-        }
-        
-        // Fetch favorite tokens from API (includes balances for CashTokens)
-        await this.refreshFavoriteTokenBalances()
-        
-        // Refresh prices for all favorite tokens + BCH
-        await this.refreshDisplayedTokenPrices()
-        
-        // Refresh transaction list
-        if (this.$refs['transaction-list-component']) {
-          await this.$refs['transaction-list-component'].getTransactions(1)
-        }
-        
-        // Refresh pending transactions
-        this.pendingTransactionsKey++
-        
-        // Refresh WalletConnect session requests
+        // Only the above-the-fold balance/token data gates the pull-to-refresh
+        // spinner, so it is dismissed as soon as the visible cards are fresh.
+        // onConnectivityChange() already refreshes favorite token balances, so
+        // only call the standalone refresh when connectivity handling is skipped
+        // (this avoids a duplicate fetchAllTokensFromAPI request).
+        const coreTasks = [
+          skipConnectivity
+            ? this.refreshFavoriteTokenBalances()
+            : this.onConnectivityChange(true)
+        ]
+
+        // Prices and both transaction lists refresh in the background. They can
+        // take several seconds (history + per-token metadata enrichment) and
+        // each section keeps its current content visible until fresh data
+        // arrives, so they must not keep the spinner on screen.
+        this.refreshDisplayedTokenPrices().catch(() => {})
+        this.$refs['transaction-list-component']?.getTransactions(1).catch(() => {})
+        this.$refs['latest-transactions']?.refresh().catch(() => {})
+
+        // Refresh pending transactions and WalletConnect session requests
+        this.$refs['pending-transactions']?.refresh()
         this.$store.dispatch('walletconnect/loadSessionRequests')
 
-        // Refresh latest transactions
-        if (this.$refs['latest-transactions']) {
-          await this.$refs['latest-transactions'].refresh()
-        }
+        await Promise.allSettled(coreTasks)
       } catch (error) {
         console.error('Error refreshing:', error)
       } finally {
@@ -1501,8 +1537,8 @@ export default {
       // console.log('Handling Ramp Notification')
       this.$router.push({ name: 'ramp-fiat', query: notif })
     },
-    openSpendBch () {
-      this.$router.push({ name: 'spend-bch' })
+    openSupport () {
+      this.$router.push({ name: 'app-support', query: { from: 'home' } })
     },
     goToAssetList () {
       this.$router.push({ name: 'asset-list' })
@@ -1680,7 +1716,7 @@ export default {
         return this.getBalance(asset.id)
       })
       this.transactions = []
-      this.pendingTransactionsKey++
+      this.$refs['pending-transactions']?.refresh()
         // this.$refs['transaction-list-component'].getTransactions()
     },
     setTransactionsFilter(value) {
@@ -2204,15 +2240,21 @@ export default {
           sessionStorage.setItem('appUpdateDialogActive', '1')
           sessionStorage.setItem('appUpdateDialogActiveAt', Date.now().toString())
         } catch (_) {}
+        // Hold off other home-load dialogs while the update prompt is up.
+        blockHomeDialogs('version-update')
+        const clearUpdateBlocker = () => {
+          unblockHomeDialogs('version-update')
+          try { sessionStorage.removeItem('appUpdateDialogActive'); sessionStorage.removeItem('appUpdateDialogActiveAt') } catch (_) {}
+        }
         const dlg = this.$q.dialog({
           component: versionUpdate,
           componentProps: {
             data: response.data
           }
         })
-        dlg?.onOk?.(() => { try { sessionStorage.removeItem('appUpdateDialogActive'); sessionStorage.removeItem('appUpdateDialogActiveAt') } catch (_) {} })
-        dlg?.onCancel?.(() => { try { sessionStorage.removeItem('appUpdateDialogActive'); sessionStorage.removeItem('appUpdateDialogActiveAt') } catch (_) {} })
-        dlg?.onDismiss?.(() => { try { sessionStorage.removeItem('appUpdateDialogActive'); sessionStorage.removeItem('appUpdateDialogActiveAt') } catch (_) {} })
+        dlg?.onOk?.(clearUpdateBlocker)
+        dlg?.onCancel?.(clearUpdateBlocker)
+        dlg?.onDismiss?.(clearUpdateBlocker)
         return true
       } catch (error) {
         console.error('Error checking version update:', error)
@@ -2261,6 +2303,9 @@ export default {
         }
       }
       if (forceRecreate) {
+        // Block synchronously (don't wait for the watcher flush) so the backup
+        // reminder can't slip in ahead of the security dialog.
+        blockHomeDialogs('security-preference')
         this.securityOptionDialogStatus = 'show'
         // await vm.$store.dispatch('global/updateOnboardingStep', 0)
         // vm.$router.push('/accounts?recreate=true')
@@ -2286,16 +2331,22 @@ export default {
         // if (asset.data?.id) vm.selectAsset(null, asset.data)
       })
     },
+    _releaseBackupDialog () {
+      const release = this._backupDialogRelease
+      this._backupDialogRelease = null
+      if (typeof release === 'function') release()
+    },
     dismissAlertForSession () {
       // Store dismissal timestamp in sessionStorage
       // This persists during app runtime but gets cleared when app is fully closed and reopened
       sessionStorage.setItem('backupReminderDismissedTimestamp', Date.now().toString())
       this.alertDismissedForSession = true
       this.showBackupAlert = false
-      this.$store.commit('global/setBackupDialogActive', false)
+      this._releaseBackupDialog()
     },
     goToBackupPage () {
       this.showBackupAlert = false
+      this._releaseBackupDialog()
       this.$router.push('/apps/wallet-backup')
     },
     checkAndShowBackupAlert () {
@@ -2309,7 +2360,6 @@ export default {
             sessionStorage.removeItem('appUpdateDialogActive')
             sessionStorage.removeItem('appUpdateDialogActiveAt')
           } else {
-            this.$store.commit('global/setBackupDialogActive', false)
             return
           }
         }
@@ -2317,36 +2367,40 @@ export default {
 
       // Don't show if lastBackupTimestamp is already set for this wallet (user has confirmed backup)
       // Each wallet is tracked independently
-      if (this.lastBackupTimestamp) {
-        this.$store.commit('global/setBackupDialogActive', false)
-        return
-      }
+      if (this.lastBackupTimestamp) return
 
       // Check if user dismissed for this session (app runtime)
       // The dismissal is cleared in App.vue on mount (fresh app start)
       const dismissedTimestamp = sessionStorage.getItem('backupReminderDismissedTimestamp')
       if (dismissedTimestamp) {
         this.alertDismissedForSession = true
-        this.$store.commit('global/setBackupDialogActive', false)
         return
       }
 
       // Check if this is a newly created wallet
       const isNewWallet = this.$route.query.newWallet === 'true'
-      
+
       if (isNewWallet) {
-        // Show after delay for newly created wallets (4 seconds)
-        this.$store.commit('global/setBackupDialogActive', true)
+        // Queue after delay for newly created wallets (4 seconds)
         this.backupAlertTimeout = setTimeout(() => {
-          this.showBackupAlert = true
-          // Clear the query parameter after showing
-          this.$router.replace({ query: {} }).catch(() => {})
+          this._queueBackupDialog()
         }, 4000)
       } else {
-        // Show immediately for existing wallets
-        this.$store.commit('global/setBackupDialogActive', true)
-        this.showBackupAlert = true
+        // Queue immediately for existing wallets
+        this._queueBackupDialog()
       }
+    },
+    _queueBackupDialog () {
+      requestHomeDialog('backup-reminder', (done) => {
+        // Re-check at show time in case the wallet was backed up while queued
+        if (this.lastBackupTimestamp) return done()
+        this._backupDialogRelease = done
+        this.showBackupAlert = true
+        // Clear the query parameter after showing
+        if (this.$route.query.newWallet === 'true') {
+          this.$router.replace({ query: {} }).catch(() => {})
+        }
+      }, 20)
     }
   },
 
@@ -2361,6 +2415,8 @@ export default {
     if (this.backupAlertTimeout) {
       clearTimeout(this.backupAlertTimeout)
     }
+    // Release the queue if the backup dialog was still active when leaving.
+    this._releaseBackupDialog()
     // Remove the scoped WC2 session_request listener
     if (this._wcSessionRequestHandler) {
       try {
@@ -2389,6 +2445,8 @@ export default {
 
   },
   async mounted () {
+    // Fresh home page load: allow one home-load dialog at a time again.
+    resetHomeDialogQueue()
     try {
       const vm = this
       let walletLoadPromise
@@ -2436,16 +2494,20 @@ export default {
         const assetsId = assets.map(a => a.id)
 
         if (vm.isCashToken) {
-          // For CashTokens, use tokens already fetched from fetchAllTokensFromAPI()
-          // No need to call getMissingAssets() - the API already provided all the data
-          const allTokensFromAPI = vm.allTokensFromAPI || []
-          const newTokens = allTokensFromAPI.filter(token => 
-            !assetsId.includes(token.id) && 
-            !vaultRemovedAssetIds.includes(token.id) &&
-            !hiddenIds.includes(token.id)
-          )
+          // For CashTokens, only register the initially visible cards (the first
+          // N, favorites first). The remaining tokens stay out of the store on
+          // home load and are registered on demand by the screens that need them
+          // (e.g. "View All", send/receive).
+          const visibleTokens = (vm.assets || [])
+            .slice(0, INITIAL_VISIBLE_TOKEN_COUNT)
+            .filter(token =>
+              token?.id &&
+              !assetsId.includes(token.id) &&
+              !vaultRemovedAssetIds.includes(token.id) &&
+              !hiddenIds.includes(token.id)
+            )
 
-          newTokens.forEach(token => {
+          visibleTokens.forEach(token => {
             // Convert API token format to asset format expected by addNewAsset
             vm.$store.commit('assets/addNewAsset', {
               id: token.id,
@@ -2543,22 +2605,22 @@ export default {
         // Auto-run home tour only after backup is confirmed.
         this._maybeAutoStartHomeTourAfterBackup()
       }
-
-      // Full refresh after page mounts (especially after wallet switch)
-      // skipConnectivity = true to avoid duplicate onConnectivityChange call
-      // (already called earlier in the mount flow above)
-      // Note: onConnectivityChange(true) above already calls refreshFavoriteTokenBalances()
-      // and refreshDisplayedTokenPrices(), so we only refresh transactions here to avoid
-      // duplicating balance/price fetches and the associated store mutations.
-      if (this.$refs['latest-transactions']) {
-        this.$refs['latest-transactions'].refresh().catch(() => {})
-      }
-      this.pendingTransactionsKey++
     } catch (error) {
       console.error('Error in mounted hook:', error)
       // Ensure loading state is reset even on error
       this.isLoadingAssets = false
       this.loadingBchPrice = false
+    } finally {
+      // Always refresh the latest transactions independently so a failure in the
+      // mount flow above cannot leave the home section stale.
+      try {
+        if (this.$refs['latest-transactions']) {
+          await this.$refs['latest-transactions'].refresh()
+        }
+        this.$refs['pending-transactions']?.refresh()
+      } catch (error) {
+        console.error('Error refreshing latest transactions on mount:', error)
+      }
     }
   },
 }
@@ -2639,6 +2701,14 @@ export default {
     -ms-overflow-style: none !important;
     scrollbar-width: none !important;
     -webkit-overflow-scrolling: touch !important;
+  }
+
+  /* Show the pull-to-refresh spinner in the middle of the viewport instead of
+     at the top edge (where it is mostly hidden behind the header). The puller
+     is translated down by 20px while refreshing, so offset by its own height to
+     land its center at 50% of the viewport. */
+  :deep(.q-pull-to-refresh__puller-container) {
+    top: calc(50% - 40px) !important;
   }
 
   #bch-card {

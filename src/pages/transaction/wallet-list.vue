@@ -145,7 +145,7 @@ export default {
       const tempVault = vm.$store.getters['global/getVault']
       const vaultNameUpdatePromises = tempVault.map(async (wallet, index) => {
         // Skip deleted wallets
-        if (wallet.deleted === true) {
+        if (!wallet || wallet.deleted === true) {
           return
         }
 
@@ -192,7 +192,7 @@ export default {
 
       tempVault.forEach((wallet, index) => {
         // Skip deleted wallets
-        if (wallet.deleted === true) {
+        if (!wallet || wallet.deleted === true) {
           return
         }
 
@@ -364,7 +364,7 @@ export default {
 
       tempVault.forEach((wallet, originalIndex) => {
         // Skip deleted wallets
-        if (wallet.deleted === true) {
+        if (!wallet || wallet.deleted === true) {
           return
         }
 
