@@ -913,7 +913,7 @@ export default {
 
   .bch-input-field.q-field--focused .q-field__control,
   .fiat-input-field.q-field--focused .q-field__control {
-    box-shadow: 0 0 0 2px var(--q-primary);
+    box-shadow: inset 0 0 0 2px var(--q-primary);
     border-radius: 4px;
     transition: box-shadow 0.2s ease;
   }
