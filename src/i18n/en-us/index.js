@@ -1445,6 +1445,7 @@ export default {
   InvalidAmount: "Invalid amount",
   InvalidAssetError: "Invalid asset",
   InvalidCodeError: "Sorry, that referral code appears to be invalid. Please double-check your code and try again.",
+  SelfReferralError: "You can't use your own referral code. Please proceed without one.",
   InvalidData: "Invalid data",
   InvalidDuration: "Invalid duration",
   InvalidEmailAddress: "Invalid Email Address",
