@@ -95,7 +95,7 @@
     </div>
 
     <!-- Skip Button (prominent secondary action) -->
-    <div v-if="!isCodeProcessed && !hasReferralCode" class="q-mt-lg text-center">
+    <div v-if="!isCodeProcessed && !isSelfReferral && (!hasReferralCode || isProcessingError)" class="q-mt-lg text-center">
       <q-btn
         outline
         no-caps
@@ -159,8 +159,9 @@ export default {
 
   async mounted () {
     if (this.referralCode) {
-      this.manualReferralCode = this.referralCode
-      await this.executeReferralSubmission(this.referralCode)
+      // Route the prop through the same parse+normalize path as QR/deep links,
+      // so a full landing-page URL in the query is handled too.
+      await this.processReferralCode(this.referralCode)
       return
     }
     if (this.fromCreateWallet) {
@@ -205,10 +206,7 @@ export default {
       }
     },
     referralCode (val) {
-      if (val) {
-        this.manualReferralCode = val
-        this.executeReferralSubmission(val)
-      }
+      if (val) this.processReferralCode(val)
     }
   },
 

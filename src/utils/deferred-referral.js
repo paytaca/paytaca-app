@@ -84,6 +84,10 @@ export async function captureDeferredReferralCode () {
   const stored = getDeferredReferralCode()
   if (stored) return stored
 
+  // Only native platforms carry an install referrer / pasteboard handoff; on
+  // web we'd otherwise hit the browser clipboard permission prompt.
+  if (!Capacitor.isNativePlatform()) return ''
+
   const platform = Capacitor.getPlatform()
   let code = ''
   let allowClipboardFallback = true
