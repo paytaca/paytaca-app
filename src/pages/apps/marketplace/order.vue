@@ -563,10 +563,23 @@
           <div v-if="displayBch">{{ orderAmounts.subtotal.bch }} BCH</div>
           <div v-else>{{ orderAmounts.subtotal.currency }} {{ orderCurrency }}</div>
         </div>
+        <div v-if="orderAmounts.discount" class="row items-start text-subtitle2">
+          <div class="q-space">{{ $t('Discount') }}</div>
+          <div class="text-red-5">
+            <div v-if="displayBch">-{{ orderAmounts.discount.bch }} BCH</div>
+            <div v-else>-{{ orderAmounts.discount.currency }} {{ orderCurrency }}</div>
+          </div>
+        </div>
         <div class="row items-start text-subtitle2">
           <div class="q-space">Delivery fee</div>
-          <div v-if="displayBch">{{ orderAmounts.deliveryFee.bch }} BCH</div>
-          <div v-else>{{ orderAmounts.deliveryFee.currency }} {{ orderCurrency }}</div>
+          <div>
+            <div v-if="displayBch">{{ orderAmounts.deliveryFee.bch }} BCH</div>
+            <div v-else>{{ orderAmounts.deliveryFee.currency }} {{ orderCurrency }}</div>
+            <div v-if="orderAmounts.deliveryFeeDiscount" class="text-red-5">
+              <div v-if="displayBch">-{{ orderAmounts.deliveryFeeDiscount.bch }} BCH</div>
+              <div v-else>-{{ orderAmounts.deliveryFeeDiscount.currency }} {{ orderCurrency }}</div>
+            </div>
+          </div>
         </div>
         <div class="row items-start text-h6">
           <div class="q-space">Total</div>
@@ -855,8 +868,10 @@ function fetchOrder() {
 fetchOrder.debounced = debounce(fetchOrder, 500)
 
 const orderAmounts = computed(() => {
+  const totalDiscount = parseFloat(order.value?.totalDiscount) || 0
+  const markupSubtotal = parseFloat(order.value?.markupSubtotal) || 0
   const data = {
-    subtotal: { currency: order.value?.markupSubtotal || 0, bch: 0 },
+    subtotal: { currency: markupSubtotal + totalDiscount, bch: 0 },
     cutlerySubtotal: { currency: order.value?.cutlerySubtotal || 0, bch: 0 },
     deliveryFee: { currency: order.value?.payment?.deliveryFee || 0, bch: 0 },
     total: { currency: order.value?.total, bch: 0 },
@@ -865,6 +880,14 @@ const orderAmounts = computed(() => {
     totalRefunded: { currency: parseFloat(order.value?.totalRefunded), bch: 0 },
     netPaid: { currency: parseFloat(order.value?.netPaid), bch: 0 },
     change: { currency: parseFloat(order.value.change), bch: 0}
+  }
+
+  if (totalDiscount) {
+    data.discount = { currency: totalDiscount, bch: 0 }
+  }
+
+  if (order.value?.payment?.deliveryFeeDiscount) {
+    data.deliveryFeeDiscount = { currency: parseFloat(order.value?.payment?.deliveryFeeDiscount), bch: 0 }
   }
 
   data.subtotal.bch = fiatToBch(data.subtotal.currency)
@@ -876,6 +899,8 @@ const orderAmounts = computed(() => {
   data.totalRefunded.bch = fiatToBch(data.totalRefunded.currency)
   data.netPaid.bch = fiatToBch(data.netPaid.currency)
   data.change.bch = fiatToBch(data.change.currency)
+  if (data.discount) data.discount.bch = fiatToBch(data.discount.currency)
+  if (data.deliveryFeeDiscount) data.deliveryFeeDiscount.bch = fiatToBch(data.deliveryFeeDiscount.currency)
 
   return data
 })

@@ -1381,11 +1381,12 @@ export class Order {
    * @param {Number} data.cutlery_subtotal
    * @param {Number} data.subtotal
    * @param {Number} data.markup_subtotal
+   * @param {Number} data.total_discount
    * @param {Number} data.total_paid
    * @param {Number} data.total_pending_payment
    * @param {Number} data.total_payments
    * @param {Number} data.total_refunded
-   * @param {{ delivery_fee:Number, escrow_refund_address:String }} data.payment
+   * @param {{ delivery_fee:Number, delivery_fee_discount:Number, escrow_refund_address:String }} data.payment
    * @param {String} [data.cancel_reason]
    * @param {String | Number} data.created_at
    * @param {String | Number} data.updated_at
@@ -1411,6 +1412,7 @@ export class Order {
     this.cutlerySubtotal = data?.cutlery_subtotal
     this.subtotal = data?.subtotal
     this.markupSubtotal = data?.markup_subtotal
+    this.totalDiscount = data?.total_discount
     this.totalPaid = data?.total_paid
     this.totalPendingPayment = data?.total_pending_payment
     this.totalPayments = data?.total_payments
