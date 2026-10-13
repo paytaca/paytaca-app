@@ -396,10 +396,11 @@ export default {
   position: fixed !important;
   width: 100%;
   left: 0px;
-  height: 250px;
+  height: calc(250px + env(safe-area-inset-bottom, 0px));
   border-top-left-radius: 15px;
   border-top-right-radius: 15px;
   bottom: 0px !important;
+  padding-bottom: env(safe-area-inset-bottom, 0px);
 }
 .pp-key {
   width: 95%;

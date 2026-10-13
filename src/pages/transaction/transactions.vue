@@ -1023,6 +1023,7 @@ this.$nextTick(() => {
 	        name: 'app-cauldron',
 	        query: {
 	          selectTokenId: this.selectedAsset.id?.replace('ct/', ''),
+	          sellToken: 'true',
 	          backPath: this.$route.fullPath
 	        }
 	      })
@@ -1322,6 +1323,10 @@ this.$nextTick(() => {
   justify-content: center;
   gap: 2px;
   padding: 6px 12px;
+
+  :deep(.q-btn__content) {
+    gap: 5px;
+  }
 }
 
 .token-actions .token-action-btn .action-label {

@@ -11,6 +11,7 @@ class PluginViewController: CAPBridgeViewController {
         bridge?.registerPluginInstance(SaveToGalleryPlugin())
         bridge?.registerPluginInstance(ScreenshotSecurityPlugin())
         bridge?.registerPluginInstance(AudioModePlugin())
+        bridge?.registerPluginInstance(DeferredReferralPlugin())
     }
 }
 

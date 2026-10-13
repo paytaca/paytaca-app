@@ -7,6 +7,8 @@ PODS:
     - Capacitor
   - CapacitorCamera (5.0.9):
     - Capacitor
+  - CapacitorClipboard (5.0.8):
+    - Capacitor
   - CapacitorCommunityBarcodeScanner (4.0.1):
     - Capacitor
   - CapacitorCommunityNativeAudio (5.0.1):
@@ -34,6 +36,7 @@ DEPENDENCIES:
   - "CapacitorApp (from `../../node_modules/@capacitor/app`)"
   - "CapacitorBrowser (from `../../node_modules/@capacitor/browser`)"
   - "CapacitorCamera (from `../../node_modules/@capacitor/camera`)"
+  - "CapacitorClipboard (from `../../node_modules/@capacitor/clipboard`)"
   - "CapacitorCommunityBarcodeScanner (from `../../node_modules/@capacitor-community/barcode-scanner`)"
   - "CapacitorCommunityNativeAudio (from `../../node_modules/@capacitor-community/native-audio`)"
   - "CapacitorCordova (from `../../node_modules/@capacitor/ios`)"
@@ -55,6 +58,8 @@ EXTERNAL SOURCES:
     :path: "../../node_modules/@capacitor/browser"
   CapacitorCamera:
     :path: "../../node_modules/@capacitor/camera"
+  CapacitorClipboard:
+    :path: "../../node_modules/@capacitor/clipboard"
   CapacitorCommunityBarcodeScanner:
     :path: "../../node_modules/@capacitor-community/barcode-scanner"
   CapacitorCommunityNativeAudio:
@@ -83,6 +88,7 @@ SPEC CHECKSUMS:
   CapacitorApp: 17fecd0e6cb23feafac7eb0939417389038b0979
   CapacitorBrowser: a6deae9e5bf87f62b62a753cff7992c5def9e771
   CapacitorCamera: 4892c5c392f60039d853dde78bc50ba19fbd113e
+  CapacitorClipboard: 03628c89fe70d06d36288ee4eff7e205a6e81e53
   CapacitorCommunityBarcodeScanner: 7feb206489c8555a8ca0c74c57ddf49ead774eb8
   CapacitorCommunityNativeAudio: 1a4d5490acb59f155602c0b6bcf1b42ee4efe91b
   CapacitorCordova: c946a6052b547e1e185fc46862003f7b9130ead1
@@ -95,6 +101,6 @@ SPEC CHECKSUMS:
   CapacitorShare: abef1f7be4e10b448693b0b83b540cb4b92dc849
   PaytacaEscrowKey: fcfb96e9d715eac4e5f21e2a2276ab62d1be2e83
 
-PODFILE CHECKSUM: 3901270f11b1ac4985bda20aa9cb02f9aa855984
+PODFILE CHECKSUM: c2fad82a1572e0e3797a9a76fba5dd68f8ba007a
 
 COCOAPODS: 1.16.2

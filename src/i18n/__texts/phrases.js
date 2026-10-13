@@ -1912,6 +1912,7 @@ const phrases = {
       FavoriteTokensLimitReached: 'Favorite tokens limit reached. Upgrade to Paytaca Plus to add more favorites.',
       MarkTokensAsFavorites: 'Mark tokens as favorites',
       PriceNotAvailable: 'Price not available',
+      PriceChange24h: '24h Change',
       'Sending tokens not supported': 'Sending tokens not supported',
       NoCashTokensSubtitle: 'No CashTokens subtitle',
       NoCollectiblesSubtitle: 'No Collectibles subtitle',
@@ -1926,7 +1927,7 @@ const phrases = {
       'HomeTour.BchCard.Title': 'Bitcoin Cash card',
       'HomeTour.BchCard.Body': 'This card shows your BCH balance. Tap to view your full transaction history. Long-press or double-click for more details and actions.',
       'HomeTour.QuickActions.Title': 'Quick actions',
-      'HomeTour.QuickActions.Body': 'Use these buttons to quickly Send, Receive, Get BCH, or Spend BCH.',
+      'HomeTour.QuickActions.Body': 'Use these buttons to quickly Send, Receive, Get BCH, or Get Help.',
       'HomeTour.TokenCards.Title': 'Token cards',
       'HomeTour.TokenCards.Body': 'These are your token cards. Tap a token card to view the token\'s full transaction history. Long-press or double-click for more details and actions.',
       'HomeTour.Transactions.Title': 'Transactions',
@@ -2277,6 +2278,7 @@ const phrases = {
       DuplicateDeviceError: 'Looks like this referral code has already been scanned here! Try using a different device to redeem it again.',
       DuplicateReferralError: 'Looks like this account has already been referred by someone. Please check your status with your referrer, or create a new account to redeem again.',
       InvalidCodeError: 'Sorry, that referral code appears to be invalid. Please double-check your code and try again.',
+      SelfReferralError: "You can't use your own referral code. Please proceed without one.",
 
       // join rewards dialog
       JoinRewardsDialogTitle: 'Join the Paytaca Rewards Program',
