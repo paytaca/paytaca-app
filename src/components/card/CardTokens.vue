@@ -1,16 +1,16 @@
 <template>
   <div class="full-width self-start q-pa-sm">
-    <div class="row items-center q-mb-sm">
+    <div class="row items-center q-mb-md">
       <div class="col">
         <q-input
           v-model="search"
           placeholder="Search tokens..."
           dense
           borderless
-          outlined
           input-class="search-input-field"
           :dark="$q.dark.isActive"
-          clearable>
+          clearable
+          class="search-input-wrapper">
           <template v-slot:prepend>
             <q-icon name="search" size="1.1rem" color="primary" />
           </template>
