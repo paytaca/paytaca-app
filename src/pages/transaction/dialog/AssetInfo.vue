@@ -456,7 +456,9 @@ export default {
       return lines
     },
     change24hPercent () {
-      const bp = this.cauldronTokenData?.change_24h_bp
+      // Cauldron's /tokens page defaults to USD mode and reports the 24h change
+      // in USD terms (change_24h_usd_bp); mirror that so the figures correspond.
+      const bp = this.cauldronTokenData?.change_24h_usd_bp
       if (bp == null) return null
       const value = Number(bp)
       if (!isFinite(value)) return null
