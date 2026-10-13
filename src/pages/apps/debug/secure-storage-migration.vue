@@ -29,16 +29,16 @@
 
           <div class="row items-center q-gutter-sm q-mb-xs">
             <q-icon
-              :name="migrationFlag ? 'check_circle' : 'warning'"
-              :color="migrationFlag ? 'positive' : 'warning'"
+              :name="flagStateIcon"
+              :color="flagStateColor"
               size="20px"
             />
             <span class="text-body2">
               {{ $t('MigrationFlag', {}, 'Migration flag') }}
               (<code>secure_storage_native_migrated</code>):
             </span>
-            <q-badge :color="migrationFlag ? 'positive' : 'warning'">
-              {{ migrationFlag ? $t('Set', {}, 'Set') : $t('NotSet', {}, 'Not set') }}
+            <q-badge :color="flagStateColor">
+              {{ flagStateLabel }}
             </q-badge>
           </div>
 
@@ -61,6 +61,15 @@
             <q-badge :color="oldEntries.length ? 'warning' : 'grey'">{{ oldEntries.length }}</q-badge>
           </div>
 
+          <q-banner
+            v-if="!isNativePlatform"
+            dense
+            rounded
+            class="bg-warning text-black q-mb-sm"
+          >
+            {{ $t('LiveStorageWarning', {}, 'On web/BEX these cap_sec_* localStorage entries ARE the live secure storage backend — not disposable legacy leftovers. Clearing them would make the wallet unreadable. Clearing is disabled here.') }}
+          </q-banner>
+
           <div v-if="!oldEntries.length" class="text-caption" :class="darkMode ? 'text-grey-6' : 'text-grey-7'">
             {{ $t('NoLegacyEntries', {}, 'No legacy secure storage entries found in localStorage.') }}
           </div>
@@ -74,17 +83,31 @@
             >
               <div class="row items-center justify-between">
                 <div class="entry-key">{{ entry.key }}</div>
-                <q-badge :color="entry.encoded ? 'deep-purple' : 'orange'">
-                  {{ entry.encoded ? $t('Encrypted', {}, 'enc:v1') : $t('Plaintext', {}, 'plaintext') }}
-                </q-badge>
+                <div class="row items-center q-gutter-xs">
+                  <q-btn
+                    flat
+                    dense
+                    round
+                    size="sm"
+                    :icon="entry.revealed ? 'visibility_off' : 'visibility'"
+                    @click="entry.revealed = !entry.revealed"
+                  >
+                    <q-tooltip>{{ entry.revealed ? $t('Hide', {}, 'Hide') : $t('Reveal', {}, 'Reveal') }}</q-tooltip>
+                  </q-btn>
+                  <q-badge :color="entry.encoded ? 'deep-purple' : 'orange'">
+                    {{ entry.encoded ? $t('Encrypted', {}, 'enc:v1') : $t('Plaintext', {}, 'plaintext') }}
+                  </q-badge>
+                </div>
               </div>
               <div class="entry-value">
                 <div class="entry-value-label">{{ $t('Raw', {}, 'Raw') }}</div>
-                <pre class="entry-value-pre">{{ entry.raw }}</pre>
+                <pre v-if="entry.revealed" class="entry-value-pre">{{ entry.raw }}</pre>
+                <div v-else class="entry-value-masked">{{ $t('HiddenTapReveal', {}, '•••••• hidden — tap reveal') }}</div>
               </div>
               <div v-if="entry.decoded !== null" class="entry-value">
                 <div class="entry-value-label">{{ $t('Decoded', {}, 'Decoded') }}</div>
-                <pre class="entry-value-pre">{{ entry.decoded }}</pre>
+                <pre v-if="entry.revealed" class="entry-value-pre">{{ entry.decoded }}</pre>
+                <div v-else class="entry-value-masked">{{ $t('HiddenTapReveal', {}, '•••••• hidden — tap reveal') }}</div>
               </div>
             </div>
           </div>
@@ -95,10 +118,17 @@
               icon="delete_forever"
               :label="$t('ClearLegacyStorage', {}, 'Clear legacy storage')"
               :loading="clearingOld"
-              :disable="!oldEntries.length"
+              :disable="!oldEntries.length || !isNativePlatform"
               class="full-width"
               @click="confirmClearOld"
             />
+            <div
+              v-if="!isNativePlatform"
+              class="text-caption q-mt-xs"
+              :class="darkMode ? 'text-grey-6' : 'text-grey-7'"
+            >
+              {{ $t('ClearLegacyStorageWebDisabled', {}, 'Disabled on web/BEX: cap_sec_* is the live secure storage backend here.') }}
+            </div>
           </div>
         </q-card-section>
       </q-card>
@@ -112,6 +142,15 @@
             </div>
             <q-badge :color="nativeEntries.length ? 'positive' : 'grey'">{{ nativeEntries.length }}</q-badge>
           </div>
+
+          <q-banner
+            v-if="!isNativePlatform"
+            dense
+            rounded
+            class="bg-info text-white q-mb-sm"
+          >
+            {{ $t('NativeWebNotice', {}, 'On web/BEX this list is backed by the same localStorage entries shown above.') }}
+          </q-banner>
 
           <q-banner
             v-if="nativeError"
@@ -135,13 +174,32 @@
             >
               <div class="row items-center justify-between">
                 <div class="entry-key">{{ entry.key }}</div>
-                <q-badge :color="entry.value === null ? 'negative' : 'positive'">
-                  {{ entry.value === null ? $t('Unreadable', {}, 'unreadable') : $t('Ok', {}, 'ok') }}
-                </q-badge>
+                <div class="row items-center q-gutter-xs">
+                  <q-btn
+                    v-if="!entry.unreadable"
+                    flat
+                    dense
+                    round
+                    size="sm"
+                    :icon="entry.revealed ? 'visibility_off' : 'visibility'"
+                    @click="entry.revealed = !entry.revealed"
+                  >
+                    <q-tooltip>{{ entry.revealed ? $t('Hide', {}, 'Hide') : $t('Reveal', {}, 'Reveal') }}</q-tooltip>
+                  </q-btn>
+                  <q-badge :color="entry.unreadable ? 'negative' : 'positive'">
+                    {{ entry.unreadable ? $t('Unreadable', {}, 'unreadable') : $t('Ok', {}, 'ok') }}
+                  </q-badge>
+                </div>
               </div>
               <div class="entry-value">
                 <div class="entry-value-label">{{ $t('Value', {}, 'Value') }}</div>
-                <pre class="entry-value-pre">{{ entry.value === null ? '—' : entry.value }}</pre>
+                <template v-if="entry.unreadable">
+                  <pre class="entry-value-pre">—</pre>
+                </template>
+                <template v-else>
+                  <pre v-if="entry.revealed" class="entry-value-pre">{{ entry.value }}</pre>
+                  <div v-else class="entry-value-masked">{{ $t('HiddenTapReveal', {}, '•••••• hidden — tap reveal') }}</div>
+                </template>
               </div>
             </div>
           </div>
@@ -156,10 +214,7 @@ import headerNav from 'src/components/header-nav'
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 import { Capacitor } from '@capacitor/core'
 import { SecureStoragePlugin } from 'capacitor-secure-storage-plugin'
-
-const LEGACY_PREFIX = 'cap_sec_'
-const ENC_PREFIX = 'enc:v1:'
-const MIGRATION_FLAG_KEY = 'secure_storage_native_migrated'
+import { LEGACY_PREFIX, ENC_PREFIX, MIGRATION_FLAG_KEY, isNativeMigrationPlatform } from 'src/wallet/secure-storage-migration'
 
 export default {
   name: 'SecureStorageMigration',
@@ -171,7 +226,7 @@ export default {
       loading: false,
       clearingOld: false,
       platform: 'unknown',
-      migrationFlag: false,
+      migrationFlagState: 'not-set',
       oldEntries: [],
       nativeEntries: [],
       nativeError: ''
@@ -180,6 +235,24 @@ export default {
   computed: {
     darkMode () {
       return this.$store.getters['darkmode/getStatus']
+    },
+    isNativePlatform () {
+      return isNativeMigrationPlatform(this.platform)
+    },
+    flagStateLabel () {
+      if (this.migrationFlagState === 'set') return this.$t('Set', {}, 'Set')
+      if (this.migrationFlagState === 'unreadable') return this.$t('Unreadable', {}, 'Unreadable')
+      return this.$t('NotSet', {}, 'Not set')
+    },
+    flagStateColor () {
+      if (this.migrationFlagState === 'set') return 'positive'
+      if (this.migrationFlagState === 'unreadable') return 'negative'
+      return 'warning'
+    },
+    flagStateIcon () {
+      if (this.migrationFlagState === 'set') return 'check_circle'
+      if (this.migrationFlagState === 'unreadable') return 'error'
+      return 'warning'
     }
   },
   mounted () {
@@ -191,7 +264,12 @@ export default {
       this.loading = true
       try {
         this.platform = Capacitor.getPlatform()
-        this.migrationFlag = (await this.getNativeValue(MIGRATION_FLAG_KEY)) !== null
+        const flag = await this.readNativeValue(MIGRATION_FLAG_KEY)
+        if (flag.error) {
+          this.migrationFlagState = 'unreadable'
+        } else {
+          this.migrationFlagState = flag.value === 'true' ? 'set' : 'not-set'
+        }
         this.oldEntries = this.listLegacyEntries()
         await this.loadNativeEntries()
       } finally {
@@ -217,7 +295,8 @@ export default {
           key: full.slice(LEGACY_PREFIX.length),
           raw,
           encoded,
-          decoded
+          decoded,
+          revealed: false
         })
       }
       entries.sort((a, b) => a.key.localeCompare(b.key))
@@ -237,20 +316,27 @@ export default {
 
       const entries = []
       for (const key of keys) {
-        entries.push({ key, value: await this.getNativeValue(key) })
+        const read = await this.readNativeValue(key)
+        entries.push({
+          key,
+          value: read.value,
+          unreadable: read.error !== null || read.value === null,
+          revealed: false
+        })
       }
       entries.sort((a, b) => a.key.localeCompare(b.key))
       this.nativeEntries = entries
     },
-    async getNativeValue (key) {
+    async readNativeValue (key) {
       try {
         const result = await SecureStoragePlugin.get({ key })
-        return result && result.value !== undefined ? result.value : null
-      } catch {
-        return null
+        return { value: result && result.value !== undefined ? result.value : null, error: null }
+      } catch (err) {
+        return { value: null, error: err }
       }
     },
     confirmClearOld () {
+      if (!this.isNativePlatform) return
       this.$q.dialog({
         class: `text-bow ${this.getDarkModeClass(this.darkMode)}`,
         title: this.$t('ClearLegacyStorage', {}, 'Clear legacy storage'),
@@ -274,6 +360,7 @@ export default {
       })
     },
     async clearLegacyStorage () {
+      if (!this.isNativePlatform) return
       this.clearingOld = true
       try {
         const toRemove = []
@@ -392,5 +479,12 @@ body.theme-payhero .debug-page.dark {
   word-break: break-all;
   max-height: 160px;
   overflow: auto;
+}
+
+.entry-value-masked {
+  font-family: monospace;
+  font-size: 12px;
+  letter-spacing: 1px;
+  opacity: 0.5;
 }
 </style>
