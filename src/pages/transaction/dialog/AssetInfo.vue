@@ -550,7 +550,9 @@ export default {
       this.$router.push({
         name: 'app-cauldron',
         query: {
-          selectTokenId: this.asset.id?.replace('ct/', '')
+          selectTokenId: this.asset.id?.replace('ct/', ''),
+          // Swap the token for BCH (token as origin, BCH as destination)
+          sellToken: 'true'
         }
       })
     },
