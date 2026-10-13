@@ -1269,6 +1269,11 @@ export default defineComponent({
           }
         }
 
+        // Trade is done: clear the trade result so the slide-to-swap panel and its
+        // reserved bottom padding are removed on the success screen.
+        tradeResult.value = null;
+        keyboardState.value = 'dismiss';
+
         const ref_id = hexToRef(broadcastResult?.data?.txid?.substring(0, 6));
         const bch_spent = _isBuyingToken ? unitsSold : unitsBought;
 
