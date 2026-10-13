@@ -279,9 +279,20 @@ export async function restoreOnBoot () {
       }
     }
 
-    await SecureStoragePlugin.set({ key: MK_STORAGE_KEY, value: payload.mk }).catch(err => {
+    // Native keystores can silently no-op writes (e.g. a missing Android
+    // KeyStore alias), so verify the master key actually persisted instead of
+    // trusting a resolved promise.
+    try {
+      await SecureStoragePlugin.set({ key: MK_STORAGE_KEY, value: payload.mk })
+      const mkCheck = await safeGet(MK_STORAGE_KEY)
+      if (mkCheck !== payload.mk) {
+        console.error('[EscrowVault] Local master key did not persist; aborting restore.')
+        return { restored: 0, reason: 'key-store-failed' }
+      }
+    } catch (err) {
       console.error('[EscrowVault] Failed to store local master key:', err)
-    })
+      return { restored: 0, reason: 'key-store-failed' }
+    }
 
     let restored = 0
     const secrets = payload.secrets || {}
@@ -299,7 +310,15 @@ export async function restoreOnBoot () {
 
       try {
         await SecureStoragePlugin.set({ key: storageKey, value: plaintext })
-        restored++
+        // Verify against the native layer; a resolved set() does not guarantee
+        // the value was persisted, and a silent failure must not be reported as
+        // a successful restore (it would retry forever with no signal).
+        const readBack = await safeGet(storageKey)
+        if (readBack === plaintext) {
+          restored++
+        } else {
+          console.error(`[EscrowVault] Verification failed restoring "${storageKey}"`)
+        }
       } catch (err) {
         console.error(`[EscrowVault] Failed to restore secret "${storageKey}":`, err)
       }

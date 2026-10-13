@@ -13,8 +13,9 @@ import { SecureStoragePlugin, SECURE_STORAGE_KEY_MISSING } from 'capacitor-secur
  *
  * `localStorage` and IndexedDB belong to the WebView, so the legacy data is
  * still readable here. The migration is idempotent/resumable: it only sets its
- * completion flag once every key verified, and it never deletes the legacy copy
- * (kept for downgrade safety).
+ * completion flag once every key verified. Encrypted (`enc:v1:`) legacy copies
+ * are kept for downgrade safety, but plaintext base64 copies are scrubbed once
+ * every key is safely in the native keystore (they are trivially decodable).
  */
 
 const ENC_PREFIX = 'enc:v1:'
@@ -82,6 +83,24 @@ async function decryptLegacyValue (raw, aesKey) {
   } catch {
     throw new Error(DECRYPT_ERROR)
   }
+}
+
+// Plaintext (pre-encryption) legacy values are only base64, so once they are
+// verified in the native keystore they remain a trivially-decodable,
+// XSS-readable copy of mnemonics. Scrub them. Encrypted legacy copies are kept
+// for downgrade safety.
+function scrubPlaintextLegacyEntries (entries) {
+  let scrubbed = 0
+  for (const { key, raw } of entries) {
+    if (!raw || raw.startsWith(ENC_PREFIX)) continue
+    try {
+      localStorage.removeItem(LEGACY_PREFIX + key)
+      scrubbed++
+    } catch (err) {
+      console.warn(`[SecureStorageMigration] Could not scrub legacy plaintext "${key}":`, err)
+    }
+  }
+  return scrubbed
 }
 
 async function nativeGet (key) {
@@ -155,8 +174,9 @@ export async function migrateSecureStorageToNative () {
     }
 
     if (failed === 0) {
+      const scrubbed = scrubPlaintextLegacyEntries(entries)
       await SecureStoragePlugin.set({ key: MIGRATION_FLAG_KEY, value: 'true' }).catch(() => {})
-      return { migrated, skipped, failed, reason: 'ok' }
+      return { migrated, skipped, failed, scrubbed, reason: 'ok' }
     }
     return { migrated, skipped, failed, reason: 'partial' }
   } catch (err) {

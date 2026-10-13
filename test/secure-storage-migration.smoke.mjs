@@ -65,16 +65,17 @@ await scenario('fresh native device records the migrated flag', async () => {
   assert.equal(await hasNative('secure_storage_native_migrated'), 'true')
 })
 
-await scenario('legacy base64 secret is copied to native and kept locally', async () => {
+await scenario('legacy base64 secret is copied to native and plaintext copy scrubbed', async () => {
   const plaintext = 'abandon abandon about'
   const legacy = Buffer.from(plaintext).toString('base64')
   reset('android', { cap_sec_mn_wallet: legacy })
   const result = await migrateSecureStorageToNative()
   assert.equal(result.migrated, 1)
   assert.equal(result.failed, 0)
+  assert.equal(result.scrubbed, 1)
   assert.equal(result.reason, 'ok')
   assert.equal(await hasNative('mn_wallet'), plaintext)
-  assert.equal(globalThis.localStorage.getItem('cap_sec_mn_wallet'), legacy)
+  assert.equal(globalThis.localStorage.getItem('cap_sec_mn_wallet'), null)
   assert.equal(await hasNative('secure_storage_native_migrated'), 'true')
 })
 
@@ -83,13 +84,15 @@ await scenario('repeat run is idempotent (already-migrated)', async () => {
   assert.equal(result.reason, 'already-migrated')
 })
 
-await scenario('native value wins over stale legacy copy', async () => {
+await scenario('native value wins over stale legacy copy (plaintext scrubbed)', async () => {
   reset('ios', { cap_sec_mn_wallet: Buffer.from('legacy').toString('base64') })
   await SecureStoragePlugin.set({ key: 'mn_wallet', value: 'native' })
   const result = await migrateSecureStorageToNative()
   assert.equal(result.migrated, 0)
   assert.equal(result.skipped, 1)
+  assert.equal(result.scrubbed, 1)
   assert.equal(await hasNative('mn_wallet'), 'native')
+  assert.equal(globalThis.localStorage.getItem('cap_sec_mn_wallet'), null)
 })
 
 await scenario('undecryptable secret fails loud and does not set the flag', async () => {
@@ -99,6 +102,17 @@ await scenario('undecryptable secret fails loud and does not set the flag', asyn
   assert.equal(result.reason, 'partial')
   assert.equal(await hasNative('secure_storage_native_migrated'), null)
   assert.equal(globalThis.localStorage.getItem('cap_sec_mn_broken'), 'enc:v1:AAAA')
+})
+
+await scenario('real package root re-exports the recovery helpers', async () => {
+  const root = await import(new URL(
+    '../node_modules/capacitor-secure-storage-plugin/dist/esm/index.js',
+    import.meta.url
+  ).href)
+  assert.equal(typeof root.resetAesKeyForRecovery, 'function')
+  assert.equal(root.SECURE_STORAGE_KEY_MISSING, 'SECURE_STORAGE_KEY_MISSING')
+  assert.equal(root.SECURE_STORAGE_DECRYPT_ERROR, 'SECURE_STORAGE_DECRYPT_FAILED')
+  assert.equal(root.SECURE_STORAGE_PREFIX, 'cap_sec_')
 })
 
 console.log(`\n${pass.length} scenarios passed`)
