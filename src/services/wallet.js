@@ -424,7 +424,7 @@ export class Wallet {
     cardLogger.log('Starting UTXO consolidation process...');
     
     const receivingAddress = this.address(); // Use the wallet's own address for consolidation
-    const { cumulativeValue, groupedUtxos, changeAddress } = await this.getFundingUtxos(amountSats); // Get UTXOs up to the specified amount
+    const { cumulativeValue, groupedUtxos } = await this.getFundingUtxos(amountSats); // Get UTXOs up to the specified amount
     // cardLogger.log('cumulativeValue:', cumulativeValue);
     // cardLogger.log('UTXOs found for consolidation:', groupedUtxos);
 
@@ -442,7 +442,7 @@ export class Wallet {
     cardLogger.log('Genesis UTXO amount:', satsAmount);
     cardLogger.log(`Creating genesis UTXO from ${groupedUtxos.length} UTXOs totaling ${satsAmount} sats to address:`, receivingAddress);
 
-    const provider = new ElectrumNetworkProvider('mainnet')
+    const provider = new ElectrumNetworkProvider(this.isChipnet ? 'chipnet' : 'mainnet')
     const tx = new TransactionBuilder({ provider })
     groupedUtxos.forEach(({ inputs, signatureTemplate }) => {
       tx.addInputs(inputs, signatureTemplate.unlockP2PKH())
