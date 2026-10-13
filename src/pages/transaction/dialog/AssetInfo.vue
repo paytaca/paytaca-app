@@ -172,9 +172,9 @@
 
               <q-carousel-slide v-if="tvlValue" name="liquidity" class="column no-wrap flex-center">
                 <div class="price-label text-weight-medium" style="font-size: 9px; text-transform: uppercase; letter-spacing: 0.8px; margin-bottom: 2px;">
-                  {{ $t('TVL', {}, 'TVL') }}
+                  {{ $t('TotalValueLocked', {}, 'Total Value Locked') }}
                 </div>
-                <div v-if="tvlPrimaryFormatted" class="price-value text-weight-bold" style="font-size: 28px; overflow-wrap: anywhere;">
+                <div v-if="tvlPrimaryFormatted" class="price-value text-weight-bold" style="font-size: 24px; overflow-wrap: anywhere;">
                   {{ tvlPrimaryFormatted }}
                 </div>
                 <div v-for="(line, index) in tvlReserveLines" :key="index" class="price-per-token" :class="index === 0 ? 'q-mt-xs' : ''" style="font-size: 15px;">
