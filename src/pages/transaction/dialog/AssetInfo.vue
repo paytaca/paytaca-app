@@ -159,11 +159,11 @@
                 </div>
                 <div
                   class="price-value text-weight-bold"
-                  :class="priceChangeIncreased ? 'text-green-6' : 'text-red-6'"
+                  :class="priceChangeClass"
                   style="font-size: 28px;"
                 >
-                  <q-icon size="22px" :name="priceChangeIncreased ? 'mdi-trending-up' : 'mdi-trending-down'" class="q-mr-xs"/>
-                  {{ priceChangeIncreased ? '+' : '' }}{{ change24hPercent.toFixed(2) }}%
+                  <q-icon size="22px" :name="priceChangeIcon" class="q-mr-xs"/>
+                  {{ priceChangeDirection === 'up' ? '+' : '' }}{{ change24hPercent.toFixed(2) }}%
                 </div>
                 <div class="price-per-token q-mt-xs" style="font-size: 11px;">
                   {{ $t('Last24Hours', {}, 'last 24 hours') }}
@@ -429,8 +429,20 @@ export default {
       if (!isFinite(value)) return null
       return value / 100
     },
-    priceChangeIncreased () {
-      return (this.change24hPercent ?? 0) >= 0
+    priceChangeDirection () {
+      const value = this.change24hPercent
+      if (value == null || value === 0) return 'flat'
+      return value > 0 ? 'up' : 'down'
+    },
+    priceChangeIcon () {
+      if (this.priceChangeDirection === 'up') return 'mdi-trending-up'
+      if (this.priceChangeDirection === 'down') return 'mdi-trending-down'
+      return 'mdi-trending-neutral'
+    },
+    priceChangeClass () {
+      if (this.priceChangeDirection === 'up') return 'text-green-6'
+      if (this.priceChangeDirection === 'down') return 'text-red-6'
+      return this.darkMode ? 'text-grey-4' : 'text-grey-7'
     },
     hasMultipleMarketSlides () {
       return !!this.liquidityValue || this.change24hPercent !== null || !!this.cauldronTokenUrl
