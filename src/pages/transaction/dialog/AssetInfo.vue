@@ -170,15 +170,15 @@
                 </div>
               </q-carousel-slide>
 
-              <q-carousel-slide v-if="liquidityValue" name="liquidity" class="column no-wrap flex-center">
+              <q-carousel-slide v-if="tvlValue" name="liquidity" class="column no-wrap flex-center">
                 <div class="price-label text-weight-medium" style="font-size: 9px; text-transform: uppercase; letter-spacing: 0.8px; margin-bottom: 2px;">
-                  {{ $t('TotalValueLocked', {}, 'Total Value Locked') }}
+                  {{ $t('TVL', {}, 'TVL') }}
                 </div>
-                <div v-if="liquidityBchFormatted" class="price-value text-weight-bold" style="font-size: 24px; overflow-wrap: anywhere;">
-                  {{ liquidityBchFormatted }}
+                <div v-if="tvlPrimaryFormatted" class="price-value text-weight-bold" style="font-size: 28px; overflow-wrap: anywhere;">
+                  {{ tvlPrimaryFormatted }}
                 </div>
-                <div v-if="liquidityFiatFormatted" class="price-per-token q-mt-xs" style="font-size: 15px;">
-                  {{ liquidityFiatFormatted }}
+                <div v-for="(line, index) in tvlReserveLines" :key="index" class="price-per-token" :class="index === 0 ? 'q-mt-xs' : ''" style="font-size: 15px;">
+                  {{ line }}
                 </div>
               </q-carousel-slide>
 
@@ -275,7 +275,7 @@ export default {
       autoUpdateInterval: null,
       // Token price loading state
       loadingTokenPrice: false,
-      // Cauldron market data (liquidity, 24h change) for the token
+      // Cauldron market data (TVL, 24h change) for the token
       cauldronTokenData: null,
       // Active slide of the token market-info carousel
       marketSlide: 'price'
@@ -406,21 +406,54 @@ export default {
       if (!price || price === 0) return null
       return Number(price)
     },
-    liquidityValue () {
-      const tvlSats = Number(this.cauldronTokenData?.tvl_sats)
-      if (!isFinite(tvlSats) || tvlSats <= 0) return null
-      // Matches the BCH-side liquidity shown on the Cauldron token details page
-      const bch = tvlSats / 1e8
-      const fiat = this.bchSelectedPrice ? bch * this.bchSelectedPrice : null
-      return { bch, fiat }
+    tvlTokenDecimals () {
+      const decimals = Number(this.cauldronTokenData?.bcmr?.token?.decimals)
+      return Number.isInteger(decimals) && decimals >= 0 ? decimals : 0
     },
-    liquidityFiatFormatted () {
-      if (!this.liquidityValue || this.liquidityValue.fiat == null) return null
-      return this.parseFiatCurrency(this.liquidityValue.fiat.toFixed(2), this.selectedCurrency?.symbol)
+    tvlTokenReserve () {
+      const raw = Number(this.cauldronTokenData?.tvl_tokens)
+      if (!isFinite(raw) || raw <= 0) return null
+      return raw / (10 ** this.tvlTokenDecimals)
     },
-    liquidityBchFormatted () {
-      if (!this.liquidityValue) return null
-      return `${this.liquidityValue.bch.toFixed(2)} BCH`
+    tvlBchReserve () {
+      const sats = Number(this.cauldronTokenData?.tvl_sats)
+      if (!isFinite(sats) || sats <= 0) return null
+      return sats / 1e8
+    },
+    tvlValue () {
+      return this.tvlBchReserve != null || this.tvlTokenReserve != null
+    },
+    tvlTotalSats () {
+      const bchSats = Number(this.cauldronTokenData?.tvl_sats) || 0
+      const bchPriceNow = Number(this.cauldronTokenData?.price_now) || 0
+      const tokenSideSats = (this.tvlTokenReserve || 0) * bchPriceNow
+      const total = bchSats + tokenSideSats
+      return isFinite(total) && total > 0 ? total : null
+    },
+    tvlFiatFormatted () {
+      if (!this.bchSelectedPrice || this.tvlTotalSats == null) return null
+      const fiat = (this.tvlTotalSats / 1e8) * this.bchSelectedPrice
+      return this.parseFiatCurrency(fiat.toFixed(2), this.selectedCurrency?.symbol)
+    },
+    tvlBchReserveFormatted () {
+      if (this.tvlBchReserve == null) return null
+      return `${this.formatCompactAmount(this.tvlBchReserve)} BCH`
+    },
+    tvlTokenReserveFormatted () {
+      if (this.tvlTokenReserve == null) return null
+      const symbol = this.cauldronTokenData?.display_symbol ||
+        this.cauldronTokenData?.bcmr?.token?.symbol ||
+        this.asset?.symbol || ''
+      return `${this.formatCompactAmount(this.tvlTokenReserve)} ${symbol}`.trim()
+    },
+    tvlPrimaryFormatted () {
+      return this.tvlFiatFormatted || this.tvlBchReserveFormatted
+    },
+    tvlReserveLines () {
+      const lines = []
+      if (this.tvlFiatFormatted && this.tvlBchReserveFormatted) lines.push(this.tvlBchReserveFormatted)
+      if (this.tvlTokenReserveFormatted) lines.push(this.tvlTokenReserveFormatted)
+      return lines
     },
     change24hPercent () {
       const bp = this.cauldronTokenData?.change_24h_bp
@@ -445,7 +478,7 @@ export default {
       return this.darkMode ? 'text-grey-4' : 'text-grey-7'
     },
     hasMultipleMarketSlides () {
-      return !!this.liquidityValue || this.change24hPercent !== null || !!this.cauldronTokenUrl
+      return !!this.tvlValue || this.change24hPercent !== null || !!this.cauldronTokenUrl
     },
     carouselHeight () {
       return this.hasMultipleMarketSlides ? '150px' : '112px'
@@ -465,7 +498,7 @@ export default {
         this.asset = asset
         this.$refs.dialog.show()
 
-        // Load Cauldron market data (liquidity, 24h change, trading page link) for CashTokens
+        // Load Cauldron market data (TVL, 24h change, trading page link) for CashTokens
         if (asset.id?.startsWith?.('ct/')) {
           this.loadCauldronTokenData(asset.id.replace('ct/', ''))
         }
@@ -578,6 +611,22 @@ export default {
           backPath: this.$route.fullPath
         }
       })
+    },
+    formatCompactAmount (value) {
+      const n = Number(value)
+      if (!isFinite(n) || n === 0) return '0'
+      const abs = Math.abs(n)
+      // Truncate (not round) to match the compact amounts shown on Cauldron
+      const truncate = (v, decimals) => {
+        const factor = 10 ** decimals
+        return (Math.trunc(v * factor) / factor).toFixed(decimals)
+      }
+      if (abs >= 1e9) return `${truncate(n / 1e9, 1)}B`
+      if (abs >= 1e6) return `${truncate(n / 1e6, 1)}M`
+      if (abs >= 1e3) return `${truncate(n / 1e3, 1)}K`
+      if (abs >= 1) return truncate(n, 1)
+      if (abs >= 0.01) return truncate(n, 2)
+      return n.toPrecision(2).replace(/\.?0+$/, '')
     },
     async loadCauldronTokenData (tokenId) {
       if (!tokenId) return
