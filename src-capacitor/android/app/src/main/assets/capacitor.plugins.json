@@ -54,5 +54,9 @@
 	{
 		"pkg": "capacitor-native-biometric",
 		"classpath": "com.epicshaggy.biometric.NativeBiometric"
+	},
+	{
+		"pkg": "capacitor-secure-storage-plugin",
+		"classpath": "com.whitestein.securestorage.SecureStoragePluginPlugin"
 	}
 ]

@@ -16,11 +16,8 @@ import {
  binToHex
 } from 'bitauth-libauth-v3'
 import sha256 from 'js-sha256' 
-import 'capacitor-secure-storage-plugin'
-import { Plugins } from '@capacitor/core'
+import { SecureStoragePlugin } from 'capacitor-secure-storage-plugin'
 import { getWalletHashFromIndexAsync } from 'src/utils/wallet-storage'
-
-const { SecureStoragePlugin } = Plugins
 
 // Mirror irreplaceable secrets (mnemonics, PIN, backup shards) to the
 // account-backed escrow. Fire-and-forget and lazily imported so a failure here

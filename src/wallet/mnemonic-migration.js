@@ -1,9 +1,7 @@
-import { Plugins } from '@capacitor/core'
+import { SecureStoragePlugin } from 'capacitor-secure-storage-plugin'
 import { computeWalletHash } from './index'
 import useStore from 'src/store'
 import aes256 from 'aes256'
-
-const { SecureStoragePlugin } = Plugins
 
 const MIGRATION_FLAG_KEY = 'mnemonic_migration_completed'
 

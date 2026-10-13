@@ -23,6 +23,7 @@ dependencies {
     implementation project(':capacitor-share')
     implementation project(':paytaca-escrow-key')
     implementation project(':capacitor-native-biometric')
+    implementation project(':capacitor-secure-storage-plugin')
 
 }
 

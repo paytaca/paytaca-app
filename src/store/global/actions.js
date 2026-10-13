@@ -9,9 +9,7 @@ import { saveWalletName, getWalletName, removeWalletName } from 'src/utils/walle
 import * as eloadServiceAPI from 'src/utils/eload-service'
 import { loadLibauthHdWallet, loadWallet, deleteMnemonic, getMnemonic, getMnemonicByHash, deleteMnemonicByHash, deleteAllWalletData, deleteDuplicateWalletData, computeWalletHash, clearCachedWallet } from '../../wallet'
 import { getVaultIndexByWalletHashAsync } from 'src/utils/wallet-storage'
-import { Plugins } from '@capacitor/core'
-
-const { SecureStoragePlugin } = Plugins
+import { SecureStoragePlugin } from 'capacitor-secure-storage-plugin'
 import { privateKeyToCashAddress } from '../../wallet/walletconnect2/tx-sign-utils'
 import { toP2pkhTestAddress } from '../../utils/address-utils'
 import { backend } from 'src/exchange/backend'

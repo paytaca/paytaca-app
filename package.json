@@ -15,7 +15,8 @@
     "lint": "eslint -c ./eslint.config.js \"./src*/**/*.{js,cjs,mjs,vue}\"",
     "postinstall": "patch-package && quasar prepare",
     "test": "cypress run",
-    "test:unit": "mocha"
+    "test:unit": "mocha",
+    "test:smoke": "node --experimental-loader ./test/mock-loader.mjs ./test/secure-storage-migration.smoke.mjs"
   },
   "dependencies": {
     "@asoltys/bip38": "^4.0.3",
@@ -75,7 +76,7 @@
     "buffer": "^6.0.3",
     "canvas-confetti": "^1.9.4",
     "capacitor-native-biometric": "^4.2.2",
-    "capacitor-secure-storage-plugin": "^0.5.1",
+    "capacitor-secure-storage-plugin": "^0.9.0",
     "cashscript": "^0.11.5",
     "cashscript13": "npm:cashscript@^0.13.2",
     "chart.js": "^4.2.1",

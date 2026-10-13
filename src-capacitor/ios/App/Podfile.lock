@@ -26,10 +26,14 @@ PODS:
     - Capacitor
   - CapacitorPushNotifications (5.1.1):
     - Capacitor
+  - CapacitorSecureStoragePlugin (0.9.0):
+    - Capacitor
+    - SwiftKeychainWrapper
   - CapacitorShare (5.0.8):
     - Capacitor
   - PaytacaEscrowKey (1.0.0):
     - Capacitor
+  - SwiftKeychainWrapper (4.0.1)
 
 DEPENDENCIES:
   - "Capacitor (from `../../node_modules/@capacitor/ios`)"
@@ -46,8 +50,13 @@ DEPENDENCIES:
   - "CapacitorKeyboard (from `../../node_modules/@capacitor/keyboard`)"
   - CapacitorNativeBiometric (from `../../node_modules/capacitor-native-biometric`)
   - "CapacitorPushNotifications (from `../../node_modules/@capacitor/push-notifications`)"
+  - CapacitorSecureStoragePlugin (from `../../node_modules/capacitor-secure-storage-plugin`)
   - "CapacitorShare (from `../../node_modules/@capacitor/share`)"
   - PaytacaEscrowKey (from `../../../capacitor-plugins/escrow-key`)
+
+SPEC REPOS:
+  trunk:
+    - SwiftKeychainWrapper
 
 EXTERNAL SOURCES:
   Capacitor:
@@ -78,6 +87,8 @@ EXTERNAL SOURCES:
     :path: "../../node_modules/capacitor-native-biometric"
   CapacitorPushNotifications:
     :path: "../../node_modules/@capacitor/push-notifications"
+  CapacitorSecureStoragePlugin:
+    :path: "../../node_modules/capacitor-secure-storage-plugin"
   CapacitorShare:
     :path: "../../node_modules/@capacitor/share"
   PaytacaEscrowKey:
@@ -98,9 +109,11 @@ SPEC CHECKSUMS:
   CapacitorKeyboard: f2e78b60a5cb981b4ea9e511e80693ca355169bb
   CapacitorNativeBiometric: b47637a8cd349bdac014424bb4ddcae9ee5d4919
   CapacitorPushNotifications: 2327900bc002f5ff49ee6d2231796d0635b4a1b0
+  CapacitorSecureStoragePlugin: e91d7df060f2495a1acff9583641a6953e3aacba
   CapacitorShare: abef1f7be4e10b448693b0b83b540cb4b92dc849
   PaytacaEscrowKey: fcfb96e9d715eac4e5f21e2a2276ab62d1be2e83
+  SwiftKeychainWrapper: 807ba1d63c33a7d0613288512399cd1eda1e470c
 
-PODFILE CHECKSUM: c2fad82a1572e0e3797a9a76fba5dd68f8ba007a
+PODFILE CHECKSUM: d8743e491c50320f9a10caab1c4c14d55e785a71
 
 COCOAPODS: 1.16.2

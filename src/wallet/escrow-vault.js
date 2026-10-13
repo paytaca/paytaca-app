@@ -32,7 +32,6 @@ const MIRROR_PATTERNS = [
   /^seed_phrase_shards/ // seed_phrase_shards:<walletHash>, seed_phrase_shards:last
 ]
 
-const SECURE_STORAGE_PREFIX = 'cap_sec_'
 const DECRYPT_ERROR = 'SECURE_STORAGE_DECRYPT_FAILED'
 
 function bytesToBase64 (bytes) {
@@ -95,15 +94,18 @@ async function decryptWithMk (mkBase64, storageKey, packedBase64) {
 
 // --- SecureStoragePlugin helpers -------------------------------------------
 
-function listMirroredKeys () {
-  const found = []
-  for (let i = 0; i < localStorage.length; i++) {
-    const full = localStorage.key(i)
-    if (!full || !full.startsWith(SECURE_STORAGE_PREFIX)) continue
-    const storageKey = full.slice(SECURE_STORAGE_PREFIX.length)
-    if (MIRROR_PATTERNS.some(pattern => pattern.test(storageKey))) found.push(storageKey)
+// Enumerate mirrored keys through the plugin so this works on both the patched
+// web implementation (localStorage) and the native plugin (OS keystore). 0.9.0
+// returns the keys with the `cap_sec_` prefix already stripped.
+async function listMirroredKeys () {
+  try {
+    const result = await SecureStoragePlugin.keys()
+    const all = (result && (result.value || result.keys)) || []
+    return all.filter(storageKey => MIRROR_PATTERNS.some(pattern => pattern.test(storageKey)))
+  } catch (err) {
+    console.warn('[EscrowVault] Failed to list secure storage keys:', err)
+    return []
   }
-  return found
 }
 
 async function safeGet (storageKey) {
@@ -118,7 +120,7 @@ async function safeGet (storageKey) {
 async function isLocalKeyUsable () {
   // Probe an encrypted value. A missing value ("does not exist") is fine; a
   // missing/regenerated key is not.
-  const probeKey = listMirroredKeys()[0] || MK_STORAGE_KEY
+  const probeKey = (await listMirroredKeys())[0] || MK_STORAGE_KEY
   try {
     await SecureStoragePlugin.get({ key: probeKey })
     return true
@@ -326,7 +328,7 @@ export async function syncToEscrow () {
 
     const mk = await getOrCreateMk()
     const secrets = {}
-    for (const storageKey of listMirroredKeys()) {
+    for (const storageKey of await listMirroredKeys()) {
       const value = await safeGet(storageKey)
       if (value === null) continue
       try {

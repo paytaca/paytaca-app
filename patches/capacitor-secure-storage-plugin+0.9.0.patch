@@ -1,12 +1,12 @@
 diff --git a/node_modules/capacitor-secure-storage-plugin/dist/esm/web.js b/node_modules/capacitor-secure-storage-plugin/dist/esm/web.js
-index db99e67..ec2be5e 100644
+index adc5c1a..722c9e7 100644
 --- a/node_modules/capacitor-secure-storage-plugin/dist/esm/web.js
 +++ b/node_modules/capacitor-secure-storage-plugin/dist/esm/web.js
 @@ -1,4 +1,162 @@
  import { WebPlugin } from '@capacitor/core';
 +
 +// --- Paytaca patch: encrypt values at rest on web/BEX (AES-256-GCM) ---------
-+// The upstream web implementation stored values as plain base64 in
++// The upstream web implementation stores values as plain base64 in
 +// localStorage. This patch encrypts values with a non-extractable AES-GCM
 +// CryptoKey kept in IndexedDB, so raw key material is never exposed to JS.
 +// Legacy base64 values are still readable and are lazily re-encrypted.
@@ -16,7 +16,7 @@ index db99e67..ec2be5e 100644
 +const DB_KEY_ID = 'aes-gcm-256';
 +export const SECURE_STORAGE_DECRYPT_ERROR = 'SECURE_STORAGE_DECRYPT_FAILED';
 +export const SECURE_STORAGE_KEY_MISSING = 'SECURE_STORAGE_KEY_MISSING';
-+const SECURE_STORAGE_PREFIX = 'cap_sec_';
++export const SECURE_STORAGE_PREFIX = 'cap_sec_';
 +
 +const hasWebCrypto = typeof crypto !== 'undefined' &&
 +    !!crypto.subtle &&
@@ -164,15 +164,16 @@ index db99e67..ec2be5e 100644
 +
  export class SecureStoragePluginWeb extends WebPlugin {
      constructor() {
-         super({
-@@ -8,16 +166,31 @@ export class SecureStoragePluginWeb extends WebPlugin {
-         this.PREFIX = 'cap_sec_';
+         super(...arguments);
+@@ -6,26 +164,37 @@ export class SecureStoragePluginWeb extends WebPlugin {
          this.addPrefix = (key) => this.PREFIX + key;
+         this.removePrefix = (key) => key.replace(this.PREFIX, '');
      }
 -    get(options) {
--        return localStorage.getItem(this.addPrefix(options.key)) !== null
+-        const value = localStorage.getItem(this.addPrefix(options.key));
+-        return value !== null
 -            ? Promise.resolve({
--                value: atob(localStorage.getItem(this.addPrefix(options.key))),
+-                value: atob(value),
 -            })
 -            : Promise.reject('Item with given key does not exist');
 +    async get(options) {
@@ -205,4 +206,14 @@ index db99e67..ec2be5e 100644
 +        return { value: true };
      }
      remove(options) {
-         localStorage.removeItem(this.addPrefix(options.key));
+         if (localStorage.getItem(this.addPrefix(options.key))) {
+             localStorage.removeItem(this.addPrefix(options.key));
+-            return Promise.resolve({ value: true });
+-        }
+-        else {
+-            return Promise.reject('Item with given key does not exist');
+         }
++        return Promise.resolve({ value: true });
+     }
+     clear() {
+         for (const key in localStorage) {
