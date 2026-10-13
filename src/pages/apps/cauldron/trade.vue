@@ -433,6 +433,7 @@ export default defineComponent({
     selectTokenId: String,
     buyAmount: [String, Number],
     amount: [String, Number],
+    sellToken: [String, Boolean],
     backPath: String,
   },
   setup(props) {
@@ -1352,6 +1353,11 @@ export default defineComponent({
             // Ensure we're in buying mode if buyAmount is provided (before setting token to trigger watcher)
             if (props.buyAmount) {
               isBuyingToken.value = true;
+            }
+            // Swap the selected token for BCH: token is supply (origin), BCH is demand (destination)
+            if (props.sellToken === 'true' || props.sellToken === true) {
+              isBuyingToken.value = false;
+              isSupplyMode.value = true;
             }
             // Setting selectedToken will trigger the watcher which handles setting the buy amount
             selectedToken.value = tokens[0];

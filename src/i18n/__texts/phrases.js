@@ -1912,6 +1912,7 @@ const phrases = {
       FavoriteTokensLimitReached: 'Favorite tokens limit reached. Upgrade to Paytaca Plus to add more favorites.',
       MarkTokensAsFavorites: 'Mark tokens as favorites',
       PriceNotAvailable: 'Price not available',
+      PriceChange24h: '24h Change',
       'Sending tokens not supported': 'Sending tokens not supported',
       NoCashTokensSubtitle: 'No CashTokens subtitle',
       NoCollectiblesSubtitle: 'No Collectibles subtitle',

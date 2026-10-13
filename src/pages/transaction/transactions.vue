@@ -1023,6 +1023,7 @@ this.$nextTick(() => {
 	        name: 'app-cauldron',
 	        query: {
 	          selectTokenId: this.selectedAsset.id?.replace('ct/', ''),
+	          sellToken: 'true',
 	          backPath: this.$route.fullPath
 	        }
 	      })
