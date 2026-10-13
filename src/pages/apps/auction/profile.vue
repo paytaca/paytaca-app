@@ -77,8 +77,6 @@ import { useRouter } from 'vue-router'
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 import { ref, computed, onMounted } from 'vue'
 import { Store } from 'src/store'
-//import { getBidderPublicKey } from 'src/auction/payment'
-import { callAPI } from 'src/auction/api'
 import { deriveOAuthCredentials } from 'src/auction/bch-oauth'
 
 // Components
@@ -110,55 +108,30 @@ const handleEditUserProfile = async () => {
   // Show loading screen while it processes
   isLoading.value = true
 
-  try {
-    const walletHash = Store.getters['global/getWallet']('bch')?.walletHash
-    const credentials = await deriveOAuthCredentials()
-
-    const method = storedUsername.value ? 'patch' : 'post'
-    // api data
-    const data = {
-      username: username.value,
-      ...(method === 'post' && { user: walletHash } ),
-      ...(method === 'post' && { bch_address: credentials.address } ),
-      ...(method === 'post' && { pub_key: credentials.publicKey } )
-    } 
-    console.log(data)
-
-    const response = await callAPI(
-      `user-details${method === 'post' ? '' : `/${walletHash}/update`}`, 
-      null, 
-      method, 
-      data
-    )
-
-    const timeout = 3000
-    if (response.success) {
-      $q.notify({
-        type: 'positive',
-        message: `User profile ${method === 'post' ?  'created' : 'updated'}!` ,
-        timeout
-      })
-
-      $store.commit('auction/setUsername', username.value)
-      $router.push('/apps/auction')
-    } else {
-      // Couldn't save the username to database
-      // Notify based if it was a network error or something else
-      const hasNetworkError = $store.getters['auction/hasNetworkError']
-      $q.notify({
-        type: 'negative',
-        message: hasNetworkError ? 'Network error occurred. Please try again.' : 'Username already exists!',
-        timeout
-      })
-    }   
-    
-  } catch (err) {
-    // Something unexpected occurred
-    $q.notify({ 
-      type: 'negative', 
-      message: err.message || 'Something went wrong.' 
+  const data = await $store.dispatch(
+    'auction/updateUsername', 
+    {
+      newUsername: storedUsername.value,
+      walletHash: Store.getters['global/getWallet']('bch')?.walletHash,
+      credentials: await deriveOAuthCredentials()
+    }
+  )
+  
+  const timeout = 3000
+  if (data) {
+    $q.notify({
+      type: 'positive',
+      message: `User profile ${ data.method === 'post' ?  'created' : 'updated' }!` ,
+      timeout
     })
-  }
+    $router.push('/apps/auction')
+  } else {
+    $q.notify({
+      type: 'negative',
+      message: data.hasNetworkError ? 'Network error occurred. Please try again.' : 'Username already exists!',
+      timeout
+    })
+  }   
 
   // End loading screen
   isLoading.value = false

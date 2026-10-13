@@ -25,6 +25,7 @@ export async function fetchListings({ commit, dispatch }) {
   } else dispatch('printFailedFetch', 'listing')
 }
 
+// UPDATES bid from the websocket
 export function updateBidFromWebsocket({ commit, state, rootGetters }, biddingData) {
   if (!biddingData?.id || !biddingData?.lot) return
   if (Number(biddingData.lot) !== Number(state.lotId)) return
@@ -43,15 +44,13 @@ export function updateBidFromWebsocket({ commit, state, rootGetters }, biddingDa
   const walletHash = rootGetters['global/getWallet']('bch')?.walletHash
   if (biddingData.user === walletHash) commit('updateMyBidding', biddingData)
 
-  if (['Highest', 'Winner'].includes(biddingData.status)) {
+  if (['Highest', 'Winner'].includes(biddingData.status))
     commit('setHighestBid', BidsList.parse(biddingData))
-  } else if (
-    ['Cancelled', 'Outbid'].includes(biddingData.status)
+  else if (
+    ['Cancelled', 'Outbid'].includes(biddingData.status) 
     && Number(state.highestBid.id) === Number(biddingData.id)
-  ) {
-    commit('setHighestBid', {})
-  }
-
+  ) commit('setHighestBid', {})
+  
   if (biddingData.status === 'Highest') {
     commit('mergeLotData', {
       id: biddingData.lot,
@@ -194,9 +193,9 @@ export async function fetchLotData({ commit, dispatch }, lotId) {
   if (response && response.success && response.data) {
     lotData = LotsList.parse(response.data)
     const imageResponse = await callAPI('lot-images-by-lot', lotId, 'get')
-    if (imageResponse && imageResponse.success && Array.isArray(imageResponse.data)){
+    if (imageResponse && imageResponse.success && Array.isArray(imageResponse.data))
       lotImages = imageResponse.data.map(item => item.image)
-    } else dispatch('printFailedFetch', 'lot images')
+    else dispatch('printFailedFetch', 'lot images')
     commit('setLotDataLastFetched')
   } else dispatch('printFailedFetch', 'lot data')
 
@@ -247,9 +246,8 @@ export async function fetchHasBidForLots(lotsArr) {
 // FETCHES a lot's highest bid
 export async function fetchHighestBid({ commit, dispatch }, lotId) {
   const response = await callAPI(`lots/${lotId}/highest-bid`, null)
-  if (!(response && response.success && response.data && ['Highest', 'Winner'].includes(response.data.status))) {
+  if (!(response && response.success && response.data && ['Highest', 'Winner'].includes(response.data.status)))
     dispatch('printFailedFetch', 'highest bid')
-  }
   commit('setHighestBid', BidsList.parse(response.data ?? {}))
 }
 
@@ -269,9 +267,9 @@ export async function fetchDeliveryDetails({ commit, dispatch }, lotId) {
   let deliveryData = {}
 
   const response = await callAPI('delivery-trackings', lotId)
-  if (response.success && response.data) {
+  if (response.success && response.data) 
     deliveryData = Array.isArray(response.data) ? response.data[0] : response.data
-  } else dispatch('printFailedFetch', 'delivery details')
+  else dispatch('printFailedFetch', 'delivery details')
   commit('setDeliveryDetails', DeliveryDetails.parse(deliveryData))
   
   return {
@@ -281,12 +279,13 @@ export async function fetchDeliveryDetails({ commit, dispatch }, lotId) {
   }
 }
 
-// PATCHES a lot's delviery details
+// PATCHES a lot's delivery details
 export async function patchDeliveryDetails({ dispatch }, lotId, data) {
   const response = await callAPI('delivery-trackings', lotId, 'patch', data)
   if (!response.success) dispatch('printFailedPatch', 'delivery details')
 }
 
+// FETCHES bid dispute
 export async function fetchDispute({ commit }) {
   const response = await callAPI('disputes-by-bid', winningBid.value?.id)
   if (response.success && response.data) {
@@ -324,7 +323,6 @@ export async function fetchServicerPublicKey({ commit, dispatch }) {
   commit('setServicerPublicKey', servicerPk)
 }
 
-
 // FETCHES current user's username
 export async function fetchUsername({ commit, dispatch }) {
   let username = ''
@@ -345,6 +343,39 @@ export async function fetchUsername({ commit, dispatch }) {
   commit('setIsArbiter', isArbiter)
 }
 
+export async function updateUsername({commit, getters}, { newUsername, walletHash, credentials }) {
+  const storedUsername = getters['username']
+  const method = storedUsername ? 'patch' : 'post'
+  
+  // api data
+  const data = {
+    username: newUsername,
+    ...(method === 'post' && { user: walletHash } ),
+    ...(method === 'post' && { bch_address: credentials.address } ),
+    ...(method === 'post' && { pub_key: credentials.publicKey } )
+  } 
+
+  const response = await callAPI(
+    `user-details${method === 'post' ? '' : `/${walletHash}/update`}`, 
+    null, 
+    method, 
+    data
+  )
+
+  const hasNetworkError = getters['hasNetworkError']
+  if (response.success) commit('auction/setUsername', newUsername)
+  else printFailedPatch('username')
+
+  return {
+    method: method,
+    hasNetworkError: hasNetworkError
+  }
+}
+
+
+// ==================
+// PRINTING FUNCTIONS 
+// ==================
 
 export async function printFailedFetch({ getters }, itemName) {
   const { hasNetworkError } = getters
