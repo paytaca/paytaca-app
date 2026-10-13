@@ -18,7 +18,9 @@
         </q-input>
       </div>
       <q-btn flat dense round icon="refresh" color="primary" :loading="loading" @click="refresh" class="q-ml-sm">
-        <q-tooltip>Refresh history</q-tooltip>
+        <q-tooltip class="pt-tooltip" :delay="300">
+          {{ $t('RefreshHistory', {}, 'Refresh history') }}
+        </q-tooltip>
       </q-btn>
     </div>
 
@@ -206,7 +208,9 @@
               </q-item-section>
               <q-item-section side>
                 <q-btn flat dense round icon="content_copy" color="primary" @click="copyText(selectedTx.address)">
-                  <q-tooltip>Copy address</q-tooltip>
+                  <q-tooltip class="pt-tooltip" :delay="300">
+                    {{ $t('CopyAddress', {}, 'Copy address') }}
+                  </q-tooltip>
                 </q-btn>
               </q-item-section>
             </q-item>
@@ -217,7 +221,9 @@
               </q-item-section>
               <q-item-section side>
                 <q-btn flat dense round icon="content_copy" color="primary" @click="copyText(selectedTx.txid)">
-                  <q-tooltip>Copy transaction ID</q-tooltip>
+                  <q-tooltip class="pt-tooltip" :delay="300">
+                    {{ $t('CopyTransactionID', {}, 'Copy transaction ID') }}
+                  </q-tooltip>
                 </q-btn>
               </q-item-section>
             </q-item>

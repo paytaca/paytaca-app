@@ -1328,7 +1328,9 @@ animation: float 6s ease-in-out infinite;
   }
 }
 
-// Tooltip for the contract version pill (theme-aware glass, matches the pill)
+// ====== App tooltip theme (theme-aware glass) ======
+// Shared by `.pt-tooltip` and the contract version pill tooltip.
+.q-tooltip.pt-tooltip,
 .q-tooltip.version-pill-tooltip {
   background: color-mix(in srgb, var(--q-primary) 12%, rgba(255, 255, 255, 0.94));
   color: var(--q-primary);
@@ -1344,6 +1346,7 @@ animation: float 6s ease-in-out infinite;
   -webkit-backdrop-filter: blur(12px) saturate(180%);
 }
 
+.body--dark .q-tooltip.pt-tooltip,
 .body--dark .q-tooltip.version-pill-tooltip {
   background: color-mix(in srgb, var(--q-primary) 32%, rgba(22, 26, 36, 0.94));
   color: #fff;
