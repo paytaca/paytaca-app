@@ -298,23 +298,23 @@
               <q-separator spaced="sm" />
               
               <div v-if="lot?.auction?.type === 'English'" class="column q-gap-y-none q-mb-xs">
-                <div class="text-caption text-weight-medium">{{ getEnglishPriceInfo(lot).label }}</div>
+                <div class="text-caption text-weight-medium">{{ getEnglishPriceInfo(lot, lotHasBid[lot.id]).label }}</div>
 
                 <template v-if="lot?.auction?.is_fiat">
                   <div class="text-caption text-weight-bold">
-                    {{ formatFiat(getEnglishPriceInfo(lot).fiat) }}
+                    {{ formatFiat(getEnglishPriceInfo(lot, lotHasBid[lot.id]).fiat) }}
                   </div>
                   <div style="opacity: 0.65; margin-top: -2px; font-size: 11px;">
-                    {{ formatBCH(getEnglishPriceInfo(lot).bch).main }}<span style="opacity: 0.4;">{{ formatBCH(getEnglishPriceInfo(lot).bch).zeros }}</span>&nbsp;BCH
+                    {{ formatBCH(getEnglishPriceInfo(lot, lotHasBid[lot.id]).bch).main }}<span style="opacity: 0.4;">{{ formatBCH(getEnglishPriceInfo(lot, lotHasBid[lot.id]).bch).zeros }}</span>&nbsp;BCH
                   </div>
                 </template>
 
                 <template v-else>
                   <div class="text-caption text-weight-bold">
-                    {{ formatBCH(getEnglishPriceInfo(lot).bch).main }}<span style="opacity: 0.4;">{{ formatBCH(getEnglishPriceInfo(lot).bch).zeros }}</span>&nbsp;BCH
+                    {{ formatBCH(getEnglishPriceInfo(lot, lotHasBid[lot.id]).bch).main }}<span style="opacity: 0.4;">{{ formatBCH(getEnglishPriceInfo(lot, lotHasBid[lot.id]).bch).zeros }}</span>&nbsp;BCH
                   </div>
                   <div style="opacity: 0.65; margin-top: -2px; font-size: 11px;">
-                    {{ formatFiat(getEnglishPriceInfo(lot).fiat) }}
+                    {{ formatFiat(getEnglishPriceInfo(lot, lotHasBid[lot.id]).fiat) }}
                   </div>
                 </template>
               </div>
@@ -345,7 +345,7 @@
                 <q-separator spaced="sm" />
 
                 <div class="column q-gap-y-none text-negative">
-                  <div class="text-caption text-weight-bold">DROPS EVERY {{ getIntervalMinutesInfo(lot) }}M:</div>
+                  <div class="text-caption text-weight-bold">DROPS EVERY {{ getLotIntervalMinutes(lot) }}M:</div>
 
                   <template v-if="lot?.auction?.is_fiat">
                     <div class="text-caption text-weight-bold">
@@ -381,7 +381,7 @@ import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 import { computed, ref, onMounted, watch, onBeforeUnmount } from 'vue'
 import { useRouter } from 'vue-router'
 import { callAPI } from 'src/auction/api'
-import { formatAuctionDate, formatFiat, formatBCH } from './helper-functions'
+import { formatAuctionDate, formatFiat, formatBCH, getEnglishPriceInfo } from './helper-functions'
 
 // Components
 import HeaderNav from 'src/components/header-nav.vue'
@@ -423,17 +423,14 @@ const lotDetails = computed(() => $store.getters['auction/myBiddings'])
 const lotHasBid = ref({})
 const lotSearchQuery = ref($store.getters['auction/activityLotQuery'] || '')
 
+const getLotIntervalMinutes = (lot) => {
+  if (lot && typeof lot.getIntervalMinutes === 'function') return lot.getIntervalMinutes()
+  return 10
+}
+
 // ====================
 // FORMATTING FUNCTIONS
 // ====================
-
-const getEnglishPriceInfo = (lot) => {
-  return {
-    label: lotHasBid.value[lot.id] ? 'HIGHEST BID:' : 'STARTING PRICE:',
-    fiat: lot.threshold_bid_fiat,
-    bch: lot.threshold_bid_bch
-  }
-}
 
 const fetchHasBidForLots = async (lotsArr) => {
   const englishLots = (lotsArr || []).filter((lot) => lot.auction?.type === 'English')
@@ -635,12 +632,6 @@ GETTING INFORMATION FUNCTIONS
 =============================
 */
 
-
-const getIntervalMinutesInfo = (lot) => {
-  if (lot && typeof lot.getIntervalMinutes === 'function') 
-    return lot.getIntervalMinutes();
-  return 10;
-}
 
 const fetchMyData = async () => {
   await $store.dispatch(`auction/fetchMy${data.value}`)

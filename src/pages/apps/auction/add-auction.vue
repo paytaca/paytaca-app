@@ -215,6 +215,7 @@ import AddLotDetails from 'src/components/auction/AddAuction/AddLotDetails.vue'
 import EditLotDetails from 'src/components/auction/AddAuction/EditLotDetails.vue'
 import ConfirmDeleteDialog from 'src/components/auction/ConfirmDeleteDialog.vue'
 import noImage from 'src/assets/no-image.svg'
+import { formatBCH, formatFiatNumber as formatFiat, getAuctionDateValidationError, getIntervalMinutes, withBothCurrencies } from './helper-functions'
 
 const $q = useQuasar()
 const $store = useStore()
@@ -243,43 +244,12 @@ const selectedLot = ref(null)
 let activeEditIndex = null
 let activeDeleteIndex = null
 
-const toBothCurrencies = (value, isFiatUsed) => {
-  const rate = bchToPhpRate.value
-  const numValue = Number(value) || 0
-
-  if (isFiatUsed) {
-    return {
-      fiat: numValue,
-      bch: rate > 0 ? numValue / rate : 0
-    }
-  }
-  return {
-    fiat: numValue * rate,
-    bch: numValue
-  }
-}
-
-const withBothCurrencies = (lot) => {
-  const estimated = toBothCurrencies(lot.estimatedPrice, auctionForm.value.isFiatUsed)
-  const starting = toBothCurrencies(lot.startingPrice, auctionForm.value.isFiatUsed)
-  const threshold = toBothCurrencies(lot.threshold, auctionForm.value.isFiatUsed)
-  const priceDrop = toBothCurrencies(lot.price_drop ?? lot.priceDrop, auctionForm.value.isFiatUsed)
-
-  return {
-    ...lot,
-    estimated_amount_bch: estimated.bch.toFixed(8),
-    estimated_amount_fiat: estimated.fiat.toFixed(2),
-    starting_price_bch: starting.bch.toFixed(8),
-    starting_price_fiat: starting.fiat.toFixed(2),
-    threshold_bid_bch: threshold.bch.toFixed(8),
-    threshold_bid_fiat: threshold.fiat.toFixed(2),
-    price_drop_bch: priceDrop.bch.toFixed(8),
-    price_drop_fiat: priceDrop.fiat.toFixed(2)
-  }
+const appendFormData = (formData, fields) => {
+  Object.entries(fields).forEach(([key, value]) => formData.append(key, value))
 }
 
 const handleNewLot = (lotData) => {
-  lots.value.push(withBothCurrencies(lotData))
+  lots.value.push(withBothCurrencies(lotData, auctionForm.value.isFiatUsed, bchToPhpRate.value))
 }
 
 const editLotDetails = (lot, index) => {
@@ -292,7 +262,7 @@ const handleLotUpdate = (updatedLotData) => {
   if (activeEditIndex !== null) {
     updatedLotData.priceDrop = updatedLotData.price_drop ?? updatedLotData.priceDrop
     updatedLotData.priceDropInterval = updatedLotData.priceDropInterval ?? 10
-    lots.value[activeEditIndex] = withBothCurrencies(updatedLotData)
+    lots.value[activeEditIndex] = withBothCurrencies(updatedLotData, auctionForm.value.isFiatUsed, bchToPhpRate.value)
   }
   isToggledEdit.value = false
 }
@@ -319,23 +289,17 @@ const handleLotDelete = () => {
   })
 }
 
-const formatFiat = (value) => {
-  const numValue = Number(value) || 0
-  return numValue.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
-}
-
-const formatBCH = (value) => {
-  return getFormattedBCH(Number(value) || 0)
-}
-
-const getIntervalMinutes = (priceDropInterval) => {
-  return typeof priceDropInterval === 'object'
-    ? (priceDropInterval?.value || 10)
-    : (priceDropInterval || 10)
-}
-
 const handleCreateAuction = async () => {
-  if (!validateAuctionDates()) return
+  const { start_date, end_date } = auctionForm.value
+  const dateValidationError = getAuctionDateValidationError(start_date, end_date)
+  if (dateValidationError) {
+    $q.notify({ type: 'negative', message: dateValidationError })
+    if (!start_date || !end_date) {
+      const dateElement = document.querySelector('.q-form .row')
+      if (dateElement) dateElement.scrollIntoView({ behavior: 'smooth', block: 'center' })
+    }
+    return
+  }
   
   if (lots.value.length === 0) {
     $q.notify({
@@ -350,15 +314,17 @@ const handleCreateAuction = async () => {
 
   try {
     const auctionFormData = new FormData()
-    
-    auctionFormData.append('title', auctionForm.value.title)
-    auctionFormData.append('auctioneer', Store.getters['global/getWallet']('bch')?.walletHash)
-    auctionFormData.append('type', auctionForm.value.type)
-    auctionFormData.append('description', auctionForm.value.description)
-    auctionFormData.append('is_fiat', auctionForm.value.isFiatUsed)
-    auctionFormData.append('fiat_name', 'PHP')
-    auctionFormData.append('start_date', auctionForm.value.start_date ? new Date(auctionForm.value.start_date).toISOString() : '')
-    auctionFormData.append('end_date', auctionForm.value.end_date ? new Date(auctionForm.value.end_date).toISOString() : '')
+
+    appendFormData(auctionFormData, {
+      title: auctionForm.value.title,
+      auctioneer: Store.getters['global/getWallet']('bch')?.walletHash,
+      type: auctionForm.value.type,
+      description: auctionForm.value.description,
+      is_fiat: auctionForm.value.isFiatUsed,
+      fiat_name: 'PHP',
+      start_date: auctionForm.value.start_date ? new Date(auctionForm.value.start_date).toISOString() : '',
+      end_date: auctionForm.value.end_date ? new Date(auctionForm.value.end_date).toISOString() : ''
+    })
     
     if (auctionForm.value.image) {
       auctionFormData.append('image', auctionForm.value.image)
@@ -380,23 +346,29 @@ const handleCreateAuction = async () => {
       })
 
       const lotFormData = new FormData()
-      lotFormData.append('title', lot.title)
-      lotFormData.append('auction', parentAuctionId)
-      lotFormData.append('category', lot.type)
-      lotFormData.append('description', lot.description || '')
-      lotFormData.append('estimated_amount_bch', lot.estimated_amount_bch || 0)
-      lotFormData.append('estimated_amount_fiat', lot.estimated_amount_fiat || 0)
-      lotFormData.append('starting_price_bch', lot.starting_price_bch || 0)
-      lotFormData.append('starting_price_fiat', lot.starting_price_fiat || 0)
+      appendFormData(lotFormData, {
+        title: lot.title,
+        auction: parentAuctionId,
+        category: lot.type,
+        description: lot.description || '',
+        estimated_amount_bch: lot.estimated_amount_bch || 0,
+        estimated_amount_fiat: lot.estimated_amount_fiat || 0,
+        starting_price_bch: lot.starting_price_bch || 0,
+        starting_price_fiat: lot.starting_price_fiat || 0
+      })
 
       if (auctionForm.value.type === 'English') {
-        lotFormData.append('threshold_bid_bch', lot.starting_price_bch || 0)
-        lotFormData.append('threshold_bid_fiat', lot.starting_price_fiat || 0)
+        appendFormData(lotFormData, {
+          threshold_bid_bch: lot.starting_price_bch || 0,
+          threshold_bid_fiat: lot.starting_price_fiat || 0
+        })
       } else {
-        lotFormData.append('threshold_bid_bch', lot.threshold_bid_bch || 0)
-        lotFormData.append('threshold_bid_fiat', lot.threshold_bid_fiat || 0)
-        lotFormData.append('price_drop_bch', lot.price_drop_bch || 0)
-        lotFormData.append('price_drop_fiat', lot.price_drop_fiat || 0)
+        appendFormData(lotFormData, {
+          threshold_bid_bch: lot.threshold_bid_bch || 0,
+          threshold_bid_fiat: lot.threshold_bid_fiat || 0,
+          price_drop_bch: lot.price_drop_bch || 0,
+          price_drop_fiat: lot.price_drop_fiat || 0
+        })
 
         const intervalMinutes = getIntervalMinutes(lot.priceDropInterval)
         const intervalHours = Math.floor(intervalMinutes / 60)
@@ -444,50 +416,6 @@ const handleCreateAuction = async () => {
     $q.loading.hide()
   }
 }
-
-const getFormattedBCH = (bch) => {
-  const numStr = bch.toFixed(8);
-  const match = numStr.match(/^(.*?)0*$/);
-  const main = match ? match[1] : numStr;
-  const zeros = numStr.substring(main.length);
-  return { main, zeros, full: numStr };
-}
-
-const validateAuctionDates = () => {
-  const { start_date, end_date } = auctionForm.value
-
-  if (!start_date || !end_date) {
-    $q.notify({ type: 'negative', message: 'Please set both start and end dates.' })
-    
-    const dateElement = document.querySelector('.q-form .row')
-    if (dateElement) dateElement.scrollIntoView({ behavior: 'smooth', block: 'center' })
-    
-    return false
-  }
-
-  const start = new Date(start_date)
-  const end = new Date(end_date)
-
-  if (isNaN(start.getTime()) || isNaN(end.getTime())) {
-    $q.notify({ type: 'negative', message: 'Invalid date format.' })
-    return false
-  }
-
-  if (end <= start) {
-    $q.notify({ type: 'negative', message: 'End date must be after start date.' })
-    return false
-  }
-
-  const diffHours = (end - start) / (1000 * 60 * 60)
-  if (diffHours < 1) {
-    $q.notify({ type: 'negative', message: 'Auction must run for at least 24 hours.' })
-    return false
-  }
-
-  return true
-}
-
-
 
 const auctionFormRef = ref(null)
 const scrollToFirstError = () => {

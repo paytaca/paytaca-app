@@ -256,9 +256,10 @@ import { useQuasar } from 'quasar'
 import { useStore } from 'vuex'
 import { useRouter } from 'vue-router'
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
-import { computed, ref, onMounted, watch } from 'vue'
+import { computed, ref, onMounted } from 'vue'
 import { callAPI } from 'src/auction/api'
 import { AuctionList, LotsList } from 'src/auction/object.js'
+import { formatBCH, formatFiatNumber as formatFiat, getAuctionDateValidationError, getIntervalMinutes, withBothCurrencies } from './helper-functions'
 
 // Components
 import HeaderNav from 'src/components/header-nav.vue'
@@ -284,61 +285,29 @@ const auctionType = computed(() => {
 
 const lots = ref([])
 
-const toBothCurrencies = (value, isFiatUsed) => {
-  const rate = $store.getters['market/getAssetPrice']('bch', 'php') || 0
-  const numValue = Number(value) || 0
-
-  if (isFiatUsed) {
-    return {
-      fiat: numValue,
-      bch: rate > 0 ? numValue / rate : 0
-    }
-  }
-  return {
-    fiat: numValue * rate,
-    bch: numValue
-  }
+const parseAuctionData = (data) => {
+  if (!data) return null
+  return data instanceof AuctionList ? data : AuctionList.parse(data)
 }
 
-const withBothCurrencies = (lot) => {
-  const hasNewFields = lot.estimated_amount_fiat !== undefined || lot.estimated_amount_bch !== undefined
+const formatToDateTimeLocal = (dateString) => {
+  if (!dateString) return ''
+  const dateValue = new Date(dateString)
+  if (isNaN(dateValue.getTime())) return ''
 
-  if (hasNewFields) {
-    return {
-      ...lot,
-      estimated_amount_bch: Number(lot.estimated_amount_bch || 0).toFixed(8),
-      estimated_amount_fiat: Number(lot.estimated_amount_fiat || 0).toFixed(2),
-      starting_price_bch: Number(lot.starting_price_bch || 0).toFixed(8),
-      starting_price_fiat: Number(lot.starting_price_fiat || 0).toFixed(2),
-      threshold_bid_bch: Number(lot.threshold_bid_bch || 0).toFixed(8),
-      threshold_bid_fiat: Number(lot.threshold_bid_fiat || 0).toFixed(2),
-      price_drop_bch: Number(lot.price_drop_bch || 0).toFixed(8),
-      price_drop_fiat: Number(lot.price_drop_fiat || 0).toFixed(2),
-    }
-  }
-  
-  const estimated = toBothCurrencies(lot.estimatedPrice, lot.isFiatUsed)
-  const starting = toBothCurrencies(lot.startingPrice, lot.isFiatUsed)
-  const threshold = toBothCurrencies(lot.threshold, lot.isFiatUsed)
-  const priceDrop = toBothCurrencies(lot.price_drop ?? lot.priceDrop, lot.isFiatUsed)
-
-  return {
-    ...lot,
-    estimated_amount_bch: estimated.bch.toFixed(8),
-    estimated_amount_fiat: estimated.fiat.toFixed(2),
-    starting_price_bch: starting.bch.toFixed(8),
-    starting_price_fiat: starting.fiat.toFixed(2),
-    threshold_bid_bch: threshold.bch.toFixed(8),
-    threshold_bid_fiat: threshold.fiat.toFixed(2),
-    price_drop_bch: priceDrop.bch.toFixed(8),
-    price_drop_fiat: priceDrop.fiat.toFixed(2),
-  }
+  const year = dateValue.getFullYear()
+  const month = String(dateValue.getMonth() + 1).padStart(2, '0')
+  const day = String(dateValue.getDate()).padStart(2, '0')
+  const hours = String(dateValue.getHours()).padStart(2, '0')
+  const minutes = String(dateValue.getMinutes()).padStart(2, '0')
+  return `${year}-${month}-${day}T${hours}:${minutes}`
 }
 
-const getIntervalMinutes = (priceDropInterval) => {
-  return typeof priceDropInterval === 'object'
-    ? (priceDropInterval?.value || 10)
-    : (priceDropInterval || 10)
+const localDateTimeToUTC = (localString) => {
+  if (!localString) return ''
+  const dateValue = new Date(localString)
+  if (isNaN(dateValue.getTime())) return ''
+  return dateValue.toISOString()
 }
 
 const props = defineProps({
@@ -347,11 +316,6 @@ const props = defineProps({
     required: true
   }
 })
-
-const parseAuctionData = (data) => {
-  if (!data) return null
-  return data instanceof AuctionList ? data : AuctionList.parse(data)
-}
 
 const auctionForm = ref({
   title: '',
@@ -422,29 +386,6 @@ const fetchAllData = async () => {
   }
 }
 
-const formatToDateTimeLocal = (dateString) => {
-  if (!dateString) return ''
-
-  const date = new Date(dateString)
-
-  if (isNaN(date.getTime())) return ''
-  
-  const year = date.getFullYear()
-  const month = String(date.getMonth() + 1).padStart(2, '0')
-  const day = String(date.getDate()).padStart(2, '0')
-  const hours = String(date.getHours()).padStart(2, '0')
-  const minutes = String(date.getMinutes()).padStart(2, '0')
-
-  return `${year}-${month}-${day}T${hours}:${minutes}`
-}
-
-const localDateTimeToUTC = (localString) => {
-  if (!localString) return ''
-  const date = new Date(localString)
-  if (isNaN(date.getTime())) return ''
-  return date.toISOString()
-}
-
 onMounted(async () => {
   fetchAllData()
 })
@@ -463,7 +404,7 @@ const selectedLot = ref(null)
 const handleNewLot = (lotData) => {
   lotData._uuid = generateLocalId()
   lotData._status = 'new'
-  lots.value.push(withBothCurrencies(lotData))
+  lots.value.push(withBothCurrencies(lotData, lotData.isFiatUsed, $store.getters['market/getAssetPrice']('bch', 'php') || 0, true))
 }
 
 const editLotDetails = (lot) => {
@@ -481,7 +422,7 @@ const handleLotUpdate = (updatedLotData) => {
     if (!updatedLotData.rawFiles || updatedLotData.rawFiles.length === 0) {
       updatedLotData.rawFiles = lots.value[index].rawFiles || []
     }
-    lots.value[index] = withBothCurrencies(updatedLotData)
+    lots.value[index] = withBothCurrencies(updatedLotData, updatedLotData.isFiatUsed, $store.getters['market/getAssetPrice']('bch', 'php') || 0, true)
   }
   isToggledEdit.value = false
 }
@@ -507,7 +448,12 @@ const handleLotDelete = () => {
 }
 
 const handleUpdateAuction = async () => {
-  if (!validateAuctionDates()) return
+  const { start_date, end_date } = auctionForm.value
+  const dateValidationError = getAuctionDateValidationError(start_date, end_date)
+  if (dateValidationError) {
+    $q.notify({ type: 'negative', message: dateValidationError })
+    return
+  }
   
   if (visibleLots.value.length === 0) {
     $q.notify({ type: 'negative', message: 'Please add at least one lot before saving the auction.' })
@@ -637,53 +583,6 @@ const handleUpdateAuction = async () => {
 
 
 
-const validateAuctionDates = () => {
-  const { start_date, end_date } = auctionForm.value
-
-  if (!start_date || !end_date) {
-    $q.notify({ type: 'negative', message: 'Please set both start and end dates.' })
-    return false
-  }
-
-  const start = new Date(start_date)
-  const end = new Date(end_date)
-
-  if (isNaN(start.getTime()) || isNaN(end.getTime())) {
-    $q.notify({ type: 'negative', message: 'Invalid date format.' })
-    return false
-  }
-
-  if (end <= start) {
-    $q.notify({ type: 'negative', message: 'End date must be after start date.' })
-    return false
-  }
-
-  const diffHours = (end - start) / (1000 * 60 * 60)
-  if (diffHours < 1) {
-    $q.notify({ type: 'negative', message: 'Auction must run for at least 24 hours.' })
-    return false
-  }
-
-  return true
-}
-
-const getFormattedBCH = (bch) => {
-  const value = typeof bch === 'number' ? bch : parseFloat(bch) || 0;
-  const numStr = value.toFixed(8);
-  const match = numStr.match(/^(.*?)0*$/);
-  const main = match ? match[1] : numStr;
-  const zeros = numStr.substring(main.length);
-  return { main, zeros, full: numStr };
-}
-
-const formatFiat = (value) => {
-  const numValue = Number(value) || 0
-  return numValue.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
-}
-
-const formatBCH = (value) => {
-  return getFormattedBCH(Number(value) || 0)
-}
 </script>
 
 <style scoped lang="scss">

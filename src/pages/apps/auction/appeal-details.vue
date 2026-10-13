@@ -96,7 +96,7 @@
             </div>
             <q-btn
               flat round dense icon="content_copy" size="xs"
-              @click="copyToClipboard(details.auctioneer.address)"
+              @click="copyToClipboard(details.auctioneer.address, $q, { message: 'Copied to clipboard', position: 'top' })"
             />
           </div>
 
@@ -115,7 +115,7 @@
             </div>
             <q-btn
               flat round dense icon="content_copy" size="xs"
-              @click="copyToClipboard(details.bidder.address)"
+              @click="copyToClipboard(details.bidder.address, $q, { message: 'Copied to clipboard', position: 'top' })"
             />
           </div>
         </q-card-section>
@@ -130,14 +130,14 @@
             <span class="text-caption text-weight-bold">ADDRESS</span>
             <div class="row items-center q-gutter-x-xs">
               <span class="text-caption text-weight-medium">{{ details.contract_address ?? '—' }}</span>
-              <q-btn flat round dense icon="content_copy" size="xs" @click="copyToClipboard(details.contract_address)" />
+              <q-btn flat round dense icon="content_copy" size="xs" @click="copyToClipboard(details.contract_address, $q, { message: 'Copied to clipboard', position: 'top' })" />
             </div>
           </div>
 
           <div class="row items-center justify-between q-mb-sm">
             <span class="text-caption text-weight-bold">BALANCE</span>
             <span class="text-body2 text-weight-bold">
-              {{ getFormattedBCH(details.balance).main }}<span style="opacity: 0.4;">{{ getFormattedBCH(details.balance).zeros }}</span> BCH
+              {{ formatBCH(details.balance).main }}<span style="opacity: 0.4;">{{ formatBCH(details.balance).zeros }}</span> BCH
             </span>
           </div>
 
@@ -277,10 +277,11 @@ import { useQuasar } from 'quasar'
 import { useStore } from 'vuex'
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 import { computed, ref, onMounted, nextTick } from 'vue'
-import { useRouter, useRoute } from 'vue-router'
+import { useRouter } from 'vue-router'
 import { callAPI } from 'src/auction/api'
 import { AppealDetails } from 'src/auction/object.js'
 import { callContractReturn, callContractRefund } from 'src/auction/arbiter'
+import { copyToClipboard, formatBCH } from './helper-functions'
 
 // Components
 import HeaderNav from 'src/components/header-nav.vue'
@@ -405,8 +406,6 @@ const swipeTrackWidth = ref(0)
 const swipeTrackEl = ref(null)
 let startX = 0
 
-const getTrackWidth = () => swipeTrackEl.value ? swipeTrackEl.value.offsetWidth : 300
-
 const startSwipe = async (e) => {
   await nextTick()
   swipeTrackWidth.value = swipeTrackEl.value ? swipeTrackEl.value.offsetWidth : 300
@@ -473,18 +472,4 @@ const handleAction = async () => {
   }
 }
 
-const copyToClipboard = (text) => {
-  if (!text) return
-  navigator.clipboard.writeText(text).then(() => {
-    $q.notify({ message: 'Copied to clipboard', position: 'top', timeout: 1500 })
-  })
-}
-
-const getFormattedBCH = (bch) => {
-  const numStr = Number(bch ?? 0).toFixed(8)
-  const match = numStr.match(/^(.*?)0*$/)
-  const main = match ? match[1] : numStr
-  const zeros = numStr.substring(main.length)
-  return { main, zeros, full: numStr }
-}
 </script>

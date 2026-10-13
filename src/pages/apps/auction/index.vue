@@ -157,7 +157,7 @@ import AuctionHeaderMenu from 'src/components/auction/AuctionHeaderMenu.vue'
 import AuctionSearch from 'src/components/auction/AuctionSearch.vue'
 import noImage from 'src/assets/no-image.svg'
 import { callIndexAuctionWebsocket } from 'src/auction/websocket'
-import { formatAuctionDate, getArbiterServicerData } from './helper-functions'
+import { formatAuctionDate } from './helper-functions'
 import { AuctionList } from 'src/auction/object'
 
 // Quasar-related variables
@@ -169,6 +169,22 @@ const isLoading = ref(true)         // Controls auction listing loading
 
 // Auction-related listings
 const listingsTotalTime = computed(() => Date.now() - $store.getters['auction/listingsLastFetched'])
+
+const getArbiterServicerData = async () => {
+  const arbiterTotalTime = Date.now() - $store.getters['auction/arbiterLastFetched']
+  const servicerTotalTime = Date.now() - $store.getters['auction/servicerLastFetched']
+  const arbiterPK = $store.getters['auction/arbiterPublicKey']
+  const servicerPK = $store.getters['auction/servicerPublicKey']
+
+  await Promise.all([
+    !arbiterPK || arbiterTotalTime > 30000
+      ? $store.dispatch('auction/fetchArbiterPublicKey')
+      : Promise.resolve(),
+    !servicerPK || servicerTotalTime > 30000
+      ? $store.dispatch('auction/fetchServicerPublicKey')
+      : Promise.resolve()
+  ])
+}
 onMounted(async () => {
   // Refresh the list of listings
   await (

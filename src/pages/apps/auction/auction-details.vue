@@ -79,7 +79,7 @@
                     </span>
                   </div>
                   
-                  <q-btn flat round dense icon="content_copy" size="xs" @click="copyToClipboard(auction?.auctioneer)" />
+                  <q-btn flat round dense icon="content_copy" size="xs" @click="copyToClipboard(auction?.auctioneer, $q)" />
                 </div>
 
                 <q-separator />
@@ -351,7 +351,7 @@ import { callAPI } from 'src/auction/api'
 import HeaderNav from 'src/components/header-nav.vue'
 import LotSearch from 'src/components/auction/LotSearch.vue'
 import { callAuctionWebsocket } from 'src/auction/websocket'
-import { formatAuctionCountdown, formatFiat, formatBCH, formatAuctionDate } from './helper-functions'
+import { copyToClipboard, formatAuctionCountdown, formatFiat, formatBCH, formatAuctionDate, getEnglishPriceInfo } from './helper-functions'
 
 // Quasar variables
 const $q = useQuasar()
@@ -624,14 +624,6 @@ const canEdit = computed(() => {
 // AUCTION STATUS UPDATING
 // =======================
 
-const getEnglishPriceInfo = (lot) => {
-  return {
-    label: lot?.hasBids() ? 'HIGHEST BID:' : 'STARTING PRICE:',
-    fiat: lot?.threshold_bid_fiat,
-    bch: lot?.threshold_bid_bch
-  }
-}
-
 // ===================
 // LOT STATUS UPDATING
 // ===================
@@ -642,13 +634,6 @@ const getEnglishPriceInfo = (lot) => {
 // ============
 // PAGE-RELATED
 // ============
-const copyToClipboard = (text) => {
-  if (!text) return
-  navigator.clipboard.writeText(text).then(() => {
-    $q.notify({ type: 'positive', message: 'Copied to clipboard!', timeout: 1500 })
-  })
-}
-
 const smartBackPath = computed(() => {
   const sourceContext = $route.query.from
   if (sourceContext === 'activity') return '/apps/auction/activity'
