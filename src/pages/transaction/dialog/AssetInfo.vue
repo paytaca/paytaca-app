@@ -38,18 +38,31 @@
 
         <!-- Balance Display -->
         <div class="balance-section text-center q-mb-md">
-          <div class="balance-label text-grey-6 text-weight-medium" style="font-size: 10px; text-transform: uppercase; letter-spacing: 0.8px; margin-bottom: 4px;">
+          <div class="balance-label text-weight-medium" :class="darkMode ? 'text-grey-4' : 'text-grey-6'" style="font-size: 10px; text-transform: uppercase; letter-spacing: 0.8px; margin-bottom: 4px;">
             {{ $t('Balance', {}, 'Balance') }}
           </div>
           <div class="balance-amount text-weight-bold" style="font-size: 28px; line-height: 1.2;" v-bch-amount="{ denomination }">
             {{ parseAssetDenomination(denomination, asset) }}
           </div>
-          <div v-if="assetFiatValue" class="fiat-value text-grey-7 q-mt-xs" style="font-size: 14px;">
+          <div v-if="assetFiatValue" class="fiat-value q-mt-xs" :class="darkMode ? 'text-grey-4' : 'text-grey-7'" style="font-size: 14px;">
             {{ assetFiatValue }}
           </div>
           <div v-else-if="loadingFiatValue" class="fiat-value q-mt-xs" style="font-size: 14px;">
             <q-skeleton type="rect" width="100px" height="16px" class="q-mx-auto" />
           </div>
+        </div>
+
+        <!-- Swap (CashTokens only) -->
+        <div v-if="asset.id?.startsWith?.('ct/')" class="text-center q-mb-md">
+          <q-btn
+            @click="cauldronSwap"
+            flat
+            class="action-btn"
+            no-caps
+          >
+            <q-icon name="swap_horiz" size="18px" class="action-icon" />
+            <span class="action-label">{{ $t('Swap') }}</span>
+          </q-btn>
         </div>
 
         <!-- Price Chart for BCH -->
@@ -68,7 +81,7 @@
           <div v-else>
             <!-- Current Price Display -->
             <div class="current-price-section text-center q-mb-sm">
-              <div class="price-label text-grey-6 text-weight-medium" style="font-size: 9px; text-transform: uppercase; letter-spacing: 0.8px; margin-bottom: 2px;">
+              <div class="price-label text-weight-medium" style="font-size: 9px; text-transform: uppercase; letter-spacing: 0.8px; margin-bottom: 2px;">
                 {{ $t('CurrentPrice', {}, 'Current Price') }}
               </div>
               <div class="price-value text-weight-bold" style="font-size: 28px;">
@@ -103,38 +116,89 @@
         <div v-if="asset.id !== 'bch'" class="token-sections q-mb-md">
           <div class="section-divider q-mb-md"></div>
           
-          <!-- Price Display for Tokens -->
+          <!-- Price / market info carousel for Tokens -->
           <div class="token-price-section text-center">
-            <div v-if="tokenPrice" class="current-price-section q-mb-sm">
-              <div class="price-label text-grey-6 text-weight-medium" style="font-size: 9px; text-transform: uppercase; letter-spacing: 0.8px; margin-bottom: 2px;">
-                {{ $t('CurrentPrice', {}, 'Current Price') }}
-              </div>
-              <div class="price-value text-weight-bold" style="font-size: 28px;">
-                {{ formattedTokenPrice }}
-              </div>
-              <div class="price-per-token text-grey-7 q-mt-xs" style="font-size: 11px;">
-                {{ $t('PerToken', {}, 'per token') }}
-              </div>
-            </div>
-            <div v-else-if="loadingTokenPrice" class="current-price-section q-mb-sm">
-              <div class="price-label text-grey-6 text-weight-medium" style="font-size: 9px; text-transform: uppercase; letter-spacing: 0.8px; margin-bottom: 2px;">
-                {{ $t('CurrentPrice', {}, 'Current Price') }}
-              </div>
-              <div class="row justify-center q-mt-sm">
-                <q-skeleton type="rect" width="120px" height="24px" />
-              </div>
-              <div class="row justify-center q-mt-xs">
-                <q-skeleton type="rect" width="60px" height="14px" />
-              </div>
-            </div>
-            <div v-else class="current-price-section q-mb-sm">
-              <div class="price-label text-grey-6 text-weight-medium" style="font-size: 9px; text-transform: uppercase; letter-spacing: 0.8px; margin-bottom: 2px;">
-                {{ $t('CurrentPrice', {}, 'Current Price') }}
-              </div>
-              <div class="price-value text-grey-6" style="font-size: 14px;">
-                {{ $t('PriceNotAvailable', {}, 'Price not available') }}
-              </div>
-            </div>
+            <q-carousel
+              v-model="marketSlide"
+              animated
+              :arrows="hasMultipleMarketSlides"
+              infinite
+              :height="carouselHeight"
+              control-color="primary"
+              class="token-price-carousel"
+            >
+              <q-carousel-slide name="price" class="column no-wrap flex-center">
+                <div class="price-label text-weight-medium" style="font-size: 9px; text-transform: uppercase; letter-spacing: 0.8px; margin-bottom: 2px;">
+                  {{ $t('CurrentPrice', {}, 'Current Price') }}
+                </div>
+                <template v-if="formattedTokenPriceBch">
+                  <div class="price-value text-weight-bold" style="font-size: 24px; overflow-wrap: anywhere;">
+                    {{ formattedTokenPriceBch }}
+                  </div>
+                  <div v-if="formattedTokenPrice" class="price-per-token q-mt-xs" style="font-size: 15px;">
+                    {{ formattedTokenPrice }}
+                  </div>
+                </template>
+                <template v-else-if="formattedTokenPrice">
+                  <div class="price-value text-weight-bold" style="font-size: 28px;">
+                    {{ formattedTokenPrice }}
+                  </div>
+                </template>
+                <template v-else-if="loadingTokenPrice">
+                  <div class="q-mt-sm"><q-skeleton type="rect" width="120px" height="24px" /></div>
+                  <div class="q-mt-xs"><q-skeleton type="rect" width="60px" height="14px" /></div>
+                </template>
+                <div v-else class="price-value price-per-token" style="font-size: 14px;">
+                  {{ $t('PriceNotAvailable', {}, 'Price not available') }}
+                </div>
+              </q-carousel-slide>
+
+              <q-carousel-slide v-if="change24hPercent !== null" name="change" class="column no-wrap flex-center">
+                <div class="price-label text-weight-medium" style="font-size: 9px; text-transform: uppercase; letter-spacing: 0.8px; margin-bottom: 2px;">
+                  {{ $t('PriceChange24h', {}, '24h Change') }}
+                </div>
+                <div
+                  class="price-value text-weight-bold"
+                  :class="priceChangeIncreased ? 'text-green-6' : 'text-red-6'"
+                  style="font-size: 28px;"
+                >
+                  <q-icon size="22px" :name="priceChangeIncreased ? 'mdi-trending-up' : 'mdi-trending-down'" class="q-mr-xs"/>
+                  {{ priceChangeIncreased ? '+' : '' }}{{ change24hPercent.toFixed(2) }}%
+                </div>
+                <div class="price-per-token q-mt-xs" style="font-size: 11px;">
+                  {{ $t('Last24Hours', {}, 'last 24 hours') }}
+                </div>
+              </q-carousel-slide>
+
+              <q-carousel-slide v-if="liquidityValue" name="liquidity" class="column no-wrap flex-center">
+                <div class="price-label text-weight-medium" style="font-size: 9px; text-transform: uppercase; letter-spacing: 0.8px; margin-bottom: 2px;">
+                  {{ $t('Liquidity', {}, 'Liquidity') }}
+                </div>
+                <div v-if="liquidityBchFormatted" class="price-value text-weight-bold" style="font-size: 24px; overflow-wrap: anywhere;">
+                  {{ liquidityBchFormatted }}
+                </div>
+                <div v-if="liquidityFiatFormatted" class="price-per-token q-mt-xs" style="font-size: 15px;">
+                  {{ liquidityFiatFormatted }}
+                </div>
+              </q-carousel-slide>
+
+              <q-carousel-slide v-if="cauldronTokenUrl" name="cauldron" class="column no-wrap flex-center">
+                <div class="price-label text-weight-medium" style="font-size: 9px; text-transform: uppercase; letter-spacing: 0.8px; margin-bottom: 2px;">
+                  {{ $t('MoreDetails', {}, 'More Details') }}
+                </div>
+                <q-btn
+                  type="a"
+                  :href="cauldronTokenUrl"
+                  target="_blank"
+                  color="primary"
+                  no-caps
+                  rounded
+                  class="q-mt-sm"
+                  icon="open_in_new"
+                  :label="$t('ViewOnCauldron', {}, 'View on Cauldron')"
+                />
+              </q-carousel-slide>
+            </q-carousel>
           </div>
           
           <div class="section-divider q-mt-md"></div>
@@ -172,17 +236,6 @@
               <q-icon name="history" size="18px" class="action-icon" />
               <span class="action-label">{{ $t('History', {}, 'History') }}</span>
             </q-btn>
-
-            <q-btn
-              v-if="asset.id?.startsWith?.('ct/')"
-              @click="cauldronSwap"
-              flat
-              class="action-btn"
-              no-caps
-            >
-              <q-icon name="swap_horiz" size="18px" class="action-icon" />
-              <span class="action-label">{{ $t('Swap') }}</span>
-            </q-btn>
           </div>
         </div>
       </q-card-section>
@@ -193,6 +246,7 @@
 <script>
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 import { parseAssetDenomination, parseFiatCurrency } from 'src/utils/denomination-utils'
+import { fetchTokensList } from 'src/wallet/cauldron/tokens'
 import Chart from 'chart.js/auto'
 
 export default {
@@ -220,7 +274,11 @@ export default {
       priceIncreased: true,
       autoUpdateInterval: null,
       // Token price loading state
-      loadingTokenPrice: false
+      loadingTokenPrice: false,
+      // Cauldron market data (liquidity, 24h change) for the token
+      cauldronTokenData: null,
+      // Active slide of the token market-info carousel
+      marketSlide: 'price'
     }
   },
 
@@ -313,6 +371,62 @@ export default {
     formattedTokenPrice () {
       if (!this.tokenPrice) return null
       return this.parseFiatCurrency(this.tokenPrice, this.selectedCurrency?.symbol)
+    },
+    tokenPriceBch () {
+      if (!this.asset?.id || this.asset.id === 'bch') return null
+      const price = this.$store.getters['market/getAssetPrice'](this.asset.id, 'BCH')
+      if (!price || price === 0) return null
+      return Number(price)
+    },
+    formattedTokenPriceBch () {
+      if (!this.tokenPriceBch) return null
+      // BCH is divisible up to 8 decimals; trim trailing zeros for readability
+      const value = this.tokenPriceBch.toFixed(8).replace(/\.?0+$/, '')
+      return `${value} BCH`
+    },
+    isCauldronToken () {
+      return !!this.asset?.id?.startsWith?.('ct/')
+    },
+    cauldronTokenUrl () {
+      if (!this.isCauldronToken) return null
+      const tokenId = this.asset.id.replace('ct/', '')
+      return `https://app.cauldron.quest/wallet/${tokenId}`
+    },
+    bchSelectedPrice () {
+      const currency = this.selectedCurrency?.symbol
+      if (!currency) return null
+      const price = this.$store.getters['market/getAssetPrice']('bch', currency)
+      if (!price || price === 0) return null
+      return Number(price)
+    },
+    liquidityValue () {
+      const tvlSats = Number(this.cauldronTokenData?.tvl_sats)
+      if (!isFinite(tvlSats) || tvlSats <= 0) return null
+      const bch = tvlSats / 1e8
+      const fiat = this.bchSelectedPrice ? bch * this.bchSelectedPrice : null
+      return { bch, fiat }
+    },
+    liquidityFiatFormatted () {
+      if (!this.liquidityValue || this.liquidityValue.fiat == null) return null
+      return this.parseFiatCurrency(this.liquidityValue.fiat.toFixed(2), this.selectedCurrency?.symbol)
+    },
+    liquidityBchFormatted () {
+      if (!this.liquidityValue) return null
+      return `${this.liquidityValue.bch.toFixed(2)} BCH`
+    },
+    change24hPercent () {
+      const bp = Number(this.cauldronTokenData?.change_24h_usd_bp)
+      if (!isFinite(bp)) return null
+      return bp / 100
+    },
+    priceChangeIncreased () {
+      return (this.change24hPercent ?? 0) >= 0
+    },
+    hasMultipleMarketSlides () {
+      return !!this.liquidityValue || this.change24hPercent !== null || !!this.cauldronTokenUrl
+    },
+    carouselHeight () {
+      return this.hasMultipleMarketSlides ? '150px' : '112px'
     }
   },
 
@@ -324,9 +438,16 @@ export default {
       try {
         // Reset loading state when showing new asset
         this.loadingTokenPrice = false
+        this.cauldronTokenData = null
+        this.marketSlide = 'price'
         this.asset = asset
         this.$refs.dialog.show()
-        
+
+        // Load Cauldron market data (liquidity, 24h change, trading page link) for CashTokens
+        if (asset.id?.startsWith?.('ct/')) {
+          this.loadCauldronTokenData(asset.id.replace('ct/', ''))
+        }
+
         // Fetch price using unified asset-prices API for both BCH and tokens
         const selectedCurrency = this.selectedCurrency?.symbol
         if (selectedCurrency) {
@@ -338,9 +459,11 @@ export default {
           try {
             // Use unified asset-prices API for both BCH and tokens
             // Don't clear existing prices to avoid removing other assets' cached prices
+            // For tokens, also request the BCH price so we can show it natively
             await this.$store.dispatch('market/updateAssetPrices', { 
               assetId: asset.id,
-              clearExisting: false 
+              clearExisting: false,
+              customCurrency: asset.id !== 'bch' ? 'BCH' : null
             })
           } catch (error) {
             // Price might not be available for this asset
@@ -430,6 +553,17 @@ export default {
           selectTokenId: this.asset.id?.replace('ct/', '')
         }
       })
+    },
+    async loadCauldronTokenData (tokenId) {
+      if (!tokenId) return
+      try {
+        const tokens = await fetchTokensList({ token_id: tokenId })
+        // Guard against stale responses if another asset was opened meanwhile
+        if (this.asset?.id !== `ct/${tokenId}`) return
+        this.cauldronTokenData = tokens?.[0] || null
+      } catch (error) {
+        console.debug('Cauldron market data not available for token:', tokenId, error)
+      }
     },
 
     // Price chart methods
@@ -652,18 +786,25 @@ export default {
 // Token Price Section
 .token-price-section {
   max-width: 100%;
-  
-  .current-price-section {
-    padding: 6px 0;
-    
+
+  .token-price-carousel {
+    background: transparent;
+
+    :deep(.q-carousel__slide) {
+      padding-left: 34px;
+      padding-right: 34px;
+      padding-bottom: 12px;
+    }
+
     .price-label {
       opacity: 0.8;
     }
-    
+
     .price-value {
       color: inherit;
+      line-height: 1.15;
     }
-    
+
     .price-per-token {
       opacity: 0.7;
     }
@@ -695,7 +836,7 @@ export default {
   }
 }
 
-// Action Buttons (Send, Receive, History, Swap)
+// Action Buttons (Send, Receive, History)
 .action-buttons {
   padding-top: 8px;
   
