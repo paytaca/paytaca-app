@@ -12,11 +12,13 @@ import { getMnemonicByHash } from 'src/wallet'
 import { pubkeyToAddress } from 'src/utils/crypto'
 import { SecureStoragePlugin } from 'capacitor-secure-storage-plugin'
 
+export const baseURL = process.env.AUCTION_HUB_API ?? 'http://localhost:8000/api'
+
+// Token key information and paths
 const OAUTH_TOKEN_KEY = 'auctionhub-oauth-token'
 const OAUTH_ADDRESS_PATH = "0/0"
 const BCH_DERIVATION_PATH = "m/44'/145'/0'"
 
-export const baseURL = process.env.AUCTION_HUB_API || 'http://localhost:8000/api'
 
 // oauth: gets wallet hash
 export function getWalletHash () {
@@ -28,9 +30,9 @@ function getOAuthDomain() {
   if (!baseURL) return 'localhost'
   try {
     const url = new URL(baseURL)
-    //console.log('[getoauthdomain] url.domain = ' + url.hostname);
     return url.hostname
-  } catch (e) {
+  } catch (error) {
+    console.error('[OAuth] Failed to get OAuth Domain', error)
     const match = baseURL.match(/https?:\/\/([^\/]+)/)
     return match ? match[1] : 'localhost'
   }
@@ -48,12 +50,10 @@ export async function deriveOAuthCredentials() {
   const rootNode = deriveHdPrivateNodeFromSeed(mnemonicBin)
   const fullPath = `${BCH_DERIVATION_PATH}/${OAUTH_ADDRESS_PATH}`
   const addressNode = deriveHdPath(rootNode, fullPath)
-  if (typeof addressNode === 'string') {
+  if (typeof addressNode === 'string') 
     throw new Error(`Failed to derive address node: ${addressNode}`)
-  }
 
   const isChipnet = Store.getters['global/isChipnet']
-
   const publicNode = deriveHdPublicNode(addressNode)
   const publicKey = binToHex(publicNode.publicKey)
   const address = pubkeyToAddress(publicKey, isChipnet)
@@ -72,6 +72,7 @@ export async function getStoredToken() {
     const result = await SecureStoragePlugin.get({ key: OAUTH_TOKEN_KEY })
     return result.value
   } catch (error) {
+    console.error('[OAuth] Failed to get stored token:', error)
     return null
   }
 }
@@ -80,25 +81,17 @@ export async function getStoredToken() {
 async function saveToken(token) {
   try {
     await SecureStoragePlugin.set({ key: OAUTH_TOKEN_KEY, value: token })
-		//console.log('[OAuth] Token saved to secure storage')
   } catch (error) {
     console.error('[OAuth] Failed to save token:', error)
   }
 }
 
-/**
- * NOTE: When creating or restoring a new wallet, it does not clear the
- * token from the previous section (only when switching wallets). Import
- * this function inside the file/s where it creates and/or restores a
- * wallet.
- */
 // oauth: clear token from secure storage
 export async function clearToken() {
   try {
     await SecureStoragePlugin.remove({ key: OAUTH_TOKEN_KEY })
-		//console.log('[OAuth] Token cleared from secure storage')
   } catch (error) {
-    // Token might not exist
+    console.error('[OAuth] Failed to clear token:', error)
   }
 }
 
@@ -136,17 +129,9 @@ export async function getAuthHeaders() {
   if (!walletHash) throw new Error('Wallet hash not available')
   
   const storedToken = await getStoredToken()
-  if (storedToken) {
-		//console.log('[OAuth] Using stored token')
-    return { 'Authorization': `Bearer ${storedToken}` }
-  }
+  if (storedToken) return { 'Authorization': `Bearer ${storedToken}` }
 
-	//console.log('[OAuth] No stored token, authenticating...')
   const credentials = await deriveOAuthCredentials()
-  //console.log('private key: ' + credentials.privateKey)
-  //console.log('pubkey: ' + credentials.publicKey)
-  //console.log('address: ' + credentials.address)
-  //console.log('walletHash: ' + credentials.walletHash)
 
   const isChipnet = Store.getters['global/isChipnet']
   const client = new BitcoinCashOAuthClient({
@@ -167,13 +152,9 @@ export async function getAuthHeaders() {
 	const privateKeyHex = binToHex(addressNode.privateKey)
 
   const domain = getOAuthDomain()
-  //console.log('[OAuth] Domain: ', domain)
   const timestamp = Math.floor(Date.now() / 1000)
-  //console.log('[OAuth] Timestamp: ', timestamp)
 	const message = client.createAuthMessage(walletHash, timestamp, domain)
-	//console.log('[OAuth] Message to sign:', message)
   const signature = await client.signAuthMessage(message, privateKeyHex)
-	//console.log('[OAuth] Signature:', signature)
 
   try {
     // Try to authenticate first
@@ -186,13 +167,11 @@ export async function getAuthHeaders() {
       domain
     )
 
-    //console.log('[OAuth] after client.authenticate: ' + auth)
-    
     await saveToken(auth.access_token)
     return { 'Authorization': `Bearer ${auth.access_token}` }
-  } catch (err) {
+  } catch (error) {
     // If user not found (404), register first then authenticate
-    const statusCode = err?.statusCode || err?.status
+    const statusCode = error?.statusCode ?? error?.status
 
     if (statusCode === 404) {
 		  console.error('[OAuth] User not found, registering...')
@@ -219,9 +198,7 @@ export async function getAuthHeaders() {
       return { 'Authorization': `Bearer ${auth.access_token}` }
     } 
     console.error('[OAuth] status code: ' + statusCode)
-    
-    throw err
+    throw error
   }
 }
-
 
