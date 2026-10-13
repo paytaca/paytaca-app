@@ -379,18 +379,25 @@ export default {
       return Number(price)
     },
     formattedTokenPriceBch () {
-      if (!this.tokenPriceBch) return null
+      const price = this.tokenPriceBch
+      if (!price) return null
+      // A price below one satoshi would render as "0 BCH"; express it in sats instead
+      if (price < 1e-8) {
+        const sats = price * 1e8
+        return `${sats.toFixed(4).replace(/\.?0+$/, '')} sats`
+      }
       // BCH is divisible up to 8 decimals; trim trailing zeros for readability
-      const value = this.tokenPriceBch.toFixed(8).replace(/\.?0+$/, '')
+      const value = price.toFixed(8).replace(/\.?0+$/, '')
       return `${value} BCH`
     },
     isCauldronToken () {
       return !!this.asset?.id?.startsWith?.('ct/')
     },
     cauldronTokenUrl () {
-      if (!this.isCauldronToken) return null
+      // Only surface the link once Cauldron confirms the token is listed
+      if (!this.isCauldronToken || !this.cauldronTokenData) return null
       const tokenId = this.asset.id.replace('ct/', '')
-      return `https://app.cauldron.quest/wallet/${tokenId}`
+      return `https://app.cauldron.quest/swap/${tokenId}`
     },
     bchSelectedPrice () {
       const currency = this.selectedCurrency?.symbol
@@ -402,6 +409,7 @@ export default {
     liquidityValue () {
       const tvlSats = Number(this.cauldronTokenData?.tvl_sats)
       if (!isFinite(tvlSats) || tvlSats <= 0) return null
+      // Matches the BCH-side liquidity shown on the Cauldron token details page
       const bch = tvlSats / 1e8
       const fiat = this.bchSelectedPrice ? bch * this.bchSelectedPrice : null
       return { bch, fiat }
@@ -415,9 +423,11 @@ export default {
       return `${this.liquidityValue.bch.toFixed(2)} BCH`
     },
     change24hPercent () {
-      const bp = Number(this.cauldronTokenData?.change_24h_usd_bp)
-      if (!isFinite(bp)) return null
-      return bp / 100
+      const bp = this.cauldronTokenData?.change_24h_bp
+      if (bp == null) return null
+      const value = Number(bp)
+      if (!isFinite(value)) return null
+      return value / 100
     },
     priceChangeIncreased () {
       return (this.change24hPercent ?? 0) >= 0
@@ -552,7 +562,8 @@ export default {
         query: {
           selectTokenId: this.asset.id?.replace('ct/', ''),
           // Swap the token for BCH (token as origin, BCH as destination)
-          sellToken: 'true'
+          sellToken: 'true',
+          backPath: this.$route.fullPath
         }
       })
     },
