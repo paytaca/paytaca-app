@@ -16,11 +16,17 @@ import {
  binToHex
 } from 'bitauth-libauth-v3'
 import sha256 from 'js-sha256' 
-import 'capacitor-secure-storage-plugin'
-import { Plugins } from '@capacitor/core'
+import { SecureStoragePlugin } from 'capacitor-secure-storage-plugin'
 import { getWalletHashFromIndexAsync } from 'src/utils/wallet-storage'
 
-const { SecureStoragePlugin } = Plugins
+// Mirror irreplaceable secrets (mnemonics, PIN, backup shards) to the
+// account-backed escrow. Fire-and-forget and lazily imported so a failure here
+// can never break key storage.
+function mirrorSecretsToEscrow () {
+  import('src/wallet/escrow-vault')
+    .then(({ syncToEscrow }) => syncToEscrow())
+    .catch(err => console.warn('[Wallet] Escrow mirror failed:', err))
+}
 
 // Matches the error thrown by the patched capacitor-secure-storage-plugin web
 // implementation when an encrypted value cannot be decrypted (e.g. the
@@ -153,6 +159,7 @@ export function computeWalletHash(mnemonic, derivationPath = "m/44'/145'/0'") {
 export async function storeMnemonicByHash(mnemonic, walletHash) {
   const key = `mn_${walletHash}`
   await SecureStoragePlugin.set({ key, value: mnemonic })
+  mirrorSecretsToEscrow()
   return mnemonic
 }
 
@@ -182,6 +189,7 @@ export async function getMnemonicByHash(walletHash) {
 export async function deleteMnemonicByHash(walletHash) {
   const key = `mn_${walletHash}`
   await SecureStoragePlugin.remove({ key })
+  mirrorSecretsToEscrow()
 }
 
 /**
@@ -282,6 +290,8 @@ export async function deleteAllWalletData(walletHash, mnemonic = null, index = n
       // Key might not exist, continue
     }
   }
+
+  mirrorSecretsToEscrow()
 }
 
 /**
@@ -412,7 +422,8 @@ export async function storeMnemonic (mnemonic, walletHashOrIndex = 0) {
       console.warn('Failed to store mnemonic using old scheme:', err)
     }
   }
-  
+
+  mirrorSecretsToEscrow()
   return mnemonic
 }
 

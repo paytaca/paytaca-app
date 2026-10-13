@@ -97,6 +97,7 @@ import { getMnemonic, getPin } from '../../wallet'
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 import { sha256 } from 'js-sha256'
 import { SecureStoragePlugin } from 'capacitor-secure-storage-plugin';
+import { syncToEscrow } from 'src/wallet/escrow-vault';
 
 export default {
   /**
@@ -314,6 +315,9 @@ export default {
         vm.loader = true
         SecureStoragePlugin.set({ key: pinKey, value: vm.pin })
           .then(() => {
+            syncToEscrow().catch(err => {
+              console.warn('[PIN] Escrow sync failed:', err)
+            })
             setTimeout(() => {
               if (vm.pinDialogAction === 'SET UP') {
                 // Emit proceed action first so parent can handle it while dialog is still active
