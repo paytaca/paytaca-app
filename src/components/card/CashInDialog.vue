@@ -77,10 +77,10 @@
               <q-icon name="content_copy" size="14px" class="cursor-pointer" color="primary" @click="copyContractAddress" />
             </div>
             <q-btn class="q-ml-xs" icon="help" flat dense color="primary">
-              <q-tooltip anchor="top middle" self="bottom middle" :offset="[0, 8]">
+              <q-tooltip class="pt-tooltip" :delay="300" anchor="top middle" self="bottom middle" :offset="[0, 8]">
                 {{ isExternalTokenPath
-                  ? 'Send only fungible CashTokens to this address. BCH or NFTs sent here may be lost.'
-                  : 'Send BCH to this address to fund your card.' }}
+                  ? $t('FundTokenExternalAddressWarning', {}, 'Send only fungible CashTokens to this address. BCH or NFTs sent here may be lost.')
+                  : $t('FundBchExternalAddressHint', {}, 'Send BCH to this address to fund your card.') }}
               </q-tooltip>
             </q-btn>
           </div>
