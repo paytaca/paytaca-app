@@ -148,17 +148,19 @@
 
 <script setup>
 import { useStore } from 'vuex'
-import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 import { ref, computed, watch, onMounted, onBeforeUnmount } from 'vue'
 
 // Components
 import HeaderNav from 'src/components/header-nav.vue'
 import AuctionHeaderMenu from 'src/components/auction/AuctionHeaderMenu.vue'
 import AuctionSearch from 'src/components/auction/AuctionSearch.vue'
+
+// src imports
 import noImage from 'src/assets/no-image.svg'
+import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 import { callIndexAuctionWebsocket } from 'src/auction/websocket'
-import { formatAuctionDate } from './helper-functions'
 import { AuctionList } from 'src/auction/object'
+import { formatAuctionDate } from './helper-functions'
 
 // Quasar-related variables
 const $store = useStore()
