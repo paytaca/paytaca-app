@@ -107,16 +107,23 @@ card-auth-key, chat AES keys, `card:activation-attempt:*`, `sk`,
 
 ## Fail-loud local storage patch
 
-Patched `node_modules/capacitor-secure-storage-plugin/dist/esm/web.js`, captured
-as `patches/capacitor-secure-storage-plugin+0.5.1.patch` (applied by
-`patch-package`):
+The app runs `capacitor-secure-storage-plugin@0.9.0`. Its published web build
+stores values in plaintext, so we re-apply the at-rest encryption in a patch,
+captured as `patches/capacitor-secure-storage-plugin+0.9.0.patch` (applied by
+`patch-package`). The patch touches five built files (`dist/esm/{index,web}.js`,
+their `.d.ts`, and `dist/plugin.cjs.js`):
 
 - `getAesKey()` **throws `SECURE_STORAGE_KEY_MISSING`** instead of generating a
   new key when the key is absent **and** any `enc:v1:` data exists.
 - New `resetAesKeyForRecovery()` intentionally mints a fresh key (used only
   after escrow has supplied the plaintext).
-- Exports `SECURE_STORAGE_KEY_MISSING`, `SECURE_STORAGE_PREFIX`; internal
-  `hasEncryptedData()` / `recoveryMode`.
+- Values are AES-256-GCM encrypted at rest under a non-extractable IndexedDB
+  key; legacy plain-base64 values are still read and lazily re-encrypted.
+- Exports `SECURE_STORAGE_KEY_MISSING`, `SECURE_STORAGE_DECRYPT_ERROR`,
+  `SECURE_STORAGE_PREFIX`, and `resetAesKeyForRecovery` **from the package root**
+  (the `0.9.0` root only re-exported `SecureStoragePlugin`, so the helpers were
+  previously undefined for consumers); internal `hasEncryptedData()` /
+  `recoveryMode`.
 
 This makes a lost key a loud, distinguishable error rather than silent data
 loss.
@@ -141,20 +148,29 @@ syncToEscrow()                   // fire-and-forget, after migrateMnemonicsToWal
 1. If escrow unavailable → no-op.
 2. Read payload; if absent or `mk` missing → no-op.
 3. If the local AES key is unusable (probe read throws
-   `SECURE_STORAGE_KEY_MISSING` / `SECURE_STORAGE_DECRYPT_FAILED`) →
-   `resetAesKeyForRecovery()`.
-4. Write `payload.mk` to local `sv_mk`.
-5. For each escrowed secret: decrypt with MK; if the local value is absent,
-   `SecureStoragePlugin.set` the plaintext. Local values always win; escrow only
-   fills gaps.
+   `SECURE_STORAGE_KEY_MISSING` **only** — a single stale/unreadable value must
+   never authorize a reset) → `resetAesKeyForRecovery()`.
+4. Adopt the master key: keep the existing local `sv_mk` if present (never
+   overwrite it — a foreign/corrupt payload must not poison it). Only when the
+   local MK is absent, and only after `payload.mk` is proven to decrypt at least
+   one escrowed secret, write `payload.mk` to local `sv_mk` (read-back verified).
+5. For each escrowed secret: decrypt with the effective MK; if the local value is
+   absent, `SecureStoragePlugin.set` the plaintext (read-back verified). Local
+   values always win; escrow only fills gaps.
 
-`syncToEscrow()` is idempotent and safe to call anywhere. It **refuses to
-overwrite** when:
+`syncToEscrow()` is idempotent and safe to call anywhere. Concurrent callers
+share a single in-flight run (boot's fire-and-forget sync can race the
+mnemonic/PIN/shard syncs; interleaved full-payload writes would transiently
+corrupt escrow). It **refuses to overwrite** when:
 
 - the local key is unusable (`key-unusable`) — avoids clobbering escrow with
   empty reads, and
 - the local mirror is empty while escrow already holds secrets
   (`no-local-secrets`).
+
+`writePayload()` deletes orphaned `.<i>` chunk entries whenever the payload
+shrinks or collapses back to a single entry, so the Android Block Store key cap
+(16) is not exhausted over time.
 
 ## Ongoing writes
 
@@ -194,10 +210,13 @@ because the OS account + device lock is a user secret, just not an app prompt.
 |---|---|
 | Escrow unavailable (no account / iCloud Keychain off / no lock) | Tier-1 only; retry silently on later boot |
 | Local AES key missing but `enc:v1:` data present | Fail-loud `SECURE_STORAGE_KEY_MISSING`; escrow restores |
-| Local ESCROW MK absent | Adopt `payload.mk` from escrow |
-| GCM auth failure on an escrowed secret | Log and skip that secret; never delete; never regenerate MK |
+| Local ESCROW MK absent, `payload.mk` decrypts a secret | Adopt `payload.mk` (read-back verified) |
+| Local ESCROW MK present | Keep it; never overwrite from escrow |
+| `payload.mk` decrypts no escrowed secret | Do not adopt or reset local key; report `mk-mismatch` |
+| GCM auth failure on a single escrowed secret | Log and skip that secret; never delete; never regenerate MK |
 | Local key unusable during sync | Skip sync (`key-unusable`); preserve escrow |
 | Local mirror empty, escrow populated | Skip sync (`no-local-secrets`); preserve escrow |
+| Concurrent syncs | Share one in-flight run (serialized) |
 | Escrow write fails | Keep local; retry next sync; never block wallet use |
 
 ## Plugin surface
@@ -230,6 +249,25 @@ remove({ key }): Promise<{ value: boolean }>
 - Sync guards ensure an unreadable local key can never overwrite good escrow
   data with empty content.
 
+## Known limitations / follow-ups
+
+- **Multi-device last-writer-wins.** `syncToEscrow()` rebuilds the payload from
+  this device's secrets only, so a second device's sync replaces the first
+  device's entries in escrow. Until payloads are merged (per-secret local-wins
+  with per-secret `updatedAt`, or per-device namespacing), a device that is lost
+  before its next sync may not be recoverable from escrow. Product decision.
+- **Delete-all does not purge escrow.** After the last wallet is deleted the
+  `no-local-secrets` guard refuses further syncs, so mirrored secrets remain in
+  iCloud Keychain / Block Store (which survive uninstall) with no wipe path.
+  Needs a "synced here before, now empty" marker or an explicit escrow-wipe
+  action — decided together with the merge work above (a naive purge would also
+  destroy other devices' copies). Product decision.
+- **Escrow availability is optimistic.** iOS `isAvailable` is hardcoded `true`
+  and Android only checks Play services, so a device with iCloud Keychain off
+  (items stay device-local) or without cloud-backup prerequisites still reports
+  "available". Users get no signal that recovery is device-local only;
+  availability telemetry is not yet implemented.
+
 ## Out of scope
 
 - Opt-in strong passphrase (alternative recovery branch).
@@ -250,7 +288,8 @@ remove({ key }): Promise<{ value: boolean }>
 
 ```
 docs/seed-storage-escrow.md                              (this file)
-patches/capacitor-secure-storage-plugin+0.5.1.patch      (fail-loud getAesKey + reset)
+patches/capacitor-secure-storage-plugin+0.9.0.patch      (at-rest encryption + fail-loud getAesKey + root exports)
+docs/secure-storage-native-migration.md                   (Tier-3: native keystore migration)
 capacitor-plugins/escrow-key/                            (native plugin)
   package.json, README.md
   src/{index.js,web.js,index.d.ts}

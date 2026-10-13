@@ -2,7 +2,8 @@ import { readFile } from 'node:fs/promises'
 
 const MOCKS = {
   '@capacitor/core': new URL('./mocks/capacitor-core.mjs', import.meta.url).href,
-  'capacitor-secure-storage-plugin': new URL('./mocks/secure-storage.mjs', import.meta.url).href
+  'capacitor-secure-storage-plugin': new URL('./mocks/secure-storage.mjs', import.meta.url).href,
+  '@paytaca/escrow-key': new URL('./mocks/escrow-key.mjs', import.meta.url).href
 }
 
 export async function resolve (specifier, context, nextResolve) {

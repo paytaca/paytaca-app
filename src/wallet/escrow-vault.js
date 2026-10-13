@@ -32,8 +32,6 @@ const MIRROR_PATTERNS = [
   /^seed_phrase_shards/ // seed_phrase_shards:<walletHash>, seed_phrase_shards:last
 ]
 
-const DECRYPT_ERROR = 'SECURE_STORAGE_DECRYPT_FAILED'
-
 function bytesToBase64 (bytes) {
   let binary = ''
   for (let i = 0; i < bytes.length; i++) binary += String.fromCharCode(bytes[i])
@@ -92,6 +90,18 @@ async function decryptWithMk (mkBase64, storageKey, packedBase64) {
   return bytesToUtf8(new Uint8Array(plain))
 }
 
+async function canDecryptAnySecret (mkBase64, secrets) {
+  for (const storageKey of Object.keys(secrets || {})) {
+    try {
+      await decryptWithMk(mkBase64, storageKey, secrets[storageKey])
+      return true
+    } catch {
+      // Wrong MK for this secret; try the next one.
+    }
+  }
+  return false
+}
+
 // --- SecureStoragePlugin helpers -------------------------------------------
 
 // Enumerate mirrored keys through the plugin so this works on both the patched
@@ -126,7 +136,9 @@ async function isLocalKeyUsable () {
     return true
   } catch (err) {
     const message = String((err && err.message) || err)
-    if (message.includes(SECURE_STORAGE_KEY_MISSING) || message.includes(DECRYPT_ERROR)) {
+    // Only a genuinely missing key authorizes a destructive reset. One
+    // stale/unreadable value must never be mistaken for a dead key.
+    if (message.includes(SECURE_STORAGE_KEY_MISSING)) {
       return false
     }
     return true
@@ -207,33 +219,48 @@ async function readPayload () {
 
 async function writePayload (payload) {
   const json = JSON.stringify(payload)
+  const encoder = new TextEncoder()
 
-  if (json.length <= MAX_CHUNK_BYTES) {
-    await escrowSet(PAYLOAD_KEY, json)
+  // How many chunks a previous chunked write left behind, so we can delete the
+  // ones the new payload no longer needs (Android Block Store caps at 16 keys).
+  let previousChunks = 0
+  try {
     const metaRaw = await escrowGet(PAYLOAD_META_KEY)
-    if (metaRaw) {
-      let meta
-      try {
-        meta = JSON.parse(metaRaw)
-      } catch {
-        meta = null
-      }
-      const stale = meta && Number(meta.chunks) ? Number(meta.chunks) : 0
-      for (let i = 0; i < stale; i++) await escrowRemove(`${PAYLOAD_KEY}.${i}`)
-      await escrowRemove(PAYLOAD_META_KEY)
-    }
+    if (metaRaw) previousChunks = Number(JSON.parse(metaRaw).chunks) || 0
+  } catch {
+    previousChunks = 0
+  }
+
+  if (encoder.encode(json).length <= MAX_CHUNK_BYTES) {
+    await escrowSet(PAYLOAD_KEY, json)
+    for (let i = 0; i < previousChunks; i++) await escrowRemove(`${PAYLOAD_KEY}.${i}`)
+    await escrowRemove(PAYLOAD_META_KEY)
     return
   }
 
+  // Split on code-point boundaries so each chunk stays within the byte limit
+  // without splitting a multi-byte character.
   const parts = []
-  for (let i = 0; i < json.length; i += MAX_CHUNK_BYTES) {
-    parts.push(json.slice(i, i + MAX_CHUNK_BYTES))
+  let current = ''
+  let currentBytes = 0
+  for (const char of json) {
+    const charBytes = encoder.encode(char).length
+    if (currentBytes + charBytes > MAX_CHUNK_BYTES) {
+      parts.push(current)
+      current = ''
+      currentBytes = 0
+    }
+    current += char
+    currentBytes += charBytes
   }
+  if (current) parts.push(current)
+
   for (let i = 0; i < parts.length; i++) {
     await escrowSet(`${PAYLOAD_KEY}.${i}`, parts[i])
   }
   await escrowSet(PAYLOAD_META_KEY, JSON.stringify({ chunks: parts.length, v: PAYLOAD_VERSION }))
   await escrowRemove(PAYLOAD_KEY)
+  for (let i = parts.length; i < previousChunks; i++) await escrowRemove(`${PAYLOAD_KEY}.${i}`)
 }
 
 // --- Master key -------------------------------------------------------------
@@ -243,7 +270,9 @@ async function getOrCreateMk () {
   if (local) return local
 
   const payload = await readPayload()
-  if (payload && payload.mk) {
+  // Adopt the escrow MK only when it demonstrably decrypts an escrowed secret;
+  // otherwise it is foreign/corrupt and must not become our local MK.
+  if (payload && payload.mk && await canDecryptAnySecret(payload.mk, payload.secrets)) {
     await SecureStoragePlugin.set({ key: MK_STORAGE_KEY, value: payload.mk })
     return payload.mk
   }
@@ -279,27 +308,42 @@ export async function restoreOnBoot () {
       }
     }
 
-    // Native keystores can silently no-op writes (e.g. a missing Android
-    // KeyStore alias), so verify the master key actually persisted instead of
-    // trusting a resolved promise.
-    try {
-      await SecureStoragePlugin.set({ key: MK_STORAGE_KEY, value: payload.mk })
-      const mkCheck = await safeGet(MK_STORAGE_KEY)
-      if (mkCheck !== payload.mk) {
-        console.error('[EscrowVault] Local master key did not persist; aborting restore.')
+    const secrets = payload.secrets || {}
+
+    // Never overwrite an existing local master key: a foreign or corrupt-but-
+    // parseable payload must not poison it (the next sync would re-encrypt every
+    // local secret under the wrong key). Only adopt from escrow when the local
+    // MK is absent, and only once it is proven to decrypt a real secret.
+    let mk = await safeGet(MK_STORAGE_KEY)
+    if (!mk) {
+      if (!await canDecryptAnySecret(payload.mk, secrets)) {
+        console.error('[EscrowVault] Escrow master key matches no escrowed secret; not adopting.')
+        return { restored: 0, reason: 'mk-mismatch' }
+      }
+      // Native keystores can silently no-op writes (e.g. a missing Android
+      // KeyStore alias), so verify the master key actually persisted instead of
+      // trusting a resolved promise.
+      try {
+        await SecureStoragePlugin.set({ key: MK_STORAGE_KEY, value: payload.mk })
+        const mkCheck = await safeGet(MK_STORAGE_KEY)
+        if (mkCheck !== payload.mk) {
+          console.error('[EscrowVault] Local master key did not persist; aborting restore.')
+          return { restored: 0, reason: 'key-store-failed' }
+        }
+        mk = payload.mk
+      } catch (err) {
+        console.error('[EscrowVault] Failed to store local master key:', err)
         return { restored: 0, reason: 'key-store-failed' }
       }
-    } catch (err) {
-      console.error('[EscrowVault] Failed to store local master key:', err)
-      return { restored: 0, reason: 'key-store-failed' }
+    } else if (payload.mk && mk !== payload.mk) {
+      console.warn('[EscrowVault] Local master key differs from escrow; keeping local.')
     }
 
     let restored = 0
-    const secrets = payload.secrets || {}
     for (const storageKey of Object.keys(secrets)) {
       let plaintext
       try {
-        plaintext = await decryptWithMk(payload.mk, storageKey, secrets[storageKey])
+        plaintext = await decryptWithMk(mk, storageKey, secrets[storageKey])
       } catch (err) {
         console.error(`[EscrowVault] Failed to decrypt escrowed secret "${storageKey}":`, err)
         continue
@@ -331,10 +375,25 @@ export async function restoreOnBoot () {
   }
 }
 
+let syncInFlight = null
+
 /**
  * Mirror the current irreplaceable secrets to escrow. Never blocks wallet use.
+ * Concurrent callers share the same in-flight run: boot's fire-and-forget sync
+ * can race the mnemonic/PIN/shard syncs, and interleaved full-payload writes
+ * would transiently corrupt the escrow entry.
  */
 export async function syncToEscrow () {
+  if (syncInFlight) return syncInFlight
+  syncInFlight = doSyncToEscrow()
+  try {
+    return await syncInFlight
+  } finally {
+    syncInFlight = null
+  }
+}
+
+async function doSyncToEscrow () {
   try {
     if (!await isEscrowAvailable()) return { synced: 0, reason: 'unavailable' }
 
