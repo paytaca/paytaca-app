@@ -279,7 +279,8 @@ export async function deleteAllWalletData(walletHash, mnemonic = null, index = n
     'asset-auth-key',
     'marketplace-arbiter-key',
     'ramp-api-customer-signer-data',
-    'marketplace-api-customer-signer-data'
+    'marketplace-api-customer-signer-data',
+    'watchtower-oauth-token'
   ]
 
   for (const prefix of authTokenPrefixes) {
@@ -287,6 +288,15 @@ export async function deleteAllWalletData(walletHash, mnemonic = null, index = n
       const key = `${prefix}-${walletHash}`
       await SecureStoragePlugin.remove({ key })
     } catch (err) {
+      // Key might not exist, continue
+    }
+  }
+
+  // Payment Hub OAuth tokens are scoped by wallet hash AND network.
+  for (const network of ['mainnet', 'chipnet']) {
+    try {
+      await SecureStoragePlugin.remove({ key: `payment-hub-oauth-token-${walletHash}-${network}` })
+    } catch {
       // Key might not exist, continue
     }
   }

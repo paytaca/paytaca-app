@@ -18,13 +18,20 @@ import { SecureStoragePlugin, SECURE_STORAGE_KEY_MISSING } from 'capacitor-secur
  * every key is safely in the native keystore (they are trivially decodable).
  */
 
-const ENC_PREFIX = 'enc:v1:'
-const LEGACY_PREFIX = 'cap_sec_'
+export const ENC_PREFIX = 'enc:v1:'
+export const LEGACY_PREFIX = 'cap_sec_'
+export const MIGRATION_FLAG_KEY = 'secure_storage_native_migrated'
 const DB_NAME = 'paytaca-secure-storage'
 const DB_STORE = 'keys'
 const DB_KEY_ID = 'aes-gcm-256'
-const MIGRATION_FLAG_KEY = 'secure_storage_native_migrated'
 const DECRYPT_ERROR = 'SECURE_STORAGE_DECRYPT_FAILED'
+
+// On web/BEX the patched plugin keeps using localStorage (`cap_sec_*`) as the
+// live secure storage backend, so the legacy->native migration must not run
+// there and its data must not be treated as disposable.
+export function isNativeMigrationPlatform (platform = Capacitor.getPlatform()) {
+  return platform === 'ios' || platform === 'android'
+}
 
 function listLegacyEntries () {
   const entries = []
@@ -114,8 +121,7 @@ async function nativeGet (key) {
 
 export async function migrateSecureStorageToNative () {
   try {
-    const platform = Capacitor.getPlatform()
-    if (platform !== 'ios' && platform !== 'android') {
+    if (!isNativeMigrationPlatform()) {
       // Web/BEX keeps using the patched localStorage implementation as-is.
       return { migrated: 0, skipped: 0, failed: 0, reason: 'web' }
     }
