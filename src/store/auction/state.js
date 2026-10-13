@@ -44,6 +44,7 @@ export default function () {
     disputeDataLastFetched: 0,
 
     // Arbiter and Servicer Public Key States
+    auctioneerPublicKey: '',
     arbiterPublicKey: '',
     arbiterLastFetched: 0,
     servicerPublicKey: '',

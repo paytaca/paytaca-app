@@ -1,6 +1,6 @@
 import { callAPI } from 'src/auction/api'
 import { AuctionList, LotsList, BidsList, DeliveryDetails } from 'src/auction/object'
-import { getWallet } from '../../auction/payment'
+import { getBidderWallet } from '../../auction/payment'
 import noImage from 'src/assets/no-image.svg'
 
 const bidStatusTransitions = {
@@ -323,13 +323,23 @@ export async function fetchServicerPublicKey({ commit, dispatch }) {
   commit('setServicerPublicKey', servicerPk)
 }
 
+// Fetching auctioneerPK for contract instantiation/creation
+export async function fetchAuctioneerPublicKey({ commit, dispatch }, lotId) {
+  let auctioneerPK = ''
+  const response = await callAPI(`auctioneer-pk`, lotId)
+  if (response && response.success && response.data) {
+    auctioneerPK = response.data.auctioneer_pk
+  } else dispatch('printFailedFetch', 'auctioneer public key')
+  commit('setAuctioneerPublicKey', auctioneerPK)
+}
+
 // FETCHES current user's username
 export async function fetchUsername({ commit, dispatch }) {
   let username = ''
   let isArbiter = false
 
   // Using PK to fetch user details from server
-  const wallet = await getWallet()
+  const wallet = await getBidderWallet()
   const publicKey = await wallet.BCH.getPublicKey(`0/0`)
   const response = await callAPI('user-details-by-public-key', publicKey)
 

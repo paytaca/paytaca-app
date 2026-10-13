@@ -161,6 +161,10 @@ export function myAuctionsLastFetched(state) {
 
 
 // Arbiter and Servicer Public Key Getters
+export function auctioneerPublicKey(state) {
+  return state.auctioneerPublicKey ?? null
+}
+
 export function arbiterPublicKey(state) {
   return state.arbiterPublicKey ?? null
 }

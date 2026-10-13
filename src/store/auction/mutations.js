@@ -306,6 +306,10 @@ export function cancelLotBids(state, bidIds) {
 // BIDDING-RELATED MUTATIONS
 // =========================
 
+export function setAuctioneerPublicKey(state, auctioneerPK) {
+  state.auctioneerPublicKey = auctioneerPK
+}
+
 // SETS the highest bid for a lot
 export function setHighestBid(state, highestBid) {
   state.highestBid = highestBid
