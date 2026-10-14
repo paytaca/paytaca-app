@@ -1,6 +1,7 @@
 <template>
   <q-dialog :model-value="modelValue" @update:model-value="$emit('update:modelValue', $event)">
     <q-card class="pt-card text-bow" :class="getDarkModeClass(darkMode)" style="min-width: 300px;">
+      <!-- History dialog title and bid count -->
       <q-card-section class="row items-center q-pb-none">
         <div>
           <div class="text-subtitle1 text-weight-bold">Bidding History</div>
@@ -13,10 +14,12 @@
       </q-card-section>
 
       <q-card-section>
+        <!-- Loading placeholders -->
         <div v-if="loading">
           <q-skeleton v-for="n in 4" :key="n" height="20px" class="q-mb-md" />
         </div>
 
+        <!-- Bidding history entries -->
         <template v-else-if="bids.length">
           <div
             v-for="(bid, index) in sortedBids"
@@ -49,6 +52,7 @@
           </div>
         </template>
 
+        <!-- Empty history message -->
         <div v-else class="text-caption text-center q-py-md" style="opacity: 0.5;">
           No bids yet.
         </div>
@@ -58,13 +62,18 @@
 </template>
 
 <script setup>
+// Vue and Quasar imports
 import { ref, computed, watch } from 'vue'
 import { useStore } from 'vuex'
 import { date } from 'quasar'
+
+// src imports
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 import { Store } from 'src/store'
 import { callAPI } from 'src/auction/api.js'
+import { formatBCH as getFormattedBCH } from 'src/pages/apps/auction/helper-functions'
 
+// Component props
 const props = defineProps({
   modelValue: {
     type: Boolean,
@@ -75,15 +84,21 @@ const props = defineProps({
     required: true
   }
 })
+
+// Events emitted to the parent component
 defineEmits(['update:modelValue'])
 
+// Vuex instance and shared display state
 const $store = useStore()
 const darkMode = computed(() => $store.getters['darkmode/getStatus'])
 const walletHash = Store.getters['global/getWallet']('bch')?.walletHash
 
+// Fetched bid data and bidder names
 const loading = ref(false)
 const fetchedBids = ref([])
 const usernames = ref({})
+
+// Combines fetched history with live bids already held in Vuex.
 const bids = computed(() => {
   const biddingMap = new Map()
   fetchedBids.value.forEach(bid => biddingMap.set(Number(bid.id), bid))
@@ -96,6 +111,7 @@ const bids = computed(() => {
   return [...biddingMap.values()]
 })
 
+// Loads the lot's bids and then resolves the bidders' display names.
 const fetchBids = async () => {
   if (!props.lotId) {
     fetchedBids.value = []
@@ -121,6 +137,7 @@ const fetchBids = async () => {
   }
 }
 
+// Fetches usernames for unique bidders in parallel.
 const fetchUsernamesForBids = async (bidsList) => {
   const uniqueHashes = [...new Set(bidsList.map(b => b.bidder))].filter(Boolean)
   
@@ -146,10 +163,12 @@ const fetchUsernamesForBids = async (bidsList) => {
   usernames.value = mapping
 }
 
+// Sorts bids from newest to oldest.
 const sortedBids = computed(() =>
   [...bids.value].sort((a, b) => new Date(b.bidding_date) - new Date(a.bidding_date))
 )
 
+// Selects the confirmed highest bid, or the largest bid when none is confirmed.
 const highestBid = computed(() => {
   if (!bids.value.length) return null
   const confirmed = bids.value.find(bid => ['Highest', 'Winner'].includes(bid.status))
@@ -159,8 +178,10 @@ const highestBid = computed(() => {
   ), bids.value[0])
 })
 
+// Checks whether a bid belongs to the connected wallet.
 const isOwnBid = (bid) => !!walletHash && bid.bidder === walletHash
 
+// Returns the bidder's name or a shortened wallet hash.
 const getBidderDisplayName = (bid) => {
   if (isOwnBid(bid)) return 'You'
   
@@ -172,24 +193,19 @@ const getBidderDisplayName = (bid) => {
   return truncateWallet(bid.bidder)
 }
 
+// Shortens a wallet hash for display.
 const truncateWallet = (hash) => {
   if (!hash) return 'Unknown bidder'
   return `${hash.slice(0, 6)}...${hash.slice(-4)}`
 }
 
-const getFormattedBCH = (bch) => {
-  const numStr = Number(bch).toFixed(8)
-  const match = numStr.match(/^(.*?)0*$/)
-  const main = match ? match[1] : numStr
-  const zeros = numStr.substring(main.length)
-  return { main, zeros, full: numStr }
-}
-
+// Formats a fiat value as Philippine pesos.
 const formatFiat = (value) => {
   const numValue = Number(value) || 0
   return `₱${numValue.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
 }
 
+// Formats a timestamp as a relative time or calendar date.
 const formatRelativeTime = (dateString) => {
   const diffSec = Math.floor((Date.now() - new Date(dateString).getTime()) / 1000)
   if (diffSec < 60) return 'Just now'
@@ -202,6 +218,7 @@ const formatRelativeTime = (dateString) => {
   return date.formatDate(dateString, 'MMM DD, YYYY hh:mm A')
 }
 
+// Reloads the bidding history whenever the dialog opens.
 watch(() => props.modelValue, (val) => {
   if (val) fetchBids()
 })

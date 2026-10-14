@@ -1,6 +1,8 @@
 <template>
   <q-dialog :model-value="modelValue" @update:model-value="$emit('update:modelValue', $event)">
     <q-card class="pt-card text-bow" :class="getDarkModeClass(darkMode)" style="min-width: 300px;">
+
+      <!--Title-->
       <q-card-section class="row items-center q-pb-none">
         <div class="text-subtitle1 text-weight-bold">Transactions</div>
         <q-space />
@@ -8,10 +10,12 @@
       </q-card-section>
       
       <q-card-section>
+        <!--While page is loading-->
         <div v-if="isLoading" class="row justify-center q-pa-md">
           <q-spinner color="primary" size="32px" />
         </div>
 
+        <!--Data has been loaded-->
         <template v-else>
           <div
             v-for="(tx, index) in transactions"
@@ -33,12 +37,16 @@
               </span>
             </div>
             
+            <!--Display if txid exists-->
             <div v-if="tx.txid" class="text-caption ellipsis" style="opacity: 0.5;">{{ tx.txid }}</div>
             
             <div class="text-caption row items-center no-wrap" style="opacity: 0.45;">
+              <!--Display if tx timestamp exists-->
               <div v-if="tx.timestamp">
                 {{ tx.timestamp }}
               </div>
+
+              <!--Show Pending transaction-->
               <div v-else>
                 <q-spinner-oval size="14px" class="q-mr-xs" />
                 <span>Pending</span>
@@ -54,12 +62,17 @@
 </template>
 
 <script setup>
+// Quasar/Vue imports
 import { computed, ref, watch } from 'vue'
 import { useStore } from 'vuex'
 import { date } from 'quasar'
+
+// src imports
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 import { callAPI } from 'src/auction/api'
+import { formatBCH as getFormattedBCH } from 'src/pages/apps/auction/helper-functions'
 
+// Props
 const props = defineProps({
   modelValue: Boolean,
   bidId: {
@@ -72,28 +85,27 @@ const props = defineProps({
   }
 })
 
+// Data to be emitted
 defineEmits(['update:modelValue'])
 
+// Quasar variables
 const $store = useStore()
-const darkMode = computed(() => $store.getters['darkmode/getStatus'])
 
+// System-related variables
+const darkMode = computed(() => $store.getters['darkmode/getStatus'])
 const isLoading = ref(false)
+
+// Component-specific variables
 const bidPriceBch = ref(null)
 const biddingDate = ref(null)
 const deliveredDate = ref(null)
+
 
 const formatTxDate = (value) => {
   if (!value) return null
   return date.formatDate(value, 'MMM DD, YYYY hh:mm A')
 }
 
-/**
- * As of the moment, there is no transaction table from the backend.
- * Hence, the details for Sent is from the winning bidder details,
- * and the details for Receive is from the delivered date from the
- * delivery tracking for the specific lot. Replace the bid price and
- * the corresponding dates whenever the transaction table is built.
- */
 const fetchBidData = async () => {
   if (!props.bidId) return
 
@@ -106,24 +118,14 @@ const fetchBidData = async () => {
       biddingDate.value = bid.bidding_date
     }
     
-    const resultDeliver = await callAPI('delivery-trackings', props.lotId)
-    if (resultDeliver.success && Array.isArray(resultDeliver.data) && resultDeliver.data.length > 0) {
-      const deliver = resultDeliver.data[0]
-      deliveredDate.value = deliver.delivered_date
-    }
+    const delivery = await $store.dispatch('auction/fetchDeliveryDetails', props.lotId)
+    const deliveredEvent = delivery?.delivery_events?.find(event => event.status === 'Delivered')
+    deliveredDate.value = deliveredEvent?.event_date ?? null
   } catch (err) {
     console.error('Failed to load bid for transactions:', err)
   } finally {
     isLoading.value = false
   }
-}
-
-const getFormattedBCH = (bch) => {
-  const numStr = Number(bch).toFixed(8)
-  const match = numStr.match(/^(.*?)0*$/)
-  const main = match ? match[1] : numStr
-  const zeros = numStr.substring(main.length)
-  return { main, zeros, full: numStr }
 }
 
 watch(() => props.modelValue, (isOpen) => {

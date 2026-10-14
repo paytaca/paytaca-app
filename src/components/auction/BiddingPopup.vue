@@ -10,6 +10,7 @@
       style="max-width: 480px; border-radius: 20px 20px 0 0 !important;"
     >
       <q-card-section class="q-pb-sm">
+        <!-- Bid dialog title and connected wallet -->
         <div class="row items-center no-wrap">
           <div>
             <div class="text-caption text-weight-bold text-uppercase q-mb-xs" style="letter-spacing: 0.12em; opacity: 0.45;">
@@ -38,6 +39,7 @@
       <q-separator :dark="darkMode" />
       
       <q-card-section class="q-py-sm">
+        <!-- Current bid floor and minimum bid validation -->
         <div class="row items-center q-gutter-xs text-caption" style="opacity: 0.65;">
           <q-icon name="gavel" size="13px" />
           <span>{{ hasBidsYet ? 'Highest bid:' : 'Starting floor price:' }}</span>
@@ -58,6 +60,7 @@
       </q-card-section>
 
       <q-card-section class="q-pt-md">
+        <!-- Suggested bid amounts -->
         <div class="text-caption text-weight-bold text-uppercase q-mb-sm">
           Quick select
         </div>
@@ -92,6 +95,7 @@
           <q-separator class="col" :dark="darkMode" />
         </div>
 
+        <!-- Custom bid amount input -->
         <q-input
           v-model="price"
           type="number"
@@ -112,6 +116,7 @@
           </template>
         </q-input>
 
+        <!-- Converted bid amount preview -->
         <div
           v-if="price && Number(price) > 0"
           class="row items-center q-mt-sm text-caption"
@@ -131,6 +136,7 @@
       </q-card-section>
 
       <q-card-section class="q-pt-none q-pb-lg">
+        <!-- Submit the selected bid -->
         <q-btn
           no-caps
           unelevated
@@ -149,13 +155,18 @@
 </template>
 
 <script setup>
+// Vue and Quasar imports
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 import { computed, ref, watch } from 'vue'
 import { useQuasar } from 'quasar'
 import { useStore } from 'vuex'
+
+// src imports
 import { Store } from 'src/store'
 import { callAPI } from 'src/auction/api'
+import { formatBCH as getFormattedBCH } from 'src/pages/apps/auction/helper-functions'
 
+// Component props
 const props = defineProps({
   modelValue: Boolean,
   lot: { type: Object, default: null },
@@ -163,16 +174,22 @@ const props = defineProps({
   loading: { type: Boolean, default: false }
 })
 
+// Events emitted to the parent component
 const emit = defineEmits(['update:modelValue', 'place-bid'])
 
+// Quasar and Vuex instances
 const $q = useQuasar()
 const $store = useStore()
+
+// Shared display and exchange-rate state
 const darkMode = computed(() => $store.getters['darkmode/getStatus'])
 const bchToPhpRate = computed(() => $store.getters['market/getAssetPrice']('bch', 'php') || 0)
 
+// Dialog-specific bid state
 const price = ref('')
 const hasBidsYet = ref(false)
 
+// Checks the server for a confirmed bid to determine the current bid floor.
 const checkLiveBids = async () => {
   if (!props.lot?.id) return
 
@@ -194,6 +211,7 @@ const checkLiveBids = async () => {
   }
 }
 
+// Resets the input and refreshes bid status whenever the dialog opens.
 watch(() => props.modelValue, async (open) => {
   if (open) {
     price.value = ''
@@ -201,12 +219,14 @@ watch(() => props.modelValue, async (open) => {
   }
 })
 
+// Shows the connected BCH wallet in shortened form.
 const walletLabel = computed(() => {
   const wh = Store.getters['global/getWallet']('bch')?.walletHash
   if (!wh) return 'Not connected'
   return wh.length > 20 ? `${wh.slice(0, 10)}...${wh.slice(-10)}` : wh
 })
 
+// Converts the current price floor to BCH for display and validation.
 const currentFloorBch = computed(() => {
   if (!props.lot) return 0
   if (props.auction?.is_fiat) {
@@ -216,6 +236,7 @@ const currentFloorBch = computed(() => {
   return Number(props.lot.threshold_bid_bch || 0)
 })
 
+// Converts the current price floor to fiat for display and validation.
 const currentFloorFiat = computed(() => {
   if (!props.lot) return 0
   if (props.auction?.is_fiat) {
@@ -224,6 +245,7 @@ const currentFloorFiat = computed(() => {
   return Number(props.lot.threshold_bid_bch || 0) * bchToPhpRate.value
 })
 
+// Builds suggested bid amounts based on currency and whether bidding has started.
 const quickAmounts = computed(() => {
   if (props.auction?.is_fiat) {
     const base = Math.ceil(currentFloorFiat.value)
@@ -254,6 +276,7 @@ const quickAmounts = computed(() => {
   }
 })
 
+// Checks whether the entered amount meets the current minimum bid.
 const isBelowMinimum = computed(() => {
   if (!price.value || Number(price.value) <= 0) return false
   
@@ -268,6 +291,7 @@ const isBelowMinimum = computed(() => {
   }
 })
 
+// Converts the entered amount to BCH for payment.
 const convertedOutputBch = computed(() => {
   if (!price.value) return 0
   
@@ -278,6 +302,7 @@ const convertedOutputBch = computed(() => {
   return Number(price.value)
 })
 
+// Converts the entered amount to fiat for the bid record.
 const convertedOutputFiat = computed(() => {
   if (!price.value) return 0
 
@@ -288,19 +313,13 @@ const convertedOutputFiat = computed(() => {
   return Number(price.value) * bchToPhpRate.value
 })
 
-const getFormattedBCH = (bch) => {
-  const numStr = Number(bch).toFixed(8)
-  const match = numStr.match(/^(.*?)0*$/)
-  const main = match ? match[1] : numStr
-  const zeros = numStr.substring(main.length)
-  return { main, zeros, full: numStr }
-}
-
+// Formats a fiat value as Philippine pesos.
 const formatFiat = (val) => {
   if (val == null) return '—'
   return `₱${Number(val).toLocaleString('en-PH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
 }
 
+// Verifies the wallet balance and emits the normalized bid amounts.
 const placeBid = () => {
   const walletBalance = $store.getters['assets/getAssets'][0]?.spendable || 0
 
