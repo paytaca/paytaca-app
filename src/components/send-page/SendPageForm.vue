@@ -66,58 +66,58 @@
         <div class="recipient-address-label">{{ $t('Recipient') }}</div>
         <div class="recipient-address-value">{{ recipientAddress }}</div>
       </div>
-    </div>
-    <div class="q-mt-sm q-ml-xs recipient-actions">
-      <q-btn
-        id="send-form-actions"
-        round
-        flat
-        dense
-        icon="more_vert"
-        class="recipient-menu-btn"
-        :class="getDarkModeClass(darkMode)"
-      >
-        <q-menu
-          anchor="bottom right"
-          self="top right"
-          class="recipient-actions-menu"
+      <div class="recipient-actions">
+        <q-btn
+          id="send-form-actions"
+          round
+          flat
+          dense
+          icon="more_vert"
+          class="recipient-menu-btn"
           :class="getDarkModeClass(darkMode)"
         >
-          <q-list dense style="min-width: 180px">
-            <q-item
-              clickable
-              v-close-popup
-              @click="onQRScannerClick(true), onInputFocus(index, '')"
-            >
-              <q-item-section avatar>
-                <q-icon name="mdi-qrcode" />
-              </q-item-section>
-              <q-item-section>{{ $t('ScanQRCode') }}</q-item-section>
-            </q-item>
-            <q-item
-              clickable
-              v-close-popup
-              @click="onQRUploaderClick(), onInputFocus(index, '')"
-            >
-              <q-item-section avatar>
-                <q-icon name="upload" />
-              </q-item-section>
-              <q-item-section>{{ $t('UploadQR') }}</q-item-section>
-            </q-item>
-            <q-item
-              v-if="recipientAddress"
-              clickable
-              v-close-popup
-              @click="clearRecipient"
-            >
-              <q-item-section avatar>
-                <q-icon name="close" />
-              </q-item-section>
-              <q-item-section>{{ $t('Clear') }}</q-item-section>
-            </q-item>
-          </q-list>
-        </q-menu>
-      </q-btn>
+          <q-menu
+            anchor="bottom right"
+            self="top right"
+            class="recipient-actions-menu"
+            :class="getDarkModeClass(darkMode)"
+          >
+            <q-list dense style="min-width: 180px">
+              <q-item
+                clickable
+                v-close-popup
+                @click="onQRScannerClick(true), onInputFocus(index, '')"
+              >
+                <q-item-section avatar>
+                  <q-icon name="mdi-qrcode" />
+                </q-item-section>
+                <q-item-section>{{ $t('ScanQRCode') }}</q-item-section>
+              </q-item>
+              <q-item
+                clickable
+                v-close-popup
+                @click="onQRUploaderClick(), onInputFocus(index, '')"
+              >
+                <q-item-section avatar>
+                  <q-icon name="upload" />
+                </q-item-section>
+                <q-item-section>{{ $t('UploadQR') }}</q-item-section>
+              </q-item>
+              <q-item
+                v-if="recipientAddress"
+                clickable
+                v-close-popup
+                @click="clearRecipient"
+              >
+                <q-item-section avatar>
+                  <q-icon name="close" />
+                </q-item-section>
+                <q-item-section>{{ $t('Clear') }}</q-item-section>
+              </q-item>
+            </q-list>
+          </q-menu>
+        </q-btn>
+      </div>
     </div>
   </div>
   <div
@@ -167,6 +167,7 @@
         v-model="fiatFormatted"
         ref="fiatInput"
         class="fiat-input-field"
+        :class="{ 'amount-has-value': fiatHasValue, 'pt-amount-focused': focusedField === 'fiat' }"
         @focus="onInputFocus(index, 'fiat')"
         @blur="onInputBlur(index, 'fiat')"
         @keydown="onKeyboardInput"
@@ -174,9 +175,8 @@
         :readonly="recipient.fixedAmount || inputExtras.isBip21"
         :error="balanceExceeded && !cauldronEnabled"
         :error-message="balanceExceeded && !cauldronEnabled ? $t('BalanceExceeded') : ''"
-        :label="cauldronEnabled ? $t('ReceiveAmount') : $t('Amount')"
+        :label="amountInputLabel"
         :dark="darkMode"
-        :key="inputExtras.fiatFormatted"
       >
         <template v-slot:append>
           {{ String(currentSendPageCurrency()).toUpperCase() }}
@@ -195,17 +195,17 @@
         v-model="amountFormatted"
         ref="amountInput"
         class="bch-input-field"
+        :class="{ 'amount-has-value': bchHasValue, 'pt-amount-focused': focusedField === 'bch' }"
         @focus="onInputFocus(index, 'bch')"
         @blur="onInputBlur(index, 'bch')"
         @keydown="onKeyboardInput"
-        :label="cauldronEnabled ? $t('ReceiveAmount') : $t('Amount')"
+        :label="amountInputLabel"
         :dark="darkMode"
         :loading="computingMax"
         :disabled="recipient.fixedAmount || inputExtras.isBip21"
         :readonly="recipient.fixedAmount || inputExtras.isBip21"
         :error="balanceExceeded && !cauldronEnabled"
         :error-message="balanceExceeded && !cauldronEnabled ? $t('BalanceExceeded') : ''"
-        :key="inputExtras.amountFormatted"
       >
         <template v-slot:append>
           {{ asset?.id === 'bch' ? selectedDenomination : (asset?.symbol || '') }}
@@ -382,6 +382,7 @@ export default {
     defaultSelectedFtChangeAddress: { type: String },
     walletType: { type: String },
     cauldronTokens: { type: Array, default: () => [] },
+    focusedField: { type: String, default: '' },
     sending: { type: Boolean, default: false },
   },
 
@@ -488,6 +489,17 @@ export default {
     },
     assetIsFT () {
       return this.$props.asset?.id?.startsWith('ct/') && this.$props.asset?.balance > 0
+    },
+    amountInputLabel () {
+      return this.cauldronEnabled ? this.$t('ReceiveAmount') : this.$t('Amount')
+    },
+    fiatHasValue () {
+      const n = parseFloat(String(this.fiatFormatted ?? '').replace(/,/g, ''))
+      return !isNaN(n) && n > 0
+    },
+    bchHasValue () {
+      const n = parseFloat(String(this.amountFormatted ?? '').replace(/,/g, ''))
+      return !isNaN(n) && n > 0
     },
     showPayWith () {
       if (this.isNFT) return false
@@ -596,6 +608,7 @@ export default {
       this.$emit('on-input-focus', { index, field })
     },
     onInputBlur (index, field) {
+      if (this.currentFocusedField === field) this.currentFocusedField = null
       this.$emit('on-input-blur', { index, field })
     },
     onRecipientFocus () {
@@ -815,18 +828,23 @@ export default {
 
 <style lang="scss" scoped>
   .recipient-field {
+    position: relative;
     flex: 1 1 0%;
     min-width: 0;
 
     .recipient-input {
       width: 100%;
+
+      :deep(.q-field__native) {
+        padding-right: 40px;
+      }
     }
   }
 
   .recipient-address-display {
     width: 100%;
     cursor: text;
-    min-height: 46px;
+    min-height: 56px;
     padding: 8px 12px 10px;
     border-radius: 4px;
     background: rgba(0, 0, 0, 0.05);
@@ -847,6 +865,7 @@ export default {
       line-height: 1.4;
       word-break: break-all;
       user-select: all;
+      padding-right: 40px;
       color: #111c2c;
     }
 
@@ -856,10 +875,13 @@ export default {
   }
 
   .recipient-actions {
-    flex: 0 0 auto;
+    position: absolute;
+    top: 28px;
+    right: 4px;
+    transform: translateY(-50%);
     display: flex;
     align-items: center;
-    padding: 0 4px 2px;
+    z-index: 3;
   }
 
   .recipient-menu-btn {
@@ -878,7 +900,7 @@ export default {
     }
 
     .max-button {
-      float: right;
+      margin-left: 10px;
       min-height: unset;
       padding: 2px 8px;
       border: 1px solid;
@@ -903,8 +925,8 @@ export default {
   }
 
   .pay-with-option-logo {
-    width: 24px;
-    height: 24px;
+    width: 20px;
+    height: 20px;
     border-radius: 50%;
     object-fit: contain;
     flex: 0 0 auto;
@@ -950,10 +972,30 @@ export default {
     border-radius: 15px;
   }
 
-  .bch-input-field.q-field--focused .q-field__control,
-  .fiat-input-field.q-field--focused .q-field__control {
+  .bch-input-field.pt-amount-focused .q-field__control,
+  .fiat-input-field.pt-amount-focused .q-field__control {
     box-shadow: inset 0 0 0 2px var(--q-primary);
     border-radius: 4px;
     transition: box-shadow 0.2s ease;
+  }
+
+  .bch-input-field.amount-has-value .q-field__label,
+  .fiat-input-field.amount-has-value .q-field__label {
+    display: none;
+  }
+
+  .bch-input-field.amount-has-value .q-field__control-container,
+  .fiat-input-field.amount-has-value .q-field__control-container {
+    display: flex;
+    align-items: center;
+  }
+
+  .bch-input-field.amount-has-value .q-field__native,
+  .fiat-input-field.amount-has-value .q-field__native {
+    font-size: 28px;
+    font-weight: 400;
+    line-height: 1;
+    padding-top: 0;
+    padding-bottom: 0;
   }
 </style>

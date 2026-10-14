@@ -417,6 +417,7 @@
                         @on-cauldron-toggle="onCauldronToggle"
                         :cauldron-tokens="cauldronPayWithTokens"
                         :sending="sending"
+                        :focused-field="currentRecipientIndex === index ? focusedInputField : ''"
                         ref="sendPageRef"
                       />
                     </template>
@@ -947,11 +948,7 @@ export default {
     },
     customKeyboardState (state) {
       if (state === 'show') this.$nextTick(() => this.scheduleRepositionActiveInput())
-      else {
-        this.resetKeyboardSpace()
-        clearTimeout(this._keyboardAutoHideTimer)
-        this._keyboardAutoHideTimer = null
-      }
+      else this.resetKeyboardSpace()
     },
     focusedInputField () {
       if (this.customKeyboardState === 'show') this.$nextTick(() => this.scheduleRepositionActiveInput())
@@ -1755,7 +1752,6 @@ export default {
         this.currentRecipientIndex = index
         this.focusedInputField = field
         this.customKeyboardState = 'show'
-        sendPageUtils.addRemoveInputFocus(index, field)
       }
     },
 
@@ -1792,8 +1788,6 @@ export default {
 
     // keyboard
     setAmount (key) {
-      this.restartKeyboardAutoHideTimer()
-
       const currentRecipient = this.recipients[this.currentRecipientIndex]
       const currentInputExtras = this.inputExtras[this.currentRecipientIndex]
       const currentRefs = this.$refs.sendPageRef[this.currentRecipientIndex].$refs
@@ -1847,14 +1841,9 @@ export default {
       }
 
       this.updateCauldronAndRemainingBalance();
-      sendPageUtils.addRemoveInputFocus(
-        this.currentRecipientIndex, this.focusedInputField
-      )
     },
 
     makeKeyAction (action) {
-      this.restartKeyboardAutoHideTimer()
-
       const currentRecipient = this.recipients[this.currentRecipientIndex]
       const currentInputExtras = this.inputExtras[this.currentRecipientIndex]
       const currentRefs = this.$refs.sendPageRef[this.currentRecipientIndex].$refs
@@ -1900,17 +1889,11 @@ export default {
           currentInputExtras.fiatFormatted = '0'
           currentInputExtras.amountFormatted = '0'
         }
-        sendPageUtils.addRemoveInputFocus(
-          this.currentRecipientIndex, this.focusedInputField
-        )
       } else if (action === 'delete') {
         currentRecipient.fiatAmount = ''
         currentRecipient.amount = ''
         currentInputExtras.fiatFormatted = '0'
         currentInputExtras.amountFormatted = '0'
-        sendPageUtils.addRemoveInputFocus(
-          this.currentRecipientIndex, this.focusedInputField
-        )
       } else {
         // No-op: checkmark key is hidden in the new combined keyboard+slide layout
       }
@@ -2359,7 +2342,6 @@ export default {
       this.currentRecipientIndex = value.index
       this.focusedInputField = value.field
       this.customKeyboardState = value.field !== '' ? 'show' : 'dismiss'
-      sendPageUtils.addRemoveInputFocus(value.index, value.field)
     },
     onInputBlur () {
       clearTimeout(this._keyboardBlurCheckTimer)
@@ -2376,6 +2358,21 @@ export default {
           this.customKeyboardState = 'dismiss'
         }
       }, 80)
+    },
+    onDocumentPointerDown (event) {
+      if (this.customKeyboardState !== 'show') return
+      const target = event.target
+      if (!target || typeof target.closest !== 'function') return
+      if (target.closest('.keyboard-slide-panel') ||
+          target.closest('.bch-input-field') ||
+          target.closest('.fiat-input-field')) return
+      const active = document.activeElement
+      if (active && typeof active.blur === 'function' && typeof active.closest === 'function' &&
+          (active.closest('.bch-input-field') || active.closest('.fiat-input-field'))) {
+        active.blur()
+      }
+      this.focusedInputField = ''
+      this.customKeyboardState = 'dismiss'
     },
     scheduleRepositionActiveInput () {
       clearTimeout(this._repositionInputTimer)
@@ -2407,15 +2404,6 @@ export default {
     resetKeyboardSpace () {
       const container = document.querySelector('.send-form-container')
       if (container) container.style.removeProperty('--send-form-keyboard-space')
-    },
-    restartKeyboardAutoHideTimer () {
-      clearTimeout(this._keyboardAutoHideTimer)
-      this._keyboardAutoHideTimer = null
-      if (this.customKeyboardState !== 'show') return
-      this._keyboardAutoHideTimer = setTimeout(() => {
-        this._keyboardAutoHideTimer = null
-        if (this.customKeyboardState === 'show') this.customKeyboardState = 'dismiss'
-      }, 3000)
     },
     onQRScannerClick (value) {
       this.showQrScanner = value
@@ -3433,6 +3421,7 @@ export default {
       if (container) {
         container.addEventListener('scroll', this.handleScroll)
       }
+      document.addEventListener('pointerdown', this.onDocumentPointerDown)
 
       // Auto-focus the amount input and show custom keyboard when recipient is pre-filled
       if (vm.recipient && vm.assetId) {
@@ -3448,7 +3437,6 @@ export default {
             inputRef.focus()
             this.focusedInputField = field
             this.customKeyboardState = 'show'
-            sendPageUtils.addRemoveInputFocus(0, field)
           }
         })
       }
@@ -3472,8 +3460,9 @@ export default {
       container.removeEventListener('scroll', this.handleScroll)
     }
 
+    document.removeEventListener('pointerdown', this.onDocumentPointerDown)
+
     clearTimeout(this._repositionInputTimer)
-    clearTimeout(this._keyboardAutoHideTimer)
     clearTimeout(this._keyboardBlurCheckTimer)
 
     this.poolTracker.cleanup();
