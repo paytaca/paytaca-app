@@ -26,6 +26,7 @@ paytaca.keystore
 /src-capacitor/android/app/release
 /src-capacitor/**/google-services.json
 /capacitor-plugins/*/android/build
+/capacitor-plugins/*/android/.gradle
 
 # BEX related directories and files
 /src-bex/www

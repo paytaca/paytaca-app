@@ -22,6 +22,9 @@ const MK_BYTES = 32
 const IV_BYTES = 12
 // Android Block Store limit is 4 KB per key; keep chunks comfortably under it.
 const MAX_CHUNK_BYTES = 3800
+// Block Store also caps the number of entries per account (BlockstoreClient
+// MAX_ENTRY_COUNT = 16). Reserve one entry for the chunk-count metadata.
+const MAX_CHUNK_COUNT = 15
 
 // Only irreplaceable secrets are mirrored. Volatile/regenerable values (auth
 // tokens, migration flags, settings, memos) are intentionally excluded.
@@ -235,7 +238,7 @@ async function writePayload (payload) {
     await escrowSet(PAYLOAD_KEY, json)
     for (let i = 0; i < previousChunks; i++) await escrowRemove(`${PAYLOAD_KEY}.${i}`)
     await escrowRemove(PAYLOAD_META_KEY)
-    return
+    return true
   }
 
   // Split on code-point boundaries so each chunk stays within the byte limit
@@ -255,12 +258,20 @@ async function writePayload (payload) {
   }
   if (current) parts.push(current)
 
+  // Never write a partial payload: a >16-entry set would fail mid-write and
+  // readPayload would return null. Preserve whatever escrow already holds.
+  if (parts.length > MAX_CHUNK_COUNT) {
+    console.error(`[EscrowVault] Payload needs ${parts.length} chunks (max ${MAX_CHUNK_COUNT}); skipping escrow write.`)
+    return false
+  }
+
   for (let i = 0; i < parts.length; i++) {
     await escrowSet(`${PAYLOAD_KEY}.${i}`, parts[i])
   }
   await escrowSet(PAYLOAD_META_KEY, JSON.stringify({ chunks: parts.length, v: PAYLOAD_VERSION }))
   await escrowRemove(PAYLOAD_KEY)
   for (let i = parts.length; i < previousChunks; i++) await escrowRemove(`${PAYLOAD_KEY}.${i}`)
+  return true
 }
 
 // --- Master key -------------------------------------------------------------
@@ -425,7 +436,8 @@ async function doSyncToEscrow () {
       }
     }
 
-    await writePayload({ v: PAYLOAD_VERSION, mk, secrets, updatedAt: Date.now() })
+    const wrote = await writePayload({ v: PAYLOAD_VERSION, mk, secrets, updatedAt: Date.now() })
+    if (!wrote) return { synced: 0, reason: 'payload-too-large' }
     return { synced: Object.keys(secrets).length, reason: 'ok' }
   } catch (err) {
     console.error('[EscrowVault] syncToEscrow failed:', err)
