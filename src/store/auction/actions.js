@@ -1,5 +1,5 @@
 import { callAPI } from 'src/auction/api'
-import { AuctionList, LotsList, BidsList, AppealList, AppealDetails, DeliveryDetails } from 'src/auction/object'
+import { AuctionList, LotsList, BidsList, DisputeList, DisputeDetails, DeliveryDetails } from 'src/auction/object'
 import noImage from 'src/assets/no-image.svg'
 import { loadWallet } from 'src/wallet'
 
@@ -373,7 +373,7 @@ export async function fetchDisputes({ dispatch }) {
 
   return Promise.all(response.data.map(async dispute => {
     const lotResponse = await callAPI('lots', dispute.lot)
-    return AppealList.parse({
+    return DisputeList.parse({
       ...dispute,
       lotId: dispute.lot,
       auctionId: lotResponse.success ? lotResponse.data?.auction : null
@@ -419,7 +419,7 @@ async function getDisputeDetails(disputeData) {
       }
     : null
 
-  return AppealDetails.parse({
+  return DisputeDetails.parse({
     ...disputeData,
     lotId,
     auctionId,

@@ -93,7 +93,6 @@ const darkMode = computed(() => $store.getters['darkmode/getStatus'])
 const isLoading = ref(true)
 
 // Username
-const storedUsername = computed(() => $store.getters['auction/username'])
 const username = ref('')
 
 // Mounts the username (if it exists)
@@ -111,14 +110,14 @@ const handleEditUserProfile = async () => {
   const data = await $store.dispatch(
     'auction/updateUsername', 
     {
-      newUsername: storedUsername.value,
+      newUsername: username.value,
       walletHash: Store.getters['global/getWallet']('bch')?.walletHash,
       credentials: await deriveOAuthCredentials()
     }
   )
   
   const timeout = 3000
-  if (data) {
+  if (data.success) {
     $q.notify({
       type: 'positive',
       message: `User profile ${ data.method === 'post' ?  'created' : 'updated' }!` ,
@@ -136,7 +135,4 @@ const handleEditUserProfile = async () => {
   // End loading screen
   isLoading.value = false
 }
-
-
-
 </script>
