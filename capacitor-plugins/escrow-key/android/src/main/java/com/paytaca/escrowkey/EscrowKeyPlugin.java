@@ -7,9 +7,9 @@ import com.getcapacitor.PluginMethod;
 import com.getcapacitor.annotation.CapacitorPlugin;
 import com.google.android.gms.auth.blockstore.Blockstore;
 import com.google.android.gms.auth.blockstore.BlockstoreClient;
-import com.google.android.gms.auth.blockstore.BlockstoreData;
 import com.google.android.gms.auth.blockstore.DeleteBytesRequest;
 import com.google.android.gms.auth.blockstore.RetrieveBytesRequest;
+import com.google.android.gms.auth.blockstore.RetrieveBytesResponse.BlockstoreData;
 import com.google.android.gms.auth.blockstore.StoreBytesData;
 
 import org.json.JSONObject;
@@ -37,13 +37,7 @@ public class EscrowKeyPlugin extends Plugin {
 
     @PluginMethod
     public void isAvailable(PluginCall call) {
-        if (client == null) {
-            resolveBoolean(call, false);
-            return;
-        }
-        client.isBlockstoreAvailable()
-            .addOnSuccessListener(available -> resolveBoolean(call, Boolean.TRUE.equals(available)))
-            .addOnFailureListener(e -> resolveBoolean(call, false));
+        resolveBoolean(call, client != null);
     }
 
     @PluginMethod
@@ -85,7 +79,7 @@ public class EscrowKeyPlugin extends Plugin {
             return;
         }
 
-        StoreBytesData data = StoreBytesData.Builder()
+        StoreBytesData data = new StoreBytesData.Builder()
             .setKey(key)
             .setBytes(value.getBytes(StandardCharsets.UTF_8))
             .setShouldBackupToCloud(true)
