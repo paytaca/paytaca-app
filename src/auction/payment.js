@@ -9,14 +9,17 @@ import { loadWallet } from 'src/wallet'
 // Contract-related
 import { initializeContract } from './contract'
 
+const MINER_FEE = 1000n
+const PLATFORM_FEE = 1000n
+const SERVICER_FEE = 1000n
+
 /**
  * @name payFirstBidToContract
  * @param {Integer} lotId - id of the user's official lot 
  * Call this when paying for the bid functions
  */
-export async function payFirstBidToContract(lotId, bidAmountBCH) {
-  // Initialize the contract
-  const contract = await initializeContract(lotId)
+export async function payFirstBidToContract(lotId, bidAmountBCH, initializedContract=null) {
+  const contract = initializedContract ?? await initializeContract(lotId)
   
   // Check for existing contract UTXOs
   const contractUTXOS = await contract.getUtxos()
@@ -25,12 +28,13 @@ export async function payFirstBidToContract(lotId, bidAmountBCH) {
 
   // Get the bidder's PKH
   const bidderPKH = await getBidderPublicKeyHash()
+  const bidAmountSats = toSatoshis(bidAmountBCH)
 
   // Send the first NFT bid to the contract
   const payment = await sendNFTToTokenAddress(
     contract.tokenAddress,
     bidderPKH,
-    bidAmountBCH,
+    bidAmountSats,
   )
 
   // Extract the transaction id (txid) from the payment
@@ -53,7 +57,7 @@ export async function payFirstBidToContract(lotId, bidAmountBCH) {
  * @param {String} addressPath
  * @returns the bidder's public key
  */
-export async function getBidderPublicKeyHash(addressPath=0) {
+export async function getBidderPublicKeyHash(addressPath='0/0') {
   const wallet = await loadWallet('BCH')
   const bidderPK = await wallet.BCH.getPublicKey(addressPath)
   const bidderPKH = pubkeyToPkHash(bidderPK)
@@ -95,10 +99,7 @@ export async function sendNFTToTokenAddress(
   const categoryId = genesisUtxo.txid
 
   // NFT Commitment bytes
-  const bidderBytes = Buffer.from(bidderPKH, 'hex')
-  const amountBytes = Buffer.alloc(8)
-  amountBytes.writeBigUInt64LE(normalizedBidAmount)
-  const commitment = Buffer.concat([bidderBytes, amountBytes]).toString('hex')
+  const commitment = createBidCommitment(bidderPKH, normalizedBidAmount)
 
   // Get private key from wallet for cashtoken wallet
   const privateKey = wallet.privkey(genesisUtxo.address_path)
@@ -112,7 +113,7 @@ export async function sendNFTToTokenAddress(
       amount: 0n,
       capability: NFTCapability.mutable,
       commitment,
-      value: 1000n
+      value: normalizedBidAmount + MINER_FEE + PLATFORM_FEE + SERVICER_FEE
     },
     [],
     {
@@ -141,4 +142,19 @@ export async function sendNFTToTokenAddress(
     txid: result.txId, 
     category: categoryId 
   }
+}
+
+function createBidCommitment(bidderPKH, bidAmountSats) {
+  const bidderBytes = Buffer.from(bidderPKH, 'hex')
+  const amountBytes = Buffer.alloc(8)
+  amountBytes.writeBigUInt64LE(bidAmountSats)
+  return Buffer.concat([bidderBytes, amountBytes]).toString('hex')
+}
+
+function toSatoshis(bidAmountBCH) {
+  const amount = Number(bidAmountBCH)
+  if (!Number.isFinite(amount) || amount <= 0) {
+    throw new Error('Invalid bid amount.')
+  }
+  return BigInt(Math.round(amount * 1e8))
 }
