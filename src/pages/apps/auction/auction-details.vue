@@ -375,77 +375,100 @@ const props = defineProps({
 const auction = computed(() => $store.getters['auction/auctionData'])
 const auctionEndCountdown = ref('Loading...')
 const auctionStartCountdown = ref('Loading...')
-const listingsTotalTime = computed(() => Date.now() - $store.getters['auction/listingsLastFetched'])
+const shouldFetchListings = () => {
+  const lastFetched = $store.getters['auction/listingsLastFetched']
+  return !lastFetched || Date.now() - lastFetched > 30000
+}
 
 // Lot-related variables
 const lotCategory = ref($store.getters['auction/auctionLotCategory'] ?? 'All')
 const lotCategoryOptions = $store.getters['auction/lotCategoryOptions']
 const lotSearchQuery = ref('') 
 
-const auctionLotsTotalTime = computed(() => Date.now() - $store.getters['auction/auctionLotsLastFetched'])
+const shouldFetchAuctionLots = () => {
+  const lastFetched = $store.getters['auction/auctionLotsLastFetched']
+  return !lastFetched || Date.now() - lastFetched > 30000
+}
 const isLotEmpty = computed(() => !isLoading.value && filteredLots.value.length === 0)
 
 const filteredLots = computed(() => {
   let targetLots = $store.getters['auction/filteredLots'] ?? []
   const query = lotSearchQuery.value.trim().toLowerCase()
-  return (query) ? targetLots.filter(lot => lot?.title.toLowerCase().includes(query)) : targetLots
+  return (query) ? targetLots.filter(lot => lot?.title?.toLowerCase().includes(query)) : targetLots
 })
 
 watch(lotCategory, (newType) => {
   $store.commit('auction/updateAuctionLotCategory', { type: newType })
 })
 
-const loadPageData = async () => {
+const loadPageData = async (force=false) => {
   // Check if props.auctionId is the same as stored auctionId (to prevent repeated fetching)
-  console.log('auctionId: ', props.auctionId)
   const isSameAuctionId = $store.getters['auction/auctionId'] === Number(props.auctionId)
 
-  console.log('2. fetching data', {
-      isSameAuctionId,
-      listingsTotalTime: listingsTotalTime.value,
-      auctionLotsTotalTime: auctionLotsTotalTime.value
-  })
-
   await Promise.all([
-    (!isSameAuctionId || listingsTotalTime.value > 30000)
+    (!isSameAuctionId || force || shouldFetchListings())
       ? $store.dispatch('auction/fetchAuctionData', props.auctionId)
       : $store.dispatch('auction/fetchExistingAuctionData', props.auctionId),
 
-    (!isSameAuctionId || auctionLotsTotalTime.value > 30000)
+    (!isSameAuctionId || force || shouldFetchAuctionLots())
       ? $store.dispatch('auction/fetchAuctionLots', props.auctionId)
       : Promise.resolve()
   ])
 
   if (auction.value?.type === 'Dutch' && filteredLots.value.length) {
-    const allSold = filteredLots.value.every(l => l.is_sold)
-    const notYetClosed = new Date(auction.value?.end_date) > new Date()
-    
-    if (allSold && notYetClosed) {
-      const endDate = new Date().toISOString()
-      await callAPI('listings', props.auctionId, 'patch', {
-        end_date: endDate
-      })
-      $store.commit('auction/updateAuctionData', {
-        attribute_name: 'end_date', 
-        data: endDate
-      })
+    const allLots = $store.getters['auction/auctionLots'] ?? []
+
+    if (auction.value?.type === 'Dutch' && allLots.length > 0) {
+      const allSold = allLots.every(lot => lot.is_sold)
+      const notYetClosed = new Date(auction.value.end_date) > new Date()
+
+      if (allSold && notYetClosed) {
+        const endDate = new Date().toISOString()
+
+        await callAPI('listings', props.auctionId, 'patch', {
+          end_date: endDate
+        })
+
+        $store.commit('auction/updateAuctionData', {
+          attribute_name: 'end_date',
+          data: endDate
+        })
+      }
     }
   }
-
   console.log('3. Promise.all finished')
 }
 
 onMounted(async () => {
   isLoading.value = true
-  if (!auction.value) $router.replace(smartBackPath.value)
-  await loadPageData()
-  isLoading.value = false
 
-  // call the connectWebsocket function
-  socket = connectWebsocket()
+  try {
+    await loadPageData()
+    const storedAuctionId = $store.getters['auction/auctionId']
+
+    if (
+      storedAuctionId == null ||
+      Number(storedAuctionId) !== Number(props.auctionId)
+    ) {
+      $router.replace(smartBackPath.value)
+      return
+    }
+    
+    socket = connectWebsocket()
+  } catch (err) {
+    console.error('Failed to load auction details:', err)
+
+    $q.notify({
+      type: 'negative',
+      message: 'Failed to load auction details.'
+    })
+  } finally {
+    isLoading.value = false
+  }
 })
 
 onBeforeUnmount(() => {
+  isUnmounted = true
   clearSocket()
 })
 
@@ -459,8 +482,10 @@ let socket = null
 let reconnectTimeout = null
 let reconnectAttempts = 0
 let maxReconnectAttempts = 10
+let isUnmounted = false
 
 const connectWebsocket = () => {
+  if (isUnmounted) return null
   const ws = callAuctionWebsocket(Number(props.auctionId))
 
   ws.onopen = () => {
@@ -547,7 +572,11 @@ const connectWebsocket = () => {
 
   ws.onclose = (event) => {
     console.log("Disconnected from the auction websocket!")
-    if (!event.wasClean && reconnectAttempts < maxReconnectAttempts) {
+    if (
+      !isUnmounted &&
+      !event.wasClean &&
+      reconnectAttempts < maxReconnectAttempts
+    ) {
       const delay = Math.min(1000 * 2 ** reconnectAttempts, 30000)
       reconnectAttempts++
       reconnectTimeout = setTimeout(() => {
@@ -641,11 +670,18 @@ const smartBackPath = computed(() => {
 })
 
 const refresh = async (done) => {
-  if (!auction.value) $router.replace(smartBackPath.value)
-  await loadPageData()
-
-  clearSocket()
-  socket = connectWebsocket()
-  done()
+  try {
+    await loadPageData(true)
+    clearSocket()
+    socket = connectWebsocket()
+  } catch (err) {
+    console.error('Failed to refresh auction details:', err)
+    $q.notify({
+      type: 'negative',
+      message: 'Failed to refresh auction details.'
+    })
+  } finally {
+    done?.()
+  }
 }
 </script>

@@ -170,8 +170,10 @@ const darkMode = computed(() => $store.getters['darkmode/getStatus'])
 const isLoading = ref(true)         // Controls auction listing loading
 
 // Auction-related listings
-const listingsTotalTime = computed(() => Date.now() - $store.getters['auction/listingsLastFetched'])
-
+const shouldFetchListings = () => {
+  const lastFetched = $store.getters['auction/listingsLastFetched']
+  return !lastFetched || Date.now() - lastFetched > 300000
+}
 // ===============
 // AUCTION-RELATED
 // =============== 
@@ -300,26 +302,30 @@ const clearSocket = () => {
 // ======================
 
 const refresh = async (done) => {
-  await (
-    (listingsTotalTime.value > 300000)
-    ?  $store.dispatch('auction/fetchListings')
-    : Promise.resolve()
-  )
-  if (typeof done === 'function') done()
+  try {
+    await $store.dispatch('auction/fetchListings')
+  } catch (error) {
+    console.error('Failed to refresh auction listings:', error)
+  } finally {
+    if (typeof done === 'function') done()
+  }
 }
 
-onMounted(async () => {
-  // Refresh the list of listings
-  await (
-    (listingsTotalTime.value > 300000)
-    ?  $store.dispatch('auction/fetchListings')
-    : Promise.resolve()
-  )
-  isLoading.value = false
 
-  // Connect to the WS (Review)
+onMounted(async () => {
+  try {
+    if (shouldFetchListings()) {
+      await $store.dispatch('auction/fetchListings')
+    }
+  } catch (error) {
+    console.error('Failed to fetch auction listings:', error)
+  } finally {
+    isLoading.value = false
+  }
+
   socket = connectWebsocket()
 })
+
 
 onBeforeUnmount(() => {
   if (socket) clearSocket()
