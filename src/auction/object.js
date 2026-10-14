@@ -240,10 +240,10 @@ export class BidsList {
   }
 }
 
-// APPEAL LIST (FOR DISPUTES)
-export class AppealList {
+// DISPUTE LIST
+export class DisputeList {
   static parse(data) {
-    return new AppealList(data)
+    return new DisputeList(data)
   }
 
   constructor(data) {
@@ -354,10 +354,10 @@ export class AppealList {
   }
 }
 
-// APPEAD INFORMATION (FOR DISPUTES)
-export class AppealDetails {
+// DISPUTE INFORMATION
+export class DisputeDetails {
   static parse(data) {
-    return new AppealDetails(data)
+    return new DisputeDetails(data)
   }
 
   constructor(data) {

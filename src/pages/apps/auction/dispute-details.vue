@@ -23,7 +23,7 @@
 
     <div v-else class="q-pa-md q-pb-xl text-bow" :class="getDarkModeClass(darkMode)">
       <div class="text-caption text-weight-bold q-mb-xs q-px-xs">
-        REFUND APPEAL
+        REFUND DISPUTE
       </div>
       <q-card class="pt-card text-bow q-mb-md" :class="getDarkModeClass(darkMode)">
         <q-card-section class="q-py-sm">
@@ -189,19 +189,19 @@
           <div class="row q-gutter-sm q-mb-md">
             <q-btn
               no-caps unelevated
-              :color="selectedAction === 'refund' ? 'negative' : 'primary'"
+              :color="selectedAction === 'Refund' ? 'negative' : 'primary'"
               text-color="white"
               label="Refund to Bidder"
               class="col"
-              @click="selectedAction = 'refund'"
+              @click="selectedAction = 'Refund'"
             />
             <q-btn
               no-caps unelevated
-              :color="selectedAction === 'release' ? 'positive' : 'primary'"
+              :color="selectedAction === 'Release' ? 'positive' : 'primary'"
               text-color="white"
               label="Release to Seller"
               class="col"
-              @click="selectedAction = 'release'"
+              @click="selectedAction = 'Release'"
             />
           </div>
 
@@ -348,11 +348,11 @@ onMounted(async () => {
         bidPriceBch = bid.bid_price_bch
         lotId = bid.lot
         
-        if (bid.user) {
-          const bidderResult = await callAPI('user-details', bid.user)
+        if (bid.bidder) {
+          const bidderResult = await callAPI('user-details', bid.bidder)
           if (bidderResult.success && bidderResult.data) {
             bidderData = {
-              user: bidderResult.data.user,
+              bidder: bidderResult.data.user,
               username: bidderResult.data.username,
               address: bidderResult.data.address,
             }
@@ -366,11 +366,11 @@ onMounted(async () => {
             
             if (auctionId) {
               const auctionResult = await callAPI('auctions', auctionId)
-              if (auctionResult.success && auctionResult.data?.user) {
-                const auctioneerResult = await callAPI('user-details', auctionResult.data.user)
+              if (auctionResult.success && auctionResult.data?.auctioneer) {
+                const auctioneerResult = await callAPI('user-details', auctionResult.data.auctioneer)
                 if (auctioneerResult.success && auctioneerResult.data) {
                   auctioneerData = {
-                    user: auctioneerResult.data.user,
+                    auctioneer: auctioneerResult.data.user,
                     username: auctioneerResult.data.username,
                     address: auctioneerResult.data.address,
                   }
@@ -452,7 +452,9 @@ const startSwipe = async (e) => {
 }
 
 const handleAction = async (addressPath=0) => {
+  // Neither refund nor release
   if (!selectedAction.value) return
+
   try {
     $q.loading.show({ message: 'Processing...' })
 
@@ -460,17 +462,35 @@ const handleAction = async (addressPath=0) => {
     const wallet = await loadWallet('BCH')
     const publicKey = await wallet.BCH.getPublicKey(addressPath)
 
+    // Call release function from the server
+    await $store.dispatch(
+      `auction/callContractFunction`, 
+      { 
+        lotId: disputeDetails.value.lotId, 
+        functionName: selectedAction.value, 
+        publicKey 
+      }
+    )
+
     if (selectedAction.value === 'release') {
-      $store.dispatch(`auction/callContractFunction`, { disputeDetails.value.lotId, functionName: 'Release', publicKey })
-      $store.dispatch('auction/fetchDeliveryDetails', lotId)
-      await callAPI('delivery-trackings', disputeDetails.value.lot_id, 'patch', { mark_as_completed: true })
-    } else if (selectedAction.value === 'refund') {
-      await callContractRefund(disputeDetails.value.lot_id)
-    }
+      // Fetch delivery details from the server
+      await $store.dispatch('auction/fetchDeliveryDetails', disputeDetails.value.lotId)
+      
+      // Update delivery details (mark it as completed)
+      await $store.dispatch('auction/createDeliveryEvent', { })
+    } 
 
     const payload = {
-      refund: { is_granted_refund: true, is_granted_return: false, is_resolved: true },
-      release: { is_granted_refund: false, is_granted_return: true, is_resolved: true },
+      refund: { 
+        is_granted_refund: true, 
+        is_granted_return: false, 
+        is_resolved: true 
+      },
+      release: { 
+        is_granted_refund: false, 
+        is_granted_return: true, 
+        is_resolved: true 
+    },
     }[selectedAction.value]
 
     await callAPI('disputes', props.disputeId, 'patch', payload)
