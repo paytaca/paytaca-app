@@ -157,8 +157,6 @@ import { ref, computed, onMounted } from 'vue'
 
 // src imports
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
-import { callAPI } from 'src/auction/api'
-import { DisputeList } from 'src/auction/object.js'
 
 // Components
 import HeaderNav from 'src/components/header-nav.vue'
@@ -187,39 +185,7 @@ const fetchArbiterData = async () => {
   if (!isArbiter.value) return
 
   try {
-    const result = await callAPI('disputes')
-    if (!result.success || !Array.isArray(result.data)) {
-      console.error('Failed to fetch disputes:', result)
-      return
-    }
-
-    arbiterDetails.value = await Promise.all(
-      result.data.map(async (dispute) => {
-        let lotId = null
-        let auctionId = null
-
-        if (dispute.bid) {
-          try {
-            const bidResult = await callAPI('biddings', dispute.bid)
-            if (bidResult.success && bidResult.data) {
-              const bid = bidResult.data
-              lotId = bid.lot
-
-              if (lotId) {
-                const lotResult = await callAPI('lots', lotId)
-                if (lotResult.success && lotResult.data) {
-                  auctionId = lotResult.data.auction
-                }
-              }
-            }
-          } catch (err) {
-            console.error(`Failed to resolve bid chain for dispute ${dispute.id}:`, err)
-          }
-        }
-
-        return DisputeList.parse({ ...dispute, lotId, auctionId })
-      })
-    )
+    arbiterDetails.value = await $store.dispatch('auction/fetchDisputes')
   } catch (err) {
     console.error('Failed to fetch disputes:', err)
     arbiterDetails.value = []

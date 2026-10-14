@@ -21,7 +21,7 @@
       <q-spinner color="primary" size="40px" />
     </div>
 
-    <div v-else class="q-pa-md q-pb-xl text-bow" :class="getDarkModeClass(darkMode)">
+    <div v-else-if="details" class="q-pa-md q-pb-xl text-bow" :class="getDarkModeClass(darkMode)">
       <div class="text-caption text-weight-bold q-mb-xs q-px-xs">
         REFUND DISPUTE
       </div>
@@ -89,14 +89,15 @@
               <div class="row items-center q-gutter-x-xs">
                 <span class="text-caption text-weight-bold">SELLER</span>
               </div>
-              <div class="text-body2 text-weight-medium">{{ details.auctioneer.username ?? '—' }}</div>
+              <div class="text-body2 text-weight-medium">{{ details.auctioneer?.username ?? '—' }}</div>
               <div class="text-caption ellipsis" style="opacity: 0.55; max-width: 200px;">
-                {{ details.auctioneer.address ?? '—' }}
+                {{ details.auctioneer?.address ?? '—' }}
               </div>
             </div>
             <q-btn
               flat round dense icon="content_copy" size="xs"
-              @click="copyToClipboard(details.auctioneer.address, $q, { message: 'Copied to clipboard', position: 'top' })"
+              :disable="!details.auctioneer?.address"
+              @click="copyToClipboard(details.auctioneer?.address, $q, { message: 'Copied to clipboard', position: 'top' })"
             />
           </div>
 
@@ -108,14 +109,15 @@
               <div class="row items-center q-gutter-x-xs">
                 <span class="text-caption text-weight-bold">BUYER</span>
               </div>
-              <div class="text-body2 text-weight-medium">{{ details.bidder.username ?? '—' }}</div>
+              <div class="text-body2 text-weight-medium">{{ details.bidder?.username ?? '—' }}</div>
               <div class="text-caption ellipsis" style="opacity: 0.55; max-width: 200px;">
-                {{ details.bidder.address ?? '—' }}
+                {{ details.bidder?.address ?? '—' }}
               </div>
             </div>
             <q-btn
               flat round dense icon="content_copy" size="xs"
-              @click="copyToClipboard(details.bidder.address, $q, { message: 'Copied to clipboard', position: 'top' })"
+              :disable="!details.bidder?.address"
+              @click="copyToClipboard(details.bidder?.address, $q, { message: 'Copied to clipboard', position: 'top' })"
             />
           </div>
         </q-card-section>
@@ -189,19 +191,21 @@
           <div class="row q-gutter-sm q-mb-md">
             <q-btn
               no-caps unelevated
-              :color="selectedAction === 'Refund' ? 'negative' : 'primary'"
+              :color="selectedAction === 'refund' ? 'negative' : 'primary'"
               text-color="white"
               label="Refund to Bidder"
               class="col"
-              @click="selectedAction = 'Refund'"
+              :disable="isSubmitting || !canResolve"
+              @click="selectedAction = 'refund'"
             />
             <q-btn
               no-caps unelevated
-              :color="selectedAction === 'Release' ? 'positive' : 'primary'"
+              :color="selectedAction === 'release' ? 'positive' : 'primary'"
               text-color="white"
               label="Release to Seller"
               class="col"
-              @click="selectedAction = 'Release'"
+              :disable="isSubmitting || !canResolve"
+              @click="selectedAction = 'release'"
             />
           </div>
 
@@ -259,6 +263,10 @@
       </q-card>
     </div>
 
+    <div v-else class="q-pa-xl text-center text-bow" :class="getDarkModeClass(darkMode)">
+      Dispute details are unavailable.
+    </div>
+
     <DeliveryStatusHistoryDialog
       v-model="showStatusHistory"
       :lotId="details?.lot_id"
@@ -276,14 +284,11 @@
 import { useQuasar } from 'quasar'
 import { useStore } from 'vuex'
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
-import { computed, ref, onMounted, nextTick } from 'vue'
+import { computed, ref, onBeforeUnmount, onMounted, nextTick } from 'vue'
 import { useRouter } from 'vue-router'
 
 // src imports
 import { loadWallet } from "src/wallet"
-import { callAPI } from 'src/auction/api'
-import { DisputeDetails } from 'src/auction/object.js'
-import { callContractFunction } from 'src/auction/arbiter'
 import { copyToClipboard, formatBCH } from './helper-functions'
 
 // Components
@@ -313,6 +318,19 @@ const isArbiter = computed(() => !!$store.getters['auction/isArbiter'])
 
 // Page-specific data
 const disputeDetails = ref(null)
+const details = computed(() => disputeDetails.value)
+const canResolve = computed(() => Boolean(
+  details.value?.id
+  && details.value?.lot_id
+  && details.value?.contract_address
+  && details.value?.auctioneer?.auctioneer
+  && details.value?.bidder?.bidder
+  && details.value?.dispute_status === 'Pending'
+))
+
+const loadDispute = async () => {
+  disputeDetails.value = await $store.dispatch('auction/fetchDispute', props.disputeId)
+}
 
 onMounted(async () => {
   // Check if not arbiter
@@ -329,75 +347,8 @@ onMounted(async () => {
   }
   
   try {
-    const disputeResult = await callAPI('disputes', props.disputeId)
-    if (!disputeResult.success || !disputeResult.data) throw new Error('Dispute not found')
-    const dispute = disputeResult.data
-    
-    let lotId = null
-    let auctionId = null
-    let auctioneerData = null
-    let bidderData = null
-    let bidPriceBch = null
-    let contractAddress = null
-
-    if (dispute.bid) {
-      const bidResult = await callAPI('biddings', dispute.bid)
-      
-      if (bidResult.success && bidResult.data) {
-        const bid = bidResult.data
-        bidPriceBch = bid.bid_price_bch
-        lotId = bid.lot
-        
-        if (bid.bidder) {
-          const bidderResult = await callAPI('user-details', bid.bidder)
-          if (bidderResult.success && bidderResult.data) {
-            bidderData = {
-              bidder: bidderResult.data.user,
-              username: bidderResult.data.username,
-              address: bidderResult.data.address,
-            }
-          }
-        }
-
-        if (lotId) {
-          const lotResult = await callAPI('lots', lotId)
-          if (lotResult.success && lotResult.data) {
-            auctionId = lotResult.data.auction
-            
-            if (auctionId) {
-              const auctionResult = await callAPI('auctions', auctionId)
-              if (auctionResult.success && auctionResult.data?.auctioneer) {
-                const auctioneerResult = await callAPI('user-details', auctionResult.data.auctioneer)
-                if (auctioneerResult.success && auctioneerResult.data) {
-                  auctioneerData = {
-                    auctioneer: auctioneerResult.data.user,
-                    username: auctioneerResult.data.username,
-                    address: auctioneerResult.data.address,
-                  }
-                }
-              }
-            }
-          }
-        }
-      }
-
-      const contractResult = await callAPI('contract-address', dispute.bid)
-      if (contractResult.success && contractResult.data) {
-        contractAddress = contractResult.data.bch_address
-      }
-    }
-    
-    // Save 
-    disputeDetails.value = DisputeDetails.parse({
-      ...dispute,
-      lotId,
-      auctionId,
-      auctioneer: auctioneerData,
-      bidder: bidderData,
-      contract_address: contractAddress,
-      bid_price_bch: bidPriceBch,
-    })
-
+    await loadDispute()
+    if (!disputeDetails.value) throw new Error('Dispute not found')
   } catch (err) {
     console.error('Failed to load dispute:', err)
     $q.notify({ type: 'negative', message: 'Failed to load dispute details.', position: 'top' })
@@ -415,9 +366,12 @@ const swipeProgress = ref(0)
 const isDragging = ref(false)
 const swipeTrackWidth = ref(0)
 const swipeTrackEl = ref(null)
+const isSubmitting = ref(false)
 let startX = 0
+let removeSwipeListeners = null
 
 const startSwipe = async (e) => {
+  if (isSubmitting.value || !canResolve.value || !selectedAction.value) return
   await nextTick()
   swipeTrackWidth.value = swipeTrackEl.value ? swipeTrackEl.value.offsetWidth : 300
   isDragging.value = true
@@ -433,28 +387,47 @@ const startSwipe = async (e) => {
 
   const onEnd = async () => {
     isDragging.value = false
-    if (swipeProgress.value >= 0.85) {
+    const completed = swipeProgress.value >= 0.85
+    removeSwipeListeners?.()
+    if (completed) {
       swipeProgress.value = 1
       await handleAction()
     } else {
       swipeProgress.value = 0
     }
+  }
+
+  const onCancel = () => {
+    isDragging.value = false
+    swipeProgress.value = 0
+    removeSwipeListeners?.()
+  }
+
+  removeSwipeListeners?.()
+  removeSwipeListeners = () => {
     window.removeEventListener('mousemove', onMove)
     window.removeEventListener('mouseup', onEnd)
     window.removeEventListener('touchmove', onMove)
     window.removeEventListener('touchend', onEnd)
+    window.removeEventListener('touchcancel', onCancel)
+    removeSwipeListeners = null
   }
-
   window.addEventListener('mousemove', onMove)
   window.addEventListener('mouseup', onEnd)
   window.addEventListener('touchmove', onMove, { passive: true })
   window.addEventListener('touchend', onEnd)
+  window.addEventListener('touchcancel', onCancel)
 }
 
-const handleAction = async (addressPath=0) => {
-  // Neither refund nor release
-  if (!selectedAction.value) return
+const handleAction = async (addressPath='0/0') => {
+  if (isSubmitting.value) return
+  if (!['refund', 'release'].includes(selectedAction.value) || !canResolve.value) {
+    $q.notify({ type: 'negative', message: 'The dispute is missing information required for resolution.', position: 'top' })
+    swipeProgress.value = 0
+    return
+  }
 
+  isSubmitting.value = true
   try {
     $q.loading.show({ message: 'Processing...' })
 
@@ -462,50 +435,38 @@ const handleAction = async (addressPath=0) => {
     const wallet = await loadWallet('BCH')
     const publicKey = await wallet.BCH.getPublicKey(addressPath)
 
-    // Call release function from the server
-    await $store.dispatch(
+    const transaction = await $store.dispatch(
       `auction/callContractFunction`, 
       { 
-        lotId: disputeDetails.value.lotId, 
+        lotId: disputeDetails.value.lot_id,
+        disputeId: disputeDetails.value.id,
         functionName: selectedAction.value, 
         publicKey 
       }
     )
+    if (!transaction) throw new Error('The contract transaction did not complete.')
 
-    if (selectedAction.value === 'release') {
-      // Fetch delivery details from the server
-      await $store.dispatch('auction/fetchDeliveryDetails', disputeDetails.value.lotId)
-      
-      // Update delivery details (mark it as completed)
-      await $store.dispatch('auction/createDeliveryEvent', { })
-    } 
-
-    const payload = {
-      refund: { 
-        is_granted_refund: true, 
-        is_granted_return: false, 
-        is_resolved: true 
-      },
-      release: { 
-        is_granted_refund: false, 
-        is_granted_return: true, 
-        is_resolved: true 
-    },
-    }[selectedAction.value]
-
-    await callAPI('disputes', props.disputeId, 'patch', payload)
-    await callAPI('delivery-trackings', props.lotId, 'patch', { mark_as_completed: true })
+    await loadDispute()
 
     $q.notify({ type: 'positive', message: 'Action applied successfully.', position: 'top' })
     selectedAction.value = null
-    swipeProgress.value = 0
   } catch (err) {
     console.error('Failed to apply action:', err)
-    $q.notify({ type: 'negative', message: 'Failed to apply action.', position: 'top' })
-    swipeProgress.value = 0
+    const message = err.ambiguous
+      ? 'The settlement result could not be confirmed. Refresh before trying again.'
+      : err.message || 'Failed to apply action.'
+    $q.notify({ type: 'negative', message, position: 'top', timeout: 5000 })
   } finally {
+    isSubmitting.value = false
+    isDragging.value = false
+    swipeProgress.value = 0
     $q.loading.hide()
   }
 }
+
+onBeforeUnmount(() => {
+  isDragging.value = false
+  removeSwipeListeners?.()
+})
 
 </script>
