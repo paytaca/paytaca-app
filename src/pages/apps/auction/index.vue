@@ -172,41 +172,6 @@ const isLoading = ref(true)         // Controls auction listing loading
 // Auction-related listings
 const listingsTotalTime = computed(() => Date.now() - $store.getters['auction/listingsLastFetched'])
 
-const getArbiterServicerData = async () => {
-  const arbiterTotalTime = Date.now() - $store.getters['auction/arbiterLastFetched']
-  const servicerTotalTime = Date.now() - $store.getters['auction/servicerLastFetched']
-  const arbiterPK = $store.getters['auction/arbiterPublicKey']
-  const servicerPK = $store.getters['auction/servicerPublicKey']
-
-  await Promise.all([
-    !arbiterPK || arbiterTotalTime > 30000
-      ? $store.dispatch('auction/fetchArbiterPublicKey')
-      : Promise.resolve(),
-    !servicerPK || servicerTotalTime > 30000
-      ? $store.dispatch('auction/fetchServicerPublicKey')
-      : Promise.resolve()
-  ])
-}
-onMounted(async () => {
-  // Refresh the list of listings
-  await (
-    (listingsTotalTime.value > 300000)
-    ?  $store.dispatch('auction/fetchListings')
-    : Promise.resolve()
-  )
-  isLoading.value = false
-
-  // fetch arbiter servicer data
-  await getArbiterServicerData()
-
-  // Connect to the WS (Review)
-  socket = connectWebsocket()
-})
-
-onBeforeUnmount(() => {
-  if (socket) clearSocket()
-})
-
 // ===============
 // AUCTION-RELATED
 // =============== 
@@ -216,15 +181,15 @@ const auctionTypeOptions = $store.getters['auction/auctionTypeOptions']
 const auctionType = ref($store.getters['auction/indexAuctionType'] ?? 'All')
 const auctionSearchQuery = ref('') 
 
+// Checks if auction is empty
+const isAuctionEmpty = computed(() => !isLoading.value && filteredListings.value.length === 0)
+
 // Filters the auction items
 const filteredListings = computed(() => {
   let items = $store.getters['auction/filteredListings'] ?? []
   const query = auctionSearchQuery.value.trim().toLowerCase()
   return (query) ? items.filter(item => item.title?.toLowerCase().includes(query)) : items
 })
-
-// Checks if auction is empty
-const isAuctionEmpty = computed(() => !isLoading.value && filteredListings.value.length === 0)
 
 // Keep tabs on the auction type so it would filter the items
 watch(auctionType, (newType) => {
@@ -330,16 +295,9 @@ const clearSocket = () => {
   socket = null
 }
 
-
-// ================
-// HELPER FUNCTIONS
-// ================
-
 // ======================
 // PAGE-RELATED FUNCTIONS
 // ======================
-
-// Check if the arbiterPK and servicerPK are not null (prevents dispatching it every time)
 
 const refresh = async (done) => {
   await (
@@ -347,10 +305,26 @@ const refresh = async (done) => {
     ?  $store.dispatch('auction/fetchListings')
     : Promise.resolve()
   )
-
-  await getArbiterServicerData()
   if (typeof done === 'function') done()
 }
+
+onMounted(async () => {
+  // Refresh the list of listings
+  await (
+    (listingsTotalTime.value > 300000)
+    ?  $store.dispatch('auction/fetchListings')
+    : Promise.resolve()
+  )
+  isLoading.value = false
+
+  // Connect to the WS (Review)
+  socket = connectWebsocket()
+})
+
+onBeforeUnmount(() => {
+  if (socket) clearSocket()
+})
+
 </script>
 
 <style scoped lang="scss">
