@@ -1,77 +1,57 @@
-import { Contract, ElectrumNetworkProvider } from "cashscript"
+import { Contract, ElectrumNetworkProvider } from 'cashscript'
 import escrowArtifact from 'src/cashscripts/auction/AuctionEscrow.json'
-import BCHJS from '@psf/bch-js'
-import CryptoJS from 'crypto-js'
+import { Store } from 'src/store/'
+import { pubkeyToPkHash, sha256 } from 'src/utils/crypto.js'
 
-const bchjs = new BCHJS()
+const ARBITRATION_FEE = 1000
+const PLATFORM_FEE = 1000
 
-class AuctionEscrowContract {
-  /**
-   * Creates a new AuctionEscrowContract instance.
-   * @name constructor
-   * @param {Object} publicKeys - The public keys of the parties involved in the contract.
-   * @param {Object} fees - The fees associated with the contract.
-   * @param {Object} lotId - The lot associated with the contract.
-   * @param {boolean} [isChipnet=true] - A boolean indicating whether the contract is on the Chipnet network or not. Defaults to true.
-   */
-  constructor (publicKeys, fees, lotId, isChipnet = true) {
-    this.publicKeys = publicKeys
-    this.fees = fees
-    this.lotId = lotId
+export async function initializeContract (lotId) {
+  const publicKeys = await getAuctionPublicKeys(lotId)
+  const provider = new ElectrumNetworkProvider(
+    Store.getters['global/isChipnet'] ? 'chipnet' : 'mainnet'
+  )
 
-    // Network provider
-    this.provider = new ElectrumNetworkProvider((isChipnet) ? "chipnet" : "mainnet")
+  const arbiterPkh = pubkeyToPkHash(publicKeys.arbiter)
+  const auctioneerPkh = pubkeyToPkHash(publicKeys.auctioneer)
+  const servicerPkh = pubkeyToPkHash(publicKeys.servicer)
 
-    // Public Key Hashes
-    const arbiterPkh = this.getPubKeyHash(this.publicKeys.arbiter)
-    const auctioneerPkh = this.getPubKeyHash(this.publicKeys.auctioneer)
-    const servicerPkh = this.getPubKeyHash(this.publicKeys.servicer)
+  const message = publicKeys.auctioneer + publicKeys.arbiter + publicKeys.servicer + lotId
+  const hash = sha256(message)
 
-    // Hash
-    this.hash = this.sha256Hash(
-      this.publicKeys.auctioneer,
-      this.publicKeys.arbiter,
-      this.publicKeys.servicer,
-      this.lotId
-    )
+  const contractParams = [
+    auctioneerPkh,
+    arbiterPkh,
+    servicerPkh,
+    BigInt(lotId),
+    BigInt(PLATFORM_FEE),
+    BigInt(ARBITRATION_FEE),
+    hash
+  ]
 
-    // Contract Parameters
-    const contractParams = [
-      auctioneerPkh,  // bytes20 auctioneer
-      arbiterPkh,     // bytes20 arbiter
-      servicerPkh,    // bytes20 servicer
-      BigInt(this.lotId), // int lotId
-      BigInt(parseInt(this.fees.platformFee)),    // int platformFee
-      BigInt(parseInt(this.fees.arbitrationFee)), // int arbitrationFee
-      this.hash       // bytes paramHash
-    ]
-
-    this.contract = new Contract(escrowArtifact, contractParams, { provider: this.provider })
-  }
-
-  /**
-   * @name getPubKeyHash
-   * @param {string} pubKey - The public key to be hashed, in hexadecimal format.
-   * @returns {Buffer} The generated hash as a Buffer.
-   * Generates a hash of the given public key using the hash160 algorithm.
-   */
-  getPubKeyHash (pubKey) {
-    return bchjs.Crypto.hash160(Buffer.from(pubKey, 'hex'))
-  }
-
-  /**
-   * @name sha256Hash
-   * @param {bytes} auctioneerPk - The timestamp to be included in the hash.
-   * @param {bytes} arbiterPk - The timestamp to be included in the hash.
-   * @param {bytes} servicerPk - The timestamp to be included in the hash.
-   * @param {number} lotId - The timestamp to be included in the hash.
-   * @returns {Promise<string>} A promise that resolves with the generated hash as a string.
-   * Generates a SHA-256 hash of the contents of the contract file.
-   */
-  sha256Hash (auctioneerPk, arbiterPk, servicerPk, lotId) {
-    const message = auctioneerPk + arbiterPk + servicerPk + lotId
-    return CryptoJS.SHA256(message).toString()
-  }
+  return new Contract(escrowArtifact, contractParams, { provider })
 }
 
-export default AuctionEscrowContract
+async function getAuctionPublicKeys (lotId) {
+  await Promise.all([
+    Store.getters['auction/auctioneerPublicKey']
+      ? Promise.resolve()
+      : Store.dispatch('auction/fetchAuctioneerPublicKey'),
+    Store.getters['auction/arbiterPublicKey']
+      ? Promise.resolve()
+      : Store.dispatch('auction/fetchArbiterPublicKey', lotId),
+    Store.getters['auction/servicerPublicKey']
+      ? Promise.resolve()
+      : Store.dispatch('auction/fetchServicerPublicKey')
+  ])
+
+  const auctioneer = Store.getters['auction/auctioneerPublicKey']
+  const arbiter = Store.getters['auction/arbiterPublicKey']
+  const servicer = Store.getters['auction/servicerPublicKey']
+
+  if (!auctioneer || !arbiter || !servicer) {
+    throw new Error('Not all contract public keys were loaded.')
+  }
+
+  return { auctioneer, arbiter, servicer }
+}
