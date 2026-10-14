@@ -23,12 +23,13 @@
     </q-badge>
   </q-card>
   <div class="row items-center no-wrap q-mb-md">
-    <div class="recipient-field q-mt-sm se">
+    <div class="recipient-field q-mt-sm" :class="{ 'recipient-field--empty': emptyRecipient && (!recipientAddress || recipientEditing) }">
       <q-input
         v-if="!recipientAddress || recipientEditing"
         ref="recipientInput"
         filled
         label-slot
+        no-error-icon
         :disabled="inputExtras.isBip21"
         :readonly="inputExtras.isBip21"
         v-model="recipientAddress"
@@ -262,7 +263,7 @@
     </div>
   </div>
   <div class="row" v-if="!isNFT && !recipient.fixedAmount && !sending" style="padding-bottom: 15px">
-    <div class="col q-mt-md balance-max-container" :class="getDarkModeClass(darkMode)">
+    <div class="col q-mt-xs balance-max-container" :class="getDarkModeClass(darkMode)">
       <template v-if="currentWalletBalanceAsAsset?.id === 'bch' && asset?.id === 'bch'">
         <span v-bch-amount="{ denomination: selectedDenomination }">
         {{ parseAssetDenomination(selectedDenomination, currentWalletBalanceAsAsset) }}
@@ -831,6 +832,30 @@ export default {
       :deep(.q-field__native) {
         padding-right: 40px;
       }
+    }
+
+    &.recipient-field--empty .recipient-menu-btn {
+      animation: recipient-menu-pulse 1.6s ease-in-out infinite;
+
+      :deep(.q-focus-helper) {
+        opacity: 0.15;
+      }
+    }
+  }
+
+  @keyframes recipient-menu-pulse {
+    0%,
+    100% {
+      transform: scale(1);
+    }
+    50% {
+      transform: scale(1.15);
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .recipient-field--empty .recipient-menu-btn {
+      animation: none;
     }
   }
 
