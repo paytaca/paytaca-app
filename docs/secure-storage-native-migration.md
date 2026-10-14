@@ -1,12 +1,10 @@
-# Secure Storage: Native Migration (Tier-2 companion)
+# Secure Storage: Native Migration
 
 ## Overview
 
-`docs/seed-storage-escrow.md` (Tier-2) adds a portable, account-backed escrow
-so a lost WebView key or a lost device is recoverable. This document covers the
-**other half** of the same problem: moving the app off the *web-only* secure
-storage implementation and onto the **native** OS keystore, and the one-time
-migration that move requires.
+This document covers moving the app off the *web-only* secure storage
+implementation and onto the **native** OS keystore, plus the one-time migration
+that move requires.
 
 Today the app depends on `capacitor-secure-storage-plugin@0.5.1`, but that
 release is a **web-only build**:
@@ -17,12 +15,10 @@ release is a **web-only build**:
   `src-capacitor/package.json`, `capacitor.plugins.json`,
   `capacitor.settings.gradle`, `capacitor.build.gradle`, and `ios/App/Podfile`.
 - Consequently the **web** implementation runs on *every* platform, and the real
-  root of trust is a **WebView IndexedDB AES-256-GCM key** (see the escrow doc).
+  root of trust is a **WebView IndexedDB AES-256-GCM key**.
 
-The escrow mirror protects against losing that key, but it does not fix the
-underlying weakness: a WebView-scoped key is evictable with WebView data. The
-0.9.0 release targets Capacitor 5 (the version this app is on) and ships real
-native storage:
+A WebView-scoped key is evictable with WebView data. The 0.9.0 release targets
+Capacitor 5 (the version this app is on) and ships real native storage:
 
 | Platform | Backing store |
 |---|---|
@@ -37,8 +33,6 @@ native storage:
   base64 — unacceptable for a wallet).
 - Migrate existing installs with **no user action, no PIN, and no data loss**,
   and **never** render an existing phrase undecryptable.
-- Keep escrow as the cross-device backstop; the two changes ship together
-  (branch `fix/wallet-boot-cleanup-data-loss` / PR #789).
 
 ## Change set
 
@@ -53,7 +47,8 @@ native storage:
      (`paytaca-secure-storage` / `keys` / `aes-gcm-256`),
    - `getAesKey()` **throws `SECURE_STORAGE_KEY_MISSING`** instead of silently
      minting a new key when encrypted data already exists,
-   - `resetAesKeyForRecovery()` for explicit recovery,
+   - `resetAesKeyForRecovery()` is retained in the patch for explicit recovery
+     (currently unused by the app),
    - legacy plain-base64 values are still read (and lazily re-encrypted).
 3. **Fix legacy imports.** `src/wallet/index.js`, `src/store/global/actions.js`,
    and `src/wallet/mnemonic-migration.js` use the Capacitor v2-style
@@ -111,49 +106,31 @@ release, so a downgrade or a partial migration still has a readable source.
 ```
 navigator.storage.persist()          // best effort
 migrateSecureStorageToNative()       // legacy WebView -> native (no-op on web)
-restoreOnBoot()                      // escrow -> local/native, fills gaps
 recoverWalletsFromStorage()
 migrateMnemonicsToWalletHash()
-syncToEscrow()                       // fire-and-forget
 ```
 
 Ordering rationale:
 
-- The migration must run **before** `restoreOnBoot()`: on web, `restoreOnBoot()`
-  may call `resetAesKeyForRecovery()` (which discards the IndexedDB key), which
-  would make the legacy ciphertext unreadable. Running the migration first reads
-  the legacy data while the key still exists. On a device where the key is
-  already gone, the migration can't decrypt anyway and escrow is the only source
-  — `restoreOnBoot()` then writes natively.
-- It must run before `recoverWalletsFromStorage()` so restored/among migrated
-  mnemonics are visible to wallet recovery (same reason as escrow restore).
-
-## Escrow integration
-
-The escrow mirror enumerates mirrored keys by scanning `localStorage`
-(`listMirroredKeys()`). Once native storage is in use, keys no longer live in
-`localStorage`, so `listMirroredKeys()` is changed to use the plugin's
-`keys()` API (works on both the patched web impl and the native plugin; 0.9.0
-returns `{ value: string[] }` with the `cap_sec_` prefix already stripped).
-
-- Local writes/reads in escrow go through `SecureStoragePlugin`, so on native
-  they now target the OS keystore — escrow continues to work unchanged.
-- `resetAesKeyForRecovery()` is a web-only concern; on native it operates on the
-  (now irrelevant) WebView IndexedDB key and is harmless.
+- The migration must run **before** `recoverWalletsFromStorage()` so migrated
+  mnemonics are visible to wallet recovery.
+- On an install where the WebView key is already gone the migration cannot
+  decrypt anything; the user recovers from their written mnemonic backup, and the
+  non-destructive boot cleanup surfaces the problem instead of wiping data.
 
 ## New failure modes (native) and how they are covered
 
 | Failure | Effect | Coverage |
 |---|---|---|
-| Android `AndroidKeyStore` key is device-bound and **not** in Google Auto Backup | App data restored to a new device → undecryptable `SharedPreferences` blobs | Escrow (`restoreOnBoot`) rewrites plaintext natively |
-| iOS Keychain items are device-persistent but this plugin is **not** iCloud-synchronized | New device has no keys until backup restore | Escrow (iCloud Keychain payload) or a device backup |
-| Native write fails / storage unavailable | Secret cannot be saved | Fail loud; escrow sync still refuses to clobber; wallet write path surfaces the error |
+| Android `AndroidKeyStore` key is device-bound and **not** in Google Auto Backup | App data restored to a new device → undecryptable `SharedPreferences` blobs | Recover from the user's written mnemonic backup; the app does not sync secrets off-device |
+| iOS Keychain items are device-persistent but this plugin is **not** iCloud-synchronized | New device has no keys until device backup restore | Device backup, or the written mnemonic backup |
+| Native write fails / storage unavailable | Secret cannot be saved | Fail loud; the wallet write path surfaces the error |
 | Migration interrupted mid-way | Some keys native, some legacy | Flag unset → re-run; keys already native are skipped |
 
 Decryption failures **fail loud and never wipe** (`SECURE_STORAGE_KEY_MISSING` /
 `SECURE_STORAGE_DECRYPT_FAILED` discipline is preserved end-to-end), which is
-what lets Tier-1's non-destructive boot cleanup and Tier-2's escrow recover
-instead of losing the phrase.
+what lets the non-destructive boot cleanup prompt for recovery instead of losing
+the phrase.
 
 ## Security analysis
 
@@ -162,8 +139,7 @@ instead of losing the phrase.
 - Web/BEX keeps AES-256-GCM at rest — no regression to plain base64.
 - The migration writes only to the native store; it never deletes or rewrites
   the legacy copy, so it cannot destroy data.
-- No plaintext mnemonic is ever written to escrow; the password/key from the
-  Android emit remains `mk`/ciphertext only.
+- Secrets are never replicated off-device by the app.
 
 ## Out of scope
 
@@ -175,25 +151,21 @@ instead of losing the phrase.
 
 - Upgrade installs (Android + iOS) with existing wallets → verify mnemonic
   survives the migration (lock/unlock, send).
-- Fresh install → values written natively; escrow populated; no legacy entries.
-- New-device restore (Android same Google account, iOS same Apple ID) → escrow
-  restore repopulates native storage.
+- Fresh install → values written natively; no legacy entries.
 - Migration interruption (kill between native set and flag) → second boot
   completes it.
 - Web/BEX build → unchanged, still encrypted `enc:v1:` in `localStorage`.
-- Telemetry (never secrets): migration reason codes, escrow availability,
-  restore success/failure.
+- Telemetry (never secrets): migration reason codes, restore success/failure.
 
 ## File plan (as implemented)
 
 ```
 docs/secure-storage-native-migration.md                    (this file)
-patches/capacitor-secure-storage-plugin+0.9.0.patch        (encryption + fail-loud getAesKey + reset)
+patches/capacitor-secure-storage-plugin+0.9.0.patch        (encryption + fail-loud getAesKey)
 package.json                                               (0.5.1 -> 0.9.0)
 src-capacitor/package.json                                 (add plugin so cap sync registers it)
 src/wallet/secure-storage-migration.js                     (legacy localStorage -> native)
-src/wallet/escrow-vault.js                                 (keys() instead of localStorage scan)
-src/boot/vuex.js                                           (run migration before restore/recover)
+src/boot/vuex.js                                           (run migration before recover)
 src/wallet/index.js                                        (named import)
 src/store/global/actions.js                                (named import)
 src/wallet/mnemonic-migration.js                           (named import)

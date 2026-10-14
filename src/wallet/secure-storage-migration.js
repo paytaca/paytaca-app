@@ -7,9 +7,9 @@ import { SecureStoragePlugin, SECURE_STORAGE_KEY_MISSING } from 'capacitor-secur
  *
  * Before this change `capacitor-secure-storage-plugin@0.5.1` was a web-only
  * build, so on Android/iOS the web implementation ran and wrote ciphertext into
- * the WebView's `localStorage` under `cap_sec_<key>` (see
- * docs/seed-storage-escrow.md). Upgrading to 0.9.0 registers a native plugin
- * (AndroidKeyStore / iOS Keychain), so existing values must be copied over.
+ * the WebView's `localStorage` under `cap_sec_<key>`, keyed by a non-extractable
+ * AES-256-GCM `CryptoKey` in IndexedDB. Upgrading to 0.9.0 registers a native
+ * plugin (AndroidKeyStore / iOS Keychain), so existing values must be copied over.
  *
  * `localStorage` and IndexedDB belong to the WebView, so the legacy data is
  * still readable here. The migration is idempotent/resumable: it only sets its
