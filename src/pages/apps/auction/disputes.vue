@@ -151,11 +151,12 @@
 </template>
 
 <script setup>
-import { useQuasar } from 'quasar'
 import { useStore } from 'vuex'
 import { useRouter } from 'vue-router'
-import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 import { ref, computed, onMounted } from 'vue'
+
+// src imports
+import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 import { callAPI } from 'src/auction/api'
 import { DisputeList } from 'src/auction/object.js'
 
@@ -164,27 +165,33 @@ import HeaderNav from 'src/components/header-nav.vue'
 import AuctionHeaderMenu from 'src/components/auction/AuctionHeaderMenu.vue'
 import ActivitySearch from 'src/components/auction/ActivitySearch.vue'
 
-const $q = useQuasar()
+// Quasar variables
 const $store = useStore()
 const $router = useRouter()
+
+// System-related variables
 const darkMode = computed(() => $store.getters['darkmode/getStatus'])
-
 const isArbiter = computed(() => !!$store.getters['auction/isArbiter'])
+const isLoading = ref(false)
 
+// Page-specific variables
 const searchQuery = ref('')
 const arbiterType = ref('All')
 const arbiterTypeOptions = ['Pending', 'Resolved', 'All']
-
-const isLoading = ref(false)
 const arbiterDetails = ref([])
 
 const fetchArbiterData = async () => {
   arbiterDetails.value = []
+
+  // If not arbiter, don't proceed (REVIEW IF ROUTER.PUSH/REPLACE IS REQUIRED HERE )
   if (!isArbiter.value) return
 
   try {
     const result = await callAPI('disputes')
-    if (!result.success || !Array.isArray(result.data)) return
+    if (!result.success || !Array.isArray(result.data)) {
+      console.error('Failed to fetch disputes:', result)
+      return
+    }
 
     arbiterDetails.value = await Promise.all(
       result.data.map(async (dispute) => {
@@ -222,13 +229,16 @@ const fetchArbiterData = async () => {
 onMounted(async () => {
   if (!isArbiter.value) {
     console.warn('User is not an arbiter, redirecting...')
-    $router.push({ name: 'app-auction-activity' })
+    $router.replace({ name: 'app-auction-activity' })
     return
   }
 
   isLoading.value = true
-  await fetchArbiterData()
-  isLoading.value = false
+  try {
+    await fetchArbiterData()
+  } finally {
+    isLoading.value = false
+  }
 })
 
 const filteredDisputes = computed(() => {
@@ -238,23 +248,22 @@ const filteredDisputes = computed(() => {
     items = items.filter(dispute => dispute.status === arbiterType.value)
   }
 
-  const query = searchQuery.value.toLowerCase().trim()
-  if (query) {
-    items = items.filter(dispute => dispute.number?.includes(query))
-  }
-
-  return items
+  const query = searchQuery.value.trim().toLowerCase()
+  return query
+    ? items.filter(dispute => String(dispute.id).includes(query))
+    : items
 })
 
-const isMyArbiterEmpty = computed(() => {
-  return !isLoading.value && filteredDisputes.value.length === 0
-})
+const isMyArbiterEmpty = computed(() => !isLoading.value && filteredDisputes.value.length === 0)
 
 const refresh = async (done) => {
   isLoading.value = true
-  await fetchArbiterData()
-  isLoading.value = false
-  done()
+  try {
+    await fetchArbiterData()
+  } finally {
+    isLoading.value = false
+    if (typeof done === 'function') done()
+  }
 }
 </script>
 
