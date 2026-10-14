@@ -1,15 +1,22 @@
 <template>
   <q-dialog :model-value="modelValue" @update:model-value="$emit('update:modelValue', $event)">
     <q-card class="pt-card text-bow" :class="getDarkModeClass(darkMode)" style="min-width: 300px;">
+
+      <!--Title-->
       <q-card-section class="row items-center q-pb-none">
         <div class="text-subtitle1 text-weight-bold">Delivery Status History</div>
         <q-space />
         <q-btn icon="close" flat round dense v-close-popup />
       </q-card-section>
+
+      <!--Body-->
       <q-card-section>
+        <!--While page is loading-->
         <div v-if="isLoading" class="row justify-center q-py-md">
           <q-spinner color="primary" size="24px" />
         </div>
+
+        <!--Data has been loaded-->
         <q-timeline v-else color="primary" layout="dense">
           <q-timeline-entry
             v-for="entry in history"
@@ -28,12 +35,15 @@
 </template>
 
 <script setup>
+// Quasar/Vue imports
 import { ref, computed, watch } from 'vue'
 import { useStore } from 'vuex'
 import { date } from 'quasar'
-import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
-import { callAPI } from 'src/auction/api'
 
+// src imports
+import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
+
+// Props
 const props = defineProps({
   modelValue: Boolean,
   lotId: {
@@ -42,44 +52,45 @@ const props = defineProps({
   }
 })
 
+// Data to be emitted
 defineEmits(['update:modelValue'])
 
+// Quasar variables
 const store = useStore()
-const darkMode = computed(() => store.getters['darkmode/getStatus'])
 
-const history = ref([])
+// System-related variables
+const darkMode = computed(() => store.getters['darkmode/getStatus'])
 const isLoading = ref(false)
 
-const statusConfig = {
-  preparing_date: { 
-    title: 'Preparing', 
+// Page-specific variables
+const history = ref([])
+
+// Fixed
+const STATUS_CONFIG = {
+  Preparing: {
     color: 'warning',
     icon: 'inventory_2', 
     note: 'The seller is packaging your item and preparing it for dispatch.' 
   },
-  shipping_date: { 
-    title: 'Shipped', 
+  Shipped: {
     color: 'info',
     icon: 'local_shipping', 
     note: 'The item has been handed over to the courier and is on its way.' 
   },
-  delivered_date: { 
-    title: 'Delivered', 
+  'In Transit': {
+    color: 'info',
+    icon: 'local_shipping',
+    note: 'The item is in transit.'
+  },
+  'Out for delivery': {
+    color: 'info',
+    icon: 'local_shipping',
+    note: 'The item is out for delivery.'
+  },
+  Delivered: {
     color: 'positive',
     icon: 'task_alt', 
     note: 'Parcel successfully arrived at the destination address.' 
-  },
-  shipping_to_seller_date: { 
-    title: 'Returning to Seller', 
-    color: 'orange-8',
-    icon: 'assignment_return', 
-    note: 'Refund approved. The item is currently in transit back to the seller.' 
-  },
-  returned_to_seller_date: { 
-    title: 'Returned to Seller', 
-    color: 'blue-grey-6',
-    icon: 'keyboard_return', 
-    note: 'The item has been successfully returned to the seller.' 
   }
 }
 
@@ -88,26 +99,18 @@ async function loadHistory() {
   
   isLoading.value = true
   try {
-    const res = await callAPI('delivery-trackings', props.lotId)
-    if (!res?.success || !res.data) return
-
-    const trackingData = Array.isArray(res.data) ? res.data[0] : res.data
-    const timeline = []
-
-    for (const [key, config] of Object.entries(statusConfig)) {
-      if (trackingData[key]) {
-        timeline.push({
-          id: key,
-          status: config.title,
-          timestamp: date.formatDate(trackingData[key], 'MMM DD, YYYY · hh:mm A'),
-          note: config.note,
-          color: config.color,
-          icon: config.icon
-        })
+    const delivery = await store.dispatch('auction/fetchDeliveryDetails', props.lotId)
+    history.value = (delivery?.delivery_events ?? []).map(entry => {
+      const config = STATUS_CONFIG[entry.status] ?? {}
+      return {
+        id: entry.id,
+        status: entry.status,
+        timestamp: date.formatDate(entry.event_date, 'MMM DD, YYYY · hh:mm A'),
+        note: entry.description || config.note || '',
+        color: config.color || 'primary',
+        icon: config.icon || 'local_shipping'
       }
-    }
-    
-    history.value = timeline
+    })
   } catch (err) {
     console.error('Failed to load tracking data:', err)
   } finally {
