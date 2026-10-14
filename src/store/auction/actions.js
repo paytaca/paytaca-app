@@ -426,6 +426,7 @@ async function getDisputeDetails(disputeData) {
     auctioneer: userDetails(auctioneerResponse, 'auctioneer'),
     bidder: userDetails(bidderResponse, 'bidder'),
     contract_address: contractResponse.success ? contractResponse.data?.bch_address : null,
+    bid: bidResponse.success ? bidResponse.data?.id : null,
     bid_price_bch: bidResponse.success ? bidResponse.data?.bid_price_bch : 0
   })
 }
@@ -441,13 +442,14 @@ async function getDisputeDetails(disputeData) {
  * @param {String} publicKey
  * @returns contract transaction details
  */
-export async function callContractFunction(_, { lotId, functionName, publicKey }) {
+export async function callContractFunction({ dispatch }, { lotId, disputeId, functionName, publicKey }) {
   const response = await callAPI(
     functionName.toLowerCase(),
     null,
     'post',
     {
       lot_id: lotId,
+      dispute_id: disputeId,
       user_pk: publicKey
     }
   )
@@ -456,7 +458,15 @@ export async function callContractFunction(_, { lotId, functionName, publicKey }
     console.log(`[callContractFunction] Successfully called ${functionName} function from contract! Here are the details: `, response.data.tx_details)
     return response.data.tx_details
   }
-  return null
+  dispatch('printFailedContractFunctionCall', functionName)
+  
+  const error = new Error(response?.error || `Failed to call ${functionName}.`)
+  error.ambiguous = (
+    response?.status == null 
+    || response.status === 409 
+    || response.status >= 500
+  )
+  throw error
 }
 
 // ================================================================
@@ -561,6 +571,12 @@ export async function printFailedPost({ getters }, itemName) {
   const { hasNetworkError } = getters
   if (hasNetworkError) console.error(`Failed to create ${itemName} to the server.`)
   else console.log(`Network error occurred when requesting post for ${itemName}.`)
+}
+
+export async function printFailedContractFunctionCall({ getters }, functionName) {
+  const { hasNetworkError } = getters
+  if (hasNetworkError) console.error(`Failed to call ${functionName} contract function due to a network error.`)
+  else console.error(`Failed to call ${functionName} contract function.`)
 }
 
 export async function printNotExisting(itemName) {
