@@ -4,22 +4,27 @@ const websocketURL = (path) => {
   return `${protocol}//${APIURL.host}/ws/${path}/`
 }
 
+// Opens the auction index websocket.
 export function callIndexAuctionWebsocket(){
   return new WebSocket(websocketURL('index'))
 }
 
+// Opens the current user’s auction activity websocket.
 export function callActivityWebsocket(username){
   return new WebSocket(websocketURL(`activity/${encodeURIComponent(username)}`))
 }
 
+// Opens the websocket for an auction.
 export function callAuctionWebsocket(auctionId){
   return new WebSocket(websocketURL(`auction/${auctionId}`))
 }
 
+// Opens the websocket for a lot.
 export function callLotWebsocket(lotId){
   return new WebSocket(websocketURL(`lot/${lotId}`))
 }
 
+// Opens the refund countdown websocket for a delivery tracking record.
 export function callRefundCountdownWebsocket(deliveryTrackingId){
   return new WebSocket(websocketURL(`refund-countdown/${encodeURIComponent(deliveryTrackingId)}`))
 }

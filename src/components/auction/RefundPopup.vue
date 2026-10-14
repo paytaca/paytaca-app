@@ -4,6 +4,7 @@
     position="bottom"
     @update:model-value="$emit('update:modelValue', $event)"
   >
+    <!-- Refund request details, reasons, and submission -->
     <q-card
       class="br-15 pt-card-2 text-bow full-width"
       :class="getDarkModeClass(darkMode)"
@@ -60,6 +61,7 @@
 </template>
 
 <script setup>
+// Imports
 import { useQuasar } from 'quasar'
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 import { computed, ref, watch } from 'vue'
@@ -67,6 +69,7 @@ import { useStore } from 'vuex'
 import { callAPI } from 'src/auction/api'
 import { Store } from 'src/store'
 
+// Component props
 const props = defineProps({
   modelValue: {
     type: Boolean,
@@ -105,8 +108,10 @@ watch(() => props.modelValue, (isOpen) => {
   }
 })
 
+// Returns whether the dispute reason is selected.
 const isSelected = (value) => selectedReasons.value.includes(value)
 
+// Adds or removes a dispute reason from the selection.
 const toggleReason = (value) => {
   const index = selectedReasons.value.indexOf(value)
   if (index === -1) selectedReasons.value.push(value)
@@ -117,6 +122,7 @@ const canSubmit = computed(() => {
   return selectedReasons.value.length > 0
 })
 
+// Validates and submits the selected dispute reasons.
 const handleSubmit = async () => {
   if (!canSubmit.value) return
 

@@ -4,6 +4,7 @@
     @update:model-value="$emit('update:isToggledEditLot', $event)"
     position="bottom"
   >
+    <!-- Existing lot details and pricing fields -->
     <q-card class="br-15 pt-card-2 text-bow bottom-card" :class="getDarkModeClass(darkMode)">
       <q-form
         ref="editLotFormRef"
@@ -266,11 +267,13 @@
 </template>
 
 <script setup>
+// Imports
 import { useQuasar } from 'quasar'
 import { ref, computed, watch, watchEffect } from 'vue'
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 import { useStore } from 'vuex'
 
+// Component props
 const props = defineProps({
   auctionType: {
     type: String,
@@ -348,6 +351,7 @@ watch([() => props.startDate, () => props.endDate], () => {
 
 const currentImageUrls = ref([])
 
+// Reports files rejected by the upload validation.
 const onRejected = (rejectedEntries) => {
   $q.notify({
     type: 'negative',
@@ -357,6 +361,7 @@ const onRejected = (rejectedEntries) => {
 
 const isManualOverride = ref(false)
 
+// Calculates a suggested price drop for the lot.
 const calculateSuggestedDrop = () => {
   if (suggestedPriceDrop.value !== null) {
     isManualOverride.value = false
@@ -402,6 +407,7 @@ watchEffect(() => {
   }
 })
 
+// Marks the price drop as manually edited.
 const onPriceDropManualInput = (val) => {
   if (suggestedPriceDrop.value !== null && val !== suggestedPriceDrop.value) {
     isManualOverride.value = true
@@ -414,6 +420,7 @@ watch(() => props.isFiatUsed, (newVal, oldVal) => {
   if (oldVal !== undefined) toggleCurrency(newVal)
 })
 
+// Switches the form between fiat and BCH pricing.
 const toggleCurrency = (isFiat) => {
   const rate = bchToPhpRate.value
 
@@ -432,6 +439,7 @@ const toggleCurrency = (isFiat) => {
   }
 }
 
+// Formats the equivalent value in the other currency.
 const formatEquivalent = (value) => {
   const rate = bchToPhpRate.value
   if (!rate || !value || isNaN(value)) {
@@ -447,6 +455,7 @@ const formatEquivalent = (value) => {
   }
 }
 
+// Normalizes the selected price-drop interval.
 const normalizeInterval = (value) => {
   if (value === undefined || value === null) return 10
   if (typeof value === 'object') return Number(value.value || 10)
@@ -490,6 +499,7 @@ watch(() => props.lotData, (newLot) => {
 
 const editLotFormRef = ref(null)
 
+// Scrolls the form to the first field with a validation error.
 const scrollToFirstError = () => {
   setTimeout(() => {
     const firstInvalidField = document.querySelector('.q-dialog .q-field--error, .q-dialog .q-field--invalid')
@@ -502,6 +512,7 @@ const scrollToFirstError = () => {
   }, 50)
 }
 
+// Validates and saves the edited lot data.
 const saveLot = async () => {
   if (editLotFormRef.value) {
     const isValid = await editLotFormRef.value.validate()

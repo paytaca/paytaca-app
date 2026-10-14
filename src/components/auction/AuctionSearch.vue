@@ -1,4 +1,5 @@
 <template>
+  <!-- Search input for auction listings -->
   <q-input
     outlined
     dense
@@ -19,12 +20,14 @@
 </template>
 
 <script setup>
+// Imports
 import { useQuasar } from "quasar";
 import { getDarkModeClass } from "src/utils/theme-darkmode-utils";
 import { useRouter } from "vue-router";
 import { useStore } from "vuex";
 import { computed, ref, watch } from "vue";
 
+// Component state and computed values
 const emit = defineEmits(['search-change'])
 
 const $q = useQuasar()
@@ -35,6 +38,7 @@ const inputVal = ref('');
 const loading = ref(false)
 const darkMode = computed(() => $store.getters['darkmode/getStatus'])
 
+// Updates the search query and filters the visible auction items.
 const handleSearch = (val) => {
   loading.value = true;
   

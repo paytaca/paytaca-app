@@ -719,12 +719,12 @@
 </template>
 
 <script setup>
+// Imports
 import { useStore } from 'vuex'
 import { ref, computed, onMounted, onBeforeUnmount } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useQuasar, date } from 'quasar'
 
-// src imports
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 import { callAPI } from 'src/auction/api'
 import { payFirstBidToContract } from 'src/auction/payment'
@@ -897,6 +897,7 @@ MAKE IT SO THAT YOUR FLOW GOES:
 -> CANCEL OTHER PENDING BIDS (FIND A WAY TO CANCEL ALL PENDING PARALLEL BIDS IF A MESSAGE IS RECEIVED TO CANCEL THEM)
   You may need to update the backend for this one too
 */
+// Validates and submits bid data after the pending bid is created.
 const handlePlaceBid = async ({ bid_price_bch, bid_price_fiat }) => {
   // Loading is still ongoing
   if (bidOrBuyLoading.value) return
@@ -940,17 +941,22 @@ const handlePlaceBid = async ({ bid_price_bch, bid_price_fiat }) => {
     })
     if (!pendingBid?.id) throw new Error('Bid was not created.')
 
-    // Paying for the bid (sending it to the contract)
-    $q.loading.show({ message: 'Processing smart contract...' })
-    const txid = await payFirstBidToContract(Number(props.lotId), Number(bidBch.toFixed(8)))
+    let settledBid
+    if (engLotHasBid.value) {
+      const result = await callAPI('outbid', pendingBid.id, 'post')
+      if (!result.success) throw new Error(result.error || 'Failed to outbid.')
+      settledBid = result.data
+    } else {
+      $q.loading.show({ message: 'Processing smart contract...' })
+      const txid = await payFirstBidToContract(Number(props.lotId), Number(bidBch.toFixed(8)))
 
-    // Wait for bid to be marked as complete
-    const settlement = waitForBidSettlement(pendingBid.id)
-    socket.send(JSON.stringify({
-      type: 'paid_bid',
-      data: { id: pendingBid.id, lot: Number(props.lotId), txid }
-    }))
-    const settledBid = await settlement
+      const settlement = waitForBidSettlement(pendingBid.id)
+      socket.send(JSON.stringify({
+        type: 'paid_bid',
+        data: { id: pendingBid.id, lot: Number(props.lotId), txid }
+      }))
+      settledBid = await settlement
+    }
 
     showMakeBidDialog.value = false
     $q.notify({
@@ -1000,6 +1006,7 @@ const dutchFloorPriceFiat = computed(() => Number(lot.value?.threshold_bid_fiat 
 const dynamicPriceBch = ref(0)
 const dynamicPriceFiat = ref(0)
 
+// Submits the buy-now request and processes its result.
 const handleBuyItNow = async () => {
   if (bidOrBuyLoading.value) return
   showMakeBidDialog.value = false
@@ -1054,6 +1061,7 @@ const handleBuyItNow = async () => {
 
 const isCreatingDeliveryTracking = ref(false)
 
+// Creates delivery tracking for an English auction purchase.
 const initEnglishDeliveryTracking = async () => {
   if (isCreatingDeliveryTracking.value) return
   if (auction.value?.type !== 'English') return
@@ -1092,6 +1100,7 @@ const canRequestRefund = computed(() => {
 const refundCountdown = ref('')
 let refundCountdownInterval = null
 
+// Updates the refund countdown from the latest websocket value.
 const updateRefundCountdown = () => {
   if (!deliveredDate.value || isGrantedRefund.value) {
     refundCountdown.value = ''
@@ -1131,6 +1140,7 @@ const updateRefundCountdown = () => {
 const listingsTotalTime = computed(() => Date.now() - $store.getters['auction/listingsLastFetched'])
 const auctionLotsTotalTime = computed(() => Date.now() - $store.getters['auction/auctionLotsLastFetched'])
 
+// Loads the data required to render the page.
 const loadPageData = async () => {
   const isSameLotId = $store.getters['auction/lotId'] === Number(props.lotId)
   const isSameAuctionId = $store.getters['auction/auctionId'] === Number(props.auctionId)
@@ -1157,6 +1167,7 @@ const smartBackPath = computed(() => {
   return `/apps/auction/${props.auctionId}`
 })
 
+// Refreshes the page data and completes the pull-to-refresh action.
 const refresh = async (done) => {
   if (!auction.value || !lot.value) $router.replace(smartBackPath.value)
   await loadPageData()
@@ -1201,6 +1212,7 @@ let reconnectTimeout = null
 let reconnectAttempts = 0
 let maxReconnectAttempts = 10
 
+// Connects to the auction websocket and handles incoming updates.
 const connectWebsocket = () => {
   const ws = callLotWebsocket(Number(props.lotId))
 
@@ -1427,6 +1439,7 @@ const waitForBidSettlement = (bidId) => {
 }
 
 
+// Resolves the pending settlement wait for a bid.
 const resolveBidSettlement = (data) => {
   if (Number(data?.id) !== settlementBidId || data?.status === 'Pending') return
   settlementResolver?.(data)

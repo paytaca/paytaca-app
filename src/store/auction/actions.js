@@ -364,6 +364,7 @@ export async function fetchDispute({ commit, dispatch }, disputeId) {
   return dispute
 }
 
+// Fetches and parses the dispute records shown to the arbiter.
 export async function fetchDisputes({ dispatch }) {
   const response = await callAPI('disputes')
   if (!response.success || !Array.isArray(response.data)) {
@@ -381,6 +382,7 @@ export async function fetchDisputes({ dispatch }) {
   }))
 }
 
+// Fetches and stores dispute details for a lot.
 export async function fetchDisputeByLot({ commit, dispatch }, lotId) {
   const response = await callAPI('disputes-by-lot', lotId)
   const disputeData = Array.isArray(response.data) ? response.data[0] : response.data
@@ -396,10 +398,12 @@ export async function fetchDisputeByLot({ commit, dispatch }, lotId) {
   return dispute
 }
 
+// Fetches dispute details associated with a bid’s lot.
 export async function fetchDisputeByBid({ dispatch }, lotId) {
   return dispatch('fetchDisputeByLot', lotId)
 }
 
+// Combines dispute data with related auction, user, contract, and bid details.
 async function getDisputeDetails(disputeData) {
   const lotId = disputeData.lot
   const lotResponse = await callAPI('lots', lotId)
@@ -555,30 +559,35 @@ export async function updateUsername({ commit, dispatch, getters }, { newUsernam
 // PRINTING FUNCTIONS 
 // ==================
 
+// Logs a failed auction data fetch.
 export async function printFailedFetch({ getters }, itemName) {
   const { hasNetworkError } = getters
   if (hasNetworkError) console.error(`Failed to fetch ${itemName} from the server.`)
   else console.log(`Server does not have requested ${itemName}.`)
 }
 
+// Logs a failed auction data update.
 export async function printFailedPatch({ getters }, itemName) {
   const { hasNetworkError } = getters
   if (hasNetworkError) console.error(`Failed to patch ${itemName} to the server.`)
   else console.log(`Network error occurred when requesting patch for ${itemName}.`)
 }
 
+// Logs a failed auction data creation request.
 export async function printFailedPost({ getters }, itemName) {
   const { hasNetworkError } = getters
   if (hasNetworkError) console.error(`Failed to create ${itemName} to the server.`)
   else console.log(`Network error occurred when requesting post for ${itemName}.`)
 }
 
+// Logs a failed contract function request.
 export async function printFailedContractFunctionCall({ getters }, functionName) {
   const { hasNetworkError } = getters
   if (hasNetworkError) console.error(`Failed to call ${functionName} contract function due to a network error.`)
   else console.error(`Failed to call ${functionName} contract function.`)
 }
 
+// Logs when the requested auction data is unavailable.
 export async function printNotExisting(itemName) {
   console.error(`Failed to fetch existing ${itemName} as it DNE.`)
 }

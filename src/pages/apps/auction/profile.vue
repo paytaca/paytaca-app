@@ -1,8 +1,6 @@
 <!-- eslint-disable vue/multi-word-component-names -->
 <template>
-  <!--
-    This page contains setting up the username. 
-  -->
+  <!-- Username profile form -->
   <div
     id="app-container"
     class="auction-container"
@@ -71,6 +69,7 @@
 </template>
 
 <script setup>
+// Imports
 import { useQuasar } from 'quasar'
 import { useStore } from 'vuex'
 import { useRouter } from 'vue-router'

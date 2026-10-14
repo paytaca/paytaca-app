@@ -1,4 +1,5 @@
 <template>
+  <!-- Editable auction title, type, schedule, and image fields -->
   <q-card class="bg-transparent no-shadow text-bow" :class="getDarkModeClass(darkMode)">
     <q-form @submit.prevent="$emit('submit-auction')">
       <q-card-section class="q-pa-none">
@@ -140,11 +141,13 @@
 </template>
 
 <script setup>
+// Imports
 import { useQuasar, date } from 'quasar'
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 import { computed, watch, ref } from 'vue'
 import { useStore } from 'vuex'
 
+// Component state and computed values
 const $q = useQuasar()
 const $store = useStore()
 
@@ -198,6 +201,7 @@ const endDateRules = [
   }
 ]
 
+// Clears the selected auction image.
 const clearImage = () => {
   uploadedFile.value = null
   emit('update:auction-form', { ...form.value, image: null })

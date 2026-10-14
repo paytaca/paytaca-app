@@ -4,6 +4,7 @@
     @update:model-value="$emit('update:isToggledDeleteLot', $event)" 
     position="bottom"
   >
+    <!-- Lot deletion confirmation and actions -->
     <q-card class="br-15 pt-card-2 text-bow bottom-card" :class="getDarkModeClass(darkMode)">
       <q-card-section class="q-pa-md text-center">
         <q-avatar icon="delete" color="red-1" text-color="red" size="md" class="q-mb-sm" />
@@ -41,6 +42,7 @@
 </template>
 
 <script setup>
+// Imports
 import { useQuasar } from 'quasar'
 import { computed } from 'vue'
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
@@ -59,6 +61,7 @@ defineProps({
 
 defineEmits(['update:isToggledDeleteLot', 'confirm-delete'])
 
+// Component state and computed values
 const $q = useQuasar()
 const $store = useStore()
 const darkMode = computed(() => $store.getters['darkmode/getStatus'])

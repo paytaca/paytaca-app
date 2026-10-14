@@ -1,4 +1,5 @@
 <template>
+  <!-- Profile and auction navigation menu -->
   <div class="pt-settings-icon">
     <q-btn flat round class="q-r-mr-sm q-r-mt-sm">
       <q-icon
@@ -47,6 +48,7 @@
 </template>
 
 <script>
+// Imports
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 import { computed, defineComponent } from 'vue'
 import { useStore } from 'vuex'

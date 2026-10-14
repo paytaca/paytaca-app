@@ -62,12 +62,11 @@
 </template>
 
 <script setup>
-// Vue and Quasar imports
+// Imports
 import { ref, computed, watch } from 'vue'
 import { useStore } from 'vuex'
 import { date } from 'quasar'
 
-// src imports
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 import { Store } from 'src/store'
 import { callAPI } from 'src/auction/api.js'

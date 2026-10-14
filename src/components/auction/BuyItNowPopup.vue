@@ -4,6 +4,7 @@
     @update:model-value="$emit('update:showMakeBidDialog', $event)" 
     position="bottom"
   >
+    <!-- Current buy-now price and purchase confirmation -->
     <q-card class="br-15 pt-card-2 text-bow bottom-card" :class="getDarkModeClass(darkMode)">
       <q-card-section class="q-pa-md text-center">
         <q-avatar icon="bolt" color="red-1" text-color="red" size="md" class="q-mb-sm" />
@@ -59,11 +60,13 @@
 </template>
 
 <script setup>
+// Imports
 import { useQuasar } from 'quasar'
 import { computed } from 'vue'
 import { useStore } from 'vuex'
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 
+// Component props
 const props = defineProps({
   showMakeBidDialog: {
     type: Boolean,
@@ -104,6 +107,7 @@ const darkMode = computed(() => $store.getters['darkmode/getStatus'])
 
 
 
+// Formats a BCH amount for display.
 const formatBCH = (val) => {
   if (val == null) return { main: '—', zeros: '' }
   const str = Number(val).toFixed(8)
@@ -113,11 +117,13 @@ const formatBCH = (val) => {
   return { main: `${int}.${significant}`, zeros: trailingZeros }
 }
 
+// Formats a fiat amount as Philippine pesos.
 const formatFiat = (value) => {
   const numValue = Number(value) || 0
   return `₱${numValue.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
 }
 
+// Confirms the buy-now action with the parent component.
 const confirmPurchase = () => {
   const walletBalance = $store.getters['assets/getAssets'][0]?.spendable || 0
 

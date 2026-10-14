@@ -144,6 +144,7 @@ export async function sendNFTToTokenAddress(
   }
 }
 
+// Encodes the bidder hash and bid amount into the NFT commitment.
 function createBidCommitment(bidderPKH, bidAmountSats) {
   const bidderBytes = Buffer.from(bidderPKH, 'hex')
   const amountBytes = Buffer.alloc(8)
@@ -151,6 +152,7 @@ function createBidCommitment(bidderPKH, bidAmountSats) {
   return Buffer.concat([bidderBytes, amountBytes]).toString('hex')
 }
 
+// Converts a BCH amount to satoshis and validates the result.
 function toSatoshis(bidAmountBCH) {
   const amount = Number(bidAmountBCH)
   if (!Number.isFinite(amount) || amount <= 0) {

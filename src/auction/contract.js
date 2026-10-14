@@ -6,6 +6,7 @@ import { pubkeyToPkHash, sha256 } from 'src/utils/crypto.js'
 const ARBITRATION_FEE = 1000
 const PLATFORM_FEE = 1000
 
+// Creates the auction escrow contract instance for a lot.
 export async function initializeContract (lotId) {
   const publicKeys = await getAuctionPublicKeys(lotId)
   const provider = new ElectrumNetworkProvider(
@@ -32,6 +33,7 @@ export async function initializeContract (lotId) {
   return new Contract(escrowArtifact, contractParams, { provider })
 }
 
+// Loads the public keys required to initialize the escrow contract.
 async function getAuctionPublicKeys (lotId) {
   await Promise.all([
     Store.getters['auction/auctioneerPublicKey']

@@ -339,6 +339,7 @@
 </template>
 
 <script setup>
+// Imports
 import noImage from 'src/assets/no-image.svg'
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 import { useStore } from 'vuex'
@@ -375,6 +376,7 @@ const props = defineProps({
 const auction = computed(() => $store.getters['auction/auctionData'])
 const auctionEndCountdown = ref('Loading...')
 const auctionStartCountdown = ref('Loading...')
+// Determines whether auction listings need to be refreshed.
 const shouldFetchListings = () => {
   const lastFetched = $store.getters['auction/listingsLastFetched']
   return !lastFetched || Date.now() - lastFetched > 30000
@@ -385,6 +387,7 @@ const lotCategory = ref($store.getters['auction/auctionLotCategory'] ?? 'All')
 const lotCategoryOptions = $store.getters['auction/lotCategoryOptions']
 const lotSearchQuery = ref('') 
 
+// Determines whether the auction lots need to be refreshed.
 const shouldFetchAuctionLots = () => {
   const lastFetched = $store.getters['auction/auctionLotsLastFetched']
   return !lastFetched || Date.now() - lastFetched > 30000
@@ -401,6 +404,7 @@ watch(lotCategory, (newType) => {
   $store.commit('auction/updateAuctionLotCategory', { type: newType })
 })
 
+// Loads the data required to render the page.
 const loadPageData = async (force=false) => {
   // Check if props.auctionId is the same as stored auctionId (to prevent repeated fetching)
   const isSameAuctionId = $store.getters['auction/auctionId'] === Number(props.auctionId)
@@ -484,6 +488,7 @@ let reconnectAttempts = 0
 let maxReconnectAttempts = 10
 let isUnmounted = false
 
+// Connects to the auction websocket and handles incoming updates.
 const connectWebsocket = () => {
   if (isUnmounted) return null
   const ws = callAuctionWebsocket(Number(props.auctionId))
@@ -593,6 +598,7 @@ const connectWebsocket = () => {
   return ws
 }
 
+// Closes the auction websocket and removes its listeners.
 const clearSocket = () => {
   if (reconnectTimeout) {
     clearTimeout(reconnectTimeout)
@@ -612,6 +618,7 @@ const clearSocket = () => {
 // FETCHING AUCTION AND AUCTION LOT DETAILS
 // ========================================
 
+// Opens or closes the auction editing form.
 const toggleEditAuction = async () => {
   const now = new Date()
   const startDate = new Date(auction.value?.start_date)
@@ -669,6 +676,7 @@ const smartBackPath = computed(() => {
   return `/apps/auction`
 })
 
+// Refreshes the page data and completes the pull-to-refresh action.
 const refresh = async (done) => {
   try {
     await loadPageData(true)

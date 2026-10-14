@@ -1,5 +1,6 @@
 import defaultState from './state'
 
+// Resets the auction module state.
 export function resetState(state) {
   Object.assign(state, defaultState())
 }
@@ -306,6 +307,7 @@ export function cancelLotBids(state, bidIds) {
 // BIDDING-RELATED MUTATIONS
 // =========================
 
+// Stores the auctioneer public key value in auction state.
 export function setAuctioneerPublicKey(state, auctioneerPK) {
   state.auctioneerPublicKey = auctioneerPK
 }

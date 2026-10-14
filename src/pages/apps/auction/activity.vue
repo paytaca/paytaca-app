@@ -385,6 +385,7 @@
 </template>
 
 <script setup>
+// Imports
 import { useStore } from 'vuex'
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 import { computed, ref, onMounted, watch, onBeforeUnmount } from 'vue'
@@ -405,6 +406,7 @@ import { callActivityWebsocket } from 'src/auction/websocket'
 import { AuctionList } from 'src/auction/object'
 
 // Quasar-related variales
+// Component state and computed values
 const $store = useStore()
 const $router = useRouter()
 
@@ -432,6 +434,7 @@ const lotDetails = computed(() => $store.getters['auction/myBiddings'])
 const lotHasBid = ref({})
 const lotSearchQuery = ref($store.getters['auction/activityLotQuery'] || '')
 
+// Returns the configured price-drop interval for a lot.
 const getLotIntervalMinutes = (lot) => {
   if (lot && typeof lot.getIntervalMinutes === 'function') return lot.getIntervalMinutes()
   return 10
@@ -441,6 +444,7 @@ const getLotIntervalMinutes = (lot) => {
 // FORMATTING FUNCTIONS
 // ====================
 
+// Fetches whether English auction lots have received a bid.
 const fetchHasBidForLots = async (lotsArr) => {
   const englishLots = (lotsArr || []).filter(
     lot =>
@@ -482,6 +486,7 @@ let reconnectAttempts = 0
 let maxReconnectAttempts = 10
 let isUnmounted = false
 
+// Connects to the auction websocket and handles incoming updates.
 const connectWebsocket = () => {
   const username = $store.getters['auction/username']
   const ws = callActivityWebsocket(username)
@@ -564,6 +569,7 @@ const connectWebsocket = () => {
   return ws
 }
 
+// Closes the activity websocket and removes its listeners.
 const clearWebsocket = () => {
   if (reconnectTimeout) {
     clearTimeout(reconnectTimeout)
@@ -663,6 +669,7 @@ GETTING INFORMATION FUNCTIONS
 =============================
 */
 
+// Loads the current user’s auctions or bids for the selected activity tab.
 const fetchMyData = async () => {
   isLoading.value = true
 
@@ -673,6 +680,7 @@ const fetchMyData = async () => {
   }
 }
 
+// Refreshes the page data and completes the pull-to-refresh action.
 const refresh = async (done) => {
   try {
     await fetchMyData()

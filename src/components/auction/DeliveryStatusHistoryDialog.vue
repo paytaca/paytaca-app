@@ -36,11 +36,11 @@
 
 <script setup>
 // Quasar/Vue imports
+// Imports
 import { ref, computed, watch } from 'vue'
 import { useStore } from 'vuex'
 import { date } from 'quasar'
 
-// src imports
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 
 // Props

@@ -1,4 +1,5 @@
 <template>
+  <!-- Search input for auction lots -->
   <div>
     <q-input
       outlined
@@ -21,10 +22,12 @@
 </template>
 
 <script setup>
+// Imports
 import { getDarkModeClass } from "src/utils/theme-darkmode-utils";
 import { useStore } from "vuex";
 import { computed, ref, watch } from "vue";
 
+// Component state and computed values
 const emit = defineEmits(['search-change'])
 
 const $store = useStore();
@@ -33,6 +36,7 @@ const darkMode = computed(() => $store.getters['darkmode/getStatus']);
 const inputVal = ref('');
 const loading = ref(false);
 
+// Updates the search query and filters the visible auction items.
 const handleSearch = (val) => {
   loading.value = true;
   

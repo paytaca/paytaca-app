@@ -155,13 +155,12 @@
 </template>
 
 <script setup>
-// Vue and Quasar imports
+// Imports
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 import { computed, ref, watch } from 'vue'
 import { useQuasar } from 'quasar'
 import { useStore } from 'vuex'
 
-// src imports
 import { Store } from 'src/store'
 import { callAPI } from 'src/auction/api'
 import { formatBCH as getFormattedBCH } from 'src/pages/apps/auction/helper-functions'

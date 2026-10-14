@@ -12,6 +12,7 @@
   </div>
 
   <q-dialog v-model="isToggledAddLot" position="bottom">
+    <!-- New lot details, pricing, and image fields -->
     <q-card class="br-15 pt-card-2 text-bow bottom-card" :class="getDarkModeClass(darkMode)">
       <q-form
         ref="addLotFormRef"
@@ -266,11 +267,13 @@
 </template>
 
 <script setup>
+// Imports
 import { useQuasar } from 'quasar'
 import { ref, computed, watch, watchEffect } from 'vue'
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 import { useStore } from 'vuex'
 
+// Component props
 const props = defineProps({
   auctionType: {
     type: String,
@@ -340,18 +343,21 @@ watch([() => props.startDate, () => props.endDate], () => {
 })
 
 const isToggledAddLot = ref(false)
+// Handles toggle add lot.
 const onToggleAddLot = () => {
   isToggledAddLot.value = !isToggledAddLot.value
 }
 
 const hasFileOverload = ref(false)
 
+// Reports files rejected by the upload validation.
 const onRejected = (rejectedEntries) => {
   if (rejectedEntries.some(entry => entry.failedPropValidation === 'max-files')) {
     hasFileOverload.value = true
   }
 }
 
+// Synchronizes the selected image files with the form.
 const onModelUpdate = (newFiles) => {
   if (newFiles && newFiles.length <= 3) {
     hasFileOverload.value = false
@@ -360,6 +366,7 @@ const onModelUpdate = (newFiles) => {
   }
 }
 
+// Removes all selected lot images.
 const clearImages = () => {
   lotImages.value = []
   hasFileOverload.value = false
@@ -367,6 +374,7 @@ const clearImages = () => {
 
 const isManualOverride = ref(false)
 
+// Calculates a suggested price drop for the lot.
 const calculateSuggestedDrop = () => {
   if (suggestedPriceDrop.value !== null) {
     isManualOverride.value = false
@@ -412,6 +420,7 @@ watchEffect(() => {
   }
 })
 
+// Marks the price drop as manually edited.
 const onPriceDropManualInput = (val) => {
   if (suggestedPriceDrop.value !== null && val !== suggestedPriceDrop.value) {
     isManualOverride.value = true
@@ -424,6 +433,7 @@ watch(() => props.isFiatUsed, (newVal) => {
   toggleCurrency(newVal)
 })
 
+// Switches the form between fiat and BCH pricing.
 const toggleCurrency = (isFiat) => {
   const rate = bchToPhpRate.value
   if (!rate) return
@@ -441,6 +451,7 @@ const toggleCurrency = (isFiat) => {
   }
 }
 
+// Formats the equivalent value in the other currency.
 const formatEquivalent = (value) => {
   const rate = bchToPhpRate.value
   if (!rate || !value || isNaN(value)) {
@@ -458,6 +469,7 @@ const formatEquivalent = (value) => {
 
 const addLotFormRef = ref(null)
 
+// Scrolls the form to the first field with a validation error.
 const scrollToFirstError = () => {
   setTimeout(() => {
     const firstInvalidField = document.querySelector('.q-dialog .q-field--error, .q-dialog .q-field--invalid')
@@ -470,6 +482,7 @@ const scrollToFirstError = () => {
   }, 50)
 }
 
+// Validates and adds the lot to the auction form.
 const addLot = async () => {
   if (addLotFormRef.value) {
     const isValid = await addLotFormRef.value.validate()

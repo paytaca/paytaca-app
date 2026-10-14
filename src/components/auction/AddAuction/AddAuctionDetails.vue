@@ -1,4 +1,5 @@
 <template>
+  <!-- Auction title, type, schedule, and image fields -->
   <q-card class="bg-transparent no-shadow text-bow" :class="getDarkModeClass(darkMode)">
     <q-card-section class="q-pa-none">
       <div class="row q-col-gutter-md q-px-md q-mb-md">
@@ -125,11 +126,13 @@
 </template>
 
 <script setup>
+// Imports
 import { useQuasar, date } from 'quasar'
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 import { computed, watch } from 'vue'
 import { useStore } from 'vuex'
 
+// Component state and computed values
 const $q = useQuasar()
 const $store = useStore()
 
@@ -179,6 +182,7 @@ const endDateRules = [
   }
 ]
 
+// Reports files rejected by the upload validation.
 const onRejected = () => {
   $q.notify({ type: 'negative', message: 'Invalid file format.' })
 }

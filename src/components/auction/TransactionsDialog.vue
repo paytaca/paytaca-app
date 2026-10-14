@@ -63,11 +63,11 @@
 
 <script setup>
 // Quasar/Vue imports
+// Imports
 import { computed, ref, watch } from 'vue'
 import { useStore } from 'vuex'
 import { date } from 'quasar'
 
-// src imports
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 import { callAPI } from 'src/auction/api'
 import { formatBCH as getFormattedBCH } from 'src/pages/apps/auction/helper-functions'
@@ -100,12 +100,13 @@ const bidPriceBch = ref(null)
 const biddingDate = ref(null)
 const deliveredDate = ref(null)
 
-
+// Formats a transaction date for display.
 const formatTxDate = (value) => {
   if (!value) return null
   return date.formatDate(value, 'MMM DD, YYYY hh:mm A')
 }
 
+// Loads the bid details and delivery date shown in the transaction list.
 const fetchBidData = async () => {
   if (!props.bidId) return
 

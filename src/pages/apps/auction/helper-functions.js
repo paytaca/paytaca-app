@@ -5,10 +5,10 @@ import { date } from 'quasar'
 // FORMATTING
 // ==========
 
-// Auction Date Formatting
+// Formats an auction date for display.
 export const formatAuctionDate = (dateString) => (dateString) ? date.formatDate(dateString, 'MMM DD, YYYY hh:mm A') : 'N/A' 
 
-// Format's The Auction Countdown
+// Formats the time remaining in an auction.
 export const formatAuctionCountdown = (timeLeft, countingToEnd=false) => {
   const splitTime = String(timeLeft).split(":")
   const timeToIndex = ['day', 'hour', 'minute', 'second']
@@ -20,18 +20,19 @@ export const formatAuctionCountdown = (timeLeft, countingToEnd=false) => {
   return (countingToEnd) ? "Time's Up!" : "Auction is Starting..."
 }
 
-// Formats Fiat
+// Formats a fiat value as Philippine pesos.
 export const formatFiat = (value) => {
   const numValue = Number(value) || 0
   return `₱${numValue.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
 }
 
+// Formats a fiat value without a currency symbol.
 export const formatFiatNumber = (value) => {
   const numValue = Number(value) || 0
   return numValue.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
 }
 
-// Formats BCH
+// Formats a BCH value to eight decimal places.
 export const formatBCH = (value) => {
   const bch = Number(value) || 0
   const numStr = Number(bch).toFixed(8)
@@ -41,12 +42,14 @@ export const formatBCH = (value) => {
   return { main, zeros, full: numStr }
 }
 
+// Returns the label and price for an English auction lot.
 export const getEnglishPriceInfo = (lot, hasBid = lot?.hasBids?.()) => ({
   label: hasBid ? 'HIGHEST BID:' : 'STARTING PRICE:',
   fiat: lot?.threshold_bid_fiat,
   bch: lot?.threshold_bid_bch
 })
 
+// Returns the price-drop interval in minutes.
 export const getIntervalMinutes = (priceDropInterval) => typeof priceDropInterval === 'object'
   ? (priceDropInterval?.value || 10)
   : (priceDropInterval || 10)
@@ -57,6 +60,7 @@ const toBothCurrencies = (value, isFiatUsed, rate) => {
   return { fiat: numValue * rate, bch: numValue }
 }
 
+// Adds normalized fiat and BCH values to a lot.
 export const withBothCurrencies = (lot, isFiatUsed, rate, preserveExisting = false) => {
   const hasExistingFields = lot.estimated_amount_fiat !== undefined || lot.estimated_amount_bch !== undefined
   if (preserveExisting && hasExistingFields) {
@@ -90,6 +94,7 @@ export const withBothCurrencies = (lot, isFiatUsed, rate, preserveExisting = fal
   }
 }
 
+// Returns a validation message when auction dates are invalid.
 export const getAuctionDateValidationError = (startDate, endDate) => {
   if (!startDate || !endDate) return 'Please set both start and end dates.'
   const start = new Date(startDate)
@@ -100,6 +105,7 @@ export const getAuctionDateValidationError = (startDate, endDate) => {
   return null
 }
 
+// Copies text to the clipboard and notifies the user.
 export const copyToClipboard = (text, $q, options = {}) => {
   if (!text) return
   navigator.clipboard.writeText(text).then(() => {

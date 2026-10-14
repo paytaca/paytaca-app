@@ -252,6 +252,7 @@
 </template>
 
 <script setup>
+// Imports
 import { useQuasar } from 'quasar'
 import { useStore } from 'vuex'
 import { useRouter } from 'vue-router'
@@ -270,6 +271,7 @@ import EditLotDetails from 'src/components/auction/EditAuction/EditLotDetails.vu
 import ConfirmDeleteDialog from 'src/components/auction/ConfirmDeleteDialog.vue'
 import noImage from 'src/assets/no-image.svg'
 
+// Component state and computed values
 const $q = useQuasar()
 const $store = useStore()
 const darkMode = computed(() => $store.getters['darkmode/getStatus'])
@@ -285,11 +287,13 @@ const auctionType = computed(() => {
 
 const lots = ref([])
 
+// Normalizes auction data for the edit form.
 const parseAuctionData = (data) => {
   if (!data) return null
   return data instanceof AuctionList ? data : AuctionList.parse(data)
 }
 
+// Converts a date value to a local date-time input string.
 const formatToDateTimeLocal = (dateString) => {
   if (!dateString) return ''
   const dateValue = new Date(dateString)
@@ -303,6 +307,7 @@ const formatToDateTimeLocal = (dateString) => {
   return `${year}-${month}-${day}T${hours}:${minutes}`
 }
 
+// Converts a local date-time input value to UTC.
 const localDateTimeToUTC = (localString) => {
   if (!localString) return ''
   const dateValue = new Date(localString)
@@ -327,6 +332,7 @@ const auctionForm = ref({
   isFiatUsed: true
 })
 
+// Copies fetched auction data into the editable form state.
 const prefillFormState = (sourceData) => {
   const parsedAuction = parseAuctionData(sourceData)
   auction.value = parsedAuction
@@ -342,6 +348,7 @@ const prefillFormState = (sourceData) => {
   }
 }
 
+// Loads the auction and lot data needed to populate the form.
 const fetchAllData = async () => {
   try {
     const auctionResult = await callAPI('auctions', Number(props.auctionId))
@@ -394,6 +401,7 @@ onMounted(async () => {
 
 
 let localIdCounter = 0
+// Creates a temporary identifier for a new lot.
 const generateLocalId = () => `local_${localIdCounter++}`
 const visibleLots = computed(() => lots.value.filter(lot => lot._status !== 'deleted'))
 const isLotEmpty = computed(() => visibleLots.value.length === 0)
@@ -401,18 +409,21 @@ const isToggledEdit = ref(false)
 const isToggledDelete = ref(false)
 const selectedLot = ref(null)
 
+// Adds a new lot to the auction form.
 const handleNewLot = (lotData) => {
   lotData._uuid = generateLocalId()
   lotData._status = 'new'
   lots.value.push(withBothCurrencies(lotData, lotData.isFiatUsed, $store.getters['market/getAssetPrice']('bch', 'php') || 0, true))
 }
 
+// Opens the lot editor for the selected lot.
 const editLotDetails = (lot) => {
   const rawFiles = lot.rawFiles || []
   selectedLot.value = { ...JSON.parse(JSON.stringify(lot)), rawFiles }
   isToggledEdit.value = true
 }
 
+// Applies edited lot data to the auction form.
 const handleLotUpdate = (updatedLotData) => {
   const index = lots.value.findIndex(l => l._uuid === updatedLotData._uuid)
   if (index !== -1) {
@@ -427,11 +438,13 @@ const handleLotUpdate = (updatedLotData) => {
   isToggledEdit.value = false
 }
 
+// Marks or removes the selected lot for deletion.
 const deleteLot = (lot) => {
   selectedLot.value = lot
   isToggledDelete.value = true
 }
 
+// Removes the selected lot from the auction form.
 const handleLotDelete = () => {
   const index = lots.value.findIndex(l => l._uuid === selectedLot.value._uuid)
   
@@ -447,6 +460,7 @@ const handleLotDelete = () => {
   selectedLot.value = null
 }
 
+// Saves auction changes and applies lot additions, edits, and removals.
 const handleUpdateAuction = async () => {
   const { start_date, end_date } = auctionForm.value
   const dateValidationError = getAuctionDateValidationError(start_date, end_date)

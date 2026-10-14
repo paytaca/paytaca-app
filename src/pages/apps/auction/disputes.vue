@@ -151,11 +151,11 @@
 </template>
 
 <script setup>
+// Imports
 import { useStore } from 'vuex'
 import { useRouter } from 'vue-router'
 import { ref, computed, onMounted } from 'vue'
 
-// src imports
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 
 // Components
@@ -178,6 +178,7 @@ const arbiterType = ref('All')
 const arbiterTypeOptions = ['Pending', 'Resolved', 'All']
 const arbiterDetails = ref([])
 
+// Loads dispute records for the arbiter page.
 const fetchArbiterData = async () => {
   arbiterDetails.value = []
 
@@ -222,6 +223,7 @@ const filteredDisputes = computed(() => {
 
 const isMyArbiterEmpty = computed(() => !isLoading.value && filteredDisputes.value.length === 0)
 
+// Refreshes the page data and completes the pull-to-refresh action.
 const refresh = async (done) => {
   isLoading.value = true
   try {

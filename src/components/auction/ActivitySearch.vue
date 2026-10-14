@@ -1,4 +1,5 @@
 <template>
+  <!-- Search input for the user's auction activity -->
   <q-input
     outlined
     dense
@@ -18,10 +19,12 @@
 </template>
 
 <script setup>
+// Imports
 import { getDarkModeClass } from "src/utils/theme-darkmode-utils";
 import { useStore } from "vuex";
 import { computed, defineEmits, defineProps, ref, watch } from "vue";
 
+// Component props
 const props = defineProps({
   modelValue: {
     type: String,

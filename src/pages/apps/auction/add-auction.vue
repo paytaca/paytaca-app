@@ -199,13 +199,13 @@
 </template>
 
 <script setup>
+// Imports
 import { useQuasar } from 'quasar'
 import { useStore } from 'vuex'
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 import { computed, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { callAPI } from 'src/auction/api'
-import { Store } from 'src/store'
 
 // Components
 import HeaderNav from 'src/components/header-nav.vue'
@@ -217,6 +217,7 @@ import ConfirmDeleteDialog from 'src/components/auction/ConfirmDeleteDialog.vue'
 import noImage from 'src/assets/no-image.svg'
 import { formatBCH, formatFiatNumber as formatFiat, getAuctionDateValidationError, getIntervalMinutes, withBothCurrencies } from './helper-functions'
 
+// Component state and computed values
 const $q = useQuasar()
 const $store = useStore()
 const $router = useRouter()
@@ -244,20 +245,19 @@ const selectedLot = ref(null)
 let activeEditIndex = null
 let activeDeleteIndex = null
 
-const appendFormData = (formData, fields) => {
-  Object.entries(fields).forEach(([key, value]) => formData.append(key, value))
-}
-
+// Adds a new lot to the auction form.
 const handleNewLot = (lotData) => {
   lots.value.push(withBothCurrencies(lotData, auctionForm.value.isFiatUsed, bchToPhpRate.value))
 }
 
+// Opens the lot editor for the selected lot.
 const editLotDetails = (lot, index) => {
   activeEditIndex = index
   selectedLot.value = JSON.parse(JSON.stringify(lot))
   isToggledEdit.value = true
 }
 
+// Applies edited lot data to the auction form.
 const handleLotUpdate = (updatedLotData) => {
   if (activeEditIndex !== null) {
     updatedLotData.priceDrop = updatedLotData.price_drop ?? updatedLotData.priceDrop
@@ -267,12 +267,14 @@ const handleLotUpdate = (updatedLotData) => {
   isToggledEdit.value = false
 }
 
+// Marks or removes the selected lot for deletion.
 const deleteLot = (lot, index) => {
   activeDeleteIndex = index
   selectedLot.value = lot
   isToggledDelete.value = true
 }
 
+// Removes the selected lot from the auction form.
 const handleLotDelete = () => {
   if (activeDeleteIndex !== null && activeDeleteIndex >= 0) {
     lots.value.splice(activeDeleteIndex, 1)
@@ -289,6 +291,7 @@ const handleLotDelete = () => {
   })
 }
 
+// Validates and submits the new auction and its lots.
 const handleCreateAuction = async () => {
   const { start_date, end_date } = auctionForm.value
   const dateValidationError = getAuctionDateValidationError(start_date, end_date)
@@ -310,60 +313,48 @@ const handleCreateAuction = async () => {
     return
   }
 
-  $q.loading.show({ message: 'Creating parent auction details...' })
+  const walletHash = $store.getters['global/getWallet']('bch')?.walletHash
+  if (!walletHash) {
+    $q.notify({
+      type: 'error',
+      message: 'Please connect your BCH wallet before publishing.',
+      timeout: 5000
+    })
+    return
+  }
+
+  $q.loading.show({ message: 'Publishing auction...' })
 
   try {
-    const auctionFormData = new FormData()
-
-    appendFormData(auctionFormData, {
+    const auctionData = {
       title: auctionForm.value.title,
-      auctioneer: Store.getters['global/getWallet']('bch')?.walletHash,
+      auctioneer: walletHash,
       type: auctionForm.value.type,
       description: auctionForm.value.description,
       is_fiat: auctionForm.value.isFiatUsed,
       fiat_name: 'PHP',
       start_date: auctionForm.value.start_date ? new Date(auctionForm.value.start_date).toISOString() : '',
       end_date: auctionForm.value.end_date ? new Date(auctionForm.value.end_date).toISOString() : ''
-    })
-    
-    if (auctionForm.value.image) {
-      auctionFormData.append('image', auctionForm.value.image)
     }
 
-    const auctionResult = await callAPI('auctions', null, 'post', auctionFormData)
-    
-    if (!auctionResult.success || !auctionResult.data?.id) {
-      throw new Error(auctionResult.message || 'Server failed to initialize the parent auction entry.')
-    }
-
-    const parentAuctionId = auctionResult.data.id
-    
-    for (let i = 0; i < lots.value.length; i++) {
-      const lot = lots.value[i]
-
-      $q.loading.show({ 
-        message: `Uploading lot items (${i + 1} of ${lots.value.length}): "${lot.title}"...` 
-      })
-
-      const lotFormData = new FormData()
-      appendFormData(lotFormData, {
+    const lotsData = lots.value.map(lot => {
+      const lotData = {
         title: lot.title,
-        auction: parentAuctionId,
         category: lot.type,
         description: lot.description || '',
         estimated_amount_bch: lot.estimated_amount_bch || 0,
         estimated_amount_fiat: lot.estimated_amount_fiat || 0,
         starting_price_bch: lot.starting_price_bch || 0,
         starting_price_fiat: lot.starting_price_fiat || 0
-      })
+      }
 
       if (auctionForm.value.type === 'English') {
-        appendFormData(lotFormData, {
+        Object.assign(lotData, {
           threshold_bid_bch: lot.starting_price_bch || 0,
           threshold_bid_fiat: lot.starting_price_fiat || 0
         })
       } else {
-        appendFormData(lotFormData, {
+        Object.assign(lotData, {
           threshold_bid_bch: lot.threshold_bid_bch || 0,
           threshold_bid_fiat: lot.threshold_bid_fiat || 0,
           price_drop_bch: lot.price_drop_bch || 0,
@@ -373,31 +364,43 @@ const handleCreateAuction = async () => {
         const intervalMinutes = getIntervalMinutes(lot.priceDropInterval)
         const intervalHours = Math.floor(intervalMinutes / 60)
         const intervalRemMinutes = intervalMinutes % 60
-        const timeInterval = `${String(intervalHours).padStart(2, '0')}:${String(intervalRemMinutes).padStart(2, '0')}:00`
-
-        lotFormData.append('time_interval', timeInterval)
+        lotData.time_interval = `${String(intervalHours).padStart(2, '0')}:${String(intervalRemMinutes).padStart(2, '0')}:00`
       }
 
-      const lotResult = await callAPI('lots', null, 'post', lotFormData)
+      return lotData
+    })
 
-      if (!lotResult.success) {
-        throw new Error(lotResult.message || `Failed uploading lot: ${lot.title}`)
-      }
+    const formData = new FormData()
+    formData.append('auction', JSON.stringify(auctionData))
+    formData.append('lots', JSON.stringify(lotsData))
+    if (auctionForm.value.image) {
+      formData.append('auction_image', auctionForm.value.image)
+    }
 
-      const lotId = lotResult.data.id
+    lots.value.forEach((lot, index) => {
       const files = lot.rawFiles && lot.rawFiles.length > 0 ? lot.rawFiles : (lot.file ? [lot.file] : [])
-
       for (const file of files) {
-        const imageFormData = new FormData()
-        imageFormData.append('lot', lotId)
-        imageFormData.append('image', file)
-
-        const imageResult = await callAPI('lot-images', null, 'post', imageFormData)
-
-        if (!imageResult.success) {
-          throw new Error(`Failed uploading image for lot: ${lot.title}`)
-        }
+        formData.append(`lot_images_${index}`, file)
       }
+    })
+
+    const result = await callAPI(
+      'auctions-with-lots',
+      null,
+      'post',
+      formData
+    )
+
+    if (
+      !result.success ||
+      !result.data?.auction?.id ||
+      !Array.isArray(result.data?.lots) ||
+      result.data.lots.length !== lots.value.length ||
+      result.data.lots.some(lot => !lot?.id)
+    ) {
+      throw new Error(
+        result.error || 'Server failed to publish the complete auction.'
+      )
     }
     
     $q.notify({
@@ -418,6 +421,7 @@ const handleCreateAuction = async () => {
 }
 
 const auctionFormRef = ref(null)
+// Scrolls the form to the first field with a validation error.
 const scrollToFirstError = () => {
   setTimeout(() => {
     const firstInvalidField = document.querySelector('.q-field--error, .q-field--invalid')

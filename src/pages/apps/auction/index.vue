@@ -147,6 +147,7 @@
 </template>
 
 <script setup>
+// Imports
 import { useStore } from 'vuex'
 import { ref, computed, watch, onMounted, onBeforeUnmount } from 'vue'
 
@@ -155,7 +156,6 @@ import HeaderNav from 'src/components/header-nav.vue'
 import AuctionHeaderMenu from 'src/components/auction/AuctionHeaderMenu.vue'
 import AuctionSearch from 'src/components/auction/AuctionSearch.vue'
 
-// src imports
 import noImage from 'src/assets/no-image.svg'
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 import { callIndexAuctionWebsocket } from 'src/auction/websocket'
@@ -301,6 +301,7 @@ const clearSocket = () => {
 // PAGE-RELATED FUNCTIONS
 // ======================
 
+// Refreshes the page data and completes the pull-to-refresh action.
 const refresh = async (done) => {
   try {
     await $store.dispatch('auction/fetchListings')

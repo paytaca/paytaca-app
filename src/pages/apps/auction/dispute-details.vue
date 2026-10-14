@@ -281,13 +281,13 @@
 </template>
 
 <script setup>
+// Imports
 import { useQuasar } from 'quasar'
 import { useStore } from 'vuex'
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 import { computed, ref, onBeforeUnmount, onMounted, nextTick } from 'vue'
 import { useRouter } from 'vue-router'
 
-// src imports
 import { loadWallet } from "src/wallet"
 import { copyToClipboard, formatBCH } from './helper-functions'
 
@@ -297,6 +297,7 @@ import AuctionHeaderMenu from 'src/components/auction/AuctionHeaderMenu.vue'
 import DeliveryStatusHistoryDialog from 'src/components/auction/DeliveryStatusHistoryDialog.vue'
 import TransactionsDialog from 'src/components/auction/TransactionsDialog.vue'
 
+// Component props
 const props = defineProps({
   disputeId: {
     type: [String, Number],
@@ -328,6 +329,7 @@ const canResolve = computed(() => Boolean(
   && details.value?.dispute_status === 'Pending'
 ))
 
+// Loads the dispute details for the current route.
 const loadDispute = async () => {
   disputeDetails.value = await $store.dispatch('auction/fetchDispute', props.disputeId)
 }
@@ -370,6 +372,7 @@ const isSubmitting = ref(false)
 let startX = 0
 let removeSwipeListeners = null
 
+// Begins tracking the swipe gesture used to resolve a dispute.
 const startSwipe = async (e) => {
   if (isSubmitting.value || !canResolve.value || !selectedAction.value) return
   await nextTick()
@@ -419,6 +422,7 @@ const startSwipe = async (e) => {
   window.addEventListener('touchcancel', onCancel)
 }
 
+// Calls the selected contract action and reports its result.
 const handleAction = async (addressPath='0/0') => {
   if (isSubmitting.value) return
   if (!['refund', 'release'].includes(selectedAction.value) || !canResolve.value) {
