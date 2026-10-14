@@ -266,6 +266,28 @@ export async function fetchLastPosPaymentIndex(walletHash, posid, isChipnet=fals
 }
 
 /**
+ * Count the verified and active Paytaca POS merchants in a given country.
+ * Always queried against mainnet watchtower since chipnet has no merchant data.
+ * @param {String} country - Country name or ISO-2 code, e.g. 'Philippines' or 'PH'
+ * @returns {Promise<Number|null>} merchant count, null if unavailable
+ */
+export async function fetchVerifiedMerchantCount(country) {
+  if (!country) return null
+
+  try {
+    const response = await backend.get('paytacapos/merchants/', {
+      params: { country, verified: true, active: true, limit: 1 },
+      timeout: 10000
+    })
+    const count = response?.data?.count
+    return Number.isInteger(count) ? count : null
+  } catch (error) {
+    console.error('Unable to fetch verified merchant count: ', error)
+    return null
+  }
+}
+
+/**
  * 
  * @param {{walletHash: String, xPubKey: String, posId: Number }} data 
  * @param {{ compressed: Boolean }} opts
