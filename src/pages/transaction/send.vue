@@ -330,7 +330,7 @@
                       <q-space />
                       <div class="recipient-header-actions row items-center no-wrap">
                         <q-btn
-                          v-if="index === recipients.length - 1 && recipients.length < 10 && !sending"
+                          v-if="index === recipients.length - 1 && recipients.length < 10 && !sending && !isCauldronSend"
                           icon="add"
                           round
                           unelevated
@@ -416,6 +416,7 @@
                         @on-selected-change-address="onUserSelectedChangeAddress"
                         @on-cauldron-toggle="onCauldronToggle"
                         :cauldron-tokens="cauldronPayWithTokens"
+                        :cauldron-disabled="recipients.length > 1"
                         :sending="sending"
                         :focused-field="currentRecipientIndex === index ? focusedInputField : ''"
                         ref="sendPageRef"

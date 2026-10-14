@@ -233,6 +233,7 @@
         filled
         options-dense
         :dark="darkMode"
+        :disable="cauldronDisabled"
         class="pay-with-select"
         @update:model-value="onPayWithChange"
       >
@@ -382,6 +383,7 @@ export default {
     defaultSelectedFtChangeAddress: { type: String },
     walletType: { type: String },
     cauldronTokens: { type: Array, default: () => [] },
+    cauldronDisabled: { type: Boolean, default: false },
     focusedField: { type: String, default: '' },
     sending: { type: Boolean, default: false },
   },
