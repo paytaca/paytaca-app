@@ -392,28 +392,6 @@
           </div>
         </div>
 
-        <!-- Elite: Not Available in Country -->
-        <div
-          v-else-if="eliteCountryStatus === 'ineligible'"
-          class="row full-width q-pa-md br-15 group-currency elite-card"
-          :class="getDarkModeClass(darkMode)"
-        >
-          <div class="col-12">
-            <div class="row full-width justify-between items-center">
-              <div class="row col-2 promo-icon justify-end">
-                <q-icon name="public" size="md" class="elite-icon" />
-              </div>
-              <div class="col-8">
-                <span class="text-token elite-name" :class="getDarkModeClass(darkMode)">Paytaca Elite Program</span>
-                <br/>
-                <span class="text-caption">
-                  {{ $t('EliteNotAvailableInCountry', {}, 'The Paytaca Elite Program is not yet available in your country.') }}
-                </span>
-              </div>
-            </div>
-          </div>
-        </div>
-
         <!-- Elite: Not Qualified -->
         <div
           v-else-if="eliteData && eliteData.status === EliteStatus.LOCKED"
@@ -624,11 +602,9 @@ import {
   PROMO_CONTRACT_VERSION,
   getAssetsThresholds,
   EliteStatus,
-  EliteStatusLabels,
-  getEpValidCountries
+  EliteStatusLabels
 } from 'src/utils/engagementhub-utils/rewards'
 import { parseLiftToken } from 'src/utils/engagementhub-utils/shared'
-import { geolocationManager } from 'src/boot/geolocation'
 
 import HeaderNav from 'src/components/header-nav.vue'
 import HelpCard from 'src/components/rewards/cards/HelpCard.vue'
@@ -697,8 +673,6 @@ export default {
       promoError: '',
       eliteError: '',
       eliteProgram: null,
-      eliteCountryStatus: 'checking',
-      deviceCountry: '',
       eliteData: defaultEliteData(),
 
       // Referral banner state
@@ -913,8 +887,6 @@ export default {
       }
     }
 
-    // update public key in server if it is empty
-
     this.isLoading = false
   },
 
@@ -1045,9 +1017,7 @@ export default {
           }
 
           // elite program
-          if (await this.checkEliteCountryEligibility()) {
-            await this.loadEliteProgramData(upData.elite_program)
-          }
+          await this.loadEliteProgramData(upData.elite_program)
 
         } else if (upData && Object.keys(upData).length === 0) {
           await createUserPromoData()
@@ -1095,28 +1065,6 @@ export default {
         name: promo.path,
         params: { id: promo.id ?? -1 }
       })
-    },
-
-    async checkEliteCountryEligibility () {
-      const validCountries = await getEpValidCountries()
-      const geo = await geolocationManager.getOrUpdateGeoIp().catch(console.error)
-      const geoCountry = (geo?.country_code || '').toLowerCase()
-
-      if (geoCountry) {
-        this.deviceCountry = geoCountry
-      } else {
-        this.deviceCountry = (this.$store.getters['global/country']?.code || '').toLowerCase()
-      }
-
-      if (!this.deviceCountry) {
-        this.eliteCountryStatus = 'eligible'
-      } else if (validCountries.includes(this.deviceCountry)) {
-        this.eliteCountryStatus = 'eligible'
-      } else {
-        this.eliteCountryStatus = 'ineligible'
-      }
-
-      return this.eliteCountryStatus === 'eligible'
     },
 
     async loadEliteProgramData (eliteProgram) {
