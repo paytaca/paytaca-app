@@ -33,7 +33,7 @@ function getOAuthDomain() {
     return url.hostname
   } catch (error) {
     console.error('[OAuth] Failed to get OAuth Domain', error)
-    const match = baseURL.match(/https?:\/\/([^\/]+)/)
+    const match = baseURL.match(/https?:\/\/([^/]+)/)
     return match ? match[1] : 'localhost'
   }
 }
@@ -149,16 +149,15 @@ export async function getAuthHeaders() {
   const addressNode = deriveHdPath(rootNode, fullPath)
 
 	// Convert private key to hex format expected by OAuth client
-	const privateKeyHex = binToHex(addressNode.privateKey)
+	//const privateKeyHex = binToHex(addressNode.privateKey)
 
   const domain = getOAuthDomain()
   const timestamp = Math.floor(Date.now() / 1000)
-	const message = client.createAuthMessage(walletHash, timestamp, domain)
-  const signature = await client.signAuthMessage(message, privateKeyHex)
+	//const message = client.createAuthMessage(walletHash, timestamp, domain)
+  //const signature = await client.signAuthMessage(message, privateKeyHex)
 
   try {
     // Try to authenticate first
-    //console.log('[OAuth] Attempting to authenticate user...')
     const auth = await client.authenticate(
       walletHash,
       credentials.privateKey,

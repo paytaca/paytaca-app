@@ -13,8 +13,7 @@
 export default {
   name: 'auction-layout',
   data () {
-    return {
-    }
+    return { }
   },
   computed: {
     walletSwitchId () {
@@ -37,8 +36,11 @@ export default {
         }
         return
       }
-      if (this.$store.getters['auction/isArbiter'] && this.$route.name !== 'app-auction-appeals') {
-        this.$router.replace({ name: 'app-auction-appeals' })
+      if (
+        this.$store.getters['auction/isArbiter'] 
+        && this.$route.name !== 'app-auction-disputes'
+      ) {
+        this.$router.replace({ name: 'app-auction-disputes' })
       }
     }
   }
