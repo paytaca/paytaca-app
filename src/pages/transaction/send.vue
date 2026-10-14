@@ -1742,6 +1742,10 @@ export default {
       const recipient = this.recipients[index]
       if (recipient?.fixedAmount) return
 
+      // When paying for a CashToken send by swapping BCH, the receive amount is
+      // computed from the swap; don't auto-focus the amount input / show the keyboard.
+      if (this.asset?.id !== 'bch' && this.inputExtras?.[index]?.cauldron?.enable) return
+
       const sendPageForm = this.$refs.sendPageRef?.[index]
       if (!sendPageForm) return
 

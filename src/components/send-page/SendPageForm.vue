@@ -744,15 +744,6 @@ export default {
       }
 
       this.emitCauldronToggle()
-
-      // When enabling cauldron for a CashToken, focus the amount input and show the custom keyboard
-      if (this.cauldronEnabled && !this.assetIsBch) {
-        this.$nextTick(() => {
-          if (this.$refs.amountInput) {
-            this.$refs.amountInput.focus()
-          }
-        })
-      }
     },
     resetPayWith () {
       this.onPayWithChange(this.payWithDefault)
