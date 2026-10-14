@@ -1,6 +1,6 @@
 <template>
   <!--
-    ARBITER ONLY: This page contains the list of appeals for the Auction app.
+    ARBITER ONLY: This page contains the list of disputes for the Auction app.
   -->
   <q-pull-to-refresh
     id="app-container"
@@ -8,14 +8,14 @@
     :class="getDarkModeClass(darkMode)"
     @refresh="refresh"
   >
-    <HeaderNav :title="$t('Auction - Appeals')" backnavpath="/apps" class="header-nav">
+    <HeaderNav :title="$t('Auction - Disputes')" backnavpath="/apps" class="header-nav">
       <template v-slot:top-right-menu>
         <AuctionHeaderMenu />
       </template>
     </HeaderNav>
 
     <div class="q-px-md q-pt-xs q-pb-md sticky-below-header">
-      <ActivitySearch v-model="searchQuery" placeholder="Search my Appeals" />
+      <ActivitySearch v-model="searchQuery" placeholder="Search my Disputes" />
     </div>
 
     <div class="q-pa-sm text-bow" :class="getDarkModeClass(darkMode)">
@@ -88,54 +88,54 @@
           :class="darkMode ? 'bg-pt-dark' : 'bg-pt-light'"
           style="min-height: 70px; width: 100%;"
         >
-          <div :class="darkMode ? 'text-white' : 'text-black'">{{ $t('No Appeals Found') }}</div>
+          <div :class="darkMode ? 'text-white' : 'text-black'">{{ $t('No Disputes Found') }}</div>
         </div>
 
-        <div v-else v-for="appeal in filteredAppeals" :key="appeal.id" class="col-6 col-sm-4 col-md-3 q-pa-sm">
+        <div v-else v-for="dispute in filteredDisputes" :key="dispute.id" class="col-6 col-sm-4 col-md-3 q-pa-sm">
           <q-card
             class="pt-card text-bow cursor-pointer"
             :class="getDarkModeClass(darkMode)"
-            @click="$router.push({ name: 'app-auction-appeal-details', params: { appealId: appeal.id } })"
+            @click="$router.push({ name: 'app-auction-dispute-details', params: { disputeId: dispute.id } })"
           >
             <q-card-section class="q-py-sm">
               <div class="row items-center justify-between q-mb-xs q-mt-sm">
                 <q-chip
                   dense
-                  :color="appeal.status === 'Resolved' ? 'positive' : 'warning'"
+                  :color="dispute.status === 'Resolved' ? 'positive' : 'warning'"
                   text-color="white"
                   class="text-caption text-weight-bold"
                   style="margin: 0; padding: 3px 8px; height: auto;"
                 >
-                  <q-icon :name="appeal.status === 'Pending' ? 'autorenew' : 'check_circle'" size="xs" class="q-mr-xs" />
-                  {{ appeal.status }}
+                  <q-icon :name="dispute.status === 'Pending' ? 'autorenew' : 'check_circle'" size="xs" class="q-mr-xs" />
+                  {{ dispute.status }}
                 </q-chip>
                 <span class="text-caption q-mt-xs" style="opacity: 0.65;">
                   <q-icon name="schedule" size="xs" class="q-mr-xs" />
-                  <span v-if="appeal.status === 'Resolved'">{{ appeal.timeSinceResolved }} ago</span>
-                  <span v-else>{{ appeal.timeSinceFiled }} ago</span>
+                  <span v-if="dispute.status === 'Resolved'">{{ dispute.timeSinceResolved }} ago</span>
+                  <span v-else>{{ dispute.timeSinceFiled }} ago</span>
                 </span>
               </div>
 
               <div class="text-subtitle1 text-weight-medium q-mb-xs">
-                Appeal #{{ appeal.id }}
+                Dispute #{{ dispute.id }}
               </div>
 
               <q-separator spaced="sm" />
 
               <div class="row items-center justify-between q-mb-xs text-caption">
                 <span class="text-weight-bold" style="text-transform: uppercase; letter-spacing: 0.4px;">Auction</span>
-                #{{ appeal.auction_id }}
+                #{{ dispute.auction_id }}
               </div>
               <div class="row items-center justify-between q-mb-xs text-caption">
                 <span class="text-weight-bold" style="text-transform: uppercase; letter-spacing: 0.4px;">Lot</span>
-                #{{ appeal.lot_id }}
+                #{{ dispute.lot_id }}
               </div>
 
               <q-separator spaced="sm" />
 
               <div class="row q-gutter-xs q-my-sm">
                 <q-badge
-                  v-for="reason in appeal.reasons"
+                  v-for="reason in dispute.reasons"
                   :key="reason"
                   outline
                   :text-color="darkMode ? 'white' : 'black'"
@@ -157,7 +157,7 @@ import { useRouter } from 'vue-router'
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 import { ref, computed, onMounted } from 'vue'
 import { callAPI } from 'src/auction/api'
-import { AppealList } from 'src/auction/object.js'
+import { DisputeList } from 'src/auction/object.js'
 
 // Components
 import HeaderNav from 'src/components/header-nav.vue'
@@ -210,7 +210,7 @@ const fetchArbiterData = async () => {
           }
         }
 
-        return AppealList.parse({ ...dispute, lotId, auctionId })
+        return DisputeList.parse({ ...dispute, lotId, auctionId })
       })
     )
   } catch (err) {
@@ -231,23 +231,23 @@ onMounted(async () => {
   isLoading.value = false
 })
 
-const filteredAppeals = computed(() => {
+const filteredDisputes = computed(() => {
   let items = arbiterDetails.value
 
   if (arbiterType.value !== 'All') {
-    items = items.filter(appeal => appeal.status === arbiterType.value)
+    items = items.filter(dispute => dispute.status === arbiterType.value)
   }
 
   const query = searchQuery.value.toLowerCase().trim()
   if (query) {
-    items = items.filter(appeal => appeal.number?.includes(query))
+    items = items.filter(dispute => dispute.number?.includes(query))
   }
 
   return items
 })
 
 const isMyArbiterEmpty = computed(() => {
-  return !isLoading.value && filteredAppeals.value.length === 0
+  return !isLoading.value && filteredDisputes.value.length === 0
 })
 
 const refresh = async (done) => {

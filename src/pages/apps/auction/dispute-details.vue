@@ -1,6 +1,6 @@
 <template>
   <!--
-    ARBITER ONLY: This page contains the appeal details.
+    ARBITER ONLY: This page contains the dispute details.
   -->
   <div
     id="app-container"
@@ -8,8 +8,8 @@
     :class="getDarkModeClass(darkMode)"
   >
     <HeaderNav
-      :title="details ? `Appeal #${details.id}` : 'Appeal'"
-      backnavpath="/apps/auction/appeals"
+      :title="details ? `Dispute #${details.id}` : 'Dispute'"
+      backnavpath="/apps/auction/disputes"
       class="header-nav"
     >
       <template v-slot:top-right-menu>
@@ -50,7 +50,7 @@
           </div>
 
           <div class="text-subtitle1 text-weight-medium q-mb-xs">
-            Appeal #{{ details.id }}
+            Dispute #{{ details.id }}
           </div>
 
           <q-separator spaced="sm" />
@@ -278,9 +278,12 @@ import { useStore } from 'vuex'
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 import { computed, ref, onMounted, nextTick } from 'vue'
 import { useRouter } from 'vue-router'
+
+// src imports
+import { loadWallet } from "src/wallet"
 import { callAPI } from 'src/auction/api'
-import { AppealDetails } from 'src/auction/object.js'
-import { callContractReturn, callContractRefund } from 'src/auction/arbiter'
+import { DisputeDetails } from 'src/auction/object.js'
+import { callContractFunction } from 'src/auction/arbiter'
 import { copyToClipboard, formatBCH } from './helper-functions'
 
 // Components
@@ -290,36 +293,43 @@ import DeliveryStatusHistoryDialog from 'src/components/auction/DeliveryStatusHi
 import TransactionsDialog from 'src/components/auction/TransactionsDialog.vue'
 
 const props = defineProps({
-  appealId: {
+  disputeId: {
     type: [String, Number],
     required: true
   }
 })
 
+// Quasar variables
 const $q = useQuasar()
 const $store = useStore()
 const $router = useRouter()
+
+// System-related variables
 const darkMode = computed(() => $store.getters['darkmode/getStatus'])
+const isLoading = ref(true)
+
+// User-related data
 const isArbiter = computed(() => !!$store.getters['auction/isArbiter'])
 
-const isLoading = ref(true)
-const details = ref(null)
+// Page-specific data
+const disputeDetails = ref(null)
 
 onMounted(async () => {
+  // Check if not arbiter
   if (!isArbiter.value) {
     $q.notify({ type: 'negative', message: 'You are not authorized to view this page.' })
     $router.replace('/apps/auction/activity')
     return
   }
 
-  if (!props.appealId) {
+  // Check if no existing disputes
+  if (!props.disputeId) {
     isLoading.value = false
     return
   }
-
-  isLoading.value = true
+  
   try {
-    const disputeResult = await callAPI('disputes', props.appealId)
+    const disputeResult = await callAPI('disputes', props.disputeId)
     if (!disputeResult.success || !disputeResult.data) throw new Error('Dispute not found')
     const dispute = disputeResult.data
     
@@ -332,6 +342,7 @@ onMounted(async () => {
 
     if (dispute.bid) {
       const bidResult = await callAPI('biddings', dispute.bid)
+      
       if (bidResult.success && bidResult.data) {
         const bid = bidResult.data
         bidPriceBch = bid.bid_price_bch
@@ -376,8 +387,8 @@ onMounted(async () => {
       }
     }
     
-    
-    details.value = AppealDetails.parse({
+    // Save 
+    disputeDetails.value = DisputeDetails.parse({
       ...dispute,
       lotId,
       auctionId,
@@ -388,9 +399,9 @@ onMounted(async () => {
     })
 
   } catch (err) {
-    console.error('Failed to load appeal:', err)
-    $q.notify({ type: 'negative', message: 'Failed to load appeal details.', position: 'top' })
-    details.value = null
+    console.error('Failed to load dispute:', err)
+    $q.notify({ type: 'negative', message: 'Failed to load dispute details.', position: 'top' })
+    disputeDetails.value = null
   } finally {
     isLoading.value = false
   }
@@ -440,16 +451,21 @@ const startSwipe = async (e) => {
   window.addEventListener('touchend', onEnd)
 }
 
-const handleAction = async () => {
+const handleAction = async (addressPath=0) => {
   if (!selectedAction.value) return
   try {
     $q.loading.show({ message: 'Processing...' })
 
+    // Get wallet and public key
+    const wallet = await loadWallet('BCH')
+    const publicKey = await wallet.BCH.getPublicKey(addressPath)
+
     if (selectedAction.value === 'release') {
-      await callContractReturn(details.value.bid_id)
-      await callAPI('delivery-trackings', details.value.lot_id, 'patch', { mark_as_completed: true })
+      $store.dispatch(`auction/callContractFunction`, { disputeDetails.value.lotId, functionName: 'Release', publicKey })
+      $store.dispatch('auction/fetchDeliveryDetails', lotId)
+      await callAPI('delivery-trackings', disputeDetails.value.lot_id, 'patch', { mark_as_completed: true })
     } else if (selectedAction.value === 'refund') {
-      await callContractRefund(details.value.bid_id)
+      await callContractRefund(disputeDetails.value.lot_id)
     }
 
     const payload = {
@@ -457,7 +473,7 @@ const handleAction = async () => {
       release: { is_granted_refund: false, is_granted_return: true, is_resolved: true },
     }[selectedAction.value]
 
-    await callAPI('disputes', props.appealId, 'patch', payload)
+    await callAPI('disputes', props.disputeId, 'patch', payload)
     await callAPI('delivery-trackings', props.lotId, 'patch', { mark_as_completed: true })
 
     $q.notify({ type: 'positive', message: 'Action applied successfully.', position: 'top' })
