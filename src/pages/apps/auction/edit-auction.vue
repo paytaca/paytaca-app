@@ -387,7 +387,7 @@ const fetchAllData = async () => {
 }
 
 onMounted(async () => {
-  fetchAllData()
+  await fetchAllData()
 })
 
 

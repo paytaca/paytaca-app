@@ -502,8 +502,8 @@ const connectWebsocket = () => {
         break
       case "delivery.update":
       case "dispute.update":
-        if (activityType.value === 'My Auctions') refresh()
-        else if (activityType.value === 'My Bids') refresh()
+        if (activityType.value === 'My Auctions') await refresh()
+        else if (activityType.value === 'My Bids') await refresh()
         break
       default:
         console.warn("Unknown websocket message:", type, data)
@@ -577,8 +577,8 @@ watch(lotSearchQuery, (newQuery) => {
   $store.commit('auction/filterLotItems', newQuery)
 })
 
-watch(lotDetails, (newLots) => {
-  fetchHasBidForLots(newLots)
+watch(lotDetails, async (newLots) => {
+  await fetchHasBidForLots(newLots)
 }, { immediate: true })
 
 
