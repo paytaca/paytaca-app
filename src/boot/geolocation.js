@@ -27,6 +27,7 @@ class GeolocationManager {
     this.isGpsStatusEnabled = ref(null)
 
     this.geoip = ref({ longitude: NaN, latitude: NaN })
+    this.geoipRequest = null
   }
 
   get geolocateOpts() {
@@ -242,22 +243,35 @@ class GeolocationManager {
     return this.tracker.value.callbackId
   }
 
-  getOrUpdateGeoIp() {
-    if (!Number.isNaN(this.geoip.value.latitude) && !Number.isNaN(this.geoip.value.longitude)) {
-      return this.geoip.value
-    }
-    return axios.get(`https://commercehub.paytaca.com/api/geoip/`)
+  getOrUpdateGeoIp(opts = {}) {
+    const { force = false, timeout = 10 * 1000 } = opts
+
+    if (this.geoipRequest) return this.geoipRequest
+
+    const hasCoords = !Number.isNaN(this.geoip.value?.latitude) &&
+      !Number.isNaN(this.geoip.value?.longitude)
+    if (hasCoords && !force) return Promise.resolve(this.geoip.value)
+
+    this.geoipRequest = axios.get(`https://commercehub.paytaca.com/api/geoip/`, { timeout })
       .then(response => {
         const result = Object.assign({}, response?.data, {
           latitude: parseFloat(response?.data?.latitude),
           longitude: parseFloat(response?.data?.longitude),
         })
-        
+
         if (Number.isNaN(result.latitude) || Number.isNaN(result.longitude)) return
 
         this.geoip.value = result
         return this.geoip.value
       })
+      .catch(error => {
+        console.error('Unable to fetch geoip data: ', error)
+      })
+      .finally(() => {
+        this.geoipRequest = null
+      })
+
+    return this.geoipRequest
   }
 }
 
