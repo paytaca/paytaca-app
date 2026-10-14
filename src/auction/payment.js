@@ -1,226 +1,144 @@
-import Watchtower from 'watchtower-cash-js'
-import { ElectrumNetworkProvider, SignatureTemplate, TransactionBuilder } from 'cashscript'
+// Mainnet-js imports
+import { NFTCapability, TestNetWallet, Wallet as CashTokenWallet } from 'mainnet-js'
 
 // src imports
-import { getChangeAddress } from 'src/utils/send-page-utils'
+import { loadWallet as loadServiceWallet } from 'src/services/wallet.js'
+import { pubkeyToPkHash } from 'src/utils/crypto.js'
 import { loadWallet } from 'src/wallet'
-import { isChipnet } from 'src/store/global/getters'
-import { Store } from 'src/store/'
 
 // Contract-related
-import AuctionEscrowContract from './contract'
-import { callAPI } from './api'
-
-const watchtower = new Watchtower()
-const P2PKH_DUST = 546n;
-const DUST_LIMIT = P2PKH_DUST;
-
-const ARBITRATION_FEE = 1000
-const PLATFORM_FEE = 1000
+import { initializeContract } from './contract'
 
 /**
- * @name payBidToContract
+ * @name payFirstBidToContract
  * @param {Integer} lotId - id of the user's official lot 
- * Call this when invoking any wallet-to-contract functions
+ * Call this when paying for the bid functions
  */
-export async function payBidToContract(amountBCH, lotId) {
-    const contract = await initializeContract(lotId)
-    
-    const contractUTXOS = await contract.contract.getUtxos()
-    if (contractUTXOS.length > 0)
-      throw new Error("Funds exist inside the contract! Please release/refund first before adding new funds.")
-    
-    const payment = await sendBCHToContract(contract, amountBCH)
-    const txid = typeof payment === 'string' ? payment : payment?.txid
-    if (!txid) 
-      throw new Error("Failed to transfer BCH to contract.")
-
-    console.log("[payBidToContract] Successfully transferred BCH to contract! txid = ", txid)
-    return txid
-}
-
-
-/**
- * @name initializeContract
- * @param {Integer} lotId
- * @returns initialized contract
- */
-export async function initializeContract(lotId) {
-  const publicKeys = await getAuctionPublicKeys(lotId)
-
-  // Fixed fees
-  const fees = {
-    arbitrationFee: ARBITRATION_FEE,
-    platformFee: PLATFORM_FEE
-  }
-
-  return new AuctionEscrowContract(
-    publicKeys,
-    fees,
-    lotId,
-    Store.getters['global/isChipnet'] // Check if wallet is in chipnet
-  )
-}
-
-export async function tokenGenesis(
-  contractTokenAddress, 
-  { broadcast = true } = {}
-) {
-    const genesisUtxo = await this.wallet.getOrCreateGenesisUtxo()
-    const categoryId = genesisUtxo.txid
-    const nftValue = 1000n // 1000 satoshis for each NFT output
-    
-    const changeAddress = this.wallet.address()
-    const estimatedFee = this.wallet.estimateFee({ numP2pkhInputs: 1, numOutputs: 2, feeRate: 2n })
-    const change = genesisUtxo.satoshis - estimatedFee - nftValue
-    const tokenAddress = contractTokenAddress
-
-    const outputs = []
-
-    if (change > DUST_LIMIT) {
-        outputs.push({
-            to: changeAddress,
-            amount: change,
-        })
-    }
-
-    outputs.push({
-      to: tokenAddress,
-      amount: nftValue,
-      token: {
-          category: categoryId,
-          amount: 0n,
-          nft: {
-              capability: 'mutable',
-              commitment: ''
-          }
-      }
-    })
-
-
-    const network = isChipnet ? 'chipnet' : 'mainnet'
-    const privateKey = this.wallet.privkey(genesisUtxo.address_path)
-    const provider = new ElectrumNetworkProvider(network)
-    const sigTemplate = new SignatureTemplate(privateKey)
-
-    const tx = new TransactionBuilder({ provider })
-      .addInput(genesisUtxo, sigTemplate.unlockP2PKH())
-      .addOutputs(outputs)
-        
-    let result
-      // Build the transaction
-      const txHex = tx.build()
-
-      if (broadcast) {
-        const txResult = await watchtower.BCH.broadcastTransaction(txHex)
-        result = { 
-            success: txResult.data.success, 
-            txid: txResult.data.txid, 
-            category: categoryId 
-        }
-      } else {
-        result = { success: true, txHex }
-      }
-    return result
-}
-
-/**
- * !!! DO NOT CALL THIS !!!
- * @name sendBCHToContract
- * @param {*} contract 
- * @param {Float} bchAmount - must be in BCH (convert fiats to BCH)
- * @returns 
- */
-async function sendBCHToContract(contract, bchAmount) {
-  // change address 
-  const changeAddress = await getChangeAddress('bch')
-
-  // wallet info
-  const wallet = await getWallet()
+export async function payFirstBidToContract(lotId, bidAmountBCH) {
+  // Initialize the contract
+  const contract = await initializeContract(lotId)
   
-  const txid = await contract.sendAmountToAddress(
-    changeAddress,
-    bchAmount,
-    undefined,
-    wallet,
-    contract.contract
+  // Check for existing contract UTXOs
+  const contractUTXOS = await contract.getUtxos()
+  if (contractUTXOS.length > 0)
+    throw new Error("Funds exist inside the contract! Please release/refund first before adding new funds.")
+
+  // Get the bidder's PKH
+  const bidderPKH = await getBidderPublicKeyHash()
+
+  // Send the first NFT bid to the contract
+  const payment = await sendNFTToTokenAddress(
+    contract.tokenAddress,
+    bidderPKH,
+    bidAmountBCH,
   )
+
+  // Extract the transaction id (txid) from the payment
+  const txid = (
+    typeof payment === 'string' 
+    ? payment 
+    : payment?.txid
+  )
+  if (!txid) throw new Error("Failed to transfer bid NFT to contract.")
+
+  console.log("[payFirstBidToContract] Successfully transferred bid NFT to contract! txid = ", txid)
   return txid
 }
 
-
-
-// ===== HELPER FUNCTIONS =====
-/**
- * Gets the public keys for a new contract
- * @name getAuctionPublicKeys
- * @param {Integer} lotId
- * @returns Gets the public keys needed for a NEW auction contract
- */
-async function getAuctionPublicKeys(lotId) {
-  const auctioneerPk = await getPublicKeyFromLotId('auctioneer', lotId)
-  await Promise.all([
-    Store.getters['auction/arbiterPublicKey']
-      ? Promise.resolve()
-      : Store.dispatch('auction/fetchArbiterPublicKey'),
-    Store.getters['auction/servicerPublicKey']
-      ? Promise.resolve()
-      : Store.dispatch('auction/fetchServicerPublicKey')
-  ])
-  const arbiterPk = Store.getters['auction/arbiterPublicKey']
-  const servicerPk = Store.getters['auction/servicerPublicKey']
-
-  if (!auctioneerPk || !arbiterPk || !servicerPk) {
-    throw new Error('Contract public keys could not be loaded.')
-  }
-
-  return {
-    auctioneer: auctioneerPk,
-    arbiter: arbiterPk,
-    servicer: servicerPk
-  }
-}
-
-/**
- * Fetches a person's public key from the server via api
- * @name getPublicKeyFromLotId
- * @param {String} pkCallName - either 'auctioneer-pk', 'arbiter-pk', or 'servicer-pk
- * @param {Integer} lotId - associated lot
- * @returns 
- */
-async function getPublicKeyFromLotId(pkName, lotId) {
-  try {
-    const response = await callAPI(`${pkName}-pk`, lotId)
-
-    if (response && response.success) 
-      return response.data[`${pkName}_pk`]
-
-    return null
-    
-  } catch (error) {
-    console.error('API Sync Error inside getAuctioneerPublicKey:', error)
-    return null
-  } 
-}
-
-
+// ================
+// HELPER FUNCTIONS
+// ================
 /**
  * @name getBidderPublicKey
+ * @param {String} addressPath
  * @returns the bidder's public key
  */
-export async function getBidderPublicKey(addressPath) {
-  const wallet = await getWallet()
-  const bidderPk = await wallet.BCH.getPublicKey(addressPath)
-  return bidderPk
+export async function getBidderPublicKeyHash(addressPath=0) {
+  const wallet = await loadWallet('BCH')
+  const bidderPK = await wallet.BCH.getPublicKey(addressPath)
+  const bidderPKH = pubkeyToPkHash(bidderPK)
+
+  // Return the wallet's public key hash
+  return bidderPKH
 }
 
-
 /**
- * @name getWallet
- * @returns the bidder's wallet
+ * @name sendNFTToTokenAddress
+ * @param {String} contractTokenAddress
+ * @param {Bytes} bidderPKH
+ * @param {Integer} bidAmount
+ * @param {Object} { broadcast = true } = {}
+ * @returns NFT genesis transaction result
  */
-export async function getWallet() {
-  const walletIndex = Store.getters['global/getWalletIndex']
-  const wallet = await loadWallet('BCH', walletIndex)
-  return wallet
+export async function sendNFTToTokenAddress(
+  contractTokenAddress, 
+  bidderPKH,
+  bidAmountBCH,
+  { broadcast = true } = {}
+) {
+  // Check if invalid bidder PKH
+  if (!/^[0-9a-fA-F]{40}$/.test(bidderPKH)) {
+    throw new Error('Invalid bidder public key hash.')
+  }
+
+  // Check if invalid bid amount
+  const normalizedBidAmount = BigInt(bidAmountBCH)
+  if (normalizedBidAmount < 0n || normalizedBidAmount > 0xffffffffffffffffn) {
+    throw new Error('Bid amount is outside the supported range.')
+  }
+
+  // User's service wallet
+  const wallet = await loadServiceWallet()
+
+  // Token-related variables
+  const genesisUtxo = await wallet.getOrCreateGenesisUtxo()
+  const categoryId = genesisUtxo.txid
+
+  // NFT Commitment bytes
+  const bidderBytes = Buffer.from(bidderPKH, 'hex')
+  const amountBytes = Buffer.alloc(8)
+  amountBytes.writeBigUInt64LE(normalizedBidAmount)
+  const commitment = Buffer.concat([bidderBytes, amountBytes]).toString('hex')
+
+  // Get private key from wallet for cashtoken wallet
+  const privateKey = wallet.privkey(genesisUtxo.address_path)
+  const WalletClass = wallet.isChipnet ? TestNetWallet : CashTokenWallet
+  const cashTokenWallet = await WalletClass.fromWIF(privateKey)
+
+  // Create NFT
+  const result = await cashTokenWallet.tokenGenesis(
+    {
+      cashaddr: contractTokenAddress,
+      amount: 0n,
+      capability: NFTCapability.mutable,
+      commitment,
+      value: 1000n
+    },
+    [],
+    {
+      buildUnsigned: !broadcast,
+      awaitTransactionPropagation: broadcast,
+      utxoIds: [{
+        txid: genesisUtxo.txid,
+        vout: genesisUtxo.vout,
+        satoshis: Number(genesisUtxo.satoshis)
+      }]
+    }
+  )
+  
+  if (!broadcast) {
+    // Don't broadcast
+    return { 
+      success: true, 
+      txHex: result.unsignedTransaction, 
+      category: categoryId 
+    }
+  }
+
+  // Broadcast to watchtower
+  return { 
+    success: Boolean(result.txId), 
+    txid: result.txId, 
+    category: categoryId 
+  }
 }
