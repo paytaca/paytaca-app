@@ -192,6 +192,44 @@
       </q-input>
       <KeyboardTooltip v-if="activeKeyboardTip === 'bch'" :dark-mode="darkMode" :key="'bch-' + keyboardTipCounter" />
     </div>
+    <div v-if="showPayWith" class="q-mt-xs q-ml-sm pay-with-field">
+      <q-select
+        :model-value="payWith"
+        :options="payWithOptions"
+        :label="$t('PayWith', {}, 'Pay with')"
+        option-value="value"
+        option-label="label"
+        emit-value
+        map-options
+        filled
+        options-dense
+        :dark="darkMode"
+        class="pay-with-select"
+        @update:model-value="onPayWithChange"
+      >
+        <template v-slot:selected>
+          <div class="row items-center no-wrap">
+            <img
+              v-if="selectedPayWithOption"
+              :src="payWithImageUrl(selectedPayWithOption)"
+              class="pay-with-option-logo"
+              alt=""
+            />
+            <span class="q-ml-xs ellipsis">{{ selectedPayWithOption?.label }}</span>
+          </div>
+        </template>
+        <template v-slot:option="scope">
+          <q-item v-bind="scope.itemProps">
+            <q-item-section avatar>
+              <img :src="payWithImageUrl(scope.opt)" class="pay-with-option-logo" alt="" />
+            </q-item-section>
+            <q-item-section>
+              <q-item-label>{{ scope.opt.label }}</q-item-label>
+            </q-item-section>
+          </q-item>
+        </template>
+      </q-select>
+    </div>
   </div>
 
   <div class="row" v-if="!isNFT && asset?.id === 'bch'">
@@ -246,103 +284,7 @@
       />
     </div>
   </div>
-  <template v-if="!isNFT && !cauldronEnabled">
-    <div v-if="asset?.id?.startsWith?.('ct/')" class="q-mt-sm text-center">
-      <div v-if="showAdvancedOptions">
-        
-        <q-btn
-          no-caps
-          :label="$t('SendUsingBchWithCauldron')"
-          icon="img:cauldron-logo.svg"
-          color="pt-primary1"
-          padding="sm md"
-          class="full-width q-my-sm"
-          @click="toggleCauldron"
-        />
-        <q-btn
-          v-if="addAnotherRecipient"
-          no-caps
-          icon="person_add"
-          color="pt-primary1"
-          padding="sm md"
-          class="full-width q-my-sm"
-          @click="addAnotherRecipient"
-        >
-          {{ $t('AddAnotherRecipient') }}
-        </q-btn>
-      </div>
-      <q-btn
-        no-caps
-        flat
-        dense
-        color="pt-primary1"
-        class="text-caption"
-        @click="showAdvancedOptions = !showAdvancedOptions"
-      >
-        {{ showAdvancedOptions ? $t('HideAdvancedOptions', {}, 'Hide Advanced Options') : $t('ShowAdvancedOptions', {}, 'Show Advanced Options') }}
-      </q-btn>
-    </div>
-    <div v-else-if="asset?.id === 'bch'" class="q-mt-sm text-center">
-      <div v-if="showAdvancedOptions">
-        <q-btn
-          no-caps
-          :label="$t('SendUsingTokensWithCauldron')"
-          icon="img:cauldron-logo.svg"
-          color="pt-primary1"
-          padding="sm md"
-          class="full-width q-my-sm"
-          @click="toggleCauldron"
-        />
-        <q-btn
-          v-if="addAnotherRecipient"
-          no-caps
-          icon="person_add"
-          color="pt-primary1"
-          padding="sm md"
-          class="full-width q-my-sm"
-          @click="addAnotherRecipient"
-        >
-          {{ $t('AddAnotherRecipient') }}
-        </q-btn>
-      </div>
-      <q-btn
-        no-caps
-        flat
-        dense
-        color="pt-primary1"
-        class="text-caption"
-        @click="showAdvancedOptions = !showAdvancedOptions"
-      >
-        {{ showAdvancedOptions ? $t('HideAdvancedOptions', {}, 'Hide Advanced Options') : $t('ShowAdvancedOptions', {}, 'Show Advanced Options') }}
-      </q-btn>
-    </div>
-    <div v-else class="q-mt-sm text-center">
-      <div v-if="showAdvancedOptions">
-        <q-btn
-          v-if="addAnotherRecipient"
-          no-caps
-          icon="person_add"
-          color="pt-primary1"
-          padding="sm md"
-          class="full-width q-my-sm"
-          @click="addAnotherRecipient"
-        >
-          {{ $t('AddAnotherRecipient') }}
-        </q-btn>
-      </div>
-      <q-btn
-        no-caps
-        flat
-        dense
-        color="pt-primary1"
-        class="text-caption"
-        @click="showAdvancedOptions = !showAdvancedOptions"
-      >
-        {{ showAdvancedOptions ? $t('HideAdvancedOptions', {}, 'Hide Advanced Options') : $t('ShowAdvancedOptions', {}, 'Show Advanced Options') }}
-      </q-btn>
-    </div>
-  </template>
-  <div v-else-if="!isNFT && cauldronEnabled" class="row items-start no-wrap q-mt-sm">
+  <div v-if="!isNFT && cauldronEnabled" class="row items-start no-wrap q-mt-sm">
     <div class="full-width">
       <q-input
         ref="cauldronAmountInput"
@@ -359,15 +301,7 @@
         :error-message="effectiveCauldronErrorMessage"
       >
         <template v-slot:append>
-          <q-btn
-            size="lg"
-            padding="none"
-            flat
-            no-caps
-            :color="cauldronEnabled ? undefined : 'grey'"
-            :label="assetIsBch ? (cauldronToken?.bcmr?.token?.symbol || $t('SelectToken')) : 'BCH'"
-            @click="cauldronTokenDialog = assetIsBch"
-          />
+          <span class="text-subtitle2">{{ cauldronSpendSymbol }}</span>
         </template>
       </q-input>
     </div>
@@ -377,7 +311,7 @@
       icon="close"
       class="q-ml-xs q-my-sm"
       round
-      @click="toggleCauldron"
+      @click="resetPayWith"
     />
   </div>
   <q-card
@@ -387,17 +321,12 @@
   >
     <span v-html="cashbackAmountText()"></span>
   </q-card>
-  <TokenSelectDialog
-    v-model="cauldronTokenDialog"
-    @select-token="onCauldronTokenSelect"
-  />
 </template>
 
 <script>
 
 import DenominatorTextDropdown from 'src/components/DenominatorTextDropdown.vue'
 import ConfirmSetMax from 'src/pages/transaction/dialog/ConfirmSetMax.vue'
-import TokenSelectDialog from 'src/components/cauldron/TokenSelectDialog.vue'
 import { convertTokenAmount, convertCashAddress } from 'src/wallet/chipnet'
 import {
   parseAssetDenomination,
@@ -416,8 +345,7 @@ import KeyboardTooltip from 'src/components/KeyboardTooltip.vue'
 export default {
   components: {
     KeyboardTooltip,
-    DenominatorTextDropdown,
-    TokenSelectDialog
+    DenominatorTextDropdown
   },
 
   props: {
@@ -451,7 +379,7 @@ export default {
     setMaximumSendAmount: { type: Function },
     defaultSelectedFtChangeAddress: { type: String },
     walletType: { type: String },
-    addAnotherRecipient: { type: Function, default: undefined },
+    cauldronTokens: { type: Array, default: () => [] },
     sending: { type: Boolean, default: false },
   },
 
@@ -478,10 +406,9 @@ export default {
       selectedDenomination: 'BCH',
       changeAddresses: [],
       selectedChangeAddress: '',
-      cauldronTokenDialog: false,
       cauldronToken: null,
       cauldronEnabled: false,
-      showAdvancedOptions: false,
+      payWith: '',
       cauldronAmount: '',
       cauldronAmountFormatted: '',
       activeKeyboardTip: null,
@@ -558,6 +485,44 @@ export default {
     },
     assetIsFT () {
       return this.$props.asset?.id?.startsWith('ct/') && this.$props.asset?.balance > 0
+    },
+    showPayWith () {
+      if (this.isNFT) return false
+      if (this.assetIsBch) return true
+      return Boolean(this.asset?.id?.startsWith?.('ct/'))
+    },
+    payWithDefault () {
+      return this.assetIsBch ? 'bch' : (this.asset?.id || '')
+    },
+    payWithOptions () {
+      const options = []
+      if (this.assetIsBch) {
+        options.push({ label: 'BCH', value: 'bch', logo: 'bch-logo.png' })
+        this.cauldronTokens.forEach(token => {
+          if (!token?.id) return
+          options.push({
+            label: token.symbol || token.name || this.shortenTokenId(token.id),
+            value: token.id,
+            logo: token.logo,
+            token
+          })
+        })
+      } else {
+        options.push({
+          label: this.asset?.symbol || this.asset?.name || this.shortenTokenId(this.asset?.id),
+          value: this.asset?.id,
+          logo: this.asset?.logo
+        })
+        options.push({ label: 'BCH', value: 'bch', logo: 'bch-logo.png' })
+      }
+      return options
+    },
+    selectedPayWithOption () {
+      return this.payWithOptions.find(option => option.value === this.payWith) || this.payWithOptions[0] || null
+    },
+    cauldronSpendSymbol () {
+      if (this.assetIsBch) return this.cauldronToken?.bcmr?.token?.symbol || 'BCH'
+      return 'BCH'
     },
     walletAddresses () {
       return this.$store.getters['global/walletAddresses'] || []
@@ -715,14 +680,52 @@ export default {
         }
       })
     },
-    toggleCauldron() {
-      this.cauldronEnabled = !this.cauldronEnabled;
-      this.emitCauldronToggle();
+    shortenTokenId (id) {
+      if (!id) return ''
+      return String(id).replace('ct/', '').slice(0, 6).toUpperCase()
+    },
+    payWithImageUrl (option) {
+      if (!option) return ''
+      if (option.value === 'bch') return 'bch-logo.png'
+      if (option.logo) {
+        if (option.logo.startsWith('https://ipfs.paytaca.com/ipfs')) {
+          return option.logo + '?pinataGatewayToken=' + process.env.PINATA_GATEWAY_TOKEN
+        }
+        return option.logo
+      }
+      return this.$store.getters['global/getDefaultAssetLogo']?.(String(option.value)) || ''
+    },
+    buildCauldronToken (token) {
+      return {
+        token_id: String(token.id).replace('ct/', ''),
+        bcmr: {
+          name: token.name,
+          token: {
+            symbol: token.symbol,
+            decimals: token.decimals
+          }
+        }
+      }
+    },
+    onPayWithChange (value) {
+      this.payWith = value
+      if (value === this.payWithDefault) {
+        this.cauldronEnabled = false
+        this.cauldronToken = null
+        this.cauldronAmountFormatted = ''
+      } else if (value === 'bch') {
+        this.cauldronEnabled = true
+        this.cauldronToken = null
+      } else {
+        const option = this.payWithOptions.find(opt => opt.value === value)
+        this.cauldronEnabled = true
+        this.cauldronToken = option?.token ? this.buildCauldronToken(option.token) : null
+      }
 
-      if (this.cauldronEnabled && !this.cauldronToken && this.assetIsBch) this.cauldronTokenDialog = true
+      this.emitCauldronToggle()
 
       // When enabling cauldron for a CashToken, focus the amount input and show the custom keyboard
-      if (this.cauldronEnabled && this.asset?.id?.startsWith?.('ct/')) {
+      if (this.cauldronEnabled && !this.assetIsBch) {
         this.$nextTick(() => {
           if (this.$refs.amountInput) {
             this.$refs.amountInput.focus()
@@ -730,9 +733,17 @@ export default {
         })
       }
     },
-    onCauldronTokenSelect (token) {
-      this.cauldronToken = token
-      this.emitCauldronToggle();
+    resetPayWith () {
+      this.onPayWithChange(this.payWithDefault)
+    },
+    syncPayWithFromCauldron () {
+      if (!this.cauldronEnabled) {
+        this.payWith = this.payWithDefault
+      } else if (this.assetIsBch) {
+        this.payWith = this.cauldronToken?.token_id ? `ct/${this.cauldronToken.token_id}` : this.payWithDefault
+      } else {
+        this.payWith = 'bch'
+      }
     },
     emitCauldronToggle() {
       this.$emit('on-cauldron-toggle', {
@@ -766,6 +777,7 @@ export default {
         if (this.inputExtras.cauldron.token) {
           this.cauldronToken = this.inputExtras.cauldron.token;
         }
+        this.syncPayWithFromCauldron();
       }
     }
   },
@@ -790,9 +802,6 @@ export default {
     fiatFormatted () {
       clearTimeout(this.keyboardTipTimer)
       this.activeKeyboardTip = null
-    },
-    sending (val) {
-      if (val) this.showAdvancedOptions = false
     },
   }
 }
@@ -871,6 +880,28 @@ export default {
       font-size: 12px;
       font-weight: bold;
     }
+  }
+
+  .pay-with-field {
+    flex: 0 0 auto;
+    min-width: 110px;
+    max-width: 140px;
+  }
+
+  .pay-with-select {
+    width: 100%;
+
+    .q-field__control {
+      height: 56px;
+    }
+  }
+
+  .pay-with-option-logo {
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    object-fit: contain;
+    flex: 0 0 auto;
   }
 
 </style>

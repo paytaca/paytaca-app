@@ -2735,6 +2735,7 @@ export default {
   SendToThisAddress: "Send to this address",
   SendToYourOtherWallets: "Send to Your Other Wallets",
   SendTokenChangeTo: "Send token change to",
+  PayWith: "Pay with",
   SendTransaction: "Send Transaction",
   SendUsingBchWithCauldron: "Send using BCH with Cauldron",
   SendUsingTokensWithCauldron: "Send using tokens with Cauldron",

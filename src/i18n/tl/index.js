@@ -2660,6 +2660,7 @@ export default {
   SendToThisAddress: "Ipadala sa address na ito",
   SendToYourOtherWallets: "Ipadala sa Iyong Iba Pang Wallets",
   SendTokenChangeTo: "Magpadala ng pagbabago ng token sa",
+  PayWith: "Bayaran gamit ang",
   SendTransaction: "Magpadala ng Transaksyon",
   SendUsingBchWithCauldron: "Ipadala gamit ang BCH na may Cauldron",
   SendUsingTokensWithCauldron: "Ipadala gamit ang mga token na may Cauldron",
