@@ -122,7 +122,7 @@ const handleSubmit = async () => {
 
   try {
     const response = await callAPI('disputes', null, 'post', {
-      user: walletHash,
+      bidder: walletHash,
       bid: props.bidId,
       dispute_reason: selectedReasons.value.join(';')
     })

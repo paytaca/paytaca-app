@@ -607,7 +607,7 @@ const toggleEditAuction = async () => {
 // ============================
 
 const userWalletHash = computed(() => $store.getters['global/getWallet']('bch')?.walletHash)
-const isAuctioneer = computed(() => userWalletHash.value === auction.value?.user)
+const isAuctioneer = computed(() => userWalletHash.value === auction.value?.auctioneer)
 
 // REVIEW THIS KAY WHY 30 MINS
 const canEdit = computed(() => { 

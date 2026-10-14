@@ -438,7 +438,7 @@ const fetchHasBidForLots = async (lotsArr) => {
   await Promise.all(englishLots.map(async (lot) => {
     try {
       const result = await callAPI(`lots/${lot.id}/highest-bid`)
-      lotHasBid.value[lot.id] = !!(result.success && result.data && result.data.user !== null)
+      lotHasBid.value[lot.id] = !!(result.success && result.data && result.data.bidder !== null)
     } catch (err) {
       console.error(`Failed to check bid status for lot ${lot.id}:`, err)
       lotHasBid.value[lot.id] = false

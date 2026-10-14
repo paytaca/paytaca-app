@@ -122,7 +122,7 @@ const fetchBids = async () => {
 }
 
 const fetchUsernamesForBids = async (bidsList) => {
-  const uniqueHashes = [...new Set(bidsList.map(b => b.user))].filter(Boolean)
+  const uniqueHashes = [...new Set(bidsList.map(b => b.bidder))].filter(Boolean)
   
   const requests = uniqueHashes.map(async (hash) => {
     try {
@@ -159,17 +159,17 @@ const highestBid = computed(() => {
   ), bids.value[0])
 })
 
-const isOwnBid = (bid) => !!walletHash && bid.user === walletHash
+const isOwnBid = (bid) => !!walletHash && bid.bidder === walletHash
 
 const getBidderDisplayName = (bid) => {
   if (isOwnBid(bid)) return 'You'
   
-  if (usernames.value[bid.user]) {
-    return usernames.value[bid.user]
+  if (usernames.value[bid.bidder]) {
+    return usernames.value[bid.bidder]
   }
   if (bid.username) return bid.username
   
-  return truncateWallet(bid.user)
+  return truncateWallet(bid.bidder)
 }
 
 const truncateWallet = (hash) => {

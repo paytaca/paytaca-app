@@ -1,4 +1,3 @@
-import { data } from 'autoprefixer'
 import { date } from 'quasar'
 
 // Colors for lot statuses
@@ -63,13 +62,14 @@ export class AuctionList {
     this.type = data.type ?? 'N/A'
 
     this.auctioneer = data.auctioneer ?? ''
-    this.username = data.auctioneer_username ?? ''
+    this.auctioneer_username = data.auctioneer_username ?? ''
+    this.username = this.auctioneer_username
 
     this.start_date = data.start_date ?? null
     this.end_date = data.end_date ?? null
     this.creation_date = data.creation_date ?? null
 
-    this.is_open = data.is_open ?? false
+    this.is_open = data.is_open ?? data.status === 'Open'
     this.is_fiat = data.is_fiat ?? true
 
     this.image = data.image ?? null
@@ -90,7 +90,7 @@ export class AuctionList {
   
   // Formats the user bch address with an ellipsis in the middle
   getEllipsisInMiddleAddress() {
-    const targetString = this.user
+    const targetString = this.auctioneer
     if (!targetString || targetString.length <= 22) return targetString
     
     const start = targetString.substring(0, 17)
@@ -105,7 +105,7 @@ export class LotsList {
     return new LotsList(data, auction)
   }
 
-  constructor(data, auction = null) {
+  constructor(data, auction = data.auction ?? null) {
     this.raw = data
     this.auction = auction
   }
@@ -151,8 +151,8 @@ export class LotsList {
     this.time_interval = data.time_interval ?? null
 
     // Dynamic values
-    this.is_sold = data.is_sold ?? null
-    this.date_sold = data.date_sold ?? null
+    this.is_sold = data.is_sold ?? data.status === 'Sold'
+    this.date_sold = data.date_sold ?? data.sell_date ?? null
 
     this.status = data.status ?? 'Inactive'
     this.status_color = lotColors[this.status]
@@ -164,7 +164,7 @@ export class LotsList {
     this.image = this.images[0] ?? null
 
     // Bid history
-    this.bids = Array.isArray(data.lots)
+    this.bids = Array.isArray(data.bids)
       ? data.bids.map(bidObj => BidsList.parse(bidObj, this))
       : []
   }
@@ -208,7 +208,7 @@ export class BidsList {
     return new BidsList(data, lot)
   }
   
-  constructor(data, lot) {
+  constructor(data, lot = data.lot ?? null) {
     this.raw = data
     this.lot = lot
   }
@@ -268,7 +268,7 @@ export class AppealList {
     this.id = data.id ? Number(data.id) : null
 
     this.bid_id = data.bid ? Number(data.bid) : null
-    this.lot_id = data.lotId ? Number(data.lotId) : null
+    this.lot_id = data.lotId != null || data.lot != null ? Number(data.lotId ?? data.lot) : null
     this.auction_id = data.auctionId ? Number(data.auctionId) : null
 
     this.creation_date = data.creation_date ?? null
@@ -305,7 +305,11 @@ export class AppealList {
       return `${years}y`
     })()
     
-    this.status = data.is_resolved ? 'Resolved' : 'Pending'
+    this.dispute_status = data.status ?? null
+    this.is_resolved = data.is_resolved ?? (data.status != null && data.status !== 'Pending')
+    this.status = this.is_resolved ? 'Resolved' : 'Pending'
+    this.is_granted_refund = data.is_granted_refund ?? data.refund_status === 'Completed'
+    this.is_granted_return = data.is_granted_return ?? false
 
     this.resolution_date = data.resolution_date || null
     this.timeSinceResolved = (() => {
@@ -341,10 +345,11 @@ export class AppealList {
       return `${years}y`
     })()
 
-    this.reasons = Array.isArray(data.dispute_reason)
-      ? data.dispute_reason.flatMap(r => r.split('').map(s => s.trim()).filter(Boolean))
-      : (data.dispute_reason
-          ? data.dispute_reason.split('').map(s => s.trim()).filter(Boolean)
+    const reasons = data.dispute_reason ?? data.reason
+    this.reasons = Array.isArray(reasons)
+      ? reasons
+      : (reasons
+          ? reasons.split(';').map(s => s.trim()).filter(Boolean)
           : [])
   }
 }
@@ -377,7 +382,7 @@ export class AppealDetails {
     this.id = data.id ? Number(data.id) : null
 
     this.bid_id = data.bid ? Number(data.bid) : null
-    this.lot_id = data.lotId ? Number(data.lotId) : null
+    this.lot_id = data.lotId != null || data.lot != null ? Number(data.lotId ?? data.lot) : null
     this.auction_id = data.auctionId ? Number(data.auctionId) : null
 
     this.creation_date = data.creation_date || null
@@ -414,7 +419,11 @@ export class AppealDetails {
       return `${years}y`
     })()
     
-    this.status = data.is_resolved ? 'Resolved' : 'Pending'
+    this.dispute_status = data.status ?? null
+    this.is_resolved = data.is_resolved ?? (data.status != null && data.status !== 'Pending')
+    this.status = this.is_resolved ? 'Resolved' : 'Pending'
+    this.is_granted_refund = data.is_granted_refund ?? data.refund_status === 'Completed'
+    this.is_granted_return = data.is_granted_return ?? false
 
     this.resolution_date = data.resolution_date || null
     this.timeSinceResolved = (() => {
@@ -450,27 +459,28 @@ export class AppealDetails {
       return `${years}y`
     })()
 
-    this.reasons = Array.isArray(data.dispute_reason)
-      ? data.dispute_reason.flatMap(r => r.split('').map(s => s.trim()).filter(Boolean))
-      : (data.dispute_reason
-          ? data.dispute_reason.split('').map(s => s.trim()).filter(Boolean)
+    const reasons = data.dispute_reason ?? data.reason
+    this.reasons = Array.isArray(reasons)
+      ? reasons
+      : (reasons
+          ? reasons.split(';').map(s => s.trim()).filter(Boolean)
           : [])
     
     this.auctioneer = data.auctioneer
       ? {
-          user: data.auctioneer.user || null,
+          auctioneer: data.auctioneer.auctioneer || null,
           username: data.auctioneer.username || null,
           address: data.auctioneer.address || null
         }
-      : { user: null, username: null, address: null }
+      : { auctioneer: null, username: null, address: null }
 
     this.bidder = data.bidder
       ? {
-          user: data.bidder.user || null,
+          bidder: data.bidder.bidder || null,
           username: data.bidder.username || null,
           address: data.bidder.address || null
         }
-      : { user: null, username: null, address: null }
+      : { bidder: null, username: null, address: null }
 
     this.contract_address = data.contract_address || null
     this.balance = data.bid_price_bch !== undefined ? Number(data.bid_price_bch) : 0.00000000
@@ -495,8 +505,8 @@ export class DeliveryDetails {
   // setter for raw data
   set raw(data) {
     Object.defineProperty(this, '$raw', { enumerable: false, configurable: true, value: data })
-    this.tracking_id = data.tracking_id ? Number(data.tracking_id) : null
-    this.lot_id = data.lotId ? Number(data.lotId) : null
+    this.tracking_id = data.tracking_id ?? null
+    this.lot_id = data.lotId != null || data.lot != null ? Number(data.lotId ?? data.lot) : null
 
     this.sender_id = data.sender !== undefined ? Number(data.sender) : null
     this.sender_location = data.sender_location !== undefined ? data.sender_location : null
@@ -514,7 +524,7 @@ export class DeliveryDetails {
     this.refreshStatus()
   }
 
-  updateDeliveryEvent() {
+  updateDeliveryEvent(data) {
     this.status = data.status || null
     this.status_color = deliveryColors[this.status]
     this.description = data.description || null
