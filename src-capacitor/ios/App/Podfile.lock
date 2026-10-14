@@ -31,8 +31,6 @@ PODS:
     - SwiftKeychainWrapper
   - CapacitorShare (5.0.8):
     - Capacitor
-  - PaytacaEscrowKey (1.0.0):
-    - Capacitor
   - SwiftKeychainWrapper (4.0.1)
 
 DEPENDENCIES:
@@ -52,7 +50,6 @@ DEPENDENCIES:
   - "CapacitorPushNotifications (from `../../node_modules/@capacitor/push-notifications`)"
   - CapacitorSecureStoragePlugin (from `../../node_modules/capacitor-secure-storage-plugin`)
   - "CapacitorShare (from `../../node_modules/@capacitor/share`)"
-  - PaytacaEscrowKey (from `../../../capacitor-plugins/escrow-key`)
 
 SPEC REPOS:
   trunk:
@@ -91,8 +88,6 @@ EXTERNAL SOURCES:
     :path: "../../node_modules/capacitor-secure-storage-plugin"
   CapacitorShare:
     :path: "../../node_modules/@capacitor/share"
-  PaytacaEscrowKey:
-    :path: "../../../capacitor-plugins/escrow-key"
 
 SPEC CHECKSUMS:
   Capacitor: 7d42085cb786b2d3ea9ac8a17ebd7e3305be7b72
@@ -111,7 +106,6 @@ SPEC CHECKSUMS:
   CapacitorPushNotifications: 2327900bc002f5ff49ee6d2231796d0635b4a1b0
   CapacitorSecureStoragePlugin: e91d7df060f2495a1acff9583641a6953e3aacba
   CapacitorShare: abef1f7be4e10b448693b0b83b540cb4b92dc849
-  PaytacaEscrowKey: fcfb96e9d715eac4e5f21e2a2276ab62d1be2e83
   SwiftKeychainWrapper: 807ba1d63c33a7d0613288512399cd1eda1e470c
 
 PODFILE CHECKSUM: d8743e491c50320f9a10caab1c4c14d55e785a71

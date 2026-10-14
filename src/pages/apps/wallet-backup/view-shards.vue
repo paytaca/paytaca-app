@@ -342,7 +342,6 @@ import biometricWarningAttempts from 'src/components/authOption/biometric-warnin
 import { NativeBiometric } from 'capacitor-native-biometric'
 import { Capacitor } from '@capacitor/core'
 import { SecureStoragePlugin } from 'capacitor-secure-storage-plugin'
-import { syncToEscrow } from 'src/wallet/escrow-vault'
 import SaveToGallery from 'src/utils/save-to-gallery'
 import paytacaLogoHorizontal from '../../../assets/paytaca_logo_horizontal.png'
 
@@ -472,7 +471,6 @@ export default {
         await SecureStoragePlugin.set({ key: this.getSessionStorageKey(), value })
         // Fallback key (helps restore if wallet-specific key is unavailable for any reason)
         await SecureStoragePlugin.set({ key: this.getLastShardsKey(), value })
-        syncToEscrow().catch(() => {})
       } catch (e) {
         // Best-effort only
       } finally {
@@ -525,7 +523,6 @@ export default {
             const value = JSON.stringify(legacy)
             await SecureStoragePlugin.set({ key: this.getSessionStorageKey(), value })
             await SecureStoragePlugin.set({ key: this.getLastShardsKey(), value })
-            syncToEscrow().catch(() => {})
           } catch (_) {
             // ignore
           } finally {
