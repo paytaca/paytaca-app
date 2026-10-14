@@ -395,9 +395,8 @@
         <!-- Elite: Not Qualified -->
         <div
           v-else-if="eliteData && eliteData.status === EliteStatus.LOCKED"
-          class="row full-width q-pa-md br-15 group-currency elite-card elite-locked cursor-pointer"
+          class="row full-width q-pa-md br-15 group-currency elite-card elite-locked"
           :class="[getDarkModeClass(darkMode), { loaded: eliteLoaded }]"
-          @click="redirectToElitePage"
         >
           <div class="col-12">
             <div class="row full-width justify-between items-center">
@@ -409,51 +408,34 @@
                 <br/>
                 <span class="elite-pill locked">{{ EliteStatusLabels[EliteStatus.LOCKED] }}</span>
               </div>
-              <div class="row col-2 justify-end">
-                <q-btn
-                  round
-                  class="btn-scan button text-white elite-btn"
-                  icon="chevron_right"
-                  @click.stop="redirectToElitePage"
-                />
+              <div class="row col-2 justify-end" />
+            </div>
+            <div
+              v-if="isMerchantCountLoading || verifiedMerchantCount !== null"
+              class="row items-start no-wrap q-my-md elite-merchant-count"
+            >
+              <q-icon name="storefront" size="sm" class="q-mr-sm q-mt-xs elite-icon" />
+              <div class="col">
+                <template v-if="isMerchantCountLoading">
+                  <q-skeleton :dark="darkMode" type="text" height="12px" class="q-mb-xs" />
+                  <q-skeleton :dark="darkMode" type="text" height="12px" class="q-mb-xs" />
+                  <q-skeleton :dark="darkMode" type="text" height="12px" width="55%" />
+                </template>
+                <template v-else>
+                  <span class="text-caption">{{ eliteMerchantCountPrefix }}</span>
+                  <span class="text-caption text-weight-medium">{{ verifiedMerchantCountLabel }}</span>
+                  <span class="text-caption">{{ eliteMerchantCountSuffix }}</span>
+                </template>
               </div>
             </div>
-            <div class="text-caption q-my-sm">
-              Get LIFT cashbacks on merchant OTC and marketplace purchases once you unlock the program.
-            </div>
-            <div class="text-caption q-mb-sm">
-              To unlock, your wallet needs:
-            </div>
-            <div class="q-mb-sm">
-              <div class="row justify-between items-center q-mb-xs">
-                <span class="text-caption">
-                  <template v-if="eliteBchPct >= 1"><span class="text-positive">✓&nbsp;</span></template>BCH balance
-                </span>
-                <span class="text-caption text-weight-medium">
-                  {{ parseFiatCurrencyWrapper(eliteData.bchBalance) }} / {{ parseFiatCurrencyWrapper(eliteData.bchThreshold) }}
-                </span>
-              </div>
-              <q-linear-progress
-                :value="eliteBchPct"
-                class="rounded-borders elite-progress"
-                size="6px"
-              />
-            </div>
-            <div>
-              <div class="row justify-between items-center q-mb-xs">
-                <span class="text-caption">
-                  <template v-if="eliteLiftPct >= 1"><span class="text-positive">✓&nbsp;</span></template>LIFT balance
-                </span>
-                <span class="text-caption text-weight-medium">
-                  {{ parseLiftToken(eliteData.liftBalance, true) }} / {{ parseLiftToken(eliteData.liftThreshold) }}
-                </span>
-              </div>
-              <q-linear-progress
-                :value="eliteLiftPct"
-                class="rounded-borders elite-progress"
-                size="6px"
-              />
-            </div>
+            <q-btn
+              unelevated
+              no-caps
+              class="full-width elite-cta-btn"
+              :class="getDarkModeClass(darkMode)"
+              :label="eliteCtaLabel"
+              @click="onEliteCtaClick"
+            />
           </div>
         </div>
 
@@ -462,7 +444,7 @@
           v-else-if="eliteData && eliteData.status === EliteStatus.ACTIVE"
           class="row full-width q-pa-md br-15 group-currency elite-card elite-active cursor-pointer"
           :class="[getDarkModeClass(darkMode), { loaded: eliteLoaded }]"
-          @click="redirectToElitePage"
+          @click="onEliteCtaClick"
         >
           <div class="col-12">
             <div class="row full-width justify-between items-center">
@@ -479,7 +461,7 @@
                   round
                   class="btn-scan button text-white elite-btn"
                   icon="chevron_right"
-                  @click.stop="redirectToElitePage"
+                  @click.stop="onEliteCtaClick"
                 />
               </div>
             </div>
@@ -502,9 +484,8 @@
         <!-- Elite: Paused -->
         <div
           v-else-if="eliteData && eliteData.status === EliteStatus.PAUSED"
-          class="row full-width q-pa-md br-15 group-currency elite-card elite-paused cursor-pointer"
+          class="row full-width q-pa-md br-15 group-currency elite-card elite-paused"
           :class="[getDarkModeClass(darkMode), { loaded: eliteLoaded }]"
-          @click="redirectToElitePage"
         >
           <div class="col-12">
             <div class="row full-width justify-between items-center">
@@ -516,51 +497,34 @@
                 <br/>
                 <span class="elite-pill paused">{{ EliteStatusLabels[EliteStatus.PAUSED] }}</span>
               </div>
-              <div class="row col-2 justify-end">
-                <q-btn
-                  round
-                  class="btn-scan button text-white elite-btn"
-                  icon="chevron_right"
-                  @click.stop="redirectToElitePage"
-                />
+              <div class="row col-2 justify-end" />
+            </div>
+            <div
+              v-if="isMerchantCountLoading || verifiedMerchantCount !== null"
+              class="row items-start no-wrap q-my-md elite-merchant-count"
+            >
+              <q-icon name="storefront" size="sm" class="q-mr-sm q-mt-xs elite-icon" />
+              <div class="col">
+                <template v-if="isMerchantCountLoading">
+                  <q-skeleton :dark="darkMode" type="text" height="12px" class="q-mb-xs" />
+                  <q-skeleton :dark="darkMode" type="text" height="12px" class="q-mb-xs" />
+                  <q-skeleton :dark="darkMode" type="text" height="12px" width="55%" />
+                </template>
+                <template v-else>
+                  <span class="text-caption">{{ eliteMerchantCountPrefix }}</span>
+                  <span class="text-caption text-weight-medium">{{ verifiedMerchantCountLabel }}</span>
+                  <span class="text-caption">{{ eliteMerchantCountSuffix }}</span>
+                </template>
               </div>
             </div>
-            <div class="text-caption q-mb-md q-mt-sm">
-              Your wallet balances fell below the threshold. Restore them to resume earning cashbacks.
-            </div>
-            <div class="text-caption q-mb-sm">
-              Current vs. requirement:
-            </div>
-            <div class="q-mb-sm">
-              <div class="row justify-between items-center q-mb-xs">
-                <span class="text-caption">
-                  <template v-if="eliteBchPct >= 1"><span class="text-positive">✓&nbsp;</span></template>BCH balance
-                </span>
-                <span class="text-caption text-weight-medium">
-                  {{ parseFiatCurrencyWrapper(eliteData.bchBalance) }} / {{ parseFiatCurrencyWrapper(eliteData.bchThreshold) }}
-                </span>
-              </div>
-              <q-linear-progress
-                :value="eliteBchPct"
-                class="rounded-borders elite-progress"
-                size="6px"
-              />
-            </div>
-            <div>
-              <div class="row justify-between items-center q-mb-xs">
-                <span class="text-caption">
-                  <template v-if="eliteLiftPct >= 1"><span class="text-positive">✓&nbsp;</span></template>LIFT balance
-                </span>
-                <span class="text-caption text-weight-medium">
-                  {{ parseLiftToken(eliteData.liftBalance, true) }} / {{ parseLiftToken(eliteData.liftThreshold) }}
-                </span>
-              </div>
-              <q-linear-progress
-                :value="eliteLiftPct"
-                class="rounded-borders elite-progress"
-                size="6px"
-              />
-            </div>
+            <q-btn
+              unelevated
+              no-caps
+              class="full-width elite-cta-btn"
+              :class="getDarkModeClass(darkMode)"
+              :label="eliteCtaLabel"
+              @click="onEliteCtaClick"
+            />
           </div>
         </div>
       </div>
@@ -605,6 +569,8 @@ import {
   EliteStatusLabels
 } from 'src/utils/engagementhub-utils/rewards'
 import { parseLiftToken } from 'src/utils/engagementhub-utils/shared'
+import { geolocationManager } from 'src/boot/geolocation'
+import { fetchVerifiedMerchantCount } from 'src/wallet/pos'
 
 import HeaderNav from 'src/components/header-nav.vue'
 import HelpCard from 'src/components/rewards/cards/HelpCard.vue'
@@ -674,6 +640,11 @@ export default {
       eliteError: '',
       eliteProgram: null,
       eliteData: defaultEliteData(),
+
+      // Verified merchant count shown on locked/paused elite cards
+      verifiedMerchantCount: null,
+      isMerchantCountLoading: false,
+      deviceCountryName: '',
 
       // Referral banner state
       isReferralDialogActive: false,
@@ -821,16 +792,34 @@ export default {
       return `${pointsTranslate} = 1 LIFT`
     },
 
-    // Elite: BCH balance progress toward threshold (0-1)
-    eliteBchPct () {
-      if (!this.eliteData?.bchBalance || !this.eliteData?.bchThreshold) return 0
-      return Math.min(this.eliteData.bchBalance / this.eliteData.bchThreshold, 1)
+    // Elite: CTA label for the locked/paused card
+    eliteCtaLabel () {
+      return this.eliteData?.status === EliteStatus.PAUSED ? 'Restore Eligibility' : 'Check Eligibility'
     },
 
-    // Elite: LIFT balance progress toward threshold (0-1)
-    eliteLiftPct () {
-      if (!this.eliteData?.liftBalance || !this.eliteData?.liftThreshold) return 0
-      return Math.min(this.eliteData.liftBalance / this.eliteData.liftThreshold, 1)
+    // Elite: merchant count sentence for the locked/paused card, split into three
+    // bindings so the country name can carry its own article at i18n time
+    // ("in the Philippines" vs "in Japan").
+    eliteMerchantCountPrefix () {
+      if (this.verifiedMerchantCount === null) return ''
+      return this.eliteData?.status === EliteStatus.PAUSED
+        ? 'Get back to earning LIFT cashbacks at '
+        : 'Earn LIFT cashbacks at '
+    },
+
+    // Elite: the emphasized count segment of the sentence
+    verifiedMerchantCountLabel () {
+      const count = this.verifiedMerchantCount
+      if (count === null) return ''
+      return count === 1
+        ? '1 verified merchant'
+        : `${count.toLocaleString()} verified merchants`
+    },
+
+    // Elite: trailing segment holding the country
+    eliteMerchantCountSuffix () {
+      if (this.verifiedMerchantCount === null) return ''
+      return this.deviceCountryName ? ` in ${this.deviceCountryName}.` : '.'
     },
 
     // Elite card animation trigger — only after data has loaded
@@ -1091,6 +1080,7 @@ export default {
         // do client-side asset balances check when status is locked
         if (this.eliteData.status === EliteStatus.LOCKED || this.eliteData.status === EliteStatus.PAUSED) {
           this.getWalletAssetBalances()
+          this.loadVerifiedMerchantCount()
         }
       } catch (error) {
         console.error('Error loading elite program data: ', error)
@@ -1106,6 +1096,26 @@ export default {
       this.loadEliteProgramData(this.eliteProgram)
     },
 
+    // Fetch the verified merchant count for the device's country.
+    // Never blocks the card render; failures simply hide the count line.
+    async loadVerifiedMerchantCount () {
+      this.isMerchantCountLoading = true
+      this.verifiedMerchantCount = null
+      this.deviceCountryName = ''
+
+      try {
+        const geoip = await geolocationManager.getOrUpdateGeoIp()
+        if (!geoip?.country_name) return
+
+        this.deviceCountryName = geoip.country_name
+        this.verifiedMerchantCount = await fetchVerifiedMerchantCount(geoip.country_name)
+      } catch (error) {
+        console.error('Unable to load verified merchant count: ', error)
+      } finally {
+        this.isMerchantCountLoading = false
+      }
+    },
+
     getWalletAssetBalances () {
       const assets = this.$store.getters['assets/getAssets']
       const bchBalance = Number(assets[0]?.balance ?? 0)
@@ -1118,7 +1128,7 @@ export default {
       this.eliteData.liftBalance = assets[liftIndex].balance ?? 0
     },
 
-    redirectToElitePage () {
+    onEliteCtaClick () {
       if (this.eliteData.status === EliteStatus.LOCKED || this.eliteData.status === EliteStatus.PAUSED) {
         this.$q.dialog({
           component: EliteProgramLockedDialog,
@@ -1227,6 +1237,29 @@ export default {
   -webkit-backdrop-filter: blur(16px);
   border: 1px solid rgba(255, 255, 255, 0.2);
   box-shadow: 0 4px 20px 0 rgba(120, 90, 20, 0.15);
+}
+
+/* Elite full-width CTA button (gold variant of .bg-grad) */
+.elite-card .elite-cta-btn {
+  background: linear-gradient(to right bottom, #e0b34e, #d4a643, #c8963a, #bc8a32, #b07e2a) !important;
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  box-shadow: 0 4px 20px 0 rgba(120, 90, 20, 0.15);
+  color: #fff;
+  font-weight: 700;
+  min-height: 44px;
+  border-radius: 8px;
+}
+
+/* Verified merchant count line on locked/paused elite cards.
+   Reuses the .elite-stat-box dashed-border treatment from elite-row-styles.scss */
+.elite-merchant-count {
+  background: rgba(212, 166, 67, 0.15);
+  border: 1px dashed rgba(212, 166, 67, 0.5);
+  border-radius: 10px;
+  padding: 10px 12px;
+  line-height: 1.4;
 }
 
 /* Smooth card transition */
