@@ -117,8 +117,8 @@
                     style="background-color: var(--q-secondary);"
                     padding="md"
                     unelevated
-                    :label="winningBid.value?.user === userWalletHash ? 'Highest Bidder' : 'Place Bid'"
-                    :disabled="lot?.status !== 'Active' || winningBid.value?.user === userWalletHash || bidOrBuyLoading"
+                    :label="winningBid.value?.bidder === userWalletHash ? 'Highest Bidder' : 'Place Bid'"
+                    :disabled="lot?.status !== 'Active' || winningBid.value?.bidder === userWalletHash || bidOrBuyLoading"
                     @click="() => { showMakeBidDialog = true }"
                   />
                 </template>
@@ -528,7 +528,7 @@
                   <div class="col column overflow-hidden">
                     <div class="row items-center no-wrap full-width">
                       <span 
-                        v-if="auction?.user?.username" 
+                        v-if="auction?.auctioneer_username"
                         class="text-weight-medium ellipsis col-shrink q-mr-xs" 
                       >
                         {{ auction.auctioneer_username }}
@@ -543,7 +543,7 @@
                       {{ auction?.getEllipsisInMiddleAddress ? auction.getEllipsisInMiddleAddress() : 'N/A' }}
                     </span>
                   </div>
-                  <q-btn flat round dense icon="content_copy" size="xs" @click="copyToClipboard(auction?.user?.address)" />
+                  <q-btn flat round dense icon="content_copy" size="xs" @click="copyToClipboard(auction?.auctioneer, $q)" />
                 </div>
                 <q-separator spaced="xs" />
                 <div class="row items-center q-py-xs">
@@ -672,6 +672,7 @@
 
     <!-- =================== POP UPS =================== -->
     <BiddingPopup
+      v-if="showMakeBidDialog && auction?.type == 'English'"
       v-model="showMakeBidDialog"
       :lot="lot"
       :auction="auction"
@@ -680,6 +681,7 @@
     />
 
     <BuyItNowPopup
+      v-if="showMakeBidDialog && auction?.type == 'Dutch'"
       v-model="showMakeBidDialog"
       :lot="lot"
       :auction="auction"
@@ -717,15 +719,18 @@
 </template>
 
 <script setup>
-import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 import { useStore } from 'vuex'
 import { ref, computed, onMounted, onBeforeUnmount } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useQuasar, date } from 'quasar'
+
+// src imports
+import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 import { callAPI } from 'src/auction/api'
-import { payBidToContract } from 'src/auction/payment'
+import { payFirstBidToContract } from 'src/auction/payment'
 import { callContractRelease } from 'src/auction/arbiter'
 import { callLotWebsocket } from 'src/auction/websocket'
+import { copyToClipboard, formatAuctionCountdown as formatCountdown, formatAuctionDate, formatFiat, formatBCH } from './helper-functions'
 
 // Components
 import HeaderNav from 'src/components/header-nav.vue'
@@ -858,7 +863,7 @@ const markedAsCompleted = async () => {
   await callContractRelease(winningBid.value?.id)
   $q.loading.hide()
 
-  await $store.dispatch('auction/patchDeliveryDetails', { marked_as_complete: true })
+  await $store.dispatch('auction/createDeliveryEvent', { status: 'Delivered' })
   await refresh(() => {})
 }
 
@@ -867,7 +872,7 @@ const markedAsCompleted = async () => {
 // ===============
 const showMakeBidDialog = ref(false)
 const engLotHasBid = computed(() => Boolean(winningBid.value?.id)) // what? REVIEW
-const engUserIsHighestBid = computed(() => winningBid.value?.user === userWalletHash.value)
+const engUserIsHighestBid = computed(() => winningBid.value?.bidder === userWalletHash.value)
 
 const engCurrentBch = computed(() => {
   const currentBCH = Number(lot.value?.[`threshold_bid_${attributeName.value}`] || 0)
@@ -937,7 +942,7 @@ const handlePlaceBid = async ({ bid_price_bch, bid_price_fiat }) => {
 
     // Paying for the bid (sending it to the contract)
     $q.loading.show({ message: 'Processing smart contract...' })
-    const txid = await payBidToContract(bidBch.toFixed(8), Number(props.lotId))
+    const txid = await payFirstBidToContract(Number(props.lotId), Number(bidBch.toFixed(8)))
 
     // Wait for bid to be marked as complete
     const settlement = waitForBidSettlement(pendingBid.id)
@@ -971,7 +976,7 @@ const bidStatus = computed(() => {
   if (!engUserIsHighestBid.value) return null
   if (!engLotHasBid.value) return isLotClosedOrSold.value ? 'did-not-win' : null
 
-  const isHighest = winningBid.value?.user === userWalletHash.value
+  const isHighest = winningBid.value?.bidder === userWalletHash.value
   if (lot.value?.is_sold || isLotClosedOrSold.value) return isHighest ? 'win' : 'did-not-win'
   return isHighest ? 'highest' : 'outbid'
 })
@@ -1023,7 +1028,7 @@ const handleBuyItNow = async () => {
     if (!pendingBid?.id) throw new Error('Purchase was not created.')
 
     $q.loading.show({ message: 'Processing smart contract...' })
-    const txid = await payBidToContract(Number(bidBch).toFixed(8), Number(props.lotId))
+    const txid = await payFirstBidToContract(Number(props.lotId), Number(bidBch).toFixed(8))
     const settlement = waitForBidSettlement(pendingBid.id)
     socket.send(JSON.stringify({
       type: 'paid_bid',
@@ -1053,7 +1058,7 @@ const initEnglishDeliveryTracking = async () => {
   if (isCreatingDeliveryTracking.value) return
   if (auction.value?.type !== 'English') return
   if (!isLotClosedOrSold.value) return
-  if (winningBid.value?.user !== userWalletHash.value) return
+  if (winningBid.value?.bidder !== userWalletHash.value) return
   if (deliveryStatusId.value !== null) return
 
   try {
@@ -1144,13 +1149,6 @@ const loadPageData = async () => {
     refundCountdownInterval = setInterval(updateRefundCountdown, 1000)
   }
   await initEnglishDeliveryTracking()
-}
-
-const copyToClipboard = (text) => {
-  if (!text) return
-  navigator.clipboard.writeText(text).then(() => {
-    $q.notify({ type: 'positive', message: 'Copied to clipboard!', timeout: 1500 })
-  })
 }
 
 const smartBackPath = computed(() => {
@@ -1247,7 +1245,6 @@ const connectWebsocket = () => {
       case "lot.update_status":
         if (data?.id && data?.status) $store.commit('auction/updateLotStatus', data)
         if (data.status !== 'Active') {
-          showMakeBidDialog.value = false
           showMakeBidDialog.value = false
         }
         if (data.status === 'Sold') await initEnglishDeliveryTracking()
@@ -1458,42 +1455,4 @@ const clearSocket = () => {
   socket = null
 }
 
-/*
-=================
-HELPER FUNCTIONS
-=================
-*/
-// Formatting functions
-const formatAuctionDate = (dateString) => {
-  if (!dateString) return 'N/A'
-  return date.formatDate(dateString, 'MMM DD, YYYY hh:mm A')
-}
-
-const formatCountdown = (timeLeft, countingToEnd=false) => {
-  const splitTime = String(timeLeft).split(":")
-  const timeToIndex = ['day', 'hour', 'minute', 'second']
-  for (let [index, time] of splitTime.entries()){
-    const numTime = Number(time)
-    if (numTime > 0) {
-      return `${numTime} ${timeToIndex[index]}${(numTime) > 1 ? 's':''} left.`
-    }
-  }
-  return (countingToEnd) ? "Time's Up!" : "Auction is Starting..."
-}
-
-
-
-const formatFiat = (fiatValue) => {
-  const numValue = Number(fiatValue) || 0
-  return `₱${numValue.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
-}
-
-const formatBCH = (value) => {
-  const bch = Number(value) || 0
-  const numStr = Number(bch).toFixed(8)
-  const match = numStr.match(/^(.*?)0*$/)
-  const main = match ? match[1] : numStr
-  const zeros = numStr.substring(main.length)
-  return { main, zeros, full: numStr }
-}
 </script>
