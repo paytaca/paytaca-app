@@ -407,6 +407,7 @@
                         :walletType="walletType"
                         @on-qr-scanner-click="onQRScannerClick"
                         @on-input-focus="onInputFocus"
+                        @on-input-blur="onInputBlur"
                         @on-recipient-input="onRecipientInput"
                         @on-address-set="onAddressSet"
                         @on-empty-recipient="onEmptyRecipient"
@@ -440,6 +441,7 @@
                         :sending="sending"
                         @on-qr-scanner-click="onQRScannerClick"
                         @on-input-focus="onInputFocus"
+                        @on-input-blur="onInputBlur"
                         @on-recipient-input="onRecipientInput"
                         @on-address-set="onAddressSet"
                         @on-empty-recipient="onEmptyRecipient"
@@ -2359,6 +2361,22 @@ export default {
       this.customKeyboardState = value.field !== '' ? 'show' : 'dismiss'
       sendPageUtils.addRemoveInputFocus(value.index, value.field)
     },
+    onInputBlur () {
+      clearTimeout(this._keyboardBlurCheckTimer)
+      this._keyboardBlurCheckTimer = setTimeout(() => {
+        this._keyboardBlurCheckTimer = null
+        const active = document.activeElement
+        if (active && typeof active.closest === 'function') {
+          if (active.closest('.keyboard-slide-panel') ||
+              active.closest('.bch-input-field') ||
+              active.closest('.fiat-input-field')) return
+        }
+        if (this.customKeyboardState === 'show') {
+          this.focusedInputField = ''
+          this.customKeyboardState = 'dismiss'
+        }
+      }, 80)
+    },
     scheduleRepositionActiveInput () {
       clearTimeout(this._repositionInputTimer)
       this._repositionInputTimer = setTimeout(() => {
@@ -3456,6 +3474,7 @@ export default {
 
     clearTimeout(this._repositionInputTimer)
     clearTimeout(this._keyboardAutoHideTimer)
+    clearTimeout(this._keyboardBlurCheckTimer)
 
     this.poolTracker.cleanup();
   },

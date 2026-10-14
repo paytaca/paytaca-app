@@ -158,7 +158,35 @@
       </template>
     </q-input>
   </div>
-  <div class="row q-mt-md" v-if="!isNFT">
+  <div class="row q-mt-md" v-if="!isNFT && asset?.id === 'bch'">
+    <div class="col q-mt-xs" style="position: relative;">
+      <q-input
+        type="text"
+        inputmode="none"
+        filled
+        v-model="fiatFormatted"
+        ref="fiatInput"
+        class="fiat-input-field"
+        @focus="onInputFocus(index, 'fiat')"
+        @blur="onInputBlur(index, 'fiat')"
+        @keydown="onKeyboardInput"
+        :disabled="recipient.fixedAmount || inputExtras.isBip21"
+        :readonly="recipient.fixedAmount || inputExtras.isBip21"
+        :error="balanceExceeded && !cauldronEnabled"
+        :error-message="balanceExceeded && !cauldronEnabled ? $t('BalanceExceeded') : ''"
+        :label="cauldronEnabled ? $t('ReceiveAmount') : $t('Amount')"
+        :dark="darkMode"
+        :key="inputExtras.fiatFormatted"
+      >
+        <template v-slot:append>
+          {{ String(currentSendPageCurrency()).toUpperCase() }}
+        </template>
+      </q-input>
+      <KeyboardTooltip v-if="activeKeyboardTip === 'fiat'" :dark-mode="darkMode" :key="'fiat-' + keyboardTipCounter" />
+    </div>
+  </div>
+
+  <div class="row" v-if="!isNFT">
     <div class="col q-mt-xs" style="position: relative;">
       <q-input
         type="text"
@@ -168,6 +196,7 @@
         ref="amountInput"
         class="bch-input-field"
         @focus="onInputFocus(index, 'bch')"
+        @blur="onInputBlur(index, 'bch')"
         @keydown="onKeyboardInput"
         :label="cauldronEnabled ? $t('ReceiveAmount') : $t('Amount')"
         :dark="darkMode"
@@ -229,33 +258,6 @@
           </q-item>
         </template>
       </q-select>
-    </div>
-  </div>
-
-  <div class="row" v-if="!isNFT && asset?.id === 'bch'">
-    <div class="col q-mt-xs" style="position: relative;">
-      <q-input
-        type="text"
-        inputmode="none"
-        filled
-        v-model="fiatFormatted"
-        ref="fiatInput"
-        class="fiat-input-field"
-        @focus="onInputFocus(index, 'fiat')"
-        @keydown="onKeyboardInput"
-        :disabled="recipient.fixedAmount || inputExtras.isBip21"
-        :readonly="recipient.fixedAmount || inputExtras.isBip21"
-        :error="balanceExceeded && !cauldronEnabled"
-        :error-message="balanceExceeded && !cauldronEnabled ? $t('BalanceExceeded') : ''"
-        :label="cauldronEnabled ? $t('ReceiveAmount') : $t('Amount')"
-        :dark="darkMode"
-        :key="inputExtras.fiatFormatted"
-      >
-        <template v-slot:append>
-          {{ String(currentSendPageCurrency()).toUpperCase() }}
-        </template>
-      </q-input>
-      <KeyboardTooltip v-if="activeKeyboardTip === 'fiat'" :dark-mode="darkMode" :key="'fiat-' + keyboardTipCounter" />
     </div>
   </div>
   <div class="row" v-if="!isNFT && !recipient.fixedAmount && !sending" style="padding-bottom: 15px">
@@ -386,6 +388,7 @@ export default {
   emits: [
     'on-qr-scanner-click',
     'on-input-focus',
+    'on-input-blur',
     'on-recipient-input',
     'on-empty-recipient',
     'on-address-set',
@@ -591,6 +594,9 @@ export default {
       this.activeKeyboardTip = null
       this.currentFocusedField = field
       this.$emit('on-input-focus', { index, field })
+    },
+    onInputBlur (index, field) {
+      this.$emit('on-input-blur', { index, field })
     },
     onRecipientFocus () {
       this.recipientEditing = true
