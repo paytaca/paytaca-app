@@ -1666,7 +1666,14 @@ export default {
       const merchantData = await sendPageUtils.lookupMerchantByAddress(address, this.isChipnet)
       this.inputExtras[this.currentRecipientIndex].merchantData = merchantData
     },
-    onRecipientInput (value) {
+    onRecipientInput (payload) {
+      const index = (payload && typeof payload.index === 'number')
+        ? payload.index
+        : this.currentRecipientIndex
+      const value = (payload && typeof payload === 'object' && 'value' in payload)
+        ? payload.value
+        : payload
+
       const [isLegacy, isDuplicate, isWalletAddress] = sendPageUtils.addressPrechecks(
         value ?? '',
         this.recipients.map(a => a.recipientAddress),
@@ -1675,24 +1682,30 @@ export default {
 
       if (isDuplicate) {
         raiseNotifyError(this.$t('AddressAlreadyAdded'))
-        this.recipients[this.currentRecipientIndex].recipientAddress = ''
+        this.recipients[index].recipientAddress = ''
         return
       }
 
       const trimmed = String(value ?? '').trim()
-      this.recipients[this.currentRecipientIndex].recipientAddress = trimmed
-      this.inputExtras[this.currentRecipientIndex].emptyRecipient = trimmed === ''
+      this.recipients[index].recipientAddress = trimmed
+      this.inputExtras[index].emptyRecipient = trimmed === ''
 
       const validation = trimmed ? this.validateAddress(trimmed) : { valid: true, wrongTokenType: false }
       const showRecipientHint = !validation.valid && validation.wrongTokenType
-      this.inputExtras[this.currentRecipientIndex].incorrectAddress = showRecipientHint
-      this.inputExtras[this.currentRecipientIndex].recipientError = showRecipientHint ? validation.error : ''
+      this.inputExtras[index].incorrectAddress = showRecipientHint
+      this.inputExtras[index].recipientError = showRecipientHint ? validation.error : ''
 
-      this.inputExtras[this.currentRecipientIndex].merchantData = null
+      this.inputExtras[index].merchantData = null
       this.updateAddressPrecheckValues(isLegacy, isWalletAddress)
     },
-    onEmptyRecipient (value) {
-      this.inputExtras[this.currentRecipientIndex].emptyRecipient = value
+    onEmptyRecipient (payload) {
+      const index = (payload && typeof payload.index === 'number')
+        ? payload.index
+        : this.currentRecipientIndex
+      const value = (payload && typeof payload === 'object' && 'value' in payload)
+        ? payload.value
+        : payload
+      this.inputExtras[index].emptyRecipient = value
       if (!value) {
         this.lookupMerchantForCurrentRecipient()
       }
