@@ -92,7 +92,7 @@
               </template>
             </div>
             <div class="row q-mt-xs">
-              <div class="col text-white" @click="selectBch" v-touch-hold.mouse="() => showAssetInfo(bchAsset)">
+              <div class="col text-white" @click="showAssetInfo(bchAsset)" v-touch-hold.mouse="() => showAssetInfo(bchAsset)">
                 <q-card id="bch-card" data-tour="bch-card">
                   <q-card-section horizontal>
                     <q-card-section class="col flex items-center" style="padding: 10px 5px 10px 16px; min-height: 80px; min-width: 0;">
@@ -179,6 +179,17 @@
               {{ $t(isHongKong(currentCountry) ? 'Points' : 'Tokens') }}
               <q-btn
                 flat
+                dense
+                no-caps
+                :label="$t('ViewAll')"
+                :color="darkMode ? 'blue-4' : 'blue-6'"
+                @click="goToAssetList"
+                padding="0 8px"
+                style="font-size: 13px"
+                class="q-ml-sm"
+              />
+              <q-btn
+                flat
                 padding="none"
                 v-if="manageAssets"
                 size="sm"
@@ -198,10 +209,11 @@
                 flat
                 dense
                 no-caps
-                :label="$t('Manage')"
+                :label="$t('Swap')"
                 :color="darkMode ? 'blue-4' : 'blue-6'"
-                @click="goToAssetList"
+                @click="goToCauldronDex"
                 padding="4px 8px"
+                style="font-size: 13px"
                 class="q-mr-md"
               />
             </div>
@@ -1572,6 +1584,9 @@ export default {
     },
     goToAssetList () {
       this.$router.push({ name: 'asset-list' })
+    },
+    goToCauldronDex () {
+      this.$router.push({ name: 'app-cauldron' })
     },
     async updateTokenMenuPosition () {
       await this.$nextTick()

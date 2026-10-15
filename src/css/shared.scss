@@ -225,6 +225,13 @@ div#q-app:has(.sticky-header-container) {
 .bottom-card-tall {
   @include bottom-card(90vh);
 }
+
+body.q-ios-padding .q-dialog__inner.q-dialog__inner--bottom {
+  padding-bottom: 0 !important;
+}
+body.q-ios-padding .q-dialog__inner--bottom > .q-card {
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+}
 .q-btn.tile span.q-btn__content {
   align-items: baseline !important;
 }

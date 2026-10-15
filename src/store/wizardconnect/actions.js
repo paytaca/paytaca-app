@@ -212,27 +212,34 @@ export async function approveRequestWithData ({ commit, dispatch, rootGetters },
     const request = JSON.parse(transactionJson)
     const signedTxHex = await wizardConnectService.signRequest(request)
 
+    const shouldBroadcast = request?.transaction?.broadcast !== false && request?.broadcast !== false
+    if (!shouldBroadcast) {
+      await wizardConnectService.sendSignResponse(connectionId, sequence, signedTxHex)
+      return
+    }
+
     const isChipnet = rootGetters['global/isChipnet'] || false
     const watchtower = new Watchtower(isChipnet)
 
     const broadcastResponse = await watchtower.BCH.broadcastTransaction(signedTxHex)
-    if (!broadcastResponse?.data?.success) {
+    const broadcastSucceeded = broadcastResponse?.data?.success
+    if (!broadcastSucceeded) {
       console.error('WizardConnect: broadcast failed:', broadcastResponse)
       Notify.create({
         type: 'negative',
         message: broadcastResponse?.data?.error || 'Broadcast failed',
         timeout: 5000
       })
-      await wizardConnectService.sendSignError(connectionId, sequence, broadcastResponse?.data?.error || 'Broadcast failed')
-      return
     }
 
     await wizardConnectService.sendSignResponse(connectionId, sequence, signedTxHex)
-    
-    // After transaction, check buffer (delayed to allow backend to process)
-    setTimeout(() => {
-      dispatch('ensureAddressBuffer')
-    }, 2000)
+
+    if (broadcastSucceeded) {
+      // After transaction, check buffer (delayed to allow backend to process)
+      setTimeout(() => {
+        dispatch('ensureAddressBuffer')
+      }, 2000)
+    }
   } catch (err) {
     console.error('WizardConnect: sign error:', err)
     Notify.create({

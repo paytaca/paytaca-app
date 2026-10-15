@@ -152,8 +152,6 @@ export default {
       }
       this.zoomLevel = 0
       this.torchOn = false
-
-      if (this.$route?.name === 'transaction-send') this.$router.push({ path: '/send/select-asset' })
     },
     async prepareScanner () {
       const status = await this.checkPermission()
