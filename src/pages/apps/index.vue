@@ -977,10 +977,11 @@ export default {
       }
 
       // Read-only (xpub) wallets have no private keys, so most apps are unusable.
-      // Keep only Settings and Support functional.
+      // Keep Collectibles, Settings and Support functional.
       if (this.isReadOnlyWallet) {
+        const readonlyEnabledApps = ['collectibles', 'settings', 'support']
         this.filteredApps = this.filteredApps.map(app => {
-          if (app.id !== 'settings' && app.id !== 'support') {
+          if (!readonlyEnabledApps.includes(app.id)) {
             return { ...app, active: false }
           }
           return app

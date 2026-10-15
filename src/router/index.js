@@ -108,8 +108,10 @@ export default function () {
     }
 
     // Read-only (xpub) wallets have no private keys, so most apps are unusable.
-    // Only Settings and Support remain accessible (mirrors the disabled app tiles).
+    // Only Collectibles, Settings and Support remain accessible (mirrors the
+    // enabled app tiles).
     if (to.path.startsWith('/apps') && to.name !== 'apps-dashboard' &&
+        to.name !== 'app-collectibles' &&
         to.path !== '/apps/settings' && to.path !== '/apps/support') {
       const { isReadOnlyVaultEntry } = await import('../lib/readonly-wallet')
       const currentEntry = store.getters['global/getVault']?.[store.getters['global/getWalletIndex']]

@@ -10,13 +10,56 @@
       back-icon="keyboard_double_arrow_left"
       class="header-nav apps-header"
     />
-    <div class="build-content q-px-md q-pt-md" :class="{ 'build-content--keyboard-open': customKeyboardState === 'show' }">
+    <div
+      class="build-content q-px-md q-pt-md"
+      :class="{
+        'build-content--keyboard-open': customKeyboardState === 'show',
+        'build-content--slider-open': showBottomSlider
+      }"
+    >
       <q-banner rounded class="q-mb-md readonly-banner text-bow" :class="getDarkModeClass(darkMode)">
         <q-icon name="visibility" color="grad" size="sm" class="q-mr-sm"></q-icon>
         {{ $t('ReadOnlyWalletNotice', {}, 'This is a read-only wallet. Instead of sending, an unsigned transaction (PSBT) is built which you can share with the wallet owner to sign and broadcast.') }}
       </q-banner>
+
+      <div v-if="isNft" class="nft-card q-mb-md" :class="getDarkModeClass(darkMode)">
+        <q-img
+          v-if="nftImage && !forceUseDefaultNftImage"
+          :src="nftImage"
+          class="nft-image"
+          @error="() => forceUseDefaultNftImage = true"
+        />
+        <q-img v-else :src="defaultNftImage" class="nft-image" />
+
+        <div class="nft-info">
+          <div v-if="nftName" class="nft-row text-caption">
+            <span class="nft-label">{{ $t('Name', {}, 'Name') }}</span>
+            <span class="nft-value">{{ nftName }}</span>
+          </div>
+          <div v-if="nftSymbol" class="nft-row text-caption">
+            <span class="nft-label">{{ $t('Symbol', {}, 'Symbol') }}</span>
+            <span class="nft-value">{{ nftSymbol }}</span>
+          </div>
+          <div class="nft-row text-caption">
+            <span class="nft-label">{{ $t('Category', {}, 'Category') }}</span>
+            <span class="nft-value">
+              <span class="ellipsis">{{ shortenAddress(assetCategory) }}</span>
+              <q-btn flat dense round size="sm" icon="content_copy" @click="copyCategory" />
+            </span>
+          </div>
+          <div class="nft-row text-caption">
+            <span class="nft-label">{{ $t('Commitment') }}</span>
+            <span class="nft-value">{{ nftCommitment || '<empty>' }}</span>
+          </div>
+        </div>
+      </div>
       
-      <div class="glass-panel q-mt-md q-px-md q-py-md" :class="getDarkModeClass(darkMode)" style="">
+      <div class="glass-panel q-mt-md q-py-md" :class="getDarkModeClass(darkMode)" style="">
+          <div v-if="building" class="row justify-center items-center q-py-xl">
+            <q-spinner color="primary" size="3em" />
+            <div class="text-subtitle1 q-ml-md">{{ $t('BuildingTransaction') }}</div>
+          </div>
+          <template v-else>
           <!-- <q-list v-for="(recipient, index) in recipients" v-bind:key="index">
             <q-item>
               <q-input
@@ -166,14 +209,7 @@
           >
             {{ $t('AddAnotherRecipient') }}
           </q-btn>
-
-          <q-inner-loading
-            :showing="building"
-            :label="$t('BuildingTransaction')"
-            label-class="text-weight-medium"
-            size="50px"
-            color="primary"
-          />
+          </template>
         </div>
 
         </div>
@@ -197,7 +233,7 @@
 
     <teleport to="body">
       <DragSlide
-        v-if="customKeyboardState !== 'show' && formActive && !sending"
+        v-if="showBottomSlider"
         :disable="building || !canBuild"
         :text="$t('SwipeToBuildTx', {}, 'Swipe to Build')"
         class="absolute-bottom"
@@ -208,7 +244,7 @@
 </template>
 
 <script>
-import { debounce, Platform } from 'quasar'
+import { debounce, Platform, copyToClipboard } from 'quasar'
 import { NativeBiometric } from 'capacitor-native-biometric'
 import QrScanner from 'src/components/qr-scanner.vue'
 import { parsePaymentUri } from 'src/wallet/payment-uri'
@@ -225,6 +261,7 @@ import KeyboardSlidePanel from 'src/components/KeyboardSlidePanel.vue'
 import DragSlide from 'src/components/drag-slide.vue'
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 import { loadReadOnlyWallet } from 'src/lib/readonly-wallet'
+import noImage from 'src/assets/no-image.svg'
 import headerNav from 'src/components/header-nav'
 import SharePsbtOptionsDialog from 'src/components/sharing/SharePsbtOptionsDialog.vue'
 import PsbtQrDialog from 'src/components/sharing/PsbtQrDialog.vue'
@@ -370,6 +407,21 @@ export default {
       const tokenType = String(this.$route.query?.tokenType || '')
       return tokenType === 'CT-NFT' || tokenType === '65' || Boolean(this.$route.query?.simpleNft)
     },
+    nftImage () {
+      return this.$route.query?.image || ''
+    },
+    nftName () {
+      return this.$route.query?.name || ''
+    },
+    nftCommitment () {
+      return this.$route.query?.commitment || ''
+    },
+    nftSymbol () {
+      return this.$route.query?.symbol || ''
+    },
+    defaultNftImage () {
+      return noImage
+    },
     assetId () {
       return this.$route.query?.assetId || this.$route.query?.asset || 'bch'
     },
@@ -409,6 +461,18 @@ export default {
     },
     formActive () {
       return this.recipients.some(r => !!r.recipientAddress)
+    },
+    showBottomSlider () {
+      return this.customKeyboardState !== 'show' && this.formActive && !this.sending
+    }
+  },
+  watch: {
+    showBottomSlider (val) {
+      if (val) {
+        this.$nextTick(() => {
+          setTimeout(() => this.scrollRecipientAboveSlider(this.currentRecipientIndex), 60)
+        })
+      }
     }
   },
   methods: {
@@ -509,6 +573,8 @@ export default {
           purpose: "nft genesis",
           transactionType: this.isNft ? 'send-non-fungible-assets' : 'send-fungible-assets'
         })
+        // User navigated away while building — discard the result
+        if (this._unmounted) return
         // Advance + persist the read-only change address so it is not reused
         const change = this.wallet.getChangeAddress(undefined, this.wallet.network)
         if (!this.wallet.networks) this.wallet.networks = {}
@@ -524,6 +590,7 @@ export default {
         this.openQrDialog()
       } catch (error) {
         console.error('[BuildTransaction] Error building transaction:', error)
+        if (this._unmounted) return
         this.$q.notify({
           type: 'error',
           message: error?.message || this.$t('FailedToBuildTransaction', {}, 'Failed to build transaction'),
@@ -854,6 +921,16 @@ export default {
     shortenAddress(address) {
       if (!address || address.length < 20) return address
       return `${address.substring(0, 10)}...${address.substring(address.length - 8)}`
+    },
+    copyCategory() {
+      copyToClipboard(this.assetCategory).then(() => {
+        this.$q.notify({
+          message: this.$t('CopiedToClipboard'),
+          timeout: 800,
+          icon: 'mdi-clipboard-check',
+          color: 'blue-9'
+        })
+      }).catch(() => {})
     },
     getThemeColor() {
       const theme = this.$store.getters['global/theme']
@@ -1639,6 +1716,23 @@ export default {
         this.scrollFocusedInputAboveKeyboard(value.index, value.field)
       }
     },
+    scrollRecipientAboveSlider (index) {
+      this.$nextTick(() => {
+        const form = this.$refs.sendPageRef?.[index]
+        const inputRef = form?.$refs?.recipientInput
+        const el = inputRef?.$el?.querySelector?.('textarea') ||
+          inputRef?.$el?.querySelector?.('input') ||
+          inputRef?.$el
+        if (!el) return
+        const slider = document.querySelector('.drag-slide-container.absolute-bottom')
+        const sliderHeight = slider?.offsetHeight || 100
+        const sliderTop = window.innerHeight - sliderHeight
+        const rect = el.getBoundingClientRect()
+        if (rect.bottom > sliderTop) {
+          window.scrollBy({ top: rect.bottom - sliderTop + 16, behavior: 'smooth' })
+        }
+      })
+    },
     scrollFocusedInputAboveKeyboard (index, field) {
       this.$nextTick(() => {
         const form = this.$refs.sendPageRef?.[index]
@@ -2108,19 +2202,73 @@ export default {
         } catch {
           this.asset.name = this.assetId
         }
+      } else if (this.isNft) {
+        this.asset.name = this.$route.query?.name || this.assetId
+        this.asset.logo = this.$route.query?.image || null
+      } else {
+        this.asset.name = this.assetId
       }
     }
+  },
+  beforeUnmount () {
+    this._unmounted = true
   }
 }
 </script>
 
 <style lang="scss" scoped>
+.nft-card {
+  border: 1px solid rgba(128, 128, 128, 0.3);
+  border-radius: 12px;
+  padding: 12px;
+}
+
+.nft-image {
+  display: block;
+  width: 15rem;
+  max-width: 100%;
+  margin: 0 auto;
+  border-radius: 8px;
+}
+
+.nft-info {
+  margin-top: 12px;
+}
+
+.nft-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.nft-row + .nft-row {
+  margin-top: 4px;
+}
+
+.nft-label {
+  flex: 0 0 6.5rem;
+  opacity: 0.7;
+}
+
+.nft-value {
+  flex: 1 1 auto;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  word-break: break-all;
+}
+
 .build-content {
   max-width: 480px;
   margin: 0 auto;
 
   &.build-content--keyboard-open {
     padding-bottom: 340px;
+  }
+
+  &.build-content--slider-open {
+    padding-bottom: 120px;
   }
 }
 
