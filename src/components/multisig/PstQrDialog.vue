@@ -79,7 +79,7 @@ const props = defineProps({
 });
 
 const densityOptions = [
-  { label: 'Low', value: 50 },
+  { label: 'Low', value: 70 },
   { label: 'Medium', value: 150 },
   { label: 'High', value: 250 },
 ]
@@ -97,7 +97,7 @@ const currentQr = ref("");
 const animationTimer = ref();
 const encoder = ref(null);
 const progress = ref(0)
-const selectedDensity = ref(150)
+const selectedDensity = ref(70)
 const selectedAnimation = ref(300)
 const progressLabel = computed(() => {
   return (Math.floor(progress.value * 100)) + '% of QR Code Fragments Shown.'  
