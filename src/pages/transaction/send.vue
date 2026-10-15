@@ -417,6 +417,7 @@
                         @on-cauldron-toggle="onCauldronToggle"
                         :cauldron-tokens="cauldronPayWithTokens"
                         :cauldron-disabled="recipients.length > 1"
+                        :trade-results="tradeResults"
                         :sending="sending"
                         :focused-field="currentRecipientIndex === index ? focusedInputField : ''"
                         ref="sendPageRef"
@@ -466,13 +467,6 @@
             </form>
           </div>
 
-          <div v-if="isCauldronSend && tradeResults.some(Boolean)" class="q-px-lg">
-            <CauldronSendSummary
-              :recipients="recipients"
-              :inputExtras="inputExtras"
-              :tradeResults="tradeResults"
-            />
-          </div>
         </div>
       </template>
 
@@ -573,7 +567,6 @@ import LoadingWalletDialog from 'src/components/multi-wallet/LoadingWalletDialog
 import SendSuccessPage from 'src/components/send-page/SendSuccessPage.vue'
 import JppPaymentSuccessPanel from 'src/components/send-page/JppPaymentSuccessPanel.vue'
 import { hexToRef } from 'src/utils/reference-id-utils'
-import CauldronSendSummary from 'src/components/send-page/CauldronSendSummary.vue'
 import { MultiCauldronPoolTracker } from 'src/wallet/cauldron/pool-tracker'
 import { executeSendWithCauldron, prepareSendWithCauldron, CauldronSendError, calculateMaxSpendableForCauldron, TradePrepErrorCode } from 'src/wallet/cauldron/send'
 import { debounce } from 'quasar'
@@ -601,7 +594,6 @@ export default {
     BiometricWarningAttempt,
     SendSuccessPage,
     JppPaymentSuccessPanel,
-    CauldronSendSummary,
   },
 
   props: {

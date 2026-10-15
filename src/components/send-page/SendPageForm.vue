@@ -1,27 +1,4 @@
 <template>
-  <q-card
-    v-if="inputExtras.merchantData"
-    class="q-pa-sm q-mt-md q-mb-sm row items-center"
-    :class="getDarkModeClass(darkMode)"
-  >
-    <q-avatar v-if="(inputExtras.merchantData.logoData || inputExtras.merchantData.logo)" size="36px" rounded>
-      <q-img :src="inputExtras.merchantData.logoData || inputExtras.merchantData.logo" />
-    </q-avatar>
-    <span class="q-ml-sm text-subtitle1">{{ inputExtras.merchantData.name }}</span>
-    <q-badge
-      :color="inputExtras.merchantData.verified ? 'positive' : 'grey-6'"
-      class="q-ml-sm"
-      align="middle"
-      transparent
-    >
-      <q-icon
-        :name="inputExtras.merchantData.verified ? 'mdi-shield-check' : 'mdi-shield-off'"
-        size="14px"
-        class="q-mr-xs"
-      />
-      {{ inputExtras.merchantData.verified ? $t('VerifiedMerchant', {}, 'Verified') : $t('UnverifiedMerchant', {}, 'Unverified') }}
-    </q-badge>
-  </q-card>
   <div class="row items-center no-wrap q-mb-md">
     <div class="recipient-field q-mt-sm" :class="{ 'recipient-field--empty': emptyRecipient && (!recipientAddress || recipientEditing) }">
       <q-input
@@ -117,6 +94,40 @@
               </q-item>
             </q-list>
           </q-menu>
+        </q-btn>
+      </div>
+    </div>
+  </div>
+  <div
+    v-if="inputExtras.merchantData"
+    class="merchant-banner text-bow"
+    :class="getDarkModeClass(darkMode)"
+  >
+    <q-avatar class="merchant-banner__logo" size="44px" rounded>
+      <q-img
+        v-if="inputExtras.merchantData.logoData || inputExtras.merchantData.logo"
+        :src="inputExtras.merchantData.logoData || inputExtras.merchantData.logo"
+      />
+      <q-icon v-else name="storefront" size="22px" />
+    </q-avatar>
+    <div class="merchant-banner__body">
+      <div class="merchant-banner__caption text-bow-muted">{{ $t('YouArePayingTo', {}, 'You are paying to') }}</div>
+      <div class="merchant-banner__name">
+        <span class="ellipsis">{{ inputExtras.merchantData.name }}</span>
+        <q-btn
+          flat
+          round
+          dense
+          size="sm"
+          class="merchant-banner__badge"
+          :color="inputExtras.merchantData.verified ? 'positive' : 'grey-6'"
+          :icon="inputExtras.merchantData.verified ? 'mdi-shield-check' : 'mdi-shield-off'"
+        >
+          <q-tooltip class="text-body2" max-width="240px">
+            {{ inputExtras.merchantData.verified
+              ? $t('VerifiedMerchantTooltip', {}, 'Verified merchants have their identity and details confirmed by Paytaca.')
+              : $t('UnverifiedMerchantTooltip', {}, "This merchant hasn't been verified by Paytaca. Double-check the details before paying.") }}
+          </q-tooltip>
         </q-btn>
       </div>
     </div>
@@ -222,6 +233,44 @@
       </q-input>
       <KeyboardTooltip v-if="activeKeyboardTip === 'bch'" :dark-mode="darkMode" :key="'bch-' + keyboardTipCounter" />
     </div>
+  </div>
+  <div class="row items-center" v-if="!isNFT && !sending" style="padding-bottom: 15px">
+    <div v-if="!recipient.fixedAmount" class="col q-mt-xs balance-max-container" :class="getDarkModeClass(darkMode)">
+      <div
+        ref="balanceMarqueeViewport"
+        class="balance-marquee"
+        :class="{ 'balance-marquee--animate': balanceMarqueeShift > 0 }"
+        :style="{
+          '--balance-marquee-shift': balanceMarqueeShift + 'px',
+          '--balance-marquee-duration': balanceMarqueeDuration
+        }"
+      >
+        <div ref="balanceMarqueeTrack" class="balance-marquee__track">
+          <template v-if="currentWalletBalanceAsAsset?.id === 'bch' && asset?.id === 'bch'">
+            <span v-bch-amount="{ denomination: selectedDenomination }">
+              {{ parseAssetDenomination(selectedDenomination, currentWalletBalanceAsAsset) }}
+            </span>
+            {{ ` = ${parseFiatCurrency(
+              convertToFiatAmount(currentWalletBalance, selectedAssetMarketPrice), currentSendPageCurrency())
+            }` }}
+          </template>
+          <span v-else v-bch-amount="{ denomination: selectedDenomination }">
+            {{ parseAssetDenomination(selectedDenomination, currentWalletBalanceAsAsset) }}
+          </span>
+        </div>
+      </div>
+      <q-btn
+        flat
+        dense
+        no-caps
+        v-if="!computingMax || !recipient.sending"
+        class="max-button"
+        color="pt-primary1"
+        :class="getDarkModeClass(darkMode)"
+        :label="$t('MAX')"
+        @click="onInputFocus(index, ''), handleMaxClick()"
+      />
+    </div>
     <div v-if="showPayWith" class="q-mt-xs q-ml-sm pay-with-field">
       <q-select
         :model-value="payWith"
@@ -262,62 +311,51 @@
       </q-select>
     </div>
   </div>
-  <div class="row" v-if="!isNFT && !recipient.fixedAmount && !sending" style="padding-bottom: 15px">
-    <div class="col q-mt-xs balance-max-container" :class="getDarkModeClass(darkMode)">
-      <template v-if="currentWalletBalanceAsAsset?.id === 'bch' && asset?.id === 'bch'">
-        <span v-bch-amount="{ denomination: selectedDenomination }">
-        {{ parseAssetDenomination(selectedDenomination, currentWalletBalanceAsAsset) }}
+  <div
+    v-if="!isNFT && cauldronEnabled"
+    class="cauldron-spend text-bow"
+    :class="getDarkModeClass(darkMode)"
+  >
+    <div class="cauldron-spend__main">
+      <img
+        v-if="selectedPayWithOption"
+        :src="payWithImageUrl(selectedPayWithOption)"
+        class="cauldron-spend__logo"
+        alt=""
+      />
+      <span class="cauldron-spend__label text-bow-muted">{{ $t('YouSpend', {}, 'You spend') }}</span>
+      <span class="cauldron-spend__amount" :class="{ 'text-negative': Boolean(effectiveCauldronErrorMessage) }">
+        <q-spinner-dots v-if="calculatingCauldronTrade" size="16px" />
+        <template v-else>&#8776; {{ cauldronAmountFormatted || '0' }} {{ cauldronSpendSymbol }}</template>
       </span>
-        {{ ` = ${parseFiatCurrency(
-          convertToFiatAmount(currentWalletBalance, selectedAssetMarketPrice), currentSendPageCurrency())
-        }` }}
-      </template>
-      <span v-else v-bch-amount="{ denomination: selectedDenomination }">
-        {{ parseAssetDenomination(selectedDenomination, currentWalletBalanceAsAsset) }}
-      </span>
+    </div>
+    <div class="cauldron-spend__actions">
+      <CauldronSendSummary
+        v-if="tradeResults.some(Boolean)"
+        :input-extras="[inputExtras]"
+        :trade-results="tradeResults"
+      />
       <q-btn
         flat
+        round
         dense
-        no-caps
-        v-if="!computingMax || !recipient.sending"
-        class="max-button"
-        color="pt-primary1"
-        :class="getDarkModeClass(darkMode)"
-        :label="$t('MAX')"
-        @click="onInputFocus(index, ''), handleMaxClick()"
+        size="sm"
+        icon="close"
+        class="cauldron-spend__close"
+        @click="resetPayWith"
       />
     </div>
   </div>
-  <div v-if="!isNFT && cauldronEnabled" class="row items-start no-wrap q-mt-sm">
-    <div class="full-width">
-      <q-input
-        ref="cauldronAmountInput"
-        type="text"
-        inputmode="none"
-        filled
-        :loading="calculatingCauldronTrade"
-        readonly
-        v-model="cauldronAmountFormatted"
-        :label="$t('SpendAmount')"
-        :dark="darkMode"
-        :hint="cauldronStatusMessage"
-        :error="Boolean(effectiveCauldronErrorMessage)"
-        :error-message="effectiveCauldronErrorMessage"
-      >
-        <template v-slot:append>
-          <span class="text-subtitle2">{{ cauldronSpendSymbol }}</span>
-        </template>
-      </q-input>
-    </div>
-    <q-btn
-      flat
-      size="md"
-      icon="close"
-      class="q-ml-xs q-my-sm"
-      round
-      @click="resetPayWith"
-    />
-  </div>
+  <p
+    v-if="effectiveCauldronErrorMessage"
+    class="cauldron-spend__note text-bow text-negative"
+    :class="getDarkModeClass(darkMode)"
+  >{{ effectiveCauldronErrorMessage }}</p>
+  <p
+    v-else-if="cauldronStatusMessage"
+    class="cauldron-spend__note text-bow text-bow-muted"
+    :class="getDarkModeClass(darkMode)"
+  >{{ cauldronStatusMessage }}</p>
   <q-card
     class="row text-center justify-center q-pa-sm q-my-sm text-subtitle2 pt-card"
     :class="getDarkModeClass(darkMode)"
@@ -345,11 +383,13 @@ import { convertToFiatAmount } from 'src/utils/send-page-utils'
 
 import SelectChangeAddress from 'src/components/SelectChangeAddress.vue'
 import KeyboardTooltip from 'src/components/KeyboardTooltip.vue'
+import CauldronSendSummary from 'src/components/send-page/CauldronSendSummary.vue'
 
 export default {
   components: {
     KeyboardTooltip,
-    DenominatorTextDropdown
+    DenominatorTextDropdown,
+    CauldronSendSummary
   },
 
   props: {
@@ -385,6 +425,7 @@ export default {
     walletType: { type: String },
     cauldronTokens: { type: Array, default: () => [] },
     cauldronDisabled: { type: Boolean, default: false },
+    tradeResults: { type: Array, default: () => [] },
     focusedField: { type: String, default: '' },
     sending: { type: Boolean, default: false },
   },
@@ -423,11 +464,19 @@ export default {
       keyboardTipCounter: 0,
       currentFocusedField: null,
       recipientEditing: false,
+      balanceMarqueeShift: 0,
     }
+  },
+
+  mounted () {
+    this.updateBalanceMarquee()
   },
 
   beforeUnmount () {
     clearTimeout(this.keyboardTipTimer)
+    this._balanceMarqueeResizeObserver?.disconnect()
+    this._balanceMarqueeResizeObserver = null
+    this._balanceMarqueeObservedEl = null
   },
 
   beforeMount () {
@@ -506,7 +555,7 @@ export default {
     },
     showPayWith () {
       if (this.isNFT) return false
-      if (this.assetIsBch) return true
+      if (this.assetIsBch) return this.cauldronTokens.length > 0
       return Boolean(this.asset?.id?.startsWith?.('ct/'))
     },
     payWithDefault () {
@@ -539,7 +588,9 @@ export default {
       return this.payWithOptions.find(option => option.value === this.payWith) || this.payWithOptions[0] || null
     },
     cauldronSpendSymbol () {
-      if (this.assetIsBch) return this.cauldronToken?.bcmr?.token?.symbol || 'BCH'
+      if (this.assetIsBch) {
+        return this.cauldronToken?.bcmr?.token?.symbol || this.shortenTokenId(this.cauldronToken?.token_id) || ''
+      }
       return 'BCH'
     },
     walletAddresses () {
@@ -566,6 +617,23 @@ export default {
     isChipnet () {
       return this.$store.getters['global/isChipnet']
     },
+    balanceTextKey () {
+      return [
+        this.selectedDenomination,
+        this.currentWalletBalance,
+        this.currentWalletBalanceAssetId,
+        this.asset?.id,
+        this.selectedAssetMarketPrice,
+        this.currentSendPageCurrency?.()
+      ].join('|')
+    },
+    balanceMarqueeDuration () {
+      if (this.balanceMarqueeShift <= 0) return '0s'
+      return Math.min(20, Math.max(4, this.balanceMarqueeShift / 30)) + 's'
+    },
+    balanceMarqueeVisibleKey () {
+      return [this.isNFT, this.sending, !!this.recipient.fixedAmount].join('|')
+    },
     effectiveCauldronErrorMessage() {
         // :error="balanceExceeded && cauldronEnabled"
         // :error-message="balanceExceeded && cauldronEnabled ? $t('BalanceExceeded') : ''"
@@ -587,6 +655,25 @@ export default {
     convertCashAddress,
     convertTokenAmount,
     convertToFiatAmount,
+
+    updateBalanceMarquee () {
+      const viewport = this.$refs.balanceMarqueeViewport
+      const track = this.$refs.balanceMarqueeTrack
+      if (!viewport || !track) {
+        this.balanceMarqueeShift = 0
+        return
+      }
+      if (!this._balanceMarqueeResizeObserver) {
+        this._balanceMarqueeResizeObserver = new ResizeObserver(() => this.updateBalanceMarquee())
+      }
+      if (this._balanceMarqueeObservedEl !== viewport) {
+        this._balanceMarqueeResizeObserver.disconnect()
+        this._balanceMarqueeResizeObserver.observe(viewport)
+        this._balanceMarqueeResizeObserver.observe(track)
+        this._balanceMarqueeObservedEl = viewport
+      }
+      this.balanceMarqueeShift = Math.max(0, Math.ceil(track.scrollWidth - viewport.clientWidth))
+    },
 
     onQRScannerClick (value) {
       this.$emit('on-qr-scanner-click', value)
@@ -724,7 +811,7 @@ export default {
           name: token.name,
           token: {
             symbol: token.symbol,
-            decimals: token.decimals
+            decimals: token.decimals ?? 8
           }
         }
       }
@@ -815,6 +902,12 @@ export default {
     fiatFormatted () {
       clearTimeout(this.keyboardTipTimer)
       this.activeKeyboardTip = null
+    },
+    balanceTextKey () {
+      this.$nextTick(() => this.updateBalanceMarquee())
+    },
+    balanceMarqueeVisibleKey () {
+      this.$nextTick(() => this.updateBalanceMarquee())
     },
   }
 }
@@ -917,8 +1010,27 @@ export default {
       color: #111c2c;
     }
 
+    .balance-marquee {
+      min-width: 0;
+      width: 100%;
+      overflow: hidden;
+      white-space: nowrap;
+    }
+
+    .balance-marquee__track {
+      display: inline-block;
+      white-space: nowrap;
+      will-change: transform;
+    }
+
+    .balance-marquee--animate .balance-marquee__track {
+      animation: balance-marquee-scroll var(--balance-marquee-duration, 6s) linear infinite;
+    }
+
     .max-button {
-      margin-left: 10px;
+      display: flex;
+      width: fit-content;
+      margin-top: 6px;
       min-height: unset;
       padding: 2px 8px;
       border: 1px solid;
@@ -928,10 +1040,42 @@ export default {
     }
   }
 
+  @keyframes balance-marquee-scroll {
+    0% {
+      transform: translateX(0);
+    }
+    5% {
+      transform: translateX(0);
+    }
+    45% {
+      transform: translateX(calc(-1 * var(--balance-marquee-shift, 0px)));
+    }
+    55% {
+      transform: translateX(calc(-1 * var(--balance-marquee-shift, 0px)));
+    }
+    95% {
+      transform: translateX(0);
+    }
+    100% {
+      transform: translateX(0);
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .balance-max-container .balance-marquee--animate {
+      overflow-x: auto;
+      -webkit-overflow-scrolling: touch;
+    }
+
+    .balance-max-container .balance-marquee--animate .balance-marquee__track {
+      animation: none;
+    }
+  }
+
   .pay-with-field {
     flex: 0 0 auto;
     min-width: 110px;
-    max-width: 140px;
+    max-width: 150px;
   }
 
   .pay-with-select {
@@ -947,6 +1091,117 @@ export default {
     height: 20px;
     border-radius: 50%;
     object-fit: contain;
+    flex: 0 0 auto;
+  }
+
+  .cauldron-spend {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    margin-top: 8px;
+    padding: 8px 10px;
+    border-radius: 12px;
+
+    &.light {
+      background: rgba(15, 23, 42, 0.05);
+    }
+
+    &.dark {
+      background: rgba(255, 255, 255, 0.06);
+    }
+  }
+
+  .cauldron-spend__main {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    min-width: 0;
+  }
+
+  .cauldron-spend__logo {
+    width: 18px;
+    height: 18px;
+    border-radius: 50%;
+    object-fit: contain;
+    flex: 0 0 auto;
+  }
+
+  .cauldron-spend__label {
+    font-size: 12px;
+    flex: 0 0 auto;
+  }
+
+  .cauldron-spend__amount {
+    font-size: 14px;
+    font-weight: 600;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .cauldron-spend__actions {
+    display: flex;
+    align-items: center;
+    flex: 0 0 auto;
+  }
+
+  .cauldron-spend__close {
+    color: inherit;
+    opacity: 0.6;
+  }
+
+  .cauldron-spend__note {
+    margin: 6px 2px 0;
+    font-size: 12px;
+    line-height: 1.3;
+  }
+
+  .merchant-banner {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-top: 4px;
+    margin-bottom: 12px;
+    padding: 12px;
+    border-radius: 14px;
+
+    &.light {
+      background: rgba(59, 130, 246, 0.08);
+      border: 1px solid rgba(59, 130, 246, 0.18);
+    }
+
+    &.dark {
+      background: rgba(59, 130, 246, 0.14);
+      border: 1px solid rgba(59, 130, 246, 0.28);
+    }
+  }
+
+  .merchant-banner__logo {
+    flex: 0 0 auto;
+  }
+
+  .merchant-banner__body {
+    min-width: 0;
+  }
+
+  .merchant-banner__caption {
+    font-size: 11px;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    line-height: 1.2;
+  }
+
+  .merchant-banner__name {
+    display: flex;
+    align-items: center;
+    gap: 2px;
+    font-size: 16px;
+    font-weight: 600;
+    line-height: 1.3;
+  }
+
+  .merchant-banner__badge {
     flex: 0 0 auto;
   }
 
