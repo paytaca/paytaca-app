@@ -148,7 +148,6 @@ export default {
       if (this.torchOn) {
         try { await BarcodeScanner.disableTorch() } catch (e) {}
       }
-      if (this.$route?.name === 'transaction-send') this.$router.push({ path: '/send/select-asset' })
     },
     async prepareScanner () {
       const status = await this.checkPermission()
