@@ -91,11 +91,16 @@
           <q-item v-for="(o, i) in recipientRows" :key="i">
             <q-item-section>
               <div class="text-caption q-ml-sm">{{ shortenAddressForDisplay(o.address) }}</div>
+              
             </q-item-section>
             <q-item-section side>
               <div class="flex no-wrap items-center q-gutter-x-xs">
                 <span class="coin-amount">{{ o.amountText?.replace('BCH', '') }}</span>
                 <q-icon v-if="o.amountText?.includes('BCH')" name="img:bitcoin-cash-circle.svg" size="xs" />
+              </div>
+              <div v-if="o.token?.nft" class="text-caption q-ml-sm row items-center no-wrap">
+                <span class="ellipsis">{{ shortenString(o.token.category, 16) }}</span>
+                <q-btn flat dense round size="sm" icon="content_copy" @click="copyCategory(o.token.category)" />
               </div>
             </q-item-section>
           </q-item>
@@ -297,6 +302,17 @@ function shortenString (str, max = 20) {
   return `${s.slice(0, max / 2)}...${s.slice(-max / 2)}`
 }
 
+function copyCategory (category) {
+  copyToClipboard(category).then(() => {
+    $q.notify({
+      message: $t('CopiedToClipboard'),
+      timeout: 800,
+      icon: 'mdi-clipboard-check',
+      color: 'blue-9'
+    })
+  }).catch(() => {})
+}
+
 function resetPsbtState () {
   unsignedTx.value = null
   unsignedTransactionHash.value = ''
@@ -379,7 +395,13 @@ async function loadPsbt () {
       let token = null
       if (o.token) {
         const category = binToHex(o.token.category)
-        token = { category, amount: o.token.amount }
+        token = {
+          category,
+          amount: o.token.amount,
+          nft: o.token.nft
+            ? { capability: o.token.nft.capability, commitment: binToHex(o.token.nft.commitment) }
+            : null
+        }
         tokenCategoriesSet.add(category)
         if (isChange) {
           tokenChange.value[category] = (tokenChange.value[category] || 0n) + BigInt(o.token.amount || 0)
@@ -388,7 +410,9 @@ async function loadPsbt () {
         }
       }
       const amountText = token
-        ? `${formatTokenAmount(token.amount)} ${shortenString(token.category, 8)}`
+        ? (token.nft
+            ? '1 NFT'
+            : `${formatTokenAmount(token.amount)} ${shortenString(token.category, 8)}`)
         : `${Big(o.valueSatoshis).div(1e8).toString()} BCH`
       outputRows.value.push({ address, valueSatoshis: o.valueSatoshis, token, isChange, amountText })
     })
