@@ -637,8 +637,8 @@ export default {
           path: '/apps/payment-hub-subscriptions/',
           iconStyle: 'font-size: 4.2em',
           active: true,
-          beta: true,
-          category: 'beta'
+          beta: false,
+          category: 'ramp-payments'
         }]: []),
         {
           id: 'support',
@@ -967,6 +967,9 @@ export default {
       if (this.isNativeIOS) {
         this.filteredApps = this.filteredApps.filter(app => app?.id !== 'cryptoswap')
       }
+
+      // Hide AI Admin app for now
+      this.filteredApps = this.filteredApps.filter(app => app?.id !== 'ai-admin')
       
       // Add debug app if visible
       if (this.showDebugApp) {

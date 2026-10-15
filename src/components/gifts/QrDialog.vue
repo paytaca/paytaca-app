@@ -119,6 +119,8 @@ export default {
     padding: 16px;
     border-radius: 8px;
     display: inline-block;
+    max-width: 100%;
+    box-sizing: border-box;
     box-shadow: 0 2px 12px rgba(0, 0, 0, 0.1);
 
     .claimed-overlay {
