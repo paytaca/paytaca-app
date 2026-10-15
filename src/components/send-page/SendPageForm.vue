@@ -22,18 +22,18 @@
       {{ inputExtras.merchantData.verified ? $t('VerifiedMerchant', {}, 'Verified') : $t('UnverifiedMerchant', {}, 'Unverified') }}
     </q-badge>
   </q-card>
-  <div class="row">
-    <div class="col q-mt-sm se recipient-input-qr">
+  <div class="row items-center no-wrap q-mb-md">
+    <div class="recipient-field q-mt-sm se">
       <q-input
+        v-if="!recipientAddress || recipientEditing"
+        ref="recipientInput"
         filled
         label-slot
-        clearable
-        clear-icon="close"
         :disabled="inputExtras.isBip21"
         :readonly="inputExtras.isBip21"
         v-model="recipientAddress"
-        @focus="onInputFocus(index, '')"
-        @blur="onEmptyRecipient"
+        @focus="onRecipientFocus"
+        @blur="onRecipientBlur"
         class="recipient-input"
         :error="emptyRecipient || inputExtras.incorrectAddress"
         :error-message="
@@ -49,7 +49,6 @@
         "
         :dark="darkMode"
         :key="[
-          recipient.recipientAddress,
           recipient.fixedRecipientAddress,
           inputExtras.scannedRecipientAddress
         ]"
@@ -57,22 +56,68 @@
         <template v-slot:label id="sub-btn"> 
           {{ $t('Recipient') }}
         </template>
-        <template v-slot:append>
-          <q-btn id="send-form-qr"
-            round
-            class="q-ml-xs btn-scan button text-white bg-grad"
-            icon="mdi-qrcode"
-            size="md"
-            @click="onQRScannerClick(true), onInputFocus(index, '')"
-          />
-          <q-btn id="send-form-upload"
-            round
-            class="q-ml-sm btn-scan button text-white bg-grad"
-            icon="upload"
-            @click="onQRUploaderClick(), onInputFocus(index, '')"
-          />
-        </template>
       </q-input>
+      <div
+        v-else
+        class="recipient-address-display"
+        :class="getDarkModeClass(darkMode)"
+        @click="startEditingRecipient"
+      >
+        <div class="recipient-address-label">{{ $t('Recipient') }}</div>
+        <div class="recipient-address-value">{{ recipientAddress }}</div>
+      </div>
+    </div>
+    <div class="q-mt-sm q-ml-xs recipient-actions">
+      <q-btn
+        id="send-form-actions"
+        round
+        flat
+        dense
+        icon="more_vert"
+        class="recipient-menu-btn"
+        :class="getDarkModeClass(darkMode)"
+      >
+        <q-menu
+          anchor="bottom right"
+          self="top right"
+          class="recipient-actions-menu"
+          :class="getDarkModeClass(darkMode)"
+        >
+          <q-list dense style="min-width: 180px">
+            <q-item
+              clickable
+              v-close-popup
+              @click="onQRScannerClick(true), onInputFocus(index, '')"
+            >
+              <q-item-section avatar>
+                <q-icon name="mdi-qrcode" />
+              </q-item-section>
+              <q-item-section>{{ $t('ScanQRCode') }}</q-item-section>
+            </q-item>
+            <q-item
+              clickable
+              v-close-popup
+              @click="onQRUploaderClick(), onInputFocus(index, '')"
+            >
+              <q-item-section avatar>
+                <q-icon name="upload" />
+              </q-item-section>
+              <q-item-section>{{ $t('UploadQR') }}</q-item-section>
+            </q-item>
+            <q-item
+              v-if="recipientAddress"
+              clickable
+              v-close-popup
+              @click="clearRecipient"
+            >
+              <q-item-section avatar>
+                <q-icon name="close" />
+              </q-item-section>
+              <q-item-section>{{ $t('Clear') }}</q-item-section>
+            </q-item>
+          </q-list>
+        </q-menu>
+      </q-btn>
     </div>
   </div>
   <div
@@ -113,7 +158,7 @@
       </template>
     </q-input>
   </div>
-  <div class="row" v-if="!isNFT">
+  <div class="row q-mt-md" v-if="!isNFT">
     <div class="col q-mt-xs" style="position: relative;">
       <q-input
         type="text"
@@ -415,6 +460,7 @@ export default {
     'on-input-focus',
     'on-recipient-input',
     'on-empty-recipient',
+    'on-address-set',
     'on-selected-denomination-change',
     'on-qr-uploader-click',
     'on-selected-change-address',
@@ -442,6 +488,7 @@ export default {
       keyboardTipTimer: null,
       keyboardTipCounter: 0,
       currentFocusedField: null,
+      recipientEditing: false,
     }
   },
 
@@ -460,7 +507,7 @@ export default {
       },
       set (value) {
         // We'll hope the event handler for this updates the this.recipient.recipientAddress
-        this.$emit('on-recipient-input', value)
+        this.$emit('on-recipient-input', { index: this.index, value })
       }
     },
     defaultChangeAddress () {
@@ -580,6 +627,35 @@ export default {
       this.currentFocusedField = field
       this.$emit('on-input-focus', { index, field })
     },
+    onRecipientFocus () {
+      this.recipientEditing = true
+      this.onInputFocus(this.index, '')
+    },
+    onRecipientBlur (event) {
+      this.recipientEditing = false
+      this.onEmptyRecipient()
+      // Don't auto-advance when focus moves to another recipient input.
+      if (event?.relatedTarget?.closest?.('.recipient-input')) return
+      if (this.recipientAddress) {
+        this.$emit('on-address-set', { index: this.index, address: this.recipientAddress })
+      }
+    },
+    startEditingRecipient () {
+      if (this.inputExtras.isBip21) return
+      this.recipientEditing = true
+      this.$nextTick(() => {
+        const input = this.$refs.recipientInput
+        if (input && input.focus) input.focus()
+      })
+    },
+    clearRecipient () {
+      this.recipientAddress = ''
+      this.recipientEditing = true
+      this.$nextTick(() => {
+        const input = this.$refs.recipientInput
+        if (input && input.focus) input.focus()
+      })
+    },
     onSelectedDenomination (value) {
       this.selectedDenomination = value
       this.amountFormatted = this.customNumberFormatting(getAssetDenomination(value, this.amount || 0, true))
@@ -591,7 +667,7 @@ export default {
     },
     onEmptyRecipient () {
       this.emptyRecipient = this.recipientAddress === ''
-      this.$emit('on-empty-recipient', this.emptyRecipient)
+      this.$emit('on-empty-recipient', { index: this.index, value: this.emptyRecipient })
     },
     onQRUploaderClick () {
       this.$emit('on-qr-uploader-click')
@@ -723,14 +799,59 @@ export default {
 </script>
 
 <style lang="scss" scoped>
-  .recipient-input-qr {
-    display: flex;
-    flex-direction: row;
-    flex-wrap: wrap;
-    align-items: center;
+  .recipient-field {
+    flex: 1 1 0%;
+    min-width: 0;
 
     .recipient-input {
-      flex: 1;
+      width: 100%;
+    }
+  }
+
+  .recipient-address-display {
+    width: 100%;
+    cursor: text;
+    min-height: 46px;
+    padding: 8px 12px 10px;
+    border-radius: 4px;
+    background: rgba(0, 0, 0, 0.05);
+
+    &.dark {
+      background: rgba(255, 255, 255, 0.06);
+    }
+
+    .recipient-address-label {
+      font-size: 12px;
+      color: #9ca3af;
+      margin-bottom: 2px;
+    }
+
+    .recipient-address-value {
+      font-family: monospace;
+      font-size: 13px;
+      line-height: 1.4;
+      word-break: break-all;
+      user-select: all;
+      color: #111c2c;
+    }
+
+    &.dark .recipient-address-value {
+      color: rgba(255, 255, 255, 0.9);
+    }
+  }
+
+  .recipient-actions {
+    flex: 0 0 auto;
+    display: flex;
+    align-items: center;
+    padding: 0 4px 2px;
+  }
+
+  .recipient-menu-btn {
+    color: #6b7280;
+
+    &.dark {
+      color: rgba(255, 255, 255, 0.7);
     }
   }
   .balance-max-container {
@@ -794,7 +915,7 @@ export default {
 
   .bch-input-field.q-field--focused .q-field__control,
   .fiat-input-field.q-field--focused .q-field__control {
-    box-shadow: 0 0 0 2px var(--q-primary);
+    box-shadow: inset 0 0 0 2px var(--q-primary);
     border-radius: 4px;
     transition: box-shadow 0.2s ease;
   }
