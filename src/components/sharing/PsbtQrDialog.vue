@@ -74,8 +74,8 @@ const props = defineProps({
 });
 
 const densityOptions = [
-  { label: 'Low', value: 50 },
-  { label: 'Medium', value: 150, default: true },
+  { label: 'Low', value: 70, default: true},
+  { label: 'Medium', value: 150  },
   { label: 'High', value: 250 },
 ]
 
