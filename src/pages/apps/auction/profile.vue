@@ -96,42 +96,75 @@ const username = ref('')
 
 // Mounts the username (if it exists)
 onMounted(async () => {
+  await $store.dispatch('auction/fetchUsername')
   username.value = $store.getters['auction/username']
-  if (!username.value) console.error('No existing profile username saved.')
   isLoading.value = false
 })
 
 // Handles any username updates
 const handleEditUserProfile = async () => {
-  // Show loading screen while it processes
   isLoading.value = true
 
-  const data = await $store.dispatch(
-    'auction/updateUsername', 
-    {
-      newUsername: username.value,
-      walletHash: Store.getters['global/getWallet']('bch')?.walletHash,
-      credentials: await deriveOAuthCredentials()
+  try {
+    // Dispatching updateUsername action
+    const data = await $store.dispatch(
+      'auction/updateUsername',
+      {
+        newUsername: username.value.trim(),
+        walletHash: Store.getters['global/getWallet']('bch')?.walletHash,
+        credentials: await deriveOAuthCredentials()
+      }
+    )
+
+    // Successful saving of username
+    if (data.success) {
+      $q.notify({
+        type: 'positive',
+        message: `User profile ${data.method === 'post' ? 'created' : 'updated'}!`,
+        timeout: 3000
+      })
+      $router.push('/apps/auction')
+      return
     }
-  )
-  
-  const timeout = 3000
-  if (data.success) {
-    $q.notify({
-      type: 'positive',
-      message: `User profile ${ data.method === 'post' ?  'created' : 'updated' }!` ,
-      timeout
-    })
-    $router.push('/apps/auction')
-  } else {
+
+    console.log(1)
+    // Error occurred
+    const usernameError = data.errorData?.username
+    console.log(2)
+    const usernameErrorText = (Array.isArray(usernameError) ? usernameError : [usernameError])
+      .filter(Boolean)
+      .join(' ')
+      .toLowerCase()
+
+    let message = 'Failed to save username. Please try again.'
+    if (data.hasNetworkError) {
+      message = 'Network error occurred. Please try again.'
+    } else if (data.status === 400){
+      if (usernameError 
+        && (
+          usernameErrorText.includes('already exists') 
+          || usernameErrorText.includes('unique')
+        )
+      ){
+        message = 'Username already exists. Please choose another.'
+      } else {
+        message = 'Failed to save username due to a bad request. Please try again.'
+      }
+    }   else if (data.status === 401 || data.status === 403) {
+      message = 'You are not authorized to update this username.'
+    } else if (data.status === 404) {
+      message = 'User profile not found. Please try again.'
+    }
+
+    $q.notify({ type: 'negative', message, timeout: 3000 })
+  } catch{
     $q.notify({
       type: 'negative',
-      message: data.hasNetworkError ? 'Network error occurred. Please try again.' : 'Username already exists!',
-      timeout
+      message: `Failed to save username. Please try again.`,
+      timeout: 3000
     })
-  }   
-
-  // End loading screen
-  isLoading.value = false
+  } finally {
+    isLoading.value = false
+  }
 }
 </script>

@@ -1,7 +1,7 @@
 import { callAPI } from 'src/auction/api'
 import { AuctionList, LotsList, BidsList, DisputeList, DisputeDetails, DeliveryDetails } from 'src/auction/object'
 import noImage from 'src/assets/no-image.svg'
-import { loadWallet } from 'src/wallet'
+import { deriveOAuthCredentials } from 'src/auction/bch-oauth'
 
 const bidStatusTransitions = {
   Pending: ['Cancelled', 'Outbid', 'Highest', 'Winner'],
@@ -515,8 +515,7 @@ export async function fetchUsername({ commit, dispatch }) {
   let isArbiter = false
 
   // Using PK to fetch user details from server
-  const wallet = await loadWallet('BCH')
-  const publicKey = await wallet.BCH.getPublicKey(`0/0`)
+  const { publicKey } = await deriveOAuthCredentials()
   const response = await callAPI('user-details-by-public-key', publicKey)
 
   if (response && response.success && response.data) {
@@ -542,13 +541,18 @@ export async function updateUsername({ commit, dispatch, getters }, { newUsernam
   } 
 
   const response = await callAPI('user-details', method === 'patch' ? walletHash : null, method, data)
-
   const hasNetworkError = getters['hasNetworkError']
   if (response.success) commit('setUsername', newUsername)
-  else dispatch(method === 'post' ? 'printFailedPost' : 'printFailedPatch', 'username')
+  else {
+    dispatch(method === 'post' ? 'printFailedPost' : 'printFailedPatch', 'username')
+  }
 
   return {
+    username: newUsername,
     success: response.success,
+    status: response.status,
+    error: response.error,
+    errorData: response.errorData,
     method,
     hasNetworkError
   }
