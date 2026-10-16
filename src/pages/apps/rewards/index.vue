@@ -562,8 +562,18 @@ export default {
   },
 
   async mounted () {
-    const walletIndex = this.$store.getters['global/getWalletIndex']
-    this.user0thPubkey = await getAddress0_0PublicKey(walletIndex)
+    // Deriving the 0/0 public key reads the mnemonic from secure storage. On
+    // BEX and iOS that lookup can legitimately fail (missing IndexedDB device
+    // key, locked keychain, vault not hydrated yet after a resume). It must
+    // never abort the page: a throw here skipped loadRewards() entirely, so
+    // not a single engagement-hub request was made and the UI silently showed
+    // 0 points with no spinner and no error.
+    try {
+      const walletIndex = this.$store.getters['global/getWalletIndex']
+      this.user0thPubkey = await getAddress0_0PublicKey(walletIndex)
+    } catch (error) {
+      console.error('Unable to derive address 0/0 public key for Rewards: ', error)
+    }
 
     await this.loadRewards()
 
@@ -662,6 +672,12 @@ export default {
       this.isPriceLoading = true
       this.priceError = null
 
+      if (!this.walletHash) {
+        this.error = this.$t('PointsLoadError')
+        this.isLoading = false
+        return
+      }
+
       const [upResp, ratioResp] = await Promise.allSettled(
         [getUserPromoData(), getLiftConversionRatio()]
       )
@@ -714,7 +730,20 @@ export default {
           this.error = this.$t('PromoDataLoadingError')
         }
       } else if (upData && Object.keys(upData).length === 0) {
-        await createUserPromoData()
+        // First visit for this wallet. The record has to exist before the
+        // `last_viewed` PATCH below can succeed, so create it now and re-read
+        // it instead of leaving the page on zeros until the next open.
+        const created = await createUserPromoData()
+        if (created) {
+          const freshData = await getUserPromoData().catch(error => {
+            console.error('Failed to re-read UserPromo after creating it: ', error)
+            return null
+          })
+          if (freshData && Object.keys(freshData).length > 0) {
+            await this.loadRewards()
+            return
+          }
+        }
       } else {
         this.error = this.$t('PointsLoadError')
       }
