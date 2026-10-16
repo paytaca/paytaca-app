@@ -572,6 +572,8 @@ export default {
       const walletIndex = this.$store.getters['global/getWalletIndex']
       this.user0thPubkey = await getAddress0_0PublicKey(walletIndex)
     } catch (error) {
+      // Not fatal. recordUserPromoPubKey() retries the derivation while the
+      // server has no key on file, and the page still renders either way.
       console.error('Unable to derive address 0/0 public key for Rewards: ', error)
     }
 
@@ -597,8 +599,6 @@ export default {
         console.error('Unable to create user rewards promo contract and data: ', error)
       }
     }
-
-    // update public key in server if it is empty
 
     this.isLoading = false
   },
@@ -758,12 +758,53 @@ export default {
         this.$nextTick(() => {
           if (upData && !upData?.last_viewed) this.isHelpActive = true
           const updateData = { last_viewed: new Date() }
-          if (upData?.address_0_public_key === "") {
+          if (!upData?.address_0_public_key && this.user0thPubkey) {
             updateData.address_0_public_key = this.user0thPubkey
           }
           updateUserPromoData(updateData)
+          this.recordUserPromoPubKey(upData)
         })
       }, 250)
+    },
+
+    /**
+     * Records the 0/0 public key on the server's UserPromo when it has none.
+     *
+     * Deriving the key reads the mnemonic from secure storage, which fails
+     * intermittently on BEX and iOS (missing IndexedDB device key, locked
+     * keychain, vault not yet hydrated). Because a single failed derivation
+     * would otherwise leave the key unrecorded until the user leaves and
+     * re-enters the app, retry it here while we still have a page visit.
+     *
+     * A failure after all attempts is console-only by design — the page shows
+     * its own error state via PromoDataLoadingError, with a retry button.
+     */
+    async recordUserPromoPubKey (upData) {
+      if (upData?.address_0_public_key) return
+
+      const walletIndex = this.$store.getters['global/getWalletIndex']
+      const maxAttempts = 3
+
+      for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+        if (!this.user0thPubkey) {
+          try {
+            this.user0thPubkey = await getAddress0_0PublicKey(walletIndex)
+          } catch (error) {
+            console.error(
+              `Unable to derive address 0/0 public key (attempt ${attempt}/${maxAttempts}): `, error
+            )
+            if (attempt === maxAttempts) return
+            await this.sleep(500 * attempt)
+            continue
+          }
+        }
+        await updateUserPromoData({ address_0_public_key: this.user0thPubkey })
+        return
+      }
+    },
+
+    sleep (ms) {
+      return new Promise(resolve => setTimeout(resolve, ms))
     },
 
     checkReferralCodeEligibility (upData) {
