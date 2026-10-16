@@ -565,12 +565,15 @@ import {
   createUserRewardsData,
   PROMO_CONTRACT_VERSION,
   getAssetsThresholds,
+  enrollEliteProgram,
   EliteStatus,
   EliteStatusLabels
 } from 'src/utils/engagementhub-utils/rewards'
 import { parseLiftToken } from 'src/utils/engagementhub-utils/shared'
 import { geolocationManager } from 'src/boot/geolocation'
 import { fetchVerifiedMerchantCount } from 'src/wallet/pos'
+import { loadWallet } from 'src/wallet'
+import { getLookupKey, mintLookupKey, LookupKeyExistsError } from 'src/wallet/lookup-key'
 
 import HeaderNav from 'src/components/header-nav.vue'
 import HelpCard from 'src/components/rewards/cards/HelpCard.vue'
@@ -634,6 +637,7 @@ export default {
 
       // Paytaca Elite program state
       isEliteLoading: false,
+      isEnrolling: false,
       EliteStatus,
       EliteStatusLabels,
       promoError: '',
@@ -1119,32 +1123,89 @@ export default {
     getWalletAssetBalances () {
       const assets = this.$store.getters['assets/getAssets']
       const bchBalance = Number(assets[0]?.balance ?? 0)
-      const liftIndex = assets.findIndex(asset => asset.id === `ct/${LIFT_TOKEN_CATEGORY}`)
+      const liftAsset = assets.find(asset => asset.id === `ct/${LIFT_TOKEN_CATEGORY}`)
       const bchPrice = Number(
         this.$store.getters['market/getAssetPrice'](assets[0]?.id ?? 'bch', this.selectedCurrency.symbol)
       )
 
+      // Both balances are normalised to the unit their threshold is in: fiat for
+      // BCH, whole tokens for LIFT. The store holds LIFT in atomic units while
+      // EP_LIFT_MIN_THRESHOLD_WHOLE is whole tokens, so comparing them raw is
+      // off by 10**LIFT_TOKEN_DECIMALS.
       this.eliteData.bchBalance = bchBalance * bchPrice
-      this.eliteData.liftBalance = assets[liftIndex].balance ?? 0
+      this.eliteData.liftBalance = Number(liftAsset?.balance ?? 0) / (10 ** LIFT_TOKEN_DECIMALS)
     },
 
-    onEliteCtaClick () {
-      if (this.eliteData.status === EliteStatus.LOCKED || this.eliteData.status === EliteStatus.PAUSED) {
-        this.$q.dialog({
-          component: EliteProgramLockedDialog,
-          componentProps: {
-            bchBalance: this.eliteData.bchBalance,
-            bchThreshold: this.eliteData.bchThreshold,
-            liftBalance: this.eliteData.liftBalance,
-            liftThreshold: this.eliteData.liftThreshold,
-            isLocked: this.eliteData.status === EliteStatus.LOCKED
-          }
-        })
-      } else if (this.eliteData.status === EliteStatus.ACTIVE) {
+    meetsEliteThresholds () {
+      const { bchBalance, bchThreshold, liftBalance, liftThreshold } = this.eliteData
+      if (!bchThreshold || !liftThreshold) return false
+      return bchBalance >= bchThreshold && liftBalance >= liftThreshold
+    },
+
+    showEliteThresholdDialog () {
+      this.$q.dialog({
+        component: EliteProgramLockedDialog,
+        componentProps: {
+          bchBalance: this.eliteData.bchBalance,
+          bchThreshold: this.eliteData.bchThreshold,
+          liftBalance: this.eliteData.liftBalance,
+          liftThreshold: this.eliteData.liftThreshold,
+          isLocked: this.eliteData.status === EliteStatus.LOCKED
+        }
+      })
+    },
+
+    async onEliteCtaClick () {
+      const status = this.eliteData.status
+
+      if (status === EliteStatus.ACTIVE) {
         this.$router.push({
           name: 'app-rewards-elite-program',
           params: { id: this.eliteData.id ?? -1 }
         })
+        return
+      }
+
+      // A paused program is restored by the server's incoming-transaction
+      // monitor. A client balance check cannot prove when the balance arrived,
+      // so the CTA only shows the balances for now.
+      if (status === EliteStatus.PAUSED || !this.meetsEliteThresholds()) {
+        this.showEliteThresholdDialog()
+        return
+      }
+
+      await this.enrollInEliteProgram()
+    },
+
+    async enrollInEliteProgram () {
+      if (this.$store.getters['global/isChipnet']) return
+
+      this.isEnrolling = true
+      try {
+        // Watchtower allows one key per wallet, so never mint speculatively --
+        // a wallet that mints and is not enrolled cannot mint again without
+        // revoking first.
+        const lookupKey = await getLookupKey(this.walletHash) ||
+          await mintLookupKey(await loadWallet('BCH', this.$store.getters['global/getWalletIndex']))
+
+        if (!lookupKey) return
+
+        const result = await enrollEliteProgram(this.walletHash, lookupKey)
+        if (!result) {
+          this.$q.notify({ type: 'error', message: 'Unable to join the Elite Program. Please try again later.', timeout: 5000 })
+          return
+        }
+
+        await this.loadRewards()
+      } catch (error) {
+        if (error instanceof LookupKeyExistsError) {
+          this.$q.notify({ type: 'error', message: 'A lookup key already exists for this wallet. Revoke it first.', timeout: 5000 })
+        } else {
+          console.error('Elite Program enrollment failed:', error)
+          this.$q.notify({ type: 'error', message: 'Unable to join the Elite Program. Please try again later.', timeout: 5000 })
+        }
+      } finally {
+        this.isEnrolling = false
       }
     }
   }

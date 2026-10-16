@@ -124,10 +124,6 @@ export async function mintLookupKey (wallet, { label = LOOKUP_KEY_LABEL } = {}) 
     value: response.data.lookup_key
   })
 
-  console.log('wallet/lookup-keys/ response:', response.data)
-
-  // TODO: forward response.data.lookup_key to engagement-hub
-
   return response.data.lookup_key
 }
 

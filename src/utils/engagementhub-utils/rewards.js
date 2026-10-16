@@ -221,25 +221,31 @@ export async function getRewardsSwapContractDetails () {
 }
 
 export async function getAssetsThresholds () {
+  // Throws rather than substituting a fallback. These values gate enrollment, and
+  // the two assets are in different units -- the BCH one is fiat PHP despite its
+  // key name, the LIFT one is whole tokens. A hardcoded guess that is merely
+  // plausible is worse than an error, so the caller shows its retry state.
   return await ELITEPROGRAM_URL
     .get('get_assets_min_thresholds/')
     .then(resp => {
       if (resp.status === 200) return resp.data
-      else {
-        return { // default values agreed upon from initial meeting
-          bch_min_threshold: 1000,
-          lift_min_threshold: 100
-        }
-      }
+      throw new Error(`Unexpected status ${resp.status} fetching Elite Program thresholds`)
     })
+}
+
+export async function enrollEliteProgram (walletHash, lookupKey) {
+  return await ELITEPROGRAM_URL
+    .post(
+      'enroll/',
+      { wallet_hash: walletHash, lookup_key: lookupKey },
+      { headers: { 'X-Elite-Program-Key': process.env.ELITE_PROGRAM_API_KEY } }
+    )
+    .then(resp => resp.data)
     .catch(error => {
       if (!error?.message?.includes('aborted')) {
         console.error(error)
       }
-      return { // default values agreed upon from initial meeting
-          bch_min_threshold: 1000,
-          lift_min_threshold: 100
-        }
+      return null
     })
 }
 
