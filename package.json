@@ -1,6 +1,6 @@
 {
   "name": "paytaca",
-  "version": "v0.27.0",
+  "version": "v0.27.1",
   "description": "Secure and convenient Bitcoin Cash wallet app",
   "productName": "Paytaca",
   "author": "joemar@paytaca.com",
@@ -16,7 +16,8 @@
     "postinstall": "patch-package && quasar prepare",
     "test": "cypress run",
     "test:unit": "mocha",
-    "test:smoke": "node --experimental-loader ./test/mock-loader.mjs ./test/secure-storage-migration.smoke.mjs"
+    "test:smoke": "node --experimental-loader ./test/mock-loader.mjs ./test/secure-storage-migration.smoke.mjs",
+    "release": "node scripts/generate-release.mjs"
   },
   "dependencies": {
     "@asoltys/bip38": "^4.0.3",

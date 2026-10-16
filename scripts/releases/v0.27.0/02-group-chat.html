@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>Paytaca v0.27.0 — private group chat</title>
+  <link rel="stylesheet" href="release.css" />
+  <style>
+    .ifaces {
+      display: flex;
+      gap: 0.5rem;
+      margin-top: 1.35rem;
+    }
+
+    .lock-note {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5em;
+      margin-top: 1.1rem;
+      font-size: 0.76rem;
+      font-weight: 600;
+      color: var(--brand-deep);
+      background: rgba(41, 121, 255, 0.1);
+      border: 1px solid rgba(41, 121, 255, 0.3);
+      border-radius: 999px;
+      padding: 0.46em 0.9em;
+    }
+
+    .lock-note .mi {
+      font-size: 15px;
+    }
+  </style>
+</head>
+<body>
+  <div class="canvas">
+    <div class="orb orb-brand" style="width: 720px; height: 720px; right: -240px; top: 120px; opacity: 0.34;"></div>
+    <div class="orb orb-red" style="width: 420px; height: 420px; left: -180px; bottom: -120px; opacity: 0.16;"></div>
+    <div class="grid"></div>
+
+    <div class="frame tight">
+      <div class="topbar">
+        <span class="brandmark">
+          <img class="logo" src="../../../src/assets/paytaca_logo_horizontal.png" alt="Paytaca" />
+        </span>
+        <span class="chip">What's new — 01 / 03</span>
+      </div>
+
+      <div class="stage">
+        <div class="copy">
+          <span class="eyebrow">What's new · 01</span>
+          <h2 class="title">Private <em>group chat</em></h2>
+          <p class="lede">End-to-end encrypted rooms, powered by MLS over Nostr.</p>
+          <div class="ifaces">
+            <span class="chip">Encrypted</span>
+            <span class="chip">Admin roles</span>
+            <span class="chip">Group tips</span>
+          </div>
+        </div>
+
+        <div class="phone-wrap">
+          <div class="phone">
+            <span class="notch"></span>
+            <div class="screen">
+              <div class="statusbar">
+                <span class="time">9:41</span>
+                <span class="r">
+                  <span class="mi">signal_cellular_alt</span>
+                  <span class="mi">wifi</span>
+                  <span class="mi">battery_full</span>
+                </span>
+              </div>
+
+              <div class="appbar">
+                <span class="iconbtn back"><span class="mi">arrow_back</span></span>
+                <div class="center wide-right">
+                  <div class="ttl">Bitcoin Cash PH</div>
+                  <div class="sub">5 members</div>
+                </div>
+                <span class="right">
+                  <span class="iconbtn"><span class="mi">group</span></span>
+                  <span class="iconbtn"><span class="mi">more_vert</span></span>
+                </span>
+              </div>
+
+              <div class="appbody">
+                <div class="chat-list">
+                  <span class="day">TODAY</span>
+
+                  <div class="row">
+                    <div class="col">
+                      <div class="sender">Mayang</div>
+                      <div class="bub">Got the sats — coffee's on me this meetup ☕</div>
+                    </div>
+                  </div>
+
+                  <div class="row mine">
+                    <div class="col">
+                      <div class="bub">Sending the tip now — 0.0005 BCH</div>
+                      <div class="meta">
+                        <span class="time">10:03</span>
+                        <span class="mi">done_all</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div class="row">
+                    <div class="col">
+                      <div class="sender">Rama</div>
+                      <div class="bub">
+                        <span class="file">
+                          <span class="mi">picture_as_pdf</span>
+                          <span class="fmeta">
+                            <span class="fn">meetup-notes.pdf</span>
+                            <span class="fs">1.2 MB · PDF</span>
+                          </span>
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div class="row">
+                    <div class="col">
+                      <div class="sender">Jonas</div>
+                      <div class="bub">Adding the venue pin below — same café as last time.</div>
+                    </div>
+                  </div>
+
+                  <div class="row mine">
+                    <div class="col">
+                      <div class="bub">See you all Saturday 🎉</div>
+                      <div class="meta">
+                        <span class="time">10:06</span>
+                        <span class="mi">done_all</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div class="row">
+                    <div class="col">
+                      <div class="sender">Mayang</div>
+                      <div class="bub">I'll bring the projector again.</div>
+                    </div>
+                  </div>
+
+                  <div class="typing">
+                    <span class="dots"><i></i><i></i><i></i></span>
+                    Mayang is typing…
+                  </div>
+                </div>
+
+                <div class="chat-inwrap">
+                  <div class="chat-in">
+                    <span class="mi add">add_circle_outline</span>
+                    <span class="ph">Type a message…</span>
+                    <span class="send"><span class="mi">send</span></span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</body>
+</html>
