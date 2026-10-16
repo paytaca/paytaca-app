@@ -62,6 +62,9 @@ const projectId = {
 
 const DEFAULT_SEQUENCE = 0xfffffffe
 const FEE_RATE_SAT_PER_KB = 1500n
+// Fungible-token outputs carry the dust floor computed with this relay fee, so
+// the buffer scales with the output instead of a fixed constant.
+const TOKEN_DUST_RELAY_FEE_SAT_PER_KB = 1200n
 
 /**
  * Derive the raw public key at a relative BIP32 path (e.g. '0/3').
@@ -388,11 +391,18 @@ export default class ReadOnlyWallet {
     ]
     const responses = await Promise.allSettled(requests)
     const utxos = []
-    for (const r of responses) {
+    responses.forEach((r, index) => {
       if (r.status === 'fulfilled' && Array.isArray(r.value?.data?.utxos)) {
         utxos.push(...r.value.data.utxos)
+      } else if (r.status === 'rejected') {
+        // Surface failed sub-requests; they silently drop UTXOs (e.g. plain BCH).
+        console.warn(
+          '[ReadOnlyWallet] Failed to fetch UTXOs:',
+          requests[index]?.config?.url || index,
+          r.reason
+        )
       }
-    }
+    })
     const seen = new Set()
     return utxos
       .filter(u => {
@@ -532,11 +542,19 @@ export default class ReadOnlyWallet {
           capability: r.targetNftUtxo.token.nft.capability,
           commitment: hexToBin(r.targetNftUtxo.token.nft.commitment)
         }
-      } else if (Number(r.amount || 0) > 0) {
+        // Preserve the NFT's carried satoshi value exactly; never fill or cap it.
+        output.valueSatoshis = r.targetNftUtxo.satoshis !== undefined
+          ? BigInt(r.targetNftUtxo.satoshis)
+          : getDustThreshold(output)
+        return output
+      }
+
+      if (Number(r.amount || 0) > 0) {
         output.token.amount = BigInt(Big(r.amount).mul(`1e${r.decimals || 0}`).toString())
       }
 
-      output.valueSatoshis = getDustThreshold(output)
+      // Fungible-token outputs carry the dust floor (with the token relay-fee buffer).
+      output.valueSatoshis = getDustThreshold(output, TOKEN_DUST_RELAY_FEE_SAT_PER_KB)
       return output
     })
   }
@@ -635,9 +653,20 @@ export default class ReadOnlyWallet {
    * @returns {bigint}
    */
   _estimateFee (inputs, outputs) {
+    return this._estimateFeeForInputCount(inputs.length, outputs)
+  }
+
+  /**
+   * Estimate the minimum fee for a single-sig (P2PKH) transaction from an input
+   * count, so callers can estimate before the inputs are resolved.
+   * @param {number} inputCount
+   * @param {Object[]} outputs - libauth outputs
+   * @returns {bigint}
+   */
+  _estimateFeeForInputCount (inputCount, outputs) {
     const headerSize = 10 // version(4) + varint input count(1) + varint output count(1) + locktime(4)
     const p2pkhInputSize = 148 // outpoint(36) + scriptSig len(1) + DER sig(73) + pubkey(34) + sequence(4)
-    const inputSize = inputs.reduce((t) => t + p2pkhInputSize, 0)
+    const inputSize = inputCount * p2pkhInputSize
     const outputSize = outputs.reduce((t, o) => t + encodeTransactionOutput(o).length, 0)
     return getMinimumFee(BigInt(headerSize + inputSize + outputSize), FEE_RATE_SAT_PER_KB)
   }
@@ -659,6 +688,20 @@ export default class ReadOnlyWallet {
    * Build an UNSIGNED transaction proposal (BCH, fungible token, or NFT) and
    * encode it as a PSBT. BUILD-ONLY: nothing is signed or broadcast.
    *
+   * Token satoshi rules:
+   * - Fungible-token outputs carry the dust floor computed with a raised relay fee
+   *   (TOKEN_DUST_RELAY_FEE_SAT_PER_KB), so I never send more BCH inside a token
+   *   output than it needs, and I never accidentally bundle BCH into a token.
+   * - NFT outputs keep the exact satoshi value of the NFT input, because the
+   *   issuer may promise a specific carried value, so I never touch it.
+   * - The fee is never taken from a token's carried satoshis.
+   * - For fungible tokens, if the consumed inputs carry more than the outputs need,
+   *   the surplus goes to the BCH change output; it may only cover the fee when the
+   *   BCH funder can't, and even then only for fungible tokens.
+   * - NFT sends always pay the fee from the BCH funder, with no surplus fallback.
+   * - Change above dust becomes the BCH change output; change below dust is
+   *   absorbed into the fee.
+   *
    * @param {Object} opts
    * @param {Array<{ address: string, amount: string, asset: string, decimals?: number, targetNftUtxo?: Object }>} [opts.recipients]
    * @param {Array<{ address: string, satoshis: bigint }>} [opts.outputs] - Legacy BCH-only outputs (converted internally)
@@ -676,6 +719,8 @@ export default class ReadOnlyWallet {
       transactionType = 'send-fungible-assets',
       reserveWcAccountUtxos = false
     } = opts || {}
+
+    const isNftSend = transactionType === 'send-non-fungible-assets'
 
     let recipients = opts?.recipients
 
@@ -733,7 +778,7 @@ export default class ReadOnlyWallet {
             amount: tokenChangeAmount
           }
         }
-        tokenChangeOutput.valueSatoshis = getDustThreshold(tokenChangeOutput)
+        tokenChangeOutput.valueSatoshis = getDustThreshold(tokenChangeOutput, TOKEN_DUST_RELAY_FEE_SAT_PER_KB)
         outputs.push({
           ...tokenChangeOutput,
           _isChange: true,
@@ -742,23 +787,73 @@ export default class ReadOnlyWallet {
       }
     }
 
-    const estimatedFee = this._estimateFee([], outputs)
-
-    const tokenUtxoSatoshis = selectedUtxos
+    const tokenInputSatoshis = selectedUtxos
       .filter(u => Boolean(u.token))
       .reduce((t, u) => t + BigInt(u.satoshis), 0n)
+    const tokenOutputSatoshis = outputs
+      .filter(o => Boolean(o.token))
+      .reduce((t, o) => t + o.valueSatoshis, 0n)
 
+    // Deficit (token outputs need more than the inputs carry) is funded by BCH.
+    // Surplus (inputs carry more than the outputs need) goes to the BCH change
+    // output and may only cover the fee for fungible-token sends.
+    const tokenDeficit = tokenOutputSatoshis > tokenInputSatoshis
+      ? tokenOutputSatoshis - tokenInputSatoshis
+      : 0n
+    const tokenSurplus = tokenInputSatoshis > tokenOutputSatoshis
+      ? tokenInputSatoshis - tokenOutputSatoshis
+      : 0n
+    const allowSurplusForFee = !isNftSend
+    const isBchSend = recipients[0].asset === 'bch'
     const bchOutputTotal = outputs.reduce((t, o) => t + o.valueSatoshis, 0n)
-    const bchTarget = BigInt(bchOutputTotal) + estimatedFee - tokenUtxoSatoshis
 
-    if (bchTarget > 0n) {
-      const bchUtxos = sourceUtxos.filter(u => !u.token)
-      const result = selectUtxos(bchUtxos, { targetSatoshis: BigInt(bchTarget) })
-      if (!result.satoshisSatisfied) throw new Error('Insufficient BCH balance!')
-      const added = result.selectedUtxos.filter(u => !selectedUtxos.some(s => s.txid === u.txid && s.vout === u.vout))
-      added.forEach(u => { this._resolveUtxoAddress(u, network) })
-      selectedUtxos = selectedUtxos.concat(added)
+    // The fee grows with each input we add, so iterate until the fee estimate and
+    // the selected input set agree.
+    const bchUtxos = sourceUtxos.filter(u => !u.token)
+    let bchSelection = { selectedUtxos: [], satoshisSatisfied: true }
+    let estimatedInputCount = selectedUtxos.length
+    for (let attempt = 0; attempt < 5; attempt++) {
+      const feeEstimate = this._estimateFeeForInputCount(estimatedInputCount, outputs)
+      // BCH sends already selected the outputs, so BCH covers outputs + fee. Token
+      // sends already carry their outputs, so BCH only covers the fee + deficit.
+      const preferredTarget = isBchSend
+        ? bchOutputTotal + feeEstimate
+        : feeEstimate + tokenDeficit
+      let bchTarget = preferredTarget
+
+      if (bchTarget <= 0n) {
+        bchSelection = { selectedUtxos: [], satoshisSatisfied: true }
+        break
+      }
+
+      bchSelection = selectUtxos(bchUtxos, { targetSatoshis: bchTarget })
+
+      if (!bchSelection.satoshisSatisfied && allowSurplusForFee && tokenSurplus > 0n) {
+        bchTarget = preferredTarget - tokenSurplus
+        if (bchTarget <= 0n) {
+          bchSelection = { selectedUtxos: [], satoshisSatisfied: true }
+          break
+        }
+        bchSelection = selectUtxos(bchUtxos, { targetSatoshis: bchTarget })
+      }
+
+      if (!bchSelection.satoshisSatisfied) {
+        const bchAvailable = bchUtxos.reduce((t, u) => t + BigInt(u.satoshis), 0n)
+        throw new Error(
+          `Insufficient BCH balance! Need ${bchTarget} sats, available ${bchAvailable} sats`
+        )
+      }
+
+      const inputCount = new Set(
+        [...selectedUtxos, ...bchSelection.selectedUtxos].map(u => `${u.txid}:${u.vout}`)
+      ).size
+      if (inputCount === estimatedInputCount) break
+      estimatedInputCount = inputCount
     }
+
+    const added = bchSelection.selectedUtxos.filter(u => !selectedUtxos.some(s => s.txid === u.txid && s.vout === u.vout))
+    added.forEach(u => { this._resolveUtxoAddress(u, network) })
+    selectedUtxos = selectedUtxos.concat(added)
 
     const inputs = selectedUtxos.map((u) => {
       if (!u.address) {
@@ -777,7 +872,7 @@ export default class ReadOnlyWallet {
     let satoshisChangeAmount = totalSatoshisInputs - totalSatoshiOutputs - fee
 
     if (satoshisChangeAmount < 0n) {
-      throw new Error('Insufficient BCH balance for fee!')
+      throw new Error(`Insufficient BCH balance for fee! Short by ${-satoshisChangeAmount} sats`)
     }
 
     const satoshisChangeOutput = {
