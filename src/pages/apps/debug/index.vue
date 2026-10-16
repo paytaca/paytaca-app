@@ -68,6 +68,30 @@
           </q-card>
         </div>
 
+        <!-- Secure Storage Migration Card -->
+        <div class="col-12 col-md-6 q-pa-sm">
+          <q-card
+            class="debug-menu-card cursor-pointer"
+            :class="getDarkModeClass(darkMode)"
+            @click="$router.push('/apps/debug/secure-storage-migration')"
+          >
+            <q-card-section>
+              <div class="row items-center q-gutter-md">
+                <q-icon name="storage" size="48px" :color="toggleColor" />
+                <div class="col">
+                  <div class="text-h6 text-weight-medium" :class="getDarkModeClass(darkMode)">
+                    {{ $t('SecureStorageMigration', {}, 'Secure Storage Migration') }}
+                  </div>
+                  <div class="text-caption" :class="darkMode ? 'text-grey-6' : 'text-grey-7'">
+                    {{ $t('SecureStorageMigrationDescription', {}, 'Inspect legacy localStorage and native secure storage migration status') }}
+                  </div>
+                </div>
+                <q-icon name="chevron_right" size="24px" />
+              </div>
+            </q-card-section>
+          </q-card>
+        </div>
+
         <!-- Push Notifications Reset Card -->
         <div class="col-12 col-md-6 q-pa-sm" v-if="$q.platform.is.mobile">
           <q-card 
