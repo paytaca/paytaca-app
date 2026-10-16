@@ -140,6 +140,23 @@ module.exports = defineConfig((ctx) => {
           use: 'raw-loader'
         })
 
+        // The release-note screenshots under public/releases are only served by
+        // the web deployment. Keep them out of the Capacitor and
+        // browser-extension bundles.
+        if (ctx.mode.capacitor || ctx.mode.bex) {
+          for (const plugin of cfg.plugins || []) {
+            if (!Array.isArray(plugin?.patterns)) continue
+            for (const pattern of plugin.patterns) {
+              const ignore = pattern?.globOptions?.ignore
+              // CopyWebpackPlugin runs tinyglobby with cwd = compiler.context
+              // (the app root), so ignore patterns are root-relative.
+              if (Array.isArray(ignore)) {
+                ignore.push('public/releases', 'public/releases/**')
+              }
+            }
+          }
+        }
+
         // to support optional chaining for older android webviews
         // NOTE: this is only applies for build in capacitor,
         //       dev server in capacitor will not apply this plugin

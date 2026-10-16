@@ -973,6 +973,11 @@ export default {
         return
       }
 
+      // The `finally` is what keeps the skeleton from sticking: `isLoading` is
+      // cleared here rather than by the caller, because `loadRewards()` is also
+      // invoked on its own by `onReferralDialogClose()` and by the error card's
+      // retry handler. Neither of those goes through `mounted()`, which is the
+      // only place that used to reset the flag.
       try {
         const [upResp, ratioResp] = await Promise.allSettled(
           [getUserPromoData(), getLiftConversionRatio()]
@@ -1029,7 +1034,6 @@ export default {
 
           // elite program
           await this.loadEliteProgramData(upData.elite_program)
-
         } else if (upData && Object.keys(upData).length === 0) {
           // First visit for this wallet. The record has to exist before the
           // `last_viewed` PATCH below can succeed, so create it now and re-read
