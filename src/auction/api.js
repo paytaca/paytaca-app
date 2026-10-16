@@ -54,10 +54,12 @@ export async function callAPI(pathname, id=null, method="get", payload=null) {
   let success = false;
   let data = null;
   let errorMessage = null;
+  let errorData = null;
   let status = null;
 
   try {
     const headers = await bchOauth.getAuthHeaders()
+
     const response = 
       (method === "get") ? await backend.get(apiURL, { headers }) : 
       (method === "post") ? await backend.post(apiURL, payload, { headers }) :
@@ -74,8 +76,12 @@ export async function callAPI(pathname, id=null, method="get", payload=null) {
   } catch (error) {
     if (error.response) {
       status = error.response.status
+      errorData = error.response.data
       // Errors where a response was generated from the server
-      switch(error.response?.status){
+      switch(status){
+        case 400:
+          errorMessage = 'Bad request.'
+          break
         case 404:
           errorMessage = 'No matching data found.'
           break
@@ -86,7 +92,7 @@ export async function callAPI(pathname, id=null, method="get", payload=null) {
           errorMessage = 'Unauthorized access.'
           break
         default:
-          errorMessage = 'An error occurred.'
+          errorMessage = `An error occurred: ${status}`
       }
       store.commit('auction/setHasNetworkError', false)
       
@@ -108,6 +114,7 @@ export async function callAPI(pathname, id=null, method="get", payload=null) {
     success,
     data,
     error: errorMessage,
+    errorData,
     status
   } 
 }

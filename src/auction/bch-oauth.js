@@ -70,7 +70,15 @@ export async function deriveOAuthCredentials() {
 export async function getStoredToken() {
   try {
     const result = await SecureStoragePlugin.get({ key: OAUTH_TOKEN_KEY })
-    return result.value
+    let stored
+    try {
+      stored = JSON.parse(result.value)
+    } catch {
+      return null
+    }
+    const walletHash = getWalletHash()
+    if (!stored || stored.walletHash !== walletHash) return null
+    return stored.token
   } catch (error) {
     console.error('[OAuth] Failed to get stored token:', error)
     return null
@@ -78,9 +86,12 @@ export async function getStoredToken() {
 }
 
 // oauth: save token 
-async function saveToken(token) {
+async function saveToken(token, walletHash) {
   try {
-    await SecureStoragePlugin.set({ key: OAUTH_TOKEN_KEY, value: token })
+    await SecureStoragePlugin.set({
+      key: OAUTH_TOKEN_KEY,
+      value: JSON.stringify({ token, walletHash })
+    })
   } catch (error) {
     console.error('[OAuth] Failed to save token:', error)
   }
@@ -166,7 +177,7 @@ export async function getAuthHeaders() {
       domain
     )
 
-    await saveToken(auth.access_token)
+    await saveToken(auth.access_token, walletHash)
     return { 'Authorization': `Bearer ${auth.access_token}` }
   } catch (error) {
     // If user not found (404), register first then authenticate
@@ -193,7 +204,7 @@ export async function getAuthHeaders() {
         domain
       )
       
-      await saveToken(auth.access_token)
+      await saveToken(auth.access_token, walletHash)
       return { 'Authorization': `Bearer ${auth.access_token}` }
     } 
     console.error('[OAuth] status code: ' + statusCode)
