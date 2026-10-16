@@ -34,12 +34,18 @@ export const PromosBytes = {
 // ================================
 
 /**
- * Message produced by axios when a request is cancelled through the
- * RequestManager (or any other cancel token). Those are not real failures and
- * must not be logged as such.
+ * Detects a request that was torn down rather than answered by the server.
+ *
+ * Aborts come back as `createError('Request aborted', config, 'ECONNABORTED')`
+ * from the RequestManager (it aborts the underlying XHR on navigation), and
+ * `ECONNABORTED` is the convention the rest of the app already uses to spot
+ * those — see `src/utils/subscription-utils.js` and the exchange/ramp request
+ * error handlers.
  */
 function isCanceledError (error) {
-  return axios.isCancel?.(error) === true || error?.message === 'canceled'
+  return axios.isCancel?.(error) === true
+    || error?.message === 'canceled'
+    || error?.code === 'ECONNABORTED'
 }
 
 /**
@@ -62,8 +68,9 @@ function delay (ms) {
  *
  * Rewards data is required to render the app, and a single dropped request
  * used to leave the page permanently broken for the rest of the session.
- * Only transient failures are retried — a 4xx is a real answer from the
- * server and retrying it just wastes round trips.
+ * Only transient failures are retried. A 4xx is a real answer from the
+ * server, and a cancelled request was torn down because the user navigated
+ * away — retrying either just re-fires work nobody is waiting for.
  */
 async function withRetry (fn, { retries = 2, delayMs = 400 } = {}) {
   let lastError = null
@@ -73,7 +80,7 @@ async function withRetry (fn, { retries = 2, delayMs = 400 } = {}) {
     } catch (error) {
       lastError = error
       const status = error?.response?.status
-      const isRetriable = !status || status >= 500 || isCanceledError(error)
+      const isRetriable = !isCanceledError(error) && (!status || status >= 500)
       if (!isRetriable || attempt === retries) throw error
       await delay(delayMs * (attempt + 1))
     }
@@ -116,30 +123,32 @@ async function processPoints (url, data, skipAbortManager=false) {
 /**
  * Performs a GET against engagement-hub.
  *
- * Resolves to:
- *   - the response body on 200
- *   - `{}` when the resource does not exist (404) or the request failed, so
- *     that callers treat "no record yet" and "server hiccup" the same way and
- *     bootstrap instead of showing a dead error card
- *   - throws when the request was cancelled or the wallet hash is unknown
+ * Always resolves, so callers never need a try/catch:
+ *   - the response body on success
+ *   - `{}` when the resource does not exist (404), when the request was
+ *     cancelled, or when it failed after retrying
+ *
+ * Returning `{}` for failures is deliberate: callers read that as "no record
+ * yet" and bootstrap instead of rendering a dead error card with no way to
+ * recover. Transient failures are retried first, so the `{}` fallback is only
+ * reached when retrying would not help.
  */
 async function getData (url, skipAbortManager = false) {
-  return await withRetry(async () => {
-    return await REWARDS_URL
-      .get(url, skipAbortManager ? { skipAbortManager: true } : undefined)
-      .then(resp => {
-        if (resp.status === 200) return resp.data
-        else if (resp.status === 404) return {}
-        else return null
-      })
-      .catch(error => {
-        if (isCanceledError(error)) throw error
-        console.error('Failed to GET ' + url + ': ' + describeError(error))
-        // Network error or unexpected status: let the caller bootstrap rather
-        // than failing. Returning null here used to render a dead error card.
-        return {}
-      })
-  })
+  try {
+    return await withRetry(async () => {
+      const response = await REWARDS_URL
+        .get(url, skipAbortManager ? { skipAbortManager: true } : undefined)
+      return response.data
+    })
+  } catch (error) {
+    // A 404 is a real answer ("no record yet") and a cancel is a navigation
+    // teardown; neither is worth reporting. Anything else is logged, but is
+    // still not fatal — the caller falls back to bootstrapping.
+    if (error?.response?.status !== 404 && !isCanceledError(error)) {
+      console.error('Failed to GET ' + url + ': ' + describeError(error))
+    }
+    return {}
+  }
 }
 
 async function createData (url, data = {}) {
