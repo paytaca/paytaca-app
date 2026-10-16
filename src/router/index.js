@@ -108,8 +108,8 @@ export default function () {
         next({ name: 'app-auction-profile' })
         return
       }
-      if (store.getters['auction/isArbiter'] && to.name !== 'app-auction-appeals') {
-        next({ name: 'app-auction-appeals' })
+      if (store.getters['auction/isArbiter'] && to.name !== 'app-auction-disputes') {
+        next({ name: 'app-auction-disputes' })
         return
       }
     }
