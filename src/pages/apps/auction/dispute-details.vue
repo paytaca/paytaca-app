@@ -288,7 +288,7 @@ import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 import { computed, ref, onBeforeUnmount, onMounted, nextTick } from 'vue'
 import { useRouter } from 'vue-router'
 
-import { loadWallet } from "src/wallet"
+import { deriveOAuthCredentials } from 'src/auction/bch-oauth'
 import { copyToClipboard, formatBCH } from './helper-functions'
 
 // Components
@@ -423,7 +423,7 @@ const startSwipe = async (e) => {
 }
 
 // Calls the selected contract action and reports its result.
-const handleAction = async (addressPath='0/0') => {
+const handleAction = async () => {
   if (isSubmitting.value) return
   if (!['refund', 'release'].includes(selectedAction.value) || !canResolve.value) {
     $q.notify({ type: 'negative', message: 'The dispute is missing information required for resolution.', position: 'top' })
@@ -435,9 +435,7 @@ const handleAction = async (addressPath='0/0') => {
   try {
     $q.loading.show({ message: 'Processing...' })
 
-    // Get wallet and public key
-    const wallet = await loadWallet('BCH')
-    const publicKey = await wallet.BCH.getPublicKey(addressPath)
+    const { publicKey } = await deriveOAuthCredentials()
 
     const transaction = await $store.dispatch(
       `auction/callContractFunction`, 
