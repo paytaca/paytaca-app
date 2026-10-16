@@ -733,17 +733,28 @@ export default {
         // First visit for this wallet. The record has to exist before the
         // `last_viewed` PATCH below can succeed, so create it now and re-read
         // it instead of leaving the page on zeros until the next open.
+        //
+        // Both the create and the re-read are fallible, and neither result is
+        // conclusive on its own: `createUserPromoData()` reports `true` for a
+        // duplicate as well as for a real insert, and `getUserPromoData()`
+        // collapses a 404, a cancellation and a server fault into the same
+        // empty object. So any combination that leaves us without a readable
+        // record is reported, rather than rendering zeros that are
+        // indistinguishable from a genuine zero balance.
         const created = await createUserPromoData()
-        if (created) {
-          const freshData = await getUserPromoData().catch(error => {
+        const freshData = created
+          ? await getUserPromoData().catch(error => {
             console.error('Failed to re-read UserPromo after creating it: ', error)
             return null
           })
-          if (freshData && Object.keys(freshData).length > 0) {
-            await this.loadRewards()
-            return
-          }
+          : null
+
+        if (freshData && Object.keys(freshData).length > 0) {
+          await this.loadRewards()
+          return
         }
+
+        this.error = this.$t('PointsLoadError')
       } else {
         this.error = this.$t('PointsLoadError')
       }
