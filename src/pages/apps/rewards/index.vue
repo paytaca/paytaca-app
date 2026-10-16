@@ -678,104 +678,113 @@ export default {
         return
       }
 
-      const [upResp, ratioResp] = await Promise.allSettled(
-        [getUserPromoData(), getLiftConversionRatio()]
-      )
-      const upData = upResp.value
-      const ratioData = ratioResp.value
+      // The `finally` is what keeps the skeleton from sticking: `isLoading` is
+      // cleared here rather than by the caller, because `loadRewards()` is also
+      // invoked on its own by `onReferralDialogClose()` and by the error card's
+      // retry handler. Neither of those goes through `mounted()`, which is the
+      // only place that used to reset the flag.
+      try {
+        const [upResp, ratioResp] = await Promise.allSettled(
+          [getUserPromoData(), getLiftConversionRatio()]
+        )
+        const upData = upResp.value
+        const ratioData = ratioResp.value
 
-      // process fetched ratioData
-      this.liftConversionRatio = ratioData.conversionRatio
-      this.referralCodeEligibilityDate = ratioData.eligibilityDate
+        // process fetched ratioData
+        this.liftConversionRatio = ratioData.conversionRatio
+        this.referralCodeEligibilityDate = ratioData.eligibilityDate
 
-      // check referral code eligibility of wallet
-      this.checkReferralCodeEligibility(upData)
+        // check referral code eligibility of wallet
+        this.checkReferralCodeEligibility(upData)
 
-      // process fetched upData
-      if (upData && Object.keys(upData).length > 0) {
-        try {
-          this.totalPoints = 0
-          for (const type of this.pointsType) {
-            const promoId = upData[type]?.pk ?? null
-            if (promoId) {
-              const targetPromo = PromosBytes[type.toUpperCase()]
-              const contractVersion = upData[type]?.contract_version ?? PROMO_CONTRACT_VERSION
-              const contract = new PromoContract(this.user0thPubkey, targetPromo, contractVersion)
-              const promoBalance = await contract.getTokenBalance()
-              this.totalPoints += promoBalance
-              this.promos[type].points = promoBalance
-              this.promos[type].id = promoId
+        // process fetched upData
+        if (upData && Object.keys(upData).length > 0) {
+          try {
+            this.totalPoints = 0
+            for (const type of this.pointsType) {
+              const promoId = upData[type]?.pk ?? null
+              if (promoId) {
+                const targetPromo = PromosBytes[type.toUpperCase()]
+                const contractVersion = upData[type]?.contract_version ?? PROMO_CONTRACT_VERSION
+                const contract = new PromoContract(this.user0thPubkey, targetPromo, contractVersion)
+                const promoBalance = await contract.getTokenBalance()
+                this.totalPoints += promoBalance
+                this.promos[type].points = promoBalance
+                this.promos[type].id = promoId
 
-              if (contract.contract.tokenAddress !== upData[type].contract_ct_address) {
-                // update promo contract address in background
-                switch (type) {
-                  case Promos.USERREWARDS:
-                    updateUserRewardsData(
-                      promoId, { contract_ct_address: contract.contract.tokenAddress }
-                    )
-                    break
-                  case Promos.RFPROMO:
-                    updateRfPromoData(
-                      promoId, { contract_ct_address: contract.contract.tokenAddress }
-                    )
-                    break
-                  default:
-                    break
+                if (contract.contract.tokenAddress !== upData[type].contract_ct_address) {
+                  // update promo contract address in background
+                  switch (type) {
+                    case Promos.USERREWARDS:
+                      updateUserRewardsData(
+                        promoId, { contract_ct_address: contract.contract.tokenAddress }
+                      )
+                      break
+                    case Promos.RFPROMO:
+                      updateRfPromoData(
+                        promoId, { contract_ct_address: contract.contract.tokenAddress }
+                      )
+                      break
+                    default:
+                      break
+                  }
                 }
               }
             }
+          } catch (error) {
+            console.error(error)
+            this.error = this.$t('PromoDataLoadingError')
           }
-        } catch (error) {
-          console.error(error)
-          this.error = this.$t('PromoDataLoadingError')
+        } else if (upData && Object.keys(upData).length === 0) {
+          // First visit for this wallet. The record has to exist before the
+          // `last_viewed` PATCH below can succeed, so create it now and re-read
+          // it instead of leaving the page on zeros until the next open.
+          //
+          // Both the create and the re-read are fallible, and neither result is
+          // conclusive on its own: `createUserPromoData()` reports `true` for a
+          // duplicate as well as for a real insert, and `getUserPromoData()`
+          // collapses a 404, a cancellation and a server fault into the same
+          // empty object. So any combination that leaves us without a readable
+          // record is reported, rather than rendering zeros that are
+          // indistinguishable from a genuine zero balance.
+          const created = await createUserPromoData()
+          const freshData = created
+            ? await getUserPromoData().catch(error => {
+              console.error('Failed to re-read UserPromo after creating it: ', error)
+              return null
+            })
+            : null
+
+          if (freshData && Object.keys(freshData).length > 0) {
+            await this.loadRewards()
+            return
+          }
+
+          this.error = this.$t('PointsLoadError')
+        } else {
+          this.error = this.$t('PointsLoadError')
         }
-      } else if (upData && Object.keys(upData).length === 0) {
-        // First visit for this wallet. The record has to exist before the
-        // `last_viewed` PATCH below can succeed, so create it now and re-read
-        // it instead of leaving the page on zeros until the next open.
-        //
-        // Both the create and the re-read are fallible, and neither result is
-        // conclusive on its own: `createUserPromoData()` reports `true` for a
-        // duplicate as well as for a real insert, and `getUserPromoData()`
-        // collapses a 404, a cancellation and a server fault into the same
-        // empty object. So any combination that leaves us without a readable
-        // record is reported, rather than rendering zeros that are
-        // indistinguishable from a genuine zero balance.
-        const created = await createUserPromoData()
-        const freshData = created
-          ? await getUserPromoData().catch(error => {
-            console.error('Failed to re-read UserPromo after creating it: ', error)
-            return null
-          })
-          : null
 
-        if (freshData && Object.keys(freshData).length > 0) {
-          await this.loadRewards()
-          return
-        }
-
-        this.error = this.$t('PointsLoadError')
-      } else {
-        this.error = this.$t('PointsLoadError')
-      }
-
-      // Fetch LIFT token price from Cauldron API
-      await this.fetchLiftPriceFromCauldron()
+        // Fetch LIFT token price from Cauldron API
+        await this.fetchLiftPriceFromCauldron()
       
-      // Start polling Cauldron prices (every 60 seconds)
-      this.startCauldronPricePolling()
+        // Start polling Cauldron prices (every 60 seconds)
+        this.startCauldronPricePolling()
 
-      setTimeout(() => {
-        this.$nextTick(() => {
-          if (upData && !upData?.last_viewed) this.isHelpActive = true
-          const updateData = { last_viewed: new Date() }
-          if (!upData?.address_0_public_key && this.user0thPubkey) {
-            updateData.address_0_public_key = this.user0thPubkey
-          }
-          updateUserPromoData(updateData)
-          this.recordUserPromoPubKey(upData)
-        })
-      }, 250)
+        setTimeout(() => {
+          this.$nextTick(() => {
+            if (upData && !upData?.last_viewed) this.isHelpActive = true
+            const updateData = { last_viewed: new Date() }
+            if (!upData?.address_0_public_key && this.user0thPubkey) {
+              updateData.address_0_public_key = this.user0thPubkey
+            }
+            updateUserPromoData(updateData)
+            this.recordUserPromoPubKey(upData)
+          })
+        }, 250)
+      } finally {
+        this.isLoading = false
+      }
     },
 
     /**
