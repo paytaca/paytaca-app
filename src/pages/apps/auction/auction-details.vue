@@ -340,17 +340,19 @@
 
 <script setup>
 // Imports
-import noImage from 'src/assets/no-image.svg'
-import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 import { useStore } from 'vuex'
 import { ref, computed, watch, onMounted, onBeforeUnmount } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useQuasar, date } from 'quasar'
-import { callAPI } from 'src/auction/api'
 
 // Components
 import HeaderNav from 'src/components/header-nav.vue'
 import LotSearch from 'src/components/auction/LotSearch.vue'
+import noImage from 'src/assets/no-image.svg'
+
+// src imports
+import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
+import { callAPI } from 'src/auction/api'
 import { callAuctionWebsocket } from 'src/auction/websocket'
 import { copyToClipboard, formatAuctionCountdown, formatFiat, formatBCH, formatAuctionDate, getEnglishPriceInfo } from './helper-functions'
 
@@ -376,8 +378,9 @@ const props = defineProps({
 const auction = computed(() => $store.getters['auction/auctionData'])
 const auctionEndCountdown = ref('Loading...')
 const auctionStartCountdown = ref('Loading...')
+
 // Determines whether auction listings need to be refreshed.
-const shouldFetchListings = () => {
+const shouldFetchAuctionData = () => {
   const lastFetched = $store.getters['auction/listingsLastFetched']
   return !lastFetched || Date.now() - lastFetched > 30000
 }
@@ -394,14 +397,16 @@ const shouldFetchAuctionLots = () => {
 }
 const isLotEmpty = computed(() => !isLoading.value && filteredLots.value.length === 0)
 
+// Filtered lot items
 const filteredLots = computed(() => {
   let targetLots = $store.getters['auction/filteredLots'] ?? []
   const query = lotSearchQuery.value.trim().toLowerCase()
   return (query) ? targetLots.filter(lot => lot?.title?.toLowerCase().includes(query)) : targetLots
 })
 
+// Updates the auction lot category
 watch(lotCategory, (newType) => {
-  $store.commit('auction/updateAuctionLotCategory', { type: newType })
+  $store.commit('auction/setAuctionLotCategory', { type: newType })
 })
 
 // Loads the data required to render the page.
@@ -410,7 +415,7 @@ const loadPageData = async (force=false) => {
   const isSameAuctionId = $store.getters['auction/auctionId'] === Number(props.auctionId)
 
   await Promise.all([
-    (!isSameAuctionId || force || shouldFetchListings())
+    (!isSameAuctionId || force || shouldFetchAuctionData())
       ? $store.dispatch('auction/fetchAuctionData', props.auctionId)
       : $store.dispatch('auction/fetchExistingAuctionData', props.auctionId),
 
@@ -440,42 +445,7 @@ const loadPageData = async (force=false) => {
       }
     }
   }
-  console.log('3. Promise.all finished')
 }
-
-onMounted(async () => {
-  isLoading.value = true
-
-  try {
-    await loadPageData()
-    const storedAuctionId = $store.getters['auction/auctionId']
-
-    if (
-      storedAuctionId == null ||
-      Number(storedAuctionId) !== Number(props.auctionId)
-    ) {
-      $router.replace(smartBackPath.value)
-      return
-    }
-    
-    socket = connectWebsocket()
-  } catch (err) {
-    console.error('Failed to load auction details:', err)
-
-    $q.notify({
-      type: 'negative',
-      message: 'Failed to load auction details.'
-    })
-  } finally {
-    isLoading.value = false
-  }
-})
-
-onBeforeUnmount(() => {
-  isUnmounted = true
-  clearSocket()
-})
-
 
 // ===========================
 // WEBSOCKET-RELATED FUNCTIONS
@@ -492,13 +462,16 @@ let isUnmounted = false
 const connectWebsocket = () => {
   if (isUnmounted) return null
   const ws = callAuctionWebsocket(Number(props.auctionId))
-
+  
+  // Connecting to the WS
   ws.onopen = () => {
     reconnectAttempts = 0
     console.log("Connected to the auction websocket!")
   }
 
+  // Receiving WS messages
   ws.onmessage = (event) => {
+    // Extract the WS message
     let message
     try {
       message = JSON.parse(event.data)
@@ -506,61 +479,49 @@ const connectWebsocket = () => {
       console.error("Invalid auction websocket message:", error)
       return
     }
+
+    // Split the message
     const { type, data = {} } = message
     
     switch(type) {
+      // Live viewer count
       case "live.viewing":
         viewCount.value = data.viewer_count
         break
+
+      // Countdown for the start of the auction
       case "auction.start_countdown":
         auctionStartCountdown.value = formatAuctionCountdown(data.time_left)
         break
+
+      // Countdown for the end of the auction
       case "auction.end_countdown":
-        console.log(data.time_left)
         auctionEndCountdown.value = formatAuctionCountdown(data.time_left, true)
         if (auctionStartCountdown.value) auctionStartCountdown.value = ""
         break
-      case "auction.start":
-        console.log("auction.start")
+
+      // Starting the auction (message received once)
+      case "auction.update_status": 
+        console.log('UPDATING AUCTION STATUS')
+        // Update the status within the auction itself
         $store.commit('auction/updateAuctionData', {
           attribute_name: 'status', 
           data: data.status
         })
-
-        $store.commit('auction/updateAuctionLotsData', {
-          attribute_name: 'start_date', 
-          data: auction.value?.start_date
-        })
-        $store.commit('auction/updateAuctionLotsData', {
-          attribute_name: 'end_date', 
-          data: auction.value?.end_date
-        })
+        
+        // Update the status of the other lots
+        $store.commit('auction/updateAuctionLotsStatus', data.status)
         break
-      case "auction.end": {
-        auctionStartCountdown.value = "Time's Up!"
-        $store.commit('auction/updateAuctionData', {
-          attribute_name: 'status', 
-          data: data.status
-        })
 
-        const endDate = data?.end_date || new Date().toISOString()
-        $store.commit('auction/updateAuctionData', {
-          attribute_name: 'end_date', 
-          data: endDate
-        })
-        $store.commit('auction/updateAuctionLotsData', {
-          attribute_name: 'end_date', 
-          data: endDate
-        })
-        break
-      }
+      // Updating the auction's information
       case "auction.update":
         if (!data || !data?.id) break
         $store.commit('auction/mergeAuctionData', data)
         $store.commit('auction/updateListing', data)
         $store.commit('auction/updateMyAuction', data)
-        
         break
+
+      // Deleting the auction
       case "auction.delete":
         if (!data?.id) break
         $store.commit('auction/clearAuctionData', data.id)
@@ -568,13 +529,15 @@ const connectWebsocket = () => {
         $store.commit('auction/removeMyAuction', data.id)
         $router.replace({ name: 'app-auction' })
         break
+
+      // UNRECOGNIZED WS EVENT
       default:
-        console.log("Unrecognized websocket event: " + type)
+        console.warn("Unrecognized websocket event: " + type)
         break
     }
-    console.log(data)
   }
 
+  // Disconnecting from WS
   ws.onclose = (event) => {
     console.log("Disconnected from the auction websocket!")
     if (
@@ -591,6 +554,7 @@ const connectWebsocket = () => {
     } 
   }
 
+  // Error occurred during WS connection
   ws.onerror = (event) => {
     console.error("Auction websocket error:", event)
   }
@@ -642,6 +606,7 @@ const toggleEditAuction = async () => {
 // IS USER AUCTIONEER OR BIDDER
 // ============================
 
+// Get the current user's data (check if they're the auctioneer)
 const userWalletHash = computed(() => $store.getters['global/getWallet']('bch')?.walletHash)
 const isAuctioneer = computed(() => userWalletHash.value === auction.value?.auctioneer)
 
@@ -656,24 +621,14 @@ const canEdit = computed(() => {
   return minutesToStart > 30
 })
 
-// =======================
-// AUCTION STATUS UPDATING
-// =======================
-
-// ===================
-// LOT STATUS UPDATING
-// ===================
-
-
-
-
 // ============
 // PAGE-RELATED
 // ============
 const smartBackPath = computed(() => {
   const sourceContext = $route.query.from
-  if (sourceContext === 'activity') return '/apps/auction/activity'
-  return `/apps/auction`
+  return (sourceContext === 'activity') 
+    ? '/apps/auction/activity'
+    :`/apps/auction`
 })
 
 // Refreshes the page data and completes the pull-to-refresh action.
@@ -692,4 +647,39 @@ const refresh = async (done) => {
     done?.()
   }
 }
+
+onMounted(async () => {
+  isLoading.value = true
+
+  try {
+    // Load the page data
+    await loadPageData()
+    const storedAuctionId = $store.getters['auction/auctionId']
+
+    if (
+      storedAuctionId == null ||
+      Number(storedAuctionId) !== Number(props.auctionId)
+    ) {
+      $router.replace(smartBackPath.value)
+      return
+    }
+    
+    // Connect to the websocket
+    socket = connectWebsocket()
+  } catch (err) {
+    console.error('Failed to load auction details:', err)
+
+    $q.notify({
+      type: 'negative',
+      message: 'Failed to load auction details.'
+    })
+  } finally {
+    isLoading.value = false
+  }
+})
+
+onBeforeUnmount(() => {
+  isUnmounted = true
+  clearSocket()
+})
 </script>
