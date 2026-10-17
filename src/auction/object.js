@@ -151,9 +151,7 @@ export class LotsList {
     this.time_interval = data.time_interval ?? null
 
     // Dynamic values
-    this.is_sold = data.is_sold ?? data.status === 'Sold'
     this.date_sold = data.date_sold ?? data.sell_date ?? null
-
     this.status = data.status ?? 'Inactive'
     this.status_color = lotColors[this.status]
     
