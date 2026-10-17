@@ -330,20 +330,23 @@ export async function patchDeliveryDetails({ dispatch, getters }, payload) {
 }
 
 // CREATES delivery event of a lot
-export async function createDeliveryEvent({ dispatch, getters }, payload = {}) {
-  const data = {
-    delivery: payload.delivery ?? getters.deliveryData?.tracking_id,
-    status: payload.status ?? 'Delivered',
-    description: payload.description ?? '',
-    location: payload.location ?? '',
-    event_date: payload.event_date ?? new Date().toISOString()
+export async function createDeliveryEvent({ dispatch, getters }, { status, description='N/A', location='Default' }) {
+  const { deliveryData } = getters
+
+  const payload = {
+    delivery: deliveryData?.tracking_id,
+    status,
+    description,
+    location,
+    event_date: new Date().toISOString()
   }
-  if (!data.delivery) {
+
+  if (!payload.delivery) {
     dispatch('printNotExisting', 'delivery tracking id')
     return null
   }
 
-  const response = await callAPI('delivery-event', null, 'post', data)
+  const response = await callAPI('delivery-event', null, 'post', payload)
   if (!response.success) dispatch('printFailedPost', 'delivery event')
   return response
 }

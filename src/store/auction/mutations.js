@@ -197,15 +197,9 @@ export function updateAuctionLotsData(state, {attribute_name, data}) {
   })
 }
 
-export function updateAuctionLotsStatus(state, auctionStatus) {
-  state.auctionLots.forEach(lot => {
-    lot.status = auctionStatus === 'Upcoming'
-      ? 'Inactive'
-      : auctionStatus === 'Open'
-        ? 'Active'
-        : lot.is_sold
-          ? 'Sold'
-          : 'Unsold'
+export function updateAuctionLotsStatus(state, lots) {
+  state.auctionLots.forEach((lot, index) => {
+    lot.status = lots[index].status
     lot.refreshStatus()
   })
 }
