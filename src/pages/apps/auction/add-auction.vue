@@ -205,7 +205,6 @@ import { useStore } from 'vuex'
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 import { computed, ref } from 'vue'
 import { useRouter } from 'vue-router'
-import { callAPI } from 'src/auction/api'
 
 // Components
 import HeaderNav from 'src/components/header-nav.vue'
@@ -215,14 +214,18 @@ import AddLotDetails from 'src/components/auction/AddAuction/AddLotDetails.vue'
 import EditLotDetails from 'src/components/auction/AddAuction/EditLotDetails.vue'
 import ConfirmDeleteDialog from 'src/components/auction/ConfirmDeleteDialog.vue'
 import noImage from 'src/assets/no-image.svg'
+
+// src imports
+import { callAPI } from 'src/auction/api'
 import { formatBCH, formatFiatNumber as formatFiat, getAuctionDateValidationError, getIntervalMinutes, withBothCurrencies } from './helper-functions'
 
-// Component state and computed values
+// Quasar variables
 const $q = useQuasar()
 const $store = useStore()
 const $router = useRouter()
-const darkMode = computed(() => $store.getters['darkmode/getStatus'])
 
+// System-related variables
+const darkMode = computed(() => $store.getters['darkmode/getStatus'])
 const bchToPhpRate = computed(() => $store.getters['market/getAssetPrice']('bch', 'php') || 0)
 
 const auctionForm = ref({
@@ -295,6 +298,7 @@ const handleLotDelete = () => {
 const handleCreateAuction = async () => {
   const { start_date, end_date } = auctionForm.value
   const dateValidationError = getAuctionDateValidationError(start_date, end_date)
+  
   if (dateValidationError) {
     $q.notify({ type: 'negative', message: dateValidationError })
     if (!start_date || !end_date) {
@@ -370,19 +374,28 @@ const handleCreateAuction = async () => {
       return lotData
     })
 
+    // Append the form data to their respective 
     const formData = new FormData()
     formData.append('auction', JSON.stringify(auctionData))
     formData.append('lots', JSON.stringify(lotsData))
-    if (auctionForm.value.image) {
+    
+    if (auctionForm.value.image) 
       formData.append('auction_image', auctionForm.value.image)
-    }
 
     lots.value.forEach((lot, index) => {
       const files = lot.rawFiles && lot.rawFiles.length > 0 ? lot.rawFiles : (lot.file ? [lot.file] : [])
-      for (const file of files) {
+      for (const file of files) 
         formData.append(`lot_images_${index}`, file)
-      }
     })
+
+    for (const [key, value] of formData.entries()) {
+      console.log(
+        key,
+        value instanceof File
+          ? { name: value.name, type: value.type, size: value.size }
+          : value
+      )
+    }
 
     const result = await callAPI(
       'auctions-with-lots',
@@ -398,6 +411,7 @@ const handleCreateAuction = async () => {
       result.data.lots.length !== lots.value.length ||
       result.data.lots.some(lot => !lot?.id)
     ) {
+      console.error(result.error)
       throw new Error(
         result.error || 'Server failed to publish the complete auction.'
       )
@@ -408,8 +422,8 @@ const handleCreateAuction = async () => {
       message: 'Auction published!',
       timeout: 3000
     })
-    
     $router.push('/apps/auction/activity')
+
   } catch (err) {
     $q.notify({
       type: 'negative',
@@ -421,11 +435,11 @@ const handleCreateAuction = async () => {
 }
 
 const auctionFormRef = ref(null)
+
 // Scrolls the form to the first field with a validation error.
 const scrollToFirstError = () => {
   setTimeout(() => {
     const firstInvalidField = document.querySelector('.q-field--error, .q-field--invalid')
-    
     if (firstInvalidField) {
       firstInvalidField.scrollIntoView({ 
         behavior: 'smooth', 
