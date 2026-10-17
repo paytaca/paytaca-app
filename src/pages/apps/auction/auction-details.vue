@@ -497,12 +497,12 @@ const connectWebsocket = () => {
       // Countdown for the end of the auction
       case "auction.end_countdown":
         auctionEndCountdown.value = formatAuctionCountdown(data.time_left, true)
-        if (auctionStartCountdown.value) auctionStartCountdown.value = ""
+        if (auctionStartCountdown.value) 
+          auctionStartCountdown.value = ""
         break
 
-      // Starting the auction (message received once)
+      // Updating the auction's status
       case "auction.update_status": 
-        console.log('UPDATING AUCTION STATUS')
         // Update the status within the auction itself
         $store.commit('auction/updateAuctionData', {
           attribute_name: 'status', 
@@ -510,7 +510,7 @@ const connectWebsocket = () => {
         })
         
         // Update the status of the other lots
-        $store.commit('auction/updateAuctionLotsStatus', data.status)
+        $store.commit('auction/updateAuctionLotsStatus', data.lots)
         break
 
       // Updating the auction's information
