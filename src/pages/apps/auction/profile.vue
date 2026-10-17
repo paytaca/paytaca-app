@@ -96,7 +96,6 @@ const username = ref('')
 
 // Mounts the username (if it exists)
 onMounted(async () => {
-  await $store.dispatch('auction/fetchUsername')
   username.value = $store.getters['auction/username']
   isLoading.value = false
 })
@@ -127,10 +126,8 @@ const handleEditUserProfile = async () => {
       return
     }
 
-    console.log(1)
     // Error occurred
     const usernameError = data.errorData?.username
-    console.log(2)
     const usernameErrorText = (Array.isArray(usernameError) ? usernameError : [usernameError])
       .filter(Boolean)
       .join(' ')

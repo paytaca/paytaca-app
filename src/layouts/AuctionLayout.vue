@@ -12,24 +12,30 @@
 
 export default {
   name: 'auction-layout',
+
   data () {
     return { }
   },
+
   computed: {
     walletSwitchId () {
       return this.$store.getters['global/getWalletSwitchId']
     }
   },
+
   watch: {
     walletSwitchId () {
       this.checkAuctionAccess()
     }
   },
+
+  async mounted() {
+    await this.checkAuctionAccess()
+  },
+
   methods: {
     async checkAuctionAccess () {
-      if (!this.$store.getters['auction/username']) {
-        await this.$store.dispatch('auction/fetchUsername')
-      }
+      await this.$store.dispatch('auction/fetchUsername')
       if (!this.$store.getters['auction/username']) {
         if (this.$route.name !== 'app-auction-profile') {
           this.$router.replace({ name: 'app-auction-profile' })
