@@ -238,9 +238,8 @@ const currentFloorBch = computed(() => {
 // Converts the current price floor to fiat for display and validation.
 const currentFloorFiat = computed(() => {
   if (!props.lot) return 0
-  if (props.auction?.is_fiat) {
+  if (props.auction?.is_fiat) 
     return Number(props.lot.threshold_bid_fiat || 0)
-  }
   return Number(props.lot.threshold_bid_bch || 0) * bchToPhpRate.value
 })
 

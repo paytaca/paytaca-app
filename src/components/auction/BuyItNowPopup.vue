@@ -65,6 +65,7 @@ import { useQuasar } from 'quasar'
 import { computed } from 'vue'
 import { useStore } from 'vuex'
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
+import { formatBCH as formatBCHValue, formatFiat } from 'src/pages/apps/auction/helper-functions'
 
 // Component props
 const props = defineProps({
@@ -99,29 +100,14 @@ const props = defineProps({
 })
 
 const emit = defineEmits(['update:showMakeBidDialog', 'confirm-buy-it-now'])
-
 const $q = useQuasar()
 const $store = useStore()
 const darkMode = computed(() => $store.getters['darkmode/getStatus'])
 
-
-
-
 // Formats a BCH amount for display.
-const formatBCH = (val) => {
-  if (val == null) return { main: '—', zeros: '' }
-  const str = Number(val).toFixed(8)
-  const [int, dec] = str.split('.')
-  const significant = dec.replace(/0+$/, '') || '0'
-  const trailingZeros = dec.slice(significant.length)
-  return { main: `${int}.${significant}`, zeros: trailingZeros }
-}
-
-// Formats a fiat amount as Philippine pesos.
-const formatFiat = (value) => {
-  const numValue = Number(value) || 0
-  return `₱${numValue.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
-}
+const formatBCH = (val) => val == null
+  ? { main: '—', zeros: '' }
+  : formatBCHValue(val)
 
 // Confirms the buy-now action with the parent component.
 const confirmPurchase = () => {
