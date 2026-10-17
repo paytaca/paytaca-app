@@ -1,7 +1,6 @@
 import { callAPI } from 'src/auction/api'
 import { AuctionList, LotsList, BidsList, DisputeList, DisputeDetails, DeliveryDetails } from 'src/auction/object'
 import noImage from 'src/assets/no-image.svg'
-import { deriveOAuthCredentials } from 'src/auction/bch-oauth'
 
 const bidStatusTransitions = {
   Pending: ['Cancelled', 'Outbid', 'Highest', 'Winner'],
@@ -510,20 +509,25 @@ export async function fetchAuctioneerPublicKey({ commit, dispatch }, lotId) {
 }
 
 // FETCHES current user's username
-export async function fetchUsername({ commit, dispatch }) {
+export async function fetchUsername({ commit, dispatch, rootGetters }) {
   let username = ''
   let isArbiter = false
 
-  // Using PK to fetch user details from server
-  const { publicKey } = await deriveOAuthCredentials()
-  const response = await callAPI('user-details-by-public-key', publicKey)
+  const walletHash = rootGetters['global/getWallet']('bch')?.walletHash
+  if (!walletHash) {
+    commit('setUsername', username)
+    commit('setIsArbiter', isArbiter)
+    return
+  }
 
+  const response = await callAPI('user-details', walletHash)
   if (response && response.success && response.data) {
     username = response.data.username ?? ''
     isArbiter = response.data.is_arbiter ?? false
     commit('setHasNetworkError', false) 
   } else dispatch('printFailedFetch', 'user details')
 
+  console.log('isArbiter: ', isArbiter)
   commit('setUsername', username)
   commit('setIsArbiter', isArbiter)
 }
@@ -543,9 +547,7 @@ export async function updateUsername({ commit, dispatch, getters }, { newUsernam
   const response = await callAPI('user-details', method === 'patch' ? walletHash : null, method, data)
   const hasNetworkError = getters['hasNetworkError']
   if (response.success) commit('setUsername', newUsername)
-  else {
-    dispatch(method === 'post' ? 'printFailedPost' : 'printFailedPatch', 'username')
-  }
+  else dispatch(method === 'post' ? 'printFailedPost' : 'printFailedPatch', 'username')
 
   return {
     username: newUsername,
@@ -580,8 +582,8 @@ export async function printFailedPatch({ getters }, itemName) {
 // Logs a failed auction data creation request.
 export async function printFailedPost({ getters }, itemName) {
   const { hasNetworkError } = getters
-  if (hasNetworkError) console.error(`Failed to create ${itemName} to the server.`)
-  else console.log(`Network error occurred when requesting post for ${itemName}.`)
+  if (hasNetworkError) console.error(`Network error occurred when requesting post for ${itemName}.`)
+  else console.log(`Failed to create ${itemName} to the server.`) 
 }
 
 // Logs a failed contract function request.
