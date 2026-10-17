@@ -20,12 +20,12 @@ const OAUTH_ADDRESS_PATH = "0/0"
 const BCH_DERIVATION_PATH = "m/44'/145'/0'"
 
 
-// oauth: gets wallet hash
+// Gets the user's wallet hash
 export function getWalletHash () {
   return Store.getters['global/getWallet']('bch')?.walletHash
 }
 
-// oauth: gets the oauth domain (localhost for now)
+// Gets the oauth domain (localhost for now)
 function getOAuthDomain() {
   if (!baseURL) return 'localhost'
   try {
@@ -38,21 +38,26 @@ function getOAuthDomain() {
   }
 }
 
-// oauth: fetch existing oauth credentials
+// Fetch existing oauth credentials
 export async function deriveOAuthCredentials() {
+  // Get the wallet hash
   const walletHash = getWalletHash()
   if (!walletHash) throw new Error('Wallet hash not available')
 
+  // Get the wallet's mnemonic
   const mnemonic = await getMnemonicByHash(walletHash)
   if (!mnemonic) throw new Error('Mnemonic not available for wallet')
 
+  // Data needed for the address node
   const mnemonicBin = new Uint8Array(mnemonicToSeedSync(mnemonic))
   const rootNode = deriveHdPrivateNodeFromSeed(mnemonicBin)
   const fullPath = `${BCH_DERIVATION_PATH}/${OAUTH_ADDRESS_PATH}`
   const addressNode = deriveHdPath(rootNode, fullPath)
+  
   if (typeof addressNode === 'string') 
     throw new Error(`Failed to derive address node: ${addressNode}`)
 
+  // Get wallet information
   const isChipnet = Store.getters['global/isChipnet']
   const publicNode = deriveHdPublicNode(addressNode)
   const publicKey = binToHex(publicNode.publicKey)
@@ -66,38 +71,50 @@ export async function deriveOAuthCredentials() {
   }
 }
 
-// oauth: fetch stored token
+// Fetch stored token
 export async function getStoredToken() {
   try {
+    // Fetch the stored token
     const result = await SecureStoragePlugin.get({ key: OAUTH_TOKEN_KEY })
     let stored
     try {
       stored = JSON.parse(result.value)
     } catch {
-      return null
+      return null // failed to parse stored token
     }
+
+    // Check if the stored wallet hash matches the one from getWalletHash 
     const walletHash = getWalletHash()
     if (!stored || stored.walletHash !== walletHash) return null
-    return stored.token
+    return stored
+
   } catch (error) {
     console.error('[OAuth] Failed to get stored token:', error)
     return null
   }
 }
 
-// oauth: save token 
-async function saveToken(token, walletHash) {
+// Save the token 
+async function saveToken(auth, walletHash) {
   try {
+    const expiresAt = auth.expires_in
+      ? Date.now() + (auth.expires_in * 1000)
+      : null
     await SecureStoragePlugin.set({
       key: OAUTH_TOKEN_KEY,
-      value: JSON.stringify({ token, walletHash })
+      value: JSON.stringify({
+        token: auth.access_token,
+        refreshToken: auth.refresh_token,
+        expiresAt,
+        walletHash
+      })
     })
   } catch (error) {
     console.error('[OAuth] Failed to save token:', error)
   }
 }
 
-// oauth: clear token from secure storage
+// Clear token from secure storage
 export async function clearToken() {
   try {
     await SecureStoragePlugin.remove({ key: OAUTH_TOKEN_KEY })
@@ -106,7 +123,7 @@ export async function clearToken() {
   }
 }
 
-// oauth: axiosFetch used for getAuthHeaders
+// AxiosFetch used for getAuthHeaders
 async function axiosFetch(url, options = {}) {
   const { method = 'GET', headers = {}, body } = options
   try {
@@ -134,13 +151,15 @@ async function axiosFetch(url, options = {}) {
   }
 }
 
-// oauth: gets the auth headers to permit API requests
+// Gets the auth headers to permit API requests
 export async function getAuthHeaders() {
   const walletHash = getWalletHash()
   if (!walletHash) throw new Error('Wallet hash not available')
   
-  const storedToken = await getStoredToken()
-  if (storedToken) return { 'Authorization': `Bearer ${storedToken}` }
+  const stored = await getStoredToken()
+  if (stored?.token && (!stored.expiresAt || Date.now() < stored.expiresAt)) {
+    return { 'Authorization': `Bearer ${stored.token}` }
+  }
 
   const credentials = await deriveOAuthCredentials()
 
@@ -153,11 +172,11 @@ export async function getAuthHeaders() {
   })
 
   // Re-derive to get raw private key bytes
-  const mnemonic = await getMnemonicByHash(walletHash)
-  const mnemonicBin = new Uint8Array(mnemonicToSeedSync(mnemonic))
-  const rootNode = deriveHdPrivateNodeFromSeed(mnemonicBin)
-  const fullPath = `${BCH_DERIVATION_PATH}/${OAUTH_ADDRESS_PATH}`
-  const addressNode = deriveHdPath(rootNode, fullPath)
+  //const mnemonic = await getMnemonicByHash(walletHash)
+  //const mnemonicBin = new Uint8Array(mnemonicToSeedSync(mnemonic))
+  //const rootNode = deriveHdPrivateNodeFromSeed(mnemonicBin)
+  //const fullPath = `${BCH_DERIVATION_PATH}/${OAUTH_ADDRESS_PATH}`
+  //const addressNode = deriveHdPath(rootNode, fullPath)
 
 	// Convert private key to hex format expected by OAuth client
 	//const privateKeyHex = binToHex(addressNode.privateKey)
@@ -168,6 +187,16 @@ export async function getAuthHeaders() {
   //const signature = await client.signAuthMessage(message, privateKeyHex)
 
   try {
+    if (stored?.refreshToken) {
+      try {
+        const auth = await client.refreshToken(stored.refreshToken)
+        await saveToken(auth, walletHash)
+        return { 'Authorization': `Bearer ${auth.access_token}` }
+      } catch (error) {
+        console.warn('[OAuth] Token refresh failed, re-authenticating:', error)
+      }
+    }
+
     // Try to authenticate first
     const auth = await client.authenticate(
       walletHash,
@@ -177,7 +206,7 @@ export async function getAuthHeaders() {
       domain
     )
 
-    await saveToken(auth.access_token, walletHash)
+    await saveToken(auth, walletHash)
     return { 'Authorization': `Bearer ${auth.access_token}` }
   } catch (error) {
     // If user not found (404), register first then authenticate
@@ -204,7 +233,7 @@ export async function getAuthHeaders() {
         domain
       )
       
-      await saveToken(auth.access_token, walletHash)
+      await saveToken(auth, walletHash)
       return { 'Authorization': `Bearer ${auth.access_token}` }
     } 
     console.error('[OAuth] status code: ' + statusCode)

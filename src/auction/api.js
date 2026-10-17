@@ -58,14 +58,24 @@ export async function callAPI(pathname, id=null, method="get", payload=null) {
   let status = null;
 
   try {
-    const headers = await bchOauth.getAuthHeaders()
-
-    const response = 
-      (method === "get") ? await backend.get(apiURL, { headers }) : 
+    const request = async headers =>
+      (method === "get") ? await backend.get(apiURL, { headers }) :
       (method === "post") ? await backend.post(apiURL, payload, { headers }) :
       (method === "put") ? await backend.put(apiURL, payload, { headers }) :
       (method === "patch") ? await backend.patch(apiURL, payload, { headers }) :
-    await backend.delete(apiURL, { headers }) 
+      await backend.delete(apiURL, { headers })
+
+    let headers = await bchOauth.getAuthHeaders()
+
+    let response
+    try {
+      response = await request(headers)
+    } catch (error) {
+      if (error.response?.status !== 401) throw error
+      await bchOauth.clearToken()
+      headers = await bchOauth.getAuthHeaders()
+      response = await request(headers)
+    }
 
     // Update apiCall return data
     data = response.data
