@@ -155,7 +155,8 @@ export function setAuctionDataLastFetched(state) {
 // UPDATES auction data
 export function updateAuctionData(state, {attribute_name, data}) {
   state.auctionData[attribute_name] = data
-  if (attribute_name == 'status') state.auctionData.refreshStatus()
+  if (attribute_name == 'status') 
+    state.auctionData.refreshStatus()
 }
 
 // MERGES existing state auction data from parameter auction data
@@ -191,7 +192,21 @@ export function setAuctionLotsLastFetched(state) {
 export function updateAuctionLotsData(state, {attribute_name, data}) {
   state.auctionLots.forEach(lot => {
     lot[attribute_name] = data
-    if (attribute_name == 'status') lot.refreshStatus()
+    if (attribute_name == 'status') 
+      lot.refreshStatus()
+  })
+}
+
+export function updateAuctionLotsStatus(state, auctionStatus) {
+  state.auctionLots.forEach(lot => {
+    lot.status = auctionStatus === 'Upcoming'
+      ? 'Inactive'
+      : auctionStatus === 'Open'
+        ? 'Active'
+        : lot.is_sold
+          ? 'Sold'
+          : 'Unsold'
+    lot.refreshStatus()
   })
 }
 
