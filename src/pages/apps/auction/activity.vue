@@ -607,24 +607,24 @@ onBeforeUnmount(() => {
 watch(activityType, async (newType) => {
   if (isUnmounted) return
 
-  $store.commit('auction/updateActivityType', newType)
+  $store.commit('auction/setActivityType', newType)
   await fetchMyData()
 })
 
 watch(auctionType, (newType) => {
-  $store.commit('auction/updateActivityAuctionType', newType)
+  $store.commit('auction/setActivityAuctionType', newType)
 })
 
 watch(auctionSearchQuery, (newQuery) => {
-  $store.commit('auction/updateActivityAuctionQuery', newQuery)
+  $store.commit('auction/setActivityAuctionQuery', newQuery)
 })
 
 watch(lotSearchQuery, (newQuery) => {
-  $store.commit('auction/updateActivityLotQuery', newQuery)
+  $store.commit('auction/setActivityLotQuery', newQuery)
 })
 
 watch(lotCategory, (newCategory) => {
-  $store.commit('auction/updateActivityLotCategory', newCategory)
+  $store.commit('auction/setActivityLotCategory', newCategory)
 })
 
 watch(lotDetails, async (newLots) => {
