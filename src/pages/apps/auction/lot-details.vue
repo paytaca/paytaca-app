@@ -12,6 +12,7 @@
     <HeaderNav :title="$t('Auction - Lot Details')" :backnavpath="smartBackPath" class="header-nav" />
  
     <div>
+      <!--All data has been loaded-->
       <div v-if="!isLoading && lot && auction" class="q-pa-md text-bow" :class="getDarkModeClass(darkMode)">
         <div class="q-mb-lg text-left">
           <div class="text-h4 text-weight-bold q-mb-xs" style="overflow-wrap: break-word; word-wrap: break-word;">
@@ -36,7 +37,7 @@
           <div class="col-12 col-sm-5 col-md-4 q-pr-md-lg" style="width: 100%; max-width: 380px; min-width: 280px;">
             <q-carousel
               ref="carousel"
-              v-model="activeSlide"
+              v-model="lotImageActiveSlide"
               animated
               navigation
               infinite
@@ -63,7 +64,7 @@
               />
               
               <span class="text-caption text-weight-medium q-mx-md">
-                {{ activeSlide + 1 }} / {{ lotImages.length }}
+                {{ lotImageActiveSlide + 1 }} / {{ lotImages.length }}
               </span>
 
               <q-btn
@@ -85,8 +86,8 @@
                   :src="imgSrc"
                   ratio="1"
                   class="rounded-borders cursor-pointer transition-effect full-width"
-                  :style="activeSlide === index ? 'border: 2px solid var(--q-secondary); opacity: 1;' : 'opacity: 0.7;'"
-                  @click="activeSlide = index"
+                  :style="lotImageActiveSlide === index ? 'border: 2px solid var(--q-secondary); opacity: 1;' : 'opacity: 0.7;'"
+                  @click="lotImageActiveSlide = index"
                 />
               </div>
             </div>
@@ -110,31 +111,32 @@
 
               <!--User is bidder-->
               <div v-else class="full-width">
-                <!--Making a bid (Either English or Dutch)-->
+                <!--Making a bid (English)-->
                 <template v-if="auction?.type === 'English'">
                   <q-btn 
                     class="text-bold text-white full-width"
                     style="background-color: var(--q-secondary);"
                     padding="md"
                     unelevated
-                    :label="winningBid.value?.bidder === userWalletHash ? 'Highest Bidder' : 'Place Bid'"
-                    :disabled="lot?.status !== 'Active' || winningBid.value?.bidder === userWalletHash || bidOrBuyLoading"
+                    :label="userIsLeadingBidder ? 'Highest Bidder' : 'Place Bid'"
+                    :disabled="isBidLoading || userIsLeadingBidder || lot?.status !== 'Active'"
                     @click="() => { showMakeBidDialog = true }"
                   />
                 </template>
+
+                <!--Making a bid (Dutch)-->
                 <template v-else>
                   <q-btn 
                     class="text-bold text-white full-width"
                     style="background-color: var(--q-secondary);"
                     padding="md"
                     label="Buy It Now"
-                    :disabled="lot?.status !== 'Active' || lot?.value?.status === 'Sold' || bidOrBuyLoading"
+                    :disabled="isBidLoading || userIsLeadingBidder || lot?.status !== 'Active'"
                     @click="() => { showMakeBidDialog = true }"
                     unelevated
                   />
                 </template>
               </div>
-              
             </div>
 
             <!--General bid status content-->
@@ -144,20 +146,20 @@
                 dense
                 class="q-pa-md"
                 :class="
-                  bidStatus === 'highest' || isWinningBidder ? 'bg-green-1' :
-                  bidStatus === 'outbid' ? 'bg-red-1' : 'bg-grey-3'
+                  ['Highest','Winner'].includes(bidStatus) ? 'bg-green-1' :
+                  bidStatus === 'Outbid' ? 'bg-red-1' : 'bg-grey-3'
                 "
               >
                 <template v-slot:avatar>
                   <q-icon
                     :name="
-                      bidStatus === 'highest' ? 'emoji_events' :
-                      bidStatus === 'outbid' ? 'warning' :
-                      isWinningBidder ? 'celebration' : 'do_not_disturb'
+                      bidStatus === 'Highest' ? 'emoji_events' :
+                      bidStatus === 'Outbid' ? 'warning' :
+                      bidStatus === 'Winner' ? 'celebration' : 'do_not_disturb'
                     "
                     :color="
-                      bidStatus === 'highest' || isWinningBidder ? 'positive' :
-                      bidStatus === 'outbid' ? 'negative' : 'grey-7'
+                      ['Highest','Winner'].includes(bidStatus) ? 'positive' :
+                      bidStatus === 'Outbid' ? 'negative' : 'grey-7'
                     "
                     size="md"
                   />
@@ -166,29 +168,29 @@
                 <div
                   class="text-subtitle2 text-weight-bold"
                   :class="
-                    bidStatus === 'highest' || isWinningBidder ? 'text-green-9' :
-                    bidStatus === 'outbid' ? 'text-red-9' : 'text-grey-8'
+                    ['Highest','Winner'].includes(bidStatus) ? 'text-green-9' :
+                    bidStatus === 'Outbid' ? 'text-red-9' : 'text-grey-8'
                   "
                 >
                   {{
-                    bidStatus === 'highest' ? 'You are the highest bidder!' :
-                    bidStatus === 'outbid' ? 'You have been outbid!' :
-                    isWinningBidder ? 'Congratulations, you won!' :
+                    bidStatus === 'Highest' ? 'You are the highest bidder!' :
+                    bidStatus === 'Outbid' ? 'You have been outbid!' :
+                    bidStatus === 'Winner' ? 'Congratulations, you won!' :
                     'Auction closed, you did not win.'
                   }}
                 </div>
                 <div class="text-caption text-grey-7">
                   {{
-                    bidStatus === 'highest' ? "You're in the lead — we'll let you know if that changes." :
-                    bidStatus === 'outbid' ? 'Place a higher bid to get back in the lead.' :
-                    isWinningBidder ? "We'll be in touch with next steps shortly." :
+                    bidStatus === 'Highest' ? "You're in the lead — we'll let you know if that changes." :
+                    bidStatus === 'Outbid' ? 'Place a higher bid to get back in the lead.' :
+                    bidStatus === 'Winner' ? "We'll be in touch with next steps shortly." :
                     'You did not win this item.'
                   }}
                 </div>
               </q-banner>
             </div>
             
-            <div v-if="isWinningBidder || isAuctioneer">
+            <div v-if="bidStatus === 'Winner' || isAuctioneer">
               <div v-if="isMarkedComplete" class="q-mt-md full-width">
                 <q-banner rounded dense class="bg-positive text-white q-pa-md">
                   <template v-slot:avatar>
@@ -198,7 +200,7 @@
                 </q-banner>
               </div>
 
-              <div v-if="showPostAuctionActions && (isAuctioneer || isWinningBidder)" class="q-mt-md full-width">
+              <div v-if="showPostAuctionActions && (isAuctioneer || bidStatus === 'Winner')" class="q-mt-md full-width">
                 <q-btn
                   outline
                   dense
@@ -213,7 +215,7 @@
 
               <div>
                 <template v-if="!isDisputeActive">
-                  <div v-if="showPostAuctionActions && (isAuctioneer || isWinningBidder)" class="q-mt-md full-width row q-col-gutter-none items-center justify-center">
+                  <div v-if="showPostAuctionActions && (isAuctioneer || bidStatus === 'Winner')" class="q-mt-md full-width row q-col-gutter-none items-center justify-center">
                     <div class="col text-center">
                       <q-btn
                         v-if="isAuctioneer"
@@ -224,7 +226,7 @@
                         icon="check_circle"
                         padding="sm"
                         label="Confirm Delivery"
-                        :disable="deliveryStatusId !== 1"
+                        :disable="deliveryTracking !== 1"
                         @click="confirmDeliveredTrigger"
                       />
                       <q-btn
@@ -235,15 +237,15 @@
                         :color="darkMode ? 'white' : 'black'"
                         icon="check_circle"
                         padding="sm"
-                        label="Confirm Pickup"
-                        :disable="deliveryStatusId !== 2"
+                        label="Confirm Shipped"
+                        :disable="deliveryTracking !== 'Shipped'"
                         @click="confirmShippedTrigger"
                       />
                     </div>
 
                     <div class="col q-ml-md text-center">
                       <q-btn
-                        v-if="!isAuctioneer && deliveryStatusId !== 3"
+                        v-if="!isAuctioneer && deliveryTracking !== 'Delivered'"
                         class="text-bold text-caption full-width"
                         color="negative"
                         text-color="white"
@@ -273,7 +275,7 @@
                     </div>
                   </div>
 
-                  <div v-if="!isAuctioneer && deliveryStatusId === 3 && refundCountdown && !isGrantedRefund" class="text-caption text-right q-mt-xs">
+                  <div v-if="!isAuctioneer && deliveryTracking === 3 && refundCountdown && !isGrantedRefund" class="text-caption text-right q-mt-xs">
                     Time left for refund: {{ refundCountdown }}
                   </div>
 
@@ -288,7 +290,7 @@
                   </div>
 
                   <!-- Resolved: funds returned by arbiter (status 1 or 2) -->
-                  <div v-if="isGrantedReturn && (deliveryStatusId === 1 || deliveryStatusId === 2)" class="q-mt-md full-width">
+                  <div v-if="isGrantedReturn && (deliveryTracking === 1 || deliveryTracking === 2)" class="q-mt-md full-width">
                     <q-banner rounded dense class="bg-positive text-white q-pa-md">
                       <template v-slot:avatar>
                         <q-icon name="check_circle" />
@@ -298,7 +300,14 @@
                   </div>
 
                   <!-- Bidder: mark as complete (no refund, delivered) -->
-                  <div v-if="showPostAuctionActions && !isMarkedComplete && isWinningBidder && !isGrantedRefund && deliveryStatusId === 3" class="q-mt-md full-width">
+                  <div 
+                  v-if="showPostAuctionActions 
+                        && bidStatus === 'Winner' 
+                        && !isMarkedComplete 
+                        && !isGrantedRefund 
+                        && deliveryTracking === 3" 
+                  class="q-mt-md full-width"
+                  >
                     <q-btn
                       color="positive"
                       icon="check_circle"
@@ -366,7 +375,7 @@
                       </div>
                     </div>
                     <!-- AUCTION HAS A BID -->
-                    <div v-if="lotHasBid">
+                    <div v-if="Boolean(lotWinningBid?.id)">
                       <div class="text-h6 text-weight-bold text-positive" style="line-height: 1.2;">
                         <template v-if="auction?.is_fiat">
                           {{ formatFiat(engCurrentFiat) }}
@@ -606,7 +615,8 @@
           </div>
         </div>
       </div>
- 
+      
+      <!--LOADING SKELETON-->
       <div v-else class="q-pa-md text-bow" :class="getDarkModeClass(darkMode)">
         <div class="q-mb-lg text-left">
           <q-skeleton type="text" width="70%" height="32px" class="q-mb-sm" />
@@ -676,7 +686,7 @@
       v-model="showMakeBidDialog"
       :lot="lot"
       :auction="auction"
-      :loading="bidOrBuyLoading"
+      :loading="isBidLoading"
       @place-bid="handlePlaceBid"
     />
 
@@ -688,7 +698,7 @@
       :current-price-bch="dynamicPriceBch"
       :current-price-fiat="dynamicPriceFiat"
       :is-fiat="auction?.is_fiat"
-      :loading="bidOrBuyLoading"
+      :loading="isBidLoading"
       @confirm-buy-it-now="handlePlaceBid"
     />
 
@@ -700,14 +710,14 @@
     <SellerDisputePopup
       v-model="showSellerDisputeDialog"
       :lot="lot"
-      :bidId="winningBid.value?.id"
+      :bidId="lotWinningBid.value?.id"
       @submit="refresh(() => {})"
     />
 
     <RefundPopup
       v-model="showRefundDialog"
       :lot="lot"
-      :bidId="winningBid.value?.id"
+      :bidId="lotWinningBid.value?.id"
       @submit="refresh(() => {})"
     />
 
@@ -764,34 +774,36 @@ const props = defineProps({
   }
 })
 
-// Countdowns
+// Auction countdowns
 const auctionEndCountdown = ref('Loading...')
 const auctionStartCountdown = ref('Loading...')
 
+// Dutch price-drop interval
+const secondsRemaining = ref(0)
+const intervalDurationSec = ref(600)
+const dutchIntervalProgress = computed(() => {
+  if (!intervalDurationSec.value) return 0
+  return Math.max(0, Math.min(1, secondsRemaining.value / intervalDurationSec.value))
+})
+
 // Auction-related variables
 const auction = computed(() => $store.getters['auction/auctionData'])
-
-// User-related variables (in relation to auction)
+const isAuctionClosed = computed(() => auction.value?.status === 'Closed')
 const isAuctioneer = computed(() => {
   const walletHash = $store.getters['global/getWallet']('bch')?.walletHash
   return walletHash === auction.value?.auctioneer
 })
-const isWinningBidder = computed(() => bidStatus.value === 'win')
 
 // Lot-related variables
 const lot = computed(() => $store.getters['auction/lotData'])
 const lotImages = computed(() => $store.getters['auction/lotImages'])
-const isLotClosedOrSold = computed(() => lot.value?.status === 'Closed' || lot.value?.status === 'Sold')
-const activeSlide = ref(0)
-
-// Bidding variables
-const winningBid = computed(() => $store.getters['auction/highestBid'])
-const bidOrBuyLoading = ref(false)
+const lotImageActiveSlide = ref(0)
+const isLotSold = computed(() => isLotSold.value)
 
 // Estimated amounts (BCH & Fiat)
 const estimatedAmountBch = computed(() => {
   if (!auction.value?.is_fiat) return Number(lot.value?.estimated_amount_bch ?? 0)
-    
+
   const fiat = Number(lot.value?.estimated_amount_fiat ?? 0)
   return bchToPhpRate.value > 0 ? fiat / bchToPhpRate.value : 0
 })
@@ -802,31 +814,90 @@ const estimatedAmountFiat = computed(() => {
   return estBCH * bchToPhpRate.value
 })
 
+// English-related amounts
+const engCurrentBch = computed(() => {
+  const currentBCH = Number(lot.value?.[`threshold_bid_${auction.value?.is_fiat ? 'fiat' : 'bch'}`] || 0)
+  return (!auction.value?.is_fiat) 
+    ? currentBCH
+    : bchToPhpRate.value > 0 ? currentBCH / bchToPhpRate.value : 0
+})
+const engCurrentFiat = computed(() => {
+  const currentFiat = Number(lot.value?.[`threshold_bid_${auction.value?.is_fiat ? 'fiat' : 'bch'}`] || 0)
+  return (auction.value?.is_fiat) 
+    ? currentFiat 
+    : currentFiat * bchToPhpRate.value
+})
+
+// Dutch-related amounts
+const dynamicPriceBch = ref(0)
+const dynamicPriceFiat = ref(0)
+
+const dutchAtFloor = ref(false)
+const dutchFloorPriceBch = computed(() => Number(lot.value?.threshold_bid_bch || 0))
+const dutchFloorPriceFiat = computed(() => Number(lot.value?.threshold_bid_fiat || 0))
+
 // ====================
 // POST-AUCTION ACTIONS
 // ====================
+const showPostAuctionActions = computed(() => isLotSold.value && !isMarkedComplete.value)
 
 // Viewing data
 const showSellerDisputeDialog = ref(false)
 const showRefundDialog = ref(false)
-const showBidHistory = ref(false)
 
 // Delivery-related variables
 const showDeliveryHistory = ref(false)
-const deliveryStatusId = ref(null)
-const deliveredDate = ref(null)
+const deliveryTracking = ref(null)
+const deliveryEvents = ref(null)
+const dateDelivered = ref(null)
 
-// Dispute-related variables
-const isMarkedComplete = ref(false)
-const isGrantedRefund = ref(false)
-const isGrantedReturn = ref(false)
-const currentDispute = ref(null)
+// Creates delivery tracking for an sold lot.
+const initDeliveryTracking = async () => {
+  // Delivery event already exists
+  if (deliveryTracking.value != null) return
 
-const showPostAuctionActions = computed(() => lot.value?.status === 'Sold' && !isMarkedComplete.value)
+  // Lot isn't sold
+  if (!isLotSold.value) return
 
-// TRIGGER: pickup confirmation (auctioneer)
+  // User isn't the winner
+  if (!userIsLeadingBidder.value) return
+
+  try {
+    const deliveryTrackingRes = await callAPI('delivery-trackings', null, 'post', {
+      lot: lot.value?.id,
+      sender: auction.value?.auctioneer,
+      sender_location: 'N/A', // REVIEW
+      receiver: userWalletHash.value,
+      receiver_location: 'N/A', // REVIEW
+      courier: (lot.value?.category === 'Physical') ? 'LBC' : 'N/A' // REVIEW
+    })
+    if (!deliveryTrackingRes || !deliveryTrackingRes.success || !deliveryTrackingRes.data) 
+      throw new Error('Delivery tracking could not be created. Please refresh the page.')
+
+    // PARSE WITH DELIVERYDETAILS LIST vvvvv
+    deliveryTracking.value = deliveryTrackingRes.data 
+
+    const deliveryEventRes = await callAPI('delivery-events', null, 'post', {
+      delivery: deliveryTrackingRes.data?.tracking_id,
+      status: 'Preparing',
+      description: 'N/A', // REVIEW
+      location: 'N/A', // REVIEW
+      event_date: new Date().toISOString()
+    })
+    if (deliveryEventRes && deliveryEventRes.success && deliveryEventRes.data){
+      // PARSE WITHG DELIVERYEVENT LIST vvvv
+      // ALSO ADD A DELIVERYEVENT VARIABLE (IT MUST BE AN ARRAY I THINK)
+      deliveryEvents.value = deliveryEventRes.data
+    }
+    else throw new Error('Delivery event could not be created. Please refresh the page.')
+  } catch (error) {
+    $q.notify({ type: 'warning', message: error.message })
+  }
+}
+
+// TRIGGER: Shipped confirmation (auctioneer)
 const confirmShippedTrigger = async () => {
-  const response = await $store.dispatch('auction/createDeliveryEvent', { status: 'Shipped' })
+  const response = await $store.dispatch('auction/createdeliveryTracking', { status: 'Shipped' })
   const data = {
     type: (response.success) ? 'positive' : 'negative',
     message: (response.success) ? 'Confirmed shipped!' : 'Could not create new delivery event.'
@@ -835,9 +906,9 @@ const confirmShippedTrigger = async () => {
   await refresh(() => {})
 }
 
-// TRIGGER: delivery confirmation (bidder)
+// TRIGGER: Delivery confirmation (bidder)
 const confirmDeliveredTrigger = async () => {
-  const response = await $store.dispatch('auction/createDeliveryEvent', { status: 'Delivered' })
+  const response = await $store.dispatch('auction/createdeliveryTracking', { status: 'Delivered' })
   const data = {
     type: (response.success) ? 'positive' : 'negative',
     message: (response.success) ? 'Confirmed delivery!' : 'Could not create new delivery event.'
@@ -848,67 +919,31 @@ const confirmDeliveredTrigger = async () => {
 
 // Marks the delivery as complete (bidder)
 const markedAsCompleted = async () => {
-  if (!winningBid.value) {
+  if (!lotWinningBid.value) {
     $q.notify({ type: 'warning', message: 'Could not find bid to release funds for.' })
     return
   }
   $q.loading.show({ message: 'Marking as complete, processing funds...' })
-  //await callContractRelease(winningBid.value?.id)
+  //await callContractRelease(lotWinningBid.value?.id)
   $q.loading.hide()
   await refresh(() => {})
 }
 
-
-const isCreatingDeliveryTracking = ref(false)
-
-// Creates delivery tracking for an English auction purchase.
-const initDeliveryTracking = async () => {
-  if (lot.value.status !== 'Sold') return
-
-
-  if (winningBid.value?.bidder !== userWalletHash.value) return
-  if (deliveryStatusId.value !== null) return
-
-  try {
-    await callAPI('delivery-trackings', null, 'post', {
-      auctioneer: auction.value?.auctioneer,
-      bidder: userWalletHash.value,
-      lot: props.lotId,
-      status: 1,
-      preparing_date: new Date().toISOString()
-    })
-    deliveryStatusId.value = 1
-  } catch (err) {
-    console.warn('Could not init delivery tracking for English auction:', err)
-  } finally {
-    isCreatingDeliveryTracking.value = false
-  }
-}
-
-const isDisputeActive = computed(() => {
-  if (!currentDispute.value) return false
-  return !currentDispute.value.is_resolved
-})
-
-const canRequestRefund = computed(() => {
-  if (!deliveredDate.value) return false
-  const delivered = new Date(String(deliveredDate.value).trim().replace(' ', 'T'))
-  const deadline = new Date(delivered.getTime() + 6 * 60 * 60 * 1000)
-  return new Date() < deadline
-})
-
+// ======================
+// REFUND-RELATED ACTIONS
+// ======================
 const refundCountdown = ref('')
 let refundCountdownInterval = null
 
 // Updates the refund countdown from the latest websocket value.
 const updateRefundCountdown = () => {
-  if (!deliveredDate.value || isGrantedRefund.value) {
+  if (!dateDelivered.value || isGrantedRefund.value) {
     refundCountdown.value = ''
     clearInterval(refundCountdownInterval)
     return
   }
 
-  let dateStr = String(deliveredDate.value).trim().replace(' ', 'T')
+  let dateStr = String(dateDelivered.value).trim().replace(' ', 'T')
   if (!dateStr.endsWith('Z') && !dateStr.includes('+')) dateStr += 'Z'
 
   const delivered = new Date(dateStr)
@@ -937,52 +972,40 @@ const updateRefundCountdown = () => {
   refundCountdown.value = `${hours}h`
 }
 
-// =========================
-// ENGLISH AUCTION VARIABLES
-// =========================
-const showMakeBidDialog = ref(false)
-const lotHasBid = computed(() => Boolean(winningBid.value?.id)) // what? REVIEW
-const userIsHighestBid = computed(() => winningBid.value?.bidder === userWalletHash.value)
-
-const engCurrentBch = computed(() => {
-  const currentBCH = Number(lot.value?.[`threshold_bid_${auction.value?.is_fiat ? 'fiat' : 'bch'}`] || 0)
-  return (!auction.value?.is_fiat) 
-    ? currentBCH
-    : bchToPhpRate.value > 0 ? currentBCH / bchToPhpRate.value : 0
-})
-const engCurrentFiat = computed(() => {
-  const currentFiat = Number(lot.value?.[`threshold_bid_${auction.value?.is_fiat ? 'fiat' : 'bch'}`] || 0)
-  return (auction.value?.is_fiat) 
-    ? currentFiat 
-    : currentFiat * bchToPhpRate.value
+const canRequestRefund = computed(() => {
+  if (!dateDelivered.value) return false
+  const delivered = new Date(String(dateDelivered.value).trim().replace(' ', 'T'))
+  const deadline = new Date(delivered.getTime() + 6 * 60 * 60 * 1000)
+  return new Date() < deadline
 })
 
 // =======================
-// DUTCH AUCTION VARIABLES
+// DISPUTE-RELATED ACTIONS
 // =======================
+const isMarkedComplete = ref(false)
+const isGrantedRefund = ref(false)
+const isGrantedReturn = ref(false)
+const currentDispute = ref(null)
 
-const secondsRemaining = ref(0)
-const intervalDurationSec = ref(600)
-
-const dutchAtFloor = ref(false)
-const dutchIntervalProgress = computed(() => {
-  if (!intervalDurationSec.value) return 0
-  return Math.max(0, Math.min(1, secondsRemaining.value / intervalDurationSec.value))
+const isDisputeActive = computed(() => {
+  if (!currentDispute.value) return false
+  return !currentDispute.value.is_resolved
 })
-
-const dutchFloorPriceBch = computed(() => Number(lot.value?.threshold_bid_bch || 0))
-const dutchFloorPriceFiat = computed(() => Number(lot.value?.threshold_bid_fiat || 0))
-const dynamicPriceBch = ref(0)
-const dynamicPriceFiat = ref(0)
 
 // =====================
 // BID-RELATED FUNCTIONS
 // =====================
+const isBidLoading = ref(false)
+const showBidHistory = ref(false)
+const showMakeBidDialog = ref(false)
+
+const lotWinningBid = computed(() => $store.getters['auction/highestBid'])
+const userIsLeadingBidder = computed(() => lotWinningBid.value?.bidder === userWalletHash.value)
 
 // Validates and submits bid data after the pending bid is created.
 const handlePlaceBid = async (bidData) => {
   // Loading is still ongoing
-  if (bidOrBuyLoading.value) return
+  if (isBidLoading.value) return
 
   // Wallet not connected
   if (!userWalletHash.value) {
@@ -1009,7 +1032,7 @@ const handlePlaceBid = async (bidData) => {
   // Check if new bid is valid
   const isLesserThanCurrentBid = !Number.isFinite(bidPrice) 
     || bidPrice <= 0 
-    || lotHasBid.value
+    || Boolean(lotWinningBid.value?.id)
       ? bidPrice <= currentPrice
       : bidPrice < currentPrice
   if (isLesserThanCurrentBid) {
@@ -1017,7 +1040,7 @@ const handlePlaceBid = async (bidData) => {
     return
   }
 
-  bidOrBuyLoading.value = true
+  isBidLoading.value = true
   try {
     // Send the bid to WS
     const pendingBid = await websocketSendBid({
@@ -1028,8 +1051,8 @@ const handlePlaceBid = async (bidData) => {
 
     // Settle/Complete the bid through payment
     let settledBid
-    if (lotHasBid.value) { // EXISTING BIDS
-      const result = await callAPI('outbid', pendingBid.id, 'post')
+    if (lotWinningBid.value?.id) { // EXISTING BIDS
+      const result = await callAPI('Outbid', pendingBid.id, 'post')
       if (!result.success) throw new Error(result.error || 'Failed to outbid.')
       settledBid = result.data
     } else { 
@@ -1053,38 +1076,35 @@ const handlePlaceBid = async (bidData) => {
         : 'Your bid was accepted but has already been outbid.',
       timeout: 3000
     })
-  } catch (err) {
-    console.error(err)
+  } catch (error) {
+    console.error(error)
     $q.notify({ 
       type: 'negative', 
-      message: err.message || 'Something went wrong.' 
+      message: error.message || 'Something went wrong.' 
     })
   } finally {
     $q.loading.hide()
-    bidOrBuyLoading.value = false
+    isBidLoading.value = false
   }
 }
 // Lot's general bid status (in reference to the user)
 const bidStatus = computed(() => {
-  // USER IS NOT HIGHEST BIDDER
-  if (!userIsHighestBid.value) return null
-
   // NO BIDS
-  if (!lotHasBid.value) 
-    return (isLotClosedOrSold.value) ? 'no bids' : null
+  if (!lotWinningBid.value?.id) 
+    return (isLotSold.value) ? 'Unsold' : null
 
-  const userIsHighest = winningBid.value?.bidder === userWalletHash.value
-  if (userIsHighest) // USER IS WINNER OR HIGHEST
-    return (isLotClosedOrSold.value) ? 'win' : 'highest'
-  return 'outbid' // OTHER WINNER OR HIGHEST
+  // USER IS WINNER OR HIGHEST BIDDER
+  if (userIsLeadingBidder.value) 
+    return (isLotSold.value) ? 'Winner' : 'Highest'
+  return 'Outbid' // OTHER WINNER OR HIGHEST
 })
 
 // ===========================
 // WEBSOCKET-RELATED FUNCTIONS
 // ===========================
-
-const viewCount = ref(0) // current live viewers
+const viewCount = ref(0) 
 const timeLeft = ref(0)
+
 let socket = null
 let reconnectTimeout = null
 let reconnectAttempts = 0
@@ -1164,14 +1184,14 @@ const connectWebsocket = () => {
       
       // Updating the time interval (DUTCH Auction)
       case "lot.time_interval":
-        if (lot.value?.status !== 'Active' || lot.value?.status === 'Sold') break
+        if (lot.value?.status !== 'Active' || isLotSold ) break
         secondsRemaining.value = data.seconds_remaining
         timeLeft.value = data.time_left
         break
 
       // Updating the price drop (DUTCH Auction)
       case "lot.drop_price":
-        if (lot.value?.status !== 'Active' || lot.value?.status === 'Sold') break
+        if (lot.value?.status !== 'Active' || isLotSold ) break
 
         dynamicPriceFiat.value = (auction.value?.is_fiat) 
           ? Number(data.price)
@@ -1384,7 +1404,7 @@ const loadPageData = async (force=false) => {
       : $store.dispatch('auction/fetchExistingAuctionData', props.auctionId),
   ])
   
-  if (deliveredDate.value) {
+  if (dateDelivered.value) {
     updateRefundCountdown()
     refundCountdownInterval = setInterval(updateRefundCountdown, 1000)
   }
@@ -1409,17 +1429,21 @@ const refresh = async (done) => {
 
 onMounted(async () => {
   isLoading.value = true
+
+  // Could not load auction or lot data
   if (!auction.value || !lot.value) 
     $router.replace(smartBackPath.value)
 
+  // Load the page data
   await loadPageData()
   isLoading.value = false
-
-  if (isLotClosedOrSold.value) {
+  
+  // Notify if the lot is already closed (either sold or not)
+  if (isAuctionClosed.value) {
     $q.notify({
       type: 'info',
       icon: 'lock',
-      message: (lot.value?.status === 'Sold') 
+      message: (isLotSold.value) 
         ? 'This lot has already been sold.'
         : 'This lot is closed.'
     })
