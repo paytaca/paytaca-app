@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Accent used by the ongoing "active order" notifications. -->
+    <color name="order_live_activity_accent">#1976D2</color>
+</resources>

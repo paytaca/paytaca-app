@@ -46,6 +46,8 @@ dependencies {
     implementation platform('com.google.firebase:firebase-bom:31.1.1')
     implementation 'com.google.firebase:firebase-analytics'
     implementation 'com.google.firebase:firebase-iid:21.1.0'
+    // order live activities: needed to extend the push plugin's MessagingService
+    implementation 'com.google.firebase:firebase-messaging'
 
     // deferred referral (Play Install Referrer)
     implementation 'com.android.installreferrer:installreferrer:2.2'

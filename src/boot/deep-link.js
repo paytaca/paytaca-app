@@ -40,6 +40,15 @@ export default boot(({ router, /* store */ }) => {
       if (/^npub1[a-z0-9]{58}$/.test(npub)) {
         router.push({ path: '/apps/chat', query: { npub } })
       }
+    } else if (url.protocol === 'paytaca:' && url.host === 'live-activity') {
+      // Order live activity tap: paytaca://live-activity?kind=p2p&orderId=123
+      const kind = url.searchParams.get('kind')
+      const orderId = url.searchParams.get('orderId')
+      if (kind === 'p2p' && orderId) {
+        router.push({ name: 'p2p-order', params: { order: orderId } })
+      } else if (kind === 'marketplace' && orderId) {
+        router.push({ name: 'app-marketplace-order', params: { orderId } })
+      }
     } else if (url.protocol === 'bitcoincash:') {
       // will need to refactor to have similar behavior as in qr scanner page
       router.push({
