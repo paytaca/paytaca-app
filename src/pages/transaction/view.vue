@@ -66,18 +66,35 @@
             </q-item-section>
           </q-item>
           <template v-for="category in tokenCategories" :key="category">
-            <q-item v-if="BigInt(tokenDebit[category] || 0) > 0n">
-              <q-item-section>
-                <span class="coin-symbol ellipsis">{{ shortenString(category, 16) }}</span>
+
+            <q-item>
+              <q-item-section top>
+                <template v-if="tokenMeta[category]?.symbol">
+                  <span class="coin-symbol ellipsis">{{ tokenMeta[category].symbol }}</span>
+                  <div class="text-caption row items-center no-wrap">
+                    <span class="ellipsis">{{ shortenString(category, 16) }}</span>
+                    <q-btn flat dense round size="sm" icon="content_copy" @click="copyCategory(category)" />
+                  </div>
+                </template>
+                <div v-else class="row items-center no-wrap">
+                  <span class="coin-symbol ellipsis">{{ shortenString(category, 16) }}</span>
+                  <q-btn flat dense round size="sm" icon="content_copy" @click="copyCategory(category)" />
+                </div>
               </q-item-section>
               <q-item-section side top class="q-gutter-y-sm">
-                <div class="flex no-wrap items-center text-red q-gutter-x-xs">
-                  <span class="coin-amount">- {{ formatTokenAmount(tokenDebit[category]) }}&nbsp;</span>
+                <div class="flex no-wrap items-center q-gutter-x-xs">
+                  <span class="text-caption q-mr-xs">[{{ $t('Input', {}, 'Input') }}]</span>
+                  <span class="coin-amount">{{ formatTokenAmount(tokenTotalInputs[category], tokenMeta[category]?.decimals) }}</span>
+                  <q-icon name="token" size="xs" />
+                </div>
+                <div v-if="BigInt(tokenDebit[category] || 0) > 0n" class="flex no-wrap items-center text-red q-gutter-x-xs">
+                  <span class="text-caption text-bow">[{{ $t('Debit', {}, 'Debit') }}]</span>
+                  <span class="coin-amount">- {{ formatTokenAmount(tokenDebit[category], tokenMeta[category]?.decimals) }}</span>
                   <q-icon name="token" size="xs" />
                 </div>
                 <div v-if="BigInt(tokenChange[category] || 0) > 0n" class="flex no-wrap items-center q-gutter-x-xs">
                   <span class="text-caption q-mr-xs">[{{ $t('Change') }}]</span>
-                  <span class="coin-amount">{{ formatTokenAmount(tokenChange[category]) }}</span>
+                  <span class="coin-amount">{{ formatTokenAmount(tokenChange[category], tokenMeta[category]?.decimals) }}</span>
                   <q-icon name="token" size="xs" />
                 </div>
               </q-item-section>
@@ -95,7 +112,7 @@
             </q-item-section>
             <q-item-section side>
               <div class="flex no-wrap items-center q-gutter-x-xs">
-                <span class="coin-amount">{{ o.amountText?.replace('BCH', '') }}</span>
+                <span class="coin-amount">{{ o.token ? tokenAmountText(o.token) : o.amountText?.replace('BCH', '') }}</span>
                 <q-icon v-if="o.amountText?.includes('BCH')" name="img:bitcoin-cash-circle.svg" size="xs" />
               </div>
               <div v-if="o.token?.nft" class="text-caption q-ml-sm row items-center no-wrap">
@@ -291,9 +308,38 @@ const isSigned = computed(() => {
 
 const recipientRows = computed(() => outputRows.value.filter(o => !o.isChange))
 
-function formatTokenAmount (amount) {
-  return Big(amount || 0).toString()
+// Symbol/decimals per token category, sourced from the assets store (re-resolves
+// when BCMR metadata dispatches below commit to the store)
+const tokenMeta = computed(() => {
+  const map = {}
+  tokenCategories.value.forEach((category) => {
+    const asset = $store.getters['assets/getAsset'](`ct/${category}`)?.[0]
+    if (asset) map[category] = { symbol: asset.symbol || '', decimals: parseInt(asset.decimals) || 0 }
+  })
+  return map
+})
+
+function formatTokenAmount (amount, decimals) {
+  const d = parseInt(decimals) || 0
+  return Big(amount || 0).div(10 ** d).toString()
 }
+
+function tokenAmountText (token) {
+  if (!token) return ''
+  if (token.nft) return '1 NFT'
+  const meta = tokenMeta.value[token.category]
+  return `${formatTokenAmount(token.amount, meta?.decimals)} ${meta?.symbol || shortenString(token.category, 8)}`
+}
+
+// Total token inputs per category (= debits + change; tokens are conserved)
+const tokenTotalInputs = computed(() => {
+  const totals = {}
+  tokenCategories.value.forEach((category) => {
+    const total = (tokenDebit.value[category] || 0n) + (tokenChange.value[category] || 0n)
+    if (total > 0n) totals[category] = total
+  })
+  return totals
+})
 
 function shortenString (str, max = 20) {
   if (!str) return ''
@@ -365,6 +411,11 @@ async function loadPsbt () {
     const tokenCategoriesSet = new Set()
     ;(psbt.inputMap?.inputs || []).forEach((inp) => {
       const sourceOutput = inp.getSourceUtxo?.() || null
+      // Categories also live on the consumed input UTXOs; collect them so token
+      // rows render even when outputs carry zero amounts (e.g. immutable NFTs)
+      if (sourceOutput?.token?.category) {
+        tokenCategoriesSet.add(binToHex(sourceOutput.token.category))
+      }
       const der = inp.getBip32Derivation?.() || {}
       const entries = Object.entries(der)
       const [pubkey, info] = entries[0] || [null, null]
@@ -409,14 +460,17 @@ async function loadPsbt () {
           tokenDebit.value[category] = (tokenDebit.value[category] || 0n) + BigInt(o.token.amount || 0)
         }
       }
-      const amountText = token
-        ? (token.nft
-            ? '1 NFT'
-            : `${formatTokenAmount(token.amount)} ${shortenString(token.category, 8)}`)
-        : `${Big(o.valueSatoshis).div(1e8).toString()} BCH`
+      const amountText = token ? '' : `${Big(o.valueSatoshis).div(1e8).toString()} BCH`
       outputRows.value.push({ address, valueSatoshis: o.valueSatoshis, token, isChange, amountText })
     })
     tokenCategories.value = Array.from(tokenCategoriesSet)
+    // Best-effort BCMR backfill for tokens without symbol/decimals in the store
+    tokenCategories.value.forEach((category) => {
+      const asset = $store.getters['assets/getAsset'](`ct/${category}`)?.[0]
+      if (!asset?.symbol || !(parseInt(asset.decimals) > 0)) {
+        $store.dispatch('assets/getAssetMetadata', `ct/${category}`).catch(() => {})
+      }
+    })
 
     await checkOwnership()
   } catch (error) {
