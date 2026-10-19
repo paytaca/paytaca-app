@@ -159,7 +159,13 @@
                       :sending="sending"
                       :hide-cauldron="true"
                       ref="sendPageRef"
-                    />
+                    >
+                      <template #balance-leading>
+                        <q-badge v-if="!isBch" outline color="grey-7" :class="getDarkModeClass(darkMode)" class="text-caption" dense>
+                          {{ $t('Dec') }}: {{ assetDecimals }}
+                        </q-badge>
+                      </template>
+                    </SendPageForm>
                   </q-expansion-item>
                 </template>
 
@@ -2205,6 +2211,9 @@ export default {
         this.asset.logo = this.$route.query?.image || null
       } else {
         this.asset.name = this.assetId
+      }
+      if (!this.isNft) {
+        await this.fetchBalances()
       }
     }
   },
