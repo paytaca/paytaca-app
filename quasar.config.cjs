@@ -180,20 +180,6 @@ module.exports = defineConfig((ctx) => {
               }
             }
           })
-
-          cfg.module.rules.push({
-            test: /\.(?:js|mjs|cjs|vue)$/,
-            enforce: 'post',
-            include: /node_modules\/mainnet-js/,
-            use: {
-              loader: 'babel-loader',
-              options: {
-                presets: [
-                  ['@babel/preset-env', { targets: { ios: '16.2' }, modules: false }]
-                ],
-              },
-            }
-          })
         }
 
         if (cfg.mode === 'production') {
@@ -246,14 +232,12 @@ module.exports = defineConfig((ctx) => {
         chain.plugin('node-polyfill').use(nodePolyfillWebpackPlugin)
         chain.resolve.alias.set('fs', require.resolve('browserfs'))
 
-        // mainnet-js
         chain.resolve.alias.set('stream', require.resolve('stream-browserify')) // bip39
         chain.resolve.alias.set('crypto', require.resolve('crypto-browserify')) // bip39
         chain.resolve.alias.set('net', false) // electrum-cash tcp connections
         chain.resolve.alias.set('tls', false) // electrum-cash tcp connections
         chain.resolve.alias.set('fs', false)  // qrcode-svg.save
 
-        // @mainnet-cash/contract
         chain.resolve.alias.set('url', false)   // cashscript/bitcoind-rpc
         chain.resolve.alias.set('https', false) // cashscript/bitcoind-rpc
         chain.resolve.alias.set('http', false)  // cashscript/bitcoind-rpc

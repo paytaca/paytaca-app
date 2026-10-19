@@ -16,7 +16,7 @@
     "postinstall": "patch-package && quasar prepare",
     "test": "cypress run",
     "test:unit": "mocha",
-    "test:smoke": "node --experimental-loader ./test/mock-loader.mjs ./test/secure-storage-migration.smoke.mjs && node --experimental-loader ./test/mock-loader.mjs ./test/bch-keys.smoke.mjs && node --experimental-loader ./test/mock-loader.mjs ./test/contract-id.smoke.mjs",
+    "test:smoke": "node --experimental-loader ./test/mock-loader.mjs ./test/secure-storage-migration.smoke.mjs && node --experimental-loader ./test/mock-loader.mjs ./test/bch-keys.smoke.mjs && node --experimental-loader ./test/mock-loader.mjs ./test/contract-id.smoke.mjs && node --experimental-loader ./test/mock-loader.mjs ./test/token-genesis.smoke.mjs",
     "release": "node scripts/generate-release.mjs"
   },
   "dependencies": {
@@ -88,7 +88,6 @@
     "leaflet": "^1.9.2",
     "leaflet-geosearch": "^4.0.0",
     "localforage": "^1.10.0",
-    "mainnet-js": "^2.4.3",
     "net": "^1.0.2",
     "node-fetch": "^2.7.0",
     "nostr-tools": "^2.23.3",

@@ -1,10 +1,10 @@
 import { hexToBin } from "@bitauth/libauth"
 import { OracleData } from "@generalprotocols/price-oracle"
 import { Contract, ElectrumNetworkProvider } from "cashscript"
-import { NFTCapability, Wallet } from 'mainnet-js'
 import { getWalletHash } from 'src/utils/engagementhub-utils/shared'
 import { getWalletByNetwork } from 'src/wallet/chipnet'
 import { getChangeAddress } from 'src/utils/send-page-utils'
+import { sendNftGenesis } from 'src/utils/engagementhub-utils/token-genesis'
 
 import axios from 'axios'
 import { hash160, hash256 } from 'bitauth-libauth-v3'
@@ -522,18 +522,15 @@ async function sendCustomPayment(data) {
   
     // get wif from utxos[0] address_path
     const wif = await data.libauthWallet.getPrivateKeyWifAt(utxos[0].address_path)
-    // generate wallet from wif
-    const wallet = await Wallet.fromWIF(wif)
     // generate token genesis transaction
-    const genResp = await wallet.tokenGenesis({
-      cashaddr: data.swapContractAddress,
-      amount: 0n,
-      commitment: generateNftCommitment(data.nftData),
-      capability: NFTCapability.mutable,
+    const { txid } = await sendNftGenesis({
+      wif,
+      to: data.swapContractAddress,
       value: BigInt(data.amount),
+      commitment: generateNftCommitment(data.nftData),
     })
   
-    return { success: true, txid: genResp.txId }
+    return { success: true, txid }
   } catch (error) {
     console.error('sendCustomPayment error:', error)
     return { success: false, txid: null }
