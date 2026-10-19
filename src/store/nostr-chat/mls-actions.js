@@ -27,6 +27,11 @@ const MAX_EVENT_PROCESS_ATTEMPTS = 3
 // ordinary chat text practically impossible.
 const MLS_META_PREFIX = '\u200bpaytaca:mls-meta:'
 
+// In-band prefix for a reply's target message id. MLS application messages
+// carry only plaintext, so the reply linkage must travel inside the encrypted
+// payload; receiveMlsMessage strips this prefix and re-attaches `replyTo`.
+const MLS_REPLY_PREFIX = '\u200bpaytaca:mls-reply:'
+
 // Return 'owner', 'admin', or null for the current wallet's role in a room.
 function myMlsRole(ws, roomId) {
   const room = ws.rooms?.find((r) => r.id === roomId)
@@ -708,9 +713,14 @@ export async function sendMlsMessage({ commit, state }, { roomId, text, replyTo 
     let signedEvent = null
     let createdAt = null
     let lastErrors = null
+    // MLS message ids are the signed kind-445 event ids, which every member
+    // stores under the same id — so a reply can reference the target by its
+    // event id. It must ride inside the encrypted payload because the MLS
+    // application message carries only plaintext.
+    const wireText = replyTo ? `${MLS_REPLY_PREFIX}${replyTo}\n${text}` : text
     for (let attempt = 1; attempt <= MAX_SEND_ATTEMPTS; attempt++) {
       const genBefore = ownAppRatchetGen(clientState)
-      const { privateMessage, newState } = await mls.encryptMlsMessage(clientState, text, impl)
+      const { privateMessage, newState } = await mls.encryptMlsMessage(clientState, wireText, impl)
       const wrapped = mls.wrapPrivateMessage(privateMessage)
       const event = await buildSignedNipEeGroupEvent(clientState, wrapped)
 
@@ -896,12 +906,30 @@ export async function receiveMlsMessage({ commit, state }, event) {
           }
         } else if (roomId) {
           const senderIdentity = memberIdentityAt(result.newState, result.senderLeafIndex)
+
+          // Unwrap the in-band reply linkage (if any) before storing. The
+          // sender prepends the target message id so receivers can render the
+          // reply exactly like the sender does.
+          let content = result.plaintext
+          let replyTo = null
+          if (typeof content === 'string' && content.startsWith(MLS_REPLY_PREFIX)) {
+            const newlineIndex = content.indexOf('\n')
+            if (newlineIndex !== -1) {
+              replyTo = content.slice(MLS_REPLY_PREFIX.length, newlineIndex) || null
+              content = content.slice(newlineIndex + 1)
+            } else {
+              // Malformed envelope (no body) — drop the prefix, no reply.
+              content = content.slice(MLS_REPLY_PREFIX.length)
+            }
+          }
+
           console.log(
             '[MLS] Received 445 event', event.id.slice(0, 8),
             'from leaf', result.senderLeafIndex, senderIdentity?.slice(0, 8) || '(unknown)',
             'for group', mlsGroupIdHex.slice(0, 12),
             'room', roomId?.slice(0, 8) || '(none)',
-            'text:', JSON.stringify(result.plaintext.slice(0, 40)),
+            'replyTo:', replyTo ? replyTo.slice(0, 8) : '(none)',
+            'text:', JSON.stringify(content.slice(0, 40)),
           )
 
           commit('ADD_MESSAGE', {
@@ -910,9 +938,10 @@ export async function receiveMlsMessage({ commit, state }, event) {
               id: event.id,
               roomId,
               sender: senderIdentity || event.pubkey, // ephemeral pubkey fallback
-              content: result.plaintext,
+              content,
               kind: mls.NIP_EE_GROUP_EVENT_KIND,
               created_at: event.created_at,
+              replyTo,
             }),
           })
           commit('TOUCH_ROOM_LAST_MESSAGE_AT', roomId)
