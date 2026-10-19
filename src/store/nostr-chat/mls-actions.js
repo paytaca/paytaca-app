@@ -305,13 +305,21 @@ export async function initMls({ commit, state, dispatch }) {
   }
 
   // Repair server-side room rows so MLS rooms that were removed/deleted on the
-  // server but still exist locally get re-uploaded (used by multi-device).
+  // server but still exist locally get re-uploaded (used by multi-device), and
+  // backfill the public nostr_group_id so watchtower can resolve group-event
+  // push recipients for rooms created before that field existed.
   try {
     const mlsRooms = Object.keys(ws.mls.roomMlsMap || {})
     for (const roomId of mlsRooms) {
       const room = ws.rooms?.find((r) => r.id === roomId)
-      if (room && room.type === 'mls-group' && room.deletedAt) {
-        await updateRoomOnServer(room.id, { ...room, deletedAt: undefined })
+      if (!room || room.type !== 'mls-group') continue
+      const nostrGroupId = room.nostrGroupId || ws.mls.roomMlsNostrMap?.[roomId]
+      if (!nostrGroupId) continue
+      if (room.deletedAt) {
+        await updateRoomOnServer(room.id, { ...room, nostrGroupId, deletedAt: undefined })
+      } else if (!room.nostrGroupId) {
+        commit('UPDATE_ROOM', { ...room, nostrGroupId })
+        await updateRoomOnServer(room.id, { nostrGroupId })
       }
     }
   } catch (err) {
@@ -422,6 +430,7 @@ export async function createMlsGroup({ commit, state, dispatch }, { name, member
     members: [nostrPubkeyHex],
     owner: nostrPubkeyHex,
     admins: [],
+    nostrGroupId: nostrGroupIdHex,
     createdAt: Math.floor(Date.now() / 1000),
     updatedAt: Math.floor(Date.now() / 1000),
   }
@@ -563,6 +572,7 @@ export async function joinMlsGroup({ commit, state, dispatch }, { roomId, welcom
     members,
     owner: groupData?.adminPubkeys?.[0] || members[0] || nostrPubkeyHex,
     admins: [],
+    nostrGroupId: nostrGroupIdHex,
     createdAt: Math.floor(Date.now() / 1000),
     updatedAt: Math.floor(Date.now() / 1000),
   }

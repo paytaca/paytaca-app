@@ -257,6 +257,9 @@ export function SET_ROOMS (state, rooms) {
     if (lr.type === 'mls-group') {
       merged.owner = lr.owner
       merged.admins = lr.admins || []
+      // The public nostr_group_id is also local-only metadata (it lives in the
+      // MLS group extension); keep the local value if the server row predates it.
+      if (!merged.nostrGroupId) merged.nostrGroupId = lr.nostrGroupId || null
     }
     return merged
   })

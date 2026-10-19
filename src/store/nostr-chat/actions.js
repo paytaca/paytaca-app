@@ -1433,6 +1433,7 @@ async function decryptRoomsList (rooms) {
       type: r.type,
       name: await decryptRoomName(r.name),
       members: r.members || [],
+      nostrGroupId: r.nostr_group_id || null,
       subject: await decryptRoomName(r.subject),
       archived: !!r.archived,
       createdAt: typeof createdAt === 'string' ? Math.floor(new Date(createdAt).getTime() / 1000) : createdAt,
@@ -1477,6 +1478,7 @@ export async function syncRoomToServer (room) {
         type: room.type,
         name: await encryptRoomName(room.name || 'Group'),
         members: room.members,
+        nostr_group_id: room.nostrGroupId || null,
         subject: room.subject ? await encryptRoomName(room.subject) : room.subject,
         created_at: new Date(room.createdAt * 1000).toISOString(),
         updated_at: new Date(room.updatedAt * 1000).toISOString(),
@@ -1499,6 +1501,10 @@ export async function updateRoomOnServer (roomId, fields) {
     const patched = { ...fields }
     if (patched.name) patched.name = await encryptRoomName(patched.name)
     if (patched.subject) patched.subject = await encryptRoomName(patched.subject)
+    if ('nostrGroupId' in patched) {
+      patched.nostr_group_id = patched.nostrGroupId || null
+      delete patched.nostrGroupId
+    }
     const response = await apiPatch(baseUrl, `/api/nostr/rooms/${roomId}/`, {
       wallet_hash: walletHash,
       ...patched,
