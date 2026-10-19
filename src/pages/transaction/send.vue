@@ -330,7 +330,7 @@
                       <q-space />
                       <div class="recipient-header-actions row items-center no-wrap">
                         <q-btn
-                          v-if="index === recipients.length - 1 && recipients.length < 10 && !sending"
+                          v-if="index === recipients.length - 1 && recipients.length < 10 && !sending && !isCauldronSend"
                           icon="add"
                           round
                           unelevated
@@ -407,6 +407,7 @@
                         :walletType="walletType"
                         @on-qr-scanner-click="onQRScannerClick"
                         @on-input-focus="onInputFocus"
+                        @on-input-blur="onInputBlur"
                         @on-recipient-input="onRecipientInput"
                         @on-address-set="onAddressSet"
                         @on-empty-recipient="onEmptyRecipient"
@@ -414,8 +415,11 @@
                         @on-qr-uploader-click="onQRUploaderClick"
                         @on-selected-change-address="onUserSelectedChangeAddress"
                         @on-cauldron-toggle="onCauldronToggle"
-                        :add-another-recipient="index === recipients.length - 1 ? addAnotherRecipient : undefined"
+                        :cauldron-tokens="cauldronPayWithTokens"
+                        :cauldron-disabled="recipients.length > 1"
+                        :trade-results="tradeResults"
                         :sending="sending"
+                        :focused-field="currentRecipientIndex === index ? focusedInputField : ''"
                         ref="sendPageRef"
                       />
                     </template>
@@ -440,6 +444,7 @@
                         :sending="sending"
                         @on-qr-scanner-click="onQRScannerClick"
                         @on-input-focus="onInputFocus"
+                        @on-input-blur="onInputBlur"
                         @on-recipient-input="onRecipientInput"
                         @on-address-set="onAddressSet"
                         @on-empty-recipient="onEmptyRecipient"
@@ -462,13 +467,6 @@
             </form>
           </div>
 
-          <div v-if="isCauldronSend && tradeResults.some(Boolean)" class="q-px-lg">
-            <CauldronSendSummary
-              :recipients="recipients"
-              :inputExtras="inputExtras"
-              :tradeResults="tradeResults"
-            />
-          </div>
         </div>
       </template>
 
@@ -550,6 +548,7 @@ import * as sendPageUtils from 'src/utils/send-page-utils'
 import { parseRouteString, stringifyRoute } from 'src/router/utils'
 import { processMerchantOtcPoints } from 'src/utils/engagementhub-utils/rewards'
 import { updateAssetBalanceOnLoad } from 'src/utils/asset-utils'
+import { fetchFavorites } from 'src/utils/asset-settings'
 import { raiseNotifyError } from 'src/utils/notify-utils'
 
 import DragSlide from 'src/components/drag-slide.vue'
@@ -568,7 +567,6 @@ import LoadingWalletDialog from 'src/components/multi-wallet/LoadingWalletDialog
 import SendSuccessPage from 'src/components/send-page/SendSuccessPage.vue'
 import JppPaymentSuccessPanel from 'src/components/send-page/JppPaymentSuccessPanel.vue'
 import { hexToRef } from 'src/utils/reference-id-utils'
-import CauldronSendSummary from 'src/components/send-page/CauldronSendSummary.vue'
 import { MultiCauldronPoolTracker } from 'src/wallet/cauldron/pool-tracker'
 import { executeSendWithCauldron, prepareSendWithCauldron, CauldronSendError, calculateMaxSpendableForCauldron, TradePrepErrorCode } from 'src/wallet/cauldron/send'
 import { debounce } from 'quasar'
@@ -596,7 +594,6 @@ export default {
     BiometricWarningAttempt,
     SendSuccessPage,
     JppPaymentSuccessPanel,
-    CauldronSendSummary,
   },
 
   props: {
@@ -729,6 +726,7 @@ export default {
       tradeResults: [],
       /** @type {(import("src/wallet/cauldron/send").TradePrepErrorCode | undefined)[]} */
       cauldronTradePrepErrors: [],
+      cauldronPayWithTokens: [],
 
       /** @type {Wallet} */
       wallet: null,
@@ -940,6 +938,13 @@ export default {
     /** Re-run restore when route query changes (e.g. send asset A -> send asset B) */
     '$route' () {
       this.restoreSendSuccessPending()
+    },
+    customKeyboardState (state) {
+      if (state === 'show') this.$nextTick(() => this.scheduleRepositionActiveInput())
+      else this.resetKeyboardSpace()
+    },
+    focusedInputField () {
+      if (this.customKeyboardState === 'show') this.$nextTick(() => this.scheduleRepositionActiveInput())
     },
     selectedAssetMarketPrice () {
       if (!this.bip21Expires && !this.priceIdPrice) {
@@ -1729,6 +1734,10 @@ export default {
       const recipient = this.recipients[index]
       if (recipient?.fixedAmount) return
 
+      // When paying for a CashToken send by swapping BCH, the receive amount is
+      // computed from the swap; don't auto-focus the amount input / show the keyboard.
+      if (this.asset?.id !== 'bch' && this.inputExtras?.[index]?.cauldron?.enable) return
+
       const sendPageForm = this.$refs.sendPageRef?.[index]
       if (!sendPageForm) return
 
@@ -1740,7 +1749,6 @@ export default {
         this.currentRecipientIndex = index
         this.focusedInputField = field
         this.customKeyboardState = 'show'
-        sendPageUtils.addRemoveInputFocus(index, field)
       }
     },
 
@@ -1830,9 +1838,6 @@ export default {
       }
 
       this.updateCauldronAndRemainingBalance();
-      sendPageUtils.addRemoveInputFocus(
-        this.currentRecipientIndex, this.focusedInputField
-      )
     },
 
     makeKeyAction (action) {
@@ -1881,17 +1886,11 @@ export default {
           currentInputExtras.fiatFormatted = '0'
           currentInputExtras.amountFormatted = '0'
         }
-        sendPageUtils.addRemoveInputFocus(
-          this.currentRecipientIndex, this.focusedInputField
-        )
       } else if (action === 'delete') {
         currentRecipient.fiatAmount = ''
         currentRecipient.amount = ''
         currentInputExtras.fiatFormatted = '0'
         currentInputExtras.amountFormatted = '0'
-        sendPageUtils.addRemoveInputFocus(
-          this.currentRecipientIndex, this.focusedInputField
-        )
       } else {
         // No-op: checkmark key is hidden in the new combined keyboard+slide layout
       }
@@ -2340,7 +2339,68 @@ export default {
       this.currentRecipientIndex = value.index
       this.focusedInputField = value.field
       this.customKeyboardState = value.field !== '' ? 'show' : 'dismiss'
-      sendPageUtils.addRemoveInputFocus(value.index, value.field)
+    },
+    onInputBlur () {
+      clearTimeout(this._keyboardBlurCheckTimer)
+      this._keyboardBlurCheckTimer = setTimeout(() => {
+        this._keyboardBlurCheckTimer = null
+        const active = document.activeElement
+        if (active && typeof active.closest === 'function') {
+          if (active.closest('.keyboard-slide-panel') ||
+              active.closest('.bch-input-field') ||
+              active.closest('.fiat-input-field')) return
+        }
+        if (this.customKeyboardState === 'show') {
+          this.focusedInputField = ''
+          this.customKeyboardState = 'dismiss'
+        }
+      }, 80)
+    },
+    onDocumentPointerDown (event) {
+      if (this.customKeyboardState !== 'show') return
+      const target = event.target
+      if (!target || typeof target.closest !== 'function') return
+      if (target.closest('.keyboard-slide-panel') ||
+          target.closest('.bch-input-field') ||
+          target.closest('.fiat-input-field')) return
+      const active = document.activeElement
+      if (active && typeof active.blur === 'function' && typeof active.closest === 'function' &&
+          (active.closest('.bch-input-field') || active.closest('.fiat-input-field'))) {
+        active.blur()
+      }
+      this.focusedInputField = ''
+      this.customKeyboardState = 'dismiss'
+    },
+    scheduleRepositionActiveInput () {
+      clearTimeout(this._repositionInputTimer)
+      this._repositionInputTimer = setTimeout(() => {
+        this._repositionInputTimer = null
+        this.repositionActiveInput()
+      }, 60)
+    },
+    repositionActiveInput () {
+      const field = this.focusedInputField
+      if (field !== 'bch' && field !== 'fiat') return
+
+      const form = this.$refs.sendPageRef?.[this.currentRecipientIndex]
+      const inputRef = field === 'fiat' ? form?.$refs?.fiatInput : form?.$refs?.amountInput
+      const inputEl = inputRef?.$el
+      const container = document.querySelector('.send-form-container')
+      const panel = document.querySelector('.keyboard-slide-panel')
+      if (!inputEl || !container || !panel) return
+
+      const margin = 20
+      const panelRect = panel.getBoundingClientRect()
+      container.style.setProperty('--send-form-keyboard-space', `${Math.round(panelRect.height + margin)}px`)
+
+      const delta = inputEl.getBoundingClientRect().bottom - (panelRect.top - margin)
+      if (delta > 0) {
+        container.scrollBy({ top: delta, behavior: 'smooth' })
+      }
+    },
+    resetKeyboardSpace () {
+      const container = document.querySelector('.send-form-container')
+      if (container) container.style.removeProperty('--send-form-keyboard-space')
     },
     onQRScannerClick (value) {
       this.showQrScanner = value
@@ -2448,6 +2508,34 @@ export default {
         this.setMaximumSendAmount();
       } else {
         this.updateCauldronAndRemainingBalance();
+      }
+    },
+    async loadCauldronPayWithTokens () {
+      if (this.isNFT || this.assetId !== 'bch') return
+      try {
+        const favorites = await fetchFavorites()
+        if (!Array.isArray(favorites)) return
+        const tokens = favorites
+          .filter(favorite => favorite && (favorite.favorite === 1 || favorite.favorite === true))
+          .map(favorite => favorite.id)
+          .filter(id => typeof id === 'string' && id.startsWith('ct/'))
+          .map(id => {
+            const match = this.$store.getters['assets/getAsset'](id)
+            const asset = Array.isArray(match) ? match[0] : match
+            if (!asset) return null
+            return {
+              id,
+              name: asset.name,
+              symbol: asset.symbol,
+              decimals: asset.decimals,
+              logo: asset.logo,
+              balance: asset.balance,
+            }
+          })
+          .filter(Boolean)
+        this.cauldronPayWithTokens = tokens
+      } catch (error) {
+        console.warn('[Send] Failed to load favorite tokens for Cauldron:', error)
       }
     },
     checkCauldronPoolsForFallback() {
@@ -3282,6 +3370,8 @@ export default {
       vm.walletType = 'bch'
     }
 
+    if (!vm.isNFT && vm.assetId === 'bch') vm.loadCauldronPayWithTokens()
+
     // Fetch latest price for the selected asset
     vm.$store.dispatch('market/updateAssetPrices', { assetId: vm.assetId })
 
@@ -3328,6 +3418,7 @@ export default {
       if (container) {
         container.addEventListener('scroll', this.handleScroll)
       }
+      document.addEventListener('pointerdown', this.onDocumentPointerDown)
 
       // Auto-focus the amount input and show custom keyboard when recipient is pre-filled
       if (vm.recipient && vm.assetId) {
@@ -3343,7 +3434,6 @@ export default {
             inputRef.focus()
             this.focusedInputField = field
             this.customKeyboardState = 'show'
-            sendPageUtils.addRemoveInputFocus(0, field)
           }
         })
       }
@@ -3366,6 +3456,11 @@ export default {
     if (container) {
       container.removeEventListener('scroll', this.handleScroll)
     }
+
+    document.removeEventListener('pointerdown', this.onDocumentPointerDown)
+
+    clearTimeout(this._repositionInputTimer)
+    clearTimeout(this._keyboardBlurCheckTimer)
 
     this.poolTracker.cleanup();
   },
@@ -3661,9 +3756,10 @@ export default {
   /* Ensure DragSlide is visible on iOS */
   .send-form-container {
     position: relative;
-    
-    /* Keep content visible above the fixed keyboard panel (~250px keyboard + ~80px slide) */
-    padding-bottom: 340px !important;
+
+    /* Scroll room above the fixed keyboard panel (~250px keyboard + ~80px slide).
+       `--send-form-keyboard-space` is updated at runtime to the panel's real height. */
+    padding-bottom: var(--send-form-keyboard-space, 340px) !important;
   }
 
   /* iOS-specific fixes for DragSlide positioning */

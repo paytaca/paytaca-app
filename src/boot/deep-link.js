@@ -30,6 +30,16 @@ export default boot(({ router, /* store */ }) => {
         name: 'app-sweep',
         query: { w: extractWifFromUrl(String(url)) }
       })
+    } else if (url.host === 'chat.paytaca.com' && /\/chatme\/?$/.test(url.pathname)) {
+      // Chat invite: https://chat.paytaca.com/chatme?id=npub1...
+      // Must be checked BEFORE the paytaca:/ethereum: payment branch below —
+      // on iOS the invite opens as paytaca://chat.paytaca.com/chatme?... whose
+      // protocol is paytaca: but is a deep link, not a payment URI.
+      const rawId = (url.searchParams.get('id') || '').trim().toLowerCase()
+      const npub = rawId.replace(/^nostr:/, '')
+      if (/^npub1[a-z0-9]{58}$/.test(npub)) {
+        router.push({ path: '/apps/chat', query: { npub } })
+      }
     } else if (url.protocol === 'bitcoincash:') {
       // will need to refactor to have similar behavior as in qr scanner page
       router.push({

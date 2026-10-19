@@ -158,7 +158,6 @@
                       @on-cauldron-toggle="onCauldronToggle"
                       :sending="sending"
                       :hide-cauldron="true"
-                      :hide-advanced-options-toggle="true"
                       ref="sendPageRef"
                     />
                   </q-expansion-item>
@@ -183,7 +182,6 @@
                     :walletType="walletType"
                     :sending="sending"
                     :hide-cauldron="true"
-                    :hide-advanced-options-toggle="true"
                     @on-qr-scanner-click="onQRScannerClick"
                     @on-input-focus="onInputFocus"
                     @on-recipient-input="onRecipientInput"
