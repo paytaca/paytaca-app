@@ -895,7 +895,7 @@ export default {
       this.addMemberTab = 'npub'
     },
     async confirmAddMembers () {
-      const { nip19Decode } = await import('nostr-tools/nip19')
+      const { decode: nip19Decode } = await import('nostr-tools/nip19')
       const npubs = [...this.selectedAddNpubs]
 
       // Manual npub entry — validate before dispatching anything.

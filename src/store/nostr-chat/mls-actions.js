@@ -454,6 +454,7 @@ export async function joinMlsGroup({ commit, state, dispatch }, { roomId, welcom
   // 3. The currently-generated (deterministic) key package.
   // Because all generations derive from the same seed, the same privatePackage
   // unlocks every candidate.
+  const { impl } = mls.getMlsCrypto()
   const candidates = []
   const seen = new Set()
 
@@ -462,7 +463,7 @@ export async function joinMlsGroup({ commit, state, dispatch }, { roomId, welcom
     for (const event of kpEvents) {
       const kp = decodeNipEeKeyPackage(event.content)
       if (!kp) continue
-      const ref = bytesToHex(await mls.makeKeyPackageRef(kp))
+      const ref = bytesToHex(await mls.makeKeyPackageRef(kp, impl.hash))
       if (!seen.has(ref)) {
         seen.add(ref)
         candidates.push({ kp, ref })
@@ -475,7 +476,7 @@ export async function joinMlsGroup({ commit, state, dispatch }, { roomId, welcom
   for (const historyEntry of ws.mls.kpHistory || []) {
     const kp = decodeNipEeKeyPackage(historyEntry.content)
     if (!kp) continue
-    const ref = bytesToHex(await mls.makeKeyPackageRef(kp))
+    const ref = bytesToHex(await mls.makeKeyPackageRef(kp, impl.hash))
     if (!seen.has(ref)) {
       seen.add(ref)
       const kpIsCurrent = historyEntry.content === (ws.mls.keyPackage?.serialized || '')
@@ -485,7 +486,7 @@ export async function joinMlsGroup({ commit, state, dispatch }, { roomId, welcom
     }
   }
 
-  const fallbackRef = bytesToHex(await mls.makeKeyPackageRef(publicPackage))
+  const fallbackRef = bytesToHex(await mls.makeKeyPackageRef(publicPackage, impl.hash))
   if (!seen.has(fallbackRef)) {
     seen.add(fallbackRef)
     candidates.push({ kp: publicPackage, ref: fallbackRef, isFallback: true })
@@ -1051,7 +1052,7 @@ export async function addMlsMember({ commit, state }, { roomId, memberPubKey }) 
       const freshKpEvents = await relayService.fetchNipEeKeyPackage(state.relays, memberPubKey)
       if (freshKpEvents.length) {
         const freshKp = decodeNipEeKeyPackage(freshKpEvents[0].content)
-        const freshRef = freshKp ? bytesToHex(await mls.makeKeyPackageRef(freshKp)) : null
+        const freshRef = freshKp ? bytesToHex(await mls.makeKeyPackageRef(freshKp, impl.hash)) : null
         const welcomeRefs = (welcome.secrets || []).map((s) => bytesToHex(s.newMember))
         if (freshRef && !welcomeRefs.includes(freshRef)) {
           throw new Error(
