@@ -32,6 +32,11 @@ const MLS_META_PREFIX = '\u200bpaytaca:mls-meta:'
 // payload; receiveMlsMessage strips this prefix and re-attaches `replyTo`.
 const MLS_REPLY_PREFIX = '\u200bpaytaca:mls-reply:'
 
+// In-band prefix for an edit's target message id. Same rationale as replies:
+// the linkage has to ride inside the encrypted payload. Receivers update the
+// original message in place instead of appending a new one.
+const MLS_EDIT_PREFIX = '\u200bpaytaca:mls-edit:'
+
 // Return 'owner', 'admin', or null for the current wallet's role in a room.
 function myMlsRole(ws, roomId) {
   const room = ws.rooms?.find((r) => r.id === roomId)
@@ -689,7 +694,7 @@ export function receiveMlsWelcomeRumor({ commit, state }, { giftWrap, welcomeRum
 
 // ---- Sending messages ----
 
-export async function sendMlsMessage({ commit, state }, { roomId, text, replyTo }) {
+export async function sendMlsMessage({ commit, state }, { roomId, text, replyTo, editOf }) {
   const ws = getWalletState(state)
   if (!ws?.keys?.privKeyHex) throw new Error('Nostr keys not available')
 
@@ -727,7 +732,9 @@ export async function sendMlsMessage({ commit, state }, { roomId, text, replyTo 
     // stores under the same id — so a reply can reference the target by its
     // event id. It must ride inside the encrypted payload because the MLS
     // application message carries only plaintext.
-    const wireText = replyTo ? `${MLS_REPLY_PREFIX}${replyTo}\n${text}` : text
+    let wireText = text
+    if (replyTo) wireText = `${MLS_REPLY_PREFIX}${replyTo}\n${wireText}`
+    if (editOf) wireText = `${MLS_EDIT_PREFIX}${editOf}\n${wireText}`
     for (let attempt = 1; attempt <= MAX_SEND_ATTEMPTS; attempt++) {
       const genBefore = ownAppRatchetGen(clientState)
       const { privateMessage, newState } = await mls.encryptMlsMessage(clientState, wireText, impl)
@@ -779,9 +786,10 @@ export async function sendMlsMessage({ commit, state }, { roomId, text, replyTo 
     kind: mls.NIP_EE_GROUP_EVENT_KIND,
     created_at,
     replyTo,
+    editOf: editOf || null,
   }
 
-  return { message, roomId }
+  return { message, roomId, editOf: editOf || null }
 }
 
 // ---- Receiving messages ----
@@ -917,19 +925,31 @@ export async function receiveMlsMessage({ commit, state }, event) {
         } else if (roomId) {
           const senderIdentity = memberIdentityAt(result.newState, result.senderLeafIndex)
 
-          // Unwrap the in-band reply linkage (if any) before storing. The
+          // Unwrap the in-band reply/edit linkage (if any) before storing. The
           // sender prepends the target message id so receivers can render the
-          // reply exactly like the sender does.
+          // reply exactly like the sender does, and apply edits in place.
           let content = result.plaintext
           let replyTo = null
-          if (typeof content === 'string' && content.startsWith(MLS_REPLY_PREFIX)) {
-            const newlineIndex = content.indexOf('\n')
-            if (newlineIndex !== -1) {
-              replyTo = content.slice(MLS_REPLY_PREFIX.length, newlineIndex) || null
+          let editOf = null
+          if (typeof content === 'string') {
+            // Prefixes can nest (an edit of a reply), so peel them until stable.
+            for (;;) {
+              const prefix = content.startsWith(MLS_REPLY_PREFIX)
+                ? MLS_REPLY_PREFIX
+                : content.startsWith(MLS_EDIT_PREFIX)
+                  ? MLS_EDIT_PREFIX
+                  : null
+              if (!prefix) break
+              const newlineIndex = content.indexOf('\n')
+              if (newlineIndex === -1) {
+                // Malformed envelope (no body) — drop the prefix and stop.
+                content = content.slice(prefix.length)
+                break
+              }
+              const target = content.slice(prefix.length, newlineIndex) || null
+              if (prefix === MLS_REPLY_PREFIX) replyTo = target
+              else editOf = target
               content = content.slice(newlineIndex + 1)
-            } else {
-              // Malformed envelope (no body) — drop the prefix, no reply.
-              content = content.slice(MLS_REPLY_PREFIX.length)
             }
           }
 
@@ -939,8 +959,26 @@ export async function receiveMlsMessage({ commit, state }, event) {
             'for group', mlsGroupIdHex.slice(0, 12),
             'room', roomId?.slice(0, 8) || '(none)',
             'replyTo:', replyTo ? replyTo.slice(0, 8) : '(none)',
+            'editOf:', editOf ? editOf.slice(0, 8) : '(none)',
             'text:', JSON.stringify(content.slice(0, 40)),
           )
+
+          // An edit targets an already-delivered message: update it in place
+          // rather than appending a duplicate. Only the original sender may
+          // edit their own message.
+          if (editOf) {
+            const original = (ws.messages?.[roomId] || []).find((m) => m.id === editOf)
+            if (original && original.sender === senderIdentity) {
+              commit('UPDATE_MESSAGE', { roomId, messageId: editOf, newContent: content })
+              return
+            }
+            console.warn(
+              '[MLS] Dropping edit', event.id.slice(0, 8),
+              'for unknown/foreign target', editOf.slice(0, 8),
+              'in room', roomId?.slice(0, 8) || '(none)',
+            )
+            return
+          }
 
           commit('ADD_MESSAGE', {
             roomId,
