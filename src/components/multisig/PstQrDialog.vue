@@ -136,7 +136,10 @@ async function prepareBase64Chunks(chunkSize = 100) {
     }
     const base64Psbt = await props.pst.export()
     const psbtBytes = Buffer.from(base64ToBin(base64Psbt));
-    const ur = new UR(cborEncode(psbtBytes), "crypto-psbt");
+    // BCR-2020-006 requires the CBOR payload to carry a #6.2-tagged byte string
+    // (leading 0xd8 0x02 marker); strict decoders reject the untagged form
+    const taggedCbor = Buffer.concat([Buffer.from([0xd8, 0x02]), cborEncode(psbtBytes)]);
+    const ur = new UR(taggedCbor, "crypto-psbt");
     
     encoder.value = new UREncoder(ur, chunkSize);
     return encoder.value?.fragments?.length;
@@ -230,7 +233,7 @@ function restartAnimation() {
 }
 
 onMounted(async () => {
-  await prepareBase64Chunks()
+  await prepareBase64Chunks(selectedDensity.value)
   startAnimation()
 });
 

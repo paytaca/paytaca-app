@@ -163,7 +163,8 @@ export default {
       scannerInitializing: false,
       zoomLevel: 1.0,
       torchOn: false,
-      lastScannedContent: ''
+      lastScannedContent: '',
+      isProcessingScan: false
     }
   },
 
@@ -187,11 +188,7 @@ export default {
     }
   },
 
-  methods: {  
-
-    async openMobileSettings() {
-      await BarcodeScanner.openSettings()
-    },
+  methods: {
 
     getDarkModeClass,
 
@@ -417,11 +414,25 @@ export default {
           },
         );
 
-        await BarcodeScanner.startScan({ formats: [BarcodeFormat.QrCode]});
+        try {
+          await BarcodeScanner.startScan({ formats: [BarcodeFormat.QrCode]})
+        } catch (error) {
+          console.error('Failed to start scanner:', error)
+          await this.stopScanner()
+          this.scannerInitializing = false
+          this.$q.notify({
+            message: this.$t('ScannerStartError', {}, 'Failed to start the camera scanner'),
+            timeout: 4000,
+            type: 'negative'
+          })
+          const backPath = this.$route.query.backnavpath || '/'
+          this.$router.push({ path: backPath })
+          return
+        }
         this.setBarcodeScannerActiveClass()
         this.scannerInitializing = false
-        return   
-      } 
+        return
+      }
       
       this.scannerInitializing = false
       await this.stopScanner()
@@ -456,17 +467,24 @@ export default {
     },
 
     async decodeQrCode(content) {
+      if (this.isProcessingScan) return
       const rawValue = String(content?.[0]?.rawValue || '').trim()
       if (!rawValue || rawValue === 'undefined') return
-      const normalizedValue = this.normalizeUrContent(rawValue)
-      const isStreaming = normalizedValue.startsWith('ur:crypto-mofnwallet') || normalizedValue.startsWith('ur:crypto-psbt')
+      this.isProcessingScan = true
 
-      if (isStreaming) {
-        this.decodeAnimatedQrCode(content)
-      } else {
-        await this.stopScanner()
-        await this.$nextTick()
-        this.decodeStaticQrCode(content)
+      try {
+        const normalizedValue = this.normalizeUrContent(rawValue)
+        const isStreaming = normalizedValue.startsWith('ur:crypto-mofnwallet') || normalizedValue.startsWith('ur:crypto-psbt')
+
+        if (isStreaming) {
+          this.decodeAnimatedQrCode(content)
+        } else {
+          await this.stopScanner()
+          await this.$nextTick()
+          this.decodeStaticQrCode(content)
+        }
+      } finally {
+        this.isProcessingScan = false
       }
     },
 
@@ -606,17 +624,17 @@ export default {
 
         const normalizedValue = String(content[0]?.rawValue || '').trim().toLowerCase()
 
-        this.progress = this.urDecoder.estimatedPercentComplete()
-
         let resultUR = null
 
         isComplete = this.urDecoder.isComplete()
         if (!isComplete) {
-          if (normalizedValue && normalizedValue === this.lastScannedContent) return 
+          if (normalizedValue && normalizedValue === this.lastScannedContent) return
           this.urDecoder.receivePart(normalizedValue)
           this.lastScannedContent = normalizedValue
+          this.progress = this.urDecoder.estimatedPercentComplete()
         } else {
-          this.paused = true 
+          this.paused = true
+          this.progress = 1
           resultUR = this.urDecoder.resultUR()
         }
 
@@ -641,7 +659,7 @@ export default {
           let isSingleSig = false
           const obj = {}
           new Psbt().decode(psbtBase64, obj)
-          isSingleSig = Array.isArray(obj.inputs) && obj.inputs.length > 0 && obj.inputs.every(i => !i.redeemScript)
+          isSingleSig = Array.isArray(obj.inputs) && obj.inputs.length > 0 && obj.inputs.every(i => !i.redeemScript && !i.witnessScript)
 
           if (isSingleSig) {
             sessionStorage.setItem('paytaca-single-sig-psbt', psbtBase64)
@@ -731,7 +749,8 @@ export default {
     },
 
     async toggleTorch(){
-      if (await BarcodeScanner.isTorchAvailable()) {
+      const { available } = await BarcodeScanner.isTorchAvailable()
+      if (available) {
         await BarcodeScanner.toggleTorch()
         const { enabled } = await BarcodeScanner.isTorchEnabled()
         this.torchOn = enabled

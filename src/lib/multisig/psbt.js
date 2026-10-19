@@ -735,10 +735,6 @@ export class PsbtInput {
     return this
   }
 
-  getSighashType(){
-    return this.keypairs[PSBT_IN_SIGHASH_TYPE]?.value?.value
-  }
-
   /**
    * @param {string|Uint8Array} redeemScript
    */
