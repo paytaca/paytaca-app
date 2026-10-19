@@ -235,6 +235,7 @@ function reducer(state) {
                         handledWelcomeIds: value.handledWelcomeIds || {},
                         failedEventAttempts: value.failedEventAttempts || {},
                         processedEventIds: value.processedEventIds || {},
+                        pendingInvitees: value.pendingInvitees || {},
                       }
                       continue
                     }

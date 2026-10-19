@@ -37,6 +37,13 @@ const MLS_REPLY_PREFIX = '\u200bpaytaca:mls-reply:'
 // original message in place instead of appending a new one.
 const MLS_EDIT_PREFIX = '\u200bpaytaca:mls-edit:'
 
+// In-band marker the invitee sends immediately after accepting a welcome. An
+// MLS Add commit puts the invitee in the tree right away — before they ever
+// accept — so tree membership cannot tell "invited" from "joined". This
+// announcement (or any ordinary message from them) is the real acceptance
+// signal for the inviter's member list.
+const MLS_JOIN_PREFIX = '\u200bpaytaca:mls-join:'
+
 // Return 'owner', 'admin', or null for the current wallet's role in a room.
 function myMlsRole(ws, roomId) {
   const room = ws.rooms?.find((r) => r.id === roomId)
@@ -659,6 +666,20 @@ export async function joinMlsGroup({ commit, state, dispatch }, { roomId, welcom
   return { roomId: finalRoomId, groupIdHex, nostrGroupIdHex, clientState: joinedClientState }
 }
 
+/**
+ * Tell the group we have actually accepted the invitation. The Add commit put
+ * us in the tree the moment the inviter created it, so the inviter's member
+ * list treats us as "Invited" until we prove we can encrypt to the epoch.
+ * Best-effort: a failure here only leaves us listed as invited.
+ */
+async function announceMlsJoin(commit, state, { roomId }) {
+  try {
+    await sendMlsMessage({ commit, state }, { roomId, text: MLS_JOIN_PREFIX })
+  } catch (err) {
+    console.warn('[MLS] Failed to announce join:', err.message)
+  }
+}
+
 export async function acceptMlsInvite({ commit, state, dispatch }, { roomId }) {
   const ws = getWalletState(state)
   if (!ws?.keys?.privKeyHex || !ws.mls) return
@@ -705,6 +726,8 @@ export async function acceptMlsInvite({ commit, state, dispatch }, { roomId }) {
     rumorId: invite.welcomeRumor?.id,
     wrapId: invite.welcomeEvent?.id,
   })
+  // Prove the join to the inviter so they stop listing us as invited.
+  await announceMlsJoin(commit, state, { roomId: joined.roomId })
   return joined.roomId
 }
 
@@ -1095,8 +1118,21 @@ export async function receiveMlsMessage({ commit, state }, event) {
           } catch {
             // Not valid JSON — fall through and show as a message.
           }
+        } else if (typeof result.plaintext === 'string' && result.plaintext.startsWith(MLS_JOIN_PREFIX)) {
+          // The invitee announcing their acceptance. Drop the pending flag so
+          // they move from "Invited" to "Joined"; never render this as a chat
+          // message.
+          const joiningIdentity = memberIdentityAt(result.newState, result.senderLeafIndex)
+          if (joiningIdentity) {
+            commit('CLEAR_MLS_INVITEE_PENDING', { mlsGroupIdHex, memberPubKey: joiningIdentity })
+          }
         } else if (roomId) {
           const senderIdentity = memberIdentityAt(result.newState, result.senderLeafIndex)
+          // Any real message from a member also proves they accepted; they
+          // could not have decrypted the epoch otherwise.
+          if (senderIdentity) {
+            commit('CLEAR_MLS_INVITEE_PENDING', { mlsGroupIdHex, memberPubKey: senderIdentity })
+          }
 
           // Unwrap the in-band reply/edit linkage (if any) before storing. The
           // sender prepends the target message id so receivers can render the
@@ -1377,6 +1413,9 @@ export async function addMlsMember({ commit, state }, { roomId, memberPubKey }) 
 
     await mls.saveMlsState(mlsGroupIdHex, newState)
     commit('SET_MLS_GROUP_STATE', { mlsGroupIdHex, clientState: newState })
+    // The Add commit already put them in the tree, but they have not accepted
+    // yet — keep them under "Invited" until they announce their join.
+    commit('MARK_MLS_INVITEE_PENDING', { mlsGroupIdHex, memberPubKey })
 
     const room = ws.rooms.find((r) => r.id === roomId)
     if (room && !room.members.includes(memberPubKey)) {
@@ -1479,6 +1518,8 @@ export async function removeMlsMember({ commit, state }, { roomId, memberPubkey 
 
     await mls.saveMlsState(mlsGroupIdHex, newState)
     commit('SET_MLS_GROUP_STATE', { mlsGroupIdHex, clientState: newState })
+
+    commit('CLEAR_MLS_INVITEE_PENDING', { mlsGroupIdHex, memberPubKey: memberPubkey })
 
     if (room) {
       const updatedMembers = room.members.filter((m) => m !== memberPubkey)

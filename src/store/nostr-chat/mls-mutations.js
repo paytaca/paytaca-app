@@ -21,7 +21,7 @@ function getOrInitWalletState(state, walletHash = null) {
   if (!state.byWallet[hash]) state.byWallet[hash] = getInitialWalletState()
   // Restored state may predate the MLS feature; ensure the mls sub-state exists.
   if (typeof state.byWallet[hash].mls !== 'object' || state.byWallet[hash].mls === null) {
-    state.byWallet[hash].mls = { ready: false, keyPackage: null, groupStates: {}, roomMlsMap: {}, roomMlsNostrMap: {}, pendingInvitations: {}, declinedWelcomeIds: {}, handledWelcomeIds: {}, failedEventAttempts: {}, processedEventIds: {}, kpHistory: [] }
+    state.byWallet[hash].mls = { ready: false, keyPackage: null, groupStates: {}, roomMlsMap: {}, roomMlsNostrMap: {}, pendingInvitations: {}, declinedWelcomeIds: {}, handledWelcomeIds: {}, failedEventAttempts: {}, processedEventIds: {}, pendingInvitees: {}, kpHistory: [] }
   }
   if (typeof state.byWallet[hash].mls.roomMlsNostrMap !== 'object' || state.byWallet[hash].mls.roomMlsNostrMap === null) {
     state.byWallet[hash].mls.roomMlsNostrMap = {}
@@ -40,6 +40,9 @@ function getOrInitWalletState(state, walletHash = null) {
   }
   if (typeof state.byWallet[hash].mls.processedEventIds !== 'object' || state.byWallet[hash].mls.processedEventIds === null) {
     state.byWallet[hash].mls.processedEventIds = {}
+  }
+  if (typeof state.byWallet[hash].mls.pendingInvitees !== 'object' || state.byWallet[hash].mls.pendingInvitees === null) {
+    state.byWallet[hash].mls.pendingInvitees = {}
   }
   return state.byWallet[hash]
 }
@@ -66,6 +69,30 @@ export function CLEAR_MLS_GROUP_STATE(state, mlsGroupIdHex) {
   // The group's ratchet state is gone, so the processed-event tombstones are
   // meaningless too (a rebuilt group starts at a fresh epoch).
   if (ws.mls.processedEventIds) delete ws.mls.processedEventIds[mlsGroupIdHex]
+  if (ws.mls.pendingInvitees) delete ws.mls.pendingInvitees[mlsGroupIdHex]
+}
+
+/**
+ * Record that a member was invited but has not accepted yet. An MLS Add commit
+ * inserts the invitee into the tree immediately, so this set — not tree
+ * membership — is what separates "Invited" from "Joined" in Group Info.
+ */
+export function MARK_MLS_INVITEE_PENDING(state, { mlsGroupIdHex, memberPubKey }) {
+  const ws = getOrInitWalletState(state)
+  if (!ws || !mlsGroupIdHex || !memberPubKey) return
+  if (!ws.mls.pendingInvitees) ws.mls.pendingInvitees = {}
+  if (!ws.mls.pendingInvitees[mlsGroupIdHex]) ws.mls.pendingInvitees[mlsGroupIdHex] = {}
+  ws.mls.pendingInvitees[mlsGroupIdHex][memberPubKey] = Math.floor(Date.now() / 1000)
+}
+
+/** Clear the pending flag once the invitee has demonstrably joined. */
+export function CLEAR_MLS_INVITEE_PENDING(state, { mlsGroupIdHex, memberPubKey }) {
+  const ws = getOrInitWalletState(state)
+  if (!ws || !mlsGroupIdHex || !memberPubKey) return
+  const pending = ws.mls.pendingInvitees?.[mlsGroupIdHex]
+  if (!pending) return
+  delete pending[memberPubKey]
+  if (!Object.keys(pending).length) delete ws.mls.pendingInvitees[mlsGroupIdHex]
 }
 
 export function SET_MLS_ROOM_MAP(state, { roomId, mlsGroupIdHex, nostrGroupIdHex }) {
