@@ -166,17 +166,23 @@
           </div>
 
           <!-- MLS groups support adding members after creation -->
-          <q-btn
+          <!-- The wrapper catches clicks that a disabled button would swallow,
+               so a non-manager still learns why the action is unavailable. -->
+          <div
             v-if="room?.type === 'mls-group'"
-            :label="$t('AddMember', {}, 'Add member')"
-            color="primary"
-            outline
-            rounded
-            unelevated
-            class="full-width q-mt-sm"
-            :disable="addingMember || !isGroupManager"
+            class="add-member-wrap full-width q-mt-sm"
             @click="openAddMemberDialog"
-          />
+          >
+            <q-btn
+              :label="$t('AddMember', {}, 'Add member')"
+              color="primary"
+              outline
+              rounded
+              unelevated
+              class="full-width"
+              :disable="addingMember || !isGroupManager"
+            />
+          </div>
         </div>
 
         <!-- Member Details Dialog -->        <q-dialog v-model="showMemberDetails" persistent>
@@ -851,6 +857,7 @@ export default {
       }
     },
     openAddMemberDialog () {
+      if (this.addingMember) return
       if (!this.isGroupManager) {
         this.$q.notify({
           type: 'warning',
@@ -1065,6 +1072,11 @@ export default {
   font-size: 13px;
   color: #9ca3af;
   text-align: center;
+}
+
+/* Let the wrapper receive the click when the button is disabled. */
+.add-member-wrap .q-btn.disabled {
+  pointer-events: none;
 }
 
 .member-details-card {
