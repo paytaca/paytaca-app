@@ -7,13 +7,12 @@ import { getWalletByNetwork } from 'src/wallet/chipnet'
 import { getChangeAddress } from 'src/utils/send-page-utils'
 
 import axios from 'axios'
-import BCHJS from "@psf/bch-js";
+import { hash160, hash256 } from 'bitauth-libauth-v3'
 import Watchtower from "watchtower-cash-js"
 import { requestManager } from 'src/utils/request-manager'
 
 import VestingContractArtifact from 'src/cashscripts/lift-token/VestingContractv3.json'
 
-const bchjs = new BCHJS();
 const watchtower = new Watchtower(false)
 
 export const SaleGroup = {
@@ -78,7 +77,7 @@ export function initializeVestingContract(buyerPubkey, liftTokenId, adminPubkey,
 
   const provider = new ElectrumNetworkProvider('mainnet')
   const contractParams = [
-    bchjs.Crypto.hash160(Buffer.from(buyerPubkey, 'hex')),
+    hash160(Buffer.from(buyerPubkey, 'hex')),
     changeEndianness(liftTokenId),
     adminPubkey,
     BigInt(convertDateToBlockHeight(lockupEnd)),
@@ -636,7 +635,7 @@ function generateNftCommitment(nftData) {
   const timestampBytes = new Uint8Array(buffer);
 
   // convert vesting contract script hash
-  const vestingBytes32 = bchjs.Crypto.hash256(Buffer.from(nftData.bytecode, "hex"));
+  const vestingBytes32 = hash256(Buffer.from(nftData.bytecode, "hex"));
 
   return Buffer.from([
     0x02,

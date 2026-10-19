@@ -18,6 +18,7 @@ import {
 import sha256 from 'js-sha256' 
 import { SecureStoragePlugin } from 'capacitor-secure-storage-plugin'
 import { getWalletHashFromIndexAsync } from 'src/utils/wallet-storage'
+import { generateMnemonic as generateBip39Mnemonic } from 'bip39'
 
 // Matches the error thrown by the patched capacitor-secure-storage-plugin web
 // implementation when an encrypted value cannot be decrypted (e.g. the
@@ -28,8 +29,6 @@ export function isSecureStorageDecryptError (err) {
   return err?.message === SECURE_STORAGE_DECRYPT_ERROR
 }
 
-const BCHJS = require('@psf/bch-js')
-const bchjs = new BCHJS()
 
 const projectId = {
   mainnet: process.env.WATCHTOWER_PROJECT_ID,
@@ -346,7 +345,7 @@ export async function deleteDuplicateWalletData(walletHash, index) {
 }
 
 export async function generateMnemonic (index = 0) {
-  const mnemonic = bchjs.Mnemonic.generate(128)
+  const mnemonic = generateBip39Mnemonic(128)
   
   // Check if migration is completed
   let migrationCompleted = false

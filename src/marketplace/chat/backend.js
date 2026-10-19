@@ -1,9 +1,8 @@
-import BCHJS from "@psf/bch-js"
+import { signMessage } from 'src/utils/bch-keys'
 import axios from "axios";
 import { backend, sigAuthInterceptor } from "../backend";
 import { requestManager } from "src/utils/request-manager";
 
-const bchjs = new BCHJS()
 
 export function createBackend(opts={ chatIdentityRef: '', privkey: '' }) {
   const chatIdentityRef = opts?.chatIdentityRef
@@ -18,7 +17,7 @@ export function createBackend(opts={ chatIdentityRef: '', privkey: '' }) {
       const customSignData = opts?.customSignData
       const timestamp = opts?.timestamp
   
-      const signature = bchjs.BitcoinCash.signMessageWithPrivKey(privkey, data)
+      const signature = signMessage(privkey, data)
       if (customSignData) config.headers['X-Chat-Identity-Signdata'] = customSignData    
       config.headers['X-Chat-Identity'] = [chatIdentityRef, timestamp, signature].join(':')
   
