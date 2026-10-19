@@ -1,6 +1,5 @@
 
 import { cardLogger } from 'src/utils/debug-logger.js'
-import { Contract as MainnetContract } from '@mainnet-cash/contract';
 import { SignatureTemplate, Contract, TransactionBuilder, Network, ElectrumNetworkProvider } from 'cashscript';
 import { DUST_LIMIT, P2PKH_DUST, TX_FEE } from '../constants.js';
 import { binToHex } from '@bitauth/libauth';
@@ -12,6 +11,7 @@ import { loadWallet } from 'src/services/wallet.js';
 import { isTokenAddress } from 'src/utils/address-utils.js';
 import { reverseHex } from 'src/marketplace/escrow/utils.js';
 import { toTokenAddress } from "src/utils/crypto";
+import { contractIdParameters } from 'src/vendor/mainnet-js/contract-id.js';
 
 import Watchtower from 'watchtower-cash-js'
 const watchtower = new Watchtower()
@@ -224,9 +224,8 @@ export class TapToPayV1 extends TapToPay {
         super(contractId)
 
         if (contractId) {
-            const contract = MainnetContract.fromId(contractId);
             const parameters = [];
-            contract.parameters.forEach((param) => {
+            contractIdParameters(contractId, artifact).forEach((param) => {
                 parameters.push(Buffer(param).toString('hex'));
             })
 
@@ -569,9 +568,8 @@ export class TapToPayV2 extends TapToPay {
         super(contractId)
 
         if (contractId) {
-            const contract = MainnetContract.fromId(contractId);
             const parameters = [];
-            contract.parameters.forEach((param) => {
+            contractIdParameters(contractId, artifactV2).forEach((param) => {
                 parameters.push(Buffer(param).toString('hex'));
             })
 

@@ -63,7 +63,6 @@
 // import { createNFTs, fetchTerminals, fetchUnissuedTerminals } from 'src/services/card/backend/api';
 import AuthTokenManager, { decodeCommitment } from 'src/services/card/auth-nft';
 import { Wallet } from 'mainnet-js';
-import { Contract } from '@mainnet-cash/contract'
 import { cardLogger } from 'src/utils/debug-logger.js';
 
 export default {
@@ -228,10 +227,6 @@ export default {
       }
       cardLogger.log('recipients:', recipients)
       const response = await tokenManager.issue({ recipients })
-      const contract = Contract.fromId(this.cardInfo.contract_id)
-      cardLogger.log('___contract:', contract)
-      const utxosContract = await contract.getUtxos()
-      cardLogger.log('++++++utxosContract:', utxosContract)
       return response
     }
   }
