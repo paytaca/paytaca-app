@@ -239,7 +239,13 @@
       <KeyboardTooltip v-if="activeKeyboardTip === 'bch'" :dark-mode="darkMode" :key="'bch-' + keyboardTipCounter" />
     </div>
   </div>
-  <div class="row items-center" v-if="!isNFT && !sending" style="padding-bottom: 15px">
+  <div
+    class="row items-center balance-row"
+    :class="{ 'balance-row--inline': $slots['balance-leading'] }"
+    v-if="!isNFT && !sending"
+    style="padding-bottom: 15px"
+  >
+    <div v-if="$slots['balance-leading']" class="balance-lead"><slot name="balance-leading" /></div>
     <div v-if="!recipient.fixedAmount" class="col q-mt-xs balance-max-container" :class="getDarkModeClass(darkMode)">
       <div
         ref="balanceMarqueeViewport"
@@ -525,8 +531,11 @@ export default {
     },
     currentWalletBalanceAsAsset() {
       let asset = { ...this.asset };
-      if (this.currentWalletBalanceAssetId || this.currentWalletBalanceAssetId !== this.asset?.id) {
-        asset = { ...this.$store.getters['assets/getAsset'](this.currentWalletBalanceAssetId)[0] }
+      const storeAsset = this.currentWalletBalanceAssetId
+        ? this.$store.getters['assets/getAsset'](this.currentWalletBalanceAssetId)?.[0]
+        : null;
+      if (storeAsset && storeAsset.id !== this.asset?.id) {
+        asset = { ...storeAsset };
       }
 
       if (asset.id === 'bch') {
@@ -1045,6 +1054,37 @@ export default {
       font-size: 12px;
       font-weight: bold;
     }
+  }
+
+  .balance-row--inline {
+    flex-wrap: nowrap;
+    justify-content: space-between;
+  }
+
+  .balance-row--inline .balance-lead {
+    flex: 0 0 auto;
+    display: flex;
+    align-items: center;
+  }
+
+  .balance-row--inline .balance-max-container {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    flex: 1 1 auto;
+    min-width: 0;
+  }
+
+  .balance-row--inline .balance-marquee {
+    width: auto;
+    flex: 0 1 auto;
+    min-width: 0;
+  }
+
+  .balance-row--inline .max-button {
+    margin-top: 0;
+    margin-left: 8px;
+    flex: 0 0 auto;
   }
 
   @keyframes balance-marquee-scroll {
