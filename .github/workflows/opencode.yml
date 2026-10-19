@@ -53,5 +53,5 @@ jobs:
           TOKEN: ${{ secrets.GITHUB_TOKEN }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
-          model: opencode/glm-5.3
+          model: opencode/kimi-k2.7-code
           use_github_token: true
