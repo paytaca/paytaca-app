@@ -16,7 +16,7 @@
     "postinstall": "patch-package && quasar prepare",
     "test": "cypress run",
     "test:unit": "mocha",
-    "test:smoke": "node --experimental-loader ./test/mock-loader.mjs ./test/secure-storage-migration.smoke.mjs",
+    "test:smoke": "node --experimental-loader ./test/mock-loader.mjs ./test/secure-storage-migration.smoke.mjs && node --experimental-loader ./test/mock-loader.mjs ./test/bch-keys.smoke.mjs",
     "release": "node scripts/generate-release.mjs"
   },
   "dependencies": {
