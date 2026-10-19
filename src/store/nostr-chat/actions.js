@@ -2084,7 +2084,7 @@ export async function publishGiftWraps ({ state }, { giftWraps }) {
   await relayService.publish(Array.from(targetRelays), giftWraps)
 }
 
-export function receiveMessage ({ commit, dispatch, state }, { rumor, sealPubkey, isHistorical = false, giftWrap = null }) {
+export async function receiveMessage ({ commit, dispatch, state }, { rumor, sealPubkey, isHistorical = false, giftWrap = null }) {
   const ws = getWalletState(state)
   if (!ws.keys?.pubKeyHex) return
 
@@ -2102,7 +2102,7 @@ export function receiveMessage ({ commit, dispatch, state }, { rumor, sealPubkey
   // NIP-EE MLS welcomes arrive as unsigned kind-444 rumors inside gift wraps;
   // route them to the MLS pipeline instead of NIP-17 DM handling.
   if (rumor.kind === 444) {
-    dispatch('receiveMlsWelcomeRumor', { giftWrap, welcomeRumor: rumor })
+    await dispatch('receiveMlsWelcomeRumor', { giftWrap, welcomeRumor: rumor })
     return
   }
 

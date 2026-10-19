@@ -57,9 +57,11 @@ export function getInitialWalletState () {
       groupStates: {}, // { [mlsGroupIdHex]: serialized ClientState }
       roomMlsMap: {}, // { [roomId]: mlsGroupIdHex }
       roomMlsNostrMap: {}, // { [roomId]: nostrGroupIdHex } — NIP-EE public group id used in kind-445 h tags
-      pendingInvitations: {}, // { [roomId]: { roomId, inviterPubKey, name, welcomeEvent } }
+      pendingInvitations: {}, // { [roomId]: { roomId, inviterPubKey, name, nostrGroupIdHex, welcomeEvent, welcomeRumor } }
       declinedWelcomeIds: {}, // { [welcomeEventId]: timestamp } — never re-surface these invites
+      handledWelcomeIds: {}, // { [welcomeRumorId]: timestamp } — accepted welcomes; never re-surface these invites
       failedEventAttempts: {}, // { [eventId]: { count, lastError, lastAttemptAt } } — undecodable MLS events; dropped after MAX_EVENT_PROCESS_ATTEMPTS
+      processedEventIds: {}, // { [mlsGroupIdHex]: { [eventId]: timestamp } } — events whose ratchet was already consumed (messages, edits, meta, commits); re-delivery is a no-op
       kpHistory: [], // { ref: string, encoded: string (base64 raw KP bytes), publishedAt: number }
     },
   }

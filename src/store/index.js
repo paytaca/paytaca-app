@@ -232,7 +232,9 @@ function reducer(state) {
                         roomMlsMap: value.roomMlsMap || {},
                         roomMlsNostrMap: value.roomMlsNostrMap || {},
                         declinedWelcomeIds: value.declinedWelcomeIds || {},
+                        handledWelcomeIds: value.handledWelcomeIds || {},
                         failedEventAttempts: value.failedEventAttempts || {},
+                        processedEventIds: value.processedEventIds || {},
                       }
                       continue
                     }

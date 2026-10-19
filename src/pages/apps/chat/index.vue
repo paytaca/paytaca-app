@@ -965,12 +965,12 @@ export default {
     async acceptInvite (invite) {
       this.acceptingInvites = { ...this.acceptingInvites, [invite.roomId]: true }
       try {
-        await this.$store.dispatch('nostrChat/acceptMlsInvite', { roomId: invite.roomId })
+        const joinedRoomId = await this.$store.dispatch('nostrChat/acceptMlsInvite', { roomId: invite.roomId })
         this.$q.notify({
           type: 'positive',
           message: this.$t('InviteAccepted', {}, 'You joined the group'),
         })
-        this.openRoom(invite.roomId)
+        this.openRoom(joinedRoomId || invite.roomId)
       } catch (err) {
         console.error('[MLS] accept invite failed:', err)
         this.$q.notify({
