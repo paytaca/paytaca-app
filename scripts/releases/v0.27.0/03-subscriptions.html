@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>Paytaca v0.27.0 — subscriptions &amp; recurring payments</title>
+  <link rel="stylesheet" href="release.css" />
+  <style>
+    .ifaces {
+      display: flex;
+      gap: 0.5rem;
+      margin-top: 1.35rem;
+      flex-wrap: wrap;
+    }
+  </style>
+</head>
+<body>
+  <div class="canvas">
+    <div class="orb orb-red" style="width: 520px; height: 520px; left: -220px; bottom: -140px; opacity: 0.16;"></div>
+    <div class="orb orb-brand" style="width: 680px; height: 680px; right: -230px; top: 110px; opacity: 0.32;"></div>
+    <div class="grid"></div>
+
+    <div class="frame tight">
+      <div class="topbar">
+        <span class="brandmark">
+          <img class="logo" src="../../../src/assets/paytaca_logo_horizontal.png" alt="Paytaca" />
+        </span>
+        <span class="chip">What's new — 02 / 03</span>
+      </div>
+
+      <div class="stage">
+        <div class="copy">
+          <span class="eyebrow">What's new · 02</span>
+          <h2 class="title">Recurring <em>payments</em></h2>
+          <p class="lede">Bill customers on a schedule — settle in BCH or CashTokens.</p>
+          <div class="ifaces">
+            <span class="chip">Payment Hub</span>
+            <span class="chip">BCH + CashTokens</span>
+            <span class="chip">Cancel anytime</span>
+          </div>
+        </div>
+
+        <div class="phone-wrap">
+          <div class="phone">
+            <span class="notch"></span>
+            <div class="screen">
+              <div class="statusbar">
+                <span class="time">9:41</span>
+                <span class="r">
+                  <span class="mi">signal_cellular_alt</span>
+                  <span class="mi">wifi</span>
+                  <span class="mi">battery_full</span>
+                </span>
+              </div>
+
+              <div class="appbar">
+                <span class="iconbtn back"><span class="mi">arrow_back</span></span>
+                <div class="center">
+                  <div class="ttl">Recurring Payments</div>
+                  <div class="sub">Payment Hub</div>
+                </div>
+                <span class="right">
+                  <span class="iconbtn"><span class="mi">refresh</span></span>
+                </span>
+              </div>
+
+              <div class="appbody">
+                <div class="subs">
+                  <div class="subs-head">
+                    <span class="h">My Subscriptions</span>
+                    <span class="mi">refresh</span>
+                  </div>
+
+                  <div class="searchbar">
+                    <span class="inp"><span class="mi">search</span>Search</span>
+                    <span class="sel">ALL<span class="mi">arrow_drop_down</span></span>
+                  </div>
+
+                  <div class="sublist">
+                    <div class="sub-item">
+                      <div class="sub-main">
+                        <span class="sub-name">Pro Plan</span>
+                        <div class="sub-sub">499 PHP <span class="dotsep">•</span> 30 Days</div>
+                        <div class="sub-id">sub_8f3a2c</div>
+                      </div>
+                      <div class="sub-side">
+                        <span class="stbadge active">ACTIVE</span>
+                        <span class="sub-acts">
+                          <span class="topup">Top Up</span>
+                          <span class="mi">block</span>
+                          <span class="mi chev">chevron_right</span>
+                        </span>
+                      </div>
+                    </div>
+
+                    <div class="sub-item">
+                      <div class="sub-main">
+                        <span class="sub-name">Coffee Club</span>
+                        <div class="sub-sub">0.0002 BCH <span class="dotsep">•</span> 30 Days</div>
+                        <div class="sub-id">sub_21b7e9</div>
+                      </div>
+                      <div class="sub-side">
+                        <span class="stbadge active">ACTIVE</span>
+                        <span class="sub-acts">
+                          <span class="topup">Top Up</span>
+                          <span class="mi">block</span>
+                          <span class="mi chev">chevron_right</span>
+                        </span>
+                      </div>
+                    </div>
+
+                    <div class="sub-item">
+                      <div class="sub-main">
+                        <span class="sub-name">Cloud Storage</span>
+                        <div class="sub-sub">10.50 USD <span class="dotsep">•</span> 30 Days</div>
+                        <div class="sub-id">sub_5c9d10</div>
+                      </div>
+                      <div class="sub-side">
+                        <span class="stbadge pending">PENDING</span>
+                        <span class="sub-acts">
+                          <span class="topup">Top Up</span>
+                          <span class="mi chev">chevron_right</span>
+                        </span>
+                      </div>
+                    </div>
+
+                    <div class="sub-item">
+                      <div class="sub-main">
+                        <span class="sub-name">Gym Membership</span>
+                        <div class="sub-sub">12.99 USD <span class="dotsep">•</span> 30 Days</div>
+                        <div class="sub-id">sub_7a04ff</div>
+                      </div>
+                      <div class="sub-side">
+                        <span class="stbadge cancelled">CANCELLED</span>
+                        <span class="sub-acts">
+                          <span class="mi chev">chevron_right</span>
+                        </span>
+                      </div>
+                    </div>
+
+                    <div class="sub-item">
+                      <div class="sub-main">
+                        <span class="sub-name">VPN Access</span>
+                        <div class="sub-sub">4.99 USD <span class="dotsep">•</span> 30 Days</div>
+                        <div class="sub-id">sub_9e12b0</div>
+                      </div>
+                      <div class="sub-side">
+                        <span class="stbadge active">ACTIVE</span>
+                        <span class="sub-acts">
+                          <span class="topup">Top Up</span>
+                          <span class="mi">block</span>
+                          <span class="mi chev">chevron_right</span>
+                        </span>
+                      </div>
+                    </div>
+
+                  <span class="fab"><span class="mi">add</span></span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</body>
+</html>

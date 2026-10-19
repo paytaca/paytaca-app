@@ -759,6 +759,11 @@ export default {
         }
       }
     },
+    '$route.query.npub' (val) {
+      // Deep link arriving while the chat page is already mounted
+      // (mounted() does not re-run on query-only navigation).
+      if (val) this.handleIncomingNpub(String(val))
+    },
   },
   async mounted () {
     const scannedNpub = this.$route.query.npub
@@ -1386,6 +1391,27 @@ try {
       }
       this.showNewChatDialog = false
       this.$router.push(`/apps/chat/${room.id}`)
+    },
+    async handleIncomingNpub (npub) {
+      const contact = this.$store.getters['nostrChat/getContactByNpub'](npub)
+      if (!contact) {
+        this.$router.replace({ path: '/apps/chat', query: {} })
+        this.newContactNpub = npub
+        this.newContactName = ''
+        this.npubError = ''
+        this.selectedChatType = 'dm'
+        this.dialogTab = 'add'
+        this.showNewChatDialog = true
+        return
+      }
+      try {
+        if (!this.$store.getters['nostrChat/isInitialized']) {
+          await this.$store.dispatch('nostrChat/initialize')
+        }
+        await this.startChatWith(contact)
+      } catch (err) {
+        console.error('[Chat] Failed to open chat from invite:', err)
+      }
     },
     async handleScannedNpub (npub) {
       // Clean up query param so dialog doesn't reopen on refresh
