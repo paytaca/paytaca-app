@@ -178,10 +178,33 @@ function resolveMlsGroupIdHex(ws, nostrGroupIdHex) {
 }
 
 function resolveRoomIdByMlsGroupId(ws, mlsGroupIdHex) {
-  for (const [roomId, gHex] of Object.entries(ws.mls.roomMlsMap || {})) {
-    if (gHex === mlsGroupIdHex) return roomId
+  // More than one room can map to the same MLS group: a deleted conversation
+  // keeps its roomMlsMap entry, and duplicate rooms were created by the old
+  // Create Group double-click bug. Picking the first entry then files incoming
+  // messages under a room the UI never renders — they decrypt cleanly and
+  // simply never appear.
+  const roomIds = Object.entries(ws.mls.roomMlsMap || {})
+    .filter(([, gHex]) => gHex === mlsGroupIdHex)
+    .map(([roomId]) => roomId)
+  if (!roomIds.length) return null
+
+  const live = roomIds.filter((roomId) => (ws.rooms || []).some((r) => r.id === roomId))
+  const candidates = live.length ? live : roomIds
+  if (candidates.length === 1) return candidates[0]
+
+  // Prefer the room the user is actually using: their own sends touch
+  // lastMessageAt on the open conversation, so the active duplicate wins.
+  let best = candidates[0]
+  let bestTs = -1
+  for (const roomId of candidates) {
+    const room = (ws.rooms || []).find((r) => r.id === roomId)
+    const ts = room?.lastMessageAt || room?.updatedAt || room?.createdAt || 0
+    if (ts > bestTs) {
+      best = roomId
+      bestTs = ts
+    }
   }
-  return null
+  return best
 }
 
 // Collect the KeyPackage candidates that could match an incoming Welcome, in

@@ -1718,8 +1718,14 @@ export async function touchRoom ({ dispatch, state }, { roomId, timestamp } = {}
   await touchRoomOnServer(roomId, timestamp)
 }
 
-export async function deleteRoom ({ commit }, roomId) {
+export async function deleteRoom ({ commit, state }, roomId) {
+  // Drop the MLS mappings too. Leaving them behind makes the group resolve back
+  // to this deleted room, so every later kind-445 event for the group is filed
+  // under a room the UI never renders (decrypts fine, never displayed).
+  const ws = getWalletState(state)
+  const mlsGroupIdHex = ws?.mls?.roomMlsMap?.[roomId]
   commit('REMOVE_ROOM', roomId)
+  if (mlsGroupIdHex) commit('REMOVE_MLS_ROOM_MAP', roomId)
   await deleteRoomOnServer(roomId)
 }
 
