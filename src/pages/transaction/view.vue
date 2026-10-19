@@ -66,9 +66,20 @@
             </q-item-section>
           </q-item>
           <template v-for="category in tokenCategories" :key="category">
-            <q-item v-if="BigInt(tokenDebit[category] || 0) > 0n || BigInt(tokenChange[category] || 0) > 0n">
+
+            <q-item>
               <q-item-section top>
-                <span class="coin-symbol ellipsis">{{ tokenMeta[category]?.symbol || shortenString(category, 16) }}</span>
+                <template v-if="tokenMeta[category]?.symbol">
+                  <span class="coin-symbol ellipsis">{{ tokenMeta[category].symbol }}</span>
+                  <div class="text-caption row items-center no-wrap">
+                    <span class="ellipsis">{{ shortenString(category, 16) }}</span>
+                    <q-btn flat dense round size="sm" icon="content_copy" @click="copyCategory(category)" />
+                  </div>
+                </template>
+                <div v-else class="row items-center no-wrap">
+                  <span class="coin-symbol ellipsis">{{ shortenString(category, 16) }}</span>
+                  <q-btn flat dense round size="sm" icon="content_copy" @click="copyCategory(category)" />
+                </div>
               </q-item-section>
               <q-item-section side top class="q-gutter-y-sm">
                 <div class="flex no-wrap items-center q-gutter-x-xs">
@@ -400,6 +411,11 @@ async function loadPsbt () {
     const tokenCategoriesSet = new Set()
     ;(psbt.inputMap?.inputs || []).forEach((inp) => {
       const sourceOutput = inp.getSourceUtxo?.() || null
+      // Categories also live on the consumed input UTXOs; collect them so token
+      // rows render even when outputs carry zero amounts (e.g. immutable NFTs)
+      if (sourceOutput?.token?.category) {
+        tokenCategoriesSet.add(binToHex(sourceOutput.token.category))
+      }
       const der = inp.getBip32Derivation?.() || {}
       const entries = Object.entries(der)
       const [pubkey, info] = entries[0] || [null, null]
