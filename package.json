@@ -102,7 +102,6 @@
     "shamirs-secret-sharing": "^1.0.1",
     "short-uuid": "^5.2.0",
     "tls": "^0.0.1",
-    "translate-google": "^1.5.0",
     "ts-mls": "^1.6.2",
     "v-offline": "^3.5.0",
     "vue": "^3.2.37",
@@ -147,6 +146,7 @@
     "mocha": "^11.7.1",
     "node-polyfill-webpack-plugin": "^1.1.4",
     "patch-package": "^8.0.1",
+    "translate-google": "^1.5.0",
     "ts-loader": "^9.5.2",
     "typescript": "^5.9.3"
   },
