@@ -136,6 +136,8 @@ async function prepareBase64Chunks(chunkSize = 100) {
     }
     const base64Psbt = await props.pst.export()
     const psbtBytes = Buffer.from(base64ToBin(base64Psbt));
+    // BCR-2020-006: the top-level crypto-psbt payload is a plain CBOR byte
+    // string — no tag, the UR type name carries the identity
     const ur = new UR(cborEncode(psbtBytes), "crypto-psbt");
     
     encoder.value = new UREncoder(ur, chunkSize);
@@ -230,7 +232,7 @@ function restartAnimation() {
 }
 
 onMounted(async () => {
-  await prepareBase64Chunks()
+  await prepareBase64Chunks(selectedDensity.value)
   startAnimation()
 });
 

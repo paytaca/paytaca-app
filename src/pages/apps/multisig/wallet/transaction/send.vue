@@ -196,11 +196,15 @@
   </q-layout>
 </template>
 
+<script>
+export default { name: 'MultisigWalletSend' }
+</script>
+
 <script setup>
 
 import { useStore } from 'vuex'
 import { useI18n } from 'vue-i18n'
-import { computed, onMounted, onUnmounted, ref, nextTick, onBeforeMount, watch, defineComponent } from 'vue'
+import { computed, onMounted, onUnmounted, ref, nextTick, onBeforeMount, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useQuasar } from 'quasar'
 import Big from 'big.js'
@@ -217,8 +221,6 @@ import KeyboardTooltip from 'src/components/KeyboardTooltip.vue'
 import { useMultisigHelpers } from 'src/composables/multisig/helpers'
 import { decodeCashAddress } from 'bitauth-libauth-v3'
 import { generateCosignerAuthPublicKeyFromXpub } from 'src/lib/multisig/coordination'
-
-defineComponent({ name: 'MultisigWalletSend' })
 
 const $q = useQuasar()
 const $store = useStore()
@@ -463,17 +465,6 @@ const onAddressFocus = () => {
   focusedInputField.value = ''
   customKeyboardState.value = 'dismiss'
 }
-
-// const asset = computed(() => {
-//   if (route.query.asset === 'bch') {
-//     return { id: 'bch', symbol: 'BCH', decimals: 8 }
-//   }
-//   return {
-//     id: route.query.asset,
-//     symbol: assetHeaderName.value,
-//     decimals: assetTokenIdentity.value?.token?.decimals ?? 8
-//   }
-// })
 
 const onKeydown = (e) => {
   e.preventDefault()

@@ -99,7 +99,8 @@ export default {
       val: this.modelValue,
       error: '',
       zoomLevel: 1.0,
-      torchOn: false
+      torchOn: false,
+      scanListener: null
     }
   },
   props: {
@@ -144,6 +145,17 @@ export default {
     async stopScan () {
       this.$emit('input', false)
       this.$emit('update:model-value', false)
+      try {
+        if (this.scanListener) {
+          await this.scanListener.remove()
+          this.scanListener = null
+        }
+        if (this.isMobile) {
+          await BarcodeScanner.stopScan()
+        }
+      } catch {
+        // native stop is best-effort; web/desktop has no module scanner running
+      }
       this.removeBarcodeScannerActiveClass()
       if (this.torchOn) {
         try { await BarcodeScanner.disableTorch() } catch (e) {}
@@ -162,10 +174,12 @@ export default {
 
       const listener = await BarcodeScanner.addListener('barcodeScanned', async result => {
         await listener.remove()
+        this.scanListener = null
         this.removeBarcodeScannerActiveClass()
         await BarcodeScanner.stopScan()
         this.$emit('decode', result?.barcode?.rawValue)
       })
+      this.scanListener = listener
 
       await BarcodeScanner.startScan({ formats: [BarcodeFormat.QrCode] })
     },
@@ -193,7 +207,8 @@ export default {
     },
 
     async toggleTorch () {
-      if (await BarcodeScanner.isTorchAvailable()) {
+      const { available } = await BarcodeScanner.isTorchAvailable()
+      if (available) {
         await BarcodeScanner.toggleTorch()
         const { enabled } = await BarcodeScanner.isTorchEnabled()
         this.torchOn = enabled
