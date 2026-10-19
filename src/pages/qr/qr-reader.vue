@@ -129,8 +129,7 @@ import QRUploader from 'src/components/QRUploader'
 import { parseWalletConnectUri } from 'src/wallet/walletconnect'
 import { isTokenAddress } from 'src/utils/address-utils';
 import { parseAddressWithoutPrefix } from 'src/utils/send-page-utils'
-import base58 from 'bs58'
-import { binToBase64, base64ToBin } from 'bitauth-libauth-v3';
+import { binToBase64, base64ToBin, base58ToBin } from 'bitauth-libauth-v3';
 import { extractMValue, getWalletHash, MultisigWallet, Pst } from 'src/lib/multisig';
 import { delay } from 'cashscript/dist/utils';
 
@@ -635,15 +634,11 @@ export default {
       return false
     },
     checkifBIP38(value) {
-      let isBase58 = false
-      try {
-        base58.decode(value)
-        isBase58 = true
-      } catch (_e) { return false }
+      // base58ToBin returns an error string for characters outside the base58 alphabet
+      if (typeof base58ToBin(value) === 'string') return false
 
       return value.length === 58
         && value.substring(0, 2) === '6P'
-        && isBase58
     }
   },
 
