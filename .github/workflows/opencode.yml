@@ -53,5 +53,5 @@ jobs:
           TOKEN: ${{ secrets.GITHUB_TOKEN }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
-          model: opencode/kimi-k2.7-code
+          model: opencode/qwen3.8-flash
           use_github_token: true
