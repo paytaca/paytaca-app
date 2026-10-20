@@ -166,17 +166,23 @@
           </div>
 
           <!-- MLS groups support adding members after creation -->
-          <q-btn
+          <!-- The wrapper catches clicks that a disabled button would swallow,
+               so a non-manager still learns why the action is unavailable. -->
+          <div
             v-if="room?.type === 'mls-group'"
-            :label="$t('AddMember', {}, 'Add member')"
-            color="primary"
-            outline
-            rounded
-            unelevated
-            class="full-width q-mt-sm"
-            :disable="addingMember || !isGroupManager"
+            class="add-member-wrap full-width q-mt-sm"
             @click="openAddMemberDialog"
-          />
+          >
+            <q-btn
+              :label="$t('InviteMember', {}, 'Invite member')"
+              color="primary"
+              outline
+              rounded
+              unelevated
+              class="full-width"
+              :disable="addingMember || !isGroupManager"
+            />
+          </div>
         </div>
 
         <!-- Member Details Dialog -->        <q-dialog v-model="showMemberDetails" persistent>
@@ -283,7 +289,7 @@
         <q-dialog v-model="showAddMemberDialog" persistent>
           <q-card class="member-details-card pt-card text-bow" :class="getDarkModeClass(darkMode)" style="min-width: 320px; max-width: 420px; border-radius: 16px;">
             <q-card-section class="row items-center q-pb-none">
-              <div class="text-h6">{{ $t('AddMember', {}, 'Add member') }}</div>
+              <div class="text-h6">{{ $t('InviteMember', {}, 'Invite member') }}</div>
               <q-space />
               <q-btn icon="close" flat round dense v-close-popup />
             </q-card-section>
@@ -364,7 +370,7 @@
               <q-btn
                 unelevated
                 rounded
-                :label="$t('Add', {}, 'Add')"
+                :label="$t('Invite', {}, 'Invite')"
                 color="primary"
                 :loading="addingMember"
                 :disable="!canAddMembers"
@@ -424,7 +430,6 @@ export default {
       roleChanging: false,
       removingMember: false,
       memberTab: 'joined',
-      mlsTreeMembers: [],
       showAddMemberDialog: false,
       addMemberTab: 'contacts',
       selectedAddNpubs: [],
@@ -504,19 +509,25 @@ export default {
         return rankB - rankA
       })
     },
-    // Members present in the MLS tree have completed the join handshake.
-    joinedMembers () {
-      if (!this.isMlsRoom || !this.mlsTreeMembers.length) return this.membersWithInfo
-      const treeSet = new Set(this.mlsTreeMembers)
-      return this.membersWithInfo.filter(m => treeSet.has(m.pubKeyHex))
+    // Invited members whose acceptance we have not observed yet.
+    pendingInvitees () {
+      if (!this.isMlsRoom) return []
+      return this.$store.getters['nostrChat/getMlsPendingInvitees'](this.roomId) || []
     },
-    // In the room's member list but not yet in the MLS tree — invite sent,
-    // they haven't accepted (or their device hasn't processed the welcome).
+    // Members who have proved they accepted the invitation (any message or an
+    // explicit join announcement clears them from the pending set).
+    joinedMembers () {
+      if (!this.isMlsRoom) return this.membersWithInfo
+      const pendingSet = new Set(this.pendingInvitees)
+      return this.membersWithInfo.filter(m => !pendingSet.has(m.pubKeyHex))
+    },
+    // Invited but not yet accepted. An MLS Add commit inserts the invitee into
+    // the tree immediately, so tree membership cannot be used here — only our
+    // local record of unacknowledged invitations can.
     invitedMembers () {
       if (!this.isMlsRoom) return []
-      if (!this.mlsTreeMembers.length) return []
-      const treeSet = new Set(this.mlsTreeMembers)
-      return this.membersWithInfo.filter(m => !treeSet.has(m.pubKeyHex))
+      const pendingSet = new Set(this.pendingInvitees)
+      return this.membersWithInfo.filter(m => pendingSet.has(m.pubKeyHex))
     },
     displayedMembers () {
       if (!this.isMlsRoom) return this.membersWithInfo
@@ -548,7 +559,6 @@ export default {
   mounted () {
     this.fetchMemberAvatars()
     this.fetchMemberDisplayNames()
-    this.fetchMlsTreeMembers()
   },
   watch: {
     room (val) {
@@ -559,7 +569,6 @@ export default {
         this.memberDisplayNames = {}
         this.fetchMemberAvatars()
         this.fetchMemberDisplayNames()
-        this.fetchMlsTreeMembers()
       }
     },
     async showMemberDetails (val) {
@@ -797,16 +806,6 @@ export default {
         }
       })
     },
-    async fetchMlsTreeMembers () {
-      if (!this.isMlsRoom) return
-      try {
-        const members = await this.$store.dispatch('nostrChat/getMlsGroupMemberPubkeys', { roomId: this.roomId })
-        this.mlsTreeMembers = members || []
-      } catch (err) {
-        console.warn('[GroupInfo] Failed to load MLS tree members:', err)
-        this.mlsTreeMembers = []
-      }
-    },
     useFetchedMemberDisplayName () {
       if (this.fetchedMemberDisplayName) {
         this.editMemberNameValue = this.fetchedMemberDisplayName
@@ -851,10 +850,11 @@ export default {
       }
     },
     openAddMemberDialog () {
+      if (this.addingMember) return
       if (!this.isGroupManager) {
         this.$q.notify({
           type: 'warning',
-          message: this.$t('ManagersOnly', {}, 'Only the group owner or an admin can add members'),
+          message: this.$t('ManagersOnly', {}, 'Only the group owner or an admin can invite members'),
           timeout: 4000,
         })
         return
@@ -895,7 +895,7 @@ export default {
       this.addMemberTab = 'npub'
     },
     async confirmAddMembers () {
-      const { nip19Decode } = await import('nostr-tools/nip19')
+      const { decode: nip19Decode } = await import('nostr-tools/nip19')
       const npubs = [...this.selectedAddNpubs]
 
       // Manual npub entry — validate before dispatching anything.
@@ -944,15 +944,14 @@ export default {
             console.warn('[GroupInfo] Failed to add member:', err.message)
           }
         }
-        await this.fetchMlsTreeMembers()
         if (this.invitedMembers.length) this.memberTab = 'invited'
         if (added > 0) {
           this.showAddMemberDialog = false
-          this.$q.notify({ type: 'positive', message: this.$t('MemberAdded', {}, 'Member added') })
+          this.$q.notify({ type: 'positive', message: this.$t('InviteSent', {}, 'Invitation sent') })
         } else {
           this.$q.notify({
             type: 'negative',
-            message: lastErr?.message || this.$t('AddMemberFailed', {}, 'Failed to add member'),
+            message: lastErr?.message || this.$t('InviteFailed', {}, 'Failed to send invitation'),
             timeout: 5000,
           })
         }
@@ -1065,6 +1064,11 @@ export default {
   font-size: 13px;
   color: #9ca3af;
   text-align: center;
+}
+
+/* Let the wrapper receive the click when the button is disabled. */
+.add-member-wrap .q-btn.disabled {
+  pointer-events: none;
 }
 
 .member-details-card {

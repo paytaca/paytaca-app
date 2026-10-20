@@ -1799,6 +1799,21 @@ export default {
               recipients: this.room?.members?.filter(m => m !== this.myPubKey) || [],
             })
           }
+        } else if (this.editingMessage && this.isMlsRoom) {
+          // MLS groups carry the edit linkage inside the encrypted payload.
+          // The target message is updated in place; no new timeline entry.
+          await this.$store.dispatch('nostrChat/sendMlsMessage', {
+            roomId: this.roomId,
+            text,
+            editOf: this.editingMessage.id,
+          })
+          this.$store.commit('nostrChat/UPDATE_MESSAGE', {
+            roomId: this.roomId,
+            messageId: this.editingMessage.id,
+            newContent: text,
+          })
+          this.editingMessage = null
+          this.scrollToBottom()
         } else {
           const replyTo = this.replyToMessage?.id
 
