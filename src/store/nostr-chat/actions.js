@@ -2277,9 +2277,13 @@ export async function receiveMessage ({ commit, dispatch, state }, { rumor, seal
   let room = ws.rooms.find(r => r.id === roomId)
   if (!room) {
     // Before creating a new room, check if an existing room has the same member set
-    // (handles the case where a room was previously stored under a different ID)
+    // (handles the case where a room was previously stored under a different ID).
+    // MLS rooms are excluded: their id is a random UUID and their members mirror
+    // the MLS tree, so a private DM with the same participants would otherwise
+    // be filed into the group and appear in the shared timeline.
     const memberKey = roomMembers.slice().sort().join(',')
     const existingByMembers = ws.rooms.find(r =>
+      r.type !== 'mls-group' &&
       (r.members || []).slice().sort().join(',') === memberKey
     )
     if (existingByMembers) {
