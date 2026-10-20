@@ -19,6 +19,11 @@ export function getInitialWalletState () {
     // Server-backed deleted room IDs cache (re-fetched on init)
     deletedRooms: [],
     messages: {},
+    // Newest known message timestamp (unix seconds). Persisted (unlike
+    // `messages` itself) so subscribeToRelays can still compute a `since`
+    // filter instead of re-downloading the whole gift-wrap history on every
+    // app start.
+    newestMessageAt: 0,
     readReceipts: {},
     readMessageIds: {},
     messageReadBy: {},

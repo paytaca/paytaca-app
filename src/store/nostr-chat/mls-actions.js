@@ -354,6 +354,14 @@ const mlsProcessingQueues = new Map()
 // could both pass the checks and queue duplicate invitations.
 const mlsWelcomeInFlight = new Set()
 
+// initMls() runs on every subscribeToRelays() — i.e. every time the chat pages
+// mount, the tab becomes visible, or the relay connection is rebuilt. The
+// KeyPackage and relay-list publishes are identity-wide and idempotent, so
+// repeating them per chat open is pure latency: it costs two relay publishes
+// plus a key-package query before subscriptions are re-armed. Track the identity
+// we already bootstrapped and skip the publishes for repeat calls.
+let mlsBootstrappedPubKey = null
+
 function withMlsProcessingLock(mlsGroupIdHex, fn) {
   const prev = mlsProcessingQueues.get(mlsGroupIdHex) || Promise.resolve()
   const next = prev.then(fn, fn)
@@ -368,17 +376,24 @@ export async function initMls({ commit, state, dispatch }) {
   if (!ws?.keys?.privKeyHex || !ws.mls) return false
   const nostrPubkeyHex = ws.keys.pubKeyHex
 
+  // Skip the key-package fetch/publish for repeat calls in the same session.
+  // These are identity-wide and idempotent; re-running them on every chat open
+  // adds relay round-trips before subscriptions are re-armed.
+  const alreadyBootstrapped = mlsBootstrappedPubKey === nostrPubkeyHex
+
   // Load previously-published key packages first so the history reflects what
   // other clients/receivers know about, in case the current publish fails.
-  try {
-    const currentKpEvents = await relayService.fetchNipEeKeyPackage(state.relays, nostrPubkeyHex)
-    for (const event of currentKpEvents) {
-      if (decodeNipEeKeyPackage(event.content)) {
-        commit('PUSH_MLS_KP_HISTORY', { content: event.content, publishedAt: event.created_at })
+  if (!alreadyBootstrapped) {
+    try {
+      const currentKpEvents = await relayService.fetchNipEeKeyPackage(state.relays, nostrPubkeyHex)
+      for (const event of currentKpEvents) {
+        if (decodeNipEeKeyPackage(event.content)) {
+          commit('PUSH_MLS_KP_HISTORY', { content: event.content, publishedAt: event.created_at })
+        }
       }
+    } catch (err) {
+      console.warn('[MLS] Failed to fetch existing key packages:', err.message)
     }
-  } catch (err) {
-    console.warn('[MLS] Failed to fetch existing key packages:', err.message)
   }
 
   const walletHash = getCurrentWalletHash()
@@ -395,39 +410,46 @@ export async function initMls({ commit, state, dispatch }) {
     hpkeIkms
   )
 
-  let published = false
   const serialized = bytesToHex(mls.encodeKeyPackageForPublish(publicPackage))
 
-  // Publish to each relay until one accepts the write.
-  for (const relay of state.relays) {
-    try {
-      const unsignedEvent = mls.buildNipEeKeyPackageEvent({
-        keyPackageHex: serialized,
-        nostrPubkeyHex,
-        relays: state.relays,
-      })
-      const signedEvent = finalizeEvent(unsignedEvent, hexToBytes(ws.keys.privKeyHex))
-      await relayService.publishEvent([relay], signedEvent)
-      commit('PUSH_MLS_KP_HISTORY', { content: serialized, publishedAt: signedEvent.created_at })
-      published = true
-      break
-    } catch (err) {
-      console.warn('[MLS] Failed to publish key package to', relay, ':', err.message)
+  if (!alreadyBootstrapped) {
+    let published = false
+
+    // Publish to each relay until one accepts the write.
+    for (const relay of state.relays) {
+      try {
+        const unsignedEvent = mls.buildNipEeKeyPackageEvent({
+          keyPackageHex: serialized,
+          nostrPubkeyHex,
+          relays: state.relays,
+        })
+        const signedEvent = finalizeEvent(unsignedEvent, hexToBytes(ws.keys.privKeyHex))
+        await relayService.publishEvent([relay], signedEvent)
+        commit('PUSH_MLS_KP_HISTORY', { content: serialized, publishedAt: signedEvent.created_at })
+        published = true
+        break
+      } catch (err) {
+        console.warn('[MLS] Failed to publish key package to', relay, ':', err.message)
+      }
     }
-  }
 
-  if (!published) {
-    console.warn('[MLS] Could not publish key package; continuing with local state')
-  }
+    if (!published) {
+      console.warn('[MLS] Could not publish key package; continuing with local state')
+    } else {
+      // Only mark the identity bootstrapped once a relay actually accepted the
+      // key package, so a failed publish is retried on the next chat open.
+      mlsBootstrappedPubKey = nostrPubkeyHex
+    }
 
-  // Publish the NIP-EE relay list (kind 10051) so other devices/clients can
-  // look up the relays this identity routes its groups on.
-  try {
-    const unsignedRelayList = mls.buildNipEeRelayListEvent(state.relays, nostrPubkeyHex)
-    const signedRelayList = finalizeEvent(unsignedRelayList, hexToBytes(ws.keys.privKeyHex))
-    await relayService.publishEvent(state.relays, signedRelayList)
-  } catch (err) {
-    console.warn('[MLS] Failed to publish NIP-EE relay list:', err.message)
+    // Publish the NIP-EE relay list (kind 10051) so other devices/clients can
+    // look up the relays this identity routes its groups on.
+    try {
+      const unsignedRelayList = mls.buildNipEeRelayListEvent(state.relays, nostrPubkeyHex)
+      const signedRelayList = finalizeEvent(unsignedRelayList, hexToBytes(ws.keys.privKeyHex))
+      await relayService.publishEvent(state.relays, signedRelayList)
+    } catch (err) {
+      console.warn('[MLS] Failed to publish NIP-EE relay list:', err.message)
+    }
   }
 
   commit('SET_MLS_KEY_PACKAGE', { serialized, credentialIdentity: nostrPubkeyHex })
@@ -446,6 +468,9 @@ export async function initMls({ commit, state, dispatch }) {
   // Subscribe to NIP-EE group events (kind 445) scoped to our groups' h tags,
   // plus historic catch-up. Welcomes arrive as gift-wrapped kind-444 rumors
   // through the NIP-17 pipeline and are surfaced as invitations.
+  // The history replay is fire-and-forget and deduped by `_mlsSeenEventIds`,
+  // so it never blocks the caller; keep it running on every init so members
+  // that missed commits while offline still catch up.
   const nostrGroupHexes = [...new Set(Object.values(ws.mls.roomMlsNostrMap || {}).filter(Boolean))]
   try {
     relayService.subscribeMlsEvents(state.relays, nostrPubkeyHex, nostrGroupHexes, {
