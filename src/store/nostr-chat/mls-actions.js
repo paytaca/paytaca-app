@@ -979,7 +979,67 @@ export async function sendMlsMessage({ commit, state }, { roomId, text, replyTo,
 
 // ---- Receiving messages ----
 
-export async function receiveMlsMessage({ commit, state }, event) {
+// MLS has no recovery for a missed Commit: once a member falls behind the
+// group's epoch, every later message is sealed with an exporter secret they
+// cannot derive and they stay stuck forever. Track the per-group catch-up so a
+// replay cannot recurse into another replay, and back off when a replay makes
+// no progress.
+const mlsResyncState = new Map()
+const MLS_RESYNC_COOLDOWN_MS = 30 * 1000
+const MLS_RESYNC_MAX_ATTEMPTS = 5
+
+/**
+ * Replay a group's kind-445 history in order so a member that missed a Commit
+ * (offline, dropped subscription, relay hiccup) can advance to the current
+ * epoch. Events already applied are skipped by processedEventIds, so this is
+ * idempotent; the missed Commit is the one that actually takes effect.
+ */
+async function resyncMlsGroup({ commit, state, dispatch }, { mlsGroupIdHex }) {
+  const entry = mlsResyncState.get(mlsGroupIdHex) || { attempts: 0, lastAttempt: 0, running: false }
+  if (entry.running) return
+  const now = Date.now()
+  if (now - entry.lastAttempt < MLS_RESYNC_COOLDOWN_MS) return
+  if (entry.attempts >= MLS_RESYNC_MAX_ATTEMPTS) return
+
+  mlsResyncState.set(mlsGroupIdHex, { running: true, attempts: entry.attempts + 1, lastAttempt: now })
+  try {
+    const ws = getWalletState(state)
+    const roomId = resolveRoomIdByMlsGroupId(ws, mlsGroupIdHex)
+    const nostrGroupIdHex = roomId ? ws.mls.roomMlsNostrMap?.[roomId] : null
+    if (!nostrGroupIdHex) return
+
+    const countProcessed = () =>
+      Object.keys(ws.mls.processedEventIds?.[mlsGroupIdHex] || {}).length
+    const before = countProcessed()
+
+    const events = await relayService.fetchMlsGroupEvents(state.relays, nostrGroupIdHex, 500)
+    console.log(
+      '[MLS] Catch-up replay for group', mlsGroupIdHex.slice(0, 12),
+      '—', events.length, 'events, attempt', entry.attempts + 1,
+    )
+    for (const ev of events) {
+      // Retry budget applies to transient failures; a catch-up is exactly the
+      // moment a previously-dropped event may become processable.
+      commit('CLEAR_EVENT_PROCESS_FAILURES', ev.id)
+      relayService.forgetMlsSeenEvent(ev.id)
+      await dispatch('receiveMlsMessage', ev)
+    }
+
+    if (countProcessed() > before) {
+      // Made progress — allow a future catch-up immediately if still behind.
+      mlsResyncState.set(mlsGroupIdHex, { running: false, attempts: 0, lastAttempt: Date.now() })
+    }
+  } catch (err) {
+    console.warn('[MLS] Catch-up replay failed:', err.message)
+  } finally {
+    const current = mlsResyncState.get(mlsGroupIdHex) || entry
+    if (current.running) {
+      mlsResyncState.set(mlsGroupIdHex, { ...current, running: false })
+    }
+  }
+}
+
+export async function receiveMlsMessage({ commit, state, dispatch }, event) {
   const ws = getWalletState(state)
   if (!ws?.keys?.privKeyHex) return
 
@@ -1027,8 +1087,13 @@ export async function receiveMlsMessage({ commit, state }, event) {
 
   // Undecodable-event suppression: relays re-serve history forever, so an
   // event we can never decrypt would be retried on every history fetch.
+  // A suppressed event may simply have been sealed in an epoch we were locked
+  // out of (a Commit we missed), so use the re-delivery as a cue to catch up
+  // instead of returning silently — otherwise a member stuck in a previous
+  // session can never recover, since every event stays suppressed.
   const failedAttempts = ws.mls.failedEventAttempts?.[event.id]
   if (failedAttempts && failedAttempts.count >= MAX_EVENT_PROCESS_ATTEMPTS) {
+    await resyncMlsGroup({ commit, state, dispatch }, { mlsGroupIdHex })
     return
   }
 
@@ -1038,6 +1103,12 @@ export async function receiveMlsMessage({ commit, state }, event) {
   if (ws.mls.processedEventIds?.[mlsGroupIdHex]?.[event.id]) return
 
   const { impl } = mls.getMlsCrypto()
+
+  // Set when the event could not be decrypted because our epoch is behind the
+  // sender's. The catch-up runs AFTER the processing lock is released — it
+  // replays events through this same action, so running it inside would
+  // deadlock on the per-group queue.
+  let needsEpochCatchUp = false
 
   await withMlsProcessingLock(mlsGroupIdHex, async () => {
     // Re-check inside the lock: a concurrent delivery of the same event may have
@@ -1227,13 +1298,32 @@ export async function receiveMlsMessage({ commit, state }, event) {
       console.warn(
         '[MLS] Failed to process 445 event', event.id.slice(0, 8),
         'for group', mlsGroupIdHex.slice(0, 12),
-        '— sender leaf', processedResult?.senderLeafIndex, '| own leafIndex:', clientState?.privatePath?.leafIndex,
+        '— epoch', clientState?.groupContext?.epoch,
+        '| sender leaf', processedResult?.senderLeafIndex, '| own leafIndex:', clientState?.privatePath?.leafIndex,
         '| all leaves:', allRatchetGen,
         '|', err.message,
       )
       commit('RECORD_EVENT_PROCESS_FAILURE', { eventId: event.id, error: err.message })
+
+      // A failed event must stay replayable: the subscription's seen-set would
+      // otherwise hide it from every later history fetch for this session, so a
+      // single transient failure (or a Commit that arrives before its
+      // predecessor) would strand the event permanently.
+      relayService.forgetMlsSeenEvent(event.id)
+
+      // The exporter secret only matches when sender and receiver are on the
+      // same epoch. A mismatch means we missed one or more Commits (the usual
+      // case: a member was offline when someone was added), and nothing else
+      // will ever fix it — MLS requires every Commit to be applied in order.
+      if (err.message?.startsWith('Exporter decrypt failed')) {
+        needsEpochCatchUp = true
+      }
     }
   })
+
+  if (needsEpochCatchUp) {
+    await resyncMlsGroup({ commit, state, dispatch }, { mlsGroupIdHex })
+  }
 }
 
 // ---- Member management ----
