@@ -77,13 +77,6 @@ const MARKETPLACE_TERMINAL = Object.freeze({
   cancelled: TerminalType.CANCELLED,
 })
 
-export const P2P_ACTIVE_STATUSES = Object.freeze(
-  Object.keys(P2P_STAGE_INDEX).filter(code => !P2P_TERMINAL[code])
-)
-export const MARKETPLACE_ACTIVE_STATUSES = Object.freeze(
-  Object.keys(MARKETPLACE_STAGE_INDEX).filter(code => !MARKETPLACE_TERMINAL[code])
-)
-
 function capitalize (value = '') {
   if (!value) return ''
   return value.charAt(0).toUpperCase() + value.slice(1)
@@ -238,6 +231,8 @@ export function isSameActivity (a, b) {
     a.stageIndex === b.stageIndex &&
     a.stageCount === b.stageCount &&
     a.countdownAt === b.countdownAt &&
-    a.isTerminal === b.isTerminal
+    a.countdownLabel === b.countdownLabel &&
+    a.isTerminal === b.isTerminal &&
+    a.terminalType === b.terminalType
   )
 }

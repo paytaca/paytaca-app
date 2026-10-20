@@ -29,11 +29,13 @@ export default boot(() => {
       () => Store.getters['global/getWallet']?.('bch')?.walletHash,
       (newHash, oldHash) => {
         if (newHash === oldHash) return
-        if (!newHash) {
-          manager.stopAll().catch(() => {})
-          return
-        }
-        manager.refreshAll({ force: true }).catch(() => {})
+        manager
+          .stopAll()
+          .catch(() => {})
+          .then(() => {
+            if (newHash) return manager.refreshAll({ force: true })
+          })
+          .catch(() => {})
       }
     )
   } catch (error) {

@@ -1,4 +1,5 @@
 import { Capacitor } from '@capacitor/core'
+import { BigNumber } from 'ethers'
 import { Store } from 'src/store'
 import OrderLiveActivity from './native-plugin'
 import {
@@ -130,7 +131,9 @@ class OrderLiveActivityManager {
     const existing = this.tracked.get(activity.id)
 
     if (activity.isTerminal) {
-      await this.stop(activity.id, activity)
+      // Nothing tracked means there is no activity to end (restore() and
+      // persist() both drop terminal entries), so skip the native/backend work.
+      if (existing) await this.stop(activity.id, activity)
       return
     }
 
@@ -165,7 +168,7 @@ class OrderLiveActivityManager {
     if (!id) return
     const activity = finalActivity || this.tracked.get(id)
 
-    if (activity) this.unregisterPushToken(activity)
+    if (activity) await this.unregisterPushToken(activity)
 
     this.tracked.delete(id)
     this.persist()
@@ -190,13 +193,20 @@ class OrderLiveActivityManager {
    */
   async stopAll () {
     const activities = this.list()
+    // Capture tokens first: clearing the map below would leave iOS without a
+    // token to address when posting the `end` registration.
+    const tokens = Array.from(this.pushTokens.entries())
 
     this.tracked.clear()
     this.pushTokens.clear()
     this.persist()
 
     // Best-effort backend cleanup so the server stops pushing to stale tokens.
-    activities.forEach(activity => this.postPushRegistration(activity, 'end'))
+    // Awaited so a wallet switch finishes cleanup before rebuilding.
+    await Promise.allSettled(activities.map(activity => {
+      const token = tokens.find(([id]) => id === activity.id)?.[1]
+      return this.postPushRegistration(activity, 'end', token)
+    }))
 
     if (!this.supported) return
     try {
@@ -249,8 +259,11 @@ class OrderLiveActivityManager {
   }
 
   async unregisterPushToken (activity) {
+    // Read the token before dropping it: on iOS it is the only one the backend
+    // will accept for the `end` registration.
+    const token = this.pushTokens.get(activity.id)
     this.pushTokens.delete(activity.id)
-    await this.postPushRegistration(activity, 'end')
+    await this.postPushRegistration(activity, 'end', token)
   }
 
   /**
@@ -291,12 +304,21 @@ class OrderLiveActivityManager {
     }
   }
 
+  /**
+   * Device id in the format commerce-hub already stores: the raw uuid on iOS,
+   * and its decimal representation on Android (see `src/boot/push-notifications.js`
+   * and `src/marketplace/push-notifications.js`).
+   */
   async getDeviceId () {
     if (this._deviceId) return this._deviceId
     try {
       const { Device } = await import('@capacitor/device')
       const info = await Device.getId()
-      this._deviceId = info?.uuid || info?.identifier || ''
+      const uuid = info?.uuid || info?.identifier || ''
+      if (!uuid) return ''
+      this._deviceId = this.platform === 'android'
+        ? BigNumber.from('0x' + uuid).toString()
+        : uuid
     } catch (error) {
       console.debug('Failed to resolve device id for order live activities:', error)
       this._deviceId = ''
@@ -357,7 +379,12 @@ class OrderLiveActivityManager {
       if (!Array.isArray(results)) return
       for (const raw of results) {
         const order = Order.parse(raw)
-        if (!order.inProgress) continue
+        // Already-tracked orders must always be synced, otherwise the activity
+        // freezes at the last in-progress status once the order moves to
+        // delivered/terminal. Untracked ones only start from an in-progress
+        // stage: pending checkouts and long-finished orders stay quiet.
+        const tracked = this.get(activityId(OrderKind.MARKETPLACE, order.id))
+        if (!tracked && !order.inProgress) continue
         await this.syncMarketplaceOrder(order, {
           storefrontName: this.getMarketplaceStorefrontName(order.storefrontId),
         })

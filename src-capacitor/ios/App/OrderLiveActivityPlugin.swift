@@ -58,6 +58,8 @@ public class OrderLiveActivityPlugin: CAPPlugin, CAPBridgedPlugin {
 
         // Reuse an existing activity so a page reload does not stack duplicates.
         if let existing = findActivity(id: id) {
+            // Activities restored after an app restart have no token observer.
+            observePushToken(of: existing)
             Task {
                 await existing.update(using: state)
                 call.resolve(["id": id])
@@ -99,6 +101,15 @@ public class OrderLiveActivityPlugin: CAPPlugin, CAPBridgedPlugin {
         guard let activity = findActivity(id: id) else {
             start(call)
             return
+        }
+
+        // Re-attach when no observer is running: the activity may have been
+        // restored from a previous process, and Apple can rotate the
+        // per-activity push token while the app is terminated. Re-reading the
+        // token re-emits it so the backend registration is refreshed instead of
+        // targeting a stale token.
+        if tokenTasks[id] == nil {
+            observePushToken(of: activity)
         }
 
         let state = contentState(from: payload)

@@ -41,6 +41,7 @@ final class OrderLiveActivityNotification {
     private static final String PREFS_NAME = "order_live_activity";
     private static final String PREFS_KEY_IDS = "active_notification_ids";
     private static final String EXTRA_ACTIVITY_ID = "orderLiveActivityId";
+    private static final String DEEP_LINK_PREFIX = "paytaca://live-activity";
 
     private OrderLiveActivityNotification() {}
 
@@ -158,7 +159,9 @@ final class OrderLiveActivityNotification {
         int requestCode
     ) {
         Intent intent;
-        if (deepLink == null || deepLink.isEmpty()) {
+        // Only our own live-activity route may be opened from an FCM payload;
+        // anything else falls back to the plain MainActivity intent.
+        if (deepLink == null || !deepLink.startsWith(DEEP_LINK_PREFIX)) {
             intent = new Intent(context, MainActivity.class);
         } else {
             intent = new Intent(Intent.ACTION_VIEW, Uri.parse(deepLink));
