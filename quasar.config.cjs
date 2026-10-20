@@ -40,6 +40,7 @@ module.exports = defineConfig((ctx) => {
       'axios',
       'leaflet',
       'push-notifications',
+      'order-live-activity',
       'qrcodecomponent',
       'qrcodereader',
       'clipboard',

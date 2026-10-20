@@ -7,27 +7,60 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		04F1903F0FADBB80966DD906 /* OrderLiveActivityWidget.appex in Embed App Extensions */ = {isa = PBXBuildFile; fileRef = 9637BA10CD025A232A122034 /* OrderLiveActivityWidget.appex */; settings = {ATTRIBUTES = (CodeSignOnCopy, RemoveHeadersOnCopy, ); }; };
 		2FAD9763203C412B000D30F8 /* config.xml in Resources */ = {isa = PBXBuildFile; fileRef = 2FAD9762203C412B000D30F8 /* config.xml */; };
-		40140955F8FC44D08E51EC6B /* App/PluginViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = FEB6F9A24C7A4FA79CDEFAA1 /* App/PluginViewController.swift */; };
+		40140955F8FC44D08E51EC6B /* PluginViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = FEB6F9A24C7A4FA79CDEFAA1 /* PluginViewController.swift */; };
 		50379B232058CBB4000EE86E /* capacitor.config.json in Resources */ = {isa = PBXBuildFile; fileRef = 50379B222058CBB4000EE86E /* capacitor.config.json */; };
 		504EC3081FED79650016851F /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 504EC3071FED79650016851F /* AppDelegate.swift */; };
 		504EC30D1FED79650016851F /* Main.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = 504EC30B1FED79650016851F /* Main.storyboard */; };
 		504EC30F1FED79650016851F /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 504EC30E1FED79650016851F /* Assets.xcassets */; };
 		504EC3121FED79650016851F /* LaunchScreen.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = 504EC3101FED79650016851F /* LaunchScreen.storyboard */; };
 		50B271D11FEDC1A000F3C39B /* public in Resources */ = {isa = PBXBuildFile; fileRef = 50B271D01FEDC1A000F3C39B /* public */; };
+		5BB90D8DB7C1BB367A15FBE5 /* OrderLiveActivityAttributes.swift in Sources */ = {isa = PBXBuildFile; fileRef = 35BA09FCEE9C4B486F30D47E /* OrderLiveActivityAttributes.swift */; };
 		8C6304BC2F93BFDC00A91097 /* AudioModePlugin.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8C6304BB2F93BFDC00A91097 /* AudioModePlugin.swift */; };
-		8CDEF0012ECD4A5B00000002 /* DeferredReferralPlugin.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8CDEF0012ECD4A5B00000001 /* DeferredReferralPlugin.swift */; };
 		8C85C4A32F0A7E930068BF2C /* paytaca_logo.png in Resources */ = {isa = PBXBuildFile; fileRef = 8C85C4A22F0A7E930068BF2C /* paytaca_logo.png */; };
 		8C9498C62EAEFFC9007F1102 /* SaveToGalleryPlugin.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8C9498C52EAEFFC9007F1102 /* SaveToGalleryPlugin.swift */; };
 		8C9498C72EAEFFD0007F1103 /* ScreenshotSecurityPlugin.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8C9498C82EAEFFD0007F1103 /* ScreenshotSecurityPlugin.swift */; };
+		8CDEF0012ECD4A5B00000002 /* DeferredReferralPlugin.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8CDEF0012ECD4A5B00000001 /* DeferredReferralPlugin.swift */; };
 		8CDF32FB2EC302EB0083F06E /* send-success.mp3 in Resources */ = {isa = PBXBuildFile; fileRef = 8CDF32FA2EC302EB0083F06E /* send-success.mp3 */; };
 		AB4C9DB6DC078C3F979CA3D6 /* Pods_App.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 0CCBC391946425CE841986A4 /* Pods_App.framework */; };
+		AE37EAB81D5D459B9B079EC4 /* OrderLiveActivityPlugin.swift in Sources */ = {isa = PBXBuildFile; fileRef = 681ED6524044E42E594E6196 /* OrderLiveActivityPlugin.swift */; };
+		AF4A78CFC3D01A9B14C67B51 /* OrderLiveActivityWidget.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0D2D9DC6A6C8E52E79BA2D2E /* OrderLiveActivityWidget.swift */; };
+		E9550245173DCEAF8369F167 /* OrderLiveActivityAttributes.swift in Sources */ = {isa = PBXBuildFile; fileRef = 35BA09FCEE9C4B486F30D47E /* OrderLiveActivityAttributes.swift */; };
+		FFF4E5459AEC3AD0CF77AAB7 /* Foundation.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 09BCBBB60A41799A053F7BBA /* Foundation.framework */; };
 /* End PBXBuildFile section */
 
+/* Begin PBXContainerItemProxy section */
+		59F8478A7400E3C02B6127A5 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 504EC2FC1FED79650016851F /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 1905A8BA64521C76BC7BE5A9;
+			remoteInfo = OrderLiveActivityWidget;
+		};
+/* End PBXContainerItemProxy section */
+
+/* Begin PBXCopyFilesBuildPhase section */
+		DA14F87CADDA4A728590DFA0 /* Embed App Extensions */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = "";
+			dstSubfolderSpec = 13;
+			files = (
+				04F1903F0FADBB80966DD906 /* OrderLiveActivityWidget.appex in Embed App Extensions */,
+			);
+			name = "Embed App Extensions";
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXCopyFilesBuildPhase section */
+
 /* Begin PBXFileReference section */
+		09BCBBB60A41799A053F7BBA /* Foundation.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Foundation.framework; path = Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS18.0.sdk/System/Library/Frameworks/Foundation.framework; sourceTree = DEVELOPER_DIR; };
 		0CCBC391946425CE841986A4 /* Pods_App.framework */ = {isa = PBXFileReference; explicitFileType = wrapper.framework; includeInIndex = 0; path = Pods_App.framework; sourceTree = BUILT_PRODUCTS_DIR; };
 		0D21833CE393017B1F8D5488 /* Pods-App.debug.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-App.debug.xcconfig"; path = "Target Support Files/Pods-App/Pods-App.debug.xcconfig"; sourceTree = "<group>"; };
+		0D2D9DC6A6C8E52E79BA2D2E /* OrderLiveActivityWidget.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = OrderLiveActivityWidget.swift; sourceTree = "<group>"; };
 		2FAD9762203C412B000D30F8 /* config.xml */ = {isa = PBXFileReference; lastKnownFileType = text.xml; path = config.xml; sourceTree = "<group>"; };
+		35BA09FCEE9C4B486F30D47E /* OrderLiveActivityAttributes.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = OrderLiveActivityAttributes.swift; sourceTree = "<group>"; };
 		40DDB73E297AA84300097A81 /* AppDebug.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = AppDebug.entitlements; sourceTree = "<group>"; };
 		50379B222058CBB4000EE86E /* capacitor.config.json */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.json; path = capacitor.config.json; sourceTree = "<group>"; };
 		504EC3041FED79650016851F /* App.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = App.app; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -37,19 +70,30 @@
 		504EC3111FED79650016851F /* Base */ = {isa = PBXFileReference; lastKnownFileType = file.storyboard; name = Base; path = Base.lproj/LaunchScreen.storyboard; sourceTree = "<group>"; };
 		504EC3131FED79650016851F /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
 		50B271D01FEDC1A000F3C39B /* public */ = {isa = PBXFileReference; lastKnownFileType = folder; path = public; sourceTree = "<group>"; };
+		681ED6524044E42E594E6196 /* OrderLiveActivityPlugin.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = OrderLiveActivityPlugin.swift; sourceTree = "<group>"; };
 		8C5E2B91297B8F9C001D535F /* App.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = App.entitlements; sourceTree = "<group>"; };
 		8C6304BB2F93BFDC00A91097 /* AudioModePlugin.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AudioModePlugin.swift; sourceTree = "<group>"; };
-		8CDEF0012ECD4A5B00000001 /* DeferredReferralPlugin.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DeferredReferralPlugin.swift; sourceTree = "<group>"; };
 		8C85C4A22F0A7E930068BF2C /* paytaca_logo.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = paytaca_logo.png; sourceTree = "<group>"; };
 		8C9498C52EAEFFC9007F1102 /* SaveToGalleryPlugin.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SaveToGalleryPlugin.swift; sourceTree = "<group>"; };
 		8C9498C82EAEFFD0007F1103 /* ScreenshotSecurityPlugin.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScreenshotSecurityPlugin.swift; sourceTree = "<group>"; };
 		8CDA945029AE31FD0089EE1B /* AppRelease.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = AppRelease.entitlements; sourceTree = "<group>"; };
+		8CDEF0012ECD4A5B00000001 /* DeferredReferralPlugin.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DeferredReferralPlugin.swift; sourceTree = "<group>"; };
 		8CDF32FA2EC302EB0083F06E /* send-success.mp3 */ = {isa = PBXFileReference; lastKnownFileType = audio.mp3; path = "send-success.mp3"; sourceTree = "<group>"; };
+		9637BA10CD025A232A122034 /* OrderLiveActivityWidget.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = OrderLiveActivityWidget.appex; sourceTree = BUILT_PRODUCTS_DIR; };
 		CFB4C42D60BF2C75DE545871 /* Pods-App.release.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-App.release.xcconfig"; path = "Target Support Files/Pods-App/Pods-App.release.xcconfig"; sourceTree = "<group>"; };
-		FEB6F9A24C7A4FA79CDEFAA1 /* App/PluginViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = App/PluginViewController.swift; sourceTree = "<group>"; };
+		E4D194AC1DF27E18596199AF /* Info.plist */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
+		FEB6F9A24C7A4FA79CDEFAA1 /* PluginViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = App/PluginViewController.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
+		331BB71D3CAD7101AAD693FB /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				FFF4E5459AEC3AD0CF77AAB7 /* Foundation.framework in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 		504EC3011FED79650016851F /* Frameworks */ = {
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
@@ -65,20 +109,32 @@
 			isa = PBXGroup;
 			children = (
 				0CCBC391946425CE841986A4 /* Pods_App.framework */,
+				4DACE7CB179D02D81438DD12 /* iOS */,
 			);
 			name = Frameworks;
+			sourceTree = "<group>";
+		};
+		4DACE7CB179D02D81438DD12 /* iOS */ = {
+			isa = PBXGroup;
+			children = (
+				09BCBBB60A41799A053F7BBA /* Foundation.framework */,
+			);
+			name = iOS;
 			sourceTree = "<group>";
 		};
 		504EC2FB1FED79650016851F = {
 			isa = PBXGroup;
 			children = (
-				FEB6F9A24C7A4FA79CDEFAA1 /* App/PluginViewController.swift */,
+				FEB6F9A24C7A4FA79CDEFAA1 /* PluginViewController.swift */,
 				8C9498C52EAEFFC9007F1102 /* SaveToGalleryPlugin.swift */,
 				8C9498C82EAEFFD0007F1103 /* ScreenshotSecurityPlugin.swift */,
 				504EC3061FED79650016851F /* App */,
 				504EC3051FED79650016851F /* Products */,
 				B360B6311B9A1A9356CC6D1F /* Pods */,
 				30D276CE6430022436010B74 /* Frameworks */,
+				35BA09FCEE9C4B486F30D47E /* OrderLiveActivityAttributes.swift */,
+				681ED6524044E42E594E6196 /* OrderLiveActivityPlugin.swift */,
+				5164E78EE28EA48097F71708 /* OrderLiveActivityWidget */,
 			);
 			sourceTree = "<group>";
 		};
@@ -86,6 +142,7 @@
 			isa = PBXGroup;
 			children = (
 				504EC3041FED79650016851F /* App.app */,
+				9637BA10CD025A232A122034 /* OrderLiveActivityWidget.appex */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -112,6 +169,16 @@
 			path = App;
 			sourceTree = "<group>";
 		};
+		5164E78EE28EA48097F71708 /* OrderLiveActivityWidget */ = {
+			isa = PBXGroup;
+			children = (
+				0D2D9DC6A6C8E52E79BA2D2E /* OrderLiveActivityWidget.swift */,
+				E4D194AC1DF27E18596199AF /* Info.plist */,
+			);
+			name = OrderLiveActivityWidget;
+			path = OrderLiveActivityWidget;
+			sourceTree = "<group>";
+		};
 		B360B6311B9A1A9356CC6D1F /* Pods */ = {
 			isa = PBXGroup;
 			children = (
@@ -124,6 +191,23 @@
 /* End PBXGroup section */
 
 /* Begin PBXNativeTarget section */
+		1905A8BA64521C76BC7BE5A9 /* OrderLiveActivityWidget */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = F306F9C4E8DE801D9E76F2E0 /* Build configuration list for PBXNativeTarget "OrderLiveActivityWidget" */;
+			buildPhases = (
+				0C5AF9781B6E6DC248ACF521 /* Sources */,
+				331BB71D3CAD7101AAD693FB /* Frameworks */,
+				3289B76993DB247B9B21EEE5 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = OrderLiveActivityWidget;
+			productName = OrderLiveActivityWidget;
+			productReference = 9637BA10CD025A232A122034 /* OrderLiveActivityWidget.appex */;
+			productType = "com.apple.product-type.app-extension";
+		};
 		504EC3031FED79650016851F /* App */ = {
 			isa = PBXNativeTarget;
 			buildConfigurationList = 504EC3161FED79650016851F /* Build configuration list for PBXNativeTarget "App" */;
@@ -133,10 +217,12 @@
 				504EC3011FED79650016851F /* Frameworks */,
 				504EC3021FED79650016851F /* Resources */,
 				09A86D5F65A166031AD99F57 /* [CP] Embed Pods Frameworks */,
+				DA14F87CADDA4A728590DFA0 /* Embed App Extensions */,
 			);
 			buildRules = (
 			);
 			dependencies = (
+				EC8EB8460F2A238AD3165A07 /* PBXTargetDependency */,
 			);
 			name = App;
 			productName = App;
@@ -152,6 +238,9 @@
 				LastSwiftUpdateCheck = 0920;
 				LastUpgradeCheck = 1220;
 				TargetAttributes = {
+					1905A8BA64521C76BC7BE5A9 = {
+						ProvisioningStyle = Automatic;
+					};
 					504EC3031FED79650016851F = {
 						CreatedOnToolsVersion = 9.2;
 						LastSwiftMigration = 1100;
@@ -173,11 +262,19 @@
 			projectRoot = "";
 			targets = (
 				504EC3031FED79650016851F /* App */,
+				1905A8BA64521C76BC7BE5A9 /* OrderLiveActivityWidget */,
 			);
 		};
 /* End PBXProject section */
 
 /* Begin PBXResourcesBuildPhase section */
+		3289B76993DB247B9B21EEE5 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 		504EC3021FED79650016851F /* Resources */ = {
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
@@ -236,20 +333,40 @@
 /* End PBXShellScriptBuildPhase section */
 
 /* Begin PBXSourcesBuildPhase section */
+		0C5AF9781B6E6DC248ACF521 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				5BB90D8DB7C1BB367A15FBE5 /* OrderLiveActivityAttributes.swift in Sources */,
+				AF4A78CFC3D01A9B14C67B51 /* OrderLiveActivityWidget.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 		504EC3001FED79650016851F /* Sources */ = {
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
 				504EC3081FED79650016851F /* AppDelegate.swift in Sources */,
-				40140955F8FC44D08E51EC6B /* App/PluginViewController.swift in Sources */,
+				40140955F8FC44D08E51EC6B /* PluginViewController.swift in Sources */,
 				8C9498C62EAEFFC9007F1102 /* SaveToGalleryPlugin.swift in Sources */,
 				8C6304BC2F93BFDC00A91097 /* AudioModePlugin.swift in Sources */,
 				8CDEF0012ECD4A5B00000002 /* DeferredReferralPlugin.swift in Sources */,
 				8C9498C72EAEFFD0007F1103 /* ScreenshotSecurityPlugin.swift in Sources */,
+				E9550245173DCEAF8369F167 /* OrderLiveActivityAttributes.swift in Sources */,
+				AE37EAB81D5D459B9B079EC4 /* OrderLiveActivityPlugin.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 /* End PBXSourcesBuildPhase section */
+
+/* Begin PBXTargetDependency section */
+		EC8EB8460F2A238AD3165A07 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			name = OrderLiveActivityWidget;
+			target = 1905A8BA64521C76BC7BE5A9 /* OrderLiveActivityWidget */;
+			targetProxy = 59F8478A7400E3C02B6127A5 /* PBXContainerItemProxy */;
+		};
+/* End PBXTargetDependency section */
 
 /* Begin PBXVariantGroup section */
 		504EC30B1FED79650016851F /* Main.storyboard */ = {
@@ -271,6 +388,31 @@
 /* End PBXVariantGroup section */
 
 /* Begin XCBuildConfiguration section */
+		335EDB8F4DFC4702E93E0AB8 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_WEAK = NO;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 628;
+				DEVELOPMENT_TEAM = 89X576BZBF;
+				GENERATE_INFOPLIST_FILE = NO;
+				INFOPLIST_FILE = OrderLiveActivityWidget/Info.plist;
+				IPHONEOS_DEPLOYMENT_TARGET = 16.1;
+				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/Frameworks @executable_path/../../Frameworks";
+				MARKETING_VERSION = 0.27.1;
+				PRODUCT_BUNDLE_IDENTIFIER = com.paytaca.app.OrderLiveActivityWidget;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = iphoneos;
+				SKIP_INSTALL = YES;
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = "";
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = 1;
+				VALIDATE_PRODUCT = YES;
+			};
+			name = Release;
+		};
 		504EC3141FED79650016851F /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
@@ -429,6 +571,30 @@
 			};
 			name = Release;
 		};
+		E4A89EE236886C066B7774F6 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_WEAK = NO;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 628;
+				DEVELOPMENT_TEAM = 89X576BZBF;
+				GENERATE_INFOPLIST_FILE = NO;
+				INFOPLIST_FILE = OrderLiveActivityWidget/Info.plist;
+				IPHONEOS_DEPLOYMENT_TARGET = 16.1;
+				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/Frameworks @executable_path/../../Frameworks";
+				MARKETING_VERSION = 0.27.1;
+				PRODUCT_BUNDLE_IDENTIFIER = com.paytaca.app.OrderLiveActivityWidget;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = iphoneos;
+				SKIP_INSTALL = YES;
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = DEBUG;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = 1;
+			};
+			name = Debug;
+		};
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
@@ -446,6 +612,15 @@
 			buildConfigurations = (
 				504EC3171FED79650016851F /* Debug */,
 				504EC3181FED79650016851F /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		F306F9C4E8DE801D9E76F2E0 /* Build configuration list for PBXNativeTarget "OrderLiveActivityWidget" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				335EDB8F4DFC4702E93E0AB8 /* Release */,
+				E4A89EE236886C066B7774F6 /* Debug */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;

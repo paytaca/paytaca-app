@@ -91,6 +91,21 @@
                 android:resource="@xml/file_paths"></meta-data>
         </provider>
         <meta-data android:name="com.google.mlkit.vision.DEPENDENCIES" android:value="barcode_ui"/>
+
+        <!-- Order live activities: intercept live-activity data messages before
+             the Capacitor push plugin forwards them to JavaScript. -->
+        <service
+            android:name=".plugins.PaytacaMessagingService"
+            android:exported="false">
+            <intent-filter>
+                <action android:name="com.google.firebase.MESSAGING_EVENT" />
+            </intent-filter>
+        </service>
+
+        <!-- Replaced by PaytacaMessagingService above. -->
+        <service
+            android:name="com.capacitorjs.plugins.pushnotifications.MessagingService"
+            tools:node="remove" />
     </application>
 
     <!-- Permissions -->

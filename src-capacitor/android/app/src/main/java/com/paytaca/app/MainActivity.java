@@ -20,6 +20,7 @@ import com.paytaca.app.plugins.SaveToGalleryPlugin;
 import com.paytaca.app.plugins.ScreenshotSecurityPlugin;
 import com.paytaca.app.plugins.AudioModePlugin;
 import com.paytaca.app.plugins.DeferredReferralPlugin;
+import com.paytaca.app.plugins.OrderLiveActivityPlugin;
 
 public class MainActivity extends BridgeActivity {
   @Override
@@ -31,6 +32,7 @@ public class MainActivity extends BridgeActivity {
     registerPlugin(ScreenshotSecurityPlugin.class);
     registerPlugin(AudioModePlugin.class);
     registerPlugin(DeferredReferralPlugin.class);
+    registerPlugin(OrderLiveActivityPlugin.class);
 
     // CapacitorV3 to V4 upgrade required to move this after registerPlugin()
     super.onCreate(savedInstanceState);

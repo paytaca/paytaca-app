@@ -761,6 +761,7 @@ import ReviewFormDialog from 'src/components/marketplace/reviews/ReviewFormDialo
 import ReviewsListPanel from 'src/components/marketplace/reviews/ReviewsListPanel.vue'
 import ImageViewerDialog from 'src/components/marketplace/ImageViewerDialog.vue'
 import OrderProgressPanel from 'src/components/marketplace/order/OrderProgressPanel.vue'
+import { orderLiveActivityManager } from 'src/services/order-live-activity'
 
 const props = defineProps({
   orderId: [String, Number],  
@@ -837,6 +838,7 @@ function fetchOrder() {
   return backend.get(`connecta/orders/${props.orderId}/`)
     .then(response => {
       order.value = Order.parse(response?.data)
+      syncLiveActivity()
       return response
     })
     .catch(error => {
@@ -853,6 +855,13 @@ function fetchOrder() {
     })
 }
 fetchOrder.debounced = debounce(fetchOrder, 500)
+
+function syncLiveActivity() {
+  if (!order.value?.id) return
+  orderLiveActivityManager
+    .syncMarketplaceOrder(order.value, { storefrontName: storefront.value?.name })
+    .catch(error => console.debug('Marketplace order live activity sync failed:', error))
+}
 
 const orderAmounts = computed(() => {
   const data = {
@@ -916,6 +925,7 @@ function fetchStorefront() {
       const storefrontData = response?.data
       storefront.value = Storefront.parse(storefrontData)
       $store.commit('marketplace/cacheStorefront', storefrontData)
+      syncLiveActivity()
       return response
     })
 }
