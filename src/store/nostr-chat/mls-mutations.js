@@ -4,6 +4,11 @@ import { getInitialWalletState } from './state'
 // Cap on the per-group processed-445-event tombstones. Bounds localStorage
 // growth while comfortably covering any realistic group history replay window.
 const MAX_PROCESSED_EVENT_IDS = 2000
+// Prune lazily in batches instead of on every insert: the trim needs a full
+// O(n log n) sort of the id set, and doing that once per event past the cap
+// would put that sort on the receive path for every single message. Let the set
+// grow by this margin, then cut everything above the cap in one pass.
+const PROCESSED_EVENT_PRUNE_SLACK = 250
 
 function getCurrentWalletHash() {
   try {
@@ -193,8 +198,10 @@ export function MARK_EVENT_PROCESSED(state, { mlsGroupIdHex, eventId } = {}) {
   const record = ws.mls.processedEventIds[mlsGroupIdHex]
   record[eventId] = Math.floor(Date.now() / 1000)
   // Bound the tombstone set so it can't grow without limit in localStorage.
+  // Amortised: sort and trim only once the set exceeds the cap by the slack
+  // margin, so a steady stream of messages doesn't pay for the sort each time.
   const ids = Object.keys(record)
-  if (ids.length > MAX_PROCESSED_EVENT_IDS) {
+  if (ids.length > MAX_PROCESSED_EVENT_IDS + PROCESSED_EVENT_PRUNE_SLACK) {
     ids
       .sort((a, b) => record[a] - record[b])
       .slice(0, ids.length - MAX_PROCESSED_EVENT_IDS)

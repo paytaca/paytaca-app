@@ -512,13 +512,18 @@ export async function initMls({ commit, state, dispatch }) {
   // Heal room.members on existing installs: before the commit-time reconcile
   // existed, a member who applied somebody else's Add/Remove commit kept a
   // stale fan-out list forever (their reactions silently skipped later joiners).
+  // Prefer the in-memory state over the IndexedDB copy: a Commit that arrives
+  // while this loop runs (the history replay above is already flowing) advances
+  // the in-memory copy, and healing from the older persisted snapshot would
+  // write those members straight back out again.
   try {
     const { impl } = mls.getMlsCrypto()
     for (const roomId of Object.keys(ws.mls.roomMlsMap || {})) {
       const room = ws.rooms?.find((r) => r.id === roomId)
       if (!room || room.type !== 'mls-group') continue
       const mlsGroupIdHex = ws.mls.roomMlsMap[roomId]
-      const clientState = await mls.loadMlsState(mlsGroupIdHex, impl, {}).catch(() => null)
+      const clientState = ws.mls.groupStates?.[mlsGroupIdHex] ||
+        await mls.loadMlsState(mlsGroupIdHex, impl, {}).catch(() => null)
       if (clientState) reconcileMlsRoomMembers(commit, ws, roomId, clientState)
     }
   } catch (err) {
@@ -1023,6 +1028,12 @@ export async function sendMlsMessage({ commit, state, dispatch }, { roomId, text
       if (accepted.length) {
         createdAt = signedEvent.created_at
         markRecentlySent(ws.keys.pubKeyHex, signedEvent.id)
+        // Record it as processed like any received event: this send consumed one
+        // of our ratchet generations, so a later re-delivery (relay replay,
+        // restart, resubscribe) must be skipped rather than decrypted again.
+        // `isRecentlySent` only covers 5 minutes and `ws.messages` is persisted
+        // as a bounded tail, so neither is a durable guard.
+        commit('MARK_EVENT_PROCESSED', { mlsGroupIdHex, eventId: signedEvent.id })
         break
       }
 
@@ -1068,6 +1079,12 @@ export async function sendMlsMessage({ commit, state, dispatch }, { roomId, text
 // no progress.
 const mlsResyncState = new Map()
 const MLS_RESYNC_COOLDOWN_MS = 30 * 1000
+// A replay that made progress resets the failure budget so the next genuinely
+// missed Commit can still be caught. It does not reset the cooldown to zero,
+// though: a very chatty group would otherwise replay its last 500 events once
+// per event. A short grace period keeps legitimate follow-up catch-ups prompt
+// while bounding the relay traffic.
+const MLS_RESYNC_SUCCESS_COOLDOWN_MS = 5 * 1000
 const MLS_RESYNC_MAX_ATTEMPTS = 5
 
 // ── Pre-send catch-up ───────────────────────────────────────────────────
@@ -1159,7 +1176,7 @@ async function resyncMlsGroup({ commit, state, dispatch }, { mlsGroupIdHex }) {
   const entry = mlsResyncState.get(resyncKey) || { attempts: 0, lastAttempt: 0, running: false }
   if (entry.running) return
   const now = Date.now()
-  if (now - entry.lastAttempt < MLS_RESYNC_COOLDOWN_MS) return
+  if (now - entry.lastAttempt < (entry.cooldown || MLS_RESYNC_COOLDOWN_MS)) return
   if (entry.attempts >= MLS_RESYNC_MAX_ATTEMPTS) return
 
   mlsResyncState.set(resyncKey, { running: true, attempts: entry.attempts + 1, lastAttempt: now })
@@ -1186,8 +1203,15 @@ async function resyncMlsGroup({ commit, state, dispatch }, { mlsGroupIdHex }) {
     }
 
     if (countProcessed() > before) {
-      // Made progress — allow a future catch-up immediately if still behind.
-      mlsResyncState.set(resyncKey, { running: false, attempts: 0, lastAttempt: Date.now() })
+      // Made progress — reset the failure budget so the next missed Commit is
+      // still eligible, but keep a short cooldown so a chatty group doesn't
+      // replay its history on every incoming event.
+      mlsResyncState.set(resyncKey, {
+        running: false,
+        attempts: 0,
+        lastAttempt: Date.now(),
+        cooldown: MLS_RESYNC_SUCCESS_COOLDOWN_MS,
+      })
     }
   } catch (err) {
     console.warn('[MLS] Catch-up replay failed:', err.message)
@@ -1508,7 +1532,9 @@ function backfillMlsOwner(commit, ws, roomId, clientState) {
     if (!(identity instanceof Uint8Array)) return
     const owner = new TextDecoder().decode(identity)
     commit('UPDATE_ROOM', { id: roomId, owner })
-  } catch {}
+  } catch (err) {
+    console.warn('[MLS] Failed to backfill group owner from the MLS tree:', err.message)
+  }
 }
 
 // Load an MLS group's state (falling back to the in-memory copy) and ensure the
@@ -1654,6 +1680,10 @@ export async function addMlsMember({ commit, state }, { roomId, memberPubKey }) 
         console.warn('[MLS] Welcome rejected after 3 attempts:', JSON.stringify(welcomeLastErr?.message))
         await mls.saveMlsState(mlsGroupIdHex, newState)
         commit('SET_MLS_GROUP_STATE', { mlsGroupIdHex, clientState: newState })
+        // The commit did reach the relay, so our epoch advanced — record it as
+        // processed before bailing out, otherwise the replay of our own commit
+        // is rejected later as "Desired gen in the past".
+        commit('MARK_EVENT_PROCESSED', { mlsGroupIdHex, eventId: signedCommit.id })
         const failureRoom = ws.rooms.find((r) => r.id === roomId)
         if (failureRoom && !failureRoom.members.includes(memberPubKey)) {
           const updatedMembers = [...failureRoom.members, memberPubKey]
@@ -1669,6 +1699,12 @@ export async function addMlsMember({ commit, state }, { roomId, memberPubKey }) 
 
     await mls.saveMlsState(mlsGroupIdHex, newState)
     commit('SET_MLS_GROUP_STATE', { mlsGroupIdHex, clientState: newState })
+    // Our own Commit advanced the ratchet locally, so record it like any other
+    // processed event. `markRecentlySent` only suppresses the echo for 5
+    // minutes, and once that lapses a relay re-delivery would be re-processed,
+    // rejected as "Desired gen in the past", and burn the resync budget
+    // replaying commits that were already applied.
+    commit('MARK_EVENT_PROCESSED', { mlsGroupIdHex, eventId: signedCommit.id })
     // The Add commit already put them in the tree, but they have not accepted
     // yet — keep them under "Invited" until they announce their join.
     commit('MARK_MLS_INVITEE_PENDING', { mlsGroupIdHex, memberPubKey })
@@ -1774,6 +1810,9 @@ export async function removeMlsMember({ commit, state }, { roomId, memberPubkey 
 
     await mls.saveMlsState(mlsGroupIdHex, newState)
     commit('SET_MLS_GROUP_STATE', { mlsGroupIdHex, clientState: newState })
+    // Record our own Commit so a later relay re-delivery is skipped instead of
+    // being re-processed and rejected as "Desired gen in the past".
+    commit('MARK_EVENT_PROCESSED', { mlsGroupIdHex, eventId: signedCommit.id })
 
     commit('CLEAR_MLS_INVITEE_PENDING', { mlsGroupIdHex, memberPubKey: memberPubkey })
 

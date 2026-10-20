@@ -68,7 +68,7 @@ export function getInitialWalletState () {
       failedEventAttempts: {}, // { [eventId]: { count, lastError, lastAttemptAt } } — undecodable MLS events; dropped after MAX_EVENT_PROCESS_ATTEMPTS
       processedEventIds: {}, // { [mlsGroupIdHex]: { [eventId]: timestamp } } — events whose ratchet was already consumed (messages, edits, meta, commits); re-delivery is a no-op
       pendingInvitees: {}, // { [mlsGroupIdHex]: { [memberPubKeyHex]: timestamp } } — invited but not yet accepted; MLS adds land in the tree immediately, so this is the only invited-vs-joined signal
-      kpHistory: [], // { ref: string, encoded: string (base64 raw KP bytes), publishedAt: number }
+      kpHistory: [], // { content: string (hex serialized KP), publishedAt: number } — recent KPs, newest first; joined with relay-fetched KPs as { kp, ref } candidates
     },
   }
 }
