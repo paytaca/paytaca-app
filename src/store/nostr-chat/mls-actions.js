@@ -928,7 +928,7 @@ async function surfaceMlsWelcomeRumor({ commit, state }, { giftWrap, welcomeRumo
 
 // ---- Sending messages ----
 
-export async function sendMlsMessage({ commit, state }, { roomId, text, replyTo, editOf }) {
+export async function sendMlsMessage({ commit, state, dispatch }, { roomId, text, replyTo, editOf }) {
   const ws = getWalletState(state)
   if (!ws?.keys?.privKeyHex) throw new Error('Nostr keys not available')
 
@@ -936,6 +936,11 @@ export async function sendMlsMessage({ commit, state }, { roomId, text, replyTo,
   if (!mlsGroupIdHex) throw new Error('Unknown MLS room')
 
   const { impl } = mls.getMlsCrypto()
+
+  // Absorb sibling-device sends before encrypting so we don't hand out a
+  // ratchet generation this leaf already spent elsewhere. Runs OUTSIDE the lock
+  // below (it dispatches receiveMlsMessage, which takes the same per-group lock).
+  await catchUpMlsGroupBeforeSend({ state, dispatch }, { ws, mlsGroupIdHex, roomId })
 
   // Send under the same per-group processing lock as receiveMlsMessage. A
   // concurrent receive can otherwise load the pre-send state and, by writing
@@ -1039,6 +1044,78 @@ export async function sendMlsMessage({ commit, state }, { roomId, text, replyTo,
 const mlsResyncState = new Map()
 const MLS_RESYNC_COOLDOWN_MS = 30 * 1000
 const MLS_RESYNC_MAX_ATTEMPTS = 5
+
+// ── Pre-send catch-up ───────────────────────────────────────────────────
+// The same seed on a second device rebuilds the SAME MLS leaf, so both devices
+// share this leaf's application ratchet. A sibling device's sends consume
+// generations we never see advance locally, and a send from a stale generation
+// is rejected by every peer as "Desired gen in the past". Replaying the group's
+// recent events immediately before encrypting absorbs those advances, turning
+// "message silently lost" into "message sent at the right generation".
+//
+// This narrows the window rather than closing it: two genuinely simultaneous
+// sends still race. Closing that needs an inter-device write lease.
+const mlsPreSendCatchUpAt = new Map()
+const MLS_PRE_SEND_CATCH_UP_LIMIT = 50
+const MLS_PRE_SEND_CATCH_UP_COOLDOWN_MS = 1500
+// Never let a slow relay delay a send indefinitely — this is best-effort.
+const MLS_PRE_SEND_CATCH_UP_TIMEOUT_MS = 2500
+
+/**
+ * Replay a group's recent events so our ratchet reflects sibling-device sends.
+ * MUST run outside withMlsProcessingLock: it dispatches receiveMlsMessage, which
+ * takes the same per-group lock and would otherwise deadlock.
+ */
+async function catchUpMlsGroupBeforeSend({ state, dispatch }, { ws, mlsGroupIdHex, roomId }) {
+  // Internal callers (join announcement, role broadcast) invoke sendMlsMessage
+  // without a dispatch; fall back to the store so the replay still works.
+  const doDispatch = dispatch || ((type, payload) => Store.dispatch(`nostrChat/${type}`, payload))
+
+  const key = `${ws.keys.pubKeyHex}:${mlsGroupIdHex}`
+  const now = Date.now()
+  // Claim the slot synchronously so a burst of sends only fetches once; a
+  // sibling send inside the cooldown window is the residual race we accept.
+  if (now - (mlsPreSendCatchUpAt.get(key) || 0) < MLS_PRE_SEND_CATCH_UP_COOLDOWN_MS) return
+  mlsPreSendCatchUpAt.set(key, now)
+
+  const nostrGroupIdHex = ws.mls.roomMlsNostrMap?.[roomId]
+  if (!nostrGroupIdHex) return
+
+  let timeoutId = null
+  const events = await Promise.race([
+    relayService.fetchMlsGroupEvents(state.relays, nostrGroupIdHex, MLS_PRE_SEND_CATCH_UP_LIMIT),
+    new Promise((resolve) => {
+      timeoutId = setTimeout(() => resolve(null), MLS_PRE_SEND_CATCH_UP_TIMEOUT_MS)
+    }),
+  ])
+  if (timeoutId) clearTimeout(timeoutId)
+  if (!events?.length) return
+
+  const countProcessed = () =>
+    Object.keys(ws.mls.processedEventIds?.[mlsGroupIdHex] || {}).length
+  const before = countProcessed()
+
+  for (const event of events) {
+    // Already added to this room (including our own sends) — receiveMlsMessage
+    // skips these, and replaying our own message would only burn a failure
+    // attempt against a generation we already consumed.
+    if ((ws.messages?.[roomId] || []).some((m) => m.id === event.id)) continue
+    if (ws.mls.processedEventIds?.[mlsGroupIdHex]?.[event.id]) continue
+    try {
+      // Best-effort: a single undecodable event must not block the send.
+      await doDispatch('receiveMlsMessage', event)
+    } catch (err) {
+      console.warn('[MLS] Pre-send catch-up skipped event', event.id.slice(0, 8), ':', err.message)
+    }
+  }
+
+  // receiveMlsMessage suppresses its own failures, so measure real progress
+  // rather than counting dispatches.
+  const applied = countProcessed() - before
+  if (applied) {
+    console.log('[MLS] Pre-send catch-up applied', applied, 'event(s) for group', mlsGroupIdHex.slice(0, 8))
+  }
+}
 
 /**
  * Replay a group's kind-445 history in order so a member that missed a Commit
