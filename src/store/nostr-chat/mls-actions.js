@@ -119,6 +119,35 @@ function mlsMemberPubkeys(clientState) {
   })
 }
 
+// The MLS tree is the authority on group membership: every Commit rewrites it.
+// room.members is a local mirror used as the fan-out list for the features that
+// still ride NIP-17 instead of MLS (reactions, typing, read receipts), so it
+// MUST track the tree. Nothing refreshed it after applying somebody else's
+// Add/Remove commit — only the committer patched its own copy — so a member who
+// joined early kept a stale list and their reactions never reached later
+// joiners, while the committer's reactions reached everyone.
+function reconcileMlsRoomMembers(commit, ws, roomId, clientState) {
+  if (!roomId || !clientState) return
+  const room = ws.rooms?.find((r) => r.id === roomId)
+  if (!room || room.type !== 'mls-group') return
+
+  let treeMembers
+  try {
+    treeMembers = mlsMemberPubkeys(clientState)
+  } catch {
+    return
+  }
+  if (!treeMembers.length) return
+
+  const current = room.members || []
+  const unchanged =
+    treeMembers.length === current.length && treeMembers.every((m) => current.includes(m))
+  if (unchanged) return
+
+  commit('UPDATE_ROOM', { id: roomId, members: treeMembers })
+  updateRoomOnServer(roomId, { members: treeMembers }).catch(() => {})
+}
+
 // Resolve the identity at a given MLS leaf index. NIP-EE envelopes are signed
 // with an ephemeral key, so the leaf credential is the only trustworthy sender
 // identity.
@@ -453,6 +482,22 @@ export async function initMls({ commit, state, dispatch }) {
     }
   } catch (err) {
     console.warn('[MLS] Failed to repair server room rows:', err.message)
+  }
+
+  // Heal room.members on existing installs: before the commit-time reconcile
+  // existed, a member who applied somebody else's Add/Remove commit kept a
+  // stale fan-out list forever (their reactions silently skipped later joiners).
+  try {
+    const { impl } = mls.getMlsCrypto()
+    for (const roomId of Object.keys(ws.mls.roomMlsMap || {})) {
+      const room = ws.rooms?.find((r) => r.id === roomId)
+      if (!room || room.type !== 'mls-group') continue
+      const mlsGroupIdHex = ws.mls.roomMlsMap[roomId]
+      const clientState = await mls.loadMlsState(mlsGroupIdHex, impl, {}).catch(() => null)
+      if (clientState) reconcileMlsRoomMembers(commit, ws, roomId, clientState)
+    }
+  } catch (err) {
+    console.warn('[MLS] Failed to reconcile room member lists:', err.message)
   }
 
   return true
@@ -1168,6 +1213,12 @@ export async function receiveMlsMessage({ commit, state, dispatch }, event) {
       commit('CLEAR_EVENT_PROCESS_FAILURES', event.id)
       // The ratchet advanced: record the event so any re-delivery is a no-op.
       commit('MARK_EVENT_PROCESSED', { mlsGroupIdHex, eventId: event.id })
+
+      // Applying somebody else's Commit can add or remove leaves. Mirror the new
+      // tree into room.members, otherwise the NIP-17 fan-out list (reactions,
+      // typing, read receipts) keeps addressing members who are gone and never
+      // reaches members who joined after us.
+      reconcileMlsRoomMembers(commit, ws, roomId, result.newState)
 
       if (result.plaintext) {
         // Encrypted group-role control message (owner/admins metadata). Apply
