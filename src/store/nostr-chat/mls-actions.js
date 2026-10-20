@@ -62,17 +62,24 @@ function requireMlsManager(ws, roomId) {
 }
 
 const RECENTLY_SENT_TTL_MS = 5 * 60 * 1000
-const recentlySentEvents = new Map() // eventId → timestamp (own published events)
+// Keyed by `${pubKeyHex}:${eventId}`. Paytaca is multi-wallet and several
+// wallets can be active in the same JS context (two accounts on one device,
+// or a wallet switched while events are still in flight). An event id alone is
+// NOT unique to a wallet: wallet A's own send would then look like wallet B's
+// own send, and B would silently drop every message A just published.
+const recentlySentEvents = new Map() // `${pubKeyHex}:${eventId}` → timestamp
 
-function markRecentlySent(eventId) {
-  if (eventId) recentlySentEvents.set(eventId, Date.now())
+function markRecentlySent(pubKeyHex, eventId) {
+  if (pubKeyHex && eventId) recentlySentEvents.set(`${pubKeyHex}:${eventId}`, Date.now())
 }
 
-function isRecentlySent(eventId) {
-  const t = recentlySentEvents.get(eventId)
+function isRecentlySent(pubKeyHex, eventId) {
+  if (!pubKeyHex || !eventId) return false
+  const key = `${pubKeyHex}:${eventId}`
+  const t = recentlySentEvents.get(key)
   if (!t) return false
   if (Date.now() - t > RECENTLY_SENT_TTL_MS) {
-    recentlySentEvents.delete(eventId)
+    recentlySentEvents.delete(key)
     return false
   }
   return true
@@ -940,7 +947,7 @@ export async function sendMlsMessage({ commit, state }, { roomId, text, replyTo,
       const { accepted, errors } = await relayService.publishEvent(state.relays, signedEvent)
       if (accepted.length) {
         createdAt = signedEvent.created_at
-        markRecentlySent(signedEvent.id)
+        markRecentlySent(ws.keys.pubKeyHex, signedEvent.id)
         break
       }
 
@@ -995,15 +1002,21 @@ const MLS_RESYNC_MAX_ATTEMPTS = 5
  * idempotent; the missed Commit is the one that actually takes effect.
  */
 async function resyncMlsGroup({ commit, state, dispatch }, { mlsGroupIdHex }) {
-  const entry = mlsResyncState.get(mlsGroupIdHex) || { attempts: 0, lastAttempt: 0, running: false }
+  const ws = getWalletState(state)
+  if (!ws?.keys?.pubKeyHex) return
+
+  // Keyed per wallet AND group: two wallets on this device can be members of
+  // the SAME MLS group (same mlsGroupIdHex), and each has its own epoch and
+  // catch-up budget.
+  const resyncKey = `${ws.keys.pubKeyHex}:${mlsGroupIdHex}`
+  const entry = mlsResyncState.get(resyncKey) || { attempts: 0, lastAttempt: 0, running: false }
   if (entry.running) return
   const now = Date.now()
   if (now - entry.lastAttempt < MLS_RESYNC_COOLDOWN_MS) return
   if (entry.attempts >= MLS_RESYNC_MAX_ATTEMPTS) return
 
-  mlsResyncState.set(mlsGroupIdHex, { running: true, attempts: entry.attempts + 1, lastAttempt: now })
+  mlsResyncState.set(resyncKey, { running: true, attempts: entry.attempts + 1, lastAttempt: now })
   try {
-    const ws = getWalletState(state)
     const roomId = resolveRoomIdByMlsGroupId(ws, mlsGroupIdHex)
     const nostrGroupIdHex = roomId ? ws.mls.roomMlsNostrMap?.[roomId] : null
     if (!nostrGroupIdHex) return
@@ -1027,14 +1040,14 @@ async function resyncMlsGroup({ commit, state, dispatch }, { mlsGroupIdHex }) {
 
     if (countProcessed() > before) {
       // Made progress — allow a future catch-up immediately if still behind.
-      mlsResyncState.set(mlsGroupIdHex, { running: false, attempts: 0, lastAttempt: Date.now() })
+      mlsResyncState.set(resyncKey, { running: false, attempts: 0, lastAttempt: Date.now() })
     }
   } catch (err) {
     console.warn('[MLS] Catch-up replay failed:', err.message)
   } finally {
-    const current = mlsResyncState.get(mlsGroupIdHex) || entry
+    const current = mlsResyncState.get(resyncKey) || entry
     if (current.running) {
-      mlsResyncState.set(mlsGroupIdHex, { ...current, running: false })
+      mlsResyncState.set(resyncKey, { ...current, running: false })
     }
   }
 }
@@ -1061,9 +1074,9 @@ export async function receiveMlsMessage({ commit, state, dispatch }, event) {
 
   // NIP-EE group events are signed with an ephemeral key, so the event's pubkey
   // is meaningless. Events authored by this wallet (this device or a sibling
-  // device sharing its keys) are identified purely by event id, which we
-  // temporarily track for our own sends this session.
-  if (isRecentlySent(event.id)) return
+  // device sharing its keys) are identified by wallet pubkey + event id, which
+  // we temporarily track for our own sends this session.
+  if (isRecentlySent(ws.keys.pubKeyHex, event.id)) return
   // Application message already added to the timeline (own sends, the group
   // history replay after a fresh-device rebuild, or an echo arriving before
   // the live subscription); dedupe here so it is not decrypted twice.
@@ -1449,7 +1462,7 @@ export async function addMlsMember({ commit, state }, { roomId, memberPubKey }) 
       console.warn('[MLS] Commit publish rejected:', JSON.stringify(commitPublish.errors))
       throw new Error(`MLS commit was rejected by the relay: ${reason}`)
     }
-    markRecentlySent(signedCommit.id)
+    markRecentlySent(ws.keys.pubKeyHex, signedCommit.id)
 
     if (welcome) {
       const welcomeMlsMsg = { version: 'mls10', wireformat: 'mls_welcome', welcome }
@@ -1604,7 +1617,7 @@ export async function removeMlsMember({ commit, state }, { roomId, memberPubkey 
       console.warn('[MLS] Remove-member commit rejected:', JSON.stringify(publish.errors))
       throw new Error(`MLS removal was rejected by the relay: ${reason}`)
     }
-    markRecentlySent(signedCommit.id)
+    markRecentlySent(ws.keys.pubKeyHex, signedCommit.id)
 
     await mls.saveMlsState(mlsGroupIdHex, newState)
     commit('SET_MLS_GROUP_STATE', { mlsGroupIdHex, clientState: newState })
@@ -1827,7 +1840,7 @@ export async function leaveMlsGroup({ commit, state }, { roomId, successorPubKey
           const signedCommit = await buildSignedNipEeGroupEvent(lockedState, commitMsg)
           const result = await relayService.publishEvent(state.relays, signedCommit)
           if (!result.accepted.length) throw new Error(result.errors[0]?.reason || 'relay rejected the commit')
-          markRecentlySent(signedCommit.id)
+          markRecentlySent(ws.keys.pubKeyHex, signedCommit.id)
           await mls.saveMlsState(mlsGroupIdHex, newState)
           published = true
         } catch (err) {
