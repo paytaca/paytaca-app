@@ -1,5 +1,5 @@
 import { callAPI } from 'src/auction/api'
-import { AuctionList, LotsList, BidsList, DisputeList, DisputeDetails, DeliveryDetails } from 'src/auction/object'
+import { Auction, Lot, Bid, Dispute, DeliveryDetails } from 'src/auction/object'
 import noImage from 'src/assets/no-image.svg'
 
 const bidStatusTransitions = {
@@ -18,7 +18,7 @@ const bidStatusTransitions = {
 export async function fetchListings({ commit, dispatch }) {
   const response = await callAPI('auctions')
   if (response && response.success && Array.isArray(response.data)) {
-    const listings = response.data.map(item => AuctionList.parse(item))
+    const listings = response.data.map(item => Auction.parse(item))
     commit('setListings', listings)
     commit('setListingsLastFetched')
   } else dispatch('printFailedFetch', 'listing')
@@ -39,14 +39,14 @@ export function updateBidFromWebsocket({ commit, state, rootGetters }, biddingDa
     && !bidStatusTransitions[existingBid.status]?.includes(biddingData.status)
   ) return
 
-  commit('updateLotBid', BidsList.parse(biddingData, Number(biddingData.lot)))
+  commit('updateLotBid', Bid.parse(biddingData, Number(biddingData.lot)))
   const walletHash = rootGetters['global/getWallet']('bch')?.walletHash
   if (biddingData.bidder === walletHash) {
     commit('updateMyBidding', biddingData)
   }
 
   if (['Highest', 'Winner'].includes(biddingData.status))
-    commit('setHighestBid', BidsList.parse(biddingData, Number(biddingData.lot)))
+    commit('setHighestBid', Bid.parse(biddingData, Number(biddingData.lot)))
   else if (
     ['Cancelled', 'Outbid'].includes(biddingData.status) 
     && Number(state.highestBid.id) === Number(biddingData.id)
@@ -81,11 +81,11 @@ export async function fetchMyBiddings({ commit, dispatch }) {
 
       let auctionData = item.auction
       if (auctionResponse && auctionResponse.success && auctionResponse.data) {
-        auctionData = auctionResponse.data instanceof AuctionList
+        auctionData = auctionResponse.data instanceof Auction
           ? auctionResponse.data
-          : AuctionList.parse(auctionResponse.data)
+          : Auction.parse(auctionResponse.data)
       }
-      const lot = LotsList.parse(item, auctionData)
+      const lot = Lot.parse(item, auctionData)
       lot.start_date = auctionData?.start_date || null
       lot.end_date = auctionData?.end_date || null
       lot.auction_type = auctionData?.type || null
@@ -112,7 +112,7 @@ export async function fetchMyAuctions({ commit, dispatch }) {
   if (response && response.success && Array.isArray(response.data)) {
     myAuctions = response.data
       .filter(Boolean)
-      .map(item => item instanceof AuctionList ? item : AuctionList.parse(item))
+      .map(item => item instanceof Auction ? item : Auction.parse(item))
     commit('setMyAuctionsLastFetched')
   } else dispatch('printNotExisting', 'auction_data')
   commit('setMyAuctions', myAuctions)
@@ -128,7 +128,7 @@ export async function fetchAuctionData({ commit, dispatch }, auctionId) {
 
   const response = await callAPI('auctions', Number(auctionId))
   if (response && response.success && response.data) {
-    auctionData = AuctionList.parse(response.data)
+    auctionData = Auction.parse(response.data)
     commit('setAuctionDataLastFetched')
   } else dispatch('printFailedFetch', 'auction data')
   commit('setAuctionData', auctionData)
@@ -138,7 +138,7 @@ export async function fetchAuctionData({ commit, dispatch }, auctionId) {
 export async function fetchExistingAuctionData({ commit, getters, dispatch }, auctionId) {
   const existingAuction = getters['listings'].find(item => Number(item.id) === Number(auctionId))
   if (!existingAuction) dispatch('printNotExisting', 'auction data')
-  commit('setAuctionData', AuctionList.parse(existingAuction ?? {}))
+  commit('setAuctionData', Auction.parse(existingAuction ?? {}))
 }
 
 // FETCHES auction lots from the server
@@ -152,7 +152,7 @@ export async function fetchAuctionLots({ commit, getters, dispatch }, auctionId)
     if (!auctionData) {
       const auctionResponse = await callAPI('auctions', Number(auctionId))
       auctionData = auctionResponse.success && auctionResponse.data
-        ? AuctionList.parse(auctionResponse.data)
+        ? Auction.parse(auctionResponse.data)
         : null
     }
   }
@@ -161,7 +161,7 @@ export async function fetchAuctionLots({ commit, getters, dispatch }, auctionId)
   if (response && response.success && Array.isArray(response.data)) {
     lots = await Promise.all(
       response.data.map(async (item) => {
-        const lot = LotsList.parse(item, auctionData)
+        const lot = Lot.parse(item, auctionData)
         lot.start_date = auctionData?.start_date || null
         lot.end_date = auctionData?.end_date || null
         
@@ -196,7 +196,7 @@ export async function fetchLotData({ commit, dispatch }, lotId) {
   // Fetch lot data
   const response = await callAPI('lots', lotId)
   if (response && response.success && response.data) {
-    lotData = LotsList.parse(response.data, response.data.auction)
+    lotData = Lot.parse(response.data, response.data.auction)
     const imageResponse = await callAPI('lot-images-by-lot', lotId, 'get')
     if (imageResponse && imageResponse.success && Array.isArray(imageResponse.data))
       lotImages = imageResponse.data.map(item => item.image)
@@ -213,7 +213,7 @@ export async function fetchLotData({ commit, dispatch }, lotId) {
 export async function fetchExistingLotData({ commit, getters, dispatch }, lotId) {
   const existingLot = getters['auctionLots'].find(lot => Number(lot.id) === Number(lotId))
   if (!existingLot) dispatch('printNotExisting', 'lot data')
-  commit('setLotData', existingLot ? LotsList.parse(existingLot) : {})
+  commit('setLotData', existingLot ? Lot.parse(existingLot) : {})
   await dispatch('fetchExistingLotBids', lotId)
 }
 
@@ -222,7 +222,7 @@ export async function fetchLotBids({ commit, dispatch }, lotId) {
   let lotBids = []
   const response = await callAPI('biddings-by-lot', lotId)
   if (response?.success && Array.isArray(response.data)) {
-    lotBids = response.data.map(bid => BidsList.parse(bid, Number(lotId)))
+    lotBids = response.data.map(bid => Bid.parse(bid, Number(lotId)))
     const highestBid = lotBids.find(bid => ['Highest', 'Winner'].includes(bid.status))
     commit('setHighestBid', highestBid ?? {})
     commit('setLotBidsLastFetched')
@@ -266,9 +266,8 @@ export async function fetchHighestBid({ commit, dispatch, state }, lotId) {
   const hasHighestBid = response?.success
     && response.data
     && ['Highest', 'Winner'].includes(response.data.status)
-  if (!hasHighestBid)
-    dispatch('printFailedFetch', 'highest bid')
-  commit('setHighestBid', hasHighestBid ? BidsList.parse(response.data, Number(targetLotId)) : {})
+  if (!hasHighestBid) dispatch('printFailedFetch', 'highest bid')
+  commit('setHighestBid', hasHighestBid ? Bid.parse(response.data, Number(targetLotId)) : {})
   commit('setHighestBidLastFetched')
 }
 
@@ -283,7 +282,7 @@ export async function fetchExistingHighestBid({ commit, getters, dispatch }) {
   const highestBid = highestBids.reduce((latest, bid) =>
     new Date(bid.bidding_date) > new Date(latest.bidding_date) ? bid : latest
   )
-  commit('setHighestBid', BidsList.parse(highestBid, highestBid.lot))
+  commit('setHighestBid', Bid.parse(highestBid, highestBid.lot))
 }
 
 // FETCHES delivery details of a lot from the server
@@ -351,7 +350,7 @@ export async function createDeliveryEvent({ dispatch, getters }, { status, descr
   return response
 }
 
-// FETCHES bid dispute
+// FETCHES a bid dispute
 export async function fetchDispute({ commit, dispatch }, disputeId) {
   const response = await callAPI('disputes', disputeId)
   if (!response.success || !response.data) {
@@ -367,8 +366,8 @@ export async function fetchDispute({ commit, dispatch }, disputeId) {
 }
 
 // Fetches and parses the dispute records shown to the arbiter.
-export async function fetchDisputes({ dispatch }) {
-  const response = await callAPI('disputes')
+export async function fetchArbiterDisputes({ dispatch }) {
+  const response = await callAPI('disputes-by-arbiter')
   if (!response.success || !Array.isArray(response.data)) {
     dispatch('printFailedFetch', 'disputes')
     return []
@@ -376,7 +375,7 @@ export async function fetchDisputes({ dispatch }) {
 
   return Promise.all(response.data.map(async dispute => {
     const lotResponse = await callAPI('lots', dispute.lot)
-    return DisputeList.parse({
+    return Dispute.parse({
       ...dispute,
       lotId: dispute.lot,
       auctionId: lotResponse.success ? lotResponse.data?.auction : null
@@ -425,7 +424,7 @@ async function getDisputeDetails(disputeData) {
       }
     : null
 
-  return DisputeDetails.parse({
+  return Dispute.parse({
     ...disputeData,
     lotId,
     auctionId,

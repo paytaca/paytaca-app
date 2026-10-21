@@ -259,7 +259,7 @@ import { useRouter } from 'vue-router'
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 import { computed, ref, onMounted } from 'vue'
 import { callAPI } from 'src/auction/api'
-import { AuctionList, LotsList } from 'src/auction/object.js'
+import { Auction, Lot } from 'src/auction/object.js'
 import { formatBCH, formatFiatNumber as formatFiat, getAuctionDateValidationError, getIntervalMinutes, parseTimeIntervalMinutes, withBothCurrencies } from './helper-functions'
 
 // Components
@@ -290,7 +290,7 @@ const lots = ref([])
 // Normalizes auction data for the edit form.
 const parseAuctionData = (data) => {
   if (!data) return null
-  return data instanceof AuctionList ? data : AuctionList.parse(data)
+  return data instanceof Auction ? data : Auction.parse(data)
 }
 
 // Converts a date value to a local date-time input string.
@@ -362,7 +362,7 @@ const fetchAllData = async () => {
     const result = await callAPI('lots-by-auction', Number(props.auctionId))
     if (result.success && result.data) {
       lots.value = await Promise.all(result.data.map(async item => {
-        const lot = LotsList.parse(item)
+        const lot = Lot.parse(item)
         lot.start_date = auction.value?.start_date || null
         lot.end_date = auction.value?.end_date || null
         lot._uuid = generateLocalId()

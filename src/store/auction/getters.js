@@ -1,4 +1,4 @@
-import { AuctionList, LotsList } from "src/auction/object"
+import { Auction, Lot } from "src/auction/object"
 
 // Returns the filtered listings value from auction state.
 export function filteredListings(state) {
@@ -68,7 +68,7 @@ export function auctionId(state){
 
 // Returns the auction data value from auction state.
 export function auctionData(state){
-  return state.auctionData ?? AuctionList({})
+  return state.auctionData ?? Auction.parse({})
 }
 
 // Returns the auction lots value from auction state.
@@ -99,7 +99,7 @@ export function lotId(state) {
 
 // Returns the lot data value from auction state.
 export function lotData(state) {
-  return state.lotData ?? LotsList({})
+  return state.lotData ?? Lot.parse({})
 }
 
 // Returns the lot data last fetched value from auction state.

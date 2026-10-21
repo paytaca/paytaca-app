@@ -159,7 +159,7 @@ import AuctionSearch from 'src/components/auction/AuctionSearch.vue'
 import noImage from 'src/assets/no-image.svg'
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 import { callIndexAuctionWebsocket } from 'src/auction/websocket'
-import { AuctionList } from 'src/auction/object'
+import { Auction } from 'src/auction/object'
 import { formatAuctionDate } from './helper-functions'
 
 // Quasar-related variables
@@ -243,7 +243,7 @@ const connectWebsocket = () => {
           const listings = $store.getters['auction/listings']
           const auctionExists = listings.some(auction => Number(auction.id) === Number(data.id))
           if (auctionExists) $store.commit('auction/updateListing', data)
-          else $store.commit('auction/addListing', AuctionList.parse(data))
+          else $store.commit('auction/addListing', Auction.parse(data))
 
           $store.commit('auction/mergeAuctionData', data)
           $store.commit('auction/updateMyAuction', data)

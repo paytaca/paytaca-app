@@ -403,7 +403,7 @@ import noImage from 'src/assets/no-image.svg'
 
 // Websocket-related imports
 import { callActivityWebsocket } from 'src/auction/websocket'
-import { AuctionList } from 'src/auction/object'
+import { Auction } from 'src/auction/object'
 
 // Quasar-related variales
 // Component state and computed values
@@ -517,7 +517,7 @@ const connectWebsocket = () => {
           const myAuctions = $store.getters['auction/myAuctions'] || []
           const auctionExists = myAuctions.some(auction => Number(auction.id) === Number(data.id))
           if (auctionExists) $store.commit('auction/updateMyAuction', data)
-          else $store.commit('auction/addMyAuction', AuctionList.parse(data))
+          else $store.commit('auction/addMyAuction', Auction.parse(data))
 
           $store.commit('auction/updateListing', data)
           $store.commit('auction/mergeAuctionData', data)

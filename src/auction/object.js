@@ -35,9 +35,9 @@ const deliveryColors = {
 // ==============
 
 // AUCTION OBJECTS
-export class AuctionList {
+export class Auction {
   static parse(data) {
-    return new AuctionList(data)
+    return new Auction(data)
   }
   
   constructor(data) {
@@ -77,7 +77,7 @@ export class AuctionList {
     this.status_color = auctionColors[this.status]
 
     this.lots = Array.isArray(data.lots)
-      ? data.lots.map(lotObj => LotsList.parse(lotObj, this))
+      ? data.lots.map(lotObj => Lot.parse(lotObj, this))
       : []
   } 
 
@@ -89,9 +89,9 @@ export class AuctionList {
 }
 
 // LOT OBJECTS
-export class LotsList {
+export class Lot {
   static parse(data, auction) {
-    return new LotsList(data, auction)
+    return new Lot(data, auction)
   }
 
   constructor(data, auction = data.auction ?? null) {
@@ -144,7 +144,7 @@ export class LotsList {
 
     // Bid history
     this.bids = Array.isArray(data.bids)
-      ? data.bids.map(bidObj => BidsList.parse(bidObj, this))
+      ? data.bids.map(bidObj => Bid.parse(bidObj, this))
       : []
   }
 
@@ -160,9 +160,9 @@ export class LotsList {
 }
 
 // BID OBJECTS
-export class BidsList {
+export class Bid {
   static parse(data, lot) {
-    return new BidsList(data, lot)
+    return new Bid(data, lot)
   }
   
   constructor(data, lot = data.lot ?? null) {
@@ -189,53 +189,10 @@ export class BidsList {
   }
 }
 
-// DISPUTE LIST
-export class DisputeList {
-  static parse(data, lot) {
-    return new DisputeList(data, lot)
-  }
-
-  constructor(data, lot = data.lot ?? null) {
-    this.raw = data
-    this.lot = lot
-  }
-
-  get raw() {
-    return this.$raw
-  }
-
-  set raw(data) {
-    setRawData(this, data)
-
-    this.id = data.id ? Number(data.id) : null
-
-    this.bid_id = data.bid ? Number(data.bid) : null
-    this.lot_id = data.lotId != null || data.lot != null ? Number(data.lotId ?? data.lot) : null
-    this.auction_id = data.auctionId ? Number(data.auctionId) : null
-
-    this.creation_date = data.creation_date ?? null
-    
-    this.dispute_status = data.status ?? null
-    this.is_resolved = data.is_resolved ?? (data.status != null && data.status !== 'Pending')
-    this.status = this.is_resolved ? 'Resolved' : 'Pending'
-    this.is_granted_refund = data.is_granted_refund ?? data.refund_status === 'Completed'
-    this.is_granted_return = data.is_granted_return ?? false
-
-    this.resolution_date = data.resolution_date || null
-
-    const reasons = data.dispute_reason ?? data.reason
-    this.reasons = Array.isArray(reasons)
-      ? reasons
-      : (reasons
-          ? reasons.split(';').map(s => s.trim()).filter(Boolean)
-          : [])
-  }
-}
-
-// DISPUTE INFORMATION
-export class DisputeDetails {
+// DISPUTE OBJECTS
+export class Dispute {
   static parse(data) {
-    return new DisputeDetails(data)
+    return new Dispute(data)
   }
 
   constructor(data) {
@@ -249,17 +206,24 @@ export class DisputeDetails {
   set raw(data) {
     setRawData(this, data)
 
-    this.id = data.id ? Number(data.id) : null
-    this.lot_id =  data.lot != null ? Number(data.lot) : null
-    this.creation_date = data.creation_date || null
-    
+    this.id = data.id != null ? Number(data.id) : null
+    const bidId = data.bidId ?? data.bid
+    this.bid_id = bidId != null ? Number(bidId) : null
+    const lotId = data.lotId ?? data.lot
+    this.lot_id = lotId != null ? Number(lotId) : null
+    const auctionId = data.auctionId ?? data.auction
+    this.auction_id = auctionId != null ? Number(auctionId) : null
+    this.creation_date = data.creation_date ?? null
+
     this.dispute_status = data.status ?? null
     this.is_resolved = data.is_resolved ?? (data.status != null && data.status !== 'Pending')
     this.status = this.is_resolved ? 'Resolved' : 'Pending'
     this.is_granted_refund = data.is_granted_refund ?? data.refund_status === 'Completed'
     this.is_granted_return = data.is_granted_return ?? false
 
-    this.resolution_date = data.resolution_date || null
+    this.type = data.type ?? null
+    this.refund_status = data.refund_status ?? null
+    this.resolution_date = data.resolution_date ?? null
 
     const reasons = data.dispute_reason ?? data.reason
     this.reasons = Array.isArray(reasons)
@@ -268,21 +232,11 @@ export class DisputeDetails {
           ? reasons.split(';').map(s => s.trim()).filter(Boolean)
           : [])
     
-    this.auctioneer = data.auctioneer
-      ? {
-          auctioneer: data.auctioneer.auctioneer || null,
-          username: data.auctioneer.username || null,
-          address: data.auctioneer.address || null
-        }
-      : { auctioneer: null, username: null, address: null }
-
-    this.bidder = data.bidder
-      ? {
-          bidder: data.bidder.bidder || null,
-          username: data.bidder.username || null,
-          address: data.bidder.address || null
-        }
-      : { bidder: null, username: null, address: null }
+    this.auctioneer = data.auctioneer ?? null
+    this.auctioneer_username = data.auctioneer_username ?? null
+    
+    this.bidder = data.bidder ?? null
+    this.bidder_username = data.bidder_username ?? null
 
     this.contract_address = data.contract_address || null
     this.balance = data.bid_price_bch ? Number(data.bid_price_bch) : 0.00000000
