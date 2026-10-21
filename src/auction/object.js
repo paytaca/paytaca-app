@@ -1,5 +1,3 @@
-import { date } from 'quasar'
-
 // Colors for lot statuses
 const lotColors = {
   'Sold': 'red',
@@ -240,12 +238,13 @@ export class BidsList {
 
 // DISPUTE LIST
 export class DisputeList {
-  static parse(data) {
-    return new DisputeList(data)
+  static parse(data, lot) {
+    return new DisputeList(data, lot)
   }
 
-  constructor(data) {
+  constructor(data, lot = data.lot ?? null) {
     this.raw = data
+    this.lot = lot
   }
 
   get raw() {
@@ -270,38 +269,6 @@ export class DisputeList {
     this.auction_id = data.auctionId ? Number(data.auctionId) : null
 
     this.creation_date = data.creation_date ?? null
-    this.timeSinceFiled = (() => {
-      if (!this.creation_date) return '0s'
-      
-      const now = new Date()
-      
-      let dateStr = String(this.creation_date).trim().replace(' ', 'T')
-      if (!dateStr.endsWith('Z') && !dateStr.includes('+')) {
-        dateStr += 'Z'
-      }
-      const past = new Date(dateStr)
-      
-      const seconds = Math.max(0, date.getDateDiff(now, past, 'seconds'))
-      if (seconds < 60) return `${seconds}s`
-      
-      const minutes = date.getDateDiff(now, past, 'minutes')
-      if (minutes < 60) return `${minutes}m`
-      
-      const hours = date.getDateDiff(now, past, 'hours')
-      if (hours < 24) return `${hours}h`
-      
-      const days = date.getDateDiff(now, past, 'days')
-      if (days < 7) return `${days}d`
-      
-      const weeks = Math.floor(days / 7)
-      if (weeks < 4) return `${weeks}w`
-      
-      const months = date.getDateDiff(now, past, 'months')
-      if (months < 12) return `${months}m`
-      
-      const years = date.getDateDiff(now, past, 'years')
-      return `${years}y`
-    })()
     
     this.dispute_status = data.status ?? null
     this.is_resolved = data.is_resolved ?? (data.status != null && data.status !== 'Pending')
@@ -310,38 +277,6 @@ export class DisputeList {
     this.is_granted_return = data.is_granted_return ?? false
 
     this.resolution_date = data.resolution_date || null
-    this.timeSinceResolved = (() => {
-      if (!this.resolution_date) return '0s'
-      
-      const now = new Date()
-      
-      let dateStr = String(this.resolution_date).trim().replace(' ', 'T')
-      if (!dateStr.endsWith('Z') && !dateStr.includes('+')) {
-        dateStr += 'Z'
-      }
-      const past = new Date(dateStr)
-      
-      const seconds = Math.max(0, date.getDateDiff(now, past, 'seconds'))
-      if (seconds < 60) return `${seconds}s`
-      
-      const minutes = date.getDateDiff(now, past, 'minutes')
-      if (minutes < 60) return `${minutes}m`
-      
-      const hours = date.getDateDiff(now, past, 'hours')
-      if (hours < 24) return `${hours}h`
-      
-      const days = date.getDateDiff(now, past, 'days')
-      if (days < 7) return `${days}d`
-      
-      const weeks = Math.floor(days / 7)
-      if (weeks < 4) return `${weeks}w`
-      
-      const months = date.getDateDiff(now, past, 'months')
-      if (months < 12) return `${months}m`
-      
-      const years = date.getDateDiff(now, past, 'years')
-      return `${years}y`
-    })()
 
     const reasons = data.dispute_reason ?? data.reason
     this.reasons = Array.isArray(reasons)
@@ -384,38 +319,6 @@ export class DisputeDetails {
     this.auction_id = data.auctionId ? Number(data.auctionId) : null
 
     this.creation_date = data.creation_date || null
-    this.timeSinceFiled = (() => {
-      if (!this.creation_date) return '0s'
-      
-      const now = new Date()
-      
-      let dateStr = String(this.creation_date).trim().replace(' ', 'T')
-      if (!dateStr.endsWith('Z') && !dateStr.includes('+')) {
-        dateStr += 'Z'
-      }
-      const past = new Date(dateStr)
-      
-      const seconds = Math.max(0, date.getDateDiff(now, past, 'seconds'))
-      if (seconds < 60) return `${seconds}s`
-      
-      const minutes = date.getDateDiff(now, past, 'minutes')
-      if (minutes < 60) return `${minutes}m`
-      
-      const hours = date.getDateDiff(now, past, 'hours')
-      if (hours < 24) return `${hours}h`
-      
-      const days = date.getDateDiff(now, past, 'days')
-      if (days < 7) return `${days}d`
-      
-      const weeks = Math.floor(days / 7)
-      if (weeks < 4) return `${weeks}w`
-      
-      const months = date.getDateDiff(now, past, 'months')
-      if (months < 12) return `${months}m`
-      
-      const years = date.getDateDiff(now, past, 'years')
-      return `${years}y`
-    })()
     
     this.dispute_status = data.status ?? null
     this.is_resolved = data.is_resolved ?? (data.status != null && data.status !== 'Pending')
@@ -424,38 +327,6 @@ export class DisputeDetails {
     this.is_granted_return = data.is_granted_return ?? false
 
     this.resolution_date = data.resolution_date || null
-    this.timeSinceResolved = (() => {
-      if (!this.resolution_date) return '0s'
-      
-      const now = new Date()
-      
-      let dateStr = String(this.resolution_date).trim().replace(' ', 'T')
-      if (!dateStr.endsWith('Z') && !dateStr.includes('+')) {
-        dateStr += 'Z'
-      }
-      const past = new Date(dateStr)
-      
-      const seconds = Math.max(0, date.getDateDiff(now, past, 'seconds'))
-      if (seconds < 60) return `${seconds}s`
-      
-      const minutes = date.getDateDiff(now, past, 'minutes')
-      if (minutes < 60) return `${minutes}m`
-      
-      const hours = date.getDateDiff(now, past, 'hours')
-      if (hours < 24) return `${hours}h`
-      
-      const days = date.getDateDiff(now, past, 'days')
-      if (days < 7) return `${days}d`
-      
-      const weeks = Math.floor(days / 7)
-      if (weeks < 4) return `${weeks}w`
-      
-      const months = date.getDateDiff(now, past, 'months')
-      if (months < 12) return `${months}m`
-      
-      const years = date.getDateDiff(now, past, 'years')
-      return `${years}y`
-    })()
 
     const reasons = data.dispute_reason ?? data.reason
     this.reasons = Array.isArray(reasons)
@@ -481,7 +352,7 @@ export class DisputeDetails {
       : { bidder: null, username: null, address: null }
 
     this.contract_address = data.contract_address || null
-    this.balance = data.bid_price_bch !== undefined ? Number(data.bid_price_bch) : 0.00000000
+    this.balance = data.bid_price_bch ? Number(data.bid_price_bch) : 0.00000000
   }
 }
 
@@ -506,13 +377,13 @@ export class DeliveryDetails {
     this.tracking_id = data.tracking_id ?? null
     this.lot_id = data.lotId != null || data.lot != null ? Number(data.lotId ?? data.lot) : null
 
-    this.sender_id = data.sender !== undefined ? Number(data.sender) : null
-    this.sender_location = data.sender_location !== undefined ? data.sender_location : null
+    this.sender_id = data.sender ? Number(data.sender) : null
+    this.sender_location = data.sender_location ?? null
     
-    this.receiver_id = data.receiver !== undefined ? Number(data.receiver) : null
-    this.receiver_location = data.receiver_location !== undefined ? data.receiver_location : null
+    this.receiver_id = data.receiver ? Number(data.receiver) : null
+    this.receiver_location = data.receiver_location ?? null
     
-    this.courier = data.courier !== undefined ? data.courier : null
+    this.courier = data.courier ?? null
     this.creation_date = data.creation_date || null
 
     this.delivery_events = data.delivery_events || []
