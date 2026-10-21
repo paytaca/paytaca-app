@@ -513,6 +513,14 @@
             </div>
           </div>
           <div class="q-pa-md">
+            <q-label class="q-block q-mb-sm">{{ $t('WalletName', {}, 'Wallet name') }}</q-label>
+            <q-input
+              v-model="walletName"
+              outlined
+              :error="walletNameTaken"
+              :error-message="$t('WalletNameTaken', {}, 'Wallet name is already taken')"
+              bg-color="white"
+            />
             <q-label class="q-block q-mb-sm">Extended Public Key (xpub)</q-label>
             <q-input
               type="textarea"
@@ -551,7 +559,7 @@
           :label="$t('ImportReadOnlyWallet') || 'Import read-only wallet'"
           class="q-mt-lg full-width primary-cta bg-grad"
           @click="initCreateWallet()"
-          :disable="!xpub"
+          :disable="!xpub || walletNameTaken"
         />
       </template>
     </div>
@@ -735,6 +743,7 @@ import SeedPhraseContainer from 'src/components/SeedPhraseContainer'
 import Onboarding from 'src/components/registration/Onboarding.vue'
 import Login from 'src/components/registration/Login.vue'
 import { ensureCanPerformActionWithDeps } from 'src/composables/useTieredLimitGate'
+import { isWalletNameTaken, nextReadOnlyWalletName } from 'src/lib/readonly-wallet'
 import RewardsStep from 'src/components/registration/RewardsStep.vue'
 
 // Keep in sync with country selector data source (code, currency, language).
@@ -964,6 +973,9 @@ export default {
     },
     isVaultEmpty() {
       return this.$store.getters['global/isVaultEmpty']
+    },
+    walletNameTaken () {
+      return isWalletNameTaken(this.walletName)
     },
     currentStep () {
       // Extract step number from route path
@@ -1619,7 +1631,7 @@ export default {
       // authentication phase so the XPub entry UI is shown.
       this.importSeedPhrase = true
       this.authenticationPhase = 'xpub'
-      this.walletName = 'Read-Only Wallet'
+      this.walletName = nextReadOnlyWalletName()
       this.resetReadOnlyForm()
       this.$router.push({ path: '/accounts/restore/step-2', query: { phase: 'xpub' } })
     },
@@ -1829,8 +1841,11 @@ export default {
       const { ReadOnlyWallet } = await import('src/lib/readonly-wallet')
 
       const cleanedXpub = (this.xpub || '').trim()
+      const walletName = this.walletName && !isWalletNameTaken(this.walletName)
+        ? this.walletName
+        : nextReadOnlyWalletName()
       const walletConfig = {
-        name: this.walletName || 'Read-Only Wallet',
+        name: walletName,
         xpub: cleanedXpub,
         masterFingerprint: (this.masterFingerprint || '').trim(),
         derivationPath: this.readOnlyDerivationPath || undefined,
@@ -1901,7 +1916,7 @@ export default {
       const vaultEntry = {
         wallet: walletStructure,
         chipnet: chipnetStructure,
-        name: this.walletName || 'Read-Only Wallet',
+        name: walletName,
         readOnly: mainnetWallet.toJSON(),
         settings: {
           isReadOnly: true

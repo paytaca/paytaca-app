@@ -47,6 +47,51 @@ export function isReadOnlyVaultEntry (entry) {
 }
 
 /**
+ * Normalize a wallet name for uniqueness comparison.
+ * @param {any} name
+ * @returns {string}
+ */
+function normalizeWalletName (name) {
+  return String(name ?? '').trim().toLowerCase()
+}
+
+/**
+ * True if any non-deleted wallet in the vault already uses this name.
+ * @param {string} name
+ * @returns {boolean}
+ */
+export function isWalletNameTaken (name) {
+  const normalized = normalizeWalletName(name)
+  if (!normalized) return false
+  const vault = store().getters['global/getVault'] || []
+  return vault.some(entry =>
+    !entry?.deleted && entry?.name != null &&
+    normalizeWalletName(entry.name) === normalized
+  )
+}
+
+/**
+ * Next free read-only wallet name: "Read-Only Wallet", or
+ * "Read-Only Wallet (n)" with the lowest number no other wallet uses.
+ * Matches against all non-deleted vault names so the result never collides.
+ * @returns {string}
+ */
+export function nextReadOnlyWalletName () {
+  const vault = store().getters['global/getVault'] || []
+  const taken = new Set(
+    vault
+      .filter(entry => entry && !entry.deleted && entry?.name != null)
+      .map(entry => normalizeWalletName(entry.name))
+  )
+  const base = 'read-only wallet'
+  if (!taken.has(base)) return 'Read-Only Wallet'
+  for (let n = 1; ; n++) {
+    const candidate = `${base} (${n})`
+    if (!taken.has(candidate)) return `Read-Only Wallet (${n})`
+  }
+}
+
+/**
  * Get the serialized ReadOnlyWallet config for a vault index, or null.
  * @param {number} index
  * @returns {Object|null} ReadOnlyWallet config (toJSON shape)
