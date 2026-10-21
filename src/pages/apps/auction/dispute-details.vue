@@ -44,8 +44,8 @@
             </q-chip>
             <span class="text-caption" style="opacity: 0.65;">
               <q-icon name="schedule" size="xs" class="q-mr-xs" />
-              <span v-if="details.status === 'Resolved'">{{ details.timeSinceResolved }} ago</span>
-              <span v-else>{{ details.timeSinceFiled }} ago</span>
+              <span v-if="details.status === 'Resolved'">{{ formatTimeSince(details.resolution_date) }} ago</span>
+              <span v-else>{{ formatTimeSince(details.creation_date) }} ago</span>
             </span>
           </div>
 
@@ -178,7 +178,7 @@
           <div class="row items-center q-gutter-x-xs">
             <q-icon name="check_circle" color="positive" size="xs" />
             <span class="text-caption">
-              This dispute was resolved {{ details.timeSinceResolved }} ago.
+              This dispute was resolved {{ formatTimeSince(details.resolution_date) }} ago.
             </span>
           </div>
         </q-card-section>
@@ -289,6 +289,7 @@ import { computed, ref, onBeforeUnmount, onMounted, nextTick } from 'vue'
 import { useRouter } from 'vue-router'
 
 import { deriveOAuthCredentials } from 'src/auction/bch-oauth'
+import { formatTimeSince } from './helper-functions'
 import { copyToClipboard, formatBCH } from './helper-functions'
 
 // Components

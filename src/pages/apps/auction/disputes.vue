@@ -111,8 +111,8 @@
                 </q-chip>
                 <span class="text-caption q-mt-xs" style="opacity: 0.65;">
                   <q-icon name="schedule" size="xs" class="q-mr-xs" />
-                  <span v-if="dispute.status === 'Resolved'">{{ dispute.timeSinceResolved }} ago</span>
-                  <span v-else>{{ dispute.timeSinceFiled }} ago</span>
+                  <span v-if="dispute.status === 'Resolved'">{{ formatTimeSince(dispute.resolution_date) }} ago</span>
+                  <span v-else>{{ formatTimeSince(dispute.creation_date) }} ago</span>
                 </span>
               </div>
 
@@ -157,6 +157,7 @@ import { useRouter } from 'vue-router'
 import { ref, computed, onMounted } from 'vue'
 
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
+import { formatTimeSince } from './helper-functions'
 
 // Components
 import HeaderNav from 'src/components/header-nav.vue'
