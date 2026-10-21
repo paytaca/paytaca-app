@@ -164,18 +164,22 @@ export function normalizeP2POrder (order) {
   })
 }
 
+/**
+ * Only `auto_complete_at` is a deadline the backend actually enforces
+ * (`connecta.tasks.complete_delivered_orders_task`). `delivery_deadline` and
+ * `preparation_deadline` are informational: nothing acts on them, so counting
+ * down to one would hit zero and then nothing would happen. `autoCompleteAt` is
+ * already absent for statuses where it does not apply.
+ *
+ * @param {Object} order
+ * @param {Boolean} isTerminal
+ * @returns {{countdownAt: Number|null, countdownLabel: String}}
+ */
 function marketplaceCountdown (order, isTerminal) {
   if (isTerminal) return { countdownAt: null, countdownLabel: '' }
 
-  const candidates = [
-    [parseTimestamp(order?.autoCompleteAtTimestamp ?? order?.autoCompleteAt), 'Auto-completes in'],
-    [parseTimestamp(order?.deliveryDeadline), 'Delivery due in'],
-    [parseTimestamp(order?.preparationDeadline), 'Preparation due in'],
-  ]
-
-  for (const [countdownAt, countdownLabel] of candidates) {
-    if (countdownAt) return { countdownAt, countdownLabel }
-  }
+  const countdownAt = parseTimestamp(order?.autoCompleteAtTimestamp ?? order?.autoCompleteAt)
+  if (countdownAt) return { countdownAt, countdownLabel: 'Auto-completes in' }
   return { countdownAt: null, countdownLabel: '' }
 }
 
