@@ -752,44 +752,39 @@ export default {
       }
 
       const lastAddressIndex = vm.getLastAddressIndex()
-      let newAddressIndex = lastAddressIndex + 1
-      // Skip address 0/0 (reserved for message encryption)
-      newAddressIndex = vm.ensureAddressIndexNotZero(newAddressIndex)
+      const baseIndex = typeof lastAddressIndex === 'number' && Number.isFinite(lastAddressIndex) ? lastAddressIndex : 0
+      const newAddressIndex = vm.ensureAddressIndexNotZero(baseIndex + 1)
 
       delete this?.$options?.sockets
 
-      getMnemonic(vm.$store.getters['global/getWalletIndex']).catch(() => null).then(function (mnemonic) {
+      try {
+        const mnemonic = await getMnemonic(vm.$store.getters['global/getWalletIndex']).catch(() => null)
         const wallet = new Wallet(mnemonic, vm.network)
-        if (vm.walletType === 'bch') {
-          getWalletByNetwork(wallet, vm.walletType).getNewAddressSet(newAddressIndex).then(async function (result) {
-            const addresses = result.addresses
-            vm.$store.commit('global/generateNewAddressSet', {
-              type: 'bch',
-              lastAddress: addresses.receiving,
-              lastChangeAddress: addresses.change,
-              lastAddressIndex: newAddressIndex
-            })
-            // Refresh the dynamic address after generating new address
-            await vm.refreshDynamicAddress()
-            try { await vm.setupListener() } catch {}
-          }).finally(() => {
-            vm.generating = false
-          })
-        }
-        if (vm.walletType === 'slp') {
-          getWalletByNetwork(wallet, vm.walletType).getNewAddressSet(newAddressIndex).then(async function (addresses) {
-            vm.$store.commit('global/generateNewAddressSet', {
-              type: 'slp',
-              lastAddress: addresses.receiving,
-              lastChangeAddress: addresses.change,
-              lastAddressIndex: newAddressIndex
-            })
-            // Refresh the dynamic address after generating new address
-            await vm.refreshDynamicAddress()
-            try { await vm.setupListener() } catch {}
-          })
-        }
-      })
+        const result = await getWalletByNetwork(wallet, vm.walletType).getNewAddressSet(newAddressIndex)
+        if (!result) throw new Error('Failed to subscribe addresses to watchtower')
+        // bch returns { addresses }, slp returns the address set directly
+        const addresses = result.addresses || result
+        vm.$store.commit('global/generateNewAddressSet', {
+          type: vm.walletType,
+          lastAddress: addresses.receiving,
+          lastChangeAddress: addresses.change,
+          lastAddressIndex: newAddressIndex
+        })
+        // Re-resolve through the verified scan: if the advanced index still
+        // has history, findUnusedAddress walks forward until an unused
+        // address is found and the store is updated to match
+        await vm.refreshDynamicAddress()
+        try { await vm.setupListener() } catch {}
+      } catch (error) {
+        console.error('Error generating new address:', error)
+        vm.$q.notify({
+          message: vm.$t('FailedToGenerateAddress') || 'Failed to generate address. Please try again.',
+          color: 'negative',
+          icon: 'warning'
+        })
+      } finally {
+        vm.generating = false
+      }
     },
     async showPrivateKey () {
       try {
@@ -903,40 +898,73 @@ export default {
         return null
       }
     },
-    async isAddressUsed(address, walletType) {
-      try {
-        const baseUrl = this.isChipnet ? 'https://chipnet.watchtower.cash' : 'https://watchtower.cash'
-        
-        const promises = []
+    /**
+     * Check whether an address has prior transactions or a balance.
+     * Returns 'unknown' when watchtower cannot confirm, so callers never
+     * mistake a failed check for a fresh address.
+     * @param {string} address
+     * @param {string} walletType - 'bch' or 'slp'
+     * @returns {Promise<'used'|'unused'|'unknown'>}
+     */
+    async getAddressUsageStatus(address, walletType) {
+      const baseUrl = this.isChipnet ? 'https://chipnet.watchtower.cash' : 'https://watchtower.cash'
 
-        if (walletType === 'slp') {
-          promises.push(
-            axios.get(`${baseUrl}/api/balance/bch/${address}/`).catch(() => ({ data: { balance: 0 } }))
-          )
-          promises.push(
-            axios.get(`${baseUrl}/api/balance/slp/${address}/`).catch(() => ({ data: { balance: 0 } }))
-          )
-        } else {
-          promises.push(
-            axios.get(`${baseUrl}/api/balance/bch/${address}/?include_token_sats=true`).catch(() => ({ data: { balance: 0 } }))
-          )
+      const balanceUrls = walletType === 'slp'
+        ? [`${baseUrl}/api/balance/bch/${address}/`, `${baseUrl}/api/balance/slp/${address}/`]
+        : [`${baseUrl}/api/balance/bch/${address}/?include_token_sats=true`]
+
+      try {
+        const [isUsedResult, balanceResults] = await Promise.all([
+          axios.get(`${baseUrl}/api/address-info/bch/${encodeURIComponent(address)}/isused/`)
+            .then(response => response?.data?.is_used)
+            .catch(() => null),
+          Promise.all(balanceUrls.map(url => axios.get(url).catch(() => null)))
+        ])
+
+        if (balanceResults.some(r => (r?.data?.balance || 0) > 0)) return 'used'
+        if (isUsedResult === true) return 'used'
+        // The isused endpoint is authoritative for transaction history
+        if (isUsedResult === false) return 'unused'
+      } catch (error) {
+        console.error('Error checking address usage status:', error)
+      }
+
+      return 'unknown'
+    },
+    /**
+     * Scan forward from startIndex until an address is positively confirmed
+     * unused (zero balance, no tx history). Throws when watchtower cannot
+     * confirm an address's status, so callers never render an unverified one.
+     * @param {number} startIndex
+     * @returns {Promise<{address: string, addressIndex: number}>}
+     */
+    async findUnusedAddress(startIndex) {
+      const MAX_SCAN_ATTEMPTS = 20
+
+      for (let attempts = 0; attempts < MAX_SCAN_ATTEMPTS; attempts++) {
+        const addressIndex = this.ensureAddressIndexNotZero(startIndex + attempts)
+        const addressResult = await generateAddressSetWithoutSubscription({
+          walletIndex: this.$store.getters['global/getWalletIndex'],
+          derivationPath: getDerivationPathForWalletType(this.walletType),
+          addressIndex,
+          isChipnet: this.isChipnet
+        })
+
+        if (!addressResult.success) {
+          throw new Error('Failed to generate address: ' + (addressResult.error || 'Unknown error'))
         }
 
-        promises.push(
-          axios.get(`${baseUrl}/api/address-info/bch/${encodeURIComponent(address)}/isused/`).catch(() => ({ data: { is_used: false } }))
-        )
-
-        const results = await Promise.all(promises)
-        const isUsedResponse = results[results.length - 1]
-        const isUsed = isUsedResponse?.data?.is_used === true
-
-        const hasBalance = results.slice(0, -1).some(r => (r?.data?.balance || 0) > 0)
-
-        return hasBalance || isUsed
-      } catch (error) {
-        console.error('Error checking if address is used:', error)
-        return true
+        const usageStatus = await this.getAddressUsageStatus(addressResult.addresses.receiving, this.walletType)
+        console.debug('[Receive] address scan', { addressIndex, usageStatus, address: addressResult.addresses.receiving })
+        if (usageStatus === 'unknown') {
+          throw new Error('Unable to verify address freshness')
+        }
+        if (usageStatus === 'unused') {
+          return { address: addressResult.addresses.receiving, addressIndex }
+        }
       }
+
+      throw new Error('No unused address found within scan limit')
     },
     async refreshDynamicAddress() {
       // Step 1: Generate address from saved lastAddressIndex
@@ -958,8 +986,8 @@ export default {
 
         // Respect the Auto-generate setting:
         // - If disabled, ALWAYS reuse the lastAddressIndex as-is
-        // - Do NOT check balance of that address
-        // - Do NOT increment lastAddressIndex
+        // - Do NOT check usage of that address
+        // - Do NOT sync/advance lastAddressIndex
         const autoGenerateAddress = this.$store.getters['global/autoGenerateAddress']
         if (!autoGenerateAddress) {
           const subscribeResult = await generateReceivingAddress({
@@ -986,93 +1014,67 @@ export default {
           this.generating = false
           return
         }
-        
-        // Generate address from lastAddressIndex
-        let address
-        
-        // Step 1: Generate address from lastAddressIndex WITHOUT subscribing (just to check if used)
-        const addressResult = await generateAddressSetWithoutSubscription({
+
+        // Sync tracked index from watchtower first so the scan starts from the
+        // server's last used index even when local state is stale
+        // (the store action tracks the BCH wallet hash only)
+        if (this.walletType === 'bch') {
+          try {
+            await this.$store.dispatch('global/loadWalletLastAddressIndex')
+          } catch (error) {
+            console.error('Error refreshing last address index:', error)
+          }
+          const syncedLastAddressIndex = this.$store.getters['global/getLastAddressIndex'](this.walletType)
+          // Never regress below the locally tracked index (e.g. right after
+          // "New Address" advanced it); only adopt the server value when ahead
+          if (typeof syncedLastAddressIndex === 'number' && syncedLastAddressIndex > validAddressIndex) {
+            validAddressIndex = syncedLastAddressIndex
+          }
+          validAddressIndex = this.ensureAddressIndexNotZero(validAddressIndex)
+        }
+
+        // Scan forward until an address is positively confirmed unused.
+        // Never display an address whose status is unknown (watchtower
+        // unreachable) or known-used.
+        const { addressIndex: foundAddressIndex } =
+          await this.findUnusedAddress(validAddressIndex)
+
+        // Keep the store pointed at the displayed address (the scan may have
+        // advanced past it, or the server sync may have regressed it)
+        const trackedIndex = this.$store.getters['global/getLastAddressIndex'](this.walletType)
+        if (foundAddressIndex !== trackedIndex) {
+          const mnemonic = await getMnemonic(this.$store.getters['global/getWalletIndex']).catch(() => null)
+          const wallet = new Wallet(mnemonic, this.network)
+          const result = await getWalletByNetwork(wallet, this.walletType).getNewAddressSet(foundAddressIndex)
+          if (result) {
+            // bch returns { addresses }, slp returns the address set directly
+            const addresses = result.addresses || result
+            this.$store.commit('global/generateNewAddressSet', {
+              type: this.walletType,
+              lastAddress: addresses.receiving,
+              lastChangeAddress: addresses.change,
+              lastAddressIndex: foundAddressIndex
+            })
+          }
+        }
+
+        // Subscribe the confirmed-unused address for watchtower tracking
+        const subscribeResult = await generateReceivingAddress({
           walletIndex: this.$store.getters['global/getWalletIndex'],
           derivationPath: getDerivationPathForWalletType(this.walletType),
-          addressIndex: validAddressIndex,
+          addressIndex: foundAddressIndex,
           isChipnet: this.isChipnet
         })
-        
-        if (!addressResult.success) {
-          throw new Error('Failed to generate address: ' + (addressResult.error || 'Unknown error'))
+
+        if (!subscribeResult) {
+          throw new Error('Failed to subscribe address to watchtower')
         }
-        
-        address = addressResult.addresses.receiving
-        
-        // Step 2: Check if that address has been used (balance or tx history)
-        const isUsed = await this.isAddressUsed(address, this.walletType)
-        
-        if (!isUsed) {
-          // Step 3: If address is unused, subscribe and render that address
-          // Now subscribe the address since we're using it
-          const subscribeResult = await generateReceivingAddress({
-            walletIndex: this.$store.getters['global/getWalletIndex'],
-            derivationPath: getDerivationPathForWalletType(this.walletType),
-            addressIndex: validAddressIndex,
-            isChipnet: this.isChipnet
-          })
-          
-          if (!subscribeResult) {
-            throw new Error('Failed to subscribe address to watchtower')
-          }
-          
-          // Store regular format for API calls and listeners
-          this.dynamicAddressRegular = subscribeResult
-          
-          // Store display format (token format for CashToken, regular for others)
-          if (this.assetId.indexOf('ct/') > -1) {
-            this.dynamicAddress = convertCashAddress(subscribeResult, this.isChipnet, true)
-          } else {
-            this.dynamicAddress = subscribeResult
-          }
-          this.generating = false
-          return
-        }
-        
-        // Step 4: Else, generate a new address by incrementing the lastAddressIndex by 1
-        let newAddressIndex = validAddressIndex + 1
-        // Skip address 0/0 (reserved for message encryption)
-        newAddressIndex = this.ensureAddressIndexNotZero(newAddressIndex)
-        
-        // Step 5: Generate and subscribe the new address (only subscribe when creating new address)
-        const newAddress = await generateReceivingAddress({
-          walletIndex: this.$store.getters['global/getWalletIndex'],
-          derivationPath: getDerivationPathForWalletType(this.walletType),
-          addressIndex: newAddressIndex,
-          isChipnet: this.isChipnet
-        })
-        
-        if (!newAddress) {
-          throw new Error('Failed to generate and subscribe new address')
-        }
-        
-        // Update store with new address index
-        const mnemonic = await getMnemonic(this.$store.getters['global/getWalletIndex']).catch(() => null)
-        const wallet = new Wallet(mnemonic, this.network)
-        const result = await getWalletByNetwork(wallet, this.walletType).getNewAddressSet(newAddressIndex)
-        const addresses = result.addresses
-        
-        this.$store.commit('global/generateNewAddressSet', {
-          type: this.walletType,
-          lastAddress: addresses.receiving,
-          lastChangeAddress: addresses.change,
-          lastAddressIndex: newAddressIndex
-        })
-        
-        // Step 6: Render that new address in the page
-        // Store regular format for API calls and listeners
-        this.dynamicAddressRegular = newAddress
-        
-        // Store display format (token format for CashToken, regular for others)
+
+        this.dynamicAddressRegular = subscribeResult
         if (this.assetId.indexOf('ct/') > -1) {
-          this.dynamicAddress = convertCashAddress(newAddress, this.isChipnet, true)
+          this.dynamicAddress = convertCashAddress(subscribeResult, this.isChipnet, true)
         } else {
-          this.dynamicAddress = newAddress
+          this.dynamicAddress = subscribeResult
         }
         this.generating = false
       } catch (error) {
