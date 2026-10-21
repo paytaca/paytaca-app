@@ -70,6 +70,15 @@ export default [
   },
 
   {
+    files: [ 'test/**/*.spec.{js,mjs}' ],
+    languageOptions: {
+      globals: {
+        ...globals.mocha
+      }
+    }
+  },
+
+  {
     files: [ 'src-pwa/custom-service-worker.js' ],
     languageOptions: {
       globals: {

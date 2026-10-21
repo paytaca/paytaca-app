@@ -8,8 +8,8 @@ android {
         applicationId "com.paytaca.app"
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
-        versionCode 138
-        versionName "v0.27.1"
+        versionCode 139
+        versionName "v0.27.2"
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
         aaptOptions {
              // Files and dirs to omit from the packaged assets dir, modified to accommodate modern web apps.
@@ -46,6 +46,8 @@ dependencies {
     implementation platform('com.google.firebase:firebase-bom:31.1.1')
     implementation 'com.google.firebase:firebase-analytics'
     implementation 'com.google.firebase:firebase-iid:21.1.0'
+    // order live activities: needed to extend the push plugin's MessagingService
+    implementation 'com.google.firebase:firebase-messaging'
 
     // deferred referral (Play Install Referrer)
     implementation 'com.android.installreferrer:installreferrer:2.2'

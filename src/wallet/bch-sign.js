@@ -170,7 +170,6 @@ export function signBchTransaction({ transaction, sourceOutputs, resolveKey, pre
         throw signBchTxError('Contract input locking bytecode is not valid P2SH/P2SH32')
       }
 
-      let signedContractInput = false
       const hashType = SigningSerializationFlag.allOutputs | SigningSerializationFlag.utxos | SigningSerializationFlag.forkId
       const context = { inputIndex: index, sourceOutputs, transaction }
       const signingSerializationType = new Uint8Array([hashType])
@@ -184,22 +183,32 @@ export function signBchTransaction({ transaction, sourceOutputs, resolveKey, pre
         const sig = Uint8Array.from([...signature, hashType])
 
         unlockingBytecodeHex = unlockingBytecodeHex.replace(sigPlaceholder, "41" + binToHex(sig))
-        signedContractInput = true
       } else if (!unlockingBytecodeHexHasSignature(unlockingBytecodeHex, publicKey, sighash)) {
-        throw signBchTxError(
-          `Contract input ${index}: no signature placeholder found in the unlocking bytecode, ` +
-          'and no valid signature from this wallet is present. Refusing to return an unsigned ' +
-          'contract input — the transaction template must include a 65-zero-byte signature ' +
-          'placeholder (0x41 push) for this wallet.'
-        )
+        // The unlocking bytecode of a contract spend is the function arguments followed
+        // by a push of the redeem script. A spend that passes no arguments at all — such
+        // as a Cauldron pool exchange, which branches on OP_DEPTH instead of taking a
+        // signature — has nothing for the wallet to fill in. Pass it through untouched
+        // rather than rejecting a template that was never meant to be signed here.
+        const decoded = decodeAuthenticationInstructions(hexToBin(unlockingBytecodeHex))
+        const argumentCount = typeof decoded === 'string' ? 0 : Math.max(decoded.length - 1, 0)
+        const abiInputs = sourceOutput.contract?.abiFunction?.inputs
+        const abiWantsSignature = Array.isArray(abiInputs) &&
+          abiInputs.some(input => ['sig', 'datasig'].includes(input?.type))
+
+        if (argumentCount > 0 || abiWantsSignature) {
+          throw signBchTxError(
+            `Contract input ${index}: no signature placeholder found in the unlocking bytecode, ` +
+            'and no valid signature from this wallet is present. Refusing to return an unsigned ' +
+            'contract input — the transaction template must include a 65-zero-byte signature ' +
+            'placeholder (0x41 push) for this wallet.'
+          )
+        }
+
+        console.warn(`[bch-sign] Contract input ${index}: contract spend takes no arguments; leaving unlocking bytecode unchanged`)
       }
 
       if (unlockingBytecodeHex.indexOf(pubkeyPlaceholder) !== -1) {
         unlockingBytecodeHex = unlockingBytecodeHex.replace(pubkeyPlaceholder, "21" + binToHex(publicKey))
-      }
-
-      if (!signedContractInput) {
-        console.warn(`[bch-sign] Contract input ${index}: no signature placeholder found; input already carries a signature from this wallet`)
       }
 
       input.unlockingBytecode = hexToBin(unlockingBytecodeHex)
