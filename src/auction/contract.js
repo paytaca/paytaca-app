@@ -38,13 +38,13 @@ async function getAuctionPublicKeys (lotId) {
   await Promise.all([
     Store.getters['auction/auctioneerPublicKey']
       ? Promise.resolve()
-      : Store.dispatch('auction/fetchAuctioneerPublicKey'),
+      : Store.dispatch('auction/fetchAuctioneerPublicKey', lotId),
     Store.getters['auction/arbiterPublicKey']
       ? Promise.resolve()
-      : Store.dispatch('auction/fetchArbiterPublicKey', lotId),
+      : Store.dispatch('auction/fetchArbiterPublicKey'),
     Store.getters['auction/servicerPublicKey']
       ? Promise.resolve()
-      : Store.dispatch('auction/fetchServicerPublicKey')
+      : Store.dispatch('auction/fetchArbiterPublicKey'),
   ])
 
   const auctioneer = Store.getters['auction/auctioneerPublicKey']
