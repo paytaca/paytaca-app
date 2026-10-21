@@ -1,3 +1,4 @@
+<!-- eslint-disable vue/multi-word-component-names -->
 <template>
   <!--
     ARBITER ONLY: This page contains the list of disputes for the Auction app.
@@ -182,15 +183,10 @@ const arbiterDetails = ref([])
 // Loads dispute records for the arbiter page.
 const fetchArbiterData = async () => {
   arbiterDetails.value = []
-
-  // If not arbiter, don't proceed (REVIEW IF ROUTER.PUSH/REPLACE IS REQUIRED HERE )
-  if (!isArbiter.value) return
-
   try {
-    arbiterDetails.value = await $store.dispatch('auction/fetchDisputes')
+    arbiterDetails.value = await $store.dispatch('auction/fetchArbiterDisputes')
   } catch (err) {
     console.error('Failed to fetch disputes:', err)
-    arbiterDetails.value = []
   }
 }
 
@@ -212,10 +208,9 @@ onMounted(async () => {
 const filteredDisputes = computed(() => {
   let items = arbiterDetails.value
 
-  if (arbiterType.value !== 'All') {
+  if (arbiterType.value !== 'All') 
     items = items.filter(dispute => dispute.status === arbiterType.value)
-  }
-
+  
   const query = searchQuery.value.trim().toLowerCase()
   return query
     ? items.filter(dispute => String(dispute.id).includes(query))
