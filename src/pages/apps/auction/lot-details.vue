@@ -549,7 +549,7 @@
                     </div>
                     
                     <span class="text-caption ellipsis" style="opacity: 0.6;">
-                      {{ auction?.getEllipsisInMiddleAddress ? auction.getEllipsisInMiddleAddress() : 'N/A' }}
+                      {{ auction ? formatAddressWithEllipsis(auction.auctioneer) : 'N/A' }}
                     </span>
                   </div>
                   <q-btn flat round dense icon="content_copy" size="xs" @click="copyToClipboard(auction?.auctioneer, $q)" />
@@ -739,7 +739,7 @@ import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 import { callAPI } from 'src/auction/api'
 import { payFirstBidToContract } from 'src/auction/payment'
 import { callLotWebsocket } from 'src/auction/websocket'
-import { copyToClipboard, formatAuctionCountdown as formatCountdown, formatAuctionDate, formatFiat, formatBCH } from './helper-functions'
+import { copyToClipboard, formatAuctionCountdown as formatCountdown, formatAuctionDate, formatFiat, formatBCH, formatAddressWithEllipsis } from './helper-functions'
 
 // Components
 import HeaderNav from 'src/components/header-nav.vue'
@@ -749,6 +749,7 @@ import BiddingHistoryPopup from 'src/components/auction/BiddingHistoryPopup.vue'
 import SellerDisputePopup from 'src/components/auction/SellerDisputePopup.vue'
 import RefundPopup from 'src/components/auction/RefundPopup.vue'
 import DeliveryStatusHistoryDialog from 'src/components/auction/DeliveryStatusHistoryDialog.vue'
+import { DeliveryDetails } from 'src/auction/object'
 
 // Quasar variables
 const $q = useQuasar()
@@ -853,14 +854,11 @@ const dateDelivered = ref(null)
 
 // Creates delivery tracking for an sold lot.
 const initDeliveryTracking = async () => {
-  // Delivery event already exists
-  if (deliveryTracking.value != null) return
-
-  // Lot isn't sold
-  if (!isLotSold.value) return
-
-  // User isn't the winner
-  if (!userIsLeadingBidder.value) return
+  if (
+    deliveryTracking.value != null  // Delivery event already exists
+    && !isLotSold.value             // Lot isn't sold
+    && !userIsLeadingBidder.value   // User isn't the winner
+  ) return
 
   try {
     const deliveryTrackingRes = await callAPI('delivery-trackings', null, 'post', {
@@ -873,9 +871,8 @@ const initDeliveryTracking = async () => {
     })
     if (!deliveryTrackingRes || !deliveryTrackingRes.success || !deliveryTrackingRes.data) 
       throw new Error('Delivery tracking could not be created. Please refresh the page.')
-
-    // PARSE WITH DELIVERYDETAILS LIST vvvvv
-    deliveryTracking.value = deliveryTrackingRes.data 
+    
+    const data = deliveryTrackingRes.data
 
     const deliveryEventRes = await callAPI('delivery-events', null, 'post', {
       delivery: deliveryTrackingRes.data?.tracking_id,
@@ -885,11 +882,11 @@ const initDeliveryTracking = async () => {
       event_date: new Date().toISOString()
     })
     if (deliveryEventRes && deliveryEventRes.success && deliveryEventRes.data){
-      // PARSE WITHG DELIVERYEVENT LIST vvvv
-      // ALSO ADD A DELIVERYEVENT VARIABLE (IT MUST BE AN ARRAY I THINK)
       deliveryEvents.value = deliveryEventRes.data
-    }
-    else throw new Error('Delivery event could not be created. Please refresh the page.')
+      data['delivery_events'] = deliveryEventRes.data
+    } else throw new Error('Delivery event could not be created. Please refresh the page.')
+
+    deliveryTracking.value = DeliveryDetails.parse(data)
   } catch (error) {
     $q.notify({ type: 'warning', message: error.message })
   }
@@ -1006,29 +1003,36 @@ const userIsLeadingBidder = computed(() => lotWinningBid.value?.bidder === userW
 const handlePlaceBid = async (bidData) => {
   // Loading is still ongoing
   if (isBidLoading.value) return
+  console.log('Bid is not loading.')
 
   // Wallet not connected
   if (!userWalletHash.value) {
     $q.notify({ type: 'warning', message: 'Please connect your wallet first.' })
     return
   }
+  console.log('Wallet connected.')
 
   // If ever (supposedly not being reached)
   if (lot.value?.status !== 'Active' || auction.value?.status !== 'Open') {
     $q.notify({ type: 'warning', message: 'This lot is not accepting bids.' })
     return
   }
+  console.log('Lot is active and auction is still open.')
 
   // Bid information
   const bidBch = Number(bidData.bid_price_bch)
   const bidFiat = Number(bidData.bid_price_fiat)
   const bidPrice = auction.value?.is_fiat ? bidFiat : bidBch
+  console.log(`bidBCH: ${bidBch}`)
+  console.log(`bidFiat: ${bidFiat}`)
+  console.log(`bidPrice: ${bidPrice}`)
 
   // Get current winnder's bid price
   const currentPrice = auction.value?.is_fiat
     ? Number(lot.value?.threshold_bid_fiat || 0)
     : Number(lot.value?.threshold_bid_bch || 0)
-
+  console.log(`currentPrice: ${currentPrice}`)
+  
   // Check if new bid is valid
   const isLesserThanCurrentBid = !Number.isFinite(bidPrice) 
     || bidPrice <= 0 
@@ -1039,6 +1043,7 @@ const handlePlaceBid = async (bidData) => {
     $q.notify({ type: 'warning', message: 'Bid must be higher than the current bid.' })
     return
   }
+  console.log('Bid is valid (greater than current bid price)')
 
   isBidLoading.value = true
   try {
@@ -1048,24 +1053,29 @@ const handlePlaceBid = async (bidData) => {
       bid_price_fiat: bidFiat,
     })
     if (!pendingBid?.id) throw new Error('Bid was not created.')
+    console.log('Bid was created in the server.')
 
     // Settle/Complete the bid through payment
     let settledBid
+    $q.loading.show({ message: 'Processing smart contract...' })
     if (lotWinningBid.value?.id) { // EXISTING BIDS
+      console.log('OUTBIDDING...')
       const result = await callAPI('Outbid', pendingBid.id, 'post')
       if (!result.success) throw new Error(result.error || 'Failed to outbid.')
       settledBid = result.data
+      console.log(`Settled bid: ${settledBid}`)
     } else { 
-      $q.loading.show({ message: 'Processing smart contract...' })
+      console.log('FIRST BID...')
       const txid = await payFirstBidToContract(Number(props.lotId), Number(bidBch.toFixed(8)))
-
       const settlement = waitForBidSettlement(pendingBid.id)
       socket.send(JSON.stringify({
         type: 'paid_bid',
         data: { id: pendingBid.id, lot: Number(props.lotId), txid }
       }))
       settledBid = await settlement
+      console.log(`Settled bid: ${settledBid}`)
     }
+    console.log('Bid completed.')
 
     showMakeBidDialog.value = false
     $q.notify({

@@ -260,7 +260,7 @@ import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 import { computed, ref, onMounted } from 'vue'
 import { callAPI } from 'src/auction/api'
 import { AuctionList, LotsList } from 'src/auction/object.js'
-import { formatBCH, formatFiatNumber as formatFiat, getAuctionDateValidationError, getIntervalMinutes, withBothCurrencies } from './helper-functions'
+import { formatBCH, formatFiatNumber as formatFiat, getAuctionDateValidationError, getIntervalMinutes, parseTimeIntervalMinutes, withBothCurrencies } from './helper-functions'
 
 // Components
 import HeaderNav from 'src/components/header-nav.vue'
@@ -377,7 +377,7 @@ const fetchAllData = async () => {
           lot.imageUrl = lot.imageUrls[0] || null
         }
         
-        lot.priceDropInterval = lot.getIntervalMinutes()
+        lot.priceDropInterval = parseTimeIntervalMinutes(lot.time_interval)
         lot.isFiatUsed = lot.is_fiat
         lot.type = lot.type || lot.category || (lot.category_id === 1 ? 'Physical' : 'Digital')
         lot.category = lot.category || lot.type

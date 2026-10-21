@@ -75,7 +75,7 @@
                       </q-badge>
                     </div>
                     <span class="text-caption ellipsis" style="opacity: 0.6;">
-                      {{ auction?.getEllipsisInMiddleAddress() }}
+                      {{ formatAddressWithEllipsis(auction?.auctioneer) }}
                     </span>
                   </div>
                   
@@ -308,7 +308,7 @@
                   <q-separator spaced="sm" />
 
                   <div class="column q-gap-y-none text-negative">
-                    <div class="text-caption text-weight-bold">DROPS EVERY {{ lot?.getIntervalMinutes() }} MINUTES:</div>
+                    <div class="text-caption text-weight-bold">DROPS EVERY {{ parseTimeIntervalMinutes(lot?.time_interval) }} MINUTES:</div>
 
                     <template v-if="auction?.is_fiat">
                       <div class="text-caption text-weight-bold">
@@ -354,7 +354,7 @@ import noImage from 'src/assets/no-image.svg'
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 import { callAPI } from 'src/auction/api'
 import { callAuctionWebsocket } from 'src/auction/websocket'
-import { copyToClipboard, formatAuctionCountdown, formatFiat, formatBCH, formatAuctionDate, getEnglishPriceInfo } from './helper-functions'
+import { copyToClipboard, formatAuctionCountdown, formatFiat, formatBCH, formatAuctionDate, getEnglishPriceInfo, formatAddressWithEllipsis, parseTimeIntervalMinutes } from './helper-functions'
 
 // Quasar variables
 const $q = useQuasar()

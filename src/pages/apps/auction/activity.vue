@@ -391,7 +391,7 @@ import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 import { computed, ref, onMounted, watch, onBeforeUnmount } from 'vue'
 import { useRouter } from 'vue-router'
 import { callAPI } from 'src/auction/api'
-import { formatAuctionDate, formatFiat, formatBCH, getEnglishPriceInfo } from './helper-functions'
+import { formatAuctionDate, formatFiat, formatBCH, getEnglishPriceInfo, parseTimeIntervalMinutes } from './helper-functions'
 
 // Components
 import HeaderNav from 'src/components/header-nav.vue'
@@ -435,10 +435,7 @@ const lotHasBid = ref({})
 const lotSearchQuery = ref($store.getters['auction/activityLotQuery'] || '')
 
 // Returns the configured price-drop interval for a lot.
-const getLotIntervalMinutes = (lot) => {
-  if (lot && typeof lot.getIntervalMinutes === 'function') return lot.getIntervalMinutes()
-  return 10
-}
+const getLotIntervalMinutes = (lot) => parseTimeIntervalMinutes(lot?.time_interval)
 
 // ====================
 // FORMATTING FUNCTIONS
