@@ -3270,6 +3270,9 @@ export default {
 
 /* Restore step 2 container with additional mobile-safe padding */
 .restore-step-2 {
+  /* clear the fixed chipnet banner (height set via App.vue CSS variable) plus safe-area */
+  padding-bottom: calc(32px + env(safe-area-inset-bottom, 0px) + var(--chipnet-banner-height, 0px));
+
   @media (max-width: 768px) {
     padding-top: max(60px, calc(env(safe-area-inset-top, 0px) + 40px)) !important;
   }

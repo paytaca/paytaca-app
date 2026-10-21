@@ -131,8 +131,11 @@ export default {
     }
   },
   watch: {
-    isChipnet (val) {
-      document.body.style.setProperty('--chipnet-banner-height', val ? '56px' : '0px')
+    isChipnet: {
+      immediate: true,
+      handler (val) {
+        document.body.style.setProperty('--chipnet-banner-height', val ? '56px' : '0px')
+      }
     },
     // Watch for wallet switches to update screenshot security and re-initialize
     async walletIndex(newIndex, oldIndex) {
