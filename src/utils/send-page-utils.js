@@ -26,6 +26,46 @@ function isChipnet () {
   return Store.getters['global/isChipnet']
 }
 
+/**
+ * Per-wallet, per-network queue that serialises change-address selection.
+ *
+ * Reading the cursor, scanning for an unused index and committing the advance
+ * are separated by network round trips. Without this, two spends started at the
+ * same time could pick the same index and land their change on the same
+ * address. Reserving the index alone is not enough: when the scan has to skip
+ * indices that are already used, both callers can still converge on the same
+ * free index further along. Waiting for the previous call to finish means each
+ * caller reads the cursor the previous one committed.
+ *
+ * @type {Map<string, Promise<unknown>>}
+ */
+const changeAddressQueues = new Map()
+
+function queueChangeAddressSelection (key, task) {
+  const previous = changeAddressQueues.get(key) || Promise.resolve()
+  // Chain on both settle paths so one failure does not block later callers
+  const run = previous.then(task, task)
+  const tail = run.catch(() => {})
+  changeAddressQueues.set(key, tail)
+  tail.then(() => {
+    if (changeAddressQueues.get(key) === tail) changeAddressQueues.delete(key)
+  })
+  return run
+}
+
+/**
+ * Reads the shared address cursor, normalised to a non-negative integer.
+ * New wallets start at -1, so the first pair is index 0. Change 1/0 is a normal
+ * change address; only the receiving address 0/0 is reserved for message
+ * encryption and never shown by the receive page.
+ * @param {string} walletType
+ * @returns {number}
+ */
+function readLastAddressIndex (walletType) {
+  const index = Store.getters['global/getLastAddressIndex'](walletType)
+  return typeof index === 'number' && index >= 0 ? index : 0
+}
+
 export async function handleJpp (paymentUri, darkMode) {
   const dialog = Dialog.create({
     title: 'Invoice',
@@ -114,6 +154,9 @@ export function getWallet (type) {
  * because change addresses are never shown to the user and reusing one that was
  * already spent from exposes its public key on chain.
  *
+ * Concurrent calls for the same wallet and network are serialised, so two spends
+ * started at the same time cannot end up sharing a change address.
+ *
  * IMPORTANT: This function subscribes the address to watchtower before returning.
  * If subscription fails, it throws instead of falling back to a stored change
  * address, which may already be used.
@@ -126,17 +169,24 @@ export function getWallet (type) {
  */
 export async function getChangeAddress (walletType, opts = {}) {
   const isChipnetVal = typeof opts.isChipnet === 'boolean' ? opts.isChipnet : isChipnet()
+  const queueKey = `${walletType}:${isChipnetVal ? 'chipnet' : 'mainnet'}`
+
+  return queueChangeAddressSelection(queueKey, () => (
+    selectChangeAddress(walletType, isChipnetVal)
+  ))
+}
+
+/**
+ * @param {string} walletType
+ * @param {boolean} isChipnetVal
+ * @returns {Promise<string>}
+ */
+async function selectChangeAddress (walletType, isChipnetVal) {
   const walletIndex = Store.getters['global/getWalletIndex']
   const derivationPath = getDerivationPathForWalletType(walletType)
+  const storedIndex = readLastAddressIndex(walletType)
 
   try {
-    let storedIndex = Store.getters['global/getLastAddressIndex'](walletType)
-
-    // New wallets start at -1, so fall back to the first pair. Change 1/0 is a
-    // normal change address; only the receiving address 0/0 is reserved for
-    // message encryption and never displayed by the receive page.
-    if (typeof storedIndex !== 'number' || storedIndex < 0) storedIndex = 0
-
     // First change address from storedIndex onward with no on-chain history
     const { addressIndex } = await findUnusedAddressIndex({
       chain: 'change',
