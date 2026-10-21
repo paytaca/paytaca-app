@@ -1051,17 +1051,26 @@ export async function loadWalletAddresses (context) {
       ? context.state?.chipnet__wallets?.bch
       : context.state?.wallets?.bch
 
+    const candidates = []
+
     const idxFromLastAddressAndIndex = bchWallet?.lastAddressAndIndex?.address_index
-    if (Number.isFinite(idxFromLastAddressAndIndex)) return idxFromLastAddressAndIndex
+    if (Number.isFinite(idxFromLastAddressAndIndex)) candidates.push(idxFromLastAddressAndIndex)
 
     const idxFromLastAddressIndex = bchWallet?.lastAddressIndex
-    if (Number.isFinite(idxFromLastAddressIndex)) return idxFromLastAddressIndex
+    if (Number.isFinite(idxFromLastAddressIndex)) {
+      candidates.push(idxFromLastAddressIndex)
+    } else {
+      // Handle string values (e.g. "0", "12", or even accidental "0/0")
+      const parsed = parseInt(String(idxFromLastAddressIndex ?? ''), 10)
+      if (Number.isFinite(parsed)) candidates.push(parsed)
+    }
 
-    // Handle string values (e.g. "0", "12", or even accidental "0/0")
-    const parsed = parseInt(String(idxFromLastAddressIndex ?? ''), 10)
-    if (Number.isFinite(parsed)) return parsed
+    // Take the highest: a spend advances lastAddressIndex locally before
+    // watchtower indexes the change output, so the stale lastAddressAndIndex
+    // must not pull the address range backwards.
+    if (!candidates.length) return NaN
 
-    return NaN
+    return Math.max(...candidates)
   }
 
   // Prefer Watchtower's last external address index (even if Vuex already has a value).

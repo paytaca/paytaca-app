@@ -1785,34 +1785,13 @@ async function initWallet () {
   wallet.value = await loadWallet(undefined, $store.getters['global/getWalletIndex'])
 }
 /**
- * Dynamically generates change address from mnemonic instead of retrieving from store
- * This prevents address mixup issues in multi-wallet scenarios
+ * Change addresses must always be fresh: one already spent from has its public
+ * key exposed, so the shared helper scans forward and returns only a
+ * verified-unused address (no fallback to a possibly-used stored address)
  */
 async function getChangeAddress(opts={chipnet: false}) {
-  try {
-    const { generateChangeAddress: genChangeAddr, getDerivationPathForWalletType: getDerivPath } = await import('src/utils/address-generation-utils.js')
-    const addressIndex = $store.getters['global/getLastAddressIndex']('bch')
-    const walletIndex = $store.getters['global/getWalletIndex']
-    
-    // Generate change address dynamically from mnemonic
-    const changeAddr = await genChangeAddr({
-      walletIndex: walletIndex,
-      derivationPath: getDerivPath('bch'),
-      addressIndex: addressIndex,
-      isChipnet: opts?.chipnet || false
-    })
-    
-    return changeAddr
-  } catch (error) {
-    console.error('Error generating change address dynamically:', error)
-    // Fallback to store-retrieved change address if dynamic generation fails
-    const walletTypes = opts?.chipnet
-      ? $store.getters['global/getAllChipnetTypes']
-      : $store.getters['global/getAllWalletTypes']
-
-    const bchWalletData = walletTypes?.bch
-    return bchWalletData?.lastChangeAddress
-  }
+  const { getChangeAddress: getFreshChangeAddress } = await import('src/utils/send-page-utils')
+  return await getFreshChangeAddress('bch', { isChipnet: !!opts?.chipnet })
 }
 
 function onSendBchPaymentSwipe(resetSwipe=()=>{}) {

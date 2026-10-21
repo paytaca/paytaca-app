@@ -242,10 +242,10 @@
             <q-item clickable v-ripple @click="autoGenerateAddress = !autoGenerateAddress">
               <q-item-section>
                 <q-item-label class="pt-setting-menu" :class="getDarkModeClass(darkMode)">
-                  {{ $t('AutoGenerateAddress', {}, 'Generate fresh addresses') }}
+                  {{ $t('AutoGenerateAddress', {}, 'Auto generate address') }}
                 </q-item-label>
-                <q-item-label caption style="line-height:1;margin-top:3px;" :class="darkMode ? 'text-grey-5' : 'text-grey-8'">
-                  {{ $t('AutoGenerateAddressToolTip', {}, 'A new address will be generated after receiving assets.') }}
+                <q-item-label caption style="line-height:1.2;margin-top:3px;" :class="darkMode ? 'text-grey-5' : 'text-grey-8'">
+                  {{ $t('AutoGenerateAddressToolTip', {}, 'Moves to a new receiving and change address pair after each receive. Change addresses always move to a new pair after every payment, so change never lands on an address that was already spent from. Once an address is spent from, its public key is exposed on chain and a quantum computer could later use it to steal funds, so keeping to unused addresses protects your balance. When off, receiving does not rotate after a receive, but a payment still moves the pair forward.') }}
                 </q-item-label>
               </q-item-section>
               <q-item-section avatar>

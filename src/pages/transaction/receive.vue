@@ -330,7 +330,7 @@ import { formatWithLocale } from 'src/utils/denomination-utils.js'
 import {
   generateReceivingAddress,
   getDerivationPathForWalletType,
-  generateAddressSetWithoutSubscription
+  findUnusedAddressIndex
 } from 'src/utils/address-generation-utils.js'
 import {
   backend as posBackend,
@@ -341,7 +341,6 @@ import {
   fetchLastPosPaymentIndex
 } from 'src/wallet/pos'
 import { toTokenAddress } from 'src/utils/crypto.js'
-import axios from 'axios'
 
 import walletAssetsMixin from '../../mixins/wallet-assets-mixin.js'
 
@@ -899,72 +898,19 @@ export default {
       }
     },
     /**
-     * Check whether an address has prior transactions or a balance.
-     * Returns 'unknown' when watchtower cannot confirm, so callers never
-     * mistake a failed check for a fresh address.
-     * @param {string} address
-     * @param {string} walletType - 'bch' or 'slp'
-     * @returns {Promise<'used'|'unused'|'unknown'>}
-     */
-    async getAddressUsageStatus(address, walletType) {
-      const baseUrl = this.isChipnet ? 'https://chipnet.watchtower.cash' : 'https://watchtower.cash'
-
-      const balanceUrls = walletType === 'slp'
-        ? [`${baseUrl}/api/balance/bch/${address}/`, `${baseUrl}/api/balance/slp/${address}/`]
-        : [`${baseUrl}/api/balance/bch/${address}/?include_token_sats=true`]
-
-      try {
-        const [isUsedResult, balanceResults] = await Promise.all([
-          axios.get(`${baseUrl}/api/address-info/bch/${encodeURIComponent(address)}/isused/`)
-            .then(response => response?.data?.is_used)
-            .catch(() => null),
-          Promise.all(balanceUrls.map(url => axios.get(url).catch(() => null)))
-        ])
-
-        if (balanceResults.some(r => (r?.data?.balance || 0) > 0)) return 'used'
-        if (isUsedResult === true) return 'used'
-        // The isused endpoint is authoritative for transaction history
-        if (isUsedResult === false) return 'unused'
-      } catch (error) {
-        console.error('Error checking address usage status:', error)
-      }
-
-      return 'unknown'
-    },
-    /**
      * Scan forward from startIndex until an address is positively confirmed
-     * unused (zero balance, no tx history). Throws when watchtower cannot
+     * unused (no on-chain transaction history). Throws when watchtower cannot
      * confirm an address's status, so callers never render an unverified one.
      * @param {number} startIndex
      * @returns {Promise<{address: string, addressIndex: number}>}
      */
     async findUnusedAddress(startIndex) {
-      const MAX_SCAN_ATTEMPTS = 20
-
-      for (let attempts = 0; attempts < MAX_SCAN_ATTEMPTS; attempts++) {
-        const addressIndex = this.ensureAddressIndexNotZero(startIndex + attempts)
-        const addressResult = await generateAddressSetWithoutSubscription({
-          walletIndex: this.$store.getters['global/getWalletIndex'],
-          derivationPath: getDerivationPathForWalletType(this.walletType),
-          addressIndex,
-          isChipnet: this.isChipnet
-        })
-
-        if (!addressResult.success) {
-          throw new Error('Failed to generate address: ' + (addressResult.error || 'Unknown error'))
-        }
-
-        const usageStatus = await this.getAddressUsageStatus(addressResult.addresses.receiving, this.walletType)
-        console.debug('[Receive] address scan', { addressIndex, usageStatus, address: addressResult.addresses.receiving })
-        if (usageStatus === 'unknown') {
-          throw new Error('Unable to verify address freshness')
-        }
-        if (usageStatus === 'unused') {
-          return { address: addressResult.addresses.receiving, addressIndex }
-        }
-      }
-
-      throw new Error('No unused address found within scan limit')
+      return await findUnusedAddressIndex({
+        startIndex,
+        walletIndex: this.$store.getters['global/getWalletIndex'],
+        derivationPath: getDerivationPathForWalletType(this.walletType),
+        isChipnet: this.isChipnet
+      })
     },
     async refreshDynamicAddress() {
       // Step 1: Generate address from saved lastAddressIndex

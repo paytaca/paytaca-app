@@ -15,6 +15,8 @@ import { raiseNotifyError } from './notify-utils'
 import { decodeCashAddress, decodeCashAddressFormatWithoutPrefix } from '@bitauth/libauth'
 import {
   generateChangeAddress,
+  generateAddressSetWithoutSubscription,
+  findUnusedAddressIndex,
   getDerivationPathForWalletType
 } from 'src/utils/address-generation-utils.js'
 
@@ -92,63 +94,97 @@ export function getWallet (type) {
 }
 
 /**
- * Dynamically generates change address from mnemonic instead of retrieving from store
- * This prevents address mixup issues in multi-wallet scenarios
- * 
+ * Gets a fresh change address and advances the wallet to the next address pair,
+ * so consecutive spends never reuse the same change address.
+ *
+ * Receiving and change addresses are always generated as a pair sharing one
+ * index: `lastAddressIndex` N gives receiving `0/N` and change `1/N`. That single
+ * index is the only cursor. Using `1/N` as change and then moving the cursor to
+ * N+1 means the next spend gets `1/(N+1)`, whose public key has never been
+ * exposed, and the next receive moves to the fresh pair `0/(N+1)` too.
+ *
+ * The change address is verified against the chain before use, so an index that
+ * was already spent from (auto-generate off, a second device, a restored
+ * wallet, a server index that lags behind) is skipped instead of reused. The
+ * cursor advances as soon as the address is handed out, before broadcast, so a
+ * second spend cannot pick `1/N` again while watchtower has not yet indexed the
+ * first change output. Indices skipped by a cancelled send are harmless.
+ *
+ * This is unconditional (not tied to the "Auto generate address" setting),
+ * because change addresses are never shown to the user and reusing one that was
+ * already spent from exposes its public key on chain.
+ *
  * IMPORTANT: This function subscribes the address to watchtower before returning.
- * If subscription fails, it will throw an error to prevent using unsubscribed addresses.
- * 
+ * If subscription fails, it throws instead of falling back to a stored change
+ * address, which may already be used.
+ *
  * @param {string} walletType - 'bch' or 'slp'
+ * @param {Object} [opts]
+ * @param {boolean} [opts.isChipnet] - Overrides the store network (used by pages paying from a chipnet address)
  * @returns {Promise<string>} The change address
- * @throws {Error} If address generation or subscription fails
+ * @throws {Error} If no unused change address could be verified or subscribed
  */
-export async function getChangeAddress (walletType) {
+export async function getChangeAddress (walletType, opts = {}) {
+  const isChipnetVal = typeof opts.isChipnet === 'boolean' ? opts.isChipnet : isChipnet()
+  const walletIndex = Store.getters['global/getWalletIndex']
+  const derivationPath = getDerivationPathForWalletType(walletType)
+
   try {
-    let addressIndex = Store.getters['global/getLastAddressIndex'](walletType)
-    const walletIndex = Store.getters['global/getWalletIndex']
-    const isChipnetVal = isChipnet()
-    
-    // Validate and fix addressIndex - it should never be negative
-    // New wallets start with -1, so default to 0 for the first change address
-    if (addressIndex === undefined || addressIndex === null || addressIndex < 0) {
-      addressIndex = 0
-    }
-    
-    // Generate change address dynamically from mnemonic (includes watchtower subscription)
-    const changeAddr = await generateChangeAddress({
-      walletIndex: walletIndex,
-      derivationPath: getDerivationPathForWalletType(walletType),
-      addressIndex: addressIndex,
+    let storedIndex = Store.getters['global/getLastAddressIndex'](walletType)
+
+    // New wallets start at -1, so fall back to the first pair. Change 1/0 is a
+    // normal change address; only the receiving address 0/0 is reserved for
+    // message encryption and never displayed by the receive page.
+    if (typeof storedIndex !== 'number' || storedIndex < 0) storedIndex = 0
+
+    // First change address from storedIndex onward with no on-chain history
+    const { addressIndex } = await findUnusedAddressIndex({
+      chain: 'change',
+      startIndex: storedIndex,
+      walletIndex,
+      derivationPath,
       isChipnet: isChipnetVal
     })
-    
-    // Check if subscription failed (returns null)
+
+    const changeAddr = await generateChangeAddress({
+      walletIndex,
+      derivationPath,
+      addressIndex,
+      isChipnet: isChipnetVal
+    })
+
     if (!changeAddr) {
-      // Try to get the address from the store as fallback
-      const fallbackAddr = Store.getters['global/getChangeAddress'](walletType)
-      if (fallbackAddr) {
-        return fallbackAddr
-      }
       throw new Error('Failed to subscribe change address to watchtower. Please check your internet connection and try again.')
     }
-    
+
+    // Advance the shared cursor so neither this change address nor the pair it
+    // belongs to can be reused by a later spend or receive
+    const nextIndex = addressIndex + 1
+    const nextAddressSet = await generateAddressSetWithoutSubscription({
+      walletIndex,
+      derivationPath,
+      addressIndex: nextIndex,
+      isChipnet: isChipnetVal
+    })
+    const nextAddresses = nextAddressSet?.success ? nextAddressSet.addresses : null
+
+    const cursorUpdate = {
+      type: walletType,
+      isChipnet: isChipnetVal,
+      lastAddressIndex: nextIndex
+    }
+    // Only overwrite the cached address pair when it could be derived
+    if (nextAddresses) {
+      cursorUpdate.lastAddress = nextAddresses.receiving
+      cursorUpdate.lastChangeAddress = nextAddresses.change
+    }
+
+    Store.commit('global/generateNewAddressSet', cursorUpdate)
+
     return changeAddr
   } catch (error) {
-    console.error('[getChangeAddress] Error generating change address dynamically:', error)
-    
-    // Fallback to store-retrieved change address if dynamic generation fails
-    // Note: This is only for backward compatibility and shouldn't normally be used
-    try {
-      const fallbackAddr = Store.getters['global/getChangeAddress'](walletType)
-      if (fallbackAddr) {
-        return fallbackAddr
-      }
-    } catch (fallbackError) {
-      console.error('[getChangeAddress] Fallback also failed:', fallbackError)
-    }
-    
-    // Provide a more helpful error message
-    const errorMessage = error.message || 'Unknown error'
+    console.error('[getChangeAddress] Error generating a fresh change address:', error)
+    const errorMessage = error?.message || 'Unknown error'
     throw new Error(`Failed to get change address: ${errorMessage}`)
   }
 }
