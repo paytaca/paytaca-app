@@ -87,6 +87,37 @@ export const getIntervalMinutes = (priceDropInterval) => typeof priceDropInterva
   ? (priceDropInterval?.value || 10)
   : (priceDropInterval || 10)
 
+// Converts an HH:MM:SS price-drop interval to minutes.
+export const parseTimeIntervalMinutes = (timeInterval) => {
+  if (!timeInterval) return 10
+
+  const parts = timeInterval.split(':').map(Number)
+  if (parts.length !== 3 || parts.some(isNaN)) return 10
+
+  const [hours, minutes] = parts
+  return (hours * 60) + minutes
+}
+
+// Converts an HH:MM:SS price-drop interval to seconds.
+export const parseTimeIntervalSeconds = (timeInterval) => {
+  if (!timeInterval) return 10
+
+  const parts = timeInterval.split(':').map(Number)
+  if (parts.length !== 3 || parts.some(isNaN)) return 10
+
+  const [hours, minutes, seconds] = parts
+  return (hours * 60 * 60) + (minutes * 60) + seconds
+}
+
+// Shortens long BCH addresses for display.
+export const formatAddressWithEllipsis = (address) => {
+  if (!address || address.length <= 22) return address
+
+  const start = address.substring(0, 17)
+  const end = address.substring(address.length - 5)
+  return `${start}........${end}`
+}
+
 const toBothCurrencies = (value, isFiatUsed, rate) => {
   const numValue = Number(value) || 0
   if (isFiatUsed) return { fiat: numValue, bch: rate > 0 ? numValue / rate : 0 }

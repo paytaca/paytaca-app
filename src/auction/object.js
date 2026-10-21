@@ -1,3 +1,11 @@
+function setRawData (instance, data) {
+  Object.defineProperty(instance, '$raw', {
+    enumerable: false,
+    configurable: true,
+    value: data
+  })
+}
+
 // Colors for lot statuses
 const lotColors = {
   'Sold': 'red',
@@ -43,15 +51,7 @@ export class AuctionList {
   
   // setter for raw data
   set raw(data) {
-    Object.defineProperty(
-      this, 
-      '$raw', 
-      { 
-        enumerable: false, 
-        configurable: true, 
-        value: data 
-      }
-    )
+    setRawData(this, data)
 
     // Auction core information
     this.id = data.id != null ? Number(data.id) : null
@@ -86,15 +86,6 @@ export class AuctionList {
     this.status_color = auctionColors[this.status]
   }
   
-  // Formats the user bch address with an ellipsis in the middle
-  getEllipsisInMiddleAddress() {
-    const targetString = this.auctioneer
-    if (!targetString || targetString.length <= 22) return targetString
-    
-    const start = targetString.substring(0, 17)
-    const end = targetString.substring(targetString.length - 5)
-    return `${start}........${end}`
-  }
 }
 
 // LOT OBJECTS
@@ -115,15 +106,7 @@ export class LotsList {
 
   // setter for raw data
   set raw(data) {
-    Object.defineProperty(
-      this, 
-      '$raw', 
-      { 
-        enumerable: false, 
-        configurable: true, 
-        value: data 
-      }
-    )
+    setRawData(this, data)
     
     // Lot core information
     this.id = data.id != null ? Number(data.id) : null
@@ -165,28 +148,6 @@ export class LotsList {
       : []
   }
 
-  // Returns the drop interval in minutes, parsed from the HH:MM:SS time_interval string
-  getIntervalMinutes() {
-    if (!this.time_interval) return 10
-
-    const parts = this.time_interval.split(':').map(Number)
-    if (parts.length !== 3 || parts.some(isNaN)) return 10
-
-    const [hours, minutes] = parts
-    return (hours * 60) + minutes
-  }
-
-  // Returns the drop interval in seconds, parsed from the HH:MM:SS time_interval string
-  getIntervalSeconds() {
-    if (!this.time_interval) return 10
-
-    const parts = this.time_interval.split(':').map(Number)
-    if (parts.length !== 3 || parts.some(isNaN)) return 10
-
-    const [hours, minutes, seconds] = parts
-    return (hours * 60 * 60) + (minutes * 60) + seconds
-  }
-
   // Updates the lot status colors
   refreshStatus() {
     this.status_color = lotColors[this.status]
@@ -216,15 +177,7 @@ export class BidsList {
 
   // setter for raw data
   set raw(data) {
-    Object.defineProperty(
-      this, 
-      '$raw', 
-      { 
-        enumerable: false, 
-        configurable: true, 
-        value: data 
-      }
-    )
+    setRawData(this, data)
     
     this.id = data.id != null ? Number(data.id) : null
     this.bidder = data.bidder ?? null
@@ -252,15 +205,7 @@ export class DisputeList {
   }
 
   set raw(data) {
-    Object.defineProperty(
-      this, 
-      '$raw', 
-      { 
-        enumerable: false, 
-        configurable: true, 
-        value: data 
-      }
-    )
+    setRawData(this, data)
 
     this.id = data.id ? Number(data.id) : null
 
@@ -302,22 +247,10 @@ export class DisputeDetails {
   }
 
   set raw(data) {
-    Object.defineProperty(
-      this, 
-      '$raw', 
-      { 
-        enumerable: false, 
-        configurable: true, 
-        value: data 
-      }
-    )
+    setRawData(this, data)
 
     this.id = data.id ? Number(data.id) : null
-
-    this.bid_id = data.bid ? Number(data.bid) : null
-    this.lot_id = data.lotId != null || data.lot != null ? Number(data.lotId ?? data.lot) : null
-    this.auction_id = data.auctionId ? Number(data.auctionId) : null
-
+    this.lot_id =  data.lot != null ? Number(data.lot) : null
     this.creation_date = data.creation_date || null
     
     this.dispute_status = data.status ?? null
@@ -373,7 +306,7 @@ export class DeliveryDetails {
 
   // setter for raw data
   set raw(data) {
-    Object.defineProperty(this, '$raw', { enumerable: false, configurable: true, value: data })
+    setRawData(this, data)
     this.tracking_id = data.tracking_id ?? null
     this.lot_id = data.lotId != null || data.lot != null ? Number(data.lotId ?? data.lot) : null
 
@@ -400,28 +333,6 @@ export class DeliveryDetails {
     this.location = data.location || null
     this.event_date = data.event_date || null
     
-  }
-
-  // Returns the drop interval in minutes, parsed from the HH:MM:SS time_interval string
-  getIntervalMinutes() {
-    if (!this.time_interval) return 10
-
-    const parts = this.time_interval.split(':').map(Number)
-    if (parts.length !== 3 || parts.some(isNaN)) return 10
-
-    const [hours, minutes] = parts
-    return (hours * 60) + minutes
-  }
-
-  // Returns the drop interval in seconds, parsed from the HH:MM:SS time_interval string
-  getIntervalSeconds() {
-    if (!this.time_interval) return 10
-
-    const parts = this.time_interval.split(':').map(Number)
-    if (parts.length !== 3 || parts.some(isNaN)) return 10
-    
-    const [hours, minutes, seconds] = parts
-    return (hours * 60 * 60) + (minutes * 60) + seconds
   }
 
   refreshStatus() {
