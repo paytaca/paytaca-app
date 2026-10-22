@@ -5,12 +5,16 @@ import { pubkeyToPkHash, sha256 } from 'src/utils/crypto.js'
 
 const ARBITRATION_FEE = 1000
 const PLATFORM_FEE = 1000
+const IS_CHIPNET = Store.getters['global/isChipnet']
 
 // Creates the auction escrow contract instance for a lot.
 export async function initializeContract (lotId) {
   const publicKeys = await getAuctionPublicKeys(lotId)
   const provider = new ElectrumNetworkProvider(
-    Store.getters['global/isChipnet'] ? 'chipnet' : 'mainnet'
+    IS_CHIPNET ? 'chipnet' : 'mainnet',
+    IS_CHIPNET
+    ? { hostname: 'chipnet.imaginary.cash' }
+    : {}
   )
 
   const arbiterPkh = pubkeyToPkHash(publicKeys.arbiter)
