@@ -187,6 +187,7 @@ const bchToPhpRate = computed(() => $store.getters['market/getAssetPrice']('bch'
 // Dialog-specific bid state
 const price = ref('')
 const hasBidsYet = ref(false)
+const liveHighestBid = ref(null)
 
 // Checks the server for a confirmed bid to determine the current bid floor.
 const checkLiveBids = async () => {
@@ -201,12 +202,15 @@ const checkLiveBids = async () => {
       && ['Highest', 'Winner'].includes(result.data.status)
     ) {
       hasBidsYet.value = true
+      liveHighestBid.value = result.data
     } else {
       hasBidsYet.value = false
+      liveHighestBid.value = null
     }
   } catch (err) {
     console.error('Error verifying bidding logs in popup:', err)
     hasBidsYet.value = false
+    liveHighestBid.value = null
   }
 }
 
@@ -229,18 +233,18 @@ const walletLabel = computed(() => {
 const currentFloorBch = computed(() => {
   if (!props.lot) return 0
   if (props.auction?.is_fiat) {
-    const fiatFloor = Number(props.lot.threshold_bid_fiat || 0)
+    const fiatFloor = Number(liveHighestBid.value?.bid_price_fiat ?? props.lot.start_price_fiat ?? 0)
     return bchToPhpRate.value > 0 ? fiatFloor / bchToPhpRate.value : 0
   }
-  return Number(props.lot.threshold_bid_bch || 0)
+  return Number(liveHighestBid.value?.bid_price_bch ?? props.lot.start_price_bch ?? 0)
 })
 
 // Converts the current price floor to fiat for display and validation.
 const currentFloorFiat = computed(() => {
   if (!props.lot) return 0
   if (props.auction?.is_fiat) 
-    return Number(props.lot.threshold_bid_fiat || 0)
-  return Number(props.lot.threshold_bid_bch || 0) * bchToPhpRate.value
+    return Number(liveHighestBid.value?.bid_price_fiat ?? props.lot.start_price_fiat ?? 0)
+  return Number(liveHighestBid.value?.bid_price_bch ?? props.lot.start_price_bch ?? 0) * bchToPhpRate.value
 })
 
 // Builds suggested bid amounts based on currency and whether bidding has started.
