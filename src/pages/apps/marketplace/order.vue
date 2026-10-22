@@ -1253,10 +1253,11 @@ async function getChangeAddress(opts={chipnet: false}) {
 async function sendBchPayment() {
   const amount = bchPaymentData.value.bchAmount
   const address = bchPaymentData.value.address
-  const chipnet = address.indexOf('bchtest:') >= 0
-  const changeAddress = await getChangeAddress({ chipnet })
-  // const changeAddress = 'bchtest:qq4sh33hxw2v23g2hwmcp369tany3x73wuveuzrdz5'
   if (!wallet.value) await initWallet()
+  const bchWallet = address.indexOf('bchtest:') >= 0 ? wallet.value.BCH_CHIP : wallet.value.BCH
+  // Change must be spendable by the wallet that funds the transaction, so take
+  // the network from that wallet rather than inferring it from the invoice
+  const changeAddress = await getChangeAddress({ chipnet: bchWallet.isChipnet })
 
   const dialog = $q.dialog({
     title: 'Sending payment',
@@ -1268,7 +1269,6 @@ async function sendBchPayment() {
     class: `br-15 pt-card-2 text-bow ${getDarkModeClass(darkMode.value)}`
   })
 
-  const bchWallet = chipnet ? wallet.value.BCH_CHIP : wallet.value.BCH
   bchWallet.sendBch(amount, address, changeAddress)
     .then(async result => {
       if (!result.success) return Promise.reject(result)

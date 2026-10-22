@@ -1784,15 +1784,6 @@ const wallet = ref([].map(() => new Wallet())[0])
 async function initWallet () {
   wallet.value = await loadWallet(undefined, $store.getters['global/getWalletIndex'])
 }
-/**
- * Change addresses must always be fresh: one already spent from has its public
- * key exposed, so the shared helper scans forward and returns only a
- * verified-unused address (no fallback to a possibly-used stored address)
- */
-async function getChangeAddress(opts={chipnet: false}) {
-  const { getChangeAddress: getFreshChangeAddress } = await import('src/utils/send-page-utils')
-  return await getFreshChangeAddress('bch', { isChipnet: !!opts?.chipnet })
-}
 
 function onSendBchPaymentSwipe(resetSwipe=()=>{}) {
   $q.dialog({
@@ -1809,8 +1800,6 @@ function onSendBchPaymentSwipe(resetSwipe=()=>{}) {
 async function sendBchPayment() {
   const amount = bchPaymentData.value.bchAmount
   const address = bchPaymentData.value.address
-  const chipnet = address.indexOf('bchtest:') >= 0
-  const changeAddress = await getChangeAddress({ chipnet })
   if (!wallet.value) await initWallet()
 
   const dialog = $q.dialog({
