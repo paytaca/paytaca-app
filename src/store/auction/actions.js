@@ -416,20 +416,14 @@ async function getDisputeDetails(disputeData) {
     callAPI(`lots/${lotId}/highest-bid`)
   ])
 
-  const userDetails = (response, key) => response.success && response.data
-    ? {
-        [key]: response.data.user,
-        username: response.data.username,
-        address: response.data.bch_address
-      }
-    : null
-
   return Dispute.parse({
     ...disputeData,
-    lotId,
-    auctionId,
-    auctioneer: userDetails(auctioneerResponse, 'auctioneer'),
-    bidder: userDetails(bidderResponse, 'bidder'),
+    lot_id: lotId,
+    auction_id: auctionId,
+    auctioneer_id: auctioneerResponse.success ? auctioneerResponse.data?.user : disputeData.auctioneer,
+    auctioneer_username: auctioneerResponse.success ? auctioneerResponse.data?.username : null,
+    bidder_id: bidderResponse.success ? bidderResponse.data?.user : disputeData.bidder,
+    bidder_username: bidderResponse.success ? bidderResponse.data?.username : null,
     contract_address: contractResponse.success ? contractResponse.data?.bch_address : null,
     bid: bidResponse.success ? bidResponse.data?.id : null,
     bid_price_bch: bidResponse.success ? bidResponse.data?.bid_price_bch : 0

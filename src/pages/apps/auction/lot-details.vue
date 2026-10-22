@@ -537,10 +537,10 @@
                   <div class="col column overflow-hidden">
                     <div class="row items-center no-wrap full-width">
                       <span 
-                        v-if="auction?.auctioneer_username"
+                        v-if="auction?.auctioneer?.username"
                         class="text-weight-medium ellipsis col-shrink q-mr-xs" 
                       >
-                        {{ auction.auctioneer_username }}
+                        {{ auction.auctioneer.username }}
                       </span>
                       
                       <q-badge v-if="isAuctioneer" color="positive" class="q-px-xs no-shrink">
@@ -549,10 +549,10 @@
                     </div>
                     
                     <span class="text-caption ellipsis" style="opacity: 0.6;">
-                      {{ auction ? formatAddressWithEllipsis(auction.auctioneer) : 'N/A' }}
+                      {{ auction ? formatAddressWithEllipsis(auction.auctioneer?.id) : 'N/A' }}
                     </span>
                   </div>
-                  <q-btn flat round dense icon="content_copy" size="xs" @click="copyToClipboard(auction?.auctioneer, $q)" />
+                  <q-btn flat round dense icon="content_copy" size="xs" @click="copyToClipboard(auction?.auctioneer?.id, $q)" />
                 </div>
                 <q-separator spaced="xs" />
                 <div class="row items-center q-py-xs">
@@ -792,7 +792,7 @@ const auction = computed(() => $store.getters['auction/auctionData'])
 const isAuctionClosed = computed(() => auction.value?.status === 'Closed')
 const isAuctioneer = computed(() => {
   const walletHash = $store.getters['global/getWallet']('bch')?.walletHash
-  return walletHash === auction.value?.auctioneer
+  return walletHash === auction.value?.auctioneer?.id
 })
 
 // Lot-related variables
@@ -863,7 +863,7 @@ const initDeliveryTracking = async () => {
   try {
     const deliveryTrackingRes = await callAPI('delivery-trackings', null, 'post', {
       lot: lot.value?.id,
-      sender: auction.value?.auctioneer,
+      sender: auction.value?.auctioneer?.id,
       sender_location: 'N/A', // REVIEW
       receiver: userWalletHash.value,
       receiver_location: 'N/A', // REVIEW
@@ -997,7 +997,7 @@ const showBidHistory = ref(false)
 const showMakeBidDialog = ref(false)
 
 const lotWinningBid = computed(() => $store.getters['auction/highestBid'])
-const userIsLeadingBidder = computed(() => lotWinningBid.value?.bidder === userWalletHash.value)
+const userIsLeadingBidder = computed(() => lotWinningBid.value?.bidder?.id === userWalletHash.value)
 
 // Validates and submits bid data after the pending bid is created.
 const handlePlaceBid = async (bidData) => {

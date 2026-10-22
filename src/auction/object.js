@@ -6,6 +6,10 @@ function setRawData (instance, data) {
   })
 }
 
+function saveAsNumberOrNull(data) {
+  return data ? Number(data) : null
+}
+
 // Colors for lot statuses
 const lotColors = {
   'Sold': 'red',
@@ -59,9 +63,10 @@ export class Auction {
     this.description = data.description ?? ''
     this.type = data.type ?? 'N/A'
 
-    this.auctioneer = data.auctioneer ?? ''
-    this.auctioneer_username = data.auctioneer_username ?? ''
-    this.username = this.auctioneer_username
+    this.auctioneer = {
+      id: data.auctioneer_id ?? data.auctioneer?.id ?? data.auctioneer ?? null,
+      username: data.auctioneer_username ?? data.auctioneer?.username ?? ''
+    }
 
     this.start_date = data.start_date ?? null
     this.end_date = data.end_date ?? null
@@ -180,8 +185,10 @@ export class Bid {
     setRawData(this, data)
     
     this.id = data.id != null ? Number(data.id) : null
-    this.bidder = data.bidder ?? null
-    this.bidder_username = data.bidder_username ?? null
+    this.bidder = {
+      id: data.bidder_id ?? data.bidder?.id ?? data.bidder ?? null,
+      username: data.bidder_username ?? data.bidder?.username ?? null
+    }
     this.status = data.status ?? null
     this.bid_price_bch = Number(data.bid_price_bch ?? 0)
     this.bid_price_fiat = Number(data.bid_price_fiat ?? 0)
@@ -206,40 +213,37 @@ export class Dispute {
   set raw(data) {
     setRawData(this, data)
 
-    this.id = data.id != null ? Number(data.id) : null
-    const bidId = data.bidId ?? data.bid
-    this.bid_id = bidId != null ? Number(bidId) : null
-    const lotId = data.lotId ?? data.lot
-    this.lot_id = lotId != null ? Number(lotId) : null
-    const auctionId = data.auctionId ?? data.auction
-    this.auction_id = auctionId != null ? Number(auctionId) : null
-    this.creation_date = data.creation_date ?? null
+    // IDs
+    this.id = saveAsNumberOrNull(data.id)  
+    this.lot_id = saveAsNumberOrNull(data.lot_id)
+    this.auction_id = saveAsNumberOrNull(data.auction_id)
 
-    this.dispute_status = data.status ?? null
-    this.is_resolved = data.is_resolved ?? (data.status != null && data.status !== 'Pending')
-    this.status = this.is_resolved ? 'Resolved' : 'Pending'
-    this.is_granted_refund = data.is_granted_refund ?? data.refund_status === 'Completed'
-    this.is_granted_return = data.is_granted_return ?? false
-
-    this.type = data.type ?? null
-    this.refund_status = data.refund_status ?? null
-    this.resolution_date = data.resolution_date ?? null
-
-    const reasons = data.dispute_reason ?? data.reason
-    this.reasons = Array.isArray(reasons)
-      ? reasons
-      : (reasons
-          ? reasons.split(';').map(s => s.trim()).filter(Boolean)
-          : [])
-    
-    this.auctioneer = data.auctioneer ?? null
+    // User Wallet Hashes and Usernames
+    this.auctioneer_id = data.auctioneer_id ?? data.auctioneer ?? null
     this.auctioneer_username = data.auctioneer_username ?? null
     
-    this.bidder = data.bidder ?? null
+    this.bidder_id = data.bidder_id ?? data.bidder ?? null
     this.bidder_username = data.bidder_username ?? null
 
     this.contract_address = data.contract_address || null
-    this.balance = data.bid_price_bch ? Number(data.bid_price_bch) : 0.00000000
+    
+    // Dispute Type (Not Received or Return)
+    this.type = data.type ?? null
+
+    // Statuses
+    this.status = data.status ?? null
+    this.refund_status = data.refund_status ?? null
+
+    // Dates
+    this.refund_date = data.refund_date ?? null
+    this.resolution_date = data.resolution_date ?? null
+    this.creation_date = data.creation_date ?? null
+
+    this.reasons = Array.isArray(data.reason)
+      ? data.reason
+      : (data.reason
+          ? data.reason.split(';').map(s => s.trim()).filter(Boolean)
+          : [])
   }
 }
 
@@ -261,13 +265,14 @@ export class DeliveryDetails {
   // setter for raw data
   set raw(data) {
     setRawData(this, data)
+    // IDs
     this.tracking_id = data.tracking_id ?? null
     this.lot_id = data.lotId != null || data.lot != null ? Number(data.lotId ?? data.lot) : null
-
-    this.sender_id = data.sender ? Number(data.sender) : null
+    
+    this.sender_id = data.sender_id ?? data.sender ?? null
     this.sender_location = data.sender_location ?? null
     
-    this.receiver_id = data.receiver ? Number(data.receiver) : null
+    this.receiver_id = data.receiver_id ?? data.receiver ?? null
     this.receiver_location = data.receiver_location ?? null
     
     this.courier = data.courier ?? null
@@ -286,7 +291,6 @@ export class DeliveryDetails {
     this.description = data.description || null
     this.location = data.location || null
     this.event_date = data.event_date || null
-    
   }
 
   refreshStatus() {

@@ -138,7 +138,7 @@ const fetchBids = async () => {
 
 // Fetches usernames for unique bidders in parallel.
 const fetchUsernamesForBids = async (bidsList) => {
-  const uniqueHashes = [...new Set(bidsList.map(b => b.bidder))].filter(Boolean)
+  const uniqueHashes = [...new Set(bidsList.map(b => b.bidder?.id))].filter(Boolean)
   
   const requests = uniqueHashes.map(async (hash) => {
     try {
@@ -178,18 +178,18 @@ const highestBid = computed(() => {
 })
 
 // Checks whether a bid belongs to the connected wallet.
-const isOwnBid = (bid) => !!walletHash && bid.bidder === walletHash
+const isOwnBid = (bid) => !!walletHash && bid.bidder?.id === walletHash
 
 // Returns the bidder's name or a shortened wallet hash.
 const getBidderDisplayName = (bid) => {
   if (isOwnBid(bid)) return 'You'
   
-  if (usernames.value[bid.bidder]) {
-    return usernames.value[bid.bidder]
+  if (usernames.value[bid.bidder?.id]) {
+    return usernames.value[bid.bidder.id]
   }
-  if (bid.username) return bid.username
+  if (bid.bidder?.username) return bid.bidder.username
   
-  return truncateWallet(bid.bidder)
+  return truncateWallet(bid.bidder?.id)
 }
 
 // Shortens a wallet hash for display.

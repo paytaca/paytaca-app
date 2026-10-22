@@ -67,19 +67,19 @@
                   
                   <div class="col column overflow-hidden">
                     <div class="row items-center no-wrap full-width">
-                      <span v-if="auction?.auctioneer_username" class="text-weight-medium ellipsis col-shrink q-mr-xs">
-                        {{ auction?.auctioneer_username }}
+                      <span v-if="auction?.auctioneer?.username" class="text-weight-medium ellipsis col-shrink q-mr-xs">
+                        {{ auction?.auctioneer?.username }}
                       </span>
                       <q-badge v-if="isAuctioneer" color="positive" class="q-px-xs no-shrink">
                         <q-icon name="star" size="10px" class="q-mr-xs" />You
                       </q-badge>
                     </div>
                     <span class="text-caption ellipsis" style="opacity: 0.6;">
-                      {{ formatAddressWithEllipsis(auction?.auctioneer) }}
+                      {{ formatAddressWithEllipsis(auction?.auctioneer?.id) }}
                     </span>
                   </div>
                   
-                  <q-btn flat round dense icon="content_copy" size="xs" @click="copyToClipboard(auction?.auctioneer, $q)" />
+                  <q-btn flat round dense icon="content_copy" size="xs" @click="copyToClipboard(auction?.auctioneer?.id, $q)" />
                 </div>
 
                 <q-separator />
@@ -608,7 +608,7 @@ const toggleEditAuction = async () => {
 
 // Get the current user's data (check if they're the auctioneer)
 const userWalletHash = computed(() => $store.getters['global/getWallet']('bch')?.walletHash)
-const isAuctioneer = computed(() => userWalletHash.value === auction.value?.auctioneer)
+const isAuctioneer = computed(() => userWalletHash.value === auction.value?.auctioneer?.id)
 
 // REVIEW THIS KAY WHY 30 MINS
 const canEdit = computed(() => { 
