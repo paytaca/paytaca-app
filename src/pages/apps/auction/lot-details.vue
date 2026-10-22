@@ -799,7 +799,7 @@ const isAuctioneer = computed(() => {
 const lot = computed(() => $store.getters['auction/lotData'])
 const lotImages = computed(() => $store.getters['auction/lotImages'])
 const lotImageActiveSlide = ref(0)
-const isLotSold = computed(() => isLotSold.value)
+const isLotSold = computed(() => lot.value?.status === 'Sold')
 
 // Estimated amounts (BCH & Fiat)
 const estimatedAmountBch = computed(() => {
@@ -1418,11 +1418,14 @@ const loadPageData = async (force=false) => {
       : $store.dispatch('auction/fetchExistingAuctionData', props.auctionId),
   ])
   
+  if (isLotSold.value) {
+    await initDeliveryTracking()
+  }
+
   if (dateDelivered.value) {
     updateRefundCountdown()
     refundCountdownInterval = setInterval(updateRefundCountdown, 1000)
   }
-  await initDeliveryTracking()
 }
 
 const smartBackPath = computed(() => {
