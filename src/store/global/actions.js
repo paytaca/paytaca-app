@@ -436,10 +436,6 @@ export async function switchWallet (context, walletHashOrIndex) {
     // NOTE: We still need to sync the OLD wallet before initializing the new wallet state
     context.commit('updateWalletIndex', index)
     context.commit('updateCurrentWallet', index)
-    if (oldWalletIndex !== index) {
-      context.commit('auction/resetState', null, { root: true })
-    }
-    await clearToken()
   }
   
   try {
@@ -481,15 +477,17 @@ export async function switchWallet (context, walletHashOrIndex) {
       // Update index now that we found it
       context.commit('updateWalletIndex', index)
       context.commit('updateCurrentWallet', index)
-      if (oldWalletIndex !== index) {
-        context.commit('auction/resetState', null, { root: true })
-      }
     }
 
     // Index was already updated synchronously above, but ensure it's still correct
     if (context.getters.getWalletIndex !== index) {
       context.commit('updateWalletIndex', index)
       context.commit('updateCurrentWallet', index)
+    }
+
+    if (oldWalletIndex !== index) {
+      context.commit('auction/resetState', null, { root: true })
+      await clearToken()
     }
 
     context.commit('assets/updatedCurrentAssets', index, { root: true })
