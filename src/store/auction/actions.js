@@ -196,7 +196,7 @@ export async function fetchLotData({ commit, dispatch }, lotId) {
   // Fetch lot data
   const response = await callAPI('lots', lotId)
   if (response && response.success && response.data) {
-    lotData = Lot.parse(response.data, response.data.auction)
+    lotData = Lot.parse(response.dat)
     const imageResponse = await callAPI('lot-images-by-lot', lotId, 'get')
     if (imageResponse && imageResponse.success && Array.isArray(imageResponse.data))
       lotImages = imageResponse.data.map(item => item.image)
@@ -285,6 +285,11 @@ export async function fetchExistingHighestBid({ commit, getters, dispatch }) {
   commit('setHighestBid', Bid.parse(highestBid, highestBid.lot))
 }
 
+// ========================
+// DELIVERY-RELATED ACTIONS
+// ========================
+
+
 // FETCHES delivery details of a lot from the server
 export async function fetchDeliveryDetails({ commit, dispatch }, lotId) {
   const response = await callAPI('delivery-details-by-lot', lotId)
@@ -350,7 +355,25 @@ export async function createDeliveryEvent({ dispatch, getters }, { status, descr
   return response
 }
 
-// FETCHES a bid dispute
+// =======================
+// DISPUTE-RELATED ACTIONS
+// =======================
+
+// FETCHES the disputes under an arbiter
+export async function fetchArbiterDisputes({ commit, dispatch }) {
+  let arbiterDisputes = []
+  const response = await callAPI('disputes-by-arbiter')
+  if (response.success && Array.isArray(response.data)) {
+    arbiterDisputes = Promise.all(
+      response.data.map(async dispute => Dispute.parse(dispute))
+    )
+  } else dispatch('printFailedFetch', 'disputes')
+  
+  commit('setArbiterDisputes', arbiterDisputes)
+  commit('setArbiterDisputesLastFetched')
+}
+
+// FETCHES a dispute
 export async function fetchDispute({ commit, dispatch }, disputeId) {
   const response = await callAPI('disputes', disputeId)
   if (!response.success || !response.data) {
@@ -359,75 +382,22 @@ export async function fetchDispute({ commit, dispatch }, disputeId) {
     return null
   }
 
-  const dispute = await getDisputeDetails(response.data)
-  commit('setDisputeData', dispute)
+  commit('setDisputeData', Dispute.parse(response.data))
   commit('setDisputeDataLastFetched')
-  return dispute
 }
 
-// Fetches and parses the dispute records shown to the arbiter.
-export async function fetchArbiterDisputes({ dispatch }) {
-  const response = await callAPI('disputes-by-arbiter')
-  if (!response.success || !Array.isArray(response.data)) {
-    dispatch('printFailedFetch', 'disputes')
-    return []
-  }
+// GETS existing dispute
+export async function fetchExistingDispute({ commit, dispatch, getters }, disputeId) {
+  const dispute = getters['arbiterDisputes'].filter(
+    dispute => dispute.id == disputeId
+  )
 
-  return Promise.all(response.data.map(async dispute => {
-    const lotResponse = await callAPI('lots', dispute.lot)
-    return Dispute.parse({
-      ...dispute,
-      lotId: dispute.lot,
-      auctionId: lotResponse.success ? lotResponse.data?.auction : null
-    })
-  }))
-}
-
-// Fetches and stores dispute details for a lot.
-export async function fetchDisputeByLot({ commit, dispatch }, lotId) {
-  const response = await callAPI('disputes-by-lot', lotId)
-  const disputeData = Array.isArray(response.data) ? response.data[0] : response.data
-  if (!response.success || !disputeData) {
-    if (response.status !== 404) dispatch('printFailedFetch', 'dispute')
+  if (!dispute) {
+    dispatch('printNotExisting', 'dispute')
     commit('setDisputeData', {})
-    return null
+    return
   }
-
-  const dispute = await getDisputeDetails(disputeData)
-  commit('setDisputeData', dispute)
-  commit('setDisputeDataLastFetched')
-  return dispute
-}
-
-// Fetches dispute details associated with a bid’s lot.
-export async function fetchDisputeByBid({ dispatch }, lotId) {
-  return dispatch('fetchDisputeByLot', lotId)
-}
-
-// Combines dispute data with related auction, user, contract, and bid details.
-async function getDisputeDetails(disputeData) {
-  const lotId = disputeData.lot
-  const lotResponse = await callAPI('lots', lotId)
-  const auctionId = lotResponse.success ? lotResponse.data?.auction : null
-  const [auctioneerResponse, bidderResponse, contractResponse, bidResponse] = await Promise.all([
-    callAPI('user-details', disputeData.auctioneer),
-    callAPI('user-details', disputeData.bidder),
-    callAPI('contract-bch-address', lotId),
-    callAPI(`lots/${lotId}/highest-bid`)
-  ])
-
-  return Dispute.parse({
-    ...disputeData,
-    lot_id: lotId,
-    auction_id: auctionId,
-    auctioneer_id: auctioneerResponse.success ? auctioneerResponse.data?.user : disputeData.auctioneer,
-    auctioneer_username: auctioneerResponse.success ? auctioneerResponse.data?.username : null,
-    bidder_id: bidderResponse.success ? bidderResponse.data?.user : disputeData.bidder,
-    bidder_username: bidderResponse.success ? bidderResponse.data?.username : null,
-    contract_address: contractResponse.success ? contractResponse.data?.bch_address : null,
-    bid: bidResponse.success ? bidResponse.data?.id : null,
-    bid_price_bch: bidResponse.success ? bidResponse.data?.bid_price_bch : 0
-  })
+  commit('setDisputeData', Dispute.parse(dispute))
 }
 
 // ========================
