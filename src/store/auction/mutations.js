@@ -345,6 +345,14 @@ export function setDeliveryDataLastFetched(state) {
 // DISPUTE-RELATED MUTATIONS
 // =========================
 
+export function setArbiterDisputes(state, arbiterDisputes) {
+  state.arbiterDisputes = arbiterDisputes
+}
+
+export function setArbiterDisputesLastFetched(state) {
+  state.arbiterDisputesLastFetched = Date.now()
+}
+
 // SETS dispute data
 export function setDisputeData(state, disputeData) {
   state.disputeData = disputeData

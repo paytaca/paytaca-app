@@ -40,6 +40,12 @@ export default function () {
     highestBidLastFetched: 0,
     deliveryData: {},
     deliveryDataLastFetched: 0,
+    
+    // Disputes Page States
+    arbiterDisputes: [],
+    arbiterDisputesLastFetched: 0,
+
+    // Dispute-Details Page States
     disputeData: {},
     disputeDataLastFetched: 0,
 

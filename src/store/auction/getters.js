@@ -137,6 +137,14 @@ export function deliveryDataLastFetched(state) {
   return state.deliveryDataLastFetched ?? 0
 }
 
+export function arbiterDisputes(state) {
+  return state.arbiterDisputes ?? []
+}
+
+export function arbiterDisputesLastFetched(state) {
+  return state.arbiterDisputesLastFetched ?? 0
+}
+
 // Returns the dispute data value from auction state.
 export function disputeData(state) {
   return state.disputeData ?? {}
