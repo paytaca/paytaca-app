@@ -117,7 +117,9 @@ export const parseTimeIntervalSeconds = (timeInterval) => {
 
 // Shortens long BCH addresses for display.
 export const formatAddressWithEllipsis = (address) => {
-  if (!address || address.length <= 22) return address
+  if (address === null || address === undefined || address === '') return address
+  address = String(address)
+  if (address.length <= 22) return address
 
   const start = address.substring(0, 17)
   const end = address.substring(address.length - 5)

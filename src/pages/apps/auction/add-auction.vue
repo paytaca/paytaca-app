@@ -354,8 +354,8 @@ const handleCreateAuction = async () => {
 
       if (auctionForm.value.type === 'English') {
         Object.assign(lotData, {
-          thresh_price_bch: lot.start_price_bch || 0,
-          thresh_price_fiat: lot.start_price_fiat || 0
+          thresh_price_bch: lot.thresh_price_bch || 0,
+          thresh_price_fiat: lot.thresh_price_fiat || 0,
         })
       } else {
         Object.assign(lotData, {
@@ -411,7 +411,7 @@ const handleCreateAuction = async () => {
       result.data.lots.length !== lots.value.length ||
       result.data.lots.some(lot => !lot?.id)
     ) {
-      console.error(result.error)
+      console.error(result.error, result.errorData)
       throw new Error(
         result.error || 'Server failed to publish the complete auction.'
       )
