@@ -438,7 +438,7 @@
 
                       <div class="text-caption text-grey-6 q-mt-xs">
                         <q-icon name="schedule" size="11px" class="q-mr-xs" />
-                        {{ formatAuctionDate(winningBid.bidding_date) }}
+                        {{ formatAuctionDate(winningBid.date_bid) }}
                       </div>
                     </template>
 
@@ -803,27 +803,31 @@ const isLotSold = computed(() => isLotSold.value)
 
 // Estimated amounts (BCH & Fiat)
 const estimatedAmountBch = computed(() => {
-  if (!auction.value?.is_fiat) return Number(lot.value?.estimated_amount_bch ?? 0)
+  if (!auction.value?.is_fiat) return Number(lot.value?.est_price_bch ?? 0)
 
-  const fiat = Number(lot.value?.estimated_amount_fiat ?? 0)
+  const fiat = Number(lot.value?.est_price_fiat ?? 0)
   return bchToPhpRate.value > 0 ? fiat / bchToPhpRate.value : 0
 })
 const estimatedAmountFiat = computed(() => {  
-  if (auction.value?.is_fiat) return Number(lot.value?.estimated_amount_fiat ?? 0)  
+  if (auction.value?.is_fiat) return Number(lot.value?.est_price_fiat ?? 0)
 
-  const estBCH = Number(lot.value?.estimated_amount_bch ?? 0)
+  const estBCH = Number(lot.value?.est_price_bch ?? 0)
   return estBCH * bchToPhpRate.value
 })
 
 // English-related amounts
 const engCurrentBch = computed(() => {
-  const currentBCH = Number(lot.value?.[`threshold_bid_${auction.value?.is_fiat ? 'fiat' : 'bch'}`] || 0)
+  const currentBCH = auction.value?.is_fiat
+    ? Number(lotWinningBid.value?.bid_price_fiat ?? lot.value?.start_price_fiat ?? 0)
+    : Number(lotWinningBid.value?.bid_price_bch ?? lot.value?.start_price_bch ?? 0)
   return (!auction.value?.is_fiat) 
     ? currentBCH
     : bchToPhpRate.value > 0 ? currentBCH / bchToPhpRate.value : 0
 })
 const engCurrentFiat = computed(() => {
-  const currentFiat = Number(lot.value?.[`threshold_bid_${auction.value?.is_fiat ? 'fiat' : 'bch'}`] || 0)
+  const currentFiat = auction.value?.is_fiat
+    ? Number(lotWinningBid.value?.bid_price_fiat ?? lot.value?.start_price_fiat ?? 0)
+    : Number(lotWinningBid.value?.bid_price_bch ?? lot.value?.start_price_bch ?? 0)
   return (auction.value?.is_fiat) 
     ? currentFiat 
     : currentFiat * bchToPhpRate.value
@@ -834,8 +838,8 @@ const dynamicPriceBch = ref(0)
 const dynamicPriceFiat = ref(0)
 
 const dutchAtFloor = ref(false)
-const dutchFloorPriceBch = computed(() => Number(lot.value?.threshold_bid_bch || 0))
-const dutchFloorPriceFiat = computed(() => Number(lot.value?.threshold_bid_fiat || 0))
+const dutchFloorPriceBch = computed(() => Number(lot.value?.thresh_price_bch || 0))
+const dutchFloorPriceFiat = computed(() => Number(lot.value?.thresh_price_fiat || 0))
 
 // ====================
 // POST-AUCTION ACTIONS
@@ -864,9 +868,9 @@ const initDeliveryTracking = async () => {
     const deliveryTrackingRes = await callAPI('delivery-trackings', null, 'post', {
       lot: lot.value?.id,
       sender: auction.value?.auctioneer?.id,
-      sender_location: 'N/A', // REVIEW
+      sender_address: 'N/A', // REVIEW
       receiver: userWalletHash.value,
-      receiver_location: 'N/A', // REVIEW
+      receiver_address: 'N/A', // REVIEW
       courier: (lot.value?.category === 'Physical') ? 'LBC' : 'N/A' // REVIEW
     })
     if (!deliveryTrackingRes || !deliveryTrackingRes.success || !deliveryTrackingRes.data) 
@@ -879,7 +883,7 @@ const initDeliveryTracking = async () => {
       status: 'Preparing',
       description: 'N/A', // REVIEW
       location: 'N/A', // REVIEW
-      event_date: new Date().toISOString()
+      date_of_event: new Date().toISOString()
     })
     if (deliveryEventRes && deliveryEventRes.success && deliveryEventRes.data){
       deliveryEvents.value = deliveryEventRes.data
@@ -1029,8 +1033,8 @@ const handlePlaceBid = async (bidData) => {
 
   // Get current winnder's bid price
   const currentPrice = auction.value?.is_fiat
-    ? Number(lot.value?.threshold_bid_fiat || 0)
-    : Number(lot.value?.threshold_bid_bch || 0)
+    ? Number(lotWinningBid.value?.bid_price_fiat ?? lot.value?.start_price_fiat ?? 0)
+    : Number(lotWinningBid.value?.bid_price_bch ?? lot.value?.start_price_bch ?? 0)
   console.log(`currentPrice: ${currentPrice}`)
   
   // Check if new bid is valid

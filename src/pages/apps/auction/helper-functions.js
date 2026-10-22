@@ -76,11 +76,17 @@ export function formatTimeSince (timestamp) {
 }
 
 // Returns the label and price for an English auction lot.
-export const getEnglishPriceInfo = (lot, hasBid = lot?.hasBids?.()) => ({
-  label: hasBid ? 'HIGHEST BID:' : 'STARTING PRICE:',
-  fiat: lot?.threshold_bid_fiat,
-  bch: lot?.threshold_bid_bch
-})
+export const getEnglishPriceInfo = (lot, hasBid = lot?.hasBids?.()) => {
+  const highestBid = lot?.bids
+    ?.filter(bid => ['Highest', 'Winner'].includes(bid.status))
+    .sort((a, b) => new Date(b.date_bid) - new Date(a.date_bid))[0]
+
+  return {
+    label: hasBid ? 'HIGHEST BID:' : 'STARTING PRICE:',
+    fiat: highestBid?.bid_price_fiat ?? lot?.start_price_fiat,
+    bch: highestBid?.bid_price_bch ?? lot?.start_price_bch
+  }
+}
 
 // Returns the price-drop interval in minutes.
 export const getIntervalMinutes = (priceDropInterval) => typeof priceDropInterval === 'object'
@@ -126,16 +132,16 @@ const toBothCurrencies = (value, isFiatUsed, rate) => {
 
 // Adds normalized fiat and BCH values to a lot.
 export const withBothCurrencies = (lot, isFiatUsed, rate, preserveExisting = false) => {
-  const hasExistingFields = lot.estimated_amount_fiat !== undefined || lot.estimated_amount_bch !== undefined
+  const hasExistingFields = lot.est_price_fiat !== undefined || lot.est_price_bch !== undefined
   if (preserveExisting && hasExistingFields) {
     return {
       ...lot,
-      estimated_amount_bch: Number(lot.estimated_amount_bch || 0).toFixed(8),
-      estimated_amount_fiat: Number(lot.estimated_amount_fiat || 0).toFixed(2),
-      starting_price_bch: Number(lot.starting_price_bch || 0).toFixed(8),
-      starting_price_fiat: Number(lot.starting_price_fiat || 0).toFixed(2),
-      threshold_bid_bch: Number(lot.threshold_bid_bch || 0).toFixed(8),
-      threshold_bid_fiat: Number(lot.threshold_bid_fiat || 0).toFixed(2),
+      est_price_bch: Number(lot.est_price_bch || 0).toFixed(8),
+      est_price_fiat: Number(lot.est_price_fiat || 0).toFixed(2),
+      start_price_bch: Number(lot.start_price_bch || 0).toFixed(8),
+      start_price_fiat: Number(lot.start_price_fiat || 0).toFixed(2),
+      thresh_price_bch: Number(lot.thresh_price_bch || 0).toFixed(8),
+      thresh_price_fiat: Number(lot.thresh_price_fiat || 0).toFixed(2),
       price_drop_bch: Number(lot.price_drop_bch || 0).toFixed(8),
       price_drop_fiat: Number(lot.price_drop_fiat || 0).toFixed(2)
     }
@@ -147,12 +153,12 @@ export const withBothCurrencies = (lot, isFiatUsed, rate, preserveExisting = fal
   const priceDrop = toBothCurrencies(lot.price_drop ?? lot.priceDrop, isFiatUsed, rate)
   return {
     ...lot,
-    estimated_amount_bch: estimated.bch.toFixed(8),
-    estimated_amount_fiat: estimated.fiat.toFixed(2),
-    starting_price_bch: starting.bch.toFixed(8),
-    starting_price_fiat: starting.fiat.toFixed(2),
-    threshold_bid_bch: threshold.bch.toFixed(8),
-    threshold_bid_fiat: threshold.fiat.toFixed(2),
+    est_price_bch: estimated.bch.toFixed(8),
+    est_price_fiat: estimated.fiat.toFixed(2),
+    start_price_bch: starting.bch.toFixed(8),
+    start_price_fiat: starting.fiat.toFixed(2),
+    thresh_price_bch: threshold.bch.toFixed(8),
+    thresh_price_fiat: threshold.fiat.toFixed(2),
     price_drop_bch: priceDrop.bch.toFixed(8),
     price_drop_fiat: priceDrop.fiat.toFixed(2)
   }
