@@ -11,16 +11,16 @@
             v-model="form.title"
             placeholder="Enter auction title"
             color="pt-primary1"
-            :maxlength="100"
+            :maxlength="50"
             :bg-color="$q.dark.isActive ? 'pt-dark' : 'pt-light'"
             lazy-rules hide-bottom-space
             :rules="[
               val => !!(val && val.trim()) || 'Auction title is required',
-              val => !val || val.length <= 100 || 'Character limit reached'
+              val => !val || val.length <= 50 || 'Character limit reached'
             ]"
           />
-          <div class="text-right text-caption q-mt-xs" :class="(form.title || '').length >= 100 ? 'text-negative' : 'text-grey-6'">
-            {{ (form.title || '').length }} / 100
+          <div class="text-right text-caption q-mt-xs" :class="(form.title || '').length >= 50 ? 'text-negative' : 'text-grey-6'">
+            {{ (form.title || '').length }} / 50
           </div>
         </div>
 

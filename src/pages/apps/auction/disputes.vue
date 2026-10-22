@@ -206,7 +206,7 @@ onMounted(async () => {
 })
 
 const filteredDisputes = computed(() => {
-  let items = arbiterDetails.value
+  let items = arbiterDetails.value || []
 
   if (arbiterType.value !== 'All') 
     items = items.filter(dispute => dispute.status === arbiterType.value)
