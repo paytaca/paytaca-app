@@ -47,14 +47,14 @@ export class Auction {
     setRawData(this, data)
 
     // Auction Core Information
-    this.id = saveAsNumOrNull(data.id)
+    this.id = Number(data.id) || null
     this.title = data.title ?? 'Standard Auction Event'
     this.description = data.description ?? 'No description.'
     this.type = data.type ?? 'N/A'
 
     // User Information
     this.auctioneer = {
-      id: saveAsNumOrNull(data.auctioneer?.id ?? data.auctioneer),
+      id: Number(data.auctioneer?.id ?? data.auctioneer) || null,
       username: data.auctioneer_username ?? data.auctioneer?.username ?? null
     }
 
@@ -109,8 +109,8 @@ export class Lot {
     setRawData(this, data)
     
     // Lot core information
-    this.id = saveAsNumOrNull(data.id)
-    this.auction_id = saveAsNumOrNull(data.auction_id ?? data.auction?.id ?? data.auction)
+    this.id = Number(data.id) || null
+    this.auction_id = Number(data.auction_id ?? data.auction?.id ?? data.auction) || null
 
     this.title = data.title ?? 'Unnamed Lot'
     this.description = data.description ?? 'No description.'
@@ -121,20 +121,20 @@ export class Lot {
     this.status_color = lotColors[this.status]
 
     // Est amt/original price
-    this.est_price_bch = saveAsNumOrZero(data.est_price_bch)
-    this.est_price_fiat = saveAsNumOrZero(data.est_price_fiat)
+    this.est_price_bch = Number(data.est_price_bch) || 0
+    this.est_price_fiat = Number(data.est_price_fiat) || 0
 
     // Upper limit (English) or lowest limit (Dutch)
-    this.thresh_price_bch = Number(data.thresh_price_bch ?? 0)
-    this.thresh_price_fiat = Number(data.thresh_price_fiat ?? 0)
+    this.thresh_price_bch = Number(data.thresh_price_bch) || 0
+    this.thresh_price_fiat = Number(data.thresh_price_fiat) || 0
 
     // Starting price of bidding
-    this.start_price_bch = saveAsNumOrZero(data.start_price_bch)
-    this.start_price_fiat = saveAsNumOrZero(data.start_price_fiat)
+    this.start_price_bch = Number(data.start_price_bch) || 0
+    this.start_price_fiat = Number(data.start_price_fiat) || 0
 
     // (Dutch only)
-    this.price_drop_bch = saveAsNumOrZero(data.price_drop_bch)
-    this.price_drop_fiat = saveAsNumOrZero(data.price_drop_fiat)
+    this.price_drop_bch = Number(data.price_drop_bch) || 0
+    this.price_drop_fiat = Number(data.price_drop_fiat) || 0
 
     this.time_interval = data.time_interval ?? null
 
@@ -188,11 +188,11 @@ export class Bid {
     
     // IDs
     this.id = data.id != null ? Number(data.id) : null
-    this.lot_id = saveAsNumOrNull(data.lot?.id ?? data.lot)
+    this.lot_id = Number(data.lot_id ?? data.lot?.id ?? data.lot) || null
 
     // User Information
     this.bidder = {
-      id: saveAsNumOrNull(data.bidder?.id ?? data.bidder),
+      id: Number(data.bidder?.id ?? data.bidder) || null,
       username: data.bidder_username ?? data.bidder?.username ?? null
     }
 
@@ -200,8 +200,8 @@ export class Bid {
     this.status = data.status ?? null
 
     // Bid Prices
-    this.bid_price_bch = saveAsNumOrZero(data.bid_price_bch)
-    this.bid_price_fiat = saveAsNumOrZero(data.bid_price_fiat)
+    this.bid_price_bch = Number(data.bid_price_bch) || 0
+    this.bid_price_fiat = Number(data.bid_price_fiat) || 0
 
     // Dates
     this.date_bid = data.date_bid ?? null
@@ -228,9 +228,9 @@ export class Dispute {
     setRawData(this, data)
 
     // IDs
-    this.id = saveAsNumOrNull(data.id)  
-    this.lot_id = saveAsNumOrNull(data.lot_id ?? data.lot?.id ?? data.lot)
-    this.auction_id = saveAsNumOrNull(data.auction_id)
+    this.id = Number(data.id) || null
+    this.lot_id = Number(data.lot_id ?? data.lot?.id ?? data.lot) || null
+    this.auction_id = Number(data.auction_id ?? data.auction?.id ?? data.auction) || null
 
     // User Information
     this.auctioneer = {
@@ -290,15 +290,15 @@ export class DeliveryDetails {
 
     // IDs
     this.tracking_id = data.tracking_id ?? null
-    this.lot_id = saveAsNumOrNull(data.lot)
+    this.lot_id = Number(data.lot_id ?? data.lot?.id ?? data.lot) || null
     
     // User Information
     this.sender = {
-      id: data.sender?.id ?? data.sender_id ?? data.sender ?? null,
+      id: data.sender?.id ?? data.sender ?? null,
       address: data.sender_address ?? data.sender?.address ?? null
     }
     this.receiver = {
-      id: data.receiver?.id ?? data.receiver_id ?? data.receiver ?? null,
+      id: data.receiver?.id ?? data.receiver ?? null,
       address: data.receiver_address ?? data.receiver?.address ?? null
     }
     
@@ -355,8 +355,8 @@ export class DeliveryEvent {
     setRawData(this, data)
 
     // Delivery Event Core information
-    this.id = saveAsNumOrNull(data.id)
-    this.delivery_id = saveAsNumOrNull(data.delivery?.tracking_id ?? data.delivery)
+    this.id = Number(data.id) || null
+    this.tracking_id = Number(data.tracking_id ?? data.delivery?.tracking_id ?? data.delivery) || null
     this.status = data.status ?? null
     this.description = data.description ?? 'No description provided.'
     this.location = data.location ?? 'No location provided.'
@@ -380,12 +380,3 @@ function setRawData (instance, data) {
   })
 }
 
-// Returns a number or null
-function saveAsNumOrNull(data) {
-  return data ? Number(data) : null
-}
-
-// Returns a number or 0
-function saveAsNumOrZero(data) {
-  return data ? Number(data) : 0
-}
