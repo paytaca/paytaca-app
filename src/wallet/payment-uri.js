@@ -473,7 +473,11 @@ export class JSONPaymentProtocol {
       if (wallet instanceof SingleWallet) {
         changeAddress = wallet.isChipnet ? wallet.testnetAddress : wallet.cashAddress
       } else {
-        changeAddress = (await getWalletByNetwork(wallet, 'bch').getAddressSetAt(0)).change
+        // A multi-address wallet must be given a change address that the caller
+        // verified as unused (see getChangeAddress in src/utils/send-page-utils.js).
+        // Deriving one here would silently reuse index 0, whose public key may
+        // already be exposed on chain, so fail instead of guessing.
+        throw JsonPaymentProtocolError('Missing change address')
       }
     }
 

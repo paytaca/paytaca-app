@@ -465,6 +465,7 @@ import { hexToRef } from 'src/utils/reference-id-utils'
 import { showLimitDialogWithDeps } from 'src/composables/useTieredLimitGate'
 import KeyboardTooltip from 'src/components/KeyboardTooltip.vue'
 import { useKeyboardTooltip } from 'src/composables/useKeyboardTooltip'
+import { getChangeAddress } from 'src/utils/send-page-utils'
 
 const aesjs = require('aes-js')
 const short = require('short-uuid')
@@ -726,6 +727,9 @@ export default {
       const vm = this
       const { isResubmit = false } = options || {}
       try {
+        // Resolve the change address before the gift is registered server-side,
+        // so a failure to verify one cannot leave a registered gift unpaid
+        const changeAddress = await getChangeAddress('bch', { isChipnet: vm.wallet.BCH.isChipnet })
         const resp = await axios.post(url, payload)
         if (resp.status === 200) {
           vm.qrCodeContents = qrCode
@@ -734,7 +738,7 @@ export default {
             vm.unclaimedGiftsCountSnapshot += 1
           }
           try {
-            const result = await vm.wallet.BCH.sendBch(this.amountBCH, address)
+            const result = await vm.wallet.BCH.sendBch(this.amountBCH, address, changeAddress)
             if (result.success) {
               vm.processing = false
               vm.completed = true

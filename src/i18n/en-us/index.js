@@ -244,7 +244,7 @@ export default {
   AuthenticationFailed: "Authentication failed",
   AutoFillFieldFromPinLocation: "Auto fill field from pin location?",
   AutoGenerateAddress: "Auto generate address",
-  AutoGenerateAddressToolTip: "A new address will be generated after receiving assets.",
+  AutoGenerateAddressToolTip: "Moves to a new receiving and change address pair after each receive. Change addresses always move to a new pair after every payment, so change never lands on an address that was already spent from. Once an address is spent from, its public key is exposed on chain and a quantum computer could later use it to steal funds, so keeping to unused addresses protects your balance. When off, receiving does not rotate after a receive, but a payment still moves the pair forward.",
   Available: "Available",
   AvailableBalance: "Available Balance",
   AvailableBchMessage: "Available BCH after deposit",
