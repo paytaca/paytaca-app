@@ -54,7 +54,7 @@ export class Auction {
 
     // User Information
     this.auctioneer = {
-      id: Number(data.auctioneer?.id ?? data.auctioneer) || null,
+      id: data.auctioneer?.id ?? data.auctioneer ?? null,
       username: data.auctioneer_username ?? data.auctioneer?.username ?? null
     }
 
@@ -90,13 +90,12 @@ export class Auction {
 
 // LOT OBJECTS
 export class Lot {
-  static parse(data, auction = null) {
-    return new Lot(data, auction)
+  static parse(data) {
+    return new Lot(data)
   }
 
-  constructor(data, auction = null) {
+  constructor(data) {
     this.raw = data
-    this.auction = auction
   }
 
   // getter for raw data
@@ -192,7 +191,7 @@ export class Bid {
 
     // User Information
     this.bidder = {
-      id: Number(data.bidder?.id ?? data.bidder) || null,
+      id: data.bidder?.id ?? data.bidder ?? null,
       username: data.bidder_username ?? data.bidder?.username ?? null
     }
 
