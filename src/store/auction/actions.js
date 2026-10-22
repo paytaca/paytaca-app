@@ -189,7 +189,7 @@ export async function fetchLotData({ commit, dispatch }, lotId) {
   // Fetch lot data
   const response = await callAPI('lots', lotId)
   if (response && response.success && response.data) {
-    lotData = Lot.parse(response.dat)
+    lotData = Lot.parse(response.data)
     const imageResponse = await callAPI('lot-images-by-lot', lotId, 'get')
     if (imageResponse && imageResponse.success && Array.isArray(imageResponse.data))
       lotImages = imageResponse.data.map(item => item.image)
@@ -357,13 +357,12 @@ export async function fetchArbiterDisputes({ commit, dispatch }) {
   let arbiterDisputes = []
   const response = await callAPI('disputes-by-arbiter')
   if (response.success && Array.isArray(response.data)) {
-    arbiterDisputes = Promise.all(
-      response.data.map(async dispute => Dispute.parse(dispute))
-    )
+    arbiterDisputes = response.data.map(dispute => Dispute.parse(dispute))
   } else dispatch('printFailedFetch', 'disputes')
-  
+
   commit('setArbiterDisputes', arbiterDisputes)
   commit('setArbiterDisputesLastFetched')
+  return arbiterDisputes
 }
 
 // FETCHES a dispute
