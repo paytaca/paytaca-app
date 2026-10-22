@@ -153,13 +153,13 @@ export default {
         this.$store.commit('ramp/updateUser', this.user)
        if (this.user?.is_arbiter) {
          if ('appeal_id' in this.$route.query) {
-           this.$router?.push({ name: 'arbiter-appeals', query: this.$route.query})
+           this.$router?.replace({ name: 'arbiter-appeals', query: this.$route.query})
          } else {
-           this.$router?.push({ name: 'arbiter-appeals' })
+           this.$router?.replace({ name: 'arbiter-appeals' })
          }        
        } else {
          if ('ad_id' in this.$route.query) {
-           this.$router?.push({ name: 'p2p-store', query: this.$route.query })
+           this.$router?.replace({ name: 'p2p-store', query: this.$route.query })
          }
          else if ('order_id' in this.$route.query) {
            // Preserve source parameter when navigating to orders page
@@ -167,9 +167,9 @@ export default {
            if (this.$route.query.source) {
              queryParams.source = this.$route.query.source
            }
-            this.$router?.push({ name: 'p2p-orders', query: queryParams })
+            this.$router?.replace({ name: 'p2p-orders', query: queryParams })
          } else {
-           this.$router?.push({ name: 'p2p-store' })
+           this.$router?.replace({ name: 'p2p-store' })
          }
        }
      },

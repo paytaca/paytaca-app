@@ -45,7 +45,7 @@ export function buildHomeTourSteps(t) {
       body: t(
         'HomeTour.QuickActions.Body',
         {},
-        'Use these buttons to quickly Send, Receive, Get BCH, or Spend BCH.'
+        'Use these buttons to quickly Send, Receive, Get BCH, or Get Help.'
       ),
       prefer: 'top',
     },

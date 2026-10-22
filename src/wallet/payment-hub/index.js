@@ -11,11 +11,11 @@ import { mnemonicToSeedSync } from 'bip39'
 import { getMnemonicByHash } from 'src/wallet'
 import { pubkeyToAddress } from 'src/utils/crypto'
 import { SecureStoragePlugin } from 'capacitor-secure-storage-plugin'
-import packageInfo from '../../package.json'
+import packageInfo from '../../../package.json'
 import { Loading, QSpinnerIos } from 'quasar'
 
 
-export const DISPLAY_SUBS_APP = false;
+export const DISPLAY_SUBS_APP = true;
 
 /**
  * Base URL for the Payment Hub API.
@@ -544,6 +544,19 @@ export class PaymentHub {
     return response.data
   }
 
+
+  /**
+   * Retrieves full details for a specific invoice.
+   * @param {String} invoiceId - The UUID or Short ID of the invoice.
+   */
+  async createInvoice(data) {
+    const response = await backend.post(`/invoices/`, data, {
+      authorize: true,
+      wallet: this.wallet
+    })
+    return response.data
+  }
+
   /**
    * Retrieves full details for a specific invoice.
    * @param {String} invoiceId - The UUID or Short ID of the invoice.
@@ -557,9 +570,17 @@ export class PaymentHub {
   }
 
   // --- Contract Artifact Section ---
-  async getContractArtifact() {
-    const response = await backend.get(`/contract/artifact`)
+  async getContractArtifact(type) {
+    const params = {};
+    if (type) params.type = type
+    
+    const response = await backend.get(`/contract/artifact`, { params })
     return response.data
+  }
+
+  // --- Supported Token ---
+  async getSupportedTokens(params) {
+    return await backend.get(`/supported-tokens/`, { params })
   }
 
   // --- Plans Section ---
@@ -587,7 +608,7 @@ export class PaymentHub {
    * @param {String} planId - The UUID or Short ID of the plan.
    */
   async getPlan(planId) {
-    const response = await backend.get(`/plans/${planId}`)
+    const response = await backend.get(`/plans/${planId}/`)
     return response.data
   }
 
@@ -639,10 +660,9 @@ export class PaymentHub {
    * Creates a new subscription. Note: usually called via Customer App / Public API with API key.
    * But we provide it here for completeness or merchant-side creation.
    * @param {Object} subscriptionData - Data for the subscription (plan_id, etc.)
-   * @param {String} apiKey - Required if called from public context, otherwise uses auth.
    */
-  async createSubscription(subscriptionData, apiKey = null) {
-    const config = apiKey ? { apiKey } : { 
+  async createSubscription(subscriptionData) {
+    const config = { 
       authorize: true, 
       wallet: this.wallet 
     }
@@ -691,20 +711,6 @@ export class PaymentHub {
     })
     return response.data
   }
-
-  /**
-   * Reactivates a paused/cancelled subscription (if allowed).
-   * @param {String} subscriptionId - The UUID of the subscription.
-   */
-  async reactivateSubscription(subscriptionId) {
-    // Note: reactivate is not officially documented yet, but kept as placeholder
-    const response = await backend.post(`/subscriptions/${subscriptionId}/reactivate`, {}, {
-      authorize: true,
-      wallet: this.wallet
-    })
-    return response.data
-  }
-
 
   /**
    * Gets the parameters needed to update a subscription NFT (update kit).

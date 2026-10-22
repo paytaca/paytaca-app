@@ -28,7 +28,7 @@
           :asset-symbol="asset?.symbol || symbol || 'BCH'"
           :fiat-amount="formattedFiatAmountSent"
           :is-cash-token="isCashToken"
-          :back-path="backPath"
+          :back-path="backPath || validRedirect"
         />
         <div v-else-if="jpp" class="jpp-panel-container">
           <JppPaymentPanel
@@ -305,90 +305,160 @@
             :style="isNFT ? 'margin-top: 25px' : ''"
           >
             <form class="q-pa-sm send-form" @submit.prevent="handleSubmit">
-              <q-list v-for="(recipient, index) in recipients" v-bind:key="index">
-                <template v-if="!isNFT">
-                  <q-expansion-item
-                    default-opened
-                    dense
-                    dense-toggle
-                    class="q-expansion-item-recipient"
-                    v-model="expandedItems[`R${index + 1}`]"
-                    :class="getDarkModeClass(darkMode)"
-                    :label="`${$t('Recipient')} #${index + 1}`"
-                    :header-class="[
-                      inputExtras[index].incorrectAddress ? 'expansion-item-error' : '',
-                      'q-px-none',
-                    ]"
-                  >
-                    <SendPageForm
-                      :recipient="recipients[index]"
-                      :inputExtras="inputExtras[index]"
-                      :asset="asset"
-                      :index="index"
-                      :showQrScanner="showQrScanner"
-                      :computingMax="computingMax"
-                      :calculatingCauldronTrade="calculatingCauldronTrade"
-                      :selectedAssetMarketPrice="selectedAssetMarketPrice"
-                      :isNFT="isNFT"
-                      :currentWalletBalance="currentWalletBalances[index].balance"
-                      :currentWalletBalanceAssetId="currentWalletBalances[index].assetId"
-                      :cauldronErrorMessage="resolveCauldronTradePrepErrorMessageFromIndex(index)"
-                      :cauldronStatusMessage="getPoolTrackerStatus(index)?.statusMessage"
-                      :currentSendPageCurrency="currentSendPageCurrency"
-                      :setMaximumSendAmount="setMaximumSendAmount"
-                      :defaultSelectedFtChangeAddress="userSelectedChangeAddress"
-                      :walletType="walletType"
-                      @on-qr-scanner-click="onQRScannerClick"
-                      @on-input-focus="onInputFocus"
-                      @on-recipient-input="onRecipientInput"
-                      @on-empty-recipient="onEmptyRecipient"
-                      @on-selected-denomination-change="onSelectedDenomination"
-                      @on-qr-uploader-click="onQRUploaderClick"
-                      @on-selected-change-address="onUserSelectedChangeAddress"
-                      @on-cauldron-toggle="onCauldronToggle"
-                      :add-another-recipient="index === recipients.length - 1 ? addAnotherRecipient : undefined"
-                      :sending="sending"
-                      ref="sendPageRef"
-                    />
-
-                    <div class="row" v-if="recipients.length > 1 && !sending">
-                      <p class="remove-recipient-button" @click="removeLastRecipient(index)">
-                        {{ $t('RemoveRecipient') }} #{{ index + 1 }}
-                      </p>
+              <div
+                class="recipients-pager"
+                ref="recipientsPager"
+                @scroll.passive="onRecipientsScroll"
+              >
+                <div
+                  v-for="(recipient, index) in recipients"
+                  v-bind:key="index"
+                  class="recipient-slide"
+                >
+                  <div class="recipient-slide-inner" :class="getDarkModeClass(darkMode)">
+                    <div class="recipient-card-header row items-center no-wrap">
+                      <span class="recipient-card-title">
+                        {{ $t('Recipient') }} #{{ index + 1 }}
+                      </span>
+                      <q-icon
+                        v-if="inputExtras[index].incorrectAddress"
+                        name="error"
+                        size="16px"
+                        color="negative"
+                        class="q-ml-xs"
+                      />
+                      <q-space />
+                      <div class="recipient-header-actions row items-center no-wrap">
+                        <q-btn
+                          v-if="index === recipients.length - 1 && recipients.length < 10 && !sending && !isCauldronSend"
+                          icon="add"
+                          round
+                          unelevated
+                          size="sm"
+                          color="primary"
+                          class="recipient-action-btn"
+                          @click="addAnotherRecipient"
+                        />
+                        <div
+                          v-if="recipients.length > 1"
+                          class="recipients-nav row items-center no-wrap"
+                        >
+                          <q-btn
+                            icon="chevron_left"
+                            round
+                            unelevated
+                            size="sm"
+                            color="primary"
+                            class="recipient-action-btn"
+                            :disable="currentRecipientIndex === 0"
+                            @click="scrollToRecipient(currentRecipientIndex - 1)"
+                          />
+                          <div class="recipients-dots row items-center">
+                            <span
+                              v-for="(recipient, dotIndex) in recipients"
+                              v-bind:key="`dot-${dotIndex}`"
+                              class="recipients-dot"
+                              :class="{ active: dotIndex === currentRecipientIndex }"
+                              @click="scrollToRecipient(dotIndex)"
+                            />
+                          </div>
+                          <q-btn
+                            icon="chevron_right"
+                            round
+                            unelevated
+                            size="sm"
+                            color="primary"
+                            class="recipient-action-btn"
+                            :disable="currentRecipientIndex === recipients.length - 1"
+                            @click="scrollToRecipient(currentRecipientIndex + 1)"
+                          />
+                        </div>
+                        <q-btn
+                          v-if="recipients.length > 1 && !sending"
+                          icon="close"
+                          round
+                          unelevated
+                          size="sm"
+                          color="negative"
+                          class="recipient-action-btn"
+                          @click="confirmRemoveRecipient(index)"
+                        />
+                      </div>
                     </div>
-                  </q-expansion-item>
-                </template>
 
-                <template v-else>
-                  <SendPageForm
-                    :recipient="recipients[index]"
-                    :inputExtras="inputExtras[index]"
-                    :asset="asset"
-                    :index="index"
-                    :showQrScanner="showQrScanner"
-                    :computingMax="computingMax"
-                    :selectedAssetMarketPrice="selectedAssetMarketPrice"
-                    :isNFT="isNFT"
-                    :currentWalletBalance="currentWalletBalances[index].balance"
-                    :currentWalletBalanceAssetId="currentWalletBalances[index].assetId"
-                    :cauldronErrorMessage="resolveCauldronTradePrepErrorMessageFromIndex(index)"
-                    :cauldronStatusMessage="getPoolTrackerStatus(index)?.statusMessage"
-                    :currentSendPageCurrency="currentSendPageCurrency"
-                    :setMaximumSendAmount="setMaximumSendAmount"
-                    :walletType="walletType"
-                    :sending="sending"
-                    @on-qr-scanner-click="onQRScannerClick"
-                    @on-input-focus="onInputFocus"
-                    @on-recipient-input="onRecipientInput"
-                    @on-empty-recipient="onEmptyRecipient"
-                    @on-selected-denomination-change="onSelectedDenomination"
-                    @on-qr-uploader-click="onQRUploaderClick"
-                    @on-selected-change-address="onUserSelectedChangeAddress"
-                    @on-cauldron-toggle="onCauldronToggle"
-                    ref="sendPageRef"
-                  />
-                </template>
-              </q-list>
+                    <template v-if="!isNFT">
+                      <SendPageForm
+                        :recipient="recipients[index]"
+                        :inputExtras="inputExtras[index]"
+                        :asset="asset"
+                        :index="index"
+                        :showQrScanner="showQrScanner"
+                        :computingMax="computingMax"
+                        :calculatingCauldronTrade="calculatingCauldronTrade"
+                        :selectedAssetMarketPrice="selectedAssetMarketPrice"
+                        :isNFT="isNFT"
+                        :currentWalletBalance="currentWalletBalances[index].balance"
+                        :currentWalletBalanceAssetId="currentWalletBalances[index].assetId"
+                        :cauldronErrorMessage="resolveCauldronTradePrepErrorMessageFromIndex(index)"
+                        :cauldronStatusMessage="getPoolTrackerStatus(index)?.statusMessage"
+                        :currentSendPageCurrency="currentSendPageCurrency"
+                        :setMaximumSendAmount="setMaximumSendAmount"
+                        :defaultSelectedFtChangeAddress="userSelectedChangeAddress"
+                        :walletType="walletType"
+                        @on-qr-scanner-click="onQRScannerClick"
+                        @on-input-focus="onInputFocus"
+                        @on-input-blur="onInputBlur"
+                        @on-recipient-input="onRecipientInput"
+                        @on-address-set="onAddressSet"
+                        @on-empty-recipient="onEmptyRecipient"
+                        @on-selected-denomination-change="onSelectedDenomination"
+                        @on-qr-uploader-click="onQRUploaderClick"
+                        @on-selected-change-address="onUserSelectedChangeAddress"
+                        @on-cauldron-toggle="onCauldronToggle"
+                        :cauldron-tokens="cauldronPayWithTokens"
+                        :cauldron-disabled="recipients.length > 1"
+                        :trade-results="tradeResults"
+                        :sending="sending"
+                        :focused-field="currentRecipientIndex === index ? focusedInputField : ''"
+                        ref="sendPageRef"
+                      />
+                    </template>
+
+                    <template v-else>
+                      <SendPageForm
+                        :recipient="recipients[index]"
+                        :inputExtras="inputExtras[index]"
+                        :asset="asset"
+                        :index="index"
+                        :showQrScanner="showQrScanner"
+                        :computingMax="computingMax"
+                        :selectedAssetMarketPrice="selectedAssetMarketPrice"
+                        :isNFT="isNFT"
+                        :currentWalletBalance="currentWalletBalances[index].balance"
+                        :currentWalletBalanceAssetId="currentWalletBalances[index].assetId"
+                        :cauldronErrorMessage="resolveCauldronTradePrepErrorMessageFromIndex(index)"
+                        :cauldronStatusMessage="getPoolTrackerStatus(index)?.statusMessage"
+                        :currentSendPageCurrency="currentSendPageCurrency"
+                        :setMaximumSendAmount="setMaximumSendAmount"
+                        :walletType="walletType"
+                        :sending="sending"
+                        @on-qr-scanner-click="onQRScannerClick"
+                        @on-input-focus="onInputFocus"
+                        @on-input-blur="onInputBlur"
+                        @on-recipient-input="onRecipientInput"
+                        @on-address-set="onAddressSet"
+                        @on-empty-recipient="onEmptyRecipient"
+                        @on-selected-denomination-change="onSelectedDenomination"
+                        @on-qr-uploader-click="onQRUploaderClick"
+                        @on-selected-change-address="onUserSelectedChangeAddress"
+                        @on-cauldron-toggle="onCauldronToggle"
+                        ref="sendPageRef"
+                      />
+                    </template>
+                  </div>
+                </div>
+              </div>
+
               <div class="row" v-if="sending">
                 <div class="col-12 text-center">
                   <ProgressLoader />
@@ -397,13 +467,6 @@
             </form>
           </div>
 
-          <div v-if="isCauldronSend && tradeResults.some(Boolean)" class="q-px-lg">
-            <CauldronSendSummary
-              :recipients="recipients"
-              :inputExtras="inputExtras"
-              :tradeResults="tradeResults"
-            />
-          </div>
         </div>
       </template>
 
@@ -413,6 +476,7 @@
         hide-check-key
         @addKey="setAmount"
         @makeKeyAction="makeKeyAction"
+        @backPressed="customKeyboardState = 'dismiss'"
       >
         <template #slide>
           <DragSlide
@@ -481,8 +545,10 @@ import {
   formatWithLocaleSelective
 } from 'src/utils/custom-keyboard-utils'
 import * as sendPageUtils from 'src/utils/send-page-utils'
+import { parseRouteString, stringifyRoute } from 'src/router/utils'
 import { processMerchantOtcPoints } from 'src/utils/engagementhub-utils/rewards'
 import { updateAssetBalanceOnLoad } from 'src/utils/asset-utils'
+import { fetchFavorites } from 'src/utils/asset-settings'
 import { raiseNotifyError } from 'src/utils/notify-utils'
 
 import DragSlide from 'src/components/drag-slide.vue'
@@ -501,7 +567,6 @@ import LoadingWalletDialog from 'src/components/multi-wallet/LoadingWalletDialog
 import SendSuccessPage from 'src/components/send-page/SendSuccessPage.vue'
 import JppPaymentSuccessPanel from 'src/components/send-page/JppPaymentSuccessPanel.vue'
 import { hexToRef } from 'src/utils/reference-id-utils'
-import CauldronSendSummary from 'src/components/send-page/CauldronSendSummary.vue'
 import { MultiCauldronPoolTracker } from 'src/wallet/cauldron/pool-tracker'
 import { executeSendWithCauldron, prepareSendWithCauldron, CauldronSendError, calculateMaxSpendableForCauldron, TradePrepErrorCode } from 'src/wallet/cauldron/send'
 import { debounce } from 'quasar'
@@ -529,7 +594,6 @@ export default {
     BiometricWarningAttempt,
     SendSuccessPage,
     JppPaymentSuccessPanel,
-    CauldronSendSummary,
   },
 
   props: {
@@ -651,7 +715,6 @@ export default {
         }
       }],
       currentWalletBalances: [{ balance: 0, assetId: '' }],
-      expandedItems: {},
       pinDialogAction: '',
       warningAttemptsStatus: 'dismiss',
 
@@ -663,6 +726,7 @@ export default {
       tradeResults: [],
       /** @type {(import("src/wallet/cauldron/send").TradePrepErrorCode | undefined)[]} */
       cauldronTradePrepErrors: [],
+      cauldronPayWithTokens: [],
 
       /** @type {Wallet} */
       wallet: null,
@@ -693,6 +757,7 @@ export default {
       isScrolledToBottom: false,
       priceId: null,
       priceIdPrice: null,
+      priceIdCurrency: null,
       selectedOtherWallet: null,
       generatingOtherWalletAddress: false,
       showSendSuccessPage: false,
@@ -710,12 +775,8 @@ export default {
     },
     backNavigationPath () {
       if (this.backPath) {
-        const [path, queryString] = this.backPath.split('?')
-        if (queryString) {
-          const query = Object.fromEntries(new URLSearchParams(queryString))
-          return { path, query }
-        }
-        return this.backPath
+        const parsed = parseRouteString(this.backPath)
+        if (parsed) return parsed
       }
       return '/'
     },
@@ -861,7 +922,7 @@ export default {
       if (!this.totalFiatAmountSent || this.totalFiatAmountSent <= 0) return null
       if (this.isNFT) return null
       
-      const currency = this.selectedMarketCurrency || 'USD'
+      const currency = this.priceIdCurrency || this.selectedMarketCurrency || 'USD'
       return parseFiatCurrency(this.totalFiatAmountSent, currency)
     },
     // Get asset from store reactively to ensure balance updates are reflected
@@ -878,8 +939,15 @@ export default {
     '$route' () {
       this.restoreSendSuccessPending()
     },
+    customKeyboardState (state) {
+      if (state === 'show') this.$nextTick(() => this.scheduleRepositionActiveInput())
+      else this.resetKeyboardSpace()
+    },
+    focusedInputField () {
+      if (this.customKeyboardState === 'show') this.$nextTick(() => this.scheduleRepositionActiveInput())
+    },
     selectedAssetMarketPrice () {
-      if (!this.bip21Expires) {
+      if (!this.bip21Expires && !this.priceIdPrice) {
         if (!this.selectedAssetMarketPrice) {
           this.$store.dispatch('market/updateAssetPrices', { assetId: this.assetId, customCurrency: this.paymentCurrency })
         }
@@ -1143,6 +1211,8 @@ export default {
           assetIds: assetIds.join(','),
           new: 'true'
         }
+        const redirectFrom = stringifyRoute(this.backPath)
+        if (redirectFrom) query.from = redirectFrom
         // Add recipient address for "Add to Address Book" feature
         if (this.recipients?.length === 1 && this.recipients[0]?.recipientAddress) {
           query.recipient = this.recipients[0].recipientAddress
@@ -1179,6 +1249,8 @@ export default {
         assetID: effectiveAssetId,
         new: 'true'
       }
+      const redirectFrom = stringifyRoute(this.backPath)
+      if (redirectFrom) query.from = redirectFrom
       // Add recipient address for "Add to Address Book" feature
       if (this.recipients?.length === 1 && this.recipients[0]?.recipientAddress) {
         query.recipient = this.recipients[0].recipientAddress
@@ -1236,7 +1308,10 @@ export default {
         const watchtower = new Watchtower(this.isChipnet)
         const response = await watchtower.BCH._api.get(`asset-price-log/${priceId}/`)
         if (response?.data?.price_value) {
-          return parseFloat(response.data.price_value)
+          return {
+            price: parseFloat(response.data.price_value),
+            currency: response.data.currency || null
+          }
         }
       } catch (error) {
         console.error('Error fetching price by price_id:', error)
@@ -1262,6 +1337,7 @@ export default {
       vm.disableSending = false
       vm.bip21Expires = null
       vm.showQrScanner = false
+      vm.clearPriceIdState()
 
       content = Array.isArray(content) ? content[0].rawValue : content
       let amount = null
@@ -1349,6 +1425,12 @@ export default {
           }
         }
 
+        // POS/BIP21 requests carrying a price_id (no explicit currency param) are
+        // denominated in the currency recorded on that price log entry.
+        if (vm.priceIdPrice && typeof currency !== 'string' && vm.priceIdCurrency) {
+          vm.paymentCurrency = vm.priceIdCurrency
+        }
+
         if (vm.fungible || fungibleTokenAmount) {
           const tokenAmount = parseInt(vm.fungible || fungibleTokenAmount) / (10 ** (vm.asset?.decimals || 0)) || 0
           currentRecipient.amount = tokenAmount
@@ -1377,6 +1459,9 @@ export default {
 
         // Look up merchant by address
         vm.lookupMerchantForCurrentRecipient()
+
+        // Bring up the amount keyboard for the card whose address was just set
+        vm.onAddressSet({ index: vm.currentRecipientIndex })
       }
     },
 
@@ -1452,7 +1537,9 @@ export default {
       if (paymentUriData?.otherParams?.price_id) {
         vm.priceId = paymentUriData.otherParams.price_id
         // Fetch price using price_id
-        vm.priceIdPrice = await vm.fetchPriceById(vm.priceId)
+        const priceMeta = await vm.fetchPriceById(vm.priceId)
+        vm.priceIdPrice = priceMeta?.price ?? null
+        vm.priceIdCurrency = priceMeta?.currency ?? null
       }
 
       // skip the usual route when found a valid JSON payment protocol url
@@ -1547,7 +1634,12 @@ export default {
         const currentInputExtras = this.inputExtras[this.currentRecipientIndex]
 
         currentRecipient.amount = amount
-        currentRecipient.fiatAmount = this.convertToFiatAmount(amount)
+        // When the QR carries a price_id, use the POS's recorded rate so the
+        // displayed fiat matches exactly what was requested.
+        const usePriceId = !!this.priceIdCurrency && typeof this.priceIdPrice === 'number' && isFinite(this.priceIdPrice) && this.priceIdPrice > 0
+        currentRecipient.fiatAmount = usePriceId
+          ? Number((amount * this.priceIdPrice).toFixed(2))
+          : this.convertToFiatAmount(amount)
         currentInputExtras.amountFormatted = formatWithLocale(
           currentRecipient.amount, this.decimalObj(false)
         )
@@ -1630,7 +1722,6 @@ export default {
       this.inputExtras = remainingInputExtras
       this.currentWalletBalances = currentWalletBalances;
       this.currentRecipientIndex = 0
-      this.expandedItems = { R1: true }
       if (currentInputExtras.cauldron.enable) {
         this.prepareCauldronTrade()
         this.adjustWalletBalance()
@@ -1643,6 +1734,10 @@ export default {
       const recipient = this.recipients[index]
       if (recipient?.fixedAmount) return
 
+      // When paying for a CashToken send by swapping BCH, the receive amount is
+      // computed from the swap; don't auto-focus the amount input / show the keyboard.
+      if (this.asset?.id !== 'bch' && this.inputExtras?.[index]?.cauldron?.enable) return
+
       const sendPageForm = this.$refs.sendPageRef?.[index]
       if (!sendPageForm) return
 
@@ -1654,8 +1749,38 @@ export default {
         this.currentRecipientIndex = index
         this.focusedInputField = field
         this.customKeyboardState = 'show'
-        sendPageUtils.addRemoveInputFocus(index, field)
       }
+    },
+
+    // recipient pager
+    scrollToRecipient (index) {
+      if (index < 0 || index >= this.recipients.length) return
+      this.currentRecipientIndex = index
+      this.$nextTick(() => this.scrollToRecipientIndex(index))
+    },
+    scrollToRecipientIndex (index) {
+      const pager = this.$refs.recipientsPager
+      if (!pager || typeof pager.scrollTo !== 'function' || !pager.clientWidth) return
+      pager.scrollTo({ left: index * pager.clientWidth, behavior: 'smooth' })
+    },
+    onRecipientsScroll () {
+      const pager = this.$refs.recipientsPager
+      if (!pager || !this.recipients.length || !pager.clientWidth) return
+      const index = Math.round(pager.scrollLeft / pager.clientWidth)
+      if (index !== this.currentRecipientIndex && index >= 0 && index < this.recipients.length) {
+        this.currentRecipientIndex = index
+      }
+    },
+    onAddressSet (value) {
+      const index = (value && typeof value.index === 'number') ? value.index : this.currentRecipientIndex
+      const recipient = this.recipients[index]
+      if (!recipient || !recipient.recipientAddress || recipient.fixedAmount) return
+      if (!this.checkAddressValidity(recipient.recipientAddress)) return
+      this.currentRecipientIndex = index
+      this.$nextTick(() => {
+        this.scrollToRecipientIndex(index)
+        this.autoFocusAmount()
+      })
     },
 
     // keyboard
@@ -1713,9 +1838,6 @@ export default {
       }
 
       this.updateCauldronAndRemainingBalance();
-      sendPageUtils.addRemoveInputFocus(
-        this.currentRecipientIndex, this.focusedInputField
-      )
     },
 
     makeKeyAction (action) {
@@ -1764,17 +1886,11 @@ export default {
           currentInputExtras.fiatFormatted = '0'
           currentInputExtras.amountFormatted = '0'
         }
-        sendPageUtils.addRemoveInputFocus(
-          this.currentRecipientIndex, this.focusedInputField
-        )
       } else if (action === 'delete') {
         currentRecipient.fiatAmount = ''
         currentRecipient.amount = ''
         currentInputExtras.fiatFormatted = '0'
         currentInputExtras.amountFormatted = '0'
-        sendPageUtils.addRemoveInputFocus(
-          this.currentRecipientIndex, this.focusedInputField
-        )
       } else {
         // No-op: checkmark key is hidden in the new combined keyboard+slide layout
       }
@@ -1821,16 +1937,34 @@ export default {
         })
         this.currentWalletBalances.push({ balance: 0, assetId: this.asset.id })
         this.adjustWalletBalance();
-        for (let i = 1; i <= recipientsLength; i++) {
-          this.expandedItems[`R${i}`] = false
-        }
+        this.scrollToRecipient(this.recipients.length - 1)
       } else raiseNotifyError(this.$t('CannotAddRecipient'))
     },
+    confirmRemoveRecipient (index) {
+      const vm = this
+      vm.$q.dialog({
+        title: vm.$t('RemoveRecipient'),
+        message: `${vm.$t('RemoveRecipient')} #${index + 1}?`,
+        persistent: false,
+        class: `pt-card text-bow ${vm.getDarkModeClass(vm.darkMode)}`,
+        ok: {
+          label: vm.$t('Remove'),
+          color: 'negative'
+        },
+        cancel: {
+          label: vm.$t('Cancel'),
+          flat: true
+        }
+      }).onOk(() => {
+        vm.removeLastRecipient(index)
+      })
+    },
     removeLastRecipient (index) {
-      delete this.expandedItems[`R${index}`]
-      this.expandedItems[`R${index + 1}`] = true
       this.recipients.splice(index, 1)
       this.inputExtras.splice(index, 1)
+      this.currentWalletBalances.splice(index, 1)
+      // Show the last card after deletion
+      this.scrollToRecipient(Math.max(0, this.recipients.length - 1))
     },
 
     // sending
@@ -2028,7 +2162,7 @@ export default {
 
             // Only include fiat amounts if at least one is available
             if (fiatAmounts.some(amount => amount !== null && amount !== '')) {
-              fiatCurrency = vm.currentSendPageCurrency()
+              fiatCurrency = vm.priceIdCurrency || vm.currentSendPageCurrency()
               
               // If no priceId from BIP21, get the price_id from the market store
               if (!priceIdToUse && fiatCurrency) {
@@ -2205,21 +2339,95 @@ export default {
       this.currentRecipientIndex = value.index
       this.focusedInputField = value.field
       this.customKeyboardState = value.field !== '' ? 'show' : 'dismiss'
-      sendPageUtils.addRemoveInputFocus(value.index, value.field)
+    },
+    onInputBlur () {
+      clearTimeout(this._keyboardBlurCheckTimer)
+      this._keyboardBlurCheckTimer = setTimeout(() => {
+        this._keyboardBlurCheckTimer = null
+        const active = document.activeElement
+        if (active && typeof active.closest === 'function') {
+          if (active.closest('.keyboard-slide-panel') ||
+              active.closest('.bch-input-field') ||
+              active.closest('.fiat-input-field')) return
+        }
+        if (this.customKeyboardState === 'show') {
+          this.focusedInputField = ''
+          this.customKeyboardState = 'dismiss'
+        }
+      }, 80)
+    },
+    onDocumentPointerDown (event) {
+      if (this.customKeyboardState !== 'show') return
+      const target = event.target
+      if (!target || typeof target.closest !== 'function') return
+      if (target.closest('.keyboard-slide-panel') ||
+          target.closest('.bch-input-field') ||
+          target.closest('.fiat-input-field')) return
+      const active = document.activeElement
+      if (active && typeof active.blur === 'function' && typeof active.closest === 'function' &&
+          (active.closest('.bch-input-field') || active.closest('.fiat-input-field'))) {
+        active.blur()
+      }
+      this.focusedInputField = ''
+      this.customKeyboardState = 'dismiss'
+    },
+    scheduleRepositionActiveInput () {
+      clearTimeout(this._repositionInputTimer)
+      this._repositionInputTimer = setTimeout(() => {
+        this._repositionInputTimer = null
+        this.repositionActiveInput()
+      }, 60)
+    },
+    repositionActiveInput () {
+      const field = this.focusedInputField
+      if (field !== 'bch' && field !== 'fiat') return
+
+      const form = this.$refs.sendPageRef?.[this.currentRecipientIndex]
+      const inputRef = field === 'fiat' ? form?.$refs?.fiatInput : form?.$refs?.amountInput
+      const inputEl = inputRef?.$el
+      const container = document.querySelector('.send-form-container')
+      const panel = document.querySelector('.keyboard-slide-panel')
+      if (!inputEl || !container || !panel) return
+
+      const margin = 20
+      const panelRect = panel.getBoundingClientRect()
+      container.style.setProperty('--send-form-keyboard-space', `${Math.round(panelRect.height + margin)}px`)
+
+      const delta = inputEl.getBoundingClientRect().bottom - (panelRect.top - margin)
+      if (delta > 0) {
+        container.scrollBy({ top: delta, behavior: 'smooth' })
+      }
+    },
+    resetKeyboardSpace () {
+      const container = document.querySelector('.send-form-container')
+      if (container) container.style.removeProperty('--send-form-keyboard-space')
     },
     onQRScannerClick (value) {
       this.showQrScanner = value
     },
-    async lookupMerchantForCurrentRecipient () {
-      const currentRecipient = this.recipients[this.currentRecipientIndex]
+    async lookupMerchantForCurrentRecipient (index = this.currentRecipientIndex) {
+      const currentRecipient = this.recipients[index]
       const address = currentRecipient?.recipientAddress
       if (!address) return
       const valid = this.checkAddressValidity(address)
       if (!valid) return
       const merchantData = await sendPageUtils.lookupMerchantByAddress(address, this.isChipnet)
-      this.inputExtras[this.currentRecipientIndex].merchantData = merchantData
+      this.inputExtras[index].merchantData = merchantData
     },
-    onRecipientInput (value) {
+    clearPriceIdState () {
+      this.priceId = null
+      this.priceIdPrice = null
+      this.priceIdCurrency = null
+    },
+    onRecipientInput (payload) {
+      // A manually edited address must not inherit a price_id from a prior POS scan
+      this.clearPriceIdState()
+      const index = (payload && typeof payload.index === 'number')
+        ? payload.index
+        : this.currentRecipientIndex
+      const value = (payload && typeof payload === 'object' && 'value' in payload)
+        ? payload.value
+        : payload
       const [isLegacy, isDuplicate, isWalletAddress] = sendPageUtils.addressPrechecks(
         value ?? '',
         this.recipients.map(a => a.recipientAddress),
@@ -2228,20 +2436,30 @@ export default {
 
       if (isDuplicate) {
         raiseNotifyError(this.$t('AddressAlreadyAdded'))
-        this.recipients[this.currentRecipientIndex].recipientAddress = ''
+        this.recipients[index].recipientAddress = ''
         return
       }
 
-      this.recipients[this.currentRecipientIndex].recipientAddress = value
-      this.inputExtras[this.currentRecipientIndex].emptyRecipient = value === ''
-      this.inputExtras[this.currentRecipientIndex].incorrectAddress = false
-      this.inputExtras[this.currentRecipientIndex].merchantData = null
+      this.recipients[index].recipientAddress = value
+      this.inputExtras[index].emptyRecipient = value === ''
+      this.inputExtras[index].incorrectAddress = false
+      this.inputExtras[index].merchantData = null
       this.updateAddressPrecheckValues(isLegacy, isWalletAddress)
+      if (value === '') {
+        this.customKeyboardState = 'dismiss'
+      }
     },
-    onEmptyRecipient (value) {
-      this.inputExtras[this.currentRecipientIndex].emptyRecipient = value
+    onEmptyRecipient (payload) {
+      const index = (payload && typeof payload.index === 'number')
+        ? payload.index
+        : this.currentRecipientIndex
+      const value = (payload && typeof payload === 'object' && 'value' in payload)
+        ? payload.value
+        : payload
+      this.inputExtras[index].emptyRecipient = value
+      if (value) this.clearPriceIdState()
       if (!value) {
-        this.lookupMerchantForCurrentRecipient()
+        this.lookupMerchantForCurrentRecipient(index)
       }
     },
     onSelectedDenomination (value) {
@@ -2290,6 +2508,34 @@ export default {
         this.setMaximumSendAmount();
       } else {
         this.updateCauldronAndRemainingBalance();
+      }
+    },
+    async loadCauldronPayWithTokens () {
+      if (this.isNFT || this.assetId !== 'bch') return
+      try {
+        const favorites = await fetchFavorites()
+        if (!Array.isArray(favorites)) return
+        const tokens = favorites
+          .filter(favorite => favorite && (favorite.favorite === 1 || favorite.favorite === true))
+          .map(favorite => favorite.id)
+          .filter(id => typeof id === 'string' && id.startsWith('ct/'))
+          .map(id => {
+            const match = this.$store.getters['assets/getAsset'](id)
+            const asset = Array.isArray(match) ? match[0] : match
+            if (!asset) return null
+            return {
+              id,
+              name: asset.name,
+              symbol: asset.symbol,
+              decimals: asset.decimals,
+              logo: asset.logo,
+              balance: asset.balance,
+            }
+          })
+          .filter(Boolean)
+        this.cauldronPayWithTokens = tokens
+      } catch (error) {
+        console.warn('[Send] Failed to load favorite tokens for Cauldron:', error)
       }
     },
     checkCauldronPoolsForFallback() {
@@ -3124,6 +3370,8 @@ export default {
       vm.walletType = 'bch'
     }
 
+    if (!vm.isNFT && vm.assetId === 'bch') vm.loadCauldronPayWithTokens()
+
     // Fetch latest price for the selected asset
     vm.$store.dispatch('market/updateAssetPrices', { assetId: vm.assetId })
 
@@ -3170,6 +3418,7 @@ export default {
       if (container) {
         container.addEventListener('scroll', this.handleScroll)
       }
+      document.addEventListener('pointerdown', this.onDocumentPointerDown)
 
       // Auto-focus the amount input and show custom keyboard when recipient is pre-filled
       if (vm.recipient && vm.assetId) {
@@ -3185,7 +3434,6 @@ export default {
             inputRef.focus()
             this.focusedInputField = field
             this.customKeyboardState = 'show'
-            sendPageUtils.addRemoveInputFocus(0, field)
           }
         })
       }
@@ -3208,6 +3456,11 @@ export default {
     if (container) {
       container.removeEventListener('scroll', this.handleScroll)
     }
+
+    document.removeEventListener('pointerdown', this.onDocumentPointerDown)
+
+    clearTimeout(this._repositionInputTimer)
+    clearTimeout(this._keyboardBlurCheckTimer)
 
     this.poolTracker.cleanup();
   },
@@ -3431,16 +3684,64 @@ export default {
     .send-form {
       font-size: 26px !important;
       margin-top: -100px;
-      padding-top: 30px;
-      .remove-recipient-button {
-        font-size: 14px;
-        color: red;
-        margin-top: 10px;
-        cursor: pointer;
-      }
+      padding-top: 60px;
       .set-amount-button {
         font-size: 16px;
         text-decoration: none;
+      }
+      .recipients-pager {
+        display: flex;
+        overflow-x: auto;
+        overflow-y: hidden;
+        scroll-snap-type: x mandatory;
+        -webkit-overflow-scrolling: touch;
+        scrollbar-width: none;
+        -ms-overflow-style: none;
+        &::-webkit-scrollbar {
+          display: none;
+        }
+        .recipient-slide {
+          flex: 0 0 100%;
+          width: 100%;
+          scroll-snap-align: start;
+          scroll-snap-stop: always;
+          box-sizing: border-box;
+        }
+      }
+      .recipient-card-header {
+        justify-content: space-between;
+        margin-bottom: 8px;
+        .recipient-card-title {
+          font-size: 18px;
+          font-weight: 500;
+        }
+      }
+      .recipient-header-actions {
+        gap: 4px;
+      }
+      .recipient-action-btn {
+        min-width: 32px;
+        min-height: 32px;
+      }
+      .recipients-nav {
+        gap: 2px;
+        margin: 0 2px;
+      }
+      .recipients-dots {
+        gap: 6px;
+        margin: 0 4px;
+        .recipients-dot {
+          width: 7px;
+          height: 7px;
+          border-radius: 50%;
+          background: rgba(128, 128, 128, 0.45);
+          cursor: pointer;
+          transition: transform 0.2s ease, background-color 0.2s ease;
+          &.active {
+            background: var(--q-primary);
+            transform: scale(1.3);
+          }
+        }
       }
     }
   }
@@ -3455,9 +3756,10 @@ export default {
   /* Ensure DragSlide is visible on iOS */
   .send-form-container {
     position: relative;
-    
-    /* Keep content visible above the fixed keyboard panel (~250px keyboard + ~80px slide) */
-    padding-bottom: 340px !important;
+
+    /* Scroll room above the fixed keyboard panel (~250px keyboard + ~80px slide).
+       `--send-form-keyboard-space` is updated at runtime to the panel's real height. */
+    padding-bottom: var(--send-form-keyboard-space, 340px) !important;
   }
 
   /* iOS-specific fixes for DragSlide positioning */

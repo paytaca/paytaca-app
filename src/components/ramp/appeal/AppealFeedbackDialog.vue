@@ -108,7 +108,7 @@ export default {
 
       await backend.get(url, {
         params: params,
-        authorize: true
+        authorize: 'arbiter'
       })
         .then(response => {
           vm.reviews = response.data.feedbacks

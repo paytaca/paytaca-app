@@ -7,6 +7,7 @@ import { getAllWalletNames } from 'src/utils/wallet-name-cache'
 import { migrateMnemonicsToWalletHash } from 'src/wallet/mnemonic-migration'
 import { AuctionList, LotsList } from 'src/auction/object'
 
+import { migrateSecureStorageToNative } from 'src/wallet/secure-storage-migration'
 import useStore from 'src/store'
 import limitsConfig from 'src/store/subscription/limits.json'
 import wizardconnectDefaultState from 'src/store/wizardconnect/state'
@@ -22,6 +23,16 @@ import nostrChatDefaultState from 'src/store/nostr-chat/state'
  */
 export default boot(async (obj) => {
   try {
+
+    // Ask the WebView to keep our storage (localStorage + IndexedDB) from being
+    // evicted under storage pressure. Best-effort only; a denial is harmless.
+    try {
+      if (navigator.storage && navigator.storage.persist) {
+        await navigator.storage.persist()
+      }
+    } catch (err) {
+      console.warn('[Boot] Storage persist request failed:', err)
+    }
 
     await migrateVuexStorage()
 
@@ -180,6 +191,13 @@ export default boot(async (obj) => {
 
     app.use(store)
 
+    // Copy secrets written by the legacy web-only plugin (WebView localStorage)
+    // into the native OS keystore. Runs before wallet recovery so the migrated
+    // ciphertext is available to it.
+    await migrateSecureStorageToNative().catch(error => {
+      console.error('[Boot] Secure storage migration failed:', error)
+    })
+
     await recoverWalletsFromStorage().catch(error => {
       store.commit('global/setWalletRecoveryMessage', String(error))
     })
@@ -192,7 +210,7 @@ export default boot(async (obj) => {
     await migrateMnemonicsToWalletHash().catch(error => {
       console.error('[Boot] Error migrating mnemonics:', error)
     })
-    
+
     // Migrate existing wallets to have wallet-specific settings
     // This applies current global settings to all existing wallets for smooth migration
     store.dispatch('global/migrateWalletSettings')

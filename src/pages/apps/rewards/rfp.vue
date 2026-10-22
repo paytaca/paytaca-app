@@ -313,7 +313,6 @@ import {
   createRfPromoData,
   updateRfPromoData,
   getRpMaxRedeemable,
-  updateUserPromoData,
   PROMO_CONTRACT_VERSION,
 } from 'src/utils/engagementhub-utils/rewards'
 
@@ -420,7 +419,6 @@ export default {
 
           this.rpId = rpData.id
           await this.$router.replace({ params: { id: String(rpData.id) } })
-          updateUserPromoData({ rp: this.rpId })
         } else {
           rpData = await getRfPromoData(this.rpId)
         }

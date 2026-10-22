@@ -1,6 +1,6 @@
 <template>
     <div v-if="$route.name === 'p2p-ads'">
-      <HeaderNav :title="`P2P Ramp`" backnavpath="/apps" class="header-nav" />
+      <HeaderNav :title="`P2P Ramp`" backnavpath="/apps/exchange/peer-to-peer/store" class="header-nav" />
       <AdListings :key="adListingsKey"/>
     </div>
     <div v-else>

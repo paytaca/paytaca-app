@@ -46,17 +46,17 @@
           {{ $t('GetHelp') }}
         </p>
         <q-list class="pt-card settings-list" :class="getDarkModeClass(darkMode)">
-          <q-item clickable v-ripple @click="openUrl('https://paytaca.com/support')">
+          <q-item clickable v-ripple @click="openUrl('https://t.me/PaytacaWalletApp')">
             <q-item-section>
               <q-item-label class="pt-setting-menu" :class="getDarkModeClass(darkMode)">
-                {{ $t('HelpCenter') }}
+                Telegram
               </q-item-label>
               <q-item-label caption style="line-height:1;margin-top:3px;" :class="darkMode ? 'text-grey-5' : 'text-grey-8'">
-                {{ $t('HelpCenterDescription') }}
+                {{ $t('TelegramDescription', { telegram: 'Telegram' }, 'Join our Telegram community') }}
               </q-item-label>
             </q-item-section>
             <q-item-section avatar>
-              <q-icon name="help" :class="darkMode ? 'pt-setting-avatar-dark' : 'text-grey'"></q-icon>
+              <q-icon name="mdi-telegram" :class="darkMode ? 'pt-setting-avatar-dark' : 'text-grey'"></q-icon>
             </q-item-section>
           </q-item>
           <q-item clickable v-ripple @click="openUrl('https://github.com/paytaca/paytaca-app')">
@@ -128,19 +128,6 @@
             </q-item-section>
             <q-item-section avatar>
               <q-icon name="mdi-twitter" :class="darkMode ? 'pt-setting-avatar-dark' : 'text-grey'"></q-icon>
-            </q-item-section>
-          </q-item>
-          <q-item clickable v-ripple @click="openUrl('https://t.me/PaytacaWalletApp')">
-            <q-item-section>
-              <q-item-label class="pt-setting-menu" :class="getDarkModeClass(darkMode)">
-                Telegram
-              </q-item-label>
-              <q-item-label caption style="line-height:1;margin-top:3px;" :class="darkMode ? 'text-grey-5' : 'text-grey-8'">
-                {{ $t('TelegramDescription', { telegram: 'Telegram' }, 'Join our Telegram community') }}
-              </q-item-label>
-            </q-item-section>
-            <q-item-section avatar>
-              <q-icon name="mdi-telegram" :class="darkMode ? 'pt-setting-avatar-dark' : 'text-grey'"></q-icon>
             </q-item-section>
           </q-item>
         </q-list>

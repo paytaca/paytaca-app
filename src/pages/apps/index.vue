@@ -522,6 +522,17 @@ export default {
           category: 'beta'
         },
         {
+          id: 'ai-admin',
+          name: this.$t('AIAdmin'),
+          description: this.$t('Apps.AIAdmin.Description', {}, 'Manages Paytaca AI API keys and lets you subscribe to available AI models.'),
+          iconName: 'mdi-console',
+          path: '/apps/ai-admin',
+          active: true,
+          iconStyle: 'font-size: 4em',
+          beta: true,
+          category: 'beta'
+        },
+        {
           id: 'multisig',
           name: this.$t('MultisigWallets', {}, 'Multisig Wallets'),
           description: this.$t('Apps.MultisigWallets.Description', {}, 'Create and manage multi-signature wallets for extra security.'),
@@ -636,8 +647,8 @@ export default {
           path: '/apps/payment-hub-subscriptions/',
           iconStyle: 'font-size: 4.2em',
           active: true,
-          beta: true,
-          category: 'payment-hub'
+          beta: false,
+          category: 'ramp-payments'
         }]: []),
         {
           id: 'support',
@@ -957,6 +968,9 @@ export default {
       if (this.isNativeIOS) {
         this.filteredApps = this.filteredApps.filter(app => app?.id !== 'cryptoswap')
       }
+
+      // Hide AI Admin app for now
+      this.filteredApps = this.filteredApps.filter(app => app?.id !== 'ai-admin')
       
       // Add debug app if visible
       if (this.showDebugApp) {

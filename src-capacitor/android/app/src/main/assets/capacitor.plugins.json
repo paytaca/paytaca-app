@@ -1,7 +1,7 @@
 [
 	{
-		"pkg": "@capacitor-community/barcode-scanner",
-		"classpath": "com.getcapacitor.community.barcodescanner.BarcodeScanner"
+		"pkg": "@capacitor-mlkit/barcode-scanning",
+		"classpath": "io.capawesome.capacitorjs.plugins.mlkit.barcodescanning.BarcodeScannerPlugin"
 	},
 	{
 		"pkg": "@capacitor-community/native-audio",
@@ -18,6 +18,10 @@
 	{
 		"pkg": "@capacitor/camera",
 		"classpath": "com.capacitorjs.plugins.camera.CameraPlugin"
+	},
+	{
+		"pkg": "@capacitor/clipboard",
+		"classpath": "com.capacitorjs.plugins.clipboard.ClipboardPlugin"
 	},
 	{
 		"pkg": "@capacitor/device",
@@ -46,5 +50,9 @@
 	{
 		"pkg": "capacitor-native-biometric",
 		"classpath": "com.epicshaggy.biometric.NativeBiometric"
+	},
+	{
+		"pkg": "capacitor-secure-storage-plugin",
+		"classpath": "com.whitestein.securestorage.SecureStoragePluginPlugin"
 	}
 ]

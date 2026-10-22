@@ -145,7 +145,7 @@ export default {
     },
     async fetchContract () {
       const vm = this
-      await backend.get(`/ramp-p2p/order/${vm.data?.orderId}/contract/`, { authorize: true })
+      await backend.get(`/ramp-p2p/order/${vm.data?.orderId}/contract/`, { authorize: 'arbiter' })
         .then(response => {
           vm.contract = response.data
         })
@@ -159,7 +159,7 @@ export default {
       url = vm.data?.action === 'RELEASE' ? `${url}verify-release/` : `${url}verify-refund/`
       vm.verifyingTx = true
       const body = { txid: this.transactionId }
-      await backend.post(url, body, { authorize: true })
+      await backend.post(url, body, { authorize: 'arbiter' })
         .catch(error => {
           if (error.response) {
             vm.errorMessage = error.response?.data?.error

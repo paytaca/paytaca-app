@@ -1,15 +1,15 @@
 <template>
-  <q-dialog ref="dialogRef" @hide="onDialogHide">
+  <q-dialog ref="dialogRef" :persistent="sendingTopup" @hide="onDialogHide">
     <q-card class="br-15 pt-card-2 text-bow" :class="getDarkModeClass(darkMode)" style="width: 400px; max-width: 95vw;">
       <q-card-section class="row items-center q-pb-none">
-        <div class="text-h6">{{ $t('TopUpSubscription') || 'Top Up Subscription' }}</div>
+        <div class="text-h6">{{ $t('TopUpSubscription', 'Top Up Subscription') }}</div>
         <q-space />
         <q-btn icon="close" flat round dense v-close-popup />
       </q-card-section>
 
       <q-card-section class="q-pt-md">
         <p class="text-body2 text-grey">
-          {{ $t('TopUpCyclesPrompt') || 'How many billing cycles do you want to top up for?' }}
+          {{ $t('TopUpCyclesPrompt', 'How many billing cycles do you want to top up for?') }}
         </p>
 
         <!-- Input for number of cycles -->
@@ -21,7 +21,7 @@
           dense
           outlined
           rounded
-          :label="$t('NumberOfCycles') || 'Number of Cycles'"
+          :label="$t('NumberOfCycles')"
           :dark="darkMode"
           :bg-color="darkMode ? 'pt-dark' : 'white'"
           color="pt-primary1"
@@ -32,7 +32,10 @@
 
         <!-- Calculate amounts and periods -->
         <div class="q-mb-md" v-if="planDetails">
-          <div class="text-subtitle2 text-grey">{{ 'Total Amount with Fees' }}</div>
+          <div class="text-subtitle2 text-grey">{{ $t('TotalAmountWithFees') }}</div>
+          <div v-if="totalTokensFormatted" class="text-weight-bold text-h6">
+            {{ totalTokensFormatted }}
+          </div>
           <div class="row items-baseline q-gutter-x-sm">
             <template v-if="planDetails.currency !== 'BCH' && bchPrice > 0">
               <div class="text-weight-bold text-h6">~{{ totalFiatFormatted }} {{ planDetails.currency }}</div>
@@ -45,30 +48,36 @@
         </div>
 
         <div class="q-mb-md" v-if="planDetails && planDetails.period_blocks">
-          <div class="text-subtitle2 text-grey">{{ $t('TotalDuration') || 'Total Duration' }}</div>
+          <div class="text-subtitle2 text-grey">{{ $t('TotalDuration') }}</div>
           <div class="text-body2 text-weight-medium">
-            {{ totalBlocks }} {{ $t('Blocks') || 'blocks' }} (~{{ getApproximateTime(totalBlocks) }})
+            {{ totalBlocks }} {{ $t('Blocks') }} (~{{ getPeriodTextBase({ period_blocks: totalBlocks }) }})
           </div>
         </div>
 
         <div class="q-mb-md" v-else-if="planDetails && planDetails.period_days">
-          <div class="text-subtitle2 text-grey">{{ $t('TotalDuration') || 'Total Duration' }}</div>
+          <div class="text-subtitle2 text-grey">{{ $t('TotalDuration') }}</div>
           <div class="text-body2 text-weight-medium">
-            {{ totalDays }} {{ totalDays === 1 ? ($t('Day') || 'day') : ($t('Days') || 'days') }}
+            {{ totalDays }} {{ totalDays === 1 ? $t('Day') : $t('Days') }}
           </div>
+        </div>
+
+        <div v-if="sendingTopup" class="text-center text-grey text-caption">
+          {{ $t('SendingFundsToContract', 'Sending funds to contract') }}
+          <q-spinner/>
         </div>
       </q-card-section>
 
       <q-card-actions align="right" class="q-px-md q-pb-md">
-        <q-btn flat :label="$t('Cancel') || 'Cancel'" color="grey" v-close-popup />
+        <q-btn flat :label="$t('Cancel')" color="grey" :disable="sendingTopup" v-close-popup />
         <q-btn
           unelevated
           rounded
           color="pt-primary1"
-          :label="$t('ConfirmTopUp') || 'Confirm Top Up'"
+          :label="$t('ConfirmTopUp', 'Confirm Top Up')"
           class="q-px-md"
-          @click="onConfirm"
-          :disable="cycles < 1"
+          :loading="sendingTopup"
+          @click="securityCheckConfirm"
+          :disable="cycles < 1 || sendingTopup"
         />
       </q-card-actions>
     </q-card>
@@ -77,11 +86,15 @@
 
 <script setup>
 import { ref, computed } from 'vue'
-import { useDialogPluginComponent } from 'quasar'
+import { useDialogPluginComponent, useQuasar } from 'quasar'
 import { useStore } from 'vuex'
 import { useRouter } from 'vue-router'
 import { useI18n } from 'vue-i18n'
+import { asyncSleep } from 'src/wallet/transaction-listener'
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
+import { usePaymentHubCore, useSubscriptionUtils } from 'src/composables/payment-hub/usePaymentHub'
+import { topUpSubscription } from 'src/wallet/payment-hub/services'
+import SecurityCheckDialog from 'src/components/SecurityCheckDialog.vue'
 
 const props = defineProps({
   subscription: { type: Object, required: true }
@@ -92,9 +105,13 @@ defineEmits([...useDialogPluginComponent.emits])
 const { dialogRef, onDialogHide, onDialogOK } = useDialogPluginComponent()
 const $store = useStore()
 const $router = useRouter()
-const { t } = useI18n()
+const { t: $t } = useI18n()
+const $q = useQuasar()
+const { initWallet } = usePaymentHubCore();
+const { getPeriodTextBase, satsToBchDisplay, getTotalCostPerCycle } = useSubscriptionUtils()
 
 const darkMode = computed(() => $store.getters['darkmode/getStatus'])
+const isChipnet = computed(() => $store.getters['global/isChipnet'])
 
 const cycles = ref(1)
 
@@ -105,23 +122,7 @@ const bchPrice = computed(() => {
   return $store.getters['market/getAssetPrice']('bch', planDetails.value.currency) || 0
 })
 
-const minerFee = computed(() => 1000)
-
-const paytacaFee = computed(() => {
-  const sub = props.subscription
-  if (!sub) return 546
-  if (typeof sub.paytaca_fee === 'number') return sub.paytaca_fee
-  if (!sub.pledge_satoshis) return 546
-  const pledge = sub.pledge_satoshis
-  const maxFee = sub.max_fee || 546
-  return Math.max(Math.min(maxFee, Math.floor(pledge / 100)), Math.floor(maxFee / 100))
-})
-
-const totalCostSatsPerCycle = computed(() => {
-  const sub = props.subscription
-  if (!sub?.pledge_satoshis) return 0
-  return sub.pledge_satoshis + paytacaFee.value + minerFee.value
-})
+const totalCostSatsPerCycle = computed(() => getTotalCostPerCycle(props.subscription))
 
 const totalAmount = computed(() => {
   if (!planDetails.value) return 0
@@ -143,19 +144,18 @@ const totalFiatFormatted = computed(() => {
   return parseFloat(fiatVal.toFixed(2)).toString()
 })
 
-const MERGE_FEE_SATS = 1000;
-const totalBchFormatted = computed(() => {
-  if (!planDetails.value) return '0'
-  const numCycles = cycles.value || 0
-  if (numCycles === 0) return '0'
+// merge fee sats usually involve 2 inputs and 1 output, according to smart contract is
+// 850 * inputCount + 60 * outputCount
+const mergeFeeSats = computed(() => {
+  if (props.subscription?.payment_category) return 0;
+  return 850 * 2 + 60;
+})
 
-  // Use satoshi-based calculation (pledge + paytaca_fee + miner_fee per cycle)
+const totalSats = computed(() => {
+  if (!planDetails.value) return 0
+  const numCycles = cycles.value || 0
   if (totalCostSatsPerCycle.value > 0) {
-    let totalSats = totalCostSatsPerCycle.value * numCycles
-    if (props.subscription?.status === 'PENDING') {
-      totalSats += MERGE_FEE_SATS // Extra 1000 sats buffer for the NFT dust limit and merge fee
-    }
-    return (totalSats / 100000000).toFixed(8).replace(/\.?0+$/, '') || '0'
+    return totalCostSatsPerCycle.value * numCycles + mergeFeeSats.value
   }
 
   // Fallback: fiat-based conversion (shouldn't normally reach here)
@@ -165,7 +165,26 @@ const totalBchFormatted = computed(() => {
   if (!bchPrice.value || totalAmount.value === 0) return '0'
   const bchAmount = totalAmount.value / bchPrice.value
   const sats = Math.round(bchAmount * 100000000)
-  return (sats / 100000000).toFixed(8).replace(/\.?0+$/, '') || '0'
+  return sats
+})
+const totalBchFormatted = computed(() => {
+  return satsToBchDisplay(totalSats.value) || '0'
+})
+
+const totalTokens = computed(() => {
+  if (!props.subscription.pledge_tokens) return 0;
+  return props.subscription.pledge_tokens * cycles.value;
+})
+
+const totalTokensFormatted = computed(() => {
+  const token = props.subscription?.plan_details?.token;
+  if (!token) return ''
+  const decimals = parseInt(token?.decimals) || 0;
+  const symbol = token?.symbol ?? $t('Cashtokens');
+  if (!totalTokens.value) return `0 ${symbol}`
+  const tokenAmount = totalTokens.value / 10 ** decimals;
+  const tokenAmountFormatted = tokenAmount.toFixed(decimals);
+  return tokenAmountFormatted + ' ' + symbol;
 })
 
 const totalBlocks = computed(() => {
@@ -178,26 +197,54 @@ const totalDays = computed(() => {
   return (planDetails.value.period_days || 0) * (cycles.value || 0)
 })
 
-function getApproximateTime(blocks) {
-  if (!blocks) return ''
-  let timeStr = ''
-  if (blocks % 4320 === 0) {
-    const v = blocks / 4320
-    timeStr = `${v} ${v === 1 ? (t('Month') || 'month') : (t('Months') || 'months')}`
-  } else if (blocks % 1008 === 0) {
-    const v = blocks / 1008
-    timeStr = `${v} ${v === 1 ? (t('Week') || 'week') : (t('Weeks') || 'weeks')}`
-  } else if (blocks % 144 === 0) {
-    const v = blocks / 144
-    timeStr = `${v} ${v === 1 ? (t('Day') || 'day') : (t('Days') || 'days')}`
-  } else if (blocks % 6 === 0) {
-    const v = blocks / 6
-    timeStr = `${v} ${v === 1 ? (t('Hour') || 'hour') : (t('Hours') || 'hours')}`
-  } else {
-    timeStr = `${blocks * 10} ${t('Minutes') || 'minutes'}`
-  }
-  return timeStr
+function securityCheckConfirm() {
+  $q.dialog({
+    component: SecurityCheckDialog,
+    componentProps: {
+      displayDialogCard: false,
+    },
+  }).onOk(() => sendTopup())
 }
+
+const sendingTopup = ref(false);
+async function sendTopup() {
+  try {
+    sendingTopup.value = true;
+    const wallet = await initWallet();
+    const broadcastResult = await topUpSubscription({
+      wallet,
+      contractAddress: props.subscription.contract_address,
+      satoshis: totalSats.value,
+      tokenAmount: totalTokens.value,
+      tokenCategory: props.subscription?.payment_category,
+      isChipnet: isChipnet.value,
+    })
+  
+    if (broadcastResult.error) throw new Error(broadcastResult.error)
+
+    const txid = broadcastResult.txid;
+    const backRoute = $router.resolve({
+      path: '/apps/payment-hub-subscriptions/',
+      query: { subId: props.subscription?.id }
+    })
+    const redirectRoute = {
+      name: 'transaction-summary',
+      query: { from: backRoute.fullPath },
+      params: { txid: txid },
+    };
+    await asyncSleep(2000);
+    $router.push(redirectRoute);
+  } catch(error) {
+    console.error(error)
+    $q.notify({
+      message: $t('TopUpError', 'Encountered error during top-up'),
+      caption: String(error),
+    })
+  } finally {
+    sendingTopup.value = false;
+  }
+}
+
 
 function onConfirm() {
   const bchAmount = totalBchFormatted.value
@@ -208,10 +255,14 @@ function onConfirm() {
     ? `${contractAddress}?amount=${bchAmount}`
     : contractAddress
 
+  const route = $router.resolve({
+    path: '/apps/payment-hub-subscriptions/',
+    query: { subId: props.subscription?.id }
+  })
   const query = {
     address: addressWithAmount,
     assetId: 'bch',
-    backPath: '/apps/payment-hub-subscriptions/'
+    backPath: route.fullPath,
   }
 
   onDialogOK()

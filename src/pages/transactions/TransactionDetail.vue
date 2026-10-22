@@ -93,7 +93,7 @@
               </q-tooltip>
             </q-icon>
           </div>
-          <div v-if="gainLossAmount !== null && gainLossAmount !== undefined && isBchTransaction && Math.abs(gainLossAmount) > 0.01" class="amount-gain-loss-ss" :class="gainLossClass">
+          <div v-if="gainLossAmount !== null && gainLossAmount !== undefined && Math.abs(gainLossAmount) > 0.01" class="amount-gain-loss-ss" :class="gainLossClass">
             <q-icon :name="gainLossAmount >= 0 ? 'trending_up' : 'trending_down'" size="16px" class="q-mr-xs" />
             {{ gainLossText }}
           </div>
@@ -498,6 +498,7 @@ import * as assetSettings from 'src/utils/asset-settings'
 import { getBcmrBackend, convertIpfsUrl } from 'src/wallet/cashtokens'
 import { binToHex } from '@bitauth/libauth'
 import { showLimitDialogWithDeps } from 'src/composables/useTieredLimitGate'
+import { parseRouteString } from 'src/router/utils'
 
 export default {
   name: 'TransactionDetailPage',
@@ -953,6 +954,9 @@ export default {
           query: { assetIds: this.$route?.query?.summaryAssetIds }
         }
       }
+
+      const dynamicRoute = parseRouteString(fromParam)
+      if (dynamicRoute) return dynamicRoute
 
       return '/'
     },
@@ -2256,8 +2260,8 @@ export default {
           query: { assetID: assetId }
         })
       } else {
-        // If not from transactions page, navigate to home page
-        this.$router.push('/')
+        const dynamicRoute = parseRouteString(fromParam)
+        this.$router.push(dynamicRoute || '/')
       }
     },
     onAddToAddressBook () {

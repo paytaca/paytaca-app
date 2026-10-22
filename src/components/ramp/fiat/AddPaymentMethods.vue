@@ -2,7 +2,7 @@
   <div v-if="type === 'Profile'" class="sticky-header" :class="getDarkModeClass(darkMode)">
     <HeaderNav :title="`P2P Ramp`" @click="onBack" />
   </div>
-  <div v-if="type === 'Profile'" :style="{ height: headerOffset + 'px' }"></div>
+  <div v-if="type === 'Profile'" :style="{ height: headerOffset }"></div>
   <div class="q-mx-md q-mx-none text-bow"
     :class="getDarkModeClass(darkMode)">
     <div class="q-mx-md" v-if="isloaded">
@@ -10,6 +10,19 @@
 
       <div class="q-mx-sm text-h5 text-center text-weight-bold lg-font-size">
         {{ type === 'Profile' ? $t('YourPaymentMethods') : $t('SelectPaymentMethods') }}
+      </div>
+
+      <div v-if="type === 'Profile'" class="row q-mx-md q-mt-md">
+        <q-btn
+          outline
+          rounded
+          no-caps
+          icon="add"
+          :label="$t('AddPaymentMethod', {}, 'Add Payment Method')"
+          class="q-space button button-icon"
+          :class="getDarkModeClass(darkMode)"
+          @click="createMethod()"
+        />
       </div>
 
       <q-separator v-if="type !== 'Profile'" :dark="darkMode" class="q-mx-md"/>
@@ -149,9 +162,6 @@
               <q-separator :dark="darkMode" class="q-my-sm"/>
             </q-item-section>
           </q-item>
-          <div class="row q-mx-md q-py-sm">
-            <q-btn outline rounded no-caps :label="$t('AddMethod')" class="q-space button button-icon" :class="getDarkModeClass(darkMode)" @click="createMethod(selectedCurrency.symbol)"/>
-          </div>
         </div>
         <div v-if="type === 'General' && emptyPaymentMethods.length !== 0">
           <q-item v-for="(method, index) in emptyPaymentMethods" :key="index">
@@ -352,8 +362,11 @@ export default {
       return { height: `${this.minHeight}px`, overflowY: 'auto' }
     },
     headerOffset () {
-      // mirror header-nav default height values
-      return this.$q.platform.is.ios ? 95 : 70
+      // Mirror header-nav's rendered height (53px content + safe-area inset) so the
+      // fixed header never overlaps the page title. The title here is short/static,
+      // so header-nav adds no extra height for a tall title.
+      const safeTop = 'max(env(safe-area-inset-top, 0px), var(--q-safe-area-top, 0px), var(--safe-area-inset-top, 0px), var(--pt-android-statusbar, 0px))'
+      return `calc(${safeTop} + 53px)`
     },
     hasAlienPaymentsSelected () {
       const alienPaymentMethods = this.paymentMethods.filter(element => {
@@ -424,6 +437,10 @@ export default {
     },
     async onPaymentMethodSuccess () {
       const createdPaymentTypeId = this.info?.payment_type?.id || this.info?.id
+      if (this.type === 'Profile') {
+        await this.fetchAllPaymentMethodsProfile()
+        return
+      }
       await this.fetchPaymentMethods()
       if (this.type === 'General' && createdPaymentTypeId) {
         const newlyCreated = this.paymentMethods.filter(p => p.payment_type?.id === createdPaymentTypeId && !this.isPaymentSelected(p))

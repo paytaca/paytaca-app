@@ -159,6 +159,18 @@ export default {
       }
       return map
     },
+    // Stable key of the DM peers currently listed. Used to re-fetch avatars and
+    // display names only when conversations are added or removed — not on every
+    // message (the `rooms` array is rebuilt and re-sorted on each one).
+    dmPeerKey () {
+      const keys = []
+      for (const room of this.rooms) {
+        if (room.type === 'group' || room.type === 'mls-group') continue
+        const otherPubKey = room.members?.find(m => m !== this.myPubKey)
+        if (otherPubKey) keys.push(otherPubKey)
+      }
+      return keys.sort().join(',')
+    },
   },
   async created () {
     const walletHash = this.$store.getters['global/getWallet']('bch')?.walletHash
@@ -187,11 +199,13 @@ export default {
     await this.fetchDmAvatars()
   },
   watch: {
-    rooms: {
-      handler () {
-        this.fetchDmAvatars()
-      },
-      deep: true,
+    // Watch the set of DM peers rather than deep-watching `rooms`. The `rooms`
+    // computed returns a fresh array on every message (room sorting depends on
+    // lastMessageAt), so `deep: true` re-ran the avatar/name lookups on each
+    // incoming message. Only adding or removing a conversation changes what
+    // needs fetching.
+    dmPeerKey () {
+      this.fetchDmAvatars()
     },
   },
   methods: {

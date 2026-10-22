@@ -423,6 +423,7 @@
           :custom-keyboard-state="customKeyboardState"
           v-on:addKey="setAmount"
           v-on:makeKeyAction="makeKeyAction"
+          @backPressed="customKeyboardState = 'dismiss'"
         />
       </div>
     </div>
@@ -1656,6 +1657,8 @@ export default {
 .qr-wrapper {
   position: relative;
   display: inline-block;
+  max-width: 100%;
+  box-sizing: border-box;
   padding: 16px;
   background: white;
   border-radius: 16px;

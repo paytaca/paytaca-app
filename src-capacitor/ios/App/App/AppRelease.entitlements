@@ -6,6 +6,7 @@
 	<string>development</string>
 	<key>com.apple.developer.associated-domains</key>
 	<array>
+		<string>applinks:chat.paytaca.com</string>
 		<string>applinks:p2p.paytaca.com</string>
 		<string>applinks:gifts.paytaca.com</string>
 		<string>applinks:explorer.paytaca.com</string>

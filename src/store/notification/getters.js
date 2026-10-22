@@ -16,7 +16,10 @@ export function types() {
     MARKETPLACE_ORDER_AUTOCOMPLETE_NOTICE: 'marketplace_order_auto_complete_notice',
     MARKETPLACE_ORDER_INCOMING_CALL: 'marketplace_order_incoming_call',
     MARKETPLACE_CHAT_UNREAD_MESSAGES: 'marketplace_chat_unread_messages',
-    NOSTR_EVENT: 'nostr_event'
+
+    NOSTR_EVENT: 'nostr_event',
+
+    PAYMENTHUB_INSUFFICIENT_BALANCE: 'paymenthub.insufficient_balance',
   })
 }
 

@@ -587,6 +587,7 @@ export default {
       _pendingReadMsgIds: new Set(),
       _readMsgFlushTimer: null,
       _sentReadReceiptIds: new Set(),
+    _readReceiptRetryCount: 0,
     }
   },
   computed: {
@@ -1141,6 +1142,7 @@ export default {
       this._readMsgFlushTimer = null
     }
     this._pendingReadMsgIds.clear()
+    this._readReceiptRetryCount = 0
   },
   methods: {
     getDarkModeClass,
@@ -1246,10 +1248,26 @@ export default {
         })
         if (filtered.length) {
           for (const id of filtered) this._sentReadReceiptIds.add(id)
-          this.$store.dispatch('nostrChat/markRoomAsRead', {
-            roomId: this.roomId,
-            messageIds: filtered,
-          })
+          this.$store
+            .dispatch('nostrChat/markRoomAsRead', {
+              roomId: this.roomId,
+              messageIds: filtered,
+            })
+            .then(() => {
+              this._readReceiptRetryCount = 0
+            })
+            .catch(() => {
+              // Dispatch failed — allow these ids to be retried instead of
+              // leaving them permanently unmarked, but cap the retries so a
+              // deterministic failure can't loop forever.
+              this._readReceiptRetryCount += 1
+              if (this._readReceiptRetryCount >= 3) return
+              for (const id of filtered) {
+                this._sentReadReceiptIds.delete(id)
+                this._pendingReadMsgIds.add(id)
+              }
+              this._flushReadMsgIds()
+            })
         }
       }, 200)
     },
@@ -1781,6 +1799,21 @@ export default {
               recipients: this.room?.members?.filter(m => m !== this.myPubKey) || [],
             })
           }
+        } else if (this.editingMessage && this.isMlsRoom) {
+          // MLS groups carry the edit linkage inside the encrypted payload.
+          // The target message is updated in place; no new timeline entry.
+          await this.$store.dispatch('nostrChat/sendMlsMessage', {
+            roomId: this.roomId,
+            text,
+            editOf: this.editingMessage.id,
+          })
+          this.$store.commit('nostrChat/UPDATE_MESSAGE', {
+            roomId: this.roomId,
+            messageId: this.editingMessage.id,
+            newContent: text,
+          })
+          this.editingMessage = null
+          this.scrollToBottom()
         } else {
           const replyTo = this.replyToMessage?.id
 

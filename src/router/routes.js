@@ -159,6 +159,7 @@ const routes = [
       { path: 'debug/address-key-viewer', component: () => import('src/pages/apps/debug/tools.vue'), name: 'app-debug-address-key-viewer' },
       { path: 'debug/console', component: () => import('src/pages/apps/debug/console.vue'), name: 'app-debug-console' },
       { path: 'debug/push-notifications-reset', component: () => import('src/pages/apps/debug/push-notifications-reset.vue'), name: 'app-debug-push-notifications-reset' },
+      { path: 'debug/secure-storage-migration', component: () => import('src/pages/apps/debug/secure-storage-migration.vue'), name: 'app-debug-secure-storage-migration' },
       { path: 'connecta', component: () => import('src/pages/apps/connecta/index.vue'), name: 'connecta', props: route => route.query },
       { path: 'gifts', component: () => import('src/pages/apps/gifts/index.vue'), name: 'gifts' },
       { path: 'gifts/create', component: () => import('src/pages/apps/gifts/create-gift.vue'), name: 'create-gift' },
@@ -176,6 +177,18 @@ const routes = [
           { path: 'form', component: () => import('src/pages/apps/eload/eload-form.vue'), name: 'eload-service-form' },
           { path: 'orders', component: () => import('src/pages/apps/eload/eload-history.vue'), name: 'eload-service-orders' },
           { path: 'order/:orderId', component: () => import('src/pages/apps/eload/eload-history-details.vue'), name: 'eload-service-order-details', props: route => ({ ...route.params, ...route.query}), },
+        ]
+      },
+      {
+        path: 'ai-admin',
+        component: () => import('src/pages/apps/ai-admin/index.vue'), 
+        name: 'app-ai-admin',
+        children: [
+          { path: 'keys', component: () => import('src/pages/apps/ai-admin/ai-admin-keys.vue'), name: 'ai-admin-keys' },
+          { path: 'sessions', component: () => import('src/pages/apps/ai-admin/ai-admin-sessions.vue'), name: 'ai-admin-sessions' },
+          { path: 'buy-model', component: () => import('src/pages/apps/ai-admin/ai-admin-buy-form.vue'), name: 'ai-admin-buy-form' },
+          { path: 'images', component: () => import('src/pages/apps/ai-admin/ai-admin-images.vue'), name: 'ai-admin-images' },
+          { path: 'image-generate', component: () => import('src/pages/apps/ai-admin/ai-admin-image-generate.vue'), name: 'ai-admin-image-generate' },
         ]
       },
 

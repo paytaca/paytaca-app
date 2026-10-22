@@ -114,7 +114,7 @@ export default {
     },
     async setOrderPending (action, appealId) {
       const url = `/ramp-p2p/appeal/${appealId}/pending-${action.toLowerCase()}/`
-      await backend.post(url, {}, { authorize: true })
+      await backend.post(url, {}, { authorize: 'arbiter' })
         .catch(error => { 
           console.error(error)
         })
@@ -125,7 +125,7 @@ export default {
       const body = { txid: tx?.txid }
       console.log('url', url)
       console.log('body', body)
-      await backend.post(url, body, { authorize: true })
+      await backend.post(url, body, { authorize: 'arbiter' })
         .catch(error => {
           console.error(error.response || error)
           if (error.response) {
@@ -136,7 +136,7 @@ export default {
     },
     async fetchTransactions () {
       const orderId = this.appeal?.order?.id
-      await backend.get(`/ramp-p2p/order/${orderId}/contract/transactions/`, { authorize: true })
+      await backend.get(`/ramp-p2p/order/${orderId}/contract/transactions/`, { authorize: 'arbiter' })
         .then(response => {
           this.transactions = response.data
         })
