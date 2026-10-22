@@ -328,6 +328,7 @@ const ALL_INTERVAL_OPTIONS = [
 const priceDropIntervalOptions = computed(() => {
   if (!props.startDate || !props.endDate) return ALL_INTERVAL_OPTIONS
   const durationMinutes = (new Date(props.endDate) - new Date(props.startDate)) / (1000 * 60)
+
   if (isNaN(durationMinutes) || durationMinutes <= 0) return ALL_INTERVAL_OPTIONS
   return ALL_INTERVAL_OPTIONS.filter(opt => opt.value < durationMinutes)
 })
@@ -405,8 +406,6 @@ const onPriceDropManualInput = (val) => {
   }
 }
 
-
-
 // Formats the equivalent value in the other currency.
 const formatEquivalent = (value) => {
   const rate = bchToPhpRate.value
@@ -425,18 +424,18 @@ const formatEquivalent = (value) => {
 
 watch([() => props.lotData, () => props.isFiatUsed], ([newLot]) => {
   if (newLot) {
-    lotName.value = newLot.title || ''
-    lotCategory.value = newLot.type || 'Physical'
+    lotName.value = newLot.title ?? ''
+    lotCategory.value = newLot.type ?? 'Physical'
 
     if (props.isFiatUsed) {
-      estimatedPrice.value = Number(newLot.estimated_amount_fiat) || 0
-      startingPrice.value = Number(newLot.starting_price_fiat) || 0
-      priceThreshold.value = Number(newLot.threshold_bid_fiat) || 0
+      estimatedPrice.value = Number(newLot.est_price_fiat) || 0
+      startingPrice.value = Number(newLot.start_price_fiat) || 0
+      priceThreshold.value = Number(newLot.thresh_price_fiat) || 0
       priceDrop.value = Number(newLot.price_drop_fiat) || 0
     } else {
-      estimatedPrice.value = Number(newLot.estimated_amount_bch) || 0
-      startingPrice.value = Number(newLot.starting_price_bch) || 0
-      priceThreshold.value = Number(newLot.threshold_bid_bch) || 0
+      estimatedPrice.value = Number(newLot.est_price_bch) || 0
+      startingPrice.value = Number(newLot.start_price_bch) || 0
+      priceThreshold.value = Number(newLot.thresh_price_bch) || 0
       priceDrop.value = Number(newLot.price_drop_bch) || 0
     }
 
@@ -444,19 +443,15 @@ watch([() => props.lotData, () => props.isFiatUsed], ([newLot]) => {
     isManualOverride.value = false
     lotDescription.value = newLot.description || ''
     
-    if (Array.isArray(newLot.imageUrls)) {
+    if (Array.isArray(newLot.imageUrls)) 
       currentImageUrls.value = [...newLot.imageUrls]
-    } else if (newLot.imageUrl) {
+    else if (newLot.imageUrl) 
       currentImageUrls.value = [newLot.imageUrl]
-    } else {
-      currentImageUrls.value = []
-    }
-
+    else currentImageUrls.value = []
+    
     lotImages.value = []
   }
 }, { immediate: true })
-
-
 
 const editLotFormRef = ref(null)
 

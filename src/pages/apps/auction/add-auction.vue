@@ -114,18 +114,18 @@
                   <div class="text-caption text-weight-medium">STARTING PRICE:</div>
                   <div v-if="auctionForm.isFiatUsed">
                     <div class="text-caption text-weight-bold">
-                      ₱{{ formatFiat(lot.starting_price_fiat) }}
+                      ₱{{ formatFiat(lot.start_price_fiat) }}
                     </div>
                     <div style="opacity: 0.65; margin-top: -2px; font-size: 11px;">
-                      {{ formatBCH(lot.starting_price_bch).main }}<span style="opacity: 0.4;">{{ formatBCH(lot.starting_price_bch).zeros }}</span>&nbsp;BCH
+                      {{ formatBCH(lot.start_price_bch).main }}<span style="opacity: 0.4;">{{ formatBCH(lot.start_price_bch).zeros }}</span>&nbsp;BCH
                     </div>
                   </div>
                   <div v-else>
                     <div class="text-caption text-weight-bold">
-                      {{ formatBCH(lot.starting_price_bch).main }}<span style="opacity: 0.4;">{{ formatBCH(lot.starting_price_bch).zeros }}</span>&nbsp;BCH
+                      {{ formatBCH(lot.start_price_bch).main }}<span style="opacity: 0.4;">{{ formatBCH(lot.start_price_bch).zeros }}</span>&nbsp;BCH
                     </div>
                     <div style="opacity: 0.65; margin-top: -2px; font-size: 11px;">
-                      ₱{{ formatFiat(lot.starting_price_fiat) }}
+                      ₱{{ formatFiat(lot.start_price_fiat) }}
                     </div>
                   </div>
                 </div>
@@ -135,18 +135,18 @@
                     <div class="text-caption text-weight-medium">START PRICE:</div>
                     <div v-if="auctionForm.isFiatUsed">
                       <div class="text-caption text-weight-bold">
-                        ₱{{ formatFiat(lot.starting_price_fiat) }}
+                        ₱{{ formatFiat(lot.start_price_fiat) }}
                       </div>
                       <div style="opacity: 0.65; margin-top: -2px; font-size: 11px;">
-                        {{ formatBCH(lot.starting_price_bch).main }}<span style="opacity: 0.4;">{{ formatBCH(lot.starting_price_bch).zeros }}</span>&nbsp;BCH
+                        {{ formatBCH(lot.start_price_bch).main }}<span style="opacity: 0.4;">{{ formatBCH(lot.start_price_bch).zeros }}</span>&nbsp;BCH
                       </div>
                     </div>
                     <div v-else>
                       <div class="text-caption text-weight-bold">
-                        {{ formatBCH(lot.starting_price_bch).main }}<span style="opacity: 0.4;">{{ formatBCH(lot.starting_price_bch).zeros }}</span>&nbsp;BCH
+                        {{ formatBCH(lot.start_price_bch).main }}<span style="opacity: 0.4;">{{ formatBCH(lot.start_price_bch).zeros }}</span>&nbsp;BCH
                       </div>
                       <div style="opacity: 0.65; margin-top: -2px; font-size: 11px;">
-                        ₱{{ formatFiat(lot.starting_price_fiat) }}
+                        ₱{{ formatFiat(lot.start_price_fiat) }}
                       </div>
                     </div>
                   </div>
@@ -346,21 +346,21 @@ const handleCreateAuction = async () => {
         title: lot.title,
         category: lot.type,
         description: lot.description || '',
-        estimated_amount_bch: lot.estimated_amount_bch || 0,
-        estimated_amount_fiat: lot.estimated_amount_fiat || 0,
-        starting_price_bch: lot.starting_price_bch || 0,
-        starting_price_fiat: lot.starting_price_fiat || 0
+        est_price_bch: lot.est_price_bch || 0,
+        est_price_fiat: lot.est_price_fiat || 0,
+        start_price_bch: lot.start_price_bch || 0,
+        start_price_fiat: lot.start_price_fiat || 0
       }
 
       if (auctionForm.value.type === 'English') {
         Object.assign(lotData, {
-          threshold_bid_bch: lot.starting_price_bch || 0,
-          threshold_bid_fiat: lot.starting_price_fiat || 0
+          thresh_price_bch: lot.start_price_bch || 0,
+          thresh_price_fiat: lot.start_price_fiat || 0
         })
       } else {
         Object.assign(lotData, {
-          threshold_bid_bch: lot.threshold_bid_bch || 0,
-          threshold_bid_fiat: lot.threshold_bid_fiat || 0,
+          thresh_price_bch: lot.thresh_price_bch || 0,
+          thresh_price_fiat: lot.thresh_price_fiat || 0,
           price_drop_bch: lot.price_drop_bch || 0,
           price_drop_fiat: lot.price_drop_fiat || 0
         })

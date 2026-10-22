@@ -47,7 +47,7 @@
               </span>
             </div>
             <div class="text-caption ellipsis">{{ formatFiat(bid.bid_price_fiat) }}</div>
-            <div class="text-caption" style="opacity: 0.75;">{{ formatRelativeTime(bid.bidding_date) }}</div>
+            <div class="text-caption" style="opacity: 0.75;">{{ formatRelativeTime(bid.date_bid) }}</div>
             <q-separator v-if="index !== sortedBids.length - 1" spaced="xs" />
           </div>
         </template>
@@ -102,7 +102,7 @@ const bids = computed(() => {
   const biddingMap = new Map()
   fetchedBids.value.forEach(bid => biddingMap.set(Number(bid.id), bid))
   $store.getters['auction/lotBids']
-    .filter(bid => Number(bid.lot) === Number(props.lotId))
+    .filter(bid => Number(bid.lot_id) === Number(props.lotId))
     .forEach(bid => {
       const existing = biddingMap.get(Number(bid.id)) || {}
       biddingMap.set(Number(bid.id), { ...existing, ...bid })
@@ -164,7 +164,7 @@ const fetchUsernamesForBids = async (bidsList) => {
 
 // Sorts bids from newest to oldest.
 const sortedBids = computed(() =>
-  [...bids.value].sort((a, b) => new Date(b.bidding_date) - new Date(a.bidding_date))
+  [...bids.value].sort((a, b) => new Date(b.date_bid) - new Date(a.date_bid))
 )
 
 // Selects the confirmed highest bid, or the largest bid when none is confirmed.

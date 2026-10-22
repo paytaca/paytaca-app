@@ -145,18 +145,18 @@
                 <div class="text-caption text-weight-medium">STARTING PRICE:</div>
                 <div v-if="auctionForm.isFiatUsed">
                   <div class="text-caption text-weight-bold">
-                    ₱{{ formatFiat(lot.starting_price_fiat) }}
+                    ₱{{ formatFiat(lot.start_price_fiat) }}
                   </div>
                   <div style="opacity: 0.65; margin-top: -2px; font-size: 11px;">
-                    {{ formatBCH(lot.starting_price_bch).main }}<span style="opacity: 0.4;">{{ formatBCH(lot.starting_price_bch).zeros }}</span>&nbsp;BCH
+                    {{ formatBCH(lot.start_price_bch).main }}<span style="opacity: 0.4;">{{ formatBCH(lot.start_price_bch).zeros }}</span>&nbsp;BCH
                   </div>
                 </div>
                 <div v-else>
                   <div class="text-caption text-weight-bold">
-                    {{ formatBCH(lot.starting_price_bch).main }}<span style="opacity: 0.4;">{{ formatBCH(lot.starting_price_bch).zeros }}</span>&nbsp;BCH
+                    {{ formatBCH(lot.start_price_bch).main }}<span style="opacity: 0.4;">{{ formatBCH(lot.start_price_bch).zeros }}</span>&nbsp;BCH
                   </div>
                   <div style="opacity: 0.65; margin-top: -2px; font-size: 11px;">
-                    ₱{{ formatFiat(lot.starting_price_fiat) }}
+                    ₱{{ formatFiat(lot.start_price_fiat) }}
                   </div>
                 </div>
               </div>
@@ -166,18 +166,18 @@
                   <div class="text-caption text-weight-medium">START PRICE:</div>
                   <div v-if="auctionForm.isFiatUsed">
                     <div class="text-caption text-weight-bold">
-                      ₱{{ formatFiat(lot.starting_price_fiat) }}
+                      ₱{{ formatFiat(lot.start_price_fiat) }}
                     </div>
                     <div style="opacity: 0.65; margin-top: -2px; font-size: 11px;">
-                      {{ formatBCH(lot.starting_price_bch).main }}<span style="opacity: 0.4;">{{ formatBCH(lot.starting_price_bch).zeros }}</span>&nbsp;BCH
+                      {{ formatBCH(lot.start_price_bch).main }}<span style="opacity: 0.4;">{{ formatBCH(lot.start_price_bch).zeros }}</span>&nbsp;BCH
                     </div>
                   </div>
                   <div v-else>
                     <div class="text-caption text-weight-bold">
-                      {{ formatBCH(lot.starting_price_bch).main }}<span style="opacity: 0.4;">{{ formatBCH(lot.starting_price_bch).zeros }}</span>&nbsp;BCH
+                      {{ formatBCH(lot.start_price_bch).main }}<span style="opacity: 0.4;">{{ formatBCH(lot.start_price_bch).zeros }}</span>&nbsp;BCH
                     </div>
                     <div style="opacity: 0.65; margin-top: -2px; font-size: 11px;">
-                      ₱{{ formatFiat(lot.starting_price_fiat) }}
+                      ₱{{ formatFiat(lot.start_price_fiat) }}
                     </div>
                   </div>
                 </div>
@@ -505,17 +505,17 @@ const handleUpdateAuction = async () => {
       editFormData.append('title', lot.title)
       editFormData.append('description', lot.description || '')
       editFormData.append('category_id', lot.category_id || (lot.type === 'Physical' ? 1 : 2))
-      editFormData.append('estimated_amount_bch', lot.estimated_amount_bch || 0)
-      editFormData.append('estimated_amount_fiat', lot.estimated_amount_fiat || 0)
-      editFormData.append('starting_price_bch', lot.starting_price_bch || 0)
-      editFormData.append('starting_price_fiat', lot.starting_price_fiat || 0)
+      editFormData.append('est_price_bch', lot.est_price_bch || 0)
+      editFormData.append('est_price_fiat', lot.est_price_fiat || 0)
+      editFormData.append('start_price_bch', lot.start_price_bch || 0)
+      editFormData.append('start_price_fiat', lot.start_price_fiat || 0)
 
       if (auctionForm.value.type === 'English') {
-        editFormData.append('threshold_bid_bch', lot.starting_price_bch || 0)
-        editFormData.append('threshold_bid_fiat', lot.starting_price_fiat || 0)
+        editFormData.append('thresh_price_bch', lot.start_price_bch || 0)
+        editFormData.append('thresh_price_fiat', lot.start_price_fiat || 0)
       } else {
-        editFormData.append('threshold_bid_bch', lot.threshold_bid_bch || 0)
-        editFormData.append('threshold_bid_fiat', lot.threshold_bid_fiat || 0)
+        editFormData.append('thresh_price_bch', lot.thresh_price_bch || 0)
+        editFormData.append('thresh_price_fiat', lot.thresh_price_fiat || 0)
         editFormData.append('price_drop_bch', lot.price_drop_bch || 0)
         editFormData.append('price_drop_fiat', lot.price_drop_fiat || 0)
 
@@ -551,17 +551,17 @@ const handleUpdateAuction = async () => {
       addFormData.append('title', lot.title)
       addFormData.append('description', lot.description || '')
       addFormData.append('category_id', lot.category_id || (lot.type === 'Physical' ? 1 : 2))
-      addFormData.append('estimated_amount_bch', lot.estimated_amount_bch || 0)
-      addFormData.append('estimated_amount_fiat', lot.estimated_amount_fiat || 0)
-      addFormData.append('starting_price_bch', lot.starting_price_bch || 0)
-      addFormData.append('starting_price_fiat', lot.starting_price_fiat || 0)
+      addFormData.append('est_price_bch', lot.est_price_bch || 0)
+      addFormData.append('est_price_fiat', lot.est_price_fiat || 0)
+      addFormData.append('start_price_bch', lot.start_price_bch || 0)
+      addFormData.append('start_price_fiat', lot.start_price_fiat || 0)
 
       if (auctionForm.value.type === 'English') {
-        addFormData.append('threshold_bid_bch', lot.starting_price_bch || 0)
-        addFormData.append('threshold_bid_fiat', lot.starting_price_fiat || 0)
+        addFormData.append('thresh_price_bch', lot.start_price_bch || 0)
+        addFormData.append('thresh_price_fiat', lot.start_price_fiat || 0)
       } else {
-        addFormData.append('threshold_bid_bch', lot.threshold_bid_bch || 0)
-        addFormData.append('threshold_bid_fiat', lot.threshold_bid_fiat || 0)
+        addFormData.append('thresh_price_bch', lot.thresh_price_bch || 0)
+        addFormData.append('thresh_price_fiat', lot.thresh_price_fiat || 0)
         addFormData.append('price_drop_bch', lot.price_drop_bch || 0)
         addFormData.append('price_drop_fiat', lot.price_drop_fiat || 0)
 

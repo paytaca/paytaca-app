@@ -469,14 +469,14 @@ watch(() => props.lotData, (newLot) => {
     lotCategory.value = newLot.category || newLot.type || 'Physical'
     
     if (props.isFiatUsed) {
-      estimatedPrice.value = Number(newLot.estimated_amount_fiat)
-      startingPrice.value = Number(newLot.starting_price_fiat)
-      priceThreshold.value = Number(newLot.threshold_bid_fiat)
+      estimatedPrice.value = Number(newLot.est_price_fiat)
+      startingPrice.value = Number(newLot.start_price_fiat)
+      priceThreshold.value = Number(newLot.thresh_price_fiat)
       priceDrop.value = Number(newLot.price_drop_fiat)
     } else {
-      estimatedPrice.value = Number(newLot.estimated_amount_bch)
-      startingPrice.value = Number(newLot.starting_price_bch)
-      priceThreshold.value = Number(newLot.threshold_bid_bch)
+      estimatedPrice.value = Number(newLot.est_price_bch)
+      startingPrice.value = Number(newLot.start_price_bch)
+      priceThreshold.value = Number(newLot.thresh_price_bch)
       priceDrop.value = Number(newLot.price_drop_bch)
     }
     
@@ -545,12 +545,12 @@ const saveLot = async () => {
     description: lotDescription.value,
     priceDropInterval: rawInterval || 10,
 
-    estimated_amount_fiat: toFiat(estimatedPrice.value),
-    estimated_amount_bch: toBch(estimatedPrice.value),
-    starting_price_fiat: toFiat(startingPrice.value),
-    starting_price_bch: toBch(startingPrice.value),
-    threshold_bid_fiat: toFiat(priceThreshold.value || 0),
-    threshold_bid_bch: toBch(priceThreshold.value || 0),
+    est_price_fiat: toFiat(estimatedPrice.value),
+    est_price_bch: toBch(estimatedPrice.value),
+    start_price_fiat: toFiat(startingPrice.value),
+    start_price_bch: toBch(startingPrice.value),
+    thresh_price_fiat: toFiat(priceThreshold.value || 0),
+    thresh_price_bch: toBch(priceThreshold.value || 0),
     price_drop_fiat: toFiat(priceDrop.value || 0),
     price_drop_bch: toBch(priceDrop.value || 0),
 

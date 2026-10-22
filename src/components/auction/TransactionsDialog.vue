@@ -116,12 +116,12 @@ const fetchBidData = async () => {
     if (resultBid.success && resultBid.data) {
       const bid = resultBid.data
       bidPriceBch.value = bid.bid_price_bch
-      biddingDate.value = bid.bidding_date
+      biddingDate.value = bid.date_bid
     }
     
     const delivery = await $store.dispatch('auction/fetchDeliveryDetails', props.lotId)
     const deliveredEvent = delivery?.delivery_events?.find(event => event.status === 'Delivered')
-    deliveredDate.value = deliveredEvent?.event_date ?? null
+    deliveredDate.value = deliveredEvent?.date_of_event ?? null
   } catch (err) {
     console.error('Failed to load bid for transactions:', err)
   } finally {

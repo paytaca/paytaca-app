@@ -105,7 +105,7 @@ async function loadHistory() {
       return {
         id: entry.id,
         status: entry.status,
-        timestamp: date.formatDate(entry.event_date, 'MMM DD, YYYY · hh:mm A'),
+        timestamp: date.formatDate(entry.date_of_event, 'MMM DD, YYYY · hh:mm A'),
         note: entry.description || config.note || '',
         color: config.color || 'primary',
         icon: config.icon || 'local_shipping'

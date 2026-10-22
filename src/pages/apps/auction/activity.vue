@@ -332,19 +332,19 @@
 
                     <template v-if="lot?.auction?.is_fiat">
                       <div class="text-caption text-weight-bold">
-                        {{ formatFiat(lot?.starting_price_fiat) }}
+                        {{ formatFiat(lot?.start_price_fiat) }}
                       </div>
                       <div style="opacity: 0.65; margin-top: -2px; font-size: 11px;">
-                        {{ formatBCH(lot?.starting_price_bch).main }}<span style="opacity: 0.4;">{{ formatBCH(lot?.starting_price_bch).zeros }}</span>&nbsp;BCH
+                        {{ formatBCH(lot?.start_price_bch).main }}<span style="opacity: 0.4;">{{ formatBCH(lot?.start_price_bch).zeros }}</span>&nbsp;BCH
                       </div>
                     </template>
 
                     <template v-else>
                       <div class="text-caption text-weight-bold">
-                        {{ formatBCH(lot?.starting_price_bch).main }}<span style="opacity: 0.4;">{{ formatBCH(lot?.starting_price_bch).zeros }}</span>&nbsp;BCH
+                        {{ formatBCH(lot?.start_price_bch).main }}<span style="opacity: 0.4;">{{ formatBCH(lot?.start_price_bch).zeros }}</span>&nbsp;BCH
                       </div>
                       <div style="opacity: 0.65; margin-top: -2px; font-size: 11px;">
-                        {{ formatFiat(lot?.starting_price_fiat) }}
+                        {{ formatFiat(lot?.start_price_fiat) }}
                       </div>
                     </template>
                   </div>

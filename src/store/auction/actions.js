@@ -52,13 +52,6 @@ export function updateBidFromWebsocket({ commit, state, rootGetters }, biddingDa
     && Number(state.highestBid.id) === Number(biddingData.id)
   ) commit('setHighestBid', {})
   
-  if (biddingData.status === 'Highest') {
-    commit('mergeLotData', {
-      id: biddingData.lot,
-      threshold_bid_bch: Number(biddingData.bid_price_bch),
-      threshold_bid_fiat: Number(biddingData.bid_price_fiat),
-    })
-  }
 }
 
 // ========================
@@ -236,7 +229,7 @@ export async function fetchLotBids({ commit, dispatch }, lotId) {
 
 // FETCHES a lot's existing bids from lotBids (REVIEW)
 export async function fetchExistingLotBids({ commit, getters, dispatch }, lotId) {
-  const existingLotBids = getters['lotBids'].filter(bid => Number(bid.lot) === Number(lotId))
+  const existingLotBids = getters['lotBids'].filter(bid => Number(bid.lot_id) === Number(lotId))
   if (!existingLotBids.length) dispatch('printNotExisting', 'lot bids')
   commit('setLotBids', existingLotBids)
   commit('updateLotData', { attribute_name: 'hasBid', data: existingLotBids.length > 0 })
@@ -280,9 +273,9 @@ export async function fetchExistingHighestBid({ commit, getters, dispatch }) {
     return
   }
   const highestBid = highestBids.reduce((latest, bid) =>
-    new Date(bid.bidding_date) > new Date(latest.bidding_date) ? bid : latest
+    new Date(bid.date_bid) > new Date(latest.date_bid) ? bid : latest
   )
-  commit('setHighestBid', Bid.parse(highestBid, highestBid.lot))
+  commit('setHighestBid', Bid.parse(highestBid, highestBid.lot_id))
 }
 
 // ========================
@@ -342,7 +335,7 @@ export async function createDeliveryEvent({ dispatch, getters }, { status, descr
     status,
     description,
     location,
-    event_date: new Date().toISOString()
+    date_of_event: new Date().toISOString()
   }
 
   if (!payload.delivery) {

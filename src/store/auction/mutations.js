@@ -99,10 +99,6 @@ export function updateMyBidding(state, biddingData) {
 
   lot.bid_id = biddingData.id
   lot.bid_status = biddingData.status
-  if (['Highest', 'Winner'].includes(biddingData.status)) {
-    lot.threshold_bid_bch = Number(biddingData.bid_price_bch)
-    lot.threshold_bid_fiat = Number(biddingData.bid_price_fiat)
-  }
 }
 
 // SETS ALL my auctions data (myAuctions is an array)
