@@ -57,30 +57,35 @@ export class Auction {
   set raw(data) {
     setRawData(this, data)
 
-    // Auction core information
+    // Auction Core Information
     this.id = data.id != null ? Number(data.id) : null
     this.title = data.title ?? 'Standard Auction Event'
     this.description = data.description ?? ''
     this.type = data.type ?? 'N/A'
 
+    // User Information
     this.auctioneer = {
-      id: data.auctioneer_id ?? data.auctioneer?.id ?? data.auctioneer ?? null,
+      id: data.auctioneer ?? data.auctioneer?.id ?? null,
       username: data.auctioneer_username ?? data.auctioneer?.username ?? ''
     }
 
+    // Dates
     this.start_date = data.start_date ?? null
     this.end_date = data.end_date ?? null
     this.creation_date = data.creation_date ?? null
 
+    // Boolean
     this.is_open = data.is_open ?? data.status === 'Open'
     this.is_fiat = data.is_fiat ?? true
 
+    // Image
     this.image = data.image ?? null
-    this.status = data.status ?? null
 
+    // Status
     this.status = data.status ?? 'Upcoming'
     this.status_color = auctionColors[this.status]
 
+    // Lots
     this.lots = Array.isArray(data.lots)
       ? data.lots.map(lotObj => Lot.parse(lotObj, this))
       : []
@@ -184,14 +189,23 @@ export class Bid {
   set raw(data) {
     setRawData(this, data)
     
+    // IDs
     this.id = data.id != null ? Number(data.id) : null
+
+    // User Information
     this.bidder = {
-      id: data.bidder_id ?? data.bidder?.id ?? data.bidder ?? null,
+      id: data.bidder ?? data.bidder?.id ?? null,
       username: data.bidder_username ?? data.bidder?.username ?? null
     }
+
+    // Statuses
     this.status = data.status ?? null
+
+    // Bid Prices
     this.bid_price_bch = Number(data.bid_price_bch ?? 0)
     this.bid_price_fiat = Number(data.bid_price_fiat ?? 0)
+
+    // Dates
     this.bidding_date = data.bidding_date ?? null
   }
 }
@@ -206,10 +220,12 @@ export class Dispute {
     this.raw = data
   }
 
+  // getter for raw data
   get raw() {
     return this.$raw
   }
 
+  // setter for raw data
   set raw(data) {
     setRawData(this, data)
 
@@ -218,14 +234,17 @@ export class Dispute {
     this.lot_id = saveAsNumberOrNull(data.lot_id)
     this.auction_id = saveAsNumberOrNull(data.auction_id)
 
-    // User Wallet Hashes and Usernames
-    this.auctioneer_id = data.auctioneer_id ?? data.auctioneer ?? null
-    this.auctioneer_username = data.auctioneer_username ?? null
-    
-    this.bidder_id = data.bidder_id ?? data.bidder ?? null
-    this.bidder_username = data.bidder_username ?? null
+    // User Information
+    this.auctioneer = {
+      id: data.auctioneer_id ?? data.auctioneer?.id ?? data.auctioneer ?? null,
+      username: data.auctioneer_username ?? data.auctioneer?.username ?? null
+    }
+    this.bidder = {
+      id: data.bidder_id ?? data.bidder?.id ?? data.bidder ?? null,
+      username: data.bidder_username ?? data.bidder?.username ?? null
+    }
 
-    this.contract_address = data.contract_address || null
+    this.contract_address = data.contract_address ?? null
     
     // Dispute Type (Not Received or Return)
     this.type = data.type ?? null
@@ -265,32 +284,73 @@ export class DeliveryDetails {
   // setter for raw data
   set raw(data) {
     setRawData(this, data)
+
     // IDs
     this.tracking_id = data.tracking_id ?? null
-    this.lot_id = data.lotId != null || data.lot != null ? Number(data.lotId ?? data.lot) : null
+    this.lot_id = saveAsNumberOrNull(data.lot)
     
-    this.sender_id = data.sender_id ?? data.sender ?? null
-    this.sender_location = data.sender_location ?? null
+    // User Information
+    this.sender = {
+      id: data.sender,
+      address: data.sender_address ?? null
+    }
+    this.receiver = {
+      id: data.receiver,
+      address: data.receiver_address ?? null
+    }
     
-    this.receiver_id = data.receiver_id ?? data.receiver ?? null
-    this.receiver_location = data.receiver_location ?? null
-    
+    // Courier
     this.courier = data.courier ?? null
-    this.creation_date = data.creation_date || null
 
-    this.delivery_events = data.delivery_events || []
-    this.status = data.status || 'Preparing'
+    // Status
+    this.status = data.status ?? 'Preparing'
     this.status_color = deliveryColors[this.status]
 
-    this.refreshStatus()
+    // Delivery History
+    this.delivery_events = data.delivery_events ?? []
+
+    // Dates
+    this.creation_date = data.creation_date ?? null
   }
 
-  updateDeliveryEvent(data) {
-    this.status = data.status || null
+  addDeliveryEvent(deliveryEvent) {
+    this.delivery_events.append(deliveryEvent)
+  }
+
+  refreshStatus() {
     this.status_color = deliveryColors[this.status]
-    this.description = data.description || null
-    this.location = data.location || null
-    this.event_date = data.event_date || null
+  }
+}
+
+// DELIVERY INFORMATION (FOR POST BIDS)
+export class DeliveryEvent {
+  static parse(data, delivery_details) {
+    return new DeliveryEvent(data, delivery_details)
+  }
+
+  constructor(data, delivery_details) {
+    this.raw = data
+    this.delivery_details = delivery_details
+  }
+
+  // getter for raw data
+  get raw() {
+    return this.$raw
+  }
+
+  // setter for raw data
+  set raw(data) {
+    setRawData(this, data)
+
+    // Delivery Event Core information
+    this.id = saveAsNumberOrNull(data.id)
+    this.status = data.status ?? null
+    this.description = data.description ?? 'No description provided.'
+    this.location = data.location ?? 'No location provided.'
+
+    // Dates
+    this.event_date = data.event_date ?? null
+    this.recorded_date = data.creation_date ?? null
   }
 
   refreshStatus() {
