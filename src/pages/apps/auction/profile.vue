@@ -6,7 +6,7 @@
     class="auction-container"
     :class="getDarkModeClass(darkMode)"
   >
-    <HeaderNav :title="$t('Auction - Profile')" :backnavpath="username ? '/apps/auction' : '/apps'" class="header-nav">
+    <HeaderNav :title="$t('Auction - Profile')" :backnavpath="storedUsername ? '/apps/auction' : '/apps'" class="header-nav">
       <template v-slot:top-right-menu>
         <AuctionHeaderMenu />
       </template>
@@ -92,11 +92,12 @@ const darkMode = computed(() => $store.getters['darkmode/getStatus'])
 const isLoading = ref(true)
 
 // Username
+const storedUsername = computed(() => $store.getters['auction/username'])
 const username = ref('')
 
 // Mounts the username (if it exists)
 onMounted(async () => {
-  username.value = $store.getters['auction/username']
+  username.value = storedUsername.value
   isLoading.value = false
 })
 
