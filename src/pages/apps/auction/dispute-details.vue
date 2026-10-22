@@ -89,15 +89,15 @@
               <div class="row items-center q-gutter-x-xs">
                 <span class="text-caption text-weight-bold">SELLER</span>
               </div>
-              <div class="text-body2 text-weight-medium">{{ details.auctioneer_username ?? '—' }}</div>
+              <div class="text-body2 text-weight-medium">{{ details.auctioneer?.username ?? '—' }}</div>
               <div class="text-caption ellipsis" style="opacity: 0.55; max-width: 200px;">
-                {{ details.auctioneer_id ?? '—' }}
+                {{ details.auctioneer?.id ?? '—' }}
               </div>
             </div>
             <q-btn
               flat round dense icon="content_copy" size="xs"
-              :disable="!details.auctioneer_id"
-              @click="copyToClipboard(details.auctioneer_id, $q, { message: 'Copied to clipboard', position: 'top' })"
+              :disable="!details.auctioneer?.id"
+              @click="copyToClipboard(details.auctioneer?.id, $q, { message: 'Copied to clipboard', position: 'top' })"
             />
           </div>
 
@@ -109,15 +109,15 @@
               <div class="row items-center q-gutter-x-xs">
                 <span class="text-caption text-weight-bold">BUYER</span>
               </div>
-              <div class="text-body2 text-weight-medium">{{ details.bidder_username ?? '—' }}</div>
+              <div class="text-body2 text-weight-medium">{{ details.bidder?.username ?? '—' }}</div>
               <div class="text-caption ellipsis" style="opacity: 0.55; max-width: 200px;">
-                {{ details.bidder_id ?? '—' }}
+                {{ details.bidder?.id ?? '—' }}
               </div>
             </div>
             <q-btn
               flat round dense icon="content_copy" size="xs"
-              :disable="!details.bidder_id"
-              @click="copyToClipboard(details.bidder_id, $q, { message: 'Copied to clipboard', position: 'top' })"
+              :disable="!details.bidder?.id"
+              @click="copyToClipboard(details.bidder?.id, $q, { message: 'Copied to clipboard', position: 'top' })"
             />
           </div>
         </q-card-section>
@@ -325,8 +325,8 @@ const canResolve = computed(() => Boolean(
   details.value?.id
   && details.value?.lot_id
   && details.value?.contract_address
-  && details.value?.auctioneer_id
-  && details.value?.bidder_id
+  && details.value?.auctioneer?.id
+  && details.value?.bidder?.id
   && details.value?.dispute_status === 'Pending'
 ))
 
