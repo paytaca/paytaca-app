@@ -856,46 +856,19 @@ export default {
         return this.dynamicAddress
       }
       
-      // Fallback: if dynamicAddress is not set yet, wait for it or generate
-      // This should rarely happen, but provides a safety net
+      // A POS target uses its own index scheme; never fall back to a personal address
+      if (this.selectedPosDevice) return null
+      // Resolve through the same verified path the page uses on mount so a
+      // listener or API call never attaches to an unverified address
       if (this.assetId.indexOf('slp/') > -1) {
         this.walletType = 'slp'
       } else {
         this.walletType = 'bch'
       }
 
-      // Fallback: generate address if dynamicAddress is not available
-      // This should not happen in normal flow since refreshDynamicAddress is called first
-      try {
-        const addressIndex = this.$store.getters['global/getLastAddressIndex'](this.walletType)
-        let validAddressIndex = typeof addressIndex === 'number' && addressIndex >= 0 ? addressIndex : 1
-        // Skip address 0/0 (reserved for message encryption)
-        validAddressIndex = this.ensureAddressIndexNotZero(validAddressIndex)
-        
-        let address = await generateReceivingAddress({
-          walletIndex: this.$store.getters['global/getWalletIndex'],
-          derivationPath: getDerivationPathForWalletType(this.walletType),
-          addressIndex: validAddressIndex,
-          isChipnet: this.isChipnet
-        })
-        
-        if (!address) {
-          throw new Error('Failed to subscribe address to watchtower')
-        }
-        
-        if (this.assetId.indexOf('ct/') > -1 && !forListener) {
-          address = convertCashAddress(address, this.isChipnet, true)
-        }
-        return address
-      } catch (error) {
-        console.error('Error generating address dynamically:', error)
-        this.$q.notify({
-          message: this.$t('FailedToGenerateAddress') || 'Failed to generate address. Please try again.',
-          color: 'negative',
-          icon: 'warning'
-        })
-        return null
-      }
+      await this.refreshDynamicAddress()
+      if (!this.dynamicAddressRegular) return null
+      return forListener ? this.dynamicAddressRegular : this.dynamicAddress
     },
     /**
      * Scan forward from startIndex until an address is positively confirmed

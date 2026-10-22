@@ -254,7 +254,7 @@ function toWatchtowerAddress(address, isChipnet) {
  * Derives a contiguous run of addresses on one chain without subscribing
  * (used for freshness scanning).
  * @param {Object} opts
- * @param {number} opts.walletIndex
+ * @param {string} opts.mnemonic
  * @param {string} opts.derivationPath
  * @param {'receiving'|'change'} opts.chain
  * @param {number} opts.startIndex
@@ -263,9 +263,8 @@ function toWatchtowerAddress(address, isChipnet) {
  * @returns {Promise<Array<{address: string, addressIndex: number}>>}
  */
 async function deriveAddressBatch(opts) {
-  const { walletIndex = 0, derivationPath, chain = 'receiving', startIndex = 0, count = 1, isChipnet = false } = opts
+  const { mnemonic, derivationPath, chain = 'receiving', startIndex = 0, count = 1, isChipnet = false } = opts
 
-  const mnemonic = await getMnemonic(walletIndex)
   if (!mnemonic) {
     throw new Error('Mnemonic not found')
   }
@@ -289,14 +288,6 @@ async function deriveAddressBatch(opts) {
 }
 
 /**
- * Placeholder wallet hash for history checks. Watchtower's discovery endpoint
- * requires the field but never uses it: the endpoint only reports which
- * addresses have history and does not subscribe or persist anything, so no
- * address is attached to a wallet by these checks.
- */
-const HISTORY_CHECK_WALLET_HASH = '0'.repeat(64)
-
-/**
  * Checks which addresses have on-chain transaction history.
  *
  * Uses watchtower's discovery endpoint, which queries the node directly
@@ -304,6 +295,14 @@ const HISTORY_CHECK_WALLET_HASH = '0'.repeat(64)
  * This matters for safety: an address used by another wallet instance but never
  * subscribed to watchtower has no local record, so database-based checks report
  * it as fresh.
+ *
+ * The request carries the wallet's real hash: the endpoint only reads
+ * `address_sets` today, but a future server-side change that keys on
+ * `wallet_hash` must not silently attach scanned addresses to a sentinel.
+ *
+ * The response is still treated as untrusted: any index whose `has_history` is
+ * not a boolean is left out of the returned map, and `findUnusedAddressIndex`
+ * aborts on a missing entry instead of assuming the address is fresh.
  *
  * The check is per address, not per index: querying the receiving address of a
  * pair says nothing about its change address, because watchtower's
@@ -314,12 +313,14 @@ const HISTORY_CHECK_WALLET_HASH = '0'.repeat(64)
  * @param {Object} opts
  * @param {boolean} opts.isChipnet
  * @param {'receiving'|'change'} opts.chain
+ * @param {string} opts.walletHash
  * @returns {Promise<Map<number, boolean>>} addressIndex -> has history
  */
 async function checkAddressHistory(candidates, opts = {}) {
-  const { isChipnet = false, chain = 'receiving' } = opts
+  const { isChipnet = false, chain = 'receiving', walletHash } = opts
 
   if (!candidates.length) return new Map()
+  if (!walletHash) throw new Error('Wallet hash is required to verify address freshness')
 
   const baseUrl = isChipnet ? 'https://chipnet.watchtower.cash' : 'https://watchtower.cash'
   const addressSets = candidates.map(({ addressIndex, address }) => ({
@@ -328,7 +329,7 @@ async function checkAddressHistory(candidates, opts = {}) {
   }))
 
   const response = await axios.post(`${baseUrl}/api/wallet/address-discover/`, {
-    wallet_hash: HISTORY_CHECK_WALLET_HASH,
+    wallet_hash: walletHash,
     address_sets: addressSets
   })
 
@@ -390,9 +391,13 @@ export async function findUnusedAddressIndex(opts = {}) {
   let scanIndex = Number.isInteger(startIndex) && startIndex > 0 ? startIndex : 0
   if (chain === 'receiving' && scanIndex === 0) scanIndex = 1
 
+  const mnemonic = await getMnemonic(walletIndex)
+  if (!mnemonic) throw new Error('Mnemonic not found')
+  const walletHash = computeWalletHash(mnemonic, derivationPath)
+
   for (let batch = 0; batch < batchesLimit; batch++) {
     const candidates = await deriveAddressBatch({
-      walletIndex,
+      mnemonic,
       derivationPath,
       chain,
       startIndex: scanIndex,
@@ -400,7 +405,7 @@ export async function findUnusedAddressIndex(opts = {}) {
       isChipnet
     })
 
-    const historyByIndex = await checkAddressHistory(candidates, { isChipnet, chain })
+    const historyByIndex = await checkAddressHistory(candidates, { isChipnet, chain, walletHash })
 
     for (const candidate of candidates) {
       const hasHistory = historyByIndex.get(candidate.addressIndex)
