@@ -107,6 +107,7 @@ import {
 // import { getMemoedVNodeCall } from '@vue/compiler-core'
 // import { getNetwork } from '@ethersproject/networks'
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
+import { getChangeAddress } from 'src/utils/send-page-utils'
 
 export default {
   data () {
@@ -218,7 +219,8 @@ export default {
 
       const amount = parseFloat(vm.shiftInfo.shift_info.deposit.amount)
 
-      await wallet.BCH.sendBch(amount, vm.shiftInfo.shift_info.deposit.address).then(function (result, err) {
+      const changeAddress = await getChangeAddress('bch', { isChipnet: wallet.BCH.isChipnet })
+      await wallet.BCH.sendBch(amount, vm.shiftInfo.shift_info.deposit.address, changeAddress).then(function (result, err) {
         if (result.success) {
           console.log('success')
         } else {

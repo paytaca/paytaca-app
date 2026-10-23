@@ -296,35 +296,26 @@ export async function initialize ({ commit, dispatch, state }) {
   // Set up NIP-42 auth signer so relays like damus.io accept our publishes
   relayService.setAuthKey(keys.privKeyHex)
 
-  // Fetch profile data for this wallet
-  try {
-    const [displayName, bchAddress, avatar] = await Promise.all([
-      dispatch('fetchPublishedDisplayName', { pubKeyHex: keys.pubKeyHex }),
-      dispatch('fetchPublishedBchAddress', { pubKeyHex: keys.pubKeyHex }),
-      dispatch('fetchPublishedAvatar', { pubKeyHex: keys.pubKeyHex }),
-    ])
-    if (displayName) {
-      commit('SET_PROFILE_DISPLAY_NAME', { displayName, publishedAt: Date.now() })
-    }
-    if (bchAddress) {
-      commit('SET_PROFILE_BCH_ADDRESS', { address: bchAddress, publishedAt: Date.now() })
-    }
-    if (avatar) {
-      commit('SET_PROFILE_AVATAR', { avatar, publishedAt: Date.now() })
-    }
-  } catch (err) {
-    console.warn('[Nostr] Failed to fetch profile data during initialize:', err)
-  }
+  // Fetch profile data for this wallet. Fire-and-forget — this is three relay
+  // round-trips and must not delay the caller (which subscribes right after).
+  dispatch('fetchOwnProfile', keys.pubKeyHex).catch(() => {})
 
-  // Publish kind:10050 relay preferences so other NIP-17 clients know where to reach us
-  // This is re-published every time to ensure it lands on all relays
-  await dispatch('publishKind10050')
+  // Publish kind:10050 relay preferences so other NIP-17 clients know where to
+  // reach us. Fire-and-forget: it is a network publish with retries and must
+  // not gate the caller, which starts the relay subscription immediately after
+  // initialize() resolves.
+  dispatch('publishKind10050').catch(() => {})
 
-  // Fetch historical gift-wraps that might have been published before our subscription started
-  await dispatch('fetchHistoricalMessages')
+  // Fetch historical gift-wraps that might have been published before our
+  // subscription started. Also fire-and-forget: awaiting it delayed live
+  // message and invitation delivery until every historical event had been
+  // unwrapped and committed. Replayed events are deduped against
+  // `_seenEventIds`, so running this concurrently with the live subscription
+  // is safe.
+  dispatch('fetchHistoricalMessages').catch(() => {})
 
   // Register this wallet's Nostr pubkey in Watchtower
-  dispatch('registerNostrPubkey')
+  dispatch('registerNostrPubkey').catch(() => {})
 }
 
 export async function fetchOwnProfile ({ commit, dispatch }, pubKeyHex) {
@@ -1433,6 +1424,7 @@ async function decryptRoomsList (rooms) {
       type: r.type,
       name: await decryptRoomName(r.name),
       members: r.members || [],
+      nostrGroupId: r.nostr_group_id || null,
       subject: await decryptRoomName(r.subject),
       archived: !!r.archived,
       createdAt: typeof createdAt === 'string' ? Math.floor(new Date(createdAt).getTime() / 1000) : createdAt,
@@ -1477,6 +1469,7 @@ export async function syncRoomToServer (room) {
         type: room.type,
         name: await encryptRoomName(room.name || 'Group'),
         members: room.members,
+        nostr_group_id: room.nostrGroupId || null,
         subject: room.subject ? await encryptRoomName(room.subject) : room.subject,
         created_at: new Date(room.createdAt * 1000).toISOString(),
         updated_at: new Date(room.updatedAt * 1000).toISOString(),
@@ -1499,6 +1492,10 @@ export async function updateRoomOnServer (roomId, fields) {
     const patched = { ...fields }
     if (patched.name) patched.name = await encryptRoomName(patched.name)
     if (patched.subject) patched.subject = await encryptRoomName(patched.subject)
+    if ('nostrGroupId' in patched) {
+      patched.nostr_group_id = patched.nostrGroupId || null
+      delete patched.nostrGroupId
+    }
     const response = await apiPatch(baseUrl, `/api/nostr/rooms/${roomId}/`, {
       wallet_hash: walletHash,
       ...patched,
@@ -1712,8 +1709,14 @@ export async function touchRoom ({ dispatch, state }, { roomId, timestamp } = {}
   await touchRoomOnServer(roomId, timestamp)
 }
 
-export async function deleteRoom ({ commit }, roomId) {
+export async function deleteRoom ({ commit, state }, roomId) {
+  // Drop the MLS mappings too. Leaving them behind makes the group resolve back
+  // to this deleted room, so every later kind-445 event for the group is filed
+  // under a room the UI never renders (decrypts fine, never displayed).
+  const ws = getWalletState(state)
+  const mlsGroupIdHex = ws?.mls?.roomMlsMap?.[roomId]
   commit('REMOVE_ROOM', roomId)
+  if (mlsGroupIdHex) commit('REMOVE_MLS_ROOM_MAP', roomId)
   await deleteRoomOnServer(roomId)
 }
 
@@ -2072,7 +2075,7 @@ export async function publishGiftWraps ({ state }, { giftWraps }) {
   await relayService.publish(Array.from(targetRelays), giftWraps)
 }
 
-export function receiveMessage ({ commit, dispatch, state }, { rumor, sealPubkey, isHistorical = false, giftWrap = null }) {
+export async function receiveMessage ({ commit, dispatch, state }, { rumor, sealPubkey, isHistorical = false, giftWrap = null }) {
   const ws = getWalletState(state)
   if (!ws.keys?.pubKeyHex) return
 
@@ -2090,7 +2093,7 @@ export function receiveMessage ({ commit, dispatch, state }, { rumor, sealPubkey
   // NIP-EE MLS welcomes arrive as unsigned kind-444 rumors inside gift wraps;
   // route them to the MLS pipeline instead of NIP-17 DM handling.
   if (rumor.kind === 444) {
-    dispatch('receiveMlsWelcomeRumor', { giftWrap, welcomeRumor: rumor })
+    await dispatch('receiveMlsWelcomeRumor', { giftWrap, welcomeRumor: rumor })
     return
   }
 
@@ -2265,9 +2268,13 @@ export function receiveMessage ({ commit, dispatch, state }, { rumor, sealPubkey
   let room = ws.rooms.find(r => r.id === roomId)
   if (!room) {
     // Before creating a new room, check if an existing room has the same member set
-    // (handles the case where a room was previously stored under a different ID)
+    // (handles the case where a room was previously stored under a different ID).
+    // MLS rooms are excluded: their id is a random UUID and their members mirror
+    // the MLS tree, so a private DM with the same participants would otherwise
+    // be filed into the group and appear in the shared timeline.
     const memberKey = roomMembers.slice().sort().join(',')
     const existingByMembers = ws.rooms.find(r =>
+      r.type !== 'mls-group' &&
       (r.members || []).slice().sort().join(',') === memberKey
     )
     if (existingByMembers) {
@@ -2532,19 +2539,26 @@ export function subscribeToRelays ({ state, dispatch, commit }) {
   const myPubKey = ws.keys.pubKeyHex
   if (!myPubKey) return
 
-  // Compute `since` from existing messages so the relay doesn't re-send
-  // the entire history on every app start. NIP-17 randomizes created_at
-  // by ±2 days, so we subtract a 3-day buffer from the newest known message.
-  // If there are no existing messages (first ever subscription), `since` is
-  // undefined and the relay sends all history (needed to populate the chat).
+  // Compute `since` from the persisted high-water mark so the relay doesn't
+  // re-send the entire history on every app start. NIP-17 randomizes
+  // created_at by ±2 days, so we subtract a 3-day buffer from the newest
+  // known message. `messages` is persisted only as a bounded tail, so the
+  // timestamp is tracked separately in `newestMessageAt` to stay correct as
+  // history grows. On a first-ever subscription it is 0 and `since` is
+  // undefined, so the relay sends full history to populate chat.
   let since
-  let maxCreatedAt = 0
-  for (const roomId in ws.messages) {
-    const msgs = ws.messages[roomId]
-    if (msgs && msgs.length) {
+  let maxCreatedAt = ws.newestMessageAt || 0
+  if (!maxCreatedAt) {
+    // Migration path: installs upgraded before `newestMessageAt` existed still
+    // have messages persisted. Derive the watermark once from them so the
+    // first launch after the upgrade doesn't re-download everything.
+    for (const roomId in ws.messages) {
+      const msgs = ws.messages[roomId]
+      if (!msgs || !msgs.length) continue
       const last = msgs[msgs.length - 1]
       if (last && last.created_at > maxCreatedAt) maxCreatedAt = last.created_at
     }
+    if (maxCreatedAt > 0) commit('SET_NEWEST_MESSAGE_AT', maxCreatedAt)
   }
   if (maxCreatedAt > 0) {
     since = maxCreatedAt - 259200 // 3-day buffer for NIP-17 ±2 day randomization

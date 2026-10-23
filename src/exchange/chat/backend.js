@@ -1,4 +1,4 @@
-import BCHJS from '@psf/bch-js'
+import { signMessage } from 'src/utils/bch-keys'
 import { SecureStoragePlugin } from 'capacitor-secure-storage-plugin'
 import { loadRampWallet, wallet } from 'src/exchange/wallet'
 import axios from 'axios'
@@ -6,7 +6,6 @@ import { generateChatIdentityRef } from '.'
 import { getCurrentWalletStorageKey, getWalletStorageKey } from 'src/utils/wallet-storage'
 import { requestManager } from 'src/utils/request-manager'
 
-const bchjs = new BCHJS()
 
 export const chatBackend = axios.create({
   baseURL: process.env.MARKETPLACE_BASE_URL || 'https://commercehub.paytaca.com/api'
@@ -69,7 +68,7 @@ export async function signRequestData (data, walletHash = null) {
   }
   response.walletHash = storedWalletHash
 
-  response.signature = bchjs.BitcoinCash.signMessageWithPrivKey(privkey, data)
+  response.signature = signMessage(privkey, data)
   return response
 }
 

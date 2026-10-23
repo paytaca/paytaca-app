@@ -10,6 +10,7 @@ import { toTokenAddress } from 'src/utils/crypto.js'
 import { isTokenAddress } from 'src/utils/address-utils.js'
 import { DUST_LIMIT } from 'src/services/card/constants.js'
 import { ElectrumNetworkProvider, SignatureTemplate, TransactionBuilder } from 'cashscript'
+import { getChangeAddress } from 'src/utils/send-page-utils'
 
 const DEFAULT_CHANGE_INDEX = 0
 const DEFAULT_ADDRESS_INDEX = 0
@@ -337,8 +338,9 @@ export class Wallet {
     const bchAmount = Number(satsToSend) / 1e8;
     
     cardLogger.log(`Sending ${satsToSend} sats (${bchAmount} BCH) to address:`, receivingAddress);
-    
-    const sendResult = await wallet.sendBch(bchAmount, receivingAddress);
+
+    const changeAddress = await getChangeAddress('bch', { isChipnet: this.isChipnet });
+    const sendResult = await wallet.sendBch(bchAmount, receivingAddress, changeAddress);
     cardLogger.log('Transaction sent:', sendResult);
 
     if (sendResult.success == false) {
@@ -370,7 +372,8 @@ export class Wallet {
     cardLogger.log(`Consolidating ${utxos.length} UTXOs totaling ${consolidationAmount} sats to address:`, receivingAddress);
     
     const bchAmount = Number(consolidationAmount) / 1e8;
-    const sendResult = await wallet.sendBch(bchAmount, receivingAddress);
+    const changeAddress = await getChangeAddress('bch', { isChipnet: this.isChipnet });
+    const sendResult = await wallet.sendBch(bchAmount, receivingAddress, changeAddress);
     cardLogger.log('Consolidation transaction sent:', sendResult);
 
     if (sendResult.success == false) {

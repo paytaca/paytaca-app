@@ -1,6 +1,15 @@
 import { Store } from 'src/store'
 import { getInitialWalletState } from './state'
 
+// Cap on the per-group processed-445-event tombstones. Bounds localStorage
+// growth while comfortably covering any realistic group history replay window.
+const MAX_PROCESSED_EVENT_IDS = 2000
+// Prune lazily in batches instead of on every insert: the trim needs a full
+// O(n log n) sort of the id set, and doing that once per event past the cap
+// would put that sort on the receive path for every single message. Let the set
+// grow by this margin, then cut everything above the cap in one pass.
+const PROCESSED_EVENT_PRUNE_SLACK = 250
+
 function getCurrentWalletHash() {
   try {
     const wallet = Store.getters['global/getWallet']('bch')
@@ -17,7 +26,7 @@ function getOrInitWalletState(state, walletHash = null) {
   if (!state.byWallet[hash]) state.byWallet[hash] = getInitialWalletState()
   // Restored state may predate the MLS feature; ensure the mls sub-state exists.
   if (typeof state.byWallet[hash].mls !== 'object' || state.byWallet[hash].mls === null) {
-    state.byWallet[hash].mls = { ready: false, keyPackage: null, groupStates: {}, roomMlsMap: {}, roomMlsNostrMap: {}, pendingInvitations: {}, declinedWelcomeIds: {}, failedEventAttempts: {}, kpHistory: [] }
+    state.byWallet[hash].mls = { ready: false, keyPackage: null, groupStates: {}, roomMlsMap: {}, roomMlsNostrMap: {}, pendingInvitations: {}, declinedWelcomeIds: {}, handledWelcomeIds: {}, failedEventAttempts: {}, processedEventIds: {}, pendingInvitees: {}, kpHistory: [] }
   }
   if (typeof state.byWallet[hash].mls.roomMlsNostrMap !== 'object' || state.byWallet[hash].mls.roomMlsNostrMap === null) {
     state.byWallet[hash].mls.roomMlsNostrMap = {}
@@ -28,8 +37,17 @@ function getOrInitWalletState(state, walletHash = null) {
   if (typeof state.byWallet[hash].mls.declinedWelcomeIds !== 'object' || state.byWallet[hash].mls.declinedWelcomeIds === null) {
     state.byWallet[hash].mls.declinedWelcomeIds = {}
   }
+  if (typeof state.byWallet[hash].mls.handledWelcomeIds !== 'object' || state.byWallet[hash].mls.handledWelcomeIds === null) {
+    state.byWallet[hash].mls.handledWelcomeIds = {}
+  }
   if (typeof state.byWallet[hash].mls.failedEventAttempts !== 'object' || state.byWallet[hash].mls.failedEventAttempts === null) {
     state.byWallet[hash].mls.failedEventAttempts = {}
+  }
+  if (typeof state.byWallet[hash].mls.processedEventIds !== 'object' || state.byWallet[hash].mls.processedEventIds === null) {
+    state.byWallet[hash].mls.processedEventIds = {}
+  }
+  if (typeof state.byWallet[hash].mls.pendingInvitees !== 'object' || state.byWallet[hash].mls.pendingInvitees === null) {
+    state.byWallet[hash].mls.pendingInvitees = {}
   }
   return state.byWallet[hash]
 }
@@ -51,7 +69,35 @@ export function SET_MLS_GROUP_STATE(state, { mlsGroupIdHex, clientState }) {
 
 export function CLEAR_MLS_GROUP_STATE(state, mlsGroupIdHex) {
   const ws = getOrInitWalletState(state)
-  if (ws) delete ws.mls.groupStates[mlsGroupIdHex]
+  if (!ws) return
+  delete ws.mls.groupStates[mlsGroupIdHex]
+  // The group's ratchet state is gone, so the processed-event tombstones are
+  // meaningless too (a rebuilt group starts at a fresh epoch).
+  if (ws.mls.processedEventIds) delete ws.mls.processedEventIds[mlsGroupIdHex]
+  if (ws.mls.pendingInvitees) delete ws.mls.pendingInvitees[mlsGroupIdHex]
+}
+
+/**
+ * Record that a member was invited but has not accepted yet. An MLS Add commit
+ * inserts the invitee into the tree immediately, so this set — not tree
+ * membership — is what separates "Invited" from "Joined" in Group Info.
+ */
+export function MARK_MLS_INVITEE_PENDING(state, { mlsGroupIdHex, memberPubKey }) {
+  const ws = getOrInitWalletState(state)
+  if (!ws || !mlsGroupIdHex || !memberPubKey) return
+  if (!ws.mls.pendingInvitees) ws.mls.pendingInvitees = {}
+  if (!ws.mls.pendingInvitees[mlsGroupIdHex]) ws.mls.pendingInvitees[mlsGroupIdHex] = {}
+  ws.mls.pendingInvitees[mlsGroupIdHex][memberPubKey] = Math.floor(Date.now() / 1000)
+}
+
+/** Clear the pending flag once the invitee has demonstrably joined. */
+export function CLEAR_MLS_INVITEE_PENDING(state, { mlsGroupIdHex, memberPubKey }) {
+  const ws = getOrInitWalletState(state)
+  if (!ws || !mlsGroupIdHex || !memberPubKey) return
+  const pending = ws.mls.pendingInvitees?.[mlsGroupIdHex]
+  if (!pending) return
+  delete pending[memberPubKey]
+  if (!Object.keys(pending).length) delete ws.mls.pendingInvitees[mlsGroupIdHex]
 }
 
 export function SET_MLS_ROOM_MAP(state, { roomId, mlsGroupIdHex, nostrGroupIdHex }) {
@@ -114,6 +160,15 @@ export function MERGE_DECLINED_WELCOMES(state, eventIds) {
   }
 }
 
+export function MARK_WELCOME_HANDLED(state, { rumorId, wrapId } = {}) {
+  const ws = getOrInitWalletState(state)
+  if (!ws) return
+  if (!ws.mls.handledWelcomeIds) ws.mls.handledWelcomeIds = {}
+  const now = Math.floor(Date.now() / 1000)
+  if (rumorId) ws.mls.handledWelcomeIds[rumorId] = now
+  if (wrapId) ws.mls.handledWelcomeIds[wrapId] = now
+}
+
 export function RECORD_EVENT_PROCESS_FAILURE(state, { eventId, error }) {
   const ws = getOrInitWalletState(state)
   if (!ws || !eventId) return
@@ -128,4 +183,28 @@ export function RECORD_EVENT_PROCESS_FAILURE(state, { eventId, error }) {
 export function CLEAR_EVENT_PROCESS_FAILURES(state, eventId) {
   const ws = getOrInitWalletState(state)
   if (ws && eventId) delete ws.mls.failedEventAttempts[eventId]
+}
+
+// Mark a kind-445 event as fully processed for its group. Any event that
+// consumed the sender's ratchet — application messages, edits, role-control
+// messages, and handshake commits/proposals — lands here, so re-delivered
+// copies (relay history replay, resubscribe, restart) are skipped instead of
+// being re-processed and rejected as "Desired gen in the past".
+export function MARK_EVENT_PROCESSED(state, { mlsGroupIdHex, eventId } = {}) {
+  const ws = getOrInitWalletState(state)
+  if (!ws || !mlsGroupIdHex || !eventId) return
+  if (!ws.mls.processedEventIds) ws.mls.processedEventIds = {}
+  if (!ws.mls.processedEventIds[mlsGroupIdHex]) ws.mls.processedEventIds[mlsGroupIdHex] = {}
+  const record = ws.mls.processedEventIds[mlsGroupIdHex]
+  record[eventId] = Math.floor(Date.now() / 1000)
+  // Bound the tombstone set so it can't grow without limit in localStorage.
+  // Amortised: sort and trim only once the set exceeds the cap by the slack
+  // margin, so a steady stream of messages doesn't pay for the sort each time.
+  const ids = Object.keys(record)
+  if (ids.length > MAX_PROCESSED_EVENT_IDS + PROCESSED_EVENT_PRUNE_SLACK) {
+    ids
+      .sort((a, b) => record[a] - record[b])
+      .slice(0, ids.length - MAX_PROCESSED_EVENT_IDS)
+      .forEach((id) => delete record[id])
+  }
 }

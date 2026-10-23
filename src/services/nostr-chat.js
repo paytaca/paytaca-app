@@ -125,6 +125,17 @@ export function isSubscribed() {
 }
 
 /**
+ * Forget that a kind-445 event was already delivered, so a later history
+ * replay can hand it back to the store. Used when processing FAILED (e.g. the
+ * group epoch diverged) — keeping it in the seen-set would otherwise make the
+ * failure permanent for the rest of the session.
+ * @param {string} eventId
+ */
+export function forgetMlsSeenEvent(eventId) {
+  _mlsSeenEventIds.delete(eventId)
+}
+
+/**
  * Whether a subscription is currently being established.
  * @returns {boolean}
  */

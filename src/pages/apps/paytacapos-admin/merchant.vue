@@ -411,7 +411,7 @@
 </template>
 
 <script setup>
-import BCHJS from '@psf/bch-js';
+import { signMessage } from 'src/utils/bch-keys'
 import { FungibleCashToken } from 'src/marketplace/objects';
 import { backend as marketplaceBackend } from 'src/marketplace/backend';
 import { backend as posBackend, parsePosDeviceData, padPosId, authToken } from 'src/wallet/pos'
@@ -437,7 +437,6 @@ import { loadCardMerchantWallet } from 'src/services/wallet';
 import { backend as cardBackend } from 'src/services/card/backend';
 import EnableNFCPaymentsForm from 'src/components/paytacapos/nfc-payments/EnableNFCPaymentsForm.vue';
 
-const bchjs = new BCHJS()
 
 const $router = useRouter()
 const $route = useRoute()
@@ -809,7 +808,7 @@ async function deviceUnlinkRequest(posDevice) {
       dialog.update({ message: $t('GeneratingRandomSignature', {}, 'Generating random signature') })
       const nonce = Math.floor(Math.random() * (2 ** 31-1))
       const privkey = await wallet.value.BCH.getPrivateKey(nonce)
-      const signature = bchjs.BitcoinCash.signMessageWithPrivKey(privkey, posDevice.linkedDevice.linkCode)
+      const signature = signMessage(privkey, posDevice.linkedDevice.linkCode)
       return { posDevice, nonce, signature }
     })
     .catch(error => {

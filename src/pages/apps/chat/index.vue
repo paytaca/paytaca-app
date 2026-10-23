@@ -442,7 +442,8 @@
                     rounded
                     unelevated
                     class="full-width q-mt-sm"
-                    :disable="!canCreateGroup"
+                    :disable="!canCreateGroup || creatingGroup"
+                    :loading="creatingGroup"
                     @click="createGroup"
                   />
                 </template>
@@ -546,6 +547,7 @@ export default {
       contactAvatars: {},
       inviteDisplayNames: {},
       acceptingInvites: {},
+      creatingGroup: false,
       _profilePromptShown: false,
       _profilePromptTimer: null,
     }
@@ -963,12 +965,12 @@ export default {
     async acceptInvite (invite) {
       this.acceptingInvites = { ...this.acceptingInvites, [invite.roomId]: true }
       try {
-        await this.$store.dispatch('nostrChat/acceptMlsInvite', { roomId: invite.roomId })
+        const joinedRoomId = await this.$store.dispatch('nostrChat/acceptMlsInvite', { roomId: invite.roomId })
         this.$q.notify({
           type: 'positive',
           message: this.$t('InviteAccepted', {}, 'You joined the group'),
         })
-        this.openRoom(invite.roomId)
+        this.openRoom(joinedRoomId || invite.roomId)
       } catch (err) {
         console.error('[MLS] accept invite failed:', err)
         this.$q.notify({
@@ -1280,6 +1282,7 @@ export default {
       }
     },
     async createGroup () {
+      if (this.creatingGroup) return
       if (!this.canCreateGroup) {
         if (this.groupName.trim() && !this.hasMinGroupMembers) {
           this.$q.notify({
@@ -1290,7 +1293,8 @@ export default {
         }
         return
       }
-try {
+      this.creatingGroup = true
+      try {
           // Convert npubs to hex pubkeys
           const memberPubKeys = this.selectedMemberNpubs.map(npub => {
             const decoded = nip19Decode(npub)
@@ -1338,6 +1342,8 @@ try {
           type: 'negative',
           message: err.message || this.$t('CreateGroupFailed', {}, 'Failed to create group'),
         })
+      } finally {
+        this.creatingGroup = false
       }
     },
     getRoomDisplayName (room) {

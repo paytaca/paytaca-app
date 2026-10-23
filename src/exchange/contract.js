@@ -1,9 +1,8 @@
 import EscrowArtifact from 'src/cashscripts/escrow.json'
 import { ElectrumNetworkProvider, Contract, SignatureTemplate } from 'cashscript'
 import { Store } from 'src/store'
-import BCHJS from '@psf/bch-js'
+import { hash160 } from 'bitauth-libauth-v3'
 import { sha256 } from 'js-sha256'
-const bchjs = new BCHJS()
 
 import Watchtower from 'src/lib/watchtower'
 const isChipnet = Store.getters['global/isChipnet']
@@ -131,7 +130,7 @@ export class RampContract {
     if (retry && watchtowerErrored) {
       console.warn('Refetched contract balance from cashscript built-in method getBalance()')
       const rawBal = await this.contract.getBalance()
-      balance = bchjs.BitcoinCash.toBitcoinCash(Number(rawBal))
+      balance = Number(rawBal) / 1e8
     }
     return balance
   }
@@ -139,10 +138,10 @@ export class RampContract {
   /**
    * Generates a hash of the given public key using the hash160 algorithm.
    * @param {string} pubKey - The public key to be hashed, in hexadecimal format.
-   * @returns {Buffer} The generated hash as a Buffer.
+   * @returns {Uint8Array} The generated hash.
    */
   getPubKeyHash (pubKey) {
-    return bchjs.Crypto.hash160(Buffer.from(pubKey, 'hex'))
+    return hash160(Buffer.from(pubKey, 'hex'))
   }
 
   /**

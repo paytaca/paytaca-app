@@ -10,12 +10,19 @@ on:
 
 jobs:
   opencode:
+    # Fork PRs are skipped: pull_request events from forks get a read-only
+    # token, so the action cannot comment or push, and it aborts on the
+    # "user does not have write permissions" assertion. A maintainer can still
+    # run the bot on a fork PR by commenting "/oc" (that fires issue_comment
+    # in the base repo, where the token and the actor are trusted).
     if: |
-      github.event_name == 'pull_request' ||
-      contains(github.event.comment.body, ' /oc') ||
-      startsWith(github.event.comment.body, '/oc') ||
-      contains(github.event.comment.body, ' /opencode') ||
-      startsWith(github.event.comment.body, '/opencode')
+      (github.event_name == 'pull_request' &&
+        github.event.pull_request.head.repo.full_name == github.repository) ||
+      (github.event_name != 'pull_request' &&
+        (startsWith(github.event.comment.body, '/oc') ||
+         contains(github.event.comment.body, ' /oc') ||
+         startsWith(github.event.comment.body, '/opencode') ||
+         contains(github.event.comment.body, ' /opencode')))
     runs-on: ubuntu-latest
     permissions:
       id-token: write
@@ -47,11 +54,12 @@ jobs:
         uses: anomalyco/opencode/github@v1.18.21
         env:
           OPENCODE_API_KEY: ${{ secrets.OPENCODE_API_KEY }}
-          # The action reads TOKEN (not GITHUB_TOKEN) for API calls and to
-          # skip the collaborator-permission assertion — without it the check
-          # fails for github-actions[bot], which is never a collaborator.
+          # use_github_token makes the CLI authenticate with GITHUB_TOKEN
+          # instead of exchanging an OIDC token for an app token. TOKEN is what
+          # the v1.18.x bundled action read; the CLI is installed from the
+          # latest release, so it is kept as a fallback.
           TOKEN: ${{ secrets.GITHUB_TOKEN }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
-          model: opencode/glm-5.3
+          model: opencode/minimax-m3
           use_github_token: true

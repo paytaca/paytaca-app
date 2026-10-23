@@ -84,9 +84,13 @@
 </template>
 
 <script>
-import { BarcodeScanner, SupportedFormat } from '@capacitor-community/barcode-scanner'
+import { BarcodeScanner, BarcodeFormat } from '@capacitor-mlkit/barcode-scanning'
 import { QrcodeStream } from 'vue-qrcode-reader'
 import ScannerUI from 'components/scanner-ui/scanner.vue'
+
+const MAX_ZOOM = 4.0
+const MIN_ZOOM = 1.0
+const ZOOM_STEP = 0.5
 
 export default {
   components: { QrcodeStream, ScannerUI },
@@ -94,9 +98,9 @@ export default {
     return {
       val: this.modelValue,
       error: '',
-      zoomLevel: 0,
-      zoomStep: 5,
-      torchOn: false
+      zoomLevel: 1.0,
+      torchOn: false,
+      scanListener: null
     }
   },
   props: {
@@ -112,7 +116,7 @@ export default {
   },
   computed: {
     isMobile() {
-      return this.$q.platform.is.mobile || this.$q.platform.is.android || this.$q.platform.is.ios
+      return this.$q.platform.is.nativeMobile
     },
     cameraConstraints () {
       return {
@@ -120,7 +124,7 @@ export default {
         width: { min: 640, ideal: 1920, max: 3840 },
         height: { min: 480, ideal: 1080, max: 2160 }
       }
-    }
+    },
   },
   watch: {
     val () {
@@ -141,120 +145,84 @@ export default {
     async stopScan () {
       this.$emit('input', false)
       this.$emit('update:model-value', false)
-      BarcodeScanner.showBackground()
-      BarcodeScanner.stopScan()
-      this.adjustComponentsClasslist(false)
+      try {
+        if (this.scanListener) {
+          await this.scanListener.remove()
+          this.scanListener = null
+        }
+        if (this.isMobile) {
+          await BarcodeScanner.stopScan()
+        }
+      } catch {
+        // native stop is best-effort; web/desktop has no module scanner running
+      }
+      this.removeBarcodeScannerActiveClass()
       if (this.torchOn) {
         try { await BarcodeScanner.disableTorch() } catch (e) {}
       }
-      if (this.zoomLevel > 0) {
-        try { await BarcodeScanner.setZoom({ zoom: 0 }) } catch (e) {}
-      }
-      this.zoomLevel = 0
-      this.torchOn = false
     },
     async prepareScanner () {
       const status = await this.checkPermission()
       if (status) {
-        await BarcodeScanner.prepare()
         this.scanBarcode()
       } else {
         this.$emit('input', false)
       }
     },
     async scanBarcode () {
-      BarcodeScanner.hideBackground()
-      this.adjustComponentsClasslist(true)
+      this.setBarcodeScannerActiveClass()
 
-      const res = await BarcodeScanner.startScan({ targetedFormats: [SupportedFormat.QR_CODE] })
+      const listener = await BarcodeScanner.addListener('barcodeScanned', async result => {
+        await listener.remove()
+        this.scanListener = null
+        this.removeBarcodeScannerActiveClass()
+        await BarcodeScanner.stopScan()
+        this.$emit('decode', result?.barcode?.rawValue)
+      })
+      this.scanListener = listener
 
-      if (res.content) {
-        BarcodeScanner.showBackground()
-        this.adjustComponentsClasslist(false)
-        if (this.torchOn) {
-          try { await BarcodeScanner.disableTorch() } catch (e) {}
-        }
-        if (this.zoomLevel > 0) {
-          try { await BarcodeScanner.setZoom({ zoom: 0 }) } catch (e) {}
-        }
-        this.zoomLevel = 0
-        this.torchOn = false
-        this.$emit('decode', res.content)
-      } else {
-        this.adjustComponentsClasslist(false)
-        if (this.torchOn) {
-          try { await BarcodeScanner.disableTorch() } catch (e) {}
-        }
-        if (this.zoomLevel > 0) {
-          try { await BarcodeScanner.setZoom({ zoom: 0 }) } catch (e) {}
-        }
-        this.zoomLevel = 0
-        this.torchOn = false
-        this.$emit('input', false)
-      }
+      await BarcodeScanner.startScan({ formats: [BarcodeFormat.QrCode] })
     },
-    async zoomIn () {
-      this.zoomLevel += this.zoomStep
+    async applyZoom (value) {
       try {
-        await BarcodeScanner.setZoom({ zoom: this.zoomLevel })
-      } catch (err) {
-        console.error('Zoom in failed:', err)
+        // Pass the calculated float scale straight to native Capawesome engine
+        await BarcodeScanner.setZoomRatio({ zoomRatio: value })
+      } catch (error) {
+        console.error('Failed to change native hardware zoom level:', error)
       }
     },
-    async zoomOut () {
-      this.zoomLevel = Math.max(0, this.zoomLevel - this.zoomStep)
-      try {
-        await BarcodeScanner.setZoom({ zoom: this.zoomLevel })
-      } catch (err) {
-        console.error('Zoom out failed:', err)
+
+    zoomIn () {
+      if (this.zoomLevel < MAX_ZOOM) {
+        this.zoomLevel = Math.min(this.zoomLevel + ZOOM_STEP, MAX_ZOOM)
+        this.applyZoom(this.zoomLevel)
       }
     },
+
+    zoomOut () {
+      if (this.zoomLevel > MIN_ZOOM) {
+        this.zoomLevel = Math.max(this.zoomLevel - ZOOM_STEP, MIN_ZOOM)
+        this.applyZoom(this.zoomLevel)
+      }
+    },
+
     async toggleTorch () {
-      try {
-        this.torchOn = !this.torchOn
-        if (this.torchOn) {
-          await BarcodeScanner.enableTorch()
-        } else {
-          await BarcodeScanner.disableTorch()
-        }
-      } catch (err) {
-        console.error('Toggle torch failed:', err)
-        this.torchOn = false
+      const { available } = await BarcodeScanner.isTorchAvailable()
+      if (available) {
+        await BarcodeScanner.toggleTorch()
+        const { enabled } = await BarcodeScanner.isTorchEnabled()
+        this.torchOn = enabled
       }
     },
+
     async checkPermission () {
-      const status = await BarcodeScanner.checkPermission({ force: false })
-
-      if (status.granted) {
-        // permission already granted
+      const { camera } = await BarcodeScanner.checkPermissions()
+      if (camera === 'granted') {
         return true
       }
 
-      if (status.restricted) {
-        // ios only, e.g. parental controls; the user cannot grant this
-        return false
-      }
-
-      if (status.denied) {
-        // permanently denied: the OS will not prompt again, open app settings
-        BarcodeScanner.openAppSettings()
-        return false
-      }
-
-      // Permission has not been granted yet (never asked before, or denied but
-      // still askable). Ask again so the OS permission prompt is shown.
-      const statusRequest = await BarcodeScanner.checkPermission({ force: true })
-
-      if (statusRequest.granted) {
-        return true
-      }
-
-      if (statusRequest.denied) {
-        // the user declined and cannot be asked again, open app settings
-        BarcodeScanner.openAppSettings()
-      }
-
-      return false
+      const req = await BarcodeScanner.requestPermissions()
+      return req.camera === 'granted'
     },
     // DESKTOP
     onScannerDecode (content) {
@@ -290,51 +258,58 @@ export default {
       }
     },
 
-    adjustComponentsClasslist (isScanning) {
+    setBarcodeScannerActiveClass () {
       const scannerUI = document.getElementById('qr-scanner-ui')
-      const transparent = 'transparent-body'
-      const hide = 'hide-section'
 
-
-      if (isScanning) {
-        // Teleport scannerUI to body so it's not constrained inside any container
-        if (scannerUI) {
-          scannerUI._origParent = scannerUI.parentNode
-          scannerUI._origNextSibling = scannerUI.nextSibling
-          document.body.appendChild(scannerUI)
-        }
-        // Hide all direct children of body except the scannerUI
-        Array.from(document.body.children).forEach(child => {
-          if (child !== scannerUI && !child.classList.contains('q-dialog__backdrop')) {
-            child._scannerWasHidden = true
-            child.classList.add(hide)
-          }
-        })
-        document.body.classList.add(transparent)
-        if (scannerUI) { try { scannerUI.classList.remove(hide) } catch (e) {} }
-      } else {
-        // Restore scannerUI to its original position
-        if (scannerUI && scannerUI._origParent) {
-          try {
-            if (scannerUI._origNextSibling) {
-              scannerUI._origParent.insertBefore(scannerUI, scannerUI._origNextSibling)
-            } else {
-              scannerUI._origParent.appendChild(scannerUI)
-            }
-          } catch (e) {}
-          delete scannerUI._origParent
-          delete scannerUI._origNextSibling
-        }
-        // Restore all hidden body children
-        document.querySelectorAll('body > .hide-section').forEach(child => {
-          if (child._scannerWasHidden) {
-            child.classList.remove(hide)
-            delete child._scannerWasHidden
-          }
-        })
-        document.body.classList.remove(transparent)
-        if (scannerUI) { try { scannerUI.classList.add(hide) } catch (e) {} }
+      // Teleport scannerUI to body so its fixed overlay isn't constrained inside a page/dialog stacking context
+      if (scannerUI) {
+        scannerUI._origParent = scannerUI.parentNode
+        scannerUI._origNextSibling = scannerUI.nextSibling
+        document.body.appendChild(scannerUI)
       }
+
+      document.documentElement.classList.add('barcode-scanner-active')
+      document.querySelector('body')?.classList.add('barcode-scanner-active')
+
+      // Hide all direct children of body except the scannerUI and dialog backdrops
+      Array.from(document.body.children).forEach(child => {
+        if (child !== scannerUI && !child.classList.contains('q-dialog__backdrop')) {
+          child._scannerWasHidden = true
+          child.classList.add('hide-section')
+        }
+      })
+
+      if (scannerUI) { try { scannerUI.classList.remove('hide-section') } catch (e) {} }
+    },
+
+    removeBarcodeScannerActiveClass () {
+      const scannerUI = document.getElementById('qr-scanner-ui')
+
+      // Restore all hidden body children
+      document.querySelectorAll('body > .hide-section').forEach(child => {
+        if (child._scannerWasHidden) {
+          child.classList.remove('hide-section')
+          delete child._scannerWasHidden
+        }
+      })
+
+      document.querySelector('body')?.classList.remove('barcode-scanner-active')
+      document.documentElement.classList.remove('barcode-scanner-active')
+
+      // Return scannerUI to its original DOM position
+      if (scannerUI && scannerUI._origParent) {
+        try {
+          if (scannerUI._origNextSibling) {
+            scannerUI._origParent.insertBefore(scannerUI, scannerUI._origNextSibling)
+          } else {
+            scannerUI._origParent.appendChild(scannerUI)
+          }
+        } catch (e) {}
+        delete scannerUI._origParent
+        delete scannerUI._origNextSibling
+      }
+
+      if (scannerUI) { try { scannerUI.classList.add('hide-section') } catch (e) {} }
     }
   },
   deactivated () {
@@ -401,6 +376,13 @@ export default {
 .visibility-visible {
   visibility: visible;
   position: fixed !important;
+}
+html.barcode-scanner-active,
+body.barcode-scanner-active,
+body.barcode-scanner-active #q-app,
+body.barcode-scanner-active .q-layout,
+body.barcode-scanner-active .q-page {
+  background: transparent !important;
 }
 .scanner-bottom-controls {
   position: absolute;

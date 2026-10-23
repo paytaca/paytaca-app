@@ -1,18 +1,16 @@
-import BCHJS from "@psf/bch-js"
+import { wifToPublicKey, wifToCashAddress, toSlpAddress } from 'src/utils/bch-keys'
 import axios from "axios";
 import {
   CashAddressNetworkPrefix,
   CashAddressType,
   decodeCashAddress,
   encodeCashAddress,
-  binToHex,
 } from "@bitauth/libauth";
 
 import Watchtower from "watchtower-cash-js";
 
 export default class SingleWallet {
   constructor(opts = { wif: '', isChipnet: false }) {
-    this.bchjs = new BCHJS()
     this.wif = opts?.wif
     this.isChipnet = opts?.isChipnet;
 
@@ -27,9 +25,8 @@ export default class SingleWallet {
   }
 
   set wif(data) {
-    const _ecpair = this.bchjs.ECPair.fromWIF(data);
-    const pubkey = binToHex(this.bchjs.ECPair.toPublicKey(_ecpair));
-    const _decodedAddress = decodeCashAddress(this.bchjs.ECPair.toCashAddress(_ecpair));
+    const pubkey = wifToPublicKey(data);
+    const _decodedAddress = decodeCashAddress(wifToCashAddress(data));
     if (typeof _decodedAddress === 'string') {
       throw new Error(`Unable to decode address: ${_decodedAddress}`);
     }
@@ -54,8 +51,8 @@ export default class SingleWallet {
       CashAddressType.p2pkhWithTokens,
       _decodedAddress.payload,
     );
-    const slpAddress = String(this.bchjs.SLP.Address.toSLPAddress(cashAddress))
-    const testnetSlpAddress = String(this.bchjs.SLP.Address.toSLPAddress(testnetCashAddress))
+    const slpAddress = String(toSlpAddress(cashAddress))
+    const testnetSlpAddress = String(toSlpAddress(testnetCashAddress))
 
     const keys = Object.freeze({
       wif: data,

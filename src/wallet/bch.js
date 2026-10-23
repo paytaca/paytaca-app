@@ -1,12 +1,12 @@
 import Watchtower from 'watchtower-cash-js'
-import BCHJS from '@psf/bch-js'
+import { hdNodeFromSeed, deriveHdNode, hdNodeToPublicKey, hdNodeToWif, hdNodeToCashAddress, hdNodeToXPub, isCashAddress, toCashAddress, signMessage as signBchMessage, verifyMessage as verifyBchMessage } from 'src/utils/bch-keys'
+import { mnemonicToSeed } from 'bip39'
 import sha256 from 'js-sha256'
 import { decodeTransaction, hexToBin, lockingBytecodeToCashAddress, binToHex } from '@bitauth/libauth'
 import { getWatchtowerApiUrl, convertCashAddress } from './chipnet'
 import { convertIpfsUrl, getBcmrBackend } from './cashtokens'
 import { isTokenAddress } from '../utils/address-utils'
 
-const bchjs = new BCHJS()
 
 
 export class BchWallet {
@@ -35,8 +35,8 @@ export class BchWallet {
       return this._masterHDNodeCache
     }
     this._masterHDNodeCache = null
-    const seedBuffer = await bchjs.Mnemonic.toSeed(this.mnemonic)
-    this._masterHDNodeCache = bchjs.HDNode.fromSeed(seedBuffer)
+    const seedBuffer = await mnemonicToSeed(this.mnemonic)
+    this._masterHDNodeCache = hdNodeFromSeed(seedBuffer)
     this._masterHDNodeExpiry = Date.now() + 3600000
     return this._masterHDNodeCache
   }
@@ -47,10 +47,10 @@ export class BchWallet {
   }
 
   async getXPubKey () {
-    const seedBuffer = await bchjs.Mnemonic.toSeed(this.mnemonic)
-    const masterHDNode = bchjs.HDNode.fromSeed(seedBuffer)
-    const childNode = masterHDNode.derivePath(this.derivationPath)
-    return bchjs.HDNode.toXPub(childNode)
+    const seedBuffer = await mnemonicToSeed(this.mnemonic)
+    const masterHDNode = hdNodeFromSeed(seedBuffer)
+    const childNode = deriveHdNode(masterHDNode, this.derivationPath)
+    return hdNodeToXPub(childNode)
   }
 
   /**
@@ -77,17 +77,17 @@ export class BchWallet {
 
   async getChildNode (index, derivationPath) {
     const masterHDNode = await this._getMasterHDNode()
-    const childNode = masterHDNode.derivePath(derivationPath)
-    const receivingAddressNode = childNode.derivePath('0/' + index)
-    const changeAddressNode = childNode.derivePath('1/' + index)
+    const childNode = deriveHdNode(masterHDNode, derivationPath)
+    const receivingAddressNode = deriveHdNode(childNode, '0/' + index)
+    const changeAddressNode = deriveHdNode(childNode, '1/' + index)
     return { receivingAddressNode, changeAddressNode }
   }
 
   async getAddressSetAt(index) {
     const { receivingAddressNode, changeAddressNode } = await this.getChildNode(index, this.derivationPath)
 
-    let receivingAddress = bchjs.HDNode.toCashAddress(receivingAddressNode)
-    let changeAddress = bchjs.HDNode.toCashAddress(changeAddressNode)
+    let receivingAddress = hdNodeToCashAddress(receivingAddressNode)
+    let changeAddress = hdNodeToCashAddress(changeAddressNode)
 
     if (this.isChipnet) {
       receivingAddress = convertCashAddress(receivingAddress, this.isChipnet, false)
@@ -372,14 +372,14 @@ export class BchWallet {
     if (useChildNode) {
       const childNode = await this.getChildNode(index, __derivationPath)
       return {
-        receiving: bchjs.HDNode.toWIF(childNode.receivingAddressNode).toString('hex'),
-        change: bchjs.HDNode.toWIF(childNode.changeAddressNode).toString('hex')
+        receiving: hdNodeToWif(childNode.receivingAddressNode),
+        change: hdNodeToWif(childNode.changeAddressNode)
       }
     }
 
     const masterHDNode = await this._getMasterHDNode()
-    const childNode = masterHDNode.derivePath(__derivationPath + '/' + String(addressPath))
-    return bchjs.HDNode.toWIF(childNode)
+    const childNode = deriveHdNode(masterHDNode, __derivationPath + '/' + String(addressPath))
+    return hdNodeToWif(childNode)
   }
 
   async getPublicKey(addressPath, derivationPath = '', useChildNode = false, index = 0) {
@@ -389,14 +389,14 @@ export class BchWallet {
     if (useChildNode) {
       const childNode = await this.getChildNode(index, __derivationPath)
       return {
-        receiving: bchjs.HDNode.toPublicKey(childNode.receivingAddressNode).toString('hex'),
-        change: bchjs.HDNode.toPublicKey(childNode.changeAddressNode).toString('hex')
+        receiving: hdNodeToPublicKey(childNode.receivingAddressNode),
+        change: hdNodeToPublicKey(childNode.changeAddressNode)
       }
     }
 
     const masterHDNode = await this._getMasterHDNode()
-    const childNode = masterHDNode.derivePath(__derivationPath + '/' + String(addressPath))
-    return bchjs.HDNode.toPublicKey(childNode).toString('hex')
+    const childNode = deriveHdNode(masterHDNode, __derivationPath + '/' + String(addressPath))
+    return hdNodeToPublicKey(childNode)
   }
 
   async getBalance (tokenId = '', txid = '', index = 0) {
@@ -449,7 +449,7 @@ export class BchWallet {
       if (address && !address.includes(':')) {
         // Legacy address, try to convert
         try {
-          return bchjs.Address.toCashAddress(address)
+          return toCashAddress(address)
         } catch (e) {
           return address.toLowerCase()
         }
@@ -724,14 +724,14 @@ export class BchWallet {
 
   async signMessage (message, lastAddressIndex) {
     const privateKey = await this.getPrivateKey('0/' + String(lastAddressIndex))
-    return bchjs.BitcoinCash.signMessageWithPrivKey(
+    return signBchMessage(
       privateKey,
       message
     )
   }
 
   async verifyMessage (address, signature, message) {
-    return bchjs.BitcoinCash.verifyMessage(
+    return verifyBchMessage(
       address,
       signature,
       message
@@ -763,8 +763,8 @@ export function decodeBIP0021URI(paymentUri, opts) {
   const isTokenAddr = isTokenAddress(fullAddress)
   
   if (!isTokenAddr) {
-    // only check if not token address, bchjs is not cashtoken aware?
-    const isCashAddr = bchjs.Address.isCashAddress(urlObject.protocol + urlObject.pathname)
+    // only check if not token address, since isCashAddress takes plain cashaddrs only
+    const isCashAddr = isCashAddress(urlObject.protocol + urlObject.pathname)
     if (!isCashAddr) {
       return
     }
@@ -794,24 +794,6 @@ export function decodeBIP0021URI(paymentUri, opts) {
   response.parameters = searchParams
 
   return response
-}
-
-export async function getBalanceByAddress (address, verbose = false) {
-  try {
-    const result = await bchjs.Electrumx.balance(address)
-
-    if (verbose) console.log(result)
-
-    // The total balance is the sum of the confirmed and unconfirmed balances.
-    const satBalance = Number(result.balance.confirmed) + Number(result.balance.unconfirmed)
-    // Convert the satoshi balance to a BCH balance
-    const bchBalance = bchjs.BitcoinCash.toBitcoinCash(satBalance)
-
-    return bchBalance
-  } catch (err) {
-    console.error('Error in getBalanceByAddress: ', err)
-    throw err
-  }
 }
 
 export default BchWallet

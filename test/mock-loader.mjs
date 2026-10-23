@@ -26,10 +26,14 @@ export async function resolve (specifier, context, nextResolve) {
 // so teach Node to load src/**/*.js as ES modules for this smoke test. The same
 // applies to the patched plugin's ESM dist (which ships no "type": "module"),
 // needed to assert its package-root exports.
-const ESM_PATHS = ['/src/', '/node_modules/capacitor-secure-storage-plugin/dist/esm/']
+// src/ is the project's own, since packages such as debug keep CommonJS in a src/ of theirs.
+const ESM_PATHS = [
+  new URL('../src/', import.meta.url).href,
+  new URL('../node_modules/capacitor-secure-storage-plugin/dist/esm/', import.meta.url).href
+]
 
 export async function load (url, context, nextLoad) {
-  if (url.startsWith('file:') && url.endsWith('.js') && ESM_PATHS.some(p => url.includes(p))) {
+  if (url.endsWith('.js') && ESM_PATHS.some(p => url.startsWith(p))) {
     const source = await readFile(new URL(url), 'utf8')
     return { format: 'module', source, shortCircuit: true }
   }

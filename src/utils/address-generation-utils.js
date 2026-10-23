@@ -6,13 +6,14 @@
  * This ensures the wallet can track transactions to/from these addresses
  */
 
-import BCHJS from '@psf/bch-js'
+import { hdNodeFromSeed, deriveHdNode, hdNodeToCashAddress, slpToCashAddress } from 'src/utils/bch-keys'
+import { mnemonicToSeed } from 'bip39'
 import Watchtower from 'src/lib/watchtower'
 import sha256 from 'js-sha256'
+import axios from 'axios'
 import { convertCashAddress } from 'src/wallet/chipnet'
 import { getMnemonic } from 'src/wallet'
 
-const bchjs = new BCHJS()
 
 const projectId = {
   mainnet: process.env.WATCHTOWER_PROJECT_ID,
@@ -65,18 +66,19 @@ export async function generateAddressSetFromMnemonic(opts) {
     }
 
     // Generate master HD node from mnemonic
-    const seedBuffer = await bchjs.Mnemonic.toSeed(mnemonic)
-    const masterHDNode = bchjs.HDNode.fromSeed(seedBuffer)
+    const seedBuffer = await mnemonicToSeed(mnemonic)
+    const masterHDNode = hdNodeFromSeed(seedBuffer)
     
     // Derive child node for the given derivation path
-    const childNode = masterHDNode.derivePath(derivationPath)
+    const childNode = deriveHdNode(masterHDNode, derivationPath)
     
-    // Generate receiving address (0/index) and change address (1/index)
-    const receivingAddressNode = childNode.derivePath('0/' + validAddressIndex)
-    const changeAddressNode = childNode.derivePath('1/' + validAddressIndex)
+    // Generate receiving address (0/index) and change address (1/index).
+    // Addresses are always generated as a pair sharing one index.
+    const receivingAddressNode = deriveHdNode(childNode, '0/' + validAddressIndex)
+    const changeAddressNode = deriveHdNode(childNode, '1/' + validAddressIndex)
 
-    let receivingAddress = bchjs.HDNode.toCashAddress(receivingAddressNode)
-    let changeAddress = bchjs.HDNode.toCashAddress(changeAddressNode)
+    let receivingAddress = hdNodeToCashAddress(receivingAddressNode)
+    let changeAddress = hdNodeToCashAddress(changeAddressNode)
 
     // Convert to chipnet format if needed
     if (isChipnet) {
@@ -92,7 +94,7 @@ export async function generateAddressSetFromMnemonic(opts) {
 
     const walletHash = computeWalletHash(mnemonic, derivationPath)
     const projId = isChipnet ? projectId.chipnet : projectId.mainnet
-    
+
     const watchtower = new Watchtower(isChipnet)
     const subscriptionData = {
       addresses: addressSet,
@@ -159,18 +161,18 @@ export async function generateAddressSetWithoutSubscription(opts) {
     }
 
     // Generate master HD node from mnemonic
-    const seedBuffer = await bchjs.Mnemonic.toSeed(mnemonic)
-    const masterHDNode = bchjs.HDNode.fromSeed(seedBuffer)
+    const seedBuffer = await mnemonicToSeed(mnemonic)
+    const masterHDNode = hdNodeFromSeed(seedBuffer)
     
     // Derive child node for the given derivation path
-    const childNode = masterHDNode.derivePath(derivationPath)
+    const childNode = deriveHdNode(masterHDNode, derivationPath)
     
     // Generate receiving address (0/index) and change address (1/index)
-    const receivingAddressNode = childNode.derivePath('0/' + validAddressIndex)
-    const changeAddressNode = childNode.derivePath('1/' + validAddressIndex)
+    const receivingAddressNode = deriveHdNode(childNode, '0/' + validAddressIndex)
+    const changeAddressNode = deriveHdNode(childNode, '1/' + validAddressIndex)
 
-    let receivingAddress = bchjs.HDNode.toCashAddress(receivingAddressNode)
-    let changeAddress = bchjs.HDNode.toCashAddress(changeAddressNode)
+    let receivingAddress = hdNodeToCashAddress(receivingAddressNode)
+    let changeAddress = hdNodeToCashAddress(changeAddressNode)
 
     // Convert to chipnet format if needed
     if (isChipnet) {
@@ -220,6 +222,215 @@ export async function generateChangeAddress(opts) {
     return null
   }
   return result.addresses.change
+}
+
+/**
+ * Normalizes an address to the prefix-qualified cashaddr form expected by
+ * watchtower. Prefix-less cashaddrs and `simpleledger:` SLP addresses are
+ * accepted, but the SLP form must be converted: watchtower treats it as a
+ * different address and would otherwise report a used address as unused.
+ * @param {string} address
+ * @param {boolean} isChipnet
+ * @returns {string}
+ */
+function toWatchtowerAddress(address, isChipnet) {
+  const networkPrefix = isChipnet ? 'bchtest' : 'bitcoincash'
+  let cashAddress = String(address || '').trim()
+
+  if (cashAddress.startsWith('simpleledger:')) {
+    cashAddress = slpToCashAddress(cashAddress)
+  }
+
+  if (cashAddress.startsWith('simpleledger:') ||
+      cashAddress.startsWith('bitcoincash:') ||
+      cashAddress.startsWith('bchtest:')) {
+    cashAddress = cashAddress.split(':')[1]
+  }
+
+  return `${networkPrefix}:${cashAddress}`
+}
+
+/**
+ * Derives a contiguous run of addresses on one chain without subscribing
+ * (used for freshness scanning).
+ * @param {Object} opts
+ * @param {string} opts.mnemonic
+ * @param {string} opts.derivationPath
+ * @param {'receiving'|'change'} opts.chain
+ * @param {number} opts.startIndex
+ * @param {number} opts.count
+ * @param {boolean} opts.isChipnet
+ * @returns {Promise<Array<{address: string, addressIndex: number}>>}
+ */
+async function deriveAddressBatch(opts) {
+  const { mnemonic, derivationPath, chain = 'receiving', startIndex = 0, count = 1, isChipnet = false } = opts
+
+  if (!mnemonic) {
+    throw new Error('Mnemonic not found')
+  }
+
+  const seedBuffer = await mnemonicToSeed(mnemonic)
+  const masterHDNode = hdNodeFromSeed(seedBuffer)
+  const childNode = deriveHdNode(masterHDNode, derivationPath)
+  const chainPath = chain === 'change' ? '1' : '0'
+
+  const addresses = []
+  for (let i = 0; i < count; i++) {
+    const addressIndex = startIndex + i
+    let address = hdNodeToCashAddress(deriveHdNode(childNode, `${chainPath}/${addressIndex}`))
+    if (isChipnet) {
+      address = convertCashAddress(address, isChipnet, false)
+    }
+    addresses.push({ address, addressIndex })
+  }
+
+  return addresses
+}
+
+/**
+ * Checks which addresses have on-chain transaction history.
+ *
+ * Uses watchtower's discovery endpoint, which queries the node directly
+ * (`blockchain.address.get_first_use`) instead of watchtower's local database.
+ * This matters for safety: an address used by another wallet instance but never
+ * subscribed to watchtower has no local record, so database-based checks report
+ * it as fresh.
+ *
+ * The request carries the wallet's real hash: the endpoint only reads
+ * `address_sets` today, but a future server-side change that keys on
+ * `wallet_hash` must not silently attach scanned addresses to a sentinel.
+ *
+ * The response is still treated as untrusted: any index whose `has_history` is
+ * not a boolean is left out of the returned map, and `findUnusedAddressIndex`
+ * aborts on a missing entry instead of assuming the address is fresh.
+ *
+ * The check is per address, not per index: querying the receiving address of a
+ * pair says nothing about its change address, because watchtower's
+ * `last-address-index` treats either one as making the index exist. Callers must
+ * pass the specific chain they intend to use.
+ *
+ * @param {Array<{addressIndex: number, address: string}>} candidates
+ * @param {Object} opts
+ * @param {boolean} opts.isChipnet
+ * @param {'receiving'|'change'} opts.chain
+ * @param {string} opts.walletHash
+ * @returns {Promise<Map<number, boolean>>} addressIndex -> has history
+ */
+async function checkAddressHistory(candidates, opts = {}) {
+  const { isChipnet = false, chain = 'receiving', walletHash } = opts
+
+  if (!candidates.length) return new Map()
+  if (!walletHash) throw new Error('Wallet hash is required to verify address freshness')
+
+  const baseUrl = isChipnet ? 'https://chipnet.watchtower.cash' : 'https://watchtower.cash'
+  const addressSets = candidates.map(({ addressIndex, address }) => ({
+    address_index: addressIndex,
+    [chain]: toWatchtowerAddress(address, isChipnet)
+  }))
+
+  const response = await axios.post(`${baseUrl}/api/wallet/address-discover/`, {
+    wallet_hash: walletHash,
+    address_sets: addressSets
+  })
+
+  const results = response?.data?.results
+  if (!Array.isArray(results)) {
+    throw new Error('Invalid response while verifying address freshness')
+  }
+
+  const historyByIndex = new Map()
+  for (const result of results) {
+    const detail = result?.[chain]
+    if (typeof detail?.has_history === 'boolean') {
+      historyByIndex.set(result.address_index, detail.has_history)
+    }
+  }
+
+  return historyByIndex
+}
+
+/**
+ * Scans forward from startIndex until an address is positively confirmed
+ * unused (no on-chain transaction history). Throws when watchtower cannot
+ * confirm an address's status, so callers never use an unverified one.
+ *
+ * Works for the receiving chain ('0/i') and the change chain ('1/i'), which are
+ * checked independently: watchtower reports history per address, so a used
+ * receiving address says nothing about the change address at the same index.
+ *
+ * Candidates are checked in batches of one request each. Additional batches are
+ * only requested when every address in the previous batch had history, which
+ * lets a long run of used addresses be skipped instead of failing the scan.
+ *
+ * @param {Object} opts
+ * @param {'receiving'|'change'} opts.chain
+ * @param {number} opts.startIndex
+ * @param {number} opts.walletIndex
+ * @param {string} opts.derivationPath
+ * @param {boolean} opts.isChipnet
+ * @param {number} [opts.maxAttempts] - Addresses checked per batch
+ * @param {number} [opts.maxBatches]
+ * @returns {Promise<{address: string, addressIndex: number}>}
+ */
+export async function findUnusedAddressIndex(opts = {}) {
+  const {
+    chain = 'receiving',
+    startIndex = 0,
+    walletIndex = 0,
+    derivationPath,
+    isChipnet = false,
+    maxAttempts = 20,
+    maxBatches = 10
+  } = opts
+
+  if (!derivationPath) throw new Error('Derivation path is required')
+
+  const attemptsLimit = Number.isInteger(maxAttempts) && maxAttempts > 0 ? maxAttempts : 20
+  const batchesLimit = Number.isInteger(maxBatches) && maxBatches > 0 ? maxBatches : 1
+  // Receiving index 0/0 is reserved for message encryption
+  let scanIndex = Number.isInteger(startIndex) && startIndex > 0 ? startIndex : 0
+  if (chain === 'receiving' && scanIndex === 0) scanIndex = 1
+
+  const mnemonic = await getMnemonic(walletIndex)
+  if (!mnemonic) throw new Error('Mnemonic not found')
+  const walletHash = computeWalletHash(mnemonic, derivationPath)
+
+  for (let batch = 0; batch < batchesLimit; batch++) {
+    const candidates = await deriveAddressBatch({
+      mnemonic,
+      derivationPath,
+      chain,
+      startIndex: scanIndex,
+      count: attemptsLimit,
+      isChipnet
+    })
+
+    const historyByIndex = await checkAddressHistory(candidates, { isChipnet, chain, walletHash })
+
+    for (const candidate of candidates) {
+      const hasHistory = historyByIndex.get(candidate.addressIndex)
+      if (hasHistory === undefined) {
+        console.debug('[AddressScan] unverified candidate', {
+          chain,
+          addressIndex: candidate.addressIndex,
+          address: candidate.address
+        })
+        throw new Error('Unable to verify address freshness')
+      }
+      if (hasHistory === false) {
+        console.debug('[AddressScan] found unused address', {
+          chain,
+          addressIndex: candidate.addressIndex,
+          address: candidate.address
+        })
+        return { address: candidate.address, addressIndex: candidate.addressIndex }
+      }
+    }
+
+    scanIndex = candidates[candidates.length - 1].addressIndex + 1
+  }
+
+  throw new Error(`No unused ${chain} address found within scan limit`)
 }
 
 /**
