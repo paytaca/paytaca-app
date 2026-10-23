@@ -5,10 +5,12 @@ import { NFTCapability, TestNetWallet, Wallet as CashTokenWallet } from 'mainnet
 import { loadWallet as loadServiceWallet } from 'src/services/wallet.js'
 import { pubkeyToPkHash } from 'src/utils/crypto.js'
 import { loadWallet } from 'src/wallet'
+import { DUST_LIMIT } from 'src/services/card/constants.js'
 
 // Contract-related
 import { initializeContract } from './contract'
 
+// Fixed variables
 const MINER_FEE = 1000n
 const PLATFORM_FEE = 1000n
 const SERVICER_FEE = 1000n
@@ -87,60 +89,80 @@ export async function sendNFTToTokenAddress(
 
   // Check if invalid bid amount
   const normalizedBidAmount = BigInt(bidAmountBCH)
-  if (normalizedBidAmount < 0n || normalizedBidAmount > 0xffffffffffffffffn) {
+  if (normalizedBidAmount < 0n || normalizedBidAmount > 0xffffffffffffffffn)
     throw new Error('Bid amount is outside the supported range.')
-  }
 
   // User's service wallet
   const wallet = await loadServiceWallet()
 
   // Token-related variables
-  const genesisUtxo = await wallet.getOrCreateGenesisUtxo()
-  const categoryId = genesisUtxo.txid
+  const { utxos } = await wallet.getBchUtxos()
+  if (utxos.length === 0) throw new Error('No UTXOs found inside your wallet.')
+  console.log(utxos)
 
-  // NFT Commitment bytes
-  const commitment = createBidCommitment(bidderPKH, normalizedBidAmount)
+  // Saving the invalid UTXOs
+  const invalidUtxos = []
+  let genesisUtxo = null
 
-  // Get private key from wallet for cashtoken wallet
-  const privateKey = wallet.privkey(genesisUtxo.address_path)
-  const WalletClass = wallet.isChipnet ? TestNetWallet : CashTokenWallet
-  const cashTokenWallet = await WalletClass.fromWIF(privateKey)
+  for(let i = 0; i < utxos.length; i++) {
+    const filteredUtxos = utxos.filter(
+      utxo => !invalidUtxos.find(invalidUtxo => invalidUtxo.txid === utxo.txid) 
+    )
+    
+    genesisUtxo = filteredUtxos.find(
+      utxo => utxo.satoshis > DUST_LIMIT && utxo.vout == 0
+    )
+    if (!genesisUtxo) throw new Error('No suitable genesis UTXO found in your wallet.')
+    const categoryId = genesisUtxo.txid
 
-  // Create NFT
-  const result = await cashTokenWallet.tokenGenesis(
-    {
-      cashaddr: contractTokenAddress,
-      amount: 0n,
-      capability: NFTCapability.mutable,
-      commitment,
-      value: normalizedBidAmount + MINER_FEE + PLATFORM_FEE + SERVICER_FEE
-    },
-    [],
-    {
-      buildUnsigned: !broadcast,
-      awaitTransactionPropagation: broadcast,
-      utxoIds: [{
-        txid: genesisUtxo.txid,
-        vout: genesisUtxo.vout,
-        satoshis: Number(genesisUtxo.satoshis)
-      }]
+    const privateKey = wallet.privkey(genesisUtxo.address_path)
+    const WalletClass = wallet.isChipnet ? TestNetWallet : CashTokenWallet
+    const cashTokenWallet = await WalletClass.fromWIF(privateKey)
+
+    // NFT Commitment bytes
+    const commitment = createBidCommitment(bidderPKH, normalizedBidAmount)
+
+    // Create NFT
+    try {
+      const result = await cashTokenWallet.tokenGenesis(
+        {
+          cashaddr: contractTokenAddress,
+          amount: 0n,
+          capability: NFTCapability.mutable,
+          commitment,
+          value: normalizedBidAmount + MINER_FEE + PLATFORM_FEE + SERVICER_FEE
+        },
+        [],
+        {
+          buildUnsigned: !broadcast,
+          awaitTransactionPropagation: broadcast,
+          utxoIds: [{
+            txid: genesisUtxo.txid,
+            vout: genesisUtxo.vout,
+            satoshis: Number(genesisUtxo.satoshis)
+          }]
+        }
+      )
+    
+      return (!broadcast) 
+        ? { 
+          success: true, 
+          txHex: result.unsignedTransaction, 
+          category: categoryId 
+        } 
+        : { 
+          success: Boolean(result.txId), 
+          txid: result.txId, 
+          category: categoryId 
+        }
+
+    } catch (error) {
+      console.error('First attempt failed:', error)
+      console.error('Error type:', typeof error)
+      console.error('Error properties:', error && Object.getOwnPropertyNames(error))
+      invalidUtxos.push(genesisUtxo)
+      continue
     }
-  )
-  
-  if (!broadcast) {
-    // Don't broadcast
-    return { 
-      success: true, 
-      txHex: result.unsignedTransaction, 
-      category: categoryId 
-    }
-  }
-
-  // Broadcast to watchtower
-  return { 
-    success: Boolean(result.txId), 
-    txid: result.txId, 
-    category: categoryId 
   }
 }
 
@@ -155,8 +177,7 @@ function createBidCommitment(bidderPKH, bidAmountSats) {
 // Converts a BCH amount to satoshis and validates the result.
 function toSatoshis(bidAmountBCH) {
   const amount = Number(bidAmountBCH)
-  if (!Number.isFinite(amount) || amount <= 0) {
+  if (!Number.isFinite(amount) || amount <= 0) 
     throw new Error('Invalid bid amount.')
-  }
   return BigInt(Math.round(amount * 1e8))
 }
