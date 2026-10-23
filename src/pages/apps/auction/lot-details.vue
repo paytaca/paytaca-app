@@ -749,7 +749,7 @@ import BiddingHistoryPopup from 'src/components/auction/BiddingHistoryPopup.vue'
 import SellerDisputePopup from 'src/components/auction/SellerDisputePopup.vue'
 import RefundPopup from 'src/components/auction/RefundPopup.vue'
 import DeliveryStatusHistoryDialog from 'src/components/auction/DeliveryStatusHistoryDialog.vue'
-import { DeliveryDetails } from 'src/auction/object'
+import { DeliveryDetails, Bid } from 'src/auction/object'
 
 // Quasar variables
 const $q = useQuasar()
@@ -1053,20 +1053,16 @@ const handlePlaceBid = async (bidData) => {
       bid_price_bch: bidBch,
       bid_price_fiat: bidFiat,
     })
-    if (!pendingBid?.id) throw new Error('Bid was not created.')
-    console.log('Bid was created in the server.')
+    if (!pendingBid?.id) throw new Error('Bid was not created in the server.')
 
     // Settle/Complete the bid through payment
     let settledBid
     $q.loading.show({ message: 'Processing smart contract...' })
     if (lotWinningBid.value?.id) { // EXISTING BIDS
-      console.log('OUTBIDDING...')
       const result = await callAPI('Outbid', pendingBid.id, 'post')
       if (!result.success) throw new Error(result.error || 'Failed to outbid.')
-      settledBid = result.data
-      console.log(`Settled bid: ${settledBid}`)
+      settledBid = result.errorData
     } else { 
-      console.log('FIRST BID...')
       const txid = await payFirstBidToContract(Number(props.lotId), Number(bidBch.toFixed(8)))
       const settlement = waitForBidSettlement(pendingBid.id)
       socket.send(JSON.stringify({
@@ -1074,8 +1070,8 @@ const handlePlaceBid = async (bidData) => {
         data: { id: pendingBid.id, lot: Number(props.lotId), txid }
       }))
       settledBid = await settlement
-      console.log(`Settled bid: ${settledBid}`)
     }
+    console.log('Settled bid:', settledBid)
     console.log('Bid completed.')
 
     showMakeBidDialog.value = false
@@ -1088,8 +1084,7 @@ const handlePlaceBid = async (bidData) => {
       timeout: 3000
     })
     
-    lotWinningBid.value = settledBid
-    $store.commit('auction/setHighestBid', settledBid)
+    $store.commit('auction/setHighestBid', Bid.parse(settledBid))
   } catch (error) {
     console.error(error)
     $q.notify({ 
@@ -1220,6 +1215,7 @@ const connectWebsocket = () => {
 
       // Received placebid acknowledgement
       case "place.bid_ack":
+        console.log('placing bid')
         await $store.dispatch('auction/updateBidFromWebsocket', data)
         bidResolver?.(data)
         bidResolver = null
@@ -1241,6 +1237,8 @@ const connectWebsocket = () => {
       case "bid.update": // Updating the bid's information
       case "update.highest_bid": // Updating the highest bidder
       case "update.winner": // Updating the bid winner
+        console.log('updating highest')
+        console.log('data: ', data)
         await $store.dispatch('auction/updateBidFromWebsocket', data)
         resolveBidSettlement(data)
         break
