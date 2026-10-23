@@ -1,7 +1,7 @@
 import Watchtower from 'watchtower-cash-js'
-const BCHJS = require('@psf/bch-js')
+import { hdNodeFromSeed, deriveHdNode, hdNodeToWif, hdNodeToSlpAddress, hdNodeToXPub, toSlpAddress } from 'src/utils/bch-keys'
+import { mnemonicToSeed } from 'bip39'
 const sha256 = require('js-sha256')
-const bchjs = new BCHJS()
 import axios from 'axios'
 import { getWatchtowerApiUrl, convertCashAddress } from './chipnet'
 
@@ -29,8 +29,8 @@ export class SlpWallet {
       return this._masterHDNodeCache
     }
     this._masterHDNodeCache = null
-    const seedBuffer = await bchjs.Mnemonic.toSeed(this.mnemonic)
-    this._masterHDNodeCache = bchjs.HDNode.fromSeed(seedBuffer)
+    const seedBuffer = await mnemonicToSeed(this.mnemonic)
+    this._masterHDNodeCache = hdNodeFromSeed(seedBuffer)
     this._masterHDNodeExpiry = Date.now() + 3600000
     return this._masterHDNodeCache
   }
@@ -41,10 +41,10 @@ export class SlpWallet {
   }
 
   async getXPubKey () {
-    const seedBuffer = await bchjs.Mnemonic.toSeed(this.mnemonic)
-    const masterHDNode = bchjs.HDNode.fromSeed(seedBuffer)
-    const childNode = masterHDNode.derivePath(this.derivationPath)
-    return bchjs.HDNode.toXPub(childNode)
+    const seedBuffer = await mnemonicToSeed(this.mnemonic)
+    const masterHDNode = hdNodeFromSeed(seedBuffer)
+    const childNode = deriveHdNode(masterHDNode, this.derivationPath)
+    return hdNodeToXPub(childNode)
   }
 
   /**
@@ -71,20 +71,20 @@ export class SlpWallet {
 
   async getAddressSetAt(index) {
     const masterHDNode = await this._getMasterHDNode()
-    const childNode = masterHDNode.derivePath(this.derivationPath)
-    const receivingAddressNode = childNode.derivePath('0/' + index)
-    const changeAddressNode = childNode.derivePath('1/' + index)
+    const childNode = deriveHdNode(masterHDNode, this.derivationPath)
+    const receivingAddressNode = deriveHdNode(childNode, '0/' + index)
+    const changeAddressNode = deriveHdNode(childNode, '1/' + index)
     const addresses = {
-      receiving: bchjs.HDNode.toSLPAddress(receivingAddressNode),
-      change: bchjs.HDNode.toSLPAddress(changeAddressNode)
+      receiving: hdNodeToSlpAddress(receivingAddressNode),
+      change: hdNodeToSlpAddress(changeAddressNode)
     }
 
     if (this.isChipnet) {
       const encodedReceivingAddress = convertCashAddress(addresses.receiving, this.isChipnet, false)
       const encodedChangeAddress = convertCashAddress(addresses.change, this.isChipnet, false)
 
-      addresses.receiving = bchjs.SLP.Address.toSLPAddress(encodedReceivingAddress)
-      addresses.change = bchjs.SLP.Address.toSLPAddress(encodedChangeAddress)
+      addresses.receiving = toSlpAddress(encodedReceivingAddress)
+      addresses.change = toSlpAddress(encodedChangeAddress)
     }
 
     return addresses
@@ -328,8 +328,8 @@ export class SlpWallet {
 
   async getPrivateKey (addressPath) {
     const masterHDNode = await this._getMasterHDNode()
-    const childNode = masterHDNode.derivePath(this.derivationPath + '/' + String(addressPath))
-    return bchjs.HDNode.toWIF(childNode)
+    const childNode = deriveHdNode(masterHDNode, this.derivationPath + '/' + String(addressPath))
+    return hdNodeToWif(childNode)
   }
 
   async getBalance (tokenId) {

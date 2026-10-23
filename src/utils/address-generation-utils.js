@@ -6,14 +6,14 @@
  * This ensures the wallet can track transactions to/from these addresses
  */
 
-import BCHJS from '@psf/bch-js'
+import { hdNodeFromSeed, deriveHdNode, hdNodeToCashAddress, slpToCashAddress } from 'src/utils/bch-keys'
+import { mnemonicToSeed } from 'bip39'
 import Watchtower from 'src/lib/watchtower'
 import sha256 from 'js-sha256'
 import axios from 'axios'
 import { convertCashAddress } from 'src/wallet/chipnet'
 import { getMnemonic } from 'src/wallet'
 
-const bchjs = new BCHJS()
 
 const projectId = {
   mainnet: process.env.WATCHTOWER_PROJECT_ID,
@@ -66,19 +66,19 @@ export async function generateAddressSetFromMnemonic(opts) {
     }
 
     // Generate master HD node from mnemonic
-    const seedBuffer = await bchjs.Mnemonic.toSeed(mnemonic)
-    const masterHDNode = bchjs.HDNode.fromSeed(seedBuffer)
+    const seedBuffer = await mnemonicToSeed(mnemonic)
+    const masterHDNode = hdNodeFromSeed(seedBuffer)
     
     // Derive child node for the given derivation path
-    const childNode = masterHDNode.derivePath(derivationPath)
+    const childNode = deriveHdNode(masterHDNode, derivationPath)
     
     // Generate receiving address (0/index) and change address (1/index).
     // Addresses are always generated as a pair sharing one index.
-    const receivingAddressNode = childNode.derivePath('0/' + validAddressIndex)
-    const changeAddressNode = childNode.derivePath('1/' + validAddressIndex)
+    const receivingAddressNode = deriveHdNode(childNode, '0/' + validAddressIndex)
+    const changeAddressNode = deriveHdNode(childNode, '1/' + validAddressIndex)
 
-    let receivingAddress = bchjs.HDNode.toCashAddress(receivingAddressNode)
-    let changeAddress = bchjs.HDNode.toCashAddress(changeAddressNode)
+    let receivingAddress = hdNodeToCashAddress(receivingAddressNode)
+    let changeAddress = hdNodeToCashAddress(changeAddressNode)
 
     // Convert to chipnet format if needed
     if (isChipnet) {
@@ -161,18 +161,18 @@ export async function generateAddressSetWithoutSubscription(opts) {
     }
 
     // Generate master HD node from mnemonic
-    const seedBuffer = await bchjs.Mnemonic.toSeed(mnemonic)
-    const masterHDNode = bchjs.HDNode.fromSeed(seedBuffer)
+    const seedBuffer = await mnemonicToSeed(mnemonic)
+    const masterHDNode = hdNodeFromSeed(seedBuffer)
     
     // Derive child node for the given derivation path
-    const childNode = masterHDNode.derivePath(derivationPath)
+    const childNode = deriveHdNode(masterHDNode, derivationPath)
     
     // Generate receiving address (0/index) and change address (1/index)
-    const receivingAddressNode = childNode.derivePath('0/' + validAddressIndex)
-    const changeAddressNode = childNode.derivePath('1/' + validAddressIndex)
+    const receivingAddressNode = deriveHdNode(childNode, '0/' + validAddressIndex)
+    const changeAddressNode = deriveHdNode(childNode, '1/' + validAddressIndex)
 
-    let receivingAddress = bchjs.HDNode.toCashAddress(receivingAddressNode)
-    let changeAddress = bchjs.HDNode.toCashAddress(changeAddressNode)
+    let receivingAddress = hdNodeToCashAddress(receivingAddressNode)
+    let changeAddress = hdNodeToCashAddress(changeAddressNode)
 
     // Convert to chipnet format if needed
     if (isChipnet) {
@@ -238,7 +238,7 @@ function toWatchtowerAddress(address, isChipnet) {
   let cashAddress = String(address || '').trim()
 
   if (cashAddress.startsWith('simpleledger:')) {
-    cashAddress = bchjs.SLP.Address.toCashAddress(cashAddress)
+    cashAddress = slpToCashAddress(cashAddress)
   }
 
   if (cashAddress.startsWith('simpleledger:') ||
@@ -269,15 +269,15 @@ async function deriveAddressBatch(opts) {
     throw new Error('Mnemonic not found')
   }
 
-  const seedBuffer = await bchjs.Mnemonic.toSeed(mnemonic)
-  const masterHDNode = bchjs.HDNode.fromSeed(seedBuffer)
-  const childNode = masterHDNode.derivePath(derivationPath)
+  const seedBuffer = await mnemonicToSeed(mnemonic)
+  const masterHDNode = hdNodeFromSeed(seedBuffer)
+  const childNode = deriveHdNode(masterHDNode, derivationPath)
   const chainPath = chain === 'change' ? '1' : '0'
 
   const addresses = []
   for (let i = 0; i < count; i++) {
     const addressIndex = startIndex + i
-    let address = bchjs.HDNode.toCashAddress(childNode.derivePath(`${chainPath}/${addressIndex}`))
+    let address = hdNodeToCashAddress(deriveHdNode(childNode, `${chainPath}/${addressIndex}`))
     if (isChipnet) {
       address = convertCashAddress(address, isChipnet, false)
     }

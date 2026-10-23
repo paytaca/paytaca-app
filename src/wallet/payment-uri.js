@@ -1,12 +1,12 @@
 import axios from 'axios'
-import BCHJS from '@psf/bch-js'
+import { isCashAddress, toCashAddress, isSlpAddress } from 'src/utils/bch-keys'
+import { hashTransaction, hexToBin } from 'bitauth-libauth-v3'
 import { utils } from 'ethers'
 import BigNumber from 'bignumber.js'
 
 import { parsePOSLabel } from 'src/wallet/pos'
 import { Wallet } from './index'
 import { decodeBIP0021URI } from 'src/wallet/bch'
-import { sha256 } from "@psf/bch-js/src/crypto"
 import Watchtower from 'watchtower-cash-js';
 import { getWalletByNetwork } from './chipnet'
 import SingleWallet from './single-wallet'
@@ -15,7 +15,6 @@ import { toTokenAddress } from 'src/utils/crypto'
 import { watchtowerUtxoToCashscriptP2pkh } from 'src/utils/utxo-utils'
 import { isTokenAddress } from 'src/utils/address-utils'
 
-const bchjs = new BCHJS()
 /**
  * 
  * @typedef {Object} PaymentUriOutput
@@ -124,8 +123,8 @@ export function parsePaytacaPaymentUri(paymentUri = '') {
   // some validations
   let addressValidator = () => true
   if (response.asset.chain === 'main') {
-    if (response.asset.assetId.startsWith('slp/')) addressValidator = address => bchjs.SLP.Address.isSLPAddress(address)
-    else addressValidator = address => bchjs.Address.isCashAddress(address)
+    if (response.asset.assetId.startsWith('slp/')) addressValidator = address => isSlpAddress(address)
+    else addressValidator = address => isCashAddress(address)
   } else if (response.asset.chain === 'smart') {
     addressValidator = utils.isAddress
   }
@@ -358,7 +357,7 @@ export class JSONPaymentProtocol {
       .map(output => {
         try {
           // some services(like anypay) do not include the 'bitcoincash:' prefix
-          output.address = bchjs.Address.toCashAddress(output.address)
+          output.address = toCashAddress(output.address)
         } catch {}
         return output
       })
@@ -800,7 +799,7 @@ export class JSONPaymentProtocol {
       outputs: txInstruction?.outputs?.map(output => Object({
         description: output?.description,
         amount: output?.amount,
-        address: isTokenAddress(output.address) ? output.address : bchjs.Address.toCashAddress(output?.address),
+        address: isTokenAddress(output.address) ? output.address : toCashAddress(output?.address),
         token: !output?.token ? undefined : {
           amount: output.token?.amount,
           category: output.token?.category,
@@ -917,7 +916,7 @@ export class JSONPaymentProtocol {
   }
 
   static rawTxToHash(tx='') {
-    return sha256(sha256(Buffer.from(tx, 'hex'))).reverse().toString('hex')
+    return hashTransaction(hexToBin(tx))
   }
 
   static async getTxConfirmations(txid='') {

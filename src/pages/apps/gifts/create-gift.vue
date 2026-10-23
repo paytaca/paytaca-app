@@ -437,7 +437,8 @@ import ShareGiftPanel from '../../../components/gifts/ShareGiftPanel.vue'
 import CustomKeyboard from '../../../components/CustomKeyboard.vue'
 import { getMnemonic, Wallet } from '../../../wallet'
 import axios from 'axios'
-import { ECPair } from '@psf/bitcoincashjs-lib'
+import { encodePrivateKeyWif, generatePrivateKey } from 'bitauth-libauth-v3'
+import { wifToCashAddress } from 'src/utils/bch-keys'
 import { toHex } from 'hex-my-bytes'
 import sha256 from 'js-sha256'
 import { 
@@ -640,13 +641,9 @@ export default {
       vm.processing = true
       
       try {
-        const privateKey = ECPair.makeRandom()
-        const wif = privateKey.toWIF()
+        const wif = encodePrivateKeyWif(generatePrivateKey(), 'mainnet')
 
-        const BCHJS = require('@psf/bch-js')
-        const bchjs = new BCHJS()
-        const pair = bchjs.ECPair.fromWIF(wif)
-        const address = bchjs.ECPair.toCashAddress(pair)
+        const address = wifToCashAddress(wif)
         
         const secret = Buffer.from(wif)
         const stateShare = sss.split(secret, { shares: 2, threshold: 2 })

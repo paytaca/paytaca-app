@@ -1,3 +1,5 @@
+import { toCashAddress as toCashAddressFormat } from 'src/utils/bch-keys'
+
 function satoshiToBCHString (amount = 0) {
   const bchAmount = amount * (10 ** -8)
   return `${bchAmount.toFixed(8)} BCH`
@@ -12,30 +14,18 @@ export class PaymentRequestOutput {
   }
 
   isAddressValid () {
-    // validate address here
-    try {
-      const BCHJS = require('@psf/bch-js')
-      const bchjs = new BCHJS()
-      return bchjs.Address.isLegacyAddress(this.address) ||
-            bchjs.Address.isCashAddress(this.address)
-    } catch (e) {
-      if (e && e.code === 'MODULE_NOT_FOUND') console.warn(`unable to verify address: '${this.address}'`)
-    }
-
-    return true
+    return Boolean(this.toCashAddress())
   }
 
   toCashAddress () {
-    if (!this.isAddressValid()) return ''
+    let address
     try {
-      const BCHJS = require('@psf/bch-js')
-      const bchjs = new BCHJS()
-      return bchjs.Address.toCashAddress(this.address)
-    } catch (e) {
-      if (e && e.code === 'MODULE_NOT_FOUND') console.warn(`unable to verify address: '${this.address}'`)
-      else console.error(e)
+      address = toCashAddressFormat(this.address)
+    } catch {
+      return ''
     }
 
+    if (address.startsWith('bitcoincash:') || address.startsWith('bchtest:')) return address
     return ''
   }
 
@@ -58,7 +48,8 @@ export class PaymentDetails {
       this.outputs = []
       for (const address in paymentDetails['2']) {
         const output = new PaymentRequestOutput(address, paymentDetails['2'][address])
-        if (!output.isAddressValid()) continue
+        // one unpayable output makes the request invalid, rather than paying only the others
+        if (!output.isAddressValid()) throw new Error(`Invalid output address: ${address}`)
 
         this.outputs.push(output)
       }
