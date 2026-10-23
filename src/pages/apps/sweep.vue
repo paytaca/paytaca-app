@@ -238,7 +238,7 @@ import { convertCashAddress, convertToTokenAmountWithDecimals } from 'src/wallet
 import { convertIpfsUrl } from 'src/wallet/cashtokens'
 import { parseFiatCurrency } from 'src/utils/denomination-utils'
 import bip38 from '@asoltys/bip38'
-import * as wifPackage from 'wif'
+import { encodePrivateKeyWif } from 'bitauth-libauth-v3'
 
 export default {
   name: 'sweep',
@@ -968,11 +968,10 @@ export default {
       setTimeout(() => {
         try {
           const decryptedKey = bip38.decrypt(this.bip38String, this.passPhrase)
-          const wifKey = wifPackage.encode({
-            version: 0x80,
-            privateKey: decryptedKey.privateKey,
-            compressed: decryptedKey.compressed
-          })
+          const wifKey = encodePrivateKeyWif(
+            decryptedKey.privateKey,
+            decryptedKey.compressed ? 'mainnet' : 'mainnetUncompressed'
+          )
           this.isDecrypting = false
           this.wif = wifKey
           this.getTokens(true)

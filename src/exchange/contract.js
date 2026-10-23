@@ -2,7 +2,7 @@ import EscrowArtifact from 'src/cashscripts/escrow.json'
 import { ElectrumNetworkProvider, Contract, SignatureTemplate } from 'cashscript'
 import { Store } from 'src/store'
 import { hash160 } from 'bitauth-libauth-v3'
-import CryptoJS from 'crypto-js'
+import { sha256 } from 'js-sha256'
 
 import Watchtower from 'src/lib/watchtower'
 const isChipnet = Store.getters['global/isChipnet']
@@ -151,7 +151,7 @@ export class RampContract {
    */
   sha256Hash (arbiterPk, buyerPk, sellerPk, servicerPk, timestamp) {
     const message = arbiterPk + buyerPk + sellerPk + servicerPk + timestamp
-    return CryptoJS.SHA256(message).toString()
+    return sha256(message)
   }
 
   /**
