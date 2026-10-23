@@ -16,7 +16,7 @@
     "postinstall": "patch-package && quasar prepare",
     "test": "cypress run",
     "test:unit": "mocha",
-    "test:smoke": "node --experimental-loader ./test/mock-loader.mjs ./test/secure-storage-migration.smoke.mjs && node --experimental-loader ./test/mock-loader.mjs ./test/bch-keys.smoke.mjs",
+    "test:smoke": "node --experimental-loader ./test/mock-loader.mjs ./test/secure-storage-migration.smoke.mjs && node --experimental-loader ./test/mock-loader.mjs ./test/bch-keys.smoke.mjs && node --experimental-loader ./test/mock-loader.mjs ./test/contract-id.smoke.mjs && node --experimental-loader ./test/mock-loader.mjs ./test/token-genesis.smoke.mjs",
     "release": "node scripts/generate-release.mjs"
   },
   "dependencies": {
@@ -44,7 +44,6 @@
     "@jsonforms/core": "^3.1.0",
     "@jsonforms/vue": "^3.1.0",
     "@jsonforms/vue-vanilla": "^3.1.0",
-    "@mainnet-cash/contract": "^2.7.34",
     "@ngraveio/bc-ur": "^1.1.13",
     "@noble/curves": "^2.0.1",
     "@noble/hashes": "^2.2.0",
@@ -89,7 +88,6 @@
     "leaflet": "^1.9.2",
     "leaflet-geosearch": "^4.0.0",
     "localforage": "^1.10.0",
-    "mainnet-js": "^2.4.3",
     "net": "^1.0.2",
     "node-fetch": "^2.7.0",
     "nostr-tools": "^2.23.3",

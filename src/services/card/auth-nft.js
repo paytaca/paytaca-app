@@ -1,7 +1,6 @@
 
 import { cardLogger } from 'src/utils/debug-logger.js'
 import { createHash } from 'crypto';
-import { NFTCapability, Wallet } from 'mainnet-js';
 import { defaultSpendLimitSats, DUST_LIMIT } from './constants';
 import { loadWallet } from 'src/services/wallet.js';
 import Watchtower from 'watchtower-cash-js'
@@ -11,10 +10,10 @@ const watchtower = new Watchtower()
 const MINT_VALUE = 1000n;
 
 /**
- * Service wrapper for issuing and managing authorization NFTs using mainnet-js.
+ * Service wrapper for issuing and managing authorization NFTs.
  *
  * Provides helpers to initialize a wallet, mint/issue/mutate/burn NFTs, and
- * query balances and token UTXOs for a given token category.
+ * query token UTXOs for a given token category.
  */
 class AuthNftService {
 
@@ -25,7 +24,6 @@ class AuthNftService {
      */
     static async initializeWithWallet(wif) {
         const service = new AuthNftService(wif);
-        service.ctWallet = await Wallet.fromWIF(wif);
         service.wallet = await loadWallet();
         return service;
     }
@@ -60,16 +58,6 @@ class AuthNftService {
     async getMutableTokens(tokenId, tokenAddress) {
         const utxos = await this.getTokenUtxos(tokenId, tokenAddress);
         return utxos.filter(utxo => utxo.token?.nft?.capability === 'mutable')
-    }
-
-    /**
-     * Returns the wallet BCH balance.
-     * @returns {Promise<Object>}
-     */
-    async getBalance() {
-        this._assertWallet();
-        const balance = await this.ctWallet.getBalance();
-        return balance;
     }
 
     async genesis(opts = {broadcast: true}) {
@@ -151,7 +139,7 @@ class AuthNftService {
     async mint({ tokenId, merchants, opts = { broadcast: true } }) {
         this._assertWallet();
 
-        const mintingTokenUtxoRespose = await this.wallet.getTokenUtxos(tokenId, null, { capability: NFTCapability.minting })
+        const mintingTokenUtxoRespose = await this.wallet.getTokenUtxos(tokenId, null, { capability: 'minting' })
         if (!mintingTokenUtxoRespose || mintingTokenUtxoRespose.length === 0) {
             throw new Error(`No minting UTXO found for tokenId: ${tokenId}`);
         }
@@ -220,7 +208,7 @@ class AuthNftService {
                     category: tokenId,
                     amount: 0n,
                     nft: {
-                        capability: NFTCapability.mutable,
+                        capability: 'mutable',
                         commitment: commitment,
                     }
                 }
