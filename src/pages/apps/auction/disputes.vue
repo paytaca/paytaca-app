@@ -113,7 +113,7 @@
                 <span class="text-caption q-mt-xs" style="opacity: 0.65;">
                   <q-icon name="schedule" size="xs" class="q-mr-xs" />
                   <span v-if="dispute.status === 'Resolved'">{{ formatTimeSince(dispute.resolution_date) }} ago</span>
-                  <span v-else>{{ formatTimeSince(dispute.creation_date) }} ago</span>
+                  <span v-else>{{ formatTimeSince(dispute.date_created) }} ago</span>
                 </span>
               </div>
 

@@ -97,7 +97,7 @@
                   <div class="text-caption col-4 q-mr-sm">
                     <q-icon name="event" size="13px" class="q-mr-xs" />Posted on
                   </div>
-                  <span>{{ formatAuctionDate(auction?.creation_date) }}</span>
+                  <span>{{ formatAuctionDate(auction?.date_created) }}</span>
                 </div>
               </q-card-section>
             </q-card>

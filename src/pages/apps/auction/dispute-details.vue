@@ -45,7 +45,7 @@
             <span class="text-caption" style="opacity: 0.65;">
               <q-icon name="schedule" size="xs" class="q-mr-xs" />
               <span v-if="details.status === 'Resolved'">{{ formatTimeSince(details.resolution_date) }} ago</span>
-              <span v-else>{{ formatTimeSince(details.creation_date) }} ago</span>
+              <span v-else>{{ formatTimeSince(details.date_created) }} ago</span>
             </span>
           </div>
 
