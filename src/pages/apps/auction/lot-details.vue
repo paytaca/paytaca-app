@@ -580,7 +580,7 @@
                 <div class="text-body2 text-weight-medium">
                   {{ formatAuctionDate(auction?.start_date) }}
                 </div>
-                <div  v-if="auction.status === 'Upcoming'" class="text-secondary">
+                <div  v-if="lot?.status === 'Inactive'" class="text-secondary">
                   Time Remaining: {{ auctionStartCountdown }}
                 </div>
                 <div  v-else class="text-secondary"></div>
@@ -592,7 +592,7 @@
                 <div class="text-body2 text-weight-medium">
                   {{ formatAuctionDate(auction?.end_date) }}
                 </div>
-                <div v-if="auction.status === 'Open'" class="text-secondary">
+                <div v-if="lot?.status === 'Active'" class="text-secondary">
                   Time Remaining: {{ auctionEndCountdown }}
                 </div>
                 <div  v-else class="text-secondary"></div>
@@ -1007,21 +1007,18 @@ const userIsLeadingBidder = computed(() => lotWinningBid.value?.bidder?.id === u
 const handlePlaceBid = async (bidData) => {
   // Loading is still ongoing
   if (isBidLoading.value) return
-  console.log('Bid is not loading.')
 
   // Wallet not connected
   if (!userWalletHash.value) {
     $q.notify({ type: 'warning', message: 'Please connect your wallet first.' })
     return
   }
-  console.log('Wallet connected.')
 
   // If ever (supposedly not being reached)
-  if (lot.value?.status !== 'Active' || auction.value?.status !== 'Open') {
+  if (lot.value?.status !== 'Active') {
     $q.notify({ type: 'warning', message: 'This lot is not accepting bids.' })
     return
   }
-  console.log('Lot is active and auction is still open.')
 
   // Bid information
   const bidBch = Number(bidData.bid_price_bch)
@@ -1090,6 +1087,9 @@ const handlePlaceBid = async (bidData) => {
         : 'Your bid was accepted but has already been outbid.',
       timeout: 3000
     })
+    
+    lotWinningBid.value = settledBid
+    $store.commit('auction/setHighestBid', settledBid)
   } catch (error) {
     console.error(error)
     $q.notify({ 
@@ -1175,8 +1175,8 @@ const connectWebsocket = () => {
 
       // Updating the lot's status
       case "lot.update_status":
-        if (data?.id && data?.status) 
-          $store.commit('auction/updateLotStatus', data)
+        if (data && data?.status) 
+          $store.commit('auction/updateLotStatus', { id: props.lotId, status: data.status })
         if (data.status !== 'Active') 
           showMakeBidDialog.value = false
         if (data.status === 'Sold') 
