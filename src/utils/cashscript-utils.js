@@ -1,6 +1,6 @@
 import { hexToBin } from "@bitauth/libauth";
 import { SignatureAlgorithm, SignatureTemplate, TransactionBuilder, encodeFunctionArgument, utils } from "cashscript";
-import { calculateDust, createUnlockingBytecode, getInputSize, getOutputSize, getTxSizeWithoutInputs } from "cashscript/dist/utils";
+import { calculateDust, createUnlockingBytecode, getInputSize, getOutputSize, getTxSizeWithoutInputs } from "cashscript/dist/utils.js";
 
 export const P2PKH_INPUT_SIZE = 32 + 4 + 1 + 1 + 65 + 1 + 33 + 4;
 
