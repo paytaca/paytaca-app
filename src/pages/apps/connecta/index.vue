@@ -219,7 +219,9 @@
 </template>
 <script>
 import { markRaw } from '@vue/reactivity'
-import createHmac from 'create-hmac'
+import { hmac } from '@noble/hashes/hmac.js'
+import { sha256 } from '@noble/hashes/sha2.js'
+import { bytesToHex, utf8ToBytes } from '@noble/hashes/utils.js'
 import { getMnemonic, Wallet } from '../../../wallet'
 import HeaderNav from 'components/header-nav'
 import DragSlide from 'components/drag-slide'
@@ -406,8 +408,7 @@ export default {
       const headers = {}
       const secret = process.env.CONNECTA_WEBHOOK_SHARED_SECRET || ''
       const headerName = 'X-Paytaca-Webhook-Hmac-Sha256'
-      const hmac = createHmac('sha256', secret).update(JSON.stringify(data)).digest('hex')
-      headers[headerName] = hmac
+      headers[headerName] = bytesToHex(hmac(sha256, utf8ToBytes(secret), utf8ToBytes(JSON.stringify(data))))
 
       const url = this.paymentRequest.paymentDetails.paymentUrl ||
                 'v1/paytaca/webhooks/tx_update/'

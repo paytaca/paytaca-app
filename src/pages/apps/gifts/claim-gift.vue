@@ -106,9 +106,10 @@ import { getMnemonic, Wallet } from '../../../wallet'
 import { getAssetDenomination } from 'src/utils/denomination-utils'
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 import QRUploader from 'src/components/QRUploader'
+import { pbkdf2 } from '@noble/hashes/pbkdf2.js'
+import { sha512 } from '@noble/hashes/sha2.js'
 
 const aesjs = require('aes-js')
-const pbkdf2 = require('pbkdf2')
 
 export default {
   name: 'sweep',
@@ -204,7 +205,7 @@ export default {
       }
     },
     decryptShard(encryptedHex, password) {
-      const key = pbkdf2.pbkdf2Sync(password, '_saltDefault2024', 1, 128 / 8, 'sha512')
+      const key = pbkdf2(sha512, password, '_saltDefault2024', { c: 1, dkLen: 128 / 8 })
       const encryptedBytes = aesjs.utils.hex.toBytes(encryptedHex)
       const aesCtr = new aesjs.ModeOfOperation.ctr(key)
       const decryptedBytes = aesCtr.decrypt(encryptedBytes)

@@ -467,10 +467,11 @@ import { showLimitDialogWithDeps } from 'src/composables/useTieredLimitGate'
 import KeyboardTooltip from 'src/components/KeyboardTooltip.vue'
 import { useKeyboardTooltip } from 'src/composables/useKeyboardTooltip'
 import { getChangeAddress } from 'src/utils/send-page-utils'
+import { pbkdf2 } from '@noble/hashes/pbkdf2.js'
+import { sha512 } from '@noble/hashes/sha2.js'
 
 const aesjs = require('aes-js')
 const short = require('short-uuid')
-const pbkdf2 = require('pbkdf2')
 const sss = require('shamirs-secret-sharing')
 
 export default {
@@ -598,7 +599,7 @@ export default {
     getDarkModeClass,
     encryptShard(shard) {
       const password = short.generate()
-      const key = pbkdf2.pbkdf2Sync(password, '_saltDefault2024', 1, 128 / 8, 'sha512')
+      const key = pbkdf2(sha512, password, '_saltDefault2024', { c: 1, dkLen: 128 / 8 })
       const textBytes = aesjs.utils.utf8.toBytes(shard)
       const aesCtr = new aesjs.ModeOfOperation.ctr(key)
       const encryptedBytes = aesCtr.encrypt(textBytes)
