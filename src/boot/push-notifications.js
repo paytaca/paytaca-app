@@ -6,7 +6,6 @@ import { registerPlugin } from '@capacitor/core'
 import { Capacitor } from '@capacitor/core';
 import { Device } from '@capacitor/device';
 import Watchtower from 'watchtower-cash-js';
-import { BigNumber } from 'ethers'
 import { Platform } from 'quasar'
 import axios from 'axios';
 import { Store } from 'src/store';
@@ -353,7 +352,7 @@ class PushNotificationsManager {
     if (platform === 'ios') {
       data.apns_device = deviceInfo
     } else if (platform === 'android') {
-      const _device_id = BigNumber.from('0x' + deviceInfo.device_id)
+      const _device_id = BigInt('0x' + deviceInfo.device_id)
       deviceInfo.device_id = _device_id.toString()
       data.gcm_device = deviceInfo
     }
@@ -385,7 +384,7 @@ class PushNotificationsManager {
     if (platform === 'ios') {
       data.apns_device_id = this.deviceId
     } else if (platform === 'android') {
-      const _device_id = BigNumber.from('0x' + this.deviceId).toString()
+      const _device_id = BigInt('0x' + this.deviceId).toString()
       data.gcm_device_id = _device_id
     } else {
       return console.log('Aborting unsubscribe, no valid platform found')
