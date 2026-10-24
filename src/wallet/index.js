@@ -20,13 +20,18 @@ import { SecureStoragePlugin } from 'capacitor-secure-storage-plugin'
 import { getWalletHashFromIndexAsync } from 'src/utils/wallet-storage'
 import { generateMnemonic as generateBip39Mnemonic } from 'bip39'
 
-// Matches the error thrown by the patched capacitor-secure-storage-plugin web
-// implementation when an encrypted value cannot be decrypted (e.g. the
-// device encryption key in IndexedDB was lost).
+// Matches the errors thrown by the patched capacitor-secure-storage-plugin web
+// implementation when an encrypted value cannot be read on this device:
+//  - SECURE_STORAGE_DECRYPT_FAILED: ciphertext does not decrypt with the key
+//  - SECURE_STORAGE_KEY_MISSING: encrypted values exist but the at-rest key in
+//    IndexedDB is gone (e.g. browser data cleared). The user-facing condition
+//    is the same as a failed decrypt: the stored secret is unreadable.
 const SECURE_STORAGE_DECRYPT_ERROR = 'SECURE_STORAGE_DECRYPT_FAILED'
+const SECURE_STORAGE_KEY_MISSING_ERROR = 'SECURE_STORAGE_KEY_MISSING'
 
 export function isSecureStorageDecryptError (err) {
-  return err?.message === SECURE_STORAGE_DECRYPT_ERROR
+  return err?.message === SECURE_STORAGE_DECRYPT_ERROR ||
+    err?.message === SECURE_STORAGE_KEY_MISSING_ERROR
 }
 
 

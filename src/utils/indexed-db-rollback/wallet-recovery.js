@@ -1,4 +1,5 @@
-import { getMnemonic, Wallet } from 'src/wallet'
+import { Capacitor } from '@capacitor/core'
+import { getMnemonic, getMnemonicByHash, Wallet } from 'src/wallet'
 import { Store } from 'src/store'
 import sha256 from 'js-sha256'
 
@@ -304,6 +305,57 @@ export function resetAssetsList(index) {
     }
 }
 
+/**
+ * Build the wallet snapshots needed to store a wallet in the vault.
+ * Shared by index-based and mnemonic-key-based recovery.
+ * @param {string} mnemonic
+ * @returns {Promise<{wallet: Object, chipnet: Object, snapshots: Object[]}>}
+ */
+async function buildWalletSnapshots (mnemonic) {
+    const wallet = new Wallet(mnemonic)
+    const walletTypes = [
+        { instance: wallet.BCH, isChipnet: false, type: 'bch' },
+        { instance: wallet.BCH_CHIP, isChipnet: true, type: 'bch' },
+        { instance: wallet.SLP, isChipnet: false, type: 'slp' },
+        { instance: wallet.SLP_TEST, isChipnet: true, type: 'slp' }
+    ]
+
+    const bchWalletsInfo = {}
+    const chipnetWalletsInfo = {}
+    const snapshots = []
+
+    for (const { instance, isChipnet, type } of walletTypes) {
+        const addresses = await instance.getAddressSetAt(0)
+        const xPubKey = await instance.getXPubKey()
+
+        const walletTypeInfo = {
+            isChipnet,
+            type,
+            walletHash: instance.walletHash,
+            derivationPath: instance.derivationPath,
+            lastAddress: addresses !== null ? addresses.receiving : '',
+            lastChangeAddress: addresses !== null ? addresses.change : '',
+            lastAddressIndex: 0
+        }
+
+        const snapshot = {
+            walletHash: walletTypeInfo.walletHash,
+            derivationPath: walletTypeInfo.derivationPath,
+            lastAddress: walletTypeInfo.lastAddress,
+            lastChangeAddress: walletTypeInfo.lastChangeAddress,
+            lastAddressIndex: walletTypeInfo.lastAddressIndex,
+            xPubKey
+        }
+
+        if (isChipnet) chipnetWalletsInfo[type] = snapshot
+        else bchWalletsInfo[type] = snapshot
+
+        snapshots.push({ walletTypeInfo, xPubKey, isChipnet, type })
+    }
+
+    return { wallet: bchWalletsInfo, chipnet: chipnetWalletsInfo, snapshots }
+}
+
 async function recoverWallet(index, save=false) {
     const store = Store
     const walletVault = store.getters['global/getVault']
@@ -334,108 +386,17 @@ async function recoverWallet(index, save=false) {
         return null
     }
 
-    const wallet = new Wallet(mnemonic)
-    const bchWallets = [wallet.BCH, wallet.BCH_CHIP]
-    const slpWallets = [wallet.SLP, wallet.SLP_TEST]
+    const { wallet: bchWalletsInfo, chipnet: chipnetWalletsInfo, snapshots } = await buildWalletSnapshots(mnemonic)
 
-    const chipnetWalletsInfo = {}
-    const bchWalletsInfo = {}
-    for (const bchWallet of bchWallets) {
-        const isChipnet = bchWallets.indexOf(bchWallet) === 1
-        const networkName = isChipnet ? 'chipnet' : 'mainnet'
-
-        let walletSnapshot = {}
-        await bchWallet.getAddressSetAt(0).then(function (addresses) {
-            const walletTypeInfo = {
-                isChipnet,
-                type: 'bch',
-                walletHash: bchWallet.walletHash,
-                derivationPath: bchWallet.derivationPath,
-                lastAddress: addresses !== null ? addresses.receiving : '',
-                lastChangeAddress: addresses !== null ? addresses.change : '',
-                lastAddressIndex: 0,
-            }
-
-            if (save) {
-                store.commit('global/updateWallet', walletTypeInfo)
+    if (save) {
+        for (const { walletTypeInfo, xPubKey, isChipnet, type } of snapshots) {
+            store.commit('global/updateWallet', walletTypeInfo)
+            if (type === 'bch') {
                 try {
                     store.dispatch('global/refetchWalletPreferences')
                 } catch(error) { console.error(error) }
             }
-
-            walletSnapshot = {
-                walletHash: walletTypeInfo.walletHash,
-                derivationPath: walletTypeInfo.derivationPath,
-                lastAddress: walletTypeInfo.lastAddress,
-                lastChangeAddress: walletTypeInfo.lastChangeAddress,
-                lastAddressIndex: walletTypeInfo.lastAddressIndex
-            }
-
-        })
-
-        await bchWallet.getXPubKey().then(function (xpub) {
-            const xPubInfo = {
-                isChipnet,
-                type: 'bch',
-                xPubKey: xpub
-            }
-
-            walletSnapshot.xPubKey = xpub
-
-            if (save) store.commit('global/updateXPubKey', xPubInfo)
-        })
-
-        if (isChipnet) {
-            chipnetWalletsInfo['bch'] = walletSnapshot
-        } else {
-            bchWalletsInfo['bch'] = walletSnapshot
-        }
-    }
-
-    for (const slpWallet of slpWallets) {
-        const isChipnet = slpWallets.indexOf(slpWallet) === 1
-
-        const networkName = isChipnet ? 'chipnet' : 'mainnet'
-
-        let walletSnapshot = {}
-        await slpWallet.getAddressSetAt(0).then(function (addresses) {
-            const walletTypeInfo = {
-                isChipnet,
-                type: 'slp',
-                walletHash: slpWallet.walletHash,
-                derivationPath: slpWallet.derivationPath,
-                lastAddress: addresses !== null ? addresses.receiving : '',
-                lastChangeAddress: addresses !== null ? addresses.change : '',
-                lastAddressIndex: 0
-            }
-
-            if (save) store.commit('global/updateWallet', walletTypeInfo)
-
-            walletSnapshot = {
-                walletHash: walletTypeInfo.walletHash,
-                derivationPath: walletTypeInfo.derivationPath,
-                lastAddress: walletTypeInfo.lastAddress,
-                lastChangeAddress: walletTypeInfo.lastChangeAddress,
-                lastAddressIndex: walletTypeInfo.lastAddressIndex
-            }
-        })
-
-        await slpWallet.getXPubKey().then(function (xpub) {
-            const xPubInfo = {
-                isChipnet,
-                type: 'slp',
-                xPubKey: xpub
-            }
-
-            walletSnapshot.xPubKey = xpub
-
-            if (save) store.commit('global/updateXPubKey', xPubInfo)
-        })
-
-        if (isChipnet) {
-            chipnetWalletsInfo['slp'] = walletSnapshot
-        } else {
-            bchWalletsInfo['slp'] = walletSnapshot
+            store.commit('global/updateXPubKey', { isChipnet, type, xPubKey })
         }
     }
 
@@ -634,4 +595,109 @@ export async function recoverWalletsFromStorage() {
     }).catch(error => {
         Store.commit('global/setWalletRecoveryMessage', String(error))
     })
+}
+
+const MNEMONIC_KEY_RECOVERY_FLAG = 'mnemonic-key-recovery-done'
+const MNEMONIC_HASH_KEY_PATTERN = /^cap_sec_mn_([a-fA-F0-9]{64})$/
+
+function getVaultWalletHash (entry) {
+    if (!entry || entry.deleted === true) return null
+    const hash = entry.wallet?.bch?.walletHash || entry.wallet?.BCH?.walletHash
+    return hash ? String(hash).trim() : null
+}
+
+/**
+ * Rebuild vault entries from mnemonic keys stored as `mn_<walletHash>`.
+ *
+ * A previous bug could clear the vault (localStorage `vuex`) while leaving the
+ * encrypted mnemonic keys in place. The wallet hash is part of the key, so the
+ * mnemonic can be read back and its hash verified, which is enough to rebuild
+ * the vault entry and restore access to the user's funds.
+ *
+ * Additive only: never overwrites an existing entry. No-op on native, where
+ * secure storage is not enumerable and the vault is not affected by that bug.
+ */
+export async function recoverWalletsFromMnemonicKeys () {
+    if (Capacitor.getPlatform() !== 'web') return
+    if (typeof localStorage === 'undefined') return
+    if (localStorage.getItem(MNEMONIC_KEY_RECOVERY_FLAG) === 'true') return
+
+    const vault = Store.getters['global/getVault'] || []
+    // Include deleted entries so an intentionally deleted wallet is never
+    // resurrected from a leftover key.
+    const knownHashes = new Set(
+        vault
+            .map(entry => {
+                const hash = entry?.wallet?.bch?.walletHash || entry?.wallet?.BCH?.walletHash
+                return hash ? String(hash).trim() : null
+            })
+            .filter(Boolean)
+    )
+
+    const orphanHashes = Object.keys(localStorage)
+        .map(key => key.match(MNEMONIC_HASH_KEY_PATTERN))
+        .filter(match => match && !knownHashes.has(match[1]))
+        .map(match => match[1])
+
+    if (orphanHashes.length === 0) {
+        localStorage.setItem(MNEMONIC_KEY_RECOVERY_FLAG, 'true')
+        return
+    }
+
+    const hadUsableWallet = vault.some(entry => getVaultWalletHash(entry) !== null)
+    let recovered = 0
+    let unreadable = 0
+    let firstRecoveredIndex = null
+
+    for (const walletHash of orphanHashes) {
+        let mnemonic = null
+        try {
+            mnemonic = await getMnemonicByHash(walletHash)
+        } catch (error) {
+            // Key lost or ciphertext undecryptable; retry on next boot in case
+            // the failure is transient.
+            unreadable++
+            console.warn(`[Wallet Recovery] Stored mnemonic for ${walletHash} is unreadable:`, error)
+            continue
+        }
+        if (!mnemonic) continue
+
+        const computedHash = computeWalletHashFromMnemonic(mnemonic)
+        if (!computedHash || computedHash.toLowerCase() !== walletHash.toLowerCase()) {
+            console.warn(`[Wallet Recovery] Mnemonic key ${walletHash} does not match its contents; skipping.`)
+            continue
+        }
+
+        try {
+            const { wallet, chipnet } = await buildWalletSnapshots(mnemonic)
+            const isFirstUsableWallet = !hadUsableWallet && firstRecoveredIndex === null
+            Store.commit('global/updateVault', { wallet, chipnet })
+            const index = Store.getters['global/getVault'].length - 1
+            resetAssetsList(index)
+            if (isFirstUsableWallet) {
+                // Mirror ensureValidWalletIndex: make the recovered wallet the
+                // current one so the app can render without a manual switch.
+                Store.commit('global/updateCurrentWallet', index)
+            }
+            if (firstRecoveredIndex === null) firstRecoveredIndex = index
+            recovered++
+            console.warn(`[Wallet Recovery] Rebuilt vault entry at index ${index} from stored mnemonic.`)
+        } catch (error) {
+            console.warn(`[Wallet Recovery] Failed to rebuild wallet for ${walletHash}:`, error)
+        }
+    }
+
+    if (recovered > 0) {
+        const label = recovered === 1 ? 'wallet' : 'wallets'
+        Store.commit('global/setWalletRecoveryMessage', `Recovered ${recovered} ${label} from secure storage.`)
+        if (!hadUsableWallet && firstRecoveredIndex !== null) {
+            Store.commit('global/updateWalletIndex', firstRecoveredIndex)
+        }
+    }
+
+    // Only mark done once every remaining key was read. Unreadable keys are
+    // retried on the next boot.
+    if (unreadable === 0) {
+        localStorage.setItem(MNEMONIC_KEY_RECOVERY_FLAG, 'true')
+    }
 }

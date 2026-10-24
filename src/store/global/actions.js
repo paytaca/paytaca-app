@@ -738,8 +738,15 @@ export async function ensureValidWalletIndex (context) {
         })
       }
     } else {
-      // No valid wallets left - clear vault
-      context.commit('clearVault')
+      // SECURITY: Do NOT clear the vault here. Entries may lack a walletHash
+      // while still holding recoverable wallet data (name, addresses, xPubKey).
+      // Clearing them would erase the only local record of the wallet and route
+      // the user to onboarding. Keep the entries and surface a warning instead.
+      console.warn('[Wallet Index] No vault entry has a walletHash; keeping vault entries intact.')
+      context.commit(
+        'setWalletRecoveryMessage',
+        'Your saved wallet could not be read on this device. Restore it from your seed phrase backup if needed.'
+      )
     }
   }
 }
@@ -855,9 +862,17 @@ export async function cleanupNullAndDeletedWallets (context) {
     if (newCurrentIndex !== -1) {
       // Switch to the first valid wallet
       context.dispatch('switchWallet', newCurrentIndex).catch(console.error)
-    } else {
-      // No valid wallets left - clear vault
+    } else if (updatedVault.length === 0) {
+      // Only clear when the vault is genuinely empty.
       context.commit('clearVault')
+    } else {
+      // Remaining entries carry no walletHash but may still hold recoverable
+      // wallet data; never delete them silently.
+      console.warn('[Wallet Cleanup] Remaining vault entries have no walletHash; keeping them intact.')
+      context.commit(
+        'setWalletRecoveryMessage',
+        'Your saved wallet could not be read on this device. Restore it from your seed phrase backup if needed.'
+      )
     }
   } else if (indicesToRemove.length > 0) {
     // If we removed entries but not the current wallet, we need to adjust the current index
