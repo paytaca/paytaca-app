@@ -1,6 +1,7 @@
 import { loadWallet } from 'src/wallet'
 import crypto from 'crypto'
-import * as secp from '@noble/secp256k1'
+import { secp256k1 } from '@noble/curves/secp256k1.js'
+import { bytesToHex, hexToBytes } from '@noble/hashes/utils.js'
 
 /**
  * Derives encryption keypair from mnemonic using address 0/0 private key as seed
@@ -92,9 +93,9 @@ export async function getEncryptionKeypairFromWalletHash(walletHash) {
  * @returns {string} - 66-char hex compressed public key
  */
 function privToPub(priv) {
-  const privBytes = secp.etc.hexToBytes(priv)
-  const pub = secp.getPublicKey(privBytes)
-  const pubHex = secp.etc.bytesToHex(pub)
+  const privBytes = hexToBytes(priv)
+  const pub = secp256k1.getPublicKey(privBytes)
+  const pubHex = bytesToHex(pub)
   return pubHex
 }
 

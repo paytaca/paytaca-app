@@ -1,5 +1,6 @@
 import crypto from 'crypto'
-import * as secp from '@noble/secp256k1'
+import { secp256k1 } from '@noble/curves/secp256k1.js'
+import { bytesToHex, hexToBytes } from '@noble/hashes/utils.js'
 
 /**
  * Encrypt data with a public key using ECIES (Elliptic Curve Integrated Encryption Scheme)
@@ -20,10 +21,10 @@ export function encryptWithPublicKey(data, recipientPubkey) {
   }
 
   const ephemeralPrivkey = crypto.randomBytes(32)
-  const ephemeralPubkey = secp.getPublicKey(ephemeralPrivkey)
+  const ephemeralPubkey = secp256k1.getPublicKey(ephemeralPrivkey)
   
-  const recipientPubBytes = secp.etc.hexToBytes(recipientPubkey)
-  const sharedPoint = secp.getSharedSecret(ephemeralPrivkey, recipientPubBytes)
+  const recipientPubBytes = hexToBytes(recipientPubkey)
+  const sharedPoint = secp256k1.getSharedSecret(ephemeralPrivkey, recipientPubBytes)
   const sharedSecret = sharedPoint.slice(1, 33) // Use X coordinate (32 bytes)
 
   // Use a random IV with AES-256-GCM for authenticated encryption (IND-CCA2 secure)
@@ -41,7 +42,7 @@ export function encryptWithPublicKey(data, recipientPubkey) {
 
   return {
     encryptedData: combined.toString('base64'),
-    encryptKey: secp.etc.bytesToHex(ephemeralPubkey)
+    encryptKey: bytesToHex(ephemeralPubkey)
   }
 }
 
@@ -71,7 +72,7 @@ export function getPublicKeyFromPrivate(privateKey) {
     throw new Error('Private key must be a 64-char hex string')
   }
   
-  const privBytes = secp.etc.hexToBytes(privateKey)
-  const pubkey = secp.getPublicKey(privBytes)
-  return secp.etc.bytesToHex(pubkey)
+  const privBytes = hexToBytes(privateKey)
+  const pubkey = secp256k1.getPublicKey(privBytes)
+  return bytesToHex(pubkey)
 }
