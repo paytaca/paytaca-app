@@ -165,7 +165,6 @@
 </template>
 <script>
 import JSONRenderer from 'components/JSONRenderer.vue'
-import { BigNumber } from 'ethers'
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 
 export default {
@@ -236,7 +235,7 @@ export default {
     hexToNumber (value) {
       if (!/(0x)?[0-9a-f]*/i.test(value)) return null
 
-      return BigNumber.from(value).toBigInt()
+      return BigInt(value)
     }
   },
   watch: {

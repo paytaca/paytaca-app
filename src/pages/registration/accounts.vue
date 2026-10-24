@@ -587,8 +587,7 @@
 <script>
 import { Wallet, storeMnemonic, generateMnemonic, computeWalletHash } from '../../wallet'
 import { getMnemonic } from '../../wallet'
-import { utils } from 'ethers'
-import { wordlists } from 'bip39'
+import { validateMnemonic, wordlists } from 'bip39'
 const EN_WORDLIST = wordlists.EN
 import { Device } from '@capacitor/device'
 import { NativeBiometric } from 'capacitor-native-biometric'
@@ -874,7 +873,7 @@ export default {
     isHongKong,
     validateSeedPhrase () {
       if (countWords(this.seedPhraseBackup) === 12) {
-        return utils.isValidMnemonic(this.seedPhraseBackup)
+        return validateMnemonic(this.seedPhraseBackup)
       } else {
         return false
       }
