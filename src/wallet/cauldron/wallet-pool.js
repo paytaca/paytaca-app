@@ -174,8 +174,9 @@ export function generateWithdrawPoolTx(pool, wif) {
   
 
   const artifact = cauldronManageArtifactWithPkh(pool.pkh)
-  const contract = new Contract(artifact, [], { provider, addressType: 'p2sh32'})
-  const inputSize = calculateInputSize(contract.functions.managePool(template.getPublicKey(), template))
+  const contract = new Contract(artifact, [], { provider, contractType: 'p2sh32'})
+  const unlocker = contract.unlock.managePool(template.getPublicKey(), template)
+  const inputSize = calculateInputSize(unlocker)
 
   const builder = new TransactionBuilder({ provider })
   builder.addInput({
@@ -183,7 +184,7 @@ export function generateWithdrawPoolTx(pool, wif) {
     vout: pool.new_utxo_n,
     satoshis: BigInt(pool.sats),
     token: { category: pool.token_id, amount: BigInt(pool.token_amount) }
-  }, contract.unlock.managePool(template.getPublicKey(), template))
+  }, unlocker)
 
   const address = pubkeyToAddress(wifToPubkey(wif))
   const tokenAddress = toTokenAddress(address)

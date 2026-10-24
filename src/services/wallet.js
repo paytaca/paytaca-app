@@ -445,7 +445,7 @@ export class Wallet {
     cardLogger.log('Genesis UTXO amount:', satsAmount);
     cardLogger.log(`Creating genesis UTXO from ${groupedUtxos.length} UTXOs totaling ${satsAmount} sats to address:`, receivingAddress);
 
-    const provider = new ElectrumNetworkProvider('mainnet')
+    const provider = new ElectrumNetworkProvider(this.isChipnet ? 'chipnet' : 'mainnet')
     const tx = new TransactionBuilder({ provider })
     groupedUtxos.forEach(({ inputs, signatureTemplate }) => {
       tx.addInputs(inputs, signatureTemplate.unlockP2PKH())
