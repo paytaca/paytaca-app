@@ -232,3 +232,23 @@ export function isDeletedWalletHash (walletHash) {
   if (!walletHash) return false
   return getDeletedWalletHashes().includes(String(walletHash).trim())
 }
+
+/**
+ * Drop tombstones for hashes that are present in the vault again (for example
+ * after the user restored the same seed). A future vault wipe should still be
+ * able to recover them.
+ * @param {Set<string>} presentHashes
+ */
+export function pruneDeletedWalletHashes (presentHashes) {
+  if (!presentHashes || presentHashes.size === 0) return
+  try {
+    const hashes = getDeletedWalletHashes()
+    if (hashes.length === 0) return
+    const remaining = hashes.filter(hash => !presentHashes.has(String(hash).trim()))
+    if (remaining.length !== hashes.length) {
+      localStorage.setItem(DELETED_WALLET_HASHES_KEY, JSON.stringify(remaining))
+    }
+  } catch (error) {
+    console.error('Error pruning deleted wallet hashes:', error)
+  }
+}

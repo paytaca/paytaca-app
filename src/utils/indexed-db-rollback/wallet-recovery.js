@@ -1,7 +1,7 @@
 import { Capacitor } from '@capacitor/core'
 import { getMnemonic, getMnemonicByHash, Wallet } from 'src/wallet'
 import { Store } from 'src/store'
-import { isDeletedWalletHash } from 'src/utils/wallet-storage'
+import { isDeletedWalletHash, pruneDeletedWalletHashes } from 'src/utils/wallet-storage'
 import sha256 from 'js-sha256'
 
 import initialAssetState from 'src/store/assets/state'
@@ -620,7 +620,6 @@ function getVaultWalletHash (entry) {
 export async function recoverWalletsFromMnemonicKeys () {
     if (Capacitor.getPlatform() !== 'web') return
     if (typeof localStorage === 'undefined') return
-    if (localStorage.getItem(MNEMONIC_KEY_RECOVERY_FLAG) === 'true') return
 
     const vault = Store.getters['global/getVault'] || []
     // Include deleted entries so an intentionally deleted wallet is never
@@ -633,6 +632,12 @@ export async function recoverWalletsFromMnemonicKeys () {
             })
             .filter(Boolean)
     )
+
+    // A wallet that is back in the vault was legitimately re-added (e.g. the
+    // same seed restored), so its tombstone must not block a future recovery.
+    pruneDeletedWalletHashes(knownHashes)
+
+    if (localStorage.getItem(MNEMONIC_KEY_RECOVERY_FLAG) === 'true') return
 
     const orphanHashes = Object.keys(localStorage)
         .map(key => key.match(MNEMONIC_HASH_KEY_PATTERN))
