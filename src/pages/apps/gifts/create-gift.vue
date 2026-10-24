@@ -437,9 +437,8 @@ import ShareGiftPanel from '../../../components/gifts/ShareGiftPanel.vue'
 import CustomKeyboard from '../../../components/CustomKeyboard.vue'
 import { getMnemonic, Wallet } from '../../../wallet'
 import axios from 'axios'
-import { encodePrivateKeyWif, generatePrivateKey } from 'bitauth-libauth-v3'
+import { binToHex, encodePrivateKeyWif, generatePrivateKey } from 'bitauth-libauth-v3'
 import { wifToCashAddress } from 'src/utils/bch-keys'
-import { toHex } from 'hex-my-bytes'
 import sha256 from 'js-sha256'
 import { 
   getAssetDenomination, 
@@ -467,11 +466,24 @@ import { showLimitDialogWithDeps } from 'src/composables/useTieredLimitGate'
 import KeyboardTooltip from 'src/components/KeyboardTooltip.vue'
 import { useKeyboardTooltip } from 'src/composables/useKeyboardTooltip'
 import { getChangeAddress } from 'src/utils/send-page-utils'
+import { pbkdf2 } from '@noble/hashes/pbkdf2.js'
+import { sha512 } from '@noble/hashes/sha2.js'
+import { randomUUID } from 'src/utils/encoding'
 
 const aesjs = require('aes-js')
-const short = require('short-uuid')
-const pbkdf2 = require('pbkdf2')
 const sss = require('shamirs-secret-sharing')
+
+const flickrBase58 = '123456789abcdefghijkmnopqrstuvwxyzABCDEFGHJKLMNPQRSTUVWXYZ'
+
+function generateGiftCode () {
+  let value = BigInt('0x' + randomUUID().replace(/-/g, ''))
+  let code = ''
+  while (value > 0n) {
+    code = flickrBase58[Number(value % 58n)] + code
+    value /= 58n
+  }
+  return code.padStart(22, flickrBase58[0])
+}
 
 export default {
   name: 'Gifts',
@@ -597,8 +609,8 @@ export default {
     convertToBCH,
     getDarkModeClass,
     encryptShard(shard) {
-      const password = short.generate()
-      const key = pbkdf2.pbkdf2Sync(password, '_saltDefault2024', 1, 128 / 8, 'sha512')
+      const password = generateGiftCode()
+      const key = pbkdf2(sha512, password, '_saltDefault2024', { c: 1, dkLen: 128 / 8 })
       const textBytes = aesjs.utils.utf8.toBytes(shard)
       const aesCtr = new aesjs.ModeOfOperation.ctr(key)
       const encryptedBytes = aesCtr.encrypt(textBytes)
@@ -647,7 +659,7 @@ export default {
         
         const secret = Buffer.from(wif)
         const stateShare = sss.split(secret, { shares: 2, threshold: 2 })
-        const shares = stateShare.map((share) => { return toHex(share) })
+        const shares = stateShare.map((share) => { return binToHex(share) })
         
         const encryptedShard = this.encryptShard(shares[0])
 

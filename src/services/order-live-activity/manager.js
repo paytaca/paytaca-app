@@ -1,5 +1,4 @@
 import { Capacitor } from '@capacitor/core'
-import { BigNumber } from 'ethers'
 import { Store } from 'src/store'
 import OrderLiveActivity from './native-plugin'
 import {
@@ -317,7 +316,7 @@ class OrderLiveActivityManager {
       const uuid = info?.uuid || info?.identifier || ''
       if (!uuid) return ''
       this._deviceId = this.platform === 'android'
-        ? BigNumber.from('0x' + uuid).toString()
+        ? BigInt('0x' + uuid).toString()
         : uuid
     } catch (error) {
       console.debug('Failed to resolve device id for order live activities:', error)

@@ -133,7 +133,6 @@ import { backend } from 'src/exchange/backend'
 import { bus } from 'src/wallet/event-bus'
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 import ProgressLoader from 'src/components/ProgressLoader.vue'
-import { commify } from 'ethers/lib/utils'
 
 export default {
   emits: ['back', 'submit'],

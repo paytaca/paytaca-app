@@ -1,7 +1,6 @@
 import axios from 'axios'
 import { i18n } from 'src/boot/i18n'
 import { Capacitor } from '@capacitor/core'
-import { BigNumber } from 'ethers'
 import { formatWithLocale } from '../denomination-utils'
 import { requestManager } from 'src/utils/request-manager'
 
@@ -160,7 +159,7 @@ export function parseDeviceId (deviceId) {
   if (platform === 'ios') {
     return deviceId
   } else if (platform === 'android') {
-    return BigNumber.from('0x' + deviceId).toString()
+    return BigInt('0x' + deviceId).toString()
   }
   else return deviceId
 }
