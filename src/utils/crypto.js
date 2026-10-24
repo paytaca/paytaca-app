@@ -111,3 +111,10 @@ export function toTokenAddress(address ='') {
       return encodeCashAddress(decodedAddress.prefix, CashAddressType.p2shWithTokens, payload)
   }
 }
+
+export function toNetworkAddress(address = '', chipnet = false) {
+  const decodedAddress = decodeCashAddress(address)
+  if (typeof decodedAddress == 'string') throw decodedAddress
+  const prefix = chipnet ? 'bchtest' : 'bitcoincash'
+  return encodeCashAddress(prefix, decodedAddress.type, decodedAddress.payload)
+}
