@@ -189,3 +189,46 @@ export async function getVaultIndexByWalletHashAsync(walletHash) {
   }
 }
 
+
+const DELETED_WALLET_HASHES_KEY = 'deleted-wallet-hashes'
+
+/**
+ * Get the wallet hashes the user explicitly deleted.
+ * Used so a leftover mnemonic key can never resurrect a deleted wallet.
+ * @returns {string[]}
+ */
+export function getDeletedWalletHashes () {
+  try {
+    const stored = localStorage.getItem(DELETED_WALLET_HASHES_KEY)
+    const hashes = stored ? JSON.parse(stored) : []
+    return Array.isArray(hashes) ? hashes : []
+  } catch (error) {
+    console.error('Error reading deleted wallet hashes:', error)
+    return []
+  }
+}
+
+/**
+ * Record a wallet hash as explicitly deleted.
+ * @param {string} walletHash
+ */
+export function addDeletedWalletHash (walletHash) {
+  if (!walletHash) return
+  try {
+    const hashes = new Set(getDeletedWalletHashes())
+    hashes.add(String(walletHash).trim())
+    localStorage.setItem(DELETED_WALLET_HASHES_KEY, JSON.stringify(Array.from(hashes)))
+  } catch (error) {
+    console.error('Error saving deleted wallet hash:', error)
+  }
+}
+
+/**
+ * Check whether a wallet hash was explicitly deleted by the user.
+ * @param {string} walletHash
+ * @returns {boolean}
+ */
+export function isDeletedWalletHash (walletHash) {
+  if (!walletHash) return false
+  return getDeletedWalletHashes().includes(String(walletHash).trim())
+}

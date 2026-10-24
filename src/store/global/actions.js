@@ -8,7 +8,7 @@ import { decryptWalletName } from 'src/marketplace/chat/encryption'
 import { saveWalletName, getWalletName, removeWalletName } from 'src/utils/wallet-name-cache'
 import * as eloadServiceAPI from 'src/utils/eload-service'
 import { loadLibauthHdWallet, loadWallet, deleteMnemonic, getMnemonic, getMnemonicByHash, deleteMnemonicByHash, deleteAllWalletData, deleteDuplicateWalletData, computeWalletHash, clearCachedWallet } from '../../wallet'
-import { getVaultIndexByWalletHashAsync } from 'src/utils/wallet-storage'
+import { getVaultIndexByWalletHashAsync, addDeletedWalletHash } from 'src/utils/wallet-storage'
 import { SecureStoragePlugin } from 'capacitor-secure-storage-plugin'
 import { privateKeyToCashAddress } from '../../wallet/walletconnect2/tx-sign-utils'
 import { toP2pkhTestAddress } from '../../utils/address-utils'
@@ -586,6 +586,11 @@ export async function deleteWallet (context, walletHashOrIndex) {
 
   const currentWalletIndex = context.getters.getWalletIndex
   const isDeletingCurrentWallet = index === currentWalletIndex
+
+  // Record the deletion before any cleanup: if deleting the mnemonic fails or
+  // is skipped, this tombstone prevents mnemonic-key recovery from restoring a
+  // wallet the user explicitly deleted.
+  addDeletedWalletHash(walletHash)
   
   // Get wallet data before deletion for cleanup
   let mnemonic = null

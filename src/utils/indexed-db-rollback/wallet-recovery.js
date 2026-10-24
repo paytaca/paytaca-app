@@ -1,6 +1,7 @@
 import { Capacitor } from '@capacitor/core'
 import { getMnemonic, getMnemonicByHash, Wallet } from 'src/wallet'
 import { Store } from 'src/store'
+import { isDeletedWalletHash } from 'src/utils/wallet-storage'
 import sha256 from 'js-sha256'
 
 import initialAssetState from 'src/store/assets/state'
@@ -373,11 +374,10 @@ async function recoverWallet(index, save=false) {
     let mnemonic = null
     const walletHash = existingVaultEntry?.wallet?.bch?.walletHash || existingVaultEntry?.wallet?.BCH?.walletHash
     if (walletHash) {
-        mnemonic = await getMnemonic(walletHash).catch(() => null)
-    }
-    
-    // Fallback to index-based lookup if wallet hash not available
-    if (!mnemonic) {
+        // Do not fall back to the legacy index-based scheme when the hash is
+        // known: that fallback can return a different wallet's mnemonic.
+        mnemonic = await getMnemonicByHash(walletHash).catch(() => null)
+    } else {
         mnemonic = await getMnemonic(index).catch(() => null)
     }
 
@@ -638,6 +638,9 @@ export async function recoverWalletsFromMnemonicKeys () {
         .map(key => key.match(MNEMONIC_HASH_KEY_PATTERN))
         .filter(match => match && !knownHashes.has(match[1]))
         .map(match => match[1])
+        // Never resurrect a wallet the user explicitly deleted, even if its
+        // mnemonic key survived a failed cleanup.
+        .filter(walletHash => !isDeletedWalletHash(walletHash))
 
     if (orphanHashes.length === 0) {
         localStorage.setItem(MNEMONIC_KEY_RECOVERY_FLAG, 'true')
