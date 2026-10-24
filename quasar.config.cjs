@@ -45,7 +45,6 @@ module.exports = defineConfig((ctx) => {
       'qrcodereader',
       'clipboard',
       'footer',
-      'gravatar',
       'websocket',
       'walletconnect',
       'keyboard',
@@ -136,11 +135,6 @@ module.exports = defineConfig((ctx) => {
           cfg.output.publicPath = 'auto'
         }
 
-        cfg.module.rules.push({
-          test: /\.cash$/, // Adjust the file extension as needed
-          use: 'raw-loader'
-        })
-
         // The release-note screenshots under public/releases are only served by
         // the web deployment. Keep them out of the Capacitor and
         // browser-extension bundles.
@@ -230,7 +224,6 @@ module.exports = defineConfig((ctx) => {
       chainWebpack (chain) {
         const nodePolyfillWebpackPlugin = require('node-polyfill-webpack-plugin')
         chain.plugin('node-polyfill').use(nodePolyfillWebpackPlugin)
-        chain.resolve.alias.set('fs', require.resolve('browserfs'))
 
         chain.resolve.alias.set('stream', require.resolve('stream-browserify')) // bip39
         chain.resolve.alias.set('crypto', require.resolve('crypto-browserify')) // bip39
