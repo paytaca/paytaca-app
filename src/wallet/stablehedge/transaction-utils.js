@@ -1,8 +1,7 @@
-import { SignatureTemplate } from "cashscript"
-import { hash256, scriptToBytecode } from "@cashscript/utils"
+import { SignatureTemplate, utils } from "cashscript"
 import { cashScriptOutputToLibauthOutput, createSighashPreimage, getOutputSize, publicKeyToP2PKHLockingBytecode } from "cashscript/dist/utils";
 import { binToHex, cashAddressToLockingBytecode, encodeTransactionBCH, hexToBin } from "@bitauth/libauth";
-import { P2PKH_INPUT_SIZE } from "cashscript/dist/constants";
+import { P2PKH_INPUT_SIZE } from "src/utils/cashscript-utils";
 
 /**
  * @param {Object} opts
@@ -22,10 +21,10 @@ export function unlockP2PKH(opts) {
   const prevOutScript = publicKeyToP2PKHLockingBytecode(pubkey);
   const hashtype = template.getHashType();
   const preimage = createSighashPreimage(transaction, sourceOutputs, inputIndex, prevOutScript, hashtype);
-  const sighash = hash256(preimage);
+  const sighash = utils.hash256(preimage);
   const signature = template.generateSignature(sighash);
   
-  const inputScript = scriptToBytecode([signature, pubkey]);
+  const inputScript = utils.scriptToBytecode([signature, pubkey]);
   if (opts?.includeSignature) {
     return { signature, pubkey, hashtype, inputScript }
   }

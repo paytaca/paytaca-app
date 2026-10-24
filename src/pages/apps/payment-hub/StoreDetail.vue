@@ -482,7 +482,7 @@ import { DISPLAY_SUBS_APP } from 'src/wallet/payment-hub'
 import { bus } from 'src/wallet/event-bus'
 import { usePaymentHubCore, useSubscriptionUtils } from 'src/composables/payment-hub/usePaymentHub'
 
-import { SignatureTemplate, TransactionBuilder } from 'cashscript13'
+import { SignatureTemplate, TransactionBuilder } from 'cashscript'
 import { formatKitInput, formatKitOutput, getSubscriptionContractInstance } from 'src/wallet/payment-hub/cashscript-utils'
 import { createCancelSubscriptionTransaction } from 'src/wallet/payment-hub/services'
 

@@ -403,7 +403,7 @@ async function settleEscrowContract(escrowContract=EscrowContract.parse(), opts=
 
 /**
  * @param {EscrowContract} escrowContract 
- * @param {import('cashscript').Transaction} transaction 
+ * @param {import('cashscript').TransactionBuilder} transaction 
  * @param {Number} [escrowSettlementAppealId]
  */
 async function sendSettlementTx(escrowContract, transaction, escrowSettlementAppealId) {

@@ -16,7 +16,7 @@
     "postinstall": "patch-package && quasar prepare",
     "test": "cypress run",
     "test:unit": "mocha",
-    "test:smoke": "node --experimental-loader ./test/mock-loader.mjs ./test/secure-storage-migration.smoke.mjs && node --experimental-loader ./test/mock-loader.mjs ./test/bch-keys.smoke.mjs && node --experimental-loader ./test/mock-loader.mjs ./test/contract-id.smoke.mjs && node --experimental-loader ./test/mock-loader.mjs ./test/token-genesis.smoke.mjs",
+    "test:smoke": "node --experimental-loader ./test/mock-loader.mjs ./test/secure-storage-migration.smoke.mjs && node --experimental-loader ./test/mock-loader.mjs ./test/bch-keys.smoke.mjs && node --experimental-loader ./test/mock-loader.mjs ./test/contract-id.smoke.mjs && node --experimental-loader ./test/mock-loader.mjs ./test/token-genesis.smoke.mjs && node --experimental-loader ./test/mock-loader.mjs ./test/cashscript-contract-transaction.smoke.mjs",
     "release": "node scripts/generate-release.mjs"
   },
   "dependencies": {
@@ -37,7 +37,6 @@
     "@capacitor/push-notifications": "^5.0.0",
     "@capacitor/share": "^5.0.8",
     "@cashlab/cauldron": "^1.0.2",
-    "@cashscript/utils": "^0.11.5",
     "@electron/remote": "^1.2.0",
     "@generalprotocols/anyhedge": "^2.0.2",
     "@ionic/pwa-elements": "^3.0.2",
@@ -74,8 +73,7 @@
     "canvas-confetti": "^1.9.4",
     "capacitor-native-biometric": "^4.2.2",
     "capacitor-secure-storage-plugin": "^0.9.0",
-    "cashscript": "^0.11.5",
-    "cashscript13": "npm:cashscript@^0.13.2",
+    "cashscript": "^0.13.3",
     "chart.js": "^4.2.1",
     "client-zip": "^2.4.5",
     "core-js": "^3.6.5",

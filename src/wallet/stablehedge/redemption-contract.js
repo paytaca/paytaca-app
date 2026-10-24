@@ -16,7 +16,7 @@ export async function getRedemptionContractInstance(opts) {
   const { data } = await backend.get(`stablehedge/redemption-contracts/artifact/`, { params })
 
   const p2sh20Length = isChipnet ? 50 : 54
-  const addressType = redemptionContract?.address <= p2sh20Length ? 'p2sh20' : 'p2sh32'
+  const contractType = redemptionContract?.address <= p2sh20Length ? 'p2sh20' : 'p2sh32'
   const provider = new ElectrumNetworkProvider(isChipnet ? 'chipnet' : 'mainnet')
 
   const contractParams = [
@@ -31,7 +31,7 @@ export async function getRedemptionContractInstance(opts) {
     }
     contractParams.push(treasuryContractLockscript.bytecode)
   }
-  const contract = new Contract(data?.artifact, contractParams, { addressType, provider })
+  const contract = new Contract(data?.artifact, contractParams, { contractType, provider })
 
   if (redemptionContract?.address && contract.address != redemptionContract?.address) {
     console.warn(`Redemption contract mismatch, expected '${redemptionContract?.address}', got '${contract.address}'`, {
