@@ -12,9 +12,8 @@ import {
   decodePrivateKeyWif,
   cashAddressToLockingBytecode,
 } from "@bitauth/libauth"
-import { Contract, HashType, SignatureTemplate } from "cashscript"
+import { Contract, HashType, SignatureTemplate, utils } from "cashscript"
 import { createSighashPreimage } from "cashscript/dist/utils"
-import { hash256 } from '@cashscript/utils'
 import { cashscriptTxToLibauth, unlockP2PKH } from "./transaction-utils"
 import { toTokenAddress, pubkeyToAddress } from "src/utils/crypto"
 import { getStablehedgeBackend } from './api'
@@ -400,7 +399,7 @@ export class StablehedgeWallet {
       if (input?.unlockingBytecode?.length > 0) return
 
       const preimage = createSighashPreimage(transaction, sourceOutputs, index, bytecode, hashType)
-      const sighash = hash256(preimage);
+      const sighash = utils.hash256(preimage);
       // const _signature = secp256k1.signMessageHashCompact(privateKey, sighash)
       // const _signature = secp256k1.signMessageHashSchnorr(privateKey, sighash)
       const _signature = secp256k1.signMessageHashDER(privateKey, sighash)

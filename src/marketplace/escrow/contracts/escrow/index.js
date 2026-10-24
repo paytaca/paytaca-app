@@ -117,7 +117,7 @@ export class Escrow {
     const provider = new ElectrumNetworkProvider(this.network);
     // const addressType = 'p2sh32';
     const addressType = this.addressType;
-    const opts = { provider, addressType }
+    const opts = { provider, contractType: addressType }
 
     let artifact;
     if (this.version == 'v1') artifact = escrowArtifact;
