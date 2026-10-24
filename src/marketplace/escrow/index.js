@@ -70,7 +70,7 @@ export async function generateSettlementTransactions(opts) {
 
       const txPromise = generateSettlementTransaction({ escrow, wif, utxos, settlementType })
       const transaction = await txPromise.catch(fail)
-      transaction.withTime(0)
+      transaction.setLocktime(0)
       const txHex = await transaction.build()
 
       return { escrowContract, txHex, transaction }

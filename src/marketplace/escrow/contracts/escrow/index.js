@@ -1,5 +1,6 @@
 import { Contract, ElectrumNetworkProvider, SignatureTemplate } from 'cashscript';
 import { binToHex, cashAddressToLockingBytecode, hexToBin } from '@bitauth/libauth';
+import { createContractTransaction } from 'src/utils/cashscript-utils.js';
 import { pubkeyToPkHash, wifToPubkey } from 'src/utils/crypto.js';
 import { ESCROW_TX_FEE, P2PKH_DUST, CASHTOKEN_DUST } from '../../constants.js';
 import { cleanEscrowManagerOptions, cleanEscrowManagerParameters } from './scripts/params.js';
@@ -172,13 +173,13 @@ export class Escrow {
     }
 
     const outputs = this.generateOutputsForSettlement({ settlementType: 'release', lockNftCategory: parsedUtxo?.txid })
-    // const tx = contract.functions.feePoolCheckOnly()
-    const tx = contract.functions.release(pubkey, sig, BigInt(this.params.timestamp))
-      .from(parsedUtxo)
-      .withHardcodedFee(BigInt(ESCROW_TX_FEE))
-      .to(outputs)
-
-    return tx
+    return createContractTransaction({
+      contract,
+      unlocker: contract.unlock.release(pubkey, sig, BigInt(this.params.timestamp)),
+      inputs: [parsedUtxo],
+      outputs,
+      hardcodedFee: BigInt(ESCROW_TX_FEE),
+    })
   }
 
   async refund(utxo={txid: '', vout: 0, satoshis: 0}, wif='') {
@@ -200,11 +201,13 @@ export class Escrow {
     if (pkHash != this.params.arbiterPkHash) throw new Error('Pubkey hash mismatch')
 
     const outputs = this.generateOutputsForSettlement({ settlementType: 'refund', lockNftCategory: parsedUtxo?.txid })
-    const refundTx = contract.functions.refund(pubkey, sig, BigInt(this.params.timestamp))
-      .from(parsedUtxo)
-      .to(outputs)
-      .withHardcodedFee(BigInt(ESCROW_TX_FEE))
-    return refundTx
+    return createContractTransaction({
+      contract,
+      unlocker: contract.unlock.refund(pubkey, sig, BigInt(this.params.timestamp)),
+      inputs: [parsedUtxo],
+      outputs,
+      hardcodedFee: BigInt(ESCROW_TX_FEE),
+    })
   }
 
   async fullRefund(utxo={txid: '', vout: 0, satoshis: 0}, wif='') {
@@ -226,11 +229,13 @@ export class Escrow {
     if (pkHash != this.params.arbiterPkHash) throw new Error('Pubkey hash mismatch')
 
     const outputs = this.generateOutputsForSettlement({ settlementType: 'full_refund', lockNftCategory: parsedUtxo?.txid })
-    const refundTx = contract.functions.fullRefund(pubkey, sig, BigInt(this.params.timestamp))
-      .from(parsedUtxo)
-      .to(outputs)
-      .withHardcodedFee(BigInt(ESCROW_TX_FEE))
-    return refundTx
+    return createContractTransaction({
+      contract,
+      unlocker: contract.unlock.fullRefund(pubkey, sig, BigInt(this.params.timestamp)),
+      inputs: [parsedUtxo],
+      outputs,
+      hardcodedFee: BigInt(ESCROW_TX_FEE),
+    })
   }
 
 
@@ -261,13 +266,14 @@ export class Escrow {
     const contract = this.getContract();
     const signature = new SignatureTemplate(wif);
 
-    const transaction = contract.functions.settlement(
-      signature.getPublicKey(), signature, BigInt(this.params.timestamp), release,
-    )
-    transaction.from(utxos);
-    transaction.to(outputs); // must be array
-    if (Number.isSafeInteger(locktime)) transaction.withTime(locktime);
-
-    return transaction;
+    return createContractTransaction({
+      contract,
+      unlocker: contract.unlock.settlement(
+        signature.getPublicKey(), signature, BigInt(this.params.timestamp), release,
+      ),
+      inputs: utxos,
+      outputs,
+      locktime: Number.isSafeInteger(locktime) ? locktime : undefined,
+    })
   }
 }
