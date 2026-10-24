@@ -1,6 +1,6 @@
 import { boot } from 'quasar/wrappers'
 import { migrateVuexStorage } from 'src/utils/indexed-db-rollback/rollback-vuex-storage'
-import { populateMissingVaults, recoverWalletsFromStorage } from 'src/utils/indexed-db-rollback/wallet-recovery'
+import { populateMissingVaults, recoverWalletsFromStorage, recoverWalletsFromMnemonicKeys } from 'src/utils/indexed-db-rollback/wallet-recovery'
 import { updatePreferences } from 'src/utils/indexed-db-rollback/update-preferences'
 import { resetWalletsAssetsList } from 'src/utils/indexed-db-rollback/reset-asset-list'
 import { getAllWalletNames } from 'src/utils/wallet-name-cache'
@@ -178,6 +178,12 @@ export default boot(async (obj) => {
 
     await recoverWalletsFromStorage().catch(error => {
       store.commit('global/setWalletRecoveryMessage', String(error))
+    })
+    // Rebuild any vault entries lost while their mnemonic keys survived
+    // (web / browser extension only; inside secure storage it is not
+    // enumerable on native).
+    await recoverWalletsFromMnemonicKeys().catch(error => {
+      console.error('[Boot] Mnemonic key recovery failed:', error)
     })
     await resetWalletsAssetsList()
     updatePreferences()
