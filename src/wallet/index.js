@@ -560,6 +560,37 @@ export async function getMnemonic (walletHashOrIndex = 0) {
 }
 
 /**
+ * Read the mnemonic stored under the legacy index-based key (`mn`, `mn<index>`).
+ *
+ * Deliberately ignores the `mnemonic_migration_completed` flag: that flag can be
+ * set without anything being migrated (see migrateMnemonicsToWalletHash when the
+ * vault is empty), which would otherwise make wallets unreachable even though
+ * their mnemonic is still present. Callers MUST verify that the mnemonic matches
+ * the wallet being recovered (wallet hash check) before trusting it.
+ *
+ * @param {number} index - Legacy vault index
+ * @returns {Promise<string|null>} The mnemonic, or null when no legacy key exists
+ */
+export async function getMnemonicByIndexLegacy (index = 0) {
+  const key = index === 0 ? 'mn' : `mn${index}`
+  try {
+    // Versions up to v0.9.1 stored the mnemonic aes256-encrypted with key 'sk'
+    const secretKey = await SecureStoragePlugin.get({ key: 'sk' })
+    const encryptedMnemonic = await SecureStoragePlugin.get({ key })
+    return aes256.decrypt(secretKey.value, encryptedMnemonic.value)
+  } catch (err) {
+    if (isSecureStorageDecryptError(err)) throw err
+    try {
+      const mnemonic = await SecureStoragePlugin.get({ key })
+      return mnemonic?.value || null
+    } catch (fallbackErr) {
+      if (isSecureStorageDecryptError(fallbackErr)) throw fallbackErr
+      return null
+    }
+  }
+}
+
+/**
  * Retrieve the PIN for a wallet, migrating legacy storage keys.
  *
  * The legacy `pin ${mnemonic}` key embeds the raw mnemonic in the key name,

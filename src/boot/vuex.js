@@ -5,7 +5,7 @@ import { updatePreferences } from 'src/utils/indexed-db-rollback/update-preferen
 import { resetWalletsAssetsList } from 'src/utils/indexed-db-rollback/reset-asset-list'
 import { getAllWalletNames } from 'src/utils/wallet-name-cache'
 import { migrateMnemonicsToWalletHash } from 'src/wallet/mnemonic-migration'
-import { migrateSecureStorageToNative } from 'src/wallet/secure-storage-migration'
+import { migrateSecureStorageToNative, preflightSecureStorage } from 'src/wallet/secure-storage-migration'
 import useStore from 'src/store'
 import limitsConfig from 'src/store/subscription/limits.json'
 import wizardconnectDefaultState from 'src/store/wizardconnect/state'
@@ -169,12 +169,34 @@ export default boot(async (obj) => {
 
     app.use(store)
 
+    // Read-only integrity check over the live secure storage *before* any
+    // migration runs. On web/BEX secrets live in localStorage and are keyed by
+    // an AES key in IndexedDB; if that key is gone (or a value was written by a
+    // different key) the secrets cannot be read. In that state we must not
+    // re-key, flip flags, scrub plaintext or remove anything: the ciphertext is
+    // the only copy and a later, healthier boot (or a restored backup) must be
+    // able to read it. Non-web platforms skip this check.
+    const secureStoragePreflight = await preflightSecureStorage().catch(error => {
+      console.error('[Boot] Secure storage preflight failed:', error)
+      return { status: 'ok', unreadable: [] }
+    })
+    const secureStorageReadOnly = secureStoragePreflight.status === 'unreadable'
+    if (secureStorageReadOnly) {
+      console.warn('[Boot] Secure storage is unreadable; skipping migrations that would write to it.', secureStoragePreflight)
+      store.commit(
+        'global/setWalletRecoveryMessage',
+        'Your saved wallet could not be read on this device. Restore it from your seed phrase backup if needed.'
+      )
+    }
+
     // Copy secrets written by the legacy web-only plugin (WebView localStorage)
     // into the native OS keystore. Runs before wallet recovery so the migrated
     // ciphertext is available to it.
-    await migrateSecureStorageToNative().catch(error => {
-      console.error('[Boot] Secure storage migration failed:', error)
-    })
+    if (!secureStorageReadOnly) {
+      await migrateSecureStorageToNative().catch(error => {
+        console.error('[Boot] Secure storage migration failed:', error)
+      })
+    }
 
     await recoverWalletsFromStorage().catch(error => {
       store.commit('global/setWalletRecoveryMessage', String(error))
@@ -191,9 +213,11 @@ export default boot(async (obj) => {
     
     // Migrate mnemonics to wallet-hash-based keys
     // This should run after wallet recovery but before cleanup
-    await migrateMnemonicsToWalletHash().catch(error => {
-      console.error('[Boot] Error migrating mnemonics:', error)
-    })
+    if (!secureStorageReadOnly) {
+      await migrateMnemonicsToWalletHash({ getVault: () => store.getters['global/getVault'] }).catch(error => {
+        console.error('[Boot] Error migrating mnemonics:', error)
+      })
+    }
 
     // Migrate existing wallets to have wallet-specific settings
     // This applies current global settings to all existing wallets for smooth migration
@@ -203,7 +227,9 @@ export default boot(async (obj) => {
     loadCachedWalletNames(store)
     
     // Clean up null and deleted vault entries on startup
-    await store.dispatch('global/cleanupNullAndDeletedWallets')
+    if (!secureStorageReadOnly) {
+      await store.dispatch('global/cleanupNullAndDeletedWallets')
+    }
     
     // Ensure current wallet index is valid (points to undeleted wallet)
     // This should run after wallets are recovered

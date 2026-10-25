@@ -33,6 +33,10 @@ export function isNativeMigrationPlatform (platform = Capacitor.getPlatform()) {
   return platform === 'ios' || platform === 'android'
 }
 
+export function isWebPlatform (platform = Capacitor.getPlatform()) {
+  return platform === 'web'
+}
+
 function listLegacyEntries () {
   const entries = []
   for (let i = 0; i < localStorage.length; i++) {
@@ -117,6 +121,82 @@ async function nativeGet (key) {
   } catch {
     return null
   }
+}
+
+async function legacyAesKeyExists () {
+  if (typeof indexedDB === 'undefined') return false
+  if (typeof indexedDB.databases === 'function') {
+    try {
+      const databases = await indexedDB.databases()
+      return Array.isArray(databases) && databases.some(db => db && db.name === DB_NAME)
+    } catch {
+      // Can't enumerate: assume the key store exists and let the read fail.
+      return true
+    }
+  }
+  return true
+}
+
+export const PREFLIGHT_STATUS = {
+  OK: 'ok',
+  UNREADABLE: 'unreadable',
+  SKIPPED: 'skipped'
+}
+
+/**
+ * Read-only check of the live secure storage, run before any migration or
+ * recovery step writes anything.
+ *
+ * Web/BEX keeps secrets in `localStorage` (`cap_sec_*`) encrypted with an AES
+ * key in IndexedDB. If the key is gone, or a value was written with a different
+ * key, those secrets cannot be read. In that state every repair path (re-keying,
+ * flag flips, plaintext scrubbing, removals) must be skipped so the ciphertext
+ * is preserved for a future recoverable boot.
+ *
+ * Deliberately does not go through the plugin: its web `get()` lazily
+ * re-encrypts legacy plaintext values, which would be a write. This function
+ * only reads localStorage and the IndexedDB key store.
+ *
+ * @param {string} platform - Override for tests
+ * @returns {Promise<{status: string, platform: string, total: number, encrypted: number, plaintext: number, unreadable: Array<{key: string, reason: string}>}>}
+ */
+export async function preflightSecureStorage (platform = Capacitor.getPlatform()) {
+  if (!isWebPlatform(platform)) {
+    return { status: PREFLIGHT_STATUS.SKIPPED, platform, total: 0, encrypted: 0, plaintext: 0, unreadable: [] }
+  }
+
+  const entries = listLegacyEntries()
+  const encryptedEntries = entries.filter(({ raw }) => raw && raw.startsWith(ENC_PREFIX))
+  const result = {
+    status: PREFLIGHT_STATUS.OK,
+    platform,
+    total: entries.length,
+    encrypted: encryptedEntries.length,
+    plaintext: entries.length - encryptedEntries.length,
+    unreadable: []
+  }
+
+  if (encryptedEntries.length === 0) return result
+
+  let aesKey = null
+  if (await legacyAesKeyExists()) {
+    try {
+      aesKey = await loadLegacyAesKey()
+    } catch (err) {
+      console.warn('[SecureStoragePreflight] Could not load the AES key:', err)
+    }
+  }
+
+  for (const { key, raw } of encryptedEntries) {
+    try {
+      await decryptLegacyValue(raw, aesKey)
+    } catch (err) {
+      result.unreadable.push({ key, reason: err?.message || 'unknown' })
+    }
+  }
+
+  if (result.unreadable.length > 0) result.status = PREFLIGHT_STATUS.UNREADABLE
+  return result
 }
 
 export async function migrateSecureStorageToNative () {

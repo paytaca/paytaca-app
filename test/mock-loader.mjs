@@ -5,17 +5,33 @@ const MOCKS = {
   'capacitor-secure-storage-plugin': new URL('./mocks/secure-storage.mjs', import.meta.url).href
 }
 
+// `mnemonic-migration.js` imports the wallet hash helper from `./index`, which
+// drags in the full wallet/store stack. Redirect it to a pure stub so the
+// migration can be exercised under Node.
+const WALLET_INDEX_STUB = new URL('./mocks/wallet-index.mjs', import.meta.url).href
+
 export async function resolve (specifier, context, nextResolve) {
   if (MOCKS[specifier]) {
     return { url: MOCKS[specifier], shortCircuit: true }
   }
-  // The plugin's ESM dist uses extensionless relative imports (bundler-style),
-  // which Node ESM cannot resolve; append the extension when needed.
+  if (
+    specifier === './index' &&
+    context.parentURL &&
+    context.parentURL.endsWith('/src/wallet/mnemonic-migration.js')
+  ) {
+    return { url: WALLET_INDEX_STUB, shortCircuit: true }
+  }
+  // The plugin's ESM dist and the app sources use extensionless relative
+  // imports (bundler-style), which Node ESM cannot resolve; append the
+  // extension when needed.
   if (
     specifier.startsWith('.') &&
     !specifier.endsWith('.js') &&
     context.parentURL &&
-    context.parentURL.includes('/capacitor-secure-storage-plugin/dist/esm/')
+    (
+      context.parentURL.includes('/capacitor-secure-storage-plugin/dist/esm/') ||
+      context.parentURL.includes('/src/')
+    )
   ) {
     return nextResolve(`${specifier}.js`, context)
   }
