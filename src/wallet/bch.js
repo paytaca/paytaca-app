@@ -6,6 +6,7 @@ import { decodeTransaction, hexToBin, lockingBytecodeToCashAddress, binToHex } f
 import { getWatchtowerApiUrl, convertCashAddress } from './chipnet'
 import { convertIpfsUrl, getBcmrBackend } from './cashtokens'
 import { isTokenAddress } from '../utils/address-utils'
+import { discoverWalletAddresses } from './address-discovery'
 
 
 
@@ -44,6 +45,8 @@ export class BchWallet {
   clearMasterHDNodeCache () {
     this._masterHDNodeCache = null
     this._masterHDNodeExpiry = 0
+    this._accountHDNodeCache = null
+    this._accountHDNodeExpiry = 0
   }
 
   async getXPubKey () {
@@ -75,15 +78,30 @@ export class BchWallet {
     }
   }
 
-  async getChildNode (index, derivationPath) {
+  async _getAccountHDNode () {
+    if (this._accountHDNodeCache && this._accountHDNodeExpiry > Date.now()) {
+      return this._accountHDNodeCache
+    }
     const masterHDNode = await this._getMasterHDNode()
-    const childNode = deriveHdNode(masterHDNode, derivationPath)
+    this._accountHDNodeCache = deriveHdNode(masterHDNode, this.derivationPath)
+    this._accountHDNodeExpiry = Date.now() + 3600000
+    return this._accountHDNodeCache
+  }
+
+  async getChildNode (index, derivationPath) {
+    let childNode
+    if (!derivationPath || derivationPath === this.derivationPath) {
+      childNode = await this._getAccountHDNode()
+    } else {
+      const masterHDNode = await this._getMasterHDNode()
+      childNode = deriveHdNode(masterHDNode, derivationPath)
+    }
     const receivingAddressNode = deriveHdNode(childNode, '0/' + index)
     const changeAddressNode = deriveHdNode(childNode, '1/' + index)
     return { receivingAddressNode, changeAddressNode }
   }
 
-  async getAddressSetAt(index) {
+  async getAddressSetAt (index) {
     const { receivingAddressNode, changeAddressNode } = await this.getChildNode(index, this.derivationPath)
 
     let receivingAddress = hdNodeToCashAddress(receivingAddressNode)
@@ -96,7 +114,7 @@ export class BchWallet {
 
     return {
       receiving: receivingAddress,
-      change: changeAddress
+      change: changeAddress,
     }
   }
 
@@ -206,163 +224,26 @@ export class BchWallet {
    * An address with zero balance but transaction history is still considered "discovered"
    * (important for CashFusion recovery where coins move through many addresses).
    *
-   * Scans both receiving (chain 0) and change (chain 1) address chains independently.
-   * Stops scanning a chain when `gapLimit` consecutive addresses have no history.
+   * Scans receiving (chain 0) and change (chain 1) address chains independently.
+   * Stops scanning a chain after `gapLimit` consecutive addresses with no
+   * history, so a large gap left by an external wallet (e.g. Electron Cash
+   * CashFusion) does not end the scan early.
    * After discovery, subscribes all addresses from 0 to the highest discovered index.
    *
    * @param {Object} opts
-   * @param {number} [opts.gapLimit=20] - Consecutive empty addresses before stopping a chain
+   * @param {number} [opts.gapLimit=200] - Consecutive empty addresses before stopping a chain
    * @param {number} [opts.batchSize=50] - Addresses per batch API request
-   * @param {number} [opts.maxScans=500] - Safety cap on total addresses to scan
+   * @param {number} [opts.maxScans=2000] - Safety cap on total addresses to scan
    * @param {Function} [opts.onProgress] - Progress callback
    * @returns {Promise<Object>} Discovery result with discovered indices and subscription status
    */
   async discoverAddresses(opts = {}) {
-    const {
-      gapLimit = 20,
-      batchSize = 50,
-      maxScans = 500,
-      onProgress,
-    } = opts
-
-    const result = {
-      success: false,
-      discoveredReceiving: [],
-      discoveredChange: [],
-      highestReceivingIndex: -1,
-      highestChangeIndex: -1,
-      subscribed: 0,
-      scanned: 0,
-      error: null,
-    }
-
-    let receivingGapCount = 0
-    let changeGapCount = 0
-    let receivingDone = false
-    let changeDone = false
-    let currentIndex = 0
-    let totalScanned = 0
-    const scanAddressSets = []
-
-    while (totalScanned < maxScans && !(receivingDone && changeDone)) {
-      const batchEnd = Math.min(currentIndex + batchSize, maxScans)
-      const addressSets = []
-
-      for (let i = currentIndex; i < batchEnd; i++) {
-        const addresses = await this.getAddressSetAt(i)
-        addressSets.push({
-          address_index: i,
-          receiving: addresses.receiving,
-          change: addresses.change,
-        })
-        scanAddressSets.push({
-          address_index: i,
-          addresses: { receiving: addresses.receiving, change: addresses.change },
-        })
-      }
-
-      try {
-        const apiResponse = await this.watchtower.BCH._api.post(
-          'wallet/address-discover/',
-          {
-            address_sets: addressSets,
-            wallet_hash: this.walletHash,
-            project_id: this.projectId,
-          }
-        )
-
-        const discoveryResults = apiResponse.data?.results || []
-
-        for (const discovery of discoveryResults) {
-          const idx = discovery.address_index
-
-          if (!receivingDone) {
-            const receivingHasHistory = discovery.receiving?.has_history === true
-            if (receivingHasHistory) {
-              receivingGapCount = 0
-              result.discoveredReceiving.push({
-                address_index: idx,
-                address: discovery.receiving.address,
-              })
-              if (idx > result.highestReceivingIndex) {
-                result.highestReceivingIndex = idx
-              }
-            } else {
-              receivingGapCount++
-              if (receivingGapCount >= gapLimit) {
-                receivingDone = true
-              }
-            }
-          }
-
-          if (!changeDone) {
-            const changeHasHistory = discovery.change?.has_history === true
-            if (changeHasHistory) {
-              changeGapCount = 0
-              result.discoveredChange.push({
-                address_index: idx,
-                address: discovery.change.address,
-              })
-              if (idx > result.highestChangeIndex) {
-                result.highestChangeIndex = idx
-              }
-            } else {
-              changeGapCount++
-              if (changeGapCount >= gapLimit) {
-                changeDone = true
-              }
-            }
-          }
-        }
-
-        totalScanned += addressSets.length
-        currentIndex = batchEnd
-
-        if (onProgress) {
-          onProgress({
-            scanned: totalScanned,
-            discoveredReceiving: result.discoveredReceiving.length,
-            discoveredChange: result.discoveredChange.length,
-            phase: 'discovering',
-          })
-        }
-      } catch (error) {
-        result.error = error?.message || String(error)
-        return result
-      }
-    }
-
-    result.scanned = totalScanned
-
-    const highestIndex = Math.max(result.highestReceivingIndex, result.highestChangeIndex)
-
-    if (highestIndex >= 0) {
-      const subscribeCount = highestIndex + 1
-      if (onProgress) {
-        onProgress({
-          scanned: totalScanned,
-          discoveredReceiving: result.discoveredReceiving.length,
-          discoveredChange: result.discoveredChange.length,
-          phase: 'subscribing',
-        })
-      }
-
-      const subscribePayload = {
-        address_sets: scanAddressSets.slice(0, subscribeCount),
-        wallet_hash: this.walletHash,
-        project_id: this.projectId,
-      }
-
-      try {
-        const apiResponse = await this.watchtower.BCH._api.post('wallet/address-scan/', subscribePayload)
-        result.subscribed = subscribeCount
-      } catch (error) {
-        result.error = error?.message || String(error)
-      }
-    }
-
-    result.success = true
-    return result
+    return discoverWalletAddresses({
+      getAddressSetAt: (index) => this.getAddressSetAt(index),
+      watchtower: this.watchtower,
+      walletHash: this.walletHash,
+      projectId: this.projectId,
+    }, opts)
   }
 
   async getPrivateKey (addressPath, derivationPath = '', useChildNode = false, index = 0) {
