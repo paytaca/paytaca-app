@@ -420,6 +420,7 @@
               class="full-width elite-cta-btn"
               :class="getDarkModeClass(darkMode)"
               :label="eliteCtaLabel"
+              :loading="isEliteCtaBusy"
               @click="onEliteCtaClick"
             />
           </div>
@@ -495,6 +496,7 @@
               class="full-width elite-cta-btn"
               :class="getDarkModeClass(darkMode)"
               :label="eliteCtaLabel"
+              :loading="isEliteCtaBusy"
               @click="onEliteCtaClick"
             />
           </div>
@@ -504,6 +506,43 @@
   </div>
 
   <help-card v-model="isHelpActive" :page="'home'" />
+
+  <!-- Elite enrollment success -->
+  <q-dialog v-model="isEliteSuccessActive" transition-show="scale" transition-hide="scale">
+    <q-card
+      class="q-pa-md pt-card text-bow br-15"
+      :class="getDarkModeClass(darkMode)"
+      style="min-width: 320px; max-width: 80dvw;"
+    >
+      <q-card-section class="q-pt-sm q-pb-md">
+        <div class="column items-center text-center q-gutter-y-md">
+          <div class="elite-success-badge">
+            <span class="elite-success-halo" />
+            <q-icon name="workspace_premium" size="72px" class="elite-success-icon" />
+          </div>
+
+          <h5 class="q-ma-none text-h5 text-weight-bold">
+            Congratulations! You're now eligible!
+          </h5>
+
+          <p class="q-ma-none text-body1">
+            You can now earn LIFT cashbacks when you transact at Paytaca's verified merchants.
+          </p>
+        </div>
+      </q-card-section>
+
+      <q-card-actions class="q-px-md q-pb-md justify-center">
+        <q-btn
+          unelevated
+          no-caps
+          class="full-width elite-success-cta"
+          :loading="isEliteNavigating"
+          label="View Elite Program"
+          @click="goToEliteProgram"
+        />
+      </q-card-actions>
+    </q-card>
+  </q-dialog>
 
   <!-- Referral Code Dialog -->
   <q-dialog v-model="isReferralDialogActive">
@@ -607,7 +646,10 @@ export default {
 
       // Paytaca Elite program state
       isEliteLoading: false,
-      isEnrolling: false,
+      isEliteCtaBusy: false,
+      isEliteSuccessActive: false,
+      isEliteNavigating: false,
+      eliteRefreshPromise: null,
       EliteStatus,
       EliteStatusLabels,
       promoError: '',
@@ -1169,6 +1211,8 @@ export default {
     },
 
     async onEliteCtaClick () {
+      if (this.isEliteCtaBusy) return
+
       const status = this.eliteData.status
 
       if (status === EliteStatus.ACTIVE) {
@@ -1183,6 +1227,10 @@ export default {
       // monitor. A client balance check cannot prove when the balance arrived,
       // so the CTA only shows the balances for now.
       if (status === EliteStatus.PAUSED || !this.meetsEliteThresholds()) {
+        this.isEliteCtaBusy = true
+        await new Promise(resolve => setTimeout(resolve, 450))
+        this.isEliteCtaBusy = false
+        if (this.isUnmounted) return
         this.showEliteThresholdDialog()
         return
       }
@@ -1193,7 +1241,7 @@ export default {
     async enrollInEliteProgram () {
       if (this.$store.getters['global/isChipnet']) return
 
-      this.isEnrolling = true
+      this.isEliteCtaBusy = true
       try {
         // Watchtower allows one key per wallet, so never mint speculatively --
         // a wallet that mints and is not enrolled cannot mint again without
@@ -1209,7 +1257,10 @@ export default {
           return
         }
 
-        await this.loadRewards()
+        this.eliteRefreshPromise = this.loadRewards().catch(error => {
+          console.error('Elite Program refresh after enrollment failed: ', error)
+        })
+        this.isEliteSuccessActive = true
       } catch (error) {
         if (error instanceof LookupKeyExistsError) {
           this.$q.notify({ type: 'error', message: 'A lookup key already exists for this wallet. Revoke it first.', timeout: 5000 })
@@ -1218,7 +1269,27 @@ export default {
           this.$q.notify({ type: 'error', message: 'Unable to join the Elite Program. Please try again later.', timeout: 5000 })
         }
       } finally {
-        this.isEnrolling = false
+        this.isEliteCtaBusy = false
+      }
+    },
+
+    async goToEliteProgram () {
+      this.isEliteNavigating = true
+      try {
+        await this.eliteRefreshPromise
+
+        if (!this.eliteData || this.eliteData.id < 0) {
+          this.$q.notify({ type: 'error', message: 'Unable to open the Elite Program. Please try again.', timeout: 5000 })
+          return
+        }
+
+        this.isEliteSuccessActive = false
+        this.$router.push({
+          name: 'app-rewards-elite-program',
+          params: { id: this.eliteData.id }
+        })
+      } finally {
+        this.isEliteNavigating = false
       }
     }
   }
@@ -1324,6 +1395,62 @@ export default {
   font-weight: 700;
   min-height: 44px;
   border-radius: 8px;
+  transition: transform 120ms ease, box-shadow 120ms ease;
+}
+
+.elite-card .elite-cta-btn:active {
+  transform: scale(0.98);
+  box-shadow: 0 2px 10px 0 rgba(120, 90, 20, 0.18);
+}
+
+/* Elite success dialog */
+.elite-success-badge {
+  position: relative;
+  width: 88px;
+  height: 88px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.elite-success-icon {
+  color: #d4a643;
+  animation: elite-success-pop 420ms cubic-bezier(0.2, 0.9, 0.3, 1.2) both;
+}
+
+.elite-success-halo {
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  border: 2px solid rgba(212, 166, 67, 0.6);
+  opacity: 0;
+  pointer-events: none;
+  animation: elite-success-halo 650ms ease-out forwards;
+}
+
+.elite-success-cta {
+  background: linear-gradient(to right bottom, #e0b34e, #d4a643, #c8963a, #bc8a32, #b07e2a) !important;
+  color: #fff;
+  font-weight: 700;
+  min-height: 44px;
+  border-radius: 8px;
+}
+
+@keyframes elite-success-pop {
+  0% { transform: scale(0.6); opacity: 0; }
+  100% { transform: scale(1); opacity: 1; }
+}
+
+@keyframes elite-success-halo {
+  0% { transform: scale(0.7); opacity: 0.55; }
+  100% { transform: scale(1.5); opacity: 0; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .elite-success-icon,
+  .elite-success-halo {
+    animation: none;
+  }
 }
 
 /* Verified merchant note on locked/paused elite cards.
