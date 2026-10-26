@@ -410,23 +410,9 @@
               </div>
               <div class="row col-2 justify-end" />
             </div>
-            <div
-              v-if="isMerchantCountLoading || verifiedMerchantCount !== null"
-              class="row items-start no-wrap q-my-md elite-merchant-count"
-            >
-              <q-icon name="storefront" size="sm" class="q-mr-sm q-mt-xs elite-icon" />
-              <div class="col">
-                <template v-if="isMerchantCountLoading">
-                  <q-skeleton :dark="darkMode" type="text" height="12px" class="q-mb-xs" />
-                  <q-skeleton :dark="darkMode" type="text" height="12px" class="q-mb-xs" />
-                  <q-skeleton :dark="darkMode" type="text" height="12px" width="55%" />
-                </template>
-                <template v-else>
-                  <span class="text-caption">{{ eliteMerchantCountPrefix }}</span>
-                  <span class="text-caption text-weight-medium">{{ verifiedMerchantCountLabel }}</span>
-                  <span class="text-caption">{{ eliteMerchantCountSuffix }}</span>
-                </template>
-              </div>
+            <div class="row items-center no-wrap q-my-md elite-merchant-note">
+              <q-icon name="storefront" size="sm" class="q-mr-md elite-icon" />
+              <span class="col text-caption">{{ eliteMerchantLabel }}</span>
             </div>
             <q-btn
               unelevated
@@ -499,23 +485,9 @@
               </div>
               <div class="row col-2 justify-end" />
             </div>
-            <div
-              v-if="isMerchantCountLoading || verifiedMerchantCount !== null"
-              class="row items-start no-wrap q-my-md elite-merchant-count"
-            >
-              <q-icon name="storefront" size="sm" class="q-mr-sm q-mt-xs elite-icon" />
-              <div class="col">
-                <template v-if="isMerchantCountLoading">
-                  <q-skeleton :dark="darkMode" type="text" height="12px" class="q-mb-xs" />
-                  <q-skeleton :dark="darkMode" type="text" height="12px" class="q-mb-xs" />
-                  <q-skeleton :dark="darkMode" type="text" height="12px" width="55%" />
-                </template>
-                <template v-else>
-                  <span class="text-caption">{{ eliteMerchantCountPrefix }}</span>
-                  <span class="text-caption text-weight-medium">{{ verifiedMerchantCountLabel }}</span>
-                  <span class="text-caption">{{ eliteMerchantCountSuffix }}</span>
-                </template>
-              </div>
+            <div class="row items-start no-wrap q-my-md elite-merchant-note">
+              <q-icon name="storefront" size="xs" class="q-mr-sm elite-icon" />
+              <span class="col text-caption">{{ eliteMerchantLabel }}</span>
             </div>
             <q-btn
               unelevated
@@ -570,8 +542,6 @@ import {
   EliteStatusLabels
 } from 'src/utils/engagementhub-utils/rewards'
 import { parseLiftToken } from 'src/utils/engagementhub-utils/shared'
-import { geolocationManager } from 'src/boot/geolocation'
-import { fetchVerifiedMerchantCount } from 'src/wallet/pos'
 import { loadWallet } from 'src/wallet'
 import { getLookupKey, mintLookupKey, LookupKeyExistsError } from 'src/wallet/lookup-key'
 
@@ -644,11 +614,6 @@ export default {
       eliteError: '',
       eliteProgram: null,
       eliteData: defaultEliteData(),
-
-      // Verified merchant count shown on locked/paused elite cards
-      verifiedMerchantCount: null,
-      isMerchantCountLoading: false,
-      deviceCountryName: '',
 
       // Referral banner state
       isReferralDialogActive: false,
@@ -801,29 +766,11 @@ export default {
       return this.eliteData?.status === EliteStatus.PAUSED ? 'Restore Eligibility' : 'Check Eligibility'
     },
 
-    // Elite: merchant count sentence for the locked/paused card, split into three
-    // bindings so the country name can carry its own article at i18n time
-    // ("in the Philippines" vs "in Japan").
-    eliteMerchantCountPrefix () {
-      if (this.verifiedMerchantCount === null) return ''
+    // Elite: promise line for the locked/paused card
+    eliteMerchantLabel () {
       return this.eliteData?.status === EliteStatus.PAUSED
-        ? 'Get back to earning LIFT cashbacks at '
-        : 'Earn LIFT cashbacks at '
-    },
-
-    // Elite: the emphasized count segment of the sentence
-    verifiedMerchantCountLabel () {
-      const count = this.verifiedMerchantCount
-      if (count === null) return ''
-      return count === 1
-        ? '1 verified merchant'
-        : `${count.toLocaleString()} verified merchants`
-    },
-
-    // Elite: trailing segment holding the country
-    eliteMerchantCountSuffix () {
-      if (this.verifiedMerchantCount === null) return ''
-      return this.deviceCountryName ? ` in ${this.deviceCountryName}.` : '.'
+        ? "Get back to earning LIFT cashbacks when you transact at Paytaca's verified merchants."
+        : "Start earning LIFT cashbacks when you transact at Paytaca's verified merchants."
     },
 
     // Elite card animation trigger — only after data has loaded
@@ -1171,7 +1118,6 @@ export default {
         // do client-side asset balances check when status is locked
         if (this.eliteData.status === EliteStatus.LOCKED || this.eliteData.status === EliteStatus.PAUSED) {
           this.getWalletAssetBalances()
-          this.loadVerifiedMerchantCount()
         }
       } catch (error) {
         console.error('Error loading elite program data: ', error)
@@ -1185,26 +1131,6 @@ export default {
     retryEliteProgram () {
       this.eliteData = defaultEliteData()
       this.loadEliteProgramData(this.eliteProgram)
-    },
-
-    // Fetch the verified merchant count for the device's country.
-    // Never blocks the card render; failures simply hide the count line.
-    async loadVerifiedMerchantCount () {
-      this.isMerchantCountLoading = true
-      this.verifiedMerchantCount = null
-      this.deviceCountryName = ''
-
-      try {
-        const geoip = await geolocationManager.getOrUpdateGeoIp()
-        if (!geoip?.country_name) return
-
-        this.deviceCountryName = geoip.country_name
-        this.verifiedMerchantCount = await fetchVerifiedMerchantCount(geoip.country_name)
-      } catch (error) {
-        console.error('Unable to load verified merchant count: ', error)
-      } finally {
-        this.isMerchantCountLoading = false
-      }
     },
 
     getWalletAssetBalances () {
@@ -1400,14 +1326,19 @@ export default {
   border-radius: 8px;
 }
 
-/* Verified merchant count line on locked/paused elite cards.
+/* Verified merchant note on locked/paused elite cards.
    Reuses the .elite-stat-box dashed-border treatment from elite-row-styles.scss */
-.elite-merchant-count {
+.elite-merchant-note {
   background: rgba(212, 166, 67, 0.15);
   border: 1px dashed rgba(212, 166, 67, 0.5);
   border-radius: 10px;
   padding: 10px 12px;
-  line-height: 1.4;
+}
+
+/* Match the 18px icon box so it aligns to the first line at any line count.
+   Must target the span: .text-caption sets its own 20px line-height. */
+.elite-merchant-note .text-caption {
+  line-height: 1.5;
 }
 
 /* Smooth card transition */

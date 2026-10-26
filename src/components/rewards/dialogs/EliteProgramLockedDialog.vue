@@ -30,7 +30,7 @@
           <!-- Description -->
           <div class="column q-gutter-y-sm text-body1">
             <p class="q-ma-none">
-              {{ isLocked ? 'Oops! You are not yet qualified for the Paytaca Elite Program.' : 'Oops! Your wallet balances fell below the threshold. Restore them to resume earning cashbacks.' }}
+              {{ isLocked ? 'Oops! You are not yet eligible for the Paytaca Elite Program.' : 'Oops! Your wallet balances fell below the threshold. Restore them to resume earning cashbacks.' }}
             </p>
 
             <!-- Wallet Balance Progress -->
