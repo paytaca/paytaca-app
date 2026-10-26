@@ -20,6 +20,19 @@ export const formatAuctionCountdown = (timeLeft, countingToEnd=false) => {
   return (countingToEnd) ? "Time's Up!" : "Auction is Starting..."
 }
 
+export const formatIntervalCountdown = (timeLeft) => {
+  if (timeLeft === null) return "N/A"
+  
+  const splitTime = String(timeLeft).split(":")
+  const timeToIndex = ['day', 'hour', 'minute', 'second']
+
+  for (let [index, time] of splitTime.entries()){
+    const numTime = Number(time)
+    if (numTime > 0) return `${numTime} ${timeToIndex[index]}${(numTime) > 1 ? 's':''} left.`
+  }
+  return "Dropping Price..." 
+}
+
 // Formats a fiat value as Philippine pesos.
 export const formatFiat = (value) => {
   const numValue = Number(value) || 0
