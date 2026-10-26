@@ -26,6 +26,7 @@
 		AB4C9DB6DC078C3F979CA3D6 /* Pods_App.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 0CCBC391946425CE841986A4 /* Pods_App.framework */; };
 		AE37EAB81D5D459B9B079EC4 /* OrderLiveActivityPlugin.swift in Sources */ = {isa = PBXBuildFile; fileRef = 681ED6524044E42E594E6196 /* OrderLiveActivityPlugin.swift */; };
 		AF4A78CFC3D01A9B14C67B51 /* OrderLiveActivityWidget.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0D2D9DC6A6C8E52E79BA2D2E /* OrderLiveActivityWidget.swift */; };
+		BC7E1F0A2D5B4C8E9A1F2B3C /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = BC7E1F0A2D5B4C8E9A1F2B3D /* Assets.xcassets */; };
 		E9550245173DCEAF8369F167 /* OrderLiveActivityAttributes.swift in Sources */ = {isa = PBXBuildFile; fileRef = 35BA09FCEE9C4B486F30D47E /* OrderLiveActivityAttributes.swift */; };
 		FFF4E5459AEC3AD0CF77AAB7 /* Foundation.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 09BCBBB60A41799A053F7BBA /* Foundation.framework */; };
 /* End PBXBuildFile section */
@@ -59,6 +60,7 @@
 		0CCBC391946425CE841986A4 /* Pods_App.framework */ = {isa = PBXFileReference; explicitFileType = wrapper.framework; includeInIndex = 0; path = Pods_App.framework; sourceTree = BUILT_PRODUCTS_DIR; };
 		0D21833CE393017B1F8D5488 /* Pods-App.debug.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-App.debug.xcconfig"; path = "Target Support Files/Pods-App/Pods-App.debug.xcconfig"; sourceTree = "<group>"; };
 		0D2D9DC6A6C8E52E79BA2D2E /* OrderLiveActivityWidget.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = OrderLiveActivityWidget.swift; sourceTree = "<group>"; };
+		BC7E1F0A2D5B4C8E9A1F2B3D /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		2FAD9762203C412B000D30F8 /* config.xml */ = {isa = PBXFileReference; lastKnownFileType = text.xml; path = config.xml; sourceTree = "<group>"; };
 		35BA09FCEE9C4B486F30D47E /* OrderLiveActivityAttributes.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = OrderLiveActivityAttributes.swift; sourceTree = "<group>"; };
 		40DDB73E297AA84300097A81 /* AppDebug.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = AppDebug.entitlements; sourceTree = "<group>"; };
@@ -173,6 +175,7 @@
 			isa = PBXGroup;
 			children = (
 				0D2D9DC6A6C8E52E79BA2D2E /* OrderLiveActivityWidget.swift */,
+				BC7E1F0A2D5B4C8E9A1F2B3D /* Assets.xcassets */,
 				E4D194AC1DF27E18596199AF /* Info.plist */,
 			);
 			name = OrderLiveActivityWidget;
@@ -272,6 +275,7 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				BC7E1F0A2D5B4C8E9A1F2B3C /* Assets.xcassets in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -400,7 +404,7 @@
 				INFOPLIST_FILE = OrderLiveActivityWidget/Info.plist;
 				IPHONEOS_DEPLOYMENT_TARGET = 16.1;
 				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/Frameworks @executable_path/../../Frameworks";
-				MARKETING_VERSION = 0.27.1;
+				MARKETING_VERSION = 0.27.2;
 				PRODUCT_BUNDLE_IDENTIFIER = com.paytaca.app.OrderLiveActivityWidget;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SDKROOT = iphoneos;
@@ -534,7 +538,7 @@
 				CODE_SIGN_ENTITLEMENTS = App/App.entitlements;
 				CODE_SIGN_IDENTITY = "Apple Development";
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 630;
+				CURRENT_PROJECT_VERSION = 642;
 				DEVELOPMENT_TEAM = 89X576BZBF;
 				INFOPLIST_FILE = App/Info.plist;
 				IPHONEOS_DEPLOYMENT_TARGET = 13.0;
@@ -557,7 +561,7 @@
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CODE_SIGN_ENTITLEMENTS = App/AppRelease.entitlements;
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 630;
+				CURRENT_PROJECT_VERSION = 647;
 				DEVELOPMENT_TEAM = 89X576BZBF;
 				INFOPLIST_FILE = App/Info.plist;
 				IPHONEOS_DEPLOYMENT_TARGET = 13.0;
@@ -577,13 +581,13 @@
 				CLANG_ENABLE_MODULES = YES;
 				CLANG_ENABLE_OBJC_WEAK = NO;
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 628;
+				CURRENT_PROJECT_VERSION = 647;
 				DEVELOPMENT_TEAM = 89X576BZBF;
 				GENERATE_INFOPLIST_FILE = NO;
 				INFOPLIST_FILE = OrderLiveActivityWidget/Info.plist;
 				IPHONEOS_DEPLOYMENT_TARGET = 16.1;
 				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/Frameworks @executable_path/../../Frameworks";
-				MARKETING_VERSION = 0.27.1;
+				MARKETING_VERSION = 0.27.2;
 				PRODUCT_BUNDLE_IDENTIFIER = com.paytaca.app.OrderLiveActivityWidget;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SDKROOT = iphoneos;

@@ -94,7 +94,7 @@
   </q-dialog>
 </template>
 <script setup>
-import BCHJS from '@psf/bch-js';
+import { signMessage } from 'src/utils/bch-keys'
 import { Wallet } from 'src/wallet'
 import { padPosId, aes } from 'src/wallet/pos'
 import { formatTimestampToText } from 'src/wallet/anyhedge/formatters';
@@ -104,7 +104,6 @@ import { useStore } from 'vuex';
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 import { useI18n } from 'vue-i18n'
 
-const bchjs = new BCHJS()
 
 const $copyText = inject('$copyText')
 const $q = useQuasar()
@@ -150,7 +149,7 @@ async function generateLinkCode(opts) {
     const privkey = await wallet.getPrivateKey(nonce)
 
     // Sign the encrypted data for verification
-    const signature = bchjs.BitcoinCash.signMessageWithPrivKey(privkey, encryptedData)
+    const signature = signMessage(privkey, encryptedData)
 
     const data = {
       walletHash: wallet.walletHash,

@@ -57,7 +57,7 @@
           <q-btn
             @click="cauldronSwap"
             flat
-            class="action-btn"
+            class="action-btn swap-btn"
             no-caps
           >
             <q-icon name="swap_horiz" size="18px" class="action-icon" />
@@ -912,64 +912,79 @@ export default {
   }
 }
 
-// Action Buttons (Send, Receive, History)
+// Action Buttons (Send, Receive, History, Swap)
+.action-btn {
+  min-width: 0;
+  font-weight: 500;
+  font-size: 13px;
+  border-radius: 12px;
+  padding: 10px 6px;
+  color: var(--q-primary);
+  background: rgba(59, 123, 246, 0.08);
+  box-shadow: none;
+  transition: background 0.2s ease, border-color 0.2s ease, transform 0.2s ease;
+  min-height: 52px;
+
+  :deep(.q-btn__content) {
+    gap: 5px;
+  }
+
+  .action-icon {
+    opacity: 0.9;
+    transition: transform 0.2s ease;
+    font-size: 22px;
+  }
+
+  .action-label {
+    font-weight: 500;
+    line-height: 1.2;
+    font-size: 12px;
+    white-space: nowrap;
+  }
+
+  &:hover {
+    background: rgba(59, 123, 246, 0.16);
+
+    .action-icon {
+      transform: scale(1.08);
+    }
+  }
+
+  &:active {
+    transform: scale(0.97);
+  }
+}
+
 .action-buttons {
   padding-top: 8px;
-  
+
   .action-buttons-container {
     display: flex;
     flex-wrap: wrap;
     gap: 8px;
     justify-content: center;
   }
-  
+
   .action-btn {
     flex: 0 1 calc(33.333% - 6px);
-    min-width: 0;
-    font-weight: 500;
-    font-size: 13px;
-    border-radius: 12px;
-    padding: 10px 6px;
-    color: var(--q-primary);
-    background: rgba(59, 123, 246, 0.08);
-    box-shadow: none;
-    transition: background 0.2s ease, transform 0.2s ease;
-    min-height: 52px;
-
-    :deep(.q-btn__content) {
-      gap: 5px;
-    }
-    
-    .action-icon {
-      opacity: 0.9;
-      transition: transform 0.2s ease;
-      font-size: 22px;
-    }
-    
-    .action-label {
-      font-weight: 500;
-      line-height: 1.2;
-      font-size: 12px;
-      white-space: nowrap;
-    }
-    
-    &:hover {
-      background: rgba(59, 123, 246, 0.16);
-      
-      .action-icon {
-        transform: scale(1.08);
-      }
-    }
-    
-    &:active {
-      transform: scale(0.97);
-    }
   }
-  
+
   @media (max-width: 360px) {
     .action-btn {
       flex: 1 1 calc(50% - 4px);
     }
+  }
+}
+
+// Outlined variant of .action-btn (standalone Swap button)
+.swap-btn {
+  padding: 10px 20px;
+  background: transparent;
+  border: 1px solid color-mix(in srgb, var(--q-primary) 40%, transparent);
+
+  &:hover {
+    background: color-mix(in srgb, var(--q-primary) 8%, transparent);
+    border-color: color-mix(in srgb, var(--q-primary) 70%, transparent);
   }
 }
 

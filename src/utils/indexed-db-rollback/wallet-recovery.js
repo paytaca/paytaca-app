@@ -1,5 +1,8 @@
-import { getMnemonic, Wallet } from 'src/wallet'
+import { Capacitor } from '@capacitor/core'
+import { SecureStoragePlugin } from 'capacitor-secure-storage-plugin'
+import { getMnemonic, getMnemonicByHash, getMnemonicByIndexLegacy, storeMnemonicByHash, Wallet } from 'src/wallet'
 import { Store } from 'src/store'
+import { isDeletedWalletHash, pruneDeletedWalletHashes } from 'src/utils/wallet-storage'
 import sha256 from 'js-sha256'
 
 import initialAssetState from 'src/store/assets/state'
@@ -304,138 +307,211 @@ export function resetAssetsList(index) {
     }
 }
 
-async function recoverWallet(index, save=false) {
+/**
+ * Build the wallet snapshots needed to store a wallet in the vault.
+ * Shared by index-based and mnemonic-key-based recovery.
+ * @param {string} mnemonic
+ * @returns {Promise<{wallet: Object, chipnet: Object, snapshots: Object[]}>}
+ */
+async function buildWalletSnapshots (mnemonic) {
+    const wallet = new Wallet(mnemonic)
+    const walletTypes = [
+        { instance: wallet.BCH, isChipnet: false, type: 'bch' },
+        { instance: wallet.BCH_CHIP, isChipnet: true, type: 'bch' },
+        { instance: wallet.SLP, isChipnet: false, type: 'slp' },
+        { instance: wallet.SLP_TEST, isChipnet: true, type: 'slp' }
+    ]
+
+    const bchWalletsInfo = {}
+    const chipnetWalletsInfo = {}
+    const snapshots = []
+
+    for (const { instance, isChipnet, type } of walletTypes) {
+        const addresses = await instance.getAddressSetAt(0)
+        const xPubKey = await instance.getXPubKey()
+
+        const walletTypeInfo = {
+            isChipnet,
+            type,
+            walletHash: instance.walletHash,
+            derivationPath: instance.derivationPath,
+            lastAddress: addresses !== null ? addresses.receiving : '',
+            lastChangeAddress: addresses !== null ? addresses.change : '',
+            lastAddressIndex: 0
+        }
+
+        const snapshot = {
+            walletHash: walletTypeInfo.walletHash,
+            derivationPath: walletTypeInfo.derivationPath,
+            lastAddress: walletTypeInfo.lastAddress,
+            lastChangeAddress: walletTypeInfo.lastChangeAddress,
+            lastAddressIndex: walletTypeInfo.lastAddressIndex,
+            xPubKey
+        }
+
+        if (isChipnet) chipnetWalletsInfo[type] = snapshot
+        else bchWalletsInfo[type] = snapshot
+
+        snapshots.push({ walletTypeInfo, xPubKey, isChipnet, type })
+    }
+
+    return { wallet: bchWalletsInfo, chipnet: chipnetWalletsInfo, snapshots }
+}
+
+/**
+ * Snapshot the persisted address bookkeeping of the active wallet.
+ *
+ * Recovery rebuilds wallet snapshots from the mnemonic, which starts again at
+ * address index 0. The persisted snapshot can be further ahead (a spend
+ * advances `lastAddressIndex` so spent addresses are not handed out again), so
+ * capture it before recovery overwrites `state.wallets` and re-apply it to the
+ * rebuilt snapshot.
+ *
+ * @returns {{walletHash: string|null, mainnet: Object, chipnet: Object}}
+ */
+function captureActiveWalletAddressBookkeeping () {
+    const pick = (snapshot) => {
+        if (!snapshot) return null
+        return {
+            walletHash: snapshot.walletHash ? String(snapshot.walletHash).trim() : null,
+            lastAddress: snapshot.lastAddress || '',
+            lastChangeAddress: snapshot.lastChangeAddress || '',
+            lastAddressIndex: snapshot.lastAddressIndex,
+        }
+    }
+    const wallets = Store.state.global?.wallets || {}
+    const chipnetWallets = Store.state.global?.chipnet__wallets || {}
+    return {
+        walletHash: wallets.bch?.walletHash ? String(wallets.bch.walletHash).trim() : null,
+        mainnet: { bch: pick(wallets.bch), slp: pick(wallets.slp) },
+        chipnet: { bch: pick(chipnetWallets.bch), slp: pick(chipnetWallets.slp) },
+    }
+}
+
+/**
+ * Re-apply the captured address bookkeeping to a rebuilt wallet snapshot.
+ * Same wallet hash only: this never moves another wallet's pointers.
+ */
+function restoreAddressBookkeeping (bchWalletsInfo, chipnetWalletsInfo, previous) {
+    if (!previous) return
+    const restore = (rebuilt, saved) => {
+        if (!rebuilt || !saved || !saved.walletHash) return
+        if (String(rebuilt.walletHash || '').trim() !== saved.walletHash) return
+        const savedIndex = Number(saved.lastAddressIndex)
+        if (!Number.isFinite(savedIndex)) return
+        const rebuiltIndex = Number(rebuilt.lastAddressIndex)
+        if (Number.isFinite(rebuiltIndex) && rebuiltIndex >= savedIndex) return
+        rebuilt.lastAddress = saved.lastAddress || rebuilt.lastAddress
+        rebuilt.lastChangeAddress = saved.lastChangeAddress || rebuilt.lastChangeAddress
+        rebuilt.lastAddressIndex = savedIndex
+    }
+    restore(bchWalletsInfo?.bch, previous.mainnet?.bch)
+    restore(bchWalletsInfo?.slp, previous.mainnet?.slp)
+    restore(chipnetWalletsInfo?.bch, previous.chipnet?.bch)
+    restore(chipnetWalletsInfo?.slp, previous.chipnet?.slp)
+}
+
+/**
+ * Resolve the mnemonic for a vault index, tolerating a missing vault entry.
+ *
+ * A wallet whose vault entry was lost (vault cleared by the reset bug) is still
+ * recoverable from its mnemonic key. The mnemonic is read from the wallet-hash
+ * key first and from the legacy index key as a fallback, because
+ * `mnemonic_migration_completed` can be set without the mnemonic ever having
+ * been re-keyed.
+ *
+ * The legacy index key is only trusted when its mnemonic hashes to the expected
+ * wallet hash (when one is known); otherwise it could belong to a different
+ * wallet that used to live at that index.
+ *
+ * @param {number} index
+ * @param {string|undefined} walletHash
+ * @returns {Promise<{mnemonic: string|null, fromLegacyIndexKey: boolean, walletHash: string|null}>}
+ */
+async function resolveMnemonicForRecovery (index, walletHash) {
+    let mnemonic = null
+    if (walletHash) {
+        mnemonic = await getMnemonicByHash(walletHash).catch(() => null)
+    } else {
+        mnemonic = await getMnemonic(index).catch(() => null)
+    }
+    if (mnemonic) return { mnemonic, fromLegacyIndexKey: false, walletHash: walletHash || null }
+
+    let legacyMnemonic = null
+    try {
+        legacyMnemonic = await getMnemonicByIndexLegacy(index)
+    } catch (error) {
+        // Keystore failure / undecryptable ciphertext: do not treat it as
+        // "no wallet here", surface it so a later boot can retry.
+        console.error(`[Wallet Recovery] Could not read the legacy mnemonic at index ${index}:`, error)
+    }
+    if (!legacyMnemonic) return { mnemonic: null, fromLegacyIndexKey: false, walletHash: walletHash || null }
+
+    const legacyHash = computeWalletHashFromMnemonic(legacyMnemonic)
+    if (walletHash && legacyHash !== String(walletHash).trim()) {
+        console.warn(`[Wallet Recovery] Legacy mnemonic at index ${index} does not match the expected wallet; skipping.`)
+        return { mnemonic: null, fromLegacyIndexKey: false, walletHash: walletHash || null }
+    }
+
+    return { mnemonic: legacyMnemonic, fromLegacyIndexKey: true, walletHash: legacyHash }
+}
+
+async function recoverWallet(index, save=false, previousActiveWallet=null) {
     const store = Store
     const walletVault = store.getters['global/getVault']
     const existingVaultEntry = walletVault?.[index]
-    
-    // If vault entry doesn't exist or is deleted, skip recovery
-    // This prevents trying to recover wallets that have been deleted
-    if (!existingVaultEntry || existingVaultEntry.deleted === true) {
-        console.warn(`[Wallet Recovery] Skipping recovery for index ${index}: vault entry missing or deleted`)
+
+    // An entry explicitly marked deleted is a tombstone: never resurrect it.
+    // A *missing* entry is recoverable — that is the reset-bug case where the
+    // whole vault was wiped while the mnemonic keys survived.
+    if (existingVaultEntry?.deleted === true) {
+        console.warn(`[Wallet Recovery] Skipping recovery for index ${index}: vault entry deleted`)
         return null
     }
-    
-    // Use wallet hash from vault if available (post-migration pattern)
-    // This provides more reliable mnemonic lookup
-    let mnemonic = null
+
     const walletHash = existingVaultEntry?.wallet?.bch?.walletHash || existingVaultEntry?.wallet?.BCH?.walletHash
-    if (walletHash) {
-        mnemonic = await getMnemonic(walletHash).catch(() => null)
-    }
-    
-    // Fallback to index-based lookup if wallet hash not available
-    if (!mnemonic) {
-        mnemonic = await getMnemonic(index).catch(() => null)
-    }
+    const { mnemonic, fromLegacyIndexKey } = await resolveMnemonicForRecovery(index, walletHash)
 
     if (!mnemonic) {
         console.warn('[Wallet Recovery] No mnemonic found for index:', index)
         return null
     }
 
-    const wallet = new Wallet(mnemonic)
-    const bchWallets = [wallet.BCH, wallet.BCH_CHIP]
-    const slpWallets = [wallet.SLP, wallet.SLP_TEST]
+    const { wallet: bchWalletsInfo, chipnet: chipnetWalletsInfo, snapshots } = await buildWalletSnapshots(mnemonic)
 
-    const chipnetWalletsInfo = {}
-    const bchWalletsInfo = {}
-    for (const bchWallet of bchWallets) {
-        const isChipnet = bchWallets.indexOf(bchWallet) === 1
-        const networkName = isChipnet ? 'chipnet' : 'mainnet'
+    // Rebuilt snapshots start at address index 0; keep the persisted pointers so
+    // addresses that were already used (spent) are not reused.
+    restoreAddressBookkeeping(bchWalletsInfo, chipnetWalletsInfo, previousActiveWallet)
 
-        let walletSnapshot = {}
-        await bchWallet.getAddressSetAt(0).then(function (addresses) {
-            const walletTypeInfo = {
-                isChipnet,
-                type: 'bch',
-                walletHash: bchWallet.walletHash,
-                derivationPath: bchWallet.derivationPath,
-                lastAddress: addresses !== null ? addresses.receiving : '',
-                lastChangeAddress: addresses !== null ? addresses.change : '',
-                lastAddressIndex: 0,
-            }
+    // Never resurrect a wallet the user explicitly deleted: deleteWallet records
+    // the hash so a leftover mnemonic key cannot bring it back.
+    const recoveredWalletHash = bchWalletsInfo?.bch?.walletHash
+    if (recoveredWalletHash && isDeletedWalletHash(recoveredWalletHash)) {
+        console.warn(`[Wallet Recovery] Skipping index ${index}: wallet was deleted by the user`)
+        return null
+    }
 
-            if (save) {
-                store.commit('global/updateWallet', walletTypeInfo)
+    // The same mnemonic can be stored under several legacy index keys (wallet
+    // import used to write the active mnemonic to every index). Recover one
+    // vault entry per wallet hash, not one per key.
+    const duplicateIndex = walletVault.findIndex(entry => entry &&
+        entry.deleted !== true &&
+        getVaultWalletHash(entry) === recoveredWalletHash)
+    if (duplicateIndex >= 0 && duplicateIndex !== index) {
+        console.warn(`[Wallet Recovery] Index ${index} holds the same wallet as index ${duplicateIndex}; skipping duplicate entry.`)
+        await rekeyLegacyMnemonic(index, mnemonic, recoveredWalletHash, fromLegacyIndexKey)
+        return recoveredWalletHash
+    }
+
+    if (save) {
+        for (const { walletTypeInfo, xPubKey, isChipnet, type } of snapshots) {
+            store.commit('global/updateWallet', walletTypeInfo)
+            if (type === 'bch') {
                 try {
                     store.dispatch('global/refetchWalletPreferences')
                 } catch(error) { console.error(error) }
             }
-
-            walletSnapshot = {
-                walletHash: walletTypeInfo.walletHash,
-                derivationPath: walletTypeInfo.derivationPath,
-                lastAddress: walletTypeInfo.lastAddress,
-                lastChangeAddress: walletTypeInfo.lastChangeAddress,
-                lastAddressIndex: walletTypeInfo.lastAddressIndex
-            }
-
-        })
-
-        await bchWallet.getXPubKey().then(function (xpub) {
-            const xPubInfo = {
-                isChipnet,
-                type: 'bch',
-                xPubKey: xpub
-            }
-
-            walletSnapshot.xPubKey = xpub
-
-            if (save) store.commit('global/updateXPubKey', xPubInfo)
-        })
-
-        if (isChipnet) {
-            chipnetWalletsInfo['bch'] = walletSnapshot
-        } else {
-            bchWalletsInfo['bch'] = walletSnapshot
-        }
-    }
-
-    for (const slpWallet of slpWallets) {
-        const isChipnet = slpWallets.indexOf(slpWallet) === 1
-
-        const networkName = isChipnet ? 'chipnet' : 'mainnet'
-
-        let walletSnapshot = {}
-        await slpWallet.getAddressSetAt(0).then(function (addresses) {
-            const walletTypeInfo = {
-                isChipnet,
-                type: 'slp',
-                walletHash: slpWallet.walletHash,
-                derivationPath: slpWallet.derivationPath,
-                lastAddress: addresses !== null ? addresses.receiving : '',
-                lastChangeAddress: addresses !== null ? addresses.change : '',
-                lastAddressIndex: 0
-            }
-
-            if (save) store.commit('global/updateWallet', walletTypeInfo)
-
-            walletSnapshot = {
-                walletHash: walletTypeInfo.walletHash,
-                derivationPath: walletTypeInfo.derivationPath,
-                lastAddress: walletTypeInfo.lastAddress,
-                lastChangeAddress: walletTypeInfo.lastChangeAddress,
-                lastAddressIndex: walletTypeInfo.lastAddressIndex
-            }
-        })
-
-        await slpWallet.getXPubKey().then(function (xpub) {
-            const xPubInfo = {
-                isChipnet,
-                type: 'slp',
-                xPubKey: xpub
-            }
-
-            walletSnapshot.xPubKey = xpub
-
-            if (save) store.commit('global/updateXPubKey', xPubInfo)
-        })
-
-        if (isChipnet) {
-            chipnetWalletsInfo['slp'] = walletSnapshot
-        } else {
-            bchWalletsInfo['slp'] = walletSnapshot
+            store.commit('global/updateXPubKey', { isChipnet, type, xPubKey })
         }
     }
 
@@ -474,18 +550,55 @@ async function recoverWallet(index, save=false) {
         walletSnapshot: vaultEntry.wallet,
         chipnetSnapshot: vaultEntry.chipnet,
     })
+
+    await rekeyLegacyMnemonic(index, mnemonic, recoveredWalletHash, fromLegacyIndexKey)
+
+    return recoveredWalletHash || null
+}
+
+/**
+ * Move a mnemonic that was only readable through the legacy index key to the
+ * wallet-hash key used by the current scheme.
+ *
+ * `mnemonic_migration_completed` is already set on affected installs, so
+ * getMnemonic() would never look at `mn<index>` again: without the hash key the
+ * wallet would open but be unable to sign. The legacy key is dropped only after
+ * the hash key is written, so a failure leaves a readable copy behind.
+ *
+ * @param {number} index
+ * @param {string} mnemonic
+ * @param {string} walletHash
+ * @param {boolean} fromLegacyIndexKey
+ */
+async function rekeyLegacyMnemonic (index, mnemonic, walletHash, fromLegacyIndexKey) {
+    if (!fromLegacyIndexKey || !walletHash) return
+    try {
+        await storeMnemonicByHash(mnemonic, walletHash)
+        const legacyKey = index === 0 ? 'mn' : `mn${index}`
+        await SecureStoragePlugin.remove({ key: legacyKey }).catch(() => {})
+    } catch (error) {
+        console.warn(`[Wallet Recovery] Could not re-key mnemonic for index ${index}:`, error)
+    }
 }
 
 export async function recoverWalletsFromStorage() {
-    // Check first if vault and wallets are empty
-    const isVaultEmpty = Store.getters['global/isVaultEmpty']
     const vault = Store.state.global.vault
+
+    // Capture the persisted active wallet before recovery overwrites
+    // `state.wallets` (this also preserves the receive/change pointers).
+    const previousActiveWallet = captureActiveWalletAddressBookkeeping()
 
     // Get processed indices to skip already-processed wallets
     const processedIndices = getProcessedRecoveryIndices()
 
     // Find mnemonic wallet indices
     const walletIndices = await getWalletIndicesFromStorage()
+
+    // When the vault has been wiped there are no entries left to "recover into",
+    // so a missing entry must be treated as a wallet that needs recovering
+    // rather than skipped — otherwise a fully cleared vault is unrecoverable
+    // even though the mnemonic keys are still present.
+    const hasUsableVaultWallet = vault.some(entry => getVaultWalletHash(entry) !== null)
 
     // Filter indices: skip processed ones UNLESS their vault entry is missing/invalid or walletHash doesn't match (allows re-recovery)
     // Note: This needs to be async to verify walletHash matches mnemonic
@@ -497,11 +610,24 @@ export async function recoverWalletsFromStorage() {
             continue
         }
         
-        // Skip indices that don't have vault entries or are marked as deleted
-        // This prevents trying to recover wallets that have been deleted
         const vaultEntry = vault[index]
-        if (!vaultEntry || vaultEntry.deleted === true) {
-            console.warn(`[Wallet Recovery] Skipping index ${index}: vault entry missing or deleted`)
+
+        // Entries explicitly marked deleted are tombstones: never resurrect them.
+        if (vaultEntry?.deleted === true) {
+            console.warn(`[Wallet Recovery] Skipping index ${index}: vault entry deleted`)
+            continue
+        }
+
+        // Missing entry: only rebuild it when the vault holds no usable wallet
+        // at all. With a healthy vault, a leftover mnemonic key most likely
+        // belongs to a wallet that was removed before tombstones existed, and
+        // recovering it would add a phantom wallet to the account list.
+        if (!vaultEntry) {
+            if (hasUsableVaultWallet) {
+                console.warn(`[Wallet Recovery] Skipping index ${index}: vault entry missing`)
+                continue
+            }
+            unprocessedIndices.push(index)
             continue
         }
         
@@ -594,15 +720,6 @@ export async function recoverWalletsFromStorage() {
         recoverableIndices.splice(0, recoverableIndices.length - 30)
     }
 
-    if (recoverableIndices.length === 0) {
-        const walletRecoveryV2Done = localStorage.getItem(WALLET_RECOVERY2_FLAG_KEY)
-        if (walletRecoveryV2Done) {
-            Store.commit('global/setWalletsRecovered', true)
-            return
-        }
-    }
-
-    const lastWalletIndex = Math.max(...recoverableIndices, -1)
     const hasRecoverableWallets = recoverableIndices.length > 0
 
     const walletRecoveryV2Done = localStorage.getItem(WALLET_RECOVERY2_FLAG_KEY)
@@ -615,7 +732,7 @@ export async function recoverWalletsFromStorage() {
 
     // Await the first wallet only
     const firstIndex = recoverableIndices[0]
-    await recoverWallet(firstIndex, true).catch(error => {
+    await recoverWallet(firstIndex, true, previousActiveWallet).catch(error => {
         Store.commit('global/setWalletRecoveryMessage', String(error))
         return Promise.reject(error)
     })
@@ -625,13 +742,160 @@ export async function recoverWalletsFromStorage() {
     recoverableIndices.shift()
 
     // Start the recovery process for remaining wallets in parallel so it wont block boot
-    const promises = recoverableIndices.map(index => recoverWallet(index))
+    const promises = recoverableIndices.map(index => recoverWallet(index, false, previousActiveWallet))
     Promise.all(promises).then(() => {
         // Mark all recovered indices as processed
         markIndicesAsProcessed(recoverableIndices)
         Store.commit('global/setWalletsRecovered', true)
         localStorage.setItem(WALLET_RECOVERY2_FLAG_KEY, true)
+        // Reopen the wallet the user was on before the vault was lost, not just
+        // the lowest recovered index.
+        selectPreviouslyActiveRecoveredWallet(previousActiveWallet)
     }).catch(error => {
         Store.commit('global/setWalletRecoveryMessage', String(error))
     })
+}
+
+/**
+ * Point the app at the recovered wallet that matches the last active wallet
+ * snapshot, so a multi-wallet account does not reopen on an arbitrary entry
+ * after a vault rebuild. The hash comes from `previousActiveWallet` because
+ * recovery has already overwritten `state.wallets` by the time this runs.
+ */
+function selectPreviouslyActiveRecoveredWallet (previousActiveWallet) {
+    try {
+        const activeHash = previousActiveWallet?.walletHash
+        if (!activeHash) return
+        const vault = Store.getters['global/getVault'] || []
+        const index = vault.findIndex(entry => getVaultWalletHash(entry) === String(activeHash).trim())
+        if (index < 0) return
+        Store.commit('global/updateCurrentWallet', index)
+        Store.commit('global/updateWalletIndex', index)
+    } catch (error) {
+        console.warn('[Wallet Recovery] Could not select the previously active wallet:', error)
+    }
+}
+
+const MNEMONIC_KEY_RECOVERY_FLAG = 'mnemonic-key-recovery-done'
+const MNEMONIC_HASH_KEY_PATTERN = /^cap_sec_mn_([a-fA-F0-9]{64})$/
+
+function getVaultWalletHash (entry) {
+    if (!entry || entry.deleted === true) return null
+    const hash = entry.wallet?.bch?.walletHash || entry.wallet?.BCH?.walletHash
+    return hash ? String(hash).trim() : null
+}
+
+/**
+ * Rebuild vault entries from mnemonic keys stored as `mn_<walletHash>`.
+ *
+ * A previous bug could clear the vault (localStorage `vuex`) while leaving the
+ * encrypted mnemonic keys in place. The wallet hash is part of the key, so the
+ * mnemonic can be read back and its hash verified, which is enough to rebuild
+ * the vault entry and restore access to the user's funds.
+ *
+ * Additive only: never overwrites an existing entry. No-op on native, where
+ * secure storage is not enumerable and the vault is not affected by that bug.
+ */
+export async function recoverWalletsFromMnemonicKeys () {
+    if (Capacitor.getPlatform() !== 'web') return
+    if (typeof localStorage === 'undefined') return
+
+    const vault = Store.getters['global/getVault'] || []
+    // Include deleted entries so an intentionally deleted wallet is never
+    // resurrected from a leftover key.
+    const knownHashes = new Set(
+        vault
+            .map(entry => {
+                const hash = entry?.wallet?.bch?.walletHash || entry?.wallet?.BCH?.walletHash
+                return hash ? String(hash).trim() : null
+            })
+            .filter(Boolean)
+    )
+
+    // A wallet that is back in the vault was legitimately re-added (e.g. the
+    // same seed restored), so its tombstone must not block a future recovery.
+    pruneDeletedWalletHashes(knownHashes)
+
+    const hadUsableWallet = vault.some(entry => getVaultWalletHash(entry) !== null)
+
+    // The "done" flag only means "nothing was left to recover at the time it
+    // ran". It must not outlive the vault: the vault can be cleared later by a
+    // wallet reset, which is exactly when recovery is needed most.
+    if (hadUsableWallet && localStorage.getItem(MNEMONIC_KEY_RECOVERY_FLAG) === 'true') return
+
+    const orphanHashes = Object.keys(localStorage)
+        .map(key => key.match(MNEMONIC_HASH_KEY_PATTERN))
+        .filter(match => match && !knownHashes.has(match[1]))
+        .map(match => match[1])
+        // Never resurrect a wallet the user explicitly deleted, even if its
+        // mnemonic key survived a failed cleanup.
+        .filter(walletHash => !isDeletedWalletHash(walletHash))
+
+    if (orphanHashes.length === 0) {
+        // Only record completion against a vault that actually holds a wallet;
+        // otherwise leave the flag unset so a later boot retries.
+        if (hadUsableWallet) localStorage.setItem(MNEMONIC_KEY_RECOVERY_FLAG, 'true')
+        return
+    }
+
+    let recovered = 0
+    let unreadable = 0
+    let firstRecoveredIndex = null
+    const previousActiveWallet = captureActiveWalletAddressBookkeeping()
+
+    for (const walletHash of orphanHashes) {
+        let mnemonic = null
+        try {
+            mnemonic = await getMnemonicByHash(walletHash)
+        } catch (error) {
+            // Key lost or ciphertext undecryptable; retry on next boot in case
+            // the failure is transient.
+            unreadable++
+            console.warn(`[Wallet Recovery] Stored mnemonic for ${walletHash} is unreadable:`, error)
+            continue
+        }
+        if (!mnemonic) continue
+
+        const computedHash = computeWalletHashFromMnemonic(mnemonic)
+        if (!computedHash || computedHash.toLowerCase() !== walletHash.toLowerCase()) {
+            console.warn(`[Wallet Recovery] Mnemonic key ${walletHash} does not match its contents; skipping.`)
+            continue
+        }
+
+        try {
+            const { wallet, chipnet } = await buildWalletSnapshots(mnemonic)
+            restoreAddressBookkeeping(wallet, chipnet, previousActiveWallet)
+            const isFirstUsableWallet = !hadUsableWallet && firstRecoveredIndex === null
+            Store.commit('global/updateVault', { wallet, chipnet })
+            const index = Store.getters['global/getVault'].length - 1
+            resetAssetsList(index)
+            if (isFirstUsableWallet) {
+                // Mirror ensureValidWalletIndex: make the recovered wallet the
+                // current one so the app can render without a manual switch.
+                Store.commit('global/updateCurrentWallet', index)
+            }
+            if (firstRecoveredIndex === null) firstRecoveredIndex = index
+            recovered++
+            console.warn(`[Wallet Recovery] Rebuilt vault entry at index ${index} from stored mnemonic.`)
+        } catch (error) {
+            console.warn(`[Wallet Recovery] Failed to rebuild wallet for ${walletHash}:`, error)
+        }
+    }
+
+    if (recovered > 0) {
+        const label = recovered === 1 ? 'wallet' : 'wallets'
+        Store.commit('global/setWalletRecoveryMessage', `Recovered ${recovered} ${label} from secure storage.`)
+        if (!hadUsableWallet && firstRecoveredIndex !== null) {
+            Store.commit('global/updateWalletIndex', firstRecoveredIndex)
+        }
+        // Reopen the wallet the user was on before the vault was lost.
+        selectPreviouslyActiveRecoveredWallet(previousActiveWallet)
+    }
+
+    // Only mark done once every remaining key was read. Unreadable keys are
+    // retried on the next boot, and so is a run that left the vault without a
+    // usable wallet.
+    if (unreadable === 0 && (hadUsableWallet || recovered > 0)) {
+        localStorage.setItem(MNEMONIC_KEY_RECOVERY_FLAG, 'true')
+    }
 }

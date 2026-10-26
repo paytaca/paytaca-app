@@ -108,21 +108,26 @@ describe('order live activity model', () => {
       assert.equal(activity.subtitle, 'Order #7')
     })
 
-    it('prefers the earliest available deadline label', () => {
+    it('counts down to the enforced auto-complete deadline', () => {
       const autoComplete = normalizeMarketplaceOrder(
         marketplaceOrder('delivered', { autoCompleteAt: new Date('2026-01-02T00:00:00Z') })
       )
       assert.equal(autoComplete.countdownLabel, 'Auto-completes in')
+      assert.equal(autoComplete.countdownAt, Date.parse('2026-01-02T00:00:00Z'))
+    })
 
+    it('ignores informational deadlines', () => {
       const delivery = normalizeMarketplaceOrder(
         marketplaceOrder('on_delivery', { deliveryDeadline: new Date('2026-01-02T00:00:00Z') })
       )
-      assert.equal(delivery.countdownLabel, 'Delivery due in')
+      assert.equal(delivery.countdownAt, null)
+      assert.equal(delivery.countdownLabel, '')
 
       const preparation = normalizeMarketplaceOrder(
         marketplaceOrder('preparing', { preparationDeadline: new Date('2026-01-02T00:00:00Z') })
       )
-      assert.equal(preparation.countdownLabel, 'Preparation due in')
+      assert.equal(preparation.countdownAt, null)
+      assert.equal(preparation.countdownLabel, '')
     })
   })
 
@@ -143,19 +148,21 @@ describe('order live activity model', () => {
       assert.equal(isSameActivity(base, moved), false)
 
       const withDeadline = normalizeMarketplaceOrder(
-        marketplaceOrder('confirmed', { deliveryDeadline: new Date('2026-01-02T00:00:00Z') })
+        marketplaceOrder('confirmed', { autoCompleteAt: new Date('2026-01-02T00:00:00Z') })
       )
       assert.equal(isSameActivity(base, withDeadline), false)
     })
 
     it('detects a label-only countdown change', () => {
       const delivery = normalizeMarketplaceOrder(
-        marketplaceOrder('confirmed', { deliveryDeadline: new Date('2026-01-02T00:00:00Z') })
+        marketplaceOrder('confirmed', { autoCompleteAt: new Date('2026-01-02T00:00:00Z') })
       )
-      const preparation = normalizeMarketplaceOrder(
-        marketplaceOrder('confirmed', { preparationDeadline: new Date('2026-01-02T00:00:00Z') })
-      )
-      assert.equal(delivery.countdownAt, preparation.countdownAt)
+      const preparation = {
+        ...delivery,
+        countdownAt: Date.parse('2026-01-03T00:00:00Z'),
+        countdownLabel: 'Delivery due in',
+      }
+      assert.equal(delivery.countdownAt, Date.parse('2026-01-02T00:00:00Z'))
       assert.notEqual(delivery.countdownLabel, preparation.countdownLabel)
       assert.equal(isSameActivity(delivery, preparation), false)
     })
