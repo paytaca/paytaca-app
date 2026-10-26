@@ -1220,7 +1220,7 @@ export default {
       // EP_LIFT_MIN_THRESHOLD_WHOLE is whole tokens, so comparing them raw is
       // off by 10**LIFT_TOKEN_DECIMALS.
       this.eliteData.bchBalance = bchBalance * bchPrice
-      this.eliteData.liftBalance = Number(liftAsset?.balance ?? 0) / (10 ** LIFT_TOKEN_DECIMALS)
+      this.eliteData.liftBalance = Number(liftAsset?.balance ?? 0)
     },
 
     meetsEliteThresholds () {
