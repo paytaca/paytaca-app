@@ -21,7 +21,7 @@
     <q-item-section side>
       <div class="elite-row-amt">
         <template v-if="item.asset === EliteAsset.BCH">
-          +{{ parseFiatCurrencyWrapper(item.top_up_amount) }}
+          +{{ parseFiatCurrencyWrapper(item.fiat_top_up_amount) }}
         </template>
         <template v-else>
           +{{ parseLiftToken(item.top_up_amount, true) }}
