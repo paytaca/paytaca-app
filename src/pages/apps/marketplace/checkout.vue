@@ -511,7 +511,7 @@
                 padding="none"
                 no-caps
                 label="Apply discount"
-                @click="openDiscountCodeDialog"
+                @click="openDiscountDialog"
               />
             </div>
           </div>
@@ -884,6 +884,7 @@ import ImageViewerDialog from 'src/components/marketplace/ImageViewerDialog.vue'
 import CartItemsList from 'src/components/marketplace/product/CartItemsList.vue'
 import StorePickupDialog from 'src/components/marketplace/checkout/StorePickupDialog.vue'
 import PaymentSelectionPanel from 'src/components/marketplace/checkout/PaymentSelectionPanel.vue'
+import DiscountApplicationDialog from 'src/components/marketplace/checkout/DiscountApplicationDialog.vue'
 
 import customerLocationPin from 'src/assets/marketplace/customer_map_marker.png'
 import merchantLocationPin from 'src/assets/marketplace/merchant_map_marker_2.png'
@@ -1006,7 +1007,6 @@ const loadingState = ref({
   rider: false,
   deliveryFee: false,
   deliveryAddress: false,
-  applyingDiscount: false,
   creatingPayment: false,
   payment: false,
   completing: false,
@@ -1560,52 +1560,17 @@ function saveDeliveryAddress() {
   })
 }
 
-function openDiscountCodeDialog() {
+function openDiscountDialog() {
   $q.dialog({
-    title: $t('ApplyDiscount', {}, 'Apply Discount'),
-    description: $t('ApplyDiscountCodeDescription', {}, 'Input discount code'),
-    prompt: true,
-    position: 'bottom',
-    class: `br-15 pt-card-2 text-bow ${getDarkModeClass(darkMode)}`
-  }).onOk(applyDiscountCode)
-}
-async function applyDiscountCode(code) {
-  const data = {
-    checkout_id: checkout.value.id,
-    discount_codes: [code],
-  }
-  const dialog = $q.dialog({
-    title: $t('ApplyingDiscount', {}, 'Applying Discount'),
-    ok: false,
-    persistent: true,
-    class: `br-15 pt-card-2 text-bow ${getDarkModeClass(darkMode)}`,
+    component: DiscountApplicationDialog,
+    componentProps: {
+      checkout: checkout.value,
+    },
+  }).onOk(response => {
+    if (!response?.data) return
+    setCheckoutData(response.data)
+    attemptCreatePayment()
   })
-  loadingState.value.applyingDiscount = true
-  return backend.post(`connecta/checkouts/discount_application/`, data)
-    .then(response => {
-      setCheckoutData(response?.data)
-      attemptCreatePayment()
-      dialog.hide()
-      return response
-    })
-    .catch(error => {
-      console.error(error)
-      const data = error?.response?.data
-      const discountCodeError = data?.discount_codes?.[0]
-      let errorMessage = 'Failed to apply discount'
-      if (discountCodeError) {
-        if (discountCodeError?.includes('does not exist')) errorMessage = 'Discount not found'
-        if (discountCodeError?.includes('did not map to any line item')) errorMessage = 'No item/s to apply discount'
-        if (discountCodeError?.includes('conditions not met')) errorMessage = 'Discount conditions not met'
-        else errorMessage = discountCodeError
-      }
-
-      dialog.update({ title: $t('Discount'), message: errorMessage })
-    })
-    .finally(() => {
-      loadingState.value.applyingDiscount = false;
-      dialog.update({ persistent: false, ok: true });
-    })
 }
 
 function savePayment() {

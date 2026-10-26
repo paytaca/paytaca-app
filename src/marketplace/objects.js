@@ -381,6 +381,7 @@ export class DiscountType {
    * @param {String} data.type
    * @param {String} data.value
    * @param {String} [data.max_amount]
+   * @param {Boolean} [data.is_per_unit]
    */
   set raw(data) {
     this.$raw = data;
@@ -390,6 +391,7 @@ export class DiscountType {
     this.type = data?.type;
     this.value = data?.value;
     this.maxAmount = data?.max_amount;
+    this.isPerUnit = Boolean(data?.is_per_unit);
   }
 }
 
