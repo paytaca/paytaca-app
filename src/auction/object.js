@@ -318,7 +318,7 @@ export class DeliveryDetails {
       : []
 
     // Dates
-    this.date_created = data.date_created ?? data.creation_date ?? null
+    this.date_created = data.date_created ?? null
   }
 
   addDeliveryEvent(deliveryEvent) {
