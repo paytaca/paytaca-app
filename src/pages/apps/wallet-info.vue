@@ -34,7 +34,7 @@
               <q-icon v-else name="mdi-map-search" size="40px" class="q-mt-md" :class="darkMode ? 'text-blue-4' : 'text-primary'" />
               <div class="text-weight-medium q-mt-sm">{{ $t('ExhaustiveScan', {}, 'Exhaustive Scan') }}</div>
               <div class="text-caption" :class="darkMode ? 'text-grey-5' : 'text-grey-7'">
-                {{ $t('ExhaustiveScanDescription', {}, 'Discover used receiving and change addresses and their UTXOs') }}
+                {{ $t('ExhaustiveScanDescription', {}, 'Discover all used addresses and their UTXOs') }}
               </div>
             </q-card>
           </div>
