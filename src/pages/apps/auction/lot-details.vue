@@ -454,23 +454,23 @@
                     </div>
                     
                     <div class="row items-end justify-between no-wrap">
-                        <div v-if="auction?.is_fiat">
-                          <div class="text-h6 text-weight-bold text-negative" style="line-height: 1.2;">
-                            <template v-if="auction?.is_fiat">
-                              {{ formatFiat(dynamicPriceFiat) }}
-                            </template>
-                            <template v-else>
-                              {{ formatBCH(dynamicPriceBch).main }}<span style="opacity: 0.4;">{{ formatBCH(dynamicPriceBch).zeros }}</span> BCH
-                            </template>
-                          </div>
-                          <div class="text-caption text-weight-medium text-negative q-mt-xs">
-                            <template v-if="auction?.is_fiat">
-                              {{ formatBCH(dynamicPriceBch).main }}<span style="opacity: 0.4;">{{ formatBCH(dynamicPriceBch).zeros }}</span> BCH
-                            </template>
-                            <template v-else>
-                              {{ formatFiat(dynamicPriceFiat) }}
-                            </template>
-                          </div>
+                      <div v-if="auction?.is_fiat">
+                        <div class="text-h6 text-weight-bold text-negative" style="line-height: 1.2;">
+                          <template v-if="auction?.is_fiat">
+                            {{ formatFiat(dynamicPriceFiat) }}
+                          </template>
+                          <template v-else>
+                            {{ formatBCH(dynamicPriceBch).main }}<span style="opacity: 0.4;">{{ formatBCH(dynamicPriceBch).zeros }}</span> BCH
+                          </template>
+                        </div>
+                        <div class="text-caption text-weight-medium text-negative q-mt-xs">
+                          <template v-if="auction?.is_fiat">
+                            {{ formatBCH(dynamicPriceBch).main }}<span style="opacity: 0.4;">{{ formatBCH(dynamicPriceBch).zeros }}</span> BCH
+                          </template>
+                          <template v-else>
+                            {{ formatFiat(dynamicPriceFiat) }}
+                          </template>
+                        </div>
                       </div>
                       
                       <div class="text-right border-left q-pl-sm" :style="darkMode ? 'border-color: rgba(255,255,255,0.15)' : 'border-color: rgba(0,0,0,0.1)'">
@@ -502,7 +502,7 @@
                     <div v-else-if="!dutchAtFloor" class="q-mt-sm">
                       <div class="row items-center justify-between text-caption q-mb-xs">
                         Next price drop in
-                        <span class="text-weight-medium">{{ formatCountdown(secondsRemaining) }} left</span>
+                        <span class="text-weight-medium">{{ formatIntervalCountdown(timeLeft) }}</span>
                       </div>
                       <q-linear-progress
                         :value="dutchIntervalProgress"
@@ -739,7 +739,7 @@ import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 import { callAPI } from 'src/auction/api'
 import { payFirstBidToContract } from 'src/auction/payment'
 import { callLotWebsocket } from 'src/auction/websocket'
-import { copyToClipboard, formatAuctionCountdown as formatCountdown, formatAuctionDate, formatFiat, formatBCH, formatAddressWithEllipsis } from './helper-functions'
+import { copyToClipboard, formatAuctionCountdown, formatIntervalCountdown, formatAuctionDate, formatFiat, formatBCH, formatAddressWithEllipsis } from './helper-functions'
 
 // Components
 import HeaderNav from 'src/components/header-nav.vue'
@@ -763,6 +763,8 @@ const isLoading = ref(false)
 const userWalletHash = computed(() => $store.getters['global/getWallet']('bch')?.walletHash)
 const bchToPhpRate = computed(() => $store.getters['market/getAssetPrice']('bch', 'php') || 0)
  
+const intervalDurationSec = ref(600)
+
 // Props
 const props = defineProps({
   auctionId: {
@@ -780,8 +782,7 @@ const auctionEndCountdown = ref('Loading...')
 const auctionStartCountdown = ref('Loading...')
 
 // Dutch price-drop interval
-const secondsRemaining = ref(0)
-const intervalDurationSec = ref(600)
+const secondsRemaining = ref(null)
 const dutchIntervalProgress = computed(() => {
   if (!intervalDurationSec.value) return 0
   return Math.max(0, Math.min(1, secondsRemaining.value / intervalDurationSec.value))
@@ -1028,7 +1029,7 @@ const handlePlaceBid = async (bidData) => {
   console.log(`bidFiat: ${bidFiat}`)
   console.log(`bidPrice: ${bidPrice}`)
 
-  // Get current winnder's bid price
+  // Get current winner's bid price
   const currentPrice = auction.value?.is_fiat
     ? Number(lotWinningBid.value?.bid_price_fiat ?? lot.value?.start_price_fiat ?? 0)
     : Number(lotWinningBid.value?.bid_price_bch ?? lot.value?.start_price_bch ?? 0)
@@ -1063,8 +1064,8 @@ const handlePlaceBid = async (bidData) => {
       if (!result.success) throw new Error(result.error || 'Failed to outbid.')
       settledBid = result.errorData
     } else { 
-      const txid = await payFirstBidToContract(Number(props.lotId), Number(bidBch.toFixed(8)))
       const settlement = waitForBidSettlement(pendingBid.id)
+      const txid = await payFirstBidToContract(Number(props.lotId), Number(bidBch.toFixed(8)))
       socket.send(JSON.stringify({
         type: 'paid_bid',
         data: { id: pendingBid.id, lot: Number(props.lotId), txid }
@@ -1112,7 +1113,7 @@ const bidStatus = computed(() => {
 // WEBSOCKET-RELATED FUNCTIONS
 // ===========================
 const viewCount = ref(0) 
-const timeLeft = ref(0)
+const timeLeft = ref(null)
 
 let socket = null
 let reconnectTimeout = null
@@ -1158,12 +1159,12 @@ const connectWebsocket = () => {
 
       // Countdown for the start of the auction
       case "lot.start_countdown":
-        auctionStartCountdown.value = formatCountdown(data.time_left)
+        auctionStartCountdown.value = formatAuctionCountdown(data.time_left)
         break
 
       // Countdown for the end of the auction
       case "lot.end_countdown":
-        auctionEndCountdown.value = formatCountdown(data.time_left, true)
+        auctionEndCountdown.value = formatAuctionCountdown(data.time_left, true)
         if (auctionStartCountdown.value) 
           auctionStartCountdown.value = ""
         break
@@ -1193,14 +1194,25 @@ const connectWebsocket = () => {
       
       // Updating the time interval (DUTCH Auction)
       case "lot.time_interval":
-        if (lot.value?.status !== 'Active' || isLotSold ) break
+        if (lot.value?.status !== 'Active' || isLotSold.value ) break
+
         secondsRemaining.value = data.seconds_remaining
         timeLeft.value = data.time_left
+        dynamicPriceFiat.value = (auction.value?.is_fiat) 
+          ? Number(data.price)
+          : dynamicPriceBch.value * bchToPhpRate.value
+
+        dynamicPriceBch.value = (auction.value?.is_fiat) 
+          ? (bchToPhpRate.value > 0)
+            ? dynamicPriceFiat.value / bchToPhpRate.value
+            : 0
+          : Number(data.price)
         break
 
       // Updating the price drop (DUTCH Auction)
       case "lot.drop_price":
-        if (lot.value?.status !== 'Active' || isLotSold ) break
+        console.log('PRICE DROP')
+        if (lot.value?.status !== 'Active' || isLotSold.value ) break
 
         dynamicPriceFiat.value = (auction.value?.is_fiat) 
           ? Number(data.price)
@@ -1416,6 +1428,16 @@ const loadPageData = async (force=false) => {
       : $store.dispatch('auction/fetchExistingAuctionData', props.auctionId),
   ])
   
+  if(auction.value?.type === 'Dutch') {
+    dynamicPriceBch.value = lot.value?.start_price_bch
+    dynamicPriceFiat.value = lot.value?.start_price_fiat
+    const [hours, minutes, seconds] = (lot.value?.time_interval ?? '00:00:00')
+      .split(':')
+      .map(Number)
+
+    intervalDurationSec.value = hours * 3600 + minutes * 60 + seconds
+  }
+
   if (isLotSold.value) {
     await initDeliveryTracking()
   }
