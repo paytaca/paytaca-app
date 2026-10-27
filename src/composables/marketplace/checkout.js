@@ -1,4 +1,5 @@
 import { Checkout } from "src/marketplace/objects";
+import { formatAmount } from "src/marketplace/utils";
 import { computed, toValue } from "vue";
 /**
  * @typedef {import("vue").Ref<Checkout>} CheckoutRef
@@ -32,21 +33,21 @@ export function useCheckoutDetails(checkoutDataOrRef) {
     const totalDiscount = parseFloat(checkout.value?.cart?.totalDiscount) || 0
     const markupSubtotal = parseFloat(checkout.value?.cart?.markupSubtotal) || 0
     const data = {
-      subtotal: { currency: markupSubtotal + totalDiscount, bch: 0 },
-      deliveryFee: { currency: checkout.value?.payment?.deliveryFee || 0, bch: 0 },
-      total: { currency: checkout.value?.total, bch: 0 },
-      totalPaymentsSent: { currency: parseFloat(checkout.value.totalPaymentsSent), bch: 0 },
-      balanceToPay: { currency: parseFloat(checkout.value?.balanceToPay), bch: 0 },
-      change: { currency: checkout.value?.change, bch: 0 },
+      subtotal: { currency: formatAmount(markupSubtotal + totalDiscount), bch: 0 },
+      deliveryFee: { currency: formatAmount(checkout.value?.payment?.deliveryFee || 0), bch: 0 },
+      total: { currency: formatAmount(checkout.value?.total), bch: 0 },
+      totalPaymentsSent: { currency: formatAmount(parseFloat(checkout.value.totalPaymentsSent)), bch: 0 },
+      balanceToPay: { currency: formatAmount(parseFloat(checkout.value?.balanceToPay)), bch: 0 },
+      change: { currency: formatAmount(checkout.value?.change), bch: 0 },
     }
 
     if (totalDiscount) {
-      data.discount = { currency: totalDiscount, bch: 0 }
+      data.discount = { currency: formatAmount(totalDiscount), bch: 0 }
     }
 
     if (checkout.value?.payment?.deliveryFeeDiscount) {
       data.deliveryFeeDiscount = {
-        currency: parseFloat(checkout.value?.payment?.deliveryFeeDiscount),
+        currency: formatAmount(parseFloat(checkout.value?.payment?.deliveryFeeDiscount)),
         bch: 0,
       }
     }

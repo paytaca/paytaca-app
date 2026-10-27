@@ -34,6 +34,17 @@ export function round(value, decimals) {
   return Math.round(Number(value) * multiplier) / multiplier
 }
 
+/**
+ * @param {Number|String} value
+ */
+export function formatAmount(value) {
+  const parsedValue = parseFloat(value)
+  if (!Number.isFinite(parsedValue)) return value
+
+  const decimals = round(parsedValue, 2) === parsedValue ? 2 : 3
+  return round(parsedValue, decimals)
+}
+
 export function lineItemPropertiesToText(data) {
   if (!data) return ''
   return Object.getOwnPropertyNames(data).map(name => {

@@ -204,7 +204,7 @@ function isPercentageDiscount(discount=DiscountType.parse()) {
 function formatDiscountValue(discount=DiscountType.parse()) {
   const value = parseFloat(discount?.value)
   if (!Number.isFinite(value)) return discount?.value ? String(discount.value) : ''
-  if (isPercentageDiscount(discount)) return `${value}%`
+  if (isPercentageDiscount(discount)) return `${value * 100}%`
   return [value, checkoutCurrency.value].filter(Boolean).join(' ')
 }
 
