@@ -134,8 +134,8 @@ export default {
     }
   },
   watch: {
-    isChipnet (val) {
-      document.body.style.setProperty('--chipnet-banner-height', val ? '56px' : '0px')
+    isChipnet () {
+      this.updateChipnetBannerHeight();
     },
     // Watch for wallet switches to update screenshot security and re-initialize
     async walletIndex(newIndex, oldIndex) {
@@ -162,6 +162,9 @@ export default {
     }
   },
   methods: {
+    updateChipnetBannerHeight() {
+      document.body.style.setProperty('--chipnet-banner-height', this.isChipnet ? '56px' : '0px')
+    },
     updateAndroidStatusBarInset () {
       // Some Android WebViews don't expose safe-area insets even when the status bar overlays the webview.
       // Use a lightweight heuristic and set a CSS var for components (dialogs/headers) to consume.
@@ -887,6 +890,8 @@ export default {
   },
   async mounted () {
     const vm = this
+
+    vm.updateChipnetBannerHeight();
 
     // Cold start: reset so the loading overlay shows until the home page is ready
     vm.$store.commit('global/setAppInitialLoadComplete', false)

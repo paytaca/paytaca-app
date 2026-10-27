@@ -525,6 +525,7 @@ export default {
 <style scoped>
 .footer-panel {
   pointer-events: none;
+  bottom: calc(env(safe-area-inset-bottom, 0px) + var(--chipnet-banner-height, 0px));;
 }
 .footer-panel * {
   pointer-events: auto;
