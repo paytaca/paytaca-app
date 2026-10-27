@@ -333,6 +333,21 @@
           Paytaca Elite Program
         </div>
 
+        <q-banner
+          v-if="eliteLoaded && isNonPhilippineCountry"
+          rounded
+          dense
+          class="br-15 q-mb-sm"
+          :class="darkMode ? 'bg-grey-9 text-white' : 'bg-grey-2 text-grey-9'"
+        >
+          <template #avatar>
+            <q-icon name="info" color="primary" />
+          </template>
+          <div class="text-body2">
+            Note: The BCH requirement and cashback limits are in Philippine pesos (PHP). Set your country to the Philippines in Settings if you want to see the real values.
+          </div>
+        </q-banner>
+
         <!-- Elite: Scanning / Loading -->
         <div
           v-if="isLoading || isEliteLoading"
@@ -819,6 +834,12 @@ export default {
     // Elite card animation trigger — only after data has loaded
     eliteLoaded () {
       return !this.isLoading && !this.isEliteLoading && !this.error && !!this.eliteData
+    },
+
+    // Elite: PHP-denominated values are disclosed to non-PH users
+    isNonPhilippineCountry () {
+      const code = this.$store.getters['global/country']?.code
+      return Boolean(code) && String(code).toUpperCase() !== 'PH'
     }
   },
 
@@ -1206,7 +1227,8 @@ export default {
           bchThreshold: this.eliteData.bchThreshold,
           liftBalance: this.eliteData.liftBalance,
           liftThreshold: this.eliteData.liftThreshold,
-          isLocked: this.eliteData.status === EliteStatus.LOCKED
+          isLocked: this.eliteData.status === EliteStatus.LOCKED,
+          showPhpNote: this.isNonPhilippineCountry
         }
       })
     },

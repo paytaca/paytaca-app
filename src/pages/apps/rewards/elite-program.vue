@@ -81,7 +81,7 @@
             <div class="row justify-center text-caption q-mb-xs">
               <span class="col-12 text-center">Cashback limit this month</span>
               <span class="col-12 text-weight-bold text-center">
-                {{ parseFiatCurrencyWrapper(eliteData.monthlyCashback) }} of {{ parseFiatCurrencyWrapper(eliteData.maxCashbackPerMonth) }}
+                {{ formatEliteFiat(eliteData.monthlyCashback) }} of {{ formatEliteFiat(eliteData.maxCashbackPerMonth) }}
               </span>
             </div>
             <q-linear-progress
@@ -92,6 +92,21 @@
           </template>
         </q-card-section>
       </q-card>
+
+      <q-banner
+        v-if="heroLoaded && isNonPhilippineCountry"
+        rounded
+        dense
+        class="br-15 q-mb-lg"
+        :class="darkMode ? 'bg-grey-9 text-white' : 'bg-grey-2 text-grey-9'"
+      >
+        <template #avatar>
+          <q-icon name="info" color="primary" />
+        </template>
+        <div class="text-body2">
+          Note: The BCH requirement and cashback limits are in Philippine pesos (PHP). Set your country to the Philippines in Settings if you want to see the real values.
+        </div>
+      </q-banner>
 
       <!-- Error state for data -->
       <error-card
@@ -164,7 +179,7 @@
 <script>
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 import { parseLiftToken } from 'src/utils/engagementhub-utils/shared'
-import { parseFiatCurrencyWrapper } from 'src/utils/denomination-utils'
+import { parseFiatCurrency, parseFiatCurrencyWrapper } from 'src/utils/denomination-utils'
 import { getEliteProgramSummaryData, EliteStatus, EliteStatusLabels } from 'src/utils/engagementhub-utils/rewards'
 
 import HeaderNav from 'src/components/header-nav.vue'
@@ -205,6 +220,10 @@ export default {
     darkMode () {
       return this.$store.getters['darkmode/getStatus']
     },
+    isNonPhilippineCountry () {
+      const code = this.$store.getters['global/country']?.code
+      return Boolean(code) && String(code).toUpperCase() !== 'PH'
+    },
     eliteStatus () {
       const status = this.eliteData?.status
       return Object.values(EliteStatus).includes(status) ? status : EliteStatus.ACTIVE
@@ -226,7 +245,12 @@ export default {
   methods: {
     getDarkModeClass,
     parseLiftToken,
-    parseFiatCurrencyWrapper,
+
+    formatEliteFiat (amount) {
+      return this.isNonPhilippineCountry
+        ? parseFiatCurrency(amount, 'PHP')
+        : parseFiatCurrencyWrapper(amount)
+    },
 
     async loadData (append = false) {
       if (!append) this.isLoading = true
