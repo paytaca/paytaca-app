@@ -93,6 +93,18 @@
         </q-card-section>
       </q-card>
 
+      <div class="elite-map-cta q-mb-lg">
+        <q-btn
+          class="full-width elite-map-button"
+          outline
+          no-caps
+          rounded
+          icon="map"
+          label="Find merchants on the map"
+          @click="openMerchantMap"
+        />
+      </div>
+
       <q-banner
         v-if="heroLoaded && isNonPhilippineCountry"
         rounded
@@ -252,6 +264,10 @@ export default {
         : parseFiatCurrencyWrapper(amount)
     },
 
+    openMerchantMap () {
+      this.$router.push({ name: 'app-map' })
+    },
+
     async loadData (append = false) {
       if (!append) this.isLoading = true
       this.pointsError = ''
@@ -336,6 +352,21 @@ export default {
   display: flex;
   align-items: center;
   justify-content: center;
+}
+
+.elite-map-cta {
+  max-width: 420px;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+.elite-map-button {
+  color: #d4a643;
+  font-weight: 700;
+}
+
+.light .elite-map-button {
+  color: #c89d36;
 }
 
 .view-all-button {
