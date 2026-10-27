@@ -174,6 +174,7 @@ import RampContract from 'src/exchange/contract'
 import packageInfo from '../../../../package.json'
 import { bchToFiat, satoshiToBch } from 'src/exchange'
 import { parseFiatCurrency } from 'src/utils/denomination-utils'
+import { getChangeAddress } from 'src/utils/send-page-utils'
 
 export default {
   data () {
@@ -322,7 +323,8 @@ export default {
           vm.$store.commit('ramp/clearOrderTxids', vm.order?.id)
           console.log(`Sending ${vm.transferAmount} BCH to ${vm.contractAddress}`)
           const rawWallet = await wallet.getRawWallet()
-          const result = await rawWallet.sendBch(vm.transferAmount, vm.contractAddress)
+          const changeAddress = await getChangeAddress('bch', { isChipnet: rawWallet.isChipnet })
+          const result = await rawWallet.sendBch(vm.transferAmount, vm.contractAddress, changeAddress)
           console.log('sendBch:', result)
           if (result?.success) {
             vm.txid = result.txid

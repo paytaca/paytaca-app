@@ -336,6 +336,7 @@ import QRCode from 'qrcode'
 import { ensureKeypair, decryptMemoData } from 'src/utils/memo-service'
 import sha256 from 'js-sha256'
 import { hexToRef } from 'src/utils/reference-id-utils'
+import { getChangeAddress } from 'src/utils/send-page-utils'
 
 export default {
   name: 'Gift',
@@ -1081,9 +1082,12 @@ export default {
       const url = `https://gifts.paytaca.com/api/gifts/${walletHash}/create/`
       
       try {
+        // Resolve the change address before the gift is registered server-side,
+        // so a failure to verify one cannot leave a registered gift unpaid
+        const changeAddress = await getChangeAddress('bch', { isChipnet: this.wallet.BCH.isChipnet })
         const resp = await axios.post(url, gift.payload)
         if (resp.status === 200) {
-          const result = await this.wallet.BCH.sendBch(gift.amount, gift.address)
+          const result = await this.wallet.BCH.sendBch(gift.amount, gift.address, changeAddress)
           if (result.success) {
             this.$q.notify({
               message: this.$t('Success'),

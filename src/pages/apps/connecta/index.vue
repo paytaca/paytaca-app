@@ -227,9 +227,8 @@ import Pin from 'components/pin'
 import BiometricWarningAttempt from 'components/authOption/biometric-warning-attempt.vue'
 import ProgressLoader from 'components/ProgressLoader'
 import {
-  generateChangeAddress,
-  getDerivationPathForWalletType
-} from 'src/utils/address-generation-utils.js'
+  getChangeAddress
+} from 'src/utils/send-page-utils'
 
 import { NativeBiometric } from 'capacitor-native-biometric'
 
@@ -343,37 +342,14 @@ export default {
       }, 1000)
     },
 
-    /**
-     * Dynamically generates change address from mnemonic instead of retrieving from store
-     * This prevents address mixup issues in multi-wallet scenarios
-     */
-    async getChangeAddress (walletType) {
-      try {
-        const addressIndex = this.$store.getters['global/getLastAddressIndex'](walletType)
-        const walletIndex = this.$store.getters['global/getWalletIndex']
-        const isChipnet = this.$store.getters['global/isChipnet']
-        
-        // Generate change address dynamically from mnemonic
-        const changeAddr = await generateChangeAddress({
-          walletIndex: walletIndex,
-          derivationPath: getDerivationPathForWalletType(walletType),
-          addressIndex: addressIndex,
-          isChipnet: isChipnet
-        })
-        
-        return changeAddr
-      } catch (error) {
-        console.error('Error generating change address dynamically:', error)
-        // Fallback to store-retrieved change address if dynamic generation fails
-        return this.$store.getters['global/getChangeAddress'](walletType)
-      }
-    },
-
     async executePaymentRequest () {
       if (!this.paymentRequest || !this.paymentRequest._isValid) return
       if (this.paymentRequest.paymentDetails.isExpired()) return
 
-      const changeAddress = await this.getChangeAddress('bch')
+      // Change addresses must always be fresh: one already spent from has its
+      // public key exposed, so the shared helper scans forward and returns only
+      // a verified-unused address
+      const changeAddress = await getChangeAddress('bch')
       const outputs = this.paymentRequest.paymentDetails.outputs.map(output => {
         return {
           address: output.toCashAddress(),

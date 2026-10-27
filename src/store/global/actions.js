@@ -8,7 +8,7 @@ import { decryptWalletName } from 'src/marketplace/chat/encryption'
 import { saveWalletName, getWalletName, removeWalletName } from 'src/utils/wallet-name-cache'
 import * as eloadServiceAPI from 'src/utils/eload-service'
 import { loadLibauthHdWallet, loadWallet, deleteMnemonic, getMnemonic, getMnemonicByHash, deleteMnemonicByHash, deleteAllWalletData, deleteDuplicateWalletData, computeWalletHash, clearCachedWallet } from '../../wallet'
-import { getVaultIndexByWalletHashAsync } from 'src/utils/wallet-storage'
+import { getVaultIndexByWalletHashAsync, addDeletedWalletHash } from 'src/utils/wallet-storage'
 import { SecureStoragePlugin } from 'capacitor-secure-storage-plugin'
 import { privateKeyToCashAddress } from '../../wallet/walletconnect2/tx-sign-utils'
 import { toP2pkhTestAddress } from '../../utils/address-utils'
@@ -586,6 +586,11 @@ export async function deleteWallet (context, walletHashOrIndex) {
 
   const currentWalletIndex = context.getters.getWalletIndex
   const isDeletingCurrentWallet = index === currentWalletIndex
+
+  // Record the deletion before any cleanup: if deleting the mnemonic fails or
+  // is skipped, this tombstone prevents mnemonic-key recovery from restoring a
+  // wallet the user explicitly deleted.
+  addDeletedWalletHash(walletHash)
   
   // Get wallet data before deletion for cleanup
   let mnemonic = null
@@ -738,8 +743,15 @@ export async function ensureValidWalletIndex (context) {
         })
       }
     } else {
-      // No valid wallets left - clear vault
-      context.commit('clearVault')
+      // SECURITY: Do NOT clear the vault here. Entries may lack a walletHash
+      // while still holding recoverable wallet data (name, addresses, xPubKey).
+      // Clearing them would erase the only local record of the wallet and route
+      // the user to onboarding. Keep the entries and surface a warning instead.
+      console.warn('[Wallet Index] No vault entry has a walletHash; keeping vault entries intact.')
+      context.commit(
+        'setWalletRecoveryMessage',
+        'Your saved wallet could not be read on this device. Restore it from your seed phrase backup if needed.'
+      )
     }
   }
 }
@@ -861,9 +873,17 @@ export async function cleanupNullAndDeletedWallets (context) {
     if (newCurrentIndex !== -1) {
       // Switch to the first valid wallet
       context.dispatch('switchWallet', newCurrentIndex).catch(console.error)
-    } else {
-      // No valid wallets left - clear vault
+    } else if (updatedVault.length === 0) {
+      // Only clear when the vault is genuinely empty.
       context.commit('clearVault')
+    } else {
+      // Remaining entries carry no walletHash but may still hold recoverable
+      // wallet data; never delete them silently.
+      console.warn('[Wallet Cleanup] Remaining vault entries have no walletHash; keeping them intact.')
+      context.commit(
+        'setWalletRecoveryMessage',
+        'Your saved wallet could not be read on this device. Restore it from your seed phrase backup if needed.'
+      )
     }
   } else if (indicesToRemove.length > 0) {
     // If we removed entries but not the current wallet, we need to adjust the current index
@@ -1057,17 +1077,26 @@ export async function loadWalletAddresses (context) {
       ? context.state?.chipnet__wallets?.bch
       : context.state?.wallets?.bch
 
+    const candidates = []
+
     const idxFromLastAddressAndIndex = bchWallet?.lastAddressAndIndex?.address_index
-    if (Number.isFinite(idxFromLastAddressAndIndex)) return idxFromLastAddressAndIndex
+    if (Number.isFinite(idxFromLastAddressAndIndex)) candidates.push(idxFromLastAddressAndIndex)
 
     const idxFromLastAddressIndex = bchWallet?.lastAddressIndex
-    if (Number.isFinite(idxFromLastAddressIndex)) return idxFromLastAddressIndex
+    if (Number.isFinite(idxFromLastAddressIndex)) {
+      candidates.push(idxFromLastAddressIndex)
+    } else {
+      // Handle string values (e.g. "0", "12", or even accidental "0/0")
+      const parsed = parseInt(String(idxFromLastAddressIndex ?? ''), 10)
+      if (Number.isFinite(parsed)) candidates.push(parsed)
+    }
 
-    // Handle string values (e.g. "0", "12", or even accidental "0/0")
-    const parsed = parseInt(String(idxFromLastAddressIndex ?? ''), 10)
-    if (Number.isFinite(parsed)) return parsed
+    // Take the highest: a spend advances lastAddressIndex locally before
+    // watchtower indexes the change output, so the stale lastAddressAndIndex
+    // must not pull the address range backwards.
+    if (!candidates.length) return NaN
 
-    return NaN
+    return Math.max(...candidates)
   }
 
   // Prefer Watchtower's last external address index (even if Vuex already has a value).

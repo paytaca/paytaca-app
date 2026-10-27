@@ -18,18 +18,22 @@ import {
 import sha256 from 'js-sha256' 
 import { SecureStoragePlugin } from 'capacitor-secure-storage-plugin'
 import { getWalletHashFromIndexAsync } from 'src/utils/wallet-storage'
+import { generateMnemonic as generateBip39Mnemonic } from 'bip39'
 
-// Matches the error thrown by the patched capacitor-secure-storage-plugin web
-// implementation when an encrypted value cannot be decrypted (e.g. the
-// device encryption key in IndexedDB was lost).
+// Matches the errors thrown by the patched capacitor-secure-storage-plugin web
+// implementation when an encrypted value cannot be read on this device:
+//  - SECURE_STORAGE_DECRYPT_FAILED: ciphertext does not decrypt with the key
+//  - SECURE_STORAGE_KEY_MISSING: encrypted values exist but the at-rest key in
+//    IndexedDB is gone (e.g. browser data cleared). The user-facing condition
+//    is the same as a failed decrypt: the stored secret is unreadable.
 const SECURE_STORAGE_DECRYPT_ERROR = 'SECURE_STORAGE_DECRYPT_FAILED'
+const SECURE_STORAGE_KEY_MISSING_ERROR = 'SECURE_STORAGE_KEY_MISSING'
 
 export function isSecureStorageDecryptError (err) {
-  return err?.message === SECURE_STORAGE_DECRYPT_ERROR
+  return err?.message === SECURE_STORAGE_DECRYPT_ERROR ||
+    err?.message === SECURE_STORAGE_KEY_MISSING_ERROR
 }
 
-const BCHJS = require('@psf/bch-js')
-const bchjs = new BCHJS()
 
 const projectId = {
   mainnet: process.env.WATCHTOWER_PROJECT_ID,
@@ -353,7 +357,7 @@ export async function deleteDuplicateWalletData(walletHash, index) {
 }
 
 export async function generateMnemonic (index = 0) {
-  const mnemonic = bchjs.Mnemonic.generate(128)
+  const mnemonic = generateBip39Mnemonic(128)
   
   // Check if migration is completed
   let migrationCompleted = false
@@ -560,6 +564,37 @@ export async function getMnemonic (walletHashOrIndex = 0) {
   }
   
   return mnemonic
+}
+
+/**
+ * Read the mnemonic stored under the legacy index-based key (`mn`, `mn<index>`).
+ *
+ * Deliberately ignores the `mnemonic_migration_completed` flag: that flag can be
+ * set without anything being migrated (see migrateMnemonicsToWalletHash when the
+ * vault is empty), which would otherwise make wallets unreachable even though
+ * their mnemonic is still present. Callers MUST verify that the mnemonic matches
+ * the wallet being recovered (wallet hash check) before trusting it.
+ *
+ * @param {number} index - Legacy vault index
+ * @returns {Promise<string|null>} The mnemonic, or null when no legacy key exists
+ */
+export async function getMnemonicByIndexLegacy (index = 0) {
+  const key = index === 0 ? 'mn' : `mn${index}`
+  try {
+    // Versions up to v0.9.1 stored the mnemonic aes256-encrypted with key 'sk'
+    const secretKey = await SecureStoragePlugin.get({ key: 'sk' })
+    const encryptedMnemonic = await SecureStoragePlugin.get({ key })
+    return aes256.decrypt(secretKey.value, encryptedMnemonic.value)
+  } catch (err) {
+    if (isSecureStorageDecryptError(err)) throw err
+    try {
+      const mnemonic = await SecureStoragePlugin.get({ key })
+      return mnemonic?.value || null
+    } catch (fallbackErr) {
+      if (isSecureStorageDecryptError(fallbackErr)) throw fallbackErr
+      return null
+    }
+  }
 }
 
 /**

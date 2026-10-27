@@ -4,6 +4,7 @@ import { Wallet } from "..";
 import { TransactionBalancer } from "../stablehedge/transaction-utils";
 import { toTokenAddress } from "src/utils/crypto";
 import { formatKitInput, formatKitOutput, getSubscriptionContractInstance } from './cashscript-utils';
+import { getChangeAddress } from 'src/utils/send-page-utils';
 
 /**
  * @param {Object} opts 
@@ -20,7 +21,8 @@ export async function topUpSubscription(opts) {
   const { wallet, isChipnet, tokenCategory, tokenAmount } = opts;
   const hasToken = tokenCategory && tokenAmount;
   const bchWallet = isChipnet ? wallet.BCH_CHIP : wallet.BCH;
-  const { change: changeAddress } = await bchWallet.getAddressSetAt(0);
+  // Fresh change address verified against the chain; 1/0 is reused forever
+  const changeAddress = await getChangeAddress('bch', { isChipnet });
   const balancer = new TransactionBalancer();
   balancer.outputs.push({
     to: opts.contractAddress,

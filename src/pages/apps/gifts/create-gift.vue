@@ -437,7 +437,8 @@ import ShareGiftPanel from '../../../components/gifts/ShareGiftPanel.vue'
 import CustomKeyboard from '../../../components/CustomKeyboard.vue'
 import { getMnemonic, Wallet } from '../../../wallet'
 import axios from 'axios'
-import { ECPair } from '@psf/bitcoincashjs-lib'
+import { encodePrivateKeyWif, generatePrivateKey } from 'bitauth-libauth-v3'
+import { wifToCashAddress } from 'src/utils/bch-keys'
 import { toHex } from 'hex-my-bytes'
 import sha256 from 'js-sha256'
 import { 
@@ -465,6 +466,7 @@ import { hexToRef } from 'src/utils/reference-id-utils'
 import { showLimitDialogWithDeps } from 'src/composables/useTieredLimitGate'
 import KeyboardTooltip from 'src/components/KeyboardTooltip.vue'
 import { useKeyboardTooltip } from 'src/composables/useKeyboardTooltip'
+import { getChangeAddress } from 'src/utils/send-page-utils'
 
 const aesjs = require('aes-js')
 const short = require('short-uuid')
@@ -639,13 +641,9 @@ export default {
       vm.processing = true
       
       try {
-        const privateKey = ECPair.makeRandom()
-        const wif = privateKey.toWIF()
+        const wif = encodePrivateKeyWif(generatePrivateKey(), 'mainnet')
 
-        const BCHJS = require('@psf/bch-js')
-        const bchjs = new BCHJS()
-        const pair = bchjs.ECPair.fromWIF(wif)
-        const address = bchjs.ECPair.toCashAddress(pair)
+        const address = wifToCashAddress(wif)
         
         const secret = Buffer.from(wif)
         const stateShare = sss.split(secret, { shares: 2, threshold: 2 })
@@ -726,6 +724,9 @@ export default {
       const vm = this
       const { isResubmit = false } = options || {}
       try {
+        // Resolve the change address before the gift is registered server-side,
+        // so a failure to verify one cannot leave a registered gift unpaid
+        const changeAddress = await getChangeAddress('bch', { isChipnet: vm.wallet.BCH.isChipnet })
         const resp = await axios.post(url, payload)
         if (resp.status === 200) {
           vm.qrCodeContents = qrCode
@@ -734,7 +735,7 @@ export default {
             vm.unclaimedGiftsCountSnapshot += 1
           }
           try {
-            const result = await vm.wallet.BCH.sendBch(this.amountBCH, address)
+            const result = await vm.wallet.BCH.sendBch(this.amountBCH, address, changeAddress)
             if (result.success) {
               vm.processing = false
               vm.completed = true

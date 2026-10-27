@@ -290,7 +290,7 @@ export function getTotalUnreadCount (state) {
   const ws = getWalletState(state)
   const myPubKey = ws.keys?.pubKeyHex
   if (!myPubKey) return 0
-  let total = 0
+  let total = Object.keys(ws.mls?.pendingInvitations || {}).length
   for (const room of (ws.rooms || [])) {
     if (!room.members?.includes(myPubKey)) continue
     const msgs = ws.messages?.[room.id] || []

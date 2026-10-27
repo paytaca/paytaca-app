@@ -484,7 +484,7 @@
   </q-dialog>
 </template>
 <script setup>
-import BCHJS from '@psf/bch-js';
+import { signMessage } from 'src/utils/bch-keys'
 import { anyhedgeBackend } from 'src/wallet/anyhedge/backend'
 import { formatDate, formatUnits, formatTimestampToText, ellipsisText, parseHedgePositionData, parseSettlementMetadata } from 'src/wallet/anyhedge/formatters';
 import { calculateContractFundingWithFees, calculateFundingAmounts, createFundingProposal } from 'src/wallet/anyhedge/funding'
@@ -502,7 +502,6 @@ import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 import { getExplorerLink, getExplorerAddressLink } from 'src/utils/send-page-utils'
 import { useI18n } from 'vue-i18n'
 
-const bchjs = new BCHJS()
 const $t = useI18n().t
 
 // dialog plugins requirement
@@ -1195,7 +1194,7 @@ async function cancelMutualRedemption(position) {
     const message = initiator === 'short'
       ? mutualRedemptionData.value.shortSchnorrSig
       : mutualRedemptionData.value.longSchnorrSig
-    signature = bchjs.BitcoinCash.signMessageWithPrivKey(privkey, message)
+    signature = signMessage(privkey, message)
   } catch(error) {
     console.error(error)
     dialog.update({ message: $t('SignMessageError') })
@@ -1280,7 +1279,7 @@ async function cancelContract(position) {
     dialog.update({ message: $t('SigningRequest') })
     const privkey = await getPrivateKey(props?.contract, props?.viewAs, props?.wallet)
     const message = `${data.timestamp}:${props.contract?.address}`
-    data.signature = bchjs.BitcoinCash.signMessageWithPrivKey(privkey, message)
+    data.signature = signMessage(privkey, message)
   } catch(error) {
     console.error(error)
     dialog.update({ message: $t('SigningMessageError') })

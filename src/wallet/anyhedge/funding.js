@@ -1,5 +1,4 @@
 import axios from 'axios'
-import BCHJS from '@psf/bch-js'
 import { binToHex, decodeTransactionBCH, hexToBin } from '@bitauth/libauth'
 import { AnyHedgeManager, ContractData, encodeExtendedJson } from '@generalprotocols/anyhedge'
 import Watchtower from 'watchtower-cash-js'
@@ -8,7 +7,6 @@ import { generalProtocolLPBackend, generalProtocolLPAuthToken, anyhedgeBackend }
 import { castBigIntSafe, getContractAccessKeys, getContractStatus, txHexToHash } from './utils'
 import { encodePrivateKeyWif } from '@bitauth/libauth'
 
-const bchjs = new BCHJS()
 
 export const LIQUIDITY_FEE_NAME = 'Liquidity premium'
 

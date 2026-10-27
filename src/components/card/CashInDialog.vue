@@ -151,6 +151,7 @@
 import CardMixin from 'src/mixins/card/card-mixin.js'
 import DragSlide from '../drag-slide.vue';
 import { loadCardUser } from 'src/services/card/user';
+import { getChangeAddress } from 'src/utils/send-page-utils';
 
 export default {
   name: "CashInDialog",
@@ -289,7 +290,8 @@ export default {
       const sendAmount = this.cryptoCashInAmount
       const user = await loadCardUser()
       const wallet = await user.wallet.getRawWallet()
-      const result = await wallet.sendBch(sendAmount, this.card?.cashAddress)
+      const changeAddress = await getChangeAddress('bch', { isChipnet: wallet.isChipnet })
+      const result = await wallet.sendBch(sendAmount, this.card?.cashAddress, changeAddress)
       this.$q.loading.hide()
 
       if (result.success) {

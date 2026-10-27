@@ -1,9 +1,10 @@
 import Watchtower from 'watchtower-cash-js'
-const BCHJS = require('@psf/bch-js')
+import { hdNodeFromSeed, deriveHdNode, hdNodeToWif, hdNodeToSlpAddress, hdNodeToXPub, toSlpAddress } from 'src/utils/bch-keys'
+import { mnemonicToSeed } from 'bip39'
 const sha256 = require('js-sha256')
-const bchjs = new BCHJS()
 import axios from 'axios'
 import { getWatchtowerApiUrl, convertCashAddress } from './chipnet'
+import { discoverWalletAddresses } from './address-discovery'
 
 
 export class SlpWallet {
@@ -29,8 +30,8 @@ export class SlpWallet {
       return this._masterHDNodeCache
     }
     this._masterHDNodeCache = null
-    const seedBuffer = await bchjs.Mnemonic.toSeed(this.mnemonic)
-    this._masterHDNodeCache = bchjs.HDNode.fromSeed(seedBuffer)
+    const seedBuffer = await mnemonicToSeed(this.mnemonic)
+    this._masterHDNodeCache = hdNodeFromSeed(seedBuffer)
     this._masterHDNodeExpiry = Date.now() + 3600000
     return this._masterHDNodeCache
   }
@@ -41,10 +42,10 @@ export class SlpWallet {
   }
 
   async getXPubKey () {
-    const seedBuffer = await bchjs.Mnemonic.toSeed(this.mnemonic)
-    const masterHDNode = bchjs.HDNode.fromSeed(seedBuffer)
-    const childNode = masterHDNode.derivePath(this.derivationPath)
-    return bchjs.HDNode.toXPub(childNode)
+    const seedBuffer = await mnemonicToSeed(this.mnemonic)
+    const masterHDNode = hdNodeFromSeed(seedBuffer)
+    const childNode = deriveHdNode(masterHDNode, this.derivationPath)
+    return hdNodeToXPub(childNode)
   }
 
   /**
@@ -71,20 +72,20 @@ export class SlpWallet {
 
   async getAddressSetAt(index) {
     const masterHDNode = await this._getMasterHDNode()
-    const childNode = masterHDNode.derivePath(this.derivationPath)
-    const receivingAddressNode = childNode.derivePath('0/' + index)
-    const changeAddressNode = childNode.derivePath('1/' + index)
+    const childNode = deriveHdNode(masterHDNode, this.derivationPath)
+    const receivingAddressNode = deriveHdNode(childNode, '0/' + index)
+    const changeAddressNode = deriveHdNode(childNode, '1/' + index)
     const addresses = {
-      receiving: bchjs.HDNode.toSLPAddress(receivingAddressNode),
-      change: bchjs.HDNode.toSLPAddress(changeAddressNode)
+      receiving: hdNodeToSlpAddress(receivingAddressNode),
+      change: hdNodeToSlpAddress(changeAddressNode)
     }
 
     if (this.isChipnet) {
       const encodedReceivingAddress = convertCashAddress(addresses.receiving, this.isChipnet, false)
       const encodedChangeAddress = convertCashAddress(addresses.change, this.isChipnet, false)
 
-      addresses.receiving = bchjs.SLP.Address.toSLPAddress(encodedReceivingAddress)
-      addresses.change = bchjs.SLP.Address.toSLPAddress(encodedChangeAddress)
+      addresses.receiving = toSlpAddress(encodedReceivingAddress)
+      addresses.change = toSlpAddress(encodedChangeAddress)
     }
 
     return addresses
@@ -167,169 +168,30 @@ export class SlpWallet {
 
   /**
    * Discovers SLP addresses with transaction history using BIP44 gap-limit scanning.
-   * Same logic as BchWallet.discoverAddresses but for SLP addresses.
+   * Shares the gap-limit discovery logic used by BchWallet.
    * Sends batches of addresses to the Watchtower `wallet/address-discover/` endpoint
    * which checks each address for transaction history.
    *
    * @param {Object} opts
-   * @param {number} [opts.gapLimit=20] - Consecutive empty addresses before stopping a chain
+   * @param {number} [opts.gapLimit=200] - Consecutive empty addresses before stopping a chain
    * @param {number} [opts.batchSize=50] - Addresses per batch API request
-   * @param {number} [opts.maxScans=500] - Safety cap on total addresses to scan
+   * @param {number} [opts.maxScans=2000] - Safety cap on total addresses to scan
    * @param {Function} [opts.onProgress] - Progress callback
    * @returns {Promise<Object>} Discovery result
    */
   async discoverAddresses(opts = {}) {
-    const {
-      gapLimit = 20,
-      batchSize = 50,
-      maxScans = 500,
-      onProgress,
-    } = opts
-
-    const result = {
-      success: false,
-      discoveredReceiving: [],
-      discoveredChange: [],
-      highestReceivingIndex: -1,
-      highestChangeIndex: -1,
-      subscribed: 0,
-      scanned: 0,
-      error: null,
-    }
-
-    let receivingGapCount = 0
-    let changeGapCount = 0
-    let receivingDone = false
-    let changeDone = false
-    let currentIndex = 0
-    let totalScanned = 0
-    const scanAddressSets = []
-
-    while (totalScanned < maxScans && !(receivingDone && changeDone)) {
-      const batchEnd = Math.min(currentIndex + batchSize, maxScans)
-      const addressSets = []
-
-      for (let i = currentIndex; i < batchEnd; i++) {
-        const addresses = await this.getAddressSetAt(i)
-        addressSets.push({
-          address_index: i,
-          receiving: addresses.receiving,
-          change: addresses.change,
-        })
-        scanAddressSets.push({
-          address_index: i,
-          addresses: { receiving: addresses.receiving, change: addresses.change },
-        })
-      }
-
-      try {
-        const apiResponse = await this.watchtower.BCH._api.post(
-          'wallet/address-discover/',
-          {
-            address_sets: addressSets,
-            wallet_hash: this.walletHash,
-            project_id: this.projectId,
-          }
-        )
-
-        const discoveryResults = apiResponse.data?.results || []
-
-        for (const discovery of discoveryResults) {
-          const idx = discovery.address_index
-
-          if (!receivingDone) {
-            const receivingHasHistory = discovery.receiving?.has_history === true
-            if (receivingHasHistory) {
-              receivingGapCount = 0
-              result.discoveredReceiving.push({
-                address_index: idx,
-                address: discovery.receiving.address,
-              })
-              if (idx > result.highestReceivingIndex) {
-                result.highestReceivingIndex = idx
-              }
-            } else {
-              receivingGapCount++
-              if (receivingGapCount >= gapLimit) {
-                receivingDone = true
-              }
-            }
-          }
-
-          if (!changeDone) {
-            const changeHasHistory = discovery.change?.has_history === true
-            if (changeHasHistory) {
-              changeGapCount = 0
-              result.discoveredChange.push({
-                address_index: idx,
-                address: discovery.change.address,
-              })
-              if (idx > result.highestChangeIndex) {
-                result.highestChangeIndex = idx
-              }
-            } else {
-              changeGapCount++
-              if (changeGapCount >= gapLimit) {
-                changeDone = true
-              }
-            }
-          }
-        }
-
-        totalScanned += addressSets.length
-        currentIndex = batchEnd
-
-        if (onProgress) {
-          onProgress({
-            scanned: totalScanned,
-            discoveredReceiving: result.discoveredReceiving.length,
-            discoveredChange: result.discoveredChange.length,
-            phase: 'discovering',
-          })
-        }
-      } catch (error) {
-        result.error = error?.message || String(error)
-        return result
-      }
-    }
-
-    result.scanned = totalScanned
-
-    const highestIndex = Math.max(result.highestReceivingIndex, result.highestChangeIndex)
-
-    if (highestIndex >= 0) {
-      const subscribeCount = highestIndex + 1
-      if (onProgress) {
-        onProgress({
-          scanned: totalScanned,
-          discoveredReceiving: result.discoveredReceiving.length,
-          discoveredChange: result.discoveredChange.length,
-          phase: 'subscribing',
-        })
-      }
-
-      const subscribePayload = {
-        address_sets: scanAddressSets.slice(0, subscribeCount),
-        wallet_hash: this.walletHash,
-        project_id: this.projectId,
-      }
-
-      try {
-        await this.watchtower.BCH._api.post('wallet/address-scan/', subscribePayload)
-        result.subscribed = subscribeCount
-      } catch (error) {
-        result.error = error?.message || String(error)
-      }
-    }
-
-    result.success = true
-    return result
+    return discoverWalletAddresses({
+      getAddressSetAt: (index) => this.getAddressSetAt(index),
+      watchtower: this.watchtower,
+      walletHash: this.walletHash,
+      projectId: this.projectId,
+    }, opts)
   }
 
   async getPrivateKey (addressPath) {
     const masterHDNode = await this._getMasterHDNode()
-    const childNode = masterHDNode.derivePath(this.derivationPath + '/' + String(addressPath))
-    return bchjs.HDNode.toWIF(childNode)
+    const childNode = deriveHdNode(masterHDNode, this.derivationPath + '/' + String(addressPath))
+    return hdNodeToWif(childNode)
   }
 
   async getBalance (tokenId) {
