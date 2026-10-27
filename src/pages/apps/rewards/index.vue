@@ -562,8 +562,12 @@
 import { fetchTokensList } from 'src/wallet/cauldron/tokens'
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 import { getAddress0_0PublicKey } from 'src/utils/memo-key-utils'
-import { formatWithLocale, parseFiatCurrencyWrapper } from 'src/utils/denomination-utils'
+import { loadWallet } from 'src/wallet'
+import { parseLiftToken } from 'src/utils/engagementhub-utils/shared'
+import { raiseNotifyError } from 'src/utils/notify-utils'
 import { LIFT_TOKEN_CATEGORY, LIFT_TOKEN_DECIMALS } from 'src/utils/subscription-utils'
+import { formatWithLocale, parseFiatCurrencyWrapper } from 'src/utils/denomination-utils'
+import { getLookupKey, mintLookupKey, LookupKeyExistsError } from 'src/wallet/lookup-key'
 import {
   PromosBytes,
   getUserPromoData,
@@ -580,9 +584,6 @@ import {
   EliteStatus,
   EliteStatusLabels
 } from 'src/utils/engagementhub-utils/rewards'
-import { parseLiftToken } from 'src/utils/engagementhub-utils/shared'
-import { loadWallet } from 'src/wallet'
-import { getLookupKey, mintLookupKey, LookupKeyExistsError } from 'src/wallet/lookup-key'
 
 import HeaderNav from 'src/components/header-nav.vue'
 import HelpCard from 'src/components/rewards/cards/HelpCard.vue'
@@ -1253,7 +1254,7 @@ export default {
 
         const result = await enrollEliteProgram(this.walletHash, lookupKey)
         if (!result) {
-          this.$q.notify({ type: 'error', message: 'Unable to join the Elite Program. Please try again later.', timeout: 5000 })
+          raiseNotifyError('Unable to join the Elite Program. Please try again later.', 5000)
           return
         }
 
@@ -1263,10 +1264,10 @@ export default {
         this.isEliteSuccessActive = true
       } catch (error) {
         if (error instanceof LookupKeyExistsError) {
-          this.$q.notify({ type: 'error', message: 'A lookup key already exists for this wallet. Revoke it first.', timeout: 5000 })
+          raiseNotifyError('A lookup key already exists for this wallet. Contact Paytaca to have it revoked.', 5000)
         } else {
           console.error('Elite Program enrollment failed:', error)
-          this.$q.notify({ type: 'error', message: 'Unable to join the Elite Program. Please try again later.', timeout: 5000 })
+          raiseNotifyError('Unable to join the Elite Program. Please try again later.', 5000)
         }
       } finally {
         this.isEliteCtaBusy = false
@@ -1279,7 +1280,7 @@ export default {
         await this.eliteRefreshPromise
 
         if (!this.eliteData || this.eliteData.id < 0) {
-          this.$q.notify({ type: 'error', message: 'Unable to open the Elite Program. Please try again.', timeout: 5000 })
+          raiseNotifyError('Unable to join the Elite Program. Please try again later.', 5000)
           return
         }
 
