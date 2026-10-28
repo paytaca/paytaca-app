@@ -1,3 +1,5 @@
+import { getAuthHeaders } from './bch-oauth'
+
 const APIURL = new URL(process.env.AUCTION_HUB_API)
 const websocketURL = (path) => {
   const protocol = APIURL.protocol === 'https:' ? 'wss:' : 'ws:'
@@ -20,8 +22,12 @@ export function callAuctionWebsocket(auctionId){
 }
 
 // Opens the websocket for a lot.
+// NEEDS TO SEND ACCESS TOKEN TO PREVENT WEBSOCKET DISCONNECTIONS
 export function callLotWebsocket(lotId){
-  return new WebSocket(websocketURL(`lot/${lotId}`))
+  return getAuthHeaders().then(headers => new WebSocket(
+    websocketURL(`lot/${lotId}`),
+    [`bch-oauth.${headers.Authorization?.replace('Bearer ', '') || ''}`]
+  ))
 }
 
 // Opens the refund countdown websocket for a delivery tracking record.
