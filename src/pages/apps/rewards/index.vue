@@ -1275,8 +1275,12 @@ export default {
         if (!lookupKey) return
 
         const result = await enrollEliteProgram(this.walletHash, lookupKey)
-        if (!result) {
-          raiseNotifyError('Unable to join the Elite Program. Please try again later.', 5000)
+        if (!result.ok) {
+          if (result.code === 'lookup_key_rejected') {
+            raiseNotifyError("Your wallet's Elite Program connection is out of date. Please try again later.", 5000)
+          } else {
+            raiseNotifyError('Unable to join the Elite Program. Please try again later.', 5000)
+          }
           return
         }
 

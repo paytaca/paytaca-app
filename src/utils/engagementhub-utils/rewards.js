@@ -342,19 +342,25 @@ export async function getAssetsThresholds () {
 }
 
 export async function enrollEliteProgram (walletHash, lookupKey) {
-  return await ELITEPROGRAM_URL
-    .post(
+  try {
+    const resp = await ELITEPROGRAM_URL.post(
       'enroll/',
       { wallet_hash: walletHash, lookup_key: lookupKey },
       { headers: { 'X-Elite-Program-Key': process.env.ELITE_PROGRAM_API_KEY } }
     )
-    .then(resp => resp.data)
-    .catch(error => {
-      if (!error?.message?.includes('aborted')) {
-        console.error(error)
-      }
-      return null
-    })
+    return { ok: true, data: resp.data }
+  } catch (error) {
+    const aborted = Boolean(error?.message?.includes('aborted'))
+    if (!aborted) {
+      console.error(error)
+    }
+    return {
+      ok: false,
+      aborted,
+      status: error?.response?.status ?? null,
+      code: error?.response?.data?.code ?? null
+    }
+  }
 }
 
 export async function getEliteProgramSummaryData (id) {
