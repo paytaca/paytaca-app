@@ -402,18 +402,8 @@ export default {
           vm.$router.push({ name: 'app-rewards' })
           break
         } case 'AU': {
+          // REVIEW THIS LATER
           const urlArray = notif.extra_data.split(' ')
-          if (!urlArray) {
-            vm.$q.dialog({
-              component: NotificationMoreInfoDialog,
-              componentProps: {
-                title: notif.title,
-                message: notif.message,
-                url: ""
-              }
-            })
-            break
-          }
 
           if(urlArray.length <= 1) {
             vm.$router.push({ name: `app-auction-${urlArray[0]}` , params, query})
@@ -430,6 +420,7 @@ export default {
           }
 
           vm.$router.push({ name: `app-auction-${urlArray[0]}` , params, query})
+          break
         } default:
           break
       }
