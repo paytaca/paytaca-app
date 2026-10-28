@@ -873,7 +873,7 @@ export default {
     isHongKong,
     validateSeedPhrase () {
       if (countWords(this.seedPhraseBackup) === 12) {
-        return validateMnemonic(this.seedPhraseBackup)
+        return validateMnemonic(this.seedPhraseBackup, EN_WORDLIST)
       } else {
         return false
       }

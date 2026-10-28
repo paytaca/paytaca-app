@@ -233,7 +233,7 @@ export default {
       return Buffer.from(value.replace('0x', ''), 'hex').toString('utf8')
     },
     hexToNumber (value) {
-      if (!/(0x)?[0-9a-f]*/i.test(value)) return null
+      if (value === '' || !/(0x)?[0-9a-f]*/i.test(value)) return null
 
       return BigInt(value)
     }
