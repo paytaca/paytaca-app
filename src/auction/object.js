@@ -300,13 +300,6 @@ export class DeliveryDetails {
       id: data.receiver?.id ?? data.receiver ?? null,
       address: data.receiver_address ?? data.receiver?.address ?? null
     }
-    
-    // Courier
-    this.courier = data.courier ?? null
-
-    // Status
-    this.status = data.status ?? 'Preparing'
-    this.status_color = deliveryColors[this.status]
 
     // Delivery History
     this.delivery_events = Array.isArray(data.delivery_events)
@@ -316,6 +309,9 @@ export class DeliveryDetails {
           : DeliveryEvent.parse(event, this)
       )
       : []
+    
+    // Courier
+    this.courier = data.courier ?? null
 
     // Dates
     this.date_created = data.date_created ?? null
@@ -326,10 +322,6 @@ export class DeliveryDetails {
       ? deliveryEvent
       : DeliveryEvent.parse(deliveryEvent, this)
     this.delivery_events.push(event)
-  }
-
-  refreshStatus() {
-    this.status_color = deliveryColors[this.status]
   }
 }
 
@@ -356,6 +348,7 @@ export class DeliveryEvent {
     // Delivery Event Core information
     this.id = Number(data.id) || null
     this.tracking_id = Number(data.tracking_id ?? data.delivery?.tracking_id ?? data.delivery) || null
+    
     this.status = data.status ?? null
     this.description = data.description ?? 'No description provided.'
     this.location = data.location ?? 'No location provided.'
