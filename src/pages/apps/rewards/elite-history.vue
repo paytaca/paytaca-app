@@ -66,7 +66,7 @@
                       ) }}
                   </div>
                   <div class="text-caption summary-label">
-                    {{ activeTab === 'transactions' ? 'Total cashback' : 'Total top-ups' }}
+                    {{ activeTab === 'transactions' ? 'Total cashback value' : 'Total BCH top-ups' }}
                   </div>
                 </div>
                 <div class="col text-center">
@@ -76,7 +76,7 @@
                       ) }}
                   </div>
                   <div class="text-caption summary-label">
-                    {{ activeTab === 'transactions' ? 'LIFT cashback' : 'LIFT top-ups' }}
+                    {{ activeTab === 'transactions' ? 'Total LIFT cashback' : 'Total LIFT top-ups' }}
                   </div>
                 </div>
               </div>
