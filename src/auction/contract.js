@@ -48,7 +48,7 @@ async function getAuctionPublicKeys (lotId) {
       : Store.dispatch('auction/fetchArbiterPublicKey'),
     Store.getters['auction/servicerPublicKey']
       ? Promise.resolve()
-      : Store.dispatch('auction/fetchArbiterPublicKey'),
+      : Store.dispatch('auction/fetchServicerPublicKey'),
   ])
 
   const auctioneer = Store.getters['auction/auctioneerPublicKey']
