@@ -12,7 +12,7 @@
       <div class="q-pa-md" :class="getDarkModeClass(darkMode)">
         <div class="row justify-between items-center">
           <div class="row items-center q-gutter-sm">
-            <q-icon name="history" size="28px" color="primary" />
+            <q-icon name="history" size="28px" class="elite-history-icon" />
             <span class="text-h6 text-weight-bold">Monthly History</span>
           </div>
           <q-btn
@@ -194,6 +194,14 @@ export default {
   display: flex;
   flex-direction: column;
   overflow: hidden;
+}
+
+.elite-history-icon {
+  color: #d4a643;
+
+  .light & {
+    color: #c89d36;
+  }
 }
 
 .scrollable-content {

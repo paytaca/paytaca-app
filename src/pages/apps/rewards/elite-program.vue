@@ -89,6 +89,16 @@
               class="rounded-borders elite-progress"
               size="8px"
             />
+
+            <q-btn
+              class="full-width q-mt-md elite-map-button"
+              outline
+              no-caps
+              rounded
+              icon="history"
+              label="View Monthly History"
+              @click="openMonthlyHistoryDialog"
+            />
           </template>
         </q-card-section>
       </q-card>
@@ -221,6 +231,7 @@ import { getEliteProgramSummaryData, EliteStatus, EliteStatusLabels } from 'src/
 import HeaderNav from 'src/components/header-nav.vue'
 import ErrorCard from 'src/components/rewards/cards/ErrorCard.vue'
 import EliteList from 'src/components/rewards/transactions/EliteList.vue'
+import EliteMonthlyHistoryDialog from 'src/components/rewards/dialogs/EliteMonthlyHistoryDialog.vue'
 
 export default {
   name: 'EliteProgram',
@@ -291,6 +302,13 @@ export default {
 
     openMerchantMap () {
       this.$router.push({ name: 'app-map' })
+    },
+
+    openMonthlyHistoryDialog () {
+      this.$q.dialog({
+        component: EliteMonthlyHistoryDialog,
+        componentProps: { eliteId: this.eliteId }
+      })
     },
 
     async loadData (append = false) {
