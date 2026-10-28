@@ -66,7 +66,7 @@
             :is-points-card="true"
             :is-rewards-home-page="false"
             :error-text="loadingError"
-            @on-retry="fetchContractPoints"
+            @on-retry="retryLoading"
           />
         </div>
 
@@ -352,7 +352,7 @@
 
 <script>
 import { loadWallet } from 'src/wallet'
-import { markRaw } from '@vue/reactivity'
+import { markRaw } from 'vue'
 import { getWalletByNetwork } from 'src/wallet/chipnet'
 import { raiseNotifyError } from 'src/utils/notify-utils'
 import { parseKey } from 'src/utils/custom-keyboard-utils'
@@ -364,6 +364,8 @@ import { getAddress0_0PublicKey } from 'src/utils/memo-key-utils'
 import { formatWithLocale, parseFiatCurrency } from 'src/utils/denomination-utils'
 import { LIFT_TOKEN_CATEGORY, LIFT_TOKEN_DECIMALS } from 'src/utils/subscription-utils'
 import {
+  appendEliteRedeemErrorRef,
+  EliteRedeemErrorCode,
   getLiftConversionRatio,
   getRewardsSwapContractDetails,
   getWalletTokenAddress,
@@ -381,6 +383,26 @@ import ErrorCard from 'src/components/rewards/cards/ErrorCard.vue'
 import BiometricWarningAttempt from 'src/components/authOption/biometric-warning-attempt.vue'
 
 import PromoContract from 'src/utils/rewards-utils/contracts/PromoContract'
+
+function createRedeemError (code, error, context = {}) {
+  const message = typeof error === 'string'
+    ? error
+    : error?.message || error?.error || 'Redemption failed'
+  const redeemError = new Error(message)
+  redeemError.redeemCode = code
+  redeemError.context = context
+  return redeemError
+}
+
+function getContractRedeemErrorCode (message = '') {
+  if (String(message).includes('Contract has no UTXOs')) {
+    return EliteRedeemErrorCode.ContractBalanceUnavailable
+  }
+  if (String(message).includes('which is less than the required minimum')) {
+    return EliteRedeemErrorCode.InsufficientBchForFee
+  }
+  return EliteRedeemErrorCode.ContractTransactionFailed
+}
 
 export default {
   name: 'RedeemPointsDialog',
@@ -668,21 +690,37 @@ export default {
     async initializeData () {
       this.isLoading = true
       this.loadingError = null
-      
-      await this.fetchContractPoints()
 
-      // fetch LIFT conversion ratio
-      const resp = await getLiftConversionRatio()
-      this.liftConversionRate = resp.conversionRatio
-      
-      // Store original total for display
-      this.originalPoints = this.contractPoints
-      // Get token address
-      this.tokenAddress = await getWalletTokenAddress(true)
-      // Set initial display points (no animation on first load)
-      this.displayPoints = this.contractPoints
+      try {
+        await this.fetchContractPoints()
+        if (this.loadingError) return
 
-      this.isLoading = false
+        // fetch LIFT conversion ratio
+        const resp = await getLiftConversionRatio()
+        this.liftConversionRate = resp.conversionRatio
+
+        // Store original total for display
+        this.originalPoints = this.contractPoints
+        // Get token address
+        this.tokenAddress = await getWalletTokenAddress(true)
+        // Set initial display points (no animation on first load)
+        this.displayPoints = this.contractPoints
+      } catch (error) {
+        console.error(`[${EliteRedeemErrorCode.PointsLoadFailed}] Error initializing redeem dialog:`, error?.message)
+        this.loadingError = appendEliteRedeemErrorRef(
+          this.$t('PointsLoadError'),
+          EliteRedeemErrorCode.PointsLoadFailed
+        )
+      } finally {
+        this.isLoading = false
+      }
+    },
+    async retryLoading () {
+      this.loadingError = null
+      await Promise.allSettled([
+        this.initializeData(),
+        this.fetchRewardsSwapContractDetails()
+      ])
     },
     async fetchContractPoints () {
       try {
@@ -691,8 +729,11 @@ export default {
         this.contract = new PromoContract(userPubkey, this.promoBytes, this.contractVersion)
         this.contractPoints = await this.contract.getTokenBalance()
       } catch (error) {
-        console.error('Error initializing redeem dialog:', error)
-        this.loadingError = this.$t('PointsLoadError')
+        console.error(`[${EliteRedeemErrorCode.PointsLoadFailed}] Error initializing redeem dialog:`, error?.message)
+        this.loadingError = appendEliteRedeemErrorRef(
+          this.$t('PointsLoadError'),
+          EliteRedeemErrorCode.PointsLoadFailed
+        )
       }
     },
     async fetchRewardsSwapContractDetails () {
@@ -701,8 +742,11 @@ export default {
         this.rewardsSwapContractAddress = resp.token_address
         this.rewardsSwapContractBytecode = resp.bytecode
       } else {
-        console.error('Error fetching rewards swap contract address.')
-        this.loadingError = this.$t('PointsLoadError')
+        console.error(`[${EliteRedeemErrorCode.SwapConfigUnavailable}] Error fetching rewards swap contract address.`)
+        this.loadingError = appendEliteRedeemErrorRef(
+          this.$t('PointsRedemptionSetupError'),
+          EliteRedeemErrorCode.SwapConfigUnavailable
+        )
       }
     },
     
@@ -833,6 +877,29 @@ export default {
       if (action === 'proceed') this.redeemPoints()
     },
     
+    redeemErrorMessage (code) {
+      switch (code) {
+        case EliteRedeemErrorCode.WalletUnavailable:
+          return this.$t('PointsRedemptionWalletError')
+        case EliteRedeemErrorCode.PointsLoadFailed:
+          return this.$t('PointsLoadError')
+        case EliteRedeemErrorCode.SwapConfigUnavailable:
+          return this.$t('PointsRedemptionSetupError')
+        case EliteRedeemErrorCode.ContractBalanceUnavailable:
+          return this.$t('PointsRedemptionContractBalanceError')
+        case EliteRedeemErrorCode.InsufficientBchForFee:
+          return this.$t('PointsRedemptionInsufficientBalanceError')
+        case EliteRedeemErrorCode.ContractTransactionFailed:
+          return this.$t('PointsRedemptionBroadcastUncertain')
+        case EliteRedeemErrorCode.SwapFailedAfterBroadcast:
+          return this.$t('PointsRedemptionSwapFailed')
+        case EliteRedeemErrorCode.RecordFailedAfterSwap:
+          return this.$t('PointsRedemptionRecordFailed')
+        default:
+          return this.$t('PointsRedemptionGenericError')
+      }
+    },
+
     // Redemption Process
     async redeemPoints (retries=0) {
       this.isSending = true
@@ -843,10 +910,31 @@ export default {
 
       try {
         if (!this.wallet?.BCH) {
-          throw new Error('Failed to load BCH wallet.')
+          throw createRedeemError(
+            EliteRedeemErrorCode.WalletUnavailable,
+            'Failed to load BCH wallet.'
+          )
         }
-        const wif = await this.wallet.BCH.getPrivateKey('0/0')
-        
+        if (!this.contract) {
+          throw createRedeemError(
+            EliteRedeemErrorCode.PointsLoadFailed,
+            'Promo contract unavailable.'
+          )
+        }
+        if (!this.rewardsSwapContractAddress || !this.rewardsSwapContractBytecode) {
+          throw createRedeemError(
+            EliteRedeemErrorCode.SwapConfigUnavailable,
+            'Rewards swap contract unavailable.'
+          )
+        }
+
+        let wif
+        try {
+          wif = await this.wallet.BCH.getPrivateKey('0/0')
+        } catch (error) {
+          throw createRedeemError(EliteRedeemErrorCode.WalletUnavailable, error)
+        }
+
         // call contract to swap promo tokens to LIFT
         const redeemResp = await this.contract.redeemPoints(
           wif,
@@ -856,29 +944,63 @@ export default {
         )
         if (redeemResp.error !== '') {
           fee = Number(redeemResp.fee)
-          throw new Error(redeemResp.error)
+          throw createRedeemError(
+            getContractRedeemErrorCode(redeemResp.error),
+            redeemResp.error,
+            { txid: redeemResp.txid || null }
+          )
         }
 
-        const swapResp = await processPromoTokensSwap({
-          tx_id: redeemResp.txid,
-          redeemed_points: this.pointsToRedeem,
-          user_ct_address: this.tokenAddress,
-          promo_contract_address: this.contract.contract.tokenAddress,
-          promo_contract_bytecode: this.contract.contract.bytecode
-        })
+        let swapResp
+        try {
+          swapResp = await processPromoTokensSwap({
+            tx_id: redeemResp.txid,
+            redeemed_points: this.pointsToRedeem,
+            user_ct_address: this.tokenAddress,
+            promo_contract_address: this.contract.contract.tokenAddress,
+            promo_contract_bytecode: this.contract.contract.bytecode
+          })
+        } catch (error) {
+          throw createRedeemError(
+            EliteRedeemErrorCode.SwapFailedAfterBroadcast,
+            error,
+            { txid: redeemResp.txid }
+          )
+        }
 
-        if (swapResp?.error) throw new Error(swapResp?.error)
+        if (!swapResp || swapResp.error || !swapResp.tx_id) {
+          throw createRedeemError(
+            EliteRedeemErrorCode.SwapFailedAfterBroadcast,
+            swapResp || 'Missing swap response.',
+            { txid: redeemResp.txid, status: swapResp?.status ?? null }
+          )
+        }
 
         // call API for recording points redemption
-        const recordResp = await recordPointsRedemption({
-            promo_type: this.promoType,
-            promo_id: this.promoId,
-            redeemed_points: this.pointsToRedeem,
-            lift_received: this.liftToReceive,
-            tx_id: swapResp.tx_id,
-            month_max: this.maxRedeemable
-        })
-        if (recordResp?.error) throw new Error(recordResp?.error)
+        let recordResp
+        try {
+          recordResp = await recordPointsRedemption({
+              promo_type: this.promoType,
+              promo_id: this.promoId,
+              redeemed_points: this.pointsToRedeem,
+              lift_received: this.liftToReceive,
+              tx_id: swapResp.tx_id,
+              month_max: this.maxRedeemable
+          })
+        } catch (error) {
+          throw createRedeemError(
+            EliteRedeemErrorCode.RecordFailedAfterSwap,
+            error,
+            { txid: swapResp.tx_id }
+          )
+        }
+        if (!recordResp || recordResp.error) {
+          throw createRedeemError(
+            EliteRedeemErrorCode.RecordFailedAfterSwap,
+            recordResp || 'Missing redemption record response.',
+            { txid: swapResp.tx_id, status: recordResp?.status ?? null }
+          )
+        }
 
         // success call
         this.showSuccessCelebration()
@@ -887,42 +1009,68 @@ export default {
         this.contractPoints = this.contractPoints - redeemedAmount
         this.animateDisplayPoints(this.displayPoints, this.contractPoints, 500)
       } catch (error) {
-        console.error('Redemption error:', error.message)
+        const code = error?.redeemCode || EliteRedeemErrorCode.Unknown
+        const errorMessage = error?.message || String(error || 'Redemption failed')
+        const context = error?.context || {}
+        console.error(`[${code}] Elite redemption failed`, {
+          promoId: this.promoId,
+          promoType: this.promoType,
+          points: Number(this.pointsToRedeem || 0),
+          txid: context.txid || null,
+          status: context.status || error?.status || error?.response?.status || null,
+          message: errorMessage
+        })
 
         // OutputSatoshisTooSmallError; 3 retries before stopping
-        if (error.message.includes('which is less than the required minimum') && retries < 3) {
+        if (
+          code === EliteRedeemErrorCode.InsufficientBchForFee &&
+          errorMessage.includes('which is less than the required minimum') &&
+          retries < 3
+        ) {
           const feeBch = fee / 10 ** 8
           if (this.walletBalance < feeBch) {
-            notifyMessage = this.$t('PointsRedemptionInsufficientBalanceError')
+            notifyMessage = this.redeemErrorMessage(code)
           } else {
             this.displayAdditionalRedeemText = true
-            // send small balance from user's wallet to PromoContract
-            const changeAddress = await getChangeAddress('bch')
-            await getWalletByNetwork(this.wallet, 'bch').sendBch(
-              undefined,
-              '',
-              changeAddress,
-              null,
-              undefined,
-              [{
-                address: this.contract.contract.address,
-                amount: feeBch,
-                tokenAmount: undefined
-              }],
-              undefined
-            )
-            // sleep for 2 seconds to resolve UTXOs after sending to PromoContract
-            await new Promise(resolve => setTimeout(resolve, 2000))
-            // call this method again
-            retries++
-            await this.redeemPoints(retries)
+            try {
+              // send small balance from user's wallet to PromoContract
+              const changeAddress = await getChangeAddress('bch')
+              await getWalletByNetwork(this.wallet, 'bch').sendBch(
+                undefined,
+                '',
+                changeAddress,
+                null,
+                undefined,
+                [{
+                  address: this.contract.contract.address,
+                  amount: feeBch,
+                  tokenAmount: undefined
+                }],
+                undefined
+              )
+              // sleep for 2 seconds to resolve UTXOs after sending to PromoContract
+              await new Promise(resolve => setTimeout(resolve, 2000))
+              // call this method again
+              retries++
+              await this.redeemPoints(retries)
+            } catch (retryError) {
+              console.error(`[${EliteRedeemErrorCode.InsufficientBchForFee}] Elite redemption fee funding failed`, {
+                promoId: this.promoId,
+                promoType: this.promoType,
+                points: Number(this.pointsToRedeem || 0),
+                message: retryError?.message
+              })
+              notifyMessage = this.redeemErrorMessage(EliteRedeemErrorCode.InsufficientBchForFee)
+            }
           }
         // other errors
         } else {
-          notifyMessage = this.$t('PointsRedemptionGenericError')
+          notifyMessage = this.redeemErrorMessage(code)
         }
-        
-        if (notifyMessage !== '') raiseNotifyError(notifyMessage)
+
+        if (notifyMessage !== '') {
+          raiseNotifyError(appendEliteRedeemErrorRef(notifyMessage, code), 5000)
+        }
       } finally {
         this.isSending = false
         this.displayAdditionalRedeemText = false

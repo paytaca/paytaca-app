@@ -49,6 +49,27 @@ export const EliteStatusLabels = Object.freeze({
   [EliteStatus.PAUSED]: 'Paused'
 })
 
+export const EliteRedeemErrorCode = Object.freeze({
+  Unknown: 'ELITE-RDM-00',
+  WalletUnavailable: 'ELITE-RDM-01',
+  PointsLoadFailed: 'ELITE-RDM-02',
+  SwapConfigUnavailable: 'ELITE-RDM-03',
+  ContractBalanceUnavailable: 'ELITE-RDM-04',
+  InsufficientBchForFee: 'ELITE-RDM-05',
+  ContractTransactionFailed: 'ELITE-RDM-06',
+  SwapFailedAfterBroadcast: 'ELITE-RDM-07',
+  RecordFailedAfterSwap: 'ELITE-RDM-08'
+})
+
+const ELITE_REDEEM_ERROR_CODES = new Set(Object.values(EliteRedeemErrorCode))
+
+export function appendEliteRedeemErrorRef (message, errorCode) {
+  const ref = ELITE_REDEEM_ERROR_CODES.has(errorCode)
+    ? errorCode
+    : EliteRedeemErrorCode.Unknown
+  return `${message} (${ref})`
+}
+
 export const EliteTxType = Object.freeze({
   OTC: 'otc',
   MARKETPLACE: 'mkp'
@@ -114,6 +135,16 @@ function describeError (error) {
     || error?.response?.data?.detail
     || error?.message
     || 'Unknown error'
+}
+
+function toRewardsApiError (error) {
+  const data = error?.response?.data
+  const message = typeof data === 'string' && data ? data : describeError(error)
+  return {
+    ...(data && typeof data === 'object' ? data : {}),
+    error: message,
+    status: error?.response?.status ?? null
+  }
 }
 
 function delay (ms) {
@@ -520,8 +551,10 @@ export async function processPromoTokensSwap (data) {
     .post('userpromo/process_promo_tokens_swap/', data)
     .then(response => { return response.data })
     .catch(error => {
-      console.error(error)
-      return error.response?.data || { error: error.message || 'Network error' }
+      if (!isCanceledError(error)) {
+        console.error('Failed to POST userpromo/process_promo_tokens_swap/: ' + describeError(error))
+      }
+      return toRewardsApiError(error)
     })
 }
 
@@ -529,11 +562,23 @@ export async function recordPointsRedemption (data) {
   return await REWARDS_URL
     .post('userpromo/record_points_redemption/', data)
     .then(response => {
-      if (response.status === 200) return { error: '' }
-      else return response.data
+      if (response.status >= 200 && response.status < 300) {
+        return { error: '', status: response.status }
+      }
+      const responseData = response.data
+      const message = typeof responseData === 'string' && responseData
+        ? responseData
+        : responseData?.error || responseData?.detail || `Unexpected status ${response.status}`
+      return {
+        ...(responseData && typeof responseData === 'object' ? responseData : {}),
+        error: message,
+        status: response.status
+      }
     })
     .catch(error => {
-      console.error(error)
-      return error.response?.data || { error: error.message || 'Network error' }
+      if (!isCanceledError(error)) {
+        console.error('Failed to POST userpromo/record_points_redemption/: ' + describeError(error))
+      }
+      return toRewardsApiError(error)
     })
 }
