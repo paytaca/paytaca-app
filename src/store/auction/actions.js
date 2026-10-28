@@ -1,5 +1,5 @@
 import { callAPI } from 'src/auction/api'
-import { Auction, Lot, Bid, Dispute, DeliveryDetails } from 'src/auction/object'
+import { Auction, Lot, Bid, Dispute, DeliveryDetails, DeliveryEvent } from 'src/auction/object'
 import noImage from 'src/assets/no-image.svg'
 
 const bidStatusTransitions = {
@@ -77,7 +77,7 @@ export async function fetchMyBiddings({ commit, dispatch }) {
         auctionData = auctionResponse.data instanceof Auction
           ? auctionResponse.data
           : Auction.parse(auctionResponse.data)
-      }
+      } else dispatch('printFailedFetch', 'auction data')
       const lot = Lot.parse(item, auctionData)
       lot.start_date = auctionData?.start_date || null
       lot.end_date = auctionData?.end_date || null
@@ -86,7 +86,7 @@ export async function fetchMyBiddings({ commit, dispatch }) {
 
       if (imageResponse && imageResponse.success && Array.isArray(imageResponse.data)) {
         lot.image = imageResponse.data[0]?.image || null
-      }
+      } else dispatch('printFailedFetch', 'lot image')
 
       return lot
     })
@@ -107,7 +107,7 @@ export async function fetchMyAuctions({ commit, dispatch }) {
       .filter(Boolean)
       .map(item => item instanceof Auction ? item : Auction.parse(item))
     commit('setMyAuctionsLastFetched')
-  } else dispatch('printNotExisting', 'auction_data')
+  } else dispatch('printFailedFetch', 'auctions')
   commit('setMyAuctions', myAuctions)
 }
 
@@ -147,6 +147,7 @@ export async function fetchAuctionLots({ commit, getters, dispatch }, auctionId)
       auctionData = auctionResponse.success && auctionResponse.data
         ? Auction.parse(auctionResponse.data)
         : null
+      if (!auctionData) dispatch('printFailedFetch', 'auction data')
     }
   }
 
@@ -166,7 +167,10 @@ export async function fetchAuctionLots({ commit, getters, dispatch }, auctionId)
           lot.image = typeof firstImageRecord === 'object' && firstImageRecord !== null 
             ? (firstImageRecord.image || '') 
             : firstImageRecord
-        } else lot.image = noImage
+        } else {
+          dispatch('printFailedFetch', 'lot image')
+          lot.image = noImage
+        }
         return lot
       })
     )
@@ -236,12 +240,13 @@ export async function fetchExistingLotBids({ commit, getters, dispatch }, lotId)
 }
 
 // FETCHES has bids for all lots
-export async function fetchHasBidForLots(_, lotsArr) {
+export async function fetchHasBidForLots({ dispatch }, lotsArr) {
   const englishLots = (lotsArr || []).filter((lot) =>
     (lot.auction?.type ?? lot.auction_type) === 'English'
   )
   const entries = await Promise.all(englishLots.map(async (lot) => {
     const result = await callAPI(`lots/${lot.id}/highest-bid`)
+    if (!result?.success) dispatch('printFailedFetch', 'highest bid')
     return [lot.id, Boolean(result.success && result.data?.bidder)]
   }))
   return Object.fromEntries(entries)
@@ -282,28 +287,53 @@ export async function fetchExistingHighestBid({ commit, getters, dispatch }) {
 // DELIVERY-RELATED ACTIONS
 // ========================
 
+const parseDeliveryDetails = data => DeliveryDetails.parse({
+  ...data,
+  delivery_events: (data.delivery_events || []).map(event => DeliveryEvent.parse(event))
+})
+
+export async function createDeliveryDetails({ commit, dispatch }, payload) {
+  const response = await callAPI('delivery-details', null, 'post', payload)
+  if (!response?.success || !response.data) {
+    dispatch('printFailedPost', 'delivery details')
+    return response
+  }
+
+  const eventResponse = await callAPI('delivery-events', null, 'post', {
+    delivery: response.data.tracking_id,
+    status: 'Preparing',
+    description: 'N/A',
+    location: 'N/A',
+    date_of_event: new Date().toISOString()
+  })
+  if (!eventResponse?.success || !eventResponse.data) {
+    dispatch('printFailedPost', 'delivery event')
+    return eventResponse
+  }
+
+  const data = parseDeliveryDetails({ ...response.data, delivery_events: [eventResponse.data] })
+  commit('setDeliveryData', data)
+  commit('setDeliveryDataLastFetched')
+  return { ...response, data }
+}
+
+export async function postDeliveryEvent({ dispatch }, payload) {
+  const response = await callAPI('delivery-events', null, 'post', payload)
+  if (!response?.success || !response.data) dispatch('printFailedPost', 'delivery event')
+  return response
+}
 
 // FETCHES delivery details of a lot from the server
 export async function fetchDeliveryDetails({ commit, dispatch }, lotId) {
   const response = await callAPI('delivery-details-by-lot', lotId)
   if (!response.success || !response.data) {
-    dispatch('printFailedFetch', 'delivery details')
     commit('setDeliveryData', {})
-    return null
+    dispatch('printFailedFetch', 'delivery details')
+    if (response.status === 404) return null
+    throw new Error(response.error || 'Delivery details could not be fetched.')
   }
 
-  const deliveryData = response.data
-  const [eventsResponse, latestEventResponse] = await Promise.all([
-    callAPI('delivery-events-by-tracking-id', deliveryData.tracking_id),
-    callAPI('latest-delivery-event-by-tracking-id', deliveryData.tracking_id)
-  ])
-  const parsedDelivery = DeliveryDetails.parse({
-    ...deliveryData,
-    delivery_events: eventsResponse.success && Array.isArray(eventsResponse.data)
-      ? eventsResponse.data
-      : [],
-    status: latestEventResponse.success ? latestEventResponse.data?.status : null
-  })
+  const parsedDelivery = parseDeliveryDetails(response.data)
   commit('setDeliveryData', parsedDelivery)
   commit('setDeliveryDataLastFetched')
   return parsedDelivery
@@ -323,28 +353,6 @@ export async function patchDeliveryDetails({ dispatch, getters }, payload) {
 
   const response = await callAPI('delivery-details', trackingId, 'patch', data)
   if (!response.success) dispatch('printFailedPatch', 'delivery details')
-  return response
-}
-
-// CREATES delivery event of a lot
-export async function createDeliveryEvent({ dispatch, getters }, { status, description='N/A', location='Default' }) {
-  const { deliveryData } = getters
-
-  const payload = {
-    delivery: deliveryData?.tracking_id,
-    status,
-    description,
-    location,
-    date_of_event: new Date().toISOString()
-  }
-
-  if (!payload.delivery) {
-    dispatch('printNotExisting', 'delivery tracking id')
-    return null
-  }
-
-  const response = await callAPI('delivery-event', null, 'post', payload)
-  if (!response.success) dispatch('printFailedPost', 'delivery event')
   return response
 }
 
@@ -419,6 +427,7 @@ export async function callContractFunction({ dispatch }, { lotId, disputeId, fun
     console.log(`[callContractFunction] Successfully called ${functionName} function from contract! Here are the details: `, response.data.tx_details)
     return response.data.tx_details
   }
+  dispatch('printFailedPost', functionName)
   dispatch('printFailedContractFunctionCall', functionName)
   
   const error = new Error(response?.error || `Failed to call ${functionName}.`)
