@@ -605,6 +605,7 @@ import HelpCard from 'src/components/rewards/cards/HelpCard.vue'
 import ErrorCard from 'src/components/rewards/cards/ErrorCard.vue'
 import RewardsStep from 'src/components/registration/RewardsStep.vue'
 import EliteProgramLockedDialog from 'src/components/rewards/dialogs/EliteProgramLockedDialog.vue'
+import EliteReconnectDialog from 'src/components/rewards/dialogs/EliteReconnectDialog.vue'
 
 import PromoContract from 'src/utils/rewards-utils/contracts/PromoContract'
 
@@ -1269,34 +1270,95 @@ export default {
         // Watchtower allows one key per wallet, so never mint speculatively --
         // a wallet that mints and is not enrolled cannot mint again without
         // revoking first.
-        const lookupKey = await getLookupKey(this.walletHash) ||
-          await mintLookupKey(await loadWallet('BCH', this.$store.getters['global/getWalletIndex']))
+        const lookupKey = await getLookupKey(this.walletHash) || await this.mintEliteLookupKey()
 
         if (!lookupKey) return
 
-        const result = await enrollEliteProgram(this.walletHash, lookupKey)
-        if (!result.ok) {
-          if (result.code === 'lookup_key_rejected') {
-            raiseNotifyError("Your wallet's Elite Program connection is out of date. Please try again later.", 5000)
-          } else {
-            raiseNotifyError('Unable to join the Elite Program. Please try again later.', 5000)
-          }
-          return
-        }
+        await this.submitEliteEnrollment(lookupKey, this.walletHash, { allowReconnect: true })
+      } catch (error) {
+        this.handleEliteEnrollmentError(error)
+      } finally {
+        this.isEliteCtaBusy = false
+      }
+    },
 
+    async mintEliteLookupKey (wallet) {
+      return await mintLookupKey(
+        wallet || await loadWallet('BCH', this.$store.getters['global/getWalletIndex'])
+      )
+    },
+
+    async submitEliteEnrollment (lookupKey, walletHash, { allowReconnect = false } = {}) {
+      const result = await enrollEliteProgram(walletHash, lookupKey)
+
+      if (result.ok) {
         this.eliteRefreshPromise = this.loadRewards().catch(error => {
           console.error('Elite Program refresh after enrollment failed: ', error)
         })
         this.isEliteSuccessActive = true
+        return true
+      }
+
+      if (result.aborted) return false
+
+      if (result.code === 'lookup_key_rejected') {
+        if (allowReconnect) {
+          this.showEliteReconnectDialog()
+        } else {
+          raiseNotifyError('Watchtower rejected the new lookup key. Please try again later or contact Paytaca.', 5000)
+        }
+        return false
+      }
+
+      raiseNotifyError('Unable to join the Elite Program. Please try again later.', 5000)
+      return false
+    },
+
+    showEliteReconnectDialog () {
+      const walletHash = this.walletHash
+
+      this.$q.dialog({
+        component: EliteReconnectDialog
+      }).onOk(() => {
+        this.reconnectEliteLookupKey(walletHash)
+      })
+    },
+
+    async reconnectEliteLookupKey (walletHash) {
+      if (this.$store.getters['global/isChipnet']) return
+      if (this.isEliteCtaBusy) return
+      if (walletHash !== this.walletHash) return
+
+      this.isEliteCtaBusy = true
+      try {
+        const wallet = await loadWallet('BCH', this.$store.getters['global/getWalletIndex'])
+        if (wallet?.BCH?.walletHash !== walletHash) return
+
+        // Mint first: a 201 proves the old key is gone. A 409 means a key still
+        // exists, so keep the local copy instead of revoking a working key.
+        const newKey = await this.mintEliteLookupKey(wallet)
+
+        if (!newKey) return
+
+        await this.submitEliteEnrollment(newKey, walletHash, { allowReconnect: false })
       } catch (error) {
         if (error instanceof LookupKeyExistsError) {
-          raiseNotifyError('A lookup key already exists for this wallet. Contact Paytaca to have it revoked.', 5000)
+          raiseNotifyError('A lookup key still exists for this wallet. Please try again later.', 5000)
         } else {
-          console.error('Elite Program enrollment failed:', error)
-          raiseNotifyError('Unable to join the Elite Program. Please try again later.', 5000)
+          console.error('Elite Program reconnect failed:', error)
+          raiseNotifyError('Unable to reconnect the Elite Program. Please try again later.', 5000)
         }
       } finally {
         this.isEliteCtaBusy = false
+      }
+    },
+
+    handleEliteEnrollmentError (error) {
+      if (error instanceof LookupKeyExistsError) {
+        raiseNotifyError('A lookup key already exists for this wallet. Contact Paytaca to have it revoked.', 5000)
+      } else {
+        console.error('Elite Program enrollment failed:', error)
+        raiseNotifyError('Unable to join the Elite Program. Please try again later.', 5000)
       }
     },
 
