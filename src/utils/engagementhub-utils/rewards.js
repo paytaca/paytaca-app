@@ -386,6 +386,21 @@ export async function getEliteProgramHistorySummaryData (id) {
     })
 }
 
+export async function getEliteProgramMonthlyStats (id) {
+  return await ELITEPROGRAM_URL
+    .get(`${id}/monthly/`)
+    .then(resp => {
+      if (resp.status === 200) return resp.data
+      else return null
+    })
+    .catch(error => {
+      if (!error?.message?.includes('aborted')) {
+        console.error(error)
+      }
+      return null
+    })
+}
+
 // ========== create functions ==========
 
 /**
