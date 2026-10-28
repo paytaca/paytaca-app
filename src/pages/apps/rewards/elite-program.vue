@@ -95,7 +95,7 @@
 
       <div class="elite-map-cta q-mb-lg">
         <q-btn
-          class="full-width elite-map-button"
+          class="full-width elite-map-button elite-map-button--halo"
           outline
           no-caps
           rounded
@@ -365,8 +365,59 @@ export default {
   font-weight: 700;
 }
 
+.elite-map-button--halo {
+  position: relative;
+  isolation: isolate;
+  transition: box-shadow 180ms ease;
+}
+
+.elite-map-button--halo::after {
+  content: '';
+  position: absolute;
+  z-index: -1;
+  inset: -2px;
+  border-radius: inherit;
+  box-shadow: 0 0 12px 0 rgba(212, 166, 67, 0.16);
+  opacity: 0;
+  pointer-events: none;
+  animation: elite-map-halo 5.2s ease-in-out infinite;
+}
+
+.elite-map-button--halo:hover,
+.elite-map-button--halo:focus-visible {
+  box-shadow: 0 0 12px 0 rgba(212, 166, 67, 0.22);
+}
+
+.elite-map-button--halo:hover::after,
+.elite-map-button--halo:focus-visible::after {
+  animation: none;
+  opacity: 0;
+}
+
 .light .elite-map-button {
   color: #c89d36;
+}
+
+.light .elite-map-button--halo::after {
+  box-shadow: 0 0 12px 0 rgba(200, 157, 54, 0.16);
+}
+
+.light .elite-map-button--halo:hover,
+.light .elite-map-button--halo:focus-visible {
+  box-shadow: 0 0 12px 0 rgba(200, 157, 54, 0.20);
+}
+
+@keyframes elite-map-halo {
+  0%, 58%, 100% { opacity: 0; }
+  22% { opacity: 1; }
+  40% { opacity: 0.35; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .elite-map-button--halo::after {
+    animation: none;
+    opacity: 0;
+  }
 }
 
 .view-all-button {
