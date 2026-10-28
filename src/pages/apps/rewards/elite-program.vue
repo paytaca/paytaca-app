@@ -132,11 +132,23 @@
       <template v-else>
         <!-- Eligible Transactions Section -->
         <div class="section-head q-mb-sm">
-          <div class="row items-center">
+          <div class="row items-center no-wrap">
             <div class="section-icon">
               <q-icon name="storefront" />
             </div>
-            <span class="section-title">Eligible Transactions</span>
+            <div class="column">
+              <span class="section-title">Eligible Transactions</span>
+              <q-skeleton
+                v-if="isLoading"
+                type="text"
+                width="64px"
+                height="10px"
+                class="q-mt-xs"
+              />
+              <span v-else-if="!pointsError" class="section-count q-mt-xs">
+                {{ eliteData.eligibleTxCount }} this month
+              </span>
+            </div>
           </div>
           <q-btn
             v-if="!isLoading"
@@ -159,11 +171,23 @@
 
         <!-- Top-ups Section -->
         <div class="section-head q-mb-sm q-mt-lg">
-          <div class="row items-center">
+          <div class="row items-center no-wrap">
             <div class="section-icon">
               <q-icon name="arrow_upward" />
             </div>
-            <span class="section-title">Top-ups</span>
+            <div class="column">
+              <span class="section-title">Top-ups</span>
+              <q-skeleton
+                v-if="isLoading"
+                type="text"
+                width="64px"
+                height="10px"
+                class="q-mt-xs"
+              />
+              <span v-else-if="!pointsError" class="section-count q-mt-xs">
+                {{ eliteData.topupCount }} this month
+              </span>
+            </div>
           </div>
           <q-btn
             v-if="!isLoading"
@@ -219,6 +243,7 @@ export default {
         status: EliteStatus.ACTIVE,
         cashbackLift: 0,
         eligibleTxCount: 0,
+        topupCount: 0,
         maxCashbackPerMonth: 0,
         monthlyCashback: 0
       },
@@ -281,6 +306,7 @@ export default {
           this.eliteData.status = epSummaryData.status
           this.eliteData.cashbackLift = epSummaryData.eligible_transactions.current_month_total_lift_cashback
           this.eliteData.eligibleTxCount = epSummaryData.eligible_transactions.count
+          this.eliteData.topupCount = epSummaryData.topups?.count ?? 0
           this.eliteData.maxCashbackPerMonth = epSummaryData.monthly_cashback_limit
           this.eliteData.monthlyCashback = epSummaryData.eligible_transactions.current_month_fiat_lift_cashback
 
@@ -434,6 +460,7 @@ export default {
   display: flex;
   align-items: center;
   justify-content: space-between;
+  column-gap: 12px;
 }
 
 .section-icon {
@@ -447,6 +474,7 @@ export default {
   justify-content: center;
   font-size: 14px;
   margin-right: 8px;
+  flex-shrink: 0;
 }
 
 .light .section-icon {
@@ -456,5 +484,12 @@ export default {
 .section-title {
   font-size: 15px;
   font-weight: 700;
+  line-height: 1.25;
+}
+
+.section-count {
+  font-size: 12px;
+  line-height: 1.25;
+  opacity: 0.65;
 }
 </style>
