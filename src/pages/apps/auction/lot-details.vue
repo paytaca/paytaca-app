@@ -1059,13 +1059,23 @@ const handlePlaceBid = async (bidData) => {
     // Settle/Complete the bid through payment
     let settledBid
     $q.loading.show({ message: 'Processing smart contract...' })
-    if (lotWinningBid.value?.id) { // EXISTING BIDS
+
+    // Existing bids
+    if (lotWinningBid.value?.id) {
       const result = await callAPI('Outbid', pendingBid.id, 'post')
       if (!result.success) throw new Error(result.error || 'Failed to outbid.')
       settledBid = result.errorData
-    } else { 
-      const settlement = waitForBidSettlement(pendingBid.id)
+    } 
+    // No bids existing
+    else { 
+      // Sending the first bid to the contract directly
       const txid = await payFirstBidToContract(Number(props.lotId), Number(bidBch.toFixed(8)))
+      if (!socket || socket.readyState !== WebSocket.OPEN) {
+        throw new Error('Bid connection closed before payment confirmation.')
+      }
+
+      // Updating the bid in the server via WS
+      const settlement = waitForBidSettlement(pendingBid.id)
       socket.send(JSON.stringify({
         type: 'paid_bid',
         data: { id: pendingBid.id, lot: Number(props.lotId), txid }
@@ -1076,12 +1086,17 @@ const handlePlaceBid = async (bidData) => {
     console.log('Bid completed.')
 
     showMakeBidDialog.value = false
+    const notifType = ['Highest', 'Winner'].includes(settledBid.status) ? 'positive' : 'warning'
+    const notifMsgs = {
+      'Highest': `Bid of ${formatBCH(bidBch).main}${formatBCH(bidBch).zeros} BCH placed!`,
+      'Outbid': 'Your bid was accepted but has already been outbid.',
+      'Winner': `You have won the lot! ${formatBCH(bidBch).main}${formatBCH(bidBch).zeros} BCH was placed.`,
+    }
+
     $q.notify({
-      type: settledBid.status === 'Highest' ? 'positive' : 'warning',
+      type: notifType,
       icon: 'gavel',
-      message: settledBid.status === 'Highest'
-        ? `Bid of ${formatBCH(bidBch).main}${formatBCH(bidBch).zeros} BCH placed!`
-        : 'Your bid was accepted but has already been outbid.',
+      message: notifMsgs[settledBid.status],
       timeout: 3000
     })
     
@@ -1121,8 +1136,8 @@ let reconnectAttempts = 0
 let maxReconnectAttempts = 10
 
 // Connects to the lot websocket and handles incoming updates.
-const connectWebsocket = () => {
-  const ws = callLotWebsocket(Number(props.lotId))
+const connectWebsocket = async () => {
+  const ws = await callLotWebsocket(Number(props.lotId))
 
   // Connecting to the WS
   ws.onopen = async () => {
@@ -1131,10 +1146,21 @@ const connectWebsocket = () => {
     console.log("Connected to the lot websocket!")
 
     if (wasReconnect) {
+      settlementTimeoutControl?.resume()
+
       await Promise.all([
         $store.dispatch('auction/fetchLotData'),
         $store.dispatch('auction/fetchHighestBid'),
       ])
+
+      if (settlementBidId) {
+        const settledBid = $store.getters['auction/lotBids']
+          .find(bid => 
+            Number(bid.id) === settlementBidId 
+            && bid.status !== 'Pending'
+          )
+        if (settledBid) resolveBidSettlement(settledBid)
+      }
     }
   };
 
@@ -1272,12 +1298,14 @@ const connectWebsocket = () => {
 
   ws.onclose = (event) => {
       console.log("Disconnected from the lot websocket!")
+      if (settlementTimeoutControl) settlementTimeoutControl.pause()
+      
       if (!event.wasClean && reconnectAttempts < maxReconnectAttempts) {
         const delay = Math.min(1000 * 2 ** reconnectAttempts, 30000)
         reconnectAttempts++
-        reconnectTimeout = setTimeout(() => {
+        reconnectTimeout = setTimeout(async () => {
           reconnectTimeout = null
-          socket = connectWebsocket()
+          socket = await connectWebsocket()
         }, delay)
       }
     }
@@ -1321,6 +1349,7 @@ let bidRejecter = null
 let settlementBidId = null
 let settlementResolver = null
 let settlementRejecter = null
+let settlementTimeoutControl = null
 
 // Sends a bid through WS
 const websocketSendBid = async ({ bid_price_bch, bid_price_fiat }) => {
@@ -1369,12 +1398,14 @@ const waitForWebsocketBidAck = () => {
 // Waits for the bid to be marked as complete
 const waitForBidSettlement = (bidId) => {
   return new Promise((resolve, reject) => {
-    const timeout = setTimeout(() => {
+    const startTimeout = () => setTimeout(() => {
       settlementBidId = null
       settlementResolver = null
       settlementRejecter = null
+      settlementTimeoutControl = null
       reject(new Error('Timed out waiting for bid settlement.'))
-    }, 15000)
+    }, 60000)
+    let timeout = startTimeout()
 
     settlementBidId = Number(bidId)
     settlementResolver = (data) => {
@@ -1382,14 +1413,21 @@ const waitForBidSettlement = (bidId) => {
       settlementBidId = null
       settlementResolver = null
       settlementRejecter = null
+      settlementTimeoutControl = null
       resolve(data)
     }
     settlementRejecter = (error) => {
       clearTimeout(timeout)
+      clearTimeout(timeout)
       settlementBidId = null
       settlementResolver = null
       settlementRejecter = null
+      settlementTimeoutControl = null
       reject(error)
+    }
+    settlementTimeoutControl = {
+      pause: () => { clearTimeout(timeout) },
+      resume: () => { clearTimeout(timeout); timeout = startTimeout() },
     }
   })
 }
@@ -1460,7 +1498,7 @@ const refresh = async (done) => {
   await loadPageData()
 
   clearSocket()
-  socket = connectWebsocket()
+  socket = await connectWebsocket()
   done()
 }
 
@@ -1485,7 +1523,7 @@ onMounted(async () => {
         : 'This lot is closed.'
     })
   }
-  socket = connectWebsocket()
+  socket = await connectWebsocket()
 })
 
 onBeforeUnmount(() => {
