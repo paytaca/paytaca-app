@@ -39,7 +39,7 @@ export function updateBidFromWebsocket({ commit, state, rootGetters }, biddingDa
     && !bidStatusTransitions[existingBid.status]?.includes(biddingData.status)
   ) return
 
-  commit('updateLotBid', Bid.parse(biddingData, biddingData.lot)))
+  commit('updateLotBid', Bid.parse(biddingData, biddingData.lot))
   const walletHash = rootGetters['global/getWallet']('bch')?.walletHash
   if (biddingData.bidder === walletHash) {
     commit('updateMyBidding', biddingData)
@@ -69,7 +69,7 @@ export async function fetchMyBiddings({ commit, dispatch }) {
     const lotPromises = response.data.map(async (item) => {
       const [auctionResponse, imageResponse] = await Promise.all([
         callAPI('auctions', item.auction),
-        callAPI('lot-images-by-lot', item.id
+        callAPI('lot-images-by-lot', item.id)
       ])
 
       let auctionData = item.auction
@@ -277,7 +277,7 @@ export async function fetchExistingHighestBid({ commit, getters, dispatch }) {
     commit('setHighestBid', {})
     return
   }
-  const highestBid = highestBids.reduce(latest, bid =>
+  const highestBid = highestBids.reduce((latest, bid) =>
     new Date(bid.date_bid > new Date(latest.date_bid ? bid : latest))
   )
   commit('setHighestBid', Bid.parse(highestBid, highestBid.lot_id))
