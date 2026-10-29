@@ -749,10 +749,7 @@ import OrderDisputeFormDialog from 'src/components/marketplace/order/OrderDisput
 import { loadWallet, Wallet } from 'src/wallet'
 import { TransactionListener, asyncSleep } from 'src/wallet/transaction-listener'
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
-import {
-  generateChangeAddress,
-  getDerivationPathForWalletType
-} from 'src/utils/address-generation-utils.js'
+import { getChangeAddress as getFreshChangeAddress } from 'src/utils/send-page-utils'
 
 import customerLocationPin from 'src/assets/marketplace/customer_map_marker.png'
 import riderLocationPin from 'src/assets/marketplace/rider_map_marker_2.png'
@@ -1245,42 +1242,22 @@ async function initWallet () {
   wallet.value = await loadWallet(undefined, $store.getters['global/getWalletIndex'])
 }
 /**
- * Dynamically generates change address from mnemonic instead of retrieving from store
- * This prevents address mixup issues in multi-wallet scenarios
+ * Change addresses must always be fresh: one already spent from has its public
+ * key exposed, so the shared helper scans forward and returns only a
+ * verified-unused address (no fallback to a possibly-used stored address)
  */
 async function getChangeAddress(opts={chipnet: false}) {
-  try {
-    const addressIndex = $store.getters['global/getLastAddressIndex']('bch')
-    const walletIndex = $store.getters['global/getWalletIndex']
-    
-    // Generate change address dynamically from mnemonic
-    const changeAddr = await generateChangeAddress({
-      walletIndex: walletIndex,
-      derivationPath: getDerivationPathForWalletType('bch'),
-      addressIndex: addressIndex,
-      isChipnet: opts?.chipnet || false
-    })
-    
-    return changeAddr
-  } catch (error) {
-    console.error('Error generating change address dynamically:', error)
-    // Fallback to store-retrieved change address if dynamic generation fails
-    const walletTypes = opts?.chipnet
-      ? $store.getters['global/getAllChipnetTypes']
-      : $store.getters['global/getAllWalletTypes']
-
-    const bchWalletData = walletTypes?.bch
-    return bchWalletData?.lastChangeAddress
-  }
+  return await getFreshChangeAddress('bch', { isChipnet: !!opts?.chipnet })
 }
 
 async function sendBchPayment() {
   const amount = bchPaymentData.value.bchAmount
   const address = bchPaymentData.value.address
-  const chipnet = address.indexOf('bchtest:') >= 0
-  const changeAddress = await getChangeAddress({ chipnet })
-  // const changeAddress = 'bchtest:qq4sh33hxw2v23g2hwmcp369tany3x73wuveuzrdz5'
   if (!wallet.value) await initWallet()
+  const bchWallet = address.indexOf('bchtest:') >= 0 ? wallet.value.BCH_CHIP : wallet.value.BCH
+  // Change must be spendable by the wallet that funds the transaction, so take
+  // the network from that wallet rather than inferring it from the invoice
+  const changeAddress = await getChangeAddress({ chipnet: bchWallet.isChipnet })
 
   const dialog = $q.dialog({
     title: 'Sending payment',
@@ -1292,7 +1269,6 @@ async function sendBchPayment() {
     class: `br-15 pt-card-2 text-bow ${getDarkModeClass(darkMode.value)}`
   })
 
-  const bchWallet = chipnet ? wallet.value.BCH_CHIP : wallet.value.BCH
   bchWallet.sendBch(amount, address, changeAddress)
     .then(async result => {
       if (!result.success) return Promise.reject(result)

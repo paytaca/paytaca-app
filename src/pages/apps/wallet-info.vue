@@ -386,6 +386,9 @@ export default {
       const vm = this
       if (vm.scanningAddresses) return
 
+      const gapLimit = 200
+      const maxScans = 2000
+
       vm.scanningAddresses = true
       let scanDialog = vm.$q.dialog({
         title: vm.$t('ExhaustiveScan', {}, 'Exhaustive Scan'),
@@ -401,6 +404,27 @@ export default {
           scanDialog = null
         }
       }
+      const refreshWalletState = async (wallet) => {
+        try {
+          await vm.$store.dispatch('global/loadWalletLastAddressIndex')
+        } catch (e) {
+          console.warn('Failed to refresh last address index after discovery:', e)
+        }
+
+        try {
+          await updateAssetBalanceOnLoad('bch', wallet, vm.$store)
+        } catch (e) {
+          console.warn('Failed to refresh BCH balance after address scan:', e)
+        }
+
+        // UTXO fetching for newly subscribed addresses runs asynchronously on
+        // the backend, so refresh once more after it has had time to finish.
+        setTimeout(() => {
+          updateAssetBalanceOnLoad('bch', wallet, vm.$store).catch((e) => {
+            console.warn('Failed to refresh BCH balance after address scan:', e)
+          })
+        }, 5000)
+      }
       setTimeout(async () => {
         let bchWallet
         let wallet
@@ -409,73 +433,77 @@ export default {
           wallet = await loadWallet('BCH', walletIndex)
           bchWallet = getWalletByNetwork(wallet, 'bch')
 
-          let usedDiscovery = false
+          let discoveryResult = null
           try {
-            const discoveryResult = await bchWallet.discoverAddresses({
-              gapLimit: 20,
+            discoveryResult = await bchWallet.discoverAddresses({
+              gapLimit,
+              maxScans,
               batchSize: 50,
               onProgress(progress) {
                 const phase = progress.phase === 'subscribing' ? 'subscribing' : 'discovering'
-                console.log(`Address discovery: ${phase} - scanned ${progress.scanned}, found ${progress.discoveredReceiving + progress.discoveredChange} addresses`)
+                const found = progress.discoveredReceiving + progress.discoveredChange
+                console.log(`Address discovery: ${phase} - scanned ${progress.scanned}, found ${found} addresses`)
               },
             })
+          } catch (discoveryError) {
+            discoveryResult = {
+              success: false,
+              error: discoveryError?.message || String(discoveryError),
+              status: discoveryError?.response?.status || null,
+            }
+          }
 
-            if (discoveryResult.success) {
-              const total = discoveryResult.discoveredReceiving.length + discoveryResult.discoveredChange.length
-              usedDiscovery = total > 0
+          if (discoveryResult?.success) {
+            const total = (discoveryResult.discoveredReceiving?.length || 0) +
+              (discoveryResult.discoveredChange?.length || 0)
 
-              closeScanDialog()
-              vm.$q.dialog({
-                title: vm.$t('ExhaustiveScan', {}, 'Exhaustive Scan'),
-                message: vm.$t(
+            closeScanDialog()
+            vm.$q.dialog({
+              title: vm.$t('ExhaustiveScan', {}, 'Exhaustive Scan'),
+              message: discoveryResult.complete
+                ? vm.$t(
                   'ExhaustiveScanComplete',
                   { total },
                   'Address discovery completed. Found {total} used addresses.'
+                )
+                : vm.$t(
+                  'ExhaustiveScanIncomplete',
+                  { total, scanned: discoveryResult.scanned },
+                  'Address discovery reached its scan limit after {scanned} addresses. Found {total} used addresses so far; some addresses may still be unscanned.'
                 ),
-                dark: vm.darkMode
-              })
+              dark: vm.darkMode
+            })
 
-              try {
-                await vm.$store.dispatch('global/loadWalletLastAddressIndex')
-              } catch (e) {
-                console.warn('Failed to refresh last address index after discovery:', e)
-              }
-
-              try {
-                await updateAssetBalanceOnLoad('bch', wallet, vm.$store)
-              } catch (e) {
-                console.warn('Failed to refresh BCH balance after address scan:', e)
-              }
-            }
-          } catch (discoveryError) {
-            console.warn('Address discovery endpoint not available, falling back to bulk scan:', discoveryError)
+            await refreshWalletState(wallet)
+            return
           }
 
-          if (!usedDiscovery) {
-            const lastAddressIndex = vm.$store.getters['global/getWallet']('bch')?.lastAddressIndex || 0
+          // Only fall back when the discovery endpoint is not deployed yet.
+          // Any other failure must be surfaced instead of silently reporting a
+          // completed scan that never looked past the known address range.
+          if (discoveryResult?.status !== 404) {
+            throw new Error(discoveryResult?.error || 'Address discovery failed')
+          }
 
-            const startIndex = 0
-            const gapLimit = 20
-            const count = lastAddressIndex + gapLimit + 1
+          console.warn('Address discovery endpoint not available, falling back to bulk scan')
 
-            const result = await bchWallet.scanAddresses({ startIndex, count })
+          const lastAddressIndex = vm.$store.getters['global/getWallet']('bch')?.lastAddressIndex || 0
+          const startIndex = 0
+          const count = lastAddressIndex + gapLimit + 1
 
-            if (result.success) {
-              closeScanDialog()
-              vm.$q.dialog({
-                title: vm.$t('ExhaustiveScan', {}, 'Exhaustive Scan'),
-                message: vm.$t('ExhaustiveScanComplete', {}, 'Exhaustive scan completed'),
-                dark: vm.darkMode
-              })
+          const result = await bchWallet.scanAddresses({ startIndex, count })
 
-              try {
-                await updateAssetBalanceOnLoad('bch', wallet, vm.$store)
-              } catch (e) {
-                console.warn('Failed to refresh BCH balance after address scan:', e)
-              }
-            } else {
-              throw new Error(result.error || 'Address scan failed')
-            }
+          if (result.success) {
+            closeScanDialog()
+            vm.$q.dialog({
+              title: vm.$t('ExhaustiveScan', {}, 'Exhaustive Scan'),
+              message: vm.$t('ExhaustiveScanComplete', {}, 'Exhaustive scan completed'),
+              dark: vm.darkMode
+            })
+
+            await refreshWalletState(wallet)
+          } else {
+            throw new Error(result.error || 'Address scan failed')
           }
         } catch (error) {
           console.error('Error scanning addresses:', error)

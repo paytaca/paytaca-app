@@ -13,9 +13,7 @@ import { WalletKit } from '@reown/walletkit'
 import { getSdkError } from '@walletconnect/utils'
 import { parseExtendedJson, privateKeyToCashAddress, signBchTxError, signBchTransaction as signBchTransactionShared } from '../bch-sign'
 import { unpackSourceOutput } from './tx-sign-utils'
-import BCHJS from '@psf/bch-js'
 
-const bchjs = new BCHJS()
 
 // Singleton state to prevent multiple initializations
 let web3WalletInstance = null

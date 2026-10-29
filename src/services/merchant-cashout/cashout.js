@@ -209,14 +209,13 @@ export async function sendUtxos (params) {
   }
 }
 
-import BCHJS from '@psf/bch-js'
-const bchjs = new BCHJS()
+import { deriveHdNode, hdNodeToPublicKey, hdNodeFromXPub } from 'src/utils/bch-keys'
 import { pubkeyToAddress } from 'src/utils/crypto'
 
 function getPubkeyAt (xpubkey) {
-  const mainNode = bchjs.HDNode.fromXPub(xpubkey)
-  const childNode = mainNode.derivePath(String(13))
-  return bchjs.HDNode.toPublicKey(childNode).toString('hex')
+  const mainNode = hdNodeFromXPub(xpubkey)
+  const childNode = deriveHdNode(mainNode, String(13))
+  return hdNodeToPublicKey(childNode)
 }
 
 export async function generateAddressFromXPubKey (xpubkey) {

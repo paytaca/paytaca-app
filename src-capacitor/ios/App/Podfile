@@ -33,6 +33,49 @@ target 'App' do
 end
 
 
+# Apple requires a PrivacyInfo.xcprivacy for every "commonly used third-party
+# SDK" that a build newly links (ITMS-91061). ML Kit 4.0.0 transitively pulls in
+# GTMSessionFetcher and GoogleToolboxForMac, neither of which has ever shipped a
+# privacy manifest upstream at any release tag. Copy our own manifest into each
+# pod framework bundle until the ML Kit dependency chain is upgraded.
+POD_PRIVACY_MANIFESTS = %w[GTMSessionFetcher GoogleToolboxForMac].freeze
+
 post_install do |installer|
   assertDeploymentTarget(installer)
+
+  manifests_dir = File.expand_path('../privacy-manifests', __dir__)
+  project = installer.pods_project
+  project_dir = File.dirname(project.path)
+
+  # Each pod gets its own directory holding a file named PrivacyInfo.xcprivacy.
+  # The name is fixed by Apple, so the directories are what keep the two copies
+  # apart on disk.
+  parent_group = project.main_group.find_subpath('PrivacyManifests', true)
+  parent_group.set_source_tree('<group>')
+  parent_group.set_path(Pathname.new(manifests_dir).relative_path_from(Pathname.new(project_dir)).to_s)
+
+  project.targets.each do |target|
+    next unless POD_PRIVACY_MANIFESTS.include?(target.name)
+
+    manifest = File.join(manifests_dir, target.name, 'PrivacyInfo.xcprivacy')
+    unless File.exist?(manifest)
+      Pod::UI.warn "Missing privacy manifest for #{target.name} at #{manifest}"
+      next
+    end
+
+    already_added = target.resources_build_phase.files.any? do |build_file|
+      build_file.file_ref&.path.to_s == 'PrivacyInfo.xcprivacy'
+    end
+    next if already_added
+
+    group = parent_group.find_subpath("#{target.name}-Privacy", true)
+    group.set_source_tree('<group>')
+    group.set_path(target.name)
+
+    file_ref = group.files.find { |f| f.path == 'PrivacyInfo.xcprivacy' } || group.new_reference('PrivacyInfo.xcprivacy')
+    target.resources_build_phase.add_file_reference(file_ref)
+    Pod::UI.puts "Added PrivacyInfo.xcprivacy to #{target.name}"
+  end
+
+  project.save
 end

@@ -14,6 +14,43 @@ import { requestManager } from '../utils/request-manager'
  * async/await or return a Promise which resolves
  * with the Router instance.
 */
+function getWalletHash (wallet) {
+  if (!wallet) return null
+  return wallet.wallet?.bch?.walletHash ||
+         wallet.wallet?.BCH?.walletHash ||
+         wallet.BCH?.walletHash ||
+         wallet.bch?.walletHash ||
+         wallet.walletHash ||
+         null
+}
+
+// A vault entry is recoverable when it still holds wallet data we must never
+// discard, even if no walletHash is present (e.g. an entry written before the
+// wallet hash was recorded). Such a user must not be silently sent to
+// onboarding as if they had no wallet at all.
+function hasRecoverableVaultEntry (vault) {
+  if (!Array.isArray(vault)) return false
+  return vault.some(entry => {
+    if (!entry || entry.deleted === true) return false
+    return Boolean(
+      getWalletHash(entry) ||
+      entry.wallet?.bch?.xPubKey ||
+      entry.wallet?.BCH?.xPubKey
+    )
+  })
+}
+
+// Shows a blocking recovery dialog. Returns null when the dialog could not be
+// created so callers can avoid destructive fallbacks.
+function showWalletRecoveryDialog (options) {
+  try {
+    return Dialog.create(options)
+  } catch (err) {
+    console.error('[Router] Unable to show wallet recovery dialog:', err)
+    return null
+  }
+}
+
 const createHistory = process.env.SERVER
   ? createMemoryHistory
   : process.env.VUE_ROUTER_MODE === 'history' ? createWebHistory : createWebHashHistory
@@ -132,27 +169,42 @@ export default function () {
         const currentWallet = vault[currentWalletIndex]
 
         // Check if we have a valid wallet structure
-        // Use helper function to check all possible wallet hash locations
         const hasValidWallet = currentWallet &&
           currentWallet.deleted !== true &&
-          (currentWallet.wallet?.bch?.walletHash ||
-           currentWallet.wallet?.BCH?.walletHash ||
-           currentWallet.BCH?.walletHash ||
-           currentWallet.bch?.walletHash ||
-           currentWallet.walletHash)
+          Boolean(getWalletHash(currentWallet))
         
         if (!hasValidWallet) {
-          // No valid wallets - go to account creation
+          if (hasRecoverableVaultEntry(vault)) {
+            // The vault still holds wallet data but no usable wallet hash.
+            // Keep that data intact and let the user decide; never present
+            // onboarding as if no wallet existed.
+            store.commit(
+              'global/setWalletRecoveryMessage',
+              'Your saved wallet could not be read on this device. Restore it from your seed phrase backup if needed.'
+            )
+            const dialog = showWalletRecoveryDialog({
+              title: 'Wallet data unreadable',
+              message: 'Your saved wallet could not be read on this device. This can happen if app data was cleared or restored from a backup. Please restore your wallet from your seed phrase backup.',
+              persistent: true,
+              ok: {
+                flat: true,
+                color: 'primary',
+                label: 'Restore wallet'
+              }
+            })
+            // If the dialog cannot be rendered, stay on the current route
+            // instead of falling through to onboarding.
+            if (dialog) dialog.onOk(() => next('/accounts'))
+            else next()
+            return
+          }
+          // No wallet data at all - go to account creation
           next('/accounts')
           return
         }
         
         // Get wallet hash to use for mnemonic retrieval (more reliable than index)
-        const walletHash = currentWallet.wallet?.bch?.walletHash ||
-                          currentWallet.wallet?.BCH?.walletHash ||
-                          currentWallet.BCH?.walletHash ||
-                          currentWallet.bch?.walletHash ||
-                          currentWallet.walletHash
+        const walletHash = getWalletHash(currentWallet)
         
         // Check if mnemonic exists for this wallet
         // Prefer wallet hash if available (post-migration pattern)
@@ -185,11 +237,7 @@ export default function () {
             walletIndex--;
             const otherWallet = vault[walletIndex]
             if (otherWallet && otherWallet.deleted !== true) {
-              const otherWalletHash = otherWallet.wallet?.bch?.walletHash ||
-                                     otherWallet.wallet?.BCH?.walletHash ||
-                                     otherWallet.BCH?.walletHash ||
-                                     otherWallet.bch?.walletHash ||
-                                     otherWallet.walletHash
+              const otherWalletHash = getWalletHash(otherWallet)
               if (otherWalletHash) {
                 _mnemonic = await getMnemonic(otherWalletHash).catch((err) => {
                   if (isSecureStorageDecryptError(err)) storageDecryptFailed = true
@@ -224,7 +272,11 @@ export default function () {
           // The stored mnemonic could not be decrypted (e.g. the device
           // encryption key was lost after clearing browser data). The wallet
           // cannot be opened from this storage; warn and route to restore.
-          Dialog.create({
+          store.commit(
+            'global/setWalletRecoveryMessage',
+            'Your saved wallet could not be decrypted on this device. Restore it from your seed phrase backup.'
+          )
+          const dialog = showWalletRecoveryDialog({
             title: 'Wallet data unreadable',
             message: 'Your saved wallet could not be decrypted on this device, possibly because browser data was cleared. Please restore your wallet from your seed phrase backup.',
             persistent: true,
@@ -233,12 +285,18 @@ export default function () {
               color: 'primary',
               label: 'Restore wallet'
             }
-          }).onOk(() => next('/accounts'))
+          })
+          if (dialog) dialog.onOk(() => next('/accounts'))
+          else next()
         } else {
           // A vault entry exists but its mnemonic could not be read/decrypted.
           // On Android a lost Keystore key is indistinguishable from a missing
           // value, so always warn instead of silently dropping to onboarding.
-          Dialog.create({
+          store.commit(
+            'global/setWalletRecoveryMessage',
+            'Your saved wallet could not be read on this device. Restore it from your seed phrase backup.'
+          )
+          const dialog = showWalletRecoveryDialog({
             title: 'Wallet data unreadable',
             message: 'Your saved wallet could not be read on this device. This can happen if app data was cleared or restored from a backup. Please restore your wallet from your seed phrase backup.',
             persistent: true,
@@ -247,10 +305,23 @@ export default function () {
               color: 'primary',
               label: 'Restore wallet'
             }
-          }).onOk(() => next('/accounts'))
+          })
+          if (dialog) dialog.onOk(() => next('/accounts'))
+          else next()
         }
       } catch (err) {
         console.error('[Router] Router error:', err)
+        // Only fall back to onboarding when there is genuinely no wallet data.
+        // A recoverable vault must never be presented as an empty wallet.
+        const vault = store.getters['global/getVault']
+        if (hasRecoverableVaultEntry(vault)) {
+          store.commit(
+            'global/setWalletRecoveryMessage',
+            'Your saved wallet could not be read on this device. Restore it from your seed phrase backup if needed.'
+          )
+          next()
+          return
+        }
         next('/accounts')
       }
     } else {

@@ -2125,11 +2125,14 @@ export default {
 
       if (!hasError) {
         if (toSendBchRecipients.length > 0) {
-          // Get change address dynamically (now async)
-          let changeAddress = await sendPageUtils.getChangeAddress('bch')
-  
+          // Get change address dynamically (now async). Skipped when a change
+          // address was explicitly chosen, so the address cursor is not
+          // advanced for a send that will not use it.
+          let changeAddress
           if (token?.tokenId && this.userSelectedChangeAddress) {
             changeAddress = this.userSelectedChangeAddress
+          } else {
+            changeAddress = await sendPageUtils.getChangeAddress('bch')
           }
 
           // Extract fiat amounts for BCH transactions (including tokens)

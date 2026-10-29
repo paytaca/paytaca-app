@@ -59,8 +59,7 @@
       />
     </div>
     <div class="apps-hint-text q-px-md q-mt-xs" :class="getDarkModeClass(darkMode)">
-      {{ $t('LongPressToPin', {}, 'Long press on the app to pin or unpin.') }}
-      {{ $t('DragToReorder', {}, 'Drag pinned apps to reorder.') }}
+      {{ $t('LongPressToPin', {}, 'Long press an app to pin, unpin, or drag to reorder.') }}
     </div>
 
     <div id="apps" ref="apps" class="apps-list-container" :class="[getDarkModeClass(darkMode), `view-${viewMode}`]">
