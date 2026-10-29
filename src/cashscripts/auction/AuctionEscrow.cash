@@ -1,10 +1,10 @@
 pragma cashscript ^0.13.0;
 
-contract AuctionEscrow(bytes20 auctioneer, bytes20 arbiter, bytes20 servicer, int lotId, int platformFee, int arbitrationFee, bytes32 paramHash) {
+contract AuctionEscrow(bytes20 auctioneer, bytes20 arbiter, bytes20 servicer, bytes16 lotId, int platformFee, int arbitrationFee, bytes32 paramHash) {
     // NOTE: Comm Commitments need 2 information (bidPrice and newBidder pubkey hash)
     
     // Used for English Auctions
-    function outbid(int lot, bytes20 bidder, bytes32 hash) {
+    function outbid(bytes16 lot, bytes20 bidder, bytes32 hash) {
         require(hash == paramHash);
         require(lot == lotId);
         
@@ -90,7 +90,7 @@ contract AuctionEscrow(bytes20 auctioneer, bytes20 arbiter, bytes20 servicer, in
     }
 
     // Releases the bch in the Comm to the Auctioneer
-    function release(int lot, pubkey pk, bytes32 hash) {
+    function release(bytes16 lot, pubkey pk, bytes32 hash) {
         require(hash == paramHash);
         require(lot == lotId);
 
@@ -139,7 +139,7 @@ contract AuctionEscrow(bytes20 auctioneer, bytes20 arbiter, bytes20 servicer, in
         require(correctBidPrice && correctAmount && correctPlatformFee && correctArbitrationFee);
     }
     
-    function refund(int lot, pubkey pk, bytes32 hash) {
+    function refund(bytes16 lot, pubkey pk, bytes32 hash) {
         require(hash == paramHash);
         require(lot == lotId);
 
