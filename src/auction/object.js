@@ -47,7 +47,7 @@ export class Auction {
     setRawData(this, data)
 
     // Auction Core Information
-    this.id = Number(data.id) || null
+    this.id = data.id ?? null
     this.title = data.title ?? 'Standard Auction Event'
     this.description = data.description ?? 'No description.'
     this.type = data.type ?? 'N/A'
@@ -108,8 +108,8 @@ export class Lot {
     setRawData(this, data)
     
     // Lot core information
-    this.id = Number(data.id) || null
-    this.auction_id = Number(data.auction_id ?? data.auction?.id ?? data.auction) || null
+    this.id = data.id ?? null
+    this.auction_id = data.auction_id ?? data.auction?.id ?? data.auction ?? null
 
     this.title = data.title ?? 'Unnamed Lot'
     this.description = data.description ?? 'No description.'
@@ -186,8 +186,8 @@ export class Bid {
     setRawData(this, data)
     
     // IDs
-    this.id = data.id != null ? Number(data.id) : null
-    this.lot_id = Number(data.lot_id ?? data.lot?.id ?? data.lot) || null
+    this.id = data.id != null ? data.id : null
+    this.lot_id = data.lot_id ?? data.lot?.id ?? data.lot ?? null
 
     // User Information
     this.bidder = {
@@ -227,9 +227,9 @@ export class Dispute {
     setRawData(this, data)
 
     // IDs
-    this.id = Number(data.id) || null
-    this.lot_id = Number(data.lot_id ?? data.lot?.id ?? data.lot) || null
-    this.auction_id = Number(data.auction_id ?? data.auction?.id ?? data.auction) || null
+    this.id = data.id ?? null
+    this.lot_id = data.lot_id ?? data.lot?.id ?? data.lot ?? null
+    this.auction_id = data.auction_id ?? data.auction?.id ?? data.auction ?? null
 
     // User Information
     this.auctioneer = {
@@ -289,7 +289,7 @@ export class DeliveryDetails {
 
     // IDs
     this.tracking_id = data.tracking_id ?? null
-    this.lot_id = Number(data.lot_id ?? data.lot?.id ?? data.lot) || null
+    this.lot_id = data.lot_id ?? data.lot?.id ?? data.lot ?? null
     
     // User Information
     this.sender = {
@@ -346,8 +346,8 @@ export class DeliveryEvent {
     setRawData(this, data)
 
     // Delivery Event Core information
-    this.id = Number(data.id) || null
-    this.tracking_id = Number(data.tracking_id ?? data.delivery?.tracking_id ?? data.delivery) || null
+    this.id = data.id ?? null
+    this.tracking_id = data.tracking_id ?? data.delivery?.tracking_id ?? data.delivery ?? null
     
     this.status = data.status ?? null
     this.description = data.description ?? 'No description provided.'
