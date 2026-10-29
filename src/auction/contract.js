@@ -7,6 +7,9 @@ const ARBITRATION_FEE = 1000
 const PLATFORM_FEE = 1000
 const IS_CHIPNET = Store.getters['global/isChipnet']
 
+// Convert a UUID lot ID to the bytes16 hex format required by CashScript.
+const lotIdBytes16 = (lotId) => lotId.replaceAll('-', '')
+
 // Creates the auction escrow contract instance for a lot.
 export async function initializeContract (lotId) {
   const publicKeys = await getAuctionPublicKeys(lotId)
@@ -28,7 +31,7 @@ export async function initializeContract (lotId) {
     auctioneerPkh,
     arbiterPkh,
     servicerPkh,
-    BigInt(lotId),
+    lotIdBytes16(lotId),
     BigInt(PLATFORM_FEE),
     BigInt(ARBITRATION_FEE),
     hash
