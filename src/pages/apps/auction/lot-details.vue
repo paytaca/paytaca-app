@@ -10,8 +10,9 @@
       <div v-if="!isLoading && lot && auction" class="q-pa-md text-bow" :class="getDarkModeClass(darkMode)">
         <div class="q-mb-lg text-left">
           <!--Lot Title-->
-          <div class="text-h4 text-weight-bold q-mb-xs" style="overflow-wrap: break-word; word-wrap: break-word;">
-            Lot {{ lot?.id }}: <span class="text-weight-regular">{{ lot?.title }}</span>
+          <div class="q-mb-sm" style="overflow-wrap: break-word; word-wrap: break-word;">
+            <span class="text-h4 text-weight-bold">{{ lot?.title }}</span>
+            <div class="text-secondary q-m-auto q-mt-xs text-weight-medium"> Lot ID: {{ lot?.id }} </div>
           </div>
           
           <div class="row items-center q-gutter-sm q-mb-sm">
@@ -59,7 +60,7 @@
             <div v-if="lot?.status !== 'Sold'" class="row flex-center">
               <div class="text-secondary q-m-auto q-mt-md">
                 There {{ viewCount === 1 ? 'is' : 'are' }} {{ viewCount }} {{ viewCount === 1 ? 'person' : 'people' }}
-                currently viewing this lot?.
+                currently viewing this lot.
               </div>
             </div>
 
@@ -821,7 +822,7 @@ const handlePlaceBid = async (bidData) => {
   )
   
   // Check if new bid is valid
-  const isLesserThanCurrentBid = !Number.isFinite(bidPrice) || bidPrice <= 0 || bidPrice <= currentPrice || (Boolean(lotWinningBid.value?.id) && bidPrice === currentPrice)
+  const isLesserThanCurrentBid = !Number.isFinite(bidPrice) || bidPrice <= 0 || bidPrice < currentPrice || (Boolean(lotWinningBid.value?.id) && bidPrice === currentPrice)
   if (isLesserThanCurrentBid) {
     $q.notify({ type: 'warning', message: 'Bid must be higher than the current bid.' })
     return
@@ -1020,11 +1021,11 @@ const connectWebsocket = async () => {
       case "lot.drop_price":    // Updating the price drop (DUTCH Auction)
         if (lot.value?.status !== 'Active' || isLotSold.value ) break
 
-        if (type === "lot.drop_price"){
+        if (type === "lot.time_interval") {
           secondsRemaining.value = data.seconds_remaining
           timeLeft.value = data.time_left
         }
-        
+
         dynamicPriceFiat.value = (auction.value?.is_fiat) ? Number(data.price) : Number(data.price) * bchToPhpRate.value
         dynamicPriceBch.value = (!auction.value?.is_fiat) 
           ? Number(data.price) : (bchToPhpRate.value > 0) ? Number(data.price) / bchToPhpRate.value : 0
