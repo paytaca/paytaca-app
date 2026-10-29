@@ -241,7 +241,7 @@ const connectWebsocket = () => {
           if (!data?.id) break
         
           const listings = $store.getters['auction/listings']
-          const auctionExists = listings.some(auction => Number(auction.id) === Number(data.id))
+          const auctionExists = listings.some(auction => auction.id === data.id)
           if (auctionExists) $store.commit('auction/updateListing', data)
           else $store.commit('auction/addListing', Auction.parse(data))
 

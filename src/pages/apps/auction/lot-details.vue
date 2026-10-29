@@ -120,14 +120,14 @@
                         label="Confirm Delivery"
                         :color="darkMode ? 'white' : 'black'"
                         :disable="deliveryDetails !== 1"
-                        @click="updateDeliveryStatus('Delivered', 'Confirmed delivery!')"
+                        @click="createNewDeliveryEvent('Delivered', 'Confirmed delivery!')"
                       />
                       <q-btn v-else outline stack padding="sm" class="text-bold text-caption full-width"
                         icon="check_circle"
                         label="Confirm Shipped" 
                         :color="darkMode ? 'white' : 'black'"
                         :disable="deliveryDetails !== 'Shipped'"
-                        @click="updateDeliveryStatus('Shipped', 'Confirmed shipped!')"
+                        @click="createNewDeliveryEvent('Shipped', 'Confirmed shipped!')"
                       />
                     </div>
 
@@ -558,7 +558,7 @@ import BiddingHistoryPopup from 'src/components/auction/BiddingHistoryPopup.vue'
 import SellerDisputePopup from 'src/components/auction/SellerDisputePopup.vue'
 import RefundPopup from 'src/components/auction/RefundPopup.vue'
 import DeliveryStatusHistoryDialog from 'src/components/auction/DeliveryStatusHistoryDialog.vue'
-import { DeliveryDetails, Bid, DeliveryEvent } from 'src/auction/object'
+import { Bid } from 'src/auction/object'
 
 // Quasar variables
 const $q = useQuasar()
@@ -668,38 +668,32 @@ const initDeliveryTracking = async () => {
   ) return
 
   try {
-    const deliveryDetailsRes = await $store.dispatch('auction/createDeliveryDetails', {
-      lot: lot.value?.id,
-      sender: auction.value?.auctioneer?.id,
-      sender_address: 'N/A', // REVIEW
-      receiver: userWalletHash.value,
-      receiver_address: 'N/A', // REVIEW
-      courier: (lot.value?.category === 'Physical') ? 'LBC' : 'N/A' // REVIEW
-    })
-    if (!deliveryDetailsRes || !deliveryDetailsRes.success || !deliveryDetailsRes.data) 
-      throw new Error('Delivery tracking could not be created. Please refresh the page.')
-    
-    const data = deliveryDetailsRes.data
-    const deliveryEventRes = await $store.dispatch('auction/createDeliveryEvent', {
-      delivery: data.tracking_id,
-      status: 'Preparing',
-      description: 'N/A', // REVIEW
-      location: 'N/A', // REVIEW
-      date_of_event: new Date().toISOString()
-    })
+    let data = await $store.dispatch('auction/fetchDeliveryDetails', lot.value?.id)
 
-    if (deliveryEventRes && deliveryEventRes.success && deliveryEventRes.data){
-      deliveryEvents.value = deliveryEventRes.data
-      data['delivery_events'] = [DeliveryEvent.parse(deliveryEventRes.data)]
-    } else throw new Error('Delivery event could not be created. Please refresh the page.')
-    deliveryDetails.value = DeliveryDetails.parse(data)
+    if (!data) {
+      const response = await $store.dispatch('auction/createDeliveryDetails', {
+        lot: lot.value?.id,
+        sender: auction.value?.auctioneer?.id,
+        sender_address: 'N/A',
+        receiver: userWalletHash.value,
+        receiver_address: 'N/A',
+        courier: lot.value?.category === 'Physical' ? 'LBC' : 'N/A'
+      })
+      if (!response?.success || !response.data)
+        throw new Error('Delivery tracking could not be created. Please refresh the page.')
+
+      data = response.data
+    }
+
+    deliveryDetails.value = data
+    deliveryEvents.value = data.delivery_events
 
   } catch (error) {
     $q.notify({ type: 'warning', message: error.message })
   }
 }
 
-const updateDeliveryStatus = async (status, successMessage) => {
+const createNewDeliveryEvent = async (status, successMessage) => {
   const response = await $store.dispatch('auction/createDeliveryEvent', {
     delivery: deliveryDetails.value?.tracking_id,
     status
@@ -851,7 +845,7 @@ const handlePlaceBid = async (bidData) => {
 
     } else { // No existing bids
       // Sending the first bid to the contract directly
-      const txid = await payFirstBidToContract(Number(props.lotId), Number(bidBch.toFixed(8)))
+      const txid = await payFirstBidToContract(props.lotId, Number(bidBch.toFixed(8)))
       if (!socket || socket.readyState !== WebSocket.OPEN) 
         throw new Error('Bid connection closed before payment confirmation.')
       
@@ -859,7 +853,7 @@ const handlePlaceBid = async (bidData) => {
       const settlement = waitForBidSettlement(pendingBid.id)
       socket.send(JSON.stringify({
         type: 'paid_bid',
-        data: { id: pendingBid.id, lot: Number(props.lotId), txid }
+        data: { id: pendingBid.id, lot: props.lotId, txid }
       }))
       settledBid = await settlement
     }
@@ -949,7 +943,7 @@ let maxReconnectAttempts = 10
 
 // Connects to the lot websocket and handles incoming updates.
 const connectWebsocket = async () => {
-  const ws = await callLotWebsocket(Number(props.lotId))
+  const ws = await callLotWebsocket(props.lotId)
 
   // Connecting to the WS
   ws.onopen = async () => {
@@ -966,7 +960,7 @@ const connectWebsocket = async () => {
       ])
 
       if (settlementBidId) {
-        const settledBid = $store.getters['auction/lotBids'].find(bid => Number(bid.id) === settlementBidId && bid.status !== 'Pending')
+        const settledBid = $store.getters['auction/lotBids'].find(bid => bid.id === settlementBidId && bid.status !== 'Pending')
         if (settledBid) resolveBidSettlement(settledBid)
       }
     }
@@ -1189,7 +1183,7 @@ const waitForBidSettlement = (bidId) => {
     }, 60000)
     let timeout = startTimeout()
 
-    settlementBidId = Number(bidId)
+    settlementBidId = bidId
     settlementResolver = (data) => {
       clearTimeout(timeout)
       clearSettlementWaiter()
@@ -1210,7 +1204,7 @@ const waitForBidSettlement = (bidId) => {
 
 // Resolves the pending settlement wait for a bid.
 const resolveBidSettlement = (data) => {
-  if (Number(data?.id) !== settlementBidId || data?.status === 'Pending') return
+  if (data?.id !== settlementBidId || data?.status === 'Pending') return
   settlementResolver?.(data)
 }
 
@@ -1225,8 +1219,8 @@ const shouldRefetch = (lastFetchedGetter) => {
 
 // Loads the data required to render the page.
 const loadPageData = async (force=false) => {
-  const isSameLotId = $store.getters['auction/lotId'] === Number(props.lotId)
-  const isSameAuctionId = $store.getters['auction/auctionId'] === Number(props.auctionId)
+  const isSameLotId = $store.getters['auction/lotId'] === props.lotId
+  const isSameAuctionId = $store.getters['auction/auctionId'] === props.auctionId
 
   await Promise.all([
     $store.dispatch(`auction/fetch${force || !isSameLotId || shouldRefetch('auctionLotsLastFetched') ? '' : 'Existing'}LotData`, props.lotId),

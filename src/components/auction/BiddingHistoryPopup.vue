@@ -100,12 +100,12 @@ const usernames = ref({})
 // Combines fetched history with live bids already held in Vuex.
 const bids = computed(() => {
   const biddingMap = new Map()
-  fetchedBids.value.forEach(bid => biddingMap.set(Number(bid.id), bid))
+  fetchedBids.value.forEach(bid => biddingMap.set(bid.id, bid))
   $store.getters['auction/lotBids']
-    .filter(bid => Number(bid.lot_id) === Number(props.lotId))
+    .filter(bid => bid.lot_id === props.lotId)
     .forEach(bid => {
-      const existing = biddingMap.get(Number(bid.id)) || {}
-      biddingMap.set(Number(bid.id), { ...existing, ...bid })
+      const existing = biddingMap.get(bid.id) || {}
+      biddingMap.set(bid.id, { ...existing, ...bid })
     })
   return [...biddingMap.values()]
 })

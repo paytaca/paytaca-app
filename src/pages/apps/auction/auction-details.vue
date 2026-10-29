@@ -412,7 +412,7 @@ watch(lotCategory, (newType) => {
 // Loads the data required to render the page.
 const loadPageData = async (force=false) => {
   // Check if props.auctionId is the same as stored auctionId (to prevent repeated fetching)
-  const isSameAuctionId = $store.getters['auction/auctionId'] === Number(props.auctionId)
+  const isSameAuctionId = $store.getters['auction/auctionId'] === props.auctionId
 
   await Promise.all([
     (!isSameAuctionId || force || shouldFetchAuctionData())
@@ -461,7 +461,7 @@ let isUnmounted = false
 // Connects to the auction websocket and handles incoming updates.
 const connectWebsocket = () => {
   if (isUnmounted) return null
-  const ws = callAuctionWebsocket(Number(props.auctionId))
+  const ws = callAuctionWebsocket(props.auctionId)
   
   // Connecting to the WS
   ws.onopen = () => {
@@ -658,7 +658,7 @@ onMounted(async () => {
 
     if (
       storedAuctionId == null ||
-      Number(storedAuctionId) !== Number(props.auctionId)
+      storedAuctionId !== props.auctionId
     ) {
       $router.replace(smartBackPath.value)
       return

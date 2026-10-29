@@ -351,7 +351,7 @@ const prefillFormState = (sourceData) => {
 // Loads the auction and lot data needed to populate the form.
 const fetchAllData = async () => {
   try {
-    const auctionResult = await callAPI('auctions', Number(props.auctionId))
+    const auctionResult = await callAPI('auctions', props.auctionId)
     if (auctionResult.success && auctionResult.data) {
       prefillFormState(auctionResult.data)
     } else {
@@ -359,7 +359,7 @@ const fetchAllData = async () => {
       return
     }
 
-    const result = await callAPI('lots-by-auction', Number(props.auctionId))
+    const result = await callAPI('lots-by-auction', props.auctionId)
     if (result.success && result.data) {
       lots.value = await Promise.all(result.data.map(async item => {
         const lot = Lot.parse(item)
