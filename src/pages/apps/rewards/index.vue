@@ -1205,11 +1205,7 @@ export default {
       const bchPrice = Number(
         this.$store.getters['market/getAssetPrice'](assets[0]?.id ?? 'bch', this.selectedCurrency.symbol)
       )
-
-      // Both balances are normalised to the unit their threshold is in: fiat for
-      // BCH, whole tokens for LIFT. The store holds LIFT in atomic units while
-      // EP_LIFT_MIN_THRESHOLD_WHOLE is whole tokens, so comparing them raw is
-      // off by 10**LIFT_TOKEN_DECIMALS.
+      
       this.eliteData.bchBalance = bchBalance * bchPrice
       this.eliteData.liftBalance = Number(liftAsset?.balance ?? 0)
     },
