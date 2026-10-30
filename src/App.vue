@@ -3,7 +3,6 @@
       <AppLoading v-if="showInitialLoad" />
       <WalletSwitchLoading v-if="showWalletSwitchLoading" />
       <router-view :key="$store.getters['global/getWalletSwitchId']" />
-      <v-offline @detected-condition="onConnectivityChange" />
 
       <div v-if="isChipnet" class="chipnet-banner" @click="confirmSwitchToMainnet">
         <span class="chipnet-banner-label">chipnet</span>
@@ -35,7 +34,6 @@ import { useStore } from "vuex"
 import { is, useQuasar } from 'quasar'
 import { computed, watchEffect } from "@vue/runtime-core"
 import Watchtower from 'watchtower-cash-js'
-import { VOffline } from 'v-offline'
 import { checkWatchtowerStatus } from './utils/watchtower-status'
 import AppVersionUpdate from './components/dialogs/AppVersionUpdate.vue'
 import AppLoading from 'src/components/AppLoading.vue'
@@ -58,7 +56,7 @@ BigInt.prototype["toJSON"] = function () {
 
 export default {
   name: 'App',
-  components: { VOffline, AppLoading, WalletSwitchLoading },
+  components: { AppLoading, WalletSwitchLoading },
   setup () {
     const store = useStore()
     const $q = useQuasar()
@@ -864,6 +862,9 @@ export default {
     if (typeof navigator.onLine === 'boolean') {
       this.onConnectivityChange(navigator.onLine) 
     }
+    this.connectivityHandler = () => this.onConnectivityChange(navigator.onLine)
+    window.addEventListener('online', this.connectivityHandler)
+    window.addEventListener('offline', this.connectivityHandler)
   },
   async mounted () {
     const vm = this
@@ -1151,6 +1152,11 @@ export default {
     if (this._nostrPushListener) {
       this.$pushNotifications?.events?.removeEventListener('pushNotificationReceived', this._nostrPushListener)
       this._nostrPushListener = null
+    }
+    if (this.connectivityHandler) {
+      window.removeEventListener('online', this.connectivityHandler)
+      window.removeEventListener('offline', this.connectivityHandler)
+      this.connectivityHandler = null
     }
   },
   created () {
