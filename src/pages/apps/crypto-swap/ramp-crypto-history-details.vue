@@ -24,7 +24,7 @@
               <div class="text-lowercase q-my-sm sm-font-size pt-label" :class="getDarkModeClass(darkMode)">
                 {{ $t('From') }}
               </div>
-              <div class="logo" v-html="shiftInfo.deposit.icon"></div>
+              <img class="logo" :src="iconSrc(shiftInfo.deposit.icon)" alt="">
               <div class="text-weight-bold md-font-size q-pt-sm pt-label" :class="getDarkModeClass(darkMode)">
                 {{ shiftInfo.deposit.coin}}
               </div>
@@ -50,7 +50,7 @@
               <div class="q-my-sm text-lowercase sm-font-size pt-label" :class="getDarkModeClass(darkMode)">
                 {{ $t('To') }}
               </div>
-              <div class="logo" v-html="shiftInfo.settle.icon"></div>
+              <img class="logo" :src="iconSrc(shiftInfo.settle.icon)" alt="">
               <div class="text-weight-bold md-font-size q-pt-sm pt-label" :class="getDarkModeClass(darkMode)">
                 {{ shiftInfo.settle.coin }}
               </div>
@@ -138,6 +138,7 @@
 import HeaderNav from 'src/components/header-nav.vue'
 import RampDepositInfo from 'src/components/ramp/crypto/RampDepositInfo.vue'
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
+import { iconSrc } from 'src/utils/encoding'
 
 export default {
   data () {
@@ -170,6 +171,7 @@ export default {
     vm.isloaded = true
   },
   methods: {
+    iconSrc,
     getDarkModeClass,
     initShiftData () {
       const vm = this

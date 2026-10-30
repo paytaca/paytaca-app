@@ -18,7 +18,7 @@
 
         <q-item clickable>
           <q-item-section avatar class="items-center" @click="selectSourceToken">
-            <div class="q-mb-sm currency-icon" v-html="deposit.icon"></div>
+            <img class="q-mb-sm currency-icon" :src="iconSrc(deposit.icon)" alt="">
             <q-item-label>
               {{deposit.coin }}<q-icon v-show="!isFromBCH" name="expand_more"/>
             </q-item-label>
@@ -76,7 +76,7 @@
 
         <q-item class="q-mb-lg">
           <q-item-section avatar class="item-center" @click="selectSettleToken">
-            <div class="q-mb-sm currency-icon" v-html="settle.icon"></div>
+            <img class="q-mb-sm currency-icon" :src="iconSrc(settle.icon)" alt="">
             <q-item-label class="">
               {{ settle.coin }} <q-icon  v-show="!isToBCH" name="expand_more"/>
             </q-item-label>
@@ -233,6 +233,7 @@ import CustomKeyboard from 'src/components/CustomKeyboard.vue'
 import QrScanner from 'src/components/qr-scanner.vue'
 import { debounce } from 'quasar'
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
+import { iconSrc } from 'src/utils/encoding'
 import KeyboardTooltip from 'src/components/KeyboardTooltip.vue'
 import { useKeyboardTooltip } from 'src/composables/useKeyboardTooltip'
 import { bus } from 'src/wallet/event-bus.js'
@@ -303,6 +304,7 @@ export default {
   },
   emits: ['deposit'],
   methods: {
+    iconSrc,
     getDarkModeClass,
     shiftCreated (data) {
       const vm = this
@@ -663,7 +665,7 @@ export default {
 
         if (unstableIcon.includes(vm.tokenList[item].coin)) {
           const index = unstableIcon.indexOf(vm.tokenList[item].coin)
-          vm.tokenList[item].icon = '<img src="' + unstableIconImg[index] + '" style="height: 30px; width: 30px"/>'
+          vm.tokenList[item].icon = unstableIconImg[index]
         } else {
           if (item === '0') {
             vm.tokenList[item].icon = await vm.getCoinImage(token.coin, token.network)
@@ -795,7 +797,7 @@ export default {
             // }
           }
         } else {
-          icon = '<img src="' + url + '" style="height: 30px; width: 30px"/>'
+          icon = url
         }
       }
 

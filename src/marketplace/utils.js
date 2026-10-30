@@ -222,3 +222,27 @@ export function reverseGeocode(opts = { lat: null, lng: null, syncToForm: false}
       return data
     })
 }
+
+/**
+ * Splits text around the first case-insensitive occurrence of `search`, for
+ * rendering a match highlight with text nodes instead of `v-html`.
+ *
+ * @param {String} val
+ * @param {String} search
+ * @returns {{ text:String, match:Boolean }[]}
+ */
+export function splitSearch(val='', search='') {
+  const text = typeof val === 'string' ? val : ''
+  if (!text) return []
+  if (typeof search !== 'string' || !search) return [{ text, match: false }]
+
+  const index = text.toLowerCase().indexOf(search.toLowerCase())
+  if (index < 0) return [{ text, match: false }]
+
+  const end = index + search.length
+  return [
+    { text: text.substring(0, index), match: false },
+    { text: text.substring(index, end), match: true },
+    { text: text.substring(end), match: false },
+  ].filter(segment => segment.text)
+}

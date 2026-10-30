@@ -34,11 +34,12 @@
           >
             <div class="row no-wrap items-center">
               <div>
-                <div
-                  class="text-subtitle1"
-                  style="line-height:1.25;"
-                  v-html="highlightSearch(storefront?.name, lastSearch)"
-                ></div>
+                <div class="text-subtitle1" style="line-height:1.25;">
+                  <template v-for="(segment, index) in splitSearch(storefront?.name, lastSearch)" :key="index">
+                    <strong v-if="segment.match">{{ segment.text }}</strong>
+                    <template v-else>{{ segment.text }}</template>
+                  </template>
+                </div>
                 <div class="text-grey" style="line-height:0.9;">
                   <template v-if="storefront?.inPrelaunch === true">
                     Will be live soon!
@@ -83,10 +84,12 @@
             />
             <div class="q-space">
               <div class="row items-center">
-                <div
-                  class="text-subtitle1"
-                  v-html="highlightSearch(product?.name, lastSearch)"
-                ></div>
+                <div class="text-subtitle1">
+                  <template v-for="(segment, index) in splitSearch(product?.name, lastSearch)" :key="index">
+                    <strong v-if="segment.match">{{ segment.text }}</strong>
+                    <template v-else>{{ segment.text }}</template>
+                  </template>
+                </div>
                 <q-space/>
                 <div
                   v-if="product?.categories?.some?.(category => category?.toLowerCase?.().includes(lastSearch?.toLowerCase()))"
@@ -131,7 +134,7 @@
 <script setup>
 import { backend } from "src/marketplace/backend";
 import { Product, Storefront } from "src/marketplace/objects";
-import { getISOWithTimezone, round } from "src/marketplace/utils";
+import { getISOWithTimezone, round, splitSearch } from "src/marketplace/utils";
 import { getDarkModeClass } from "src/utils/theme-darkmode-utils";
 import { useRouter } from "vue-router";
 import { useStore } from "vuex";
@@ -195,16 +198,6 @@ function search() {
       lastSearch.value = data.search
       loading.value = false
     })
-}
-
-function highlightSearch(val='', search='') {
-  if (typeof val !== 'string') return val
-  if (typeof search !== 'string') return val
-  const index = val.toLowerCase().indexOf(search.toLowerCase())
-  if (index < 0) return val
-  return val.substring(0, index) +
-        `<strong>${val.substring(index, index+search?.length)}</strong>` +
-        val.substring(index+search?.length)
 }
 
 function onStorefrontClick(storefront=Storefront.parse()) {

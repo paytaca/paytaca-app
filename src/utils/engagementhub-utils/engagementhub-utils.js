@@ -2,6 +2,7 @@ import axios from 'axios'
 import { i18n } from 'src/boot/i18n'
 import { Capacitor } from '@capacitor/core'
 import { formatWithLocale } from '../denomination-utils'
+import { escapeHtml } from '../encoding'
 import { requestManager } from 'src/utils/request-manager'
 
 const { t: $t } = i18n.global
@@ -62,10 +63,11 @@ export function parseCashbackMessage (message, amountBchUnformatted, amountFiat,
       'Sorry, this transaction did not qualify for a cashback as it exceeds limits set by the campaign.'
     )
   } else {
+    const safeMerchantName = escapeHtml(merchantName)
     message1 = $t(
       CASHBACK_LIMIT_MESSAGES.WITH_LIMIT_MERCHANT_NAME,
-      { merchantName },
-      `Congratulations! You qualify for a cashback for transacting with <span class="cashback-text">${merchantName}</span>.`
+      { merchantName: safeMerchantName },
+      `Congratulations! You qualify for a cashback for transacting with <span class="cashback-text">${safeMerchantName}</span>.`
     )
     message2 = $t(
       CASHBACK_LIMIT_MESSAGES[message],
