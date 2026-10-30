@@ -1176,7 +1176,7 @@ export default {
         }
 
         // fetch assets thresholds values
-        const assetsThresholds = await getAssetsThresholds()
+        const assetsThresholds = await getAssetsThresholds(eliteProgram?.pk)
         this.eliteData.bchThreshold = assetsThresholds.bch_min_threshold
         this.eliteData.liftThreshold = assetsThresholds.lift_min_threshold
 
@@ -1205,7 +1205,7 @@ export default {
       const bchPrice = Number(
         this.$store.getters['market/getAssetPrice'](assets[0]?.id ?? 'bch', this.selectedCurrency.symbol)
       )
-      
+
       this.eliteData.bchBalance = bchBalance * bchPrice
       this.eliteData.liftBalance = Number(liftAsset?.balance ?? 0)
     },

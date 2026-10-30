@@ -328,13 +328,17 @@ export async function getRewardsSwapContractDetails () {
   return await getData('userpromo/get_rewards_swap_contract_details/')
 }
 
-export async function getAssetsThresholds () {
+export async function getAssetsThresholds (programId = null) {
   // Throws rather than substituting a fallback. These values gate enrollment, and
   // the two assets are in different units -- the BCH one is fiat PHP despite its
-  // key name, the LIFT one is whole tokens. A hardcoded guess that is merely
-  // plausible is worse than an error, so the caller shows its retry state.
+  // key name, the LIFT one is atomic units. Pass the enrolled Program's id to get
+  // its age-based floor; without one the base is returned. A hardcoded guess that
+  // is merely plausible is worse than an error, so the caller shows its retry state.
   return await ELITEPROGRAM_URL
-    .get('get_assets_min_thresholds/')
+    .get(
+      'get_assets_min_thresholds/',
+      programId ? { params: { program: programId } } : undefined
+    )
     .then(resp => {
       if (resp.status === 200) return resp.data
       throw new Error(`Unexpected status ${resp.status} fetching Elite Program thresholds`)
