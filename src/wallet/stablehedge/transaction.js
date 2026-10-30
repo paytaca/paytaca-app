@@ -1,6 +1,6 @@
 import { SignatureTemplate } from "cashscript";
 import { binToHex, lockingBytecodeToCashAddress } from "@bitauth/libauth";
-import { calculateInputSize } from "src/utils/cashscript-utils";
+import { calculateInputSize, createContractTransaction } from "src/utils/cashscript-utils";
 import { getTxid, toTokenAddress } from "src/utils/crypto";
 import { watchtowerUtxoToCashscript } from "src/utils/utxo-utils";
 import { mockSignatureTemplate, TransactionBalancer } from "./transaction-utils";
@@ -395,8 +395,8 @@ export async function consolidateToReserveUtxo(opts) {
   }
   const mockAuthkeySignatureTemplate = mockSignatureTemplate(signedAuthKey.signatureData)
 
-  const cashscriptTx = contract.functions.unlockWithNft(false)
-  const inputSize = calculateInputSize(cashscriptTx)
+  const unlocker = contract.unlock.unlockWithNft(false)
+  const inputSize = calculateInputSize(unlocker)
   const txBuilder = new TransactionBalancer({ inputSizeCalculator: () => inputSize })
   txBuilder.inputs.push(
     ...bchUtxos.map(watchtowerUtxoToCashscript),
@@ -432,10 +432,9 @@ export async function consolidateToReserveUtxo(opts) {
   const tokenChange = txBuilder.tokenChange(redemptionContract.fiat_token.category)
   txBuilder.outputs[0].token.amount += tokenChange
 
-  const transaction = cashscriptTx
-    .from(txBuilder.inputs)
-    .to(txBuilder.outputs)
-    .withTime(locktime)
+  const transaction = createContractTransaction({
+    contract, unlocker, inputs: txBuilder.inputs, outputs: txBuilder.outputs, locktime,
+  })
 
   console.log({ transaction, locktime })
 
@@ -498,8 +497,8 @@ export async function createTreasuryContractTransaction(opts) {
   if (!bchUtxos.length) throw $t('NoUtxoFound')
 
   updateLoading({ message: $t('BuildingTransaction') })
-  const cashscriptTx = contract.functions.unlockWithNft(false)
-  const inputSize = calculateInputSize(cashscriptTx)
+  const unlocker = contract.unlock.unlockWithNft(false)
+  const inputSize = calculateInputSize(unlocker)
   const txBuilder = new TransactionBalancer({ inputSizeCalculator: () => inputSize })
   txBuilder.outputs.push(...opts?.recipients)
 
@@ -541,10 +540,9 @@ export async function createTreasuryContractTransaction(opts) {
     changeOutput.amount += txBuilder.excessSats
   }
 
-  const transaction = cashscriptTx
-    .from(txBuilder.inputs)
-    .to(txBuilder.outputs)
-    .withTime(locktime)
+  const transaction = createContractTransaction({
+    contract, unlocker, inputs: txBuilder.inputs, outputs: txBuilder.outputs, locktime,
+  })
   console.log({ locktime, transaction, txBuilder })
 
   return transaction
@@ -624,8 +622,8 @@ export async function sweepContractWithAuthToken(opts) {
   const ftUtxos = tokenUtxos.filter(utxo => utxo?.tokenid && !utxo?.capability)
 
   updateLoading({ message: $t('BuildingTransaction') })
-  const cashscriptTx = contract.functions.unlockWithNft(false)
-  const inputSize = calculateInputSize(cashscriptTx)
+  const unlocker = contract.unlock.unlockWithNft(false)
+  const inputSize = calculateInputSize(unlocker)
   const txBuilder = new TransactionBalancer({ inputSizeCalculator: () => inputSize })
 
   txBuilder.inputs.push(...bchUtxos.map(watchtowerUtxoToCashscript))
@@ -700,10 +698,9 @@ export async function sweepContractWithAuthToken(opts) {
     txBuilder.outputs.splice(1, 0, authTokenOutput);
   }
 
-  const transaction = cashscriptTx
-    .from(txBuilder.inputs)
-    .to(txBuilder.outputs)
-    .withTime(locktime)
+  const transaction = createContractTransaction({
+    contract, unlocker, inputs: txBuilder.inputs, outputs: txBuilder.outputs, locktime,
+  })
 
   console.log({ transaction, locktime })
   return transaction

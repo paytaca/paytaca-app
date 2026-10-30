@@ -10,10 +10,10 @@
         <div style="max-height: calc(90vh - 5rem);overflow-y: auto;">
           <div class="q-mb-sm">
             <q-badge class="text-body2" multi-line>
-              {{ transaction?.abiFunction?.name }}
-              <template v-if="transaction?.abiFunction?.inputs?.length">
+              {{ abiFunction?.name }}
+              <template v-if="abiFunction?.inputs?.length">
                 <!-- \xa0 is a non breaking space -->
-                ({{ transaction?.abiFunction?.inputs?.map(inp => `${inp?.type}\xa0${inp?.name}`).join(', ') }})
+                ({{ abiFunction?.inputs?.map(inp => `${inp?.type}\xa0${inp?.name}`).join(', ') }})
               </template>
             </q-badge>
           </div>
@@ -141,6 +141,10 @@ export default defineComponent({
     watch(() => [props.modelValue], () => innerVal.value = props.modelValue)
     watch(innerVal, () => $emit('update:modelValue', innerVal.value))
 
+    const abiFunction = computed(() => {
+      return props.transaction?.inputs?.find(input => input?.unlocker?.abiFunction)?.unlocker?.abiFunction
+    })
+
     function copyToClipboard(value, message) {
       $copyText(value)
       $q.notify({
@@ -155,6 +159,7 @@ export default defineComponent({
       darkMode,
       dialogRef, onDialogHide, onDialogOK, onDialogCancel,
       innerVal,
+      abiFunction,
 
       copyToClipboard,
     }

@@ -1,4 +1,4 @@
-import { SignatureTemplate, TransactionBuilder } from 'cashscript13';
+import { SignatureTemplate, TransactionBuilder } from 'cashscript';
 import { watchtowerUtxoToCashscriptP2pkh } from "src/utils/utxo-utils";
 import { Wallet } from "..";
 import { TransactionBalancer } from "../stablehedge/transaction-utils";
