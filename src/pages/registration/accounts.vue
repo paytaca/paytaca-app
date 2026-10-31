@@ -628,6 +628,10 @@ import { withTimeout } from 'src/utils/async-utils'
 // loading overlay on screen indefinitely.
 const RESTORE_TIMEOUT_MS = 60000
 
+// Upper bound for country/language/currency auto-detection on the settings
+// step. On timeout the user is free to continue with the current values.
+const STEP2_DETECTION_TIMEOUT_MS = 60000
+
 // Keep in sync with country selector data source (code, currency, language).
 const COUNTRIES = require('../../countries-info.json')
 
@@ -721,6 +725,8 @@ export default {
       isRedirecting: false,
       step2Initialized: false,
       step2Loading: false,
+      // In-flight detection promise; kept off Vuex because it is not reactive UI state.
+      step2DetectionPromise: null,
       subscriptionChecked: false
       // moveToReferral: false,
     }
@@ -746,10 +752,8 @@ export default {
         this.generateSeedPhrase()
       } else if (val === 3 && !this.importSeedPhrase) {
         // Step 3: Auto-detect language and currency (geoip call happens here)
-        this.$nextTick(() => {
-          this.initializeStep2().catch(error => {
-            console.error('[Step 3] Unhandled error in initializeStep2:', error)
-          })
+        this.startStep2Detection().catch(error => {
+          console.error('[Step 3] Unhandled error in initializeStep2:', error)
         })
       } else if (val === 6 && !this.importSeedPhrase) {
         // Step 6: Force theme update when entering step 6 to ensure theme changes from step 4 apply immediately
@@ -795,7 +799,7 @@ export default {
           }
           // Initialize step 3 when navigating to it (geoip call happens here)
           if (routeStep === 3 && !this.importSeedPhrase) {
-            this.initializeStep2().catch(error => {
+            this.startStep2Detection().catch(error => {
               console.error('[Step 3] Unhandled error in initializeStep2:', error)
             })
           }
@@ -823,8 +827,8 @@ export default {
           if (routeStep === 3) {
             // Reset step2Initialized to allow initializeStep2 to run for restore flow
             this.step2Initialized = false
-            this.$nextTick(() => {
-              this.initializeStep2()
+            this.startStep2Detection().catch(error => {
+              console.error('[Step 3] Unhandled error in initializeStep2:', error)
             })
           }
         }
@@ -1866,6 +1870,8 @@ export default {
       }
     },
     goToStep4 () {
+      // Continue stays disabled while detection runs; ignore stray triggers too.
+      if (this.step2Loading) return
       if (this.importSeedPhrase) {
         this.$router.push('/accounts/restore/step-4')
       } else {
@@ -1912,138 +1918,170 @@ export default {
       
       this.$store.commit('global/updateWalletName', { name: name, index: walletIndex })
     },
-    async initializeStep2 () {
-      // Prevent duplicate calls
+    startStep2Detection () {
+      // Disable Continue synchronously, before the next tick, so the user cannot
+      // skip past the settings while detection is still pending.
+      if (!this.step2Initialized) this.step2Loading = true
+      return this.initializeStep2()
+    },
+    initializeStep2 () {
+      // A second caller must not restart or clear step2Loading while detection is
+      // running, otherwise it re-enables Continue mid-detection.
+      if (this.step2DetectionPromise) return this.step2DetectionPromise
+      // Prevent duplicate calls once detection has completed.
       if (this.step2Initialized) {
         this.step2Loading = false
-        return
+        return Promise.resolve()
       }
+
       this.step2Initialized = true
       this.step2Loading = true
-      
-      try {
-        // Auto-detect language and currency for step 2
-        await this.$store.dispatch('market/updateSupportedCurrencies', {})
-        const devicePrefs = await this.getDeviceLocalePreferences()
-        const deviceRegion = devicePrefs?.regionCode
-        const deviceLangs = Array.isArray(devicePrefs?.langs) ? devicePrefs.langs : []
 
-        // Device-first: use region from device locale (when available) to pick default country/currency.
-        let detectedCountry = null
-        if (deviceRegion && Array.isArray(COUNTRIES)) {
-          detectedCountry = COUNTRIES.find(c => String(c?.code || '').toUpperCase() === String(deviceRegion).toUpperCase()) || null
-        }
-
-        // IP fallback only when device locale doesn't provide enough data
-        const ipGeoPreferences = (!detectedCountry || !detectedCountry?.currency)
-          ? await this.getIPGeolocationPreferences()
-          : { country: detectedCountry, currency: { symbol: detectedCountry.currency }, langs: deviceLangs }
-
-        // set currency immediately (no timeout) and persist
-        // Currency options have 'symbol' which is the currency code (e.g., "PHP", "USD")
-        const currencyOptions = this.$store.getters['market/currencyOptions']
-        // Match by symbol (which is the currency code like "PHP")
-        const desiredCurrencySymbol = ipGeoPreferences?.currency?.symbol
-        let currency = currencyOptions.find(o => o.symbol === desiredCurrencySymbol)
-        
-        // If currency not found in options, create it from geoip data
-        if (!currency && desiredCurrencySymbol) {
-          const desiredCurrencyName = ipGeoPreferences?.currency?.name || desiredCurrencySymbol
-          const newCurrency = {
-            symbol: desiredCurrencySymbol,
-            name: desiredCurrencyName
-          }
-          // Add to currency options if not already there
-          const updatedOptions = [...currencyOptions]
-          if (!updatedOptions.some(c => c.symbol === newCurrency.symbol)) {
-            updatedOptions.push(newCurrency)
-            this.$store.commit('market/updateCurrencyOptions', updatedOptions)
-          }
-          // Get the currency reference from the store after updating (must be same reference for indexOf to work)
-          const updatedCurrencyOptions = this.$store.getters['market/currencyOptions']
-          currency = updatedCurrencyOptions.find(c => c.symbol === newCurrency.symbol)
-        }
-        
-        if (currency?.symbol) {
-          // Get the exact reference from state.currencyOptions (required for indexOf to work)
-          // The mutation uses indexOf which compares by reference, not value
-          const stateCurrencyOptions = this.$store.state.market.currencyOptions
-          const currencyFromState = stateCurrencyOptions.find(c => c.symbol === currency.symbol)
-          
-          if (currencyFromState) {
-            // Update currency in market store (must be exact reference from state array)
-            this.$store.commit('market/updateSelectedCurrency', currencyFromState)
-            // Also save to vault settings for wallet-specific storage
-            this.$store.commit('global/saveWalletSetting', { key: 'currency', value: currencyFromState })
-          } else {
-            // Fallback: use mutation to set currency if not found in state options array
-            console.warn('[Step 2] Currency not in state options array, using fallback mutation')
-            this.$store.commit('market/setSelectedCurrency', currency)
-            this.$store.commit('global/saveWalletSetting', { key: 'currency', value: currency })
-          }
-        } else {
-          console.warn('[Step 2] Currency not found and could not be created for:', ipGeoPreferences.currency.symbol)
-          console.warn('[Step 2] Available symbols:', currencyOptions.map(c => c.symbol))
-        }
-        this.currencySelectorRerender = true
-        
-        // Device-first language: use device locale languages; fall back to GeoIP languages
-        const languageCodes = (deviceLangs?.length ? deviceLangs : (ipGeoPreferences.langs || ['en-us']))
-        
-        // Sort language codes (prefer codes with dashes, e.g., 'en-us' over 'en')
-        languageCodes.sort((a, b) => {
-          const aHasDash = a.includes('-') ? 0 : 1
-          const bHasDash = b.includes('-') ? 0 : 1
-          return aHasDash - bHasDash
+      const detection = this.detectStep2Preferences()
+      // Continue stays disabled until detection settles. Bound the wait so a
+      // stalled network call cannot block the user indefinitely.
+      const bounded = withTimeout(
+        detection,
+        STEP2_DETECTION_TIMEOUT_MS,
+        'Preference auto-detection timed out'
+      )
+        .catch(error => {
+          console.error('[Step 2] Error initializing step 2:', error)
+          // Reset flag so detection can be retried
+          this.step2Initialized = false
         })
-        
-        // Find first matching supported language
-        let selectedLangCode = 'en-us' // default fallback
-        const supportedLanguageCodes = Object.keys(supportedLangsI18n)
-        for (let languageCode of languageCodes) {
-          // Try exact match first
-          if (supportedLanguageCodes.includes(languageCode)) {
-            selectedLangCode = languageCode
-            break
-          }
-          // Try matching general language code (e.g., 'en' from 'en-ph')
-          const generalLanguageCode = languageCode.replace(/-.*$/, '')
-          const languageMatched = supportedLanguageCodes.find(langOption => {
-            // Check if supported language starts with the general code (e.g., 'en-us' starts with 'en')
-            return langOption.startsWith(generalLanguageCode + '-') || langOption === generalLanguageCode
-          })
-          if (languageMatched) {
-            selectedLangCode = languageMatched
-            break
-          }
-        }
-        
-        // Always set language during registration (step 2), regardless of vault state
-        // The vault entry exists but settings should be updated
-        if (selectedLangCode && supportedLangsI18n[selectedLangCode]) {
-          this.setLanguage(selectedLangCode)
-          // Also save to vault settings explicitly
-          this.$store.commit('global/saveWalletSetting', { key: 'language', value: selectedLangCode })
-        } else {
-          console.warn('[Step 2] Invalid language code or not supported:', selectedLangCode)
-        }
-        
-        // set country
-        const countryToUse = detectedCountry || ipGeoPreferences.country
-        this.$store.commit('global/setCountry', {
-          country: countryToUse,
-          denomination: 'BCH' // Default denomination, can be changed by user later
+        .finally(() => {
+          // Always re-enable Continue, even when detection failed or timed out
+          this.step2Loading = false
         })
 
-        // persist preferences to avoid later overrides (e.g., refetchWalletPreferences)
-        await this.$store.dispatch('global/saveWalletPreferences').catch(() => {})
-      } catch (error) {
-        console.error('[Step 2] Error initializing step 2:', error)
-        // Reset flag so it can be retried
-        this.step2Initialized = false
-      } finally {
-        this.step2Loading = false
+      this.step2DetectionPromise = bounded
+      // Hold the guard until the underlying detection actually settles so a
+      // timed-out run cannot overlap with a retry and clobber its results.
+      detection
+        .catch(() => {})
+        .finally(() => {
+          if (this.step2DetectionPromise === bounded) this.step2DetectionPromise = null
+        })
+
+      return bounded
+    },
+    async detectStep2Preferences () {
+      // Auto-detect language and currency for step 2
+      await this.$store.dispatch('market/updateSupportedCurrencies', {})
+      const devicePrefs = await this.getDeviceLocalePreferences()
+      const deviceRegion = devicePrefs?.regionCode
+      const deviceLangs = Array.isArray(devicePrefs?.langs) ? devicePrefs.langs : []
+
+      // Device-first: use region from device locale (when available) to pick default country/currency.
+      let detectedCountry = null
+      if (deviceRegion && Array.isArray(COUNTRIES)) {
+        detectedCountry = COUNTRIES.find(c => String(c?.code || '').toUpperCase() === String(deviceRegion).toUpperCase()) || null
       }
+
+      // IP fallback only when device locale doesn't provide enough data
+      const ipGeoPreferences = (!detectedCountry || !detectedCountry?.currency)
+        ? await this.getIPGeolocationPreferences()
+        : { country: detectedCountry, currency: { symbol: detectedCountry.currency }, langs: deviceLangs }
+
+      // set currency immediately (no timeout) and persist
+      // Currency options have 'symbol' which is the currency code (e.g., "PHP", "USD")
+      const currencyOptions = this.$store.getters['market/currencyOptions']
+      // Match by symbol (which is the currency code like "PHP")
+      const desiredCurrencySymbol = ipGeoPreferences?.currency?.symbol
+      let currency = currencyOptions.find(o => o.symbol === desiredCurrencySymbol)
+    
+      // If currency not found in options, create it from geoip data
+      if (!currency && desiredCurrencySymbol) {
+        const desiredCurrencyName = ipGeoPreferences?.currency?.name || desiredCurrencySymbol
+        const newCurrency = {
+          symbol: desiredCurrencySymbol,
+          name: desiredCurrencyName
+        }
+        // Add to currency options if not already there
+        const updatedOptions = [...currencyOptions]
+        if (!updatedOptions.some(c => c.symbol === newCurrency.symbol)) {
+          updatedOptions.push(newCurrency)
+          this.$store.commit('market/updateCurrencyOptions', updatedOptions)
+        }
+        // Get the currency reference from the store after updating (must be same reference for indexOf to work)
+        const updatedCurrencyOptions = this.$store.getters['market/currencyOptions']
+        currency = updatedCurrencyOptions.find(c => c.symbol === newCurrency.symbol)
+      }
+    
+      if (currency?.symbol) {
+        // Get the exact reference from state.currencyOptions (required for indexOf to work)
+        // The mutation uses indexOf which compares by reference, not value
+        const stateCurrencyOptions = this.$store.state.market.currencyOptions
+        const currencyFromState = stateCurrencyOptions.find(c => c.symbol === currency.symbol)
+      
+        if (currencyFromState) {
+          // Update currency in market store (must be exact reference from state array)
+          this.$store.commit('market/updateSelectedCurrency', currencyFromState)
+          // Also save to vault settings for wallet-specific storage
+          this.$store.commit('global/saveWalletSetting', { key: 'currency', value: currencyFromState })
+        } else {
+          // Fallback: use mutation to set currency if not found in state options array
+          console.warn('[Step 2] Currency not in state options array, using fallback mutation')
+          this.$store.commit('market/setSelectedCurrency', currency)
+          this.$store.commit('global/saveWalletSetting', { key: 'currency', value: currency })
+        }
+      } else {
+        console.warn('[Step 2] Currency not found and could not be created for:', ipGeoPreferences.currency.symbol)
+        console.warn('[Step 2] Available symbols:', currencyOptions.map(c => c.symbol))
+      }
+      this.currencySelectorRerender = true
+    
+      // Device-first language: use device locale languages; fall back to GeoIP languages
+      const languageCodes = (deviceLangs?.length ? deviceLangs : (ipGeoPreferences.langs || ['en-us']))
+    
+      // Sort language codes (prefer codes with dashes, e.g., 'en-us' over 'en')
+      languageCodes.sort((a, b) => {
+        const aHasDash = a.includes('-') ? 0 : 1
+        const bHasDash = b.includes('-') ? 0 : 1
+        return aHasDash - bHasDash
+      })
+    
+      // Find first matching supported language
+      let selectedLangCode = 'en-us' // default fallback
+      const supportedLanguageCodes = Object.keys(supportedLangsI18n)
+      for (let languageCode of languageCodes) {
+        // Try exact match first
+        if (supportedLanguageCodes.includes(languageCode)) {
+          selectedLangCode = languageCode
+          break
+        }
+        // Try matching general language code (e.g., 'en' from 'en-ph')
+        const generalLanguageCode = languageCode.replace(/-.*$/, '')
+        const languageMatched = supportedLanguageCodes.find(langOption => {
+          // Check if supported language starts with the general code (e.g., 'en-us' starts with 'en')
+          return langOption.startsWith(generalLanguageCode + '-') || langOption === generalLanguageCode
+        })
+        if (languageMatched) {
+          selectedLangCode = languageMatched
+          break
+        }
+      }
+    
+      // Always set language during registration (step 2), regardless of vault state
+      // The vault entry exists but settings should be updated
+      if (selectedLangCode && supportedLangsI18n[selectedLangCode]) {
+        this.setLanguage(selectedLangCode)
+        // Also save to vault settings explicitly
+        this.$store.commit('global/saveWalletSetting', { key: 'language', value: selectedLangCode })
+      } else {
+        console.warn('[Step 2] Invalid language code or not supported:', selectedLangCode)
+      }
+    
+      // set country
+      const countryToUse = detectedCountry || ipGeoPreferences.country
+      this.$store.commit('global/setCountry', {
+        country: countryToUse,
+        denomination: 'BCH' // Default denomination, can be changed by user later
+      })
+
+      // persist preferences to avoid later overrides (e.g., refetchWalletPreferences)
+      await this.$store.dispatch('global/saveWalletPreferences').catch(() => {})
     },
     async generateSeedPhrase () {
       if (this.mnemonic || this.walletCreationInProgress) return
@@ -2600,20 +2638,15 @@ export default {
     
     // If user lands directly on step-3, ensure geoip call happens
     if (this.currentStep === 3 && !this.importSeedPhrase) {
-      this.$nextTick(() => {
-        this.initializeStep2().catch(error => {
-          console.error('[Step 3] Unhandled error in initializeStep2:', error)
-        })
+      this.startStep2Detection().catch(error => {
+        console.error('[Step 3] Unhandled error in initializeStep2:', error)
       })
     }
     
     // If user lands directly on restore step-3, ensure geoip call happens
     if (this.restoreStep === 3) {
-      this.step2Initialized = false
-      this.$nextTick(() => {
-        this.initializeStep2().catch(error => {
-          console.error('[Step 2] Unhandled error in initializeStep2:', error)
-        })
+      this.startStep2Detection().catch(error => {
+        console.error('[Step 2] Unhandled error in initializeStep2:', error)
       })
     }
   },
