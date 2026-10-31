@@ -632,6 +632,12 @@ const RESTORE_TIMEOUT_MS = 60000
 // step. On timeout the user is free to continue with the current values.
 const STEP2_DETECTION_TIMEOUT_MS = 60000
 
+// Upper bound for the server-side last-used-index lookup during restore. The
+// index is what keeps an imported wallet from handing out an already-used
+// address, but an unreachable server must not block the restore either, so a
+// timeout falls back to index 0 for that wallet.
+const RESTORE_INDEX_LOOKUP_TIMEOUT_MS = 30000
+
 // Keep in sync with country selector data source (code, currency, language).
 const COUNTRIES = require('../../countries-info.json')
 
@@ -1516,10 +1522,21 @@ export default {
       const walletInfo = []
       const xpubKeysInfo = []
 
-      for (const { wallet: networkWallet, type, isChipnet } of walletTypes) {
-        // Derive the address pair locally. Restoring a wallet must not depend on
-        // watchtower answering: the keys are all that is needed to own the funds.
-        const addresses = await networkWallet.getAddressSetAt(0)
+      // Resume each imported wallet from the last address index the server has
+      // seen, so newly generated addresses are always past anything already
+      // used. Without this an imported wallet starts at index 0 and can hand
+      // out an already-used address (e.g. when auto-generate is disabled).
+      // Lookups run concurrently and are bounded: an unreachable server must
+      // never block the restore, it only falls back to index 0.
+      const lastAddressIndices = await this.getRestoreLastAddressIndices(walletTypes)
+
+      for (let i = 0; i < walletTypes.length; i++) {
+        const { wallet: networkWallet, type, isChipnet } = walletTypes[i]
+        const lastAddressIndex = lastAddressIndices[i]
+        // Derive the address pair locally for the resolved index. Restoring a
+        // wallet must not depend on watchtower answering: the keys are all that
+        // is needed to own the funds.
+        const addresses = await networkWallet.getAddressSetAt(lastAddressIndex)
         walletInfo.push({
           isChipnet,
           type,
@@ -1527,7 +1544,7 @@ export default {
           derivationPath: networkWallet.derivationPath,
           lastAddress: addresses.receiving,
           lastChangeAddress: addresses.change,
-          lastAddressIndex: 0,
+          lastAddressIndex,
         })
         vm.steps += 1
 
@@ -1539,14 +1556,13 @@ export default {
         vm.steps += 1
       }
 
-      // Register the addresses with watchtower so the restored wallet receives
-      // updates. This is bounded by the subscribe timeout and is not fatal: a
-      // failed subscription only costs notifications, never the restore itself.
-      await Promise.all(walletTypes.map(({ wallet: networkWallet }) =>
-        networkWallet.getNewAddressSet(0).catch(error => {
-          console.warn('[Restore] Address subscription failed:', error)
-        })
-      ))
+      // Register the resolved addresses with watchtower so the restored wallet
+      // receives updates. Deliberately not awaited: this is best-effort and a
+      // slow server must never hold up the restore. Each batch is bounded and
+      // swallows its own errors, so nothing rejects in the background.
+      for (let i = 0; i < walletInfo.length; i++) {
+        this.subscribeRestoreAddressRange(walletTypes[i].wallet, walletInfo[i].lastAddressIndex)
+      }
 
       return {
         walletInfo,
@@ -1558,6 +1574,64 @@ export default {
           wallet.SLP.walletHash,
           wallet.SLP_TEST.walletHash,
         ],
+      }
+    },
+    /**
+     * Resolves the highest address index the server has seen for each imported
+     * wallet. Used so a restored wallet never generates an address that was
+     * already used (address reuse leaks spending history between payments).
+     *
+     * The lookup is bounded and best-effort: a timeout or network error falls
+     * back to 0 for that wallet rather than blocking the restore. The index only
+     * covers addresses this server has already seen; a seed used in another app
+     * still needs an exhaustive scan before its history is complete.
+     *
+     * @param {Array<{wallet: Object, type: string, isChipnet: boolean}>} walletTypes
+     * @returns {Promise<number[]>} last address index per entry of walletTypes
+     */
+    async getRestoreLastAddressIndices (walletTypes) {
+      const results = await Promise.all(walletTypes.map(async ({ wallet: networkWallet, type, isChipnet }) => {
+        try {
+          const index = await withTimeout(
+            networkWallet.getLastAddressIndex({ exclude_pos: true }),
+            RESTORE_INDEX_LOOKUP_TIMEOUT_MS,
+            'Last address index lookup timed out'
+          )
+          if (Number.isInteger(index) && index >= 0) return index
+          return 0
+        } catch (error) {
+          console.warn(`[Restore] Could not resolve last address index for ${type} (chipnet: ${isChipnet}):`, error)
+          return 0
+        }
+      }))
+
+      // Receiving index 0/0 is reserved for message encryption, so a wallet with
+      // no server-side history still starts at 1.
+      return results.map(index => Math.max(1, index))
+    },
+    /**
+     * Subscribes indices 0..lastAddressIndex of a restored wallet so watchtower
+     * starts indexing them. Chunked because a large range in a single request
+     * can exceed the API timeout. Failures are logged only: notifications and
+     * history catch up on the next resubscribe pass.
+     *
+     * @param {Object} networkWallet
+     * @param {number} lastAddressIndex
+     */
+    async subscribeRestoreAddressRange (networkWallet, lastAddressIndex) {
+      const batchSize = 50
+      for (let start = 0; start <= lastAddressIndex; start += batchSize) {
+        const count = Math.min(batchSize, lastAddressIndex - start + 1)
+        try {
+          const result = await networkWallet.scanAddresses({ startIndex: start, count })
+          if (!result?.success) {
+            console.warn('[Restore] Address subscription failed:', result?.error)
+            return
+          }
+        } catch (error) {
+          console.warn('[Restore] Address subscription failed:', error)
+          return
+        }
       }
     },
     initializeVaultEntryForRestore () {
