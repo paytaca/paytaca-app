@@ -101,7 +101,7 @@
     <div
       class="wallet-creation-view"
       :class="getDarkModeClass(darkMode)"
-      v-if="currentStep === 1 || walletRestoreInProgress"
+      v-if="currentStep === 1 || walletRestoreInProgress || walletRestoreError"
     >
       <transition name="fade" mode="out-in">
         <!-- Paytaca Logo with Circle Container Animation -->
@@ -139,8 +139,16 @@
               flat 
               no-caps 
               color="primary" 
-              :label="$t('Back') || 'Back'" 
-              @click="walletRestoreError = ''; walletRestoreInProgress = false" 
+              :label="$t('Retry', {}, 'Retry')" 
+              @click="initCreateWallet" 
+            />
+            <q-btn 
+              v-if="walletRestoreError"
+              flat 
+              no-caps 
+              color="primary" 
+              :label="$t('Back', {}, 'Back')" 
+              @click="cancelWalletRestore" 
             />
           </div>
         </div>
@@ -614,6 +622,11 @@ import Onboarding from 'src/components/registration/Onboarding.vue'
 import Login from 'src/components/registration/Login.vue'
 import { ensureCanPerformActionWithDeps } from 'src/composables/useTieredLimitGate'
 import RewardsStep from 'src/components/registration/RewardsStep.vue'
+import { withTimeout } from 'src/utils/async-utils'
+
+// Upper bound for the whole restore step so a stalled call can never leave the
+// loading overlay on screen indefinitely.
+const RESTORE_TIMEOUT_MS = 60000
 
 // Keep in sync with country selector data source (code, currency, language).
 const COUNTRIES = require('../../countries-info.json')
@@ -691,6 +704,7 @@ export default {
       walletCreationComplete: false,
       walletRestoreInProgress: false,
       walletRestoreError: '',
+      restoreAttemptId: 0,
       mnemonicVerified: false,
       pinDialogAction: '',
       pin: '',
@@ -754,6 +768,9 @@ export default {
         this.authenticationPhase = 'options'
         this.seedPhraseBackup = null
         this.useTextArea = false
+        this.walletRestoreError = ''
+        this.walletRestoreInProgress = false
+        this.restoreAttemptId += 1
 
         // If user lands back on the main /accounts view and is already blocked by tier limits,
         // show the tier-aware prompt immediately (Free→Plus, Plus→Max coming soon).
@@ -1370,6 +1387,23 @@ export default {
       }
       throw new Error('mnemonic not ready')
     },
+    cancelWalletRestore () {
+      // Reset the restore flow so the user can start over from the chooser.
+      // `mnemonic` must be cleared or the step-2 view stays hidden by its v-if.
+      // Bumping the attempt id orphans any in-flight restore.
+      this.restoreAttemptId += 1
+      this.walletRestoreError = ''
+      this.walletRestoreInProgress = false
+      this.mnemonic = ''
+      this.mnemonicVerified = false
+      this.seedPhraseBackup = null
+      this.useTextArea = false
+      this.authenticationPhase = 'options'
+      this.steps = -1
+      this.newWalletSnapshot.walletInfo = []
+      this.newWalletSnapshot.xpubKeysInfo = []
+      this.$router.push('/accounts/restore/step-1')
+    },
     async initCreateWallet () {
       const allowed = await ensureCanPerformActionWithDeps(
         { $q: this.$q, $store: this.$store },
@@ -1384,12 +1418,27 @@ export default {
         if (!this.validateSeedPhrase() && this.authenticationPhase === 'backup-phrase') {
           return
         }
+        // Ignore repeated taps while a restore is already running
+        if (this.walletRestoreInProgress) return
         // Show loading animation during restore
         this.walletRestoreInProgress = true
         this.walletRestoreError = ''
+        // A timed-out attempt keeps running in the background. Tag each attempt
+        // so a stale one can never overwrite the state of a newer retry.
+        const attemptId = ++this.restoreAttemptId
         try {
-          // Create wallet from seed phrase
-          await this.createWallets()
+          // Create wallet from seed phrase. Bound the whole step so a stalled
+          // network call can never leave the loading overlay on screen forever.
+          const restoreData = await withTimeout(
+            this.createWallets(),
+            RESTORE_TIMEOUT_MS,
+            'Wallet restore timed out'
+          )
+          if (attemptId !== this.restoreAttemptId) return
+          this.newWalletSnapshot.walletInfo = restoreData.walletInfo
+          this.newWalletSnapshot.xpubKeysInfo = restoreData.xpubKeysInfo
+          this.newWalletHash = restoreData.walletHash
+          this.$pushNotifications?.subscribe?.(restoreData.walletHashes, this.walletIndex, true)
           // Initialize vault entry so settings can be saved during step 3
           // This must be done before navigation to ensure vault entry exists
           this.initializeVaultEntryForRestore()
@@ -1398,12 +1447,13 @@ export default {
           this.$store.commit('global/setLastBackupTimestamp', Date.now())
           // Navigate to settings step (step-3)
           await this.$router.push('/accounts/restore/step-3')
-          // Hide loading animation after navigation
-          this.walletRestoreInProgress = false
         } catch (error) {
+          if (attemptId !== this.restoreAttemptId) return
           console.error('Error restoring wallet:', error)
-          this.walletRestoreError = this.$t('ErrorRestoringWallet') || 'Failed to restore wallet. Please try again.'
-          this.walletRestoreInProgress = false
+          this.walletRestoreError = this.$t('ErrorRestoringWallet', {}, 'Failed to restore wallet. Please try again.')
+        } finally {
+          // Always clear the overlay; the error state renders instead when set.
+          if (attemptId === this.restoreAttemptId) this.walletRestoreInProgress = false
         }
         return
       }
@@ -1450,89 +1500,61 @@ export default {
       vm.steps += 1
 
       const wallet = new Wallet(vm.mnemonic)
-      const bchWallets = [wallet.BCH, wallet.BCH_CHIP]
-      const slpWallets = [wallet.SLP, wallet.SLP_TEST]
-
-      vm.newWalletSnapshot.walletInfo = []
-      vm.newWalletSnapshot.xpubKeysInfo = []
-
-      for (const bchWallet of bchWallets) {
-        const isChipnet = bchWallets.indexOf(bchWallet) === 1
-
-        await bchWallet.getNewAddressSet(0).then(function (response) {
-          const addresses = response?.addresses || null
-          const walletTypeInfo = {
-            isChipnet,
-            type: 'bch',
-            walletHash: bchWallet.walletHash,
-            derivationPath: bchWallet.derivationPath,
-            lastAddress: addresses !== null ? addresses.receiving : '',
-            lastChangeAddress: addresses !== null ? addresses.change : '',
-            lastAddressIndex: 0,
-          }
-
-          if (vm.isVaultEmpty) vm.$store.commit('global/updateWallet', walletTypeInfo)
-          else vm.newWalletSnapshot.walletInfo.push(walletTypeInfo)
-          vm.steps += 1
-          try {
-            vm.$store.dispatch('global/refetchWalletPreferences')
-          } catch(error) { console.error(error) }
-        })
-
-        await bchWallet.getXPubKey().then(function (xpub) {
-          const xPubInfo = {
-            isChipnet,
-            type: 'bch',
-            xPubKey: xpub
-          }
-
-          if (vm.isVaultEmpty) vm.$store.commit('global/updateXPubKey', xPubInfo)
-          else vm.newWalletSnapshot.xpubKeysInfo.push(xPubInfo)
-          vm.steps += 1
-        })
-      }
-
-      for (const slpWallet of slpWallets) {
-        const isChipnet = slpWallets.indexOf(slpWallet) === 1
-
-        await slpWallet.getNewAddressSet(0).then(function (addresses) {
-          const walletTypeInfo = {
-            isChipnet,
-            type: 'slp',
-            walletHash: slpWallet.walletHash,
-            derivationPath: slpWallet.derivationPath,
-            lastAddress: addresses !== null ? addresses.receiving : '',
-            lastChangeAddress: addresses !== null ? addresses.change : '',
-            lastAddressIndex: 0
-          }
-
-          if (vm.isVaultEmpty) vm.$store.commit('global/updateWallet', walletTypeInfo)
-          else vm.newWalletSnapshot.walletInfo.push(walletTypeInfo)
-          vm.steps += 1
-        })
-
-        await slpWallet.getXPubKey().then(function (xpub) {
-          const xPubInfo = {
-            isChipnet,
-            type: 'slp',
-            xPubKey: xpub
-          }
-
-          if (vm.isVaultEmpty) vm.$store.commit('global/updateXPubKey', xPubInfo)
-          else vm.newWalletSnapshot.xpubKeysInfo.push(xPubInfo)
-          vm.steps += 1
-        })
-      }
-
-
-      const walletHashes = [
-        wallet.BCH.walletHash,
-        wallet.BCH_CHIP.walletHash,
-        wallet.SLP.walletHash,
-        wallet.SLP_TEST.walletHash,
+      const walletTypes = [
+        { wallet: wallet.BCH, type: 'bch', isChipnet: false },
+        { wallet: wallet.BCH_CHIP, type: 'bch', isChipnet: true },
+        { wallet: wallet.SLP, type: 'slp', isChipnet: false },
+        { wallet: wallet.SLP_TEST, type: 'slp', isChipnet: true },
       ]
-      this.$pushNotifications?.subscribe?.(walletHashes, this.walletIndex, true)
-      this.newWalletHash = wallet.BCH.walletHash
+
+      // Build the snapshot locally so a stale (timed-out) attempt can never
+      // clobber the state of a newer retry. The caller commits it on success.
+      const walletInfo = []
+      const xpubKeysInfo = []
+
+      for (const { wallet: networkWallet, type, isChipnet } of walletTypes) {
+        // Derive the address pair locally. Restoring a wallet must not depend on
+        // watchtower answering: the keys are all that is needed to own the funds.
+        const addresses = await networkWallet.getAddressSetAt(0)
+        walletInfo.push({
+          isChipnet,
+          type,
+          walletHash: networkWallet.walletHash,
+          derivationPath: networkWallet.derivationPath,
+          lastAddress: addresses.receiving,
+          lastChangeAddress: addresses.change,
+          lastAddressIndex: 0,
+        })
+        vm.steps += 1
+
+        xpubKeysInfo.push({
+          isChipnet,
+          type,
+          xPubKey: await networkWallet.getXPubKey(),
+        })
+        vm.steps += 1
+      }
+
+      // Register the addresses with watchtower so the restored wallet receives
+      // updates. This is bounded by the subscribe timeout and is not fatal: a
+      // failed subscription only costs notifications, never the restore itself.
+      await Promise.all(walletTypes.map(({ wallet: networkWallet }) =>
+        networkWallet.getNewAddressSet(0).catch(error => {
+          console.warn('[Restore] Address subscription failed:', error)
+        })
+      ))
+
+      return {
+        walletInfo,
+        xpubKeysInfo,
+        walletHash: wallet.BCH.walletHash,
+        walletHashes: [
+          wallet.BCH.walletHash,
+          wallet.BCH_CHIP.walletHash,
+          wallet.SLP.walletHash,
+          wallet.SLP_TEST.walletHash,
+        ],
+      }
     },
     initializeVaultEntryForRestore () {
       // Create vault entry for restore flow using wallet data from createWallets()
@@ -2181,72 +2203,48 @@ export default {
       // This runs in background - no UI updates needed
       const vm = this
       const wallet = new Wallet(vm.mnemonic)
-      const bchWallets = [wallet.BCH, wallet.BCH_CHIP]
-      const slpWallets = [wallet.SLP, wallet.SLP_TEST]
+      const walletTypes = [
+        { wallet: wallet.BCH, type: 'bch', isChipnet: false },
+        { wallet: wallet.BCH_CHIP, type: 'bch', isChipnet: true },
+        { wallet: wallet.SLP, type: 'slp', isChipnet: false },
+        { wallet: wallet.SLP_TEST, type: 'slp', isChipnet: true },
+      ]
 
       vm.newWalletSnapshot.walletInfo = []
       vm.newWalletSnapshot.xpubKeysInfo = []
 
-      for (const bchWallet of bchWallets) {
-        const isChipnet = bchWallets.indexOf(bchWallet) === 1
+      for (const { wallet: networkWallet, type, isChipnet } of walletTypes) {
+        // Derive locally; never block wallet creation on a watchtower response.
+        const addresses = await networkWallet.getAddressSetAt(0)
+        const walletTypeInfo = {
+          isChipnet,
+          type,
+          walletHash: networkWallet.walletHash,
+          derivationPath: networkWallet.derivationPath,
+          lastAddress: addresses.receiving,
+          lastChangeAddress: addresses.change,
+          lastAddressIndex: 0,
+        }
 
-        await bchWallet.getNewAddressSet(0).then(function (response) {
-          const addresses = response?.addresses || null
-          const walletTypeInfo = {
-            isChipnet,
-            type: 'bch',
-            walletHash: bchWallet.walletHash,
-            derivationPath: bchWallet.derivationPath,
-            lastAddress: addresses !== null ? addresses.receiving : '',
-            lastChangeAddress: addresses !== null ? addresses.change : '',
-            lastAddressIndex: 0,
-          }
+        if (vm.isVaultEmpty) vm.$store.commit('global/updateWallet', walletTypeInfo)
+        else vm.newWalletSnapshot.walletInfo.push(walletTypeInfo)
 
-          if (vm.isVaultEmpty) vm.$store.commit('global/updateWallet', walletTypeInfo)
-          else vm.newWalletSnapshot.walletInfo.push(walletTypeInfo)
-        })
+        const xPubInfo = {
+          isChipnet,
+          type,
+          xPubKey: await networkWallet.getXPubKey()
+        }
 
-        await bchWallet.getXPubKey().then(function (xpub) {
-          const xPubInfo = {
-            isChipnet,
-            type: 'bch',
-            xPubKey: xpub
-          }
-
-          if (vm.isVaultEmpty) vm.$store.commit('global/updateXPubKey', xPubInfo)
-          else vm.newWalletSnapshot.xpubKeysInfo.push(xPubInfo)
-        })
+        if (vm.isVaultEmpty) vm.$store.commit('global/updateXPubKey', xPubInfo)
+        else vm.newWalletSnapshot.xpubKeysInfo.push(xPubInfo)
       }
 
-      for (const slpWallet of slpWallets) {
-        const isChipnet = slpWallets.indexOf(slpWallet) === 1
-
-        await slpWallet.getNewAddressSet(0).then(function (addresses) {
-          const walletTypeInfo = {
-            isChipnet,
-            type: 'slp',
-            walletHash: slpWallet.walletHash,
-            derivationPath: slpWallet.derivationPath,
-            lastAddress: addresses !== null ? addresses.receiving : '',
-            lastChangeAddress: addresses !== null ? addresses.change : '',
-            lastAddressIndex: 0
-          }
-
-          if (vm.isVaultEmpty) vm.$store.commit('global/updateWallet', walletTypeInfo)
-          else vm.newWalletSnapshot.walletInfo.push(walletTypeInfo)
+      // Best-effort address registration; failures only cost notifications.
+      await Promise.all(walletTypes.map(({ wallet: networkWallet }) =>
+        networkWallet.getNewAddressSet(0).catch(error => {
+          console.warn('[Create] Address subscription failed:', error)
         })
-
-        await slpWallet.getXPubKey().then(function (xpub) {
-          const xPubInfo = {
-            isChipnet,
-            type: 'slp',
-            xPubKey: xpub
-          }
-
-          if (vm.isVaultEmpty) vm.$store.commit('global/updateXPubKey', xPubInfo)
-          else vm.newWalletSnapshot.xpubKeysInfo.push(xPubInfo)
-        })
-      }
+      ))
 
 
       const walletHashes = [
