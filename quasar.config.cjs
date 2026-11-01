@@ -7,9 +7,6 @@
 // https://quasar.dev/quasar-cli/quasar-conf-js
 /* eslint-env node */
 
-// Added for Quasar v1 to v2 migration
-// const ESLintPlugin = require('eslint-webpack-plugin')
-
 // Updated @quasar/app-webpack from 3.x.x to 4.x.x to support bex manifest v3
 // https://quasar.dev/quasar-cli-webpack/upgrade-guide
 const { defineConfig } = require('#q-app/wrappers')
@@ -252,11 +249,6 @@ module.exports = defineConfig((ctx) => {
             }
           }
         })
-
-        // Added for Quasar v1 to v2 migration
-        // chain
-        //   .plugin('eslint-webpack-plugin')
-        //   .use(ESLintPlugin, [{ extensions: ['js', 'vue'] }])
       },
 
       // uglifyOptions: {
