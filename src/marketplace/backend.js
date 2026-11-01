@@ -1,6 +1,6 @@
 import { signMessage } from 'src/utils/bch-keys'
 import { SecureStoragePlugin } from 'capacitor-secure-storage-plugin';
-import { setupCache } from 'axios-cache-interceptor'
+import { setupCache } from 'src/utils/axios-cache'
 import axios from 'axios'
 import { getCurrentWalletStorageKey, getWalletStorageKey } from 'src/utils/wallet-storage'
 import { requestManager } from 'src/utils/request-manager'
