@@ -1,4 +1,4 @@
-import { pkhashToCashAddress, toTokenAddress } from "src/utils/crypto.js";
+import { pkhashToCashAddress, toNetworkAddress, toTokenAddress } from "src/utils/crypto.js";
 import { generateCommitment } from "../../../utils.js";
 
 /**
@@ -42,22 +42,22 @@ function createEscrowSettlementOutputsV1(escrow, settlementType, lockNftCategory
       escrow.fundingAmounts.serviceFee +
       escrow.fundingAmounts.arbitrationFee
     )
-    return [{ to: pkhashToCashAddress(escrow.params.buyerPkHash), amount: refundAmount }]
+    return [{ to: pkhashToCashAddress(escrow.params.buyerPkHash, escrow.network === 'chipnet'), amount: refundAmount }]
   }
 
   if(settlementType === 'refund') {
     return [
-      {to: pkhashToCashAddress(escrow.params.buyerPkHash), amount: BigInt(escrow.fundingAmounts.amount + escrow.fundingAmounts.deliveryFee) },
-      {to: pkhashToCashAddress(escrow.params.servicerPkHash), amount: BigInt(escrow.fundingAmounts.serviceFee) },
-      {to: pkhashToCashAddress(escrow.params.arbiterPkHash), amount: BigInt(escrow.fundingAmounts.arbitrationFee) },
+      {to: pkhashToCashAddress(escrow.params.buyerPkHash, escrow.network === 'chipnet'), amount: BigInt(escrow.fundingAmounts.amount + escrow.fundingAmounts.deliveryFee) },
+      {to: pkhashToCashAddress(escrow.params.servicerPkHash, escrow.network === 'chipnet'), amount: BigInt(escrow.fundingAmounts.serviceFee) },
+      {to: pkhashToCashAddress(escrow.params.arbiterPkHash, escrow.network === 'chipnet'), amount: BigInt(escrow.fundingAmounts.arbitrationFee) },
     ]
   }
 
   if (settlementType === 'release') {
     const outputs = [
-      {to: pkhashToCashAddress(escrow.params.sellerPkHash), amount: BigInt(escrow.fundingAmounts.amount) },
-      {to: pkhashToCashAddress(escrow.params.servicerPkHash), amount: BigInt(escrow.fundingAmounts.serviceFee) },
-      {to: pkhashToCashAddress(escrow.params.arbiterPkHash), amount: BigInt(escrow.fundingAmounts.arbitrationFee) },
+      {to: pkhashToCashAddress(escrow.params.sellerPkHash, escrow.network === 'chipnet'), amount: BigInt(escrow.fundingAmounts.amount) },
+      {to: pkhashToCashAddress(escrow.params.servicerPkHash, escrow.network === 'chipnet'), amount: BigInt(escrow.fundingAmounts.serviceFee) },
+      {to: pkhashToCashAddress(escrow.params.arbiterPkHash, escrow.network === 'chipnet'), amount: BigInt(escrow.fundingAmounts.arbitrationFee) },
     ]
 
     if (escrow.fundingAmounts.deliveryFee) {
@@ -67,7 +67,7 @@ function createEscrowSettlementOutputsV1(escrow, settlementType, lockNftCategory
         category: escrow.params.deliveryFeeCategory,
       })
 
-      const deliveryFeePoolTokenAddr = toTokenAddress(escrow.params.feePoolAddress, escrow.network == 'chipnet', 'p2sh')
+      const deliveryFeePoolTokenAddr = toTokenAddress(toNetworkAddress(escrow.params.feePoolAddress, escrow.network === 'chipnet'))
       outputs.push({
         to: deliveryFeePoolTokenAddr,
         amount: BigInt(escrow.fundingAmounts.deliveryFee),
@@ -95,22 +95,23 @@ function createEscrowSettlementOutputsV1(escrow, settlementType, lockNftCategory
  */
 export function createEscrowReleaseOutputsV3(escrow, lockNftCategory) {
   const params = escrow.params
+  const chipnet = escrow.network === 'chipnet'
 
   const outputs = [
     constructSettlementOutput(
-      params.sellerPkHash, params.amountCategory, BigInt(params.amount),
+      params.sellerPkHash, params.amountCategory, BigInt(params.amount), chipnet,
     ),
     constructSettlementOutput(
-      params.servicerPkHash, params.serviceFeeCategory, BigInt(params.serviceFee),
+      params.servicerPkHash, params.serviceFeeCategory, BigInt(params.serviceFee), chipnet,
     ),
     constructSettlementOutput(
-      params.arbiterPkHash, params.arbitrationFeeCategory, BigInt(params.arbitrationFee),
+      params.arbiterPkHash, params.arbitrationFeeCategory, BigInt(params.arbitrationFee), chipnet,
     ),
   ]
 
   if (!params.deliveryFee || params.deliveryFee < 0) return outputs
 
-  const feePoolTokenAddress = toTokenAddress(params.feePoolAddress)
+  const feePoolTokenAddress = toTokenAddress(toNetworkAddress(params.feePoolAddress, chipnet))
   const nftCommitment = generateCommitment({
     nftId: params.lockNftId,
     amount: params.deliveryFee,
@@ -148,16 +149,17 @@ export function createEscrowReleaseOutputsV3(escrow, lockNftCategory) {
  */
 export function createEscrowRefundOutputsV3(escrow) {
   const params = escrow.params
+  const chipnet = escrow.network === 'chipnet'
 
   const outputs = [
-    constructSettlementOutput(params.buyerPkHash, params.amountCategory, BigInt(params.amount)),
-    constructSettlementOutput(params.buyerPkHash, params.serviceFeeCategory, BigInt(params.serviceFee)),
-    constructSettlementOutput(params.buyerPkHash, params.arbitrationFeeCategory, BigInt(params.arbitrationFee)),
+    constructSettlementOutput(params.buyerPkHash, params.amountCategory, BigInt(params.amount), chipnet),
+    constructSettlementOutput(params.buyerPkHash, params.serviceFeeCategory, BigInt(params.serviceFee), chipnet),
+    constructSettlementOutput(params.buyerPkHash, params.arbitrationFeeCategory, BigInt(params.arbitrationFee), chipnet),
   ]
 
   if (params.deliveryFee) {
     const deliveryFeeOutput = constructSettlementOutput(
-      params.buyerPkHash, params.deliveryFeeCategory, BigInt(params.deliveryFee)
+      params.buyerPkHash, params.deliveryFeeCategory, BigInt(params.deliveryFee), chipnet
     )
     outputs.push(deliveryFeeOutput)
   }
@@ -170,11 +172,12 @@ export function createEscrowRefundOutputsV3(escrow) {
  * @param {String} pkhash 
  * @param {String} category 
  * @param {BigInt} amount 
+ * @param {Boolean} chipnet
  * @param {BigInt} [dust=1000n]
  * @returns {import("cashscript").Output}
  */
-function constructSettlementOutput(pkhash, category, amount, dust=1000n) {
-  const address = pkhashToCashAddress(pkhash)
+function constructSettlementOutput(pkhash, category, amount, chipnet, dust=1000n) {
+  const address = pkhashToCashAddress(pkhash, chipnet)
   const tokenAddress = toTokenAddress(address)
   if (category) {
     return { to: tokenAddress, amount: dust, token: { category, amount } }

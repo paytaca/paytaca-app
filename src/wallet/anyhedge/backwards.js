@@ -9,9 +9,8 @@
 import { binToHex, hexToBin } from '@bitauth/libauth';
 import { castContractDataV1toContractDataV2 } from '@generalprotocols/anyhedge';
 import { UnsupportedAnyHedgeArtifacts } from '@generalprotocols/anyhedge-contracts';
-import { estimatePayoutTransactionFee } from '@generalprotocols/anyhedge/build/lib/util/anyhedge-util.js';
 import { OracleData } from '@generalprotocols/price-oracle';
-import { Contract } from 'cashscript';
+import { Contract, TransactionBuilder } from 'cashscript';
 import { addressToLockScript } from 'cashscript/dist/utils';
 
 const SATS_PER_BCH = 100_000_000;
@@ -162,6 +161,34 @@ export async function createUnsupportedContract(contractCreationParameters, cont
 }
 
 /**
+ * Adjusted from @generalprotocols/anyhedge@2.0.2's estimatePayoutTransactionFee,
+ * which builds the payout with the CashScript 0.9 contract.functions API
+ *
+ * @param {Contract} contract 
+ * @param {import('@generalprotocols/anyhedge').ContractParametersV2} contractParameters 
+ * @param {Number} feeRate 
+ * @returns {Promise<BigInt>}
+ */
+async function estimatePayoutTransactionFee(contract, contractParameters, feeRate = 1.0) {
+  const placeholderOracleMessage = binToHex(await OracleData.createPriceMessage(1, 1, 1, 1));
+  const placeholderOracleSignature = '00'.repeat(64);
+  const placeholderInput = { txid: '00'.repeat(32), vout: 0, satoshis: 10n * BigInt(SATS_PER_BCH) };
+  const placeholderPayoutSats = 4n * BigInt(SATS_PER_BCH);
+  const unlocker = contract.unlock.payout(
+    placeholderOracleMessage, placeholderOracleSignature, placeholderOracleMessage, placeholderOracleSignature,
+  );
+
+  const transactionSize = new TransactionBuilder({ provider: contract.provider })
+    .addInput(placeholderInput, unlocker)
+    .addOutput({ to: hexToBin(contractParameters.shortLockScript), amount: placeholderPayoutSats })
+    .addOutput({ to: hexToBin(contractParameters.longLockScript), amount: placeholderPayoutSats })
+    .setLocktime(800000)
+    .getTransactionSize();
+
+  return BigInt(Math.ceil(Number(transactionSize) * feeRate));
+}
+
+/**
  * 
  * @param {import('@generalprotocols/anyhedge').ContractParametersV2} contractParameters 
  * @param {String} contractVersion 
@@ -171,9 +198,9 @@ export function compileUnsupportedContract(contractParameters, contractVersion, 
   const artifact = UnsupportedAnyHedgeArtifacts[contractVersion];
   const parameters = flattenContractParameters(contractParameters, contractVersion);
 
-  let addressType = 'p2sh32';
-  if (contractVersion === Anyhedge_V11) addressType = 'p2sh20';
-  const contractOptions = { provider, addressType };
+  let contractType = 'p2sh32';
+  if (contractVersion === Anyhedge_V11) contractType = 'p2sh20';
+  const contractOptions = { provider, contractType };
 
   const contract = new Contract(artifact, parameters, contractOptions);
   return contract;

@@ -529,7 +529,7 @@ async function settleEscrowContract(escrowContract=EscrowContract.parse(), opts=
 
 /**
  * @param {EscrowContract} escrowContract 
- * @param {import('cashscript').Transaction} transaction 
+ * @param {import('cashscript').TransactionBuilder} transaction 
  */
 async function sendSettlementTx(escrowContract, transaction) {
   const dialog = $q.dialog({

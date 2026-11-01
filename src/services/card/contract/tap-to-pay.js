@@ -267,7 +267,7 @@ export class TapToPayV1 extends TapToPay {
             contractCreationParams.category
         ];
 
-        const contract = new Contract(artifact, contractParams)
+        const contract = new Contract(artifact, contractParams, { provider: new ElectrumNetworkProvider() })
         return contract;
     } 
 
@@ -608,7 +608,7 @@ export class TapToPayV2 extends TapToPay {
         ];
         // cardLogger.log('contractParams:', contractParams)
 
-        const contract = new Contract(artifactV2, contractParams)
+        const contract = new Contract(artifactV2, contractParams, { provider: new ElectrumNetworkProvider() })
         return contract;
     }
 

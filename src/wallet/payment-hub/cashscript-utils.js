@@ -1,5 +1,5 @@
 import { decodeCashAddress, hexToBin, isHex } from '@bitauth/libauth'
-import { Contract, ElectrumNetworkProvider } from 'cashscript13'
+import { Contract, ElectrumNetworkProvider } from 'cashscript'
 
 export function getPkhash(addr) {
   if (/^[0-9a-fA-F]{40}$/.test(addr)) {
@@ -14,7 +14,7 @@ export function getPkhash(addr) {
 
 /**
  * @param {Object} sub 
- * @param {import('cashscript13').Artifact} artifactObj 
+ * @param {import('cashscript').Artifact} artifactObj 
  */
 export function getSubscriptionContractInstance(sub, artifactObj, isChipnet) {
   const provider = new ElectrumNetworkProvider(isChipnet ? 'chipnet' : 'mainnet')
@@ -52,7 +52,7 @@ export function getSubscriptionContractInstance(sub, artifactObj, isChipnet) {
 
 
 /**
- * @returns {import('cashscript13').Utxo}
+ * @returns {import('cashscript').Utxo}
  */
 export function formatKitInput(inputData) {
   const input = {
@@ -72,7 +72,7 @@ export function formatKitInput(inputData) {
 
 /**
  * 
- * @returns {import('cashscript13').Output}
+ * @returns {import('cashscript').Output}
  */
 export function formatKitOutput(outputData) {
   const output = {

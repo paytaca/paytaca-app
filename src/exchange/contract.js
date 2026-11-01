@@ -1,5 +1,8 @@
 import EscrowArtifact from 'src/cashscripts/escrow.json'
 import { ElectrumNetworkProvider, Contract, SignatureTemplate } from 'cashscript'
+import { utxoComparator } from 'cashscript/dist/utils'
+import { createContractTransaction } from 'src/utils/cashscript-utils'
+import { toNetworkAddress } from 'src/utils/crypto'
 import { Store } from 'src/store'
 import { hash160 } from 'bitauth-libauth-v3'
 import { sha256 } from 'js-sha256'
@@ -185,11 +188,10 @@ export class RampContract {
         { to: this.addresses.arbiter, amount: BigInt(parseInt(this.fees.arbitrationFee)) }
       ]
 
-      const txHex = await this.contract.functions
-        .release(callerPubkey, callerSig, this.hash)
-        .to(outputs)
-        .withHardcodedFee(BigInt(parseInt(this.fees.contractFee)))
-        .build()
+      const txHex = await this.buildTransaction(
+        this.contract.unlock.release(callerPubkey, callerSig, this.hash),
+        outputs
+      )
 
       txInfo = await this.broadcastTransaction(txHex)
 
@@ -237,11 +239,10 @@ export class RampContract {
         { to: this.addresses.arbiter, amount: BigInt(parseInt(this.fees.arbitrationFee)) }
       ]
 
-      const txHex = await this.contract.functions
-        .refund(this.publicKeys.arbiter, arbiterSig, this.hash)
-        .to(outputs)
-        .withHardcodedFee(BigInt(parseInt(this.fees.contractFee)))
-        .build()
+      const txHex = await this.buildTransaction(
+        this.contract.unlock.refund(this.publicKeys.arbiter, arbiterSig, this.hash),
+        outputs
+      )
       
       txInfo = await this.broadcastTransaction(txHex)
 
@@ -257,6 +258,36 @@ export class RampContract {
       }
     }
     return result
+  }
+
+  /**
+   * Builds the transaction spending the contract's largest BCH UTXOs until they cover
+   * the outputs and the contract fee, with any change above dust back to the contract.
+   * @param {import('cashscript').ContractUnlocker} unlocker - The contract function to unlock the UTXOs with.
+   * @param {import('cashscript').Output[]} outputs - The outputs of the transaction.
+   * @returns {Promise<string>} The transaction hex.
+   */
+  async buildTransaction (unlocker, outputs) {
+    outputs = outputs.map(output => ({ ...output, to: toNetworkAddress(output.to, this.network === 'chipnet') }))
+    const fee = BigInt(parseInt(this.fees.contractFee))
+    const amount = outputs.reduce((total, output) => total + output.amount, 0n)
+    const utxos = (await this.contract.getUtxos())
+      .filter(utxo => !utxo.token)
+      .sort(utxoComparator)
+      .reverse()
+
+    const inputs = []
+    let satsAvailable = 0n
+    for (const utxo of utxos) {
+      if (satsAvailable > amount + fee) break
+      inputs.push(utxo)
+      satsAvailable += utxo.satoshis
+    }
+
+    const locktime = await this.contract.provider.getBlockHeight()
+    return createContractTransaction({
+      contract: this.contract, unlocker, inputs, outputs, locktime, hardcodedFee: fee
+    }).build()
   }
 
   async broadcastTransaction (txHex, priceId) {

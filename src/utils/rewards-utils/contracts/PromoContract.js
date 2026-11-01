@@ -120,13 +120,13 @@ export default class PromoContract {
       }
 
       // compute fee
-      const tx = this.contract.functions.send(
+      const unlocker = this.contract.unlock.send(
         new SignatureTemplate(userWif),
         this.promo,
         convertToBytes32(rewardsSwapContractBytecode, false)
       )
       // +1 in outputs length for bch change output
-      payload.fee = computeContractFee(tx, outputs, inputs.length, outputs.length + 1, 1.5) + 1000n
+      payload.fee = computeContractFee(unlocker, outputs, inputs.length, outputs.length + 1, 1.5) + 1000n
 
       // insert bch change outputs to outputs[1]
       // (token change output is now in outputs[2] if existing)
@@ -137,14 +137,7 @@ export default class PromoContract {
 
       // build and broadcast transaction
       const txHex = new TransactionBuilder({ provider: this.provider })
-        .addInputs(
-          inputs,
-          this.contract.unlock.send(
-            new SignatureTemplate(userWif),
-            this.promo,
-            convertToBytes32(rewardsSwapContractBytecode, false)
-          )
-        )
+        .addInputs(inputs, unlocker)
         .addOutputs(outputs)
         .build()
   

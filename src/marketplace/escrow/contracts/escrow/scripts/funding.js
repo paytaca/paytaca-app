@@ -72,6 +72,6 @@ export function getSettlementInputSize(contract, timestamp) {
   const pubkeyPlaceholder = new Uint8Array(33).fill(0xff);
   const signaturePlaceholder = new Uint8Array(65).fill(0xff);
   return calculateInputSize(
-    contract.functions.settlement(pubkeyPlaceholder, signaturePlaceholder, timestampParam, true)
+    contract.unlock.settlement(pubkeyPlaceholder, signaturePlaceholder, timestampParam, true)
   );
 }

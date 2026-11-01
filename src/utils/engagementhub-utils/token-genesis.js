@@ -42,18 +42,19 @@ export async function sendNftGenesis({
       nft: { capability: 'mutable', commitment },
     },
   }
-  const buildTransaction = (inputs, change) => {
+  const createTransaction = (inputs, change) => {
     const transaction = new TransactionBuilder({ provider })
       .addInputs(inputs, signatureTemplate.unlockP2PKH())
       .addOutput(tokenOutput)
     if (change !== undefined) transaction.addOutput({ to: address, amount: change })
-    return transaction.build()
+    return transaction
   }
+  const buildTransaction = (inputs, change) => createTransaction(inputs, change).build()
 
   // Signatures are fixed-size, so the sizes for more inputs follow from the one-input transaction
   const sizeOf = transactionHex => BigInt(transactionHex.length / 2)
-  const baseSizeWithChange = sizeOf(buildTransaction([genesisInput], DUST_THRESHOLD))
-  const baseSizeWithoutChange = sizeOf(buildTransaction([genesisInput]))
+  const baseSizeWithChange = createTransaction([genesisInput], DUST_THRESHOLD).getTransactionSize()
+  const baseSizeWithoutChange = createTransaction([genesisInput]).getTransactionSize()
 
   const inputs = [genesisInput]
   let inputTotal = genesisInput.satoshis
