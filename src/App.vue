@@ -587,50 +587,42 @@ export default {
 
         const isChipnet = true
 
-        // save BCH_CHIP
-        await bchChipWallet.getNewAddressSet(0).then(function ({ addresses }) {
+        // Derive addresses locally; a watchtower hiccup must not block app start.
+        const chipnetWallets = [
+          { wallet: bchChipWallet, type: 'bch' },
+          { wallet: slpChipWallet, type: 'slp' },
+        ]
+
+        for (const { wallet: chipWallet, type } of chipnetWallets) {
+          const addresses = await chipWallet.getAddressSetAt(0)
           vm.$store.commit('global/updateWallet', {
             isChipnet,
-            type: 'bch',
-            walletHash: bchChipWallet.walletHash,
-            derivationPath: bchChipWallet.derivationPath,
-            lastAddress: addresses !== null ? addresses.receiving : '',
-            lastChangeAddress: addresses !== null ? addresses.change : '',
+            type,
+            walletHash: chipWallet.walletHash,
+            derivationPath: chipWallet.derivationPath,
+            lastAddress: addresses.receiving,
+            lastChangeAddress: addresses.change,
             lastAddressIndex: 0,
           })
-          try {
-            vm.$store.dispatch('global/refetchWalletPreferences')
-          } catch(error) { console.error(error) }
-        })
+          if (type === 'bch') {
+            try {
+              vm.$store.dispatch('global/refetchWalletPreferences')
+            } catch(error) { console.error(error) }
+          }
 
-        bchChipWallet.getXPubKey().then(function (xpub) {
           vm.$store.commit('global/updateXPubKey', {
             isChipnet,
-            type: 'bch',
-            xPubKey: xpub
+            type,
+            xPubKey: await chipWallet.getXPubKey()
           })
-        })
+        }
 
-        // save SLP_CHIP
-        slpChipWallet.getNewAddressSet(0).then(function (addresses) {
-          vm.$store.commit('global/updateWallet', {
-            isChipnet,
-            type: 'slp',
-            walletHash: slpChipWallet.walletHash,
-            derivationPath: slpChipWallet.derivationPath,
-            lastAddress: addresses !== null ? addresses.receiving : '',
-            lastChangeAddress: addresses !== null ? addresses.change : '',
-            lastAddressIndex: 0
+        // Best-effort address registration; failures only cost notifications.
+        await Promise.all(chipnetWallets.map(({ wallet: chipWallet }) =>
+          chipWallet.getNewAddressSet(0).catch(error => {
+            console.warn('[Chipnet] Address subscription failed:', error)
           })
-        })
-
-        slpChipWallet.getXPubKey().then(function (xpub) {
-          vm.$store.commit('global/updateXPubKey', {
-            isChipnet,
-            type: 'slp',
-            xPubKey: xpub
-          })
-        })
+        ))
       }
     },
     maybeShowJoinRewardsDialog () {
