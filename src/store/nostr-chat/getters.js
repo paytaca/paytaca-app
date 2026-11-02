@@ -76,13 +76,38 @@ export function getActiveStatusMap (state) {
 
 // ---- Per-wallet room getters ----
 
+// Newest stored message timestamp for a room, clamped to now. NIP-17
+// randomizes created_at by up to 2 days, so a future-dated message could
+// otherwise pin its room to the top forever.
+function newestMessageActivity (ws, roomId) {
+  const messages = ws.messages?.[roomId]
+  if (!Array.isArray(messages) || !messages.length) return 0
+  const newest = messages[messages.length - 1]
+  const createdAt = newest?.created_at || 0
+  const now = Math.floor(Date.now() / 1000)
+  return createdAt > now ? now : createdAt
+}
+
 // Last activity time used for chat-list ordering. Falls back through
 // updatedAt/createdAt because lastMessageAt is often missing entirely (server
 // touch failures, rooms whose messages were never received while open) — those
 // rooms would otherwise all sort as 0 below every other chat in arbitrary
 // insertion order.
-function roomLastActivity (room) {
-  return room?.lastMessageAt || room?.updatedAt || room?.createdAt || 0
+//
+// The stored message timestamps are part of the max: lastMessageAt is only set
+// on the live send/receive path, so a room that gained messages while its
+// notification was handled elsewhere (offline catch-up, backfill, unknown-room
+// path where the room object did not exist yet) keeps a stale lastMessageAt
+// while already showing a new message and unread badge — it stayed parked in
+// its old list position. Unread counts and ordering now both derive from the
+// same stored messages, so they cannot disagree.
+function roomLastActivity (ws, room) {
+  return Math.max(
+    room?.lastMessageAt || 0,
+    newestMessageActivity(ws, room?.id),
+    room?.updatedAt || 0,
+    room?.createdAt || 0,
+  )
 }
 
 export function getRooms (state) {
@@ -91,7 +116,7 @@ export function getRooms (state) {
   if (!myPubKey) return []
   return (ws.rooms || [])
     .filter(r => r.members?.includes(myPubKey) && !r.archived)
-    .sort((a, b) => roomLastActivity(b) - roomLastActivity(a))
+    .sort((a, b) => roomLastActivity(ws, b) - roomLastActivity(ws, a))
 }
 
 export function getArchivedRooms (state) {
@@ -100,7 +125,7 @@ export function getArchivedRooms (state) {
   if (!myPubKey) return []
   return (ws.rooms || [])
     .filter(r => r.members?.includes(myPubKey) && r.archived)
-    .sort((a, b) => roomLastActivity(b) - roomLastActivity(a))
+    .sort((a, b) => roomLastActivity(ws, b) - roomLastActivity(ws, a))
 }
 
 export function getRoom (state) {
