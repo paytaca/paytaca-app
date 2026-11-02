@@ -29,7 +29,7 @@
 <script>
 import { updateCssThemeColors } from './utils/theme-utils'
 import { getDarkModeClass } from './utils/theme-darkmode-utils'
-import { getMnemonic, Wallet, loadWallet } from './wallet'
+import { getMnemonic, Wallet } from './wallet'
 import { getWalletByNetwork } from 'src/wallet/chipnet'
 import { useStore } from "vuex"
 import { is, useQuasar } from 'quasar'
@@ -465,12 +465,12 @@ export default {
     },
     async subscribePushNotifications() {
       if (this.subscribedPushNotifications) return
-      const multiWalletIndex = this.$store.getters['global/getWalletIndex']
-      const wallet = await loadWallet('BCH', multiWalletIndex)
-      const walletHashes = [
-        getWalletByNetwork(wallet, 'bch').getWalletHash(),
-        getWalletByNetwork(wallet, 'slp').getWalletHash()
-      ]
+      const walletHashes = this.$store.getters['global/getSubscribedWalletHashes']
+
+      // Never subscribe (or prune) from an empty wallet list: the vault may not
+      // be hydrated yet, and treating that as "this device has no wallets"
+      // would unlink every subscription it has.
+      if (!walletHashes.length) return
 
       if (this.$pushNotifications.canRequestPermission) {
         await this.$pushNotifications.isPushNotificationEnabled().catch(console.log)
@@ -483,7 +483,9 @@ export default {
       }
 
       this.$pushNotifications.watchtower = new Watchtower(this.$store.state.global.isChipnet)
-      await this.$pushNotifications.subscribe(walletHashes, multiWalletIndex)
+      // The list covers every wallet in the vault, so the backend may treat it
+      // as this device's complete set and unlink any stale subscriptions.
+      await this.$pushNotifications.subscribe(walletHashes, false, true)
       this.subscribedPushNotifications = true
     },
     async resubscribeBCHAddresses(mnemonic) {
