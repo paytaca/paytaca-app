@@ -318,8 +318,13 @@ class PushNotificationsManager {
   /**
    * @param {String[]} walletHashes
    * @param {Boolean} isCreateOrImport
+   * @param {Boolean} pruneUnlisted - Treat `walletHashes` as this device's
+   *   complete subscription set and unlink every wallet not listed. Only pass
+   *   true when the caller really is sending every wallet the user has; the
+   *   default keeps subscribing additive so a partial list cannot silently
+   *   unsubscribe the user's other wallets.
    */
-  async subscribe(walletHashes, isCreateOrImport = false) {
+  async subscribe(walletHashes, isCreateOrImport = false, pruneUnlisted = false) {
     if (!this.deviceId) await this.fetchDeviceId()
     if (!this.registrationToken) await this.fetchRegistrationToken()
 
@@ -341,6 +346,7 @@ class PushNotificationsManager {
       gcm_device: undefined,
       apns_device: undefined,
     }
+    if (pruneUnlisted && walletHashes?.length) data.prune_unlisted = true
     const deviceInfo = {
       registration_id: this.registrationToken,
       device_id: this.deviceId,

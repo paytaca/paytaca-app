@@ -519,9 +519,7 @@ async function recoverWallet(index, save=false, previousActiveWallet=null) {
 
     // const walletHashes = [
     //     wallet.BCH.walletHash,
-    //     wallet.BCH_CHIP.walletHash,
     //     wallet.SLP.walletHash,
-    //     wallet.SLP_TEST.walletHash,
     // ]
     // $pushNotifications?.subscribe?.(walletHashes, true)
 

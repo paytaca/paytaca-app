@@ -1568,11 +1568,10 @@ export default {
         walletInfo,
         xpubKeysInfo,
         walletHash: wallet.BCH.walletHash,
+        // Chipnet wallets share the hash of their mainnet counterpart.
         walletHashes: [
           wallet.BCH.walletHash,
-          wallet.BCH_CHIP.walletHash,
           wallet.SLP.walletHash,
-          wallet.SLP_TEST.walletHash,
         ],
       }
     },
@@ -2359,12 +2358,14 @@ export default {
       ))
 
 
+      // BCH_CHIP/SLP_TEST report the same hash as their mainnet counterparts
+      // (the hash has no network component), so list each wallet once.
       const walletHashes = [
         wallet.BCH.walletHash,
-        wallet.BCH_CHIP.walletHash,
         wallet.SLP.walletHash,
-        wallet.SLP_TEST.walletHash,
       ]
+      // Additive on purpose: the new wallet is not in the vault yet, so this
+      // list is not the device's complete set and must not prune anything.
       this.$pushNotifications?.subscribe?.(walletHashes, true)
       this.newWalletHash = wallet.BCH.walletHash
       
