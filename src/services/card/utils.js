@@ -1,4 +1,5 @@
-import crypto from 'crypto'
+import { sha256 as sha256Hash } from '@noble/hashes/sha2.js'
+import { bytesToHex } from '@noble/hashes/utils.js'
 import {
   ripemd160,
   binToHex,
@@ -33,9 +34,7 @@ export async function convertTimeToBlock(timestamp) {
 }
 
 export function sha256(data='', encoding='utf8') {
-  const _sha256 = crypto.createHash('sha256')
-  _sha256.update(Buffer.from(data, encoding))
-  return _sha256.digest().toString('hex')
+  return bytesToHex(sha256Hash(Buffer.from(data, encoding)))
 }
 
 export function pubkeyToPkHash(pubkey='') {

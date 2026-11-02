@@ -4,7 +4,8 @@ import { Dialog } from 'quasar'
 import { i18n } from 'src/boot/i18n'
 import { Address } from 'src/wallet'
 import { JSONPaymentProtocol } from 'src/wallet/payment-uri'
-import crypto from 'crypto'
+import { sha224 as sha224Hash } from '@noble/hashes/sha2.js'
+import { bytesToHex } from '@noble/hashes/utils.js'
 import { Buffer } from 'buffer'
 import axios from 'axios'
 import { isValidTokenAddress, getWatchtowerApiUrl } from 'src/wallet/chipnet'
@@ -500,7 +501,7 @@ export async function addressBelongsToWallet (address, walletHashHex, isChipnet)
     const apiDigest = data?.wallet_digest
     if (!apiDigest) return false
     const walletHashBuffer = Buffer.from(walletHashHex, 'hex')
-    const ourDigest = crypto.createHash('sha224').update(walletHashBuffer).digest('hex')
+    const ourDigest = bytesToHex(sha224Hash(walletHashBuffer))
     return ourDigest.toLowerCase() === String(apiDigest).toLowerCase()
   } catch {
     return false

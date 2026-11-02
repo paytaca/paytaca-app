@@ -1,4 +1,4 @@
-import crypto from 'crypto'
+import { sha256 as sha256Hash } from '@noble/hashes/sha2.js'
 import { backend } from "../backend"
 import { secp256k1 } from '@noble/curves/secp256k1.js'
 import { bytesToHex, hexToBytes } from '@noble/hashes/utils.js'
@@ -95,7 +95,5 @@ export function privToPub(priv) {
  * @returns {String}
  */
 export function sha256(data) {
-  const _sha256 = crypto.createHash('sha256')
-  _sha256.update(Buffer.from(data, 'utf8'))
-  return _sha256.digest().toString('hex')
+  return bytesToHex(sha256Hash(Buffer.from(data, 'utf8')))
 }
