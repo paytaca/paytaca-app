@@ -316,11 +316,10 @@ class PushNotificationsManager {
   }
 
   /**
-   * @param {String[]} walletHashes 
-   * @param {Number} [multiWalletIndex]
+   * @param {String[]} walletHashes
    * @param {Boolean} isCreateOrImport
    */
-  async subscribe(walletHashes, multiWalletIndex, isCreateOrImport = false) {
+  async subscribe(walletHashes, isCreateOrImport = false) {
     if (!this.deviceId) await this.fetchDeviceId()
     if (!this.registrationToken) await this.fetchRegistrationToken()
 
@@ -339,7 +338,6 @@ class PushNotificationsManager {
 
     const data = {
       wallet_hashes: walletHashes,
-      multi_wallet_index: multiWalletIndex,
       gcm_device: undefined,
       apns_device: undefined,
     }

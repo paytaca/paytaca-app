@@ -523,7 +523,7 @@ async function recoverWallet(index, save=false, previousActiveWallet=null) {
     //     wallet.SLP.walletHash,
     //     wallet.SLP_TEST.walletHash,
     // ]
-    // $pushNotifications?.subscribe?.(walletHashes, walletIndex, true)
+    // $pushNotifications?.subscribe?.(walletHashes, true)
 
     resetAssetsList(index)
 

@@ -1448,7 +1448,7 @@ export default {
           this.newWalletSnapshot.walletInfo = restoreData.walletInfo
           this.newWalletSnapshot.xpubKeysInfo = restoreData.xpubKeysInfo
           this.newWalletHash = restoreData.walletHash
-          this.$pushNotifications?.subscribe?.(restoreData.walletHashes, this.walletIndex, true)
+          this.$pushNotifications?.subscribe?.(restoreData.walletHashes, true)
           // Initialize vault entry so settings can be saved during step 3
           // This must be done before navigation to ensure vault entry exists
           this.initializeVaultEntryForRestore()
@@ -2365,7 +2365,7 @@ export default {
         wallet.SLP.walletHash,
         wallet.SLP_TEST.walletHash,
       ]
-      this.$pushNotifications?.subscribe?.(walletHashes, this.walletIndex, true)
+      this.$pushNotifications?.subscribe?.(walletHashes, true)
       this.newWalletHash = wallet.BCH.walletHash
       
       // Mark wallet creation as complete
