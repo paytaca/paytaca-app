@@ -1,6 +1,6 @@
-import crypto from 'crypto'
 import { secp256k1 } from '@noble/curves/secp256k1.js'
-import { bytesToHex, hexToBytes } from '@noble/hashes/utils.js'
+import { bytesToHex, hexToBytes, randomBytes } from '@noble/hashes/utils.js'
+import { gcm } from '@noble/ciphers/aes.js'
 
 /**
  * Encrypt data with a public key using ECIES (Elliptic Curve Integrated Encryption Scheme)
@@ -20,7 +20,7 @@ export function encryptWithPublicKey(data, recipientPubkey) {
     throw new Error('Recipient public key must be a 66-char hex string')
   }
 
-  const ephemeralPrivkey = crypto.randomBytes(32)
+  const ephemeralPrivkey = randomBytes(32)
   const ephemeralPubkey = secp256k1.getPublicKey(ephemeralPrivkey)
   
   const recipientPubBytes = hexToBytes(recipientPubkey)
@@ -28,14 +28,11 @@ export function encryptWithPublicKey(data, recipientPubkey) {
   const sharedSecret = sharedPoint.slice(1, 33) // Use X coordinate (32 bytes)
 
   // Use a random IV with AES-256-GCM for authenticated encryption (IND-CCA2 secure)
-  const iv = crypto.randomBytes(12) // 96-bit IV recommended for GCM
+  const iv = randomBytes(12) // 96-bit IV recommended for GCM
 
-  const cipher = crypto.createCipheriv('aes-256-gcm', Buffer.from(sharedSecret), iv)
-  const ciphertext = Buffer.concat([
-    cipher.update(Buffer.from(plaintext, 'utf8')),
-    cipher.final()
-  ])
-  const authTag = cipher.getAuthTag() // 16-byte GCM authentication tag
+  const sealed = gcm(sharedSecret, iv).encrypt(Buffer.from(plaintext, 'utf8'))
+  const ciphertext = sealed.subarray(0, sealed.length - 16)
+  const authTag = sealed.subarray(sealed.length - 16) // 16-byte GCM authentication tag
 
   // Encode as iv (12) + authTag (16) + ciphertext, all base64
   const combined = Buffer.concat([iv, authTag, ciphertext])

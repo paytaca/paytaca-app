@@ -2,7 +2,7 @@ import { Capacitor } from '@capacitor/core'
 import { SecureStoragePlugin } from 'capacitor-secure-storage-plugin'
 import { computeWalletHash, isSecureStorageDecryptError } from './index'
 import { isWebPlatform } from './secure-storage-migration'
-import aes256 from 'aes256'
+import { aes256Decrypt } from '../utils/crypto'
 
 const MIGRATION_FLAG_KEY = 'mnemonic_migration_completed'
 
@@ -44,7 +44,7 @@ async function readLegacyMnemonicAt (index) {
 
   if (secretKey.value) {
     try {
-      return { mnemonic: aes256.decrypt(secretKey.value, stored.value), oldKey }
+      return { mnemonic: aes256Decrypt(secretKey.value, stored.value), oldKey }
     } catch {
       // The value is already plaintext (written after the aes256 layout).
     }

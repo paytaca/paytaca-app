@@ -1,5 +1,6 @@
 import { decodePrivateKeyWif, binToHex, secp256k1, utf8ToBin, sha256 } from '@bitauth/libauth'
-import * as crypto from 'crypto'
+import { cbc } from '@noble/ciphers/aes.js'
+import { randomBytes } from '@noble/hashes/utils.js'
 import axios from 'axios'
 import { SecureStoragePlugin } from 'capacitor-secure-storage-plugin'
 
@@ -361,8 +362,8 @@ export function summarizeSalesReports(reports) {
 export const aes = {
   generateKey() {
     return {
-      password: crypto.randomBytes(16).toString('hex'),
-      iv: crypto.randomBytes(8).toString('hex'),
+      password: binToHex(randomBytes(16)),
+      iv: binToHex(randomBytes(8)),
     }
   },
   encrypt(data, password, iv) {
@@ -370,10 +371,8 @@ export const aes = {
     const bytes = Buffer.from(data)
     let encrypted = ''
     for (var i = 0; i < bytes.length; i += CHUNK_SIZE) {
-      const chunk = bytes.toString('hex', i, i+CHUNK_SIZE)
-      const cipheriv = crypto.createCipheriv('aes-256-cbc', password, iv)
-      cipheriv.update(chunk, 'hex', 'hex')
-      encrypted += cipheriv.final('hex')
+      const chunk = bytes.subarray(i, i+CHUNK_SIZE)
+      encrypted += binToHex(cbc(utf8ToBin(password), utf8ToBin(iv)).encrypt(chunk))
     }
     return encrypted
   },
@@ -383,9 +382,8 @@ export const aes = {
     let decryptedData = ''
     for(var i = 0; i < encryptedData.length; i += CHUNK_SIZE) {
       const chunk = encryptedData.substring(i, i + CHUNK_SIZE)
-      const decipheriv = crypto.createDecipheriv('aes-256-cbc', password, iv)
-      decipheriv.update(chunk, 'hex', 'utf8')
-      decryptedData += decipheriv.final('utf8')
+      const decrypted = cbc(utf8ToBin(password), utf8ToBin(iv)).decrypt(Buffer.from(chunk, 'hex'))
+      decryptedData += Buffer.from(decrypted).toString('utf8')
     }
     return decryptedData
   }
