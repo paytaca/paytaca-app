@@ -76,10 +76,8 @@ const RAW_TX_TIMEOUT = 15000
  */
 export function derivePublicKeyFromXpub (xpub, relativePath) {
   const decoded = decodeHdPublicKey(xpub)
-  console.log('@decoded', decoded, xpub, relativePath)
   if (typeof decoded === 'string') throw new Error(decoded)
   const childNode = deriveHdPathRelative(decoded.node, relativePath)
-  console.log('@childnoded', childNode)
   return childNode.publicKey
 }
 
@@ -776,7 +774,6 @@ export default class ReadOnlyWallet {
     if (!sourceUtxos.length) throw new Error('Insufficient Balance')
 
     let selectedUtxos = await this.selectProposalUtxos(recipients, transactionType, sourceUtxos)
-    console.log('@selectedUtxos', selectedUtxos)
 
     let outputs = this.recipientsToTransactionOutputs(recipients)
 
