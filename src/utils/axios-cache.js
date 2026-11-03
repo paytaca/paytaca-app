@@ -8,6 +8,8 @@ function toPlainValue (value) {
   return value
 }
 
+// axios 0.32+ merges params and data into null-prototype objects, which the
+// default key generator hashes to the same key whatever their contents.
 export function generateCacheKey (request) {
   return defaultKeyGenerator({
     ...request,
@@ -16,6 +18,21 @@ export function generateCacheKey (request) {
   })
 }
 
+// Cache keys don't include headers, so never store a response to an
+// authenticated request where another request could be served it.
+// A caller passing its own cachePredicate replaces this guard.
+const AUTH_HEADERS = ['authorization', 'x-paytaca-customer']
+
+export const cachePredicate = {
+  statusCheck: (status) => status >= 200 && status < 400,
+  responseMatch: ({ config }) => !Object.entries(config?.headers || {})
+    .some(([name, value]) => value && AUTH_HEADERS.includes(name.toLowerCase())),
+}
+
 export function setupCache (instance, options) {
-  return setupAxiosCache(instance, { generateKey: generateCacheKey, ...options })
+  return setupAxiosCache(instance, {
+    cachePredicate,
+    ...options,
+    generateKey: options?.generateKey || generateCacheKey,
+  })
 }
