@@ -103,6 +103,102 @@
         </q-card-section>
       </q-card>
 
+      <q-card
+        v-if="!pointsError"
+        class="q-mb-lg balance-thresholds-card"
+        :class="getDarkModeClass(darkMode)"
+        flat
+      >
+        <q-card-section class="q-py-md">
+          <div class="text-subtitle1 text-weight-bold">Balance thresholds this month</div>
+          <div class="text-caption text-bow-muted q-mt-xs">
+            Keep these balances to keep earning cashback.
+          </div>
+
+          <template v-if="thresholdsLoading">
+            <div class="q-mt-md">
+              <q-skeleton type="text" width="45%" height="14px" class="q-mb-xs" />
+              <q-skeleton type="text" width="70%" height="12px" />
+            </div>
+            <div class="q-mt-md">
+              <q-skeleton type="text" width="45%" height="14px" class="q-mb-xs" />
+              <q-skeleton type="text" width="70%" height="12px" />
+            </div>
+          </template>
+
+          <error-card
+            v-else-if="thresholdsError"
+            class="text-center q-mt-md"
+            :is-points-card="true"
+            :is-rewards-home-page="false"
+            error-text="Unable to load balance thresholds."
+            @on-retry="loadThresholds()"
+          />
+
+          <template v-else>
+            <div class="q-mt-md">
+              <div class="row items-center justify-between no-wrap">
+                <span class="text-caption">
+                  <span
+                    v-if="liftRequirement?.met"
+                    class="text-positive"
+                    role="img"
+                    aria-label="Met"
+                  >✓&nbsp;</span>LIFT balance
+                </span>
+                <span class="text-caption text-weight-medium">
+                  {{ parseLiftToken(liftThreshold) }}
+                </span>
+              </div>
+              <template v-if="liftRequirement && !liftRequirement.met">
+                <q-linear-progress
+                  :value="liftRequirement.progress"
+                  class="rounded-borders elite-progress q-mt-xs"
+                  size="6px"
+                  color="negative"
+                />
+                <div class="text-caption q-mt-xs">
+                  Your balance: {{ parseLiftToken(liftBalance) }} · {{ parseLiftToken(liftRequirement.shortfall) }} short
+                </div>
+              </template>
+            </div>
+
+            <div class="q-mt-md">
+              <div class="row items-center justify-between no-wrap">
+                <span class="text-caption">
+                  <span
+                    v-if="bchRequirement?.met"
+                    class="text-positive"
+                    role="img"
+                    aria-label="Met"
+                  >✓&nbsp;</span>BCH balance
+                </span>
+                <span class="text-caption text-weight-medium">
+                  {{ formatEliteFiat(bchThreshold) }}
+                </span>
+              </div>
+              <template v-if="bchRequirement && !bchRequirement.met">
+                <q-linear-progress
+                  :value="bchRequirement.progress"
+                  class="rounded-borders elite-progress q-mt-xs"
+                  size="6px"
+                  color="negative"
+                />
+                <div class="text-caption q-mt-xs">
+                  Your balance: {{ formatEliteFiat(bchBalance) }} · {{ formatEliteFiat(bchRequirement.shortfall) }} short
+                </div>
+              </template>
+              <div
+                v-else-if="isNonPhilippineCountry"
+                class="text-caption text-bow-muted q-mt-xs"
+              >
+                Set your country to the Philippines in Settings to compare.
+              </div>
+            </div>
+          </template>
+        </q-card-section>
+      </q-card>
+
       <div class="elite-map-cta q-mb-lg">
         <q-btn
           class="full-width elite-map-button elite-map-button--halo"
@@ -226,7 +322,9 @@
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 import { parseLiftToken } from 'src/utils/engagementhub-utils/shared'
 import { parseFiatCurrency, parseFiatCurrencyWrapper } from 'src/utils/denomination-utils'
-import { getEliteProgramSummaryData, EliteStatus, EliteStatusLabels } from 'src/utils/engagementhub-utils/rewards'
+import { getEliteProgramSummaryData, getAssetsThresholds, EliteStatus, EliteStatusLabels } from 'src/utils/engagementhub-utils/rewards'
+import { requirementState } from 'src/utils/engagementhub-utils/elite-requirements'
+import { LIFT_TOKEN_CATEGORY } from 'src/utils/subscription-utils'
 
 import HeaderNav from 'src/components/header-nav.vue'
 import ErrorCard from 'src/components/rewards/cards/ErrorCard.vue'
@@ -259,6 +357,10 @@ export default {
         monthlyCashback: 0
       },
       eliteId: -1,
+      bchThreshold: 0,
+      liftThreshold: 0,
+      thresholdsLoading: true,
+      thresholdsError: false,
       transactions: [],
       topups: []
     }
@@ -283,11 +385,44 @@ export default {
     },
     heroLoaded () {
       return !this.isLoading && !this.pointsError && !!this.eliteData
+    },
+    selectedCurrency () {
+      return this.$store.getters['market/selectedCurrency']
+    },
+    assets () {
+      return this.$store.getters['assets/getAssets'] || []
+    },
+    assetsLoaded () {
+      return this.assets.length > 0
+    },
+    liftBalance () {
+      if (!this.assetsLoaded) return null
+      const liftAsset = this.assets.find(asset => asset.id === `ct/${LIFT_TOKEN_CATEGORY}`)
+      return Number(liftAsset?.balance ?? 0)
+    },
+    bchBalance () {
+      if (!this.assetsLoaded) return null
+      const bchAsset = this.assets[0]
+      const rawPrice = this.$store.getters['market/getAssetPrice'](
+        bchAsset?.id ?? 'bch', this.selectedCurrency?.symbol
+      )
+      if (rawPrice === null || rawPrice === undefined || rawPrice === '') return null
+      const price = Number(rawPrice)
+      if (!Number.isFinite(price)) return null
+      return Number(bchAsset?.balance ?? 0) * price
+    },
+    liftRequirement () {
+      return requirementState(this.liftBalance, this.liftThreshold)
+    },
+    bchRequirement () {
+      if (this.isNonPhilippineCountry) return null
+      return requirementState(this.bchBalance, this.bchThreshold)
     }
   },
 
   async mounted () {
-    await this.loadData()
+    this.eliteId = Number(this.$route.params.id || -1)
+    await Promise.all([this.loadData(), this.loadThresholds()])
   },
 
   methods: {
@@ -309,6 +444,21 @@ export default {
         component: EliteMonthlyHistoryDialog,
         componentProps: { eliteId: this.eliteId }
       })
+    },
+
+    async loadThresholds () {
+      this.thresholdsLoading = true
+      this.thresholdsError = false
+      try {
+        const thresholds = await getAssetsThresholds(this.eliteId)
+        this.bchThreshold = thresholds.bch_min_threshold
+        this.liftThreshold = thresholds.lift_min_threshold
+      } catch (error) {
+        console.error('Error loading elite program thresholds: ', error)
+        this.thresholdsError = true
+      } finally {
+        this.thresholdsLoading = false
+      }
     },
 
     async loadData (append = false) {
@@ -342,7 +492,7 @@ export default {
     },
 
     async refreshData (done) {
-      await this.loadData()
+      await Promise.all([this.loadData(), this.loadThresholds()])
       if (done) done()
     }
   }
@@ -396,6 +546,17 @@ export default {
   display: flex;
   align-items: center;
   justify-content: center;
+}
+
+.balance-thresholds-card {
+  border-radius: 20px;
+  background: rgba(0, 0, 0, 0.03);
+  border: 1px solid rgba(0, 0, 0, 0.08);
+
+  &.dark {
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+  }
 }
 
 .elite-map-cta {
