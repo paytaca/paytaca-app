@@ -789,6 +789,84 @@ export async function fetchHistoricalMessages ({ state, dispatch, commit }) {
   }
 }
 
+// Push notifications are the first signal that a new Nostr event exists, but
+// the live relay subscription is often dead or suspended (backgrounded app,
+// relays dropping quiet sockets after ~30s) and `ensureSubscribed` is a no-op
+// inside its cooldowns. Pulling the newest gift-wraps directly gives the UI the
+// message in one relay round-trip instead of waiting for the subscription to
+// come back. Runs are collapsed (a second call returns the in-flight promise)
+// and throttled so a burst of events doesn't hammer the relay. Navigation and
+// resume paths pass `force` to always make the round-trip.
+const LATEST_MESSAGES_THROTTLE_MS = 1000
+// A message for a room we don't have locally is committed immediately but only
+// becomes visible once the room list includes it. The room sync that discovers
+// it is debounced by ~2s, so retry the room fetch after that instead of waiting
+// for the debounce to reach the same place.
+const LATEST_ROOM_RETRY_MS = 2500
+let _latestFetchPromise = null
+let _latestFetchAt = 0
+
+export async function fetchLatestMessages ({ state, dispatch }, { limit = 20, force = false } = {}) {
+  const ws = getWalletState(state)
+  if (!ws?.keys?.pubKeyHex || !ws.keys.privKeyHex) return
+
+  if (_latestFetchPromise) return _latestFetchPromise
+  if (!force && Date.now() - _latestFetchAt < LATEST_MESSAGES_THROTTLE_MS) return
+  _latestFetchAt = Date.now()
+
+  const { unwrapGiftWrap } = await import('src/wallet/nostr')
+
+  const run = (async () => {
+    let roomFetchRetry = null
+    const requestRoomFetch = () => {
+      if (roomFetchRetry) return
+      roomFetchRetry = new Promise(resolve => setTimeout(resolve, LATEST_ROOM_RETRY_MS))
+        .then(() => Promise.allSettled([dispatch('fetchRooms'), dispatch('seedRoomsFromMessages')]))
+    }
+
+    let liveMessages = 0
+    const result = await relayService.fetchLatestGiftWraps(DISCOVERY_RELAYS, ws.keys.pubKeyHex, {
+      // Every pulled event is new to this session (the service drops anything
+      // the live subscription already delivered), so it always takes the same
+      // path a live delivery would: room bump, server touch, unread badge.
+      async onEvent(event) {
+        let rumor, sealPubkey
+        try {
+          ({ rumor, sealPubkey } = unwrapGiftWrap(event, ws.keys.privKeyHex))
+        } catch (err) {
+          console.warn('[Nostr] Failed to unwrap latest gift-wrap:', err)
+          return
+        }
+
+        // A message for a room we don't have locally is committed right away
+        // but only becomes visible once the room list includes it.
+        // receiveMessage syncs the room to the server but only refetches the
+        // list after a debounce, so wait for that fetch ourselves.
+        const roomKnown = rumor.kind !== 14 || ws.rooms.some(r => r.id === computeRoomId(
+          [...new Set([ws.keys.pubKeyHex, rumor.pubkey, ...rumor.tags.filter(t => t[0] === 'p').map(t => t[1])])]
+        ))
+
+        liveMessages++
+        await dispatch('receiveMessage', { rumor, sealPubkey, giftWrap: event })
+
+        if (!roomKnown) requestRoomFetch()
+        // A group invite only surfaces once its room row exists on the server.
+        if (rumor.kind === 444) dispatch('fetchRooms').catch(() => {})
+      },
+    }, { limit })
+
+    if (roomFetchRetry) await roomFetchRetry
+    return { ...result, liveMessages }
+  })()
+
+  _latestFetchPromise = run
+  try {
+    return await run
+  } finally {
+    _latestFetchPromise = null
+  }
+}
+
 export async function addContact ({ state, commit }, { name, npub }) {
   const decoded = nip19Decode(npub)
   if (decoded.type !== 'npub') throw new Error('Invalid npub')

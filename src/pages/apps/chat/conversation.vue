@@ -1282,11 +1282,18 @@ export default {
       // especially after the tab has been backgrounded.
       // isInitialized is persisted, but privKeyHex is stripped from persisted
       // state for security — it must be restored by initialize first.
+      //
+      // A rebuilt subscription only replays what the relay decides to resend, so
+      // pull the newest messages directly as well; this is the only path that
+      // guarantees a message that triggered a push is on screen right away.
+      const pullLatest = () => this.$store.dispatch('nostrChat/fetchLatestMessages', { force: true }).catch(() => {})
       if (!this.$store.getters['nostrChat/isInitialized'] || !this.$store.getters['nostrChat/myPrivKey']) {
         return this.$store.dispatch('nostrChat/initialize').then(() => {
+          pullLatest()
           return this.$store.dispatch('nostrChat/subscribeToRelays')
         })
       } else {
+        pullLatest()
         return this.$store.dispatch('nostrChat/subscribeToRelays')
       }
     },

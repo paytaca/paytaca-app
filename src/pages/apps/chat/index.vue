@@ -826,6 +826,7 @@ export default {
     // Re-subscribe and refresh active status when tab becomes visible (e.g., after app backgrounding)
     this._onVisibilityChange = () => {
       if (document.visibilityState === 'visible') {
+        this.$store.dispatch('nostrChat/fetchLatestMessages', { force: true }).catch(() => {})
         this.$store.dispatch('nostrChat/ensureSubscribed').catch(() => {})
         this.$store.dispatch('nostrChat/fetchActiveStatus').catch(() => {})
       }
@@ -841,6 +842,8 @@ export default {
   },
   activated () {
     // Re-check subscription when returning to this page via keep-alive
+    // (the relay socket may have died while the app was in the background).
+    this.$store.dispatch('nostrChat/fetchLatestMessages', { force: true }).catch(() => {})
     this.$store.dispatch('nostrChat/ensureSubscribed').catch(() => {})
     this.$store.dispatch('nostrChat/fetchActiveStatus').catch(() => {})
   },

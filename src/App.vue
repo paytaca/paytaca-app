@@ -373,7 +373,12 @@ export default {
         // App was genuinely backgrounded (paused for > threshold)
         // Since we already locked on pause (to protect app preview), we just need to verify
         // the lock state is correct and ensure we're on the lock screen
-        
+
+        // The relay socket does not survive backgrounding, so messages sent
+        // while the app was away only arrive when the subscription is rebuilt.
+        // Pull them now instead of waiting on the relay to replay them.
+        vm.$store.dispatch('nostrChat/fetchLatestMessages', { force: true }).catch(() => {})
+
         if (lockAppEnabled) {
           // Verify lock state is correct (should already be locked from pause event)
           const currentUnlockState = vm.$store.getters['global/isUnlocked']
@@ -1019,8 +1024,12 @@ export default {
 
       if (this.$q.platform.is.mobile) {
         this._nostrPushListener = notification => {
-          // Ensure Nostr chat subscription is active when a Nostr event push arrives
+          // The push is the earliest signal a new Nostr event exists. Pull the
+          // newest gift-wraps immediately — the live subscription cannot be
+          // trusted here (it may have been dropped while backgrounded, and
+          // `ensureSubscribed` is a no-op inside its cooldowns).
           if (notification?.data?.type === 'nostr_event') {
+            this.$store.dispatch('nostrChat/fetchLatestMessages', { force: true }).catch(() => {})
             this.$store.dispatch('nostrChat/ensureSubscribed')
           }
         }
@@ -1043,8 +1052,11 @@ export default {
               ]
             })
           }
-          // Ensure Nostr chat subscription is active when a Nostr event push arrives
+          // The push is the earliest signal a new Nostr event exists. Pull the
+          // newest gift-wraps immediately — the live subscription cannot be
+          // trusted here, and `ensureSubscribed` is a no-op inside its cooldowns.
           if (notification?.data?.type === 'nostr_event') {
+            this.$store.dispatch('nostrChat/fetchLatestMessages', { force: true }).catch(() => {})
             this.$store.dispatch('nostrChat/ensureSubscribed')
           }
         }
