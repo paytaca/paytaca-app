@@ -242,10 +242,10 @@
             <q-item clickable v-ripple @click="autoGenerateAddress = !autoGenerateAddress">
               <q-item-section>
                 <q-item-label class="pt-setting-menu" :class="getDarkModeClass(darkMode)">
-                  {{ $t('AutoGenerateAddress', {}, 'Generate fresh addresses') }}
+                  {{ $t('AutoGenerateAddress', {}, 'Auto generate address') }}
                 </q-item-label>
-                <q-item-label caption style="line-height:1;margin-top:3px;" :class="darkMode ? 'text-grey-5' : 'text-grey-8'">
-                  {{ $t('AutoGenerateAddressToolTip', {}, 'A new address will be generated after receiving assets.') }}
+                <q-item-label caption style="line-height:1.2;margin-top:3px;" :class="darkMode ? 'text-grey-5' : 'text-grey-8'">
+                  {{ $t('AutoGenerateAddressToolTip', {}, 'Generate a new address when receiving funds.') }}
                 </q-item-label>
               </q-item-section>
               <q-item-section avatar>

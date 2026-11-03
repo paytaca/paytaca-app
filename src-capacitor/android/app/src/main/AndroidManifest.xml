@@ -6,7 +6,8 @@
 
     <application
         android:usesCleartextTraffic="true"
-        android:allowBackup="true"
+        android:allowBackup="false"
+        android:fullBackupContent="false"
         android:icon="@mipmap/ic_launcher"
         android:label="@string/app_name"
         android:roundIcon="@mipmap/ic_launcher_round"
@@ -64,6 +65,7 @@
                 <data android:host="gifts.paytaca.com" android:pathPrefix="/claim"/>
                 <data android:host="p2p.paytaca.com" android:pathPrefix="/ad"/>
                 <data android:host="explorer.paytaca.com" android:pathPrefix="/tx"/>
+                <data android:host="chat.paytaca.com" android:pathPrefix="/chatme"/>
                 <data android:host="rewards.paytaca.com" android:pathPrefix="/referral"/>
                 <data android:host="paymenthub.paytaca.com" android:pathPrefix="/plans"/>
             </intent-filter>
@@ -88,6 +90,22 @@
                 android:name="android.support.FILE_PROVIDER_PATHS"
                 android:resource="@xml/file_paths"></meta-data>
         </provider>
+        <meta-data android:name="com.google.mlkit.vision.DEPENDENCIES" android:value="barcode_ui"/>
+
+        <!-- Order live activities: intercept live-activity data messages before
+             the Capacitor push plugin forwards them to JavaScript. -->
+        <service
+            android:name=".plugins.PaytacaMessagingService"
+            android:exported="false">
+            <intent-filter>
+                <action android:name="com.google.firebase.MESSAGING_EVENT" />
+            </intent-filter>
+        </service>
+
+        <!-- Replaced by PaytacaMessagingService above. -->
+        <service
+            android:name="com.capacitorjs.plugins.pushnotifications.MessagingService"
+            tools:node="remove" />
     </application>
 
     <!-- Permissions -->

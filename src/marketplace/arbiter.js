@@ -1,4 +1,4 @@
-import BCHJS from '@psf/bch-js';
+import { wifToPublicKey, wifToCashAddress, signMessage } from 'src/utils/bch-keys'
 import axios from 'axios';
 import { SecureStoragePlugin } from 'capacitor-secure-storage-plugin';
 import { capitalize } from 'vue';
@@ -8,21 +8,19 @@ import { EscrowArbiter } from './objects';
 import { i18n } from 'src/boot/i18n';
 import { getCurrentWalletStorageKey, getWalletStorageKey } from 'src/utils/wallet-storage';
 import crypto from 'crypto'
-import * as secp from '@noble/secp256k1'
+import { secp256k1 } from '@noble/curves/secp256k1.js'
+import { bytesToHex, hexToBytes } from '@noble/hashes/utils.js'
 import { requestManager } from 'src/utils/request-manager'
 
 
 const { t: $t } = i18n.global
-const bchjs = new BCHJS()
 
 export function getWifPubkey(wif) {
-  const ecpair = bchjs.ECPair.fromWIF(wif)
-  return Buffer.from(bchjs.ECPair.toPublicKey(ecpair)).toString('hex')
+  return wifToPublicKey(wif)
 }
 
 export function getWifAddress(wif) {
-  const ecpair = bchjs.ECPair.fromWIF(wif)
-  return bchjs.ECPair.toCashAddress(ecpair)
+  return wifToCashAddress(wif)
 }
 
 export function parseWif(wif) {
@@ -36,9 +34,9 @@ export function parseWif(wif) {
   const privkey = _sha256.digest().toString('hex')
   
   // Derive pubkey from privkey
-  const privBytes = secp.etc.hexToBytes(privkey)
-  const pub = secp.getPublicKey(privBytes)
-  const pubkeyHex = secp.etc.bytesToHex(pub)
+  const privBytes = hexToBytes(privkey)
+  const pub = secp256k1.getPublicKey(privBytes)
+  const pubkeyHex = bytesToHex(pub)
   
   const chat = { privkey, pubkey: pubkeyHex }
   
@@ -46,7 +44,7 @@ export function parseWif(wif) {
 }
 
 export function ecdsaSign(wif, data) {
-  return bchjs.BitcoinCash.signMessageWithPrivKey(wif, data)
+  return signMessage(wif, data)
 }
 
 export const arbiterBackend = axios.create({

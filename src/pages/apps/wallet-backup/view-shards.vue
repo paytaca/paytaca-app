@@ -95,7 +95,7 @@
                 <div class="qr-code-container" :id="`qr-shard-0`">
                   <div class="col q-pl-sm q-pr-sm">
                     <div class="row text-center justify-center">
-                      <div class="col-auto q-pt-md">
+                      <div class="col q-pt-md">
                         <qr-code :qr-id="1" :text="shards[0]" :size="200" class="q-mb-sm" />
                       </div>
                     </div>
@@ -176,7 +176,7 @@
                 <div class="qr-code-container" :id="`qr-shard-1`">
                   <div class="col q-pl-sm q-pr-sm">
                     <div class="row text-center justify-center">
-                      <div class="col-auto q-pt-md">
+                      <div class="col q-pt-md">
                         <qr-code :qr-id="2" :text="shards[1]" :size="200" class="q-mb-sm" />
                       </div>
                     </div>
@@ -257,7 +257,7 @@
                 <div class="qr-code-container" :id="`qr-shard-2`">
                   <div class="col q-pl-sm q-pr-sm">
                     <div class="row text-center justify-center">
-                      <div class="col-auto q-pt-md">
+                      <div class="col q-pt-md">
                         <qr-code :qr-id="3" :text="shards[2]" :size="200" class="q-mb-sm" />
                       </div>
                     </div>
@@ -328,7 +328,7 @@
 
 <script>
 import sss from 'shamirs-secret-sharing'
-import { toHex } from 'hex-my-bytes'
+import { binToHex } from 'bitauth-libauth-v3'
 import { copyToClipboard } from 'quasar'
 import html2canvas from 'html2canvas'
 import QRCode from 'qrcode-svg'
@@ -1126,7 +1126,7 @@ export default {
       try {
         const secret = Buffer.from(this.mnemonic)
         const shares = sss.split(secret, { shares: 3, threshold: 2 })
-        this.shards = shares.map(share => toHex(share))
+        this.shards = shares.map(share => binToHex(share))
       } catch (error) {
         console.error('Error generating shards:', error)
         this.$q.notify({

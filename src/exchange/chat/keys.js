@@ -1,6 +1,7 @@
 import crypto from 'crypto'
 import { chatBackend } from './backend'
-import * as secp from '@noble/secp256k1'
+import { secp256k1 } from '@noble/curves/secp256k1.js'
+import { bytesToHex, hexToBytes } from '@noble/hashes/utils.js'
 import { SecureStoragePlugin } from 'capacitor-secure-storage-plugin'
 import { Device } from '@capacitor/device'
 
@@ -84,9 +85,9 @@ export function generateKeypair (opts = { seed: '' }) {
 }
 
 export function privToPub (priv) {
-  const privBytes = secp.etc.hexToBytes(priv)
-  const pub = secp.getPublicKey(privBytes)
-  const pubHex = secp.etc.bytesToHex(pub)
+  const privBytes = hexToBytes(priv)
+  const pub = secp256k1.getPublicKey(privBytes)
+  const pubHex = bytesToHex(pub)
   return pubHex
 }
 

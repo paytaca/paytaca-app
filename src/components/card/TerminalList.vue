@@ -62,8 +62,9 @@
 <script>
 // import { createNFTs, fetchTerminals, fetchUnissuedTerminals } from 'src/services/card/backend/api';
 import AuthTokenManager, { decodeCommitment } from 'src/services/card/auth-nft';
-import { Wallet } from 'mainnet-js';
-import { Contract } from '@mainnet-cash/contract'
+import { binToHex } from '@bitauth/libauth';
+import { ElectrumNetworkProvider, SignatureTemplate } from 'cashscript';
+import { pubkeyToAddress } from 'src/utils/crypto';
 import { cardLogger } from 'src/utils/debug-logger.js';
 
 export default {
@@ -156,8 +157,6 @@ export default {
         const createSaveNftPayload = await this.buildSaveNftPayload(authNfts)
         await createNFTs(createSaveNftPayload)
 
-        const wallet = await Wallet.fromWIF(this.walletInfo.wif)  
-        await wallet.getTokenUtxos()
         this.showLoading('Issuing authorization NFTs')
         await this.issueAuthNfts(authNfts)
 
@@ -179,10 +178,22 @@ export default {
       return response.txId
     },
     async fetchAuthNftUtxos(txid) {
-      const wallet = await Wallet.fromWIF(this.walletInfo.wif)
-      const utxos = await wallet.getTokenUtxos(this.cardInfo.category)
-      const authNfts = utxos.filter(utxo => utxo.token.capability === 'mutable' && utxo.txid === txid)
-      return authNfts
+      const publicKey = new SignatureTemplate(this.walletInfo.wif).getPublicKey()
+      const utxos = await new ElectrumNetworkProvider('mainnet').getUtxos(pubkeyToAddress(binToHex(publicKey)))
+      const authNfts = utxos.filter(utxo => utxo.token?.category === this.cardInfo.category
+        && utxo.token.nft?.capability === 'mutable' && utxo.txid === txid)
+      // in the shape mainnet-js's getTokenUtxos returned, which the payloads below read
+      return authNfts.map(utxo => ({
+        txid: utxo.txid,
+        vout: utxo.vout,
+        satoshis: Number(utxo.satoshis),
+        token: {
+          tokenId: utxo.token.category,
+          amount: utxo.token.amount,
+          capability: utxo.token.nft.capability,
+          commitment: utxo.token.nft.commitment
+        }
+      }))
     },
     async buildSaveNftPayload (authNfts) {
       const terminalHashes = {}
@@ -224,8 +235,6 @@ export default {
         })
       }
       const response = await tokenManager.issue({ recipients })
-      const contract = Contract.fromId(this.cardInfo.contract_id)
-      await contract.getUtxos()
       return response
     }
   }

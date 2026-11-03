@@ -16,7 +16,7 @@
 </template>
 <script>
 
-import BCHJS from '@psf/bch-js';
+import { signMessage } from 'src/utils/bch-keys'
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils';
 import { computed, onMounted, ref, watch } from 'vue';
 import { useQuasar } from 'quasar';
@@ -51,7 +51,6 @@ export default {
         const $q = useQuasar()
         const $store = useStore()
         const { t: $t } = useI18n()
-        const bchjs = new BCHJS()
 
         const showEnableNFCPaymentsForm = ref(true)
         const showEncryptionPubkeyInput = ref(true)
@@ -154,7 +153,7 @@ export default {
                 const privkey = await wallet.getPrivateKey(nonce)
 
                 // Sign the encrypted data for verification
-                const signature = bchjs.BitcoinCash.signMessageWithPrivKey(privkey, encrypted.encryptedData)
+                const signature = signMessage(privkey, encrypted.encryptedData)
 
                 const data = {
                     walletHash: wallet.walletHash,
@@ -187,7 +186,6 @@ export default {
         }
 
         return {
-            bchjs,
             darkMode,
             showEnableNFCPaymentsForm,
             showEncryptionPubkeyInput,

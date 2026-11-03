@@ -223,7 +223,8 @@ export default {
 
 .qr-wrap {
   position: relative;
-  width: min(v-bind(wrapperSize + 'px'), 100%);
+  width: v-bind(wrapperSize + 'px');
+  max-width: 100%;
   aspect-ratio: 1;
 }
 

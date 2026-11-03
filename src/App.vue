@@ -29,7 +29,7 @@
 <script>
 import { updateCssThemeColors } from './utils/theme-utils'
 import { getDarkModeClass } from './utils/theme-darkmode-utils'
-import { getMnemonic, Wallet, loadWallet } from './wallet'
+import { getMnemonic, Wallet } from './wallet'
 import { getWalletByNetwork } from 'src/wallet/chipnet'
 import { useStore } from "vuex"
 import { is, useQuasar } from 'quasar'
@@ -44,6 +44,7 @@ import { App as CapacitorApp } from '@capacitor/app'
 import { Capacitor } from '@capacitor/core'
 import ScreenshotSecurity from './utils/screenshot-security'
 import JoinRewardsDialog from './components/rewards/dialogs/JoinRewardsDialog.vue'
+import { requestHomeDialog, blockHomeDialogs, unblockHomeDialogs } from 'src/utils/home-dialog-queue'
 
 // Module-level variable to track version update dialog instance
 // This persists across component remounts (important for iOS/Capacitor)
@@ -99,7 +100,6 @@ export default {
       lastPauseTime: 0, // Timestamp of last pause event (to detect genuine background/foreground transitions)
       showPrivacyOverlay: false, // Controls privacy overlay visibility for app preview protection
       androidInsetResizeHandler: null, // Window resize handler for android status bar inset
-      joinRewardsDialogPending: false, // Tracks whether join rewards dialog was deferred waiting for backup dialog
     }
   },
   computed: {
@@ -128,9 +128,6 @@ export default {
     },
     showWalletSwitchLoading() {
       return this.$store.state.global.walletSwitchLoading
-    },
-    backupDialogActive() {
-      return this.$store?.state?.global?.backupDialogActive
     }
   },
   watch: {
@@ -150,13 +147,6 @@ export default {
     // Show join rewards dialog after initial loading screen completes
     showInitialLoad (val, oldVal) {
       if (oldVal === true && val === false) {
-        this.maybeShowJoinRewardsDialog()
-      }
-    },
-    // Re-trigger join rewards dialog once backup dialog is dismissed
-    backupDialogActive (val, oldVal) {
-      if (oldVal === true && val === false && this.joinRewardsDialogPending) {
-        this.joinRewardsDialogPending = false
         this.maybeShowJoinRewardsDialog()
       }
     }
@@ -475,23 +465,27 @@ export default {
     },
     async subscribePushNotifications() {
       if (this.subscribedPushNotifications) return
-      const multiWalletIndex = this.$store.getters['global/getWalletIndex']
-      const wallet = await loadWallet('BCH', multiWalletIndex)
-      const walletHashes = [
-        getWalletByNetwork(wallet, 'bch').getWalletHash(),
-        getWalletByNetwork(wallet, 'slp').getWalletHash()
-      ]
+      const walletHashes = this.$store.getters['global/getSubscribedWalletHashes']
 
-      await this.$pushNotifications.isPushNotificationEnabled().catch(console.log)
-      if (!this.$pushNotifications.isEnabled && !this.promptedPushNotifications) {
-        await this.$pushNotifications.openPushNotificationsSettingsPrompt({
-          message: 'Enable push notifications to receive updates from the app',
-        }).catch(console.log)
-        this.promptedPushNotifications = true
+      // Never subscribe (or prune) from an empty wallet list: the vault may not
+      // be hydrated yet, and treating that as "this device has no wallets"
+      // would unlink every subscription it has.
+      if (!walletHashes.length) return
+
+      if (this.$pushNotifications.canRequestPermission) {
+        await this.$pushNotifications.isPushNotificationEnabled().catch(console.log)
+        if (!this.$pushNotifications.isEnabled && !this.promptedPushNotifications) {
+          await this.$pushNotifications.openPushNotificationsSettingsPrompt({
+            message: 'Enable push notifications to receive updates from the app',
+          }).catch(console.log)
+          this.promptedPushNotifications = true
+        }
       }
 
       this.$pushNotifications.watchtower = new Watchtower(this.$store.state.global.isChipnet)
-      await this.$pushNotifications.subscribe(walletHashes, multiWalletIndex)
+      // The list covers every wallet in the vault, so the backend may treat it
+      // as this device's complete set and unlink any stale subscriptions.
+      await this.$pushNotifications.subscribe(walletHashes, false, true)
       this.subscribedPushNotifications = true
     },
     async resubscribeBCHAddresses(mnemonic) {
@@ -595,91 +589,77 @@ export default {
 
         const isChipnet = true
 
-        // save BCH_CHIP
-        await bchChipWallet.getNewAddressSet(0).then(function ({ addresses }) {
+        // Derive addresses locally; a watchtower hiccup must not block app start.
+        const chipnetWallets = [
+          { wallet: bchChipWallet, type: 'bch' },
+          { wallet: slpChipWallet, type: 'slp' },
+        ]
+
+        for (const { wallet: chipWallet, type } of chipnetWallets) {
+          const addresses = await chipWallet.getAddressSetAt(0)
           vm.$store.commit('global/updateWallet', {
             isChipnet,
-            type: 'bch',
-            walletHash: bchChipWallet.walletHash,
-            derivationPath: bchChipWallet.derivationPath,
-            lastAddress: addresses !== null ? addresses.receiving : '',
-            lastChangeAddress: addresses !== null ? addresses.change : '',
+            type,
+            walletHash: chipWallet.walletHash,
+            derivationPath: chipWallet.derivationPath,
+            lastAddress: addresses.receiving,
+            lastChangeAddress: addresses.change,
             lastAddressIndex: 0,
           })
-          try {
-            vm.$store.dispatch('global/refetchWalletPreferences')
-          } catch(error) { console.error(error) }
-        })
+          if (type === 'bch') {
+            try {
+              vm.$store.dispatch('global/refetchWalletPreferences')
+            } catch(error) { console.error(error) }
+          }
 
-        bchChipWallet.getXPubKey().then(function (xpub) {
           vm.$store.commit('global/updateXPubKey', {
             isChipnet,
-            type: 'bch',
-            xPubKey: xpub
+            type,
+            xPubKey: await chipWallet.getXPubKey()
           })
-        })
+        }
 
-        // save SLP_CHIP
-        slpChipWallet.getNewAddressSet(0).then(function (addresses) {
-          vm.$store.commit('global/updateWallet', {
-            isChipnet,
-            type: 'slp',
-            walletHash: slpChipWallet.walletHash,
-            derivationPath: slpChipWallet.derivationPath,
-            lastAddress: addresses !== null ? addresses.receiving : '',
-            lastChangeAddress: addresses !== null ? addresses.change : '',
-            lastAddressIndex: 0
+        // Best-effort address registration; failures only cost notifications.
+        await Promise.all(chipnetWallets.map(({ wallet: chipWallet }) =>
+          chipWallet.getNewAddressSet(0).catch(error => {
+            console.warn('[Chipnet] Address subscription failed:', error)
           })
-        })
-
-        slpChipWallet.getXPubKey().then(function (xpub) {
-          vm.$store.commit('global/updateXPubKey', {
-            isChipnet,
-            type: 'slp',
-            xPubKey: xpub
-          })
-        })
+        ))
       }
     },
     maybeShowJoinRewardsDialog () {
       const vm = this
+      // Queue the dialog so it never stacks with other home-load dialogs
+      // (e.g. the backup reminder). Guards are re-checked when it's our turn.
+      requestHomeDialog('join-rewards', (done) => {
+        const vault = vm.$store.getters['global/getVault']
+        const wallet = vault?.[vm.walletIndex]
 
-      // Don't show if backup dialog is still active; defer until it's dismissed
-      if (vm.backupDialogActive) {
-        vm.joinRewardsDialogPending = true
-        return
-      }
+        // Only show if wallet is loaded
+        const walletHash = wallet?.wallet?.bch?.walletHash || wallet?.bch?.walletHash
+        if (!walletHash) return done()
 
-      // Fetch from vault directly
-      const vault = vm.$store.getters['global/getVault']
-      const wallet = vault?.[vm.walletIndex]
+        // Don't show if on lock screen
+        if (vm.$router.currentRoute.value.path === '/lock') return done()
 
-      // Only show if wallet is loaded
-      const walletHash = wallet?.wallet?.bch?.walletHash || wallet?.bch?.walletHash
-      if (!walletHash) return
+        // Don't show if app is backgrounded (privacy overlay active)
+        if (vm.showPrivacyOverlay) return done()
 
-      // Don't show if on lock screen
-      const currentRoute = vm.$router.currentRoute.value.path
-      if (currentRoute === '/lock') return
+        // Don't show if already dismissed for this wallet
+        if (wallet?.settings?.joinRewardsPromptShown) return done()
 
-      // Don't show if app is backgrounded (privacy overlay active)
-      if (vm.showPrivacyOverlay) return
-
-      // Don't show if already dismissed for this wallet
-      const alreadyShown = wallet?.settings?.joinRewardsPromptShown
-      if (alreadyShown) return
-
-      // Show dialog and mark as shown on dismiss
-      const dialog = vm.$q.dialog({
-        component: JoinRewardsDialog
-      })
-
-      dialog.onDismiss(() => {
-        vm.$store.commit('global/saveWalletSetting', {
-          key: 'joinRewardsPromptShown',
-          value: true
+        const dialog = vm.$q.dialog({
+          component: JoinRewardsDialog
         })
-      })
+
+        dialog.onDismiss(() => {
+          vm.$store.commit('global/saveWalletSetting', {
+            key: 'joinRewardsPromptShown',
+            value: true
+          })
+          done()
+        })
+      }, 10)
     },
     setupImageContextMenuPrevention() {
       const vm = this
@@ -891,8 +871,6 @@ export default {
     // Cold start: reset so the loading overlay shows until the home page is ready
     vm.$store.commit('global/setAppInitialLoadComplete', false)
     vm._loadingStartTime = Date.now()
-    vm.$store.commit('global/setBackupDialogActive', false)
-    vm.joinRewardsDialogPending = false
 
     // Clear session-based backup reminder dismissal on fresh app start
     // App.vue only mounts on fresh app start (not during navigation), so always clear
@@ -992,6 +970,8 @@ export default {
               sessionStorage.setItem('appUpdateDialogActive', '1')
               sessionStorage.setItem('appUpdateDialogActiveAt', Date.now().toString())
             } catch (_) {}
+            // Hold off other home-load dialogs while the update prompt is up.
+            blockHomeDialogs('version-update')
             versionUpdateDialogInstance = vm.$q.dialog({
               component: AppVersionUpdate,
               componentProps: {
@@ -1002,18 +982,21 @@ export default {
             // Clear reference when dialog is closed
             versionUpdateDialogInstance.onOk(() => {
               versionUpdateDialogInstance = null
+              unblockHomeDialogs('version-update')
               try {
                 sessionStorage.removeItem('appUpdateDialogActive')
                 sessionStorage.removeItem('appUpdateDialogActiveAt')
               } catch (_) {}
             }).onCancel(() => {
               versionUpdateDialogInstance = null
+              unblockHomeDialogs('version-update')
               try {
                 sessionStorage.removeItem('appUpdateDialogActive')
                 sessionStorage.removeItem('appUpdateDialogActiveAt')
               } catch (_) {}
             }).onDismiss(() => {
               versionUpdateDialogInstance = null
+              unblockHomeDialogs('version-update')
               try {
                 sessionStorage.removeItem('appUpdateDialogActive')
                 sessionStorage.removeItem('appUpdateDialogActiveAt')

@@ -1,5 +1,6 @@
 import crypto from 'crypto'
-import * as secp from '@noble/secp256k1'
+import { secp256k1 } from '@noble/curves/secp256k1.js'
+import { bytesToHex, hexToBytes } from '@noble/hashes/utils.js'
 import { Store } from 'src/store'
 import { nativeFileAPI } from 'src/utils/native-file'
 import { Buffer } from 'buffer'
@@ -43,10 +44,10 @@ export function encryptMessage(opts={ data: '', privkey: '', pubkeys: '' }) {
   if (pks.length <= 0) pks.push(ourPubkey)
 
   if (pks.length === 1) {
-    const ourPriv = secp.etc.hexToBytes(privkey)
-    const otherPub = secp.etc.hexToBytes(pks?.[0])
+    const ourPriv = hexToBytes(privkey)
+    const otherPub = hexToBytes(pks?.[0])
 
-    const sharedPoint = secp.getSharedSecret(ourPriv, otherPub)
+    const sharedPoint = secp256k1.getSharedSecret(ourPriv, otherPub)
     const sharedX = sharedPoint.slice(1, 33)
     const iv = crypto.randomFillSync(new Uint8Array(16))
 
@@ -60,9 +61,9 @@ export function encryptMessage(opts={ data: '', privkey: '', pubkeys: '' }) {
     const encrypted = encryptData(data, globalKey, iv)
 
     const pubkeys = pks.map(pubkey => {
-      const ourPriv = secp.etc.hexToBytes(privkey)
-      const otherPub = secp.etc.hexToBytes(pubkey)
-      const sharedPoint = secp.getSharedSecret(ourPriv, otherPub)
+      const ourPriv = hexToBytes(privkey)
+      const otherPub = hexToBytes(pubkey)
+      const sharedPoint = secp256k1.getSharedSecret(ourPriv, otherPub)
       const sharedX = sharedPoint.slice(1, 33)
       const sharedSecret = encryptData(globalKey.toString('hex'), Buffer.from(sharedX), iv)
       return `${pubkey}|${sharedSecret}`
@@ -171,9 +172,9 @@ export function decryptMessage(opts={data: '', iv: '', privkey: '', authorPubkey
       }
 
       // Calculate shared secret
-      const ourPriv = secp.etc.hexToBytes(privkey)
-      const otherPub = secp.etc.hexToBytes(targetPubkey)
-      const sharedPoint = secp.getSharedSecret(ourPriv, otherPub)
+      const ourPriv = hexToBytes(privkey)
+      const otherPub = hexToBytes(targetPubkey)
+      const sharedPoint = secp256k1.getSharedSecret(ourPriv, otherPub)
       const sharedX = sharedPoint.slice(1, 33)
 
       // Derive decryption key
@@ -205,9 +206,9 @@ export function decryptMessage(opts={data: '', iv: '', privkey: '', authorPubkey
 }
 
 function privToPub(priv) {
-  const privBytes = secp.etc.hexToBytes(priv)
-  const pub = secp.getPublicKey(privBytes)
-  const pubHex = secp.etc.bytesToHex(pub)
+  const privBytes = hexToBytes(priv)
+  const pub = secp256k1.getPublicKey(privBytes)
+  const pubHex = bytesToHex(pub)
   return pubHex
 }
 
@@ -330,9 +331,9 @@ export async function encryptImage(opts={ file: '', privkey: '', pubkeys: '' }) 
   const encrypted = encryptData(arrayBuffer, globalKey, iv)
 
   const pubkeys = pks.map(pubkey => {
-    const ourPriv = secp.etc.hexToBytes(privkey)
-    const otherPub = secp.etc.hexToBytes(pubkey)
-    const sharedPoint = secp.getSharedSecret(ourPriv, otherPub)
+    const ourPriv = hexToBytes(privkey)
+    const otherPub = hexToBytes(pubkey)
+    const sharedPoint = secp256k1.getSharedSecret(ourPriv, otherPub)
     const sharedX = sharedPoint.slice(1, 33)
     const sharedSecret = encryptData(globalKey.toString('hex'), Buffer.from(sharedX), iv)
     return `${pubkey}|${sharedSecret}`
@@ -382,9 +383,9 @@ export async function decryptImage(opts={ file: null, privkey: '', pubkeys: '', 
       if (pubkey == ourPubkey) {
         pubkey = authorPubkey
       }
-      const ourPriv = secp.etc.hexToBytes(privkey)
-      const otherPub = secp.etc.hexToBytes(pubkey)
-      const sharedPoint = secp.getSharedSecret(ourPriv, otherPub)
+      const ourPriv = hexToBytes(privkey)
+      const otherPub = hexToBytes(pubkey)
+      const sharedPoint = secp256k1.getSharedSecret(ourPriv, otherPub)
       const sharedX = sharedPoint.slice(1, 33)
     
       let key

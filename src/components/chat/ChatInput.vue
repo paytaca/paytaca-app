@@ -698,13 +698,13 @@ export default {
 .action-icon-tip {
   background: linear-gradient(135deg, #10b981, #059669);
 }
-.action-label {
+.chat-action-item .action-label {
   font-size: 14px;
   font-weight: 600;
   color: #1e293b;
   line-height: 1.2;
 }
-.action-hint {
+.chat-action-item .action-hint {
   font-size: 11px;
   color: #94a3b8;
   line-height: 1.2;
@@ -712,17 +712,17 @@ export default {
 }
 
 /* Dark mode menu */
-body.dark .chat-actions-menu {
+body.body--dark .chat-actions-menu {
   background: #1e293b !important;
   box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4), 0 2px 8px rgba(0, 0, 0, 0.3) !important;
 }
-body.dark .chat-action-item:hover {
+body.body--dark .chat-action-item:hover {
   background: #334155 !important;
 }
-body.dark .action-label {
+body.body--dark .chat-action-item .action-label {
   color: #e2e8f0;
 }
-body.dark .action-hint {
+body.body--dark .chat-action-item .action-hint {
   color: #64748b;
 }
 </style>

@@ -20,7 +20,7 @@
             <div class="col q-pl-sm q-pr-sm q-pt-md">
               <div class="row text-center">
                 <div class="col row justify-center q-pt-md" @click="copyToClipboard(shiftInfo.shift_info.deposit.address)">
-                  <div v-html="shiftInfo.shift_info.deposit.icon" style="background: white;" class="receive-icon-asset"></div>
+                  <img :src="iconSrc(shiftInfo.shift_info.deposit.icon)" style="background: white;" class="receive-icon-asset" alt="">
                   <qr-code border-width="5px" :border-color="themeColor" :text="depositAddress" :size="200" class="q-mb-sm"></qr-code>
                 </div>
               </div>
@@ -107,6 +107,8 @@ import {
 // import { getMemoedVNodeCall } from '@vue/compiler-core'
 // import { getNetwork } from '@ethersproject/networks'
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
+import { iconSrc } from 'src/utils/encoding'
+import { getChangeAddress } from 'src/utils/send-page-utils'
 
 export default {
   data () {
@@ -159,6 +161,7 @@ export default {
     },
   },
   methods: {
+    iconSrc,
     getDarkModeClass,
     copyToClipboard (value) {
       this.$copyText(value)
@@ -218,7 +221,8 @@ export default {
 
       const amount = parseFloat(vm.shiftInfo.shift_info.deposit.amount)
 
-      await wallet.BCH.sendBch(amount, vm.shiftInfo.shift_info.deposit.address).then(function (result, err) {
+      const changeAddress = await getChangeAddress('bch', { isChipnet: wallet.BCH.isChipnet })
+      await wallet.BCH.sendBch(amount, vm.shiftInfo.shift_info.deposit.address, changeAddress).then(function (result, err) {
         if (result.success) {
           console.log('success')
         } else {

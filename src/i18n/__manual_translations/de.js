@@ -105,6 +105,7 @@ export default {
   OnBoardSettingDescription: "Passen Sie die Einstellungen an Ihr natives Erlebnis an",
   Continue: "Fortfahren",
   GetBCH: "BCH kaufen",
+  GetHelp: "Hilfe erhalten",
   SpendBCH: "BCH ausgeben",
   History: "Historie",
   Pin: "PIN",

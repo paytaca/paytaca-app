@@ -327,25 +327,19 @@ export default {
     },
     
     scrollToLetter(letter) {
-      // Find the target element within the scrollable container
-      const container = document.getElementById('lists-container')
-      if (!container) return
-      
       const targetId = `letter-group-${letter.toLowerCase()}`
       const targetElement = document.getElementById(targetId)
-      
-      if (targetElement) {
-        // Calculate the position relative to the container
-        const containerRect = container.getBoundingClientRect()
-        const targetRect = targetElement.getBoundingClientRect()
-        const scrollTop = container.scrollTop + (targetRect.top - containerRect.top)
-        
-        // Smooth scroll within the container
-        container.scrollTo({
-          top: scrollTop - 10, // Add small offset for better visibility
-          behavior: 'smooth'
-        })
-      }
+      if (!targetElement) return
+
+      const headerHeight = document.getElementById('header-nav')?.clientHeight || 0
+      const searchFilterHeight = document.getElementById('search-filter-div')?.clientHeight || 0
+      const offset = headerHeight + searchFilterHeight + 10
+
+      const top = targetElement.getBoundingClientRect().top + window.scrollY - offset
+      window.scrollTo({
+        top,
+        behavior: 'smooth'
+      })
     }
   },
 
@@ -366,10 +360,6 @@ export default {
     const headerHeight = document.getElementById('header-nav').clientHeight
     const searchFilterEl = document.getElementById('search-filter-div')
     searchFilterEl.style.top = `${headerHeight}px`
-
-    const aboveDivsHeight = searchFilterEl.clientHeight + headerHeight
-    const listsContainerHeight = this.$q.screen.height - aboveDivsHeight - 70
-    document.getElementById('lists-container').style.height = `${listsContainerHeight}px`
 
     try {
       const keypair = await ensureKeypair()
@@ -457,18 +447,6 @@ export default {
 #search-filter-div {
   position: sticky;
   z-index: 100;
-}
-
-#lists-container {
-  height: 100%;
-  overflow-y: auto;
-  /* Hide scrollbar */
-  scrollbar-width: none; /* Firefox */
-  -ms-overflow-style: none; /* IE and Edge */
-  
-  &::-webkit-scrollbar {
-    display: none; /* Chrome, Safari, Opera */
-  }
 }
 
 .alphabet-index {

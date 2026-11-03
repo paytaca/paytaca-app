@@ -145,6 +145,16 @@ npm run dev:capacitor:android
 npm run build:capacitor:android
 ```
 
+`src-capacitor` is a separate npm project. Native builds compile the plugins
+under `src-capacitor/node_modules` (referenced by
+`src-capacitor/android/capacitor.settings.gradle` and the iOS `Podfile`), so
+`patch-package` patches must be present in **both** `patches/` (root, used by
+web/SPA builds) and `src-capacitor/patches/`. After changing a patch:
+
+```bash
+cd src-capacitor && npm install && cd ..
+```
+
 ## Contributing
 
 Contributions are welcome! Please feel free to submit a Pull Request.

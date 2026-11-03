@@ -19,6 +19,11 @@ export function getInitialWalletState () {
     // Server-backed deleted room IDs cache (re-fetched on init)
     deletedRooms: [],
     messages: {},
+    // Newest known message timestamp (unix seconds). Persisted (unlike
+    // `messages` itself) so subscribeToRelays can still compute a `since`
+    // filter instead of re-downloading the whole gift-wrap history on every
+    // app start.
+    newestMessageAt: 0,
     readReceipts: {},
     readMessageIds: {},
     messageReadBy: {},
@@ -57,10 +62,13 @@ export function getInitialWalletState () {
       groupStates: {}, // { [mlsGroupIdHex]: serialized ClientState }
       roomMlsMap: {}, // { [roomId]: mlsGroupIdHex }
       roomMlsNostrMap: {}, // { [roomId]: nostrGroupIdHex } — NIP-EE public group id used in kind-445 h tags
-      pendingInvitations: {}, // { [roomId]: { roomId, inviterPubKey, name, welcomeEvent } }
+      pendingInvitations: {}, // { [roomId]: { roomId, inviterPubKey, name, nostrGroupIdHex, welcomeEvent, welcomeRumor } }
       declinedWelcomeIds: {}, // { [welcomeEventId]: timestamp } — never re-surface these invites
+      handledWelcomeIds: {}, // { [welcomeRumorId]: timestamp } — accepted welcomes; never re-surface these invites
       failedEventAttempts: {}, // { [eventId]: { count, lastError, lastAttemptAt } } — undecodable MLS events; dropped after MAX_EVENT_PROCESS_ATTEMPTS
-      kpHistory: [], // { ref: string, encoded: string (base64 raw KP bytes), publishedAt: number }
+      processedEventIds: {}, // { [mlsGroupIdHex]: { [eventId]: timestamp } } — events whose ratchet was already consumed (messages, edits, meta, commits); re-delivery is a no-op
+      pendingInvitees: {}, // { [mlsGroupIdHex]: { [memberPubKeyHex]: timestamp } } — invited but not yet accepted; MLS adds land in the tree immediately, so this is the only invited-vs-joined signal
+      kpHistory: [], // { content: string (hex serialized KP), publishedAt: number } — recent KPs, newest first; joined with relay-fetched KPs as { kp, ref } candidates
     },
   }
 }

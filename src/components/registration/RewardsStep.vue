@@ -10,7 +10,7 @@
       {{ $t('RewardsStepSubtitle') }}
     </p>
 
-    <div v-if="!isCodeProcessed" class="glass-panel q-mt-md" :class="getDarkModeClass(darkMode)">
+    <div v-if="!isCodeProcessed && !isSelfReferral" class="glass-panel q-mt-md" :class="getDarkModeClass(darkMode)">
       <div class="q-pa-md">
         <p class="text-body2 text-bow q-mb-md" :class="getDarkModeClass(darkMode)">
           {{ $t('RewardsStepBody') }}
@@ -31,10 +31,11 @@
             <q-btn
               flat
               dense
-              :label="$t('Enter')"
+              :label="$t('Submit')"
               icon-right="arrow_circle_right"
               :color="isValidManualCode ? 'positive' : 'negative'"
               :disable="!isValidManualCode"
+              :class="{ 'submit-shimmer': isValidManualCode }"
               @click="processManualCode"
             />
           </template>
@@ -75,7 +76,7 @@
     </div>
 
     <!-- Success State -->
-    <div v-else class="glass-panel q-mt-md q-pa-md text-center" :class="getDarkModeClass(darkMode)">
+    <div v-else-if="isCodeProcessed" class="glass-panel q-mt-md q-pa-md text-center" :class="getDarkModeClass(darkMode)">
       <q-icon name="check_circle" color="positive" size="48px" class="q-mt-md" />
       <p class="text-subtitle1 text-bow q-px-md" :class="getDarkModeClass(darkMode)">
         {{ $t('ReferredStepSuccessTitle') }}
@@ -85,8 +86,16 @@
       </p>
     </div>
 
+    <!-- Self-referral blocked state -->
+    <div v-else class="glass-panel q-mt-md q-pa-md text-center" :class="getDarkModeClass(darkMode)">
+      <q-icon name="block" color="negative" size="48px" class="q-mt-md" />
+      <p class="text-subtitle1 text-bow q-px-md" :class="getDarkModeClass(darkMode)">
+        {{ errorMessage }}
+      </p>
+    </div>
+
     <!-- Skip Button (prominent secondary action) -->
-    <div v-if="!isCodeProcessed" class="q-mt-lg text-center">
+    <div v-if="!isCodeProcessed && !isSelfReferral && (!hasReferralCode || isProcessingError)" class="q-mt-lg text-center">
       <q-btn
         outline
         no-caps
@@ -98,9 +107,9 @@
       />
     </div>
 
-    <!-- Continue Button (only show after success) -->
+    <!-- Continue Button (show after success or when a code is blocked) -->
     <q-btn
-      v-if="isCodeProcessed"
+      v-if="isCodeProcessed || isSelfReferral"
       no-caps
       rounded
       :label="$t('Continue')"
@@ -125,6 +134,7 @@
 import { parseDeviceId } from 'src/utils/engagementhub-utils/engagementhub-utils'
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 import { processReferralCode } from 'src/utils/engagementhub-utils/rewards'
+import { captureDeferredReferralCode, clearDeferredReferralCode, normalizeReferralCode } from 'src/utils/deferred-referral'
 import { Capacitor } from '@capacitor/core'
 
 import QrScanner from 'src/components/qr-scanner'
@@ -147,9 +157,15 @@ export default {
     referralCode: { type: String, default: '' }
   },
 
-  mounted () {
+  async mounted () {
     if (this.referralCode) {
-      this.manualReferralCode = this.referralCode
+      // Route the prop through the same parse+normalize path as QR/deep links,
+      // so a full landing-page URL in the query is handled too.
+      await this.processReferralCode(this.referralCode)
+      return
+    }
+    if (this.fromCreateWallet) {
+      await this.applyDeferredReferralCode()
     }
   },
 
@@ -162,6 +178,7 @@ export default {
       isSkipButtonLoading: false,
       isCodeProcessed: false,
       isProcessingError: false,
+      isSelfReferral: false,
       manualReferralCode: '',
       errorMessage: ''
     }
@@ -172,6 +189,10 @@ export default {
       // Validate format: type-code-id (e.g., RP-ABC123-456)
       const parts = this.manualReferralCode.trim().split('-')
       return parts.length === 3 && parts[0] && parts[1] && parts[2]
+    },
+
+    hasReferralCode () {
+      return this.isValidManualCode
     }
   },
 
@@ -183,6 +204,9 @@ export default {
           this.manualReferralCode = formatted
         })
       }
+    },
+    referralCode (val) {
+      if (val) this.processReferralCode(val)
     }
   },
 
@@ -247,11 +271,13 @@ export default {
         referralCode = url.searchParams.get('code')
       } catch { /* not a URL, use raw value */ }
 
-      if (referralCode) {
-        await this.executeReferralSubmission(referralCode)
+      const normalized = normalizeReferralCode(referralCode)
+      if (normalized) {
+        this.manualReferralCode = normalized
+        await this.executeReferralSubmission(normalized)
       } else {
         this.isProcessingError = true
-        this.errorMessage = this.$t('ProcessingReferralCodeError')
+        this.errorMessage = this.$t('InvalidCodeError')
         this.isCodeProcessed = false
         this.isLoading = false
       }
@@ -262,9 +288,20 @@ export default {
       await this.executeReferralSubmission(this.manualReferralCode.trim())
     },
 
+    async applyDeferredReferralCode () {
+      const code = await captureDeferredReferralCode()
+      if (!code) return
+      this.manualReferralCode = code
+      await this.executeReferralSubmission(code)
+      // Only drop the stored code once the outcome is terminal, so a transient
+      // failure (e.g. network) can still be retried.
+      if (this.isCodeProcessed || this.isSelfReferral) clearDeferredReferralCode()
+    },
+
     async executeReferralSubmission (code) {
       this.isLoading = true
       this.isProcessingError = false
+      this.isSelfReferral = false
       this.errorMessage = ''
 
       const resp = await this.submitReferralCode(code)
@@ -273,6 +310,7 @@ export default {
       } else {
         this.isProcessingError = true
         this.processErrorMessage(resp)
+        if (resp?.code === 'self_referral') this.isSelfReferral = true
       }
 
       this.isCodeProcessed = !this.isProcessingError
@@ -323,6 +361,8 @@ export default {
       } else if (resp?.code === 'invalid_code') {
         console.error(resp?.message)
         this.errorMessage = this.$t('InvalidCodeError')
+      } else if (resp?.code === 'self_referral') {
+        this.errorMessage = this.$t('SelfReferralError')
       } else {
         this.errorMessage = this.$t('ProcessingReferralCodeError')
       }
@@ -443,6 +483,56 @@ export default {
   
   &:hover {
     opacity: 1;
+  }
+}
+
+.submit-shimmer {
+  position: relative;
+  overflow: hidden;
+  border-radius: 8px;
+  background: rgba(33, 186, 69, 0.12);
+
+  :deep(.q-btn__content) {
+    position: relative;
+    z-index: 1;
+  }
+
+  &::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    left: 0;
+    width: 60%;
+    z-index: 0;
+    background: linear-gradient(
+      100deg,
+      rgba(255, 255, 255, 0) 0%,
+      rgba(255, 255, 255, 0.65) 50%,
+      rgba(255, 255, 255, 0) 100%
+    );
+    transform: translateX(-160%);
+    animation: submit-shimmer-sweep 1.8s ease-in-out infinite;
+    pointer-events: none;
+  }
+}
+
+@keyframes submit-shimmer-sweep {
+  0% {
+    transform: translateX(-160%);
+  }
+  55% {
+    transform: translateX(240%);
+  }
+  100% {
+    transform: translateX(240%);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .submit-shimmer::after {
+    animation: none;
+    opacity: 0;
   }
 }
 

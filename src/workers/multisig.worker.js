@@ -76,7 +76,18 @@ async function startAddressDiscovery(data) {
       }, { timeout: DEFAULT_TIMEOUT })
 
       const results = response.data?.results
-      results?.sort((a, b) => b.address_index - a.address_index)
+      if (!Array.isArray(results) || results.length !== addressSets.length) {
+        throw new Error('Address discovery returned an incomplete response')
+      }
+      results.sort((a, b) => b.address_index - a.address_index)
+
+      const requireHistory = (result, chain) => {
+        const value = result?.[chain]?.has_history
+        if (typeof value !== 'boolean') {
+          throw new Error(`Address discovery returned no ${chain} history for index ${result?.address_index}`)
+        }
+        return value
+      }
 
       let newLastUsedDepositIndex = -1
       let newLastUsedChangeIndex = -1
@@ -84,8 +95,8 @@ async function startAddressDiscovery(data) {
       let changeUnusedCount = 0
       let reportProgress = false
       for (const result of results) {
-        const hasDepositHistory = result.receiving?.has_history
-        const hasChangeHistory = result.change?.has_history
+        const hasDepositHistory = requireHistory(result, 'receiving')
+        const hasChangeHistory = requireHistory(result, 'change')
         reportProgress = hasDepositHistory || hasChangeHistory
         if (hasDepositHistory) {
           if (result.address_index > newLastUsedDepositIndex) {

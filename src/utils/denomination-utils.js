@@ -253,33 +253,6 @@ export function splitBchAmount (formattedAmount, denomination, symbol = '') {
 }
 
 /**
- * Formats a BCH amount with trailing zeros grayed out using HTML/CSS.
- * Returns an HTML string suitable for v-html directive.
- * 
- * @param {string} formattedAmount - The formatted amount string
- * @param {string} denomination - The denomination (BCH, mBCH, sats)
- * @param {string} symbol - Optional symbol to include
- * @returns {string} HTML string with styled trailing zeros
- * 
- * Example:
- * formatBchAmountWithGrayZeros("0.91801000", "BCH", "BCH")
- * => '0.91801<span style="opacity: 0.4">000</span> BCH'
- */
-export function formatBchAmountWithGrayZeros (formattedAmount, denomination, symbol = '') {
-  const { main, trailingZeros, symbol: sym } = splitBchAmount(formattedAmount, denomination, symbol)
-  
-  let result = main
-  if (trailingZeros) {
-    result += `<span style="opacity: 0.4">${trailingZeros}</span>`
-  }
-  if (sym) {
-    result += ` ${sym}`
-  }
-  
-  return result
-}
-
-/**
  * Used for when values does not come from a single object **(`asset`)**
  */
 export function getAssetDenomination (

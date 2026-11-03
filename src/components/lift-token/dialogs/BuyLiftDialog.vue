@@ -199,7 +199,8 @@ import { markRaw } from '@vue/reactivity'
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 import {
   getOracleData,
-  executePurchaseFlow
+  executePurchaseFlow,
+  appendLiftErrorRef
 } from 'src/utils/engagementhub-utils/lift-token'
 import { formatWithLocale } from 'src/utils/denomination-utils'
 import { raiseNotifyError } from 'src/utils/notify-utils'
@@ -537,10 +538,11 @@ export default {
         this.$emit('purchase', { success: true, txId: result.txid })
         this.innerVal = false
       } catch (error) {
-        const message = this.$t(error?.message || 'PurchasePaymentError')
+        const code = error?.message || 'PurchasePaymentError'
+        const message = this.$t(code, {}, 'Something happened while processing your purchase. Please try again later.')
         console.error('BuyLiftDialog proceeds error:', message)
-        raiseNotifyError(message, 5000);
-        this.$emit('purchase', { success: false, errorMessage: message })
+        raiseNotifyError(appendLiftErrorRef(message, code), 5000);
+        this.$emit('purchase', { success: false, errorMessage: appendLiftErrorRef(message, code) })
       } finally {
         this.isProcessing = false
       }

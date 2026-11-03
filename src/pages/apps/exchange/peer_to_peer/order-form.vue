@@ -55,9 +55,9 @@
         <!-- Form Body -->
         <div v-if="isloaded">
           <div class="q-mx-lg q-py-md text-h5 text-center text-weight-bold lg-font-size text-grad">
-            {{ ad?.trade_type === 'SELL' ? 'Buy BCH With' : 'Sell BCH For'}} {{ ad?.fiat_currency?.symbol }}
+            {{ $t(ad?.trade_type === 'SELL' ? 'BuyBCHWith' : 'SellBCHFor', {}, ad?.trade_type === 'SELL' ? 'Buy BCH With' : 'Sell BCH For') }} {{ ad?.fiat_currency?.symbol }}
           </div>
-          <q-scroll-area ref="scrollTargetRef" :style="`height: ${minHeight}px`" style="overflow-y:auto;" class="scroll-y" @touchstart.native="preventPull">
+          <q-scroll-area ref="scrollTargetRef" :style="`height: ${minHeight}px`" class="scroll-y" @touchstart.native="preventPull">
             <div class="q-mx-md q-mb-sm">
               <TradeInfoCard
                 :order="order"
@@ -99,8 +99,10 @@
                     </span>
                   </div>
                   <div class="q-mb-sm">
-                    <div class="row q-mb-xs">Payment types</div>
-                    <q-badge outline :color="themeColor" v-for="payment, index in ad?.payment_methods" :key="index" class="col q-mr-xs">{{ !isOwner ? payment : payment?.payment_type?.short_name }}</q-badge>
+                    <div class="row q-mb-xs">{{ $t('PaymentMethods', {}, 'Payment types') }}</div>
+                    <div class="row q-gutter-xs items-center">
+                      <q-badge outline :color="themeColor" v-for="payment, index in ad?.payment_methods" :key="index">{{ !isOwner ? payment : payment?.payment_type?.short_name }}</q-badge>
+                    </div>
                   </div>
                   <!-- Display Description on Order Form -->
                   <div v-if="ad?.description" class="q-mt-md q-mb-sm">
@@ -219,7 +221,8 @@
                 <div class="row items-center">
                   <q-icon name="warning" color="orange" size="md" class="q-mr-md"/>
                   <div class="text-weight-medium">
-                    There's currently no arbiter assigned for transactions related to this ad in its currency ({{ ad?.fiat_currency?.symbol || '—' }}). {{ isOwner ? 'Orders cannot be placed for this ad until an arbiter is assigned.' : 'Please try again later.'}}
+                    {{ $t('NoArbiterWarning', { symbol: ad?.fiat_currency?.symbol || '—' }, "There's currently no arbiter assigned for transactions related to this ad in its currency ({symbol}).") }}
+                    {{ isOwner ? $t('NoArbiterOwnerNote', {}, 'Orders cannot be placed for this ad until an arbiter is assigned.') : $t('TryAgainLater', {}, 'Please try again later.') }}
                   </div>
                 </div>
               </div>
@@ -228,7 +231,7 @@
                 <div class="row items-center">
                   <q-icon name="info" color="blue" size="md" class="q-mr-md"/>
                   <div class="text-weight-medium">
-                    This feature is temporarily disabled. We appreciate your patience as we make improvements.
+                    {{ $t('FeatureTemporarilyDisabled', {}, 'This feature is temporarily disabled. We appreciate your patience as we make improvements.') }}
                   </div>
                 </div>
               </div>
@@ -275,6 +278,7 @@
           :custom-keyboard-state="customKeyboardState"
           v-on:addKey="setAmount"
           v-on:makeKeyAction="makeKeyAction"
+          @backPressed="customKeyboardState = 'dismiss'"
         />
       </div>
     </div>
@@ -499,14 +503,11 @@ export default {
       this.loadData()
     },
     preventPull (e) {
-      // Prevent pull-to-refresh from triggering when scrollable element is not at top
-      let parent = e.target
-      // eslint-disable-next-line no-void
-      while (parent !== void 0 && !parent.classList.contains('scroll-y')) {
-        parent = parent.parentNode
-      }
-      // eslint-disable-next-line no-void
-      if (parent !== void 0 && parent.scrollTop > 0) {
+      // Only allow pull-to-refresh when the inner scroll area is already at the
+      // very top. The scrolling element is QScrollArea's inner container, so the
+      // root's scrollTop is always 0 — read the ref's scroll percentage instead.
+      const scrollArea = this.scrollTargetRef
+      if (scrollArea && scrollArea.getScrollPercentage && scrollArea.getScrollPercentage().top > 0) {
         e.stopPropagation()
       }
     },
@@ -1107,9 +1108,14 @@ export default {
     opacity: .5;
   }
 
+  /* Keep the page scrollable but hide the scrollbar visuals. */
+  :deep(.q-scrollarea__bar),
+  :deep(.q-scrollarea__thumb) {
+    display: none !important;
+  }
+
   .description {
-    text-align: justify;
-    text-align-last: left;
+    text-align: left;
     white-space: pre-wrap;
     font-size: 15px;
     line-height: 1.6;

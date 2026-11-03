@@ -575,14 +575,15 @@ export default {
           })
       }
 
-      // Check if chat session exists
+      // Check if chat session exists. fetchChatSession resolves null (instead of
+      // rejecting) when the session or chat identity is missing, so detect absence
+      // from the resolved value rather than from a rejection.
       let createSession = false
       await fetchChatSession(vm.chatRef)
+        .then(session => { createSession = !session })
         .catch(error => {
           if (error.response) {
-            if (error.response?.status === 404) {
-              createSession = true
-            } else if (error.response?.status === 403) {
+            if (error.response?.status === 403) {
               // 403 means chat identity not ready - silently ignore
               createSession = false
             }

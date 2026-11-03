@@ -1,11 +1,10 @@
-import BCHJS from '@psf/bch-js';
+import { signMessage } from 'src/utils/bch-keys'
 import { SecureStoragePlugin } from 'capacitor-secure-storage-plugin';
 import { setupCache } from 'axios-cache-interceptor'
 import axios from 'axios'
 import { getCurrentWalletStorageKey, getWalletStorageKey } from 'src/utils/wallet-storage'
 import { requestManager } from 'src/utils/request-manager'
 
-const bchjs = new BCHJS()
 
 export const backend = axios.create({
   baseURL: process.env.MARKETPLACE_BASE_URL || 'https://commercehub.paytaca.com/api',
@@ -81,7 +80,7 @@ export async function signPaytacaCustomerData(data, walletHash = null) {
   if (!storedWalletHash || !privkey) return response
   response.walletHash = storedWalletHash
 
-  response.signature = bchjs.BitcoinCash.signMessageWithPrivKey(privkey, data)
+  response.signature = signMessage(privkey, data)
   return response
 }
 

@@ -74,9 +74,13 @@ function applyGrayZeros(el, binding) {
     return;
   }
 
-  // Create the styled HTML  
-  const styledHTML = `${mainPart}<span style="opacity: 0.4;">${trailingZeros}</span>${rest}`;
-  
-  // Apply to element
-  el.innerHTML = styledHTML;
+  // Build with text nodes rather than innerHTML: the text comes from the DOM and
+  // must never be re-parsed as markup.
+  el.textContent = '';
+  el.appendChild(document.createTextNode(mainPart));
+  const grayedZeros = document.createElement('span');
+  grayedZeros.style.opacity = '0.4';
+  grayedZeros.textContent = trailingZeros;
+  el.appendChild(grayedZeros);
+  el.appendChild(document.createTextNode(rest));
 }

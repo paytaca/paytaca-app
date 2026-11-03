@@ -92,6 +92,9 @@
             <!-- Contract Balance -->
             <div class="q-mb-sm" v-if="sub.plan_details">
               <div class="text-caption text-grey">{{ $t('ContractBalance') }}</div>
+              <div v-if="sub.payment_category" class="text-subtitle1 text-weight-bold">
+                {{ contractTokenBalanceText }}
+              </div>
               <div class="row items-baseline q-gutter-x-sm">
                 <div class="text-subtitle1 text-weight-bold">
                   <span v-if="sub.plan_details.currency !== 'BCH' && bchPrice > 0">{{ contractBalanceFiat }} {{ sub.plan_details.currency }}</span>
@@ -111,6 +114,9 @@
               <div class="row items-center q-gutter-x-xs text-caption text-grey">
                 <span>{{ $t('BillingAmount', 'Billing Amount') }}</span>
                 <q-btn flat round dense icon="help_outline" size="xs" color="grey" @click="showBillingInfo" />
+              </div>
+              <div v-if="sub.payment_category">
+                {{ getTotalTokenCostAmountText(sub) }}
               </div>
               <div class="row items-baseline q-gutter-x-sm">
                 <div class="text-body2 text-weight-medium" v-if="sub.plan_details.currency !== 'BCH' && bchPrice > 0">
@@ -339,7 +345,7 @@ const darkMode = computed(() => $store.getters['darkmode/getStatus'])
 
 const { hub, initHub } = usePaymentHubCore()
 const { formatDate, formatAmount } = usePaymentHubUtils()
-const { PAYOUT_TX_FEE, getPeriodTextBase, satsToBchDisplay, getPaytacaFee, getTotalCostPerCycle, showBlocksInfo, getSubscriptionStatusColor } = useSubscriptionUtils();
+const { getPayoutTxFee, getPeriodTextBase, satsToBchDisplay, getPaytacaFee, getTotalCostPerCycle, getTotalTokenCostAmountText, formatTokenAmount, showBlocksInfo, getSubscriptionStatusColor } = useSubscriptionUtils();
 
 const loading = ref(true)
 const error = ref('')
@@ -391,7 +397,7 @@ function showBillingInfo() {
     )
   }
 
-  const mFee = PAYOUT_TX_FEE
+  const mFee = getPayoutTxFee(sub.value);
   const pFee = getPaytacaFee(sub.value)
 
   msg += ' ' + $t(
@@ -429,6 +435,12 @@ const contractBalanceFiat = computed(() => {
   return formatAmount(fiatVal, 2)
 })
 
+const contractTokenBalanceText = computed(() => {
+  const tokenUnits = sub.value.token_balance;
+  const tokenData = sub.value.plan_details?.token;;
+  return formatTokenAmount(tokenUnits, tokenData);
+})
+
 const totalCostSats = computed(() => getTotalCostPerCycle(sub.value))
 
 const totalCostBch = computed(() => {
@@ -443,12 +455,21 @@ const totalCostFiat = computed(() => {
   return formatAmount(fiatVal, 2)
 })
 
-const cashtokenDustAmount = computed(() => 1000)
+const dataNftDustAmount = computed(() => 1000)
 const remainingPayouts = computed(() => {
   if (!sub.value?.balance || !totalCostSats.value) return 0
-  const available = sub.value.balance - cashtokenDustAmount.value
+  const available = sub.value.balance - (sub.value.payment_category ? 0 : dataNftDustAmount.value);
   if (available <= 0) return 0
-  return Math.floor(available / totalCostSats.value)
+  const satsPayoutCount = Math.floor(available / totalCostSats.value)
+
+  if (!sub.value.payment_category) {
+    return satsPayoutCount
+  }
+
+  const tokenBalance = sub.value.token_balance;
+  const tokenPledge = sub.value.pledge_tokens;
+  const tokenPayoutsCount = Math.floor(tokenBalance / tokenPledge);
+  return Math.min(tokenPayoutsCount, satsPayoutCount);
 })
 
 const overduePayments = computed(() => {

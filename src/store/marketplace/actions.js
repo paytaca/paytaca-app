@@ -1,11 +1,10 @@
 import { Geolocation } from '@capacitor/geolocation'
-import BCHJS from '@psf/bch-js'
+import { publicKeyToLegacyAddress } from 'src/utils/bch-keys'
 import { geolocationManager } from 'src/boot/geolocation'
 import { backend, setSignerData } from 'src/marketplace/backend'
 import { Cart } from 'src/marketplace/objects'
 import { loadWallet } from 'src/wallet'
 
-const bchjs = new BCHJS()
 
 /**
  * @param {Object} context
@@ -81,7 +80,6 @@ export function getCartRef(context) {
 export async function updatePrivkey(context) {
   const customer = context.getters['customer']
   const index = customer?.paytacaWallet?.verifyingPubkeyIndex
-  const pubkeyBuffer = Buffer.from(customer?.paytacaWallet?.verifyingPubkey, 'hex')
   const walletHash = customer?.paytacaWallet?.walletHash
   if (!isFinite(index)) return Promise.reject(`invalid index: ${index}`)
 
@@ -92,8 +90,7 @@ export async function updatePrivkey(context) {
   const message = `${Date.now()}`
   const signature = await wallet.BCH.signMessage(message, index)
 
-  const ecPair = bchjs.ECPair.fromPublicKey(pubkeyBuffer)
-  const address = bchjs.ECPair.toLegacyAddress(ecPair)
+  const address = publicKeyToLegacyAddress(customer?.paytacaWallet?.verifyingPubkey)
 
   const valid = await wallet.BCH.verifyMessage(address, signature, message)
   if (!valid) return Promise.reject('invalid signature')

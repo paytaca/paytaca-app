@@ -423,6 +423,7 @@
           :custom-keyboard-state="customKeyboardState"
           v-on:addKey="setAmount"
           v-on:makeKeyAction="makeKeyAction"
+          @backPressed="customKeyboardState = 'dismiss'"
         />
       </div>
     </div>
@@ -436,8 +437,8 @@ import ShareGiftPanel from '../../../components/gifts/ShareGiftPanel.vue'
 import CustomKeyboard from '../../../components/CustomKeyboard.vue'
 import { getMnemonic, Wallet } from '../../../wallet'
 import axios from 'axios'
-import { ECPair } from '@psf/bitcoincashjs-lib'
-import { toHex } from 'hex-my-bytes'
+import { binToHex, encodePrivateKeyWif, generatePrivateKey } from 'bitauth-libauth-v3'
+import { wifToCashAddress } from 'src/utils/bch-keys'
 import sha256 from 'js-sha256'
 import { 
   getAssetDenomination, 
@@ -464,11 +465,25 @@ import { hexToRef } from 'src/utils/reference-id-utils'
 import { showLimitDialogWithDeps } from 'src/composables/useTieredLimitGate'
 import KeyboardTooltip from 'src/components/KeyboardTooltip.vue'
 import { useKeyboardTooltip } from 'src/composables/useKeyboardTooltip'
+import { getChangeAddress } from 'src/utils/send-page-utils'
+import { pbkdf2 } from '@noble/hashes/pbkdf2.js'
+import { sha512 } from '@noble/hashes/sha2.js'
+import { randomUUID } from 'src/utils/encoding'
 
 const aesjs = require('aes-js')
-const short = require('short-uuid')
-const pbkdf2 = require('pbkdf2')
 const sss = require('shamirs-secret-sharing')
+
+const flickrBase58 = '123456789abcdefghijkmnopqrstuvwxyzABCDEFGHJKLMNPQRSTUVWXYZ'
+
+function generateGiftCode () {
+  let value = BigInt('0x' + randomUUID().replace(/-/g, ''))
+  let code = ''
+  while (value > 0n) {
+    code = flickrBase58[Number(value % 58n)] + code
+    value /= 58n
+  }
+  return code.padStart(22, flickrBase58[0])
+}
 
 export default {
   name: 'Gifts',
@@ -594,8 +609,8 @@ export default {
     convertToBCH,
     getDarkModeClass,
     encryptShard(shard) {
-      const password = short.generate()
-      const key = pbkdf2.pbkdf2Sync(password, '_saltDefault2024', 1, 128 / 8, 'sha512')
+      const password = generateGiftCode()
+      const key = pbkdf2(sha512, password, '_saltDefault2024', { c: 1, dkLen: 128 / 8 })
       const textBytes = aesjs.utils.utf8.toBytes(shard)
       const aesCtr = new aesjs.ModeOfOperation.ctr(key)
       const encryptedBytes = aesCtr.encrypt(textBytes)
@@ -638,17 +653,13 @@ export default {
       vm.processing = true
       
       try {
-        const privateKey = ECPair.makeRandom()
-        const wif = privateKey.toWIF()
+        const wif = encodePrivateKeyWif(generatePrivateKey(), 'mainnet')
 
-        const BCHJS = require('@psf/bch-js')
-        const bchjs = new BCHJS()
-        const pair = bchjs.ECPair.fromWIF(wif)
-        const address = bchjs.ECPair.toCashAddress(pair)
+        const address = wifToCashAddress(wif)
         
         const secret = Buffer.from(wif)
         const stateShare = sss.split(secret, { shares: 2, threshold: 2 })
-        const shares = stateShare.map((share) => { return toHex(share) })
+        const shares = stateShare.map((share) => { return binToHex(share) })
         
         const encryptedShard = this.encryptShard(shares[0])
 
@@ -725,6 +736,9 @@ export default {
       const vm = this
       const { isResubmit = false } = options || {}
       try {
+        // Resolve the change address before the gift is registered server-side,
+        // so a failure to verify one cannot leave a registered gift unpaid
+        const changeAddress = await getChangeAddress('bch', { isChipnet: vm.wallet.BCH.isChipnet })
         const resp = await axios.post(url, payload)
         if (resp.status === 200) {
           vm.qrCodeContents = qrCode
@@ -733,7 +747,7 @@ export default {
             vm.unclaimedGiftsCountSnapshot += 1
           }
           try {
-            const result = await vm.wallet.BCH.sendBch(this.amountBCH, address)
+            const result = await vm.wallet.BCH.sendBch(this.amountBCH, address, changeAddress)
             if (result.success) {
               vm.processing = false
               vm.completed = true
@@ -1656,6 +1670,8 @@ export default {
 .qr-wrapper {
   position: relative;
   display: inline-block;
+  max-width: 100%;
+  box-sizing: border-box;
   padding: 16px;
   background: white;
   border-radius: 16px;

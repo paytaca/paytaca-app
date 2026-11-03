@@ -7,9 +7,6 @@
 // https://quasar.dev/quasar-cli/quasar-conf-js
 /* eslint-env node */
 
-// Added for Quasar v1 to v2 migration
-// const ESLintPlugin = require('eslint-webpack-plugin')
-
 // Updated @quasar/app-webpack from 3.x.x to 4.x.x to support bex manifest v3
 // https://quasar.dev/quasar-cli-webpack/upgrade-guide
 const { defineConfig } = require('#q-app/wrappers')
@@ -40,11 +37,11 @@ module.exports = defineConfig((ctx) => {
       'axios',
       'leaflet',
       'push-notifications',
+      'order-live-activity',
       'qrcodecomponent',
       'qrcodereader',
       'clipboard',
       'footer',
-      'gravatar',
       'websocket',
       'walletconnect',
       'keyboard',
@@ -135,10 +132,22 @@ module.exports = defineConfig((ctx) => {
           cfg.output.publicPath = 'auto'
         }
 
-        cfg.module.rules.push({
-          test: /\.cash$/, // Adjust the file extension as needed
-          use: 'raw-loader'
-        })
+        // The release-note screenshots under public/releases are only served by
+        // the web deployment. Keep them out of the Capacitor and
+        // browser-extension bundles.
+        if (ctx.mode.capacitor || ctx.mode.bex) {
+          for (const plugin of cfg.plugins || []) {
+            if (!Array.isArray(plugin?.patterns)) continue
+            for (const pattern of plugin.patterns) {
+              const ignore = pattern?.globOptions?.ignore
+              // CopyWebpackPlugin runs tinyglobby with cwd = compiler.context
+              // (the app root), so ignore patterns are root-relative.
+              if (Array.isArray(ignore)) {
+                ignore.push('public/releases', 'public/releases/**')
+              }
+            }
+          }
+        }
 
         // to support optional chaining for older android webviews
         // NOTE: this is only applies for build in capacitor,
@@ -160,20 +169,6 @@ module.exports = defineConfig((ctx) => {
                   '@vue/babel-plugin-jsx',
                 ]
               }
-            }
-          })
-
-          cfg.module.rules.push({
-            test: /\.(?:js|mjs|cjs|vue)$/,
-            enforce: 'post',
-            include: /node_modules\/mainnet-js/,
-            use: {
-              loader: 'babel-loader',
-              options: {
-                presets: [
-                  ['@babel/preset-env', { targets: { ios: '16.2' }, modules: false }]
-                ],
-              },
             }
           })
         }
@@ -226,16 +221,13 @@ module.exports = defineConfig((ctx) => {
       chainWebpack (chain) {
         const nodePolyfillWebpackPlugin = require('node-polyfill-webpack-plugin')
         chain.plugin('node-polyfill').use(nodePolyfillWebpackPlugin)
-        chain.resolve.alias.set('fs', require.resolve('browserfs'))
 
-        // mainnet-js
         chain.resolve.alias.set('stream', require.resolve('stream-browserify')) // bip39
         chain.resolve.alias.set('crypto', require.resolve('crypto-browserify')) // bip39
         chain.resolve.alias.set('net', false) // electrum-cash tcp connections
         chain.resolve.alias.set('tls', false) // electrum-cash tcp connections
         chain.resolve.alias.set('fs', false)  // qrcode-svg.save
 
-        // @mainnet-cash/contract
         chain.resolve.alias.set('url', false)   // cashscript/bitcoind-rpc
         chain.resolve.alias.set('https', false) // cashscript/bitcoind-rpc
         chain.resolve.alias.set('http', false)  // cashscript/bitcoind-rpc
@@ -257,11 +249,6 @@ module.exports = defineConfig((ctx) => {
             }
           }
         })
-
-        // Added for Quasar v1 to v2 migration
-        // chain
-        //   .plugin('eslint-webpack-plugin')
-        //   .use(ESLintPlugin, [{ extensions: ['js', 'vue'] }])
       },
 
       // uglifyOptions: {
@@ -389,38 +376,6 @@ module.exports = defineConfig((ctx) => {
     // Manually added: https://quasar.dev/quasar-cli-webpack/upgrade-guide#the-quasar-config-file
     bex: {
       extraScripts: [],
-    },
-
-    // Full list of options: https://quasar.dev/quasar-cli/developing-electron-apps/configuring-electron
-    electron: {
-      bundler: 'packager', // 'packager' or 'builder'
-
-      packager: {
-        // https://github.com/electron-userland/electron-packager/blob/master/docs/api.md#options
-
-        // OS X / Mac App Store
-        // appBundleId: '',
-        // appCategoryType: '',
-        // osxSign: '',
-        // protocol: 'myapp://path',
-
-        // Windows only
-        // win32metadata: { ... }
-      },
-
-      builder: {
-        // https://www.electron.build/configuration/configuration
-
-        appId: 'paytaca'
-      },
-
-      // More info: https://quasar.dev/quasar-cli/developing-electron-apps/node-integration
-      nodeIntegration: true,
-
-      extendWebpack (/* cfg */) {
-        // do something with Electron main process Webpack cfg
-        // chainWebpack also available besides this extendWebpack
-      }
     },
 
     // Manually added: https://quasar.dev/quasar-cli-webpack/upgrade-guide#the-quasar-config-file

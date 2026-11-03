@@ -4,4 +4,6 @@
     <string name="title_activity_main">Paytaca</string>
     <string name="package_name">com.paytaca.app</string>
     <string name="custom_url_scheme">com.paytaca.app</string>
+    <string name="order_live_activity_channel_name">Active orders</string>
+    <string name="order_live_activity_channel_description">Shows progress for your active P2P and Marketplace orders</string>
 </resources>

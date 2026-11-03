@@ -122,6 +122,20 @@ export function getRoomByContact (state, getters) {
   }
 }
 
+/**
+ * Pubkeys invited to this room whose acceptance we have not observed yet.
+ * An MLS Add commit inserts the invitee into the tree immediately, so this —
+ * not tree membership — is what separates "Invited" from "Joined".
+ */
+export function getMlsPendingInvitees (state) {
+  const ws = getWalletState(state)
+  return (roomId) => {
+    const mlsGroupIdHex = ws.mls?.roomMlsMap?.[roomId]
+    if (!mlsGroupIdHex) return []
+    return Object.keys(ws.mls?.pendingInvitees?.[mlsGroupIdHex] || {})
+  }
+}
+
 export function getMlsPendingInvitations (state) {
   const ws = getWalletState(state)
   const invites = ws.mls?.pendingInvitations
@@ -276,7 +290,7 @@ export function getTotalUnreadCount (state) {
   const ws = getWalletState(state)
   const myPubKey = ws.keys?.pubKeyHex
   if (!myPubKey) return 0
-  let total = 0
+  let total = Object.keys(ws.mls?.pendingInvitations || {}).length
   for (const room of (ws.rooms || [])) {
     if (!room.members?.includes(myPubKey)) continue
     const msgs = ws.messages?.[room.id] || []

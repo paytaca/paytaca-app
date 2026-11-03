@@ -911,6 +911,22 @@ async function createHedgePosition() {
 
   // return console.log(getAddressesResponse)
 
+  // The settlement service rejects contract proposals whose start price message
+  // is older than a few minutes, so fetch the latest price before proposing.
+  const selectedOraclePubkey = createHedgeForm.value.selectedAsset?.oraclePubkey
+  if (selectedOraclePubkey) {
+    try {
+      await $store.dispatch('anyhedge/updateOracleLatestPrice', {
+        oraclePubkey: selectedOraclePubkey,
+        forceRefresh: true,
+      })
+      const refreshedAsset = oracles.value.find(asset => asset.oraclePubkey === selectedOraclePubkey)
+      if (refreshedAsset) createHedgeForm.value.selectedAsset = refreshedAsset
+    } catch (error) {
+      console.error('Failed to refresh oracle price', error)
+    }
+  }
+
   // hold data in case the source value changes while the whole process ingoing
   const position = props.position
 

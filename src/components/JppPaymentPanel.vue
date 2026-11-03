@@ -205,7 +205,7 @@ import { computed, inject, ref, watch, onMounted, onUnmounted, nextTick } from "
 import { useI18n } from "vue-i18n"
 import SecurityCheckDialog from "./SecurityCheckDialog.vue";
 import { formatWithLocale, getDenomDecimals, parseFiatCurrency } from 'src/utils/denomination-utils'
-import { convertToFiatAmount, getExplorerLink } from 'src/utils/send-page-utils'
+import { convertToFiatAmount, getExplorerLink, getChangeAddress } from 'src/utils/send-page-utils'
 
 const $copyText = inject('$copyText')
 const $q = useQuasar()
@@ -443,7 +443,10 @@ function completePayment() {
     .then(async ({skip}) => {
       if (skip) return {skip}
       loadingMsg.value = 'Preparing transaction'
-      await props.jpp.prepareTransaction(props.wallet)
+      // Always pay to a fresh change address so no funds land on an address
+      // whose public key was already exposed by a previous spend
+      const changeAddress = await getChangeAddress('bch')
+      await props.jpp.prepareTransaction(props.wallet, changeAddress)
       return { skip: false }
     })
     .catch(error => {

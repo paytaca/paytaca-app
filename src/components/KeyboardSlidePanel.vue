@@ -8,6 +8,7 @@
         :hide-check-key="hideCheckKey"
         @addKey="$emit('addKey', $event)"
         @makeKeyAction="$emit('makeKeyAction', $event)"
+        @backPressed="$emit('backPressed')"
       />
       <slot name="slide" />
     </div>
@@ -25,7 +26,7 @@ export default {
     keyboardState: { type: String, default: 'dismiss' },
     hideCheckKey: { type: Boolean, default: false },
   },
-  emits: ['addKey', 'makeKeyAction'],
+  emits: ['addKey', 'makeKeyAction', 'backPressed'],
 }
 </script>
 

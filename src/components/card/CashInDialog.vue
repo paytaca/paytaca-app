@@ -272,6 +272,7 @@
 import CardMixin from 'src/mixins/card/card-mixin.js'
 import DragSlide from '../drag-slide.vue';
 import { loadCardUser } from 'src/services/card/user';
+import { getChangeAddress } from 'src/utils/send-page-utils';
 import { getFiatCurrencyIcon } from 'src/services/card/utils';
 import { loadWallet } from 'src/services/wallet';
 import { updateAssetBalanceOnLoad } from 'src/utils/asset-utils';
@@ -628,29 +629,11 @@ export default {
       this.$q.loading.show({
         message: this.$t('ProcessingCashIn', {}, 'Processing cash in...')
       })
-      let result = null
-      let successMessage = ''
-      try {
-        const user = await loadCardUser()
-        const wallet = await user.wallet.getRawWallet()
-        if (this.isBchMode) {
-          const sendAmount = this.cryptoCashInAmount
-          result = await wallet.sendBch(sendAmount, this.depositAddress)
-          successMessage = `Successfully added ${this.fiatCashInAmount} ${this.selectedFiatCurrency} (${sendAmount} BCH) to your card!`
-        } else {
-          const tokenId = this.selectedTokenId?.split('ct/')[1] || this.selectedToken?.id?.split('ct/')[1]
-          const tokenAmount = this.getTokenBaseUnits()
-          if (!tokenId || tokenAmount === null) throw new Error('Please choose a token and enter an amount')
-          const changeAddress = await getChangeAddress('bch')
-          result = await wallet.sendBch(
-            0, '', changeAddress, { tokenId }, undefined,
-            [{ address: this.depositAddress, amount: 0, tokenAmount }]
-          )
-          successMessage = `Successfully added ${this.tokenCashInAmount} ${this.selectedToken?.symbol} to your card!`
-        }
-      } catch (error) {
-        result = { success: false, error: error?.message }
-      }
+      const sendAmount = this.cryptoCashInAmount
+      const user = await loadCardUser()
+      const wallet = await user.wallet.getRawWallet()
+      const changeAddress = await getChangeAddress('bch', { isChipnet: wallet.isChipnet })
+      const result = await wallet.sendBch(sendAmount, this.card?.cashAddress, changeAddress)
       this.$q.loading.hide()
 
       if (result?.success) {

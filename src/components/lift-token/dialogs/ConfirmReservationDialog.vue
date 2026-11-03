@@ -161,7 +161,9 @@ import {
   getIdAndPubkeyApi,
   getOracleData,
   confirmReservationApi,
-  initializeVestingContract
+  initializeVestingContract,
+  syncReservationPublicKeys,
+  appendLiftErrorRef
 } from 'src/utils/engagementhub-utils/lift-token';
 import { parseLiftToken } from 'src/utils/engagementhub-utils/shared';
 import {
@@ -222,9 +224,15 @@ export default {
       this.isSliderLoading = true;
 
       try {
-        if (this.rsvp.public_key === '' || this.rsvp.public_key === null || this.rsvp.public_key === undefined) {
+        // ensure the reservation's public key is persisted server-side
+        // before finalizing (redundancy for the background sync in retrieveData)
+        const walletIndex = this.$store.getters["global/getWalletIndex"];
+        const synced = await syncReservationPublicKeys([this.rsvp], walletIndex)
+        const publicKey = synced.length > 0 ? synced[0].public_key : this.rsvp.public_key
+
+        if (publicKey === '' || publicKey === null || publicKey === undefined) {
           console.error('Public key is empty')
-          raiseNotifyError(this.$t("ConfirmReservationError"))
+          raiseNotifyError(appendLiftErrorRef(this.$t("ConfirmReservationNotReady", {}, 'Your reservation is not ready yet. Please try again later.'), 'ConfirmReservationNotReady'))
           this.isSliderLoading = false
           return
         }
@@ -232,7 +240,7 @@ export default {
         const idPubkeyData = await getIdAndPubkeyApi()
         if (!idPubkeyData) {
           console.error('Failed to get ID and pubkey data')
-          raiseNotifyError(this.$t("ConfirmReservationError"))
+          raiseNotifyError(appendLiftErrorRef(this.$t("ConfirmReservationNotReady", {}, 'Your reservation is not ready yet. Please try again later.'), 'ConfirmReservationNotReady'))
           this.isSliderLoading = false
           return
         }
@@ -245,11 +253,12 @@ export default {
         let vestingContract = null
         try {
           vestingContract = initializeVestingContract(
-            this.rsvp.public_key, token_id, pubkey, lockupEnd, this.rsvp.reserved_amount_tkn
+            publicKey, token_id, pubkey, lockupEnd, this.rsvp.reserved_amount_tkn
           )
         } catch (error) {
           console.error('Failed to initialize vesting contract:', error)
-          raiseNotifyError(this.$t(error.message || "ConfirmReservationError"));
+          const code = error.message || 'ConfirmReservationError'
+          raiseNotifyError(appendLiftErrorRef(this.$t(code, {}, 'An error occurred with confirming the reservation. Please try again later.'), code));
           this.isSliderLoading = false
           return
         }
@@ -268,12 +277,13 @@ export default {
           this.$refs.confirmDialogRef.$emit("ok");
           this.$refs.confirmDialogRef.hide();
         } else {
-          raiseNotifyError(this.$t("ConfirmReservationError"), 5000);
+          raiseNotifyError(appendLiftErrorRef(this.$t("ConfirmReservationError", {}, 'An error occurred with confirming the reservation. Please try again later.'), 'ConfirmReservationError'), 5000);
           this.isSliderLoading = false;
         }
       } catch (error) {
         console.error('Confirm reservation error:', error)
-        raiseNotifyError(this.$t(error?.message || "ConfirmReservationError"), 5000);
+        const code = error?.message || 'ConfirmReservationError'
+        raiseNotifyError(appendLiftErrorRef(this.$t(code, {}, 'An error occurred with confirming the reservation. Please try again later.'), code), 5000);
         this.isSliderLoading = false;
       }
     }

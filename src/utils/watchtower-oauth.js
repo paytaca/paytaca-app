@@ -88,6 +88,12 @@ async function saveToken(token) {
   try {
     const key = getTokenKey()
     await SecureStoragePlugin.set({ key, value: token })
+    // Once a wallet-scoped token exists, drop the legacy global fallback key.
+    if (key !== OAUTH_TOKEN_KEY_PREFIX) {
+      SecureStoragePlugin.remove({ key: OAUTH_TOKEN_KEY_PREFIX }).catch(() => {
+        // Legacy key may not exist, that's OK
+      })
+    }
   } catch (error) {
     console.error('[Watchtower OAuth] Failed to save token:', error)
   }

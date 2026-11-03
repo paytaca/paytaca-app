@@ -56,7 +56,7 @@ export default {
     },
     async fetchStatusList () {
       if (!this.orderId) return
-      await backend.get(`/ramp-p2p/order/${this.orderId}/status/`, { authorize: true })
+      await backend.get(`/ramp-p2p/order/${this.orderId}/status/`, { authorize: 'arbiter' })
         .then(response => {
           this.statusHistory = response.data
           console.log('statusHistory:', this.statusHistory)
@@ -67,7 +67,7 @@ export default {
     },
     async readOrderStatus () {
       if (!this.orderId || !this.traderType) return
-      await backend.patch(`/ramp-p2p/order/${this.orderId}/status/`, null, { authorize: true })
+      await backend.patch(`/ramp-p2p/order/${this.orderId}/status/`, null, { authorize: 'arbiter' })
         .then(response => {
           console.log('readOrderStatus:', response.data)
           setTimeout(() => {

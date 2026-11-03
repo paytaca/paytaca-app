@@ -1,5 +1,4 @@
-const BCHJS = require('@psf/bch-js')
-const bchjs = new BCHJS()
+import { wifToCashAddress, toSlpAddress } from 'src/utils/bch-keys'
 const axios = require('axios')
 import Watchtower from 'watchtower-cash-js'
 import { convertCashAddress } from './chipnet'
@@ -8,9 +7,8 @@ import { CashNonFungibleToken } from './cashtokens'
 export class SweepPrivateKey {
   constructor (wif) {
     this.wif = wif
-    const ecpair = bchjs.ECPair.fromWIF(this.wif)
-    this.bchAddress = bchjs.ECPair.toCashAddress(ecpair)
-    this.slpAddress = bchjs.SLP.Address.toSLPAddress(this.bchAddress)
+    this.bchAddress = wifToCashAddress(this.wif)
+    this.slpAddress = toSlpAddress(this.bchAddress)
     this.tokenAddress = convertCashAddress(this.bchAddress, false, true)
     this.subscribed = false
   }

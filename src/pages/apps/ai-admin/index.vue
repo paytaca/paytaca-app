@@ -2,12 +2,12 @@
     <div id="app-container" class="ai-admin-page" :class="getDarkModeClass(darkMode)">
         <HeaderNav 
           title="AI Admin" 
-          :backnavpath="isBuyFormPage ? { name: 'ai-admin-sessions' } : '/apps'" 
+          :backnavpath="getBackNav" 
           class="header-nav" 
         />
 
         <!-- Tabs Section -->
-        <div v-if="!isBuyFormPage" class="tabs-wrapper q-mt-sm q-mb-sm pt-header">
+        <div v-if="!hideTabs" class="tabs-wrapper q-mt-sm q-mb-sm pt-header">
             <div 
             class="ai-admin-tabs" 
             :class="[getDarkModeClass(darkMode), { 'disabled': !isloaded }]"
@@ -42,12 +42,26 @@
                     <!-- <q-icon name="mdi-timer" size="18px" class="q-mr-xs"/> -->
                     Sessions
                 </button>
+                <button
+                  class="ai-admin-tab"
+                  :class="[
+                      darkMode ? 'dark' : '',
+                      tabButtonClass('images'),
+                      `theme-${theme}`,
+                      { 'disabled': !isloaded || contentLoading }
+                  ]"
+                  :style="activeTab === 'images' ? `background-color: ${getThemeColor()} !important; color: #fff !important;` : ''"
+                  :disabled="!isloaded"
+                  @click="changeTab('images')"
+              >
+                  Images
+              </button>
             </div>
         </div>
 
   
         <!-- Error State -->
-        <div v-if="(authError || pageError) && !isBuyFormPage" class="auth-error-container q-pa-lg text-center">
+        <div v-if="(authError || pageError) && !hideTabs" class="auth-error-container q-pa-lg text-center">
             <q-icon name="mdi-alert-circle-outline" size="48px" :color="darkMode ? 'orange' : 'negative'" />
             <p class="q-mt-md text-body1" :class="darkMode ? 'text-white' : 'text-grey-8'">
                 {{ pageError || 'Unable to authenticate' }}
@@ -94,11 +108,22 @@ export default {
         }
     },
     computed: {
-        theme () {
-            return this.$store.getters['global/theme']
-        },
-        isBuyFormPage () {
-          return this.$route.name === 'ai-admin-buy-form'
+      theme () {
+        return this.$store.getters['global/theme']
+      },
+      hideTabs () {
+        return ['ai-admin-buy-form', 'ai-admin-image-generate'].includes(this.$route.name)
+      },
+      getBackNav () {
+        if (this.hideTabs) {
+          if (this.$route.name === 'ai-admin-buy-form') {
+            return { name: 'ai-admin-sessions' }
+          } else {
+            return { name: 'ai-admin-images' }
+          }
+        } else {
+          return '/apps'
+        }
       }
     },
     components: {
@@ -123,8 +148,12 @@ export default {
       }
 
       // Selecting proper tab
-      if (vm.$route.name === 'ai-admin-sessions') {
+      if (vm.$route.name === 'ai-admin-sessions' || vm.$route.name === 'ai-admin-buy-form') {
         vm.activeTab = 'sessions'
+      }
+
+      if (vm.$route.name === 'ai-admin-images' || vm.$route.name === 'ai-admin-image-generate') {
+        vm.activeTab = 'images'
       }
 
       // Authenticate before enabling tabs
@@ -153,9 +182,11 @@ export default {
         changeTab (tab) {
             this.activeTab = tab
             if (tab === 'api-keys') {
-                this.$router.replace({ name: 'ai-admin-keys' })
+              this.$router.replace({ name: 'ai-admin-keys' })
             } else if (tab === 'sessions') {
-                this.$router.replace({ name: 'ai-admin-sessions' })
+              this.$router.replace({ name: 'ai-admin-sessions' })
+            } else if (tab === 'images') {
+              this.$router.replace({ name: 'ai-admin-images' })
             }
         },
         onContentLoading (isLoading) {

@@ -59,8 +59,7 @@
       />
     </div>
     <div class="apps-hint-text q-px-md q-mt-xs" :class="getDarkModeClass(darkMode)">
-      {{ $t('LongPressToPin', {}, 'Long press on the app to pin or unpin.') }}
-      {{ $t('DragToReorder', {}, 'Drag pinned apps to reorder.') }}
+      {{ $t('LongPressToPin', {}, 'Long press an app to pin, unpin, or drag to reorder.') }}
     </div>
 
     <div id="apps" ref="apps" class="apps-list-container" :class="[getDarkModeClass(darkMode), `view-${viewMode}`]">
@@ -636,8 +635,8 @@ export default {
           path: '/apps/payment-hub-subscriptions/',
           iconStyle: 'font-size: 4.2em',
           active: true,
-          beta: true,
-          category: 'beta'
+          beta: false,
+          category: 'ramp-payments'
         }]: []),
         {
           id: 'support',
@@ -957,6 +956,9 @@ export default {
       if (this.isNativeIOS) {
         this.filteredApps = this.filteredApps.filter(app => app?.id !== 'cryptoswap')
       }
+
+      // Hide AI Admin app for now
+      this.filteredApps = this.filteredApps.filter(app => app?.id !== 'ai-admin')
       
       // Add debug app if visible
       if (this.showDebugApp) {

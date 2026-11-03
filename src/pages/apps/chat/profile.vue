@@ -42,6 +42,19 @@
             flat
             round
             dense
+            icon="share"
+            class="identity-qr-btn"
+            :class="getDarkModeClass(darkMode)"
+            @click="shareChatLink"
+          >
+            <q-tooltip :delay="500">
+              {{ $t('ShareChatLink', {}, 'Share Chat Link') }}
+            </q-tooltip>
+          </q-btn>
+          <q-btn
+            flat
+            round
+            dense
             icon="qr_code"
             class="identity-qr-btn"
             :class="getDarkModeClass(darkMode)"
@@ -72,7 +85,11 @@
             </q-card-section>
             <q-card-section class="q-pt-none text-center">
               <div class="npub-full-text">{{ myNpub }}</div>
-              <q-btn flat dense icon="content_copy" :label="$t('Copy', {}, 'Copy')" color="primary" class="q-mt-sm" @click="copyNpub" />
+              <div class="row q-mt-sm justify-center">
+                <q-btn flat dense icon="share" :label="$t('ShareChatLink', {}, 'Share Chat Link')" color="primary" unelevated @click="shareChatLink" />
+                <q-btn flat dense icon="content_copy" :label="$t('Copy', {}, 'Copy')" color="primary" @click="copyNpub" />
+              </div>
+              <q-btn flat dense icon="link" :label="$t('CopyInviteLink', {}, 'Copy invite link')" color="grey-6" @click="copyChatLink" />
             </q-card-section>
           </q-card>
         </q-dialog>
@@ -360,7 +377,8 @@ import { getWalletByNetwork } from 'src/wallet/chipnet'
 import { cachedLoadWallet } from 'src/wallet'
 import { npubEncode } from 'nostr-tools/nip19'
 import { clearChatCache, hasChatCache, getChatCacheSize } from 'src/utils/chat-cache'
-import { copyToClipboard } from 'quasar'
+import { copyToClipboard, Platform } from 'quasar'
+import { Share } from '@capacitor/share'
 import { uploadPublicToBlossom } from 'src/wallet/nostr-media'
 import ResetChatDialog from './ResetChatDialog.vue'
 
@@ -416,6 +434,10 @@ export default {
       const npub = this.myNpub
       if (!npub) return ''
       return npub.slice(0, 12) + '...' + npub.slice(-8)
+    },
+    chatInviteUrl () {
+      if (!this.myNpub) return ''
+      return `https://chat.paytaca.com/chatme?id=${this.myNpub}`
     },
     profileAddress () {
       return this.$store.getters['nostrChat/getProfile']?.bchAddress || null
@@ -490,6 +512,39 @@ export default {
         message: this.$t('Copied', {}, 'Copied to clipboard'),
         timeout: 1500,
       })
+    },
+    copyChatLink () {
+      if (!this.chatInviteUrl) return
+      copyToClipboard(this.chatInviteUrl)
+      this.$q.notify({
+        type: 'positive',
+        message: this.$t('InviteLinkCopied', {}, 'Invite link copied'),
+        timeout: 1500,
+      })
+    },
+    async shareChatLink () {
+      if (!this.chatInviteUrl) return
+      const text = this.$t('ShareChatLinkMessage', {}, 'Chat with me on Paytaca! Add me as a contact:')
+      const title = this.$t('ShareChatLink', {}, 'Share Chat Link')
+      try {
+        if (Platform.is.nativeMobile) {
+          await Share.share({
+            title,
+            text,
+            url: this.chatInviteUrl,
+            dialogTitle: title,
+          })
+          return
+        }
+        if (navigator.share) {
+          await navigator.share({ title, text, url: this.chatInviteUrl })
+          return
+        }
+        this.copyChatLink()
+      } catch (err) {
+        if (err?.message?.includes('Share canceled') || err?.name === 'AbortError') return
+        this.copyChatLink()
+      }
     },
     copyAddress () {
       if (!this.profileAddress) return

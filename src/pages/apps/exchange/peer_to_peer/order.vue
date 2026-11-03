@@ -496,6 +496,7 @@ import UserProfileDialog from 'src/components/ramp/fiat/dialogs/UserProfileDialo
 import ContractProgressDialog from 'src/components/ramp/fiat/dialogs/ContractProgressDialog.vue'
 import { processRampCashinPoints } from 'src/utils/engagementhub-utils/rewards'
 import { hexToRef } from 'src/utils/reference-id-utils'
+import { orderLiveActivityManager } from 'src/services/order-live-activity'
 
 export default {
   data () {
@@ -2003,6 +2004,7 @@ export default {
         vm._fetchOrderLastTime = Date.now()
         vm.order = response.data
         await vm.handleNewStatus(vm.order.status)
+        vm.syncLiveActivity()
         vm.updateOrderReadAt()
         const members = [vm.order?.members.buyer.public_key, vm.order?.members.seller.public_key].join('')
         const chatRef = generateChatRef(vm.order.id, vm.order.created_at, members)
@@ -2196,6 +2198,12 @@ export default {
       this.status = newStatus
       this.order.status = newStatus
       return this.updateStateByStatus(newValue)
+    },
+
+    syncLiveActivity () {
+      if (!this.order?.id) return
+      orderLiveActivityManager.syncP2POrder(this.order)
+        .catch(error => console.debug('P2P order live activity sync failed:', error))
     },
 
     async updateStateByStatus (status = this.status.value) {

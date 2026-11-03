@@ -6,7 +6,6 @@ import { registerPlugin } from '@capacitor/core'
 import { Capacitor } from '@capacitor/core';
 import { Device } from '@capacitor/device';
 import Watchtower from 'watchtower-cash-js';
-import { BigNumber } from 'ethers'
 import { Platform } from 'quasar'
 import axios from 'axios';
 import { Store } from 'src/store';
@@ -17,6 +16,9 @@ const PluginAvailability = {
   PushNotifications: Capacitor.isPluginAvailable('PushNotifications'),
   PushNotificationSettings: Capacitor.isPluginAvailable('PushNotificationSettings'),
 }
+
+const NOTIFICATIONS_DECLINE_COUNT_KEY = 'pushNotificationsPermissionDeclineCount'
+const MAX_NOTIFICATIONS_DECLINE_COUNT = 7
 
 /**
  * This is a proxy events emitter for PushNotification plugin's events
@@ -194,6 +196,8 @@ class PushNotificationsManager {
       return
     }
 
+    if (!this.canRequestPermission) return
+
     if (this._openSettingsPromptPromise) return this._openSettingsPromptPromise
     this._openSettingsPromptPromise = PushNotificationSettings.openNotificationSettingsPrompt(opts)
     return this._openSettingsPromptPromise
@@ -215,15 +219,52 @@ class PushNotificationsManager {
     return PushNotifications.checkPermissions()
       .then(response => {
         this.permissionStatus = response?.receive
+        if (this.permissionStatus === 'granted') this.resetDeclineCount()
         return Promise.resolve(response)
       })
   }
 
+  /**
+   * Number of times the user has declined the notifications permission prompt.
+   * Persisted across app launches so we can stop asking after
+   * MAX_NOTIFICATIONS_DECLINE_COUNT declines.
+   */
+  getDeclineCount() {
+    const count = parseInt(localStorage.getItem(NOTIFICATIONS_DECLINE_COUNT_KEY), 10)
+    return Number.isInteger(count) && count > 0 ? count : 0
+  }
+
+  setDeclineCount(count) {
+    try {
+      localStorage.setItem(NOTIFICATIONS_DECLINE_COUNT_KEY, String(count))
+    } catch (error) {
+      console.warn('Failed to persist notification permission decline count:', error)
+    }
+  }
+
+  resetDeclineCount() {
+    try {
+      localStorage.removeItem(NOTIFICATIONS_DECLINE_COUNT_KEY)
+    } catch (error) {
+      console.warn('Failed to reset notification permission decline count:', error)
+    }
+  }
+
+  get canRequestPermission() {
+    return this.getDeclineCount() < MAX_NOTIFICATIONS_DECLINE_COUNT
+  }
+
   requestPermission() {
     if (!PluginAvailability.PushNotifications) return Promise.resolve()
+    if (!this.canRequestPermission) return Promise.resolve({ receive: this.permissionStatus })
     return PushNotifications.requestPermissions()
       .then(response => {
         this.permissionStatus = response?.receive
+        if (this.permissionStatus === 'granted') {
+          this.resetDeclineCount()
+        } else {
+          this.setDeclineCount(this.getDeclineCount() + 1)
+        }
         return Promise.resolve(response)
       })
   }
@@ -275,18 +316,25 @@ class PushNotificationsManager {
   }
 
   /**
-   * @param {String[]} walletHashes 
-   * @param {Number} [multiWalletIndex]
+   * @param {String[]} walletHashes
    * @param {Boolean} isCreateOrImport
+   * @param {Boolean} pruneUnlisted - Treat `walletHashes` as this device's
+   *   complete subscription set and unlink every wallet not listed. Only pass
+   *   true when the caller really is sending every wallet the user has; the
+   *   default keeps subscribing additive so a partial list cannot silently
+   *   unsubscribe the user's other wallets.
    */
-  async subscribe(walletHashes, multiWalletIndex, isCreateOrImport = false) {
+  async subscribe(walletHashes, isCreateOrImport = false, pruneUnlisted = false) {
     if (!this.deviceId) await this.fetchDeviceId()
     if (!this.registrationToken) await this.fetchRegistrationToken()
 
 
     // do not ask for permission to save device ID during wallet creation/import
     if (!isCreateOrImport) {
-      if (this.permissionStatus !== 'granted') await this.requestPermission()
+      await this.checkPermissions()
+      if (this.permissionStatus !== 'granted' && this.canRequestPermission) {
+        await this.requestPermission()
+      }
       if (this.permissionStatus !== 'granted') {
         console.warn('Aborting push notification subscribe due to permission status:', this.permissionStatus)
         return
@@ -295,10 +343,10 @@ class PushNotificationsManager {
 
     const data = {
       wallet_hashes: walletHashes,
-      multi_wallet_index: multiWalletIndex,
       gcm_device: undefined,
       apns_device: undefined,
     }
+    if (pruneUnlisted && walletHashes?.length) data.prune_unlisted = true
     const deviceInfo = {
       registration_id: this.registrationToken,
       device_id: this.deviceId,
@@ -308,7 +356,7 @@ class PushNotificationsManager {
     if (platform === 'ios') {
       data.apns_device = deviceInfo
     } else if (platform === 'android') {
-      const _device_id = BigNumber.from('0x' + deviceInfo.device_id)
+      const _device_id = BigInt('0x' + deviceInfo.device_id)
       deviceInfo.device_id = _device_id.toString()
       data.gcm_device = deviceInfo
     }
@@ -340,7 +388,7 @@ class PushNotificationsManager {
     if (platform === 'ios') {
       data.apns_device_id = this.deviceId
     } else if (platform === 'android') {
-      const _device_id = BigNumber.from('0x' + this.deviceId).toString()
+      const _device_id = BigInt('0x' + this.deviceId).toString()
       data.gcm_device_id = _device_id
     } else {
       return console.log('Aborting unsubscribe, no valid platform found')

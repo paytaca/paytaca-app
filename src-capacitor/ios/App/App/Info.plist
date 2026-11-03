@@ -65,6 +65,8 @@
 	<string>Allow Location</string>
 	<key>NSLocationWhenInUseUsageDescription</key>
 	<string>To fulfill delivery of orders in the marketplace</string>
+	<key>NSSupportsLiveActivities</key>
+	<true/>
 	<key>UILaunchStoryboardName</key>
 	<string>LaunchScreen</string>
 	<key>UIMainStoryboardFile</key>

@@ -92,7 +92,15 @@
                     <div class="col ellipsis q-pr-sm">
                       <div class="text-weight-bold">{{ sub.plan_details?.name || 'Subscription' }}</div>
                       <div class="text-caption text-grey text-weight-regular">
-                        {{ sub.pledge_satoshis ? (sub.pledge_satoshis / 1e8).toFixed(8).replace(/\.?0+$/, '') + ' BCH' : (sub.plan_details?.amount + ' ' + sub.plan_details?.currency) }}
+                        <template v-if="sub.payment_category">
+                          {{ getTotalTokenCostAmountText(sub) }}
+                        </template>
+                        <template v-else-if="sub.pledge_satoshis">
+                          {{ satsToBchDisplay(sub.pledge_satoshis) + ' BCH' }}
+                        </template>
+                        <template v-else>
+                          {{ sub.plan_details?.amount + ' ' + sub.plan_details?.currency }}
+                        </template>
                         &bull;
                         <span v-if="sub.plan_details?.period_days">{{ sub.plan_details.period_days }} {{ $t('Days') || 'days' }}</span>
                         <span v-else-if="sub.plan_details?.period_blocks">{{ sub.plan_details.period_blocks }} {{ $t('Blocks') || 'blocks' }}</span>
@@ -199,7 +207,7 @@ const { t: $t } = useI18n()
 const darkMode = computed(() => $store.getters['darkmode/getStatus'])
 
 const { wallet, hub, initHub, initWebSocket, closeWebSocket, _compareUUID } = usePaymentHubCore()
-const { getSubscriptionStatusColor } = useSubscriptionUtils();
+const { getSubscriptionStatusColor, getTotalTokenCostAmountText, satsToBchDisplay } = useSubscriptionUtils();
 
 const subscriptions = ref([])
 const fetchingData = ref(false)

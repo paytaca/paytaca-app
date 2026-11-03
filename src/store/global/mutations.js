@@ -42,10 +42,6 @@ export function setBackupReminderDismissed (state, value) {
   state.backupReminderDismissed = Boolean(value)
 }
 
-export function setBackupDialogActive (state, value) {
-  state.backupDialogActive = Boolean(value)
-}
-
 export function setLastBackupTimestamp (state, timestamp) {
   // timestamp should be Unix timestamp in milliseconds (Date.now())
   // null or undefined means no backup timestamp recorded
@@ -575,9 +571,10 @@ export function updateTransactions (state, data) {
 export function generateNewAddressSet (state, details) {
   const wallet = getWalletData(state, details)
 
-  wallet.lastAddress = details.lastAddress
-  wallet.lastChangeAddress = details.lastChangeAddress
-  wallet.lastAddressIndex = details.lastAddressIndex
+  // Allow advancing only the index cursor without clobbering the cached pair
+  if (details.lastAddress !== undefined) wallet.lastAddress = details.lastAddress
+  if (details.lastChangeAddress !== undefined) wallet.lastChangeAddress = details.lastChangeAddress
+  if (details.lastAddressIndex !== undefined) wallet.lastAddressIndex = details.lastAddressIndex
 }
 
 /**
@@ -648,20 +645,31 @@ export function setCurrency (state, currency) {
 export function setWalletLastAddressAndIndex(state, lastAddressAndIndex) {
   if (state.isChipnet) {
     state.chipnet__wallets.bch.lastAddressAndIndex = lastAddressAndIndex
-    // Also update lastAddressIndex if address_index is provided
+    // Also update lastAddressIndex if address_index is provided.
+    // Never move the cursor backwards: a spend advances it locally before
+    // watchtower has indexed the change output, and a lagging server index must
+    // not send the next spend back onto an already used change address.
     if (lastAddressAndIndex && typeof lastAddressAndIndex.address_index === 'number') {
-      state.chipnet__wallets.bch.lastAddressIndex = lastAddressAndIndex.address_index
-      if (lastAddressAndIndex.address) {
-        state.chipnet__wallets.bch.lastAddress = lastAddressAndIndex.address
+      const trackedIndex = state.chipnet__wallets.bch.lastAddressIndex
+      const currentIndex = Number.isFinite(trackedIndex) ? trackedIndex : -1
+      if (lastAddressAndIndex.address_index >= currentIndex) {
+        state.chipnet__wallets.bch.lastAddressIndex = lastAddressAndIndex.address_index
+        if (lastAddressAndIndex.address) {
+          state.chipnet__wallets.bch.lastAddress = lastAddressAndIndex.address
+        }
       }
     }
   } else {
     state.wallets.bch.lastAddressAndIndex = lastAddressAndIndex
-    // Also update lastAddressIndex if address_index is provided
+    // Also update lastAddressIndex if address_index is provided (see above)
     if (lastAddressAndIndex && typeof lastAddressAndIndex.address_index === 'number') {
-      state.wallets.bch.lastAddressIndex = lastAddressAndIndex.address_index
-      if (lastAddressAndIndex.address) {
-        state.wallets.bch.lastAddress = lastAddressAndIndex.address
+      const trackedIndex = state.wallets.bch.lastAddressIndex
+      const currentIndex = Number.isFinite(trackedIndex) ? trackedIndex : -1
+      if (lastAddressAndIndex.address_index >= currentIndex) {
+        state.wallets.bch.lastAddressIndex = lastAddressAndIndex.address_index
+        if (lastAddressAndIndex.address) {
+          state.wallets.bch.lastAddress = lastAddressAndIndex.address
+        }
       }
     }
   }

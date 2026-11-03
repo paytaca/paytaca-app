@@ -2,6 +2,7 @@ import { ElectrumNetworkProvider, SignatureTemplate, TransactionBuilder } from "
 import { getOutputSize } from "cashscript/dist/utils";
 import { toTokenAddress } from "src/utils/crypto";
 import { watchtowerUtxoToCashscript } from "src/utils/utxo-utils";
+import { getChangeAddress } from "src/utils/send-page-utils";
 
 /**
  * @param {import("src/wallet/bch").BchWallet} bchWallet
@@ -10,7 +11,9 @@ import { watchtowerUtxoToCashscript } from "src/utils/utxo-utils";
  */
 export async function generateEscrowFundingTransaction(bchWallet, escrowContractAddress, fundingAmountsList) {
   const P2PKH_INPUT_SIZE = 148n;
-  const { change: changeAddress } = await bchWallet.getAddressSetAt(0);
+  // Fresh change address verified against the chain, in the network of the
+  // wallet actually funding the escrow; 1/0 would be reused by every escrow
+  const changeAddress = await getChangeAddress('bch', { isChipnet: bchWallet.isChipnet });
   const changeTokenAddress = toTokenAddress(changeAddress);
 
   const escrowContractTokenAddress = toTokenAddress(escrowContractAddress);

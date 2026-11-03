@@ -1,15 +1,17 @@
 <template>
-  <q-card
-    class="q-pa-md q-my-md pt-card cursor-pointer"
-    :class="getDarkModeClass(darkMode)"
+  <q-btn
+    flat
+    round
+    dense
+    size="sm"
+    icon="info_outline"
+    class="cauldron-summary-btn text-grey"
     @click="showSummaryDialog = true"
   >
-    <div class="row items-center justify-between text-bow">
-      <div class="text-caption text-grey">Cauldron {{ $t('Fee') }} (0.3%)</div>
-      <div class="text-subtitle2">{{ totalPlatformFee }}</div>
-    </div>
+    <q-tooltip>{{ $t('TradeSummary', {}, 'Trade Summary') }}</q-tooltip>
+  </q-btn>
 
-    <q-dialog v-model="showSummaryDialog" position="bottom">
+  <q-dialog v-model="showSummaryDialog" position="bottom">
       <q-card class="br-15 pt-card-2 text-bow q-pb-xl" :class="getDarkModeClass(darkMode)">
         <q-card-section class="q-pb-none">
           <div class="row items-center justify-between">
@@ -27,13 +29,13 @@
                 </div>
                 <div class="row items-center justify-between q-mb-sm">
                   <div class="col">
-                    <div class="text-weight-medium">{{ formatAmount(trade.supplyAmount, trade.supplyDecimals) }} {{ trade.supplySymbol }}</div>
                     <div class="text-caption text-grey">{{ $t('YouSpend', {}, 'You spend') }}</div>
+                    <div class="text-weight-medium">{{ formatAmount(trade.supplyAmount, trade.supplyDecimals) }} {{ trade.supplySymbol }}</div>
                   </div>
                   <q-icon name="arrow_forward" size="20px" class="q-mx-sm text-grey" />
                   <div class="col text-right">
+                    <div class="text-caption text-grey">{{ $t('RecipientGets', {}, 'Recipient gets') }}</div>
                     <div class="text-weight-medium">{{ formatAmount(trade.demandAmount, trade.demandDecimals) }} {{ trade.demandSymbol }}</div>
-                    <div class="text-caption text-grey">{{ $t('YouReceive', {}, 'You receive') }}</div>
                   </div>
                 </div>
                 <div class="row items-center justify-between text-caption">
@@ -77,7 +79,6 @@
         </q-card-section>
       </q-card>
     </q-dialog>
-  </q-card>
 </template>
 
 <script setup>

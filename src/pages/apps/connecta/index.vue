@@ -219,7 +219,9 @@
 </template>
 <script>
 import { markRaw } from '@vue/reactivity'
-import createHmac from 'create-hmac'
+import { hmac } from '@noble/hashes/hmac.js'
+import { sha256 } from '@noble/hashes/sha2.js'
+import { bytesToHex, utf8ToBytes } from '@noble/hashes/utils.js'
 import { getMnemonic, Wallet } from '../../../wallet'
 import HeaderNav from 'components/header-nav'
 import DragSlide from 'components/drag-slide'
@@ -227,9 +229,8 @@ import Pin from 'components/pin'
 import BiometricWarningAttempt from 'components/authOption/biometric-warning-attempt.vue'
 import ProgressLoader from 'components/ProgressLoader'
 import {
-  generateChangeAddress,
-  getDerivationPathForWalletType
-} from 'src/utils/address-generation-utils.js'
+  getChangeAddress
+} from 'src/utils/send-page-utils'
 
 import { NativeBiometric } from 'capacitor-native-biometric'
 
@@ -343,37 +344,14 @@ export default {
       }, 1000)
     },
 
-    /**
-     * Dynamically generates change address from mnemonic instead of retrieving from store
-     * This prevents address mixup issues in multi-wallet scenarios
-     */
-    async getChangeAddress (walletType) {
-      try {
-        const addressIndex = this.$store.getters['global/getLastAddressIndex'](walletType)
-        const walletIndex = this.$store.getters['global/getWalletIndex']
-        const isChipnet = this.$store.getters['global/isChipnet']
-        
-        // Generate change address dynamically from mnemonic
-        const changeAddr = await generateChangeAddress({
-          walletIndex: walletIndex,
-          derivationPath: getDerivationPathForWalletType(walletType),
-          addressIndex: addressIndex,
-          isChipnet: isChipnet
-        })
-        
-        return changeAddr
-      } catch (error) {
-        console.error('Error generating change address dynamically:', error)
-        // Fallback to store-retrieved change address if dynamic generation fails
-        return this.$store.getters['global/getChangeAddress'](walletType)
-      }
-    },
-
     async executePaymentRequest () {
       if (!this.paymentRequest || !this.paymentRequest._isValid) return
       if (this.paymentRequest.paymentDetails.isExpired()) return
 
-      const changeAddress = await this.getChangeAddress('bch')
+      // Change addresses must always be fresh: one already spent from has its
+      // public key exposed, so the shared helper scans forward and returns only
+      // a verified-unused address
+      const changeAddress = await getChangeAddress('bch')
       const outputs = this.paymentRequest.paymentDetails.outputs.map(output => {
         return {
           address: output.toCashAddress(),
@@ -430,8 +408,7 @@ export default {
       const headers = {}
       const secret = process.env.CONNECTA_WEBHOOK_SHARED_SECRET || ''
       const headerName = 'X-Paytaca-Webhook-Hmac-Sha256'
-      const hmac = createHmac('sha256', secret).update(JSON.stringify(data)).digest('hex')
-      headers[headerName] = hmac
+      headers[headerName] = bytesToHex(hmac(sha256, utf8ToBytes(secret), utf8ToBytes(JSON.stringify(data))))
 
       const url = this.paymentRequest.paymentDetails.paymentUrl ||
                 'v1/paytaca/webhooks/tx_update/'

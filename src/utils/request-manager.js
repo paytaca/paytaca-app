@@ -1,8 +1,8 @@
 /**
  * Centralized in-flight HTTP request manager.
  *
- * Covers axios (via `attachTo`), raw `fetch()` (via `attachToFetch`),
- * and XMLHttpRequest (via `attachToXHR`).
+ * Covers raw `fetch()` (via `attachToFetch`), XMLHttpRequest (via
+ * `attachToXHR`), and axios instances (via `attachTo`).
  *
  * Every outgoing request gets its own AbortController whose signal is
  * forwarded to the transport.  Calling `abortAll()` cancels every pending
@@ -13,7 +13,34 @@
  *   axios:     `config.skipAbortManager = true`
  *   fetch:     `{ skipAbortManager: true }` in the init options
  *   XMLHttpRequest: set `xhr.skipAbortManager = true` before calling `.send()`
+ *
+ * Cancellation happens at the transport layer. axios is driven through its
+ * XHR adapter, so `abortAll()` aborts it via `xhr.abort()`, which trips the
+ * adapter's `request.onabort` handler and rejects with
+ * `createError('Request aborted', config, 'ECONNABORTED')`. Callers rely on
+ * that `ECONNABORTED` code to tell benign navigation aborts apart from real
+ * failures, so this module deliberately does not substitute its own error
+ * shape.
+ *
+ * NOTE: `attachTo()` only teaches the XHR patch about the opt-out. It never
+ * installs request/response interceptors, so `attachToXHR()` must also have
+ * run for managed axios instances to be abortable at all. `src/boot/axios.js`
+ * installs both unconditionally.
  */
+
+/**
+ * Set by the adapter wrapper below while a managed axios instance is
+ * dispatching, so the XMLHttpRequest patch can tell whether the request that
+ * is about to be sent opted out of abort management.
+ *
+ * axios builds the config, then calls the adapter synchronously, and the xhr
+ * adapter creates its XMLHttpRequest and calls `send()` inside a
+ * synchronously-executed Promise executor. The flag is therefore always
+ * accurate at `send()` time, and is restored on the way out.
+ *
+ * @type {boolean}
+ */
+let skippableDispatch = false
 
 class RequestManager {
   constructor () {
@@ -45,67 +72,32 @@ class RequestManager {
   }
 
   /**
-   * Wire up request/response interceptors on an axios instance so that
-   * every request it makes is tracked and abortable.
+   * Mark an axios instance as abort-managed, enabling the per-request
+   * `skipAbortManager` opt-out.
+   *
+   * There is nothing to intercept here: the request is already tracked by the
+   * XMLHttpRequest patch in `attachToXHR()`. All that is needed is to let that
+   * patch see the opt-out, which is impossible from a request interceptor —
+   * the XHR object is created deep inside axios' adapter and carries no
+   * reference to the config. Wrapping the adapter bridges the two: it runs on
+   * the same synchronous tick as `xhr.send()` and can publish the opt-out as
+   * a module-scoped flag.
    *
    * @param {import('axios').AxiosInstance} axiosInstance
    */
   attachTo (axiosInstance) {
-    // Request interceptor — inject the abort signal
-    axiosInstance.interceptors.request.use((config) => {
-      if (config.skipAbortManager) return config
-
-      const { signal, cleanup } = this._register()
-
-      // Merge with any signal the caller already set
-      if (config.signal) {
-        const callerSignal = config.signal
-        // If the caller's signal is already aborted, respect it immediately
-        if (callerSignal.aborted) {
-          cleanup()
-          const merged = new AbortController()
-          merged.abort()
-          config.signal = merged.signal
-          return config
+    const adapter = axiosInstance.defaults.adapter
+    if (typeof adapter === 'function') {
+      axiosInstance.defaults.adapter = function (config) {
+        const previous = skippableDispatch
+        skippableDispatch = config.skipAbortManager === true
+        try {
+          return adapter.call(this, config)
+        } finally {
+          skippableDispatch = previous
         }
-
-        // Abort our controller when the caller aborts, and vice-versa
-        const mergedController = new AbortController()
-        const abort = () => { mergedController.abort(); cleanup() }
-        callerSignal.addEventListener('abort', abort, { once: true })
-        signal.addEventListener('abort', () => {
-          mergedController.abort()
-          callerSignal.removeEventListener('abort', abort)
-        }, { once: true })
-
-        // Replace tracking with the merged controller
-        const mergedKey = Symbol()
-        this._controllers.set(mergedKey, mergedController)
-        cleanup() // Remove the original controller — merged handles it now
-        config.signal = mergedController.signal
-        config._abortCleanup = () => this._controllers.delete(mergedKey)
-        return config
       }
-
-      config.signal = signal
-
-      // Attach cleanup to the config so response/error interceptors can call it
-      config._abortCleanup = cleanup
-
-      return config
-    })
-
-    // Response interceptors — clean up the controller entry on settle
-    axiosInstance.interceptors.response.use(
-      (response) => {
-        response.config._abortCleanup?.()
-        return response
-      },
-      (error) => {
-        error?.config?._abortCleanup?.()
-        return Promise.reject(error)
-      }
-    )
+    }
   }
 
   /**
@@ -161,17 +153,19 @@ class RequestManager {
 
   /**
    * Monkey-patch XMLHttpRequest.prototype.send so every XHR call is tracked
-   * and abortable via `abortAll()`.
+   * and abortable via `abortAll()`. This is also what makes managed axios
+   * instances abortable, since they dispatch through XHR.
    *
-   * Opt out per-request by setting `xhr.skipAbortManager = true` before
-   * calling `.send()`.
+   * Opt out per-request either by setting `xhr.skipAbortManager = true` before
+   * calling `.send()`, or, for axios, with `config.skipAbortManager = true` —
+   * `attachTo()` forwards that to this patch via `skippableDispatch`.
    */
   attachToXHR () {
     const self = this
     const originalSend = XMLHttpRequest.prototype.send
 
     XMLHttpRequest.prototype.send = function (...args) {
-      if (this._rmTracked || this.skipAbortManager) {
+      if (this._rmTracked || this.skipAbortManager || skippableDispatch) {
         return originalSend.apply(this, args)
       }
       this._rmTracked = true

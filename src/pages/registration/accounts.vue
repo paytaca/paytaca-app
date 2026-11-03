@@ -101,7 +101,7 @@
     <div
       class="wallet-creation-view"
       :class="getDarkModeClass(darkMode)"
-      v-if="currentStep === 1 || walletRestoreInProgress"
+      v-if="currentStep === 1 || walletRestoreInProgress || walletRestoreError"
     >
       <transition name="fade" mode="out-in">
         <!-- Paytaca Logo with Circle Container Animation -->
@@ -139,8 +139,16 @@
               flat 
               no-caps 
               color="primary" 
-              :label="$t('Back') || 'Back'" 
-              @click="walletRestoreError = ''; walletRestoreInProgress = false" 
+              :label="$t('Retry', {}, 'Retry')" 
+              @click="initCreateWallet" 
+            />
+            <q-btn 
+              v-if="walletRestoreError"
+              flat 
+              no-caps 
+              color="primary" 
+              :label="$t('Back', {}, 'Back')" 
+              @click="cancelWalletRestore" 
             />
           </div>
         </div>
@@ -152,6 +160,7 @@
       <RewardsStep 
         :walletHash="newWalletHash"
         :darkMode="darkMode"
+        :referral-code="referralCode"
         @on-proceed-to-next-step="goToStep3"
       />
     </div>
@@ -586,8 +595,7 @@
 <script>
 import { Wallet, storeMnemonic, generateMnemonic, computeWalletHash } from '../../wallet'
 import { getMnemonic } from '../../wallet'
-import { utils } from 'ethers'
-import { wordlists } from 'bip39'
+import { validateMnemonic, wordlists } from 'bip39'
 const EN_WORDLIST = wordlists.EN
 import { Device } from '@capacitor/device'
 import { NativeBiometric } from 'capacitor-native-biometric'
@@ -614,6 +622,21 @@ import Onboarding from 'src/components/registration/Onboarding.vue'
 import Login from 'src/components/registration/Login.vue'
 import { ensureCanPerformActionWithDeps } from 'src/composables/useTieredLimitGate'
 import RewardsStep from 'src/components/registration/RewardsStep.vue'
+import { withTimeout } from 'src/utils/async-utils'
+
+// Upper bound for the whole restore step so a stalled call can never leave the
+// loading overlay on screen indefinitely.
+const RESTORE_TIMEOUT_MS = 60000
+
+// Upper bound for country/language/currency auto-detection on the settings
+// step. On timeout the user is free to continue with the current values.
+const STEP2_DETECTION_TIMEOUT_MS = 60000
+
+// Upper bound for the server-side last-used-index lookup during restore. The
+// index is what keeps an imported wallet from handing out an already-used
+// address, but an unreachable server must not block the restore either, so a
+// timeout falls back to index 0 for that wallet.
+const RESTORE_INDEX_LOOKUP_TIMEOUT_MS = 30000
 
 // Keep in sync with country selector data source (code, currency, language).
 const COUNTRIES = require('../../countries-info.json')
@@ -632,6 +655,10 @@ export default {
     recreate: {
       type: Boolean,
       default: false
+    },
+    referralCode: {
+      type: String,
+      default: ''
     }
   },
   components: {
@@ -687,6 +714,7 @@ export default {
       walletCreationComplete: false,
       walletRestoreInProgress: false,
       walletRestoreError: '',
+      restoreAttemptId: 0,
       mnemonicVerified: false,
       pinDialogAction: '',
       pin: '',
@@ -703,6 +731,8 @@ export default {
       isRedirecting: false,
       step2Initialized: false,
       step2Loading: false,
+      // In-flight detection promise; kept off Vuex because it is not reactive UI state.
+      step2DetectionPromise: null,
       subscriptionChecked: false
       // moveToReferral: false,
     }
@@ -728,10 +758,8 @@ export default {
         this.generateSeedPhrase()
       } else if (val === 3 && !this.importSeedPhrase) {
         // Step 3: Auto-detect language and currency (geoip call happens here)
-        this.$nextTick(() => {
-          this.initializeStep2().catch(error => {
-            console.error('[Step 3] Unhandled error in initializeStep2:', error)
-          })
+        this.startStep2Detection().catch(error => {
+          console.error('[Step 3] Unhandled error in initializeStep2:', error)
         })
       } else if (val === 6 && !this.importSeedPhrase) {
         // Step 6: Force theme update when entering step 6 to ensure theme changes from step 4 apply immediately
@@ -750,6 +778,9 @@ export default {
         this.authenticationPhase = 'options'
         this.seedPhraseBackup = null
         this.useTextArea = false
+        this.walletRestoreError = ''
+        this.walletRestoreInProgress = false
+        this.restoreAttemptId += 1
 
         // If user lands back on the main /accounts view and is already blocked by tier limits,
         // show the tier-aware prompt immediately (Free→Plus, Plus→Max coming soon).
@@ -774,7 +805,7 @@ export default {
           }
           // Initialize step 3 when navigating to it (geoip call happens here)
           if (routeStep === 3 && !this.importSeedPhrase) {
-            this.initializeStep2().catch(error => {
+            this.startStep2Detection().catch(error => {
               console.error('[Step 3] Unhandled error in initializeStep2:', error)
             })
           }
@@ -802,8 +833,8 @@ export default {
           if (routeStep === 3) {
             // Reset step2Initialized to allow initializeStep2 to run for restore flow
             this.step2Initialized = false
-            this.$nextTick(() => {
-              this.initializeStep2()
+            this.startStep2Detection().catch(error => {
+              console.error('[Step 3] Unhandled error in initializeStep2:', error)
             })
           }
         }
@@ -869,7 +900,7 @@ export default {
     isHongKong,
     validateSeedPhrase () {
       if (countWords(this.seedPhraseBackup) === 12) {
-        return utils.isValidMnemonic(this.seedPhraseBackup)
+        return validateMnemonic(this.seedPhraseBackup, EN_WORDLIST)
       } else {
         return false
       }
@@ -1366,6 +1397,23 @@ export default {
       }
       throw new Error('mnemonic not ready')
     },
+    cancelWalletRestore () {
+      // Reset the restore flow so the user can start over from the chooser.
+      // `mnemonic` must be cleared or the step-2 view stays hidden by its v-if.
+      // Bumping the attempt id orphans any in-flight restore.
+      this.restoreAttemptId += 1
+      this.walletRestoreError = ''
+      this.walletRestoreInProgress = false
+      this.mnemonic = ''
+      this.mnemonicVerified = false
+      this.seedPhraseBackup = null
+      this.useTextArea = false
+      this.authenticationPhase = 'options'
+      this.steps = -1
+      this.newWalletSnapshot.walletInfo = []
+      this.newWalletSnapshot.xpubKeysInfo = []
+      this.$router.push('/accounts/restore/step-1')
+    },
     async initCreateWallet () {
       const allowed = await ensureCanPerformActionWithDeps(
         { $q: this.$q, $store: this.$store },
@@ -1380,12 +1428,27 @@ export default {
         if (!this.validateSeedPhrase() && this.authenticationPhase === 'backup-phrase') {
           return
         }
+        // Ignore repeated taps while a restore is already running
+        if (this.walletRestoreInProgress) return
         // Show loading animation during restore
         this.walletRestoreInProgress = true
         this.walletRestoreError = ''
+        // A timed-out attempt keeps running in the background. Tag each attempt
+        // so a stale one can never overwrite the state of a newer retry.
+        const attemptId = ++this.restoreAttemptId
         try {
-          // Create wallet from seed phrase
-          await this.createWallets()
+          // Create wallet from seed phrase. Bound the whole step so a stalled
+          // network call can never leave the loading overlay on screen forever.
+          const restoreData = await withTimeout(
+            this.createWallets(),
+            RESTORE_TIMEOUT_MS,
+            'Wallet restore timed out'
+          )
+          if (attemptId !== this.restoreAttemptId) return
+          this.newWalletSnapshot.walletInfo = restoreData.walletInfo
+          this.newWalletSnapshot.xpubKeysInfo = restoreData.xpubKeysInfo
+          this.newWalletHash = restoreData.walletHash
+          this.$pushNotifications?.subscribe?.(restoreData.walletHashes, true)
           // Initialize vault entry so settings can be saved during step 3
           // This must be done before navigation to ensure vault entry exists
           this.initializeVaultEntryForRestore()
@@ -1394,12 +1457,13 @@ export default {
           this.$store.commit('global/setLastBackupTimestamp', Date.now())
           // Navigate to settings step (step-3)
           await this.$router.push('/accounts/restore/step-3')
-          // Hide loading animation after navigation
-          this.walletRestoreInProgress = false
         } catch (error) {
+          if (attemptId !== this.restoreAttemptId) return
           console.error('Error restoring wallet:', error)
-          this.walletRestoreError = this.$t('ErrorRestoringWallet') || 'Failed to restore wallet. Please try again.'
-          this.walletRestoreInProgress = false
+          this.walletRestoreError = this.$t('ErrorRestoringWallet', {}, 'Failed to restore wallet. Please try again.')
+        } finally {
+          // Always clear the overlay; the error state renders instead when set.
+          if (attemptId === this.restoreAttemptId) this.walletRestoreInProgress = false
         }
         return
       }
@@ -1446,89 +1510,128 @@ export default {
       vm.steps += 1
 
       const wallet = new Wallet(vm.mnemonic)
-      const bchWallets = [wallet.BCH, wallet.BCH_CHIP]
-      const slpWallets = [wallet.SLP, wallet.SLP_TEST]
-
-      vm.newWalletSnapshot.walletInfo = []
-      vm.newWalletSnapshot.xpubKeysInfo = []
-
-      for (const bchWallet of bchWallets) {
-        const isChipnet = bchWallets.indexOf(bchWallet) === 1
-
-        await bchWallet.getNewAddressSet(0).then(function (response) {
-          const addresses = response?.addresses || null
-          const walletTypeInfo = {
-            isChipnet,
-            type: 'bch',
-            walletHash: bchWallet.walletHash,
-            derivationPath: bchWallet.derivationPath,
-            lastAddress: addresses !== null ? addresses.receiving : '',
-            lastChangeAddress: addresses !== null ? addresses.change : '',
-            lastAddressIndex: 0,
-          }
-
-          if (vm.isVaultEmpty) vm.$store.commit('global/updateWallet', walletTypeInfo)
-          else vm.newWalletSnapshot.walletInfo.push(walletTypeInfo)
-          vm.steps += 1
-          try {
-            vm.$store.dispatch('global/refetchWalletPreferences')
-          } catch(error) { console.error(error) }
-        })
-
-        await bchWallet.getXPubKey().then(function (xpub) {
-          const xPubInfo = {
-            isChipnet,
-            type: 'bch',
-            xPubKey: xpub
-          }
-
-          if (vm.isVaultEmpty) vm.$store.commit('global/updateXPubKey', xPubInfo)
-          else vm.newWalletSnapshot.xpubKeysInfo.push(xPubInfo)
-          vm.steps += 1
-        })
-      }
-
-      for (const slpWallet of slpWallets) {
-        const isChipnet = slpWallets.indexOf(slpWallet) === 1
-
-        await slpWallet.getNewAddressSet(0).then(function (addresses) {
-          const walletTypeInfo = {
-            isChipnet,
-            type: 'slp',
-            walletHash: slpWallet.walletHash,
-            derivationPath: slpWallet.derivationPath,
-            lastAddress: addresses !== null ? addresses.receiving : '',
-            lastChangeAddress: addresses !== null ? addresses.change : '',
-            lastAddressIndex: 0
-          }
-
-          if (vm.isVaultEmpty) vm.$store.commit('global/updateWallet', walletTypeInfo)
-          else vm.newWalletSnapshot.walletInfo.push(walletTypeInfo)
-          vm.steps += 1
-        })
-
-        await slpWallet.getXPubKey().then(function (xpub) {
-          const xPubInfo = {
-            isChipnet,
-            type: 'slp',
-            xPubKey: xpub
-          }
-
-          if (vm.isVaultEmpty) vm.$store.commit('global/updateXPubKey', xPubInfo)
-          else vm.newWalletSnapshot.xpubKeysInfo.push(xPubInfo)
-          vm.steps += 1
-        })
-      }
-
-
-      const walletHashes = [
-        wallet.BCH.walletHash,
-        wallet.BCH_CHIP.walletHash,
-        wallet.SLP.walletHash,
-        wallet.SLP_TEST.walletHash,
+      const walletTypes = [
+        { wallet: wallet.BCH, type: 'bch', isChipnet: false },
+        { wallet: wallet.BCH_CHIP, type: 'bch', isChipnet: true },
+        { wallet: wallet.SLP, type: 'slp', isChipnet: false },
+        { wallet: wallet.SLP_TEST, type: 'slp', isChipnet: true },
       ]
-      this.$pushNotifications?.subscribe?.(walletHashes, this.walletIndex, true)
-      this.newWalletHash = wallet.BCH.walletHash
+
+      // Build the snapshot locally so a stale (timed-out) attempt can never
+      // clobber the state of a newer retry. The caller commits it on success.
+      const walletInfo = []
+      const xpubKeysInfo = []
+
+      // Resume each imported wallet from the last address index the server has
+      // seen, so newly generated addresses are always past anything already
+      // used. Without this an imported wallet starts at index 0 and can hand
+      // out an already-used address (e.g. when auto-generate is disabled).
+      // Lookups run concurrently and are bounded: an unreachable server must
+      // never block the restore, it only falls back to index 0.
+      const lastAddressIndices = await this.getRestoreLastAddressIndices(walletTypes)
+
+      for (let i = 0; i < walletTypes.length; i++) {
+        const { wallet: networkWallet, type, isChipnet } = walletTypes[i]
+        const lastAddressIndex = lastAddressIndices[i]
+        // Derive the address pair locally for the resolved index. Restoring a
+        // wallet must not depend on watchtower answering: the keys are all that
+        // is needed to own the funds.
+        const addresses = await networkWallet.getAddressSetAt(lastAddressIndex)
+        walletInfo.push({
+          isChipnet,
+          type,
+          walletHash: networkWallet.walletHash,
+          derivationPath: networkWallet.derivationPath,
+          lastAddress: addresses.receiving,
+          lastChangeAddress: addresses.change,
+          lastAddressIndex,
+        })
+        vm.steps += 1
+
+        xpubKeysInfo.push({
+          isChipnet,
+          type,
+          xPubKey: await networkWallet.getXPubKey(),
+        })
+        vm.steps += 1
+      }
+
+      // Register the resolved addresses with watchtower so the restored wallet
+      // receives updates. Deliberately not awaited: this is best-effort and a
+      // slow server must never hold up the restore. Each batch is bounded and
+      // swallows its own errors, so nothing rejects in the background.
+      for (let i = 0; i < walletInfo.length; i++) {
+        this.subscribeRestoreAddressRange(walletTypes[i].wallet, walletInfo[i].lastAddressIndex)
+      }
+
+      return {
+        walletInfo,
+        xpubKeysInfo,
+        walletHash: wallet.BCH.walletHash,
+        // Chipnet wallets share the hash of their mainnet counterpart.
+        walletHashes: [
+          wallet.BCH.walletHash,
+          wallet.SLP.walletHash,
+        ],
+      }
+    },
+    /**
+     * Resolves the highest address index the server has seen for each imported
+     * wallet. Used so a restored wallet never generates an address that was
+     * already used (address reuse leaks spending history between payments).
+     *
+     * The lookup is bounded and best-effort: a timeout or network error falls
+     * back to 0 for that wallet rather than blocking the restore. The index only
+     * covers addresses this server has already seen; a seed used in another app
+     * still needs an exhaustive scan before its history is complete.
+     *
+     * @param {Array<{wallet: Object, type: string, isChipnet: boolean}>} walletTypes
+     * @returns {Promise<number[]>} last address index per entry of walletTypes
+     */
+    async getRestoreLastAddressIndices (walletTypes) {
+      const results = await Promise.all(walletTypes.map(async ({ wallet: networkWallet, type, isChipnet }) => {
+        try {
+          const index = await withTimeout(
+            networkWallet.getLastAddressIndex({ exclude_pos: true }),
+            RESTORE_INDEX_LOOKUP_TIMEOUT_MS,
+            'Last address index lookup timed out'
+          )
+          if (Number.isInteger(index) && index >= 0) return index
+          return 0
+        } catch (error) {
+          console.warn(`[Restore] Could not resolve last address index for ${type} (chipnet: ${isChipnet}):`, error)
+          return 0
+        }
+      }))
+
+      // Receiving index 0/0 is reserved for message encryption, so a wallet with
+      // no server-side history still starts at 1.
+      return results.map(index => Math.max(1, index))
+    },
+    /**
+     * Subscribes indices 0..lastAddressIndex of a restored wallet so watchtower
+     * starts indexing them. Chunked because a large range in a single request
+     * can exceed the API timeout. Failures are logged only: notifications and
+     * history catch up on the next resubscribe pass.
+     *
+     * @param {Object} networkWallet
+     * @param {number} lastAddressIndex
+     */
+    async subscribeRestoreAddressRange (networkWallet, lastAddressIndex) {
+      const batchSize = 50
+      for (let start = 0; start <= lastAddressIndex; start += batchSize) {
+        const count = Math.min(batchSize, lastAddressIndex - start + 1)
+        try {
+          const result = await networkWallet.scanAddresses({ startIndex: start, count })
+          if (!result?.success) {
+            console.warn('[Restore] Address subscription failed:', result?.error)
+            return
+          }
+        } catch (error) {
+          console.warn('[Restore] Address subscription failed:', error)
+          return
+        }
+      }
     },
     initializeVaultEntryForRestore () {
       // Create vault entry for restore flow using wallet data from createWallets()
@@ -1840,6 +1943,8 @@ export default {
       }
     },
     goToStep4 () {
+      // Continue stays disabled while detection runs; ignore stray triggers too.
+      if (this.step2Loading) return
       if (this.importSeedPhrase) {
         this.$router.push('/accounts/restore/step-4')
       } else {
@@ -1886,138 +1991,170 @@ export default {
       
       this.$store.commit('global/updateWalletName', { name: name, index: walletIndex })
     },
-    async initializeStep2 () {
-      // Prevent duplicate calls
+    startStep2Detection () {
+      // Disable Continue synchronously, before the next tick, so the user cannot
+      // skip past the settings while detection is still pending.
+      if (!this.step2Initialized) this.step2Loading = true
+      return this.initializeStep2()
+    },
+    initializeStep2 () {
+      // A second caller must not restart or clear step2Loading while detection is
+      // running, otherwise it re-enables Continue mid-detection.
+      if (this.step2DetectionPromise) return this.step2DetectionPromise
+      // Prevent duplicate calls once detection has completed.
       if (this.step2Initialized) {
         this.step2Loading = false
-        return
+        return Promise.resolve()
       }
+
       this.step2Initialized = true
       this.step2Loading = true
-      
-      try {
-        // Auto-detect language and currency for step 2
-        await this.$store.dispatch('market/updateSupportedCurrencies', {})
-        const devicePrefs = await this.getDeviceLocalePreferences()
-        const deviceRegion = devicePrefs?.regionCode
-        const deviceLangs = Array.isArray(devicePrefs?.langs) ? devicePrefs.langs : []
 
-        // Device-first: use region from device locale (when available) to pick default country/currency.
-        let detectedCountry = null
-        if (deviceRegion && Array.isArray(COUNTRIES)) {
-          detectedCountry = COUNTRIES.find(c => String(c?.code || '').toUpperCase() === String(deviceRegion).toUpperCase()) || null
-        }
-
-        // IP fallback only when device locale doesn't provide enough data
-        const ipGeoPreferences = (!detectedCountry || !detectedCountry?.currency)
-          ? await this.getIPGeolocationPreferences()
-          : { country: detectedCountry, currency: { symbol: detectedCountry.currency }, langs: deviceLangs }
-
-        // set currency immediately (no timeout) and persist
-        // Currency options have 'symbol' which is the currency code (e.g., "PHP", "USD")
-        const currencyOptions = this.$store.getters['market/currencyOptions']
-        // Match by symbol (which is the currency code like "PHP")
-        const desiredCurrencySymbol = ipGeoPreferences?.currency?.symbol
-        let currency = currencyOptions.find(o => o.symbol === desiredCurrencySymbol)
-        
-        // If currency not found in options, create it from geoip data
-        if (!currency && desiredCurrencySymbol) {
-          const desiredCurrencyName = ipGeoPreferences?.currency?.name || desiredCurrencySymbol
-          const newCurrency = {
-            symbol: desiredCurrencySymbol,
-            name: desiredCurrencyName
-          }
-          // Add to currency options if not already there
-          const updatedOptions = [...currencyOptions]
-          if (!updatedOptions.some(c => c.symbol === newCurrency.symbol)) {
-            updatedOptions.push(newCurrency)
-            this.$store.commit('market/updateCurrencyOptions', updatedOptions)
-          }
-          // Get the currency reference from the store after updating (must be same reference for indexOf to work)
-          const updatedCurrencyOptions = this.$store.getters['market/currencyOptions']
-          currency = updatedCurrencyOptions.find(c => c.symbol === newCurrency.symbol)
-        }
-        
-        if (currency?.symbol) {
-          // Get the exact reference from state.currencyOptions (required for indexOf to work)
-          // The mutation uses indexOf which compares by reference, not value
-          const stateCurrencyOptions = this.$store.state.market.currencyOptions
-          const currencyFromState = stateCurrencyOptions.find(c => c.symbol === currency.symbol)
-          
-          if (currencyFromState) {
-            // Update currency in market store (must be exact reference from state array)
-            this.$store.commit('market/updateSelectedCurrency', currencyFromState)
-            // Also save to vault settings for wallet-specific storage
-            this.$store.commit('global/saveWalletSetting', { key: 'currency', value: currencyFromState })
-          } else {
-            // Fallback: use mutation to set currency if not found in state options array
-            console.warn('[Step 2] Currency not in state options array, using fallback mutation')
-            this.$store.commit('market/setSelectedCurrency', currency)
-            this.$store.commit('global/saveWalletSetting', { key: 'currency', value: currency })
-          }
-        } else {
-          console.warn('[Step 2] Currency not found and could not be created for:', ipGeoPreferences.currency.symbol)
-          console.warn('[Step 2] Available symbols:', currencyOptions.map(c => c.symbol))
-        }
-        this.currencySelectorRerender = true
-        
-        // Device-first language: use device locale languages; fall back to GeoIP languages
-        const languageCodes = (deviceLangs?.length ? deviceLangs : (ipGeoPreferences.langs || ['en-us']))
-        
-        // Sort language codes (prefer codes with dashes, e.g., 'en-us' over 'en')
-        languageCodes.sort((a, b) => {
-          const aHasDash = a.includes('-') ? 0 : 1
-          const bHasDash = b.includes('-') ? 0 : 1
-          return aHasDash - bHasDash
+      const detection = this.detectStep2Preferences()
+      // Continue stays disabled until detection settles. Bound the wait so a
+      // stalled network call cannot block the user indefinitely.
+      const bounded = withTimeout(
+        detection,
+        STEP2_DETECTION_TIMEOUT_MS,
+        'Preference auto-detection timed out'
+      )
+        .catch(error => {
+          console.error('[Step 2] Error initializing step 2:', error)
+          // Reset flag so detection can be retried
+          this.step2Initialized = false
         })
-        
-        // Find first matching supported language
-        let selectedLangCode = 'en-us' // default fallback
-        const supportedLanguageCodes = Object.keys(supportedLangsI18n)
-        for (let languageCode of languageCodes) {
-          // Try exact match first
-          if (supportedLanguageCodes.includes(languageCode)) {
-            selectedLangCode = languageCode
-            break
-          }
-          // Try matching general language code (e.g., 'en' from 'en-ph')
-          const generalLanguageCode = languageCode.replace(/-.*$/, '')
-          const languageMatched = supportedLanguageCodes.find(langOption => {
-            // Check if supported language starts with the general code (e.g., 'en-us' starts with 'en')
-            return langOption.startsWith(generalLanguageCode + '-') || langOption === generalLanguageCode
-          })
-          if (languageMatched) {
-            selectedLangCode = languageMatched
-            break
-          }
-        }
-        
-        // Always set language during registration (step 2), regardless of vault state
-        // The vault entry exists but settings should be updated
-        if (selectedLangCode && supportedLangsI18n[selectedLangCode]) {
-          this.setLanguage(selectedLangCode)
-          // Also save to vault settings explicitly
-          this.$store.commit('global/saveWalletSetting', { key: 'language', value: selectedLangCode })
-        } else {
-          console.warn('[Step 2] Invalid language code or not supported:', selectedLangCode)
-        }
-        
-        // set country
-        const countryToUse = detectedCountry || ipGeoPreferences.country
-        this.$store.commit('global/setCountry', {
-          country: countryToUse,
-          denomination: 'BCH' // Default denomination, can be changed by user later
+        .finally(() => {
+          // Always re-enable Continue, even when detection failed or timed out
+          this.step2Loading = false
         })
 
-        // persist preferences to avoid later overrides (e.g., refetchWalletPreferences)
-        await this.$store.dispatch('global/saveWalletPreferences').catch(() => {})
-      } catch (error) {
-        console.error('[Step 2] Error initializing step 2:', error)
-        // Reset flag so it can be retried
-        this.step2Initialized = false
-      } finally {
-        this.step2Loading = false
+      this.step2DetectionPromise = bounded
+      // Hold the guard until the underlying detection actually settles so a
+      // timed-out run cannot overlap with a retry and clobber its results.
+      detection
+        .catch(() => {})
+        .finally(() => {
+          if (this.step2DetectionPromise === bounded) this.step2DetectionPromise = null
+        })
+
+      return bounded
+    },
+    async detectStep2Preferences () {
+      // Auto-detect language and currency for step 2
+      await this.$store.dispatch('market/updateSupportedCurrencies', {})
+      const devicePrefs = await this.getDeviceLocalePreferences()
+      const deviceRegion = devicePrefs?.regionCode
+      const deviceLangs = Array.isArray(devicePrefs?.langs) ? devicePrefs.langs : []
+
+      // Device-first: use region from device locale (when available) to pick default country/currency.
+      let detectedCountry = null
+      if (deviceRegion && Array.isArray(COUNTRIES)) {
+        detectedCountry = COUNTRIES.find(c => String(c?.code || '').toUpperCase() === String(deviceRegion).toUpperCase()) || null
       }
+
+      // IP fallback only when device locale doesn't provide enough data
+      const ipGeoPreferences = (!detectedCountry || !detectedCountry?.currency)
+        ? await this.getIPGeolocationPreferences()
+        : { country: detectedCountry, currency: { symbol: detectedCountry.currency }, langs: deviceLangs }
+
+      // set currency immediately (no timeout) and persist
+      // Currency options have 'symbol' which is the currency code (e.g., "PHP", "USD")
+      const currencyOptions = this.$store.getters['market/currencyOptions']
+      // Match by symbol (which is the currency code like "PHP")
+      const desiredCurrencySymbol = ipGeoPreferences?.currency?.symbol
+      let currency = currencyOptions.find(o => o.symbol === desiredCurrencySymbol)
+    
+      // If currency not found in options, create it from geoip data
+      if (!currency && desiredCurrencySymbol) {
+        const desiredCurrencyName = ipGeoPreferences?.currency?.name || desiredCurrencySymbol
+        const newCurrency = {
+          symbol: desiredCurrencySymbol,
+          name: desiredCurrencyName
+        }
+        // Add to currency options if not already there
+        const updatedOptions = [...currencyOptions]
+        if (!updatedOptions.some(c => c.symbol === newCurrency.symbol)) {
+          updatedOptions.push(newCurrency)
+          this.$store.commit('market/updateCurrencyOptions', updatedOptions)
+        }
+        // Get the currency reference from the store after updating (must be same reference for indexOf to work)
+        const updatedCurrencyOptions = this.$store.getters['market/currencyOptions']
+        currency = updatedCurrencyOptions.find(c => c.symbol === newCurrency.symbol)
+      }
+    
+      if (currency?.symbol) {
+        // Get the exact reference from state.currencyOptions (required for indexOf to work)
+        // The mutation uses indexOf which compares by reference, not value
+        const stateCurrencyOptions = this.$store.state.market.currencyOptions
+        const currencyFromState = stateCurrencyOptions.find(c => c.symbol === currency.symbol)
+      
+        if (currencyFromState) {
+          // Update currency in market store (must be exact reference from state array)
+          this.$store.commit('market/updateSelectedCurrency', currencyFromState)
+          // Also save to vault settings for wallet-specific storage
+          this.$store.commit('global/saveWalletSetting', { key: 'currency', value: currencyFromState })
+        } else {
+          // Fallback: use mutation to set currency if not found in state options array
+          console.warn('[Step 2] Currency not in state options array, using fallback mutation')
+          this.$store.commit('market/setSelectedCurrency', currency)
+          this.$store.commit('global/saveWalletSetting', { key: 'currency', value: currency })
+        }
+      } else {
+        console.warn('[Step 2] Currency not found and could not be created for:', ipGeoPreferences.currency.symbol)
+        console.warn('[Step 2] Available symbols:', currencyOptions.map(c => c.symbol))
+      }
+      this.currencySelectorRerender = true
+    
+      // Device-first language: use device locale languages; fall back to GeoIP languages
+      const languageCodes = (deviceLangs?.length ? deviceLangs : (ipGeoPreferences.langs || ['en-us']))
+    
+      // Sort language codes (prefer codes with dashes, e.g., 'en-us' over 'en')
+      languageCodes.sort((a, b) => {
+        const aHasDash = a.includes('-') ? 0 : 1
+        const bHasDash = b.includes('-') ? 0 : 1
+        return aHasDash - bHasDash
+      })
+    
+      // Find first matching supported language
+      let selectedLangCode = 'en-us' // default fallback
+      const supportedLanguageCodes = Object.keys(supportedLangsI18n)
+      for (let languageCode of languageCodes) {
+        // Try exact match first
+        if (supportedLanguageCodes.includes(languageCode)) {
+          selectedLangCode = languageCode
+          break
+        }
+        // Try matching general language code (e.g., 'en' from 'en-ph')
+        const generalLanguageCode = languageCode.replace(/-.*$/, '')
+        const languageMatched = supportedLanguageCodes.find(langOption => {
+          // Check if supported language starts with the general code (e.g., 'en-us' starts with 'en')
+          return langOption.startsWith(generalLanguageCode + '-') || langOption === generalLanguageCode
+        })
+        if (languageMatched) {
+          selectedLangCode = languageMatched
+          break
+        }
+      }
+    
+      // Always set language during registration (step 2), regardless of vault state
+      // The vault entry exists but settings should be updated
+      if (selectedLangCode && supportedLangsI18n[selectedLangCode]) {
+        this.setLanguage(selectedLangCode)
+        // Also save to vault settings explicitly
+        this.$store.commit('global/saveWalletSetting', { key: 'language', value: selectedLangCode })
+      } else {
+        console.warn('[Step 2] Invalid language code or not supported:', selectedLangCode)
+      }
+    
+      // set country
+      const countryToUse = detectedCountry || ipGeoPreferences.country
+      this.$store.commit('global/setCountry', {
+        country: countryToUse,
+        denomination: 'BCH' // Default denomination, can be changed by user later
+      })
+
+      // persist preferences to avoid later overrides (e.g., refetchWalletPreferences)
+      await this.$store.dispatch('global/saveWalletPreferences').catch(() => {})
     },
     async generateSeedPhrase () {
       if (this.mnemonic || this.walletCreationInProgress) return
@@ -2177,81 +2314,59 @@ export default {
       // This runs in background - no UI updates needed
       const vm = this
       const wallet = new Wallet(vm.mnemonic)
-      const bchWallets = [wallet.BCH, wallet.BCH_CHIP]
-      const slpWallets = [wallet.SLP, wallet.SLP_TEST]
+      const walletTypes = [
+        { wallet: wallet.BCH, type: 'bch', isChipnet: false },
+        { wallet: wallet.BCH_CHIP, type: 'bch', isChipnet: true },
+        { wallet: wallet.SLP, type: 'slp', isChipnet: false },
+        { wallet: wallet.SLP_TEST, type: 'slp', isChipnet: true },
+      ]
 
       vm.newWalletSnapshot.walletInfo = []
       vm.newWalletSnapshot.xpubKeysInfo = []
 
-      for (const bchWallet of bchWallets) {
-        const isChipnet = bchWallets.indexOf(bchWallet) === 1
+      for (const { wallet: networkWallet, type, isChipnet } of walletTypes) {
+        // Derive locally; never block wallet creation on a watchtower response.
+        const addresses = await networkWallet.getAddressSetAt(0)
+        const walletTypeInfo = {
+          isChipnet,
+          type,
+          walletHash: networkWallet.walletHash,
+          derivationPath: networkWallet.derivationPath,
+          lastAddress: addresses.receiving,
+          lastChangeAddress: addresses.change,
+          lastAddressIndex: 0,
+        }
 
-        await bchWallet.getNewAddressSet(0).then(function (response) {
-          const addresses = response?.addresses || null
-          const walletTypeInfo = {
-            isChipnet,
-            type: 'bch',
-            walletHash: bchWallet.walletHash,
-            derivationPath: bchWallet.derivationPath,
-            lastAddress: addresses !== null ? addresses.receiving : '',
-            lastChangeAddress: addresses !== null ? addresses.change : '',
-            lastAddressIndex: 0,
-          }
+        if (vm.isVaultEmpty) vm.$store.commit('global/updateWallet', walletTypeInfo)
+        else vm.newWalletSnapshot.walletInfo.push(walletTypeInfo)
 
-          if (vm.isVaultEmpty) vm.$store.commit('global/updateWallet', walletTypeInfo)
-          else vm.newWalletSnapshot.walletInfo.push(walletTypeInfo)
-        })
+        const xPubInfo = {
+          isChipnet,
+          type,
+          xPubKey: await networkWallet.getXPubKey()
+        }
 
-        await bchWallet.getXPubKey().then(function (xpub) {
-          const xPubInfo = {
-            isChipnet,
-            type: 'bch',
-            xPubKey: xpub
-          }
-
-          if (vm.isVaultEmpty) vm.$store.commit('global/updateXPubKey', xPubInfo)
-          else vm.newWalletSnapshot.xpubKeysInfo.push(xPubInfo)
-        })
+        if (vm.isVaultEmpty) vm.$store.commit('global/updateXPubKey', xPubInfo)
+        else vm.newWalletSnapshot.xpubKeysInfo.push(xPubInfo)
       }
 
-      for (const slpWallet of slpWallets) {
-        const isChipnet = slpWallets.indexOf(slpWallet) === 1
-
-        await slpWallet.getNewAddressSet(0).then(function (addresses) {
-          const walletTypeInfo = {
-            isChipnet,
-            type: 'slp',
-            walletHash: slpWallet.walletHash,
-            derivationPath: slpWallet.derivationPath,
-            lastAddress: addresses !== null ? addresses.receiving : '',
-            lastChangeAddress: addresses !== null ? addresses.change : '',
-            lastAddressIndex: 0
-          }
-
-          if (vm.isVaultEmpty) vm.$store.commit('global/updateWallet', walletTypeInfo)
-          else vm.newWalletSnapshot.walletInfo.push(walletTypeInfo)
+      // Best-effort address registration; failures only cost notifications.
+      await Promise.all(walletTypes.map(({ wallet: networkWallet }) =>
+        networkWallet.getNewAddressSet(0).catch(error => {
+          console.warn('[Create] Address subscription failed:', error)
         })
-
-        await slpWallet.getXPubKey().then(function (xpub) {
-          const xPubInfo = {
-            isChipnet,
-            type: 'slp',
-            xPubKey: xpub
-          }
-
-          if (vm.isVaultEmpty) vm.$store.commit('global/updateXPubKey', xPubInfo)
-          else vm.newWalletSnapshot.xpubKeysInfo.push(xPubInfo)
-        })
-      }
+      ))
 
 
+      // BCH_CHIP/SLP_TEST report the same hash as their mainnet counterparts
+      // (the hash has no network component), so list each wallet once.
       const walletHashes = [
         wallet.BCH.walletHash,
-        wallet.BCH_CHIP.walletHash,
         wallet.SLP.walletHash,
-        wallet.SLP_TEST.walletHash,
       ]
-      this.$pushNotifications?.subscribe?.(walletHashes, this.walletIndex, true)
+      // Additive on purpose: the new wallet is not in the vault yet, so this
+      // list is not the device's complete set and must not prune anything.
+      this.$pushNotifications?.subscribe?.(walletHashes, true)
       this.newWalletHash = wallet.BCH.walletHash
       
       // Mark wallet creation as complete
@@ -2598,20 +2713,15 @@ export default {
     
     // If user lands directly on step-3, ensure geoip call happens
     if (this.currentStep === 3 && !this.importSeedPhrase) {
-      this.$nextTick(() => {
-        this.initializeStep2().catch(error => {
-          console.error('[Step 3] Unhandled error in initializeStep2:', error)
-        })
+      this.startStep2Detection().catch(error => {
+        console.error('[Step 3] Unhandled error in initializeStep2:', error)
       })
     }
     
     // If user lands directly on restore step-3, ensure geoip call happens
     if (this.restoreStep === 3) {
-      this.step2Initialized = false
-      this.$nextTick(() => {
-        this.initializeStep2().catch(error => {
-          console.error('[Step 2] Unhandled error in initializeStep2:', error)
-        })
+      this.startStep2Detection().catch(error => {
+        console.error('[Step 2] Unhandled error in initializeStep2:', error)
       })
     }
   },

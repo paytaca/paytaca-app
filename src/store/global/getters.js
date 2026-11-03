@@ -210,6 +210,42 @@ export function getWalletByHash (state) {
   }
 }
 
+/**
+ * Push-notification wallet hashes for every wallet in the vault.
+ *
+ * A wallet hash is `sha256(sha256(mnemonic) + sha256(derivationPath))`, so it
+ * carries no network component: the chipnet and mainnet wallets of one vault
+ * entry report the same BCH hash (and the same SLP hash). Only two hashes per
+ * entry exist, and entries can share them, hence the dedupe.
+ *
+ * Reading from the vault rather than deriving from the mnemonic means this
+ * needs no seed material, so subscription does not depend on a mnemonic having
+ * been persisted for every vault entry yet.
+ *
+ * @param {Object} state
+ * @returns {string[]}
+ */
+export function getSubscribedWalletHashes (state) {
+  const hashes = []
+  const seen = new Set()
+
+  const add = (walletHash) => {
+    if (!walletHash) return
+    const normalized = String(walletHash).trim()
+    if (!normalized || seen.has(normalized)) return
+    seen.add(normalized)
+    hashes.push(normalized)
+  }
+
+  ;(state.vault || []).forEach(entry => {
+    if (!entry || entry.deleted) return
+    add(entry.wallet?.bch?.walletHash || entry.wallet?.BCH?.walletHash)
+    add(entry.wallet?.slp?.walletHash || entry.wallet?.SLP?.walletHash)
+  })
+
+  return hashes
+}
+
 export function getDefaultAssetLogo () {
   return function (val = '') {
     const string = sha256(String(val))

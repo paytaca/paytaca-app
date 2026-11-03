@@ -332,6 +332,7 @@
       :custom-keyboard-state="'show'"
       @addKey="setAmount"
       @makeKeyAction="makeKeyAction"
+      @backPressed="showCustomKeyboard = false"
     />
     </div>
   </q-pull-to-refresh>

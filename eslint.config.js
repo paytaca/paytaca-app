@@ -50,7 +50,7 @@ export default [
 
       globals: {
         ...globals.browser,
-        ...globals.node, // SSR, Electron, config files
+        ...globals.node, // SSR, config files
         process: 'readonly', // process.env.*
         ga: 'readonly', // Google Analytics
         cordova: 'readonly',
@@ -66,6 +66,15 @@ export default [
 
       // allow debugger during development only
       'no-debugger': process.env.NODE_ENV === 'production' ? 'error' : 'off',
+    }
+  },
+
+  {
+    files: [ 'test/**/*.spec.{js,mjs}' ],
+    languageOptions: {
+      globals: {
+        ...globals.mocha
+      }
     }
   },
 

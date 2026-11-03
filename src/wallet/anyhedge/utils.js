@@ -1,11 +1,10 @@
 import axios from 'axios'
-import BCHJS from '@psf/bch-js'
+import { wifToPublicKey } from 'src/utils/bch-keys'
 import { decodePrivateKeyWif, binToHex, secp256k1, utf8ToBin, sha256, hexToBin } from '@bitauth/libauth';
 import { IncorrectWIFError, decodeExtendedJson } from '@generalprotocols/anyhedge'
 import { ContractData } from '@generalprotocols/anyhedge';
 import { Wallet } from '../index'
 
-const bchjs = new BCHJS()
 /**
  * Generate signature and pubkey needed to access the contract in a settlement service
  * @see {@link https://gitlab.com/GeneralProtocols/anyhedge/library/-/blob/v0.14.2/lib/anyhedge.ts#L399} for reference
@@ -62,8 +61,7 @@ export async function getContractStatus(contractAddress, signature, publicKey, m
 }
 
 export function derivePubkey(privkey) {
-    const ecpair = bchjs.ECPair.fromWIF(privkey)
-    return bchjs.ECPair.toPublicKey(ecpair).toString('hex')
+    return wifToPublicKey(privkey)
 }
 
 export function checkPrivAndPubkey(privkey, pubkey) {

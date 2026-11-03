@@ -393,6 +393,7 @@ const words = [
     Merchant: 'Merchant',
     Cutlery: 'Cutlery',
     MoreInfo: 'More info',
+    MoreDetails: 'More Details',
     RetrievingDetails: 'Retrieving details',
     Reservations: 'Reservations',
     Purchases: 'Purchases',

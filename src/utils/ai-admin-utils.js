@@ -350,7 +350,6 @@ async function _getAllKeys() {
 
 // ===== Paytaca AI API =======
 
-
 // Create API Keys
 export async function createAPIKey (name) {
   for (let attempt = 0; attempt <= MAX_AUTH_RETRIES; attempt++) {
@@ -764,6 +763,231 @@ export async function confirmSession(address, txid) {
           error: `Network error: ${errorMessage}`
         }
       }
+    }
+  }
+}
+
+// ===== Paytaca AI: Image Generation API =======
+
+// Fetch Image Models
+export async function fetchImageModels(data) {
+  for (let attempt = 0; attempt <= MAX_AUTH_RETRIES; attempt++) {
+    try {
+      const params = {}
+
+      if ('pricingUnit' in data) {
+        params['pricing_unit'] = data.pricingUnit
+      }
+
+      if ('search' in data) {
+        params['search'] = data.search
+      }
+
+      if ('ordering' in data) {
+        params['ordering'] = data.ordering
+      }
+
+      const response = await backend.get(baseURL + '/image-models', { params: params})
+
+      return {
+        success: true,
+        data: response.data,
+        error: null
+      }
+    } catch (error) {
+      const errorMessage = error.response?.data?.message || error.message || 'Failed to fetch image models'
+      console.error('[fetchImageModels] Error:', errorMessage)
+
+      return {
+        success: false,
+        data: null,
+        error: `Network error: ${errorMessage}`
+      }
+
+    }
+  }
+}
+
+// Create Image Order
+export async function createImageOrder(data) {
+  for (let attempt = 0; attempt <= MAX_AUTH_RETRIES; attempt++) {
+    try {
+      const headers = await getAuthHeaders()
+
+      const payload = {
+        prompt: data.prompt,
+        model: data.model,
+        aspect_ratio: data.aspectRatio,
+        quality: data.quality,
+        resolution: data.resolution,
+        refund_address: data.refundAddress
+      }
+
+      const response = await backend.post(baseURL + '/images', payload, { headers: headers })
+
+       return {
+          success: true,
+          data: response.data,
+          error: null
+        }
+    } catch (error) {
+      if ((error.response?.status === 401 || error.response?.status === 403) && attempt < MAX_AUTH_RETRIES) {
+        await clearToken()
+        continue
+      }
+
+      const errorMessage = error.response?.data?.message || error.message || 'Failed to create image order'
+      console.error('[createImageOrder] Error:', errorMessage)
+
+      if (attempt === MAX_AUTH_RETRIES) {
+        return {
+          success: false,
+          data: null,
+          error: `Network error: ${errorMessage}`
+        }
+      }
+    }
+  }
+}
+
+// Confirm Image Payment
+export async function confirmImagePayment(orderId, txid) {
+  for (let attempt = 0; attempt <= MAX_AUTH_RETRIES; attempt++) {
+    try {
+      const headers = await getAuthHeaders()
+
+      const payload = {
+        txid: txid
+      }
+
+      const response = await backend.post(baseURL + '/images/' + orderId + '/confirm-payment', payload, { headers: headers })
+
+      return {
+        success: true,
+        data: response.data,
+        error: null
+      }
+    } catch (error) {
+      if ((error.response?.status === 401 || error.response?.status === 403) && attempt < MAX_AUTH_RETRIES) {
+        await clearToken()
+        continue
+      }
+
+      const errorMessage = error.response?.data?.message || error.message || 'Failed to confirm image payment'
+      console.error('[confirmImagePayment] Error:', errorMessage)
+
+      if (attempt === MAX_AUTH_RETRIES) {
+        return {
+          success: false,
+          data: null,
+          error: `Network error: ${errorMessage}`
+        }
+      }
+    }
+  }
+}
+
+//Get Image Status
+export async function getImageStatus(orderId) {
+  for (let attempt = 0; attempt <= MAX_AUTH_RETRIES; attempt++) {
+    try {
+      const headers = await getAuthHeaders()
+
+      const response = await backend.get(baseURL + '/images/' + orderId + '/status', { headers: headers })
+
+      return {
+        success: true,
+        data: response.data,
+        error: null
+      }            
+    } catch (error) {
+      if ((error.response?.status === 401 || error.response?.status === 403) && attempt < MAX_AUTH_RETRIES) {
+        await clearToken()
+        continue
+      }
+
+      const errorMessage = error.response?.data?.message || error.message || 'Failed to get image status'
+      console.error('[getImageStatus] Error:', errorMessage)
+
+      if (attempt === MAX_AUTH_RETRIES) {
+        return {
+          success: false,
+          data: null,
+          error: `Network error: ${errorMessage}`
+        }
+      }
+    } 
+  }  
+}
+
+// Confirm Image Received (clears backend cache)
+export async function confirmImageReceived(orderId) {
+  for (let attempt = 0; attempt <= MAX_AUTH_RETRIES; attempt++) {
+    try {
+      const headers = await getAuthHeaders()
+
+      const response = await backend.post(baseURL + '/images/' + orderId + '/confirm', {}, { headers: headers})
+
+      return {
+        success: true,
+        data: response.data,
+        error: null
+      }
+    } catch (error) {
+      if ((error.response?.status === 401 || error.response?.status === 403) && attempt < MAX_AUTH_RETRIES) {
+        await clearToken()
+        continue
+      }
+
+      const errorMessage = error.response?.data?.message || error.message || 'Failed to confirm image received'
+      console.error('[confirmImageReceived] Error:', errorMessage)
+
+      if (attempt === MAX_AUTH_RETRIES) {
+        return {
+          success: false,
+          data: null,
+          error: `Network error: ${errorMessage}`
+        }
+      }
+    }
+  }
+}
+
+// Image Order History
+export async function fetchImageOrders (data = {}) {
+  for (let attempt = 0; attempt <= MAX_AUTH_RETRIES; attempt++) {
+    try {
+      const headers = await getAuthHeaders()
+
+      const params = {
+        page: data.page || 1,
+        page_size: data.pageSize || 10
+      }
+
+      const response = await backend.get(baseURL + '/images/history', { params: params, headers: headers})
+
+      return {
+        success: true,
+        data: response.data,
+        error: null
+      }
+    } catch (error) {
+      if ((error.response?.status === 401 || error.response?.status === 403) && attempt < MAX_AUTH_RETRIES) {
+        await clearToken()
+        continue
+      }
+
+      const errorMessage = error.response?.data?.message || error.message || 'Failed to fetch image orders'
+      console.error('[fetchImageOrders] Error:', errorMessage)
+
+      if (attempt === MAX_AUTH_RETRIES) {
+        return {
+          success: false,
+          data: null,
+          error: `Network error: ${errorMessage}`
+        }
+      }
+
     }
   }
 }

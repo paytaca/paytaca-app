@@ -195,7 +195,7 @@ import sss from 'shamirs-secret-sharing'
 import html2canvas from 'html2canvas'
 import { downloadZip } from 'client-zip'
 
-import { toHex } from 'hex-my-bytes'
+import { binToHex } from 'bitauth-libauth-v3'
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 
 import ProgressLoader from 'src/components/ProgressLoader'
@@ -236,7 +236,7 @@ export default {
 
     const secret = Buffer.from(vm.mnemonic)
     const shares = sss.split(secret, { shares: 3, threshold: 2 })
-    vm.shards = shares.map(a => toHex(a))
+    vm.shards = shares.map(a => binToHex(a))
 
     setTimeout(() => {
       vm.isLoading = false

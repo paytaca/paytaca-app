@@ -257,6 +257,9 @@ export function SET_ROOMS (state, rooms) {
     if (lr.type === 'mls-group') {
       merged.owner = lr.owner
       merged.admins = lr.admins || []
+      // The public nostr_group_id is also local-only metadata (it lives in the
+      // MLS group extension); keep the local value if the server row predates it.
+      if (!merged.nostrGroupId) merged.nostrGroupId = lr.nostrGroupId || null
     }
     return merged
   })
@@ -286,6 +289,20 @@ export function ADD_MESSAGE (state, { roomId, message }) {
     let i = arr.length
     while (i > 0 && arr[i - 1].created_at > message.created_at) i--
     arr.splice(i, 0, message)
+    if (message.created_at > (ws.newestMessageAt || 0)) {
+      ws.newestMessageAt = message.created_at
+    }
+  }
+}
+
+// High-water mark for `created_at` across all rooms. Persisted separately from
+// `messages` (which is only a bounded tail) so relay subscriptions can resume
+// from the newest known timestamp without re-downloading history.
+export function SET_NEWEST_MESSAGE_AT (state, createdAt) {
+  const ws = getOrInitWalletState(state)
+  if (!ws) return
+  if (createdAt > (ws.newestMessageAt || 0)) {
+    ws.newestMessageAt = createdAt
   }
 }
 

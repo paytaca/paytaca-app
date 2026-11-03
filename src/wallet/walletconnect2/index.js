@@ -13,9 +13,7 @@ import { WalletKit } from '@reown/walletkit'
 import { getSdkError } from '@walletconnect/utils'
 import { parseExtendedJson, privateKeyToCashAddress, signBchTxError, signBchTransaction as signBchTransactionShared } from '../bch-sign'
 import { unpackSourceOutput } from './tx-sign-utils'
-import BCHJS from '@psf/bch-js'
 
-const bchjs = new BCHJS()
 
 // Singleton state to prevent multiple initializations
 let web3WalletInstance = null
@@ -51,8 +49,14 @@ export async function initWeb3Wallet () {
   isInitializing = true
 
   try {
+    const projectId = process.env.WALLETCONNECT_PROJECT_ID
+    if (!projectId) {
+      throw new Error(
+        'WALLETCONNECT_PROJECT_ID is not set. Add it to .env (see .env_template) — WalletConnect cannot start without it.'
+      )
+    }
     const core = new Core({
-      projectId: process.env.WALLETCONNECT_PROJECT_ID
+      projectId
     })
 
     web3WalletInstance = await WalletKit.init({
@@ -63,6 +67,16 @@ export async function initWeb3Wallet () {
         url: 'https://www.paytaca.com',
         icons: ['https://walletconnect.org/walletconnect-logo.png'],
       }
+    })
+
+    // The relayer re-emits fatal socket errors (e.g. WS close code 3000) on its
+    // internal EventEmitter; without a listener Node throws an uncaught
+    // 'error' event and crashes the app.
+    core.relayer?.on?.('error', (error) => {
+      console.error('WalletConnect relayer error:', error)
+    })
+    core.relayer?.provider?.on?.('error', (error) => {
+      console.error('WalletConnect relay provider error:', error)
     })
 
     // Attach critical event handlers immediately

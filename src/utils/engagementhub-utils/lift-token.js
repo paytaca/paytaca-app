@@ -1,19 +1,18 @@
 import { hexToBin } from "@bitauth/libauth"
 import { OracleData } from "@generalprotocols/price-oracle"
 import { Contract, ElectrumNetworkProvider } from "cashscript"
-import { NFTCapability, Wallet } from 'mainnet-js'
 import { getWalletHash } from 'src/utils/engagementhub-utils/shared'
 import { getWalletByNetwork } from 'src/wallet/chipnet'
 import { getChangeAddress } from 'src/utils/send-page-utils'
+import { sendNftGenesis } from 'src/utils/engagementhub-utils/token-genesis'
 
 import axios from 'axios'
-import BCHJS from "@psf/bch-js";
+import { hash160, hash256 } from 'bitauth-libauth-v3'
 import Watchtower from "watchtower-cash-js"
 import { requestManager } from 'src/utils/request-manager'
 
 import VestingContractArtifact from 'src/cashscripts/lift-token/VestingContractv3.json'
 
-const bchjs = new BCHJS();
 const watchtower = new Watchtower(false)
 
 export const SaleGroup = {
@@ -24,6 +23,27 @@ export const SaleGroup = {
 export const SaleGroupPrice = {
   seed: 0.015,
   priv: 0.03
+}
+
+export const LIFT_ERROR_REF = {
+  ContractAddressUnavailable: 'LIFT-01',
+  WalletUnavailable: 'LIFT-02',
+  InvalidPurchaseAmount: 'LIFT-03',
+  FailedToGetOracleData: 'LIFT-04',
+  FailedToGenerateAddress: 'LIFT-05',
+  FailedToGetAddressPath: 'LIFT-06',
+  FailedToGetContractData: 'LIFT-07',
+  FailedToInitializeVestingContract: 'LIFT-08',
+  PaymentSendingError: 'LIFT-09',
+  PurchasePaymentError: 'LIFT-10',
+  BalanceExceeded: 'LIFT-11',
+  ConfirmReservationError: 'LIFT-12',
+  ConfirmReservationNotReady: 'LIFT-13',
+}
+
+export function appendLiftErrorRef(message, errorCode) {
+  const ref = LIFT_ERROR_REF[errorCode] ?? 'LIFT-00' // fallback code for generic/unspecified errors
+  return `${message} (${ref})`
 }
 
 const ENGAGEMENT_HUB_URL =
@@ -57,7 +77,7 @@ export function initializeVestingContract(buyerPubkey, liftTokenId, adminPubkey,
 
   const provider = new ElectrumNetworkProvider('mainnet')
   const contractParams = [
-    bchjs.Crypto.hash160(Buffer.from(buyerPubkey, 'hex')),
+    hash160(Buffer.from(buyerPubkey, 'hex')),
     changeEndianness(liftTokenId),
     adminPubkey,
     BigInt(convertDateToBlockHeight(lockupEnd)),
@@ -201,7 +221,7 @@ export async function getReservationsData() {
       if (response.status !== 200) return []
       return response.data
     })
-    .catch(_error => { return [] })
+    .catch(() => { return [] })
 }
 
 export async function getPurchasesData() {
@@ -211,7 +231,7 @@ export async function getPurchasesData() {
       if (response.status !== 200) return []
       return response.data
     })
-    .catch(_error => { return [] })
+    .catch(() => { return [] })
 }
 
 export async function processPurchaseApi(data) {
@@ -219,7 +239,7 @@ export async function processPurchaseApi(data) {
   return await LIFTTOKEN_URL
     .post('purchase/process_purchase/', data)
     .then(response => { return response.status === 201 })
-    .catch(_error => { return false })
+    .catch(() => { return false })
 }
 
 export async function getContractAddressApi () {
@@ -229,20 +249,60 @@ export async function getContractAddressApi () {
       if (response.status === 200) return response.data.address
       return null
     })
-    .catch(_error => { return null } )
+    .catch(() => { return null } )
 }
 
-export function updateRsvpPublicKeys (data) {
-  return  LIFTTOKEN_URL
+export async function updateRsvpPublicKeys (data) {
+  return await LIFTTOKEN_URL
     .patch(`reservation/${getWalletHash()}/`, data)
-    .catch(error => console.error(error))
+    .then(response => { return response.status === 200 })
+    .catch(() => { return false })
+}
+
+export async function syncReservationPublicKeys (reservationsList, walletIndex) {
+  if (!Array.isArray(reservationsList) || reservationsList.length === 0) return []
+  const pending = reservationsList.filter(
+    rsvp => rsvp.public_key === '' || rsvp.public_key === null || rsvp.public_key === undefined
+  )
+  if (pending.length === 0) return []
+
+  let libauthWallet
+  try {
+    const { loadLibauthHdWallet } = await import('src/wallet')
+    libauthWallet = await loadLibauthHdWallet(walletIndex, false)
+  } catch (error) {
+    console.error('Failed to load wallet for reservation sync:', error)
+    return []
+  }
+
+  const payload = []
+  for (const rsvp of pending) {
+    try {
+      const addressPath = await getAddressPath(rsvp.bch_address)
+      const pubkeyHex = libauthWallet.getPubkeyAt(addressPath)
+
+      payload.push({ id: rsvp.id, public_key: pubkeyHex });
+    } catch (error) {
+      console.error('Failed to derive public key for reservation', rsvp.id, error)
+    }
+  }
+
+  if (payload.length > 0) {
+    const isSuccessful = await updateRsvpPublicKeys(payload)
+    if (!isSuccessful) return []
+    for (const item of payload) {
+      const rsvp = reservationsList.find(r => r.id === item.id)
+      if (rsvp) rsvp.public_key = item.public_key
+    }
+  }
+  return payload
 }
 
 export async function confirmReservationApi(data) {
   return await LIFTTOKEN_URL
     .post('reservation/confirm_reservation/', data)
     .then(response => { return response.status === 200 })
-    .catch(_error => { return false })
+    .catch(() => { return false })
 }
 
 export async function getIdAndPubkeyApi() {
@@ -252,7 +312,7 @@ export async function getIdAndPubkeyApi() {
       if (response.status === 200) return response.data
       return null
     })
-    .catch(_error => { return null } )
+    .catch(() => { return null } )
 }
 
 // ================================
@@ -355,10 +415,10 @@ export async function executePurchaseFlow(params) {
     throw new Error('WalletUnavailable')
   }
 
-  let pubkeyHex
+  let pubkeyHex, libauthWallet
   try {
     const { loadLibauthHdWallet } = await import('src/wallet')
-    const libauthWallet = await loadLibauthHdWallet(walletIndex, false)
+    libauthWallet = await loadLibauthHdWallet(walletIndex, false)
     pubkeyHex = libauthWallet.getPubkeyAt(addressPath).toString('hex')
   } catch (error) {
     console.error('Failed to load wallet or get pubkey:', error)
@@ -462,18 +522,15 @@ async function sendCustomPayment(data) {
   
     // get wif from utxos[0] address_path
     const wif = await data.libauthWallet.getPrivateKeyWifAt(utxos[0].address_path)
-    // generate wallet from wif
-    const wallet = await Wallet.fromWIF(wif)
     // generate token genesis transaction
-    const genResp = await wallet.tokenGenesis({
-      cashaddr: data.swapContractAddress,
-      amount: 0n,
-      commitment: generateNftCommitment(data.nftData),
-      capability: NFTCapability.mutable,
+    const { txid } = await sendNftGenesis({
+      wif,
+      to: data.swapContractAddress,
       value: BigInt(data.amount),
+      commitment: generateNftCommitment(data.nftData),
     })
   
-    return { success: true, txid: genResp.txId }
+    return { success: true, txid }
   } catch (error) {
     console.error('sendCustomPayment error:', error)
     return { success: false, txid: null }
@@ -501,6 +558,7 @@ function selectUtxosByAddressPath(utxos) {
   // Find the address_path with the greatest count
   const maxCount = Math.max(...Object.values(counts));
   const mostCommonPaths = Object.entries(counts)
+    // eslint-disable-next-line no-unused-vars
     .filter(([_, cnt]) => cnt === maxCount)
     .map(([address_path]) => address_path);
   // If tie, select the path whose utxo has the highest value
@@ -574,7 +632,7 @@ function generateNftCommitment(nftData) {
   const timestampBytes = new Uint8Array(buffer);
 
   // convert vesting contract script hash
-  const vestingBytes32 = bchjs.Crypto.hash256(Buffer.from(nftData.bytecode, "hex"));
+  const vestingBytes32 = hash256(Buffer.from(nftData.bytecode, "hex"));
 
   return Buffer.from([
     0x02,

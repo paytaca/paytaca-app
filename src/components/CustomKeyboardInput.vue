@@ -9,6 +9,7 @@
           :customKeyboardState="ctx.focused ? 'show': ''"
 @update:modelValue="val => { ctx.emitValue(val); this.hideKeyboardTooltip() }"
             @makeKeyAction="action => { if (action === 'ready to submit') $refs.field.blur(); this.hideKeyboardTooltip() }"
+            @backPressed="$refs.field.blur()"
           :style="{
             left:0,
             right:0,

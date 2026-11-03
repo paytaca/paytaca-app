@@ -64,6 +64,22 @@ function getTokenStorageKey (userType) {
   return `${TOKEN_STORAGE_KEY_PREFIX}-${walletHash}-${userType}`
 }
 
+/**
+ * Remove legacy (pre wallet/userType scoping) auth token keys once a
+ * wallet-scoped token has been generated, so stale tokens don't accumulate.
+ * @param {string|null|undefined} walletHash
+ */
+function removeLegacyRampTokenKeys (walletHash) {
+  const keys = [TOKEN_STORAGE_KEY_PREFIX]
+  const legacyWalletKey = getLegacyWalletTokenStorageKey(walletHash)
+  if (legacyWalletKey) keys.push(legacyWalletKey)
+  for (const key of keys) {
+    SecureStoragePlugin.remove({ key }).catch(err => {
+      console.warn('Failed to remove legacy ramp token:', err)
+    })
+  }
+}
+
 export class ExchangeUser {
   constructor (data) {
     this.raw = data
@@ -240,7 +256,11 @@ export function saveAuthToken (value, userType) {
 export function saveAuthTokenForUserType (value, userType) {
   userType = resolveUserType(userType)
   const key = getTokenStorageKey(userType)
-  return SecureStoragePlugin.set({ key, value }).then(success => { return success.value })
+  return SecureStoragePlugin.set({ key, value }).then(success => {
+    const walletHash = getCurrentWalletHash() || rampWallet?.walletHash
+    if (walletHash) removeLegacyRampTokenKeys(walletHash)
+    return success.value
+  })
 }
 
 /**

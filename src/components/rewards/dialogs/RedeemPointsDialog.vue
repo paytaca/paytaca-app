@@ -336,6 +336,7 @@
       :custom-keyboard-state="customKeyboardState"
       v-on:addKey="setAmount"
       v-on:makeKeyAction="makeKeyAction"
+      @backPressed="customKeyboardState = 'dismiss'"
     />
 
     <!-- PIN Dialog -->
@@ -696,7 +697,7 @@ export default {
     },
     async fetchRewardsSwapContractDetails () {
       const resp = await getRewardsSwapContractDetails()
-      if (resp) {
+      if (resp && Object.keys(resp).length > 0) {
         this.rewardsSwapContractAddress = resp.token_address
         this.rewardsSwapContractBytecode = resp.bytecode
       } else {

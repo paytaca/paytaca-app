@@ -17,6 +17,13 @@ export function usePaymentHubCore() {
   const hub = ref(null)
   let webSocketInitialized = false
 
+  async function initWallet() {
+    if (!wallet.value) {
+      wallet.value = await loadWallet('BCH', $store.getters['global/getWalletIndex'])
+    }
+    return wallet.value
+  }
+
   /**
    *
    * @param {Object} opts
@@ -31,9 +38,8 @@ export function usePaymentHubCore() {
       $q.loading.show({ message: opts.loadingMessage || 'Connecting…' })
     }
     try {
-      if (!wallet.value) {
-        wallet.value = await loadWallet('BCH', $store.getters['global/getWalletIndex'])
-      }
+      await initWallet();
+
       if (!hub.value) {
         hub.value = new PaymentHub(wallet.value)
       }
@@ -74,6 +80,7 @@ export function usePaymentHubCore() {
   return {
     wallet,
     hub,
+    initWallet,
     initHub,
     initWebSocket,
     closeWebSocket,
@@ -136,18 +143,38 @@ export function useSubscriptionUtils() {
   function getPaytacaFee(sub) {
     if (!sub) return 546
     if (typeof sub.paytaca_fee === 'number') return sub.paytaca_fee
-    if (!sub.pledge_satoshis) return 546
+    if (!sub.pledge_satoshis && !sub.pledge_tokens) return 546
     const pledge = sub.pledge_satoshis
     const maxFee = sub.max_fee || 546
     return Math.max(Math.min(maxFee, Math.floor(pledge / 100)), Math.floor(maxFee / 100));
   }
 
-  function getTotalCostPerCycle(sub) {
-    if (!sub?.pledge_satoshis) return 0;
-    const paytacaFee = getPaytacaFee(sub);
-    return sub.pledge_satoshis + paytacaFee + PAYOUT_TX_FEE
+  function getPayoutTxFee(sub) {
+    if (sub?.pledge_tokens) return 2000;
+    return 1000;
   }
 
+  function getTotalCostPerCycle(sub) {
+    if (!sub?.pledge_satoshis && !sub?.pledge_tokens) return 0;
+    const paytacaFee = getPaytacaFee(sub);
+    const payoutTxFee = getPayoutTxFee(sub);
+    return sub.pledge_satoshis + paytacaFee + payoutTxFee;
+  }
+
+  function getTotalTokenCostAmountText(sub) {
+    if (!sub?.pledge_tokens) return 0;
+    const tokenUnits = sub?.pledge_tokens;
+    const token = sub.plan_details.token;
+    return formatTokenAmount(tokenUnits, token);
+  }
+
+  function formatTokenAmount(tokenUnits, tokenData) {
+    const decimals = tokenData?.decimals ?? 0;
+    const symbol = tokenData?.symbol ?? $t('Cashtoken');
+
+    const tokenAmount = (tokenUnits / 10 ** decimals).toFixed(decimals);
+    return `${tokenAmount} ${symbol}`;
+  }
 
   function getPeriodTextBase(plan) {
     if (plan.period_days) {
@@ -201,12 +228,15 @@ export function useSubscriptionUtils() {
 
   return {
     PAYOUT_TX_FEE,
+    getPayoutTxFee,
     satsToBchDisplay,
 
     getSubscriptionStatusColor,
 
     getPaytacaFee,
     getTotalCostPerCycle,
+    getTotalTokenCostAmountText,
+    formatTokenAmount,
 
     getPeriodTextBase,
     getPeriodText,
