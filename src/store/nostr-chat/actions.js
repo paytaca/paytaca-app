@@ -1,4 +1,5 @@
 import { ACTIVE_THRESHOLD_MS } from './state'
+import { createWalletScopeTracker } from './wallet-scope'
 import { deriveNostrKeys, createUnsignedKind14, createNip17GiftWraps, computeRoomId, createKind10050, createReadReceiptGiftWrap, createReactionGiftWraps, createKind5DeletionGiftWraps } from 'src/wallet/nostr'
 import { finalizeEvent, verifyEvent, getEventHash, nip44, utils as nostrUtils } from 'nostr-tools'
 const { hexToBytes } = nostrUtils
@@ -179,6 +180,25 @@ function getWalletState (state) {
   return state.byWallet[hash]
 }
 
+const _walletScope = createWalletScopeTracker(getCurrentWalletHash, () => {
+  // Drop the collapsed/throttled latest-message fetch so the next wallet's
+  // first call is not handed the previous wallet's in-flight promise.
+  _latestFetchPromise = null
+  _latestFetchAt = 0
+})
+
+// Invalidate every scope captured before this call (wallet switch, reset).
+function bumpWalletEpoch () {
+  _walletScope.bump()
+}
+
+// Snapshot the wallet an async operation belongs to; re-check the returned
+// predicate after every await and before every commit. `null` means the
+// operation started with no active wallet and is unusable.
+export function captureWalletScope () {
+  return _walletScope.capture()
+}
+
 const DISCOVERY_RELAYS = [
   'wss://relay.paytaca.com',
 ]
@@ -186,8 +206,14 @@ const DISCOVERY_RELAYS = [
 export async function reinitialize ({ commit, dispatch, state }) {
   const walletHash = getCurrentWalletHash()
   if (!walletHash) return
+  // Invalidate everything the previous wallet still has in flight before the
+  // first await: relay callbacks, fetches and timers check this epoch.
+  bumpWalletEpoch()
   const mnemonic = await getMnemonicByHash(walletHash).catch(() => null)
   if (!mnemonic) return
+  // The awaited mnemonic lookup can outlive another wallet switch; committing
+  // this wallet's keys now would overwrite the active wallet's identity.
+  if (getCurrentWalletHash() !== walletHash) return
 
   // Clear debounced timers from the previous wallet session to prevent
   // stale touchRoom/fetchRooms dispatches against the new wallet state.
@@ -216,6 +242,7 @@ export async function reinitialize ({ commit, dispatch, state }) {
 
   // Register this wallet's Nostr pubkey in Watchtower
   await dispatch('registerNostrPubkey')
+  if (getCurrentWalletHash() !== walletHash) return
 
     // Fetch profile data for the new wallet
     try {
@@ -224,6 +251,9 @@ export async function reinitialize ({ commit, dispatch, state }) {
         dispatch('fetchPublishedBchAddress', { pubKeyHex: keys.pubKeyHex }),
         dispatch('fetchPublishedAvatar', { pubKeyHex: keys.pubKeyHex }),
       ])
+      // The profile lookups resolve against relays; a switch during them must
+      // not write this wallet's profile into the new wallet's state.
+      if (getCurrentWalletHash() !== walletHash) return
       if (displayName) {
         commit('SET_PROFILE_DISPLAY_NAME', { displayName, publishedAt: Date.now() })
       }
@@ -237,6 +267,7 @@ export async function reinitialize ({ commit, dispatch, state }) {
       console.warn('[Nostr] Failed to fetch profile data during reinitialize:', err)
     }
 
+  if (getCurrentWalletHash() !== walletHash) return
   dispatch('subscribeToRelays')
 }
 
@@ -245,6 +276,9 @@ export async function initialize ({ commit, dispatch, state }) {
   if (!walletHash) throw new Error('No wallet hash available')
   const mnemonic = await getMnemonicByHash(walletHash).catch(() => null)
   if (!mnemonic) throw new Error('No mnemonic available')
+  // Another wallet became active during the await: everything below targets
+  // `getWalletState` at commit time, so continuing would seed the wrong wallet.
+  if (getCurrentWalletHash() !== walletHash) return
 
   const keys = deriveNostrKeys(mnemonic)
   const ws = getWalletState(state)
@@ -764,12 +798,15 @@ export async function publishKind10050 ({ state }) {
 export async function fetchHistoricalMessages ({ state, dispatch, commit }) {
   const ws = getWalletState(state)
   if (!ws?.keys?.pubKeyHex) return
+  const isCurrent = captureWalletScope()
   try {
     await relayService.fetchHistoricalGiftWraps(DISCOVERY_RELAYS, ws.keys.pubKeyHex, {
       async onEvent(event) {
+        if (!isCurrent || !isCurrent()) return
         try {
           const { unwrapGiftWrap } = await import('src/wallet/nostr')
           const { rumor, sealPubkey } = unwrapGiftWrap(event, ws.keys.privKeyHex)
+          if (!isCurrent()) return
           dispatch('receiveMessage', { rumor, sealPubkey, isHistorical: true, giftWrap: event })
         } catch (err) {
           console.warn('[Nostr] Failed to unwrap historical gift-wrap:', err)
@@ -779,6 +816,8 @@ export async function fetchHistoricalMessages ({ state, dispatch, commit }) {
   } catch (err) {
     console.warn('[Nostr] Failed to fetch historical messages:', err)
   }
+
+  if (!isCurrent || !isCurrent()) return
 
   // Clean up deletedRooms entries for rooms that were restored during the historical fetch.
   // This allows future live messages to apply subject updates normally.
@@ -814,22 +853,31 @@ export async function fetchLatestMessages ({ state, dispatch }, { limit = 20, fo
   if (!force && Date.now() - _latestFetchAt < LATEST_MESSAGES_THROTTLE_MS) return
   _latestFetchAt = Date.now()
 
+  // Capture before the dynamic import: `ws` above is this wallet's state, so the
+  // scope has to describe the same wallet.
+  const isCurrent = captureWalletScope()
   const { unwrapGiftWrap } = await import('src/wallet/nostr')
+  if (!isCurrent) return { liveMessages: 0 }
 
   const run = (async () => {
     let roomFetchRetry = null
     const requestRoomFetch = () => {
       if (roomFetchRetry) return
       roomFetchRetry = new Promise(resolve => setTimeout(resolve, LATEST_ROOM_RETRY_MS))
-        .then(() => Promise.allSettled([dispatch('fetchRooms'), dispatch('seedRoomsFromMessages')]))
+        .then(() => {
+          if (!isCurrent || !isCurrent()) return
+          return Promise.allSettled([dispatch('fetchRooms'), dispatch('seedRoomsFromMessages')])
+        })
     }
 
     let liveMessages = 0
+    if (!isCurrent()) return { liveMessages: 0 }
     const result = await relayService.fetchLatestGiftWraps(DISCOVERY_RELAYS, ws.keys.pubKeyHex, {
       // Every pulled event is new to this session (the service drops anything
       // the live subscription already delivered), so it always takes the same
       // path a live delivery would: room bump, server touch, unread badge.
       async onEvent(event) {
+        if (!isCurrent()) return
         let rumor, sealPubkey
         try {
           ({ rumor, sealPubkey } = unwrapGiftWrap(event, ws.keys.privKeyHex))
@@ -944,25 +992,29 @@ function clearAllTypingTimers () {
   _typingHideTimers = {}
 }
 
-function scheduleTypingHide (commit, pubkeyHex, roomId) {
+// Both timers outlive the wallet they were scheduled for, so they re-check the
+// captured wallet scope before writing.
+function scheduleTypingHide (commit, pubkeyHex, roomId, isCurrent) {
   const key = `${pubkeyHex}:${roomId}`
   clearTypingTimer(pubkeyHex, roomId)
   _typingHideTimers[key] = setTimeout(() => {
-    commit('CLEAR_TYPING', { roomId, pubKeyHex: pubkeyHex })
     delete _typingHideTimers[key]
+    if (isCurrent && !isCurrent()) return
+    commit('CLEAR_TYPING', { roomId, pubKeyHex: pubkeyHex })
   }, TYPING_HIDE_TIMEOUT_MS)
 }
 
-function scheduleActiveExpiry (pubkey, commit) {
+function scheduleActiveExpiry (pubkey, commit, isCurrent) {
   clearActiveExpiry(pubkey)
   _activeExpiryTimers[pubkey] = setTimeout(() => {
+    delete _activeExpiryTimers[pubkey]
+    if (isCurrent && !isCurrent()) return
     commit('SET_ACTIVE_STATUS', {
       [pubkey]: {
         lastActiveAt: null,
         fetchedAt: Date.now(),
       },
     })
-    delete _activeExpiryTimers[pubkey]
   }, ACTIVE_THRESHOLD_MS)
 }
 
@@ -989,6 +1041,8 @@ function collectActiveStatusPubkeys (state) {
 export async function fetchActiveStatus ({ state, commit, rootGetters }) {
   const pubkeys = collectActiveStatusPubkeys(state)
   if (!pubkeys.length) return
+
+  const isCurrent = captureWalletScope()
 
   try {
     const isChipnet = rootGetters['global/isChipnet']
@@ -1017,20 +1071,21 @@ export async function fetchActiveStatus ({ state, commit, rootGetters }) {
         return
       }
       const data = await retryResponse.json()
-      return processActiveStatusResponse(data, pubkeys, commit)
+      return processActiveStatusResponse(data, pubkeys, commit, isCurrent)
     }
     if (!response.ok) {
       debug('fetchActiveStatus failed:', response.status)
       return
     }
     const data = await response.json()
-    return processActiveStatusResponse(data, pubkeys, commit)
+    return processActiveStatusResponse(data, pubkeys, commit, isCurrent)
   } catch (err) {
     debug('fetchActiveStatus error:', err)
   }
 }
 
-function processActiveStatusResponse (data, pubkeys, commit) {
+function processActiveStatusResponse (data, pubkeys, commit, isCurrent) {
+  if (isCurrent && !isCurrent()) return
   const statusMap = {}
   for (const pubkey of pubkeys) {
     if (data[pubkey]) {
@@ -1038,7 +1093,7 @@ function processActiveStatusResponse (data, pubkeys, commit) {
         lastActiveAt: data[pubkey],
         fetchedAt: Date.now(),
       }
-      scheduleActiveExpiry(pubkey, commit)
+      scheduleActiveExpiry(pubkey, commit, isCurrent)
     }
   }
   commit('SET_ACTIVE_STATUS', statusMap)
@@ -1164,8 +1219,10 @@ async function getWsWatchtowerUrlWithToken (rootGetters) {
 
 export async function startActiveWs ({ state, commit, rootGetters }) {
   stopActiveWs()
+  const isCurrent = captureWalletScope()
   const wsUrl = await getWsWatchtowerUrlWithToken(rootGetters)
   if (!wsUrl) return
+  if (!isCurrent || !isCurrent()) return
 
   try {
     const ws = new WebSocket(wsUrl)
@@ -1179,6 +1236,9 @@ export async function startActiveWs ({ state, commit, rootGetters }) {
         }, 30000)
       },
       message: (event) => {
+        // Presence/typing payloads are scoped to the wallet that opened the
+        // socket. Drop anything delivered after the wallet changed.
+        if (!isCurrent || !isCurrent()) return
         try {
           const msg = JSON.parse(event.data)
           if (msg.type === 'last_active' && msg.pubkey_hex && msg.timestamp) {
@@ -1188,10 +1248,10 @@ export async function startActiveWs ({ state, commit, rootGetters }) {
                 fetchedAt: Date.now(),
               },
             })
-            scheduleActiveExpiry(msg.pubkey_hex, commit)
+            scheduleActiveExpiry(msg.pubkey_hex, commit, isCurrent)
           } else if (msg.type === 'typing' && msg.pubkey_hex && msg.room_id) {
             commit('SET_TYPING', { roomId: msg.room_id, pubKeyHex: msg.pubkey_hex })
-            scheduleTypingHide(commit, msg.pubkey_hex, msg.room_id)
+            scheduleTypingHide(commit, msg.pubkey_hex, msg.room_id, isCurrent)
           } else if (msg.type === 'stop_typing' && msg.pubkey_hex && msg.room_id) {
             commit('CLEAR_TYPING', { roomId: msg.room_id, pubKeyHex: msg.pubkey_hex })
             clearTypingTimer(msg.pubkey_hex, msg.room_id)
@@ -1519,6 +1579,7 @@ export async function fetchRooms ({ commit }) {
   try {
     const walletHash = getCurrentWalletHash()
     if (!walletHash) return
+    const isCurrent = captureWalletScope()
     const baseUrl = getWatchtowerBaseUrl()
     const response = await apiGet(baseUrl, `/api/nostr/rooms/?wallet_hash=${walletHash}`)
     if (!response.ok) {
@@ -1526,10 +1587,11 @@ export async function fetchRooms ({ commit }) {
       return
     }
     const data = await response.json()
-    if (Array.isArray(data.rooms)) {
-      const decrypted = await decryptRoomsList(data.rooms)
-      commit('SET_ROOMS', decrypted)
-    }
+    const decrypted = Array.isArray(data.rooms) ? await decryptRoomsList(data.rooms) : null
+    // Decrypting room names awaits the per-wallet encryption key; bail out if
+    // the wallet changed while the response was in flight.
+    if (!isCurrent || !isCurrent()) return
+    if (decrypted) commit('SET_ROOMS', decrypted)
   } catch (err) {
     debug('fetchRooms error:', err)
   }
@@ -1614,6 +1676,7 @@ export async function fetchBlocks ({ commit }) {
   try {
     const walletHash = getCurrentWalletHash()
     if (!walletHash) return { blockedContacts: [] }
+    const isCurrent = captureWalletScope()
     const baseUrl = getWatchtowerBaseUrl()
     const response = await apiGet(baseUrl, `/api/nostr/blocks/?wallet_hash=${walletHash}`)
     if (!response.ok) {
@@ -1621,6 +1684,7 @@ export async function fetchBlocks ({ commit }) {
       return { blockedContacts: [] }
     }
     const data = await response.json()
+    if (!isCurrent || !isCurrent()) return { blockedContacts: [] }
     commit('SET_BLOCKED_CONTACTS', data.blocked_contacts || [])
     return data
   } catch (err) {
@@ -2495,6 +2559,7 @@ export async function markRoomAsRead ({ commit, state, dispatch }, { roomId, mes
     return
   }
   _markRoomLocks.add(roomId)
+  const isCurrent = captureWalletScope()
   try {
   const ws = getWalletState(state)
   const myPubKey = ws.keys.pubKeyHex
@@ -2567,7 +2632,7 @@ export async function markRoomAsRead ({ commit, state, dispatch }, { roomId, mes
 
   // Mark as read locally only the messages whose 👝 reaction was sent.
   // Failed messages stay "unread" so the next markRoomAsRead call re-attempts.
-  if (successfullyReadIds.length) {
+  if (successfullyReadIds.length && isCurrent && isCurrent()) {
     commit('MARK_MESSAGES_AS_READ', {
       roomId,
       messageIds: successfullyReadIds,
@@ -2594,7 +2659,7 @@ export async function markRoomAsRead ({ commit, state, dispatch }, { roomId, mes
     })
     // Mark exhausted messages as read locally so the debounced markAsRead()
     // stops picking them up and creating an infinite retry loop.
-    if (exhaustedIds.length) {
+    if (exhaustedIds.length && isCurrent && isCurrent()) {
       commit('MARK_MESSAGES_AS_READ', { roomId, messageIds: exhaustedIds })
     }
     if (retryIds.length) {
@@ -2643,11 +2708,18 @@ export function subscribeToRelays ({ state, dispatch, commit }) {
   }
 
   const wasSubscribed = relayService.isSubscribed()
+  // The subscription outlives this wallet if the user switches away, and the
+  // relay service closes it only after `reinitialize` runs; anything already in
+  // flight (or delivered by a closing socket) must not be filed under the new
+  // wallet's identity.
+  const isCurrent = captureWalletScope()
   const sub = relayService.subscribeGiftWraps(state.relays, myPubKey, {
     async onEvent(event) {
+      if (!isCurrent || !isCurrent()) return
       try {
         const { unwrapGiftWrap } = await import('src/wallet/nostr')
         const { rumor, sealPubkey } = unwrapGiftWrap(event, ws.keys.privKeyHex)
+        if (!isCurrent()) return
         dispatch('receiveMessage', { rumor, sealPubkey, giftWrap: event })
       } catch (err) {
         console.warn('[Nostr] Failed to unwrap gift-wrap:', err)
@@ -2742,8 +2814,12 @@ export async function resetAndRefetch ({ commit, dispatch, state }) {
     console.warn('[Nostr] Cannot reset: no mnemonic available')
     return
   }
+  // The mnemonic lookup can outlive a wallet switch; resetting now would wipe
+  // the newly active wallet's chat data for the wrong wallet.
+  if (getCurrentWalletHash() !== walletHash) return
 
   // Disconnect existing relay subscriptions
+  bumpWalletEpoch()
   stopActiveServices()
   relayService.stopStatusPolling()
   relayService.disconnect()

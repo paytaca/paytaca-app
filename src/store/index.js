@@ -268,6 +268,7 @@ function reducer(state) {
                         failedEventAttempts: value.failedEventAttempts || {},
                         processedEventIds: value.processedEventIds || {},
                         pendingInvitees: value.pendingInvitees || {},
+                        joinedMembers: value.joinedMembers || {},
                       }
                       continue
                     }

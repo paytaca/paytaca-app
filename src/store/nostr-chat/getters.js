@@ -1,4 +1,5 @@
 import { ACTIVE_THRESHOLD_MS } from './state'
+import { isMlsMemberPending } from './mls-membership.js'
 import sha256 from 'js-sha256'
 import { Store } from 'src/store'
 
@@ -157,7 +158,9 @@ export function getMlsPendingInvitees (state) {
   return (roomId) => {
     const mlsGroupIdHex = ws.mls?.roomMlsMap?.[roomId]
     if (!mlsGroupIdHex) return []
-    return Object.keys(ws.mls?.pendingInvitees?.[mlsGroupIdHex] || {})
+    const pending = ws.mls?.pendingInvitees?.[mlsGroupIdHex]
+    const joined = ws.mls?.joinedMembers?.[mlsGroupIdHex]
+    return Object.keys(pending || {}).filter((pubKey) => isMlsMemberPending(pubKey, { pending, joined }))
   }
 }
 

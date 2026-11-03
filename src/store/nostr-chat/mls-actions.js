@@ -7,12 +7,14 @@ import * as mls from 'src/services/mls'
 import { leafToNodeIndex } from 'ts-mls/treemath.js'
 import { Store } from 'src/store'
 import { applyFileMarkupToMessage } from 'src/utils/chat-markup'
+import { addedTreeLeaves } from './mls-membership.js'
 import { hexToBytes, bytesToHex, randomUUID } from 'src/utils/encoding'
 import {
   syncRoomToServer,
   updateRoomOnServer,
   touchRoomOnServer,
   deleteRoomOnServer,
+  captureWalletScope,
 } from './actions.js'
 
 const MAX_MLS_MEMBERS = 50
@@ -126,7 +128,7 @@ function mlsMemberPubkeys(clientState) {
 // Add/Remove commit — only the committer patched its own copy — so a member who
 // joined early kept a stale list and their reactions never reached later
 // joiners, while the committer's reactions reached everyone.
-function reconcileMlsRoomMembers(commit, ws, roomId, clientState) {
+function reconcileMlsRoomMembers(commit, ws, roomId, clientState, { mlsGroupIdHex, addedLeaves } = {}) {
   if (!roomId || !clientState) return
   const room = ws.rooms?.find((r) => r.id === roomId)
   if (!room || room.type !== 'mls-group') return
@@ -138,6 +140,22 @@ function reconcileMlsRoomMembers(commit, ws, roomId, clientState) {
     return
   }
   if (!treeMembers.length) return
+
+  // Leaves this Commit added are fresh invitations: whoever committed it, that
+  // member has not accepted yet (any acceptance clears the mark, and MARK is a
+  // no-op for a member already proven joined). Without this a member added by
+  // another admin would land in room.members with no pending mark and show up
+  // as "Joined" in Group Info. The caller derives them from the pre/post tree,
+  // not from room.members, so a stale mirror never marks long-joined members.
+  // Runs before the unchanged check: the committer already pushed the new
+  // member list to the server, so a fetchRooms may have filled the mirror.
+  if (mlsGroupIdHex && addedLeaves?.length) {
+    const selfPubKey = ws.keys?.pubKeyHex
+    for (const member of addedLeaves) {
+      if (!member || member === selfPubKey) continue
+      commit('MARK_MLS_INVITEE_PENDING', { mlsGroupIdHex, memberPubKey: member })
+    }
+  }
 
   const current = room.members || []
   const unchanged =
@@ -472,16 +490,20 @@ export async function initMls({ commit, state, dispatch }) {
   // so it never blocks the caller; keep it running on every init so members
   // that missed commits while offline still catch up.
   const nostrGroupHexes = [...new Set(Object.values(ws.mls.roomMlsNostrMap || {}).filter(Boolean))]
+  // The group-event subscription and history replay outlive the wallet they
+  // were opened for; `captureWalletScope` keeps a late event from being
+  // decrypted and committed under whatever wallet is active by then.
+  const isCurrent = captureWalletScope()
+  const handleEvent = async (event) => {
+    if (!isCurrent || !isCurrent()) return
+    await dispatch('receiveMlsMessage', event)
+  }
   try {
     relayService.subscribeMlsEvents(state.relays, nostrPubkeyHex, nostrGroupHexes, {
-      async onEvent(event) {
-        await dispatch('receiveMlsMessage', event)
-      },
+      onEvent: handleEvent,
     })
     relayService.fetchMlsHistory(state.relays, nostrGroupHexes, {
-      async onEvent(event) {
-        await dispatch('receiveMlsMessage', event)
-      },
+      onEvent: handleEvent,
     })
   } catch (err) {
     console.warn('[MLS] Failed to subscribe to NIP-EE group events:', err.message)
@@ -524,7 +546,7 @@ export async function initMls({ commit, state, dispatch }) {
       const mlsGroupIdHex = ws.mls.roomMlsMap[roomId]
       const clientState = ws.mls.groupStates?.[mlsGroupIdHex] ||
         await mls.loadMlsState(mlsGroupIdHex, impl, {}).catch(() => null)
-      if (clientState) reconcileMlsRoomMembers(commit, ws, roomId, clientState)
+      if (clientState) reconcileMlsRoomMembers(commit, ws, roomId, clientState, { mlsGroupIdHex })
     }
   } catch (err) {
     console.warn('[MLS] Failed to reconcile room member lists:', err.message)
@@ -544,16 +566,17 @@ export async function refreshMlsSubscriptions({ state, dispatch }) {
   const ws = getWalletState(state)
   if (!ws?.keys?.privKeyHex || !ws.mls) return
   const nostrGroupHexes = [...new Set(Object.values(ws.mls.roomMlsNostrMap || {}).filter(Boolean))]
+  const isCurrent = captureWalletScope()
+  const handleEvent = async (event) => {
+    if (!isCurrent || !isCurrent()) return
+    await dispatch('receiveMlsMessage', event)
+  }
   try {
     relayService.subscribeMlsEvents(state.relays, ws.keys.pubKeyHex, nostrGroupHexes, {
-      async onEvent(event) {
-        await dispatch('receiveMlsMessage', event)
-      },
+      onEvent: handleEvent,
     })
     relayService.fetchMlsHistory(state.relays, nostrGroupHexes, {
-      async onEvent(event) {
-        await dispatch('receiveMlsMessage', event)
-      },
+      onEvent: handleEvent,
     })
   } catch (err) {
     console.warn('[MLS] Failed to refresh NIP-EE group event subscriptions:', err.message)
@@ -1344,7 +1367,15 @@ export async function receiveMlsMessage({ commit, state, dispatch }, event) {
       // tree into room.members, otherwise the NIP-17 fan-out list (reactions,
       // typing, read receipts) keeps addressing members who are gone and never
       // reaches members who joined after us.
-      reconcileMlsRoomMembers(commit, ws, roomId, result.newState)
+      // Diff the pre-commit tree against the new one to find leaves this Commit
+      // added; those are the only members whose acceptance is still pending.
+      let addedLeaves = []
+      try {
+        addedLeaves = addedTreeLeaves(mlsMemberPubkeys(clientState), mlsMemberPubkeys(result.newState))
+      } catch {
+        addedLeaves = []
+      }
+      reconcileMlsRoomMembers(commit, ws, roomId, result.newState, { mlsGroupIdHex, addedLeaves })
 
       if (result.plaintext) {
         // Encrypted group-role control message (owner/admins metadata). Apply
@@ -1385,14 +1416,14 @@ export async function receiveMlsMessage({ commit, state, dispatch }, event) {
           // message.
           const joiningIdentity = memberIdentityAt(result.newState, result.senderLeafIndex)
           if (joiningIdentity) {
-            commit('CLEAR_MLS_INVITEE_PENDING', { mlsGroupIdHex, memberPubKey: joiningIdentity })
+            commit('MARK_MLS_MEMBER_JOINED', { mlsGroupIdHex, memberPubKey: joiningIdentity })
           }
         } else if (roomId) {
           const senderIdentity = memberIdentityAt(result.newState, result.senderLeafIndex)
           // Any real message from a member also proves they accepted; they
           // could not have decrypted the epoch otherwise.
           if (senderIdentity) {
-            commit('CLEAR_MLS_INVITEE_PENDING', { mlsGroupIdHex, memberPubKey: senderIdentity })
+            commit('MARK_MLS_MEMBER_JOINED', { mlsGroupIdHex, memberPubKey: senderIdentity })
           }
 
           // Unwrap the in-band reply/edit linkage (if any) before storing. The
@@ -1684,6 +1715,10 @@ export async function addMlsMember({ commit, state }, { roomId, memberPubKey }) 
         // processed before bailing out, otherwise the replay of our own commit
         // is rejected later as "Desired gen in the past".
         commit('MARK_EVENT_PROCESSED', { mlsGroupIdHex, eventId: signedCommit.id })
+        // The leaf is in the tree but the invitee never received a welcome, so
+        // they can never announce a join — keep them under "Invited" rather
+        // than showing a member who has no way to read the group as Joined.
+        commit('MARK_MLS_INVITEE_PENDING', { mlsGroupIdHex, memberPubKey })
         const failureRoom = ws.rooms.find((r) => r.id === roomId)
         if (failureRoom && !failureRoom.members.includes(memberPubKey)) {
           const updatedMembers = [...failureRoom.members, memberPubKey]
@@ -1814,7 +1849,7 @@ export async function removeMlsMember({ commit, state }, { roomId, memberPubkey 
     // being re-processed and rejected as "Desired gen in the past".
     commit('MARK_EVENT_PROCESSED', { mlsGroupIdHex, eventId: signedCommit.id })
 
-    commit('CLEAR_MLS_INVITEE_PENDING', { mlsGroupIdHex, memberPubKey: memberPubkey })
+    commit('FORGET_MLS_MEMBER', { mlsGroupIdHex, memberPubKey: memberPubkey })
 
     if (room) {
       const updatedMembers = room.members.filter((m) => m !== memberPubkey)
