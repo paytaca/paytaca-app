@@ -616,6 +616,7 @@ export default {
 }
 
 @media (prefers-reduced-motion: reduce) {
+  .hero-card.loaded::after,
   .elite-map-button--halo::after {
     animation: none;
     opacity: 0;

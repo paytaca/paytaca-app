@@ -1541,7 +1541,10 @@ export default {
 
 @media (prefers-reduced-motion: reduce) {
   .elite-success-icon,
-  .elite-success-halo {
+  .elite-success-halo,
+  .elite-card.loaded.elite-active::before,
+  .elite-card.loaded.elite-locked,
+  .elite-card.loaded.elite-paused {
     animation: none;
   }
 }
