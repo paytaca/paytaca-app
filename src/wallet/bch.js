@@ -7,6 +7,15 @@ import { getWatchtowerApiUrl, convertCashAddress } from './chipnet'
 import { convertIpfsUrl, getBcmrBackend } from './cashtokens'
 import { isTokenAddress } from '../utils/address-utils'
 import { discoverWalletAddresses } from './address-discovery'
+import { withTimeout } from 'src/utils/async-utils'
+
+/**
+ * Watchtower's `subscribe` uses a raw axios POST with no timeout and returns
+ * `error.response.data` from its catch block. A network failure without a
+ * response therefore rejects (TypeError) instead of returning a status object,
+ * and a stalled connection never settles at all. Bound it so callers can react.
+ */
+const SUBSCRIBE_TIMEOUT_MS = 20000
 
 
 
@@ -128,8 +137,12 @@ export class BchWallet {
       walletHash: this.walletHash,
       addressIndex: index
     }
-    const result = await this.watchtower.subscribe(data)
-    if (result.success) {
+    const result = await withTimeout(
+      this.watchtower.subscribe(data),
+      SUBSCRIBE_TIMEOUT_MS,
+      'Address subscription timed out'
+    ).catch(error => ({ success: false, error: error?.message || 'subscribe_failed' }))
+    if (result?.success) {
       return {
         addresses: addressSet
       }

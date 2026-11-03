@@ -7,9 +7,6 @@
 // https://quasar.dev/quasar-cli/quasar-conf-js
 /* eslint-env node */
 
-// Added for Quasar v1 to v2 migration
-// const ESLintPlugin = require('eslint-webpack-plugin')
-
 // Updated @quasar/app-webpack from 3.x.x to 4.x.x to support bex manifest v3
 // https://quasar.dev/quasar-cli-webpack/upgrade-guide
 const { defineConfig } = require('#q-app/wrappers')
@@ -252,11 +249,6 @@ module.exports = defineConfig((ctx) => {
             }
           }
         })
-
-        // Added for Quasar v1 to v2 migration
-        // chain
-        //   .plugin('eslint-webpack-plugin')
-        //   .use(ESLintPlugin, [{ extensions: ['js', 'vue'] }])
       },
 
       // uglifyOptions: {
@@ -384,38 +376,6 @@ module.exports = defineConfig((ctx) => {
     // Manually added: https://quasar.dev/quasar-cli-webpack/upgrade-guide#the-quasar-config-file
     bex: {
       extraScripts: [],
-    },
-
-    // Full list of options: https://quasar.dev/quasar-cli/developing-electron-apps/configuring-electron
-    electron: {
-      bundler: 'packager', // 'packager' or 'builder'
-
-      packager: {
-        // https://github.com/electron-userland/electron-packager/blob/master/docs/api.md#options
-
-        // OS X / Mac App Store
-        // appBundleId: '',
-        // appCategoryType: '',
-        // osxSign: '',
-        // protocol: 'myapp://path',
-
-        // Windows only
-        // win32metadata: { ... }
-      },
-
-      builder: {
-        // https://www.electron.build/configuration/configuration
-
-        appId: 'paytaca'
-      },
-
-      // More info: https://quasar.dev/quasar-cli/developing-electron-apps/node-integration
-      nodeIntegration: true,
-
-      extendWebpack (/* cfg */) {
-        // do something with Electron main process Webpack cfg
-        // chainWebpack also available besides this extendWebpack
-      }
     },
 
     // Manually added: https://quasar.dev/quasar-cli-webpack/upgrade-guide#the-quasar-config-file

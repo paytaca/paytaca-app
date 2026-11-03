@@ -37,7 +37,7 @@
                 <q-item clickable @click="onOKClick(token)">
                   <q-item-section avatar>
                     <q-avatar v-if="token.icon">
-                      <div class="q-mb-sm token-icon icon-div" v-html="token.icon"></div>
+                      <img class="q-mb-sm token-icon icon-div" :src="iconSrc(token.icon)" alt="">
                     </q-avatar>
                     <div v-else>
                       <q-skeleton type="circle" class="token-icon"></q-skeleton>
@@ -63,6 +63,7 @@
 </template>
 <script>
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
+import { iconSrc } from 'src/utils/encoding'
 
 export default {
   data () {
@@ -79,6 +80,7 @@ export default {
     title: String
   },
   methods: {
+    iconSrc,
     getDarkModeClass,
     hide () {
       this.$refs.dialog.hide()

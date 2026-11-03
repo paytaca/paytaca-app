@@ -11,7 +11,7 @@
         </q-btn>
       </q-bar>
       <q-card-section class="q-pb-sm">
-        <div style="font-size: medium; overflow-x: auto;" v-html="message"></div>
+        <div style="font-size: medium; overflow-x: auto; white-space: pre-line;">{{ message }}</div>
         <div v-if="optional" class="q-mt-none row justify-center">
           <q-checkbox
             left-label

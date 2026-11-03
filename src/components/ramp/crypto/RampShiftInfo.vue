@@ -14,7 +14,7 @@
               <div class="text-lowercase q-my-sm sm-font-size" :class="getDarkModeClass(darkMode)">
                 {{ $t('From') }}
               </div>
-              <div class="logo" v-html="shiftInfo.deposit.icon"></div>
+              <img class="logo" :src="iconSrc(shiftInfo.deposit.icon)" alt="">
               <div class="text-weight-bold md-font-size q-pt-sm" :class="getDarkModeClass(darkMode)">
                 {{ shiftInfo.deposit.coin}}
               </div>
@@ -40,7 +40,7 @@
               <div class="q-my-sm text-lowercase sm-font-size" :class="getDarkModeClass(darkMode)">
                 {{ $t('To') }}
               </div>
-              <div class="logo" v-html="shiftInfo.settle.icon"></div>
+              <img class="logo" :src="iconSrc(shiftInfo.settle.icon)" alt="">
               <div class="text-weight-bold md-font-size q-pt-sm" :class="getDarkModeClass(darkMode)">
                 {{ shiftInfo.settle.coin }}
               </div>
@@ -125,7 +125,8 @@
 
 <script>
 import RampDepositInfo from './RampDepositInfo.vue'
-import { getDarkModeClass } from 'src/utils/theme-darkmode-utils';
+import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
+import { iconSrc } from 'src/utils/encoding';
 
 export default {
   data () {
@@ -152,6 +153,7 @@ export default {
     RampDepositInfo
   },
   methods: {
+    iconSrc,
     getDarkModeClass,
     getNetwork (type) {
       const network = type.network.toLowerCase()

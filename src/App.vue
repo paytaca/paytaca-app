@@ -29,7 +29,7 @@
 <script>
 import { updateCssThemeColors } from './utils/theme-utils'
 import { getDarkModeClass } from './utils/theme-darkmode-utils'
-import { getMnemonic, Wallet, loadWallet } from './wallet'
+import { getMnemonic, Wallet } from './wallet'
 import { getWalletByNetwork } from 'src/wallet/chipnet'
 import { useStore } from "vuex"
 import { is, useQuasar } from 'quasar'
@@ -465,12 +465,12 @@ export default {
     },
     async subscribePushNotifications() {
       if (this.subscribedPushNotifications) return
-      const multiWalletIndex = this.$store.getters['global/getWalletIndex']
-      const wallet = await loadWallet('BCH', multiWalletIndex)
-      const walletHashes = [
-        getWalletByNetwork(wallet, 'bch').getWalletHash(),
-        getWalletByNetwork(wallet, 'slp').getWalletHash()
-      ]
+      const walletHashes = this.$store.getters['global/getSubscribedWalletHashes']
+
+      // Never subscribe (or prune) from an empty wallet list: the vault may not
+      // be hydrated yet, and treating that as "this device has no wallets"
+      // would unlink every subscription it has.
+      if (!walletHashes.length) return
 
       if (this.$pushNotifications.canRequestPermission) {
         await this.$pushNotifications.isPushNotificationEnabled().catch(console.log)
@@ -483,7 +483,9 @@ export default {
       }
 
       this.$pushNotifications.watchtower = new Watchtower(this.$store.state.global.isChipnet)
-      await this.$pushNotifications.subscribe(walletHashes, multiWalletIndex)
+      // The list covers every wallet in the vault, so the backend may treat it
+      // as this device's complete set and unlink any stale subscriptions.
+      await this.$pushNotifications.subscribe(walletHashes, false, true)
       this.subscribedPushNotifications = true
     },
     async resubscribeBCHAddresses(mnemonic) {
@@ -587,50 +589,42 @@ export default {
 
         const isChipnet = true
 
-        // save BCH_CHIP
-        await bchChipWallet.getNewAddressSet(0).then(function ({ addresses }) {
+        // Derive addresses locally; a watchtower hiccup must not block app start.
+        const chipnetWallets = [
+          { wallet: bchChipWallet, type: 'bch' },
+          { wallet: slpChipWallet, type: 'slp' },
+        ]
+
+        for (const { wallet: chipWallet, type } of chipnetWallets) {
+          const addresses = await chipWallet.getAddressSetAt(0)
           vm.$store.commit('global/updateWallet', {
             isChipnet,
-            type: 'bch',
-            walletHash: bchChipWallet.walletHash,
-            derivationPath: bchChipWallet.derivationPath,
-            lastAddress: addresses !== null ? addresses.receiving : '',
-            lastChangeAddress: addresses !== null ? addresses.change : '',
+            type,
+            walletHash: chipWallet.walletHash,
+            derivationPath: chipWallet.derivationPath,
+            lastAddress: addresses.receiving,
+            lastChangeAddress: addresses.change,
             lastAddressIndex: 0,
           })
-          try {
-            vm.$store.dispatch('global/refetchWalletPreferences')
-          } catch(error) { console.error(error) }
-        })
+          if (type === 'bch') {
+            try {
+              vm.$store.dispatch('global/refetchWalletPreferences')
+            } catch(error) { console.error(error) }
+          }
 
-        bchChipWallet.getXPubKey().then(function (xpub) {
           vm.$store.commit('global/updateXPubKey', {
             isChipnet,
-            type: 'bch',
-            xPubKey: xpub
+            type,
+            xPubKey: await chipWallet.getXPubKey()
           })
-        })
+        }
 
-        // save SLP_CHIP
-        slpChipWallet.getNewAddressSet(0).then(function (addresses) {
-          vm.$store.commit('global/updateWallet', {
-            isChipnet,
-            type: 'slp',
-            walletHash: slpChipWallet.walletHash,
-            derivationPath: slpChipWallet.derivationPath,
-            lastAddress: addresses !== null ? addresses.receiving : '',
-            lastChangeAddress: addresses !== null ? addresses.change : '',
-            lastAddressIndex: 0
+        // Best-effort address registration; failures only cost notifications.
+        await Promise.all(chipnetWallets.map(({ wallet: chipWallet }) =>
+          chipWallet.getNewAddressSet(0).catch(error => {
+            console.warn('[Chipnet] Address subscription failed:', error)
           })
-        })
-
-        slpChipWallet.getXPubKey().then(function (xpub) {
-          vm.$store.commit('global/updateXPubKey', {
-            isChipnet,
-            type: 'slp',
-            xPubKey: xpub
-          })
-        })
+        ))
       }
     },
     maybeShowJoinRewardsDialog () {
