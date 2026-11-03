@@ -1,5 +1,6 @@
 import axios from 'axios'
-import crypto from 'crypto'
+import { sha256 as sha256Hash } from '@noble/hashes/sha2.js'
+import { bytesToHex } from '@noble/hashes/utils.js'
 import { Store } from 'src/store'
 import { SecureStoragePlugin } from 'capacitor-secure-storage-plugin'
 import { getCurrentWalletStorageKey, getWalletStorageKey, getWalletHash } from 'src/utils/wallet-storage'
@@ -456,9 +457,7 @@ export async function decryptMemo (privkey, encryptedMemo, tryAllKeys = false) {
  * @returns {String}
  */
 export function sha256 (data) {
-  const _sha256 = crypto.createHash('sha256')
-  _sha256.update(Buffer.from(data, 'utf8'))
-  return _sha256.digest().toString('hex')
+  return bytesToHex(sha256Hash(Buffer.from(data, 'utf8')))
 }
 
 

@@ -1,4 +1,6 @@
-import crypto from 'crypto'
+import { sha256 as sha256Hash } from '@noble/hashes/sha2.js'
+import { bytesToHex } from '@noble/hashes/utils.js'
+import { ctr } from '@noble/ciphers/aes.js'
 import {
   binToBase58,
   CashAddressType,
@@ -17,9 +19,23 @@ import {
 } from "@bitauth/libauth"
 
 export function sha256(data='', encoding='utf8') {
-  const _sha256 = crypto.createHash('sha256')
-  _sha256.update(Buffer.from(data, encoding))
-  return _sha256.digest().toString('hex')
+  return bytesToHex(sha256Hash(Buffer.from(data, encoding)))
+}
+
+export function aes256Decrypt(key, encrypted) {
+  if (typeof key !== 'string' || !key) {
+    throw new TypeError('Provided "key" must be a non-empty string')
+  }
+  if (typeof encrypted !== 'string' || !encrypted) {
+    throw new TypeError('Provided "encrypted" must be a non-empty string')
+  }
+  const input = Buffer.from(encrypted, 'base64')
+  if (input.length < 17) {
+    throw new TypeError('Provided "encrypted" must decrypt to a non-empty string or buffer')
+  }
+  const aesKey = sha256Hash(Buffer.from(key, 'utf8'))
+  const plaintext = ctr(aesKey, input.subarray(0, 16)).decrypt(input.subarray(16))
+  return Buffer.from(plaintext).toString('utf8')
 }
 
 /**

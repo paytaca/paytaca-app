@@ -219,11 +219,13 @@ module.exports = defineConfig((ctx) => {
       },
 
       chainWebpack (chain) {
-        const nodePolyfillWebpackPlugin = require('node-polyfill-webpack-plugin')
-        chain.plugin('node-polyfill').use(nodePolyfillWebpackPlugin)
+        const webpack = require('webpack')
+        chain.plugin('provide-node-globals').use(webpack.ProvidePlugin, [{
+          Buffer: ['buffer', 'Buffer'],
+          process: 'process/browser.js',
+        }])
 
-        chain.resolve.alias.set('stream', require.resolve('stream-browserify')) // bip39
-        chain.resolve.alias.set('crypto', require.resolve('crypto-browserify')) // bip39
+        chain.resolve.alias.set('crypto', require.resolve('./src/utils/crypto-shim.js')) // shamirs-secret-sharing randomBytes; walletconnect, hpke, bitcoincash-oauth-client import it without needing more
         chain.resolve.alias.set('net', false) // electrum-cash tcp connections
         chain.resolve.alias.set('tls', false) // electrum-cash tcp connections
         chain.resolve.alias.set('fs', false)  // qrcode-svg.save

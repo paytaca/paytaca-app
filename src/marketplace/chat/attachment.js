@@ -1,4 +1,5 @@
-import crypto from 'crypto'
+import { sha256 as sha256Hash } from '@noble/hashes/sha2.js'
+import { bytesToHex } from '@noble/hashes/utils.js'
 import { nativeFileAPI } from 'src/utils/native-file'
 
 /**
@@ -70,7 +71,7 @@ export async function fileToImage(file) {
  */
 export function base64ImageToFile(base64) {
   const dataBin = Buffer.from(base64, 'base64')
-  const fileHash = crypto.createHash('sha256').update(dataBin).digest().toString('hex')
+  const fileHash = bytesToHex(sha256Hash(dataBin))
   return new nativeFileAPI.File([dataBin], fileHash)
 }
 
@@ -78,6 +79,6 @@ export function dataUrlToFile(dataUrl) {
   const arr = dataUrl.split(',')
   const mime = arr[0].match(/:(.*?);/)[1]
   const dataBin = Buffer.from(arr[arr.length - 1], 'base64')
-  const fileHash = crypto.createHash('sha256').update(dataBin).digest().toString('hex')
+  const fileHash = bytesToHex(sha256Hash(dataBin))
   return new nativeFileAPI.File([dataBin], fileHash, {type:mime});
 }

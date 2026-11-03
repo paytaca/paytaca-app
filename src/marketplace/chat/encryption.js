@@ -1,6 +1,6 @@
-import crypto from 'crypto'
 import { secp256k1 } from '@noble/curves/secp256k1.js'
-import { bytesToHex, hexToBytes } from '@noble/hashes/utils.js'
+import { bytesToHex, hexToBytes, randomBytes } from '@noble/hashes/utils.js'
+import { cbc } from '@noble/ciphers/aes.js'
 import { Store } from 'src/store'
 import { nativeFileAPI } from 'src/utils/native-file'
 import { Buffer } from 'buffer'
@@ -49,15 +49,14 @@ export function encryptMessage(opts={ data: '', privkey: '', pubkeys: '' }) {
 
     const sharedPoint = secp256k1.getSharedSecret(ourPriv, otherPub)
     const sharedX = sharedPoint.slice(1, 33)
-    const iv = crypto.randomFillSync(new Uint8Array(16))
+    const iv = randomBytes(16)
 
     const encrypted = encryptData(data, Buffer.from(sharedX), iv)
 
     return { data: encrypted, authorPubkey: ourPubkey, pubkeys: pks, iv: Buffer.from(iv).toString('base64') }
   } else {
-    // const globalKey = crypto.createHash('sha256').update(Buffer.from(data)).digest()
-    const globalKey = Buffer.from(crypto.randomFillSync(new Uint8Array(32)))
-    const iv = crypto.randomFillSync(new Uint8Array(16))
+    const globalKey = Buffer.from(randomBytes(32))
+    const iv = randomBytes(16)
     const encrypted = encryptData(data, globalKey, iv)
 
     const pubkeys = pks.map(pubkey => {
@@ -218,16 +217,13 @@ function privToPub(priv) {
  * @param {Buffer | Uint8Array} iv 
  */
 function encryptData(data, key, iv) {
+  if (key?.length !== 32) throw new RangeError('Invalid key length')
   const bytes = Buffer.from(data)
-  let encryptedHex = ''
+  const encryptedChunks = []
   for (var i = 0; i < bytes.length; i += CHUNK_SIZE) {
-    const chunk = bytes.toString('hex', i, i+CHUNK_SIZE)
-    const cipheriv = crypto.createCipheriv('aes-256-cbc', key, iv)
-    const updatedHex = cipheriv.update(chunk, 'hex', 'hex')
-    const finalHex = cipheriv.final('hex')
-    encryptedHex += (updatedHex || '') + (finalHex || '')
+    encryptedChunks.push(cbc(key, iv).encrypt(bytes.subarray(i, i+CHUNK_SIZE)))
   }
-  return Buffer.from(encryptedHex, 'hex').toString('base64')
+  return Buffer.concat(encryptedChunks).toString('base64')
 }
 
 /**
@@ -236,26 +232,20 @@ function encryptData(data, key, iv) {
  * @param {Buffer | Uint8Array} iv 
  */
 function decryptData(data, key, iv, opts={ inputEncoding: 'base64', outputEncoding: 'utf8' }) {
+  if (key?.length !== 32) throw new RangeError('Invalid key length')
   const inputEncoding = opts?.inputEncoding || 'base64'
   const outputEncoding = opts?.outputEncoding || 'utf8'
   const dataBytes = Buffer.from(data, inputEncoding === 'binary' ? undefined : inputEncoding)
-  let decryptedHex = ''
+  const decryptedChunks = []
   const HEX_CHUNK_SIZE = CHUNK_SIZE+1
 
   for(var i = 0; i < dataBytes.length; i += HEX_CHUNK_SIZE) {
-    const chunk = dataBytes.toString('hex', i, i + HEX_CHUNK_SIZE)
-    const decipheriv = crypto.createDecipheriv('aes-256-cbc', key, iv)
-    const updatedHex = decipheriv.update(chunk, 'hex', 'hex')
-    const finalHex = decipheriv.final('hex')
-    decryptedHex += (updatedHex || '') + (finalHex || '')
+    decryptedChunks.push(cbc(key, iv).decrypt(dataBytes.subarray(i, i + HEX_CHUNK_SIZE)))
   }
 
-  if (outputEncoding !== 'hex') {
-    if (outputEncoding === 'binary') return Buffer.from(decryptedHex, 'hex')
-    return Buffer.from(decryptedHex, 'hex').toString(outputEncoding)
-  }
-
-  return decryptedHex
+  const decrypted = Buffer.concat(decryptedChunks)
+  if (outputEncoding === 'binary') return decrypted
+  return decrypted.toString(outputEncoding)
 }
 
 /**
@@ -324,8 +314,8 @@ export async function encryptImage(opts={ file: '', privkey: '', pubkeys: '' }) 
   const pks = normalized.filter((pk, index, list) => list.indexOf(pk) === index)
   if (pks.length <= 0) pks.push(ourPubkey)
 
-  const globalKey = Buffer.from(crypto.randomFillSync(new Uint8Array(32)))
-  const iv = crypto.randomFillSync(new Uint8Array(16))  
+  const globalKey = Buffer.from(randomBytes(32))
+  const iv = randomBytes(16)  
 
   const arrayBuffer = await file.arrayBuffer()
   const encrypted = encryptData(arrayBuffer, globalKey, iv)

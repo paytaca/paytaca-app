@@ -1,6 +1,6 @@
 
 import { cardLogger } from 'src/utils/debug-logger.js'
-import { createHash } from 'crypto';
+import { sha256 as sha256Hash } from '@noble/hashes/sha2.js';
 import { defaultSpendLimitSats, DUST_LIMIT } from './constants';
 import { loadWallet } from 'src/services/wallet.js';
 import Watchtower from 'watchtower-cash-js'
@@ -345,7 +345,7 @@ function encodeMerchantHash({ merchantId, merchantPk }) {
     const merchantPkBuf = Buffer.from(merchantPk, 'hex')
     const concat = Buffer.concat([merchantIdBuf, merchantPkBuf])
 
-    const fullHash = createHash('sha256').update(concat).digest(); // Buffer(32)
+    const fullHash = Buffer.from(sha256Hash(concat)); // Buffer(32)
     const truncatedHashBuf = fullHash.subarray(0, 31) // 31 bytes
     const truncatedHashHex = truncatedHashBuf.toString('hex')
     return { buf: truncatedHashBuf, hex: truncatedHashHex };

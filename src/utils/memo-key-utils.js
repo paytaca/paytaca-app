@@ -1,5 +1,5 @@
 import { loadWallet } from 'src/wallet'
-import crypto from 'crypto'
+import { sha256 as sha256Hash } from '@noble/hashes/sha2.js'
 import { secp256k1 } from '@noble/curves/secp256k1.js'
 import { bytesToHex, hexToBytes } from '@noble/hashes/utils.js'
 
@@ -24,9 +24,7 @@ export async function getEncryptionKeypairFromMnemonic(walletIndex = 0) {
   // The old generateKeypair did: privkey = sha256(seed) where seed is the WIF string (UTF-8)
   // So we hash the WIF string once as UTF-8 to get the derivative privkey
   // This matches the old behavior: hash(WIF as UTF-8) → privkey
-  const _sha256 = crypto.createHash('sha256')
-  _sha256.update(Buffer.from(wif, 'utf8'))
-  const privkey = _sha256.digest().toString('hex')
+  const privkey = bytesToHex(sha256Hash(Buffer.from(wif, 'utf8')))
   const pubkey = privToPub(privkey)
 
   return { privkey, pubkey }
@@ -105,12 +103,7 @@ function privToPub(priv) {
  * @returns {string} - 64-char hex hash
  */
 function sha256(data) {
-  const _sha256 = crypto.createHash('sha256')
   // If data is hex string, convert to buffer
-  if (/^[0-9a-f]{64}$/i.test(data)) {
-    _sha256.update(Buffer.from(data, 'hex'))
-  } else {
-    _sha256.update(Buffer.from(data, 'utf8'))
-  }
-  return _sha256.digest().toString('hex')
+  const bytes = /^[0-9a-f]{64}$/i.test(data) ? Buffer.from(data, 'hex') : Buffer.from(data, 'utf8')
+  return bytesToHex(sha256Hash(bytes))
 }

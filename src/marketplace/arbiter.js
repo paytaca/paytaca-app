@@ -7,7 +7,7 @@ import { backend } from './backend';
 import { EscrowArbiter } from './objects';
 import { i18n } from 'src/boot/i18n';
 import { getCurrentWalletStorageKey, getWalletStorageKey } from 'src/utils/wallet-storage';
-import crypto from 'crypto'
+import { sha256 as sha256Hash } from '@noble/hashes/sha2.js'
 import { secp256k1 } from '@noble/curves/secp256k1.js'
 import { bytesToHex, hexToBytes } from '@noble/hashes/utils.js'
 import { requestManager } from 'src/utils/request-manager'
@@ -29,9 +29,7 @@ export function parseWif(wif) {
   
   // Derive encryption keypair from WIF using the same method as wallet encryption
   // Hash WIF string (SHA256) as UTF-8 to get derivative privkey (matches wallet encryption behavior)
-  const _sha256 = crypto.createHash('sha256')
-  _sha256.update(Buffer.from(wif, 'utf8'))
-  const privkey = _sha256.digest().toString('hex')
+  const privkey = bytesToHex(sha256Hash(Buffer.from(wif, 'utf8')))
   
   // Derive pubkey from privkey
   const privBytes = hexToBytes(privkey)

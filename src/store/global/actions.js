@@ -1,5 +1,6 @@
 import axios from 'axios'
-import crypto from 'crypto'
+import { sha224 as sha224Hash } from '@noble/hashes/sha2.js'
+import { bytesToHex } from '@noble/hashes/utils.js'
 import Watchtower from 'watchtower-cash-js'
 import { decodePrivateKeyWif } from '@bitauth/libauth'
 import WatchtowerExtended from '../../lib/watchtower'
@@ -1282,7 +1283,7 @@ export async function depositAddressIsFromWallet(context, {address, addressIndex
     const walletHashHex = context.getters.getWalletHashByIndex(selectedWalletIndex)
     if (walletHashHex) {
       const walletHashBuffer = Buffer.from(walletHashHex, 'hex')
-      const ourDigest = crypto.createHash('sha224').update(walletHashBuffer).digest('hex')
+      const ourDigest = bytesToHex(sha224Hash(walletHashBuffer))
       if (ourDigest.toLowerCase() !== String(apiDigest).toLowerCase()) {
         return { ok: false, walletIndex: selectedWalletIndex }
       }

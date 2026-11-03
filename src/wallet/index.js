@@ -1,7 +1,7 @@
 import { SlpWallet } from './slp'
 import { BchWallet } from './bch'
 import { LibauthHDWallet } from './bch-libauth'
-import aes256 from 'aes256'
+import { aes256Decrypt } from 'src/utils/crypto'
 import {
  encodeHdPrivateKey,
  deriveHdPublicKey,
@@ -528,7 +528,7 @@ export async function getMnemonic (walletHashOrIndex = 0) {
     // For versions up to v0.9.1 that used to have aes256-encrypted mnemonic
     const secretKey = await SecureStoragePlugin.get({ key: 'sk' })
     const encryptedMnemonic = await SecureStoragePlugin.get({ key: oldKey })
-    mnemonic = aes256.decrypt(secretKey.value, encryptedMnemonic.value)
+    mnemonic = aes256Decrypt(secretKey.value, encryptedMnemonic.value)
   } catch (err) {
     if (isSecureStorageDecryptError(err)) throw err
     try {
@@ -577,7 +577,7 @@ export async function getMnemonicByIndexLegacy (index = 0) {
     // Versions up to v0.9.1 stored the mnemonic aes256-encrypted with key 'sk'
     const secretKey = await SecureStoragePlugin.get({ key: 'sk' })
     const encryptedMnemonic = await SecureStoragePlugin.get({ key })
-    return aes256.decrypt(secretKey.value, encryptedMnemonic.value)
+    return aes256Decrypt(secretKey.value, encryptedMnemonic.value)
   } catch (err) {
     if (isSecureStorageDecryptError(err)) throw err
     try {

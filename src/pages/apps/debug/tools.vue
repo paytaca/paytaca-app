@@ -147,7 +147,8 @@ import { wifToPubkey } from 'src/utils/crypto'
 import { loadLibauthHdWallet } from 'src/wallet'
 import { getWatchtowerApiUrl } from 'src/wallet/chipnet'
 import axios from 'axios'
-import crypto from 'crypto'
+import { sha224 as sha224Hash } from '@noble/hashes/sha2.js'
+import { bytesToHex } from '@noble/hashes/utils.js'
 
 export default {
   name: 'DebugTools',
@@ -250,7 +251,7 @@ export default {
           // Compute wallet digest (SHA-224 of wallet hash)
           // Hash wallet hash as hex input, output is hex
           const walletHashBuffer = Buffer.from(walletHash, 'hex')
-          const walletDigest = crypto.createHash('sha224').update(walletHashBuffer).digest('hex')
+          const walletDigest = bytesToHex(sha224Hash(walletHashBuffer))
           console.log('[Address Key Viewer] Computed wallet digest:', walletDigest)
           console.log('[Address Key Viewer] Comparison:', {
             computed: walletDigest.toLowerCase(),
