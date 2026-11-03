@@ -66,45 +66,51 @@
               </div>
             </div>
 
-            <div class="row q-mb-sm q-pb-xs">
-              <div class="col elite-stat-box q-mx-xs br-10">
-                <div class="elite-stat-value">{{ parseLiftToken(eliteData.cashbackLift) }}</div>
-                <div class="text-caption">Cashback</div>
-              </div>
-              <div class="col elite-stat-box q-mx-xs br-10">
-                <div class="elite-stat-value">{{ eliteData.eligibleTxCount }}</div>
-                <div class="text-caption">Transactions</div>
-              </div>
+            <div v-if="isOnHold" class="text-body2 text-bow-muted">
+              Your Elite Program is on hold while we review your account. No cashbacks will be provided while it is on hold.
             </div>
 
-            <div class="row items-center justify-between text-caption q-mb-xs">
-              <span>Cashback limit</span>
-              <span class="text-weight-medium">
-                {{ formatEliteFiat(eliteData.monthlyCashback) }} of {{ formatEliteFiat(eliteData.maxCashbackPerMonth) }}
-              </span>
-            </div>
-            <q-linear-progress
-              :value="monthlyPct"
-              class="rounded-borders elite-progress"
-              size="8px"
-            />
+            <template v-else>
+              <div class="row q-mb-sm q-pb-xs">
+                <div class="col elite-stat-box q-mx-xs br-10">
+                  <div class="elite-stat-value">{{ parseLiftToken(eliteData.cashbackLift) }}</div>
+                  <div class="text-caption">Cashback</div>
+                </div>
+                <div class="col elite-stat-box q-mx-xs br-10">
+                  <div class="elite-stat-value">{{ eliteData.eligibleTxCount }}</div>
+                  <div class="text-caption">Transactions</div>
+                </div>
+              </div>
 
-            <q-btn
-              class="full-width q-mt-sm elite-map-button"
-              size="sm"
-              outline
-              no-caps
-              rounded
-              icon="history"
-              label="View Monthly History"
-              @click="openMonthlyHistoryDialog"
-            />
+              <div class="row items-center justify-between text-caption q-mb-xs">
+                <span>Cashback limit</span>
+                <span class="text-weight-medium">
+                  {{ formatEliteFiat(eliteData.monthlyCashback) }} of {{ formatEliteFiat(eliteData.maxCashbackPerMonth) }}
+                </span>
+              </div>
+              <q-linear-progress
+                :value="monthlyPct"
+                class="rounded-borders elite-progress"
+                size="8px"
+              />
+
+              <q-btn
+                class="full-width q-mt-sm elite-map-button"
+                size="sm"
+                outline
+                no-caps
+                rounded
+                icon="history"
+                label="View Monthly History"
+                @click="openMonthlyHistoryDialog"
+              />
+            </template>
           </template>
         </q-card-section>
       </q-card>
 
       <q-card
-        v-if="!pointsError"
+        v-if="!pointsError && !isOnHold"
         class="q-mb-md balance-thresholds-card"
         :class="getDarkModeClass(darkMode)"
         flat
@@ -196,7 +202,7 @@
         </q-card-section>
       </q-card>
 
-      <div class="elite-map-cta q-mb-md">
+      <div v-if="!isOnHold" class="elite-map-cta q-mb-md">
         <q-btn
           class="full-width elite-map-button elite-map-button--halo"
           outline
@@ -209,7 +215,7 @@
       </div>
 
       <q-banner
-        v-if="heroLoaded && isNonPhilippineCountry"
+        v-if="heroLoaded && isNonPhilippineCountry && !isOnHold"
         rounded
         dense
         class="br-15 q-mb-lg"
@@ -232,7 +238,7 @@
         @on-retry="loadData()"
       />
 
-      <template v-else>
+      <template v-else-if="!isOnHold">
         <!-- Eligible Transactions Section -->
         <div class="section-head q-mb-sm">
           <div class="row items-center no-wrap">
@@ -326,6 +332,7 @@ import {
   getAssetsThresholds,
   getEliteWalletBalances,
   eliteRequirements,
+  normalizeEliteStatus,
   EliteStatus,
   EliteStatusLabels
 } from 'src/utils/engagementhub-utils/elite-program'
@@ -378,8 +385,10 @@ export default {
       return Boolean(code) && String(code).toUpperCase() !== 'PH'
     },
     eliteStatus () {
-      const status = this.eliteData?.status
-      return Object.values(EliteStatus).includes(status) ? status : EliteStatus.ACTIVE
+      return normalizeEliteStatus(this.eliteData?.status)
+    },
+    isOnHold () {
+      return this.eliteStatus === EliteStatus.ONHOLD
     },
     monthlyPct () {
       const max = this.eliteData?.maxCashbackPerMonth || 0

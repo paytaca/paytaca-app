@@ -13,15 +13,23 @@ export const EliteStatus = Object.freeze({
   CHECKING: 'checking',
   LOCKED: 'locked',
   ACTIVE: 'active',
-  PAUSED: 'paused'
+  PAUSED: 'paused',
+  ONHOLD: 'onhold'
 })
 
 export const EliteStatusLabels = Object.freeze({
   [EliteStatus.CHECKING]: 'Checking',
   [EliteStatus.LOCKED]: 'Locked',
   [EliteStatus.ACTIVE]: 'Active',
-  [EliteStatus.PAUSED]: 'Paused'
+  [EliteStatus.PAUSED]: 'Paused',
+  [EliteStatus.ONHOLD]: 'On-hold'
 })
+
+export function normalizeEliteStatus (status) {
+  return Object.values(EliteStatus).includes(status)
+    ? status
+    : EliteStatus.LOCKED
+}
 
 export const EliteRedeemErrorCode = Object.freeze({
   Unknown: 'ELITE-RDM-00',
