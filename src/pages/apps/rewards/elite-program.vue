@@ -9,7 +9,7 @@
       <!-- Hero Section: Cashback Summary -->
       <q-card
         class="q-mb-md hero-card"
-        :class="[getDarkModeClass(darkMode), { loaded: heroLoaded }]"
+        :class="[getDarkModeClass(darkMode), { loaded: heroLoaded, 'on-hold': isOnHold }]"
         flat
       >
         <q-card-section class="q-py-md">
@@ -522,6 +522,10 @@ export default {
 
   &.loaded.dark::after {
     background: linear-gradient(90deg, transparent, rgba(212, 166, 67, 0.08), rgba(212, 166, 67, 0.14), transparent);
+  }
+
+  &.loaded.on-hold::after {
+    display: none;
   }
 }
 

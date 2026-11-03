@@ -520,7 +520,7 @@
         <!-- Elite: On-hold -->
         <div
           v-else-if="eliteData && eliteData.status === EliteStatus.ONHOLD"
-          class="row full-width q-pa-md br-15 group-currency elite-card elite-onhold"
+          class="row full-width q-pa-md br-15 group-currency elite-card"
           :class="[getDarkModeClass(darkMode), { loaded: eliteLoaded }]"
         >
           <div class="col-12">
@@ -1449,10 +1449,9 @@ export default {
     background: linear-gradient(90deg, transparent, rgba(212, 166, 67, 0.08), rgba(212, 166, 67, 0.14), transparent);
   }
 
-  /* Pulsing border glow — locked/paused/on-hold status */
+  /* Pulsing border glow — locked/paused status */
   &.loaded.elite-locked,
-  &.loaded.elite-paused,
-  &.loaded.elite-onhold {
+  &.loaded.elite-paused {
     animation: elite-border-glow 2.5s ease-in-out infinite;
   }
 }
