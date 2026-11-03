@@ -269,6 +269,7 @@
           :items="transactions"
           :loading="isLoading"
           :dark-mode="darkMode"
+          month-only
           @refresh="refreshData"
         />
 
@@ -308,6 +309,7 @@
           :items="topups"
           :loading="isLoading"
           :dark-mode="darkMode"
+          month-only
           @refresh="refreshData"
         />
       </template>

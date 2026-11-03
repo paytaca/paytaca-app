@@ -56,6 +56,17 @@ const EMPTY_STATES = {
   }
 }
 
+const MONTH_EMPTY_STATES = {
+  transactions: {
+    title: 'No eligible transactions this month',
+    description: 'Your LIFT cashbacks from eligible OTC and marketplace purchases this month will appear here.'
+  },
+  topups: {
+    title: 'No top-ups this month',
+    description: 'Your BCH and LIFT top-ups that qualify for the program this month will appear here.'
+  }
+}
+
 export default {
   name: 'EliteList',
 
@@ -94,6 +105,10 @@ export default {
     pullToRefresh: {
       type: Boolean,
       default: true
+    },
+    monthOnly: {
+      type: Boolean,
+      default: false
     }
   },
 
@@ -111,7 +126,7 @@ export default {
       return this.type === 'transactions'
     },
     emptyState () {
-      return EMPTY_STATES[this.type]
+      return (this.monthOnly ? MONTH_EMPTY_STATES : EMPTY_STATES)[this.type]
     }
   }
 }
