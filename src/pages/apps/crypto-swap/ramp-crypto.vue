@@ -130,11 +130,11 @@
                             <div>
                               <div class="q-gutter-xs ib-text q-mb-none">
                                 <q-avatar>
-                                  <div class="currency-icon" v-html="transaction.shift_info.deposit.icon"></div>
+                                  <img class="currency-icon" :src="iconSrc(transaction.shift_info.deposit.icon)" alt="">
                                 </q-avatar>
                                 <q-icon size="25px" class="button button-text-primary" name="mdi-arrow-right" />
                                 <q-avatar>
-                                  <div class="currency-icon" v-html="transaction.shift_info.settle.icon"></div>
+                                  <img class="currency-icon" :src="iconSrc(transaction.shift_info.settle.icon)" alt="">
                                 </q-avatar>
                               </div>
                               <div
@@ -193,6 +193,7 @@ import ProgressLoader from 'src/components/ProgressLoader.vue'
 import RampShiftForm from 'src/components/ramp/crypto/RampShiftForm.vue'
 import RampShiftInfo from 'src/components/ramp/crypto/RampShiftInfo.vue'
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
+import { iconSrc } from 'src/utils/encoding'
 import { bus } from 'src/wallet/event-bus.js'
 import { getMnemonic, Wallet } from 'src/wallet'
 import {
@@ -282,6 +283,7 @@ export default {
     vm.isloaded = true
   },
   methods: {
+    iconSrc,
     getDarkModeClass,
     updateState (state) {      
       this.state = state

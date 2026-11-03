@@ -5,6 +5,10 @@ const sha256 = require('js-sha256')
 import axios from 'axios'
 import { getWatchtowerApiUrl, convertCashAddress } from './chipnet'
 import { discoverWalletAddresses } from './address-discovery'
+import { withTimeout } from 'src/utils/async-utils'
+
+/** See BchWallet#getNewAddressSet — watchtower's subscribe has no timeout. */
+const SUBSCRIBE_TIMEOUT_MS = 20000
 
 
 export class SlpWallet {
@@ -99,8 +103,12 @@ export class SlpWallet {
       walletHash: this.walletHash,
       addressIndex: index
     }
-    const result = await this.watchtower.subscribe(data)
-    if (result.success) {
+    const result = await withTimeout(
+      this.watchtower.subscribe(data),
+      SUBSCRIBE_TIMEOUT_MS,
+      'Address subscription timed out'
+    ).catch(error => ({ success: false, error: error?.message || 'subscribe_failed' }))
+    if (result?.success) {
       return addresses
     } else {
       return null

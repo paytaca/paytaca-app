@@ -84,7 +84,6 @@ export default {
           timeout: 2000
         })
 
-        const walletIndex = this.$store.getters['global/getWalletIndex']
         const wallet = this.$store.getters['global/getWallet']('bch')
         const walletHash = wallet?.walletHash
 
@@ -123,7 +122,7 @@ export default {
           timeout: 2000
         })
 
-        const subResponse = await pushManager.subscribe([walletHash], walletIndex)
+        const subResponse = await pushManager.subscribe([walletHash])
         console.log('Subscribe response:', subResponse)
         this.$q.notify({
           type: 'info',

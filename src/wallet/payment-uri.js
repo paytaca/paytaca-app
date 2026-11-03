@@ -1,7 +1,6 @@
 import axios from 'axios'
 import { isCashAddress, toCashAddress, isSlpAddress } from 'src/utils/bch-keys'
 import { hashTransaction, hexToBin } from 'bitauth-libauth-v3'
-import { utils } from 'ethers'
 import BigNumber from 'bignumber.js'
 
 import { parsePOSLabel } from 'src/wallet/pos'
@@ -125,8 +124,6 @@ export function parsePaytacaPaymentUri(paymentUri = '') {
   if (response.asset.chain === 'main') {
     if (response.asset.assetId.startsWith('slp/')) addressValidator = address => isSlpAddress(address)
     else addressValidator = address => isCashAddress(address)
-  } else if (response.asset.chain === 'smart') {
-    addressValidator = utils.isAddress
   }
   const invalidAddresses = response.outputs
     .map(output => output?.address)

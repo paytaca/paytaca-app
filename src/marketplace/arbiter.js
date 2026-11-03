@@ -8,7 +8,8 @@ import { EscrowArbiter } from './objects';
 import { i18n } from 'src/boot/i18n';
 import { getCurrentWalletStorageKey, getWalletStorageKey } from 'src/utils/wallet-storage';
 import crypto from 'crypto'
-import * as secp from '@noble/secp256k1'
+import { secp256k1 } from '@noble/curves/secp256k1.js'
+import { bytesToHex, hexToBytes } from '@noble/hashes/utils.js'
 import { requestManager } from 'src/utils/request-manager'
 
 
@@ -33,9 +34,9 @@ export function parseWif(wif) {
   const privkey = _sha256.digest().toString('hex')
   
   // Derive pubkey from privkey
-  const privBytes = secp.etc.hexToBytes(privkey)
-  const pub = secp.getPublicKey(privBytes)
-  const pubkeyHex = secp.etc.bytesToHex(pub)
+  const privBytes = hexToBytes(privkey)
+  const pub = secp256k1.getPublicKey(privBytes)
+  const pubkeyHex = bytesToHex(pub)
   
   const chat = { privkey, pubkey: pubkeyHex }
   

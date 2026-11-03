@@ -54,11 +54,11 @@
                               <div>
                                 <div class="q-gutter-xs ib-text q-mb-none">
                                   <q-avatar>
-                                    <div class="currency-icon" v-html="transaction.shift_info.deposit.icon"></div>
+                                    <img class="currency-icon" :src="iconSrc(transaction.shift_info.deposit.icon)" alt="">
                                   </q-avatar>
                                   <q-icon name="mdi-arrow-right" />
                                   <q-avatar>
-                                    <div class="currency-icon" v-html="transaction.shift_info.settle.icon"></div>
+                                    <img class="currency-icon" :src="iconSrc(transaction.shift_info.settle.icon)" alt="">
                                   </q-avatar>
                                 </div>
                                 <div
@@ -118,6 +118,7 @@ import { getMnemonic, Wallet } from 'src/wallet'
 import ProgressLoader from 'src/components/ProgressLoader.vue'
 import RampShiftInfo from './RampShiftInfo.vue'
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
+import { iconSrc } from 'src/utils/encoding'
 import {
   generateReceivingAddress,
   getDerivationPathForWalletType
@@ -151,6 +152,7 @@ export default {
     },
   },
   methods: {
+    iconSrc,
     getDarkModeClass,
     onOKClick () {
       this.$emit('ok', this.selectedData)

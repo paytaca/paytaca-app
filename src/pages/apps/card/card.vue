@@ -244,8 +244,8 @@
 <script>
 import {createCardLogic} from 'src/components/card/createCard.js'
 import CardMixin from 'src/mixins/card/card-mixin.js'
-import TransactionHistory from 'src/components/card/TransactionHistory.vue'
-import ManageAuthNFTs from 'src/components/card/ManageAuthNFTs.vue'
+import TransactionHistory from 'src/components/card/transactionHistory.vue'
+import ManageAuthNFTs from 'src/components/card/manageAuthNFTs.vue'
 import CashInDialog from 'src/components/card/CashInDialog.vue'
 import CardSettings from 'src/components/card/CardSettings.vue'
 import OrderCard from 'src/components/card/OrderCard.vue'

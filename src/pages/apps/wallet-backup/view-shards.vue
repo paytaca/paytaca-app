@@ -328,7 +328,7 @@
 
 <script>
 import sss from 'shamirs-secret-sharing'
-import { toHex } from 'hex-my-bytes'
+import { binToHex } from 'bitauth-libauth-v3'
 import { copyToClipboard } from 'quasar'
 import html2canvas from 'html2canvas'
 import QRCode from 'qrcode-svg'
@@ -1126,7 +1126,7 @@ export default {
       try {
         const secret = Buffer.from(this.mnemonic)
         const shares = sss.split(secret, { shares: 3, threshold: 2 })
-        this.shards = shares.map(share => toHex(share))
+        this.shards = shares.map(share => binToHex(share))
       } catch (error) {
         console.error('Error generating shards:', error)
         this.$q.notify({
