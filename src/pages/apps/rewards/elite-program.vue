@@ -8,7 +8,7 @@
     <div class="q-px-md q-pt-md">
       <!-- Hero Section: Cashback Summary -->
       <q-card
-        class="q-mb-lg hero-card"
+        class="q-mb-md hero-card"
         :class="[getDarkModeClass(darkMode), { loaded: heroLoaded }]"
         flat
       >
@@ -37,8 +37,7 @@
             </div>
 
             <div class="row justify-center text-caption q-mb-xs">
-              <q-skeleton type="text" width="40%" height="12px" class="q-mx-auto" />
-              <q-skeleton type="text" width="60%" height="14px" class="q-mx-auto" />
+              <q-skeleton type="text" width="70%" height="12px" class="q-mx-auto" />
             </div>
             <q-skeleton type="text" width="100%" height="8px" class="q-mx-auto" />
           </template>
@@ -70,17 +69,17 @@
             <div class="row q-mb-sm q-pb-xs">
               <div class="col elite-stat-box q-mx-xs br-10">
                 <div class="elite-stat-value">{{ parseLiftToken(eliteData.cashbackLift) }}</div>
-                <div class="text-caption">Cashback this month</div>
+                <div class="text-caption">Cashback</div>
               </div>
               <div class="col elite-stat-box q-mx-xs br-10">
                 <div class="elite-stat-value">{{ eliteData.eligibleTxCount }}</div>
-                <div class="text-caption">Transactions this month</div>
+                <div class="text-caption">Transactions</div>
               </div>
             </div>
 
-            <div class="row justify-center text-caption q-mb-xs">
-              <span class="col-12 text-center">Cashback limit this month</span>
-              <span class="col-12 text-weight-bold text-center">
+            <div class="row items-center justify-between text-caption q-mb-xs">
+              <span>Cashback limit</span>
+              <span class="text-weight-medium">
                 {{ formatEliteFiat(eliteData.monthlyCashback) }} of {{ formatEliteFiat(eliteData.maxCashbackPerMonth) }}
               </span>
             </div>
@@ -91,7 +90,8 @@
             />
 
             <q-btn
-              class="full-width q-mt-md elite-map-button"
+              class="full-width q-mt-sm elite-map-button"
+              size="sm"
               outline
               no-caps
               rounded
@@ -105,22 +105,19 @@
 
       <q-card
         v-if="!pointsError"
-        class="q-mb-lg balance-thresholds-card"
+        class="q-mb-md balance-thresholds-card"
         :class="getDarkModeClass(darkMode)"
         flat
       >
         <q-card-section class="q-py-md">
-          <div class="text-subtitle1 text-weight-bold">Balance thresholds this month</div>
-          <div class="text-caption text-bow-muted q-mt-xs">
-            Keep these balances to keep earning cashback.
-          </div>
+          <div class="text-subtitle1 text-weight-bold">Balance requirements</div>
 
           <template v-if="thresholdsLoading">
-            <div class="q-mt-md">
+            <div class="q-mt-sm">
               <q-skeleton type="text" width="45%" height="14px" class="q-mb-xs" />
               <q-skeleton type="text" width="70%" height="12px" />
             </div>
-            <div class="q-mt-md">
+            <div class="q-mt-sm">
               <q-skeleton type="text" width="45%" height="14px" class="q-mb-xs" />
               <q-skeleton type="text" width="70%" height="12px" />
             </div>
@@ -128,7 +125,7 @@
 
           <error-card
             v-else-if="thresholdsError"
-            class="text-center q-mt-md"
+            class="text-center q-mt-sm"
             :is-points-card="true"
             :is-rewards-home-page="false"
             error-text="Unable to load balance thresholds."
@@ -136,7 +133,7 @@
           />
 
           <template v-else>
-            <div class="q-mt-md">
+            <div class="q-mt-sm">
               <div class="row items-center justify-between no-wrap">
                 <span class="text-caption">
                   <template v-if="requirements.lift?.met">
@@ -145,7 +142,12 @@
                   </template>LIFT balance
                 </span>
                 <span class="text-caption text-weight-medium">
-                  {{ parseLiftToken(requirements.liftThreshold) }}
+                  <template v-if="requirements.lift && !requirements.lift.met">
+                    {{ formatLiftNumber(requirements.liftBalance) }} / {{ parseLiftToken(requirements.liftThreshold) }}
+                  </template>
+                  <template v-else>
+                    {{ parseLiftToken(requirements.liftThreshold) }}
+                  </template>
                 </span>
               </div>
               <template v-if="requirements.lift && !requirements.lift.met">
@@ -155,13 +157,13 @@
                   size="6px"
                   color="negative"
                 />
-                <div class="text-caption q-mt-xs">
-                  Your balance: {{ parseLiftToken(requirements.liftBalance) }} · {{ parseLiftToken(requirements.lift.shortfall) }} short
+                <div class="text-caption text-bow-muted q-mt-xs">
+                  {{ parseLiftToken(requirements.lift.shortfall) }} short
                 </div>
               </template>
             </div>
 
-            <div class="q-mt-md">
+            <div class="q-mt-sm">
               <div class="row items-center justify-between no-wrap">
                 <span class="text-caption">
                   <template v-if="requirements.bch?.met">
@@ -170,7 +172,12 @@
                   </template>BCH balance
                 </span>
                 <span class="text-caption text-weight-medium">
-                  {{ formatEliteFiat(requirements.bchThreshold) }}
+                  <template v-if="requirements.bch && !requirements.bch.met">
+                    {{ formatFiatNumber(requirements.bchBalance) }} / {{ formatEliteFiat(requirements.bchThreshold) }}
+                  </template>
+                  <template v-else>
+                    {{ formatEliteFiat(requirements.bchThreshold) }}
+                  </template>
                 </span>
               </div>
               <template v-if="requirements.bch && !requirements.bch.met">
@@ -180,8 +187,8 @@
                   size="6px"
                   color="negative"
                 />
-                <div class="text-caption q-mt-xs">
-                  Your balance: {{ formatEliteFiat(requirements.bchBalance) }} · {{ formatEliteFiat(requirements.bch.shortfall) }} short
+                <div class="text-caption text-bow-muted q-mt-xs">
+                  {{ formatFiatNumber(requirements.bch.shortfall) }} short
                 </div>
               </template>
             </div>
@@ -189,7 +196,7 @@
         </q-card-section>
       </q-card>
 
-      <div class="elite-map-cta q-mb-lg">
+      <div class="elite-map-cta q-mb-md">
         <q-btn
           class="full-width elite-map-button elite-map-button--halo"
           outline
@@ -400,6 +407,14 @@ export default {
         : parseFiatCurrencyWrapper(amount)
     },
 
+    formatLiftNumber (amount) {
+      return parseLiftToken(amount).replace(/\s*LIFT$/, '')
+    },
+
+    formatFiatNumber (amount) {
+      return this.formatEliteFiat(amount).replace(/\s*PHP$/, '')
+    },
+
     openMerchantMap () {
       this.$router.push({ name: 'app-map' })
     },
@@ -464,6 +479,10 @@ export default {
 
 <style lang="scss" scoped>
 @import 'src/css/rewards/elite-row-styles.scss';
+
+.elite-stat-box {
+  padding: 7px 10px;
+}
 
 .hero-card {
   position: relative;
