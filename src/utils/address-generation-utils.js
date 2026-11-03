@@ -20,6 +20,14 @@ const projectId = {
   chipnet: process.env.WATCHTOWER_CHIP_PROJECT_ID
 }
 
+// The node-backed freshness lookup can fail transiently per address. Retry the
+// missing entries a couple of times before treating an address as unverifiable.
+const ADDRESS_DISCOVERY_TIMEOUT_MS = 15000
+const ADDRESS_DISCOVERY_RETRIES = 2
+const ADDRESS_DISCOVERY_RETRY_DELAY_MS = 500
+
+const sleep = (ms) => new Promise(resolve => setTimeout(resolve, ms))
+
 /**
  * Computes wallet hash the same way BchWallet does
  * @param {string} mnemonic 
@@ -405,7 +413,9 @@ async function deriveAddressBatch(opts) {
  *
  * The response is still treated as untrusted: any index whose `has_history` is
  * not a boolean is left out of the returned map, and `findUnusedAddressIndex`
- * aborts on a missing entry instead of assuming the address is fresh.
+ * aborts on a missing entry instead of assuming the address is fresh. Because
+ * the node lookup can fail transiently for individual addresses, missing
+ * entries are retried (with backoff) before the scan gives up.
  *
  * The check is per address, not per index: querying the receiving address of a
  * pair says nothing about its change address, because watchtower's
@@ -425,16 +435,57 @@ async function checkAddressHistory(candidates, opts = {}) {
   if (!candidates.length) return new Map()
   if (!walletHash) throw new Error('Wallet hash is required to verify address freshness')
 
+  // A partial response means the backend could not check some addresses. Ask
+  // again for only those entries before letting the caller fail the scan.
+  const historyByIndex = new Map()
+  let pending = candidates
+  let lastError = null
+
+  for (let attempt = 0; attempt <= ADDRESS_DISCOVERY_RETRIES; attempt++) {
+    if (attempt > 0) await sleep(ADDRESS_DISCOVERY_RETRY_DELAY_MS * attempt)
+
+    try {
+      const partial = await requestAddressHistory(pending, { isChipnet, chain, walletHash })
+      for (const [index, hasHistory] of partial) {
+        historyByIndex.set(index, hasHistory)
+      }
+      pending = candidates.filter(candidate => !historyByIndex.has(candidate.addressIndex))
+      lastError = null
+      if (!pending.length) break
+    } catch (error) {
+      lastError = error
+    }
+  }
+
+  if (lastError && historyByIndex.size === 0) throw lastError
+  return historyByIndex
+}
+
+/**
+ * Requests history for the given candidates. Returns only the entries the
+ * backend could verify.
+ * @param {Array<{addressIndex: number, address: string}>} candidates
+ * @param {Object} opts
+ * @param {boolean} opts.isChipnet
+ * @param {'receiving'|'change'} opts.chain
+ * @param {string} opts.walletHash
+ * @returns {Promise<Map<number, boolean>>} addressIndex -> has history
+ */
+async function requestAddressHistory(candidates, { isChipnet, chain, walletHash }) {
   const baseUrl = isChipnet ? 'https://chipnet.watchtower.cash' : 'https://watchtower.cash'
   const addressSets = candidates.map(({ addressIndex, address }) => ({
     address_index: addressIndex,
     [chain]: toWatchtowerAddress(address, isChipnet)
   }))
 
-  const response = await axios.post(`${baseUrl}/api/wallet/address-discover/`, {
-    wallet_hash: walletHash,
-    address_sets: addressSets
-  })
+  const response = await axios.post(
+    `${baseUrl}/api/wallet/address-discover/`,
+    {
+      wallet_hash: walletHash,
+      address_sets: addressSets
+    },
+    { timeout: ADDRESS_DISCOVERY_TIMEOUT_MS }
+  )
 
   const results = response?.data?.results
   if (!Array.isArray(results)) {
@@ -453,9 +504,76 @@ async function checkAddressHistory(candidates, opts = {}) {
 }
 
 /**
+ * Watchtower's last known address index for a wallet.
+ * @param {string} walletHash
+ * @param {boolean} isChipnet
+ * @returns {Promise<number>}
+ */
+async function fetchLastAddressIndex(walletHash, isChipnet) {
+  const baseUrl = isChipnet ? 'https://chipnet.watchtower.cash' : 'https://watchtower.cash'
+  const response = await axios.get(
+    `${baseUrl}/api/last-address-index/wallet/${walletHash}/`,
+    {
+      params: { exclude_pos: true },
+      timeout: ADDRESS_DISCOVERY_TIMEOUT_MS
+    }
+  )
+
+  const payload = response?.data
+  if (!payload || typeof payload !== 'object') {
+    throw new Error('Invalid last-address-index response while verifying address freshness')
+  }
+  // Watchtower returns `address: null` when the wallet has no watched address yet.
+  if (payload.address === null || payload.address === undefined) return -1
+
+  const addressIndex = payload.address.address_index
+  const parsedIndex = typeof addressIndex === 'string' ? parseInt(addressIndex, 10) : addressIndex
+  if (!Number.isInteger(parsedIndex)) {
+    throw new Error('Invalid last-address-index response while verifying address freshness')
+  }
+  return parsedIndex
+}
+
+/**
+ * Chipnet fallback when the node-backed freshness lookup cannot verify an
+ * address: use the last index watchtower knows about + 1, matching the
+ * pre-verification behavior. Mainnet always fails closed instead.
+ * @param {Object} opts
+ * @param {string} opts.mnemonic
+ * @param {string} opts.derivationPath
+ * @param {'receiving'|'change'} opts.chain
+ * @param {boolean} opts.isChipnet
+ * @param {string} opts.walletHash
+ * @param {number} opts.minIndex - Never go below the index being verified
+ * @returns {Promise<{address: string, addressIndex: number}>}
+ */
+async function fallbackToLastAddressIndex(opts) {
+  const { mnemonic, derivationPath, chain, isChipnet, walletHash, minIndex } = opts
+  const lastIndex = await fetchLastAddressIndex(walletHash, isChipnet)
+  const addressIndex = Math.max(lastIndex + 1, minIndex, 1)
+
+  const [candidate] = await deriveAddressBatch({
+    mnemonic,
+    derivationPath,
+    chain,
+    startIndex: addressIndex,
+    count: 1,
+    isChipnet
+  })
+
+  console.warn(
+    '[AddressScan] freshness unverifiable on chipnet, falling back to last-address-index + 1',
+    { chain, addressIndex, address: candidate.address }
+  )
+  return { address: candidate.address, addressIndex }
+}
+
+/**
  * Scans forward from startIndex until an address is positively confirmed
- * unused (no on-chain transaction history). Throws when watchtower cannot
- * confirm an address's status, so callers never use an unverified one.
+ * unused (no on-chain transaction history). On mainnet, throws when watchtower
+ * cannot confirm an address's status, so callers never use an unverified one.
+ * On chipnet, where the discovery endpoint does not report history, falls back
+ * to the last index watchtower knows about + 1.
  *
  * Works for the receiving chain ('0/i') and the change chain ('1/i'), which are
  * checked independently: watchtower reports history per address, so a used
@@ -513,7 +631,21 @@ export async function findUnusedAddressIndex(opts = {}) {
       isChipnet
     })
 
-    const historyByIndex = await checkAddressHistory(candidates, { isChipnet, chain, walletHash })
+    let historyByIndex
+    try {
+      historyByIndex = await checkAddressHistory(candidates, { isChipnet, chain, walletHash })
+    } catch (error) {
+      if (!isChipnet) throw error
+      console.warn('[AddressScan] chipnet freshness lookup failed:', error)
+      return fallbackToLastAddressIndex({
+        mnemonic,
+        derivationPath,
+        chain,
+        isChipnet,
+        walletHash,
+        minIndex: scanIndex
+      })
+    }
 
     for (const candidate of candidates) {
       const hasHistory = historyByIndex.get(candidate.addressIndex)
@@ -523,7 +655,19 @@ export async function findUnusedAddressIndex(opts = {}) {
           addressIndex: candidate.addressIndex,
           address: candidate.address
         })
-        throw new Error('Unable to verify address freshness')
+        if (isChipnet) {
+          return fallbackToLastAddressIndex({
+            mnemonic,
+            derivationPath,
+            chain,
+            isChipnet,
+            walletHash,
+            minIndex: candidate.addressIndex
+          })
+        }
+        throw new Error(
+          `Unable to verify address freshness for ${chain} address ${candidate.address} (index ${candidate.addressIndex})`
+        )
       }
       if (hasHistory === false) {
         console.debug('[AddressScan] found unused address', {

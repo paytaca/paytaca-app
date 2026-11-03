@@ -504,6 +504,11 @@ export default {
     formatWithLocale,
     padPosId,
 
+    generateAddressErrorMessage (error) {
+      const base = this.$t('FailedToGenerateAddress') || 'Failed to generate address. Please try again.'
+      return error?.message ? `${base}: ${error.message}` : base
+    },
+
     /**
      * Fetch merchants of this wallet together with their POS devices
      * and group them for the receive-target selector
@@ -609,7 +614,7 @@ export default {
       } catch (error) {
         console.error('Error generating POS address:', error)
         this.$q.notify({
-          message: this.$t('FailedToGenerateAddress') || 'Failed to generate address. Please try again.',
+          message: this.generateAddressErrorMessage(error),
           color: 'negative',
           icon: 'warning'
         })
@@ -815,7 +820,7 @@ export default {
       } catch (error) {
         console.error('Error generating new address:', error)
         vm.$q.notify({
-          message: vm.$t('FailedToGenerateAddress') || 'Failed to generate address. Please try again.',
+          message: vm.generateAddressErrorMessage(error),
           color: 'negative',
           icon: 'warning'
         })
@@ -1045,7 +1050,7 @@ export default {
         console.error('Error refreshing dynamic address:', error)
         this.generating = false // Stop generating even on error
         this.$q.notify({
-          message: this.$t('FailedToGenerateAddress') || 'Failed to generate address. Please try again.',
+          message: this.generateAddressErrorMessage(error),
           color: 'negative',
           icon: 'warning'
         })
