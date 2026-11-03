@@ -363,9 +363,8 @@ import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 import { getAddress0_0PublicKey } from 'src/utils/memo-key-utils'
 import { formatWithLocale, parseFiatCurrency } from 'src/utils/denomination-utils'
 import { LIFT_TOKEN_CATEGORY, LIFT_TOKEN_DECIMALS } from 'src/utils/subscription-utils'
+import { appendEliteRedeemErrorRef, EliteRedeemErrorCode } from 'src/utils/engagementhub-utils/elite-program'
 import {
-  appendEliteRedeemErrorRef,
-  EliteRedeemErrorCode,
   getLiftConversionRatio,
   getRewardsSwapContractDetails,
   getWalletTokenAddress,

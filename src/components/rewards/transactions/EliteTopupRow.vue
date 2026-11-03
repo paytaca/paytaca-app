@@ -44,7 +44,7 @@ import {
   EliteAsset,
   EliteAssetIcons,
   getEliteAssetLabel
-} from 'src/utils/engagementhub-utils/rewards'
+} from 'src/utils/engagementhub-utils/elite-program'
 
 export default {
   name: 'EliteTopupRow',

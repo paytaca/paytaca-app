@@ -96,7 +96,7 @@
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 import { parseLiftToken } from 'src/utils/engagementhub-utils/shared'
 import { parseFiatCurrency, parseFiatCurrencyWrapper } from 'src/utils/denomination-utils'
-import { getEliteProgramMonthlyStats } from 'src/utils/engagementhub-utils/rewards'
+import { getEliteProgramMonthlyStats } from 'src/utils/engagementhub-utils/elite-program'
 import ErrorCard from 'src/components/rewards/cards/ErrorCard.vue'
 
 export default {

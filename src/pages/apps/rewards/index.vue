@@ -593,12 +593,14 @@ import {
   updateUserRewardsData,
   updateRfPromoData,
   createUserRewardsData,
-  PROMO_CONTRACT_VERSION,
+  PROMO_CONTRACT_VERSION
+} from 'src/utils/engagementhub-utils/rewards'
+import {
   getAssetsThresholds,
   enrollEliteProgram,
   EliteStatus,
   EliteStatusLabels
-} from 'src/utils/engagementhub-utils/rewards'
+} from 'src/utils/engagementhub-utils/elite-program'
 
 import HeaderNav from 'src/components/header-nav.vue'
 import HelpCard from 'src/components/rewards/cards/HelpCard.vue'

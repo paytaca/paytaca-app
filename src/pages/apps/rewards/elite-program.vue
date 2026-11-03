@@ -322,7 +322,7 @@
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 import { parseLiftToken } from 'src/utils/engagementhub-utils/shared'
 import { parseFiatCurrency, parseFiatCurrencyWrapper } from 'src/utils/denomination-utils'
-import { getEliteProgramSummaryData, getAssetsThresholds, EliteStatus, EliteStatusLabels } from 'src/utils/engagementhub-utils/rewards'
+import { getEliteProgramSummaryData, getAssetsThresholds, EliteStatus, EliteStatusLabels } from 'src/utils/engagementhub-utils/elite-program'
 import { requirementState } from 'src/utils/engagementhub-utils/elite-requirements'
 import { LIFT_TOKEN_CATEGORY } from 'src/utils/subscription-utils'
 

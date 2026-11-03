@@ -141,7 +141,7 @@ import {
   getEliteProgramHistorySummaryData,
   getEliteProgramTransactionsData,
   getEliteProgramTopupsData
-} from 'src/utils/engagementhub-utils/rewards'
+} from 'src/utils/engagementhub-utils/elite-program'
 import { parseLiftToken } from 'src/utils/engagementhub-utils/shared'
 import { parseFiatCurrencyWrapper } from 'src/utils/denomination-utils'
 
