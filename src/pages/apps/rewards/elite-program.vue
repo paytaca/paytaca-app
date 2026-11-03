@@ -66,7 +66,7 @@
               </div>
             </div>
 
-            <div v-if="isOnHold" class="text-body2 text-bow-muted">
+            <div v-if="isOnHold" class="text-body2 text-bow">
               Your Elite Program is on hold while we review your account. No cashbacks will be provided while it is on hold.
             </div>
 

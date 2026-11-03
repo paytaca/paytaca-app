@@ -334,7 +334,7 @@
         </div>
 
         <q-banner
-          v-if="eliteLoaded && isNonPhilippineCountry"
+          v-if="eliteLoaded && isNonPhilippineCountry && eliteData?.status !== EliteStatus.ONHOLD"
           rounded
           dense
           class="br-15 q-mb-sm"
@@ -514,6 +514,33 @@
               :loading="isEliteCtaBusy"
               @click="onEliteCtaClick"
             />
+          </div>
+        </div>
+
+        <!-- Elite: On-hold -->
+        <div
+          v-else-if="eliteData && eliteData.status === EliteStatus.ONHOLD"
+          class="row full-width q-pa-md br-15 group-currency elite-card elite-onhold"
+          :class="[getDarkModeClass(darkMode), { loaded: eliteLoaded }]"
+        >
+          <div class="col-12">
+            <div class="row full-width justify-between items-center">
+              <div class="row col-2 promo-icon">
+                <q-icon name="workspace_premium" size="md" class="elite-icon" />
+              </div>
+              <div class="col-8">
+                <span class="text-token elite-name" :class="getDarkModeClass(darkMode)">Paytaca Elite Program</span>
+                <br/>
+                <span class="elite-pill onhold">{{ EliteStatusLabels[EliteStatus.ONHOLD] }}</span>
+              </div>
+              <div class="row col-2 justify-end" />
+            </div>
+            <div class="row items-start no-wrap q-my-md elite-merchant-note">
+              <q-icon name="info" size="xs" class="q-mr-sm elite-icon" />
+              <span class="col text-caption">
+                Your Elite Program is on hold while we review your account. No cashbacks will be provided while it is on hold.
+              </span>
+            </div>
           </div>
         </div>
       </div>
@@ -1422,9 +1449,10 @@ export default {
     background: linear-gradient(90deg, transparent, rgba(212, 166, 67, 0.08), rgba(212, 166, 67, 0.14), transparent);
   }
 
-  /* Pulsing border glow — locked/paused status */
+  /* Pulsing border glow — locked/paused/on-hold status */
   &.loaded.elite-locked,
-  &.loaded.elite-paused {
+  &.loaded.elite-paused,
+  &.loaded.elite-onhold {
     animation: elite-border-glow 2.5s ease-in-out infinite;
   }
 }
