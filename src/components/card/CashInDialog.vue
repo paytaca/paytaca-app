@@ -272,7 +272,6 @@
 import CardMixin from 'src/mixins/card/card-mixin.js'
 import DragSlide from '../drag-slide.vue';
 import { loadCardUser } from 'src/services/card/user';
-import { getChangeAddress } from 'src/utils/send-page-utils';
 import { getFiatCurrencyIcon } from 'src/services/card/utils';
 import { loadWallet } from 'src/services/wallet';
 import { updateAssetBalanceOnLoad } from 'src/utils/asset-utils';
