@@ -139,12 +139,10 @@
             <div class="q-mt-md">
               <div class="row items-center justify-between no-wrap">
                 <span class="text-caption">
-                  <span
-                    v-if="requirements.lift?.met"
-                    class="text-positive"
-                    role="img"
-                    aria-label="Met"
-                  >✓&nbsp;</span>LIFT balance
+                  <template v-if="requirements.lift?.met">
+                    <span class="text-positive" aria-hidden="true">✓&nbsp;</span>
+                    <span class="visually-hidden">Met&nbsp;</span>
+                  </template>LIFT balance
                 </span>
                 <span class="text-caption text-weight-medium">
                   {{ parseLiftToken(requirements.liftThreshold) }}
@@ -166,12 +164,10 @@
             <div class="q-mt-md">
               <div class="row items-center justify-between no-wrap">
                 <span class="text-caption">
-                  <span
-                    v-if="requirements.bch?.met"
-                    class="text-positive"
-                    role="img"
-                    aria-label="Met"
-                  >✓&nbsp;</span>BCH balance
+                  <template v-if="requirements.bch?.met">
+                    <span class="text-positive" aria-hidden="true">✓&nbsp;</span>
+                    <span class="visually-hidden">Met&nbsp;</span>
+                  </template>BCH balance
                 </span>
                 <span class="text-caption text-weight-medium">
                   {{ formatEliteFiat(requirements.bchThreshold) }}
@@ -637,5 +633,17 @@ export default {
   font-size: 12px;
   line-height: 1.25;
   opacity: 0.65;
+}
+
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+  border: 0;
 }
 </style>
