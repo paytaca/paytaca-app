@@ -78,11 +78,11 @@
             <q-item-section>
               <div class="row items-center justify-between">
                 <span class="text-weight-bold">{{ monthLabel(month) }}</span>
-                <span class="text-weight-bold">{{ parseLiftToken(month.total_lift_cashback) }}</span>
+                <span class="text-weight-bold">+{{ parseLiftToken(month.total_lift_cashback) }}</span>
               </div>
               <div class="row items-center justify-between q-mt-xs">
                 <span class="text-caption">{{ transactionCountLabel(month.count) }}</span>
-                <span class="text-caption">{{ formatEliteFiat(month.total_fiat_lift_cashback) }}</span>
+                <span class="text-caption">+{{ formatEliteFiat(month.total_fiat_lift_cashback) }}</span>
               </div>
             </q-item-section>
           </q-item>
