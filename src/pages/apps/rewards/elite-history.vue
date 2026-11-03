@@ -52,7 +52,7 @@
                   <template v-else>{{ summary.topups.totalCount }}</template>
                 </div>
                 <div class="text-caption summary-label">
-                  {{ activeTab === 'transactions' ? 'Eligible transactions' : 'Total top-ups' }}
+                  {{ activeTab === 'transactions' ? 'Total eligible transactions' : 'Total top-up transactions' }}
                 </div>
               </div>
 
