@@ -256,6 +256,7 @@
             @sweep-funds="onSweepFunds"
             @version-changed="onVersionChanged"
             @view-v1-history="goToV1History"
+            @upgrade-card="openMigrationDialog"
             />
           <div v-else-if="activeTab === 'Order Card'" class="full-width column items-center q-pa-md">
             <div class="full-width q-mb-md" style="max-width: 400px;">
@@ -443,6 +444,7 @@ export default {
       showMigrationDialog: false,
       migrationStep: 1,
       v2OwnershipSet: false,
+      needsV2Migration: false,
       orderJourneySteps: [
         { label: 'Order Card', icon: 'shopping_cart', status: 'active' },
         { label: 'Printing', icon: 'print', status: 'pending' },
@@ -520,7 +522,7 @@ export default {
 
     showMigrationBanner () {
       if (!this.activeCard) return false
-      return this.activeCard.hasV2Contract && !this.activeCard.isV2Active
+      return this.activeCard.hasV2Contract && (!this.activeCard.isV2Active || this.needsV2Migration)
     },
 
     hasV1Funds () {
@@ -616,6 +618,8 @@ export default {
         this.v2OwnershipSet = card?.hasV2Contract
           ? await card.isVersionOwnershipSet('v2').catch(() => false)
           : false
+        this.needsV2Migration = card.hasV1Contract && card.hasV2Contract
+          && (!this.v2OwnershipSet || !(await card.hasPointerNft('v1').catch(() => false)))
       } catch (error) {
         this.$router.push({ name: 'card-list' });
       }

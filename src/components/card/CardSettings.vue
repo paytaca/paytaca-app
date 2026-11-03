@@ -66,41 +66,11 @@
           v-if="!activeCard?.isV2Active"
           flat
           dense
-          label="Switch to V2"
+          label="Upgrade to V2"
           color="primary"
-          :loading="switchingVersion"
-          @click="showVersionSwitchDialog = true"
+          @click="$emit('upgrade-card')"
         />
       </div>
-
-      <q-dialog v-model="showVersionSwitchDialog" persistent>
-        <q-card class="pt-card" :class="$q.dark.isActive ? 'dark' : 'light'" style="min-width: 320px; border-radius: 24px;">
-          <q-card-section class="q-pa-lg">
-            <div class="row items-center justify-between q-mb-sm">
-              <div class="text-h6 text-weight-bold" :class="textColor">Switch Contract Version</div>
-              <q-btn flat round dense icon="close" :color="$q.dark.isActive ? 'grey-4' : 'grey-6'" @click="showVersionSwitchDialog = false" />
-            </div>
-            <div class="q-mb-md" :class="textColorGrey">
-              Switching to V2 will enable fungible token payments on this card. Migration is one-way and card payments stay on V2.
-            </div>
-            <div class="text-caption" :class="$q.dark.isActive ? 'text-grey-5' : 'text-grey'">
-              No funds will be moved during this switch. Each version retains its own balance.
-            </div>
-          </q-card-section>
-          <q-card-actions align="right" class="q-px-lg q-pb-md">
-            <q-btn flat label="Cancel" :color="$q.dark.isActive ? 'grey-4' : 'grey-7'" rounded @click="showVersionSwitchDialog = false" />
-            <q-btn
-              unelevated
-              label="Switch to V2"
-              color="primary"
-              class="bg-grad text-white"
-              rounded
-              :loading="switchingVersion"
-              @click="switchVersion"
-            />
-          </q-card-actions>
-        </q-card>
-      </q-dialog>
 
       <!-- <div class="settings-item clickable" :class="{ 'cursor-not-allowed': hasCardBalance, 'opacity-50': hasCardBalance }" @click="handleCardReplacementToggle"> -->
       <div class="settings-item" :class="{ 'clickable': false, 'disabled-item': true }">
@@ -508,7 +478,7 @@ import CardMixin from 'src/mixins/card/card-mixin';
 import { CardStorage } from 'src/components/card/createCard'
 import { satoshiToBch } from 'src/exchange';
 import { cardLogger } from 'src/utils/debug-logger.js';
-import { normalizeContractHistoryList, friendlyActivateVersionError } from 'src/services/card/card.js';
+import { normalizeContractHistoryList } from 'src/services/card/card.js';
 
 export default {
   name: 'CardSettings',
@@ -519,7 +489,7 @@ export default {
       required: true
     },
   },
-  emits: ['lock-status-changed', 'sweep-funds', 'version-changed', 'view-v1-history'],
+  emits: ['lock-status-changed', 'sweep-funds', 'version-changed', 'view-v1-history', 'upgrade-card'],
   data() {
     return {
       isLocked: this.activeCard?.isLocked || false,
@@ -539,8 +509,6 @@ export default {
       ftSelected: [],
       ftSweeping: false,
       ftStatusMap: {},
-      showVersionSwitchDialog: false,
-      switchingVersion: false,
       showV1Legacy: false,
       showSweepV1Dialog: false,
       v1Balance: 0,
@@ -930,37 +898,6 @@ export default {
       // Emit event to save other card settings
       this.$emit('save-card-settings', this.activeCard);
     },
-
-    async switchVersion () {
-      if (!this.activeCard?.id) return
-      if (this.activeCard.isV2Active) return
-      const targetVersion = 'v2'
-      this.switchingVersion = true
-      try {
-        await this.$store.dispatch('card/activateCardVersion', {
-          cardId: this.activeCard.id,
-          version: targetVersion
-        })
-        this.$q.notify({
-          type: 'positive',
-          message: this.$t('VersionSwitched', { version: targetVersion.toUpperCase() }, `Switched to ${targetVersion.toUpperCase()} successfully`),
-          timeout: 3000,
-        })
-        this.$emit('version-changed', targetVersion)
-      } catch (error) {
-        cardLogger.error('Failed to switch version:', error.message || error)
-        this.$q.notify({
-          type: 'negative',
-          message: friendlyActivateVersionError(error)
-            || error?.message
-            || this.$t('FailedToSwitchVersion', {}, 'Failed to switch version. Please try again.'),
-          timeout: 5000,
-        })
-      } finally {
-        this.switchingVersion = false
-        this.showVersionSwitchDialog = false
-      }
-    }
   }
 }
 </script>

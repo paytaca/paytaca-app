@@ -911,6 +911,16 @@ export class Card {
     if (!label) {
       throw new Error('Invalid version. Must be a positive integer or "vN".');
     }
+    if (label === 'v2' && this.hasV1Contract) {
+      const pointer = await this.findPointerNft('v1');
+      const category = this.v2Contract && this._resolveVersionOwnershipCategory(this.v2Contract, label);
+      if (!pointer || !category || pointer.token?.nft?.commitment?.toLowerCase() !== encodePointerCommitment({ version: 2, category }).toLowerCase()) {
+        throw new Error('Complete the card migration before switching to V2.');
+      }
+      if (!(await this.isVersionOwnershipSet(label))) {
+        throw new Error('Complete V2 ownership setup before switching to V2.');
+      }
+    }
     if (label === 'v1' && this.isV2Active) {
       const pointer = await this.findPointerNft('v1').catch(() => null)
         || await this.findPointerNft().catch(() => null);
