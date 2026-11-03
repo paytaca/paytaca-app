@@ -1,4 +1,9 @@
+import { Store } from 'src/store'
+import { LIFT_TOKEN_CATEGORY } from 'src/utils/subscription-utils'
+import { eliteRequirements } from 'src/utils/engagementhub-utils/elite-requirements'
 import { ELITEPROGRAM_URL } from 'src/utils/engagementhub-utils/api'
+
+export { eliteRequirements }
 
 // ================================
 // Paytaca Elite Program enums
@@ -193,3 +198,42 @@ export async function getEliteProgramMonthlyStats (id) {
       return null
     })
 }
+
+// ================================
+// enrollment requirements
+// ================================
+
+/**
+ * Reads the wallet's BCH and LIFT balances in the units the thresholds use.
+ *
+ * Returns `null` for a balance that cannot be known yet (no assets loaded, or
+ * no fiat price for BCH), because the caller's comparison treats an unknown
+ * balance as "no answer". Reporting `0` instead would claim the wallet is short
+ * by the whole floor.
+ */
+export function getEliteWalletBalances () {
+  const assets = Store.getters['assets/getAssets'] || []
+  if (!assets.length) return { bchBalance: null, liftBalance: null }
+
+  const bchAsset = assets[0]
+  const currency = Store.getters['market/selectedCurrency']
+  const rawPrice = Store.getters['market/getAssetPrice'](bchAsset?.id ?? 'bch', currency?.symbol)
+  const price = Number(rawPrice)
+  const liftAsset = assets.find(asset => asset.id === `ct/${LIFT_TOKEN_CATEGORY}`)
+  const priceUnknown = rawPrice === null
+    || rawPrice === undefined
+    || rawPrice === ''
+    || !Number.isFinite(price)
+
+  return {
+    bchBalance: priceUnknown ? null : Number(bchAsset?.balance ?? 0) * price,
+    liftBalance: Number(liftAsset?.balance ?? 0)
+  }
+}
+
+export async function getEliteRequirements (programId = null) {
+  const thresholds = await getAssetsThresholds(programId)
+  return eliteRequirements(thresholds, getEliteWalletBalances())
+}
+
+export {requirementState} from 'src/utils/engagementhub-utils/elite-requirements'

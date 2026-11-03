@@ -18,3 +18,19 @@ export function requirementState (balance, floor) {
     shortfall: met ? 0 : floorValue - balanceValue
   }
 }
+
+export function eliteRequirements (thresholds, balances) {
+  const bchThreshold = thresholds?.bch_min_threshold ?? null
+  const liftThreshold = thresholds?.lift_min_threshold ?? null
+  const bchBalance = balances?.bchBalance ?? null
+  const liftBalance = balances?.liftBalance ?? null
+
+  return {
+    bchThreshold,
+    liftThreshold,
+    bchBalance,
+    liftBalance,
+    bch: requirementState(bchBalance, bchThreshold),
+    lift: requirementState(liftBalance, liftThreshold)
+  }
+}

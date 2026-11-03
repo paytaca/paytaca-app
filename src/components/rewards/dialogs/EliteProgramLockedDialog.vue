@@ -40,7 +40,7 @@
             <div class="q-mb-sm">
               <div class="row justify-between items-center q-mb-xs">
                 <span class="text-caption">
-                  <template v-if="eliteBchPct >= 1"><span class="text-positive">✓&nbsp;</span></template>BCH balance
+                  <template v-if="eliteBchMet"><span class="text-positive">✓&nbsp;</span></template>BCH balance
                 </span>
                 <span class="text-caption text-weight-medium">
                   {{ parseFiatCurrencyWrapper(bchBalance) }} / {{ formattedBchThreshold }}
@@ -63,7 +63,7 @@
             <div>
               <div class="row justify-between items-center q-mb-xs">
                 <span class="text-caption">
-                  <template v-if="eliteLiftPct >= 1"><span class="text-positive">✓&nbsp;</span></template>LIFT balance
+                  <template v-if="eliteLiftMet"><span class="text-positive">✓&nbsp;</span></template>LIFT balance
                 </span>
                 <span class="text-caption text-weight-medium">
                   {{ parseLiftToken(liftBalance) }} / {{ parseLiftToken(liftThreshold) }}
@@ -96,6 +96,7 @@
 <script>
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 import { parseLiftToken } from 'src/utils/engagementhub-utils/shared'
+import { requirementState } from 'src/utils/engagementhub-utils/elite-program'
 import { parseFiatCurrency, parseFiatCurrencyWrapper } from 'src/utils/denomination-utils';
 
 export default {
@@ -124,13 +125,17 @@ export default {
 
     // Elite: BCH balance progress toward threshold (0-1)
     eliteBchPct () {
-      if (!this.bchBalance || !this.bchThreshold) return 0
-      return Math.min(this.bchBalance / this.bchThreshold, 1)
+      return requirementState(this.bchBalance, this.bchThreshold)?.progress ?? 0
+    },
+    eliteBchMet () {
+      return requirementState(this.bchBalance, this.bchThreshold)?.met === true
     },
     // Elite: LIFT balance progress toward threshold (0-1)
     eliteLiftPct () {
-      if (!this.liftBalance || !this.liftThreshold) return 0
-      return Math.min(this.liftBalance / this.liftThreshold, 1)
+      return requirementState(this.liftBalance, this.liftThreshold)?.progress ?? 0
+    },
+    eliteLiftMet () {
+      return requirementState(this.liftBalance, this.liftThreshold)?.met === true
     },
   },
 

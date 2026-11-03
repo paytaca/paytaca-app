@@ -140,25 +140,25 @@
               <div class="row items-center justify-between no-wrap">
                 <span class="text-caption">
                   <span
-                    v-if="liftRequirement?.met"
+                    v-if="requirements.lift?.met"
                     class="text-positive"
                     role="img"
                     aria-label="Met"
                   >✓&nbsp;</span>LIFT balance
                 </span>
                 <span class="text-caption text-weight-medium">
-                  {{ parseLiftToken(liftThreshold) }}
+                  {{ parseLiftToken(requirements.liftThreshold) }}
                 </span>
               </div>
-              <template v-if="liftRequirement && !liftRequirement.met">
+              <template v-if="requirements.lift && !requirements.lift.met">
                 <q-linear-progress
-                  :value="liftRequirement.progress"
+                  :value="requirements.lift.progress"
                   class="rounded-borders elite-progress q-mt-xs"
                   size="6px"
                   color="negative"
                 />
                 <div class="text-caption q-mt-xs">
-                  Your balance: {{ parseLiftToken(liftBalance) }} · {{ parseLiftToken(liftRequirement.shortfall) }} short
+                  Your balance: {{ parseLiftToken(requirements.liftBalance) }} · {{ parseLiftToken(requirements.lift.shortfall) }} short
                 </div>
               </template>
             </div>
@@ -167,33 +167,27 @@
               <div class="row items-center justify-between no-wrap">
                 <span class="text-caption">
                   <span
-                    v-if="bchRequirement?.met"
+                    v-if="requirements.bch?.met"
                     class="text-positive"
                     role="img"
                     aria-label="Met"
                   >✓&nbsp;</span>BCH balance
                 </span>
                 <span class="text-caption text-weight-medium">
-                  {{ formatEliteFiat(bchThreshold) }}
+                  {{ formatEliteFiat(requirements.bchThreshold) }}
                 </span>
               </div>
-              <template v-if="bchRequirement && !bchRequirement.met">
+              <template v-if="requirements.bch && !requirements.bch.met">
                 <q-linear-progress
-                  :value="bchRequirement.progress"
+                  :value="requirements.bch.progress"
                   class="rounded-borders elite-progress q-mt-xs"
                   size="6px"
                   color="negative"
                 />
                 <div class="text-caption q-mt-xs">
-                  Your balance: {{ formatEliteFiat(bchBalance) }} · {{ formatEliteFiat(bchRequirement.shortfall) }} short
+                  Your balance: {{ formatEliteFiat(requirements.bchBalance) }} · {{ formatEliteFiat(requirements.bch.shortfall) }} short
                 </div>
               </template>
-              <div
-                v-else-if="isNonPhilippineCountry"
-                class="text-caption text-bow-muted q-mt-xs"
-              >
-                Set your country to the Philippines in Settings to compare.
-              </div>
             </div>
           </template>
         </q-card-section>
@@ -322,9 +316,14 @@
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 import { parseLiftToken } from 'src/utils/engagementhub-utils/shared'
 import { parseFiatCurrency, parseFiatCurrencyWrapper } from 'src/utils/denomination-utils'
-import { getEliteProgramSummaryData, getAssetsThresholds, EliteStatus, EliteStatusLabels } from 'src/utils/engagementhub-utils/elite-program'
-import { requirementState } from 'src/utils/engagementhub-utils/elite-requirements'
-import { LIFT_TOKEN_CATEGORY } from 'src/utils/subscription-utils'
+import {
+  getEliteProgramSummaryData,
+  getAssetsThresholds,
+  getEliteWalletBalances,
+  eliteRequirements,
+  EliteStatus,
+  EliteStatusLabels
+} from 'src/utils/engagementhub-utils/elite-program'
 
 import HeaderNav from 'src/components/header-nav.vue'
 import ErrorCard from 'src/components/rewards/cards/ErrorCard.vue'
@@ -357,8 +356,7 @@ export default {
         monthlyCashback: 0
       },
       eliteId: -1,
-      bchThreshold: 0,
-      liftThreshold: 0,
+      thresholds: null,
       thresholdsLoading: true,
       thresholdsError: false,
       transactions: [],
@@ -386,37 +384,8 @@ export default {
     heroLoaded () {
       return !this.isLoading && !this.pointsError && !!this.eliteData
     },
-    selectedCurrency () {
-      return this.$store.getters['market/selectedCurrency']
-    },
-    assets () {
-      return this.$store.getters['assets/getAssets'] || []
-    },
-    assetsLoaded () {
-      return this.assets.length > 0
-    },
-    liftBalance () {
-      if (!this.assetsLoaded) return null
-      const liftAsset = this.assets.find(asset => asset.id === `ct/${LIFT_TOKEN_CATEGORY}`)
-      return Number(liftAsset?.balance ?? 0)
-    },
-    bchBalance () {
-      if (!this.assetsLoaded) return null
-      const bchAsset = this.assets[0]
-      const rawPrice = this.$store.getters['market/getAssetPrice'](
-        bchAsset?.id ?? 'bch', this.selectedCurrency?.symbol
-      )
-      if (rawPrice === null || rawPrice === undefined || rawPrice === '') return null
-      const price = Number(rawPrice)
-      if (!Number.isFinite(price)) return null
-      return Number(bchAsset?.balance ?? 0) * price
-    },
-    liftRequirement () {
-      return requirementState(this.liftBalance, this.liftThreshold)
-    },
-    bchRequirement () {
-      if (this.isNonPhilippineCountry) return null
-      return requirementState(this.bchBalance, this.bchThreshold)
+    requirements () {
+      return eliteRequirements(this.thresholds, getEliteWalletBalances())
     }
   },
 
@@ -450,9 +419,7 @@ export default {
       this.thresholdsLoading = true
       this.thresholdsError = false
       try {
-        const thresholds = await getAssetsThresholds(this.eliteId)
-        this.bchThreshold = thresholds.bch_min_threshold
-        this.liftThreshold = thresholds.lift_min_threshold
+        this.thresholds = await getAssetsThresholds(this.eliteId)
       } catch (error) {
         console.error('Error loading elite program thresholds: ', error)
         this.thresholdsError = true

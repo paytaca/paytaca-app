@@ -596,7 +596,7 @@ import {
   PROMO_CONTRACT_VERSION
 } from 'src/utils/engagementhub-utils/rewards'
 import {
-  getAssetsThresholds,
+  getEliteRequirements,
   enrollEliteProgram,
   EliteStatus,
   EliteStatusLabels
@@ -613,10 +613,7 @@ import PromoContract from 'src/utils/rewards-utils/contracts/PromoContract'
 
 const defaultEliteData = () => ({
   status: EliteStatus.LOCKED, // 'locked' | 'active' | 'paused'
-  bchBalance: 0,
-  liftBalance: 0,
-  bchThreshold: 0,
-  liftThreshold: 0,
+  requirements: null,
   cashbackLift: 0, // total cashback received in LIFT
   eligibleTxCount: 0,
   id: -1
@@ -1177,15 +1174,9 @@ export default {
           this.eliteData.status = EliteStatus.LOCKED
         }
 
-        // fetch assets thresholds values
-        const assetsThresholds = await getAssetsThresholds(eliteProgram?.pk)
-        this.eliteData.bchThreshold = assetsThresholds.bch_min_threshold
-        this.eliteData.liftThreshold = assetsThresholds.lift_min_threshold
-
-        // do client-side asset balances check when status is locked
-        if (this.eliteData.status === EliteStatus.LOCKED || this.eliteData.status === EliteStatus.PAUSED) {
-          this.getWalletAssetBalances()
-        }
+        // thresholds gate enrollment; balances are read from the store so the
+        // CTA can tell a funded wallet from one that cannot be checked yet
+        this.eliteData.requirements = await getEliteRequirements(eliteProgram?.pk)
       } catch (error) {
         console.error('Error loading elite program data: ', error)
         this.eliteData = null
@@ -1200,32 +1191,20 @@ export default {
       this.loadEliteProgramData(this.eliteProgram)
     },
 
-    getWalletAssetBalances () {
-      const assets = this.$store.getters['assets/getAssets']
-      const bchBalance = Number(assets[0]?.balance ?? 0)
-      const liftAsset = assets.find(asset => asset.id === `ct/${LIFT_TOKEN_CATEGORY}`)
-      const bchPrice = Number(
-        this.$store.getters['market/getAssetPrice'](assets[0]?.id ?? 'bch', this.selectedCurrency.symbol)
-      )
-
-      this.eliteData.bchBalance = bchBalance * bchPrice
-      this.eliteData.liftBalance = Number(liftAsset?.balance ?? 0)
-    },
-
     meetsEliteThresholds () {
-      const { bchBalance, bchThreshold, liftBalance, liftThreshold } = this.eliteData
-      if (!bchThreshold || !liftThreshold) return false
-      return bchBalance >= bchThreshold && liftBalance >= liftThreshold
+      const requirements = this.eliteData?.requirements
+      return requirements?.bch?.met === true && requirements?.lift?.met === true
     },
 
     showEliteThresholdDialog () {
+      const requirements = this.eliteData?.requirements || {}
       this.$q.dialog({
         component: EliteProgramLockedDialog,
         componentProps: {
-          bchBalance: this.eliteData.bchBalance,
-          bchThreshold: this.eliteData.bchThreshold,
-          liftBalance: this.eliteData.liftBalance,
-          liftThreshold: this.eliteData.liftThreshold,
+          bchBalance: requirements.bchBalance ?? 0,
+          bchThreshold: requirements.bchThreshold ?? 0,
+          liftBalance: requirements.liftBalance ?? 0,
+          liftThreshold: requirements.liftThreshold ?? 0,
           isLocked: this.eliteData.status === EliteStatus.LOCKED,
           showPhpNote: this.isNonPhilippineCountry
         }
