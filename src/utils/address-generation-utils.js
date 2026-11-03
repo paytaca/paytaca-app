@@ -540,6 +540,7 @@ async function fetchLastAddressIndex(walletHash, isChipnet) {
  * pre-verification behavior. Mainnet always fails closed instead.
  * @param {Object} opts
  * @param {string} opts.mnemonic
+ * @param {Object} [opts.readOnlyWallet] - ReadOnlyWallet for xpub wallets
  * @param {string} opts.derivationPath
  * @param {'receiving'|'change'} opts.chain
  * @param {boolean} opts.isChipnet
@@ -548,12 +549,13 @@ async function fetchLastAddressIndex(walletHash, isChipnet) {
  * @returns {Promise<{address: string, addressIndex: number}>}
  */
 async function fallbackToLastAddressIndex(opts) {
-  const { mnemonic, derivationPath, chain, isChipnet, walletHash, minIndex } = opts
+  const { mnemonic, readOnlyWallet, derivationPath, chain, isChipnet, walletHash, minIndex } = opts
   const lastIndex = await fetchLastAddressIndex(walletHash, isChipnet)
   const addressIndex = Math.max(lastIndex + 1, minIndex, 1)
 
   const [candidate] = await deriveAddressBatch({
     mnemonic,
+    readOnlyWallet,
     derivationPath,
     chain,
     startIndex: addressIndex,
@@ -639,6 +641,7 @@ export async function findUnusedAddressIndex(opts = {}) {
       console.warn('[AddressScan] chipnet freshness lookup failed:', error)
       return fallbackToLastAddressIndex({
         mnemonic,
+        readOnlyWallet,
         derivationPath,
         chain,
         isChipnet,
@@ -658,6 +661,7 @@ export async function findUnusedAddressIndex(opts = {}) {
         if (isChipnet) {
           return fallbackToLastAddressIndex({
             mnemonic,
+            readOnlyWallet,
             derivationPath,
             chain,
             isChipnet,
