@@ -107,7 +107,7 @@ Paytaca is a non-custodial Bitcoin Cash (BCH) wallet that gives users exclusive 
 ### Prerequisites
 
 - Node.js (v18 or higher)
-- npm or yarn
+- npm 8.3 or higher
 
 ### Setup
 
