@@ -65,6 +65,8 @@ const FEE_RATE_SAT_PER_KB = 1500n
 // Fungible-token outputs carry the dust floor computed with this relay fee, so
 // the buffer scales with the output instead of a fixed constant.
 const TOKEN_DUST_RELAY_FEE_SAT_PER_KB = 1200n
+// Time to wait for watchtower's raw tx endpoint before falling back to electrum.
+const RAW_TX_TIMEOUT = 15000
 
 /**
  * Derive the raw public key at a relative BIP32 path (e.g. '0/3').
@@ -504,14 +506,37 @@ export default class ReadOnlyWallet {
 
   /**
    * Fetch the raw bytes of a previous transaction (embedded in the PSBT so an
-   * external signer can validate the input).
+   * external signer can validate the input). Uses watchtower first, with
+   * electrum as a backup.
    * @param {string} txid
+   * @param {'mainnet'|'chipnet'} [network=this.network]
    * @returns {Promise<Uint8Array>}
    */
-  async getRawTransaction (txid) {
-    const provider = new ElectrumNetworkProvider(this.network)
-    const hex = await provider.getRawTransaction(txid)
-    return hexToBin(hex)
+  async getRawTransaction (txid, network = this.network) {
+    try {
+      return hexToBin(await this._rawTxFromWatchtower(txid, network))
+    } catch (error) {
+      console.warn('[ReadOnlyWallet] watchtower raw tx failed, using electrum:', txid, error)
+      const provider = new ElectrumNetworkProvider(network)
+      return hexToBin(await provider.getRawTransaction(txid))
+    }
+  }
+
+  /**
+   * @param {string} txid
+   * @param {'mainnet'|'chipnet'} [network=this.network]
+   * @returns {Promise<string>} raw transaction hex
+   */
+  async _rawTxFromWatchtower (txid, network = this.network) {
+    const response = await this.watchtowerFor(network).BCH._api.get(
+      `transactions/${txid}/`,
+      { params: { raw: true }, timeout: RAW_TX_TIMEOUT }
+    )
+    const hex = typeof response?.data === 'string' ? response.data.trim() : ''
+    if (!hex || hex.length % 2 !== 0 || !/^[0-9a-fA-F]+$/.test(hex)) {
+      throw new Error(`Invalid raw transaction response from watchtower for ${txid}`)
+    }
+    return hex
   }
 
   /**
@@ -889,9 +914,11 @@ export default class ReadOnlyWallet {
       })
     }
 
-    const prevTxHex = await Promise.all(
-      selectedUtxos.map(async u => binToHex(await this.getRawTransaction(u.txid)))
-    )
+    const uniqueTxids = [...new Set(selectedUtxos.map(u => u.txid))]
+    const prevTxHexByTxid = new Map(await Promise.all(
+      uniqueTxids.map(async txid => [txid, binToHex(await this.getRawTransaction(txid))])
+    ))
+    const prevTxHex = selectedUtxos.map(u => prevTxHexByTxid.get(u.txid))
 
     const inputObjects = selectedUtxos.map((u, i) => ({
       outpointIndex: Number(u.vout),
@@ -1013,16 +1040,20 @@ export default class ReadOnlyWallet {
 
     const accountLockingBytecode = cashAddressToLockingBytecode(accountAddress).bytecode
 
-    const prevTxHex = await Promise.all(
-      transaction.inputs.map(async (input) => {
-        try {
-          const txidHex = binToHex(toBytes(input.outpointTransactionHash))
-          return binToHex(await this.getRawTransaction(txidHex))
-        } catch (error) {
-          console.warn('[ReadOnlyWallet] Could not fetch prev tx hex for input:', error)
-          return ''
-        }
-      })
+    const uniqueTxids = [...new Set(
+      transaction.inputs.map(input => binToHex(toBytes(input.outpointTransactionHash)))
+    )]
+    const prevTxHexByTxid = new Map()
+    await Promise.all(uniqueTxids.map(async (txid) => {
+      try {
+        prevTxHexByTxid.set(txid, binToHex(await this.getRawTransaction(txid)))
+      } catch (error) {
+        console.warn('[ReadOnlyWallet] Could not fetch prev tx hex for input:', txid, error)
+        prevTxHexByTxid.set(txid, '')
+      }
+    }))
+    const prevTxHex = transaction.inputs.map(input =>
+      prevTxHexByTxid.get(binToHex(toBytes(input.outpointTransactionHash))) || ''
     )
 
     const inputObjects = transaction.inputs.map((input, i) => ({
