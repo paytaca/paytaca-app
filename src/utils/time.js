@@ -119,3 +119,39 @@ export function formatDateLocaleRelative(date, useRelative=true, currentTime=new
     return dt.toLocaleString()
   }
 }
+
+export function formatCapReset (iso, { locale, timeZone } = {}) {
+  if (iso === null || iso === undefined || iso === '') return null
+
+  const dt = new Date(iso)
+  if (Number.isNaN(dt.getTime())) return null
+
+  const resolvedLocale = String(
+    locale ||
+    Store?.getters?.['global/language'] ||
+    i18n?.global?.locale?.value ||
+    globalThis?.navigator?.language ||
+    'en-US'
+  ).replace('_', '-')
+
+  const options = {
+    year: 'numeric',
+    month: 'short',
+    day: 'numeric',
+    hour: 'numeric',
+    minute: '2-digit',
+    timeZoneName: 'short'
+  }
+
+  const utc = new Intl.DateTimeFormat(resolvedLocale, {
+    ...options,
+    timeZone: 'UTC'
+  }).format(dt)
+
+  const local = new Intl.DateTimeFormat(resolvedLocale, {
+    ...options,
+    ...(timeZone ? { timeZone } : {})
+  }).format(dt)
+
+  return { utc, local: local === utc ? null : local }
+}
