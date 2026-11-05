@@ -22,6 +22,21 @@
       />
 
       <template v-else>
+        <q-banner
+          v-if="showRateFallbackNotice"
+          rounded
+          dense
+          class="br-15 q-mb-md"
+          :class="darkMode ? 'bg-grey-9 text-white' : 'bg-grey-2 text-grey-9'"
+        >
+          <template #avatar>
+            <q-icon name="info" color="primary" />
+          </template>
+          <div class="text-body2">
+            Live exchange rates are unavailable right now, so some amounts are shown in Philippine Pesos (PHP).
+          </div>
+        </q-banner>
+
         <!-- Tab-aware summary -->
         <q-card
           class="summary-card q-mb-md"
@@ -61,9 +76,10 @@
               <div class="row">
                 <div class="col text-center">
                   <div class="summary-value">
-                    {{ parseFiatCurrencyWrapper(
-                      activeTab === 'transactions' ? summary.transactions.totalFiatCashback : summary.topups.totalFiatTopUp
-                      ) }}
+                    {{ parseFiatCurrency(
+                      activeTab === 'transactions' ? summary.transactions.totalFiatCashback : summary.topups.totalFiatTopUp,
+                      summaryCurrency
+                    ) }}
                   </div>
                   <div class="text-caption summary-label">
                     {{ activeTab === 'transactions' ? 'Total cashback value' : 'Total BCH top-ups' }}
@@ -112,6 +128,7 @@
               :loading-more="loadingMoreTx"
               :has-more="hasMoreTransactions"
               :dark-mode="darkMode"
+              :currency="transactionsCurrency"
               :pull-to-refresh="false"
               @load-more="loadMoreTx"
             />
@@ -125,6 +142,7 @@
               :loading-more="loadingMoreTopups"
               :has-more="hasMoreTopups"
               :dark-mode="darkMode"
+              :currency="topupsCurrency"
               :pull-to-refresh="false"
               @load-more="loadMoreTopups"
             />
@@ -143,7 +161,8 @@ import {
   getEliteProgramTopupsData
 } from 'src/utils/engagementhub-utils/elite-program'
 import { parseLiftToken } from 'src/utils/engagementhub-utils/shared'
-import { parseFiatCurrencyWrapper } from 'src/utils/denomination-utils'
+import { parseFiatCurrency } from 'src/utils/denomination-utils'
+import { isRateFallback } from 'src/utils/engagementhub-utils/display-rates'
 
 import HeaderNav from 'src/components/header-nav.vue'
 import ErrorCard from 'src/components/rewards/cards/ErrorCard.vue'
@@ -175,6 +194,12 @@ export default {
       isLoadingTx: false,
       isLoadingTopups: false,
       dataError: '',
+      summaryCurrency: 'PHP',
+      summaryRateUnavailable: false,
+      transactionsCurrency: 'PHP',
+      transactionsRateUnavailable: false,
+      topupsCurrency: 'PHP',
+      topupsRateUnavailable: false,
       summary: {
         transactions: { totalCashbackLift: 0, eligibleTxCount: 0, totalFiatCashback: 0 },
         topups: { totalCount: 0, totalTopUp: 0, totalFiatTopUp: 0 }
@@ -197,6 +222,32 @@ export default {
     },
     isActiveLoading () {
       return this.activeTab === 'transactions' ? this.isLoadingTx : this.isLoadingTopups
+    },
+    requestedCurrency () {
+      return this.$store.getters['market/selectedCurrency']?.symbol || 'PHP'
+    },
+    activeCurrency () {
+      return this.activeTab === 'transactions'
+        ? this.transactionsCurrency
+        : this.topupsCurrency
+    },
+    activeRateUnavailable () {
+      return this.activeTab === 'transactions'
+        ? this.transactionsRateUnavailable
+        : this.topupsRateUnavailable
+    },
+    showRateFallbackNotice () {
+      return !this.isActiveLoading && !this.dataError && (
+        isRateFallback(
+          this.requestedCurrency,
+          this.summaryCurrency,
+          this.summaryRateUnavailable
+        ) || isRateFallback(
+          this.requestedCurrency,
+          this.activeCurrency,
+          this.activeRateUnavailable
+        )
+      )
     }
   },
 
@@ -208,16 +259,42 @@ export default {
     activeTab (tab) {
       if (tab === 'transactions' && !this.transactions.length && !this.isLoadingTx) this.loadTab(tab)
       if (tab === 'topups' && !this.topups.length && !this.isLoadingTopups) this.loadTab(tab)
+    },
+    requestedCurrency (newSymbol, oldSymbol) {
+      if (newSymbol && newSymbol !== oldSymbol) this.reloadForCurrency()
     }
   },
 
   methods: {
     getDarkModeClass,
     parseLiftToken,
-    parseFiatCurrencyWrapper,
+    parseFiatCurrency,
 
     isTx (type) {
       return type === 'transactions'
+    },
+
+    reloadForCurrency () {
+      this.transactions = []
+      this.topups = []
+      this.offsetTx = 0
+      this.offsetTopups = 0
+      this.hasMoreTransactions = false
+      this.hasMoreTopups = false
+      this.loadTab(this.activeTab)
+    },
+
+    applyListCurrency (type, data) {
+      if (!data || Array.isArray(data)) return
+      const currency = data.currency || 'PHP'
+      const unavailable = data.rate_unavailable === true
+      if (this.isTx(type)) {
+        this.transactionsCurrency = currency
+        this.transactionsRateUnavailable = unavailable
+      } else {
+        this.topupsCurrency = currency
+        this.topupsRateUnavailable = unavailable
+      }
     },
 
     async loadTab (type, append = false) {
@@ -241,6 +318,8 @@ export default {
             listPromise
           ])
           if (summaryData) {
+            this.summaryCurrency = summaryData.currency || 'PHP'
+            this.summaryRateUnavailable = summaryData.rate_unavailable === true
             this.summary = {
               transactions: {
                 totalCashbackLift: summaryData.transactions?.total_lift_cashback_received ?? 0,
@@ -258,6 +337,8 @@ export default {
         } else {
           data = await listPromise
         }
+
+        this.applyListCurrency(type, data)
 
         const items = data?.results || []
         const hasMore = offset + items.length < (data?.count || 0)
