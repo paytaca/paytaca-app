@@ -187,7 +187,8 @@
                   class="currency-selector"
                   menu-anchor="bottom left"
                   menu-self="top left"
-                  :disable="!fungibleTokens.length">
+                  :loading="loadingWalletTokens"
+                  :disable="loadingWalletTokens || !fungibleTokens.length">
                   <template v-slot:label>
                     <div class="currency-badge" :class="$q.dark.isActive ? 'badge-dark' : 'badge-light'">
                       <q-avatar v-if="selectedToken?.logo" size="18px" class="q-mr-xs">
@@ -225,7 +226,14 @@
             <div class="row justify-end q-mb-sm">
               <q-btn flat dense no-caps color="primary" label="Receive from another wallet" @click="tokenPath = 'external'" />
             </div>
-            <div v-if="!fungibleTokens.length" class="text-caption q-mb-sm" :class="$q.dark.isActive ? 'text-grey-5' : 'text-grey-6'">
+            <div v-if="loadingWalletTokens" class="text-caption q-mb-sm">
+              {{ $t('Loading', {}, 'Loading') }}...
+            </div>
+            <div v-else-if="walletTokensError" class="text-caption q-mb-sm">
+              {{ walletTokensError }}
+              <q-btn flat dense no-caps color="primary" :label="$t('Retry', {}, 'Retry')" @click="loadWalletTokens" />
+            </div>
+            <div v-else-if="!fungibleTokens.length" class="text-caption q-mb-sm" :class="$q.dark.isActive ? 'text-grey-5' : 'text-grey-6'">
               No fungible CashTokens in this wallet. Receive from another wallet instead.
             </div>
             <div v-else-if="cardTokenHoldings.length" class="text-caption q-mb-sm" :class="$q.dark.isActive ? 'text-grey-5' : 'text-grey-6'">
@@ -277,6 +285,10 @@ import { loadWallet } from 'src/services/wallet';
 import { updateAssetBalanceOnLoad } from 'src/utils/asset-utils';
 import { parseFiatCurrency } from 'src/utils/denomination-utils';
 import { convertToFiatAmount, getChangeAddress } from 'src/utils/send-page-utils';
+import axios from 'axios';
+import BigNumber from 'bignumber.js';
+import { getWatchtowerApiUrl } from 'src/wallet/chipnet';
+import { convertIpfsUrl } from 'src/wallet/cashtokens';
 
 export default {
   name: "CashInDialog",
@@ -314,13 +326,19 @@ export default {
       tokenPath: 'wallet',
       selectedTokenId: null,
       tokenCashInAmount: null,
-      fetchedCardHoldings: null
+      fetchedCardHoldings: null,
+      walletTokens: [],
+      loadingWalletTokens: false,
+      walletTokensError: null,
+      funding: false
     };
   },
   async mounted() {
     try {
       const wallet = await loadWallet()
-      await updateAssetBalanceOnLoad('bch', wallet, this.$store)
+      const rawWallet = await wallet.getRawWallet()
+      const wallets = rawWallet.isChipnet ? { BCH_CHIP: rawWallet } : { BCH: rawWallet }
+      await updateAssetBalanceOnLoad('bch', wallets, this.$store)
     } catch (error) {
       console.error('Failed to load wallet balance:', error)
     }
@@ -421,8 +439,7 @@ export default {
       return this.card?.cashAddress
     },
     fungibleTokens () {
-      const assets = this.$store.getters['assets/getAssets'] || []
-      return assets.filter(asset => {
+      return this.walletTokens.filter(asset => {
         if (!asset?.id?.startsWith?.('ct/')) return false
         if (asset.is_nft) return false
         return Number(asset.balance) > 0
@@ -459,6 +476,7 @@ export default {
         }
         this.refreshCardBalance()
         this.loadCardTokenHoldings()
+        this.loadWalletTokens()
       }
     },
     cryptoCashInAmount() {
@@ -510,6 +528,39 @@ export default {
     },
   },
   methods: {
+    async loadWalletTokens() {
+      if (this.loadingWalletTokens) return
+      this.loadingWalletTokens = true
+      this.walletTokensError = null
+      this.walletTokens = []
+      try {
+        const walletHash = this.$store.getters['global/getWallet']('bch')?.walletHash
+        if (!walletHash) throw new Error('Wallet not loaded')
+        const baseUrl = getWatchtowerApiUrl(this.$store.getters['global/isChipnet'])
+        let nextUrl = `${baseUrl}/cashtokens/fungible/`
+        let params = { wallet_hash: walletHash, has_balance: true, token_type: 1, limit: 100 }
+        const tokens = []
+        while (nextUrl) {
+          const { data } = await axios.get(nextUrl, { params })
+          if (!Array.isArray(data.results)) throw new Error('Invalid token response')
+          tokens.push(...data.results.filter(token => token?.id).map(token => ({
+            ...token,
+            logo: token.image_url ? convertIpfsUrl(token.image_url) : null
+          })))
+          nextUrl = data.next || null
+          params = {}
+        }
+        this.walletTokens = tokens
+        if (!this.selectedToken) {
+          this.selectedTokenId = null
+          this.tokenCashInAmount = null
+        }
+      } catch {
+        this.walletTokensError = this.$t('FailedToLoadWalletTokens', {}, 'Unable to load wallet tokens. Please try again.')
+      } finally {
+        this.loadingWalletTokens = false
+      }
+    },
     refreshCardBalance() {
       if (!this.card?.id) return
       this.$store.dispatch('card/fetchCardBalance', this.card.id).catch(() => {})
@@ -592,9 +643,10 @@ export default {
       this.checkInputValidation()
     },
     getTokenBaseUnits() {
-      const amount = parseFloat(this.tokenCashInAmount)
-      if (isNaN(amount) || amount <= 0) return null
-      return Math.round(amount * (10 ** this.selectedTokenDecimals))
+      const amount = new BigNumber(this.tokenCashInAmount)
+      const baseUnits = amount.shiftedBy(this.selectedTokenDecimals)
+      if (!baseUnits.isInteger() || baseUnits.lte(0) || baseUnits.gt(Number.MAX_SAFE_INTEGER)) return null
+      return baseUnits.toNumber()
     },
     tokenExceedsBalance() {
       const baseUnits = this.getTokenBaseUnits()
@@ -612,10 +664,10 @@ export default {
       return amountInBch > (Number(this.walletBalance) || 0)
     },
     isAmountValid() {
+      if (this.funding) return false
       if (!this.isBchMode) {
-        if (!this.selectedToken) return false
-        const amount = parseFloat(this.tokenCashInAmount)
-        if (isNaN(amount) || amount <= 0) return false
+        if (!this.canFundTokens || this.loadingWalletTokens || this.walletTokensError || !this.selectedToken) return false
+        if (this.getTokenBaseUnits() === null) return false
         return !this.tokenExceedsBalance()
       }
       const validFiatAmount = (this.fiatCashInAmount && parseFloat(this.fiatCashInAmount) > 0) && !isNaN(this.fiatCashInAmount)
@@ -625,30 +677,40 @@ export default {
     },
 
     async handleCashIn () {
+      if (!this.showFundSlide || !this.isAmountValid()) return
+      const isToken = !this.isBchMode
+      const token = isToken ? { tokenId: this.selectedToken.id.slice(3) } : undefined
+      const tokenAmount = isToken ? this.getTokenBaseUnits() : undefined
+      const sendAmount = isToken ? Number(this.tokenCashInAmount) : this.getEnteredAmountInBch()
+      const address = isToken ? this.card?.tokenAddress || this.card?.cashAddress : this.card?.cashAddress
+      if (!address) return
+      this.funding = true
       this.$q.loading.show({
         message: this.$t('ProcessingCashIn', {}, 'Processing cash in...')
       })
-      const sendAmount = this.cryptoCashInAmount
-      const user = await loadCardUser()
-      const wallet = await user.wallet.getRawWallet()
-      const changeAddress = await getChangeAddress('bch', { isChipnet: wallet.isChipnet })
-      const result = await wallet.sendBch(sendAmount, this.card?.cashAddress, changeAddress)
-      this.$q.loading.hide()
-
-      if (result?.success) {
-        this.notifySuccess(successMessage, { timeout: 3000 })
+      try {
+        const user = await loadCardUser()
+        const wallet = await user.wallet.getRawWallet()
+        const changeAddress = await getChangeAddress('bch', { isChipnet: wallet.isChipnet })
+        const result = await wallet.sendBch(sendAmount, address, changeAddress, token, tokenAmount)
+        if (!result?.success) throw new Error(result?.error || 'Please try again.')
+        this.notifySuccess(this.$t('CardCashInSuccessful', {}, 'Funds added to your card successfully'), { timeout: 3000 })
         this.refreshCardHistory()
+        this.refreshCardBalance()
+        this.loadCardTokenHoldings()
+        this.loadWalletTokens()
         this.pollForFundingAndRefresh()
-      } else {
+        this.onHideCashInDialog()
+      } catch (error) {
         this.$q.notify({
-          message: `Cash in failed: ${result?.error || 'Please try again.'}`,
-          color: 'negative',
-          position: 'bottom',
+          type: 'error',
+          message: `Cash in failed: ${error?.message || 'Please try again.'}`,
           timeout: 5000
         })
+      } finally {
+        this.funding = false
+        this.$q.loading.hide()
       }
-
-      this.onHideCashInDialog()
     },
 
     refreshCardHistory () {
