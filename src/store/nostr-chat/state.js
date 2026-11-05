@@ -11,9 +11,14 @@ export function getInitialWalletState () {
     },
 
     // Conversations (per-wallet)
-    // Active rooms cache (minimal fields: id, type, name, members, subject, updatedAt)
-    // The full room list is stored server-side; this is a lightweight cache for the UI.
+    // Room cache (minimal fields: id, type, name, members, subject, updatedAt).
+    // Persisted so the chat list paints on first paint instead of waiting for
+    // the server fetch; SET_ROOMS merges the server's authoritative list into it.
     rooms: [],
+    // True once a room-list fetch has finished for this wallet in this session.
+    // Session-only (never persisted): tells the UI whether an empty `rooms`
+    // means "still loading" (skeletons) or "no chats yet".
+    roomsLoaded: false,
     // Server-backed block list caches (re-fetched on init)
     blockedContacts: [],
     // Server-backed deleted room IDs cache (re-fetched on init)
@@ -28,6 +33,11 @@ export function getInitialWalletState () {
     readMessageIds: {},
     messageReadBy: {},
     reactions: {},
+    // Messages the user removed from this device ("Delete for me"):
+    // { [roomId]: { [messageId]: timestamp } }. Persisted, and filtered out of
+    // every read path (timeline, previews, unread counts) so a relay refetch or
+    // history replay cannot resurrect a hidden message.
+    hiddenMessageIds: {},
 
     // Ephemeral typing indicators: { [roomId]: { [pubKeyHex]: timestamp } }
     // Not persisted — auto-expires after 5s of no new typing events.

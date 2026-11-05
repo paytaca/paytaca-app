@@ -238,6 +238,7 @@ export function SET_BLOCKED_CONTACTS (state, pubKeys) {
 export function SET_ROOMS (state, rooms) {
   const ws = getOrInitWalletState(state)
   if (!ws) return
+  ws.roomsLoaded = true
   // Preserve local lastMessageAt — once set by TOUCH_ROOM_LAST_MESSAGE_AT
   // (wall-clock time) or a previous server fetch, never overwrite it with
   // a server value. Server data is only used as fallback for rooms that
@@ -245,7 +246,7 @@ export function SET_ROOMS (state, rooms) {
   const localMap = new Map((ws.rooms || []).map(r => [r.id, r]))
   ws.rooms = rooms.map(sr => {
     const lr = localMap.get(sr.id)
-    if (!lr) return sr
+    if (!lr) return { ...sr }
     // Preserve local lastMessageAt — once set by TOUCH_ROOM_LAST_MESSAGE_AT
     // (wall-clock time) or a previous server fetch, never overwrite it with
     // a server value.
@@ -263,16 +264,25 @@ export function SET_ROOMS (state, rooms) {
     }
     return merged
   })
-  // Preserve local-only rooms that the server doesn't know about (e.g. MLS
-  // groups, which are never synced to the server). Without this, a fetch
-  // from the server-authoritative room list would remove them from the
-  // store and redirect an open conversation to the chat index.
+  // Preserve rooms the server doesn't know about: MLS groups (their state is
+  // local, the server row is a mirror) and rooms created on this device whose
+  // sync-to-server has not been confirmed by a fetch yet. Without this, the
+  // server-authoritative list would drop a just-created room and redirect an
+  // open conversation to the chat index. A room deleted on another device
+  // therefore lingers locally until it is deleted here — the same behaviour the
+  // in-memory list already had, now extended across restarts by the cache.
   const serverIds = new Set(rooms.map(r => r.id))
   for (const [id, room] of localMap) {
-    if (!serverIds.has(id)) {
-      ws.rooms = [...ws.rooms, room]
-    }
+    if (!serverIds.has(id)) ws.rooms.push(room)
   }
+}
+
+// The room-list fetch finished without producing a list (network error, empty
+// body). Flip the flag so the UI stops showing skeletons for cached rooms.
+export function SET_ROOMS_LOADED (state) {
+  const ws = getOrInitWalletState(state)
+  if (!ws) return
+  ws.roomsLoaded = true
 }
 
 // ---- Per-wallet message mutations ----
@@ -360,6 +370,40 @@ export function DELETE_MESSAGE (state, { roomId, messageId }) {
     msg.deleted = true
     msg.content = ''
   }
+}
+
+// "Delete for me": hide a message on this device only. The id is remembered in
+// wallet state (persisted) rather than spliced out of `messages`, because
+// history replay and relay refetches re-add messages by id — a splice alone
+// would resurrect it on the next fetch. Every read path filters through
+// visibleMessages, and the row stays in the store so an Undo can restore it.
+const MAX_HIDDEN_IDS_PER_ROOM = 1000
+
+export function HIDE_MESSAGE (state, { roomId, messageId }) {
+  const ws = getOrInitWalletState(state)
+  if (!ws || !roomId || !messageId) return
+  if (!ws.hiddenMessageIds) ws.hiddenMessageIds = {}
+  if (!ws.hiddenMessageIds[roomId]) ws.hiddenMessageIds[roomId] = {}
+  const roomHidden = ws.hiddenMessageIds[roomId]
+  roomHidden[messageId] = Math.floor(Date.now() / 1000)
+
+  // Bound the persisted map: drop the oldest ids once a room exceeds the cap.
+  const ids = Object.keys(roomHidden)
+  if (ids.length > MAX_HIDDEN_IDS_PER_ROOM) {
+    ids
+      .sort((a, b) => roomHidden[a] - roomHidden[b])
+      .slice(0, ids.length - MAX_HIDDEN_IDS_PER_ROOM)
+      .forEach(id => { delete roomHidden[id] })
+  }
+}
+
+export function UNHIDE_MESSAGE (state, { roomId, messageId }) {
+  const ws = getOrInitWalletState(state)
+  if (!ws) return
+  const roomHidden = ws.hiddenMessageIds?.[roomId]
+  if (!roomHidden) return
+  delete roomHidden[messageId]
+  if (!Object.keys(roomHidden).length) delete ws.hiddenMessageIds[roomId]
 }
 
 // ---- Per-wallet read receipts ----
@@ -568,8 +612,10 @@ export function RESET_WALLET_CHAT_DATA (state) {
     privKeyHex: null,
   }
   ws.rooms = []
+  ws.roomsLoaded = false
   ws.deletedRooms = []
   ws.messages = {}
+  ws.hiddenMessageIds = {}
   ws.readReceipts = {}
   ws.readMessageIds = {}
   ws.messageReadBy = {}

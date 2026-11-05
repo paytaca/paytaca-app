@@ -72,6 +72,7 @@
             <room-list
               :rooms="rooms"
               :messages="messages"
+              :loading="!roomListLoaded"
               @select-room="openRoom"
               @archive-room="confirmArchiveRoom"
               @block-room="confirmBlockRoom"
@@ -83,6 +84,7 @@
             <room-list
               :rooms="archivedRooms"
               :messages="messages"
+              :loading="!roomListLoaded"
               archived
               @select-room="openRoom"
               @unarchive-room="unarchiveRoom"
@@ -567,6 +569,9 @@ export default {
     archivedRooms () {
       return this.$store.getters['nostrChat/getArchivedRooms']
     },
+    roomListLoaded () {
+      return this.$store.getters['nostrChat/isRoomListLoaded']
+    },
     messages () {
       return this.$store.getters['nostrChat/getAllMessages']
     },
@@ -808,6 +813,10 @@ export default {
       }
     } catch (err) {
       console.error('Failed to initialize Nostr chat:', err)
+      // End the room-list skeleton state: nothing will fetch the list once
+      // initialization failed, so leave the user on the empty state (plus the
+      // error notification) instead of endless loading placeholders.
+      this.$store.commit('nostrChat/SET_ROOMS_LOADED')
       this.$q.notify({
         type: 'negative',
         message: this.$t('ChatInitFailed', {}, 'Failed to initialize chat') + ': ' + err.message,

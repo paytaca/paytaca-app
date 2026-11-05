@@ -39,6 +39,13 @@ const MLS_REPLY_PREFIX = '\u200bpaytaca:mls-reply:'
 // original message in place instead of appending a new one.
 const MLS_EDIT_PREFIX = '\u200bpaytaca:mls-edit:'
 
+// In-band prefix for a deletion's target message id. NIP-17 kind-5 deletions
+// address a gift-wrapped room id, which never matches an MLS room id, so a
+// delete in an MLS group has to travel inside the encrypted payload like its
+// edit counterpart. Receivers tombstone the target instead of appending a
+// message.
+const MLS_DELETE_PREFIX = '\u200bpaytaca:mls-delete:'
+
 // In-band marker the invitee sends immediately after accepting a welcome. An
 // MLS Add commit puts the invitee in the tree right away — before they ever
 // accept — so tree membership cannot tell "invited" from "joined". This
@@ -981,7 +988,7 @@ async function surfaceMlsWelcomeRumor({ commit, state }, { giftWrap, welcomeRumo
 
 // ---- Sending messages ----
 
-export async function sendMlsMessage({ commit, state, dispatch }, { roomId, text, replyTo, editOf }) {
+export async function sendMlsMessage({ commit, state, dispatch }, { roomId, text, replyTo, editOf, deleteOf }) {
   const ws = getWalletState(state)
   if (!ws?.keys?.privKeyHex) throw new Error('Nostr keys not available')
 
@@ -1019,6 +1026,7 @@ export async function sendMlsMessage({ commit, state, dispatch }, { roomId, text
     let wireText = text
     if (replyTo) wireText = `${MLS_REPLY_PREFIX}${replyTo}\n${wireText}`
     if (editOf) wireText = `${MLS_EDIT_PREFIX}${editOf}\n${wireText}`
+    if (deleteOf) wireText = `${MLS_DELETE_PREFIX}${deleteOf}\n${wireText}`
 
     // Encrypt exactly ONCE. Both the event id and the ratchet generation it
     // consumes must stay stable across publish retries: a re-encrypt would
@@ -1432,6 +1440,7 @@ export async function receiveMlsMessage({ commit, state, dispatch }, event) {
           let content = result.plaintext
           let replyTo = null
           let editOf = null
+          let deleteOf = null
           if (typeof content === 'string') {
             // Prefixes can nest (an edit of a reply), so peel them until stable.
             for (;;) {
@@ -1439,7 +1448,9 @@ export async function receiveMlsMessage({ commit, state, dispatch }, event) {
                 ? MLS_REPLY_PREFIX
                 : content.startsWith(MLS_EDIT_PREFIX)
                   ? MLS_EDIT_PREFIX
-                  : null
+                  : content.startsWith(MLS_DELETE_PREFIX)
+                    ? MLS_DELETE_PREFIX
+                    : null
               if (!prefix) break
               const newlineIndex = content.indexOf('\n')
               if (newlineIndex === -1) {
@@ -1449,6 +1460,7 @@ export async function receiveMlsMessage({ commit, state, dispatch }, event) {
               }
               const target = content.slice(prefix.length, newlineIndex) || null
               if (prefix === MLS_REPLY_PREFIX) replyTo = target
+              else if (prefix === MLS_DELETE_PREFIX) deleteOf = target
               else editOf = target
               content = content.slice(newlineIndex + 1)
             }
@@ -1461,6 +1473,7 @@ export async function receiveMlsMessage({ commit, state, dispatch }, event) {
             'room', roomId?.slice(0, 8) || '(none)',
             'replyTo:', replyTo ? replyTo.slice(0, 8) : '(none)',
             'editOf:', editOf ? editOf.slice(0, 8) : '(none)',
+            'deleteOf:', deleteOf ? deleteOf.slice(0, 8) : '(none)',
             'text:', JSON.stringify(content.slice(0, 40)),
           )
 
@@ -1476,6 +1489,23 @@ export async function receiveMlsMessage({ commit, state, dispatch }, event) {
             console.warn(
               '[MLS] Dropping edit', event.id.slice(0, 8),
               'for unknown/foreign target', editOf.slice(0, 8),
+              'in room', roomId?.slice(0, 8) || '(none)',
+            )
+            return
+          }
+
+          // A deletion targets an already-delivered message: tombstone it in
+          // place instead of appending a message. Only the original sender may
+          // delete their own message for everyone.
+          if (deleteOf) {
+            const original = (ws.messages?.[roomId] || []).find((m) => m.id === deleteOf)
+            if (original && original.sender === senderIdentity) {
+              commit('DELETE_MESSAGE', { roomId, messageId: deleteOf })
+              return
+            }
+            console.warn(
+              '[MLS] Dropping delete', event.id.slice(0, 8),
+              'for unknown/foreign target', deleteOf.slice(0, 8),
               'in room', roomId?.slice(0, 8) || '(none)',
             )
             return

@@ -77,12 +77,24 @@ export function getActiveStatusMap (state) {
 
 // ---- Per-wallet room getters ----
 
+// Messages the user hid on this device ("Delete for me"). The ids live in
+// wallet state (persisted), so every read path must drop them — a relay
+// refetch, history replay or MLS re-decrypt would otherwise re-surface a
+// message the user already removed.
+function visibleMessages (ws, roomId) {
+  const messages = ws.messages?.[roomId]
+  if (!Array.isArray(messages)) return []
+  const hidden = ws.hiddenMessageIds?.[roomId]
+  if (!hidden) return messages
+  return messages.filter(m => !hidden[m.id])
+}
+
 // Newest stored message timestamp for a room, clamped to now. NIP-17
 // randomizes created_at by up to 2 days, so a future-dated message could
 // otherwise pin its room to the top forever.
 function newestMessageActivity (ws, roomId) {
-  const messages = ws.messages?.[roomId]
-  if (!Array.isArray(messages) || !messages.length) return 0
+  const messages = visibleMessages(ws, roomId)
+  if (!messages.length) return 0
   const newest = messages[messages.length - 1]
   const createdAt = newest?.created_at || 0
   const now = Math.floor(Date.now() / 1000)
@@ -192,7 +204,17 @@ export function getRoomById (state) {
 // ---- Per-wallet message getters ----
 
 export function getAllMessages (state) {
-  return getWalletState(state).messages || {}
+  const ws = getWalletState(state)
+  const messages = ws.messages || {}
+  const hidden = ws.hiddenMessageIds
+  // No hidden messages → hand back the raw map so consumers keep referential
+  // identity (RoomList previews recompute on prop change).
+  if (!hidden || !Object.keys(hidden).length) return messages
+  const filtered = {}
+  for (const roomId of Object.keys(messages)) {
+    filtered[roomId] = visibleMessages(ws, roomId)
+  }
+  return filtered
 }
 
 export function getReadMessageIds (state) {
@@ -206,7 +228,7 @@ export function getMessages (state) {
   return (roomId) => {
     const room = (ws.rooms || []).find(r => r.id === roomId && r.members?.includes(myPubKey))
     if (!room) return []
-    return ws.messages?.[roomId] || []
+    return visibleMessages(ws, roomId)
   }
 }
 
@@ -217,7 +239,7 @@ export function getLastMessage (state) {
   return (roomId) => {
     const room = (ws.rooms || []).find(r => r.id === roomId && r.members?.includes(myPubKey))
     if (!room) return null
-    const msgs = ws.messages?.[roomId] || []
+    const msgs = visibleMessages(ws, roomId)
     return msgs.length ? msgs[msgs.length - 1] : null
   }
 }
@@ -308,7 +330,7 @@ export function getUnreadCount (state) {
   return (roomId) => {
     const room = (ws.rooms || []).find(r => r.id === roomId && r.members?.includes(myPubKey))
     if (!room) return 0
-    const msgs = ws.messages?.[roomId] || []
+    const msgs = visibleMessages(ws, roomId)
     const readIds = ws.readMessageIds?.[roomId] || {}
     return msgs.filter(m => m.sender !== myPubKey && !readIds[m.id]).length
   }
@@ -321,7 +343,7 @@ export function getTotalUnreadCount (state) {
   let total = Object.keys(ws.mls?.pendingInvitations || {}).length
   for (const room of (ws.rooms || [])) {
     if (!room.members?.includes(myPubKey)) continue
-    const msgs = ws.messages?.[room.id] || []
+    const msgs = visibleMessages(ws, room.id)
     const readIds = ws.readMessageIds?.[room.id] || {}
     total += msgs.filter(m => m.sender !== myPubKey && !readIds[m.id]).length
   }
@@ -350,6 +372,17 @@ export function isInitialized (state) {
 
 export function isSubscribed (state) {
   return getWalletState(state).isSubscribed || false
+}
+
+// Whether the first room-list fetch has finished for this wallet. The chat
+// index uses it to tell "still loading" (no cached rooms yet → skeletons)
+// apart from "no chats yet".
+export function isRoomListLoaded (state) {
+  // No active wallet (or nothing hydrated for it yet): there is no fetch to
+  // wait for, so report loaded and let the empty state render.
+  const ws = getWalletState(state)
+  if (!ws.roomsLoaded && !Object.keys(ws).length) return true
+  return ws.roomsLoaded || false
 }
 
 export function getRelayStatus (state) {

@@ -505,7 +505,20 @@
                   <q-icon name="delete" size="20px" color="negative" />
                 </q-item-section>
                 <q-item-section>
-                  <span class="text-negative">{{ $t('Delete', {}, 'Delete') }}</span>
+                  <span class="text-negative">{{ $t('DeleteForEveryone', {}, 'Delete for everyone') }}</span>
+                </q-item-section>
+              </q-item>
+              <q-item
+                v-if="contextMessage"
+                clickable
+                @mousedown.prevent
+                @click.stop="confirmHideMessage(contextMessage)"
+              >
+                <q-item-section avatar>
+                  <q-icon name="visibility_off" size="20px" color="negative" />
+                </q-item-section>
+                <q-item-section>
+                  <span class="text-negative">{{ $t('DeleteForMe', {}, 'Delete for me') }}</span>
                 </q-item-section>
               </q-item>
               <q-item-label header class="q-px-md q-pt-sm q-pb-none">{{ $t('React', {}, 'React') }}</q-item-label>
@@ -1737,9 +1750,12 @@ export default {
       return elapsed <= 60
     },
     canDeleteMessage (message) {
-      if (!message || message.sender !== this.myPubKey) return false
-      const elapsed = Date.now() / 1000 - message.created_at
-      return elapsed <= 60
+      // Deletion for everyone has no time limit: it only needs the original
+      // sender's kind-5 (or in-band MLS) event, which relays and clients honour
+      // regardless of age. Temporary-only windows are a UX convention, not a
+      // protocol constraint, and hiding the option on an older own message was
+      // the reported surprise.
+      return !!message && message.sender === this.myPubKey && !message.deleted
     },
     setEdit (message) {
       this.hideContextMenu()
@@ -1765,6 +1781,17 @@ export default {
         persistent: true,
       }).onOk(async () => {
         try {
+          if (this.isMlsRoom) {
+            // MLS rooms have no gift-wrap address to target, so deletion rides
+            // inside the encrypted payload (same as replies and edits).
+            await this.$store.dispatch('nostrChat/sendMlsMessage', {
+              roomId: this.roomId,
+              text: '',
+              deleteOf: message.id,
+            })
+            this.$store.commit('nostrChat/DELETE_MESSAGE', { roomId: this.roomId, messageId: message.id })
+            return
+          }
           const { giftWraps, roomId, messageId } = await this.$store.dispatch('nostrChat/sendDeleteMessage', {
             roomId: this.roomId,
             messageId: message.id,
@@ -1778,6 +1805,43 @@ export default {
             message: this.$t('DeleteMessageFailed', {}, 'Failed to delete message') + ': ' + err.message,
           })
         }
+      })
+    },
+    // "Delete for me": remove the message from this device only. Works for every
+    // message — anyone's, any age — because it needs no relay cooperation.
+    confirmHideMessage (message) {
+      this.hideContextMenu()
+      this.$q.dialog({
+        title: this.$t('DeleteForMe', {}, 'Delete for me'),
+        message: this.$t('HideMessageConfirm', {}, 'Delete this message for you? It will be removed from this device only.'),
+        class: `pt-card text-bow ${this.getDarkModeClass(this.darkMode)}`,
+        cancel: { label: this.$t('Cancel', {}, 'Cancel'), flat: true, color: 'grey' },
+        ok: { label: this.$t('Delete', {}, 'Delete'), color: 'negative', flat: true },
+        persistent: true,
+      }).onOk(() => {
+        this.$store.commit('nostrChat/HIDE_MESSAGE', {
+          roomId: this.roomId,
+          messageId: message.id,
+        })
+        // Drop any composer state that referenced the now-hidden message.
+        if (this.replyToMessage?.id === message.id) this.replyToMessage = null
+        if (this.editingMessage?.id === message.id) this.editingMessage = null
+        this.newMessageIds.delete(message.id)
+        if (this.selectedMessageId === message.id) this.selectedMessageId = null
+        this.$q.notify({
+          message: this.$t('MessageDeleted', {}, 'Message deleted'),
+          timeout: 5000,
+          actions: [{
+            label: this.$t('Undo', {}, 'Undo'),
+            color: 'white',
+            handler: () => {
+              this.$store.commit('nostrChat/UNHIDE_MESSAGE', {
+                roomId: this.roomId,
+                messageId: message.id,
+              })
+            },
+          }],
+        })
       })
     },
     onTipAction () {

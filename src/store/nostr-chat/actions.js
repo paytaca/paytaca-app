@@ -1584,6 +1584,9 @@ export async function fetchRooms ({ commit }) {
     const response = await apiGet(baseUrl, `/api/nostr/rooms/?wallet_hash=${walletHash}`)
     if (!response.ok) {
       debug('fetchRooms failed:', response.status)
+      // End the loading state anyway: leaving the list on skeletons because a
+      // fetch failed would hide the cached rooms indefinitely.
+      commit('SET_ROOMS_LOADED')
       return
     }
     const data = await response.json()
@@ -1592,8 +1595,10 @@ export async function fetchRooms ({ commit }) {
     // the wallet changed while the response was in flight.
     if (!isCurrent || !isCurrent()) return
     if (decrypted) commit('SET_ROOMS', decrypted)
+    else commit('SET_ROOMS_LOADED')
   } catch (err) {
     debug('fetchRooms error:', err)
+    commit('SET_ROOMS_LOADED')
   }
 }
 
@@ -1914,13 +1919,18 @@ export async function seedRoomsFromMessages ({ commit, dispatch, state }) {
       updatedAt: lastMsg.created_at || now,
     }
 
+    // Show the room right away instead of waiting for the sync round-trip and
+    // the room-list refetch: the messages are already here, the server entry
+    // is bookkeeping. Without this the chat index fills in a beat late.
+    commit('ADD_ROOM', room)
     syncPromises.push(syncRoomToServer(room))
   }
 
   await Promise.allSettled(syncPromises)
 
-  // Re-fetch the room list from the server after seeding
-  dispatch('fetchRooms').catch(() => {})
+  // Reconcile with the server list: it carries the authoritative
+  // last-activity times and picks up rooms synced from another device.
+  dispatch('fetchRooms')
 }
 
 export async function sendDeleteMessage ({ state }, { roomId, messageId }) {
@@ -2323,7 +2333,30 @@ export async function receiveMessage ({ commit, dispatch, state }, { rumor, seal
     const messageId = eTag[1]
     const pTags = rumor.tags.filter(t => t[0] === 'p').map(t => t[1])
     const roomMembers = [...new Set([myPubKey, rumor.pubkey, ...pTags])]
-    const roomId = computeRoomId(roomMembers)
+    const computedRoomId = computeRoomId(roomMembers)
+
+    // The computed room id can disagree with the stored one (group rooms, extra
+    // p tags, unreadable members), which used to make the deletion a no-op.
+    // Locate the message where it actually lives instead.
+    let targetRoomId = null
+    for (const rid of Object.keys(ws.messages || {})) {
+      if ((ws.messages[rid] || []).some(m => m.id === messageId)) {
+        targetRoomId = rid
+        break
+      }
+    }
+    const roomId = targetRoomId || computedRoomId
+
+    // NIP-09: only the original author may delete a message; anything else is
+    // a forged deletion and must not tombstone someone else's message.
+    const original = (ws.messages?.[roomId] || []).find(m => m.id === messageId)
+    if (original && original.sender !== rumor.pubkey) {
+      console.warn(
+        '[Nostr] Ignoring deletion', messageId.slice(0, 8),
+        'from', rumor.pubkey.slice(0, 8), 'for a message authored by', original.sender.slice(0, 8),
+      )
+      return
+    }
 
     commit('DELETE_MESSAGE', { roomId, messageId })
     return
