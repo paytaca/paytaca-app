@@ -535,6 +535,11 @@ export default {
       if (vm.ad && vm.ad.fiat_currency) {
         await vm.fetchArbiters()
       }
+      // Seed the market price over REST: the market-price socket only pushes on
+      // price ticks, so waiting for it leaves the price percentage pending for
+      // minutes, or forever while the price is unchanged.
+      vm.marketPriceLoading = !vm.marketPrice
+      await vm.fetchMarketPrice()
       // Websocket subscriptions require fiat currency symbol
       vm.setupWebSocket()
       vm.$store.dispatch('ramp/fetchFeatureToggles')
@@ -1021,6 +1026,19 @@ export default {
     onViewPeer (data) {
       this.peerInfo = data
       this.showPeerProfile = true
+    },
+    async fetchMarketPrice () {
+      try {
+        const currency = this.ad?.fiat_currency?.symbol
+        if (!currency) return
+        const response = await backend.get('/ramp-p2p/utils/market-price/', { params: { currency } })
+        const price = parseFloat(response.data?.price)
+        if (Number.isFinite(price) && price > 0) this.marketPrice = price
+      } catch (error) {
+        console.error('Failed to fetch market price:', error?.response || error)
+      } finally {
+        this.marketPriceLoading = false
+      }
     },
     setupWebSocket () {
       // Guard: ad may still be loading or missing fiat_currency
