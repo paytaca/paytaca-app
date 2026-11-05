@@ -480,6 +480,12 @@
                 <div class="text-caption">Transactions this month</div>
               </div>
             </div>
+            <div
+              v-if="capResetLabel"
+              class="text-caption text-bow-muted q-mt-xs text-center"
+            >
+              {{ capResetLabel }}
+            </div>
           </div>
         </div>
 
@@ -610,6 +616,7 @@ import { raiseNotifyError } from 'src/utils/notify-utils'
 import { LIFT_TOKEN_CATEGORY, LIFT_TOKEN_DECIMALS } from 'src/utils/subscription-utils'
 import { formatWithLocale, parseFiatCurrencyWrapper } from 'src/utils/denomination-utils'
 import { isRateFallback } from 'src/utils/engagementhub-utils/display-rates'
+import { formatCapReset } from 'src/utils/time'
 import { getLookupKey, mintLookupKey, LookupKeyExistsError } from 'src/wallet/lookup-key'
 import {
   PromosBytes,
@@ -884,6 +891,23 @@ export default {
           this.eliteCurrency,
           this.eliteRateUnavailable
         )
+    },
+
+    capResetLabel () {
+      const parts = formatCapReset(this.eliteData?.requirements?.capResetsAt)
+      if (!parts) return ''
+      if (!parts.local) {
+        return this.$t(
+          'CapResetsAtUtc',
+          { utc: parts.utc },
+          `Resets ${parts.utc}`
+        )
+      }
+      return this.$t(
+        'CapResetsAt',
+        { utc: parts.utc, local: parts.local },
+        `Resets ${parts.utc} (${parts.local})`
+      )
     }
   },
 

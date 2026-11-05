@@ -93,6 +93,12 @@
                 class="rounded-borders elite-progress"
                 size="8px"
               />
+              <div
+                v-if="capResetLabel"
+                class="text-caption text-bow-muted q-mt-xs text-center"
+              >
+                {{ capResetLabel }}
+              </div>
 
               <q-btn
                 class="full-width q-mt-sm elite-map-button"
@@ -330,6 +336,7 @@ import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 import { parseLiftToken } from 'src/utils/engagementhub-utils/shared'
 import { parseFiatCurrency } from 'src/utils/denomination-utils'
 import { isRateFallback } from 'src/utils/engagementhub-utils/display-rates'
+import { formatCapReset } from 'src/utils/time'
 import {
   getEliteProgramSummaryData,
   getAssetsThresholds,
@@ -378,6 +385,7 @@ export default {
       rateUnavailable: false,
       thresholdsCurrency: 'PHP',
       thresholdsRateUnavailable: false,
+      capResetsAt: null,
       transactions: [],
       topups: []
     }
@@ -401,6 +409,22 @@ export default {
           this.thresholdsCurrency,
           this.thresholdsRateUnavailable
         )
+      )
+    },
+    capResetLabel () {
+      const parts = formatCapReset(this.capResetsAt)
+      if (!parts) return ''
+      if (!parts.local) {
+        return this.$t(
+          'CapResetsAtUtc',
+          { utc: parts.utc },
+          `Resets ${parts.utc}`
+        )
+      }
+      return this.$t(
+        'CapResetsAt',
+        { utc: parts.utc, local: parts.local },
+        `Resets ${parts.utc} (${parts.local})`
       )
     },
     eliteStatus () {
@@ -471,6 +495,7 @@ export default {
         this.thresholds = thresholds
         this.thresholdsCurrency = thresholds?.currency || 'PHP'
         this.thresholdsRateUnavailable = thresholds?.rate_unavailable === true
+        this.capResetsAt = thresholds?.cap_resets_at || null
       } catch (error) {
         console.error('Error loading elite program thresholds: ', error)
         this.thresholdsError = true

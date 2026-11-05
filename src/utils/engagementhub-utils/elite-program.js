@@ -281,7 +281,8 @@ export async function getEliteRequirements (programId = null) {
     ...requirements,
     currency: thresholds?.currency || 'PHP',
     rates: thresholds?.rates || null,
-    rateUnavailable: thresholds?.rate_unavailable === true
+    rateUnavailable: thresholds?.rate_unavailable === true,
+    capResetsAt: thresholds?.cap_resets_at || null
   }
 }
 
