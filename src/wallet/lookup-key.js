@@ -3,6 +3,7 @@ import { SecureStoragePlugin } from 'capacitor-secure-storage-plugin'
 import { Store } from 'src/store'
 import { backend, authToken } from 'src/wallet/pos'
 import { getWalletStorageKey } from 'src/utils/wallet-storage'
+import { ENGAGEMENT_HUB_URL } from 'src/utils/engagementhub-utils/api'
 
 export const LOOKUP_KEY_STORAGE_PREFIX = 'wallet-lookup-key'
 export const LOOKUP_KEY_LABEL = 'engagement-hub'
@@ -15,8 +16,34 @@ export class LookupKeyExistsError extends Error {
   }
 }
 
+/**
+ * Tags the stored key by the engagement hub host, so a local backend and the
+ * production one keep separate secure-storage entries on the same device.
+ * @returns {String}
+ */
+export function lookupKeyEnvironmentTag () {
+  try {
+    const hostname = new URL(ENGAGEMENT_HUB_URL).hostname.toLowerCase()
+
+    if (hostname === 'localhost' || hostname === '127.0.0.1' || hostname === '[::1]') {
+      return 'local'
+    }
+
+    const tag = hostname
+      .replace(/[^a-z0-9]+/g, '-')
+      .replace(/^-/, '')
+      .replace(/-$/, '')
+    return tag || 'prod'
+  } catch {
+    return 'prod'
+  }
+}
+
 function getLookupKeyStorageKey (walletHash) {
-  return getWalletStorageKey(LOOKUP_KEY_STORAGE_PREFIX, walletHash)
+  return getWalletStorageKey(
+    `${LOOKUP_KEY_STORAGE_PREFIX}-${lookupKeyEnvironmentTag()}`,
+    walletHash
+  )
 }
 
 /**
