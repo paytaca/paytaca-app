@@ -179,10 +179,10 @@
                 </span>
                 <span class="text-caption text-weight-medium">
                   <template v-if="requirements.bch && !requirements.bch.met">
-                    {{ formatFiatNumber(requirements.bchBalance) }} / {{ formatEliteFiat(requirements.bchThreshold) }}
+                    {{ formatFiatNumber(requirements.bchBalance) }} / {{ formatEliteFiat(requirements.bchThreshold, thresholdsCurrency) }}
                   </template>
                   <template v-else>
-                    {{ formatEliteFiat(requirements.bchThreshold) }}
+                    {{ formatEliteFiat(requirements.bchThreshold, thresholdsCurrency) }}
                   </template>
                 </span>
               </div>
@@ -215,7 +215,7 @@
       </div>
 
       <q-banner
-        v-if="heroLoaded && isNonPhilippineCountry && !isOnHold"
+        v-if="showRateFallbackNotice"
         rounded
         dense
         class="br-15 q-mb-lg"
@@ -225,7 +225,7 @@
           <q-icon name="info" color="primary" />
         </template>
         <div class="text-body2">
-          Note: The BCH requirement and cashback limits are in Philippine pesos (PHP). Set your country to the Philippines in Settings if you want to see the real values.
+          Live exchange rates are unavailable right now, so some amounts are shown in Philippine pesos (PHP).
         </div>
       </q-banner>
 
@@ -275,6 +275,7 @@
           :items="transactions"
           :loading="isLoading"
           :dark-mode="darkMode"
+          :currency="displayCurrency"
           month-only
           @refresh="refreshData"
         />
@@ -315,6 +316,7 @@
           :items="topups"
           :loading="isLoading"
           :dark-mode="darkMode"
+          :currency="displayCurrency"
           month-only
           @refresh="refreshData"
         />
@@ -326,7 +328,8 @@
 <script>
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 import { parseLiftToken } from 'src/utils/engagementhub-utils/shared'
-import { parseFiatCurrency, parseFiatCurrencyWrapper } from 'src/utils/denomination-utils'
+import { parseFiatCurrency } from 'src/utils/denomination-utils'
+import { isRateFallback } from 'src/utils/engagementhub-utils/display-rates'
 import {
   getEliteProgramSummaryData,
   getAssetsThresholds,
@@ -371,6 +374,10 @@ export default {
       thresholds: null,
       thresholdsLoading: true,
       thresholdsError: false,
+      displayCurrency: 'PHP',
+      rateUnavailable: false,
+      thresholdsCurrency: 'PHP',
+      thresholdsRateUnavailable: false,
       transactions: [],
       topups: []
     }
@@ -380,9 +387,21 @@ export default {
     darkMode () {
       return this.$store.getters['darkmode/getStatus']
     },
-    isNonPhilippineCountry () {
-      const code = this.$store.getters['global/country']?.code
-      return Boolean(code) && String(code).toUpperCase() !== 'PH'
+    requestedCurrency () {
+      return this.$store.getters['market/selectedCurrency']?.symbol || 'PHP'
+    },
+    showRateFallbackNotice () {
+      return this.heroLoaded && !this.isOnHold && (
+        isRateFallback(
+          this.requestedCurrency,
+          this.displayCurrency,
+          this.rateUnavailable
+        ) || isRateFallback(
+          this.requestedCurrency,
+          this.thresholdsCurrency,
+          this.thresholdsRateUnavailable
+        )
+      )
     },
     eliteStatus () {
       return normalizeEliteStatus(this.eliteData?.status)
@@ -399,7 +418,16 @@ export default {
       return !this.isLoading && !this.pointsError && !!this.eliteData
     },
     requirements () {
-      return eliteRequirements(this.thresholds, getEliteWalletBalances())
+      return eliteRequirements(
+        this.thresholds,
+        getEliteWalletBalances(this.thresholds?.rates)
+      )
+    }
+  },
+
+  watch: {
+    'requestedCurrency' (newSymbol, oldSymbol) {
+      if (newSymbol && newSymbol !== oldSymbol) this.refreshData()
     }
   },
 
@@ -412,18 +440,16 @@ export default {
     getDarkModeClass,
     parseLiftToken,
 
-    formatEliteFiat (amount) {
-      return this.isNonPhilippineCountry
-        ? parseFiatCurrency(amount, 'PHP')
-        : parseFiatCurrencyWrapper(amount)
+    formatEliteFiat (amount, currency = this.displayCurrency) {
+      return parseFiatCurrency(amount, currency)
     },
 
     formatLiftNumber (amount) {
       return parseLiftToken(amount).replace(/\s*LIFT$/, '')
     },
 
-    formatFiatNumber (amount) {
-      return this.formatEliteFiat(amount).replace(/\s*PHP$/, '')
+    formatFiatNumber (amount, currency = this.thresholdsCurrency) {
+      return this.formatEliteFiat(amount, currency).replace(/\s*[A-Z]{3}$/, '')
     },
 
     openMerchantMap () {
@@ -441,7 +467,10 @@ export default {
       this.thresholdsLoading = true
       this.thresholdsError = false
       try {
-        this.thresholds = await getAssetsThresholds(this.eliteId)
+        const thresholds = await getAssetsThresholds(this.eliteId)
+        this.thresholds = thresholds
+        this.thresholdsCurrency = thresholds?.currency || 'PHP'
+        this.thresholdsRateUnavailable = thresholds?.rate_unavailable === true
       } catch (error) {
         console.error('Error loading elite program thresholds: ', error)
         this.thresholdsError = true
@@ -460,6 +489,8 @@ export default {
         // TODO add guard for -1 id
         const epSummaryData = await getEliteProgramSummaryData(this.eliteId)
         if (epSummaryData) {
+          this.displayCurrency = epSummaryData.currency || 'PHP'
+          this.rateUnavailable = epSummaryData.rate_unavailable === true
           this.eliteData.status = epSummaryData.status
           this.eliteData.cashbackLift = epSummaryData.eligible_transactions.current_month_total_lift_cashback
           this.eliteData.eligibleTxCount = epSummaryData.eligible_transactions.count

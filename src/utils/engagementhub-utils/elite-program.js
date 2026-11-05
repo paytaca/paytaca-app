@@ -1,9 +1,18 @@
 import { Store } from 'src/store'
 import { LIFT_TOKEN_CATEGORY } from 'src/utils/subscription-utils'
 import { eliteRequirements } from 'src/utils/engagementhub-utils/elite-requirements'
+import { bchToDisplay } from 'src/utils/engagementhub-utils/display-rates'
 import { ELITEPROGRAM_URL } from 'src/utils/engagementhub-utils/api'
 
 export { eliteRequirements }
+
+function selectedCurrencyCode () {
+  return Store.getters['market/selectedCurrency']?.symbol || 'PHP'
+}
+
+function withCurrency (params = {}) {
+  return { ...params, currency: selectedCurrencyCode() }
+}
 
 // ================================
 // Paytaca Elite Program enums
@@ -95,14 +104,15 @@ export const EliteAssetIcons = Object.freeze({
 
 export async function getAssetsThresholds (programId = null) {
   // Throws rather than substituting a fallback. These values gate enrollment, and
-  // the two assets are in different units -- the BCH one is fiat PHP despite its
-  // key name, the LIFT one is atomic units. Pass the enrolled Program's id to get
-  // its age-based floor; without one the base is returned. A hardcoded guess that
-  // is merely plausible is worse than an error, so the caller shows its retry state.
+  // the two assets are in different units -- the BCH one is a fiat amount in the
+  // display currency despite its key name, the LIFT one is atomic units. Pass
+  // the enrolled Program's id to get its age-based floor; without one the base
+  // is returned. A hardcoded guess that is merely plausible is worse than an
+  // error, so the caller shows its retry state.
   return await ELITEPROGRAM_URL
     .get(
       'get_assets_min_thresholds/',
-      programId ? { params: { program: programId } } : undefined
+      { params: withCurrency(programId ? { program: programId } : {}) }
     )
     .then(resp => {
       if (resp.status === 200) return resp.data
@@ -134,7 +144,7 @@ export async function enrollEliteProgram (walletHash, lookupKey) {
 
 export async function getEliteProgramSummaryData (id) {
   return await ELITEPROGRAM_URL
-    .get(`${id}/`)
+    .get(`${id}/`, { params: withCurrency() })
     .then(resp => {
       if (resp.status === 200) return resp.data
       else return null
@@ -149,7 +159,9 @@ export async function getEliteProgramSummaryData (id) {
 
 export async function getEliteProgramTransactionsData (id, limit, offset) {
   return await ELITEPROGRAM_URL
-    .get(`${id}/transactions/?limit=${limit}&offset=${offset}`)
+    .get(`${id}/transactions/`, {
+      params: withCurrency({ limit, offset })
+    })
     .then(resp => {
       if (resp.status === 200) return resp.data
       else return []
@@ -164,7 +176,9 @@ export async function getEliteProgramTransactionsData (id, limit, offset) {
 
 export async function getEliteProgramTopupsData (id, limit, offset) {
   return await ELITEPROGRAM_URL
-    .get(`${id}/topups/?limit=${limit}&offset=${offset}`)
+    .get(`${id}/topups/`, {
+      params: withCurrency({ limit, offset })
+    })
     .then(resp => {
       if (resp.status === 200) return resp.data
       else return []
@@ -179,7 +193,7 @@ export async function getEliteProgramTopupsData (id, limit, offset) {
 
 export async function getEliteProgramHistorySummaryData (id) {
   return await ELITEPROGRAM_URL
-    .get(`${id}/summary/`)
+    .get(`${id}/summary/`, { params: withCurrency() })
     .then(resp => {
       if (resp.status === 200) return resp.data
       else return null
@@ -194,7 +208,7 @@ export async function getEliteProgramHistorySummaryData (id) {
 
 export async function getEliteProgramMonthlyStats (id) {
   return await ELITEPROGRAM_URL
-    .get(`${id}/monthly/`)
+    .get(`${id}/monthly/`, { params: withCurrency() })
     .then(resp => {
       if (resp.status === 200) return resp.data
       else return null
@@ -219,29 +233,56 @@ export async function getEliteProgramMonthlyStats (id) {
  * balance as "no answer". Reporting `0` instead would claim the wallet is short
  * by the whole floor.
  */
-export function getEliteWalletBalances () {
+export function getEliteWalletBalances (rates = null) {
   const assets = Store.getters['assets/getAssets'] || []
   if (!assets.length) return { bchBalance: null, liftBalance: null }
 
   const bchAsset = assets[0]
+  const liftAsset = assets.find(asset => asset.id === `ct/${LIFT_TOKEN_CATEGORY}`)
+  const liftBalance = Number(liftAsset?.balance ?? 0)
+
+  const displayPerBch = Number(rates?.display_per_bch)
+  const hasDisplayRate = rates?.display_per_bch !== null
+    && rates?.display_per_bch !== undefined
+    && rates?.display_per_bch !== ''
+    && Number.isFinite(displayPerBch)
+    && displayPerBch > 0
+
+  if (hasDisplayRate) {
+    return {
+      bchBalance: bchToDisplay(bchAsset?.balance ?? 0, rates),
+      liftBalance
+    }
+  }
+
   const currency = Store.getters['market/selectedCurrency']
   const rawPrice = Store.getters['market/getAssetPrice'](bchAsset?.id ?? 'bch', currency?.symbol)
-  const price = Number(rawPrice)
-  const liftAsset = assets.find(asset => asset.id === `ct/${LIFT_TOKEN_CATEGORY}`)
+  const bchPrice = Number(rawPrice)
   const priceUnknown = rawPrice === null
     || rawPrice === undefined
     || rawPrice === ''
-    || !Number.isFinite(price)
+    || !Number.isFinite(bchPrice)
+  if (priceUnknown) return { bchBalance: null, liftBalance }
 
   return {
-    bchBalance: priceUnknown ? null : Number(bchAsset?.balance ?? 0) * price,
-    liftBalance: Number(liftAsset?.balance ?? 0)
+    bchBalance: Number(bchAsset?.balance ?? 0) * bchPrice,
+    liftBalance
   }
 }
 
 export async function getEliteRequirements (programId = null) {
   const thresholds = await getAssetsThresholds(programId)
-  return eliteRequirements(thresholds, getEliteWalletBalances())
+  const requirements = eliteRequirements(
+    thresholds,
+    getEliteWalletBalances(thresholds?.rates)
+  )
+
+  return {
+    ...requirements,
+    currency: thresholds?.currency || 'PHP',
+    rates: thresholds?.rates || null,
+    rateUnavailable: thresholds?.rate_unavailable === true
+  }
 }
 
 export {requirementState} from 'src/utils/engagementhub-utils/elite-requirements'

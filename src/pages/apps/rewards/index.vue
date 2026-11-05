@@ -334,7 +334,7 @@
         </div>
 
         <q-banner
-          v-if="eliteLoaded && isNonPhilippineCountry && eliteData?.status !== EliteStatus.ONHOLD"
+          v-if="showRateFallbackNotice"
           rounded
           dense
           class="br-15 q-mb-sm"
@@ -344,7 +344,7 @@
             <q-icon name="info" color="primary" />
           </template>
           <div class="text-body2">
-            Note: The BCH requirement and cashback limits are in Philippine pesos (PHP). Set your country to the Philippines in Settings if you want to see the real values.
+            Live exchange rates are unavailable right now, so some amounts are shown in Philippine pesos (PHP).
           </div>
         </q-banner>
 
@@ -609,6 +609,7 @@ import { parseLiftToken } from 'src/utils/engagementhub-utils/shared'
 import { raiseNotifyError } from 'src/utils/notify-utils'
 import { LIFT_TOKEN_CATEGORY, LIFT_TOKEN_DECIMALS } from 'src/utils/subscription-utils'
 import { formatWithLocale, parseFiatCurrencyWrapper } from 'src/utils/denomination-utils'
+import { isRateFallback } from 'src/utils/engagementhub-utils/display-rates'
 import { getLookupKey, mintLookupKey, LookupKeyExistsError } from 'src/wallet/lookup-key'
 import {
   PromosBytes,
@@ -863,10 +864,26 @@ export default {
       return !this.isLoading && !this.isEliteLoading && !this.error && !!this.eliteData
     },
 
-    // Elite: PHP-denominated values are disclosed to non-PH users
-    isNonPhilippineCountry () {
-      const code = this.$store.getters['global/country']?.code
-      return Boolean(code) && String(code).toUpperCase() !== 'PH'
+    requestedCurrency () {
+      return this.selectedCurrency?.symbol || 'PHP'
+    },
+
+    eliteCurrency () {
+      return this.eliteData?.requirements?.currency || 'PHP'
+    },
+
+    eliteRateUnavailable () {
+      return this.eliteData?.requirements?.rateUnavailable === true
+    },
+
+    showRateFallbackNotice () {
+      return this.eliteLoaded
+        && this.eliteData?.status !== EliteStatus.ONHOLD
+        && isRateFallback(
+          this.requestedCurrency,
+          this.eliteCurrency,
+          this.eliteRateUnavailable
+        )
     }
   },
 
@@ -878,6 +895,7 @@ export default {
           assetId: this.liftAssetId,
           customCurrency: newSymbol
         })
+        this.loadEliteProgramData(this.eliteProgram)
       }
     }
   },
@@ -1233,7 +1251,7 @@ export default {
           liftBalance: requirements.liftBalance ?? 0,
           liftThreshold: requirements.liftThreshold ?? 0,
           isLocked: this.eliteData.status === EliteStatus.LOCKED,
-          showPhpNote: this.isNonPhilippineCountry
+          currency: requirements.currency || 'PHP'
         }
       })
     },

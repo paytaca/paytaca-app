@@ -95,7 +95,7 @@
 <script>
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 import { parseLiftToken } from 'src/utils/engagementhub-utils/shared'
-import { parseFiatCurrency, parseFiatCurrencyWrapper } from 'src/utils/denomination-utils'
+import { parseFiatCurrency } from 'src/utils/denomination-utils'
 import { getEliteProgramMonthlyStats } from 'src/utils/engagementhub-utils/elite-program'
 import ErrorCard from 'src/components/rewards/cards/ErrorCard.vue'
 
@@ -114,17 +114,14 @@ export default {
     return {
       isLoading: false,
       hasError: false,
-      months: []
+      months: [],
+      displayCurrency: 'PHP'
     }
   },
 
   computed: {
     darkMode () {
       return this.$store.getters['darkmode/getStatus']
-    },
-    isNonPhilippineCountry () {
-      const code = this.$store.getters['global/country']?.code
-      return Boolean(code) && String(code).toUpperCase() !== 'PH'
     },
     currentYear () {
       return new Date().getUTCFullYear()
@@ -143,9 +140,7 @@ export default {
     parseLiftToken,
 
     formatEliteFiat (amount) {
-      return this.isNonPhilippineCountry
-        ? parseFiatCurrency(amount, 'PHP')
-        : parseFiatCurrencyWrapper(amount)
+      return parseFiatCurrency(amount, this.displayCurrency)
     },
 
     monthLabel (month) {
@@ -174,6 +169,7 @@ export default {
       try {
         const data = await getEliteProgramMonthlyStats(this.eliteId)
         if (!data) throw new Error('Unable to load monthly history.')
+        this.displayCurrency = data.currency || 'PHP'
         this.months = data.months || []
       } catch (error) {
         console.error('Failed to fetch Elite Program monthly history:', error)

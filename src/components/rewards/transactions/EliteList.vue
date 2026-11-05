@@ -12,7 +12,7 @@
     @load-more="$emit('load-more')"
   >
     <template #item="{ item }">
-      <component :is="rowComponent" :item="item" />
+      <component :is="rowComponent" :item="item" :currency="currency" />
     </template>
     <template #loading>
       <q-item v-for="n in 4" :key="`elite-skeleton-${n}`" class="elite-row" :class="getDarkModeClass(darkMode)">
@@ -109,6 +109,10 @@ export default {
     monthOnly: {
       type: Boolean,
       default: false
+    },
+    currency: {
+      type: String,
+      default: ''
     }
   },
 

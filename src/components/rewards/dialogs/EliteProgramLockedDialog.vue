@@ -43,7 +43,7 @@
                   <template v-if="eliteBchMet"><span class="text-positive">✓&nbsp;</span></template>BCH balance
                 </span>
                 <span class="text-caption text-weight-medium">
-                  {{ parseFiatCurrencyWrapper(bchBalance) }} / {{ formattedBchThreshold }}
+                  {{ parseFiatCurrency(bchBalance, currency) }} / {{ formattedBchThreshold }}
                 </span>
               </div>
               <q-linear-progress
@@ -51,14 +51,6 @@
                 class="rounded-borders elite-progress"
                 size="6px"
               />
-              <div
-                v-if="showPhpNote"
-                class="row items-start no-wrap text-caption q-mt-xs"
-                :class="darkMode ? 'text-grey-5' : 'text-grey-7'"
-              >
-                <q-icon name="info" size="xs" class="q-mr-xs q-mt-xs" />
-                <span class="col">The BCH requirement is in PHP. Set your country to the Philippines in Settings to compare both in PHP.</span>
-              </div>
             </div>
             <div>
               <div class="row justify-between items-center q-mb-xs">
@@ -97,18 +89,18 @@
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 import { parseLiftToken } from 'src/utils/engagementhub-utils/shared'
 import { requirementState } from 'src/utils/engagementhub-utils/elite-program'
-import { parseFiatCurrency, parseFiatCurrencyWrapper } from 'src/utils/denomination-utils';
+import { parseFiatCurrency } from 'src/utils/denomination-utils';
 
 export default {
   name: 'EliteProgramLockedDialog',
 
   props: {
     bchBalance: { type: Number, default: 0 },
-    bchThreshold: { type: Number, default: 0 },
+    bchThreshold: { type: [Number, String], default: 0 },
     liftBalance: { type: Number, default: 0 },
     liftThreshold: { type: Number, default: 0 },
     isLocked: { type: Boolean, default: true },
-    showPhpNote: { type: Boolean, default: false }
+    currency: { type: String, default: 'PHP' }
   },
 
   computed: {
@@ -116,11 +108,8 @@ export default {
       return this.$store.getters['darkmode/getStatus']
     },
 
-    // Elite: label the PHP requirement as PHP for non-PH users
     formattedBchThreshold () {
-      return this.showPhpNote
-        ? parseFiatCurrency(this.bchThreshold, 'PHP')
-        : parseFiatCurrencyWrapper(this.bchThreshold)
+      return parseFiatCurrency(this.bchThreshold, this.currency)
     },
 
     // Elite: BCH balance progress toward threshold (0-1)
@@ -142,7 +131,7 @@ export default {
   methods: {
     getDarkModeClass,
     parseLiftToken,
-    parseFiatCurrencyWrapper
+    parseFiatCurrency
   }
 }
 </script>

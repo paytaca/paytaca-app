@@ -21,7 +21,7 @@
     <q-item-section side>
       <div class="elite-row-amt">
         <template v-if="item.asset === EliteAsset.BCH">
-          +{{ parseFiatCurrencyWrapper(item.fiat_top_up_amount) }}
+          +{{ formatFiat(item.fiat_top_up_amount) }}
         </template>
         <template v-else>
           +{{ parseLiftToken(item.top_up_amount, true) }}
@@ -37,7 +37,7 @@
 
 <script>
 import { formatDateLocaleRelative } from 'src/utils/time'
-import { parseFiatCurrencyWrapper } from 'src/utils/denomination-utils'
+import { parseFiatCurrency, parseFiatCurrencyWrapper } from 'src/utils/denomination-utils'
 import { LIFT_TOKEN_DECIMALS } from 'src/utils/subscription-utils'
 import { parseLiftToken } from 'src/utils/engagementhub-utils/shared'
 import {
@@ -53,6 +53,10 @@ export default {
     item: {
       type: Object,
       required: true
+    },
+    currency: {
+      type: String,
+      default: ''
     }
   },
 
@@ -73,8 +77,13 @@ export default {
   methods: {
     formatDateLocaleRelative,
     parseLiftToken,
-    parseFiatCurrencyWrapper,
     getEliteAssetLabel,
+
+    formatFiat (amount) {
+      return this.currency
+        ? parseFiatCurrency(amount, this.currency)
+        : parseFiatCurrencyWrapper(amount)
+    },
 
     redirect () {
       this.$router.push({

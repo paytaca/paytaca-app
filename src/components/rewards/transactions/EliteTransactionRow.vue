@@ -23,7 +23,7 @@
         +{{ parseLiftToken(item.lift_cashback_received) }}
       </div>
       <div class="elite-row-bch">
-        +{{ parseFiatCurrencyWrapper(item.fiat_lift_cashback_received) }}
+        +{{ formatFiat(item.fiat_lift_cashback_received) }}
       </div>
     </q-item-section>
 
@@ -40,7 +40,7 @@
 
 <script>
 import { formatDateLocaleRelative } from 'src/utils/time'
-import { parseFiatCurrencyWrapper } from 'src/utils/denomination-utils'
+import { parseFiatCurrency, parseFiatCurrencyWrapper } from 'src/utils/denomination-utils'
 import { LIFT_TOKEN_DECIMALS } from 'src/utils/subscription-utils'
 import { parseLiftToken } from 'src/utils/engagementhub-utils/shared'
 import {
@@ -57,6 +57,10 @@ export default {
     item: {
       type: Object,
       required: true
+    },
+    currency: {
+      type: String,
+      default: ''
     }
   },
 
@@ -78,8 +82,13 @@ export default {
   methods: {
     formatDateLocaleRelative,
     parseLiftToken,
-    parseFiatCurrencyWrapper,
     getEliteTxTypeLabel,
+
+    formatFiat (amount) {
+      return this.currency
+        ? parseFiatCurrency(amount, this.currency)
+        : parseFiatCurrencyWrapper(amount)
+    },
 
     redirect () {
       if (this.item.type === EliteTxType.MARKETPLACE && this.item.order_id) {
