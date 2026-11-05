@@ -260,7 +260,7 @@ import { ChatIdentity, ChatMember, EscrowContract, Order } from "src/marketplace
 import { arbiterBackend, formatSettlementApealType } from "src/marketplace/arbiter";
 import { generateSettlementTransactions } from "src/marketplace/escrow/"
 import { formatOrderStatus, parseOrderStatusColor, round } from "src/marketplace/utils"
-import { setupCache } from "axios-cache-interceptor";
+import { setupCache } from "src/utils/axios-cache";
 import axios from "axios";
 import { useQuasar } from "quasar";
 import { useI18n } from "vue-i18n"
