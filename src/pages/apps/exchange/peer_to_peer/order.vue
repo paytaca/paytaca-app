@@ -1072,34 +1072,21 @@ export default {
 
     statusActor (status) {
       const creator = status?.creator
+      if (!creator) return null
       const user = this.$store.getters['ramp/getUser']
 
-      if (creator) {
-        if (creator.is_system) return { name: this.$t('System', {}, 'System'), system: true }
-        if (creator.is_arbiter) {
-          return {
-            name: creator.name || this.$t('Arbiter', {}, 'Arbiter'),
-            role: this.$t('Arbiter', {}, 'Arbiter')
-          }
-        }
-        const isYou = creator.id && user?.id && creator.id === user.id
+      if (creator.is_system) return { name: this.$t('System', {}, 'System'), system: true }
+      if (creator.is_arbiter) {
         return {
-          name: isYou ? this.$t('You', {}, 'You') : (creator.name || ''),
-          role: this.statusActorRole(creator.id)
+          name: creator.name || this.$t('Arbiter', {}, 'Arbiter'),
+          role: this.$t('Arbiter', {}, 'Arbiter')
         }
       }
-
-      // Older rows and events the backend does not attribute
-      const derivedRole = this.deriveStatusActorRole(status)
-      if (derivedRole) {
-        const member = this.order?.members?.[derivedRole.toLowerCase()]
-        const isYou = member?.id && user?.id && member.id === user.id
-        return {
-          name: (isYou ? this.$t('You', {}, 'You') : (member?.name || '')) || this.$t(derivedRole, {}, derivedRole),
-          role: this.$t(derivedRole, {}, derivedRole)
-        }
+      const isYou = creator.id && user?.id && creator.id === user.id
+      return {
+        name: isYou ? this.$t('You', {}, 'You') : (creator.name || ''),
+        role: this.statusActorRole(creator.id)
       }
-      return null
     },
 
     statusActorRole (peerId) {
@@ -1109,17 +1096,6 @@ export default {
         if (members[role]?.id === peerId) {
           return role === 'arbiter' ? this.$t('Arbiter', {}, 'Arbiter') : role === 'seller' ? this.$t('Seller', {}, 'Seller') : this.$t('Buyer', {}, 'Buyer')
         }
-      }
-      return ''
-    },
-
-    deriveStatusActorRole (status) {
-      // Events the backend never recorded a creator for: paid pending is buyer-only,
-      // and a release follows the arbiter's release-pending decision when appealed.
-      if (status?.status === 'PD_PN') return 'Buyer'
-      if (status?.status === 'RLS') {
-        const appealedRelease = (this.statusHistory || []).some(item => item.status === 'RLS_PN')
-        return appealedRelease ? 'Arbiter' : 'Seller'
       }
       return ''
     },

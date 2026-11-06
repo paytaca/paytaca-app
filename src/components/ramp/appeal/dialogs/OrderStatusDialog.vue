@@ -77,27 +77,27 @@ export default {
     },
     async fetchStatusList () {
       if (!this.orderId) return
-      await backend.get(`/ramp-p2p/order/${this.orderId}/members/`, { authorize: true })
-        .then(response => {
-          this.orderMembers = response.data || []
-        })
-        .catch(error => {
-          this.handleRequestError(error)
-        })
-      await backend.get(`/ramp-p2p/order/${this.orderId}/status/`, { authorize: 'arbiter' })
-        .then(response => {
-          this.statusHistory = response.data
-          console.log('statusHistory:', this.statusHistory)
-        })
-        .catch(error => {
-          this.handleRequestError(error)
-        })
+      await Promise.all([
+        backend.get(`/ramp-p2p/order/${this.orderId}/members/`, { authorize: true })
+          .then(response => {
+            this.orderMembers = response.data || []
+          })
+          .catch(error => {
+            this.handleRequestError(error)
+          }),
+        backend.get(`/ramp-p2p/order/${this.orderId}/status/`, { authorize: 'arbiter' })
+          .then(response => {
+            this.statusHistory = response.data
+          })
+          .catch(error => {
+            this.handleRequestError(error)
+          })
+      ])
     },
     async readOrderStatus () {
       if (!this.orderId || !this.traderType) return
       await backend.patch(`/ramp-p2p/order/${this.orderId}/status/`, null, { authorize: 'arbiter' })
-        .then(response => {
-          console.log('readOrderStatus:', response.data)
+        .then(() => {
           setTimeout(() => {
             this.fetchStatusList()
           }, 1000)
