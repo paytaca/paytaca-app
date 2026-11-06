@@ -437,6 +437,9 @@ export function SET_MESSAGE_READ_BY (state, { roomId, messageId, readerPubKey })
 
 // ---- Per-wallet reactions ----
 
+// A relay replay of the same wrap carries the identical createdAt, so the
+// stored reaction is left untouched — see the kind-7 receive path, which uses
+// the same comparison to avoid re-bumping the room's activity time.
 export function ADD_MESSAGE_REACTION (state, { roomId, messageId, reactorPubKey, emoji, createdAt }) {
   const ws = getOrInitWalletState(state)
   if (!ws) return
@@ -445,11 +448,13 @@ export function ADD_MESSAGE_REACTION (state, { roomId, messageId, reactorPubKey,
   if (!ws.reactions[roomId][messageId]) ws.reactions[roomId][messageId] = []
 
   const reactions = ws.reactions[roomId][messageId]
+  const ts = createdAt || Date.now()
   const existing = reactions.findIndex(r => r.reactorPubKey === reactorPubKey && r.emoji === emoji)
   if (existing >= 0) {
+    if (reactions[existing].createdAt === ts) return
     reactions.splice(existing, 1)
   }
-  reactions.push({ emoji, reactorPubKey, createdAt: createdAt || Date.now() })
+  reactions.push({ emoji, reactorPubKey, createdAt: ts })
 }
 
 export function REMOVE_MESSAGE_REACTION (state, { roomId, messageId, reactorPubKey, emoji }) {

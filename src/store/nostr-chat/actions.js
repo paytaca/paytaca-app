@@ -2327,13 +2327,28 @@ export async function receiveMessage ({ commit, dispatch, state }, { rumor, seal
           emoji,
         })
       } else {
+        const createdAt = rumor.created_at * 1000
+        // A reaction pushes a notification, so the chat list has to agree that
+        // something happened here; otherwise the push points at a conversation
+        // that never moved. Only a genuinely new, incoming, live reaction bumps:
+        // our own reactions go through sendReaction, a relay replay carries the
+        // same createdAt and must not re-bump, and historical backfill must not
+        // reshuffle the list.
+        const previous = ws.reactions?.[roomId]?.[messageId]?.find(
+          r => r.reactorPubKey === reactorPubKey && r.emoji === content
+        )
+        const isNew = !previous || previous.createdAt !== createdAt
         commit('ADD_MESSAGE_REACTION', {
           roomId,
           messageId,
           reactorPubKey,
           emoji: content,
-          createdAt: rumor.created_at * 1000,
+          createdAt,
         })
+        if (isNew && !isHistorical && reactorPubKey !== myPubKey) {
+          commit('TOUCH_ROOM_LAST_MESSAGE_AT', roomId)
+          queueRoomTouch(dispatch, roomId, new Date().toISOString())
+        }
       }
     }
     return
