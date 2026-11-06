@@ -547,6 +547,7 @@ import ChatInput from 'src/components/chat/ChatInput.vue'
 import { npubEncode } from 'nostr-tools/nip19'
 import { getCachedAvatar, setCachedAvatar } from 'src/utils/avatar-cache'
 import { ACTIVE_THRESHOLD_MS } from 'src/store/nostr-chat/state'
+import { SELF_CHAT_ERROR } from 'src/store/nostr-chat/self-chat'
 
 export default {
   name: 'ChatConversation',
@@ -1930,10 +1931,17 @@ export default {
         }
       } catch (err) {
         console.error('Failed to send message:', err)
-        this.$q.notify({
-          type: 'negative',
-          message: this.$t('SendMessageFailed', {}, 'Failed to send message') + ': ' + err.message,
-        })
+        const isSelfChat = err.message === SELF_CHAT_ERROR
+        if (isSelfChat) {
+          // The composer clears itself on send; give the text back so a
+          // refused self chat does not look like it was sent.
+          const input = this.$refs.chatInput
+          if (input && !input.text) input.setText(text)
+        }
+        const message = isSelfChat
+          ? this.$t('CannotMessageYourself', {}, 'You cannot message yourself')
+          : this.$t('SendMessageFailed', {}, 'Failed to send message') + ': ' + err.message
+        this.$q.notify({ type: 'negative', message })
       }
     },
     async saveContact () {

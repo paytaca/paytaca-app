@@ -401,6 +401,7 @@ export default {
   CannotDeleteLastWallet: "Impossibile eliminare l'ultimo portafoglio",
   CannotExceedMaxPledgeMsg: "Non può superare il contributo massimo di {maxPledge}",
   CannotLoadImage: "Impossibile caricare l'immagine",
+  CannotMessageYourself: "Non puoi inviare messaggi a te stesso",
   Capability: "Capacità",
   Cards: "Carte",
   CartItem: "Articolo nel carrello",

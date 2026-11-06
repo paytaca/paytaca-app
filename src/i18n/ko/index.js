@@ -401,6 +401,7 @@ export default {
   CannotDeleteLastWallet: "마지막 지갑을 삭제할 수 없습니다",
   CannotExceedMaxPledgeMsg: "최대 후원 금액인 {maxPledge}을(를) 초과할 수 없습니다.",
   CannotLoadImage: "이미지를 로드할 수 없습니다.",
+  CannotMessageYourself: "자신에게 메시지를 보낼 수 없습니다.",
   Capability: "능력",
   Cards: "카드",
   CartItem: "장바구니 항목",

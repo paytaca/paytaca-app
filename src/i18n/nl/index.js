@@ -401,6 +401,7 @@ export default {
   CannotDeleteLastWallet: "Kan laatste portemonnee niet verwijderen",
   CannotExceedMaxPledgeMsg: "Kan de maximale toezegging van {maxPledge} niet overschrijden",
   CannotLoadImage: "Cannot load image",
+  CannotMessageYourself: "Je kunt jezelf geen bericht sturen",
   Capability: "Vermogen",
   Cards: "Kaarten",
   CartItem: "Winkelwagenitem",

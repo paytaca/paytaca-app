@@ -401,6 +401,7 @@ export default {
   CannotDeleteLastWallet: "Impossible de supprimer le dernier portefeuille",
   CannotExceedMaxPledgeMsg: "Ne peut pas dépasser l'engagement maximum de {maxPledge}",
   CannotLoadImage: "Impossible de charger l'image",
+  CannotMessageYourself: "Vous ne pouvez pas vous envoyer de message",
   Capability: "Capacité",
   Cards: "Cartes",
   CartItem: "Article du panier",

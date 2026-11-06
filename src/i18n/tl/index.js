@@ -401,6 +401,7 @@ export default {
   CannotDeleteLastWallet: "Hindi ma-delete ang huling wallet",
   CannotExceedMaxPledgeMsg: "Hindi maaaring lumampas sa max na pangako ng {maxPledge}",
   CannotLoadImage: "Hindi ma-load ang larawan",
+  CannotMessageYourself: "Hindi mo maaaring i-message ang iyong sarili",
   Capability: "Kakayahan",
   Cards: "Mga kard",
   CartItem: "Item ng Cart",

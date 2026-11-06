@@ -401,6 +401,7 @@ export default {
   CannotDeleteLastWallet: "Ba za a iya share walat na ƙarshe ba",
   CannotExceedMaxPledgeMsg: "Ba za a iya wuce iyakar jinginar {maxPledge}",
   CannotLoadImage: "Ba za a iya loda hoto ba",
+  CannotMessageYourself: "Ba za ku iya saƙo da kanku ba",
   Capability: "Iyawa",
   Cards: "Katuna",
   CartItem: "Katin Abun",

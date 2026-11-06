@@ -523,6 +523,7 @@ import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 import HeaderNav from 'src/components/header-nav.vue'
 import RoomList from 'src/components/chat/RoomList.vue'
 import QrScanner from 'src/components/qr-scanner.vue'
+import { isSelfNpub } from 'src/store/nostr-chat/self-chat'
 import { decode as nip19Decode, npubEncode } from 'nostr-tools/nip19'
 
 export default {
@@ -614,7 +615,9 @@ export default {
       return map
     },
     canAddContact () {
-      return this.newContactName.trim() && this.newContactNpub.trim().startsWith('npub')
+      return this.newContactName.trim() &&
+        this.newContactNpub.trim().startsWith('npub') &&
+        !this.isOwnNpub(this.newContactNpub)
     },
     // Groups need at least 3 members total — the creator plus 2 contacts.
     hasMinGroupMembers () {
@@ -742,6 +745,13 @@ export default {
       this.fetchedContactAvatar = null
       const trimmed = val?.trim()
       if (trimmed && trimmed.startsWith('npub')) {
+        // Your own key can never become a contact; say so in the field rather
+        // than fetching a profile and failing later on submit.
+        if (this.isOwnNpub(trimmed)) {
+          this.npubError = this.selfChatMessage()
+          return
+        }
+        if (this.npubError === this.selfChatMessage()) this.npubError = ''
         try {
           const decoded = nip19Decode(trimmed)
           if (decoded.type === 'npub' && decoded.data) {
@@ -775,12 +785,18 @@ export default {
   async mounted () {
     const scannedNpub = this.$route.query.npub
 
-    // If we have a scanned npub, handle it immediately where possible
-    // to avoid waiting for the full relay initialization
-    if (scannedNpub) {
+    // The own-npub guard needs our key to compare against. On a cold start it
+    // is still null here, so defer the whole scan handling to after
+    // initialize(); otherwise our own npub would fall through to the
+    // Add Contact dialog.
+    if (scannedNpub && this.$store.getters['nostrChat/myPubKey']) {
       const contact = this.$store.getters['nostrChat/getContactByNpub'](scannedNpub)
 
-      if (!contact) {
+      if (this.isOwnNpub(String(scannedNpub))) {
+        // Own chat link: nothing to open and no room to create.
+        this.$router.replace({ path: '/apps/chat', query: {} })
+        this.$q.notify({ type: 'negative', message: this.selfChatMessage(), timeout: 5000 })
+      } else if (!contact) {
         // New contact — show Add Contact dialog immediately.
         // The dialog doesn't need initialization; room creation happens
         // on button click, by which time init will have finished.
@@ -864,6 +880,12 @@ export default {
   },
   methods: {
     getDarkModeClass,
+    isOwnNpub (npub) {
+      return isSelfNpub(npub, this.$store.getters['nostrChat/myPubKey'])
+    },
+    selfChatMessage () {
+      return this.$t('CannotMessageYourself', {}, 'You cannot message yourself')
+    },
     _checkAndShowProfilePrompt () {
       if (this._profilePromptShown) return
       if (!this.isProfileIncomplete) return
@@ -921,8 +943,12 @@ export default {
       })
     },
     async addContactForGroup () {
+      const npub = this.newContactNpub.trim()
+      if (this.isOwnNpub(npub)) {
+        this.npubError = this.selfChatMessage()
+        return
+      }
       try {
-        const npub = this.newContactNpub.trim()
         await this.$store.dispatch('nostrChat/addContact', {
           name: this.newContactName.trim(),
           npub,
@@ -1385,10 +1411,15 @@ export default {
       return otherNpub.slice(0, 12) + '...' + otherNpub.slice(-8)
     },
     async addContactAndChat () {
+      const npub = this.newContactNpub.trim()
+      if (this.isOwnNpub(npub)) {
+        this.npubError = this.selfChatMessage()
+        return
+      }
       try {
         await this.$store.dispatch('nostrChat/addContact', {
           name: this.newContactName.trim(),
-          npub: this.newContactNpub.trim(),
+          npub,
         })
         const contact = this.$store.getters['nostrChat/getContactByNpub'](this.newContactNpub.trim())
         this.startChatWith(contact)
@@ -1403,6 +1434,12 @@ export default {
       }
     },
     async startChatWith (contact) {
+      if (!contact) return
+      if (this.isOwnNpub(contact.npub) || (contact.pubKeyHex && contact.pubKeyHex === this.$store.getters['nostrChat/myPubKey'])) {
+        this.showNewChatDialog = false
+        this.$q.notify({ type: 'negative', message: this.selfChatMessage(), timeout: 5000 })
+        return
+      }
       let room = this.$store.getters['nostrChat/getRoomByContact'](contact.npub)
       if (!room) {
         room = await this.$store.dispatch('nostrChat/createPrivateRoom', contact.npub)
@@ -1411,6 +1448,21 @@ export default {
       this.$router.push(`/apps/chat/${room.id}`)
     },
     async handleIncomingNpub (npub) {
+      // The guard compares against our own key, which is null until the store
+      // initializes for this wallet. Resolve it first so an invite arriving
+      // during startup cannot turn our own npub into a contact.
+      if (!this.$store.getters['nostrChat/myPubKey'] && !this.$store.getters['nostrChat/isInitialized']) {
+        try {
+          await this.$store.dispatch('nostrChat/initialize')
+        } catch (err) {
+          console.warn('[Chat] Could not initialize before handling invite:', err)
+        }
+      }
+      if (this.isOwnNpub(npub)) {
+        this.$router.replace({ path: '/apps/chat', query: {} })
+        this.$q.notify({ type: 'negative', message: this.selfChatMessage(), timeout: 5000 })
+        return
+      }
       const contact = this.$store.getters['nostrChat/getContactByNpub'](npub)
       if (!contact) {
         this.$router.replace({ path: '/apps/chat', query: {} })
@@ -1434,6 +1486,11 @@ export default {
     async handleScannedNpub (npub) {
       // Clean up query param so dialog doesn't reopen on refresh
       this.$router.replace({ path: '/apps/chat', query: {} })
+
+      if (this.isOwnNpub(npub)) {
+        this.$q.notify({ type: 'negative', message: this.selfChatMessage(), timeout: 5000 })
+        return
+      }
 
       // Check if contact already exists
       const contact = this.$store.getters['nostrChat/getContactByNpub'](npub)

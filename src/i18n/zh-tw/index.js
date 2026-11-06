@@ -402,6 +402,7 @@ export default {
   CannotDeleteLastWallet: "無法刪除最後一個錢包",
   CannotExceedMaxPledgeMsg: "不能超過最大承諾 {maxPledge}",
   CannotLoadImage: "無法加載圖像",
+  CannotMessageYourself: "您無法給自己發訊息",
   Capability: "能力",
   Cards: "卡片",
   CartItem: "購物車商品",

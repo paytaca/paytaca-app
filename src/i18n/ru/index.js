@@ -401,6 +401,7 @@ export default {
   CannotDeleteLastWallet: "Нельзя удалить последний кошелек",
   CannotExceedMaxPledgeMsg: "Невозможно превысить максимальный залог в размере {maxPledge}.",
   CannotLoadImage: "Невозможно загрузить изображение",
+  CannotMessageYourself: "Вы не можете отправлять сообщения себе",
   Capability: "Возможность",
   Cards: "Карты",
   CartItem: "Товар в корзине",

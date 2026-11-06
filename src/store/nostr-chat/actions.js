@@ -138,6 +138,7 @@ import {
 } from 'src/wallet/nostr-media'
 import { clearChatCache } from 'src/utils/chat-cache'
 import { applyFileMarkupToMessage } from 'src/utils/chat-markup'
+import { SELF_CHAT_ERROR, isSelfPubKey } from './self-chat.js'
 import { Store } from 'src/store'
 
 const isDev = process.env.NODE_ENV !== 'production'
@@ -919,6 +920,11 @@ export async function addContact ({ state, commit }, { name, npub }) {
   const decoded = nip19Decode(npub)
   if (decoded.type !== 'npub') throw new Error('Invalid npub')
   const pubKeyHex = decoded.data
+  // A contact keyed by your own pubkey would make every later DM collapse into
+  // a one-member room. Refuse it at the source.
+  if (isSelfPubKey(pubKeyHex, getWalletState(state).keys?.pubKeyHex)) {
+    throw new Error(SELF_CHAT_ERROR)
+  }
 
   // If no name was provided, try to fetch the contact's published display name
   let resolvedName = name?.trim() || ''
@@ -1733,6 +1739,9 @@ export async function createPrivateRoom ({ commit, getters, state }, contactNpub
   if (!contact) throw new Error('Contact not found')
 
   const myPubKey = ws.keys.pubKeyHex
+  // Last-resort guard: a self contact created before this check existed would
+  // still resolve to a room with one member.
+  if (isSelfPubKey(contact.pubKeyHex, myPubKey)) throw new Error(SELF_CHAT_ERROR)
   const roomId = computeRoomId([myPubKey, contact.pubKeyHex])
 
   const room = {
@@ -1766,6 +1775,10 @@ export async function sendMessage ({ state }, { roomId, text, replyTo, subject }
     }
     return m
   })
+
+  // Never gift-wrap a DM to yourself: with no other member the message is
+  // unreachable. Legacy one-member private rooms can still be opened by URL.
+  if (!memberHexes.some(m => m && m !== senderPubKey)) throw new Error(SELF_CHAT_ERROR)
 
   const unsignedKind14 = createUnsignedKind14({
     content: text,

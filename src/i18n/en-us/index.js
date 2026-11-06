@@ -414,6 +414,7 @@ export default {
   CannotDeleteLastWallet: "Cannot delete last wallet",
   CannotExceedMaxPledgeMsg: "Cannot exceed max pledge of {maxPledge}",
   CannotLoadImage: "Cannot load image",
+  CannotMessageYourself: "You cannot message yourself",
   Capability: "Capability",
   Cards: "Cards",
   CartItem: "Cart Item",

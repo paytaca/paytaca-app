@@ -401,6 +401,7 @@ export default {
   CannotDeleteLastWallet: "لا يمكن حذف المحفظة الأخيرة",
   CannotExceedMaxPledgeMsg: "لا يمكن تجاوز الحد الأقصى للتعهد وهو {maxPledge}",
   CannotLoadImage: "لا يمكن تحميل الصورة",
+  CannotMessageYourself: "لا يمكنك إرسال رسالة لنفسك",
   Capability: "القدرة",
   Cards: "بطاقات",
   CartItem: "عنصر سلة التسوق",

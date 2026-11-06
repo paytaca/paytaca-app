@@ -401,6 +401,7 @@ export default {
   CannotDeleteLastWallet: "Letzte Brieftasche kann nicht gelöscht werden",
   CannotExceedMaxPledgeMsg: "Der maximale Beitrag von {maxPledge} darf nicht überschritten werden.",
   CannotLoadImage: "Bild kann nicht geladen werden",
+  CannotMessageYourself: "Sie können sich keine Nachrichten senden",
   Capability: "Fähigkeit",
   Cards: "Karten",
   CartItem: "Warenkorbartikel",

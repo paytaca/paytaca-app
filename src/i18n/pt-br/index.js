@@ -401,6 +401,7 @@ export default {
   CannotDeleteLastWallet: "Não é possível excluir a última carteira",
   CannotExceedMaxPledgeMsg: "Não é possível exceder a promessa máxima de {maxPledge}",
   CannotLoadImage: "Não é possível carregar a imagem",
+  CannotMessageYourself: "Você não pode enviar mensagens para si mesmo",
   Capability: "Capacidade",
   Cards: "Cartões",
   CartItem: "Item do carrinho",

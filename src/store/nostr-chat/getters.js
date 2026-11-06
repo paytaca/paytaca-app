@@ -1,5 +1,6 @@
 import { ACTIVE_THRESHOLD_MS } from './state'
 import { isMlsMemberPending } from './mls-membership.js'
+import { isSelfDmRoom } from './self-chat.js'
 import sha256 from 'js-sha256'
 import { Store } from 'src/store'
 
@@ -128,7 +129,7 @@ export function getRooms (state) {
   const myPubKey = ws.keys?.pubKeyHex
   if (!myPubKey) return []
   return (ws.rooms || [])
-    .filter(r => r.members?.includes(myPubKey) && !r.archived)
+    .filter(r => r.members?.includes(myPubKey) && !r.archived && !isSelfDmRoom(r, myPubKey))
     .sort((a, b) => roomLastActivity(ws, b) - roomLastActivity(ws, a))
 }
 
@@ -137,7 +138,7 @@ export function getArchivedRooms (state) {
   const myPubKey = ws.keys?.pubKeyHex
   if (!myPubKey) return []
   return (ws.rooms || [])
-    .filter(r => r.members?.includes(myPubKey) && r.archived)
+    .filter(r => r.members?.includes(myPubKey) && r.archived && !isSelfDmRoom(r, myPubKey))
     .sort((a, b) => roomLastActivity(ws, b) - roomLastActivity(ws, a))
 }
 

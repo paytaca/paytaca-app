@@ -401,6 +401,7 @@ export default {
   CannotDeleteLastWallet: "Kan nie laaste beursie verwyder nie",
   CannotExceedMaxPledgeMsg: "Kan nie maksimum belofte van {maxPledge} oorskry nie",
   CannotLoadImage: "Kan nie prent laai nie",
+  CannotMessageYourself: "Jy kan nie vir jouself 'n boodskap stuur nie",
   Capability: "Vermoë",
   Cards: "Kaarte",
   CartItem: "Karretje item",

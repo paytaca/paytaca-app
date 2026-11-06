@@ -401,6 +401,7 @@ export default {
   CannotDeleteLastWallet: "Tidak dapat menghapus dompet terakhir",
   CannotExceedMaxPledgeMsg: "Tidak dapat melebihi kontribusi maksimal sebesar {maxPledge}",
   CannotLoadImage: "Tidak dapat memuat gambar",
+  CannotMessageYourself: "Anda tidak dapat mengirim pesan kepada diri Anda sendiri",
   Capability: "Kemampuan",
   Cards: "Kartu-kartu",
   CartItem: "Barang Keranjang",

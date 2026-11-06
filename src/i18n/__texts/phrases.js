@@ -2711,6 +2711,7 @@ const phrases = {
       BlockAndDeleteDesc: 'Block this contact and remove the conversation',
       BlockContact: 'Block Contact',
       BlockContactConfirm: 'Block {roomName}? This will permanently delete this conversation.',
+      CannotMessageYourself: 'You cannot message yourself',
       ChangePhoto: 'Change Photo',
       ChatCache: 'Chat Cache',
       ChatCacheDescription: 'Cached images are stored locally for offline viewing. Clearing the cache will free up storage space.',

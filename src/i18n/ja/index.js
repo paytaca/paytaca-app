@@ -401,6 +401,7 @@ export default {
   CannotDeleteLastWallet: "最後のウォレットは削除できません",
   CannotExceedMaxPledgeMsg: "{maxPledge} の最大誓約額を超えることはできません",
   CannotLoadImage: "画像を読み込めません",
+  CannotMessageYourself: "自分自身にメッセージを送信することはできません",
   Capability: "能力",
   Cards: "カード",
   CartItem: "カートアイテム",
