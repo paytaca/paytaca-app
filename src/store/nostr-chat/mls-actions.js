@@ -98,7 +98,7 @@ function isRecentlySent(pubKeyHex, eventId) {
 // send/receive divergence diagnostics.
 function ownAppRatchetGen(clientState) {
   try {
-    if (!clientState?.privatePath?.leafIndex || !clientState.secretTree) return '?'
+    if (!Number.isInteger(clientState?.privatePath?.leafIndex) || !clientState.secretTree) return '?'
     const nodeIndex = leafToNodeIndex(clientState.privatePath.leafIndex)
     return clientState.secretTree[nodeIndex]?.application?.generation ?? '?'
   } catch {
@@ -175,16 +175,13 @@ function reconcileMlsRoomMembers(commit, ws, roomId, clientState, { mlsGroupIdHe
 
 // Resolve the identity at a given MLS leaf index. NIP-EE envelopes are signed
 // with an ephemeral key, so the leaf credential is the only trustworthy sender
-// identity.
+// identity. `leafIndex` here is a *tree* leaf address (from ts-mls senderData),
+// so it must be resolved against the ratchet tree — NOT by indexing the
+// blank-skipping member list, which diverges after any Remove.
 function memberIdentityAt(clientState, leafIndex) {
   if (leafIndex == null || leafIndex < 0 || !clientState) return null
   try {
-    const members = mls.getMlsGroupMembers(clientState)
-    const member = members[leafIndex]
-    if (!member) return null
-    const identity = member.credential?.identity || member.identityBytes
-    if (!(identity instanceof Uint8Array)) return null
-    return new TextDecoder().decode(identity)
+    return mls.getMlsLeafIdentity(clientState, leafIndex)
   } catch {
     return null
   }
@@ -639,14 +636,10 @@ export async function createMlsGroup({ commit, state, dispatch }, { name, member
 
   // Post-create identity guard: we must sit at the leaf matching our identity.
   {
-    const members = mls.getMlsGroupMembers(clientState)
-    const identities = members.map((m) =>
-      new TextDecoder().decode(m.credential?.identity || m.identityBytes)
-    )
-    const myIdx = identities.findIndex((id) => id === nostrPubkeyHex)
-    if (myIdx !== -1 && clientState.privatePath.leafIndex !== myIdx) {
+    const myLeaf = mls.getMlsLeafIndexForIdentity(clientState, nostrPubkeyHex)
+    if (myLeaf !== -1 && clientState.privatePath.leafIndex !== myLeaf) {
       throw new Error(
-        `MLS create leafIndex mismatch: privatePath ${clientState.privatePath.leafIndex} vs tree position ${myIdx}`
+        `MLS create leafIndex mismatch: privatePath ${clientState.privatePath.leafIndex} vs tree leaf ${myLeaf}`
       )
     }
   }
@@ -724,19 +717,15 @@ export async function joinMlsGroup({ commit, state, dispatch }, { roomId, welcom
   // Post-commit identity guard: we must sit at a leaf whose credential matches
   // our Nostr pubkey, at the right tree position.
   {
-    const members = mls.getMlsGroupMembers(joinedClientState)
-    const identities = members.map((m) =>
-      new TextDecoder().decode(m.credential?.identity || m.identityBytes)
-    )
-    const myIdx = identities.findIndex((id) => id === nostrPubkeyHex)
-    if (myIdx === -1) {
+    const myLeaf = mls.getMlsLeafIndexForIdentity(joinedClientState, nostrPubkeyHex)
+    if (myLeaf === -1) {
       throw new Error(
         'Your identity was not found in the joined group — the inviter may have used a stale key package. Ask them to re-invite you.'
       )
     }
-    if (joinedClientState.privatePath?.leafIndex !== undefined && joinedClientState.privatePath.leafIndex !== myIdx) {
+    if (joinedClientState.privatePath?.leafIndex !== undefined && joinedClientState.privatePath.leafIndex !== myLeaf) {
       throw new Error(
-        `MLS join leafIndex mismatch: privatePath ${joinedClientState.privatePath.leafIndex} vs tree position ${myIdx}`
+        `MLS join leafIndex mismatch: privatePath ${joinedClientState.privatePath.leafIndex} vs tree leaf ${myLeaf}`
       )
     }
   }
@@ -1536,12 +1525,13 @@ export async function receiveMlsMessage({ commit, state, dispatch }, event) {
       // generation so a desync is visible on both sides.
       const allRatchetGen = (() => {
         try {
-          const members = mls.getMlsGroupMembers(clientState)
-          return members.map((m, i) => {
-            const identity = m.credential?.identity || m.identityBytes
-            const idStr = identity instanceof Uint8Array ? new TextDecoder().decode(identity).slice(0, 8) : '?'
-            return `${idStr}#${i}=${clientState.secretTree[leafToNodeIndex(i)]?.application?.generation ?? '?'}`
-          }).join(', ')
+          const tree = clientState.ratchetTree || []
+          const parts = []
+          for (let leafIndex = 0; leafIndex < tree.length / 2; leafIndex++) {
+            const idStr = mls.getMlsLeafIdentity(clientState, leafIndex)?.slice(0, 8) || '?'
+            parts.push(`${idStr}#${leafIndex}=${clientState.secretTree[leafToNodeIndex(leafIndex)]?.application?.generation ?? '?'}`)
+          }
+          return parts.join(', ')
         } catch {
           return '?'
         }
@@ -1586,12 +1576,8 @@ function backfillMlsOwner(commit, ws, roomId, clientState) {
   const room = ws.rooms?.find((r) => r.id === roomId)
   if (!room || room.owner || !clientState) return
   try {
-    const members = mls.getMlsGroupMembers(clientState)
-    const leaf0 = members[0]
-    if (!leaf0) return
-    const identity = leaf0.credential?.identity || leaf0.identityBytes
-    if (!(identity instanceof Uint8Array)) return
-    const owner = new TextDecoder().decode(identity)
+    const owner = mls.getMlsLeafIdentity(clientState, 0)
+    if (!owner) return
     commit('UPDATE_ROOM', { id: roomId, owner })
   } catch (err) {
     console.warn('[MLS] Failed to backfill group owner from the MLS tree:', err.message)
@@ -1663,11 +1649,10 @@ export async function addMlsMember({ commit, state }, { roomId, memberPubKey }) 
     const { newState, commit: commitMsg, welcome } = await mls.addMlsMember(clientState, inviteeKeyPackage, impl)
 
     {
-      const identities = mlsMemberPubkeys(newState)
-      const myIdx = identities.findIndex((id) => id === ws.keys.pubKeyHex)
-      if (myIdx !== -1 && newState.privatePath.leafIndex !== myIdx) {
-        console.error('[MLS] addMlsMember produced leafIndex mismatch', { privatePath: newState.privatePath.leafIndex, myIdx, identities: identities.map((i) => i?.slice(0, 8)) })
-        throw new Error(`MLS addMember leafIndex mismatch: privatePath ${newState.privatePath.leafIndex} vs tree position ${myIdx}`)
+      const myLeaf = mls.getMlsLeafIndexForIdentity(newState, ws.keys.pubKeyHex)
+      if (myLeaf !== -1 && newState.privatePath.leafIndex !== myLeaf) {
+        console.error('[MLS] addMlsMember produced leafIndex mismatch', { privatePath: newState.privatePath.leafIndex, myLeaf })
+        throw new Error(`MLS addMember leafIndex mismatch: privatePath ${newState.privatePath.leafIndex} vs tree leaf ${myLeaf}`)
       }
     }
 
@@ -1847,19 +1832,10 @@ export async function removeMlsMember({ commit, state }, { roomId, memberPubkey 
       throw new Error('Only the group owner can remove an admin')
     }
 
-    const members = mls.getMlsGroupMembers(clientState)
-    let leafIndex = -1
-    for (let i = 0; i < members.length; i++) {
-      const identity = members[i].credential?.identity || members[i].identityBytes
-      const idStr = identity instanceof Uint8Array ? new TextDecoder().decode(identity) : ''
-      if (idStr === memberPubkey) {
-        leafIndex = i
-        break
-      }
-    }
-    if (leafIndex === -1) throw new Error('Member not found in MLS group')
+    const targetLeaf = mls.getMlsLeafIndexForIdentity(clientState, memberPubkey)
+    if (targetLeaf === -1) throw new Error('Member not found in MLS group')
 
-    const { newState, commit: commitMsg } = await mls.removeMlsMember(clientState, leafIndex, impl)
+    const { newState, commit: commitMsg } = await mls.removeMlsMember(clientState, targetLeaf, impl)
 
     const signedCommit = await buildSignedNipEeGroupEvent(clientState, commitMsg)
     const publish = await relayService.publishEvent(state.relays, signedCommit)
