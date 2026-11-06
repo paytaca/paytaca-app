@@ -1899,6 +1899,12 @@ async function commitMlsRemovalLocked({
  * and identical on every device, so all peers compute the same answer from the
  * same tree without any election or extra round-trip. Excludes `leaverPubKey`
  * because MLS rejects a Commit that removes its own committer.
+ *
+ * `mlsMemberPubkeys` returns compacted positions, not leaf addresses, but it
+ * walks the tree left to right and skips blanks, so the first entry that is
+ * not the leaver is also the lowest remaining leaf index. Do not "fix" this by
+ * indexing the array with a leaf index — that substitution is what
+ * getMlsLeafIdentity exists to prevent.
  */
 function pickLeaveCommitter(clientState, leaverPubKey) {
   try {
