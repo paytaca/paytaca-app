@@ -73,6 +73,22 @@
               </q-item-section>
             </q-item>
             <q-separator v-if="!isGroupRoom && otherMemberContact || isGroupRoom" />
+            <q-item v-if="!isRoomMuted && !isRoomArchived" clickable v-close-popup @click="muteRoom">
+              <q-item-section side>
+                <q-icon name="notifications_off" size="18px" />
+              </q-item-section>
+              <q-item-section>
+                {{ $t('MuteConversation', {}, 'Mute Notifications') }}
+              </q-item-section>
+            </q-item>
+            <q-item v-else-if="!isRoomArchived" clickable v-close-popup @click="unmuteRoom">
+              <q-item-section side>
+                <q-icon name="notifications" size="18px" />
+              </q-item-section>
+              <q-item-section>
+                {{ $t('UnmuteConversation', {}, 'Unmute Notifications') }}
+              </q-item-section>
+            </q-item>
             <q-item v-if="!isRoomArchived" clickable v-close-popup @click="confirmArchiveRoom">
               <q-item-section side>
                 <q-icon name="archive" size="18px" />
@@ -505,7 +521,20 @@
                   <q-icon name="delete" size="20px" color="negative" />
                 </q-item-section>
                 <q-item-section>
-                  <span class="text-negative">{{ $t('Delete', {}, 'Delete') }}</span>
+                  <span class="text-negative">{{ $t('DeleteForEveryone', {}, 'Delete for everyone') }}</span>
+                </q-item-section>
+              </q-item>
+              <q-item
+                v-if="contextMessage"
+                clickable
+                @mousedown.prevent
+                @click.stop="confirmHideMessage(contextMessage)"
+              >
+                <q-item-section avatar>
+                  <q-icon name="visibility_off" size="20px" color="negative" />
+                </q-item-section>
+                <q-item-section>
+                  <span class="text-negative">{{ $t('DeleteForMe', {}, 'Delete for me') }}</span>
                 </q-item-section>
               </q-item>
               <q-item-label header class="q-px-md q-pt-sm q-pb-none">{{ $t('React', {}, 'React') }}</q-item-label>
@@ -534,6 +563,7 @@ import ChatInput from 'src/components/chat/ChatInput.vue'
 import { npubEncode } from 'nostr-tools/nip19'
 import { getCachedAvatar, setCachedAvatar } from 'src/utils/avatar-cache'
 import { ACTIVE_THRESHOLD_MS } from 'src/store/nostr-chat/state'
+import { SELF_CHAT_ERROR } from 'src/store/nostr-chat/self-chat'
 
 export default {
   name: 'ChatConversation',
@@ -647,6 +677,9 @@ export default {
     },
     isRoomArchived () {
       return this.room?.archived === true
+    },
+    isRoomMuted () {
+      return this.$store.getters['nostrChat/isRoomMuted'](this.roomId)
     },
     isGroupRoom () {
       return this.room?.type === 'group' || this.room?.type === 'mls-group'
@@ -1282,11 +1315,18 @@ export default {
       // especially after the tab has been backgrounded.
       // isInitialized is persisted, but privKeyHex is stripped from persisted
       // state for security — it must be restored by initialize first.
+      //
+      // A rebuilt subscription only replays what the relay decides to resend, so
+      // pull the newest messages directly as well; this is the only path that
+      // guarantees a message that triggered a push is on screen right away.
+      const pullLatest = () => this.$store.dispatch('nostrChat/fetchLatestMessages', { force: true }).catch(() => {})
       if (!this.$store.getters['nostrChat/isInitialized'] || !this.$store.getters['nostrChat/myPrivKey']) {
         return this.$store.dispatch('nostrChat/initialize').then(() => {
+          pullLatest()
           return this.$store.dispatch('nostrChat/subscribeToRelays')
         })
       } else {
+        pullLatest()
         return this.$store.dispatch('nostrChat/subscribeToRelays')
       }
     },
@@ -1730,9 +1770,12 @@ export default {
       return elapsed <= 60
     },
     canDeleteMessage (message) {
-      if (!message || message.sender !== this.myPubKey) return false
-      const elapsed = Date.now() / 1000 - message.created_at
-      return elapsed <= 60
+      // Deletion for everyone has no time limit: it only needs the original
+      // sender's kind-5 (or in-band MLS) event, which relays and clients honour
+      // regardless of age. Temporary-only windows are a UX convention, not a
+      // protocol constraint, and hiding the option on an older own message was
+      // the reported surprise.
+      return !!message && message.sender === this.myPubKey && !message.deleted
     },
     setEdit (message) {
       this.hideContextMenu()
@@ -1758,6 +1801,17 @@ export default {
         persistent: true,
       }).onOk(async () => {
         try {
+          if (this.isMlsRoom) {
+            // MLS rooms have no gift-wrap address to target, so deletion rides
+            // inside the encrypted payload (same as replies and edits).
+            await this.$store.dispatch('nostrChat/sendMlsMessage', {
+              roomId: this.roomId,
+              text: '',
+              deleteOf: message.id,
+            })
+            this.$store.commit('nostrChat/DELETE_MESSAGE', { roomId: this.roomId, messageId: message.id })
+            return
+          }
           const { giftWraps, roomId, messageId } = await this.$store.dispatch('nostrChat/sendDeleteMessage', {
             roomId: this.roomId,
             messageId: message.id,
@@ -1771,6 +1825,43 @@ export default {
             message: this.$t('DeleteMessageFailed', {}, 'Failed to delete message') + ': ' + err.message,
           })
         }
+      })
+    },
+    // "Delete for me": remove the message from this device only. Works for every
+    // message — anyone's, any age — because it needs no relay cooperation.
+    confirmHideMessage (message) {
+      this.hideContextMenu()
+      this.$q.dialog({
+        title: this.$t('DeleteForMe', {}, 'Delete for me'),
+        message: this.$t('HideMessageConfirm', {}, 'Delete this message for you? It will be removed from this device only.'),
+        class: `pt-card text-bow ${this.getDarkModeClass(this.darkMode)}`,
+        cancel: { label: this.$t('Cancel', {}, 'Cancel'), flat: true, color: 'grey' },
+        ok: { label: this.$t('Delete', {}, 'Delete'), color: 'negative', flat: true },
+        persistent: true,
+      }).onOk(() => {
+        this.$store.commit('nostrChat/HIDE_MESSAGE', {
+          roomId: this.roomId,
+          messageId: message.id,
+        })
+        // Drop any composer state that referenced the now-hidden message.
+        if (this.replyToMessage?.id === message.id) this.replyToMessage = null
+        if (this.editingMessage?.id === message.id) this.editingMessage = null
+        this.newMessageIds.delete(message.id)
+        if (this.selectedMessageId === message.id) this.selectedMessageId = null
+        this.$q.notify({
+          message: this.$t('MessageDeleted', {}, 'Message deleted'),
+          timeout: 5000,
+          actions: [{
+            label: this.$t('Undo', {}, 'Undo'),
+            color: 'white',
+            handler: () => {
+              this.$store.commit('nostrChat/UNHIDE_MESSAGE', {
+                roomId: this.roomId,
+                messageId: message.id,
+              })
+            },
+          }],
+        })
       })
     },
     onTipAction () {
@@ -1859,10 +1950,17 @@ export default {
         }
       } catch (err) {
         console.error('Failed to send message:', err)
-        this.$q.notify({
-          type: 'negative',
-          message: this.$t('SendMessageFailed', {}, 'Failed to send message') + ': ' + err.message,
-        })
+        const isSelfChat = err.message === SELF_CHAT_ERROR
+        if (isSelfChat) {
+          // The composer clears itself on send; give the text back so a
+          // refused self chat does not look like it was sent.
+          const input = this.$refs.chatInput
+          if (input && !input.text) input.setText(text)
+        }
+        const message = isSelfChat
+          ? this.$t('CannotMessageYourself', {}, 'You cannot message yourself')
+          : this.$t('SendMessageFailed', {}, 'Failed to send message') + ': ' + err.message
+        this.$q.notify({ type: 'negative', message })
       }
     },
     async saveContact () {
@@ -1984,6 +2082,20 @@ export default {
           message: this.$t('ContactRenameFailed', {}, 'Failed to rename contact') + ': ' + err.message,
         })
       }
+    },
+    muteRoom () {
+      this.$store.dispatch('nostrChat/muteRoom', this.roomId)
+      this.$q.notify({
+        type: 'info',
+        message: this.$t('ConversationMuted', {}, 'Notifications muted'),
+      })
+    },
+    unmuteRoom () {
+      this.$store.dispatch('nostrChat/unmuteRoom', this.roomId)
+      this.$q.notify({
+        type: 'positive',
+        message: this.$t('ConversationUnmuted', {}, 'Notifications unmuted'),
+      })
     },
     confirmArchiveRoom () {
       const roomName = this.roomName

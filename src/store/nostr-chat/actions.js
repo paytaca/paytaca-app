@@ -1,4 +1,5 @@
 import { ACTIVE_THRESHOLD_MS } from './state'
+import { createWalletScopeTracker } from './wallet-scope'
 import { deriveNostrKeys, createUnsignedKind14, createNip17GiftWraps, computeRoomId, createKind10050, createReadReceiptGiftWrap, createReactionGiftWraps, createKind5DeletionGiftWraps } from 'src/wallet/nostr'
 import { finalizeEvent, verifyEvent, getEventHash, nip44, utils as nostrUtils } from 'nostr-tools'
 const { hexToBytes } = nostrUtils
@@ -137,6 +138,7 @@ import {
 } from 'src/wallet/nostr-media'
 import { clearChatCache } from 'src/utils/chat-cache'
 import { applyFileMarkupToMessage } from 'src/utils/chat-markup'
+import { SELF_CHAT_ERROR, isSelfPubKey } from './self-chat.js'
 import { Store } from 'src/store'
 
 const isDev = process.env.NODE_ENV !== 'production'
@@ -179,6 +181,25 @@ function getWalletState (state) {
   return state.byWallet[hash]
 }
 
+const _walletScope = createWalletScopeTracker(getCurrentWalletHash, () => {
+  // Drop the collapsed/throttled latest-message fetch so the next wallet's
+  // first call is not handed the previous wallet's in-flight promise.
+  _latestFetchPromise = null
+  _latestFetchAt = 0
+})
+
+// Invalidate every scope captured before this call (wallet switch, reset).
+function bumpWalletEpoch () {
+  _walletScope.bump()
+}
+
+// Snapshot the wallet an async operation belongs to; re-check the returned
+// predicate after every await and before every commit. `null` means the
+// operation started with no active wallet and is unusable.
+export function captureWalletScope () {
+  return _walletScope.capture()
+}
+
 const DISCOVERY_RELAYS = [
   'wss://relay.paytaca.com',
 ]
@@ -186,8 +207,14 @@ const DISCOVERY_RELAYS = [
 export async function reinitialize ({ commit, dispatch, state }) {
   const walletHash = getCurrentWalletHash()
   if (!walletHash) return
+  // Invalidate everything the previous wallet still has in flight before the
+  // first await: relay callbacks, fetches and timers check this epoch.
+  bumpWalletEpoch()
   const mnemonic = await getMnemonicByHash(walletHash).catch(() => null)
   if (!mnemonic) return
+  // The awaited mnemonic lookup can outlive another wallet switch; committing
+  // this wallet's keys now would overwrite the active wallet's identity.
+  if (getCurrentWalletHash() !== walletHash) return
 
   // Clear debounced timers from the previous wallet session to prevent
   // stale touchRoom/fetchRooms dispatches against the new wallet state.
@@ -216,6 +243,7 @@ export async function reinitialize ({ commit, dispatch, state }) {
 
   // Register this wallet's Nostr pubkey in Watchtower
   await dispatch('registerNostrPubkey')
+  if (getCurrentWalletHash() !== walletHash) return
 
     // Fetch profile data for the new wallet
     try {
@@ -224,6 +252,9 @@ export async function reinitialize ({ commit, dispatch, state }) {
         dispatch('fetchPublishedBchAddress', { pubKeyHex: keys.pubKeyHex }),
         dispatch('fetchPublishedAvatar', { pubKeyHex: keys.pubKeyHex }),
       ])
+      // The profile lookups resolve against relays; a switch during them must
+      // not write this wallet's profile into the new wallet's state.
+      if (getCurrentWalletHash() !== walletHash) return
       if (displayName) {
         commit('SET_PROFILE_DISPLAY_NAME', { displayName, publishedAt: Date.now() })
       }
@@ -237,6 +268,7 @@ export async function reinitialize ({ commit, dispatch, state }) {
       console.warn('[Nostr] Failed to fetch profile data during reinitialize:', err)
     }
 
+  if (getCurrentWalletHash() !== walletHash) return
   dispatch('subscribeToRelays')
 }
 
@@ -245,6 +277,9 @@ export async function initialize ({ commit, dispatch, state }) {
   if (!walletHash) throw new Error('No wallet hash available')
   const mnemonic = await getMnemonicByHash(walletHash).catch(() => null)
   if (!mnemonic) throw new Error('No mnemonic available')
+  // Another wallet became active during the await: everything below targets
+  // `getWalletState` at commit time, so continuing would seed the wrong wallet.
+  if (getCurrentWalletHash() !== walletHash) return
 
   const keys = deriveNostrKeys(mnemonic)
   const ws = getWalletState(state)
@@ -764,12 +799,15 @@ export async function publishKind10050 ({ state }) {
 export async function fetchHistoricalMessages ({ state, dispatch, commit }) {
   const ws = getWalletState(state)
   if (!ws?.keys?.pubKeyHex) return
+  const isCurrent = captureWalletScope()
   try {
     await relayService.fetchHistoricalGiftWraps(DISCOVERY_RELAYS, ws.keys.pubKeyHex, {
       async onEvent(event) {
+        if (!isCurrent || !isCurrent()) return
         try {
           const { unwrapGiftWrap } = await import('src/wallet/nostr')
           const { rumor, sealPubkey } = unwrapGiftWrap(event, ws.keys.privKeyHex)
+          if (!isCurrent()) return
           dispatch('receiveMessage', { rumor, sealPubkey, isHistorical: true, giftWrap: event })
         } catch (err) {
           console.warn('[Nostr] Failed to unwrap historical gift-wrap:', err)
@@ -780,6 +818,8 @@ export async function fetchHistoricalMessages ({ state, dispatch, commit }) {
     console.warn('[Nostr] Failed to fetch historical messages:', err)
   }
 
+  if (!isCurrent || !isCurrent()) return
+
   // Clean up deletedRooms entries for rooms that were restored during the historical fetch.
   // This allows future live messages to apply subject updates normally.
   for (const roomId of (ws.deletedRooms || [])) {
@@ -789,10 +829,118 @@ export async function fetchHistoricalMessages ({ state, dispatch, commit }) {
   }
 }
 
+// Push notifications are the first signal that a new Nostr event exists, but
+// the live relay subscription is often dead or suspended (backgrounded app,
+// relays dropping quiet sockets after ~30s) and `ensureSubscribed` is a no-op
+// inside its cooldowns. Pulling the newest gift-wraps directly gives the UI the
+// message in one relay round-trip instead of waiting for the subscription to
+// come back. Runs are collapsed (a second call returns the in-flight promise)
+// and throttled so a burst of events doesn't hammer the relay. Navigation and
+// resume paths pass `force` to always make the round-trip.
+const LATEST_MESSAGES_THROTTLE_MS = 1000
+// A message for a room we don't have locally is committed immediately but only
+// becomes visible once the room list includes it. The room sync that discovers
+// it is debounced by ~2s, so retry the room fetch after that instead of waiting
+// for the debounce to reach the same place.
+const LATEST_ROOM_RETRY_MS = 2500
+let _latestFetchPromise = null
+let _latestFetchAt = 0
+
+export async function fetchLatestMessages ({ state, dispatch }, { limit = 20, force = false } = {}) {
+  const ws = getWalletState(state)
+  if (!ws?.keys?.pubKeyHex || !ws.keys.privKeyHex) return
+
+  if (_latestFetchPromise) return _latestFetchPromise
+  if (!force && Date.now() - _latestFetchAt < LATEST_MESSAGES_THROTTLE_MS) return
+  _latestFetchAt = Date.now()
+
+  // Capture before the dynamic import: `ws` above is this wallet's state, so the
+  // scope has to describe the same wallet.
+  const isCurrent = captureWalletScope()
+  const { unwrapGiftWrap } = await import('src/wallet/nostr')
+  if (!isCurrent) return { liveMessages: 0 }
+
+  const run = (async () => {
+    let roomFetchRetry = null
+    const requestRoomFetch = () => {
+      if (roomFetchRetry) return
+      roomFetchRetry = new Promise(resolve => setTimeout(resolve, LATEST_ROOM_RETRY_MS))
+        .then(() => {
+          if (!isCurrent || !isCurrent()) return
+          return Promise.allSettled([dispatch('fetchRooms'), dispatch('seedRoomsFromMessages')])
+        })
+    }
+
+    let liveMessages = 0
+    if (!isCurrent()) return { liveMessages: 0 }
+    const result = await relayService.fetchLatestGiftWraps(DISCOVERY_RELAYS, ws.keys.pubKeyHex, {
+      // Every pulled event is new to this session (the service drops anything
+      // the live subscription already delivered), so it always takes the same
+      // path a live delivery would: room bump, server touch, unread badge.
+      async onEvent(event) {
+        if (!isCurrent()) return
+        let rumor, sealPubkey
+        try {
+          ({ rumor, sealPubkey } = unwrapGiftWrap(event, ws.keys.privKeyHex))
+        } catch (err) {
+          console.warn('[Nostr] Failed to unwrap latest gift-wrap:', err)
+          return
+        }
+
+        // A message for a room we don't have locally is committed right away
+        // but only becomes visible once the room list includes it.
+        // receiveMessage syncs the room to the server but only refetches the
+        // list after a debounce, so wait for that fetch ourselves.
+        const roomKnown = rumor.kind !== 14 || ws.rooms.some(r => r.id === computeRoomId(
+          [...new Set([ws.keys.pubKeyHex, rumor.pubkey, ...rumor.tags.filter(t => t[0] === 'p').map(t => t[1])])]
+        ))
+
+        liveMessages++
+        await dispatch('receiveMessage', { rumor, sealPubkey, giftWrap: event })
+
+        if (!roomKnown) requestRoomFetch()
+        // A group invite only surfaces once its room row exists on the server.
+        if (rumor.kind === 444) dispatch('fetchRooms').catch(() => {})
+      },
+    }, { limit })
+
+    if (roomFetchRetry) await roomFetchRetry
+    return { ...result, liveMessages }
+  })()
+
+  _latestFetchPromise = run
+  try {
+    return await run
+  } finally {
+    _latestFetchPromise = null
+  }
+}
+
+// A chat push only names the recipient wallet, never the room, so the payload
+// alone cannot tell the app whether the message landed in a muted conversation.
+// Pull first, then report whether any unmuted room actually got new activity;
+// callers surface the notification only when it returns true.
+export async function pullLatestForPush ({ state, dispatch, getters }) {
+  const before = new Map((getWalletState(state)?.rooms || []).map(r => [r.id, r.lastMessageAt || 0]))
+  const result = await dispatch('fetchLatestMessages', { force: true })
+  // Nothing was pulled (no identity yet, or a shared fetch was already running
+  // and returned nothing): the room cannot be determined, so do not swallow
+  // a notification that may belong to a live conversation.
+  if (!result) return true
+  return (getWalletState(state)?.rooms || []).some(r => {
+    return !getters.isRoomMuted(r.id) && (r.lastMessageAt || 0) > (before.get(r.id) || 0)
+  })
+}
+
 export async function addContact ({ state, commit }, { name, npub }) {
   const decoded = nip19Decode(npub)
   if (decoded.type !== 'npub') throw new Error('Invalid npub')
   const pubKeyHex = decoded.data
+  // A contact keyed by your own pubkey would make every later DM collapse into
+  // a one-member room. Refuse it at the source.
+  if (isSelfPubKey(pubKeyHex, getWalletState(state).keys?.pubKeyHex)) {
+    throw new Error(SELF_CHAT_ERROR)
+  }
 
   // If no name was provided, try to fetch the contact's published display name
   let resolvedName = name?.trim() || ''
@@ -866,25 +1014,29 @@ function clearAllTypingTimers () {
   _typingHideTimers = {}
 }
 
-function scheduleTypingHide (commit, pubkeyHex, roomId) {
+// Both timers outlive the wallet they were scheduled for, so they re-check the
+// captured wallet scope before writing.
+function scheduleTypingHide (commit, pubkeyHex, roomId, isCurrent) {
   const key = `${pubkeyHex}:${roomId}`
   clearTypingTimer(pubkeyHex, roomId)
   _typingHideTimers[key] = setTimeout(() => {
-    commit('CLEAR_TYPING', { roomId, pubKeyHex: pubkeyHex })
     delete _typingHideTimers[key]
+    if (isCurrent && !isCurrent()) return
+    commit('CLEAR_TYPING', { roomId, pubKeyHex: pubkeyHex })
   }, TYPING_HIDE_TIMEOUT_MS)
 }
 
-function scheduleActiveExpiry (pubkey, commit) {
+function scheduleActiveExpiry (pubkey, commit, isCurrent) {
   clearActiveExpiry(pubkey)
   _activeExpiryTimers[pubkey] = setTimeout(() => {
+    delete _activeExpiryTimers[pubkey]
+    if (isCurrent && !isCurrent()) return
     commit('SET_ACTIVE_STATUS', {
       [pubkey]: {
         lastActiveAt: null,
         fetchedAt: Date.now(),
       },
     })
-    delete _activeExpiryTimers[pubkey]
   }, ACTIVE_THRESHOLD_MS)
 }
 
@@ -911,6 +1063,8 @@ function collectActiveStatusPubkeys (state) {
 export async function fetchActiveStatus ({ state, commit, rootGetters }) {
   const pubkeys = collectActiveStatusPubkeys(state)
   if (!pubkeys.length) return
+
+  const isCurrent = captureWalletScope()
 
   try {
     const isChipnet = rootGetters['global/isChipnet']
@@ -939,20 +1093,21 @@ export async function fetchActiveStatus ({ state, commit, rootGetters }) {
         return
       }
       const data = await retryResponse.json()
-      return processActiveStatusResponse(data, pubkeys, commit)
+      return processActiveStatusResponse(data, pubkeys, commit, isCurrent)
     }
     if (!response.ok) {
       debug('fetchActiveStatus failed:', response.status)
       return
     }
     const data = await response.json()
-    return processActiveStatusResponse(data, pubkeys, commit)
+    return processActiveStatusResponse(data, pubkeys, commit, isCurrent)
   } catch (err) {
     debug('fetchActiveStatus error:', err)
   }
 }
 
-function processActiveStatusResponse (data, pubkeys, commit) {
+function processActiveStatusResponse (data, pubkeys, commit, isCurrent) {
+  if (isCurrent && !isCurrent()) return
   const statusMap = {}
   for (const pubkey of pubkeys) {
     if (data[pubkey]) {
@@ -960,7 +1115,7 @@ function processActiveStatusResponse (data, pubkeys, commit) {
         lastActiveAt: data[pubkey],
         fetchedAt: Date.now(),
       }
-      scheduleActiveExpiry(pubkey, commit)
+      scheduleActiveExpiry(pubkey, commit, isCurrent)
     }
   }
   commit('SET_ACTIVE_STATUS', statusMap)
@@ -1086,8 +1241,10 @@ async function getWsWatchtowerUrlWithToken (rootGetters) {
 
 export async function startActiveWs ({ state, commit, rootGetters }) {
   stopActiveWs()
+  const isCurrent = captureWalletScope()
   const wsUrl = await getWsWatchtowerUrlWithToken(rootGetters)
   if (!wsUrl) return
+  if (!isCurrent || !isCurrent()) return
 
   try {
     const ws = new WebSocket(wsUrl)
@@ -1101,6 +1258,9 @@ export async function startActiveWs ({ state, commit, rootGetters }) {
         }, 30000)
       },
       message: (event) => {
+        // Presence/typing payloads are scoped to the wallet that opened the
+        // socket. Drop anything delivered after the wallet changed.
+        if (!isCurrent || !isCurrent()) return
         try {
           const msg = JSON.parse(event.data)
           if (msg.type === 'last_active' && msg.pubkey_hex && msg.timestamp) {
@@ -1110,10 +1270,10 @@ export async function startActiveWs ({ state, commit, rootGetters }) {
                 fetchedAt: Date.now(),
               },
             })
-            scheduleActiveExpiry(msg.pubkey_hex, commit)
+            scheduleActiveExpiry(msg.pubkey_hex, commit, isCurrent)
           } else if (msg.type === 'typing' && msg.pubkey_hex && msg.room_id) {
             commit('SET_TYPING', { roomId: msg.room_id, pubKeyHex: msg.pubkey_hex })
-            scheduleTypingHide(commit, msg.pubkey_hex, msg.room_id)
+            scheduleTypingHide(commit, msg.pubkey_hex, msg.room_id, isCurrent)
           } else if (msg.type === 'stop_typing' && msg.pubkey_hex && msg.room_id) {
             commit('CLEAR_TYPING', { roomId: msg.room_id, pubKeyHex: msg.pubkey_hex })
             clearTypingTimer(msg.pubkey_hex, msg.room_id)
@@ -1427,6 +1587,9 @@ async function decryptRoomsList (rooms) {
       nostrGroupId: r.nostr_group_id || null,
       subject: await decryptRoomName(r.subject),
       archived: !!r.archived,
+      // Leave undefined when the server does not expose the field so
+      // SET_ROOMS keeps the locally stored mute instead of clearing it.
+      muted: r.muted === undefined ? undefined : !!r.muted,
       createdAt: typeof createdAt === 'string' ? Math.floor(new Date(createdAt).getTime() / 1000) : createdAt,
       updatedAt: typeof updatedAt === 'string' ? Math.floor(new Date(updatedAt).getTime() / 1000) : updatedAt,
       lastMessageAt: typeof lastMsgTs === 'string' ? Math.floor(new Date(lastMsgTs).getTime() / 1000) : lastMsgTs,
@@ -1441,19 +1604,26 @@ export async function fetchRooms ({ commit }) {
   try {
     const walletHash = getCurrentWalletHash()
     if (!walletHash) return
+    const isCurrent = captureWalletScope()
     const baseUrl = getWatchtowerBaseUrl()
     const response = await apiGet(baseUrl, `/api/nostr/rooms/?wallet_hash=${walletHash}`)
     if (!response.ok) {
       debug('fetchRooms failed:', response.status)
+      // End the loading state anyway: leaving the list on skeletons because a
+      // fetch failed would hide the cached rooms indefinitely.
+      commit('SET_ROOMS_LOADED')
       return
     }
     const data = await response.json()
-    if (Array.isArray(data.rooms)) {
-      const decrypted = await decryptRoomsList(data.rooms)
-      commit('SET_ROOMS', decrypted)
-    }
+    const decrypted = Array.isArray(data.rooms) ? await decryptRoomsList(data.rooms) : null
+    // Decrypting room names awaits the per-wallet encryption key; bail out if
+    // the wallet changed while the response was in flight.
+    if (!isCurrent || !isCurrent()) return
+    if (decrypted) commit('SET_ROOMS', decrypted)
+    else commit('SET_ROOMS_LOADED')
   } catch (err) {
     debug('fetchRooms error:', err)
+    commit('SET_ROOMS_LOADED')
   }
 }
 
@@ -1536,6 +1706,7 @@ export async function fetchBlocks ({ commit }) {
   try {
     const walletHash = getCurrentWalletHash()
     if (!walletHash) return { blockedContacts: [] }
+    const isCurrent = captureWalletScope()
     const baseUrl = getWatchtowerBaseUrl()
     const response = await apiGet(baseUrl, `/api/nostr/blocks/?wallet_hash=${walletHash}`)
     if (!response.ok) {
@@ -1543,6 +1714,7 @@ export async function fetchBlocks ({ commit }) {
       return { blockedContacts: [] }
     }
     const data = await response.json()
+    if (!isCurrent || !isCurrent()) return { blockedContacts: [] }
     commit('SET_BLOCKED_CONTACTS', data.blocked_contacts || [])
     return data
   } catch (err) {
@@ -1586,6 +1758,9 @@ export async function createPrivateRoom ({ commit, getters, state }, contactNpub
   if (!contact) throw new Error('Contact not found')
 
   const myPubKey = ws.keys.pubKeyHex
+  // Last-resort guard: a self contact created before this check existed would
+  // still resolve to a room with one member.
+  if (isSelfPubKey(contact.pubKeyHex, myPubKey)) throw new Error(SELF_CHAT_ERROR)
   const roomId = computeRoomId([myPubKey, contact.pubKeyHex])
 
   const room = {
@@ -1619,6 +1794,10 @@ export async function sendMessage ({ state }, { roomId, text, replyTo, subject }
     }
     return m
   })
+
+  // Never gift-wrap a DM to yourself: with no other member the message is
+  // unreachable. Legacy one-member private rooms can still be opened by URL.
+  if (!memberHexes.some(m => m && m !== senderPubKey)) throw new Error(SELF_CHAT_ERROR)
 
   const unsignedKind14 = createUnsignedKind14({
     content: text,
@@ -1684,14 +1863,26 @@ export async function sendEditMessage ({ state }, { roomId, text, editOf }) {
 
 // ── Room lifecycle actions (sync to server) ──────────────────────────
 
+export async function muteRoom ({ commit }, roomId) {
+  commit('SET_ROOM_MUTED', { roomId, muted: true })
+  await updateRoomOnServer(roomId, { muted: true })
+}
+
+export async function unmuteRoom ({ commit }, roomId) {
+  commit('SET_ROOM_MUTED', { roomId, muted: false })
+  await updateRoomOnServer(roomId, { muted: false })
+}
+
 export async function archiveRoom ({ commit }, roomId) {
   commit('ARCHIVE_ROOM', roomId)
-  await updateRoomOnServer( roomId, { archived: true })
+  // An archived conversation must not notify, so the archive flag carries the
+  // mute with it — one request, and the two can never diverge on the server.
+  await updateRoomOnServer( roomId, { archived: true, muted: true })
 }
 
 export async function unarchiveRoom ({ commit }, roomId) {
   commit('UNARCHIVE_ROOM', roomId)
-  await updateRoomOnServer( roomId, { archived: false })
+  await updateRoomOnServer( roomId, { archived: false, muted: false })
 }
 
 export async function updateRoomName ({ commit }, { roomId, name }) {
@@ -1715,6 +1906,10 @@ export async function deleteRoom ({ commit, state }, roomId) {
   // under a room the UI never renders (decrypts fine, never displayed).
   const ws = getWalletState(state)
   const mlsGroupIdHex = ws?.mls?.roomMlsMap?.[roomId]
+  // A deleted conversation is a muted one: the row goes away here and on the
+  // server, but the mute is kept locally so a room re-created from another
+  // device cannot start notifying.
+  commit('SET_ROOM_MUTED', { roomId, muted: true })
   commit('REMOVE_ROOM', roomId)
   if (mlsGroupIdHex) commit('REMOVE_MLS_ROOM_MAP', roomId)
   await deleteRoomOnServer(roomId)
@@ -1772,13 +1967,18 @@ export async function seedRoomsFromMessages ({ commit, dispatch, state }) {
       updatedAt: lastMsg.created_at || now,
     }
 
+    // Show the room right away instead of waiting for the sync round-trip and
+    // the room-list refetch: the messages are already here, the server entry
+    // is bookkeeping. Without this the chat index fills in a beat late.
+    commit('ADD_ROOM', room)
     syncPromises.push(syncRoomToServer(room))
   }
 
   await Promise.allSettled(syncPromises)
 
-  // Re-fetch the room list from the server after seeding
-  dispatch('fetchRooms').catch(() => {})
+  // Reconcile with the server list: it carries the authoritative
+  // last-activity times and picks up rooms synced from another device.
+  dispatch('fetchRooms')
 }
 
 export async function sendDeleteMessage ({ state }, { roomId, messageId }) {
@@ -2162,13 +2362,28 @@ export async function receiveMessage ({ commit, dispatch, state }, { rumor, seal
           emoji,
         })
       } else {
+        const createdAt = rumor.created_at * 1000
+        // A reaction pushes a notification, so the chat list has to agree that
+        // something happened here; otherwise the push points at a conversation
+        // that never moved. Only a genuinely new, incoming, live reaction bumps:
+        // our own reactions go through sendReaction, a relay replay carries the
+        // same createdAt and must not re-bump, and historical backfill must not
+        // reshuffle the list.
+        const previous = ws.reactions?.[roomId]?.[messageId]?.find(
+          r => r.reactorPubKey === reactorPubKey && r.emoji === content
+        )
+        const isNew = !previous || previous.createdAt !== createdAt
         commit('ADD_MESSAGE_REACTION', {
           roomId,
           messageId,
           reactorPubKey,
           emoji: content,
-          createdAt: rumor.created_at * 1000,
+          createdAt,
         })
+        if (isNew && !isHistorical && reactorPubKey !== myPubKey) {
+          commit('TOUCH_ROOM_LAST_MESSAGE_AT', roomId)
+          queueRoomTouch(dispatch, roomId, new Date().toISOString())
+        }
       }
     }
     return
@@ -2181,7 +2396,30 @@ export async function receiveMessage ({ commit, dispatch, state }, { rumor, seal
     const messageId = eTag[1]
     const pTags = rumor.tags.filter(t => t[0] === 'p').map(t => t[1])
     const roomMembers = [...new Set([myPubKey, rumor.pubkey, ...pTags])]
-    const roomId = computeRoomId(roomMembers)
+    const computedRoomId = computeRoomId(roomMembers)
+
+    // The computed room id can disagree with the stored one (group rooms, extra
+    // p tags, unreadable members), which used to make the deletion a no-op.
+    // Locate the message where it actually lives instead.
+    let targetRoomId = null
+    for (const rid of Object.keys(ws.messages || {})) {
+      if ((ws.messages[rid] || []).some(m => m.id === messageId)) {
+        targetRoomId = rid
+        break
+      }
+    }
+    const roomId = targetRoomId || computedRoomId
+
+    // NIP-09: only the original author may delete a message; anything else is
+    // a forged deletion and must not tombstone someone else's message.
+    const original = (ws.messages?.[roomId] || []).find(m => m.id === messageId)
+    if (original && original.sender !== rumor.pubkey) {
+      console.warn(
+        '[Nostr] Ignoring deletion', messageId.slice(0, 8),
+        'from', rumor.pubkey.slice(0, 8), 'for a message authored by', original.sender.slice(0, 8),
+      )
+      return
+    }
 
     commit('DELETE_MESSAGE', { roomId, messageId })
     return
@@ -2417,6 +2655,7 @@ export async function markRoomAsRead ({ commit, state, dispatch }, { roomId, mes
     return
   }
   _markRoomLocks.add(roomId)
+  const isCurrent = captureWalletScope()
   try {
   const ws = getWalletState(state)
   const myPubKey = ws.keys.pubKeyHex
@@ -2489,7 +2728,7 @@ export async function markRoomAsRead ({ commit, state, dispatch }, { roomId, mes
 
   // Mark as read locally only the messages whose 👝 reaction was sent.
   // Failed messages stay "unread" so the next markRoomAsRead call re-attempts.
-  if (successfullyReadIds.length) {
+  if (successfullyReadIds.length && isCurrent && isCurrent()) {
     commit('MARK_MESSAGES_AS_READ', {
       roomId,
       messageIds: successfullyReadIds,
@@ -2516,7 +2755,7 @@ export async function markRoomAsRead ({ commit, state, dispatch }, { roomId, mes
     })
     // Mark exhausted messages as read locally so the debounced markAsRead()
     // stops picking them up and creating an infinite retry loop.
-    if (exhaustedIds.length) {
+    if (exhaustedIds.length && isCurrent && isCurrent()) {
       commit('MARK_MESSAGES_AS_READ', { roomId, messageIds: exhaustedIds })
     }
     if (retryIds.length) {
@@ -2565,11 +2804,18 @@ export function subscribeToRelays ({ state, dispatch, commit }) {
   }
 
   const wasSubscribed = relayService.isSubscribed()
+  // The subscription outlives this wallet if the user switches away, and the
+  // relay service closes it only after `reinitialize` runs; anything already in
+  // flight (or delivered by a closing socket) must not be filed under the new
+  // wallet's identity.
+  const isCurrent = captureWalletScope()
   const sub = relayService.subscribeGiftWraps(state.relays, myPubKey, {
     async onEvent(event) {
+      if (!isCurrent || !isCurrent()) return
       try {
         const { unwrapGiftWrap } = await import('src/wallet/nostr')
         const { rumor, sealPubkey } = unwrapGiftWrap(event, ws.keys.privKeyHex)
+        if (!isCurrent()) return
         dispatch('receiveMessage', { rumor, sealPubkey, giftWrap: event })
       } catch (err) {
         console.warn('[Nostr] Failed to unwrap gift-wrap:', err)
@@ -2664,8 +2910,12 @@ export async function resetAndRefetch ({ commit, dispatch, state }) {
     console.warn('[Nostr] Cannot reset: no mnemonic available')
     return
   }
+  // The mnemonic lookup can outlive a wallet switch; resetting now would wipe
+  // the newly active wallet's chat data for the wrong wallet.
+  if (getCurrentWalletHash() !== walletHash) return
 
   // Disconnect existing relay subscriptions
+  bumpWalletEpoch()
   stopActiveServices()
   relayService.stopStatusPolling()
   relayService.disconnect()

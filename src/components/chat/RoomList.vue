@@ -62,8 +62,11 @@
                 {{ $t('Group', {}, 'GROUP') }}
               </q-badge>
             </div>
-            <div v-if="room.lastMessageAt || lastMessageTime(room.id) || room.updatedAt" class="room-time">
-              {{ formatTime(room.lastMessageAt || lastMessageTime(room.id) || room.updatedAt) }}
+            <div class="room-meta">
+              <q-icon v-if="isRoomMuted(room.id)" name="notifications_off" size="14px" class="room-muted-icon" />
+              <div v-if="room.lastMessageAt || lastMessageTime(room.id) || room.updatedAt" class="room-time">
+                {{ formatTime(room.lastMessageAt || lastMessageTime(room.id) || room.updatedAt) }}
+              </div>
             </div>
           </div>
           <div class="room-preview-row">
@@ -80,7 +83,28 @@
         </div>
       </div>
     </q-slide-item>
-    <div v-if="rooms.length === 0" class="empty-state">
+    <template v-if="loading && rooms.length === 0">
+      <div
+        v-for="n in 6"
+        :key="'skeleton-' + n"
+        class="room-item"
+        :class="getDarkModeClass(darkMode)"
+      >
+        <div class="room-avatar">
+          <q-skeleton type="circle" size="52px" />
+        </div>
+        <div class="room-content">
+          <div class="room-header">
+            <q-skeleton type="text" width="45%" height="14px" />
+            <q-skeleton type="text" width="32px" height="10px" />
+          </div>
+          <div class="room-preview-row">
+            <q-skeleton type="text" width="72%" height="12px" />
+          </div>
+        </div>
+      </div>
+    </template>
+    <div v-else-if="rooms.length === 0" class="empty-state">
       <q-icon :name="archived ? 'archive' : 'chat_bubble_outline'" size="56px" class="empty-icon" />
       <div v-if="archived" class="empty-title">{{ $t('NoArchivedChats', {}, 'No archived chats') }}</div>
       <div v-else class="empty-title">{{ $t('NoChatsYet', {}, 'No chats yet') }}</div>
@@ -103,6 +127,10 @@ export default {
     rooms: { type: Array, default: () => [] },
     messages: { type: Object, default: () => ({}) },
     archived: { type: Boolean, default: false },
+    // True while the first room-list fetch is still in flight. Only matters
+    // when there is nothing cached to render yet; with a warm cache the list
+    // paints immediately and this stays invisible.
+    loading: { type: Boolean, default: false },
   },
   emits: ['select-room', 'archive-room', 'unarchive-room', 'delete-room', 'block-room', 'unblock-room', 'leave-room'],
   data () {
@@ -346,6 +374,9 @@ export default {
     unreadCount (roomId) {
       return this.unreadCountMap[roomId] || 0
     },
+    isRoomMuted (roomId) {
+      return this.$store.getters['nostrChat/isRoomMuted'](roomId)
+    },
     getDmAvatar (room) {
       // Group rooms (closed and open/MLS) always use their fixed icon.
       if (room.type === 'group' || room.type === 'mls-group') return null
@@ -498,6 +529,17 @@ export default {
   color: #9ca3af;
   flex-shrink: 0;
   white-space: nowrap;
+}
+
+.room-meta {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  flex-shrink: 0;
+}
+
+.room-muted-icon {
+  color: #9ca3af;
 }
 
 .room-preview-row {

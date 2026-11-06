@@ -7,12 +7,14 @@ import * as mls from 'src/services/mls'
 import { leafToNodeIndex } from 'ts-mls/treemath.js'
 import { Store } from 'src/store'
 import { applyFileMarkupToMessage } from 'src/utils/chat-markup'
+import { addedTreeLeaves } from './mls-membership.js'
 import { hexToBytes, bytesToHex, randomUUID } from 'src/utils/encoding'
 import {
   syncRoomToServer,
   updateRoomOnServer,
   touchRoomOnServer,
   deleteRoomOnServer,
+  captureWalletScope,
 } from './actions.js'
 
 const MAX_MLS_MEMBERS = 50
@@ -37,12 +39,29 @@ const MLS_REPLY_PREFIX = '\u200bpaytaca:mls-reply:'
 // original message in place instead of appending a new one.
 const MLS_EDIT_PREFIX = '\u200bpaytaca:mls-edit:'
 
+// In-band prefix for a deletion's target message id. NIP-17 kind-5 deletions
+// address a gift-wrapped room id, which never matches an MLS room id, so a
+// delete in an MLS group has to travel inside the encrypted payload like its
+// edit counterpart. Receivers tombstone the target instead of appending a
+// message.
+const MLS_DELETE_PREFIX = '\u200bpaytaca:mls-delete:'
+
 // In-band marker the invitee sends immediately after accepting a welcome. An
 // MLS Add commit puts the invitee in the tree right away — before they ever
 // accept — so tree membership cannot tell "invited" from "joined". This
 // announcement (or any ordinary message from them) is the real acceptance
 // signal for the inviter's member list.
 const MLS_JOIN_PREFIX = '\u200bpaytaca:mls-join:'
+
+// In-band marker a departing member sends before tearing down their local
+// state. MLS forbids a Commit from removing its own committer ("Commit cannot
+// contain a remove proposal removing committer"), so a leaver can never remove
+// themselves; somebody else still in the tree must. The payload names that one
+// member explicitly, so exactly one Commit is produced at that epoch and the
+// group cannot fork. Naming is safe: the leaver's real identity comes from its
+// MLS leaf (`senderLeafIndex`), never from the payload, and a leave request can
+// only ever remove its own sender.
+const MLS_LEAVE_PREFIX = '\u200bpaytaca:mls-leave:'
 
 // Return 'owner', 'admin', or null for the current wallet's role in a room.
 function myMlsRole(ws, roomId) {
@@ -89,7 +108,7 @@ function isRecentlySent(pubKeyHex, eventId) {
 // send/receive divergence diagnostics.
 function ownAppRatchetGen(clientState) {
   try {
-    if (!clientState?.privatePath?.leafIndex || !clientState.secretTree) return '?'
+    if (!Number.isInteger(clientState?.privatePath?.leafIndex) || !clientState.secretTree) return '?'
     const nodeIndex = leafToNodeIndex(clientState.privatePath.leafIndex)
     return clientState.secretTree[nodeIndex]?.application?.generation ?? '?'
   } catch {
@@ -126,7 +145,7 @@ function mlsMemberPubkeys(clientState) {
 // Add/Remove commit — only the committer patched its own copy — so a member who
 // joined early kept a stale list and their reactions never reached later
 // joiners, while the committer's reactions reached everyone.
-function reconcileMlsRoomMembers(commit, ws, roomId, clientState) {
+function reconcileMlsRoomMembers(commit, ws, roomId, clientState, { mlsGroupIdHex, addedLeaves } = {}) {
   if (!roomId || !clientState) return
   const room = ws.rooms?.find((r) => r.id === roomId)
   if (!room || room.type !== 'mls-group') return
@@ -139,6 +158,22 @@ function reconcileMlsRoomMembers(commit, ws, roomId, clientState) {
   }
   if (!treeMembers.length) return
 
+  // Leaves this Commit added are fresh invitations: whoever committed it, that
+  // member has not accepted yet (any acceptance clears the mark, and MARK is a
+  // no-op for a member already proven joined). Without this a member added by
+  // another admin would land in room.members with no pending mark and show up
+  // as "Joined" in Group Info. The caller derives them from the pre/post tree,
+  // not from room.members, so a stale mirror never marks long-joined members.
+  // Runs before the unchanged check: the committer already pushed the new
+  // member list to the server, so a fetchRooms may have filled the mirror.
+  if (mlsGroupIdHex && addedLeaves?.length) {
+    const selfPubKey = ws.keys?.pubKeyHex
+    for (const member of addedLeaves) {
+      if (!member || member === selfPubKey) continue
+      commit('MARK_MLS_INVITEE_PENDING', { mlsGroupIdHex, memberPubKey: member })
+    }
+  }
+
   const current = room.members || []
   const unchanged =
     treeMembers.length === current.length && treeMembers.every((m) => current.includes(m))
@@ -150,16 +185,13 @@ function reconcileMlsRoomMembers(commit, ws, roomId, clientState) {
 
 // Resolve the identity at a given MLS leaf index. NIP-EE envelopes are signed
 // with an ephemeral key, so the leaf credential is the only trustworthy sender
-// identity.
+// identity. `leafIndex` here is a *tree* leaf address (from ts-mls senderData),
+// so it must be resolved against the ratchet tree — NOT by indexing the
+// blank-skipping member list, which diverges after any Remove.
 function memberIdentityAt(clientState, leafIndex) {
   if (leafIndex == null || leafIndex < 0 || !clientState) return null
   try {
-    const members = mls.getMlsGroupMembers(clientState)
-    const member = members[leafIndex]
-    if (!member) return null
-    const identity = member.credential?.identity || member.identityBytes
-    if (!(identity instanceof Uint8Array)) return null
-    return new TextDecoder().decode(identity)
+    return mls.getMlsLeafIdentity(clientState, leafIndex)
   } catch {
     return null
   }
@@ -472,16 +504,20 @@ export async function initMls({ commit, state, dispatch }) {
   // so it never blocks the caller; keep it running on every init so members
   // that missed commits while offline still catch up.
   const nostrGroupHexes = [...new Set(Object.values(ws.mls.roomMlsNostrMap || {}).filter(Boolean))]
+  // The group-event subscription and history replay outlive the wallet they
+  // were opened for; `captureWalletScope` keeps a late event from being
+  // decrypted and committed under whatever wallet is active by then.
+  const isCurrent = captureWalletScope()
+  const handleEvent = async (event) => {
+    if (!isCurrent || !isCurrent()) return
+    await dispatch('receiveMlsMessage', event)
+  }
   try {
     relayService.subscribeMlsEvents(state.relays, nostrPubkeyHex, nostrGroupHexes, {
-      async onEvent(event) {
-        await dispatch('receiveMlsMessage', event)
-      },
+      onEvent: handleEvent,
     })
     relayService.fetchMlsHistory(state.relays, nostrGroupHexes, {
-      async onEvent(event) {
-        await dispatch('receiveMlsMessage', event)
-      },
+      onEvent: handleEvent,
     })
   } catch (err) {
     console.warn('[MLS] Failed to subscribe to NIP-EE group events:', err.message)
@@ -524,7 +560,7 @@ export async function initMls({ commit, state, dispatch }) {
       const mlsGroupIdHex = ws.mls.roomMlsMap[roomId]
       const clientState = ws.mls.groupStates?.[mlsGroupIdHex] ||
         await mls.loadMlsState(mlsGroupIdHex, impl, {}).catch(() => null)
-      if (clientState) reconcileMlsRoomMembers(commit, ws, roomId, clientState)
+      if (clientState) reconcileMlsRoomMembers(commit, ws, roomId, clientState, { mlsGroupIdHex })
     }
   } catch (err) {
     console.warn('[MLS] Failed to reconcile room member lists:', err.message)
@@ -544,16 +580,17 @@ export async function refreshMlsSubscriptions({ state, dispatch }) {
   const ws = getWalletState(state)
   if (!ws?.keys?.privKeyHex || !ws.mls) return
   const nostrGroupHexes = [...new Set(Object.values(ws.mls.roomMlsNostrMap || {}).filter(Boolean))]
+  const isCurrent = captureWalletScope()
+  const handleEvent = async (event) => {
+    if (!isCurrent || !isCurrent()) return
+    await dispatch('receiveMlsMessage', event)
+  }
   try {
     relayService.subscribeMlsEvents(state.relays, ws.keys.pubKeyHex, nostrGroupHexes, {
-      async onEvent(event) {
-        await dispatch('receiveMlsMessage', event)
-      },
+      onEvent: handleEvent,
     })
     relayService.fetchMlsHistory(state.relays, nostrGroupHexes, {
-      async onEvent(event) {
-        await dispatch('receiveMlsMessage', event)
-      },
+      onEvent: handleEvent,
     })
   } catch (err) {
     console.warn('[MLS] Failed to refresh NIP-EE group event subscriptions:', err.message)
@@ -609,14 +646,10 @@ export async function createMlsGroup({ commit, state, dispatch }, { name, member
 
   // Post-create identity guard: we must sit at the leaf matching our identity.
   {
-    const members = mls.getMlsGroupMembers(clientState)
-    const identities = members.map((m) =>
-      new TextDecoder().decode(m.credential?.identity || m.identityBytes)
-    )
-    const myIdx = identities.findIndex((id) => id === nostrPubkeyHex)
-    if (myIdx !== -1 && clientState.privatePath.leafIndex !== myIdx) {
+    const myLeaf = mls.getMlsLeafIndexForIdentity(clientState, nostrPubkeyHex)
+    if (myLeaf !== -1 && clientState.privatePath.leafIndex !== myLeaf) {
       throw new Error(
-        `MLS create leafIndex mismatch: privatePath ${clientState.privatePath.leafIndex} vs tree position ${myIdx}`
+        `MLS create leafIndex mismatch: privatePath ${clientState.privatePath.leafIndex} vs tree leaf ${myLeaf}`
       )
     }
   }
@@ -694,19 +727,15 @@ export async function joinMlsGroup({ commit, state, dispatch }, { roomId, welcom
   // Post-commit identity guard: we must sit at a leaf whose credential matches
   // our Nostr pubkey, at the right tree position.
   {
-    const members = mls.getMlsGroupMembers(joinedClientState)
-    const identities = members.map((m) =>
-      new TextDecoder().decode(m.credential?.identity || m.identityBytes)
-    )
-    const myIdx = identities.findIndex((id) => id === nostrPubkeyHex)
-    if (myIdx === -1) {
+    const myLeaf = mls.getMlsLeafIndexForIdentity(joinedClientState, nostrPubkeyHex)
+    if (myLeaf === -1) {
       throw new Error(
         'Your identity was not found in the joined group — the inviter may have used a stale key package. Ask them to re-invite you.'
       )
     }
-    if (joinedClientState.privatePath?.leafIndex !== undefined && joinedClientState.privatePath.leafIndex !== myIdx) {
+    if (joinedClientState.privatePath?.leafIndex !== undefined && joinedClientState.privatePath.leafIndex !== myLeaf) {
       throw new Error(
-        `MLS join leafIndex mismatch: privatePath ${joinedClientState.privatePath.leafIndex} vs tree position ${myIdx}`
+        `MLS join leafIndex mismatch: privatePath ${joinedClientState.privatePath.leafIndex} vs tree leaf ${myLeaf}`
       )
     }
   }
@@ -958,7 +987,7 @@ async function surfaceMlsWelcomeRumor({ commit, state }, { giftWrap, welcomeRumo
 
 // ---- Sending messages ----
 
-export async function sendMlsMessage({ commit, state, dispatch }, { roomId, text, replyTo, editOf }) {
+export async function sendMlsMessage({ commit, state, dispatch }, { roomId, text, replyTo, editOf, deleteOf }) {
   const ws = getWalletState(state)
   if (!ws?.keys?.privKeyHex) throw new Error('Nostr keys not available')
 
@@ -996,6 +1025,7 @@ export async function sendMlsMessage({ commit, state, dispatch }, { roomId, text
     let wireText = text
     if (replyTo) wireText = `${MLS_REPLY_PREFIX}${replyTo}\n${wireText}`
     if (editOf) wireText = `${MLS_EDIT_PREFIX}${editOf}\n${wireText}`
+    if (deleteOf) wireText = `${MLS_DELETE_PREFIX}${deleteOf}\n${wireText}`
 
     // Encrypt exactly ONCE. Both the event id and the ratchet generation it
     // consumes must stay stable across publish retries: a re-encrypt would
@@ -1344,7 +1374,15 @@ export async function receiveMlsMessage({ commit, state, dispatch }, event) {
       // tree into room.members, otherwise the NIP-17 fan-out list (reactions,
       // typing, read receipts) keeps addressing members who are gone and never
       // reaches members who joined after us.
-      reconcileMlsRoomMembers(commit, ws, roomId, result.newState)
+      // Diff the pre-commit tree against the new one to find leaves this Commit
+      // added; those are the only members whose acceptance is still pending.
+      let addedLeaves = []
+      try {
+        addedLeaves = addedTreeLeaves(mlsMemberPubkeys(clientState), mlsMemberPubkeys(result.newState))
+      } catch {
+        addedLeaves = []
+      }
+      reconcileMlsRoomMembers(commit, ws, roomId, result.newState, { mlsGroupIdHex, addedLeaves })
 
       if (result.plaintext) {
         // Encrypted group-role control message (owner/admins metadata). Apply
@@ -1385,14 +1423,52 @@ export async function receiveMlsMessage({ commit, state, dispatch }, event) {
           // message.
           const joiningIdentity = memberIdentityAt(result.newState, result.senderLeafIndex)
           if (joiningIdentity) {
-            commit('CLEAR_MLS_INVITEE_PENDING', { mlsGroupIdHex, memberPubKey: joiningIdentity })
+            commit('MARK_MLS_MEMBER_JOINED', { mlsGroupIdHex, memberPubKey: joiningIdentity })
+          }
+        } else if (typeof result.plaintext === 'string' && result.plaintext.startsWith(MLS_LEAVE_PREFIX)) {
+          // A member announced they are leaving. MLS will not let them remove
+          // themselves, so exactly one named member commits the removal; every
+          // other peer ignores the request. A second Committer at the same
+          // epoch would fork the group, so this check is what keeps it to one.
+          const leavingIdentity = memberIdentityAt(result.newState, result.senderLeafIndex)
+          const resolvedRoomId = roomId || resolveRoomIdByMlsGroupId(ws, mlsGroupIdHex)
+          const namedCommitter = result.plaintext.slice(MLS_LEAVE_PREFIX.length).trim() || null
+          if (
+            leavingIdentity &&
+            resolvedRoomId &&
+            leavingIdentity !== ws.keys.pubKeyHex &&
+            namedCommitter === ws.keys.pubKeyHex
+          ) {
+            // Already gone (another device of ours, or a replayed request):
+            // nothing to commit.
+            const leaverLeaf = mls.getMlsLeafIndexForIdentity(result.newState, leavingIdentity)
+            if (leaverLeaf !== -1) {
+              try {
+                await commitMlsRemovalLocked({
+                  commit,
+                  state,
+                  ws,
+                  mlsGroupIdHex,
+                  roomId: resolvedRoomId,
+                  clientState: result.newState,
+                  leafIndex: leaverLeaf,
+                  memberPubKey: leavingIdentity,
+                  impl,
+                })
+              } catch (err) {
+                // The leaver's local state is already gone, so this is the
+                // group's problem, not theirs: log and let the request be
+                // retried by the next history replay.
+                console.warn('[MLS] Failed to commit leave request for', leavingIdentity.slice(0, 8), ':', err.message)
+              }
+            }
           }
         } else if (roomId) {
           const senderIdentity = memberIdentityAt(result.newState, result.senderLeafIndex)
           // Any real message from a member also proves they accepted; they
           // could not have decrypted the epoch otherwise.
           if (senderIdentity) {
-            commit('CLEAR_MLS_INVITEE_PENDING', { mlsGroupIdHex, memberPubKey: senderIdentity })
+            commit('MARK_MLS_MEMBER_JOINED', { mlsGroupIdHex, memberPubKey: senderIdentity })
           }
 
           // Unwrap the in-band reply/edit linkage (if any) before storing. The
@@ -1401,6 +1477,7 @@ export async function receiveMlsMessage({ commit, state, dispatch }, event) {
           let content = result.plaintext
           let replyTo = null
           let editOf = null
+          let deleteOf = null
           if (typeof content === 'string') {
             // Prefixes can nest (an edit of a reply), so peel them until stable.
             for (;;) {
@@ -1408,7 +1485,9 @@ export async function receiveMlsMessage({ commit, state, dispatch }, event) {
                 ? MLS_REPLY_PREFIX
                 : content.startsWith(MLS_EDIT_PREFIX)
                   ? MLS_EDIT_PREFIX
-                  : null
+                  : content.startsWith(MLS_DELETE_PREFIX)
+                    ? MLS_DELETE_PREFIX
+                    : null
               if (!prefix) break
               const newlineIndex = content.indexOf('\n')
               if (newlineIndex === -1) {
@@ -1418,6 +1497,7 @@ export async function receiveMlsMessage({ commit, state, dispatch }, event) {
               }
               const target = content.slice(prefix.length, newlineIndex) || null
               if (prefix === MLS_REPLY_PREFIX) replyTo = target
+              else if (prefix === MLS_DELETE_PREFIX) deleteOf = target
               else editOf = target
               content = content.slice(newlineIndex + 1)
             }
@@ -1430,6 +1510,7 @@ export async function receiveMlsMessage({ commit, state, dispatch }, event) {
             'room', roomId?.slice(0, 8) || '(none)',
             'replyTo:', replyTo ? replyTo.slice(0, 8) : '(none)',
             'editOf:', editOf ? editOf.slice(0, 8) : '(none)',
+            'deleteOf:', deleteOf ? deleteOf.slice(0, 8) : '(none)',
             'text:', JSON.stringify(content.slice(0, 40)),
           )
 
@@ -1445,6 +1526,23 @@ export async function receiveMlsMessage({ commit, state, dispatch }, event) {
             console.warn(
               '[MLS] Dropping edit', event.id.slice(0, 8),
               'for unknown/foreign target', editOf.slice(0, 8),
+              'in room', roomId?.slice(0, 8) || '(none)',
+            )
+            return
+          }
+
+          // A deletion targets an already-delivered message: tombstone it in
+          // place instead of appending a message. Only the original sender may
+          // delete their own message for everyone.
+          if (deleteOf) {
+            const original = (ws.messages?.[roomId] || []).find((m) => m.id === deleteOf)
+            if (original && original.sender === senderIdentity) {
+              commit('DELETE_MESSAGE', { roomId, messageId: deleteOf })
+              return
+            }
+            console.warn(
+              '[MLS] Dropping delete', event.id.slice(0, 8),
+              'for unknown/foreign target', deleteOf.slice(0, 8),
               'in room', roomId?.slice(0, 8) || '(none)',
             )
             return
@@ -1475,12 +1573,13 @@ export async function receiveMlsMessage({ commit, state, dispatch }, event) {
       // generation so a desync is visible on both sides.
       const allRatchetGen = (() => {
         try {
-          const members = mls.getMlsGroupMembers(clientState)
-          return members.map((m, i) => {
-            const identity = m.credential?.identity || m.identityBytes
-            const idStr = identity instanceof Uint8Array ? new TextDecoder().decode(identity).slice(0, 8) : '?'
-            return `${idStr}#${i}=${clientState.secretTree[leafToNodeIndex(i)]?.application?.generation ?? '?'}`
-          }).join(', ')
+          const tree = clientState.ratchetTree || []
+          const parts = []
+          for (let leafIndex = 0; leafIndex < tree.length / 2; leafIndex++) {
+            const idStr = mls.getMlsLeafIdentity(clientState, leafIndex)?.slice(0, 8) || '?'
+            parts.push(`${idStr}#${leafIndex}=${clientState.secretTree[leafToNodeIndex(leafIndex)]?.application?.generation ?? '?'}`)
+          }
+          return parts.join(', ')
         } catch {
           return '?'
         }
@@ -1525,12 +1624,8 @@ function backfillMlsOwner(commit, ws, roomId, clientState) {
   const room = ws.rooms?.find((r) => r.id === roomId)
   if (!room || room.owner || !clientState) return
   try {
-    const members = mls.getMlsGroupMembers(clientState)
-    const leaf0 = members[0]
-    if (!leaf0) return
-    const identity = leaf0.credential?.identity || leaf0.identityBytes
-    if (!(identity instanceof Uint8Array)) return
-    const owner = new TextDecoder().decode(identity)
+    const owner = mls.getMlsLeafIdentity(clientState, 0)
+    if (!owner) return
     commit('UPDATE_ROOM', { id: roomId, owner })
   } catch (err) {
     console.warn('[MLS] Failed to backfill group owner from the MLS tree:', err.message)
@@ -1602,11 +1697,10 @@ export async function addMlsMember({ commit, state }, { roomId, memberPubKey }) 
     const { newState, commit: commitMsg, welcome } = await mls.addMlsMember(clientState, inviteeKeyPackage, impl)
 
     {
-      const identities = mlsMemberPubkeys(newState)
-      const myIdx = identities.findIndex((id) => id === ws.keys.pubKeyHex)
-      if (myIdx !== -1 && newState.privatePath.leafIndex !== myIdx) {
-        console.error('[MLS] addMlsMember produced leafIndex mismatch', { privatePath: newState.privatePath.leafIndex, myIdx, identities: identities.map((i) => i?.slice(0, 8)) })
-        throw new Error(`MLS addMember leafIndex mismatch: privatePath ${newState.privatePath.leafIndex} vs tree position ${myIdx}`)
+      const myLeaf = mls.getMlsLeafIndexForIdentity(newState, ws.keys.pubKeyHex)
+      if (myLeaf !== -1 && newState.privatePath.leafIndex !== myLeaf) {
+        console.error('[MLS] addMlsMember produced leafIndex mismatch', { privatePath: newState.privatePath.leafIndex, myLeaf })
+        throw new Error(`MLS addMember leafIndex mismatch: privatePath ${newState.privatePath.leafIndex} vs tree leaf ${myLeaf}`)
       }
     }
 
@@ -1684,6 +1778,10 @@ export async function addMlsMember({ commit, state }, { roomId, memberPubKey }) 
         // processed before bailing out, otherwise the replay of our own commit
         // is rejected later as "Desired gen in the past".
         commit('MARK_EVENT_PROCESSED', { mlsGroupIdHex, eventId: signedCommit.id })
+        // The leaf is in the tree but the invitee never received a welcome, so
+        // they can never announce a join — keep them under "Invited" rather
+        // than showing a member who has no way to read the group as Joined.
+        commit('MARK_MLS_INVITEE_PENDING', { mlsGroupIdHex, memberPubKey })
         const failureRoom = ws.rooms.find((r) => r.id === roomId)
         if (failureRoom && !failureRoom.members.includes(memberPubKey)) {
           const updatedMembers = [...failureRoom.members, memberPubKey]
@@ -1747,6 +1845,75 @@ export async function getMlsGroupMemberPubkeys({ commit, state }, { roomId }) {
   return mlsMemberPubkeys(clientState)
 }
 
+/**
+ * Commit and publish the removal of one leaf, then mirror the result locally.
+ *
+ * MUST be called while already holding the per-group processing lock: the
+ * caller passes the fresh `clientState` it holds so the commit lands on top of
+ * the epoch it is about to send in. Shared by the manager-initiated removal
+ * (`removeMlsMember`) and the owner committing a departing member's leave
+ * request from inside `receiveMlsMessage` — a second Committer at the same
+ * epoch would fork the group, so there is exactly one implementation.
+ *
+ * Returns the post-commit client state.
+ */
+async function commitMlsRemovalLocked({
+  commit, state, ws, mlsGroupIdHex, roomId, clientState, leafIndex, memberPubKey, impl,
+}) {
+  const { newState, commit: commitMsg } = await mls.removeMlsMember(clientState, leafIndex, impl)
+
+  const signedCommit = await buildSignedNipEeGroupEvent(clientState, commitMsg)
+  const publish = await relayService.publishEvent(state.relays, signedCommit)
+  if (!publish.accepted.length) {
+    // Do NOT advance local state — if the commit isn't on the relay, other
+    // members still see the removed member in the tree and our epoch would
+    // run ahead of theirs, making future messages undecryptable.
+    const reason = publish.errors[0]?.reason || 'relay rejected the commit'
+    console.warn('[MLS] Remove-member commit rejected:', JSON.stringify(publish.errors))
+    throw new Error(`MLS removal was rejected by the relay: ${reason}`)
+  }
+  markRecentlySent(ws.keys.pubKeyHex, signedCommit.id)
+
+  await mls.saveMlsState(mlsGroupIdHex, newState)
+  commit('SET_MLS_GROUP_STATE', { mlsGroupIdHex, clientState: newState })
+  // Record our own Commit so a later relay re-delivery is skipped instead of
+  // being re-processed and rejected as "Desired gen in the past".
+  commit('MARK_EVENT_PROCESSED', { mlsGroupIdHex, eventId: signedCommit.id })
+
+  commit('FORGET_MLS_MEMBER', { mlsGroupIdHex, memberPubKey })
+
+  const room = ws.rooms?.find((r) => r.id === roomId)
+  if (room) {
+    const updatedMembers = (room.members || []).filter((m) => m !== memberPubKey)
+    const updatedAdmins = (room.admins || []).filter((a) => a !== memberPubKey)
+    commit('UPDATE_ROOM', { id: roomId, members: updatedMembers, admins: updatedAdmins })
+    await updateRoomOnServer(roomId, { members: updatedMembers, admins: updatedAdmins })
+  }
+
+  return newState
+}
+
+/**
+ * Choose the single member who commits a departing member's removal: the
+ * remaining member with the lowest MLS leaf index. Leaf order is deterministic
+ * and identical on every device, so all peers compute the same answer from the
+ * same tree without any election or extra round-trip. Excludes `leaverPubKey`
+ * because MLS rejects a Commit that removes its own committer.
+ *
+ * `mlsMemberPubkeys` returns compacted positions, not leaf addresses, but it
+ * walks the tree left to right and skips blanks, so the first entry that is
+ * not the leaver is also the lowest remaining leaf index. Do not "fix" this by
+ * indexing the array with a leaf index — that substitution is what
+ * getMlsLeafIdentity exists to prevent.
+ */
+function pickLeaveCommitter(clientState, leaverPubKey) {
+  try {
+    return mlsMemberPubkeys(clientState).find((member) => member && member !== leaverPubKey) || null
+  } catch {
+    return null
+  }
+}
+
 export async function removeMlsMember({ commit, state }, { roomId, memberPubkey }) {
   const ws = getWalletState(state)
   if (!ws?.keys?.privKeyHex) throw new Error('Nostr keys not available')
@@ -1782,45 +1949,13 @@ export async function removeMlsMember({ commit, state }, { roomId, memberPubkey 
       throw new Error('Only the group owner can remove an admin')
     }
 
-    const members = mls.getMlsGroupMembers(clientState)
-    let leafIndex = -1
-    for (let i = 0; i < members.length; i++) {
-      const identity = members[i].credential?.identity || members[i].identityBytes
-      const idStr = identity instanceof Uint8Array ? new TextDecoder().decode(identity) : ''
-      if (idStr === memberPubkey) {
-        leafIndex = i
-        break
-      }
-    }
-    if (leafIndex === -1) throw new Error('Member not found in MLS group')
+    const targetLeaf = mls.getMlsLeafIndexForIdentity(clientState, memberPubkey)
+    if (targetLeaf === -1) throw new Error('Member not found in MLS group')
 
-    const { newState, commit: commitMsg } = await mls.removeMlsMember(clientState, leafIndex, impl)
-
-    const signedCommit = await buildSignedNipEeGroupEvent(clientState, commitMsg)
-    const publish = await relayService.publishEvent(state.relays, signedCommit)
-    if (!publish.accepted.length) {
-      // Do NOT advance local state — if the commit isn't on the relay, other
-      // members still see the removed member in the tree and our epoch would
-      // run ahead of theirs, making future messages undecryptable.
-      const reason = publish.errors[0]?.reason || 'relay rejected the commit'
-      console.warn('[MLS] Remove-member commit rejected:', JSON.stringify(publish.errors))
-      throw new Error(`MLS removal was rejected by the relay: ${reason}`)
-    }
-    markRecentlySent(ws.keys.pubKeyHex, signedCommit.id)
-
-    await mls.saveMlsState(mlsGroupIdHex, newState)
-    commit('SET_MLS_GROUP_STATE', { mlsGroupIdHex, clientState: newState })
-    // Record our own Commit so a later relay re-delivery is skipped instead of
-    // being re-processed and rejected as "Desired gen in the past".
-    commit('MARK_EVENT_PROCESSED', { mlsGroupIdHex, eventId: signedCommit.id })
-
-    commit('CLEAR_MLS_INVITEE_PENDING', { mlsGroupIdHex, memberPubKey: memberPubkey })
-
-    if (room) {
-      const updatedMembers = room.members.filter((m) => m !== memberPubkey)
-      commit('UPDATE_ROOM', { id: roomId, members: updatedMembers, admins: (room.admins || []).filter((a) => a !== memberPubkey) })
-      await updateRoomOnServer(roomId, { members: updatedMembers, admins: (room.admins || []).filter((a) => a !== memberPubkey) })
-    }
+    await commitMlsRemovalLocked({
+      commit, state, ws, mlsGroupIdHex, roomId, clientState,
+      leafIndex: targetLeaf, memberPubKey: memberPubkey, impl,
+    })
   })
 }
 
@@ -1950,7 +2085,7 @@ export async function transferMlsOwnership({ commit, state }, { roomId, newOwner
   await broadcastMlsRoomRoles({ commit, state }, { roomId })
 }
 
-export async function leaveMlsGroup({ commit, state }, { roomId, successorPubKey }) {
+export async function leaveMlsGroup({ commit, state, dispatch }, { roomId, successorPubKey }) {
   const ws = getWalletState(state)
   if (!ws?.keys?.privKeyHex) return
 
@@ -2004,49 +2139,48 @@ export async function leaveMlsGroup({ commit, state }, { roomId, successorPubKey
     clientState = ws.mls.groupStates[mlsGroupIdHex]
   }
 
+  if (!clientState && !isSoleMember) {
+    // Without the tree we cannot name a committer, and tearing down now would
+    // strand us in the group as an unreadable ghost that the remaining members
+    // keep seeing. Refuse instead: the room stays intact and the user can
+    // retry once local state loads.
+    throw new Error(
+      'Could not read the group state, so the group was not notified. Try leaving again.'
+    )
+  }
+
   if (clientState && !isSoleMember) {
-    await withMlsProcessingLock(mlsGroupIdHex, async () => {
-      // Reload inside the lock to get the freshest copy; a concurrent send or
-      // receive may have advanced the epoch since the load above.
-      let lockedState = null
+    // MLS forbids a Commit that removes its own committer, so the departing
+    // member cannot remove themselves. Publish a leave request instead and let
+    // exactly one named member commit the removal (`MLS_LEAVE_PREFIX` handling
+    // in receiveMlsMessage). The request is an ordinary encrypted group
+    // message, so it survives in relay history and reaches the committer on
+    // their next sync even if they are offline right now.
+    //
+    // The committer is the remaining member with the lowest MLS leaf index.
+    // Deriving it from the tree rather than from the room's owner field keeps
+    // it independent of role-control message ordering: when the OWNER leaves,
+    // the successor may see this request before the ownership handoff, and an
+    // owner-based rule would then match nobody and the removal would never
+    // happen. Exactly one member matches, so only one Commit is produced at
+    // that epoch and the group cannot fork.
+    //
+    // Nothing local is torn down until the request is on the relay: a leaver
+    // who silently fails to announce would keep receiving group traffic while
+    // believing they had left.
+    const committerPubKey = pickLeaveCommitter(clientState, ws.keys.pubKeyHex)
+    // No other member in the tree: nothing to commit, fall through to teardown.
+    if (committerPubKey) {
+      const text = MLS_LEAVE_PREFIX + committerPubKey
       try {
-        lockedState = await mls.loadMlsState(mlsGroupIdHex, impl, {})
+        await sendMlsMessage({ commit, state, dispatch }, { roomId, text })
       } catch (err) {
-        console.warn('[MLS] leaveMlsGroup: failed to load state from IndexedDB:', err.message)
-      }
-      if (!lockedState && ws.mls.groupStates?.[mlsGroupIdHex]) {
-        lockedState = ws.mls.groupStates[mlsGroupIdHex]
-      }
-      if (!lockedState) return
-
-      const ownLeaf = mls.getOwnLeafIndex(lockedState)
-      if (ownLeaf === -1) return
-
-      // Publish the self-remove commit with retries. Local state must only be
-      // torn down once the commit is on the relay.
-      let published = false
-      let lastErr = null
-      for (let attempt = 1; attempt <= 3 && !published; attempt++) {
-        try {
-          const { newState, commit: commitMsg } = await mls.removeMlsMember(lockedState, ownLeaf, impl)
-          const signedCommit = await buildSignedNipEeGroupEvent(lockedState, commitMsg)
-          const result = await relayService.publishEvent(state.relays, signedCommit)
-          if (!result.accepted.length) throw new Error(result.errors[0]?.reason || 'relay rejected the commit')
-          markRecentlySent(ws.keys.pubKeyHex, signedCommit.id)
-          await mls.saveMlsState(mlsGroupIdHex, newState)
-          published = true
-        } catch (err) {
-          lastErr = err
-          console.warn(`[MLS] Self-remove publish attempt ${attempt}/3 failed:`, err.message)
-        }
-      }
-      if (!published) {
         throw new Error(
-          `Failed to notify the group that you left (${lastErr?.message || 'publish failed'}). ` +
+          `Failed to notify the group that you left (${err?.message || 'publish failed'}). ` +
           'You are still a member — try leaving again.'
         )
       }
-    })
+    }
   }
 
   await mls.removeMlsState(mlsGroupIdHex)

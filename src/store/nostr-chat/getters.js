@@ -1,4 +1,6 @@
 import { ACTIVE_THRESHOLD_MS } from './state'
+import { isMlsMemberPending } from './mls-membership.js'
+import { isSelfDmRoom } from './self-chat.js'
 import sha256 from 'js-sha256'
 import { Store } from 'src/store'
 
@@ -76,13 +78,50 @@ export function getActiveStatusMap (state) {
 
 // ---- Per-wallet room getters ----
 
+// Messages the user hid on this device ("Delete for me"). The ids live in
+// wallet state (persisted), so every read path must drop them — a relay
+// refetch, history replay or MLS re-decrypt would otherwise re-surface a
+// message the user already removed.
+function visibleMessages (ws, roomId) {
+  const messages = ws.messages?.[roomId]
+  if (!Array.isArray(messages)) return []
+  const hidden = ws.hiddenMessageIds?.[roomId]
+  if (!hidden) return messages
+  return messages.filter(m => !hidden[m.id])
+}
+
+// Newest stored message timestamp for a room, clamped to now. NIP-17
+// randomizes created_at by up to 2 days, so a future-dated message could
+// otherwise pin its room to the top forever.
+function newestMessageActivity (ws, roomId) {
+  const messages = visibleMessages(ws, roomId)
+  if (!messages.length) return 0
+  const newest = messages[messages.length - 1]
+  const createdAt = newest?.created_at || 0
+  const now = Math.floor(Date.now() / 1000)
+  return createdAt > now ? now : createdAt
+}
+
 // Last activity time used for chat-list ordering. Falls back through
 // updatedAt/createdAt because lastMessageAt is often missing entirely (server
 // touch failures, rooms whose messages were never received while open) — those
 // rooms would otherwise all sort as 0 below every other chat in arbitrary
 // insertion order.
-function roomLastActivity (room) {
-  return room?.lastMessageAt || room?.updatedAt || room?.createdAt || 0
+//
+// The stored message timestamps are part of the max: lastMessageAt is only set
+// on the live send/receive path, so a room that gained messages while its
+// notification was handled elsewhere (offline catch-up, backfill, unknown-room
+// path where the room object did not exist yet) keeps a stale lastMessageAt
+// while already showing a new message and unread badge — it stayed parked in
+// its old list position. Unread counts and ordering now both derive from the
+// same stored messages, so they cannot disagree.
+function roomLastActivity (ws, room) {
+  return Math.max(
+    room?.lastMessageAt || 0,
+    newestMessageActivity(ws, room?.id),
+    room?.updatedAt || 0,
+    room?.createdAt || 0,
+  )
 }
 
 export function getRooms (state) {
@@ -90,8 +129,8 @@ export function getRooms (state) {
   const myPubKey = ws.keys?.pubKeyHex
   if (!myPubKey) return []
   return (ws.rooms || [])
-    .filter(r => r.members?.includes(myPubKey) && !r.archived)
-    .sort((a, b) => roomLastActivity(b) - roomLastActivity(a))
+    .filter(r => r.members?.includes(myPubKey) && !r.archived && !isSelfDmRoom(r, myPubKey))
+    .sort((a, b) => roomLastActivity(ws, b) - roomLastActivity(ws, a))
 }
 
 export function getArchivedRooms (state) {
@@ -99,8 +138,8 @@ export function getArchivedRooms (state) {
   const myPubKey = ws.keys?.pubKeyHex
   if (!myPubKey) return []
   return (ws.rooms || [])
-    .filter(r => r.members?.includes(myPubKey) && r.archived)
-    .sort((a, b) => roomLastActivity(b) - roomLastActivity(a))
+    .filter(r => r.members?.includes(myPubKey) && r.archived && !isSelfDmRoom(r, myPubKey))
+    .sort((a, b) => roomLastActivity(ws, b) - roomLastActivity(ws, a))
 }
 
 export function getRoom (state) {
@@ -132,7 +171,9 @@ export function getMlsPendingInvitees (state) {
   return (roomId) => {
     const mlsGroupIdHex = ws.mls?.roomMlsMap?.[roomId]
     if (!mlsGroupIdHex) return []
-    return Object.keys(ws.mls?.pendingInvitees?.[mlsGroupIdHex] || {})
+    const pending = ws.mls?.pendingInvitees?.[mlsGroupIdHex]
+    const joined = ws.mls?.joinedMembers?.[mlsGroupIdHex]
+    return Object.keys(pending || {}).filter((pubKey) => isMlsMemberPending(pubKey, { pending, joined }))
   }
 }
 
@@ -164,7 +205,17 @@ export function getRoomById (state) {
 // ---- Per-wallet message getters ----
 
 export function getAllMessages (state) {
-  return getWalletState(state).messages || {}
+  const ws = getWalletState(state)
+  const messages = ws.messages || {}
+  const hidden = ws.hiddenMessageIds
+  // No hidden messages → hand back the raw map so consumers keep referential
+  // identity (RoomList previews recompute on prop change).
+  if (!hidden || !Object.keys(hidden).length) return messages
+  const filtered = {}
+  for (const roomId of Object.keys(messages)) {
+    filtered[roomId] = visibleMessages(ws, roomId)
+  }
+  return filtered
 }
 
 export function getReadMessageIds (state) {
@@ -178,7 +229,7 @@ export function getMessages (state) {
   return (roomId) => {
     const room = (ws.rooms || []).find(r => r.id === roomId && r.members?.includes(myPubKey))
     if (!room) return []
-    return ws.messages?.[roomId] || []
+    return visibleMessages(ws, roomId)
   }
 }
 
@@ -189,9 +240,21 @@ export function getLastMessage (state) {
   return (roomId) => {
     const room = (ws.rooms || []).find(r => r.id === roomId && r.members?.includes(myPubKey))
     if (!room) return null
-    const msgs = ws.messages?.[roomId] || []
+    const msgs = visibleMessages(ws, roomId)
     return msgs.length ? msgs[msgs.length - 1] : null
   }
+}
+
+// ---- Per-wallet muted rooms ----
+
+export function isRoomMuted (state) {
+  const ws = getWalletState(state)
+  return (roomId) => (ws.mutedRooms || []).includes(roomId)
+}
+
+export function getMutedRoomIds (state) {
+  const ws = getWalletState(state)
+  return ws.mutedRooms || []
 }
 
 // ---- Per-wallet blocked contacts ----
@@ -280,7 +343,7 @@ export function getUnreadCount (state) {
   return (roomId) => {
     const room = (ws.rooms || []).find(r => r.id === roomId && r.members?.includes(myPubKey))
     if (!room) return 0
-    const msgs = ws.messages?.[roomId] || []
+    const msgs = visibleMessages(ws, roomId)
     const readIds = ws.readMessageIds?.[roomId] || {}
     return msgs.filter(m => m.sender !== myPubKey && !readIds[m.id]).length
   }
@@ -293,7 +356,7 @@ export function getTotalUnreadCount (state) {
   let total = Object.keys(ws.mls?.pendingInvitations || {}).length
   for (const room of (ws.rooms || [])) {
     if (!room.members?.includes(myPubKey)) continue
-    const msgs = ws.messages?.[room.id] || []
+    const msgs = visibleMessages(ws, room.id)
     const readIds = ws.readMessageIds?.[room.id] || {}
     total += msgs.filter(m => m.sender !== myPubKey && !readIds[m.id]).length
   }
@@ -322,6 +385,17 @@ export function isInitialized (state) {
 
 export function isSubscribed (state) {
   return getWalletState(state).isSubscribed || false
+}
+
+// Whether the first room-list fetch has finished for this wallet. The chat
+// index uses it to tell "still loading" (no cached rooms yet → skeletons)
+// apart from "no chats yet".
+export function isRoomListLoaded (state) {
+  // No active wallet (or nothing hydrated for it yet): there is no fetch to
+  // wait for, so report loaded and let the empty state render.
+  const ws = getWalletState(state)
+  if (!ws.roomsLoaded && !Object.keys(ws).length) return true
+  return ws.roomsLoaded || false
 }
 
 export function getRelayStatus (state) {

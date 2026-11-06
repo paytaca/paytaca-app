@@ -371,7 +371,12 @@ export default {
         // App was genuinely backgrounded (paused for > threshold)
         // Since we already locked on pause (to protect app preview), we just need to verify
         // the lock state is correct and ensure we're on the lock screen
-        
+
+        // The relay socket does not survive backgrounding, so messages sent
+        // while the app was away only arrive when the subscription is rebuilt.
+        // Pull them now instead of waiting on the relay to replay them.
+        vm.$store.dispatch('nostrChat/fetchLatestMessages', { force: true }).catch(() => {})
+
         if (lockAppEnabled) {
           // Verify lock state is correct (should already be locked from pause event)
           const currentUnlockState = vm.$store.getters['global/isUnlocked']
@@ -1020,8 +1025,12 @@ export default {
 
       if (this.$q.platform.is.mobile) {
         this._nostrPushListener = notification => {
-          // Ensure Nostr chat subscription is active when a Nostr event push arrives
+          // The push is the earliest signal a new Nostr event exists. Pull the
+          // newest gift-wraps immediately — the live subscription cannot be
+          // trusted here (it may have been dropped while backgrounded, and
+          // `ensureSubscribed` is a no-op inside its cooldowns).
           if (notification?.data?.type === 'nostr_event') {
+            this.$store.dispatch('nostrChat/fetchLatestMessages', { force: true }).catch(() => {})
             this.$store.dispatch('nostrChat/ensureSubscribed')
           }
         }
@@ -1030,8 +1039,18 @@ export default {
         this.subscribePushNotifications()
       } else if (this.$pushNotifications?.events) {
         // On web/PWA, show in-app notification since system push is not available
-        this._nostrPushListener = notification => {
-          if (notification?.title || notification?.body) {
+        this._nostrPushListener = async notification => {
+          // The push is the earliest signal a new Nostr event exists. Pull the
+          // newest gift-wraps immediately — the live subscription cannot be
+          // trusted here, and `ensureSubscribed` is a no-op inside its cooldowns.
+          let shouldNotify = true
+          if (notification?.data?.type === 'nostr_event') {
+            // The payload names the wallet, not the room, so the muted check
+            // happens after the pull: muted conversations must stay silent.
+            shouldNotify = await this.$store.dispatch('nostrChat/pullLatestForPush').catch(() => true)
+            this.$store.dispatch('nostrChat/ensureSubscribed')
+          }
+          if (shouldNotify && (notification?.title || notification?.body)) {
             this.$q.notify({
               color: 'brandblue',
               message: notification?.title,
@@ -1043,10 +1062,6 @@ export default {
                 { icon: 'close', 'aria-label': 'Dismiss', color: 'white' }
               ]
             })
-          }
-          // Ensure Nostr chat subscription is active when a Nostr event push arrives
-          if (notification?.data?.type === 'nostr_event') {
-            this.$store.dispatch('nostrChat/ensureSubscribed')
           }
         }
         this.$pushNotifications.events.addEventListener('pushNotificationReceived', this._nostrPushListener)

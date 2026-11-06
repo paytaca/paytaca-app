@@ -208,15 +208,30 @@ function reducer(state) {
                       continue
                     }
 
-                    // DM/group room lists, deleted rooms, and block lists are stored
-                    // server-side; only keep an in-memory cache, don't persist them.
-                    // MLS rooms are the exception: they are local-only (never fully
-                    // represented on the server), so persist them so they survive an
-                    // app restart.
+                    // DM/group room lists, deleted rooms, and block lists live
+                    // server-side, but the room list itself is cached so the
+                    // chat index paints immediately on a cold start; SET_ROOMS
+                    // reconciles the cache with the server's authoritative list.
                     if (moduleName === 'nostrChat' && key === 'rooms') {
                       if (Array.isArray(value)) {
-                        cleanWalletState.rooms = value.filter(r => r && r.type === 'mls-group')
+                        cleanWalletState.rooms = value.map(r => ({
+                          id: r.id,
+                          type: r.type,
+                          name: r.name,
+                          members: r.members,
+                          subject: r.subject,
+                          nostrGroupId: r.nostrGroupId || null,
+                          archived: !!r.archived,
+                          owner: r.owner,
+                          admins: r.admins,
+                          createdAt: r.createdAt,
+                          updatedAt: r.updatedAt,
+                          lastMessageAt: r.lastMessageAt,
+                        }))
                       }
+                      continue
+                    }
+                    if (moduleName === 'nostrChat' && key === 'roomsLoaded') {
                       continue
                     }
                     if (moduleName === 'nostrChat' && ['deletedRooms', 'blockedContacts'].includes(key)) {
@@ -268,6 +283,7 @@ function reducer(state) {
                         failedEventAttempts: value.failedEventAttempts || {},
                         processedEventIds: value.processedEventIds || {},
                         pendingInvitees: value.pendingInvitees || {},
+                        joinedMembers: value.joinedMembers || {},
                       }
                       continue
                     }
