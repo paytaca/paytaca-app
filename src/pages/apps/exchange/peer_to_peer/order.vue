@@ -194,6 +194,7 @@
                   <q-badge v-if="!isStatusRead(status)" color="red" rounded floating/>
                   <div class="col q-pr-sm">
                     <div class="text-weight-medium text-body1">{{ formatOrderStatus(status.status) }}</div>
+                    <div v-if="statusActorLabel(status)" class="text-caption q-mt-xs">{{ statusActorLabel(status) }}</div>
                     <div class="text-caption text-grey q-mt-xs">{{ formatDate(status.created_at, false) }}</div>
                     <div class="text-caption q-mt-xs status-relative-time">{{ formatDate(status.created_at, true) }}</div>
                   </div>
@@ -1067,6 +1068,68 @@ export default {
       if (!this.userTraderType) return true
       return (this.userTraderType === 'SELLER' && !!status.seller_read_at) || 
              (this.userTraderType === 'BUYER' && !!status.buyer_read_at)
+    },
+
+    statusActor (status) {
+      const creator = status?.creator
+      const user = this.$store.getters['ramp/getUser']
+
+      if (creator) {
+        if (creator.is_system) return { name: this.$t('System', {}, 'System'), system: true }
+        if (creator.is_arbiter) {
+          return {
+            name: creator.name || this.$t('Arbiter', {}, 'Arbiter'),
+            role: this.$t('Arbiter', {}, 'Arbiter')
+          }
+        }
+        const isYou = creator.id && user?.id && creator.id === user.id
+        return {
+          name: isYou ? this.$t('You', {}, 'You') : (creator.name || ''),
+          role: this.statusActorRole(creator.id)
+        }
+      }
+
+      // Older rows and events the backend does not attribute
+      const derivedRole = this.deriveStatusActorRole(status)
+      if (derivedRole) {
+        const member = this.order?.members?.[derivedRole.toLowerCase()]
+        const isYou = member?.id && user?.id && member.id === user.id
+        return {
+          name: (isYou ? this.$t('You', {}, 'You') : (member?.name || '')) || this.$t(derivedRole, {}, derivedRole),
+          role: this.$t(derivedRole, {}, derivedRole)
+        }
+      }
+      return null
+    },
+
+    statusActorRole (peerId) {
+      const members = this.order?.members
+      if (!members || !peerId) return ''
+      for (const role of ['seller', 'buyer', 'arbiter']) {
+        if (members[role]?.id === peerId) {
+          return role === 'arbiter' ? this.$t('Arbiter', {}, 'Arbiter') : role === 'seller' ? this.$t('Seller', {}, 'Seller') : this.$t('Buyer', {}, 'Buyer')
+        }
+      }
+      return ''
+    },
+
+    deriveStatusActorRole (status) {
+      // Events the backend never recorded a creator for: paid pending is buyer-only,
+      // and a release follows the arbiter's release-pending decision when appealed.
+      if (status?.status === 'PD_PN') return 'Buyer'
+      if (status?.status === 'RLS') {
+        const appealedRelease = (this.statusHistory || []).some(item => item.status === 'RLS_PN')
+        return appealedRelease ? 'Arbiter' : 'Seller'
+      }
+      return ''
+    },
+
+    statusActorLabel (status) {
+      const actor = this.statusActor(status)
+      if (!actor) return ''
+      if (actor.system) return actor.name
+      if (actor.role) return `${this.$t('By', {}, 'by')} ${actor.name} (${actor.role})`
+      return `${this.$t('By', {}, 'by')} ${actor.name}`
     },
 
     // Chat Tab Methods
