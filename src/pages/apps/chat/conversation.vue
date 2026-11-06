@@ -73,6 +73,22 @@
               </q-item-section>
             </q-item>
             <q-separator v-if="!isGroupRoom && otherMemberContact || isGroupRoom" />
+            <q-item v-if="!isRoomMuted && !isRoomArchived" clickable v-close-popup @click="muteRoom">
+              <q-item-section side>
+                <q-icon name="notifications_off" size="18px" />
+              </q-item-section>
+              <q-item-section>
+                {{ $t('MuteConversation', {}, 'Mute Notifications') }}
+              </q-item-section>
+            </q-item>
+            <q-item v-else-if="!isRoomArchived" clickable v-close-popup @click="unmuteRoom">
+              <q-item-section side>
+                <q-icon name="notifications" size="18px" />
+              </q-item-section>
+              <q-item-section>
+                {{ $t('UnmuteConversation', {}, 'Unmute Notifications') }}
+              </q-item-section>
+            </q-item>
             <q-item v-if="!isRoomArchived" clickable v-close-popup @click="confirmArchiveRoom">
               <q-item-section side>
                 <q-icon name="archive" size="18px" />
@@ -661,6 +677,9 @@ export default {
     },
     isRoomArchived () {
       return this.room?.archived === true
+    },
+    isRoomMuted () {
+      return this.$store.getters['nostrChat/isRoomMuted'](this.roomId)
     },
     isGroupRoom () {
       return this.room?.type === 'group' || this.room?.type === 'mls-group'
@@ -2063,6 +2082,20 @@ export default {
           message: this.$t('ContactRenameFailed', {}, 'Failed to rename contact') + ': ' + err.message,
         })
       }
+    },
+    muteRoom () {
+      this.$store.dispatch('nostrChat/muteRoom', this.roomId)
+      this.$q.notify({
+        type: 'info',
+        message: this.$t('ConversationMuted', {}, 'Notifications muted'),
+      })
+    },
+    unmuteRoom () {
+      this.$store.dispatch('nostrChat/unmuteRoom', this.roomId)
+      this.$q.notify({
+        type: 'positive',
+        message: this.$t('ConversationUnmuted', {}, 'Notifications unmuted'),
+      })
     },
     confirmArchiveRoom () {
       const roomName = this.roomName

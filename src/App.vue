@@ -1038,8 +1038,18 @@ export default {
         this.subscribePushNotifications()
       } else if (this.$pushNotifications?.events) {
         // On web/PWA, show in-app notification since system push is not available
-        this._nostrPushListener = notification => {
-          if (notification?.title || notification?.body) {
+        this._nostrPushListener = async notification => {
+          // The push is the earliest signal a new Nostr event exists. Pull the
+          // newest gift-wraps immediately — the live subscription cannot be
+          // trusted here, and `ensureSubscribed` is a no-op inside its cooldowns.
+          let shouldNotify = true
+          if (notification?.data?.type === 'nostr_event') {
+            // The payload names the wallet, not the room, so the muted check
+            // happens after the pull: muted conversations must stay silent.
+            shouldNotify = await this.$store.dispatch('nostrChat/pullLatestForPush').catch(() => true)
+            this.$store.dispatch('nostrChat/ensureSubscribed')
+          }
+          if (shouldNotify && (notification?.title || notification?.body)) {
             this.$q.notify({
               color: 'brandblue',
               message: notification?.title,
@@ -1051,13 +1061,6 @@ export default {
                 { icon: 'close', 'aria-label': 'Dismiss', color: 'white' }
               ]
             })
-          }
-          // The push is the earliest signal a new Nostr event exists. Pull the
-          // newest gift-wraps immediately — the live subscription cannot be
-          // trusted here, and `ensureSubscribed` is a no-op inside its cooldowns.
-          if (notification?.data?.type === 'nostr_event') {
-            this.$store.dispatch('nostrChat/fetchLatestMessages', { force: true }).catch(() => {})
-            this.$store.dispatch('nostrChat/ensureSubscribed')
           }
         }
         this.$pushNotifications.events.addEventListener('pushNotificationReceived', this._nostrPushListener)

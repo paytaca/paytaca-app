@@ -23,6 +23,11 @@ export function getInitialWalletState () {
     blockedContacts: [],
     // Server-backed deleted room IDs cache (re-fetched on init)
     deletedRooms: [],
+    // Room IDs whose notifications are muted. Persisted and mirrored to the
+    // server (room.muted) so pushes can be suppressed before they reach the
+    // device; mutable from the conversation menu and set automatically when a
+    // room is archived, cleared when it is unarchived.
+    mutedRooms: [],
     messages: {},
     // Newest known message timestamp (unix seconds). Persisted (unlike
     // `messages` itself) so subscribeToRelays can still compute a `since`

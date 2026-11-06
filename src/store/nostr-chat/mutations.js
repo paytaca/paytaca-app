@@ -28,6 +28,16 @@ function mergeWalletStateDefaults (ws) {
   }
 }
 
+// Mute flags live in a single per-wallet id list so a room that is not in the
+// current list (deleted, or an MLS group the server does not mirror) keeps its
+// setting. `rooms[].muted` is deliberately not mirrored on the room objects.
+function setRoomMutedFlag (ws, roomId, muted) {
+  if (!ws.mutedRooms) ws.mutedRooms = []
+  const has = ws.mutedRooms.includes(roomId)
+  if (muted && !has) ws.mutedRooms.push(roomId)
+  if (!muted && has) ws.mutedRooms = ws.mutedRooms.filter(id => id !== roomId)
+}
+
 function getOrInitWalletState (state, walletHash = null) {
   const hash = walletHash || getCurrentWalletHash()
   if (!hash) {
@@ -181,6 +191,14 @@ export function UPDATE_ROOM_TYPE (state, { roomId, type }) {
   }
 }
 
+// Mute/unmute a room. Deleting a room leaves its entry in place: the id stays
+// muted so a room re-created from another device cannot start notifying.
+export function SET_ROOM_MUTED (state, { roomId, muted }) {
+  const ws = getOrInitWalletState(state)
+  if (!ws) return
+  setRoomMutedFlag(ws, roomId, muted)
+}
+
 export function REMOVE_ROOM (state, roomId) {
   const ws = getOrInitWalletState(state)
   if (!ws) return
@@ -200,6 +218,8 @@ export function ARCHIVE_ROOM (state, roomId) {
     room.archived = true
     room.updatedAt = Math.floor(Date.now() / 1000)
   }
+  // Archiving silences the room: an archived conversation must not notify.
+  setRoomMutedFlag(ws, roomId, true)
 }
 
 export function UNARCHIVE_ROOM (state, roomId) {
@@ -210,6 +230,8 @@ export function UNARCHIVE_ROOM (state, roomId) {
     room.archived = false
     room.updatedAt = Math.floor(Date.now() / 1000)
   }
+  // Unarchiving restores notifications.
+  setRoomMutedFlag(ws, roomId, false)
 }
 
 // ---- Per-wallet blocked contacts ----
@@ -275,6 +297,15 @@ export function SET_ROOMS (state, rooms) {
   for (const [id, room] of localMap) {
     if (!serverIds.has(id)) ws.rooms.push(room)
   }
+  // Mute is server-backed so a room muted on another device stays muted here.
+  // Rooms missing from the response keep their local flag; a server value that
+  // is false clears it. Servers that do not know the field leave it untouched.
+  const muted = new Set(ws.mutedRooms || [])
+  for (const sr of rooms) {
+    if (sr.muted === true) muted.add(sr.id)
+    else if (sr.muted === false) muted.delete(sr.id)
+  }
+  ws.mutedRooms = [...muted]
 }
 
 // The room-list fetch finished without producing a list (network error, empty
@@ -619,6 +650,7 @@ export function RESET_WALLET_CHAT_DATA (state) {
   ws.rooms = []
   ws.roomsLoaded = false
   ws.deletedRooms = []
+  ws.mutedRooms = []
   ws.messages = {}
   ws.hiddenMessageIds = {}
   ws.readReceipts = {}

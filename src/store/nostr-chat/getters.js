@@ -245,6 +245,18 @@ export function getLastMessage (state) {
   }
 }
 
+// ---- Per-wallet muted rooms ----
+
+export function isRoomMuted (state) {
+  const ws = getWalletState(state)
+  return (roomId) => (ws.mutedRooms || []).includes(roomId)
+}
+
+export function getMutedRoomIds (state) {
+  const ws = getWalletState(state)
+  return ws.mutedRooms || []
+}
+
 // ---- Per-wallet blocked contacts ----
 
 export function isContactBlocked (state) {

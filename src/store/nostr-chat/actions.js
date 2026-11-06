@@ -916,6 +916,22 @@ export async function fetchLatestMessages ({ state, dispatch }, { limit = 20, fo
   }
 }
 
+// A chat push only names the recipient wallet, never the room, so the payload
+// alone cannot tell the app whether the message landed in a muted conversation.
+// Pull first, then report whether any unmuted room actually got new activity;
+// callers surface the notification only when it returns true.
+export async function pullLatestForPush ({ state, dispatch, getters }) {
+  const before = new Map((getWalletState(state)?.rooms || []).map(r => [r.id, r.lastMessageAt || 0]))
+  const result = await dispatch('fetchLatestMessages', { force: true })
+  // Nothing was pulled (no identity yet, or a shared fetch was already running
+  // and returned nothing): the room cannot be determined, so do not swallow
+  // a notification that may belong to a live conversation.
+  if (!result) return true
+  return (getWalletState(state)?.rooms || []).some(r => {
+    return !getters.isRoomMuted(r.id) && (r.lastMessageAt || 0) > (before.get(r.id) || 0)
+  })
+}
+
 export async function addContact ({ state, commit }, { name, npub }) {
   const decoded = nip19Decode(npub)
   if (decoded.type !== 'npub') throw new Error('Invalid npub')
@@ -1571,6 +1587,9 @@ async function decryptRoomsList (rooms) {
       nostrGroupId: r.nostr_group_id || null,
       subject: await decryptRoomName(r.subject),
       archived: !!r.archived,
+      // Leave undefined when the server does not expose the field so
+      // SET_ROOMS keeps the locally stored mute instead of clearing it.
+      muted: r.muted === undefined ? undefined : !!r.muted,
       createdAt: typeof createdAt === 'string' ? Math.floor(new Date(createdAt).getTime() / 1000) : createdAt,
       updatedAt: typeof updatedAt === 'string' ? Math.floor(new Date(updatedAt).getTime() / 1000) : updatedAt,
       lastMessageAt: typeof lastMsgTs === 'string' ? Math.floor(new Date(lastMsgTs).getTime() / 1000) : lastMsgTs,
@@ -1844,14 +1863,26 @@ export async function sendEditMessage ({ state }, { roomId, text, editOf }) {
 
 // ── Room lifecycle actions (sync to server) ──────────────────────────
 
+export async function muteRoom ({ commit }, roomId) {
+  commit('SET_ROOM_MUTED', { roomId, muted: true })
+  await updateRoomOnServer(roomId, { muted: true })
+}
+
+export async function unmuteRoom ({ commit }, roomId) {
+  commit('SET_ROOM_MUTED', { roomId, muted: false })
+  await updateRoomOnServer(roomId, { muted: false })
+}
+
 export async function archiveRoom ({ commit }, roomId) {
   commit('ARCHIVE_ROOM', roomId)
-  await updateRoomOnServer( roomId, { archived: true })
+  // An archived conversation must not notify, so the archive flag carries the
+  // mute with it — one request, and the two can never diverge on the server.
+  await updateRoomOnServer( roomId, { archived: true, muted: true })
 }
 
 export async function unarchiveRoom ({ commit }, roomId) {
   commit('UNARCHIVE_ROOM', roomId)
-  await updateRoomOnServer( roomId, { archived: false })
+  await updateRoomOnServer( roomId, { archived: false, muted: false })
 }
 
 export async function updateRoomName ({ commit }, { roomId, name }) {
@@ -1875,6 +1906,10 @@ export async function deleteRoom ({ commit, state }, roomId) {
   // under a room the UI never renders (decrypts fine, never displayed).
   const ws = getWalletState(state)
   const mlsGroupIdHex = ws?.mls?.roomMlsMap?.[roomId]
+  // A deleted conversation is a muted one: the row goes away here and on the
+  // server, but the mute is kept locally so a room re-created from another
+  // device cannot start notifying.
+  commit('SET_ROOM_MUTED', { roomId, muted: true })
   commit('REMOVE_ROOM', roomId)
   if (mlsGroupIdHex) commit('REMOVE_MLS_ROOM_MAP', roomId)
   await deleteRoomOnServer(roomId)

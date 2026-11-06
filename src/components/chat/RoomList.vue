@@ -62,8 +62,11 @@
                 {{ $t('Group', {}, 'GROUP') }}
               </q-badge>
             </div>
-            <div v-if="room.lastMessageAt || lastMessageTime(room.id) || room.updatedAt" class="room-time">
-              {{ formatTime(room.lastMessageAt || lastMessageTime(room.id) || room.updatedAt) }}
+            <div class="room-meta">
+              <q-icon v-if="isRoomMuted(room.id)" name="notifications_off" size="14px" class="room-muted-icon" />
+              <div v-if="room.lastMessageAt || lastMessageTime(room.id) || room.updatedAt" class="room-time">
+                {{ formatTime(room.lastMessageAt || lastMessageTime(room.id) || room.updatedAt) }}
+              </div>
             </div>
           </div>
           <div class="room-preview-row">
@@ -371,6 +374,9 @@ export default {
     unreadCount (roomId) {
       return this.unreadCountMap[roomId] || 0
     },
+    isRoomMuted (roomId) {
+      return this.$store.getters['nostrChat/isRoomMuted'](roomId)
+    },
     getDmAvatar (room) {
       // Group rooms (closed and open/MLS) always use their fixed icon.
       if (room.type === 'group' || room.type === 'mls-group') return null
@@ -523,6 +529,17 @@ export default {
   color: #9ca3af;
   flex-shrink: 0;
   white-space: nowrap;
+}
+
+.room-meta {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  flex-shrink: 0;
+}
+
+.room-muted-icon {
+  color: #9ca3af;
 }
 
 .room-preview-row {
