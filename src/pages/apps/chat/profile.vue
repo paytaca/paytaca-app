@@ -791,7 +791,7 @@ export default {
       this.triggerAvatarUpload()
     },
     onDocumentPointerDown (e) {
-      const menuEl = this.$refs.avatarMenu?.$el
+      const menuEl = this.$refs.avatarMenu?.contentEl
       if (!menuEl) return
       const path = typeof e.composedPath === 'function' ? e.composedPath() : (e.path || [])
       if (path.indexOf(menuEl) !== -1) return
