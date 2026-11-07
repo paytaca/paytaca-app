@@ -14,7 +14,7 @@
         </div>
         <div class="col">
           <div class="text-h6 text-weight-bold q-mb-xs" :class="getDarkModeClass(darkMode)">
-            {{ $t('CashIn.ConvertTitle', {}, 'Convert other cryptocurrencies') }}
+            {{ $t('CashIn.ConvertTitle', {}, 'Convert other cryptocurrencies to BCH') }}
           </div>
           <div class="text-caption" :class="darkMode ? 'text-grey-5' : 'text-grey-7'">
             {{ $t('CashIn.ConvertDescription', {}, 'Swap BTC, ETH, SOL, USDT, and other coins into BCH.') }}
@@ -39,7 +39,7 @@
         </div>
         <div class="col">
           <div class="text-h6 text-weight-bold q-mb-xs" :class="getDarkModeClass(darkMode)">
-            {{ $t('CashIn.P2PTitle', {}, 'Buy from other people') }}
+            {{ $t('CashIn.P2PTitle', {}, 'Buy BCH from sellers in local currency') }}
           </div>
           <div class="text-caption" :class="darkMode ? 'text-grey-5' : 'text-grey-7'">
             {{ $t('CashIn.P2PDescription', {}, 'Buy BCH with fiat from peers in the P2P Ramp.') }}
