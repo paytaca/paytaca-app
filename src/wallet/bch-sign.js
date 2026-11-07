@@ -184,18 +184,16 @@ export function signBchTransaction({ transaction, sourceOutputs, resolveKey, pre
 
         unlockingBytecodeHex = unlockingBytecodeHex.replace(sigPlaceholder, "41" + binToHex(sig))
       } else if (!unlockingBytecodeHexHasSignature(unlockingBytecodeHex, publicKey, sighash)) {
-        // The unlocking bytecode of a contract spend is the function arguments followed
-        // by a push of the redeem script. A spend that passes no arguments at all — such
-        // as a Cauldron pool exchange, which branches on OP_DEPTH instead of taking a
-        // signature — has nothing for the wallet to fill in. Pass it through untouched
-        // rather than rejecting a template that was never meant to be signed here.
-        const decoded = decodeAuthenticationInstructions(hexToBin(unlockingBytecodeHex))
-        const argumentCount = typeof decoded === 'string' ? 0 : Math.max(decoded.length - 1, 0)
+        // The wallet only fills `sig` placeholders. A contract spend whose function takes
+        // no `sig` argument — such as a Cauldron pool exchange (no arguments) or a covenant
+        // function taking only data arguments like ParyonUSD's borrow(bytes2, bytes5) — has
+        // nothing for the wallet to fill in. Pass it through untouched rather than rejecting
+        // a template that was never meant to be signed here.
         const abiInputs = sourceOutput.contract?.abiFunction?.inputs
         const abiWantsSignature = Array.isArray(abiInputs) &&
-          abiInputs.some(input => ['sig', 'datasig'].includes(input?.type))
+          abiInputs.some(input => input?.type === 'sig')
 
-        if (argumentCount > 0 || abiWantsSignature) {
+        if (abiWantsSignature) {
           throw signBchTxError(
             `Contract input ${index}: no signature placeholder found in the unlocking bytecode, ` +
             'and no valid signature from this wallet is present. Refusing to return an unsigned ' +
@@ -204,7 +202,7 @@ export function signBchTransaction({ transaction, sourceOutputs, resolveKey, pre
           )
         }
 
-        console.warn(`[bch-sign] Contract input ${index}: contract spend takes no arguments; leaving unlocking bytecode unchanged`)
+        console.warn(`[bch-sign] Contract input ${index}: contract function takes no sig argument; leaving unlocking bytecode unchanged`)
       }
 
       if (unlockingBytecodeHex.indexOf(pubkeyPlaceholder) !== -1) {
