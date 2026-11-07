@@ -274,12 +274,18 @@ export function SET_ROOMS (state, rooms) {
     // a server value.
     const merged = { ...sr }
     if (lr.lastMessageAt) merged.lastMessageAt = lr.lastMessageAt
-    // Server rows never carry MLS role fields (owner/admins are relay-broadcast
-    // and only present on the creating/owning device). Merge them from the
-    // local copy so a role change made locally isn't wiped by a refetch.
+    // MLS roles are mirrored on the server row, but the local copy is the one
+    // that saw the ratchet tree and the role broadcasts, so it wins whenever it
+    // has a usable owner. A device with no local roles (fresh install, second
+    // device) keeps whatever the server seeded.
     if (lr.type === 'mls-group') {
-      merged.owner = lr.owner
-      merged.admins = lr.admins || []
+      if (lr.owner) {
+        merged.owner = lr.owner
+        merged.admins = lr.admins || []
+      } else {
+        merged.owner = merged.owner || null
+        merged.admins = merged.admins || []
+      }
       // The public nostr_group_id is also local-only metadata (it lives in the
       // MLS group extension); keep the local value if the server row predates it.
       if (!merged.nostrGroupId) merged.nostrGroupId = lr.nostrGroupId || null

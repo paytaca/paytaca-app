@@ -217,10 +217,11 @@ export default {
         this.otherMemberAvatar = cachedUrl || walletState?.avatarCache?.[pubKey]?.avatar || null
         this.$store.dispatch('nostrChat/fetchPublishedAvatar', { pubKeyHex: pubKey })
           .then(avatar => {
-            if (avatar) {
-              setCachedAvatar(pubKey, avatar)
-              this.otherMemberAvatar = avatar
-            }
+            if (!avatar || this.otherMemberPubKey !== pubKey) return
+            this.otherMemberAvatar = avatar
+            setCachedAvatar(pubKey, avatar).then(src => {
+              if (src && this.otherMemberPubKey === pubKey) this.otherMemberAvatar = src
+            })
           })
           .catch(() => {})
       },

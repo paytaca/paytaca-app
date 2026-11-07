@@ -119,7 +119,7 @@ import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 import { formatDistanceToNow } from 'date-fns'
 import { npubEncode } from 'nostr-tools/nip19'
 import { parseMessageMarkup } from 'src/utils/chat-markup'
-import { getCachedAvatar, setCachedAvatar } from 'src/utils/avatar-cache'
+import { getCachedAvatar, getCachedAvatarSync, getCachedAvatarEntrySync, setCachedAvatar, markAvatarsChecked } from 'src/utils/avatar-cache'
 
 export default {
   name: 'RoomList',
@@ -200,7 +200,7 @@ export default {
       return keys.sort().join(',')
     },
   },
-  async created () {
+  created () {
     const walletHash = this.$store.getters['global/getWallet']('bch')?.walletHash
     const walletState = walletHash ? this.$store.state.nostrChat?.byWallet?.[walletHash] : null
     const nameCache = walletState?.displayNameCache || {}
@@ -213,9 +213,11 @@ export default {
       const otherPubKey = room.members?.find(m => m !== this.myPubKey)
       if (!otherPubKey) continue
 
-      const cachedUrl = await getCachedAvatar(otherPubKey)
-      const url = cachedUrl || avatarStoreCache[otherPubKey]?.avatar || null
-      if (url) avatars[otherPubKey] = url
+      // Synchronous read so the first paint already has avatars. Falls back to
+      // the persisted remote URL when no image bytes are cached yet.
+      const cachedSrc = getCachedAvatarSync(otherPubKey)
+      const src = cachedSrc || avatarStoreCache[otherPubKey]?.avatar || null
+      if (src) avatars[otherPubKey] = src
 
       const cachedName = nameCache[otherPubKey]?.displayName
       if (cachedName) names[otherPubKey] = cachedName
@@ -390,36 +392,46 @@ export default {
       return { background: `linear-gradient(135deg, ${this.themeColor}, ${this.themeColor}dd)` }
     },
     async fetchDmAvatars () {
-      const avatarsToFetch = new Set()
+      const peers = []
       const namesToFetch = new Set()
       for (const room of this.rooms) {
         if (room.type === 'group' || room.type === 'mls-group') continue
         const otherPubKey = room.members?.find(m => m !== this.myPubKey)
         if (!otherPubKey) continue
-        if (!this.dmAvatars[otherPubKey]) {
-          avatarsToFetch.add(otherPubKey)
-        }
+        peers.push(otherPubKey)
         const contact = this.contacts.find(c => c.pubKeyHex === otherPubKey)
         if (!contact && !this.dmDisplayNames[otherPubKey]) {
           namesToFetch.add(otherPubKey)
         }
       }
-      for (const pubKeyHex of avatarsToFetch) {
-        try {
-          const cachedUrl = await getCachedAvatar(pubKeyHex)
-          if (cachedUrl) {
-            this.dmAvatars = { ...this.dmAvatars, [pubKeyHex]: cachedUrl }
-            continue
-          }
-          const avatar = await this.$store.dispatch('nostrChat/fetchPublishedAvatar', { pubKeyHex })
-          if (avatar) {
-            setCachedAvatar(pubKeyHex, avatar)
-            this.dmAvatars = { ...this.dmAvatars, [pubKeyHex]: avatar }
-          }
-        } catch (err) {
-          console.warn('[RoomList] Failed to fetch avatar:', err)
-        }
+
+      // 1. Paint everything already cached synchronously. No network, no await.
+      const avatars = { ...this.dmAvatars }
+      for (const pubKeyHex of peers) {
+        const cachedSrc = getCachedAvatarSync(pubKeyHex)
+        if (cachedSrc) avatars[pubKeyHex] = cachedSrc
       }
+      this.dmAvatars = avatars
+
+      // 2. Cold cache: fall back to the persisted remote URL (renders while the
+      //    bytes are downloaded by the background refresh below).
+      const missing = peers.filter(pubKeyHex => !avatars[pubKeyHex])
+      if (missing.length) {
+        const walletHash = this.$store.getters['global/getWallet']('bch')?.walletHash
+        const walletState = walletHash ? this.$store.state.nostrChat?.byWallet?.[walletHash] : null
+        const urlCache = walletState?.avatarCache || {}
+        const next = { ...this.dmAvatars }
+        for (const pubKeyHex of missing) {
+          const cachedSrc = await getCachedAvatar(pubKeyHex)
+          const src = cachedSrc || urlCache[pubKeyHex]?.avatar || null
+          if (src) next[pubKeyHex] = src
+        }
+        this.dmAvatars = next
+      }
+
+      // 3. Background refresh: pick up avatar changes and cache the bytes.
+      this.refreshDmAvatars(peers)
+
       for (const pubKeyHex of namesToFetch) {
         try {
           const displayName = await this.$store.dispatch('nostrChat/fetchPublishedDisplayName', { pubKeyHex })
@@ -429,6 +441,42 @@ export default {
         } catch (err) {
           console.warn('[RoomList] Failed to fetch display name:', err)
         }
+      }
+    },
+    async refreshDmAvatars (peers) {
+      const REFRESH_INTERVAL_MS = 5 * 60 * 1000
+      const now = Date.now()
+      const stale = []
+      for (const pubKeyHex of new Set(peers)) {
+        const entry = getCachedAvatarEntrySync(pubKeyHex)
+        if (!entry || !entry.checkedAt || now - entry.checkedAt > REFRESH_INTERVAL_MS) {
+          stale.push(pubKeyHex)
+        }
+      }
+      if (!stale.length) return
+
+      let published
+      try {
+        published = await this.$store.dispatch('nostrChat/refreshPublishedAvatars', { pubKeyHexes: stale })
+      } catch (err) {
+        console.warn('[RoomList] Failed to refresh avatars:', err)
+        return
+      }
+
+      const updates = {}
+      const checkedWithoutAvatar = []
+      await Promise.all(stale.map(async (pubKeyHex) => {
+        const url = published?.[pubKeyHex]
+        if (!url) {
+          checkedWithoutAvatar.push(pubKeyHex)
+          return
+        }
+        const src = await setCachedAvatar(pubKeyHex, url)
+        if (src && this.dmAvatars[pubKeyHex] !== src) updates[pubKeyHex] = src
+      }))
+      markAvatarsChecked(checkedWithoutAvatar)
+      if (Object.keys(updates).length) {
+        this.dmAvatars = { ...this.dmAvatars, ...updates }
       }
     },
   },

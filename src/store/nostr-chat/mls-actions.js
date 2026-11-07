@@ -354,7 +354,7 @@ async function peekWelcomeGroupData(welcome, state, ws, nostrPubkeyHex, publicPa
 // Build (and optionally finalize) a signed NIP-EE group event (kind 445) for
 // an MLSMessage. The event is encrypted+sealed with the exporter secret derived
 // from the CURRENT epoch so receivers at the same epoch can decrypt it.
-async function buildSignedNipEeGroupEvent(clientState, mlsMessageObj) {
+async function buildSignedNipEeGroupEvent(clientState, mlsMessageObj, senderPubkeyHex) {
   const nostrGroupIdHex = nostrGroupIdHexFromState(clientState)
   if (!nostrGroupIdHex) {
     throw new Error('Group state is missing the nostr_group_data extension')
@@ -366,6 +366,7 @@ async function buildSignedNipEeGroupEvent(clientState, mlsMessageObj) {
       nostrGroupIdHex,
       mlsMessageBytes,
       exporterSecretBytes,
+      senderPubkeyHex,
     })
   } finally {
     // The exporter secret is a fresh 32-byte derivation (not a reference into
@@ -1037,7 +1038,7 @@ export async function sendMlsMessage({ commit, state, dispatch }, { roomId, text
     const genBefore = ownAppRatchetGen(clientState)
     const { privateMessage, newState } = await mls.encryptMlsMessage(clientState, wireText, impl)
     const wrapped = mls.wrapPrivateMessage(privateMessage)
-    const signedEvent = await buildSignedNipEeGroupEvent(clientState, wrapped)
+    const signedEvent = await buildSignedNipEeGroupEvent(clientState, wrapped, ws.keys.pubKeyHex)
 
     console.log(
       '[MLS] send', mlsGroupIdHex.slice(0, 8),
@@ -1728,7 +1729,7 @@ export async function addMlsMember({ commit, state }, { roomId, memberPubKey }) 
     // Build a signed NIP-EE group event (kind 445) for the Add commit. The
     // exporter secret is derived from the PRE-commit epoch state, which our
     // peers are also on until they process the commit.
-    const signedCommit = await buildSignedNipEeGroupEvent(clientState, commitMsg)
+    const signedCommit = await buildSignedNipEeGroupEvent(clientState, commitMsg, ws.keys.pubKeyHex)
     const commitPublish = await relayService.publishEvent(state.relays, signedCommit)
     if (!commitPublish.accepted.length) {
       const reason = commitPublish.errors[0]?.reason || 'relay rejected the commit'
@@ -1862,7 +1863,7 @@ async function commitMlsRemovalLocked({
 }) {
   const { newState, commit: commitMsg } = await mls.removeMlsMember(clientState, leafIndex, impl)
 
-  const signedCommit = await buildSignedNipEeGroupEvent(clientState, commitMsg)
+  const signedCommit = await buildSignedNipEeGroupEvent(clientState, commitMsg, ws.keys.pubKeyHex)
   const publish = await relayService.publishEvent(state.relays, signedCommit)
   if (!publish.accepted.length) {
     // Do NOT advance local state — if the commit isn't on the relay, other
