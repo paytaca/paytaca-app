@@ -31,7 +31,7 @@
 import { markRaw } from '@vue/reactivity'
 import { getMnemonic, Wallet } from '../../wallet'
 import HeaderNav from '../../components/header-nav'
-import { secp256k1, sha256, binToBase64, utf8ToBin, hexToBin, decodePrivateKeyWif } from "@bitauth/libauth"
+import { secp256k1, sha256, binToBase64, utf8ToBin, bigIntToCompactUint, decodePrivateKeyWif } from "bitauth-libauth-v3"
 import pinDialog from '../../components/pin'
 import { SecureStoragePlugin } from 'capacitor-secure-storage-plugin'
 
@@ -114,12 +114,12 @@ export default {
 
     async signBCH () {
       const message_magic = (str) => {
-        const length = utf8ToBin(str).length.toString(16)
+        const messageBytes = utf8ToBin(str)
         let payload = `\x18Bitcoin Signed Message:\n`
         return new Uint8Array([
           ...utf8ToBin(payload),
-          ...hexToBin(length),
-          ...utf8ToBin(str),
+          ...bigIntToCompactUint(BigInt(messageBytes.length)),
+          ...messageBytes,
         ])
       }
 
