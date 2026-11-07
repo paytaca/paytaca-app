@@ -54,14 +54,14 @@
             <div class="row justify-between no-wrap q-mx-lg sm-font-size" :class="getDarkModeClass(darkMode)">
               <span class="text-weight-bold">{{ $t('DepositAmount') }}:</span>
               <span class="text-nowrap q-ml-xs">
-                <span class="md-font-size">{{ shiftInfo.depositAmount }}</span> &nbsp;
+                <span class="md-font-size">{{ formatAmount(shiftInfo.depositAmount) }}</span> &nbsp;
                 <span class="text-weight-bold">{{ shiftInfo.deposit.coin }}</span>
               </span>
             </div>
             <div class="row justify-between no-wrap q-mx-lg sm-font-size" :class="getDarkModeClass(darkMode)">
               <span class="text-weight-bold">{{ $t('ReceivingAmount') }}:</span>
               <span class="text-nowrap q-ml-xs">
-                <span class="md-font-size">{{ shiftInfo.settleAmount }}</span> &nbsp;
+                <span class="md-font-size">{{ formatAmount(shiftInfo.settleAmount) }}</span> &nbsp;
                 <span class="text-weight-bold">{{ shiftInfo.settle.coin }}</span>
               </span>
             </div>
@@ -127,6 +127,7 @@
 import RampDepositInfo from './RampDepositInfo.vue'
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 import { iconSrc } from 'src/utils/encoding';
+import { formatWithLocale } from 'src/utils/denomination-utils'
 
 export default {
   data () {
@@ -155,6 +156,10 @@ export default {
   methods: {
     iconSrc,
     getDarkModeClass,
+    formatAmount (value) {
+      if (value === '' || value === null || value === undefined) return ''
+      return formatWithLocale(value, { max: 8 })
+    },
     getNetwork (type) {
       const network = type.network.toLowerCase()
       const coin = type.coin.toLowerCase()

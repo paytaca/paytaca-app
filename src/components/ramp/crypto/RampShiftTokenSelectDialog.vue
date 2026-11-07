@@ -33,7 +33,7 @@
           </q-card-section>
           <q-card-section class="q-pt-none token-list-container">
             <q-virtual-scroll :items="filteredCoinList">
-              <template v-slot="{ item: token, index }">
+              <template v-slot="{ item: token }">
                 <q-item clickable @click="onOKClick(token)">
                   <q-item-section avatar>
                     <q-avatar v-if="token.icon">
@@ -44,8 +44,8 @@
                     </div>
                   </q-item-section>
                   <q-item-section>
-                    <q-item-label>{{ token.coin }}</q-item-label>
-                    <q-item-label :class="darkMode ? 'text-grey-6' : ''" caption>{{ getNetwork(token) }}</q-item-label>
+                    <q-item-label>{{ token.name || token.coin }}</q-item-label>
+                    <q-item-label :class="darkMode ? 'text-grey-6' : ''" caption>{{ token.subtitle || token.coin }}</q-item-label>
                   </q-item-section>
                   <q-item-section>
                     <q-item-label>
@@ -90,20 +90,6 @@ export default {
         this.$emit('ok', coin)
         this.hide()
       }
-    },
-    getNetwork (info) {
-      const network = info.network.toLowerCase()
-      const coin = info.coin.toLowerCase()
-      //check ethereum
-      if (network === 'ethereum' && coin !== 'eth') {
-        return 'ERC-20'
-      } else if (network === 'tron' && coin !== 'trx') {
-        return 'TRC-20'
-      } else if (network === 'bsc' && coin !== 'bnb') {
-        return 'BEP-20'
-      } else {
-        return info.network.toUpperCase()
-      }
     }
   },
   computed: {
@@ -121,7 +107,8 @@ export default {
           if (!token) return false
           if (/0x[0-9a-f]+/.test(needle) && token.coin.toLowerCase() === needle) return true
 
-          return String(token.coin).toLowerCase().includes(needle)
+          return [token.coin, token.name, token.subtitle]
+            .some(label => String(label || '').toLowerCase().includes(needle))
         })
     }
   },
