@@ -48,6 +48,24 @@ describe('room list cache', () => {
     assert.equal(kept.nostrGroupId, 'g2')
   })
 
+  it('keeps the owner and admins derived locally over a stale server mirror', () => {
+    const state = mkState()
+    ADD_ROOM(state, { ...mlsRoom, owner: 'b', admins: ['c'] })
+    SET_ROOMS(state, [{ ...mlsRoom, owner: 'a', admins: [] }])
+    const room = ws(state).rooms.find((r) => r.id === 'r2')
+    assert.equal(room.owner, 'b', 'local MLS roles win over the server mirror')
+    assert.deepEqual(room.admins, ['c'])
+  })
+
+  it('seeds roles from the server when the device has no local copy', () => {
+    const state = mkState()
+    ADD_ROOM(state, { ...mlsRoom, owner: null, admins: [] })
+    SET_ROOMS(state, [{ ...mlsRoom, owner: 'a', admins: ['c'] }])
+    const room = ws(state).rooms.find((r) => r.id === 'r2')
+    assert.equal(room.owner, 'a', 'fresh install takes the server-mirrored owner')
+    assert.deepEqual(room.admins, ['c'])
+  })
+
   it('keeps a locally touched lastMessageAt over the server value', () => {
     const state = mkState()
     ADD_ROOM(state, { ...serverRoom, lastMessageAt: 999 })

@@ -1639,6 +1639,11 @@ async function decryptRoomsList (rooms) {
       // Leave undefined when the server does not expose the field so
       // SET_ROOMS keeps the locally stored mute instead of clearing it.
       muted: r.muted === undefined ? undefined : !!r.muted,
+      // MLS role mirror, stored so a device with no local copy can seed them.
+      // Undefined when the server omits the field so the locally derived roles
+      // survive the merge in SET_ROOMS.
+      owner: r.owner === undefined ? undefined : (r.owner || null),
+      admins: Array.isArray(r.admins) ? r.admins : undefined,
       createdAt: typeof createdAt === 'string' ? Math.floor(new Date(createdAt).getTime() / 1000) : createdAt,
       updatedAt: typeof updatedAt === 'string' ? Math.floor(new Date(updatedAt).getTime() / 1000) : updatedAt,
       lastMessageAt: typeof lastMsgTs === 'string' ? Math.floor(new Date(lastMsgTs).getTime() / 1000) : lastMsgTs,
