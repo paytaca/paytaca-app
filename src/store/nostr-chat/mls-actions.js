@@ -1324,6 +1324,10 @@ export async function receiveMlsMessage({ commit, state, dispatch }, event) {
   // replays events through this same action, so running it inside would
   // deadlock on the per-group queue.
   let needsEpochCatchUp = false
+  // Room whose roles must be re-sent to a member that just announced its join.
+  // Also deferred past the lock: broadcasting sends an MLS message, which takes
+  // the same per-group lock.
+  let pendingRoleBroadcastRoomId = null
 
   await withMlsProcessingLock(mlsGroupIdHex, async () => {
     // Re-check inside the lock: a concurrent delivery of the same event may have
@@ -1425,6 +1429,14 @@ export async function receiveMlsMessage({ commit, state, dispatch }, event) {
           const joiningIdentity = memberIdentityAt(result.newState, result.senderLeafIndex)
           if (joiningIdentity) {
             commit('MARK_MLS_MEMBER_JOINED', { mlsGroupIdHex, memberPubKey: joiningIdentity })
+            // The owner broadcasts roles as soon as a member is added, which can
+            // race the invitee's join (their history fetch may not reach back to
+            // that epoch). Re-send now that we know they can decrypt the group.
+            const resolvedRoomId = roomId || resolveRoomIdByMlsGroupId(ws, mlsGroupIdHex)
+            const room = resolvedRoomId && ws.rooms?.find((r) => r.id === resolvedRoomId)
+            if (room && isUsableOwner(room.owner) && room.owner === ws.keys.pubKeyHex) {
+              pendingRoleBroadcastRoomId = resolvedRoomId
+            }
           }
         } else if (typeof result.plaintext === 'string' && result.plaintext.startsWith(MLS_LEAVE_PREFIX)) {
           // A member announced they are leaving. MLS will not let them remove
@@ -1614,16 +1626,32 @@ export async function receiveMlsMessage({ commit, state, dispatch }, event) {
   if (needsEpochCatchUp) {
     await resyncMlsGroup({ commit, state, dispatch }, { mlsGroupIdHex })
   }
+
+  if (pendingRoleBroadcastRoomId) {
+    try {
+      await broadcastMlsRoomRoles({ commit, state }, { roomId: pendingRoleBroadcastRoomId })
+    } catch (err) {
+      console.warn('[MLS] Failed to re-broadcast roles after a member joined:', err.message)
+    }
+  }
 }
 
 // ---- Member management ----
 
+// A stored owner is unusable when it is absent or not a 64-char hex pubkey.
+// parseNipEeGroupData used to return a double-hex-encoded value (128 hex
+// chars), so groups joined before that fix store an owner no member can
+// compare against.
+function isUsableOwner(owner) {
+  return typeof owner === 'string' && /^[0-9a-f]{64}$/.test(owner)
+}
+
 // Groups created before owner/admins fields existed have no owner stored. The
 // deterministic owner is leaf 0 of the MLS tree, so backfill it from the tree
-// when missing so role enforcement keeps working on legacy groups.
+// when missing or malformed so role enforcement keeps working.
 function backfillMlsOwner(commit, ws, roomId, clientState) {
   const room = ws.rooms?.find((r) => r.id === roomId)
-  if (!room || room.owner || !clientState) return
+  if (!room || isUsableOwner(room.owner) || !clientState) return
   try {
     const owner = mls.getMlsLeafIdentity(clientState, 0)
     if (!owner) return

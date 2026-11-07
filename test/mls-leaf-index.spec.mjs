@@ -13,6 +13,10 @@ import {
   getMlsLeafIndexForIdentity,
   getOwnLeafIndex,
 } from '../src/services/mls/group.js'
+import {
+  parseNipEeGroupData,
+  NOSTR_GROUP_DATA_EXTENSION_TYPE,
+} from '../src/services/mls/nostr-transport.js'
 
 const NAME = (c) => c.repeat(64)
 
@@ -112,6 +116,24 @@ describe('MLS leaf indexing', () => {
       () => removeMlsMember(afterFirstRemoval.newState, 1, impl),
       /empty leaf node/,
     )
+  })
+
+  it('round-trips adminPubkeys as plain hex pubkeys in the 0xF2EE group data', async () => {
+    const { members, byIdentity } = await buildGroupOfFour()
+    // Every member must read the creator's pubkey back verbatim: the joiner
+    // stores it as the room owner and later authorizes role control messages
+    // against it. Hex-encoding the UTF-8 bytes on parse produced a 128-char
+    // value that matched no pubkey, so no member ever recognized the owner.
+    for (const identity of members) {
+      const state = byIdentity.get(identity)
+      const ext = state.groupContext.extensions.find(
+        (e) => e.extensionType === NOSTR_GROUP_DATA_EXTENSION_TYPE,
+      )
+      const data = parseNipEeGroupData(ext.extensionData)
+      assert.deepEqual(data.adminPubkeys, [members[0]])
+      assert.equal(data.adminPubkeys[0].length, 64)
+      assert.equal(getMlsLeafIdentity(state, 0), members[0])
+    }
   })
 
   it('reports the owner their own tree leaf, not leaf 0 by accident', async () => {

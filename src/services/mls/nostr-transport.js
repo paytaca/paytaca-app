@@ -320,7 +320,10 @@ export function parseNipEeGroupData(extensionData) {
     for (let i = 0; i < adminCount; i++) {
       const adminBytes = decodeOpaque16Raw(extensionData, offset)
       offset += 2 + adminBytes.length
-      adminPubkeys.push(bytesToHex(adminBytes))
+      // Serialized as UTF-8 text (see encodeOpaque16), so decode back to the
+      // hex pubkey string. Hex-encoding the bytes here produced a 128-char
+      // double-encoded value that never matched a real pubkey.
+      adminPubkeys.push(new TextDecoder().decode(adminBytes))
     }
 
     const relayCount = decodeU16(extensionData, offset)
