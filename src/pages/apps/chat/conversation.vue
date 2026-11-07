@@ -884,10 +884,11 @@ export default {
           .catch(() => {})
         this.$store.dispatch('nostrChat/fetchPublishedAvatar', { pubKeyHex: pubKey, forceRefresh: true })
           .then(avatar => {
-            if (avatar) {
-              setCachedAvatar(pubKey, avatar)
-              this.otherMemberAvatar = avatar
-            }
+            if (!avatar || this.otherMemberPubKey !== pubKey) return
+            this.otherMemberAvatar = avatar
+            setCachedAvatar(pubKey, avatar).then(src => {
+              if (src && this.otherMemberPubKey === pubKey) this.otherMemberAvatar = src
+            })
           })
           .catch(() => {})
       },

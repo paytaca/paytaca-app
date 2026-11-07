@@ -581,6 +581,52 @@ export async function fetchAvatar(relays, pubKey) {
 }
 
 /**
+ * Fetch several users' published avatars (paytaca:avatar) with a single
+ * subscription instead of one per contact. Used by the chat list's background
+ * refresh so opening the list doesn't fan out N relay queries.
+ * @param {string[]} relays
+ * @param {string[]} pubKeys - Hex pubkeys
+ * @returns {Promise<Object<string, import('nostr-tools').Event>>} pubKey -> newest event
+ */
+export async function fetchAvatars(relays, pubKeys) {
+  const pool = getPool()
+  const result = {}
+  const authors = [...new Set((pubKeys || []).filter(Boolean))]
+  if (!authors.length) return result
+
+  return new Promise((resolve) => {
+    let resolved = false
+    let sub = null
+    let activeRelays = relays.length
+    const finish = () => {
+      if (resolved) return
+      resolved = true
+      clearTimeout(timer)
+      try { sub?.close() } catch { /* already closed */ }
+      resolve(result)
+    }
+    const timer = setTimeout(finish, 8000)
+
+    sub = pool.subscribeMany(
+      relays,
+      { kinds: [30078], authors },
+      {
+        onevent(event) {
+          const dTag = event.tags?.find(t => t[0] === 'd')
+          if (!dTag || dTag[1] !== 'paytaca:avatar') return
+          const prev = result[event.pubkey]
+          if (!prev || event.created_at > prev.created_at) result[event.pubkey] = event
+        },
+        oneose() {
+          activeRelays--
+          if (activeRelays <= 0) finish()
+        },
+      }
+    )
+  })
+}
+
+/**
  * Query for historical kind:1059 gift-wraps addressed to our pubkey.
  * This catches messages that were published before our subscription was active.
  * @param {string[]} relays

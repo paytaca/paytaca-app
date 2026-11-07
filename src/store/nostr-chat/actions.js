@@ -782,6 +782,55 @@ export async function fetchPublishedAvatar ({ state, commit }, { pubKeyHex, forc
   return avatar
 }
 
+/**
+ * Parse and verify a kind:30078 avatar event.
+ * Returns the avatar URL or null.
+ */
+function parseAvatarEvent (event) {
+  if (!event) return null
+  if (!verifyEvent(event)) {
+    console.warn('[Nostr] Avatar event failed signature verification')
+    return null
+  }
+  let parsed
+  try {
+    parsed = JSON.parse(event.content || '{}')
+  } catch {
+    console.warn('[Nostr] Avatar event has invalid JSON content')
+    return null
+  }
+  return parsed?.data?.avatar?.trim() || null
+}
+
+/**
+ * Refresh published avatars for several contacts with a single relay query.
+ * Returns a map of pubKeyHex -> avatar URL for contacts that published one.
+ */
+export async function refreshPublishedAvatars ({ state, commit }, { pubKeyHexes }) {
+  const ws = getWalletState(state)
+  const keys = [...new Set((pubKeyHexes || []).filter(Boolean))]
+  if (!keys.length) return {}
+
+  let events
+  try {
+    events = await relayService.fetchAvatars(state.relays, keys)
+  } catch (err) {
+    console.warn('[Nostr] Failed to refresh avatars:', err)
+    return {}
+  }
+
+  const result = {}
+  for (const pubKeyHex of keys) {
+    const avatar = parseAvatarEvent(events[pubKeyHex])
+    if (!avatar) continue
+    if (ws.avatarCache?.[pubKeyHex]?.avatar !== avatar) {
+      commit('CACHE_AVATAR', { pubKeyHex, avatar })
+    }
+    result[pubKeyHex] = avatar
+  }
+  return result
+}
+
 export async function publishKind10050 ({ state }) {
   const ws = getWalletState(state)
   if (!ws.keys.privKeyHex) return
