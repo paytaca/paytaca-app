@@ -9,103 +9,104 @@
     v-if="isloaded && state === 'form' && !error && isAllowed"
   >
     <div class="q-mx-md">
-      <!-- Swap Setting Card -->
-      <div class="pt-card q-pa-md q-my-sm br-15" :class="darkMode ? 'dark' : 'light'">
-        
-        <div class="q-mt-sm text-h5 text-center text-weight-bold lg-font-size text-grad">
-          {{ $t('SwapFrom') }}:
-        </div>
-
-        <q-item clickable>
-          <q-item-section avatar class="items-center" @click="selectSourceToken">
-            <img class="q-mb-sm currency-icon" :src="iconSrc(deposit.icon)" alt="">
-            <q-item-label>
-              {{deposit.coin }}<q-icon v-show="!isFromBCH" name="expand_more"/>
-            </q-item-label>
-            <!-- <q-item-label class="text-center sm-font-size" :class="darkMode ? 'text-grey-5' : 'text-grey-6'">
-              {{getNetwork(deposit)}}
-            </q-item-label> -->
-          </q-item-section>
-          <q-item-section style="position: relative;">
-            <q-input
-              dense
-              filled
-              :dark="darkMode"
-              inputmode="none"
-              v-model="shiftAmount"
-              :readonly="readonlyState"
-              @focus="openCustomKeyboard(true)"
-              @keydown="onKeyboardInput"
-              @update:modelValue="function(){
-                  updateConvertionRate()
-                }"              
-            />
-            <KeyboardTooltip v-if="showTooltip" :dark-mode="darkMode" :key="'tip-' + tipCounter" />
-            <q-item-label
-              class="text-right q-mt-sm"
-              caption
-              :class="darkMode ? 'text-grey-6' : ''"
-              v-if="deposit.coin==='BCH'"
-            >
+      <!-- Swap card -->
+      <div class="pt-card swap-card q-pa-md q-my-sm br-15" :class="darkMode ? 'dark' : 'light'">
+        <div class="swap-leg">
+          <div class="swap-leg-head">
+            <span class="swap-leg-label">{{ $t('YouSend', {}, 'You send') }}</span>
+            <span v-if="deposit.coin === 'BCH'" class="swap-leg-meta">
               {{ $t('Balance') }}: {{ bchBalance }}
-            </q-item-label>
-              <q-item-label
-                class="text-right q-mt-sm"
-                caption
-                style="color:red"
-                v-if="errorMsg"
-              >
-                {{ errorMsg }}
-              </q-item-label>
-          </q-item-section>
-        </q-item>
+            </span>
+          </div>
 
-        <div class="q-px-md q-my-xs row items-center justify-center" v-if="canSwitchDirection">
+          <button
+            type="button"
+            class="token-row"
+            :class="{ 'token-row--static': isFromBCH }"
+            :disabled="isFromBCH"
+            @click="selectSourceToken"
+          >
+            <span class="token-avatar" :class="darkMode ? 'is-dark' : 'is-light'">
+              <img v-if="deposit.icon" class="token-icon" :src="iconSrc(deposit.icon)" alt="">
+              <q-skeleton v-else type="circle" class="token-icon" />
+            </span>
+            <span class="token-text">
+              <span class="token-name">{{ tokenName(deposit) }}</span>
+              <span class="token-meta">{{ tokenSubtitle(deposit) }}</span>
+            </span>
+            <q-icon v-if="!isFromBCH" name="expand_more" class="token-chevron" />
+          </button>
+
+          <q-input
+            dense
+            filled
+            borderless
+            class="swap-amount"
+            input-class="swap-amount-field"
+            :dark="darkMode"
+            inputmode="none"
+            :model-value="shiftAmountDisplay"
+            :readonly="readonlyState"
+            @focus="openCustomKeyboard(true)"
+            @keydown="onKeyboardInput"
+          >
+            <template v-slot:append>
+              <span class="swap-amount-ticker">{{ deposit.coin }}</span>
+            </template>
+          </q-input>
+          <KeyboardTooltip v-if="showTooltip" :dark-mode="darkMode" :key="'tip-' + tipCounter" />
+          <div v-if="errorMsg" class="swap-error">{{ errorMsg }}</div>
+        </div>
+
+        <div class="swap-junction">
           <q-btn
+            v-if="canSwitchDirection"
             icon="mdi-swap-vertical"
-            round          
-            class="button bg-grad"          
-            @click="swapCoin"
+            round
+            class="button bg-grad swap-junction-btn"
             unelevated
+            @click="swapCoin"
           />
+          <div v-else class="swap-junction-mark" :class="darkMode ? 'is-dark' : 'is-light'">
+            <q-icon name="mdi-arrow-down" size="16px" />
+          </div>
         </div>
 
-        <div class="q-mt-md text-h5 text-center text-weight-bold lg-font-size text-grad">
-          {{ $t('SwapTo') }}:
+        <div class="swap-leg">
+          <div class="swap-leg-head">
+            <span class="swap-leg-label">{{ $t('YouReceive', {}, 'You receive') }}</span>
+          </div>
+
+          <button
+            type="button"
+            class="token-row"
+            :class="{ 'token-row--static': !canSelectSettle }"
+            :disabled="!canSelectSettle"
+            @click="selectSettleToken"
+          >
+            <span class="token-avatar" :class="darkMode ? 'is-dark' : 'is-light'">
+              <img v-if="settle.icon" class="token-icon" :src="iconSrc(settle.icon)" alt="">
+              <q-skeleton v-else type="circle" class="token-icon" />
+            </span>
+            <span class="token-text">
+              <span class="token-name">{{ tokenName(settle) }}</span>
+              <span class="token-meta">{{ tokenSubtitle(settle) }}</span>
+            </span>
+            <q-icon v-if="canSelectSettle" name="expand_more" class="token-chevron" />
+          </button>
+
+          <div class="swap-received">
+            <q-skeleton v-if="!amountLoaded && shiftAmount" type="text" width="60%" class="swap-received-skeleton" />
+            <template v-else>
+              <span class="swap-received-value">{{ formattedSettleAmount }}</span>
+              <span class="swap-amount-ticker">{{ settle.coin }}</span>
+            </template>
+          </div>
+          <div v-if="settleAmount && shiftAmount && convertionRate" class="swap-received-rate">
+            1 {{ deposit.coin }} = {{ formattedRate }} {{ settle.coin }}
+          </div>
         </div>
-
-        <q-item class="q-mb-lg">
-          <q-item-section avatar class="item-center" @click="selectSettleToken">
-            <img class="q-mb-sm currency-icon" :src="iconSrc(settle.icon)" alt="">
-            <q-item-label class="">
-              {{ settle.coin }} <q-icon v-show="!isToBCH && !isSettleLocked" name="expand_more"/>
-            </q-item-label>
-            <!-- <q-item-label class="text-center sm-font-size" :class="darkMode ? 'text-grey-5' : 'text-grey-6'">
-              {{ getNetwork(settle) }}
-            </q-item-label> -->
-          </q-item-section>
-
-          <q-item-section>
-            <q-skeleton v-if="!amountLoaded && shiftAmount" type="rect"/>
-            <q-input
-                v-else
-                disable
-                dense
-                filled
-                :dark="darkMode"
-                :modelValue="settleAmount"
-              />
-              <q-item-label
-                class="text-right q-mt-sm"
-                caption
-                :class="darkMode ? 'text-grey-6' : ''"
-                v-if="settleAmount && shiftAmount && convertionRate"
-              >
-                <i>1 {{ deposit.coin }} = {{ parseFloat(convertionRate).toFixed(8) }} {{ settle.coin }}</i>
-              </q-item-label>
-          </q-item-section>
-        </q-item>
-      </div>    
+      </div>
 
       <div class="pt-card q-pa-md q-mt-md q-mb-md br-15" :class="darkMode ? 'dark' : 'light'">
         <q-item class="q-pt-sm" v-show="!isToBCH || isSettleLocked">
@@ -239,6 +240,7 @@ import QrScanner from 'src/components/qr-scanner.vue'
 import { debounce } from 'quasar'
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 import { iconSrc } from 'src/utils/encoding'
+import { formatWithLocale } from 'src/utils/denomination-utils'
 import KeyboardTooltip from 'src/components/KeyboardTooltip.vue'
 import { useKeyboardTooltip } from 'src/composables/useKeyboardTooltip'
 import { isConformingNamespaces } from '@walletconnect/utils'
@@ -248,6 +250,29 @@ import {
 } from 'src/utils/address-generation-utils.js'
 // import { anyhedgeBackend } from 'src/wallet/anyhedge/backend'
 // import { ConsensusCommon, vmNumberToBigInt } from '@bitauth/libauth'
+
+// SideShift network ids, the chain they belong to, and the token standard for non-native coins
+const CHAIN_LABELS = {
+  bitcoin: 'Bitcoin',
+  bitcoincash: 'Bitcoin Cash',
+  ethereum: 'Ethereum',
+  tron: 'Tron',
+  bsc: 'BNB Smart Chain',
+  solana: 'Solana',
+  polygon: 'Polygon',
+  base: 'Base',
+  arbitrum: 'Arbitrum',
+  optimism: 'Optimism',
+  avax: 'Avalanche',
+  aptos: 'Aptos',
+  ton: 'TON',
+  liquid: 'Liquid',
+  robinhood: 'Robinhood Chain',
+  zksyncera: 'zkSync Era',
+  internal: 'Internal'
+}
+const TOKEN_STANDARDS = { ethereum: 'ERC-20', tron: 'TRC-20', bsc: 'BEP-20' }
+const NATIVE_COINS = { ethereum: 'eth', tron: 'trx', bsc: 'bnb' }
 
 export default {
   components: {
@@ -333,6 +358,39 @@ export default {
   methods: {
     iconSrc,
     getDarkModeClass,
+    tokenName (token) {
+      return token ? (token.name || token.coin || '') : ''
+    },
+    tokenNetworkLabel (token) {
+      if (!token) return ''
+      return token.networkLabel || String(token.network || '').toUpperCase()
+    },
+    tokenSubtitle (token) {
+      if (!token) return ''
+      const chain = this.tokenNetworkLabel(token)
+      const name = this.tokenName(token)
+      const redundant = chain && chain.toLowerCase() === name.toLowerCase()
+      return redundant || !chain ? token.coin : token.coin + ' · ' + chain
+    },
+    describeNetwork (coin, network) {
+      const key = String(network || '').toLowerCase()
+      const chain = CHAIN_LABELS[key] || (key ? key.charAt(0).toUpperCase() + key.slice(1) : '')
+      const standard = TOKEN_STANDARDS[key]
+
+      if (standard && String(coin || '').toLowerCase() !== NATIVE_COINS[key]) {
+        return standard + ' on ' + chain
+      }
+      return chain
+    },
+    refreshSelectedTokenInfo () {
+      const enrich = token => {
+        const match = this.tokenList.find(item => item.coin === token.coin && item.network === token.network)
+        if (!match) return token
+        return { ...token, name: token.name || match.name, networkLabel: match.networkLabel, subtitle: match.subtitle }
+      }
+      this.deposit = enrich(this.deposit)
+      this.settle = enrich(this.settle)
+    },
     shiftCreated (data) {
       const vm = this
       vm.updateState('deposit')
@@ -486,20 +544,6 @@ export default {
       vm.setBCHAddress()
       vm.updateConvertionRate()
     },
-    getNetwork (token) {
-      const network = token.network.toLowerCase()
-      const coin = token.coin.toLowerCase()
-      //check ethereum
-      if (network === 'ethereum' && coin !== 'eth') {
-        return 'ERC-20'
-      } else if (network === 'tron' && coin !== 'trx') {
-        return 'TRC-20'
-      } else if (network === 'bsc' && coin !== 'bnb') {
-        return 'BEP-20'
-      } else {
-        return token.network.toUpperCase()
-      }
-    },
     checkData () {
       const vm = this
 
@@ -605,10 +649,10 @@ export default {
       }
       const amount = parseFloat(vm.shiftAmount)
       if (min > amount) {
-        vm.errorMsg = 'Minimum ' + vm.minimum + ' ' + vm.deposit.coin
+        vm.errorMsg = 'Minimum ' + formatWithLocale(vm.minimum, { max: 8 }) + ' ' + vm.deposit.coin
       }
       if (max < amount) {
-        vm.errorMsg = 'Maximum ' + vm.maximum + ' ' + vm.deposit.coin
+        vm.errorMsg = 'Maximum ' + formatWithLocale(vm.maximum, { max: 8 }) + ' ' + vm.deposit.coin
       }
       // balance checking - compare with dynamically generated address
       if (vm.deposit.coin === 'BCH') {
@@ -778,14 +822,18 @@ export default {
               const network = coinData.networks[item2]
               const temp = {
                 coin: coinData.coin,
+                name: coinData.name,
                 network: network,
+                networkLabel: this.describeNetwork(coinData.coin, network),
                 icon: '',
                 offline: this.checkCoinOffline(network, coinData)
               }
+              temp.subtitle = this.tokenSubtitle(temp)
               vm.tokenList.push(temp)
             }
           }
         }
+        vm.refreshSelectedTokenInfo()
         vm.isloaded = true
         // vm.tokenList.sort()
 
@@ -863,6 +911,21 @@ export default {
     isSettleLocked () {
       return this.lockSettle || this.mode === 'cashin'
     },
+    canSelectSettle () {
+      return !this.isSettleLocked && !this.isToBCH
+    },
+    formattedSettleAmount () {
+      return formatWithLocale(this.settleAmount || 0, { max: 8 })
+    },
+    formattedRate () {
+      if (!this.convertionRate) return ''
+      return formatWithLocale(parseFloat(this.convertionRate).toFixed(8), { max: 8 })
+    },
+    shiftAmountDisplay () {
+      const amount = this.shiftAmount
+      if (amount === '' || amount === null || amount === undefined) return ''
+      return formatWithLocale(amount, { preserveTrailingDecimals: true })
+    },
     canSwitchDirection () {
       return !this.isSettleLocked
     },
@@ -901,14 +964,205 @@ export default {
     padding: 30px;
     color: gray;
   }
-  .currency-icon {
-    height: 30px;
-    width: 30px;
-    border-radius: 50%;
+
+  /* ==================== SWAP CARD ==================== */
+  .swap-leg {
+    position: relative;
   }
-  .currency-name {
-    font-size: 10px;
-    color: gray;
+
+  .swap-leg-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    margin-bottom: 4px;
+  }
+
+  .swap-leg-label {
+    font-size: 12px;
+    font-weight: 600;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    opacity: 0.6;
+  }
+
+  .swap-leg-meta {
+    font-size: 12px;
+    text-align: right;
+    opacity: 0.6;
+  }
+
+  .token-row {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    width: 100%;
+    padding: 8px 4px;
+    border: 0;
+    border-radius: 14px;
+    background: transparent;
+    color: inherit;
+    font: inherit;
+    text-align: left;
+    cursor: pointer;
+
+    &:not(.token-row--static) {
+      background-color: rgba(0, 0, 0, 0.03);
+
+      &:hover {
+        background-color: rgba(0, 0, 0, 0.06);
+      }
+
+      &:focus-visible {
+        outline: 2px solid currentColor;
+        outline-offset: 2px;
+      }
+    }
+
+    &--static {
+      cursor: default;
+    }
+  }
+
+  .dark .token-row:not(.token-row--static) {
+    background-color: rgba(255, 255, 255, 0.05);
+
+    &:hover {
+      background-color: rgba(255, 255, 255, 0.09);
+    }
+  }
+
+  .token-avatar {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex: 0 0 40px;
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    background-color: rgba(0, 0, 0, 0.05);
+
+    &.is-dark {
+      background-color: rgba(255, 255, 255, 0.1);
+    }
+  }
+
+  .token-icon {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    object-fit: contain;
+  }
+
+  .token-text {
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+    min-width: 0;
+  }
+
+  .token-name {
+    font-size: 15px;
+    font-weight: 600;
+    line-height: 1.3;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .token-meta {
+    font-size: 12px;
+    line-height: 1.3;
+    opacity: 0.6;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .token-chevron {
+    opacity: 0.45;
+  }
+
+  .swap-amount {
+    margin-top: 4px;
+
+    :deep(.q-field__control) {
+      border-radius: 14px;
+      padding: 0 14px;
+    }
+
+    :deep(input.swap-amount-field) {
+      font-size: 28px;
+      font-weight: 700;
+      letter-spacing: -0.01em;
+      text-align: right;
+    }
+  }
+
+  .swap-amount-ticker {
+    margin-left: 6px;
+    font-size: 14px;
+    font-weight: 600;
+    opacity: 0.55;
+  }
+
+  .swap-error {
+    margin-top: 6px;
+    font-size: 12px;
+    text-align: right;
+    color: #f54270;
+  }
+
+  .swap-junction {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin: 6px 0;
+  }
+
+  .swap-junction-btn {
+    width: 34px;
+    height: 34px;
+    min-height: 34px;
+  }
+
+  .swap-junction-mark {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    background-color: rgba(0, 0, 0, 0.05);
+    opacity: 0.55;
+
+    &.is-dark {
+      background-color: rgba(255, 255, 255, 0.1);
+    }
+  }
+
+  .swap-received {
+    display: flex;
+    align-items: baseline;
+    justify-content: flex-end;
+    padding: 0 14px;
+  }
+
+  .swap-received-value {
+    font-size: 28px;
+    font-weight: 700;
+    letter-spacing: -0.01em;
+  }
+
+  .swap-received-skeleton {
+    margin-left: auto;
+  }
+
+  .swap-received-rate {
+    padding: 2px 14px 0;
+    font-size: 12px;
+    text-align: right;
+    opacity: 0.6;
   }
   /* ==================== FONT SIZES ==================== */
   .sm-font-size {
@@ -916,9 +1170,6 @@ export default {
   }
   .md-font-size {
     font-size: medium;
-  }
-  .lg-font-size {
-    font-size: large;
   }
 
   /* ==================== UTILITIES ==================== */

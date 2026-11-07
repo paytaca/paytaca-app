@@ -10,7 +10,7 @@
           <!--TODO:-->
           Please send exactly <br>
           <b style="letter-spacing: 1px;">
-            <span class="text-grad">{{ parseFloat(shiftInfo.shift_info.deposit.amount) }} {{ shiftInfo.shift_info.deposit.coin }}</span> 
+            <span class="text-grad">{{ formatAmount(shiftInfo.shift_info.deposit.amount) }} {{ shiftInfo.shift_info.deposit.coin }}</span> 
             <!-- (<span class="text-lowercase">{{ getNetwork(shiftInfo) }}</span>) -->
           </b> to...
         </div>
@@ -68,7 +68,7 @@
       <div v-if="processing">
         <div class="text-center text-h5 q-px-lg send-bch-messages">
           <!--TODO:-->
-          Sending <span class="text-weight-bold text-grad">{{ shiftInfo.shift_info.deposit.amount }} BCH</span> to 
+          Sending <span class="text-weight-bold text-grad">{{ formatAmount(shiftInfo.shift_info.deposit.amount) }} BCH</span> to 
           <span class="text-grad">{{ shiftInfo.shift_info.settle.address }}</span>
         </div>
         <div class="row justify-center q-py-lg">
@@ -79,7 +79,7 @@
         <div class="text-center text-h5 q-px-lg send-bch-messages">
           <!--TODO:-->
           <q-icon class="button button-text-primary q-pb-sm" size="80px" name="sym_o_check_circle"/>
-          <div><span class="text-weight-bold text-grad">{{ shiftInfo.shift_info.deposit.amount }} BCH</span> Sent!</div>
+          <div><span class="text-weight-bold text-grad">{{ formatAmount(shiftInfo.shift_info.deposit.amount) }} BCH</span> Sent!</div>
         </div>
         <div class="q-pt-lg text-center">
           <q-btn rounded class="button full-width" :label="$t('Back')" @click="$emit('done')"></q-btn>
@@ -108,6 +108,7 @@ import {
 // import { getNetwork } from '@ethersproject/networks'
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 import { iconSrc } from 'src/utils/encoding'
+import { formatWithLocale } from 'src/utils/denomination-utils'
 import { getChangeAddress } from 'src/utils/send-page-utils'
 
 export default {
@@ -163,6 +164,10 @@ export default {
   methods: {
     iconSrc,
     getDarkModeClass,
+    formatAmount (value) {
+      if (value === '' || value === null || value === undefined) return ''
+      return formatWithLocale(value, { max: 8 })
+    },
     copyToClipboard (value) {
       this.$copyText(value)
       this.$q.notify({
