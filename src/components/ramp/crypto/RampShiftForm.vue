@@ -108,33 +108,8 @@
         </div>
       </div>
 
-      <div class="pt-card q-pa-md q-mt-md q-mb-md br-15" :class="darkMode ? 'dark' : 'light'">
-        <q-item class="q-pt-sm" v-show="!isToBCH || isSettleLocked">
-          <q-item-section class="justify-center">
-            <div class="q-pb-sm q-pl-sm text-weight-bold">
-              {{ $t('ReceivingAddress') }}
-            </div>
-            <q-input
-              dense
-              filled
-              :dark="darkMode"
-              :readonly="isSettleLocked"
-              v-model="settleAddress"
-            >
-              <template v-slot:append>
-                <q-icon v-if="!isSettleLocked" name="close" class="close-button" @click="settleAddress = ''"/>&nbsp;
-                <q-icon
-                  v-if="!isSettleLocked"
-                  name="mdi-qrcode-scan"
-                  class="button button-text-primary"
-                  :class="getDarkModeClass(darkMode)"
-                  @click="displayScanner('receive')"
-                />
-              </template>
-           </q-input>
-          </q-item-section>
-        </q-item>
-        <q-item class="q-pt-sm" v-show="!isFromBCH">
+      <div v-if="!isFromBCH" class="pt-card q-pa-md q-mt-md q-mb-md br-15" :class="darkMode ? 'dark' : 'light'">
+        <q-item class="q-pt-sm">
           <q-item-section class="justify-center">
             <div class="q-pb-sm q-pl-sm text-weight-bold">
               {{ $t('RefundAddress') }}
@@ -151,7 +126,7 @@
                   name="mdi-qrcode-scan"
                   class="button button-text-primary"
                   :class="getDarkModeClass(darkMode)"
-                  @click="displayScanner('refund')"
+                  @click="showQrScanner = !showQrScanner"
                 />
               </template>
            </q-input>
@@ -342,7 +317,6 @@ export default {
       settleInfo: {},
       shiftData: {},
       convertionRate: '',
-      addrType: '',
       depositInfoState: 'created',
       prefix: ['ethereum'],
       readonlyState: false,
@@ -501,11 +475,6 @@ export default {
       }
       this.setBCHAddress()
     },
-    displayScanner (type = '') {
-      const vm = this
-      vm.showQrScanner = !vm.showQrScanner
-      vm.addrType = type
-    },
     reset () {
       const vm = this
 
@@ -515,20 +484,6 @@ export default {
       vm.settleAmount = 0
       vm.settleAddress = ''
       vm.refundAddress = ''
-    },
-    isActive (type) {
-      const vm = this
-      if (type === 'receive') {
-        if (!vm.deposit.coin === 'BCH') {
-          return true
-        }
-      }
-      if (type === 'refund') {
-        if (!vm.settle.coin === 'BCH') {
-          return true
-        }
-      }
-      return false
     },
     swapCoin () {
       const vm = this
@@ -586,12 +541,7 @@ export default {
         }
       }
 
-      if (vm.addrType === 'receive') {
-        vm.settleAddress = content
-      }
-      if (vm.addrType === 'refund') {
-        vm.refundAddress = content
-      }
+      vm.refundAddress = content
     },
     async getBchAddress () {
       try {
@@ -945,12 +895,7 @@ export default {
     vm.deposit.icon = await vm.getCoinImage(vm.deposit.coin, vm.deposit.network)
     vm.settle.icon = await vm.getCoinImage(vm.settle.coin, vm.settle.network)
 
-    const bchAddress = await vm.getBchAddress()
-    if (vm.settleAddressOverride) {
-      vm.settleAddress = vm.settleAddressOverride
-    } else if (bchAddress) {
-      vm.settleAddress = bchAddress
-    }
+    await vm.setBCHAddress()
 
     vm.getTokenList()
   }
