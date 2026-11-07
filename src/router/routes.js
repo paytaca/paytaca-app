@@ -209,35 +209,6 @@ const routes = [
         ]
       },
       {
-        path: 'crypto-swap/',
-        name: 'crypto-swap',
-        component: () => import('layouts/Transaction.vue'),
-        meta: { disableOnNativeIOS: true },
-        children: [
-          {
-            path: '', 
-            component: () => import('src/pages/apps/crypto-swap/ramp-crypto.vue'), 
-            name: 'crypto-swap-form'
-          },
-          {
-            path: 'history/tx/:id',
-            name: 'crypto-swap-history-details',
-            props: route => Object.assign({}, route.params, route.query),
-            component: () => import('src/pages/apps/crypto-swap/ramp-crypto-history-details.vue'),
-          }
-        ]
-      },
-      // { 
-      //   path: 'ramp/crypto', 
-      //   name: 'ramp-crypto',
-      //   component: () => import('src/pages/apps/crypto-swap/ramp-crypto.vue')      
-      // },
-      // {
-      //   path: 'ramp/crypto/history/',
-      //   name: 'crypto-swap-history',
-      //   component: () => import('src/pages/apps/crypto-swap/ramp-crypto-history.vue'),
-      // },
-      {
         path: 'exchange/',
         name: 'exchange',
         component: () => import('src/pages/apps/exchange/index.vue'),

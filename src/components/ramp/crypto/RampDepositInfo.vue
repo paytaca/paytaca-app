@@ -60,7 +60,7 @@
           {{ $t('Expired') }}
         </div>
         <div class="q-pt-lg q-mx-lg">
-          <q-btn rounded class="button full-width" :label="$t('TryAgain')" @click="$router.push({ name: 'crypto-swap-form'})"></q-btn>
+          <q-btn rounded class="button full-width" :label="$t('TryAgain')" @click="$emit('retry')"></q-btn>
         </div>
       </div>
     </div>

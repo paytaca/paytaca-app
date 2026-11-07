@@ -6,7 +6,7 @@
   <div
     class="q-mx-sm q-mb-lg text-bow"
     :class="getDarkModeClass(darkMode)"
-    v-if="isloaded && state === 'form' && !error"
+    v-if="isloaded && state === 'form' && !error && isAllowed"
   >
     <div class="q-mx-md">
       <!-- Swap Setting Card -->
@@ -60,7 +60,7 @@
           </q-item-section>
         </q-item>
 
-        <div class="q-px-md q-my-xs row items-center justify-center">
+        <div class="q-px-md q-my-xs row items-center justify-center" v-if="canSwitchDirection">
           <q-btn
             icon="mdi-swap-vertical"
             round          
@@ -78,7 +78,7 @@
           <q-item-section avatar class="item-center" @click="selectSettleToken">
             <img class="q-mb-sm currency-icon" :src="iconSrc(settle.icon)" alt="">
             <q-item-label class="">
-              {{ settle.coin }} <q-icon  v-show="!isToBCH" name="expand_more"/>
+              {{ settle.coin }} <q-icon v-show="!isToBCH && !isSettleLocked" name="expand_more"/>
             </q-item-label>
             <!-- <q-item-label class="text-center sm-font-size" :class="darkMode ? 'text-grey-5' : 'text-grey-6'">
               {{ getNetwork(settle) }}
@@ -108,7 +108,7 @@
       </div>    
 
       <div class="pt-card q-pa-md q-mt-md q-mb-md br-15" :class="darkMode ? 'dark' : 'light'">
-        <q-item class="q-pt-sm" v-show="!isToBCH">
+        <q-item class="q-pt-sm" v-show="!isToBCH || isSettleLocked">
           <q-item-section class="justify-center">
             <div class="q-pb-sm q-pl-sm text-weight-bold">
               {{ $t('ReceivingAddress') }}
@@ -117,11 +117,13 @@
               dense
               filled
               :dark="darkMode"
+              :readonly="isSettleLocked"
               v-model="settleAddress"
             >
               <template v-slot:append>
-                <q-icon name="close" class="close-button" @click="settleAddress = ''"/>&nbsp;
+                <q-icon v-if="!isSettleLocked" name="close" class="close-button" @click="settleAddress = ''"/>&nbsp;
                 <q-icon
+                  v-if="!isSettleLocked"
                   name="mdi-qrcode-scan"
                   class="button button-text-primary"
                   :class="getDarkModeClass(darkMode)"
@@ -171,7 +173,10 @@
       />
     </div>
   </div>
-  <div class="q-mx-sm" v-if="!isloaded && !error">
+  <div class="text-center col q-mt-sm pt-internet-required" v-if="!isAllowed">
+    {{ $t('FeatureBlockedInYourCountry') }} &#128533;
+  </div>
+  <div class="q-mx-sm" v-if="!isloaded && !error && isAllowed">
 
     <!-- Swap Info -->
     <div class="q-mx-md q-mb-sm">
@@ -236,7 +241,6 @@ import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 import { iconSrc } from 'src/utils/encoding'
 import KeyboardTooltip from 'src/components/KeyboardTooltip.vue'
 import { useKeyboardTooltip } from 'src/composables/useKeyboardTooltip'
-import { bus } from 'src/wallet/event-bus.js'
 import { isConformingNamespaces } from '@walletconnect/utils'
 import {
   generateReceivingAddress,
@@ -258,9 +262,32 @@ export default {
     const { showTooltip, tipCounter, showKeyboardTooltip, hideKeyboardTooltip } = useKeyboardTooltip()
     return { showTooltip, tipCounter, showKeyboardTooltip, hideKeyboardTooltip }
   },
+  props: {
+    mode: {
+      type: String,
+      default: 'app' // 'app' | 'cashin'
+    },
+    lockSettle: {
+      type: Boolean,
+      default: false
+    },
+    isAllowed: {
+      type: Boolean,
+      default: true
+    },
+    allowedDepositCoins: {
+      type: Array,
+      default: null
+    },
+    settleAddressOverride: {
+      type: String,
+      default: ''
+    }
+  },
   data () {
     return {
       error: false,
+      pairUnavailable: false,
       hasError: false,
       errorMsg: '',
       invalidAmount: false,
@@ -299,10 +326,10 @@ export default {
   },
   watch: {
     state (val) {
-      bus.emit('update-state', val)
+      this.$emit('update:state', val)
     }
   },
-  emits: ['deposit'],
+  emits: ['update:state'],
   methods: {
     iconSrc,
     getDarkModeClass,
@@ -310,12 +337,6 @@ export default {
       const vm = this
       vm.updateState('deposit')
       vm.shiftData = data
-      // const jsonString = JSON.stringify(data)
-      // vm.$router.push({
-      //   name: 'crypto-swap-history-details',
-      //   params: { id: data.shift_id },
-      //   state: { details: jsonString}
-      // })
     },
     onKeyboardInput (e) {
       e.preventDefault()
@@ -380,13 +401,13 @@ export default {
         this.$q.dialog({
           component: RampShiftTokenSelectDialog,
           componentProps: {
-            tokenList: this.tokenList,
+            tokenList: this.selectableDepositTokens,
             title: this.$t('SelectSource'),
             type: 'source'
           }
         })
           .onOk(coin => {
-            if (coin.coin === this.settle.coin && coin.network === this.settle.network) {
+            if (!this.isSettleLocked && coin.coin === this.settle.coin && coin.network === this.settle.network) {
               this.swapCoin()
             } else {
               this.deposit = coin
@@ -398,6 +419,7 @@ export default {
       this.setBCHAddress()
     },
     selectSettleToken () {
+      if (this.isSettleLocked) return
       if (!this.isToBCH) {
         this.$q.dialog({
           component: RampShiftTokenSelectDialog,
@@ -452,6 +474,7 @@ export default {
     },
     swapCoin () {
       const vm = this
+      if (vm.isSettleLocked) return
 
       const temp = vm.deposit
 
@@ -503,10 +526,6 @@ export default {
     },
     updateState (state) {
       this.state = state
-
-      if (this.state === 'deposit') {
-        // this.$emit('deposit')
-      }
     },
     openDepositInfo (info) {
       this.updateState('deposit')
@@ -548,6 +567,10 @@ export default {
     },
     async setBCHAddress () {
       const vm = this
+      if (vm.settleAddressOverride && vm.settle.coin === 'BCH' && vm.deposit.coin !== 'BCH') {
+        vm.settleAddress = vm.settleAddressOverride
+        return
+      }
       const bchAddress = await vm.getBchAddress()
       if (!bchAddress) {
         vm.$q.notify({
@@ -569,6 +592,13 @@ export default {
       const min = parseFloat(vm.minimum)
       const max = parseFloat(vm.maximum)
       vm.errorMsg = ''
+
+      if (vm.pairUnavailable) {
+        vm.errorMsg = vm.$t('PairNotAvailable', {}, 'This pair is not available right now. Choose another coin.')
+        vm.hasError = true
+        vm.amountLoaded = true
+        return
+      }
 
       if (vm.invalidAmount) {
         vm.errorMsg = 'Not a valid amount, please try again.'
@@ -596,6 +626,7 @@ export default {
     updateConvertionRate: debounce(async function () {
       const vm = this
       vm.invalidAmount = false
+      vm.pairUnavailable = false
       vm.amountLoaded = false
       vm.hasError = false
       vm.error = false
@@ -609,8 +640,13 @@ export default {
 
           // check exchange rate
           const url = 'https://sideshift.ai/api/v2/pair/' + vm.deposit.coin + '-' + vm.deposit.network + '/' + vm.settle.coin + '-' + vm.settle.network
-          const resp = await vm.$axios.get(url).catch(function () { 
-            vm.error = true
+          const resp = await vm.$axios.get(url).catch(function (err) {
+            // A rejected pair answers 400 with an error body; a transport failure has no response
+            if (err && err.response) {
+              vm.pairUnavailable = true
+            } else {
+              vm.error = true
+            }
             vm.amountLoaded = true // Set to true even on error to stop skeleton loader
             return null
           })
@@ -823,6 +859,19 @@ export default {
         return true
       }
       return false
+    },
+    isSettleLocked () {
+      return this.lockSettle || this.mode === 'cashin'
+    },
+    canSwitchDirection () {
+      return !this.isSettleLocked
+    },
+    selectableDepositTokens () {
+      return (this.tokenList || []).filter(token => {
+        if (this.mode === 'cashin' && token.coin === 'BCH') return false
+        if (this.allowedDepositCoins && !this.allowedDepositCoins.includes(token.coin)) return false
+        return true
+      })
     }
   },
   async mounted () {
@@ -834,7 +883,9 @@ export default {
     vm.settle.icon = await vm.getCoinImage(vm.settle.coin, vm.settle.network)
 
     const bchAddress = await vm.getBchAddress()
-    if (bchAddress) {
+    if (vm.settleAddressOverride) {
+      vm.settleAddress = vm.settleAddressOverride
+    } else if (bchAddress) {
       vm.settleAddress = bchAddress
     }
 
