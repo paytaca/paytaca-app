@@ -235,16 +235,22 @@ export function buildNipEeWelcomeEvent({ welcomeHex, keyPackageEventId, relays =
  * @param {string} opts.nostrGroupIdHex — 32-byte nostr_group_id hex (h tag)
  * @param {Uint8Array} opts.mlsMessageBytes — serialized MLSMessage to publish
  * @param {Uint8Array} opts.exporterSecretBytes — current exporter secret
+ * @param {string} [opts.senderPubkeyHex] — sender's chat pubkey, published in
+ *   the plaintext "sender" tag. The ephemeral signature hides who sent the
+ *   event, so the push watcher needs the tag to avoid notifying the sender
+ *   about their own message.
  * @returns {import('nostr-tools').Event} signed event ready to publish
  */
-export function buildNipEeGroupEvent({ nostrGroupIdHex, mlsMessageBytes, exporterSecretBytes }) {
+export function buildNipEeGroupEvent({ nostrGroupIdHex, mlsMessageBytes, exporterSecretBytes, senderPubkeyHex }) {
   const ephemeralKey = generateSecretKey()
+  const tags = [['h', nostrGroupIdHex]]
+  if (senderPubkeyHex) tags.push(['sender', senderPubkeyHex])
   const event = finalizeEvent(
     {
       kind: NIP_EE_GROUP_EVENT_KIND,
       created_at: Math.floor(Date.now() / 1000),
       content: encryptMlsMessageWithExporter(mlsMessageBytes, exporterSecretBytes),
-      tags: [['h', nostrGroupIdHex]],
+      tags,
     },
     ephemeralKey,
   )
