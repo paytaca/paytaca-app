@@ -144,6 +144,40 @@ export default function () {
       return
     }
 
+    // Read-only (xpub) wallets have no private keys, so most apps are unusable.
+    // Only Collectibles, Settings and Support remain accessible (mirrors the
+    // enabled app tiles).
+    if (to.path.startsWith('/apps') && to.name !== 'apps-dashboard' &&
+        to.name !== 'app-collectibles' &&
+        to.path !== '/apps/settings' && to.path !== '/apps/support') {
+      const { isReadOnlyVaultEntry } = await import('../lib/readonly-wallet')
+      const currentEntry = store.getters['global/getVault']?.[store.getters['global/getWalletIndex']]
+      if (isReadOnlyVaultEntry(currentEntry)) {
+        next({ name: 'apps-dashboard', replace: true })
+        return
+      }
+    }
+
+    // Read-only (xpub) wallets build unsigned transactions instead of sending.
+    // Mirror the regular send flow: BCH/fungible-token sends first show the
+    // asset-selection page; NFT sends (already specific) go straight to the
+    // build page. The private-key send flow is never reached.
+    if (to.name === 'transaction-send' || to.name === 'transaction-send-select-asset') {
+      const { isReadOnlyVaultEntry } = await import('../lib/readonly-wallet')
+      const currentEntry = store.getters['global/getVault']?.[store.getters['global/getWalletIndex']]
+      if (isReadOnlyVaultEntry(currentEntry)) {
+        if (to.name === 'transaction-send-select-asset') {
+          next()
+          return
+        }
+        const isNftSend = ['CT-NFT', '65'].includes(String(to.query?.tokenType)) || Boolean(to.query?.simpleNft)
+        next(isNftSend
+          ? { name: 'transaction-build', query: to.query, replace: true }
+          : { name: 'transaction-send-select-asset', query: to.query, replace: true })
+        return
+      }
+    }
+
     if (to.path === '/') {
       try {
         // Ensure current wallet index is valid (points to undeleted wallet)
@@ -158,7 +192,6 @@ export default function () {
         const hasValidWallet = currentWallet &&
           currentWallet.deleted !== true &&
           Boolean(getWalletHash(currentWallet))
-        
         if (!hasValidWallet) {
           if (hasRecoverableVaultEntry(vault)) {
             // The vault still holds wallet data but no usable wallet hash.
@@ -186,6 +219,14 @@ export default function () {
           }
           // No wallet data at all - go to account creation
           next('/accounts')
+          return
+        }
+
+        // Read-only (xpub) wallets have no mnemonic yet are valid wallets.
+        // Allow them through without the mnemonic checks below.
+        const { isReadOnlyVaultEntry } = await import('../lib/readonly-wallet')
+        if (isReadOnlyVaultEntry(currentWallet)) {
+          next()
           return
         }
         

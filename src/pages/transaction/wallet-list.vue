@@ -344,10 +344,16 @@ export default {
       const indexMap = new Map() // Maps displayed index to actual vault index
 
       const { getMnemonic } = await import('src/wallet')
+      const { isReadOnlyVaultEntry } = await import('src/lib/readonly-wallet')
 
       // Check mnemonics in parallel for better performance
       const mnemonicChecks = tempVault.map((wallet, index) => {
         if (!wallet || wallet.deleted === true) {
+          return Promise.resolve(null)
+        }
+
+        // Read-only (xpub) wallets have no mnemonic; skip the lookup for them
+        if (isReadOnlyVaultEntry(wallet)) {
           return Promise.resolve(null)
         }
 
@@ -368,8 +374,9 @@ export default {
           return
         }
 
-        // Skip wallets without mnemonics (orphaned entries)
-        if (!mnemonics[originalIndex]) {
+        // Skip wallets without mnemonics (orphaned entries) UNLESS they are
+        // read-only wallets (xpub-based, no mnemonic by design)
+        if (!mnemonics[originalIndex] && !isReadOnlyVaultEntry(wallet)) {
           return
         }
 

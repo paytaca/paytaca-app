@@ -72,6 +72,28 @@
                 </div>
               </div>
             </transition>
+
+            <transition appear @enter="onButtonEnter" :style="{ '--delay': '0.6s' }">
+              <div 
+                id="add-readonly-wallet"
+                class="action-glass-card pt-card bg-grad text-bow"
+                :class="[
+                  getDarkModeClass(darkMode),
+                  canCreateOrImportWallet ? 'cursor-pointer' : 'cursor-not-allowed opacity-60'
+                ]"
+                @click="initReadOnlyWallet"
+              >
+                <div class="action-icon-wrapper">
+                  <div class="row justify-center">
+                    <q-icon name="mdi-eye-outline" class="col-12" :color="darkMode ? 'primary' : 'black'" size="29px"></q-icon>
+                  </div>
+                </div>
+                <div class="action-content">
+                  <div class="text-subtitle1 q-mb-xs">{{ $t('ImportReadOnlyWallet') || 'Read-only wallet (XPub)' }}</div>
+                  <div class="text-body2 q-mt-xs">{{ $t('ImportReadOnlyWalletDescription') || 'Watch an existing wallet from its public key' }}</div>
+                </div>
+              </div>
+            </transition>
           </div>
 
           <!-- Back Button with Animation -->
@@ -441,6 +463,113 @@
                 :disable="!validateSeedPhrase()"
               />
       </template>
+      <template v-else-if="authenticationPhase === 'xpub'">
+        <div class="row no-wrap items-center q-mb-sm full-width" style="margin-left: -16px; margin-right: -16px; padding: 0 16px;">
+          <q-btn
+            flat
+            round
+            dense
+            icon="arrow_back"
+            class="glass-button-text"
+            style="margin-top: -6px;"
+            :class="getDarkModeClass(darkMode)"
+            @click="backToWalletOptions()"
+          />
+          <div class="text-subtitle1 text-center text-bow step-title col" :class="getDarkModeClass(darkMode)">{{ $t('ImportReadOnlyWallet') || 'Read-only wallet (XPub)' }}</div>
+          <q-btn flat round dense class="invisible" style="margin-top: -6px;" />
+        </div>
+        <div class="send-option-card pt-card" :class="getDarkModeClass(darkMode)">
+          <div class="send-option-header">
+            <q-icon name="mdi-qrcode-scan" size="28px" class="text-grad"/>
+            <div class="send-option-title">
+              <div class="text-subtitle1 text-weight-medium" :class="getDarkModeClass(darkMode)">
+                {{ $t('ScanBsmsDescriptor', {}, 'Scan Wallet Descriptor') }}
+              </div>
+              <div class="text-caption" :class="getDarkModeClass(darkMode)" style="opacity: 0.7">
+                {{ $t('ScanBsmsDescriptorHint', {}, 'Scan a BSMS wallet descriptor QR to fill in the xpub') }}
+              </div>
+            </div>
+          </div>
+          <q-btn
+            unelevated
+            no-caps
+            class="full-width scan-option-btn q-mt-sm"
+            :style="`border: 2px solid ${getThemeColor()}; color: ${getThemeColor()};`"
+            @click="openReadOnlyScan"
+          >
+            <div class="column items-center">
+              <q-icon name="mdi-qrcode-scan" size="28px"/>
+              <div class="text-caption q-mt-xs">{{ $t('Scan', {}, 'Scan') }}</div>
+            </div>
+          </q-btn>
+        </div>
+
+        <div class="row items-center q-my-xs" :class="getDarkModeClass(darkMode)">
+          <div class="col text-center text-subtitle1 text-weight-bold">{{ $t('Or', {}, 'OR') }}</div>
+        </div>
+
+        <div class="glass-panel send-option-card q-mt-sm pt-card" :class="getDarkModeClass(darkMode)">
+          <div class="send-option-header q-px-md q-pt-md">
+            <q-icon name="mdi-pencil" size="28px" class="text-grad"/>
+            <div class="send-option-title">
+              <div class="text-subtitle1 text-weight-medium" :class="getDarkModeClass(darkMode)">
+                {{ $t('EnterWalletDescriptorDetails', {}, 'Enter Wallet Details') }}
+              </div>
+              <div class="text-caption" :class="getDarkModeClass(darkMode)" style="opacity: 0.7">
+                {{ $t('EnterWalletDescriptorDetailsHint', {}, 'Fill out the form') }}
+              </div>
+            </div>
+          </div>
+          <div class="q-pa-md">
+            <q-label class="q-block q-mb-sm">{{ $t('WalletName', {}, 'Wallet name') }}</q-label>
+            <q-input
+              v-model="walletName"
+              outlined
+              :error="walletNameTaken"
+              :error-message="$t('WalletNameTaken', {}, 'Wallet name is already taken')"
+              bg-color="white"
+            />
+            <q-label class="q-block q-mb-sm">Extended Public Key (xpub)</q-label>
+            <q-input
+              type="textarea"
+              v-model="xpub"
+              rows="3"
+              autogrow
+              outlined
+              :error="Boolean(xpubError)"
+              hide-bottoms
+              bg-color="white"
+            />
+            <q-label class="q-block q-mb-xs q-mt-md">Master Fingerprint</q-label>
+            <div class="text-caption q-mb-xs" :class="getDarkModeClass(darkMode)" style="opacity: 0.7">
+              {{ $t('MasterFingerprintHint', {}, 'Required if you want to be able to generate unsigned transactions on this device.') }}
+            </div>
+            <q-input
+              v-model="masterFingerprint"
+              outlined
+              :error="Boolean(masterFingerprintError)"
+              :error-message="masterFingerprintError"
+              bg-color="white"
+            />
+            <template v-if="readOnlyDerivationPath">
+              <q-label class="q-block q-mb-xs q-mt-md">Derivation Path</q-label>
+              <q-input
+                :model-value="readOnlyDerivationPath"
+                disable
+                outlined
+              />
+            </template>
+          </div>
+        </div>
+
+        <q-btn
+          rounded
+          :label="$t('ImportReadOnlyWallet') || 'Import read-only wallet'"
+          class="q-mt-lg full-width primary-cta bg-grad"
+          @click="initCreateWallet()"
+          :disable="!xpub || walletNameTaken"
+        />
+      </template>
     </div>
 
     <div class="row" v-if="mnemonic.length > 0 && !$route.path.startsWith('/accounts/create/step-') && !$route.path.startsWith('/accounts/restore/step-')">
@@ -621,6 +750,7 @@ import SeedPhraseContainer from 'src/components/SeedPhraseContainer'
 import Onboarding from 'src/components/registration/Onboarding.vue'
 import Login from 'src/components/registration/Login.vue'
 import { ensureCanPerformActionWithDeps } from 'src/composables/useTieredLimitGate'
+import { isWalletNameTaken, nextReadOnlyWalletName } from 'src/lib/readonly-wallet'
 import RewardsStep from 'src/components/registration/RewardsStep.vue'
 import { withTimeout } from 'src/utils/async-utils'
 
@@ -710,6 +840,7 @@ export default {
       steps: -1,
       totalSteps: 6,
       walletName: 'Personal Wallet',
+      readOnlyDerivationPath: '',
       walletCreationInProgress: false,
       walletCreationComplete: false,
       walletRestoreInProgress: false,
@@ -724,6 +855,10 @@ export default {
       openThemeSelector: false,
       useTextArea: false,
       authenticationPhase: 'options',
+      xpub: '',
+      xpubError: '',
+      masterFingerprint: '',
+      masterFingerprintError: '',
       skipToBackupPhrase: false,
       isOnboarding: false, // this.isVaultEmpty
       pageLoaded: false,
@@ -825,9 +960,15 @@ export default {
           if (routeStep === 2) {
             this.importSeedPhrase = true
             // Preserve authenticationPhase if already set, otherwise default to 'backup-phrase'
-            if (!this.authenticationPhase || this.authenticationPhase === 'options') {
+            // (the read-only flow navigates here with phase=xpub)
+            const phase = to.query?.phase
+            const returningFromScan = Boolean(sessionStorage.getItem('readonly-bsms-scan'))
+            if (phase === 'xpub' || returningFromScan) {
+              this.authenticationPhase = 'xpub'
+            } else if (!this.authenticationPhase || this.authenticationPhase === 'options') {
               this.authenticationPhase = 'backup-phrase'
             }
+            this.applyScannedReadonlyDescriptor()
           }
           // Initialize step 3 (settings) when navigating to it (geoip call happens here)
           if (routeStep === 3) {
@@ -859,6 +1000,9 @@ export default {
     isVaultEmpty() {
       return this.$store.getters['global/isVaultEmpty']
     },
+    walletNameTaken () {
+      return isWalletNameTaken(this.walletName)
+    },
     currentStep () {
       // Extract step number from route path
       if (this.$route.path.startsWith('/accounts/create/step-')) {
@@ -881,6 +1025,15 @@ export default {
     },
     isFinalStep () {
       return this.currentStep === 6
+    },
+    isReadOnlyWallet () {
+      const index = this.$store.getters['global/getWalletIndex']
+      const entry = this.$store.getters['global/getVault']?.[index]
+      return Boolean(
+        entry &&
+        !entry.deleted &&
+        (entry.settings?.isReadOnly === true || Boolean(entry.readOnly?.xpub))
+      )
     },
     isMobile () {
       return this.$q.platform.is.mobile || this.$q.platform.is.android || this.$q.platform.is.ios
@@ -1335,8 +1488,9 @@ export default {
       vm.$store.dispatch('global/updateOnboardingStep', vm.steps).then(function () {
         return vm.promptEnablePushNotification()?.catch?.(console.error)
       }).then(async function () {
-        // Save wallet name before saving to vault (creation flow only)
-        if (!vm.importSeedPhrase) {
+        // Save wallet name before saving to vault (creation flow only,
+        // and also for read-only wallets which are created directly)
+        if (!vm.importSeedPhrase || vm.isReadOnlyWallet) {
           try {
             await vm.saveWalletName()
           } catch (error) {
@@ -1344,7 +1498,9 @@ export default {
           }
         }
         
-        vm.saveToVault()
+        if (!vm.isReadOnlyWallet) {
+          vm.saveToVault()
+        }
         
         // Initialize nostr chat per-wallet state for the new wallet and reinitialize
         const newWalletHash = vm.$store.getters['global/getWallet']('bch')?.walletHash
@@ -1367,11 +1523,13 @@ export default {
         }
         
         // Ensure mnemonic is readable before navigating to '/' (router guard depends on it)
-        try {
-          await vm.ensureMnemonicReady()
-        } catch (e) { 
-          console.warn('mnemonic readiness wait timeout', e)
-          vm.isRedirecting = false
+        if (!vm.isReadOnlyWallet) {
+          try {
+            await vm.ensureMnemonicReady()
+          } catch (e) { 
+            console.warn('mnemonic readiness wait timeout', e)
+            vm.isRedirecting = false
+          }
         }
         vm.$router.push({
           path: '/',
@@ -1424,6 +1582,35 @@ export default {
       
       // Handle restore flow
       if (this.importSeedPhrase && this.restoreStep === 2) {
+        // Read-only (xpub) wallet import branch
+        if (this.authenticationPhase === 'xpub') {
+          const validation = await this.validateXpub()
+          if (!validation.valid) {
+            this.xpubError = validation.error
+            return
+          }
+          this.xpubError = ''
+          const fingerprintValidation = this.validateMasterFingerprint()
+          if (!fingerprintValidation.valid) {
+            this.masterFingerprintError = fingerprintValidation.error
+            return
+          }
+          this.masterFingerprintError = ''
+          this.walletRestoreInProgress = true
+          this.walletRestoreError = ''
+          try {
+            await this.createReadOnlyWallets()
+            // Navigate to settings step (step-3)
+            await this.$router.push('/accounts/restore/step-3')
+            this.walletRestoreInProgress = false
+          } catch (error) {
+            console.error('Error creating read-only wallet:', error)
+            this.walletRestoreError = this.$t('ErrorCreatingReadOnlyWallet') || 'Failed to add read-only wallet. Please try again.'
+            this.walletRestoreInProgress = false
+          }
+          return
+        }
+
         // Validate seed phrase before proceeding
         if (!this.validateSeedPhrase() && this.authenticationPhase === 'backup-phrase') {
           return
@@ -1490,6 +1677,121 @@ export default {
       this.$router.push('/accounts/restore/step-1').then(() => {
         this.authenticationPhase = 'options'
       })
+    },
+    async initReadOnlyWallet () {
+      const allowed = await ensureCanPerformActionWithDeps(
+        { $q: this.$q, $store: this.$store },
+        'wallets',
+        { darkMode: this.darkMode, forceRefresh: true }
+      )
+      if (!allowed) return
+
+      // Flag importSeedPhrase so the restore steps render, but use the 'xpub'
+      // authentication phase so the XPub entry UI is shown.
+      this.importSeedPhrase = true
+      this.authenticationPhase = 'xpub'
+      this.walletName = nextReadOnlyWalletName()
+      this.resetReadOnlyForm()
+      this.$router.push({ path: '/accounts/restore/step-2', query: { phase: 'xpub' } })
+    },
+    backToWalletOptions () {
+      this.walletName = 'Personal Wallet'
+      this.authenticationPhase = 'options'
+      this.resetReadOnlyForm()
+      this.$router.push('/accounts')
+    },
+    resetReadOnlyForm () {
+      this.xpub = ''
+      this.xpubError = ''
+      this.masterFingerprint = ''
+      this.masterFingerprintError = ''
+      this.readOnlyDerivationPath = ''
+    },
+    getThemeColor () {
+      const theme = this.$store.getters['global/theme']
+      const themeMap = {
+        'glassmorphic-blue': '#42a5f5',
+        'glassmorphic-green': '#4caf50',
+        'glassmorphic-gold': '#ffa726',
+        'glassmorphic-red': '#f54270'
+      }
+      return themeMap[theme] || '#42a5f5'
+    },
+    openReadOnlyScan () {
+      this.$router.push({
+        name: 'qr-reader',
+        query: {
+          scanType: 'bsms',
+          backnavpath: '/accounts/restore/step-2?phase=xpub'
+        }
+      })
+    },
+    async applyScannedReadonlyDescriptor () {
+      const raw = sessionStorage.getItem('readonly-bsms-scan')
+      if (!raw) return
+      sessionStorage.removeItem('readonly-bsms-scan')
+
+      let parsed
+      try {
+        const { parseReadOnlyDescriptor } = await import('src/lib/readonly-wallet/bsms')
+        try {
+          parsed = parseReadOnlyDescriptor(raw)
+        } catch {
+          parsed = parseReadOnlyDescriptor(raw, { lenient: true })
+        }
+      } catch (error) {
+        this.$q.notify({
+          type: 'negative',
+          message: error?.message || this.$t('InvalidDescriptor', {}, 'Could not parse wallet descriptor'),
+          timeout: 5000
+        })
+        return
+      }
+
+      this.xpub = parsed.xpub
+      this.masterFingerprint = parsed.masterFingerprint || ''
+      this.readOnlyDerivationPath = parsed.derivationPath
+
+      if (parsed.complete) {
+        this.$q.notify({
+          type: 'positive',
+          message: this.$t('DescriptorValidImported', {}, 'Wallet descriptor valid — review the fields and add the wallet'),
+          timeout: 4000
+        })
+      } else {
+        this.$q.notify({
+          type: 'warning',
+          message: parsed.error || this.$t('DescriptorIncomplete', {}, 'Wallet descriptor is incomplete or invalid — review the fields'),
+          timeout: 5000
+        })
+      }
+    },
+    async validateXpub () {
+      if (!this._isValidXpub) {
+        const { isValidXpub } = await import('src/lib/readonly-wallet')
+        this._isValidXpub = isValidXpub
+      }
+      if (!this._getXpubNetwork) {
+        const { getXpubNetwork } = await import('src/lib/readonly-wallet')
+        this._getXpubNetwork = getXpubNetwork
+      }
+      const trimmed = (this.xpub || '').trim()
+      if (!trimmed) return { valid: false, error: this.$t('PasteXpubPlaceholder') || 'Enter an xpub' }
+      if (!this._isValidXpub(trimmed)) {
+        return { valid: false, error: this.$t('InvalidXpubFormat') || 'Invalid xpub format' }
+      }
+      if (this._getXpubNetwork(trimmed) !== 'mainnet') {
+        return { valid: false, error: this.$t('MainnetXpubRequired', {}, 'Please enter a mainnet xpub (starts with xpub…)') }
+      }
+      return { valid: true, error: '' }
+    },
+    validateMasterFingerprint () {
+      const trimmed = (this.masterFingerprint || '').trim()
+      if (trimmed === '') return { valid: true, error: '' }
+      if (!/^[0-9a-fA-F]{8}$/.test(trimmed)) {
+        return { valid: false, error: this.$t('InvalidMasterFingerprint', {}, 'Master fingerprint must be 8 hex characters (e.g. aabbccdd)') }
+      }
+      return { valid: true, error: '' }
     },
     async createWallets () {
       const vm = this
@@ -1632,6 +1934,146 @@ export default {
           return
         }
       }
+    },
+    async createReadOnlyWallets () {
+      const { ReadOnlyWallet } = await import('src/lib/readonly-wallet')
+
+      const cleanedXpub = (this.xpub || '').trim()
+      const walletName = this.walletName && !isWalletNameTaken(this.walletName)
+        ? this.walletName
+        : nextReadOnlyWalletName()
+      const walletConfig = {
+        name: walletName,
+        xpub: cleanedXpub,
+        masterFingerprint: (this.masterFingerprint || '').trim(),
+        derivationPath: this.readOnlyDerivationPath || undefined,
+        networks: {
+          mainnet: {},
+          chipnet: {}
+        }
+      }
+
+      const mainnetWallet = new ReadOnlyWallet(walletConfig, { network: 'mainnet' })
+      const chipnetWallet = new ReadOnlyWallet(walletConfig, { network: 'chipnet' })
+
+      // Derive and subscribe address set at index 0 for both networks
+      const addressSetMainnet = mainnetWallet.getAddressSet(0, 'mainnet')
+      const addressSetChipnet = chipnetWallet.getAddressSet(0, 'chipnet')
+      const subscriptions = await Promise.allSettled([
+        mainnetWallet.subscribeWalletAddressIndex(0, 'pair', 'mainnet'),
+        chipnetWallet.subscribeWalletAddressIndex(0, 'pair', 'chipnet')
+      ])
+      subscriptions.forEach(result => {
+        if (result.status === 'rejected') {
+          console.error('[ReadOnlyWallet] Failed to subscribe addresses:', result.reason)
+        }
+      })
+
+      const bchWalletHash = mainnetWallet.walletHashFor('mainnet')
+      const chipnetWalletHash = chipnetWallet.walletHashFor('chipnet')
+      const derivationPath = mainnetWallet.derivationPath
+
+      const walletStructure = {
+        bch: {
+          walletHash: bchWalletHash,
+          derivationPath: derivationPath,
+          xPubKey: cleanedXpub,
+          lastAddress: addressSetMainnet.receiving,
+          lastChangeAddress: addressSetMainnet.change,
+          lastAddressIndex: 0
+        },
+        slp: {
+          walletHash: '',
+          derivationPath: '',
+          xPubKey: '',
+          lastAddress: '',
+          lastChangeAddress: '',
+          lastAddressIndex: -1
+        }
+      }
+
+      const chipnetStructure = {
+        bch: {
+          walletHash: chipnetWalletHash,
+          derivationPath: derivationPath,
+          xPubKey: cleanedXpub,
+          lastAddress: addressSetChipnet.receiving,
+          lastChangeAddress: addressSetChipnet.change,
+          lastAddressIndex: 0
+        },
+        slp: {
+          walletHash: '',
+          derivationPath: '',
+          xPubKey: '',
+          lastAddress: '',
+          lastChangeAddress: '',
+          lastAddressIndex: -1
+        }
+      }
+
+      const vaultEntry = {
+        wallet: walletStructure,
+        chipnet: chipnetStructure,
+        name: walletName,
+        readOnly: mainnetWallet.toJSON(),
+        settings: {
+          isReadOnly: true
+        }
+      }
+
+      // Reuse an existing entry with the same walletHash if present
+      const existingVault = this.$store.getters['global/getVault']
+      const existingIndex = existingVault.findIndex(v => {
+        if (!v || v.deleted) return false
+        const existingHash = v?.wallet?.bch?.walletHash
+        const normalizedExisting = existingHash ? String(existingHash).trim() : null
+        return normalizedExisting && normalizedExisting === String(bchWalletHash).trim()
+      })
+
+      if (existingIndex !== -1) {
+        this.walletIndex = existingIndex
+        this.$store.commit('global/updateWalletSnapshot', {
+          index: existingIndex,
+          walletSnapshot: walletStructure,
+          chipnetSnapshot: chipnetStructure,
+          name: existingVault[existingIndex]?.name || this.walletName || 'Read-Only Wallet',
+          deleted: false
+        })
+        this.$store.commit('global/updateWalletSettings', {
+          index: existingIndex,
+          settings: vaultEntry.settings
+        })
+        this.$store.commit('global/updateWalletIndex', existingIndex)
+        this.$store.commit('global/updateCurrentWallet', existingIndex)
+        this.newWalletHash = bchWalletHash
+        return
+      }
+
+      // Create a new vault entry
+      this.$store.commit('global/updateVault', vaultEntry)
+      const vaultLengthAfter = this.$store.getters['global/getVault'].length
+      const newWalletIndex = vaultLengthAfter - 1
+      this.walletIndex = newWalletIndex
+      this.$store.commit('global/updateWalletSettings', {
+        index: newWalletIndex,
+        settings: vaultEntry.settings
+      })
+      this.$store.commit('global/updateWalletIndex', newWalletIndex)
+      this.$store.commit('global/updateCurrentWallet', newWalletIndex)
+
+      // Initialize assets vault entry to prevent errors
+      const assetsVault = this.$store.getters['assets/getRemovedAssetIds']
+      if (!assetsVault[newWalletIndex]) {
+        const emptyAssets = getAllAssets(initialAssetState())
+        emptyAssets.removedAssetIds = []
+        this.$store.commit('assets/updateVault', {
+          index: newWalletIndex,
+          asset: emptyAssets
+        })
+        this.$store.commit('assets/updatedCurrentAssets', newWalletIndex)
+      }
+
+      this.newWalletHash = bchWalletHash
     },
     initializeVaultEntryForRestore () {
       // Create vault entry for restore flow using wallet data from createWallets()
@@ -1952,6 +2394,12 @@ export default {
       }
     },
     goToStep5 () {
+      // Read-only wallets have no mnemonic, so PIN/biometric (keyed to the
+      // mnemonic) is skipped entirely - finish registration right away.
+      if (this.isReadOnlyWallet) {
+        this.saveAndRedirect()
+        return
+      }
       if (this.importSeedPhrase) {
         this.$router.push('/accounts/restore/step-5')
       } else {
@@ -2683,9 +3131,14 @@ export default {
         this.authenticationPhase = 'options'
       } else if (this.restoreStep === 2) {
         // Preserve authenticationPhase if already set, otherwise default to 'backup-phrase'
-        if (!this.authenticationPhase || this.authenticationPhase === 'options') {
+        const phase = this.$route.query?.phase
+        const returningFromScan = Boolean(sessionStorage.getItem('readonly-bsms-scan'))
+        if (phase === 'xpub' || returningFromScan) {
+          this.authenticationPhase = 'xpub'
+        } else if (!this.authenticationPhase || this.authenticationPhase === 'options') {
           this.authenticationPhase = 'backup-phrase'
         }
+        this.applyScannedReadonlyDescriptor()
       }
     }
 
@@ -2736,6 +3189,43 @@ export default {
 <style lang="scss">
 [v-cloak] {
   display: none;
+}
+
+.send-option-card {
+  width: 100%;
+  padding: 16px;
+  border-radius: 16px;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+
+  &:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 16px rgba(0, 0, 0, 0.12);
+  }
+}
+
+.send-option-header {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+}
+
+.send-option-title {
+  flex: 1;
+}
+
+.scan-option-btn {
+  border-radius: 12px;
+  min-height: 100px;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+
+  &:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.12);
+  }
+
+  &:active {
+    transform: translateY(0);
+  }
 }
 /* Use the same main background as wallet home page */
 .pt-wallet {
@@ -2885,6 +3375,9 @@ export default {
 
 /* Restore step 2 container with additional mobile-safe padding */
 .restore-step-2 {
+  /* clear the fixed chipnet banner (height set via App.vue CSS variable) plus safe-area */
+  padding-bottom: calc(32px + env(safe-area-inset-bottom, 0px) + var(--chipnet-banner-height, 0px));
+
   @media (max-width: 768px) {
     padding-top: max(60px, calc(env(safe-area-inset-top, 0px) + 40px)) !important;
   }

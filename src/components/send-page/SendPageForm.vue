@@ -6,19 +6,24 @@
         ref="recipientInput"
         filled
         label-slot
+        type="textarea"
+        autogrow
+        :rows="1"
+        input-style="white-space: pre-wrap; word-break: break-all;"
         no-error-icon
         :disabled="inputExtras.isBip21"
         :readonly="inputExtras.isBip21"
         v-model="recipientAddress"
         @focus="onRecipientFocus"
         @blur="onRecipientBlur"
+        @keydown.enter.prevent
         class="recipient-input"
         :error="emptyRecipient || inputExtras.incorrectAddress"
         :error-message="
           emptyRecipient
             ? $t('EmptyRecipient')
             : inputExtras.incorrectAddress
-              ? $t(
+              ? inputExtras.recipientError || $t(
                   'InvalidRecipient',
                   { walletType: walletType.toUpperCase() },
                   `Recipient should be a valid ${walletType.toUpperCase()} address`
@@ -31,7 +36,7 @@
           inputExtras.scannedRecipientAddress
         ]"
       >
-        <template v-slot:label id="sub-btn"> 
+        <template v-slot:label>
           {{ $t('Recipient') }}
         </template>
       </q-input>
@@ -191,7 +196,7 @@
         :dark="darkMode"
       >
         <template v-slot:append>
-          {{ String(currentSendPageCurrency()).toUpperCase() }}
+          {{ String(currentSendPageCurrency() || '').toUpperCase() }}
         </template>
       </q-input>
       <KeyboardTooltip v-if="activeKeyboardTip === 'fiat'" :dark-mode="darkMode" :key="'fiat-' + keyboardTipCounter" />
@@ -234,7 +239,13 @@
       <KeyboardTooltip v-if="activeKeyboardTip === 'bch'" :dark-mode="darkMode" :key="'bch-' + keyboardTipCounter" />
     </div>
   </div>
-  <div class="row items-center" v-if="!isNFT && !sending" style="padding-bottom: 15px">
+  <div
+    class="row items-center balance-row"
+    :class="{ 'balance-row--inline': $slots['balance-leading'] }"
+    v-if="!isNFT && !sending"
+    style="padding-bottom: 15px"
+  >
+    <div v-if="$slots['balance-leading']" class="balance-lead"><slot name="balance-leading" /></div>
     <div v-if="!recipient.fixedAmount" class="col q-mt-xs balance-max-container" :class="getDarkModeClass(darkMode)">
       <div
         ref="balanceMarqueeViewport"
@@ -312,7 +323,7 @@
     </div>
   </div>
   <div
-    v-if="!isNFT && cauldronEnabled"
+    v-if="!isNFT && cauldronEnabled && !hideCauldron"
     class="cauldron-spend text-bow"
     :class="getDarkModeClass(darkMode)"
   >
@@ -347,12 +358,12 @@
     </div>
   </div>
   <p
-    v-if="effectiveCauldronErrorMessage"
+    v-if="!hideCauldron && effectiveCauldronErrorMessage"
     class="cauldron-spend__note text-bow text-negative"
     :class="getDarkModeClass(darkMode)"
   >{{ effectiveCauldronErrorMessage }}</p>
   <p
-    v-else-if="cauldronStatusMessage"
+    v-else-if="!hideCauldron && cauldronStatusMessage"
     class="cauldron-spend__note text-bow text-bow-muted"
     :class="getDarkModeClass(darkMode)"
   >{{ cauldronStatusMessage }}</p>
@@ -428,6 +439,7 @@ export default {
     tradeResults: { type: Array, default: () => [] },
     focusedField: { type: String, default: '' },
     sending: { type: Boolean, default: false },
+    hideCauldron: { type: Boolean, default: false },
   },
 
   emits: [
@@ -519,8 +531,11 @@ export default {
     },
     currentWalletBalanceAsAsset() {
       let asset = { ...this.asset };
-      if (this.currentWalletBalanceAssetId || this.currentWalletBalanceAssetId !== this.asset?.id) {
-        asset = { ...this.$store.getters['assets/getAsset'](this.currentWalletBalanceAssetId)[0] }
+      const storeAsset = this.currentWalletBalanceAssetId
+        ? this.$store.getters['assets/getAsset'](this.currentWalletBalanceAssetId)?.[0]
+        : null;
+      if (storeAsset && storeAsset.id !== this.asset?.id) {
+        asset = { ...storeAsset };
       }
 
       if (asset.id === 'bch') {
@@ -554,6 +569,7 @@ export default {
       return !isNaN(n) && n > 0
     },
     showPayWith () {
+      if (this.hideCauldron) return false
       if (this.isNFT) return false
       if (this.assetIsBch) return this.cauldronTokens.length > 0
       return Boolean(this.asset?.id?.startsWith?.('ct/'))
@@ -1038,6 +1054,37 @@ export default {
       font-size: 12px;
       font-weight: bold;
     }
+  }
+
+  .balance-row--inline {
+    flex-wrap: nowrap;
+    justify-content: space-between;
+  }
+
+  .balance-row--inline .balance-lead {
+    flex: 0 0 auto;
+    display: flex;
+    align-items: center;
+  }
+
+  .balance-row--inline .balance-max-container {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    flex: 1 1 auto;
+    min-width: 0;
+  }
+
+  .balance-row--inline .balance-marquee {
+    width: auto;
+    flex: 0 1 auto;
+    min-width: 0;
+  }
+
+  .balance-row--inline .max-button {
+    margin-top: 0;
+    margin-left: 8px;
+    flex: 0 0 auto;
   }
 
   @keyframes balance-marquee-scroll {

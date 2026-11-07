@@ -71,7 +71,7 @@
                 {{ $t('ShowPublicKey') }}
               </q-item-section>
             </q-item>
-            <q-item clickable v-close-popup>
+            <q-item clickable v-close-popup v-if="!isReadOnlyWallet">
               <q-item-section class="pt-label" :class="getDarkModeClass(darkMode)" @click="showPrivateKey">
                 {{ $t('ShowPrivateKey') }}
               </q-item-section>
@@ -318,6 +318,7 @@
 
 <script>
 import { getMnemonic, Wallet, Address } from '../../wallet'
+import { isReadOnlyVaultEntry } from 'src/lib/readonly-wallet'
 import {
   getWalletByNetwork,
   getWatchtowerWebsocketUrl,
@@ -401,6 +402,10 @@ export default {
   computed: {
     darkMode () {
       return this.$store.getters['darkmode/getStatus']
+    },
+    isReadOnlyWallet () {
+      const index = this.$store.getters['global/getWalletIndex']
+      return isReadOnlyVaultEntry(this.$store.getters['global/getVault']?.[index])
     },
     backNavPath () {
       if (this.backPath) {
@@ -646,6 +651,30 @@ export default {
       return this.$store.getters['global/getWallet'](type)
     },
 
+    /**
+     * Resolves the wallet serving the given asset type on the current network.
+     * Read-only (xpub) wallets have no mnemonic, so they are built from the
+     * stored xpub; mnemonic wallets are built from secure storage.
+     * @param {string} [type] - 'bch' or 'slp'
+     * @returns {Promise<Object|null>}
+     */
+    async loadWalletForType (type = this.walletType) {
+      const walletIndex = this.$store.getters['global/getWalletIndex']
+
+      if (this.isReadOnlyWallet) {
+        if (type !== 'bch') return null
+        const { loadReadOnlyWallet, buildReadOnlyWallet } = await import('src/lib/readonly-wallet')
+        const readonlyWallet = await loadReadOnlyWallet(walletIndex)
+        if (!readonlyWallet) return null
+        const wallets = buildReadOnlyWallet(readonlyWallet)
+        return wallets[this.isChipnet ? 'BCH_CHIP' : 'BCH'] || null
+      }
+
+      const mnemonic = await getMnemonic(walletIndex).catch(() => null)
+      const wallet = new Wallet(mnemonic, this.network)
+      return getWalletByNetwork(wallet, type)
+    },
+
     async getMainchainTokens () {
       const tokenWalletHashes = [this.getWallet('bch').walletHash, this.getWallet('slp').walletHash]
       const mainchainTokens = []
@@ -725,7 +754,6 @@ export default {
       this.$q.dialog({
         title: this.$t('GenerateNewAddress'),
         message: this.$t('GenerateNewAddressConfirm'),
-        cancel: true,
         persistent: false,
         class: `pt-card text-bow ${this.getDarkModeClass(this.darkMode)}`,
         ok: {
@@ -762,9 +790,9 @@ export default {
       delete this?.$options?.sockets
 
       try {
-        const mnemonic = await getMnemonic(vm.$store.getters['global/getWalletIndex']).catch(() => null)
-        const wallet = new Wallet(mnemonic, vm.network)
-        const result = await getWalletByNetwork(wallet, vm.walletType).getNewAddressSet(newAddressIndex)
+        const walletForType = await vm.loadWalletForType()
+        if (!walletForType) throw new Error('Wallet unavailable for this asset type')
+        const result = await walletForType.getNewAddressSet(newAddressIndex)
         if (!result) throw new Error('Failed to subscribe addresses to watchtower')
         // bch returns { addresses }, slp returns the address set directly
         const addresses = result.addresses || result
@@ -774,6 +802,16 @@ export default {
           lastChangeAddress: addresses.change,
           lastAddressIndex: newAddressIndex
         })
+        // Keep the read-only wallet's issued-deposit cursor in sync so the same
+        // xpub address is never handed out twice
+        if (vm.isReadOnlyWallet) {
+          vm.$store.commit('global/updateReadOnlyWalletAddressIndex', {
+            index: vm.$store.getters['global/getWalletIndex'],
+            network: vm.isChipnet ? 'chipnet' : 'mainnet',
+            kind: 'lastIssuedDepositAddressIndex',
+            value: newAddressIndex
+          })
+        }
         // Re-resolve through the verified scan: if the advanced index still
         // has history, findUnusedAddress walks forward until an unused
         // address is found and the store is updated to match
@@ -791,6 +829,15 @@ export default {
       }
     },
     async showPrivateKey () {
+      // Read-only (xpub) wallets have no private key material
+      if (this.isReadOnlyWallet) {
+        this.$q.notify({
+          type: 'info',
+          message: this.$t('ReadOnlyWalletNotice', {}, 'This is a read-only wallet'),
+          timeout: 3000
+        })
+        return
+      }
       try {
         const mnemonic = await getMnemonic(this.$store.getters['global/getWalletIndex']).catch(() => null)
         const wallet = new Wallet(mnemonic, this.network)
@@ -816,10 +863,9 @@ export default {
     },
     async showPublicKey () {
       try {
-        const mnemonic = await getMnemonic(this.$store.getters['global/getWalletIndex'])
-        const wallet = new Wallet(mnemonic, this.network)
+        const dynamicWallet = await this.loadWalletForType()
+        if (!dynamicWallet) throw new Error('Wallet unavailable for this asset type')
         const lastAddressIndex = this.getDisplayedAddressIndex()
-        const dynamicWallet = getWalletByNetwork(wallet, this.walletType)
         const publicKey = await dynamicWallet.getPublicKey('0/' + String(lastAddressIndex))
         
         // Show public key in a dialog
@@ -967,9 +1013,8 @@ export default {
         // advanced past it, or the server sync may have regressed it)
         const trackedIndex = this.$store.getters['global/getLastAddressIndex'](this.walletType)
         if (foundAddressIndex !== trackedIndex) {
-          const mnemonic = await getMnemonic(this.$store.getters['global/getWalletIndex']).catch(() => null)
-          const wallet = new Wallet(mnemonic, this.network)
-          const result = await getWalletByNetwork(wallet, this.walletType).getNewAddressSet(foundAddressIndex)
+          const walletForType = await this.loadWalletForType()
+          const result = walletForType ? await walletForType.getNewAddressSet(foundAddressIndex) : null
           if (result) {
             // bch returns { addresses }, slp returns the address set directly
             const addresses = result.addresses || result
