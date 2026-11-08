@@ -258,10 +258,14 @@ function reducer(state) {
                           if (!Object.prototype.hasOwnProperty.call(value, roomId)) continue
                           const msgs = value[roomId]
                           if (!Array.isArray(msgs)) continue
-                          if (msgs.length > PERSISTED_MESSAGES_PER_ROOM) {
-                            trimmed[roomId] = msgs.slice(-PERSISTED_MESSAGES_PER_ROOM)
+                          // Optimistic sends that never resolved must not come
+                          // back as ghost messages after a restart; a failed
+                          // one is re-rendered from its `failed` copy instead.
+                          const settled = msgs.filter(m => !m || !m.pending)
+                          if (settled.length > PERSISTED_MESSAGES_PER_ROOM) {
+                            trimmed[roomId] = settled.slice(-PERSISTED_MESSAGES_PER_ROOM)
                           } else {
-                            trimmed[roomId] = msgs
+                            trimmed[roomId] = settled
                           }
                         }
                         cleanWalletState.messages = trimmed

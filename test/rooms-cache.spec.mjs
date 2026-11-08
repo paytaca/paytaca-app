@@ -73,6 +73,20 @@ describe('room list cache', () => {
     assert.equal(ws(state).rooms[0].lastMessageAt, 999)
   })
 
+  it('keeps the cached push token when the server omits it', () => {
+    const state = mkState()
+    ADD_ROOM(state, { ...serverRoom, pushToken: 'cached-token' })
+    SET_ROOMS(state, [serverRoom])
+    assert.equal(ws(state).rooms[0].pushToken, 'cached-token')
+  })
+
+  it('takes the server push token when present', () => {
+    const state = mkState()
+    ADD_ROOM(state, { ...serverRoom, pushToken: 'stale-token' })
+    SET_ROOMS(state, [{ ...serverRoom, pushToken: 'fresh-token' }])
+    assert.equal(ws(state).rooms[0].pushToken, 'fresh-token')
+  })
+
   it('marks the list loaded when the fetch fails, without touching the cache', () => {
     const state = mkState()
     ADD_ROOM(state, serverRoom)

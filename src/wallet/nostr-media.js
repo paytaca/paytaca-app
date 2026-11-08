@@ -12,6 +12,7 @@
 import { sha256 } from 'js-sha256'
 import { getEventHash, finalizeEvent } from 'nostr-tools'
 import { nip44, nip59 } from 'nostr-tools'
+import { ROOM_PUSH_TOKEN_TAG, wrapManyEventsForRoom } from './nostr-room-wrap'
 
 /**
  * Encrypt a file using AES-256-GCM.
@@ -349,21 +350,25 @@ export function createKind15FileMessage({
  * @param {string} [senderPubKey] - Sender's own pubkey (for self-tagging; omit to skip)
  * @returns {Promise<import('nostr-tools').NostrEvent[]>}
  */
-function createSelfSignedArchiveWrap(unsignedEvent, senderPrivKeyBytes, senderPubKey) {
+function createSelfSignedArchiveWrap(unsignedEvent, senderPrivKeyBytes, senderPubKey, roomPushToken) {
   const seal = nip59.createSeal(unsignedEvent, senderPrivKeyBytes, senderPubKey)
   const conversationKey = nip44.getConversationKey(senderPrivKeyBytes, senderPubKey)
   const content = nip44.encrypt(JSON.stringify(seal), conversationKey)
+  const tags = [['p', senderPubKey], ['self']]
+  if (roomPushToken) tags.push([ROOM_PUSH_TOKEN_TAG, roomPushToken])
   return finalizeEvent({
     kind: 1059,
     content,
     created_at: Math.floor(Date.now() / 1000),
-    tags: [['p', senderPubKey], ['self']],
+    tags,
   }, senderPrivKeyBytes)
 }
 
-export async function wrapKind15FileMessage(kind15Event, senderPrivKey, receiverPubKeys, senderPubKey) {
+export async function wrapKind15FileMessage(kind15Event, senderPrivKey, receiverPubKeys, senderPubKey, roomPushToken) {
   const senderPrivKeyBytes = hexToBytes(senderPrivKey)
-  const giftWraps = nip59.wrapManyEvents(kind15Event, senderPrivKeyBytes, receiverPubKeys)
+  const giftWraps = wrapManyEventsForRoom(
+    kind15Event, senderPrivKey, receiverPubKeys, roomPushToken,
+  )
 
   const rumorJson = JSON.stringify(kind15Event)
   console.log('[wrapKind15FileMessage] Rumor JSON size:', rumorJson.length, 'bytes')
@@ -373,12 +378,9 @@ export async function wrapKind15FileMessage(kind15Event, senderPrivKey, receiver
   }
 
   if (senderPubKey) {
-    giftWraps.push(createSelfSignedArchiveWrap(kind15Event, senderPrivKeyBytes, senderPubKey))
-    return giftWraps.map((gw, i) =>
-      (i === 0 || receiverPubKeys[i - 1] === senderPubKey)
-        ? { ...gw, tags: [...gw.tags, ['self']] }
-        : gw
-    )
+    giftWraps.push(createSelfSignedArchiveWrap(
+      kind15Event, senderPrivKeyBytes, senderPubKey, roomPushToken,
+    ))
   }
   return giftWraps
 }

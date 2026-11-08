@@ -274,6 +274,9 @@ export function SET_ROOMS (state, rooms) {
     // a server value.
     const merged = { ...sr }
     if (lr.lastMessageAt) merged.lastMessageAt = lr.lastMessageAt
+    // The push token is only used to tag outbound gift-wraps; keep the cached
+    // one if the server response predates the field.
+    if (!merged.pushToken) merged.pushToken = lr.pushToken || null
     // MLS roles are mirrored on the server row, but the local copy is the one
     // that saw the ratchet tree and the role broadcasts, so it wins whenever it
     // has a usable owner. A device with no local roles (fresh install, second
