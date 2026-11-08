@@ -275,6 +275,13 @@ describe('walletconnect hex transaction requests', () => {
     )
   })
 
+  it('WC2 wrapper surfaces the decode error before the WIF error', async () => {
+    await assert.rejects(
+      signWcTransaction('00', [], ''),
+      (error) => error.name === 'SignBCHTransactionError' && /Failed to decode transaction/.test(error.message),
+    )
+  })
+
   it('parseSessionRequest decodes and enriches a hex transaction for display', () => {
     const { transaction, hex } = buildP2pkhRequest()
     const uint8 = (bytes) => `<Uint8Array: 0x${binToHex(bytes)}>`

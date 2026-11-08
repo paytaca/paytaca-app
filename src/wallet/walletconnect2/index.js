@@ -343,7 +343,8 @@ export function parseSessionRequest(sessionRequest) {
 
     if (typeof parsedTx === 'string') {
       try {
-        parsedTx = parsedParams.transaction = decodeWcTransaction(parsedTx)
+        parsedTx = decodeWcTransaction(parsedTx)
+        parsedParams.transaction = parsedTx
       } catch (error) {
         console.error('Failed to decode session request transaction:', error)
       }
@@ -416,12 +417,12 @@ export function signMessage(message, wif='') {
 }
 
 export async function signBchTransaction(transaction, sourceOutputsUnpacked, wif='') {
+  transaction = decodeWcTransaction(transaction)
+
   const decodedPrivkey = decodePrivateKeyWif(wif)
   if (typeof decodedPrivkey === 'string') {
     throw signBchTxError('Not enough information provided, please include contract redeemScript')
   }
-
-  transaction = decodeWcTransaction(transaction)
 
   const privateKey = decodedPrivkey.privateKey
   const pubkeyCompressed = secp256k1.derivePublicKeyCompressed(privateKey)
