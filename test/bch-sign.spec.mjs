@@ -6,14 +6,17 @@ import {
   decodeTransaction,
   encodeDataPush,
   encodeLockingBytecodeP2pkh,
+  encodeTransaction,
   flattenBinArray,
   generateSigningSerializationBCH,
+  generateTransaction,
   hash160,
   hash256,
   hexToBin,
   secp256k1,
 } from 'bitauth-libauth-v3'
 import { signBchTransaction } from '../src/wallet/bch-sign.js'
+import { decodeWcTransaction } from '../src/wallet/walletconnect2/tx-sign-utils.js'
 
 const privateKey = hexToBin('11'.repeat(32))
 const publicKey = secp256k1.derivePublicKeyCompressed(privateKey)
@@ -175,5 +178,46 @@ describe('signBchTransaction contract inputs', () => {
     })
 
     assert.throws(() => signBchTransaction(request), /does not match P2SH32/)
+  })
+})
+
+function encodeRequestTransaction (request) {
+  const generated = generateTransaction(request.transaction)
+  assert.ok(generated.success, JSON.stringify(generated.errors))
+  return binToHex(encodeTransaction(generated.transaction))
+}
+
+describe('hex-encoded transactions', () => {
+  it('decodes a hex string into a transaction object', () => {
+    const request = buildRequest({ unlockingBytecode: pushArgs(), contract: contract('CauldronPool') })
+
+    const decoded = decodeWcTransaction(encodeRequestTransaction(request))
+
+    assert.notEqual(typeof decoded, 'string')
+    assert.equal(decoded.inputs.length, 2)
+    assert.equal(decoded.outputs[0].valueSatoshis, 55000n)
+  })
+
+  it('rejects undecodable hex with a SignBCHTransactionError', () => {
+    assert.throws(
+      () => decodeWcTransaction('00'),
+      (error) => error.name === 'SignBCHTransactionError' && /Failed to decode transaction/.test(error.message),
+    )
+  })
+
+  it('signs a transaction supplied as hex after decoding', () => {
+    const request = buildRequest({ unlockingBytecode: pushArgs(), contract: contract('CauldronPool') })
+    const transaction = decodeWcTransaction(encodeRequestTransaction(request))
+
+    const signed = sign({ ...request, transaction })
+
+    assertP2pkhInputSigned(request, signed)
+  })
+
+  it('signBchTransaction rejects a transaction that is not a decoded object', () => {
+    assert.throws(
+      () => signBchTransaction({ transaction: '00', sourceOutputs: [], resolveKey: () => null }),
+      (error) => error.name === 'SignBCHTransactionError' && /decoded transaction object/.test(error.message),
+    )
   })
 })

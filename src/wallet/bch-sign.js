@@ -112,6 +112,10 @@ function unlockingBytecodeHexHasSignature(unlockingBytecodeHex, publicKey, sigha
  * @returns {{ signedTransaction: string, signedTransactionHash: string }}
  */
 export function signBchTransaction({ transaction, sourceOutputs, resolveKey, prefix }) {
+  if (!transaction || typeof transaction !== 'object' || !Array.isArray(transaction.inputs)) {
+    throw signBchTxError('Invalid transaction: expected a decoded transaction object')
+  }
+
   const txTemplate = { ...transaction, inputs: transaction.inputs.map(i => ({ ...i })) }
 
   for (const [index, input] of txTemplate.inputs.entries()) {

@@ -12,7 +12,7 @@ import { Core } from '@walletconnect/core'
 import { WalletKit } from '@reown/walletkit'
 import { getSdkError } from '@walletconnect/utils'
 import { parseExtendedJson, privateKeyToCashAddress, signBchTxError, signBchTransaction as signBchTransactionShared } from '../bch-sign'
-import { unpackSourceOutput } from './tx-sign-utils'
+import { decodeWcTransaction, unpackSourceOutput } from './tx-sign-utils'
 
 
 // Singleton state to prevent multiple initializations
@@ -339,7 +339,15 @@ export function parseSessionRequest(sessionRequest) {
   const parsedSessionRequest = parseExtendedJson(JSON.stringify(sessionRequest))
   if (parsedSessionRequest?.params?.request?.method === 'bch_signTransaction') {
     const parsedParams = parsedSessionRequest.params.request.params
-    const parsedTx = parsedParams?.transaction
+    let parsedTx = parsedParams?.transaction
+
+    if (typeof parsedTx === 'string') {
+      try {
+        parsedTx = parsedParams.transaction = decodeWcTransaction(parsedTx)
+      } catch (error) {
+        console.error('Failed to decode session request transaction:', error)
+      }
+    }
 
     const populateOutputAddress = output => {
       if (output?.lockingBytecode) {
@@ -412,6 +420,8 @@ export async function signBchTransaction(transaction, sourceOutputsUnpacked, wif
   if (typeof decodedPrivkey === 'string') {
     throw signBchTxError('Not enough information provided, please include contract redeemScript')
   }
+
+  transaction = decodeWcTransaction(transaction)
 
   const privateKey = decodedPrivkey.privateKey
   const pubkeyCompressed = secp256k1.derivePublicKeyCompressed(privateKey)
