@@ -6,14 +6,19 @@ import {
   decodeTransaction,
   encodeDataPush,
   encodeLockingBytecodeP2pkh,
+  encodePrivateKeyWif,
+  encodeTransaction,
   flattenBinArray,
   generateSigningSerializationBCH,
+  generateTransaction,
   hash160,
   hash256,
   hexToBin,
   secp256k1,
 } from 'bitauth-libauth-v3'
 import { signBchTransaction } from '../src/wallet/bch-sign.js'
+import { decodeWcTransaction } from '../src/wallet/walletconnect2/tx-sign-utils.js'
+import { parseSessionRequest, signBchTransaction as signWcTransaction } from '../src/wallet/walletconnect2/index.js'
 
 const privateKey = hexToBin('11'.repeat(32))
 const publicKey = secp256k1.derivePublicKeyCompressed(privateKey)
@@ -175,5 +180,136 @@ describe('signBchTransaction contract inputs', () => {
     })
 
     assert.throws(() => signBchTransaction(request), /does not match P2SH32/)
+  })
+})
+
+function encodeRequestTransaction (request) {
+  const generated = generateTransaction(request.transaction)
+  assert.ok(generated.success, JSON.stringify(generated.errors))
+  return binToHex(encodeTransaction(generated.transaction))
+}
+
+describe('hex-encoded transactions', () => {
+  it('decodes a hex string into a transaction object', () => {
+    const request = buildRequest({ unlockingBytecode: pushArgs(), contract: contract('CauldronPool') })
+
+    const decoded = decodeWcTransaction(encodeRequestTransaction(request))
+
+    assert.notEqual(typeof decoded, 'string')
+    assert.equal(decoded.inputs.length, 2)
+    assert.equal(decoded.outputs[0].valueSatoshis, 55000n)
+  })
+
+  it('rejects undecodable hex with a SignBCHTransactionError', () => {
+    assert.throws(
+      () => decodeWcTransaction('00'),
+      (error) => error.name === 'SignBCHTransactionError' && /Failed to decode transaction/.test(error.message),
+    )
+  })
+
+  it('signs a transaction supplied as hex after decoding', () => {
+    const request = buildRequest({ unlockingBytecode: pushArgs(), contract: contract('CauldronPool') })
+    const transaction = decodeWcTransaction(encodeRequestTransaction(request))
+
+    const signed = sign({ ...request, transaction })
+
+    assertP2pkhInputSigned(request, signed)
+  })
+
+  it('signBchTransaction rejects a transaction that is not a decoded object', () => {
+    assert.throws(
+      () => signBchTransaction({ transaction: '00', sourceOutputs: [], resolveKey: () => null }),
+      (error) => error.name === 'SignBCHTransactionError' && /decoded transaction object/.test(error.message),
+    )
+  })
+
+  it('rejects non-hex characters with a SignBCHTransactionError', () => {
+    assert.throws(
+      () => decodeWcTransaction('zz'),
+      (error) => error.name === 'SignBCHTransactionError' && /Failed to decode transaction/.test(error.message),
+    )
+  })
+})
+
+const walletWif = encodePrivateKeyWif(privateKey, 'mainnet')
+
+function buildP2pkhRequest () {
+  const sourceOutputs = [{
+    outpointTransactionHash: hexToBin('11'.repeat(32)),
+    outpointIndex: 0,
+    valueSatoshis: 1000n,
+    lockingBytecode: walletLockingBytecode,
+    unlockingBytecode: new Uint8Array(),
+  }]
+  const transaction = {
+    version: 2,
+    locktime: 0,
+    inputs: [{
+      outpointTransactionHash: sourceOutputs[0].outpointTransactionHash,
+      outpointIndex: sourceOutputs[0].outpointIndex,
+      sequenceNumber: 0,
+      unlockingBytecode: new Uint8Array(),
+    }],
+    outputs: [{ lockingBytecode: walletLockingBytecode, valueSatoshis: 900n }],
+  }
+  return { transaction, sourceOutputs, hex: encodeRequestTransaction({ transaction }) }
+}
+
+describe('walletconnect hex transaction requests', () => {
+  it('WC2 wrapper signs a hex-encoded transaction', async () => {
+    const { transaction, sourceOutputs, hex } = buildP2pkhRequest()
+
+    const { signedTransaction } = await signWcTransaction(hex, sourceOutputs, walletWif)
+
+    const signed = decodeTransaction(hexToBin(signedTransaction))
+    assert.notEqual(typeof signed, 'string', signed)
+    const [signature, pubkey] = decodeAuthenticationInstructions(signed.inputs[0].unlockingBytecode)
+    assertWalletSignature(signature.data, sighashFor({ transaction, sourceOutputs }, 0, walletLockingBytecode))
+    assert.equal(binToHex(pubkey.data), binToHex(publicKey))
+  })
+
+  it('WC2 wrapper rejects undecodable hex with a SignBCHTransactionError', async () => {
+    await assert.rejects(
+      signWcTransaction('00', [], walletWif),
+      (error) => error.name === 'SignBCHTransactionError' && /Failed to decode transaction/.test(error.message),
+    )
+  })
+
+  it('WC2 wrapper surfaces the decode error before the WIF error', async () => {
+    await assert.rejects(
+      signWcTransaction('00', [], ''),
+      (error) => error.name === 'SignBCHTransactionError' && /Failed to decode transaction/.test(error.message),
+    )
+  })
+
+  it('parseSessionRequest decodes and enriches a hex transaction for display', () => {
+    const { transaction, hex } = buildP2pkhRequest()
+    const uint8 = (bytes) => `<Uint8Array: 0x${binToHex(bytes)}>`
+    const sessionRequest = {
+      id: 1,
+      topic: 'topic',
+      params: {
+        chainId: 'bch:bitcoincash',
+        request: {
+          method: 'bch_signTransaction',
+          params: {
+            transaction: hex,
+            sourceOutputs: [{
+              outpointTransactionHash: uint8(transaction.inputs[0].outpointTransactionHash),
+              outpointIndex: 0,
+              valueSatoshis: '<bigint: 1000n>',
+              lockingBytecode: uint8(walletLockingBytecode),
+            }],
+          },
+        },
+      },
+    }
+
+    const parsedTx = parseSessionRequest(sessionRequest).params.request.params.transaction
+
+    assert.notEqual(typeof parsedTx, 'string')
+    assert.equal(parsedTx.inputs.length, 1)
+    assert.equal(parsedTx.inputs[0].sourceOutput.outpointIndex, 0)
+    assert.ok(parsedTx.outputs[0].address)
   })
 })
