@@ -40,7 +40,6 @@ import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 import HeaderNav from 'src/components/header-nav'
 import CashInMethods from 'src/components/cash-in/CashInMethods.vue'
 import CashInSwap from 'src/components/cash-in/CashInSwap.vue'
-import { isNativeIOS } from 'src/utils/native-platform'
 
 export default {
   name: 'GetBCH',
@@ -54,8 +53,7 @@ export default {
       return this.$store.getters['darkmode/getStatus']
     },
     cryptoSwapEnabled () {
-      // Hide Crypto Swap only in the native iOS app; keep on Android + web
-      return !isNativeIOS() && !this.$store.getters['global/isChipnet']
+      return !this.$store.getters['global/isChipnet']
     },
     showSwapLeg () {
       return this.cryptoSwapEnabled && this.$route.query.method === 'swap'

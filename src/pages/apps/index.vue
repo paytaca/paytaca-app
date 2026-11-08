@@ -280,7 +280,6 @@
 import { Platform } from 'quasar';
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 import draggable from 'vuedraggable'
-import { isNativeIOS } from 'src/utils/native-platform'
 
 import BetaAppDialog from 'src/components/apps/BetaAppDialog.vue'
 import HeaderNav from '../../components/header-nav'
@@ -684,9 +683,6 @@ export default {
   computed: {
     darkMode () {
       return this.$store.getters['darkmode/getStatus']
-    },
-    isNativeIOS () {
-      return isNativeIOS()
     },
     dragSupported () {
       return true
