@@ -1639,6 +1639,9 @@ async function decryptRoomsList (rooms) {
       // Leave undefined when the server does not expose the field so
       // SET_ROOMS keeps the locally stored mute instead of clearing it.
       muted: r.muted === undefined ? undefined : !!r.muted,
+      // Opaque token for relay-side mute filtering. Undefined when the server
+      // predates it so the local value survives SET_ROOMS.
+      pushToken: r.push_token === undefined ? undefined : (r.push_token || null),
       // MLS role mirror, stored so a device with no local copy can seed them.
       // Undefined when the server omits the field so the locally derived roles
       // survive the merge in SET_ROOMS.
@@ -1702,7 +1705,10 @@ export async function syncRoomToServer (room) {
     if (!response.ok) {
       const body = await response.text().catch(() => '')
       debug('syncRoomToServer failed:', response.status, body)
+      return
     }
+    const data = await response.json().catch(() => null)
+    if (data?.push_token) room.pushToken = data.push_token
   } catch (err) {
     debug('syncRoomToServer error:', err)
   }
@@ -1861,7 +1867,9 @@ export async function sendMessage ({ state }, { roomId, text, replyTo, subject }
     subject,
   })
 
-  const giftWraps = await createNip17GiftWraps(unsignedKind14, senderPrivKey, memberHexes, senderPubKey)
+  const giftWraps = await createNip17GiftWraps(
+    unsignedKind14, senderPrivKey, memberHexes, senderPubKey, room.pushToken,
+  )
   console.log('[sendMessage] created', giftWraps.length, 'gift-wraps for room', roomId, 'members:', memberHexes)
 
   const message = {
@@ -1900,7 +1908,9 @@ export async function sendEditMessage ({ state }, { roomId, text, editOf }) {
     editOf,
   })
 
-  const giftWraps = await createNip17GiftWraps(unsignedKind14, senderPrivKey, memberHexes, senderPubKey)
+  const giftWraps = await createNip17GiftWraps(
+    unsignedKind14, senderPrivKey, memberHexes, senderPubKey, room.pushToken,
+  )
 
   const message = {
     id: unsignedKind14.id,
@@ -2056,6 +2066,7 @@ export async function sendDeleteMessage ({ state }, { roomId, messageId }) {
     senderPubKey,
     members: memberHexes,
     senderPrivKey,
+    roomPushToken: room.pushToken,
   })
 
   return { giftWraps, messageId, roomId }
@@ -2182,7 +2193,9 @@ export async function sendFileMessage ({ state, dispatch }, { roomId, file, repl
     thumbNonceHex,
   })
 
-  const giftWraps = await wrapKind15FileMessage(kind15Event, senderPrivKey, memberHexes, senderPubKey)
+  const giftWraps = await wrapKind15FileMessage(
+    kind15Event, senderPrivKey, memberHexes, senderPubKey, room.pushToken,
+  )
   console.log('[sendFileMessage] created', giftWraps.length, 'gift-wraps for room', roomId, 'members:', memberHexes)
 
   if (onProgress) onProgress(0.95)
@@ -2241,6 +2254,7 @@ export async function sendReaction ({ state, commit }, { roomId, messageId, emoj
     emoji,
     reactorPubKey,
     reactorPrivKey,
+    roomPushToken: room.pushToken,
   })
 
   commit('ADD_MESSAGE_REACTION', {
@@ -2290,6 +2304,7 @@ export async function removeReaction ({ state, commit }, { roomId, messageId, em
     emoji: `-${emoji}`,
     reactorPubKey,
     reactorPrivKey,
+    roomPushToken: room.pushToken,
   })
 
   await Promise.allSettled(
