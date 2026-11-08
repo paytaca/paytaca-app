@@ -1910,16 +1910,27 @@ export default {
           const replyTo = this.replyToMessage?.id
 
           // MLS groups use the MLS encryption layer instead of NIP-17 gift-wraps.
-          // The message is returned already added to the local store by the action.
+          //
+          // Paint the bubble first: an MLS send has to replay missed events,
+          // encrypt, persist the ratchet and only then win a relay ACK, and the
+          // message must not appear to hang through all of that. The placeholder
+          // is swapped for the signed event's message (and its real id) once the
+          // send resolves; on failure it becomes a failed bubble so the retry
+          // affordance is the same as everywhere else.
           if (this.isMlsRoom) {
-            const { message, roomId } = await this.$store.dispatch('nostrChat/sendMlsMessage', {
+            const pendingMessage = {
+              id: `pending-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
               roomId: this.roomId,
-              text,
+              sender: this.myPubKey,
+              content: text,
+              kind: 445,
+              created_at: Math.floor(Date.now() / 1000),
               replyTo,
-            })
-            this.$store.commit('nostrChat/ADD_MESSAGE', { roomId, message })
-            this.$store.commit('nostrChat/TOUCH_ROOM_LAST_MESSAGE_AT', roomId)
-            this.$store.dispatch('nostrChat/touchRoom', { roomId, timestamp: new Date().toISOString() })
+              pending: true,
+            }
+            this.$store.commit('nostrChat/ADD_MESSAGE', { roomId: this.roomId, message: pendingMessage })
+            this.$store.commit('nostrChat/TOUCH_ROOM_LAST_MESSAGE_AT', this.roomId)
+            this.$store.dispatch('nostrChat/touchRoom', { roomId: this.roomId, timestamp: new Date().toISOString() })
             this.replyToMessage = null
             this.editingMessage = null
             this.scrollToBottom()
@@ -1928,6 +1939,32 @@ export default {
                 pubkey: this.myPubKey,
                 recipients: this.room?.members?.filter(m => m !== this.myPubKey) || [],
               })
+            }
+
+            try {
+              const { message, roomId } = await this.$store.dispatch('nostrChat/sendMlsMessage', {
+                roomId: this.roomId,
+                text,
+                replyTo,
+              })
+              this.$store.commit('nostrChat/REMOVE_MESSAGE', { roomId, messageId: pendingMessage.id })
+              this.$store.commit('nostrChat/ADD_MESSAGE', { roomId, message })
+              this.$store.commit('nostrChat/TOUCH_ROOM_LAST_MESSAGE_AT', roomId)
+            } catch (err) {
+              this.$store.commit('nostrChat/REMOVE_MESSAGE', {
+                roomId: pendingMessage.roomId,
+                messageId: pendingMessage.id,
+              })
+              this.$store.commit('nostrChat/ADD_MESSAGE', {
+                roomId: pendingMessage.roomId,
+                message: {
+                  ...pendingMessage,
+                  id: `failed-${Date.now()}`,
+                  pending: false,
+                  failed: true,
+                },
+              })
+              throw err
             }
           } else {
             const { giftWraps, message, roomId } = await this.$store.dispatch('nostrChat/sendMessage', {
