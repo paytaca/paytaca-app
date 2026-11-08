@@ -1335,15 +1335,18 @@ const respondToSignTransactionRequest = async (sessionRequest) => {
         wallet.wif
       )
 
-      const broadcastResponse = await watchtower.value?.BCH.broadcastTransaction(response.result.signedTransaction)
-      if (!broadcastResponse?.data?.success) {
-        console.error('Broadcast failed:', broadcastResponse)
-        response.error = { code: -32603, message: broadcastResponse?.data?.error || 'Broadcast failed' }
-        response.result = undefined
-        sessionRequest.error = true
-      }
+      const shouldBroadcast = sessionRequest?.params?.request?.params?.broadcast !== false
+      if (shouldBroadcast) {
+        const broadcastResponse = await watchtower.value?.BCH.broadcastTransaction(response.result.signedTransaction)
+        if (!broadcastResponse?.data?.success) {
+          console.error('Broadcast failed:', broadcastResponse)
+          response.error = { code: -32603, message: broadcastResponse?.data?.error || 'Broadcast failed' }
+          response.result = undefined
+          sessionRequest.error = true
+        }
 
-      processingSession.value[sessionRequest.topic] = 'Confirming request'
+        processingSession.value[sessionRequest.topic] = 'Confirming request'
+      }
 
     } catch (err) {
       console.error(err)
