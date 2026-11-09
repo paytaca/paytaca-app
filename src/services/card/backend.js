@@ -1,6 +1,6 @@
 import axios from 'axios'
-import { getAuthToken, clearAuthToken, clearCardUserCache, saveAuthToken } from './user'
-import { loadWallet } from '../wallet';
+import { getAuthToken, clearAuthToken, clearCardUserCache, saveAuthToken } from 'src/services/card/user'
+import { loadWallet } from 'src/services/wallet';
 import { shouldTreatAsMaintenance, parseMaintenanceRestError, emitMaintenance } from './maintenance';
 
 const API_BASE_URL = process.env.MAINNET_CARD_API_BASE_URL
@@ -19,7 +19,16 @@ export const backend = axios.create({
   },
 })
 
+let retryAfterUntil = 0
+
 backend.interceptors.request.use(async (config) => {
+  if (Date.now() < retryAfterUntil) {
+    const error = new Error('NFC server rate limit. Please try again later.')
+    error.response = { status: 429 }
+    error.isCardRateLimit = true
+    error.retryAfterSeconds = Math.ceil((retryAfterUntil - Date.now()) / 1000)
+    throw error
+  }
   if (config.authorize === false) {
     return config
   }
@@ -73,11 +82,18 @@ backend.interceptors.response.use(
   response => response,
   async (error) => {
     const originalRequest = error.config
+    if (error.response?.status === 429 && !error.isCardRateLimit) {
+      const value = error.response.headers?.['retry-after'] ?? error.response.headers?.['Retry-After']
+      const seconds = value == null ? NaN : Number(value)
+      const delay = Number.isFinite(seconds) ? seconds * 1000 : Date.parse(value) - Date.now()
+      retryAfterUntil = Math.max(retryAfterUntil, Date.now() + (Number.isFinite(delay) ? Math.max(0, delay) : 120000))
+      error.retryAfterSeconds = Math.ceil((retryAfterUntil - Date.now()) / 1000)
+    }
 
     if (
       error.response?.status === 403 &&
-      !originalRequest._retry &&
-      originalRequest.authorize !== false
+      !originalRequest?._retry &&
+      originalRequest?.authorize !== false
     ) {
       if (isRefreshing) {
         return new Promise((resolve, reject) => {

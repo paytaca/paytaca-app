@@ -30,7 +30,7 @@ export default {
       try {
         this.user = await loadCardUser()
       } catch (err) {
-        console.error('Failed to load card user:', err)
+        this.$q.notify({ type: 'error', message: err.message, timeout: 5000 })
         this.user = null
       }
     },

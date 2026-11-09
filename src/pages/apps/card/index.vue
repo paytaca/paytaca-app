@@ -144,9 +144,10 @@ export default {
         clearCardUserCache() // Clear cache to force fresh load
         this.showLoading(this.$t('Refreshing session...'))
       }
-      this.user = await loadCardUser(forceLogin).then(user => {
+      this.user = await loadCardUser({ forceLogin }).then(user => {
         return user
       }).catch(err => {
+        this.$q.notify({ type: 'error', message: err.message, timeout: 5000 })
         return null
       }).finally(() => {
         this.hideLoading()

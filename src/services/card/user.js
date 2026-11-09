@@ -1,11 +1,59 @@
-import AuthNftService from './auth-nft.js';
-import Card from './card.js';
+import AuthNftService from 'src/services/card/auth-nft.js';
+import Card from 'src/services/card/card.js';
 import { SecureStoragePlugin } from 'capacitor-secure-storage-plugin'
 import { loadWallet } from 'src/services/wallet';
-import { backend } from './backend.js';
+import { backend } from 'src/services/card/backend.js';
 import { cardLogger } from 'src/utils/debug-logger.js'
 
 const TOKEN_STORAGE_KEY = 'card-auth-key'
+
+function registrationDetails(wallet) {
+    const address_path = wallet.addressPath();
+    const public_key = wallet.pubkey(address_path).toLowerCase();
+    if (!/^(02|03)[0-9a-f]{64}$/.test(public_key)) {
+        throw new Error('Invalid NFC wallet public key');
+    }
+    return Object.freeze({ wallet_hash: wallet.walletHash, public_key, address_path });
+}
+
+function signChallenge(wallet, details, challenge) {
+    if (typeof challenge !== 'string' || !challenge.length) {
+        throw new Error('Invalid NFC authentication challenge');
+    }
+    const keypair = wallet.keypair(details.address_path);
+    if (keypair.publicKey.toLowerCase() !== details.public_key || wallet.walletHash !== details.wallet_hash) {
+        throw new Error('NFC wallet identity changed. Please reopen Cards.');
+    }
+    try {
+        return wallet.signMessage(keypair.privateKey, challenge);
+    } catch {
+        throw new Error('Unable to sign NFC authentication challenge');
+    }
+}
+
+function authError(error) {
+    const status = error.response?.status;
+    const data = error.response?.data;
+    const duplicate = status === 409 || (status === 400 &&
+        /already|unique|duplicate/i.test(JSON.stringify([data?.wallet_hash, data?.public_key])));
+    const message = duplicate
+        ? 'This NFC wallet is already registered with another identity. Registration was not changed.'
+        : status === 429
+            ? `Too many NFC requests. Try again in ${error.retryAfterSeconds ?? 120} seconds.`
+            : 'NFC wallet authentication failed. Please try again.';
+    const safe = new Error(message);
+    safe.response = { status };
+    safe.code = duplicate ? 'NFC_IDENTITY_CONFLICT' : error.code;
+    safe.retryAfterSeconds = error.retryAfterSeconds;
+    return safe;
+}
+
+async function userWithWallet(data, wallet) {
+    const user = CardUser.parse(data);
+    user.wallet = wallet;
+    await user._initializeAuthNftService();
+    return user;
+}
 
 /**
  * Card user authentication and card-data utilities.
@@ -127,11 +175,10 @@ export class CardUser {
     async getChallenge(publicKey) {
         try {
             const payload = { public_key: publicKey };
-            const { data: { challenge } } = await backend.post('/auth/user/challenge/', payload);
+            const { data: { challenge } } = await backend.post('/auth/user/challenge/', payload, { authorize: false });
             return challenge;
         } catch (error) {
-            cardLogger.error('Failed to get challenge:', error.message || error);
-            throw new Error('Failed to obtain authentication challenge');
+            throw authError(error);
         }
     }
 
@@ -147,11 +194,10 @@ export class CardUser {
                 public_key: publicKey,
                 signature: signature
             };
-            const verifyResponse = await backend.post('/auth/user/verify/', body);
+            const verifyResponse = await backend.post('/auth/user/verify/', body, { authorize: false });
             return verifyResponse.data;
         } catch (error) {
-            cardLogger.error('Failed to verify challenge:', error.message || error);
-            throw new Error('Challenge verification failed');
+            throw authError(error);
         }
     }
 
@@ -159,30 +205,15 @@ export class CardUser {
      * Authenticates the user by signing a challenge with the wallet keypair.
      * @returns {Promise<void>}
      */
-    async login() {
-
-        try {
-            const keypair = this.wallet.keypair();
-        
-            // obtain challenge from backend
-            const challenge = await this.getChallenge(keypair.publicKey);
-
-            // produce a signature with the challenge
-            const signature = this.wallet.signMessage(keypair.privateKey, challenge);
-
-            // send to backend to verify and create card session
-            const loginResp = await this.verifyChallenge(keypair.publicKey, signature);
-
-            
-            // Save token if provided
-            if (loginResp?.token) {
-                await saveAuthToken(loginResp);
-            }
-
-        } catch (error) {
-            cardLogger.error('Login failed:', error.message || error);
-            throw error;
+    async login(details = registrationDetails(this.wallet)) {
+        if (this.public_key && this.public_key.toLowerCase() !== details.public_key) {
+            throw authError({ response: { status: 409 } });
         }
+        const challenge = await this.getChallenge(details.public_key);
+        const signature = signChallenge(this.wallet, details, challenge);
+        const loginResp = await this.verifyChallenge(details.public_key, signature);
+        if (!loginResp?.token) throw new Error('NFC wallet login did not return a session');
+        await saveAuthToken(loginResp);
     }
 
     // ================ DATA FETCHING ==================
@@ -318,78 +349,100 @@ export class CardUser {
  * @param {object} wallet
  * @returns {Promise<CardUser>}
  */
-export async function fetchOrCreateCardUser(wallet) {
+export async function fetchOrCreateCardUser(wallet, { forceLogin = false } = {}) {
+    const details = registrationDetails(wallet);
+    let existingUser;
     try {
-        const response = await backend.get(`/auth/user/${wallet.walletHash}`);
-        return CardUser.createInitialized(response.data);
+        existingUser = await fetchCardUser(wallet, details);
     } catch (error) {
-        cardLogger.error('Card User fetch failed:', error.response?.status || error.message);
-        if (error.response && error.response.status === 404) {
-            cardLogger.error('Card User not found for this wallet.');
-            await clearAuthToken();
-            clearCardUserCache();
+        if (error.response?.status !== 404) throw error;
+    }
+    if (existingUser) {
+        if (forceLogin) {
+            await existingUser.login(details);
+            return fetchCardUser(wallet, details);
+        }
+        return existingUser;
+    }
+    await clearAuthToken();
+    clearCardUserCache();
 
-            const body = {
-                wallet_hash: wallet.walletHash,
-                public_key: wallet.keypair().publicKey,
-                address_path: wallet.addressPath()
+    for (let attempt = 0; attempt < 2; attempt++) {
+        let submitted = false;
+        try {
+            const issuedAt = Date.now();
+            const { data: { challenge } } = await backend.post('/user/registration-challenge/', details, { authorize: false });
+            const signature = signChallenge(wallet, details, challenge);
+            if (Date.now() - issuedAt >= 120000) {
+                if (!attempt) continue;
+                throw new Error('NFC registration challenge expired');
             }
-            const response = await backend.post('/user/', body).catch(err => {
-                cardLogger.error('Failed to create Card User:', err.response?.status || err.message);
-                throw new Error('Failed to create Card User');
-            });
-            return CardUser.createInitialized(response.data);
+            submitted = true;
+            const response = await backend.post('/user/', { ...details, challenge, signature }, { authorize: false });
+            if (response.status !== 201) throw new Error('Unexpected NFC registration response');
+        } catch (error) {
+            const status = error.response?.status;
+            const data = error.response?.data;
+            const expired = status === 400 && (
+                String(data?.code || data?.error).toLowerCase() === 'challenge_expired' ||
+                /challenge[^.]*expired|expired[^.]*challenge/i.test(JSON.stringify(data))
+            );
+            if (expired && !attempt) continue;
+            if (submitted && (!status || status >= 500)) {
+                try {
+                    const user = await userWithWallet({ public_key: details.public_key }, wallet);
+                    await user.login(details);
+                    return await fetchCardUser(wallet, details);
+                } catch (loginError) {
+                    if (loginError.response?.status === 429) throw loginError;
+                }
+            }
+            throw authError(error);
         }
-        throw error;
+        const user = await userWithWallet({ public_key: details.public_key }, wallet);
+        await user.login(details);
+        return fetchCardUser(wallet, details);
     }
 }
 
-async function fetchCardUser(wallet) {
+async function fetchCardUser(wallet, details = registrationDetails(wallet)) {
     try {
         const response = await backend.get(`/auth/user/${wallet.walletHash}`);
-        return CardUser.createInitialized(response.data);
-    } catch (error) {
-        cardLogger.error('Card User fetch failed:', error.response?.status || error.message);
-        if (error.response && error.response.status === 404) {
-            cardLogger.error('Card User not found for this wallet.');
-            await clearAuthToken();
-            clearCardUserCache();
+        if (response.data?.public_key?.toLowerCase() !== details.public_key) {
+            throw authError({ response: { status: 409 } });
         }
-        throw error;
+        return await userWithWallet(response.data, wallet);
+    } catch (error) {
+        throw authError(error);
     }
 }
-
 
 let _cachedUser = null;
+let _cachedIdentity = null;
+const pendingUsers = new Map();
 
-/**
- * Loads CardUser for active wallet and ensures authenticated session.
- * @returns {Promise<CardUser>}
- */
 export async function loadCardUser({ forceLogin = false } = {}) {
-    if (_cachedUser && !forceLogin) return _cachedUser;
+    const wallet = await loadWallet();
+    const details = registrationDetails(wallet);
+    const identity = JSON.stringify(details);
+    if (pendingUsers.has(identity)) return pendingUsers.get(identity);
+    if (_cachedUser && !forceLogin && _cachedIdentity === identity) return _cachedUser;
 
-    try {
-        const wallet = await loadWallet();
-        let user = await fetchOrCreateCardUser(wallet);
-        
-        if (forceLogin || !user.is_authenticated) {
-            await user.login();
-            user = await fetchCardUser(wallet);
+    const pending = (async () => {
+        let user = await fetchOrCreateCardUser(wallet, { forceLogin });
+        if (!user.is_authenticated) {
+            await user.login(details);
+            user = await fetchCardUser(wallet, details);
         }
-        
         _cachedUser = user;
-
-
+        _cachedIdentity = identity;
         return user;
-    } catch (error) {
-            cardLogger.error('Error loading Card User:', error.message || error);
-        if (error.response && error.response.status === 404) {
-            cardLogger.error('Card User not found for this wallet.');
-            await clearAuthToken();
-            clearCardUserCache();
-        }
-        throw error;
+    })();
+    pendingUsers.set(identity, pending);
+    try {
+        return await pending;
+    } finally {
+        pendingUsers.delete(identity);
     }
 }
 
@@ -397,6 +450,7 @@ export async function loadCardUser({ forceLogin = false } = {}) {
  */
 export function clearCardUserCache() {
   _cachedUser = null;
+  _cachedIdentity = null;
 }
 
 /**
