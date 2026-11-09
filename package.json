@@ -134,6 +134,9 @@
   "overrides": {
     "watchtower-cash-js": {
       "axios": "$axios"
+    },
+    "vue": {
+      "@vue/server-renderer": "3.5.42"
     }
   },
   "engines": {
