@@ -258,14 +258,14 @@
       >
         <div ref="balanceMarqueeTrack" class="balance-marquee__track">
           <template v-if="currentWalletBalanceAsAsset?.id === 'bch' && asset?.id === 'bch'">
-            <span v-bch-amount="{ denomination: selectedDenomination }">
-              {{ parseAssetDenomination(selectedDenomination, currentWalletBalanceAsAsset) }}
+            <span>
+              {{ balanceDisplay.main }}<span class="balance-trailing-zeros">{{ balanceDisplay.trailingZeros }}</span>{{ balanceDisplay.suffix }}
             </span>
             {{ ` = ${parseFiatCurrency(
               convertToFiatAmount(currentWalletBalance, selectedAssetMarketPrice), currentSendPageCurrency())
             }` }}
           </template>
-          <span v-else v-bch-amount="{ denomination: selectedDenomination }">
+          <span v-else>
             {{ parseAssetDenomination(selectedDenomination, currentWalletBalanceAsAsset) }}
           </span>
         </div>
@@ -385,7 +385,8 @@ import {
   parseAssetDenomination,
   getAssetDenomination,
   parseFiatCurrency,
-  customNumberFormatting
+  customNumberFormatting,
+  splitBchAmount
 } from 'src/utils/denomination-utils'
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 import { parseCashbackMessage } from 'src/utils/engagementhub-utils/engagementhub-utils'
@@ -528,6 +529,23 @@ export default {
       if (!computedBalance) return ''
 
       return computedBalance.toFixed(2)
+    },
+    /**
+     * Remaining balance split into its significant digits and trailing zeros so
+     * the zeros can be grayed out. Rendering it this way (instead of through the
+     * `v-bch-amount` directive) keeps it reactive: the directive replaces the
+     * element's children, which detaches the text node Vue patches on updates.
+     */
+    balanceDisplay () {
+      const asset = this.currentWalletBalanceAsAsset
+      const formatted = this.parseAssetDenomination(this.selectedDenomination, asset)
+      const { main, trailingZeros } = splitBchAmount(formatted, this.selectedDenomination)
+      // Denominations other than BCH (sats, DEEM) already carry their own label,
+      // so only BCH needs the asset symbol appended.
+      const isBchDenomination = !this.selectedDenomination ||
+        String(this.selectedDenomination).toUpperCase() === 'BCH'
+      const suffix = isBchDenomination && asset?.symbol ? ` ${asset.symbol}` : ''
+      return { main, trailingZeros: trailingZeros || '', suffix }
     },
     currentWalletBalanceAsAsset() {
       let asset = { ...this.asset };
@@ -1041,6 +1059,10 @@ export default {
 
     .balance-marquee--animate .balance-marquee__track {
       animation: balance-marquee-scroll var(--balance-marquee-duration, 6s) linear infinite;
+    }
+
+    .balance-trailing-zeros {
+      opacity: 0.4;
     }
 
     .max-button {
