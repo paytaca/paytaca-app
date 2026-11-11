@@ -10,7 +10,19 @@
               <div data-tour="wallet-opener" class="col">
                 <MultiWalletDropdown/>
               </div>
+              
               <div class="row items-center justify-end q-gutter-md">
+                <div v-if="isReadOnlyWallet" class="row items-center">
+                  <q-icon
+                    name="key_off"
+                    size="20px"
+                    class="text-bow"
+                    :class="getDarkModeClass(darkMode)"
+                    color="warning"
+                  >
+                    <q-tooltip>{{ $t('ReadOnlyWallet', {}, 'Read Only Wallet') }}</q-tooltip>
+                  </q-icon>
+                </div>
                 <q-btn
                   flat
                   round
@@ -25,6 +37,17 @@
                 />
               </div>
             </div>
+            <div class="row items-center justify-center q-mb-sm q-mt-sm q-mx-lg">
+            <q-banner
+            v-if="isReadOnlyWallet"
+            rounded
+            class="col-12 q-mb-sm readonly-banner text-bow"
+            :class="getDarkModeClass(darkMode)"
+          >
+            <q-icon name="key_off" color="warning" size="sm" class="q-mr-sm" />
+            {{ $t('ReadOnlyWalletFeaturesDisabled', {}, 'This is a read-only wallet. Some features are disabled.') }}
+          </q-banner>
+          </div>
 
             <div class="row q-pt-sm">
               <template v-if="isDenominationTabEnabled">
@@ -147,9 +170,11 @@
             data-tour="quick-actions"
             :loaded="balanceLoaded"
             :selectedDenomination="selectedDenomination"
+            :isReadOnlyWallet="isReadOnlyWallet"
             @get-help="openSupport()"
           />
-          <div class="row items-center justify-between q-mb-sm q-mt-sm">
+          
+          <div class="row items-center justify-between q-mt-sm">
             <div class="q-ml-lg button button-text-primary" style="font-size: 20px;">
               {{ $t(isHongKong(currentCountry) ? 'Points' : 'Tokens') }}
               <q-btn
@@ -426,6 +451,7 @@ import walletAssetsMixin from '../../mixins/wallet-assets-mixin.js'
 import { markRaw } from '@vue/reactivity'
 import { bus } from 'src/wallet/event-bus'
 import { getMnemonic, getPin } from '../../wallet'
+import { isReadOnlyVaultEntry } from 'src/lib/readonly-wallet'
 import { getWalletByNetwork } from 'src/wallet/chipnet'
 import { dragscroll } from 'vue-dragscroll'
 import { NativeBiometric } from 'capacitor-native-biometric'
@@ -613,6 +639,10 @@ export default {
     },
     darkMode () {
       return this.$store.getters['darkmode/getStatus']
+    },
+    isReadOnlyWallet () {
+      const index = this.$store.getters['global/getWalletIndex']
+      return isReadOnlyVaultEntry(this.$store.getters['global/getVault']?.[index])
     },
     lastBackupTimestamp () {
       return this.$store.getters['global/lastBackupTimestamp']
@@ -2302,6 +2332,8 @@ export default {
      */
     async checkSecurityPreferenceSetup() {
       const vm = this
+      // Read-only (xpub) wallets have no mnemonic/PIN, so skip security setup
+      if (this.isReadOnlyWallet) return true
       // Check if preferredSecurity and if it's set as PIN
       const preferredSecurity = this.$store.getters['global/preferredSecurity']
       let forceRecreate = false
@@ -2379,6 +2411,13 @@ export default {
           }
         }
       } catch (_) {}
+
+      // Don't show backup reminders for read-only (xpub) wallets - there is no
+      // seed phrase to back up
+      if (this.isReadOnlyWallet) {
+        this.$store.commit('global/setBackupDialogActive', false)
+        return
+      }
 
       // Don't show if lastBackupTimestamp is already set for this wallet (user has confirmed backup)
       // Each wallet is tracked independently
@@ -2878,6 +2917,17 @@ export default {
   .cash-in {
     background-color: #ECF3F3;
     color: #3b7bf6;
+  }
+  .readonly-banner {
+    border-radius: 12px;
+
+    &.dark {
+      background: rgba(255, 255, 255, 0.06);
+    }
+
+    &.light {
+      background: rgba(255, 255, 255, 0.35);
+    }
   }
 </style>
 

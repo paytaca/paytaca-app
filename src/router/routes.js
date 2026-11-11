@@ -59,6 +59,18 @@ const routes = [
         // component: () => import('pages/sandbox/SendPage.vue'),
       },
       {
+        path: 'build/',
+        name: 'transaction-build',
+        props: route => route.query,
+        component: () => import('pages/transaction/build.vue')
+      },
+      {
+        path: 'psbt/',
+        name: 'psbt-view',
+        props: route => route.query,
+        component: () => import('pages/transaction/view.vue')
+      },
+      {
         path: 'connect/',
         name: 'connect',
         props: route => route.query,
