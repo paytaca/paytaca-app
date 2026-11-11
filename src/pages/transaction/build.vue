@@ -404,6 +404,9 @@ export default {
     darkMode () {
       return this.$store.getters['darkmode/getStatus']
     },
+    denomination () {
+      return this.$store.getters['global/denomination']
+    },
     walletIndex () {
       return this.$store.getters['global/getWalletIndex']
     },
@@ -481,6 +484,40 @@ export default {
   },
   methods: {
     getDarkModeClass,
+    /**
+     * Make sure a market price exists for the asset in the active currency.
+     * The regular send page fetches it on mount; without it the fiat→BCH
+     * conversion returns an empty string and the BCH side never fills in.
+     */
+    async ensureMarketPrice () {
+      if (this.selectedAssetMarketPrice) return this.selectedAssetMarketPrice
+      try {
+        await this.$store.dispatch('market/updateAssetPrices', { assetId: this.assetId })
+      } catch (error) {
+        console.error('[BuildTransaction] Error fetching asset price:', error)
+      }
+      return this.selectedAssetMarketPrice
+    },
+    /** Fill in BCH amounts for recipients that only have a fiat amount entered. */
+    syncAmountFromFiat () {
+      if (!this.selectedAssetMarketPrice) return
+      const decimals = this.assetId === 'bch' ? 8 : (this.asset?.decimals ?? 0)
+      let changed = false
+      this.recipients.forEach((recipient, index) => {
+        const fiatAmount = Number(recipient.fiatAmount)
+        if (!fiatAmount || Number(recipient.amount) > 0) return
+        const amount = sendPageUtils.convertFiatToSelectedAsset(
+          recipient.fiatAmount, this.selectedAssetMarketPrice, decimals
+        )
+        if (!amount) return
+        recipient.amount = amount
+        this.inputExtras[index].amountFormatted = formatWithLocale(
+          amount, { ...this.decimalObj(false), preserveTrailingDecimals: true }
+        )
+        changed = true
+      })
+      if (changed) this.updateCauldronAndRemainingBalance()
+    },
     async fetchBalances () {
       console.log('Fetching....')
       if (!this.wallet?.getWalletBalances) return
@@ -1385,13 +1422,18 @@ export default {
       else currentSendAmount = ''
 
       const currentAmount = parseKey(key, currentSendAmount, caret, this.asset)
+      // Without a market price the fiat→BCH conversion returns an empty string,
+      // so keep the previous BCH amount instead of blanking it out.
+      const priceMissing = this.focusedInputField === 'fiat' && !this.selectedAssetMarketPrice
 
       if (this.focusedInputField === 'fiat') {
         currentRecipient.fiatAmount = currentAmount
-        currentRecipient.amount = sendPageUtils.convertFiatToSelectedAsset(
-          currentAmount, this.selectedAssetMarketPrice,
-          this.assetId === 'bch' ? 8 : (this.asset?.decimals ?? 0)
-        )
+        if (!priceMissing) {
+          currentRecipient.amount = sendPageUtils.convertFiatToSelectedAsset(
+            currentAmount, this.selectedAssetMarketPrice,
+            this.assetId === 'bch' ? 8 : (this.asset?.decimals ?? 0)
+          )
+        }
       } else if (this.focusedInputField === 'bch') {
         currentRecipient.amount = currentAmount
         currentRecipient.fiatAmount = this.convertToFiatAmount(currentAmount)
@@ -1402,20 +1444,26 @@ export default {
           currentRecipient.fiatAmount, currentInputExtras.fiatFormatted,
           String(key), this.decimalObj(true)
         )
-        currentInputExtras.amountFormatted = formatWithLocaleSelective(
-          currentRecipient.amount, currentInputExtras.amountFormatted,
-          String(key), this.decimalObj(false)
-        )
+        if (!priceMissing) {
+          currentInputExtras.amountFormatted = formatWithLocaleSelective(
+            currentRecipient.amount, currentInputExtras.amountFormatted,
+            String(key), this.decimalObj(false)
+          )
+        }
       } else {
         currentInputExtras.fiatFormatted = formatWithLocale(
           currentRecipient.fiatAmount,
           { ...this.decimalObj(true), preserveTrailingDecimals: true },
         )
-        currentInputExtras.amountFormatted = formatWithLocale(
-          currentRecipient.amount,
-          { ...this.decimalObj(false), preserveTrailingDecimals: true },
-        )
+        if (!priceMissing) {
+          currentInputExtras.amountFormatted = formatWithLocale(
+            currentRecipient.amount,
+            { ...this.decimalObj(false), preserveTrailingDecimals: true },
+          )
+        }
       }
+
+      if (priceMissing) this.ensureMarketPrice().then(() => this.syncAmountFromFiat())
 
       this.updateCauldronAndRemainingBalance();
       sendPageUtils.addRemoveInputFocus(
@@ -1439,15 +1487,18 @@ export default {
         fiatCaretPosition = currentRecipient.fiatAmount.length - 1
 
       if (action === 'backspace') {
+        const priceMissing = this.focusedInputField === 'fiat' && !this.selectedAssetMarketPrice
         try {
           if (this.focusedInputField === 'fiat' && fiatCaretPosition > -1) {
             currentRecipient.fiatAmount = adjustSplicedAmount(
               currentRecipient.fiatAmount, fiatCaretPosition
             )
-            currentRecipient.amount = sendPageUtils.convertFiatToSelectedAsset(
-              currentRecipient.fiatAmount, this.selectedAssetMarketPrice,
-              this.assetId === 'bch' ? 8 : (this.asset?.decimals ?? 0)
-            )
+            if (!priceMissing) {
+              currentRecipient.amount = sendPageUtils.convertFiatToSelectedAsset(
+                currentRecipient.fiatAmount, this.selectedAssetMarketPrice,
+                this.assetId === 'bch' ? 8 : (this.asset?.decimals ?? 0)
+              )
+            }
           } else if (this.focusedInputField === 'bch' && amountCaretPosition > -1) {
             currentRecipient.amount = adjustSplicedAmount(
               currentRecipient.amount, amountCaretPosition
@@ -1459,10 +1510,13 @@ export default {
             currentRecipient.fiatAmount,
             { ...this.decimalObj(true), preserveTrailingDecimals: true },
           )
-          currentInputExtras.amountFormatted = formatWithLocale(
-            currentRecipient.amount,
-            { ...this.decimalObj(false), preserveTrailingDecimals: true },
-          )
+          if (!priceMissing) {
+            currentInputExtras.amountFormatted = formatWithLocale(
+              currentRecipient.amount,
+              { ...this.decimalObj(false), preserveTrailingDecimals: true },
+            )
+          }
+          if (priceMissing) this.ensureMarketPrice().then(() => this.syncAmountFromFiat())
         } catch {
           currentRecipient.fiatAmount = ''
           currentRecipient.amount = ''
@@ -2180,6 +2234,10 @@ export default {
     }
     const isChipnet = this.$store.getters['global/isChipnet']
     this.wallet.network = isChipnet ? 'chipnet' : 'mainnet'
+
+    // Prime the market price so fiat→BCH conversions work on the first keystroke
+    // (the regular send page does the same on mount).
+    await this.ensureMarketPrice()
 
     // Apply asset selection + prefill from the entry query (asset-select page / QR / collectibles)
     if (this.$route.query?.recipient) {
