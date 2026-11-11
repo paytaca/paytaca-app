@@ -539,6 +539,7 @@
               :error="Boolean(xpubError)"
               hide-bottoms
               bg-color="white"
+              @update:model-value="readOnlyScanIncomplete = false"
             />
             <q-label class="q-block q-mb-xs q-mt-md">Master Fingerprint</q-label>
             <div class="text-caption q-mb-xs" :class="getDarkModeClass(darkMode)" style="opacity: 0.7">
@@ -567,7 +568,7 @@
           :label="$t('ImportReadOnlyWallet') || 'Import read-only wallet'"
           class="q-mt-lg full-width primary-cta bg-grad"
           @click="initCreateWallet()"
-          :disable="!xpub || walletNameTaken"
+          :disable="!xpub || walletNameTaken || readOnlyScanIncomplete"
         />
       </template>
     </div>
@@ -857,6 +858,7 @@ export default {
       authenticationPhase: 'options',
       xpub: '',
       xpubError: '',
+      readOnlyScanIncomplete: false,
       masterFingerprint: '',
       masterFingerprintError: '',
       skipToBackupPhrase: false,
@@ -1703,6 +1705,7 @@ export default {
     resetReadOnlyForm () {
       this.xpub = ''
       this.xpubError = ''
+      this.readOnlyScanIncomplete = false
       this.masterFingerprint = ''
       this.masterFingerprintError = ''
       this.readOnlyDerivationPath = ''
@@ -1751,6 +1754,7 @@ export default {
       this.xpub = parsed.xpub
       this.masterFingerprint = parsed.masterFingerprint || ''
       this.readOnlyDerivationPath = parsed.derivationPath
+      this.readOnlyScanIncomplete = !parsed.complete
 
       if (parsed.complete) {
         this.$q.notify({
