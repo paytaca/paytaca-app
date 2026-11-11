@@ -822,14 +822,17 @@ export default class ReadOnlyWallet {
     const isBchSend = recipients[0].asset === 'bch'
     const bchOutputTotal = outputs.reduce((t, o) => t + o.valueSatoshis, 0n)
 
-    // The fee grows with each input we add, so iterate until the fee estimate and
-    // the selected input set agree. The loop is capped on purpose: on heavy input
-    // sets the estimate can keep oscillating, and the worst case is simply that the
-    // last fee estimate is used.
+    // Fee/input convergence is iterative: adding an input raises the fee estimate,
+    // which can select another input. The pass count is capped so building stays
+    // bounded on heavy input sets — five passes covers the two-pass swing this
+    // estimate produces in practice — and if the estimate is still moving when the
+    // cap is hit, the last estimate is used, which over-pays slightly rather than
+    // looping forever.
+    const MAX_FEE_CONVERGENCE_PASSES = 5
     const bchUtxos = sourceUtxos.filter(u => !u.token)
     let bchSelection = { selectedUtxos: [], satoshisSatisfied: true }
     let estimatedInputCount = selectedUtxos.length
-    for (let attempt = 0; attempt < 5; attempt++) {
+    for (let attempt = 0; attempt < MAX_FEE_CONVERGENCE_PASSES; attempt++) {
       const feeEstimate = this._estimateFeeForInputCount(estimatedInputCount, outputs)
       // BCH sends already selected the outputs, so BCH covers outputs + fee. Token
       // sends already carry their outputs, so BCH only covers the fee + deficit.
