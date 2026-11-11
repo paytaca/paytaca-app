@@ -14,10 +14,17 @@
               <q-card-section>
                 <div v-if="purpose" class="text-bold text-h6 ellipsis">{{ purpose || $t('PurposeNotSpecified', {}, 'Purpose Not Specified') }}</div>
                 <div v-if="!isSigned" class="q-pa-sm">
-                    <q-icon name="priority_high"></q-icon>{{ $t('UnsignedTransactionBanner', {}, 'This transaction is unsigned.') }}
+                    <q-icon name="priority_high"></q-icon>{{ canSign
+                      ? $t('UnsignedTransactionSignableBanner', {}, 'This transaction is unsigned — you can sign and broadcast it on this device.')
+                      : $t('UnsignedTransactionBanner', {}, 'This transaction is unsigned.') }}
                 </div>
                 <div v-else class="q-pa-sm">
-                    <q-icon name="mdi-party-popper"></q-icon>{{ $t('SignedTransactionBanner', {}, 'This transaction is signed and ready for broadcast.') }}
+                    <q-icon :name="signedReadyForBroadcast ? 'mdi-party-popper' : 'priority_high'"></q-icon>{{ signedReadyForBroadcast
+                      ? $t('SignedTransactionBanner', {}, 'This transaction is signed and ready for broadcast.')
+                      : $t('SignedTransactionUnverifiedBanner', {}, 'This transaction is signed, but its signatures could not be verified.') }}
+                </div>
+                <div v-if="noSignableInputs" class="q-pa-sm">
+                    <q-icon name="info"></q-icon>{{ $t('NoSignableInputs', {}, "None of this transaction's inputs belong to this wallet, so it can't be signed here.") }}
                 </div>
               </q-card-section>
             </q-card>
@@ -161,27 +168,15 @@
       <DragSlide
         :disable="isBroadcasting"
         :text="$t('SwipeToSend')"
-        @swiped="onConfirmSliderSwiped"
+        @swiped="onSliderSwiped"
       />
     </div>
     <div v-else-if="isSigned" class="sticky-bottom-actions" :class="getDarkModeClass(darkMode)">
       <DragSlide
         :disable="isBroadcasting"
         :text="$t('SwipeToSend')"
-        @swiped="onConfirmSliderSwiped"
+        @swiped="onSliderSwiped"
       />
-    </div>
-    <div v-if="showActionConfirmationSlider" class="action-confirmation-backdrop" @click.stop="showActionConfirmationSlider = false">
-      <div class="action-confirmation-slider-content" @click.stop>
-        <div class="text-center q-mb-sm text-bold" :class="getDarkModeClass(darkMode)">
-          {{ $t('ConfirmSend', {}, 'Confirm Send') }}
-        </div>
-        <DragSlide
-          @swiped="onSliderSwiped"
-          :text="$t('SwipeToSend')"
-          disable-absolute-bottom
-        />
-      </div>
     </div>
   </q-pull-to-refresh>
 </template>
@@ -190,7 +185,7 @@
 import { useStore } from 'vuex'
 import { useQuasar, copyToClipboard } from 'quasar'
 import { useI18n } from 'vue-i18n'
-import { ref, computed, watch, onMounted, onUnmounted } from 'vue'
+import { ref, computed, watch, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import Big from 'big.js'
 import {
@@ -202,6 +197,7 @@ import {
   deriveHdPath,
   deriveHdPrivateNodeFromBip39Mnemonic,
   secp256k1,
+  hash160,
   hashTransaction,
   encodeTransaction
 } from 'bitauth-libauth-v3'
@@ -215,6 +211,7 @@ import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 import { shortenAddressForDisplay } from 'src/utils/address-utils'
 import { Psbt } from 'src/lib/multisig/psbt'
 import { signBchTransaction } from 'src/wallet/bch-sign'
+import { verifyTransactionInputSignature } from 'src/lib/multisig/utils'
 import { getMnemonic } from 'src/wallet'
 import { isReadOnlyVaultEntry } from 'src/lib/readonly-wallet'
 
@@ -242,8 +239,8 @@ const tokenChange = ref({})
 const inputSatoshis = ref(0n)
 const outputSatoshis = ref(0n)
 const isBroadcasting = ref(false)
-const showActionConfirmationSlider = ref(false)
-const ownedKeyMap = new Map()
+const ownedKeyMap = ref(new Map())
+const ownershipChecked = ref(false)
 const backNavPath = '/'
 
 const networkPrefix = computed(() => (isChipnet.value ? 'bchtest' : 'bitcoincash'))
@@ -274,11 +271,60 @@ const feeBch = computed(() => {
 })
 
 const canSign = computed(() => {
-  return ownedKeyMap.size > 0 && !isBroadcasting.value
+  return ownedKeyMap.value.size > 0 && !isBroadcasting.value
 })
 
 const isSigned = computed(() => {
   return inputs.value.length > 0 && inputs.value.every(i => i.hasSignature)
+})
+
+/**
+ * Verification state of the signatures carried by an imported (externally
+ * signed) PSBT: 'unsigned' | 'valid' | 'invalid' | 'unsupported'.
+ * Signatures are checked against the sighash and the pubkey must hash to the
+ * source output's P2PKH script before anything is broadcast.
+ */
+const signatureCheck = computed(() => {
+  if (!unsignedTx.value || !inputs.value.length) return 'unsigned'
+  const results = inputs.value.map((input, inputIndex) => verifyInputSignature({ input, inputIndex }))
+  if (results.includes('invalid')) return 'invalid'
+  if (results.includes('unsupported')) return 'unsupported'
+  return results.every(result => result === 'valid') ? 'valid' : 'unsigned'
+})
+
+function signatureErrorMessage () {
+  if (signatureCheck.value === 'unsigned') {
+    return $t('PsbtNotSignedYet', {}, 'This transaction has no signatures yet, so there is nothing to broadcast.')
+  }
+  return signatureCheck.value === 'unsupported'
+    ? $t('PsbtSignatureUnsupported', {}, 'This transaction is signed in a format this wallet cannot verify, so it will not be broadcast.')
+    : $t('PsbtSignatureInvalid', {}, 'The signature on this transaction is invalid, so it will not be broadcast.')
+}
+
+/**
+ * A signed PSBT is ready to broadcast when this wallet can sign it itself or the
+ * imported signatures passed verification. Used for the status banner so it does
+ * not claim "ready for broadcast" for signatures that will be refused.
+ */
+const signedReadyForBroadcast = computed(() => {
+  if (!isSigned.value) return false
+  return canSign.value || signatureCheck.value === 'valid'
+})
+
+/**
+ * True when an unsigned PSBT was loaded on a wallet that owns none of its
+ * inputs, so there is nothing to sign. Surfaced in the UI instead of leaving
+ * the user without a slider and no explanation.
+ */
+const noSignableInputs = computed(() => {
+  return Boolean(
+    unsignedTx.value &&
+    ownershipChecked.value &&
+    !isReadOnlyWallet.value &&
+    !isBroadcasting.value &&
+    !isSigned.value &&
+    ownedKeyMap.value.size === 0
+  )
 })
 
 const recipientRows = computed(() => outputRows.value.filter(o => !o.isChange))
@@ -344,7 +390,8 @@ function resetPsbtState () {
   tokenCategories.value = []
   tokenDebit.value = {}
   tokenChange.value = {}
-  ownedKeyMap.clear()
+  ownedKeyMap.value.clear()
+  ownershipChecked.value = false
 }
 
 async function loadPsbt () {
@@ -448,6 +495,12 @@ async function loadPsbt () {
     })
 
     await checkOwnership()
+
+    // Warn about forged/unverifiable signatures as soon as the PSBT is loaded,
+    // not only when the user tries to broadcast.
+    if (signatureCheck.value === 'invalid' || signatureCheck.value === 'unsupported') {
+      $q.notify({ type: 'negative', message: signatureErrorMessage(), timeout: 6000 })
+    }
   } catch (error) {
     console.error('[PsbtView] Error loading proposal:', error)
     $q.notify({
@@ -460,28 +513,37 @@ async function loadPsbt () {
 }
 
 async function checkOwnership () {
-  if (isReadOnlyWallet.value) return
-  const index = $store.getters['global/getWalletIndex']
-  const mnemonic = await getMnemonic(index).catch(() => null)
-  if (!mnemonic) return
+  ownershipChecked.value = false
   try {
+    if (isReadOnlyWallet.value) return
+    const index = $store.getters['global/getWalletIndex']
+    const mnemonic = await getMnemonic(index).catch(() => null)
+    if (!mnemonic) {
+      console.debug('[PsbtView] No mnemonic available — wallet is locked or unreadable')
+      return
+    }
     const masterNode = deriveHdPrivateNodeFromBip39Mnemonic(mnemonic)
     inputs.value.forEach((input, inputIndex) => {
-      if (!input.path) return
+      if (!input.path) {
+        console.debug('[PsbtView] PSBT input has no BIP32 derivation path', inputIndex)
+        return
+      }
       const node = deriveHdPath(masterNode, input.path)
       const privateKey = node.privateKey
       const publicKey = secp256k1.derivePublicKeyCompressed(privateKey)
       if (typeof publicKey === 'string') return
       if (input.pubkey && binToHex(publicKey) !== input.pubkey) return
-      ownedKeyMap.set(inputIndex, { privateKey, publicKey })
+      ownedKeyMap.value.set(inputIndex, { privateKey, publicKey })
     })
   } catch (error) {
     console.error('[PsbtView] Error checking ownership:', error)
+  } finally {
+    ownershipChecked.value = true
   }
 }
 
 function resolveKey (_lockingBytecode, inputIndex) {
-  return ownedKeyMap.get(inputIndex) || null
+  return ownedKeyMap.value.get(inputIndex) || null
 }
 
 function concatBytes (...arrays) {
@@ -495,6 +557,116 @@ function concatBytes (...arrays) {
   return out
 }
 
+const P2PKH_LOCKING_PREFIX = '76a914'
+const P2PKH_LOCKING_SUFFIX = '88ac'
+
+function isP2pkhLockingBytecode (lockingBytecode) {
+  return Boolean(
+    lockingBytecode &&
+    lockingBytecode.length === 25 &&
+    binToHex(lockingBytecode.slice(0, 3)) === P2PKH_LOCKING_PREFIX &&
+    binToHex(lockingBytecode.slice(-2)) === P2PKH_LOCKING_SUFFIX
+  )
+}
+
+/** Split a P2PKH unlocking bytecode ( `<sig> <pubkey>` ) into its two pushes. */
+function parseP2pkhUnlockingBytecode (unlockingBytecode) {
+  if (!unlockingBytecode || unlockingBytecode.length < 2) return null
+  const signatureLength = unlockingBytecode[0]
+  const signatureStart = 1
+  const signatureEnd = signatureStart + signatureLength
+  if (signatureLength <= 0 || signatureEnd >= unlockingBytecode.length) return null
+  const publicKeyLength = unlockingBytecode[signatureEnd]
+  const publicKeyStart = signatureEnd + 1
+  const publicKeyEnd = publicKeyStart + publicKeyLength
+  if (publicKeyLength !== 33 && publicKeyLength !== 65) return null
+  if (publicKeyEnd !== unlockingBytecode.length) return null
+  return {
+    signature: unlockingBytecode.slice(signatureStart, signatureEnd),
+    publicKey: unlockingBytecode.slice(publicKeyStart, publicKeyEnd)
+  }
+}
+
+/**
+ * Check the signature(s) an imported PSBT claims for one input.
+ * Single-sig P2PKH only: the pubkey must hash to the source output's locking
+ * script, and the signature must verify against that script as the scriptCode.
+ * @returns {'unsigned'|'valid'|'invalid'|'unsupported'}
+ */
+function verifyInputSignature ({ input, inputIndex }) {
+  const lockingBytecode = input.sourceOutput?.lockingBytecode
+  if (!isP2pkhLockingBytecode(lockingBytecode)) return 'unsupported'
+  const expectedPubkeyHash = binToHex(lockingBytecode.slice(3, 23))
+
+  const candidates = Object.entries(input.partialSigs || {}).map(([publicKeyHex, signature]) => ({
+    signature,
+    publicKey: hexToBin(publicKeyHex)
+  }))
+  if (input.finalScriptSig?.length) {
+    const parsed = parseP2pkhUnlockingBytecode(input.finalScriptSig)
+    if (!parsed) return 'unsupported'
+    candidates.push(parsed)
+  }
+  if (!candidates.length) return 'unsigned'
+
+  const context = {
+    inputIndex,
+    sourceOutputs: sourceOutputs.value,
+    transaction: unsignedTx.value
+  }
+  for (const candidate of candidates) {
+    const verified = p2pkhCandidateVerifies({
+      ...candidate,
+      lockingBytecode,
+      expectedPubkeyHash,
+      context
+    })
+    if (!verified) return 'invalid'
+  }
+  return 'valid'
+}
+
+/** Verify one claimed signature against a P2PKH source output. */
+function p2pkhCandidateVerifies ({ signature, publicKey, lockingBytecode, expectedPubkeyHash, context }) {
+  if (binToHex(hash160(publicKey)) !== expectedPubkeyHash) return false
+  try {
+    return Boolean(verifyTransactionInputSignature({
+      signature,
+      publicKey,
+      // For P2PKH the source output's locking bytecode is the signed scriptCode
+      redeemScript: lockingBytecode,
+      context
+    }))
+  } catch {
+    return false
+  }
+}
+
+/**
+ * Pick the signature to put in the unlocking bytecode for one input: prefer one
+ * that actually verifies, so a PSBT carrying several partial signatures (e.g.
+ * combined from different signers) does not fail on whichever comes first.
+ */
+function selectSignatureForInput ({ input, inputIndex, partialSigs }) {
+  const candidates = Object.entries(partialSigs || {}).map(([publicKeyHex, signature]) => ({
+    signature,
+    publicKey: hexToBin(publicKeyHex)
+  }))
+  if (!candidates.length) return null
+
+  const lockingBytecode = input?.sourceOutput?.lockingBytecode
+  if (!isP2pkhLockingBytecode(lockingBytecode)) return candidates[0]
+
+  const context = { inputIndex, sourceOutputs: sourceOutputs.value, transaction: unsignedTx.value }
+  const expectedPubkeyHash = binToHex(lockingBytecode.slice(3, 23))
+  return candidates.find(candidate => p2pkhCandidateVerifies({
+    ...candidate,
+    lockingBytecode,
+    expectedPubkeyHash,
+    context
+  })) || candidates[0]
+}
+
 function finalizeSignedTx () {
   const decoded = structuredClone(unsignedTx.value)
   const psbt = new Psbt()
@@ -505,14 +677,15 @@ function finalizeSignedTx () {
       decoded.inputs[i].unlockingBytecode = finalScriptSig
       return
     }
-    const partialSigs = inp.getPartialSigs?.() || {}
-    const pubkeyHex = Object.keys(partialSigs)[0]
-    const sig = pubkeyHex ? partialSigs[pubkeyHex] : null
-    const pubkey = pubkeyHex ? hexToBin(pubkeyHex) : null
-    if (!sig || !pubkey) throw new Error('Cannot finalize input — missing signature')
+    const chosen = selectSignatureForInput({
+      input: inputs.value[i],
+      inputIndex: i,
+      partialSigs: inp.getPartialSigs?.() || {}
+    })
+    if (!chosen?.signature || !chosen?.publicKey) throw new Error('Cannot finalize input — missing signature')
     decoded.inputs[i].unlockingBytecode = concatBytes(
-      Uint8Array.from([sig.length]), sig,
-      Uint8Array.from([pubkey.length]), pubkey
+      Uint8Array.from([chosen.signature.length]), chosen.signature,
+      Uint8Array.from([chosen.publicKey.length]), chosen.publicKey
     )
   })
   return binToHex(encodeTransaction(decoded))
@@ -520,10 +693,13 @@ function finalizeSignedTx () {
 
 async function commitSignAndBroadcast () {
   if (!canSign.value && !isSigned.value) return
+  // `canSign` also depends on `isBroadcasting`, so sample it before broadcasting
+  // flips that flag — otherwise this always falls through to the signed-PSBT path.
+  const signLocally = canSign.value
   try {
     isBroadcasting.value = true
     let signedTransaction
-    if (canSign.value) {
+    if (signLocally) {
       const result = signBchTransaction({
         transaction: unsignedTx.value,
         sourceOutputs: sourceOutputs.value,
@@ -532,6 +708,9 @@ async function commitSignAndBroadcast () {
       })
       signedTransaction = result.signedTransaction
     } else {
+      // Imported (externally signed) PSBT: never broadcast signatures we could
+      // not verify against the sighash and the sender's own locking script.
+      if (signatureCheck.value !== 'valid') throw new Error(signatureErrorMessage())
       signedTransaction = finalizeSignedTx()
     }
 
@@ -574,8 +753,13 @@ async function commitSignAndBroadcast () {
   }
 }
 
-function onSliderSwiped (reset) {
-  showActionConfirmationSlider.value = false
+function onSliderSwiped (reset = () => {}) {
+  if (!canSign.value && !isSigned.value) return
+  if (!canSign.value && signatureCheck.value !== 'valid') {
+    $q.notify({ type: 'negative', message: signatureErrorMessage(), timeout: 6000 })
+    reset()
+    return
+  }
   if (isReadOnlyWallet.value) {
     commitSignAndBroadcast()
     return
@@ -585,14 +769,8 @@ function onSliderSwiped (reset) {
       commitSignAndBroadcast()
     })
     .onDismiss(() => {
-      reset?.()
+      reset()
     })
-}
-
-function onConfirmSliderSwiped (reset) {
-  if (!canSign.value && !isSigned.value) return
-  showActionConfirmationSlider.value = true
-  reset?.()
 }
 
 function openScanQr () {
@@ -624,10 +802,6 @@ watch(() => router.currentRoute.value.name, (to, from) => {
   if (to === 'psbt-view' && from === 'qr-reader') {
     loadPsbt()
   }
-})
-
-onUnmounted(() => {
-  showActionConfirmationSlider.value = false
 })
 </script>
 
@@ -661,21 +835,6 @@ onUnmounted(() => {
   font-size: 0.9em;
   letter-spacing: 0.5px;
   opacity: 0.65;
-}
-
-.action-confirmation-backdrop {
-  position: fixed;
-  inset: 0;
-  z-index: 2000;
-  background: rgba(0, 0, 0, 0.3);
-  display: flex;
-  align-items: flex-end;
-  justify-content: center;
-  padding-bottom: env(safe-area-inset-bottom, 0);
-}
-
-.action-confirmation-slider-content {
-  width: 100%;
 }
 
 .readonly-banner,
