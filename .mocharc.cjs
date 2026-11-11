@@ -1,4 +1,4 @@
 module.exports = {
   spec: ['test/**/*.spec.mjs'],
-  loader: ['./test/order-live-activity-loader.mjs'],
+  loader: ['./test/mls-leaf-index-loader.mjs', './test/order-live-activity-loader.mjs', './test/mls-store-loader.mjs'],
 }

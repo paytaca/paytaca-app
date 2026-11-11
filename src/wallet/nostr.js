@@ -20,6 +20,7 @@ import { nip44 } from 'nostr-tools'
 import { nip59 } from 'nostr-tools'
 import { nsecEncode, npubEncode } from 'nostr-tools/nip19'
 import { sha256 } from 'js-sha256'
+import { ROOM_PUSH_TOKEN_TAG, wrapManyEventsForRoom } from './nostr-room-wrap'
 
 const NOSTR_DERIVATION_PATH = "m/44'/1237'/0'/0/0"
 
@@ -85,58 +86,42 @@ export function createUnsignedKind14({ content, senderPubKey, members, subject, 
 }
 
 /**
- * Tag gift-wraps destined for the sender themselves with ["self"] so
- * the watchtower can skip push notifications for the user's own events.
- * @param {import('nostr-tools').NostrEvent[]} giftWraps
- * @param {string[]} recipientPubKeys - recipient pubkeys (same order as giftWraps)
- * @param {string} senderPubKey - the user's own pubkey to identify self-addressed wraps
- * @returns {import('nostr-tools').NostrEvent[]}
- */
-function tagSelfGiftWraps(giftWraps, recipientPubKeys, senderPubKey) {
-  return giftWraps.map((gw, i) => {
-    // wrapManyEvents prepends a self-wrap at index 0, so giftWraps
-    // is one element longer than recipientPubKeys. Index 0 is always
-    // the self-wrap; for i > 0, recipientPubKeys[i - 1] is the
-    // recipient this gift-wrap was created for.
-    if (i === 0 || recipientPubKeys[i - 1] === senderPubKey) {
-      return { ...gw, tags: [...gw.tags, ['self']] }
-    }
-    return gw
-  })
-}
-
-/**
  * Create a self-signed gift-wrap (kind 1059) that can be queried via authors: [senderPubKey].
  * wrapManyEvents signs all wraps with random one-time keys, making them impossible
  * to find on re-fetch. This archive wrap is signed with our real key so it survives relay queries.
  */
-function createSelfSignedArchiveWrap(unsignedEvent, senderPrivKeyBytes, senderPubKey) {
+function createSelfSignedArchiveWrap(unsignedEvent, senderPrivKeyBytes, senderPubKey, roomPushToken) {
   const seal = nip59.createSeal(unsignedEvent, senderPrivKeyBytes, senderPubKey)
   const conversationKey = nip44.getConversationKey(senderPrivKeyBytes, senderPubKey)
   const content = nip44.encrypt(JSON.stringify(seal), conversationKey)
+  const tags = [['p', senderPubKey], ['self']]
+  if (roomPushToken) tags.push([ROOM_PUSH_TOKEN_TAG, roomPushToken])
   return finalizeEvent({
     kind: 1059,
     content,
     created_at: Math.floor(Date.now() / 1000),
-    tags: [['p', senderPubKey], ['self']],
+    tags,
   }, senderPrivKeyBytes)
 }
 
 /**
  * Create NIP-17 gift-wraps for every room member.
- * Uses nostr-tools nip59.wrapManyEvents internally.
  * @param {import('nostr-tools').UnsignedEvent} unsignedKind14
  * @param {string} senderPrivKey - Hex private key of sender
  * @param {string[]} receiverPubKeys - All member pubkeys to send to
  * @param {string} [senderPubKey] - Sender's own pubkey (for self-tagging; omit to skip)
+ * @param {string} [roomPushToken] - Opaque token for mute filtering on the relay
  * @returns {Promise<import('nostr-tools').NostrEvent[]>}
  */
-export async function createNip17GiftWraps(unsignedKind14, senderPrivKey, receiverPubKeys, senderPubKey) {
+export async function createNip17GiftWraps(unsignedKind14, senderPrivKey, receiverPubKeys, senderPubKey, roomPushToken) {
   const senderPrivKeyBytes = hexToBytes(senderPrivKey)
-  const giftWraps = nip59.wrapManyEvents(unsignedKind14, senderPrivKeyBytes, receiverPubKeys)
+  const giftWraps = wrapManyEventsForRoom(
+    unsignedKind14, senderPrivKey, receiverPubKeys, roomPushToken,
+  )
   if (senderPubKey) {
-    giftWraps.push(createSelfSignedArchiveWrap(unsignedKind14, senderPrivKeyBytes, senderPubKey))
-    return tagSelfGiftWraps(giftWraps, receiverPubKeys, senderPubKey)
+    giftWraps.push(createSelfSignedArchiveWrap(
+      unsignedKind14, senderPrivKeyBytes, senderPubKey, roomPushToken,
+    ))
   }
   return giftWraps
 }
@@ -184,7 +169,7 @@ export function unwrapGiftWrap(giftWrap, receiverPrivKey) {
  * @param {string} [opts.relayHint] - Optional relay hint
  * @returns {Promise<import('nostr-tools').NostrEvent>} - Gift-wrapped Kind 7 event
  */
-export async function createReactionGiftWraps({ messageId, senderPubKey, recipientPubKeys, emoji, reactorPubKey, reactorPrivKey, relayHint = '' }) {
+export async function createReactionGiftWraps({ messageId, senderPubKey, recipientPubKeys, emoji, reactorPubKey, reactorPrivKey, relayHint = '', roomPushToken }) {
   const kind7 = {
     kind: 7,
     pubkey: reactorPubKey,
@@ -198,9 +183,9 @@ export async function createReactionGiftWraps({ messageId, senderPubKey, recipie
   }
   kind7.id = getEventHash(kind7)
 
-  const reactorPrivKeyBytes = hexToBytes(reactorPrivKey)
-  const giftWraps = nip59.wrapManyEvents(kind7, reactorPrivKeyBytes, recipientPubKeys)
-  return tagSelfGiftWraps(giftWraps, recipientPubKeys, reactorPubKey)
+  return wrapManyEventsForRoom(
+    kind7, reactorPrivKey, recipientPubKeys, roomPushToken,
+  )
 }
 
 export async function createReadReceiptGiftWrap({ messageIds, messageId, senderPubKey, receiverPubKey, receiverPrivKey, relayHint = '' }) {
@@ -250,7 +235,7 @@ export async function createReadReceiptGiftWrap({ messageIds, messageId, senderP
  * @param {string} opts.senderPrivKey - Hex private key of the deleter
  * @returns {Promise<import('nostr-tools').NostrEvent[]>} - Gift-wrapped kind:5 events
  */
-export async function createKind5DeletionGiftWraps({ messageId, senderPubKey, members, senderPrivKey }) {
+export async function createKind5DeletionGiftWraps({ messageId, senderPubKey, members, senderPrivKey, roomPushToken }) {
   const kind5 = {
     kind: 5,
     pubkey: senderPubKey,
@@ -263,9 +248,10 @@ export async function createKind5DeletionGiftWraps({ messageId, senderPubKey, me
   }
   kind5.id = getEventHash(kind5)
 
-  const senderPrivKeyBytes = hexToBytes(senderPrivKey)
-  const giftWraps = nip59.wrapManyEvents(kind5, senderPrivKeyBytes, members)
-  return tagSelfGiftWraps(giftWraps, members, senderPubKey)
+  const giftWraps = wrapManyEventsForRoom(
+    kind5, senderPrivKey, members, roomPushToken,
+  )
+  return giftWraps
 }
 
 /**

@@ -1,6 +1,6 @@
 <template>
   <div v-if="$route.name === 'p2p-store'">
-    <HeaderNav :title="`P2P Ramp`" backnavpath="/apps" class="header-nav" />
+    <HeaderNav :title="`P2P Ramp`" :backnavpath="backnavpath" class="header-nav" />
     <StoreListings :key="storeListingsKey"/>
   </div>
   <div v-else>
@@ -25,6 +25,11 @@ export default {
   },
   created () {
     bus.on('relogged', this.refreshPage)
+  },
+  computed: {
+    backnavpath () {
+      return this.$route.query.from === 'get-bch' ? { name: 'app-get-bch' } : '/apps'
+    }
   },
   methods: {
     refreshPage () {

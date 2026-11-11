@@ -164,7 +164,7 @@ import { shortenAddressForDisplay } from '../../utils/address-utils'
 import { toTokenAddress } from 'src/utils/crypto';
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 import { useStore } from 'vuex'
-import QRCode from 'qrcode'
+import QRCode from 'qrcode-svg'
 import Watchtower from 'src/lib/watchtower'
 
 const props = defineProps({
@@ -251,15 +251,16 @@ async function generateQRCode(address) {
     return
   }
   try {
-    const dataUrl = await QRCode.toDataURL(address, {
+    const svg = new QRCode({
+      content: address,
       width: 200,
-      margin: 2,
-      color: {
-        dark: '#000000',
-        light: '#ffffff'
-      }
-    })
-    qrCodeDataUrl.value = dataUrl
+      height: 200,
+      padding: 2,
+      join: true,
+      color: '#000000',
+      background: '#ffffff'
+    }).svg()
+    qrCodeDataUrl.value = `data:image/svg+xml;base64,${btoa(svg)}`
   } catch (error) {
     console.error('Error generating QR code:', error)
     qrCodeDataUrl.value = ''
