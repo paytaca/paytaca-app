@@ -1,5 +1,17 @@
 <template>
   <div>
+    <div
+      v-if="isReadOnlyWallet"
+      class="pt-card q-pa-lg q-mb-md br-15"
+      :class="getDarkModeClass(darkMode)"
+    >
+      <div class="text-subtitle1 text-weight-medium text-bow" :class="getDarkModeClass(darkMode)">
+        {{ $t('WalletConnectUnavailableReadOnly', {}, 'WalletConnect is not available for read-only wallets') }}
+      </div>
+      <div class="text-caption q-mt-xs text-bow" :class="getDarkModeClass(darkMode)" style="opacity: 0.7">
+        {{ $t('WalletConnectUnavailableReadOnlyHint', {}, 'Connecting a dApp requires signing with private keys, which this wallet does not hold.') }}
+      </div>
+    </div>
     <div class="row items-center q-gutter-y-xs">
       <div class="col-xs-12">
         <q-expansion-item
@@ -226,6 +238,7 @@ import {
   encodeCashAddress
 } from '@bitauth/libauth'
 import { shortenAddressForDisplay } from 'src/utils/address-utils'
+import { isReadOnlyVaultEntry } from 'src/lib/readonly-wallet'
 import { useI18n } from 'vue-i18n'
 import SessionInfo from './SessionInfo.vue'
 import SelectAddressForSessionDialog from './SelectAddressForSessionDialog.vue'
@@ -284,6 +297,10 @@ const isInitiateSessionExpanded = ref(true)
 const sessionRequestsContainer = ref(null)
 const sessionProposalsContainer = ref(null)
 const darkMode = computed(() => $store.getters['darkmode/getStatus'])
+const isReadOnlyWallet = computed(() => {
+  const index = $store.getters['global/getWalletIndex']
+  return isReadOnlyVaultEntry($store.getters['global/getVault']?.[index])
+})
 const settings = computed(() => $store.getters['walletconnect/settings'])
 const isChipnet = computed(() => $store.getters['global/isChipnet'])
 
@@ -1137,6 +1154,15 @@ const rejectSessionProposal = async (sessionProposal) => {
 }
 
 const approveSessionProposal = async (sessionProposal) => {
+  if (isReadOnlyWallet.value) {
+    $q.notify({
+      type: 'warning',
+      message: $t('WalletConnectUnavailableReadOnly', {}, 'WalletConnect is not available for read-only wallets'),
+      timeout: 5000
+    })
+    await rejectSessionProposal(sessionProposal)
+    return
+  }
   await ensureWalletAddressesLoaded()
   const proposalExpiry = sessionProposal.expiryTimestamp // Assuming expiry is a timestamp in seconds
   const currentTime = Math.floor(Date.now() / 1000)
