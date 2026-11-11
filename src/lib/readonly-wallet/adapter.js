@@ -11,7 +11,7 @@
  */
 
 import { getWatchtowerApiUrl } from 'src/wallet/chipnet'
-import { getXpubFingerprint, toFullDerivationPath } from './readonly-wallet'
+import { UNKNOWN_MASTER_FINGERPRINT, toFullDerivationPath } from './readonly-wallet'
 
 const projectId = {
   mainnet: process.env.WATCHTOWER_PROJECT_ID,
@@ -286,7 +286,7 @@ export class ReadOnlyBchWallet {
     const relativePath = String(addressPath || '')
     return {
       publicKey: this._wallet.getPubkeyAt(relativePath),
-      masterFingerprint: getXpubFingerprint(this.xpub),
+      masterFingerprint: this._wallet.masterFingerprint || UNKNOWN_MASTER_FINGERPRINT,
       path: toFullDerivationPath(relativePath, this.derivationPath),
       xpub: this.xpub
     }

@@ -7,7 +7,7 @@
  * wallet: the xpub, the BIP32 master fingerprint and the derivation path.
  */
 
-import { isValidXpub, getXpubNetwork, default as ReadOnlyWallet } from './readonly-wallet'
+import { isValidXpub, getXpubNetwork, UNKNOWN_MASTER_FINGERPRINT, default as ReadOnlyWallet } from './readonly-wallet'
 
 // BIP-380 key origin: [master-fingerprint/derivation-path]xpub/branch
 const KEY_EXPRESSION_REGEX = /\[([0-9a-fA-F]{8})(?:\/([^\]]+))?\]([123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz]+)(?:\/([^\s),]+))?/g
@@ -78,7 +78,7 @@ export function buildReadOnlyBsmsDescriptor (config) {
   if (!xpub) return ''
   // Master fingerprint comes from the seed and is stored on import; never derive
   // a fake one from the xpub. Fall back to a zero placeholder to keep the origin.
-  const fingerprint = config.masterFingerprint || '00000000'
+  const fingerprint = config.masterFingerprint || UNKNOWN_MASTER_FINGERPRINT
   const path = (config.derivationPath || "m/44'/145'/0'").replace(/^m\//, '').replace(/^\//, '')
   const descriptor = `pkh([${fingerprint}/${path}]${xpub}/0/*)`
   const checksum = descriptorChecksum(descriptor)

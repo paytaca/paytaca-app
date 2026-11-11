@@ -28,7 +28,6 @@ import {
   utf8ToBin,
   cashAddressToLockingBytecode,
   sha256,
-  hash160,
   encodeTransactionCommon,
   encodeTransactionOutput,
   getMinimumFee,
@@ -49,6 +48,14 @@ import {
 } from 'src/lib/multisig/utxo'
 
 export const BCH_DERIVATION_PATH = "m/44'/145'/0'"
+
+/**
+ * Placeholder master fingerprint for an xpub whose true master fingerprint is
+ * unknown. A fingerprint cannot be derived from an xpub, so PSBT BIP-32
+ * derivation fields use this "unknown" value instead of a plausible-looking
+ * synthetic one that signers could mistake for a real wallet identifier.
+ */
+export const UNKNOWN_MASTER_FINGERPRINT = '00000000'
 
 export const ReadOnlyNetwork = Object.freeze({
   mainnet: 'mainnet',
@@ -102,20 +109,6 @@ export function getXpubNetwork (xpub) {
   if (typeof xpub !== 'string' || !xpub) return null
   const decoded = decodeHdPublicKey(xpub)
   return typeof decoded === 'string' ? null : decoded.network
-}
-
-/**
- * Master fingerprint stand-in for an xpub.
- * The true master fingerprint is not derivable from an xpub alone, so we use
- * the first 4 bytes of HASH160 of the xpub node's public key as a stable
- * identifier for PSBT BIP32 derivation fields.
- * @param {string} xpub
- * @returns {string} 8 hex chars
- */
-export function getXpubFingerprint (xpub) {
-  const decoded = decodeHdPublicKey(xpub)
-  if (typeof decoded === 'string') throw new Error(decoded)
-  return binToHex(hash160(decoded.node.publicKey).slice(0, 4))
 }
 
 /**
@@ -702,7 +695,7 @@ export default class ReadOnlyWallet {
   _bip32For (relativePath) {
     return {
       pubkey: this.getPubkeyAt(relativePath),
-      masterFingerprint: this.masterFingerprint || getXpubFingerprint(this.xpub),
+      masterFingerprint: this.masterFingerprint || UNKNOWN_MASTER_FINGERPRINT,
       path: toFullDerivationPath(relativePath, this.derivationPath)
     }
   }
@@ -830,7 +823,9 @@ export default class ReadOnlyWallet {
     const bchOutputTotal = outputs.reduce((t, o) => t + o.valueSatoshis, 0n)
 
     // The fee grows with each input we add, so iterate until the fee estimate and
-    // the selected input set agree.
+    // the selected input set agree. The loop is capped on purpose: on heavy input
+    // sets the estimate can keep oscillating, and the worst case is simply that the
+    // last fee estimate is used.
     const bchUtxos = sourceUtxos.filter(u => !u.token)
     let bchSelection = { selectedUtxos: [], satoshisSatisfied: true }
     let estimatedInputCount = selectedUtxos.length

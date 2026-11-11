@@ -17,7 +17,7 @@ export {
   BCH_DERIVATION_PATH,
   isValidXpub,
   getXpubNetwork,
-  getXpubFingerprint,
+  UNKNOWN_MASTER_FINGERPRINT,
   toFullDerivationPath,
   derivePublicKeyFromXpub
 } from './readonly-wallet'
