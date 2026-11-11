@@ -172,7 +172,8 @@ import QrScanner from 'src/components/qr-scanner.vue'
 import WizardConnectSignRequestDialog from 'src/components/wizardconnect/WizardConnectSignRequestDialog.vue'
 
 const props = defineProps({
-  uri: { type: String, default: '' }
+  uri: { type: String, default: '' },
+  confirm: { type: String, default: '' }
 })
 
 const $store = useStore()
@@ -314,11 +315,20 @@ onMounted(() => {
     console.error('WizardConnect init failed on page mount:', err)
   })
 
-  if (props.uri) {
-    uriInput.value = props.uri
+  handleUriProp()
+})
+
+watch(() => props.uri, handleUriProp)
+
+function handleUriProp() {
+  if (!props.uri) return
+  uriInput.value = props.uri
+  if (props.confirm) {
+    showPasteDialog.value = true
+  } else {
     onPairUri()
   }
-})
+}
 
 onBeforeUnmount(() => {
   // Stop the 30s buffer-check interval when leaving the page. The singleton
