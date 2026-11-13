@@ -3,7 +3,6 @@
       <AppLoading v-if="showInitialLoad" />
       <WalletSwitchLoading v-if="showWalletSwitchLoading" />
       <router-view :key="$store.getters['global/getWalletSwitchId']" />
-      <v-offline @detected-condition="onConnectivityChange" />
 
       <div v-if="isChipnet" class="chipnet-banner" @click="confirmSwitchToMainnet">
         <span class="chipnet-banner-label">chipnet</span>
@@ -35,7 +34,6 @@ import { useStore } from "vuex"
 import { is, useQuasar } from 'quasar'
 import { computed, watchEffect } from "@vue/runtime-core"
 import Watchtower from 'watchtower-cash-js'
-import { VOffline } from 'v-offline'
 import { checkWatchtowerStatus } from './utils/watchtower-status'
 import AppVersionUpdate from './components/dialogs/AppVersionUpdate.vue'
 import AppLoading from 'src/components/AppLoading.vue'
@@ -58,7 +56,7 @@ BigInt.prototype["toJSON"] = function () {
 
 export default {
   name: 'App',
-  components: { VOffline, AppLoading, WalletSwitchLoading },
+  components: { AppLoading, WalletSwitchLoading },
   setup () {
     const store = useStore()
     const $q = useQuasar()
@@ -373,7 +371,12 @@ export default {
         // App was genuinely backgrounded (paused for > threshold)
         // Since we already locked on pause (to protect app preview), we just need to verify
         // the lock state is correct and ensure we're on the lock screen
-        
+
+        // The relay socket does not survive backgrounding, so messages sent
+        // while the app was away only arrive when the subscription is rebuilt.
+        // Pull them now instead of waiting on the relay to replay them.
+        vm.$store.dispatch('nostrChat/fetchLatestMessages', { force: true }).catch(() => {})
+
         if (lockAppEnabled) {
           // Verify lock state is correct (should already be locked from pause event)
           const currentUnlockState = vm.$store.getters['global/isUnlocked']
@@ -864,6 +867,9 @@ export default {
     if (typeof navigator.onLine === 'boolean') {
       this.onConnectivityChange(navigator.onLine) 
     }
+    this.connectivityHandler = () => this.onConnectivityChange(navigator.onLine)
+    window.addEventListener('online', this.connectivityHandler)
+    window.addEventListener('offline', this.connectivityHandler)
   },
   async mounted () {
     const vm = this
@@ -1019,8 +1025,12 @@ export default {
 
       if (this.$q.platform.is.mobile) {
         this._nostrPushListener = notification => {
-          // Ensure Nostr chat subscription is active when a Nostr event push arrives
+          // The push is the earliest signal a new Nostr event exists. Pull the
+          // newest gift-wraps immediately — the live subscription cannot be
+          // trusted here (it may have been dropped while backgrounded, and
+          // `ensureSubscribed` is a no-op inside its cooldowns).
           if (notification?.data?.type === 'nostr_event') {
+            this.$store.dispatch('nostrChat/fetchLatestMessages', { force: true }).catch(() => {})
             this.$store.dispatch('nostrChat/ensureSubscribed')
           }
         }
@@ -1029,8 +1039,18 @@ export default {
         this.subscribePushNotifications()
       } else if (this.$pushNotifications?.events) {
         // On web/PWA, show in-app notification since system push is not available
-        this._nostrPushListener = notification => {
-          if (notification?.title || notification?.body) {
+        this._nostrPushListener = async notification => {
+          // The push is the earliest signal a new Nostr event exists. Pull the
+          // newest gift-wraps immediately — the live subscription cannot be
+          // trusted here, and `ensureSubscribed` is a no-op inside its cooldowns.
+          let shouldNotify = true
+          if (notification?.data?.type === 'nostr_event') {
+            // The payload names the wallet, not the room, so the muted check
+            // happens after the pull: muted conversations must stay silent.
+            shouldNotify = await this.$store.dispatch('nostrChat/pullLatestForPush').catch(() => true)
+            this.$store.dispatch('nostrChat/ensureSubscribed')
+          }
+          if (shouldNotify && (notification?.title || notification?.body)) {
             this.$q.notify({
               color: 'brandblue',
               message: notification?.title,
@@ -1042,10 +1062,6 @@ export default {
                 { icon: 'close', 'aria-label': 'Dismiss', color: 'white' }
               ]
             })
-          }
-          // Ensure Nostr chat subscription is active when a Nostr event push arrives
-          if (notification?.data?.type === 'nostr_event') {
-            this.$store.dispatch('nostrChat/ensureSubscribed')
           }
         }
         this.$pushNotifications.events.addEventListener('pushNotificationReceived', this._nostrPushListener)
@@ -1151,6 +1167,11 @@ export default {
     if (this._nostrPushListener) {
       this.$pushNotifications?.events?.removeEventListener('pushNotificationReceived', this._nostrPushListener)
       this._nostrPushListener = null
+    }
+    if (this.connectivityHandler) {
+      window.removeEventListener('online', this.connectivityHandler)
+      window.removeEventListener('offline', this.connectivityHandler)
+      this.connectivityHandler = null
     }
   },
   created () {

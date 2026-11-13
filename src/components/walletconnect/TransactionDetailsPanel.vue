@@ -1,5 +1,9 @@
 <template>
   <div>
+    <div v-if="!isDecodedTransaction" class="text-negative">
+      {{ $t('UnableToDecodeTransaction', {}, 'Unable to decode transaction') }}
+    </div>
+    <template v-else>
     <div class="text-subtitle1">Inputs</div>
     <div v-for="(input, index) in parsedTx.inputs" :key="index" class="q-mb-md">
       <div class="row items-start">
@@ -131,6 +135,7 @@
         </div>
       </div>
     </div>
+    </template>
   </div>
 </template>
 <script setup>
@@ -141,7 +146,7 @@ import { computed, inject } from "vue"
 import { useI18n } from "vue-i18n"
 
 const props = defineProps({
-  transaction: Object,
+  transaction: [Object, String],
   addressDisplayFormatter: { type: Function },
   addressDisplayFormat: { type: String /*cashaddr | tokenaddr */}
 })
@@ -150,6 +155,12 @@ const props = defineProps({
 const $copyText = inject('$copyText')
 const $q = useQuasar()
 const { t } = useI18n()
+
+const isDecodedTransaction = computed(() => {
+  return Boolean(props.transaction) &&
+    typeof props.transaction === 'object' &&
+    Array.isArray(props.transaction.inputs)
+})
 
 const parsedTx = computed(() => {
   console.log({ transaction: props.transaction })

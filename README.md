@@ -42,11 +42,11 @@ Paytaca is a non-custodial Bitcoin Cash (BCH) wallet that gives users exclusive 
 - **AnyHedge** - Decentralized derivatives and hedge contracts
 - **Stablehedge** - BCH-backed stablecoins (Beta)
 - **Cauldron DEX** - Token swaps & liquidity pools
-- **Crypto Swap** - Cross-chain swaps (BTC, ETH, SOL to BCH)
 - **LIFT Token** - governance and utility token support
 
 ### P2P Exchange & Ramps
 
+- **Cash In** - Get BCH by converting other cryptocurrencies (BTC, ETH, SOL) or buying from peers
 - **P2P Exchange** - Buy and sell BCH peer-to-peer
 - **E-load Service** - Mobile/data loads, cable, game pins (Philippines)
 - **Merchant Map** - Find BCH-accepting merchants nearby
@@ -107,7 +107,7 @@ Paytaca is a non-custodial Bitcoin Cash (BCH) wallet that gives users exclusive 
 ### Prerequisites
 
 - Node.js (v18 or higher)
-- npm or yarn
+- npm 8.3 or higher
 
 ### Setup
 

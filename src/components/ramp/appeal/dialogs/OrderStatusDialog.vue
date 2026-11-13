@@ -10,7 +10,10 @@
                   <q-card :bordered="isStatusRead(status)" flat class="q-mx-xs" :class="[darkMode ? 'dark' : 'light', isStatusRead(status) ? 'pt-card-2': 'pt-card']">
                     <q-card-section class="row q-pa-sm">
                       <q-badge v-if="!isStatusRead(status)" color="red" rounded floating/>
-                      <div class="col q-py-sm q-pl-sm" >{{formatOrderStatus(status.status)}}</div>
+                      <div class="col q-py-sm q-pl-sm" >
+                        <div>{{ formatOrderStatus(status.status) }}</div>
+                        <div v-if="statusActorLabel(status)" class="subtext">{{ statusActorLabel(status) }}</div>
+                      </div>
                       <div class="col subtext" style="text-align: end">{{ formatDate(status.created_at) }}</div>
                     </q-card-section>
                   </q-card>
@@ -34,7 +37,8 @@ export default {
       darkMode: this.$store.getters['darkmode/getStatus'],
       showDialog: true,
       loading: true,
-      statusHistory: []
+      statusHistory: [],
+      orderMembers: []
     }
   },
   emits: ['back'],
@@ -54,22 +58,46 @@ export default {
       if (!this.traderType) return true
       return (this.traderType === 'SELLER' && !!status.seller_read_at) || (this.traderType === 'BUYER' && !!status.buyer_read_at)
     },
+    statusActorLabel (status) {
+      const creator = status?.creator
+      if (!creator) return ''
+      if (creator.is_system) return this.$t('System', {}, 'System')
+      const role = creator.is_arbiter
+        ? this.$t('Arbiter', {}, 'Arbiter')
+        : this.statusActorRole(creator.id)
+      const by = `${this.$t('By', {}, 'by')} ${creator.name || ''}`.trim()
+      return role ? `${by} (${role})` : by
+    },
+    statusActorRole (peerId) {
+      const members = this.orderMembers || []
+      if (!peerId) return ''
+      const member = members.find(item => !item.is_arbiter && item.id === peerId)
+      if (!member) return ''
+      return member.role === 'SELLER' ? this.$t('Seller', {}, 'Seller') : this.$t('Buyer', {}, 'Buyer')
+    },
     async fetchStatusList () {
       if (!this.orderId) return
-      await backend.get(`/ramp-p2p/order/${this.orderId}/status/`, { authorize: 'arbiter' })
-        .then(response => {
-          this.statusHistory = response.data
-          console.log('statusHistory:', this.statusHistory)
-        })
-        .catch(error => {
-          this.handleRequestError(error)
-        })
+      await Promise.all([
+        backend.get(`/ramp-p2p/order/${this.orderId}/members/`, { authorize: true })
+          .then(response => {
+            this.orderMembers = response.data || []
+          })
+          .catch(error => {
+            this.handleRequestError(error)
+          }),
+        backend.get(`/ramp-p2p/order/${this.orderId}/status/`, { authorize: 'arbiter' })
+          .then(response => {
+            this.statusHistory = response.data
+          })
+          .catch(error => {
+            this.handleRequestError(error)
+          })
+      ])
     },
     async readOrderStatus () {
       if (!this.orderId || !this.traderType) return
       await backend.patch(`/ramp-p2p/order/${this.orderId}/status/`, null, { authorize: 'arbiter' })
-        .then(response => {
-          console.log('readOrderStatus:', response.data)
+        .then(() => {
           setTimeout(() => {
             this.fetchStatusList()
           }, 1000)

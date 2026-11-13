@@ -26,7 +26,7 @@ function getOrInitWalletState(state, walletHash = null) {
   if (!state.byWallet[hash]) state.byWallet[hash] = getInitialWalletState()
   // Restored state may predate the MLS feature; ensure the mls sub-state exists.
   if (typeof state.byWallet[hash].mls !== 'object' || state.byWallet[hash].mls === null) {
-    state.byWallet[hash].mls = { ready: false, keyPackage: null, groupStates: {}, roomMlsMap: {}, roomMlsNostrMap: {}, pendingInvitations: {}, declinedWelcomeIds: {}, handledWelcomeIds: {}, failedEventAttempts: {}, processedEventIds: {}, pendingInvitees: {}, kpHistory: [] }
+    state.byWallet[hash].mls = { ready: false, keyPackage: null, groupStates: {}, roomMlsMap: {}, roomMlsNostrMap: {}, pendingInvitations: {}, declinedWelcomeIds: {}, handledWelcomeIds: {}, failedEventAttempts: {}, processedEventIds: {}, pendingInvitees: {}, joinedMembers: {}, kpHistory: [] }
   }
   if (typeof state.byWallet[hash].mls.roomMlsNostrMap !== 'object' || state.byWallet[hash].mls.roomMlsNostrMap === null) {
     state.byWallet[hash].mls.roomMlsNostrMap = {}
@@ -49,6 +49,9 @@ function getOrInitWalletState(state, walletHash = null) {
   if (typeof state.byWallet[hash].mls.pendingInvitees !== 'object' || state.byWallet[hash].mls.pendingInvitees === null) {
     state.byWallet[hash].mls.pendingInvitees = {}
   }
+  if (typeof state.byWallet[hash].mls.joinedMembers !== 'object' || state.byWallet[hash].mls.joinedMembers === null) {
+    state.byWallet[hash].mls.joinedMembers = {}
+  }
   return state.byWallet[hash]
 }
 
@@ -70,30 +73,57 @@ export function SET_MLS_GROUP_STATE(state, { mlsGroupIdHex, clientState }) {
 export function CLEAR_MLS_GROUP_STATE(state, mlsGroupIdHex) {
   const ws = getOrInitWalletState(state)
   if (!ws) return
-  delete ws.mls.groupStates[mlsGroupIdHex]
+  if (ws.mls.groupStates) delete ws.mls.groupStates[mlsGroupIdHex]
   // The group's ratchet state is gone, so the processed-event tombstones are
   // meaningless too (a rebuilt group starts at a fresh epoch).
   if (ws.mls.processedEventIds) delete ws.mls.processedEventIds[mlsGroupIdHex]
   if (ws.mls.pendingInvitees) delete ws.mls.pendingInvitees[mlsGroupIdHex]
+  if (ws.mls.joinedMembers) delete ws.mls.joinedMembers[mlsGroupIdHex]
 }
 
 /**
  * Record that a member was invited but has not accepted yet. An MLS Add commit
  * inserts the invitee into the tree immediately, so this set — not tree
  * membership — is what separates "Invited" from "Joined" in Group Info.
+ *
+ * A member who already proved they joined (see MARK_MLS_MEMBER_JOINED) is never
+ * marked again: a stale room.members snapshot or a replayed Add commit must not
+ * push a joined member back to "Invited" with no future message to clear them.
  */
 export function MARK_MLS_INVITEE_PENDING(state, { mlsGroupIdHex, memberPubKey }) {
   const ws = getOrInitWalletState(state)
   if (!ws || !mlsGroupIdHex || !memberPubKey) return
+  if (ws.mls.joinedMembers?.[mlsGroupIdHex]?.[memberPubKey]) return
   if (!ws.mls.pendingInvitees) ws.mls.pendingInvitees = {}
   if (!ws.mls.pendingInvitees[mlsGroupIdHex]) ws.mls.pendingInvitees[mlsGroupIdHex] = {}
   ws.mls.pendingInvitees[mlsGroupIdHex][memberPubKey] = Math.floor(Date.now() / 1000)
 }
 
-/** Clear the pending flag once the invitee has demonstrably joined. */
-export function CLEAR_MLS_INVITEE_PENDING(state, { mlsGroupIdHex, memberPubKey }) {
+/**
+ * Record wire evidence that a member is in the group for real: they decrypted
+ * the epoch (any application message) or announced their join. Clears the
+ * pending flag and makes any later MARK_MLS_INVITEE_PENDING a no-op.
+ */
+export function MARK_MLS_MEMBER_JOINED(state, { mlsGroupIdHex, memberPubKey }) {
   const ws = getOrInitWalletState(state)
   if (!ws || !mlsGroupIdHex || !memberPubKey) return
+  if (!ws.mls.joinedMembers) ws.mls.joinedMembers = {}
+  if (!ws.mls.joinedMembers[mlsGroupIdHex]) ws.mls.joinedMembers[mlsGroupIdHex] = {}
+  ws.mls.joinedMembers[mlsGroupIdHex][memberPubKey] = Math.floor(Date.now() / 1000)
+  const pending = ws.mls.pendingInvitees?.[mlsGroupIdHex]
+  if (!pending) return
+  delete pending[memberPubKey]
+  if (!Object.keys(pending).length) delete ws.mls.pendingInvitees[mlsGroupIdHex]
+}
+
+/**
+ * Drop every invited/joined record for a member who left the tree, so a later
+ * re-add starts from "Invited" instead of inheriting the old proof.
+ */
+export function FORGET_MLS_MEMBER(state, { mlsGroupIdHex, memberPubKey }) {
+  const ws = getOrInitWalletState(state)
+  if (!ws || !mlsGroupIdHex || !memberPubKey) return
+  delete ws.mls.joinedMembers?.[mlsGroupIdHex]?.[memberPubKey]
   const pending = ws.mls.pendingInvitees?.[mlsGroupIdHex]
   if (!pending) return
   delete pending[memberPubKey]

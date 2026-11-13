@@ -130,28 +130,64 @@ export function decodeMlsMsg(bytes) {
   return result[0]
 }
 
-/** Get all member identities from a ClientState. */
+/**
+ * Members in tree order, blank leaves skipped.
+ *
+ * WARNING: the index of an entry in this array is NOT an MLS leaf index. It is
+ * a compacted position, and it diverges from the real leaf address as soon as
+ * any blank leaf precedes the member (i.e. after any Remove that wasn't
+ * backfilled by an Add). Every ratified leaf address — ts-mls `senderData`
+ * leafIndex, Remove proposals, `privatePath.leafIndex` — is a *tree* leaf
+ * index, addressing `ratchetTree[leafIndex * 2]`. Use `getMlsLeafIdentity` /
+ * `getMlsLeafIndexForIdentity` for those; use this only to enumerate members.
+ */
 export function getMlsGroupMembers(state) {
   return getGroupMembers(state)
 }
 
-/** Get own leaf index from a ClientState.
+/** Credential identity (Nostr pubkey) carried by a leaf node. */
+function leafIdentity (leaf) {
+  const identity = leaf?.credential?.identity || leaf?.identityBytes
+  if (!(identity instanceof Uint8Array)) return null
+  return new TextDecoder().decode(identity)
+}
+
+/**
+ * Resolve the identity at a real MLS leaf index (a ratchet-tree leaf address).
+ * `senderData` leafIndex and Remove proposals both use this address space, so
+ * authorization decisions MUST go through this rather than indexing
+ * `getMlsGroupMembers`.
+ * @returns {string|null}
+ */
+export function getMlsLeafIdentity (state, leafIndex) {
+  if (!Number.isInteger(leafIndex) || leafIndex < 0) return null
+  const node = state?.ratchetTree?.[leafIndex * 2]
+  if (node?.nodeType !== 'leaf') return null
+  return leafIdentity(node.leaf)
+}
+
+/**
+ * Real MLS leaf index of the leaf carrying `identity`, or -1.
+ * @returns {number}
+ */
+export function getMlsLeafIndexForIdentity (state, identity) {
+  if (!identity || !state?.ratchetTree) return -1
+  for (let nodeIndex = 0; nodeIndex < state.ratchetTree.length; nodeIndex += 2) {
+    const node = state.ratchetTree[nodeIndex]
+    if (node?.nodeType === 'leaf' && leafIdentity(node.leaf) === identity) {
+      return nodeIndex / 2
+    }
+  }
+  return -1
+}
+
+/** Get own real MLS leaf index from a ClientState.
  * Compares members by credential identity (the Nostr pubkey) — reference
  * equality is not reliable after a state round-trip through IndexedDB, where
  * decodeGroupState may produce distinct objects for the same leaf.
  */
-export function getOwnLeafIndex(state) {
-  const leaf = getOwnLeafNode(state)
-  const leafIdentity = leaf?.credential?.identity
-    ? new TextDecoder().decode(leaf.credential.identity)
-    : null
-  if (!leafIdentity) return -1
-  const members = getGroupMembers(state)
-  for (let i = 0; i < members.length; i++) {
-    const identity = members[i]?.credential?.identity
-      ? new TextDecoder().decode(members[i].credential.identity)
-      : null
-    if (identity && identity === leafIdentity) return i
-  }
-  return -1
+export function getOwnLeafIndex (state) {
+  const identity = leafIdentity(getOwnLeafNode(state))
+  if (!identity) return -1
+  return getMlsLeafIndexForIdentity(state, identity)
 }

@@ -280,7 +280,6 @@
 import { Platform } from 'quasar';
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 import draggable from 'vuedraggable'
-import { isNativeIOS } from 'src/utils/native-platform'
 
 import BetaAppDialog from 'src/components/apps/BetaAppDialog.vue'
 import HeaderNav from '../../components/header-nav'
@@ -542,17 +541,6 @@ export default {
           category: 'trade-defi'
         },
         {
-          id: 'cryptoswap',
-          name: this.$t('CryptoSwap'),
-          description: this.$t('Apps.CryptoSwap.Description', {}, 'Swap your other cryptocurrencies (BTC, ETH, SOL, and others) into BCH.'),
-          iconName: 'mdi-swap-horizontal-bold',
-          path: '/apps/crypto-swap',
-          active: !this.$store.getters['global/isChipnet'],
-          iconStyle: 'font-size: 4.7em',
-          smartBCHOnly: false,
-          category: 'trade-defi'
-        },
-        {
           id: 'anyhedge',
           name: 'AnyHedge',
           description: this.$t('Apps.AnyHedge.Description', {}, 'Create hedges/longs to manage BCH price volatility exposure.'),
@@ -695,9 +683,6 @@ export default {
   computed: {
     darkMode () {
       return this.$store.getters['darkmode/getStatus']
-    },
-    isNativeIOS () {
-      return isNativeIOS()
     },
     dragSupported () {
       return true
@@ -951,11 +936,6 @@ export default {
     },
     updateFilteredApps () {
       this.filteredApps = [...this.apps]
-
-      // Hide Crypto Swap on native iOS (App Store policy / SideShift licensing)
-      if (this.isNativeIOS) {
-        this.filteredApps = this.filteredApps.filter(app => app?.id !== 'cryptoswap')
-      }
 
       // Hide AI Admin app for now
       this.filteredApps = this.filteredApps.filter(app => app?.id !== 'ai-admin')

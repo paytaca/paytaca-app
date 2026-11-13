@@ -147,8 +147,13 @@ export function getOpenedNotificationRoute(context) {
       }
       break;
     default:
-      // P2P exchange (Ramp) pushes carry no type, only an order_id
-      if (Number.isSafeInteger(parseInt(openedNotification?.data?.order_id, 10))) {
+      // P2P exchange (Ramp) pushes carry no type, only an order_id or an ad_id
+      if (Number.isSafeInteger(parseInt(openedNotification?.data?.ad_id, 10))) {
+        route = {
+          name: 'p2p-ads-edit-form',
+          params: { ad: openedNotification.data.ad_id },
+        }
+      } else if (Number.isSafeInteger(parseInt(openedNotification?.data?.order_id, 10))) {
         route = {
           name: 'p2p-order',
           params: { order: openedNotification.data.order_id },

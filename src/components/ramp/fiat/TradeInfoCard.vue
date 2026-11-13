@@ -198,9 +198,14 @@ export default {
       return result
     },
     pricePercentage () {
-      if (!this.marketPrice || !this.ad?.price) return null
-      const diff = ((this.ad.price - this.marketPrice) / this.marketPrice) * 100
-      return diff.toFixed(1)
+      const rawPrice = this.ad?.price
+      const rawMarketPrice = this.marketPrice
+      if (rawPrice === null || rawPrice === undefined || rawPrice === '') return null
+      if (rawMarketPrice === null || rawMarketPrice === undefined || rawMarketPrice === '') return null
+      const price = Number(rawPrice)
+      const marketPrice = Number(rawMarketPrice)
+      if (!Number.isFinite(price) || !Number.isFinite(marketPrice) || marketPrice <= 0) return null
+      return Number((((price - marketPrice) / marketPrice) * 100).toFixed(1))
     },
     isPriceUp () {
       return this.pricePercentage > 0

@@ -46,6 +46,19 @@ const STATUS_MAX_INTERVAL = 60000
 // detected until the user navigates to a different page and back.
 const RESUB_INTERVAL_MS = 30000
 
+// Records a gift-wrap as processed. Returns true when it had already been seen,
+// which makes the live subscription and the on-demand pulls mutually exclusive.
+export function markGiftWrapSeen(eventId) {
+  if (_seenEventIds.has(eventId)) return true
+  _seenEventIds.add(eventId)
+  // Prevent unbounded growth
+  if (_seenEventIds.size > 5000) {
+    const toDelete = Array.from(_seenEventIds).slice(0, _seenEventIds.size - 5000)
+    toDelete.forEach(id => _seenEventIds.delete(id))
+  }
+  return false
+}
+
 function getPool() {
   if (!_pool) {
     _pool = new SimplePool({
@@ -292,13 +305,9 @@ export function subscribeGiftWraps(relays, myPubKey, callbacks = {}, options = {
         try {
           const sub = pool.subscribeMany([relayUrl], filter, {
             onevent(event) {
-              if (_seenEventIds.has(event.id)) return
-              _seenEventIds.add(event.id)
-              // Prevent unbounded growth
-              if (_seenEventIds.size > 5000) {
-                const toDelete = Array.from(_seenEventIds).slice(0, _seenEventIds.size - 5000)
-                toDelete.forEach(id => _seenEventIds.delete(id))
-              }
+              // `fetchLatestGiftWraps` marks what it delivers against the same
+              // set, so a pull-then-subscribe sequence never double-processes.
+              if (markGiftWrapSeen(event.id)) return
               if (callbacks.onEvent) callbacks.onEvent(event)
             },
             onclose(reasons) {
@@ -572,6 +581,52 @@ export async function fetchAvatar(relays, pubKey) {
 }
 
 /**
+ * Fetch several users' published avatars (paytaca:avatar) with a single
+ * subscription instead of one per contact. Used by the chat list's background
+ * refresh so opening the list doesn't fan out N relay queries.
+ * @param {string[]} relays
+ * @param {string[]} pubKeys - Hex pubkeys
+ * @returns {Promise<Object<string, import('nostr-tools').Event>>} pubKey -> newest event
+ */
+export async function fetchAvatars(relays, pubKeys) {
+  const pool = getPool()
+  const result = {}
+  const authors = [...new Set((pubKeys || []).filter(Boolean))]
+  if (!authors.length) return result
+
+  return new Promise((resolve) => {
+    let resolved = false
+    let sub = null
+    let activeRelays = relays.length
+    const finish = () => {
+      if (resolved) return
+      resolved = true
+      clearTimeout(timer)
+      try { sub?.close() } catch { /* already closed */ }
+      resolve(result)
+    }
+    const timer = setTimeout(finish, 8000)
+
+    sub = pool.subscribeMany(
+      relays,
+      { kinds: [30078], authors },
+      {
+        onevent(event) {
+          const dTag = event.tags?.find(t => t[0] === 'd')
+          if (!dTag || dTag[1] !== 'paytaca:avatar') return
+          const prev = result[event.pubkey]
+          if (!prev || event.created_at > prev.created_at) result[event.pubkey] = event
+        },
+        oneose() {
+          activeRelays--
+          if (activeRelays <= 0) finish()
+        },
+      }
+    )
+  })
+}
+
+/**
  * Query for historical kind:1059 gift-wraps addressed to our pubkey.
  * This catches messages that were published before our subscription was active.
  * @param {string[]} relays
@@ -596,13 +651,71 @@ export async function fetchHistoricalGiftWraps(relays, myPubKey, callbacks = {})
     for (const event of events) {
       // Dedup against the real-time subscription's seen set so we don't
       // process the same event twice (once here, once via onevent).
-      if (_seenEventIds.has(event.id)) continue
-      _seenEventIds.add(event.id)
+      if (markGiftWrapSeen(event.id)) continue
       if (callbacks.onEvent) callbacks.onEvent(event)
     }
   } catch (err) {
     console.warn('[Nostr] Failed to fetch historical gift-wraps:', err)
   }
+}
+
+/**
+ * Query the newest kind:1059 gift-wraps addressed to us and hand each one to
+ * `onEvent` before resolving. Unlike fetchHistoricalGiftWraps this is meant to
+ * run on the latency-critical path (a push notification or app resume), so it
+ * resolves only after every event has been delivered and reports whether a
+ * watchdog cancelled it.
+ * @param {string[]} relays
+ * @param {string} myPubKey - Hex pubkey
+ * @param {{ onEvent(event): Promise<void>|void }} callbacks
+ * @param {{ limit?: number, timeoutMs?: number }} options
+ * @returns {Promise<{ cancelled: boolean, eventCount: number }>}
+ */
+export async function fetchLatestGiftWraps(relays, myPubKey, callbacks = {}, options = {}) {
+  const pool = getPool()
+  const limit = options.limit || 20
+  const timeoutMs = options.timeoutMs || 10000
+
+  // Replay the same event for every filter: relays index `#p` and `authors`
+  // separately, so the union covers received and self-wrapped sent messages.
+  const unique = new Map()
+  const collect = list => {
+    for (const event of (list || [])) {
+      if (!unique.has(event.id)) unique.set(event.id, event)
+    }
+  }
+
+  let timer = null
+  const cancelled = await Promise.race([
+    Promise.allSettled([
+      pool.querySync(relays, { kinds: [1059], '#p': [myPubKey], limit }),
+      pool.querySync(relays, { kinds: [1059], authors: [myPubKey], limit }),
+    ]).then(results => {
+      results.forEach(result => {
+        if (result.status === 'fulfilled') collect(result.value)
+      })
+      return false
+    }),
+    new Promise(resolve => {
+      timer = setTimeout(() => resolve(true), timeoutMs)
+    }),
+  ])
+  clearTimeout(timer)
+
+  let eventCount = 0
+  for (const event of unique.values()) {
+    // Mark before delivery so a live delivery racing with this pull is dropped
+    // by `onevent` instead of being processed twice.
+    if (markGiftWrapSeen(event.id)) continue
+    eventCount++
+    try {
+      if (callbacks.onEvent) await callbacks.onEvent(event)
+    } catch (err) {
+      console.warn('[Nostr] Failed to handle latest gift-wrap:', err)
+    }
+  }
+
+  return { cancelled, eventCount }
 }
 
 /**

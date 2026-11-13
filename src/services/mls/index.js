@@ -12,6 +12,8 @@ export {
   decodeMlsMsg,
   getMlsGroupMembers,
   getOwnLeafIndex,
+  getMlsLeafIdentity,
+  getMlsLeafIndexForIdentity,
 } from './group.js'
 export {
   encryptMlsMessage,
