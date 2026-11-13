@@ -286,4 +286,5 @@ export default {
   PaidUsingMethod: "Pagado usando {method}",
   PayForLIFT: "Pagar por LIFT",
   PaytacaWebsiteDescription: "Visita {paytacaWebsite}",
+  ViewOnCauldron: "Ver en Cauldron",
 }

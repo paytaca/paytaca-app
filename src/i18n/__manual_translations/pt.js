@@ -184,4 +184,5 @@ export default {
   UnpaidLift: "LIFT não pago",
   WhatIsLIFT: "O que é LIFT?",
   PurchaseLift: "Comprar LIFT",
+  ViewOnCauldron: "Ver no Cauldron",
 }

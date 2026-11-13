@@ -215,4 +215,5 @@ export default {
   Devicesuspended: "Gerät gesperrt",
   LegacyAddressWarning: "Sie haben ein Legacy-Adresse eingefügt. Bitte stellen Sie sicher, dass es sich um ein <span class=\"highlighted-word\">BCH-Deposit-Adresse</span> handelt, nicht um eine BTC-Deposit-Adresse.",
   BitcoinCash: "Bitcoin Cash",
+  ViewOnCauldron: "Auf Cauldron ansehen",
 }

@@ -183,5 +183,5 @@ export default {
   PayForLIFT: "LIFT料金を支払う",
   FollowUsOn: "{platform} でフォローしてください",
   PaytacaWebsiteDescription: "{paytacaWebsite} にアクセスしてください",
-  
+  ViewOnCauldron: "Cauldronで表示",
 }

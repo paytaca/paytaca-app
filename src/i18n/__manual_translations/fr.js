@@ -183,4 +183,5 @@ export default {
   WebsiteDescription: "Visitez le {website}",
   PayForLIFT: "Payer pour LIFT",
   PaytacaWebsiteDescription: "Visitez le {paytacaWebsite}",
+  ViewOnCauldron: "Voir sur Cauldron",
 }

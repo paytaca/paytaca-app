@@ -203,4 +203,5 @@ export default {
   BuyBCH: '购买比特币现金',
   SellBCH: '出售比特币现金',
   ReleaseBCH: '释放比特币现金',
+  ViewOnCauldron: "在 Cauldron 上查看",
 }
