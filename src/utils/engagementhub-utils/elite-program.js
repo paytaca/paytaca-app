@@ -223,24 +223,30 @@ export async function getEliteProgramMonthlyStats (id) {
 
 const ELITE_ELIGIBILITY_RETRY_DELAYS_MS = [2000, 5000, 10000, 20000]
 
+const sleep = ms => new Promise(resolve => setTimeout(resolve, ms))
+
+async function postEligibilityClaim (data) {
+  const response = await ELITEPROGRAM_URL.post(
+    'process_eligibility/',
+    data,
+    {
+      headers: { 'X-Elite-Program-Key': process.env.ELITE_PROGRAM_API_KEY },
+      // The claim names a spend Watchtower may not have indexed yet, and a
+      // retry can outlive the screen that started it. Route changes call
+      // requestManager.abortAll(), which would otherwise cancel it.
+      skipAbortManager: true
+    }
+  )
+  return response.data
+}
+
 export async function processEliteEligibility (
   data,
   retryDelaysMs = ELITE_ELIGIBILITY_RETRY_DELAYS_MS
 ) {
-  for (let attempt = 0; ; attempt++) {
+  const attempt = async index => {
     try {
-      const response = await ELITEPROGRAM_URL.post(
-        'process_eligibility/',
-        data,
-        {
-          headers: { 'X-Elite-Program-Key': process.env.ELITE_PROGRAM_API_KEY },
-          // The claim names a spend Watchtower may not have indexed yet, and a
-          // retry can outlive the screen that started it. Route changes call
-          // requestManager.abortAll(), which would otherwise cancel it.
-          skipAbortManager: true
-        }
-      )
-      return response.data
+      return await postEligibilityClaim(data)
     } catch (error) {
       const status = error?.response?.status
       // A previous attempt (or another caller) already earned this cashback.
@@ -248,7 +254,7 @@ export async function processEliteEligibility (
 
       const retryable = (
         status === undefined || status === 503
-      ) && attempt < retryDelaysMs.length
+      ) && index < retryDelaysMs.length
       if (!retryable) {
         // 403 and 404 are expected final answers: an inactive Program or a
         // recipient that is not a verified merchant.
@@ -262,9 +268,12 @@ export async function processEliteEligibility (
         return null
       }
 
-      await new Promise(resolve => setTimeout(resolve, retryDelaysMs[attempt]))
+      await sleep(retryDelaysMs[index])
+      return attempt(index + 1)
     }
   }
+
+  return attempt(0)
 }
 
 // ================================
