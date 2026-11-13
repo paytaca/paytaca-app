@@ -77,7 +77,7 @@
                 @selectstart.prevent
               />
             </q-avatar>
-            <div class="amount-label-ss" v-bch-amount="{ denomination: displayDenomination }">{{ displayAmountText }}</div>
+            <div class="amount-label-ss" :class="amountLabelSizeClass" v-bch-amount="{ denomination: displayDenomination }">{{ displayAmountText }}</div>
           </div>
           <div v-if="!isNft && displayFiatAmount !== null && displayFiatAmount !== undefined" class="amount-fiat-label-ss row items-center justify-center">
             <span>{{ parseFiatCurrency(displayFiatAmount, selectedMarketCurrency) }}</span>
@@ -580,6 +580,12 @@ export default {
       }
       
       return `${parseAssetDenomination(this.displayDenomination, { ...this.tx.asset, balance: Math.abs(Number(this.tx.amount)) })}`
+    },
+    amountLabelSizeClass () {
+      const length = (this.displayAmountText || '').length
+      if (length >= 32) return 'is-xxlong'
+      if (length >= 20) return 'is-long'
+      return ''
     },
     hasHistoricalPrice () {
       if (!this.tx) return false
@@ -2815,7 +2821,27 @@ export default {
   height: 100%;
 }
 .amount-primary { font-size: 20px; }
-.amount-label-ss { font-size: 28px; font-weight: 600; margin-top: -4px; margin-bottom: 4px; }
+.amount-label-ss {
+  font-size: 28px;
+  font-weight: 600;
+  margin-top: -4px;
+  margin-bottom: 4px;
+  line-height: 1.15;
+  display: inline-block;
+  min-width: 0;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+  text-wrap: balance;
+}
+.amount-label-ss.is-long {
+  font-size: 22px;
+  line-height: 1.2;
+}
+.amount-label-ss.is-xxlong {
+  font-size: 18px;
+  line-height: 1.25;
+  letter-spacing: 0;
+}
 .amount-fiat-label-ss { font-size: 20px; opacity: 0.85; margin-top: 0; }
 .info-icon-clickable {
   padding: 4px;
@@ -2841,10 +2867,9 @@ export default {
 }
 .amount-big { font-size: 30px; }
 .amount-secondary { font-size: 13px; opacity: 0.9; }
-.amount-row-ss { align-items: center !important; }
-.amount-avatar-ss { margin-top: -10px; }
+.amount-row-ss { align-items: center !important; row-gap: 8px; }
+.amount-avatar-ss { margin-top: -10px; flex-shrink: 0; }
 .amount-avatar-ss img { display: block; }
-.amount-label-ss { line-height: 1; display: inline-block; }
 .meta { margin-top: 8px; text-align: center; }
 .meta-row { display: flex; flex-direction: column; align-items: center; gap: 6px; padding: 8px 0; }
 .meta-label { opacity: 0.8; font-size: 12px; }
