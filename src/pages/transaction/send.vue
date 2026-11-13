@@ -570,6 +570,7 @@ import { hexToRef } from 'src/utils/reference-id-utils'
 import { MultiCauldronPoolTracker } from 'src/wallet/cauldron/pool-tracker'
 import { executeSendWithCauldron, prepareSendWithCauldron, CauldronSendError, calculateMaxSpendableForCauldron, TradePrepErrorCode } from 'src/wallet/cauldron/send'
 import { debounce } from 'quasar'
+import { processEliteEligibility, EliteTxType } from 'src/utils/engagementhub-utils/elite-program'
 
 const erc721IdRegexp = /erc721\/(0x[0-9a-f]{40}):(\d+)/i
 const SEND_SUCCESS_PENDING_KEY = 'paytaca-send-success-pending'
@@ -2819,6 +2820,37 @@ export default {
       this.saveSendSuccessPending()
     },
 
+    claimEliteEligibility (txid) {
+      if (!txid || this.assetId !== 'bch' || this.isNFT) return
+
+      const merchantIndex = this.inputExtras.findIndex(extra => extra?.merchantData)
+      const index = merchantIndex >= 0
+        ? merchantIndex
+        : (this.recipients.length === 1 ? 0 : -1)
+      if (index < 0) return
+
+      const recipient = this.recipients[index]
+      const bchSpent = Number(recipient?.amount)
+      const customerAddress = sendPageUtils.getWallet('bch')?.lastAddress
+      if (
+        !customerAddress ||
+        !recipient?.recipientAddress ||
+        !Number.isFinite(bchSpent) ||
+        bchSpent <= 0
+      ) return
+
+      processEliteEligibility({
+        type: EliteTxType.OTC,
+        customer_address: customerAddress,
+        merchant_address: recipient.recipientAddress,
+        bch_spent: bchSpent,
+        ref_id: hexToRef(txid.substring(0, 6)),
+        tx_id: txid
+      }).catch(error => {
+        console.warn('[Send] Elite eligibility API failed:', error)
+      })
+    },
+
     async submitPromiseResponseHandler (result, walletType) {
       const vm = this
 
@@ -2834,6 +2866,8 @@ export default {
         } else if (isConsolidation) {
           vm.showSendSuccess()
         } else {
+          vm.claimEliteEligibility(result.txid)
+
           // Redirect to transaction detail with state so it can show tx before watchtower indexes
           try {
             const { route, query, state } = vm.buildTransactionDetailState(result.txid, { timestamp: vm.txTimestamp })

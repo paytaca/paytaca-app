@@ -221,6 +221,52 @@ export async function getEliteProgramMonthlyStats (id) {
     })
 }
 
+const ELITE_ELIGIBILITY_RETRY_DELAYS_MS = [2000, 5000, 10000, 20000]
+
+export async function processEliteEligibility (
+  data,
+  retryDelaysMs = ELITE_ELIGIBILITY_RETRY_DELAYS_MS
+) {
+  for (let attempt = 0; ; attempt++) {
+    try {
+      const response = await ELITEPROGRAM_URL.post(
+        'process_eligibility/',
+        data,
+        {
+          headers: { 'X-Elite-Program-Key': process.env.ELITE_PROGRAM_API_KEY },
+          // The claim names a spend Watchtower may not have indexed yet, and a
+          // retry can outlive the screen that started it. Route changes call
+          // requestManager.abortAll(), which would otherwise cancel it.
+          skipAbortManager: true
+        }
+      )
+      return response.data
+    } catch (error) {
+      const status = error?.response?.status
+      // A previous attempt (or another caller) already earned this cashback.
+      if (status === 409) return null
+
+      const retryable = (
+        status === undefined || status === 503
+      ) && attempt < retryDelaysMs.length
+      if (!retryable) {
+        // 403 and 404 are expected final answers: an inactive Program or a
+        // recipient that is not a verified merchant.
+        if (status !== 403 && status !== 404) {
+          console.warn(
+            '[Elite] eligibility request failed' +
+            (status ? ` (${status})` : '') + ':',
+            error?.response?.data || error?.message
+          )
+        }
+        return null
+      }
+
+      await new Promise(resolve => setTimeout(resolve, retryDelaysMs[attempt]))
+    }
+  }
+}
+
 // ================================
 // enrollment requirements
 // ================================
