@@ -218,4 +218,5 @@ export default {
   BuyBCH: '購買比特幣現金',
   SellBCH: '出售比特幣現金',
   ReleaseBCH: '釋放比特幣現金',
+  ViewOnCauldron: "在 Cauldron 上檢視",
 }

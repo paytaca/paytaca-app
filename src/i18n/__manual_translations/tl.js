@@ -179,4 +179,5 @@ export default {
   Devicesuspended: "Na-suspend ang device",
   LegacyAddressWarning: "Isang legacy address ang iyong nai-paste. Mangyaring siguraduhing ito ay isang <span class=\"highlighted-word\">BCH deposit address</span>, hindi isang BTC deposit address.",
   LiftTokenLockupInfo: "Ang iyong biniling LIFT token ay mai-lock sa isang smart contract na awtomatikong mag-a-unlock batay sa iskedyul ng vesting ng round na binilhan mo.",
+  ViewOnCauldron: "Tingnan sa Cauldron",
 }

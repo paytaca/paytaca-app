@@ -184,4 +184,5 @@ export default {
   InvalidHedgeSatoshis: "satoshis shinge mara inganci, {amount}",
   PostAd: "POST {type} AD",
   ResolvedDate: "An warware {date}",
+  ViewOnCauldron: "Duba akan Cauldron",
 }

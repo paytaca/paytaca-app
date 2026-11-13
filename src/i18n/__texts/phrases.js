@@ -2407,6 +2407,12 @@ const phrases = {
       CreateAPIKeyDescription: 'Create an API key to use Paytaca AI <br> in any coding agent.',
       CreateSessionDescription: 'Purchase a session to use Paytaca AI <br> models in any coding agent.',
       DescribeImagePlaceholder: 'Describe the image you want to generate...'
+    },
+    // Quick actions, address book, cauldron
+    {
+      QuickActions: 'Quick Actions',
+      AddToAddressBook: 'Add to Address Book',
+      ViewOnCauldron: 'View on Cauldron'
     }
   ],
   dynamic: [

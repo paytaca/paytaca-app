@@ -200,4 +200,5 @@ export default {
   FollowUsOn: "Следуйте за нами на {platform}",
   MultisigWalletLimitReached: "Вы достигли лимита {free} кошельков с мультиподписью.Обновитесь до Paytaca Plus, чтобы создать больше кошельков с мультиподписью.",
   WalletLimitReached: "Вы достигли лимита {free} кошельков.Обновите Paytaca Plus, чтобы создать больше кошельков.",
+  ViewOnCauldron: "Посмотреть на Cauldron",
 }
