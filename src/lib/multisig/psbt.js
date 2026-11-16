@@ -1327,20 +1327,19 @@ export class Psbt {
     if (this.globalMap.getUnsignedTx()) {
       return this.globalMap.getUnsignedTx()
     }
-    const tx = {}
+    const tx = { inputs: [], outputs: [] }
     tx.version = this.globalMap.getTxVersion()
     tx.locktime = this.globalMap.getFallbackLocktime()
-    for(const psbtInput of this.inputMap?.inputs) {
+    for(const psbtInput of this.inputMap?.inputs || []) {
       tx.inputs.push({
         outpointIndex: psbtInput.getOutpointIndex(),
         outpointTransactionHash: psbtInput.getOutpointTransactionHash(),
         sequenceNumber: psbtInput.getSequenceNumber(),
-        sourceOutput: psbtInput.getSourceUtxo(),
         unlockingBytecode: []
       })
     }
 
-    for(const psbtOutput of this.outputMap?.outputs) {
+    for(const psbtOutput of this.outputMap?.outputs || []) {
       const o = {
         valueSatoshis: psbtOutput.getAmount()
       }
@@ -1352,15 +1351,9 @@ export class Psbt {
     }
     const unsignedTx = new MultisigTransactionBuilder()
 
-    const unsignedInputs = tx.inputs.map(input => {
-       return {
-          ...input,
-          unlockingBytecode: []
-       }
-    })
     unsignedTx.setVersion(tx.version)
     unsignedTx.setLocktime(tx.locktime)
-    unsignedTx.addInputs(unsignedInputs)
+    unsignedTx.addInputs(tx.inputs)
     unsignedTx.addOutputs(tx.outputs)
     return hexToBin(unsignedTx.build())
   }

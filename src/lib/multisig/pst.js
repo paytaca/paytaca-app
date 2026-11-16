@@ -747,6 +747,8 @@ export class Pst {
     return (new MultisigTransactionBuilder())
       .addInputs(inputs)
       .addOutputs(this.outputs)
+      .setVersion(this.version)
+      .setLocktime(this.locktime)
       .build()
   }
 
