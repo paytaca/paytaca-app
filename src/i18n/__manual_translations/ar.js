@@ -259,4 +259,5 @@ export default {
   UnclaimedGiftsLimitReached: "لقد وصلت إلى الحد الأقصى لعدد الهدايا {free} التي لم تتم المطالبة بها.قم بالترقية إلى Paytaca Plus لإنشاء المزيد من الهدايا.",
   WalletLimitReached: "لقد وصلت إلى الحد الأقصى لعدد المحافظ {free}.قم بالترقية إلى Paytaca Plus لإنشاء المزيد من المحافظ.",
   ViewOnCauldron: "عرض على Cauldron",
+  PinAction: "تثبيت",
 }

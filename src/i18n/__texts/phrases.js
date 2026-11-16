@@ -2413,6 +2413,15 @@ const phrases = {
       QuickActions: 'Quick Actions',
       AddToAddressBook: 'Add to Address Book',
       ViewOnCauldron: 'View on Cauldron'
+    },
+    // App pinning
+    {
+      DropToUnpin: 'Drop here to unpin',
+      NoAppsFound: 'No apps found',
+      // "Pin" is already taken by the Personal Identification Number, so the
+      // pin action uses its own key with the same English label.
+      PinAction: 'Pin',
+      Unpin: 'Unpin'
     }
   ],
   dynamic: [

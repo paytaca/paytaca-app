@@ -198,4 +198,5 @@ export default {
   UnclaimedGiftsLimitReached: "받지 않은 선물 한도인 {free}개에 도달했습니다.더 많은 선물을 만들려면 Paytaca Plus로 업그레이드하세요.",
   WalletLimitReached: "{free} 지갑 한도에 도달했습니다.더 많은 지갑을 생성하려면 Paytaca Plus로 업그레이드하세요.",
   ViewOnCauldron: "Cauldron에서 보기",
+  PinAction: "고정",
 }

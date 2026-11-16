@@ -184,4 +184,5 @@ export default {
   PayForLIFT: "Payer pour LIFT",
   PaytacaWebsiteDescription: "Visitez le {paytacaWebsite}",
   ViewOnCauldron: "Voir sur Cauldron",
+  PinAction: "Épingler",
 }

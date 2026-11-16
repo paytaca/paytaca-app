@@ -185,4 +185,6 @@ export default {
   WhatIsLIFT: "O que é LIFT?",
   PurchaseLift: "Comprar LIFT",
   ViewOnCauldron: "Ver no Cauldron",
+  Unpin: "Desafixar",
+  DropToUnpin: "Solte aqui para desafixar",
 }

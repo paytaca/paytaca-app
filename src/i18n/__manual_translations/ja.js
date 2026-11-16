@@ -184,4 +184,6 @@ export default {
   FollowUsOn: "{platform} でフォローしてください",
   PaytacaWebsiteDescription: "{paytacaWebsite} にアクセスしてください",
   ViewOnCauldron: "Cauldronで表示",
+  PinAction: "固定",
+  Unpin: "固定を解除",
 }
