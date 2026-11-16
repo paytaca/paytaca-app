@@ -3,12 +3,22 @@
     <header-nav
       class="apps-header"
       :title="'Paytaca Elite'"
-    />
+    >
+      <template #top-right-menu v-if="!isLoading">
+        <q-btn
+          round
+          class="button"
+          icon="question_mark"
+          size="sm"
+          @click="isHelpActive = true"
+        />
+      </template>
+    </header-nav>
 
     <div class="q-px-md q-pt-md">
       <!-- Hero Section: Cashback Summary -->
       <q-card
-        class="q-mb-md hero-card"
+        class="q-mb-md hero-card card-help-highlight"
         :class="[getDarkModeClass(darkMode), { loaded: heroLoaded, 'on-hold': isOnHold }]"
         flat
       >
@@ -101,7 +111,7 @@
               </div>
 
               <q-btn
-                class="full-width q-mt-sm elite-map-button"
+                class="full-width q-mt-sm elite-map-button card-help-highlight"
                 size="sm"
                 outline
                 no-caps
@@ -117,7 +127,7 @@
 
       <q-card
         v-if="!pointsError && !isOnHold"
-        class="q-mb-md balance-thresholds-card"
+        class="q-mb-md balance-thresholds-card card-help-highlight"
         :class="getDarkModeClass(darkMode)"
         flat
       >
@@ -210,7 +220,7 @@
 
       <div v-if="!isOnHold" class="elite-map-cta q-mb-md">
         <q-btn
-          class="full-width elite-map-button elite-map-button--halo"
+          class="full-width elite-map-button elite-map-button--halo card-help-highlight"
           outline
           no-caps
           rounded
@@ -246,89 +256,95 @@
 
       <template v-else-if="!isOnHold">
         <!-- Eligible Transactions Section -->
-        <div class="section-head q-mb-sm">
-          <div class="row items-center no-wrap">
-            <div class="section-icon">
-              <q-icon name="storefront" />
-            </div>
-            <div class="column">
-              <span class="section-title">Eligible Transactions</span>
-              <q-skeleton
-                v-if="isLoading"
-                type="text"
-                width="64px"
-                height="10px"
-                class="q-mt-xs"
-              />
-              <span v-else-if="!pointsError" class="section-count q-mt-xs">
-                {{ eliteData.eligibleTxCount }} this month
-              </span>
-            </div>
-          </div>
-          <q-btn
-            v-if="!isLoading"
-            flat
-            class="view-all-button q-pr-none"
-            :class="getDarkModeClass(darkMode)"
-            size="sm"
-            icon-right="chevron_right"
-            label="View All"
-            @click="$router.push(`/apps/rewards/elite-history/${this.eliteId}/transactions`)"
-          />
-        </div>
-        <elite-list
-          type="transactions"
-          :items="transactions"
-          :loading="isLoading"
-          :dark-mode="darkMode"
-          :currency="displayCurrency"
-          month-only
-          @refresh="refreshData"
-        />
+        <div class="card-help-highlight">
+           <div class="section-head q-mb-sm">
+             <div class="row items-center no-wrap">
+               <div class="section-icon">
+                 <q-icon name="storefront" />
+               </div>
+               <div class="column">
+                 <span class="section-title">Eligible Transactions</span>
+                 <q-skeleton
+                   v-if="isLoading"
+                   type="text"
+                   width="64px"
+                   height="10px"
+                   class="q-mt-xs"
+                 />
+                 <span v-else-if="!pointsError" class="section-count q-mt-xs">
+                   {{ eliteData.eligibleTxCount }} this month
+                 </span>
+               </div>
+             </div>
+             <q-btn
+               v-if="!isLoading"
+               flat
+               class="view-all-button q-pr-none"
+               :class="getDarkModeClass(darkMode)"
+               size="sm"
+               icon-right="chevron_right"
+               label="View All"
+               @click="$router.push(`/apps/rewards/elite-history/${this.eliteId}/transactions`)"
+             />
+           </div>
+           <elite-list
+             type="transactions"
+             :items="transactions"
+             :loading="isLoading"
+             :dark-mode="darkMode"
+             :currency="displayCurrency"
+             month-only
+             @refresh="refreshData"
+           />
+         </div>
 
         <!-- Top-ups Section -->
-        <div class="section-head q-mb-sm q-mt-lg">
-          <div class="row items-center no-wrap">
-            <div class="section-icon">
-              <q-icon name="arrow_upward" />
+        <div class="card-help-highlight">
+          <div class="section-head q-mb-sm q-mt-lg">
+            <div class="row items-center no-wrap">
+              <div class="section-icon">
+                <q-icon name="arrow_upward" />
+              </div>
+              <div class="column">
+                <span class="section-title">Top-ups</span>
+                <q-skeleton
+                  v-if="isLoading"
+                  type="text"
+                  width="64px"
+                  height="10px"
+                  class="q-mt-xs"
+                />
+                <span v-else-if="!pointsError" class="section-count q-mt-xs">
+                  {{ eliteData.topupCount }} this month
+                </span>
+              </div>
             </div>
-            <div class="column">
-              <span class="section-title">Top-ups</span>
-              <q-skeleton
-                v-if="isLoading"
-                type="text"
-                width="64px"
-                height="10px"
-                class="q-mt-xs"
-              />
-              <span v-else-if="!pointsError" class="section-count q-mt-xs">
-                {{ eliteData.topupCount }} this month
-              </span>
-            </div>
+            <q-btn
+              v-if="!isLoading"
+              flat
+              class="view-all-button q-pr-none"
+              :class="getDarkModeClass(darkMode)"
+              size="sm"
+              icon-right="chevron_right"
+              label="View All"
+              @click="$router.push(`/apps/rewards/elite-history/${this.eliteId}/topups`)"
+            />
           </div>
-          <q-btn
-            v-if="!isLoading"
-            flat
-            class="view-all-button q-pr-none"
-            :class="getDarkModeClass(darkMode)"
-            size="sm"
-            icon-right="chevron_right"
-            label="View All"
-            @click="$router.push(`/apps/rewards/elite-history/${this.eliteId}/topups`)"
+          <elite-list
+            type="topups"
+            :items="topups"
+            :loading="isLoading"
+            :dark-mode="darkMode"
+            :currency="displayCurrency"
+            month-only
+            @refresh="refreshData"
           />
         </div>
-        <elite-list
-          type="topups"
-          :items="topups"
-          :loading="isLoading"
-          :dark-mode="darkMode"
-          :currency="displayCurrency"
-          month-only
-          @refresh="refreshData"
-        />
       </template>
     </div>
   </div>
+
+  <help-card v-model="isHelpActive" :page="'elite'" />
 </template>
 
 <script>
@@ -348,6 +364,7 @@ import {
 } from 'src/utils/engagementhub-utils/elite-program'
 
 import HeaderNav from 'src/components/header-nav.vue'
+import HelpCard from 'src/components/rewards/cards/HelpCard.vue'
 import ErrorCard from 'src/components/rewards/cards/ErrorCard.vue'
 import EliteList from 'src/components/rewards/transactions/EliteList.vue'
 import EliteMonthlyHistoryDialog from 'src/components/rewards/dialogs/EliteMonthlyHistoryDialog.vue'
@@ -357,6 +374,7 @@ export default {
 
   components: {
     HeaderNav,
+    HelpCard,
     ErrorCard,
     EliteList
   },
@@ -364,6 +382,7 @@ export default {
   data () {
     return {
       isLoading: false,
+      isHelpActive: false,
       pointsError: '',
       dataError: '',
       EliteStatus,
