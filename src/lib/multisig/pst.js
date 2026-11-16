@@ -284,7 +284,6 @@ import {
   encodeTransactionBch
 } from 'bitauth-libauth-v3'
 
-import { MultisigWallet } from './wallet.js'
 import { createTemplate, getCompiler } from './template.js'
 import { sortPublicKeysBip67, derivePublicKey } from './wallet-keys.js'
 import { 
@@ -576,10 +575,10 @@ export const getSigningProgress = (pst) => {
     }
   }
 
-  const [firstInputIndex, firstInputProgress] = Object.entries(inputSignatures)[0]
+  const [, firstInputProgress] = Object.entries(inputSignatures)[0]
 
   const everyInputHasSameSignatureCount = Object.entries(inputSignatures).every(entry => {
-    const [inputIndex, progress] = entry
+    const [, progress] = entry
     return firstInputProgress.signatureCount === progress.signatureCount
   })
 
@@ -747,6 +746,8 @@ export class Pst {
     return (new MultisigTransactionBuilder())
       .addInputs(inputs)
       .addOutputs(this.outputs)
+      .setVersion(this.version)
+      .setLocktime(this.locktime)
       .build()
   }
 
@@ -1318,7 +1319,7 @@ export class Pst {
         try {
           this.mergeSignerSignatures(signatures)
           await this.save()
-        } catch (error) {
+        } catch {
           // Intentional Silent Failure
           // Ignore Signatures That Fail Verification
         }

@@ -190,6 +190,7 @@ export class MultisigTransactionBuilder {
 
   setVersion(version) {
     this.version = version
+    return this
   }
   
   setLocktime (locktime) {

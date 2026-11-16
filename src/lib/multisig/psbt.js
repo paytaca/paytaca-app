@@ -1,4 +1,4 @@
-import { numberToBinInt32LE, bigIntToBinUint64LE, base64ToBin, bigIntToCompactUint, binsAreEqual, binToBase64, binToBigIntUint64LE, binToBigIntUintLE, binToHex, binToNumberInt32LE, binToNumberUint32LE, binToUtf8, compactUintToBigInt, decodeHdPublicKey, decodeTransaction, decodeTransactionBch, encodeHdPublicKey, encodeHdPublicKeyPayload, encodeTokenPrefix, encodeTransactionOutput, hexToBin, isBase64, isHex, numberToBinUint32LE, readBytes, readCompactUint, readMultiple, readRemainingBytes, readTokenPrefix, readTransactionOutput, sortObjectKeys, utf8ToBin, hashTransaction, decodeTransactionCommon, stringify } from "bitauth-libauth-v3"
+import { numberToBinInt32LE, bigIntToBinUint64LE, base64ToBin, bigIntToCompactUint, binsAreEqual, binToBase64, binToBigIntUint64LE, binToBigIntUintLE, binToHex, binToNumberInt32LE, binToNumberUint32LE, binToUtf8, compactUintToBigInt, decodeHdPublicKey, decodeTransaction, decodeTransactionBch, encodeHdPublicKey, encodeHdPublicKeyPayload, encodeTokenPrefix, hexToBin, isBase64, isHex, numberToBinUint32LE, readBytes, readCompactUint, readRemainingBytes, readTokenPrefix, sortObjectKeys, utf8ToBin, hashTransaction, decodeTransactionCommon } from "bitauth-libauth-v3"
 import { bip32DecodeDerivationPath, bip32EncodeDerivationPath, decodeHdPublicKeyPayload, verifyTransactionInputSignature } from "./utils.js"
 import { MultisigTransactionBuilder } from "./transaction-builder.js"
 export const PSBT_MAGIC = '70736274ff'
@@ -18,51 +18,28 @@ const PSBT_GLOBAL_PROPRIETARY= 'fc'         // Custom (proprietary) key-value pa
 
   // ---------- Input map ----------
 const PSBT_IN_NON_WITNESS_UTXO= '00'        // Full previous transaction
-const PSBT_IN_WITNESS_UTXO= '01'            // Output being spent
 const PSBT_IN_PARTIAL_SIG= '02'             // Partial signature
 const PSBT_IN_SIGHASH_TYPE= '03'            // Sighash type (uint32)
 const PSBT_IN_REDEEM_SCRIPT= '04'           // Redeem script (for P2SH)
-const PSBT_IN_WITNESS_SCRIPT= '05'          // Witness script (for P2WSH)
 
 const PSBT_IN_BIP32_DERIVATION= '06'        // Derivation path data
 const PSBT_IN_FINAL_SCRIPTSIG= '07'         // Final scriptSig
-const PSBT_IN_FINAL_SCRIPTWITNESS= '08'     // Final scriptWitness
-const PSBT_IN_POR_COMMITMENT= '09'          // Proof of reserves commitment
-const PSBT_IN_RIPEMD160= '0a'
-const PSBT_IN_SHA256= '0b'
-const PSBT_IN_HASH160= '0c'
-const PSBT_IN_HASH256= '0d'
 const PSBT_IN_PREVIOUS_TXID= '0e'
 const PSBT_IN_OUTPUT_INDEX= '0f'
 const PSBT_IN_SEQUENCE= '10'
 const PSBT_IN_REQUIRED_TIME_LOCKTIME= '11'
 const PSBT_IN_REQUIRED_HEIGHT_LOCKTIME= '12'
-const PSBT_IN_TAP_KEY_SIG= '13'             // Taproot key path signature (BIP 371)
-const PSBT_IN_TAP_SCRIPT_SIG= '14'          // Taproot script path signatures
-const PSBT_IN_TAP_LEAF_SCRIPT= '15'         // Taproot leaf scripts
-const PSBT_IN_TAP_BIP32_DERIVATION= '16'    // Taproot BIP32 derivation
-const PSBT_IN_TAP_INTERNAL_KEY= '17'        // Taproot internal key
-const PSBT_IN_TAP_MERKLE_ROOT= '18'         // Taproot merkle root
-const PSBT_IN_MUSIG2_PARTICIPANT_PUBKEYS= '1a'
-const PSBT_IN_MUSIG2_PUB_NONCE= '1b'
-const PSBT_IN_MUSIG2_PARTIAL_SIG= '1c'
 const PSBT_IN_SP_ECDH_SHARE= '1d'
 const PSBT_IN_SP_DLEQ = '1e'
 const PSBT_IN_PROPRIETARY= 'fc'             // Custom (proprietary) key-value pair
 
   // ---------- Output map ----------
 const PSBT_OUT_REDEEM_SCRIPT= '00'          // Redeem script (for P2SH)
-const PSBT_OUT_WITNESS_SCRIPT= '01'         // Witness script (for P2WSH)
 const PSBT_OUT_BIP32_DERIVATION= '02'       // Derivation path data
 const PSBT_OUT_AMOUNT= '03'
 const PSBT_OUT_SCRIPT= '04'
-const PSBT_OUT_TAP_INTERNAL_KEY= '05'
-const PSBT_OUT_TAP_TREE= '06'
-const PSBT_OUT_TAP_BIP32_DERIVATION= '07'
-const PSBT_OUT_MUSIG2_PARTICIPANT_PUBKEYS= '08'
 const PSBT_OUT_SP_V0_INFO= '09'
 const PSBT_OUT_SP_V0_LABEL= '0a'
-const PSBT_OUT_DNSSEC_PROOF= '35'
 const PSBT_OUT_CASHTOKEN= '36'               // Version(145) token prefix encoded
 const PSBT_OUT_PROPRIETARY= 'fc'
 
@@ -127,7 +104,7 @@ export class Magic {
     return hexToBin('70736274ff')
   }
 
-  deserialize(serialized) {
+  deserialize() {
 
   }
 }
@@ -533,7 +510,7 @@ export class GlobalMap {
     return this
   }
 
-  setTxModifiable(modifiable) {
+  setTxModifiable() {
 
   }
 
@@ -928,6 +905,7 @@ export class PsbtInput {
         switch(key) {
           case PSBT_IN_PREVIOUS_TXID:
             if (!keypairs[key]) throw new Error(`PSBT_IN_PREVIOUS_TXID missing, required on version: ${psbtVersion}`)
+            break
           case PSBT_IN_OUTPUT_INDEX:
             if (!keypairs[key]) throw new Error(`PSBT_IN_OUTPUT_INDEX missing, required on version: ${psbtVersion}`)
         }
@@ -1327,20 +1305,22 @@ export class Psbt {
     if (this.globalMap.getUnsignedTx()) {
       return this.globalMap.getUnsignedTx()
     }
-    const tx = {}
+    const tx = { inputs: [], outputs: [] }
     tx.version = this.globalMap.getTxVersion()
     tx.locktime = this.globalMap.getFallbackLocktime()
-    for(const psbtInput of this.inputMap?.inputs) {
+    if (tx.version === undefined || tx.locktime === undefined) {
+      throw new Error('PSBT_GLOBAL_TX_VERSION or PSBT_GLOBAL_FALLBACK_LOCKTIME missing, cannot reconstruct the unsigned transaction')
+    }
+    for(const psbtInput of this.inputMap?.inputs || []) {
       tx.inputs.push({
         outpointIndex: psbtInput.getOutpointIndex(),
         outpointTransactionHash: psbtInput.getOutpointTransactionHash(),
         sequenceNumber: psbtInput.getSequenceNumber(),
-        sourceOutput: psbtInput.getSourceUtxo(),
         unlockingBytecode: []
       })
     }
 
-    for(const psbtOutput of this.outputMap?.outputs) {
+    for(const psbtOutput of this.outputMap?.outputs || []) {
       const o = {
         valueSatoshis: psbtOutput.getAmount()
       }
@@ -1352,15 +1332,9 @@ export class Psbt {
     }
     const unsignedTx = new MultisigTransactionBuilder()
 
-    const unsignedInputs = tx.inputs.map(input => {
-       return {
-          ...input,
-          unlockingBytecode: []
-       }
-    })
     unsignedTx.setVersion(tx.version)
     unsignedTx.setLocktime(tx.locktime)
-    unsignedTx.addInputs(unsignedInputs)
+    unsignedTx.addInputs(tx.inputs)
     unsignedTx.addOutputs(tx.outputs)
     return hexToBin(unsignedTx.build())
   }
