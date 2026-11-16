@@ -437,7 +437,7 @@
                 >
                   <div class="quick-action-content">
                     <q-icon name="person_add" size="22px" class="quick-action-icon" />
-                    <div class="quick-action-label">{{ $t('AddToAddressBook', {}, 'Add Contact') }}</div>
+                    <div class="quick-action-label">{{ $t('AddToAddressBook', {}, 'Add to Address Book') }}</div>
                   </div>
                 </q-btn>
               </div>
