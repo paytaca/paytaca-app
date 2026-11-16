@@ -253,10 +253,10 @@ export default {
             needsBoundingRects: true,
             highlightIndex: 3,
             icon: 'workspace_premium',
-            titleKey: 'Paytaca Elite Program',
+            titleKey: 'PaytacaEliteProgram',
             content: [
-              { key: 'The program aims to recognize and incentivize highly engaged Paytaca users by rewarding merchant engagements with LIFT token cashbacks.' },
-              { key: 'To join the program, your wallet must first have the necessary BCH and LIFT balances.' }
+              { key: 'EliteProgramRecognition' },
+              { key: 'EliteProgramJoinHelp' }
             ],
             hasBack: true,
             primaryBtn: 'Done',
@@ -614,10 +614,10 @@ export default {
             id: '1',
             isCentered: true,
             icon: 'celebration',  // Alternative: 'auto_awesome', 'emoji_events', 'card_giftcard'
-            titleKey: 'Welcome to the Paytaca Elite Program',
+            titleKey: 'WelcomeToPaytacaEliteProgram',
             content: [
-              { key: "The Paytaca Elite Program seeks to acknowledge and motivate Paytaca's most active users." },
-              { key: 'Every merchant transaction, whether an over-the-counter purchase or a Marketplace order, earns LIFT token cashback.' }
+              { key: 'EliteProgramIntro' },
+              { key: 'EliteMerchantCashbackHelp' }
             ],
             hasBack: false,
             primaryBtn: 'Next',
@@ -634,9 +634,9 @@ export default {
             needsBoundingRects: true,
             highlightIndex: 0,
             icon: 'analytics',
-            titleKey: 'Elite Program Overview',
+            titleKey: 'EliteProgramOverview',
             content: [
-              { key: 'The overview displays the LIFT cashback you have received, the number of eligible transactions, and your cashback limit. These figures are calculated monthly and reset at the beginning of each month.' },
+              { key: 'EliteOverviewHelp' },
             ],
             hasBack: true,
             primaryBtn: 'Next',
@@ -657,9 +657,9 @@ export default {
             needsBoundingRects: true,
             highlightIndex: 1,
             icon: 'history',
-            titleKey: 'Previous Months History',
+            titleKey: 'PreviousMonthsHistory',
             content: [
-              { key: 'To view your previous monthly details, press the View Monthly History button. This will show your eligible transactions, LIFT cashback received, and the corresponding fiat value for each month.' },
+              { key: 'PreviousMonthsHistoryHelp' },
             ],
             hasBack: true,
             primaryBtn: 'Next',
@@ -680,10 +680,10 @@ export default {
             needsBoundingRects: true,
             highlightIndex: 2,
             icon: 'account_balance_wallet',
-            titleKey: 'Balance Requirements',
+            titleKey: 'BalanceRequirements',
             content: [
-              { key: 'You can see the LIFT and BCH balance needed to maintain the Paytaca Elite Program and the current balances of your wallet.' },
-              { key: 'Balance checks are done every 7 days. If either of your balances falls under the threshold, your status will be paused.' },
+              { key: 'EliteBalanceRequirementsHelp' },
+              { key: 'EliteBalanceCheckHelp' },
             ],
             hasBack: true,
             primaryBtn: 'Next',
@@ -704,9 +704,9 @@ export default {
             needsBoundingRects: true,
             highlightIndex: 3,
             icon: 'map',
-            titleKey: 'Find Paytaca Merchants',
+            titleKey: 'FindPaytacaMerchants',
             content: [
-              { key: 'Pressing this button will take you to the Paytaca Map, where you can find nearby Paytaca merchants and transact with them.' },
+              { key: 'FindPaytacaMerchantsHelp' },
             ],
             hasBack: true,
             primaryBtn: 'Next',
@@ -727,9 +727,9 @@ export default {
             needsBoundingRects: true,
             highlightIndex: 4,
             icon: 'storefront',
-            titleKey: 'Eligible Transactions',
+            titleKey: 'EligibleTransactions',
             content: [
-              { key: 'Your 5 most recent eligible transactions from this month are shown here. Select “View All” to see your complete transaction history.' },
+              { key: 'EliteEligibleTransactionsHelp' },
             ],
             hasBack: true,
             primaryBtn: 'Next',
@@ -750,9 +750,9 @@ export default {
             needsBoundingRects: true,
             highlightIndex: 5,
             icon: 'arrow_upward',
-            titleKey: 'Top-ups',
+            titleKey: 'TopUps',
             content: [
-              { key: 'Your 5 most recent wallet top-ups from this month are shown here. Select “View All” to see your complete top-up history.' },
+              { key: 'EliteTopUpsHelp' },
             ],
             hasBack: true,
             primaryBtn: 'Done',

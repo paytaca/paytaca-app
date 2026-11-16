@@ -9,10 +9,10 @@
     <q-item-section>
       <q-item-label class="elite-row-title">
         <span class="row elite-row-type">
-          {{ getEliteAssetLabel(item.asset) }}
+          {{ $t(getEliteAssetLabel(item.asset)) }}
         </span>
         <span class="row elite-row-tx" @click="redirect">
-          Ref. ID {{ item.ref_id }}
+          {{ $t('RefID', {}, 'Ref. ID') }} {{ item.ref_id }}
           <q-icon name="open_in_new" size="14px" />
         </span>
       </q-item-label>

@@ -13,7 +13,7 @@
         <div class="row justify-between items-center">
           <div class="row items-center q-gutter-sm">
             <q-icon name="history" size="28px" class="elite-history-icon" />
-            <span class="text-h6 text-weight-bold">Monthly History</span>
+            <span class="text-h6 text-weight-bold">{{ $t('MonthlyHistory', {}, 'Monthly History') }}</span>
           </div>
           <q-btn
             flat
@@ -25,7 +25,7 @@
           />
         </div>
         <div class="text-caption text-bow-muted q-mt-xs">
-          Months with no recorded transactions or cashback are shown as 0.
+          {{ $t('EliteMonthlyHistoryDescription', {}, 'Months with no recorded transactions or cashback are shown as 0.') }}
         </div>
       </div>
 
@@ -51,7 +51,7 @@
 
         <error-card
           v-else-if="hasError"
-          error-text="Unable to load monthly history."
+          :error-text="$t('EliteMonthlyHistoryLoadError', {}, 'Unable to load monthly history.')"
           @on-retry="fetchMonthlyStats"
         />
 
@@ -62,9 +62,9 @@
             class="text-bow-muted q-mb-md"
             :class="getDarkModeClass(darkMode)"
           />
-          <div class="text-subtitle1 text-bow-muted q-mb-sm">No monthly history yet</div>
+          <div class="text-subtitle1 text-bow-muted q-mb-sm">{{ $t('EliteNoMonthlyHistory', {}, 'No monthly history yet') }}</div>
           <div class="text-body2 text-bow-muted">
-            Your monthly cashback and transaction totals will appear here.
+            {{ $t('EliteNoMonthlyHistoryDescription', {}, 'Your monthly cashback and transaction totals will appear here.') }}
           </div>
         </div>
 
@@ -145,7 +145,7 @@ export default {
 
     monthLabel (month) {
       if (month.year === this.currentYear && month.month === this.currentMonth) {
-        return 'This month'
+        return this.$t('ThisMonth', {}, 'This month')
       }
       return new Date(Date.UTC(month.year, month.month - 1, 1)).toLocaleDateString('en-US', {
         month: 'short',
@@ -155,7 +155,9 @@ export default {
     },
 
     transactionCountLabel (count) {
-      return `${count} transaction${count === 1 ? '' : 's'}`
+      return count === 1
+        ? this.$t('CountTransaction', { txCount: count })
+        : this.$t('CountTransactions', { txCount: count })
     },
 
     isEmptyMonth (month) {

@@ -203,4 +203,10 @@ export default {
   BuyBCH: '购买比特币现金',
   SellBCH: '出售比特币现金',
   ReleaseBCH: '释放比特币现金',
+  PaytacaElite: "Paytaca Elite",
+  BCHBalance: "BCH 余额",
+  LIFTBalance: "LIFT 余额",
+  EliteEligibleTransactionsHelp: "此处显示本月最近 5 笔符合条件的交易。使用 View All 查看您完整的交易历史记录。",
+  EliteTopUpsHelp: "此处显示本月您最近 5 次钱包充值。使用 View All 查看您完整的充值历史记录。",
+  PreviousMonthsHistoryHelp: "要查看以前的每月详细信息，请按 View Monthly History 按钮。这将显示您的合格交易、收到的 LIFT 现金返还以及每个月相应的法定价值。",
 }

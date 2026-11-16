@@ -24,23 +24,23 @@
 
           <!-- Title -->
           <h5 class="q-ma-none text-h5 text-weight-bold">
-            Insufficient Wallet Balance
+            {{ $t('InsufficientWalletBalance', {}, 'Insufficient Wallet Balance') }}
           </h5>
 
           <!-- Description -->
           <div class="column q-gutter-y-sm text-body1">
             <p class="q-ma-none">
-              {{ isLocked ? 'Oops! You are not yet eligible for the Paytaca Elite Program.' : 'Oops! Your wallet balances fell below the threshold. Restore them to resume earning cashbacks.' }}
+              {{ isLocked ? $t('EliteNotEligible', {}, 'Oops! You are not yet eligible for the Paytaca Elite Program.') : $t('EliteBelowThreshold', {}, 'Oops! Your wallet balances fell below the threshold. Restore them to resume earning cashbacks.') }}
             </p>
 
             <!-- Wallet Balance Progress -->
             <div class="q-mb-sm">
-              {{ isLocked ? 'To unlock, your wallet needs:' : 'Current vs. requirement:' }}
+              {{ isLocked ? $t('EliteUnlockRequirement', {}, 'To unlock, your wallet needs:') : $t('EliteCurrentVsRequirement', {}, 'Current vs. requirement:') }}
             </div>
             <div class="q-mb-sm">
               <div class="row justify-between items-center q-mb-xs">
                 <span class="text-caption">
-                  <template v-if="eliteBchMet"><span class="text-positive">✓&nbsp;</span></template>BCH balance
+                  <template v-if="eliteBchMet"><span class="text-positive">✓&nbsp;</span></template>{{ $t('BCHBalance', {}, 'BCH balance') }}
                 </span>
                 <span class="text-caption text-weight-medium">
                   {{ parseFiatCurrency(bchBalance, currency) }} / {{ formattedBchThreshold }}
@@ -55,7 +55,7 @@
             <div>
               <div class="row justify-between items-center q-mb-xs">
                 <span class="text-caption">
-                  <template v-if="eliteLiftMet"><span class="text-positive">✓&nbsp;</span></template>LIFT balance
+                  <template v-if="eliteLiftMet"><span class="text-positive">✓&nbsp;</span></template>{{ $t('LIFTBalance', {}, 'LIFT balance') }}
                 </span>
                 <span class="text-caption text-weight-medium">
                   {{ parseLiftToken(liftBalance) }} / {{ parseLiftToken(liftThreshold) }}

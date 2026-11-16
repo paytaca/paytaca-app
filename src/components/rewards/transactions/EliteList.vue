@@ -47,22 +47,30 @@ import EliteTopupRow from 'src/components/rewards/transactions/EliteTopupRow.vue
 
 const EMPTY_STATES = {
   transactions: {
+    titleKey: 'EliteNoEligibleTransactions',
     title: 'No eligible transactions yet',
+    descriptionKey: 'EliteNoEligibleTransactionsDescription',
     description: 'Your LIFT cashbacks from eligible OTC and marketplace purchases will appear here.'
   },
   topups: {
+    titleKey: 'EliteNoTopUps',
     title: 'No top-ups yet',
+    descriptionKey: 'EliteNoTopUpsDescription',
     description: 'Your BCH and LIFT top-ups that qualify for the program will appear here.'
   }
 }
 
 const MONTH_EMPTY_STATES = {
   transactions: {
+    titleKey: 'EliteNoEligibleTransactionsThisMonth',
     title: 'No eligible transactions this month',
+    descriptionKey: 'EliteNoEligibleTransactionsThisMonthDescription',
     description: 'Your LIFT cashbacks from eligible OTC and marketplace purchases this month will appear here.'
   },
   topups: {
+    titleKey: 'EliteNoTopUpsThisMonth',
     title: 'No top-ups this month',
+    descriptionKey: 'EliteNoTopUpsThisMonthDescription',
     description: 'Your BCH and LIFT top-ups that qualify for the program this month will appear here.'
   }
 }
@@ -130,7 +138,11 @@ export default {
       return this.type === 'transactions'
     },
     emptyState () {
-      return (this.monthOnly ? MONTH_EMPTY_STATES : EMPTY_STATES)[this.type]
+      const state = (this.monthOnly ? MONTH_EMPTY_STATES : EMPTY_STATES)[this.type]
+      return {
+        title: this.$t(state.titleKey, {}, state.title),
+        description: this.$t(state.descriptionKey, {}, state.description)
+      }
     }
   }
 }

@@ -258,4 +258,11 @@ export default {
   MultisigWalletLimitReached: "لقد وصلت إلى الحد الأقصى لعدد محافظ multisig {free}.قم بالترقية إلى Paytaca Plus لإنشاء المزيد من محافظ multisig.",
   UnclaimedGiftsLimitReached: "لقد وصلت إلى الحد الأقصى لعدد الهدايا {free} التي لم تتم المطالبة بها.قم بالترقية إلى Paytaca Plus لإنشاء المزيد من الهدايا.",
   WalletLimitReached: "لقد وصلت إلى الحد الأقصى لعدد المحافظ {free}.قم بالترقية إلى Paytaca Plus لإنشاء المزيد من المحافظ.",
+  PaytacaElite: "Paytaca Elite",
+  PaytacaEliteProgram: "برنامج Paytaca Elite",
+  BCHBalance: "رصيد BCH",
+  LIFTBalance: "رصيد LIFT",
+  LIFToken: "رمز LIFT",
+  EliteShortfall: "ناقص {amount}",
+  EliteCountThisMonth: "{count} هذا الشهر",
 }

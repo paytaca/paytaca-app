@@ -181,5 +181,6 @@ export default {
   WebsiteDescription: "Kunjungi {website}",
   TotalLIFT: "Jumlah LIFT",
   BitcoinIsCashDescription: "Pelajari tentang Bitcoin Cash",
+  LIFTBalance: "Saldo LIFT",
   
 }

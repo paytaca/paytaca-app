@@ -25,7 +25,7 @@
       class="points-section-label q-mx-lg q-mt-md q-mb-md"
       :class="getDarkModeClass(darkMode, 'text-grey-5', 'text-grey-8')"
     >
-      Points Programs
+      {{ $t('PointsPrograms', {}, 'Points Programs') }}
     </div>
 
     <!-- Collapsible Aggregated Points & LIFT Value Section -->
@@ -330,7 +330,7 @@
       <!-- Paytaca Elite Section -->
       <div class="col-12 q-pt-md card-help-highlight">
         <div class="elite-section-label q-mb-sm">
-          Paytaca Elite Program
+          {{ $t('PaytacaEliteProgram', {}, 'Paytaca Elite Program') }}
         </div>
 
         <q-banner
@@ -344,7 +344,7 @@
             <q-icon name="info" color="primary" />
           </template>
           <div class="text-body2">
-            Live exchange rates are unavailable right now, so some amounts are shown in Philippine pesos (PHP).
+            {{ $t('EliteRateFallbackNotice', {}, 'Live exchange rates are unavailable right now, so some amounts are shown in Philippine pesos (PHP).') }}
           </div>
         </q-banner>
 
@@ -360,16 +360,16 @@
                 <q-icon name="workspace_premium" size="md" class="elite-icon" />
               </div>
               <div class="col-8">
-                <span class="text-token elite-name" :class="getDarkModeClass(darkMode)">Paytaca Elite Program</span>
+                <span class="text-token elite-name" :class="getDarkModeClass(darkMode)">{{ $t('PaytacaEliteProgram', {}, 'Paytaca Elite Program') }}</span>
                 <br/>
-                <span class="elite-pill checking">{{ EliteStatusLabels[EliteStatus.CHECKING] }}</span>
+                <span class="elite-pill checking">{{ $t(EliteStatusLabels[EliteStatus.CHECKING]) }}</span>
               </div>
               <div class="row col-2 justify-end">
                 <q-skeleton type="circle" size="40px" />
               </div>
             </div>
             <div class="text-caption q-mb-md q-mt-sm">
-              Checking elite eligibility…
+              {{ $t('EliteCheckingEligibility', {}, 'Checking elite eligibility…') }}
             </div>
             <q-skeleton :dark="darkMode" type="text" height="12px" class="q-mb-sm" style="width: 80%;" />
             <q-skeleton :dark="darkMode" type="text" height="12px" class="q-mb-sm" style="width: 100%;" />
@@ -389,7 +389,7 @@
                 <q-icon name="error_outline" size="md" class="elite-icon" />
               </div>
               <div class="col-8">
-                <span class="text-token elite-name" :class="getDarkModeClass(darkMode)">Paytaca Elite Program</span>
+                <span class="text-token elite-name" :class="getDarkModeClass(darkMode)">{{ $t('PaytacaEliteProgram', {}, 'Paytaca Elite Program') }}</span>
                 <br/>
                 <span class="text-caption">
                   {{ eliteError }}
@@ -419,9 +419,9 @@
                 <q-icon name="workspace_premium" size="md" class="elite-icon" />
               </div>
               <div class="col-8">
-                <span class="text-token elite-name" :class="getDarkModeClass(darkMode)">Paytaca Elite Program</span>
+                <span class="text-token elite-name" :class="getDarkModeClass(darkMode)">{{ $t('PaytacaEliteProgram', {}, 'Paytaca Elite Program') }}</span>
                 <br/>
-                <span class="elite-pill locked">{{ EliteStatusLabels[EliteStatus.LOCKED] }}</span>
+                <span class="elite-pill locked">{{ $t(EliteStatusLabels[EliteStatus.LOCKED]) }}</span>
               </div>
               <div class="row col-2 justify-end" />
             </div>
@@ -454,9 +454,9 @@
                 <q-icon name="workspace_premium" size="md" class="elite-icon" />
               </div>
               <div class="col-8">
-                <span class="text-token elite-name" :class="getDarkModeClass(darkMode)">Paytaca Elite Program</span>
+                <span class="text-token elite-name" :class="getDarkModeClass(darkMode)">{{ $t('PaytacaEliteProgram', {}, 'Paytaca Elite Program') }}</span>
                 <br/>
-                <span class="elite-pill active">{{ EliteStatusLabels[EliteStatus.ACTIVE] }}</span>
+                <span class="elite-pill active">{{ $t(EliteStatusLabels[EliteStatus.ACTIVE]) }}</span>
               </div>
               <div class="row col-2 justify-end">
                 <q-btn
@@ -468,16 +468,16 @@
               </div>
             </div>
             <div class="text-caption q-mb-md q-mt-sm">
-              You're earning LIFT cashbacks on every eligible OTC and marketplace purchase.
+              {{ $t('EliteEarningDescription', {}, "You're earning LIFT cashbacks on every eligible OTC and marketplace purchase.") }}
             </div>
             <div class="row">
               <div class="col elite-stat-box q-mx-xs br-10">
                 <div class="elite-stat-value">{{ parseLiftToken(eliteData.cashbackLift, true) }}</div>
-                <div class="text-caption">Cashback this month</div>
+                <div class="text-caption">{{ $t('EliteCashbackThisMonth', {}, 'Cashback this month') }}</div>
               </div>
               <div class="col elite-stat-box q-mx-xs br-10">
                 <div class="elite-stat-value">{{ eliteData.eligibleTxCount }}</div>
-                <div class="text-caption">Transactions this month</div>
+                <div class="text-caption">{{ $t('EliteTransactionsThisMonth', {}, 'Transactions this month') }}</div>
               </div>
             </div>
             <div
@@ -501,9 +501,9 @@
                 <q-icon name="workspace_premium" size="md" class="elite-icon" />
               </div>
               <div class="col-8">
-                <span class="text-token elite-name" :class="getDarkModeClass(darkMode)">Paytaca Elite Program</span>
+                <span class="text-token elite-name" :class="getDarkModeClass(darkMode)">{{ $t('PaytacaEliteProgram', {}, 'Paytaca Elite Program') }}</span>
                 <br/>
-                <span class="elite-pill paused">{{ EliteStatusLabels[EliteStatus.PAUSED] }}</span>
+                <span class="elite-pill paused">{{ $t(EliteStatusLabels[EliteStatus.PAUSED]) }}</span>
               </div>
               <div class="row col-2 justify-end" />
             </div>
@@ -535,16 +535,16 @@
                 <q-icon name="workspace_premium" size="md" class="elite-icon" />
               </div>
               <div class="col-8">
-                <span class="text-token elite-name" :class="getDarkModeClass(darkMode)">Paytaca Elite Program</span>
+                <span class="text-token elite-name" :class="getDarkModeClass(darkMode)">{{ $t('PaytacaEliteProgram', {}, 'Paytaca Elite Program') }}</span>
                 <br/>
-                <span class="elite-pill onhold">{{ EliteStatusLabels[EliteStatus.ONHOLD] }}</span>
+                <span class="elite-pill onhold">{{ $t(EliteStatusLabels[EliteStatus.ONHOLD]) }}</span>
               </div>
               <div class="row col-2 justify-end" />
             </div>
             <div class="row items-start no-wrap q-my-md elite-merchant-note">
               <q-icon name="info" size="xs" class="q-mr-sm elite-icon" />
               <span class="col text-caption">
-                Your Elite Program is on hold while we review your account. No cashbacks will be provided while it is on hold.
+                {{ $t('EliteOnHoldNotice', {}, 'Your Elite Program is on hold while we review your account. No cashbacks will be provided while it is on hold.') }}
               </span>
             </div>
           </div>
@@ -570,11 +570,11 @@
           </div>
 
           <h5 class="q-ma-none text-h5 text-weight-bold">
-            Congratulations! You're now eligible!
+            {{ $t('EliteEnrollmentSuccessTitle', {}, "Congratulations! You're now eligible!") }}
           </h5>
 
           <p class="q-ma-none text-body1">
-            You can now earn LIFT cashbacks when you transact at Paytaca's verified merchants.
+            {{ $t('EliteEnrollmentSuccessDescription', {}, "You can now earn LIFT cashbacks when you transact at Paytaca's verified merchants.") }}
           </p>
         </div>
       </q-card-section>
@@ -585,7 +585,7 @@
           no-caps
           class="full-width elite-success-cta"
           :loading="isEliteNavigating"
-          label="View Elite Program"
+          :label="$t('EliteViewProgram', {}, 'View Elite Program')"
           @click="goToEliteProgram"
         />
       </q-card-actions>
@@ -856,14 +856,16 @@ export default {
 
     // Elite: CTA label for the locked/paused card
     eliteCtaLabel () {
-      return this.eliteData?.status === EliteStatus.PAUSED ? 'Restore Eligibility' : 'Check Eligibility'
+      return this.eliteData?.status === EliteStatus.PAUSED
+        ? this.$t('RestoreEligibility', {}, 'Restore Eligibility')
+        : this.$t('CheckEligibility', {}, 'Check Eligibility')
     },
 
     // Elite: promise line for the locked/paused card
     eliteMerchantLabel () {
       return this.eliteData?.status === EliteStatus.PAUSED
-        ? "Get back to earning LIFT cashbacks when you transact at Paytaca's verified merchants."
-        : "Start earning LIFT cashbacks when you transact at Paytaca's verified merchants."
+        ? this.$t('ElitePausedPromise', {}, "Get back to earning LIFT cashbacks when you transact at Paytaca's verified merchants.")
+        : this.$t('EliteLockedPromise', {}, "Start earning LIFT cashbacks when you transact at Paytaca's verified merchants.")
     },
 
     // Elite card animation trigger — only after data has loaded
@@ -1351,12 +1353,12 @@ export default {
         if (allowReconnect) {
           this.showEliteReconnectDialog()
         } else {
-          raiseNotifyError('Watchtower rejected the new lookup key. Please try again later or contact Paytaca.', 5000)
+          raiseNotifyError(this.$t('EliteLookupKeyRejected', {}, 'Watchtower rejected the new lookup key. Please try again later or contact Paytaca.'), 5000)
         }
         return false
       }
 
-      raiseNotifyError('Unable to join the Elite Program. Please try again later.', 5000)
+      raiseNotifyError(this.$t('EliteJoinError', {}, 'Unable to join the Elite Program. Please try again later.'), 5000)
       return false
     },
 
@@ -1389,10 +1391,10 @@ export default {
         await this.submitEliteEnrollment(newKey, walletHash, { allowReconnect: false })
       } catch (error) {
         if (error instanceof LookupKeyExistsError) {
-          raiseNotifyError('A lookup key still exists for this wallet. Please try again later.', 5000)
+          raiseNotifyError(this.$t('EliteLookupKeyStillExists', {}, 'A lookup key still exists for this wallet. Please try again later.'), 5000)
         } else {
           console.error('Elite Program reconnect failed:', error)
-          raiseNotifyError('Unable to reconnect the Elite Program. Please try again later.', 5000)
+          raiseNotifyError(this.$t('EliteReconnectError', {}, 'Unable to reconnect the Elite Program. Please try again later.'), 5000)
         }
       } finally {
         this.isEliteCtaBusy = false
@@ -1401,10 +1403,10 @@ export default {
 
     handleEliteEnrollmentError (error) {
       if (error instanceof LookupKeyExistsError) {
-        raiseNotifyError('A lookup key already exists for this wallet. Contact Paytaca to have it revoked.', 5000)
+        raiseNotifyError(this.$t('EliteLookupKeyExists', {}, 'A lookup key already exists for this wallet. Contact Paytaca to have it revoked.'), 5000)
       } else {
         console.error('Elite Program enrollment failed:', error)
-        raiseNotifyError('Unable to join the Elite Program. Please try again later.', 5000)
+        raiseNotifyError(this.$t('EliteJoinError', {}, 'Unable to join the Elite Program. Please try again later.'), 5000)
       }
     },
 
@@ -1414,7 +1416,7 @@ export default {
         await this.eliteRefreshPromise
 
         if (!this.eliteData || this.eliteData.id < 0) {
-          raiseNotifyError('Unable to join the Elite Program. Please try again later.', 5000)
+          raiseNotifyError(this.$t('EliteJoinError', {}, 'Unable to join the Elite Program. Please try again later.'), 5000)
           return
         }
 

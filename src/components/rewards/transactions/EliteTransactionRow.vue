@@ -9,10 +9,10 @@
     <q-item-section>
       <q-item-label class="elite-row-title">
         <span class="row elite-row-type">
-          {{ getEliteTxTypeLabel(item.type) }}
+          {{ $t(getEliteTxTypeLabel(item.type)) }}
         </span>
         <span class="row elite-row-ref" @click="redirect">
-          {{ EliteTxTypeRefLabels[item.type] }} {{ item.type === EliteTxType.OTC ? item.ref_id : item.order_id }}
+          {{ $t(EliteTxTypeRefLabels[item.type]) }} {{ item.type === EliteTxType.OTC ? item.ref_id : item.order_id }}
           <q-icon name="open_in_new" size="14px" />
         </span>
       </q-item-label>

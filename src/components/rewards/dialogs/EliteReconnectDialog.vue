@@ -17,13 +17,11 @@
           </div>
 
           <h5 class="q-ma-none text-h5 text-weight-bold">
-            Reconnect Elite Program
+            {{ $t('ReconnectEliteProgram', {}, 'Reconnect Elite Program') }}
           </h5>
 
           <p class="q-ma-none text-body1">
-            This wallet's connection to the Elite Program is out of date.
-            Reconnecting creates a new secure link so your balances can be
-            checked again. Your balances and history are not affected.
+{{ $t('EliteReconnectDescription', {}, "This wallet's connection to the Elite Program is out of date. Reconnecting creates a new secure link so your balances can be checked again. Your balances and history are not affected.") }}
           </p>
         </div>
       </q-card-section>
@@ -33,14 +31,14 @@
           rounded
           class="button bg-grad cta-button full-width"
           :class="getDarkModeClass(darkMode)"
-          label="Reconnect"
+          :label="$t('Reconnect', {}, 'Reconnect')"
           @click="onOKClick"
         />
         <q-btn
           flat
           no-caps
           class="full-width"
-          label="Not now"
+          :label="$t('NotNow', {}, 'Not now')"
           @click="hide"
         />
       </q-card-actions>

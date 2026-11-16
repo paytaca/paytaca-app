@@ -2,7 +2,7 @@
   <div id="app-container" class="sticky-header-container text-bow" :class="getDarkModeClass(darkMode)">
     <header-nav
       class="apps-header"
-      :title="'Paytaca Elite'"
+      :title="$t('PaytacaElite', {}, 'Paytaca Elite')"
     >
       <template #top-right-menu v-if="!isLoading">
         <q-btn
@@ -70,30 +70,30 @@
                   <q-icon name="workspace_premium" size="md" class="elite-icon" />
                 </div>
                 <div class="column q-ml-sm">
-                  <span class="elite-name">Paytaca Elite Program</span>
-                  <span class="elite-pill q-mt-xs" :class="eliteStatus">{{ EliteStatusLabels[eliteStatus] }}</span>
+                  <span class="elite-name">{{ $t('PaytacaEliteProgram', {}, 'Paytaca Elite Program') }}</span>
+                  <span class="elite-pill q-mt-xs" :class="eliteStatus">{{ $t(EliteStatusLabels[eliteStatus]) }}</span>
                 </div>
               </div>
             </div>
 
             <div v-if="isOnHold" class="text-body2 text-bow">
-              Your Elite Program is on hold while we review your account. No cashbacks will be provided while it is on hold.
+              {{ $t('EliteOnHoldNotice', {}, 'Your Elite Program is on hold while we review your account. No cashbacks will be provided while it is on hold.') }}
             </div>
 
             <template v-else>
               <div class="row q-mb-sm q-pb-xs">
                 <div class="col elite-stat-box q-mx-xs br-10">
                   <div class="elite-stat-value">{{ parseLiftToken(eliteData.cashbackLift) }}</div>
-                  <div class="text-caption">Cashback</div>
+                  <div class="text-caption">{{ $t('Cashback', {}, 'Cashback') }}</div>
                 </div>
                 <div class="col elite-stat-box q-mx-xs br-10">
                   <div class="elite-stat-value">{{ eliteData.eligibleTxCount }}</div>
-                  <div class="text-caption">Transactions</div>
+                  <div class="text-caption">{{ $t('Transactions', {}, 'Transactions') }}</div>
                 </div>
               </div>
 
               <div class="row items-center justify-between text-caption q-mb-xs">
-                <span>Cashback limit</span>
+                <span>{{ $t('CashbackLimit', {}, 'Cashback limit') }}</span>
                 <span class="text-weight-medium">
                   {{ formatEliteFiat(eliteData.monthlyCashback) }} of {{ formatEliteFiat(eliteData.maxCashbackPerMonth) }}
                 </span>
@@ -117,7 +117,7 @@
                 no-caps
                 rounded
                 icon="history"
-                label="View Monthly History"
+                :label="$t('EliteViewMonthlyHistory', {}, 'View Monthly History')"
                 @click="openMonthlyHistoryDialog"
               />
             </template>
@@ -132,7 +132,7 @@
         flat
       >
         <q-card-section class="q-py-md">
-          <div class="text-subtitle1 text-weight-bold">Balance requirements</div>
+          <div class="text-subtitle1 text-weight-bold">{{ $t('BalanceRequirements', {}, 'Balance requirements') }}</div>
 
           <template v-if="thresholdsLoading">
             <div class="q-mt-sm">
@@ -150,7 +150,7 @@
             class="text-center q-mt-sm"
             :is-points-card="true"
             :is-rewards-home-page="false"
-            error-text="Unable to load balance thresholds."
+            :error-text="$t('EliteThresholdsLoadError', {}, 'Unable to load balance thresholds.')"
             @on-retry="loadThresholds()"
           />
 
@@ -160,8 +160,8 @@
                 <span class="text-caption">
                   <template v-if="requirements.lift?.met">
                     <span class="text-positive" aria-hidden="true">✓&nbsp;</span>
-                    <span class="visually-hidden">Met&nbsp;</span>
-                  </template>LIFT balance
+                    <span class="visually-hidden">{{ $t('Met', {}, 'Met') }}&nbsp;</span>
+                  </template>{{ $t('LIFTBalance', {}, 'LIFT balance') }}
                 </span>
                 <span class="text-caption text-weight-medium">
                   <template v-if="requirements.lift && !requirements.lift.met">
@@ -180,7 +180,7 @@
                   color="negative"
                 />
                 <div class="text-caption text-bow-muted q-mt-xs">
-                  {{ parseLiftToken(requirements.lift.shortfall) }} short
+                  {{ $t('EliteShortfall', { amount: parseLiftToken(requirements.lift.shortfall) }, `${parseLiftToken(requirements.lift.shortfall)} short`) }}
                 </div>
               </template>
             </div>
@@ -190,8 +190,8 @@
                 <span class="text-caption">
                   <template v-if="requirements.bch?.met">
                     <span class="text-positive" aria-hidden="true">✓&nbsp;</span>
-                    <span class="visually-hidden">Met&nbsp;</span>
-                  </template>BCH balance
+                    <span class="visually-hidden">{{ $t('Met', {}, 'Met') }}&nbsp;</span>
+                  </template>{{ $t('BCHBalance', {}, 'BCH balance') }}
                 </span>
                 <span class="text-caption text-weight-medium">
                   <template v-if="requirements.bch && !requirements.bch.met">
@@ -210,7 +210,7 @@
                   color="negative"
                 />
                 <div class="text-caption text-bow-muted q-mt-xs">
-                  {{ formatFiatNumber(requirements.bch.shortfall) }} short
+                  {{ $t('EliteShortfall', { amount: formatFiatNumber(requirements.bch.shortfall) }, `${formatFiatNumber(requirements.bch.shortfall)} short`) }}
                 </div>
               </template>
             </div>
@@ -225,7 +225,7 @@
           no-caps
           rounded
           icon="map"
-          label="Find merchants on the map"
+          :label="$t('EliteFindMerchants', {}, 'Find merchants on the map')"
           @click="openMerchantMap"
         />
       </div>
@@ -241,7 +241,7 @@
           <q-icon name="info" color="primary" />
         </template>
         <div class="text-body2">
-          Live exchange rates are unavailable right now, so some amounts are shown in Philippine pesos (PHP).
+          {{ $t('EliteRateFallbackNotice', {}, 'Live exchange rates are unavailable right now, so some amounts are shown in Philippine pesos (PHP).') }}
         </div>
       </q-banner>
 
@@ -263,7 +263,7 @@
                  <q-icon name="storefront" />
                </div>
                <div class="column">
-                 <span class="section-title">Eligible Transactions</span>
+                 <span class="section-title">{{ $t('EligibleTransactions', {}, 'Eligible Transactions') }}</span>
                  <q-skeleton
                    v-if="isLoading"
                    type="text"
@@ -272,7 +272,7 @@
                    class="q-mt-xs"
                  />
                  <span v-else-if="!pointsError" class="section-count q-mt-xs">
-                   {{ eliteData.eligibleTxCount }} this month
+                   {{ $t('EliteCountThisMonth', { count: eliteData.eligibleTxCount }, `${eliteData.eligibleTxCount} this month`) }}
                  </span>
                </div>
              </div>
@@ -283,7 +283,7 @@
                :class="getDarkModeClass(darkMode)"
                size="sm"
                icon-right="chevron_right"
-               label="View All"
+               :label="$t('ViewAll', {}, 'View All')"
                @click="$router.push(`/apps/rewards/elite-history/${this.eliteId}/transactions`)"
              />
            </div>
@@ -306,7 +306,7 @@
                 <q-icon name="arrow_upward" />
               </div>
               <div class="column">
-                <span class="section-title">Top-ups</span>
+                <span class="section-title">{{ $t('TopUps', {}, 'Top-ups') }}</span>
                 <q-skeleton
                   v-if="isLoading"
                   type="text"
@@ -315,7 +315,7 @@
                   class="q-mt-xs"
                 />
                 <span v-else-if="!pointsError" class="section-count q-mt-xs">
-                  {{ eliteData.topupCount }} this month
+                  {{ $t('EliteCountThisMonth', { count: eliteData.topupCount }, `${eliteData.topupCount} this month`) }}
                 </span>
               </div>
             </div>
@@ -326,7 +326,7 @@
               :class="getDarkModeClass(darkMode)"
               size="sm"
               icon-right="chevron_right"
-              label="View All"
+              :label="$t('ViewAll', {}, 'View All')"
               @click="$router.push(`/apps/rewards/elite-history/${this.eliteId}/topups`)"
             />
           </div>
@@ -545,11 +545,11 @@ export default {
           this.transactions = epSummaryData.eligible_transactions.results
           this.topups = epSummaryData.topups.results
         } else {
-          this.dataError = 'Failed to load Elite program data. Please try again later.'
+          this.dataError = this.$t('EliteProgramDataError', {}, 'Failed to load Elite program data. Please try again later.')
         }
       } catch (error) {
         console.error('Error loading elite program data: ', error)
-        this.pointsError = 'Failed to load Elite program data. Please try again later.'
+        this.pointsError = this.$t('EliteProgramDataError', {}, 'Failed to load Elite program data. Please try again later.')
       }
 
       if (!append) this.isLoading = false

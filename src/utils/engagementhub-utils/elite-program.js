@@ -31,7 +31,7 @@ export const EliteStatusLabels = Object.freeze({
   [EliteStatus.LOCKED]: 'Locked',
   [EliteStatus.ACTIVE]: 'Active',
   [EliteStatus.PAUSED]: 'Paused',
-  [EliteStatus.ONHOLD]: 'On-hold'
+  [EliteStatus.ONHOLD]: 'OnHold'
 })
 
 export function normalizeEliteStatus (status) {
@@ -67,10 +67,10 @@ export const EliteTxType = Object.freeze({
 })
 
 export const EliteTxTypeLabels = Object.freeze({
-  [EliteTxType.OTC]: 'Over-the-counter',
+  [EliteTxType.OTC]: 'OverTheCounter',
   [EliteTxType.MARKETPLACE]: 'Marketplace'
 })
-export const getEliteTxTypeLabel = type => EliteTxTypeLabels[type] || 'Unknown purchase'
+export const getEliteTxTypeLabel = type => EliteTxTypeLabels[type] || 'UnknownPurchase'
 
 export const EliteTxTypeIcons = Object.freeze({
   [EliteTxType.OTC]: 'store',
@@ -78,8 +78,8 @@ export const EliteTxTypeIcons = Object.freeze({
 })
 
 export const EliteTxTypeRefLabels = Object.freeze({
-  [EliteTxType.OTC]: 'Ref. ID',
-  [EliteTxType.MARKETPLACE]: 'Order #'
+  [EliteTxType.OTC]: 'RefID',
+  [EliteTxType.MARKETPLACE]: 'OrderHash'
 })
 
 export const EliteAsset = Object.freeze({
@@ -89,9 +89,9 @@ export const EliteAsset = Object.freeze({
 
 export const EliteAssetLabels = Object.freeze({
   [EliteAsset.BCH]: 'BCH',
-  [EliteAsset.LIFT]: 'LIFT Token'
+  [EliteAsset.LIFT]: 'LIFToken'
 })
-export const getEliteAssetLabel = asset => EliteAssetLabels[asset] || 'Unknown asset'
+export const getEliteAssetLabel = asset => EliteAssetLabels[asset] || 'UnknownAsset'
 
 export const EliteAssetIcons = Object.freeze({
   [EliteAsset.BCH]: 'img:bch-logo.png',

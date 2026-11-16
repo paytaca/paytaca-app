@@ -664,6 +664,35 @@ const words = [
     // Cancel: "Cancel",
     // Update: "Update",
     // Set: "Set",
+  },
+  // =========================
+  //   Paytaca Elite Program
+  // =========================
+  {
+    PointsPrograms: 'Points Programs',
+    Checking: 'Checking',
+    Locked: 'Locked',
+    Paused: 'Paused',
+    OnHold: 'On-hold',
+    Met: 'Met',
+    Reconnect: 'Reconnect',
+    PaytacaElite: 'Paytaca Elite',
+    CashbackLimit: 'Cashback limit',
+    BalanceRequirements: 'Balance requirements',
+    MonthlyHistory: 'Monthly History',
+    EligibleTransactions: 'Eligible Transactions',
+    TopUps: 'Top-ups',
+    TransactionsHistory: 'Transactions History',
+    ThisMonth: 'This month',
+    BCHBalance: 'BCH balance',
+    LIFTBalance: 'LIFT balance',
+    CheckEligibility: 'Check Eligibility',
+    RestoreEligibility: 'Restore Eligibility',
+    OverTheCounter: 'Over-the-counter',
+    UnknownPurchase: 'Unknown purchase',
+    LIFToken: 'LIFT Token',
+    RefID: 'Ref. ID',
+    OrderHash: 'Order #'
   }
 ]
 

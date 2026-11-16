@@ -197,5 +197,9 @@ export default {
   MultisigWalletLimitReached: "{free} 다중서명 지갑 한도에 도달했습니다.더 많은 다중서명 지갑을 생성하려면 Paytaca Plus로 업그레이드하세요.",
   UnclaimedGiftsLimitReached: "받지 않은 선물 한도인 {free}개에 도달했습니다.더 많은 선물을 만들려면 Paytaca Plus로 업그레이드하세요.",
   WalletLimitReached: "{free} 지갑 한도에 도달했습니다.더 많은 지갑을 생성하려면 Paytaca Plus로 업그레이드하세요.",
+  PaytacaElite: "Paytaca 엘리트",
+  PaytacaEliteProgram: "Paytaca 엘리트 프로그램",
+  LIFTBalance: "LIFT 잔액",
+  EliteShortfall: "{amount} 부족",
   
 }

@@ -2,14 +2,14 @@
   <div id="app-container" class="sticky-header-container text-bow" :class="getDarkModeClass(darkMode)">
     <header-nav
       class="apps-header"
-      title="Paytaca Elite"
+      :title="$t('PaytacaElite', {}, 'Paytaca Elite')"
     />
 
     <h5
       class="q-ma-none q-px-md text-primary text-weight-bold text-center"
       style="color: #d4a643 !important;"
     >
-      Transactions History
+      {{ $t('TransactionsHistory', {}, 'Transactions History') }}
     </h5>
 
     <div class="q-px-md q-pt-md">
@@ -33,7 +33,7 @@
             <q-icon name="info" color="primary" />
           </template>
           <div class="text-body2">
-            Live exchange rates are unavailable right now, so some amounts are shown in Philippine Pesos (PHP).
+            {{ $t('EliteRateFallbackNotice', {}, 'Live exchange rates are unavailable right now, so some amounts are shown in Philippine pesos (PHP).') }}
           </div>
         </q-banner>
 
@@ -67,7 +67,7 @@
                   <template v-else>{{ summary.topups.totalCount }}</template>
                 </div>
                 <div class="text-caption summary-label">
-                  {{ activeTab === 'transactions' ? 'Total eligible transactions' : 'Total top-up transactions' }}
+                  {{ activeTab === 'transactions' ? $t('EliteTotalEligibleTransactions', {}, 'Total eligible transactions') : $t('EliteTotalTopUpTransactions', {}, 'Total top-up transactions') }}
                 </div>
               </div>
 
@@ -82,7 +82,7 @@
                     ) }}
                   </div>
                   <div class="text-caption summary-label">
-                    {{ activeTab === 'transactions' ? 'Total cashback value' : 'Total BCH top-ups' }}
+                    {{ activeTab === 'transactions' ? $t('EliteTotalCashbackValue', {}, 'Total cashback value') : $t('EliteTotalBCHTopUps', {}, 'Total BCH top-ups') }}
                   </div>
                 </div>
                 <div class="col text-center">
@@ -92,7 +92,7 @@
                       ) }}
                   </div>
                   <div class="text-caption summary-label">
-                    {{ activeTab === 'transactions' ? 'Total LIFT cashback' : 'Total LIFT top-ups' }}
+                    {{ activeTab === 'transactions' ? $t('EliteTotalLIFTCashback', {}, 'Total LIFT cashback') : $t('EliteTotalLIFTTopUps', {}, 'Total LIFT top-ups') }}
                   </div>
                 </div>
               </div>
@@ -107,14 +107,14 @@
               :class="[getDarkModeClass(darkMode), { 'active-tab': activeTab === 'transactions' }]"
               @click="activeTab = 'transactions'"
             >
-              Eligible Transactions
+              {{ $t('EligibleTransactions', {}, 'Eligible Transactions') }}
             </button>
             <button
               class="elite-tab text-bow"
               :class="[getDarkModeClass(darkMode), { 'active-tab': activeTab === 'topups' }]"
               @click="activeTab = 'topups'"
             >
-              Top-ups
+              {{ $t('TopUps', {}, 'Top-ups') }}
             </button>
           </div>
         </div>
@@ -354,7 +354,7 @@ export default {
         }
       } catch (error) {
         console.error('Error loading elite history: ', error)
-        this.dataError = 'Failed to load Elite history. Please try again later.'
+        this.dataError = this.$t('EliteHistoryLoadError', {}, 'Failed to load Elite history. Please try again later.')
       }
 
       if (!append) {

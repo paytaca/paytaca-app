@@ -218,4 +218,8 @@ export default {
   BuyBCH: '購買比特幣現金',
   SellBCH: '出售比特幣現金',
   ReleaseBCH: '釋放比特幣現金',
+  PaytacaElite: "Paytaca Elite",
+  BCHBalance: "BCH 餘額",
+  LIFTBalance: "LIFT 餘額",
+  PreviousMonthsHistoryHelp: "要查看以前的每月詳細信息，請按 View Monthly History 按鈕。這將顯示您的合格交易、收到的 LIFT 現金回饋以及每個月相應的法定價值。",
 }

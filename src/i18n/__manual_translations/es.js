@@ -286,4 +286,6 @@ export default {
   PaidUsingMethod: "Pagado usando {method}",
   PayForLIFT: "Pagar por LIFT",
   PaytacaWebsiteDescription: "Visita {paytacaWebsite}",
+  LIFTBalance: "Saldo LIFT",
+  LIFToken: "Token LIFT",
 }

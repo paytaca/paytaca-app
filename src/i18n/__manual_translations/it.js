@@ -182,4 +182,5 @@ export default {
   TotalLIFT: "LIFT totale",
   UnpaidLift: "LIFT non pagato",
   PaytacaWebsiteDescription: "Visita il {paytacaWebsite}",
+  LIFToken: "Token LIFT",
 }
