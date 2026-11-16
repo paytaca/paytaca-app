@@ -477,7 +477,7 @@
               </div>
               <div class="col elite-stat-box q-mx-xs br-10">
                 <div class="elite-stat-value">{{ eliteData.eligibleTxCount }}</div>
-                <div class="text-caption">{{ $t('EliteTransactionsThisMonth', {}, 'Transactions this month') }}</div>
+                <div class="text-caption">{{ eliteTransactionsCaption }}</div>
               </div>
             </div>
             <div
@@ -910,6 +910,12 @@ export default {
         { utc: parts.utc, local: parts.local },
         `Resets ${parts.utc} (${parts.local})`
       )
+    },
+
+    eliteTransactionsCaption () {
+      return this.eliteData?.eligibleTxCount === 1
+        ? this.$t('EliteTransactionThisMonth', {}, 'Transaction this month')
+        : this.$t('EliteTransactionsThisMonth', {}, 'Transactions this month')
     }
   },
 

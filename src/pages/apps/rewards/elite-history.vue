@@ -67,7 +67,7 @@
                   <template v-else>{{ summary.topups.totalCount }}</template>
                 </div>
                 <div class="text-caption summary-label">
-                  {{ activeTab === 'transactions' ? $t('EliteTotalEligibleTransactions', {}, 'Total eligible transactions') : $t('EliteTotalTopUpTransactions', {}, 'Total top-up transactions') }}
+                  {{ summaryCountLabel }}
                 </div>
               </div>
 
@@ -248,6 +248,21 @@ export default {
           this.activeRateUnavailable
         )
       )
+    },
+
+    summaryCountLabel () {
+      const isTx = this.activeTab === 'transactions'
+      const count = isTx
+        ? this.summary.transactions.eligibleTxCount
+        : this.summary.topups.totalCount
+      if (count === 1) {
+        return isTx
+          ? this.$t('EliteTotalEligibleTransaction', {}, 'Total eligible transaction')
+          : this.$t('EliteTotalTopUpTransaction', {}, 'Total top-up transaction')
+      }
+      return isTx
+        ? this.$t('EliteTotalEligibleTransactions', {}, 'Total eligible transactions')
+        : this.$t('EliteTotalTopUpTransactions', {}, 'Total top-up transactions')
     }
   },
 

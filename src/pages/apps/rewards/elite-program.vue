@@ -88,7 +88,7 @@
                 </div>
                 <div class="col elite-stat-box q-mx-xs br-10">
                   <div class="elite-stat-value">{{ eliteData.eligibleTxCount }}</div>
-                  <div class="text-caption">{{ $t('Transactions', {}, 'Transactions') }}</div>
+                  <div class="text-caption">{{ eliteTransactionsLabel }}</div>
                 </div>
               </div>
 
@@ -459,6 +459,11 @@ export default {
     },
     heroLoaded () {
       return !this.isLoading && !this.pointsError && !!this.eliteData
+    },
+    eliteTransactionsLabel () {
+      return this.eliteData?.eligibleTxCount === 1
+        ? this.$t('Transaction', {}, 'Transaction')
+        : this.$t('Transactions', {}, 'Transactions')
     },
     requirements () {
       return eliteRequirements(
