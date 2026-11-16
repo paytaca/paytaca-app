@@ -180,4 +180,6 @@ export default {
   BitcoinCash: "Bitcoin Cash",
   TotalLIFT: "Totale LIFT",
   UnpaidLift: "Onbetaalde LIFT",
+  ViewOnCauldron: "Sien op Cauldron",
+  DropToUnpin: "Los hier om te ontspeld",
 }

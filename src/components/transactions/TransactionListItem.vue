@@ -38,7 +38,7 @@
         </div>
         <div class="transaction-amount" :class="getDarkModeClass(darkMode)">
           <!-- For NFT transactions, show type name instead of quantity and symbol -->
-          <div v-if="isNftTransaction" class="amount-primary">
+          <div v-if="isNftTransaction" class="amount-primary nft-name">
             {{ asset?.name || 'NFT' }}
           </div>
           <template v-else>
@@ -445,7 +445,8 @@ watch(
 }
 
 .transaction-type {
-  flex: 1;
+  flex: 1 1 auto;
+  min-width: 0;
   display: flex;
   flex-direction: column;
   gap: 4px;
@@ -459,12 +460,20 @@ watch(
   display: flex;
   align-items: center;
   gap: 6px;
+  min-width: 0;
+
+  .q-avatar {
+    flex-shrink: 0;
+  }
 }
 
 .asset-symbol {
   font-size: 13px;
   font-weight: 500;
   opacity: 0.8;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
   
   &.dark {
     color: #b8bfc4;
@@ -479,6 +488,9 @@ watch(
   font-size: 15px;
   font-weight: 600;
   letter-spacing: 0.3px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
   
   &.dark {
     color: #e0e2e5;
@@ -490,6 +502,9 @@ watch(
 }
 
 .transaction-amount {
+  flex: 0 0 auto;
+  min-width: 0;
+  max-width: 58%;
   text-align: right;
   display: flex;
   flex-direction: column;
@@ -521,6 +536,16 @@ watch(
   font-size: 16px;
   font-weight: 600;
   line-height: 1.4;
+  max-width: 100%;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
+
+.amount-primary.nft-name {
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
 }
 
 .amount-secondary {
@@ -540,7 +565,9 @@ watch(
 .transaction-date {
   font-size: 14px;
   opacity: 0.6;
-  flex-shrink: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
   
   &.dark {
     color: #a6acaf;

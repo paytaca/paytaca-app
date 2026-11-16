@@ -182,4 +182,8 @@ export default {
   TotalLIFT: "LIFT totale",
   UnpaidLift: "LIFT non pagato",
   PaytacaWebsiteDescription: "Visita il {paytacaWebsite}",
+  ViewOnCauldron: "Visualizza su Cauldron",
+  PinAction: "Fissa",
+  Unpin: "Rimuovi",
+  DropToUnpin: "Rilascia qui per rimuovere il pin",
 }
