@@ -344,6 +344,7 @@ export async function awardInitialUP (data) {
 }
 
 export async function processMerchantOtcPoints (data) {
+  if (Store.getters['global/isChipnet']) return null
   return await processPoints('userreward/process_merchant_otc_points/', data)
 }
 

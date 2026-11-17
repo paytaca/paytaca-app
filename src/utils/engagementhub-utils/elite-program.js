@@ -244,6 +244,8 @@ export async function processEliteEligibility (
   data,
   retryDelaysMs = ELITE_ELIGIBILITY_RETRY_DELAYS_MS
 ) {
+  if (Store.getters['global/isChipnet']) return null
+
   const attempt = async index => {
     try {
       return await postEligibilityClaim(data)

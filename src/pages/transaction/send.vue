@@ -2821,7 +2821,7 @@ export default {
     },
 
     claimEliteEligibility (txid) {
-      if (!txid || this.assetId !== 'bch' || this.isNFT) return
+      if (this.isChipnet || !txid || this.assetId !== 'bch' || this.isNFT) return
 
       const merchantIndex = this.inputExtras.findIndex(extra => extra?.merchantData)
       const index = merchantIndex >= 0
