@@ -25,7 +25,7 @@ import { bus } from 'src/wallet/event-bus'
 
 export default {
   data () {
-    return { checking: true, error: null, screenKey: 0 }
+    return { checking: true, error: null, screenKey: 0, retryTimer: null, requestPending: false, disposed: false }
   },
   computed: {
     message () {
@@ -37,10 +37,13 @@ export default {
     this.retry()
   },
   beforeUnmount () {
+    this.disposed = true
+    clearTimeout(this.retryTimer)
     bus.off('p2p-unavailable', this.onUnavailable)
   },
   methods: {
     onUnavailable (error) {
+      if (this.disposed) return
       if (error?.response?.data?.code === 'p2p_feature_disabled') {
         const feature = error.response.data.feature
         const controls = { ...this.$store.getters['ramp/featureToggles'], [feature]: false }
@@ -48,19 +51,34 @@ export default {
         this.$q.notify({ type: 'error', message: p2pAvailabilityMessage(this.$t.bind(this), error), timeout: 5000 })
       } else {
         this.error = error
+        this.scheduleRetry()
+      }
+    },
+    scheduleRetry () {
+      clearTimeout(this.retryTimer)
+      this.retryTimer = null
+      if (this.error && !this.disposed && !this.requestPending) {
+        this.retryTimer = setTimeout(() => this.retry(), 5000)
       }
     },
     async retry () {
+      if (this.requestPending || this.disposed) return
+      clearTimeout(this.retryTimer)
+      this.retryTimer = null
+      this.requestPending = true
       this.checking = true
       try {
-        const controls = await fetchP2PAvailability(backend)
+        const controls = await fetchP2PAvailability(backend, undefined, { skipAbortManager: true })
+        if (this.disposed) return
         this.$store.commit('ramp/updateFeatureToggles', controls)
         this.error = null
         this.screenKey++
       } catch (error) {
-        this.error = error
+        if (!this.disposed) this.error = error
       } finally {
+        this.requestPending = false
         this.checking = false
+        this.scheduleRetry()
       }
     }
   }

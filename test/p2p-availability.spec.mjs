@@ -113,6 +113,7 @@ describe('P2P escrow pause', () => {
     await h.vm.onSecurityOk()
     assert.equal(h.requests.length, 2)
     assert(!h.events.includes('broadcast'))
+    assert.equal(h.requests[1].config.skipAbortManager, false)
     assert.equal(h.requests[1].config.cache, false)
     assert.equal(h.requests[1].config.timeout, 10000)
     assert.notEqual(h.requests[0].config.params._fresh, h.requests[1].config.params._fresh)
@@ -211,28 +212,147 @@ describe('P2P maintenance screen', () => {
   const source = readFileSync('src/components/ramp/fiat/P2PAvailability.vue', 'utf8')
   const script = source.match(/<script>([\s\S]*?)<\/script>/)[1].replace(/^import .*$/gm, '').replace('export default', 'return')
 
-  it('stops loading on failure and retries availability without replaying financial actions', async () => {
-    let controls = { P2P_MAINTENANCE: true }
+  function screenHarness () {
+    const state = { controls: { P2P_MAINTENANCE: true }, requests: 0, get: null }
     const commits = []
+    const timers = new Map()
+    let timerId = 0
     const bindings = {
-      backend: { get: async () => ({ status: 200, data: controls }) },
+      backend: {
+        async get (url, config) {
+          state.requests++
+          if (state.get) return state.get(url, config)
+          return { status: 200, data: state.controls }
+        }
+      },
       fetchP2PAvailability,
       p2pAvailabilityMessage,
-      bus: { on () {}, off () {} }
+      bus: { on () {}, off () {} },
+      setTimeout (callback, delay) {
+        timers.set(++timerId, { callback, delay })
+        return timerId
+      },
+      clearTimeout (id) { timers.delete(id) }
     }
     const component = new Function(...Object.keys(bindings), script)(...Object.values(bindings))
     const vm = {
       ...component.data(),
       $store: { commit: (...args) => commits.push(args) }
     }
-    await component.methods.retry.call(vm)
-    assert.equal(vm.checking, false)
-    assert.equal(vm.error.response.data.code, 'p2p_maintenance')
-    controls = available
-    await component.methods.retry.call(vm)
-    assert.equal(vm.error, null)
-    assert.equal(vm.checking, false)
-    assert.equal(vm.screenKey, 1)
-    assert.deepEqual(commits, [['ramp/updateFeatureToggles', available]])
+    for (const [name, method] of Object.entries(component.methods)) vm[name] = method.bind(vm)
+    return { vm, state, commits, timers, unmount: () => component.beforeUnmount.call(vm) }
+  }
+
+  it('stops loading on failure and retries availability without replaying financial actions', async () => {
+    const h = screenHarness()
+    await h.vm.retry()
+    assert.equal(h.vm.checking, false)
+    assert.equal(h.vm.error.response.data.code, 'p2p_maintenance')
+    assert.equal(h.timers.size, 1)
+    h.state.controls = available
+    await h.vm.retry()
+    assert.equal(h.vm.error, null)
+    assert.equal(h.vm.checking, false)
+    assert.equal(h.vm.screenKey, 1)
+    assert.equal(h.timers.size, 0)
+    assert.deepEqual(h.commits, [['ramp/updateFeatureToggles', available]])
+  })
+
+  it('does not show a popup when the entry redirect cancels other page requests', async () => {
+    const h = screenHarness()
+    let finish
+    let rejectRequest
+    let requestConfig
+    h.state.get = (url, config) => {
+      requestConfig = config
+      return new Promise((resolve, reject) => { finish = resolve; rejectRequest = reject })
+    }
+    const pending = h.vm.retry()
+    if (!requestConfig.skipAbortManager) {
+      rejectRequest(Object.assign(new Error('Request aborted by navigation'), { code: 'ECONNABORTED' }))
+    } else {
+      finish({ status: 200, data: available })
+    }
+    await pending
+    assert.equal(h.vm.error, null)
+    assert.equal(h.vm.checking, false)
+    assert.equal(h.vm.screenKey, 1)
+    assert.equal(h.state.requests, 1)
+    assert.equal(h.timers.size, 0)
+  })
+
+  it('allows Retry to recover without adding headers rejected by backend CORS', async () => {
+    const h = screenHarness()
+    const requests = []
+    h.state.get = async (url, config) => {
+      const headers = Object.keys(config.headers || {}).map(header => header.toLowerCase())
+      if (headers.includes('cache-control') || headers.includes('pragma')) {
+        throw new Error('CORS preflight rejected unsupported request headers')
+      }
+      requests.push({ url, config })
+      return { status: 200, data: h.state.controls }
+    }
+    await h.vm.retry()
+    assert.equal(h.vm.error.response.data.code, 'p2p_maintenance')
+    h.state.controls = available
+    await h.vm.retry()
+    assert.equal(h.vm.error, null)
+    assert.equal(h.vm.screenKey, 1)
+    assert.equal(requests.length, 2)
+    assert.notEqual(requests[0].config.params._fresh, requests[1].config.params._fresh)
+    assert.equal(requests[1].config.cache, false)
+  })
+
+  it('automatically closes the popup after a fresh check confirms maintenance is off', async () => {
+    const h = screenHarness()
+    await h.vm.retry()
+    const timer = [...h.timers.values()][0]
+    assert.equal(timer.delay, 5000)
+    h.state.controls = available
+    await timer.callback()
+    assert.equal(h.vm.error, null)
+    assert.equal(h.vm.screenKey, 1)
+    assert.equal(h.state.requests, 2)
+    assert.equal(h.timers.size, 0)
+    assert.deepEqual(h.commits, [['ramp/updateFeatureToggles', available]])
+  })
+
+  it('keeps the popup open and schedules another check if availability cannot be verified', async () => {
+    const h = screenHarness()
+    await h.vm.retry()
+    h.state.get = async () => { throw new Error('synthetic network failure') }
+    await [...h.timers.values()][0].callback()
+    assert(h.vm.error)
+    assert.equal(h.vm.checking, false)
+    assert.equal(h.vm.screenKey, 0)
+    assert.equal(h.timers.size, 1)
+    assert.deepEqual(h.commits, [])
+    h.unmount()
+  })
+
+  it('cleans up scheduled checks when leaving P2P', async () => {
+    const h = screenHarness()
+    await h.vm.retry()
+    const timer = [...h.timers.values()][0]
+    h.unmount()
+    assert.equal(h.timers.size, 0)
+    await timer.callback()
+    assert.equal(h.state.requests, 1)
+    assert.equal(h.timers.size, 0)
+  })
+
+  it('prevents overlapping checks and ignores results after leaving P2P', async () => {
+    const h = screenHarness()
+    let finish
+    h.state.get = () => new Promise(resolve => { finish = resolve })
+    const pending = h.vm.retry()
+    await h.vm.retry()
+    assert.equal(h.state.requests, 1)
+    h.unmount()
+    finish({ status: 200, data: available })
+    await pending
+    assert.deepEqual(h.commits, [])
+    assert.equal(h.vm.screenKey, 0)
+    assert.equal(h.timers.size, 0)
   })
 })

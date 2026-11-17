@@ -12,12 +12,12 @@ export function assertP2PAvailable (controls, feature) {
 
 let requestId = 0
 
-export async function fetchP2PAvailability (client, feature) {
+export async function fetchP2PAvailability (client, feature, { skipAbortManager = false } = {}) {
   try {
     const response = await client.get('/ramp-p2p/feature-control/', {
       params: { _fresh: `${Date.now()}-${++requestId}` },
-      headers: { 'Cache-Control': 'no-cache, no-store', Pragma: 'no-cache' },
       timeout: 10000,
+      skipAbortManager,
       cache: false
     })
     if (response.status !== 200 || response.cached === true) throw availabilityError()
@@ -34,7 +34,7 @@ export function isP2PAvailabilityError (error) {
 
 export function p2pAvailabilityMessage (t, error) {
   if (error?.response?.data?.code === 'p2p_maintenance') {
-    return t('P2PUnderMaintenance', {}, 'P2P is temporarily under maintenance.')
+    return t('P2PUnderMaintenance', {}, 'P2P is temporarily under maintenance. Please try again later.')
   }
   if (error?.response?.data?.code === 'p2p_feature_disabled') {
     return t('P2PFeatureUnavailable', {}, 'This P2P action is temporarily unavailable. Do not fund previously generated contracts. Please try again later.')
