@@ -135,7 +135,11 @@ export async function enrollEliteProgram (walletHash, lookupKey) {
   } catch (error) {
     const aborted = Boolean(error?.message?.includes('aborted'))
     if (!aborted) {
-      console.error(error)
+      console.error(
+        'Elite enrollment failed:',
+        error?.response?.status,
+        error?.response?.data?.code ?? error?.message
+      )
     }
     return {
       ok: false,
