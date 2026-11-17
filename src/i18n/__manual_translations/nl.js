@@ -179,4 +179,7 @@ export default {
   LegacyAddressWarning: "U hebt een legacy adres ingevoerd. Zorg ervoor dat het een <span class=\"highlighted-word\">BCH stortingsadres</span> is, niet een BTC stortingsadres.",
   ViewOnCauldron: "Bekijk op Cauldron",
   DropToUnpin: "Sleep hier om los te maken",
+  TopUps: "Opwaarderingen",
+  OverTheCounter: "Aankoop in de winkel",
+  OnHold: "In afwachting",
 }

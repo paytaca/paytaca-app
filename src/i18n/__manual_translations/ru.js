@@ -200,9 +200,12 @@ export default {
   FollowUsOn: "Следуйте за нами на {platform}",
   MultisigWalletLimitReached: "Вы достигли лимита {free} кошельков с мультиподписью.Обновитесь до Paytaca Plus, чтобы создать больше кошельков с мультиподписью.",
   WalletLimitReached: "Вы достигли лимита {free} кошельков.Обновите Paytaca Plus, чтобы создать больше кошельков.",
-  PaytacaElite: "Paytaca Elite",
   LIFTBalance: "Баланс LIFT",
   EliteShortfall: "{amount} не хватает",
   ViewOnCauldron: "Посмотреть на Cauldron",
   PinAction: "Закрепить",
+  TopUps: "Пополнения",
+  OverTheCounter: "Покупка в магазине",
+  OnHold: "В ожидании",
+  PaytacaElite: "Paytaca Элита",
 }

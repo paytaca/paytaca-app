@@ -203,4 +203,7 @@ export default {
   EliteShortfall: "{amount} 부족",
   ViewOnCauldron: "Cauldron에서 보기",
   PinAction: "고정",
+  TopUps: "충전",
+  OverTheCounter: "매장 구매",
+  OnHold: "보류 중",
 }

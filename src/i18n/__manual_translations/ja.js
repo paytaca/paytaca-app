@@ -189,4 +189,7 @@ export default {
   ViewOnCauldron: "Cauldronで表示",
   PinAction: "固定",
   Unpin: "固定を解除",
+  TopUps: "チャージ",
+  OverTheCounter: "店頭購入",
+  OnHold: "保留中",
 }

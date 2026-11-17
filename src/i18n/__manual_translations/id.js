@@ -183,4 +183,7 @@ export default {
   BitcoinIsCashDescription: "Pelajari tentang Bitcoin Cash",
   LIFTBalance: "Saldo LIFT",
   ViewOnCauldron: "Lihat di Cauldron",
+  TopUps: "Isi Ulang",
+  OverTheCounter: "Pembelian langsung",
+  OnHold: "Ditahan",
 }

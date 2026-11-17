@@ -217,4 +217,7 @@ export default {
   BitcoinCash: "Bitcoin Cash",
   ViewOnCauldron: "Auf Cauldron ansehen",
   PinAction: "Anheften",
+  TopUps: "Aufladungen",
+  OverTheCounter: "Direktkauf",
+  OnHold: "Zurückgestellt",
 }

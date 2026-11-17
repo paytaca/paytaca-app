@@ -21,7 +21,7 @@
           </h5>
 
           <p class="q-ma-none text-body1">
-{{ $t('EliteReconnectDescription', {}, "This wallet's connection to the Elite Program is out of date. Reconnecting creates a new secure link so your balances can be checked again. Your balances and history are not affected.") }}
+            {{ $t('EliteReconnectDescription', {}, "This wallet's connection to the Elite Program is out of date. Reconnecting creates a new secure link so your balances can be checked again. Your balances and history are not affected.") }}
           </p>
         </div>
       </q-card-section>

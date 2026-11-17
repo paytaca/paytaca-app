@@ -291,4 +291,7 @@ export default {
   ViewOnCauldron: "Ver en Cauldron",
   PinAction: "Fijar",
   DropToUnpin: "Suelta aquí para desanclar",
+  TopUps: "Recargas",
+  OverTheCounter: "Compra en tienda",
+  OnHold: "En espera",
 }
