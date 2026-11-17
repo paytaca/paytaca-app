@@ -201,5 +201,6 @@ export default {
   PaytacaEliteProgram: "Paytaca 엘리트 프로그램",
   LIFTBalance: "LIFT 잔액",
   EliteShortfall: "{amount} 부족",
-  
+  ViewOnCauldron: "Cauldron에서 보기",
+  PinAction: "고정",
 }

@@ -182,5 +182,5 @@ export default {
   TotalLIFT: "Jumlah LIFT",
   BitcoinIsCashDescription: "Pelajari tentang Bitcoin Cash",
   LIFTBalance: "Saldo LIFT",
-  
+  ViewOnCauldron: "Lihat di Cauldron",
 }

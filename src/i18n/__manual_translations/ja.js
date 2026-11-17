@@ -186,5 +186,7 @@ export default {
   PaytacaElite: "Paytaca エリート",
   LIFTBalance: "LIFT 残高",
   LIFToken: "LIFT トークン",
-  
+  ViewOnCauldron: "Cauldronで表示",
+  PinAction: "固定",
+  Unpin: "固定を解除",
 }

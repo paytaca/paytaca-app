@@ -2480,6 +2480,21 @@ const phrases = {
       EliteTopUpsHelp: 'Your 5 most recent wallet top-ups from this month are shown here. Use View All to see your complete top-up history.',
       EliteProgramRecognition: 'The program aims to recognize and incentivize highly engaged Paytaca users by rewarding merchant engagements with LIFT token cashbacks.',
       EliteProgramJoinHelp: 'To join the program, your wallet must first have the necessary BCH and LIFT balances.'
+    },
+    // Quick actions, address book, cauldron
+    {
+      QuickActions: 'Quick Actions',
+      AddToAddressBook: 'Add to Address Book',
+      ViewOnCauldron: 'View on Cauldron'
+    },
+    // App pinning
+    {
+      DropToUnpin: 'Drop here to unpin',
+      NoAppsFound: 'No apps found',
+      // "Pin" is already taken by the Personal Identification Number, so the
+      // pin action uses its own key with the same English label.
+      PinAction: 'Pin',
+      Unpin: 'Unpin'
     }
   ],
   dynamic: [

@@ -661,19 +661,34 @@ function retryFetch () {
   transform: translateX(2px);
 }
 
+.asset-item-elevated .col {
+  min-width: 0;
+}
+
 .asset-item-elevated .asset-symbol {
   font-size: 16px;
   color: inherit;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .asset-item-elevated .asset-name {
   color: rgba(128, 128, 128, 0.8);
   margin-top: 2px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .asset-item-elevated .asset-amount {
   font-size: 16px;
   color: inherit;
+  white-space: nowrap;
+}
+
+.asset-item-elevated .text-right {
+  flex-shrink: 0;
 }
 
 .asset-item-elevated .asset-fiat {

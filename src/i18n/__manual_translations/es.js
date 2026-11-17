@@ -288,4 +288,7 @@ export default {
   PaytacaWebsiteDescription: "Visita {paytacaWebsite}",
   LIFTBalance: "Saldo LIFT",
   LIFToken: "Token LIFT",
+  ViewOnCauldron: "Ver en Cauldron",
+  PinAction: "Fijar",
+  DropToUnpin: "Suelta aquí para desanclar",
 }

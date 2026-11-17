@@ -265,4 +265,6 @@ export default {
   LIFToken: "رمز LIFT",
   EliteShortfall: "ناقص {amount}",
   EliteCountThisMonth: "{count} هذا الشهر",
+  ViewOnCauldron: "عرض على Cauldron",
+  PinAction: "تثبيت",
 }

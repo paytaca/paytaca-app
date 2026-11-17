@@ -185,4 +185,6 @@ export default {
   PostAd: "POST {type} AD",
   ResolvedDate: "An warware {date}",
   EliteCountThisMonth: "{count} wannan watan",
+  ViewOnCauldron: "Duba akan Cauldron",
+  PinAction: "Tara",
 }

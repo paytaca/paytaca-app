@@ -874,7 +874,7 @@ export default {
       const pinned = this.isPinned(app.id)
       const actions = [
         {
-          label: pinned ? this.$t('Unpin', {}, 'Unpin') : this.$t('Pin', {}, 'Pin'),
+          label: pinned ? this.$t('Unpin', {}, 'Unpin') : this.$t('PinAction', {}, 'Pin'),
           icon: pinned ? 'mdi-pin-off' : 'mdi-pin',
           id: 'pin',
           color: this.themeColor,

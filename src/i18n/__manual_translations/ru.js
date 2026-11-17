@@ -203,4 +203,6 @@ export default {
   PaytacaElite: "Paytaca Elite",
   LIFTBalance: "Баланс LIFT",
   EliteShortfall: "{amount} не хватает",
+  ViewOnCauldron: "Посмотреть на Cauldron",
+  PinAction: "Закрепить",
 }
