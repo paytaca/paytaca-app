@@ -102,6 +102,10 @@ export const EliteAssetIcons = Object.freeze({
 // functions with calls to engagement hub
 // ================================
 
+function eliteProgramHeaders () {
+  return { 'X-Elite-Program-Key': process.env.ELITE_PROGRAM_API_KEY }
+}
+
 export async function getAssetsThresholds (programId = null) {
   // Throws rather than substituting a fallback. These values gate enrollment, and
   // the two assets are in different units -- the BCH one is a fiat amount in the
@@ -125,7 +129,7 @@ export async function enrollEliteProgram (walletHash, lookupKey) {
     const resp = await ELITEPROGRAM_URL.post(
       'enroll/',
       { wallet_hash: walletHash, lookup_key: lookupKey },
-      { headers: { 'X-Elite-Program-Key': process.env.ELITE_PROGRAM_API_KEY } }
+      { headers: eliteProgramHeaders() }
     )
     return { ok: true, data: resp.data }
   } catch (error) {
@@ -230,7 +234,7 @@ async function postEligibilityClaim (data) {
     'process_eligibility/',
     data,
     {
-      headers: { 'X-Elite-Program-Key': process.env.ELITE_PROGRAM_API_KEY },
+      headers: eliteProgramHeaders(),
       // The claim names a spend Watchtower may not have indexed yet, and a
       // retry can outlive the screen that started it. Route changes call
       // requestManager.abortAll(), which would otherwise cancel it.
