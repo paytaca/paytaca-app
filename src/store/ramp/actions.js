@@ -1,3 +1,4 @@
+import { fetchP2PAvailability } from 'src/exchange/availability'
 import { Store } from '..'
 import { backend } from 'src/exchange/backend'
 import { toRaw } from 'vue'
@@ -449,15 +450,13 @@ export function fetchUser (context) {
   })
 }
 
-export function fetchFeatureToggles (context) {
-  return new Promise((resolve, reject) => {
-    backend.get('/ramp-p2p/feature-toggles/')
-      .then(response => {
-        context.commit('updateFeatureToggles', response.data)
-        resolve(response.data)
-      })
-      .catch(error => {
-        reject(error)
-      })
-  })
+export async function fetchFeatureToggles (context) {
+  try {
+    const controls = await fetchP2PAvailability(backend)
+    context.commit('updateFeatureToggles', controls)
+    return controls
+  } catch {
+    context.commit('updateFeatureToggles', {})
+    return {}
+  }
 }

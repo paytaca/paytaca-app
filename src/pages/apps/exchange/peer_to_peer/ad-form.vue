@@ -1,6 +1,12 @@
 <template>
   <div class="ad-form-container" :class="getDarkModeClass(darkMode)">
     <HeaderNav :title="`P2P Ramp`" backnavpath="/apps/exchange/peer-to-peer/ads" class="header-nav" />
+    <q-banner v-if="!adFeatureEnabled" class="bg-orange-2 text-black q-ma-md">
+      {{ $t('P2PFeatureUnavailable', {}, 'This P2P action is temporarily unavailable. Do not fund previously generated contracts. Please try again later.') }}
+      <template #action>
+        <q-btn flat :label="$t('Retry')" @click="$store.dispatch('ramp/fetchFeatureToggles')" />
+      </template>
+    </q-banner>
     <div v-if="currentStep === 1"
       class="text-bow"
       :class="getDarkModeClass(darkMode)">
@@ -347,7 +353,7 @@
 
             <!-- Action Button -->
             <q-btn
-              :disable="checkPostData()"
+              :disable="!adFeatureEnabled || checkPostData()"
               rounded
               unelevated
               no-caps
@@ -376,7 +382,7 @@
       @back="currentStep--"
     />
   </div>
-  <div v-if="currentStep === 3">
+  <div v-if="currentStep === 3 && adFeatureEnabled">
     <DisplayConfirmation
       :post-data="confirmationData"
       :ptl="appealCooldown"
@@ -446,6 +452,7 @@ export default {
   },
   data () {
     return {
+      submittingAd: false,
       darkMode: this.$store.getters['darkmode/getStatus'],
       theme: this.$store.getters['global/theme'],
       loading: false,
@@ -612,6 +619,10 @@ export default {
     }
   },
   computed: {
+    adFeatureEnabled () {
+      const feature = this.adsState === 'edit' ? 'AD_UPDATE' : 'AD_CREATE'
+      return this.$store.getters['ramp/featureToggles']?.[feature] === true
+    },
     themeColor () {
       const themeMap = {
         'glassmorphic-blue': 'blue-6',
@@ -832,6 +843,7 @@ export default {
         .catch(error => {
           vm.handleRequestError(error)
           vm.swipeStatus = false
+          vm.currentStep = 3
         })
     },
     async updateAd () {
@@ -849,6 +861,7 @@ export default {
         .catch(error => {
           vm.handleRequestError(error)
           vm.swipeStatus = false
+          vm.currentStep = 3
         })
     },
     fetchArbiters () {
@@ -950,7 +963,8 @@ export default {
         this.adData.paymentMethods = data
       }
       if (currentStep === 3) {
-        this.onSubmit()
+        await this.onSubmit()
+        if (!this.swipeStatus) return
         await this.$router.push({ name: 'p2p-ads' })
         // await this.$router.push({ name: 'p2p-ads' })
       }
@@ -961,13 +975,19 @@ export default {
     },
     async onSubmit () {
       const vm = this
-      switch (vm.adsState) {
-        case 'create':
-          await vm.createAd()
-          break
-        case 'edit':
-          await vm.updateAd()
-          break
+      if (!vm.adFeatureEnabled || vm.submittingAd) return
+      vm.submittingAd = true
+      try {
+        switch (vm.adsState) {
+          case 'create':
+            await vm.createAd()
+            break
+          case 'edit':
+            await vm.updateAd()
+            break
+        }
+      } finally {
+        vm.submittingAd = false
       }
     },
     async updateFiatCurrency () {

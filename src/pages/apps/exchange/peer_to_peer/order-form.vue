@@ -232,6 +232,7 @@
                   <q-icon name="info" color="blue" size="md" class="q-mr-md"/>
                   <div class="text-weight-medium">
                     {{ $t('FeatureTemporarilyDisabled', {}, 'This feature is temporarily disabled. We appreciate your patience as we make improvements.') }}
+                    <q-btn flat :label="$t('Retry')" @click="$store.dispatch('ramp/fetchFeatureToggles')" />
                   </div>
                 </div>
               </div>
@@ -337,6 +338,7 @@ export default {
   },
   data () {
     return {
+      creatingOrder: false,
       darkMode: this.$store.getters['darkmode/getStatus'],
       theme: this.$store.getters['global/theme'],
       websocket: null,
@@ -407,10 +409,10 @@ export default {
       return Number(this.minTradeAmount(this.ad))
     },
     adShareLinkEnabled () {
-      return this.$store.getters['ramp/featureToggles']?.AdShareLinks
+      return this.$store.getters['ramp/featureToggles']?.AD_SHARE_LINKS === true
     },
     createOrdersEnabled () {
-      return this.$store.getters['ramp/featureToggles']?.CreateOrders
+      return this.$store.getters['ramp/featureToggles']?.ORDER_CREATE === true
     },
     hasArbiters () {
       return this.arbitersAvailable?.length > 0
@@ -674,6 +676,8 @@ export default {
     },
     async createOrder () {
       const vm = this
+      if (vm.creatingOrder) return
+      vm.creatingOrder = true
       const body = {
         ad: vm.ad.id,
         trade_amount: vm.getTradeAmount()
@@ -702,6 +706,10 @@ export default {
           })
       } catch (error) {
         this.handleRequestError(error)
+      } finally {
+        vm.creatingOrder = false
+        vm.loadSubmitButton = false
+        if (vm.$refs.addPaymentMethodsRef) vm.$refs.addPaymentMethodsRef.loadSubmitButton = false
       }
     },
     async confirmOrder () {

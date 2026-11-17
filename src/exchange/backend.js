@@ -1,4 +1,5 @@
 import axios from 'axios'
+import { fetchP2PAvailability, isP2PAvailabilityError, p2pRequestFeature } from 'src/exchange/availability'
 import { Store } from 'src/store'
 import { deleteAuthTokenForUserType, getAuthToken } from './auth'
 import { wallet } from './wallet'
@@ -64,6 +65,8 @@ backend.interceptors.request.use(async (config) => {
       config.headers.Authorization = `Token ${token}`
     }
   }
+  const feature = p2pRequestFeature(config)
+  if (feature) await fetchP2PAvailability(backend, feature)
   return config
 })
 
@@ -71,6 +74,7 @@ backend.interceptors.request.use(async (config) => {
 backend.interceptors.response.use(
   response => response,
   error => {
+    if (isP2PAvailabilityError(error)) bus.emit('p2p-unavailable', error)
     // Handle 401 Unauthorized and 403 Forbidden errors - typically means session expired or not authenticated
     // Check if this was an authorized request (requires authentication)
     const wasAuthorizedRequest = !!error?.config?.authorize

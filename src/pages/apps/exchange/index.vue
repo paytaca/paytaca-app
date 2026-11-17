@@ -1,4 +1,5 @@
 <template>
+  <P2PAvailability>
   <div id="app-container" class="row" :class="getDarkModeClass(darkMode)" v-if="!openVersionUpdate">
     <router-view v-if="isloaded" :key="$route.name"></router-view>
     
@@ -40,8 +41,10 @@
     </div>
   </div>
   <OngoingMaintenanceDialog v-if="appDisabled"/>
+  </P2PAvailability>
 </template>
 <script>
+import P2PAvailability from 'src/components/ramp/fiat/P2PAvailability.vue'
 import HeaderNav from 'src/components/header-nav.vue'
 import OngoingMaintenanceDialog from 'src/components/ramp/fiat/dialogs/OngoingMaintenanceDialog.vue'
 import versionUpdate from 'src/pages/transaction/dialog/versionUpdate.vue'
@@ -53,6 +56,7 @@ import { loadRampWallet } from 'src/exchange/wallet'
 
 export default {
   components: {
+    P2PAvailability,
     HeaderNav,
     OngoingMaintenanceDialog
   },

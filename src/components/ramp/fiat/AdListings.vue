@@ -3,6 +3,12 @@
     class="q-mx-md q-mx-none q-mb-lg text-bow"
     :class="getDarkModeClass(darkMode)"
     :style="`height: ${minHeight}px;`">
+    <q-banner v-if="!adCreateEnabled || !adUpdateEnabled" class="bg-orange-2 text-black q-mb-md">
+      {{ $t('P2PActionsUnavailable', {}, 'Some P2P actions are temporarily unavailable. Please try again later.') }}
+      <template #action>
+        <q-btn flat :label="$t('Retry')" @click="$store.dispatch('ramp/fetchFeatureToggles')" />
+      </template>
+    </q-banner>
     <div class="q-mb-lg q-pb-lg q-pt-xs">
       <q-pull-to-refresh @refresh="refreshData">
         <div class="row justify-start items-center q-mx-none">
@@ -31,7 +37,7 @@
               no-caps
               padding="sm"
               icon="add"
-              :disable="disableCreateBtn"
+              :disable="disableCreateBtn || !adCreateEnabled"
               class="add-btn"
               :style="`background-color: ${getThemeColor()}; color: #fff;`"
               @click="onCreateAd()"
@@ -157,6 +163,7 @@
                               rounded
                               padding="sm"
                               icon="edit"
+                              :disable="!adUpdateEnabled"
                               size="sm"
                               color="button"
                               @click="onEditAd(listing.id)"
@@ -179,6 +186,7 @@
                               size="sm"
                               class="q-ml-xs text-weight-bold"
                               :loading="visibilityLoading[listing.id]"
+                              :disable="!adUpdateEnabled || visibilityLoading[listing.id]"
                               :color="listing.is_public ? darkMode ? 'green-13' : 'green-8' : darkMode ? 'red-13' : 'red'"
                               :icon="listing.is_public ? 'visibility' : 'visibility_off'"
                               @click="onToggleAdVisibility(listing, index)">
@@ -280,6 +288,12 @@ export default {
     }
   },
   computed: {
+    adCreateEnabled () {
+      return this.$store.getters['ramp/featureToggles']?.AD_CREATE === true
+    },
+    adUpdateEnabled () {
+      return this.$store.getters['ramp/featureToggles']?.AD_UPDATE === true
+    },
     theme () {
       return this.$store.getters['global/theme']
     },
@@ -402,7 +416,7 @@ export default {
         })
     },
     async toggleAdVisibility (ad, index) {
-      if (!ad) return
+      if (!ad || !this.adUpdateEnabled || this.visibilityLoading[ad.id]) return
       this.visibilityLoading[ad.id] = true
       await backend.put(`/ramp-p2p/ad/${ad.id}/`, { is_public: !ad.is_public }, { authorize: true })
         .then(response => {
