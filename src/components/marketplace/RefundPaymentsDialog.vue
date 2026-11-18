@@ -15,7 +15,7 @@
                   {{ capitalize(payment?.status).replaceAll('_', ' ') }}
                 </q-badge>
               </q-item-label>
-              <q-item-label class="text-caption">
+              <q-item-label v-if="!payment?.isCOD" class="text-caption">
                 {{ payment?.bchTotalAmount }} BCH
               </q-item-label>
             </q-item-section>
@@ -111,6 +111,7 @@ watch(() => [props.modelValue], () => innerVal.value = props.modelValue)
 const uniquePayments = computed(() => {
   if (!Array.isArray(props.payments)) return []
   return props.payments.filter((payment, index, list) => {
+    if (payment?.isCOD) return false
     return list.findIndex(_payment => _payment?.id === payment.id) === index
   })
 })
@@ -192,6 +193,7 @@ function refundPayment(payment=Payment.parse(), opts={ emitRefunded: true }) {
 }
 
 function isNotRefundable(payment=Payment.parse()) {
+  if (payment?.isCOD) return t('PaymentErrMsg1')
   if (!payment?.escrowContractAddress) return t('PaymentErrMsg1')
   switch(payment?.status) {
     case('sent'):
