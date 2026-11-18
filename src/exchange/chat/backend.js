@@ -5,6 +5,8 @@ import axios from 'axios'
 import { generateChatIdentityRef } from '.'
 import { getCurrentWalletStorageKey, getWalletStorageKey } from 'src/utils/wallet-storage'
 import { requestManager } from 'src/utils/request-manager'
+import { Store } from 'src/store'
+import { assertP2PIdentity } from 'src/exchange/backend'
 
 
 export const chatBackend = axios.create({
@@ -55,6 +57,9 @@ function getSignerDataStorageKey(walletHash = null) {
 
 export async function signRequestData (data, walletHash = null) {
   const response = { walletHash: '', signature: '' }
+  const userType = Store.getters['ramp/getUser']?.is_arbiter ? 'arbiter' : 'peer'
+  const registered = await assertP2PIdentity(null, userType)
+  const signerWallet = wallet
   const { value } = await getSignerData(walletHash)
   if (!value) {
     console.error('signRequestData value undefined')
@@ -65,6 +70,11 @@ export async function signRequestData (data, walletHash = null) {
   if (!storedWalletHash || !privkey) {
     console.error('signRequestData undefined walletHash || privkey')
     return response
+  }
+  signerWallet.assertIdentity(registered)
+  if (storedWalletHash !== signerWallet.walletHash || privkey !== signerWallet.privkey() ||
+      (walletHash && walletHash !== signerWallet.walletHash)) {
+    throw Object.assign(new Error('The cached P2P chat signer does not match the registered identity. Signing is blocked.'), { code: 'p2p_identity_mismatch' })
   }
   response.walletHash = storedWalletHash
 
@@ -101,6 +111,9 @@ export async function setSignerData (value = '', walletHash = null) {
 export async function updateSignerData () {
   console.log('Updating chat signer data')
   if (!wallet) await loadRampWallet()
+  const userType = Store.getters['ramp/getUser']?.is_arbiter ? 'arbiter' : 'peer'
+  const registered = await assertP2PIdentity(null, userType)
+  const signerWallet = wallet
 
   // fetches the verifying keypair at address path 0/0
   const verifyingPubkeyIndex = 0 // fixed verifying pubkey index at 0
@@ -116,6 +129,7 @@ export async function updateSignerData () {
 
   // return if no need to update signer data
   const signerData = await getSignerData(walletHash)
+  signerWallet.assertIdentity(registered)
   const storedWalletHash = signerData?.value?.split(':')[0]
   const storedPrivKey = signerData?.value?.split(':')[1]
   if (storedWalletHash === walletHash && storedPrivKey === privkey) {

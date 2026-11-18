@@ -1077,6 +1077,10 @@ export default {
       })
     },
     handleRequestError (error) {
+      if (['p2p_identity_mismatch', 'p2p_account_type_mismatch'].includes(error?.code)) {
+        this.$q.notify({ type: 'error', message: error.message, timeout: 5000 })
+        return
+      }
       if (error.code === 'ECONNABORTED') return
       console.error(error?.response || error)
       if (!error.response) {

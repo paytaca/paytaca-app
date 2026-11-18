@@ -9,6 +9,7 @@ const available = { P2P_MAINTENANCE: false, ORDER_ESCROW: true }
 function harness (initial = available) {
   let controls = initial
   let failure = null
+  let identityFailure = null
   const events = []
   const requests = []
   const backend = {
@@ -28,7 +29,8 @@ function harness (initial = available) {
   }
   const bindings = {
     bus: { emit () {} },
-    wallet: { async getRawWallet () { events.push('wallet'); return rawWallet } },
+    async assertP2PIdentity () { if (identityFailure) throw identityFailure; return {} },
+    wallet: { addressPath: () => '0/0', assertIdentity () {}, async getRawWallet () { events.push('wallet'); return rawWallet } },
     backend,
     fetchP2PAvailability,
     isP2PAvailabilityError,
@@ -55,6 +57,8 @@ function harness (initial = available) {
   Object.assign(vm, {
     contractAddress: 'synthetic-contract',
     escrowContract: {
+      publicKeys: { seller: 'synthetic-key' },
+      addresses: { seller: 'synthetic-address' },
       getAddress: () => 'synthetic-contract',
       async getUtxos () { events.push('utxos'); return [] },
       async getBalance () { return 1 }
@@ -65,7 +69,7 @@ function harness (initial = available) {
     arbiterOptions: [{}],
     dragSlideOn: true
   })
-  return { vm, events, requests, setControls: value => { controls = value }, setFailure: value => { failure = value } }
+  return { vm, events, requests, setControls: value => { controls = value }, setFailure: value => { failure = value }, setIdentityFailure: value => { identityFailure = value } }
 }
 
 describe('P2P escrow pause', () => {
@@ -354,5 +358,272 @@ describe('P2P maintenance screen', () => {
     assert.deepEqual(h.commits, [])
     assert.equal(h.vm.screenKey, 0)
     assert.equal(h.timers.size, 0)
+  })
+})
+
+function identityHarness () {
+  const selected = { hash: 'synthetic-wallet', index: 0, chipnet: false }
+  const Store = { getters: {
+    'global/getWallet': () => ({ walletHash: selected.hash }),
+    get 'global/getWalletIndex' () { return selected.index },
+    get 'global/isChipnet' () { return selected.chipnet }
+  } }
+  const walletSource = readFileSync('src/exchange/wallet.js', 'utf8').replace(/^import .*$/gm, '').replace(/export /g, '')
+  const RampWallet = new Function('Store', `${walletSource}; return RampWallet`)(Store)
+  const wallet = new RampWallet(0, selected.hash, 0, false)
+  wallet.wallet = { getPubkeyAt: () => 'synthetic-key', getAddressAt: () => 'synthetic-address' }
+  const registered = { public_key: 'synthetic-key', address: 'synthetic-address', address_path: '0/0', wallet_hash: selected.hash, is_arbiter: false }
+  const requests = []
+  const events = []
+  const notifications = []
+  let failure
+  let beforeResponse = () => {}
+  const interceptors = { request: null, response: null, reject: null }
+  const client = {
+    defaults: {},
+    interceptors: {
+      request: { use (callback) { interceptors.request = callback } },
+      response: { use (callback, reject) { interceptors.response = callback; interceptors.reject = reject } }
+    },
+    async request (config) {
+      config.headers = {}
+      await interceptors.request(config)
+      requests.push(config)
+      await beforeResponse()
+      if (failure) return interceptors.reject({ ...failure, config })
+      return interceptors.response({ status: 200, data: { ...registered }, config })
+    },
+    get (url, config = {}) { return this.request({ ...config, method: 'get', url }) },
+    patch (url, data, config) { return this.request({ ...config, method: 'patch', url, data }) }
+  }
+  const bindings = {
+    axios: { create: () => client }, Store, wallet,
+    Notify: { create: message => notifications.push(message) },
+    bus: { emit: name => events.push(name) },
+    requestManager: { attachTo () {} },
+    getAuthToken: async role => `synthetic-${role}-token`,
+    deleteAuthTokenForUserType: role => events.push(`delete-${role}`),
+    fetchP2PAvailability: async () => {}, isP2PAvailabilityError: () => false,
+    p2pRequestFeature
+  }
+  const backendSource = readFileSync('src/exchange/backend.js', 'utf8').replace(/^import .*$/gm, '').replace(/export /g, '')
+  const api = new Function(...Object.keys(bindings), `${backendSource}; return { updateP2PProfile, assertP2PIdentity, updatePubkeyAndAddress }`)(...Object.values(bindings))
+  return { ...api, wallet, registered, selected, requests, events, notifications, client,
+    fail: value => { failure = value }, beforeResponse: value => { beforeResponse = value } }
+}
+
+describe('Immutable P2P profile identities', () => {
+  for (const role of ['peer', 'arbiter']) {
+    it(`allowlists ${role} metadata and uses only its own role token`, async () => {
+      const h = identityHarness()
+      await h.updateP2PProfile(role, { ...h.registered, name: 'Synthetic name', chat_identity_id: 'synthetic-chat', inactive_hours: 24, unsupported: true })
+      assert.equal(h.requests.length, 1)
+      assert.equal(h.requests[0].url, `/ramp-p2p/${role}/`)
+      assert.equal(h.requests[0].authorize, role)
+      assert.equal(h.requests[0].headers.Authorization, `Token synthetic-${role}-token`)
+      assert.deepEqual(h.requests[0].data, role === 'peer' ? { name: 'Synthetic name', chat_identity_id: 'synthetic-chat' } : { name: 'Synthetic name', chat_identity_id: 'synthetic-chat', inactive_hours: 24 })
+    })
+
+    for (const status of [400, 403]) {
+      it(`preserves ${role} state on HTTP ${status} without retry or role fallback`, async () => {
+        const h = identityHarness()
+        const cached = { ...h.registered }
+        h.fail({ response: { status, data: { public_key: ['Identity is immutable'] } } })
+        await assert.rejects(h.updateP2PProfile(role, { name: 'Rejected' }).then(response => Object.assign(cached, response.data)), error => {
+          assert.match(error.message, status === 400 ? /unsupported/ : /account type/)
+          return true
+        })
+        assert.deepEqual(cached, h.registered)
+        assert.equal(h.requests.length, 1)
+        assert.deepEqual(h.events, [])
+        assert.equal(h.notifications.length, 1)
+      })
+    }
+  }
+
+  it('validates synchronization without an identity PATCH or mutation', async () => {
+    const h = identityHarness()
+    assert.equal((await h.updatePubkeyAndAddress(h.registered)).success, true)
+    await assert.rejects(h.updatePubkeyAndAddress({ ...h.registered, address: 'other-address' }), { code: 'p2p_identity_mismatch' })
+    assert.deepEqual(h.requests, [])
+    assert.equal(h.registered.address, 'synthetic-address')
+  })
+
+  it('blocks wrong wallets, derivation paths, encodings, and network changes', () => {
+    for (const patch of [{ public_key: 'SYNTHETIC-KEY' }, { address: 'SYNTHETIC-ADDRESS' }, { address_path: '0/1' }, { wallet_hash: 'other-wallet' }, { public_key: null }]) {
+      const h = identityHarness()
+      assert.throws(() => h.wallet.assertIdentity({ ...h.registered, ...patch }), { code: 'p2p_identity_mismatch' })
+    }
+    for (const patch of [{ hash: 'other-wallet' }, { index: 1 }, { chipnet: true }]) {
+      const h = identityHarness()
+      Object.assign(h.selected, patch)
+      assert.throws(() => h.wallet.assertIdentity(h.registered), { code: 'p2p_identity_mismatch' })
+    }
+  })
+
+  it('checks the fresh registered identity and existing contract member before signing', async () => {
+    const h = identityHarness()
+    await h.assertP2PIdentity(h.registered, 'peer')
+    h.registered.public_key = 'restored-different-key'
+    await assert.rejects(h.assertP2PIdentity(), { code: 'p2p_identity_mismatch' })
+    h.registered.public_key = 'synthetic-key'
+    await assert.rejects(h.assertP2PIdentity({ ...h.registered, public_key: 'old-contract-key' }), { code: 'p2p_identity_mismatch' })
+    await assert.rejects(h.assertP2PIdentity(null, 'arbiter'), /account type/)
+    assert(h.requests.every(request => request.method === 'get' && request.url === '/auth/' && request.cache === false))
+  })
+
+  it('rejects responses after switching wallets before they can overwrite cached identity', async () => {
+    const h = identityHarness()
+    const cached = { ...h.registered }
+    h.beforeResponse(() => { h.selected.index = 1 })
+    await assert.rejects(h.updateP2PProfile('peer', { name: 'Old wallet' }).then(response => Object.assign(cached, response.data)), { code: 'p2p_identity_mismatch' })
+    assert.deepEqual(cached, h.registered)
+  })
+
+  it('rejects login identity mismatch before signing or replacing chat signing material', async () => {
+    const h = identityHarness()
+    const authSource = readFileSync('src/exchange/auth.js', 'utf8').replace(/^import .*$/gm, '').replace(/export /g, '')
+    const events = []
+    const bindings = {
+      Store: { getters: {
+        'global/getWallet': () => ({ walletHash: h.wallet.walletHash }),
+        'global/getWalletIndex': 0, 'global/isChipnet': false
+      } }, rampWallet: h.wallet,
+      SecureStoragePlugin: { get: async () => ({ value: 'synthetic-token' }) },
+      backend: { get: async () => ({ data: { ...h.registered, public_key: 'different-key' } }), post: async () => events.push('login-signature'), patch: async () => events.push('identity-patch') },
+      loadChatIdentity: async () => events.push('chat-signer'),
+      bus: { emit () {} }
+    }
+    const authenticate = new Function(...Object.keys(bindings), `${authSource}; return loadAuthenticatedUser`)(...Object.values(bindings))
+    await assert.rejects(authenticate(), { code: 'p2p_identity_mismatch' })
+    assert.deepEqual(events, [])
+  })
+
+  it('keeps identity fields and signature headers on initial peer registration', async () => {
+    const source = readFileSync('src/components/ramp/fiat/RampLogin.vue', 'utf8')
+    const method = source.slice(source.indexOf('    async registerUser ()'), source.indexOf('    handleError (error)'))
+    const requests = []
+    const wallet = {
+      wallet: { getPrivateKeyWifAt: () => 'synthetic-secret-placeholder', getPubkeyAt: () => 'synthetic-key', getAddressAt: () => 'synthetic-address' },
+      addressPath: () => '0/0', signMessage: () => 'synthetic-signature'
+    }
+    const backend = { post: async (...args) => { requests.push(args); return { data: {} } } }
+    const component = new Function('wallet', 'backend', `return { ${method} }`)(wallet, backend)
+    await component.registerUser.call({ usernickname: 'Synthetic name', $store: { commit () {} }, handleError: error => { throw error } })
+    assert.equal(requests[0][0], '/ramp-p2p/peer/')
+    assert.deepEqual(requests[0][1], { name: 'Synthetic name', address: 'synthetic-address', address_path: '0/0' })
+    assert.equal(requests[0][2].headers['public-key'], 'synthetic-key')
+    assert.equal(requests[0][2].headers.signature, 'synthetic-signature')
+  })
+})
+
+describe('P2P identity checks at financial boundaries', () => {
+  it('does not fund or automatically retry when a restored wallet mismatches', async () => {
+    const h = harness()
+    h.setIdentityFailure(Object.assign(new Error('Synthetic identity mismatch'), { code: 'p2p_identity_mismatch' }))
+    await h.vm.escrowBch()
+    assert(!h.events.includes('sign'))
+    assert(!h.events.includes('broadcast'))
+    assert(!h.events.includes('pending-escrow'))
+    assert.deepEqual(h.vm.sendErrors, ['Synthetic identity mismatch'])
+    assert.equal(h.vm.sendingBch, false)
+  })
+
+  for (const [file, method, role] of [
+    ['src/components/ramp/fiat/PaymentConfirmation.vue', 'releaseBch', 'seller'],
+    ['src/components/ramp/appeal/AppealDetail.vue', 'releaseBch', 'arbiter'],
+    ['src/components/ramp/appeal/AppealDetail.vue', 'refundBch', 'arbiter']
+  ]) {
+    for (const mismatch of [false, true]) {
+      it(`${mismatch ? 'blocks mismatched' : 'allows matching'} ${role} ${method} before extracting signing keys`, async () => {
+        const h = identityHarness()
+        h.registered.is_arbiter = role === 'arbiter'
+        const source = readFileSync(file, 'utf8')
+        const start = source.indexOf(`    async ${method} ()`)
+        const end = source.indexOf('\n    },', start) + 7
+        const events = []
+        const wallet = { keypair () { events.push('keypair'); return {} }, privkey () { events.push('privkey'); return 'synthetic-secret-placeholder' } }
+        const component = new Function('wallet', 'assertP2PIdentity', `return { ${source.slice(start, end)} }`)(wallet, h.assertP2PIdentity)
+        const escrow = {
+          publicKeys: { [role]: mismatch ? 'different-contract-key' : h.registered.public_key },
+          addresses: { [role]: h.registered.address },
+          getAddress: () => 'synthetic-contract',
+          async release () { events.push('release'); return { success: false, reason: 'Synthetic result' } },
+          async refund () { events.push('refund'); return { success: false, reason: 'Synthetic result' } }
+        }
+        const contract = { address: 'synthetic-contract', members: [{ member_type: role.toUpperCase(), address_path: '0/0' }] }
+        const vm = { data: { escrow, contract }, escrowContract: escrow, contract, order: { trade_amount: 1000 } }
+        await component[method].call(vm)
+        assert.equal(events.length, mismatch ? 0 : 2)
+        if (mismatch) assert.match(role === 'seller' ? vm.sendErrors[0] : vm.sendError, /registered P2P identity/)
+      })
+    }
+  }
+
+  for (const file of ['src/pages/apps/exchange/peer_to_peer/index.vue', 'src/pages/apps/exchange/arbiter/index.vue']) {
+    it(`does not prompt reauthentication for rejected profile edits in ${file}`, () => {
+      const source = readFileSync(file, 'utf8')
+      const start = source.indexOf('    handleRequestError (error)')
+      const end = source.indexOf('\n    },', start) + 7
+      const events = []
+      const component = new Function('bus', `return { ${source.slice(start, end)} }`)({ emit: event => events.push(event) })
+      component.handleRequestError({ code: 'p2p_profile_rejected', response: { status: 403 } })
+      assert.deepEqual(events, [])
+    })
+  }
+})
+
+describe('P2P chat signing identity', () => {
+  for (const operation of ['signRequestData', 'updateSignerData']) {
+    it(`blocks ${operation} on registered identity mismatch without changing local signing material`, async () => {
+      const source = readFileSync('src/exchange/chat/backend.js', 'utf8').replace(/^import .*$/gm, '').replace(/export /g, '')
+      const events = []
+      const bindings = {
+        axios: { create: () => ({ interceptors: { request: { use () {} } } }) },
+        requestManager: { attachTo () {} },
+        Store: { getters: { 'ramp/getUser': { is_arbiter: false } } },
+        wallet: { privkey () { events.push('derive-private-key') } },
+        assertP2PIdentity: async () => { throw Object.assign(new Error('Synthetic mismatch'), { code: 'p2p_identity_mismatch' }) },
+        SecureStoragePlugin: { get: async () => { events.push('read-signer') }, set: async () => { events.push('write-signer') } },
+        signMessage: () => { events.push('sign') }
+      }
+      const api = new Function(...Object.keys(bindings), `${source}; return { signRequestData, updateSignerData }`)(...Object.values(bindings))
+      await assert.rejects(api[operation]('synthetic-message'), { code: 'p2p_identity_mismatch' })
+      assert.deepEqual(events, [])
+    })
+  }
+
+  it('rejects an obsolete cached chat key without signing or replacing it', async () => {
+    const source = readFileSync('src/exchange/chat/backend.js', 'utf8').replace(/^import .*$/gm, '').replace(/export /g, '')
+    const events = []
+    const bindings = {
+      axios: { create: () => ({ interceptors: { request: { use () {} } } }) }, requestManager: { attachTo () {} },
+      Store: { getters: { 'ramp/getUser': { is_arbiter: false } } },
+      wallet: { walletHash: 'synthetic-wallet', assertIdentity () {}, privkey: () => 'synthetic-current-key' },
+      assertP2PIdentity: async () => ({}), getCurrentWalletStorageKey: () => 'synthetic-storage-key',
+      SecureStoragePlugin: { get: async () => ({ value: 'synthetic-wallet:synthetic-old-key' }), set: async () => events.push('write') },
+      signMessage: () => events.push('sign')
+    }
+    const sign = new Function(...Object.keys(bindings), `${source}; return signRequestData`)(...Object.values(bindings))
+    await assert.rejects(sign('synthetic-message'), { code: 'p2p_identity_mismatch' })
+    assert.deepEqual(events, [])
+  })
+})
+
+describe('P2P wallet-scoped error responses', () => {
+  it('discards a stale account error after switching instead of prompting registration or login', async () => {
+    const h = identityHarness()
+    h.fail({ response: { status: 404, data: { error: 'user does not exist' } } })
+    h.beforeResponse(() => { h.selected.hash = 'other-wallet' })
+    await assert.rejects(h.client.get('/auth/'), { code: 'p2p_identity_mismatch' })
+    assert.deepEqual(h.events, [])
+    assert.deepEqual(h.notifications, [])
+  })
+
+  it('checks peer identity before order creation and rejects mismatches without posting', async () => {
+    const h = identityHarness()
+    h.registered.public_key = 'different-registered-key'
+    await assert.rejects(h.client.request({ method: 'post', url: '/ramp-p2p/order/', authorize: 'peer' }), { code: 'p2p_identity_mismatch' })
+    assert(h.requests.every(request => request.method === 'get'))
   })
 })

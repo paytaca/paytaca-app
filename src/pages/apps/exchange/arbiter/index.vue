@@ -109,6 +109,11 @@ export default {
       })
     },
     handleRequestError (error) {
+      if (error?.code === 'p2p_profile_rejected') return
+      if (['p2p_identity_mismatch', 'p2p_account_type_mismatch'].includes(error?.code)) {
+        this.$q.notify({ type: 'error', message: error.message, timeout: 5000 })
+        return
+      }
       // Suppress ECONNABORTED — these are XHR aborts from
       // requestManager.abortAll on navigation, not actual HTTP timeouts.
       if (error?.code === 'ECONNABORTED') return

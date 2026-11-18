@@ -141,20 +141,29 @@ export default {
         // Emitting on unmount can cause refresh loops if the dialog is closed/cancelled.
         bus.emit('relogged')
       } catch (error) {
-        if (!error.response) {
+        if (error.code === 'p2p_identity_mismatch') {
+          this.errorMessage = error.message
+        } else if (!error.response) {
           bus.emit('network-error')
         } else if (error.response.status === 404) {
           this.register = true
+        } else {
+          this.errorMessage = this.getErrorMessageByType(error)
         }
       }
       this.isLoading = false
     },
     async onRegisterUser () {
       this.loggingIn = true
-      await this.registerUser()
-      await this.loadUser(true)
-      this.loggingIn = false
-      this.register = false
+      try {
+        await this.registerUser()
+        await this.loadUser(true)
+        this.register = false
+      } catch (error) {
+        this.handleError(error)
+      } finally {
+        this.loggingIn = false
+      }
     },
     async registerUser () {
       const vm = this
@@ -182,7 +191,6 @@ export default {
           vm.$store.commit('ramp/updateUser', vm.user)
           console.log('Created user:', vm.user)
         })
-        .catch(error => { vm.handleError(error) })
     },
     handleError (error) {
       console.error(error)
@@ -196,7 +204,7 @@ export default {
     getErrorMessageByType (error) {
       if (this.isNetworkError(error)) {
         return 'Network error'
-      } else if (this.isRequestError()) {
+      } else if (this.isRequestError(error)) {
         return `${error.response.status} ${error.response.data?.error}`
       } else {
         return error

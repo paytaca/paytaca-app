@@ -294,7 +294,7 @@ import { updateChatIdentity } from 'src/exchange/chat'
 import { formatDate, formatCurrency, getAppealCooldown } from 'src/exchange'
 import { bus } from 'src/wallet/event-bus.js'
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
-import { backend } from 'src/exchange/backend'
+import { backend, updateP2PProfile } from 'src/exchange/backend'
 import { loadLibauthHdWallet } from 'src/wallet'
 
 export default {
@@ -517,7 +517,7 @@ export default {
     },
     async updateUserName (info) {
       const vm = this
-      backend.patch('/ramp-p2p/peer/', { name: info.nickname }, { authorize: true })
+      updateP2PProfile('peer', { name: info.nickname })
         .then(response => {
           vm.$store.commit('ramp/updateUser', response.data)
           const payload = {

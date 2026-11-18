@@ -97,6 +97,7 @@ export class ExchangeUser {
     this.id = data?.id
     this.name = data?.name
     this.chat_identity_id = data?.chat_identity_id
+    this.wallet_hash = data?.wallet_hash
     this.public_key = data?.public_key
     this.address = data?.address
     this.address_path = data?.address_path
@@ -111,7 +112,7 @@ export class ExchangeUser {
   }
 
   isLoggedIn () {
-    return this.user.is_authenticated
+    return this.is_authenticated
   }
 
   async login (forceLogin) {
@@ -121,8 +122,9 @@ export class ExchangeUser {
     this.emitSignal('login')
     deleteAuthToken(this.user_type)
 
-    const libauthWallet = rampWallet.wallet
     const otp = await this.getOTP()
+    rampWallet.assertIdentity(this)
+    const libauthWallet = rampWallet.wallet
     const addressPath = rampWallet.addressPath()
     const privkey = libauthWallet.getPrivateKeyWifAt(addressPath)
     const pubkey = libauthWallet.getPubkeyAt(addressPath)
@@ -133,7 +135,7 @@ export class ExchangeUser {
       public_key: pubkey
     }
     const loginResponse = await backend.post(`/auth/login/${this.user_type}`, body)
-    saveAuthToken(loginResponse.data.token, this.user_type)
+    await saveAuthToken(loginResponse.data.token, this.user_type)
     return loginResponse.data.token
   }
 
@@ -149,31 +151,7 @@ export class ExchangeUser {
   }
 
   async savePubkeyAndAddress () {
-    this.emitSignal('pubkey')
-
-    const libauthWallet = rampWallet.wallet
-    const addressPath = rampWallet.addressPath()
-    const pubkey = libauthWallet.getPubkeyAt(addressPath)
-    const address = libauthWallet.getAddressAt({ path: addressPath })
-    const payload = {
-      public_key: pubkey,
-      address: address,
-      address_path: addressPath
-    }
-
-    if (payload.public_key === this.public_key &&
-          payload.address === this.address &&
-          payload.address_path === this.address_path) {
-      console.log('Local wallet keys match server keys')
-      return Promise.resolve()
-    }
-
-    await backend.patch(`/ramp-p2p/${this.user_type}/`, payload, { authorize: true })
-      .then(response => {
-        console.log('Updated pubkey and address:', response.data)
-      })
-
-    return Promise.resolve()
+    rampWallet.assertIdentity(this)
   }
 
   emitSignal (step, params = { signal: 'next-login-step', data: '' }) {
@@ -207,33 +185,16 @@ export async function loadAuthenticatedUser (forceLogin = false) {
 
     user.emitSignal(null, { signal: 'logging-in', data: true })
 
+    await getAuthToken(user.user_type)
+    await user.savePubkeyAndAddress()
     await user.login(!user.is_authenticated || forceLogin)
     
-    // Fetch chat identity and save pubkey/address in parallel
-    // Handle errors gracefully - chat identity might fail if not ready yet
-    await Promise.allSettled([
-      user.fetchChatIdentity().catch(error => {
-        // Chat identity errors are expected if identity not ready yet
-        // Don't log as error - it will be created/loaded when needed
-        // Handle both Error objects and string errors
-        const is403 = error?.response?.status === 403 || 
-                     (typeof error === 'string' && error.includes('chat identity'))
-        if (!is403) {
-          console.error('Error fetching chat identity:', error)
-        }
-      }),
-      user.savePubkeyAndAddress().catch(error => {
-        // Pubkey/address update errors are non-critical
-        // Only log if it's not a 403 (which means not authenticated, handled by login)
-        // Handle both Error objects and string errors
-        const is403 = error?.response?.status === 403 || 
-                     (typeof error === 'string' && error.includes('pubkey'))
-        if (!is403) {
-          console.error('Error saving pubkey and address:', error)
-        }
-      })
-    ])
+    await user.savePubkeyAndAddress()
+    await user.fetchChatIdentity().catch(error => {
+      if (error?.response?.status !== 403) console.error('Error fetching chat identity:', error)
+    })
 
+    await user.savePubkeyAndAddress()
     user.emitSignal(null, { signal: 'logging-in', data: false })
 
     return Promise.resolve(user)
@@ -273,19 +234,12 @@ export function getAuthToken (userType) {
     try {
       // Ensure ramp wallet is loaded and aligned with the current wallet hash.
       const currentWalletHash = getCurrentWalletHash()
-      if (!rampWallet?.walletHash || (currentWalletHash && rampWallet.walletHash !== currentWalletHash)) {
+      if (!rampWallet?.wallet || rampWallet.walletHash !== currentWalletHash || rampWallet.walletIndex !== Store.getters['global/getWalletIndex'] || rampWallet.isChipnet !== Store.getters['global/isChipnet']) {
         try {
           await loadRampWallet()
         } catch (error) {
-          // If wallet can't be loaded, try old global key as fallback
-          try {
-            const oldToken = await SecureStoragePlugin.get({ key: TOKEN_STORAGE_KEY_PREFIX })
-            resolve(oldToken.value)
-            return
-          } catch (e) {
-            resolve(null)
-            return
-          }
+          resolve(null)
+          return
         }
       }
       

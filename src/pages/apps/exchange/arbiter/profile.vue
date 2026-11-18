@@ -120,7 +120,7 @@ import AppealSettings from 'src/components/ramp/appeal/AppealSettings.vue'
 import ArbiterCurrenciesDialog from 'src/components/ramp/appeal/dialogs/ArbiterCurrenciesDialog.vue'
 import HeaderNav from 'src/components/header-nav.vue'
 import { bus } from 'src/wallet/event-bus.js'
-import { backend } from 'src/exchange/backend'
+import { backend, updateP2PProfile } from 'src/exchange/backend'
 import { formatDate } from 'src/exchange'
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 import { updateChatIdentity } from 'src/exchange/chat'
@@ -261,12 +261,11 @@ export default {
     },
     async updateUserName (data) {
       const vm = this
-      const url = '/ramp-p2p/arbiter/'
       try {
-        await updateChatIdentity({ id: vm.arbiter.chat_identity_id, name: data.nickname })
-        await backend.patch(url, { name: data.nickname }, { authorize: true })
+        await updateP2PProfile('arbiter', { name: data.nickname })
           .then(async response => {
             vm.arbiter = response.data
+            await updateChatIdentity({ id: vm.arbiter.chat_identity_id, name: response.data.name })
             await vm.$store.dispatch('ramp/fetchUser')
           })
       } catch (error) {

@@ -1,6 +1,6 @@
 import { updatePubkey, sha256 } from './keys'
 import { Store } from 'src/store'
-import { backend } from '../backend'
+import { backend, updateP2PProfile, assertP2PIdentity } from 'src/exchange/backend'
 import { chatBackend } from './backend'
 import { loadRampWallet, wallet } from 'src/exchange/wallet'
 import { ChatIdentityManager } from './objects'
@@ -22,6 +22,7 @@ export async function loadChatIdentity (usertype, params = { name: null, chat_id
   if (!usertype) throw new Error('missing required parameter: usertype')
   if (!params.name) throw new Error('missing required parameter: params.name')
   if (!wallet) await loadRampWallet()
+  await assertP2PIdentity(null, usertype)
 
   // const chatIDRef = generateChatIdentityRef(wallet.walletHash)
 
@@ -51,7 +52,7 @@ export async function loadChatIdentity (usertype, params = { name: null, chat_id
 
   // Update chat identity id (in watchtower) if currently unset (null) or mismatch
   if (!payload.chat_identity_id || payload.chat_identity_id !== identity.id) {
-    updateChatIdentityId(payload.user_type, identity.id)
+    await updateChatIdentityId(payload.user_type, identity.id)
   }
 
   Store.commit('ramp/updateChatIdentity', { ref: identity?.ref, chatIdentity: identity })
@@ -84,7 +85,7 @@ export function updateOrderChatSessionRef (orderId, chatRef) {
 export async function updateChatIdentityId (userType, id) {
   return new Promise((resolve, reject) => {
     const payload = { chat_identity_id: id }
-    backend.patch(`/ramp-p2p/${userType}/`, payload, { authorize: true })
+    updateP2PProfile(userType, payload)
       .then(response => {
         resolve(response)
       })

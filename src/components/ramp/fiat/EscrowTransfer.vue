@@ -173,7 +173,7 @@
 <script>
 import { bus } from 'src/wallet/event-bus.js'
 import { wallet } from 'src/exchange/wallet'
-import { backend } from 'src/exchange/backend'
+import { backend, assertP2PIdentity } from 'src/exchange/backend'
 import { fetchP2PAvailability, isP2PAvailabilityError, p2pAvailabilityMessage } from 'src/exchange/availability'
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 import RampDragSlide from './dialogs/RampDragSlide.vue'
@@ -344,9 +344,16 @@ export default {
         if (vm.escrowBalance === 0 && utxos.length === 0) {
           vm.$store.commit('ramp/clearOrderTxids', vm.order?.id)
           console.log(`Sending ${vm.transferAmount} BCH to ${vm.contractAddress}`)
-          const rawWallet = await wallet.getRawWallet()
+          const fundingWallet = wallet
+          const rawWallet = await fundingWallet.getRawWallet()
           const changeAddress = await getChangeAddress('bch', { isChipnet: rawWallet.isChipnet })
           await fetchP2PAvailability(backend, 'ORDER_ESCROW')
+          const registered = await assertP2PIdentity({
+            public_key: vm.escrowContract.publicKeys.seller,
+            address: vm.escrowContract.addresses.seller,
+            address_path: wallet.addressPath()
+          }, 'peer')
+          fundingWallet.assertIdentity(registered)
           const result = await rawWallet.sendBch(vm.transferAmount, vm.contractAddress, changeAddress)
           console.log('sendBch:', result)
           if (result?.success) {

@@ -212,7 +212,7 @@ import OrderStatusDialog from 'src/components/ramp/appeal/dialogs/OrderStatusDia
 import RampDragSlide from '../fiat/dialogs/RampDragSlide.vue'
 import { formatCurrency, formatDate, formatOrderStatus, formatAddress } from 'src/exchange'
 import { bus } from 'src/wallet/event-bus.js'
-import { backend } from 'src/exchange/backend'
+import { backend, assertP2PIdentity } from 'src/exchange/backend'
 import { wallet } from 'src/exchange/wallet'
 import { openURL } from 'quasar'
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
@@ -389,6 +389,17 @@ export default {
       vm.sendError = null
       if (!vm.escrowContract) return
       const arbiterMember = (vm.contract?.members).find(member => { return member.member_type === 'ARBITER' })
+      try {
+        await assertP2PIdentity({
+          public_key: vm.escrowContract.publicKeys.arbiter,
+          address: vm.escrowContract.addresses.arbiter,
+          address_path: arbiterMember?.address_path
+        }, 'arbiter')
+      } catch (error) {
+        vm.sendError = error.message
+        vm.showDragSlide = true
+        return
+      }
       const keypair = wallet.keypair(arbiterMember.address_path)
       let txid = null
       await vm.escrowContract.release(keypair.privateKey, keypair.publicKey, this.order.trade_amount)
@@ -421,6 +432,17 @@ export default {
       vm.sendError = null
       if (!vm.escrowContract) return
       const arbiterMember = (vm.contract?.members).find(member => { return member.member_type === 'ARBITER' })
+      try {
+        await assertP2PIdentity({
+          public_key: vm.escrowContract.publicKeys.arbiter,
+          address: vm.escrowContract.addresses.arbiter,
+          address_path: arbiterMember?.address_path
+        }, 'arbiter')
+      } catch (error) {
+        vm.sendError = error.message
+        vm.showDragSlide = true
+        return
+      }
       const privateKey = wallet.privkey(arbiterMember.address_path)
       let txid = null
       await vm.escrowContract.refund(privateKey, this.order.trade_amount)

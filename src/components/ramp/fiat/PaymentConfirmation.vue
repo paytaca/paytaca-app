@@ -363,7 +363,7 @@ import { Camera } from '@capacitor/camera'
 import { wallet } from 'src/exchange/wallet'
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 import { getExplorerAddressLink } from 'src/utils/send-page-utils'
-import { backend } from 'src/exchange/backend'
+import { backend, assertP2PIdentity } from 'src/exchange/backend'
 import { bchToFiat, formatCurrency, satoshiToBch } from 'src/exchange'
 import { resizeImage, base64ImageToFile, dataUrlToFile } from 'src/marketplace/chat/attachment'
 import RampDragSlide from './dialogs/RampDragSlide.vue'
@@ -1057,6 +1057,18 @@ onSelectAttachment (methodIndex, methodId) {
         vm.sendErrors.push('contract addresses mismatched')
       }
       const sellerMember = (vm.data?.contract?.members).find(member => { return member.member_type === 'SELLER' })
+      try {
+        await assertP2PIdentity({
+          public_key: vm.data.escrow.publicKeys.seller,
+          address: vm.data.escrow.addresses.seller,
+          address_path: sellerMember?.address_path
+        }, 'peer')
+      } catch (error) {
+        vm.sendErrors.push(error.message)
+        vm.sendingBch = false
+        vm.showDragSlide = true
+        return
+      }
       const keypair = wallet.keypair(sellerMember.address_path)
       await vm.data?.escrow.release(keypair.privateKey, keypair.publicKey, vm.order.trade_amount)
         .then(result => {

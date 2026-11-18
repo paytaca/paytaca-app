@@ -1,4 +1,5 @@
 import axios from 'axios'
+import { Notify } from 'quasar'
 import { fetchP2PAvailability, isP2PAvailabilityError, p2pRequestFeature } from 'src/exchange/availability'
 import { Store } from 'src/store'
 import { deleteAuthTokenForUserType, getAuthToken } from './auth'
@@ -40,6 +41,8 @@ function resolveRequestUserType (config) {
     (method && method !== 'get' && /\/ramp-p2p\/arbiter\/?$/i.test(url))
   ) return 'arbiter'
 
+  if (/\/ramp-p2p\/peer(?:\/|$)/i.test(url)) return 'peer'
+
   // Try from store
   const storedUser = Store.getters?.['ramp/getUser']
   if (storedUser?.user_type === 'peer' || storedUser?.user_type === 'arbiter') return storedUser.user_type
@@ -49,12 +52,23 @@ function resolveRequestUserType (config) {
   return 'peer'
 }
 
+function assertRequestWallet (config) {
+  if (config?.p2pWalletHash !== Store.getters['global/getWallet']('bch')?.walletHash ||
+      config?.p2pWalletIndex !== Store.getters['global/getWalletIndex'] ||
+      config?.p2pChipnet !== Store.getters['global/isChipnet']) {
+    throw Object.assign(new Error('The active wallet changed. Please reopen this P2P action.'), { code: 'p2p_identity_mismatch' })
+  }
+}
+
 backend.interceptors.request.use(async (config) => {
   const isChipnet = Store.getters['global/isChipnet']
   config.baseURL = isChipnet
     ? (process.env.CHIPNET_WATCHTOWER_BASE_URL || '')
     : (process.env.MAINNET_WATCHTOWER_BASE_URL || '')
   const wallet = Store.getters['global/getWallet']('bch')
+  config.p2pWalletHash = wallet.walletHash
+  config.p2pWalletIndex = Store.getters['global/getWalletIndex']
+  config.p2pChipnet = isChipnet
   config.headers['wallet-hash'] = wallet.walletHash
   if (config.authorize) {
     const userType = resolveRequestUserType(config)
@@ -66,20 +80,38 @@ backend.interceptors.request.use(async (config) => {
     }
   }
   const feature = p2pRequestFeature(config)
-  if (feature) await fetchP2PAvailability(backend, feature)
+  if (feature) {
+    await fetchP2PAvailability(backend, feature)
+    await assertP2PIdentity(null, 'peer')
+  }
+  assertRequestWallet(config)
   return config
 })
 
 // Response interceptor to handle authentication errors
 backend.interceptors.response.use(
-  response => response,
+  response => {
+    assertRequestWallet(response.config)
+    return response
+  },
   error => {
+    if (error?.config?.p2pWalletHash) assertRequestWallet(error.config)
     if (isP2PAvailabilityError(error)) bus.emit('p2p-unavailable', error)
     // Handle 401 Unauthorized and 403 Forbidden errors - typically means session expired or not authenticated
     // Check if this was an authorized request (requires authentication)
     const wasAuthorizedRequest = !!error?.config?.authorize
     const status = error?.response?.status
     
+    const profileUpdate = /\/ramp-p2p\/(peer|arbiter)\/?$/.test(String(error?.config?.url || '')) &&
+      ['patch', 'put'].includes(String(error?.config?.method || '').toLowerCase())
+    if (profileUpdate && (status === 403 || (status === 400 && /public_key|address|wallet_hash|(?:registered|profile|p2p) identity|identity.*(?:immutable|chang|rotat)|immutable/i.test(JSON.stringify(error.response.data))))) {
+      error.message = status === 403
+        ? 'This P2P profile cannot be updated with the current account type. Use the correct peer or arbiter account.'
+        : 'Changing the registered P2P identity through profile editing is unsupported. The registered identity has been preserved.'
+      error.code = 'p2p_profile_rejected'
+      Notify.create({ type: 'error', message: error.message, timeout: 5000 })
+      return Promise.reject(error)
+    }
     if ((status === 401 || status === 403) && wasAuthorizedRequest) {
       // For 403 errors, check if it's a chat-related error (chat identity not ready)
       if (status === 403) {
@@ -122,35 +154,27 @@ export function getBackendWsUrl () {
   return Store.getters['global/isChipnet'] ? process.env.CHIPNET_RAMP_WS_URL : process.env.MAINNET_RAMP_WS_URL || ''
 }
 
+export function updateP2PProfile (userType, metadata) {
+  const fields = userType === 'peer' ? ['name', 'chat_identity_id'] : userType === 'arbiter' ? ['name', 'chat_identity_id', 'inactive_hours'] : null
+  if (!fields) throw new Error('Unsupported P2P account type')
+  const payload = Object.fromEntries(fields.filter(field => Object.prototype.hasOwnProperty.call(metadata, field)).map(field => [field, metadata[field]]))
+  return backend.patch(`/ramp-p2p/${userType}/`, payload, { authorize: userType })
+}
+
+export async function assertP2PIdentity (member = null, userType = 'peer') {
+  const activeWallet = wallet
+  const response = await backend.get('/auth/', { authorize: userType, cache: false, params: { _fresh: Date.now() }, timeout: 10000 })
+  if (response.status !== 200 || response.cached === true) throw new Error('The registered P2P identity could not be verified. Signing and funding are blocked.')
+  if ((response.data?.is_arbiter ? 'arbiter' : 'peer') !== userType) {
+    throw Object.assign(new Error('The current P2P account type cannot perform this action.'), { code: 'p2p_account_type_mismatch' })
+  }
+  activeWallet.assertIdentity(response.data)
+  if (activeWallet !== wallet) throw Object.assign(new Error('The active P2P wallet changed. Please reopen this P2P action.'), { code: 'p2p_identity_mismatch' })
+  if (member) activeWallet.assertIdentity(member)
+  return response.data
+}
+
 export async function updatePubkeyAndAddress (user) {
-  const userType = user.is_arbiter ? 'arbiter' : 'peer'
-  const pubkey = wallet.pubkey()
-
-  // Default address path is 0/0
-  const addressPath = wallet.addressPath()
-
-  const payload = {
-    public_key: pubkey,
-    address: wallet.address(),
-    address_path: addressPath
-  }
-
-  const respdata = { success: true }
-  if (payload.public_key !== user.public_key || payload.address !== user.address || payload.address_path !== user.address_path) {
-    backend.patch(`/ramp-p2p/${userType}/`, payload, { authorize: true })
-      .then(response => {
-        console.log('Updated pubkey and address:', response.data)
-        respdata.data = response.data
-      })
-      .catch(error => {
-        console.error('Failed to update pubkey and address:', error.response || error)
-        respdata.success = false
-        respdata.data = error.response || error
-      })
-  } else {
-    console.log('Local wallet keys match server keys')
-    respdata.success = false
-    respdata.data = 'Local wallet keys match server keys'
-  }
-  return respdata
+  wallet.assertIdentity(user)
+  return { success: true, data: user }
 }
