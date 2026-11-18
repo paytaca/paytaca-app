@@ -26,7 +26,7 @@
               clickable
               @click="() => showPaymentsDialog = true"
             >
-              {{ order?.formattedPaymentStatus }}
+              {{ order?.isCOD ? $t('CashOnDelivery') : order?.formattedPaymentStatus }}
             </q-chip>
             <q-chip v-if="order?.formattedStatus" :color="order?.statusColor" text-color="white" class="text-weight-medium">
               {{ order?.formattedStatus }}
@@ -143,7 +143,7 @@
           </template>
         </OrderProgressPanel>
       </div>
-      <template v-if="order?.balanceToPay > 0 && !order?.isCancelled">
+      <template v-if="order?.balanceToPay > 0 && !order?.isCancelled && !order?.isCOD">
         <q-banner
           class="q-mx-xs q-my-sm pt-card text-bow"
           :class="getDarkModeClass(darkMode)"
@@ -170,7 +170,40 @@
           </div>
         </q-banner>
       </template>
-      <template v-if="order?.isCompleted && order?.totalPendingPayment">
+      <template v-if="order?.isCOD && !order?.isCancelled">
+        <q-banner
+          class="q-mx-xs q-my-sm pt-card text-bow"
+          :class="getDarkModeClass(darkMode)"
+          @click="() => showPaymentsDialog = true"
+        >
+          <div class="row items-center">
+            <div>
+              <div class="text-caption top">
+                {{ $t('AmountDueOnDelivery') }}
+                <span v-if="codPayment?.id" class="text-grey">#{{ codPayment?.id }}</span>
+              </div>
+              <div class="text-subtitle1">{{ codPaymentAmount }} {{ orderCurrency }}</div>
+              <div class="text-caption">
+                {{ $t('CashOnDelivery') }}
+                <template v-if="codPaymentStatusText"> · {{ codPaymentStatusText }}</template>
+              </div>
+            </div>
+            <q-space/>
+            <q-btn
+              v-if="codPayment?.codContractAddress"
+              flat round icon="content_copy"
+              padding="xs"
+              class="button button-text-primary"
+              :class="getDarkModeClass(darkMode)"
+              @click.stop="copyToClipboard(codPayment.codContractAddress)"
+            />
+          </div>
+          <div v-if="codPayment?.codContractAddress" class="text-caption q-mt-xs" style="word-break:break-all;">
+            {{ codPayment.codContractAddress }}
+          </div>
+        </q-banner>
+      </template>
+      <template v-if="order?.isCompleted && order?.totalPendingPayment && !order?.isCOD">
         <q-banner
           class="q-mx-xs q-my-sm pt-card text-bow"
           :class="getDarkModeClass(darkMode)"
@@ -568,13 +601,18 @@
           <div v-if="displayBch">{{ orderAmounts.deliveryFee.bch }} BCH</div>
           <div v-else>{{ orderAmounts.deliveryFee.currency }} {{ orderCurrency }}</div>
         </div>
+        <div v-if="order?.isCOD && Number(orderAmounts.codFee.currency) > 0" class="row items-start text-subtitle2">
+          <div class="q-space">{{ $t('CodFee') }}</div>
+          <div v-if="displayBch">{{ orderAmounts.codFee.bch }} BCH</div>
+          <div v-else>{{ orderAmounts.codFee.currency }} {{ orderCurrency }}</div>
+        </div>
         <div class="row items-start text-h6">
           <div class="q-space">Total</div>
           <div v-if="displayBch">{{ orderAmounts.total.bch }} BCH</div>
           <div v-else>{{ orderAmounts.total.currency }} {{ orderCurrency }}</div>
         </div>
 
-        <template v-if="orderAmounts.totalPaid.currency || orderAmounts.totalPendingPayment.currency">
+        <template v-if="!order?.isCOD && (orderAmounts.totalPaid.currency || orderAmounts.totalPendingPayment.currency)">
           <q-separator :dark="darkMode"/>
           <div class="row items-start text-body1">
             <div class="q-space">Total Paid</div>
@@ -737,7 +775,7 @@ import { Device } from '@capacitor/device';
 import { debounce, useQuasar } from 'quasar'
 import { useI18n } from 'vue-i18n'
 import { useStore } from 'vuex'
-import { ref, computed, watch, onMounted, onUnmounted, inject, onActivated, onDeactivated } from 'vue'
+import { ref, computed, watch, onMounted, onUnmounted, inject, onActivated, onDeactivated, capitalize } from 'vue'
 import HeaderNav from 'src/components/header-nav.vue'
 import LeafletMapDialog from 'src/components/LeafletMapDialog.vue'
 import OrderPaymentsDialog from 'src/components/marketplace/order-payments-dialog.vue'
@@ -865,6 +903,7 @@ const orderAmounts = computed(() => {
     subtotal: { currency: order.value?.markupSubtotal || 0, bch: 0 },
     cutlerySubtotal: { currency: order.value?.cutlerySubtotal || 0, bch: 0 },
     deliveryFee: { currency: order.value?.payment?.deliveryFee || 0, bch: 0 },
+    codFee: { currency: order.value?.payment?.codFee || 0, bch: 0 },
     total: { currency: order.value?.total, bch: 0 },
     totalPaid: { currency: parseFloat(order.value?.totalPaid), bch: 0 },
     totalPendingPayment: { currency: parseFloat(order.value?.totalPendingPayment), bch: 0 },
@@ -876,6 +915,7 @@ const orderAmounts = computed(() => {
   data.subtotal.bch = fiatToBch(data.subtotal.currency)
   data.cutlerySubtotal.bch = fiatToBch(data.cutlerySubtotal.currency)
   data.deliveryFee.bch = fiatToBch(data.deliveryFee.currency)
+  data.codFee.bch = fiatToBch(data.codFee.currency)
   data.total.bch = fiatToBch(data.total.currency)
   data.totalPaid.bch = fiatToBch(data.totalPaid.currency)
   data.totalPendingPayment.bch = fiatToBch(data.totalPendingPayment.currency)
@@ -1057,8 +1097,30 @@ function fetchPayments() {
 const creatingPayment = ref(false)
 const payment = computed(() => {
   return payments.value.find(payment => {
+    if (payment?.isCOD) return false
     return payment.status == 'pending' && payment?.totalAmount == order.value.balanceToPay
   })
+})
+
+function paymentTotalMatches(payment, total) {
+  const paymentTotal = parseFloat(payment?.totalAmount)
+  const expectedTotal = parseFloat(total)
+  if (Number.isNaN(paymentTotal) || Number.isNaN(expectedTotal)) return false
+  return Math.abs(paymentTotal - expectedTotal) < 0.005
+}
+const codPayments = computed(() => payments.value.filter(payment => payment?.isCOD))
+const codPayment = computed(() => {
+  return codPayments.value.find(payment => {
+    return payment?.status !== 'voided' && paymentTotalMatches(payment, order.value?.total)
+  }) || codPayments.value.find(payment => payment?.status !== 'voided')
+})
+const codPaymentAmount = computed(() => {
+  return codPayment.value?.totalAmount ?? order.value?.total ?? 0
+})
+const codPaymentStatusText = computed(() => {
+  const status = codPayment.value?.status
+  if (!status) return ''
+  return capitalize(String(status).replaceAll('_', ' '))
 })
 const showPaymentDialog = ref(false)
 watch(showPaymentDialog, () => {
@@ -1071,12 +1133,11 @@ const bchAddress = computed(() => {
 })
 
 const createPayment = debounce(async () => {
-  if (order.value.balanceToPay <= 0) return Promise.resolve('Order paid')
-  const data = {
+  if (!order.value.isCOD && order.value.balanceToPay <= 0) return Promise.resolve('Order paid')
+  const data = order.value.isCOD ? {} : {
     order_id: order.value.id,
     ignore_pending_payments: true,
     escrow: {
-      // network: $store.getters['global/isChipnet'] ? 'chipnet' : 'mainnet',
       buyer_address: order.value?.payment?.escrowRefundAddress || bchAddress.value,
     },
   }
@@ -1086,6 +1147,9 @@ const createPayment = debounce(async () => {
     .then(async (response) => {
       if (!response?.data?.id) return Promise.reject({ response })
       const newPayment = Payment.parse(response?.data)
+      if (newPayment.isCOD) {
+        payments.value = payments.value.filter(_payment => !_payment?.isCOD || _payment?.id == newPayment?.id)
+      }
       const index = payments.value.findIndex(_payment => _payment?.id == newPayment?.id)
       if (index >= 0) payments.value[index] = newPayment
       else payments.value.unshift(newPayment)
@@ -1096,7 +1160,7 @@ const createPayment = debounce(async () => {
       return response
     })
     .then(() => {
-      if (!payment.value?.id) fetchOrder()
+      if (!payment.value?.id && !order.value.isCOD) fetchOrder()
     })
     .finally(() => {
       creatingPayment.value = false
@@ -1124,6 +1188,7 @@ const bchPaymentData = computed(() => {
 })
 
 function showBchPaymentEscrowContract() {
+  if (order.value.isCOD) return
   $q.dialog({
     component: EscrowContractDialog,
     componentProps: bchPaymentData.value,
@@ -1446,7 +1511,7 @@ async function completeOrder() {
     class: `br-15 pt-card-2 text-bow ${getDarkModeClass(darkMode.value)}`
   })
 
-  if (order.value.totalPendingPayment > 0) {
+  if (!order.value.isCOD && order.value.totalPendingPayment > 0) {
     dialog.update({ title: 'Signing payment settlement' })
     data.escrow_settlements = await createPaymentSettlementTransactions(dialog)
   }

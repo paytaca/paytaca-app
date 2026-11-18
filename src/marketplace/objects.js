@@ -201,6 +201,10 @@ export class Storefront {
    * @param {String} data.launch_date
    * @param {Object} data.location
    * @param {Number} [data.distance]
+   * @param {String[]} [data.accepted_payment_methods]
+   * @param {String | Number} [data.cod_fee_rate]
+   * @param {String | Number | null} [data.cod_max_order_amount]
+   * @param {String | null} [data.cod_token_category]
    */
   set raw(data) {
     Object.defineProperty(this, '$raw', { enumerable: false, configurable: true, value: data })
@@ -240,6 +244,15 @@ export class Storefront {
     else if (this.location) this.location = undefined
 
     this.distance = data?.distance
+
+    this.acceptedPaymentMethods = Array.isArray(data?.accepted_payment_methods) ? data?.accepted_payment_methods : []
+    this.codFeeRate = data?.cod_fee_rate
+    this.codMaxOrderAmount = data?.cod_max_order_amount
+    this.codTokenCategory = data?.cod_token_category
+  }
+
+  get supportsCOD() {
+    return this.acceptedPaymentMethods?.includes?.('cod_escrow')
   }
 
   get isStorepickupOnly() {
@@ -1003,6 +1016,11 @@ export class Checkout {
     SHIPPING: 'shipping',
   })
 
+  static PaymentMethods = Object.freeze({
+    BCH_ESCROW: 'bch_escrow',
+    COD_ESCROW: 'cod_escrow',
+  })
+
   static parse(data) {
     return new Checkout(data)
   }
@@ -1033,6 +1051,8 @@ export class Checkout {
    * @param {Number} [data.total_refunded]
    * @param {{ currency: CurrencyInfo, price: Number, timestamp: String | Number}} data.payment.bch_price
    * @param {Number} data.payment.delivery_fee
+   * @param {'bch_escrow' | 'cod_escrow'} [data.payment.payment_method]
+   * @param {Number} [data.payment.cod_fee]
    */
   set raw(data) {
     Object.defineProperty(this, '$raw', { enumerable: false, configurable: true, value: data })
@@ -1048,6 +1068,8 @@ export class Checkout {
       bchPrice: BchPrice.parse(data?.payment?.bch_price),
       deliveryFee: data?.payment?.delivery_fee,
       escrowRefundAddress: data?.payment?.escrow_refund_address,
+      paymentMethod: data?.payment?.payment_method,
+      codFee: data?.payment?.cod_fee,
       amountToken: data?.payment?.amount_token ? FungibleCashToken.parse(data?.payment?.amount_token) : null,
       deliveryFeeToken: data?.payment?.delivery_fee_token ? FungibleCashToken.parse(data?.payment?.delivery_fee_token) : null,
     }
@@ -1055,6 +1077,10 @@ export class Checkout {
     this.totalPendingPayment = data?.total_pending_payment
     this.totalPayments = data?.total_payments
     this.totalRefunded = data?.total_refunded
+  }
+
+  get isCOD() {
+    return this.payment?.paymentMethod === Checkout.PaymentMethods.COD_ESCROW
   }
 
   get totalPaymentsSent() {
@@ -1067,7 +1093,9 @@ export class Checkout {
   }
 
   get total() {
-    const total = (parseFloat(this.cart?.markupSubtotal) || 0) + (parseFloat(this.payment?.deliveryFee) || 0)
+    const total = (parseFloat(this.cart?.markupSubtotal) || 0) +
+      (parseFloat(this.payment?.deliveryFee) || 0) +
+      (parseFloat(this.payment?.codFee) || 0)
     return Math.round(total * 10 ** 3) / 10 ** 3
   }
 
@@ -1239,7 +1267,7 @@ export class Order {
    * @param {Number} data.total_pending_payment
    * @param {Number} data.total_payments
    * @param {Number} data.total_refunded
-   * @param {{ delivery_fee:Number, escrow_refund_address:String }} data.payment
+   * @param {{ delivery_fee:Number, escrow_refund_address:String, payment_method?:'bch_escrow' | 'cod_escrow', cod_fee?:Number }} data.payment
    * @param {String} [data.cancel_reason]
    * @param {String | Number} data.created_at
    * @param {String | Number} data.updated_at
@@ -1272,6 +1300,8 @@ export class Order {
     this.payment = {
       deliveryFee: data?.payment?.delivery_fee,
       escrowRefundAddress: data?.payment?.escrow_refund_address,
+      paymentMethod: data?.payment?.payment_method,
+      codFee: data?.payment?.cod_fee,
     }
     this.cancelReason = data?.cancel_reason
 
@@ -1299,6 +1329,10 @@ export class Order {
 
   get isCancelled() {
     return this.status === 'cancelled'
+  }
+
+  get isCOD() {
+    return this.payment?.paymentMethod === Checkout.PaymentMethods.COD_ESCROW
   }
   
   get inProgress() {
@@ -1328,7 +1362,9 @@ export class Order {
   }
 
   get total() {
-    const total = Number(this?.payment?.deliveryFee) + Number(this.markupSubtotal)
+    const total = Number(this?.payment?.deliveryFee) +
+      Number(this.markupSubtotal) +
+      Number(this?.payment?.codFee || 0)
     return Math.round(total * 10 ** 3) / 10 ** 3
   }
 
@@ -1627,15 +1663,18 @@ export class Payment {
    * @param {Object} [data.order]
    * @param {{ code:String, symbol:String }} data.currency
    * @param {String} data.status
+   * @param {'bch_escrow' | 'cod_escrow'} [data.method]
    * @param {Object} data.bch_price
    * @param {Object[]} data.token_prices
    * @param {Number} data.amount
    * @param {Number} data.delivery_fee
    * @param {Number} data.markup_amount
+   * @param {Number} [data.cod_fee_amount]
    * @param {Number} data.total_amount
    * @param {String} data.transaction_timestamp
    * @param {String} data.created_at
    * @param {String} data.escrow_contract_address
+   * @param {String} [data.cod_contract_address]
    * @param {String[]} [data.pending_appeal_types]
   */
   set raw(data) {
@@ -1645,17 +1684,20 @@ export class Payment {
     this.orderId = data?.order_id
     this.currency = { code: data?.currency?.code, symbol: data?.currency?.symbol }
     this.status = data?.status
+    this.method = data?.method
     this.bchPrice = BchPrice.parse(data?.bch_price)
     if (Array.isArray(data?.token_prices)) this.tokenPrices = data?.token_prices.map(BchPrice.parse)
     this.amount = data?.amount
     this.deliveryFee = data?.delivery_fee
     this.markupAmount = data?.markup_amount
+    this.codFeeAmount = data?.cod_fee_amount
     this.totalAmount = data?.total_amount
     if (data?.transaction_timestamp) this.transactionTimestamp = new Date(data?.transaction_timestamp)
     else if (this.transactionTimestamp) delete this.transactionTimestamp
     if (data?.created_at) this.createdAt = new Date(data?.created_at)
     else if (this.createdAt) delete this.createdAt
     this.escrowContractAddress = data?.escrow_contract_address
+    this.codContractAddress = data?.cod_contract_address
     this.pendingAppealTypes = data?.pending_appeal_types
 
     if (data?.order?.id) this.order = Order.parse(data?.order)
@@ -1668,15 +1710,21 @@ export class Payment {
     return Math.round(bch * satsPerBch) / satsPerBch
   }
 
+  get isCOD() {
+    return this.method === Checkout.PaymentMethods.COD_ESCROW
+  }
+
   get isEscrow() {
     return Boolean(this.escrowContractAddress)
   }
 
   get canRefund() {
+    if (this.isCOD) return false
     return ['sent', 'received'].indexOf(this?.status) >= 0
   }
 
   get canReceive() {
+    if (this.isCOD) return false
     return ['pending', 'sent'].indexOf(this?.status) >= 0
   }
 
@@ -1690,6 +1738,16 @@ export class Payment {
     return backend.get(`connecta/escrow/${this.escrowContractAddress}/`)
       .then(response => {
         this.escrowContract = EscrowContract.parse(response?.data)
+        return response
+      })
+  }
+
+  async fetchCODContract() {
+    if (!this.codContractAddress) return Promise.reject()
+
+    return backend.get(`connecta/cod-contracts/${this.codContractAddress}/`)
+      .then(response => {
+        this.codContract = CODContract.parse(response?.data)
         return response
       })
   }
@@ -1952,6 +2010,66 @@ export class EscrowContract {
         }
         return response
       })
+  }
+}
+
+export class CODContract {
+  static parse(data) {
+    return new CODContract(data)
+  }
+
+  constructor(data) {
+    this.raw = data
+  }
+
+  get raw() {
+    return this.$raw
+  }
+
+  /**
+   * @param {Object} data
+   * @param {Number} data.id
+   * @param {String} data.address
+   * @param {String} data.address_type
+   * @param {String} data.contract_version
+   * @param {String} data.platform_address
+   * @param {String} data.merchant_address
+   * @param {String} data.arbiter_address
+   * @param {String} [data.rider_address]
+   * @param {Number} data.bch_amount_sats
+   * @param {Number} data.platform_token_amount
+   * @param {Number} data.arbiter_timeout
+   * @param {String | Number} data.timestamp
+   * @param {String} data.token_category
+   * @param {Object} [data.payments]
+   * @param {String} data.status
+   */
+  set raw(data) {
+    Object.defineProperty(this, '$raw', { enumerable: false, configurable: true, value: data })
+
+    this.id = data?.id
+    this.address = data?.address
+    this.addressType = data?.address_type
+    this.contractVersion = data?.contract_version
+    this.platformAddress = data?.platform_address
+    this.merchantAddress = data?.merchant_address
+    this.arbiterAddress = data?.arbiter_address
+    this.riderAddress = data?.rider_address
+    this.bchAmountSats = data?.bch_amount_sats
+    this.platformTokenAmount = data?.platform_token_amount
+    this.arbiterTimeout = data?.arbiter_timeout
+    this.tokenCategory = data?.token_category
+    this.bchPrice = data?.bch_price
+    this.tokenPrice = data?.token_price
+    this.status = data?.status
+    this.payments = data?.payments
+
+    if (data?.timestamp) this.timestamp = new Date(data?.timestamp) * 1
+    else if (this.timestamp) delete this.timestamp
+  }
+
+  get bchAmount() {
+    return Math.round(Number(this.bchAmountSats) || 0) / 10 ** 8
   }
 }
 

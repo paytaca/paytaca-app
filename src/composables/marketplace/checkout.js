@@ -32,6 +32,7 @@ export function useCheckoutDetails(checkoutDataOrRef) {
     const data = {
       subtotal: { currency: checkout.value?.cart?.markupSubtotal || 0, bch: 0 },
       deliveryFee: { currency: checkout.value?.payment?.deliveryFee || 0, bch: 0 },
+      codFee: { currency: checkout.value?.payment?.codFee || 0, bch: 0 },
       total: { currency: checkout.value?.total, bch: 0 },
       totalPaymentsSent: { currency: parseFloat(checkout.value.totalPaymentsSent), bch: 0 },
       balanceToPay: { currency: parseFloat(checkout.value?.balanceToPay), bch: 0 },
@@ -41,6 +42,7 @@ export function useCheckoutDetails(checkoutDataOrRef) {
     if (!isNaN(checkoutBchPrice.value)) {
       data.subtotal.bch = parseBch(data.subtotal.currency / checkoutBchPrice.value)
       data.deliveryFee.bch = parseBch(data.deliveryFee.currency / checkoutBchPrice.value)
+      data.codFee.bch = parseBch(data.codFee.currency / checkoutBchPrice.value)
       data.total.bch = parseBch(data.total.currency / checkoutBchPrice.value)
       data.totalPaymentsSent.bch = parseBch(data.totalPaymentsSent.currency / checkoutBchPrice.value)
       data.balanceToPay.bch = parseBch(data.balanceToPay.currency / checkoutBchPrice.value)
@@ -48,6 +50,7 @@ export function useCheckoutDetails(checkoutDataOrRef) {
     } else {
       data.subtotal.bch = null
       data.deliveryFee.bch = null
+      data.codFee.bch = null
       data.total.bch = null
       data.totalPaymentsSent.bch = null
       data.balanceToPay.bch = null

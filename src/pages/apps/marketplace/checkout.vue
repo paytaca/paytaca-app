@@ -378,7 +378,41 @@
           <q-banner v-if="cashback?.parsedMessage" rounded class="bg-grad q-mb-md">
             <span v-html="cashback?.parsedMessage"></span>
           </q-banner>
+          <div class="row items-center q-my-sm">
+            <div>{{ $t('PaymentMethod') }}</div>
+            <q-space/>
+            <div class="row q-gutter-xs">
+              <q-btn
+                v-for="opt in paymentMethodOptions"
+                :key="opt.value"
+                no-caps
+                :unelevated="selectedPaymentMethod === opt.value"
+                :outline="selectedPaymentMethod !== opt.value"
+                :color="selectedPaymentMethod === opt.value ? 'pt-primary1' : undefined"
+                :disable="opt.disable || savingPaymentMethod || checkingPaymentMethod || loadingState.creatingPayment"
+                :label="opt.label"
+                padding="xs md"
+                @click="() => selectPaymentMethod(opt.value)"
+              />
+            </div>
+          </div>
+          <div
+            v-if="selectedPaymentMethod === Checkout.PaymentMethods.COD_ESCROW"
+            class="text-caption text-grey q-mb-sm q-gutter-y-xs"
+          >
+            <div>{{ $t('CashOnDeliveryDesc') }}</div>
+            <div v-if="codFeeRatePercent != null">
+              {{ $t('CodFeeRateInfo', { rate: codFeeRatePercent }) }}
+            </div>
+            <div v-if="codMaxOrderAmount != null">
+              {{ $t('CodMaxOrderAmountInfo', { amount: codMaxOrderAmount, currency: checkoutCurrency }) }}
+            </div>
+            <div v-if="codLimitExceeded" class="text-red">
+              {{ $t('CodLimitExceeded', { amount: codMaxOrderAmount, currency: checkoutCurrency }) }}
+            </div>
+          </div>
           <q-input
+            v-if="selectedPaymentMethod !== Checkout.PaymentMethods.COD_ESCROW"
             dense
             outlined
             autogrow
@@ -440,12 +474,17 @@
               <div v-else class="text-right">{{ checkoutAmounts.deliveryFee.currency }} {{ checkoutCurrency }}</div>
             </div>
           </div>
+          <div v-if="checkout.isCOD && Number(checkoutAmounts.codFee.currency) > 0" class="row items-start text-subtitle1" @click="toggleAmountsDisplay">
+            <div class="q-space">{{ $t('CodFee') }}</div>
+            <div v-if="displayBch" class="text-right">{{ checkoutAmounts.codFee.bch }} BCH</div>
+            <div v-else class="text-right">{{ checkoutAmounts.codFee.currency }} {{ checkoutCurrency }}</div>
+          </div>
           <div class="row items-start text-h6" @click="toggleAmountsDisplay">
             <div class="q-space">Total</div>
             <div v-if="displayBch" class="text-right">{{ checkoutAmounts.total.bch }} BCH</div>
             <div v-else class="text-right">{{ checkoutAmounts.total.currency }} {{ checkoutCurrency }}</div>
           </div>
-          <div v-if="checkoutAmounts.totalPaymentsSent.currency || payments?.length">
+          <div v-if="payments?.length || (!checkout.isCOD && checkoutAmounts.totalPaymentsSent.currency)">
             <q-separator :dark="darkMode"/>
             <div v-if="payments?.length" class="row items-center q-mt-xs">
               <q-space/>
@@ -459,7 +498,7 @@
                 @click.stop="() => showPaymentsListDialog = true"
               />
             </div>
-            <template v-if="checkoutAmounts.totalPaymentsSent.currency">
+            <template v-if="!checkout.isCOD && checkoutAmounts.totalPaymentsSent.currency">
               <div v-if="checkoutAmounts.totalPaymentsSent.currency" class="row items-start text-subtitle1" @click="toggleAmountsDisplay">
                 <div class="q-space">Paid</div>
                 <div v-if="displayBch" class="text-right">{{ checkoutAmounts.totalPaymentsSent.bch }} BCH</div>
@@ -479,15 +518,44 @@
           </div>
 
           <PaymentSelectionPanel
-            v-if="checkout.balanceToPay > 0"
+            v-if="!checkout.isCOD && checkout.balanceToPay > 0"
             :checkout="checkout"
             @newCheckoutData="setCheckoutData"
           />
           <div v-if="loadingState.creatingPayment" class="text-center q-my-sm">
             <q-spinner size="3em"/>
-            <div>Creating payment</div>
+            <div>{{ $t('CreatingPayment') }}</div>
           </div>
-          <template v-if="checkout.balanceToPay > 0">
+          <q-card
+            v-if="checkout.isCOD && codPayment?.id"
+            class="q-pa-sm q-my-sm pt-card-2 text-bow"
+            :class="getDarkModeClass(darkMode)"
+            :flat="!darkMode"
+          >
+            <div class="row items-center no-wrap">
+              <div class="q-space">
+                <div class="text-subtitle1">{{ $t('CashOnDelivery') }}</div>
+                <div class="text-caption">{{ codPaymentStatusText }}</div>
+              </div>
+              <div class="text-right">
+                <div class="text-caption">{{ $t('AmountDueOnDelivery') }}</div>
+                <div class="text-h6">{{ codPayment.totalAmount }} {{ checkoutCurrency }}</div>
+              </div>
+            </div>
+            <div v-if="codPayment.codContractAddress" class="q-mt-xs">
+              <div class="text-caption bottom">{{ $t('CodContractAddress') }}</div>
+              <div class="row items-center no-wrap">
+                <div class="q-space text-caption" style="word-break:break-all;">{{ codPayment.codContractAddress }}</div>
+                <q-btn
+                  flat round icon="content_copy" padding="xs"
+                  class="button button-text-primary"
+                  :class="getDarkModeClass(darkMode)"
+                  @click.stop="copyToClipboard(codPayment.codContractAddress)"
+                />
+              </div>
+            </div>
+          </q-card>
+          <template v-if="!checkout.isCOD && checkout.balanceToPay > 0">
             <div v-if="payment?.escrowContractAddress" class="q-mt-sm">
               <q-card
                 class="q-pa-sm pt-card-2 text-bow"
@@ -518,13 +586,13 @@
               @click="() => bchPaymentState.tab = 'qrcode'"
             />
           </template>
-          <div v-if="!(checkout.balanceToPay > 0)" class="q-mt-sm">
+          <div v-if="canProceedToReview" class="q-mt-sm">
             <q-btn
               :disable="loading"
               no-caps
               label="Review"
               class="full-width button"
-              @click="() => savePayment().then(() => nextTab())"
+              @click="reviewCheckout"
             />
           </div>
           <q-dialog
@@ -706,7 +774,7 @@
 
           <q-separator :dark="darkMode" spaced/>
           <div
-            v-if="checkout?.payment?.escrowRefundAddress"
+            v-if="!checkout.isCOD && checkout?.payment?.escrowRefundAddress"
             class="row items-start no-wrap q-px-xs q-mb-sm"
           >
             <div class="q-space">
@@ -746,13 +814,18 @@
               <div v-if="displayBch">{{ checkoutAmounts.deliveryFee.bch }} BCH</div>
               <div v-else>{{ checkoutAmounts.deliveryFee.currency }} {{ checkoutCurrency }}</div>
             </div>
+            <div v-if="checkout.isCOD && Number(checkoutAmounts.codFee.currency) > 0" class="row items-start text-subtitle2">
+              <div class="q-space">{{ $t('CodFee') }}</div>
+              <div v-if="displayBch">{{ checkoutAmounts.codFee.bch }} BCH</div>
+              <div v-else>{{ checkoutAmounts.codFee.currency }} {{ checkoutCurrency }}</div>
+            </div>
             <div class="row items-start text-h6">
               <div class="q-space">Total</div>
               <div v-if="displayBch">{{ checkoutAmounts.total.bch }} BCH</div>
               <div v-else>{{ checkoutAmounts.total.currency }} {{ checkoutCurrency }}</div>
             </div>
 
-            <div v-if="checkoutAmounts.totalPaymentsSent.currency">
+            <div v-if="!checkout.isCOD && checkoutAmounts.totalPaymentsSent.currency">
               <q-separator :dark="darkMode"/>
               <div v-if="payments?.length" class="row items-center q-mt-xs">
                 <q-space/>
@@ -816,7 +889,7 @@ import { debounce, useQuasar } from 'quasar'
 import { useI18n } from 'vue-i18n'
 import { onBeforeRouteLeave, useRouter } from 'vue-router'
 import { useStore } from 'vuex'
-import { ref, computed, watch, onMounted, onUnmounted, inject, onDeactivated, onActivated } from 'vue'
+import { ref, computed, watch, onMounted, onUnmounted, inject, onDeactivated, onActivated, capitalize } from 'vue'
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 import HeaderNav from 'src/components/header-nav.vue'
 import PinLocationDialog from 'src/components/PinLocationDialog.vue'
@@ -932,6 +1005,7 @@ async function resetTabs() {
   nextTab()
 
   if (checkout.value.balanceToPay) return
+  if (checkout.value.isCOD) return
   await asyncSleep(10)
   nextTab()
 }
@@ -945,8 +1019,10 @@ async function enableTabs() {
   if (validCoordinates.value && tabOptsMap.value?.payment) {
     tabOptsMap.value.payment.disable = false
   }
-  if (!checkout.value.balanceToPay && tabOptsMap.value?.review) {
-    tabOptsMap.value.review.disable = false
+  const canReview = !checkout.value.balanceToPay || (checkout.value.isCOD && validCODPayment.value)
+  if (tabOptsMap.value?.review) {
+    tabOptsMap.value.review.disable = !canReview
+    if (!canReview && tabs.value.active === 'review') tabs.value.active = 'payment'
   }
 }
 
@@ -1205,7 +1281,8 @@ function toggleAmountsDisplay() {
 function setCheckoutData(data, opts) {
   checkout.value = Checkout.parse(data)
   if (opts?.updateBchPrice) updateBchPrice({ age: 0 })
-  if (opts?.checkNewPayment && !payment.value && checkout.value?.balanceToPay > 0) attemptCreatePayment()
+  const needsPayment = !payment.value && (checkout.value?.balanceToPay > 0 || checkout.value?.isCOD)
+  if (opts?.checkNewPayment && needsPayment) attemptCreatePayment()
 }
 function fetchCheckout() {
   let request
@@ -1229,11 +1306,24 @@ function fetchCheckout() {
       delivery_address: { location: parsedSessionLocationData },
       check_stocks: true,
     }
-    if (props.checkoutId) request = backend.patch(`connecta/checkouts/${props.checkoutId}/`, data)
-    else if (props.cartId) request = backend.post(`connecta/carts/${props.cartId}/checkout/`, data)
+    if (props.checkoutId) {
+      request = backend.patch(`connecta/checkouts/${props.checkoutId}/`, data)
+    } else if (props.cartId) {
+      const refundAddress = checkout.value?.payment?.escrowRefundAddress ||
+        formData.value?.payment?.escrowRefundAddress ||
+        bchAddress.value
+      if (refundAddress) data.payment = { escrow_refund_address: refundAddress }
+      request = backend.post(`connecta/carts/${props.cartId}/checkout/`, data)
+    }
   } else {
     if (props.checkoutId) request = backend.get(`connecta/checkouts/${props.checkoutId}/`)
-    else if (props.cartId) request = backend.post(`connecta/carts/${props.cartId}/checkout/`)
+    else if (props.cartId) {
+      const refundAddress = checkout.value?.payment?.escrowRefundAddress ||
+        formData.value?.payment?.escrowRefundAddress ||
+        bchAddress.value
+      const data = refundAddress ? { payment: { escrow_refund_address: refundAddress } } : undefined
+      request = backend.post(`connecta/carts/${props.cartId}/checkout/`, data)
+    }
   }
 
   if (!request) return Promise.reject()
@@ -1244,6 +1334,7 @@ function fetchCheckout() {
     setCheckoutData(response?.data)
     if (!initialized.value) resetTabs()
     else enableTabs()
+    ensurePaymentMethod().catch(console.error)
     return response
   }).catch(error => {
     if (initialized.value) return Promise.reject(error)
@@ -1536,6 +1627,7 @@ function savePayment() {
 const payments = ref([].map(Payment.parse))
 const payment = computed(() => {
   return payments.value.find(payment => {
+    if (payment?.isCOD) return false
     const isPending = payment.status == 'pending';
     const isEqualAmount = payment.totalAmount == checkout.value.balanceToPay;
 
@@ -1551,6 +1643,117 @@ const payment = computed(() => {
     return isPending && isEqualAmount && isMatchingAssets;
   })
 })
+
+function paymentTotalMatches(payment, total) {
+  const paymentTotal = parseFloat(payment?.totalAmount)
+  const expectedTotal = parseFloat(total)
+  if (Number.isNaN(paymentTotal) || Number.isNaN(expectedTotal)) return false
+  return Math.abs(paymentTotal - expectedTotal) < 0.005
+}
+
+const codPayments = computed(() => payments.value.filter(payment => payment?.isCOD))
+const existingCODPayment = computed(() => codPayments.value.find(payment => payment?.status !== 'voided'))
+const validCODPayment = computed(() => codPayments.value.find(payment => {
+  if (payment?.status === 'voided') return false
+  return paymentTotalMatches(payment, checkout.value?.total)
+}))
+const isCODLocked = computed(() => ['sent', 'received'].includes(existingCODPayment.value?.status))
+const codPayment = computed(() => validCODPayment.value || existingCODPayment.value)
+const codPaymentStatusText = computed(() => {
+  const status = codPayment.value?.status
+  if (!status) return ''
+  return capitalize(String(status).replaceAll('_', ' '))
+})
+
+const selectedPaymentMethod = computed(() => {
+  return checkout.value?.payment?.paymentMethod || Checkout.PaymentMethods.BCH_ESCROW
+})
+const savingPaymentMethod = ref(false)
+const checkingPaymentMethod = ref(false)
+const lastPaymentMethodSetup = ref('')
+const codFeeRatePercent = computed(() => {
+  const rate = parseFloat(checkoutStorefront.value?.codFeeRate)
+  if (Number.isNaN(rate)) return null
+  return round(rate * 100, 2)
+})
+const codMaxOrderAmount = computed(() => {
+  const limit = parseFloat(checkoutStorefront.value?.codMaxOrderAmount)
+  if (Number.isNaN(limit)) return null
+  return limit
+})
+const codLimitExceeded = computed(() => {
+  if (codMaxOrderAmount.value == null) return false
+  const subtotal = parseFloat(checkout.value?.cart?.markupSubtotal) || 0
+  return subtotal > codMaxOrderAmount.value
+})
+const paymentMethodOptions = computed(() => {
+  const methods = checkoutStorefront.value?.acceptedPaymentMethods
+  const supportsEscrow = !Array.isArray(methods) || methods.length === 0 ||
+    methods.includes(Checkout.PaymentMethods.BCH_ESCROW)
+  const supportsCOD = Boolean(checkoutStorefront.value?.supportsCOD)
+
+  const options = []
+  if (supportsEscrow) {
+    options.push({
+      value: Checkout.PaymentMethods.BCH_ESCROW,
+      label: $t('PayNow'),
+      disable: isCODLocked.value,
+    })
+  }
+  if (supportsCOD) {
+    options.push({
+      value: Checkout.PaymentMethods.COD_ESCROW,
+      label: $t('CashOnDelivery'),
+      disable: codLimitExceeded.value,
+    })
+  }
+  return options
+})
+const canProceedToReview = computed(() => {
+  if (checkout.value?.isCOD) return Boolean(validCODPayment.value)
+  return !(checkout.value?.balanceToPay > 0)
+})
+
+function deactivateReviewTab() {
+  if (tabOptsMap.value?.review) tabOptsMap.value.review.disable = true
+  if (tabs.value.active === 'review') tabs.value.active = 'payment'
+}
+
+async function selectPaymentMethod(method) {
+  if (savingPaymentMethod.value) return
+  if (method === selectedPaymentMethod.value) return
+  const option = paymentMethodOptions.value.find(opt => opt.value === method)
+  if (option?.disable) return
+
+  resetFormErrors()
+  savingPaymentMethod.value = true
+  loadingMsg.value = 'Updating payment'
+  try {
+    await updateCheckoutPaymentMethod(method)
+    lastPaymentMethodSetup.value = `${checkout.value.id}:${method}`
+    if (method === Checkout.PaymentMethods.BCH_ESCROW) deactivateReviewTab()
+    await fetchPayments().catch(console.error)
+    await attemptCreatePayment({ checkCurrentTab: false, force: true }).catch(console.error)
+    enableTabs()
+  } catch (error) {
+    console.error(error);
+    const data = error?.response?.data
+    let errorMsgs = errorParser.toArray(data?.payment?.non_field_errors)
+    if (!errorMsgs.length) errorMsgs = errorParser.toArray(data?.non_field_errors)
+    if (!errorMsgs.length) errorMsgs = errorParser.toArray(data?.detail)
+    if (!errorMsgs.length) errorMsgs = [$t('UnableToUpdatePaymentMethod')]
+    formErrors.value.payment.detail = errorMsgs
+  } finally {
+    savingPaymentMethod.value = false
+    loadingMsg.value = resolveLoadingMsg()
+  }
+}
+
+function reviewCheckout() {
+  if (checkout.value.isCOD) return nextTab()
+  return savePayment().then(() => nextTab())
+}
+
 const showPaymentsListDialog = ref(false)
 watch(() => [tabs.value.active], async () => attemptCreatePayment())
 
@@ -1566,54 +1769,96 @@ function fetchPayments() {
       payments.value = parsedData
       return response
     })
-  return fetchPaymentPromise
+  return fetchPaymentPromise.value
 }
 
 const createPaymentPromise = ref()
-async function attemptCreatePayment(opts={ checkCurrentTab: true }) {
+function checkoutNeedsPayment() {
+  if (checkout.value?.isCOD) return !validCODPayment.value
+  const hasEscrowPayment = payments.value.some(payment => {
+    return !payment?.isCOD && payment?.status !== 'voided'
+  })
+  if (checkout.value.balanceToPay <= 0) return !hasEscrowPayment
+  return !payment.value
+}
+
+async function attemptCreatePayment(opts={ checkCurrentTab: true, skipMethodCheck: false, force: false }) {
   if (!checkout.value.id) return
+  if (checkingPaymentMethod.value && !opts?.skipMethodCheck) return
   if (checkout.value.totalPayable < 0) return
 
   if (opts?.checkCurrentTab && tabs.value.active != 'payment') return
 
   await fetchPaymentPromise.value
+  if (checkout.value?.isCOD && isCODLocked.value && !validCODPayment.value) {
+    formErrors.value.payment.detail = [$t('CodPaymentAmountMismatch')]
+    return
+  }
   if (!checkout.value?.payment?.bchPrice?.price) await updateBchPrice()?.catch?.(console.error)
   await updateBchPricePromise.value?.catch?.(console.error)
   await updateDeliveryFeePromise.value
   await createPaymentPromise.value?.catch?.(console.error)
   await asyncSleep(10)
-  if (!payment.value) return createPayment()
+  if (checkoutNeedsPayment()) return createPaymentNow({ force: opts?.force })
+  enableTabs()
 }
-const createPayment = debounce(async () => {
-  if (checkout.value.balanceToPay <= 0) return Promise.resolve('Checkout paid')
-  const data = {
+
+async function createPaymentNow(opts={ force: false }) {
+  if (createPaymentPromise.value) return createPaymentPromise.value
+
+  const isCOD = checkout.value?.isCOD
+  if (!isCOD && checkout.value.balanceToPay <= 0 && !opts?.force) return Promise.resolve('Checkout paid')
+  if (isCOD && isCODLocked.value && !validCODPayment.value) {
+    formErrors.value.payment.detail = [$t('CodPaymentAmountMismatch')]
+    return Promise.resolve('COD payment is locked')
+  }
+
+  if (isCOD && !checkout.value?.payment?.escrowRefundAddress) {
+    try {
+      await updateCheckoutPaymentMethod(Checkout.PaymentMethods.COD_ESCROW)
+    } catch {
+      formErrors.value.payment.detail = [$t('UnableToCreatePayment')]
+      return Promise.resolve()
+    }
+  }
+
+  const data = isCOD ? {
+    cod: {
+      network: $store.getters['global/isChipnet'] ? 'chipnet' : 'mainnet',
+    },
+  } : {
     checkout_id: checkout.value.id,
     ignore_pending_payments: true,
     escrow: {
-      // network: $store.getters['global/isChipnet'] ? 'chipnet' : 'mainnet',
+      network: $store.getters['global/isChipnet'] ? 'chipnet' : 'mainnet',
       buyer_address: checkout.value?.payment?.escrowRefundAddress ? undefined : formData.value.payment?.escrowRefundAddress,
     },
-    // amount: 100,
   }
 
   loadingState.value.creatingPayment = true
   loadingMsg.value = 'Creating payment'
   createPaymentPromise.value = backend.post(`connecta/checkouts/${checkout.value.id}/payment/`, data)
-  return createPaymentPromise.value
     .finally(() => resetFormErrors())
     .then(response => {
       if (!response?.data?.id) return Promise.reject({ response })
-      payments.value.unshift(Payment.parse(response?.data))
+      const newPayment = Payment.parse(response?.data)
+      if (newPayment.isCOD) {
+        payments.value = payments.value.filter(_payment => !_payment?.isCOD || _payment?.id == newPayment?.id)
+      }
+      payments.value.unshift(newPayment)
       fetchCheckout()
       fetchPayments()
+      enableTabs()
       return response
     })
     .catch(error => {
-      if (payment.value?.id) return
+      if (!isCOD && payment.value?.id) return
+      if (isCOD && validCODPayment.value) return
 
       const data = error?.response?.data
       let errorMsgs = errorParser.toArray(data?.delivery_fee_key_nft?.non_field_errors)
       if (!errorMsgs.length) errorMsgs = errorParser.toArray(data?.escrow?.non_field_errors)
+      if (!errorMsgs.length) errorMsgs = errorParser.toArray(data?.cod?.non_field_errors)
       if (!errorMsgs.length) errorMsgs = errorParser.toArray(data?.non_field_errors)
       if (!errorMsgs.length) errorMsgs = errorParser.toArray(data?.detail)
       if (!errorMsgs.length && typeof data === 'string') errorMsgs = errorParser.toArray(data)
@@ -1621,10 +1866,12 @@ const createPayment = debounce(async () => {
       formErrors.value.payment.detail = errorMsgs
     })
     .finally(() => {
+      createPaymentPromise.value = undefined
       loadingState.value.creatingPayment = false
       loadingMsg.value = resolveLoadingMsg()
     })
-}, 250)
+  return createPaymentPromise.value
+}
 
 
 const fundingRequirements = computed(() => {
@@ -1881,7 +2128,15 @@ onBeforeRouteLeave(async (to, from, next) => {
 async function onLeaveCheckout() {
   if (checkout.value?.orderId) return true
 
-  const totalPending = checkout.value.totalPendingPayment
+  const escrowPaymentsSent = payments.value.filter(payment => {
+    if (payment?.isCOD) return false
+    return ['sent', 'received'].includes(payment?.status)
+  })
+  if (checkout.value.isCOD && !escrowPaymentsSent.length) return true
+
+  const refundablePayments = payments.value.filter(payment => {
+    return !payment?.isCOD && payment?.status === 'sent'
+  })
   const totalSent = checkout.value.totalPaymentsSent
   if (totalSent > 0) {
     const leaveWithPaymentsMade = await dialogPromise({
@@ -1894,7 +2149,7 @@ async function onLeaveCheckout() {
     }).then(() => true).catch(() => false)
     if (!leaveWithPaymentsMade) return leaveWithPaymentsMade
 
-    if (totalPending > 0) {
+    if (refundablePayments.length > 0) {
       const didProceedToRefund = await refundPendingPaymentsPromptBeforeRouteLeave()
       if (didProceedToRefund) return false
     }
@@ -1932,7 +2187,7 @@ function onRefundedPayments(payments=[].map(Payment.parse)) {
 async function openRefundPaymentsDialog() {
   refundPaymentsDialog.value.show = true
   refundPaymentsDialog.value.payments = payments.value
-    .filter(payment => ['sent', 'received'].includes(payment?.status))
+    .filter(payment => !payment?.isCOD && ['sent', 'received'].includes(payment?.status))
 
   // setTimeout(() => refundPaymentsDialogRef.value?.refundPayments?.(), 250)
 }
@@ -1992,6 +2247,22 @@ function updateCheckout(data) {
     })
 }
 
+function updateCheckoutPaymentMethod(method) {
+  return backend.patch(`connecta/checkouts/${checkout.value.id}/`, {
+    payment: {
+      payment_method: method,
+      escrow_refund_address: formData.value?.payment?.escrowRefundAddress ||
+        checkout.value?.payment?.escrowRefundAddress ||
+        bchAddress.value,
+    },
+  }).then(response => {
+    if (!response?.data?.id) return Promise.reject({ response })
+    checkout.value.raw = response?.data
+    resetFormData()
+    return response
+  })
+}
+
 async function completeCheckout() {
   if (loadingState.value.completing) return
 
@@ -2010,21 +2281,44 @@ async function completeCheckout() {
   loadingMsg.value = 'Creating order'
   await updateBchPrice().catch(console.error)
 
-  if (!checkout.value?.payment?.escrowRefundAddress) {
-    await savePayment()
-      .catch(error => {
-        dialog.update({
-          title: 'Error',
-          message: 'Encountered error in saving payment details',
-          progress: false, persistent: false, ok: true,
-        }).onDismiss(() => {
-          tabs.value.active = 'payment'
-        })
+  const isCOD = checkout.value.isCOD
 
-        loadingState.value.completing = false
-        loadingMsg.value = resolveLoadingMsg()
-        return Promise.reject(error)
+  if (!checkout.value?.payment?.escrowRefundAddress) {
+    const handleSavePaymentError = error => {
+      dialog.update({
+        title: 'Error',
+        message: 'Encountered error in saving payment details',
+        progress: false, persistent: false, ok: true,
+      }).onDismiss(() => {
+        tabs.value.active = 'payment'
       })
+
+      loadingState.value.completing = false
+      loadingMsg.value = resolveLoadingMsg()
+      return Promise.reject(error)
+    }
+
+    if (isCOD) {
+      await updateCheckoutPaymentMethod(Checkout.PaymentMethods.COD_ESCROW).catch(handleSavePaymentError)
+    } else {
+      await savePayment().catch(handleSavePaymentError)
+    }
+  }
+
+  if (isCOD) {
+    if (!validCODPayment.value) await createPaymentNow()
+    if (!validCODPayment.value) {
+      dialog.update({
+        title: 'Error',
+        message: $t('UnableToCreatePayment'),
+        progress: false, persistent: false, ok: true,
+      }).onDismiss(() => {
+        tabs.value.active = 'payment'
+      })
+      loadingState.value.completing = false
+      loadingMsg.value = resolveLoadingMsg()
+      return
+    }
   }
 
   return backend.post(`connecta/checkouts/${checkout.value.id}/complete/`, data)
@@ -2075,9 +2369,47 @@ watch(checkoutStorefrontId, () => {
 
 const checkoutStorefront = computed(() => $store.getters['marketplace/getStorefront']?.(checkoutStorefrontId.value))
 function fetchCheckoutStorefront() {
-  if (!checkoutStorefrontId.value) Promise.reject()
-  backend.get(`connecta/storefronts/${checkoutStorefrontId.value}/`)
-    .then(response => $store.commit('marketplace/cacheStorefront', response?.data))
+  if (!checkoutStorefrontId.value) return Promise.reject()
+  return backend.get(`connecta/storefronts/${checkoutStorefrontId.value}/`)
+    .then(response => {
+      $store.commit('marketplace/cacheStorefront', response?.data)
+      return ensurePaymentMethod()
+    })
+}
+
+async function ensurePaymentMethod() {
+  if (checkingPaymentMethod.value) return
+  if (!checkout.value?.id) return
+  const storefront = checkoutStorefront.value
+  if (!storefront?.id) return
+  const methods = storefront.acceptedPaymentMethods
+  if (!Array.isArray(methods) || methods.length === 0) return
+
+  const currentMethod = checkout.value?.payment?.paymentMethod
+  if (currentMethod && methods.includes(currentMethod)) return
+  if (existingCODPayment.value || isCODLocked.value) return
+  if (!currentMethod && methods.includes(Checkout.PaymentMethods.BCH_ESCROW)) return
+
+  let defaultMethod = null
+  if (methods.includes(Checkout.PaymentMethods.BCH_ESCROW)) defaultMethod = Checkout.PaymentMethods.BCH_ESCROW
+  else if (methods.includes(Checkout.PaymentMethods.COD_ESCROW)) defaultMethod = Checkout.PaymentMethods.COD_ESCROW
+  if (!defaultMethod) return
+
+  const setupKey = `${checkout.value.id}:${defaultMethod}`
+  if (lastPaymentMethodSetup.value === setupKey) return
+
+  checkingPaymentMethod.value = true
+  try {
+    await updateCheckoutPaymentMethod(defaultMethod)
+    lastPaymentMethodSetup.value = setupKey
+    await fetchPayments().catch(console.error)
+    await attemptCreatePayment({ checkCurrentTab: false, skipMethodCheck: true, force: true }).catch(console.error)
+    enableTabs()
+  } catch (error) {
+    console.error('Unable to set checkout payment method', error)
+  } finally {
+    checkingPaymentMethod.value = false
+  }
 }
 
 function displayStorefrontLocation() {
