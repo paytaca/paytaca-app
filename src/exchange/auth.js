@@ -312,6 +312,7 @@ export function deleteAuthToken (userType) {
  */
 export function deleteAuthTokenForWallet(walletHash) {
   if (!walletHash) return
+  bus.emit('p2p-auth-cleared', { walletHash })
   // Delete both user types + legacy key
   SecureStoragePlugin.remove({ key: `${TOKEN_STORAGE_KEY_PREFIX}-${walletHash}-peer` })
   SecureStoragePlugin.remove({ key: `${TOKEN_STORAGE_KEY_PREFIX}-${walletHash}-arbiter` })
@@ -327,6 +328,7 @@ export function deleteAuthTokenForWallet(walletHash) {
 export function deleteAuthTokenForUserType (userType) {
   const walletHash = getCurrentWalletHash() || rampWallet?.walletHash
   if (!walletHash) return
+  bus.emit('p2p-auth-cleared', { walletHash, userType })
 
   if (userType === 'peer' || userType === 'arbiter') {
     const key = `${TOKEN_STORAGE_KEY_PREFIX}-${walletHash}-${userType}`

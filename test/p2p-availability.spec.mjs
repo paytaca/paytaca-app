@@ -1,4 +1,6 @@
 import assert from 'node:assert/strict'
+import { EventEmitter } from 'node:events'
+import { markRaw, reactive } from 'vue'
 import { readFileSync, readdirSync } from 'node:fs'
 import { fetchP2PAvailability, assertP2PAvailable, isP2PAvailabilityError, p2pAvailabilityMessage, p2pRequestFeature } from '../src/exchange/availability.js'
 
@@ -626,4 +628,308 @@ describe('P2P wallet-scoped error responses', () => {
     await assert.rejects(h.client.request({ method: 'post', url: '/ramp-p2p/order/', authorize: 'peer' }), { code: 'p2p_identity_mismatch' })
     assert(h.requests.every(request => request.method === 'get'))
   })
+})
+
+
+describe('P2P private WebSocket authentication', () => {
+  function socketHarness () {
+    const sockets = []
+    const timers = new Map()
+    const intervals = new Map()
+    const listeners = new Map()
+    const watchers = new Set()
+    const events = []
+    const notifications = []
+    let timerId = 0
+    const state = { wallet: 'wallet-a', index: 0, chipnet: false, token: 'token-a', userType: 'peer', authenticated: true, maintenance: false }
+    class WebSocket {
+      static OPEN = 1
+      constructor (url) {
+        this.url = url
+        this.readyState = 0
+        this.handlers = {}
+        this.sent = []
+        sockets.push(this)
+      }
+      addEventListener (type, handler) { this.handlers[type] = handler }
+      send (data) { this.sent.push(JSON.parse(data)) }
+      close () { this.readyState = 3; this.handlers.close({ type: 'close', code: 1000 }) }
+      open () { this.readyState = 1; this.handlers.open({ type: 'open' }) }
+      message (message) { this.handlers.message({ data: JSON.stringify(message) }) }
+      reject (code) { this.readyState = 3; this.handlers.close({ type: 'close', code }) }
+    }
+    const bus = {
+      on (event, handler) {
+        if (!listeners.has(event)) listeners.set(event, new Set())
+        listeners.get(event).add(handler)
+      },
+      off (event, handler) { listeners.get(event)?.delete(handler) },
+      emit (event, data) {
+        events.push(event)
+        for (const handler of [...(listeners.get(event) || [])]) handler(data)
+      }
+    }
+    const Store = {
+      getters: {
+        'global/getWallet': () => ({ walletHash: state.wallet }),
+        get 'global/getWalletIndex' () { return state.index },
+        get 'global/isChipnet' () { return state.chipnet },
+        get 'ramp/getUser' () { return { user_type: state.userType } }
+      },
+      watch (read, callback) {
+        let previous = read()
+        const update = () => {
+          const next = read()
+          if (next !== previous) { const old = previous; previous = next; callback(next, old) }
+        }
+        watchers.add(update)
+        return () => watchers.delete(update)
+      }
+    }
+    const serviceSource = readFileSync('src/exchange/websocket/service.js', 'utf8').replace(/^import .*$/gm, '').replace(/export /g, '')
+    const WebSocketService = new Function('WebSocket', 'EventEmitter', `${serviceSource}; return WebSocketService`)(WebSocket, EventEmitter)
+    const bindings = {
+      bus, Store, WebSocketService, markRaw,
+      getAuthToken: async role => { state.requestedRole = role; return typeof state.token === 'function' ? state.token() : state.token },
+      backend: { get: async () => ({ data: { is_authenticated: state.authenticated } }) },
+      fetchP2PAvailability: async () => { if (state.maintenance) throw Object.assign(new Error(), { response: { data: { code: 'p2p_maintenance' } } }) },
+      isP2PAvailabilityError,
+      Notify: { create: notification => notifications.push(notification) },
+      setTimeout: (callback, delay) => { const id = ++timerId; timers.set(id, { callback, delay }); return id },
+      clearTimeout: id => timers.delete(id),
+      setInterval: callback => { const id = ++timerId; intervals.set(id, callback); return id },
+      clearInterval: id => intervals.delete(id)
+    }
+    const managerSource = readFileSync('src/exchange/websocket/manager.js', 'utf8').replace(/^import .*$/gm, '').replace(/export /g, '')
+    const Manager = new Function(...Object.keys(bindings), `${managerSource}; return WebSocketManager`)(...Object.values(bindings))
+    const manager = reactive(new Manager())
+    const messages = []
+    manager.subscribeToMessages(message => messages.push(message))
+    const flush = async () => { for (let i = 0; i < 10; i++) await Promise.resolve() }
+    return {
+      manager, state, sockets, timers, intervals, bus, events, notifications, messages, flush,
+      async connect (path = 'order/12/', options) {
+        manager.setWebSocketUrl(`wss://example.test/ws/ramp-p2p/subscribe/${path}`, options)
+        await flush()
+        return sockets.at(-1)
+      },
+      update () { for (const watcher of [...watchers]) watcher() },
+      async runTimer () {
+        const [id, timer] = timers.entries().next().value
+        timers.delete(id)
+        timer.callback()
+        await flush()
+      }
+    }
+  }
+
+  for (const path of ['order/12/', 'general/wallet-a/']) {
+    it(`authenticates ${path} immediately on open and waits for ConnectionMessage`, async () => {
+      const h = socketHarness()
+      h.state.token = 'Token token-a'
+      const socket = await h.connect(path)
+      assert(!h.manager.isOpen())
+      socket.open()
+      assert.deepEqual(socket.sent, [{ type: 'authenticate', wallet_hash: 'wallet-a', token: 'token-a' }])
+      assert(!socket.url.includes('token'))
+      assert(!h.manager.isOpen())
+      socket.message({ type: 'NEW_ORDER', success: true })
+      assert.deepEqual(h.messages, [])
+      socket.message({ type: 'ConnectionMessage' })
+      assert(h.manager.isOpen())
+      socket.message({ type: 'NEW_ORDER', success: true })
+      assert.equal(h.messages.length, 2)
+      assert.equal(h.timers.size, 0)
+      h.manager.closeConnection()
+    })
+  }
+
+  it('reads rotated credentials on reconnect and prevents duplicate sockets and timers', async () => {
+    const h = socketHarness()
+    const socket = await h.connect()
+    socket.open()
+    socket.message({ type: 'ConnectionMessage' })
+    socket.reject(1006)
+    assert.equal(h.timers.size, 1)
+    h.manager.setWebSocketUrl(h.manager.url)
+    assert.equal(h.timers.size, 1)
+    h.state.token = 'rotated-token'
+    await h.runTimer()
+    const next = h.sockets.at(-1)
+    next.open()
+    assert.equal(next.sent[0].token, 'rotated-token')
+    assert.equal(h.sockets.length, 2)
+    assert(!h.manager.isOpen())
+    next.message({ type: 'ConnectionMessage' })
+    assert(h.manager.isOpen())
+    h.manager.closeConnection()
+    assert.equal(h.timers.size + h.intervals.size, 0)
+  })
+
+  for (const code of [4401, 4403]) {
+    it(`stops retrying rejected credentials after ${code}, including established subscriptions`, async () => {
+      const h = socketHarness()
+      const socket = await h.connect()
+      socket.open()
+      socket.message({ type: 'ConnectionMessage' })
+      socket.reject(code)
+      await h.flush()
+      assert.equal(h.timers.size + h.intervals.size, 0)
+      h.bus.emit('relogged')
+      await h.flush()
+      assert.equal(h.sockets.length, 1)
+      assert.equal(h.events.includes('session-expired'), code === 4401)
+      if (code === 4403) assert.equal(h.notifications.length, 1)
+      h.state.token = 'renewed-token'
+      h.bus.emit('relogged')
+      await h.flush()
+      assert.equal(h.sockets.length, 2)
+      h.manager.closeConnection()
+    })
+  }
+
+  for (const code of [4401, 4403]) {
+    it(`does not retry an initial authentication rejection with ${code}`, async () => {
+      const h = socketHarness()
+      const socket = await h.connect()
+      socket.open()
+      socket.reject(code)
+      await h.flush()
+      assert(!h.manager.isOpen())
+      assert.equal(h.timers.size + h.intervals.size, 0)
+      h.bus.emit('relogged')
+      await h.flush()
+      assert.equal(h.sockets.length, 1)
+      h.manager.closeConnection()
+    })
+  }
+
+  for (const change of ['logout', 'wallet', 'userType']) {
+    it(`closes an established connection on ${change} and ignores old events`, async () => {
+      const h = socketHarness()
+      const socket = await h.connect()
+      socket.open()
+      socket.message({ type: 'ConnectionMessage' })
+      if (change === 'logout') h.bus.emit('p2p-auth-cleared', { walletHash: 'wallet-a' })
+      else {
+        h.state[change] = change === 'wallet' ? 'wallet-b' : 'arbiter'
+        h.update()
+      }
+      assert.equal(socket.readyState, 3)
+      socket.message({ type: 'NEW_ORDER' })
+      assert.equal(h.messages.length, 1)
+      assert.equal(h.timers.size + h.intervals.size, 0)
+      h.manager.closeConnection()
+    })
+  }
+
+  it('uses maintenance handling for 4403 without prompting login', async () => {
+    const h = socketHarness()
+    h.state.maintenance = true
+    const socket = await h.connect()
+    socket.open()
+    socket.reject(4403)
+    await h.flush()
+    assert(h.events.includes('p2p-unavailable'))
+    assert(!h.events.includes('session-expired'))
+    assert.equal(h.timers.size, 0)
+    h.manager.closeConnection()
+  })
+
+  it('requests login when an authorization recheck finds an unauthenticated account', async () => {
+    const h = socketHarness()
+    h.state.authenticated = false
+    const socket = await h.connect()
+    socket.open()
+    socket.reject(4403)
+    await h.flush()
+    assert(h.events.includes('session-expired'))
+    assert.equal(h.timers.size, 0)
+    h.manager.closeConnection()
+  })
+
+  for (const change of ['logout', 'wallet', 'index', 'chipnet', 'userType', 'unmount']) {
+    it(`cancels a pending reconnect on ${change}`, async () => {
+      const h = socketHarness()
+      const socket = await h.connect()
+      socket.open()
+      socket.reject(1006)
+      assert.equal(h.timers.size, 1)
+      if (change === 'logout') h.bus.emit('p2p-auth-cleared', { walletHash: 'wallet-a', userType: 'peer' })
+      else if (change === 'unmount') h.manager.closeConnection()
+      else {
+        h.state[change] = { wallet: 'wallet-b', index: 1, chipnet: true, userType: 'arbiter' }[change]
+        h.update()
+      }
+      await h.flush()
+      assert.equal(h.timers.size + h.intervals.size, 0)
+      assert.equal(h.sockets.length, 1)
+      assert(!h.manager.isOpen())
+      h.manager.closeConnection()
+    })
+  }
+
+  it('discards credentials that finish loading after a wallet switch', async () => {
+    const h = socketHarness()
+    let finish
+    h.state.token = () => new Promise(resolve => { finish = resolve })
+    h.manager.setWebSocketUrl('wss://example.test/ws/ramp-p2p/subscribe/order/12/')
+    h.state.wallet = 'wallet-b'
+    h.update()
+    finish('old-token')
+    await h.flush()
+    assert.equal(h.sockets.length, 0)
+    h.manager.closeConnection()
+  })
+
+  it('uses the arbiter token for arbiter streams', async () => {
+    const h = socketHarness()
+    const socket = await h.connect('order/12/', { userType: 'arbiter' })
+    socket.open()
+    assert.equal(h.state.requestedRole, 'arbiter')
+    h.manager.closeConnection()
+  })
+
+  it('does not open sockets without credentials and resumes after login', async () => {
+    const h = socketHarness()
+    h.state.token = null
+    await h.connect()
+    assert.equal(h.sockets.length, 0)
+    assert(h.events.includes('session-expired'))
+    h.state.token = 'new-token'
+    h.bus.emit('relogged')
+    await h.flush()
+    assert.equal(h.sockets.length, 1)
+    h.manager.closeConnection()
+  })
+
+  it('stops and prompts login if authentication is not acknowledged within ten seconds', async () => {
+    const h = socketHarness()
+    const socket = await h.connect()
+    socket.open()
+    assert.equal([...h.timers.values()][0].delay, 10000)
+    await h.runTimer()
+    assert.equal(socket.readyState, 3)
+    assert.equal(h.timers.size, 0)
+    assert(h.events.includes('session-expired'))
+    h.manager.closeConnection()
+  })
+
+  for (const path of ['ad/12/', 'market-price/PHP/']) {
+    it(`keeps ${path} public on initial connection and reconnect`, async () => {
+      const h = socketHarness()
+      const socket = await h.connect(path)
+      socket.open()
+      assert(h.manager.isOpen())
+      assert.deepEqual(socket.sent, [])
+      assert.equal(h.state.requestedRole, undefined)
+      socket.message({ type: 'public-event' })
+      assert.equal(h.messages.length, 1)
+      socket.reject(1006)
+      await h.runTimer()
+      h.sockets.at(-1).open()
+      assert.deepEqual(h.sockets.at(-1).sent, [])
+      h.manager.closeConnection()
+    })
+  }
 })

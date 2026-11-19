@@ -204,6 +204,7 @@ export default {
   },
   data () {
     return {
+      disposed: false,
       isChipnet: this.$store.getters['global/isChipnet'],
       darkMode: this.$store.getters['darkmode/getStatus'],
       websocketManager: {
@@ -300,6 +301,7 @@ export default {
   },
   async mounted () {
     await this.loadData()
+    if (this.disposed) return
     // Only call these if appeal was successfully loaded
     if (this.appeal) {
       this.updateOrderReadAt()
@@ -308,7 +310,10 @@ export default {
     if (this.notifType === 'new_message') { this.openChat = true }
   },
   beforeUnmount () {
+    this.disposed = true
     this.closeWSConnection()
+    bus.off('last-read-update', this.onLastReadUpdate)
+    bus.off('relogged', this.onRelogged)
   },
   methods: {
     getDarkModeClass,
@@ -579,6 +584,7 @@ export default {
       this.loadData()
     },
     setupWebsocket () {
+      if (this.disposed) return
       this.closeWSConnection()
       // Check if appeal and order exist before setting up websocket
       if (!this.appeal || !this.appeal.order || !this.appeal.order.id) {
@@ -587,7 +593,7 @@ export default {
       }
       const wsWatchtowerUrl = `${getBackendWsUrl()}order/${this.appeal.order.id}/`
       this.websocketManager.watchtower = new WebSocketManager()
-      this.websocketManager.watchtower.setWebSocketUrl(wsWatchtowerUrl)
+      this.websocketManager.watchtower.setWebSocketUrl(wsWatchtowerUrl, { userType: 'arbiter' })
       this.websocketManager.watchtower.subscribeToMessages(async (message) => {
         bus.emit('verify-tx', message)
         if (message?.success) {

@@ -15,6 +15,7 @@ export default {
   },
   data () {
     return {
+      disposed: false,
       websocketManager: null,
       showLogin: false,
       forceLogin: false,
@@ -65,11 +66,16 @@ export default {
   },
   async mounted () {
     await loadRampWallet()
+    if (this.disposed) return
     this.isLoading = false
     this.setupWebSocket()
   },
   beforeUnmount () {
+    this.disposed = true
     this.closeWSConnection()
+    bus.off('session-expired', this.handleSessionEvent)
+    bus.off('relogged', this.refreshChildren)
+    bus.off('handle-request-error', this.handleRequestError)
   },
   methods: {
     handleSessionEvent () {
@@ -98,10 +104,11 @@ export default {
       this.websocketManager?.closeConnection()
     },
     setupWebSocket () {
+      if (this.disposed) return
       this.closeWSConnection()
       const url = `${getBackendWsUrl()}general/${wallet.walletHash}/`
       this.websocketManager = new WebSocketManager()
-      this.websocketManager.setWebSocketUrl(url)
+      this.websocketManager.setWebSocketUrl(url, { userType: 'arbiter' })
       this.websocketManager.subscribeToMessages((message) => {
         if (message.type === 'NEW_APPEAL') {
           this.handleNewAppeal(message)

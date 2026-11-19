@@ -19,6 +19,7 @@ import { loadLibauthHdWallet } from 'src/wallet'
 export default {
   data () {
     return {
+      disposed: false,
       darkMode: this.$store.getters['darkmode/getStatus'],
       theme: this.$store.getters['global/theme'],
       network: 'BCH',
@@ -76,6 +77,7 @@ export default {
   },  
   async mounted () {
     await this.loadWallet()
+    if (this.disposed) return
     
     // Ensure wallet state is initialized before accessing getters
     const wallet = this.$store.getters['global/getWallet']('bch')
@@ -91,8 +93,15 @@ export default {
     // Setup WebSocket non-blocking - don't await it
     this.setupWebsocket()
   },
-  beforeUnmount () {    
-    // Removed loading.hide() since loading gif is no longer used
+  beforeUnmount () {
+    this.disposed = true
+    webSocketManager.closeConnection()
+    bus.off('hide-menu', this.hideMenu)
+    bus.off('show-menu', this.showMenu)
+    bus.off('update-ongoing-count', this.updateOngoingOrdersCount)
+    bus.off('session-expired', this.handleSessionEvent)
+    bus.off('post-notice', this.postNotice)
+    bus.off('handle-request-error', this.handleRequestError)
   },
   methods: {
     async loadWallet () {
@@ -208,23 +217,10 @@ export default {
       }
     },
     setupWebsocket () {
-      // Non-blocking WebSocket setup - don't delay UI rendering
-      // Get walletHash from stored RampWallet or global wallet
-      const storedWallet = this.$store.getters['ramp/wallet']
-      let walletHash = storedWallet?.walletHash
-      
-      // If not in ramp store, get from global wallet
-      if (!walletHash) {
-        const globalWallet = this.$store.getters['global/getWallet']('bch')
-        walletHash = globalWallet?.walletHash
-      }
-      
-      if (!walletHash) {
-        // If wallet not ready yet, wait a bit and retry
-        setTimeout(() => this.setupWebsocket(), 500)
-        return
-      }
-      
+      if (this.disposed) return
+      const walletHash = this.$store.getters['global/getWallet']('bch')?.walletHash
+      if (!walletHash) return
+
       const wsUrl = `${getBackendWsUrl()}general/${walletHash}/`
       webSocketManager.setWebSocketUrl(wsUrl)
       webSocketManager?.subscribeToMessages((message) => {

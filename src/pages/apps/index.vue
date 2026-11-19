@@ -907,9 +907,7 @@ export default {
       })
     },
     closeExchangeWebsocket() {
-      if (webSocketManager?.isOpen()) {
-        webSocketManager.closeConnection()
-      }
+      webSocketManager?.closeConnection()
     },
     onLongPressAppsTitle () {
       if (!this.showDebugApp) {

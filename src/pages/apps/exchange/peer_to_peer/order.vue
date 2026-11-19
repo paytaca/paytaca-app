@@ -502,6 +502,7 @@ import { orderLiveActivityManager } from 'src/services/order-live-activity'
 export default {
   data () {
     return {
+      disposed: false,
       darkMode: this.$store.getters['darkmode/getStatus'],
       theme: this.$store.getters['global/theme'],
       isChipnet: this.$store.getters['global/isChipnet'],
@@ -968,10 +969,12 @@ export default {
   },
   async mounted () {
     await this.loadData()
+    if (this.disposed) return
     this.setupWebSocket()
     this.ensureChatCloseCountdownTimer()
   },
   beforeUnmount () {
+    this.disposed = true
     this.closeWSConnection()
 
     if (this.chatCloseCountdownIntervalId) {
@@ -981,6 +984,8 @@ export default {
     
     // Remove bus listeners
     bus.off('new-message', this.onNewMessage)
+    bus.off('relogged', this.refreshPage)
+    bus.off('update-status', this.handleNewStatus)
     
     // Remove chat scroll listener if it exists
     const scrollTarget = this.$refs.chatScrollTarget
@@ -2591,6 +2596,7 @@ export default {
     },
 
     setupWebSocket () {
+      if (this.disposed) return
       this.closeWSConnection()
       // Subscribe to order updates
       if (!this.order?.id) {
