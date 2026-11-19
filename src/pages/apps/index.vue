@@ -285,6 +285,7 @@ import BetaAppDialog from 'src/components/apps/BetaAppDialog.vue'
 import HeaderNav from '../../components/header-nav'
 import { webSocketManager } from 'src/exchange/websocket/manager'
 import { DISPLAY_SUBS_APP } from 'src/wallet/payment-hub';
+import { isReadOnlyVaultEntry } from 'src/lib/readonly-wallet'
 
 export default {
   name: 'apps',
@@ -684,6 +685,10 @@ export default {
     darkMode () {
       return this.$store.getters['darkmode/getStatus']
     },
+    isReadOnlyWallet () {
+      const index = this.$store.getters['global/getWalletIndex']
+      return isReadOnlyVaultEntry(this.$store.getters['global/getVault']?.[index])
+    },
     dragSupported () {
       return true
     },
@@ -747,6 +752,11 @@ export default {
     },
     categories () {
       return this.categorizedApps.map(cat => ({ id: cat.id, label: cat.label, isBeta: cat.isBeta, isPinned: cat.isPinned }))
+    }
+  },
+  watch: {
+    isReadOnlyWallet () {
+      this.updateFilteredApps()
     }
   },
   methods: {
@@ -943,6 +953,18 @@ export default {
       // Add debug app if visible
       if (this.showDebugApp) {
         this.filteredApps.push(this.debugApp)
+      }
+
+      // Read-only (xpub) wallets have no private keys, so most apps are unusable.
+      // Keep Collectibles, Settings and Support functional.
+      if (this.isReadOnlyWallet) {
+        const readonlyEnabledApps = ['collectibles', 'settings', 'support']
+        this.filteredApps = this.filteredApps.map(app => {
+          if (!readonlyEnabledApps.includes(app.id)) {
+            return { ...app, active: false }
+          }
+          return app
+        })
       }
       
       // Deprecated network filtering removed - no longer needed

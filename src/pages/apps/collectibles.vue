@@ -258,6 +258,7 @@
 import { markRaw } from '@vue/reactivity'
 import HeaderNav from '../../components/header-nav'
 import { getMnemonic, Wallet } from '../../wallet'
+import { isReadOnlyVaultEntry, loadReadOnlyWallet, buildReadOnlyWallet } from 'src/lib/readonly-wallet'
 import SLPCollectibles from 'components/collectibles/SLPCollectibles.vue'
 import CashTokensNFTs from 'src/components/collectibles/CashTokensNFTs.vue'
 import CashTokensNFTGroup from 'src/components/collectibles/CashTokensNFTGroup.vue'
@@ -323,8 +324,13 @@ export default {
     theme () {
       return this.$store.getters['global/theme']
     },
+    isReadOnlyWallet () {
+      const index = this.$store.getters['global/getWalletIndex']
+      return isReadOnlyVaultEntry(this.$store.getters['global/getVault']?.[index])
+    },
     enableSLP () {
-      return this.$store.getters['global/enableSLP']
+      // Read-only (xpub) wallets only support CashTokens, not SLP
+      return this.$store.getters['global/enableSLP'] && !this.isReadOnlyWallet
     },
     isSep20 () {
       // Deprecated network removed: always false
@@ -818,13 +824,21 @@ export default {
         color: 'blue-9'
       })
     },
-    loadWallet () {
-      const vm = this
-      getMnemonic(vm.$store.getters['global/getWalletIndex']).catch(() => null).then(function (mnemonic) {
-        // Deprecated network removed: always use BCH/selectedNetwork which will be BCH by default
-        const wallet = new Wallet(mnemonic, vm.selectedNetwork)
-        vm.wallet = markRaw(wallet)
-      })
+    async loadWallet () {
+      const index = this.$store.getters['global/getWalletIndex']
+      const entry = this.$store.getters['global/getVault']?.[index]
+
+      // Read-only (xpub) wallets have no mnemonic; use the read-only adapter so
+      // the collectibles (CashTokens) views can resolve the wallet hash.
+      if (isReadOnlyVaultEntry(entry)) {
+        const readonlyWallet = await loadReadOnlyWallet(index)
+        this.wallet = readonlyWallet ? markRaw(buildReadOnlyWallet(readonlyWallet)) : null
+        return
+      }
+
+      const mnemonic = await getMnemonic(index).catch(() => null)
+      // Deprecated network removed: always use BCH/selectedNetwork which will be BCH by default
+      this.wallet = markRaw(new Wallet(mnemonic, this.selectedNetwork))
     },
     async getReceivingAddress () {
       // Dynamically generate address like the Receive page

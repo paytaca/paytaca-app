@@ -769,10 +769,16 @@ export async function cleanupNullAndDeletedWallets (context) {
   let currentWalletRemoved = false
   let newCurrentIndex = -1
 
+  // Read-only (xpub) wallets have no mnemonic by design — never treat as orphaned
+  const { isReadOnlyVaultEntry } = await import('src/lib/readonly-wallet')
+
   // Check each vault entry for validity
   for (let i = vault.length - 1; i >= 0; i--) {
     const wallet = vault[i]
-    
+
+    // Read-only (xpub) wallets have no mnemonic by design — never orphaned
+    if (isReadOnlyVaultEntry(wallet)) continue
+
     // Only remove entries that carry no recoverable wallet data:
     //  - null/undefined placeholders
     //  - entries explicitly marked deleted (already wiped by deleteWallet)

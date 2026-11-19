@@ -147,7 +147,8 @@ export default {
         return this.backnavpath
       }
       if (typeof this.backnavpath === 'string' && this.backnavpath.trim() !== '') {
-        return { path: this.backnavpath }
+        // Keep the string form so any embedded query (e.g. `?phase=xpub`) is preserved
+        return this.backnavpath
       }
       // Return empty path as fallback
       return { path: '/' }
@@ -188,11 +189,7 @@ export default {
         : typeof this.backnavpath === 'object' && this.backnavpath !== null && Object.keys(this.backnavpath).length > 0
 
       if (hasValidPath) {
-        if (typeof this.backnavpath === 'object') {
-          this.$router.push(this.backnavpath)
-        } else {
-          this.$router.push({ path: this.backnavpath })
-        }
+        this.$router.push(this.backTo)
       } else {
         this.$router.go(-1)
       }
