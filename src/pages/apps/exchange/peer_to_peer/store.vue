@@ -26,6 +26,9 @@ export default {
   created () {
     bus.on('relogged', this.refreshPage)
   },
+  beforeUnmount () {
+    bus.off('relogged', this.refreshPage)
+  },
   computed: {
     backnavpath () {
       return this.$route.query.from === 'get-bch' ? { name: 'app-get-bch' } : '/apps'

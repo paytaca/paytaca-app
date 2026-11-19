@@ -96,7 +96,7 @@ backend.interceptors.response.use(
     assertRequestWallet(response.config)
     return response
   },
-  error => {
+  async error => {
     if (error?.config?.p2pWalletHash) assertRequestWallet(error.config)
     if (isP2PAvailabilityError(error)) bus.emit('p2p-unavailable', error)
     // Handle 401 Unauthorized and 403 Forbidden errors - typically means session expired or not authenticated
@@ -125,13 +125,6 @@ backend.interceptors.response.use(
         if (fullErrorText.includes('chat identity') || fullErrorText.includes('chat_identity')) {
           return Promise.reject(error)
         }
-
-        // If backend explicitly says the token is invalid, clear it so the next auth flow
-        // doesn't get stuck reusing a bad token (e.g. peer token on arbiter endpoints).
-        if (fullErrorText.includes('invalid token')) {
-          const userType = resolveRequestUserType(error?.config)
-          deleteAuthTokenForUserType(userType)
-        }
       }
       
       // Emit session-expired event to trigger authentication
@@ -141,9 +134,10 @@ backend.interceptors.response.use(
       const errorDetail = error?.response?.data?.detail || ''
       const errorMessage = error?.response?.data?.error || ''
       const fullErrorText = `${errorDetail} ${errorMessage}`.toLowerCase()
-      if (fullErrorText.includes('invalid token')) {
+      if (status === 401 || fullErrorText.includes('invalid token')) {
         const userType = resolveRequestUserType(error?.config)
-        deleteAuthTokenForUserType(userType)
+        await deleteAuthTokenForUserType(userType)
+        assertRequestWallet(error.config)
       }
 
       bus.emit('session-expired')

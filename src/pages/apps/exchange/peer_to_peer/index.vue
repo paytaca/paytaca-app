@@ -148,11 +148,8 @@ export default {
       })
         .catch(error => {
           if (error.response) {
-            if (error.response.status === 403) {
+            if (error.response.status === 401 || error.response.status === 403) {
               this.handleSessionEvent()
-            } else if (error.response.status === 401) {
-              // 401 means not authenticated - this is expected if user hasn't logged in yet
-              // Silently ignore - user will be prompted to login when needed
             } else if (error.response.status === 404) {
               // 404 means user doesn't exist yet, which is fine - silently ignore
             } else {
@@ -242,13 +239,11 @@ export default {
       // come from a navigation-triggered abort.
       if (error?.code === 'ECONNABORTED') return
 
-      // Don't log or show 404/401 errors - they're often expected
-      // 404: resource doesn't exist (e.g., user not registered yet)
-      // 401: not authenticated (user will be prompted to login when needed)
-      // 403: For chat-related errors, this often means chat identity not ready yet
-      if (error?.response?.status === 404 || error?.response?.status === 401) {
-        return // Silently ignore 404s and 401s
+      if (error?.response?.status === 401) {
+        this.handleSessionEvent()
+        return
       }
+      if (error?.response?.status === 404) return
       
       // Check if it's a chat-related 403 error (chat identity not found)
       if (error?.response?.status === 403) {

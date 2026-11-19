@@ -120,7 +120,7 @@ export class ExchangeUser {
     if (token && !forceLogin && this.isLoggedIn()) return token
 
     this.emitSignal('login')
-    deleteAuthToken(this.user_type)
+    await deleteAuthToken(this.user_type)
 
     const otp = await this.getOTP()
     rampWallet.assertIdentity(this)
@@ -190,16 +190,25 @@ export async function loadAuthenticatedUser (forceLogin = false) {
     await user.login(!user.is_authenticated || forceLogin)
     
     await user.savePubkeyAndAddress()
-    await user.fetchChatIdentity().catch(error => {
-      if (error?.response?.status !== 403) console.error('Error fetching chat identity:', error)
-    })
+    try {
+      await user.fetchChatIdentity()
+    } catch (error) {
+      if (error?.response?.status === 401) {
+        await user.login(true)
+        await user.savePubkeyAndAddress()
+        await user.fetchChatIdentity()
+      } else if (error?.code === 'p2p_identity_mismatch' || error?.code === 'p2p_account_type_mismatch') {
+        throw error
+      } else if (error?.response?.status !== 403) {
+        console.error('Error fetching chat identity:', error?.response?.status || error?.code || 'Request failed')
+      }
+    }
 
     await user.savePubkeyAndAddress()
     user.emitSignal(null, { signal: 'logging-in', data: false })
 
     return Promise.resolve(user)
   } catch (error) {
-    console.error(error)
     bus.emit('logging-in', false)
     return Promise.reject(error)
   }
@@ -298,11 +307,11 @@ export function getAuthToken (userType) {
  * This is used for explicit logout scenarios
  */
 export function deleteAuthToken (userType) {
-  deleteAuthTokenForUserType(userType)
+  const removal = deleteAuthTokenForUserType(userType)
   // Also remove legacy key for current wallet to prevent reusing wrong tokens.
   const walletHash = getCurrentWalletHash() || rampWallet?.walletHash
   const legacyKey = getLegacyWalletTokenStorageKey(walletHash)
-  if (legacyKey) SecureStoragePlugin.remove({ key: legacyKey })
+  return Promise.allSettled([removal, ...(legacyKey ? [SecureStoragePlugin.remove({ key: legacyKey })] : [])])
 }
 
 /**
@@ -332,13 +341,14 @@ export function deleteAuthTokenForUserType (userType) {
 
   if (userType === 'peer' || userType === 'arbiter') {
     const key = `${TOKEN_STORAGE_KEY_PREFIX}-${walletHash}-${userType}`
-    SecureStoragePlugin.remove({ key })
-    return
+    return Promise.allSettled([SecureStoragePlugin.remove({ key })])
   }
 
   // Delete both if caller passed null/undefined (or unknown)
-  SecureStoragePlugin.remove({ key: `${TOKEN_STORAGE_KEY_PREFIX}-${walletHash}-peer` })
-  SecureStoragePlugin.remove({ key: `${TOKEN_STORAGE_KEY_PREFIX}-${walletHash}-arbiter` })
+  return Promise.allSettled([
+    SecureStoragePlugin.remove({ key: `${TOKEN_STORAGE_KEY_PREFIX}-${walletHash}-peer` }),
+    SecureStoragePlugin.remove({ key: `${TOKEN_STORAGE_KEY_PREFIX}-${walletHash}-arbiter` })
+  ])
  }
 
 let authController = null

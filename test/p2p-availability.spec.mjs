@@ -363,7 +363,7 @@ describe('P2P maintenance screen', () => {
   })
 })
 
-function identityHarness () {
+function identityHarness ({ removeToken = null } = {}) {
   const selected = { hash: 'synthetic-wallet', index: 0, chipnet: false }
   const Store = { getters: {
     'global/getWallet': () => ({ walletHash: selected.hash }),
@@ -404,7 +404,7 @@ function identityHarness () {
     bus: { emit: name => events.push(name) },
     requestManager: { attachTo () {} },
     getAuthToken: async role => `synthetic-${role}-token`,
-    deleteAuthTokenForUserType: role => events.push(`delete-${role}`),
+    deleteAuthTokenForUserType: role => { events.push(`delete-${role}`); return removeToken?.(role) },
     fetchP2PAvailability: async () => {}, isP2PAvailabilityError: () => false,
     p2pRequestFeature
   }
@@ -1041,8 +1041,9 @@ describe('Server-issued P2P registration challenges', () => {
   }
 
   for (const stage of ['challenge', 'submission']) {
-    for (const retryAfter of ['60', new Date(Date.now() + 60000).toUTCString()]) {
-      it(`honors Retry-After ${retryAfter === '60' ? 'seconds' : 'date'} from ${stage} without retrying`, async () => {
+    for (const format of ['seconds', 'date']) {
+      it(`honors Retry-After ${format} from ${stage} without retrying`, async () => {
+        const retryAfter = format === 'seconds' ? '60' : new Date(Date.now() + 60000).toUTCString()
         const h = registrationHarness()
         const respond = h.respond
         h.respond = async (...args) => {
@@ -1152,5 +1153,227 @@ describe('P2P registration screen lifecycle', () => {
     assert.equal(component.watch.usernickname.flush, 'sync')
     assert.equal(component.watch.registrationIdentity.flush, 'sync')
     assert.equal(vm.registrationVersion, 2)
+  })
+})
+
+
+describe('P2P home unauthorized recovery', () => {
+  function component (path, bindings = {}) {
+    const source = readFileSync(path, 'utf8')
+    const script = source.match(/<script>([\s\S]*?)<\/script>/)[1].replace(/^import .*$/gm, '').replace('export default', 'return')
+    const defaults = { FilterComponent: {}, PeerInfo: {}, NoticeBoardDialog: {}, FooterMenu: {}, RampLogin: {}, ProgressLoader: {}, HeaderNav: {}, StoreListings: {}, getDarkModeClass () {}, formatCurrency () {} }
+    const scope = { ...defaults, ...bindings }
+    return new Function(...Object.keys(scope), script)(...Object.values(scope))
+  }
+
+  it('clears a rejected token and requests login on a generic authorized 401', async () => {
+    const h = identityHarness()
+    h.fail({ response: { status: 401, data: { detail: 'Unauthorized' } } })
+    await assert.rejects(h.client.get('/ramp-p2p/ad/', { authorize: 'peer' }))
+    assert.deepEqual(h.events, ['delete-peer', 'session-expired'])
+    assert.equal(h.requests.length, 1)
+  })
+
+  it('keeps unauthenticated registration failures out of login recovery', async () => {
+    const h = identityHarness()
+    h.fail({ response: { status: 401, data: {} } })
+    await assert.rejects(h.client.get('/ramp-p2p/registration/challenge/', { authorize: false }))
+    assert.deepEqual(h.events, [])
+  })
+
+  it('forces login for home-page 401s instead of ignoring them', async () => {
+    const view = component('src/pages/apps/exchange/peer_to_peer/index.vue', {
+      backend: { get: async () => { throw { response: { status: 401 } } } }
+    })
+    const vm = { $store: { getters: {} }, showLogin: false, forceLogin: false }
+    vm.handleSessionEvent = view.methods.handleSessionEvent.bind(vm)
+    view.methods.handleRequestError.call(vm, { response: { status: 401 } })
+    assert.equal(vm.showLogin, true)
+    assert.equal(vm.forceLogin, true)
+    vm.showLogin = false
+    view.methods.fetchUser.call(vm)
+    await new Promise(resolve => setImmediate(resolve))
+    assert.equal(vm.showLogin, true)
+  })
+
+  function listingScreen (bindings = {}) {
+    const events = new EventEmitter()
+    const view = component('src/components/ramp/fiat/StoreListings.vue', { bus: events, ...bindings })
+    const requests = []
+    const vm = {
+      pendingFetch: false, disposed: false, selectedCurrency: { symbol: 'PHP' }, filters: {}, transactionType: 'BUY',
+      loading: true, loadingMoreData: true,
+      $store: { dispatch: async (...args) => { requests.push(args); throw { response: { status: 401 } } } }
+    }
+    for (const [name, method] of Object.entries(view.methods)) vm[name] = method.bind(vm)
+    view.created.call(vm)
+    return { vm, view, events, requests }
+  }
+
+  it('pauses failed listing requests until a successful login remounts the screen', async () => {
+    const h = listingScreen()
+    await h.vm.fetchStoreListings()
+    assert.equal(h.vm.pendingFetch, true)
+    assert.equal(h.vm.loading, false)
+    assert.equal(h.vm.loadingMoreData, false)
+    await h.vm.fetchStoreListings()
+    await h.vm.resetAndRefetchListings(true)
+    h.events.emit('relogged')
+    assert.equal(h.requests.length, 1)
+    assert.equal(h.events.listenerCount('relogged'), 0)
+  })
+
+  it('pauses when another home request expires and removes the listener on unmount', async () => {
+    const h = listingScreen()
+    h.events.emit('session-expired')
+    await h.vm.fetchStoreListings()
+    assert.equal(h.requests.length, 0)
+    h.view.beforeUnmount.call(h.vm)
+    assert.equal(h.vm.disposed, true)
+    assert.equal(h.events.listenerCount('session-expired'), 0)
+  })
+
+  it('does not fetch listings before login when no token is present', async () => {
+    const h = listingScreen({ getAuthToken: async () => null })
+    h.vm.fetchFiatCurrencies = async () => { await h.vm.fetchStoreListings() }
+    h.vm.fetchPaymentTypes = () => {}
+    await h.view.mounted.call(h.vm)
+    assert.equal(h.requests.length, 0)
+    assert.equal(h.vm.pendingFetch, true)
+  })
+
+  it('refreshes only once after login and unregisters the parent listener', () => {
+    const bus = new EventEmitter()
+    const view = component('src/pages/apps/exchange/peer_to_peer/store.vue', { bus })
+    const vm = { storeListingsKey: 0 }
+    vm.refreshPage = view.methods.refreshPage.bind(vm)
+    view.created.call(vm)
+    bus.emit('relogged')
+    assert.equal(vm.storeListingsKey, 1)
+    view.beforeUnmount.call(vm)
+    bus.emit('relogged')
+    assert.equal(vm.storeListingsKey, 1)
+  })
+})
+
+
+describe('P2P login chat authentication recovery', () => {
+  it('finishes rejected-token removal before triggering another login', async () => {
+    let finish
+    const h = identityHarness({ removeToken: () => new Promise(resolve => { finish = resolve }) })
+    h.fail({ response: { status: 401, data: {} } })
+    const pending = h.client.get('/auth/', { authorize: 'peer' })
+    await new Promise(resolve => setImmediate(resolve))
+    assert.deepEqual(h.events, ['delete-peer'])
+    finish()
+    await assert.rejects(pending)
+    assert.deepEqual(h.events, ['delete-peer', 'session-expired'])
+  })
+
+  function authHarness ({ failures = 1, authenticated = true, deferredRemoval = false } = {}) {
+    const h = identityHarness()
+    const events = []
+    const tokens = new Map([['ramp-p2p-auth-key-synthetic-wallet-peer', 'synthetic-old-token']])
+    let releaseRemoval
+    let chatRequests = 0
+    let logins = 0
+    h.wallet.wallet.getPrivateKeyWifAt = () => 'synthetic-secret-placeholder'
+    h.wallet.signMessage = () => 'synthetic-signature'
+    const bindings = {
+      Store: { getters: {
+        'global/getWallet': () => ({ walletHash: h.wallet.walletHash }),
+        'global/getWalletIndex': 0, 'global/isChipnet': false
+      } },
+      rampWallet: h.wallet,
+      SecureStoragePlugin: {
+        async get ({ key }) {
+          if (!tokens.has(key)) throw new Error('Missing token')
+          return { value: tokens.get(key) }
+        },
+        async set ({ key, value }) { tokens.set(key, value); events.push('save-token'); return { value } },
+        async remove ({ key }) {
+          if (deferredRemoval && key.endsWith('-peer')) {
+            deferredRemoval = false
+            await new Promise(resolve => { releaseRemoval = resolve })
+          }
+          tokens.delete(key)
+          events.push('remove-token')
+        }
+      },
+      backend: {
+        async get (url) {
+          if (url === '/auth/') return { data: { ...h.registered, name: 'Synthetic name', is_authenticated: authenticated } }
+          assert.equal(url, '/auth/otp/peer')
+          events.push('otp')
+          return { data: { otp: 'synthetic-otp' } }
+        },
+        async post (url) {
+          assert.equal(url, '/auth/login/peer')
+          events.push('login')
+          return { data: { token: `synthetic-new-token-${++logins}` } }
+        }
+      },
+      loadChatIdentity: async () => {
+        events.push('chat')
+        if (++chatRequests <= failures) throw { response: { status: 401 }, config: { secret: 'must-not-be-logged' } }
+        return { id: 'synthetic-chat' }
+      },
+      bus: { emit: (name, data) => events.push([name, data]) }
+    }
+    const source = readFileSync('src/exchange/auth.js', 'utf8').replace(/^import .*$/gm, '').replace(/export /g, '')
+    const api = new Function(...Object.keys(bindings), `${source}; return { loadAuthenticatedUser, ExchangeUser }`)(...Object.values(bindings))
+    return { ...api, events, tokens, release: () => releaseRemoval(), counts: () => ({ logins, chatRequests }) }
+  }
+
+  for (const forceLogin of [false, true]) {
+    it(`performs one fresh login before retrying chat after a 401 (forceLogin=${forceLogin})`, async () => {
+      const h = authHarness()
+      const user = await h.loadAuthenticatedUser(forceLogin)
+      assert.deepEqual(h.counts(), { logins: forceLogin ? 2 : 1, chatRequests: 2 })
+      assert.equal(user.chat_identity.id, 'synthetic-chat')
+      const failedChat = h.events.indexOf('chat')
+      const retryLogin = h.events.indexOf('login', failedChat)
+      const retryChat = h.events.indexOf('chat', failedChat + 1)
+      assert(retryLogin > failedChat && retryChat > retryLogin)
+    })
+  }
+
+  it('stops after a second 401 without returning a successful login', async () => {
+    const h = authHarness({ failures: 2 })
+    await assert.rejects(h.loadAuthenticatedUser(), error => error.response.status === 401)
+    assert.deepEqual(h.counts(), { logins: 1, chatRequests: 2 })
+    assert.deepEqual(h.events.at(-1), ['logging-in', false])
+  })
+
+  it('waits for token removal before OTP, login and saving its replacement', async () => {
+    const h = authHarness({ failures: 0, deferredRemoval: true })
+    const pending = h.loadAuthenticatedUser(true)
+    await new Promise(resolve => setImmediate(resolve))
+    assert.equal(h.events.includes('otp'), false)
+    assert.equal(h.events.includes('save-token'), false)
+    h.release()
+    await pending
+    assert(h.events.indexOf('otp') > h.events.indexOf('remove-token'))
+    assert.equal(h.tokens.get('ramp-p2p-auth-key-synthetic-wallet-peer'), 'synthetic-new-token-1')
+  })
+
+  it('does not emit loggedIn or relogged when chat authentication still fails', async () => {
+    const h = authHarness({ failures: 2 })
+    const source = readFileSync('src/components/ramp/fiat/RampLogin.vue', 'utf8')
+    const script = source.match(/<script>([\s\S]*?)<\/script>/)[1].replace(/^import .*$/gm, '').replace('export default', 'return')
+    const emitted = []
+    const view = new Function('loadAuthenticatedUser', 'getDarkModeClass', 'bus', script)(
+      h.loadAuthenticatedUser, () => '', { emit: name => emitted.push(name) }
+    )
+    const vm = {
+      forceLogin: false, isLoading: false,
+      $emit: name => emitted.push(name),
+      $store: { commit: () => emitted.push('commit') },
+      getErrorMessageByType: () => 'Authentication rejected'
+    }
+    await view.methods.loadUser.call(vm)
+    assert.deepEqual(emitted, [])
+    assert.equal(vm.errorMessage, 'Authentication rejected')
+    assert.equal(vm.isLoading, false)
   })
 })
