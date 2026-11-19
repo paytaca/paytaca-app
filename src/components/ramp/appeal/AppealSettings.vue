@@ -55,7 +55,7 @@
 <script>
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 import ConfirmationDialog from './ConfirmationDialog.vue'
-import { backend } from 'src/exchange/backend'
+import { backend, updateP2PProfile } from 'src/exchange/backend'
 import { bus } from 'src/wallet/event-bus.js'
 import { wallet } from 'src/exchange/wallet'
 
@@ -166,7 +166,7 @@ export default {
       const body = {
         inactive_hours: hours
       }
-      backend.patch('/ramp-p2p/arbiter/', body, { authorize: true })
+      updateP2PProfile('arbiter', body)
         .then(() => {
           this.fetchUserData()
           this.$emit('setInactive')

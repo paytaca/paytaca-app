@@ -22,6 +22,21 @@ export class RampWallet {
     this.isChipnet = isChipnet
   }
 
+  assertIdentity (registered) {
+    const current = Store.getters['global/getWallet']('bch')
+    const matches = this.wallet &&
+      this.walletHash === current?.walletHash &&
+      this.walletIndex === Store.getters['global/getWalletIndex'] &&
+      this.isChipnet === Store.getters['global/isChipnet'] &&
+      (!registered?.wallet_hash || registered.wallet_hash === this.walletHash) &&
+      registered?.public_key === this.pubkey() &&
+      registered?.address === this.address() &&
+      registered?.address_path === this.addressPath()
+    if (!matches) {
+      throw Object.assign(new Error('The local wallet does not match the registered P2P identity. P2P signing and funding are blocked. Verify the wallet, derivation path, and identity encoding. Changing the registered identity through profile editing is unsupported.'), { code: 'p2p_identity_mismatch' })
+    }
+  }
+
   /**
    * Load the wallet.
    * @returns {Promise<void>}
@@ -145,7 +160,13 @@ export async function loadRampWallet () {
   const isChipnet = Store.getters['global/isChipnet']
   const walletIndex = Store.getters['global/getWalletIndex']
   const globalWallet = Store.getters['global/getWallet']('bch')
-  wallet = new RampWallet(walletIndex, globalWallet.walletHash, ADDRESS_INDEX, isChipnet)
-  await wallet.loadWallet()
+  const loadedWallet = new RampWallet(walletIndex, globalWallet.walletHash, ADDRESS_INDEX, isChipnet)
+  await loadedWallet.loadWallet()
+  if (walletIndex !== Store.getters['global/getWalletIndex'] ||
+      globalWallet.walletHash !== Store.getters['global/getWallet']('bch')?.walletHash ||
+      isChipnet !== Store.getters['global/isChipnet']) {
+    throw Object.assign(new Error('The active wallet changed while loading P2P.'), { code: 'p2p_identity_mismatch' })
+  }
+  wallet = loadedWallet
   return wallet
 }

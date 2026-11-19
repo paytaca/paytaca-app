@@ -1,3 +1,4 @@
+import { fetchP2PAvailability } from 'src/exchange/availability'
 import { Store } from '..'
 import { backend } from 'src/exchange/backend'
 import { toRaw } from 'vue'
@@ -142,31 +143,6 @@ export function fetchAds (context, { component = null, params = null, overwrite 
   })
 }
 
-
-export async function fetchCashinOrderList (context, { params = null }) {
-  // Setup pagination parameters using getters
-  const pageNumber = context.getters.cashinOrderListPage
-  const totalPages = context.getters.cashinOrderListTotalPage
-  if (pageNumber <= totalPages) {
-    const parameters = {
-      wallet_hash: params.wallet_hash,
-      page: pageNumber,
-      limit: params.limit || 15,
-      owned: params.owned
-    }
-
-    const apiURL = '/ramp-p2p/order/cash-in/'
-    await backend.get(apiURL, { params: parameters })
-      .then((response) => {
-        context.commit('updateCashinOrderList', response.data.orders)
-        context.commit('updateCashinOrderListTotalPage', response.data.total_pages)
-        return response.data
-      })
-      .catch(error => {
-        console.error(error.response || error)
-      })
-  }
-}
 
 export async function fetchOrders (context, { statusType = null, params = null, overwrite = false }) {
   return new Promise((resolve, reject) => {
@@ -449,15 +425,13 @@ export function fetchUser (context) {
   })
 }
 
-export function fetchFeatureToggles (context) {
-  return new Promise((resolve, reject) => {
-    backend.get('/ramp-p2p/feature-toggles/')
-      .then(response => {
-        context.commit('updateFeatureToggles', response.data)
-        resolve(response.data)
-      })
-      .catch(error => {
-        reject(error)
-      })
-  })
+export async function fetchFeatureToggles (context) {
+  try {
+    const controls = await fetchP2PAvailability(backend)
+    context.commit('updateFeatureToggles', controls)
+    return controls
+  } catch {
+    context.commit('updateFeatureToggles', {})
+    return {}
+  }
 }

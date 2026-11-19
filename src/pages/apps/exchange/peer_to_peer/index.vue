@@ -19,6 +19,7 @@ import { loadLibauthHdWallet } from 'src/wallet'
 export default {
   data () {
     return {
+      disposed: false,
       darkMode: this.$store.getters['darkmode/getStatus'],
       theme: this.$store.getters['global/theme'],
       network: 'BCH',
@@ -76,6 +77,7 @@ export default {
   },  
   async mounted () {
     await this.loadWallet()
+    if (this.disposed) return
     
     // Ensure wallet state is initialized before accessing getters
     const wallet = this.$store.getters['global/getWallet']('bch')
@@ -91,8 +93,15 @@ export default {
     // Setup WebSocket non-blocking - don't await it
     this.setupWebsocket()
   },
-  beforeUnmount () {    
-    // Removed loading.hide() since loading gif is no longer used
+  beforeUnmount () {
+    this.disposed = true
+    webSocketManager.closeConnection()
+    bus.off('hide-menu', this.hideMenu)
+    bus.off('show-menu', this.showMenu)
+    bus.off('update-ongoing-count', this.updateOngoingOrdersCount)
+    bus.off('session-expired', this.handleSessionEvent)
+    bus.off('post-notice', this.postNotice)
+    bus.off('handle-request-error', this.handleRequestError)
   },
   methods: {
     async loadWallet () {
@@ -139,11 +148,8 @@ export default {
       })
         .catch(error => {
           if (error.response) {
-            if (error.response.status === 403) {
+            if (error.response.status === 401 || error.response.status === 403) {
               this.handleSessionEvent()
-            } else if (error.response.status === 401) {
-              // 401 means not authenticated - this is expected if user hasn't logged in yet
-              // Silently ignore - user will be prompted to login when needed
             } else if (error.response.status === 404) {
               // 404 means user doesn't exist yet, which is fine - silently ignore
             } else {
@@ -208,23 +214,10 @@ export default {
       }
     },
     setupWebsocket () {
-      // Non-blocking WebSocket setup - don't delay UI rendering
-      // Get walletHash from stored RampWallet or global wallet
-      const storedWallet = this.$store.getters['ramp/wallet']
-      let walletHash = storedWallet?.walletHash
-      
-      // If not in ramp store, get from global wallet
-      if (!walletHash) {
-        const globalWallet = this.$store.getters['global/getWallet']('bch')
-        walletHash = globalWallet?.walletHash
-      }
-      
-      if (!walletHash) {
-        // If wallet not ready yet, wait a bit and retry
-        setTimeout(() => this.setupWebsocket(), 500)
-        return
-      }
-      
+      if (this.disposed) return
+      const walletHash = this.$store.getters['global/getWallet']('bch')?.walletHash
+      if (!walletHash) return
+
       const wsUrl = `${getBackendWsUrl()}general/${walletHash}/`
       webSocketManager.setWebSocketUrl(wsUrl)
       webSocketManager?.subscribeToMessages((message) => {
@@ -235,19 +228,22 @@ export default {
       })
     },
     handleRequestError (error) {
+      if (error?.code === 'p2p_profile_rejected') return
+      if (['p2p_identity_mismatch', 'p2p_account_type_mismatch'].includes(error?.code)) {
+        this.$q.notify({ type: 'error', message: error.message, timeout: 5000 })
+        return
+      }
       // Suppress ECONNABORTED — these are XHR aborts from navigation
       // (requestManager.abortAll), not actual HTTP timeouts. No timeout is
       // configured on the backend axios instance, so ECONNABORTED can only
       // come from a navigation-triggered abort.
       if (error?.code === 'ECONNABORTED') return
 
-      // Don't log or show 404/401 errors - they're often expected
-      // 404: resource doesn't exist (e.g., user not registered yet)
-      // 401: not authenticated (user will be prompted to login when needed)
-      // 403: For chat-related errors, this often means chat identity not ready yet
-      if (error?.response?.status === 404 || error?.response?.status === 401) {
-        return // Silently ignore 404s and 401s
+      if (error?.response?.status === 401) {
+        this.handleSessionEvent()
+        return
       }
+      if (error?.response?.status === 404) return
       
       // Check if it's a chat-related 403 error (chat identity not found)
       if (error?.response?.status === 403) {

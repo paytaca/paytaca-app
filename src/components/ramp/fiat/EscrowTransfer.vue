@@ -2,7 +2,13 @@
   <div
     class="escrow-transfer-container q-pt-sm q-mx-md text-bow"
     :class="getDarkModeClass(darkMode)">
-    <div class="q-mx-sm q-px-md">
+    <q-banner v-if="availabilityFailure || loadFailure" class="bg-orange-2 text-black q-mb-md" role="alert">
+      {{ availabilityFailure ? availabilityMessage : $t('P2PLoadFailed', {}, 'Unable to load this order. Please retry.') }}
+      <template #action>
+        <q-btn flat :label="$t('Retry')" :disable="loading || sendingBch" @click="loadData" />
+      </template>
+    </q-banner>
+    <div v-if="!availabilityFailure && !loadFailure" class="q-mx-sm q-px-md">
       
       <!-- Contract Information Section -->
       <div class="section-wrapper">
@@ -140,7 +146,7 @@
       <q-btn
         :loading="loadCancelButton"
         flat
-        :disable="!showDragSlide"
+        :disable="sendingBch"
         label="Cancel order"
         class="q-space text-white br-15"
         color="blue-6"
@@ -167,7 +173,8 @@
 <script>
 import { bus } from 'src/wallet/event-bus.js'
 import { wallet } from 'src/exchange/wallet'
-import { backend } from 'src/exchange/backend'
+import { backend, assertP2PIdentity } from 'src/exchange/backend'
+import { fetchP2PAvailability, isP2PAvailabilityError, p2pAvailabilityMessage } from 'src/exchange/availability'
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 import RampDragSlide from './dialogs/RampDragSlide.vue'
 import RampContract from 'src/exchange/contract'
@@ -181,6 +188,8 @@ export default {
     return {
       darkMode: this.$store.getters['darkmode/getStatus'],
       loading: false,
+      availabilityFailure: null,
+      loadFailure: false,
       order: null,
       adData: null,
       selectedArbiter: null,
@@ -219,6 +228,9 @@ export default {
     }
   },
   computed: {
+    availabilityMessage () {
+      return p2pAvailabilityMessage(this.$t.bind(this), this.availabilityFailure)
+    },
     contractAddressMatch () {
       const localContractAddress = this.escrowContract?.getAddress()
       return localContractAddress === this.contractAddress
@@ -227,7 +239,7 @@ export default {
       return this.arbiterOptions?.length > 0
     },
     showDragSlide () {
-      return (this.dragSlideOn && this.arbiterOptions?.length > 0 && !this.sendingBch && this.contractAddress)
+      return (!this.loading && !this.loadFailure && !this.availabilityFailure && this.dragSlideOn && this.arbiterOptions?.length > 0 && !this.sendingBch && this.contractAddress)
     },
     arbiterOptionsMessage () {
       return `No available arbiter found for currency ${this.order?.ad?.fiat_currency?.symbol}`
@@ -254,13 +266,17 @@ export default {
     toggleContractInfo () {
       this.showContractInfo = !this.showContractInfo
     },
-    onReloadContractAddress () {
-      this.generateContractAddress(true)
+    async onReloadContractAddress () {
+      try {
+        await this.generateContractAddress(true)
+      } catch { return }
       this.$emit('refresh')
     },
-    selectArbiter () {
+    async selectArbiter () {
       this.contractAddress = null
-      this.generateContractAddress()
+      try {
+        await this.generateContractAddress()
+      } catch { return }
     },
     async loadContract () {
       const vm = this
@@ -290,25 +306,31 @@ export default {
       }
     },
     async loadData () {
+      if (this.loading || this.sendingBch) return
       this.loading = true
+      this.loadFailure = false
       this.order = this.data.order
-      await this.loadContract()
-      const transferAmount = this.data.transferAmount
-      this.transferAmount = satoshiToBch(transferAmount + this.fees?.total)
-
-      // if (this.order?.status?.value === 'CNF') {
-      //   this.$emit('refresh')
-      // }
-
-      this.loading = false
+      try {
+        const controls = await fetchP2PAvailability(backend, 'ORDER_ESCROW')
+        this.$store.commit('ramp/updateFeatureToggles', controls)
+        this.availabilityFailure = null
+        await this.loadContract()
+        this.transferAmount = satoshiToBch(this.data.transferAmount + this.fees?.total)
+      } catch (error) {
+        this.loadFailure = true
+        if (isP2PAvailabilityError(error)) this.availabilityFailure = error
+      } finally {
+        this.loading = false
+      }
     },
     async completePayment () {
       const vm = this
       vm.sendErrors = []
-      vm.escrowBch()
+      await vm.escrowBch()
     },
     async escrowBch () {
       const vm = this
+      if (vm.sendingBch || vm.loading || vm.loadFailure) return
       if (!vm.contractAddressMatch) {
         vm.sendErrors.push('Contract address mismatch')
         vm.dragSlideOn = true
@@ -322,8 +344,16 @@ export default {
         if (vm.escrowBalance === 0 && utxos.length === 0) {
           vm.$store.commit('ramp/clearOrderTxids', vm.order?.id)
           console.log(`Sending ${vm.transferAmount} BCH to ${vm.contractAddress}`)
-          const rawWallet = await wallet.getRawWallet()
+          const fundingWallet = wallet
+          const rawWallet = await fundingWallet.getRawWallet()
           const changeAddress = await getChangeAddress('bch', { isChipnet: rawWallet.isChipnet })
+          await fetchP2PAvailability(backend, 'ORDER_ESCROW')
+          const registered = await assertP2PIdentity({
+            public_key: vm.escrowContract.publicKeys.seller,
+            address: vm.escrowContract.addresses.seller,
+            address_path: wallet.addressPath()
+          }, 'peer')
+          fundingWallet.assertIdentity(registered)
           const result = await rawWallet.sendBch(vm.transferAmount, vm.contractAddress, changeAddress)
           console.log('sendBch:', result)
           if (result?.success) {
@@ -336,7 +366,11 @@ export default {
               }
             }
             vm.$store.commit('ramp/saveTxid', txidData)
-            vm.escrowBalance = await vm.escrowContract.getBalance(null, true)
+            try {
+              vm.escrowBalance = await vm.escrowContract.getBalance(null, true)
+            } catch {
+              vm.escrowBalance = null
+            }
             if (vm.order?.status?.value === 'CNF') {
               await vm.escrowPendingOrder()
             }
@@ -362,15 +396,21 @@ export default {
           vm.sendErrors.push('Contract already funded/multiple UTXOs found when contract only requires 1')
         }
       } catch (error) {
-        vm.sendErrors.push(error)
+        if (isP2PAvailabilityError(error)) {
+          vm.availabilityFailure = error
+          vm.sendErrors.push(vm.availabilityMessage)
+        } else {
+          vm.sendErrors.push(error?.message || String(error))
+        }
         vm.dragSlideOn = true
         vm.dragSlideKey++
+      } finally {
+        vm.sendingBch = false
+        vm.loading = false
       }
-      vm.sendingBch = false
     },
     async escrowPendingOrder () {
       const vm = this
-      vm.loading = true
       await backend.post(`/ramp-p2p/order/${vm.order?.id}/pending-escrow/`, null, { authorize: true })
         .catch(error => {
           this.handleRequestError(error)
@@ -396,6 +436,7 @@ export default {
         })
         .catch(error => {
           this.handleRequestError(error)
+          throw error
         })
     },
     getPlatform () {
@@ -426,12 +467,10 @@ export default {
         backend.post('/ramp-p2p/order/contract/', body, { headers: headers, authorize: true })
           .then(response => {
             vm.contractAddress = response.data?.address
-            vm.loading = false
             resolve(response.data)
           })
           .catch(error => {
             this.handleRequestError(error)
-            vm.loading = false
             reject(error)
           })
       })
@@ -446,7 +485,7 @@ export default {
     onSecurityOk () {
       this.dragSlideOn = false
       this.dragSlideKey++
-      this.completePayment()
+      return this.completePayment()
     },
     onSecurityCancel () {
       this.dragSlideOn = true
@@ -506,6 +545,7 @@ export default {
         })
         .catch(error => {
           this.handleRequestError(error)
+          throw error
         })
     },
     handleRequestError (error) {
