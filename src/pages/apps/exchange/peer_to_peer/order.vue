@@ -511,8 +511,10 @@ export default {
         chat: null
       },
       wsFetchingOrder: false,
-      _fetchOrderLastTime: 0,
-      _fetchOrderInProgress: false,
+      orderUpdatePending: false,
+      contractUpdatePending: false,
+      fetchOrderInProgress: false,
+      orderRefreshPending: false,
       loadingData: false,
       state: '',
       isloaded: false,
@@ -2027,25 +2029,23 @@ export default {
       return formatDate(date, true)
     },
 
-    async fetchOrder (caller = 'unknown') {
+    async fetchOrder () {
       const vm = this
+      if (vm.disposed) return
       const orderId = this.$route.params?.order
       if (!orderId) {
         console.warn('Order ID is missing from route params, skipping fetchOrder')
         return
       }
-      const now = Date.now()
-      if (caller === 'websocket' && vm._fetchOrderLastTime && now - vm._fetchOrderLastTime < 10000) {
+      if (vm.fetchOrderInProgress) {
+        vm.orderRefreshPending = true
         return
       }
-      if (vm._fetchOrderInProgress) {
-        return
-      }
-      vm._fetchOrderInProgress = true
+      vm.fetchOrderInProgress = true
       try {
         const url = `/ramp-p2p/order/${orderId}/`
-        const response = await backend.get(url, { authorize: true })
-        vm._fetchOrderLastTime = Date.now()
+        const response = await backend.get(url, { authorize: 'peer', cache: false, params: { _fresh: Date.now() } })
+        if (vm.disposed) return
         vm.order = response.data
         await vm.handleNewStatus(vm.order.status)
         vm.syncLiveActivity()
@@ -2069,7 +2069,11 @@ export default {
       } catch (error) {
         this.handleRequestError(error)
       } finally {
-        vm._fetchOrderInProgress = false
+        vm.fetchOrderInProgress = false
+        if (vm.orderRefreshPending && !vm.disposed) {
+          vm.orderRefreshPending = false
+          await vm.fetchOrder('pending-update')
+        }
       }
     },
 
@@ -2278,10 +2282,12 @@ export default {
           break
         }
         case 'ESCRW': // Escrowed
+          this.contractBalance = null
           state = this.getEscrowedState(kwargs)
           this.reloadChildComponents()
           break
         case 'PD_PN': // Paid Pending
+          this.contractBalance = null
           this.txid = null
           state = this.getPaidPendingState(kwargs)
           confirmType = this.getConfirmTypeByTradeType(kwargs)
@@ -2296,11 +2302,13 @@ export default {
           break
         }
         case 'RFN': // Refunded
+          this.contractBalance = null
           this.clearStoredTxids(this.order?.id)
           state = this.getDefaultState()
           this.reloadChildComponents()
           break
         case 'RLS': // Released - Order completed successfully
+          this.contractBalance = null
           // Trigger reward API for buyer only
           if (this.userTraderType === 'BUYER' && !this.rewardNotified) {
             const buyerAddress = this.contract?.addresses?.buyer
@@ -2402,7 +2410,7 @@ export default {
 
       let nextState = 'tx-confirmation'
 
-      if (!this.txid || kwargs?.contractBalance > 0) nextState = 'payment-confirmation'
+      if (!this.txid) nextState = 'payment-confirmation'
       if (kwargs?.tradeType === 'BUY') {
         return kwargs?.userIsAdOwner ? nextState : 'standby-view'
       }
@@ -2607,18 +2615,30 @@ export default {
       this.websockets.order.setWebSocketUrl(`${getBackendWsUrl()}order/${this.order.id}/`)
       this.websockets.order.subscribeToMessages(async (message) => {
         if (message?.success) {
+          if (message.contract_address) this.contractUpdatePending = true
           if (message?.txdata) {
             this.verifyingTx = false
             this.sendingBch = false
           }
-          if (this.wsFetchingOrder) return
+          if (this.wsFetchingOrder) {
+            this.orderUpdatePending = true
+            return
+          }
           this.wsFetchingOrder = true
           try {
-            await this.fetchOrder('websocket')
-            if (message?.contract_address || (this.order?.contract && !this.escrowContract)) {
-              await this.generateContract(true)
-              this.escrowTransferKey++
-            }
+            do {
+              this.orderUpdatePending = false
+              await this.fetchOrder('websocket')
+              if (this.disposed) return
+              const contractUpdate = this.contractUpdatePending
+              this.contractUpdatePending = false
+              if (contractUpdate || (this.order?.contract && !this.escrowContract)) {
+                await this.generateContract(true)
+                this.escrowTransferKey++
+              }
+            } while (this.orderUpdatePending && !this.disposed)
+          } catch (error) {
+            this.handleRequestError(error)
           } finally {
             this.wsFetchingOrder = false
           }

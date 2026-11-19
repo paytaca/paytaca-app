@@ -57,7 +57,11 @@
               <q-item>
                 <q-item-section>
                   <q-item-label caption class="text-caption">{{ $t('ContractBalance') }}</q-item-label>
-                  <q-item-label class="payment-detail-text">{{ contractBalance }} BCH</q-item-label>
+                  <q-item-label class="payment-detail-text">
+                    <span v-if="contractBalance !== null">{{ contractBalance }} BCH</span>
+                    <span v-else-if="contractBalanceError">{{ $t('BalanceUnavailable', {}, 'Balance unavailable') }}</span>
+                    <q-skeleton v-else type="text" width="100px" height="20px" />
+                  </q-item-label>
                 </q-item-section>
               </q-item>
             </q-list>
@@ -283,6 +287,7 @@ export default {
       openReviewForm: !this.data?.feedback || false,
       feedback: {},
       contractBalance: null,
+      contractBalanceError: false,
       lockedPrice: '',
       byFiat: false,
       minHeight: this.$q.platform.is.ios ? this.$q.screen.height - 130 : this.$q.screen.height - 100,
@@ -598,7 +603,8 @@ export default {
     },
     async fetchContractBalance () {
       const vm = this
-      if (vm.data?.contractBalance != null) {
+      vm.contractBalanceError = false
+      if (!vm.data?.escrow && vm.data?.contractBalance != null) {
         vm.contractBalance = vm.data.contractBalance.toString()
         return
       }
@@ -607,8 +613,9 @@ export default {
           .then(balance => {
             vm.contractBalance = balance.toString()
           })
-          .catch(error => {
-            console.error(error)
+          .catch(() => {
+            vm.contractBalance = null
+            vm.contractBalanceError = true
           })
       }
     },

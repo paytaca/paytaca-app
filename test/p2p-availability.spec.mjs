@@ -363,9 +363,10 @@ describe('P2P maintenance screen', () => {
   })
 })
 
-function identityHarness ({ removeToken = null } = {}) {
+function identityHarness ({ removeToken = null, tokenForRole = role => `synthetic-${role}-token`, onAvailability = () => {}, storedUser = null } = {}) {
   const selected = { hash: 'synthetic-wallet', index: 0, chipnet: false }
   const Store = { getters: {
+    'ramp/getUser': storedUser,
     'global/getWallet': () => ({ walletHash: selected.hash }),
     get 'global/getWalletIndex' () { return selected.index },
     get 'global/isChipnet' () { return selected.chipnet }
@@ -374,7 +375,7 @@ function identityHarness ({ removeToken = null } = {}) {
   const RampWallet = new Function('Store', `${walletSource}; return RampWallet`)(Store)
   const wallet = new RampWallet(0, selected.hash, 0, false)
   wallet.wallet = { getPubkeyAt: () => 'synthetic-key', getAddressAt: () => 'synthetic-address' }
-  const registered = { public_key: 'synthetic-key', address: 'synthetic-address', address_path: '0/0', wallet_hash: selected.hash, is_arbiter: false }
+  const registered = { id: 'synthetic-user-id', public_key: 'synthetic-key', address: 'synthetic-address', address_path: '0/0', wallet_hash: selected.hash, is_arbiter: false }
   const requests = []
   const events = []
   const notifications = []
@@ -389,23 +390,28 @@ function identityHarness ({ removeToken = null } = {}) {
     },
     async request (config) {
       config.headers ||= {}
-      await interceptors.request(config)
+      try {
+        await interceptors.request(config)
+      } catch (error) {
+        return interceptors.reject(error)
+      }
       requests.push(config)
       await beforeResponse()
       if (failure) return interceptors.reject({ ...failure, config })
       return interceptors.response({ status: 200, data: { ...registered }, config })
     },
     get (url, config = {}) { return this.request({ ...config, method: 'get', url }) },
-    patch (url, data, config) { return this.request({ ...config, method: 'patch', url, data }) }
+    patch (url, data, config) { return this.request({ ...config, method: 'patch', url, data }) },
+    post (url, data, config) { return this.request({ ...config, method: 'post', url, data }) }
   }
   const bindings = {
     axios: { create: () => client }, Store, wallet,
     Notify: { create: message => notifications.push(message) },
     bus: { emit: name => events.push(name) },
     requestManager: { attachTo () {} },
-    getAuthToken: async role => `synthetic-${role}-token`,
+    getAuthToken: async role => tokenForRole(role),
     deleteAuthTokenForUserType: role => { events.push(`delete-${role}`); return removeToken?.(role) },
-    fetchP2PAvailability: async () => {}, isP2PAvailabilityError: () => false,
+    fetchP2PAvailability: async () => onAvailability(), isP2PAvailabilityError: () => false,
     p2pRequestFeature
   }
   const backendSource = readFileSync('src/exchange/backend.js', 'utf8').replace(/^import .*$/gm, '').replace(/export /g, '')
@@ -471,7 +477,7 @@ describe('Immutable P2P profile identities', () => {
     h.registered.public_key = 'synthetic-key'
     await assert.rejects(h.assertP2PIdentity({ ...h.registered, public_key: 'old-contract-key' }), { code: 'p2p_identity_mismatch' })
     await assert.rejects(h.assertP2PIdentity(null, 'arbiter'), /account type/)
-    assert(h.requests.every(request => request.method === 'get' && request.url === '/auth/' && request.cache === false))
+    assert(h.requests.every(request => request.method === 'get' && ['/auth/', '/ramp-p2p/peer/'].includes(request.url) && request.cache === false))
   })
 
   it('rejects responses after switching wallets before they can overwrite cached identity', async () => {
@@ -695,7 +701,11 @@ describe('P2P private WebSocket authentication', () => {
     const bindings = {
       bus, Store, WebSocketService, markRaw,
       getAuthToken: async role => { state.requestedRole = role; return typeof state.token === 'function' ? state.token() : state.token },
-      backend: { get: async () => ({ data: { is_authenticated: state.authenticated } }) },
+      backend: {},
+      assertP2PIdentity: async () => {
+        if (!state.authenticated) throw { response: { status: 401 } }
+        return {}
+      },
       fetchP2PAvailability: async () => { if (state.maintenance) throw Object.assign(new Error(), { response: { data: { code: 'p2p_maintenance' } } }) },
       isP2PAvailabilityError,
       Notify: { create: notification => notifications.push(notification) },
@@ -1270,21 +1280,22 @@ describe('P2P login chat authentication recovery', () => {
     assert.deepEqual(h.events, ['delete-peer', 'session-expired'])
   })
 
-  function authHarness ({ failures = 1, authenticated = true, deferredRemoval = false } = {}) {
+  function authHarness ({ failures = 1, authenticated = true, deferredRemoval = false, initialToken = true } = {}) {
     const h = identityHarness()
     const events = []
-    const tokens = new Map([['ramp-p2p-auth-key-synthetic-wallet-peer', 'synthetic-old-token']])
+    const tokens = new Map(initialToken ? [['ramp-p2p-auth-key-synthetic-wallet-peer', 'synthetic-old-token']] : [])
+    const session = { checks: [], responses: [] }
     let releaseRemoval
     let chatRequests = 0
     let logins = 0
     h.wallet.wallet.getPrivateKeyWifAt = () => 'synthetic-secret-placeholder'
     h.wallet.signMessage = () => 'synthetic-signature'
     const bindings = {
-      Store: { getters: {
+      Store: { commit: () => events.push('commit-user'), getters: {
         'global/getWallet': () => ({ walletHash: h.wallet.walletHash }),
         'global/getWalletIndex': 0, 'global/isChipnet': false
       } },
-      rampWallet: h.wallet,
+      rampWallet: h.wallet, assertP2PIdentity: h.assertP2PIdentity,
       SecureStoragePlugin: {
         async get ({ key }) {
           if (!tokens.has(key)) throw new Error('Missing token')
@@ -1301,10 +1312,27 @@ describe('P2P login chat authentication recovery', () => {
         }
       },
       backend: {
-        async get (url) {
-          if (url === '/auth/') return { data: { ...h.registered, name: 'Synthetic name', is_authenticated: authenticated } }
+        async get (url, config = {}) {
+          const data = { ...h.registered, name: 'Synthetic name', is_authenticated: authenticated }
+          if (url === '/auth/') {
+            assert.equal(config.authorize, false)
+            if (session.lookupError) throw session.lookupError
+            return { status: 200, data }
+          }
+          if (url === '/ramp-p2p/peer/') {
+            assert.equal(config.authorize, 'peer')
+            session.checks.push(config)
+            const profile = { ...data }
+            delete profile.address_path
+            delete profile.is_arbiter
+            delete profile.is_authenticated
+            const response = session.responses.shift() || { status: 200, data: profile }
+            if (response.status !== 200) throw { response }
+            return response
+          }
           assert.equal(url, '/auth/otp/peer')
           events.push('otp')
+          if (session.otpError) throw session.otpError
           return { data: { otp: 'synthetic-otp' } }
         },
         async post (url) {
@@ -1320,9 +1348,10 @@ describe('P2P login chat authentication recovery', () => {
       },
       bus: { emit: (name, data) => events.push([name, data]) }
     }
+    h.client.get = (...args) => bindings.backend.get(...args)
     const source = readFileSync('src/exchange/auth.js', 'utf8').replace(/^import .*$/gm, '').replace(/export /g, '')
     const api = new Function(...Object.keys(bindings), `${source}; return { loadAuthenticatedUser, ExchangeUser }`)(...Object.values(bindings))
-    return { ...api, events, tokens, release: () => releaseRemoval(), counts: () => ({ logins, chatRequests }) }
+    return { ...api, events, tokens, session, registered: h.registered, release: () => releaseRemoval(), counts: () => ({ logins, chatRequests }) }
   }
 
   for (const forceLogin of [false, true]) {
@@ -1357,6 +1386,93 @@ describe('P2P login chat authentication recovery', () => {
     assert.equal(h.tokens.get('ramp-p2p-auth-key-synthetic-wallet-peer'), 'synthetic-new-token-1')
   })
 
+  it('checks a valid cached token without logging in again', async () => {
+    const h = authHarness({ failures: 0 })
+    await h.loadAuthenticatedUser()
+    assert.equal(h.counts().logins, 0)
+    assert.equal(h.session.checks.length, 1)
+    assert.equal(h.session.checks[0].authorize, 'peer')
+    assert.equal(h.session.checks[0].cache, false)
+    assert(h.events.indexOf('commit-user') < h.events.indexOf('chat'))
+  })
+
+  for (const status of [401, 403]) {
+    for (const detail of ['Invalid token', 'Invalid or expired token.', 'Token has expired.']) {
+      it(`logs in again when the saved session is rejected with ${status}: ${detail}`, async () => {
+        const h = authHarness({ failures: 0 })
+        h.session.responses.push({ status, data: { detail } })
+        await h.loadAuthenticatedUser()
+        assert.equal(h.counts().logins, 1)
+        assert.equal(h.session.checks.length, 2)
+        assert.equal(h.session.checks.at(-1).authorize, 'peer')
+        assert.equal(h.tokens.get('ramp-p2p-auth-key-synthetic-wallet-peer'), 'synthetic-new-token-1')
+      })
+    }
+  }
+
+  it('does not treat a permission-related 403 as an expired token', async () => {
+    const h = authHarness({ failures: 0 })
+    h.session.responses.push({ status: 403, data: { detail: 'This account is disabled.' } })
+    await assert.rejects(h.loadAuthenticatedUser())
+    assert.equal(h.counts().logins, 0)
+  })
+
+  it('allows registration recovery when a local server has no peer after rejecting a saved token', async () => {
+    const h = authHarness({ failures: 0 })
+    h.session.responses.push({ status: 403, data: { detail: 'Invalid or expired token.' } })
+    h.session.otpError = { response: { status: 404, data: { error: 'user does not exist' } } }
+    await assert.rejects(h.loadAuthenticatedUser(), error => error.response.status === 404)
+    assert.equal(h.counts().logins, 0)
+    assert.equal(h.counts().chatRequests, 0)
+  })
+
+  for (const status of [400, 404]) {
+    it(`marks a missing local account on HTTP ${status} for the existing signup flow`, async () => {
+      const h = authHarness({ failures: 0 })
+      h.session.lookupError = { response: { status, data: { error: 'user does not exist' } } }
+      await assert.rejects(h.loadAuthenticatedUser(), { code: 'p2p_account_missing' })
+      assert.equal(h.counts().logins, 0)
+      assert.equal(h.session.checks.length, 0)
+    })
+  }
+
+  it('logs in and verifies the new session when no token is stored', async () => {
+    const h = authHarness({ failures: 0, initialToken: false })
+    await h.loadAuthenticatedUser()
+    assert.equal(h.counts().logins, 1)
+    assert.equal(h.session.checks.length, 1)
+  })
+
+  it('uses the token-authenticated status even when public account lookup reports logged out', async () => {
+    const h = authHarness({ failures: 0, authenticated: false })
+    h.session.responses.push({ status: 200, data: { ...h.registered, is_authenticated: true } })
+    const user = await h.loadAuthenticatedUser()
+    assert.equal(h.counts().logins, 0)
+    assert.equal(user.is_authenticated, true)
+  })
+
+  it('uses successful P2P authentication without relying on an optional profile authentication flag', async () => {
+    const h = authHarness({ failures: 0 })
+    h.session.responses.push({ status: 200, data: { ...h.registered, is_authenticated: false } })
+    await h.loadAuthenticatedUser()
+    assert.equal(h.counts().logins, 0)
+  })
+
+  it('does not accept a new token that the server still rejects', async () => {
+    const h = authHarness({ failures: 0, initialToken: false })
+    h.session.responses.push({ status: 401, data: {} })
+    await assert.rejects(h.loadAuthenticatedUser())
+    assert.equal(h.counts().logins, 1)
+    assert.equal(h.counts().chatRequests, 0)
+  })
+
+  it('does not replace a token on an unrelated session-check failure', async () => {
+    const h = authHarness({ failures: 0 })
+    h.session.responses.push({ status: 503, data: {} })
+    await assert.rejects(h.loadAuthenticatedUser())
+    assert.equal(h.counts().logins, 0)
+  })
+
   it('does not emit loggedIn or relogged when chat authentication still fails', async () => {
     const h = authHarness({ failures: 2 })
     const source = readFileSync('src/components/ramp/fiat/RampLogin.vue', 'utf8')
@@ -1375,5 +1491,748 @@ describe('P2P login chat authentication recovery', () => {
     assert.deepEqual(emitted, [])
     assert.equal(vm.errorMessage, 'Authentication rejected')
     assert.equal(vm.isLoading, false)
+  })
+})
+
+
+describe('P2P ad authorization', () => {
+  it('blocks ad creation without a token before any HTTP dispatch and triggers login', async () => {
+    const h = identityHarness({ tokenForRole: () => null })
+    await assert.rejects(h.client.post('/ramp-p2p/ad/', { description: 'Draft' }, { authorize: 'peer' }), { code: 'p2p_auth_required' })
+    assert.equal(h.requests.length, 0)
+    assert.deepEqual(h.events, ['delete-peer', 'session-expired'])
+  })
+
+  it('attaches the current token after asynchronous ad preflight checks', async () => {
+    let token = 'synthetic-old-token'
+    const h = identityHarness({ tokenForRole: () => token, onAvailability: () => { token = 'synthetic-fresh-token' } })
+    await h.client.post('/ramp-p2p/ad/', { description: 'Draft' }, { authorize: 'peer' })
+    const request = h.requests.find(request => request.url === '/ramp-p2p/ad/')
+    assert.equal(request.headers.Authorization, 'Token synthetic-fresh-token')
+    assert.equal(h.requests.filter(request => request.url === '/ramp-p2p/ad/').length, 1)
+  })
+
+  it('stops ad dispatch if the token disappears during preflight', async () => {
+    let token = 'synthetic-old-token'
+    const h = identityHarness({ tokenForRole: () => token })
+    h.beforeResponse(() => { token = null })
+    await assert.rejects(h.client.post('/ramp-p2p/ad/', {}, { authorize: 'peer' }), { code: 'p2p_auth_required' })
+    assert.equal(h.requests.some(request => request.url === '/ramp-p2p/ad/'), false)
+  })
+
+  it('allows a manual retry with a fresh token after missing credentials', async () => {
+    let token = null
+    const h = identityHarness({ tokenForRole: () => token })
+    await assert.rejects(h.client.post('/ramp-p2p/ad/', {}, { authorize: 'peer' }))
+    token = 'synthetic-new-token'
+    await h.client.post('/ramp-p2p/ad/', {}, { authorize: 'peer' })
+    assert.equal(h.requests.filter(request => request.url === '/ramp-p2p/ad/').length, 1)
+    assert.equal(h.requests.at(-1).headers.Authorization, 'Token synthetic-new-token')
+  })
+
+  it('uses the peer token for ads even if the cached user is an arbiter', async () => {
+    const h = identityHarness({ storedUser: { is_arbiter: true, user_type: 'arbiter' } })
+    await h.client.get('/ramp-p2p/ad/', { authorize: true })
+    assert.equal(h.requests[0].headers.Authorization, 'Token synthetic-peer-token')
+  })
+
+  function formHarness () {
+    const source = readFileSync('src/pages/apps/exchange/peer_to_peer/ad-form.vue', 'utf8')
+    const methods = ['onSessionExpired', 'onRelogged', 'onSubmit', 'createAd', 'handleRequestError'].map(name => {
+      const start = Math.max(source.indexOf(`    ${name} (`), source.indexOf(`    async ${name} (`))
+      assert(start >= 0, name)
+      const end = source.indexOf('\n    }', start) + 6
+      return source.slice(start, end)
+    }).join(',\n')
+    const bus = new EventEmitter()
+    const calls = []
+    let respond = async () => ({ status: 201 })
+    const backend = { post: async (...args) => { calls.push(args); return respond(...args) } }
+    const component = new Function('bus', 'backend', `return { ${methods} }`)(bus, backend)
+    const vm = {
+      authPending: false, submittingAd: false, disposed: false, formInitialized: true,
+      adFeatureEnabled: true, adsState: 'create', currentStep: 3, swipeStatus: false,
+      adData: { description: 'Keep this draft', tradeAmount: 1 },
+      transformPostData () { return { ...this.adData } },
+      loadFormData () { throw new Error('Must not reload an initialized draft') }
+    }
+    for (const [name, method] of Object.entries(component)) vm[name] = method.bind(vm)
+    bus.on('session-expired', vm.onSessionExpired)
+    return { vm, bus, calls, respond: callback => { respond = callback } }
+  }
+
+  it('preserves the ad draft through 401 recovery and submits only on manual confirmation', async () => {
+    const h = formHarness()
+    h.respond(async () => { throw { response: { status: 401, data: { detail: 'No auth credentials provided' } } } })
+    const draft = JSON.stringify(h.vm.adData)
+    await h.vm.onSubmit()
+    assert.equal(h.vm.authPending, true)
+    assert.equal(h.vm.currentStep, 3)
+    assert.equal(h.vm.swipeStatus, false)
+    await h.vm.onSubmit()
+    assert.equal(h.calls.length, 1)
+    h.vm.onRelogged()
+    assert.equal(JSON.stringify(h.vm.adData), draft)
+    assert.equal(h.calls.length, 1)
+    h.respond(async () => ({ status: 201 }))
+    await h.vm.onSubmit()
+    assert.equal(h.calls.length, 2)
+    assert.equal(h.calls[1][2].authorize, 'peer')
+    assert.equal(h.vm.swipeStatus, true)
+  })
+
+  it('blocks duplicate ad confirmation while a submission is in flight', async () => {
+    const h = formHarness()
+    let finish
+    h.respond(() => new Promise(resolve => { finish = resolve }))
+    const pending = h.vm.onSubmit()
+    await h.vm.onSubmit()
+    assert.equal(h.calls.length, 1)
+    finish({ status: 201 })
+    await pending
+    assert.equal(h.vm.submittingAd, false)
+  })
+})
+
+
+describe('P2P entry authentication gate', () => {
+  function entryHarness (routeName = 'exchange') {
+    const state = { hash: 'wallet-a', index: 0, chipnet: false, calls: [], authenticate: async () => ({ id: 'synthetic-user', is_arbiter: false }) }
+    const commits = []
+    const redirects = []
+    const bindings = {
+      P2PAvailability: {}, HeaderNav: {}, OngoingMaintenanceDialog: {}, RampLogin: {},
+      getDarkModeClass () {},
+      loadRampWallet: async () => { state.calls.push('wallet'); return { walletHash: state.hash } },
+      loadAuthenticatedUser: async () => { state.calls.push('auth'); return state.authenticate() },
+      bus: { off () {} }
+    }
+    const source = readFileSync('src/pages/apps/exchange/index.vue', 'utf8')
+    const script = source.match(/<script>([\s\S]*?)<\/script>/)[1].replace(/^import .*$/gm, '').replace('export default', 'return')
+    const view = new Function(...Object.keys(bindings), script)(...Object.values(bindings))
+    const store = {
+      getters: {
+        'global/getWallet': () => ({ walletHash: state.hash }),
+        get 'global/getWalletIndex' () { return state.index },
+        get 'global/isChipnet' () { return state.chipnet }
+      },
+      commit: (...args) => commits.push(args)
+    }
+    const vm = {
+      ...view.data.call({ $store: store }), $store: store,
+      $route: { name: routeName, query: {}, matched: routeName.startsWith('arbiter') ? [{ name: 'exchange-arbiter' }] : [] },
+      $router: { replace: route => redirects.push(route) },
+      $t: (key, values, fallback) => fallback || key
+    }
+    Object.defineProperty(vm, 'walletIdentity', { get: () => view.computed.walletIdentity.call(vm) })
+    for (const [name, method] of Object.entries(view.methods)) vm[name] = method.bind(vm)
+    return { vm, view, state, commits, redirects }
+  }
+
+  it('loads the wallet then authenticates before opening the app or redirecting', async () => {
+    const h = entryHarness()
+    let finish
+    h.state.authenticate = () => new Promise(resolve => { finish = resolve })
+    const pending = h.vm.getUser()
+    await new Promise(resolve => setImmediate(resolve))
+    assert.deepEqual(h.state.calls, ['wallet', 'auth'])
+    assert.equal(h.vm.isloaded, false)
+    assert.equal(h.redirects.length, 0)
+    await h.vm.getUser()
+    assert.equal(h.state.calls.length, 2)
+    finish({ id: 'verified-user', is_arbiter: false })
+    await pending
+    assert.equal(h.vm.isloaded, true)
+    assert.equal(h.vm.checking, false)
+    assert.equal(h.redirects[0].name, 'p2p-store')
+  })
+
+  it('keeps all protected pages blocked on login failure and supports a manual retry', async () => {
+    const h = entryHarness()
+    h.state.authenticate = async () => { throw { response: { status: 401 } } }
+    await h.vm.getUser()
+    assert.equal(h.vm.isloaded, false)
+    assert(h.vm.authError)
+    assert.equal(h.redirects.length, 0)
+    assert.equal(h.state.calls.filter(value => value === 'auth').length, 1)
+    h.state.authenticate = async () => ({ is_arbiter: false })
+    await h.vm.getUser()
+    assert.equal(h.vm.isloaded, true)
+    assert.equal(h.vm.authError, null)
+  })
+
+  it('preserves deep-linked pages after authentication', async () => {
+    const h = entryHarness('p2p-order')
+    await h.vm.getUser()
+    assert.equal(h.vm.isloaded, true)
+    assert.equal(h.redirects.length, 0)
+  })
+
+  it('routes an authenticated arbiter to appeals', async () => {
+    const h = entryHarness()
+    h.state.authenticate = async () => ({ is_arbiter: true })
+    await h.vm.getUser()
+    assert.equal(h.redirects[0].name, 'arbiter-appeals')
+  })
+
+  it('uses the existing peer registration screen when no account exists', async () => {
+    const h = entryHarness()
+    h.state.authenticate = async () => { throw { response: { status: 404 } } }
+    await h.vm.getUser()
+    assert.equal(h.vm.showRegistration, true)
+    assert.equal(h.vm.isloaded, false)
+    assert.equal(h.vm.authError, null)
+  })
+
+  it('opens existing signup for an explicit missing-account response from the local server', async () => {
+    const h = entryHarness()
+    h.state.authenticate = async () => { throw { code: 'p2p_account_missing', response: { status: 400 } } }
+    await h.vm.getUser()
+    assert.equal(h.vm.showRegistration, true)
+    assert.equal(h.vm.isloaded, false)
+    assert.equal(h.vm.authError, null)
+  })
+
+  it('does not introduce registration on arbiter routes', async () => {
+    const h = entryHarness('arbiter-appeals')
+    h.state.authenticate = async () => { throw { response: { status: 404 } } }
+    await h.vm.getUser()
+    assert.equal(h.vm.showRegistration, false)
+    assert(h.vm.authError)
+  })
+
+  it('discards an old wallet response and verifies the newly selected wallet', async () => {
+    const h = entryHarness()
+    let finish
+    h.state.authenticate = () => new Promise(resolve => { finish = resolve })
+    const oldAttempt = h.vm.getUser()
+    await new Promise(resolve => setImmediate(resolve))
+    h.state.hash = 'wallet-b'
+    h.state.authenticate = async () => ({ id: 'wallet-b-user' })
+    h.view.watch.walletIdentity.handler.call(h.vm)
+    await new Promise(resolve => setImmediate(resolve))
+    finish({ id: 'wallet-a-user' })
+    await oldAttempt
+    assert.equal(h.vm.user.id, 'wallet-b-user')
+    assert.equal(h.vm.isloaded, true)
+    assert.equal(h.commits.some(([name, user]) => name === 'ramp/updateUser' && user?.id === 'wallet-a-user'), false)
+  })
+
+  it('does not open the app after an authentication response arrives on unmount', async () => {
+    const h = entryHarness()
+    let finish
+    h.state.authenticate = () => new Promise(resolve => { finish = resolve })
+    const pending = h.vm.getUser()
+    await new Promise(resolve => setImmediate(resolve))
+    h.view.beforeUnmount.call(h.vm)
+    finish({ id: 'obsolete-user' })
+    await pending
+    assert.equal(h.vm.isloaded, false)
+    assert.equal(h.redirects.length, 0)
+  })
+})
+
+
+describe('P2P expired-token response wording', () => {
+  for (const detail of ['Invalid or expired token.', 'Token has expired.']) {
+    it(`clears rejected credentials before login recovery for: ${detail}`, async () => {
+      const h = identityHarness()
+      h.fail({ response: { status: 403, data: { detail } } })
+      await assert.rejects(h.client.get('/auth/', { authorize: 'peer', params: { _fresh: Date.now() } }))
+      assert.deepEqual(h.events, ['delete-peer', 'session-expired'])
+    })
+  }
+})
+
+
+describe('P2P account discovery and session endpoint separation', () => {
+  for (const [method, url] of [['get', '/auth/'], ['get', '/auth/otp/peer'], ['post', '/auth/login/peer'], ['post', '/ramp-p2p/registration/challenge/'], ['post', '/ramp-p2p/peer/']]) {
+    it(`strips inherited auth from token-free ${method.toUpperCase()} ${url}`, async () => {
+      const h = identityHarness({ tokenForRole: () => { throw new Error('Must not load a token') } })
+      const headers = {
+        Authorization: 'Token synthetic-stale-token', authorization: 'Bearer synthetic-stale-oauth',
+        common: { AUTHORIZATION: 'Bearer synthetic-common-token' },
+        [method]: { Authorization: 'Token synthetic-method-token' },
+        signature: 'synthetic-registration-signature'
+      }
+      const config = { authorize: false, headers, auth: { username: 'synthetic', password: 'synthetic' } }
+      if (method === 'get') await h.client.get(url, config)
+      else await h.client.post(url, {}, config)
+      const request = h.requests[0]
+      assert.equal(request.auth, undefined)
+      for (const group of [request.headers, request.headers.common, request.headers[method]]) {
+        assert.equal(Object.keys(group).some(name => name.toLowerCase() === 'authorization'), false)
+      }
+      assert.equal(request.headers.signature, 'synthetic-registration-signature')
+    })
+  }
+
+  for (const role of ['peer', 'arbiter']) {
+    it(`uses public discovery and the protected ${role} profile to verify a session`, async () => {
+      const h = identityHarness()
+      h.registered.is_arbiter = role === 'arbiter'
+      const user = await h.assertP2PIdentity(null, role)
+      assert.equal(user.is_authenticated, true)
+      assert.equal(h.requests[0].url, '/auth/')
+      assert.equal(h.requests[0].authorize, false)
+      assert.equal(h.requests[0].headers.Authorization, undefined)
+      assert.equal(h.requests[1].url, role === 'peer' ? '/ramp-p2p/peer/' : '/ramp-p2p/arbiter/synthetic-wallet/')
+      assert.equal(h.requests[1].headers.Authorization, `Token synthetic-${role}-token`)
+    })
+  }
+
+  it('accepts the actual peer profile shape without an address_path or is_authenticated field', async () => {
+    const h = identityHarness()
+    const get = h.client.get.bind(h.client)
+    h.client.get = async (...args) => {
+      const response = await get(...args)
+      if (args[0] === '/ramp-p2p/peer/') {
+        delete response.data.address_path
+        delete response.data.is_arbiter
+        delete response.data.is_authenticated
+      }
+      return response
+    }
+    const user = await h.assertP2PIdentity()
+    assert.equal(user.address_path, '0/0')
+    assert.equal(user.is_authenticated, true)
+  })
+
+  for (const mismatch of [{ id: 'another-profile' }, { public_key: 'another-key' }, { address: 'another-address' }, { address_path: '0/1' }, { is_disabled: true }]) {
+    it(`blocks a protected profile mismatch: ${Object.keys(mismatch)[0]}`, async () => {
+      const h = identityHarness()
+      const get = h.client.get.bind(h.client)
+      h.client.get = async (...args) => {
+        const response = await get(...args)
+        if (args[0] === '/ramp-p2p/peer/') Object.assign(response.data, mismatch)
+        return response
+      }
+      await assert.rejects(h.assertP2PIdentity(), { code: 'p2p_identity_mismatch' })
+    })
+  }
+})
+
+
+describe('P2P verification of already-broadcast escrow funding', () => {
+  function verificationHarness () {
+    const calls = []
+    const events = []
+    const state = { post: async () => ({}), get: async () => ({ data: { status: { value: 'ESCRW' } } }) }
+    const backend = {
+      async post (...args) { calls.push(['post', ...args]); return state.post(...args) },
+      async get (...args) { calls.push(['get', ...args]); return state.get(...args) }
+    }
+    const bindings = { backend, getDarkModeClass () {}, bus: { emit: name => events.push(name) } }
+    const source = readFileSync('src/components/ramp/fiat/VerifyTransaction.vue', 'utf8')
+    const script = source.match(/<script>([\s\S]*?)<\/script>/)[1].replace(/^import .*$/gm, '').replace('export default', 'return')
+    const view = new Function(...Object.keys(bindings), script)(...Object.values(bindings))
+    const vm = {
+      ...view.data.call({ $store: { getters: {} }, $q: { platform: { is: {} }, screen: { height: 800 } } }),
+      data: { action: 'ESCROW', orderId: 24, contractBalance: 0 },
+      transactionId: 'synthetic-already-broadcast-txid', txidLoaded: true,
+      $emit: name => events.push(name),
+      $q: { notify: message => events.push(message.message) },
+      $t: (key, values, fallback) => fallback || key
+    }
+    for (const [name, method] of Object.entries(view.methods)) vm[name] = method.bind(vm)
+    for (const [name, getter] of Object.entries(view.computed)) Object.defineProperty(vm, name, { get: () => getter.call(vm) })
+    vm.delay = async () => {}
+    return { vm, view, state, calls, events }
+  }
+
+  it('refreshes balance instead of reusing the zero recorded before funding', async () => {
+    const h = verificationHarness()
+    const reads = []
+    h.vm.data.escrow = { getBalance: async (...args) => { reads.push(args); return 0.0001057 } }
+    assert.equal(await h.vm.fetchContractBalance(), 0.0001057)
+    assert.deepEqual(reads, [['', true]])
+    assert.equal(h.vm.contract.balance, 0.0001057)
+  })
+
+  it('submits the saved funding txid for backend verification even before balance is indexed', async () => {
+    const h = verificationHarness()
+    let finish
+    h.state.post = () => new Promise(resolve => { finish = resolve })
+    const pending = h.vm.checkTransferStatus()
+    h.vm.checkTransferStatus()
+    assert.equal(h.calls.length, 1)
+    assert.equal(h.calls[0][1], '/ramp-p2p/order/24/verify-escrow/')
+    assert.deepEqual(h.calls[0][2], { txid: 'synthetic-already-broadcast-txid' })
+    assert.equal(h.vm.balanceLoaded, false)
+    finish({})
+    await pending
+    assert(h.events.includes('success'))
+  })
+
+  it('accepts an already-verified escrow only after confirming the backend order status', async () => {
+    const h = verificationHarness()
+    h.state.post = async () => { throw { response: { status: 400, data: { error: 'Action requires status ESCRW_PN' } } } }
+    h.state.get = async () => ({ data: { status: { value: 'ESCRW' } } })
+    await h.vm.checkTransferStatus()
+    assert.deepEqual(h.calls.map(call => call[0]), ['post', 'get'])
+    assert(h.events.includes('success'))
+  })
+
+  it('keeps a manual verification retry available after bounded backend failures without discarding the txid', async () => {
+    const h = verificationHarness()
+    h.state.post = async () => { throw { response: { status: 400, data: { error: 'Transaction is not indexed yet' } } } }
+    h.state.get = async () => ({ data: { status: { value: 'ESCRW_PN' } } })
+    await h.vm.checkTransferStatus()
+    assert.equal(h.calls.filter(call => call[0] === 'post').length, 4)
+    assert.equal(h.events.includes('success'), false)
+    assert.equal(h.vm.showRetryBtn, true)
+    assert.equal(h.vm.loading, false)
+    assert.equal(h.vm.transactionId, 'synthetic-already-broadcast-txid')
+    h.state.post = async () => ({})
+    h.state.get = async () => ({ data: { status: { value: 'ESCRW' } } })
+    await h.vm.submitAction()
+    assert.equal(h.calls.filter(call => call[0] === 'post').length, 5)
+    assert(h.events.includes('success'))
+  })
+
+  it('waits for the queued backend validation instead of treating HTTP 200 as verified funding', async () => {
+    const h = verificationHarness()
+    let reads = 0
+    h.state.get = async () => ({ data: { status: { value: ++reads < 3 ? 'ESCRW_PN' : 'ESCRW' } } })
+    await h.vm.checkTransferStatus()
+    assert.equal(h.calls.filter(call => call[0] === 'post').length, 1)
+    assert.equal(reads, 3)
+    assert.equal(h.events.filter(event => event === 'success').length, 1)
+  })
+
+  it('keeps recovery available when the backend worker has not completed validation', async () => {
+    const h = verificationHarness()
+    h.state.get = async () => ({ data: { status: { value: 'ESCRW_PN' } } })
+    await h.vm.checkTransferStatus()
+    assert.equal(h.calls.filter(call => call[0] === 'post').length, 1)
+    assert.equal(h.calls.filter(call => call[0] === 'get').length, 6)
+    assert.equal(h.events.includes('success'), false)
+    assert.equal(h.vm.showRetryBtn, true)
+    assert.match(h.vm.errorMessage, /pending on the server/)
+  })
+
+  it('stops automatic verification retries on authentication failure', async () => {
+    const h = verificationHarness()
+    h.state.post = async () => { throw { response: { status: 401 } } }
+    await h.vm.checkTransferStatus()
+    assert.equal(h.calls.length, 1)
+    assert.equal(h.vm.showRetryBtn, true)
+    assert(h.events.includes('handle-request-error'))
+    assert.equal(h.events.includes('success'), false)
+  })
+
+  it('does not emit success for a verification response arriving after unmount', async () => {
+    const h = verificationHarness()
+    let finish
+    h.state.post = () => new Promise(resolve => { finish = resolve })
+    const pending = h.vm.checkTransferStatus()
+    h.view.beforeUnmount.call(h.vm)
+    finish({})
+    await pending
+    assert.equal(h.events.includes('success'), false)
+  })
+
+  it('stops a scheduled retry when leaving the order', async () => {
+    const h = verificationHarness()
+    let finish
+    h.state.post = async () => { throw { response: { status: 503 } } }
+    h.vm.delay = () => new Promise(resolve => { finish = resolve })
+    const pending = h.vm.checkTransferStatus()
+    await new Promise(resolve => setImmediate(resolve))
+    h.view.beforeUnmount.call(h.vm)
+    finish()
+    await pending
+    assert.equal(h.calls.length, 1)
+  })
+
+  it('verifies a saved release txid and waits for RLS even when the displayed balance is stale', async () => {
+    const h = verificationHarness()
+    h.vm.data.action = 'RELEASE'
+    h.vm.transactionId = 'synthetic-release-txid'
+    h.vm.contract.balance = 1
+    h.vm.balanceLoaded = true
+    let reads = 0
+    h.state.get = async () => ({ data: { status: { value: ++reads < 3 ? 'PD' : 'RLS' } } })
+    await h.vm.checkTransferStatus()
+    const posts = h.calls.filter(call => call[0] === 'post')
+    assert.equal(posts.length, 1)
+    assert.equal(posts[0][1], '/ramp-p2p/order/24/verify-release/')
+    assert.deepEqual(posts[0][2], { txid: 'synthetic-release-txid' })
+    assert.equal(reads, 3)
+    assert(h.events.includes('success'))
+  })
+
+  it('does not report release success while backend validation is pending', async () => {
+    const h = verificationHarness()
+    h.vm.data.action = 'RELEASE'
+    h.state.get = async () => ({ data: { status: { value: 'PD' } } })
+    await h.vm.checkTransferStatus()
+    assert.equal(h.calls.filter(call => call[0] === 'post').length, 1)
+    assert.equal(h.calls.filter(call => call[0] === 'get').length, 6)
+    assert.equal(h.events.includes('success'), false)
+    assert.equal(h.vm.showRetryBtn, true)
+    assert.match(h.vm.errorMessage, /Release verification is still pending/)
+  })
+
+  it('recovers an already-released order after a release verification status conflict', async () => {
+    const h = verificationHarness()
+    h.vm.data.action = 'RELEASE'
+    h.state.post = async () => { throw { response: { status: 400, data: { error: 'duplicate txid' } } } }
+    h.state.get = async () => ({ data: { status: { value: 'RLS' } } })
+    await h.vm.checkTransferStatus()
+    assert.deepEqual(h.calls.map(call => call[0]), ['post', 'get'])
+    assert(h.events.includes('success'))
+  })
+
+  it('stops release verification retries when login is required', async () => {
+    const h = verificationHarness()
+    h.vm.data.action = 'RELEASE'
+    h.state.post = async () => { throw { response: { status: 401 } } }
+    await h.vm.checkTransferStatus()
+    assert.equal(h.calls.length, 1)
+    assert.equal(h.events.includes('success'), false)
+    assert.equal(h.vm.showRetryBtn, true)
+  })
+
+  it('unlocks retry when balance polling exhausts its attempts', async () => {
+    const h = verificationHarness()
+    h.vm.transactionId = ''
+    h.vm.balanceLoaded = true
+    await h.vm.exponentialBackoff(async () => 0, 0, 1)
+    assert.equal(h.vm.showRetryBtn, true)
+    assert.equal(h.vm.loading, false)
+    assert.equal(h.calls.length, 0)
+  })
+})
+
+
+describe('Configured Watchtower escrow balances', () => {
+  function balanceHarness () {
+    const calls = []
+    const state = { get: async () => ({ status: 200, data: { valid: true, balance: 0.0001057 } }), electrumReads: 0 }
+    const backend = { get: async (...args) => { calls.push(args); return state.get(...args) } }
+    const source = readFileSync('src/exchange/contract.js', 'utf8').replace(/^import .*$/gm, '').replace(/export default RampContract/, '').replace(/export /g, '')
+    const RampContract = new Function('backend', 'Store', 'Watchtower', `${source}; return RampContract`)(
+      backend, { getters: { 'global/isChipnet': false } }, class {}
+    )
+    const contract = Object.create(RampContract.prototype)
+    contract.contract = {
+      address: 'synthetic-contract',
+      getBalance () { state.electrumReads++; throw new Error('Must not use Electrum for balance') }
+    }
+    return { contract, state, calls }
+  }
+
+  it('reads the configured backend balance, with a fresh request and no token', async () => {
+    const h = balanceHarness()
+    assert.equal(await h.contract.getBalance('', true), 0.0001057)
+    assert.equal(h.calls[0][0], '/balance/bch/synthetic-contract/')
+    assert.equal(h.calls[0][1].authorize, false)
+    assert.equal(h.calls[0][1].cache, false)
+    assert(h.calls[0][1].params._fresh)
+    assert.equal(h.state.electrumReads, 0)
+  })
+
+  it('preserves a genuine Watchtower zero without querying Electrum', async () => {
+    const h = balanceHarness()
+    h.state.get = async () => ({ status: 200, data: { valid: true, balance: 0 } })
+    assert.equal(await h.contract.getBalance('', true), 0)
+    assert.equal(h.state.electrumReads, 0)
+  })
+
+  it('propagates Watchtower failure instead of returning a false zero or using Electrum', async () => {
+    const h = balanceHarness()
+    h.state.get = async () => { throw new Error('Watchtower unavailable') }
+    await assert.rejects(h.contract.getBalance('', true), /Watchtower unavailable/)
+    assert.equal(h.state.electrumReads, 0)
+  })
+
+  for (const balance of [null, undefined, -1, 'invalid']) {
+    it(`rejects an invalid Watchtower balance: ${balance}`, async () => {
+      const h = balanceHarness()
+      h.state.get = async () => ({ status: 200, data: { balance } })
+      await assert.rejects(h.contract.getBalance('', true))
+    })
+  }
+
+  it('deduplicates simultaneous fresh reads', async () => {
+    const h = balanceHarness()
+    let finish
+    h.state.get = () => new Promise(resolve => { finish = resolve })
+    const first = h.contract.getBalance('', true)
+    const second = h.contract.getBalance('', true)
+    assert.equal(h.calls.length, 1)
+    finish({ status: 200, data: { balance: 0.0001057 } })
+    assert.deepEqual(await Promise.all([first, second]), [0.0001057, 0.0001057])
+  })
+
+  for (const file of ['StandByDisplay.vue', 'PaymentConfirmation.vue']) {
+    function screenHarness () {
+      const source = readFileSync(`src/components/ramp/fiat/${file}`, 'utf8')
+      const start = source.indexOf('    async fetchContractBalance ()')
+      const end = source.indexOf('\n    },', start) + 7
+      const methods = new Function(`return { ${source.slice(start, end)} }`)()
+      const vm = {
+        data: { contractBalance: 0, contractAddress: 'synthetic-contract', contract: { address: 'synthetic-contract' } },
+        contractBalance: 0, contractBalanceError: false
+      }
+      vm.fetchContractBalance = methods.fetchContractBalance.bind(vm)
+      return vm
+    }
+
+    it(`refreshes the stale pre-funding zero in ${file}`, async () => {
+      const vm = screenHarness()
+      let reads = 0
+      vm.data.escrow = { getBalance: async () => { reads++; return 0.0001057 } }
+      await vm.fetchContractBalance()
+      assert.equal(reads, 1)
+      assert.equal(Number(vm.contractBalance), 0.0001057)
+      assert.equal(vm.contractBalanceError, false)
+    })
+
+    it(`shows unavailable rather than the stale zero if Watchtower fails in ${file}`, async () => {
+      const vm = screenHarness()
+      vm.data.escrow = { getBalance: async () => { throw new Error('Watchtower unavailable') } }
+      await vm.fetchContractBalance()
+      assert.equal(vm.contractBalance, null)
+      assert.equal(vm.contractBalanceError, true)
+    })
+  }
+
+  it('keeps the broadcast txid and proceeds to verification if the post-send balance refresh fails', async () => {
+    const h = harness()
+    h.vm.escrowContract.getBalance = async () => { throw new Error('Watchtower unavailable') }
+    await h.vm.onSecurityOk()
+    assert.equal(h.events.filter(event => event === 'broadcast').length, 1)
+    assert(h.events.includes('pending-escrow'))
+    assert(h.events.includes('success'))
+    assert.equal(h.vm.txid, 'synthetic-txid')
+    assert.equal(h.vm.escrowBalance, null)
+  })
+})
+
+
+describe('P2P order WebSocket status refresh', () => {
+  function orderHarness () {
+    const calls = []
+    const applied = []
+    const sockets = []
+    const state = { status: 'PD', get: null, contractReloads: 0 }
+    function order (status) {
+      return {
+        id: 24, status: { value: status }, contract: 7,
+        members: { buyer: { public_key: 'synthetic-buyer' }, seller: { public_key: 'synthetic-seller' } },
+        chat_session_ref: 'synthetic-chat'
+      }
+    }
+    const backend = {
+      async get (url, config) {
+        calls.push({ url, config })
+        if (state.get) return state.get(url, config)
+        return { data: order(state.status) }
+      }
+    }
+    class WebSocketManager {
+      constructor () { sockets.push(this) }
+      setWebSocketUrl (url) { this.url = url }
+      subscribeToMessages (callback) { this.message = callback }
+    }
+    const source = readFileSync('src/pages/apps/exchange/peer_to_peer/order.vue', 'utf8')
+    const methods = ['fetchOrder', 'setupWebSocket', 'getPaidState'].map(name => {
+      const start = Math.max(source.indexOf(`    ${name} (`), source.indexOf(`    async ${name} (`))
+      const end = source.indexOf('\n    }', start) + 6
+      return source.slice(start, end)
+    }).join(',\n')
+    const bindings = {
+      backend, WebSocketManager,
+      getBackendWsUrl: () => 'ws://localhost:9001/ws/ramp-p2p/subscribe/',
+      getChatBackendWsUrl: () => 'ws://localhost:9002/ws/chat/',
+      generateChatRef: () => 'synthetic-chat'
+    }
+    const component = new Function(...Object.keys(bindings), `return { ${methods} }`)(...Object.values(bindings))
+    const vm = {
+      disposed: false, order: order('PD'), escrowContract: {}, websockets: {}, chatRef: 'synthetic-chat',
+      wsFetchingOrder: false, orderUpdatePending: false, contractUpdatePending: false,
+      fetchOrderInProgress: false, orderRefreshPending: false, escrowTransferKey: 0,
+      $route: { params: { order: 24 } },
+      async handleNewStatus (status) { applied.push(status.value) },
+      syncLiveActivity () {}, updateOrderReadAt () {}, closeWSConnection () {},
+      handleRequestError (error) { throw error },
+      async generateContract () { state.contractReloads++ }
+    }
+    for (const [name, method] of Object.entries(component)) vm[name] = method.bind(vm)
+    vm.setupWebSocket()
+    return { vm, state, calls, applied, sockets, order, message: message => sockets[0].message(message) }
+  }
+
+  it('applies release updates arriving immediately after another order fetch', async () => {
+    const h = orderHarness()
+    await h.vm.fetchOrder('onVerifyTxSuccess')
+    h.state.status = 'RLS'
+    await h.message({ success: true, txdata: { action: 'RELEASE' } })
+    assert.equal(h.calls.length, 2)
+    assert.deepEqual(h.applied, ['PD', 'RLS'])
+    assert.equal(h.vm.order.status.value, 'RLS')
+    assert(h.calls.every(call => call.config.cache === false && call.config.params._fresh))
+  })
+
+  it('queues release updates arriving during an HTTP refresh', async () => {
+    const h = orderHarness()
+    let finish
+    h.state.get = () => new Promise(resolve => { finish = resolve })
+    const pending = h.vm.fetchOrder('initial')
+    await h.message({ success: true, txdata: { action: 'RELEASE' } })
+    h.state.get = null
+    h.state.status = 'RLS'
+    finish({ data: h.order('PD') })
+    await pending
+    assert.equal(h.calls.length, 2)
+    assert.deepEqual(h.applied, ['PD', 'RLS'])
+  })
+
+  it('coalesces events during WebSocket refresh without losing the last status or contract update', async () => {
+    const h = orderHarness()
+    let finish
+    h.state.get = () => new Promise(resolve => { finish = resolve })
+    const pending = h.message({ success: true })
+    await h.message({ success: true, contract_address: 'synthetic-contract' })
+    await h.message({ success: true, txdata: { action: 'RELEASE' } })
+    assert.equal(h.calls.length, 1)
+    h.state.get = null
+    h.state.status = 'RLS'
+    finish({ data: h.order('PD') })
+    await pending
+    assert.equal(h.calls.length, 2)
+    assert.equal(h.vm.order.status.value, 'RLS')
+    assert.equal(h.state.contractReloads, 1)
+    assert.equal(h.vm.wsFetchingOrder, false)
+  })
+
+  it('discards queued refreshes and stale responses after leaving the order', async () => {
+    const h = orderHarness()
+    let finish
+    h.state.get = () => new Promise(resolve => { finish = resolve })
+    const pending = h.vm.fetchOrder()
+    await h.vm.fetchOrder('websocket')
+    h.vm.disposed = true
+    finish({ data: h.order('RLS') })
+    await pending
+    assert.equal(h.calls.length, 1)
+    assert.deepEqual(h.applied, [])
+  })
+})
+
+
+describe('P2P saved release transaction state', () => {
+  it('keeps an already-broadcast release in verification despite a stale positive balance', () => {
+    const source = readFileSync('src/pages/apps/exchange/peer_to_peer/order.vue', 'utf8')
+    const start = source.indexOf('    getPaidState (kwargs)')
+    const end = source.indexOf('\n    },', start) + 7
+    const component = new Function(`return { ${source.slice(start, end)} }`)()
+    const vm = { getTxidByAction: () => 'synthetic-release-txid' }
+    const kwargs = { orderId: 24, tradeType: 'BUY', userIsAdOwner: true, contractBalance: 0.0001057 }
+    assert.equal(component.getPaidState.call(vm, kwargs), 'tx-confirmation')
+    vm.getTxidByAction = () => null
+    assert.equal(component.getPaidState.call(vm, kwargs), 'payment-confirmation')
   })
 })

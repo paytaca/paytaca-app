@@ -2,6 +2,13 @@
   <P2PAvailability>
   <div id="app-container" class="row" :class="getDarkModeClass(darkMode)" v-if="!openVersionUpdate">
     <router-view v-if="isloaded" :key="$route.name"></router-view>
+    <RampLogin v-else-if="showRegistration" @logged-in="onRegistered" />
+    <div v-else-if="authError" class="full-width q-pa-lg text-center">
+      <HeaderNav title="P2P Ramp" backnavpath="/apps" class="header-nav" />
+      <p role="alert">{{ authError }}</p>
+      <q-btn color="primary" :label="$t('Retry')" :loading="checking" @click="getUser" />
+      <q-btn flat :label="$t('BackToWallet', {}, 'Back to wallet')" to="/apps" />
+    </div>
     
     <!-- Skeleton Loading State for Initial Auth -->
     <div v-else class="full-width">
@@ -53,11 +60,14 @@ import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 import { backend } from 'src/exchange/backend'
 import { bus } from 'src/wallet/event-bus.js'
 import { loadRampWallet } from 'src/exchange/wallet'
+import { loadAuthenticatedUser } from 'src/exchange/auth'
+import RampLogin from 'src/components/ramp/fiat/RampLogin.vue'
 
 export default {
   components: {
     P2PAvailability,
     HeaderNav,
+    RampLogin,
     OngoingMaintenanceDialog
   },
   data () {
@@ -68,37 +78,55 @@ export default {
       isloaded: false,
       openVersionUpdate: false,
       appDisabled: false,
-      continue: false
+      checking: false,
+      authError: null,
+      showRegistration: false,
+      authAttempt: 0,
+      disposed: false
     }
   },
   async created () {
     bus.on('websocket-disconnected', this.handleDisconnectedWS)
   },
   beforeUnmount () {
+    this.disposed = true
+    this.authAttempt++
+    bus.off('websocket-disconnected', this.handleDisconnectedWS)
     this.$store.commit('ramp/resetListingTabs')
     this.$store.commit('ramp/resetAppealListingTab')
   },
+  computed: {
+    walletIdentity () {
+      return JSON.stringify([
+        this.$store.getters['global/getWallet']('bch')?.walletHash,
+        this.$store.getters['global/getWalletIndex'],
+        this.$store.getters['global/isChipnet']
+      ])
+    }
+  },
   watch: {
+    walletIdentity: {
+      flush: 'sync',
+      handler () {
+        this.authAttempt++
+        this.checking = false
+        this.isloaded = false
+        this.showRegistration = false
+        this.getUser()
+      }
+    },
     $route (to, from) {
       if (from.path.includes('apps/exchange')) {        
         if ('ad_id' in to.query) {
           this.$router?.push({ name: 'p2p-store', query: to.query })
         }             
       }      
-    },
-    continue (val) {
-      // Only redirect on the exchange entry route itself; the exchange page
-      // also mounts as an ancestor of deeper routes (e.g. deep-linked
-      // p2p-order pages) and must not hijack those navigations
-      if (val && this.$route.name === 'exchange') {
-        this.goToMainPage()
-      }
     }
   },
   async mounted () {
     const appEnabled = this.$store.getters['global/appControl']
     if (appEnabled && appEnabled.P2P_EXCHANGE === false) {
-      this.appDisabled = !appEnabled
+      this.appDisabled = true
     } else {
       // Ensure wallet state is initialized before accessing getters
       const wallet = this.$store.getters['global/getWallet']('bch')
@@ -109,49 +137,48 @@ export default {
         this.$store.commit('paytacapos/initializeWalletState', walletHash)
       }
       
-      // Parallelize independent operations
-      const [versionCheckResult, rampWallet, userResult] = await Promise.allSettled([
+      await Promise.allSettled([
         this.checkVersionUpdate(),
-        loadRampWallet(),
         this.getUser()
       ])
-      
-      // Store wallet instance in Vuex to avoid duplicate loading
-      if (rampWallet.status === 'fulfilled') {
-        this.$store.commit('ramp/updateWallet', rampWallet.value)
-      }
-      
-      // Handle version check errors gracefully (non-blocking)
-      if (versionCheckResult.status === 'rejected') {
-        console.error('Version check failed:', versionCheckResult.reason)
-      }
-      
-      if (this.$route.name === 'exchange') {
-        this.goToMainPage()
-      }
     }
   },
   methods: {
     getDarkModeClass,
+    async onRegistered () {
+      this.showRegistration = false
+      await this.getUser()
+    },
     async getUser () {
-      await backend.get('auth')
-        .then(async (response) => {
-          this.user = response.data
-          // Store user in Vuex for use by other components
-          this.$store.commit('ramp/updateUser', response.data)
-          this.continue = true
-          // Set isloaded earlier - don't wait for version check
-          this.isloaded = true
-        })
-        .catch(error => {
-          if (error.response?.data?.error === 'user does not exist') {
-            this.continue = true
-          } else {
-            console.error(error.response || error)
-          }
-          // Set isloaded even on error so UI can render
-          this.isloaded = true
-        })
+      if (this.checking || this.disposed || this.appDisabled) return
+      const attempt = ++this.authAttempt
+      const identity = this.walletIdentity
+      const isCurrent = () => !this.disposed && attempt === this.authAttempt && identity === this.walletIdentity
+      this.checking = true
+      this.isloaded = false
+      this.authError = null
+      try {
+        const rampWallet = await loadRampWallet()
+        if (!isCurrent()) return
+        this.$store.commit('ramp/updateWallet', rampWallet)
+        const user = await loadAuthenticatedUser()
+        if (!isCurrent()) return
+        this.user = user
+        this.$store.commit('ramp/updateUser', user)
+        this.showRegistration = false
+        this.isloaded = true
+        if (this.$route.name === 'exchange') this.goToMainPage()
+      } catch (error) {
+        if (!isCurrent()) return
+        const arbiterRoute = this.$route.matched.some(route => route.name === 'exchange-arbiter')
+        if ((error?.code === 'p2p_account_missing' || error?.response?.status === 404) && !arbiterRoute) {
+          this.showRegistration = true
+        } else {
+          this.authError = this.$t('P2PLoginFailed', {}, 'Unable to log in to P2P. Please try again.')
+        }
+      } finally {
+        if (isCurrent()) this.checking = false
+      }
     },
      goToMainPage () {
         this.$store.commit('ramp/updateUser', this.user)

@@ -366,7 +366,11 @@ export default {
               }
             }
             vm.$store.commit('ramp/saveTxid', txidData)
-            vm.escrowBalance = await vm.escrowContract.getBalance(null, true)
+            try {
+              vm.escrowBalance = await vm.escrowContract.getBalance(null, true)
+            } catch {
+              vm.escrowBalance = null
+            }
             if (vm.order?.status?.value === 'CNF') {
               await vm.escrowPendingOrder()
             }

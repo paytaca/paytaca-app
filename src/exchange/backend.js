@@ -41,7 +41,7 @@ function resolveRequestUserType (config) {
     (method && method !== 'get' && /\/ramp-p2p\/arbiter\/?$/i.test(url))
   ) return 'arbiter'
 
-  if (/\/ramp-p2p\/peer(?:\/|$)/i.test(url)) return 'peer'
+  if (/\/ramp-p2p\/(?:peer|ad)(?:\/|\?|$)/i.test(url)) return 'peer'
 
   // Try from store
   const storedUser = Store.getters?.['ramp/getUser']
@@ -60,6 +60,27 @@ function assertRequestWallet (config) {
   }
 }
 
+async function authorizeRequest (config) {
+  for (const headers of [config.headers, config.headers.common, config.headers[String(config.method).toLowerCase()]]) {
+    if (!headers || typeof headers !== 'object') continue
+    for (const name of Object.keys(headers)) {
+      if (name.toLowerCase() === 'authorization') delete headers[name]
+    }
+  }
+  delete config.auth
+  if (!config.authorize) return
+  const token = await getAuthToken(resolveRequestUserType(config))
+  assertRequestWallet(config)
+  if (typeof token !== 'string' || !token.trim()) {
+    throw Object.assign(new Error('Please log in before continuing this P2P action.'), {
+      code: 'p2p_auth_required',
+      config,
+      response: { status: 401, data: { detail: 'P2P login is required.' } }
+    })
+  }
+  config.headers.Authorization = `Token ${token}`
+}
+
 backend.interceptors.request.use(async (config) => {
   config.p2pRegistrationCheck?.()
   const isChipnet = Store.getters['global/isChipnet']
@@ -71,19 +92,12 @@ backend.interceptors.request.use(async (config) => {
   config.p2pWalletIndex = Store.getters['global/getWalletIndex']
   config.p2pChipnet = isChipnet
   config.headers['wallet-hash'] = wallet.walletHash
-  if (config.authorize) {
-    const userType = resolveRequestUserType(config)
-    const token = await getAuthToken(userType)
-    // Only set Authorization header if token exists
-    // If token is null, the request will fail with 401/403, which should trigger authentication
-    if (token) {
-      config.headers.Authorization = `Token ${token}`
-    }
-  }
+  await authorizeRequest(config)
   const feature = p2pRequestFeature(config)
   if (feature) {
     await fetchP2PAvailability(backend, feature)
     await assertP2PIdentity(null, 'peer')
+    await authorizeRequest(config)
   }
   assertRequestWallet(config)
   config.p2pRegistrationCheck?.()
@@ -134,7 +148,7 @@ backend.interceptors.response.use(
       const errorDetail = error?.response?.data?.detail || ''
       const errorMessage = error?.response?.data?.error || ''
       const fullErrorText = `${errorDetail} ${errorMessage}`.toLowerCase()
-      if (status === 401 || fullErrorText.includes('invalid token')) {
+      if (status === 401 || /\b(?:invalid|expired)\b.*\btoken\b|\btoken\b.*\b(?:invalid|expired)\b/i.test(fullErrorText)) {
         const userType = resolveRequestUserType(error?.config)
         await deleteAuthTokenForUserType(userType)
         assertRequestWallet(error.config)
@@ -248,17 +262,28 @@ export function updateP2PProfile (userType, metadata) {
   return backend.patch(`/ramp-p2p/${userType}/`, payload, { authorize: userType })
 }
 
-export async function assertP2PIdentity (member = null, userType = 'peer') {
+export async function assertP2PIdentity (member = null, userType = 'peer', registered = null) {
   const activeWallet = wallet
-  const response = await backend.get('/auth/', { authorize: userType, cache: false, params: { _fresh: Date.now() }, timeout: 10000 })
-  if (response.status !== 200 || response.cached === true) throw new Error('The registered P2P identity could not be verified. Signing and funding are blocked.')
-  if ((response.data?.is_arbiter ? 'arbiter' : 'peer') !== userType) {
+  if (!registered) {
+    const discovery = await backend.get('/auth/', { authorize: false, cache: false, params: { _fresh: Date.now() }, timeout: 10000 })
+    if (discovery.status !== 200 || discovery.cached === true) throw new Error('The registered P2P identity could not be verified.')
+    registered = discovery.data
+  }
+  if ((registered?.is_arbiter ? 'arbiter' : 'peer') !== userType) {
     throw Object.assign(new Error('The current P2P account type cannot perform this action.'), { code: 'p2p_account_type_mismatch' })
   }
-  activeWallet.assertIdentity(response.data)
+  const url = userType === 'peer' ? '/ramp-p2p/peer/' : `/ramp-p2p/arbiter/${activeWallet.walletHash}/`
+  const response = await backend.get(url, { authorize: userType, cache: false, params: { _fresh: Date.now() }, timeout: 10000 })
+  if (response.status !== 200 || response.cached === true) throw new Error('The registered P2P identity could not be verified. Signing and funding are blocked.')
+  if (response.data?.id == null || String(response.data.id) !== String(registered?.id) ||
+      response.data?.public_key !== registered?.public_key || response.data?.address !== registered?.address || response.data?.is_disabled === true) {
+    throw Object.assign(new Error('The authenticated P2P profile does not match the registered identity.'), { code: 'p2p_identity_mismatch' })
+  }
+  activeWallet.assertIdentity(registered)
+  activeWallet.assertIdentity({ ...registered, ...response.data, address_path: response.data.address_path ?? registered.address_path })
   if (activeWallet !== wallet) throw Object.assign(new Error('The active P2P wallet changed. Please reopen this P2P action.'), { code: 'p2p_identity_mismatch' })
   if (member) activeWallet.assertIdentity(member)
-  return response.data
+  return { ...registered, is_authenticated: true }
 }
 
 export async function updatePubkeyAndAddress (user) {

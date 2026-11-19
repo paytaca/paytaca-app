@@ -45,6 +45,7 @@
               <q-item-label caption class="text-caption">{{ $t('ContractBalance') }}</q-item-label>
               <q-item-label class="payment-detail-text">
                 <span v-if="balanceLoaded">{{ contract?.balance }} BCH</span>
+                <span v-else-if="contractBalanceError">{{ $t('BalanceUnavailable', {}, 'Balance unavailable') }}</span>
                 <q-skeleton v-else type="text" width="100px" height="20px" />
               </q-item-label>
             </q-item-section>
@@ -107,12 +108,15 @@ export default {
       verifyingTx: false,
       txidLoaded: false,
       balanceLoaded: false,
+      contractBalanceError: false,
       errorDialogActive: false,
       minHeight: this.$q.platform.is.ios ? this.$q.screen.height - 130 : this.$q.screen.height - 100,
       autoRetryCount: 0,
       maxAutoRetries: 3,
       autoRetryDelay: 2000,
       autoRetrying: false,
+      balancePolling: false,
+      disposed: false,
       showContractInfo: false
     }
   },
@@ -134,7 +138,6 @@ export default {
   computed: {
     showRetryBtn () {
       return this.txidLoaded &&
-             this.balanceLoaded &&
              !this.hideBtn &&
              !this.autoRetrying &&
              this.autoRetryCount >= this.maxAutoRetries
@@ -152,6 +155,7 @@ export default {
     vm.loadContract()
   },
   beforeUnmount () {
+    this.disposed = true
     clearInterval(this.timer)
   },
   methods: {
@@ -170,17 +174,17 @@ export default {
       this.txidLoaded = true
     },
     loadContract () {
-      this.fetchContract()
-        .then(() => {
-          this.fetchContractBalance()
-        })
+      return this.fetchContract()
+        .catch(() => null)
+        .then(() => this.fetchContractBalance())
         .catch(() => {
-          this.fetchContractBalance()
+          this.contract.balance = null
+          this.contractBalanceError = true
         })
     },
     fetchContractBalance () {
       return new Promise((resolve, reject) => {
-        if (this.data?.contractBalance != null) {
+        if (!this.data?.escrow && this.data?.contractBalance != null) {
           this.contract.balance = this.data.contractBalance
           this.balanceLoaded = true
           resolve(this.data.contractBalance)
@@ -192,7 +196,7 @@ export default {
         }
         // Use the escrow contract's own address by not passing any parameter
         // The RampContract will use its internally generated address
-        this.data?.escrow?.getBalance()
+        this.data?.escrow?.getBalance('', true)
           .then(balance => {
             this.contract.balance = balance
             this.balanceLoaded = true
@@ -229,22 +233,24 @@ export default {
       })
     },
     async verifyRelease () {
+      if (this.disposed) return
       const vm = this
       const body = { txid: this.transactionId }
       vm.verifyingTx = true
 
       try {
-        await backend.post(`/ramp-p2p/order/${vm.data?.orderId}/verify-release/`, body, { authorize: true })
-        // Success - emit success event
-        vm.$emit('success')
+        await backend.post(`/ramp-p2p/order/${vm.data?.orderId}/verify-release/`, body, { authorize: 'peer' })
+        await vm.pollVerification()
       } catch (error) {
+        if (vm.disposed) return
+        if (vm.handleVerificationAuthError(error)) return
         const errorMsg = error.response?.data?.error || ''
         // If the order has already been released (server detected it on-chain),
         // verify-release is unnecessary — treat it as success.
-        if (errorMsg.includes('Action requires status')) {
+        if (error.response?.status === 400 || errorMsg.includes('Action requires status')) {
           try {
-            const { data: order } = await backend.get(`/ramp-p2p/order/${vm.data?.orderId}/`, { authorize: true })
-            if (order?.status?.value === 'RLS') {
+            const { data: order } = await backend.get(`/ramp-p2p/order/${vm.data?.orderId}/`, { authorize: 'peer', cache: false, params: { _fresh: Date.now() } })
+            if (!vm.disposed && order?.status?.value === 'RLS') {
               vm.verifyingTx = false
               vm.$emit('success')
               return
@@ -259,15 +265,28 @@ export default {
       }
     },
     async verifyEscrow () {
+      if (this.disposed) return
       const vm = this
       const body = { txid: vm.transactionId }
       vm.verifyingTx = true
 
       try {
-        await backend.post(`/ramp-p2p/order/${vm.data?.orderId}/verify-escrow/`, body, { authorize: true })
-        // Success - emit success event
-        vm.$emit('success')
+        await backend.post(`/ramp-p2p/order/${vm.data?.orderId}/verify-escrow/`, body, { authorize: 'peer' })
+        await vm.pollVerification()
       } catch (error) {
+        if (vm.disposed) return
+        if (vm.handleVerificationAuthError(error)) return
+        if (error.response?.status === 400) {
+          try {
+            const { data: order } = await backend.get(`/ramp-p2p/order/${vm.data?.orderId}/`, { authorize: 'peer', cache: false })
+            if (!vm.disposed && order?.status?.value === 'ESCRW') {
+              vm.$emit('success')
+              return
+            }
+          } catch (statusError) {
+            vm.handleRequestError(statusError)
+          }
+        }
         vm.verifyingTx = false
 
         if (error.response?.data?.error === 'txid is required') {
@@ -283,8 +302,50 @@ export default {
         }
       }
     },
+    handleVerificationAuthError (error) {
+      if (![401, 403].includes(error.response?.status)) return false
+      this.verifyingTx = false
+      this.handleRequestError(error)
+      this.autoRetryCount = this.maxAutoRetries
+      this.autoRetrying = false
+      this.hideBtn = false
+      this.disableBtn = false
+      this.loading = false
+      this.errorMessage = this.$t('P2PLoginRequired', {}, 'Please log in again, then retry verification without sending funds again.')
+      return true
+    },
+    async pollVerification () {
+      const releasing = this.data?.action === 'RELEASE'
+      const completedStatuses = releasing ? ['RLS'] : ['ESCRW', 'PD_PN', 'PD', 'RLS', 'RFN']
+      for (let attempt = 0; attempt <= 5; attempt++) {
+        if (this.disposed) return
+        try {
+          const { data: order } = await backend.get(`/ramp-p2p/order/${this.data?.orderId}/`, { authorize: 'peer', cache: false, params: { _fresh: Date.now() } })
+          if (this.disposed) return
+          if (completedStatuses.includes(order?.status?.value)) {
+            this.$emit('success')
+            return
+          }
+        } catch (error) {
+          if (this.disposed) return
+          this.handleRequestError(error)
+          break
+        }
+        if (attempt < 5) await this.delay(1000 * (2 ** attempt))
+      }
+      this.verifyingTx = false
+      this.autoRetrying = false
+      this.autoRetryCount = this.maxAutoRetries
+      this.hideBtn = false
+      this.disableBtn = false
+      this.loading = false
+      this.errorMessage = releasing
+        ? this.$t('ReleaseVerificationPending', {}, 'Release verification is still pending on the server. Retry verification without releasing funds again.')
+        : this.$t('EscrowVerificationPending', {}, 'Escrow verification is still pending on the server. Retry verification without sending funds again.')
+    },
     async attemptAutoRetry (verifyFunction) {
       const vm = this
+      if (vm.disposed) return
 
       // Check if we can still auto-retry
       if (vm.autoRetryCount < vm.maxAutoRetries) {
@@ -294,6 +355,7 @@ export default {
 
         // Wait for the fixed delay
         await vm.delay(vm.autoRetryDelay)
+        if (vm.disposed) return
 
         // Attempt verification again
         await verifyFunction.call(vm)
@@ -302,11 +364,13 @@ export default {
         vm.autoRetrying = false
         vm.hideBtn = false
         vm.disableBtn = false
+        vm.loading = false
         vm.errorMessage = vm.$t('VerificationFailedRetries', {}, 'Verification failed after multiple attempts. Please try again.')
       }
     },
     submitAction () {
       const vm = this
+      if (vm.disposed || vm.verifyingTx) return
 
       // Reset auto-retry counter when manually clicking retry
       vm.autoRetryCount = 0
@@ -317,16 +381,17 @@ export default {
 
       switch (vm.data?.action) {
         case 'ESCROW':
-          vm.verifyEscrow()
-          break
+          return vm.verifyEscrow()
         case 'RELEASE':
-          vm.verifyRelease()
-          break
+          return vm.verifyRelease()
       }
     },
     checkTransferStatus () {
+      if (this.disposed || this.verifyingTx || this.balancePolling || this.autoRetrying) return
+      if (this.txidLoaded && this.transactionId && ['ESCROW', 'RELEASE'].includes(this.data?.action)) {
+        return this.submitAction()
+      }
       if (this.balanceLoaded && this.txidLoaded) {
-        this.verifyingTx = true
         switch (this.data?.action) {
           case 'RELEASE':
             if (this.contract.balance === 0) {
@@ -334,7 +399,9 @@ export default {
             } else {
               this.verifyingTx = false
               // poll for balance with exponential backoff
+              this.balancePolling = true
               this.exponentialBackoff(this.fetchContractBalance, 5, 1000)
+                .finally(() => { this.balancePolling = false })
             }
             break
           case 'ESCROW':
@@ -343,7 +410,9 @@ export default {
             } else {
               this.verifyingTx = false
               // poll for balance with exponential backoff
+              this.balancePolling = true
               this.exponentialBackoff(this.fetchContractBalance, 5, 1000)
+                .finally(() => { this.balancePolling = false })
             }
             break
           default:
@@ -378,8 +447,10 @@ export default {
       return new Promise(resolve => setTimeout(resolve, duration))
     },
     exponentialBackoff (fn, retries, delayDuration) {
+      if (this.disposed) return Promise.resolve()
       return fn()
         .then(balance => {
+          if (this.disposed) return
           if (this.retryBalance(balance)) {
             if (retries > 0) {
               console.log(`Attempt failed. Retrying in ${delayDuration / 1000} seconds...`)
@@ -388,6 +459,11 @@ export default {
             }
             console.error('Retry exhausted — balance condition not met')
             this.verifyingTx = false
+            this.autoRetryCount = this.maxAutoRetries
+            this.hideBtn = false
+            this.disableBtn = false
+            this.loading = false
+            this.errorMessage = this.$t('VerificationTimedOut', {}, 'Verification timed out. Retry verification without sending funds again.')
             this.$q.notify({
               message: this.$t('VerificationTimedOut', {}, 'Verification timed out. Please try again.'),
               color: 'negative',

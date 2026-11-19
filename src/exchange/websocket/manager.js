@@ -2,7 +2,7 @@ import { bus } from 'src/wallet/event-bus'
 import { WebSocketService } from 'src/exchange/websocket/service'
 import { Store } from 'src/store'
 import { getAuthToken } from 'src/exchange/auth'
-import { backend } from 'src/exchange/backend'
+import { backend, assertP2PIdentity } from 'src/exchange/backend'
 import { fetchP2PAvailability, isP2PAvailabilityError } from 'src/exchange/availability'
 import { Notify } from 'quasar'
 import { markRaw } from 'vue'
@@ -217,13 +217,13 @@ export class WebSocketManager {
     try {
       await fetchP2PAvailability(backend)
       if (!isCurrent()) return
-      const response = await backend.get('/auth/', { authorize: this.userType, cache: false })
+      await assertP2PIdentity(null, this.userType)
       if (!isCurrent()) return
-      if (!response.data?.is_authenticated) bus.emit('session-expired')
-      else Notify.create({ type: 'error', message: 'P2P subscription access was rejected. Please check your account and order access.', timeout: 5000 })
+      Notify.create({ type: 'error', message: 'P2P subscription access was rejected. Please check your account and order access.', timeout: 5000 })
     } catch (error) {
       if (!isCurrent()) return
       if (isP2PAvailabilityError(error)) bus.emit('p2p-unavailable', error)
+      else if (error?.response?.status === 401) bus.emit('session-expired')
       else if (![401, 403].includes(error?.response?.status)) bus.emit('network-error')
     }
   }

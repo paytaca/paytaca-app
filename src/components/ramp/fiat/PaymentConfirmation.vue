@@ -42,7 +42,8 @@
           <q-item-section>
             <q-item-label caption class="text-caption">{{ $t('ContractBalance') }}</q-item-label>
             <q-item-label class="payment-detail-text">
-              <span v-if="contractBalance">{{ contractBalance }} BCH</span>
+              <span v-if="contractBalance !== null">{{ contractBalance }} BCH</span>
+              <span v-else-if="contractBalanceError">{{ $t('BalanceUnavailable', {}, 'Balance unavailable') }}</span>
               <q-skeleton v-else type="text" width="100px" height="20px" />
             </q-item-label>
           </q-item-section>
@@ -384,6 +385,7 @@ export default {
       darkMode: this.$store.getters['darkmode/getStatus'],
       theme: this.$store.getters['global/theme'],
       contractBalance: null,
+      contractBalanceError: false,
       order: null,
       txid: null,
       isloaded: false,
@@ -986,19 +988,21 @@ onSelectAttachment (methodIndex, methodId) {
         vm.deletingAttachmentByMethodId = { ...vm.deletingAttachmentByMethodId, [method.id]: false }
       }
     },
-    fetchContractBalance () {
+    async fetchContractBalance () {
       const vm = this
-      if (vm.data?.contractBalance != null) {
+      vm.contractBalanceError = false
+      if (!vm.data?.escrow && vm.data?.contractBalance != null) {
         vm.contractBalance = vm.data.contractBalance
         return
       }
       if (vm.data?.escrow) {
-        vm.data?.escrow.getBalance(vm.data?.contract.address, true)
+        await vm.data?.escrow.getBalance(vm.data?.contract.address, true)
           .then(balance => {
             vm.contractBalance = balance
           })
-          .catch(error => {
-            console.error(error)
+          .catch(() => {
+            vm.contractBalance = null
+            vm.contractBalanceError = true
           })
       }
     },

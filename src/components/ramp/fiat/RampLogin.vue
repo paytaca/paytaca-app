@@ -157,7 +157,7 @@ export default {
           this.errorMessage = error.message
         } else if (!error.response) {
           bus.emit('network-error')
-        } else if (error.response.status === 404) {
+        } else if (error.code === 'p2p_account_missing' || error.response.status === 404) {
           this.register = true
         } else {
           this.errorMessage = this.getErrorMessageByType(error)

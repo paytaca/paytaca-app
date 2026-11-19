@@ -1,6 +1,6 @@
 import { SecureStoragePlugin } from 'capacitor-secure-storage-plugin'
 import { Store } from 'src/store'
-import { backend } from './backend'
+import { backend, assertP2PIdentity } from 'src/exchange/backend'
 import { wallet as rampWallet, loadRampWallet } from './wallet'
 import { loadChatIdentity } from './chat'
 import { bus } from 'src/wallet/event-bus'
@@ -107,7 +107,7 @@ export class ExchangeUser {
   }
 
   async getOTP () {
-    const { data: { otp } } = await backend.get(`/auth/otp/${this.user_type}`)
+    const { data: { otp } } = await backend.get(`/auth/otp/${this.user_type}`, { authorize: false })
     return otp
   }
 
@@ -134,7 +134,7 @@ export class ExchangeUser {
       signature: signature,
       public_key: pubkey
     }
-    const loginResponse = await backend.post(`/auth/login/${this.user_type}`, body)
+    const loginResponse = await backend.post(`/auth/login/${this.user_type}`, body, { authorize: false })
     await saveAuthToken(loginResponse.data.token, this.user_type)
     return loginResponse.data.token
   }
@@ -175,8 +175,17 @@ export class ExchangeUser {
 }
 
 export async function fetchUser () {
-  const { data: userData } = await backend.get('/auth/')
-  return new ExchangeUser(userData)
+  try {
+    const { data: userData } = await backend.get('/auth/', { authorize: false, cache: false })
+    return new ExchangeUser(userData)
+  } catch (error) {
+    const status = error?.response?.status
+    const message = error?.response?.data?.error || error?.response?.data?.detail
+    if (status === 404 || (status === 400 && /^user does not exist\.?$/i.test(message || ''))) {
+      error.code = 'p2p_account_missing'
+    }
+    throw error
+  }
 }
 
 export async function loadAuthenticatedUser (forceLogin = false) {
@@ -185,16 +194,37 @@ export async function loadAuthenticatedUser (forceLogin = false) {
 
     user.emitSignal(null, { signal: 'logging-in', data: true })
 
-    await getAuthToken(user.user_type)
     await user.savePubkeyAndAddress()
-    await user.login(!user.is_authenticated || forceLogin)
+    const token = await getAuthToken(user.user_type)
+    const verifySession = async () => {
+      await assertP2PIdentity(null, user.user_type, user)
+      user.is_authenticated = true
+      return true
+    }
+    let needsLogin = forceLogin || !token
+    if (!needsLogin) {
+      try {
+        needsLogin = !await verifySession()
+      } catch (error) {
+        if (error?.response?.status === 401 || error?.code === 'p2p_auth_required' ||
+            (error?.response?.status === 403 && /\b(?:invalid|expired)\b.*\btoken\b|\btoken\b.*\b(?:invalid|expired)\b/i.test(`${error.response.data?.detail || ''} ${error.response.data?.error || ''}`))) {
+          needsLogin = true
+        } else {
+          throw error
+        }
+      }
+    }
+    await user.login(needsLogin)
+    if (needsLogin && !await verifySession()) throw new Error('P2P login could not be confirmed.')
     
     await user.savePubkeyAndAddress()
+    Store.commit('ramp/updateUser', user)
     try {
       await user.fetchChatIdentity()
     } catch (error) {
       if (error?.response?.status === 401) {
         await user.login(true)
+        if (!await verifySession()) throw new Error('P2P login could not be confirmed.')
         await user.savePubkeyAndAddress()
         await user.fetchChatIdentity()
       } else if (error?.code === 'p2p_identity_mismatch' || error?.code === 'p2p_account_type_mismatch') {

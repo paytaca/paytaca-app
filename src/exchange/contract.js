@@ -3,6 +3,7 @@ import { ElectrumNetworkProvider, Contract, SignatureTemplate } from 'cashscript
 import { Store } from 'src/store'
 import { hash160 } from 'bitauth-libauth-v3'
 import { sha256 } from 'js-sha256'
+import { backend } from 'src/exchange/backend'
 
 import Watchtower from 'src/lib/watchtower'
 const isChipnet = Store.getters['global/isChipnet']
@@ -98,7 +99,7 @@ export class RampContract {
     }
 
     // Deduplicate concurrent getBalance calls for the same address
-    const cacheKey = address
+    const cacheKey = JSON.stringify([address, retry])
     if (this._getBalancePromise && this._getBalanceKey === cacheKey) {
       return this._getBalancePromise
     }
@@ -116,21 +117,15 @@ export class RampContract {
   }
 
   async _fetchBalance (address, retry) {
-    let balance = 0
-    let watchtowerErrored = false
-    try {
-      const response = await watchtower.BCH._api.get(`/balance/bch/${address}/`)
-      balance = response?.data?.balance
-    } catch (error) {
-      console.error('Failed to fetch contract balance through watchtower:', error.response)
-      watchtowerErrored = true
-    }
-    // Only fallback to CashScript/Electrum when Watchtower fails (errors),
-    // not when Watchtower returns a legitimate 0 balance.
-    if (retry && watchtowerErrored) {
-      console.warn('Refetched contract balance from cashscript built-in method getBalance()')
-      const rawBal = await this.contract.getBalance()
-      balance = Number(rawBal) / 1e8
+    const response = await backend.get(`/balance/bch/${address}/`, {
+      authorize: false,
+      cache: false,
+      params: retry ? { _fresh: Date.now() } : undefined
+    })
+    const balance = Number(response?.data?.balance)
+    if (response.status !== 200 || response.cached === true || response.data?.valid === false ||
+        response.data?.balance == null || !Number.isFinite(balance) || balance < 0) {
+      throw new Error('The contract balance could not be read from Watchtower.')
     }
     return balance
   }
