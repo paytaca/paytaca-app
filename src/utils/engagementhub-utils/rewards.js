@@ -3,13 +3,8 @@ import axios from 'axios'
 import { Store } from 'src/store'
 import { convertCashAddress } from 'src/wallet/chipnet'
 import { getWalletHash } from 'src/utils/engagementhub-utils/shared'
-import { requestManager } from 'src/utils/request-manager'
+import { REWARDS_URL } from 'src/utils/engagementhub-utils/api'
 
-const ENGAGEMENT_HUB_URL =
-  process.env.ENGAGEMENT_HUB_URL || 'https://engagementhub.paytaca.com/api/'
-// const ENGAGEMENT_HUB_URL = 'http://127.0.0.1:8000/api/'
-export const REWARDS_URL = axios.create({ baseURL: `${ENGAGEMENT_HUB_URL}rewards/` })
-requestManager.attachTo(REWARDS_URL)
 export const PROMO_TOKEN_CATEGORY = process.env.PROMO_TOKEN_CATEGORY
 export const PROMO_TOKEN_DECIMALS = 2
 export const PROMO_CONTRACT_VERSION = 'v2'
@@ -57,6 +52,16 @@ function describeError (error) {
     || error?.response?.data?.detail
     || error?.message
     || 'Unknown error'
+}
+
+function toRewardsApiError (error) {
+  const data = error?.response?.data
+  const message = typeof data === 'string' && data ? data : describeError(error)
+  return {
+    ...(data && typeof data === 'object' ? data : {}),
+    error: message,
+    status: error?.response?.status ?? null
+  }
 }
 
 function delay (ms) {
@@ -324,7 +329,7 @@ export async function getPromoRedeemHistory (promo, data) {
 export async function processReferralCode (data) {
   return await REWARDS_URL
     .post('userreward/process_referral_code/', data)
-    .then(_response => { return {} })
+    .then(() => { return {} })
     .catch(error => {
       console.error(error)
       return error.response?.data || { error: error.message || 'Network error' }
@@ -334,11 +339,12 @@ export async function processReferralCode (data) {
 export async function awardInitialUP (data) {
   return await REWARDS_URL
     .post('userreward/award_initial_points/', data)
-    .then(_response => { })
+    .then(() => {})
     .catch(error => { console.error(error) })
 }
 
 export async function processMerchantOtcPoints (data) {
+  if (Store.getters['global/isChipnet']) return null
   return await processPoints('userreward/process_merchant_otc_points/', data)
 }
 
@@ -359,8 +365,10 @@ export async function processPromoTokensSwap (data) {
     .post('userpromo/process_promo_tokens_swap/', data)
     .then(response => { return response.data })
     .catch(error => {
-      console.error(error)
-      return error.response?.data || { error: error.message || 'Network error' }
+      if (!isCanceledError(error)) {
+        console.error('Failed to POST userpromo/process_promo_tokens_swap/: ' + describeError(error))
+      }
+      return toRewardsApiError(error)
     })
 }
 
@@ -368,11 +376,23 @@ export async function recordPointsRedemption (data) {
   return await REWARDS_URL
     .post('userpromo/record_points_redemption/', data)
     .then(response => {
-      if (response.status === 200) return { error: '' }
-      else return response.data
+      if (response.status >= 200 && response.status < 300) {
+        return { error: '', status: response.status }
+      }
+      const responseData = response.data
+      const message = typeof responseData === 'string' && responseData
+        ? responseData
+        : responseData?.error || responseData?.detail || `Unexpected status ${response.status}`
+      return {
+        ...(responseData && typeof responseData === 'object' ? responseData : {}),
+        error: message,
+        status: response.status
+      }
     })
     .catch(error => {
-      console.error(error)
-      return error.response?.data || { error: error.message || 'Network error' }
+      if (!isCanceledError(error)) {
+        console.error('Failed to POST userpromo/record_points_redemption/: ' + describeError(error))
+      }
+      return toRewardsApiError(error)
     })
 }

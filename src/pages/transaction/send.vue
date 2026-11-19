@@ -570,6 +570,8 @@ import { hexToRef } from 'src/utils/reference-id-utils'
 import { MultiCauldronPoolTracker } from 'src/wallet/cauldron/pool-tracker'
 import { executeSendWithCauldron, prepareSendWithCauldron, CauldronSendError, calculateMaxSpendableForCauldron, TradePrepErrorCode } from 'src/wallet/cauldron/send'
 import { debounce } from 'quasar'
+import { processEliteEligibility } from 'src/utils/engagementhub-utils/elite-program'
+import { buildEliteOtcClaim } from 'src/utils/engagementhub-utils/elite-claim'
 
 const erc721IdRegexp = /erc721\/(0x[0-9a-f]{40}):(\d+)/i
 const SEND_SUCCESS_PENDING_KEY = 'paytaca-send-success-pending'
@@ -2819,6 +2821,24 @@ export default {
       this.saveSendSuccessPending()
     },
 
+    claimEliteEligibility (txid, { isConsolidation = false } = {}) {
+      const payload = buildEliteOtcClaim({
+        isChipnet: this.isChipnet,
+        isConsolidation,
+        txid,
+        assetId: this.assetId,
+        isNFT: this.isNFT,
+        recipients: this.recipients,
+        inputExtras: this.inputExtras,
+        customerAddress: sendPageUtils.getWallet('bch')?.lastAddress
+      })
+      if (!payload) return
+
+      processEliteEligibility(payload).catch(error => {
+        console.warn('[Send] Elite eligibility API failed:', error)
+      })
+    },
+
     async submitPromiseResponseHandler (result, walletType) {
       const vm = this
 
@@ -2831,43 +2851,49 @@ export default {
         const isConsolidation = await vm.checkConsolidationViaAddressInfo()
         if (vm.chatRoomId) {
           vm.redirectToChatAfterTip(result.txid)
-        } else if (isConsolidation) {
+          return
+        }
+
+        vm.claimEliteEligibility(result.txid, { isConsolidation })
+
+        if (isConsolidation) {
           vm.showSendSuccess()
-        } else {
-          // Redirect to transaction detail with state so it can show tx before watchtower indexes
-          try {
-            const { route, query, state } = vm.buildTransactionDetailState(result.txid, { timestamp: vm.txTimestamp })
-            await vm.$router.push({
-              name: route,
-              params: { txid: result.txid },
-              query,
-              state
-            })
-            
-            // Handle points in background (non-blocking) – do not delay success feedback
-            processMerchantOtcPoints({
-              ref_id: hexToRef(result.txid.substring(0, 6)),
-              tx_id: result.txid,
-              customer_address: sendPageUtils.getWallet('bch')?.lastAddress,
-              merchant_address: this.recipients[0].recipientAddress,
-              bch_spent: Number(this.recipients[0].amount)
-            }).then(resp => {
-              if (resp) {
-                vm.$q.dialog({
-                  component: PointsReceivedDialog,
-                  componentProps: {
-                    merchantName: resp.merchant_name ?? ''
-                  }
-                })
-              }
-            }).catch(err => {
-              console.warn('[Send] Points API failed:', err)
-            })
-          } catch (e) {
-            console.error('[Send] redirect failed:', e)
-            vm.sending = false
-            raiseNotifyError(vm.$t('NavigationError'))
-          }
+          return
+        }
+
+        // Redirect to transaction detail with state so it can show tx before watchtower indexes
+        try {
+          const { route, query, state } = vm.buildTransactionDetailState(result.txid, { timestamp: vm.txTimestamp })
+          await vm.$router.push({
+            name: route,
+            params: { txid: result.txid },
+            query,
+            state
+          })
+
+          // Handle points in background (non-blocking) – do not delay success feedback
+          processMerchantOtcPoints({
+            ref_id: hexToRef(result.txid.substring(0, 6)),
+            tx_id: result.txid,
+            customer_address: sendPageUtils.getWallet('bch')?.lastAddress,
+            merchant_address: this.recipients[0].recipientAddress,
+            bch_spent: Number(this.recipients[0].amount)
+          }).then(resp => {
+            if (resp) {
+              vm.$q.dialog({
+                component: PointsReceivedDialog,
+                componentProps: {
+                  merchantName: resp.merchant_name ?? ''
+                }
+              })
+            }
+          }).catch(err => {
+            console.warn('[Send] Points API failed:', err)
+          })
+        } catch (e) {
+          console.error('[Send] redirect failed:', e)
+          vm.sending = false
+          raiseNotifyError(vm.$t('NavigationError'))
         }
       } else sendPageUtils.submitPromiseErrorResponseHandler(result, walletType)
     },

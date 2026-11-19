@@ -1,6 +1,6 @@
 <template>
   <span class="bch-amount">
-    <span class="main">{{ parts.main }}</span><span class="trailing-zeros">{{ parts.trailingZeros }}</span><span v-if="parts.symbol" class="symbol"> {{ parts.symbol }}</span>
+    <span class="main">{{ parts.main }}</span><span class="trailing-zeros">{{ parts.trailingZeros }}&nbsp;</span><span v-if="parts.symbol" class="symbol"> {{ parts.symbol }}</span>
   </span>
 </template>
 
@@ -41,9 +41,5 @@ export default {
 
 .bch-amount .trailing-zeros {
   opacity: 0.4;
-}
-
-.bch-amount .symbol {
-  font-weight: normal;
 }
 </style>

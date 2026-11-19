@@ -341,6 +341,16 @@ const routes = [
             name: 'app-rewards-referral-history',
             component: () => import('src/pages/apps/rewards/referral-history.vue'),
             props: true
+          },
+          {
+            path: 'elite-program/:id',
+            name: 'app-rewards-elite-program',
+            component: () => import('src/pages/apps/rewards/elite-program.vue')
+          },
+          {
+            path: 'elite-history/:id/:tab',
+            name: 'app-rewards-elite-history',
+            component: () => import('src/pages/apps/rewards/elite-history.vue')
           }
         ]
       },

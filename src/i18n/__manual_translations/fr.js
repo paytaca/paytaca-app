@@ -185,4 +185,7 @@ export default {
   PaytacaWebsiteDescription: "Visitez le {paytacaWebsite}",
   ViewOnCauldron: "Voir sur Cauldron",
   PinAction: "Épingler",
+  TopUps: "Recharges",
+  OverTheCounter: "Achat en magasin",
+  OnHold: "En attente",
 }

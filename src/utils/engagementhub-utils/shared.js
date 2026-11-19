@@ -1,10 +1,9 @@
 import { Store } from 'src/store'
 import { formatWithLocale } from 'src/utils/denomination-utils'
 import { hash256 } from 'bitauth-libauth-v3'
+import { LIFT_TOKEN_DECIMALS } from '../subscription-utils'
 
 import axios from 'axios'
-
-const LIFT_DECIMALS = 2
 
 // ==============================
 // Store functions
@@ -12,10 +11,6 @@ const LIFT_DECIMALS = 2
 
 export function getWalletHash () {
   return Store.getters['global/getWallet']('bch')?.walletHash
-}
-
-export function getBchWallet () {
-  return Store.getters['global/getWallet']('bch')
 }
 
 // ==============================
@@ -37,9 +32,21 @@ export function parseLocaleDate (date, isDayIncluded = true) {
   return '---'
 }
 
-export function parseLiftToken (amount) {
-  const newAmount = amount / (10 ** LIFT_DECIMALS)
-  const finalAmount = formatWithLocale(newAmount, { max: LIFT_DECIMALS })
+/**
+ * Convert a raw LIFT token amount (base units) into a locale-formatted
+ * display string with the "LIFT" suffix.
+ * @param {number} amount The token amount in base units (not divided by token decimals)
+ * @param {boolean} addMinDecimals Whether to show trailing decimals for fractional amounts
+ * @returns {string} The formatted amount with " LIFT" appended, e.g. "1.25 LIFT"
+ */
+export function parseLiftToken (amount, addMinDecimals = false) {
+  const newAmount = amount / (10 ** LIFT_TOKEN_DECIMALS)
+  const preserveTrailingDecimals = { max: LIFT_TOKEN_DECIMALS }
+  if (addMinDecimals) {
+    const hasFraction = amount % 1 !== 0
+    preserveTrailingDecimals.min = hasFraction ? LIFT_TOKEN_DECIMALS : 0
+  }
+  const finalAmount = formatWithLocale(newAmount, preserveTrailingDecimals)
 
   return `${finalAmount} LIFT`
 }

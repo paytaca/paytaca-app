@@ -286,7 +286,12 @@ export default {
   PaidUsingMethod: "Pagado usando {method}",
   PayForLIFT: "Pagar por LIFT",
   PaytacaWebsiteDescription: "Visita {paytacaWebsite}",
+  LIFTBalance: "Saldo LIFT",
+  LIFToken: "Token LIFT",
   ViewOnCauldron: "Ver en Cauldron",
   PinAction: "Fijar",
   DropToUnpin: "Suelta aquí para desanclar",
+  TopUps: "Recargas",
+  OverTheCounter: "Compra en tienda",
+  OnHold: "En espera",
 }

@@ -241,8 +241,26 @@ export default {
               { key: 'RewardsHelpHome72' }
             ],
             hasBack: true,
-            primaryBtn: 'Done',
+            primaryBtn: 'Next',
+            nextStep: '8',
             backStep: '6',
+            onEnter: () => { if (this.hasBoundingRects) this.isHighlighting = true },
+            onNext: () => { this.highlightIndex = 2 }
+          },
+          {
+            id: '8',
+            isCentered: false,
+            needsBoundingRects: true,
+            highlightIndex: 3,
+            icon: 'workspace_premium',
+            titleKey: 'PaytacaEliteProgram',
+            content: [
+              { key: 'EliteProgramRecognition' },
+              { key: 'EliteProgramJoinHelp' }
+            ],
+            hasBack: true,
+            primaryBtn: 'Done',
+            backStep: '7',
             onNext: () => this.close()
           },
         ],
@@ -590,6 +608,161 @@ export default {
             },
             onNext: () => this.close()
           },
+        ],
+        elite: [
+          {
+            id: '1',
+            isCentered: true,
+            icon: 'celebration',  // Alternative: 'auto_awesome', 'emoji_events', 'card_giftcard'
+            titleKey: 'WelcomeToPaytacaEliteProgram',
+            content: [
+              { key: 'EliteProgramIntro' },
+              { key: 'EliteMerchantCashbackHelp' }
+            ],
+            hasBack: false,
+            primaryBtn: 'Next',
+            nextStep: '2',
+            onEnter: () => { this.isHighlighting = false },
+            onNext: () => {
+              this.isHighlighting = true
+              this.highlightIndex = 0
+            }
+          },
+          {
+            id: '2',
+            isCentered: false,
+            needsBoundingRects: true,
+            highlightIndex: 0,
+            icon: 'analytics',
+            titleKey: 'EliteProgramOverview',
+            content: [
+              { key: 'EliteOverviewHelp' },
+            ],
+            hasBack: true,
+            primaryBtn: 'Next',
+            nextStep: '3',
+            backStep: '1',
+            onEnter: () => { 
+              if (this.hasBoundingRects) this.isHighlighting = true
+              this.highlightIndex = 0
+            },
+            onNext: () => {
+              this.isHighlighting = true
+              this.highlightIndex = 1
+            }
+          },
+          {
+            id: '3',
+            isCentered: false,
+            needsBoundingRects: true,
+            highlightIndex: 1,
+            icon: 'history',
+            titleKey: 'PreviousMonthsHistory',
+            content: [
+              { key: 'PreviousMonthsHistoryHelp' },
+            ],
+            hasBack: true,
+            primaryBtn: 'Next',
+            nextStep: '4',
+            backStep: '2',
+            onEnter: () => { 
+              if (this.hasBoundingRects) this.isHighlighting = true
+              this.highlightIndex = 1
+            },
+            onNext: () => {
+              this.isHighlighting = true
+              this.highlightIndex = 2
+            }
+          },
+          {
+            id: '4',
+            isCentered: false,
+            needsBoundingRects: true,
+            highlightIndex: 2,
+            icon: 'account_balance_wallet',
+            titleKey: 'BalanceRequirements',
+            content: [
+              { key: 'EliteBalanceRequirementsHelp' },
+              { key: 'EliteBalanceCheckHelp' },
+            ],
+            hasBack: true,
+            primaryBtn: 'Next',
+            nextStep: '5',
+            backStep: '3',
+            onEnter: () => { 
+              if (this.hasBoundingRects) this.isHighlighting = true
+              this.highlightIndex = 2
+            },
+            onNext: () => {
+              this.isHighlighting = true
+              this.highlightIndex = 3
+            }
+          },
+          {
+            id: '5',
+            isCentered: false,
+            needsBoundingRects: true,
+            highlightIndex: 3,
+            icon: 'map',
+            titleKey: 'FindPaytacaMerchants',
+            content: [
+              { key: 'FindPaytacaMerchantsHelp' },
+            ],
+            hasBack: true,
+            primaryBtn: 'Next',
+            nextStep: '6',
+            backStep: '4',
+            onEnter: () => { 
+              if (this.hasBoundingRects) this.isHighlighting = true
+              this.highlightIndex = 3
+            },
+            onNext: () => {
+              this.isHighlighting = true
+              this.highlightIndex = 4
+            }
+          },
+          {
+            id: '6',
+            isCentered: false,
+            needsBoundingRects: true,
+            highlightIndex: 4,
+            icon: 'storefront',
+            titleKey: 'EligibleTransactions',
+            content: [
+              { key: 'EliteEligibleTransactionsHelp' },
+            ],
+            hasBack: true,
+            primaryBtn: 'Next',
+            nextStep: '7',
+            backStep: '5',
+            onEnter: () => { 
+              if (this.hasBoundingRects) this.isHighlighting = true
+              this.highlightIndex = 4
+            },
+            onNext: () => {
+              this.isHighlighting = true
+              this.highlightIndex = 5
+            }
+          },
+          {
+            id: '7',
+            isCentered: false,
+            needsBoundingRects: true,
+            highlightIndex: 5,
+            icon: 'arrow_upward',
+            titleKey: 'TopUps',
+            content: [
+              { key: 'EliteTopUpsHelp' },
+            ],
+            hasBack: true,
+            primaryBtn: 'Done',
+            backStep: '6',
+            onEnter: () => { 
+              if (this.hasBoundingRects) this.isHighlighting = true
+              this.highlightIndex = 5
+            },
+            onNext: () => this.close()
+          },
         ]
       }
     }
@@ -710,8 +883,9 @@ export default {
       const targetEl = cards[index]
       if (!targetEl) return
 
+      const block = this.page === 'elite' ? 'nearest' : 'center'
       try {
-        targetEl.scrollIntoView({ behavior: 'smooth', block: 'center', inline: 'nearest' })
+        targetEl.scrollIntoView({ behavior: 'smooth', block, inline: 'nearest' })
       } catch {
         // Fallback for older browsers that don't support smooth scrolling options
         targetEl.scrollIntoView(true)

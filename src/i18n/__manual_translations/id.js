@@ -181,5 +181,9 @@ export default {
   WebsiteDescription: "Kunjungi {website}",
   TotalLIFT: "Jumlah LIFT",
   BitcoinIsCashDescription: "Pelajari tentang Bitcoin Cash",
+  LIFTBalance: "Saldo LIFT",
   ViewOnCauldron: "Lihat di Cauldron",
+  TopUps: "Isi Ulang",
+  OverTheCounter: "Pembelian langsung",
+  OnHold: "Ditahan",
 }

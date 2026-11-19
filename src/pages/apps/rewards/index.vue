@@ -20,8 +20,16 @@
       </template>
     </header-nav>
 
+    <!-- Points Programs Section Label -->
+    <div
+      class="points-section-label q-mx-lg q-mt-md q-mb-md"
+      :class="getDarkModeClass(darkMode, 'text-grey-5', 'text-grey-8')"
+    >
+      {{ $t('PointsPrograms', {}, 'Points Programs') }}
+    </div>
+
     <!-- Collapsible Aggregated Points & LIFT Value Section -->
-    <div class="q-mx-lg q-mt-md q-mb-md card-help-highlight">
+    <div class="q-mx-lg q-mb-md card-help-highlight">
       <div
         class="br-15 q-pa-md group-currency cursor-pointer transition-card"
         :class="[getDarkModeClass(darkMode), { 'q-pb-md': !isSummaryExpanded }]"
@@ -268,6 +276,17 @@
         </div>
       </template>
 
+      <!-- Promo: Error -->
+      <template v-else-if="promoError">
+        <error-card
+          :is-points-card="false"
+          :is-rewards-home-page="true"
+          :error-text="promoError"
+          @on-retry="loadRewards()"
+          style="margin-inline: 0;"
+        />
+      </template>
+
       <!-- Promo Cards -->
       <template v-else>
         <q-intersection
@@ -307,10 +326,271 @@
           </div>
         </q-intersection>
       </template>
+
+      <!-- Paytaca Elite Section -->
+      <div class="col-12 q-pt-md card-help-highlight">
+        <div class="elite-section-label q-mb-sm">
+          {{ $t('PaytacaEliteProgram', {}, 'Paytaca Elite Program') }}
+        </div>
+
+        <q-banner
+          v-if="showRateFallbackNotice"
+          rounded
+          dense
+          class="br-15 q-mb-sm"
+          :class="darkMode ? 'bg-grey-9 text-white' : 'bg-grey-2 text-grey-9'"
+        >
+          <template #avatar>
+            <q-icon name="info" color="primary" />
+          </template>
+          <div class="text-body2">
+            {{ $t('EliteRateFallbackNotice', {}, 'Live exchange rates are unavailable right now, so some amounts are shown in Philippine pesos (PHP).') }}
+          </div>
+        </q-banner>
+
+        <!-- Elite: Scanning / Loading -->
+        <div
+          v-if="isLoading || isEliteLoading"
+          class="row full-width q-pa-md br-15 group-currency elite-card"
+          :class="getDarkModeClass(darkMode)"
+        >
+          <div class="col-12">
+            <div class="row full-width justify-between items-center">
+              <div class="row col-2 promo-icon">
+                <q-icon name="workspace_premium" size="md" class="elite-icon" />
+              </div>
+              <div class="col-8">
+                <span class="text-token elite-name" :class="getDarkModeClass(darkMode)">{{ $t('PaytacaEliteProgram', {}, 'Paytaca Elite Program') }}</span>
+                <br/>
+                <span class="elite-pill checking">{{ $t(EliteStatusLabels[EliteStatus.CHECKING]) }}</span>
+              </div>
+              <div class="row col-2 justify-end">
+                <q-skeleton type="circle" size="40px" />
+              </div>
+            </div>
+            <div class="text-caption q-mb-md q-mt-sm">
+              {{ $t('EliteCheckingEligibility', {}, 'Checking elite eligibility…') }}
+            </div>
+            <q-skeleton :dark="darkMode" type="text" height="12px" class="q-mb-sm" style="width: 80%;" />
+            <q-skeleton :dark="darkMode" type="text" height="12px" class="q-mb-sm" style="width: 100%;" />
+            <q-skeleton :dark="darkMode" type="text" height="12px" style="width: 55%;" />
+          </div>
+        </div>
+
+        <!-- Elite: Error -->
+        <div
+          v-else-if="eliteError"
+          class="row full-width q-pa-md br-15 group-currency elite-card"
+          :class="getDarkModeClass(darkMode)"
+        >
+          <div class="col-12">
+            <div class="row full-width justify-between items-center">
+              <div class="row col-2 promo-icon">
+                <q-icon name="error_outline" size="md" class="elite-icon" />
+              </div>
+              <div class="col-8">
+                <span class="text-token elite-name" :class="getDarkModeClass(darkMode)">{{ $t('PaytacaEliteProgram', {}, 'Paytaca Elite Program') }}</span>
+                <br/>
+                <span class="text-caption">
+                  {{ eliteError }}
+                </span>
+              </div>
+              <div class="row col-2 justify-end">
+                <q-btn
+                  round
+                  class="button elite-btn"
+                  icon="refresh"
+                  @click="retryEliteProgram"
+                />
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Elite: Not Qualified -->
+        <div
+          v-else-if="eliteData && eliteData.status === EliteStatus.LOCKED"
+          class="row full-width q-pa-md br-15 group-currency elite-card elite-locked"
+          :class="[getDarkModeClass(darkMode), { loaded: eliteLoaded }]"
+        >
+          <div class="col-12">
+            <div class="row full-width justify-between items-center">
+              <div class="row col-2 promo-icon">
+                <q-icon name="workspace_premium" size="md" class="elite-icon" />
+              </div>
+              <div class="col-8">
+                <span class="text-token elite-name" :class="getDarkModeClass(darkMode)">{{ $t('PaytacaEliteProgram', {}, 'Paytaca Elite Program') }}</span>
+                <br/>
+                <span class="elite-pill locked">{{ $t(EliteStatusLabels[EliteStatus.LOCKED]) }}</span>
+              </div>
+              <div class="row col-2 justify-end" />
+            </div>
+            <div class="row items-center no-wrap q-my-md elite-merchant-note">
+              <q-icon name="storefront" size="sm" class="q-mr-md elite-icon" />
+              <span class="col text-caption">{{ eliteMerchantLabel }}</span>
+            </div>
+            <q-btn
+              unelevated
+              no-caps
+              class="full-width elite-cta-btn"
+              :class="getDarkModeClass(darkMode)"
+              :label="eliteCtaLabel"
+              :loading="isEliteCtaBusy"
+              @click="onEliteCtaClick"
+            />
+          </div>
+        </div>
+
+        <!-- Elite: Active -->
+        <div
+          v-else-if="eliteData && eliteData.status === EliteStatus.ACTIVE"
+          class="row full-width q-pa-md br-15 group-currency elite-card elite-active cursor-pointer"
+          :class="[getDarkModeClass(darkMode), { loaded: eliteLoaded }]"
+          @click="onEliteCtaClick"
+        >
+          <div class="col-12">
+            <div class="row full-width justify-between items-center">
+              <div class="row col-2 promo-icon">
+                <q-icon name="workspace_premium" size="md" class="elite-icon" />
+              </div>
+              <div class="col-8">
+                <span class="text-token elite-name" :class="getDarkModeClass(darkMode)">{{ $t('PaytacaEliteProgram', {}, 'Paytaca Elite Program') }}</span>
+                <br/>
+                <span class="elite-pill active">{{ $t(EliteStatusLabels[EliteStatus.ACTIVE]) }}</span>
+              </div>
+              <div class="row col-2 justify-end">
+                <q-btn
+                  round
+                  class="btn-scan button text-white elite-btn"
+                  icon="chevron_right"
+                  @click.stop="onEliteCtaClick"
+                />
+              </div>
+            </div>
+            <div class="text-caption q-mb-md q-mt-sm">
+              {{ $t('EliteEarningDescription', {}, "You're earning LIFT cashbacks on every eligible OTC and marketplace purchase.") }}
+            </div>
+            <div class="row">
+              <div class="col elite-stat-box q-mx-xs br-10">
+                <div class="elite-stat-value">{{ parseLiftToken(eliteData.cashbackLift, true) }}</div>
+                <div class="text-caption">{{ $t('EliteCashbackThisMonth', {}, 'Cashback this month') }}</div>
+              </div>
+              <div class="col elite-stat-box q-mx-xs br-10">
+                <div class="elite-stat-value">{{ eliteData.eligibleTxCount }}</div>
+                <div class="text-caption">{{ eliteTransactionsCaption }}</div>
+              </div>
+            </div>
+            <div
+              v-if="capResetLabel"
+              class="text-caption text-bow-muted q-mt-xs text-center"
+            >
+              {{ capResetLabel }}
+            </div>
+          </div>
+        </div>
+
+        <!-- Elite: Paused -->
+        <div
+          v-else-if="eliteData && eliteData.status === EliteStatus.PAUSED"
+          class="row full-width q-pa-md br-15 group-currency elite-card elite-paused"
+          :class="[getDarkModeClass(darkMode), { loaded: eliteLoaded }]"
+        >
+          <div class="col-12">
+            <div class="row full-width justify-between items-center">
+              <div class="row col-2 promo-icon">
+                <q-icon name="workspace_premium" size="md" class="elite-icon" />
+              </div>
+              <div class="col-8">
+                <span class="text-token elite-name" :class="getDarkModeClass(darkMode)">{{ $t('PaytacaEliteProgram', {}, 'Paytaca Elite Program') }}</span>
+                <br/>
+                <span class="elite-pill paused">{{ $t(EliteStatusLabels[EliteStatus.PAUSED]) }}</span>
+              </div>
+              <div class="row col-2 justify-end" />
+            </div>
+            <div class="row items-start no-wrap q-my-md elite-merchant-note">
+              <q-icon name="storefront" size="xs" class="q-mr-sm elite-icon" />
+              <span class="col text-caption">{{ eliteMerchantLabel }}</span>
+            </div>
+            <q-btn
+              unelevated
+              no-caps
+              class="full-width elite-cta-btn"
+              :class="getDarkModeClass(darkMode)"
+              :label="eliteCtaLabel"
+              :loading="isEliteCtaBusy"
+              @click="onEliteCtaClick"
+            />
+          </div>
+        </div>
+
+        <!-- Elite: On-hold -->
+        <div
+          v-else-if="eliteData && eliteData.status === EliteStatus.ONHOLD"
+          class="row full-width q-pa-md br-15 group-currency elite-card"
+          :class="[getDarkModeClass(darkMode), { loaded: eliteLoaded }]"
+        >
+          <div class="col-12">
+            <div class="row full-width justify-between items-center">
+              <div class="row col-2 promo-icon">
+                <q-icon name="workspace_premium" size="md" class="elite-icon" />
+              </div>
+              <div class="col-8">
+                <span class="text-token elite-name" :class="getDarkModeClass(darkMode)">{{ $t('PaytacaEliteProgram', {}, 'Paytaca Elite Program') }}</span>
+                <br/>
+                <span class="elite-pill onhold">{{ $t(EliteStatusLabels[EliteStatus.ONHOLD]) }}</span>
+              </div>
+              <div class="row col-2 justify-end" />
+            </div>
+            <div class="row items-start no-wrap q-my-md elite-merchant-note">
+              <q-icon name="info" size="xs" class="q-mr-sm elite-icon" />
+              <span class="col text-caption">
+                {{ $t('EliteOnHoldNotice', {}, 'Your Elite Program is on hold while we review your account. No cashbacks will be provided while it is on hold.') }}
+              </span>
+            </div>
+          </div>
+        </div>
+      </div>
     </div>
   </div>
 
   <help-card v-model="isHelpActive" :page="'home'" />
+
+  <!-- Elite enrollment success -->
+  <q-dialog v-model="isEliteSuccessActive" transition-show="scale" transition-hide="scale">
+    <q-card
+      class="q-pa-md pt-card text-bow br-15"
+      :class="getDarkModeClass(darkMode)"
+      style="min-width: 320px; max-width: 80dvw;"
+    >
+      <q-card-section class="q-pt-sm q-pb-md">
+        <div class="column items-center text-center q-gutter-y-md">
+          <div class="elite-success-badge">
+            <span class="elite-success-halo" />
+            <q-icon name="workspace_premium" size="72px" class="elite-success-icon" />
+          </div>
+
+          <h5 class="q-ma-none text-h5 text-weight-bold">
+            {{ $t('EliteEnrollmentSuccessTitle', {}, "Congratulations! You're now eligible!") }}
+          </h5>
+
+          <p class="q-ma-none text-body1">
+            {{ $t('EliteEnrollmentSuccessDescription', {}, "You can now earn LIFT cashbacks when you transact at Paytaca's verified merchants.") }}
+          </p>
+        </div>
+      </q-card-section>
+
+      <q-card-actions class="q-px-md q-pb-md justify-center">
+        <q-btn
+          unelevated
+          no-caps
+          class="full-width elite-success-cta"
+          :loading="isEliteNavigating"
+          :label="$t('EliteViewProgram', {}, 'View Elite Program')"
+          @click="goToEliteProgram"
+        />
+      </q-card-actions>
+    </q-card>
+  </q-dialog>
 
   <!-- Referral Code Dialog -->
   <q-dialog v-model="isReferralDialogActive">
@@ -330,8 +610,14 @@
 import { fetchTokensList } from 'src/wallet/cauldron/tokens'
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 import { getAddress0_0PublicKey } from 'src/utils/memo-key-utils'
-import { formatWithLocale, parseFiatCurrency } from 'src/utils/denomination-utils'
+import { loadWallet } from 'src/wallet'
+import { parseLiftToken } from 'src/utils/engagementhub-utils/shared'
+import { raiseNotifyError } from 'src/utils/notify-utils'
 import { LIFT_TOKEN_CATEGORY, LIFT_TOKEN_DECIMALS } from 'src/utils/subscription-utils'
+import { formatWithLocale, parseFiatCurrencyWrapper } from 'src/utils/denomination-utils'
+import { isRateFallback } from 'src/utils/engagementhub-utils/display-rates'
+import { formatCapReset } from 'src/utils/time'
+import { getLookupKey, mintLookupKey, LookupKeyExistsError } from 'src/wallet/lookup-key'
 import {
   PromosBytes,
   getUserPromoData,
@@ -342,15 +628,31 @@ import {
   updateUserRewardsData,
   updateRfPromoData,
   createUserRewardsData,
-  PROMO_CONTRACT_VERSION,
+  PROMO_CONTRACT_VERSION
 } from 'src/utils/engagementhub-utils/rewards'
+import {
+  getEliteRequirements,
+  enrollEliteProgram,
+  EliteStatus,
+  EliteStatusLabels
+} from 'src/utils/engagementhub-utils/elite-program'
 
 import HeaderNav from 'src/components/header-nav.vue'
 import HelpCard from 'src/components/rewards/cards/HelpCard.vue'
 import ErrorCard from 'src/components/rewards/cards/ErrorCard.vue'
 import RewardsStep from 'src/components/registration/RewardsStep.vue'
+import EliteProgramLockedDialog from 'src/components/rewards/dialogs/EliteProgramLockedDialog.vue'
+import EliteReconnectDialog from 'src/components/rewards/dialogs/EliteReconnectDialog.vue'
 
 import PromoContract from 'src/utils/rewards-utils/contracts/PromoContract'
+
+const defaultEliteData = () => ({
+  status: EliteStatus.LOCKED, // 'locked' | 'active' | 'paused'
+  requirements: null,
+  cashbackLift: 0, // total cashback received in LIFT
+  eligibleTxCount: 0,
+  id: -1
+})
 
 export default {
   name: 'RewardsPage',
@@ -392,6 +694,19 @@ export default {
 
       // Collapsible section state
       isSummaryExpanded: false,
+
+      // Paytaca Elite program state
+      isEliteLoading: false,
+      isEliteCtaBusy: false,
+      isEliteSuccessActive: false,
+      isEliteNavigating: false,
+      eliteRefreshPromise: null,
+      EliteStatus,
+      EliteStatusLabels,
+      promoError: '',
+      eliteError: '',
+      eliteProgram: null,
+      eliteData: defaultEliteData(),
 
       // Referral banner state
       isReferralDialogActive: false,
@@ -520,14 +835,14 @@ export default {
     // Format fiat price using parseFiatCurrency with locale detection
     formattedFiatPrice () {
       if (!this.liftFiatPrice || this.liftFiatPrice === 0) return '--'
-      return parseFiatCurrency(this.liftFiatPrice, this.selectedCurrency?.symbol)
+      return parseFiatCurrencyWrapper(this.liftFiatPrice)
     },
 
     // Format total fiat value
     formattedTotalFiat () {
       if (this.totalFiatValue === 0) return `0 ${this.selectedCurrency?.symbol}`
       if (!this.totalFiatValue) return '--'
-      return parseFiatCurrency(this.totalFiatValue, this.selectedCurrency?.symbol)
+      return parseFiatCurrencyWrapper(this.totalFiatValue)
     },
 
     // Format conversion ratio display
@@ -537,6 +852,70 @@ export default {
         ? this.$t('CountPoint', { points: this.liftConversionRatio })
         : this.$t('CountPoints', { points: this.liftConversionRatio })
       return `${pointsTranslate} = 1 LIFT`
+    },
+
+    // Elite: CTA label for the locked/paused card
+    eliteCtaLabel () {
+      return this.eliteData?.status === EliteStatus.PAUSED
+        ? this.$t('RestoreEligibility', {}, 'Restore Eligibility')
+        : this.$t('CheckEligibility', {}, 'Check Eligibility')
+    },
+
+    // Elite: promise line for the locked/paused card
+    eliteMerchantLabel () {
+      return this.eliteData?.status === EliteStatus.PAUSED
+        ? this.$t('ElitePausedPromise', {}, "Get back to earning LIFT cashbacks when you transact at Paytaca's verified merchants.")
+        : this.$t('EliteLockedPromise', {}, "Start earning LIFT cashbacks when you transact at Paytaca's verified merchants.")
+    },
+
+    // Elite card animation trigger — only after data has loaded
+    eliteLoaded () {
+      return !this.isLoading && !this.isEliteLoading && !this.error && !!this.eliteData
+    },
+
+    requestedCurrency () {
+      return this.selectedCurrency?.symbol || 'PHP'
+    },
+
+    eliteCurrency () {
+      return this.eliteData?.requirements?.currency || 'PHP'
+    },
+
+    eliteRateUnavailable () {
+      return this.eliteData?.requirements?.rateUnavailable === true
+    },
+
+    showRateFallbackNotice () {
+      return this.eliteLoaded
+        && this.eliteData?.status !== EliteStatus.ONHOLD
+        && isRateFallback(
+          this.requestedCurrency,
+          this.eliteCurrency,
+          this.eliteRateUnavailable
+        )
+    },
+
+    capResetLabel () {
+      const parts = formatCapReset(this.eliteData?.requirements?.capResetsAt)
+      if (!parts) return ''
+      if (!parts.local) {
+        return this.$t(
+          'CapResetsAtUtc',
+          { utc: parts.utc },
+          `Resets ${parts.utc}`
+        )
+      }
+      return this.$t(
+        'CapResetsAt',
+        { utc: parts.utc, local: parts.local },
+        `Resets ${parts.utc} (${parts.local})`
+      )
+    },
+
+    eliteTransactionsCaption () {
+      return this.eliteData?.eligibleTxCount === 1
+        ? this.$t('EliteTransactionThisMonth', {}, 'Transaction this month')
+        : this.$t('EliteTransactionsThisMonth', {}, 'Transactions this month')
     }
   },
 
@@ -548,6 +927,7 @@ export default {
           assetId: this.liftAssetId,
           customCurrency: newSymbol
         })
+        this.loadEliteProgramData(this.eliteProgram)
       }
     }
   },
@@ -605,6 +985,8 @@ export default {
 
   methods: {
     getDarkModeClass,
+    parseLiftToken,
+    parseFiatCurrencyWrapper,
 
     toggleSummary () {
       this.isSummaryExpanded = !this.isSummaryExpanded
@@ -669,6 +1051,7 @@ export default {
     async loadRewards () {
       this.isLoading = true
       this.error = null
+      this.promoError = ''
       this.isPriceLoading = true
       this.priceError = null
 
@@ -699,6 +1082,7 @@ export default {
 
         // process fetched upData
         if (upData && Object.keys(upData).length > 0) {
+          // points program
           try {
             this.totalPoints = 0
             for (const type of this.pointsType) {
@@ -733,8 +1117,11 @@ export default {
             }
           } catch (error) {
             console.error(error)
-            this.error = this.$t('PromoDataLoadingError')
+            this.promoError = this.$t('PromoDataLoadingError')
           }
+
+          // elite program
+          await this.loadEliteProgramData(upData.elite_program)
         } else if (upData && Object.keys(upData).length === 0) {
           // First visit for this wallet. The record has to exist before the
           // `last_viewed` PATCH below can succeed, so create it now and re-read
@@ -767,7 +1154,7 @@ export default {
 
         // Fetch LIFT token price from Cauldron API
         await this.fetchLiftPriceFromCauldron()
-      
+
         // Start polling Cauldron prices (every 60 seconds)
         this.startCauldronPricePolling()
 
@@ -846,12 +1233,387 @@ export default {
         name: promo.path,
         params: { id: promo.id ?? -1 }
       })
+    },
+
+    async loadEliteProgramData (eliteProgram) {
+      this.isEliteLoading = true
+      this.eliteError = ''
+      this.eliteProgram = eliteProgram
+
+      try {
+        // load elite program details
+        if (eliteProgram) {
+          this.eliteData.status = eliteProgram.status
+          this.eliteData.id = eliteProgram.pk
+          this.eliteData.cashbackLift = eliteProgram.total_lift_cashback_received
+          this.eliteData.eligibleTxCount = eliteProgram.eliteprogram_transaction_count
+        } else {
+          this.eliteData.status = EliteStatus.LOCKED
+        }
+
+        // thresholds gate enrollment; balances are read from the store so the
+        // CTA can tell a funded wallet from one that cannot be checked yet
+        this.eliteData.requirements = await getEliteRequirements(eliteProgram?.pk)
+      } catch (error) {
+        console.error('Error loading elite program data: ', error)
+        this.eliteData = null
+        this.eliteError = this.$t('EliteProgramLoadingError', {}, 'Unable to load your elite program status. Please try again later.')
+      } finally {
+        this.isEliteLoading = false
+      }
+    },
+
+    retryEliteProgram () {
+      this.eliteData = defaultEliteData()
+      this.loadEliteProgramData(this.eliteProgram)
+    },
+
+    meetsEliteThresholds () {
+      const requirements = this.eliteData?.requirements
+      return requirements?.bch?.met === true && requirements?.lift?.met === true
+    },
+
+    showEliteThresholdDialog () {
+      const requirements = this.eliteData?.requirements || {}
+      this.$q.dialog({
+        component: EliteProgramLockedDialog,
+        componentProps: {
+          bchBalance: requirements.bchBalance ?? 0,
+          bchThreshold: requirements.bchThreshold ?? 0,
+          liftBalance: requirements.liftBalance ?? 0,
+          liftThreshold: requirements.liftThreshold ?? 0,
+          isLocked: this.eliteData.status === EliteStatus.LOCKED,
+          currency: requirements.currency || 'PHP'
+        }
+      })
+    },
+
+    async onEliteCtaClick () {
+      if (this.isEliteCtaBusy) return
+
+      const status = this.eliteData.status
+
+      if (status === EliteStatus.ACTIVE) {
+        this.$router.push({
+          name: 'app-rewards-elite-program',
+          params: { id: this.eliteData.id ?? -1 }
+        })
+        return
+      }
+
+      // A paused program is restored by the server's incoming-transaction
+      // monitor. A client balance check cannot prove when the balance arrived,
+      // so the CTA only shows the balances for now.
+      if (status === EliteStatus.PAUSED || !this.meetsEliteThresholds()) {
+        this.isEliteCtaBusy = true
+        await new Promise(resolve => setTimeout(resolve, 450))
+        this.isEliteCtaBusy = false
+        if (this.isUnmounted) return
+        this.showEliteThresholdDialog()
+        return
+      }
+
+      await this.enrollInEliteProgram()
+    },
+
+    async enrollInEliteProgram () {
+      if (this.$store.getters['global/isChipnet']) return
+
+      this.isEliteCtaBusy = true
+      try {
+        // Watchtower allows one key per wallet, so never mint speculatively --
+        // a wallet that mints and is not enrolled cannot mint again without
+        // revoking first.
+        const lookupKey = await getLookupKey(this.walletHash) || await this.mintEliteLookupKey()
+
+        if (!lookupKey) return
+
+        await this.submitEliteEnrollment(lookupKey, this.walletHash, { allowReconnect: true })
+      } catch (error) {
+        this.handleEliteEnrollmentError(error)
+      } finally {
+        this.isEliteCtaBusy = false
+      }
+    },
+
+    async mintEliteLookupKey (wallet) {
+      return await mintLookupKey(
+        wallet || await loadWallet('BCH', this.$store.getters['global/getWalletIndex'])
+      )
+    },
+
+    async submitEliteEnrollment (lookupKey, walletHash, { allowReconnect = false } = {}) {
+      const result = await enrollEliteProgram(walletHash, lookupKey)
+
+      if (result.ok) {
+        this.eliteRefreshPromise = this.loadRewards().catch(error => {
+          console.error('Elite Program refresh after enrollment failed: ', error)
+        })
+        this.isEliteSuccessActive = true
+        return true
+      }
+
+      if (result.aborted) return false
+
+      if (result.code === 'lookup_key_rejected') {
+        if (allowReconnect) {
+          this.showEliteReconnectDialog()
+        } else {
+          raiseNotifyError(this.$t('EliteLookupKeyRejected', {}, 'Watchtower rejected the new lookup key. Please try again later or contact Paytaca.'), 5000)
+        }
+        return false
+      }
+
+      raiseNotifyError(this.$t('EliteJoinError', {}, 'Unable to join the Elite Program. Please try again later.'), 5000)
+      return false
+    },
+
+    showEliteReconnectDialog () {
+      const walletHash = this.walletHash
+
+      this.$q.dialog({
+        component: EliteReconnectDialog
+      }).onOk(() => {
+        this.reconnectEliteLookupKey(walletHash)
+      })
+    },
+
+    async reconnectEliteLookupKey (walletHash) {
+      if (this.$store.getters['global/isChipnet']) return
+      if (this.isEliteCtaBusy) return
+      if (walletHash !== this.walletHash) return
+
+      this.isEliteCtaBusy = true
+      try {
+        const wallet = await loadWallet('BCH', this.$store.getters['global/getWalletIndex'])
+        if (wallet?.BCH?.walletHash !== walletHash) return
+
+        // Mint first: a 201 proves the old key is gone. A 409 means a key still
+        // exists, so keep the local copy instead of revoking a working key.
+        const newKey = await this.mintEliteLookupKey(wallet)
+
+        if (!newKey) return
+
+        await this.submitEliteEnrollment(newKey, walletHash, { allowReconnect: false })
+      } catch (error) {
+        if (error instanceof LookupKeyExistsError) {
+          raiseNotifyError(this.$t('EliteLookupKeyStillExists', {}, 'A lookup key still exists for this wallet. Please try again later.'), 5000)
+        } else {
+          console.error('Elite Program reconnect failed:', error)
+          raiseNotifyError(this.$t('EliteReconnectError', {}, 'Unable to reconnect the Elite Program. Please try again later.'), 5000)
+        }
+      } finally {
+        this.isEliteCtaBusy = false
+      }
+    },
+
+    handleEliteEnrollmentError (error) {
+      if (error instanceof LookupKeyExistsError) {
+        raiseNotifyError(this.$t('EliteLookupKeyExists', {}, 'A lookup key already exists for this wallet. Contact Paytaca to have it revoked.'), 5000)
+      } else {
+        console.error('Elite Program enrollment failed:', error)
+        raiseNotifyError(this.$t('EliteJoinError', {}, 'Unable to join the Elite Program. Please try again later.'), 5000)
+      }
+    },
+
+    async goToEliteProgram () {
+      this.isEliteNavigating = true
+      try {
+        await this.eliteRefreshPromise
+
+        if (!this.eliteData || this.eliteData.id < 0) {
+          raiseNotifyError(this.$t('EliteJoinError', {}, 'Unable to join the Elite Program. Please try again later.'), 5000)
+          return
+        }
+
+        this.isEliteSuccessActive = false
+        this.$router.push({
+          name: 'app-rewards-elite-program',
+          params: { id: this.eliteData.id }
+        })
+      } finally {
+        this.isEliteNavigating = false
+      }
     }
   }
 }
 </script>
 
 <style lang="scss" scoped>
+@import 'src/css/rewards/elite-row-styles.scss';
+/* Section label for the points programs group */
+.points-section-label {
+  font-size: 12px;
+  letter-spacing: 1.4px;
+  text-transform: uppercase;
+  font-weight: 600;
+}
+
+/* Section label for the Paytaca Elite program */
+.elite-section-label {
+  font-size: 12px;
+  letter-spacing: 1.4px;
+  text-transform: uppercase;
+  font-weight: 700;
+  color: #d4a643;
+  display: flex;
+  align-items: center;
+
+  &::before {
+    content: "";
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: #d4a643;
+    margin-right: 6px;
+  }
+}
+
+/* Elite card gold accent */
+.elite-card {
+  position: relative;
+  overflow: hidden;
+  border-left: 3px solid #d4a643;
+  background: linear-gradient(135deg, rgba(212, 166, 67, 0.16) 0%, rgba(212, 166, 67, 0.04) 100%) !important;
+
+  &.dark {
+    background: linear-gradient(135deg, rgba(212, 166, 67, 0.28) 0%, rgba(212, 166, 67, 0.06) 100%) !important;
+  }
+
+  /* Glimmer sweep — active status only */
+  &.loaded.elite-active::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 40%;
+    height: 100%;
+    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.12), rgba(255, 255, 255, 0.18), transparent);
+    transform: translateX(-120%);
+    animation: elite-star-sweep 3s ease-in-out infinite;
+    pointer-events: none;
+    z-index: 1;
+  }
+
+  &.loaded.dark.elite-active::before {
+    background: linear-gradient(90deg, transparent, rgba(212, 166, 67, 0.08), rgba(212, 166, 67, 0.14), transparent);
+  }
+
+  /* Pulsing border glow — locked/paused status */
+  &.loaded.elite-locked,
+  &.loaded.elite-paused {
+    animation: elite-border-glow 2.5s ease-in-out infinite;
+  }
+}
+
+@keyframes elite-star-sweep {
+  0% { transform: translateX(-120%); }
+  55% { transform: translateX(320%); }
+  100% { transform: translateX(320%); }
+}
+
+@keyframes elite-border-glow {
+  0%, 100% { box-shadow: 0 0 8px rgba(212, 166, 67, 0.25); }
+  50% { box-shadow: 0 0 20px rgba(212, 166, 67, 0.55); }
+}
+
+/* Elite chevron button (gold variant of .bg-grad).
+   Selector needs to out-specify `body.theme-* .button` (!important blue) */
+.elite-card .elite-btn {
+  background: linear-gradient(to right bottom, #e0b34e, #d4a643, #c8963a, #bc8a32, #b07e2a) !important;
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  box-shadow: 0 4px 20px 0 rgba(120, 90, 20, 0.15);
+}
+
+/* Elite full-width CTA button (gold variant of .bg-grad) */
+.elite-card .elite-cta-btn {
+  background: linear-gradient(to right bottom, #e0b34e, #d4a643, #c8963a, #bc8a32, #b07e2a) !important;
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  box-shadow: 0 4px 20px 0 rgba(120, 90, 20, 0.15);
+  color: #fff;
+  font-weight: 700;
+  min-height: 44px;
+  border-radius: 8px;
+  transition: transform 120ms ease, box-shadow 120ms ease;
+}
+
+.elite-card .elite-cta-btn:active {
+  transform: scale(0.98);
+  box-shadow: 0 2px 10px 0 rgba(120, 90, 20, 0.18);
+}
+
+/* Elite success dialog */
+.elite-success-badge {
+  position: relative;
+  width: 88px;
+  height: 88px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.elite-success-icon {
+  color: #d4a643;
+  animation: elite-success-pop 420ms cubic-bezier(0.2, 0.9, 0.3, 1.2) both;
+}
+
+.elite-success-halo {
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  border: 2px solid rgba(212, 166, 67, 0.6);
+  opacity: 0;
+  pointer-events: none;
+  animation: elite-success-halo 650ms ease-out forwards;
+}
+
+.elite-success-cta {
+  background: linear-gradient(to right bottom, #e0b34e, #d4a643, #c8963a, #bc8a32, #b07e2a) !important;
+  color: #fff;
+  font-weight: 700;
+  min-height: 44px;
+  border-radius: 8px;
+}
+
+@keyframes elite-success-pop {
+  0% { transform: scale(0.6); opacity: 0; }
+  100% { transform: scale(1); opacity: 1; }
+}
+
+@keyframes elite-success-halo {
+  0% { transform: scale(0.7); opacity: 0.55; }
+  100% { transform: scale(1.5); opacity: 0; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .elite-success-icon,
+  .elite-success-halo,
+  .elite-card.loaded.elite-active::before,
+  .elite-card.loaded.elite-locked,
+  .elite-card.loaded.elite-paused {
+    animation: none;
+  }
+}
+
+/* Verified merchant note on locked/paused elite cards.
+   Reuses the .elite-stat-box dashed-border treatment from elite-row-styles.scss */
+.elite-merchant-note {
+  background: rgba(212, 166, 67, 0.15);
+  border: 1px dashed rgba(212, 166, 67, 0.5);
+  border-radius: 10px;
+  padding: 10px 12px;
+}
+
+/* Match the 18px icon box so it aligns to the first line at any line count.
+   Must target the span: .text-caption sets its own 20px line-height. */
+.elite-merchant-note .text-caption {
+  line-height: 1.5;
+}
+
 /* Smooth card transition */
 .transition-card {
   transition: all 0.3s ease;
