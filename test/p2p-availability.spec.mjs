@@ -388,7 +388,7 @@ function identityHarness () {
       response: { use (callback, reject) { interceptors.response = callback; interceptors.reject = reject } }
     },
     async request (config) {
-      config.headers = {}
+      config.headers ||= {}
       await interceptors.request(config)
       requests.push(config)
       await beforeResponse()
@@ -409,7 +409,7 @@ function identityHarness () {
     p2pRequestFeature
   }
   const backendSource = readFileSync('src/exchange/backend.js', 'utf8').replace(/^import .*$/gm, '').replace(/export /g, '')
-  const api = new Function(...Object.keys(bindings), `${backendSource}; return { updateP2PProfile, assertP2PIdentity, updatePubkeyAndAddress }`)(...Object.values(bindings))
+  const api = new Function(...Object.keys(bindings), `${backendSource}; return { updateP2PProfile, assertP2PIdentity, updatePubkeyAndAddress, registerP2PAccount, getRegistrationRetrySeconds }`)(...Object.values(bindings))
   return { ...api, wallet, registered, selected, requests, events, notifications, client,
     fail: value => { failure = value }, beforeResponse: value => { beforeResponse = value } }
 }
@@ -501,21 +501,25 @@ describe('Immutable P2P profile identities', () => {
     assert.deepEqual(events, [])
   })
 
-  it('keeps identity fields and signature headers on initial peer registration', async () => {
+  it('validates and captures the peer form before starting registration', async () => {
     const source = readFileSync('src/components/ramp/fiat/RampLogin.vue', 'utf8')
     const method = source.slice(source.indexOf('    async registerUser ()'), source.indexOf('    handleError (error)'))
     const requests = []
-    const wallet = {
-      wallet: { getPrivateKeyWifAt: () => 'synthetic-secret-placeholder', getPubkeyAt: () => 'synthetic-key', getAddressAt: () => 'synthetic-address' },
-      addressPath: () => '0/0', signMessage: () => 'synthetic-signature'
-    }
-    const backend = { post: async (...args) => { requests.push(args); return { data: {} } } }
-    const component = new Function('wallet', 'backend', `return { ${method} }`)(wallet, backend)
-    await component.registerUser.call({ usernickname: 'Synthetic name', $store: { commit () {} }, handleError: error => { throw error } })
-    assert.equal(requests[0][0], '/ramp-p2p/peer/')
+    const component = new Function('wallet', 'registerP2PAccount', `return { ${method} }`)(
+      { address: () => 'synthetic-address', addressPath: () => '0/0' },
+      async (...args) => requests.push(args)
+    )
+    const vm = { isValidNickname: false, usernickname: '', registrationVersion: 0, registrationIdentity: 'peer-wallet' }
+    await assert.rejects(component.registerUser.call(vm))
+    assert.equal(requests.length, 0)
+    vm.isValidNickname = true
+    vm.usernickname = 'Synthetic name'
+    await component.registerUser.call(vm)
+    assert.equal(requests[0][0], 'peer')
     assert.deepEqual(requests[0][1], { name: 'Synthetic name', address: 'synthetic-address', address_path: '0/0' })
-    assert.equal(requests[0][2].headers['public-key'], 'synthetic-key')
-    assert.equal(requests[0][2].headers.signature, 'synthetic-signature')
+    assert.equal(requests[0][2](), true)
+    vm.registrationVersion++
+    assert.equal(requests[0][2](), false)
   })
 })
 
@@ -932,4 +936,221 @@ describe('P2P private WebSocket authentication', () => {
       h.manager.closeConnection()
     })
   }
+})
+
+
+describe('Server-issued P2P registration challenges', () => {
+  function registrationHarness () {
+    const h = identityHarness()
+    h.wallet.privkey = () => 'synthetic-secret-placeholder'
+    h.signatures = []
+    h.wallet.signMessage = (...args) => { h.signatures.push(args); return 'synthetic-der-hex' }
+    h.body = { name: 'Synthetic name', address: 'synthetic-address', address_path: '0/0' }
+    h.calls = []
+    h.respond = async (url) => url.endsWith('/challenge/')
+      ? { status: 201, data: { challenge_id: 'synthetic-uuid', message: 'Exact UTF-8 message: ₱\n', expires_at: new Date(Date.now() + 300000).toISOString() } }
+      : { status: url.includes('/arbiter/') ? 200 : 201, data: {} }
+    h.client.post = async (url, data, config) => {
+      config.p2pRegistrationCheck()
+      h.calls.push({ url, data: JSON.parse(JSON.stringify(data)), config })
+      return h.respond(url, data, config)
+    }
+    return h
+  }
+
+  for (const role of ['peer', 'arbiter']) {
+    it(`preserves the ${role} body, key and wallet and signs only the exact server message`, async () => {
+      const h = registrationHarness()
+      await h.registerP2PAccount(role, h.body)
+      const [challenge, submit] = h.calls
+      assert.equal(challenge.url, '/ramp-p2p/registration/challenge/')
+      assert.equal(challenge.data.account_type, role)
+      assert.equal(challenge.data.wallet_hash, h.wallet.walletHash)
+      assert.equal(challenge.data.public_key, 'synthetic-key')
+      assert.deepEqual(challenge.data.data, submit.data)
+      if (role === 'arbiter') assert.equal(submit.data.public_key, 'synthetic-key')
+      assert.equal(submit.url, `/ramp-p2p/${role}/`)
+      assert.equal(submit.config.headers['wallet-hash'], h.wallet.walletHash)
+      assert.equal(submit.config.headers['public-key'], 'synthetic-key')
+      assert.equal(submit.config.headers['registration-challenge'], 'synthetic-uuid')
+      assert.equal(submit.config.headers.signature, 'synthetic-der-hex')
+      assert.equal(submit.config.headers.timestamp, undefined)
+      assert.equal(submit.data.challenge_id, undefined)
+      assert.equal(challenge.config.authorize, false)
+      assert.deepEqual(h.signatures, [['synthetic-secret-placeholder', 'Exact UTF-8 message: ₱\n']])
+    })
+  }
+
+  for (const change of ['form', 'payload', 'wallet', 'key', 'index', 'chipnet']) {
+    it(`discards an in-flight challenge on ${change} changes`, async () => {
+      const h = registrationHarness()
+      const respond = h.respond
+      let current = true
+      h.respond = async (...args) => {
+        const result = await respond(...args)
+        if (change === 'form') current = false
+        if (change === 'payload') h.body.name = 'Edited name'
+        if (change === 'wallet') h.selected.hash = 'another-wallet'
+        if (change === 'key') h.wallet.pubkey = () => 'another-key'
+        if (change === 'index') h.selected.index++
+        if (change === 'chipnet') h.selected.chipnet = true
+        return result
+      }
+      await assert.rejects(h.registerP2PAccount('peer', h.body, () => current), { code: 'p2p_identity_mismatch' })
+      assert.equal(h.calls.length, 1)
+      assert.equal(h.signatures.length, 0)
+    })
+  }
+
+  it('blocks duplicate submissions while a challenge is pending', async () => {
+    const h = registrationHarness()
+    let finish
+    const respond = h.respond
+    h.respond = (...args) => new Promise(resolve => { finish = async () => resolve(await respond(...args)) })
+    const pending = h.registerP2PAccount('peer', h.body)
+    await assert.rejects(h.registerP2PAccount('peer', h.body), /already in progress/)
+    h.respond = respond
+    await finish()
+    await pending
+    assert.equal(h.calls.length, 2)
+  })
+
+  it('rejects expired challenges before signing', async () => {
+    const h = registrationHarness()
+    h.respond = async () => ({ status: 201, data: { challenge_id: 'expired', message: 'expired', expires_at: new Date(0).toISOString() } })
+    await assert.rejects(h.registerP2PAccount('peer', h.body))
+    assert.equal(h.signatures.length, 0)
+    assert.equal(h.calls.length, 1)
+  })
+
+  for (const reason of ['expired', 'consumed', 'invalid signature', 'mismatched payload']) {
+    it(`gets a fresh challenge on manual retry after a 403: ${reason}`, async () => {
+      const h = registrationHarness()
+      const respond = h.respond
+      h.respond = async (...args) => {
+        if (!args[0].endsWith('/challenge/')) throw { response: { status: 403, data: { error: reason } } }
+        return respond(...args)
+      }
+      await assert.rejects(h.registerP2PAccount('peer', h.body), /rejected, expired, or already used/)
+      assert.equal(h.calls.length, 2)
+      h.respond = respond
+      await h.registerP2PAccount('peer', h.body)
+      assert.equal(h.calls.length, 4)
+      assert.equal(h.calls[2].url, '/ramp-p2p/registration/challenge/')
+    })
+  }
+
+  for (const stage of ['challenge', 'submission']) {
+    for (const retryAfter of ['60', new Date(Date.now() + 60000).toUTCString()]) {
+      it(`honors Retry-After ${retryAfter === '60' ? 'seconds' : 'date'} from ${stage} without retrying`, async () => {
+        const h = registrationHarness()
+        const respond = h.respond
+        h.respond = async (...args) => {
+          if (args[0].endsWith('/challenge/') === (stage === 'challenge')) throw { response: { status: 429, headers: { 'retry-after': retryAfter } } }
+          return respond(...args)
+        }
+        await assert.rejects(h.registerP2PAccount('peer', h.body))
+        assert(h.getRegistrationRetrySeconds() >= 59)
+        const count = h.calls.length
+        await assert.rejects(h.registerP2PAccount('arbiter', h.body), { code: 'p2p_registration_throttled' })
+        assert.equal(h.calls.length, count)
+      })
+    }
+  }
+
+  for (const exists of [true, false]) {
+    it(`checks account existence after ambiguous submission (${exists ? 'login recovery' : 'new challenge'})`, async () => {
+      const h = registrationHarness()
+      const respond = h.respond
+      h.respond = async (...args) => {
+        if (!args[0].endsWith('/challenge/')) throw new Error('network failure containing sensitive request details')
+        return respond(...args)
+      }
+      await assert.rejects(h.registerP2PAccount('peer', h.body), error => !error.message.includes('sensitive'))
+      h.respond = respond
+      let checked = false
+      h.client.get = async (url) => {
+        assert.equal(url, '/auth/')
+        checked = true
+        if (!exists) throw { response: { status: 404 } }
+        return { status: 200, data: {} }
+      }
+      const response = await h.registerP2PAccount('peer', h.body)
+      assert(checked)
+      assert.equal(h.calls.length, exists ? 2 : 4)
+      if (exists) assert(response.recovered)
+    })
+  }
+
+  it('preserves 400 field validation messages without retaining request credentials', async () => {
+    const h = registrationHarness()
+    h.respond = async () => { throw { response: { status: 400, data: { name: ['Nickname already used.'] } }, config: { secret: 'credential' } } }
+    await assert.rejects(h.registerP2PAccount('peer', h.body), error => error.message === 'Nickname already used.' && !error.config)
+  })
+
+  it('uses the existing signer with one SHA-256 hash and a UTF-8 DER signature', async () => {
+    const libauth = await import('@bitauth/libauth')
+    const source = readFileSync('src/exchange/wallet.js', 'utf8').replace(/^import .*$/gm, '').replace(/export /g, '')
+    const RampWallet = new Function(...Object.keys(libauth), `${source}; return RampWallet`)(...Object.values(libauth))
+    const signer = new RampWallet()
+    const privateKey = libauth.hexToBin('01'.padStart(64, '0'))
+    const wif = libauth.encodePrivateKeyWif(privateKey, 'mainnet')
+    const message = 'Exact UTF-8 message: ₱\n'
+    const signature = signer.signMessage(wif, message)
+    const publicKey = libauth.secp256k1.derivePublicKeyCompressed(privateKey)
+    const hash = libauth.sha256.hash(libauth.utf8ToBin(message))
+    assert(libauth.secp256k1.verifySignatureDERLowS(libauth.hexToBin(signature), publicKey, hash))
+    assert.equal(libauth.secp256k1.verifySignatureDERLowS(libauth.hexToBin(signature), publicKey, libauth.sha256.hash(hash)), false)
+  })
+})
+
+
+describe('P2P registration screen lifecycle', () => {
+  function screen () {
+    const source = readFileSync('src/components/ramp/fiat/RampLogin.vue', 'utf8')
+    const script = source.match(/<script>([\s\S]*?)<\/script>/)[1].replace(/^import .*$/gm, '').replace('export default', 'return')
+    const component = new Function('getDarkModeClass', 'getRegistrationRetrySeconds', script)(() => '', () => 0)
+    const vm = {
+      ...component.data.call({ $store: { getters: {} } }),
+      isValidNickname: true, isLoading: false, register: true,
+      usernickname: 'Synthetic name', $emit () {}
+    }
+    for (const [name, method] of Object.entries(component.methods)) vm[name] = method.bind(vm)
+    return { component, vm }
+  }
+
+  it('blocks duplicate clicks and preserves the post-registration forced login', async () => {
+    const { vm } = screen()
+    let finish
+    let attempts = 0
+    const logins = []
+    vm.registerUser = () => { attempts++; return new Promise(resolve => { finish = resolve }) }
+    vm.loadUser = async force => { logins.push(force); return true }
+    const pending = vm.onRegisterUser()
+    await vm.onRegisterUser()
+    assert.equal(attempts, 1)
+    finish()
+    await pending
+    assert.deepEqual(logins, [true])
+    assert.equal(vm.register, false)
+    assert.equal(vm.registering, false)
+  })
+
+  it('keeps recovery available if post-registration login fails', async () => {
+    const { vm } = screen()
+    vm.registerUser = async () => {}
+    vm.loadUser = async () => false
+    await vm.onRegisterUser()
+    assert.equal(vm.register, true)
+    assert.equal(vm.registering, false)
+  })
+
+  it('invalidates attempts synchronously on form and account switches', () => {
+    const { vm, component } = screen()
+    component.watch.usernickname.handler.call(vm)
+    component.watch.registrationIdentity.handler.call(vm)
+    assert.equal(component.watch.usernickname.flush, 'sync')
+    assert.equal(component.watch.registrationIdentity.flush, 'sync')
+    assert.equal(vm.registrationVersion, 2)
+  })
 })

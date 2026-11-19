@@ -61,6 +61,7 @@ function assertRequestWallet (config) {
 }
 
 backend.interceptors.request.use(async (config) => {
+  config.p2pRegistrationCheck?.()
   const isChipnet = Store.getters['global/isChipnet']
   config.baseURL = isChipnet
     ? (process.env.CHIPNET_WATCHTOWER_BASE_URL || '')
@@ -85,6 +86,7 @@ backend.interceptors.request.use(async (config) => {
     await assertP2PIdentity(null, 'peer')
   }
   assertRequestWallet(config)
+  config.p2pRegistrationCheck?.()
   return config
 })
 
@@ -152,6 +154,97 @@ backend.interceptors.response.use(
 
 export function getBackendWsUrl () {
   return Store.getters['global/isChipnet'] ? process.env.CHIPNET_RAMP_WS_URL : process.env.MAINNET_RAMP_WS_URL || ''
+}
+
+let registrationRetryUntil = 0
+const pendingRegistrations = new Set()
+const uncertainRegistrations = new Set()
+
+export function getRegistrationRetrySeconds () {
+  return Math.max(0, Math.ceil((registrationRetryUntil - Date.now()) / 1000))
+}
+
+export async function registerP2PAccount (accountType, data, isCurrent = () => true) {
+  if (!['peer', 'arbiter'].includes(accountType)) throw new Error('Unsupported P2P account type')
+  const signer = wallet
+  const walletHash = signer.walletHash
+  const publicKey = signer.pubkey()
+  const addressPath = signer.addressPath()
+  const originalBody = JSON.stringify(data)
+  const body = JSON.parse(JSON.stringify(data))
+  if (accountType === 'arbiter' && body.public_key && body.public_key !== publicKey) throw new Error('The registration public key does not match the wallet.')
+  if (accountType === 'arbiter') body.public_key = publicKey
+  const serializedBody = JSON.stringify(body)
+  const identity = JSON.stringify([walletHash, signer.walletIndex, signer.isChipnet, accountType])
+  const check = () => {
+    if (!isCurrent() || signer !== wallet || walletHash !== Store.getters['global/getWallet']('bch')?.walletHash ||
+        signer.walletIndex !== Store.getters['global/getWalletIndex'] || signer.isChipnet !== Store.getters['global/isChipnet'] ||
+        publicKey !== signer.pubkey() || addressPath !== signer.addressPath() || JSON.stringify(data) !== originalBody || JSON.stringify(body) !== serializedBody) {
+      throw Object.assign(new Error('The registration details changed. Please try again.'), { code: 'p2p_identity_mismatch' })
+    }
+  }
+  check()
+  if (pendingRegistrations.has(identity)) throw new Error('Registration is already in progress.')
+  if (getRegistrationRetrySeconds()) throw Object.assign(new Error('Please wait before retrying registration.'), { code: 'p2p_registration_throttled' })
+  pendingRegistrations.add(identity)
+  let submitting = false
+  const config = { authorize: false, timeout: 10000, p2pRegistrationCheck: check, headers: { 'wallet-hash': walletHash, 'Content-Type': 'application/json' } }
+  try {
+    if (uncertainRegistrations.has(identity)) {
+      try {
+        await backend.get('/auth/', { ...config, cache: false })
+        check()
+        return { recovered: true }
+      } catch (error) {
+        check()
+        if (error.response?.status !== 404) throw error
+        uncertainRegistrations.delete(identity)
+      }
+    }
+    const challenge = await backend.post('/ramp-p2p/registration/challenge/', {
+      account_type: accountType, wallet_hash: walletHash, public_key: publicKey, data: body
+    }, config)
+    check()
+    const { challenge_id: challengeId, message, expires_at: expiresAt } = challenge.data
+    if (challenge.status !== 201 || !challengeId || typeof message !== 'string' || !Number.isFinite(Date.parse(expiresAt)) || Date.parse(expiresAt) <= Date.now()) {
+      throw new Error('The registration challenge is invalid or expired. Please try again.')
+    }
+    const signature = signer.signMessage(signer.privkey(addressPath), message)
+    check()
+    submitting = true
+    uncertainRegistrations.add(identity)
+    const response = await backend.post(`/ramp-p2p/${accountType}/`, body, {
+      ...config,
+      headers: { ...config.headers, 'public-key': publicKey, 'registration-challenge': challengeId, signature }
+    })
+    check()
+    if (response.status !== (accountType === 'peer' ? 201 : 200)) throw new Error('Unexpected registration response')
+    return response
+  } catch (error) {
+    const status = error.response?.status
+    if (submitting && status && status < 500) uncertainRegistrations.delete(identity)
+    if (status === 429) {
+      const retryAfter = error.response.headers?.['retry-after']
+      const seconds = Number(retryAfter)
+      const deadline = retryAfter != null && Number.isFinite(seconds) ? Date.now() + seconds * 1000 : Date.parse(retryAfter)
+      registrationRetryUntil = Math.max(registrationRetryUntil, Number.isFinite(deadline) ? deadline : Date.now() + 60000)
+    }
+    const failure = new Error(status === 403
+      ? 'The registration challenge or signature was rejected, expired, or already used. Please try again.'
+      : status === 429 ? 'Please wait before retrying registration.'
+        : submitting && (!status || status >= 500) ? 'Registration could not be confirmed. Retry to check your account before registering again.'
+          : status === 400 ? 'Please check your registration details.' : 'Registration failed. Please try again.')
+    failure.code = error.code === 'p2p_identity_mismatch' ? error.code : 'p2p_registration_failed'
+    if (status === 400) {
+      const errors = error.response.data
+      const messages = ['name', 'address', 'address_path', 'public_key', 'non_field_errors', 'detail', 'error']
+        .flatMap(field => typeof errors?.[field] === 'string' ? [errors[field]] : Array.isArray(errors?.[field]) ? errors[field].filter(value => typeof value === 'string') : [])
+      if (messages.length) failure.message = messages.join(' ')
+    }
+    throw failure
+  } finally {
+    pendingRegistrations.delete(identity)
+  }
 }
 
 export function updateP2PProfile (userType, metadata) {
