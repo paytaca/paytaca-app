@@ -164,6 +164,45 @@ export function getBackendWsUrl () {
   return Store.getters['global/isChipnet'] ? process.env.CHIPNET_RAMP_WS_URL : process.env.MAINNET_RAMP_WS_URL || ''
 }
 
+export async function downloadPaymentProof (url, userType, { cancelToken, isCurrent = () => true } = {}) {
+  const configuredBase = () => Store.getters['global/isChipnet']
+    ? process.env.CHIPNET_WATCHTOWER_BASE_URL
+    : process.env.MAINNET_WATCHTOWER_BASE_URL
+  const baseUrl = configuredBase()
+  const base = new URL(baseUrl)
+  if (!['http:', 'https:'].includes(base.protocol) || base.username || base.password ||
+      typeof url !== 'string' || !url || url !== url.trim() || /[\\\s]/.test(url) ||
+      !['peer', 'arbiter'].includes(userType)) throw new Error('Invalid payment proof URL or account')
+  const image = new URL(url, base.origin)
+  if (image.origin !== base.origin || image.username || image.password || image.search || image.hash ||
+      (url !== image.href && url !== image.pathname) ||
+      !/^\/api\/ramp-p2p\/order\/payment\/image\/\d+\/$/.test(image.pathname)) {
+    throw new Error('Invalid payment proof URL')
+  }
+  const identity = JSON.stringify([
+    Store.getters['global/getWallet']('bch')?.walletHash,
+    Store.getters['global/getWalletIndex'], Store.getters['global/isChipnet']
+  ])
+  const check = () => {
+    if (!isCurrent() || configuredBase() !== baseUrl ||
+        identity !== JSON.stringify([
+          Store.getters['global/getWallet']('bch')?.walletHash,
+          Store.getters['global/getWalletIndex'], Store.getters['global/isChipnet']
+        ])) throw new Error('The payment proof viewer changed')
+  }
+  check()
+  const response = await backend.get(image.href, {
+    authorize: userType,
+    responseType: 'blob',
+    timeout: 30000,
+    cache: false,
+    cancelToken,
+    p2pRegistrationCheck: check
+  })
+  check()
+  return response
+}
+
 let registrationRetryUntil = 0
 const pendingRegistrations = new Set()
 const uncertainRegistrations = new Set()

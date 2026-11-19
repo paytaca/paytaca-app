@@ -256,7 +256,7 @@
     :arbiter="data.order?.arbiter"
     @back="openReviewForm = false"
     @submit="onSubmitFeedback"/>
-  <AttachmentDialog :show="showAttachmentDialog" :url="attachmentUrl" @back="showAttachmentDialog=false"/>
+  <AttachmentDialog account-type="peer" :show="showAttachmentDialog" :url="attachmentUrl" @back="showAttachmentDialog=false"/>
 </template>
 <script>
 import AppealForm from './dialogs/AppealForm.vue'

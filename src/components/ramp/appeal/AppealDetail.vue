@@ -203,7 +203,7 @@
   </Teleport>
   <OrderStatusDialog v-if="showStatusHistory" :order-id="order?.id" @back="showStatusHistory = false" />
   <TransactionHistoryDialog v-if="showTransactionHistory" :data="txHistoryData" @back="showTransactionHistory = false"/>
-  <AttachmentDialog :show="showAttachmentDialog" :url="attachmentUrl" @back="showAttachmentDialog=false"/>
+  <AttachmentDialog account-type="arbiter" :show="showAttachmentDialog" :url="attachmentUrl" @back="showAttachmentDialog=false"/>
   <NoticeBoardDialog v-if="showNoticeDialog" :type="'info'" action="'orders'" :message="noticeMessage" @hide="showNoticeDialog = false"/>
 </template>
 <script>

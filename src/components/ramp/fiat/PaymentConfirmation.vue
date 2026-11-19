@@ -352,7 +352,7 @@
   @ok="onSecurityOk"
   @cancel="onSecurityCancel"/>
   <AppealForm v-if="showAppealForm" :userType="this.data?.type" :order="order" @back="onCloseAppealForm" @loadAppeal="onAppealSubmit"/>
-  <AttachmentDialog :show="showAttachmentDialog" :url="attachmentUrl" @back="showAttachmentDialog=false"/>
+  <AttachmentDialog account-type="peer" :show="showAttachmentDialog" :url="attachmentUrl" @back="showAttachmentDialog=false"/>
   <NoticeBoardDialog v-if="showNoticeDialog" :type="'info'" action="'orders'" :message="noticeMessage" @hide="showNoticeDialog = false"/>
 </template>
 <script>
