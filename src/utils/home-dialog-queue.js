@@ -7,6 +7,11 @@ const pending = []
 const shownIds = new Set()
 const blockers = new Set()
 let activeId = null
+let suppressed = false
+
+export function suppressHomeDialogs () {
+  suppressed = true
+}
 
 // Clear all state so a fresh home page load can show its dialogs again.
 export function resetHomeDialogQueue () {
@@ -48,7 +53,7 @@ export function releaseHomeDialog (id) {
 }
 
 function pump () {
-  if (activeId || blockers.size || !pending.length) return
+  if (suppressed || activeId || blockers.size || !pending.length) return
   pending.sort((a, b) => b.priority - a.priority)
   const next = pending.shift()
   activeId = next.id

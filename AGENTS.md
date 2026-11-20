@@ -29,6 +29,13 @@
 - Vue components use `.vue` SFC format.
 - Do NOT introduce new dependencies without asking.
 
+## Browser Extension (BEX)
+
+- `src-bex/provider.ts` runs in the page's main world as `window.paytaca` and `window.bitcoincash` (if unclaimed): a WC2-BCH JSON-RPC provider that is also an `IConnector` (`@bch-wc2/interfaces`), and it answers `bitcoincash:requestProvider` discovery. The pre-2025 `window.paytaca` Paytaca Connect API is not supported. `src-bex/content.ts` only relays; `src-bex/background.ts` answers read-only methods itself and queues interactive ones, one dialog at a time, for the wallet page (`src/boot/bex.js`, `src/wallet/bex.js`).
+- A site is identified only by the browser-attested `port.sender.origin`, never by its self-declared metadata. Its permission lives under its own `chrome.storage.local` key, names the wallet (`<network>:<walletHash>`) and the receive address index, and is restricted to extension pages (`TRUSTED_CONTEXTS`, Chrome 140+). Wallet-page ports are accepted only from the extension's own top-level pages.
+- Signing re-derives the key at the stored index and refuses unless it yields the approved address, and always goes through the approval dialog plus PIN/biometric check. Chipnet shares mainnet keys, so chipnet dialogs carry a warning.
+- Shared helpers in `src/utils/bex.js` are bundled into the extension scripts: keep them free of app imports.
+
 ## Automated Code Review (Security)
 
 Every pull request undergoes an AI-assisted security review. Pay particular attention to changes that could affect:

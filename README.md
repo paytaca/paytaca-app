@@ -55,6 +55,7 @@ Paytaca is a non-custodial Bitcoin Cash (BCH) wallet that gives users exclusive 
 
 - **WalletConnect v1 & v2** - Connect to Web3 dApps
 - **WizardConnect** - Custom relay protocol for dApp connections
+- **Browser Extension Provider** - Sites connect through `window.paytaca` / `window.bitcoincash` (WC2-BCH JSON-RPC, `bitcoincash:requestProvider` discovery)
 - **Deep Links** - paytaca://, bitcoincash://, ethereum:// support
 
 ### Merchant Tools
@@ -129,6 +130,8 @@ npm run dev
 |---------|-------------|
 | `npm run dev` | Start development server (SPA) |
 | `npm run build` | Build for production (SPA) |
+| `npm run dev:bex` | Start the Chrome extension in development mode |
+| `npm run build:bex` | Build the Chrome extension (`dist/bex-chrome`) |
 | `npm run lint` | Run ESLint |
 | `npm test` | Run Cypress tests |
 | `npm run test:unit` | Run unit tests |

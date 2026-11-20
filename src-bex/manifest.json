@@ -12,20 +12,13 @@
     },
 
     "permissions": [
-      "storage",
-      "tabs"
+      "storage"
     ],
 
     "host_permissions": [ "*://*/*" ],
     "content_security_policy": {
       "extension_pages": "default-src 'self' localhost; connect-src *; script-src 'self' 'wasm-unsafe-eval'; object-src 'self'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; style-src-elem 'self' https://fonts.googleapis.com 'sha256-Qb9o8QXJZCIhmm0fr5pKC26u43jGxmhZFgc7Ho10KAU='; font-src 'self' https://fonts.gstatic.com data:; img-src *;"
     },
-    "web_accessible_resources": [
-      {
-        "resources": [ "*" ],
-        "matches": [ "*://*/*" ]
-      }
-    ],
 
     "action": {
       "default_popup": "www/index.html"
@@ -33,14 +26,21 @@
 
     "content_scripts": [
       {
-        "matches": [ "<all_urls>" ],
-        "css": [ "assets/content.css" ],
-        "js": [ "my-content-script.ts" ]
+        "matches": [ "https://*/*", "http://localhost/*", "http://127.0.0.1/*" ],
+        "js": [ "content.ts" ],
+        "run_at": "document_start"
+      },
+      {
+        "matches": [ "https://*/*", "http://localhost/*", "http://127.0.0.1/*" ],
+        "js": [ "provider.ts" ],
+        "run_at": "document_start",
+        "world": "MAIN"
       }
     ]
   },
 
   "chrome": {
+    "minimum_chrome_version": "140",
     "background": {
       "service_worker": "background.ts"
     }

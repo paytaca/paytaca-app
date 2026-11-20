@@ -12,6 +12,8 @@
     "dev:capacitor:android": "quasar dev -m capacitor -T android",
     "build:capacitor:ios": "quasar build -m capacitor -T ios",
     "build:capacitor:android": "quasar build -m capacitor -T android",
+    "dev:bex": "quasar dev -m bex -T chrome",
+    "build:bex": "quasar build -m bex -T chrome",
     "lint": "eslint -c ./eslint.config.js \"./src*/**/*.{js,cjs,mjs,vue}\"",
     "postinstall": "patch-package && quasar prepare",
     "test": "cypress run",

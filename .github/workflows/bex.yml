@@ -1,0 +1,94 @@
+name: Browser Extension Build
+
+# Builds the Chromium extension and attaches it to the run as a zip for anyone to try: unzip it,
+# turn on Developer mode in chrome://extensions and load the unzipped folder with "Load unpacked".
+# A push to master also replaces the asset of the rolling bex-latest release, whose URL is stable
+# and downloadable without a GitHub login. Branch and pull-request builds publish only their run's
+# artifact, so a contribution cannot overwrite the release.
+on:
+  push:
+    # a branch with bex in its name builds on every push, to try before it has a pull request
+    branches: [master, '**bex**']
+  pull_request:
+    branches: [master]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          # a pull request's own commit rather than its merge into master, so the zip is named
+          # after a commit a tester can find on the pull request
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          persist-credentials: false
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 22
+          cache: 'npm'
+      - run: npm ci
+      # The app reads its backend URLs while it boots and throws when they are missing. Card
+      # features stay unavailable until MAINNET_CARD_API_BASE_URL holds the real URL.
+      - name: Write the build environment
+        run: |
+          cp .env_template .env
+          cat >> .env <<'EOF'
+          MAINNET_WATCHTOWER_BASE_URL=https://watchtower.cash/api
+          CHIPNET_WATCHTOWER_BASE_URL=https://chipnet.watchtower.cash/api
+          MAINNET_CARD_API_BASE_URL=https://card.paytaca.invalid/api
+          EOF
+      - run: npm run build:bex  # also zips the unpacked extension into Packaged.paytaca.zip
+      - run: mv dist/bex-chrome/Packaged.paytaca.zip "paytaca-extension-$(git rev-parse --short HEAD).zip"
+      - uses: actions/upload-artifact@v7
+        with:
+          path: paytaca-extension-*.zip
+          # archive: false gives testers the extension files inside the downloaded artifact's zip,
+          # one unzip away from "Load unpacked"; the release job builds the zip it publishes
+          archive: false
+          if-no-files-found: error
+
+  # The release is the repository's public download, so only master may write it. Branch and
+  # pull-request runs build an artifact for testers and leave the release untouched. The job
+  # builds the zip itself: a release must be exactly the packaged file rather than whatever shape
+  # the artifact round-trip gives it.
+  release:
+    if: github.event_name == 'push' && github.ref == 'refs/heads/master'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write  # the only job that may write to the repository
+    concurrency:
+      group: bex-latest-release
+      cancel-in-progress: false  # a later master push must upload after the one before it
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          ref: ${{ github.sha }}
+          persist-credentials: false
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 22
+          cache: 'npm'
+      - run: npm ci
+      - name: Write the build environment
+        run: |
+          cp .env_template .env
+          cat >> .env <<'EOF'
+          MAINNET_WATCHTOWER_BASE_URL=https://watchtower.cash/api
+          CHIPNET_WATCHTOWER_BASE_URL=https://chipnet.watchtower.cash/api
+          MAINNET_CARD_API_BASE_URL=https://card.paytaca.invalid/api
+          EOF
+      - run: npm run build:bex
+      - name: Publish the rolling bex-latest release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          mv dist/bex-chrome/Packaged.paytaca.zip paytaca-extension.zip
+          gh release view bex-latest >/dev/null 2>&1 || \
+            gh release create bex-latest --target "$GITHUB_SHA" --prerelease \
+              --title "Paytaca BEX latest" \
+              --notes "Rolling build of the Paytaca browser extension from the latest push to master. paytaca-extension.zip is replaced on every such push."
+          gh release upload bex-latest paytaca-extension.zip --clobber

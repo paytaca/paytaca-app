@@ -48,6 +48,7 @@ module.exports = defineConfig((ctx) => {
       'deep-link',
       'nostr-chat',
       'directives',
+      ...(ctx.mode.bex ? ['bex'] : []),
     ],
 
     // https://quasar.dev/quasar-cli/quasar-conf-js#Property%3A-css

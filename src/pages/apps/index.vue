@@ -586,6 +586,17 @@ export default {
           category: 'wallet-connections'
         },
         {
+          id: 'connected-sites',
+          name: this.$t('ConnectedSites', {}, 'Connected Sites'),
+          description: this.$t('Apps.ConnectedSites.Description', {}, 'Manage the sites connected to Paytaca through the browser extension.'),
+          iconName: 'language',
+          path: '/apps/connected-sites',
+          iconStyle: 'font-size: 4em',
+          active: true,
+          smartBCHOnly: false,
+          category: 'wallet-connections'
+        },
+        {
           id: 'merchant-admin',
           name: this.$t('MerchantAdmin', {}, 'Merchant Admin'),
           description: this.$t('Apps.MerchantAdmin.Description', {}, 'Manage your merchant tools and settings.'),
@@ -949,6 +960,10 @@ export default {
 
       // Hide AI Admin app for now
       this.filteredApps = this.filteredApps.filter(app => app?.id !== 'ai-admin')
+
+      if (!this.$q.platform.is.bex) {
+        this.filteredApps = this.filteredApps.filter(app => app?.id !== 'connected-sites')
+      }
       
       // Add debug app if visible
       if (this.showDebugApp) {
