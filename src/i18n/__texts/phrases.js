@@ -2495,6 +2495,17 @@ const phrases = {
       // pin action uses its own key with the same English label.
       PinAction: 'Pin',
       Unpin: 'Unpin'
+    },
+    {
+      'Apps.ConnectedSites.Description': 'Manage the sites connected to Paytaca through the browser extension.',
+      BexChipnetKeysWarning: 'Chipnet uses the same keys as your mainnet wallet. A signature made here could also spend your mainnet coins, so only approve requests from sites you trust.',
+      BexConnectNotice: 'This site will see this address and can ask you to sign messages and transactions. Each signature needs your approval.',
+      BexReadOnlyWallet: 'The Paytaca extension cannot sign with a read-only wallet. Connect a wallet that holds its private keys to use it with sites.',
+      BexSelectAddress: 'Select the address to share with this site',
+      ConnectedSites: 'Connected Sites',
+      ConnectedSitesDescription: 'Sites connected to this wallet through the Paytaca browser extension. Each site sees only the address you shared with it, and every signature it asks for needs your approval.',
+      Network: 'Network',
+      NoConnectedSites: 'No sites are connected to this wallet'
     }
   ],
   dynamic: [
@@ -3247,6 +3258,10 @@ const phrases = {
     {
       EliteShortfall: '{amount} short',
       EliteCountThisMonth: '{count} this month'
+    },
+    {
+      BexNetworkMismatch: 'This site needs a wallet on {network}. Switch Paytaca to {network} and connect again.',
+      BexUnsupportedChain: 'This site asked for an unsupported network ({chainId}).'
     }
   ]
 }

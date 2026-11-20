@@ -12,6 +12,7 @@
         </SessionInfo>
         <q-scroll-area style="height: 70vh; max-height: 80vh">
           <q-card-section class="q-pt-none">
+            <q-banner v-if="warning" dense rounded class="bg-warning text-black q-mb-sm">{{ warning }}</q-banner>
             <template v-if="sessionRequest?.params?.request?.method === 'bch_signTransaction'">
               <TransactionDetailsPanel
                 :transaction="sessionRequest?.params?.request?.params?.transaction"
@@ -70,7 +71,8 @@
     addressDisplayFormat: String,
     addressDisplayFormatter: {
       type: Function,
-    }
+    },
+    warning: String
   })
 
   defineEmits([

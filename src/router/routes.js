@@ -71,24 +71,6 @@ const routes = [
         component: () => import('pages/transaction/view.vue')
       },
       {
-        path: 'connect/',
-        name: 'connect',
-        props: route => route.query,
-        component: () => import('pages/connect/connect.vue')
-      },
-      {
-        path: 'signMessage/',
-        name: 'sign-message',
-        props: route => route.query,
-        component: () => import('pages/sign/message.vue')
-      },
-      {
-        path: 'signTransaction/',
-        name: 'sign-transaction',
-        props: route => route.query,
-        component: () => import('pages/sign/transaction.vue')
-      },
-      {
         path: 'push-notification-router',
         name: 'push-notification-router',
         props: route => route.query,
@@ -161,6 +143,7 @@ const routes = [
       { path: 'merchant-admin/merchant/cashout/order', component: () => import('src/pages/apps/paytacapos-admin/merchant-cashout/order-form.vue'), name: 'app-pos-cashout-form', props: route => route.query },
       { path: 'wallet-connect', component: () => import('src/pages/apps/wallet-connect2.vue'), name: 'app-wallet-connect', props: route => route.query },
       { path: 'wizard-connect', component: () => import('src/pages/apps/wizard-connect.vue'), name: 'app-wizard-connect', props: route => route.query },
+      { path: 'connected-sites', component: () => import('src/pages/apps/connected-sites.vue'), name: 'app-connected-sites' },
       { path: 'support', component: () => import('src/pages/apps/wallet-info.vue'), name: 'app-support' },
       { path: 'asset-swap', component: () => import('src/pages/apps/asset-swap.vue'), name: 'app-asset-swap' },
       { path: 'sweep', component: () => import('src/pages/apps/sweep.vue'), name: 'app-sweep', props: route => Object.assign({}, route.params, route.query) },

@@ -1093,65 +1093,6 @@ export default {
       document.body.style.width = '390px'
       document.body.style.minHeight = '844px'
       document.body.style.margin = '0 auto'
-
-      vm.$q.bex.on('bex.paytaca.send', event => {
-        vm.$router.push({
-          name: 'transaction-send',
-          query: {
-            assetId: event.data.assetId,
-            amount: event.data.amount,
-            recipient: event.data.recipient
-          }
-        })
-      })
-
-      vm.$q.bex.on('bex.paytaca.connecta', event => {
-        const query = {}
-        if (event.data.paymentRequestData) query.paymentRequestData = event.data.paymentRequestData
-        else if (event.data.orderId) query.orderId = event.data.orderId
-        vm.$router.push({
-          name: 'connecta',
-          query: query
-        })
-      })
-
-      vm.$q.bex.on('bex.paytaca.connect', async (event) => {
-        vm.$router.push({
-          name: 'connect',
-          query: {
-            origin: event.data.origin,
-            eventResponseKey: event.data.eventResponseKey,
-          },
-        })
-      })
-
-      vm.$q.bex.on('bex.paytaca.signMessage', async (event) => {
-        vm.$router.push({
-          name: 'sign-message',
-          query: {
-            origin: event.data.origin,
-            assetId: event.data.assetId,
-            message: event.data.message,
-            userPrompt: event.data.userPrompt,
-            eventResponseKey: event.data.eventResponseKey,
-          },
-        })
-      })
-
-      vm.$q.bex.on('bex.paytaca.signTransaction', async (event) => {
-        vm.$router.push({
-          name: 'sign-transaction',
-          query: {
-            origin: event.data.origin,
-            assetId: event.data.assetId,
-            transaction: event.data.transaction,
-            sourceOutputs: event.data.sourceOutputs,
-            broadcast: event.data.broadcast,
-            userPrompt: event.data.userPrompt,
-            eventResponseKey: event.data.eventResponseKey,
-          },
-        })
-      })
     }
   },
   unmounted () {
