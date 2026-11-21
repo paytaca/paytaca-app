@@ -41,6 +41,7 @@
 			<key>CFBundleURLSchemes</key>
 			<array>
 				<string>wc</string>
+				<string>wiz</string>
 			</array>
 		</dict>
 	</array>

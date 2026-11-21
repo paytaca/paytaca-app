@@ -11,7 +11,12 @@ export default boot(({ router, /* store */ }) => {
     const url = new URL(event.url);
     console.log('App URL open', { url });
 
-    if (/\/payment-request\/?$/.test(url.pathname) || /\/apps\/connecta\/?$/.test(url.pathname)) {
+    if (url.protocol === 'wiz:') {
+      router.push({
+        name: 'app-wizard-connect',
+        query: { uri: String(event.url), confirm: 'true' }
+      })
+    } else if (/\/payment-request\/?$/.test(url.pathname) || /\/apps\/connecta\/?$/.test(url.pathname)) {
       const query = {}
       if (url.searchParams.has('d')) query.paymentRequestData = url.searchParams.get('d')
       else if (url.searchParams.has('orderId')) query.orderId = url.searchParams.get('orderId')
