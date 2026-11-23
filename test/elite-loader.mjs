@@ -17,14 +17,17 @@ const MODULE_STUBS = {
   'src/utils/engagementhub-utils/api': new URL('./mocks/engagementhub-api.mjs', import.meta.url).href,
   'src/utils/wallet-storage': new URL('./mocks/wallet-storage.mjs', import.meta.url).href,
   // `elite-program.js` imports the LIFT category from here; the retry spec
-  // never reads it, so avoid pulling in watchtower-cash-js.
+  // never reads it, so avoid pulling in watchtower-cash-js. `shared.js` also
+  // reads the decimals, so keep both exports for the other specs.
   'src/utils/subscription-utils': dataModule(
-    "export const LIFT_TOKEN_CATEGORY = '5932b2fd4915d6a75d3ec53282cd49118149a2176ee67ed68b1111ff0786f7fc'"
+    "export const LIFT_TOKEN_CATEGORY = '5932b2fd4915d6a75d3ec53282cd49118149a2176ee67ed68b1111ff0786f7fc'\n" +
+    'export const LIFT_TOKEN_DECIMALS = 2'
   ),
   // `display-rates.js` -> `denomination-utils.js` touches these at load.
   'src/boot/i18n': dataModule('export const i18n = {}'),
   'src/wallet/chipnet': dataModule(
-    'export function convertToTokenAmountWithDecimals () { return 0 }'
+    'export function convertToTokenAmountWithDecimals () { return 0 }\n' +
+    'export function convertCashAddress (address) { return address }'
   ),
 }
 
