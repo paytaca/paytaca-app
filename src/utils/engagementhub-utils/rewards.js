@@ -188,17 +188,16 @@ async function postFetchData (url, data) {
     .post(url, data)
     .then(response => {
       if (response.status === 200) return response.data
-      else if (response.status === 404) return {}
       else return null
     })
     .catch(error => {
       if (!isCanceledError(error)) {
         console.error('Failed to POST ' + url + ': ' + describeError(error))
       }
-      // These callers surface their own error state on a falsy result, so only
-      // a genuine 404 (nothing to list yet) becomes an empty object here.
-      if (error?.response?.status === 404) return {}
-      else return null
+      // These endpoints always answer with a body. A 404 means the record the
+      // caller asked for is missing, and every caller renders its own error
+      // state on a falsy result, so do not turn it into `{}`.
+      return null
     })
 }
 
