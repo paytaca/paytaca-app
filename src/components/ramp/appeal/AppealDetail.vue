@@ -213,6 +213,7 @@ import RampDragSlide from '../fiat/dialogs/RampDragSlide.vue'
 import { formatCurrency, formatDate, formatOrderStatus, formatAddress } from 'src/exchange'
 import { bus } from 'src/wallet/event-bus.js'
 import { backend, assertP2PIdentity } from 'src/exchange/backend'
+import { fetchP2PAvailability, isP2PAvailabilityError, p2pAvailabilityMessage } from 'src/exchange/availability'
 import { wallet } from 'src/exchange/wallet'
 import { openURL } from 'quasar'
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
@@ -230,6 +231,7 @@ export default {
   },
   data () {
     return {
+      disposed: false,
       isChipnet: this.$store.getters['global/isChipnet'],
       darkMode: this.$store.getters['darkmode/getStatus'],
       wallet: null,
@@ -310,6 +312,9 @@ export default {
       }
     })
   },
+  beforeUnmount () {
+    this.disposed = true
+  },
   methods: {
     formatDate,
     getDarkModeClass,
@@ -389,20 +394,36 @@ export default {
       vm.sendError = null
       if (!vm.escrowContract) return
       const arbiterMember = (vm.contract?.members).find(member => { return member.member_type === 'ARBITER' })
+      const addressPath = arbiterMember?.address_path
+      const escrow = vm.escrowContract
+      const contract = vm.contract
+      const order = vm.order
+      const amount = order?.trade_amount
+      const orderId = order?.id
+      const status = order?.status?.value
+      const address = escrow.getAddress()
+      const signerWallet = wallet
       try {
-        await assertP2PIdentity({
+        const registered = await assertP2PIdentity({
           public_key: vm.escrowContract.publicKeys.arbiter,
           address: vm.escrowContract.addresses.arbiter,
-          address_path: arbiterMember?.address_path
+          address_path: addressPath
         }, 'arbiter')
+        await fetchP2PAvailability(backend)
+        signerWallet.assertIdentity(registered)
+        if (vm.disposed || vm.escrowContract !== escrow || vm.contract !== contract ||
+            vm.order !== order || vm.order?.id !== orderId || vm.order?.status?.value !== status ||
+            vm.order?.trade_amount !== amount || escrow.getAddress() !== address || contract.address !== address) {
+          throw new Error('The order details changed. Please reopen the order before spending escrow funds.')
+        }
       } catch (error) {
-        vm.sendError = error.message
+        vm.sendError = isP2PAvailabilityError(error) ? p2pAvailabilityMessage(vm.$t.bind(vm), error) : error.message
         vm.showDragSlide = true
         return
       }
-      const keypair = wallet.keypair(arbiterMember.address_path)
+      const keypair = signerWallet.keypair(addressPath)
       let txid = null
-      await vm.escrowContract.release(keypair.privateKey, keypair.publicKey, this.order.trade_amount)
+      await escrow.release(keypair.privateKey, keypair.publicKey, amount)
         .then(result => {
           console.log(result)
           if (result.success) {
@@ -432,20 +453,36 @@ export default {
       vm.sendError = null
       if (!vm.escrowContract) return
       const arbiterMember = (vm.contract?.members).find(member => { return member.member_type === 'ARBITER' })
+      const addressPath = arbiterMember?.address_path
+      const escrow = vm.escrowContract
+      const contract = vm.contract
+      const order = vm.order
+      const amount = order?.trade_amount
+      const orderId = order?.id
+      const status = order?.status?.value
+      const address = escrow.getAddress()
+      const signerWallet = wallet
       try {
-        await assertP2PIdentity({
+        const registered = await assertP2PIdentity({
           public_key: vm.escrowContract.publicKeys.arbiter,
           address: vm.escrowContract.addresses.arbiter,
-          address_path: arbiterMember?.address_path
+          address_path: addressPath
         }, 'arbiter')
+        await fetchP2PAvailability(backend)
+        signerWallet.assertIdentity(registered)
+        if (vm.disposed || vm.escrowContract !== escrow || vm.contract !== contract ||
+            vm.order !== order || vm.order?.id !== orderId || vm.order?.status?.value !== status ||
+            vm.order?.trade_amount !== amount || escrow.getAddress() !== address || contract.address !== address) {
+          throw new Error('The order details changed. Please reopen the order before spending escrow funds.')
+        }
       } catch (error) {
-        vm.sendError = error.message
+        vm.sendError = isP2PAvailabilityError(error) ? p2pAvailabilityMessage(vm.$t.bind(vm), error) : error.message
         vm.showDragSlide = true
         return
       }
-      const privateKey = wallet.privkey(arbiterMember.address_path)
+      const privateKey = signerWallet.privkey(addressPath)
       let txid = null
-      await vm.escrowContract.refund(privateKey, this.order.trade_amount)
+      await escrow.refund(privateKey, amount)
         .then(result => {
           console.log(result)
           if (result.success) {

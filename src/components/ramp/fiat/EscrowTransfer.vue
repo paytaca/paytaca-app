@@ -273,14 +273,20 @@ export default {
     async onReloadContractAddress () {
       try {
         await this.generateContractAddress(true)
-      } catch { return }
+      } catch (error) {
+        console.error('Contract generation failed:', error?.response?.status || error?.code || 'Request failed')
+        return
+      }
       this.$emit('refresh')
     },
     async selectArbiter () {
       this.contractAddress = null
       try {
         await this.generateContractAddress()
-      } catch { return }
+      } catch (error) {
+        console.error('Contract generation failed:', error?.response?.status || error?.code || 'Request failed')
+        return
+      }
     },
     async loadContract () {
       const vm = this
@@ -385,7 +391,7 @@ export default {
           fundingWallet.assertIdentity(registered)
           check()
           const result = await rawWallet.sendBch(amount, address, changeAddress)
-          console.log('sendBch:', result)
+          console.debug('Escrow funding broadcast:', result?.success === true)
           if (result?.success) {
             vm.txid = result.txid
             const txidData = {

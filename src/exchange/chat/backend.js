@@ -151,5 +151,11 @@ export async function updateSignerData () {
 }
 
 export function getChatBackendWsUrl () {
-  return process.env.MARKETPLACE_WS_URL || ''
+  const baseUrl = process.env.MARKETPLACE_WS_URL
+  if (!baseUrl) return ''
+  const url = new URL(baseUrl)
+  url.pathname = '/ws/chat/sessions/'
+  url.search = ''
+  url.hash = ''
+  return url.toString()
 }

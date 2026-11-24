@@ -431,7 +431,6 @@ export async function fetchFeatureToggles (context) {
     context.commit('updateFeatureToggles', controls)
     return controls
   } catch {
-    context.commit('updateFeatureToggles', {})
-    return {}
+    return context.state.featureToggles || {}
   }
 }

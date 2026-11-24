@@ -25,7 +25,7 @@ import { bus } from 'src/wallet/event-bus'
 
 export default {
   data () {
-    return { checking: true, error: null, screenKey: 0, retryTimer: null, requestPending: false, disposed: false }
+    return { checking: true, error: null, screenKey: 0, retryTimer: null, retryCount: 0, requestPending: false, disposed: false }
   },
   computed: {
     message () {
@@ -34,12 +34,14 @@ export default {
   },
   created () {
     bus.on('p2p-unavailable', this.onUnavailable)
+    document.addEventListener('visibilitychange', this.onVisibilityChange)
     this.retry()
   },
   beforeUnmount () {
     this.disposed = true
     clearTimeout(this.retryTimer)
     bus.off('p2p-unavailable', this.onUnavailable)
+    document.removeEventListener('visibilitychange', this.onVisibilityChange)
   },
   methods: {
     onUnavailable (error) {
@@ -54,15 +56,22 @@ export default {
         this.scheduleRetry()
       }
     },
+    onVisibilityChange () {
+      if (this.disposed) return
+      clearTimeout(this.retryTimer)
+      this.retryTimer = null
+      if (!document.hidden && (this.error || this.checking)) this.retry()
+    },
     scheduleRetry () {
       clearTimeout(this.retryTimer)
       this.retryTimer = null
-      if (this.error && !this.disposed && !this.requestPending) {
-        this.retryTimer = setTimeout(() => this.retry(), 5000)
+      if (this.error && !this.disposed && !this.requestPending && !document.hidden) {
+        const delay = [5000, 30000, 120000][Math.min(Math.max(this.retryCount - 1, 0), 2)]
+        this.retryTimer = setTimeout(() => this.retry(), delay)
       }
     },
     async retry () {
-      if (this.requestPending || this.disposed) return
+      if (this.requestPending || this.disposed || document.hidden) return
       clearTimeout(this.retryTimer)
       this.retryTimer = null
       this.requestPending = true
@@ -72,9 +81,14 @@ export default {
         if (this.disposed) return
         this.$store.commit('ramp/updateFeatureToggles', controls)
         this.error = null
+        this.retryCount = 0
+        // Recovery remounts deep pages and discards unfinished form state; no financial action is replayed.
         this.screenKey++
       } catch (error) {
-        if (!this.disposed) this.error = error
+        if (!this.disposed) {
+          this.error = error
+          this.retryCount++
+        }
       } finally {
         this.requestPending = false
         this.checking = false

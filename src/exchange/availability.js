@@ -10,6 +10,7 @@ export function assertP2PAvailable (controls, feature) {
   return controls
 }
 
+// Cache-busting nonce only; this counter does not represent application state.
 let requestId = 0
 
 export async function fetchP2PAvailability (client, feature, { skipAbortManager = false } = {}) {

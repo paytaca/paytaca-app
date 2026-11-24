@@ -222,10 +222,13 @@ describe('P2P maintenance screen', () => {
 
   function screenHarness () {
     const state = { controls: { P2P_MAINTENANCE: true }, requests: 0, get: null }
+    const listeners = new Map()
+    const document = { hidden: false, addEventListener: (name, callback) => listeners.set(name, callback), removeEventListener: name => listeners.delete(name) }
     const commits = []
     const timers = new Map()
     let timerId = 0
     const bindings = {
+      document,
       backend: {
         async get (url, config) {
           state.requests++
@@ -248,7 +251,7 @@ describe('P2P maintenance screen', () => {
       $store: { commit: (...args) => commits.push(args) }
     }
     for (const [name, method] of Object.entries(component.methods)) vm[name] = method.bind(vm)
-    return { vm, state, commits, timers, unmount: () => component.beforeUnmount.call(vm) }
+    return { vm, state, commits, timers, document, listeners, create: () => component.created.call(vm), unmount: () => component.beforeUnmount.call(vm) }
   }
 
   it('stops loading on failure and retries availability without replaying financial actions', async () => {
@@ -363,6 +366,57 @@ describe('P2P maintenance screen', () => {
     assert.equal(h.vm.screenKey, 0)
     assert.equal(h.timers.size, 0)
   })
+  it('backs off failed checks from five seconds to thirty seconds and two minutes', async () => {
+    const h = screenHarness()
+    await h.vm.retry()
+    for (const delay of [5000, 30000, 120000, 120000]) {
+      const timer = [...h.timers.values()][0]
+      assert.equal(timer.delay, delay)
+      await timer.callback()
+    }
+    h.state.controls = available
+    await h.vm.retry()
+    assert.equal(h.vm.retryCount, 0)
+    h.state.controls = { P2P_MAINTENANCE: true }
+    await h.vm.retry()
+    assert.equal([...h.timers.values()][0].delay, 5000)
+  })
+
+  it('pauses polling while hidden, verifies on return, and removes the visibility listener', async () => {
+    const h = screenHarness()
+    h.create()
+    await new Promise(resolve => setImmediate(resolve))
+    assert.equal(h.listeners.size, 1)
+    assert.equal(h.timers.size, 1)
+    h.document.hidden = true
+    h.listeners.get('visibilitychange')()
+    assert.equal(h.timers.size, 0)
+    const requests = h.state.requests
+    await h.vm.retry()
+    assert.equal(h.state.requests, requests)
+    h.document.hidden = false
+    h.state.controls = available
+    h.listeners.get('visibilitychange')()
+    await new Promise(resolve => setImmediate(resolve))
+    assert.equal(h.vm.error, null)
+    assert.equal(h.vm.screenKey, 1)
+    h.unmount()
+    assert.equal(h.listeners.size, 0)
+    assert.equal(h.timers.size, 0)
+  })
+
+  it('does not schedule another check if the app becomes hidden during a failed request', async () => {
+    const h = screenHarness()
+    let finish
+    h.state.get = () => new Promise(resolve => { finish = resolve })
+    const pending = h.vm.retry()
+    h.document.hidden = true
+    finish({ status: 200, data: { P2P_MAINTENANCE: true } })
+    await pending
+    assert(h.vm.error)
+    assert.equal(h.timers.size, 0)
+  })
+
 })
 
 function identityHarness ({ removeToken = null, tokenForRole = role => `synthetic-${role}-token`, onAvailability = () => {}, storedUser = null } = {}) {
@@ -624,8 +678,8 @@ describe('P2P identity checks at financial boundaries', () => {
         const start = source.indexOf(`    async ${method} ()`)
         const end = source.indexOf('\n    },', start) + 7
         const events = []
-        const wallet = { keypair () { events.push('keypair'); return {} }, privkey () { events.push('privkey'); return 'synthetic-secret-placeholder' } }
-        const component = new Function('wallet', 'assertP2PIdentity', `return { ${source.slice(start, end)} }`)(wallet, h.assertP2PIdentity)
+        const wallet = { assertIdentity: registered => h.wallet.assertIdentity(registered), keypair () { events.push('keypair'); return {} }, privkey () { events.push('privkey'); return 'synthetic-secret-placeholder' } }
+        const component = new Function('wallet', 'assertP2PIdentity', 'fetchP2PAvailability', 'backend', 'isP2PAvailabilityError', 'p2pAvailabilityMessage', `return { ${source.slice(start, end)} }`)(wallet, h.assertP2PIdentity, fetchP2PAvailability, { get: async () => ({ status: 200, data: available }) }, isP2PAvailabilityError, p2pAvailabilityMessage)
         const escrow = {
           publicKeys: { [role]: mismatch ? 'different-contract-key' : h.registered.public_key },
           addresses: { [role]: h.registered.address },
@@ -2274,7 +2328,7 @@ describe('P2P order WebSocket status refresh', () => {
     const bindings = {
       backend, WebSocketManager,
       getBackendWsUrl: () => 'ws://localhost:9001/ws/ramp-p2p/subscribe/',
-      getChatBackendWsUrl: () => 'ws://localhost:9002/ws/chat/',
+      getChatBackendWsUrl: () => 'ws://localhost:9002/ws/chat/sessions/',
       generateChatRef: () => 'synthetic-chat'
     }
     const component = new Function(...Object.keys(bindings), `return { ${methods} }`)(...Object.values(bindings))
@@ -2413,7 +2467,7 @@ describe('P2P post-release chat and feedback', () => {
       closeConnection () { throw new Error('Must not close the chat connection') }
     }
     const ensure = method('src/pages/apps/exchange/peer_to_peer/order.vue', 'ensureChatWebSocket', {
-      WebSocketManager, getChatBackendWsUrl: () => 'wss://example.test/ws/chat/',
+      WebSocketManager, getChatBackendWsUrl: () => 'wss://example.test/ws/chat/sessions/',
       bus: { emit: (...args) => events.push(args) }
     })
     const vm = { websockets: {}, chatRef: 'synthetic-chat', disposed: false, chatReadyScope: 'test-scope', chatSetupScope: () => 'test-scope' }
@@ -2425,11 +2479,11 @@ describe('P2P post-release chat and feedback', () => {
     assert.deepEqual(events, [['last-read-update'], ['new-message', { id: 1 }]])
     vm.chatRef = 'another-chat'
     ensure.call(vm)
-    assert.equal(sockets[0].url, 'wss://example.test/ws/chat/another-chat/')
+    assert.equal(sockets[0].url, 'wss://example.test/ws/chat/sessions/another-chat/')
     vm.disposed = true
     vm.chatRef = 'obsolete-chat'
     ensure.call(vm)
-    assert.equal(sockets[0].url, 'wss://example.test/ws/chat/another-chat/')
+    assert.equal(sockets[0].url, 'wss://example.test/ws/chat/sessions/another-chat/')
   })
 
   it('prevents concurrent chat loads while the first request is pending', async () => {
@@ -2998,5 +3052,200 @@ describe('P2P chat public key registration reuse', () => {
     assert.equal(await h.update(false), h.keypair)
     assert.equal(h.state.deviceReads, 0)
     assert.deepEqual(h.uploads, [])
+  })
+})
+
+
+describe('CommerceHub chat WebSocket route', () => {
+  function getBase (configuredUrl) {
+    const source = readFileSync('src/exchange/chat/backend.js', 'utf8')
+    const start = source.indexOf('export function getChatBackendWsUrl ()')
+    const getter = new Function('process', `${source.slice(start).replace('export ', '')}; return getChatBackendWsUrl`)(
+      { env: { MARKETPLACE_WS_URL: configuredUrl } }
+    )
+    return getter()
+  }
+
+  for (const base of [
+    'wss://commercehub.paytaca.com',
+    'wss://commercehub.paytaca.com/ws/',
+    'wss://commercehub.paytaca.com/ws/chat/',
+    'wss://commercehub.paytaca.com/ws/chat/sessions/'
+  ]) {
+    it(`uses the session route with configured base ${base}`, () => {
+      assert.equal(`${getBase(base)}synthetic-session-ref/`, 'wss://commercehub.paytaca.com/ws/chat/sessions/synthetic-session-ref/')
+    })
+  }
+
+  it('preserves a local host, port, and transport without duplicating the route', () => {
+    assert.equal(getBase('ws://localhost:9000/ws/'), 'ws://localhost:9000/ws/chat/sessions/')
+  })
+
+  it('does not carry query strings or fragments into the session path', () => {
+    assert.equal(getBase('wss://example.test/ws/?unused=1#old'), 'wss://example.test/ws/chat/sessions/')
+  })
+
+  it('preserves the empty value when no chat WebSocket endpoint is configured', () => {
+    assert.equal(getBase(undefined), '')
+  })
+})
+
+
+describe('P2P release and refund maintenance guards', () => {
+  function financialHarness (role, method, response = { status: 200, data: { P2P_MAINTENANCE: false } }) {
+    const file = role === 'seller' ? 'src/components/ramp/fiat/PaymentConfirmation.vue' : 'src/components/ramp/appeal/AppealDetail.vue'
+    const source = readFileSync(file, 'utf8')
+    const start = source.indexOf(`    async ${method} ()`)
+    const end = source.indexOf('\n    },', start) + 7
+    const events = []
+    const state = { response, afterCheck: null }
+    const escrow = {
+      publicKeys: { [role]: 'synthetic-public-key' }, addresses: { [role]: 'synthetic-address' },
+      getAddress: () => 'synthetic-contract',
+      release: async () => { events.push('release'); return { success: false, reason: 'Synthetic result' } },
+      refund: async () => { events.push('refund'); return { success: false, reason: 'Synthetic result' } }
+    }
+    const contract = { address: 'synthetic-contract', members: [{ member_type: role.toUpperCase(), address_path: '0/0' }] }
+    const vm = {
+      data: { escrow, contract }, escrowContract: escrow, contract,
+      order: { id: 24, status: { value: role === 'seller' ? 'PD' : 'APL' }, trade_amount: 1000 },
+      $t: (key, values, fallback) => fallback || key
+    }
+    const bindings = {
+      wallet: {
+        assertIdentity () {
+          events.push('assert-wallet')
+          if (state.walletChanged) throw new Error('The active P2P wallet changed.')
+        },
+        keypair () { events.push('keypair'); return {} },
+        privkey () { events.push('privkey'); return 'synthetic-private-placeholder' }
+      },
+      assertP2PIdentity: async () => { events.push('identity'); return {} },
+      fetchP2PAvailability, isP2PAvailabilityError, p2pAvailabilityMessage,
+      backend: { get: async (url, config) => {
+        events.push(['availability', url, config])
+        state.afterCheck?.()
+        if (state.response instanceof Error) throw state.response
+        return state.response
+      } }
+    }
+    const component = new Function(...Object.keys(bindings), `return { ${source.slice(start, end)} }`)(...Object.values(bindings))
+    return { vm, state, events, run: () => component[method].call(vm) }
+  }
+
+  for (const [role, method] of [['seller', 'releaseBch'], ['arbiter', 'releaseBch'], ['arbiter', 'refundBch']]) {
+    for (const [label, response] of [
+      ['maintenance', { status: 200, data: { P2P_MAINTENANCE: true } }],
+      ['missing controls', { status: 200, data: {} }],
+      ['malformed controls', { status: 200, data: { P2P_MAINTENANCE: 'false' } }],
+      ['cached controls', { status: 200, cached: true, data: { P2P_MAINTENANCE: false } }],
+      ['server failure', { status: 503, data: {} }],
+      ['network failure', new Error('Synthetic connection failure')]
+    ]) {
+      it(`blocks ${role} ${method} on ${label} before extracting keys`, async () => {
+        const h = financialHarness(role, method, response)
+        await h.run()
+        assert.equal(h.events[0], 'identity')
+        assert.equal(h.events[1][0], 'availability')
+        assert.equal(h.events.some(event => ['keypair', 'privkey', 'release', 'refund'].includes(event)), false)
+        const error = role === 'seller' ? h.vm.sendErrors[0] : h.vm.sendError
+        assert.match(error, /maintenance|temporarily unavailable/)
+        assert.equal(h.vm.showDragSlide, true)
+        assert.equal(h.events.filter(event => Array.isArray(event) && event[0] === 'availability').length, 1)
+        if (role === 'seller') assert.equal(h.vm.sendingBch, false)
+      })
+    }
+
+    it(`allows ${role} ${method} with existing controls and no new release/refund flags`, async () => {
+      const h = financialHarness(role, method)
+      await h.run()
+      assert.equal(h.events[0], 'identity')
+      assert.equal(h.events[1][0], 'availability')
+      assert.equal(h.events[1][2].cache, false)
+      assert(h.events[1][2].params._fresh)
+      assert.equal(h.events[2], 'assert-wallet')
+      assert(h.events.includes(method === 'releaseBch' ? 'release' : 'refund'))
+    })
+
+    it(`rechecks the active wallet after maintenance verification for ${role} ${method}`, async () => {
+      const h = financialHarness(role, method)
+      h.state.afterCheck = () => { h.state.walletChanged = true }
+      await h.run()
+      assert.equal(h.events.some(event => ['keypair', 'privkey', 'release', 'refund'].includes(event)), false)
+      assert.match(role === 'seller' ? h.vm.sendErrors[0] : h.vm.sendError, /wallet changed/)
+    })
+
+    for (const change of ['unmount', 'contract', 'order', 'amount', 'status', 'address']) {
+      it(`blocks ${role} ${method} if ${change} changes while checking maintenance`, async () => {
+        const h = financialHarness(role, method)
+        h.state.afterCheck = () => {
+          if (change === 'unmount') h.vm.disposed = true
+          if (change === 'contract') {
+            h.vm.escrowContract = { ...h.vm.escrowContract }
+            h.vm.data.escrow = { ...h.vm.data.escrow }
+          }
+          if (change === 'order') h.vm.order = { ...h.vm.order, id: 25 }
+          if (change === 'amount') h.vm.order.trade_amount++
+          if (change === 'status') h.vm.order.status.value = 'RLS'
+          if (change === 'address') h.vm.contract.address = 'another-contract'
+        }
+        await h.run()
+        assert.equal(h.events.some(event => ['keypair', 'privkey', 'release', 'refund'].includes(event)), false)
+        assert.match(role === 'seller' ? h.vm.sendErrors[0] : h.vm.sendError, /order details changed/)
+      })
+    }
+  }
+
+  it('leaves post-broadcast verification and pending updates outside feature-gated writes', () => {
+    for (const url of ['/ramp-p2p/order/24/verify-release/', '/ramp-p2p/appeal/3/pending-release/', '/ramp-p2p/appeal/3/pending-refund/']) {
+      assert.equal(p2pRequestFeature({ method: 'post', url }), null)
+    }
+  })
+})
+
+
+describe('P2P feature control refresh resilience', () => {
+  function harness () {
+    const source = readFileSync('src/store/ramp/actions.js', 'utf8')
+    const start = source.indexOf('export async function fetchFeatureToggles (context)')
+    const end = source.indexOf('\n}', start) + 2
+    const state = { response: { status: 200, data: available } }
+    const commits = []
+    const context = {
+      state: { featureToggles: { P2P_MAINTENANCE: false, ORDER_CREATE: true, AD_CREATE: true } },
+      commit (name, controls) { commits.push([name, controls]); this.state.featureToggles = controls }
+    }
+    const backend = { get: async () => {
+      if (state.response instanceof Error) throw state.response
+      return state.response
+    } }
+    const refresh = new Function('backend', 'fetchP2PAvailability', `${source.slice(start, end).replace('export ', '')}; return fetchFeatureToggles`)(backend, fetchP2PAvailability)
+    return { state, commits, context, refresh: () => refresh(context) }
+  }
+
+  it('preserves confirmed UI controls on a transient failure', async () => {
+    const h = harness()
+    const previous = h.context.state.featureToggles
+    h.state.response = new Error('Synthetic network failure')
+    assert.equal(await h.refresh(), previous)
+    assert.equal(h.context.state.featureToggles, previous)
+    assert.deepEqual(h.commits, [])
+  })
+
+  it('commits only freshly confirmed controls and applies an explicit disabled feature', async () => {
+    const h = harness()
+    h.state.response = { status: 200, data: { P2P_MAINTENANCE: false, ORDER_CREATE: false } }
+    await h.refresh()
+    assert.equal(h.context.state.featureToggles.ORDER_CREATE, false)
+    assert.equal(h.commits.length, 1)
+  })
+
+  it('does not invent enabled controls when the initial refresh fails', async () => {
+    const h = harness()
+    h.context.state.featureToggles = null
+    h.state.response = new Error('Synthetic network failure')
+    assert.deepEqual(await h.refresh(), {})
+    assert.equal(h.context.state.featureToggles, null)
+    assert.deepEqual(h.commits, [])
   })
 })
