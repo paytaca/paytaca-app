@@ -12,10 +12,12 @@ function harness (initial = available) {
   let controls = initial
   let failure = null
   let identityFailure = null
+  let serverOrderResponse = null
   const events = []
   const requests = []
   const backend = {
     async get (url, config) {
+      if (url === '/ramp-p2p/order/7/') return serverOrderResponse || { status: 200, data: { ...vm.order, status: { ...vm.order.status } } }
       events.push('availability')
       requests.push({ url, config })
       if (failure) throw failure
@@ -48,7 +50,7 @@ function harness (initial = available) {
   }
   const component = new Function(...Object.keys(bindings), script)(...Object.values(bindings))
   const vm = {
-    $store: { getters: { 'darkmode/getStatus': false }, commit () {} },
+    $store: { getters: { 'darkmode/getStatus': false, 'ramp/getOrderTxid': () => null }, commit () {} },
     $q: { platform: { is: {} }, screen: { height: 800 } },
     $t: (key, values, fallback) => fallback || key,
     $emit: (...args) => events.push(args[0])
@@ -67,11 +69,11 @@ function harness (initial = available) {
     },
     escrowBalance: 0,
     transferAmount: 0.01,
-    order: { id: 7, status: { value: 'CNF' } },
+    order: { id: 7, trade_amount: 1000000, status: { value: 'CNF' } },
     arbiterOptions: [{}],
     dragSlideOn: true
   })
-  return { vm, events, requests, setControls: value => { controls = value }, setFailure: value => { failure = value }, setIdentityFailure: value => { identityFailure = value } }
+  return { vm, events, requests, setControls: value => { controls = value }, setFailure: value => { failure = value }, setIdentityFailure: value => { identityFailure = value }, setServerOrderResponse: value => { serverOrderResponse = value } }
 }
 
 describe('P2P escrow pause', () => {
@@ -530,6 +532,74 @@ describe('Immutable P2P profile identities', () => {
 })
 
 describe('P2P identity checks at financial boundaries', () => {
+  it('blocks seller release on a contract address mismatch before identity checks or key extraction', async () => {
+    const source = readFileSync('src/components/ramp/fiat/PaymentConfirmation.vue', 'utf8')
+    const start = source.indexOf('    async releaseBch ()')
+    const end = source.indexOf('\n    },', start) + 7
+    const events = []
+    const component = new Function('wallet', 'assertP2PIdentity', `return { ${source.slice(start, end)} }`)(
+      { keypair () { events.push('keypair') } }, async () => { events.push('identity') }
+    )
+    const vm = { data: { escrow: { getAddress: () => 'other-contract' }, contract: { address: 'expected-contract' } } }
+    await component.releaseBch.call(vm)
+    assert.deepEqual(events, [])
+    assert.deepEqual(vm.sendErrors, ['contract addresses mismatched'])
+    assert.equal(vm.sendingBch, false)
+  })
+
+  for (const change of ['address', 'amount', 'contract', 'order', 'unmount']) {
+    it(`blocks funding when ${change} changes during async checks`, async () => {
+      const h = harness()
+      h.vm.escrowContract.getUtxos = async () => {
+        if (change === 'address') h.vm.contractAddress = 'other-contract'
+        if (change === 'amount') h.vm.transferAmount = 10
+        if (change === 'contract') h.vm.escrowContract = { ...h.vm.escrowContract }
+        if (change === 'order') h.vm.order = { ...h.vm.order, id: 8 }
+        if (change === 'unmount') h.vm.disposed = true
+        return []
+      }
+      await h.vm.escrowBch()
+      assert(!h.events.includes('broadcast'))
+      assert(h.vm.sendErrors.length)
+    })
+  }
+
+  for (const stored of [false, true]) {
+    it(`blocks duplicate funding with a ${stored ? 'persisted' : 'local'} txid while indexing is pending`, async () => {
+      const h = harness()
+      if (stored) h.vm.$store.getters['ramp/getOrderTxid'] = () => 'synthetic-txid'
+      else h.vm.txid = 'synthetic-txid'
+      await h.vm.escrowBch()
+      assert(!h.events.includes('broadcast'))
+      assert.match(h.vm.sendErrors[0], /already sent/)
+    })
+  }
+
+  for (const status of ['CNCL', 'ESCRW', 'RLS']) {
+    it(`blocks funding when the fresh server status is ${status}`, async () => {
+      const h = harness()
+      h.setServerOrderResponse({ status: 200, data: { ...h.vm.order, status: { value: status } } })
+      await h.vm.escrowBch()
+      assert(!h.events.includes('broadcast'))
+      assert.match(h.vm.sendErrors[0], /no longer ready/)
+    })
+  }
+
+  for (const kind of ['cached', 'non-200', 'amount', 'identity']) {
+    it(`blocks funding on a ${kind} server order response`, async () => {
+      const h = harness()
+      const response = { status: 200, data: { ...h.vm.order } }
+      if (kind === 'cached') response.cached = true
+      if (kind === 'non-200') response.status = 202
+      if (kind === 'amount') response.data.trade_amount++
+      if (kind === 'identity') response.data.id++
+      h.setServerOrderResponse(response)
+      await h.vm.escrowBch()
+      assert(!h.events.includes('broadcast'))
+      assert.match(h.vm.sendErrors[0], /no longer ready/)
+    })
+  }
+
   it('does not fund or automatically retry when a restored wallet mismatches', async () => {
     const h = harness()
     h.setIdentityFailure(Object.assign(new Error('Synthetic identity mismatch'), { code: 'p2p_identity_mismatch' }))

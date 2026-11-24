@@ -1059,6 +1059,9 @@ onSelectAttachment (methodIndex, methodId) {
       const beContractAddr = vm.data?.contract.address
       if (feContractAddr !== beContractAddr) {
         vm.sendErrors.push('contract addresses mismatched')
+        vm.sendingBch = false
+        vm.showDragSlide = true
+        return
       }
       const sellerMember = (vm.data?.contract?.members).find(member => { return member.member_type === 'SELLER' })
       try {

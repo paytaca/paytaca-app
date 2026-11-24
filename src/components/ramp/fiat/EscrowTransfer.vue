@@ -188,6 +188,7 @@ export default {
     return {
       darkMode: this.$store.getters['darkmode/getStatus'],
       loading: false,
+      disposed: false,
       availabilityFailure: null,
       loadFailure: false,
       order: null,
@@ -261,6 +262,9 @@ export default {
   async mounted () {
     await this.loadData()
   },
+  beforeUnmount () {
+    this.disposed = true
+  },
   methods: {
     getDarkModeClass,
     toggleContractInfo () {
@@ -330,7 +334,7 @@ export default {
     },
     async escrowBch () {
       const vm = this
-      if (vm.sendingBch || vm.loading || vm.loadFailure) return
+      if (vm.disposed || vm.sendingBch || vm.loading || vm.loadFailure) return
       if (!vm.contractAddressMatch) {
         vm.sendErrors.push('Contract address mismatch')
         vm.dragSlideOn = true
@@ -339,22 +343,48 @@ export default {
       }
       console.log('Contract address matched. Sending BCH...')
       vm.sendingBch = true
+      const escrow = vm.escrowContract
+      const orderId = vm.order?.id
+      const address = vm.contractAddress
+      const amount = vm.transferAmount
+      const tradeAmount = Number(vm.order?.trade_amount)
+      const check = () => {
+        if (vm.disposed || vm.escrowContract !== escrow || vm.order?.id !== orderId ||
+            vm.order?.status?.value !== 'CNF' || Number(vm.order?.trade_amount) !== tradeAmount ||
+            vm.contractAddress !== address || vm.transferAmount !== amount || escrow.getAddress() !== address ||
+            !Number.isFinite(amount) || amount <= 0) {
+          throw new Error('The escrow details changed. Please reopen this order before funding.')
+        }
+        if (vm.txid || vm.$store.getters['ramp/getOrderTxid'](orderId, 'ESCROW')) {
+          throw new Error('Escrow funding was already sent. Retry verification without sending funds again.')
+        }
+      }
       try {
-        const utxos = await vm.escrowContract.getUtxos()
+        check()
+        const utxos = await escrow.getUtxos()
         if (vm.escrowBalance === 0 && utxos.length === 0) {
-          vm.$store.commit('ramp/clearOrderTxids', vm.order?.id)
           console.log(`Sending ${vm.transferAmount} BCH to ${vm.contractAddress}`)
           const fundingWallet = wallet
           const rawWallet = await fundingWallet.getRawWallet()
           const changeAddress = await getChangeAddress('bch', { isChipnet: rawWallet.isChipnet })
           await fetchP2PAvailability(backend, 'ORDER_ESCROW')
+          const orderResponse = await backend.get(`/ramp-p2p/order/${orderId}/`, {
+            authorize: 'peer', cache: false, params: { _fresh: Date.now() }, timeout: 10000
+          })
+          const currentOrder = orderResponse.data
+          if (orderResponse.status !== 200 || orderResponse.cached === true ||
+              String(currentOrder?.id) !== String(orderId) || currentOrder?.status?.value !== 'CNF' ||
+              Number(currentOrder?.trade_amount) !== tradeAmount) {
+            throw new Error('This order is no longer ready for escrow funding. Please refresh the order.')
+          }
           const registered = await assertP2PIdentity({
-            public_key: vm.escrowContract.publicKeys.seller,
-            address: vm.escrowContract.addresses.seller,
+            public_key: escrow.publicKeys.seller,
+            address: escrow.addresses.seller,
             address_path: wallet.addressPath()
           }, 'peer')
           fundingWallet.assertIdentity(registered)
-          const result = await rawWallet.sendBch(vm.transferAmount, vm.contractAddress, changeAddress)
+          check()
+          const result = await rawWallet.sendBch(amount, address, changeAddress)
           console.log('sendBch:', result)
           if (result?.success) {
             vm.txid = result.txid
