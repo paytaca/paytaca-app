@@ -121,6 +121,14 @@ export default {
         this.$q.notify({ type: 'error', message: error.message, timeout: 5000 })
         return
       }
+      if (error?.code === 'ECONNABORTED' && /timeout/i.test(error.message || '')) {
+        this.$q.notify({
+          type: 'error',
+          message: this.$t('P2PRequestTimedOut', {}, 'The P2P request timed out. Please try again.'),
+          timeout: 5000
+        })
+        return
+      }
       // Suppress ECONNABORTED — these are XHR aborts from
       // requestManager.abortAll on navigation, not actual HTTP timeouts.
       if (error?.code === 'ECONNABORTED') return

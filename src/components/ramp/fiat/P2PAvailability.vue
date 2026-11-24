@@ -1,7 +1,7 @@
 <template>
   <div class="full-width">
     <q-dialog :model-value="!!error" persistent>
-      <q-card class="pt-card text-center q-pa-md" :dark="$store.getters['darkmode/getStatus']" style="width: 360px; max-width: 90vw;">
+      <q-card class="pt-card text-bow text-center q-pa-md" :class="$store.getters['darkmode/getStatus'] ? 'dark' : 'light'" :dark="$store.getters['darkmode/getStatus']" style="width: 360px; max-width: 90vw;">
         <q-card-section>
           <q-icon name="engineering" size="56px" color="primary" />
           <div class="text-body1 q-mt-md" role="alert">{{ message }}</div>
@@ -24,6 +24,7 @@ import { fetchP2PAvailability, p2pAvailabilityMessage } from 'src/exchange/avail
 import { bus } from 'src/wallet/event-bus'
 
 export default {
+  emits: ['available'],
   data () {
     return { checking: true, error: null, screenKey: 0, retryTimer: null, retryCount: 0, requestPending: false, disposed: false }
   },
@@ -84,6 +85,7 @@ export default {
         this.retryCount = 0
         // Recovery remounts deep pages and discards unfinished form state; no financial action is replayed.
         this.screenKey++
+        this.$emit('available')
       } catch (error) {
         if (!this.disposed) {
           this.error = error

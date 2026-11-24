@@ -239,7 +239,7 @@ export async function fetchOrders (context, { statusType = null, params = null, 
   })
 }
 
-export function fetchAppeals (context, { appealState = null, params = null, overwrite = false }) {
+export function fetchAppeals (context, { appealState = null, params = null, overwrite = false, signal = null }) {
   return new Promise((resolve, reject) => {
     const state = context.state
     const appealsPageNumber = context.getters.appealsPageNumber
@@ -265,7 +265,7 @@ export function fetchAppeals (context, { appealState = null, params = null, over
       if (pageNumber !== null) pageNumber++
       params.page = pageNumber
       params.limit = state.itemsPerPage
-      backend.get('/ramp-p2p/appeal/', { params: params, authorize: true })
+      backend.get('/ramp-p2p/appeal/', { params: params, authorize: 'arbiter', cache: false, timeout: 10000, signal })
         .then(response => {
           switch (appealState) {
             case 'PENDING':

@@ -1,15 +1,8 @@
 <template>
-  <P2PAvailability>
+  <P2PAvailability @available="onP2PAvailable">
   <div id="app-container" class="row" :class="getDarkModeClass(darkMode)" v-if="!openVersionUpdate">
     <router-view v-if="isloaded" :key="$route.name"></router-view>
     <RampLogin v-else-if="showRegistration" @logged-in="onRegistered" />
-    <div v-else-if="authError" class="full-width q-pa-lg text-center">
-      <HeaderNav title="P2P Ramp" backnavpath="/apps" class="header-nav" />
-      <p role="alert">{{ authError }}</p>
-      <q-btn color="primary" :label="$t('Retry')" :loading="checking" @click="getUser" />
-      <q-btn flat :label="$t('BackToWallet', {}, 'Back to wallet')" to="/apps" />
-    </div>
-    
     <!-- Skeleton Loading State for Initial Auth -->
     <div v-else class="full-width">
       <!-- Header (visible during loading) -->
@@ -58,6 +51,7 @@ import versionUpdate from 'src/pages/transaction/dialog/versionUpdate.vue'
 import packageInfo from '../../../../package.json'
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 import { backend } from 'src/exchange/backend'
+import { isP2PAvailabilityError } from 'src/exchange/availability'
 import { bus } from 'src/wallet/event-bus.js'
 import { loadRampWallet } from 'src/exchange/wallet'
 import { loadAuthenticatedUser } from 'src/exchange/auth'
@@ -79,7 +73,6 @@ export default {
       openVersionUpdate: false,
       appDisabled: false,
       checking: false,
-      authError: null,
       showRegistration: false,
       authAttempt: 0,
       disposed: false
@@ -145,6 +138,9 @@ export default {
   },
   methods: {
     getDarkModeClass,
+    onP2PAvailable () {
+      if (!this.isloaded && !this.showRegistration) return this.getUser()
+    },
     async onRegistered () {
       this.showRegistration = false
       await this.getUser()
@@ -156,7 +152,6 @@ export default {
       const isCurrent = () => !this.disposed && attempt === this.authAttempt && identity === this.walletIdentity
       this.checking = true
       this.isloaded = false
-      this.authError = null
       try {
         const rampWallet = await loadRampWallet()
         if (!isCurrent()) return
@@ -170,11 +165,20 @@ export default {
         if (this.$route.name === 'exchange') this.goToMainPage()
       } catch (error) {
         if (!isCurrent()) return
+        if (isP2PAvailabilityError(error)) {
+          bus.emit('p2p-unavailable', error)
+          return
+        }
         const arbiterRoute = this.$route.matched.some(route => route.name === 'exchange-arbiter')
         if ((error?.code === 'p2p_account_missing' || error?.response?.status === 404) && !arbiterRoute) {
           this.showRegistration = true
         } else {
-          this.authError = this.$t('P2PLoginFailed', {}, 'Unable to log in to P2P. Please try again.')
+          this.$q.notify({
+            type: 'error',
+            message: this.$t('P2PLoginFailed', {}, 'Unable to log in to P2P. Please try again.'),
+            timeout: 5000
+          })
+          await this.$router.replace('/apps')
         }
       } finally {
         if (isCurrent()) this.checking = false

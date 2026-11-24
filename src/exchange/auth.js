@@ -107,7 +107,7 @@ export class ExchangeUser {
   }
 
   async getOTP () {
-    const { data: { otp } } = await backend.get(`/auth/otp/${this.user_type}`, { authorize: false })
+    const { data: { otp } } = await backend.get(`/auth/otp/${this.user_type}`, { authorize: false, cache: false, timeout: 10000 })
     return otp
   }
 
@@ -134,7 +134,7 @@ export class ExchangeUser {
       signature: signature,
       public_key: pubkey
     }
-    const loginResponse = await backend.post(`/auth/login/${this.user_type}`, body, { authorize: false })
+    const loginResponse = await backend.post(`/auth/login/${this.user_type}`, body, { authorize: false, timeout: 10000 })
     await saveAuthToken(loginResponse.data.token, this.user_type)
     return loginResponse.data.token
   }
@@ -176,7 +176,7 @@ export class ExchangeUser {
 
 export async function fetchUser () {
   try {
-    const { data: userData } = await backend.get('/auth/', { authorize: false, cache: false })
+    const { data: userData } = await backend.get('/auth/', { authorize: false, cache: false, timeout: 10000 })
     return new ExchangeUser(userData)
   } catch (error) {
     const status = error?.response?.status

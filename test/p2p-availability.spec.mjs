@@ -525,6 +525,7 @@ describe('P2P maintenance screen', () => {
     const listeners = new Map()
     const document = { hidden: false, addEventListener: (name, callback) => listeners.set(name, callback), removeEventListener: name => listeners.delete(name) }
     const commits = []
+    const emitted = []
     const timers = new Map()
     let timerId = 0
     const bindings = {
@@ -548,11 +549,22 @@ describe('P2P maintenance screen', () => {
     const component = new Function(...Object.keys(bindings), script)(...Object.values(bindings))
     const vm = {
       ...component.data(),
-      $store: { commit: (...args) => commits.push(args) }
+      $store: { commit: (...args) => commits.push(args) },
+      $emit: (...args) => emitted.push(args)
     }
     for (const [name, method] of Object.entries(component.methods)) vm[name] = method.bind(vm)
-    return { vm, state, commits, timers, document, listeners, create: () => component.created.call(vm), unmount: () => component.beforeUnmount.call(vm) }
+    return { vm, state, commits, emitted, timers, document, listeners, create: () => component.created.call(vm), unmount: () => component.beforeUnmount.call(vm) }
   }
+
+  it('notifies the parent when maintenance clears so authentication can resume', async () => {
+    const h = screenHarness()
+    await h.vm.retry()
+    assert.deepEqual(h.emitted, [])
+    h.state.controls = available
+    await h.vm.retry()
+    assert.deepEqual(h.emitted, [['available']])
+    assert.equal(h.vm.checking, false)
+  })
 
   it('stops loading on failure and retries availability without replaying financial actions', async () => {
     const h = screenHarness()
@@ -1740,6 +1752,7 @@ describe('P2P login chat authentication recovery', () => {
           const data = { ...h.registered, name: 'Synthetic name', is_authenticated: authenticated }
           if (url === '/auth/') {
             assert.equal(config.authorize, false)
+            assert.equal(config.timeout, 10000)
             if (session.lookupError) throw session.lookupError
             return { status: 200, data }
           }
@@ -1755,12 +1768,14 @@ describe('P2P login chat authentication recovery', () => {
             return response
           }
           assert.equal(url, '/auth/otp/peer')
+          assert.equal(config.timeout, 10000)
           events.push('otp')
           if (session.otpError) throw session.otpError
           return { data: { otp: 'synthetic-otp' } }
         },
-        async post (url) {
+        async post (url, body, config) {
           assert.equal(url, '/auth/login/peer')
+          assert.equal(config.timeout, 10000)
           events.push('login')
           return { data: { token: `synthetic-new-token-${++logins}` } }
         }
@@ -2044,12 +2059,14 @@ describe('P2P entry authentication gate', () => {
     const state = { hash: 'wallet-a', index: 0, chipnet: false, calls: [], authenticate: async () => ({ id: 'synthetic-user', is_arbiter: false }) }
     const commits = []
     const redirects = []
+    const notifications = []
+    const events = []
     const bindings = {
       P2PAvailability: {}, HeaderNav: {}, OngoingMaintenanceDialog: {}, RampLogin: {},
-      getDarkModeClass () {},
+      getDarkModeClass () {}, isP2PAvailabilityError,
       loadRampWallet: async () => { state.calls.push('wallet'); return { walletHash: state.hash } },
       loadAuthenticatedUser: async () => { state.calls.push('auth'); return state.authenticate() },
-      bus: { off () {} }
+      bus: { off () {}, emit: (...args) => events.push(args) }
     }
     const source = readFileSync('src/pages/apps/exchange/index.vue', 'utf8')
     const script = source.match(/<script>([\s\S]*?)<\/script>/)[1].replace(/^import .*$/gm, '').replace('export default', 'return')
@@ -2066,11 +2083,12 @@ describe('P2P entry authentication gate', () => {
       ...view.data.call({ $store: store }), $store: store,
       $route: { name: routeName, query: {}, matched: routeName.startsWith('arbiter') ? [{ name: 'exchange-arbiter' }] : [] },
       $router: { replace: route => redirects.push(route) },
+      $q: { notify: notification => notifications.push(notification) },
       $t: (key, values, fallback) => fallback || key
     }
     Object.defineProperty(vm, 'walletIdentity', { get: () => view.computed.walletIdentity.call(vm) })
     for (const [name, method] of Object.entries(view.methods)) vm[name] = method.bind(vm)
-    return { vm, view, state, commits, redirects }
+    return { vm, view, state, commits, redirects, notifications, events }
   }
 
   it('loads the wallet then authenticates before opening the app or redirecting', async () => {
@@ -2091,18 +2109,79 @@ describe('P2P entry authentication gate', () => {
     assert.equal(h.redirects[0].name, 'p2p-store')
   })
 
-  it('keeps all protected pages blocked on login failure and supports a manual retry', async () => {
+  it('keeps protected pages blocked and returns to the wallet on login failure', async () => {
     const h = entryHarness()
     h.state.authenticate = async () => { throw { response: { status: 401 } } }
     await h.vm.getUser()
     assert.equal(h.vm.isloaded, false)
-    assert(h.vm.authError)
-    assert.equal(h.redirects.length, 0)
+    assert.equal(h.notifications[0].type, 'error')
+    assert.deepEqual(h.redirects, ['/apps'])
     assert.equal(h.state.calls.filter(value => value === 'auth').length, 1)
     h.state.authenticate = async () => ({ is_arbiter: false })
     await h.vm.getUser()
     assert.equal(h.vm.isloaded, true)
-    assert.equal(h.vm.authError, null)
+    assert.equal(h.vm.authError, undefined)
+  })
+
+  for (const code of ['p2p_maintenance', 'p2p_availability_unverified']) {
+    it(`delegates ${code} to the existing P2P popup without a login notification or redirect`, async () => {
+      const h = entryHarness()
+      const error = { response: { status: 503, data: { code } } }
+      h.state.authenticate = async () => { throw error }
+      await h.vm.getUser()
+      assert.equal(h.vm.isloaded, false)
+      assert.equal(h.vm.checking, false)
+      assert.equal(h.notifications.length, 0)
+      assert.equal(h.redirects.length, 0)
+      assert.deepEqual(h.events, [['p2p-unavailable', error]])
+    })
+  }
+
+  it('resumes arbiter login after the maintenance popup clears', async () => {
+    const h = entryHarness('arbiter-appeals')
+    h.state.authenticate = async () => { throw { response: { status: 503, data: { code: 'p2p_maintenance' } } } }
+    await h.vm.getUser()
+    assert.equal(h.vm.isloaded, false)
+    assert.equal(h.vm.checking, false)
+    assert.equal(h.notifications.length, 0)
+    h.state.authenticate = async () => ({ id: 'synthetic-arbiter', is_arbiter: true })
+    await h.vm.onP2PAvailable()
+    assert.equal(h.vm.isloaded, true)
+    assert.equal(h.state.calls.filter(value => value === 'auth').length, 2)
+    assert.equal(h.redirects.length, 0)
+  })
+
+  it('does not restart login for an already loaded page or an open signup form', async () => {
+    const h = entryHarness('arbiter-appeals')
+    h.vm.isloaded = true
+    await h.vm.onP2PAvailable()
+    h.vm.isloaded = false
+    h.vm.showRegistration = true
+    await h.vm.onP2PAvailable()
+    assert.deepEqual(h.state.calls, [])
+  })
+
+  it('does not duplicate an in-flight arbiter login on availability recovery', async () => {
+    const h = entryHarness('arbiter-appeals')
+    let finish
+    h.state.authenticate = () => new Promise(resolve => { finish = resolve })
+    const pending = h.vm.getUser()
+    await new Promise(resolve => setImmediate(resolve))
+    await h.vm.onP2PAvailable()
+    assert.equal(h.state.calls.filter(value => value === 'auth').length, 1)
+    finish({ id: 'synthetic-arbiter', is_arbiter: true })
+    await pending
+    assert.equal(h.vm.isloaded, true)
+  })
+
+  it('shows a notification and leaves the arbiter gate when authentication times out', async () => {
+    const h = entryHarness('arbiter-appeals')
+    h.state.authenticate = async () => { throw Object.assign(new Error('timeout of 10000ms exceeded'), { code: 'ECONNABORTED' }) }
+    await h.vm.getUser()
+    assert.equal(h.vm.checking, false)
+    assert.equal(h.vm.isloaded, false)
+    assert.equal(h.notifications.length, 1)
+    assert.deepEqual(h.redirects, ['/apps'])
   })
 
   it('preserves deep-linked pages after authentication', async () => {
@@ -2125,7 +2204,7 @@ describe('P2P entry authentication gate', () => {
     await h.vm.getUser()
     assert.equal(h.vm.showRegistration, true)
     assert.equal(h.vm.isloaded, false)
-    assert.equal(h.vm.authError, null)
+    assert.equal(h.vm.authError, undefined)
   })
 
   it('opens existing signup for an explicit missing-account response from the local server', async () => {
@@ -2134,7 +2213,7 @@ describe('P2P entry authentication gate', () => {
     await h.vm.getUser()
     assert.equal(h.vm.showRegistration, true)
     assert.equal(h.vm.isloaded, false)
-    assert.equal(h.vm.authError, null)
+    assert.equal(h.vm.authError, undefined)
   })
 
   it('does not introduce registration on arbiter routes', async () => {
@@ -2142,7 +2221,8 @@ describe('P2P entry authentication gate', () => {
     h.state.authenticate = async () => { throw { response: { status: 404 } } }
     await h.vm.getUser()
     assert.equal(h.vm.showRegistration, false)
-    assert(h.vm.authError)
+    assert.equal(h.notifications[0].type, 'error')
+    assert.deepEqual(h.redirects, ['/apps'])
   })
 
   it('discards an old wallet response and verifies the newly selected wallet', async () => {
@@ -4202,5 +4282,125 @@ describe('P2P appeal settlement submission', () => {
     vm.sendingBch = true
     await message({ success: true, status: { value: 'RFN_PN' } })
     assert.deepEqual(events, ['appeal', 'order'])
+  })
+})
+
+
+describe('P2P arbiter loading recovery', () => {
+  function method (path, name, bindings = {}) {
+    const source = readFileSync(path, 'utf8')
+    const start = Math.max(source.indexOf(`    ${name} (`), source.indexOf(`    async ${name} (`))
+    const end = source.indexOf('\n    },', start) + 7
+    return new Function(...Object.keys(bindings), `return { ${source.slice(start, end)} }`)(...Object.values(bindings))[name]
+  }
+
+  function listingHarness () {
+    const requests = []
+    const errors = []
+    const state = { dispatch: async () => ({ ongoing_count: 2 }) }
+    const vm = {
+      statusType: 'PENDING', loading: true, lastFetchTime: Date.now(), minFetchInterval: 500,
+      fetchAbortController: null, footerData: { ongoingOrdersCount: 0 },
+      $store: { dispatch: async (...args) => { requests.push(args); return state.dispatch(...args) } },
+      handleRequestError: error => errors.push(error)
+    }
+    vm.fetchAppeals = method('src/components/ramp/appeal/AppealListing.vue', 'fetchAppeals').bind(vm)
+    return { vm, state, requests, errors }
+  }
+
+  it('fetches again after a rapid refresh when the previous request has finished', async () => {
+    const h = listingHarness()
+    await h.vm.fetchAppeals(true)
+    assert.equal(h.requests.length, 1)
+    assert.equal(h.vm.loading, false)
+    assert.equal(h.vm.footerData.ongoingOrdersCount, 2)
+    assert.equal(h.vm.fetchAbortController, null)
+  })
+
+  it('keeps the active request responsible for clearing loading when a rapid duplicate is skipped', async () => {
+    const h = listingHarness()
+    let finish
+    h.state.dispatch = () => new Promise(resolve => { finish = resolve })
+    const pending = h.vm.fetchAppeals(true)
+    await h.vm.fetchAppeals(true)
+    assert.equal(h.requests.length, 1)
+    assert.equal(h.vm.loading, true)
+    finish({ ongoing_count: 3 })
+    await pending
+    assert.equal(h.vm.loading, false)
+    assert.equal(h.vm.footerData.ongoingOrdersCount, 3)
+  })
+
+  it('passes cancellation through and does not let an obsolete request clear the new tab loading state', async () => {
+    const h = listingHarness()
+    let finishFirst
+    let finishSecond
+    h.state.dispatch = () => new Promise(resolve => { finishFirst = resolve })
+    const first = h.vm.fetchAppeals(true)
+    const oldSignal = h.requests[0][1].signal
+    h.vm.fetchAbortController.abort()
+    h.vm.statusType = 'RESOLVED'
+    h.state.dispatch = () => new Promise(resolve => { finishSecond = resolve })
+    const second = h.vm.fetchAppeals(true)
+    assert.equal(h.requests.length, 2)
+    assert.equal(oldSignal.aborted, true)
+    finishFirst({ ongoing_count: 99 })
+    await first
+    assert.equal(h.vm.loading, true)
+    assert.equal(h.vm.footerData.ongoingOrdersCount, 0)
+    finishSecond({ ongoing_count: 4 })
+    await second
+    assert.equal(h.vm.loading, false)
+    assert.equal(h.vm.footerData.ongoingOrdersCount, 4)
+  })
+
+  it('clears loading and reports a timed-out appeal fetch', async () => {
+    const h = listingHarness()
+    const error = Object.assign(new Error('timeout of 10000ms exceeded'), { code: 'ECONNABORTED' })
+    h.state.dispatch = async () => { throw error }
+    await h.vm.fetchAppeals(true)
+    assert.equal(h.vm.loading, false)
+    assert.equal(h.vm.fetchAbortController, null)
+    assert.deepEqual(h.errors, [error])
+  })
+
+  it('sets a finite timeout and explicit arbiter authentication on appeal-list requests', async () => {
+    const source = readFileSync('src/store/ramp/actions.js', 'utf8')
+    const start = source.indexOf('export function fetchAppeals (')
+    const end = source.indexOf('\nexport function ', start + 1)
+    const calls = []
+    const commits = []
+    const backend = { get: async (...args) => { calls.push(args); return { data: { appeals: [], ongoing_count: 0 } } } }
+    const fetchAppeals = new Function('backend', `${source.slice(start, end).replace('export ', '')}; return fetchAppeals`)(backend)
+    const controller = new AbortController()
+    await fetchAppeals({
+      state: { itemsPerPage: 10 },
+      getters: { appealsPageNumber: () => null, appealsTotalPages: () => null },
+      commit: (...args) => commits.push(args)
+    }, { appealState: 'PENDING', params: {}, overwrite: true, signal: controller.signal })
+    assert.equal(calls[0][1].authorize, 'arbiter')
+    assert.equal(calls[0][1].timeout, 10000)
+    assert.equal(calls[0][1].cache, false)
+    assert.equal(calls[0][1].signal, controller.signal)
+    assert.equal(commits.length, 2)
+  })
+
+  it('shows timeout notifications in the arbiter layout while ignoring navigation cancellations', () => {
+    const notifications = []
+    const events = []
+    const vm = {
+      $q: { notify: notification => notifications.push(notification) },
+      $t: (key, params, fallback) => fallback
+    }
+    const handle = method('src/pages/apps/exchange/arbiter/index.vue', 'handleRequestError', {
+      bus: { emit: (...args) => events.push(args) }
+    })
+    handle.call(vm, { code: 'ECONNABORTED', message: 'Request aborted' })
+    assert.equal(notifications.length, 0)
+    handle.call(vm, { code: 'ECONNABORTED', message: 'timeout of 10000ms exceeded' })
+    assert.equal(notifications.length, 1)
+    assert.equal(notifications[0].type, 'error')
+    assert.match(notifications[0].message, /timed out/)
+    assert.deepEqual(events, [])
   })
 })
