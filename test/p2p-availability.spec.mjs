@@ -2032,13 +2032,50 @@ describe('P2P verification of already-broadcast escrow funding', () => {
     assert(h.events.includes('success'))
   })
 
+  it('skips release verification when the server already reports RLS', async () => {
+    const h = verificationHarness()
+    h.vm.data.action = 'RELEASE'
+    h.state.get = async () => ({ data: { status: { value: 'RLS' } } })
+    await h.vm.checkTransferStatus()
+    assert.deepEqual(h.calls.map(call => call[0]), ['get'])
+    assert.equal(h.calls[0][2].cache, false)
+    assert.equal(h.events.filter(event => event === 'success').length, 1)
+  })
+
+  it('accepts release completed between the status check and verification request', async () => {
+    const h = verificationHarness()
+    h.vm.data.action = 'RELEASE'
+    let reads = 0
+    h.state.get = async () => ({ data: { status: { value: ++reads === 1 ? 'PD' : 'RLS' } } })
+    h.state.post = async () => { throw { response: { status: 400, data: { error: 'Already released' } } } }
+    await h.vm.checkTransferStatus()
+    assert.deepEqual(h.calls.map(call => call[0]), ['get', 'post', 'get'])
+    assert.equal(h.events.filter(event => event === 'success').length, 1)
+  })
+
+  it('does not duplicate release verification while the initial status check is pending', async () => {
+    const h = verificationHarness()
+    h.vm.data.action = 'RELEASE'
+    let finish
+    h.state.get = () => new Promise(resolve => { finish = resolve })
+    const pending = h.vm.checkTransferStatus()
+    await h.vm.verifyRelease()
+    h.vm.checkTransferStatus()
+    assert.equal(h.calls.length, 1)
+    h.view.beforeUnmount.call(h.vm)
+    finish({ data: { status: { value: 'PD' } } })
+    await pending
+    assert.equal(h.calls.filter(call => call[0] === 'post').length, 0)
+    assert.equal(h.events.includes('success'), false)
+  })
+
   it('does not report release success while backend validation is pending', async () => {
     const h = verificationHarness()
     h.vm.data.action = 'RELEASE'
     h.state.get = async () => ({ data: { status: { value: 'PD' } } })
     await h.vm.checkTransferStatus()
     assert.equal(h.calls.filter(call => call[0] === 'post').length, 1)
-    assert.equal(h.calls.filter(call => call[0] === 'get').length, 6)
+    assert.equal(h.calls.filter(call => call[0] === 'get').length, 7)
     assert.equal(h.events.includes('success'), false)
     assert.equal(h.vm.showRetryBtn, true)
     assert.match(h.vm.errorMessage, /Release verification is still pending/)
@@ -2048,9 +2085,10 @@ describe('P2P verification of already-broadcast escrow funding', () => {
     const h = verificationHarness()
     h.vm.data.action = 'RELEASE'
     h.state.post = async () => { throw { response: { status: 400, data: { error: 'duplicate txid' } } } }
-    h.state.get = async () => ({ data: { status: { value: 'RLS' } } })
+    let reads = 0
+    h.state.get = async () => ({ data: { status: { value: ++reads === 1 ? 'PD' : 'RLS' } } })
     await h.vm.checkTransferStatus()
-    assert.deepEqual(h.calls.map(call => call[0]), ['post', 'get'])
+    assert.deepEqual(h.calls.map(call => call[0]), ['get', 'post', 'get'])
     assert(h.events.includes('success'))
   })
 
@@ -2059,7 +2097,7 @@ describe('P2P verification of already-broadcast escrow funding', () => {
     h.vm.data.action = 'RELEASE'
     h.state.post = async () => { throw { response: { status: 401 } } }
     await h.vm.checkTransferStatus()
-    assert.equal(h.calls.length, 1)
+    assert.equal(h.calls.length, 2)
     assert.equal(h.events.includes('success'), false)
     assert.equal(h.vm.showRetryBtn, true)
   })
@@ -2208,7 +2246,7 @@ describe('P2P order WebSocket status refresh', () => {
       subscribeToMessages (callback) { this.message = callback }
     }
     const source = readFileSync('src/pages/apps/exchange/peer_to_peer/order.vue', 'utf8')
-    const methods = ['fetchOrder', 'setupWebSocket', 'getPaidState'].map(name => {
+    const methods = ['fetchOrder', 'setupWebSocket', 'ensureChatWebSocket', 'getPaidState'].map(name => {
       const start = Math.max(source.indexOf(`    ${name} (`), source.indexOf(`    async ${name} (`))
       const end = source.indexOf('\n    }', start) + 6
       return source.slice(start, end)
@@ -2305,4 +2343,112 @@ describe('P2P saved release transaction state', () => {
     vm.getTxidByAction = () => null
     assert.equal(component.getPaidState.call(vm, kwargs), 'payment-confirmation')
   })
+})
+
+
+describe('P2P post-release chat and feedback', () => {
+  function method (path, name, bindings = {}) {
+    const source = readFileSync(path, 'utf8')
+    const start = Math.max(source.indexOf(`    ${name} (`), source.indexOf(`    async ${name} (`))
+    const end = source.indexOf('\n    },', start) + 7
+    return new Function(...Object.keys(bindings), `return { ${source.slice(start, end)} }`)(...Object.values(bindings))[name]
+  }
+
+  function receiptHarness () {
+    const source = readFileSync('src/exchange/chat/index.js', 'utf8')
+    const start = source.indexOf('export async function updateLastRead (')
+    const end = source.indexOf('\nexport function sendChatMessage', start)
+    const calls = []
+    const chatBackend = { post: async (...args) => { calls.push(args); return { data: {} } } }
+    const update = new Function('chatBackend', `${source.slice(start, end).replace('export ', '')}; return updateLastRead`)(chatBackend)
+    return { update, calls }
+  }
+
+  for (const messages of [[], [{}], [{ createdAt: new Date('invalid') }], [{ createdAt: Infinity }]]) {
+    it(`skips invalid read receipts for ${JSON.stringify(messages)}`, async () => {
+      const h = receiptHarness()
+      await h.update('synthetic-chat', messages)
+      assert.equal(h.calls.length, 0)
+    })
+  }
+
+  it('sends a valid read receipt using the latest valid message', async () => {
+    const h = receiptHarness()
+    await h.update('synthetic-chat', [{ createdAt: new Date(2000) }, {}, { createdAt: new Date(1000) }])
+    assert.equal(h.calls.length, 1)
+    assert.equal(h.calls[0][0], 'chat/sessions/synthetic-chat/chat_member/')
+    assert.equal(h.calls[0][1].last_read_timestamp.getTime(), 3000)
+    assert.equal(h.calls[0][2].forceSign, true)
+    await h.update('', [{ createdAt: new Date(2000) }])
+    assert.equal(h.calls.length, 1)
+  })
+
+  it('reuses an existing connecting chat socket and subscribes once', () => {
+    const sockets = []
+    const events = []
+    class WebSocketManager {
+      constructor () { sockets.push(this); this.subscriptions = 0 }
+      subscribeToMessages (callback) { this.subscriptions++; this.message = callback }
+      setWebSocketUrl (url) { this.url = url }
+      closeConnection () { throw new Error('Must not close the chat connection') }
+    }
+    const ensure = method('src/pages/apps/exchange/peer_to_peer/order.vue', 'ensureChatWebSocket', {
+      WebSocketManager, getChatBackendWsUrl: () => 'wss://example.test/ws/chat/',
+      bus: { emit: (...args) => events.push(args) }
+    })
+    const vm = { websockets: {}, chatRef: 'synthetic-chat', disposed: false }
+    ensure.call(vm)
+    ensure.call(vm)
+    assert.equal(sockets.length, 1)
+    assert.equal(sockets[0].subscriptions, 1)
+    sockets[0].message({ type: 'new_message', data: { id: 1 } })
+    assert.deepEqual(events, [['last-read-update'], ['new-message', { id: 1 }]])
+    vm.chatRef = 'another-chat'
+    ensure.call(vm)
+    assert.equal(sockets[0].url, 'wss://example.test/ws/chat/another-chat/')
+    vm.disposed = true
+    vm.chatRef = 'obsolete-chat'
+    ensure.call(vm)
+    assert.equal(sockets[0].url, 'wss://example.test/ws/chat/another-chat/')
+  })
+
+  it('prevents concurrent chat loads while the first request is pending', async () => {
+    let finish
+    let loads = 0
+    const load = method('src/pages/apps/exchange/peer_to_peer/order.vue', 'loadChatData')
+    const vm = {
+      chatRef: 'synthetic-chat', chatLoaded: false, chatLoading: false,
+      loadKeyPair: () => { loads++; return new Promise(resolve => { finish = resolve }) }
+    }
+    const pending = load.call(vm)
+    await load.call(vm)
+    assert.equal(loads, 1)
+    vm.loadChatIdentity = async () => { throw new Error('Synthetic failure') }
+    const original = console.error
+    console.error = () => {}
+    try {
+      finish()
+      await pending
+    } finally {
+      console.error = original
+    }
+    assert.equal(vm.chatLoading, false)
+    assert.equal(vm.chatLoaded, false)
+  })
+
+  for (const history of [[], [{ status: 'PD' }, { status: 'RLS' }], [{ status: 'APL' }, { status: 'RLS' }], [{ status: { value: 'APL' } }]]) {
+    it(`checks appeal history without probing a missing appeal: ${JSON.stringify(history)}`, async () => {
+      const calls = []
+      const check = method('src/components/ramp/fiat/dialogs/FeedbackForm.vue', 'checkAppeal', {
+        backend: { get: async (...args) => { calls.push(args); return { data: history } } },
+        bus: { emit () { throw new Error('Unexpected error') } }
+      })
+      const vm = { orderId: 24, appealed: false }
+      await check.call(vm)
+      assert.equal(calls.length, 1)
+      assert.equal(calls[0][0], '/ramp-p2p/order/24/status/')
+      assert.equal(calls[0][1].cache, false)
+      assert.equal(vm.appealed, history.some(entry => (entry.status?.value || entry.status) === 'APL'))
+    })
+  }
 })

@@ -197,29 +197,26 @@ export default {
       ]
     }
   },
-  mounted () {
-    this.checkAppeal()
+  async mounted () {
+    await this.checkAppeal()
     this.fetchFeedback()
   },
   methods: {
     getDarkModeClass,
     async checkAppeal () {
       const vm = this
-      const url = `/ramp-p2p/order/${vm.orderId}/appeal/`
+      const url = `/ramp-p2p/order/${vm.orderId}/status/`
 
-      // Peer-side endpoint; force peer token (URL-based heuristic may pick arbiter).
-      await backend.get(url, { authorize: 'peer' })
+      await backend.get(url, { authorize: 'peer', cache: false, params: { _fresh: Date.now() } })
         .then(response => {
-          vm.appealed = true
+          vm.appealed = response.data.some(entry => (entry.status?.value || entry.status) === 'APL')
         })
         .catch(error => {
           if (error.response) {
-            if (error.response.status === 400) {
-              if (error.response?.data?.error.includes('no appeal')) {
-                vm.appealed = false
-              }
-            } else if (error.response.status === 403) {
+            if ([401, 403].includes(error.response.status)) {
               bus.emit('session-expired')
+            } else {
+              bus.emit('handle-request-error', error)
             }
           } else {
             bus.emit('network-error')

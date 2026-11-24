@@ -577,6 +577,7 @@ export default {
 
       // Chat Tab
       chatLoaded: false,
+      chatLoading: false,
       chatMessages: [],
       chatMessageInput: '',
       chatAttachment: null,
@@ -907,21 +908,8 @@ export default {
           return
         }
         
-        // Re-establish chat websocket connection when entering chat tab
-        // This ensures both parties can receive messages even if one joined later
-        if (this.chatRef && this.websockets.chat) {
-          this.websockets.chat.closeConnection()
-          this.websockets.chat = new WebSocketManager()
-          this.websockets.chat.setWebSocketUrl(`${getChatBackendWsUrl()}${this.chatRef}/`)
-          this.websockets.chat.subscribeToMessages(message => {
-            if (message?.type === 'new_message') {
-              const messageData = message.data
-              bus.emit('last-read-update')
-              bus.emit('new-message', messageData)
-            }
-          })
-        }
-        
+        this.ensureChatWebSocket()
+
         if (!this.chatLoaded) {
           this.loadChatData()
         } else {
@@ -1149,8 +1137,9 @@ export default {
     },
 
     async loadChatData () {
-      if (!this.chatRef || this.chatLoaded) return
-      
+      if (this.disposed || !this.chatRef || this.chatLoaded || this.chatLoading) return
+      this.chatLoading = true
+
       try {
         await this.loadKeyPair()
         await this.loadChatIdentity()
@@ -1216,20 +1205,7 @@ export default {
         this.userHasScrolled = false
         this.justLoadedMessages = false
         
-        // Re-establish chat websocket connection after loading chat data
-        // This ensures fresh connection for receiving new messages
-        if (this.chatRef && this.websockets.chat) {
-          this.websockets.chat.closeConnection()
-          this.websockets.chat = new WebSocketManager()
-          this.websockets.chat.setWebSocketUrl(`${getChatBackendWsUrl()}${this.chatRef}/`)
-          this.websockets.chat.subscribeToMessages(message => {
-            if (message?.type === 'new_message') {
-              const messageData = message.data
-              bus.emit('last-read-update')
-              bus.emit('new-message', messageData)
-            }
-          })
-        }
+        this.ensureChatWebSocket()
 
         // Scroll to bottom with multiple attempts and stop infinite scroll if no more messages
         this.$nextTick(() => {
@@ -1255,7 +1231,8 @@ export default {
         })
       } catch (error) {
         console.error('Error loading chat:', error)
-        this.chatLoaded = true
+      } finally {
+        this.chatLoading = false
       }
     },
 
@@ -2605,7 +2582,7 @@ export default {
 
     setupWebSocket () {
       if (this.disposed) return
-      this.closeWSConnection()
+      this.websockets?.order?.closeConnection()
       // Subscribe to order updates
       if (!this.order?.id) {
         console.warn('Order ID is missing, skipping WebSocket setup')
@@ -2652,17 +2629,21 @@ export default {
         }
       })
 
-      // Subscribe to chat
-      this.websockets.chat = new WebSocketManager()
+      this.ensureChatWebSocket()
+    },
+
+    ensureChatWebSocket () {
+      if (this.disposed || !this.chatRef) return
+      if (!this.websockets.chat) {
+        this.websockets.chat = new WebSocketManager()
+        this.websockets.chat.subscribeToMessages(message => {
+          if (message?.type === 'new_message') {
+            bus.emit('last-read-update')
+            bus.emit('new-message', message.data)
+          }
+        })
+      }
       this.websockets.chat.setWebSocketUrl(`${getChatBackendWsUrl()}${this.chatRef}/`)
-      
-      this.websockets.chat.subscribeToMessages(message => {
-        if (message?.type === 'new_message') {
-          const messageData = message.data
-          bus.emit('last-read-update')
-          bus.emit('new-message', messageData)
-        }
-      })
     },
 
     closeWSConnection () {

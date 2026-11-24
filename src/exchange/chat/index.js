@@ -305,12 +305,16 @@ export async function fetchChatMembers (chatRef) {
 }
 
 export async function updateLastRead (chatRef, messages) {
+  if (!chatRef || !Array.isArray(messages)) return
   const msgTimestamps = messages
-    .map(message => message.createdAt * 1)
-    .filter(Boolean)
+    .map(message => Number(message?.createdAt))
+    .filter(timestamp => Number.isFinite(timestamp) && timestamp > 0)
+  if (!msgTimestamps.length) return
   const latest = Math.max(...msgTimestamps)
+  const lastRead = new Date(latest + 1000)
+  if (!Number.isFinite(lastRead.getTime())) return
   const data = {
-    last_read_timestamp: new Date(latest + 1000)
+    last_read_timestamp: lastRead
   }
   return chatBackend.post(`chat/sessions/${chatRef}/chat_member/`, data, { forceSign: true })
     .then(response => {

@@ -233,12 +233,19 @@ export default {
       })
     },
     async verifyRelease () {
-      if (this.disposed) return
+      if (this.disposed || this.verifyingTx) return
       const vm = this
       const body = { txid: this.transactionId }
       vm.verifyingTx = true
 
       try {
+        const { data: order } = await backend.get(`/ramp-p2p/order/${vm.data?.orderId}/`, { authorize: 'peer', cache: false, params: { _fresh: Date.now() } })
+        if (vm.disposed) return
+        if (order?.status?.value === 'RLS') {
+          vm.verifyingTx = false
+          vm.$emit('success')
+          return
+        }
         await backend.post(`/ramp-p2p/order/${vm.data?.orderId}/verify-release/`, body, { authorize: 'peer' })
         await vm.pollVerification()
       } catch (error) {
