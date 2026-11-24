@@ -24,19 +24,20 @@ export async function loadChatIdentity (usertype, params = { name: null, chat_id
   if (!wallet) await loadRampWallet()
   await assertP2PIdentity(null, usertype)
 
-  // const chatIDRef = generateChatIdentityRef(wallet.walletHash)
-
   const payload = {
     user_type: usertype,
     name: params.name,
-    chat_identity_id: params.chat_identity_id
+    chat_identity_id: params.chat_identity_id,
+    ref: generateChatIdentityRef(wallet.walletHash)
   }
 
-  // let identity = await fetchChatIdentityByRef(chatIDRef)
-  // fetch chat identity if existing, will return null if not existing
   let identity = await fetchChatIdentityById(payload.chat_identity_id)
+  if (!identity || identity.ref !== payload.ref) {
+    identity = await fetchChatIdentityByRef(payload.ref)
+  }
 
   if (identity) {
+    if (identity.ref !== payload.ref) throw new Error('The chat identity does not match the active wallet.')
     identity = chatIdentityManager.setIdentity(identity)
   }
 
@@ -46,8 +47,18 @@ export async function loadChatIdentity (usertype, params = { name: null, chat_id
 
   // Create identity, if not existing
   if (!identity) {
-    payload.ref = generateChatIdentityRef(wallet.walletHash)
-    identity = await chatIdentityManager.create(payload)
+    try {
+      identity = await chatIdentityManager.create(payload)
+    } catch (error) {
+      const refErrors = error.response?.data?.ref
+      if (error.response?.status !== 400 || !Array.isArray(refErrors) ||
+          !refErrors.some(message => /already exists/i.test(message))) throw error
+      identity = await fetchChatIdentityByRef(payload.ref)
+      if (!identity) throw error
+      if (identity.ref !== payload.ref) throw new Error('The chat identity does not match the active wallet.')
+      identity = chatIdentityManager.setIdentity(identity)
+      await chatIdentityManager._updateEncryptionKeypair(true)
+    }
   }
 
   // Update chat identity id (in watchtower) if currently unset (null) or mismatch
@@ -147,12 +158,16 @@ export async function fetchChatIdentityById (id) {
         resolve(response.data)
       })
       .catch(error => {
+        if (error.response?.status === 404) {
+          resolve(null)
+          return
+        }
         if (error.response) {
           console.error('Failed to fetch chat identity:', error.response)
         } else {
           console.error('Failed to fetch chat identity:', error)
         }
-        resolve()
+        reject(error)
       })
   })
 }

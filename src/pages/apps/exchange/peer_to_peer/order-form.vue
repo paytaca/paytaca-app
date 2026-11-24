@@ -298,12 +298,9 @@ import UserProfileDialog from 'src/components/ramp/fiat/dialogs/UserProfileDialo
 import { bchToSatoshi, satoshiToBch, fiatToBch, formatCurrency, getAppealCooldown } from 'src/exchange'
 import { ref } from 'vue'
 import { bus } from 'src/wallet/event-bus.js'
-import { createChatSession, updateChatMembers, generateChatRef } from 'src/exchange/chat'
 import { backend, getBackendWsUrl } from 'src/exchange/backend'
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 import { WebSocketManager } from 'src/exchange/websocket/manager'
-import { fetchUser } from 'src/exchange/auth'
-import { loadChatIdentity } from 'src/exchange/chat'
 import ShareDialog from 'src/components/ramp/fiat/dialogs/ShareDialog.vue'
 import { getFiatCurrencyFractionDigits, parseFiatCurrency } from 'src/utils/denomination-utils'
 import KeyboardTooltip from 'src/components/KeyboardTooltip.vue'
@@ -687,23 +684,11 @@ export default {
         body.payment_methods = temp
       }
       try {
-        await backend.post('/ramp-p2p/order/', body, { authorize: true })
-          .then(async (response) => {
-            vm.order = response.data.order
-
-            vm.state = 'order-process'
-            vm.$emit('updatePageName', 'order-process')
-
-            // Create chat identity first, if it does not exist
-            const user = await fetchUser()
-            await loadChatIdentity ('peer', { name: user?.name, chat_identity_id: user.chat_identity_id })
-
-            vm.fetchOrderMembers(vm.order.id)
-              .then(members => {
-                vm.createGroupChat(vm.order.id, members, vm.order.created_at)
-              })
-            vm.$router.push({ name: 'p2p-order', params: { order: vm.order.id } })
-          })
+        const response = await backend.post('/ramp-p2p/order/', body, { authorize: true })
+        vm.order = response.data.order
+        vm.state = 'order-process'
+        vm.$emit('updatePageName', 'order-process')
+        await vm.$router.push({ name: 'p2p-order', params: { order: vm.order.id } })
       } catch (error) {
         this.handleRequestError(error)
       } finally {
@@ -719,23 +704,6 @@ export default {
         backend.post(url, {}, { authorize: true })
           .then(response => {
             resolve(response)
-          })
-          .catch(error => {
-            this.handleRequestError(error)
-            reject(error)
-          })
-      })
-    },
-    fetchOrderMembers (orderId) {
-      return new Promise((resolve, reject) => {
-        if (!orderId) {
-          console.warn('Order ID is missing, skipping fetchOrderMembers')
-          resolve([])
-          return
-        }
-        backend.get(`/ramp-p2p/order/${orderId}/members/`, { authorize: true })
-          .then(response => {
-            resolve(response.data)
           })
           .catch(error => {
             this.handleRequestError(error)
@@ -785,30 +753,6 @@ export default {
           } else {
             console.error(error)
             bus.emit('network-error')
-          }
-        })
-    },
-    createGroupChat (orderId, members, createdAt) {
-      const vm = this
-      const chatMembers = members.map(({ chat_identity_id }) => ({ chat_identity_id, is_admin: true }))
-      const _members = [vm.order?.members.buyer.public_key, vm.order?.members.seller.public_key].join('')
-      const chatRef = generateChatRef(vm.order.id, vm.order.created_at, _members)
-      createChatSession(orderId, chatRef)
-        .then(chatRef => {
-          if (chatRef) {
-            // Only update members if session was created successfully
-            updateChatMembers(chatRef, chatMembers).catch(error => {
-              // Silently handle errors - chat identity might not be ready
-              if (error.response?.status !== 403) {
-                console.error('Failed to update chat members:', error)
-              }
-            })
-          }
-        })
-        .catch(error => {
-          // Silently handle 403 errors - chat identity not ready yet
-          if (error.response?.status !== 403) {
-            console.error('Failed to create chat session:', error)
           }
         })
     },

@@ -223,6 +223,15 @@
             </q-banner>
           </div>
           
+          <div v-else-if="chatError" class="q-pa-md">
+            <q-banner rounded :class="getDarkModeClass(darkMode)">
+              {{ $t('ChatUnavailableRetry', {}, 'Chat is temporarily unavailable. You can still view your order. Please retry loading chat.') }}
+              <template v-slot:action>
+                <q-btn flat color="primary" :label="$t('Retry', {}, 'Retry')" :loading="chatInitializing || chatLoading" @click="retryChat" />
+              </template>
+            </q-banner>
+          </div>
+
           <!-- Chat Loading -->
           <div v-else-if="chatMessages.length === 0 && !chatLoaded" class="q-pa-md">
             <div v-for="n in 4" :key="n" class="chat-message-skeleton q-mb-md">
@@ -578,6 +587,10 @@ export default {
       // Chat Tab
       chatLoaded: false,
       chatLoading: false,
+      chatInitializing: false,
+      chatInitialization: null,
+      chatError: false,
+      chatReadyScope: null,
       chatMessages: [],
       chatMessageInput: '',
       chatAttachment: null,
@@ -908,10 +921,10 @@ export default {
           return
         }
         
-        this.ensureChatWebSocket()
-
         if (!this.chatLoaded) {
           this.loadChatData()
+        } else if (this.chatReadyScope !== this.chatSetupScope()) {
+          this.retryChat()
         } else {
           // Update last read when switching to chat tab
           updateLastRead(this.chatRef, this.chatMessages)
@@ -953,6 +966,7 @@ export default {
     bus.emit('hide-menu')
     bus.on('relogged', this.refreshPage)
     bus.on('update-status', this.handleNewStatus)
+    bus.on('websocket-disconnected', this.onChatDisconnected)
     
     // Register chat message listener
     bus.on('new-message', this.onNewMessage)
@@ -976,6 +990,7 @@ export default {
     bus.off('new-message', this.onNewMessage)
     bus.off('relogged', this.refreshPage)
     bus.off('update-status', this.handleNewStatus)
+    bus.off('websocket-disconnected', this.onChatDisconnected)
     
     // Remove chat scroll listener if it exists
     const scrollTarget = this.$refs.chatScrollTarget
@@ -1015,18 +1030,14 @@ export default {
         await vm.fetchFeedback()
         vm.fetchCounterpartyTradeStats()
         await vm.fetchStatusList() // Load status history
+        if (vm.disposed) return
         vm.ensureChatCloseCountdownTimer()
-        
-        // Fetch unread count before potentially switching to chat tab
-        const escrowedStatuses = ['ESCRW', 'PD_PN', 'PD', 'RLS_PN', 'RLS', 'RFN_PN', 'RFN', 'APL']
-        if (escrowedStatuses.includes(vm.order?.status?.value)) {
-          await vm.fetchChatUnread(vm.chatRef)
-        }
         
         if (this.notifType === 'new_message') { 
           this.activeTab = 'chat'
         }
         vm.isloaded = true
+        vm.initializeChat()
       } catch (error) {
         console.error(error)
       } finally {
@@ -1124,28 +1135,110 @@ export default {
         const identity = await loadChatIdentity('peer', { 
           name: user?.name, 
           chat_identity_id: user?.chat_identity_id 
-        }).catch(console.error)
+        })
         
         if (identity) {
           this.chatIdentity = identity
-          this.$store.commit('ramp/updateChatIdentity', { 
-            ref: identity.ref, 
-            chatIdentity: identity 
-          })
         }
       }
+      if (!this.chatIdentity || this.chatIdentity.ref !== chatIdentityRef) {
+        throw new Error('Chat identity is unavailable for the active wallet.')
+      }
+      return this.chatIdentity
+    },
+
+    chatSetupScope () {
+      return JSON.stringify([
+        this.order?.id, this.chatRef,
+        this.$store.getters['global/getWallet']('bch')?.walletHash,
+        this.$store.getters['global/getWalletIndex'],
+        this.$store.getters['global/isChipnet']
+      ])
+    },
+
+    async initializeChat () {
+      if (this.disposed || !this.order?.id || !this.chatRef) return false
+      const scope = this.chatSetupScope()
+      if (this.chatReadyScope === scope) return true
+      if (this.chatInitialization?.scope === scope) return this.chatInitialization.promise
+      const orderId = this.order.id
+      const chatRef = this.chatRef
+      const isCurrent = () => !this.disposed && this.chatSetupScope() === scope
+      this.chatInitializing = true
+      this.chatError = false
+      this.chatReadyScope = null
+      const promise = (async () => {
+        try {
+          await this.loadChatIdentity()
+          if (!isCurrent()) return false
+          const session = await fetchChatSession(chatRef)
+          if (!isCurrent()) return false
+          let members = session ? await fetchChatMembers(chatRef) : []
+          if (!isCurrent()) return false
+          const isMember = member => member.chat_identity?.ref === this.chatIdentity.ref
+          if (!members.some(isMember)) {
+            await this.createGroupChat(orderId, chatRef, !!session, isCurrent)
+            if (!isCurrent()) return false
+            members = await fetchChatMembers(chatRef)
+          }
+          if (!isCurrent()) return false
+          const ownMember = members.find(isMember)
+          if (!ownMember) throw new Error('Chat membership is not ready.')
+          if (this.order.chat_session_ref !== chatRef) {
+            await updateOrderChatSessionRef(orderId, chatRef)
+            if (!isCurrent()) return false
+            this.order.chat_session_ref = chatRef
+          }
+          this.chatMembersRaw = members
+          this.unreadChatCount = ownMember.unread_count || 0
+          this.hasUnread = this.unreadChatCount > 0
+          this.chatReadyScope = scope
+          this.ensureChatWebSocket()
+          return true
+        } catch {
+          if (isCurrent()) this.chatError = true
+          return false
+        } finally {
+          if (this.chatInitialization?.scope === scope) {
+            this.chatInitializing = false
+            this.chatInitialization = null
+          }
+        }
+      })()
+      this.chatInitialization = { scope, promise }
+      return promise
+    },
+
+    retryChat () {
+      if (this.chatInitializing || this.chatLoading) return
+      this.chatError = false
+      this.chatReadyScope = null
+      this.websockets.chat?.closeConnection()
+      this.chatLoaded = false
+      this.chatMessages = []
+      return this.loadChatData()
+    },
+
+    onChatDisconnected (url) {
+      if (this.disposed || url !== this.websockets.chat?.url) return
+      this.chatReadyScope = null
+      this.chatError = true
     },
 
     async loadChatData () {
       if (this.disposed || !this.chatRef || this.chatLoaded || this.chatLoading) return
       this.chatLoading = true
+      this.chatError = false
+      const scope = this.chatSetupScope()
 
       try {
+        if (!await this.initializeChat()) return
         await this.loadKeyPair()
-        await this.loadChatIdentity()
+        if (this.disposed || this.chatSetupScope() !== scope) return
 
         // Fetch chat members (use cached from fetchChatUnread if available)
         const members = this.chatMembersRaw || await fetchChatMembers(this.chatRef).catch(() => [])
+        if (this.disposed || this.chatSetupScope() !== scope) return
         this.chatMembersRaw = null
         if (members?.length) {
           this.chatMembers = members.map(member => ({
@@ -1161,12 +1254,14 @@ export default {
 
         // Fetch chat pubkeys
         const pubkeys = await fetchChatPubkeys(this.chatRef).catch(() => [])
+        if (this.disposed || this.chatSetupScope() !== scope) return
         if (pubkeys?.length) {
           this.chatPubkeys = pubkeys
         }
 
         // Fetch and decrypt messages
         const response = await fetchChatMessages(this.chatRef, 0, 10)
+        if (this.disposed || this.chatSetupScope() !== scope) return
         // console.log('[Chat Pagination] API response:', { 
         //   count: response?.count, 
         //   next: response?.next, 
@@ -1186,9 +1281,11 @@ export default {
           })
           
           await this.decryptChatMessages(this.chatMessages)
+          if (this.disposed || this.chatSetupScope() !== scope) return
           
           // Decrypt attachments
           await this.decryptChatAttachments()
+          if (this.disposed || this.chatSetupScope() !== scope) return
           
           // Set pagination state
           this.chatMessagesOffset = this.chatMessages.length
@@ -1231,6 +1328,7 @@ export default {
         })
       } catch (error) {
         console.error('Error loading chat:', error)
+        if (!this.disposed && this.chatSetupScope() === scope) this.chatError = true
       } finally {
         this.chatLoading = false
       }
@@ -2030,19 +2128,6 @@ export default {
         const members = [vm.order?.members.buyer.public_key, vm.order?.members.seller.public_key].join('')
         const chatRef = generateChatRef(vm.order.id, vm.order.created_at, members)
         vm.chatRef = chatRef
-        if (vm.order?.chat_session_ref !== chatRef && vm.order?.id) {
-          updateOrderChatSessionRef(vm.order.id, chatRef)
-          fetchChatSession(chatRef)
-            .catch(error => {
-              if (error.response?.status === 404 && vm.order?.id) {
-                vm.createGroupChat(vm.order.id, chatRef)
-              } else if (error.response?.status === 403) {
-                // 403 means chat identity not ready - silently ignore
-              } else {
-                this.handleRequestError(error)
-              }
-            })
-        }
       } catch (error) {
         this.handleRequestError(error)
       } finally {
@@ -2176,29 +2261,34 @@ export default {
       backend.patch(url, null, { authorize: true }).catch(error => { this.handleRequestError(error) })
     },
 
-    async createGroupChat (orderId, chatRef) {
-      if (!orderId) throw Error(`Missing required parameter: orderId (${orderId})`)
-      const vm = this
-      const members = await vm.fetchOrderMembers(orderId)
-      const chatMembers = members.map(({ chat_identity_id }) => ({ chat_identity_id, is_admin: true }))
-      createChatSession(orderId, chatRef)
-        .then(chatRef => {
-          if (chatRef) {
-            // Only update members if session was created successfully
-            updateChatMembers(chatRef, chatMembers).catch(error => {
-              // Silently handle errors - chat identity might not be ready
-              if (error.response?.status !== 403) {
-                console.error('Failed to update chat members:', error)
-              }
-            })
-          }
-        })
-        .catch(error => {
-          // Silently handle 403 errors - chat identity not ready yet
-          if (error.response?.status !== 403) {
-            console.error('Failed to create chat session:', error)
-          }
-        })
+    async createGroupChat (orderId, chatRef, sessionExists = false, isCurrent = () => !this.disposed) {
+      if (!isCurrent()) return
+      const response = await backend.get(`/ramp-p2p/order/${orderId}/members/`, { authorize: 'peer', cache: false })
+      if (!isCurrent()) return
+      const chatMembers = response.data
+        .filter(member => member.chat_identity_id)
+        .map(({ chat_identity_id }) => ({ chat_identity_id, is_admin: true }))
+      if (!chatMembers.some(member => String(member.chat_identity_id) === String(this.chatIdentity.id))) {
+        throw new Error('The active chat identity is not registered as an order member.')
+      }
+      if (!sessionExists) {
+        let createdRef
+        try {
+          createdRef = await createChatSession(orderId, chatRef)
+        } catch (error) {
+          const refErrors = error.response?.data?.ref
+          if (error.response?.status !== 400 || !Array.isArray(refErrors) ||
+              !refErrors.some(message => /already exists/i.test(message))) throw error
+          if (!isCurrent()) return
+          const session = await fetchChatSession(chatRef)
+          if (session?.data?.ref === chatRef) createdRef = chatRef
+        }
+        if (!isCurrent()) return
+        if (createdRef !== chatRef) throw new Error('Chat session is not ready.')
+      }
+      const updated = await updateChatMembers(chatRef, chatMembers)
+      if (!isCurrent()) return
+      if (!updated) throw new Error('Chat membership could not be updated.')
     },
 
     async fetchOrderMembers (orderId) {
@@ -2633,7 +2723,7 @@ export default {
     },
 
     ensureChatWebSocket () {
-      if (this.disposed || !this.chatRef) return
+      if (this.disposed || !this.chatRef || this.chatReadyScope !== this.chatSetupScope()) return
       if (!this.websockets.chat) {
         this.websockets.chat = new WebSocketManager()
         this.websockets.chat.subscribeToMessages(message => {

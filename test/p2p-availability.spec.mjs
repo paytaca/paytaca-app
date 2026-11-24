@@ -2264,7 +2264,7 @@ describe('P2P order WebSocket status refresh', () => {
       fetchOrderInProgress: false, orderRefreshPending: false, escrowTransferKey: 0,
       $route: { params: { order: 24 } },
       async handleNewStatus (status) { applied.push(status.value) },
-      syncLiveActivity () {}, updateOrderReadAt () {}, closeWSConnection () {},
+      syncLiveActivity () {}, updateOrderReadAt () {}, closeWSConnection () {}, chatSetupScope: () => 'test-scope',
       handleRequestError (error) { throw error },
       async generateContract () { state.contractReloads++ }
     }
@@ -2396,7 +2396,7 @@ describe('P2P post-release chat and feedback', () => {
       WebSocketManager, getChatBackendWsUrl: () => 'wss://example.test/ws/chat/',
       bus: { emit: (...args) => events.push(args) }
     })
-    const vm = { websockets: {}, chatRef: 'synthetic-chat', disposed: false }
+    const vm = { websockets: {}, chatRef: 'synthetic-chat', disposed: false, chatReadyScope: 'test-scope', chatSetupScope: () => 'test-scope' }
     ensure.call(vm)
     ensure.call(vm)
     assert.equal(sockets.length, 1)
@@ -2418,16 +2418,16 @@ describe('P2P post-release chat and feedback', () => {
     const load = method('src/pages/apps/exchange/peer_to_peer/order.vue', 'loadChatData')
     const vm = {
       chatRef: 'synthetic-chat', chatLoaded: false, chatLoading: false,
-      loadKeyPair: () => { loads++; return new Promise(resolve => { finish = resolve }) }
+      chatSetupScope: () => 'test-scope', initializeChat: async () => true,
+      loadKeyPair: () => { loads++; return new Promise((resolve, reject) => { finish = reject }) }
     }
     const pending = load.call(vm)
     await load.call(vm)
     assert.equal(loads, 1)
-    vm.loadChatIdentity = async () => { throw new Error('Synthetic failure') }
     const original = console.error
     console.error = () => {}
     try {
-      finish()
+      finish(new Error('Synthetic failure'))
       await pending
     } finally {
       console.error = original
@@ -2451,4 +2451,367 @@ describe('P2P post-release chat and feedback', () => {
       assert.equal(vm.appealed, history.some(entry => (entry.status?.value || entry.status) === 'APL'))
     })
   }
+})
+
+
+describe('P2P existing chat identity recovery', () => {
+  function identityHarness () {
+    const source = readFileSync('src/exchange/chat/index.js', 'utf8')
+    const start = source.indexOf('export async function loadChatIdentity (')
+    const end = source.indexOf('\nexport function updateOrderChatSessionRef', start)
+    const calls = []
+    const expectedRef = 'synthetic-wallet-ref'
+    const existing = { id: 12, ref: expectedRef }
+    const state = {
+      byId: null, byRef: existing,
+      create: async () => ({ id: 13, ref: expectedRef }),
+      link: async () => {}
+    }
+    const bindings = {
+      wallet: { walletHash: 'synthetic-wallet' },
+      loadRampWallet: async () => { throw new Error('Unexpected wallet load') },
+      assertP2PIdentity: async () => {},
+      generateChatIdentityRef: hash => { assert.equal(hash, 'synthetic-wallet'); return expectedRef },
+      fetchChatIdentityById: async id => { calls.push(['id', id]); return state.byId },
+      fetchChatIdentityByRef: async ref => {
+        calls.push(['ref', ref])
+        if (state.lookupError) throw state.lookupError
+        return typeof state.byRef === 'function' ? state.byRef() : state.byRef
+      },
+      chatIdentityManager: {
+        setIdentity: identity => { calls.push(['set', identity]); return identity },
+        _updateSignerData: async () => { calls.push(['signer']) },
+        _updateEncryptionKeypair: async update => { calls.push(['encryption', update]) },
+        create: async payload => { calls.push(['create', payload]); return state.create(payload) }
+      },
+      updateChatIdentityId: async (...args) => { calls.push(['link', ...args]); return state.link(...args) },
+      Store: { commit: (...args) => calls.push(['commit', ...args]) }
+    }
+    const load = new Function(...Object.keys(bindings), `${source.slice(start, end).replace('export ', '')}; return loadChatIdentity`)(...Object.values(bindings))
+    return { load, state, calls, existing, expectedRef }
+  }
+
+  for (const savedId of [null, 99]) {
+    it(`recovers the wallet identity when the saved ID is ${savedId}`, async () => {
+      const h = identityHarness()
+      const identity = await h.load('peer', { name: 'Synthetic name', chat_identity_id: savedId })
+      assert.equal(identity, h.existing)
+      assert(h.calls.some(call => call[0] === 'ref' && call[1] === h.expectedRef))
+      assert.equal(h.calls.some(call => call[0] === 'create'), false)
+      assert(h.calls.some(call => call[0] === 'encryption' && call[1] === true))
+      assert.deepEqual(h.calls.find(call => call[0] === 'link'), ['link', 'peer', 12])
+    })
+  }
+
+  it('keeps the saved identity without another lookup or profile update when it matches', async () => {
+    const h = identityHarness()
+    h.state.byId = h.existing
+    await h.load('peer', { name: 'Synthetic name', chat_identity_id: 12 })
+    assert.equal(h.calls.some(call => ['ref', 'create', 'link'].includes(call[0])), false)
+  })
+
+  it('does not attach a saved identity belonging to a different wallet', async () => {
+    const h = identityHarness()
+    h.state.byId = { id: 99, ref: 'another-wallet-ref' }
+    const result = await h.load('peer', { name: 'Synthetic name', chat_identity_id: 99 })
+    assert.equal(result, h.existing)
+    assert.equal(h.calls.find(call => call[0] === 'set')[1], h.existing)
+  })
+
+  it('rejects a reference lookup returning a different wallet identity before updating keys', async () => {
+    const h = identityHarness()
+    h.state.byRef = { id: 99, ref: 'another-wallet-ref' }
+    await assert.rejects(h.load('peer', { name: 'Synthetic name' }), /does not match/)
+    assert.equal(h.calls.some(call => ['set', 'signer', 'encryption', 'link', 'commit'].includes(call[0])), false)
+  })
+
+  it('creates a new identity only when both lookups confirm it is missing', async () => {
+    const h = identityHarness()
+    h.state.byRef = null
+    const identity = await h.load('peer', { name: 'Synthetic name' })
+    assert.equal(identity.id, 13)
+    assert.equal(h.calls.filter(call => call[0] === 'create').length, 1)
+    assert.equal(h.calls.find(call => call[0] === 'create')[1].ref, h.expectedRef)
+  })
+
+  it('does not create an identity when the reference lookup fails', async () => {
+    const h = identityHarness()
+    h.state.lookupError = { response: { status: 503 } }
+    await assert.rejects(h.load('peer', { name: 'Synthetic name' }), error => error === h.state.lookupError)
+    assert.equal(h.calls.some(call => call[0] === 'create'), false)
+  })
+
+  it('recovers an identity created by a concurrent request', async () => {
+    const h = identityHarness()
+    let reads = 0
+    h.state.byRef = () => ++reads === 1 ? null : h.existing
+    h.state.create = async () => { throw { response: { status: 400, data: { ref: ['chat identity with this ref already exists.'] } } } }
+    const identity = await h.load('peer', { name: 'Synthetic name' })
+    assert.equal(identity, h.existing)
+    assert.equal(h.calls.filter(call => call[0] === 'create').length, 1)
+    assert.deepEqual(h.calls.filter(call => call[0] === 'encryption').map(call => call[1]), [false, true])
+    assert.deepEqual(h.calls.find(call => call[0] === 'link'), ['link', 'peer', 12])
+  })
+
+  it('preserves unrelated validation failures instead of masking them as duplicate identities', async () => {
+    const h = identityHarness()
+    h.state.byRef = null
+    const failure = { response: { status: 400, data: { signature: ['Invalid signature'] } } }
+    h.state.create = async () => { throw failure }
+    await assert.rejects(h.load('peer', { name: 'Synthetic name' }), error => error === failure)
+    assert.equal(h.calls.some(call => ['link', 'commit'].includes(call[0])), false)
+  })
+
+  it('reuses the created identity if linking it to the profile fails on the first attempt', async () => {
+    const h = identityHarness()
+    h.state.byRef = null
+    h.state.create = async () => { h.state.byRef = h.existing; return h.existing }
+    h.state.link = async () => { throw { response: { status: 503 } } }
+    await assert.rejects(h.load('peer', { name: 'Synthetic name' }))
+    h.state.link = async () => {}
+    assert.equal(await h.load('peer', { name: 'Synthetic name' }), h.existing)
+    assert.equal(h.calls.filter(call => call[0] === 'create').length, 1)
+  })
+
+  for (const status of [404, 401, 403, 503]) {
+    it(`treats only a 404 as a missing saved identity (HTTP ${status})`, async () => {
+      const source = readFileSync('src/exchange/chat/index.js', 'utf8')
+      const start = source.indexOf('export async function fetchChatIdentityById (')
+      const end = source.indexOf('\nexport async function updateChatIdentity (', start)
+      const error = { response: { status } }
+      const chatBackend = { get: async () => { throw error } }
+      const fetch = new Function('chatBackend', 'console', `${source.slice(start, end).replace('export ', '')}; return fetchChatIdentityById`)(chatBackend, { error () {} })
+      if (status === 404) assert.equal(await fetch(99), null)
+      else await assert.rejects(fetch(99), value => value === error)
+    })
+  }
+})
+
+
+describe('P2P background chat initialization', () => {
+  function methods (path, names, bindings = {}) {
+    const source = readFileSync(path, 'utf8')
+    const body = names.map(name => {
+      const start = Math.max(source.indexOf(`    ${name} (`), source.indexOf(`    async ${name} (`))
+      const end = source.indexOf('\n    },', start) + 7
+      return source.slice(start, end)
+    }).join('\n')
+    return new Function(...Object.keys(bindings), `return { ${body} }`)(...Object.values(bindings))
+  }
+
+  function harness () {
+    const events = []
+    const ownIdentity = { id: 12, ref: 'synthetic-identity-ref' }
+    const ownMember = { chat_identity: ownIdentity, unread_count: 2 }
+    const state = { wallet: 'synthetic-wallet', session: null, members: [], cached: true, beforeUpdate: null }
+    const bindings = {
+      wallet: { walletHash: 'synthetic-wallet' }, generateChatIdentityRef: () => ownIdentity.ref,
+      loadChatIdentity: async () => { events.push('load-identity'); return ownIdentity },
+      fetchChatSession: async () => {
+        events.push('session')
+        if (state.beforeSession) await state.beforeSession()
+        return state.session
+      },
+      createChatSession: async () => {
+        events.push('create-session')
+        if (state.create) return state.create()
+        state.session = { data: { ref: 'synthetic-chat' } }
+        return 'synthetic-chat'
+      },
+      fetchChatMembers: async () => { events.push('chat-members'); return state.members },
+      updateChatMembers: async (ref, members) => {
+        events.push(['update-members', ref, members])
+        if (state.beforeUpdate) await state.beforeUpdate()
+        if (!state.omitMembership) state.members = [ownMember]
+        return {}
+      },
+      updateOrderChatSessionRef: async (id, ref) => { events.push(['link-session', id, ref]) },
+      backend: { get: async (url, config) => {
+        events.push(['order-members', url, config])
+        return { data: [{ chat_identity_id: 12 }, { chat_identity_id: null }, { chat_identity_id: 13 }] }
+      } },
+      WebSocketManager: class {
+        subscribeToMessages () {}
+        setWebSocketUrl (url) { this.url = url; events.push('socket') }
+        closeConnection () { events.push('close-socket') }
+      },
+      getChatBackendWsUrl: () => 'wss://example.test/ws/', bus: { emit () {} }
+    }
+    const api = methods('src/pages/apps/exchange/peer_to_peer/order.vue', [
+      'loadChatIdentity', 'chatSetupScope', 'initializeChat', 'createGroupChat',
+      'ensureChatWebSocket', 'retryChat', 'onChatDisconnected'
+    ], bindings)
+    const vm = {
+      order: { id: 24 }, chatRef: 'synthetic-chat', disposed: false, websockets: {},
+      chatReadyScope: null, chatInitializing: false, chatInitialization: null, chatError: false,
+      $store: { getters: {
+        'global/getWallet': () => ({ walletHash: state.wallet }),
+        'global/getWalletIndex': 0, 'global/isChipnet': false,
+        'ramp/chatIdentity': () => state.cached ? ownIdentity : null,
+        'ramp/getUser': { name: 'Synthetic name', chat_identity_id: 12 }
+      } }
+    }
+    for (const [name, method] of Object.entries(api)) vm[name] = method.bind(vm)
+    vm.loadChatData = () => vm.initializeChat()
+    return { vm, state, events, ownIdentity, ownMember }
+  }
+
+  it('navigates immediately after creating the order without initializing chat in the form', async () => {
+    let finish
+    const routes = []
+    const api = methods('src/pages/apps/exchange/peer_to_peer/order-form.vue', ['createOrder'], {
+      backend: { post: () => new Promise(resolve => { finish = resolve }) },
+      fetchUser: () => { throw new Error('Must not load chat before navigation') },
+      loadChatIdentity: () => { throw new Error('Must not load chat before navigation') }
+    })
+    const vm = {
+      ad: { id: 5, trade_type: 'SELL' }, getTradeAmount: () => 10000,
+      $emit () {}, $router: { push: route => routes.push(route) }, $refs: {},
+      handleRequestError: error => { throw error }
+    }
+    const pending = api.createOrder.call(vm)
+    await api.createOrder.call(vm)
+    assert.equal(routes.length, 0)
+    finish({ data: { order: { id: 24 } } })
+    await pending
+    assert.deepEqual(routes, [{ name: 'p2p-order', params: { order: 24 } }])
+    assert.equal(vm.creatingOrder, false)
+  })
+
+  it('renders the order without waiting for background chat initialization', async () => {
+    let chatStarted = false
+    const api = methods('src/pages/apps/exchange/peer_to_peer/order.vue', ['loadData'])
+    const vm = {
+      order: { id: 24 }, fetchOrder: async () => {}, fetchAd: async () => {},
+      fetchFeedback: async () => {}, fetchCounterpartyTradeStats () {}, fetchStatusList: async () => {},
+      ensureChatCloseCountdownTimer () {}, initializeChat: () => { chatStarted = true; return new Promise(() => {}) }
+    }
+    await api.loadData.call(vm)
+    assert.equal(vm.isloaded, true)
+    assert.equal(vm.loadingData, false)
+    assert.equal(chatStarted, true)
+  })
+
+  it('waits for session creation and confirmed membership before opening a socket', async () => {
+    const h = harness()
+    let finish
+    h.state.beforeUpdate = () => new Promise(resolve => { finish = resolve })
+    h.vm.ensureChatWebSocket()
+    assert.equal(h.events.includes('socket'), false)
+    const pending = h.vm.initializeChat()
+    await new Promise(resolve => setImmediate(resolve))
+    assert(h.events.includes('create-session'))
+    assert.equal(h.events.includes('socket'), false)
+    finish()
+    assert.equal(await pending, true)
+    assert.equal(h.events.filter(event => event === 'socket').length, 1)
+    assert.equal(h.events.includes('load-identity'), false)
+    assert.equal(h.vm.chatInitializing, false)
+    const update = h.events.find(event => Array.isArray(event) && event[0] === 'update-members')
+    assert.deepEqual(update[2].map(member => member.chat_identity_id), [12, 13])
+    const orderMembers = h.events.find(event => Array.isArray(event) && event[0] === 'order-members')
+    assert.equal(orderMembers[2].authorize, 'peer')
+    assert.equal(h.vm.unreadChatCount, 2)
+  })
+
+  it('shares initialization between background work and opening the chat tab', async () => {
+    const h = harness()
+    let finish
+    h.state.beforeSession = () => new Promise(resolve => { finish = resolve })
+    const first = h.vm.initializeChat()
+    const second = h.vm.initializeChat()
+    await new Promise(resolve => setImmediate(resolve))
+    assert.equal(h.events.filter(event => event === 'session').length, 1)
+    finish()
+    assert.equal(await first, true)
+    assert.equal(await second, true)
+    assert.equal(h.events.filter(event => event === 'create-session').length, 1)
+  })
+
+  it('reuses a ready session without repeating identity, session, or membership setup', async () => {
+    const h = harness()
+    h.state.session = { data: { ref: h.vm.chatRef } }
+    h.state.members = [h.ownMember]
+    h.vm.order.chat_session_ref = h.vm.chatRef
+    assert.equal(await h.vm.initializeChat(), true)
+    const count = h.events.length
+    assert.equal(await h.vm.initializeChat(), true)
+    assert.equal(h.events.length, count)
+    assert.equal(h.events.includes('create-session'), false)
+    assert.equal(h.events.some(event => Array.isArray(event) && event[0] === 'update-members'), false)
+  })
+
+  it('loads a missing identity before signing chat session requests', async () => {
+    const h = harness()
+    h.state.cached = false
+    assert.equal(await h.vm.initializeChat(), true)
+    assert.equal(h.events[0], 'load-identity')
+    assert.equal(h.events[1], 'session')
+  })
+
+  it('keeps the order usable on chat failure and supports an explicit retry', async () => {
+    const h = harness()
+    h.state.create = async () => { throw { response: { status: 500 } } }
+    assert.equal(await h.vm.initializeChat(), false)
+    assert.equal(h.vm.chatError, true)
+    assert.equal(h.vm.order.id, 24)
+    assert.equal(h.vm.chatReadyScope, null)
+    assert.equal(h.events.includes('socket'), false)
+    h.state.create = null
+    assert.equal(await h.vm.retryChat(), true)
+    assert.equal(h.vm.chatError, false)
+    assert.equal(h.events.filter(event => event === 'socket').length, 1)
+  })
+
+  it('does not open the socket if membership is still missing after the update', async () => {
+    const h = harness()
+    h.state.omitMembership = true
+    assert.equal(await h.vm.initializeChat(), false)
+    assert.equal(h.vm.chatError, true)
+    assert.equal(h.events.includes('socket'), false)
+  })
+
+  it('recovers a session created by the other peer during initialization', async () => {
+    const h = harness()
+    h.state.create = async () => {
+      h.state.session = { data: { ref: h.vm.chatRef } }
+      throw { response: { status: 400, data: { ref: ['Session with this ref already exists.'] } } }
+    }
+    assert.equal(await h.vm.initializeChat(), true)
+    assert.equal(h.events.filter(event => event === 'create-session').length, 1)
+    assert.equal(h.events.filter(event => event === 'socket').length, 1)
+  })
+
+  for (const change of ['unmount', 'wallet', 'order', 'chat']) {
+    it(`discards stale setup after ${change} changes`, async () => {
+      const h = harness()
+      let finish
+      h.state.beforeSession = () => new Promise(resolve => { finish = resolve })
+      const pending = h.vm.initializeChat()
+      await new Promise(resolve => setImmediate(resolve))
+      if (change === 'unmount') h.vm.disposed = true
+      if (change === 'wallet') h.state.wallet = 'another-wallet'
+      if (change === 'order') h.vm.order.id = 25
+      if (change === 'chat') h.vm.chatRef = 'another-chat'
+      finish()
+      assert.equal(await pending, false)
+      assert.equal(h.events.includes('create-session'), false)
+      assert.equal(h.events.includes('socket'), false)
+      assert.equal(h.vm.chatReadyScope, null)
+    })
+  }
+
+  it('offers chat retry when its socket exhausts reconnection attempts', async () => {
+    const h = harness()
+    assert.equal(await h.vm.initializeChat(), true)
+    const url = h.vm.websockets.chat.url
+    h.vm.onChatDisconnected('wss://example.test/another-stream')
+    assert.equal(h.vm.chatError, false)
+    h.vm.onChatDisconnected(url)
+    assert.equal(h.vm.chatError, true)
+    assert.equal(h.vm.chatReadyScope, null)
+    assert.equal(await h.vm.retryChat(), true)
+    assert(h.events.includes('close-socket'))
+    assert.equal(h.vm.chatError, false)
+  })
 })
