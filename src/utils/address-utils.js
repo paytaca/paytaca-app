@@ -18,11 +18,10 @@ export const isTokenAddress = (address /* :string */) => {
  * Shortens address for display
  * @return bchtest:qz97d...fwe if address is bchtest:qz97djdjktl0dvawp79a73jlq7cy95stcvx8sk9fwe
  */
-export const shortenAddressForDisplay = (address /* :string */) => {
-  let startIndex = 16
-  if (address?.startsWith('bchtest:')) {
-    startIndex = 12
-  }
+export const shortenAddressForDisplay = (addressObject /* :string|{address:string} */) => {
+  const address = typeof addressObject === 'string' ? addressObject : addressObject?.address
+  if (!address) return ''
+  const startIndex = address.startsWith('bchtest:') ? 12 : 16
   return address.replace(address.slice(startIndex, address.length - 4), '...')
 }
 

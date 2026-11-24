@@ -1,0 +1,764 @@
+<template>
+  <div id="app-container" class="sticky-header-container text-bow" :class="getDarkModeClass(darkMode)">
+    <header-nav
+      class="apps-header"
+      :title="$t('PaytacaElite', {}, 'Paytaca Elite')"
+    >
+      <template #top-right-menu v-if="!isLoading">
+        <q-btn
+          round
+          class="button"
+          icon="question_mark"
+          size="sm"
+          @click="isHelpActive = true"
+        />
+      </template>
+    </header-nav>
+
+    <div class="q-px-md q-pt-md">
+      <!-- Hero Section: Cashback Summary -->
+      <q-card
+        class="q-mb-md hero-card card-help-highlight"
+        :class="[getDarkModeClass(darkMode), { loaded: heroLoaded, 'on-hold': isOnHold }]"
+        flat
+      >
+        <q-card-section class="q-py-md">
+          <!-- Loading State -->
+          <template v-if="isLoading">
+            <div class="hero-top q-mb-md">
+              <div class="row items-center">
+                <q-skeleton type="circle" size="40px" />
+                <div class="column q-ml-sm" style="flex: 1;">
+                  <q-skeleton type="text" width="150px" height="16px" class="q-mb-xs" />
+                  <q-skeleton type="text" width="70px" height="10px" />
+                </div>
+              </div>
+            </div>
+
+            <div class="row q-mb-sm q-pb-xs">
+              <div class="col elite-stat-box q-mx-xs br-10">
+                <q-skeleton type="text" width="70%" height="16px" class="q-mx-auto q-mb-xs" />
+                <q-skeleton type="text" width="55%" height="12px" class="q-mx-auto" />
+              </div>
+              <div class="col elite-stat-box q-mx-xs br-10">
+                <q-skeleton type="text" width="50%" height="16px" class="q-mx-auto q-mb-xs" />
+                <q-skeleton type="text" width="55%" height="12px" class="q-mx-auto" />
+              </div>
+            </div>
+
+            <div class="row justify-center text-caption q-mb-xs">
+              <q-skeleton type="text" width="70%" height="12px" class="q-mx-auto" />
+            </div>
+            <q-skeleton type="text" width="100%" height="8px" class="q-mx-auto" />
+          </template>
+
+          <!-- Error State -->
+          <error-card
+            v-else-if="!isLoading && pointsError"
+            class="text-center"
+            :is-points-card="true"
+            :is-rewards-home-page="false"
+            :error-text="pointsError"
+            @on-retry="loadData()"
+          />
+
+          <!-- Loaded State -->
+          <template v-else-if="eliteData">
+            <div class="hero-top q-mb-md">
+              <div class="row items-center">
+                <div class="hero-icon">
+                  <q-icon name="workspace_premium" size="md" class="elite-icon" />
+                </div>
+                <div class="column q-ml-sm">
+                  <span class="elite-name">{{ $t('PaytacaEliteProgram', {}, 'Paytaca Elite Program') }}</span>
+                  <span class="elite-pill q-mt-xs" :class="eliteStatus">{{ $t(EliteStatusLabels[eliteStatus]) }}</span>
+                </div>
+              </div>
+            </div>
+
+            <div v-if="isOnHold" class="text-body2 text-bow">
+              {{ $t('EliteOnHoldNotice', {}, 'Your Elite Program is on hold while we review your account. No cashbacks will be provided while it is on hold.') }}
+            </div>
+
+            <template v-else>
+              <div class="row q-mb-sm q-pb-xs">
+                <div class="col elite-stat-box q-mx-xs br-10">
+                  <div class="elite-stat-value">{{ parseLiftToken(eliteData.cashbackLift) }}</div>
+                  <div class="text-caption">{{ $t('Cashback', {}, 'Cashback') }}</div>
+                </div>
+                <div class="col elite-stat-box q-mx-xs br-10">
+                  <div class="elite-stat-value">{{ eliteData.eligibleTxCount }}</div>
+                  <div class="text-caption">{{ eliteTransactionsLabel }}</div>
+                </div>
+              </div>
+
+              <div class="row items-center justify-between text-caption q-mb-xs">
+                <span>{{ $t('CashbackLimit', {}, 'Cashback limit') }}</span>
+                <span class="text-weight-medium">
+                  {{ formatEliteFiat(eliteData.monthlyCashback) }} of {{ formatEliteFiat(eliteData.maxCashbackPerMonth) }}
+                </span>
+              </div>
+              <q-linear-progress
+                :value="monthlyPct"
+                class="rounded-borders elite-progress"
+                size="8px"
+              />
+              <div
+                v-if="capResetLabel"
+                class="text-caption text-bow-muted q-mt-xs text-center"
+              >
+                {{ capResetLabel }}
+              </div>
+
+              <q-btn
+                class="full-width q-mt-sm elite-map-button card-help-highlight"
+                size="sm"
+                outline
+                no-caps
+                rounded
+                icon="history"
+                :label="$t('EliteViewMonthlyHistory', {}, 'View Monthly History')"
+                @click="openMonthlyHistoryDialog"
+              />
+            </template>
+          </template>
+        </q-card-section>
+      </q-card>
+
+      <q-card
+        v-if="!pointsError && !isOnHold"
+        class="q-mb-md balance-thresholds-card card-help-highlight"
+        :class="getDarkModeClass(darkMode)"
+        flat
+      >
+        <q-card-section class="q-py-md">
+          <div class="text-subtitle1 text-weight-bold">{{ $t('BalanceRequirements', {}, 'Balance requirements') }}</div>
+
+          <template v-if="thresholdsLoading">
+            <div class="q-mt-sm">
+              <q-skeleton type="text" width="45%" height="14px" class="q-mb-xs" />
+              <q-skeleton type="text" width="70%" height="12px" />
+            </div>
+            <div class="q-mt-sm">
+              <q-skeleton type="text" width="45%" height="14px" class="q-mb-xs" />
+              <q-skeleton type="text" width="70%" height="12px" />
+            </div>
+          </template>
+
+          <error-card
+            v-else-if="thresholdsError"
+            class="text-center q-mt-sm"
+            :is-points-card="true"
+            :is-rewards-home-page="false"
+            :error-text="$t('EliteThresholdsLoadError', {}, 'Unable to load balance thresholds.')"
+            @on-retry="loadThresholds()"
+          />
+
+          <template v-else>
+            <div class="q-mt-sm">
+              <div class="row items-center justify-between no-wrap">
+                <span class="text-caption">
+                  <template v-if="requirements.lift?.met">
+                    <span class="text-positive" aria-hidden="true">✓&nbsp;</span>
+                    <span class="visually-hidden">{{ $t('Met', {}, 'Met') }}&nbsp;</span>
+                  </template>{{ $t('LIFTBalance', {}, 'LIFT balance') }}
+                </span>
+                <span class="text-caption text-weight-medium">
+                  <template v-if="requirements.lift && !requirements.lift.met">
+                    {{ formatLiftNumber(requirements.liftBalance) }} / {{ parseLiftToken(requirements.liftThreshold) }}
+                  </template>
+                  <template v-else>
+                    {{ parseLiftToken(requirements.liftThreshold) }}
+                  </template>
+                </span>
+              </div>
+              <template v-if="requirements.lift && !requirements.lift.met">
+                <q-linear-progress
+                  :value="requirements.lift.progress"
+                  class="rounded-borders elite-progress q-mt-xs"
+                  size="6px"
+                  color="negative"
+                />
+                <div class="text-caption text-bow-muted q-mt-xs">
+                  {{ $t('EliteShortfall', { amount: parseLiftToken(requirements.lift.shortfall) }, `${parseLiftToken(requirements.lift.shortfall)} short`) }}
+                </div>
+              </template>
+            </div>
+
+            <div class="q-mt-sm">
+              <div class="row items-center justify-between no-wrap">
+                <span class="text-caption">
+                  <template v-if="requirements.bch?.met">
+                    <span class="text-positive" aria-hidden="true">✓&nbsp;</span>
+                    <span class="visually-hidden">{{ $t('Met', {}, 'Met') }}&nbsp;</span>
+                  </template>{{ $t('BCHBalance', {}, 'BCH balance') }}
+                </span>
+                <span class="text-caption text-weight-medium">
+                  <template v-if="requirements.bch && !requirements.bch.met">
+                    {{ formatFiatNumber(requirements.bchBalance) }} / {{ formatEliteFiat(requirements.bchThreshold, thresholdsCurrency) }}
+                  </template>
+                  <template v-else>
+                    {{ formatEliteFiat(requirements.bchThreshold, thresholdsCurrency) }}
+                  </template>
+                </span>
+              </div>
+              <template v-if="requirements.bch && !requirements.bch.met">
+                <q-linear-progress
+                  :value="requirements.bch.progress"
+                  class="rounded-borders elite-progress q-mt-xs"
+                  size="6px"
+                  color="negative"
+                />
+                <div class="text-caption text-bow-muted q-mt-xs">
+                  {{ $t('EliteShortfall', { amount: formatFiatNumber(requirements.bch.shortfall) }, `${formatFiatNumber(requirements.bch.shortfall)} short`) }}
+                </div>
+              </template>
+            </div>
+          </template>
+        </q-card-section>
+      </q-card>
+
+      <div v-if="!isOnHold" class="elite-map-cta q-mb-md">
+        <q-btn
+          class="full-width elite-map-button elite-map-button--halo card-help-highlight"
+          outline
+          no-caps
+          rounded
+          icon="map"
+          :label="$t('EliteFindMerchants', {}, 'Find merchants on the map')"
+          @click="openMerchantMap"
+        />
+      </div>
+
+      <q-banner
+        v-if="showRateFallbackNotice"
+        rounded
+        dense
+        class="br-15 q-mb-lg"
+        :class="darkMode ? 'bg-grey-9 text-white' : 'bg-grey-2 text-grey-9'"
+      >
+        <template #avatar>
+          <q-icon name="info" color="primary" />
+        </template>
+        <div class="text-body2">
+          {{ $t('EliteRateFallbackNotice', {}, 'Live exchange rates are unavailable right now, so some amounts are shown in Philippine pesos (PHP).') }}
+        </div>
+      </q-banner>
+
+      <!-- Error state for data -->
+      <error-card
+        v-if="dataError"
+        :is-points-card="false"
+        :is-rewards-home-page="false"
+        :error-text="dataError"
+        @on-retry="loadData()"
+      />
+
+      <template v-else-if="!isOnHold">
+        <!-- Eligible Transactions Section -->
+        <div class="card-help-highlight">
+           <div class="section-head q-mb-sm">
+             <div class="row items-center no-wrap">
+               <div class="section-icon">
+                 <q-icon name="storefront" />
+               </div>
+               <div class="column">
+                 <span class="section-title">{{ $t('EligibleTransactions', {}, 'Eligible Transactions') }}</span>
+                 <q-skeleton
+                   v-if="isLoading"
+                   type="text"
+                   width="64px"
+                   height="10px"
+                   class="q-mt-xs"
+                 />
+                 <span v-else-if="!pointsError" class="section-count q-mt-xs">
+                   {{ $t('EliteCountThisMonth', { count: eliteData.eligibleTxCount }, `${eliteData.eligibleTxCount} this month`) }}
+                 </span>
+               </div>
+             </div>
+             <q-btn
+               v-if="!isLoading"
+               flat
+               class="view-all-button q-pr-none"
+               :class="getDarkModeClass(darkMode)"
+               size="sm"
+               icon-right="chevron_right"
+               :label="$t('ViewAll', {}, 'View All')"
+               @click="$router.push(`/apps/rewards/elite-history/${this.eliteId}/transactions`)"
+             />
+           </div>
+           <elite-list
+             type="transactions"
+             :items="transactions"
+             :loading="isLoading"
+             :dark-mode="darkMode"
+             :currency="displayCurrency"
+             month-only
+             @refresh="refreshData"
+           />
+         </div>
+
+        <!-- Top-ups Section -->
+        <div class="card-help-highlight">
+          <div class="section-head q-mb-sm q-mt-lg">
+            <div class="row items-center no-wrap">
+              <div class="section-icon">
+                <q-icon name="arrow_upward" />
+              </div>
+              <div class="column">
+                <span class="section-title">{{ $t('TopUps', {}, 'Top-ups') }}</span>
+                <q-skeleton
+                  v-if="isLoading"
+                  type="text"
+                  width="64px"
+                  height="10px"
+                  class="q-mt-xs"
+                />
+                <span v-else-if="!pointsError" class="section-count q-mt-xs">
+                  {{ $t('EliteCountThisMonth', { count: eliteData.topupCount }, `${eliteData.topupCount} this month`) }}
+                </span>
+              </div>
+            </div>
+            <q-btn
+              v-if="!isLoading"
+              flat
+              class="view-all-button q-pr-none"
+              :class="getDarkModeClass(darkMode)"
+              size="sm"
+              icon-right="chevron_right"
+              :label="$t('ViewAll', {}, 'View All')"
+              @click="$router.push(`/apps/rewards/elite-history/${this.eliteId}/topups`)"
+            />
+          </div>
+          <elite-list
+            type="topups"
+            :items="topups"
+            :loading="isLoading"
+            :dark-mode="darkMode"
+            :currency="displayCurrency"
+            month-only
+            @refresh="refreshData"
+          />
+        </div>
+      </template>
+    </div>
+  </div>
+
+  <help-card v-model="isHelpActive" :page="'elite'" />
+</template>
+
+<script>
+import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
+import { parseLiftToken } from 'src/utils/engagementhub-utils/shared'
+import { parseFiatCurrency } from 'src/utils/denomination-utils'
+import { isRateFallback } from 'src/utils/engagementhub-utils/display-rates'
+import { formatCapReset } from 'src/utils/time'
+import {
+  getEliteProgramSummaryData,
+  getAssetsThresholds,
+  getEliteWalletBalances,
+  eliteRequirements,
+  normalizeEliteStatus,
+  EliteStatus,
+  EliteStatusLabels
+} from 'src/utils/engagementhub-utils/elite-program'
+
+import HeaderNav from 'src/components/header-nav.vue'
+import HelpCard from 'src/components/rewards/cards/HelpCard.vue'
+import ErrorCard from 'src/components/rewards/cards/ErrorCard.vue'
+import EliteList from 'src/components/rewards/transactions/EliteList.vue'
+import EliteMonthlyHistoryDialog from 'src/components/rewards/dialogs/EliteMonthlyHistoryDialog.vue'
+
+export default {
+  name: 'EliteProgram',
+
+  components: {
+    HeaderNav,
+    HelpCard,
+    ErrorCard,
+    EliteList
+  },
+
+  data () {
+    return {
+      isLoading: false,
+      isHelpActive: false,
+      pointsError: '',
+      dataError: '',
+      EliteStatus,
+      EliteStatusLabels,
+
+      eliteData: {
+        status: EliteStatus.ACTIVE,
+        cashbackLift: 0,
+        eligibleTxCount: 0,
+        topupCount: 0,
+        maxCashbackPerMonth: 0,
+        monthlyCashback: 0
+      },
+      eliteId: -1,
+      thresholds: null,
+      thresholdsLoading: true,
+      thresholdsError: false,
+      displayCurrency: 'PHP',
+      rateUnavailable: false,
+      thresholdsCurrency: 'PHP',
+      thresholdsRateUnavailable: false,
+      capResetsAt: null,
+      transactions: [],
+      topups: []
+    }
+  },
+
+  computed: {
+    darkMode () {
+      return this.$store.getters['darkmode/getStatus']
+    },
+    requestedCurrency () {
+      return this.$store.getters['market/selectedCurrency']?.symbol || 'PHP'
+    },
+    showRateFallbackNotice () {
+      return this.heroLoaded && !this.isOnHold && (
+        isRateFallback(
+          this.requestedCurrency,
+          this.displayCurrency,
+          this.rateUnavailable
+        ) || isRateFallback(
+          this.requestedCurrency,
+          this.thresholdsCurrency,
+          this.thresholdsRateUnavailable
+        )
+      )
+    },
+    capResetLabel () {
+      const parts = formatCapReset(this.capResetsAt)
+      if (!parts) return ''
+      if (!parts.local) {
+        return this.$t(
+          'CapResetsAtUtc',
+          { utc: parts.utc },
+          `Resets ${parts.utc}`
+        )
+      }
+      return this.$t(
+        'CapResetsAt',
+        { utc: parts.utc, local: parts.local },
+        `Resets ${parts.utc} (${parts.local})`
+      )
+    },
+    eliteStatus () {
+      return normalizeEliteStatus(this.eliteData?.status)
+    },
+    isOnHold () {
+      return this.eliteStatus === EliteStatus.ONHOLD
+    },
+    monthlyPct () {
+      const max = this.eliteData?.maxCashbackPerMonth || 0
+      const current = this.eliteData?.monthlyCashback || 0
+      return max > 0 ? Math.min(current / max, 1) : 0
+    },
+    heroLoaded () {
+      return !this.isLoading && !this.pointsError && !!this.eliteData
+    },
+    eliteTransactionsLabel () {
+      return this.eliteData?.eligibleTxCount === 1
+        ? this.$t('Transaction', {}, 'Transaction')
+        : this.$t('Transactions', {}, 'Transactions')
+    },
+    requirements () {
+      return eliteRequirements(
+        this.thresholds,
+        getEliteWalletBalances(this.thresholds?.rates)
+      )
+    }
+  },
+
+  watch: {
+    'requestedCurrency' (newSymbol, oldSymbol) {
+      if (newSymbol && newSymbol !== oldSymbol) this.refreshData()
+    }
+  },
+
+  async mounted () {
+    this.eliteId = Number(this.$route.params.id || -1)
+    await Promise.all([this.loadData(), this.loadThresholds()])
+  },
+
+  methods: {
+    getDarkModeClass,
+    parseLiftToken,
+
+    formatEliteFiat (amount, currency = this.displayCurrency) {
+      return parseFiatCurrency(amount, currency)
+    },
+
+    formatLiftNumber (amount) {
+      return parseLiftToken(amount).replace(/\s*LIFT$/, '')
+    },
+
+    formatFiatNumber (amount, currency = this.thresholdsCurrency) {
+      return this.formatEliteFiat(amount, currency).replace(/\s*[A-Z]{3}$/, '')
+    },
+
+    openMerchantMap () {
+      this.$router.push({ name: 'app-map' })
+    },
+
+    openMonthlyHistoryDialog () {
+      this.$q.dialog({
+        component: EliteMonthlyHistoryDialog,
+        componentProps: { eliteId: this.eliteId }
+      })
+    },
+
+    async loadThresholds () {
+      this.thresholdsLoading = true
+      this.thresholdsError = false
+      try {
+        const thresholds = await getAssetsThresholds(this.eliteId)
+        this.thresholds = thresholds
+        this.thresholdsCurrency = thresholds?.currency || 'PHP'
+        this.thresholdsRateUnavailable = thresholds?.rate_unavailable === true
+        this.capResetsAt = thresholds?.cap_resets_at || null
+      } catch (error) {
+        console.error('Error loading elite program thresholds: ', error)
+        this.thresholdsError = true
+      } finally {
+        this.thresholdsLoading = false
+      }
+    },
+
+    async loadData (append = false) {
+      if (!append) this.isLoading = true
+      this.pointsError = ''
+      this.dataError = ''
+      this.eliteId = Number(this.$route.params.id || -1)
+
+      try {
+        // TODO add guard for -1 id
+        const epSummaryData = await getEliteProgramSummaryData(this.eliteId)
+        if (epSummaryData) {
+          this.displayCurrency = epSummaryData.currency || 'PHP'
+          this.rateUnavailable = epSummaryData.rate_unavailable === true
+          this.eliteData.status = epSummaryData.status
+          this.eliteData.cashbackLift = epSummaryData.eligible_transactions.current_month_total_lift_cashback
+          this.eliteData.eligibleTxCount = epSummaryData.eligible_transactions.count
+          this.eliteData.topupCount = epSummaryData.topups?.count ?? 0
+          this.eliteData.maxCashbackPerMonth = epSummaryData.monthly_cashback_limit
+          this.eliteData.monthlyCashback = epSummaryData.eligible_transactions.current_month_fiat_lift_cashback
+
+          this.transactions = epSummaryData.eligible_transactions.results
+          this.topups = epSummaryData.topups.results
+        } else {
+          this.dataError = this.$t('EliteProgramDataError', {}, 'Failed to load Elite program data. Please try again later.')
+        }
+      } catch (error) {
+        console.error('Error loading elite program data: ', error)
+        this.pointsError = this.$t('EliteProgramDataError', {}, 'Failed to load Elite program data. Please try again later.')
+      }
+
+      if (!append) this.isLoading = false
+    },
+
+    async refreshData (done) {
+      await Promise.all([this.loadData(), this.loadThresholds()])
+      if (done) done()
+    }
+  }
+}
+</script>
+
+<style lang="scss" scoped>
+@import 'src/css/rewards/elite-row-styles.scss';
+
+.elite-stat-box {
+  padding: 7px 10px;
+}
+
+.hero-card {
+  position: relative;
+  overflow: hidden;
+  border-radius: 20px;
+  background: linear-gradient(135deg, rgba(212, 166, 67, 0.16) 0%, rgba(212, 166, 67, 0.04) 100%);
+  border: 1px solid rgba(212, 166, 67, 0.35);
+
+  &.dark {
+    background: linear-gradient(135deg, rgba(212, 166, 67, 0.28) 0%, rgba(212, 166, 67, 0.06) 100%);
+    border: 1px solid rgba(212, 166, 67, 0.45);
+  }
+
+  &.loaded::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 40%;
+    height: 100%;
+    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.12), rgba(255, 255, 255, 0.18), transparent);
+    transform: translateX(-120%);
+    animation: elite-glimmer 3s ease-in-out infinite;
+    pointer-events: none;
+  }
+
+  &.loaded.dark::after {
+    background: linear-gradient(90deg, transparent, rgba(212, 166, 67, 0.08), rgba(212, 166, 67, 0.14), transparent);
+  }
+
+  &.loaded.on-hold::after {
+    display: none;
+  }
+}
+
+@keyframes elite-glimmer {
+  0% { transform: translateX(-120%); }
+  55% { transform: translateX(320%); }
+  100% { transform: translateX(320%); }
+}
+
+.hero-icon {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: rgba(212, 166, 67, 0.15);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.balance-thresholds-card {
+  border-radius: 20px;
+  background: rgba(0, 0, 0, 0.03);
+  border: 1px solid rgba(0, 0, 0, 0.08);
+
+  &.dark {
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+  }
+}
+
+.elite-map-cta {
+  max-width: 420px;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+.elite-map-button {
+  color: #d4a643;
+  font-weight: 700;
+}
+
+.elite-map-button--halo {
+  position: relative;
+  isolation: isolate;
+  transition: box-shadow 180ms ease;
+}
+
+.elite-map-button--halo::after {
+  content: '';
+  position: absolute;
+  z-index: -1;
+  inset: -2px;
+  border-radius: inherit;
+  box-shadow: 0 0 12px 0 rgba(212, 166, 67, 0.16);
+  opacity: 0;
+  pointer-events: none;
+  animation: elite-map-halo 5.2s ease-in-out infinite;
+}
+
+.elite-map-button--halo:hover,
+.elite-map-button--halo:focus-visible {
+  box-shadow: 0 0 12px 0 rgba(212, 166, 67, 0.22);
+}
+
+.elite-map-button--halo:hover::after,
+.elite-map-button--halo:focus-visible::after {
+  animation: none;
+  opacity: 0;
+}
+
+.light .elite-map-button {
+  color: #c89d36;
+}
+
+.light .elite-map-button--halo::after {
+  box-shadow: 0 0 12px 0 rgba(200, 157, 54, 0.16);
+}
+
+.light .elite-map-button--halo:hover,
+.light .elite-map-button--halo:focus-visible {
+  box-shadow: 0 0 12px 0 rgba(200, 157, 54, 0.20);
+}
+
+@keyframes elite-map-halo {
+  0%, 58%, 100% { opacity: 0; }
+  22% { opacity: 1; }
+  40% { opacity: 0.35; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .hero-card.loaded::after,
+  .elite-map-button--halo::after {
+    animation: none;
+    opacity: 0;
+  }
+}
+
+.view-all-button {
+  color: #d4a643;
+  font-weight: bold;
+}
+
+.light .view-all-button {
+  color: #c89d36;
+}
+
+/* Section header */
+.section-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  column-gap: 12px;
+}
+
+.section-icon {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: #d4a643;
+  color: white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 14px;
+  margin-right: 8px;
+  flex-shrink: 0;
+}
+
+.light .section-icon {
+  background: #c89d36;
+}
+
+.section-title {
+  font-size: 15px;
+  font-weight: 700;
+  line-height: 1.25;
+}
+
+.section-count {
+  font-size: 12px;
+  line-height: 1.25;
+  opacity: 0.65;
+}
+
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+  border: 0;
+}
+</style>

@@ -2,24 +2,26 @@
   <div class="transaction-list">
     <!-- Loading State -->
     <template v-if="loading">
-      <q-card
-        v-for="n in 5"
-        :key="`skeleton-${n}`"
-        flat
-        class="q-mb-sm"
-        :class="getDarkModeClass(darkMode)"
-      >
-        <q-card-section>
-          <div class="row items-center q-gutter-md">
-            <q-skeleton type="circle" size="40px" />
-            <div class="col">
-              <q-skeleton type="text" width="60%" class="q-mb-xs" />
-              <q-skeleton type="text" width="40%" />
+      <slot name="loading">
+        <q-card
+          v-for="n in 5"
+          :key="`skeleton-${n}`"
+          flat
+          class="q-mb-sm"
+          :class="getDarkModeClass(darkMode)"
+        >
+          <q-card-section>
+            <div class="row items-center q-gutter-md">
+              <q-skeleton type="circle" size="40px" />
+              <div class="col">
+                <q-skeleton type="text" width="60%" class="q-mb-xs" />
+                <q-skeleton type="text" width="40%" />
+              </div>
+              <q-skeleton type="rect" width="60px" height="24px" />
             </div>
-            <q-skeleton type="rect" width="60px" height="24px" />
-          </div>
-        </q-card-section>
-      </q-card>
+          </q-card-section>
+        </q-card>
+      </slot>
     </template>
     
     <!-- Empty State -->
@@ -40,7 +42,7 @@
     
     <!-- List Content -->
     <template v-else>
-      <q-pull-to-refresh @refresh="onRefresh">
+      <q-pull-to-refresh :disable="!pullToRefresh" @refresh="onRefresh">
         <q-list separator class="transaction-list-container">
           <q-intersection
             v-for="(item, index) in items"
@@ -61,6 +63,7 @@
         <q-btn
           flat
           color="primary"
+          class="tx-list-load-more-btn"
           :loading="loadingMore"
           @click="loadMore"
         >
@@ -99,6 +102,10 @@ export default {
       default: false
     },
     includeSeparator: {
+      type: Boolean,
+      default: true
+    },
+    pullToRefresh: {
       type: Boolean,
       default: true
     },

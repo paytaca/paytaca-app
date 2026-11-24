@@ -187,4 +187,7 @@ export default {
   ViewOnCauldron: "Ver no Cauldron",
   Unpin: "Desafixar",
   DropToUnpin: "Solte aqui para desafixar",
+  TopUps: "Recargas",
+  OverTheCounter: "Compra na loja",
+  OnHold: "Em espera",
 }

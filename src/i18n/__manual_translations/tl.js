@@ -181,4 +181,7 @@ export default {
   LiftTokenLockupInfo: "Ang iyong biniling LIFT token ay mai-lock sa isang smart contract na awtomatikong mag-a-unlock batay sa iskedyul ng vesting ng round na binilhan mo.",
   ViewOnCauldron: "Tingnan sa Cauldron",
   PinAction: "I-pin",
+  TopUps: "Mga Top-up",
+  OverTheCounter: "Pagbili sa tindahan",
+  OnHold: "Naka-hold",
 }

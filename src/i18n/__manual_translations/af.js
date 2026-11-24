@@ -182,4 +182,7 @@ export default {
   UnpaidLift: "Onbetaalde LIFT",
   ViewOnCauldron: "Sien op Cauldron",
   DropToUnpin: "Los hier om te ontspeld",
+  TopUps: "Aanvullings",
+  OverTheCounter: "Oor-die-toonbank",
+  OnHold: "Op ys",
 }

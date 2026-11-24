@@ -183,7 +183,13 @@ export default {
   PayForLIFT: "LIFT料金を支払う",
   FollowUsOn: "{platform} でフォローしてください",
   PaytacaWebsiteDescription: "{paytacaWebsite} にアクセスしてください",
+  PaytacaElite: "Paytaca エリート",
+  LIFTBalance: "LIFT 残高",
+  LIFToken: "LIFT トークン",
   ViewOnCauldron: "Cauldronで表示",
   PinAction: "固定",
   Unpin: "固定を解除",
+  TopUps: "チャージ",
+  OverTheCounter: "店頭購入",
+  OnHold: "保留中",
 }

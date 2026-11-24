@@ -1,0 +1,141 @@
+<template>
+  <q-dialog
+    persistent
+    seamless
+    ref="dialogRef"
+    class="no-click-outside"
+  >
+    <q-card
+      class="q-pa-md pt-card text-bow br-15"
+      :class="getDarkModeClass(darkMode)"
+      style="min-width: 320px; max-width: 80dvw;"
+    >
+      <!-- Main content -->
+      <q-card-section class="q-pt-sm q-pb-md">
+        <div class="column items-center text-center q-gutter-y-md">
+          <!-- Icon -->
+          <div class="q-mb-sm icon-container">
+            <q-icon
+              name="credit_card_off"
+              size="50px"
+              color="primary"
+            />
+          </div>
+
+          <!-- Title -->
+          <h5 class="q-ma-none text-h5 text-weight-bold">
+            {{ $t('InsufficientWalletBalance', {}, 'Insufficient Wallet Balance') }}
+          </h5>
+
+          <!-- Description -->
+          <div class="column q-gutter-y-sm text-body1">
+            <p class="q-ma-none">
+              {{ isLocked ? $t('EliteNotEligible', {}, 'Oops! You are not yet eligible for the Paytaca Elite Program.') : $t('EliteBelowThreshold', {}, 'Oops! Your wallet balances fell below the threshold. Restore them to resume earning cashbacks.') }}
+            </p>
+
+            <!-- Wallet Balance Progress -->
+            <div class="q-mb-sm">
+              {{ isLocked ? $t('EliteUnlockRequirement', {}, 'To unlock, your wallet needs:') : $t('EliteCurrentVsRequirement', {}, 'Current vs. requirement:') }}
+            </div>
+            <div class="q-mb-sm">
+              <div class="row justify-between items-center q-mb-xs">
+                <span class="text-caption">
+                  <template v-if="eliteBchMet"><span class="text-positive">✓&nbsp;</span></template>{{ $t('BCHBalance', {}, 'BCH balance') }}
+                </span>
+                <span class="text-caption text-weight-medium">
+                  {{ parseFiatCurrency(bchBalance, currency) }} / {{ formattedBchThreshold }}
+                </span>
+              </div>
+              <q-linear-progress
+                :value="eliteBchPct"
+                class="rounded-borders elite-progress"
+                size="6px"
+              />
+            </div>
+            <div>
+              <div class="row justify-between items-center q-mb-xs">
+                <span class="text-caption">
+                  <template v-if="eliteLiftMet"><span class="text-positive">✓&nbsp;</span></template>{{ $t('LIFTBalance', {}, 'LIFT balance') }}
+                </span>
+                <span class="text-caption text-weight-medium">
+                  {{ parseLiftToken(liftBalance) }} / {{ parseLiftToken(liftThreshold) }}
+                </span>
+              </div>
+              <q-linear-progress
+                :value="eliteLiftPct"
+                class="rounded-borders elite-progress"
+                size="6px"
+              />
+            </div>
+          </div>
+        </div>
+      </q-card-section>
+
+      <!-- Actions -->
+      <q-card-actions class="q-px-md q-pb-md column items-center q-gutter-y-md">
+        <q-btn
+          rounded
+          class="button bg-grad cta-button"
+          :class="getDarkModeClass(darkMode)"
+          :label="$t('GoBack')"
+          v-close-popup
+        />
+      </q-card-actions>
+    </q-card>
+  </q-dialog>
+</template>
+
+<script>
+import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
+import { parseLiftToken } from 'src/utils/engagementhub-utils/shared'
+import { requirementState } from 'src/utils/engagementhub-utils/elite-program'
+import { parseFiatCurrency } from 'src/utils/denomination-utils';
+
+export default {
+  name: 'EliteProgramLockedDialog',
+
+  props: {
+    bchBalance: { type: Number, default: 0 },
+    bchThreshold: { type: [Number, String], default: 0 },
+    liftBalance: { type: Number, default: 0 },
+    liftThreshold: { type: Number, default: 0 },
+    isLocked: { type: Boolean, default: true },
+    currency: { type: String, default: 'PHP' }
+  },
+
+  computed: {
+    darkMode () {
+      return this.$store.getters['darkmode/getStatus']
+    },
+
+    formattedBchThreshold () {
+      return parseFiatCurrency(this.bchThreshold, this.currency)
+    },
+
+    // Elite: BCH balance progress toward threshold (0-1)
+    eliteBchPct () {
+      return requirementState(this.bchBalance, this.bchThreshold)?.progress ?? 0
+    },
+    eliteBchMet () {
+      return requirementState(this.bchBalance, this.bchThreshold)?.met === true
+    },
+    // Elite: LIFT balance progress toward threshold (0-1)
+    eliteLiftPct () {
+      return requirementState(this.liftBalance, this.liftThreshold)?.progress ?? 0
+    },
+    eliteLiftMet () {
+      return requirementState(this.liftBalance, this.liftThreshold)?.met === true
+    },
+  },
+
+  methods: {
+    getDarkModeClass,
+    parseLiftToken,
+    parseFiatCurrency
+  }
+}
+</script>
+
+<style lang="scss" scoped>
+@import 'src/css/rewards/elite-row-styles.scss';
+</style>

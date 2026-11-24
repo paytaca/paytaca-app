@@ -184,6 +184,10 @@ export default {
   InvalidHedgeSatoshis: "satoshis shinge mara inganci, {amount}",
   PostAd: "POST {type} AD",
   ResolvedDate: "An warware {date}",
+  EliteCountThisMonth: "{count} wannan watan",
   ViewOnCauldron: "Duba akan Cauldron",
   PinAction: "Tara",
+  TopUps: "Ƙarin kuɗi",
+  OverTheCounter: "Siyayya kai tsaye",
+  OnHold: "A jira",
 }
