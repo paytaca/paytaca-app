@@ -2347,6 +2347,18 @@ describe('P2P order WebSocket status refresh', () => {
     return { vm, state, calls, applied, sockets, order, message: message => sockets[0].message(message) }
   }
 
+  it('starts the notification subscription when chat becomes available on an already-visible order', async () => {
+    const h = orderHarness()
+    let starts = 0
+    h.vm.isloaded = true
+    h.vm.isChatEnabled = true
+    h.vm.initializeChat = () => { starts++; return new Promise(() => {}) }
+    h.state.status = 'ESCRW'
+    await h.vm.fetchOrder('websocket')
+    assert.equal(starts, 1)
+    assert.equal(h.vm.order.status.value, 'ESCRW')
+  })
+
   it('applies release updates arriving immediately after another order fetch', async () => {
     const h = orderHarness()
     await h.vm.fetchOrder('onVerifyTxSuccess')
@@ -2831,7 +2843,7 @@ describe('P2P background chat initialization', () => {
   })
 
   for (const chatEnabled of [false, true]) {
-    it(`renders order details without chat setup when chat is ${chatEnabled ? 'enabled' : 'disabled'}`, async () => {
+    it(`renders order details without awaiting the notification subscription when chat is ${chatEnabled ? 'enabled' : 'disabled'}`, async () => {
       let chatStarted = false
       let unreadRequested = false
       const api = methods('src/pages/apps/exchange/peer_to_peer/order.vue', ['loadData'])
@@ -2846,10 +2858,37 @@ describe('P2P background chat initialization', () => {
       await api.loadData.call(vm)
       assert.equal(vm.isloaded, true)
       assert.equal(vm.loadingData, false)
-      assert.equal(chatStarted, false)
-      assert.equal(unreadRequested, chatEnabled)
+      assert.equal(chatStarted, chatEnabled)
+      assert.equal(unreadRequested, false)
     })
   }
+
+  it('updates the unread badge on Details without loading keys or decrypting messages', async () => {
+    const calls = []
+    const api = methods('src/pages/apps/exchange/peer_to_peer/order.vue', ['onNewMessage', 'fetchChatUnread'], {
+      fetchChatMembers: async ref => {
+        calls.push(ref)
+        return [{ chat_identity: { id: '12' }, unread_count: 3 }]
+      }
+    })
+    const vm = {
+      chatRef: 'synthetic-chat', activeTab: 'details', chatLoaded: false,
+      chatIdentity: { id: 12 }, unreadChatCount: 0, hasUnread: false,
+      $store: { getters: { 'ramp/getUser': { chat_identity_id: null } } },
+      loadKeyPair () { throw new Error('Must not derive keys for an unread notification') },
+      loadChatIdentity () { throw new Error('Chat identity is already prepared') },
+      decryptMessage () { throw new Error('Must not decrypt messages before opening Chat') }
+    }
+    vm.fetchChatUnread = api.fetchChatUnread.bind(vm)
+    await api.onNewMessage.call(vm, { id: 7, encrypted: true })
+    assert.deepEqual(calls, ['synthetic-chat'])
+    assert.equal(vm.unreadChatCount, 3)
+    assert.equal(vm.hasUnread, true)
+    assert.equal(vm.chatLoaded, false)
+    vm.disposed = true
+    await api.onNewMessage.call(vm, { id: 8, encrypted: true })
+    assert.equal(calls.length, 1)
+  })
 
   it('waits for home-page chat preparation and then reuses its ready identity', async () => {
     const h = harness()

@@ -1037,7 +1037,7 @@ export default {
           this.activeTab = 'chat'
         }
         vm.isloaded = true
-        if (vm.isChatEnabled) vm.fetchChatUnread(vm.chatRef)
+        if (vm.isChatEnabled) vm.initializeChat()
       } catch (error) {
         console.error(error)
       } finally {
@@ -1723,7 +1723,11 @@ export default {
     async onNewMessage (messageData) {
       const vm = this
       
-      if (!messageData || vm.addingNewMessage) return
+      if (!messageData || vm.disposed || vm.addingNewMessage) return
+      if (!vm.chatLoaded && vm.activeTab !== 'chat') {
+        await vm.fetchChatUnread(vm.chatRef)
+        return
+      }
       
       // Ensure chat is initialized
       if (!vm.chatIdentity || !vm.keypair.privkey) {
@@ -2130,6 +2134,7 @@ export default {
         const members = [vm.order?.members.buyer.public_key, vm.order?.members.seller.public_key].join('')
         const chatRef = generateChatRef(vm.order.id, vm.order.created_at, members)
         vm.chatRef = chatRef
+        if (vm.isloaded && vm.isChatEnabled) vm.initializeChat()
       } catch (error) {
         this.handleRequestError(error)
       } finally {
@@ -2145,11 +2150,11 @@ export default {
       if (!chatRef) return
       
       const user = this.$store.getters['ramp/getUser']
+      const identityId = this.chatIdentity?.id ?? user?.chat_identity_id
       
       await fetchChatMembers(chatRef).then(response => {
-        const userMember = response?.filter(member => {
-          return user?.chat_identity_id === member?.chat_identity?.id
-        })[0]
+        const userMember = response?.find(member => identityId != null &&
+          String(identityId) === String(member?.chat_identity?.id))
         
         this.unreadChatCount = userMember?.unread_count || 0
         this.hasUnread = this.unreadChatCount > 0
