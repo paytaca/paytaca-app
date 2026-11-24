@@ -8,6 +8,15 @@ import { getEncryptionKeypairFromMnemonic, getAddress0_0PublicKey } from 'src/ut
 
 export const chatIdentityManager = new ChatIdentityManager()
 
+const pendingChatIdentities = new Map()
+
+function chatIdentityScope (usertype) {
+  return JSON.stringify([
+    Store.getters['global/getWallet']('bch')?.walletHash,
+    Store.getters['global/getWalletIndex'], Store.getters['global/isChipnet'], usertype
+  ])
+}
+
 /**
  * Loads or creates a chat identity for a user
  * @async
@@ -22,7 +31,26 @@ export async function loadChatIdentity (usertype, params = { name: null, chat_id
   if (!usertype) throw new Error('missing required parameter: usertype')
   if (!params.name) throw new Error('missing required parameter: params.name')
   if (!wallet) await loadRampWallet()
+  const scope = chatIdentityScope(usertype)
+  if (pendingChatIdentities.has(scope)) return pendingChatIdentities.get(scope)
+  const pending = initializeChatIdentity(usertype, params, scope)
+    .finally(() => {
+      if (pendingChatIdentities.get(scope) === pending) pendingChatIdentities.delete(scope)
+    })
+  pendingChatIdentities.set(scope, pending)
+  return pending
+}
+
+async function initializeChatIdentity (usertype, params, scope) {
+  const assertCurrent = () => {
+    if (scope !== chatIdentityScope(usertype) ||
+        wallet?.walletHash !== Store.getters['global/getWallet']('bch')?.walletHash) {
+      throw Object.assign(new Error('The active P2P wallet changed. Please reopen chat.'), { code: 'p2p_identity_mismatch' })
+    }
+  }
+  assertCurrent()
   await assertP2PIdentity(null, usertype)
+  assertCurrent()
 
   const payload = {
     user_type: usertype,
@@ -32,8 +60,10 @@ export async function loadChatIdentity (usertype, params = { name: null, chat_id
   }
 
   let identity = await fetchChatIdentityById(payload.chat_identity_id)
+  assertCurrent()
   if (!identity || identity.ref !== payload.ref) {
     identity = await fetchChatIdentityByRef(payload.ref)
+    assertCurrent()
   }
 
   if (identity) {
@@ -43,21 +73,26 @@ export async function loadChatIdentity (usertype, params = { name: null, chat_id
 
   // Update chat verifying and encryption keypairs (short-circuits when not necessary)
   await chatIdentityManager._updateSignerData()
+  assertCurrent()
   await chatIdentityManager._updateEncryptionKeypair(!!identity)
+  assertCurrent()
 
   // Create identity, if not existing
   if (!identity) {
     try {
       identity = await chatIdentityManager.create(payload)
+      assertCurrent()
     } catch (error) {
       const refErrors = error.response?.data?.ref
       if (error.response?.status !== 400 || !Array.isArray(refErrors) ||
           !refErrors.some(message => /already exists/i.test(message))) throw error
       identity = await fetchChatIdentityByRef(payload.ref)
+      assertCurrent()
       if (!identity) throw error
       if (identity.ref !== payload.ref) throw new Error('The chat identity does not match the active wallet.')
       identity = chatIdentityManager.setIdentity(identity)
       await chatIdentityManager._updateEncryptionKeypair(true)
+      assertCurrent()
     }
   }
 
@@ -66,6 +101,7 @@ export async function loadChatIdentity (usertype, params = { name: null, chat_id
     await updateChatIdentityId(payload.user_type, identity.id)
   }
 
+  assertCurrent()
   Store.commit('ramp/updateChatIdentity', { ref: identity?.ref, chatIdentity: identity })
   return identity
 }

@@ -219,22 +219,40 @@ export async function loadAuthenticatedUser (forceLogin = false) {
     
     await user.savePubkeyAndAddress()
     Store.commit('ramp/updateUser', user)
-    try {
-      await user.fetchChatIdentity()
-    } catch (error) {
-      if (error?.response?.status === 401) {
+    const chatScope = JSON.stringify([
+      getCurrentWalletHash(), Store.getters['global/getWalletIndex'], Store.getters['global/isChipnet']
+    ])
+    const isCurrent = () => chatScope === JSON.stringify([
+      getCurrentWalletHash(), Store.getters['global/getWalletIndex'], Store.getters['global/isChipnet']
+    ])
+    const chatPreparation = Promise.resolve().then(async () => {
+      if (!isCurrent()) return false
+      try {
+        await user.fetchChatIdentity()
+      } catch (error) {
+        if (!isCurrent()) return false
+        if (error?.response?.status !== 401) throw error
         await user.login(true)
+        if (!isCurrent()) return false
         if (!await verifySession()) throw new Error('P2P login could not be confirmed.')
+        if (!isCurrent()) return false
         await user.savePubkeyAndAddress()
         await user.fetchChatIdentity()
-      } else if (error?.code === 'p2p_identity_mismatch' || error?.code === 'p2p_account_type_mismatch') {
-        throw error
-      } else if (error?.response?.status !== 403) {
-        console.error('Error fetching chat identity:', error?.response?.status || error?.code || 'Request failed')
+        if (isCurrent()) bus.emit('relogged')
       }
-    }
+      return isCurrent() && !!user.chat_identity
+    }).catch(error => {
+      if (!isCurrent()) return false
+      if (error?.response?.status === 401) bus.emit('session-expired')
+      else if (['p2p_identity_mismatch', 'p2p_account_type_mismatch'].includes(error?.code)) {
+        bus.emit('handle-request-error', error)
+      } else if (error?.response?.status !== 403) {
+        console.error('Error preparing P2P chat:', error?.response?.status || error?.code || 'Request failed')
+      }
+      return false
+    })
+    Object.defineProperty(user, 'chatPreparation', { value: chatPreparation })
 
-    await user.savePubkeyAndAddress()
     user.emitSignal(null, { signal: 'logging-in', data: false })
 
     return Promise.resolve(user)

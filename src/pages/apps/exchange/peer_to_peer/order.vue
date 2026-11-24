@@ -1128,19 +1128,18 @@ export default {
 
     async loadChatIdentity () {
       const chatIdentityRef = generateChatIdentityRef(wallet.walletHash)
-      this.chatIdentity = this.$store.getters['ramp/chatIdentity'](chatIdentityRef)
-      
-      if (!this.chatIdentity) {
-        const user = this.$store.getters['ramp/getUser']
-        const identity = await loadChatIdentity('peer', { 
-          name: user?.name, 
-          chat_identity_id: user?.chat_identity_id 
-        })
-        
-        if (identity) {
-          this.chatIdentity = identity
-        }
+      const user = this.$store.getters['ramp/getUser']
+      const prepared = await user?.chatPreparation
+      if (chatIdentityRef !== generateChatIdentityRef(wallet.walletHash)) {
+        throw Object.assign(new Error('The active P2P wallet changed. Please reopen chat.'), { code: 'p2p_identity_mismatch' })
       }
+      const cachedIdentity = this.$store.getters['ramp/chatIdentity'](chatIdentityRef)
+      this.chatIdentity = prepared && cachedIdentity?.ref === chatIdentityRef
+        ? cachedIdentity
+        : await loadChatIdentity('peer', {
+          name: user?.name,
+          chat_identity_id: cachedIdentity?.id || user?.chat_identity_id
+        })
       if (!this.chatIdentity || this.chatIdentity.ref !== chatIdentityRef) {
         throw new Error('Chat identity is unavailable for the active wallet.')
       }
@@ -1195,8 +1194,11 @@ export default {
           this.chatReadyScope = scope
           this.ensureChatWebSocket()
           return true
-        } catch {
-          if (isCurrent()) this.chatError = true
+        } catch (error) {
+          if (isCurrent()) {
+            this.chatError = true
+            if (error?.response?.status === 401) bus.emit('session-expired')
+          }
           return false
         } finally {
           if (this.chatInitialization?.scope === scope) {

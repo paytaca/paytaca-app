@@ -1413,6 +1413,7 @@ describe('P2P login chat authentication recovery', () => {
       },
       loadChatIdentity: async () => {
         events.push('chat')
+        if (session.chat) { chatRequests++; return session.chat() }
         if (++chatRequests <= failures) throw { response: { status: 401 }, config: { secret: 'must-not-be-logged' } }
         return { id: 'synthetic-chat' }
       },
@@ -1428,6 +1429,7 @@ describe('P2P login chat authentication recovery', () => {
     it(`performs one fresh login before retrying chat after a 401 (forceLogin=${forceLogin})`, async () => {
       const h = authHarness()
       const user = await h.loadAuthenticatedUser(forceLogin)
+      assert.equal(await user.chatPreparation, true)
       assert.deepEqual(h.counts(), { logins: forceLogin ? 2 : 1, chatRequests: 2 })
       assert.equal(user.chat_identity.id, 'synthetic-chat')
       const failedChat = h.events.indexOf('chat')
@@ -1437,11 +1439,28 @@ describe('P2P login chat authentication recovery', () => {
     })
   }
 
-  it('stops after a second 401 without returning a successful login', async () => {
+  it('requests session recovery after a second background chat 401 without retrying forever', async () => {
     const h = authHarness({ failures: 2 })
-    await assert.rejects(h.loadAuthenticatedUser(), error => error.response.status === 401)
+    const user = await h.loadAuthenticatedUser()
+    assert.equal(await user.chatPreparation, false)
     assert.deepEqual(h.counts(), { logins: 1, chatRequests: 2 })
-    assert.deepEqual(h.events.at(-1), ['logging-in', false])
+    assert.deepEqual(h.events.at(-1), ['session-expired', undefined])
+  })
+
+  it('returns the verified user while notification chat preparation is still pending', async () => {
+    const h = authHarness({ failures: 0 })
+    let finish
+    h.session.chat = () => new Promise(resolve => { finish = resolve })
+    const user = await h.loadAuthenticatedUser()
+    assert.equal(user.is_authenticated, true)
+    assert.equal(h.session.checks.length, 1)
+    assert.equal(h.counts().chatRequests, 1)
+    assert(h.events.some(event => Array.isArray(event) && event[0] === 'logging-in' && event[1] === false))
+    assert.equal(Object.keys(user).includes('chatPreparation'), false)
+    assert.equal(user.chat_identity, undefined)
+    finish({ id: 'synthetic-chat' })
+    assert.equal(await user.chatPreparation, true)
+    assert.equal(user.chat_identity.id, 'synthetic-chat')
   })
 
   it('waits for token removal before OTP, login and saving its replacement', async () => {
@@ -1543,7 +1562,7 @@ describe('P2P login chat authentication recovery', () => {
     assert.equal(h.counts().logins, 0)
   })
 
-  it('does not emit loggedIn or relogged when chat authentication still fails', async () => {
+  it('completes P2P login without waiting for background chat recovery', async () => {
     const h = authHarness({ failures: 2 })
     const source = readFileSync('src/components/ramp/fiat/RampLogin.vue', 'utf8')
     const script = source.match(/<script>([\s\S]*?)<\/script>/)[1].replace(/^import .*$/gm, '').replace('export default', 'return')
@@ -1558,9 +1577,10 @@ describe('P2P login chat authentication recovery', () => {
       getErrorMessageByType: () => 'Authentication rejected'
     }
     await view.methods.loadUser.call(vm)
-    assert.deepEqual(emitted, [])
-    assert.equal(vm.errorMessage, 'Authentication rejected')
+    assert.deepEqual(emitted, ['loggedIn', 'commit', 'relogged'])
+    assert.equal(vm.errorMessage, undefined)
     assert.equal(vm.isLoading, false)
+    assert.equal(await vm.user.chatPreparation, false)
   })
 })
 
@@ -2457,12 +2477,13 @@ describe('P2P post-release chat and feedback', () => {
 describe('P2P existing chat identity recovery', () => {
   function identityHarness () {
     const source = readFileSync('src/exchange/chat/index.js', 'utf8')
-    const start = source.indexOf('export async function loadChatIdentity (')
+    const start = source.indexOf('const pendingChatIdentities = new Map()')
     const end = source.indexOf('\nexport function updateOrderChatSessionRef', start)
     const calls = []
     const expectedRef = 'synthetic-wallet-ref'
     const existing = { id: 12, ref: expectedRef }
     const state = {
+      walletHash: 'synthetic-wallet', index: 0, chipnet: false,
       byId: null, byRef: existing,
       create: async () => ({ id: 13, ref: expectedRef }),
       link: async () => {}
@@ -2485,7 +2506,14 @@ describe('P2P existing chat identity recovery', () => {
         create: async payload => { calls.push(['create', payload]); return state.create(payload) }
       },
       updateChatIdentityId: async (...args) => { calls.push(['link', ...args]); return state.link(...args) },
-      Store: { commit: (...args) => calls.push(['commit', ...args]) }
+      Store: {
+        getters: {
+          'global/getWallet': () => ({ walletHash: state.walletHash }),
+          get 'global/getWalletIndex' () { return state.index },
+          get 'global/isChipnet' () { return state.chipnet }
+        },
+        commit: (...args) => calls.push(['commit', ...args])
+      }
     }
     const load = new Function(...Object.keys(bindings), `${source.slice(start, end).replace('export ', '')}; return loadChatIdentity`)(...Object.values(bindings))
     return { load, state, calls, existing, expectedRef }
@@ -2573,6 +2601,58 @@ describe('P2P existing chat identity recovery', () => {
     assert.equal(h.calls.filter(call => call[0] === 'create').length, 1)
   })
 
+  it('shares pending identity preparation between the home page and chat screens', async () => {
+    const h = identityHarness()
+    let finish
+    h.state.byRef = () => new Promise(resolve => { finish = resolve })
+    const first = h.load('peer', { name: 'Synthetic name' })
+    const second = h.load('peer', { name: 'Synthetic name' })
+    await new Promise(resolve => setImmediate(resolve))
+    assert.equal(h.calls.filter(call => call[0] === 'ref').length, 1)
+    finish(h.existing)
+    assert.equal(await first, h.existing)
+    assert.equal(await second, h.existing)
+    assert.equal(h.calls.filter(call => call[0] === 'signer').length, 1)
+    assert.equal(h.calls.filter(call => call[0] === 'commit').length, 1)
+  })
+
+  it('clears a failed shared preparation so chat can retry', async () => {
+    const h = identityHarness()
+    h.state.lookupError = { response: { status: 503 } }
+    const results = await Promise.allSettled([
+      h.load('peer', { name: 'Synthetic name' }), h.load('peer', { name: 'Synthetic name' })
+    ])
+    assert(results.every(result => result.status === 'rejected'))
+    assert.equal(h.calls.filter(call => call[0] === 'ref').length, 1)
+    h.state.lookupError = null
+    assert.equal(await h.load('peer', { name: 'Synthetic name' }), h.existing)
+    assert.equal(h.calls.filter(call => call[0] === 'ref').length, 2)
+  })
+
+  for (const change of ['walletHash', 'index', 'chipnet']) {
+    it(`rejects identity preparation when ${change} changes during lookup`, async () => {
+      const h = identityHarness()
+      let finish
+      h.state.byRef = () => new Promise(resolve => { finish = resolve })
+      const pending = h.load('peer', { name: 'Synthetic name' })
+      await new Promise(resolve => setImmediate(resolve))
+      h.state[change] = change === 'walletHash' ? 'another-wallet' : change === 'index' ? 1 : true
+      finish(h.existing)
+      await assert.rejects(pending, { code: 'p2p_identity_mismatch' })
+      assert.equal(h.calls.some(call => ['signer', 'encryption', 'link', 'commit'].includes(call[0])), false)
+    })
+  }
+
+  it('does not share a pending peer initialization with an arbiter', async () => {
+    const h = identityHarness()
+    const results = await Promise.all([
+      h.load('peer', { name: 'Synthetic name' }), h.load('arbiter', { name: 'Synthetic name' })
+    ])
+    assert(results.every(identity => identity === h.existing))
+    assert.equal(h.calls.filter(call => call[0] === 'ref').length, 2)
+    assert.deepEqual(h.calls.filter(call => call[0] === 'link').map(call => call[1]), ['peer', 'arbiter'])
+  })
+
   for (const status of [404, 401, 403, 503]) {
     it(`treats only a 404 as a missing saved identity (HTTP ${status})`, async () => {
       const source = readFileSync('src/exchange/chat/index.js', 'utf8')
@@ -2648,7 +2728,7 @@ describe('P2P background chat initialization', () => {
         'global/getWallet': () => ({ walletHash: state.wallet }),
         'global/getWalletIndex': 0, 'global/isChipnet': false,
         'ramp/chatIdentity': () => state.cached ? ownIdentity : null,
-        'ramp/getUser': { name: 'Synthetic name', chat_identity_id: 12 }
+        'ramp/getUser': { name: 'Synthetic name', chat_identity_id: 12, chatPreparation: Promise.resolve(true) }
       } }
     }
     for (const [name, method] of Object.entries(api)) vm[name] = method.bind(vm)
@@ -2690,6 +2770,33 @@ describe('P2P background chat initialization', () => {
     assert.equal(vm.isloaded, true)
     assert.equal(vm.loadingData, false)
     assert.equal(chatStarted, true)
+  })
+
+  it('waits for home-page chat preparation and then reuses its ready identity', async () => {
+    const h = harness()
+    let finish
+    h.vm.$store.getters['ramp/getUser'].chatPreparation = new Promise(resolve => { finish = resolve })
+    const pending = h.vm.loadChatIdentity()
+    await new Promise(resolve => setImmediate(resolve))
+    assert.equal(h.events.includes('load-identity'), false)
+    assert.equal(h.vm.chatIdentity, undefined)
+    finish(true)
+    assert.equal(await pending, h.ownIdentity)
+    assert.equal(h.events.includes('load-identity'), false)
+  })
+
+  it('prepares the signer when only a persisted chat identity is cached', async () => {
+    const h = harness()
+    h.vm.$store.getters['ramp/getUser'].chatPreparation = undefined
+    assert.equal(await h.vm.loadChatIdentity(), h.ownIdentity)
+    assert.deepEqual(h.events, ['load-identity'])
+  })
+
+  it('retries identity preparation when the home-page warmup failed', async () => {
+    const h = harness()
+    h.vm.$store.getters['ramp/getUser'].chatPreparation = Promise.resolve(false)
+    assert.equal(await h.vm.loadChatIdentity(), h.ownIdentity)
+    assert.deepEqual(h.events, ['load-identity'])
   })
 
   it('waits for session creation and confirmed membership before opening a socket', async () => {

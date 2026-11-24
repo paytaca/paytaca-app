@@ -556,23 +556,23 @@ export default {
     async loadChatSession () {
       const vm = this
       const chatIdentityRef = generateChatIdentityRef(wallet.walletHash)
-      vm.chatIdentity = this.$store.getters['ramp/chatIdentity'](chatIdentityRef)
-      console.log('Chat Identity', vm.chatIdentity)
-
-      // Create chat identity if it doesn't exist
-      if (!vm.chatIdentity) {
-        console.log('Creating chat identity')
-        const user = await fetchUser()
-        console.log('User', user)
-        loadChatIdentity ('peer', { name: user?.name, chat_identity_id: user?.chat_identity_id })
-          .then(identity => {
-            vm.chatIdentity = identity
-            this.$store.commit('ramp/updateChatIdentity', { ref: identity.ref, chatIdentity: identity })
-            console.log('Chat Identity loaded', vm.chatIdentity)
+      try {
+        const prepared = await this.$store.getters['ramp/getUser']?.chatPreparation
+        if (chatIdentityRef !== generateChatIdentityRef(wallet.walletHash)) return
+        const cachedIdentity = this.$store.getters['ramp/chatIdentity'](chatIdentityRef)
+        if (prepared && cachedIdentity?.ref === chatIdentityRef) {
+          vm.chatIdentity = cachedIdentity
+        } else {
+          const user = await fetchUser()
+          vm.chatIdentity = await loadChatIdentity(user.user_type, {
+            name: user.name,
+            chat_identity_id: cachedIdentity?.id || user.chat_identity_id
           })
-          .catch(error => {
-            console.error('Error loading chat identity:', error)
-          })
+        }
+      } catch (error) {
+        if (error?.response?.status === 401) bus.emit('session-expired')
+        else this.$q.notify({ type: 'error', message: this.$t('ChatUnavailableRetry', {}, 'Chat is temporarily unavailable. Please reopen chat to retry.'), timeout: 5000 })
+        return
       }
 
       // Check if chat session exists. fetchChatSession resolves null (instead of
