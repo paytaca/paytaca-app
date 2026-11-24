@@ -2656,6 +2656,18 @@ describe('P2P order WebSocket status refresh', () => {
     assert.equal(h.vm.order.status.value, 'ESCRW')
   })
 
+  for (const [action, status] of [['RELEASE', 'RLS'], ['REFUND', 'RFN']]) {
+    it(`refreshes the subscribed order after an appeal ${action} notification`, async () => {
+      const h = orderHarness()
+      assert(h.sockets[0].url.endsWith('/order/24/'))
+      h.state.status = status
+      await h.message({ success: true, action })
+      assert.equal(h.calls.at(-1).url, '/ramp-p2p/order/24/')
+      assert.equal(h.vm.order.id, 24)
+      assert.equal(h.vm.order.status.value, status)
+    })
+  }
+
   it('applies release updates arriving immediately after another order fetch', async () => {
     const h = orderHarness()
     await h.vm.fetchOrder('onVerifyTxSuccess')
@@ -2837,215 +2849,118 @@ describe('P2P post-release chat and feedback', () => {
 })
 
 
-describe('P2P existing chat identity recovery', () => {
-  function identityHarness () {
+describe('P2P verified existing chat links', () => {
+  function harness () {
     const source = readFileSync('src/exchange/chat/index.js', 'utf8')
     const start = source.indexOf('const pendingChatIdentities = new Map()')
     const end = source.indexOf('\nexport function updateOrderChatSessionRef', start)
     const calls = []
-    const expectedRef = 'synthetic-wallet-ref'
-    const existing = { id: 12, ref: expectedRef }
-    const state = {
-      walletHash: 'synthetic-wallet', index: 0, chipnet: false,
-      byId: null, byRef: existing,
-      create: async () => ({ id: 13, ref: expectedRef }),
-      link: async () => {}
-    }
+    const identity = { id: 12, ref: 'synthetic-ref' }
+    const state = { linkedId: 12, identity, walletHash: 'synthetic-wallet', failure: null }
     const bindings = {
       wallet: { walletHash: 'synthetic-wallet' },
       loadRampWallet: async () => { throw new Error('Unexpected wallet load') },
-      assertP2PIdentity: async () => state.verify?.(),
-      generateChatIdentityRef: hash => { assert.equal(hash, 'synthetic-wallet'); return expectedRef },
-      fetchChatIdentityById: async id => { calls.push(['id', id]); return state.byId },
-      fetchChatIdentityByRef: async ref => {
-        calls.push(['ref', ref])
-        if (state.lookupError) throw state.lookupError
-        return typeof state.byRef === 'function' ? state.byRef() : state.byRef
+      assertP2PIdentity: async () => {
+        calls.push('profile')
+        if (state.verify) await state.verify()
+        if (state.failure) throw state.failure
+        return { chat_identity_id: state.linkedId }
+      },
+      generateChatIdentityRef: () => 'synthetic-ref',
+      fetchChatIdentityById: async id => {
+        calls.push(['get', id])
+        if (state.lookup) await state.lookup()
+        return state.identity
       },
       chatIdentityManager: {
-        setIdentity: identity => { calls.push(['set', identity]); return identity },
-        _updateSignerData: async () => { calls.push(['signer']) },
-        _updateEncryptionKeypair: async update => { calls.push(['encryption', update]) },
-        create: async payload => { calls.push(['create', payload]); return state.create(payload) }
+        setIdentity: value => { calls.push(['set', value]); return value },
+        _updateSignerData: async () => { calls.push('signer') },
+        _updateEncryptionKeypair: async () => {
+          calls.push('encryption')
+          if (state.keyError) throw state.keyError
+        },
+        create: async () => { throw new Error('Must not create an unlinked identity') }
       },
-      updateChatIdentityId: async (...args) => { calls.push(['link', ...args]); return state.link(...args) },
+      updateChatIdentityId: async () => { throw new Error('Must not PATCH chat links') },
       Store: {
         getters: {
           'global/getWallet': () => ({ walletHash: state.walletHash }),
-          get 'global/getWalletIndex' () { return state.index },
-          get 'global/isChipnet' () { return state.chipnet }
+          'global/getWalletIndex': 0, 'global/isChipnet': false
         },
         commit: (...args) => calls.push(['commit', ...args])
       }
     }
     const load = new Function(...Object.keys(bindings), `${source.slice(start, end).replace('export ', '')}; return loadChatIdentity`)(...Object.values(bindings))
-    return { load, state, calls, existing, expectedRef }
+    return { load: (params = {}) => load('peer', { name: 'Synthetic name', chat_identity_id: 12, ...params }), state, calls, identity }
   }
 
-  for (const savedId of [null, 99]) {
-    it(`recovers the wallet identity when the saved ID is ${savedId}`, async () => {
-      const h = identityHarness()
-      const identity = await h.load('peer', { name: 'Synthetic name', chat_identity_id: savedId })
-      assert.equal(identity, h.existing)
-      assert(h.calls.some(call => call[0] === 'ref' && call[1] === h.expectedRef))
-      assert.equal(h.calls.some(call => call[0] === 'create'), false)
-      assert(h.calls.some(call => call[0] === 'encryption' && call[1] === true))
-      assert.deepEqual(h.calls.find(call => call[0] === 'link'), ['link', 'peer', 12])
-    })
-  }
-
-  it('keeps the saved identity without another lookup or profile update when it matches', async () => {
-    const h = identityHarness()
-    h.state.byId = h.existing
-    await h.load('peer', { name: 'Synthetic name', chat_identity_id: 12 })
-    assert.equal(h.calls.some(call => ['ref', 'create', 'link'].includes(call[0])), false)
-  })
-
-  it('does not attach a saved identity belonging to a different wallet', async () => {
-    const h = identityHarness()
-    h.state.byId = { id: 99, ref: 'another-wallet-ref' }
-    const result = await h.load('peer', { name: 'Synthetic name', chat_identity_id: 99 })
-    assert.equal(result, h.existing)
-    assert.equal(h.calls.find(call => call[0] === 'set')[1], h.existing)
-  })
-
-  it('rejects a reference lookup returning a different wallet identity before updating keys', async () => {
-    const h = identityHarness()
-    h.state.byRef = { id: 99, ref: 'another-wallet-ref' }
-    await assert.rejects(h.load('peer', { name: 'Synthetic name' }), /does not match/)
-    assert.equal(h.calls.some(call => ['set', 'signer', 'encryption', 'link', 'commit'].includes(call[0])), false)
-  })
-
-  it('creates a new identity only when both lookups confirm it is missing', async () => {
-    const h = identityHarness()
-    h.state.byRef = null
-    const identity = await h.load('peer', { name: 'Synthetic name' })
-    assert.equal(identity.id, 13)
-    assert.equal(h.calls.filter(call => call[0] === 'create').length, 1)
-    assert.equal(h.calls.find(call => call[0] === 'create')[1].ref, h.expectedRef)
-  })
-
-  it('does not create an identity when the reference lookup fails', async () => {
-    const h = identityHarness()
-    h.state.lookupError = { response: { status: 503 } }
-    await assert.rejects(h.load('peer', { name: 'Synthetic name' }), error => error === h.state.lookupError)
-    assert.equal(h.calls.some(call => call[0] === 'create'), false)
-  })
-
-  it('recovers an identity created by a concurrent request', async () => {
-    const h = identityHarness()
-    let reads = 0
-    h.state.byRef = () => ++reads === 1 ? null : h.existing
-    h.state.create = async () => { throw { response: { status: 400, data: { ref: ['chat identity with this ref already exists.'] } } } }
-    const identity = await h.load('peer', { name: 'Synthetic name' })
-    assert.equal(identity, h.existing)
-    assert.equal(h.calls.filter(call => call[0] === 'create').length, 1)
-    assert.deepEqual(h.calls.filter(call => call[0] === 'encryption').map(call => call[1]), [true])
-    assert.deepEqual(h.calls.find(call => call[0] === 'link'), ['link', 'peer', 12])
-  })
-
-  it('preserves unrelated validation failures instead of masking them as duplicate identities', async () => {
-    const h = identityHarness()
-    h.state.byRef = null
-    const failure = { response: { status: 400, data: { signature: ['Invalid signature'] } } }
-    h.state.create = async () => { throw failure }
-    await assert.rejects(h.load('peer', { name: 'Synthetic name' }), error => error === failure)
-    assert.equal(h.calls.some(call => ['link', 'commit'].includes(call[0])), false)
-  })
-
-  it('reuses the created identity if linking it to the profile fails on the first attempt', async () => {
-    const h = identityHarness()
-    h.state.byRef = null
-    h.state.create = async () => { h.state.byRef = h.existing; return h.existing }
-    h.state.link = async () => { throw { response: { status: 503 } } }
-    await assert.rejects(h.load('peer', { name: 'Synthetic name' }))
-    h.state.link = async () => {}
-    assert.equal(await h.load('peer', { name: 'Synthetic name' }), h.existing)
-    assert.equal(h.calls.filter(call => call[0] === 'create').length, 1)
-  })
-
-  for (const allowed of [true, false]) {
-    it(`overlaps identity lookup with verification but only prepares keys if verified (${allowed})`, async () => {
-      const h = identityHarness()
-      let finish
-      h.state.verify = () => new Promise((resolve, reject) => {
-        finish = () => allowed ? resolve() : reject({ response: { status: 401 } })
-      })
-      const pending = h.load('peer', { name: 'Synthetic name' })
-      await new Promise(resolve => setImmediate(resolve))
-      assert(h.calls.some(call => call[0] === 'ref'))
-      assert.equal(h.calls.some(call => ['signer', 'encryption', 'create', 'link', 'commit'].includes(call[0])), false)
-      finish()
-      if (allowed) assert.equal(await pending, h.existing)
-      else await assert.rejects(pending, error => error.response.status === 401)
-      assert.equal(h.calls.some(call => call[0] === 'signer'), allowed)
-    })
-  }
-
-  it('shares pending identity preparation between the home page and chat screens', async () => {
-    const h = identityHarness()
-    let finish
-    h.state.byRef = () => new Promise(resolve => { finish = resolve })
-    const first = h.load('peer', { name: 'Synthetic name' })
-    const second = h.load('peer', { name: 'Synthetic name' })
-    await new Promise(resolve => setImmediate(resolve))
-    assert.equal(h.calls.filter(call => call[0] === 'ref').length, 1)
-    finish(h.existing)
-    assert.equal(await first, h.existing)
-    assert.equal(await second, h.existing)
-    assert.equal(h.calls.filter(call => call[0] === 'signer').length, 1)
+  it('loads the authenticated profile link without PATCHing or creating identities', async () => {
+    const h = harness()
+    assert.equal(await h.load(), h.identity)
+    assert.deepEqual(h.calls.slice(0, 2), ['profile', ['get', 12]])
     assert.equal(h.calls.filter(call => call[0] === 'commit').length, 1)
   })
 
-  it('clears a failed shared preparation so chat can retry', async () => {
-    const h = identityHarness()
-    h.state.lookupError = { response: { status: 503 } }
-    const results = await Promise.allSettled([
-      h.load('peer', { name: 'Synthetic name' }), h.load('peer', { name: 'Synthetic name' })
-    ])
-    assert(results.every(result => result.status === 'rejected'))
-    assert.equal(h.calls.filter(call => call[0] === 'ref').length, 1)
-    h.state.lookupError = null
-    assert.equal(await h.load('peer', { name: 'Synthetic name' }), h.existing)
-    assert.equal(h.calls.filter(call => call[0] === 'ref').length, 2)
+  it('uses the fresh profile link instead of a stale cached ID', async () => {
+    const h = harness()
+    assert.equal(await h.load({ chat_identity_id: 99 }), h.identity)
+    assert.deepEqual(h.calls[1], ['get', 12])
   })
 
-  for (const change of ['walletHash', 'index', 'chipnet']) {
-    it(`rejects identity preparation when ${change} changes during lookup`, async () => {
-      const h = identityHarness()
-      let finish
-      h.state.byRef = () => new Promise(resolve => { finish = resolve })
-      const pending = h.load('peer', { name: 'Synthetic name' })
-      await new Promise(resolve => setImmediate(resolve))
-      h.state[change] = change === 'walletHash' ? 'another-wallet' : change === 'index' ? 1 : true
-      finish(h.existing)
-      await assert.rejects(pending, { code: 'p2p_identity_mismatch' })
-      assert.equal(h.calls.some(call => ['signer', 'encryption', 'link', 'commit'].includes(call[0])), false)
+  for (const identity of [null, { id: 99, ref: 'synthetic-ref' }, { id: 12, ref: 'another-wallet' }]) {
+    it(`blocks missing or mismatched linked identities: ${JSON.stringify(identity)}`, async () => {
+      const h = harness()
+      h.state.identity = identity
+      await assert.rejects(h.load(), { code: 'p2p_chat_link_unavailable' })
+      assert.equal(h.calls.includes('signer'), false)
+      assert.equal(h.calls.some(call => call[0] === 'set' || call[0] === 'commit'), false)
     })
   }
 
-  it('does not share a pending peer initialization with an arbiter', async () => {
-    const h = identityHarness()
-    const results = await Promise.all([
-      h.load('peer', { name: 'Synthetic name' }), h.load('arbiter', { name: 'Synthetic name' })
-    ])
-    assert(results.every(identity => identity === h.existing))
-    assert.equal(h.calls.filter(call => call[0] === 'ref').length, 2)
-    assert.deepEqual(h.calls.filter(call => call[0] === 'link').map(call => call[1]), ['peer', 'arbiter'])
+  it('blocks an unlinked profile on repeated retries without creating or caching identities', async () => {
+    const h = harness()
+    h.state.linkedId = null
+    for (let i = 0; i < 2; i++) await assert.rejects(h.load(), /Chat setup is temporarily unavailable/)
+    assert.deepEqual(h.calls, ['profile', 'profile'])
   })
 
-  for (const status of [404, 401, 403, 503]) {
-    it(`treats only a 404 as a missing saved identity (HTTP ${status})`, async () => {
-      const source = readFileSync('src/exchange/chat/index.js', 'utf8')
-      const start = source.indexOf('export async function fetchChatIdentityById (')
-      const end = source.indexOf('\nexport async function updateChatIdentity (', start)
-      const error = { response: { status } }
-      const chatBackend = { get: async () => { throw error } }
-      const fetch = new Function('chatBackend', 'console', `${source.slice(start, end).replace('export ', '')}; return fetchChatIdentityById`)(chatBackend, { error () {} })
-      if (status === 404) assert.equal(await fetch(99), null)
-      else await assert.rejects(fetch(99), value => value === error)
+  for (const status of [400, 401, 503]) {
+    it(`propagates profile verification failures (HTTP ${status}) without exposing an identity`, async () => {
+      const h = harness()
+      h.state.failure = { response: { status, data: { chat_identity_id: ['Verified linking is required.'] } } }
+      await assert.rejects(h.load(), error => error === h.state.failure)
+      assert.deepEqual(h.calls, ['profile'])
     })
   }
+
+  it('does not cache an identity when key preparation fails and allows a clean retry', async () => {
+    const h = harness()
+    h.state.keyError = new Error('Synthetic key update failure')
+    await assert.rejects(h.load(), error => error === h.state.keyError)
+    assert.deepEqual(h.calls.at(-1), ['set', null])
+    assert.equal(h.calls.some(call => call[0] === 'commit'), false)
+    h.state.keyError = null
+    assert.equal(await h.load(), h.identity)
+  })
+
+  it('shares concurrent preparation and commits only once', async () => {
+    const h = harness()
+    let finish
+    h.state.lookup = () => new Promise(resolve => { finish = resolve })
+    const pending = [h.load(), h.load()]
+    await new Promise(resolve => setImmediate(resolve))
+    assert.equal(h.calls.filter(call => call[0] === 'get').length, 1)
+    finish()
+    assert.deepEqual(await Promise.all(pending), [h.identity, h.identity])
+    assert.equal(h.calls.filter(call => call[0] === 'commit').length, 1)
+  })
+
+  it('blocks a wallet switch during profile verification', async () => {
+    const h = harness()
+    h.state.verify = async () => { h.state.walletHash = 'another-wallet' }
+    await assert.rejects(h.load(), { code: 'p2p_identity_mismatch' })
+    assert.deepEqual(h.calls, ['profile'])
+  })
 })
 
 
@@ -3269,6 +3184,20 @@ describe('P2P background chat initialization', () => {
     assert.equal(await h.vm.initializeChat(), true)
     assert.equal(h.events[0], 'load-identity')
     assert.equal(h.events[1], 'session')
+  })
+
+  it('shows the blocked-link message and stops before session or socket initialization', async () => {
+    const h = harness()
+    h.vm.loadChatIdentity = async () => {
+      throw Object.assign(new Error('Chat setup is temporarily unavailable.'), { code: 'p2p_chat_link_unavailable' })
+    }
+    assert.equal(await h.vm.initializeChat(), false)
+    assert.equal(h.vm.chatErrorMessage, 'Chat setup is temporarily unavailable.')
+    assert.equal(h.vm.chatIdentity, null)
+    assert.equal(h.vm.chatReadyScope, null)
+    assert.equal(h.vm.chatInitializing, false)
+    assert.equal(h.events.includes('session'), false)
+    assert.equal(h.events.includes('socket'), false)
   })
 
   it('keeps the order usable on chat failure and supports an explicit retry', async () => {
@@ -3732,4 +3661,120 @@ describe('P2P feature controls on page refresh', () => {
     assert.deepEqual(events, ['done'])
   })
 
+})
+
+
+describe('P2P guarded payment-method deletion', () => {
+  const backendSource = readFileSync('src/exchange/backend.js', 'utf8')
+  const formatterSource = backendSource.slice(backendSource.indexOf('export function p2pErrorMessage'))
+  const p2pErrorMessage = new Function(`${formatterSource.replace('export ', '')}; return p2pErrorMessage`)()
+
+  function methods (path, names, bindings) {
+    const source = readFileSync(path, 'utf8')
+    const body = names.map(name => {
+      const start = source.indexOf(`    async ${name} (`)
+      const end = source.indexOf('\n    }', start) + 6
+      return source.slice(start, end)
+    }).join(',\n')
+    return new Function(...Object.keys(bindings), `return { ${body} }`)(...Object.values(bindings))
+  }
+
+  for (const form of [true, false]) {
+    for (const data of [null, { error: 'Used by an active order.' }, { detail: 'Used by an active ad.' }, { non_field_errors: ['Cannot delete an active method.'] }, ['Payment method is in use.'], {}]) {
+      it(`${form ? 'dialog' : 'list'} only removes or refreshes a method after successful deletion: ${JSON.stringify(data)}`, async () => {
+        const requests = []
+        const events = []
+        const notifications = []
+        let finish
+        const backend = { delete: (...args) => {
+          requests.push(args)
+          return new Promise((resolve, reject) => { finish = () => data === null ? resolve({ status: 204 }) : reject({ response: { status: 400, data } }) })
+        } }
+        const path = form ? 'src/components/ramp/fiat/dialogs/PaymentMethodForm.vue' : 'src/components/ramp/fiat/AddPaymentMethods.vue'
+        const api = methods(path, form ? ['onSubmit', 'deletePaymentMethod'] : ['deletePaymentMethod'], { backend, p2pErrorMessage })
+        const paymentMethods = [{ id: 7 }]
+        const vm = {
+          ...api, action: 'deletePaymentMethod', paymentMethod: paymentMethods[0], paymentMethods,
+          errorMessage: null, loading: false, isloaded: true, openDialog: true, type: 'Profile',
+          $t: (key, params, fallback) => fallback || key,
+          $q: { notify: value => notifications.push(value) },
+          $emit: name => events.push(name),
+          fetchAllPaymentMethodsProfile: async () => { events.push('refresh'); vm.paymentMethods = [] },
+          fetchPaymentMethods: async () => { events.push('refresh'); vm.paymentMethods = [] }
+        }
+        const pending = form ? vm.onSubmit() : vm.deletePaymentMethod(7)
+        assert.equal(form ? vm.loading : !vm.isloaded, true)
+        assert.deepEqual(events, [])
+        assert.equal(vm.paymentMethods, paymentMethods)
+        finish()
+        await pending
+        assert.equal(form ? vm.loading : !vm.isloaded, false)
+        assert.deepEqual(requests, [['/ramp-p2p/payment-method/7/', { authorize: true }]])
+        if (data === null) {
+          assert.deepEqual(events, form ? ['success', 'back'] : ['refresh'])
+          assert.equal(notifications.length, 1)
+          assert.equal(notifications[0].type, 'positive')
+          if (!form) assert.equal(vm.openDialog, false)
+        } else {
+          assert.deepEqual(events, [])
+          assert.equal(vm.paymentMethods, paymentMethods)
+          assert.equal(vm.openDialog, true)
+          assert.equal(notifications[0].type, 'error')
+          assert.equal(notifications[0].message, p2pErrorMessage({ response: { data } }, 'Unable to delete this payment method. Please try again.'))
+          if (form) assert.equal(vm.errorMessage, notifications[0].message)
+        }
+      })
+    }
+  }
+
+  for (const role of ['peer', 'arbiter']) {
+    it(`surfaces ${role} chat_identity_id validation failures without expiring the session`, async () => {
+      const h = identityHarness()
+      const data = { chat_identity_id: ['Verified linking is required.'] }
+      h.fail({ response: { status: 400, data } })
+      await assert.rejects(h.updateP2PProfile(role, { chat_identity_id: 12 }), error => {
+        assert.equal(error.code, 'p2p_chat_link_unavailable')
+        assert.equal(error.message, data.chat_identity_id[0])
+        return true
+      })
+      assert.deepEqual(h.events, [])
+    })
+  }
+
+  it('does not interpret rejected deletion as an expired session', async () => {
+    const h = identityHarness()
+    h.fail({ response: { status: 400, data: { error: 'Used by an active order.' } } })
+    await assert.rejects(h.client.request({ method: 'delete', url: '/ramp-p2p/payment-method/7/', authorize: true }))
+    assert.deepEqual(h.events, [])
+  })
+})
+
+
+describe('P2P chat dialog blocked links', () => {
+  it('shows the linking error and stops initialization without enabling message sending', async () => {
+    const source = readFileSync('src/components/ramp/fiat/dialogs/ChatDialog.vue', 'utf8')
+    const start = source.indexOf('    async loadChatSession (')
+    const end = source.indexOf('\n    },', start) + 7
+    const failure = Object.assign(new Error('Chat setup is temporarily unavailable.'), { code: 'p2p_chat_link_unavailable' })
+    const notifications = []
+    const bindings = {
+      wallet: { walletHash: 'synthetic-wallet' }, generateChatIdentityRef: () => 'synthetic-ref',
+      fetchUser: async () => ({ name: 'Synthetic name', user_type: 'peer', chat_identity_id: null }),
+      loadChatIdentity: async () => { throw failure },
+      fetchChatSession: async () => { throw new Error('Must not fetch a session before linking') },
+      bus: { emit () { throw new Error('Must not expire the session') } }
+    }
+    const load = new Function(...Object.keys(bindings), `return { ${source.slice(start, end)} }`)(...Object.values(bindings)).loadChatSession
+    const vm = {
+      isloaded: false, chatIdentity: null,
+      $store: { getters: { 'ramp/getUser': {}, 'ramp/chatIdentity': () => ({ id: 99 }) } },
+      $q: { notify: value => notifications.push(value) }, $t: (key, params, fallback) => fallback
+    }
+    await load.call(vm)
+    assert.equal(vm.chatErrorMessage, failure.message)
+    assert.equal(vm.chatIdentity, null)
+    assert.equal(vm.isloaded, false)
+    assert.equal(notifications[0].message, failure.message)
+    assert(source.includes('v-if="!isloaded && !chatErrorMessage"'))
+  })
 })

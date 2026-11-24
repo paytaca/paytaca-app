@@ -120,6 +120,12 @@ backend.interceptors.response.use(
     
     const profileUpdate = /\/ramp-p2p\/(peer|arbiter)\/?$/.test(String(error?.config?.url || '')) &&
       ['patch', 'put'].includes(String(error?.config?.method || '').toLowerCase())
+    if (profileUpdate && status === 400 && error.response?.data?.chat_identity_id) {
+      const messages = error.response.data.chat_identity_id
+      error.message = Array.isArray(messages) ? messages.join(' ') : String(messages)
+      error.code = 'p2p_chat_link_unavailable'
+      return Promise.reject(error)
+    }
     if (profileUpdate && (status === 403 || (status === 400 && /public_key|address|wallet_hash|(?:registered|profile|p2p) identity|identity.*(?:immutable|chang|rotat)|immutable/i.test(JSON.stringify(error.response.data))))) {
       error.message = status === 403
         ? 'This P2P profile cannot be updated with the current account type. Use the correct peer or arbiter account.'
@@ -322,10 +328,20 @@ export async function assertP2PIdentity (member = null, userType = 'peer', regis
   activeWallet.assertIdentity({ ...registered, ...response.data, address_path: response.data.address_path ?? registered.address_path })
   if (activeWallet !== wallet) throw Object.assign(new Error('The active P2P wallet changed. Please reopen this P2P action.'), { code: 'p2p_identity_mismatch' })
   if (member) activeWallet.assertIdentity(member)
-  return { ...registered, is_authenticated: true }
+  return { ...registered, chat_identity_id: response.data.chat_identity_id, is_authenticated: true }
 }
 
 export async function updatePubkeyAndAddress (user) {
   wallet.assertIdentity(user)
   return { success: true, data: user }
+}
+
+export function p2pErrorMessage (error, fallback) {
+  const messages = value => {
+    if (typeof value === 'string') return [value]
+    if (Array.isArray(value)) return value.flatMap(messages)
+    if (value && typeof value === 'object') return Object.values(value).flatMap(messages)
+    return []
+  }
+  return messages(error?.response?.data).join(' ') || fallback
 }

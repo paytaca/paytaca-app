@@ -225,7 +225,7 @@
           
           <div v-else-if="chatError" class="q-pa-md">
             <q-banner rounded :class="getDarkModeClass(darkMode)">
-              {{ $t('ChatUnavailableRetry', {}, 'Chat is temporarily unavailable. You can still view your order. Please retry loading chat.') }}
+              {{ chatErrorMessage || $t('ChatUnavailableRetry', {}, 'Chat is temporarily unavailable. You can still view your order. Please retry loading chat.') }}
               <template v-slot:action>
                 <q-btn flat color="primary" :label="$t('Retry', {}, 'Retry')" :loading="chatInitializing || chatLoading" @click="retryChat" />
               </template>
@@ -609,6 +609,7 @@ export default {
       chatInitializing: false,
       chatInitialization: null,
       chatError: false,
+      chatErrorMessage: null,
       chatReadyScope: null,
       chatMessages: [],
       chatMessageInput: '',
@@ -1191,7 +1192,7 @@ export default {
         ? cachedIdentity
         : await loadChatIdentity('peer', {
           name: user?.name,
-          chat_identity_id: cachedIdentity?.id || user?.chat_identity_id
+          chat_identity_id: user?.chat_identity_id
         })
       if (!this.chatIdentity || this.chatIdentity.ref !== chatIdentityRef) {
         throw new Error('Chat identity is unavailable for the active wallet.')
@@ -1218,6 +1219,7 @@ export default {
       const isCurrent = () => !this.disposed && this.chatSetupScope() === scope
       this.chatInitializing = true
       this.chatError = false
+      this.chatErrorMessage = null
       this.chatReadyScope = null
       const promise = (async () => {
         try {
@@ -1250,6 +1252,8 @@ export default {
         } catch (error) {
           if (isCurrent()) {
             this.chatError = true
+            this.chatIdentity = null
+            this.chatErrorMessage = error?.code === 'p2p_chat_link_unavailable' ? error.message : null
             if (error?.response?.status === 401) bus.emit('session-expired')
           }
           return false
@@ -1267,6 +1271,7 @@ export default {
     retryChat () {
       if (this.chatInitializing || this.chatLoading) return
       this.chatError = false
+      this.chatErrorMessage = null
       this.chatReadyScope = null
       this.websockets.chat?.closeConnection()
       this.chatLoaded = false

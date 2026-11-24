@@ -33,7 +33,7 @@ export async function loadChatIdentity (usertype, params = { name: null, chat_id
   if (!wallet) await loadRampWallet()
   const scope = chatIdentityScope(usertype)
   if (pendingChatIdentities.has(scope)) return pendingChatIdentities.get(scope)
-  const pending = initializeChatIdentity(usertype, params, scope)
+  const pending = initializeChatIdentity(usertype, scope)
     .finally(() => {
       if (pendingChatIdentities.get(scope) === pending) pendingChatIdentities.delete(scope)
     })
@@ -41,7 +41,7 @@ export async function loadChatIdentity (usertype, params = { name: null, chat_id
   return pending
 }
 
-async function initializeChatIdentity (usertype, params, scope) {
+async function initializeChatIdentity (usertype, scope) {
   const assertCurrent = () => {
     if (scope !== chatIdentityScope(usertype) ||
         wallet?.walletHash !== Store.getters['global/getWallet']('bch')?.walletHash) {
@@ -49,64 +49,27 @@ async function initializeChatIdentity (usertype, params, scope) {
     }
   }
   assertCurrent()
-  const payload = {
-    user_type: usertype,
-    name: params.name,
-    chat_identity_id: params.chat_identity_id,
-    ref: generateChatIdentityRef(wallet.walletHash)
-  }
-
-  const lookupIdentity = async () => {
-    let identity = await fetchChatIdentityById(payload.chat_identity_id)
-    assertCurrent()
-    if (!identity || identity.ref !== payload.ref) {
-      identity = await fetchChatIdentityByRef(payload.ref)
-      assertCurrent()
-    }
-    return identity
-  }
-  const [, existingIdentity] = await Promise.all([
-    assertP2PIdentity(null, usertype), lookupIdentity()
-  ])
+  const profile = await assertP2PIdentity(null, usertype)
   assertCurrent()
-  let identity = existingIdentity
+  const linkedId = profile?.chat_identity_id
+  const unavailable = () => Object.assign(new Error('Chat setup is temporarily unavailable. New or changed chat links cannot be enabled yet.'), { code: 'p2p_chat_link_unavailable' })
+  if (!linkedId) throw unavailable()
+  const existingIdentity = await fetchChatIdentityById(linkedId)
+  assertCurrent()
+  if (!existingIdentity || String(existingIdentity.id) !== String(linkedId) ||
+      existingIdentity.ref !== generateChatIdentityRef(wallet.walletHash)) throw unavailable()
 
-  if (identity) {
-    if (identity.ref !== payload.ref) throw new Error('The chat identity does not match the active wallet.')
-    identity = chatIdentityManager.setIdentity(identity)
-  }
-
-  // Update chat verifying and encryption keypairs (short-circuits when not necessary)
   await chatIdentityManager._updateSignerData()
   assertCurrent()
-  if (identity) await chatIdentityManager._updateEncryptionKeypair(true)
-  assertCurrent()
-
-  // Create identity, if not existing
-  if (!identity) {
-    try {
-      identity = await chatIdentityManager.create(payload)
-      assertCurrent()
-    } catch (error) {
-      const refErrors = error.response?.data?.ref
-      if (error.response?.status !== 400 || !Array.isArray(refErrors) ||
-          !refErrors.some(message => /already exists/i.test(message))) throw error
-      identity = await fetchChatIdentityByRef(payload.ref)
-      assertCurrent()
-      if (!identity) throw error
-      if (identity.ref !== payload.ref) throw new Error('The chat identity does not match the active wallet.')
-      identity = chatIdentityManager.setIdentity(identity)
-      await chatIdentityManager._updateEncryptionKeypair(true)
-      assertCurrent()
-    }
+  const identity = chatIdentityManager.setIdentity(existingIdentity)
+  try {
+    await chatIdentityManager._updateEncryptionKeypair(true)
+    assertCurrent()
+  } catch (error) {
+    chatIdentityManager.setIdentity(null)
+    throw error
   }
 
-  // Update chat identity id (in watchtower) if currently unset (null) or mismatch
-  if (!payload.chat_identity_id || payload.chat_identity_id !== identity.id) {
-    await updateChatIdentityId(payload.user_type, identity.id)
-  }
-
-  assertCurrent()
   Store.commit('ramp/updateChatIdentity', { ref: identity?.ref, chatIdentity: identity })
   return identity
 }

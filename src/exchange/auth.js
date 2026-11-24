@@ -244,7 +244,7 @@ export async function loadAuthenticatedUser (forceLogin = false) {
     }).catch(error => {
       if (!isCurrent()) return false
       if (error?.response?.status === 401) bus.emit('session-expired')
-      else if (['p2p_identity_mismatch', 'p2p_account_type_mismatch'].includes(error?.code)) {
+      else if (['p2p_chat_link_unavailable', 'p2p_identity_mismatch', 'p2p_account_type_mismatch'].includes(error?.code)) {
         bus.emit('handle-request-error', error)
       } else if (error?.response?.status !== 403) {
         console.error('Error preparing P2P chat:', error?.response?.status || error?.code || 'Request failed')

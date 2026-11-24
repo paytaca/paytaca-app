@@ -248,7 +248,7 @@ import SelectPaymentMethods from './dialogs/SelectPaymentMethods.vue'
 import CurrencyFilterDialog from './dialogs/CurrencyFilterDialog.vue'
 import { bus } from 'src/wallet/event-bus.js'
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
-import { backend } from 'src/exchange/backend'
+import { backend, p2pErrorMessage } from 'src/exchange/backend'
 
 export default {
   components: {
@@ -638,26 +638,25 @@ export default {
       })
     },
     async deletePaymentMethod (index) {
-      const vm = this
-      vm.isloaded = false
-      await backend.delete(`/ramp-p2p/payment-method/${index}/`, { authorize: true })
-        .catch(error => {
-          console.error(error.response || error)
-          if (error.response) {
-            if (error.response.status === 403) {
-              bus.emit('session-expired')
-            }
-          } else {
-            bus.emit('network-error')
-          }
+      this.isloaded = false
+      try {
+        await backend.delete(`/ramp-p2p/payment-method/${index}/`, { authorize: true })
+        this.$q.notify({ type: 'positive', message: this.$t('PaymentMethodDeleted', {}, 'Payment method deleted.'), timeout: 5000 })
+        if (this.type === 'Profile') {
+          await this.fetchAllPaymentMethodsProfile()
+        } else {
+          await this.fetchPaymentMethods()
+        }
+        this.openDialog = false
+      } catch (error) {
+        this.$q.notify({
+          type: 'error',
+          message: p2pErrorMessage(error, this.$t('UnableToDeletePaymentMethod', {}, 'Unable to delete this payment method. Please try again.')),
+          timeout: 5000
         })
-      if (vm.type === 'Profile') {
-        await vm.fetchAllPaymentMethodsProfile()
-      } else {
-        await vm.fetchPaymentMethods()
+      } finally {
+        this.isloaded = true
       }
-      this.openDialog = false
-      vm.isloaded = true
     },
     async savePaymentMethod (info) {
       console.log('saving Payment method here')

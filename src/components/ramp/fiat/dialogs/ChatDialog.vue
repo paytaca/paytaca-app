@@ -49,7 +49,10 @@
           </div>
         </template>
 
-        <div class="row justify-center q-py-lg" v-if="!isloaded">
+        <q-banner v-if="chatErrorMessage" class="q-ma-md" rounded :class="getDarkModeClass(darkMode)">
+          {{ chatErrorMessage }}
+        </q-banner>
+        <div class="row justify-center q-py-lg" v-if="!isloaded && !chatErrorMessage">
           <ProgressLoader />
         </div>
         <div v-if="convo.messages.length !== 0 && isloaded">
@@ -394,6 +397,7 @@ export default {
   data () {
     return {
       chatIdentity: null,
+      chatErrorMessage: null,
       openChat: true,
       maxHeight: this.$q.screen.height * 0.75,
       darkMode: this.$store.getters['darkmode/getStatus'],
@@ -566,12 +570,14 @@ export default {
           const user = await fetchUser()
           vm.chatIdentity = await loadChatIdentity(user.user_type, {
             name: user.name,
-            chat_identity_id: cachedIdentity?.id || user.chat_identity_id
+            chat_identity_id: user.chat_identity_id
           })
         }
       } catch (error) {
+        this.chatIdentity = null
+        this.chatErrorMessage = error?.code === 'p2p_chat_link_unavailable' ? error.message : this.$t('ChatUnavailableRetry', {}, 'Chat is temporarily unavailable. Please reopen chat to retry.')
         if (error?.response?.status === 401) bus.emit('session-expired')
-        else this.$q.notify({ type: 'error', message: this.$t('ChatUnavailableRetry', {}, 'Chat is temporarily unavailable. Please reopen chat to retry.'), timeout: 5000 })
+        else this.$q.notify({ type: 'error', message: this.chatErrorMessage, timeout: 5000 })
         return
       }
 
