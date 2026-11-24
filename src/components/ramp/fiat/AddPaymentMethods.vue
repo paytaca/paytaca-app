@@ -1,8 +1,8 @@
 <template>
-  <div v-if="type === 'Profile'" class="sticky-header" :class="getDarkModeClass(darkMode)">
+  <div v-if="type === 'Profile' && !embedded" class="sticky-header" :class="getDarkModeClass(darkMode)">
     <HeaderNav :title="`P2P Ramp`" :backnavpath="$route.query.returnOrder ? { name: 'p2p-order', params: { order: $route.query.returnOrder } } : ''" @click="onBack" />
   </div>
-  <div v-if="type === 'Profile'" :style="{ height: headerOffset }"></div>
+  <div v-if="type === 'Profile' && !embedded" :style="{ height: headerOffset }"></div>
   <div class="q-mx-md q-mx-none text-bow"
     :class="getDarkModeClass(darkMode)">
     <div class="q-mx-md" v-if="isloaded">
@@ -260,6 +260,7 @@ export default {
   },
   props: {
     type: String,
+    embedded: Boolean,
     confirmLabel: {
       type: String,
       default: 'Next'
@@ -307,7 +308,7 @@ export default {
   },
   emits: ['submit', 'back'],
   beforeUnmount () {
-    if (this.type === 'Profile') {
+    if (this.type === 'Profile' && !this.embedded) {
       bus.emit('show-menu')
     }
   },
@@ -332,7 +333,7 @@ export default {
         vm.validatePaymentMethods()
         break
       case 'Profile':
-        bus.emit('hide-menu')
+        if (!vm.embedded) bus.emit('hide-menu')
         break
     }
     this.isloaded = true

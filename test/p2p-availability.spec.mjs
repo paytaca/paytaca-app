@@ -53,7 +53,151 @@ describe('Order payment details reminder', () => {
     }
   }
 
-  it('uses participant roles and ad ownership regardless of the ad label', () => {
+  function formMethod (name, bindings = {}) {
+    const source = readFileSync('src/pages/apps/exchange/peer_to_peer/order-form.vue', 'utf8')
+    const start = Math.max(source.indexOf(`    ${name} (`), source.indexOf(`    async ${name} (`))
+    const end = source.indexOf('\n    },', start) + 7
+    return new Function(...Object.keys(bindings), `return { ${source.slice(start, end)} }`)(...Object.values(bindings))[name]
+  }
+
+  function creationHarness () {
+    const context = harness()
+    const { vm } = context
+    const createdOrder = vm.order
+    const requests = []
+    let failure = null
+    Object.assign(vm, {
+      order: null,
+      ad: { id: 5, is_owned: false, trade_type: 'BUY', ad_created_at: '2026-11-23T15:59:59.999Z' },
+      amount: 123, byFiat: true, state: 'initial',
+      showPaymentDetailsReminder: false, showPaymentMethodsReview: false,
+      paymentDetailsReminderAcknowledgedScope: null,
+      paymentMethods: [{ id: 9 }],
+      $refs: { addPaymentMethodsRef: { loadSubmitButton: false } },
+      $emit () {},
+      getTradeAmount: () => 10000,
+      handleRequestError (error) { vm.lastError = error },
+      orderConfirm () { vm.orderConfirmationShown = true }
+    })
+    const backend = { async post (...args) {
+      requests.push(args)
+      if (failure) throw failure
+      return { data: { order: createdOrder } }
+    } }
+    for (const name of ['paymentDetailsReminderScope', 'paymentDetailsReminderRequired']) {
+      Object.defineProperty(vm, name, { get: () => formMethod(name).call(vm) })
+    }
+    for (const name of ['submit', 'continueAfterPaymentDetailsReminder', 'createOrder']) {
+      vm[name] = formMethod(name, { backend }).bind(vm)
+    }
+    return { ...context, requests, setFailure (error) { failure = error } }
+  }
+
+  it('shows the reminder when a seller attempts to create an order for an older buy ad', () => {
+    const { vm, requests } = creationHarness()
+    vm.submit()
+    assert.equal(vm.showPaymentDetailsReminder, true)
+    assert.equal(vm.state, 'initial')
+    assert.equal(requests.length, 0)
+    vm.continueAfterPaymentDetailsReminder()
+    assert.equal(vm.showPaymentDetailsReminder, false)
+    assert.equal(vm.state, 'add-payment-method')
+    assert.equal(requests.length, 0)
+  })
+
+  it('does not show a pre-creation reminder to buyers, ad owners, or sellers using newer ads', () => {
+    for (const changes of [
+      { trade_type: 'SELL' }, { is_owned: true },
+      { ad_created_at: '2026-11-24T00:00:00+08:00' },
+      { ad_created_at: '2026-11-25T00:00:00Z' }, { ad_created_at: undefined }
+    ]) {
+      const { vm } = creationHarness()
+      Object.assign(vm.ad, changes)
+      vm.submit()
+      assert.equal(vm.showPaymentDetailsReminder, false, JSON.stringify(changes))
+    }
+  })
+
+  it('opens editable payment settings without submitting or losing the order draft', () => {
+    const { vm, requests } = creationHarness()
+    vm.submit()
+    vm.continueAfterPaymentDetailsReminder(true)
+    assert.equal(vm.showPaymentMethodsReview, true)
+    assert.equal(vm.showPaymentDetailsReminder, false)
+    assert.equal(vm.amount, 123)
+    assert.equal(vm.byFiat, true)
+    assert.equal(vm.state, 'initial')
+    assert.equal(requests.length, 0)
+    vm.showPaymentMethodsReview = false
+    vm.submit()
+    assert.equal(vm.state, 'add-payment-method')
+    assert.equal(vm.showPaymentDetailsReminder, false)
+    const form = readFileSync('src/pages/apps/exchange/peer_to_peer/order-form.vue', 'utf8')
+    assert.match(form, /<AddPaymentMethods type="Profile" embedded \/>/)
+  })
+
+  it('marks the created order as dismissed so opening it does not repeat the reminder', async () => {
+    const { vm, requests, required, restart } = creationHarness()
+    vm.submit()
+    vm.continueAfterPaymentDetailsReminder()
+    await vm.createOrder()
+    assert.equal(requests.length, 1)
+    assert.deepEqual(requests[0][1], { ad: 5, trade_amount: 10000, payment_methods: [9] })
+    restart()
+    assert.equal(required(), false)
+    vm.order.id = 8
+    assert.equal(required(), true)
+  })
+
+  it('persists a pre-creation opt-out without needing an order ID', () => {
+    const { vm, restart, walletState } = creationHarness()
+    vm.submit()
+    vm.suppressPaymentDetailsReminder = true
+    vm.continueAfterPaymentDetailsReminder()
+    restart()
+    assert.deepEqual(walletState('test-wallet').paymentDetailsReminderByAccount[12], {
+      suppressed: true, dismissedOrderIds: {}
+    })
+    vm.paymentDetailsReminderAcknowledgedScope = null
+    assert.equal(vm.paymentDetailsReminderRequired, false)
+    vm.$store.getters['ramp/getUser'] = { id: 99 }
+    assert.equal(vm.paymentDetailsReminderRequired, true)
+  })
+
+  it('blocks direct order creation until the seller acknowledges the reminder', async () => {
+    const { vm, requests } = creationHarness()
+    vm.$refs.addPaymentMethodsRef.loadSubmitButton = true
+    await vm.createOrder()
+    assert.equal(requests.length, 0)
+    assert.equal(vm.showPaymentDetailsReminder, true)
+    assert.equal(vm.$refs.addPaymentMethodsRef.loadSubmitButton, false)
+  })
+
+  it('does not record an order dismissal when creation fails', async () => {
+    const { vm, walletState, setFailure } = creationHarness()
+    const error = new Error('Order creation failed')
+    setFailure(error)
+    vm.submit()
+    vm.continueAfterPaymentDetailsReminder()
+    await vm.createOrder()
+    assert.equal(vm.lastError, error)
+    assert.equal(vm.creatingOrder, false)
+    assert.equal(walletState('test-wallet').paymentDetailsReminderByAccount?.[12], undefined)
+  })
+
+  it('requires acknowledgment again after the account or ad changes', () => {
+    const { vm } = creationHarness()
+    vm.submit()
+    vm.continueAfterPaymentDetailsReminder()
+    assert.equal(vm.paymentDetailsReminderRequired, false)
+    vm.ad.id = 6
+    assert.equal(vm.paymentDetailsReminderRequired, true)
+    vm.ad.id = 5
+    vm.$store.getters['ramp/getUser'] = { id: 99 }
+    assert.equal(vm.paymentDetailsReminderRequired, true)
+  })
+
+  it('uses the seller participant role regardless of ad ownership or label', () => {
     const { vm, required } = harness()
     for (const label of ['BUY', 'SELL']) {
       vm.order.ad.trade_type = label
@@ -63,8 +207,20 @@ describe('Order payment details reminder', () => {
       vm.order.members.seller.id = 12
     }
     vm.order.ad.owner.id = 13
+    assert.equal(required(), true)
+    vm.order.members.seller = null
     assert.equal(required(), false)
     vm.order = null
+    assert.equal(required(), false)
+  })
+
+  it('includes sellers with no ads and excludes the buyer who owns the ad', () => {
+    const { vm, required } = harness()
+    vm.order.ad.owner.id = 13
+    vm.order.ad.trade_type = 'BUY'
+    vm.order.owner = { id: 12 }
+    assert.equal(required(), true)
+    vm.$store.getters['ramp/getUser'] = { id: 13 }
     assert.equal(required(), false)
   })
 
@@ -127,7 +283,6 @@ describe('Order payment details reminder', () => {
     assert.equal(paymentDetailsReminder({ byWallet: { 'test-wallet': walletState('test-wallet') } })(99).suppressed, undefined)
     assert.deepEqual(walletState('another-wallet'), {})
     vm.$store.getters['ramp/getUser'] = { id: 99 }
-    vm.order.ad.owner.id = 99
     vm.order.members.seller.id = 99
     assert.equal(required(), true)
     dismissInWallet('another-wallet', false)

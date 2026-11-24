@@ -468,7 +468,7 @@
           {{ $t('CheckYourPaymentDetails', {}, 'Check your payment details') }}
         </q-card-section>
         <q-card-section>
-          {{ $t('OrderPaymentDetailsReminder', {}, 'Before continuing with this order, please confirm that the payment methods for this ad have the correct account name, account number, and other payment details. If anything is incorrect, update your payment methods before proceeding.') }}
+          {{ $t('OrderPaymentDetailsReminder', {}, 'Before continuing with this order, please confirm that your payment methods have the correct account name, account number, and other payment details. If anything is incorrect, update your payment methods before proceeding.') }}
         </q-card-section>
         <q-card-section class="q-pt-none">
           <q-checkbox v-model="suppressPaymentDetailsReminder" :label="$t('PaymentDetailsReminderDoNotShowAgain', {}, 'Do not show this again')" />
@@ -685,7 +685,7 @@ export default {
       const userId = this.$store.getters['ramp/getUser']?.id
       const order = this.order
       if (userId == null || !order?.id || !this.$store.getters['global/getWallet']('bch')?.walletHash) return false
-      if (order.ad?.owner?.id !== userId || order.members?.seller?.id !== userId) return false
+      if (order.members?.seller?.id !== userId) return false
       if (!['SBM', 'CNF', 'ESCRW_PN', 'ESCRW', 'PD_PN', 'PD', 'APL', 'RLS_PN', 'RFN_PN'].includes(order.status?.value)) return false
       const createdAt = Date.parse(order.ad?.ad_created_at)
       if (!Number.isFinite(createdAt) || createdAt >= Date.parse('2026-11-23T16:00:00Z')) return false

@@ -287,6 +287,32 @@
       <router-view :key=$route.path></router-view>
     </div>
   </q-pull-to-refresh>
+  <q-dialog v-model="showPaymentDetailsReminder" persistent>
+    <q-card class="q-pa-sm text-bow br-15" :class="getDarkModeClass(darkMode)" style="width: 400px; max-width: 90vw;">
+      <q-card-section class="text-h6">
+        {{ $t('CheckYourPaymentDetails', {}, 'Check your payment details') }}
+      </q-card-section>
+      <q-card-section>
+        {{ $t('OrderCreationPaymentDetailsReminder', {}, 'Before creating this order, please confirm that your payment methods have the correct account name, account number, and other payment details. If anything is incorrect, update your payment methods before proceeding.') }}
+      </q-card-section>
+      <q-card-section class="q-pt-none">
+        <q-checkbox v-model="suppressPaymentDetailsReminder" :label="$t('PaymentDetailsReminderDoNotShowAgain', {}, 'Do not show this again')" />
+      </q-card-section>
+      <q-card-actions align="right">
+        <q-btn flat no-caps :label="$t('ReviewPaymentMethods', {}, 'Review payment methods')" @click="continueAfterPaymentDetailsReminder(true)" />
+        <q-btn flat no-caps :label="$t('Continue', {}, 'Continue')" @click="continueAfterPaymentDetailsReminder()" />
+      </q-card-actions>
+    </q-card>
+  </q-dialog>
+  <q-dialog v-model="showPaymentMethodsReview" maximized>
+    <q-card class="text-bow" :class="getDarkModeClass(darkMode)">
+      <q-toolbar>
+        <q-btn flat round icon="arrow_back" :aria-label="$t('Back', {}, 'Back')" v-close-popup />
+        <q-toolbar-title>{{ $t('YourPaymentMethods') }}</q-toolbar-title>
+      </q-toolbar>
+      <AddPaymentMethods type="Profile" embedded />
+    </q-card>
+  </q-dialog>
 </template>
 <script>
 import HeaderNav from 'src/components/header-nav.vue'
@@ -336,6 +362,10 @@ export default {
   data () {
     return {
       creatingOrder: false,
+      showPaymentDetailsReminder: false,
+      showPaymentMethodsReview: false,
+      suppressPaymentDetailsReminder: false,
+      paymentDetailsReminderAcknowledgedScope: null,
       darkMode: this.$store.getters['darkmode/getStatus'],
       theme: this.$store.getters['global/theme'],
       websocket: null,
@@ -385,6 +415,22 @@ export default {
   },
   emits: ['back', 'orderCancelled', 'updatePageName'],
   computed: {
+    paymentDetailsReminderScope () {
+      return JSON.stringify([
+        this.$store.getters['global/getWallet']('bch')?.walletHash,
+        this.$store.getters['ramp/getUser']?.id,
+        this.ad?.id
+      ])
+    },
+    paymentDetailsReminderRequired () {
+      const userId = this.$store.getters['ramp/getUser']?.id
+      if (userId == null || !this.$store.getters['global/getWallet']('bch')?.walletHash) return false
+      if (!this.ad?.id || this.ad.trade_type !== 'BUY' || this.ad.is_owned) return false
+      const createdAt = Date.parse(this.ad.ad_created_at)
+      if (!Number.isFinite(createdAt) || createdAt >= Date.parse('2026-11-23T16:00:00Z')) return false
+      const preference = this.$store.getters['ramp/paymentDetailsReminder'](userId)
+      return !preference.suppressed && this.paymentDetailsReminderAcknowledgedScope !== this.paymentDetailsReminderScope
+    },
     themeColor () {
       const themeMap = {
         'glassmorphic-blue': 'blue-6',
@@ -458,6 +504,12 @@ export default {
     }
   },
   watch: {
+    paymentDetailsReminderScope () {
+      this.showPaymentDetailsReminder = false
+      this.showPaymentMethodsReview = false
+      this.suppressPaymentDetailsReminder = false
+      this.paymentDetailsReminderAcknowledgedScope = null
+    },
     byFiat () {
       this.updateInput()
     },
@@ -490,6 +542,22 @@ export default {
     this.closeWebSocketConnection()
   },
   methods: {
+    continueAfterPaymentDetailsReminder (review = false) {
+      this.paymentDetailsReminderAcknowledgedScope = this.paymentDetailsReminderScope
+      if (this.suppressPaymentDetailsReminder) {
+        this.$store.commit('ramp/dismissPaymentDetailsReminder', {
+          walletHash: this.$store.getters['global/getWallet']('bch')?.walletHash,
+          accountId: this.$store.getters['ramp/getUser']?.id,
+          suppress: true
+        })
+      }
+      this.showPaymentDetailsReminder = false
+      if (review) {
+        this.showPaymentMethodsReview = true
+      } else {
+        this.submit()
+      }
+    },
     getDarkModeClass,
     formatCurrency,
     satoshiToBch,
@@ -676,6 +744,20 @@ export default {
     async createOrder () {
       const vm = this
       if (vm.creatingOrder) return
+      if (vm.paymentDetailsReminderRequired) {
+        vm.showPaymentDetailsReminder = true
+        vm.loadSubmitButton = false
+        if (vm.$refs.addPaymentMethodsRef) vm.$refs.addPaymentMethodsRef.loadSubmitButton = false
+        return
+      }
+      const reminderDismissal = vm.paymentDetailsReminderAcknowledgedScope &&
+        vm.paymentDetailsReminderAcknowledgedScope === vm.paymentDetailsReminderScope
+        ? {
+            walletHash: vm.$store.getters['global/getWallet']('bch')?.walletHash,
+            accountId: vm.$store.getters['ramp/getUser']?.id,
+            suppress: vm.suppressPaymentDetailsReminder
+          }
+        : null
       vm.creatingOrder = true
       const body = {
         ad: vm.ad.id,
@@ -688,6 +770,9 @@ export default {
       try {
         const response = await backend.post('/ramp-p2p/order/', body, { authorize: true })
         vm.order = response.data.order
+        if (reminderDismissal) {
+          vm.$store.commit('ramp/dismissPaymentDetailsReminder', { ...reminderDismissal, orderId: vm.order.id })
+        }
         vm.state = 'order-process'
         vm.$emit('updatePageName', 'order-process')
         await vm.$router.push({ name: 'p2p-order', params: { order: vm.order.id } })
@@ -963,6 +1048,11 @@ export default {
       // reset custom keyboard
       vm.customKeyboardState = 'dismiss'
       vm.readonlyState = false
+
+      if (vm.paymentDetailsReminderRequired) {
+        vm.showPaymentDetailsReminder = true
+        return
+      }
 
       switch (vm.ad.trade_type) {
         case 'SELL':
