@@ -66,7 +66,7 @@ export function createUnserializedSchemaField(data) {
       type: options?.type,
       required: options?.required,
       enum: options?.enum,
-      properties: (Array.isArray(options?.properties) ? options.properties : []).map(createUnserializedSchemaField),
+      properties: (Array.isArray(options?.properties) ? options?.properties : []).map(createUnserializedSchemaField),
     },
   }
 }

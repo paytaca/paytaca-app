@@ -179,7 +179,7 @@ export default {
           if (overwrite) {
             vm.unspentTxns = response.data?.unspent_transactions
           } else {
-            this.unspentTxns.push(...response.data.unspent_transactions)
+            this.unspentTxns.push(...response.data?.unspent_transactions)
           }
 
           this.totalPages = response.data?.total_pages

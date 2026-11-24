@@ -198,7 +198,7 @@ export default defineComponent({
         rating: parseFloat(props.review?.rating || 0) * (5 / 100),
         text: props.review?.text,
         images: Array.isArray(props.review?.imagesUrls)
-          ? [...props.review.imagesUrls]
+          ? [...props.review?.imagesUrls]
           : [],
       }
     }

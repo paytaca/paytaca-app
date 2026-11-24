@@ -150,7 +150,7 @@ const formData = ref({
 })
 onMounted(() => resetFormData())
 function resetFormData() {
-  formData.value.reasons = Array.isArray(props.orderDispute?.reasons) ? [...props.orderDispute.reasons] : []
+  formData.value.reasons = Array.isArray(props.orderDispute?.reasons) ? [...props.orderDispute?.reasons] : []
 }
 
 function appendReason(val) {

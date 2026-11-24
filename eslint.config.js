@@ -67,7 +67,8 @@ export default [
       'prefer-promise-reject-errors': 'off',
 
       'no-unused-vars': 'warn',
-      'no-empty': 'warn',
+      'no-empty': ['error', { allowEmptyCatch: true }],
+      'no-unsafe-optional-chaining': 'warn',
       'no-async-promise-executor': 'warn',
       'no-useless-escape': 'warn',
       'no-control-regex': 'off',

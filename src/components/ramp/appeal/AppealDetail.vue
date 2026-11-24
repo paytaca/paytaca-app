@@ -388,7 +388,7 @@ export default {
       const vm = this
       vm.sendError = null
       if (!vm.escrowContract) return
-      const arbiterMember = vm.contract.members.find(member => { return member.member_type === 'ARBITER' })
+      const arbiterMember = (vm.contract?.members).find(member => { return member.member_type === 'ARBITER' })
       const keypair = wallet.keypair(arbiterMember.address_path)
       let txid = null
       await vm.escrowContract.release(keypair.privateKey, keypair.publicKey, this.order.trade_amount)
@@ -420,7 +420,7 @@ export default {
       const vm = this
       vm.sendError = null
       if (!vm.escrowContract) return
-      const arbiterMember = vm.contract.members.find(member => { return member.member_type === 'ARBITER' })
+      const arbiterMember = (vm.contract?.members).find(member => { return member.member_type === 'ARBITER' })
       const privateKey = wallet.privkey(arbiterMember.address_path)
       let txid = null
       await vm.escrowContract.refund(privateKey, this.order.trade_amount)

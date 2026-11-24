@@ -449,6 +449,7 @@ export default {
         (error) => {
           // Failed to authenticate
           this.verification.warningAttemptsStatus = 'dismiss'
+          // eslint-disable-next-line no-empty
           if (error.message.includes('Cancel') || error.message.includes('Authentication cancelled') || error.message.includes('Fingerprint operation cancelled')) {
           } else if (error.message.includes('Too many attempts. Try again later.')) {
             this.verification.warningAttemptsStatus = 'show'

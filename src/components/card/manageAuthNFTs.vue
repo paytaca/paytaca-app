@@ -1200,8 +1200,6 @@ export default {
       const rawStorage = localStorage.getItem('mock_subcards');
       const allCards = rawStorage ? JSON.parse(rawStorage) : [];
       const thisCard = allCards.find(c => String(c.id) === cardId);
-      if (thisCard) {
-      }
       
       // const savedLocation = CardStorage.getCardProperty(cardId, 'merchantLocation');
       

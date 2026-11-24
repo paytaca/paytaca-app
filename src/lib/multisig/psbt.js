@@ -1574,7 +1574,7 @@ export class Psbt {
 
     decodeResult.inputs = []
 
-    for(const psbtInput of this.inputMap.inputs) {
+    for(const psbtInput of this.inputMap?.inputs) {
       decodeResult.inputs.push({
         outpointIndex: psbtInput.getOutpointIndex(),
         outpointTransactionHash: psbtInput.getOutpointTransactionHash(),
@@ -1591,7 +1591,7 @@ export class Psbt {
 
     decodeResult.outputs = []
 
-    for(const psbtOutput of this.outputMap.outputs) {
+    for(const psbtOutput of this.outputMap?.outputs) {
       const o = {
         valueSatoshis: psbtOutput.getAmount()
       }

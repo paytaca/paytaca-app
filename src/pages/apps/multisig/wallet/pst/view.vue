@@ -583,7 +583,7 @@ const showShareProposalOptionsDialog = () => {
     if (payload?.action === 'display-qr') {
       openProposalQrDialog()
     } else if (payload?.action === 'download-proposal') {
-      const defaultFilename = pst.value.purpose.toLowerCase().replace(/\s+/g, '-')
+      const defaultFilename = (pst.value?.purpose).toLowerCase().replace(/\s+/g, '-')
       const base64Psbt = await pst.value.export()
       openFileDownloadDialog({
           dialogTitle: $t('DownloadTransactionProposalFile'), 

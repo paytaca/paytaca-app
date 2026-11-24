@@ -501,7 +501,7 @@ export async function createTreasuryContractTransaction(opts) {
   const cashscriptTx = contract.functions.unlockWithNft(false)
   const inputSize = calculateInputSize(cashscriptTx)
   const txBuilder = new TransactionBalancer({ inputSizeCalculator: () => inputSize })
-  txBuilder.outputs.push(...opts.recipients)
+  txBuilder.outputs.push(...opts?.recipients)
 
   for(var i = 0; i < bchUtxos?.length; i++) {
     const utxo = bchUtxos[i]
