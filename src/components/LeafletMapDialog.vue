@@ -5,7 +5,7 @@
     position="bottom"
     v-model="innerVal"
     @hide="onDialogHide"
-    @show="autoCenter ? centerMap() : null"
+    @show="autoCenterEnabled ? centerMap() : null"
   >
     <q-card
       class="br-15 pt-card-2 text-bow bottom-card"
@@ -40,7 +40,7 @@
         >
           <LPopup v-if="location?.popup" :content="location?.popup"/>
         </LMarker>
-        <slot name="controls" v-bind="{ centerMap, autoCenter }">
+        <slot name="controls" v-bind="{ centerMap, autoCenter: autoCenterEnabled }">
           <LControl>
             <div class="text-black q-pa-xs">
               <q-btn
@@ -128,12 +128,12 @@ export default defineComponent({
       })
     })
     watch(parsedLocations, () => {
-      if(autoCenter.value) centerMap()
+      if(autoCenterEnabled.value) centerMap()
     }, { deep: true })
 
-    const autoCenter = ref(props.autoCenter)
-    watch(() => [props.autoCenter], () => autoCenter.value = props.autoCenter)
-    watch(autoCenter, () => autoCenter.value ? centerMap() : null)
+    const autoCenterEnabled = ref(props.autoCenter)
+    watch(() => [props.autoCenter], () => autoCenterEnabled.value = props.autoCenter)
+    watch(autoCenterEnabled, () => autoCenterEnabled.value ? centerMap() : null)
     function centerMap() {
       const latitudes = parsedLocations.value.map(location => location?.latLng?.lat)
       const longitudes = parsedLocations.value.map(location => location?.latLng?.lng)
@@ -150,7 +150,7 @@ export default defineComponent({
       map,
       mapState,
       parsedLocations,
-      autoCenter,
+      autoCenterEnabled,
       centerMap,
     }
   },

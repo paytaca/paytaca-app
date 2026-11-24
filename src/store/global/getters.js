@@ -263,7 +263,7 @@ export function getDefaultAssetLogo () {
       '#43aa8b'
     ]
     const colorShiftCount = parseInt(string.substring(0, 2), 16) % colorPallete.length
-    for (var i = 0; i < colorShiftCount; i++) {
+    for (let i = 0; i < colorShiftCount; i++) {
       colorPallete.push(colorPallete.shift())
     }
 
@@ -306,7 +306,7 @@ export function getDefaultAssetLogo () {
     ctx.fillRect(0, 0, canvas.width, canvas.height)
 
     let quadrant = 1
-    for (var i = 0; i < Math.min(string.length / 8, colorPallete.length); i++) {
+    for (let i = 0; i < Math.min(string.length / 8, colorPallete.length); i++) {
       ctx.fillStyle = colorPallete[i % colorPallete.length]
       const up = quadrant === 1 || quadrant === 2
       const left = quadrant === 2 || quadrant === 3

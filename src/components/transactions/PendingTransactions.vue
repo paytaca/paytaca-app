@@ -64,8 +64,8 @@
 			</div>
 
 			<!-- P2P Ramp Orders -->
+			<template v-if="pending">
 			<div
-				v-if="pending"
 				v-for="(item, index) in pending"
 				:key="item.id"
 				class="pending-card pt-card"
@@ -98,10 +98,11 @@
 					{{ item.status.label }}
 				</div>
 			</div>
+			</template>
 
 			<!-- P2P Ramp Appeals -->
-			<div 
-				v-if="pendingAppeals"				
+			<template v-if="pendingAppeals">
+			<div
 				v-for="(item, index) in pendingAppeals"
 				:key="item.id"
 				class="pending-card pt-card"
@@ -126,10 +127,11 @@
 					{{ Array.isArray(item.reasons) && item.reasons.length > 0 ? item.reasons[0] : '' }}
 				</div>
 			</div>
+			</template>
 
 			<!-- Marketplace Orders -->
+            <template v-if="marketplaceOrders">
             <div
-         			v-if="marketplaceOrders"
          			v-for="(item, index) in marketplaceOrders"
          			:key="item.id"
          			class="pending-card pt-card"
@@ -154,6 +156,7 @@
           			{{ formatMarketplaceStatus(item.status) }}
           		</div>
          	</div>
+            </template>
         </div>
 	</div>
 </template>

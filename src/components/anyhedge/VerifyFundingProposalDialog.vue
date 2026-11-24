@@ -98,7 +98,7 @@ async function verifyFundingProposalUtxo() {
 
   const fundingProposal = props?.fundingProposal
   try {
-    if (!fundingProposal?.tx_hash || !(fundingProposal?.tx_index >= 0)) throw new Exception('Funding proposal not found')
+    if (!fundingProposal?.tx_hash || !(fundingProposal?.tx_index >= 0)) throw new Error('Funding proposal not found')
     const isUtxoSpentResponse = await isUtxoSpent(fundingProposal?.tx_hash, fundingProposal?.tx_index)
     if (isUtxoSpentResponse.success) {
       if (isUtxoSpentResponse.spent) {

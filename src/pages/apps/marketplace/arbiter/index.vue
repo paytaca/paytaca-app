@@ -368,7 +368,7 @@ async function reLogin() {
       } else if (msg === 'IncorrectArbiterData') {
         errorMessage = $t('FetchAuthTokenError', undefined, 'Error in fetching auth token')
       } else if (msg === 'SaveAuthKeyError') {
-        errorMessage = $t('ErrorSavingKeys', undeined, 'Error in saving keys')
+        errorMessage = $t('ErrorSavingKeys', undefined, 'Error in saving keys')
       }
       dialog.update({ message: errorMessage })
       return Promise.reject(error)
@@ -677,12 +677,11 @@ async function refreshPage(done=() => {}) {
     promptAuthErrors()
   } catch (_error) {
     error = _error
-  } finally {
-    done?.()
-    refreshingPage.value = false
-    if (error && !initialized.value) throw error
-    initialized.value = true
   }
+  done?.()
+  refreshingPage.value = false
+  if (error && !initialized.value) throw error
+  initialized.value = true
 }
 
 function copyToClipboard(value, message) {

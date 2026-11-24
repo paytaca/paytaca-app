@@ -1815,7 +1815,7 @@ watch(
       await loadActiveSessions({ showLoading: false })
 
       // Show notification to user
-      Notify.create({
+      $q.notify({
         type: 'info',
         message: $t('WalletConnect sessions disconnected due to wallet switch'),
         timeout: 3000
@@ -1850,7 +1850,7 @@ watch(
       await loadActiveSessions({ showLoading: false })
 
       // Show notification to user
-      Notify.create({
+      $q.notify({
         type: 'info',
         message: $t('WalletConnect sessions disconnected due to network switch'),
         timeout: 3000

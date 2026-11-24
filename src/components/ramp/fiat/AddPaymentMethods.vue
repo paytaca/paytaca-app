@@ -34,7 +34,8 @@
           <p class="q-pt-sm" :class="{ 'text-black': !darkMode }">{{ $t('NoPaymentMethodAdded') }}</p>
         </div>
         <!-- Non-profile listing (e.g., Ads/General flows) -->
-        <q-item v-if="type !== 'Profile'" class="q-my-none q-py-none" v-for="(method, index) in paymentMethods" :key="index">
+        <template v-if="type !== 'Profile'">
+        <q-item class="q-my-none q-py-none" v-for="(method, index) in paymentMethods" :key="index">
           <q-item-section>
             <div class="row no-wrap items-start">
               <div class="col">
@@ -86,6 +87,7 @@
             <q-separator :dark="darkMode" class="q-my-sm"/>
           </q-item-section>
         </q-item>
+        </template>
 
         <!-- Profile view grouped by currency -->
         <div v-if="type === 'Profile' && groupedPaymentMethods.length > 0">

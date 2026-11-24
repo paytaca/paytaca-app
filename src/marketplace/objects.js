@@ -1862,6 +1862,7 @@ export class EscrowContract {
       if (this.address.length === 50) return 'p2sh20'
       if (this.address.length > 50) return 'p2sh32'
     }
+    return undefined
   }
 
   get sats() {

@@ -1066,10 +1066,6 @@ export class Pst {
     return combined
   }
 
-  getSignatureCount() {
-    return getSignatureCount(this)
-  }
-
   getSigningProgress() {
     return getSigningProgress(this)
   }

@@ -1611,7 +1611,7 @@ export default {
           
           if (tx) {
             // Transaction found! Update with real API data
-            const mutableTx = this.createMutableCopy(tx)
+            let mutableTx = this.createMutableCopy(tx)
             if (Object.isFrozen(mutableTx)) {
               mutableTx = { ...mutableTx }
             }

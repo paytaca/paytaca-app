@@ -116,6 +116,7 @@ export class CashNonFungibleToken {
         }
       }
     }
+    return undefined
   }
 
   get parsedMetadata() {

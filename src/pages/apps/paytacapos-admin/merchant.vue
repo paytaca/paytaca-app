@@ -234,7 +234,7 @@
           />
         </div>
         <div v-if="fetchingPosDevices" class="q-mt-sm q-px-md q-gutter-md">
-          <q-skeleton v-for="i in 3" height="3.25rem"/>
+          <q-skeleton v-for="i in 3" :key="i" height="3.25rem"/>
         </div>
         <template v-else v-for="posDevice in posDevices" :key="posDevice?.posid">
           <q-item dense>

@@ -1,8 +1,8 @@
 <template>
   <q-dialog v-model="innerVal" full-width seamless ref="nftDialog" class="no-click-outside">
-    <q-card style="max-width:90vw;" class="pt-card text-bow" :class="getDarkModeClass(darkMode)">
+    <q-card style="max-width:90vw;" class="pt-card text-bow" :class="getDarkModeClass(isDarkMode)">
       <q-card-section class="row items-start no-wrap nft-dialog-header" >
-        <div class="text-h6 q-space" :class="{'text-grad': darkMode}" style="text-overflow:clip">
+        <div class="text-h6 q-space" :class="{'text-grad': isDarkMode}" style="text-overflow:clip">
           {{ nft?.parsedMetadata?.name || fallbackName }}
         </div>
         <q-btn
@@ -35,19 +35,19 @@
         <q-tab
           name="details"
           class="network-selection-tab"
-          :class="getDarkModeClass(darkMode)"
+          :class="getDarkModeClass(isDarkMode)"
           :label="$t('Details')"
         />
         <q-tab
           name="transaction"
           class="network-selection-tab"
-          :class="getDarkModeClass(darkMode)"
+          :class="getDarkModeClass(isDarkMode)"
           :label="$t('Transaction')"
         />
         <q-tab
           name="extension"
           class="network-selection-tab"
-          :class="getDarkModeClass(darkMode)"
+          :class="getDarkModeClass(isDarkMode)"
           :label="$t('Extensions')"
           :disable="!hasExtensions"
         />
@@ -118,7 +118,7 @@
                 no-caps
                 :label="$t('ViewInExplorer')"
                 class="button button-text-primary"
-                :class="getDarkModeClass(darkMode)"
+                :class="getDarkModeClass(isDarkMode)"
                 icon="link"
                 target="_blank"
                 :href="transactionUrl"
@@ -183,7 +183,7 @@ import noImage from 'src/assets/no-image.svg'
 
 const $q = useQuasar()
 const $store = useStore()
-const darkMode = computed(() => $store.getters['darkmode/getStatus'])
+const isDarkMode = computed(() => $store.getters['darkmode/getStatus'])
 
 const $emit = defineEmits([
   'update:modelValue',
@@ -371,7 +371,7 @@ function copyToClipboard(value, message) {
   })
 }
 function getDarkModeClass (darkModeClass = '', lightModeClass = '') {
-  return darkMode.value ? `dark ${darkModeClass}` : `light ${lightModeClass}`
+  return isDarkMode.value ? `dark ${darkModeClass}` : `light ${lightModeClass}`
 }
 
 onMounted(() => {

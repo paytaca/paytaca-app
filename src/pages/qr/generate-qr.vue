@@ -345,7 +345,7 @@ export default {
 
     vm.setupListener()
     self.wakeLock = useWakeLock()
-    await wakeLock.request('screen')
+    await self.wakeLock.request('screen')
   },
 
   async unmounted () {

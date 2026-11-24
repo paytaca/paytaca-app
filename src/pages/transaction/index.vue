@@ -374,8 +374,8 @@
 
     <teleport to="body">
       <div v-if="homeTour.active" class="home-tour-overlay" @click.self="endHomeTour">
+        <template v-if="homeTour.scrims && homeTour.targetRect">
         <div
-          v-if="homeTour.scrims && homeTour.targetRect"
           v-for="(rect, key) in homeTour.scrims"
           :key="key"
           class="home-tour-scrim"
@@ -386,6 +386,7 @@
             height: rect.height + 'px',
           }"
         />
+        </template>
 
         <div
           v-if="homeTour.targetRect"
@@ -448,7 +449,7 @@ import { mapState } from 'vuex'
 import { getWeb3Wallet, isWalletConnectInitialized } from 'src/wallet/walletconnect2'
 import Watchtower from 'watchtower-cash-js'
 import walletAssetsMixin from '../../mixins/wallet-assets-mixin.js'
-import { markRaw } from '@vue/reactivity'
+import { markRaw } from 'vue'
 import { bus } from 'src/wallet/event-bus'
 import { getMnemonic, getPin } from '../../wallet'
 import { isReadOnlyVaultEntry } from 'src/lib/readonly-wallet'
@@ -2162,7 +2163,7 @@ export default {
         state: { tx: serializedTx }
       })
     },
-    async findTransaction(data = {txid, assetId, logIndex, chain: 'BCH'}) {
+    async findTransaction(data = { chain: 'BCH' }) {
       if (!data) return
       const { txid, assetId } = data
       const transaction = this.transactions?.find?.(tx => (tx?.txid || tx?.tx_hash) === txid)

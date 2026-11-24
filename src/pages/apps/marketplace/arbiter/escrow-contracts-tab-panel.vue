@@ -498,7 +498,6 @@ async function settleEscrowContract(escrowContract=EscrowContract.parse(), opts=
     progress: true,
     persistent: true,
     color: 'brandblue',
-    ok: false,
     ok: true,
     class: `br-15 pt-card-2 text-bow ${getDarkModeClass(darkMode.value)}`,
   })

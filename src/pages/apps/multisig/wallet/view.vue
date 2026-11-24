@@ -216,7 +216,7 @@
                   </q-item>
                 </template>
                 <template v-else>
-                  <q-item v-for="asset in Object.keys(balances || {}).filter(a => a !== 'bch' && Number(balances[a] || 0) > 0)" clickable :to="{name: 'app-multisig-wallet-asset', params: { wallethash: wallet.walletHash}, query: { asset }}">
+                  <q-item v-for="asset in Object.keys(balances || {}).filter(a => a !== 'bch' && Number(balances[a] || 0) > 0)" :key="asset" clickable :to="{name: 'app-multisig-wallet-asset', params: { wallethash: wallet.walletHash}, query: { asset }}">
                       <q-item-section>
                         <div class="flex items-center q-gutter-x-sm">
                           <q-avatar size="md">
@@ -668,7 +668,7 @@ const openWalletActionsDialog = () => {
       handleDeleteWalletAction()
     }
     if (action.value === 'share-wallet') {
-      handlShareWalletAction()
+      handleShareWalletAction()
     }
     if (action.value === 'view-wallet-settings') {
       router.push({ name: 'app-multisig-wallet-settings', params: { wallethash: route.params.wallethash } })

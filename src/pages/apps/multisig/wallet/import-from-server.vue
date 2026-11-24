@@ -28,7 +28,7 @@
             </q-item-section>
             </q-item>	
             <q-item 
-              v-for="wallet in multisigWalletsFromServer?.filter(w => !w.enabled)" 
+              v-for="wallet in multisigWalletsFromServer?.filter(w => !w.enabled)" :key="wallet.id" 
               clickable v-ripple 
               class="q-my-md"
               @click="downloadWallet(wallet)"

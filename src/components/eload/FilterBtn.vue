@@ -31,7 +31,7 @@
 		<div class="q-gutter-sm q-pt-sm">
 			<q-badge size="md" class="q-px-sm q-py-sm" rounded :outline="!isAllStatusSelected" :color="darkMode ? 'blue-grey-5' : 'blue-grey-6'" label="Default: ALL" @click="updateFilter('status', 'ALL')"/>
 			<q-badge size="md" class="q-px-sm q-py-sm" rounded color="red" label="Clear" @click="updateFilter('status', 'CLEAR')"/>
-			<q-badge v-for="status in filterOption.status" size="md" class="q-px-sm q-py-sm text-capitalize" rounded :outline="!selectedStatus.includes(status)" :color="darkMode ? 'blue-grey-5' : 'blue-grey-6'" :label="status" @click="updateFilter('status', status)"/>			
+			<q-badge v-for="status in filterOption.status" :key="status" size="md" class="q-px-sm q-py-sm text-capitalize" rounded :outline="!selectedStatus.includes(status)" :color="darkMode ? 'blue-grey-5' : 'blue-grey-6'" :label="status" @click="updateFilter('status', status)"/>			
 		</div>
 
 		<!-- Services -->
@@ -39,7 +39,7 @@
 		<div class="q-gutter-sm q-pt-sm" v-if="filterOption.services">			
 			<q-badge size="md" class="q-px-sm q-py-sm" rounded :outline="!isAllServicesSelected" :color="darkMode ? 'blue-grey-5' : 'blue-grey-6'" label="Default: ALL" @click="updateFilter('service', 'ALL')"/>
 			<q-badge size="md" class="q-px-sm q-py-sm" rounded color="red" label="Clear" @click="updateFilter('service', 'CLEAR')"/>
-			<q-badge v-for="service in filterOption.services" size="md" class="q-px-sm q-py-sm" rounded :outline="!selectedServices.includes(service.name)" :color="darkMode ? 'blue-grey-5' : 'blue-grey-6'" :label="service.name"  @click="updateFilter('service', service.name)"/>
+			<q-badge v-for="service in filterOption.services" :key="service.name" size="md" class="q-px-sm q-py-sm" rounded :outline="!selectedServices.includes(service.name)" :color="darkMode ? 'blue-grey-5' : 'blue-grey-6'" :label="service.name"  @click="updateFilter('service', service.name)"/>
 		</div>
 
 		<div class="text-center q-pt-sm q-px-sm q-pb-sm">

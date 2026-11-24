@@ -955,7 +955,6 @@ onSelectAttachment (methodIndex, methodId) {
       this.$q.dialog({
         title: this.$t('DeleteProofOfPayment', {}, 'Delete Proof of Payment'),
         message: this.$t('DeleteProofOfPaymentConfirm', {}, 'Are you sure you want to delete this proof of payment? You can upload a new one after deleting.'),
-        cancel: true,
         persistent: true,
         ok: { label: this.$t('Delete', {}, 'Delete'), color: 'negative', flat: true },
         cancel: { label: this.$t('Cancel', {}, 'Cancel'), flat: true }

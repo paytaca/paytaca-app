@@ -105,7 +105,7 @@ async function loginProcess() {
   }).catch(error => {
     let errorMessage = $t('UnknownErrorOccurred', undefined, 'Unknown error occurred')
     if (error.name !== 'ArbiterAuthError') {
-      dialog.update({ message: errorMessage })
+      loginError.value = errorMessage
       return Promise.reject(error)
     }
 
@@ -121,7 +121,7 @@ async function loginProcess() {
     } else if (msg === 'SaveAuthKeyError') {
       errorMessage = $t('ErrorSavingKeys', undefined, 'Error in saving keys')
     }
-    dialog.update({ message: errorMessage })
+    loginError.value = errorMessage
     return Promise.reject(error)
   })
 

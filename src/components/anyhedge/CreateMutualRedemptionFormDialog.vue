@@ -323,10 +323,10 @@ const loading = ref(false)
 const loadingMsg = ref('')
 const errors = ref([])
 async function validateContractFunding() {
-  if (!props?.contract?.fundings?.[0]?.fundingTransactionHash) throw new Exception('No funding transaction found')
+  if (!props?.contract?.fundings?.[0]?.fundingTransactionHash) throw new Error('No funding transaction found')
   const contractAddress = props?.contract?.address
 
-  if (!contractAddress) throw new Exception('Contract address not found')
+  if (!contractAddress) throw new Error('Contract address not found')
   const { data } = await anyhedgeBackend.post(`anyhedge/hedge-positions/${contractAddress}/validate_contract_funding/`)
   return data
 }

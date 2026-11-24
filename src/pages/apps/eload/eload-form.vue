@@ -101,7 +101,7 @@
 			<div v-if="isPhilippinesSelected" class="q-mt-sm" v-show="step === 0">
 				<div v-if="!loading">
 					<div  class="q-px-lg q-pt-md md-font-size text-italic q-py-sm" :class="darkMode ? 'text-white' : 'text-grey-8'">Select Purchase Type</div>
-					<ServiceCard v-for="service in services" :service="service" @click="updateFilters('service', service)"/>
+					<ServiceCard v-for="service in services" :key="service.name" :service="service" @click="updateFilters('service', service)"/>
 				</div>
 
 				<div v-else class="q-mx-lg">

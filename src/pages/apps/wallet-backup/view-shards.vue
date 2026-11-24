@@ -569,13 +569,8 @@ export default {
       void this.persistGeneratedShards()
     },
     toggleRawText (index) {
-      // Vue 2: array index assignment isn't reactive; use $set
-      if (typeof this.$set === 'function') {
-        this.$set(this.showRawText, index, !this.showRawText[index])
-      } else {
-        this.showRawText[index] = !this.showRawText[index]
-        this.$forceUpdate()
-      }
+      this.showRawText[index] = !this.showRawText[index]
+      this.$forceUpdate()
       void this.persistGeneratedShards()
     },
     copyToClipboard (text) {

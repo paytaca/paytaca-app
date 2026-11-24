@@ -63,7 +63,7 @@
       </q-card-section>
       <div class="q-pa-sm" :style="`max-height:${salesReportListHeight};overflow:auto;`">
         <q-list v-if="Array.isArray(salesReportData?.data)" :dark="darkMode">
-          <template v-for="(record) in salesReportData?.data">
+          <template v-for="(record, index) in salesReportData?.data" :key="index">
             <q-item>
               <q-item-section>
                 <q-item-label>
@@ -197,7 +197,6 @@ const totalSales = computed(() => {
       currency: '',
       totalMarketValue: 0,
       tokenAmounts: [],
-      total: 0,
     }
   }
   const summarizedData = summarizeSalesReports(salesReportData.value?.data);

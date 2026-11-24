@@ -101,7 +101,7 @@ async function resetWalletConnect() {
 onMounted(async () => {
   const uriData = parseWalletConnectUri(props.uri)
   if (uriData?.uri && uriData?.version == '2') {
-    walletConnectV2.value?.connectNewSession?.(uriData.uri, prompt=false)
+    walletConnectV2.value?.connectNewSession?.(uriData.uri, false)
   }
 })
 

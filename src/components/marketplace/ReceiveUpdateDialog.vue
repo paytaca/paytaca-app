@@ -84,6 +84,7 @@ export default defineComponent({
     expectedAmount: [String, Number],
   },
   methods: {
+    getDarkModeClass,
     copyText(value, message='Copied address') {
       this.$copyText(value)
         .then(() => {
@@ -132,8 +133,5 @@ export default defineComponent({
       getExplorerLink,
     }
   },
-  methods: {
-    getDarkModeClass
-  }
 })
 </script>

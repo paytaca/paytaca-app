@@ -140,7 +140,7 @@
                 <template v-else>
                   1 BCH ≈ {{ formattedPrice }} {{ tokenSymbol }}
                 </template>
-                <template v-if="useFilteredPools" class="q-mt-xs">
+                <template v-if="useFilteredPools">
                   <q-icon 
                     name="info" 
                     size="1.5em"

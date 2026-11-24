@@ -24,6 +24,7 @@ import { getDarkModeClass, isHongKong } from 'src/utils/theme-darkmode-utils'
 export default {
   name: 'AssetSwap',
   components: {
+    // eslint-disable-next-line no-undef
     SmartSwapForm,
     HeaderNav
   },

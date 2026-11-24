@@ -218,7 +218,6 @@ export function reverseGeocode(opts = { lat: null, lng: null, syncToForm: false}
         latitude: parseFloat(params.lat),
         longitude: parseFloat(params.lon),
       }
-      if (opts?.syncToForm) Object.assign(formData.value.defaultLocation, data)
       return data
     })
 }

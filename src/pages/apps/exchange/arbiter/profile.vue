@@ -63,7 +63,7 @@
         REVIEWS
       </div>
 
-      <q-scroll-area :style="`height: ${ minHeight - 280 }px`" style="overflow-y:auto;" class="scroll-y" @touchstart.native="preventPull">
+      <q-scroll-area :style="`height: ${ minHeight - 280 }px`" style="overflow-y:auto;" class="scroll-y" @touchstart="preventPull">
         <div v-if="!loadingReviews">
           <div v-if="reviewsList?.length === 0" class="text-center q-pt-md text-italized xm-font-size">
             No Reviews Yet

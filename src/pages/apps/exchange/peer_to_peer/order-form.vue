@@ -57,7 +57,7 @@
           <div class="q-mx-lg q-py-md text-h5 text-center text-weight-bold lg-font-size text-grad">
             {{ $t(ad?.trade_type === 'SELL' ? 'BuyBCHWith' : 'SellBCHFor', {}, ad?.trade_type === 'SELL' ? 'Buy BCH With' : 'Sell BCH For') }} {{ ad?.fiat_currency?.symbol }}
           </div>
-          <q-scroll-area ref="scrollTargetRef" :style="`height: ${minHeight}px`" class="scroll-y" @touchstart.native="preventPull">
+          <q-scroll-area ref="scrollTargetRef" :style="`height: ${minHeight}px`" class="scroll-y" @touchstart="preventPull">
             <div class="q-mx-md q-mb-sm">
               <TradeInfoCard
                 :order="order"

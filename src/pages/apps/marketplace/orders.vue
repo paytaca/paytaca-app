@@ -118,7 +118,7 @@ async function setStorefront(storefrontId) {
   if (!storefront.value?.id && storefrontId) {
     const response = await backend.get(`connecta/storefronts/${storefrontId}/`)
     storefront.value = Storefront.parse(response?.data)
-    $store.commit('marketplace/cacheStorefront', reponse?.data)
+    $store.commit('marketplace/cacheStorefront', response?.data)
   }
 
   $store.commit('marketplace/setActiveStorefrontId', storefront.value?.id)

@@ -57,7 +57,6 @@ export function addNewAsset (state, asset) {
     assets = state.chipnet__assets
   }
 
-  if (!Array.isArray(assets)) state.assets[net] = []
   if (assets.some(_asset => String(_asset && _asset.id).toLowerCase() === String(asset.id).toLowerCase())) {
     return
   }

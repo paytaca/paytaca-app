@@ -33,7 +33,7 @@
         </div>
       </div>
       <template v-if="groupedCollectibles.length && groupedView">
-        <div v-for="group in groupedCollectibles" class="q-mt-md">
+        <div v-for="(group, groupIndex) in groupedCollectibles" :key="groupIndex" class="q-mt-md">
           <div
             class="text-h6 row no-wrap items-center q-px-md"
             v-ripple style="position:relative;"

@@ -225,7 +225,7 @@
 </template>
 
 <script>
-import { markRaw } from '@vue/reactivity'
+import { markRaw } from 'vue'
 import HeaderNav from '../../components/header-nav'
 import ProgressLoader from '../../components/ProgressLoader'
 import SweepPrivateKey, { extractWifFromUrl } from '../../wallet/sweep'
@@ -334,10 +334,6 @@ export default {
       const DUST = 546 / 10 ** 8
       return this.bchBalance < DUST && this.cashTokensCount === 0
     },
-    async getWalletBchBalance() {
-      const resp = await this.wallet.BCH.getBalance()
-      return resp.balance
-    },
     allAssets() {
       const assets = []
       const DUST = 546 / 10 ** 8
@@ -392,6 +388,10 @@ export default {
     }
   },
   methods: {
+    async getWalletBchBalance() {
+      const resp = await this.wallet.BCH.getBalance()
+      return resp.balance
+    },
     getDarkModeClass,
     isHongKong,
     async getRecipientAddress(walletType = 'bch') {
@@ -620,7 +620,7 @@ export default {
       })
       await Promise.allSettled(tokenPricePromises)
 
-      this.hasEnoughBalances = this.bchBalance > 0 || (await this.getWalletBchBalance) > 0
+      this.hasEnoughBalances = this.bchBalance > 0 || (await this.getWalletBchBalance()) > 0
 
       // Show success screen if we successfully swept assets and the address is now empty
       if (this.hasSuccessfulSweeps && this.emptyAssets) {

@@ -237,7 +237,7 @@ export default {
           loadAppMsg.value = 'Subscribing notifications'
           await subscribePushNotifications(customerId)
         } catch(error) {
-          reject(error)
+          console.error(error)
         } finally {
           resolve()
         }
@@ -457,6 +457,7 @@ export default {
       await loadAppPromise.value?.catch?.(console.error)
       updateOrCreateKeypair()
     }, 100))
+    // eslint-disable-next-line vue/no-ref-as-operand
     watch(() => [customer?.id], () => updateOrCreateKeypair())
 
     function openCartItemDialog(cartItem=CartItem.parse()) {

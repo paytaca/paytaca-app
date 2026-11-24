@@ -23,7 +23,7 @@
             <q-tab-panel name="main" class="q-pa-none">
               <div style="min-height:30vh;">
                 <div v-if="formErrors.errors?.length" class="q-pa-sm rounded-borders bg-red text-white errors-list">
-                  <div v-for="error in formErrors?.errors" class="errors-list-item">{{ error }}</div>
+                  <div v-for="(error, index) in formErrors?.errors" :key="index" class="errors-list-item">{{ error }}</div>
                 </div>
                 <div class="row items-center q-py-sm" @click="selectAmountToken()">
                   <div>

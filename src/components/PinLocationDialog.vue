@@ -178,7 +178,7 @@ function initMap() {
 }
 watch(() => [props.static], () => {
   if (props.static) map.value.off('move')
-  else map.on('move', () => updateCoordinates())
+  else map.value.on('move', () => updateCoordinates())
 })
 
 const coordinates = ref({
@@ -292,7 +292,7 @@ function handleSearchResult(result) {
 }
 
 const reverseGeocoding = ref(false)
-async function reverseGeocode() {
+async function reverseGeocodeNow() {
   if (searchResultValid.value) return
 
   const provider = searchControl.value?.options?.provider
@@ -311,7 +311,7 @@ async function reverseGeocode() {
     reverseGeocoding.value = false
   }
 }
-reverseGeocode = debounce(reverseGeocode, 500)
+const reverseGeocode = debounce(reverseGeocodeNow, 500)
 </script>
 <style lang="scss" scoped>
 ::v-deep .leaflet-map .leaflet-control-geosearch {

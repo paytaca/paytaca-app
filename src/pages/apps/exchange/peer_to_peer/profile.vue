@@ -171,7 +171,7 @@
             {{ $t('Ads', {}, 'Ads') }}
           </button>
         </div>
-        <q-scroll-area :style="`height: ${!user?.self ? minHeight - 240 : minHeight - 280}px`" style="overflow-y:auto;" class="scroll-y" @touchstart.native="preventPull">
+        <q-scroll-area :style="`height: ${!user?.self ? minHeight - 240 : minHeight - 280}px`" style="overflow-y:auto;" class="scroll-y" @touchstart="preventPull">
           <!-- Reviews tab -->
           <div v-if="activeTab === 'reviews'">
             <div v-if="!loadingReviews && reviewsList?.length === 0" class="text-center q-pt-md text-italized xm-font-size">

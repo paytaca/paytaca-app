@@ -142,8 +142,6 @@ const showWalletReceiveDialog = () => {
       multisigWallet: wallet.value,
       cashAddressNetworkPrefix: addressPrefix
     }
-  }).onOk(() => {
-    openWalletActionsDialog()
   })
 }
 

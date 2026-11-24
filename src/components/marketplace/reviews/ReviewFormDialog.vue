@@ -280,7 +280,7 @@ export default defineComponent({
             if (data?.detail) formErrors.value.detail = [data?.detail]
           }
           if (!formErrors.value.detail?.length) formErrors.value.detail = [
-            $innerValt('UnableToCreateReview')
+            $t('UnableToCreateReview')
           ]
         })
         .finally(() => {

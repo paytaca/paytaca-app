@@ -361,7 +361,8 @@
             </template>
             <q-slide-transition>
               <div>
-                <div v-if="!displayRawAttributes" v-for="(group, index) in attributeDetails" class="q-my-sm"> 
+                <template v-if="!displayRawAttributes">
+                <div v-for="(group, index) in attributeDetails" :key="index" class="q-my-sm">
                   <div class="q-px-md text-subtitle1">{{group?.name}}</div>
                   <!-- <q-separator inset/> -->
                   <q-item
@@ -402,6 +403,7 @@
                     </q-item-section>
                   </q-item>
                 </div>
+                </template>
               </div>
             </q-slide-transition>
             <q-slide-transition>

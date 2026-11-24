@@ -959,7 +959,7 @@ export default {
     },
     filterByCampaign (gift) {
       this.campaign_filter = { id: gift?.campaign_id, name: gift?.campaign_name }
-      this.fetchGifts(null, opts={ recordType: 'all', limit: 10, offset: 0 })
+      this.fetchGifts(null, { recordType: 'all', limit: 10, offset: 0 })
     },
     displayGift(gift) {
       // If a dialog is already open, close it first

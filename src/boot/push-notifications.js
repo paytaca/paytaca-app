@@ -172,8 +172,8 @@ class PushNotificationsManager {
    */
   async openPushNotificationsSettings() {
     if (this._openSettingsPromise) return this._openSettingsPromise
-    this._openSettingsPromise = PushNotificationSettings.openNotificationSettingsPrompt(opts)
-    return PushNotificationSettings.openNotificationSettings()
+    this._openSettingsPromise = PushNotificationSettings.openNotificationSettings()
+    return this._openSettingsPromise
       .catch(error => {
         if (error.code === 'UNIMPLEMENTED') return { isEnabled: null }
         return Promise.reject(error)

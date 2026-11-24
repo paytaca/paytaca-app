@@ -28,7 +28,7 @@
         </div>
         <div class="text-center">
           <q-btn icon="rotate_right" color="primary" flat dense @click="prevAddress" :disable="addressIndex === 0">{{ $t('PrevAddress') }}</q-btn>
-          <q-btn icon="rotate_left" color="primary"flat dense @click="nextAddress">{{ $t('NextAddress') }}</q-btn>
+          <q-btn icon="rotate_left" color="primary" flat dense @click="nextAddress">{{ $t('NextAddress') }}</q-btn>
         </div>
           
       </q-card-section>

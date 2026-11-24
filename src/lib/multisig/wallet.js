@@ -280,7 +280,12 @@ import {
   SigningSerializationTypeBch,
   readBytes,
   binsAreEqual,
-  utf8ToBin
+  utf8ToBin,
+  binToUtf8,
+  base64ToBin,
+  decodeHdPrivateKey,
+  decodeHdPublicKey,
+  deriveHdPathRelative
 } from 'bitauth-libauth-v3'
 import Big from 'big.js'
 import { createTemplate } from './template.js'

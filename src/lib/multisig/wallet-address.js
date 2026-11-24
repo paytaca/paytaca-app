@@ -4,7 +4,8 @@ import {
     base58AddressToLockingBytecode,
     binToHex,
     lockingBytecodeToCashAddress,
-    compileScript
+    compileScript,
+    CashAddressNetworkPrefix
 } from 'bitauth-libauth-v3'
 import {
     derivePublicKeys,

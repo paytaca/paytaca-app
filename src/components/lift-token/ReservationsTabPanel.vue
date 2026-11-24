@@ -220,7 +220,7 @@
 </template>
 
 <script>
-import { markRaw } from "@vue/reactivity";
+import { markRaw } from "vue";
 import { getDarkModeClass } from "src/utils/theme-darkmode-utils";
 import { parseFiatCurrency } from "src/utils/denomination-utils";
 import {

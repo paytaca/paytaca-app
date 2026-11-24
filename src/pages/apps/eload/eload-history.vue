@@ -22,7 +22,7 @@
 	          <p :class="{ 'text-black': !darkMode }">{{ $t('NoOrderstoDisplay') }}</p>
 	        </div>
 	      </div>
-				<div v-for="order in orders" class="pointer" @click="selectOrder(order)">
+				<div v-for="order in orders" :key="order.id" class="pointer" @click="selectOrder(order)">
 					<div class="row justify-between q-pa-sm">
 						<div class="col-8">						
 							<div class="text-weight-bold md-font-size">

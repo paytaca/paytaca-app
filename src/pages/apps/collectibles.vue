@@ -255,7 +255,7 @@
 </template>
 
 <script>
-import { markRaw } from '@vue/reactivity'
+import { markRaw } from 'vue'
 import HeaderNav from '../../components/header-nav'
 import { getMnemonic, Wallet } from '../../wallet'
 import { isReadOnlyVaultEntry, loadReadOnlyWallet, buildReadOnlyWallet } from 'src/lib/readonly-wallet'
@@ -346,9 +346,6 @@ export default {
     },
     isChipnet () {
       return this.$store.getters['global/isChipnet']
-    },
-    theme () {
-      return this.$store.getters['global/theme']
     },
     hasCollectibles () {
       if (!this.wallet) return false

@@ -218,7 +218,7 @@
   </div>
 </template>
 <script>
-import { markRaw } from '@vue/reactivity'
+import { markRaw } from 'vue'
 import { hmac } from '@noble/hashes/hmac.js'
 import { sha256 } from '@noble/hashes/sha2.js'
 import { bytesToHex, utf8ToBytes } from '@noble/hashes/utils.js'
@@ -449,6 +449,7 @@ export default {
         (error) => {
           // Failed to authenticate
           this.verification.warningAttemptsStatus = 'dismiss'
+          // eslint-disable-next-line no-empty
           if (error.message.includes('Cancel') || error.message.includes('Authentication cancelled') || error.message.includes('Fingerprint operation cancelled')) {
           } else if (error.message.includes('Too many attempts. Try again later.')) {
             this.verification.warningAttemptsStatus = 'show'

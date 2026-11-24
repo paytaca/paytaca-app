@@ -308,6 +308,7 @@ export default defineComponent({
           return response
         })
         .catch(error => {
+          // eslint-disable-next-line no-undef
           if (error?.response?.status == 400) orderCallSession.value = OrderCallSession.parse(response?.data)
           return Promise.reject(error)
         })
@@ -456,7 +457,7 @@ export default defineComponent({
       if (!manager.value) return
       manager.value.members.forEach(member => {
         member.mediaStream.getAudioTracks().forEach(track => {
-          track.enabled = !Boolean(membersMuted.value)
+          track.enabled = !membersMuted.value
         })
       })
     }
