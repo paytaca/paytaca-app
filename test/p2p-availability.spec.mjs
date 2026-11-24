@@ -3,10 +3,152 @@ import { EventEmitter } from 'node:events'
 import { markRaw, reactive } from 'vue'
 import { readFileSync, readdirSync } from 'node:fs'
 import { fetchP2PAvailability, assertP2PAvailable, isP2PAvailabilityError, p2pAvailabilityMessage, p2pRequestFeature } from '../src/exchange/availability.js'
+import rampState from '../src/store/ramp/state.js'
+import { dismissPaymentDetailsReminder } from '../src/store/ramp/mutations.js'
+import { paymentDetailsReminder, getWalletStateByHash } from '../src/store/ramp/getters.js'
 
 const source = readFileSync(new URL('../src/components/ramp/fiat/EscrowTransfer.vue', import.meta.url), 'utf8')
 const script = source.match(/<script>([\s\S]*?)<\/script>/)[1].replace(/^import .*$/gm, '').replace('export default', 'return')
 const available = { P2P_MAINTENANCE: false, ORDER_ESCROW: true }
+
+describe('Order payment details reminder', () => {
+  const source = readFileSync('src/pages/apps/exchange/peer_to_peer/order.vue', 'utf8')
+  function method (name) {
+    const start = Math.max(source.indexOf(`    ${name} (`), source.indexOf(`    async ${name} (`))
+    const end = source.indexOf('\n    },', start) + 7
+    return new Function(`return { ${source.slice(start, end)} }`)()[name]
+  }
+  function harness () {
+    let state = rampState()
+    const routes = []
+    const vm = {
+      order: {
+        id: 7, created_at: '2026-11-24T03:00:00Z', status: { value: 'CNF' },
+        ad: {
+          owner: { id: 12 }, trade_type: 'BUY',
+          created_at: '2026-11-24T03:00:00Z', ad_created_at: '2026-11-23T15:59:59.999Z'
+        },
+        members: { seller: { id: 12 }, buyer: { id: 13 } }
+      },
+      suppressPaymentDetailsReminder: false,
+      $store: {
+        getters: {
+          'global/getWallet': () => ({ walletHash: 'test-wallet' }),
+          'ramp/getUser': { id: 12 },
+          'ramp/paymentDetailsReminder': accountId => paymentDetailsReminder(state)(accountId)
+        },
+        commit (name, payload) {
+          assert.equal(name, 'ramp/dismissPaymentDetailsReminder')
+          dismissPaymentDetailsReminder(state, payload)
+        }
+      },
+      $router: { async push (route) { routes.push(route) } }
+    }
+    vm.dismissPaymentDetailsReminder = method('dismissPaymentDetailsReminder').bind(vm)
+    return {
+      vm, routes, required: () => method('paymentDetailsReminderRequired').call(vm),
+      restart () { state = JSON.parse(JSON.stringify(state)) },
+      dismissInWallet (walletHash, suppress) { dismissPaymentDetailsReminder(state, { walletHash, accountId: 12, orderId: 8, suppress }) },
+      walletState: hash => getWalletStateByHash(state)(hash)
+    }
+  }
+
+  it('uses participant roles and ad ownership regardless of the ad label', () => {
+    const { vm, required } = harness()
+    for (const label of ['BUY', 'SELL']) {
+      vm.order.ad.trade_type = label
+      assert.equal(required(), true)
+      vm.order.members.seller.id = 13
+      assert.equal(required(), false)
+      vm.order.members.seller.id = 12
+    }
+    vm.order.ad.owner.id = 13
+    assert.equal(required(), false)
+    vm.order = null
+    assert.equal(required(), false)
+  })
+
+  it('uses the ad creation date with a strict Manila cutoff and rejects missing or invalid timestamps', () => {
+    const { vm, required } = harness()
+    assert.equal(required(), true)
+    for (const timestamp of ['2026-11-23T16:00:00Z', '2026-11-24T00:00:00+08:00', '2026-11-25T00:00:00Z', null, undefined, 'invalid']) {
+      vm.order.ad.ad_created_at = timestamp
+      assert.equal(required(), false, String(timestamp))
+    }
+  })
+
+  it('includes newer orders for older ads and excludes older orders for newer ads', () => {
+    const { vm, required } = harness()
+    assert.equal(required(), true)
+    vm.order.created_at = '2026-11-23T15:59:59.999Z'
+    vm.order.ad.ad_created_at = '2026-11-24T03:00:00Z'
+    assert.equal(required(), false)
+  })
+
+  it('does not use the order ad snapshot timestamp as the original ad creation date', () => {
+    const { vm, required } = harness()
+    assert.equal(required(), true)
+    delete vm.order.ad.ad_created_at
+    vm.order.ad.created_at = '2026-11-23T15:59:59.999Z'
+    assert.equal(required(), false)
+  })
+
+  it('only includes ongoing order statuses', () => {
+    const { vm, required } = harness()
+    for (const status of ['SBM', 'CNF', 'ESCRW_PN', 'ESCRW', 'PD_PN', 'PD', 'APL', 'RLS_PN', 'RFN_PN']) {
+      vm.order.status.value = status
+      assert.equal(required(), true, status)
+    }
+    for (const status of ['CNCL', 'RLS', 'RFN', 'unknown', null]) {
+      vm.order.status.value = status
+      assert.equal(required(), false, String(status))
+    }
+  })
+
+  it('persists per-order dismissals through restart while leaving other orders eligible', () => {
+    const { vm, required, restart } = harness()
+    vm.dismissPaymentDetailsReminder()
+    restart()
+    assert.equal(required(), false)
+    vm.order.id = 8
+    assert.equal(required(), true)
+    vm.dismissPaymentDetailsReminder()
+    vm.order.id = 7
+    assert.equal(required(), false)
+  })
+
+  it('isolates global opt-out by account and wallet', () => {
+    const { vm, required, restart, walletState, dismissInWallet } = harness()
+    vm.suppressPaymentDetailsReminder = true
+    vm.dismissPaymentDetailsReminder()
+    restart()
+    vm.order.id = 8
+    assert.equal(required(), false)
+    assert.equal(paymentDetailsReminder({ byWallet: { 'test-wallet': walletState('test-wallet') } })(99).suppressed, undefined)
+    assert.deepEqual(walletState('another-wallet'), {})
+    vm.$store.getters['ramp/getUser'] = { id: 99 }
+    vm.order.ad.owner.id = 99
+    vm.order.members.seller.id = 99
+    assert.equal(required(), true)
+    dismissInWallet('another-wallet', false)
+    assert.deepEqual(walletState('another-wallet').paymentDetailsReminderByAccount[12], {
+      suppressed: false, dismissedOrderIds: { 8: true }
+    })
+    dismissInWallet('test-wallet', false)
+    assert.equal(walletState('test-wallet').paymentDetailsReminderByAccount[12].suppressed, true)
+  })
+
+  it('records the dismissal and opens payment settings with a return to the same order', async () => {
+    const { vm, required, routes } = harness()
+    await method('reviewPaymentMethods').call(vm)
+    assert.equal(required(), false)
+    assert.deepEqual(routes, [{ name: 'p2p-profile', query: { edit: 'payments', returnOrder: '7' } }])
+    const payments = readFileSync('src/components/ramp/fiat/AddPaymentMethods.vue', 'utf8')
+    assert.match(payments, /name: 'p2p-order', params: \{ order: \$route.query.returnOrder \}/)
+    assert.match(source, /<div v-if="!paymentDetailsReminderRequired" class="component-wrapper">/)
+    assert.match(source, /<q-dialog :model-value="paymentDetailsReminderRequired" persistent>/)
+  })
+})
 
 function harness (initial = available) {
   let controls = initial
@@ -3195,6 +3337,30 @@ describe('P2P release and refund maintenance guards', () => {
       })
     }
 
+    const feature = method === 'refundBch' ? 'REFUND_BCH' : 'RELEASE_BCH'
+    const otherFeature = feature === 'RELEASE_BCH' ? 'REFUND_BCH' : 'RELEASE_BCH'
+    for (const value of [false, null, 'false', 0]) {
+      it(`blocks ${role} ${method} before keys when ${feature} is ${JSON.stringify(value)}`, async () => {
+        const h = financialHarness(role, method, { status: 200, data: { P2P_MAINTENANCE: false, [feature]: value } })
+        await h.run()
+        assert.equal(h.events.some(event => ['keypair', 'privkey', 'release', 'refund'].includes(event)), false)
+        assert.match(role === 'seller' ? h.vm.sendErrors[0] : h.vm.sendError, /Escrow releases|Escrow refunds/)
+      })
+    }
+
+    it(`allows ${role} ${method} independently when ${feature} is enabled`, async () => {
+      const h = financialHarness(role, method, { status: 200, data: { P2P_MAINTENANCE: false, [feature]: true, [otherFeature]: false } })
+      await h.run()
+      assert(h.events.includes(method === 'releaseBch' ? 'release' : 'refund'))
+    })
+
+    it(`blocks ${role} ${method} during global maintenance even if ${feature} is enabled`, async () => {
+      const h = financialHarness(role, method, { status: 200, data: { P2P_MAINTENANCE: true, [feature]: true } })
+      await h.run()
+      assert.equal(h.events.some(event => ['keypair', 'privkey', 'release', 'refund'].includes(event)), false)
+      assert.match(role === 'seller' ? h.vm.sendErrors[0] : h.vm.sendError, /maintenance/)
+    })
+
     it(`allows ${role} ${method} with existing controls and no new release/refund flags`, async () => {
       const h = financialHarness(role, method)
       await h.run()
@@ -3287,4 +3453,128 @@ describe('P2P feature control refresh resilience', () => {
     assert.equal(h.context.state.featureToggles, null)
     assert.deepEqual(h.commits, [])
   })
+})
+
+
+describe('P2P optional release and refund controls', () => {
+  for (const feature of ['RELEASE_BCH', 'REFUND_BCH']) {
+    it(`supports older feature-control responses omitting ${feature}`, () => {
+      const controls = { P2P_MAINTENANCE: false }
+      assert.equal(assertP2PAvailable(controls, feature), controls)
+      assert.equal(Object.prototype.hasOwnProperty.call(controls, feature), false)
+    })
+
+    it(`reports an action-specific disabled message for ${feature}`, () => {
+      let error
+      try {
+        assertP2PAvailable({ P2P_MAINTENANCE: false, [feature]: false }, feature)
+      } catch (failure) { error = failure }
+      assert.equal(error.response.data.code, 'p2p_feature_disabled')
+      assert.equal(error.response.data.feature, feature)
+      const message = p2pAvailabilityMessage((key, values, fallback) => fallback, error)
+      assert.match(message, feature === 'RELEASE_BCH' ? /releases/ : /refunds/)
+      assert.doesNotMatch(message, /fund previously/)
+    })
+  }
+
+  it('still requires explicit enablement for all pre-existing feature flags', () => {
+    for (const feature of ['ORDER_CREATE', 'ORDER_ESCROW', 'AD_CREATE', 'AD_UPDATE']) {
+      assert.throws(() => assertP2PAvailable({ P2P_MAINTENANCE: false }, feature), error =>
+        error.response.data.code === 'p2p_feature_disabled')
+    }
+  })
+})
+
+
+describe('P2P feature controls on page refresh', () => {
+  function method (path, name) {
+    const source = readFileSync(path, 'utf8')
+    const start = Math.max(source.indexOf(`    ${name} (`), source.indexOf(`    async ${name} (`))
+    const end = source.indexOf('\n    },', start) + 7
+    return new Function(`return { ${source.slice(start, end)} }`)()[name]
+  }
+
+  for (const file of ['AdListings.vue', 'StoreListings.vue']) {
+    it(`refreshes controls and listings together before completing pull-to-refresh in ${file}`, async () => {
+      const calls = []
+      let finishControls
+      let finishListings
+      let completed = false
+      const vm = {
+        $store: { dispatch: name => { calls.push(name); return new Promise(resolve => { finishControls = resolve }) } },
+        resetAndRefetchListings: () => { calls.push('listings'); return new Promise(resolve => { finishListings = resolve }) }
+      }
+      const pending = method(`src/components/ramp/fiat/${file}`, 'refreshData').call(vm, () => { completed = true })
+      assert.deepEqual(calls, ['ramp/fetchFeatureToggles', 'listings'])
+      assert.equal(completed, false)
+      finishControls()
+      await Promise.resolve()
+      assert.equal(completed, false)
+      finishListings()
+      await pending
+      assert.equal(completed, true)
+    })
+
+    it(`stops the refresh indicator when a control refresh fails in ${file}`, async () => {
+      let completed = false
+      const vm = {
+        $store: { dispatch: async () => { throw new Error('Synthetic control refresh failure') } },
+        resetAndRefetchListings: async () => {}
+      }
+      await method(`src/components/ramp/fiat/${file}`, 'refreshData').call(vm, () => { completed = true })
+      assert.equal(completed, true)
+    })
+  }
+
+  it('refreshes ad feature controls without clearing or resubmitting the draft', async () => {
+    const calls = []
+    const vm = {
+      adData: { description: 'Unsaved draft', tradeAmount: 1 }, currentStep: 1,
+      $store: { dispatch: async name => { calls.push(name) } }
+    }
+    const draft = JSON.stringify(vm.adData)
+    let completed = false
+    await method('src/pages/apps/exchange/peer_to_peer/ad-form.vue', 'refreshFeatureControls').call(vm, () => { completed = true })
+    assert.deepEqual(calls, ['ramp/fetchFeatureToggles'])
+    assert.equal(JSON.stringify(vm.adData), draft)
+    assert.equal(vm.currentStep, 1)
+    assert.equal(completed, true)
+  })
+
+  it('waits for refreshed controls before completing the order-form refresh', async () => {
+    let finish
+    let completed = false
+    const vm = {
+      $store: { dispatch: name => {
+        assert.equal(name, 'ramp/fetchFeatureToggles')
+        return new Promise(resolve => { finish = resolve })
+      } },
+      fetchAd: async () => {}, fetchAdOwnerPeerData: async () => {},
+      fetchMarketPrice: async () => {}, setupWebSocket () {}
+    }
+    const pending = method('src/pages/apps/exchange/peer_to_peer/order-form.vue', 'loadData').call(vm, () => { completed = true })
+    await Promise.resolve()
+    assert.equal(vm.isloaded, false)
+    assert.equal(completed, false)
+    finish()
+    await pending
+    assert.equal(vm.isloaded, true)
+    assert.equal(completed, true)
+  })
+  it('rechecks escrow availability through page refresh without replaying funding', async () => {
+    const events = []
+    const vm = {
+      loadData: async () => { events.push('order') },
+      $nextTick: async () => { events.push('render') },
+      $refs: { escrowTransferRef: { loadData: async () => { events.push('escrow-availability') } } }
+    }
+    const refresh = method('src/pages/apps/exchange/peer_to_peer/order.vue', 'refreshPage')
+    await refresh.call(vm, () => { events.push('done') })
+    assert.deepEqual(events, ['order', 'render', 'escrow-availability', 'done'])
+    events.length = 0
+    vm.sendingBch = true
+    await refresh.call(vm, () => { events.push('done') })
+    assert.deepEqual(events, ['done'])
+  })
+
 })

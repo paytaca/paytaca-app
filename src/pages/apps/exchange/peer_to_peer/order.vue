@@ -122,7 +122,7 @@
               @view-peer="onViewPeer"
               @view-reviews="showReviews=true"/>
           </div>
-          <div class="component-wrapper">
+          <div v-if="!paymentDetailsReminderRequired" class="component-wrapper">
           <EscrowTransfer
             ref="escrowTransferRef"
             v-if="state === 'escrow-bch'"
@@ -462,6 +462,24 @@
     </q-dialog>
     
     
+    <q-dialog :model-value="paymentDetailsReminderRequired" persistent>
+      <q-card class="q-pa-sm text-bow br-15" :class="getDarkModeClass(darkMode)" style="width: 400px; max-width: 90vw;">
+        <q-card-section class="text-h6">
+          {{ $t('CheckYourPaymentDetails', {}, 'Check your payment details') }}
+        </q-card-section>
+        <q-card-section>
+          {{ $t('OrderPaymentDetailsReminder', {}, 'Before continuing with this order, please confirm that the payment methods for this ad have the correct account name, account number, and other payment details. If anything is incorrect, update your payment methods before proceeding.') }}
+        </q-card-section>
+        <q-card-section class="q-pt-none">
+          <q-checkbox v-model="suppressPaymentDetailsReminder" :label="$t('PaymentDetailsReminderDoNotShowAgain', {}, 'Do not show this again')" />
+        </q-card-section>
+        <q-card-actions align="right">
+          <q-btn flat no-caps :label="$t('ReviewPaymentMethods', {}, 'Review payment methods')" @click="reviewPaymentMethods" />
+          <q-btn flat no-caps :label="$t('Continue', {}, 'Continue')" @click="dismissPaymentDetailsReminder" />
+        </q-card-actions>
+      </q-card>
+    </q-dialog>
+
     <!-- Dialogs -->
     <div v-if="openDialog" >
       <MiscDialogs
@@ -576,6 +594,7 @@ export default {
       showStatusHistory: false,
       noticeType: 'info',
       showNoticeDialog: false,
+      suppressPaymentDetailsReminder: false,
       rewardNotified: false,
 
       // Tabs
@@ -655,6 +674,24 @@ export default {
   // REMOVED: Duplicate created() hook - merged into the one below
   // The new-message listener is now registered in the main created() hook
   computed: {
+    paymentDetailsReminderScope () {
+      return JSON.stringify([
+        this.$store.getters['global/getWallet']('bch')?.walletHash,
+        this.$store.getters['ramp/getUser']?.id,
+        this.order?.id
+      ])
+    },
+    paymentDetailsReminderRequired () {
+      const userId = this.$store.getters['ramp/getUser']?.id
+      const order = this.order
+      if (userId == null || !order?.id || !this.$store.getters['global/getWallet']('bch')?.walletHash) return false
+      if (order.ad?.owner?.id !== userId || order.members?.seller?.id !== userId) return false
+      if (!['SBM', 'CNF', 'ESCRW_PN', 'ESCRW', 'PD_PN', 'PD', 'APL', 'RLS_PN', 'RFN_PN'].includes(order.status?.value)) return false
+      const createdAt = Date.parse(order.ad?.ad_created_at)
+      if (!Number.isFinite(createdAt) || createdAt >= Date.parse('2026-11-23T16:00:00Z')) return false
+      const preference = this.$store.getters['ramp/paymentDetailsReminder'](userId)
+      return !preference.suppressed && !preference.dismissedOrderIds?.[order.id]
+    },
     chatScrollTarget () {
       return this.$refs.chatScrollTarget
     },
@@ -904,6 +941,9 @@ export default {
   },
   emits: ['back', 'refresh', 'view-ad'],
   watch: {
+    paymentDetailsReminderScope () {
+      this.suppressPaymentDetailsReminder = false
+    },
     reconnectingWebSocket () {
       this.reloadChildComponents()
     },
@@ -999,6 +1039,19 @@ export default {
     }
   },
   methods: {
+    dismissPaymentDetailsReminder () {
+      this.$store.commit('ramp/dismissPaymentDetailsReminder', {
+        walletHash: this.$store.getters['global/getWallet']('bch')?.walletHash,
+        accountId: this.$store.getters['ramp/getUser']?.id,
+        orderId: this.order?.id,
+        suppress: this.suppressPaymentDetailsReminder
+      })
+    },
+    async reviewPaymentMethods () {
+      const orderId = this.order.id
+      this.dismissPaymentDetailsReminder()
+      await this.$router.push({ name: 'p2p-profile', query: { edit: 'payments', returnOrder: String(orderId) } })
+    },
     formatDate,
     formatOrderStatus,
     getDarkModeClass,
@@ -2602,6 +2655,8 @@ export default {
         return
       }
       await this.loadData()
+      await this.$nextTick()
+      await this.$refs.escrowTransferRef?.loadData()
       if (done) done()
     },
 

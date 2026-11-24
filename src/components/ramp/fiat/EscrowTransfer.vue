@@ -2,12 +2,15 @@
   <div
     class="escrow-transfer-container q-pt-sm q-mx-md text-bow"
     :class="getDarkModeClass(darkMode)">
-    <q-banner v-if="availabilityFailure || loadFailure" class="bg-orange-2 text-black q-mb-md" role="alert">
-      {{ availabilityFailure ? availabilityMessage : $t('P2PLoadFailed', {}, 'Unable to load this order. Please retry.') }}
-      <template #action>
-        <q-btn flat :label="$t('Retry')" :disable="loading || sendingBch" @click="loadData" />
-      </template>
-    </q-banner>
+    <div v-if="availabilityFailure || loadFailure" class="pt-card q-pa-md q-mb-md br-15 p2p-feature-notice" :class="darkMode ? 'dark' : 'light'" role="alert">
+      <div class="row no-wrap items-start">
+        <q-icon name="info" color="blue" size="md" class="col-auto q-mr-md q-mt-xs" />
+        <div class="col text-weight-medium">
+          {{ availabilityFailure ? availabilityMessage : $t('P2PLoadFailed', {}, 'Unable to load this order. Please retry.') }}
+          {{ $t('RefreshToCheckAgain', {}, 'Refresh the page to check again.') }}
+        </div>
+      </div>
+    </div>
     <div v-if="!availabilityFailure && !loadFailure" class="q-mx-sm q-px-md">
       
       <!-- Contract Information Section -->

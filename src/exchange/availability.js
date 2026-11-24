@@ -6,7 +6,9 @@ export function assertP2PAvailable (controls, feature) {
   if (!controls || typeof controls !== 'object' || Array.isArray(controls)) throw availabilityError()
   if (controls.P2P_MAINTENANCE === true) throw availabilityError('p2p_maintenance', 'P2P_MAINTENANCE')
   if (controls.P2P_MAINTENANCE !== false) throw availabilityError()
-  if (feature && controls[feature] !== true) throw availabilityError('p2p_feature_disabled', feature)
+  const legacySpendControl = ['RELEASE_BCH', 'REFUND_BCH'].includes(feature) &&
+    !Object.prototype.hasOwnProperty.call(controls, feature)
+  if (feature && !legacySpendControl && controls[feature] !== true) throw availabilityError('p2p_feature_disabled', feature)
   return controls
 }
 
@@ -38,6 +40,12 @@ export function p2pAvailabilityMessage (t, error) {
     return t('P2PUnderMaintenance', {}, 'P2P is temporarily under maintenance. Please try again later.')
   }
   if (error?.response?.data?.code === 'p2p_feature_disabled') {
+    if (error.response.data.feature === 'RELEASE_BCH') {
+      return t('P2PReleaseUnavailable', {}, 'Escrow releases are temporarily unavailable. Please try again later.')
+    }
+    if (error.response.data.feature === 'REFUND_BCH') {
+      return t('P2PRefundUnavailable', {}, 'Escrow refunds are temporarily unavailable. Please try again later.')
+    }
     return t('P2PFeatureUnavailable', {}, 'This P2P action is temporarily unavailable. Do not fund previously generated contracts. Please try again later.')
   }
   return t('P2PTemporarilyUnavailable', {}, 'P2P is temporarily unavailable. Please check back later. You can continue using the rest of your wallet.')

@@ -409,7 +409,7 @@ export default {
           address: vm.escrowContract.addresses.arbiter,
           address_path: addressPath
         }, 'arbiter')
-        await fetchP2PAvailability(backend)
+        await fetchP2PAvailability(backend, 'RELEASE_BCH')
         signerWallet.assertIdentity(registered)
         if (vm.disposed || vm.escrowContract !== escrow || vm.contract !== contract ||
             vm.order !== order || vm.order?.id !== orderId || vm.order?.status?.value !== status ||
@@ -468,7 +468,7 @@ export default {
           address: vm.escrowContract.addresses.arbiter,
           address_path: addressPath
         }, 'arbiter')
-        await fetchP2PAvailability(backend)
+        await fetchP2PAvailability(backend, 'REFUND_BCH')
         signerWallet.assertIdentity(registered)
         if (vm.disposed || vm.escrowContract !== escrow || vm.contract !== contract ||
             vm.order !== order || vm.order?.id !== orderId || vm.order?.status?.value !== status ||

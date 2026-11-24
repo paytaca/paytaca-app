@@ -549,8 +549,14 @@ export default {
       vm.loadingMoreData = false
     },
     async refreshData (done) {
-      done()
-      await this.resetAndRefetchListings(true)
+      try {
+        await Promise.allSettled([
+          this.$store.dispatch('ramp/fetchFeatureToggles'),
+          this.resetAndRefetchListings(true)
+        ])
+      } finally {
+        if (done) done()
+      }
     },
     async resetAndRefetchListings (refresh = false) {
       if (this.pendingFetch || this.disposed) return

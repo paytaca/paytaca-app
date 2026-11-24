@@ -99,7 +99,8 @@ export function getInitialWalletState() {
     cashinOrderListPage: 1,
     cashinOrderListTotalPage: 1,
 
-    showAdLimitMessage: true
+    showAdLimitMessage: true,
+    paymentDetailsReminderByAccount: {}
   }
 }
 

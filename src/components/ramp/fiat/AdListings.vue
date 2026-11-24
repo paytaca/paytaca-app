@@ -3,12 +3,15 @@
     class="q-mx-md q-mx-none q-mb-lg text-bow"
     :class="getDarkModeClass(darkMode)"
     :style="`height: ${minHeight}px;`">
-    <q-banner v-if="!adCreateEnabled || !adUpdateEnabled" class="bg-orange-2 text-black q-mb-md">
-      {{ $t('P2PActionsUnavailable', {}, 'Some P2P actions are temporarily unavailable. Please try again later.') }}
-      <template #action>
-        <q-btn flat :label="$t('Retry')" @click="$store.dispatch('ramp/fetchFeatureToggles')" />
-      </template>
-    </q-banner>
+    <div v-if="!adCreateEnabled || !adUpdateEnabled" class="pt-card q-pa-md q-mb-md br-15 p2p-feature-notice" :class="darkMode ? 'dark' : 'light'">
+      <div class="row no-wrap items-start">
+        <q-icon name="info" color="blue" size="md" class="col-auto q-mr-md q-mt-xs" />
+        <div class="col text-weight-medium">
+          {{ $t('P2PActionsUnavailable', {}, 'Some P2P actions are temporarily unavailable. Please try again later.') }}
+          {{ $t('RefreshToCheckAgain', {}, 'Refresh the page to check again.') }}
+        </div>
+      </div>
+    </div>
     <div class="q-mb-lg q-pb-lg q-pt-xs">
       <q-pull-to-refresh @refresh="refreshData">
         <div class="row justify-start items-center q-mx-none">
@@ -452,9 +455,15 @@ export default {
           this.handleRequestError(error)
         })
     },
-    refreshData (done) {
-      done()
-      this.resetAndRefetchListings()
+    async refreshData (done) {
+      try {
+        await Promise.allSettled([
+          this.$store.dispatch('ramp/fetchFeatureToggles'),
+          this.resetAndRefetchListings()
+        ])
+      } finally {
+        if (done) done()
+      }
     },
     async resetAndRefetchListings () {
       const vm = this

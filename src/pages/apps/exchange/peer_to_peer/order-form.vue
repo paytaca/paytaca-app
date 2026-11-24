@@ -227,12 +227,12 @@
                 </div>
               </div>
 
-              <div v-if="createOrdersEnabled === false" class="pt-card q-pa-md q-mb-md br-15 info-card" :class="darkMode ? 'dark' : 'light'">
-                <div class="row items-center">
-                  <q-icon name="info" color="blue" size="md" class="q-mr-md"/>
-                  <div class="text-weight-medium">
+              <div v-if="createOrdersEnabled === false" class="pt-card q-pa-md q-mb-md br-15 p2p-feature-notice" :class="darkMode ? 'dark' : 'light'">
+                <div class="row no-wrap items-start">
+                  <q-icon name="info" color="blue" size="md" class="col-auto q-mr-md q-mt-xs"/>
+                  <div class="col text-weight-medium">
                     {{ $t('FeatureTemporarilyDisabled', {}, 'This feature is temporarily disabled. We appreciate your patience as we make improvements.') }}
-                    <q-btn flat :label="$t('Retry')" @click="$store.dispatch('ramp/fetchFeatureToggles')" />
+                    {{ $t('RefreshToCheckAgain', {}, 'Refresh the page to check again.') }}
                   </div>
                 </div>
               </div>
@@ -528,7 +528,10 @@ export default {
     async loadData (done) {
       const vm = this
       vm.isloaded = false
-      await vm.fetchAd()
+      await Promise.all([
+        vm.fetchAd(),
+        vm.$store.dispatch('ramp/fetchFeatureToggles')
+      ])
       await vm.fetchAdOwnerPeerData()
       // Only fetch arbiters if ad was successfully loaded with fiat_currency
       if (vm.ad && vm.ad.fiat_currency) {
@@ -541,7 +544,6 @@ export default {
       await vm.fetchMarketPrice()
       // Websocket subscriptions require fiat currency symbol
       vm.setupWebSocket()
-      vm.$store.dispatch('ramp/fetchFeatureToggles')
       vm.isloaded = true
       if (done) done()
     },
@@ -1175,59 +1177,6 @@ export default {
     }
   }
 
-  .info-card {
-    border-left: 4px solid #2196f3 !important;
-    position: relative;
-    overflow: hidden;
-    animation: pulse-info 2s ease-in-out infinite;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-    
-    // Sparkle effect overlay
-    &::before {
-      content: '';
-      position: absolute;
-      top: -50%;
-      left: -50%;
-      width: 200%;
-      height: 200%;
-      background: linear-gradient(
-        45deg,
-        transparent 30%,
-        rgba(255, 255, 255, 0.1) 40%,
-        rgba(255, 255, 255, 0.3) 50%,
-        rgba(255, 255, 255, 0.1) 60%,
-        transparent 70%
-      );
-      animation: sparkle-card 3s linear infinite;
-      pointer-events: none;
-      z-index: 1;
-    }
-    
-    // Ensure content is above sparkle
-    .row, q-icon, div {
-      position: relative;
-      z-index: 2;
-    }
-    
-    &.dark {
-      background: rgba(33, 150, 243, 0.12) !important;
-      
-      &::before {
-        background: linear-gradient(
-          45deg,
-          transparent 30%,
-          rgba(255, 255, 255, 0.1) 40%,
-          rgba(255, 255, 255, 0.25) 50%,
-          rgba(255, 255, 255, 0.1) 60%,
-          transparent 70%
-        );
-      }
-    }
-    
-    &.light {
-      background: rgba(33, 150, 243, 0.08) !important;
-    }
-  }
 
   /* ==================== ANIMATIONS ==================== */
   @keyframes slideInUp {
@@ -1265,20 +1214,6 @@ export default {
     }
   }
 
-  @keyframes pulse-info {
-    0% {
-      transform: scale(1);
-      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-    }
-    50% {
-      transform: scale(1.015);
-      box-shadow: 0 6px 20px rgba(33, 150, 243, 0.25);
-    }
-    100% {
-      transform: scale(1);
-      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-    }
-  }
 
   /* ==================== RESPONSIVE ADJUSTMENTS ==================== */
   @media (max-width: 599px) {

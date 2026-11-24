@@ -1,12 +1,16 @@
 <template>
   <div class="ad-form-container" :class="getDarkModeClass(darkMode)">
     <HeaderNav :title="`P2P Ramp`" backnavpath="/apps/exchange/peer-to-peer/ads" class="header-nav" />
-    <q-banner v-if="!adFeatureEnabled" class="bg-orange-2 text-black q-ma-md">
-      {{ $t('P2PFeatureUnavailable', {}, 'This P2P action is temporarily unavailable. Do not fund previously generated contracts. Please try again later.') }}
-      <template #action>
-        <q-btn flat :label="$t('Retry')" @click="$store.dispatch('ramp/fetchFeatureToggles')" />
-      </template>
-    </q-banner>
+    <q-pull-to-refresh @refresh="refreshFeatureControls">
+    <div v-if="!adFeatureEnabled" class="pt-card q-pa-md q-ma-md br-15 p2p-feature-notice" :class="darkMode ? 'dark' : 'light'">
+      <div class="row no-wrap items-start">
+        <q-icon name="info" color="blue" size="md" class="col-auto q-mr-md q-mt-xs" />
+        <div class="col text-weight-medium">
+          {{ $t('P2PFeatureUnavailable', {}, 'This P2P action is temporarily unavailable. Do not fund previously generated contracts. Please try again later.') }}
+          {{ $t('RefreshToCheckAgain', {}, 'Refresh the page to check again.') }}
+        </div>
+      </div>
+    </div>
     <div v-if="currentStep === 1"
       class="text-bow"
       :class="getDarkModeClass(darkMode)">
@@ -39,7 +43,7 @@
         </div>
       </div>
       <div class="q-pt-sm" v-else>
-        <q-scroll-area :style="`height: ${minHeight}px`" style="overflow-y:auto;">
+        <q-scroll-area ref="adScrollArea" :style="`height: ${minHeight}px`" style="overflow-y:auto;" @touchstart="preventPull">
           <div class="q-px-md q-pb-md">
             <!-- Price Settings Section -->
             <div class="pt-card q-pa-md q-mb-md br-15" :class="darkMode ? 'dark' : 'light'">
@@ -399,6 +403,7 @@
       v-on:back="openDialog = false"
     />
   </div>
+    </q-pull-to-refresh>
   </div>
 </template>
 <script>
@@ -706,6 +711,17 @@ export default {
   methods: {
     getDarkModeClass,
     parseFiatCurrency,
+    preventPull (event) {
+      const position = this.$refs.adScrollArea?.getScrollPercentage?.()
+      if (position?.top > 0) event.stopPropagation()
+    },
+    async refreshFeatureControls (done) {
+      try {
+        await this.$store.dispatch('ramp/fetchFeatureToggles')
+      } finally {
+        if (done) done()
+      }
+    },
     onSessionExpired () {
       this.authPending = true
       this.swipeStatus = false
