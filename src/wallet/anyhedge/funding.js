@@ -186,9 +186,8 @@ export async function calculateGeneralProtocolsLPFee(intent, pubkeys, priceData,
     response.success = false
     response.error = error
     response.errorMessages = errors
-  } finally {
-    return response
   }
+  return response
 }
 
 /**

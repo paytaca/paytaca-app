@@ -39,7 +39,7 @@ export async function getTreasuryContractInstance(opts) {
 
   if (treasuryContract?.address && contract.address != treasuryContract?.address) {
     console.warn(`Treasury contract mismatch, expected '${treasuryContract?.address}', got '${contract.address}'`, {
-      artifact,
+      artifact: data?.artifact,
       contract,
       treasuryContract,
     })

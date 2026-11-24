@@ -1862,6 +1862,7 @@ export class EscrowContract {
       if (this.address.length === 50) return 'p2sh20'
       if (this.address.length > 50) return 'p2sh32'
     }
+    return undefined
   }
 
   get sats() {
@@ -2257,7 +2258,7 @@ export class ChatIdentity {
     this.id = data?.id
     this.name = data?.name
     this.ref = data?.ref
-    this.pubkeys = (Array.isArray(data?.pubkeys) ? data?.pubkeys : [])
+    this.pubkeys = (Array.isArray(data?.pubkeys) ? data.pubkeys : [])
       .map(pubkeyData => {
         return { pubkey: pubkeyData?.pubkey, deviceId: pubkeyData?.device_id }
       })

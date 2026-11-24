@@ -31,7 +31,7 @@ export class ChatIdentity {
     this.id = data?.id
     this.name = data?.name
     this.ref = data?.ref
-    this.pubkeys = (Array.isArray(data?.pubkeys) ? data?.pubkeys : [])
+    this.pubkeys = (Array.isArray(data?.pubkeys) ? data.pubkeys : [])
       .map(pubkeyData => {
         return { pubkey: pubkeyData?.pubkey, deviceId: pubkeyData?.device_id }
       })

@@ -174,7 +174,7 @@ export async function saveExistingAsset (context, details) {
   const vault = context.getters.getVault
   // check if vault keys are valid
   if (vault.length > 0) {
-    if (!vault[0].hasOwnProperty('asset') || !vault[0].hasOwnProperty('chipnet_assets') ) {
+    if (!Object.prototype.hasOwnProperty.call(vault[0], 'asset') || !Object.prototype.hasOwnProperty.call(vault[0], 'chipnet_assets') ) {
       context.commit('clearVault')
     }
   }

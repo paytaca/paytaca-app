@@ -173,13 +173,6 @@ class Watchtower extends WatchtowerSdk {
     return addressPeerAppList
   }
 
-  async getAddressBchBalance (address) {
-    const response = await fetch(`${this._baseUrl}balance/bch/${address}`)
-    if (response.ok) {
-      return await response.json()
-    }
-  }
-
   async broadcastTx (tx, priceId, outputFiatAmounts) {
     const body = { transaction: tx }
     if (priceId) {

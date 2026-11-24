@@ -46,7 +46,7 @@ export async function createShortProposal(opts) {
   console.log('Created', { shortProposal })
   
   const signature = wallet.generateSighash({ message: shortContractAddress, path: shortAddressPath })
-  const accessKeyData = { pubkey: shortPubkey, signature, signature }
+  const accessKeyData = { pubkey: shortPubkey, signature }
   
   if (shortProposal.settlement_service?.short_signature === signature) return shortProposal
 

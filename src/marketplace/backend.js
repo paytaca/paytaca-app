@@ -14,7 +14,7 @@ export const backend = axios.create({
    * @param {import('axios').AxiosRequestConfig} config 
    * @param {{ data:any, customSignData:String, timestamp:Number }} opts 
    */
-  signFunction: async (config, opts={data, customSignData, timestamp}) => {
+  signFunction: async (config, opts={}) => {
     const data = opts?.data
     const customSignData = opts?.customSignData
     const timestamp = opts?.timestamp

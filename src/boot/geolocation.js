@@ -160,14 +160,13 @@ class GeolocationManager {
     return new Promise(async (resolve, reject) => {
       let watcherId
       let timeoutId
+      const cleanUp = (error) => {
+        if (error) reject(error)
+        if (timeoutId) clearTimeout(timeoutId)
+        Geolocation.clearWatch({ id: watcherId })
+        this.location.value.loading = false
+      }
       try {
-        const cleanUp = (error) => {
-          if (error) reject(error)
-          if (timeoutId) clearTimeout(timeoutId)
-          Geolocation.clearWatch({ id: watcherId })
-          this.location.value.loading = false
-        }
-
         this.location.value.loading = true
         watcherId = await Geolocation.watchPosition(geolocateOpts, (position, error) => {
           Geolocation.clearWatch({ id: watcherId })

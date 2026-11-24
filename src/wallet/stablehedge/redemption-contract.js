@@ -35,7 +35,7 @@ export async function getRedemptionContractInstance(opts) {
 
   if (redemptionContract?.address && contract.address != redemptionContract?.address) {
     console.warn(`Redemption contract mismatch, expected '${redemptionContract?.address}', got '${contract.address}'`, {
-      artifact,
+      artifact: data?.artifact,
       contract,
       redemptionContract,
     })

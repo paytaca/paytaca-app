@@ -204,6 +204,7 @@ export default class SingleWallet {
    * @param {{ address: String, amount: Number, tokenAmount: Number }[]} recipients
    * @returns {Promise<{ success: Boolean, txid: String, error?: String }>}
    */
+  /* eslint-disable no-undef, no-const-assign */
   async sendSlp(tokenId, tokenType, feeFunder, recipients, broadcast=true) {
     const bchAddress = this.isChipnet ? this.testnetAddress : this.cashAddress
     const slpAddress = this.isChipnet ? this.testnetSlpAddress : this.slpAddress
@@ -236,4 +237,5 @@ export default class SingleWallet {
     }
     return result
   }
+  /* eslint-enable no-undef, no-const-assign */
 }

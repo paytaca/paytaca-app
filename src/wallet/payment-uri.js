@@ -191,14 +191,7 @@ export function parsePaymentUri(content, opts) {
   }
   let eip681Decoded, eip681DecodeError
   if (opts?.chain === 'smart') {
-    try {
-      eip681Decoded = decodeEIP681URI(content)
-      if (Number(eip681Decoded.chain_id) !== 10000) {
-        const chainId = eip681Decoded.chain_id
-        eip681Decoded = undefined
-        throw new Error(`Invalid chain ID: ${chainId}`)
-      }
-    } catch(err) { eip681DecodeError = err }
+    eip681DecodeError = new Error('SmartBCH payment URIs are not supported')
   }
 
   if ((!opts?.chain || opts?.chain === 'main') && bip0021Decoded) {

@@ -116,7 +116,6 @@ export async function getAuthKey(opts ={ wif: '', nonce: '', saveAuthToken: fals
   const authToken = authResponse.data.auth_token
   const escrowArbiter = EscrowArbiter.parse(authResponse.data?.arbiter)
   if (!escrowArbiter.pubkey === pubkey) {
-    console.error(error)
     const err = new Error('IncorrectArbiterData')
     err.name = 'ArbiterAuthError'
     throw err

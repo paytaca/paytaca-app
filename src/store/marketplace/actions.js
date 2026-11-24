@@ -231,7 +231,7 @@ export function refreshCart(context, opts={ cartId: 0, existsInCache: false }) {
       return response
     })
   } else if (!opts?.existsInCache) {
-    return backend.get(`connecta/carts/${cartId}/`).then(response => {
+    return backend.get(`connecta/carts/${opts?.cartId}/`).then(response => {
       if (!response?.data?.id) return Promise.reject({ response })
       context.commit('cacheCart', response?.data)
       return response

@@ -280,8 +280,9 @@ export async function saveExistingWallet (context) {
   // check if vault keys are valid
   if (vault.length > 0) {
     if (vault[0]) {
-      if (!vault[0].hasOwnProperty('chipnet') || !vault[0].hasOwnProperty('wallet')) {
+      if (!Object.prototype.hasOwnProperty.call(vault[0], 'chipnet') || !Object.prototype.hasOwnProperty.call(vault[0], 'wallet')) {
         // Clear all cached wallet names when clearing vault
+        // eslint-disable-next-line no-undef
         const allCachedNames = getAllWalletNames()
         Object.keys(allCachedNames).forEach(walletHash => {
           removeWalletName(walletHash)

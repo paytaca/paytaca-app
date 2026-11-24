@@ -1,5 +1,5 @@
 import { Store } from 'src/store'
-import { markRaw } from '@vue/reactivity'
+import { markRaw } from 'vue'
 import { Dialog } from 'quasar'
 import { i18n } from 'src/boot/i18n'
 import { Address } from 'src/wallet'
