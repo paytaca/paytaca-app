@@ -106,7 +106,12 @@ export default {
       hideBtn: false,
       errorMessage: null,
       verifyingTx: false,
+      verificationRejected: false,
+      verificationComplete: false,
+      verificationRun: 0,
       txidLoaded: false,
+      loadingTransactionId: false,
+      verificationTimeoutMs: 10000,
       balanceLoaded: false,
       contractBalanceError: false,
       errorDialogActive: false,
@@ -156,6 +161,7 @@ export default {
   },
   beforeUnmount () {
     this.disposed = true
+    this.verificationRun++
     clearInterval(this.timer)
   },
   methods: {
@@ -163,15 +169,60 @@ export default {
     toggleContractInfo () {
       this.showContractInfo = !this.showContractInfo
     },
+    async waitForVerification (promise) {
+      let timer
+      try {
+        return await Promise.race([
+          promise,
+          new Promise((resolve, reject) => {
+            timer = setTimeout(() => reject(new Error('Verification request timed out. Retry verification without sending funds again.')), this.verificationTimeoutMs)
+          })
+        ])
+      } finally {
+        clearTimeout(timer)
+      }
+    },
+    showVerificationRetry (message) {
+      this.verifyingTx = false
+      this.autoRetrying = false
+      this.autoRetryCount = this.maxAutoRetries
+      this.hideBtn = false
+      this.disableBtn = false
+      this.loading = false
+      this.errorMessage = message
+    },
+    completeVerification () {
+      this.verificationComplete = true
+      this.verifyingTx = false
+      this.autoRetrying = false
+      this.loading = false
+      this.hideBtn = true
+      this.$emit('success')
+    },
+    handleVerificationFailure (action, message) {
+      if (this.disposed || this.verificationComplete || action !== this.data?.action) return
+      this.verificationRejected = true
+      this.verificationRun++
+      this.showVerificationRetry(message)
+    },
     async loadTransactionId () {
-      if (!this.transactionId) {
-        this.transactionId = this.$store.getters['ramp/getOrderTxid'](this.data?.orderId, this.data?.action)
+      if (this.disposed || this.loadingTransactionId) return
+      this.loadingTransactionId = true
+      try {
+        if (!this.transactionId) {
+          this.transactionId = this.$store.getters['ramp/getOrderTxid'](this.data?.orderId, this.data?.action)
+        }
+        if (!this.transactionId) await this.fetchTransactions(this.data?.action)
+        if (this.disposed) return
+        if (!this.transactionId) {
+          throw new Error('Transaction ID is not available yet. Retry verification without sending funds again.')
+        }
+      } catch (error) {
+        if (!this.disposed) this.showVerificationRetry(error.message || 'Unable to find the transaction. Retry verification without sending funds again.')
+      } finally {
+        this.loadingTransactionId = false
+        if (!this.disposed) this.txidLoaded = true
       }
-      if (!this.transactionId) {
-        await this.fetchTransactions(this.data?.action)
-      }
-      console.log('transactionId:', this.transactionId)
-      this.txidLoaded = true
     },
     loadContract () {
       return this.fetchContract()
@@ -206,8 +257,9 @@ export default {
       })
     },
     async fetchTransactions (action) {
-      const utxos = await this.data?.escrow?.getUtxos()
-      if (utxos.length > 0) {
+      const utxos = await this.waitForVerification(this.data?.escrow?.getUtxos())
+      if (this.disposed) return
+      if (Array.isArray(utxos) && utxos.length > 0) {
         let index = 1
         if (action === 'ESCROW') index = 0
         this.transactionId = utxos[index]?.tx_hash
@@ -217,7 +269,7 @@ export default {
       return new Promise((resolve, reject) => {
         const vm = this
         vm.loading = true
-        backend.get(`/ramp-p2p/order/${vm.data?.orderId}/contract/`, { authorize: true })
+        backend.get(`/ramp-p2p/order/${vm.data?.orderId}/contract/`, { authorize: true, timeout: this.verificationTimeoutMs })
           .then(response => {
             vm.contract = response.data
             // If API doesn't return address, use the escrow contract's address
@@ -233,78 +285,78 @@ export default {
       })
     },
     async verifyRelease () {
-      if (this.disposed || this.verifyingTx) return
+      if (this.disposed || this.verifyingTx || this.verificationComplete) return
       const vm = this
+      const run = vm.verificationRun
       const body = { txid: this.transactionId }
       vm.verifyingTx = true
 
       try {
-        const { data: order } = await backend.get(`/ramp-p2p/order/${vm.data?.orderId}/`, { authorize: 'peer', cache: false, params: { _fresh: Date.now() } })
-        if (vm.disposed) return
+        const { data: order } = await backend.get(`/ramp-p2p/order/${vm.data?.orderId}/`, { authorize: 'peer', cache: false, params: { _fresh: Date.now() }, timeout: this.verificationTimeoutMs })
+        if (vm.disposed || vm.verificationRejected || run !== vm.verificationRun) return
         if (order?.status?.value === 'RLS') {
-          vm.verifyingTx = false
-          vm.$emit('success')
+          vm.completeVerification()
           return
         }
-        await backend.post(`/ramp-p2p/order/${vm.data?.orderId}/verify-release/`, body, { authorize: 'peer' })
-        await vm.pollVerification()
+        await backend.post(`/ramp-p2p/order/${vm.data?.orderId}/verify-release/`, body, { authorize: 'peer', timeout: this.verificationTimeoutMs })
+        if (vm.verificationRejected || run !== vm.verificationRun) return
+        await vm.pollVerification(run)
       } catch (error) {
-        if (vm.disposed) return
+        if (vm.disposed || vm.verificationRejected || run !== vm.verificationRun) return
         if (vm.handleVerificationAuthError(error)) return
         const errorMsg = error.response?.data?.error || ''
         // If the order has already been released (server detected it on-chain),
         // verify-release is unnecessary — treat it as success.
         if (error.response?.status === 400 || errorMsg.includes('Action requires status')) {
           try {
-            const { data: order } = await backend.get(`/ramp-p2p/order/${vm.data?.orderId}/`, { authorize: 'peer', cache: false, params: { _fresh: Date.now() } })
-            if (!vm.disposed && order?.status?.value === 'RLS') {
-              vm.verifyingTx = false
-              vm.$emit('success')
+            const { data: order } = await backend.get(`/ramp-p2p/order/${vm.data?.orderId}/`, { authorize: 'peer', cache: false, params: { _fresh: Date.now() }, timeout: this.verificationTimeoutMs })
+            if (!vm.disposed && !vm.verificationRejected && run === vm.verificationRun && order?.status?.value === 'RLS') {
+              vm.completeVerification()
               return
             }
           } catch { /* fall through to retry */ }
         }
+        if (vm.disposed || vm.verificationRejected || run !== vm.verificationRun) return
         vm.verifyingTx = false
-        vm.errorMessage = errorMsg || 'Verification failed'
+        vm.errorMessage = errorMsg || error.message || 'Verification failed'
 
         // Attempt auto-retry
         await vm.attemptAutoRetry(vm.verifyRelease)
       }
     },
     async verifyEscrow () {
-      if (this.disposed) return
+      if (this.disposed || this.verifyingTx || this.verificationComplete) return
       const vm = this
+      const run = vm.verificationRun
       const body = { txid: vm.transactionId }
       vm.verifyingTx = true
 
       try {
-        await backend.post(`/ramp-p2p/order/${vm.data?.orderId}/verify-escrow/`, body, { authorize: 'peer' })
-        await vm.pollVerification()
+        await backend.post(`/ramp-p2p/order/${vm.data?.orderId}/verify-escrow/`, body, { authorize: 'peer', timeout: this.verificationTimeoutMs })
+        if (vm.verificationRejected || run !== vm.verificationRun) return
+        await vm.pollVerification(run)
       } catch (error) {
-        if (vm.disposed) return
+        if (vm.disposed || vm.verificationRejected || run !== vm.verificationRun) return
         if (vm.handleVerificationAuthError(error)) return
         if (error.response?.status === 400) {
           try {
-            const { data: order } = await backend.get(`/ramp-p2p/order/${vm.data?.orderId}/`, { authorize: 'peer', cache: false })
-            if (!vm.disposed && order?.status?.value === 'ESCRW') {
-              vm.$emit('success')
+            const { data: order } = await backend.get(`/ramp-p2p/order/${vm.data?.orderId}/`, { authorize: 'peer', cache: false, params: { _fresh: Date.now() }, timeout: this.verificationTimeoutMs })
+            if (!vm.disposed && !vm.verificationRejected && run === vm.verificationRun && ['ESCRW', 'PD_PN', 'PD', 'RLS', 'RFN'].includes(order?.status?.value)) {
+              vm.completeVerification()
               return
             }
           } catch (statusError) {
             vm.handleRequestError(statusError)
           }
         }
+        if (vm.disposed || vm.verificationRejected || run !== vm.verificationRun) return
         vm.verifyingTx = false
 
         if (error.response?.data?.error === 'txid is required') {
-          vm.errorMessage = 'Transaction ID is required for verification'
-          vm.autoRetrying = false
-          vm.hideBtn = false
-          vm.disableBtn = false
-          vm.loading = false
+          vm.showVerificationRetry('Transaction ID is required for verification. Retry verification without sending funds again.')
         } else {
           // Other errors - attempt auto-retry
-          vm.errorMessage = error.response?.data?.error || 'Verification failed'
+          vm.errorMessage = error.response?.data?.error || error.message || 'Verification failed'
           await vm.attemptAutoRetry(vm.verifyEscrow)
         }
       }
@@ -321,20 +373,20 @@ export default {
       this.errorMessage = this.$t('P2PLoginRequired', {}, 'Please log in again, then retry verification without sending funds again.')
       return true
     },
-    async pollVerification () {
+    async pollVerification (run = this.verificationRun) {
       const releasing = this.data?.action === 'RELEASE'
       const completedStatuses = releasing ? ['RLS'] : ['ESCRW', 'PD_PN', 'PD', 'RLS', 'RFN']
       for (let attempt = 0; attempt <= 5; attempt++) {
-        if (this.disposed) return
+        if (this.disposed || this.verificationRejected || run !== this.verificationRun) return
         try {
-          const { data: order } = await backend.get(`/ramp-p2p/order/${this.data?.orderId}/`, { authorize: 'peer', cache: false, params: { _fresh: Date.now() } })
-          if (this.disposed) return
+          const { data: order } = await backend.get(`/ramp-p2p/order/${this.data?.orderId}/`, { authorize: 'peer', cache: false, params: { _fresh: Date.now() }, timeout: this.verificationTimeoutMs })
+          if (this.disposed || this.verificationRejected || run !== this.verificationRun) return
           if (completedStatuses.includes(order?.status?.value)) {
-            this.$emit('success')
+            this.completeVerification()
             return
           }
         } catch (error) {
-          if (this.disposed) return
+          if (this.disposed || this.verificationRejected || run !== this.verificationRun) return
           this.handleRequestError(error)
           break
         }
@@ -352,7 +404,8 @@ export default {
     },
     async attemptAutoRetry (verifyFunction) {
       const vm = this
-      if (vm.disposed) return
+      const run = vm.verificationRun
+      if (vm.disposed || vm.verificationRejected || run !== vm.verificationRun) return
 
       // Check if we can still auto-retry
       if (vm.autoRetryCount < vm.maxAutoRetries) {
@@ -362,7 +415,7 @@ export default {
 
         // Wait for the fixed delay
         await vm.delay(vm.autoRetryDelay)
-        if (vm.disposed) return
+        if (vm.disposed || vm.verificationRejected || run !== vm.verificationRun) return
 
         // Attempt verification again
         await verifyFunction.call(vm)
@@ -372,13 +425,19 @@ export default {
         vm.hideBtn = false
         vm.disableBtn = false
         vm.loading = false
-        vm.errorMessage = vm.$t('VerificationFailedRetries', {}, 'Verification failed after multiple attempts. Please try again.')
+        vm.errorMessage = vm.errorMessage || vm.$t('VerificationFailedRetries', {}, 'Verification failed after multiple attempts. Please try again.')
       }
     },
-    submitAction () {
+    async submitAction () {
       const vm = this
-      if (vm.disposed || vm.verifyingTx) return
+      if (vm.disposed || vm.verifyingTx || vm.loadingTransactionId || vm.verificationComplete) return
+      if (!vm.transactionId) {
+        await vm.loadTransactionId()
+        if (vm.disposed || vm.verifyingTx || !vm.transactionId) return
+      }
 
+      vm.verificationRun++
+      vm.verificationRejected = false
       // Reset auto-retry counter when manually clicking retry
       vm.autoRetryCount = 0
       vm.autoRetrying = false
@@ -394,7 +453,11 @@ export default {
       }
     },
     checkTransferStatus () {
-      if (this.disposed || this.verifyingTx || this.balancePolling || this.autoRetrying) return
+      if (this.disposed || this.verifyingTx || this.loadingTransactionId || this.balancePolling || this.autoRetrying || this.verificationRejected || this.verificationComplete) return
+      if (this.txidLoaded && !this.transactionId) {
+        this.showVerificationRetry(this.errorMessage || 'Transaction ID is not available yet. Retry verification without sending funds again.')
+        return
+      }
       if (this.txidLoaded && this.transactionId && ['ESCROW', 'RELEASE'].includes(this.data?.action)) {
         return this.submitAction()
       }

@@ -125,7 +125,7 @@
                   type="text"
                   inputmode="none"
                   :label="$t('Amount')"
-                  :disable="!hasArbiters || createOrdersEnabled === false || isZeroTradeLimits()"
+                  :disable="!hasArbiters || createOrdersEnabled === false || loadSubmitButton || creatingOrder || isZeroTradeLimits()"
                   :dark="darkMode"
                   :rules="[isValidInputAmount]"
                   v-model="amount"
@@ -152,18 +152,18 @@
                       padding="none"
                       flat
                       dense
-                      :disable="!hasArbiters || createOrdersEnabled === false || isZeroTradeLimits()"
+                      :disable="!hasArbiters || createOrdersEnabled === false || loadSubmitButton || creatingOrder || isZeroTradeLimits()"
                       :class="getDarkModeClass(darkMode)"
                       :label="$t('Min', {}, 'Min')"
-                      @click="updateInput(max=false, min=true)"/>
+                      @click="updateInput(false, true)"/>
                     <q-btn
                       class="sm-font-size button button-text-primary"
                       padding="none"
                       flat
-                      :disable="!hasArbiters || createOrdersEnabled === false || isZeroTradeLimits()"
+                      :disable="!hasArbiters || createOrdersEnabled === false || loadSubmitButton || creatingOrder || isZeroTradeLimits()"
                       :class="getDarkModeClass(darkMode)"
                       :label="$t('Max', {}, 'Max')"
-                      @click="updateInput(max=true, min=false)"/>
+                      @click="updateInput(true, false)"/>
                   </div>
                 </div>
                 <div class="q-pl-sm">
@@ -172,9 +172,9 @@
                     padding="none"
                     flat
                     no-caps
-                    :disable="!hasArbiters || createOrdersEnabled === false || isZeroTradeLimits()"
+                    :disable="!hasArbiters || createOrdersEnabled === false || loadSubmitButton || creatingOrder || isZeroTradeLimits()"
                     :class="getDarkModeClass(darkMode)"
-                    @click="byFiat = !byFiat">
+                    @click="toggleAmountCurrency()">
                     {{
                       $t(
                         'SetAmountInCurrency',
@@ -204,7 +204,7 @@
               <!-- create order btn -->
               <div v-if="!isOwner && hasArbiters && createOrdersEnabled !== false" class="row q-py-md">
                 <q-btn
-                  :disabled="!isValidInputAmount(amount) || !hasArbiters || loadSubmitButton || isZeroTradeLimits()"
+                  :disabled="!isValidInputAmount(amount) || !hasArbiters || loadSubmitButton || creatingOrder || isZeroTradeLimits()"
                   :loading="loadSubmitButton"
                   rounded
                   unelevated
@@ -321,10 +321,10 @@ import MiscDialogs from 'src/components/ramp/fiat/dialogs/MiscDialogs.vue'
 import TradeInfoCard from 'src/components/ramp/fiat/TradeInfoCard.vue'
 import CustomKeyboard from 'src/components/CustomKeyboard.vue'
 import UserProfileDialog from 'src/components/ramp/fiat/dialogs/UserProfileDialog.vue'
-import { bchToSatoshi, satoshiToBch, fiatToBch, formatCurrency, getAppealCooldown } from 'src/exchange'
+import { satoshiToBch, formatCurrency, getAppealCooldown, getP2PAmountBounds, p2pAmountToSatoshis, p2pSatoshisToAmount, p2pQuoteKey } from 'src/exchange'
 import { ref } from 'vue'
 import { bus } from 'src/wallet/event-bus.js'
-import { backend, getBackendWsUrl } from 'src/exchange/backend'
+import { backend, getBackendWsUrl, p2pErrorMessage } from 'src/exchange/backend'
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 import { WebSocketManager } from 'src/exchange/websocket/manager'
 import ShareDialog from 'src/components/ramp/fiat/dialogs/ShareDialog.vue'
@@ -374,9 +374,11 @@ export default {
       customKeyboardState: 'dismiss',
       readonlyState: false,
       ad: null,
+      adFetchSequence: 0,
       state: 'initial',
       byFiat: false,
       amount: 0,
+      reviewedQuote: null,
       fees: null,
       amountError: null,
       order: null,
@@ -403,6 +405,7 @@ export default {
       loadSubmitButton: false,
       websockets: {
         ad: null,
+      adFetchSequence: 0,
         marketPrice: null
       },
       errorDialogActive: false
@@ -441,12 +444,7 @@ export default {
       return themeMap[this.theme] || 'blue-6'
     },
     tradeFloor () {
-      let floor = this.ad?.trade_floor
-      const ceiling = this.ad?.trade_ceiling
-      if (floor > ceiling) {
-        floor = ceiling
-      }
-      return Number(floor)
+      return Number(this.ad?.trade_floor)
     },
     tradeCeiling () {
       return Number(this.minTradeAmount(this.ad))
@@ -464,14 +462,11 @@ export default {
       return getAppealCooldown(this.ad?.appeal_cooldown)
     },
     equivalentAmount () {
-      let amount = this.amount
-      if (amount === '' || isNaN(amount)) return 0
-      if (!this.byFiat) {
-        amount = Number(amount) * parseFloat(this.ad.price)
-      } else {
-        amount = Number(amount) / parseFloat(this.ad.price)
+      try {
+        return p2pSatoshisToAmount(this.getTradeAmount(), this.byFiat === false, this.ad)
+      } catch {
+        return 0
       }
-      return Number(amount)
     },
     equivalentAmountDisplay () {
       if (this.byFiat) {
@@ -510,9 +505,6 @@ export default {
       this.suppressPaymentDetailsReminder = false
       this.paymentDetailsReminderAcknowledgedScope = null
     },
-    byFiat () {
-      this.updateInput()
-    },
     customKeyboardState (val) {
       if (val === 'show') {
         this.minHeight -= 250
@@ -526,7 +518,7 @@ export default {
 
     },
     amount (val) {
-      if (this.ad.trade_type === 'BUY') {
+      if (this.ad?.trade_type === 'BUY') {
         this.fetchFees()
       }
     }
@@ -660,6 +652,7 @@ export default {
           }
         }
       }
+      if (!proceed) return
       this.shiftAmount = 0
       this.amount = finalAmount
     },
@@ -704,29 +697,29 @@ export default {
       this.openDialog = true
       this.title = this.$t('ConfirmOrder')
     },
-    async fetchAd () {
+    async fetchAd (strict = false) {
       const adId = this.$route?.params?.ad
       if (!adId) {
-        console.warn('Ad ID is missing, skipping fetchAd')
+        if (strict) throw new Error('Ad ID is missing.')
         return
       }
-      await backend.get(`/ramp-p2p/ad/${adId}/`, { authorize: true })
-        .then(response => {
-          this.ad = response.data
-          if (!this.isloaded) {
-            this.amount = Number(this.ad.trade_floor)
-            if (this.ad.trade_ceiling < this.ad.trade_floor) {
-              this.amount = this.ad.trade_ceiling
-            }
-            this.byFiat = this.ad.trade_limits_in_fiat
-            if (this.byFiat) {
-              this.amount = Number(Number(this.amount).toFixed(2))
-            }
-          }
-        })
-        .catch(error => {
-          this.handleRequestError(error)
-        })
+      const sequence = this.adFetchSequence = (this.adFetchSequence || 0) + 1
+      try {
+        const response = await backend.get(`/ramp-p2p/ad/${adId}/`, { authorize: true, cache: false, params: { _fresh: Date.now() } })
+        if (response.cached === true) throw new Error('Unable to refresh the ad quote. Please try again.')
+        if (sequence !== this.adFetchSequence) {
+          if (strict) throw new Error('The ad quote changed while refreshing. Please review it and try again.')
+          return this.ad
+        }
+        const initial = !this.ad
+        this.ad = response.data
+        if (initial) this.updateInput(false, true)
+        this.isValidInputAmount()
+        return this.ad
+      } catch (error) {
+        if (strict) throw error
+        this.handleRequestError(error)
+      }
     },
     async fetchAdOwnerPeerData () {
       if (this.adOwnerPeerData) return
@@ -759,15 +752,21 @@ export default {
           }
         : null
       vm.creatingOrder = true
-      const body = {
-        ad: vm.ad.id,
-        trade_amount: vm.getTradeAmount()
-      }
-      if (vm.ad.trade_type === 'BUY') {
-        const temp = this.paymentMethods.map(p => p.id)
-        body.payment_methods = temp
-      }
       try {
+        const quote = vm.reviewedQuote || p2pQuoteKey(vm.ad)
+        const amount = vm.amount
+        const byFiat = vm.byFiat
+        const refreshedAd = await vm.fetchAd(true)
+        if (p2pQuoteKey(refreshedAd) !== p2pQuoteKey(vm.ad) || quote !== p2pQuoteKey(vm.ad) || amount !== vm.amount || byFiat !== vm.byFiat) {
+          vm.returnToQuote('The ad price or limits changed. Review the refreshed quote and amount before submitting again.')
+          return
+        }
+        if (!vm.isValidInputAmount()) {
+          vm.returnToQuote(vm.amountError)
+          return
+        }
+        const body = { ad: vm.ad.id, trade_amount: vm.getTradeAmount() }
+        if (vm.ad.trade_type === 'BUY') body.payment_methods = vm.paymentMethods.map(p => p.id)
         const response = await backend.post('/ramp-p2p/order/', body, { authorize: true })
         vm.order = response.data.order
         if (reminderDismissal) {
@@ -777,7 +776,8 @@ export default {
         vm.$emit('updatePageName', 'order-process')
         await vm.$router.push({ name: 'p2p-order', params: { order: vm.order.id } })
       } catch (error) {
-        this.handleRequestError(error)
+        vm.returnToQuote(p2pErrorMessage(error, 'Unable to create the order. Please refresh and try again.'))
+        await vm.fetchAd()
       } finally {
         vm.creatingOrder = false
         vm.loadSubmitButton = false
@@ -825,7 +825,9 @@ export default {
         })
     },
     async fetchFees () {
-      const url = `/ramp-p2p/utils/calculate-fees/?sats_trade_amount=${this.getTradeAmount()}`
+      let sats
+      try { sats = this.getTradeAmount() } catch { return }
+      const url = `/ramp-p2p/utils/calculate-fees/?sats_trade_amount=${sats}`
       await backend.get(url)
         .then(response => {
           const tempFee = response.data
@@ -844,187 +846,69 @@ export default {
         })
     },
     isValidInputAmount (value = this.amount) {
-      let valid = true
-      let tradeFloor = this.formatDecimals('bch', this.ad.trade_floor)
-      let tradeCeiling = this.formatDecimals('bch', this.minTradeAmount(this.ad))
-
-      let amount = value
-      const price = this.ad.price
-
-      if (tradeFloor > tradeCeiling) {
-        tradeFloor = tradeCeiling
-      }
-
-      if (this.ad.trade_limits_in_fiat) {
-        tradeFloor = this.formatDecimals('fiat', tradeFloor)
-        tradeCeiling = this.formatDecimals('bch', tradeCeiling)
-        if (!this.byFiat) {
-          amount = this.bchToFiat(amount, price)
-        } else {
-          amount = this.formatDecimals('fiat', amount)
+      try {
+        p2pAmountToSatoshis(value, this.byFiat, this.ad)
+        if (this.ad.trade_type === 'BUY' && this.balanceExceeded) {
+          throw new Error(this.$t('FiatOrderAmountErrMsg3'))
         }
-      } else {
-        if (this.byFiat) {
-          amount = this.formatDecimals('bch', this.fiatToBch(amount, price))
-        }
-      }
-
-      if (amount < tradeFloor) {
-        valid = false
-        this.amountError = this.$t('FiatOrderAmountErrMsg1')
-      }
-      if (amount > tradeCeiling) {
-        valid = false
-        this.amountError = this.$t('FiatOrderAmountErrMsg2')
-      }
-      if (value === undefined || isNaN(value)) {
-        valid = false
-        this.amountError = 'Amount cannot be none or undefined'
-      }
-      if (this.ad.trade_type === 'BUY') {
-        if (this.balanceExceeded) {
-          valid = false
-          this.amountError = this.$t('FiatOrderAmountErrMsg3')
-        }
-      }
-      if (valid) {
         this.amountError = null
+        return true
+      } catch (error) {
+        this.amountError = error.message
+        return false
       }
-      this.isZeroTradeLimits()
-      return valid
-    },
-    fiatToBch(amount, price) {
-      return Number((amount / price).toFixed(8))
-    },
-    bchToFiat(amount, price) {
-      return Number((amount * price).toFixed(this.fiatFractionDigits()))
-    },
-    formatDecimals(type = 'fiat', value) {
-      if (type === 'fiat') return Number(Number(value).toFixed(this.fiatFractionDigits()))
-      if (type === 'bch') return Number(Number(value).toFixed(8))
     },
     isZeroTradeLimits () {
-      return this.tradeFloor === 0 || this.tradeCeiling === 0
+      try {
+        getP2PAmountBounds(this.ad)
+        return false
+      } catch {
+        return true
+      }
     },
     resetInput () {
-      if (this.amount !== '' && !isNaN(this.amount)) return
-      if (this.byFiat) {
-        this.amount = parseFloat(this.ad.trade_floor)
-      } else {
-        this.amount = parseFloat(this.ad.trade_floor) / parseFloat(this.ad.price)
-      }
+      this.isValidInputAmount()
     },
     updateInput (max = false, min = false) {
-      if (!this.isloaded) return
-      let amount = this.amount
-
-      let tradeFloor = Number(this.ad.trade_floor)
-      const tradeCeiling = this.minTradeAmount(this.ad)
-      const tradeLimitsInFiat = this.ad.trade_limits_in_fiat
-
-      if (tradeFloor > tradeCeiling) {
-        tradeFloor = tradeCeiling
+      try {
+        const bounds = getP2PAmountBounds(this.ad)
+        const sats = min ? bounds.min : max ? bounds.max : bounds.min
+        this.byFiat = false
+        this.amount = p2pSatoshisToAmount(sats, false, this.ad)
+        this.isValidInputAmount()
+      } catch (error) {
+        this.amountError = error.message
       }
-
-      if (min) {
-        if (this.byFiat) {
-          if (tradeLimitsInFiat) {
-            amount = tradeFloor
-          } else {
-            amount = tradeFloor * this.ad.price
-          }
-        } else {
-          if (tradeLimitsInFiat) {
-            amount = tradeFloor / this.ad.price
-          } else {
-            amount = tradeFloor
-          }
-        }
-      }
-      if (max) {
-        if (this.byFiat) {
-          if (tradeLimitsInFiat) {
-            amount = tradeCeiling
-          } else {
-            amount = tradeCeiling * this.ad.price
-          }
-        } else {
-          if (tradeLimitsInFiat) {
-            amount = tradeCeiling / this.ad.price
-          } else {
-            amount = tradeCeiling
-          }
-        }
-      }
-      if (!min && !max) {
-        const price = parseFloat(this.ad.price)
-        if (this.byFiat) {
-          amount = amount * price
-        } else {
-          amount = amount / price
-        }
-      }
-
-      amount = this.byFiat ? this.roundOffToFloor(amount, 10 ** this.fiatFractionDigits()) : amount.toFixed(8)
-
-      const amountInFiat = this.byFiat ? amount : Number((amount * this.ad?.price).toFixed(this.fiatFractionDigits()))
-      const amountInBch = this.byFiat ? Number((amount / this.ad?.price).toFixed(8)) : amount
-      let amountLessThanMin = false
-      let amountGreaterThanMax = false
-      if (tradeLimitsInFiat) {
-        amountLessThanMin = amountInFiat < tradeFloor
-        amountGreaterThanMax = amountInFiat > tradeCeiling
-      } else {
-        amountLessThanMin = amountInBch < tradeFloor
-        amountGreaterThanMax = amountInBch > tradeCeiling
-      }
-
-      const tradeFloorInFiat = tradeLimitsInFiat ? tradeFloor : Number((tradeFloor * this.ad.price).toFixed(this.fiatFractionDigits()))
-      const tradeFloorInBch = !tradeLimitsInFiat ? tradeFloor : Number((tradeFloor / this.ad.price).toFixed(8))
-      const tradeCeilInFiat = tradeLimitsInFiat ? tradeCeiling : Number((tradeCeiling * this.ad.price).toFixed(this.fiatFractionDigits()))
-      const tradeCeilInBch = !tradeLimitsInFiat ? tradeCeiling : Number((tradeCeiling / this.ad.price).toFixed(8))
-
-      if (amountLessThanMin) {
-        amount = this.byFiat ? tradeFloorInFiat : tradeFloorInBch
-      } else if (amountGreaterThanMax) {
-        amount = this.byFiat ? tradeCeilInFiat : tradeCeilInBch
-      }
-      this.amount = Number(amount)
     },
-    roundOffToFloor (amount, decimals) {
-      return Math.floor(amount * decimals) / decimals
+    toggleAmountCurrency () {
+      try {
+        const sats = this.getTradeAmount()
+        const byFiat = !this.byFiat
+        this.amount = p2pSatoshisToAmount(sats, byFiat, this.ad)
+        this.byFiat = byFiat
+      } catch (error) {
+        this.amountError = error.message
+      }
+    },
+    returnToQuote (message) {
+      this.state = 'initial'
+      this.openDialog = false
+      this.reviewedQuote = null
+      this.$q.notify({ type: 'error', message, timeout: 5000 })
     },
     tradeLimitsCurrency (ad) {
       return (ad?.trade_limits_in_fiat ? ad?.fiat_currency?.symbol : ad?.crypto_currency?.symbol) || ''
     },
     minTradeAmount (ad) {
-      let tradeAmount = parseFloat(ad.trade_amount)
-      let tradeCeiling = parseFloat(ad.trade_ceiling)
-      if (ad.trade_limits_in_fiat) {
-        // if trade_limits in fiat and trade_amount in BCH
-        // convert trade_amount to fiat
-        if (!ad.trade_amount_in_fiat) {
-          tradeAmount = tradeAmount * ad.price
-        }
-        tradeCeiling = Math.min.apply(null, [tradeCeiling, tradeAmount])
-      } else {
-        // If trade_limits in BCH and trade_amount in fiat:
-        // convert trade amount to BCH
-        if (ad.trade_amount_in_fiat) {
-          tradeAmount = tradeAmount / ad.price
-        }
-        tradeCeiling = Math.min.apply(null, [tradeCeiling, tradeAmount])
+      try {
+        const { max } = getP2PAmountBounds(ad)
+        return p2pSatoshisToAmount(max, ad.trade_limits_in_fiat, ad)
+      } catch {
+        return 0
       }
-      return Math.min.apply(null, [tradeAmount, tradeCeiling])
     },
     getTradeAmount () {
-      if (!this.byFiat) {
-        // convert bch to satoshi
-        return bchToSatoshi(parseFloat(this.amount))
-      } else {
-        // convert fiat to bch then satoshi
-        return bchToSatoshi(fiatToBch(this.amount, this.ad.price))
-      }
+      return p2pAmountToSatoshis(this.amount, this.byFiat, this.ad)
     },
     onBack () {
       this.$emit('back')
@@ -1054,6 +938,7 @@ export default {
         return
       }
 
+      vm.reviewedQuote = p2pQuoteKey(vm.ad)
       switch (vm.ad.trade_type) {
         case 'SELL':
           vm.orderConfirm()

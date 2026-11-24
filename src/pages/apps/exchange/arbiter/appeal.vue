@@ -237,6 +237,7 @@ export default {
       sendingBch: false,
       verifyingTx: false,
       transactions: [],
+      orderFetchSequence: 0,
       _fetchAppealLastTime: 0,
       _fetchAppealInProgress: false,
       _loadingData: false
@@ -331,9 +332,6 @@ export default {
     },
     onSendingBch (sending) {
       this.sendingBch = sending
-      if (!sending) {
-        this.refreshData()
-      }
     },
     onVerifyingTx (verifying) {
       this.verifyingTx = verifying
@@ -481,8 +479,10 @@ export default {
         this.loading = false
         return
       }
-      await backend.get(`/ramp-p2p/order/${orderId}`, { authorize: 'arbiter' })
+      const sequence = this.orderFetchSequence = (this.orderFetchSequence || 0) + 1
+      await backend.get(`/ramp-p2p/order/${orderId}/`, { authorize: 'arbiter', cache: false, params: { _fresh: Date.now() }, timeout: 10000 })
         .then(response => {
+          if (this.disposed || sequence !== this.orderFetchSequence) return
           this.amount = satoshiToBch(response.data?.order?.trade_amount)
           this.order = response.data
           this.updateStatus(this.order?.status)
@@ -598,10 +598,13 @@ export default {
         bus.emit('verify-tx', message)
         if (message?.success) {
           await this.fetchAppeal('websocket')
+          await this.fetchOrder()
+          if (this.disposed) return
           if (message?.txdata) {
             this.verifyingTx = false
             this.sendingBch = false
           }
+          if (this.sendingBch || this.verifyingTx) return
           if (this.manuallyAddingTx) {
             await this.refreshData()
             this.manuallyAddingTx = false

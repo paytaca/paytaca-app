@@ -136,6 +136,7 @@
             @cancel="cancellingOrder"
           />
           <VerifyTransaction
+            ref="verifyTransactionRef"
             v-if="state === 'tx-confirmation'"
             :key="verifyTransactionKey"
             :data="verifyTransactionData"
@@ -498,7 +499,7 @@
 <script>
 import { bchToFiat, formatCurrency, formatDate, satoshiToBch, formatOrderStatus } from 'src/exchange'
 import { bus } from 'src/wallet/event-bus.js'
-import { backend, getBackendWsUrl } from 'src/exchange/backend'
+import { backend, getBackendWsUrl, p2pErrorMessage } from 'src/exchange/backend'
 import { getChatBackendWsUrl } from 'src/exchange/chat/backend'
 import { updateChatMembers, generateChatRef, fetchChatSession, createChatSession, updateOrderChatSessionRef, fetchChatMessages, fetchChatMembers, fetchChatPubkeys, sendChatMessage as sendChatMessageAPI, updateLastRead, generateChatIdentityRef, loadChatIdentity } from 'src/exchange/chat'
 import { ChatMessage } from 'src/exchange/chat/objects'
@@ -2777,10 +2778,15 @@ export default {
             this.wsFetchingOrder = false
           }
         } else {
-          if ((message?.action === 'ESCROW' || message?.action === 'RELEASE') &&
+          if (message?.success === false && (message?.action === 'ESCROW' || message?.action === 'RELEASE') &&
             this.userTraderType === 'SELLER') {
+            const reason = p2pErrorMessage({ response: { data: message.error || message.errors } }, 'Transaction verification failed. Retry verification without sending funds again.')
+            if (this.state === 'tx-confirmation' && message.action === this.verifyAction) {
+              this.verifyingTx = false
+              this.$refs.verifyTransactionRef?.handleVerificationFailure(message.action, reason)
+            }
             this.noticeType = 'error'
-            this.errorMessage = message?.error
+            this.errorMessage = reason
             this.showNoticeDialog = true
           }
         }

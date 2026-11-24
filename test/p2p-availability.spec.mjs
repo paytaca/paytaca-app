@@ -76,6 +76,9 @@ describe('Order payment details reminder', () => {
       $refs: { addPaymentMethodsRef: { loadSubmitButton: false } },
       $emit () {},
       getTradeAmount: () => 10000,
+      fetchAd: async () => vm.ad,
+      isValidInputAmount: () => true,
+      returnToQuote (message) { vm.lastMessage = message },
       handleRequestError (error) { vm.lastError = error },
       orderConfirm () { vm.orderConfirmationShown = true }
     })
@@ -88,7 +91,7 @@ describe('Order payment details reminder', () => {
       Object.defineProperty(vm, name, { get: () => formMethod(name).call(vm) })
     }
     for (const name of ['submit', 'continueAfterPaymentDetailsReminder', 'createOrder']) {
-      vm[name] = formMethod(name, { backend }).bind(vm)
+      vm[name] = formMethod(name, { backend, p2pQuoteKey: ad => JSON.stringify(ad), p2pErrorMessage: error => error.message }).bind(vm)
     }
     return { ...context, requests, setFailure (error) { failure = error } }
   }
@@ -180,7 +183,7 @@ describe('Order payment details reminder', () => {
     vm.submit()
     vm.continueAfterPaymentDetailsReminder()
     await vm.createOrder()
-    assert.equal(vm.lastError, error)
+    assert.equal(vm.lastMessage, error.message)
     assert.equal(vm.creatingOrder, false)
     assert.equal(walletState('test-wallet').paymentDetailsReminderByAccount?.[12], undefined)
   })
@@ -2281,6 +2284,159 @@ describe('P2P verification of already-broadcast escrow funding', () => {
     return { vm, view, state, calls, events }
   }
 
+  it('exposes Retry when transaction discovery fails', async () => {
+    const h = verificationHarness()
+    h.vm.transactionId = ''
+    h.vm.txidLoaded = false
+    h.vm.$store = { getters: { 'ramp/getOrderTxid': () => null } }
+    h.vm.data.escrow = { getUtxos: async () => { throw new Error('Transaction lookup unavailable') } }
+    await h.vm.loadTransactionId()
+    assert.equal(h.vm.txidLoaded, true)
+    assert.equal(h.vm.showRetryBtn, true)
+    assert.equal(h.vm.loading, false)
+    assert.match(h.vm.errorMessage, /lookup unavailable/)
+    assert.equal(h.calls.length, 0)
+  })
+
+  it('bounds an unresponsive transaction lookup and ignores its late result', async () => {
+    const h = verificationHarness()
+    h.vm.verificationTimeoutMs = 1
+    h.vm.transactionId = ''
+    h.vm.txidLoaded = false
+    h.vm.$store = { getters: { 'ramp/getOrderTxid': () => null } }
+    let finish
+    h.vm.data.escrow = { getUtxos: () => new Promise(resolve => { finish = resolve }) }
+    await h.vm.loadTransactionId()
+    assert.equal(h.vm.showRetryBtn, true)
+    assert.match(h.vm.errorMessage, /timed out/)
+    finish([{ tx_hash: 'late-transaction' }])
+    await new Promise(resolve => setImmediate(resolve))
+    assert.equal(h.vm.transactionId, null)
+    assert.equal(h.events.includes('success'), false)
+  })
+
+  it('can retry discovery and verify without broadcasting any funds', async () => {
+    const h = verificationHarness()
+    h.vm.transactionId = ''
+    h.vm.txidLoaded = false
+    h.vm.$store = { getters: { 'ramp/getOrderTxid': () => null } }
+    h.vm.data.escrow = { getUtxos: async () => [] }
+    await h.vm.loadTransactionId()
+    assert.equal(h.vm.showRetryBtn, true)
+    assert.match(h.vm.errorMessage, /Transaction ID is not available/)
+    h.vm.data.escrow.getUtxos = async () => [{ tx_hash: 'discovered-funding-txid' }]
+    await h.vm.submitAction()
+    assert.equal(h.vm.transactionId, 'discovered-funding-txid')
+    assert(h.events.includes('success'))
+    assert.deepEqual(h.calls.filter(call => call[0] === 'post').map(call => [call[1], call[2]]), [
+      ['/ramp-p2p/order/24/verify-escrow/', { txid: 'discovered-funding-txid' }]
+    ])
+    assert.equal(h.vm.verifyingTx, false)
+  })
+
+  it('exposes Retry when no escrow instance or saved transaction ID is available', async () => {
+    const h = verificationHarness()
+    h.vm.transactionId = ''
+    h.vm.$store = { getters: { 'ramp/getOrderTxid': () => null } }
+    await h.vm.loadTransactionId()
+    await h.vm.checkTransferStatus()
+    assert.equal(h.vm.showRetryBtn, true)
+    assert.equal(h.calls.length, 0)
+  })
+
+  it('stops timed-out verification requests after bounded retries and retains the reason', async () => {
+    const h = verificationHarness()
+    h.vm.verificationTimeoutMs = 1
+    h.state.post = (url, body, config) => new Promise((resolve, reject) => {
+      if (config.timeout) setTimeout(() => reject(new Error('Escrow verification request timed out')), config.timeout)
+    })
+    await h.vm.checkTransferStatus()
+    assert.equal(h.calls.filter(call => call[0] === 'post').length, 4)
+    assert.equal(h.vm.showRetryBtn, true)
+    assert.equal(h.vm.verifyingTx, false)
+    assert.equal(h.vm.loading, false)
+    assert.match(h.vm.errorMessage, /timed out/)
+  })
+
+  it('uses bounded requests for verification and status polling', async () => {
+    const h = verificationHarness()
+    await h.vm.checkTransferStatus()
+    assert(h.calls.every(call => call.at(-1).timeout === 10000))
+    assert.equal(h.vm.verifyingTx, false)
+    assert.equal(h.vm.loading, false)
+  })
+
+  it('does not restart completed verification when late contract metadata arrives', async () => {
+    const h = verificationHarness()
+    await h.vm.checkTransferStatus()
+    await h.vm.checkTransferStatus()
+    assert.equal(h.calls.filter(call => call[0] === 'post').length, 1)
+    assert.equal(h.events.filter(event => event === 'success').length, 1)
+    assert.equal(h.vm.verifyingTx, false)
+  })
+
+  it('does not start duplicate escrow verification requests', async () => {
+    const h = verificationHarness()
+    let finish
+    h.state.post = () => new Promise(resolve => { finish = resolve })
+    const pending = h.vm.verifyEscrow()
+    await h.vm.verifyEscrow()
+    assert.equal(h.calls.length, 1)
+    finish({})
+    await pending
+    assert.equal(h.events.filter(event => event === 'success').length, 1)
+  })
+
+  it('makes missing-txid backend errors retryable immediately', async () => {
+    const h = verificationHarness()
+    h.state.post = async () => { throw { response: { status: 400, data: { error: 'txid is required' } } } }
+    h.state.get = async () => ({ data: { status: { value: 'ESCRW_PN' } } })
+    await h.vm.checkTransferStatus()
+    assert.equal(h.vm.showRetryBtn, true)
+    assert.equal(h.vm.verifyingTx, false)
+    assert.equal(h.calls.filter(call => call[0] === 'post').length, 1)
+  })
+
+  it('stops verification on a backend validation rejection without accepting a late success', async () => {
+    const h = verificationHarness()
+    let finish
+    h.state.get = () => new Promise(resolve => { finish = resolve })
+    const pending = h.vm.checkTransferStatus()
+    await new Promise(resolve => setImmediate(resolve))
+    h.vm.handleVerificationFailure('ESCROW', 'Funding output does not match the expected amount including fees')
+    assert.equal(h.vm.verifyingTx, false)
+    assert.equal(h.vm.showRetryBtn, true)
+    finish({ data: { status: { value: 'ESCRW' } } })
+    await pending
+    assert.equal(h.events.includes('success'), false)
+    assert.match(h.vm.errorMessage, /Funding output/)
+    assert.equal(h.calls.length, 2)
+  })
+
+  it('keeps an obsolete poll stopped when a manual retry has started', async () => {
+    const h = verificationHarness()
+    let finish
+    h.state.get = () => new Promise(resolve => { finish = resolve })
+    const oldAttempt = h.vm.checkTransferStatus()
+    await new Promise(resolve => setImmediate(resolve))
+    h.vm.handleVerificationFailure('ESCROW', 'Rejected funding')
+    h.state.get = async () => ({ data: { status: { value: 'ESCRW' } } })
+    await h.vm.submitAction()
+    assert.equal(h.events.filter(event => event === 'success').length, 1)
+    finish({ data: { status: { value: 'ESCRW_PN' } } })
+    await oldAttempt
+    assert.equal(h.events.filter(event => event === 'success').length, 1)
+    assert.equal(h.vm.errorMessage, null)
+  })
+
+  it('does not apply a rejection for another verification action', () => {
+    const h = verificationHarness()
+    h.vm.verifyingTx = true
+    h.vm.handleVerificationFailure('RELEASE', 'Unrelated release rejection')
+    assert.equal(h.vm.verifyingTx, true)
+    assert.equal(h.vm.verificationRejected, false)
+  })
+
   it('refreshes balance instead of reusing the zero recorded before funding', async () => {
     const h = verificationHarness()
     const reads = []
@@ -2488,7 +2644,7 @@ describe('P2P verification of already-broadcast escrow funding', () => {
 describe('Configured Watchtower escrow balances', () => {
   function balanceHarness () {
     const calls = []
-    const state = { get: async () => ({ status: 200, data: { valid: true, balance: 0.0001057 } }), electrumReads: 0 }
+    const state = { get: async () => ({ status: 200, data: { valid: true, utxos: [{ value: 10570, block: null }] } }), electrumReads: 0 }
     const backend = { get: async (...args) => { calls.push(args); return state.get(...args) } }
     const source = readFileSync('src/exchange/contract.js', 'utf8').replace(/^import .*$/gm, '').replace(/export default RampContract/, '').replace(/export /g, '')
     const RampContract = new Function('backend', 'Store', 'Watchtower', `${source}; return RampContract`)(
@@ -2505,7 +2661,7 @@ describe('Configured Watchtower escrow balances', () => {
   it('reads the configured backend balance, with a fresh request and no token', async () => {
     const h = balanceHarness()
     assert.equal(await h.contract.getBalance('', true), 0.0001057)
-    assert.equal(h.calls[0][0], '/balance/bch/synthetic-contract/')
+    assert.equal(h.calls[0][0], '/utxo/bch/synthetic-contract/')
     assert.equal(h.calls[0][1].authorize, false)
     assert.equal(h.calls[0][1].cache, false)
     assert(h.calls[0][1].params._fresh)
@@ -2514,7 +2670,7 @@ describe('Configured Watchtower escrow balances', () => {
 
   it('preserves a genuine Watchtower zero without querying Electrum', async () => {
     const h = balanceHarness()
-    h.state.get = async () => ({ status: 200, data: { valid: true, balance: 0 } })
+    h.state.get = async () => ({ status: 200, data: { valid: true, utxos: [] } })
     assert.equal(await h.contract.getBalance('', true), 0)
     assert.equal(h.state.electrumReads, 0)
   })
@@ -2526,10 +2682,10 @@ describe('Configured Watchtower escrow balances', () => {
     assert.equal(h.state.electrumReads, 0)
   })
 
-  for (const balance of [null, undefined, -1, 'invalid']) {
+  for (const balance of [null, undefined, -1, 'invalid', 0.5, true, Number.MAX_SAFE_INTEGER + 1]) {
     it(`rejects an invalid Watchtower balance: ${balance}`, async () => {
       const h = balanceHarness()
-      h.state.get = async () => ({ status: 200, data: { balance } })
+      h.state.get = async () => ({ status: 200, data: { valid: true, utxos: [{ value: balance }] } })
       await assert.rejects(h.contract.getBalance('', true))
     })
   }
@@ -2541,8 +2697,51 @@ describe('Configured Watchtower escrow balances', () => {
     const first = h.contract.getBalance('', true)
     const second = h.contract.getBalance('', true)
     assert.equal(h.calls.length, 1)
-    finish({ status: 200, data: { balance: 0.0001057 } })
+    finish({ status: 200, data: { valid: true, utxos: [{ value: 10570, block: null }] } })
     assert.deepEqual(await Promise.all([first, second]), [0.0001057, 0.0001057])
+  })
+
+  it('includes confirmed and mempool outputs without a confirmation filter', async () => {
+    const h = balanceHarness()
+    h.state.get = async () => ({ status: 200, data: { valid: true, utxos: [
+      { value: 10570, block: null }, { value: '6000', block: 950000 }
+    ] } })
+    assert.equal(await h.contract.getBalance('', true), 0.0001657)
+    assert.equal(h.calls[0][1].params.confirmed, undefined)
+    assert.equal(h.calls[0][1].timeout, 10000)
+  })
+
+  it('reads updated unspent outputs after funding and spending instead of a cached balance', async () => {
+    const h = balanceHarness()
+    let utxos = []
+    h.state.get = async () => ({ status: 200, data: { valid: true, utxos } })
+    assert.equal(await h.contract.getBalance('', true), 0)
+    utxos = [{ value: 10570, block: null }]
+    assert.equal(await h.contract.getBalance('', true), 0.0001057)
+    utxos = []
+    assert.equal(await h.contract.getBalance('', true), 0)
+    assert.equal(h.calls.length, 3)
+    assert(h.calls.every(([url]) => url.startsWith('/utxo/bch/')))
+  })
+
+  for (const data of [null, {}, { valid: false, utxos: [] }, { valid: true }, { valid: true, utxos: null }]) {
+    it(`does not display a false zero for malformed UTXO responses: ${JSON.stringify(data)}`, async () => {
+      const h = balanceHarness()
+      h.state.get = async () => ({ status: 200, data })
+      await assert.rejects(h.contract.getBalance('', true), /could not be read/)
+    })
+  }
+
+  it('rejects a cached UTXO response', async () => {
+    const h = balanceHarness()
+    h.state.get = async () => ({ status: 200, cached: true, data: { valid: true, utxos: [] } })
+    await assert.rejects(h.contract.getBalance('', true), /could not be read/)
+  })
+
+  it('rejects a satoshi total that cannot be represented safely', async () => {
+    const h = balanceHarness()
+    h.state.get = async () => ({ status: 200, data: { valid: true, utxos: [{ value: String(Number.MAX_SAFE_INTEGER) }, { value: 1 }] } })
+    await assert.rejects(h.contract.getBalance('', true), /could not be read/)
   })
 
   for (const file of ['StandByDisplay.vue', 'PaymentConfirmation.vue']) {
@@ -2622,8 +2821,11 @@ describe('P2P order WebSocket status refresh', () => {
       const end = source.indexOf('\n    }', start) + 6
       return source.slice(start, end)
     }).join(',\n')
+    const backendSource = readFileSync('src/exchange/backend.js', 'utf8')
+    const formatter = backendSource.slice(backendSource.indexOf('export function p2pErrorMessage'))
+    const p2pErrorMessage = new Function(`${formatter.replace('export ', '')}; return p2pErrorMessage`)()
     const bindings = {
-      backend, WebSocketManager,
+      backend, WebSocketManager, p2pErrorMessage,
       getBackendWsUrl: () => 'ws://localhost:9001/ws/ramp-p2p/subscribe/',
       getChatBackendWsUrl: () => 'ws://localhost:9002/ws/chat/sessions/',
       generateChatRef: () => 'synthetic-chat'
@@ -2643,6 +2845,22 @@ describe('P2P order WebSocket status refresh', () => {
     vm.setupWebSocket()
     return { vm, state, calls, applied, sockets, order, message: message => sockets[0].message(message) }
   }
+
+  it('stops the verification spinner and forwards the backend rejection reason', async () => {
+    const h = orderHarness()
+    const failures = []
+    Object.assign(h.vm, {
+      state: 'tx-confirmation', userTraderType: 'SELLER', verifyAction: 'ESCROW', verifyingTx: true,
+      $refs: { verifyTransactionRef: { handleVerificationFailure: (...args) => failures.push(args) } }
+    })
+    const error = 'Funding output does not match the expected amount including fees'
+    await h.message({ success: false, action: 'ESCROW', error })
+    assert.equal(h.vm.verifyingTx, false)
+    assert.equal(h.vm.showNoticeDialog, true)
+    assert.equal(h.vm.errorMessage, error)
+    assert.deepEqual(failures, [['ESCROW', error]])
+    assert.equal(h.calls.length, 0)
+  })
 
   it('starts the notification subscription when chat becomes available on an already-visible order', async () => {
     const h = orderHarness()
@@ -3037,11 +3255,13 @@ describe('P2P background chat initialization', () => {
     const routes = []
     const api = methods('src/pages/apps/exchange/peer_to_peer/order-form.vue', ['createOrder'], {
       backend: { post: () => new Promise(resolve => { finish = resolve }) },
+      p2pQuoteKey: ad => JSON.stringify(ad), p2pErrorMessage: error => error.message,
       fetchUser: () => { throw new Error('Must not load chat before navigation') },
       loadChatIdentity: () => { throw new Error('Must not load chat before navigation') }
     })
     const vm = {
       ad: { id: 5, trade_type: 'SELL' }, getTradeAmount: () => 10000,
+      fetchAd: async () => vm.ad, isValidInputAmount: () => true,
       $emit () {}, $router: { push: route => routes.push(route) }, $refs: {},
       handleRequestError: error => { throw error }
     }
@@ -3776,5 +3996,211 @@ describe('P2P chat dialog blocked links', () => {
     assert.equal(vm.isloaded, false)
     assert.equal(notifications[0].message, failure.message)
     assert(source.includes('v-if="!isloaded && !chatErrorMessage"'))
+  })
+})
+
+
+describe('P2P appeal settlement submission', () => {
+  const source = readFileSync('src/exchange/backend.js', 'utf8')
+  const pendingSource = source.slice(source.indexOf('const pendingAppealRequests'), source.indexOf('export function p2pErrorMessage')).replace('export async function', 'async function')
+  const assertSource = source.slice(source.indexOf('function assertRequestWallet'), source.indexOf('async function authorizeRequest'))
+
+  function pendingHarness () {
+    const calls = []
+    const state = { status: 'APL', wallet: 'synthetic-wallet', postError: null, get: null }
+    const Store = { getters: {
+      'global/getWallet': () => ({ walletHash: state.wallet }),
+      'global/getWalletIndex': 0, 'global/isChipnet': false
+    } }
+    const backend = {
+      async get (...args) {
+        calls.push(['get', ...args])
+        if (state.get) return state.get(...args)
+        return { status: 200, data: { status: { value: state.status } } }
+      },
+      async post (...args) {
+        calls.push(['post', ...args])
+        if (state.postError) throw state.postError
+        state.status = args[0].includes('refund') ? 'RFN_PN' : 'RLS_PN'
+        return { status: 200 }
+      }
+    }
+    const ensureAppealPending = new Function('backend', 'Store', `${assertSource}\n${pendingSource}; return ensureAppealPending`)(backend, Store)
+    return { state, calls, ensureAppealPending }
+  }
+
+  function method (path, name, bindings = {}) {
+    const source = readFileSync(path, 'utf8')
+    const start = Math.max(source.indexOf(`    ${name} (`), source.indexOf(`    async ${name} (`))
+    const end = source.indexOf('\n    },', start) + 7
+    return new Function(...Object.keys(bindings), `return { ${source.slice(start, end)} }`)(...Object.values(bindings))[name]
+  }
+
+  function formHarness (action = 'refund') {
+    const path = 'src/components/ramp/appeal/AppealDetail.vue'
+    const h = pendingHarness()
+    const events = []
+    const saved = {}
+    const vm = {
+      selectedAction: action, sendingBch: false, recoveringSettlement: false, disposed: false,
+      order: { id: 24, status: { value: 'APL' } }, appeal: { id: 3 },
+      $store: { getters: { 'ramp/getOrderTxid': (id, action) => saved[action] } },
+      $emit: name => events.push(name),
+      async releaseBch () { events.push('release-broadcast'); saved.RELEASE = 'synthetic-release'; return saved.RELEASE },
+      async refundBch () { events.push('refund-broadcast'); saved.REFUND = 'synthetic-refund'; return saved.REFUND }
+    }
+    for (const name of ['onSubmit', 'setOrderPending', 'loadTransactionId']) {
+      vm[name] = method(path, name, {
+        ensureAppealPending: h.ensureAppealPending,
+        p2pErrorMessage: (error, fallback) => error.response?.data?.error || fallback
+      }).bind(vm)
+    }
+    return { ...h, vm, events, saved }
+  }
+
+  for (const action of ['refund', 'release']) {
+    it(`posts pending-${action} once and refreshes the order status without cache`, async () => {
+      const h = pendingHarness()
+      await h.ensureAppealPending(3, 24, action)
+      await h.ensureAppealPending(3, 24, action)
+      assert.equal(h.calls.filter(call => call[0] === 'post').length, 1)
+      const posts = h.calls.filter(call => call[0] === 'post')
+      assert.equal(posts[0][1], `/ramp-p2p/appeal/3/pending-${action}/`)
+      assert(h.calls.filter(call => call[0] === 'get').every(call =>
+        call[1] === '/ramp-p2p/order/24/' && call[2].authorize === 'arbiter' && call[2].cache === false && call[2].params._fresh))
+    })
+
+    it(`guards concurrent ${action} submissions before signing or broadcasting`, async () => {
+      const h = formHarness(action)
+      let finish
+      h.vm[`${action}Bch`] = () => {
+        h.events.push('broadcast')
+        return new Promise(resolve => { finish = resolve })
+      }
+      const pending = h.vm.onSubmit()
+      await h.vm.onSubmit()
+      assert.equal(h.events.filter(event => event === 'broadcast').length, 1)
+      finish('synthetic-txid')
+      await pending
+      assert.equal(h.calls.filter(call => call[0] === 'post').length, 1)
+      assert.equal(h.events.filter(event => event === 'refresh').length, 1)
+      assert.equal(h.vm.sendingBch, false)
+    })
+
+    it(`resumes the saved ${action} transaction after a status update failure without rebroadcasting`, async () => {
+      const h = formHarness(action)
+      h.state.postError = { response: { status: 503, data: { error: 'Temporarily unavailable' } } }
+      await h.vm.onSubmit()
+      assert.equal(h.vm.sendError, 'Temporarily unavailable')
+      assert.equal(h.vm.sendingBch, false)
+      h.state.postError = null
+      await h.vm.onSubmit()
+      assert.equal(h.events.filter(event => event === `${action}-broadcast`).length, 1)
+      assert.equal(h.calls.filter(call => call[0] === 'post').length, 2)
+    })
+  }
+
+  for (const [action, statuses] of [['refund', ['RFN_PN', 'RFN']], ['release', ['RLS_PN', 'RLS']]]) {
+    for (const status of statuses) {
+      it(`skips the status POST when ${action} has already reached ${status}`, async () => {
+        const h = pendingHarness()
+        h.state.status = status
+        await h.ensureAppealPending(3, 24, action)
+        assert.equal(h.calls.filter(call => call[0] === 'post').length, 0)
+      })
+    }
+  }
+
+  it('shares one pending-status request across remounted forms', async () => {
+    const h = pendingHarness()
+    let finish
+    h.state.get = () => new Promise(resolve => { finish = resolve })
+    const first = h.ensureAppealPending(3, 24, 'refund')
+    const second = h.ensureAppealPending(3, 24, 'refund')
+    assert.equal(h.calls.length, 1)
+    finish({ status: 200, data: { status: { value: 'APL' } } })
+    await Promise.all([first, second])
+    assert.equal(h.calls.filter(call => call[0] === 'post').length, 1)
+  })
+
+  it('accepts a duplicate-status race only after a fresh matching status is confirmed', async () => {
+    const h = pendingHarness()
+    let reads = 0
+    h.state.get = async () => ({ status: 200, data: { status: { value: ++reads === 1 ? 'APL' : 'RFN_PN' } } })
+    h.state.postError = { response: { status: 400, data: { error: 'duplicate status' } } }
+    await h.ensureAppealPending(3, 24, 'refund')
+    assert.deepEqual(h.calls.map(call => call[0]), ['get', 'post', 'get'])
+  })
+
+  for (const status of ['APL', 'RLS_PN', 'RLS']) {
+    it(`does not suppress a refund rejection when the server reports ${status}`, async () => {
+      const h = pendingHarness()
+      let reads = 0
+      h.state.get = async () => ({ status: 200, data: { status: { value: ++reads === 1 ? 'APL' : status } } })
+      const error = { response: { status: 400, data: { error: 'duplicate status' } } }
+      h.state.postError = error
+      await assert.rejects(h.ensureAppealPending(3, 24, 'refund'), failure => failure === error)
+      assert.equal(h.calls.filter(call => call[0] === 'post').length, 1)
+    })
+  }
+
+  it('does not retry or suppress authentication failures', async () => {
+    const h = pendingHarness()
+    const error = { response: { status: 403 } }
+    h.state.postError = error
+    await assert.rejects(h.ensureAppealPending(3, 24, 'refund'), failure => failure === error)
+    assert.deepEqual(h.calls.map(call => call[0]), ['get', 'post'])
+  })
+
+  it('blocks the status mutation if the wallet changes while refreshing', async () => {
+    const h = pendingHarness()
+    let finish
+    h.state.get = () => new Promise(resolve => { finish = resolve })
+    const pending = h.ensureAppealPending(3, 24, 'refund')
+    h.state.wallet = 'different-wallet'
+    finish({ status: 200, data: { status: { value: 'APL' } } })
+    await assert.rejects(pending, { code: 'p2p_identity_mismatch' })
+    assert.equal(h.calls.filter(call => call[0] === 'post').length, 0)
+  })
+
+  it('blocks an opposite settlement when a broadcast transaction is already saved', async () => {
+    const h = formHarness('release')
+    h.saved.REFUND = 'synthetic-already-broadcast-refund'
+    await h.vm.onSubmit()
+    assert.equal(h.calls.length, 0)
+    assert.equal(h.events.includes('release-broadcast'), false)
+    assert.match(h.vm.sendError, /already been broadcast/)
+  })
+
+  it('does not refresh from sending-bch=false before the form emits its refresh', () => {
+    let refreshes = 0
+    const vm = { sendingBch: true, refreshData: () => { refreshes++ } }
+    method('src/pages/apps/exchange/arbiter/appeal.vue', 'onSendingBch').call(vm, false)
+    assert.equal(vm.sendingBch, false)
+    assert.equal(refreshes, 0)
+  })
+
+  it('refreshes authoritative status before remounting appeal children on a WebSocket update', async () => {
+    let message
+    const events = []
+    class WebSocketManager {
+      setWebSocketUrl () {}
+      subscribeToMessages (callback) { message ||= callback }
+    }
+    const setup = method('src/pages/apps/exchange/arbiter/appeal.vue', 'setupWebsocket', {
+      WebSocketManager, bus: { emit () {} }, getBackendWsUrl: () => 'wss://example.test/', getChatBackendWsUrl: () => 'wss://example.test/chat/'
+    })
+    const vm = {
+      disposed: false, appeal: { order: { id: 24 } }, order: {}, websocketManager: {},
+      closeWSConnection () {}, fetchAppeal: async () => events.push('appeal'),
+      fetchOrder: async () => events.push('order'), reloadChildComponents: () => events.push('remount')
+    }
+    setup.call(vm)
+    await message({ success: true, status: { value: 'RFN_PN' } })
+    assert.deepEqual(events, ['appeal', 'order', 'remount'])
+    events.length = 0
+    vm.sendingBch = true
+    await message({ success: true, status: { value: 'RFN_PN' } })
+    assert.deepEqual(events, ['appeal', 'order'])
   })
 })

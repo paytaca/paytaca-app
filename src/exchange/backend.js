@@ -336,6 +336,47 @@ export async function updatePubkeyAndAddress (user) {
   return { success: true, data: user }
 }
 
+const pendingAppealRequests = new Map()
+
+export async function ensureAppealPending (appealId, orderId, action) {
+  const statuses = { refund: ['RFN_PN', 'RFN'], release: ['RLS_PN', 'RLS'] }[action]
+  if (!statuses || !appealId || !orderId) throw new Error('Invalid appeal settlement request.')
+  const scope = {
+    p2pWalletHash: Store.getters['global/getWallet']('bch')?.walletHash,
+    p2pWalletIndex: Store.getters['global/getWalletIndex'],
+    p2pChipnet: Store.getters['global/isChipnet']
+  }
+  const key = JSON.stringify([scope, appealId, orderId, action])
+  if (pendingAppealRequests.has(key)) return pendingAppealRequests.get(key)
+  const refreshOrder = async () => {
+    const response = await backend.get(`/ramp-p2p/order/${orderId}/`, {
+      authorize: 'arbiter', cache: false, params: { _fresh: Date.now() }, timeout: 10000
+    })
+    assertRequestWallet(scope)
+    if (response.status !== 200 || response.cached === true) throw new Error('Unable to refresh the order status.')
+    return response.data?.status?.value
+  }
+  const request = (async () => {
+    const status = await refreshOrder()
+    if (statuses.includes(status)) return
+    if (status !== 'APL') throw new Error('The order is no longer awaiting this appeal decision. Refresh the order before continuing.')
+    try {
+      await backend.post(`/ramp-p2p/appeal/${appealId}/pending-${action}/`, {}, { authorize: 'arbiter', timeout: 10000 })
+    } catch (error) {
+      if (error.response?.status === 400) {
+        if (statuses.includes(await refreshOrder())) return
+      }
+      throw error
+    }
+  })()
+  pendingAppealRequests.set(key, request)
+  try {
+    return await request
+  } finally {
+    if (pendingAppealRequests.get(key) === request) pendingAppealRequests.delete(key)
+  }
+}
+
 export function p2pErrorMessage (error, fallback) {
   const messages = value => {
     if (typeof value === 'string') return [value]

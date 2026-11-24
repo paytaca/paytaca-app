@@ -117,17 +117,28 @@ export class RampContract {
   }
 
   async _fetchBalance (address, retry) {
-    const response = await backend.get(`/balance/bch/${address}/`, {
+    const response = await backend.get(`/utxo/bch/${address}/`, {
       authorize: false,
       cache: false,
-      params: retry ? { _fresh: Date.now() } : undefined
+      params: retry ? { _fresh: Date.now() } : undefined,
+      timeout: 10000
     })
-    const balance = Number(response?.data?.balance)
-    if (response.status !== 200 || response.cached === true || response.data?.valid === false ||
-        response.data?.balance == null || !Number.isFinite(balance) || balance < 0) {
-      throw new Error('The contract balance could not be read from Watchtower.')
+    const errorMessage = 'The contract balance could not be read from Watchtower.'
+    if (response.status !== 200 || response.cached === true || response.data?.valid !== true ||
+        !Array.isArray(response.data?.utxos)) {
+      throw new Error(errorMessage)
     }
-    return balance
+    let total = 0n
+    for (const utxo of response.data.utxos) {
+      const value = utxo?.value
+      if ((typeof value !== 'number' || !Number.isSafeInteger(value) || value < 0) &&
+          (typeof value !== 'string' || !/^\d+$/.test(value))) {
+        throw new Error(errorMessage)
+      }
+      total += BigInt(value)
+    }
+    if (total > BigInt(Number.MAX_SAFE_INTEGER)) throw new Error(errorMessage)
+    return Number(total) / 100000000
   }
 
   /**
