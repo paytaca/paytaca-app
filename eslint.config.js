@@ -23,6 +23,8 @@ export default [
       '/src-cordova',
       '/.quasar',
       '/node_modules',
+      // the only <script lang="ts"> component; linting it needs a TypeScript parser
+      'src/pages/sign/transaction.vue',
     ]
   },
 
@@ -64,8 +66,51 @@ export default [
     rules: {
       'prefer-promise-reject-errors': 'off',
 
+      'no-unused-vars': 'warn',
+      'no-empty': 'warn',
+      'no-async-promise-executor': 'warn',
+      'no-useless-escape': 'warn',
+      'no-control-regex': 'off',
+      'getter-return': ['error', { allowImplicit: true }],
+      'vue/return-in-computed-property': 'warn',
+      'no-useless-catch': 'warn',
+      'vue/multi-word-component-names': 'off',
+      'vue/no-unused-components': 'warn',
+      'vue/no-unused-vars': 'warn',
+      'vue/no-reserved-keys': 'warn',
+      'vue/no-mutating-props': 'warn',
+      'vue/no-side-effects-in-computed-properties': 'warn',
+      'vue/require-toggle-inside-transition': 'warn',
+
       // allow debugger during development only
       'no-debugger': process.env.NODE_ENV === 'production' ? 'error' : 'off',
+    }
+  },
+
+  {
+    files: [ 'src/boot/leaflet.js' ],
+    languageOptions: {
+      globals: {
+        L: 'readonly'
+      }
+    }
+  },
+
+  {
+    files: [
+      'src/components/card/TerminalList.vue',
+      'src/components/card/manageAuthNFTs.vue',
+      'src/pages/apps/card/auth-nfts.vue',
+    ],
+    rules: {
+      'no-undef': 'warn'
+    }
+  },
+
+  {
+    files: [ 'src/lib/watchtower/index.js' ],
+    rules: {
+      'no-dupe-class-members': 'warn'
     }
   },
 
