@@ -39,12 +39,12 @@ import SessionInfo from './SessionInfo.vue'
 const { dialogRef, onDialogHide, onDialogOK, onDialogCancel } 
   = useDialogPluginComponent()
 
-defineProps({
+const props = defineProps({
   session: { type: Object },
 })
 
 const onYesClicked = () => {
-  onDialogOK(session)
+  onDialogOK(props.session)
 }
 const onNoClicked = () => {
   onDialogCancel()

@@ -955,7 +955,6 @@ onSelectAttachment (methodIndex, methodId) {
       this.$q.dialog({
         title: this.$t('DeleteProofOfPayment', {}, 'Delete Proof of Payment'),
         message: this.$t('DeleteProofOfPaymentConfirm', {}, 'Are you sure you want to delete this proof of payment? You can upload a new one after deleting.'),
-        cancel: true,
         persistent: true,
         ok: { label: this.$t('Delete', {}, 'Delete'), color: 'negative', flat: true },
         cancel: { label: this.$t('Cancel', {}, 'Cancel'), flat: true }
@@ -1056,7 +1055,7 @@ onSelectAttachment (methodIndex, methodId) {
       if (feContractAddr !== beContractAddr) {
         vm.sendErrors.push('contract addresses mismatched')
       }
-      const sellerMember = (vm.data?.contract?.members).find(member => { return member.member_type === 'SELLER' })
+      const sellerMember = vm.data.contract.members.find(member => { return member.member_type === 'SELLER' })
       const keypair = wallet.keypair(sellerMember.address_path)
       await vm.data?.escrow.release(keypair.privateKey, keypair.publicKey, vm.order.trade_amount)
         .then(result => {

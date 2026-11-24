@@ -207,7 +207,7 @@ export default {
           if (overwrite) {
             vm.cashoutOrders = data?.orders
           } else {
-            vm.cashoutOrders.push(...data?.orders)
+            vm.cashoutOrders.push(...data.orders)
           }
 
           this.totalPages = data.data?.total_pages

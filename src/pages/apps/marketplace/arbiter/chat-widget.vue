@@ -122,7 +122,7 @@ const $emit = defineEmits([
 ])
 
 const props = defineProps({
-  modelValue: true,
+  modelValue: null,
 
   keys: {
     type: Object,

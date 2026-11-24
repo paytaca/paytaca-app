@@ -75,13 +75,12 @@
 
           <!-- Amounts List (mirrors SendSuccessBlock proportions) -->
           <div class="amount-block q-mt-md text-center section-block-ss">
-            <template v-for="({ history, header }, index) in transactionContentData">
+            <template v-for="({ history, header }, index) in transactionContentData" :key="index">
               <div v-if="header" class="text-left page-title text-uppercase q-mt-md q-mb-sm">
                 {{ header }}
               </div>
               <div 
                 v-else-if="history"
-                :key="index"
                 class="asset-item-elevated q-py-md q-px-md q-mb-sm"
                 :class="getDarkModeClass(darkMode)"
                 @click="viewAssetDetail(history); showAllAssetsDialog = false"

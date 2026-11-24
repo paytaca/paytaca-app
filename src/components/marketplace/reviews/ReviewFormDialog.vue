@@ -198,7 +198,7 @@ export default defineComponent({
         rating: parseFloat(props.review?.rating || 0) * (5 / 100),
         text: props.review?.text,
         images: Array.isArray(props.review?.imagesUrls)
-          ? [...props.review?.imagesUrls]
+          ? [...props.review.imagesUrls]
           : [],
       }
     }
@@ -280,7 +280,7 @@ export default defineComponent({
             if (data?.detail) formErrors.value.detail = [data?.detail]
           }
           if (!formErrors.value.detail?.length) formErrors.value.detail = [
-            $innerValt('UnableToCreateReview')
+            $t('UnableToCreateReview')
           ]
         })
         .finally(() => {

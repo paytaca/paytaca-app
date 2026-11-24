@@ -280,7 +280,7 @@ async function onFormSubmit() {
     if (hasSubscriptionForm.value && !subscriptionFormRef.value?.validate()) {
       $q.notify({
         type: 'negative',
-        message: t('PleaseCompleteSubscriptionForm', 'Please complete the subscription form'),
+        message: $t('PleaseCompleteSubscriptionForm', 'Please complete the subscription form'),
       })
       return
     }

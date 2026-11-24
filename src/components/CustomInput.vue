@@ -56,7 +56,7 @@ export default {
     label: { type: String, default: '' },
     showLabel: { type: Boolean, default: true },
     inputRules: { type: Array, default: new Array(() => {}) },
-    asset: { type: Object, default: {} },
+    asset: { type: Object, default: () => ({}) },
     decimalObj: {
       // type: { min: Number, max: Number },
       default: () => ({ min: 0, max: 2 }),

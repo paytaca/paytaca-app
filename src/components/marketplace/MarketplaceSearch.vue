@@ -95,7 +95,7 @@
                   v-if="product?.categories?.some?.(category => category?.toLowerCase?.().includes(lastSearch?.toLowerCase()))"
                   class="q-gutter-xs"
                 >
-                  <q-badge v-for="category in product?.categories" dense color="brandblue" rounded>
+                  <q-badge v-for="(category, categoryIndex) in product?.categories" :key="categoryIndex" dense color="brandblue" rounded>
                     {{ category }}
                   </q-badge>
                 </div>

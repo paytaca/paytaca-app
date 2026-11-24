@@ -545,7 +545,7 @@ function updateLivenessStatus() {
       storefrontLiveness.value = {
         latest: data?.latest && new Date(data?.latest),
         count: data?.count,
-        data: (Array.isArray(data?.data) ? data?.data : []).map(record => {
+        data: (Array.isArray(data?.data) ? data.data : []).map(record => {
           return {
             userId: record?.userId,
             timestamp: record?.timestamp && new Date(record?.timestamp)

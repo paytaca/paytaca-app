@@ -510,7 +510,7 @@
 </template>
 
 <script>
-import { markRaw } from '@vue/reactivity'
+import { markRaw } from 'vue'
 import { pushNotificationsManager } from 'src/boot/push-notifications'
 import { getMnemonic, Wallet, Address } from 'src/wallet'
 import { getNetworkTimeDiff } from 'src/utils/time'
@@ -2078,10 +2078,10 @@ export default {
       // Placed here to include calculation `totalFiatAmountSent` and `totalAmountSend`, although;
       // this data will be lacking since there's potentially bch & one or more cashtokens actually sent
       if (hasCauldronEnabled) {
+        const cauldronBalanceBefore = { balance: vm.asset.balance, spendable: vm.asset.spendable }
         try {
           vm.customKeyboardState = 'dismiss'
           vm.sending = true
-          const cauldronBalanceBefore = { balance: vm.asset.balance, spendable: vm.asset.spendable }
           const broadcastResult = await sendPageUtils.withTimeout(
             executeSendWithCauldron({
               asset: vm.asset,

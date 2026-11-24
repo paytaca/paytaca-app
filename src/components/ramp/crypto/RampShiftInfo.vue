@@ -102,7 +102,7 @@
       </div> -->
     </div>
     
-    <div class="pt-card q-ma-md br-15" :class="getDarkModeClass(darkMode)"s>
+    <div class="pt-card q-ma-md br-15" :class="getDarkModeClass(darkMode)">
       <q-item class="q-pt-md" clickable @click="copyToClipboard(shiftInfo.settleAddress)">
             <q-item-section class="text-center q-pb-sm q-pt-sm address-container">
               <q-item-label class="sm-font-size text-weight-bold">{{ $t('ReceivingAddress:') }} </q-item-label>

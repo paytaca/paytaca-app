@@ -34,7 +34,7 @@
 
 <script>
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
-import { markRaw } from '@vue/reactivity'
+import { markRaw } from 'vue'
 import { getMnemonic, Wallet } from '../../wallet'
 import HeaderNav from '../../components/header-nav'
 import ProgressLoader from 'src/components/ProgressLoader.vue'

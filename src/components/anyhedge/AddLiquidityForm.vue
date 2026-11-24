@@ -128,7 +128,7 @@ async function updateLongAccount() {
 
   try {
     loading.value = true
-    loading.loadingMsg = $t('UpdatingLongPref')
+    loadingMsg.value = $t('UpdatingLongPref')
     anyhedgeBackend.patch(`anyhedge/long-accounts/${props.longAccount.wallet_hash}/`, data)
       .then(response => {
         if (!response?.data?.wallet_hash) {
@@ -196,7 +196,6 @@ async function getAddressSetForNewLongAccount() {
     addressSet.pubkey = pubkey
     if (!addressSet?.receiving || !addressSet?.pubkey) throw new Error('Expected receiving address & pubkey')
     return { addressSet, addressIndex }
-    errors.value = []
   }catch(error) {
     console.error(error)
     errors.value = [$t('GeneratingAddressesError')]

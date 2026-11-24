@@ -207,7 +207,7 @@ const currencyOptions = computed(() => {
   if (props.supportedTokens?.length) {
     options.push(
       { label: `---- ${$t('CashTokens')} ----`, value: null, disable: true },
-      ...props.supportedTokens?.map(token => {
+      ...props.supportedTokens.map(token => {
         return { label: token.symbol, value: token.symbol }
       })
     )

@@ -32,7 +32,7 @@ import { getMnemonic, Wallet } from './wallet'
 import { getWalletByNetwork } from 'src/wallet/chipnet'
 import { useStore } from "vuex"
 import { is, useQuasar } from 'quasar'
-import { computed, watchEffect } from "@vue/runtime-core"
+import { computed, watchEffect } from "vue"
 import Watchtower from 'watchtower-cash-js'
 import { checkWatchtowerStatus } from './utils/watchtower-status'
 import AppVersionUpdate from './components/dialogs/AppVersionUpdate.vue'

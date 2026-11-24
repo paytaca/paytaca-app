@@ -200,7 +200,7 @@
           </div>
           <q-separator :dark="darkMode" inset/>
           <q-card-section v-if="fetchingHedgeOffers" class="q-gutter-y-md">
-            <q-skeleton v-for="i in 3" type="rect"/>
+            <q-skeleton v-for="i in 3" :key="i" type="rect"/>
           </q-card-section>
           <HedgeOffersList v-else ref="offersListRef" :hedge-offers="hedgeOffers" @removed="removedHedgeOffer" @updated="updateHedgeOffersCount()"/>
           <div class="row justify-center">
@@ -221,7 +221,7 @@
         <q-separator/>
         <q-expansion-item ref="hedgesDrawerRef" :label="$t('HedgePositions')" default-opened>
           <q-card-section v-if="fetchingContracts" class="q-gutter-y-md">
-            <q-skeleton v-for="i in 3" type="rect"/>
+            <q-skeleton v-for="i in 3" :key="i" type="rect"/>
           </q-card-section>
           <HedgeContractsList v-else ref="hedgesListRef" :contracts="contracts" view-as="short" :wallet="wallet"/>
           <div class="row justify-center">
@@ -286,7 +286,7 @@
           </div>
           <q-separator :dark="darkMode" inset/>
           <q-card-section v-if="fetchingLongOffers" class="q-gutter-y-md">
-            <q-skeleton v-for="i in 3" type="rect"/>
+            <q-skeleton v-for="i in 3" :key="i" type="rect"/>
           </q-card-section>
           <HedgeOffersList v-else ref="offersListRef" :hedge-offers="longOffers" @removed="removedHedgeOffer" @updated="updateLongOffer()"/>
           <div class="row justify-center">
@@ -307,7 +307,7 @@
         <q-separator/>
         <q-expansion-item ref="hedgesDrawerRef" :label="$t('LongPositions')" default-opened>
           <q-card-section v-if="fetchingLongPositions" class="q-gutter-y-md">
-            <q-skeleton v-for="i in 3" type="rect"/>
+            <q-skeleton v-for="i in 3" :key="i" type="rect"/>
           </q-card-section>
           <HedgeContractsList ref="hedgesListRef" v-else :contracts="longPositions" view-as="long" :wallet="wallet"/>
           <div class="row justify-center">

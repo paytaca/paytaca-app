@@ -10,7 +10,7 @@
       <q-icon name="content_copy" size="1.25em" class="q-ml-sm"/>
     </div>
     <div class="q-mt-sm q-pb-sm row no-wrap q-gutter-x-sm" style="overflow-x:auto;">
-      <template v-for="shareLink in shareLinks">
+      <template v-for="(shareLink, index) in shareLinks" :key="index">
         <q-btn
           flat
           rounded

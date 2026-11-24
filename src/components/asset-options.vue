@@ -15,7 +15,7 @@
 		</div>
 		<div v-else>
 			<div class="row">	             
-	              <div class="col" v-for="opt in bchOpt">	              	
+	              <div class="col" v-for="opt in bchOpt" :key="opt.name">	              	
 	                <q-btn color="primary" class="button-default" :class="darkmode ? 'dark' : 'light'" round size="14px" :disable="disableButton(opt.name)" @click="handleButton(opt.name)">
 	                  <div v-if="opt.name === 'cash in'" class="receive-bch-icon-wrapper-small">
 	                    <div class="default-text-color quick-action-icon-wrap">

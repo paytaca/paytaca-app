@@ -28,7 +28,7 @@
 </template>
 
 <script>
-import { markRaw } from '@vue/reactivity'
+import { markRaw } from 'vue'
 import { getMnemonic, Wallet } from '../../wallet'
 import HeaderNav from '../../components/header-nav'
 import { secp256k1, sha256, binToBase64, utf8ToBin, bigIntToCompactUint, decodePrivateKeyWif } from "bitauth-libauth-v3"

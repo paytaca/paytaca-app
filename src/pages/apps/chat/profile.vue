@@ -487,7 +487,7 @@ export default {
       }
     },
   },
-  beforeDestroy () {
+  beforeUnmount () {
     document.removeEventListener('pointerdown', this.onDocumentPointerDown, true)
   },
   methods: {

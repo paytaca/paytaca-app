@@ -99,6 +99,7 @@
 import * as assetSettings from 'src/utils/asset-settings'
 import { parseAssetDenomination, parseFiatCurrency, getLocaleSeparators } from 'src/utils/denomination-utils'
 import { convertIpfsUrl } from 'src/wallet/cashtokens'
+import { convertToTokenAmountWithDecimals } from 'src/wallet/chipnet'
 import AddNewAsset from '../pages/transaction/dialog/AddNewAsset'
 
 export default {

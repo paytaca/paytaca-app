@@ -285,7 +285,7 @@
 	</q-pull-to-refresh>
 </template>
 <script>
-import { markRaw } from '@vue/reactivity'
+import { markRaw } from 'vue'
 import { loadWallet } from 'src/wallet'
 import { cachedLoadWallet } from '../../wallet'
 import { getWalletByNetwork } from 'src/wallet/chipnet'

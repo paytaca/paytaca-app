@@ -134,6 +134,7 @@ const { satsToBchDisplay } = useSubscriptionUtils();
 
 const planCurrency = computed(() => props.subscription.plan_details?.currency)
 const bchPrice = computed(() => {
+  // eslint-disable-next-line vue/no-ref-as-operand
   if (!planCurrency || planCurrency === 'BCH') return 1
 
   const priceFromSubscription = parseFloat(props.subscription.bch_rate_value);
@@ -237,6 +238,7 @@ const finalPledgeUnits = computed(() => {
   if (form.value.pledgeUnit === 'BCH') {
     return Math.floor(form.value.pledge * 1e8)
   }
+  // eslint-disable-next-line vue/no-ref-as-operand
   if (form.value.pledgeUnit === planCurrency && planCurrency !== 'BCH') {
     if (!bchPrice.value) return props.subscription.pledge_satoshis
     const bchAmount = parseFloat(form.value.pledge) / bchPrice.value

@@ -95,7 +95,7 @@
 </template>
 
 <script>
-import { markRaw } from '@vue/reactivity'
+import { markRaw } from 'vue'
 import axios from 'axios'
 import sha256 from 'js-sha256'
 import HeaderNav from '../../../components/header-nav'
@@ -353,8 +353,6 @@ export default {
         } else if (error.response?.data?.message) {
           // Handle other API error messages (e.g., maximum claim reached, etc.)
           vm.error = error.response?.data?.message
-        } else if (error.response?.data?.error) {
-          vm.error = error.response?.data?.error
         } else if (error?.message) {
           vm.error = error.message
         } else {

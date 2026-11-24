@@ -6,7 +6,7 @@
         <q-card
           v-for="n in 6" :key="`skeleton-${n}`"
           class="nft-card"
-          :class="getDarkModeClass(darkMode)"
+          :class="getDarkModeClass(isDarkMode)"
         >
           <q-skeleton height="200px" width="100%" />
           <q-card-section class="q-pa-sm">
@@ -19,7 +19,7 @@
     <div :ref="el => topPaginationEl = el" v-intersection="onTopPaginationIntersection">
     </div>
     <div v-if="nftsPagination.count > 10" class="row no-wrap items-center justify-end q-px-md q-gutter-xs">
-      <span class="text-caption" :class="darkMode ? 'text-grey-5' : 'text-grey-7'">Show:</span>
+      <span class="text-caption" :class="isDarkMode ? 'text-grey-5' : 'text-grey-7'">Show:</span>
       <q-btn
         v-for="size in [5, 10, 20, 40, 50]"
         :key="size"
@@ -29,7 +29,7 @@
         :flat="nftsPagination.limit !== size"
         :unelevated="nftsPagination.limit === size"
         :color="nftsPagination.limit === size ? 'pt-primary1' : ''"
-        :text-color="nftsPagination.limit === size ? 'white' : (darkMode ? 'grey-5' : 'grey-7')"
+        :text-color="nftsPagination.limit === size ? 'white' : (isDarkMode ? 'grey-5' : 'grey-7')"
         :disable="fetchingNfts"
         @click="fetchNfts({ limit: size })"
         class="rounded-borders"
@@ -50,7 +50,7 @@
       <q-card
         v-for="nft in nfts" :key="nft?.id"
         class="nft-card text-bow"
-        :class="getDarkModeClass(darkMode)"
+        :class="getDarkModeClass(isDarkMode)"
         @click.stop="() => $emit('openNft', nft)"
       >
         <q-img
@@ -77,12 +77,12 @@
           name="image" 
           size="80px" 
           class="q-mb-md" 
-          :class="darkMode ? 'text-grey-5' : 'text-grey-7'"
+          :class="isDarkMode ? 'text-grey-5' : 'text-grey-7'"
         />
-        <div class="text-h6 text-center q-mb-xs" :class="darkMode ? 'text-grey-6' : 'text-grey-8'">
+        <div class="text-h6 text-center q-mb-xs" :class="isDarkMode ? 'text-grey-6' : 'text-grey-8'">
           {{ $t('NoCashTokens') }}
         </div>
-        <div class="text-caption text-center q-px-md" :class="darkMode ? 'text-grey-5' : 'text-grey-7'">
+        <div class="text-caption text-center q-px-md" :class="isDarkMode ? 'text-grey-5' : 'text-grey-7'">
           {{ $t('NoCashTokensSubtitle', {}, 'Start collecting NFTs to see them here') }}
         </div>
       </div>
@@ -92,7 +92,7 @@
         <div
           v-if="pageCount > 2"
           class="text-caption text-center"
-          :class="darkMode ? 'text-grey-5' : 'text-grey-7'"
+          :class="isDarkMode ? 'text-grey-5' : 'text-grey-7'"
         >
           {{ nftsPagination.count }} {{ $t('Items', {}, 'items') }}
         </div>
@@ -104,7 +104,7 @@
             maxPages: 5,
             round: true,
             size: 'sm',
-            dark: darkMode,
+            dark: isDarkMode,
             color: 'pt-primary1',
             directionLinks: true,
             boundaryLinks: pageCount > 5,
@@ -136,7 +136,7 @@ const $store = useStore()
 const $emit = defineEmits([
   'openNft',
 ])
-const darkMode = computed(() => $store.getters['darkmode/getStatus'])
+const isDarkMode = computed(() => $store.getters['darkmode/getStatus'])
 const theme = computed(() => $store.getters['global/theme'])
 
 const isChipnet = computed(() => $store.getters['global/isChipnet'])

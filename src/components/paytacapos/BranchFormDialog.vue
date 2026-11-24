@@ -221,7 +221,7 @@ const branchInfoForm = ref({
     city: '',
     country: '',
     longitude: null,
-    longitude: null,
+    latitude: null,
   }
 })
 const countriesOpts = computed(() => {

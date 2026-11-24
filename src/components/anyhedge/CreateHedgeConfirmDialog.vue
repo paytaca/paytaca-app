@@ -317,7 +317,7 @@
                   <template v-if="liquidationData.priceValue">
                     {{ formatUnits(liquidationData.low.price, oracleInfo?.assetDecimals || 0) }}
                     <template v-if="oracleInfo?.assetCurrency">{{ oracleInfo.assetCurrency }}/{{ denomination }}</template>
-                    <template v-else="oracleInfo?.assetCurrency">units/{{ denomination }}</template>
+                    <template v-else>units/{{ denomination }}</template>
                   </template>
                   {{ liquidationData.priceValue ? `(${liquidationData.low.pctg}%)` : `${liquidationData.low.pctg}%` }}
                 </div>
@@ -328,7 +328,7 @@
                   <template v-if="liquidationData.priceValue">
                     {{ formatUnits(liquidationData.high.price, oracleInfo?.assetDecimals || 0) }}
                     <template v-if="oracleInfo?.assetCurrency">{{ oracleInfo.assetCurrency }}/{{ denomination }}</template>
-                    <template v-else="oracleInfo?.assetCurrency">units/{{ denomination }}</template>
+                    <template v-else>units/{{ denomination }}</template>
                   </template>
                   {{ liquidationData.priceValue ? `(${liquidationData.high.pctg}%)` : `${liquidationData.high.pctg}%` }}
                 </div>
@@ -540,7 +540,7 @@ function updateFundingAmounts() {
     })
 }
 
-function attachFeeStats({ sats, fees={ serviceFees }}) {
+function attachFeeStats({ sats, fees={} }) {
   if (!Array.isArray(fees?.serviceFees)) return
   fees.serviceFees.forEach(fee => {
     if (fee?.name !== LIQUIDITY_FEE_NAME) return
@@ -557,7 +557,7 @@ const premiumFeeMetadata = computed(() => {
     long: parsePremiumFee(fundingAmounts.value.long),
   }
 })
-function parsePremiumFee({ sats, fees={ premium } }) {
+function parsePremiumFee({ sats, fees={} }) {
   const data = { pctg: 0, icon: { color: '', name: '' } }
   if (sats && fees?.premium) data.pctg = (fees?.premium / sats) * 100
 
