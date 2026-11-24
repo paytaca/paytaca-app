@@ -842,7 +842,7 @@ export class Pst {
 
     if (signAttempt.success) return
 
-    for (const error of signAttempt?.errors) {
+    for (const error of signAttempt.errors) {
       // error.index = the input index that caused the error, i.e. The expected 'not enough signature' error
       const signerResolvedVariables = extractResolvedVariables({ ...signAttempt, errors: [error] })
       const signature = Object.values(signerResolvedVariables)[0]
@@ -1064,10 +1064,6 @@ export class Pst {
     if (!inputSignatureVerificationResults.every(ok => Boolean(ok))) throw new Error('Signature Verification Failed')
     const combined = combine([this, ...psts])
     return combined
-  }
-
-  getSignatureCount() {
-    return getSignatureCount(this)
   }
 
   getSigningProgress() {

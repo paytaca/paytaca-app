@@ -446,32 +446,6 @@ export class GlobalMap {
     })
   }
 
-  sanitizeForVersion(psbtVersion, keypairs) {
-    const sorted = { ...keypairs }
-    for (const key of Object.keys(sorted)) {
-      if (psbtVersion === 145) break
-      if (psbtVersion === 0) {
-        switch(key) {
-          case WALLET_GLOBAL_TX_VERSION:
-          case WALLET_GLOBAL_FALLBACK_LOCKTIME:
-          case WALLET_GLOBAL_INPUT_COUNT:
-          case WALLET_GLOBAL_OUTPUT_COUNT:
-          case WALLET_GLOBAL_TX_MODIFIABLE:
-          case WALLET_GLOBAL_SP_ECDH_SHARE:
-          case WALLET_GLOBAL_SP_DLEQ:
-            delete sorted[key]
-        }
-      }
-      if (psbtVersion === 2) {
-        switch(key) {
-          case WALLET_GLOBAL_M:
-            delete sorted[key]
-        }
-      }
-      // allow inclusion of all fields on version 145
-    }
-    return sorted
-  }
   /**
    * @params {number} psbtVersion
    */

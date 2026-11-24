@@ -100,7 +100,7 @@
                   </div>
                 </q-item-section>
               </q-item>
-            <template v-for="category, i in tokenCategories">
+            <template v-for="category, i in tokenCategories" :key="category">
               <q-item v-if="pst.getTotalTokenDebit(category) > 0">
                 <q-item-section top>
                   <div class="flex no-wrap q-gutter-x-sm">
@@ -583,7 +583,7 @@ const showShareProposalOptionsDialog = () => {
     if (payload?.action === 'display-qr') {
       openProposalQrDialog()
     } else if (payload?.action === 'download-proposal') {
-      const defaultFilename = (pst.value?.purpose).toLowerCase().replace(/\s+/g, '-')
+      const defaultFilename = pst.value.purpose.toLowerCase().replace(/\s+/g, '-')
       const base64Psbt = await pst.value.export()
       openFileDownloadDialog({
           dialogTitle: $t('DownloadTransactionProposalFile'), 

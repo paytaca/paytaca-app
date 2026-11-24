@@ -33,7 +33,7 @@
                 <q-item-label caption class="flex items-center q-gutter-x-xs">
                   <div>ID: {{ p.id }}</div><q-icon name="mdi-cloud-outline"></q-icon>
                 </q-item-label>
-                <q-item-label v-if="p.coordinatorInfo" caption class="flex items-center q-gutter-x-xs"">
+                <q-item-label v-if="p.coordinatorInfo" caption class="flex items-center q-gutter-x-xs">
                   <div>Coordinator: {{ p.coordinatorInfo?.name }} </div><q-icon name="mdi-cloud-outline"></q-icon>
                 </q-item-label>
               </q-item-section>

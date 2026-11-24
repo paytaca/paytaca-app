@@ -174,7 +174,7 @@
                   </div>		      
                   <div class="col-12">
                     <q-list>
-                      <template v-for="t in historyFiltered">
+                      <template v-for="(t, index) in historyFiltered" :key="index">
                         <q-item class="q-my-sm" clickable @click="onHistoryItemClick(t)">
                           <q-item-section>
                             <span class="type-text text-uppercase text-bold text-strong" :class="getDarkModeClass(darkMode)">
@@ -333,11 +333,11 @@ const assetPrice = computed(() => {
 
 const send = async () => {
   
-  if (wallet.value.isOnline() && (!proposals || proposals.value.length === 0)) {
+  if (wallet.value.isOnline() && (!proposals.value || proposals.value.length === 0)) {
     proposalsFromServer.value = await wallet.value?.fetchProposals()
   }
   
-  if (proposals && proposals.value?.length > 0 || proposalsFromServer.value?.length > 0) {
+  if (proposals.value?.length > 0 || proposalsFromServer.value?.length > 0) {
     $q.dialog({
       title: $t('NotAllowed'),
       message: $t('TransactionProposalPending', { count: proposals.value?.length || proposalsFromServer.value?.length }),

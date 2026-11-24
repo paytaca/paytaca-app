@@ -513,7 +513,6 @@ const confirmDeleteWallet = () => {
     title: $t('DeleteWallet'),
     message: $t('DeleteWalletWarning', {}, 'Permanently remove this wallet and all its data. This action cannot be undone.'),
     seamless: true,
-    cancel: true,
     ok: {
       label: $t('DeleteWalletNow'),
       color: 'red',
