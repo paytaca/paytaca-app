@@ -2491,7 +2491,7 @@ describe('P2P existing chat identity recovery', () => {
     const bindings = {
       wallet: { walletHash: 'synthetic-wallet' },
       loadRampWallet: async () => { throw new Error('Unexpected wallet load') },
-      assertP2PIdentity: async () => {},
+      assertP2PIdentity: async () => state.verify?.(),
       generateChatIdentityRef: hash => { assert.equal(hash, 'synthetic-wallet'); return expectedRef },
       fetchChatIdentityById: async id => { calls.push(['id', id]); return state.byId },
       fetchChatIdentityByRef: async ref => {
@@ -2577,7 +2577,7 @@ describe('P2P existing chat identity recovery', () => {
     const identity = await h.load('peer', { name: 'Synthetic name' })
     assert.equal(identity, h.existing)
     assert.equal(h.calls.filter(call => call[0] === 'create').length, 1)
-    assert.deepEqual(h.calls.filter(call => call[0] === 'encryption').map(call => call[1]), [false, true])
+    assert.deepEqual(h.calls.filter(call => call[0] === 'encryption').map(call => call[1]), [true])
     assert.deepEqual(h.calls.find(call => call[0] === 'link'), ['link', 'peer', 12])
   })
 
@@ -2600,6 +2600,24 @@ describe('P2P existing chat identity recovery', () => {
     assert.equal(await h.load('peer', { name: 'Synthetic name' }), h.existing)
     assert.equal(h.calls.filter(call => call[0] === 'create').length, 1)
   })
+
+  for (const allowed of [true, false]) {
+    it(`overlaps identity lookup with verification but only prepares keys if verified (${allowed})`, async () => {
+      const h = identityHarness()
+      let finish
+      h.state.verify = () => new Promise((resolve, reject) => {
+        finish = () => allowed ? resolve() : reject({ response: { status: 401 } })
+      })
+      const pending = h.load('peer', { name: 'Synthetic name' })
+      await new Promise(resolve => setImmediate(resolve))
+      assert(h.calls.some(call => call[0] === 'ref'))
+      assert.equal(h.calls.some(call => ['signer', 'encryption', 'create', 'link', 'commit'].includes(call[0])), false)
+      finish()
+      if (allowed) assert.equal(await pending, h.existing)
+      else await assert.rejects(pending, error => error.response.status === 401)
+      assert.equal(h.calls.some(call => call[0] === 'signer'), allowed)
+    })
+  }
 
   it('shares pending identity preparation between the home page and chat screens', async () => {
     const h = identityHarness()
@@ -2758,19 +2776,26 @@ describe('P2P background chat initialization', () => {
     assert.equal(vm.creatingOrder, false)
   })
 
-  it('renders the order without waiting for background chat initialization', async () => {
-    let chatStarted = false
-    const api = methods('src/pages/apps/exchange/peer_to_peer/order.vue', ['loadData'])
-    const vm = {
-      order: { id: 24 }, fetchOrder: async () => {}, fetchAd: async () => {},
-      fetchFeedback: async () => {}, fetchCounterpartyTradeStats () {}, fetchStatusList: async () => {},
-      ensureChatCloseCountdownTimer () {}, initializeChat: () => { chatStarted = true; return new Promise(() => {}) }
-    }
-    await api.loadData.call(vm)
-    assert.equal(vm.isloaded, true)
-    assert.equal(vm.loadingData, false)
-    assert.equal(chatStarted, true)
-  })
+  for (const chatEnabled of [false, true]) {
+    it(`renders order details without chat setup when chat is ${chatEnabled ? 'enabled' : 'disabled'}`, async () => {
+      let chatStarted = false
+      let unreadRequested = false
+      const api = methods('src/pages/apps/exchange/peer_to_peer/order.vue', ['loadData'])
+      const vm = {
+        order: { id: 24 }, chatRef: 'synthetic-chat', isChatEnabled: chatEnabled,
+        fetchOrder: async () => {}, fetchAd: async () => {},
+        fetchFeedback: async () => {}, fetchCounterpartyTradeStats () {}, fetchStatusList: async () => {},
+        ensureChatCloseCountdownTimer () {},
+        initializeChat: () => { chatStarted = true; return new Promise(() => {}) },
+        fetchChatUnread: () => { unreadRequested = true; return new Promise(() => {}) }
+      }
+      await api.loadData.call(vm)
+      assert.equal(vm.isloaded, true)
+      assert.equal(vm.loadingData, false)
+      assert.equal(chatStarted, false)
+      assert.equal(unreadRequested, chatEnabled)
+    })
+  }
 
   it('waits for home-page chat preparation and then reuses its ready identity', async () => {
     const h = harness()
@@ -2920,5 +2945,58 @@ describe('P2P background chat initialization', () => {
     assert.equal(await h.vm.retryChat(), true)
     assert(h.events.includes('close-socket'))
     assert.equal(h.vm.chatError, false)
+  })
+})
+
+
+describe('P2P chat public key registration reuse', () => {
+  function harness (pubkeys = []) {
+    const source = readFileSync('src/exchange/chat/index.js', 'utf8')
+    const start = source.indexOf('export async function updateOrCreateKeypair (')
+    const end = source.indexOf('\nexport function generateChatRef', start)
+    const state = { scope: 'wallet-a-mainnet', device: 'synthetic-device', derive: null, deviceReads: 0 }
+    const keypair = { privkey: 'synthetic-private-placeholder', pubkey: 'synthetic-public-key' }
+    const uploads = []
+    const bindings = {
+      Store: { getters: { 'global/getWalletIndex': 0 } },
+      chatIdentityScope: () => state.scope,
+      getEncryptionKeypairFromMnemonic: async () => state.derive ? state.derive() : keypair,
+      getDeviceId: async () => { state.deviceReads++; return state.device },
+      updatePubkey: async key => { uploads.push(key) }
+    }
+    const update = new Function(...Object.keys(bindings), `${source.slice(start, end).replace('export ', '')}; return updateOrCreateKeypair`)(...Object.values(bindings))
+    return { state, keypair, uploads, update: (enabled = true) => update(enabled, { pubkeys }) }
+  }
+
+  it('skips uploading an unchanged key registered for this device', async () => {
+    const h = harness([{ pubkey: 'synthetic-public-key', deviceId: 'synthetic-device' }])
+    assert.equal(await h.update(), h.keypair)
+    assert.deepEqual(h.uploads, [])
+  })
+
+  for (const pubkeys of [[], [{ pubkey: 'old-public-key', deviceId: 'synthetic-device' }], [{ pubkey: 'synthetic-public-key', deviceId: 'another-device' }]]) {
+    it(`registers the key when this device/key pair is missing: ${JSON.stringify(pubkeys)}`, async () => {
+      const h = harness(pubkeys)
+      assert.equal(await h.update(), h.keypair)
+      assert.deepEqual(h.uploads, ['synthetic-public-key'])
+    })
+  }
+
+  it('does not upload a key if the wallet changes during derivation', async () => {
+    const h = harness()
+    let finish
+    h.state.derive = () => new Promise(resolve => { finish = resolve })
+    const pending = h.update()
+    h.state.scope = 'wallet-b-mainnet'
+    finish(h.keypair)
+    await assert.rejects(pending, { code: 'p2p_identity_mismatch' })
+    assert.deepEqual(h.uploads, [])
+  })
+
+  it('keeps local-only derivation free of device lookups and uploads', async () => {
+    const h = harness()
+    assert.equal(await h.update(false), h.keypair)
+    assert.equal(h.state.deviceReads, 0)
+    assert.deepEqual(h.uploads, [])
   })
 })

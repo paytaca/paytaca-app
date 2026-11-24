@@ -1037,7 +1037,7 @@ export default {
           this.activeTab = 'chat'
         }
         vm.isloaded = true
-        vm.initializeChat()
+        if (vm.isChatEnabled) vm.fetchChatUnread(vm.chatRef)
       } catch (error) {
         console.error(error)
       } finally {

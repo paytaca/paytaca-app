@@ -1,4 +1,4 @@
-import { updatePubkey, sha256 } from './keys'
+import { updatePubkey, sha256, getDeviceId } from './keys'
 import { Store } from 'src/store'
 import { backend, updateP2PProfile, assertP2PIdentity } from 'src/exchange/backend'
 import { chatBackend } from './backend'
@@ -49,9 +49,6 @@ async function initializeChatIdentity (usertype, params, scope) {
     }
   }
   assertCurrent()
-  await assertP2PIdentity(null, usertype)
-  assertCurrent()
-
   const payload = {
     user_type: usertype,
     name: params.name,
@@ -59,12 +56,20 @@ async function initializeChatIdentity (usertype, params, scope) {
     ref: generateChatIdentityRef(wallet.walletHash)
   }
 
-  let identity = await fetchChatIdentityById(payload.chat_identity_id)
-  assertCurrent()
-  if (!identity || identity.ref !== payload.ref) {
-    identity = await fetchChatIdentityByRef(payload.ref)
+  const lookupIdentity = async () => {
+    let identity = await fetchChatIdentityById(payload.chat_identity_id)
     assertCurrent()
+    if (!identity || identity.ref !== payload.ref) {
+      identity = await fetchChatIdentityByRef(payload.ref)
+      assertCurrent()
+    }
+    return identity
   }
+  const [, existingIdentity] = await Promise.all([
+    assertP2PIdentity(null, usertype), lookupIdentity()
+  ])
+  assertCurrent()
+  let identity = existingIdentity
 
   if (identity) {
     if (identity.ref !== payload.ref) throw new Error('The chat identity does not match the active wallet.')
@@ -74,7 +79,7 @@ async function initializeChatIdentity (usertype, params, scope) {
   // Update chat verifying and encryption keypairs (short-circuits when not necessary)
   await chatIdentityManager._updateSignerData()
   assertCurrent()
-  await chatIdentityManager._updateEncryptionKeypair(!!identity)
+  if (identity) await chatIdentityManager._updateEncryptionKeypair(true)
   assertCurrent()
 
   // Create identity, if not existing
@@ -451,7 +456,9 @@ export function fetchChatPubkeys (chatRef) {
  * @param {boolean} update - Whether to update pubkey on server
  * @returns {Promise<{privkey: string, pubkey: string}>}
  */
-export async function updateOrCreateKeypair (update = true) {
+export async function updateOrCreateKeypair (update = true, identity = null) {
+  const userType = Store.getters['ramp/getUser']?.is_arbiter ? 'arbiter' : 'peer'
+  const scope = chatIdentityScope(userType)
   const walletIndex = Store.getters['global/getWalletIndex']
   
   // Always derive fresh from mnemonic (no storage for cross-platform consistency)
@@ -461,8 +468,19 @@ export async function updateOrCreateKeypair (update = true) {
     throw new Error('Failed to generate keypair from mnemonic')
   }
 
+  if (scope !== chatIdentityScope(userType)) {
+    throw Object.assign(new Error('The active P2P wallet changed. Please reopen chat.'), { code: 'p2p_identity_mismatch' })
+  }
+
   // Update pubkey on server if requested
   if (update) {
+    const deviceId = await getDeviceId()
+    if (scope !== chatIdentityScope(userType)) {
+      throw Object.assign(new Error('The active P2P wallet changed. Please reopen chat.'), { code: 'p2p_identity_mismatch' })
+    }
+    const registered = deviceId && identity?.pubkeys?.some(pubkey =>
+      pubkey.pubkey === keypair.pubkey && pubkey.deviceId === deviceId)
+    if (registered) return keypair
     await updatePubkey(keypair.pubkey)
       .catch(error => {
         // Don't log 403 errors - they're expected when not authenticated yet
