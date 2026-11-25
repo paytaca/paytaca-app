@@ -231,7 +231,7 @@ export async function loadAuthenticatedUser (forceLogin = false) {
         await user.fetchChatIdentity()
       } catch (error) {
         if (!isCurrent()) return false
-        if (error?.response?.status !== 401) throw error
+        if (error?.response?.status !== 401 || error?.code === 'p2p_chat_access_denied') throw error
         await user.login(true)
         if (!isCurrent()) return false
         if (!await verifySession()) throw new Error('P2P login could not be confirmed.')
@@ -243,8 +243,8 @@ export async function loadAuthenticatedUser (forceLogin = false) {
       return isCurrent() && !!user.chat_identity
     }).catch(error => {
       if (!isCurrent()) return false
-      if (error?.response?.status === 401) bus.emit('session-expired')
-      else if (['p2p_chat_link_unavailable', 'p2p_identity_mismatch', 'p2p_account_type_mismatch'].includes(error?.code)) {
+      if (error?.response?.status === 401 && error?.code !== 'p2p_chat_access_denied') bus.emit('session-expired')
+      else if (['p2p_chat_access_denied', 'p2p_chat_link_unavailable', 'p2p_identity_mismatch', 'p2p_account_type_mismatch'].includes(error?.code)) {
         bus.emit('handle-request-error', error)
       } else if (error?.response?.status !== 403) {
         console.error('Error preparing P2P chat:', error?.response?.status || error?.code || 'Request failed')

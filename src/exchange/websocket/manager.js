@@ -2,6 +2,7 @@ import { bus } from 'src/wallet/event-bus'
 import { WebSocketService } from 'src/exchange/websocket/service'
 import { Store } from 'src/store'
 import { getAuthToken } from 'src/exchange/auth'
+import { getAuthenticatedChatWsUrl } from 'src/exchange/chat/backend'
 import { backend, assertP2PIdentity } from 'src/exchange/backend'
 import { fetchP2PAvailability, isP2PAvailabilityError } from 'src/exchange/availability'
 import { Notify } from 'quasar'
@@ -29,11 +30,13 @@ export class WebSocketManager {
     this.closeConnection()
     this.url = url
     this.userType = userType
+    this.chatStream = /\/ws\/chat\/sessions\/[^/]+\/$/.test(url)
+    this.walletHash = Store.getters['global/getWallet']('bch')?.walletHash
     this.privateStream = /\/ws\/ramp-p2p\/subscribe\/(order|general)\/[^/]+\/$/.test(url)
     this.stopped = false
     this.retryCount = 0
     this.scope = this._currentScope()
-    if (this.privateStream) {
+    if (this.privateStream || this.chatStream) {
       this.unwatch = Store.watch(() => this._currentScope(), () => this.closeConnection(), { flush: 'sync' })
       this.unwatchUser = Store.watch(() => {
         const user = Store.getters['ramp/getUser']
@@ -63,7 +66,8 @@ export class WebSocketManager {
     return JSON.stringify([
       Store.getters['global/getWallet']('bch')?.walletHash,
       Store.getters['global/getWalletIndex'],
-      Store.getters['global/isChipnet']
+      Store.getters['global/isChipnet'],
+      ...(this.chatStream ? [Store.getters['ramp/getUser']?.user_type, Store.getters['ramp/getUser']?.is_arbiter, Store.getters['ramp/getUser']?.id] : [])
     ])
   }
 
@@ -108,7 +112,7 @@ export class WebSocketManager {
 
   async _connectToWebSocket () {
     if (this.stopped || this.blocked || this.connecting || this.websocketService) return
-    if (this.privateStream && this.scope !== this._currentScope()) return
+    if ((this.privateStream || this.chatStream) && this.scope !== this._currentScope()) return
     clearTimeout(this.reconnectTimer)
     this.reconnectTimer = null
     this.connecting = true
@@ -137,7 +141,10 @@ export class WebSocketManager {
         credentials = { type: 'authenticate', wallet_hash: this.walletHash, token: rawToken }
       }
       if (generation !== this.generation || this.stopped) return
-      const service = markRaw(new WebSocketService(this.url))
+      const connectionUrl = this.chatStream ? await getAuthenticatedChatWsUrl(this.url, this.userType) : this.url
+      if (generation !== this.generation || this.stopped ||
+          ((this.privateStream || this.chatStream) && this.scope !== this._currentScope())) return
+      const service = markRaw(new WebSocketService(connectionUrl))
       this.websocketService = service
       service.subscribeToEvents(event => {
         if (service !== this.websocketService) return
@@ -181,10 +188,19 @@ export class WebSocketManager {
         }
         this.messageCallback?.(message)
       })
-    } catch {
+    } catch (error) {
       if (generation === this.generation && !this.stopped) {
-        this.blocked = true
-        bus.emit('network-error')
+        if (this.chatStream) {
+          if ([401, 403, 404].includes(error?.response?.status) || error?.code === 'p2p_identity_mismatch' || !error?.isAxiosError) {
+            this.blocked = true
+            bus.emit('websocket-disconnected', this.url)
+          } else {
+            this._onWebSocketClose({ retry: true })
+          }
+        } else {
+          this.blocked = true
+          bus.emit('network-error')
+        }
       }
     } finally {
       if (generation === this.generation) this.connecting = false
@@ -194,6 +210,11 @@ export class WebSocketManager {
   _onWebSocketClose (event) {
     this._disconnect()
     if (this.stopped) return
+    if (this.chatStream && [4401, 4403].includes(event.code)) {
+      this.blocked = true
+      bus.emit('websocket-disconnected', this.url)
+      return
+    }
     if (this.privateStream && [4401, 4403].includes(event.code)) {
       this.blocked = true
       if (event.code === 4401) bus.emit('session-expired')

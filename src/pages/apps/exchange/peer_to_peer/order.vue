@@ -1254,8 +1254,8 @@ export default {
           if (isCurrent()) {
             this.chatError = true
             this.chatIdentity = null
-            this.chatErrorMessage = error?.code === 'p2p_chat_link_unavailable' ? error.message : null
-            if (error?.response?.status === 401) bus.emit('session-expired')
+            this.chatErrorMessage = ['p2p_chat_access_denied', 'p2p_chat_link_unavailable'].includes(error?.code) ? error.message : null
+            if (error?.response?.status === 401 && error?.code !== 'p2p_chat_access_denied') bus.emit('session-expired')
           }
           return false
         } finally {
@@ -1298,7 +1298,7 @@ export default {
         if (this.disposed || this.chatSetupScope() !== scope) return
 
         // Fetch chat members (use cached from fetchChatUnread if available)
-        const members = this.chatMembersRaw || await fetchChatMembers(this.chatRef).catch(() => [])
+        const members = this.chatMembersRaw || await fetchChatMembers(this.chatRef)
         if (this.disposed || this.chatSetupScope() !== scope) return
         this.chatMembersRaw = null
         if (members?.length) {
@@ -1314,7 +1314,7 @@ export default {
         }
 
         // Fetch chat pubkeys
-        const pubkeys = await fetchChatPubkeys(this.chatRef).catch(() => [])
+        const pubkeys = await fetchChatPubkeys(this.chatRef)
         if (this.disposed || this.chatSetupScope() !== scope) return
         if (pubkeys?.length) {
           this.chatPubkeys = pubkeys
@@ -2806,7 +2806,7 @@ export default {
           }
         })
       }
-      this.websockets.chat.setWebSocketUrl(`${getChatBackendWsUrl()}${this.chatRef}/`)
+      this.websockets.chat.setWebSocketUrl(`${getChatBackendWsUrl()}${encodeURIComponent(this.chatRef)}/`)
     },
 
     closeWSConnection () {

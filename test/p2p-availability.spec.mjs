@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict'
+import axios from 'axios'
 import { EventEmitter } from 'node:events'
 import { markRaw, reactive } from 'vue'
 import { readFileSync, readdirSync } from 'node:fs'
@@ -1198,9 +1199,9 @@ describe('P2P chat signing identity', () => {
       const source = readFileSync('src/exchange/chat/backend.js', 'utf8').replace(/^import .*$/gm, '').replace(/export /g, '')
       const events = []
       const bindings = {
-        axios: { create: () => ({ interceptors: { request: { use () {} } } }) },
+        bus: { on () {} }, axios: { create: () => ({ interceptors: { request: { use () {} }, response: { use () {} } } }) },
         requestManager: { attachTo () {} },
-        Store: { getters: { 'ramp/getUser': { is_arbiter: false } } },
+        Store: { getters: { 'ramp/getUser': { is_arbiter: false }, 'global/getWallet': () => ({ walletHash: 'synthetic-wallet' }) } },
         wallet: { privkey () { events.push('derive-private-key') } },
         assertP2PIdentity: async () => { throw Object.assign(new Error('Synthetic mismatch'), { code: 'p2p_identity_mismatch' }) },
         SecureStoragePlugin: { get: async () => { events.push('read-signer') }, set: async () => { events.push('write-signer') } },
@@ -1216,8 +1217,8 @@ describe('P2P chat signing identity', () => {
     const source = readFileSync('src/exchange/chat/backend.js', 'utf8').replace(/^import .*$/gm, '').replace(/export /g, '')
     const events = []
     const bindings = {
-      axios: { create: () => ({ interceptors: { request: { use () {} } } }) }, requestManager: { attachTo () {} },
-      Store: { getters: { 'ramp/getUser': { is_arbiter: false } } },
+      bus: { on () {} }, axios: { create: () => ({ interceptors: { request: { use () {} }, response: { use () {} } } }) }, requestManager: { attachTo () {} },
+      Store: { getters: { 'ramp/getUser': { is_arbiter: false }, 'global/getWallet': () => ({ walletHash: 'synthetic-wallet' }) } },
       wallet: { walletHash: 'synthetic-wallet', assertIdentity () {}, privkey: () => 'synthetic-current-key' },
       assertP2PIdentity: async () => ({}), getCurrentWalletStorageKey: () => 'synthetic-storage-key',
       SecureStoragePlugin: { get: async () => ({ value: 'synthetic-wallet:synthetic-old-key' }), set: async () => events.push('write') },
@@ -1248,6 +1249,192 @@ describe('P2P wallet-scoped error responses', () => {
 })
 
 
+function strictChatHarness () {
+  const state = { hash: 'wallet-a', index: 0, chipnet: false, role: 'peer', id: 1, signer: 'wallet-a:synthetic-key', failure: null }
+  const requests = [], signatures = []
+  const bus = new EventEmitter()
+  const Store = { getters: {
+    'global/getWallet': () => ({ walletHash: state.hash }),
+    get 'global/getWalletIndex' () { return state.index },
+    get 'global/isChipnet' () { return state.chipnet },
+    get 'ramp/getUser' () { return { id: state.id, user_type: state.role, is_arbiter: state.role === 'arbiter' } }
+  } }
+  const client = axios.create({ baseURL: 'https://commerce.example/api', adapter: async config => {
+    requests.push(config)
+    if (state.beforeResponse) await state.beforeResponse()
+    if (state.failure) throw Object.assign(new Error('Synthetic HTTP failure'), { isAxiosError: true, config, response: { status: state.failure, data: {} } })
+    const data = state.data ?? (config.url === 'ws-auth-token/' ? { token: `synthetic-ticket-${requests.length}`, expires_in: 60 } : [])
+    return { status: state.status || 200, data, cached: state.cached, config }
+  } })
+  const bindings = {
+    axios: { create: () => client }, requestManager: { attachTo () {} }, Store, bus,
+    process: { env: { MARKETPLACE_WS_URL: 'wss://commerce.example/ws/' } },
+    Date: { now: () => state.now ?? Date.now() },
+    wallet: { walletHash: 'wallet-a', assertIdentity () {}, privkey: () => 'synthetic-key', addressPath: () => '0/0', pubkey: () => 'synthetic-public-key', signMessage: () => 'synthetic-signature', verifyMessage: () => true },
+    assertP2PIdentity: async (member, role) => {
+      state.requestedRole = role
+      if (state.verify) await state.verify()
+      return {}
+    },
+    SecureStoragePlugin: { get: async () => {
+      if (state.storageRead) await state.storageRead()
+      if (!state.signer) throw new Error('Missing synthetic signer')
+      return { value: state.signer }
+    }, set: async ({ value }) => { state.signer = value; return { value } } },
+    getCurrentWalletStorageKey: () => 'synthetic-storage', getWalletStorageKey: () => 'synthetic-storage',
+    generateChatIdentityRef: hash => `chat-${hash}`,
+    signMessage: (key, payload) => { signatures.push({ key, payload }); return 'synthetic-signature' }
+  }
+  const source = readFileSync('src/exchange/chat/backend.js', 'utf8').replace(/^import .*$/gm, '').replace(/export /g, '')
+  const api = new Function(...Object.keys(bindings), `${source}; return { chatBackend, getAuthenticatedChatWsUrl, updateSignerData }`)(...Object.values(bindings))
+  return { ...api, state, requests, signatures, bus }
+}
+
+function chatReadMethod (name, client) {
+  const source = readFileSync('src/exchange/chat/index.js', 'utf8')
+  const start = source.indexOf(`export async function ${name} (`)
+  const end = source.indexOf('\nexport ', start + 1)
+  assert(start >= 0, name)
+  return new Function('chatBackend', `${source.slice(start, end < 0 ? undefined : end).replace('export ', '')}; return ${name}`)(client)
+}
+
+describe('P2P strict chat HTTP authentication', () => {
+  for (const [name, argument] of [['fetchChatIdentityById', 12], ['fetchChatIdentityByRef', 'chat-wallet-a'], ['fetchChatMembers', 'test-session'], ['fetchChatPubkeys', 'test-session'], ['fetchChatSession', 'test-session']]) {
+    it(`signs ${name} with the active chat identity`, async () => {
+      const h = strictChatHarness()
+      if (name === 'fetchChatIdentityByRef') h.state.data = { results: [{ id: 12 }] }
+      if (name === 'fetchChatMembers') h.state.data = { results: [] }
+      await chatReadMethod(name, h.chatBackend)(argument)
+      const request = h.requests[0]
+      assert.match(request.headers['X-Chat-Identity'], /^chat-wallet-a:\d+:synthetic-signature$/)
+      const timestamp = request.headers['X-Chat-Identity'].split(':')[1]
+      assert.equal(Buffer.from(h.signatures[0].payload, 'hex').toString(), timestamp)
+      assert.equal(request.cache, false)
+      assert.equal(request.timeout, 10000)
+    })
+  }
+
+  for (const status of [401, 403, 404]) {
+    for (const name of ['fetchChatIdentityById', 'fetchChatSession', 'fetchChatPubkeys']) {
+      it(`propagates ${name} HTTP ${status} without an empty or missing-object fallback`, async () => {
+        const h = strictChatHarness()
+        h.state.failure = status
+        const original = console.error
+        console.error = () => {}
+        try {
+          await assert.rejects(chatReadMethod(name, h.chatBackend)('test-session'), error => error.response.status === status)
+        } finally { console.error = original }
+        assert.equal(h.requests.length, 1)
+      })
+    }
+  }
+
+  it('prepares a missing local signer before the first authenticated identity read', async () => {
+    const h = strictChatHarness()
+    h.state.signer = null
+    h.state.data = { id: 12, ref: 'chat-wallet-a' }
+    await h.updateSignerData()
+    const identity = await chatReadMethod('fetchChatIdentityById', h.chatBackend)(12)
+    assert.equal(identity.id, 12)
+    assert.equal(h.state.signer, 'wallet-a:synthetic-key')
+    assert.match(h.requests[0].headers['X-Chat-Identity'], /^chat-wallet-a:/)
+  })
+
+  it('rejects missing signing material before dispatch instead of falling back to anonymous reads', async () => {
+    const h = strictChatHarness()
+    h.state.signer = null
+    await assert.rejects(h.chatBackend.get('chat/sessions/test/', { forceSign: true }), /signer is unavailable/)
+    assert.equal(h.requests.length, 0)
+  })
+
+  it('discards an HTTP result after logout even when the selected wallet stays the same', async () => {
+    const h = strictChatHarness()
+    h.state.beforeResponse = () => h.bus.emit('p2p-auth-cleared', { walletHash: 'wallet-a' })
+    await assert.rejects(h.chatBackend.get('chat/sessions/test/', { forceSign: true }), { code: 'p2p_identity_mismatch' })
+  })
+
+  it('does not sign or send a request if the account changes while reading the signer', async () => {
+    const h = strictChatHarness()
+    h.state.storageRead = () => { h.state.role = 'arbiter' }
+    await assert.rejects(h.chatBackend.get('chat/sessions/test/', { forceSign: true }), { code: 'p2p_identity_mismatch' })
+    assert.equal(h.signatures.length + h.requests.length, 0)
+  })
+
+  it('preserves explicit multipart signing data', async () => {
+    const h = strictChatHarness()
+    await h.chatBackend.post('chat/messages/', { synthetic: 'attachment' }, { forceSign: true, signData: 'synthetic-hash' })
+    const request = h.requests[0]
+    assert.equal(request.headers['X-Chat-Identity-Signdata'], 'synthetic-hash')
+    const timestamp = request.headers['X-Chat-Identity'].split(':')[1]
+    assert.equal(Buffer.from(h.signatures[0].payload, 'hex').toString(), `synthetic-hash${timestamp}`)
+  })
+
+  it('does not sign requests to another origin', async () => {
+    const h = strictChatHarness()
+    await assert.rejects(h.chatBackend.get('https://other.example/chat/', { forceSign: true }), /Invalid P2P chat request URL/)
+    assert.equal(h.signatures.length + h.requests.length, 0)
+  })
+
+  for (const change of ['hash', 'index', 'chipnet', 'role', 'id']) {
+    it(`discards signed HTTP results after changing ${change}`, async () => {
+      const h = strictChatHarness()
+      h.state.beforeResponse = () => { h.state[change] = { hash: 'wallet-b', index: 1, chipnet: true, role: 'arbiter', id: 2 }[change] }
+      await assert.rejects(h.chatBackend.get('chat/sessions/test/', { forceSign: true }), { code: 'p2p_identity_mismatch' })
+    })
+  }
+})
+
+describe('P2P one-time chat WebSocket tokens', () => {
+  for (const role of ['peer', 'arbiter']) {
+    it(`requests a fresh signed token per ${role} connection`, async () => {
+      const h = strictChatHarness()
+      h.state.role = role
+      const base = 'wss://commerce.example/ws/chat/sessions/test/'
+      const first = new URL(await h.getAuthenticatedChatWsUrl(base, role))
+      const second = new URL(await h.getAuthenticatedChatWsUrl(base, role))
+      assert.equal(first.searchParams.get('ws_auth_token'), 'synthetic-ticket-1')
+      assert.equal(second.searchParams.get('ws_auth_token'), 'synthetic-ticket-2')
+      assert.equal(h.state.requestedRole, role)
+      assert(h.requests.every(request => request.url === 'ws-auth-token/' && request.method === 'post' && request.cache === false && request.timeout === 10000 && request.headers['X-Chat-Identity']))
+    })
+  }
+
+  for (const data of [{}, { token: '', expires_in: 60 }, { token: 'ticket', expires_in: 0 }, { token: 'ticket', expires_in: '60' }]) {
+    it(`rejects malformed token replies ${JSON.stringify(data)}`, async () => {
+      const h = strictChatHarness()
+      h.state.data = data
+      await assert.rejects(h.getAuthenticatedChatWsUrl('wss://commerce.example/ws/chat/sessions/test/', 'peer'))
+    })
+  }
+
+  for (const url of ['wss://other.example/ws/chat/sessions/test/', 'wss://commerce.example/ws/main/', 'wss://commerce.example/ws/chat/sessions/test/?token=old', 'wss://user:password@commerce.example/ws/chat/sessions/test/']) {
+    it(`rejects an unexpected chat socket destination ${url}`, async () => {
+      const h = strictChatHarness()
+      await assert.rejects(h.getAuthenticatedChatWsUrl(url, 'peer'))
+      assert.equal(h.requests.length, 0)
+    })
+  }
+
+  it('rejects the wrong account type before requesting a token', async () => {
+    const h = strictChatHarness()
+    await assert.rejects(h.getAuthenticatedChatWsUrl('wss://commerce.example/ws/chat/sessions/test/', 'arbiter'), { code: 'p2p_identity_mismatch' })
+    assert.equal(h.requests.length, 0)
+  })
+
+  it('rejects a ticket that expires before the token request finishes', async () => {
+    const h = strictChatHarness()
+    h.state.now = Date.now()
+    h.state.beforeResponse = () => { h.state.now += 61000 }
+    await assert.rejects(h.getAuthenticatedChatWsUrl('wss://commerce.example/ws/chat/sessions/test/', 'peer'))
+  })
+
+  it('rejects a cached token response', async () => {
+    const h = strictChatHarness()
+    h.state.cached = true
+    await assert.rejects(h.getAuthenticatedChatWsUrl('wss://commerce.example/ws/chat/sessions/test/', 'peer'))
+  })
+})
+
 describe('P2P private WebSocket authentication', () => {
   function socketHarness () {
     const sockets = []
@@ -1257,6 +1444,7 @@ describe('P2P private WebSocket authentication', () => {
     const watchers = new Set()
     const events = []
     const notifications = []
+    const tickets = []
     let timerId = 0
     const state = { wallet: 'wallet-a', index: 0, chipnet: false, token: 'token-a', userType: 'peer', authenticated: true, maintenance: false }
     class WebSocket {
@@ -1307,6 +1495,11 @@ describe('P2P private WebSocket authentication', () => {
     const WebSocketService = new Function('WebSocket', 'EventEmitter', `${serviceSource}; return WebSocketService`)(WebSocket, EventEmitter)
     const bindings = {
       bus, Store, WebSocketService, markRaw,
+      getAuthenticatedChatWsUrl: async (url, role) => {
+        tickets.push({ url, role })
+        if (state.chatToken) return state.chatToken(url, role)
+        return `${url}?ws_auth_token=synthetic-ticket-${tickets.length}`
+      },
       getAuthToken: async role => { state.requestedRole = role; return typeof state.token === 'function' ? state.token() : state.token },
       backend: {},
       assertP2PIdentity: async () => {
@@ -1328,7 +1521,7 @@ describe('P2P private WebSocket authentication', () => {
     manager.subscribeToMessages(message => messages.push(message))
     const flush = async () => { for (let i = 0; i < 10; i++) await Promise.resolve() }
     return {
-      manager, state, sockets, timers, intervals, bus, events, notifications, messages, flush,
+      manager, state, sockets, tickets, timers, intervals, bus, events, notifications, messages, flush,
       async connect (path = 'order/12/', options) {
         manager.setWebSocketUrl(`wss://example.test/ws/ramp-p2p/subscribe/${path}`, options)
         await flush()
@@ -1343,6 +1536,68 @@ describe('P2P private WebSocket authentication', () => {
       }
     }
   }
+
+  for (const role of ['peer', 'arbiter']) {
+    it(`uses a new ticket on each ${role} chat reconnect and keeps the manager URL credential-free`, async () => {
+      const h = socketHarness()
+      h.state.userType = role
+      const url = 'wss://commerce.example/ws/chat/sessions/test/'
+      h.manager.setWebSocketUrl(url, { userType: role })
+      await h.flush()
+      assert.equal(h.tickets[0].role, role)
+      assert.equal(h.sockets[0].url, `${url}?ws_auth_token=synthetic-ticket-1`)
+      assert.equal(h.manager.url, url)
+      h.sockets[0].open()
+      h.sockets[0].reject(1006)
+      await h.runTimer()
+      assert.equal(h.sockets[1].url, `${url}?ws_auth_token=synthetic-ticket-2`)
+      h.manager.closeConnection()
+    })
+  }
+
+  for (const change of ['wallet', 'index', 'chipnet', 'userType', 'logout', 'close', 'url']) {
+    it(`discards an in-flight chat ticket after ${change}`, async () => {
+      const h = socketHarness()
+      let finish
+      h.state.chatToken = () => new Promise(resolve => { finish = resolve })
+      h.manager.setWebSocketUrl('wss://commerce.example/ws/chat/sessions/test/')
+      if (change === 'logout') h.bus.emit('p2p-auth-cleared', { walletHash: 'wallet-a', userType: 'peer' })
+      else if (change === 'close') h.manager.closeConnection()
+      else if (change === 'url') h.manager.setWebSocketUrl('wss://example.test/ws/ramp-p2p/subscribe/order/12/')
+      else { h.state[change] = { wallet: 'wallet-b', index: 1, chipnet: true, userType: 'arbiter' }[change]; h.update() }
+      finish('wss://commerce.example/ws/chat/sessions/test/?ws_auth_token=obsolete')
+      await h.flush()
+      assert(h.sockets.every(socket => !socket.url.includes('obsolete')))
+      h.manager.closeConnection()
+    })
+  }
+
+  for (const status of [401, 403, 404]) {
+    it(`blocks chat token HTTP ${status} without anonymous fallback or P2P login loops`, async () => {
+      const h = socketHarness()
+      h.state.chatToken = async () => { throw { response: { status }, isAxiosError: true } }
+      h.manager.setWebSocketUrl('wss://commerce.example/ws/chat/sessions/test/')
+      await h.flush()
+      assert.equal(h.sockets.length, 0)
+      assert.equal(h.timers.size, 0)
+      assert(h.events.includes('websocket-disconnected'))
+      assert(!h.events.includes('session-expired'))
+      h.manager.closeConnection()
+    })
+  }
+
+  it('bounds token-endpoint retries and requests a new ticket for every attempt', async () => {
+    const h = socketHarness()
+    h.state.chatToken = async () => { throw { isAxiosError: true, response: { status: 503 } } }
+    h.manager.setWebSocketUrl('wss://commerce.example/ws/chat/sessions/test/')
+    await h.flush()
+    for (let i = 0; i < h.manager.maxRetries; i++) await h.runTimer()
+    assert.equal(h.tickets.length, 6)
+    assert.equal(h.sockets.length, 0)
+    assert.equal(h.timers.size, 0)
+    assert(h.events.includes('websocket-disconnected'))
+    h.manager.closeConnection()
+  })
 
   for (const path of ['order/12/', 'general/wallet-a/']) {
     it(`authenticates ${path} immediately on open and waits for ConnectionMessage`, async () => {
@@ -1978,6 +2233,16 @@ describe('P2P login chat authentication recovery', () => {
       assert(retryLogin > failedChat && retryChat > retryLogin)
     })
   }
+
+  it('does not refresh Watchtower tokens for a Commerce Hub chat access denial', async () => {
+    const h = authHarness({ failures: 0 })
+    h.session.chat = async () => { throw { code: 'p2p_chat_access_denied', response: { status: 401 } } }
+    const user = await h.loadAuthenticatedUser()
+    assert.equal(await user.chatPreparation, false)
+    assert.deepEqual(h.counts(), { logins: 0, chatRequests: 1 })
+    assert(!h.events.some(event => Array.isArray(event) && event[0] === 'session-expired'))
+    assert(h.events.some(event => Array.isArray(event) && event[0] === 'handle-request-error'))
+  })
 
   it('requests session recovery after a second background chat 401 without retrying forever', async () => {
     const h = authHarness({ failures: 2 })
@@ -3413,14 +3678,14 @@ describe('P2P verified existing chat links', () => {
   it('loads the authenticated profile link without PATCHing or creating identities', async () => {
     const h = harness()
     assert.equal(await h.load(), h.identity)
-    assert.deepEqual(h.calls.slice(0, 2), ['profile', ['get', 12]])
+    assert.deepEqual(h.calls.slice(0, 3), ['profile', 'signer', ['get', 12]])
     assert.equal(h.calls.filter(call => call[0] === 'commit').length, 1)
   })
 
   it('uses the fresh profile link instead of a stale cached ID', async () => {
     const h = harness()
     assert.equal(await h.load({ chat_identity_id: 99 }), h.identity)
-    assert.deepEqual(h.calls[1], ['get', 12])
+    assert.deepEqual(h.calls[2], ['get', 12])
   })
 
   for (const identity of [null, { id: 99, ref: 'synthetic-ref' }, { id: 12, ref: 'another-wallet' }]) {
@@ -3428,7 +3693,7 @@ describe('P2P verified existing chat links', () => {
       const h = harness()
       h.state.identity = identity
       await assert.rejects(h.load(), { code: 'p2p_chat_link_unavailable' })
-      assert.equal(h.calls.includes('signer'), false)
+      assert.equal(h.calls.includes('signer'), true)
       assert.equal(h.calls.some(call => call[0] === 'set' || call[0] === 'commit'), false)
     })
   }
@@ -3546,6 +3811,18 @@ describe('P2P background chat initialization', () => {
     for (const [name, method] of Object.entries(api)) vm[name] = method.bind(vm)
     vm.loadChatData = () => vm.initializeChat()
     return { vm, state, events, ownIdentity, ownMember }
+  }
+
+  for (const status of [401, 403, 404]) {
+    it(`blocks peer chat on a denied session HTTP ${status} without attempting replacement or membership writes`, async () => {
+      const h = harness()
+      h.state.beforeSession = async () => { throw { code: 'p2p_chat_access_denied', response: { status } } }
+      assert.equal(await h.vm.initializeChat(), false)
+      assert.equal(h.vm.chatError, true)
+      assert.equal(h.events.includes('create-session'), false)
+      assert.equal(h.events.includes('update-members'), false)
+      assert.equal(h.events.includes('socket'), false)
+    })
   }
 
   it('navigates immediately after creating the order without initializing chat in the form', async () => {
@@ -3843,7 +4120,8 @@ describe('CommerceHub chat WebSocket route', () => {
   function getBase (configuredUrl) {
     const source = readFileSync('src/exchange/chat/backend.js', 'utf8')
     const start = source.indexOf('export function getChatBackendWsUrl ()')
-    const getter = new Function('process', `${source.slice(start).replace('export ', '')}; return getChatBackendWsUrl`)(
+    const end = source.indexOf('\nexport ', start + 1)
+    const getter = new Function('process', `${source.slice(start, end < 0 ? undefined : end).replace('export ', '')}; return getChatBackendWsUrl`)(
       { env: { MARKETPLACE_WS_URL: configuredUrl } }
     )
     return getter()

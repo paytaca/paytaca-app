@@ -617,9 +617,11 @@ export default {
         }
       })
 
-      const wsChatUrl = `${getChatBackendWsUrl()}${this.order?.chat_session_ref}/`
+      const chatRef = this.order?.chat_session_ref
+      if (!chatRef) return
+      const wsChatUrl = `${getChatBackendWsUrl()}${encodeURIComponent(chatRef)}/`
       this.websocketManager.chat = new WebSocketManager()
-      this.websocketManager.chat.setWebSocketUrl(wsChatUrl)
+      this.websocketManager.chat.setWebSocketUrl(wsChatUrl, { userType: 'arbiter' })
       this.websocketManager.chat.subscribeToMessages((message) => {
         if (message?.type === 'new_message') {
           const messageData = message.data

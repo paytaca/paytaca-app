@@ -280,7 +280,6 @@ import { wallet } from 'src/exchange/wallet'
 import { resizeImage } from 'src/marketplace/chat/attachment'
 import { compressEncryptedMessage, encryptMessage, compressEncryptedImage, encryptImage } from 'src/marketplace/chat/encryption'
 import {
-  createChatSession,
   fetchChatSession,
   updateChatMembers,
   fetchChatMembers,
@@ -576,27 +575,18 @@ export default {
       } catch (error) {
         this.chatIdentity = null
         this.chatErrorMessage = error?.code === 'p2p_chat_link_unavailable' ? error.message : this.$t('ChatUnavailableRetry', {}, 'Chat is temporarily unavailable. Please reopen chat to retry.')
-        if (error?.response?.status === 401) bus.emit('session-expired')
+        if (error?.response?.status === 401 && error?.code !== 'p2p_chat_access_denied') bus.emit('session-expired')
         else this.$q.notify({ type: 'error', message: this.chatErrorMessage, timeout: 5000 })
         return
       }
 
-      // Check if chat session exists. fetchChatSession resolves null (instead of
-      // rejecting) when the session or chat identity is missing, so detect absence
-      // from the resolved value rather than from a rejection.
-      let createSession = false
-      await fetchChatSession(vm.chatRef)
-        .then(session => { createSession = !session })
-        .catch(error => {
-          if (error.response) {
-            if (error.response?.status === 403) {
-              // 403 means chat identity not ready - silently ignore
-              createSession = false
-            }
-          } else {
-            bus.emit('network-error')
-          }
-        })
+      try {
+        await fetchChatSession(vm.chatRef)
+      } catch {
+        this.chatErrorMessage = this.$t('ChatUnavailableRetry', {}, 'Chat is temporarily unavailable. Please reopen chat to retry.')
+        this.$q.notify({ type: 'error', message: this.chatErrorMessage, timeout: 5000 })
+        return
+      }
 
       await vm.fetchOrderMembers(vm.order?.id).then(async (members) => {
         if (!['APL', 'RFN_PN', 'RLS_PN'].includes(this.order.status.value)) {
@@ -607,37 +597,21 @@ export default {
         console.log('Chat members', members)
         const chatMembers = members.map(({ chat_identity_id }) => ({ chat_identity_id, is_admin: true }))
 
-        // Create session if necessary
-        if (createSession) {
-          await createChatSession(vm.order?.id, vm.chatRef).catch(error => {
-            // Silently handle 403 errors - chat identity not ready yet
-            if (error.response?.status !== 403) {
-              console.error('Failed to create chat session:', error)
-            }
-          })
-          await updateChatMembers(vm.chatRef, chatMembers).catch(error => {
-            // Silently handle 403 errors - chat identity not ready yet
-            if (error.response?.status !== 403) {
-              console.error('Failed to update chat members:', error)
-            }
-          })
-        } else {
-          // Fetch current chat members and compare with provided members
-          fetchChatMembers(vm.chatRef).then(async currentChatMembers => {
-            let chatMemberIds = chatMembers.map(el => el.chat_identity_id)
-            chatMemberIds = chatMemberIds.filter(id => currentChatMembers.some(member => member.chat_identity.id === id))
+        // Fetch current chat members and compare with provided members
+        await fetchChatMembers(vm.chatRef).then(async currentChatMembers => {
+          let chatMemberIds = chatMembers.map(el => el.chat_identity_id)
+          chatMemberIds = chatMemberIds.filter(id => currentChatMembers.some(member => member.chat_identity.id === id))
 
-            // If current chat members are not the same as chat members, update them
-            if (currentChatMembers?.length !== chatMemberIds?.length) {
-              const membersToRemove = (currentChatMembers.filter(function (member) {
-                return !chatMemberIds.includes(member.chat_identity.id)
-              })).map(el => el.chat_identity.id)
-              await updateChatMembers(vm.chatRef, chatMembers, membersToRemove).catch(error => { console.error(error) })
-            }
-          })
-        }
+          // If current chat members are not the same as chat members, update them
+          if (currentChatMembers?.length !== chatMemberIds?.length) {
+            const membersToRemove = (currentChatMembers.filter(function (member) {
+              return !chatMemberIds.includes(member.chat_identity.id)
+            })).map(el => el.chat_identity.id)
+            await updateChatMembers(vm.chatRef, chatMembers, membersToRemove)
+          }
+        })
 
-        await fetchChatPubkeys(vm.chatRef).then(pubkeys => { vm.chatPubkeys = pubkeys }).catch(error => { console.error(error) })
+        await fetchChatPubkeys(vm.chatRef).then(pubkeys => { vm.chatPubkeys = pubkeys })
 
         // Refetch and format the updated chat members
         console.log('Fetching chat members')
@@ -657,7 +631,7 @@ export default {
           })
 
         // Fetch and decrypt messages
-        fetchChatMessages(vm.chatRef)
+        await fetchChatMessages(vm.chatRef)
           .then(async (data) => {
             vm.totalMessages = data.count
             vm.offset += data.results.length
@@ -678,9 +652,11 @@ export default {
         vm.isloaded = true
       })
         .catch(error => {
-          console.error(error.response || error)
+          console.error(error?.response?.status || error?.code || 'Chat request failed')
+          this.chatErrorMessage = this.$t('ChatUnavailableRetry', {}, 'Chat is temporarily unavailable. Please reopen chat to retry.')
+          this.$q.notify({ type: 'error', message: this.chatErrorMessage, timeout: 5000 })
           if (error.response) {
-            if (error.response?.status === 403) {
+            if (error.response?.status === 403 && error?.code !== 'p2p_chat_access_denied') {
               bus.emit('session-expired')
             }
           } else {

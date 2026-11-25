@@ -227,7 +227,7 @@ export default {
     },
     handleRequestError (error) {
       if (error?.code === 'p2p_profile_rejected') return
-      if (['p2p_chat_link_unavailable', 'p2p_identity_mismatch', 'p2p_account_type_mismatch'].includes(error?.code)) {
+      if (['p2p_chat_access_denied', 'p2p_chat_link_unavailable', 'p2p_identity_mismatch', 'p2p_account_type_mismatch'].includes(error?.code)) {
         this.$q.notify({ type: 'error', message: error.message, timeout: 5000 })
         return
       }

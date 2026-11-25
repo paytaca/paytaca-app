@@ -54,13 +54,13 @@ async function initializeChatIdentity (usertype, scope) {
   const linkedId = profile?.chat_identity_id
   const unavailable = () => Object.assign(new Error('Chat setup is temporarily unavailable. New or changed chat links cannot be enabled yet.'), { code: 'p2p_chat_link_unavailable' })
   if (!linkedId) throw unavailable()
+  await chatIdentityManager._updateSignerData()
+  assertCurrent()
   const existingIdentity = await fetchChatIdentityById(linkedId)
   assertCurrent()
   if (!existingIdentity || String(existingIdentity.id) !== String(linkedId) ||
       existingIdentity.ref !== generateChatIdentityRef(wallet.walletHash)) throw unavailable()
 
-  await chatIdentityManager._updateSignerData()
-  assertCurrent()
   const identity = chatIdentityManager.setIdentity(existingIdentity)
   try {
     await chatIdentityManager._updateEncryptionKeypair(true)
@@ -88,9 +88,9 @@ export function updateOrderChatSessionRef (orderId, chatRef) {
       })
       .catch(error => {
         if (error.response) {
-          console.error('Failed to update order chat_session_ref:', error.response)
+          console.error('Failed to update order chat_session_ref:', error?.response?.status || error?.code || 'Request failed')
         } else {
-          console.error('Failed to update order chat_session_ref:', error)
+          console.error('Failed to update order chat_session_ref:', error?.code || 'Request failed')
         }
         reject(error)
       })
@@ -106,9 +106,9 @@ export async function updateChatIdentityId (userType, id) {
       })
       .catch(error => {
         if (error.response) {
-          console.error('Failed to update chat identity id:', error.response)
+          console.error('Failed to update chat identity id:', error?.response?.status || error?.code || 'Request failed')
         } else {
-          console.error('Failed to update chat identity id:', error)
+          console.error('Failed to update chat identity id:', error?.code || 'Request failed')
         }
         reject(error)
       })
@@ -124,9 +124,9 @@ export async function createChatIdentity (payload) {
       })
       .catch(error => {
         if (error.response) {
-          console.error('Failed to create new chat identity:', error.response)
+          console.error('Failed to create new chat identity:', error?.response?.status || error?.code || 'Request failed')
         } else {
-          console.error('Failed to create new chat identity:', error)
+          console.error('Failed to create new chat identity:', error?.code || 'Request failed')
         }
         reject(error)
       })
@@ -135,7 +135,7 @@ export async function createChatIdentity (payload) {
 
 export async function fetchChatIdentityByRef (ref) {
   return new Promise((resolve, reject) => {
-    chatBackend.get(`chat/identities/?ref=${ref}`)
+    chatBackend.get(`chat/identities/?ref=${ref}`, { forceSign: true })
       .then(response => {
         let identity = null
         if (response.data?.results?.length > 0) {
@@ -145,9 +145,9 @@ export async function fetchChatIdentityByRef (ref) {
       })
       .catch(error => {
         if (error.response) {
-          console.error('Failed to fetch chat identity:', error.response)
+          console.error('Failed to fetch chat identity:', error?.response?.status || error?.code || 'Request failed')
         } else {
-          console.error('Failed to fetch chat identity:', error)
+          console.error('Failed to fetch chat identity:', error?.code || 'Request failed')
         }
         reject(error)
       })
@@ -157,19 +157,15 @@ export async function fetchChatIdentityByRef (ref) {
 export async function fetchChatIdentityById (id) {
   if (!id) return null
   return new Promise((resolve, reject) => {
-    chatBackend.get(`chat/identities/${id}/`)
+    chatBackend.get(`chat/identities/${id}/`, { forceSign: true })
       .then(response => {
         resolve(response.data)
       })
       .catch(error => {
-        if (error.response?.status === 404) {
-          resolve(null)
-          return
-        }
         if (error.response) {
-          console.error('Failed to fetch chat identity:', error.response)
+          console.error('Failed to fetch chat identity:', error?.response?.status || error?.code || 'Request failed')
         } else {
-          console.error('Failed to fetch chat identity:', error)
+          console.error('Failed to fetch chat identity:', error?.code || 'Request failed')
         }
         reject(error)
       })
@@ -185,9 +181,9 @@ export async function updateChatIdentity (payload) {
       })
       .catch(error => {
         if (error.response) {
-          console.error('Failed to update chat identity:', error.response)
+          console.error('Failed to update chat identity:', error?.response?.status || error?.code || 'Request failed')
         } else {
-          console.error('Failed to update chat identity:', error)
+          console.error('Failed to update chat identity:', error?.code || 'Request failed')
         }
         reject(error)
       })
@@ -213,11 +209,11 @@ export async function createChatSession (orderId, chatRef) {
             // Don't reject - let caller handle gracefully
             resolve(null)
           } else {
-            console.error('Failed to create chat session:', error.response)
+            console.error('Failed to create chat session:', error?.response?.status || error?.code || 'Request failed')
             reject(error)
           }
         } else {
-          console.error('Failed to create chat session:', error)
+          console.error('Failed to create chat session:', error?.code || 'Request failed')
           reject(error)
         }
       })
@@ -237,11 +233,11 @@ export async function checkChatSessionAdmin (chatRef) {
           if (error.response.status === 403) {
             resolve(null)
           } else {
-            console.error('Failed to check chat admin:', error.response)
+            console.error('Failed to check chat admin:', error?.response?.status || error?.code || 'Request failed')
             reject(error)
           }
         } else {
-          console.error('Failed to check chat admin:', error)
+          console.error('Failed to check chat admin:', error?.code || 'Request failed')
           reject(error)
         }
       })
@@ -249,31 +245,7 @@ export async function checkChatSessionAdmin (chatRef) {
 }
 
 export async function fetchChatSession (chatRef) {
-  return new Promise((resolve, reject) => {
-    chatBackend.get(`chat/sessions/${chatRef}/`, { forceSign: true })
-      .then(response => {
-        // console.log('Chat session:', response.data)
-        resolve(response)
-      })
-      .catch(error => {
-        if (error.response) {
-          // 403 means chat identity not found - this is expected if identity isn't created yet
-          if (error.response.status === 403) {
-            // Resolve with null to indicate session doesn't exist yet
-            resolve(null)
-          } else if (error.response.status === 404) {
-            // 404 means session doesn't exist - this is fine
-            resolve(null)
-          } else {
-            console.error('Failed to fetch chat session:', error.response)
-            reject(error)
-          }
-        } else {
-          console.error('Failed to fetch chat session:', error)
-          reject(error)
-        }
-      })
-  })
+  return chatBackend.get(`chat/sessions/${chatRef}/`, { forceSign: true })
 }
 
 export async function updateChatMembers (chatRef, members, removeMemberIds = []) {
@@ -294,11 +266,11 @@ export async function updateChatMembers (chatRef, members, removeMemberIds = [])
             // Resolve instead of reject to allow graceful handling
             resolve(null)
           } else {
-            console.error('Failed to add chat members:', error.response)
+            console.error('Failed to add chat members:', error?.response?.status || error?.code || 'Request failed')
             reject(error)
           }
         } else {
-          console.error('Failed to add chat members:', error)
+          console.error('Failed to add chat members:', error?.code || 'Request failed')
           reject(error)
         }
       })
@@ -307,16 +279,16 @@ export async function updateChatMembers (chatRef, members, removeMemberIds = [])
 
 export async function fetchChatMembers (chatRef) {
   return new Promise((resolve, reject) => {
-    chatBackend.get(`chat/members/full_info/?chat_ref=${chatRef}`)
+    chatBackend.get(`chat/members/full_info/?chat_ref=${chatRef}`, { forceSign: true })
       .then(response => {
         // console.log('Fetched chat members:', response)
         resolve(response.data.results)
       })
       .catch(error => {
         if (error.response) {
-          console.error('Failed to fetch chat members:', error.response)
+          console.error('Failed to fetch chat members:', error?.response?.status || error?.code || 'Request failed')
         } else {
-          console.error('Failed to fetch chat members:', error)
+          console.error('Failed to fetch chat members:', error?.code || 'Request failed')
         }
         reject(error)
       })
@@ -354,9 +326,9 @@ export function sendChatMessage (data, signData) {
       })
       .catch(error => {
         if (error.response) {
-          console.error('Failed to send message:', error.response)
+          console.error('Failed to send message:', error?.response?.status || error?.code || 'Request failed')
         } else {
-          console.error('Failed to send message:', error)
+          console.error('Failed to send message:', error?.code || 'Request failed')
         }
         reject(error)
       })
@@ -377,48 +349,21 @@ export function fetchChatMessages (chatRef, offset = null, limit = 10) {
       })
       .catch(error => {
         if (error.response) {
-          console.error('Failed to fetch messages:', error.response)
+          console.error('Failed to fetch messages:', error?.response?.status || error?.code || 'Request failed')
         } else {
-          console.error('Failed to fetch message:', error)
+          console.error('Failed to fetch message:', error?.code || 'Request failed')
         }
         reject(error)
       })
   })
 }
 
-export function fetchChatPubkeys (chatRef) {
-  return new Promise((resolve, reject) => {
-    chatBackend.get(`chat/sessions/${chatRef}/pubkeys/`)
-      .then(response => {
-        if (!Array.isArray(response?.data)) reject({ response })
-        // console.log('Chat pubkeys:', response?.data)
-        resolve(response?.data)
-      })
-      .catch(error => {
-        if (error.response) {
-          // 403 means chat identity not found - this is expected if identity isn't created yet
-          if (error.response.status === 403) {
-            console.log('Chat pubkeys fetch failed - chat identity not ready yet')
-            resolve([]) // Return empty array instead of rejecting
-          } else {
-            console.error('Failed to fetch chat pubkeys:', error.response)
-            reject(error)
-          }
-        } else {
-          console.error('Failed to fetch chat pubkeys:', error)
-          reject(error)
-        }
-      })
-  })
+export async function fetchChatPubkeys (chatRef) {
+  const response = await chatBackend.get(`chat/sessions/${chatRef}/pubkeys/`, { forceSign: true })
+  if (!Array.isArray(response.data)) throw new Error('P2P chat public keys could not be read.')
+  return response.data
 }
 
-/**
- * Gets encryption keypair derived from mnemonic (address 0/0)
- * Always derives fresh from mnemonic to ensure cross-platform consistency
- * Optionally updates the pubkey on the server
- * @param {boolean} update - Whether to update pubkey on server
- * @returns {Promise<{privkey: string, pubkey: string}>}
- */
 export async function updateOrCreateKeypair (update = true, identity = null) {
   const userType = Store.getters['ramp/getUser']?.is_arbiter ? 'arbiter' : 'peer'
   const scope = chatIdentityScope(userType)
