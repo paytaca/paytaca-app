@@ -159,7 +159,8 @@
 </template>
 <script>
 import { Order, Storefront } from 'src/marketplace/objects'
-import { backend as marketBackend} from 'src/marketplace/backend'
+import { backend as marketBackend, getSignerData } from 'src/marketplace/backend'
+import { wifToPublicKey } from 'src/utils/bch-keys'
 import { backend } from 'src/exchange/backend'
 import { getWalletByNetwork } from 'src/wallet/chipnet'
 import { wallet } from 'src/exchange/wallet'
@@ -364,8 +365,48 @@ export default {
     	if (!text) return ''
     	return text.length > maxLength ? text.substring(0, maxLength) + '...' : text
     },
-async fetchMarketOrders(opts={limit: 0, offset: 0 }) {    	
+	async ensureMarketplaceSignerData () {
+		const currentWalletHash = this.$store.getters['global/getWallet']('bch')?.walletHash
+		if (!currentWalletHash) return
+
+		const signerData = await getSignerData()
+		const [signerWalletHash, privkey] = signerData?.value?.split(':') || []
+		const customer = this.$store.getters['marketplace/customer']
+		const customerPubkey = customer?.paytacaWallet?.verifyingPubkey
+
+		let signerPubkey = ''
+		try {
+			signerPubkey = privkey ? wifToPublicKey(privkey) : ''
+		} catch (error) {
+			console.error(error)
+		}
+
+		const signerWalletMatches = signerWalletHash === currentWalletHash
+		const signerPubkeyMatches = !customer?.id || !customerPubkey || signerPubkey === customerPubkey
+		if (signerData?.value && privkey && signerWalletMatches && signerPubkeyMatches) return
+
+		await this.$store.dispatch('marketplace/refetchCustomerRef')
+
+		const refreshedCustomer = this.$store.getters['marketplace/customer']
+		const paytacaWallet = refreshedCustomer?.paytacaWallet
+		if (!refreshedCustomer?.id) return
+		if (paytacaWallet?.walletHash !== currentWalletHash) return
+
+		const verifyingIndex = paytacaWallet?.verifyingPubkeyIndex
+		if (verifyingIndex === null || verifyingIndex === undefined || isNaN(verifyingIndex)) {
+			await this.$store.dispatch('marketplace/updateCustomerVerifyingPubkey')
+			return
+		}
+
+		await this.$store.dispatch('marketplace/updatePrivkey')
+			.catch(error => {
+				console.error(error)
+				return this.$store.dispatch('marketplace/updateCustomerVerifyingPubkey')
+			})
+	},
+	async fetchMarketOrders(opts={limit: 0, offset: 0 }) {    	
     	const vm = this	
+    	await vm.ensureMarketplaceSignerData().catch(console.error)
   	  	const params = {
 			    ref: await vm.$store.dispatch('marketplace/getCartRef'),
 			    limit: vm.marketplacePagination?.limit || 100,
