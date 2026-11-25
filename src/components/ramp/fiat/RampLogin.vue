@@ -174,6 +174,7 @@ export default {
         await this.registerUser()
         if (await this.loadUser(true)) this.register = false
       } catch (error) {
+        console.error('P2P registration failed:', error?.response?.status || error?.code || 'Registration failed')
         this.handleError(error)
       } finally {
         this.retrySeconds = getRegistrationRetrySeconds()
