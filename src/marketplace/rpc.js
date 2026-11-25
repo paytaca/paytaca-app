@@ -1,5 +1,6 @@
 import { RpcWebSocketClient } from 'rpc-websocket-client';
-import { backend } from './backend';
+import { backend, getPaytacaCustomerWebsocketSignature } from './backend';
+import { buildAuthenticatedWebsocketUrl } from './webrtc/websocket-utils';
 
 
 // Ideally this will be a singleton class
@@ -47,12 +48,15 @@ class MarketplaceRPCWrapper {
     })
   }
 
-  getUrl() {
+  async getUrl() {
     const backendUrl = new URL(backend.defaults.baseURL)
     const host = backendUrl.host
     const scheme = backendUrl.protocol === 'https:' ? 'wss' : 'ws'
     const url = `${scheme}://${host}/ws/main/`
-    return url
+    return await buildAuthenticatedWebsocketUrl(url, {
+      backend,
+      getLegacyCustomerSignature: () => getPaytacaCustomerWebsocketSignature(),
+    })
   }
 
   async _connect(opts={ forceReconnect: false }) {

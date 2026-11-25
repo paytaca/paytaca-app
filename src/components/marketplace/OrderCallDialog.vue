@@ -237,12 +237,13 @@
   </q-dialog>
 </template>
 <script>
-import { backend, signPaytacaCustomerData } from 'src/marketplace/backend'
+import { backend, getPaytacaCustomerWebsocketSignature } from 'src/marketplace/backend'
 import { OrderCallSession } from 'src/marketplace/objects'
 import { useDialogPluginComponent } from 'quasar'
 import { useStore } from 'vuex'
 import { computed, defineComponent, onMounted, onUnmounted, ref, watch } from 'vue'
 import { WebRtcCallManager } from 'src/marketplace/webrtc'
+import { buildAuthenticatedWebsocketUrl } from 'src/marketplace/webrtc/websocket-utils'
 import { AVMedia } from 'vue-audio-visual'
 import { errorParser } from 'src/marketplace/utils'
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
@@ -376,20 +377,15 @@ export default defineComponent({
         constraints: constraints.value,
         signaller: {
           url: async (callId) => {
-            const timestamp = Date.now()
-            const data = Buffer.from(`${timestamp}`).toString('hex')
-            const signResponse = await signPaytacaCustomerData(data)
-            const paytacaCustomerSig = [
-              signResponse.walletHash, timestamp, signResponse.signature
-            ].join(':')
-            const encodedPaytacaCustomerSig = encodeURIComponent(paytacaCustomerSig)
-
             const backendUrl = new URL(backend.defaults.baseURL)
             const host = backendUrl.host
             const scheme = backendUrl.protocol === 'https:' ? 'wss' : 'ws'
-            const url = `${scheme}://${host}/ws/connecta/order-call-signaller/${callId}/?paytaca_customer_sig=${encodedPaytacaCustomerSig}`
+            const baseUrl = `${scheme}://${host}/ws/connecta/order-call-signaller/${callId}/`
 
-            return url
+            return await buildAuthenticatedWebsocketUrl(baseUrl, {
+              backend,
+              getLegacyCustomerSignature: () => getPaytacaCustomerWebsocketSignature(),
+            })
           }
         }
       })

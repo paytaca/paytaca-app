@@ -1,5 +1,6 @@
 import { reactive } from 'vue'
-import { connectWebsocket } from "./websocket-utils"
+import { backend, getPaytacaCustomerWebsocketSignature } from '../backend'
+import { buildAuthenticatedWebsocketUrl, connectWebsocket } from "./websocket-utils"
 import { isValidRoomName } from "./utils"
 
 const RTC_PEER_CONFIG = {
@@ -166,8 +167,14 @@ export class WebRtcCallManager {
 
     this.members = [].map(RoomMember.new)
 
-    const defaultSignallerUrl = (callId) => {
-      return `wss://commercehub.paytaca.com/ws/webrtc/${callId}/`
+    const defaultSignallerUrl = async (callId) => {
+      return await buildAuthenticatedWebsocketUrl(
+        `wss://commercehub.paytaca.com/ws/webrtc/${callId}/`,
+        {
+          backend,
+          getLegacyCustomerSignature: () => getPaytacaCustomerWebsocketSignature(),
+        },
+      )
       // return `ws://localhost:8000/ws/webrtc/${callId}/`
     }
     this.signaller = new WebRtcSignallerManager({
@@ -546,8 +553,7 @@ export class WebRtcSignallerManager {
     if (this.isWebsocketOpen) return Promise.resolve(this._websocket)
 
     this._websocket?.close?.();
-    const url = await this.constructWsUrl()
-    return connectWebsocket(url)
+    return connectWebsocket(() => this.constructWsUrl())
       .then(websocket => {
         this._websocket = websocket;
         const ws = this._websocket;

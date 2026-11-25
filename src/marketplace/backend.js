@@ -90,6 +90,20 @@ export async function signPaytacaCustomerData(data, walletHash = null) {
   return response
 }
 
+/**
+ * Builds the legacy websocket customer signature query value.
+ * The websocket auth signature uses its own payload format and freshness window.
+ * @param {String} walletHash
+ * @returns {Promise<String>} wallet_hash:timestamp:signature
+ */
+export async function getPaytacaCustomerWebsocketSignature(walletHash = null) {
+  const timestamp = Date.now()
+  const data = Buffer.from(`${timestamp}`).toString('hex')
+  const signResponse = await signPaytacaCustomerData(data, walletHash)
+  if (!signResponse.signature) return
+  return [signResponse.walletHash, timestamp, signResponse.signature].join(':')
+}
+
 export async function getSignerData(walletHash = null) {
   try {
     const key = getSignerDataStorageKey(walletHash)
