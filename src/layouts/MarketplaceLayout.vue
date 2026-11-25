@@ -214,18 +214,19 @@ export default {
           loadingApp.value = true
 
           loadAppMsg.value = 'Loading customer data'
-          await $store.dispatch('marketplace/refetchCustomerData')
+          await $store.dispatch('marketplace/refetchCustomerRef')
+          await nextTick();
           loadAppMsg.value = 'Authenticating'
           const signerData = await getSignerData()
           const walletHash = signerData?.value?.split(':')[0]
           const walletHashMatch = walletHash == customer.value?.paytacaWallet?.walletHash
           if (!customer.value?.id || !signerData?.value || !walletHashMatch) {
             loadAppMsg.value = 'Updating session'
-            await nextTick();
             await $store.dispatch('marketplace/updatePrivkey').catch(error => {
               console.error(error)
               return $store.dispatch('marketplace/updateCustomerVerifyingPubkey')
             })
+            await $store.dispatch('marketplace/refetchCustomerData');
           }
 
           loadAppMsg.value = 'Updating address'

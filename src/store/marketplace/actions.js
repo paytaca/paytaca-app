@@ -148,12 +148,37 @@ export async function updateCustomerVerifyingPubkey(context, opts={ index: 0 }) 
   })
 }
 
+export async function refetchCustomerRef(context) {
+  const customerRef = await context.dispatch('getCartRef')
+  const customer = context.getters['customer']
+
+  return backend.get(`connecta/customers/${encodeURIComponent(customerRef)}/lookup/`, { skipSigning: true })
+    .then(response => {
+      const data = response.data;
+      if (!data) return Promise.reject({ response });
+      console.log(customer, data);
+      if (data?.id && customer?.id !== data?.id) {
+        context.commit('setCustomerData', null);
+        context.commit('clearCustomerLocations');
+        context.commit('setCustomerData', data);
+      }
+    })
+    .catch(error => {
+      if ([404, 403].includes(error?.response?.status)) {
+        context.commit('setCustomerData', null);
+        context.commit('clearCustomerLocations');
+        return;
+      }
+    })
+
+}
+
 export async function refetchCustomerData(context) {
   const params = {
     ref: await context.dispatch('getCartRef')
   }
 
-  return backend.get(`connecta/customers`, { params })
+  return backend.get(`connecta/customers/`, { params })
     .then(response => {
       const customerData = response?.data?.results?.[0]
       context.commit('setCustomerData', customerData)
