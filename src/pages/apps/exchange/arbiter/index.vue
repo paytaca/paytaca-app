@@ -60,7 +60,6 @@ export default {
     }
   },
   created () {
-    bus.on('session-expired', this.handleSessionEvent)
     bus.on('relogged', this.refreshChildren)
     bus.on('handle-request-error', this.handleRequestError)
   },
@@ -73,7 +72,6 @@ export default {
   beforeUnmount () {
     this.disposed = true
     this.closeWSConnection()
-    bus.off('session-expired', this.handleSessionEvent)
     bus.off('relogged', this.refreshChildren)
     bus.off('handle-request-error', this.handleRequestError)
   },

@@ -828,19 +828,19 @@ export default {
       let sats
       try { sats = this.getTradeAmount() } catch { return }
       const url = `/ramp-p2p/utils/calculate-fees/?sats_trade_amount=${sats}`
-      await backend.get(url)
+      await backend.get(url, { authorize: 'peer' })
         .then(response => {
           const tempFee = response.data
           this.fees = Object.values(tempFee).reduce((a, b) => a + b, 0)
         })
         .catch(error => {
           if (error.response) {
-            console.error(error.response)
+            console.error(error?.response?.status || error?.code || 'Request failed')
             if (error.response.status === 403) {
               bus.emit('session-expired')
             }
           } else {
-            console.error(error)
+            console.error(error?.response?.status || error?.code || 'Request failed')
             bus.emit('network-error')
           }
         })
@@ -960,11 +960,11 @@ export default {
       try {
         const currency = this.ad?.fiat_currency?.symbol
         if (!currency) return
-        const response = await backend.get('/ramp-p2p/utils/market-price/', { params: { currency } })
+        const response = await backend.get('/ramp-p2p/utils/market-price/', { authorize: 'peer', params: { currency } })
         const price = parseFloat(response.data?.price)
         if (Number.isFinite(price) && price > 0) this.marketPrice = price
       } catch (error) {
-        console.error('Failed to fetch market price:', error?.response || error)
+        console.error('Failed to fetch market price:', error?.response?.status || error?.code || 'Request failed')
       } finally {
         this.marketPriceLoading = false
       }
@@ -1003,7 +1003,7 @@ export default {
         return
       }
       if (error.code === 'ECONNABORTED') return
-      console.error(error?.response || error)
+      console.error(error?.response?.status || error?.code || 'Request failed')
       if (!error.response) {
         // Network error
         bus.emit('network-error')

@@ -1,5 +1,6 @@
 import { fetchP2PAvailability } from 'src/exchange/availability'
 import { Store } from '..'
+import { bus } from 'src/wallet/event-bus'
 import { backend } from 'src/exchange/backend'
 import { toRaw } from 'vue'
 import {
@@ -300,7 +301,7 @@ export function fetchPaymentTypes (context, { currency = null }) {
   const previousPT = toRaw(paymentTypesGetter(currency === null ? 'All' : currency))
 
   return new Promise((resolve, reject) => {
-    backend.get('/ramp-p2p/payment-type', { params: { currency: currency } })
+    backend.get('/ramp-p2p/payment-type', { authorize: 'peer', params: { currency: currency } })
       .then(response => {
         const paymentTypes = response.data
         // adding new payment type to default payment type filter
@@ -426,11 +427,27 @@ export function fetchUser (context) {
 }
 
 export async function fetchFeatureToggles (context) {
+  const scope = () => JSON.stringify([
+    Store.getters['global/getWallet']('bch')?.walletHash,
+    Store.getters['global/getWalletIndex'], Store.getters['global/isChipnet'],
+    Store.getters['ramp/getUser']?.user_type, Store.getters['ramp/getUser']?.is_arbiter, Store.getters['ramp/getUser']?.id
+  ])
+  const identity = scope()
+  let invalidated = false
+  const onAuthCleared = () => { invalidated = true }
+  bus.on('p2p-auth-cleared', onAuthCleared)
   try {
     const controls = await fetchP2PAvailability(backend)
+    if (invalidated || identity !== scope()) return {}
     context.commit('updateFeatureToggles', controls)
     return controls
-  } catch {
-    return context.state.featureToggles || {}
+  } catch (error) {
+    if (!invalidated && identity === scope()) {
+      context.commit('updateFeatureToggles', null)
+      bus.emit('p2p-unavailable', error)
+    }
+    return {}
+  } finally {
+    bus.off('p2p-auth-cleared', onAuthCleared)
   }
 }

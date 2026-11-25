@@ -451,7 +451,7 @@ export default {
     },
     async fetchFiatCurrencies () {
       const vm = this
-      await backend.get('/ramp-p2p/currency/fiat')
+      await backend.get('/ramp-p2p/currency/fiat', { authorize: 'peer' })
         .then(response => {
           if (vm.disposed) return
           vm.fiatCurrencies = response.data

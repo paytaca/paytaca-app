@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict'
 import { readFileSync } from 'node:fs'
 import axios from 'axios'
+import { availabilityError } from '../src/exchange/availability.js'
 import { createRenderer, h, reactive, nextTick } from 'vue'
 
 const origin = 'https://backend.example'
@@ -40,7 +41,7 @@ function backendHarness () {
     }
   })
   const bindings = {
-    axios: { create: () => client }, Store: { getters }, wallet: {},
+    availabilityError, axios: { create: () => client }, Store: { getters }, wallet: {},
     Notify: { create () {} }, bus, requestManager: { attachTo () {} },
     getAuthToken: async role => { if (tokenWait) await tokenWait; return missingToken ? null : `synthetic-${role}-token` },
     deleteAuthTokenForUserType: async role => { deleted.push(role) },

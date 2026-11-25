@@ -15,9 +15,10 @@ export function assertP2PAvailable (controls, feature) {
 // Cache-busting nonce only; this counter does not represent application state.
 let requestId = 0
 
-export async function fetchP2PAvailability (client, feature, { skipAbortManager = false } = {}) {
+export async function fetchP2PAvailability (client, feature, { skipAbortManager = false, userType = true } = {}) {
   try {
     const response = await client.get('/ramp-p2p/feature-control/', {
+      authorize: userType,
       params: { _fresh: `${Date.now()}-${++requestId}` },
       timeout: 10000,
       skipAbortManager,
@@ -27,6 +28,7 @@ export async function fetchP2PAvailability (client, feature, { skipAbortManager 
     return assertP2PAvailable(response.data, feature)
   } catch (error) {
     if (isP2PAvailabilityError(error)) throw error
+    if (error?.response?.status === 503) throw availabilityError('p2p_maintenance', 'P2P_MAINTENANCE')
     throw availabilityError()
   }
 }

@@ -324,7 +324,7 @@ export default {
       this.loadFailure = false
       this.order = this.data.order
       try {
-        const controls = await fetchP2PAvailability(backend, 'ORDER_ESCROW')
+        const controls = await fetchP2PAvailability(backend, 'ORDER_ESCROW', { userType: 'peer' })
         this.$store.commit('ramp/updateFeatureToggles', controls)
         this.availabilityFailure = null
         await this.loadContract()
@@ -376,7 +376,7 @@ export default {
           const fundingWallet = wallet
           const rawWallet = await fundingWallet.getRawWallet()
           const changeAddress = await getChangeAddress('bch', { isChipnet: rawWallet.isChipnet })
-          await fetchP2PAvailability(backend, 'ORDER_ESCROW')
+          await fetchP2PAvailability(backend, 'ORDER_ESCROW', { userType: 'peer' })
           const orderResponse = await backend.get(`/ramp-p2p/order/${orderId}/`, {
             authorize: 'peer', cache: false, params: { _fresh: Date.now() }, timeout: 10000
           })

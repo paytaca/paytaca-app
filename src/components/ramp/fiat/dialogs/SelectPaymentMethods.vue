@@ -121,15 +121,15 @@ export default {
     async fetchPaymentTypes () {
       const vm = this
       vm.loading = true
-      await backend.get('/ramp-p2p/payment-type', { params: { currency: vm.currency } })
+      await backend.get('/ramp-p2p/payment-type', { authorize: 'peer', params: { currency: vm.currency } })
         .then(response => {
           vm.paymentTypeOpts = response.data
           vm.loading = false
         })
         .catch(error => {
-          console.error(error)
+          console.error(error?.response?.status || error?.code || 'Request failed')
           if (error.response) {
-            console.error(error.response)
+            console.error(error?.response?.status || error?.code || 'Request failed')
             if (error.response.status === 403) {
               bus.emit('session-expired')
             }

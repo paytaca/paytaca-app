@@ -1,5 +1,5 @@
 <template>
-  <P2PAvailability @available="onP2PAvailable">
+  <P2PAvailability :key="availabilityIdentity" :ready="isloaded || showRegistration || appDisabled" :user-type="isloaded ? user.user_type : false" @available="onP2PAvailable" :authentication-error="authenticationError" @authenticate="retryAuthentication">
   <div id="app-container" class="row" :class="getDarkModeClass(darkMode)" v-if="!openVersionUpdate">
     <router-view v-if="isloaded" :key="$route.name"></router-view>
     <RampLogin v-else-if="showRegistration" @logged-in="onRegistered" />
@@ -51,7 +51,7 @@ import versionUpdate from 'src/pages/transaction/dialog/versionUpdate.vue'
 import packageInfo from '../../../../package.json'
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 import { backend } from 'src/exchange/backend'
-import { isP2PAvailabilityError } from 'src/exchange/availability'
+import { availabilityError, isP2PAvailabilityError } from 'src/exchange/availability'
 import { bus } from 'src/wallet/event-bus.js'
 import { loadRampWallet } from 'src/exchange/wallet'
 import { loadAuthenticatedUser } from 'src/exchange/auth'
@@ -75,20 +75,31 @@ export default {
       checking: false,
       showRegistration: false,
       authAttempt: 0,
+      authenticationError: null,
+      sessionRecoveryScope: null,
+      sessionRecoveryAt: 0,
       disposed: false
     }
   },
   async created () {
     bus.on('websocket-disconnected', this.handleDisconnectedWS)
+    bus.on('session-expired', this.onSessionExpired)
+    bus.on('p2p-authentication-failed', this.onAuthenticationFailed)
   },
   beforeUnmount () {
     this.disposed = true
     this.authAttempt++
     bus.off('websocket-disconnected', this.handleDisconnectedWS)
+    bus.off('session-expired', this.onSessionExpired)
+    bus.off('p2p-authentication-failed', this.onAuthenticationFailed)
     this.$store.commit('ramp/resetListingTabs')
     this.$store.commit('ramp/resetAppealListingTab')
   },
   computed: {
+    availabilityIdentity () {
+      const arbiter = this.$route.matched.some(route => route.name === 'exchange-arbiter')
+      return JSON.stringify([this.walletIdentity, arbiter, this.user?.user_type, this.$store.getters['ramp/getUser']?.user_type])
+    },
     walletIdentity () {
       return JSON.stringify([
         this.$store.getters['global/getWallet']('bch')?.walletHash,
@@ -102,6 +113,8 @@ export default {
       flush: 'sync',
       handler () {
         this.authAttempt++
+        this.authenticationError = null
+        this.sessionRecoveryScope = null
         this.checking = false
         this.isloaded = false
         this.showRegistration = false
@@ -109,6 +122,9 @@ export default {
       }
     },
     $route (to, from) {
+      const arbiter = to.matched.some(route => route.name === 'exchange-arbiter')
+      const wasArbiter = from.matched.some(route => route.name === 'exchange-arbiter')
+      if (arbiter !== wasArbiter && this.isloaded && arbiter !== this.user?.is_arbiter) this.getUser()
       if (from.path.includes('apps/exchange')) {        
         if ('ad_id' in to.query) {
           this.$router?.push({ name: 'p2p-store', query: to.query })
@@ -130,14 +146,38 @@ export default {
         this.$store.commit('paytacapos/initializeWalletState', walletHash)
       }
       
-      await Promise.allSettled([
-        this.checkVersionUpdate(),
-        this.getUser()
-      ])
+      await this.getUser()
+      if (!this.disposed && this.isloaded) this.checkVersionUpdate()
     }
   },
   methods: {
     getDarkModeClass,
+    onAuthenticationFailed (error) {
+      if (this.disposed) return
+      this.authAttempt++
+      this.checking = false
+      this.authenticationError = error
+      this.isloaded = false
+      this.showRegistration = false
+    },
+    onSessionExpired () {
+      if (this.checking || this.disposed || this.authenticationError) return
+      const scope = this.availabilityIdentity
+      if (this.sessionRecoveryScope === scope && Date.now() - this.sessionRecoveryAt < 60000) {
+        this.authenticationError = availabilityError()
+        this.isloaded = false
+        return
+      }
+      this.sessionRecoveryScope = scope
+      this.sessionRecoveryAt = Date.now()
+      return this.getUser(true)
+    },
+    retryAuthentication () {
+      if (this.checking || this.disposed) return
+      this.authenticationError = null
+      this.sessionRecoveryScope = null
+      return this.getUser()
+    },
     onP2PAvailable () {
       if (!this.isloaded && !this.showRegistration) return this.getUser()
     },
@@ -145,7 +185,7 @@ export default {
       this.showRegistration = false
       await this.getUser()
     },
-    async getUser () {
+    async getUser (forceLogin = false) {
       if (this.checking || this.disposed || this.appDisabled) return
       const attempt = ++this.authAttempt
       const identity = this.walletIdentity
@@ -156,8 +196,12 @@ export default {
         const rampWallet = await loadRampWallet()
         if (!isCurrent()) return
         this.$store.commit('ramp/updateWallet', rampWallet)
-        const user = await loadAuthenticatedUser()
+        const user = await loadAuthenticatedUser(forceLogin)
         if (!isCurrent()) return
+        const arbiterRoute = this.$route.matched.some(route => route.name === 'exchange-arbiter')
+        if (this.$route.name !== 'exchange' && arbiterRoute !== !!user.is_arbiter) {
+          throw Object.assign(new Error('Use the correct P2P account type.'), { code: 'p2p_account_type_mismatch' })
+        }
         this.user = user
         this.$store.commit('ramp/updateUser', user)
         this.showRegistration = false
@@ -229,7 +273,7 @@ export default {
 
       if (platform) {
         // fetching version check - non-blocking, don't prevent UI from showing
-        backend.get(`/ramp-p2p/version/check/${platform}/`)
+        backend.get(`/ramp-p2p/version/check/${platform}/`, { authorize: this.user.user_type })
           .then(response => {
             if (!('error' in response.data)) {
               const latestVer = response.data?.latest_version
@@ -270,7 +314,7 @@ export default {
             }
           })
           .catch(error => {
-            console.error('Version check failed:', error)
+            console.error('Version check failed:', error?.response?.status || error?.code || 'Request failed')
             // Don't set appDisabled or isloaded here - version check is non-critical
           })
       }

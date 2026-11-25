@@ -924,14 +924,14 @@ export default {
     async getInitialMarketPrice () {
       const vm = this
       try {
-        const response = await backend.get('/ramp-p2p/utils/market-price/', { params: { currency: vm.selectedCurrency.symbol } })
+        const response = await backend.get('/ramp-p2p/utils/market-price/', { authorize: 'peer', params: { currency: vm.selectedCurrency.symbol } })
         vm.marketPrice = parseFloat(response.data?.price)
         if (vm.adsState === 'create') {
           vm.updatePriceValue(vm.adData.priceType)
         }
       } catch (error) {
         if (error.response) {
-          console.error(error.response)
+          console.error(error?.response?.status || error?.code || 'Request failed')
           if (error.response.status === 403) {
             bus.emit('session-expired')
           }

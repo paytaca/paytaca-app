@@ -215,7 +215,7 @@ export class WebSocketManager {
     const generation = this.generation
     const isCurrent = () => generation === this.generation && !this.stopped && this.scope === this._currentScope()
     try {
-      await fetchP2PAvailability(backend)
+      await fetchP2PAvailability(backend, undefined, { userType: this.userType })
       if (!isCurrent()) return
       await assertP2PIdentity(null, this.userType)
       if (!isCurrent()) return

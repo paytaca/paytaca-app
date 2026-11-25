@@ -71,7 +71,6 @@ export default {
     bus.on('hide-menu', this.hideMenu)
     bus.on('show-menu', this.showMenu)
     bus.on('update-ongoing-count', this.updateOngoingOrdersCount)
-    bus.on('session-expired', this.handleSessionEvent)
     bus.on('post-notice', this.postNotice)
     bus.on('handle-request-error', this.handleRequestError)
   },  
@@ -99,7 +98,6 @@ export default {
     bus.off('hide-menu', this.hideMenu)
     bus.off('show-menu', this.showMenu)
     bus.off('update-ongoing-count', this.updateOngoingOrdersCount)
-    bus.off('session-expired', this.handleSessionEvent)
     bus.off('post-notice', this.postNotice)
     bus.off('handle-request-error', this.handleRequestError)
   },
@@ -140,7 +138,7 @@ export default {
       }
       // If user not in store, fetch it (non-blocking)
       // Note: This endpoint doesn't require authorization - it's a public endpoint
-      backend.get('/ramp-p2p/user').then(response => {
+      backend.get('/ramp-p2p/user', { authorize: 'peer' }).then(response => {
         // Store user in Vuex if not already stored
         if (response?.data?.user) {
           this.$store.commit('ramp/updateUser', response.data.user)
@@ -257,7 +255,7 @@ export default {
         return
       }
       
-      console.error('Handling error:', error?.response || error)
+      console.error('Handling error:', error?.response?.status || error?.code || 'Request failed')
       if (!error?.response) {
         // Network error
         bus.emit('network-error')

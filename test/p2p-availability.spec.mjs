@@ -2,7 +2,7 @@ import assert from 'node:assert/strict'
 import { EventEmitter } from 'node:events'
 import { markRaw, reactive } from 'vue'
 import { readFileSync, readdirSync } from 'node:fs'
-import { fetchP2PAvailability, assertP2PAvailable, isP2PAvailabilityError, p2pAvailabilityMessage, p2pRequestFeature } from '../src/exchange/availability.js'
+import { availabilityError, fetchP2PAvailability, assertP2PAvailable, isP2PAvailabilityError, p2pAvailabilityMessage, p2pRequestFeature } from '../src/exchange/availability.js'
 import rampState from '../src/store/ramp/state.js'
 import { dismissPaymentDetailsReminder } from '../src/store/ramp/mutations.js'
 import { paymentDetailsReminder, getWalletStateByHash } from '../src/store/ramp/getters.js'
@@ -537,7 +537,7 @@ describe('P2P maintenance screen', () => {
           return { status: 200, data: state.controls }
         }
       },
-      fetchP2PAvailability,
+      availabilityError, fetchP2PAvailability,
       p2pAvailabilityMessage,
       bus: { on () {}, off () {} },
       setTimeout (callback, delay) {
@@ -548,12 +548,118 @@ describe('P2P maintenance screen', () => {
     }
     const component = new Function(...Object.keys(bindings), script)(...Object.values(bindings))
     const vm = {
-      ...component.data(),
-      $store: { commit: (...args) => commits.push(args) },
+      ...component.data(), ready: true, userType: 'peer',
+      $store: { getters: { 'global/getWallet': () => ({ walletHash: 'wallet-a' }) }, commit: (...args) => commits.push(args) },
       $emit: (...args) => emitted.push(args)
     }
     for (const [name, method] of Object.entries(component.methods)) vm[name] = method.bind(vm)
-    return { vm, state, commits, emitted, timers, document, listeners, create: () => component.created.call(vm), unmount: () => component.beforeUnmount.call(vm) }
+    return { vm, component, state, commits, emitted, timers, document, listeners, create: () => component.created.call(vm), unmount: () => component.beforeUnmount.call(vm) }
+  }
+
+  it('requires manual Retry after repeated authentication failure without polling or visibility retries', async () => {
+    const h = screenHarness()
+    h.state.controls = available
+    await h.vm.retry()
+    h.vm.authenticationError = availabilityError()
+    h.vm.ready = false
+    h.component.watch.authenticationError.handler.call(h.vm)
+    await h.vm.retry()
+    h.vm.onVisibilityChange()
+    h.vm.onRelogged()
+    assert.equal(h.vm.confirmed, false)
+    assert.equal(h.vm.checking, false)
+    assert.equal(h.vm.error, h.vm.authenticationError)
+    assert.equal(h.timers.size, 0)
+    assert.equal(h.state.requests, 1)
+    assert.deepEqual(h.emitted, [['available']])
+    await h.vm.retry(true)
+    assert.deepEqual(h.emitted, [['available'], ['authenticate']])
+  })
+
+  it('waits for authentication before requesting or opening trading UI', async () => {
+    const h = screenHarness()
+    h.vm.ready = false
+    await h.vm.retry()
+    assert.equal(h.state.requests, 0)
+    assert.equal(h.vm.confirmed, false)
+    h.vm.ready = true
+    h.state.controls = available
+    await h.vm.retry()
+    assert.equal(h.vm.confirmed, true)
+  })
+
+  it('retries normal authentication when maintenance interrupted initialization', async () => {
+    const h = screenHarness()
+    h.vm.ready = false
+    h.vm.onUnavailable(availabilityError('p2p_maintenance', 'P2P_MAINTENANCE'))
+    await h.vm.retry()
+    assert.deepEqual(h.emitted, [['authenticate']])
+    assert.equal(h.state.requests, 0)
+    assert.equal(h.vm.checking, false)
+  })
+
+  for (const role of ['peer', 'arbiter']) {
+    it(`uses authenticated ${role} availability and preserves disabled features`, async () => {
+      const h = screenHarness()
+      h.vm.userType = role
+      h.state.get = async (url, config) => {
+        assert.equal(config.authorize, role)
+        return { status: 200, data: { ...available, ORDER_CREATE: false } }
+      }
+      await h.vm.retry()
+      assert.equal(h.vm.confirmed, true)
+      assert.equal(h.commits.at(-1)[1].ORDER_CREATE, false)
+      h.state.controls = { P2P_MAINTENANCE: true }
+      h.state.get = null
+      await h.vm.retry()
+      assert.equal(h.vm.confirmed, false)
+      assert.equal(h.vm.error.response.data.code, 'p2p_maintenance')
+    })
+  }
+
+  it('rechecks approved access periodically without remounting healthy trading pages', async () => {
+    const h = screenHarness()
+    h.state.controls = available
+    await h.vm.retry()
+    const timer = [...h.timers.values()][0]
+    assert.equal(timer.delay, 30000)
+    await timer.callback()
+    assert.equal(h.vm.screenKey, 1)
+    h.state.controls = { P2P_MAINTENANCE: true }
+    await [...h.timers.values()][0].callback()
+    assert.equal(h.vm.confirmed, false)
+    assert.equal(h.vm.error.response.data.code, 'p2p_maintenance')
+    assert.equal(h.commits.at(-1)[1], null)
+  })
+
+  it('blocks immediately on a backend 503 and ignores an older successful check', async () => {
+    const h = screenHarness()
+    let finish
+    h.state.get = () => new Promise(resolve => { finish = resolve })
+    const pending = h.vm.retry()
+    h.vm.onUnavailable(availabilityError('p2p_maintenance', 'P2P_MAINTENANCE'))
+    finish({ status: 200, data: available })
+    await pending
+    assert.equal(h.vm.confirmed, false)
+    assert.equal(h.vm.error.response.data.code, 'p2p_maintenance')
+  })
+
+  for (const change of ['wallet', 'account type', 'logout']) {
+    it(`discards an in-flight approval after ${change}`, async () => {
+      const h = screenHarness()
+      let finish
+      h.state.get = () => new Promise(resolve => { finish = resolve })
+      const pending = h.vm.retry()
+      if (change === 'logout') h.vm.onAuthCleared({ walletHash: 'wallet-a', userType: 'peer' })
+      else h.vm.reset()
+      if (change === 'account type') h.vm.userType = 'arbiter'
+      finish({ status: 200, data: available })
+      await pending
+      assert.equal(h.vm.confirmed, false)
+      assert.equal(h.vm.requestPending, false)
+      assert(h.commits.every(([, controls]) => controls === null))
+      assert.equal(h.emitted.length, 0)
+    })
   }
 
   it('notifies the parent when maintenance clears so authentication can resume', async () => {
@@ -577,8 +683,8 @@ describe('P2P maintenance screen', () => {
     assert.equal(h.vm.error, null)
     assert.equal(h.vm.checking, false)
     assert.equal(h.vm.screenKey, 1)
-    assert.equal(h.timers.size, 0)
-    assert.deepEqual(h.commits, [['ramp/updateFeatureToggles', available]])
+    assert.equal(h.timers.size, h.vm.confirmed && !h.vm.disposed ? 1 : 0)
+    assert.deepEqual(h.commits.at(-1), ['ramp/updateFeatureToggles', available])
   })
 
   it('does not show a popup when the entry redirect cancels other page requests', async () => {
@@ -601,7 +707,7 @@ describe('P2P maintenance screen', () => {
     assert.equal(h.vm.checking, false)
     assert.equal(h.vm.screenKey, 1)
     assert.equal(h.state.requests, 1)
-    assert.equal(h.timers.size, 0)
+    assert.equal(h.timers.size, h.vm.confirmed && !h.vm.disposed ? 1 : 0)
   })
 
   it('allows Retry to recover without adding headers rejected by backend CORS', async () => {
@@ -636,8 +742,8 @@ describe('P2P maintenance screen', () => {
     assert.equal(h.vm.error, null)
     assert.equal(h.vm.screenKey, 1)
     assert.equal(h.state.requests, 2)
-    assert.equal(h.timers.size, 0)
-    assert.deepEqual(h.commits, [['ramp/updateFeatureToggles', available]])
+    assert.equal(h.timers.size, h.vm.confirmed && !h.vm.disposed ? 1 : 0)
+    assert.deepEqual(h.commits.at(-1), ['ramp/updateFeatureToggles', available])
   })
 
   it('keeps the popup open and schedules another check if availability cannot be verified', async () => {
@@ -649,7 +755,7 @@ describe('P2P maintenance screen', () => {
     assert.equal(h.vm.checking, false)
     assert.equal(h.vm.screenKey, 0)
     assert.equal(h.timers.size, 1)
-    assert.deepEqual(h.commits, [])
+    assert(h.commits.every(([, controls]) => controls === null))
     h.unmount()
   })
 
@@ -658,10 +764,10 @@ describe('P2P maintenance screen', () => {
     await h.vm.retry()
     const timer = [...h.timers.values()][0]
     h.unmount()
-    assert.equal(h.timers.size, 0)
+    assert.equal(h.timers.size, h.vm.confirmed && !h.vm.disposed ? 1 : 0)
     await timer.callback()
     assert.equal(h.state.requests, 1)
-    assert.equal(h.timers.size, 0)
+    assert.equal(h.timers.size, h.vm.confirmed && !h.vm.disposed ? 1 : 0)
   })
 
   it('prevents overlapping checks and ignores results after leaving P2P', async () => {
@@ -674,9 +780,9 @@ describe('P2P maintenance screen', () => {
     h.unmount()
     finish({ status: 200, data: available })
     await pending
-    assert.deepEqual(h.commits, [])
+    assert(h.commits.every(([, controls]) => controls === null))
     assert.equal(h.vm.screenKey, 0)
-    assert.equal(h.timers.size, 0)
+    assert.equal(h.timers.size, h.vm.confirmed && !h.vm.disposed ? 1 : 0)
   })
   it('backs off failed checks from five seconds to thirty seconds and two minutes', async () => {
     const h = screenHarness()
@@ -702,7 +808,7 @@ describe('P2P maintenance screen', () => {
     assert.equal(h.timers.size, 1)
     h.document.hidden = true
     h.listeners.get('visibilitychange')()
-    assert.equal(h.timers.size, 0)
+    assert.equal(h.timers.size, h.vm.confirmed && !h.vm.disposed ? 1 : 0)
     const requests = h.state.requests
     await h.vm.retry()
     assert.equal(h.state.requests, requests)
@@ -714,7 +820,7 @@ describe('P2P maintenance screen', () => {
     assert.equal(h.vm.screenKey, 1)
     h.unmount()
     assert.equal(h.listeners.size, 0)
-    assert.equal(h.timers.size, 0)
+    assert.equal(h.timers.size, h.vm.confirmed && !h.vm.disposed ? 1 : 0)
   })
 
   it('does not schedule another check if the app becomes hidden during a failed request', async () => {
@@ -726,7 +832,7 @@ describe('P2P maintenance screen', () => {
     finish({ status: 200, data: { P2P_MAINTENANCE: true } })
     await pending
     assert(h.vm.error)
-    assert.equal(h.timers.size, 0)
+    assert.equal(h.timers.size, h.vm.confirmed && !h.vm.disposed ? 1 : 0)
   })
 
 })
@@ -773,7 +879,7 @@ function identityHarness ({ removeToken = null, tokenForRole = role => `syntheti
     post (url, data, config) { return this.request({ ...config, method: 'post', url, data }) }
   }
   const bindings = {
-    axios: { create: () => client }, Store, wallet,
+    availabilityError, axios: { create: () => client }, Store, wallet,
     Notify: { create: message => notifications.push(message) },
     bus: { emit: name => events.push(name) },
     requestManager: { attachTo () {} },
@@ -787,6 +893,71 @@ function identityHarness ({ removeToken = null, tokenForRole = role => `syntheti
   return { ...api, wallet, registered, selected, requests, events, notifications, client,
     fail: value => { failure = value }, beforeResponse: value => { beforeResponse = value } }
 }
+
+describe('P2P metadata authentication rejection', () => {
+  for (const url of ['/ramp-p2p/currency/fiat', '/ramp-p2p/currency/crypto/', '/ramp-p2p/utils/market-price/', '/ramp-p2p/utils/calculate-fees/?sats_trade_amount=1000', '/ramp-p2p/user/']) {
+    for (const status of [401, 403]) {
+      it(`blocks ${url} on HTTP ${status} without deleting the P2P token or starting another login`, async () => {
+        const h = identityHarness()
+        h.fail({ response: { status, data: { detail: 'Invalid token.' } } })
+        await assert.rejects(h.client.get(url, { authorize: 'peer' }), error => {
+          assert.equal(error.code, 'p2p_metadata_auth_failed')
+          assert.equal(error.response.status, 503)
+          return true
+        })
+        assert.deepEqual(h.events, ['p2p-authentication-failed'])
+        assert.equal(h.requests.length, 1)
+      })
+    }
+  }
+
+  it('still uses normal authentication when the local peer token is missing', async () => {
+    const h = identityHarness({ tokenForRole: () => null })
+    await assert.rejects(h.client.get('/ramp-p2p/currency/fiat', { authorize: 'peer' }), { code: 'p2p_auth_required' })
+    assert.deepEqual(h.events, ['delete-peer', 'session-expired'])
+    assert.equal(h.requests.length, 0)
+  })
+})
+
+describe('P2P maintenance authentication headers', () => {
+  for (const role of ['peer', 'arbiter']) {
+    it(`checks approved ${role} access with its own token even when the other role is cached`, async () => {
+      const h = identityHarness({ storedUser: { user_type: role === 'peer' ? 'arbiter' : 'peer' } })
+      Object.assign(h.registered, available)
+      await fetchP2PAvailability(h.client, 'ORDER_ESCROW', { userType: role })
+      assert.equal(h.requests[0].headers.Authorization, `Token synthetic-${role}-token`)
+      h.registered.P2P_MAINTENANCE = true
+      await assert.rejects(fetchP2PAvailability(h.client, undefined, { userType: role }), error =>
+        error.response.data.code === 'p2p_maintenance')
+    })
+
+    it(`expires a ${role} token through normal authentication without retrying availability`, async () => {
+      const h = identityHarness()
+      h.fail({ response: { status: 401, data: { detail: 'Invalid token' } } })
+      await assert.rejects(fetchP2PAvailability(h.client, undefined, { userType: role }))
+      assert.deepEqual(h.events, [`delete-${role}`, 'session-expired'])
+      assert.equal(h.requests.length, 1)
+    })
+  }
+
+  it('replaces an anonymous maintenance decision after normal token authentication', async () => {
+    const h = identityHarness()
+    Object.assign(h.registered, { P2P_MAINTENANCE: true })
+    await assert.rejects(fetchP2PAvailability(h.client, undefined, { userType: false }))
+    assert.equal(h.requests[0].headers.Authorization, undefined)
+    Object.assign(h.registered, available)
+    await fetchP2PAvailability(h.client, undefined, { userType: 'peer' })
+    assert.equal(h.requests[1].headers.Authorization, 'Token synthetic-peer-token')
+  })
+
+  it('turns an ordinary backend 503 into a maintenance notice', async () => {
+    const h = identityHarness()
+    h.fail({ response: { status: 503, data: { detail: 'Maintenance' } } })
+    await assert.rejects(h.client.get('/ramp-p2p/order/7/', { authorize: 'peer' }), error =>
+      error.response.data.code === 'p2p_maintenance')
+    assert.equal(h.events.includes('session-expired'), false)
+  })
+})
 
 describe('Immutable P2P profile identities', () => {
   for (const role of ['peer', 'arbiter']) {
@@ -2063,7 +2234,7 @@ describe('P2P entry authentication gate', () => {
     const events = []
     const bindings = {
       P2PAvailability: {}, HeaderNav: {}, OngoingMaintenanceDialog: {}, RampLogin: {},
-      getDarkModeClass () {}, isP2PAvailabilityError,
+      getDarkModeClass () {}, availabilityError, isP2PAvailabilityError,
       loadRampWallet: async () => { state.calls.push('wallet'); return { walletHash: state.hash } },
       loadAuthenticatedUser: async () => { state.calls.push('auth'); return state.authenticate() },
       bus: { off () {}, emit: (...args) => events.push(args) }
@@ -2087,9 +2258,56 @@ describe('P2P entry authentication gate', () => {
       $t: (key, values, fallback) => fallback || key
     }
     Object.defineProperty(vm, 'walletIdentity', { get: () => view.computed.walletIdentity.call(vm) })
+    Object.defineProperty(vm, 'availabilityIdentity', { get: () => view.computed.availabilityIdentity.call(vm) })
     for (const [name, method] of Object.entries(view.methods)) vm[name] = method.bind(vm)
     return { vm, view, state, commits, redirects, notifications, events }
   }
+
+  it('blocks the first metadata authentication failure without cycling the homepage', async () => {
+    const h = entryHarness('p2p-store')
+    await h.vm.getUser()
+    const failure = Object.assign(availabilityError(), { code: 'p2p_metadata_auth_failed' })
+    h.vm.onAuthenticationFailed(failure)
+    await h.vm.onSessionExpired()
+    assert.equal(h.vm.authenticationError, failure)
+    assert.equal(h.vm.isloaded, false)
+    assert.equal(h.state.calls.filter(call => call === 'auth').length, 1)
+    await h.vm.retryAuthentication()
+    assert.equal(h.vm.authenticationError, null)
+    assert.equal(h.vm.isloaded, true)
+    assert.equal(h.state.calls.filter(call => call === 'auth').length, 2)
+  })
+
+  it('stops repeated peer session failures from logging in and remounting indefinitely', async () => {
+    const h = entryHarness('p2p-store')
+    await h.vm.getUser()
+    await h.vm.onSessionExpired()
+    assert.equal(h.vm.isloaded, true)
+    assert.equal(h.state.calls.filter(call => call === 'auth').length, 2)
+    await h.vm.onSessionExpired()
+    assert.equal(h.vm.isloaded, false)
+    assert.equal(h.vm.authenticationError.response.data.code, 'p2p_availability_unverified')
+    await h.vm.onSessionExpired()
+    await h.vm.onSessionExpired()
+    assert.equal(h.state.calls.filter(call => call === 'auth').length, 2)
+    await h.vm.retryAuthentication()
+    assert.equal(h.vm.authenticationError, null)
+    assert.equal(h.vm.isloaded, true)
+    assert.equal(h.state.calls.filter(call => call === 'auth').length, 3)
+  })
+
+  it('waits for authentication before checking the mobile app version', async () => {
+    const h = entryHarness()
+    let finish
+    h.state.authenticate = () => new Promise(resolve => { finish = resolve })
+    h.vm.checkVersionUpdate = () => h.state.calls.push('version')
+    const pending = h.view.mounted.call(h.vm)
+    await new Promise(resolve => setImmediate(resolve))
+    assert.deepEqual(h.state.calls, ['wallet', 'auth'])
+    finish({ id: 'verified-peer', is_arbiter: false, user_type: 'peer' })
+    await pending
+    assert.deepEqual(h.state.calls, ['wallet', 'auth', 'version'])
+  })
 
   it('loads the wallet then authenticates before opening the app or redirecting', async () => {
     const h = entryHarness()
@@ -3798,7 +4016,8 @@ describe('P2P feature control refresh resilience', () => {
     const source = readFileSync('src/store/ramp/actions.js', 'utf8')
     const start = source.indexOf('export async function fetchFeatureToggles (context)')
     const end = source.indexOf('\n}', start) + 2
-    const state = { response: { status: 200, data: available } }
+    const state = { hash: 'wallet-a', role: 'peer', response: { status: 200, data: available } }
+    const bus = new EventEmitter()
     const commits = []
     const context = {
       state: { featureToggles: { P2P_MAINTENANCE: false, ORDER_CREATE: true, AD_CREATE: true } },
@@ -3808,17 +4027,32 @@ describe('P2P feature control refresh resilience', () => {
       if (state.response instanceof Error) throw state.response
       return state.response
     } }
-    const refresh = new Function('backend', 'fetchP2PAvailability', `${source.slice(start, end).replace('export ', '')}; return fetchFeatureToggles`)(backend, fetchP2PAvailability)
-    return { state, commits, context, refresh: () => refresh(context) }
+    const refresh = new Function('backend', 'fetchP2PAvailability', 'Store', 'bus', `${source.slice(start, end).replace('export ', '')}; return fetchFeatureToggles`)(backend, fetchP2PAvailability, { getters: { 'global/getWallet': () => ({ walletHash: state.hash }), get 'ramp/getUser' () { return { user_type: state.role } } } }, bus)
+    return { state, commits, context, bus, refresh: () => refresh(context) }
   }
 
-  it('preserves confirmed UI controls on a transient failure', async () => {
+  for (const change of ['wallet', 'role', 'logout']) {
+    it(`discards feature refresh after ${change}`, async () => {
+      const h = harness()
+      let finish
+      h.state.response = new Promise(resolve => { finish = resolve })
+      const pending = h.refresh()
+      if (change === 'wallet') h.state.hash = 'wallet-b'
+      if (change === 'role') h.state.role = 'arbiter'
+      if (change === 'logout') h.bus.emit('p2p-auth-cleared')
+      finish({ status: 200, data: available })
+      assert.deepEqual(await pending, {})
+      assert.deepEqual(h.commits, [])
+      assert.equal(h.bus.listenerCount('p2p-auth-cleared'), 0)
+    })
+  }
+
+  it('clears confirmed UI controls on a transient failure', async () => {
     const h = harness()
-    const previous = h.context.state.featureToggles
     h.state.response = new Error('Synthetic network failure')
-    assert.equal(await h.refresh(), previous)
-    assert.equal(h.context.state.featureToggles, previous)
-    assert.deepEqual(h.commits, [])
+    assert.deepEqual(await h.refresh(), {})
+    assert.equal(h.context.state.featureToggles, null)
+    assert.deepEqual(h.commits, [['updateFeatureToggles', null]])
   })
 
   it('commits only freshly confirmed controls and applies an explicit disabled feature', async () => {
@@ -3835,7 +4069,7 @@ describe('P2P feature control refresh resilience', () => {
     h.state.response = new Error('Synthetic network failure')
     assert.deepEqual(await h.refresh(), {})
     assert.equal(h.context.state.featureToggles, null)
-    assert.deepEqual(h.commits, [])
+    assert.deepEqual(h.commits, [['updateFeatureToggles', null]])
   })
 })
 
@@ -4402,5 +4636,85 @@ describe('P2P arbiter loading recovery', () => {
     assert.equal(notifications[0].type, 'error')
     assert.match(notifications[0].message, /timed out/)
     assert.deepEqual(events, [])
+  })
+})
+
+
+describe('Peer maintenance metadata authentication', () => {
+  const cases = [
+    ['src/components/ramp/fiat/StoreListings.vue', 'fetchFiatCurrencies'],
+    ['src/components/ramp/fiat/OrderListings.vue', 'fetchFiatCurrencies'],
+    ['src/components/ramp/fiat/AddPaymentMethods.vue', 'fetchFiatCurrency'],
+    ['src/components/ramp/fiat/AddPaymentMethods.vue', 'fetchPaymentTypes'],
+    ['src/components/ramp/fiat/dialogs/PaymentMethodForm.vue', 'fetchFiatCurrencies'],
+    ['src/components/ramp/fiat/dialogs/PaymentMethodForm.vue', 'fetchPaymentTypes'],
+    ['src/components/ramp/fiat/dialogs/SelectPaymentMethods.vue', 'fetchPaymentTypes'],
+    ['src/components/ramp/fiat/DisplayConfirmation.vue', 'fetchMarketPrice'],
+    ['src/pages/apps/exchange/peer_to_peer/order-form.vue', 'fetchMarketPrice'],
+    ['src/pages/apps/exchange/peer_to_peer/order-form.vue', 'fetchFees'],
+    ['src/pages/apps/exchange/peer_to_peer/ad-form.vue', 'getInitialMarketPrice']
+  ]
+
+  for (const [path, name] of cases) {
+    it(`keeps approved peers authenticated in ${path}: ${name}`, async () => {
+      const h = identityHarness({ storedUser: { user_type: 'arbiter' } })
+      const failures = []
+      const backend = { get: async (url, config) => {
+        const response = await h.client.get(url, config)
+        if (response.config.headers.Authorization !== 'Token synthetic-peer-token') {
+          throw availabilityError('p2p_maintenance', 'P2P_MAINTENANCE')
+        }
+        const data = url.includes('market-price') ? { price: '12000' }
+          : url.includes('calculate-fees') ? { service: 10 } : [{ id: 1, symbol: 'PHP' }]
+        return { ...response, data }
+      } }
+      const source = readFileSync(path, 'utf8')
+      const start = source.indexOf(`    async ${name} (`)
+      const end = source.indexOf('\n    },', start) + 6
+      const methods = new Function('backend', 'bus', `return { ${source.slice(start, end)} }`)(backend, { emit: event => failures.push(event) })
+      const vm = {
+        selectedCurrency: { symbol: 'PHP' }, currency: 'PHP', fiatCurrencies: [],
+        ad: { fiat_currency: { symbol: 'PHP' } }, adData: { fiatCurrency: { symbol: 'PHP' } },
+        getTradeAmount: () => 1000, $t: key => key,
+        handleRequestError: error => failures.push(error), pauseForLogin: () => failures.push('login')
+      }
+      await methods[name].call(vm)
+      assert.equal(h.requests.length, 1)
+      assert.equal(h.requests[0].authorize, 'peer')
+      assert.equal(h.requests[0].headers.Authorization, 'Token synthetic-peer-token')
+      assert.deepEqual(failures, [])
+    })
+  }
+
+  for (const role of ['peer', 'arbiter']) {
+    it(`authenticates the mobile version check for ${role}`, async () => {
+      const h = identityHarness()
+      const backend = { get: async (url, config) => {
+        const response = await h.client.get(url, config)
+        return { ...response, data: { latest_version: 'test' } }
+      } }
+      const source = readFileSync('src/pages/apps/exchange/index.vue', 'utf8')
+      const start = source.indexOf('    async checkVersionUpdate (')
+      const end = source.indexOf('\n    }\n  }\n}', start) + 6
+      const methods = new Function('backend', 'packageInfo', `return { ${source.slice(start, end)} }`)(backend, { version: 'test' })
+      await methods.checkVersionUpdate.call({ user: { user_type: role }, $q: { platform: { is: { mobile: true } } } })
+      await new Promise(resolve => setImmediate(resolve))
+      assert.equal(h.requests.length, 1)
+      assert.equal(h.requests[0].headers.Authorization, `Token synthetic-${role}-token`)
+    })
+  }
+
+  it('authenticates payment-type lookups dispatched by the peer store', async () => {
+    const h = identityHarness({ storedUser: { user_type: 'arbiter' } })
+    const source = readFileSync('src/store/ramp/actions.js', 'utf8')
+    const start = source.indexOf('export function fetchPaymentTypes (')
+    const end = source.indexOf('\n}', start) + 2
+    const backend = { get: async (url, config) => {
+      const response = await h.client.get(url, config)
+      return { ...response, data: [] }
+    } }
+    const fetch = new Function('backend', 'toRaw', `${source.slice(start, end).replace('export ', '')}; return fetchPaymentTypes`)(backend, value => value)
+    await fetch({ getters: { paymentTypes: () => null }, commit () {} }, { currency: 'PHP' })
+    assert.equal(h.requests[0].headers.Authorization, 'Token synthetic-peer-token')
   })
 })

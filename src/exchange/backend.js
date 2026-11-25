@@ -1,6 +1,6 @@
 import axios from 'axios'
 import { Notify } from 'quasar'
-import { fetchP2PAvailability, isP2PAvailabilityError, p2pRequestFeature } from 'src/exchange/availability'
+import { availabilityError, fetchP2PAvailability, isP2PAvailabilityError, p2pRequestFeature } from 'src/exchange/availability'
 import { Store } from 'src/store'
 import { deleteAuthTokenForUserType, getAuthToken } from './auth'
 import { wallet } from './wallet'
@@ -55,7 +55,9 @@ function resolveRequestUserType (config) {
 function assertRequestWallet (config) {
   if (config?.p2pWalletHash !== Store.getters['global/getWallet']('bch')?.walletHash ||
       config?.p2pWalletIndex !== Store.getters['global/getWalletIndex'] ||
-      config?.p2pChipnet !== Store.getters['global/isChipnet']) {
+      config?.p2pChipnet !== Store.getters['global/isChipnet'] ||
+      (Object.prototype.hasOwnProperty.call(config, 'p2pAccountType') &&
+       config.p2pAccountType !== (Store.getters['ramp/getUser']?.user_type || Store.getters['ramp/getUser']?.is_arbiter))) {
     throw Object.assign(new Error('The active wallet changed. Please reopen this P2P action.'), { code: 'p2p_identity_mismatch' })
   }
 }
@@ -91,12 +93,17 @@ backend.interceptors.request.use(async (config) => {
   config.p2pWalletHash = wallet.walletHash
   config.p2pWalletIndex = Store.getters['global/getWalletIndex']
   config.p2pChipnet = isChipnet
+  config.p2pAccountType = Store.getters['ramp/getUser']?.user_type || Store.getters['ramp/getUser']?.is_arbiter
   config.headers['wallet-hash'] = wallet.walletHash
   await authorizeRequest(config)
   const feature = p2pRequestFeature(config)
   if (feature) {
-    await fetchP2PAvailability(backend, feature)
-    await assertP2PIdentity(null, 'peer')
+    try {
+      await fetchP2PAvailability(backend, feature, { userType: resolveRequestUserType(config) })
+      await assertP2PIdentity(null, 'peer')
+    } finally {
+      assertRequestWallet(config)
+    }
     await authorizeRequest(config)
   }
   assertRequestWallet(config)
@@ -112,11 +119,21 @@ backend.interceptors.response.use(
   },
   async error => {
     if (error?.config?.p2pWalletHash) assertRequestWallet(error.config)
+    if (error?.response?.status === 503 && !isP2PAvailabilityError(error)) {
+      error = Object.assign(availabilityError('p2p_maintenance', 'P2P_MAINTENANCE'), { config: error.config })
+    }
     if (isP2PAvailabilityError(error)) bus.emit('p2p-unavailable', error)
     // Handle 401 Unauthorized and 403 Forbidden errors - typically means session expired or not authenticated
     // Check if this was an authorized request (requires authentication)
     const wasAuthorizedRequest = !!error?.config?.authorize
     const status = error?.response?.status
+    const metadataRead = String(error?.config?.method || '').toLowerCase() === 'get' &&
+      /\/ramp-p2p\/(?:currency\/(?:fiat|crypto)(?:\/\d+)?|utils\/(?:market-price|calculate-fees)|user)\/?$/.test(String(error?.config?.url || '').split('?')[0])
+    if (wasAuthorizedRequest && metadataRead && [401, 403].includes(status) && error?.code !== 'p2p_auth_required') {
+      const failure = Object.assign(availabilityError(), { config: error.config, code: 'p2p_metadata_auth_failed' })
+      bus.emit('p2p-authentication-failed', failure)
+      return Promise.reject(failure)
+    }
     
     const profileUpdate = /\/ramp-p2p\/(peer|arbiter)\/?$/.test(String(error?.config?.url || '')) &&
       ['patch', 'put'].includes(String(error?.config?.method || '').toLowerCase())

@@ -558,20 +558,20 @@ export default {
     },
     async fetchFiatCurrency () {
       try {
-        const response = await backend.get('/ramp-p2p/currency/fiat')
+        const response = await backend.get('/ramp-p2p/currency/fiat', { authorize: 'peer' })
         this.fiatOption = response.data
       } catch (error) {
-        console.error(error)
+        console.error(error?.response?.status || error?.code || 'Request failed')
       }
     },
     async fetchPaymentTypes () {
       const vm = this
-      await backend.get('/ramp-p2p/payment-type/', { params: { currency: this.currency ? this.currency : this.selectedCurrency.symbol } })
+      await backend.get('/ramp-p2p/payment-type/', { authorize: 'peer', params: { currency: this.currency ? this.currency : this.selectedCurrency.symbol } })
         .then(response => {
           vm.paymentTypeOpts = response.data
         })
         .catch(error => {
-          console.error(error.response || error)
+          console.error(error?.response?.status || error?.code || 'Request failed')
           if (error.response) {
             if (error.response.status === 403) {
               bus.emit('session-expired')

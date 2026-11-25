@@ -1082,7 +1082,7 @@ onSelectAttachment (methodIndex, methodId) {
           address: vm.data.escrow.addresses.seller,
           address_path: addressPath
         }, 'peer')
-        await fetchP2PAvailability(backend, 'RELEASE_BCH')
+        await fetchP2PAvailability(backend, 'RELEASE_BCH', { userType: 'peer' })
         signerWallet.assertIdentity(registered)
         if (vm.disposed || vm.data.escrow !== escrow || vm.data.contract !== contract ||
             vm.order !== order || vm.order?.id !== orderId || vm.order?.status?.value !== status ||
