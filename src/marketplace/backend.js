@@ -30,10 +30,16 @@ export const backend = axios.create({
 })
 
 requestManager.attachTo(backend)
+const MARKETPLACE_ORIGIN = new URL(backend.defaults.baseURL).origin
+function isMarketplaceRequest(config) {
+  const url = config.url || ''
+  if (!/^https?:\/\//i.test(url)) return true
+  try { return new URL(url).origin === MARKETPLACE_ORIGIN } catch { return false }
+}
 
 export async function sigAuthInterceptor(config) {
-  if (['get', 'option'].indexOf(config.method) >= 0 && !config.forceSign) return config
-  if (config.skipSigning) return config
+  // if (['get', 'option'].indexOf(config.method) >= 0 && !config.forceSign) return config
+  if (config.skipSigning || !isMarketplaceRequest(config)) return config
 
   let data = config.data
   let timestamp = Date.now()

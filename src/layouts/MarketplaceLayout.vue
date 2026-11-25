@@ -161,7 +161,7 @@ import { useMarketplaceLocationManager } from 'src/composables/marketplace/sessi
 import { useQuasar } from 'quasar'
 import { useRouter, useRoute } from 'vue-router'
 import { useStore } from 'vuex'
-import { ref, computed, watch, onMounted, onUnmounted } from 'vue'
+import { ref, computed, watch, onMounted, onUnmounted, nextTick } from 'vue'
 import CartItemFormDialog from 'src/components/marketplace/CartItemFormDialog.vue'
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 import CartItemsList from 'src/components/marketplace/product/CartItemsList.vue'
@@ -209,7 +209,7 @@ export default {
     }
     async function loadApp() {
       if (loadAppPromise.value) return loadAppPromise.value
-      loadAppPromise.value = new Promise(async resolve => {
+      loadAppPromise.value = new Promise(async (resolve, reject) => {
         try {
           loadingApp.value = true
 
@@ -221,6 +221,7 @@ export default {
           const walletHashMatch = walletHash == customer.value?.paytacaWallet?.walletHash
           if (!customer.value?.id || !signerData?.value || !walletHashMatch) {
             loadAppMsg.value = 'Updating session'
+            await nextTick();
             await $store.dispatch('marketplace/updatePrivkey').catch(error => {
               console.error(error)
               return $store.dispatch('marketplace/updateCustomerVerifyingPubkey')

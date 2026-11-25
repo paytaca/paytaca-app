@@ -1,5 +1,5 @@
 import { Geolocation } from '@capacitor/geolocation'
-import { publicKeyToLegacyAddress } from 'src/utils/bch-keys'
+import { publicKeyToLegacyAddress, signMessage } from 'src/utils/bch-keys'
 import { geolocationManager } from 'src/boot/geolocation'
 import { backend, setSignerData } from 'src/marketplace/backend'
 import { Cart } from 'src/marketplace/objects'
@@ -114,11 +114,22 @@ export async function updateCustomerVerifyingPubkey(context, opts={ index: 0 }) 
   const pubkey = await wallet.BCH.getPublicKey(`0/${index}`)
   const privkey = await wallet.BCH.getPrivateKey(`0/${index}`)
 
+  const customerRef = await context.dispatch('getCartRef')
+  const timestamp = Date.now();
+  const payload = [
+    'connecta:customer-wallet:v1', customerRef, walletHash, pubkey,
+    String(index), String(timestamp),
+  ].join(':');
+  const signData = Buffer.from(payload).toString('hex');
+  const signature = signMessage(privkey, signData);
+
   const data = {
     paytaca_wallet: {
       wallet_hash: walletHash,
       verifying_pubkey: pubkey,
       verifying_pubkey_index: index,
+      signature: signature,
+      timestamp: timestamp,
     }
   }
 
@@ -126,7 +137,7 @@ export async function updateCustomerVerifyingPubkey(context, opts={ index: 0 }) 
   if (customer?.id) {
     request = backend.patch(`connecta/customers/${customer?.id}/`, data)
   } else {
-    data.ref = await context.dispatch('getCartRef')
+    data.ref = customerRef;
     request = backend.post(`connecta/customers/`, data, { skipSigning: true })
   }
   return request.then(response => {
@@ -148,6 +159,14 @@ export async function refetchCustomerData(context) {
       context.commit('setCustomerData', customerData)
       return customerData
     })
+    .catch(error => {
+      if (error?.response?.status === 403) {
+        context.commit('setCustomerData', null);
+        context.commit('clearCustomerLocations');
+        return
+      }
+      return Promise.reject(error)
+    })
 }
 
 export async function refetchCustomerLocations(context) {
@@ -160,6 +179,10 @@ export async function refetchCustomerLocations(context) {
         context.commit('addCustomerLocation', locationData)
       })
       return response
+    })
+    .catch(error => {
+      if (error?.response?.status === 403) context.commit('clearCustomerLocations')
+      return Promise.reject(error);
     })
 }
 
