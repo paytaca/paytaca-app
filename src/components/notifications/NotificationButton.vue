@@ -16,7 +16,9 @@
 
 <script>
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
-import { getWalletUnreadNotifs } from 'src/utils/engagementhub-utils/engagementhub-utils'
+import { getNotificationWsTicket, getWalletUnreadNotifs } from 'src/utils/engagementhub-utils/engagementhub-utils'
+import { isWalletRequestSigningEnabled } from 'src/utils/request-signing'
+import { createNotificationSocket } from 'src/utils/notification-ws'
 
 import Notifications from 'src/components/notifications/index.vue'
 
@@ -29,8 +31,7 @@ export default {
 
   data () {
     return {
-      notifsCount: 0,
-      notifSocket: null
+      notifsCount: 0
     }
   },
 
@@ -51,12 +52,26 @@ export default {
 
   async mounted () {
     const vm = this
+    const walletHash = vm.currentWalletHash
 
-    vm.notifsCount = await getWalletUnreadNotifs(vm.currentWalletHash)
-    vm.notifSocket = new WebSocket(
-      `${process.env.ENGAGEMENT_HUB_WS_URL}notifications/${vm.currentWalletHash}/`
-    )
-    vm.addListenersToSocket()
+    vm.notifsCount = await getWalletUnreadNotifs(walletHash)
+    if (vm._notificationSocketStopped) return
+
+    vm._notificationSocket = createNotificationSocket({
+      walletHash,
+      baseUrl: process.env.ENGAGEMENT_HUB_WS_URL,
+      fetchTicket: getNotificationWsTicket,
+      isSigningEnabled: isWalletRequestSigningEnabled,
+      createSocket: (url) => new WebSocket(url),
+      onUnreadCount: (count) => { vm.notifsCount = count }
+    })
+    await vm._notificationSocket.connect()
+  },
+
+  beforeUnmount () {
+    this._notificationSocketStopped = true
+    this._notificationSocket?.stop()
+    this._notificationSocket = null
   },
 
   methods: {
@@ -69,30 +84,6 @@ export default {
         componentProps: { onOpenTransaction: this.findAndOpenTransaction }
       }).onDismiss(async () => {
         vm.notifsCount = await getWalletUnreadNotifs(vm.currentWalletHash)
-      })
-    },
-    addListenersToSocket () {
-      const vm = this
-
-      vm.notifSocket.addEventListener('message', (event) => {
-        const data = JSON.parse(event.data)
-        vm.notifsCount = data.unread_notifs_count
-      })
-
-      vm.notifSocket.addEventListener('open', (event) => {
-        console.log('Notification websocket opened.')
-      })
-
-      vm.notifSocket.addEventListener('close', (event) => {
-        console.log('Notification websocket closed. Reopening websocket...')
-        vm.notifSocket = new WebSocket(
-          `${process.env.ENGAGEMENT_HUB_WS_URL}notifications/${vm.currentWalletHash}/`
-        )
-        vm.addListenersToSocket()
-      })
-
-      vm.notifSocket.addEventListener('error', (event) => {
-        console.log('Notification websocket encountered an error. ', event)
       })
     },
     findAndOpenTransaction (data) {

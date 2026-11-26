@@ -356,3 +356,24 @@ describe('instance attachment scope', () => {
     )
   })
 })
+
+describe('client build flag', () => {
+  it('attaches when the flag is absent or true', () => {
+    delete process.env.WALLET_REQUEST_SIGNING
+    const { instance } = createInstance()
+    attachSignedRequests(instance, createHooks())
+    assert.equal(instance.interceptors.request.handlers.length, 1)
+  })
+
+  it('does not attach when the build disables signing', () => {
+    process.env.WALLET_REQUEST_SIGNING = 'false'
+    try {
+      const { instance } = createInstance()
+      attachSignedRequests(instance, createHooks())
+      assert.equal(instance.interceptors.request.handlers.length, 0)
+      assert.equal(instance.interceptors.response.handlers.length, 0)
+    } finally {
+      delete process.env.WALLET_REQUEST_SIGNING
+    }
+  })
+})

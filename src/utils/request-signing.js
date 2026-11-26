@@ -11,6 +11,13 @@ import {
 // matching server release.
 export const AUTH_PROTOCOL_TAG = 'EHAUTH1'
 
+// Client-side kill switch for the rollout. Signing is on unless the build sets
+// this to "false"; the server flag is the long-lived switch. Delete this in the
+// next release once every domain is in enforce.
+export function isWalletRequestSigningEnabled () {
+  return String(process.env.WALLET_REQUEST_SIGNING ?? 'true').toLowerCase() !== 'false'
+}
+
 export class WalletSigningUnavailable extends Error {
   constructor (message, reason = 'unavailable') {
     super(message)
@@ -288,6 +295,7 @@ export function attachSignedRequests (instance, hooks = {}) {
       throw new TypeError('attachSignedRequests requires a ' + name + ' hook')
     }
   }
+  if (!isWalletRequestSigningEnabled()) return
   if (attachedInstances.has(instance)) return
   attachedInstances.add(instance)
 

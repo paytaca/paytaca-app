@@ -158,6 +158,13 @@ export async function getWalletUnreadNotifs (walletHash) {
   return count
 }
 
+export async function getNotificationWsTicket (walletHash) {
+  const response = await NOTIFS_URL.post('ws-ticket/', { wallet_hash: walletHash })
+  const ticket = response?.data?.ticket
+  if (!ticket) throw new Error('engagement-hub did not return a websocket ticket')
+  return ticket
+}
+
 export function parseDeviceId (deviceId) {
   const platform = Capacitor.getPlatform()
   if (platform === 'ios') {
